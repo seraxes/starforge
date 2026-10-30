@@ -1,0 +1,14 @@
+/*
+ * Light Starforge brand touch for Payload admin.
+ * Full theming stays with Payload; these only hint the product palette.
+ */
+:root {
+  --sf-primary: #f2a66a;
+  --sf-primary-strong: #a85220;
+  --sf-secondary: #8ebad4;
+  --sf-secondary-strong: #2f6f96;
+}
+
+html[data-theme='light'] {
+  --theme-success-500: var(--sf-secondary-strong);
+}
