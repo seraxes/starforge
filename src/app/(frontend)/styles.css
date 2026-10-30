@@ -1,10 +1,25 @@
 :root {
-  --sf-ink: #14201c;
-  --sf-muted: #4a5c54;
-  --sf-paper: #f3f6f2;
-  --sf-accent: #1f6b4a;
-  --sf-accent-ink: #f7fff9;
-  --sf-line: #c9d6ce;
+  /* Brand — pastel orange primary, pastel blue secondary */
+  --sf-primary: #f2a66a;
+  --sf-primary-strong: #a85220;
+  --sf-primary-ink: #1c2834;
+  --sf-secondary: #8ebad4;
+  --sf-secondary-strong: #2f6f96;
+  --sf-secondary-ink: #1c2834;
+
+  /* Surfaces (cool light — not cream, not dark-mode default) */
+  --sf-ink: #1c2834;
+  --sf-muted: #5a6674;
+  --sf-paper: #f5f8fc;
+  --sf-line: #d3dce6;
+
+  /*
+   * Aliases for existing UI (login/register + session controls).
+   * Strong orange keeps link/button text contrast on light surfaces.
+   */
+  --sf-accent: var(--sf-primary-strong);
+  --sf-accent-ink: #fff8f2;
+
   --font-display: 'Segoe UI', 'Helvetica Neue', sans-serif;
   --font-body: 'Segoe UI', 'Helvetica Neue', sans-serif;
 }
@@ -23,9 +38,9 @@ body {
   font-family: var(--font-body);
   color: var(--sf-ink);
   background:
-    radial-gradient(1200px 600px at 10% -10%, #d9ebe1 0%, transparent 55%),
-    radial-gradient(900px 500px at 100% 0%, #e7efe4 0%, transparent 50%),
-    linear-gradient(180deg, #eef3ef 0%, var(--sf-paper) 45%, #e8eee9 100%);
+    radial-gradient(1100px 560px at 8% -12%, color-mix(in srgb, var(--sf-primary) 42%, white) 0%, transparent 58%),
+    radial-gradient(900px 520px at 100% 0%, color-mix(in srgb, var(--sf-secondary) 38%, white) 0%, transparent 52%),
+    linear-gradient(180deg, #eef4fa 0%, var(--sf-paper) 48%, #eef2f6 100%);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -52,7 +67,7 @@ body {
   font-size: 0.95rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--sf-accent);
+  color: var(--sf-primary-strong);
   font-weight: 700;
 }
 
@@ -86,14 +101,23 @@ h1 {
 }
 
 .links .primary {
-  background: var(--sf-accent);
-  border-color: var(--sf-accent);
-  color: var(--sf-accent-ink);
+  background: var(--sf-primary);
+  border-color: color-mix(in srgb, var(--sf-primary) 70%, var(--sf-primary-strong));
+  color: var(--sf-primary-ink);
+}
+
+.links .primary:hover {
+  background: color-mix(in srgb, var(--sf-primary) 82%, var(--sf-primary-strong));
 }
 
 .links .secondary {
-  background: transparent;
-  color: var(--sf-ink);
+  background: color-mix(in srgb, var(--sf-secondary) 18%, transparent);
+  border-color: color-mix(in srgb, var(--sf-secondary) 55%, var(--sf-secondary-strong));
+  color: var(--sf-secondary-strong);
+}
+
+.links .secondary:hover {
+  background: color-mix(in srgb, var(--sf-secondary) 32%, transparent);
 }
 
 .footer {
@@ -105,6 +129,11 @@ h1 {
 
 .footer code {
   font-size: 0.85em;
+}
+
+.footer a {
+  color: var(--sf-secondary-strong);
+  font-weight: 600;
 }
 
 .session-bar {
@@ -142,14 +171,15 @@ button.secondary {
 }
 
 button.primary {
-  background: var(--sf-accent);
-  border-color: var(--sf-accent);
-  color: var(--sf-accent-ink);
+  background: var(--sf-primary);
+  border-color: color-mix(in srgb, var(--sf-primary) 70%, var(--sf-primary-strong));
+  color: var(--sf-primary-ink);
 }
 
 button.secondary {
-  background: transparent;
-  color: var(--sf-ink);
+  background: color-mix(in srgb, var(--sf-secondary) 18%, transparent);
+  border-color: color-mix(in srgb, var(--sf-secondary) 55%, var(--sf-secondary-strong));
+  color: var(--sf-secondary-strong);
 }
 
 button.ghost {
@@ -249,4 +279,3 @@ button:disabled {
     text-align: center;
   }
 }
-
