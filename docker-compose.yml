@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: starforge-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: starforge
+      POSTGRES_PASSWORD: starforge
+      POSTGRES_DB: starforge
+    ports:
+      - "5432:5432"
+    volumes:
+      - starforge_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U starforge -d starforge"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  starforge_pgdata:
