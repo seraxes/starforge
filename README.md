@@ -61,21 +61,37 @@ Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so coo
 | http://localhost:3000/login | Sign in as an app user (same email + password) |
 | http://localhost:3000/api/me | Current app session JSON (`401` when signed out) |
 | http://localhost:3000/admin | Payload admin (create first **CMS editor** on first visit) |
+| http://localhost:3000/about | Example: published CMS page with slug `about` (404 until you create + Publish it) |
 | http://localhost:3000/api/health | Core health JSON (`database: "up"` when Postgres is reachable) |
 
 App login uses **email**, not a separate username. Forgot / reset password is **deferred** until outbound email is wired.
 
-### Updating the auth PR branch (Windows)
+### Edit pages in Payload admin (Lexical)
 
-You need commit **`784d596` or newer** on `cursor/core-auth-sessions-c4bd` (server-action login). After pulling, **restart** `npm run dev` and **register a new app user** — accounts created before that fix may not sign in reliably.
+CMS content uses **Payload Lexical** (not TipTap): headings, lists, links, and images from **Media**, with a fixed toolbar.
+
+1. Open **http://localhost:3000/admin** and create the first **CMS editor** (email + password). This is separate from app `/register` accounts.
+2. In the sidebar: **Media** → upload an image (fill in **Alt** text).
+3. Open **Pages** → **Create new**.
+4. Set **Title** and **Slug** (sidebar), e.g. title `About`, slug `about`.
+5. In **Body**, use the toolbar or type `/` for the slash menu:
+   - Headings (H1–H4), bold/italic, lists
+   - Link (external URL or another Page)
+   - Upload / insert image from **Media**
+6. Use **Save Draft** while writing; click **Publish** when the page should be public.
+7. Open **http://localhost:3000/{slug}** (e.g. `/about`). Drafts and unpublished pages return **404** for anonymous visitors.
+
+Public render lives in `src/app/(frontend)/[slug]/page.tsx` and uses `getPublishedPageBySlug` in `src/core/content/pages.ts`.
+
+### Windows: Lexical Pages smoke test
+
+After this branch is checked out (or merged to `main`):
 
 ```bat
 cd starforge
 git fetch origin
-git checkout cursor/core-auth-sessions-c4bd
-git pull origin cursor/core-auth-sessions-c4bd
-git log -1 --oneline
-rem Expect: 784d596 Fix app login...  OR a newer commit on this branch
+git checkout cursor/payload-lexical-pages-3c8a
+git pull origin cursor/payload-lexical-pages-3c8a
 
 docker compose up -d
 if not exist .env copy .env.example .env
@@ -86,15 +102,16 @@ rem Stop any old npm run dev window (Ctrl+C), then:
 npm run dev
 ```
 
-Browser: open **http://localhost:3000/register**, create a **new** email + password (8+ chars), confirm home shows **Signed in as…**, then Sign out → Sign in with the **same email**. Do not use a Payload `/admin` user here.
+1. Open **http://localhost:3000/admin** — create first CMS editor if prompted.
+2. **Media** → upload a small image with alt text.
+3. **Pages** → Create → title `About`, slug `about`.
+4. In Body: add a heading, a bullet list, a link, and insert the Media image (toolbar or `/`).
+5. Click **Publish** (not only Save Draft).
+6. Open **http://localhost:3000/about** — heading, list, link, and image should render.
+7. Confirm **http://localhost:3000/api/health** still shows `"database":"up"`.
+8. Optional: app auth still works at `/register` / `/login` (separate from CMS editors).
 
-Optional clean DB if old trial users confuse you:
-
-```bat
-docker compose down -v
-docker compose up -d
-npm run db:core:push
-```
+If admin UI looks broken after pulling editor changes: `npm run generate:importmap`, then restart `npm run dev`.
 
 ### Useful commands
 
@@ -128,15 +145,18 @@ docker-compose.yml          # local Postgres only
 docker/postgres/init.sql    # CREATE SCHEMA payload
 src/
   app/
-    (frontend)/             # public app shell + /login + /register
+    (frontend)/             # public app shell + /login + /register + /[slug]
     (payload)/              # Payload admin + REST/GraphQL (do not hand-edit)
     api/auth/               # Better Auth handler
     api/health/             # core health route
     api/me/                 # current app session
-  collections/              # Payload content collections
+  collections/              # Payload content collections (Pages, Media, Users)
+  components/RichText/      # Lexical → JSX for public pages
   core/
     auth/                   # Better Auth config + client + Zod schemas
+    content/                # published CMS reads for the public site
     db/                     # Drizzle core schema + client
+  fields/pagesLexical.ts    # Lexical editor features for Pages
   payload.config.ts         # Payload config (content module)
 ```
 
@@ -144,7 +164,7 @@ src/
 
 - Production / DigitalOcean deploy
 - Forgot / reset password (needs email — deferred), roles, OAuth
-- Public CMS page rendering by slug
+- SEO fields, seed script, draft preview
 - Airsoftnexus 2.0 feature parity
 
 ## Troubleshooting
