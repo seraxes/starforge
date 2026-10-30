@@ -106,3 +106,147 @@ h1 {
 .footer code {
   font-size: 0.85em;
 }
+
+.session-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  padding: 1rem 0;
+  border-top: 1px solid var(--sf-line);
+  border-bottom: 1px solid var(--sf-line);
+}
+
+.session-status {
+  margin: 0;
+  color: var(--sf-muted);
+  font-size: 1rem;
+}
+
+.session-status strong {
+  color: var(--sf-ink);
+}
+
+.muted-links {
+  opacity: 0.95;
+}
+
+button.primary,
+button.secondary {
+  text-decoration: none;
+  padding: 0.65rem 1rem;
+  border: 1px solid var(--sf-line);
+  font-weight: 600;
+  font: inherit;
+  cursor: pointer;
+}
+
+button.primary {
+  background: var(--sf-accent);
+  border-color: var(--sf-accent);
+  color: var(--sf-accent-ink);
+}
+
+button.secondary {
+  background: transparent;
+  color: var(--sf-ink);
+}
+
+button.ghost {
+  background: transparent;
+}
+
+button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.25rem;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 26rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.auth-card h1 {
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
+}
+
+.auth-card .lede {
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+.auth-card a {
+  color: var(--sf-accent);
+  font-weight: 600;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.auth-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--sf-ink);
+}
+
+.auth-form input {
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--sf-line);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--sf-ink);
+  font: inherit;
+  font-weight: 400;
+}
+
+.auth-form input:focus {
+  outline: 2px solid color-mix(in srgb, var(--sf-accent) 55%, transparent);
+  outline-offset: 1px;
+}
+
+.auth-form .primary {
+  margin-top: 0.35rem;
+  align-self: flex-start;
+}
+
+.auth-error {
+  margin: 0;
+  color: #8a1f1f;
+  font-size: 0.92rem;
+}
+
+.auth-switch {
+  margin: 0.5rem 0 0;
+  color: var(--sf-muted);
+  font-size: 0.95rem;
+}
+
+@media (max-width: 640px) {
+  .home {
+    padding: 2rem 1.15rem 1.5rem;
+  }
+
+  .links a,
+  button.primary,
+  button.secondary {
+    width: 100%;
+    text-align: center;
+  }
+}
+

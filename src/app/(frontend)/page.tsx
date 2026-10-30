@@ -1,8 +1,14 @@
 import React from 'react'
+import Link from 'next/link'
 
+import { getAppSession } from '@/core/auth/session'
+import { SignOutButton } from './sign-out-button'
 import './styles.css'
 
-export default function HomePage() {
+export default async function HomePage() {
+  const session = await getAppSession()
+  const user = session?.user
+
   return (
     <div className="home">
       <div className="content">
@@ -12,8 +18,37 @@ export default function HomePage() {
           Product APIs and auth live in Starforge core. Payload CMS handles editorial
           content and media only.
         </p>
-        <div className="links">
-          <a className="primary" href="/admin">
+
+        <div className="session-bar" aria-live="polite">
+          {user ? (
+            <>
+              <p className="session-status">
+                Signed in as <strong>{user.name}</strong> ({user.email})
+              </p>
+              <div className="links">
+                <a className="secondary" href="/api/me">
+                  View /api/me
+                </a>
+                <SignOutButton />
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="session-status">Not signed in (app account).</p>
+              <div className="links">
+                <Link className="primary" href="/register">
+                  Register
+                </Link>
+                <Link className="secondary" href="/login">
+                  Sign in
+                </Link>
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="links muted-links">
+          <a className="secondary" href="/admin">
             Open Payload admin
           </a>
           <a className="secondary" href="/api/health">
@@ -23,8 +58,7 @@ export default function HomePage() {
       </div>
       <div className="footer">
         <p>
-          Architecture notes: <code>src/core/</code> (app) · <code>src/collections/</code>{' '}
-          (CMS) · see README
+          App users: core Better Auth · CMS editors: Payload <code>/admin</code> · see README
         </p>
       </div>
     </div>
