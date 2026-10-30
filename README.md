@@ -52,16 +52,18 @@ npm run db:core:push
 npm run dev
 ```
 
-Then open:
+Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so cookies and CSRF stay consistent):
 
 | URL | What |
 | --- | --- |
 | http://localhost:3000 | App shell (register / sign in / signed-in state) |
-| http://localhost:3000/register | Create a **core app** account |
-| http://localhost:3000/login | Sign in as an app user |
+| http://localhost:3000/register | Create a **core app** account (email + password; auto sign-in) |
+| http://localhost:3000/login | Sign in as an app user (same email + password) |
 | http://localhost:3000/api/me | Current app session JSON (`401` when signed out) |
 | http://localhost:3000/admin | Payload admin (create first **CMS editor** on first visit) |
 | http://localhost:3000/api/health | Core health JSON (`database: "up"` when Postgres is reachable) |
+
+App login uses **email**, not a separate username. Forgot / reset password is **deferred** until outbound email is wired.
 
 ### Useful commands
 
@@ -110,7 +112,7 @@ src/
 ## Not in this scaffold
 
 - Production / DigitalOcean deploy
-- Password reset, roles, OAuth
+- Forgot / reset password (needs email — deferred), roles, OAuth
 - Public CMS page rendering by slug
 - Airsoftnexus 2.0 feature parity
 
@@ -121,4 +123,5 @@ src/
 3. **Payload admin import errors after upgrading** — run `npm run generate:importmap`.
 4. **Fresh DB without `payload` schema** — Compose mounts `init.sql` only on first volume create. If you need to recreate: `docker compose down -v && docker compose up -d`.
 5. **Auth tables missing / Better Auth schema errors** — run `npm run db:core:push` with Compose up and `.env` loaded.
-6. **Windows** — use PowerShell or Command Prompt from the repo root; ensure Docker Desktop is **Running** before `docker compose up -d`. Copy env with `copy .env.example .env` if `cp` is unavailable.
+6. **Windows** — use PowerShell or Command Prompt from the repo root; ensure Docker Desktop is **Running** before `docker compose up -d`. Copy env with `copy .env.example .env` if `cp` is unavailable. Always open the app as `http://localhost:3000` (mixing `127.0.0.1` can break sessions).
+7. **Login says invalid email/password after register** — use the same **email** (not display name) and password; then sign out and sign in again. If the DB predates this auth slice, reset with `docker compose down -v && docker compose up -d` and re-run `npm run db:core:push`.

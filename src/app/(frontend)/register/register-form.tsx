@@ -1,51 +1,16 @@
 'use client'
 
-import React, { useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
+import React, { useActionState } from 'react'
 
-import { signUp } from '@/core/auth/client'
-import { registerSchema } from '@/core/auth/schemas'
+import { registerAction, type AuthActionState } from '@/core/auth/actions'
+
+const initialState: AuthActionState = {}
 
 export function RegisterForm() {
-  const router = useRouter()
-  const [error, setError] = useState<string | null>(null)
-  const [pending, startTransition] = useTransition()
-
-  function onSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setError(null)
-
-    const form = new FormData(event.currentTarget)
-    const parsed = registerSchema.safeParse({
-      name: form.get('name'),
-      email: form.get('email'),
-      password: form.get('password'),
-    })
-
-    if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? 'Invalid form')
-      return
-    }
-
-    startTransition(async () => {
-      const result = await signUp.email({
-        name: parsed.data.name,
-        email: parsed.data.email,
-        password: parsed.data.password,
-      })
-
-      if (result.error) {
-        setError(result.error.message || 'Could not register')
-        return
-      }
-
-      router.replace('/')
-      router.refresh()
-    })
-  }
+  const [state, formAction, pending] = useActionState(registerAction, initialState)
 
   return (
-    <form className="auth-form" onSubmit={onSubmit} noValidate>
+    <form className="auth-form" action={formAction} noValidate>
       <label>
         Name
         <input
@@ -77,7 +42,11 @@ export function RegisterForm() {
           disabled={pending}
         />
       </label>
-      {error ? <p className="auth-error" role="alert">{error}</p> : null}
+      {state.error ? (
+        <p className="auth-error" role="alert">
+          {state.error}
+        </p>
+      ) : null}
       <button type="submit" className="primary" disabled={pending}>
         {pending ? 'Creating account…' : 'Create account'}
       </button>

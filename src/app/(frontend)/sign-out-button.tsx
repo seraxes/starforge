@@ -1,12 +1,10 @@
 'use client'
 
 import React, { useTransition } from 'react'
-import { useRouter } from 'next/navigation'
 
-import { signOut } from '@/core/auth/client'
+import { logoutAction } from '@/core/auth/actions'
 
 export function SignOutButton() {
-  const router = useRouter()
   const [pending, startTransition] = useTransition()
 
   return (
@@ -15,10 +13,8 @@ export function SignOutButton() {
       className="secondary ghost"
       disabled={pending}
       onClick={() => {
-        startTransition(async () => {
-          await signOut()
-          router.replace('/')
-          router.refresh()
+        startTransition(() => {
+          void logoutAction()
         })
       }}
     >

@@ -4,47 +4,63 @@ import { nextCookies } from 'better-auth/next-js'
 
 import { db, sfAccounts, sfSessions, sfUsers, sfVerifications } from '@/core/db'
 
+const appUrl =
+  process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+
 /**
  * Starforge product auth (app users).
  * Completely separate from Payload CMS editor accounts at `/admin`.
+ *
+ * Physical tables stay `sf_*` in `public`; Better Auth model keys stay the
+ * defaults (`user` / `session` / `account` / `verification`) so adapter joins
+ * and credential lookups (email + password on `account`) stay reliable.
  */
 export const auth = betterAuth({
   appName: 'Starforge',
-  baseURL: process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+  // Accept both localhost and 127.0.0.1 during local Windows/macOS dev.
+  baseURL: {
+    allowedHosts: ['localhost:*', '127.0.0.1:*'],
+    fallback: appUrl,
+  },
   secret: process.env.BETTER_AUTH_SECRET,
+  trustedOrigins: [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:*',
+    'http://127.0.0.1:*',
+  ],
   database: drizzleAdapter(db, {
     provider: 'pg',
-    // Keys must match Better Auth modelName values used below (schema validation).
     schema: {
       user: sfUsers,
       session: sfSessions,
       account: sfAccounts,
       verification: sfVerifications,
-      sf_users: sfUsers,
-      sf_sessions: sfSessions,
-      sf_accounts: sfAccounts,
-      sf_verifications: sfVerifications,
     },
   }),
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
-  },
-  user: {
-    modelName: 'sf_users',
+    // Keep explicit so register creates a session cookie immediately.
+    autoSignIn: true,
+    // Password reset needs outbound email — deferred until that lands.
+    // requireEmailVerification stays false for local-first P0.
   },
   session: {
-    modelName: 'sf_sessions',
     cookieCache: {
       enabled: true,
       maxAge: 5 * 60,
     },
   },
-  account: {
-    modelName: 'sf_accounts',
-  },
-  verification: {
-    modelName: 'sf_verifications',
+  advanced: {
+    // Local http:// — never force Secure cookies (breaks Windows localhost).
+    useSecureCookies: false,
+    defaultCookieAttributes: {
+      sameSite: 'lax',
+      httpOnly: true,
+      path: '/',
+      secure: false,
+    },
   },
   // nextCookies must be last so Set-Cookie from server actions reaches the browser.
   plugins: [nextCookies()],

@@ -11,12 +11,20 @@ Do **not** route high-QPS app login/session traffic through Payload Local API. P
 
 ## Tables (`public`)
 
-- `sf_users` — app user profile
+- `sf_users` — app user profile (email is the login id; there is no separate username)
 - `sf_sessions` — cookie sessions
-- `sf_accounts` — auth providers (email/password hash lives here)
+- `sf_accounts` — auth providers (email/password hash lives here on the `credential` provider)
 - `sf_verifications` — one-time tokens (unused until email flows land)
 
 Push with `npm run db:core:push` after Compose is up.
+
+## Local forms
+
+Register / login / logout use **Next.js server actions** so session cookies are set via the `nextCookies` plugin (same-origin, works on both `localhost` and `127.0.0.1`). Prefer one host consistently (README recommends `http://localhost:3000`).
+
+## Deferred
+
+- **Forgot / reset password** — needs outbound email; deferred until email is wired (P1+).
 
 ## Env
 

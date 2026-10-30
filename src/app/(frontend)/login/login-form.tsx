@@ -1,49 +1,16 @@
 'use client'
 
-import React, { useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
+import React, { useActionState } from 'react'
 
-import { signIn } from '@/core/auth/client'
-import { loginSchema } from '@/core/auth/schemas'
+import { loginAction, type AuthActionState } from '@/core/auth/actions'
+
+const initialState: AuthActionState = {}
 
 export function LoginForm() {
-  const router = useRouter()
-  const [error, setError] = useState<string | null>(null)
-  const [pending, startTransition] = useTransition()
-
-  function onSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setError(null)
-
-    const form = new FormData(event.currentTarget)
-    const parsed = loginSchema.safeParse({
-      email: form.get('email'),
-      password: form.get('password'),
-    })
-
-    if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? 'Invalid form')
-      return
-    }
-
-    startTransition(async () => {
-      const result = await signIn.email({
-        email: parsed.data.email,
-        password: parsed.data.password,
-      })
-
-      if (result.error) {
-        setError(result.error.message || 'Could not sign in')
-        return
-      }
-
-      router.replace('/')
-      router.refresh()
-    })
-  }
+  const [state, formAction, pending] = useActionState(loginAction, initialState)
 
   return (
-    <form className="auth-form" onSubmit={onSubmit} noValidate>
+    <form className="auth-form" action={formAction} noValidate>
       <label>
         Email
         <input
@@ -65,7 +32,11 @@ export function LoginForm() {
           disabled={pending}
         />
       </label>
-      {error ? <p className="auth-error" role="alert">{error}</p> : null}
+      {state.error ? (
+        <p className="auth-error" role="alert">
+          {state.error}
+        </p>
+      ) : null}
       <button type="submit" className="primary" disabled={pending}>
         {pending ? 'Signing in…' : 'Sign in'}
       </button>
