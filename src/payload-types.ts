@@ -167,13 +167,21 @@ export interface Media {
   focalY?: number | null;
 }
 /**
+ * Marketing / brochure pages. Write with Lexical (headings, lists, links, Media images), then Publish so `/[slug]` can show them.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "pages".
  */
 export interface Page {
   id: number;
   title: string;
+  /**
+   * Public URL path, e.g. about → http://localhost:3000/about
+   */
   slug: string;
+  /**
+   * Use the toolbar or “/” slash menu for headings, lists, links, and images from Media.
+   */
   body?: {
     root: {
       type: string;
