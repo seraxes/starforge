@@ -87,6 +87,21 @@ h1 {
   line-height: 1.55;
 }
 
+.clarity-callout {
+  max-width: 36rem;
+  margin: 0 0 1.25rem;
+  padding: 0.85rem 1rem;
+  border-left: 3px solid var(--sf-secondary-strong);
+  background: color-mix(in srgb, var(--sf-secondary) 16%, transparent);
+  color: var(--sf-ink);
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+.clarity-callout p {
+  margin: 0;
+}
+
 .links {
   display: flex;
   flex-wrap: wrap;

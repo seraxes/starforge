@@ -7,6 +7,8 @@ Product auth / sessions for **app users** (Better Auth + Drizzle + Postgres `pub
 | App register / login / logout / session | This module · `/login` · `/register` · `/api/auth/*` · `/api/me` |
 | CMS editors (content only) | Payload `users` collection · `/admin` |
 
+**Clarity:** `/admin` is for **content** (pages, media, CMS editors). Core `/login` is for **app accounts**. They never share credentials.
+
 Do **not** route high-QPS app login/session traffic through Payload Local API. Payload users and Starforge app users are separate accounts in separate tables/schemas.
 
 ## Tables (`public`)

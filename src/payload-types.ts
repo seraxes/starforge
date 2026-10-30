@@ -120,7 +120,7 @@ export interface UserAuthOperations {
   };
 }
 /**
- * CMS editors for the Payload content module (not Starforge app users).
+ * CMS editors only — edit pages/media in Payload /admin. Product app accounts use /register and /login (Better Auth); they are not listed here.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
@@ -167,7 +167,7 @@ export interface Media {
   focalY?: number | null;
 }
 /**
- * Marketing / brochure pages. Write with Lexical (headings, lists, links, Media images), then Publish so `/[slug]` can show them.
+ * Marketing / brochure pages for the public site. Edit content here in Payload (/admin). App accounts use /login — not this collection. Publish so `/[slug]` can show the page.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "pages".
@@ -197,6 +197,20 @@ export interface Page {
     };
     [k: string]: unknown;
   } | null;
+  meta?: {
+    /**
+     * Browser tab / search title. Falls back to the page title + “— Starforge” when empty.
+     */
+    title?: string | null;
+    /**
+     * Short summary for search results and link previews.
+     */
+    description?: string | null;
+    /**
+     * Optional share image (Open Graph / social preview).
+     */
+    image?: (number | null) | Media;
+  };
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
@@ -328,6 +342,13 @@ export interface PagesSelect<T extends boolean = true> {
   title?: T;
   slug?: T;
   body?: T;
+  meta?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        image?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   _status?: T;

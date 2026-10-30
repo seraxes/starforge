@@ -19,6 +19,14 @@ export default async function HomePage() {
           content and media only.
         </p>
 
+        <div className="clarity-callout" role="note">
+          <p>
+            <strong>/admin</strong> = CMS content (pages, media, editors).{' '}
+            <strong>/login</strong> = app accounts (product users). Separate systems —
+            one login does not work in the other.
+          </p>
+        </div>
+
         <div className="session-bar" aria-live="polite">
           {user ? (
             <>
@@ -49,8 +57,11 @@ export default async function HomePage() {
 
         <div className="links muted-links">
           <a className="secondary" href="/admin">
-            Open Payload admin
+            Open Payload admin (content)
           </a>
+          <Link className="secondary" href="/about">
+            Sample page /about
+          </Link>
           <a className="secondary" href="/api/health">
             Core health API
           </a>
@@ -58,7 +69,8 @@ export default async function HomePage() {
       </div>
       <div className="footer">
         <p>
-          App users: core Better Auth · CMS editors: Payload <code>/admin</code> · see README
+          Content: Payload <code>/admin</code> · App accounts: <code>/login</code> ·{' '}
+          <code>npm run seed</code> for sample pages · see README
         </p>
       </div>
     </div>
