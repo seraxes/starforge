@@ -22,12 +22,14 @@ export default async function LoginPage() {
         <p className="brand">Starforge</p>
         <h1>Sign in</h1>
         <p className="lede">
-          App account login. CMS editors use{' '}
-          <Link href="/admin">Payload /admin</Link> instead.
+          Sign in with the <strong>email</strong> you registered (not your
+          display name). CMS editors use <Link href="/admin">Payload /admin</Link>{' '}
+          instead — those accounts do not work here.
         </p>
         <LoginForm />
         <p className="auth-switch">
-          No account yet? <Link href="/register">Register</Link>
+          No account yet, or registered before the auth fix?{' '}
+          <Link href="/register">Create a new app account</Link>
         </p>
       </div>
     </div>

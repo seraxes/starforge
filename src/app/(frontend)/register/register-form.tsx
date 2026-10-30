@@ -19,6 +19,8 @@ export function RegisterForm() {
           autoComplete="name"
           required
           disabled={pending}
+          defaultValue={state.name ?? ''}
+          key={`name-${state.name ?? ''}-${state.error ?? 'ok'}`}
         />
       </label>
       <label>
@@ -29,6 +31,8 @@ export function RegisterForm() {
           autoComplete="email"
           required
           disabled={pending}
+          defaultValue={state.email ?? ''}
+          key={`email-${state.email ?? ''}-${state.error ?? 'ok'}`}
         />
       </label>
       <label>

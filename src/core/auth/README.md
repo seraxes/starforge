@@ -22,9 +22,14 @@ Push with `npm run db:core:push` after Compose is up.
 
 Register / login / logout use **Next.js server actions** so session cookies are set via the `nextCookies` plugin (same-origin, works on both `localhost` and `127.0.0.1`). Prefer one host consistently (README recommends `http://localhost:3000`).
 
+Register auto-signs-in and redirects to `/`. If a session cookie is missing after signup, the action signs in once with the same credentials before redirecting (or shows an error pointing at `/login`).
+
+Login errors distinguish: unknown email, account without a password hash (pre-fix debris), and wrong password. Always sign in with **email**, never display name.
+
 ## Deferred
 
 - **Forgot / reset password** — needs outbound email; deferred until email is wired (P1+).
+
 
 ## Env
 

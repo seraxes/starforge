@@ -19,6 +19,8 @@ export function LoginForm() {
           autoComplete="email"
           required
           disabled={pending}
+          defaultValue={state.email ?? ''}
+          key={`email-${state.email ?? ''}-${state.error ?? 'ok'}`}
         />
       </label>
       <label>

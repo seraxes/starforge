@@ -65,6 +65,37 @@ Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so coo
 
 App login uses **email**, not a separate username. Forgot / reset password is **deferred** until outbound email is wired.
 
+### Updating the auth PR branch (Windows)
+
+You need commit **`784d596` or newer** on `cursor/core-auth-sessions-c4bd` (server-action login). After pulling, **restart** `npm run dev` and **register a new app user** — accounts created before that fix may not sign in reliably.
+
+```bat
+cd starforge
+git fetch origin
+git checkout cursor/core-auth-sessions-c4bd
+git pull origin cursor/core-auth-sessions-c4bd
+git log -1 --oneline
+rem Expect: 784d596 Fix app login...  OR a newer commit on this branch
+
+docker compose up -d
+if not exist .env copy .env.example .env
+npm install
+npm run db:core:push
+
+rem Stop any old npm run dev window (Ctrl+C), then:
+npm run dev
+```
+
+Browser: open **http://localhost:3000/register**, create a **new** email + password (8+ chars), confirm home shows **Signed in as…**, then Sign out → Sign in with the **same email**. Do not use a Payload `/admin` user here.
+
+Optional clean DB if old trial users confuse you:
+
+```bat
+docker compose down -v
+docker compose up -d
+npm run db:core:push
+```
+
 ### Useful commands
 
 ```bash
@@ -124,4 +155,4 @@ src/
 4. **Fresh DB without `payload` schema** — Compose mounts `init.sql` only on first volume create. If you need to recreate: `docker compose down -v && docker compose up -d`.
 5. **Auth tables missing / Better Auth schema errors** — run `npm run db:core:push` with Compose up and `.env` loaded.
 6. **Windows** — use PowerShell or Command Prompt from the repo root; ensure Docker Desktop is **Running** before `docker compose up -d`. Copy env with `copy .env.example .env` if `cp` is unavailable. Always open the app as `http://localhost:3000` (mixing `127.0.0.1` can break sessions).
-7. **Login says invalid email/password after register** — use the same **email** (not display name) and password; then sign out and sign in again. If the DB predates this auth slice, reset with `docker compose down -v && docker compose up -d` and re-run `npm run db:core:push`.
+7. **Login says invalid email/password after register** — confirm `git log -1` shows `784d596` or newer; restart `npm run dev`; register a **new** email (old pre-fix users can be bad); sign in with that **email** (not display name). Payload `/admin` users are separate. Last resort: `docker compose down -v && docker compose up -d` then `npm run db:core:push`.
