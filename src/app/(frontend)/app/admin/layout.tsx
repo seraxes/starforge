@@ -2,7 +2,11 @@ import React from 'react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
-import { roleFromUser, userIsAppAdmin } from '@/core/auth/admin'
+import {
+  promoteSessionUserIfBootstrapAdmin,
+  roleFromUser,
+  userIsAppAdmin,
+} from '@/core/auth/admin'
 import { getAppSession } from '@/core/auth/session'
 
 export const metadata = {
@@ -15,9 +19,13 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
   if (!session?.user) {
     redirect('/login?next=/app/admin/users')
   }
+
+  // STARFORGE_ADMIN_EMAILS: promote matching member → admin on this request.
+  await promoteSessionUserIfBootstrapAdmin(session.user)
+
   if (!userIsAppAdmin(session.user)) {
-    // Signed-in members must not loop through /login?next=…
-    redirect('/')
+    // Expected for members — not a bug. Flash on home explains how to get admin.
+    redirect('/?notice=admins-only')
   }
 
   const role = roleFromUser(session.user)

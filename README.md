@@ -83,10 +83,10 @@ App login uses **email**, not a separate username. Forgot / reset password is **
 
 **First admin paths:**
 
-1. `npm run seed` creates bootstrap admin `admin@starforge.local` / `starforge-admin` (role `admin`).
-2. Or set `STARFORGE_ADMIN_EMAILS=you@example.com` in `.env`, then register that email (or re-run seed to promote existing matches).
+1. `npm run seed` creates bootstrap admin `admin@starforge.local` / `starforge-admin` (role `admin`). Sign in with that on `/login` (not Payload `/admin`).
+2. Or set `STARFORGE_ADMIN_EMAILS=you@example.com` in `.env`, **restart** `npm run dev`, then reload while signed in as that email — role is promoted to `admin` on the next request (also on signup / seed).
 
-Members cannot open `/app/admin/users` (redirect to login). Disabled users cannot sign in.
+Members visiting `/app/admin/users` are redirected home with an **Admins only** notice — expected. Disabled users cannot sign in.
 
 ### Seed (`npm run seed`)
 

@@ -32,8 +32,10 @@ Implemented with the Better Auth **admin** plugin + custom access control (`src/
 
 ### Bootstrap an admin
 
-1. **Seed:** `npm run seed` creates `admin@starforge.local` / `starforge-admin` with role `admin` (plus a demo `member`).
-2. **Env promote:** set `STARFORGE_ADMIN_EMAILS=you@example.com` (comma-separated). Matching emails are promoted on signup and again by seed. Register that email (or seed first, then set env and re-seed) to get admin.
+1. **Seed:** `npm run seed` creates `admin@starforge.local` / `starforge-admin` with role `admin` (plus a demo `member`). Use that pair on `/login` for core admin — not Payload `/admin`.
+2. **Env promote (existing account):** set `STARFORGE_ADMIN_EMAILS=you@example.com` (comma-separated) in `.env`, **restart** `npm run dev`, then reload (or visit `/app/admin/users`). Matching signed-in users are promoted to `admin` on that request (also on signup and seed).
+
+Members visiting `/app/admin/users` are redirected to `/?notice=admins-only` — expected, not a bug.
 
 ## Local forms
 

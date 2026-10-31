@@ -102,6 +102,29 @@ h1 {
   margin: 0;
 }
 
+.notice-banner {
+  max-width: 36rem;
+  margin: 0 0 1.25rem;
+  padding: 0.9rem 1rem;
+  border-left: 3px solid var(--sf-primary-strong);
+  background: color-mix(in srgb, var(--sf-primary) 22%, transparent);
+  color: var(--sf-ink);
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+.notice-banner p {
+  margin: 0 0 0.55rem;
+}
+
+.notice-banner p:last-child {
+  margin-bottom: 0;
+}
+
+.notice-banner code {
+  font-size: 0.88em;
+}
+
 .links {
   display: flex;
   flex-wrap: wrap;

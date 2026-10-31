@@ -18,10 +18,37 @@ export function userIsAppAdmin(user: { role?: string | null; email?: string | nu
   return false
 }
 
+/**
+ * If the signed-in email is listed in STARFORGE_ADMIN_EMAILS, persist role=admin
+ * on this request (idempotent). Lets an existing member become admin after env
+ * change + server restart without re-registering.
+ */
+export async function promoteSessionUserIfBootstrapAdmin(user: {
+  id: string
+  email?: string | null
+  role?: string | null
+} | null | undefined): Promise<boolean> {
+  if (!user?.id || !user.email || !emailIsBootstrapAdmin(user.email)) {
+    return false
+  }
+  if (normalizeAppRole(user.role) === 'admin') {
+    return true
+  }
+  await db
+    .update(sfUsers)
+    .set({
+      role: 'admin',
+      updatedAt: new Date(),
+    })
+    .where(eq(sfUsers.id, user.id))
+  return true
+}
+
 /** Current session must be a core app admin; otherwise `null`. */
 export async function requireAppAdmin() {
   const session = await getAppSession()
   if (!session?.user) return null
+  await promoteSessionUserIfBootstrapAdmin(session.user)
   if (!userIsAppAdmin(session.user)) return null
   return session
 }
