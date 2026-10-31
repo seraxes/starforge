@@ -102,6 +102,29 @@ h1 {
   margin: 0;
 }
 
+.notice-banner {
+  max-width: 36rem;
+  margin: 0 0 1.25rem;
+  padding: 0.9rem 1rem;
+  border-left: 3px solid var(--sf-primary-strong);
+  background: color-mix(in srgb, var(--sf-primary) 22%, transparent);
+  color: var(--sf-ink);
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+.notice-banner p {
+  margin: 0 0 0.55rem;
+}
+
+.notice-banner p:last-child {
+  margin-bottom: 0;
+}
+
+.notice-banner code {
+  font-size: 0.88em;
+}
+
 .links {
   display: flex;
   flex-wrap: wrap;
@@ -369,6 +392,154 @@ button:disabled {
   padding: 3rem 1.5rem;
 }
 
+/* Core admin (`/app/admin/*`) — app users, not Payload */
+.admin-shell {
+  min-height: 100vh;
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.admin-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--sf-line);
+}
+
+.admin-header h1 {
+  margin-top: 0.35rem;
+  font-size: clamp(1.6rem, 3.5vw, 2.1rem);
+}
+
+.admin-lede {
+  margin: 0.35rem 0 0;
+  max-width: 40rem;
+  font-size: 0.98rem;
+}
+
+.admin-who {
+  margin: 0;
+  color: var(--sf-muted);
+  font-size: 0.95rem;
+  align-self: flex-start;
+}
+
+.admin-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.admin-nav a {
+  text-decoration: none;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--sf-line);
+  background: color-mix(in srgb, var(--sf-secondary) 14%, transparent);
+  color: var(--sf-secondary-strong);
+  font-weight: 600;
+}
+
+.admin-section h2 {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+  margin-top: 1rem;
+  border-top: 1px solid var(--sf-line);
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.admin-table th,
+.admin-table td {
+  text-align: left;
+  padding: 0.75rem 0.5rem;
+  border-bottom: 1px solid var(--sf-line);
+  vertical-align: top;
+}
+
+.admin-table th {
+  color: var(--sf-muted);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.admin-table tr[data-banned='true'] td {
+  opacity: 0.78;
+}
+
+.admin-inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.admin-inline-form select {
+  font: inherit;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--sf-line);
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.admin-inline-form button {
+  padding: 0.4rem 0.7rem;
+  font-size: 0.88rem;
+}
+
+.admin-inline-error {
+  color: #8a1f1f;
+  font-size: 0.82rem;
+}
+
+.admin-inline-ok {
+  color: var(--sf-secondary-strong);
+  font-size: 0.82rem;
+}
+
+.admin-badge {
+  display: inline-block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--sf-secondary-strong);
+}
+
+.admin-badge-warn {
+  color: #8a1f1f;
+}
+
+.admin-empty {
+  color: var(--sf-muted);
+  margin-top: 1rem;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 @media (max-width: 640px) {
   .home {
     padding: 2rem 1.15rem 1.5rem;
@@ -376,6 +547,10 @@ button:disabled {
 
   .cms-page {
     padding: 2rem 1.15rem 2rem;
+  }
+
+  .admin-shell {
+    padding: 1.5rem 1.15rem 2rem;
   }
 
   .links a,

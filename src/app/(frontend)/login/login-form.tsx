@@ -6,11 +6,15 @@ import { loginAction, type AuthActionState } from '@/core/auth/actions'
 
 const initialState: AuthActionState = {}
 
-export function LoginForm() {
-  const [state, formAction, pending] = useActionState(loginAction, initialState)
+export function LoginForm({ next }: { next?: string }) {
+  const [state, formAction, pending] = useActionState(loginAction, {
+    ...initialState,
+    next,
+  })
 
   return (
     <form className="auth-form" action={formAction} noValidate>
+      {next || state.next ? <input type="hidden" name="next" value={state.next ?? next} /> : null}
       <label>
         Email
         <input

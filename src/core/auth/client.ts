@@ -1,6 +1,9 @@
 'use client'
 
 import { createAuthClient } from 'better-auth/react'
+import { adminClient } from 'better-auth/client/plugins'
+
+import { ac, appRoles } from './permissions'
 
 /**
  * Browser client for Starforge app auth.
@@ -10,4 +13,10 @@ import { createAuthClient } from 'better-auth/react'
  */
 export const authClient = createAuthClient({
   baseURL: '/api/auth',
+  plugins: [
+    adminClient({
+      ac,
+      roles: appRoles,
+    }),
+  ],
 })

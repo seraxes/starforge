@@ -1,13 +1,31 @@
 import React from 'react'
 import Link from 'next/link'
 
+import {
+  promoteSessionUserIfBootstrapAdmin,
+  roleFromUser,
+  userIsAppAdmin,
+} from '@/core/auth/admin'
 import { getAppSession } from '@/core/auth/session'
 import { SignOutButton } from './sign-out-button'
 import './styles.css'
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ notice?: string }>
+}) {
+  const params = await searchParams
   const session = await getAppSession()
   const user = session?.user
+  let role = user ? roleFromUser(user) : null
+  if (user) {
+    // Persist STARFORGE_ADMIN_EMAILS → admin even when the session cookie still says member.
+    const promoted = await promoteSessionUserIfBootstrapAdmin(user)
+    if (promoted) role = 'admin'
+  }
+  const isAdmin = userIsAppAdmin(user) || role === 'admin'
+  const showAdminsOnly = params.notice === 'admins-only'
 
   return (
     <div className="home">
@@ -19,11 +37,28 @@ export default async function HomePage() {
           content and media only.
         </p>
 
+        {showAdminsOnly ? (
+          <div className="notice-banner" role="status">
+            <p>
+              <strong>Admins only.</strong> <code>/app/admin/users</code> is for core app
+              role <code>admin</code>. Members are redirected here on purpose.
+            </p>
+            <p>
+              Sign in as the seed admin <code>admin@starforge.local</code> /{' '}
+              <code>starforge-admin</code> (after <code>npm run seed</code>), or set{' '}
+              <code>STARFORGE_ADMIN_EMAILS=you@example.com</code> in <code>.env</code>, restart{' '}
+              <code>npm run dev</code>, and reload — that email is promoted to admin on the next
+              request.
+            </p>
+          </div>
+        ) : null}
+
         <div className="clarity-callout" role="note">
           <p>
             <strong>/admin</strong> = CMS content (pages, media, editors).{' '}
-            <strong>/login</strong> = app accounts (product users). Separate systems —
-            one login does not work in the other.
+            <strong>/login</strong> = app accounts. <strong>/app/admin/users</strong> = core
+            user admin (roles — <code>admin</code> only). Separate systems — one login does not
+            work in the other.
           </p>
         </div>
 
@@ -31,12 +66,18 @@ export default async function HomePage() {
           {user ? (
             <>
               <p className="session-status">
-                Signed in as <strong>{user.name}</strong> ({user.email})
+                Signed in as <strong>{user.name}</strong> ({user.email}
+                {role ? <> · {role}</> : null})
               </p>
               <div className="links">
-                <a className="secondary" href="/api/me">
+                {isAdmin ? (
+                  <Link className="primary" href="/app/admin/users">
+                    Core user admin
+                  </Link>
+                ) : null}
+                <Link className="secondary" href="/api/me">
                   View /api/me
-                </a>
+                </Link>
                 <SignOutButton />
               </div>
             </>
@@ -56,21 +97,23 @@ export default async function HomePage() {
         </div>
 
         <div className="links muted-links">
-          <a className="secondary" href="/admin">
+          <Link className="secondary" href="/admin">
             Open Payload admin (content)
-          </a>
+          </Link>
           <Link className="secondary" href="/about">
             Sample page /about
           </Link>
-          <a className="secondary" href="/api/health">
+          <Link className="secondary" href="/api/health">
             Core health API
-          </a>
+          </Link>
         </div>
       </div>
       <div className="footer">
         <p>
-          Content: Payload <code>/admin</code> · App accounts: <code>/login</code> ·{' '}
-          <code>npm run seed</code> for sample pages · see README
+          Content: Payload <code>/admin</code> · App accounts: <code>/login</code> · Core
+          admin: <code>/app/admin/users</code> (seed:{' '}
+          <code>admin@starforge.local</code> / <code>starforge-admin</code>) ·{' '}
+          <code>npm run seed</code> · see README
         </p>
       </div>
     </div>

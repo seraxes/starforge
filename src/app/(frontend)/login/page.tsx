@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { getAppSession } from '@/core/auth/session'
+import { safeNextPath } from '@/core/auth/safe-next-path'
 import { LoginForm } from './login-form'
 
 export const metadata = {
@@ -10,10 +11,16 @@ export const metadata = {
   description: 'Sign in to your Starforge app account (not Payload CMS).',
 }
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>
+}) {
+  const params = await searchParams
+  const next = safeNextPath(params.next, '/')
   const session = await getAppSession()
   if (session) {
-    redirect('/')
+    redirect(next)
   }
 
   return (
@@ -26,7 +33,7 @@ export default async function LoginPage() {
           display name). CMS editors use <Link href="/admin">Payload /admin</Link>{' '}
           instead — those accounts do not work here.
         </p>
-        <LoginForm />
+        <LoginForm next={next === '/' ? undefined : next} />
         <p className="auth-switch">
           No account yet, or registered before the auth fix?{' '}
           <Link href="/register">Create a new app account</Link>

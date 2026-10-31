@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 
 import { auth } from '@/core/auth'
+import { roleFromUser, userIsAppAdmin } from '@/core/auth/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,6 +16,9 @@ export async function GET() {
     return NextResponse.json({ authenticated: false, user: null }, { status: 401 })
   }
 
+  const role = roleFromUser(session.user)
+  const isAdmin = userIsAppAdmin(session.user)
+
   return NextResponse.json({
     authenticated: true,
     user: {
@@ -23,6 +27,9 @@ export async function GET() {
       email: session.user.email,
       emailVerified: session.user.emailVerified,
       image: session.user.image ?? null,
+      role,
+      banned: Boolean((session.user as { banned?: boolean }).banned),
+      isAdmin,
       createdAt: session.user.createdAt,
     },
     session: {

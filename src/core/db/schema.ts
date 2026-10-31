@@ -14,6 +14,14 @@ export const sfUsers = pgTable('sf_users', {
   email: text('email').notNull().unique(),
   emailVerified: boolean('email_verified').default(false).notNull(),
   image: text('image'),
+  /**
+   * Better Auth admin plugin roles.
+   * Starforge uses `admin` (global app admin) and `member` (default).
+   */
+  role: text('role').default('member').notNull(),
+  banned: boolean('banned').default(false).notNull(),
+  banReason: text('ban_reason'),
+  banExpires: timestamp('ban_expires', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true })
     .defaultNow()
@@ -37,6 +45,11 @@ export const sfSessions = pgTable(
     userId: text('user_id')
       .notNull()
       .references(() => sfUsers.id, { onDelete: 'cascade' }),
+    /**
+     * Better Auth admin plugin field (required once the plugin is enabled).
+     * Column: `impersonated_by`. Apply with `npm run db:core:push` after pull.
+     */
+    impersonatedBy: text('impersonated_by'),
   },
   (table) => [index('sf_sessions_user_id_idx').on(table.userId)],
 )
