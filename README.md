@@ -132,7 +132,9 @@ Public chrome is driven by a **layout document**: **sections → rows → slots*
 
 Default seed: Header → notice-bar (12); Navigation → site-header (12); Main → page-content (12); Footer → custom note (12). Docs: `src/core/modules/README.md`.
 
-**Later:** true drag-drop, YAML export mode, Custom JS execution for developer-admins + ACL, nested menus, Redis on DO.
+**Code editors:** Custom particle HTML/CSS/JS use **CodeMirror** (syntax highlighting + resizable panels) — not plain textareas. Monaco remains an option for a heavier Styles IDE later.
+
+**Next polish (not this PR):** true drag-drop; Gantry-like **Styles / Outlines / Menu** editors; block settings (CSS classes, variations); Custom JS execution + ACL; YAML export; nested menus; Redis on DO. See `src/core/modules/README.md` and [docs.gantry.org](https://docs.gantry.org/).
 
 **First admin paths:**
 
@@ -365,7 +367,7 @@ npm run dev
 2. Sign in as `admin@starforge.local` / `starforge-admin`.
 3. Open **http://localhost:3000/app/admin/layouts** — left particle palette; canvas sections Header / Navigation / Main / Footer.
 4. Select **Custom** (or Notice bar), set width, **Add** to a section — confirm on the public site.
-5. Edit the footer Custom particle HTML/CSS; JS is stored but not executed yet.
+5. Edit the footer Custom particle — CodeMirror HTML/CSS/JS panels (resize the bottom handle); JS is stored but not executed yet.
 6. **Reset to default** restores the seeded v3 layout.
 
 ## Not in this scaffold
@@ -374,7 +376,7 @@ npm run dev
 - Forgot / reset password (needs email — deferred), OAuth
 - Second Payload password login (removed — Better Auth session strategy only)
 - Posts collection
-- Full drag-drop polish / YAML edit mode / Custom JS execution + layout ACL (v1 is click-to-add + width + JSON storage)
+- Full Gantry Styles / Outlines / Menu editors, drag-drop polish, YAML mode, Custom JS execution + ACL (v1: palette + canvas + CodeMirror Custom + JSON storage)
 - Nested menus, Joomla-like menu CSS / browser-title overrides (stub fields only)
 - Airsoftnexus 2.0 feature parity
 

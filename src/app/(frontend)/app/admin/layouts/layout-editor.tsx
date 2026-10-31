@@ -11,11 +11,12 @@ import {
   resetLayoutToDefaultAction,
   setSlotWidthAction,
   toggleSlotAction,
-  updateCustomSlotAction,
   type LayoutActionState,
 } from '@/core/modules/actions'
 import { sumRowWidths } from '@/core/modules/grid'
 import { LAYOUT_GRID_COLUMNS, type LayoutDocument, type LayoutSlot } from '@/core/modules/types'
+
+import { CustomParticleEditor } from './custom-particle-editor'
 
 type ModuleOption = {
   id: string
@@ -60,50 +61,6 @@ function WidthBar({ width }: { width: number }) {
         <span key={n} className={n <= width ? 'is-filled' : undefined} />
       ))}
     </div>
-  )
-}
-
-function CustomEditor({
-  sectionId,
-  rowId,
-  slot,
-}: {
-  sectionId: string
-  rowId: string
-  slot: LayoutSlot
-}) {
-  const [state, formAction, pending] = useActionState(updateCustomSlotAction, initialState)
-  const cfg = slot.config ?? {}
-
-  return (
-    <details className="gantry-custom-editor">
-      <summary>Edit Custom HTML / CSS / JS</summary>
-      <form action={formAction} className="gantry-custom-form">
-        <input type="hidden" name="sectionId" value={sectionId} />
-        <input type="hidden" name="rowId" value={rowId} />
-        <input type="hidden" name="slotId" value={slot.id} />
-        <label>
-          <span>Title</span>
-          <input type="text" name="title" defaultValue={String(cfg.title ?? '')} />
-        </label>
-        <label>
-          <span>HTML</span>
-          <textarea name="html" rows={4} defaultValue={String(cfg.html ?? '')} />
-        </label>
-        <label>
-          <span>CSS</span>
-          <textarea name="css" rows={3} defaultValue={String(cfg.css ?? '')} />
-        </label>
-        <label>
-          <span>JS (stored only — developer-admin later)</span>
-          <textarea name="js" rows={3} defaultValue={String(cfg.js ?? '')} placeholder="// not executed yet" />
-        </label>
-        <button type="submit" disabled={pending}>
-          {pending ? 'Saving…' : 'Save Custom'}
-        </button>
-        <ActionFeedback state={state} />
-      </form>
-    </details>
   )
 }
 
@@ -174,7 +131,7 @@ function SlotCard({
         </form>
       </div>
       {slot.moduleId === 'custom' ? (
-        <CustomEditor sectionId={sectionId} rowId={rowId} slot={slot} />
+        <CustomParticleEditor sectionId={sectionId} rowId={rowId} slot={slot} />
       ) : null}
       <ActionFeedback
         state={widthState.error ? widthState : toggleState.error ? toggleState : removeState}
@@ -215,8 +172,11 @@ export function LayoutEditor({ document, source, modules }: Props) {
         {source === 'default-json'
           ? ' — first edit writes the document to Postgres.'
           : null}{' '}
-        Storage is JSON (12-col widths). Drag-drop polish comes later — v1 is click particle → add
-        to section.
+        Storage is JSON (12-col widths). Model follows{' '}
+        <a href="https://docs.gantry.org/gantry5/configure/layout-manager" target="_blank" rel="noreferrer">
+          Gantry Layout Manager
+        </a>
+        : particles → sections. v1 is click-to-add (drag-drop next).
       </p>
 
       <div className="gantry-workspace">
@@ -388,8 +348,10 @@ export function LayoutEditor({ document, source, modules }: Props) {
         <pre>{JSON.stringify(document, null, 2)}</pre>
         <p className="layout-muted">
           Gantry-like model: left palette = particles; canvas = sections → rows → slots with{' '}
-          <code>width</code> 1–12 (Starforge grid math, not Bootstrap). YAML export, real
-          drag-drop, and developer-admin JS ACL come later.
+          <code>width</code> 1–12 (Starforge grid math, not Bootstrap). Custom uses CodeMirror
+          (not plain textareas). Next polish: drag-drop, Styles / Outlines / Menu editor, block
+          settings (CSS classes, variations), YAML export, developer-admin JS ACL — see{' '}
+          <code>src/core/modules/README.md</code>.
         </p>
       </details>
     </div>
