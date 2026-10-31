@@ -2,11 +2,14 @@ import { loadLayoutDocument } from './layout-store'
 import type { LayoutDocument, LayoutSlot, LayoutPositionId } from './types'
 
 /**
- * Load the active layout document (DB first, then default-layout.json).
+ * Load a layout document by id (DB first, then default-layout.json).
  * Shape: sections → rows → slots (`moduleId` + `width` 1–12).
+ * Page Settings `layoutId` selects which row; missing ids fall back to default JSON.
  */
-export async function getLayoutDocument(): Promise<LayoutDocument> {
-  const { document } = await loadLayoutDocument()
+export async function getLayoutDocument(
+  layoutId?: string,
+): Promise<LayoutDocument> {
+  const { document } = await loadLayoutDocument(layoutId)
   return document
 }
 

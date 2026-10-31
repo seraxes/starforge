@@ -27,6 +27,7 @@ import { BOOTSTRAP_ADMIN_EMAIL, setCoreUserCmsAccess } from './core/cms-bridge'
 import { db } from './core/db'
 import { sfUsers } from './core/db/schema'
 import { ensureDefaultLayoutSeeded } from './core/modules'
+import { ensureGlobalPageChromeSeeded } from './core/page-settings'
 import {
   ensureSiteSettingsDefaults,
   getSiteSettings,
@@ -375,6 +376,19 @@ async function main() {
     console.warn(error instanceof Error ? error.message : error)
   }
 
+  try {
+    const chromeSeed = await ensureGlobalPageChromeSeeded()
+    console.log(
+      chromeSeed.created
+        ? 'Page Settings: seeded global chrome defaults into sf_page_chrome'
+        : 'Page Settings: sf_page_chrome.global already present',
+    )
+  } catch (error) {
+    console.warn('Could not seed Page Settings (sf_page_chrome).')
+    console.warn('Run: npm run db:core:push')
+    console.warn(error instanceof Error ? error.message : error)
+  }
+
   const pages = await seedPages()
   if (pages.created.length) {
     console.log(`Pages created (published): ${pages.created.map((s) => `/${s}`).join(', ')}`)
@@ -463,6 +477,7 @@ async function main() {
   console.log('Login once: http://localhost:3000/login  then open http://localhost:3000/admin')
   console.log('Core admin users:    http://localhost:3000/app/admin/users')
   console.log('Core site settings:  http://localhost:3000/app/admin/settings')
+  console.log('Core page settings:  http://localhost:3000/app/admin/page-settings')
   console.log('Core layout manager: http://localhost:3000/app/admin/layouts')
   console.log('Payload CMS:         http://localhost:3000/admin  (nav: Payload CMS)')
   console.log('')

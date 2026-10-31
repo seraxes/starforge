@@ -12,7 +12,8 @@ import { loadCoreUserCmsAccess, userHasCmsAccess } from '@/core/cms-bridge'
 
 export const metadata = {
   title: 'Starforge admin',
-  description: 'Starforge / App admin — users, roles, site settings, and layout (not Content CMS).',
+  description:
+    'Starforge / App admin — users, roles, site settings, page settings, and layout (not Content CMS).',
 }
 
 export default async function CoreAdminLayout(props: { children: React.ReactNode }) {
@@ -42,9 +43,9 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
           </p>
           <h1>Starforge admin</h1>
           <p className="lede admin-lede">
-            App users, roles, site settings, and layout. Content (pages, media) lives in{' '}
-            {showPayloadCms ? <Link href="/admin">Payload CMS</Link> : 'Payload CMS'} — same
-            login when CMS access is on.
+            App users, roles, site settings, page settings, and layout. Content (pages, media)
+            lives in {showPayloadCms ? <Link href="/admin">Payload CMS</Link> : 'Payload CMS'} —
+            same login when CMS access is on.
           </p>
         </div>
         <p className="admin-who">
@@ -54,6 +55,7 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
       <nav className="admin-nav" aria-label="Starforge admin">
         <Link href="/app/admin/users">Users</Link>
         <Link href="/app/admin/settings">Site settings</Link>
+        <Link href="/app/admin/page-settings">Page settings</Link>
         <Link href="/app/admin/layouts">Layout</Link>
         {showPayloadCms ? <Link href="/admin">Payload CMS</Link> : null}
         <Link href="/">Back to site</Link>

@@ -2,9 +2,9 @@
 
 Reusable **product core** for ordinary web apps (auth, users, app shell, extension points) with **Payload CMS 3** as a swappable **content/media module** — not the whole product.
 
-**Two admin surfaces, one login:** **Starforge admin** (`/app/admin` — users, roles, site settings) ↔ **Payload Content CMS** (`/admin` — pages, media); each sidebar links to the other.
+**Two admin surfaces, one login:** **Starforge admin** (`/app/admin` — users, roles, site settings, page settings, layout) ↔ **Payload Content CMS** (`/admin` — pages, media); each sidebar links to the other.
 
-This is an early scaffold plus **core app auth** (Better Auth), **roles + core user admin**, **one-login Payload CMS access** (`cms_access` toggle), **site settings + feature toggles**, **Lexical** page editing, **public `/[slug]`** rendering, **draft preview** (`/preview/[slug]`), **published content cache** (Next.js tags; Redis later), **page SEO fields**, **extension modules + Gantry-like layout manager** (sections/rows/slots + % widths in `sf_layouts`, palette UI at `/app/admin/layouts`, typed Logo/Copyright/Social + page-content + Custom particles), and **`npm run seed`**. It is intentionally small and runnable locally — not Airsoftnexus 2.0 feature parity, and not a DigitalOcean deploy.
+This is an early scaffold plus **core app auth** (Better Auth), **roles + core user admin**, **one-login Payload CMS access** (`cms_access` toggle), **site settings + feature toggles**, **Page Settings** (Gantry-style Head / Assets / Body / Font Awesome / Atoms + layout assignment in `sf_page_chrome`), **Lexical** page editing, **public `/[slug]`** rendering, **draft preview** (`/preview/[slug]`), **published content cache** (Next.js tags; Redis later), **page SEO fields**, **extension modules + Gantry-like layout manager** (sections/rows/slots + % widths in `sf_layouts`, palette UI at `/app/admin/layouts`, typed Logo/Copyright/Social + page-content + Custom particles), and **`npm run seed`**. It is intentionally small and runnable locally — not Airsoftnexus 2.0 feature parity, and not a DigitalOcean deploy.
 
 ## Architecture
 
@@ -14,7 +14,7 @@ This is an early scaffold plus **core app auth** (Better Auth), **roles + core u
 | **Payload content module** | Collections, globals (site settings), drafts, media, CMS admin | `src/collections/`, `src/globals/`, `src/payload.config.ts`, `src/app/(payload)/` |
 
 - Payload tables use Postgres schema **`payload`** (created by `docker/postgres/init.sql`).
-- Core auth + layout tables: `sf_users`, `sf_sessions`, `sf_accounts`, `sf_verifications`, `sf_layouts` (push with `npm run db:core:push`).
+- Core auth + layout + page chrome tables: `sf_users`, `sf_sessions`, `sf_accounts`, `sf_verifications`, `sf_layouts`, `sf_page_chrome` (push with `npm run db:core:push`).
 - Hot paths stay in core — do not put high-QPS app traffic through Payload Local API.
 
 ### Published content cache
@@ -81,6 +81,7 @@ Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so coo
 | http://localhost:3000/login | **Only** sign-in (Better Auth). Also used when `/admin` redirects unauthenticated visitors |
 | http://localhost:3000/app/admin/users | Starforge admin — roles, **CMS access** switch, disable |
 | http://localhost:3000/app/admin/settings | Starforge admin — site name, primary nav, feature toggles (same Payload global) |
+| http://localhost:3000/app/admin/page-settings | Starforge admin — Page Settings (Head / Assets / Body / FA / Atoms + layout) |
 | http://localhost:3000/app/admin/layouts | Starforge admin — Gantry-like layout (palette + sections + 12-col widths) |
 | http://localhost:3000/api/me | Current app session JSON including `role` / `isAdmin` (`401` when signed out) |
 | http://localhost:3000/admin | Payload Content CMS — nav **Payload CMS** when `cms_access` is on; sidebar **Core admin** → `/app/admin` |
@@ -136,6 +137,21 @@ Default seed: Header → notice-bar (12); Navigation → site-header (12); Main 
 
 **Next polish (not this PR):** Gantry-like **Styles / Outlines / Menu** editors; block settings; cross-row reorder; Custom JS execution + ACL; YAML export; nested menus; Redis on DO. See `src/core/modules/README.md` and [docs.gantry.org](https://docs.gantry.org/).
 
+### Page Settings (document chrome)
+
+Gantry-style **Page Settings** at **`/app/admin/page-settings`**: site defaults + per-page overrides (picker: global / home / CMS pages). Storage: JSON in **`sf_page_chrome`** (`global` row + slug/`home` overrides). Public layout merges **page → global**, then emits head meta/icons/CSS, body attrs/hooks, Font Awesome, ordered JS, and **atoms**.
+
+| Panel | Notes |
+| --- | --- |
+| Layout assignment | `layoutId` → `sf_layouts` + sections mode (fullwidth / boxed) |
+| Head Properties | Repeatable meta tags + custom head HTML |
+| Assets | Favicon, touch icon, ordered CSS / JS lists |
+| Body Attributes | Id, classes, tag attrs, after `<body>` / before `</body>` |
+| Font Awesome | Optional CDN (6/7 Free) + advanced HTML overrides |
+| Atoms | Registry (v1: Custom CSS/JS, Analytics); settings open in a **popup overlay** |
+
+**ACL:** meta / classes / favicon / CSS URLs / FA enable = app admin. Custom head, body hooks, JS lists, atom scripts, FA HTML overrides = **developer-admin** (`STARFORGE_DEVELOPER_ADMIN_EMAILS`; empty list → all admins, local default).
+
 **First admin paths:**
 
 1. `npm run seed` creates bootstrap admin `admin@starforge.local` / `starforge-admin` (role `admin` + `cms_access`) and a Payload stub. Sign in **once** at `/login`, then open `/admin` — already authenticated.
@@ -161,6 +177,7 @@ Idempotent local demo data:
 - **Published CMS pages:** `/about`, `/getting-started`, `/welcome`
 - **Site settings** global defaults + **primary nav** linked to those pages (Payload relationships)
 - **Modules** feature enabled + **layout document v3** seeded into `sf_layouts` (notice-bar, site-header, page-content, custom footer)
+- **Page Settings** global chrome defaults seeded into `sf_page_chrome`
 - **Bootstrap app admin**: `admin@starforge.local` / `starforge-admin` → `admin` + `cms_access` + Payload stub
 - **Demo app member**: `demo@starforge.local` / `starforge-demo` → `member`, **no** CMS access
 - Promotes `STARFORGE_ADMIN_EMAILS` and grants them CMS access

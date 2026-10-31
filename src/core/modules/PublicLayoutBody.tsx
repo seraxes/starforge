@@ -11,6 +11,10 @@ type Props = {
   children: React.ReactNode
   siteName: string
   primaryNav: NavItem[]
+  /** Page Settings layout assignment (`sf_layouts` id). */
+  layoutId?: string
+  /** Sections layout mode from Page Settings. */
+  sectionsLayout?: 'fullwidth' | 'boxed'
 }
 
 function sortByOrder<T extends { order?: number; id: string }>(items: T[]): T[] {
@@ -85,14 +89,28 @@ function documentHasPageContent(sections: LayoutSection[]): boolean {
  * Public site body driven by the layout document (sections → rows → slots).
  * Page route children render via the built-in `page-content` particle.
  */
-export async function PublicLayoutBody({ children, siteName }: Props) {
+export async function PublicLayoutBody({
+  children,
+  siteName,
+  layoutId,
+  sectionsLayout = 'fullwidth',
+}: Props) {
   ensureModulesRegistered()
-  const document = await getLayoutDocument()
+  const document = await getLayoutDocument(layoutId)
   const sections = sortByOrder(document.sections)
   const hasPageContent = documentHasPageContent(sections)
+  const shellClass = [
+    'public-shell',
+    sectionsLayout === 'boxed' ? 'sf-sections-boxed' : 'sf-sections-fullwidth',
+  ].join(' ')
 
   return (
-    <div className="public-shell" data-sf-layout-version={document.version}>
+    <div
+      className={shellClass}
+      data-sf-layout-version={document.version}
+      data-sf-layout-id={layoutId || 'default'}
+      data-sf-sections-layout={sectionsLayout}
+    >
       {sections.map((section) => (
         <SectionBlock key={section.id} section={section} pageContent={children} />
       ))}
