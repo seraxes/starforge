@@ -7,9 +7,26 @@ export { absoluteMediaUrl, buildPageMetadata } from './content/metadata'
 export { getPublishedPageBySlug } from './content/pages'
 export { db, pool, sfUsers, sfSessions, sfAccounts, sfVerifications } from './db'
 export {
+  getAssignmentsForPosition,
+  getLayoutDocument,
+  getRegisteredModule,
+  LAYOUT_POSITIONS,
+  listRegisteredModules,
+  ModuleSlot,
+  registerModule,
+} from './modules'
+export type {
+  LayoutAssignment,
+  LayoutDocument,
+  LayoutPositionId,
+  ModuleRenderContext,
+  StarforgeModule,
+} from './modules'
+export {
   ensureSiteSettingsDefaults,
   getFeatureFlags,
   getSiteSettings,
+  isModulesEnabled,
   isRegistrationEnabled,
   seedPrimaryNavFromPages,
   updateSiteSettings,

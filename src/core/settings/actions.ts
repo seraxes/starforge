@@ -69,7 +69,7 @@ export async function updateSiteSettingsAction(
     return { error: message }
   }
 
-  revalidatePath('/')
+  revalidatePath('/', 'layout')
   revalidatePath('/register')
   revalidatePath('/login')
   revalidatePath('/app/admin/settings')

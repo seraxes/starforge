@@ -89,6 +89,89 @@ body {
   text-decoration-thickness: 2px;
 }
 
+/* Named module positions + notice-bar example module */
+.public-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.public-main {
+  flex: 1 0 auto;
+}
+
+.sf-module-slot {
+  width: 100%;
+}
+
+.sf-notice-bar {
+  background: color-mix(in srgb, var(--sf-secondary) 34%, white);
+  border-bottom: 1px solid color-mix(in srgb, var(--sf-secondary-strong) 28%, var(--sf-line));
+  color: var(--sf-ink);
+}
+
+.sf-notice-bar-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem 1rem;
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 0.7rem 1.5rem;
+}
+
+.sf-notice-bar-text {
+  margin: 0;
+  flex: 1 1 16rem;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.sf-notice-bar-dismiss {
+  appearance: none;
+  border: 1px solid color-mix(in srgb, var(--sf-secondary-strong) 45%, var(--sf-line));
+  background: color-mix(in srgb, white 70%, var(--sf-secondary));
+  color: var(--sf-secondary-ink);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+}
+
+.sf-notice-bar-dismiss:hover {
+  border-color: var(--sf-secondary-strong);
+  color: var(--sf-secondary-strong);
+}
+
+.site-footer {
+  margin-top: auto;
+  border-top: 1px solid var(--sf-line);
+  background: color-mix(in srgb, var(--sf-paper) 70%, white);
+}
+
+.site-footer-meta {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 1rem 1.5rem 1.35rem;
+  color: var(--sf-muted);
+  font-size: 0.88rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+  align-items: center;
+}
+
+.site-footer-brand {
+  color: var(--sf-ink);
+  font-weight: 600;
+}
+
+.site-footer-sep {
+  opacity: 0.7;
+}
+
 .session-hint {
   margin: 0;
   color: var(--sf-muted);
@@ -843,6 +926,16 @@ button:disabled {
 
   .site-header {
     padding: 1rem 1.15rem 0.25rem;
+  }
+
+  .sf-notice-bar-inner,
+  .site-footer-meta {
+    padding-left: 1.15rem;
+    padding-right: 1.15rem;
+  }
+
+  .sf-notice-bar-dismiss {
+    width: 100%;
   }
 
   .settings-nav-row {

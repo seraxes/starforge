@@ -2,7 +2,7 @@
 
 Reusable **product core** for ordinary web apps (auth, users, app shell, extension points) with **Payload CMS 3** as a swappable **content/media module** — not the whole product.
 
-This is an early scaffold plus **core app auth** (Better Auth), **roles + core user admin**, **one-login Payload CMS access** (`cms_access` toggle), **site settings + feature toggles**, **Lexical** page editing, **public `/[slug]`** rendering, **page SEO fields**, and **`npm run seed`**. It is intentionally small and runnable locally — not Airsoftnexus 2.0 feature parity, and not a DigitalOcean deploy.
+This is an early scaffold plus **core app auth** (Better Auth), **roles + core user admin**, **one-login Payload CMS access** (`cms_access` toggle), **site settings + feature toggles**, **Lexical** page editing, **public `/[slug]`** rendering, **page SEO fields**, **named layout positions + first extension module** (dismissible notice bar), and **`npm run seed`**. It is intentionally small and runnable locally — not Airsoftnexus 2.0 feature parity, and not a DigitalOcean deploy.
 
 ## Architecture
 
@@ -95,12 +95,26 @@ One Payload global (`site-settings`) is the source of truth for site chrome and 
 | Registration | on | Hide `/register` + reject signup when off |
 | Rich editor | on | Flag reserved for a future simpler mode (Lexical stays on Pages today) |
 | Posts | **off** | Placeholder — no Posts collection yet |
-| Modules | **off** | Placeholder — first extension module not shipped |
+| Modules | **off** (seed turns **on**) | Render extension modules in named layout positions |
 | Draft preview | **off** | Placeholder — preview slice not shipped |
 
-`npm run seed` ensures the global exists and points primary nav at the sample pages. Flags are **product capabilities**, not npm libraries.
+`npm run seed` ensures the global exists, points primary nav at the sample pages, and **enables Modules** so the notice bar shows. Flags are **product capabilities**, not npm libraries.
 
-**Later (not in this slice):** nested menus, module assignment, draft preview, Joomla-like menu params beyond the stub `cssClass` / `browserTitle` fields (stubs are not applied on the public site yet).
+### Extension modules + layout positions
+
+Named positions in the public layout: **`header`**, **`after-content`**, **`footer`**. Any registered module can target any position (no hard locks). Assignments live in `src/core/modules/default-layout.json` — the path toward a later visual layout editor (same JSON/YAML shape under the hood).
+
+| Piece | Where |
+| --- | --- |
+| Register API | `registerModule()` · `src/core/modules/` |
+| Example module | `src/modules/notice-bar/` (dismissible notice) |
+| Catalog boot | `src/modules/catalog.ts` |
+| Layout document | `src/core/modules/default-layout.json` |
+| Public slots | `<ModuleSlot position="…" />` in `(public)/layout.tsx` |
+
+After seed, open **http://localhost:3000** — a pastel notice bar sits in the **header** position. Dismiss it (session only) or turn **Modules** off under `/app/admin/settings`. Docs: `src/core/modules/README.md`.
+
+**Later (not in this slice):** nested menus, visual layout editor, draft preview, Joomla-like menu params beyond the stub `cssClass` / `browserTitle` fields (stubs are not applied on the public site yet).
 
 **First admin paths:**
 
@@ -126,6 +140,7 @@ Idempotent local demo data:
 
 - **Published CMS pages:** `/about`, `/getting-started`, `/welcome`
 - **Site settings** global defaults + **primary nav** linked to those pages (Payload relationships)
+- **Modules** feature enabled + notice bar assigned to the **header** position
 - **Bootstrap app admin**: `admin@starforge.local` / `starforge-admin` → `admin` + `cms_access` + Payload stub
 - **Demo app member**: `demo@starforge.local` / `starforge-demo` → `member`, **no** CMS access
 - Promotes `STARFORGE_ADMIN_EMAILS` and grants them CMS access
@@ -233,7 +248,7 @@ docker/postgres/init.sql    # CREATE SCHEMA payload
 src/
   app/
     (frontend)/             # public app shell + /login + /register + /[slug]
-      (public)/             # site header (name + nav) from site-settings
+      (public)/             # site header + ModuleSlots (header / after-content / footer)
       app/admin/            # core app admin (users + settings + CMS bridge)
     (payload)/              # Payload admin + REST/GraphQL (do not hand-edit)
     api/auth/               # Better Auth handler
@@ -242,14 +257,16 @@ src/
   collections/              # Payload content collections (Pages, Media, Users)
   globals/SiteSettings.ts   # site name, primary nav (page/URL), feature toggles
   components/               # SiteHeader + SiteNav + RichText (Lexical → JSX)
+  modules/                  # extension modules (notice-bar) + catalog register
   core/
     auth/                   # Better Auth + roles/admin helpers + Zod schemas
     cms-bridge/             # cms_access + Payload session strategy (one login)
     content/                # published CMS reads + page SEO metadata helpers
+    modules/                # register API, layout JSON, ModuleSlot
     settings/               # site-settings + nav resolve + flag helpers
     db/                     # Drizzle core schema + client
   fields/pagesLexical.ts    # Lexical editor features for Pages
-  seed.ts                   # pages + settings + bootstrap admin + CMS bridge + demo member
+  seed.ts                   # pages + settings + modules on + bootstrap admin + demo member
   payload.config.ts         # Payload config (content module)
 ```
 
@@ -258,8 +275,9 @@ src/
 - Production / DigitalOcean deploy
 - Forgot / reset password (needs email — deferred), OAuth
 - Second Payload password login (removed — Better Auth session strategy only)
-- Draft preview (flag exists as placeholder), Posts collection, extension modules
-- Nested menus, module assignment, Joomla-like menu CSS / browser-title overrides (stub fields only)
+- Draft preview (flag exists as placeholder), Posts collection
+- Visual layout editor (layout JSON exists; editor comes later), Gantry-full UX
+- Nested menus, Joomla-like menu CSS / browser-title overrides (stub fields only)
 - Airsoftnexus 2.0 feature parity
 
 ## Troubleshooting

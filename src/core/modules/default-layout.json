@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "assignments": [
+    {
+      "moduleId": "notice-bar",
+      "position": "header",
+      "enabled": true,
+      "order": 0
+    }
+  ]
+}
