@@ -618,11 +618,12 @@ button:disabled {
 .admin-nav {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.75rem;
 }
 
-.admin-nav a {
+.admin-nav > a,
+.admin-nav-dropdown-trigger {
   text-decoration: none;
   padding: 0.5rem 0.85rem;
   border: 1px solid var(--sf-line);
@@ -631,32 +632,84 @@ button:disabled {
   font-weight: 600;
 }
 
-.admin-nav-group {
-  display: flex;
-  flex-direction: column;
+/* Gantry-like: hover/focus reveals submenu; parent click still goes to default child. */
+.admin-nav-dropdown {
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+}
+
+.admin-nav-dropdown-trigger {
+  display: inline-flex;
+  align-items: center;
   gap: 0.35rem;
 }
 
-.admin-nav-group > .admin-nav-parent {
-  display: inline-block;
+.admin-nav-dropdown-caret {
+  font-size: 0.7em;
+  line-height: 1;
+  opacity: 0.75;
 }
 
-.admin-nav-sub {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  padding-left: 0.65rem;
-  border-left: 2px solid color-mix(in srgb, var(--sf-secondary) 45%, var(--sf-line));
-  margin-left: 0.35rem;
+.admin-nav-dropdown-menu {
+  list-style: none;
+  margin: 0;
+  padding: 0.35rem 0;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 40;
+  min-width: 11.5rem;
+  border: 1px solid var(--sf-line);
+  background: #fff;
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--sf-ink) 12%, transparent);
+  /* Keep a hover bridge so the menu does not vanish in the 1px gap. */
+  padding-top: 0.45rem;
+  margin-top: 0;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(0.15rem);
+  transition:
+    opacity 0.12s ease,
+    visibility 0.12s ease,
+    transform 0.12s ease;
 }
 
-.admin-nav-sub a {
-  padding: 0.3rem 0.65rem;
-  font-size: 0.9rem;
+.admin-nav-dropdown-menu::before {
+  content: '';
+  position: absolute;
+  top: -0.35rem;
+  left: 0;
+  right: 0;
+  height: 0.45rem;
+}
+
+.admin-nav-dropdown:hover .admin-nav-dropdown-menu,
+.admin-nav-dropdown:focus-within .admin-nav-dropdown-menu {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.admin-nav-dropdown-menu a {
+  display: block;
+  text-decoration: none;
+  padding: 0.45rem 0.85rem;
+  color: var(--sf-ink);
   font-weight: 600;
-  background: color-mix(in srgb, var(--sf-primary) 12%, transparent);
-  color: var(--sf-primary-strong);
-  border-color: color-mix(in srgb, var(--sf-primary) 35%, var(--sf-line));
+  font-size: 0.92rem;
+  border: 0;
+  background: transparent;
+  white-space: nowrap;
+}
+
+.admin-nav-dropdown-menu a:hover,
+.admin-nav-dropdown-menu a:focus-visible {
+  background: color-mix(in srgb, var(--sf-secondary) 18%, white);
+  color: var(--sf-secondary-strong);
+  outline: none;
 }
 
 .admin-subhead {

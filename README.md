@@ -81,7 +81,7 @@ Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so coo
 | http://localhost:3000/login | **Only** sign-in (Better Auth). Also used when `/admin` redirects unauthenticated visitors |
 | http://localhost:3000/app/admin/users | Starforge admin — roles, **CMS access** switch, disable |
 | http://localhost:3000/app/admin/settings | Starforge admin — site name, primary nav, feature toggles (same Payload global) |
-| http://localhost:3000/app/admin/layouts | Starforge admin — Layouts (Gantry-like palette + sections + 12-col widths) |
+| http://localhost:3000/app/admin/layouts | Starforge admin — **Layouts** (hover submenu) → **Layout** canvas (default) |
 | http://localhost:3000/app/admin/page-settings | Starforge admin — **Layouts → Page settings** (Head / Assets / Body / FA / Atoms) |
 | http://localhost:3000/api/me | Current app session JSON including `role` / `isAdmin` (`401` when signed out) |
 | http://localhost:3000/admin | Payload Content CMS — nav **Payload CMS** when `cms_access` is on; sidebar **Core admin** → `/app/admin` |
@@ -139,7 +139,7 @@ Default seed: Header → notice-bar (12); Navigation → site-header (12); Main 
 
 ### Page Settings (document chrome)
 
-Gantry-style **Page Settings** at **`/app/admin/page-settings`**: site defaults + per-page overrides (picker: global / home / CMS pages). Storage: JSON in **`sf_page_chrome`** (`global` row + slug/`home` overrides). Public layout merges **page → global**, then emits head meta/icons/CSS, body attrs/hooks, Font Awesome, ordered JS, and **atoms**.
+Gantry-style **Page Settings** (Core admin nav: parent **Layouts** reveals a hover submenu — **Layout** default + **Page settings**; parent click → Layout canvas; route **`/app/admin/page-settings`**): site defaults + per-page overrides (picker: global / home / CMS pages). Storage: JSON in **`sf_page_chrome`** (`global` row + slug/`home` overrides). Public layout merges **page → global**, then emits head meta/icons/CSS, body attrs/hooks, Font Awesome, ordered JS, and **atoms**. Styles / Particle Defaults join the same submenu later.
 
 | Panel | Notes |
 | --- | --- |

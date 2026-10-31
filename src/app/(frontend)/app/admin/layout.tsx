@@ -55,13 +55,25 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
       <nav className="admin-nav" aria-label="Starforge admin">
         <Link href="/app/admin/users">Users</Link>
         <Link href="/app/admin/settings">Site settings</Link>
-        <div className="admin-nav-group">
-          <Link href="/app/admin/layouts" className="admin-nav-parent">
+        {/*
+          Gantry-style: parent Layouts → default Layout canvas.
+          Hover/focus reveals submenu (Layout, Page settings; Styles / Particle Defaults later).
+        */}
+        <div className="admin-nav-dropdown">
+          <Link href="/app/admin/layouts" className="admin-nav-dropdown-trigger">
             Layouts
+            <span className="admin-nav-dropdown-caret" aria-hidden="true">
+              ▾
+            </span>
           </Link>
-          <div className="admin-nav-sub" aria-label="Layouts submenu">
-            <Link href="/app/admin/page-settings">Page settings</Link>
-          </div>
+          <ul className="admin-nav-dropdown-menu" aria-label="Layouts submenu">
+            <li>
+              <Link href="/app/admin/layouts">Layout</Link>
+            </li>
+            <li>
+              <Link href="/app/admin/page-settings">Page settings</Link>
+            </li>
+          </ul>
         </div>
         {showPayloadCms ? <Link href="/admin">Payload CMS</Link> : null}
         <Link href="/">Back to site</Link>
