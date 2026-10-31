@@ -7,6 +7,7 @@ import {
   userIsAppAdmin,
 } from '@/core/auth/admin'
 import { getAppSession } from '@/core/auth/session'
+import { loadCoreUserCmsAccess, userHasCmsAccess } from '@/core/cms-bridge'
 import { getSiteSettings } from '@/core/settings'
 import { SignOutButton } from './sign-out-button'
 
@@ -25,6 +26,8 @@ export default async function HomePage({
     if (promoted) role = 'admin'
   }
   const isAdmin = userIsAppAdmin(user) || role === 'admin'
+  const access = user?.id ? await loadCoreUserCmsAccess(user.id) : null
+  const hasCmsAccess = userHasCmsAccess(access)
   const showAdminsOnly = params.notice === 'admins-only'
   const registrationOn = settings.features.registration
 
@@ -89,9 +92,11 @@ export default async function HomePage({
                     <Link className="secondary" href="/app/admin/settings">
                       Site settings
                     </Link>
-                    <Link className="secondary" href="/app/admin/cms">
-                      CMS access
-                    </Link>
+                    {hasCmsAccess ? (
+                      <Link className="secondary" href="/admin">
+                        Payload CMS
+                      </Link>
+                    ) : null}
                   </>
                 ) : null}
                 <Link className="secondary" href="/api/me">
@@ -124,9 +129,11 @@ export default async function HomePage({
         </div>
 
         <div className="links muted-links">
-          <Link className="secondary" href="/admin">
-            Open Payload admin (content)
-          </Link>
+          {!(isAdmin && hasCmsAccess) ? (
+            <Link className="secondary" href="/admin">
+              Payload CMS
+            </Link>
+          ) : null}
           <Link className="secondary" href="/about">
             Sample page /about
           </Link>

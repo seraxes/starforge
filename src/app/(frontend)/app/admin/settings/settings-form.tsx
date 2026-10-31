@@ -142,9 +142,8 @@ export function SettingsForm({ siteName, primaryNav, features }: Props) {
         <FlagRow
           name="featureModules"
           label="Modules"
-          description="Extension modules placeholder — keep off until the first module lands."
+          description="Show registered modules in layout positions (notice bar in header after seed)."
           checked={features.modules}
-          placeholder
         />
         <FlagRow
           name="featureDraftPreview"

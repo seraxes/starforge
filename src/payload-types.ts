@@ -442,7 +442,7 @@ export interface SiteSetting {
    */
   featurePosts?: boolean | null;
   /**
-   * Placeholder for extension modules (contact, notice bar, …). Keep off until the first module lands.
+   * Render extension modules in named layout positions (e.g. notice bar in header). Off = all ModuleSlots empty.
    */
   featureModules?: boolean | null;
   /**
