@@ -8,6 +8,7 @@ import {
   userIsAppAdmin,
 } from '@/core/auth/admin'
 import { getAppSession } from '@/core/auth/session'
+import { loadCoreUserCmsAccess, userHasCmsAccess } from '@/core/cms-bridge'
 
 export const metadata = {
   title: 'Core admin — Starforge',
@@ -29,6 +30,8 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
   }
 
   const role = roleFromUser(session.user)
+  const access = session.user.id ? await loadCoreUserCmsAccess(session.user.id) : null
+  const showPayloadCms = userHasCmsAccess(access)
 
   return (
     <div className="admin-shell">
@@ -39,9 +42,9 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
           </p>
           <h1>Core admin</h1>
           <p className="lede admin-lede">
-            App users, roles, CMS access toggles, and site settings. One Better Auth login —
-            open <Link href="/admin">/admin</Link> with no second password when CMS access is on
-            (see <Link href="/app/admin/cms">CMS access</Link>).
+            App users, roles, and site settings. One Better Auth login — with CMS access on
+            (toggle under Users), <Link href="/admin">Payload CMS</Link> opens with no second
+            password.
           </p>
         </div>
         <p className="admin-who">
@@ -51,8 +54,7 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
       <nav className="admin-nav" aria-label="Core admin">
         <Link href="/app/admin/users">Users</Link>
         <Link href="/app/admin/settings">Site settings</Link>
-        <Link href="/app/admin/cms">CMS access</Link>
-        <Link href="/admin">Open Payload CMS</Link>
+        {showPayloadCms ? <Link href="/admin">Payload CMS</Link> : null}
         <Link href="/">Back to home</Link>
       </nav>
       <div className="admin-main">{props.children}</div>

@@ -66,9 +66,8 @@ Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so coo
 | http://localhost:3000/login | **Only** sign-in (Better Auth). Also used when `/admin` redirects unauthenticated visitors |
 | http://localhost:3000/app/admin/users | Core admin — roles, **CMS access** switch, disable |
 | http://localhost:3000/app/admin/settings | Core admin — site name, primary nav, feature toggles (same Payload global) |
-| http://localhost:3000/app/admin/cms | Explains one-login CMS access + open `/admin` |
 | http://localhost:3000/api/me | Current app session JSON including `role` / `isAdmin` (`401` when signed out) |
-| http://localhost:3000/admin | Payload admin — already logged in when you have `cms_access` (no second password form) |
+| http://localhost:3000/admin | Payload CMS — one nav link (**Payload CMS**) when `cms_access` is on; no second password |
 | http://localhost:3000/about | Sample published page (after `npm run seed`) |
 | http://localhost:3000/getting-started | Sample published page |
 | http://localhost:3000/welcome | Sample published page with SEO meta filled |

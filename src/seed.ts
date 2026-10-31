@@ -445,7 +445,7 @@ async function main() {
   console.log('Login once: http://localhost:3000/login  then open http://localhost:3000/admin')
   console.log('Core admin users:    http://localhost:3000/app/admin/users')
   console.log('Core site settings:  http://localhost:3000/app/admin/settings')
-  console.log('CMS access help:     http://localhost:3000/app/admin/cms')
+  console.log('Payload CMS:         http://localhost:3000/admin  (nav: Payload CMS)')
   console.log('')
 
   process.exit(0)
