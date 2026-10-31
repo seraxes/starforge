@@ -43,7 +43,7 @@ export default async function AdminLayoutsPage(props: { searchParams?: SearchPar
   const modules = await listModulesForLayoutAdmin()
 
   return (
-    <section className="admin-section layout-admin-section">
+    <section className="admin-section layout-admin-section admin-layouts-full">
       <h2>Layout manager</h2>
       <p className="lede admin-lede">
         Editing outline <strong>{outlineMeta.label}</strong> (<code>{layoutId}</code>

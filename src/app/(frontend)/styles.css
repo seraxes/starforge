@@ -570,7 +570,11 @@ button:disabled {
   gap: 1.25rem;
 }
 
-/* Layout manager needs the full viewport — no narrow content column */
+/*
+ * Layouts family (Layout canvas, Outlines, Page settings) — full viewport width.
+ * Marker: `.admin-layouts-full` on the page section (also keeps `.gantry-editor` for canvas).
+ */
+.admin-shell:has(.admin-layouts-full),
 .admin-shell:has(.gantry-editor) {
   max-width: none;
   width: 100%;
@@ -579,13 +583,20 @@ button:disabled {
   box-sizing: border-box;
 }
 
+.admin-shell:has(.admin-layouts-full) .admin-lede,
 .admin-shell:has(.gantry-editor) .admin-lede {
   max-width: none;
 }
 
+.admin-shell:has(.admin-layouts-full) .admin-main,
 .admin-shell:has(.gantry-editor) .admin-main {
   max-width: none;
   width: 100%;
+}
+
+.admin-layouts-full {
+  width: 100%;
+  max-width: none;
 }
 
 .admin-header {
@@ -2043,7 +2054,8 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  max-width: 52rem;
+  width: 100%;
+  max-width: none;
 }
 
 .page-settings-toolbar {
@@ -2328,6 +2340,8 @@ button:disabled {
 .outlines-manager {
   display: grid;
   gap: 1.5rem;
+  width: 100%;
+  max-width: none;
 }
 
 .outlines-create {
