@@ -968,7 +968,9 @@ button:disabled {
 /* Public 12-col layout grid (not Bootstrap) */
 .sf-grid-row {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
   width: 100%;
   box-sizing: border-box;
 }
@@ -976,6 +978,7 @@ button:disabled {
 .sf-grid-col {
   box-sizing: border-box;
   min-width: 0;
+  max-width: 100%;
   padding: 0;
 }
 
@@ -1421,6 +1424,8 @@ button:disabled {
   gap: 0;
   width: 100%;
   min-height: 4.5rem;
+  /* Same-row particles stay horizontal; settings expand inside the cell. */
+  overflow-x: auto;
 }
 
 .gantry-row-empty {
@@ -1438,6 +1443,8 @@ button:disabled {
 .gantry-slot {
   box-sizing: border-box;
   min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   padding: 0.55rem;
   border: 1px solid var(--sf-line);
   background: rgba(255, 255, 255, 0.9);
@@ -1500,22 +1507,14 @@ button:disabled {
   outline: none;
 }
 
-.gantry-row-slots:has(.gantry-custom-editor[open]),
-.gantry-row-slots:has(.gantry-typed-editor[open]) {
-  flex-wrap: wrap;
-}
-
-.gantry-slot:has(.gantry-custom-editor[open]),
-.gantry-slot:has(.gantry-typed-editor[open]) {
-  flex: 0 0 100% !important;
-  max-width: 100% !important;
-  width: 100% !important;
-}
-
+/* Editors expand inside the % width cell — never force the row to wrap. */
 .gantry-custom-editor,
 .gantry-typed-editor {
   margin-top: 0.45rem;
   font-size: 0.88rem;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 .gantry-custom-form,
@@ -1547,7 +1546,7 @@ button:disabled {
 
 .gantry-typed-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 0.55rem;
 }
 
@@ -1562,11 +1561,13 @@ button:disabled {
 
 .gantry-social-editor-item {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 0.45rem;
   padding: 0.65rem;
   border: 1px solid var(--sf-line);
   background: color-mix(in srgb, var(--sf-secondary) 8%, white);
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 .gantry-social-editor-item button.danger {
@@ -1706,8 +1707,12 @@ button:disabled {
     align-items: stretch;
   }
 
-  /* Keep admin row particles side-by-side; only stack public grid on small screens */
-  .sf-grid-col {
+  /* Public grid may stack on small screens; admin canvas rows stay horizontal. */
+  .public-shell .sf-grid-row {
+    flex-wrap: wrap;
+  }
+
+  .public-shell .sf-grid-col {
     flex: 0 0 100% !important;
     max-width: 100% !important;
     width: 100% !important;

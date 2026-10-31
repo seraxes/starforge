@@ -173,9 +173,11 @@ function ParticleBlock({
       data-sf-width={slot.width}
       data-sf-slot={slot.id}
       style={{
-        flex: `0 0 ${percent}%`,
-        maxWidth: `${percent}%`,
-        width: `${percent}%`,
+        /* Grow by % share so resize handles don't force wrap/overflow. */
+        flex: `${percent} 1 0`,
+        minWidth: 0,
+        maxWidth: '100%',
+        boxSizing: 'border-box',
       }}
     >
       <header className="gantry-slot-head">

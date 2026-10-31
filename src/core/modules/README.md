@@ -70,7 +70,7 @@ Legacy v1 / v2 upgrade on read.
 1. **Create section** — drag the **⋮⋮** handle to **reorder sections** (persists `order` in JSON)
 2. **Add row** inside the section
 3. **Drag** a particle from the left palette **into the row**
-4. Drop a second beside it → **side-by-side** in one horizontal row (~50%/50%); **drag the divider** to resize in **1%** steps (**5%–95%**, pair sums to **100%**)
+4. Drop a second beside it → **side-by-side** in one horizontal row (~50%/50%; `flex-wrap: nowrap`); **drag the divider** to resize in **1%** steps (**5%–95%**, pair sums to **100%**). Particle settings expand **inside** the cell — they never force the row to stack.
 5. Layout admin page is **full width** (no narrow max-width column)
 6. Custom particle: CodeMirror HTML/CSS/JS (resizable panels — no plain code textareas)
 7. Typed particles open field editors on the canvas (Logo media/URL/alt/size; Copyright text/year/link; Social link list)

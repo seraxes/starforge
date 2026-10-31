@@ -48,7 +48,7 @@ export function CustomParticleEditor({
   const cfg = slot.config ?? {}
 
   return (
-    <details className="gantry-custom-editor" open>
+    <details className="gantry-custom-editor">
       <summary>Custom particle — HTML / CSS / JS</summary>
       <form action={formAction} className="gantry-custom-form">
         <input type="hidden" name="sectionId" value={sectionId} />

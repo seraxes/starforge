@@ -53,7 +53,7 @@ export function LogoParticleEditor({
   const cfg = readLogoConfig(slot.config)
 
   return (
-    <details className="gantry-typed-editor" open>
+    <details className="gantry-typed-editor">
       <summary>Logo / Image settings</summary>
       <form action={formAction} className="gantry-typed-form">
         <input type="hidden" name="sectionId" value={sectionId} />
@@ -128,7 +128,7 @@ export function CopyrightParticleEditor({
   const [yearMode, setYearMode] = useState(cfg.yearMode ?? 'auto')
 
   return (
-    <details className="gantry-typed-editor" open>
+    <details className="gantry-typed-editor">
       <summary>Copyright settings</summary>
       <form action={formAction} className="gantry-typed-form">
         <input type="hidden" name="sectionId" value={sectionId} />
@@ -192,7 +192,7 @@ export function SocialParticleEditor({
   )
 
   return (
-    <details className="gantry-typed-editor" open>
+    <details className="gantry-typed-editor">
       <summary>Social links</summary>
       <form action={formAction} className="gantry-typed-form">
         <input type="hidden" name="sectionId" value={sectionId} />
