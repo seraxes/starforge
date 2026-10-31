@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { getAppSession } from '@/core/auth/session'
-import { safeNextPath } from '@/core/auth/actions'
+import { safeNextPath } from '@/core/auth/safe-next-path'
 import { LoginForm } from './login-form'
 
 export const metadata = {
