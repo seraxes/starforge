@@ -6,6 +6,7 @@ Product auth / sessions for **app users** (Better Auth + Drizzle + Postgres `pub
 | --- | --- |
 | App register / login / logout / session | This module · `/login` · `/register` · `/api/auth/*` · `/api/me` |
 | App roles + user admin | `sf_users.role` · `/app/admin/users` (admins only) |
+| Site settings + feature toggles | Payload global `site-settings` · `/app/admin/settings` (admins) · also Payload Globals |
 | CMS editors (content only) | Payload `users` collection · `/admin` |
 
 Do **not** route high-QPS app login/session traffic through Payload Local API. Payload users and Starforge app users are separate accounts in separate tables/schemas.
@@ -25,7 +26,7 @@ Do **not** route high-QPS app login/session traffic through Payload Local API. P
 
 | Role | Meaning |
 | --- | --- |
-| `admin` | Global **app** admin — can open `/app/admin/users`, list users, set roles, disable |
+| `admin` | Global **app** admin — `/app/admin/users`, `/app/admin/settings`, list users, set roles, disable |
 | `member` | Default product user (Better Auth `defaultRole`) |
 
 Implemented with the Better Auth **admin** plugin + custom access control (`src/core/auth/permissions.ts`).
@@ -42,6 +43,8 @@ Members visiting `/app/admin/users` are redirected to `/?notice=admins-only` —
 Register / login / logout use **Next.js server actions** so session cookies are set via the `nextCookies` plugin (same-origin, works on both `localhost` and `127.0.0.1`). Prefer one host consistently (README recommends `http://localhost:3000`).
 
 Register auto-signs-in and redirects to `/`. If a session cookie is missing after signup, the action signs in once with the same credentials before redirecting (or shows an error pointing at `/login`).
+
+Registration respects the **Registration** feature toggle (`site-settings`): when off, `/register` is hidden/blocked and `registerAction` rejects signups.
 
 Login errors distinguish: unknown email, account without a password hash (pre-fix debris), and wrong password. Always sign in with **email**, never display name. Disabled (`banned`) users cannot sign in.
 
