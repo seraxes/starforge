@@ -2058,6 +2058,45 @@ button:disabled {
   max-width: none;
 }
 
+/* Mosaic: multi-column tile grid of open panels */
+.page-settings-mosaic {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  gap: 1rem;
+  width: 100%;
+  align-items: start;
+}
+
+.page-settings-mosaic > .page-settings-panel {
+  margin: 0;
+  min-width: 0;
+  height: 100%;
+}
+
+.page-settings-mosaic > .page-settings-panel-wide {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 1100px) {
+  .page-settings-mosaic {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .page-settings-mosaic > .page-settings-panel-wide {
+    grid-column: span 2;
+  }
+}
+
+@media (min-width: 1500px) {
+  .page-settings-mosaic {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.page-settings-form .page-settings-actions {
+  margin-top: 0.25rem;
+}
+
 .page-settings-toolbar {
   display: flex;
   flex-wrap: wrap;
