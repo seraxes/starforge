@@ -1,13 +1,14 @@
 /**
  * Local demo seed for Starforge.
  *
- * Creates sample **published** CMS pages (Payload). Optionally creates one
- * **core app user** (Better Auth) — never a Payload CMS editor.
+ * Creates sample **published** CMS pages (Payload), site settings, core app
+ * users (Better Auth), and a **linked Payload CMS editor** for the bootstrap
+ * global admin (same email — content module only; product users stay in core).
  *
  * Usage (Compose up, `.env` present, core tables pushed):
  *   npm run seed
  *
- * Idempotent: skips pages / app user that already exist.
+ * Idempotent: skips pages / users that already exist.
  */
 import 'dotenv/config'
 
@@ -21,6 +22,12 @@ import {
   promoteBootstrapAdminsByEmail,
   setUserRole,
 } from './core/auth/admin'
+import {
+  BOOTSTRAP_ADMIN_EMAIL,
+  ensureCmsBridgeForEmails,
+  ensurePayloadCmsUser,
+  getCmsBridgePassword,
+} from './core/cms-bridge'
 import { db } from './core/db'
 import { sfUsers } from './core/db/schema'
 import { ensureSiteSettingsDefaults } from './core/settings'
@@ -30,8 +37,7 @@ const DEMO_APP_EMAIL = 'demo@starforge.local'
 const DEMO_APP_PASSWORD = 'starforge-demo'
 const DEMO_APP_NAME = 'Demo Member'
 
-/** Local bootstrap admin (core /app/admin — not Payload CMS). */
-const BOOTSTRAP_ADMIN_EMAIL = 'admin@starforge.local'
+/** Local bootstrap admin — same email/password for core `/login` and Payload `/admin`. */
 const BOOTSTRAP_ADMIN_PASSWORD = 'starforge-admin'
 const BOOTSTRAP_ADMIN_NAME = 'Demo Admin'
 
@@ -133,7 +139,7 @@ const SAMPLE_PAGES = [
       ),
       bulletList(
         'Core app accounts: /register and /login',
-        'CMS editors: Payload /admin (separate accounts)',
+        'CMS editors: Payload /admin (linked for global admins via seed)',
         'Published pages render at /{slug}',
       ),
     ),
@@ -151,13 +157,13 @@ const SAMPLE_PAGES = [
       bulletList(
         'npm run seed — sample published pages (+ optional demo app user)',
         'Open /about and /getting-started on the public site',
-        'Edit pages in /admin (create a CMS editor on first visit)',
+        'Edit pages in /admin (seed links the bootstrap admin as a CMS editor)',
         'Register an app account at /register if you did not use the demo user',
       ),
       heading('h3', 'Two kinds of users'),
       paragraph(
         textNode(
-          'Payload /admin users edit content. Core /login users are product accounts. Creating one never creates the other.',
+          'Payload /admin users edit content. Core /login users are product accounts. Global admins get a linked CMS editor (same email); members are never synced into Payload.',
         ),
       ),
     ),
@@ -273,6 +279,27 @@ async function seedBootstrapAdmin() {
   return { created: true as const, email: BOOTSTRAP_ADMIN_EMAIL }
 }
 
+async function seedCmsBridgeForAdmins() {
+  const bridgePassword = getCmsBridgePassword()
+
+  // Bootstrap admin: same password as core so one pair works for /login and /admin.
+  const bootstrap = await ensurePayloadCmsUser({
+    email: BOOTSTRAP_ADMIN_EMAIL,
+    password: BOOTSTRAP_ADMIN_PASSWORD,
+    name: BOOTSTRAP_ADMIN_NAME,
+  })
+
+  const envEmails = getBootstrapAdminEmails().filter(
+    (email) => email.toLowerCase() !== BOOTSTRAP_ADMIN_EMAIL.toLowerCase(),
+  )
+  const envBridge =
+    envEmails.length > 0
+      ? await ensureCmsBridgeForEmails(envEmails, bridgePassword)
+      : { created: [] as string[], existing: [] as string[], failed: [] as { email: string; error: string }[] }
+
+  return { bootstrap, envBridge, bridgePassword }
+}
+
 async function main() {
   // Lets Better Auth create bootstrap users even if registration toggle is off.
   process.env.STARFORGE_SEEDING = '1'
@@ -280,10 +307,8 @@ async function main() {
   console.log('')
   console.log('Starforge seed')
   console.log('--------------')
-  console.log('CMS editors (Payload /admin) are NOT created here.')
-  console.log('Create the first CMS editor in the browser at http://localhost:3000/admin')
-  console.log('App accounts (/login) are separate from CMS editors.')
-  console.log('Core admin UI: http://localhost:3000/app/admin (users + site settings).')
+  console.log('App accounts (/login) stay in core. Payload /admin editors are CMS-only.')
+  console.log('Global admins get a linked CMS editor (same email) — see /app/admin/cms.')
   console.log('')
 
   try {
@@ -308,7 +333,7 @@ async function main() {
     const adminUser = await seedBootstrapAdmin()
     if (adminUser.created) {
       console.log('')
-      console.log(`Bootstrap app admin created (core /app/admin — not CMS):`)
+      console.log(`Bootstrap app admin created (core /app/admin):`)
       console.log(`  email:    ${BOOTSTRAP_ADMIN_EMAIL}`)
       console.log(`  password: ${BOOTSTRAP_ADMIN_PASSWORD}`)
       console.log(`  role:     admin`)
@@ -342,12 +367,44 @@ async function main() {
     console.warn(error instanceof Error ? error.message : error)
   }
 
+  try {
+    const { bootstrap, envBridge, bridgePassword } = await seedCmsBridgeForAdmins()
+    console.log('')
+    if (bootstrap.ok && bootstrap.status === 'created') {
+      console.log('Linked Payload CMS editor for bootstrap admin:')
+      console.log(`  email:    ${BOOTSTRAP_ADMIN_EMAIL}`)
+      console.log(`  password: ${BOOTSTRAP_ADMIN_PASSWORD}  (same as core)`)
+      console.log('  open:     http://localhost:3000/admin')
+    } else if (bootstrap.ok) {
+      console.log(`Payload CMS editor already linked: ${BOOTSTRAP_ADMIN_EMAIL}`)
+    } else {
+      console.warn(`Could not link bootstrap CMS editor: ${bootstrap.error}`)
+    }
+
+    if (envBridge.created.length) {
+      console.log(
+        `CMS bridge created for STARFORGE_ADMIN_EMAILS: ${envBridge.created.join(', ')} (password: STARFORGE_CMS_BRIDGE_PASSWORD or default ${bridgePassword})`,
+      )
+    }
+    if (envBridge.existing.length) {
+      console.log(`CMS bridge already linked: ${envBridge.existing.join(', ')}`)
+    }
+    for (const fail of envBridge.failed) {
+      console.warn(`CMS bridge failed for ${fail.email}: ${fail.error}`)
+    }
+  } catch (error) {
+    console.warn('')
+    console.warn('Could not ensure Payload CMS bridge users.')
+    console.warn(error instanceof Error ? error.message : error)
+  }
+
   console.log('')
   console.log('Try: http://localhost:3000/about  ·  /getting-started  ·  /welcome')
-  console.log('CMS:  http://localhost:3000/admin')
+  console.log('CMS:  http://localhost:3000/admin  (seed admin = same email/password as core)')
   console.log('App:  http://localhost:3000/login')
   console.log('Core admin users:    http://localhost:3000/app/admin/users')
   console.log('Core site settings:  http://localhost:3000/app/admin/settings')
+  console.log('CMS access bridge:   http://localhost:3000/app/admin/cms')
   console.log('')
 
   process.exit(0)

@@ -13,4 +13,12 @@ export {
   isRegistrationEnabled,
   updateSiteSettings,
 } from './settings'
+export {
+  BOOTSTRAP_ADMIN_EMAIL,
+  DEFAULT_CMS_BRIDGE_PASSWORD,
+  ensureCmsBridgeForEmails,
+  ensurePayloadCmsUser,
+  findPayloadCmsUserByEmail,
+  getCmsBridgePassword,
+} from './cms-bridge'
 

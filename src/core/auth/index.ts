@@ -21,7 +21,8 @@ const appUrl =
  * and credential lookups (email + password on `account`) stay reliable.
  *
  * Roles live on `sf_users.role` via the Better Auth admin plugin (`admin` | `member`).
- * Payload `/admin` stays a separate CMS editor surface — global-admin→CMS bridge is follow-up.
+ * Global admins get a linked Payload editor (same email) via `src/core/cms-bridge` —
+ * sessions stay separate (core cookie ≠ Payload cookie).
  */
 export const auth = betterAuth({
   appName: 'Starforge',

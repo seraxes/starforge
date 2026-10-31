@@ -58,8 +58,9 @@ export default async function HomePage({
           <p>
             <strong>/admin</strong> = CMS content (pages, media, editors, site settings global).{' '}
             <strong>/login</strong> = app accounts. <strong>/app/admin</strong> = core users +
-            feature toggles (<code>admin</code> only). Separate systems — one login does not work
-            in the other.
+            feature toggles (<code>admin</code> only). Global admins get a{' '}
+            <strong>linked</strong> CMS editor (same email via seed /{' '}
+            <code>/app/admin/cms</code>); members are never synced into Payload.
           </p>
         </div>
 
@@ -78,6 +79,9 @@ export default async function HomePage({
                     </Link>
                     <Link className="secondary" href="/app/admin/settings">
                       Site settings
+                    </Link>
+                    <Link className="secondary" href="/app/admin/cms">
+                      CMS access
                     </Link>
                   </>
                 ) : null}
@@ -125,8 +129,8 @@ export default async function HomePage({
       <div className="footer">
         <p>
           Content: Payload <code>/admin</code> · App accounts: <code>/login</code> · Core
-          admin: <code>/app/admin</code> (seed:{' '}
-          <code>admin@starforge.local</code> / <code>starforge-admin</code>) ·{' '}
+          admin: <code>/app/admin</code> · seed admin (core + CMS):{' '}
+          <code>admin@starforge.local</code> / <code>starforge-admin</code> ·{' '}
           <code>npm run seed</code> · see README
         </p>
       </div>
