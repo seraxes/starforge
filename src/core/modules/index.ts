@@ -7,6 +7,7 @@ export {
   removeLayoutRowAction,
   removeSlotAction,
   renameLayoutSectionAction,
+  renameLayoutSlotAction,
   reorderLayoutSectionsAction,
   reorderRowSlotsAction,
   resetLayoutToDefaultAction,
@@ -16,6 +17,7 @@ export {
   toggleSlotAction,
   updateCopyrightSlotAction,
   updateCustomSlotAction,
+  updateLayoutSectionMetaAction,
   updateLogoSlotAction,
   updateSocialSlotAction,
 } from './actions'
@@ -26,6 +28,8 @@ export {
   findSection,
   findSlot,
   normalizeLayoutDocument,
+  sanitizeCssClassList,
+  sanitizeDisplayName,
   serializeLayoutDocument,
   slugifyLayoutId,
 } from './document'

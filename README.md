@@ -119,7 +119,7 @@ One Payload global (`site-settings`) is the source of truth for site chrome and 
 
 ### Extension modules + Gantry-like layout manager
 
-Public chrome is driven by a **layout document**: **sections → rows → slots** (`moduleId` + **`width` as %**). Storage is **JSON** in `sf_layouts` (fallback `default-layout.json`). Admin at **`/app/admin/layouts`** is **full width** and follows Gantry Layout Manager: create section → add row → **drag** particles into the row (side-by-side) → resize by **1%** steps (**5%–95%**, pair sums to 100%; Starforge flex math — **not Bootstrap**).
+Public chrome is driven by a **layout document**: **sections → rows → slots** (`moduleId` + **`width` as %**). Storage is **JSON** in `sf_layouts` (fallback `default-layout.json`). Admin at **`/app/admin/layouts`** is **full width** and follows Gantry Layout Manager: create section → edit section **name** / **CSS classes** → add row → **drag** particles into the row (side-by-side; editable instance **display name**) → resize by **1%** steps (**5%–95%**, pair sums to 100%; Starforge flex math — **not Bootstrap**).
 
 | Piece | Where |
 | --- | --- |
@@ -135,7 +135,7 @@ Default seed: Header → notice-bar (12); Navigation → site-header (12); Main 
 
 **Code editors:** Custom particle HTML/CSS/JS use **CodeMirror** (syntax highlighting + resizable panels) — not plain textareas. Monaco remains an option for a heavier Styles IDE later.
 
-**Next polish (not this PR):** Gantry-like **Styles / Outlines / Menu** editors; block settings; cross-row reorder; Custom JS execution + ACL; YAML export; nested menus; Redis on DO. See `src/core/modules/README.md` and [docs.gantry.org](https://docs.gantry.org/).
+**Next polish (not this PR):** Gantry-like **Styles / Outlines / Menu** editors; per-slot CSS/variations; cross-row reorder; Custom JS execution + ACL; YAML export; nested menus; Redis on DO. See `src/core/modules/README.md` and [docs.gantry.org](https://docs.gantry.org/).
 
 ### Page Settings (document chrome)
 
@@ -369,8 +369,8 @@ Command Prompt:
 ```bat
 cd %USERPROFILE%\starforge
 git fetch origin
-git checkout cursor/visual-layout-manager-foundation-55de
-git pull origin cursor/visual-layout-manager-foundation-55de
+git checkout cursor/layout-editable-labels-f0de
+git pull origin cursor/layout-editable-labels-f0de
 
 docker compose up -d
 if not exist .env copy .env.example .env
@@ -387,8 +387,8 @@ PowerShell:
 ```powershell
 cd $env:USERPROFILE\starforge
 git fetch origin
-git checkout cursor/visual-layout-manager-foundation-55de
-git pull origin cursor/visual-layout-manager-foundation-55de
+git checkout cursor/layout-editable-labels-f0de
+git pull origin cursor/layout-editable-labels-f0de
 
 docker compose up -d
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
@@ -403,11 +403,12 @@ npm run dev
 1. Open **http://localhost:3000** — notice bar in the header (Modules on from seed).
 2. Sign in as `admin@starforge.local` / `starforge-admin`.
 3. Open **http://localhost:3000/app/admin/layouts** — page is **full width**; left palette + canvas.
-4. Create a section → **Add row** → **drag** Notice bar (or Custom) into the row.
-5. Drag a second particle into the same row — both sit **side by side**; drag the divider (1% steps, 5%–95%, sum 100%).
-6. Drag a particle’s **⋮⋮** handle to **reorder** within the row (order persists; widths stay).
-7. Drag **Logo / Image**, **Copyright**, and **Social** from the palette — **Settings** opens a floating overlay (row stays side-by-side). Save and confirm public render.
-8. Edit Custom via its Settings overlay (CodeMirror); Escape / outside click closes. **Reset to default** restores the seeded layout.
+4. Edit a section **name** and **CSS classes** (blur to save); confirm classes appear on the public section wrapper.
+5. Create a section → **Add row** → **drag** Notice bar (or Custom) into the row; edit the particle **display name** (type id unchanged).
+6. Drag a second particle into the same row — both sit **side by side**; drag the divider (1% steps, 5%–95%, sum 100%).
+7. Drag a particle’s **⋮⋮** handle to **reorder** within the row (order persists; widths stay).
+8. Drag **Logo / Image**, **Copyright**, and **Social** from the palette — **Settings** opens a floating overlay (row stays side-by-side). Save and confirm public render.
+9. Edit Custom via its Settings overlay (CodeMirror); Escape / outside click closes. **Reset to default** restores the seeded layout.
 
 ## Not in this scaffold
 
