@@ -3,53 +3,146 @@ import type { ReactNode } from 'react'
 import type { FeatureFlags, SiteSettingsData } from '@/core/settings/defaults'
 
 /**
- * Named layout positions. Any registered module may target any of these —
- * no hard locks (Gantry-like rule). More IDs can be added later without
- * changing module code.
+ * Slot width is an integer **percent** of the row (Gantry-style block size).
+ * Not Bootstrap. Resize steps are 1%; shared-row min 5% / max 95%.
  */
-export const LAYOUT_POSITIONS = ['header', 'after-content', 'footer'] as const
+export const LAYOUT_GRID_COLUMNS = 100 as const
+
+export type LayoutGridWidth = number
+
+/**
+ * Built-in section ids used by the default seed. Admins may add more —
+ * any registered module (particle) may go in any section/slot.
+ */
+export const LAYOUT_POSITIONS = ['header', 'navigation', 'main', 'footer'] as const
 
 export type LayoutPositionId = (typeof LAYOUT_POSITIONS)[number] | (string & {})
 
-export type ModuleRenderContext = {
-  position: LayoutPositionId
-  settings: SiteSettingsData
+/** Per-slot particle config (typed Logo/Copyright/Social fields, Custom HTML/CSS/JS, …). */
+export type LayoutSlotConfig = {
+  html?: string
+  css?: string
+  /**
+   * Custom JS source. Stored for later; execution is gated to developer-admins
+   * (not run in this foundation slice).
+   */
+  js?: string
+  title?: string
+  [key: string]: unknown
 }
 
 /**
- * A Starforge extension module — own folder under `src/modules/`, registered
- * via `registerModule`. Render into named positions from the layout document.
+ * One particle instance in a row (Gantry “particle” / module assignment).
+ * `width` is percent of the row (1% steps; min 5% when shared).
+ */
+export type LayoutSlot = {
+  id: string
+  moduleId: string
+  /** Percent of the row (typically 5–100). Defaults to 100. */
+  width: LayoutGridWidth
+  enabled?: boolean
+  order?: number
+  config?: LayoutSlotConfig
+}
+
+/** Horizontal row of slots inside a section (widths should sum to ~100%). */
+export type LayoutRow = {
+  id: string
+  order?: number
+  slots: LayoutSlot[]
+}
+
+/** Vertical section on the canvas (Header, Main, Footer, …). */
+export type LayoutSection = {
+  id: string
+  label: string
+  order?: number
+  rows: LayoutRow[]
+}
+
+/**
+ * Canonical layout document (version 3).
+ * Storage: JSON in `sf_layouts`. Seed / fallback: `default-layout.json`.
+ */
+export type LayoutDocument = {
+  version: 3
+  sections: LayoutSection[]
+}
+
+export type ModuleRenderContext = {
+  /** Section id the slot lives in (layout “position” in the Gantry sense). */
+  position: LayoutPositionId
+  settings: SiteSettingsData
+  slot: LayoutSlot
+  /** Page body for the built-in `page-content` particle. */
+  pageContent?: ReactNode
+}
+
+/**
+ * A Starforge extension module / particle — own folder under `src/modules/`
+ * (or built-in under `src/core/modules/particles/`), registered via `registerModule`.
  */
 export type StarforgeModule = {
-  /** Stable id used in layout assignments (kebab-case). */
   id: string
   name: string
   description?: string
   /**
-   * When set, the module only renders if this site-settings feature flag is on.
-   * The global `modules` master flag is always checked by the position renderer.
+   * Built-ins (`page-content`, `site-header`, …) always render — they are not
+   * gated by the site-settings Modules master toggle.
    */
+  builtin?: boolean
   featureFlag?: keyof FeatureFlags
-  /** Hint for seeds / docs; the layout document is the source of truth for placement. */
-  defaultPosition?: LayoutPositionId
+  /** Hint for palette / seeds. */
+  defaultWidth?: LayoutGridWidth
   render: (ctx: ModuleRenderContext) => ReactNode | Promise<ReactNode>
 }
 
-/** One module instance placed in a named position (layout document entry). */
-export type LayoutAssignment = {
+/* —— Legacy shapes (still accepted on read, upgraded to v3) —— */
+
+/** @deprecated v2 position bag */
+export type LayoutModuleAssignment = {
+  moduleId: string
+  enabled?: boolean
+  order?: number
+  width?: number
+  config?: LayoutSlotConfig
+}
+
+/** @deprecated v2 */
+export type LayoutPosition = {
+  id: LayoutPositionId
+  label: string
+  order?: number
+  placement?: 'before' | 'after'
+  content?: boolean
+  modules: LayoutModuleAssignment[]
+}
+
+/** @deprecated v2 section */
+export type LayoutSectionV2 = {
+  id: string
+  label: string
+  order?: number
+  content?: boolean
+  positions: LayoutPosition[]
+}
+
+export type LayoutDocumentV2 = {
+  version: 2
+  sections: LayoutSectionV2[]
+}
+
+export type LayoutAssignmentV1 = {
   moduleId: string
   position: LayoutPositionId
-  /** Defaults to true when omitted. */
   enabled?: boolean
-  /** Lower sorts first within a position. Defaults to 0. */
   order?: number
 }
 
-/**
- * Layout document shape — today a checked-in JSON file; later the visual
- * layout editor will read/write the same structure (YAML or JSON on disk / DB).
- */
-export type LayoutDocument = {
+export type LayoutDocumentV1 = {
   version: 1
-  assignments: LayoutAssignment[]
+  assignments: LayoutAssignmentV1[]
 }
+
+/** @deprecated Prefer LayoutSlot */
+export type LayoutAssignment = LayoutModuleAssignment & { position?: LayoutPositionId }

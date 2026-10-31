@@ -1,11 +1,91 @@
 {
-  "version": 1,
-  "assignments": [
+  "version": 3,
+  "sections": [
     {
-      "moduleId": "notice-bar",
-      "position": "header",
-      "enabled": true,
-      "order": 0
+      "id": "header",
+      "label": "Header",
+      "order": 0,
+      "rows": [
+        {
+          "id": "header-row-1",
+          "order": 0,
+          "slots": [
+            {
+              "id": "header-notice",
+              "moduleId": "notice-bar",
+              "width": 100,
+              "enabled": true,
+              "order": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "navigation",
+      "label": "Navigation",
+      "order": 1,
+      "rows": [
+        {
+          "id": "navigation-row-1",
+          "order": 0,
+          "slots": [
+            {
+              "id": "navigation-site-header",
+              "moduleId": "site-header",
+              "width": 100,
+              "enabled": true,
+              "order": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "main",
+      "label": "Main",
+      "order": 2,
+      "rows": [
+        {
+          "id": "main-row-1",
+          "order": 0,
+          "slots": [
+            {
+              "id": "main-page-content",
+              "moduleId": "page-content",
+              "width": 100,
+              "enabled": true,
+              "order": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "footer",
+      "label": "Footer",
+      "order": 3,
+      "rows": [
+        {
+          "id": "footer-row-1",
+          "order": 0,
+          "slots": [
+            {
+              "id": "footer-custom",
+              "moduleId": "custom",
+              "width": 100,
+              "enabled": true,
+              "order": 0,
+              "config": {
+                "title": "Footer note",
+                "html": "<p class=\"sf-custom-footer\">Built with <strong>Starforge</strong></p>",
+                "css": ".sf-custom-footer { margin: 0; padding: 0.75rem 1.5rem 1.25rem; color: var(--sf-muted, #5a6674); font-size: 0.9rem; text-align: center; }",
+                "js": ""
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }

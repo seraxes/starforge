@@ -570,6 +570,24 @@ button:disabled {
   gap: 1.25rem;
 }
 
+/* Layout manager needs the full viewport — no narrow content column */
+.admin-shell:has(.gantry-editor) {
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  padding: 1.25rem 1.25rem 2.5rem;
+  box-sizing: border-box;
+}
+
+.admin-shell:has(.gantry-editor) .admin-lede {
+  max-width: none;
+}
+
+.admin-shell:has(.gantry-editor) .admin-main {
+  max-width: none;
+  width: 100%;
+}
+
 .admin-header {
   display: flex;
   flex-wrap: wrap;
@@ -947,6 +965,813 @@ button:disabled {
   border: 0;
 }
 
+/* Public 12-col layout grid (not Bootstrap) */
+.sf-grid-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.sf-grid-col {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0;
+}
+
+.sf-layout-section {
+  width: 100%;
+}
+
+.sf-layout-chrome-meta {
+  margin-top: auto;
+}
+
+.sf-custom-js-stub {
+  margin: 0.5rem 1.5rem;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.85rem;
+  color: var(--sf-muted);
+  background: color-mix(in srgb, var(--sf-secondary) 14%, white);
+  border-left: 3px solid var(--sf-secondary-strong);
+}
+
+.sf-custom-empty {
+  margin: 0.75rem 1.5rem;
+  padding: 0.75rem;
+  color: var(--sf-muted);
+  border: 1px dashed var(--sf-line);
+}
+
+/* Typed core particles — Logo / Copyright / Social (not Custom HTML) */
+.sf-logo {
+  display: block;
+  margin: 0.5rem 1.5rem;
+}
+
+.sf-logo-link {
+  display: inline-block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.sf-logo-img {
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.sf-logo-placeholder {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-height: 3.5rem;
+  max-width: 12rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px dashed var(--sf-line);
+  background: color-mix(in srgb, var(--sf-secondary) 10%, white);
+  color: var(--sf-muted);
+  font-size: 0.88rem;
+}
+
+.sf-logo-placeholder small {
+  font-size: 0.75rem;
+}
+
+.sf-copyright {
+  margin: 0.65rem 1.5rem;
+  font-size: 0.92rem;
+  color: var(--sf-muted);
+  line-height: 1.45;
+}
+
+.sf-copyright-mark {
+  font-weight: 600;
+  color: var(--sf-ink);
+}
+
+.sf-copyright-link {
+  color: var(--sf-primary-ink);
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+.sf-social {
+  margin: 0.5rem 1.5rem;
+}
+
+.sf-social-empty {
+  color: var(--sf-muted);
+  font-size: 0.9rem;
+}
+
+.sf-social-empty p {
+  margin: 0;
+}
+
+.sf-social-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 0.85rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sf-social-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--sf-primary-ink);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.sf-social-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+.sf-social-icon {
+  line-height: 1;
+}
+
+/* Gantry-like visual layout manager — full width canvas */
+.gantry-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-top: 1rem;
+  max-width: none;
+  width: 100%;
+}
+
+.layout-source {
+  margin: 0;
+  color: var(--sf-muted);
+  font-size: 0.92rem;
+}
+
+.layout-inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.layout-inline-form input[type='text'],
+.layout-inline-form select,
+.gantry-palette-width select,
+.gantry-width-form select {
+  font: inherit;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--sf-line);
+  background: rgba(255, 255, 255, 0.85);
+  min-width: 8rem;
+}
+
+.layout-inline-form button,
+.gantry-section-actions button,
+.gantry-row-actions button,
+.gantry-row-meta button,
+.gantry-slot-actions button,
+.gantry-width-form button,
+.gantry-custom-form button,
+.gantry-typed-form button,
+.gantry-canvas-toolbar button {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--sf-line);
+  background: color-mix(in srgb, var(--sf-primary) 45%, white);
+  color: var(--sf-primary-ink);
+  cursor: pointer;
+}
+
+.layout-inline-form button.secondary,
+.gantry-section-actions button.secondary,
+.gantry-row-actions button.secondary,
+.gantry-row-meta button.secondary,
+.gantry-slot-actions button.secondary,
+.gantry-width-form button.secondary,
+.gantry-typed-form button.secondary,
+.gantry-canvas-toolbar button.secondary {
+  background: color-mix(in srgb, var(--sf-secondary) 22%, white);
+  color: var(--sf-secondary-strong);
+}
+
+.gantry-row-actions button.danger,
+.gantry-row-meta button.danger,
+.gantry-slot-actions button.danger,
+.gantry-typed-form button.danger {
+  background: color-mix(in srgb, #c45c5c 18%, white);
+  color: #7a2e2e;
+  border-color: color-mix(in srgb, #c45c5c 35%, var(--sf-line));
+}
+
+.gantry-row-actions button.danger:hover,
+.gantry-row-meta button.danger:hover,
+.gantry-slot-actions button.danger:hover,
+.gantry-typed-form button.danger:hover {
+  background: color-mix(in srgb, #c45c5c 28%, white);
+}
+
+.gantry-row-actions button:disabled,
+.gantry-row-meta button:disabled,
+.gantry-slot-actions button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.layout-id {
+  font-size: 0.82rem;
+  color: var(--sf-muted);
+  background: color-mix(in srgb, var(--sf-secondary) 12%, white);
+  padding: 0.1rem 0.35rem;
+}
+
+.layout-muted {
+  margin: 0 0 0.55rem;
+  color: var(--sf-muted);
+  font-size: 0.9rem;
+}
+
+.layout-json-preview {
+  margin-top: 0.5rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--sf-line);
+  background: color-mix(in srgb, white 50%, transparent);
+}
+
+.layout-json-preview summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.layout-json-preview pre {
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  overflow: auto;
+  max-height: 22rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  background: color-mix(in srgb, var(--sf-ink) 4%, white);
+  border: 1px solid var(--sf-line);
+}
+
+.gantry-workspace {
+  display: grid;
+  grid-template-columns: minmax(14rem, 17rem) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.gantry-palette {
+  position: sticky;
+  top: 0.75rem;
+  padding: 0.9rem;
+  border: 1px solid var(--sf-line);
+  background: color-mix(in srgb, white 70%, transparent);
+}
+
+.gantry-palette h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+}
+
+.gantry-palette-list {
+  list-style: none;
+  margin: 0 0 0.85rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.gantry-palette-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--sf-line);
+  background: rgba(255, 255, 255, 0.85);
+  cursor: grab;
+  font: inherit;
+  user-select: none;
+}
+
+.gantry-palette-item:active,
+.gantry-palette-item.is-dragging {
+  cursor: grabbing;
+  opacity: 0.85;
+  border-color: color-mix(in srgb, var(--sf-primary-strong) 45%, var(--sf-line));
+  background: color-mix(in srgb, var(--sf-primary) 28%, white);
+}
+
+.gantry-palette-item strong {
+  font-size: 0.92rem;
+}
+
+.gantry-palette-item span {
+  font-size: 0.78rem;
+  color: var(--sf-muted);
+  line-height: 1.3;
+}
+
+.gantry-palette-item em {
+  font-size: 0.72rem;
+  font-style: normal;
+  color: var(--sf-secondary-strong);
+}
+
+.gantry-howto {
+  margin: 0 0 1rem;
+  padding: 0.75rem 0.75rem 0.75rem 1.5rem;
+  border: 1px solid var(--sf-line);
+  background: color-mix(in srgb, var(--sf-secondary) 10%, white);
+  color: var(--sf-muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.gantry-howto li + li {
+  margin-top: 0.2rem;
+}
+
+.gantry-canvas {
+  min-width: 0;
+}
+
+.gantry-canvas-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.gantry-sections {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.gantry-section {
+  margin: 0;
+  padding: 0.85rem;
+  border: 1px solid var(--sf-line);
+  background: color-mix(in srgb, white 58%, transparent);
+  position: relative;
+}
+
+.gantry-section.is-section-dragging {
+  opacity: 0.55;
+}
+
+.gantry-section.is-section-drop-before {
+  box-shadow: inset 0 3px 0 0 color-mix(in srgb, var(--sf-primary-strong) 75%, white);
+}
+
+.gantry-section.is-section-drop-after {
+  box-shadow: inset 0 -3px 0 0 color-mix(in srgb, var(--sf-primary-strong) 75%, white);
+}
+
+.gantry-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.gantry-section-title {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.gantry-section-handle {
+  flex: 0 0 auto;
+  margin: 0.15rem 0 0;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--sf-line);
+  background: color-mix(in srgb, var(--sf-secondary) 18%, white);
+  color: var(--sf-secondary-strong);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: -0.08em;
+  line-height: 1;
+  cursor: grab;
+  user-select: none;
+}
+
+.gantry-section-handle:active {
+  cursor: grabbing;
+}
+
+.gantry-section-head h3 {
+  margin: 0 0 0.25rem;
+}
+
+.gantry-section-actions,
+.gantry-row-actions,
+.gantry-slot-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.gantry-row {
+  margin-bottom: 0.65rem;
+  padding: 0.55rem;
+  border: 1px dashed var(--sf-line);
+  background: color-mix(in srgb, var(--sf-paper) 75%, white);
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.gantry-row.is-drop-target {
+  border-color: color-mix(in srgb, var(--sf-primary-strong) 55%, var(--sf-line));
+  background: color-mix(in srgb, var(--sf-primary) 18%, white);
+}
+
+.gantry-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.45rem;
+  font-size: 0.85rem;
+  color: var(--sf-muted);
+}
+
+.gantry-row-slots {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 0;
+  width: 100%;
+  min-height: 4.5rem;
+  /* Same-row particles stay horizontal; settings expand inside the cell. */
+  overflow-x: auto;
+}
+
+.gantry-row-empty {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem 0.75rem;
+  color: var(--sf-muted);
+  font-size: 0.92rem;
+  border: 1px dashed color-mix(in srgb, var(--sf-primary-strong) 35%, var(--sf-line));
+  background: color-mix(in srgb, white 70%, transparent);
+}
+
+.gantry-slot {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  overflow: visible;
+  padding: 0.55rem;
+  border: 1px solid var(--sf-line);
+  background: rgba(255, 255, 255, 0.9);
+  position: relative;
+}
+
+.gantry-slot[data-enabled='false'] {
+  opacity: 0.7;
+}
+
+.gantry-slot.is-slot-dragging {
+  opacity: 0.55;
+}
+
+.gantry-slot.is-slot-drop-before {
+  box-shadow: inset 3px 0 0 var(--sf-primary-strong);
+}
+
+.gantry-slot.is-slot-drop-after {
+  box-shadow: inset -3px 0 0 var(--sf-primary-strong);
+}
+
+.gantry-slot-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+
+.gantry-slot-title {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.gantry-slot-handle {
+  flex: 0 0 auto;
+  cursor: grab;
+  font: inherit;
+  font-size: 0.85rem;
+  letter-spacing: -0.08em;
+  line-height: 1;
+  padding: 0.2rem 0.35rem;
+  border: 1px solid var(--sf-line);
+  background: color-mix(in srgb, var(--sf-secondary) 14%, white);
+  color: var(--sf-muted);
+}
+
+.gantry-slot-handle:active {
+  cursor: grabbing;
+}
+
+.gantry-slot-pct {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--sf-primary-strong);
+  background: color-mix(in srgb, var(--sf-primary) 22%, white);
+  padding: 0.1rem 0.35rem;
+}
+
+.gantry-slot-meta {
+  margin: 0 0 0.4rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.gantry-slot-meta code {
+  font-size: 0.75rem;
+  color: var(--sf-muted);
+}
+
+.gantry-resize-handle {
+  flex: 0 0 0.55rem;
+  align-self: stretch;
+  cursor: col-resize;
+  background:
+    linear-gradient(
+      to right,
+      transparent 35%,
+      var(--sf-line) 35%,
+      var(--sf-line) 65%,
+      transparent 65%
+    ),
+    color-mix(in srgb, var(--sf-secondary) 16%, white);
+  border-top: 1px solid var(--sf-line);
+  border-bottom: 1px solid var(--sf-line);
+}
+
+.gantry-resize-handle:hover,
+.gantry-resize-handle:focus-visible {
+  background-color: color-mix(in srgb, var(--sf-primary) 35%, white);
+  outline: none;
+}
+
+/* Particle settings open as a floating overlay — never expand the slot / push the row. */
+.gantry-settings-trigger-wrap {
+  margin-top: 0.45rem;
+}
+
+.gantry-settings-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  pointer-events: none;
+}
+
+.gantry-settings-backdrop {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+  background: color-mix(in srgb, var(--sf-ink, #1a1a1a) 18%, transparent);
+}
+
+.gantry-settings-panel {
+  position: fixed;
+  z-index: 81;
+  pointer-events: auto;
+  max-height: min(70vh, 640px);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  border: 1px solid var(--sf-line);
+  background: #fff;
+  box-shadow:
+    0 12px 32px color-mix(in srgb, var(--sf-ink, #1a1a1a) 18%, transparent),
+    0 2px 8px color-mix(in srgb, var(--sf-ink, #1a1a1a) 8%, transparent);
+}
+
+.gantry-settings-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  border-bottom: 1px solid var(--sf-line);
+  background: color-mix(in srgb, var(--sf-secondary) 10%, white);
+}
+
+.gantry-settings-panel-head h3 {
+  margin: 0;
+  font-size: 0.98rem;
+}
+
+.gantry-settings-panel-head button,
+.gantry-settings-trigger,
+.gantry-settings-panel .gantry-typed-form button,
+.gantry-settings-panel .gantry-custom-form button {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--sf-line);
+  background: color-mix(in srgb, var(--sf-primary) 45%, white);
+  color: var(--sf-primary-ink);
+  cursor: pointer;
+}
+
+.gantry-settings-panel-head button.secondary,
+.gantry-settings-trigger.secondary,
+.gantry-settings-panel .gantry-typed-form button.secondary,
+.gantry-settings-panel .gantry-custom-form button.secondary {
+  background: color-mix(in srgb, var(--sf-secondary) 22%, white);
+  color: var(--sf-secondary-strong);
+}
+
+.gantry-settings-panel .gantry-typed-form button.danger,
+.gantry-settings-panel .gantry-custom-form button.danger {
+  background: color-mix(in srgb, #c45c5c 18%, white);
+  color: #7a2e2e;
+  border-color: color-mix(in srgb, #c45c5c 35%, var(--sf-line));
+}
+
+.gantry-settings-panel-body {
+  padding: 0.85rem;
+  overflow: auto;
+  min-height: 0;
+  font-size: 0.88rem;
+}
+
+.gantry-custom-form,
+.gantry-typed-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0;
+}
+
+.gantry-typed-form > label,
+.gantry-typed-row > label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-weight: 600;
+}
+
+.gantry-typed-form input[type='text'],
+.gantry-typed-form input[type='url'],
+.gantry-typed-form input[type='number'],
+.gantry-typed-form select {
+  font: inherit;
+  font-weight: 400;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--sf-line);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.gantry-typed-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.55rem;
+}
+
+.gantry-social-editor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gantry-social-editor-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.45rem;
+  padding: 0.65rem;
+  border: 1px solid var(--sf-line);
+  background: color-mix(in srgb, var(--sf-secondary) 8%, white);
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.gantry-social-editor-item button.danger {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
+.gantry-custom-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-weight: 600;
+}
+
+.gantry-custom-title input[type='text'] {
+  font: inherit;
+  font-weight: 400;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--sf-line);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+/* CodeMirror fields (Custom / future Styles) — never plain textareas for code */
+.sf-code-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.sf-code-field-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.sf-code-field-label {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.sf-code-field-lang {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sf-secondary-strong);
+}
+
+.sf-code-field-hint {
+  margin: 0;
+  color: var(--sf-muted);
+  font-size: 0.82rem;
+}
+
+.sf-code-field-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 6rem;
+  border: 1px solid var(--sf-line);
+  background: #fbfcfe;
+  overflow: hidden;
+}
+
+.sf-code-mirror {
+  flex: 1 1 auto;
+  min-height: 0;
+  font-size: 0.85rem;
+}
+
+.sf-code-mirror .cm-editor {
+  height: 100%;
+}
+
+.sf-code-mirror .cm-scroller {
+  font-family: ui-monospace, 'Cascadia Code', 'Segoe UI Mono', Menlo, Consolas, monospace;
+}
+
+.sf-code-field-resize {
+  flex: 0 0 0.55rem;
+  cursor: ns-resize;
+  background:
+    linear-gradient(to bottom, transparent 35%, var(--sf-line) 35%, var(--sf-line) 45%, transparent 45%),
+    color-mix(in srgb, var(--sf-secondary) 12%, white);
+  border-top: 1px solid var(--sf-line);
+}
+
+.sf-code-field-resize:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--sf-primary-strong) 55%, white);
+  outline-offset: -2px;
+}
+
 @media (max-width: 640px) {
   .home {
     padding: 2rem 1.15rem 1.5rem;
@@ -976,6 +1801,41 @@ button:disabled {
 
   .settings-nav-row {
     grid-template-columns: 1fr;
+  }
+
+  .gantry-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .gantry-palette {
+    position: static;
+  }
+
+  .gantry-section-head,
+  .gantry-row-meta,
+  .gantry-canvas-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* Public grid may stack on small screens; admin canvas rows stay horizontal. */
+  .public-shell .sf-grid-row {
+    flex-wrap: wrap;
+  }
+
+  .public-shell .sf-grid-col {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  .layout-inline-form input[type='text'],
+  .layout-inline-form select,
+  .layout-inline-form button,
+  .gantry-section-actions button,
+  .gantry-row-actions button,
+  .gantry-slot-actions button {
+    width: 100%;
   }
 
   .links a,

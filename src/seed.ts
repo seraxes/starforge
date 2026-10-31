@@ -26,6 +26,7 @@ import {
 import { BOOTSTRAP_ADMIN_EMAIL, setCoreUserCmsAccess } from './core/cms-bridge'
 import { db } from './core/db'
 import { sfUsers } from './core/db/schema'
+import { ensureDefaultLayoutSeeded } from './core/modules'
 import {
   ensureSiteSettingsDefaults,
   getSiteSettings,
@@ -357,6 +358,23 @@ async function main() {
     console.warn(error instanceof Error ? error.message : error)
   }
 
+  try {
+    const layoutSeed = await ensureDefaultLayoutSeeded()
+    if (layoutSeed.created) {
+      console.log(
+        'Layout document: seeded v3 default (notice-bar, site-header, page-content, custom) into sf_layouts',
+      )
+    } else if (layoutSeed.upgraded) {
+      console.log('Layout document: upgraded existing sf_layouts row to v3 (sections → rows → slots)')
+    } else {
+      console.log('Layout document: sf_layouts.default already present (v3)')
+    }
+  } catch (error) {
+    console.warn('Could not seed layout document (sf_layouts).')
+    console.warn('Run: npm run db:core:push')
+    console.warn(error instanceof Error ? error.message : error)
+  }
+
   const pages = await seedPages()
   if (pages.created.length) {
     console.log(`Pages created (published): ${pages.created.map((s) => `/${s}`).join(', ')}`)
@@ -445,6 +463,7 @@ async function main() {
   console.log('Login once: http://localhost:3000/login  then open http://localhost:3000/admin')
   console.log('Core admin users:    http://localhost:3000/app/admin/users')
   console.log('Core site settings:  http://localhost:3000/app/admin/settings')
+  console.log('Core layout manager: http://localhost:3000/app/admin/layouts')
   console.log('Payload CMS:         http://localhost:3000/admin  (nav: Payload CMS)')
   console.log('')
 

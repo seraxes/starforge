@@ -9,20 +9,41 @@ export { absoluteMediaUrl, buildPageMetadata } from './content/metadata'
 export { getDraftPageBySlug, getPublishedPageBySlug } from './content/pages'
 export { requireDraftPreviewAccess, resolveDraftPreviewAccess } from './content/preview'
 export { invalidatePublishedPage, invalidateSiteSettings } from './content/revalidate'
-export { db, pool, sfUsers, sfSessions, sfAccounts, sfVerifications } from './db'
 export {
+  db,
+  pool,
+  DEFAULT_LAYOUT_ID,
+  sfUsers,
+  sfSessions,
+  sfAccounts,
+  sfVerifications,
+  sfLayouts,
+} from './db'
+export {
+  ensureDefaultLayoutSeeded,
   getAssignmentsForPosition,
   getLayoutDocument,
   getRegisteredModule,
+  LAYOUT_GRID_COLUMNS,
   LAYOUT_POSITIONS,
   listRegisteredModules,
+  loadLayoutDocument,
   ModuleSlot,
+  PublicLayoutBody,
   registerModule,
+  saveLayoutDocument,
+  SlotRenderer,
 } from './modules'
 export type {
   LayoutAssignment,
   LayoutDocument,
+  LayoutModuleAssignment,
+  LayoutPosition,
   LayoutPositionId,
+  LayoutRow,
+  LayoutSection,
+  LayoutSlot,
+  LayoutSlotConfig,
   ModuleRenderContext,
   StarforgeModule,
 } from './modules'
