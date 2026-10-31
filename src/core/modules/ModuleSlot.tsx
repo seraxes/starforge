@@ -1,10 +1,7 @@
-import React, { Fragment } from 'react'
+import React from 'react'
 
-import { getSiteSettings } from '@/core/settings'
-import { ensureModulesRegistered } from '@/modules/catalog'
-
-import { getAssignmentsForPosition } from './layout'
-import { getRegisteredModule } from './registry'
+import { getLayoutDocument } from './layout'
+import { SlotRenderer } from './SlotRenderer'
 import type { LayoutPositionId } from './types'
 
 type Props = {
@@ -13,32 +10,22 @@ type Props = {
 }
 
 /**
- * Renders every enabled layout assignment for a named position.
- * Master gate: site-settings `features.modules`. Per-module `featureFlag` optional.
- * Any registered module may appear in any position — no hard locks.
- * Assignments come from the layout document (DB / default JSON).
+ * Back-compat helper: render every enabled slot whose section id matches
+ * `position` (v3 sections are the Gantry-style positions).
+ * Prefer `PublicLayoutBody` for full-document rendering.
  */
 export async function ModuleSlot({ position, className }: Props) {
-  ensureModulesRegistered()
-
-  const settings = await getSiteSettings()
-  if (!settings.features.modules) {
-    return null
-  }
-
-  const assignments = await getAssignmentsForPosition(position)
-  if (assignments.length === 0) return null
+  const document = await getLayoutDocument()
+  const section = document.sections.find((s) => s.id === position)
+  if (!section) return null
 
   const nodes: React.ReactNode[] = []
-
-  for (const assignment of assignments) {
-    const mod = getRegisteredModule(assignment.moduleId)
-    if (!mod) continue
-    if (mod.featureFlag && !settings.features[mod.featureFlag]) continue
-
-    const rendered = await mod.render({ position, settings })
-    if (rendered == null || rendered === false) continue
-    nodes.push(<Fragment key={`${assignment.moduleId}-${position}`}>{rendered}</Fragment>)
+  for (const row of section.rows) {
+    for (const slot of row.slots) {
+      nodes.push(
+        <SlotRenderer key={slot.id} sectionId={section.id} slot={slot} />,
+      )
+    }
   }
 
   if (nodes.length === 0) return null
@@ -48,7 +35,7 @@ export async function ModuleSlot({ position, className }: Props) {
       className={className ? `sf-module-slot ${className}` : 'sf-module-slot'}
       data-sf-position={position}
     >
-      {nodes}
+      <div className="sf-grid-row">{nodes}</div>
     </div>
   )
 }

@@ -360,11 +360,15 @@ async function main() {
 
   try {
     const layoutSeed = await ensureDefaultLayoutSeeded()
-    console.log(
-      layoutSeed.created
-        ? 'Layout document: seeded default (notice-bar → header) into sf_layouts'
-        : 'Layout document: sf_layouts.default already present',
-    )
+    if (layoutSeed.created) {
+      console.log(
+        'Layout document: seeded v3 default (notice-bar, site-header, page-content, custom) into sf_layouts',
+      )
+    } else if (layoutSeed.upgraded) {
+      console.log('Layout document: upgraded existing sf_layouts row to v3 (sections → rows → slots)')
+    } else {
+      console.log('Layout document: sf_layouts.default already present (v3)')
+    }
   } catch (error) {
     console.warn('Could not seed layout document (sf_layouts).')
     console.warn('Run: npm run db:core:push')

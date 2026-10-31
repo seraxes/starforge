@@ -1,23 +1,27 @@
 export {
-  addLayoutPositionAction,
+  addLayoutRowAction,
   addLayoutSectionAction,
-  assignModuleToPositionAction,
+  addParticleToSectionAction,
   listModulesForLayoutAdmin,
-  removeModuleFromPositionAction,
-  renameLayoutPositionAction,
+  removeLayoutRowAction,
+  removeSlotAction,
   renameLayoutSectionAction,
   resetLayoutToDefaultAction,
-  toggleModuleAssignmentAction,
+  setSlotWidthAction,
+  toggleSlotAction,
+  updateCustomSlotAction,
 } from './actions'
 export type { LayoutActionState } from './actions'
 export {
   cloneDefaultLayoutDocument,
-  flattenAssignmentsForPosition,
-  listPositions,
+  findRow,
+  findSection,
+  findSlot,
   normalizeLayoutDocument,
   serializeLayoutDocument,
   slugifyLayoutId,
 } from './document'
+export { clampGridWidth, gridColStyle, gridWidthPercent, sumRowWidths } from './grid'
 export { getAssignmentsForPosition, getLayoutDocument } from './layout'
 export {
   ensureDefaultLayoutSeeded,
@@ -26,6 +30,7 @@ export {
 } from './layout-store'
 export type { LayoutLoadResult, LayoutLoadSource } from './layout-store'
 export { ModuleSlot } from './ModuleSlot'
+export { builtinParticles } from './particles'
 export { PublicLayoutBody } from './PublicLayoutBody'
 export {
   clearModuleRegistry,
@@ -33,14 +38,18 @@ export {
   listRegisteredModules,
   registerModule,
 } from './registry'
-export { LAYOUT_POSITIONS } from './types'
+export { SlotRenderer } from './SlotRenderer'
+export { LAYOUT_GRID_COLUMNS, LAYOUT_POSITIONS } from './types'
 export type {
   LayoutAssignment,
   LayoutDocument,
   LayoutModuleAssignment,
   LayoutPosition,
   LayoutPositionId,
+  LayoutRow,
   LayoutSection,
+  LayoutSlot,
+  LayoutSlotConfig,
   ModuleRenderContext,
   StarforgeModule,
 } from './types'

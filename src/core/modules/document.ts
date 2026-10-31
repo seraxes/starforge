@@ -1,14 +1,16 @@
 import defaultLayoutJson from './default-layout.json'
+import { clampGridWidth } from './grid'
 import type {
   LayoutDocument,
   LayoutDocumentV1,
-  LayoutModuleAssignment,
-  LayoutPosition,
-  LayoutPositionId,
+  LayoutDocumentV2,
+  LayoutRow,
   LayoutSection,
+  LayoutSlot,
+  LayoutSlotConfig,
 } from './types'
 
-/** Human label → kebab-case id (stable enough for admin-created positions). */
+/** Human label → kebab-case id. */
 export function slugifyLayoutId(raw: string): string {
   const slug = raw
     .trim()
@@ -18,146 +20,293 @@ export function slugifyLayoutId(raw: string): string {
   return slug || 'untitled'
 }
 
-function normalizeModule(entry: LayoutModuleAssignment | null | undefined): LayoutModuleAssignment | null {
+export function newLayoutEntityId(prefix: string): string {
+  const rand =
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID().slice(0, 8)
+      : Math.random().toString(36).slice(2, 10)
+  return `${prefix}-${rand}`
+}
+
+function normalizeConfig(raw: unknown): LayoutSlotConfig | undefined {
+  if (!raw || typeof raw !== 'object') return undefined
+  const cfg = raw as LayoutSlotConfig
+  const out: LayoutSlotConfig = {}
+  if (typeof cfg.html === 'string') out.html = cfg.html
+  if (typeof cfg.css === 'string') out.css = cfg.css
+  if (typeof cfg.js === 'string') out.js = cfg.js
+  if (typeof cfg.title === 'string') out.title = cfg.title
+  for (const [key, value] of Object.entries(cfg)) {
+    if (key === 'html' || key === 'css' || key === 'js' || key === 'title') continue
+    out[key] = value
+  }
+  return Object.keys(out).length > 0 ? out : undefined
+}
+
+function normalizeSlot(entry: LayoutSlot | null | undefined, index: number): LayoutSlot | null {
   if (!entry || typeof entry.moduleId !== 'string' || !entry.moduleId.trim()) return null
+  const id =
+    typeof entry.id === 'string' && entry.id.trim()
+      ? entry.id.trim()
+      : newLayoutEntityId(`slot-${entry.moduleId}`)
+  const config = normalizeConfig(entry.config)
   return {
+    id,
     moduleId: entry.moduleId.trim(),
+    width: clampGridWidth(entry.width, 12),
     enabled: entry.enabled !== false,
-    order: typeof entry.order === 'number' && Number.isFinite(entry.order) ? entry.order : 0,
+    order: typeof entry.order === 'number' && Number.isFinite(entry.order) ? entry.order : index,
+    ...(config ? { config } : {}),
   }
 }
 
-function normalizePosition(entry: LayoutPosition | null | undefined): LayoutPosition | null {
-  if (!entry || typeof entry.id !== 'string' || !entry.id.trim()) return null
-  const id = entry.id.trim()
-  const label =
-    typeof entry.label === 'string' && entry.label.trim() ? entry.label.trim() : id
-  const modules = Array.isArray(entry.modules)
-    ? (entry.modules.map(normalizeModule).filter(Boolean) as LayoutModuleAssignment[])
+function normalizeRow(entry: LayoutRow | null | undefined, index: number): LayoutRow | null {
+  if (!entry) return null
+  const id =
+    typeof entry.id === 'string' && entry.id.trim()
+      ? entry.id.trim()
+      : newLayoutEntityId('row')
+  const slots = Array.isArray(entry.slots)
+    ? (entry.slots.map((s, i) => normalizeSlot(s, i)).filter(Boolean) as LayoutSlot[])
     : []
-  modules.sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.moduleId.localeCompare(b.moduleId))
-
-  const placement =
-    entry.placement === 'before' || entry.placement === 'after' ? entry.placement : undefined
-
+  slots.sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id))
   return {
-    id: id as LayoutPositionId,
-    label,
-    order: typeof entry.order === 'number' && Number.isFinite(entry.order) ? entry.order : 0,
-    ...(placement ? { placement } : {}),
-    modules,
+    id,
+    order: typeof entry.order === 'number' && Number.isFinite(entry.order) ? entry.order : index,
+    slots,
   }
 }
 
-function normalizeSection(entry: LayoutSection | null | undefined): LayoutSection | null {
+function normalizeSection(entry: LayoutSection | null | undefined, index: number): LayoutSection | null {
   if (!entry || typeof entry.id !== 'string' || !entry.id.trim()) return null
   const id = entry.id.trim()
   const label =
     typeof entry.label === 'string' && entry.label.trim() ? entry.label.trim() : id
-  const positions = Array.isArray(entry.positions)
-    ? (entry.positions.map(normalizePosition).filter(Boolean) as LayoutPosition[])
+  const rows = Array.isArray(entry.rows)
+    ? (entry.rows.map((r, i) => normalizeRow(r, i)).filter(Boolean) as LayoutRow[])
     : []
-  positions.sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id))
-
+  rows.sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id))
   return {
     id,
     label,
-    order: typeof entry.order === 'number' && Number.isFinite(entry.order) ? entry.order : 0,
-    ...(entry.content ? { content: true as const } : {}),
-    positions,
+    order: typeof entry.order === 'number' && Number.isFinite(entry.order) ? entry.order : index,
+    rows,
   }
 }
 
-/** Upgrade flat v1 assignments into the sections → positions shape. */
+function slotsFromModules(
+  modules: Array<{
+    moduleId: string
+    enabled?: boolean
+    order?: number
+    width?: number
+    config?: LayoutSlotConfig
+  }>,
+  idPrefix: string,
+): LayoutSlot[] {
+  return modules
+    .map((m, index) =>
+      normalizeSlot(
+        {
+          id: `${idPrefix}-${m.moduleId}-${index}`,
+          moduleId: m.moduleId,
+          width: m.width ?? 12,
+          enabled: m.enabled,
+          order: m.order ?? index,
+          config: m.config,
+        },
+        index,
+      ),
+    )
+    .filter(Boolean) as LayoutSlot[]
+}
+
+/** Upgrade flat v1 assignments → v3 sections/rows/slots. */
 export function upgradeLayoutV1(doc: LayoutDocumentV1): LayoutDocument {
-  const byPosition = new Map<string, LayoutModuleAssignment[]>()
+  const byPosition = new Map<string, LayoutSlot[]>()
   for (const raw of doc.assignments ?? []) {
     if (!raw || typeof raw.moduleId !== 'string' || typeof raw.position !== 'string') continue
     const position = raw.position.trim()
     if (!position) continue
-    const mod = normalizeModule({
-      moduleId: raw.moduleId,
-      enabled: raw.enabled,
-      order: raw.order,
-    })
-    if (!mod) continue
     const list = byPosition.get(position) ?? []
-    list.push(mod)
-    byPosition.set(position, list)
-  }
-
-  const knownOrder = ['header', 'after-content', 'footer']
-  const orderedIds = [
-    ...knownOrder.filter((id) => byPosition.has(id)),
-    ...[...byPosition.keys()].filter((id) => !knownOrder.includes(id)).sort(),
-  ]
-
-  // Preserve empty default slots when upgrading an empty v1 doc.
-  if (orderedIds.length === 0) {
-    return cloneDefaultLayoutDocument()
-  }
-
-  const headerMods = byPosition.get('header') ?? []
-  const afterMods = byPosition.get('after-content') ?? []
-  const footerMods = byPosition.get('footer') ?? []
-  const extras = orderedIds.filter((id) => !knownOrder.includes(id))
-
-  const sections: LayoutSection[] = [
-    {
-      id: 'header-section',
-      label: 'Header',
-      order: 0,
-      positions: [
-        {
-          id: 'header',
-          label: 'Header',
-          order: 0,
-          modules: headerMods,
-        },
-        ...extras.map((id, index) => ({
-          id: id as LayoutPositionId,
-          label: id,
-          order: index + 1,
-          modules: byPosition.get(id) ?? [],
-        })),
-      ],
-    },
-    {
-      id: 'main-section',
-      label: 'Main',
-      order: 1,
-      content: true,
-      positions: [
-        {
-          id: 'after-content',
-          label: 'After content',
-          order: 0,
-          placement: 'after' as const,
-          modules: afterMods,
-        },
-      ],
-    },
-    {
-      id: 'footer-section',
-      label: 'Footer',
-      order: 2,
-      positions: [
-        {
-          id: 'footer',
-          label: 'Footer',
-          order: 0,
-          modules: footerMods,
-        },
-      ],
-    },
-  ]
-
-  return (
-    normalizeLayoutDocument({ version: 2, sections }) ?? {
-      version: 2,
-      sections,
+    const slot = normalizeSlot(
+      {
+        id: `${position}-${raw.moduleId}-${list.length}`,
+        moduleId: raw.moduleId,
+        width: 12,
+        enabled: raw.enabled,
+        order: raw.order ?? list.length,
+      },
+      list.length,
+    )
+    if (slot) {
+      list.push(slot)
+      byPosition.set(position, list)
     }
-  )
+  }
+
+  if (byPosition.size === 0) return cloneDefaultLayoutDocument()
+
+  const sections: LayoutSection[] = []
+  let order = 0
+  for (const [positionId, slots] of byPosition) {
+    sections.push({
+      id: positionId,
+      label: positionId,
+      order: order++,
+      rows: [{ id: `${positionId}-row-1`, order: 0, slots }],
+    })
+  }
+
+  // Ensure page-content exists somewhere.
+  if (!documentHasModule(sections, 'page-content')) {
+    sections.push({
+      id: 'main',
+      label: 'Main',
+      order: order++,
+      rows: [
+        {
+          id: 'main-row-1',
+          order: 0,
+          slots: [
+            {
+              id: 'main-page-content',
+              moduleId: 'page-content',
+              width: 12,
+              enabled: true,
+              order: 0,
+            },
+          ],
+        },
+      ],
+    })
+  }
+
+  return normalizeLayoutDocument({ version: 3, sections }) ?? { version: 3, sections }
+}
+
+/** Upgrade v2 positions → v3 rows/slots (+ inject page-content for content sections). */
+export function upgradeLayoutV2(doc: LayoutDocumentV2): LayoutDocument {
+  const sections: LayoutSection[] = []
+
+  for (const section of doc.sections ?? []) {
+    if (!section?.id) continue
+    const rows: LayoutRow[] = []
+    let rowOrder = 0
+
+    if (section.content) {
+      rows.push({
+        id: `${section.id}-page-content-row`,
+        order: rowOrder++,
+        slots: [
+          {
+            id: `${section.id}-page-content`,
+            moduleId: 'page-content',
+            width: 12,
+            enabled: true,
+            order: 0,
+          },
+        ],
+      })
+    }
+
+    for (const position of section.positions ?? []) {
+      if (!position?.id) continue
+      const before = (position.placement ?? 'before') !== 'after'
+      if (section.content && !before) {
+        // after-content style: row after page-content
+        rows.push({
+          id: `${position.id}-row`,
+          order: rowOrder++,
+          slots: slotsFromModules(position.modules ?? [], position.id),
+        })
+      } else if (section.content && before) {
+        rows.unshift({
+          id: `${position.id}-row`,
+          order: -1,
+          slots: slotsFromModules(position.modules ?? [], position.id),
+        })
+      } else {
+        rows.push({
+          id: `${position.id}-row`,
+          order: rowOrder++,
+          slots: slotsFromModules(position.modules ?? [], position.id),
+        })
+      }
+    }
+
+    // Re-index row orders after unshift.
+    rows.sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id))
+    rows.forEach((r, i) => {
+      r.order = i
+    })
+
+    sections.push({
+      id: section.id,
+      label: section.label || section.id,
+      order: section.order ?? sections.length,
+      rows,
+    })
+  }
+
+  if (sections.length === 0) return cloneDefaultLayoutDocument()
+
+  if (!documentHasModule(sections, 'site-header')) {
+    sections.unshift({
+      id: 'navigation',
+      label: 'Navigation',
+      order: -1,
+      rows: [
+        {
+          id: 'navigation-row-1',
+          order: 0,
+          slots: [
+            {
+              id: 'navigation-site-header',
+              moduleId: 'site-header',
+              width: 12,
+              enabled: true,
+              order: 0,
+            },
+          ],
+        },
+      ],
+    })
+  }
+
+  if (!documentHasModule(sections, 'page-content')) {
+    sections.push({
+      id: 'main',
+      label: 'Main',
+      order: 99,
+      rows: [
+        {
+          id: 'main-row-1',
+          order: 0,
+          slots: [
+            {
+              id: 'main-page-content',
+              moduleId: 'page-content',
+              width: 12,
+              enabled: true,
+              order: 0,
+            },
+          ],
+        },
+      ],
+    })
+  }
+
+  sections.sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id))
+  sections.forEach((s, i) => {
+    s.order = i
+  })
+
+  return normalizeLayoutDocument({ version: 3, sections }) ?? { version: 3, sections }
+}
+
+function documentHasModule(sections: LayoutSection[], moduleId: string): boolean {
+  return sections.some((s) => s.rows.some((r) => r.slots.some((slot) => slot.moduleId === moduleId)))
 }
 
 export function normalizeLayoutDocument(raw: unknown): LayoutDocument | null {
@@ -168,20 +317,35 @@ export function normalizeLayoutDocument(raw: unknown): LayoutDocument | null {
     return upgradeLayoutV1(raw as LayoutDocumentV1)
   }
 
-  if (doc.version !== 2 || !Array.isArray((raw as LayoutDocument).sections)) {
+  if (doc.version === 2 && Array.isArray((raw as LayoutDocumentV2).sections)) {
+    return upgradeLayoutV2(raw as LayoutDocumentV2)
+  }
+
+  if (doc.version !== 3 || !Array.isArray((raw as LayoutDocument).sections)) {
+    // Accept unversioned v3-shaped docs that already have rows.
+    const maybe = raw as LayoutDocument
+    if (Array.isArray(maybe.sections) && maybe.sections.some((s) => Array.isArray(s?.rows))) {
+      const sections = maybe.sections
+        .map((s, i) => normalizeSection(s, i))
+        .filter(Boolean) as LayoutSection[]
+      sections.sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id))
+      return { version: 3, sections }
+    }
     return null
   }
 
-  const sections = ((raw as LayoutDocument).sections.map(normalizeSection).filter(Boolean) as LayoutSection[])
+  const sections = ((raw as LayoutDocument).sections.map((s, i) => normalizeSection(s, i)).filter(
+    Boolean,
+  ) as LayoutSection[])
   sections.sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id))
 
-  return { version: 2, sections }
+  return { version: 3, sections }
 }
 
 export function cloneDefaultLayoutDocument(): LayoutDocument {
   const normalized = normalizeLayoutDocument(defaultLayoutJson)
   if (normalized) return structuredClone(normalized)
-  return { version: 2, sections: [] }
+  return { version: 3, sections: [] }
 }
 
 export function parseLayoutDocumentJson(json: string): LayoutDocument | null {
@@ -193,55 +357,49 @@ export function parseLayoutDocumentJson(json: string): LayoutDocument | null {
 }
 
 export function serializeLayoutDocument(doc: LayoutDocument): string {
-  return JSON.stringify(normalizeLayoutDocument(doc) ?? { version: 2, sections: [] }, null, 2)
-}
-
-/** Flat enabled assignments for one position id (public ModuleSlot path). */
-export function flattenAssignmentsForPosition(
-  doc: LayoutDocument,
-  position: LayoutPositionId,
-): LayoutModuleAssignment[] {
-  const out: LayoutModuleAssignment[] = []
-  for (const section of doc.sections) {
-    for (const pos of section.positions) {
-      if (pos.id !== position) continue
-      for (const mod of pos.modules) {
-        if (mod.enabled === false) continue
-        out.push(mod)
-      }
-    }
-  }
-  return out.sort(
-    (a, b) => (a.order ?? 0) - (b.order ?? 0) || a.moduleId.localeCompare(b.moduleId),
-  )
-}
-
-export function listPositions(doc: LayoutDocument): LayoutPosition[] {
-  const positions: LayoutPosition[] = []
-  for (const section of [...doc.sections].sort(
-    (a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id),
-  )) {
-    for (const pos of [...section.positions].sort(
-      (a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id),
-    )) {
-      positions.push(pos)
-    }
-  }
-  return positions
+  return JSON.stringify(normalizeLayoutDocument(doc) ?? { version: 3, sections: [] }, null, 2)
 }
 
 export function findSection(doc: LayoutDocument, sectionId: string): LayoutSection | undefined {
   return doc.sections.find((s) => s.id === sectionId)
 }
 
-export function findPosition(
+export function findRow(
   doc: LayoutDocument,
   sectionId: string,
-  positionId: string,
-): { section: LayoutSection; position: LayoutPosition } | undefined {
+  rowId: string,
+): { section: LayoutSection; row: LayoutRow } | undefined {
   const section = findSection(doc, sectionId)
   if (!section) return undefined
-  const position = section.positions.find((p) => p.id === positionId)
-  if (!position) return undefined
-  return { section, position }
+  const row = section.rows.find((r) => r.id === rowId)
+  if (!row) return undefined
+  return { section, row }
+}
+
+export function findSlot(
+  doc: LayoutDocument,
+  sectionId: string,
+  rowId: string,
+  slotId: string,
+): { section: LayoutSection; row: LayoutRow; slot: LayoutSlot } | undefined {
+  const found = findRow(doc, sectionId, rowId)
+  if (!found) return undefined
+  const slot = found.row.slots.find((s) => s.id === slotId)
+  if (!slot) return undefined
+  return { ...found, slot }
+}
+
+/** @deprecated v2 helper — kept for transitional imports. */
+export function flattenAssignmentsForPosition() {
+  return []
+}
+
+/** @deprecated v2 helper */
+export function listPositions() {
+  return []
+}
+
+/** @deprecated v2 helper */
+export function findPosition() {
+  return undefined
 }

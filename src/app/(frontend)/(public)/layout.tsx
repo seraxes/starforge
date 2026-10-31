@@ -14,9 +14,8 @@ export async function generateMetadata() {
 }
 
 /**
- * Public site shell — brand + primary nav from Payload site-settings,
- * module positions from the layout document (DB / default JSON).
- * Core admin (`/app/admin`) uses its own layout without this chrome.
+ * Public site shell — sections/rows/slots from the layout document
+ * (site-header + page-content particles). Core admin skips this chrome.
  */
 export default async function PublicSiteLayout(props: { children: React.ReactNode }) {
   const settings = await getSiteSettings()

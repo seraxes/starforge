@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
 
 export const metadata = {
   title: 'Layout — Starforge',
-  description: 'Visual layout manager foundation — sections, positions, module assignments.',
+  description: 'Gantry-like visual layout manager — particles, sections, 12-col widths.',
 }
 
 export default async function AdminLayoutsPage() {
@@ -20,12 +20,13 @@ export default async function AdminLayoutsPage() {
     <section className="admin-section">
       <h2>Layout manager</h2>
       <p className="lede admin-lede">
-        Foundation for a Gantry-like visual layout editor. Add sections, name positions, and assign
-        registered modules. Storage is a JSON document in core Postgres (
+        Gantry-like canvas: left palette = particles (modules); main area = sections with rows and
+        12-column widths (Starforge grid math — not Bootstrap). Built-ins include{' '}
+        <strong>Page Content</strong>, <strong>Site Header</strong>, and <strong>Custom</strong>{' '}
+        (HTML/CSS; JS stub for developer-admins later). Storage is JSON in{' '}
         <code>sf_layouts</code>
-        ){isFallback ? ' — currently using the checked-in default until the first save' : ''}.
-        Turn on <Link href="/app/admin/settings">Modules</Link> under site settings so positions
-        render on the public site. Full drag-drop, custom JS particles, and ACL come later.
+        {isFallback ? ' — using the checked-in default until the first save' : ''}. Extension
+        particles still need <Link href="/app/admin/settings">Modules</Link> on.
       </p>
       <LayoutEditor document={document} source={source} modules={modules} />
     </section>

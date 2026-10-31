@@ -5,18 +5,17 @@ import type { StarforgeModule } from '@/core/modules/types'
 import { NoticeBar } from './NoticeBar'
 
 const DEFAULT_MESSAGE =
-  'Extension modules are on — this dismissible notice bar is assigned to the header layout position. Toggle Modules under Site settings to hide it.'
+  'Extension modules are on — this notice bar particle sits in the Header section (12/12). Edit layout under /app/admin/layouts.'
 
 /**
- * Example Starforge module: dismissible notice bar.
- * Placement comes from the layout document (`sf_layouts` / default JSON), not
- * from hard-coded position locks in this file.
+ * Example Starforge particle: dismissible notice bar.
+ * Placement comes from the layout document (`sf_layouts`), not hard locks.
  */
 export const noticeBarModule: StarforgeModule = {
   id: 'notice-bar',
   name: 'Notice bar',
-  description: 'Dismissible site-wide notice. Seed assigns it to the header position.',
-  defaultPosition: 'header',
+  description: 'Dismissible site-wide notice. Seed places it in Header at width 12.',
+  defaultWidth: 12,
   featureFlag: 'modules',
   render: () =>
     React.createElement(NoticeBar, {

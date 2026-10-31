@@ -10,6 +10,10 @@ import {
 } from './document'
 import type { LayoutDocument } from './types'
 
+function isUsableDocument(doc: LayoutDocument | null | undefined): doc is LayoutDocument {
+  return Boolean(doc && doc.version === 3 && Array.isArray(doc.sections) && doc.sections.length > 0)
+}
+
 export type LayoutLoadSource = 'database' | 'default-json'
 
 export type LayoutLoadResult = {
@@ -34,16 +38,14 @@ export async function loadLayoutDocument(): Promise<LayoutLoadResult> {
 
     if (row?.document?.trim()) {
       const parsed = parseLayoutDocumentJson(row.document)
-      if (parsed && parsed.sections.length > 0) {
+      if (isUsableDocument(parsed)) {
         return { document: parsed, source: 'database', isFallback: false }
       }
-      // Empty sections in DB → treat as empty and fall back so public chrome works.
-      if (parsed && parsed.sections.length === 0) {
-        return {
-          document: cloneDefaultLayoutDocument(),
-          source: 'default-json',
-          isFallback: true,
-        }
+      // Empty / unreadable DB row → fall back so public chrome works.
+      return {
+        document: cloneDefaultLayoutDocument(),
+        source: 'default-json',
+        isFallback: true,
       }
     }
   } catch {
@@ -59,7 +61,7 @@ export async function loadLayoutDocument(): Promise<LayoutLoadResult> {
 
 /** Persist the layout document (upsert the `default` row). */
 export async function saveLayoutDocument(doc: LayoutDocument): Promise<LayoutDocument> {
-  const normalized = normalizeLayoutDocument(doc) ?? { version: 2 as const, sections: [] }
+  const normalized = normalizeLayoutDocument(doc) ?? { version: 3 as const, sections: [] }
   const json = serializeLayoutDocument(normalized)
   const now = new Date()
 
@@ -87,26 +89,41 @@ export async function saveLayoutDocument(doc: LayoutDocument): Promise<LayoutDoc
 }
 
 /**
- * Seed helper: write the default layout (notice-bar → header) if no row exists.
- * Idempotent — does not overwrite an existing document.
+ * Seed helper: write the default v3 layout if no row exists.
+ * If an older v1/v2 document is present, upgrades and re-saves it (preserves assignments).
  */
 export async function ensureDefaultLayoutSeeded(): Promise<{
   created: boolean
+  upgraded?: boolean
   document: LayoutDocument
 }> {
   try {
     const [row] = await db
-      .select({ id: sfLayouts.id })
+      .select({ id: sfLayouts.id, document: sfLayouts.document })
       .from(sfLayouts)
       .where(eq(sfLayouts.id, DEFAULT_LAYOUT_ID))
       .limit(1)
 
     if (row) {
-      const loaded = await loadLayoutDocument()
-      return { created: false, document: loaded.document }
+      let rawVersion = 0
+      try {
+        rawVersion = Number(JSON.parse(row.document)?.version ?? 0)
+      } catch {
+        rawVersion = 0
+      }
+      const parsed = parseLayoutDocumentJson(row.document)
+      if (isUsableDocument(parsed) && rawVersion === 3) {
+        return { created: false, document: parsed }
+      }
+      if (isUsableDocument(parsed)) {
+        const document = await saveLayoutDocument(parsed)
+        return { created: false, upgraded: true, document }
+      }
+      // Unreadable — leave row alone and serve default in memory.
+      return { created: false, document: cloneDefaultLayoutDocument() }
     }
-  } catch {
-    // Table missing — caller should run db:core:push.
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('sf_layouts')) throw error
     throw new Error(
       'sf_layouts table missing — run npm run db:core:push before seeding the layout.',
     )

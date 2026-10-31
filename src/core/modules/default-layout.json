@@ -1,18 +1,19 @@
 {
-  "version": 2,
+  "version": 3,
   "sections": [
     {
-      "id": "header-section",
+      "id": "header",
       "label": "Header",
       "order": 0,
-      "positions": [
+      "rows": [
         {
-          "id": "header",
-          "label": "Header",
+          "id": "header-row-1",
           "order": 0,
-          "modules": [
+          "slots": [
             {
+              "id": "header-notice",
               "moduleId": "notice-bar",
+              "width": 12,
               "enabled": true,
               "order": 0
             }
@@ -21,30 +22,68 @@
       ]
     },
     {
-      "id": "main-section",
-      "label": "Main",
+      "id": "navigation",
+      "label": "Navigation",
       "order": 1,
-      "content": true,
-      "positions": [
+      "rows": [
         {
-          "id": "after-content",
-          "label": "After content",
+          "id": "navigation-row-1",
           "order": 0,
-          "placement": "after",
-          "modules": []
+          "slots": [
+            {
+              "id": "navigation-site-header",
+              "moduleId": "site-header",
+              "width": 12,
+              "enabled": true,
+              "order": 0
+            }
+          ]
         }
       ]
     },
     {
-      "id": "footer-section",
-      "label": "Footer",
+      "id": "main",
+      "label": "Main",
       "order": 2,
-      "positions": [
+      "rows": [
         {
-          "id": "footer",
-          "label": "Footer",
+          "id": "main-row-1",
           "order": 0,
-          "modules": []
+          "slots": [
+            {
+              "id": "main-page-content",
+              "moduleId": "page-content",
+              "width": 12,
+              "enabled": true,
+              "order": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "footer",
+      "label": "Footer",
+      "order": 3,
+      "rows": [
+        {
+          "id": "footer-row-1",
+          "order": 0,
+          "slots": [
+            {
+              "id": "footer-custom",
+              "moduleId": "custom",
+              "width": 12,
+              "enabled": true,
+              "order": 0,
+              "config": {
+                "title": "Footer note",
+                "html": "<p class=\"sf-custom-footer\">Built with <strong>Starforge</strong></p>",
+                "css": ".sf-custom-footer { margin: 0; padding: 0.75rem 1.5rem 1.25rem; color: var(--sf-muted, #5a6674); font-size: 0.9rem; text-align: center; }",
+                "js": ""
+              }
+            }
+          ]
         }
       ]
     }

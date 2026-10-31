@@ -1,11 +1,11 @@
 import React from 'react'
 
-import { SiteHeader } from '@/components/SiteHeader'
 import type { NavItem } from '@/core/settings/defaults'
+import { ensureModulesRegistered } from '@/modules/catalog'
 
-import { ModuleSlot } from './ModuleSlot'
 import { getLayoutDocument } from './layout'
-import type { LayoutPosition, LayoutSection } from './types'
+import { SlotRenderer } from './SlotRenderer'
+import type { LayoutRow, LayoutSection } from './types'
 
 type Props = {
   children: React.ReactNode
@@ -17,132 +17,103 @@ function sortByOrder<T extends { order?: number; id: string }>(items: T[]): T[] 
   return [...items].sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id))
 }
 
-function isFooterSection(section: LayoutSection): boolean {
-  return section.id.includes('footer') || section.label.toLowerCase().includes('footer')
-}
-
-function PositionSlots({
-  positions,
-  classNamePrefix,
+function SectionBlock({
+  section,
+  pageContent,
 }: {
-  positions: LayoutPosition[]
-  classNamePrefix: string
+  section: LayoutSection
+  pageContent: React.ReactNode
 }) {
-  return (
+  const rows = sortByOrder(section.rows)
+  const isFooter =
+    section.id.includes('footer') || section.label.toLowerCase().includes('footer')
+
+  const inner = (
     <>
-      {sortByOrder(positions).map((pos) => (
-        <ModuleSlot
-          key={pos.id}
-          position={pos.id}
-          className={`${classNamePrefix} sf-slot-${pos.id}`}
-        />
+      {rows.map((row) => (
+        <LayoutRowView key={row.id} sectionId={section.id} row={row} pageContent={pageContent} />
       ))}
     </>
   )
-}
 
-function ContentSection({
-  section,
-  children,
-  siteName,
-  primaryNav,
-}: {
-  section: LayoutSection
-  children: React.ReactNode
-  siteName: string
-  primaryNav: NavItem[]
-}) {
-  const before = section.positions.filter((p) => p.placement !== 'after')
-  const after = section.positions.filter((p) => p.placement === 'after')
-
-  return (
-    <section className="sf-layout-section sf-layout-section-content" data-sf-section={section.id}>
-      <PositionSlots positions={before} classNamePrefix="sf-slot-before-content" />
-      <SiteHeader siteName={siteName} primaryNav={primaryNav} />
-      <div className="public-main">{children}</div>
-      <PositionSlots positions={after} classNamePrefix="sf-slot-after-content" />
-    </section>
-  )
-}
-
-function ChromeSection({
-  section,
-  siteName,
-}: {
-  section: LayoutSection
-  siteName: string
-}) {
-  if (isFooterSection(section)) {
+  if (isFooter) {
     return (
       <footer className="site-footer sf-layout-section" data-sf-section={section.id}>
-        <PositionSlots positions={section.positions} classNamePrefix="sf-slot-footer" />
-        <p className="site-footer-meta">
-          <span className="site-footer-brand">{siteName}</span>
-          <span className="site-footer-sep" aria-hidden="true">
-            ·
-          </span>
-          <span>Built with Starforge</span>
-        </p>
+        {inner}
       </footer>
     )
   }
 
   return (
     <section className="sf-layout-section" data-sf-section={section.id}>
-      <PositionSlots positions={section.positions} classNamePrefix="sf-slot-chrome" />
+      {inner}
     </section>
   )
 }
 
+function LayoutRowView({
+  sectionId,
+  row,
+  pageContent,
+}: {
+  sectionId: string
+  row: LayoutRow
+  pageContent: React.ReactNode
+}) {
+  const slots = sortByOrder(row.slots)
+  return (
+    <div className="sf-grid-row" data-sf-row={row.id}>
+      {slots.map((slot) => (
+        <SlotRenderer
+          key={slot.id}
+          sectionId={sectionId}
+          slot={slot}
+          pageContent={pageContent}
+        />
+      ))}
+    </div>
+  )
+}
+
+function documentHasPageContent(sections: LayoutSection[]): boolean {
+  return sections.some((s) =>
+    s.rows.some((r) => r.slots.some((slot) => slot.moduleId === 'page-content' && slot.enabled !== false)),
+  )
+}
+
 /**
- * Public site body driven by the layout document (sections → positions → modules).
- * Falls back to the checked-in default when the DB row is empty.
- * SiteHeader + page children render inside the section marked `content: true`.
+ * Public site body driven by the layout document (sections → rows → slots).
+ * Page route children render via the built-in `page-content` particle.
  */
-export async function PublicLayoutBody({ children, siteName, primaryNav }: Props) {
+export async function PublicLayoutBody({ children, siteName }: Props) {
+  ensureModulesRegistered()
   const document = await getLayoutDocument()
   const sections = sortByOrder(document.sections)
-  const hasContentSection = sections.some((s) => s.content)
-  const hasFooterSection = sections.some(isFooterSection)
+  const hasPageContent = documentHasPageContent(sections)
 
   return (
     <div className="public-shell" data-sf-layout-version={document.version}>
-      {sections.map((section) =>
-        section.content ? (
-          <ContentSection
-            key={section.id}
-            section={section}
-            siteName={siteName}
-            primaryNav={primaryNav}
-          >
-            {children}
-          </ContentSection>
-        ) : (
-          <ChromeSection key={section.id} section={section} siteName={siteName} />
-        ),
-      )}
+      {sections.map((section) => (
+        <SectionBlock key={section.id} section={section} pageContent={children} />
+      ))}
 
-      {!hasContentSection ? (
-        <section
-          className="sf-layout-section sf-layout-section-content"
-          data-sf-section="fallback-main"
-        >
-          <SiteHeader siteName={siteName} primaryNav={primaryNav} />
-          <div className="public-main">{children}</div>
+      {!hasPageContent ? (
+        <section className="sf-layout-section" data-sf-section="fallback-main">
+          <div className="sf-grid-row">
+            <div className="sf-grid-col" data-sf-width={12} style={{ flex: '0 0 100%', maxWidth: '100%', width: '100%' }}>
+              <div className="sf-page-content public-main">{children}</div>
+            </div>
+          </div>
         </section>
       ) : null}
 
-      {!hasFooterSection ? (
-        <footer className="site-footer sf-layout-section" data-sf-section="fallback-footer">
-          <p className="site-footer-meta">
-            <span className="site-footer-brand">{siteName}</span>
-            <span className="site-footer-sep" aria-hidden="true">
-              ·
-            </span>
-            <span>Built with Starforge</span>
-          </p>
-        </footer>
-      ) : null}
+      <p className="site-footer-meta sf-layout-chrome-meta">
+        <span className="site-footer-brand">{siteName}</span>
+        <span className="site-footer-sep" aria-hidden="true">
+          ·
+        </span>
+        <span>Built with Starforge</span>
+      </p>
     </div>
   )
 }

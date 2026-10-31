@@ -1,50 +1,47 @@
-# Starforge modules + visual layout manager
+# Starforge modules + Gantry-like layout manager
 
-Joomla-like **extension modules** hang off Starforge core — not Payload plugins.
-Layout placement is a **document** (sections → named positions → module ids),
-edited visually in core admin and stored as JSON.
+Joomla/Gantry-like **particles** (modules) hang off Starforge core — not Payload plugins.
+Layout is a JSON document: **sections → rows → slots** (`moduleId` + `width` 1–12).
 
 ## Quick map
 
 | Piece | Path |
 | --- | --- |
 | Register API | `registerModule()` in `registry.ts` |
-| Layout document (v2) | sections → positions → `modules[]` |
-| Storage | `sf_layouts` (`document` JSON) · fallback `default-layout.json` |
-| Admin UI | `/app/admin/layouts` |
-| Public render | `PublicLayoutBody` + `<ModuleSlot position="…" />` |
-| Example module | `src/modules/notice-bar/` |
-| Catalog boot | `src/modules/catalog.ts` → `ensureModulesRegistered()` |
+| Built-in particles | `page-content`, `site-header`, `custom` · `particles/` |
+| Example extension | `src/modules/notice-bar/` |
+| Layout document (v3) | sections → rows → slots |
+| Storage | `sf_layouts` JSON · fallback `default-layout.json` |
+| Admin UI | `/app/admin/layouts` — left palette + canvas |
+| Public render | `PublicLayoutBody` + `SlotRenderer` (12-col flex math, **not Bootstrap**) |
 
 ## Document shape
 
 ```json
 {
-  "version": 2,
+  "version": 3,
   "sections": [
     {
-      "id": "header-section",
+      "id": "header",
       "label": "Header",
-      "order": 0,
-      "positions": [
+      "rows": [
         {
-          "id": "header",
-          "label": "Header",
-          "order": 0,
-          "modules": [{ "moduleId": "notice-bar", "enabled": true, "order": 0 }]
+          "id": "header-row-1",
+          "slots": [
+            { "id": "…", "moduleId": "notice-bar", "width": 12, "enabled": true }
+          ]
         }
       ]
     },
     {
-      "id": "main-section",
+      "id": "main",
       "label": "Main",
-      "content": true,
-      "positions": [
+      "rows": [
         {
-          "id": "after-content",
-          "label": "After content",
-          "placement": "after",
-          "modules": []
+          "id": "main-row-1",
+          "slots": [
+            { "id": "…", "moduleId": "page-content", "width": 12 }
+          ]
         }
       ]
     }
@@ -52,26 +49,25 @@ edited visually in core admin and stored as JSON.
 }
 ```
 
-Legacy v1 flat `assignments[]` is still accepted on read and upgraded in memory.
+Legacy v1 (flat assignments) and v2 (positions) upgrade on read.
 
 ## Rules
 
-1. **Any module → any position** — no hard locks on where a module may render.
-2. **Master toggle** — site-settings **Modules** (`features.modules`) must be on, or slots render nothing.
-3. **Layout is data** — JSON in Postgres (`sf_layouts`); checked-in default JSON is the empty/fallback seed.
-4. **Content section** — exactly one section should set `content: true` (SiteHeader + page children). Positions inside it use `placement: "before" | "after"`.
+1. **Any particle → any section/slot** — no hard locks.
+2. **Built-ins** (`page-content`, `site-header`, `custom`) always render.
+3. **Extension particles** need site-settings **Modules** on (+ optional per-module flag).
+4. **Width** is 1–12 columns; Starforge owns the flex math (no Bootstrap CSS).
+5. **Custom** stores HTML + CSS + JS; JS is **not executed** until developer-admin ACL.
 
-## Add a module
+## Admin UX (v1)
 
-1. Create `src/modules/<id>/` with a `StarforgeModule` (`id`, `name`, `render`).
-2. Call `registerModule(...)` from `src/modules/catalog.ts`.
-3. Assign it under **`/app/admin/layouts`** (or seed `default-layout.json` / `ensureDefaultLayoutSeeded`).
-4. Turn **Modules** on under `/app/admin/settings` (seed enables it for local demo).
+- Left: particle palette (click to select).
+- Canvas: sections with rows; **Add** places the selected particle (click-to-add).
+- Per slot: set width 1–12, enable/disable, remove; Custom opens HTML/CSS/JS editor.
+- Later: true drag-drop, YAML export mode, JS ACL.
 
-## Path to a fuller visual editor
+## Add an extension particle
 
-This slice is the **foundation**, not a Gantry clone:
-
-- Visual UI to add/rename sections & positions and assign modules — done.
-- JSON (and later YAML export) remains storage for diff/seed/export — not day-to-day editing.
-- **Later:** drag-drop ordering, richer chrome, developer-admin “edit as YAML/JSON”, custom JS particles (dev-admin only), Joomla-like ACL for who may edit layout vs content vs JS.
+1. Create `src/modules/<id>/` with a `StarforgeModule`.
+2. Register from `src/modules/catalog.ts`.
+3. Place it on the canvas under `/app/admin/layouts`.

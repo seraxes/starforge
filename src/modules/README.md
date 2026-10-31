@@ -1,9 +1,12 @@
-# Extension modules
+# Extension modules (particles)
 
 Product features that hang off Starforge core (not Payload plugins).
 
-| Module | Id | Default layout position |
+| Particle | Id | Notes |
 | --- | --- | --- |
-| Notice bar | `notice-bar` | `header` |
+| Notice bar | `notice-bar` | Extension — needs Modules toggle |
+| Page Content | `page-content` | Built-in (core) |
+| Site Header | `site-header` | Built-in (core) |
+| Custom | `custom` | Built-in HTML/CSS (+ JS stub) |
 
-Assign modules under **`/app/admin/layouts`**. See `src/core/modules/README.md` for the register API and layout document (JSON in `sf_layouts`).
+Place particles on the canvas at **`/app/admin/layouts`**. See `src/core/modules/README.md`.

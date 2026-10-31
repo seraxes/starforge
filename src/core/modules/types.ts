@@ -2,89 +2,133 @@ import type { ReactNode } from 'react'
 
 import type { FeatureFlags, SiteSettingsData } from '@/core/settings/defaults'
 
+/** 12-column grid (Gantry-style). Not Bootstrap — Starforge owns the math. */
+export const LAYOUT_GRID_COLUMNS = 12 as const
+
+export type LayoutGridWidth = number
+
 /**
- * Built-in position ids used by the default layout seed.
- * Admins may add more ids — any registered module may target any position
- * (Gantry-like rule). No hard locks.
+ * Built-in section ids used by the default seed. Admins may add more —
+ * any registered module (particle) may go in any section/slot.
  */
-export const LAYOUT_POSITIONS = ['header', 'after-content', 'footer'] as const
+export const LAYOUT_POSITIONS = ['header', 'navigation', 'main', 'footer'] as const
 
 export type LayoutPositionId = (typeof LAYOUT_POSITIONS)[number] | (string & {})
 
-export type ModuleRenderContext = {
-  position: LayoutPositionId
-  settings: SiteSettingsData
-}
-
-/**
- * A Starforge extension module — own folder under `src/modules/`, registered
- * via `registerModule`. Render into named positions from the layout document.
- */
-export type StarforgeModule = {
-  /** Stable id used in layout assignments (kebab-case). */
-  id: string
-  name: string
-  description?: string
+/** Per-slot particle config (Custom HTML/CSS/JS, future particle settings). */
+export type LayoutSlotConfig = {
+  html?: string
+  css?: string
   /**
-   * When set, the module only renders if this site-settings feature flag is on.
-   * The global `modules` master flag is always checked by the position renderer.
+   * Custom JS source. Stored for later; execution is gated to developer-admins
+   * (not run in this foundation slice).
    */
-  featureFlag?: keyof FeatureFlags
-  /** Hint for seeds / docs; the layout document is the source of truth for placement. */
-  defaultPosition?: LayoutPositionId
-  render: (ctx: ModuleRenderContext) => ReactNode | Promise<ReactNode>
+  js?: string
+  title?: string
+  [key: string]: unknown
 }
 
-/** One module instance assigned to a named position. */
-export type LayoutModuleAssignment = {
+/**
+ * One particle instance in a row (Gantry “particle” / module assignment).
+ * `width` is columns out of 12.
+ */
+export type LayoutSlot = {
+  id: string
   moduleId: string
-  /** Defaults to true when omitted. */
+  /** Columns 1–12. Defaults to 12. */
+  width: LayoutGridWidth
   enabled?: boolean
-  /** Lower sorts first within a position. Defaults to 0. */
   order?: number
+  config?: LayoutSlotConfig
 }
 
-/**
- * Named position inside a section. Public `<ModuleSlot>` keys off `id`.
- * Within a content section, `placement` controls whether the slot renders
- * before or after SiteHeader + page children.
- */
-export type LayoutPosition = {
-  id: LayoutPositionId
-  label: string
+/** Horizontal row of slots inside a section (sums toward 12 columns). */
+export type LayoutRow = {
+  id: string
   order?: number
-  /** Only meaningful when the parent section has `content: true`. */
-  placement?: 'before' | 'after'
-  modules: LayoutModuleAssignment[]
+  slots: LayoutSlot[]
 }
 
-/**
- * A layout section groups named positions. Sections with `content: true`
- * wrap the public page chrome (SiteHeader + children).
- */
+/** Vertical section on the canvas (Header, Main, Footer, …). */
 export type LayoutSection = {
   id: string
   label: string
   order?: number
-  /** When true, SiteHeader + page children render in this section. */
+  rows: LayoutRow[]
+}
+
+/**
+ * Canonical layout document (version 3).
+ * Storage: JSON in `sf_layouts`. Seed / fallback: `default-layout.json`.
+ */
+export type LayoutDocument = {
+  version: 3
+  sections: LayoutSection[]
+}
+
+export type ModuleRenderContext = {
+  /** Section id the slot lives in (layout “position” in the Gantry sense). */
+  position: LayoutPositionId
+  settings: SiteSettingsData
+  slot: LayoutSlot
+  /** Page body for the built-in `page-content` particle. */
+  pageContent?: ReactNode
+}
+
+/**
+ * A Starforge extension module / particle — own folder under `src/modules/`
+ * (or built-in under `src/core/modules/particles/`), registered via `registerModule`.
+ */
+export type StarforgeModule = {
+  id: string
+  name: string
+  description?: string
+  /**
+   * Built-ins (`page-content`, `site-header`, …) always render — they are not
+   * gated by the site-settings Modules master toggle.
+   */
+  builtin?: boolean
+  featureFlag?: keyof FeatureFlags
+  /** Hint for palette / seeds. */
+  defaultWidth?: LayoutGridWidth
+  render: (ctx: ModuleRenderContext) => ReactNode | Promise<ReactNode>
+}
+
+/* —— Legacy shapes (still accepted on read, upgraded to v3) —— */
+
+/** @deprecated v2 position bag */
+export type LayoutModuleAssignment = {
+  moduleId: string
+  enabled?: boolean
+  order?: number
+  width?: number
+  config?: LayoutSlotConfig
+}
+
+/** @deprecated v2 */
+export type LayoutPosition = {
+  id: LayoutPositionId
+  label: string
+  order?: number
+  placement?: 'before' | 'after'
+  content?: boolean
+  modules: LayoutModuleAssignment[]
+}
+
+/** @deprecated v2 section */
+export type LayoutSectionV2 = {
+  id: string
+  label: string
+  order?: number
   content?: boolean
   positions: LayoutPosition[]
 }
 
-/**
- * Canonical layout document (version 2).
- * Storage: JSON in `sf_layouts` (core DB). Seed / fallback: `default-layout.json`.
- * Visual editor (later) edits the same shape; YAML export is a future option.
- */
-export type LayoutDocument = {
+export type LayoutDocumentV2 = {
   version: 2
-  sections: LayoutSection[]
+  sections: LayoutSectionV2[]
 }
 
-/**
- * Legacy flat assignments (version 1) — still accepted when reading and
- * upgraded in-memory to version 2.
- */
 export type LayoutAssignmentV1 = {
   moduleId: string
   position: LayoutPositionId
@@ -97,5 +141,5 @@ export type LayoutDocumentV1 = {
   assignments: LayoutAssignmentV1[]
 }
 
-/** @deprecated Prefer LayoutModuleAssignment — kept for call-site aliases. */
+/** @deprecated Prefer LayoutSlot */
 export type LayoutAssignment = LayoutModuleAssignment & { position?: LayoutPositionId }

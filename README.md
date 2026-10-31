@@ -4,7 +4,7 @@ Reusable **product core** for ordinary web apps (auth, users, app shell, extensi
 
 **Two admin surfaces, one login:** **Starforge admin** (`/app/admin` — users, roles, site settings) ↔ **Payload Content CMS** (`/admin` — pages, media); each sidebar links to the other.
 
-This is an early scaffold plus **core app auth** (Better Auth), **roles + core user admin**, **one-login Payload CMS access** (`cms_access` toggle), **site settings + feature toggles**, **Lexical** page editing, **public `/[slug]`** rendering, **draft preview** (`/preview/[slug]`), **published content cache** (Next.js tags; Redis later), **page SEO fields**, **extension modules + visual layout manager foundation** (JSON layout document in `sf_layouts`, admin UI at `/app/admin/layouts`, notice-bar module), and **`npm run seed`**. It is intentionally small and runnable locally — not Airsoftnexus 2.0 feature parity, and not a DigitalOcean deploy.
+This is an early scaffold plus **core app auth** (Better Auth), **roles + core user admin**, **one-login Payload CMS access** (`cms_access` toggle), **site settings + feature toggles**, **Lexical** page editing, **public `/[slug]`** rendering, **draft preview** (`/preview/[slug]`), **published content cache** (Next.js tags; Redis later), **page SEO fields**, **extension modules + Gantry-like layout manager** (sections/rows/slots + 12-col widths in `sf_layouts`, palette UI at `/app/admin/layouts`, page-content + custom particles), and **`npm run seed`**. It is intentionally small and runnable locally — not Airsoftnexus 2.0 feature parity, and not a DigitalOcean deploy.
 
 ## Architecture
 
@@ -81,7 +81,7 @@ Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so coo
 | http://localhost:3000/login | **Only** sign-in (Better Auth). Also used when `/admin` redirects unauthenticated visitors |
 | http://localhost:3000/app/admin/users | Starforge admin — roles, **CMS access** switch, disable |
 | http://localhost:3000/app/admin/settings | Starforge admin — site name, primary nav, feature toggles (same Payload global) |
-| http://localhost:3000/app/admin/layouts | Starforge admin — layout manager (sections → positions → modules) |
+| http://localhost:3000/app/admin/layouts | Starforge admin — Gantry-like layout (palette + sections + 12-col widths) |
 | http://localhost:3000/api/me | Current app session JSON including `role` / `isAdmin` (`401` when signed out) |
 | http://localhost:3000/admin | Payload Content CMS — nav **Payload CMS** when `cms_access` is on; sidebar **Core admin** → `/app/admin` |
 | http://localhost:3000/about | Sample published page (after `npm run seed`) |
@@ -116,22 +116,23 @@ One Payload global (`site-settings`) is the source of truth for site chrome and 
 
 `npm run seed` ensures the global exists, points primary nav at the sample pages, and **enables Modules** so the notice bar shows. Flags are **product capabilities**, not npm libraries.
 
-### Extension modules + visual layout manager (foundation)
+### Extension modules + Gantry-like layout manager
 
-Public chrome is driven by a **layout document**: **sections → named positions → module assignments**. Any registered module can target any position (no hard locks). Storage is **JSON** in core Postgres (`sf_layouts`); `default-layout.json` is the checked-in seed/fallback. The primary UX is the visual admin at **`/app/admin/layouts`** (add/rename sections & positions, assign modules) — not hand-editing YAML day to day.
+Public chrome is driven by a **layout document**: **sections → rows → slots** (`moduleId` + **`width` 1–12**). Storage is **JSON** in `sf_layouts` (fallback `default-layout.json`). Admin UX at **`/app/admin/layouts`** mirrors Gantry basics: **left particle palette**, **canvas of sections**, click-to-add + width control (Starforge flex grid math — **not Bootstrap**). Drag-drop polish comes later.
 
 | Piece | Where |
 | --- | --- |
 | Register API | `registerModule()` · `src/core/modules/` |
-| Example module | `src/modules/notice-bar/` (dismissible notice) |
-| Catalog boot | `src/modules/catalog.ts` |
-| Layout document | `sf_layouts.document` (JSON) · fallback `src/core/modules/default-layout.json` |
+| Built-in particles | `page-content`, `site-header`, `custom` (HTML/CSS; JS stub) |
+| Example extension | `src/modules/notice-bar/` |
+| Catalog boot | `src/modules/catalog.ts` (+ builtins) |
+| Layout document | `sf_layouts.document` (v3 JSON) · fallback `default-layout.json` |
 | Admin UI | `/app/admin/layouts` |
-| Public render | `PublicLayoutBody` + `<ModuleSlot>` from the document |
+| Public render | `PublicLayoutBody` + `SlotRenderer` |
 
-Default seed: **Header** section → `header` position → **notice-bar**; **Main** (content) → `after-content`; **Footer** → `footer`. After seed, open **http://localhost:3000** — notice bar in the header when **Modules** is on. Docs: `src/core/modules/README.md`.
+Default seed: Header → notice-bar (12); Navigation → site-header (12); Main → page-content (12); Footer → custom note (12). Docs: `src/core/modules/README.md`.
 
-**Later (not in this slice):** full drag-drop Gantry-class editor, developer-admin YAML mode, custom JS particles + ACL, nested menus, Redis content cache on DO, Joomla-like menu params beyond stub `cssClass` / `browserTitle` fields.
+**Later:** true drag-drop, YAML export mode, Custom JS execution for developer-admins + ACL, nested menus, Redis on DO.
 
 **First admin paths:**
 
@@ -157,7 +158,7 @@ Idempotent local demo data:
 
 - **Published CMS pages:** `/about`, `/getting-started`, `/welcome`
 - **Site settings** global defaults + **primary nav** linked to those pages (Payload relationships)
-- **Modules** feature enabled + **layout document** seeded into `sf_layouts` (notice bar → **header** position)
+- **Modules** feature enabled + **layout document v3** seeded into `sf_layouts` (notice-bar, site-header, page-content, custom footer)
 - **Bootstrap app admin**: `admin@starforge.local` / `starforge-admin` → `admin` + `cms_access` + Payload stub
 - **Demo app member**: `demo@starforge.local` / `starforge-demo` → `member`, **no** CMS access
 - Promotes `STARFORGE_ADMIN_EMAILS` and grants them CMS access
@@ -362,9 +363,10 @@ npm run dev
 
 1. Open **http://localhost:3000** — notice bar in the header (Modules on from seed).
 2. Sign in as `admin@starforge.local` / `starforge-admin`.
-3. Open **http://localhost:3000/app/admin/layouts** — sections Header / Main / Footer; notice-bar under Header → header.
-4. Add a position (e.g. in Footer), assign **Notice bar**, save — confirm it appears in the public footer.
-5. **Reset to default layout** restores notice-bar → header only.
+3. Open **http://localhost:3000/app/admin/layouts** — left particle palette; canvas sections Header / Navigation / Main / Footer.
+4. Select **Custom** (or Notice bar), set width, **Add** to a section — confirm on the public site.
+5. Edit the footer Custom particle HTML/CSS; JS is stored but not executed yet.
+6. **Reset to default** restores the seeded v3 layout.
 
 ## Not in this scaffold
 
@@ -372,7 +374,7 @@ npm run dev
 - Forgot / reset password (needs email — deferred), OAuth
 - Second Payload password login (removed — Better Auth session strategy only)
 - Posts collection
-- Full drag-drop Gantry clone, custom JS particles, layout ACL (foundation editor + JSON storage only)
+- Full drag-drop polish / YAML edit mode / Custom JS execution + layout ACL (v1 is click-to-add + width + JSON storage)
 - Nested menus, Joomla-like menu CSS / browser-title overrides (stub fields only)
 - Airsoftnexus 2.0 feature parity
 

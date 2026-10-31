@@ -24,6 +24,7 @@ export {
   getAssignmentsForPosition,
   getLayoutDocument,
   getRegisteredModule,
+  LAYOUT_GRID_COLUMNS,
   LAYOUT_POSITIONS,
   listRegisteredModules,
   loadLayoutDocument,
@@ -31,6 +32,7 @@ export {
   PublicLayoutBody,
   registerModule,
   saveLayoutDocument,
+  SlotRenderer,
 } from './modules'
 export type {
   LayoutAssignment,
@@ -38,7 +40,10 @@ export type {
   LayoutModuleAssignment,
   LayoutPosition,
   LayoutPositionId,
+  LayoutRow,
   LayoutSection,
+  LayoutSlot,
+  LayoutSlotConfig,
   ModuleRenderContext,
   StarforgeModule,
 } from './modules'
