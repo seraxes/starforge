@@ -14,12 +14,12 @@ Do **not** route high-QPS app login/session traffic through Payload Local API. P
 
 ## Tables (`public`)
 
-- `sf_users` — app user profile (email is the login id; `role`, `banned`, …)
-- `sf_sessions` — cookie sessions (+ optional `impersonated_by`)
+- `sf_users` — app user profile (email is the login id; `role`, `banned`, `ban_reason`, `ban_expires`)
+- `sf_sessions` — cookie sessions (+ `impersonated_by` for Better Auth admin plugin)
 - `sf_accounts` — auth providers (email/password hash lives here on the `credential` provider)
 - `sf_verifications` — one-time tokens (unused until email flows land)
 
-Push with `npm run db:core:push` after Compose is up.
+**After pulling role/admin changes, always run** `npm run db:core:push` (Compose up, `.env` loaded) so Postgres gains `sf_sessions.impersonated_by` and the `sf_users` role/ban columns. Without that push, `/app/admin/users` fails with `column "impersonated_by" does not exist`.
 
 ## Roles
 

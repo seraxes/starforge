@@ -114,7 +114,20 @@ Public render: `src/app/(frontend)/[slug]/page.tsx` · `getPublishedPageBySlug` 
 
 ### Windows: roles + core user admin smoke test
 
-After this branch is checked out (or merged to `main`):
+**Required after every pull of this branch:** `npm run db:core:push` adds Better Auth admin columns (`sf_users.role` / `banned` / … and `sf_sessions.impersonated_by`). Skipping push causes `/app/admin/users` errors like `column "impersonated_by" does not exist`.
+
+Already on the branch? Pull + push schema + restart:
+
+```bat
+cd starforge
+git pull origin cursor/core-roles-user-admin-ace5
+npm run db:core:push
+
+rem Stop the old npm run dev window (Ctrl+C), then:
+npm run dev
+```
+
+Fresh checkout / first-time on this branch:
 
 ```bat
 cd starforge
@@ -135,7 +148,7 @@ npm run dev
 1. Open **http://localhost:3000/login** — sign in as bootstrap admin `admin@starforge.local` / `starforge-admin`.
 2. Home should show role **admin** and a **Core user admin** link. Open **http://localhost:3000/app/admin/users**.
 3. Confirm both seed users appear. Set the demo member’s role or **Disable** them, then try signing in as `demo@starforge.local` / `starforge-demo` (disabled → blocked; enable again to restore).
-4. Sign out, sign in as the demo member — visiting `/app/admin/users` should redirect to login (members are not admins).
+4. Sign out, sign in as the demo member — visiting `/app/admin/users` should redirect to home (members are not admins).
 5. Confirm **http://localhost:3000/about** still renders, **http://localhost:3000/admin** still uses a separate CMS editor, Lexical/SEO still work, pastel brand still shows, **http://localhost:3000/api/health** is `"database":"up"`, and `/api/me` includes `role` / `isAdmin`.
 
 Optional: set `STARFORGE_ADMIN_EMAILS=you@example.com` in `.env`, register that email, confirm it becomes `admin` after signup (or after `npm run seed`).
@@ -208,6 +221,7 @@ src/
 3. **Payload admin import errors after upgrading** — run `npm run generate:importmap`.
 4. **Fresh DB without `payload` schema** — Compose mounts `init.sql` only on first volume create. If you need to recreate: `docker compose down -v && docker compose up -d`.
 5. **Auth tables missing / Better Auth schema errors** — run `npm run db:core:push` with Compose up and `.env` loaded.
-6. **Seed fails on demo app user** — ensure `npm run db:core:push` succeeded; pages may still have been created.
-7. **Windows** — use PowerShell or Command Prompt from the repo root; ensure Docker Desktop is **Running** before `docker compose up -d`. Copy env with `copy .env.example .env` if `cp` is unavailable. Always open the app as `http://localhost:3000` (mixing `127.0.0.1` can break sessions).
-8. **Login says invalid email/password after register** — confirm recent main (auth fix commits); restart `npm run dev`; register a **new** email (or use seed demo); sign in with that **email** (not display name). Payload `/admin` users are separate. Last resort: `docker compose down -v && docker compose up -d` then `npm run db:core:push` and `npm run seed`.
+6. **`column "impersonated_by" does not exist` (or missing `role` / `banned` on `sf_users`)** — code already defines these in `src/core/db/schema.ts`; your Postgres is behind. With Compose up: `npm run db:core:push`, then restart `npm run dev`.
+7. **Seed fails on demo app user** — ensure `npm run db:core:push` succeeded; pages may still have been created.
+8. **Windows** — use PowerShell or Command Prompt from the repo root; ensure Docker Desktop is **Running** before `docker compose up -d`. Copy env with `copy .env.example .env` if `cp` is unavailable. Always open the app as `http://localhost:3000` (mixing `127.0.0.1` can break sessions).
+9. **Login says invalid email/password after register** — confirm recent main (auth fix commits); restart `npm run dev`; register a **new** email (or use seed demo); sign in with that **email** (not display name). Payload `/admin` users are separate. Last resort: `docker compose down -v && docker compose up -d` then `npm run db:core:push` and `npm run seed`.
