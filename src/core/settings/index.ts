@@ -3,6 +3,8 @@ import { cache } from 'react'
 
 import config from '@payload-config'
 
+import { contentCacheTags, getPublishedContentCache } from '@/core/content/cache'
+
 import {
   DEFAULT_FEATURE_FLAGS,
   DEFAULT_PRIMARY_NAV,
@@ -80,12 +82,7 @@ export function normalizeSiteSettings(doc: SiteSettingsDoc | null | undefined): 
   }
 }
 
-/**
- * Load site settings (Payload global). Cached per request via React `cache`.
- * Depth 1 so page relationships resolve to slugs for public hrefs.
- * Falls back to defaults if Payload/global is unavailable.
- */
-export const getSiteSettings = cache(async (): Promise<SiteSettingsData> => {
+async function loadSiteSettingsUncached(): Promise<SiteSettingsData> {
   try {
     const payload = await getPayload({ config })
     const doc = (await payload.findGlobal({
@@ -103,6 +100,23 @@ export const getSiteSettings = cache(async (): Promise<SiteSettingsData> => {
       primaryNav: DEFAULT_PRIMARY_NAV.map((i) => ({ ...i })),
     }
   }
+}
+
+/**
+ * Load site settings (Payload global) for public chrome / flags.
+ * Cross-request cache via published-content cache (Next tags; Redis later);
+ * per-request dedupe via React `cache`. Depth 1 resolves page → slug for nav.
+ * Falls back to defaults if Payload/global is unavailable.
+ */
+export const getSiteSettings = cache(async (): Promise<SiteSettingsData> => {
+  return getPublishedContentCache().getCached(
+    {
+      key: ['sf', 'site-settings'],
+      tags: [contentCacheTags.siteSettings],
+      revalidate: false,
+    },
+    loadSiteSettingsUncached,
+  )
 })
 
 export async function getFeatureFlags(): Promise<FeatureFlags> {

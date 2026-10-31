@@ -13,6 +13,10 @@ type Args = {
   }>
 }
 
+/**
+ * Anonymous public CMS page — published-only via cached `getPublishedPageBySlug`.
+ * Draft preview lives at `/preview/[slug]` (uncached + auth-gated).
+ */
 export async function generateMetadata({ params }: Args): Promise<Metadata> {
   const { slug } = await params
   const page = await getPublishedPageBySlug(decodeURIComponent(slug))
