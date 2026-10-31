@@ -84,6 +84,14 @@ export default async function AdminCmsBridgePage() {
         authenticated. Without CMS access you see a clear deny — no Payload account is required for
         ordinary members.
       </p>
+
+      <h3 className="admin-subhead">Draft preview</h3>
+      <p className="admin-lede">
+        Turn on <strong>Draft preview</strong> under{' '}
+        <Link href="/app/admin/settings">Site settings</Link>, then open{' '}
+        <code>/preview/&#123;slug&#125;</code> while signed in with CMS access. Unpublished pages
+        render there; anonymous visitors still only see published <code>/&#123;slug&#125;</code>.
+      </p>
     </section>
   )
 }

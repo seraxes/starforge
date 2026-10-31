@@ -446,7 +446,7 @@ export interface SiteSetting {
    */
   featureModules?: boolean | null;
   /**
-   * Placeholder — draft preview slice is next. No public preview path yet.
+   * Allow users with CMS access to open /preview/{slug} and see unpublished page drafts. Anonymous visitors still only see published /{slug}.
    */
   featureDraftPreview?: boolean | null;
   updatedAt?: string | null;

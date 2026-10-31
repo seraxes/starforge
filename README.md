@@ -2,7 +2,7 @@
 
 Reusable **product core** for ordinary web apps (auth, users, app shell, extension points) with **Payload CMS 3** as a swappable **content/media module** — not the whole product.
 
-This is an early scaffold plus **core app auth** (Better Auth), **roles + core user admin**, **one-login Payload CMS access** (`cms_access` toggle), **site settings + feature toggles**, **Lexical** page editing, **public `/[slug]`** rendering, **page SEO fields**, and **`npm run seed`**. It is intentionally small and runnable locally — not Airsoftnexus 2.0 feature parity, and not a DigitalOcean deploy.
+This is an early scaffold plus **core app auth** (Better Auth), **roles + core user admin**, **one-login Payload CMS access** (`cms_access` toggle), **site settings + feature toggles**, **Lexical** page editing, **public `/[slug]`** rendering, **draft preview** (`/preview/[slug]`), **page SEO fields**, and **`npm run seed`**. It is intentionally small and runnable locally — not Airsoftnexus 2.0 feature parity, and not a DigitalOcean deploy.
 
 ## Architecture
 
@@ -72,6 +72,7 @@ Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so coo
 | http://localhost:3000/about | Sample published page (after `npm run seed`) |
 | http://localhost:3000/getting-started | Sample published page |
 | http://localhost:3000/welcome | Sample published page with SEO meta filled |
+| http://localhost:3000/preview/{slug} | Draft preview (CMS access + **Draft preview** toggle on) |
 | http://localhost:3000/api/health | Core health JSON (`database: "up"` when Postgres is reachable) |
 
 App login uses **email**, not a separate username. Forgot / reset password is **deferred** until outbound email is wired.
@@ -96,7 +97,7 @@ One Payload global (`site-settings`) is the source of truth for site chrome and 
 | Rich editor | on | Flag reserved for a future simpler mode (Lexical stays on Pages today) |
 | Posts | **off** | Placeholder — no Posts collection yet |
 | Modules | **off** | Placeholder — first extension module not shipped |
-| Draft preview | **off** | Placeholder — preview slice not shipped |
+| Draft preview | **off** | When on, `cms_access` users can open `/preview/{slug}` for unpublished drafts |
 
 `npm run seed` ensures the global exists and points primary nav at the sample pages. Flags are **product capabilities**, not npm libraries.
 
@@ -136,8 +137,10 @@ Idempotent local demo data:
 2. **Media** → upload if needed (fill **Alt**).
 3. **Pages** → edit a seeded page (Lexical + SEO tab).
 4. **Publish** → open **http://localhost:3000/{slug}**. Drafts stay 404 for anonymous visitors.
+5. **Draft preview (optional):** turn on **Draft preview** at `/app/admin/settings`, leave a page as draft (or edit a published page without publishing), then open **http://localhost:3000/preview/{slug}** while signed in with CMS access. Anonymous users still only see published `/[slug]`.
 
-Public render: `src/app/(frontend)/(public)/[slug]/page.tsx` · `getPublishedPageBySlug` · `buildPageMetadata`.
+Public render: `src/app/(frontend)/(public)/[slug]/page.tsx` · `getPublishedPageBySlug` · `buildPageMetadata`.  
+Draft preview: `src/app/(frontend)/(public)/preview/[slug]/page.tsx` · `getDraftPageBySlug` · `requireDraftPreviewAccess`.
 
 ### Windows: primary nav + public layout
 
@@ -165,6 +168,32 @@ PowerShell equivalent start: `cd $env:USERPROFILE\starforge`
 3. Open **http://localhost:3000/getting-started** and **/welcome** — matching nav item active.
 4. Sign in at **/login** as `admin@starforge.local` / `starforge-admin`, open **/admin** → Globals → **Site settings** — primary nav items use **CMS page** link type.
 5. Optional: **/app/admin/settings** still edits site name / path nav / toggles.
+
+### Windows: draft preview smoke test
+
+```bat
+cd %USERPROFILE%\starforge
+git fetch origin
+git checkout cursor/draft-preview-9629
+git pull origin cursor/draft-preview-9629
+
+docker compose up -d
+if not exist .env copy .env.example .env
+npm install
+npm run db:core:push
+npm run seed
+
+rem Stop ANY old npm run dev window (Ctrl+C), then:
+npm run dev
+```
+
+1. Open **http://localhost:3000** (not `127.0.0.1`).
+2. Sign in at `/login` as `admin@starforge.local` / `starforge-admin`.
+3. `/app/admin/settings` → enable **Draft preview** → Save.
+4. `/admin` → Pages → create or edit a page, leave it as **Draft** (do not publish), note the slug.
+5. Open `http://localhost:3000/preview/{slug}` — should show the draft with a preview banner.
+6. Open `http://localhost:3000/{slug}` while signed out (or in a private window) — must **404**.
+7. Turn **Draft preview** off → `/preview/{slug}` must **404** even when signed in with CMS access.
 
 ### Windows: one-login CMS smoke test
 
@@ -232,7 +261,7 @@ docker-compose.yml          # local Postgres only
 docker/postgres/init.sql    # CREATE SCHEMA payload
 src/
   app/
-    (frontend)/             # public app shell + /login + /register + /[slug]
+    (frontend)/             # public app shell + /login + /register + /[slug] + /preview/[slug]
       (public)/             # site header (name + nav) from site-settings
       app/admin/            # core app admin (users + settings + CMS bridge)
     (payload)/              # Payload admin + REST/GraphQL (do not hand-edit)
@@ -245,7 +274,7 @@ src/
   core/
     auth/                   # Better Auth + roles/admin helpers + Zod schemas
     cms-bridge/             # cms_access + Payload session strategy (one login)
-    content/                # published CMS reads + page SEO metadata helpers
+    content/                # published + draft CMS reads, preview gate, SEO metadata
     settings/               # site-settings + nav resolve + flag helpers
     db/                     # Drizzle core schema + client
   fields/pagesLexical.ts    # Lexical editor features for Pages
@@ -258,7 +287,7 @@ src/
 - Production / DigitalOcean deploy
 - Forgot / reset password (needs email — deferred), OAuth
 - Second Payload password login (removed — Better Auth session strategy only)
-- Draft preview (flag exists as placeholder), Posts collection, extension modules
+- Posts collection, extension modules / visual layout editor
 - Nested menus, module assignment, Joomla-like menu CSS / browser-title overrides (stub fields only)
 - Airsoftnexus 2.0 feature parity
 

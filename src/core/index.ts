@@ -4,12 +4,14 @@
  */
 export { auth } from './auth'
 export { absoluteMediaUrl, buildPageMetadata } from './content/metadata'
-export { getPublishedPageBySlug } from './content/pages'
+export { getDraftPageBySlug, getPublishedPageBySlug } from './content/pages'
+export { requireDraftPreviewAccess, resolveDraftPreviewAccess } from './content/preview'
 export { db, pool, sfUsers, sfSessions, sfAccounts, sfVerifications } from './db'
 export {
   ensureSiteSettingsDefaults,
   getFeatureFlags,
   getSiteSettings,
+  isDraftPreviewEnabled,
   isRegistrationEnabled,
   seedPrimaryNavFromPages,
   updateSiteSettings,

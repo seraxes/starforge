@@ -149,9 +149,8 @@ export function SettingsForm({ siteName, primaryNav, features }: Props) {
         <FlagRow
           name="featureDraftPreview"
           label="Draft preview"
-          description="Preview unpublished pages — not wired yet."
+          description="When on, users with CMS access can open /preview/{slug} to see unpublished drafts. Public /{slug} stays published-only."
           checked={features.draftPreview}
-          placeholder
         />
       </fieldset>
 

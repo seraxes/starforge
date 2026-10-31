@@ -150,10 +150,11 @@ export const SiteSettings: GlobalConfig = {
         {
           name: 'featureDraftPreview',
           type: 'checkbox',
-          label: 'Draft preview (placeholder)',
+          label: 'Draft preview',
           defaultValue: false,
           admin: {
-            description: 'Placeholder — draft preview slice is next. No public preview path yet.',
+            description:
+              'Allow users with CMS access to open /preview/{slug} and see unpublished page drafts. Anonymous visitors still only see published /{slug}.',
           },
         },
       ],

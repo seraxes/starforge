@@ -115,6 +115,11 @@ export async function isRegistrationEnabled(): Promise<boolean> {
   return flags.registration
 }
 
+export async function isDraftPreviewEnabled(): Promise<boolean> {
+  const flags = await getFeatureFlags()
+  return flags.draftPreview
+}
+
 export type UpdateSiteSettingsInput = {
   siteName: string
   /**

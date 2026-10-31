@@ -12,7 +12,7 @@ export const Pages: CollectionConfig = {
     useAsTitle: 'title',
     defaultColumns: ['title', 'slug', '_status', 'updatedAt'],
     description:
-      'Marketing / brochure pages for the public site. Edit content here in Payload (/admin). App accounts use /login — not this collection. Publish so `/[slug]` can show the page.',
+      'Marketing / brochure pages for the public site. Edit content here in Payload (/admin). App accounts use /login — not this collection. Publish so `/[slug]` can show the page. With Draft preview on, CMS-access users can open `/preview/{slug}` before publishing.',
   },
   versions: {
     drafts: true,
