@@ -9,8 +9,8 @@ const DEFAULT_MESSAGE =
 
 /**
  * Example Starforge module: dismissible notice bar.
- * Placement comes from the layout document (`default-layout.json`), not from
- * hard-coded position locks in this file.
+ * Placement comes from the layout document (`sf_layouts` / default JSON), not
+ * from hard-coded position locks in this file.
  */
 export const noticeBarModule: StarforgeModule = {
   id: 'notice-bar',

@@ -16,6 +16,7 @@ type Props = {
  * Renders every enabled layout assignment for a named position.
  * Master gate: site-settings `features.modules`. Per-module `featureFlag` optional.
  * Any registered module may appear in any position — no hard locks.
+ * Assignments come from the layout document (DB / default JSON).
  */
 export async function ModuleSlot({ position, className }: Props) {
   ensureModulesRegistered()
@@ -25,7 +26,7 @@ export async function ModuleSlot({ position, className }: Props) {
     return null
   }
 
-  const assignments = getAssignmentsForPosition(position)
+  const assignments = await getAssignmentsForPosition(position)
   if (assignments.length === 0) return null
 
   const nodes: React.ReactNode[] = []
