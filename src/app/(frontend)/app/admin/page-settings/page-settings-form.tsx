@@ -24,29 +24,26 @@ const INITIAL: PageSettingsActionState = {}
 
 function Panel({
   title,
-  defaultOpen = true,
   wide,
   children,
 }: {
   title: string
-  /** Panels start expanded (mosaic tiles stay open by default). */
+  /** @deprecated Panels are always expanded (no collapse). Kept for call-site compat. */
   defaultOpen?: boolean
   /** Span two mosaic columns on wide screens. */
   wide?: boolean
   children: React.ReactNode
 }) {
+  // Always-open mosaic tiles — not <details>; Body / FA / Atoms / etc. must never start collapsed.
   return (
-    // Keep tiles expanded on first paint; users can still collapse via <summary>.
-    // React’s DOM typings historically omit `defaultOpen` on <details>.
-    <details
+    <section
       className={wide ? 'page-settings-panel page-settings-panel-wide' : 'page-settings-panel'}
-      {...({
-        defaultOpen: defaultOpen !== false,
-      } as React.HTMLAttributes<HTMLDetailsElement>)}
     >
-      <summary>{title}</summary>
+      <header className="page-settings-panel-head">
+        <h3>{title}</h3>
+      </header>
       <div className="page-settings-panel-body">{children}</div>
-    </details>
+    </section>
   )
 }
 
