@@ -124,7 +124,7 @@ export interface UserAuthOperations {
   };
 }
 /**
- * CMS editor stubs linked to core app users (cms_access). Sign-in is Better Auth only — no Payload password. Manage the CMS access toggle under Core admin → Users.
+ * CMS editor stubs linked to core app users (cms_access). Sign-in is Better Auth only — Payload password form is disabled. Manage CMS access under Core admin → Users.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".

@@ -5,9 +5,8 @@ import { auth } from '@/core/auth'
 import { loadCoreUserCmsAccess } from '@/core/cms-bridge'
 
 /**
- * Replaces Payload's `/admin/login` view.
- * Local strategy is disabled — never show an email/password form here.
- * Send people through core Better Auth, or deny when signed in without cms_access.
+ * Replaces Payload `/admin/login` — never show email/password.
+ * Send through JWT exchange so the admin UI gets payload-token.
  */
 export default async function AdminLoginRedirect() {
   const session = await auth.api.getSession({
@@ -24,6 +23,5 @@ export default async function AdminLoginRedirect() {
     redirect('/?notice=cms-denied')
   }
 
-  // Session + CMS rights exist — strategy should auth on /admin.
-  redirect('/admin')
+  redirect('/api/cms/exchange?next=/admin')
 }

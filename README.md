@@ -139,10 +139,12 @@ Public render: `src/app/(frontend)/(public)/[slug]/page.tsx` · `getPublishedPag
 
 ### Windows: one-login CMS smoke test
 
-**Required after pull:** `npm run db:core:push` adds `sf_users.cms_access`.
+**How it works now:** core `/login` (Better Auth) → visiting `/admin` hits `/api/cms/exchange`, which sets a Payload `payload-token` JWT cookie → Payload dashboard with **no** second password form.
+
+**Required after pull:** `npm run db:core:push` (adds `sf_users.cms_access`), then **fully restart** `npm run dev`.
 
 ```bat
-cd starforge
+cd %USERPROFILE%\starforge
 git fetch origin
 git checkout cursor/global-admin-cms-bridge-35ec
 git pull origin cursor/global-admin-cms-bridge-35ec
@@ -154,17 +156,18 @@ npm run db:core:push
 npm run seed
 npm run generate:importmap
 
-rem Stop any old npm run dev window (Ctrl+C), then:
+rem Stop ANY old npm run dev window (Ctrl+C). Auth/config does not hot-reload.
 npm run dev
 ```
 
-1. Open **http://localhost:3000/login** — sign in as `admin@starforge.local` / `starforge-admin` (**only** password prompt).
-2. Open **http://localhost:3000/admin** — Payload dashboard should load **without** asking for email/password again. Edit a page under Pages. If you still see a Payload login form, fully stop `npm run dev` (auth strategies do not hot-reload), run `npm run generate:importmap`, start again, hard-refresh the browser.
-3. Open **http://localhost:3000/app/admin/users** — confirm seed admin has **CMS access On**; demo member is **Off**. Toggle the demo member On, open `/admin` as that user after login; toggle Off and confirm deny (`/?notice=cms-denied`).
-4. Sign out, visit `/admin` while logged out → should redirect to `/login?next=/admin`, then after login land in CMS.
-5. Regression: `/app/admin/settings`, `/about`, pastel brand, `/api/health` → `"database":"up"`.
+1. Use **http://localhost:3000** only (not `127.0.0.1`).
+2. Open **http://localhost:3000/login** — sign in as `admin@starforge.local` / `starforge-admin` (**only** password prompt in the whole flow).
+3. Open **http://localhost:3000/admin** — you may briefly hit `/api/cms/exchange`, then land on the Payload **Dashboard** with **no** email/password form. Edit a page under Pages.
+4. Hard-refresh (Ctrl+F5) if an old Payload login page was cached.
+5. **http://localhost:3000/app/admin/users** — seed admin **CMS access On**; demo member **Off**.
+6. Sign out → `/admin` → core `/login?next=/admin` → after login, CMS again with no second form.
 
-If Payload admin UI looks broken after pulling: `npm run generate:importmap`, then restart `npm run dev`.
+Optional API check: `npm run verify:cms-sso` (strategy + stub for seed admin).
 
 ### Useful commands
 

@@ -122,13 +122,14 @@ export async function ensurePayloadCmsUser(
     }
 
     const payload = await getPayload({ config })
-    // Local strategy is disabled — do not send `password` (no registerLocalStrategy).
-    // Better Auth owns the session; this row is only a CMS identity stub.
+    // Throwaway password satisfies Payload local auth schema. It is never shown or
+    // used — admin UI authenticates via Better Auth → payload-token JWT exchange.
     const created = await payload.create({
       collection: 'users',
       data: {
         email,
         coreUserId,
+        password: `sf-unused-${crypto.randomUUID()}`,
       },
       overrideAccess: true,
     })

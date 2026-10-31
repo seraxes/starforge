@@ -1,5 +1,6 @@
-/* Payload admin shell — gated by Starforge Better Auth (one login). */
+/* Payload admin — require Better Auth + payload-token (via /api/cms/exchange). */
 import type { Metadata } from 'next'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 
 import config from '@payload-config'
@@ -7,7 +8,8 @@ import { RootPage, generatePageMetadata } from '@payloadcms/next/views'
 import { importMap } from '../importMap'
 
 import { getAppSession } from '@/core/auth/session'
-import { ensurePayloadCmsUser, loadCoreUserCmsAccess } from '@/core/cms-bridge'
+import { loadCoreUserCmsAccess } from '@/core/cms-bridge'
+import { PAYLOAD_TOKEN_COOKIE } from '@/core/cms-bridge/payload-session'
 
 type Args = {
   params: Promise<{
@@ -32,14 +34,11 @@ const Page = async ({ params, searchParams }: Args) => {
     redirect('/?notice=cms-denied')
   }
 
-  const ensured = await ensurePayloadCmsUser({
-    coreUserId: session.user.id,
-    email: session.user.email,
-    name: session.user.name,
-  })
-  if (!ensured.ok) {
-    console.error('[admin gate] ensure Payload CMS user failed:', ensured.error)
-    redirect('/?notice=cms-denied')
+  const cookieStore = await cookies()
+  const hasToken = Boolean(cookieStore.get(PAYLOAD_TOKEN_COOKIE)?.value)
+  if (!hasToken) {
+    // Route Handler can Set-Cookie; Server Components cannot (Next.js 15+/16).
+    redirect('/api/cms/exchange?next=/admin')
   }
 
   return RootPage({ config, params, searchParams, importMap })

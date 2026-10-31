@@ -151,7 +151,7 @@ export async function loginAction(
   if (!existing) {
     return {
       error:
-        'No Starforge app account for that email. Use Register (Payload /admin users are separate).',
+        'No Starforge app account for that email. Use Register first.',
       email: parsed.data.email,
     }
   }
@@ -185,6 +185,25 @@ export async function loginAction(
     }
   }
 
+  // If this account has CMS access, mint Payload JWT now so /admin opens without a form.
+  try {
+    const session = await auth.api.getSession({ headers: await headers() })
+    if (session?.user?.id) {
+      const { loadCoreUserCmsAccess } = await import('@/core/cms-bridge')
+      const access = await loadCoreUserCmsAccess(session.user.id)
+      if (access?.cmsAccess && !access.banned) {
+        const { setPayloadAdminSessionCookie } = await import('@/core/cms-bridge/payload-session')
+        await setPayloadAdminSessionCookie({
+          coreUserId: session.user.id,
+          email: session.user.email,
+          name: session.user.name,
+        })
+      }
+    }
+  } catch (error) {
+    console.error('[login] Payload JWT exchange skipped:', error)
+  }
+
   redirect(next)
 }
 
@@ -195,6 +214,12 @@ export async function logoutAction(): Promise<void> {
     })
   } catch {
     // Still clear the UI even if the session was already gone.
+  }
+  try {
+    const { clearPayloadAdminSession } = await import('@/core/cms-bridge/payload-session')
+    await clearPayloadAdminSession()
+  } catch {
+    // ignore
   }
   redirect('/')
 }

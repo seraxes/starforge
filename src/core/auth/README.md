@@ -40,10 +40,10 @@ Members visiting `/app/admin/users` are redirected to `/?notice=admins-only`. Us
 ### Reach Payload `/admin`
 
 1. Sign in at `/login` (seed admin or any user with CMS access on).
-2. Open `/admin` — already authenticated.
+2. Open `/admin` — redirects through `/api/cms/exchange`, which sets a Payload `payload-token` JWT, then the dashboard loads (**no** Payload password form).
 3. Manage the per-user switch under `/app/admin/users` (CMS access column).
 
-Unauthenticated `/admin` → redirect `/login?next=/admin` → after login, land in Payload logged in.
+Unauthenticated `/admin` → core `/login?next=/admin` → after login, exchange → CMS.
 
 ## Local forms
 
