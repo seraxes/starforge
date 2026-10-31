@@ -1,6 +1,7 @@
 import React from 'react'
 import Link from 'next/link'
 
+import { roleFromUser, userIsAppAdmin } from '@/core/auth/admin'
 import { getAppSession } from '@/core/auth/session'
 import { SignOutButton } from './sign-out-button'
 import './styles.css'
@@ -8,6 +9,8 @@ import './styles.css'
 export default async function HomePage() {
   const session = await getAppSession()
   const user = session?.user
+  const role = user ? roleFromUser(user) : null
+  const isAdmin = userIsAppAdmin(user)
 
   return (
     <div className="home">
@@ -22,8 +25,8 @@ export default async function HomePage() {
         <div className="clarity-callout" role="note">
           <p>
             <strong>/admin</strong> = CMS content (pages, media, editors).{' '}
-            <strong>/login</strong> = app accounts (product users). Separate systems —
-            one login does not work in the other.
+            <strong>/login</strong> = app accounts. <strong>/app/admin/users</strong> = core
+            user admin (roles). Separate systems — one login does not work in the other.
           </p>
         </div>
 
@@ -31,9 +34,15 @@ export default async function HomePage() {
           {user ? (
             <>
               <p className="session-status">
-                Signed in as <strong>{user.name}</strong> ({user.email})
+                Signed in as <strong>{user.name}</strong> ({user.email}
+                {role ? <> · {role}</> : null})
               </p>
               <div className="links">
+                {isAdmin ? (
+                  <Link className="primary" href="/app/admin/users">
+                    Core user admin
+                  </Link>
+                ) : null}
                 <a className="secondary" href="/api/me">
                   View /api/me
                 </a>
@@ -69,8 +78,8 @@ export default async function HomePage() {
       </div>
       <div className="footer">
         <p>
-          Content: Payload <code>/admin</code> · App accounts: <code>/login</code> ·{' '}
-          <code>npm run seed</code> for sample pages · see README
+          Content: Payload <code>/admin</code> · App accounts: <code>/login</code> · Core
+          admin: <code>/app/admin/users</code> · <code>npm run seed</code> · see README
         </p>
       </div>
     </div>

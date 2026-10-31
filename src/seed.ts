@@ -16,6 +16,11 @@ import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical
 
 import config from '@payload-config'
 import { auth } from './core/auth'
+import {
+  getBootstrapAdminEmails,
+  promoteBootstrapAdminsByEmail,
+  setUserRole,
+} from './core/auth/admin'
 import { db } from './core/db'
 import { sfUsers } from './core/db/schema'
 import { eq } from 'drizzle-orm'
@@ -23,6 +28,11 @@ import { eq } from 'drizzle-orm'
 const DEMO_APP_EMAIL = 'demo@starforge.local'
 const DEMO_APP_PASSWORD = 'starforge-demo'
 const DEMO_APP_NAME = 'Demo Member'
+
+/** Local bootstrap admin (core /app/admin — not Payload CMS). */
+const BOOTSTRAP_ADMIN_EMAIL = 'admin@starforge.local'
+const BOOTSTRAP_ADMIN_PASSWORD = 'starforge-admin'
+const BOOTSTRAP_ADMIN_NAME = 'Demo Admin'
 
 type TextChild = {
   type: string
@@ -232,6 +242,36 @@ async function seedDemoAppUser() {
   return { created: true as const, email: DEMO_APP_EMAIL }
 }
 
+async function seedBootstrapAdmin() {
+  const [existing] = await db
+    .select({ id: sfUsers.id, email: sfUsers.email, role: sfUsers.role })
+    .from(sfUsers)
+    .where(eq(sfUsers.email, BOOTSTRAP_ADMIN_EMAIL))
+    .limit(1)
+
+  if (existing) {
+    if (existing.role !== 'admin') {
+      await setUserRole(existing.id, 'admin')
+    }
+    return { created: false as const, email: BOOTSTRAP_ADMIN_EMAIL }
+  }
+
+  const result = await auth.api.signUpEmail({
+    body: {
+      name: BOOTSTRAP_ADMIN_NAME,
+      email: BOOTSTRAP_ADMIN_EMAIL,
+      password: BOOTSTRAP_ADMIN_PASSWORD,
+    },
+  })
+
+  const userId = result.user?.id
+  if (userId) {
+    await setUserRole(userId, 'admin')
+  }
+
+  return { created: true as const, email: BOOTSTRAP_ADMIN_EMAIL }
+}
+
 async function main() {
   console.log('')
   console.log('Starforge seed')
@@ -239,6 +279,7 @@ async function main() {
   console.log('CMS editors (Payload /admin) are NOT created here.')
   console.log('Create the first CMS editor in the browser at http://localhost:3000/admin')
   console.log('App accounts (/login) are separate from CMS editors.')
+  console.log('Core admin UI: http://localhost:3000/app/admin/users (app role admin only).')
   console.log('')
 
   const pages = await seedPages()
@@ -250,18 +291,39 @@ async function main() {
   }
 
   try {
+    const adminUser = await seedBootstrapAdmin()
+    if (adminUser.created) {
+      console.log('')
+      console.log(`Bootstrap app admin created (core /app/admin — not CMS):`)
+      console.log(`  email:    ${BOOTSTRAP_ADMIN_EMAIL}`)
+      console.log(`  password: ${BOOTSTRAP_ADMIN_PASSWORD}`)
+      console.log(`  role:     admin`)
+    } else {
+      console.log(`Bootstrap app admin already exists: ${adminUser.email}`)
+    }
+
     const appUser = await seedDemoAppUser()
     if (appUser.created) {
       console.log('')
-      console.log(`Demo app user created (core /login — not CMS):`)
+      console.log(`Demo app member created (core /login — not CMS):`)
       console.log(`  email:    ${DEMO_APP_EMAIL}`)
       console.log(`  password: ${DEMO_APP_PASSWORD}`)
+      console.log(`  role:     member`)
     } else {
-      console.log(`Demo app user already exists: ${appUser.email}`)
+      console.log(`Demo app member already exists: ${appUser.email}`)
+    }
+
+    const envEmails = getBootstrapAdminEmails()
+    if (envEmails.length) {
+      const { promoted } = await promoteBootstrapAdminsByEmail(envEmails)
+      console.log('')
+      console.log(
+        `STARFORGE_ADMIN_EMAILS promote: ${promoted.length ? promoted.join(', ') : '(no matching users yet — register those emails)'}`,
+      )
     }
   } catch (error) {
     console.warn('')
-    console.warn('Could not create demo app user (core tables may be missing).')
+    console.warn('Could not create demo app users (core tables may be missing).')
     console.warn('Run: npm run db:core:push')
     console.warn(error instanceof Error ? error.message : error)
   }
@@ -270,6 +332,7 @@ async function main() {
   console.log('Try: http://localhost:3000/about  ·  /getting-started  ·  /welcome')
   console.log('CMS:  http://localhost:3000/admin')
   console.log('App:  http://localhost:3000/login')
+  console.log('Core admin users: http://localhost:3000/app/admin/users')
   console.log('')
 
   process.exit(0)

@@ -13,6 +13,17 @@ export type AuthActionState = {
   error?: string
   email?: string
   name?: string
+  next?: string
+}
+
+/** Only allow same-origin relative paths (blocks open redirects). */
+export function safeNextPath(value: unknown, fallback = '/'): string {
+  if (typeof value !== 'string') return fallback
+  const next = value.trim()
+  if (!next.startsWith('/') || next.startsWith('//') || next.includes('\\')) {
+    return fallback
+  }
+  return next
 }
 
 function toErrorMessage(error: unknown, fallback: string): string {
@@ -151,6 +162,8 @@ export async function loginAction(
     }
   }
 
+  const next = safeNextPath(formData.get('next'), '/')
+
   try {
     await auth.api.signInEmail({
       body: {
@@ -167,10 +180,11 @@ export async function loginAction(
           ? 'Wrong password for that email. After updating the auth branch, register a fresh account if this one was created earlier.'
           : message,
       email: parsed.data.email,
+      next,
     }
   }
 
-  redirect('/')
+  redirect(next)
 }
 
 export async function logoutAction(): Promise<void> {

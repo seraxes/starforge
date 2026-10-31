@@ -1,8 +1,12 @@
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from '@better-auth/drizzle-adapter'
 import { nextCookies } from 'better-auth/next-js'
+import { admin as adminPlugin } from 'better-auth/plugins'
+import { eq } from 'drizzle-orm'
 
 import { db, sfAccounts, sfSessions, sfUsers, sfVerifications } from '@/core/db'
+import { emailIsBootstrapAdmin } from './bootstrap-admins'
+import { ac, appRoles, DEFAULT_APP_ROLE } from './permissions'
 
 const appUrl =
   process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
@@ -14,6 +18,9 @@ const appUrl =
  * Physical tables stay `sf_*` in `public`; Better Auth model keys stay the
  * defaults (`user` / `session` / `account` / `verification`) so adapter joins
  * and credential lookups (email + password on `account`) stay reliable.
+ *
+ * Roles live on `sf_users.role` via the Better Auth admin plugin (`admin` | `member`).
+ * Payload `/admin` stays a separate CMS editor surface — global-admin→CMS bridge is follow-up.
  */
 export const auth = betterAuth({
   appName: 'Starforge',
@@ -52,6 +59,21 @@ export const auth = betterAuth({
       maxAge: 5 * 60,
     },
   },
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          // Bootstrap admins: STARFORGE_ADMIN_EMAILS (comma-separated) get role=admin on signup.
+          if (emailIsBootstrapAdmin(user.email)) {
+            await db
+              .update(sfUsers)
+              .set({ role: 'admin', updatedAt: new Date() })
+              .where(eq(sfUsers.id, user.id))
+          }
+        },
+      },
+    },
+  },
   advanced: {
     // Local http:// — never force Secure cookies (breaks Windows localhost).
     useSecureCookies: false,
@@ -63,7 +85,18 @@ export const auth = betterAuth({
     },
   },
   // nextCookies must be last so Set-Cookie from server actions reaches the browser.
-  plugins: [nextCookies()],
+  plugins: [
+    adminPlugin({
+      ac,
+      roles: appRoles,
+      defaultRole: DEFAULT_APP_ROLE,
+      adminRoles: ['admin'],
+      defaultBanReason: 'Disabled by admin',
+      bannedUserMessage:
+        'This Starforge app account is disabled. Contact a platform admin if you believe that is a mistake.',
+    }),
+    nextCookies(),
+  ],
 })
 
 export type Session = typeof auth.$Infer.Session
