@@ -2,6 +2,8 @@
 
 Reusable **product core** for ordinary web apps (auth, users, app shell, extension points) with **Payload CMS 3** as a swappable **content/media module** — not the whole product.
 
+**Two admin surfaces, one login:** **Starforge admin** (`/app/admin` — users, roles, site settings) ↔ **Payload Content CMS** (`/admin` — pages, media); each sidebar links to the other.
+
 This is an early scaffold plus **core app auth** (Better Auth), **roles + core user admin**, **one-login Payload CMS access** (`cms_access` toggle), **site settings + feature toggles**, **Lexical** page editing, **public `/[slug]`** rendering, **draft preview** (`/preview/[slug]`), **page SEO fields**, **named layout positions + first extension module** (dismissible notice bar), and **`npm run seed`**. It is intentionally small and runnable locally — not Airsoftnexus 2.0 feature parity, and not a DigitalOcean deploy.
 
 ## Architecture
@@ -64,10 +66,10 @@ Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so coo
 | http://localhost:3000 | App shell (register / sign in / signed-in state) |
 | http://localhost:3000/register | Create a **core app** account (email + password; auto sign-in; default role `member`) |
 | http://localhost:3000/login | **Only** sign-in (Better Auth). Also used when `/admin` redirects unauthenticated visitors |
-| http://localhost:3000/app/admin/users | Core admin — roles, **CMS access** switch, disable |
-| http://localhost:3000/app/admin/settings | Core admin — site name, primary nav, feature toggles (same Payload global) |
+| http://localhost:3000/app/admin/users | Starforge admin — roles, **CMS access** switch, disable |
+| http://localhost:3000/app/admin/settings | Starforge admin — site name, primary nav, feature toggles (same Payload global) |
 | http://localhost:3000/api/me | Current app session JSON including `role` / `isAdmin` (`401` when signed out) |
-| http://localhost:3000/admin | Payload CMS — one nav link (**Payload CMS**) when `cms_access` is on; no second password |
+| http://localhost:3000/admin | Payload Content CMS — nav **Payload CMS** when `cms_access` is on; sidebar **Core admin** → `/app/admin` |
 | http://localhost:3000/about | Sample published page (after `npm run seed`) |
 | http://localhost:3000/getting-started | Sample published page |
 | http://localhost:3000/welcome | Sample published page with SEO meta filled |
