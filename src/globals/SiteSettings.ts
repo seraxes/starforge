@@ -10,7 +10,7 @@ import type { GlobalConfig } from 'payload'
  * links or paths. Flat menu for v1 — Joomla-like extras (CSS class, browser
  * title override) are stub fields only; not used by the public layout yet.
  *
- * Flags are product *capabilities* (registration, posts placeholder, modules…),
+ * Flags are product *capabilities* (registration, modules, posts placeholder…),
  * not npm libraries. Core reads them to hide UI and reject gated APIs.
  */
 export const SiteSettings: GlobalConfig = {
@@ -43,7 +43,7 @@ export const SiteSettings: GlobalConfig = {
       },
       admin: {
         description:
-          'Ordered header links. Prefer “CMS page” so URLs stay in sync with the page slug. Custom URL for external links or fixed paths. Nested menus / module assignment / draft preview come later.',
+          'Ordered header links. Prefer “CMS page” so URLs stay in sync with the page slug. Custom URL for external links or fixed paths. Nested menus / module assignment come later.',
       },
       fields: [
         {
@@ -140,11 +140,11 @@ export const SiteSettings: GlobalConfig = {
         {
           name: 'featureModules',
           type: 'checkbox',
-          label: 'Modules (placeholder)',
+          label: 'Modules',
           defaultValue: false,
           admin: {
             description:
-              'Placeholder for extension modules (contact, notice bar, …). Keep off until the first module lands.',
+              'Render extension modules in named layout positions (e.g. notice bar in header). Off = all ModuleSlots empty.',
           },
         },
         {

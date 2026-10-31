@@ -8,10 +8,27 @@ export { getDraftPageBySlug, getPublishedPageBySlug } from './content/pages'
 export { requireDraftPreviewAccess, resolveDraftPreviewAccess } from './content/preview'
 export { db, pool, sfUsers, sfSessions, sfAccounts, sfVerifications } from './db'
 export {
+  getAssignmentsForPosition,
+  getLayoutDocument,
+  getRegisteredModule,
+  LAYOUT_POSITIONS,
+  listRegisteredModules,
+  ModuleSlot,
+  registerModule,
+} from './modules'
+export type {
+  LayoutAssignment,
+  LayoutDocument,
+  LayoutPositionId,
+  ModuleRenderContext,
+  StarforgeModule,
+} from './modules'
+export {
   ensureSiteSettingsDefaults,
   getFeatureFlags,
   getSiteSettings,
   isDraftPreviewEnabled,
+  isModulesEnabled,
   isRegistrationEnabled,
   seedPrimaryNavFromPages,
   updateSiteSettings,

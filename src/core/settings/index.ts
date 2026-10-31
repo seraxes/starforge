@@ -120,6 +120,11 @@ export async function isDraftPreviewEnabled(): Promise<boolean> {
   return flags.draftPreview
 }
 
+export async function isModulesEnabled(): Promise<boolean> {
+  const flags = await getFeatureFlags()
+  return flags.modules
+}
+
 export type UpdateSiteSettingsInput = {
   siteName: string
   /**

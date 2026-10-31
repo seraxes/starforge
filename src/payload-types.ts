@@ -401,7 +401,7 @@ export interface SiteSetting {
    */
   siteName: string;
   /**
-   * Ordered header links. Prefer “CMS page” so URLs stay in sync with the page slug. Custom URL for external links or fixed paths. Nested menus / module assignment / draft preview come later.
+   * Ordered header links. Prefer “CMS page” so URLs stay in sync with the page slug. Custom URL for external links or fixed paths. Nested menus / module assignment come later.
    */
   primaryNav?:
     | {
@@ -442,7 +442,7 @@ export interface SiteSetting {
    */
   featurePosts?: boolean | null;
   /**
-   * Placeholder for extension modules (contact, notice bar, …). Keep off until the first module lands.
+   * Render extension modules in named layout positions (e.g. notice bar in header). Off = all ModuleSlots empty.
    */
   featureModules?: boolean | null;
   /**

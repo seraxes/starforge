@@ -26,7 +26,11 @@ import {
 import { BOOTSTRAP_ADMIN_EMAIL, setCoreUserCmsAccess } from './core/cms-bridge'
 import { db } from './core/db'
 import { sfUsers } from './core/db/schema'
-import { ensureSiteSettingsDefaults, seedPrimaryNavFromPages } from './core/settings'
+import {
+  ensureSiteSettingsDefaults,
+  getSiteSettings,
+  seedPrimaryNavFromPages,
+} from './core/settings'
 import { eq } from 'drizzle-orm'
 
 const DEMO_APP_EMAIL = 'demo@starforge.local'
@@ -277,6 +281,27 @@ async function seedBootstrapAdmin() {
   return { created: true as const, email: BOOTSTRAP_ADMIN_EMAIL, id: userId ?? null }
 }
 
+/**
+ * Turn on the Modules capability so the seeded notice-bar module is visible
+ * in the header position after a fresh seed. Idempotent. Partial Payload
+ * update preserves existing primary-nav page relationships.
+ */
+async function seedEnableModulesDemo() {
+  const settings = await getSiteSettings()
+  if (settings.features.modules) {
+    return { updated: false as const, modules: true as const }
+  }
+
+  const payload = await getPayload({ config })
+  await payload.updateGlobal({
+    slug: 'site-settings',
+    data: { featureModules: true },
+    overrideAccess: true,
+  })
+
+  return { updated: true as const, modules: true as const }
+}
+
 async function seedCmsAccessForAdmins() {
   const admins = await db
     .select({ id: sfUsers.id, email: sfUsers.email, role: sfUsers.role })
@@ -317,6 +342,18 @@ async function main() {
     )
   } catch (error) {
     console.warn('Could not seed site settings (Payload global).')
+    console.warn(error instanceof Error ? error.message : error)
+  }
+
+  try {
+    const modulesDemo = await seedEnableModulesDemo()
+    console.log(
+      modulesDemo.updated
+        ? 'Modules feature: enabled (notice bar → header position)'
+        : 'Modules feature: already on',
+    )
+  } catch (error) {
+    console.warn('Could not enable Modules feature for the notice-bar demo.')
     console.warn(error instanceof Error ? error.message : error)
   }
 
@@ -404,10 +441,11 @@ async function main() {
 
   console.log('')
   console.log('Try: http://localhost:3000/about  ·  /getting-started  ·  /welcome')
+  console.log('Notice bar (modules): header position when Modules is on')
   console.log('Login once: http://localhost:3000/login  then open http://localhost:3000/admin')
   console.log('Core admin users:    http://localhost:3000/app/admin/users')
   console.log('Core site settings:  http://localhost:3000/app/admin/settings')
-  console.log('CMS access help:     http://localhost:3000/app/admin/cms')
+  console.log('Payload CMS:         http://localhost:3000/admin  (nav: Payload CMS)')
   console.log('')
 
   process.exit(0)
