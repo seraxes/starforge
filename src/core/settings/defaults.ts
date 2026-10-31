@@ -34,14 +34,24 @@ export type FeatureFlags = {
   registration: boolean
   richEditor: boolean
   posts: boolean
+  /**
+   * Master “any extension modules” flag (kept for backward compat).
+   * Site Settings → Modules per-id toggles are the source of truth in P0;
+   * this stays true when any extension particle is enabled.
+   */
   modules: boolean
   draftPreview: boolean
 }
+
+/** Per installed module/atom id → enabled (see `module-toggles.ts`). */
+export type ModuleToggleMap = Record<string, boolean>
 
 export type SiteSettingsData = {
   siteName: string
   primaryNav: NavItem[]
   features: FeatureFlags
+  /** Runtime gates for registered particles + atoms (`atom:` prefix). */
+  moduleToggles: ModuleToggleMap
 }
 
 export const DEFAULT_SITE_NAME = 'Starforge'
@@ -64,4 +74,5 @@ export const DEFAULT_SITE_SETTINGS: SiteSettingsData = {
   siteName: DEFAULT_SITE_NAME,
   primaryNav: DEFAULT_PRIMARY_NAV,
   features: { ...DEFAULT_FEATURE_FLAGS },
+  moduleToggles: {},
 }

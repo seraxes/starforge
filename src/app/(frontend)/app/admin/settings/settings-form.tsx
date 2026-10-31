@@ -6,12 +6,15 @@ import {
   updateSiteSettingsAction,
   type SettingsActionState,
 } from '@/core/settings/actions'
-import type { FeatureFlags, NavItem } from '@/core/settings/defaults'
+import type { FeatureFlags, ModuleToggleMap, NavItem } from '@/core/settings/defaults'
+import type { ModuleCatalogItem } from '@/core/settings/module-toggles'
 
 type Props = {
   siteName: string
   primaryNav: NavItem[]
   features: FeatureFlags
+  moduleCatalog: ModuleCatalogItem[]
+  moduleToggles: ModuleToggleMap
 }
 
 const initialState: SettingsActionState = {}
@@ -37,14 +40,30 @@ function FlagRow(props: {
   )
 }
 
-export function SettingsForm({ siteName, primaryNav, features }: Props) {
+function resolveChecked(item: ModuleCatalogItem, toggles: ModuleToggleMap, masterModules: boolean) {
+  if (item.required) return true
+  if (typeof toggles[item.id] === 'boolean') return toggles[item.id]!
+  if (!item.defaultEnabled) return masterModules
+  return true
+}
+
+export function SettingsForm({
+  siteName,
+  primaryNav,
+  features,
+  moduleCatalog,
+  moduleToggles,
+}: Props) {
   const [state, formAction, pending] = useActionState(updateSiteSettingsAction, initialState)
   const [navRows, setNavRows] = useState<NavItem[]>(
     primaryNav.length > 0 ? primaryNav : [{ label: '', href: '' }],
   )
 
+  const particles = moduleCatalog.filter((m) => m.kind === 'particle')
+  const atoms = moduleCatalog.filter((m) => m.kind === 'atom')
+
   return (
-    <form action={formAction} className="settings-form">
+    <form action={formAction} className="settings-form settings-form-wide">
       <fieldset className="settings-fieldset">
         <legend>Site chrome</legend>
         <p className="settings-hint">
@@ -140,17 +159,82 @@ export function SettingsForm({ siteName, primaryNav, features }: Props) {
           placeholder
         />
         <FlagRow
-          name="featureModules"
-          label="Modules"
-          description="Show registered modules in layout positions (notice bar in header after seed)."
-          checked={features.modules}
-        />
-        <FlagRow
           name="featureDraftPreview"
           label="Draft preview"
           description="When on, users with CMS access can open /preview/{slug} to see unpublished drafts. Public /{slug} stays published-only."
           checked={features.draftPreview}
         />
+      </fieldset>
+
+      <fieldset className="settings-fieldset settings-modules">
+        <legend>Modules</legend>
+        <p className="settings-hint">
+          Installed / registered particles and Page Settings atoms. Off = hidden from the layout
+          palette and skipped on the public site (and atom injectors). Required chrome stays on.
+          Package uninstall / GitHub Packages sync is a later phase.
+        </p>
+
+        <h3 className="settings-modules-subhead">Layout particles</h3>
+        <ul className="settings-modules-list">
+          {particles.map((item) => {
+            const checked = resolveChecked(item, moduleToggles, features.modules)
+            return (
+              <li key={item.id} className="settings-modules-row">
+                <input type="hidden" name="moduleToggleId" value={item.id} />
+                <label className="settings-modules-toggle">
+                  <input
+                    type="checkbox"
+                    name="moduleToggleEnabled"
+                    value={item.id}
+                    defaultChecked={checked}
+                    disabled={item.required}
+                  />
+                  <span>
+                    <strong>{item.label}</strong>
+                    {item.required ? (
+                      <span className="settings-modules-badge">Required</span>
+                    ) : (
+                      <span className="settings-modules-badge settings-modules-badge-muted">
+                        Particle
+                      </span>
+                    )}
+                    <code className="settings-modules-id">{item.id}</code>
+                    <span className="settings-flag-desc">{item.description}</span>
+                  </span>
+                </label>
+              </li>
+            )
+          })}
+        </ul>
+
+        <h3 className="settings-modules-subhead">Page Settings atoms</h3>
+        <ul className="settings-modules-list">
+          {atoms.map((item) => {
+            const checked = resolveChecked(item, moduleToggles, features.modules)
+            return (
+              <li key={item.id} className="settings-modules-row">
+                <input type="hidden" name="moduleToggleId" value={item.id} />
+                <label className="settings-modules-toggle">
+                  <input
+                    type="checkbox"
+                    name="moduleToggleEnabled"
+                    value={item.id}
+                    defaultChecked={checked}
+                  />
+                  <span>
+                    <strong>{item.label}</strong>
+                    <span className="settings-modules-badge settings-modules-badge-muted">Atom</span>
+                    <code className="settings-modules-id">{item.id}</code>
+                    <span className="settings-flag-desc">{item.description}</span>
+                  </span>
+                </label>
+              </li>
+            )
+          })}
+        </ul>
+        {moduleCatalog.length === 0 ? (
+          <p className="settings-hint">No modules registered yet.</p>
+        ) : null}
       </fieldset>
 
       {state.error ? (

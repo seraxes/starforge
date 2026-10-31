@@ -18,11 +18,14 @@ function metaAttrName(nameOrProperty: string): { name?: string; property?: strin
   return { name: key }
 }
 
-function collectAtomInjects(chrome: ResolvedPageChrome): AtomInjectResult[] {
+async function collectAtomInjects(chrome: ResolvedPageChrome): Promise<AtomInjectResult[]> {
   ensureAtomsRegistered()
+  const { getSiteSettings, isAtomModuleEnabled } = await import('@/core/settings')
+  const settings = await getSiteSettings()
   const results: AtomInjectResult[] = []
   for (const atom of chrome.atoms) {
     if (!atom.enabled) continue
+    if (!isAtomModuleEnabled(settings, atom.type)) continue
     const def = getRegisteredAtom(atom.type)
     if (!def) continue
     results.push(...def.inject(atom.config ?? {}))
@@ -35,9 +38,9 @@ function collectAtomInjects(chrome: ResolvedPageChrome): AtomInjectResult[] {
  * Structured tags render as React elements; free HTML uses a client injector
  * so `<script>` nodes execute.
  */
-export function DocumentHeadChrome({ chrome }: { chrome: ResolvedPageChrome }) {
+export async function DocumentHeadChrome({ chrome }: { chrome: ResolvedPageChrome }) {
   const fa = resolveFontAwesomeEmit(chrome)
-  const atomInjects = collectAtomInjects(chrome).filter((i) => i.target === 'head')
+  const atomInjects = (await collectAtomInjects(chrome)).filter((i) => i.target === 'head')
 
   return (
     <>
@@ -90,7 +93,7 @@ export function DocumentHeadChrome({ chrome }: { chrome: ResolvedPageChrome }) {
 /**
  * After `<body>` open + before `</body>` close: hooks, FA JS override, ordered scripts, atoms.
  */
-export function DocumentBodyChrome({
+export async function DocumentBodyChrome({
   chrome,
   position,
 }: {
@@ -98,7 +101,7 @@ export function DocumentBodyChrome({
   position: 'start' | 'end'
 }) {
   const fa = resolveFontAwesomeEmit(chrome)
-  const atomInjects = collectAtomInjects(chrome).filter((i) =>
+  const atomInjects = (await collectAtomInjects(chrome)).filter((i) =>
     position === 'start' ? i.target === 'body-start' : i.target === 'body-end',
   )
 

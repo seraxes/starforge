@@ -152,11 +152,11 @@ export const SiteSettings: GlobalConfig = {
         {
           name: 'featureModules',
           type: 'checkbox',
-          label: 'Modules',
+          label: 'Modules (legacy master)',
           defaultValue: false,
           admin: {
             description:
-              'Render extension modules in named layout positions (e.g. notice bar in header). Off = all ModuleSlots empty.',
+              'Legacy master flag. Prefer the Modules list below (per particle/atom). Kept in sync when any extension particle is on.',
           },
         },
         {
@@ -168,6 +168,34 @@ export const SiteSettings: GlobalConfig = {
             description:
               'Allow users with CMS access to open /preview/{slug} and see unpublished page drafts. Anonymous visitors still only see published /{slug}.',
           },
+        },
+      ],
+    },
+    {
+      name: 'moduleToggles',
+      type: 'array',
+      labels: {
+        singular: 'Module toggle',
+        plural: 'Modules',
+      },
+      admin: {
+        description:
+          'Per installed particle / atom on/off (P0). Core admins edit the same list at /app/admin/settings → Modules. Disabled = hidden from layout palette and skipped on public/atoms.',
+      },
+      fields: [
+        {
+          name: 'moduleId',
+          type: 'text',
+          required: true,
+          admin: {
+            description: 'Registry id (e.g. notice-bar) or atom:analytics.',
+          },
+        },
+        {
+          name: 'enabled',
+          type: 'checkbox',
+          defaultValue: true,
+          label: 'Enabled',
         },
       ],
     },

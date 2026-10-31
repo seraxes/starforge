@@ -11,10 +11,18 @@ import {
   DEFAULT_SITE_NAME,
   DEFAULT_SITE_SETTINGS,
   type FeatureFlags,
+  type ModuleToggleMap,
   type NavItem,
   type NavItemInput,
   type SiteSettingsData,
 } from './defaults'
+import {
+  REQUIRED_MODULE_IDS,
+  atomToggleId,
+  isModuleToggleEnabled,
+  moduleTogglesToPayloadRows,
+  normalizeModuleToggles,
+} from './module-toggles'
 import {
   navHasPageLinks,
   navItemsToCustomInputs,
@@ -22,7 +30,7 @@ import {
   type RawNavRow,
 } from './nav'
 
-export type { FeatureFlags, NavItem, NavItemInput, SiteSettingsData }
+export type { FeatureFlags, ModuleToggleMap, NavItem, NavItemInput, SiteSettingsData }
 export type { RawNavRow }
 export {
   DEFAULT_FEATURE_FLAGS,
@@ -30,6 +38,18 @@ export {
   DEFAULT_SITE_NAME,
   DEFAULT_SITE_SETTINGS,
 }
+export {
+  ATOM_TOGGLE_PREFIX,
+  REQUIRED_MODULE_IDS,
+  anyExtensionModuleEnabled,
+  atomToggleId,
+  isModuleToggleEnabled,
+  moduleTogglesToPayloadRows,
+  normalizeModuleToggles,
+  parseAtomToggleId,
+} from './module-toggles'
+export type { ModuleCatalogItem, ModuleToggleEntry, ModuleToggleKind } from './module-toggles'
+export { listInstalledModuleCatalog } from './module-catalog'
 export {
   isExternalHref,
   isNavItemActive,
@@ -48,6 +68,7 @@ type SiteSettingsDoc = {
   featurePosts?: boolean | null
   featureModules?: boolean | null
   featureDraftPreview?: boolean | null
+  moduleToggles?: Array<{ moduleId?: string | null; enabled?: boolean | null }> | null
 }
 
 function normalizeFlags(doc: SiteSettingsDoc | null | undefined): FeatureFlags {
@@ -67,6 +88,7 @@ export function normalizeSiteSettings(doc: SiteSettingsDoc | null | undefined): 
       ...DEFAULT_SITE_SETTINGS,
       features: { ...DEFAULT_FEATURE_FLAGS },
       primaryNav: DEFAULT_PRIMARY_NAV.map((i) => ({ ...i })),
+      moduleToggles: {},
     }
   }
 
@@ -79,6 +101,7 @@ export function normalizeSiteSettings(doc: SiteSettingsDoc | null | undefined): 
     siteName,
     primaryNav: resolveNavItems(doc.primaryNav),
     features: normalizeFlags(doc),
+    moduleToggles: normalizeModuleToggles(doc.moduleToggles),
   }
 }
 
@@ -98,6 +121,7 @@ async function loadSiteSettingsUncached(): Promise<SiteSettingsData> {
       ...DEFAULT_SITE_SETTINGS,
       features: { ...DEFAULT_FEATURE_FLAGS },
       primaryNav: DEFAULT_PRIMARY_NAV.map((i) => ({ ...i })),
+      moduleToggles: {},
     }
   }
 }
@@ -149,6 +173,8 @@ export type UpdateSiteSettingsInput = {
   /** Full Payload nav rows (page relationships and/or custom URLs). */
   primaryNavInputs?: NavItemInput[]
   features: FeatureFlags
+  /** Per-module / atom runtime toggles (P0). */
+  moduleToggles?: ModuleToggleMap
 }
 
 function toPayloadNavData(input: UpdateSiteSettingsInput): NavItemInput[] {
@@ -165,8 +191,10 @@ function toPayloadNavData(input: UpdateSiteSettingsInput): NavItemInput[] {
 export async function updateSiteSettings(input: UpdateSiteSettingsInput): Promise<SiteSettingsData> {
   const siteName = input.siteName.trim() || DEFAULT_SITE_NAME
   const primaryNav = toPayloadNavData(input)
+  const moduleToggles = input.moduleToggles ?? {}
 
   const payload = await getPayload({ config })
+  // Cast: Payload generated types lag until `payload generate:types` after schema add.
   const doc = (await payload.updateGlobal({
     slug: 'site-settings',
     data: {
@@ -177,7 +205,8 @@ export async function updateSiteSettings(input: UpdateSiteSettingsInput): Promis
       featurePosts: input.features.posts,
       featureModules: input.features.modules,
       featureDraftPreview: input.features.draftPreview,
-    },
+      moduleToggles: moduleTogglesToPayloadRows(moduleToggles),
+    } as Record<string, unknown>,
     depth: 1,
     overrideAccess: true,
   })) as SiteSettingsDoc
@@ -208,12 +237,14 @@ export async function ensureSiteSettingsDefaults(): Promise<SiteSettingsData> {
         ? resolveNavItems(existing.primaryNav)
         : DEFAULT_PRIMARY_NAV.map((i) => ({ ...i })),
       features: normalizeFlags(existing),
+      moduleToggles: normalizeModuleToggles(existing.moduleToggles),
     })
   } catch {
     return updateSiteSettings({
       siteName: DEFAULT_SITE_NAME,
       primaryNav: DEFAULT_PRIMARY_NAV.map((i) => ({ ...i })),
       features: { ...DEFAULT_FEATURE_FLAGS },
+      moduleToggles: {},
     })
   }
 }
@@ -276,6 +307,7 @@ export async function seedPrimaryNavFromPages(
         : DEFAULT_SITE_NAME,
     primaryNavInputs: inputs,
     features: normalizeFlags(existing),
+    moduleToggles: normalizeModuleToggles(existing.moduleToggles),
   })
 
   return { updated: true, primaryNav: next.primaryNav }
@@ -295,6 +327,35 @@ async function getSiteSettingsUncached(): Promise<SiteSettingsData> {
       ...DEFAULT_SITE_SETTINGS,
       features: { ...DEFAULT_FEATURE_FLAGS },
       primaryNav: DEFAULT_PRIMARY_NAV.map((i) => ({ ...i })),
+      moduleToggles: {},
     }
   }
+}
+
+/**
+ * Public/layout gate: is this particle id enabled for the current site?
+ * Required chrome (`page-content`) is always on.
+ * - Stored toggle wins when present.
+ * - Extension modules that used `featureFlag: 'modules'` fall back to master Modules flag.
+ * - Other builtins default on when no stored row.
+ */
+export function isParticleModuleEnabled(
+  settings: SiteSettingsData,
+  moduleId: string,
+  options?: { builtin?: boolean; featureFlag?: keyof FeatureFlags },
+): boolean {
+  const id = moduleId.trim()
+  if (!id) return false
+  if (REQUIRED_MODULE_IDS.has(id)) return true
+
+  const usesLegacyModulesFlag = options?.featureFlag === 'modules'
+  return isModuleToggleEnabled(settings, id, {
+    defaultEnabled: !usesLegacyModulesFlag,
+    legacyModulesFlag: usesLegacyModulesFlag,
+  })
+}
+
+/** Atom type gate (`analytics` → `atom:analytics`). Defaults on when unset. */
+export function isAtomModuleEnabled(settings: SiteSettingsData, atomType: string): boolean {
+  return isModuleToggleEnabled(settings, atomToggleId(atomType), { defaultEnabled: true })
 }

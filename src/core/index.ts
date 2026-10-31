@@ -80,12 +80,16 @@ export {
   ensureSiteSettingsDefaults,
   getFeatureFlags,
   getSiteSettings,
+  isAtomModuleEnabled,
   isDraftPreviewEnabled,
   isModulesEnabled,
+  isParticleModuleEnabled,
   isRegistrationEnabled,
+  listInstalledModuleCatalog,
   seedPrimaryNavFromPages,
   updateSiteSettings,
 } from './settings'
+export type { ModuleCatalogItem, ModuleToggleMap } from './settings'
 export {
   BOOTSTRAP_ADMIN_EMAIL,
   ensureCmsAccessForCoreUserIds,

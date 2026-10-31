@@ -1,6 +1,6 @@
 import React from 'react'
 
-import { getSiteSettings } from '@/core/settings'
+import { getSiteSettings, isParticleModuleEnabled } from '@/core/settings'
 import { ensureModulesRegistered } from '@/modules/catalog'
 
 import { gridColStyle } from './grid'
@@ -14,8 +14,8 @@ type Props = {
 }
 
 /**
- * Renders one layout slot (particle) inside a 12-col grid cell.
- * Built-ins ignore the Modules master toggle; extensions still respect it.
+ * Renders one layout slot (particle) inside a grid cell.
+ * Site Settings → Modules per-id toggles gate public render (required chrome always on).
  */
 export async function SlotRenderer({ sectionId, slot, pageContent }: Props) {
   if (slot.enabled === false) return null
@@ -25,8 +25,17 @@ export async function SlotRenderer({ sectionId, slot, pageContent }: Props) {
   if (!mod) return null
 
   const settings = await getSiteSettings()
-  if (!mod.builtin && !settings.features.modules) return null
-  if (mod.featureFlag && !settings.features[mod.featureFlag]) return null
+  if (
+    !isParticleModuleEnabled(settings, mod.id, {
+      builtin: mod.builtin,
+      featureFlag: mod.featureFlag,
+    })
+  ) {
+    return null
+  }
+  if (mod.featureFlag && mod.featureFlag !== 'modules' && !settings.features[mod.featureFlag]) {
+    return null
+  }
 
   const rendered = await mod.render({
     position: sectionId,
