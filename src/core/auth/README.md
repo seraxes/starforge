@@ -6,62 +6,56 @@ Product auth / sessions for **app users** (Better Auth + Drizzle + Postgres `pub
 | --- | --- |
 | App register / login / logout / session | This module · `/login` · `/register` · `/api/auth/*` · `/api/me` |
 | App roles + user admin | `sf_users.role` · `/app/admin/users` (admins only) |
-| Global admin → CMS bridge | `src/core/cms-bridge` · seed · `/app/admin/cms` → Payload `/admin` |
-| CMS editors (content only) | Payload `users` collection · `/admin` |
+| CMS access toggle | `sf_users.cms_access` · Users table switch · provisions Payload stub |
+| Payload `/admin` auth | Better Auth cookie via `starforgeCoreSessionStrategy` (one login) |
 
-Do **not** route high-QPS app login/session traffic through Payload Local API. Payload users and Starforge app users are separate accounts in separate tables/schemas.
+Do **not** route high-QPS app login/session traffic through Payload Local API. Payload user rows are **CMS stubs** linked by `coreUserId` — not the product user store. Ordinary members are never bulk-synced into Payload.
 
-**Linked accounts for global admins:** seed (and `/app/admin/cms`) create a Payload editor with the **same email** so one platform admin can reach content. Sessions stay separate (core cookie ≠ Payload cookie). Product **members are never** copied into Payload.
+**One login only.** Sign in at `/login`. With `cms_access`, open `/admin` already authenticated — no Payload email/password form.
 
 ## Tables (`public`)
 
-- `sf_users` — app user profile (email is the login id; `role`, `banned`, `ban_reason`, `ban_expires`)
+- `sf_users` — app user profile (`role`, `cms_access`, `banned`, …)
 - `sf_sessions` — cookie sessions (+ `impersonated_by` for Better Auth admin plugin)
 - `sf_accounts` — auth providers (email/password hash lives here on the `credential` provider)
 - `sf_verifications` — one-time tokens (unused until email flows land)
 
-**After pulling role/admin changes, always run** `npm run db:core:push` (Compose up, `.env` loaded) so Postgres gains `sf_sessions.impersonated_by` and the `sf_users` role/ban columns. Without that push, `/app/admin/users` fails with `column "impersonated_by" does not exist`.
+**After pulling this branch, always run** `npm run db:core:push` so Postgres gains `sf_users.cms_access` (and any earlier admin columns). Without that push, admin pages fail on missing columns.
 
-## Roles
+## Roles + CMS access
 
-| Role | Meaning |
+| Flag / role | Meaning |
 | --- | --- |
-| `admin` | Global **app** admin — `/app/admin/*` **and** linked Payload `/admin` CMS editor |
-| `member` | Default product user (Better Auth `defaultRole`) |
-
-Implemented with the Better Auth **admin** plugin + custom access control (`src/core/auth/permissions.ts`).
+| `admin` | Global app admin — `/app/admin/*`; **cms_access on by default** |
+| `member` | Default product user |
+| `cms_access` | May open Payload `/admin` via the Better Auth session (toggle on Users) |
 
 ### Bootstrap an admin
 
-1. **Seed:** `npm run seed` creates `admin@starforge.local` / `starforge-admin` with role `admin` **and** a linked Payload CMS editor with the **same** email/password. Use that pair on `/login` for core admin and on `/admin` for CMS.
-2. **Env promote (existing account):** set `STARFORGE_ADMIN_EMAILS=you@example.com` (comma-separated) in `.env`, **restart** `npm run dev`, then reload (or visit `/app/admin/users`). Matching signed-in users are promoted to `admin` on that request (also on signup and seed). Seed (and **CMS access → Ensure**) also create a Payload editor for those emails using `STARFORGE_CMS_BRIDGE_PASSWORD` (default `starforge-admin`).
+1. **Seed:** `npm run seed` creates `admin@starforge.local` / `starforge-admin` with role `admin` + `cms_access`, and a Payload stub. Sign in once at `/login`, then open `/admin` — no second password.
+2. **Env promote:** set `STARFORGE_ADMIN_EMAILS=you@example.com`, restart `npm run dev`, reload while signed in — promoted to admin + CMS access.
 
-Members visiting `/app/admin/users` are redirected to `/?notice=admins-only` — expected, not a bug.
+Members visiting `/app/admin/users` are redirected to `/?notice=admins-only`. Users without `cms_access` who open `/admin` go to `/?notice=cms-denied`.
 
-### Reach Payload `/admin` as a global admin
+### Reach Payload `/admin`
 
-1. Run `npm run seed` (or open `/app/admin/cms` and click **Ensure my CMS editor account**).
-2. Open `/admin` and sign in with the linked email + CMS bridge password.
-3. Core `/app/admin` nav includes **CMS access** and **Open Payload CMS**.
+1. Sign in at `/login` (seed admin or any user with CMS access on).
+2. Open `/admin` — already authenticated.
+3. Manage the per-user switch under `/app/admin/users` (CMS access column).
 
-Shared session SSO into Payload is **not** wired — linked accounts keep Payload swappable as a content module.
+Unauthenticated `/admin` → redirect `/login?next=/admin` → after login, land in Payload logged in.
 
 ## Local forms
 
-Register / login / logout use **Next.js server actions** so session cookies are set via the `nextCookies` plugin (same-origin, works on both `localhost` and `127.0.0.1`). Prefer one host consistently (README recommends `http://localhost:3000`).
-
-Register auto-signs-in and redirects to `/`. If a session cookie is missing after signup, the action signs in once with the same credentials before redirecting (or shows an error pointing at `/login`).
-
-Login errors distinguish: unknown email, account without a password hash (pre-fix debris), and wrong password. Always sign in with **email**, never display name. Disabled (`banned`) users cannot sign in.
+Register / login / logout use **Next.js server actions** so session cookies are set via the `nextCookies` plugin. Prefer `http://localhost:3000`.
 
 ## Deferred
 
-- **Forgot / reset password** — needs outbound email; deferred until email is wired (P1+).
-- **Single sign-on into Payload** — optional later; linked-account bridge is the durable path for now.
+- **Forgot / reset password** — needs outbound email.
+- Optional later: richer Payload logout → core sign-out button (core `/login` session still rules).
 
 ## Env
 
 - `BETTER_AUTH_SECRET` — long random string (required)
 - `BETTER_AUTH_URL` / `NEXT_PUBLIC_APP_URL` — `http://localhost:3000` locally
-- `STARFORGE_ADMIN_EMAILS` — optional comma-separated emails auto-promoted to `admin` (+ CMS bridge on seed)
-- `STARFORGE_CMS_BRIDGE_PASSWORD` — optional password for auto-provisioned Payload editors (default `starforge-admin`)
+- `STARFORGE_ADMIN_EMAILS` — optional comma-separated emails auto-promoted to `admin` + CMS access

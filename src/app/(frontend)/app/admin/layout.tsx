@@ -39,9 +39,9 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
           </p>
           <h1>Core admin</h1>
           <p className="lede admin-lede">
-            App users, roles, and site settings live here. As a global admin you also get a{' '}
-            <Link href="/app/admin/cms">linked Payload CMS editor</Link> (same email) for{' '}
-            <Link href="/admin">/admin</Link> — product members stay in core only.
+            App users, roles, CMS access toggles, and site settings. One Better Auth login —
+            open <Link href="/admin">/admin</Link> with no second password when CMS access is on
+            (see <Link href="/app/admin/cms">CMS access</Link>).
           </p>
         </div>
         <p className="admin-who">

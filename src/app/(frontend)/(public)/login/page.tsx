@@ -9,7 +9,7 @@ import { LoginForm } from './login-form'
 
 export const metadata = {
   title: 'Sign in — Starforge',
-  description: 'Sign in to your Starforge app account (not Payload CMS).',
+  description: 'Sign in to Starforge (one login for app and CMS when you have CMS access).',
 }
 
 export default async function LoginPage({
@@ -30,9 +30,9 @@ export default async function LoginPage({
         <p className="brand">{settings.siteName}</p>
         <h1>Sign in</h1>
         <p className="lede">
-          Sign in with the <strong>email</strong> you registered (not your
-          display name). CMS editors use <Link href="/admin">Payload /admin</Link>{' '}
-          instead — those accounts do not work here.
+          Sign in with the <strong>email</strong> you registered (not your display name). This is
+          the only login — if you have CMS access, <Link href="/admin">/admin</Link> opens without
+          a second password.
         </p>
         <LoginForm next={next === '/' ? undefined : next} />
         <p className="auth-switch">

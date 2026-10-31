@@ -26,6 +26,10 @@ export default buildConfig({
     meta: {
       titleSuffix: '— Starforge CMS',
     },
+    components: {
+      // Local auth disabled — send /admin/login through core Better Auth.
+      beforeLogin: ['@/components/payload/AdminLoginRedirect'],
+    },
   },
   collections: [Users, Media, Pages],
   globals: [SiteSettings],

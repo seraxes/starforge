@@ -2,8 +2,9 @@
  * Local demo seed for Starforge.
  *
  * Creates sample **published** CMS pages (Payload), site settings, core app
- * users (Better Auth), and a **linked Payload CMS editor** for the bootstrap
- * global admin (same email — content module only; product users stay in core).
+ * users (Better Auth), and grants **cms_access** (+ Payload stub) for the
+ * bootstrap global admin. One Better Auth login opens `/admin` — no second
+ * password. Product members stay in core unless CMS access is toggled on.
  *
  * Usage (Compose up, `.env` present, core tables pushed):
  *   npm run seed
@@ -22,12 +23,7 @@ import {
   promoteBootstrapAdminsByEmail,
   setUserRole,
 } from './core/auth/admin'
-import {
-  BOOTSTRAP_ADMIN_EMAIL,
-  ensureCmsBridgeForEmails,
-  ensurePayloadCmsUser,
-  getCmsBridgePassword,
-} from './core/cms-bridge'
+import { BOOTSTRAP_ADMIN_EMAIL, setCoreUserCmsAccess } from './core/cms-bridge'
 import { db } from './core/db'
 import { sfUsers } from './core/db/schema'
 import { ensureSiteSettingsDefaults } from './core/settings'
@@ -139,7 +135,7 @@ const SAMPLE_PAGES = [
       ),
       bulletList(
         'Core app accounts: /register and /login',
-        'CMS editors: Payload /admin (linked for global admins via seed)',
+        'CMS: Payload /admin via the same Better Auth login (cms_access)',
         'Published pages render at /{slug}',
       ),
     ),
@@ -157,13 +153,13 @@ const SAMPLE_PAGES = [
       bulletList(
         'npm run seed — sample published pages (+ optional demo app user)',
         'Open /about and /getting-started on the public site',
-        'Edit pages in /admin (seed links the bootstrap admin as a CMS editor)',
+        'Edit pages in /admin after one core login (no second password)',
         'Register an app account at /register if you did not use the demo user',
       ),
       heading('h3', 'Two kinds of users'),
       paragraph(
         textNode(
-          'Payload /admin users edit content. Core /login users are product accounts. Global admins get a linked CMS editor (same email); members are never synced into Payload.',
+          'Core /login owns every session. Payload /admin opens for users with cms_access (admins by default). Ordinary members are never synced into Payload.',
         ),
       ),
     ),
@@ -259,8 +255,10 @@ async function seedBootstrapAdmin() {
   if (existing) {
     if (existing.role !== 'admin') {
       await setUserRole(existing.id, 'admin')
+    } else {
+      await setCoreUserCmsAccess(existing.id, true)
     }
-    return { created: false as const, email: BOOTSTRAP_ADMIN_EMAIL }
+    return { created: false as const, email: BOOTSTRAP_ADMIN_EMAIL, id: existing.id }
   }
 
   const result = await auth.api.signUpEmail({
@@ -276,28 +274,29 @@ async function seedBootstrapAdmin() {
     await setUserRole(userId, 'admin')
   }
 
-  return { created: true as const, email: BOOTSTRAP_ADMIN_EMAIL }
+  return { created: true as const, email: BOOTSTRAP_ADMIN_EMAIL, id: userId ?? null }
 }
 
-async function seedCmsBridgeForAdmins() {
-  const bridgePassword = getCmsBridgePassword()
+async function seedCmsAccessForAdmins() {
+  const admins = await db
+    .select({ id: sfUsers.id, email: sfUsers.email, role: sfUsers.role })
+    .from(sfUsers)
 
-  // Bootstrap admin: same password as core so one pair works for /login and /admin.
-  const bootstrap = await ensurePayloadCmsUser({
-    email: BOOTSTRAP_ADMIN_EMAIL,
-    password: BOOTSTRAP_ADMIN_PASSWORD,
-    name: BOOTSTRAP_ADMIN_NAME,
-  })
-
-  const envEmails = getBootstrapAdminEmails().filter(
-    (email) => email.toLowerCase() !== BOOTSTRAP_ADMIN_EMAIL.toLowerCase(),
+  const envEmails = new Set(getBootstrapAdminEmails().map((e) => e.toLowerCase()))
+  const targets = admins.filter(
+    (row) => row.role === 'admin' || envEmails.has(row.email.toLowerCase()),
   )
-  const envBridge =
-    envEmails.length > 0
-      ? await ensureCmsBridgeForEmails(envEmails, bridgePassword)
-      : { created: [] as string[], existing: [] as string[], failed: [] as { email: string; error: string }[] }
 
-  return { bootstrap, envBridge, bridgePassword }
+  const enabled: string[] = []
+  const failed: { email: string; error: string }[] = []
+
+  for (const row of targets) {
+    const result = await setCoreUserCmsAccess(row.id, true)
+    if (result.ok) enabled.push(row.email)
+    else failed.push({ email: row.email, error: result.error })
+  }
+
+  return { enabled, failed }
 }
 
 async function main() {
@@ -307,8 +306,8 @@ async function main() {
   console.log('')
   console.log('Starforge seed')
   console.log('--------------')
-  console.log('App accounts (/login) stay in core. Payload /admin editors are CMS-only.')
-  console.log('Global admins get a linked CMS editor (same email) — see /app/admin/cms.')
+  console.log('One login: Better Auth at /login. CMS access opens /admin with no second password.')
+  console.log('Toggle CMS access under /app/admin/users (admins get it by default).')
   console.log('')
 
   try {
@@ -336,7 +335,7 @@ async function main() {
       console.log(`Bootstrap app admin created (core /app/admin):`)
       console.log(`  email:    ${BOOTSTRAP_ADMIN_EMAIL}`)
       console.log(`  password: ${BOOTSTRAP_ADMIN_PASSWORD}`)
-      console.log(`  role:     admin`)
+      console.log(`  role:     admin (+ cms_access)`)
     } else {
       console.log(`Bootstrap app admin already exists: ${adminUser.email}`)
     }
@@ -368,43 +367,27 @@ async function main() {
   }
 
   try {
-    const { bootstrap, envBridge, bridgePassword } = await seedCmsBridgeForAdmins()
+    const { enabled, failed } = await seedCmsAccessForAdmins()
     console.log('')
-    if (bootstrap.ok && bootstrap.status === 'created') {
-      console.log('Linked Payload CMS editor for bootstrap admin:')
-      console.log(`  email:    ${BOOTSTRAP_ADMIN_EMAIL}`)
-      console.log(`  password: ${BOOTSTRAP_ADMIN_PASSWORD}  (same as core)`)
-      console.log('  open:     http://localhost:3000/admin')
-    } else if (bootstrap.ok) {
-      console.log(`Payload CMS editor already linked: ${BOOTSTRAP_ADMIN_EMAIL}`)
-    } else {
-      console.warn(`Could not link bootstrap CMS editor: ${bootstrap.error}`)
+    console.log(
+      `CMS access (+ Payload stub) for admins: ${enabled.length ? enabled.join(', ') : '(none)'}`,
+    )
+    for (const fail of failed) {
+      console.warn(`CMS access failed for ${fail.email}: ${fail.error}`)
     }
-
-    if (envBridge.created.length) {
-      console.log(
-        `CMS bridge created for STARFORGE_ADMIN_EMAILS: ${envBridge.created.join(', ')} (password: STARFORGE_CMS_BRIDGE_PASSWORD or default ${bridgePassword})`,
-      )
-    }
-    if (envBridge.existing.length) {
-      console.log(`CMS bridge already linked: ${envBridge.existing.join(', ')}`)
-    }
-    for (const fail of envBridge.failed) {
-      console.warn(`CMS bridge failed for ${fail.email}: ${fail.error}`)
-    }
+    console.log('Open /admin after /login — no second password prompt.')
   } catch (error) {
     console.warn('')
-    console.warn('Could not ensure Payload CMS bridge users.')
+    console.warn('Could not ensure CMS access / Payload stubs.')
     console.warn(error instanceof Error ? error.message : error)
   }
 
   console.log('')
   console.log('Try: http://localhost:3000/about  ·  /getting-started  ·  /welcome')
-  console.log('CMS:  http://localhost:3000/admin  (seed admin = same email/password as core)')
-  console.log('App:  http://localhost:3000/login')
+  console.log('Login once: http://localhost:3000/login  then open http://localhost:3000/admin')
   console.log('Core admin users:    http://localhost:3000/app/admin/users')
   console.log('Core site settings:  http://localhost:3000/app/admin/settings')
-  console.log('CMS access bridge:   http://localhost:3000/app/admin/cms')
+  console.log('CMS access help:     http://localhost:3000/app/admin/cms')
   console.log('')
 
   process.exit(0)

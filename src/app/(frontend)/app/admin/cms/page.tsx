@@ -4,39 +4,36 @@ import { redirect } from 'next/navigation'
 
 import { requireAppAdmin } from '@/core/auth/admin'
 import {
-  BOOTSTRAP_ADMIN_EMAIL,
-  DEFAULT_CMS_BRIDGE_PASSWORD,
-  findPayloadCmsUserByEmail,
-  getCmsBridgePassword,
+  findPayloadCmsUserByCoreUserId,
+  loadCoreUserCmsAccess,
 } from '@/core/cms-bridge'
-import { CmsBridgePanel } from './cms-bridge-panel'
 
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
   title: 'CMS access — Starforge',
-  description: 'Link global app admin to Payload /admin as a CMS editor.',
+  description: 'One login: Better Auth opens Payload /admin when CMS access is on.',
 }
 
 export default async function AdminCmsBridgePage() {
   const session = await requireAppAdmin()
-  if (!session?.user?.email) {
+  if (!session?.user?.id || !session.user.email) {
     redirect('/login?next=/app/admin/cms')
   }
+
+  const access = await loadCoreUserCmsAccess(session.user.id)
+  const linked = await findPayloadCmsUserByCoreUserId(session.user.id)
   const email = session.user.email.trim().toLowerCase()
-  const linked = await findPayloadCmsUserByEmail(email)
-  const bridgePassword = getCmsBridgePassword()
-  const isBootstrap = email === BOOTSTRAP_ADMIN_EMAIL.toLowerCase()
-  const usingDefaultBridge = bridgePassword === DEFAULT_CMS_BRIDGE_PASSWORD
+  const hasCms = Boolean(access?.cmsAccess)
 
   return (
     <section className="admin-section">
       <h2>Payload CMS access</h2>
       <p className="lede admin-lede">
-        Global app admins get a <strong>linked</strong> Payload editor (same email). Product
-        members stay in core only — we never move app users into Payload. Sessions stay separate:
-        sign in at <Link href="/admin">/admin</Link> with the CMS password (seed bootstrap uses the
-        same password as core for <code>{BOOTSTRAP_ADMIN_EMAIL}</code>).
+        <strong>One login only.</strong> Sign in with Better Auth at <Link href="/login">/login</Link>.
+        If CMS access is on, open <Link href="/admin">/admin</Link> — no second email/password.
+        Toggle CMS access per user under <Link href="/app/admin/users">Users</Link>. Global admins
+        get it by default; members stay in core unless you turn CMS access on for them.
       </p>
 
       <dl className="cms-bridge-meta">
@@ -47,41 +44,45 @@ export default async function AdminCmsBridgePage() {
           </dd>
         </div>
         <div>
-          <dt>CMS editor linked?</dt>
-          <dd>{linked ? <span className="admin-badge">Yes</span> : <span className="admin-badge-warn">Not yet</span>}</dd>
+          <dt>CMS access</dt>
+          <dd>
+            {hasCms ? (
+              <span className="admin-badge">On</span>
+            ) : (
+              <span className="admin-badge-warn">Off</span>
+            )}
+          </dd>
         </div>
         <div>
-          <dt>CMS bridge password</dt>
+          <dt>Payload stub linked</dt>
           <dd>
-            {isBootstrap ? (
-              <>
-                Same as core login: <code>{DEFAULT_CMS_BRIDGE_PASSWORD}</code> (after{' '}
-                <code>npm run seed</code>)
-              </>
+            {linked ? (
+              <span className="admin-badge">Yes</span>
             ) : (
-              <>
-                Env <code>STARFORGE_CMS_BRIDGE_PASSWORD</code>
-                {usingDefaultBridge ? (
-                  <>
-                    {' '}
-                    (unset → default <code>{DEFAULT_CMS_BRIDGE_PASSWORD}</code>)
-                  </>
-                ) : (
-                  ' (custom value set in .env)'
-                )}
-              </>
+              <span className="admin-badge-warn">Not yet (opens on first /admin visit)</span>
             )}
           </dd>
         </div>
       </dl>
 
-      <CmsBridgePanel initiallyLinked={Boolean(linked)} email={email} />
+      <div className="cms-bridge-panel">
+        <div className="cms-bridge-actions">
+          {hasCms ? (
+            <Link className="primary" href="/admin">
+              Open Payload CMS
+            </Link>
+          ) : (
+            <Link className="secondary" href="/app/admin/users">
+              Turn on CMS access in Users
+            </Link>
+          )}
+        </div>
+      </div>
 
       <p className="admin-lede cms-bridge-footnote">
-        After linking, open <Link href="/admin">Payload /admin</Link> → sign in with{' '}
-        <code>{email}</code> and the bridge password → edit Pages / Media. Core{' '}
-        <Link href="/app/admin/users">user admin</Link> and{' '}
-        <Link href="/app/admin/settings">site settings</Link> stay on this app shell.
+        Unauthenticated visits to <code>/admin</code> redirect to core login, then return already
+        authenticated. Without CMS access you see a clear deny — no Payload account is required for
+        ordinary members.
       </p>
     </section>
   )

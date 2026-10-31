@@ -15,10 +15,12 @@ export {
 } from './settings'
 export {
   BOOTSTRAP_ADMIN_EMAIL,
-  DEFAULT_CMS_BRIDGE_PASSWORD,
-  ensureCmsBridgeForEmails,
+  ensureCmsAccessForCoreUserIds,
   ensurePayloadCmsUser,
+  findPayloadCmsUserByCoreUserId,
   findPayloadCmsUserByEmail,
-  getCmsBridgePassword,
+  loadCoreUserCmsAccess,
+  revokePayloadCmsUser,
+  setCoreUserCmsAccess,
+  userHasCmsAccess,
 } from './cms-bridge'
-

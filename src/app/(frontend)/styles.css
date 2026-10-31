@@ -657,6 +657,59 @@ button:disabled {
   margin-top: 1.5rem;
 }
 
+.cms-access-toggle {
+  align-items: center;
+}
+
+.cms-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.cms-switch-track {
+  position: relative;
+  width: 2.6rem;
+  height: 1.45rem;
+  padding: 0;
+  border: 1px solid var(--sf-line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--sf-muted) 18%, white);
+  cursor: pointer;
+}
+
+.cms-switch-track.is-on {
+  background: color-mix(in srgb, var(--sf-secondary) 45%, white);
+  border-color: color-mix(in srgb, var(--sf-secondary-strong) 40%, var(--sf-line));
+}
+
+.cms-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 999px;
+  background: white;
+  box-shadow: 0 1px 2px rgba(28, 40, 52, 0.18);
+  transition: transform 0.15s ease;
+}
+
+.cms-switch-track.is-on .cms-switch-thumb {
+  transform: translateX(1.15rem);
+}
+
+.cms-switch-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--sf-muted);
+  min-width: 1.5rem;
+}
+
+.cms-switch-track.is-on + .cms-switch-label {
+  color: var(--sf-secondary-strong);
+}
+
 /* Core admin site settings form */
 .settings-form {
   display: flex;

@@ -1,57 +1,57 @@
 'use server'
 
-import { requireAppAdmin } from '@/core/auth/admin'
-import { ensurePayloadCmsUser, findPayloadCmsUserByEmail, getCmsBridgePassword } from './index'
+import { revalidatePath } from 'next/cache'
 
-export type CmsBridgeActionState = {
-  ok: boolean
-  message: string
-  status?: 'created' | 'exists'
-  email?: string
-  /** Shown only after a fresh create so the admin knows what to type at /admin. */
-  bridgePasswordHint?: string
+import { requireAppAdmin } from '@/core/auth/admin'
+import { db, sfUsers } from '@/core/db'
+import { eq } from 'drizzle-orm'
+import { setCoreUserCmsAccess } from './index'
+
+export type CmsAccessActionState = {
+  error?: string
+  ok?: boolean
+  cmsAccess?: boolean
 }
 
 /**
- * Ensure the signed-in global admin has a linked Payload CMS editor (same email).
- * Creates with `STARFORGE_CMS_BRIDGE_PASSWORD` (or default) when missing.
+ * Toggle CMS access for a core app user (provisions or revokes Payload stub).
  */
-export async function ensureMyCmsBridgeAccount(): Promise<CmsBridgeActionState> {
-  const session = await requireAppAdmin()
-  if (!session?.user?.email) {
-    return { ok: false, message: 'Sign in as a core app admin first.' }
+export async function setAppUserCmsAccessAction(
+  _prev: CmsAccessActionState,
+  formData: FormData,
+): Promise<CmsAccessActionState> {
+  const adminSession = await requireAppAdmin()
+  if (!adminSession) {
+    return { error: 'Sign in as a Starforge app admin to manage CMS access.' }
   }
 
-  const email = session.user.email.trim().toLowerCase()
-  const existing = await findPayloadCmsUserByEmail(email)
-  if (existing) {
-    return {
-      ok: true,
-      status: 'exists',
-      email,
-      message: `CMS editor already linked for ${email}. Open /admin and sign in with that email (and the password you set for Payload — seed/bootstrap uses the CMS bridge password).`,
-    }
+  const userId = String(formData.get('userId') ?? '').trim()
+  const enabled = String(formData.get('cmsAccess') ?? '') === 'true'
+
+  if (!userId) {
+    return { error: 'Missing user id.' }
   }
 
-  const password = getCmsBridgePassword()
-  const result = await ensurePayloadCmsUser({
-    email,
-    password,
-    name: session.user.name ?? undefined,
-  })
+  if (userId === adminSession.user.id && !enabled) {
+    return { error: 'You cannot remove your own CMS access.' }
+  }
 
+  const [target] = await db
+    .select({ id: sfUsers.id })
+    .from(sfUsers)
+    .where(eq(sfUsers.id, userId))
+    .limit(1)
+
+  if (!target) {
+    return { error: 'User not found.' }
+  }
+
+  const result = await setCoreUserCmsAccess(userId, enabled)
   if (!result.ok) {
-    return { ok: false, message: result.error }
+    return { error: result.error }
   }
 
-  return {
-    ok: true,
-    status: result.status,
-    email,
-    bridgePasswordHint: password,
-    message:
-      result.status === 'created'
-        ? `Created Payload CMS editor for ${email}. Sign in at /admin with this email and the CMS bridge password shown below.`
-        : `CMS editor already linked for ${email}.`,
-  }
+  revalidatePath('/app/admin/users')
+  revalidatePath('/app/admin/cms')
+  return { ok: true, cmsAccess: result.cmsAccess }
 }

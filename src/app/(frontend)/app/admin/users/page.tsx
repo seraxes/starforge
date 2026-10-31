@@ -14,6 +14,7 @@ export default async function AdminUsersPage() {
       name: sfUsers.name,
       email: sfUsers.email,
       role: sfUsers.role,
+      cmsAccess: sfUsers.cmsAccess,
       banned: sfUsers.banned,
       banReason: sfUsers.banReason,
       createdAt: sfUsers.createdAt,
@@ -26,6 +27,7 @@ export default async function AdminUsersPage() {
     name: row.name,
     email: row.email,
     role: normalizeAppRole(row.role),
+    cmsAccess: Boolean(row.cmsAccess),
     banned: Boolean(row.banned),
     banReason: row.banReason,
     createdAt: row.createdAt.toISOString(),
@@ -35,8 +37,9 @@ export default async function AdminUsersPage() {
     <section className="admin-section">
       <h2>App users</h2>
       <p className="lede admin-lede">
-        List core accounts (`sf_users`), set <code>admin</code> / <code>member</code>, or disable
-        (ban). These are not Payload CMS editors.
+        List core accounts (`sf_users`), set <code>admin</code> / <code>member</code>, toggle{' '}
+        <strong>CMS access</strong> (Payload <code>/admin</code> via the same Better Auth login),
+        or disable (ban). Product members without CMS access are never pushed into Payload.
       </p>
       <UsersAdminTable users={users} />
     </section>
