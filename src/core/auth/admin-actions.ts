@@ -13,6 +13,8 @@ import { isAppRole, type AppRole } from './permissions'
 export type AdminActionState = {
   error?: string
   ok?: boolean
+  /** Persisted role after a successful set-role action (keeps the select in sync). */
+  role?: AppRole
 }
 
 function toErrorMessage(error: unknown, fallback: string): string {
@@ -78,7 +80,7 @@ export async function setAppUserRoleAction(
 
   revalidatePath('/app/admin/users')
   revalidatePath('/app/admin/cms')
-  return { ok: true }
+  return { ok: true, role }
 }
 
 export async function setAppUserDisabledAction(

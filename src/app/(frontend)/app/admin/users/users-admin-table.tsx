@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useActionState } from 'react'
+import React, { useActionState, useEffect, useState } from 'react'
 import Link from 'next/link'
 
 import {
@@ -30,6 +30,14 @@ const cmsInitial: CmsAccessActionState = {}
 
 function RoleForm({ user }: { user: AdminUserRow }) {
   const [state, action, pending] = useActionState(setAppUserRoleAction, initial)
+  // Prefer the role returned by the action so a successful save (and React's
+  // post-action form reset) cannot snap the select back to a stale defaultValue.
+  const committedRole = state.role ?? user.role
+  const [role, setRole] = useState<AppRole>(committedRole)
+
+  useEffect(() => {
+    setRole(committedRole)
+  }, [committedRole])
 
   return (
     <form action={action} className="admin-inline-form">
@@ -37,7 +45,13 @@ function RoleForm({ user }: { user: AdminUserRow }) {
       <label className="sr-only" htmlFor={`role-${user.id}`}>
         Role for {user.email}
       </label>
-      <select id={`role-${user.id}`} name="role" defaultValue={user.role} disabled={pending}>
+      <select
+        id={`role-${user.id}`}
+        name="role"
+        value={role}
+        onChange={(event) => setRole(event.target.value as AppRole)}
+        disabled={pending}
+      >
         <option value="member">member</option>
         <option value="admin">admin</option>
       </select>
