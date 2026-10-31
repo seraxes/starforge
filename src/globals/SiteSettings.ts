@@ -6,6 +6,10 @@ import type { GlobalConfig } from 'payload'
  * - Editors: edit in Payload `/admin` → Globals → Site settings
  * - Core admins: edit the same doc via `/app/admin/settings` (Local API)
  *
+ * Primary nav items prefer a **Page** relationship; custom URL is for external
+ * links or paths. Flat menu for v1 — Joomla-like extras (CSS class, browser
+ * title override) are stub fields only; not used by the public layout yet.
+ *
  * Flags are product *capabilities* (registration, posts placeholder, modules…),
  * not npm libraries. Core reads them to hide UI and reject gated APIs.
  */
@@ -14,7 +18,7 @@ export const SiteSettings: GlobalConfig = {
   label: 'Site settings',
   admin: {
     description:
-      'Site name, primary nav, and feature toggles. Core admins can also edit at /app/admin/settings. App accounts stay separate from CMS editors.',
+      'Site name, primary nav (pages / URLs), and feature toggles. Core admins can also edit at /app/admin/settings. App accounts stay separate from CMS editors.',
   },
   access: {
     read: () => true,
@@ -38,7 +42,8 @@ export const SiteSettings: GlobalConfig = {
         plural: 'Primary nav',
       },
       admin: {
-        description: 'Links in the public site header. Use paths like /about or full URLs.',
+        description:
+          'Ordered header links. Prefer “CMS page” so URLs stay in sync with the page slug. Custom URL for external links or fixed paths. Nested menus / module assignment / draft preview come later.',
       },
       fields: [
         {
@@ -47,11 +52,49 @@ export const SiteSettings: GlobalConfig = {
           required: true,
         },
         {
-          name: 'href',
-          type: 'text',
+          name: 'linkType',
+          type: 'select',
           required: true,
+          defaultValue: 'page',
+          options: [
+            { label: 'CMS page', value: 'page' },
+            { label: 'Custom URL', value: 'custom' },
+          ],
           admin: {
-            description: 'Path (/about) or absolute URL.',
+            description: 'Page relationship (preferred) or a path / absolute URL.',
+          },
+        },
+        {
+          name: 'page',
+          type: 'relationship',
+          relationTo: 'pages',
+          admin: {
+            condition: (_data, siblingData) => siblingData?.linkType === 'page',
+            description: 'Published page rendered at /{slug}.',
+          },
+        },
+        {
+          name: 'url',
+          type: 'text',
+          admin: {
+            condition: (_data, siblingData) => siblingData?.linkType === 'custom',
+            description: 'Path (/about) or absolute URL (https://…).',
+          },
+        },
+        {
+          name: 'cssClass',
+          type: 'text',
+          admin: {
+            description:
+              'Stub — reserved for later Joomla-like menu CSS class. Not applied on the public site yet.',
+          },
+        },
+        {
+          name: 'browserTitle',
+          type: 'text',
+          admin: {
+            description:
+              'Stub — reserved for later browser / page title override when this item is active. Not applied yet.',
           },
         },
       ],
@@ -71,7 +114,8 @@ export const SiteSettings: GlobalConfig = {
           label: 'Registration',
           defaultValue: true,
           admin: {
-            description: 'Allow new app accounts via /register. When off, the link is hidden and signup is rejected.',
+            description:
+              'Allow new app accounts via /register. When off, the link is hidden and signup is rejected.',
           },
         },
         {
@@ -99,7 +143,8 @@ export const SiteSettings: GlobalConfig = {
           label: 'Modules (placeholder)',
           defaultValue: false,
           admin: {
-            description: 'Placeholder for extension modules (contact, notice bar, …). Keep off until the first module lands.',
+            description:
+              'Placeholder for extension modules (contact, notice bar, …). Keep off until the first module lands.',
           },
         },
         {

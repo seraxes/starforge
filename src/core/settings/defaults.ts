@@ -1,12 +1,34 @@
 /**
  * Defaults when the Payload `site-settings` global is missing or empty.
  * Keep in sync with `src/globals/SiteSettings.ts` field defaults.
+ *
+ * Public layout consumes resolved `{ label, href }` only. Payload stores
+ * page relationships / custom URLs; core resolves them in `getSiteSettings`.
  */
 
 export type NavItem = {
   label: string
+  /** Resolved path (`/about`) or absolute URL. */
   href: string
 }
+
+/** Shape written back to Payload (core admin + seed). */
+export type NavItemInput =
+  | {
+      label: string
+      linkType: 'page'
+      /** Payload pages document id (Postgres numeric). */
+      page: number
+      cssClass?: string
+      browserTitle?: string
+    }
+  | {
+      label: string
+      linkType: 'custom'
+      url: string
+      cssClass?: string
+      browserTitle?: string
+    }
 
 export type FeatureFlags = {
   registration: boolean
@@ -24,6 +46,7 @@ export type SiteSettingsData = {
 
 export const DEFAULT_SITE_NAME = 'Starforge'
 
+/** Fallback header links when the global has no usable nav rows. */
 export const DEFAULT_PRIMARY_NAV: NavItem[] = [
   { label: 'About', href: '/about' },
   { label: 'Getting started', href: '/getting-started' },

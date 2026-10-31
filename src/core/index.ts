@@ -11,6 +11,7 @@ export {
   getFeatureFlags,
   getSiteSettings,
   isRegistrationEnabled,
+  seedPrimaryNavFromPages,
   updateSiteSettings,
 } from './settings'
 export {

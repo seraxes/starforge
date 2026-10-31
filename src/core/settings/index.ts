@@ -10,40 +10,42 @@ import {
   DEFAULT_SITE_SETTINGS,
   type FeatureFlags,
   type NavItem,
+  type NavItemInput,
   type SiteSettingsData,
 } from './defaults'
+import {
+  navHasPageLinks,
+  navItemsToCustomInputs,
+  resolveNavItems,
+  type RawNavRow,
+} from './nav'
 
-export type { FeatureFlags, NavItem, SiteSettingsData }
+export type { FeatureFlags, NavItem, NavItemInput, SiteSettingsData }
+export type { RawNavRow }
 export {
   DEFAULT_FEATURE_FLAGS,
   DEFAULT_PRIMARY_NAV,
   DEFAULT_SITE_NAME,
   DEFAULT_SITE_SETTINGS,
 }
+export {
+  isExternalHref,
+  isNavItemActive,
+  navHasPageLinks,
+  navItemsToCustomInputs,
+  normalizeHref,
+  pageNavInputs,
+  resolveNavItems,
+} from './nav'
 
 type SiteSettingsDoc = {
   siteName?: string | null
-  primaryNav?: Array<{ label?: string | null; href?: string | null; id?: string | null }> | null
+  primaryNav?: RawNavRow[] | null
   featureRegistration?: boolean | null
   featureRichEditor?: boolean | null
   featurePosts?: boolean | null
   featureModules?: boolean | null
   featureDraftPreview?: boolean | null
-}
-
-function normalizeNav(raw: SiteSettingsDoc['primaryNav']): NavItem[] {
-  if (!Array.isArray(raw) || raw.length === 0) {
-    return DEFAULT_PRIMARY_NAV.map((item) => ({ ...item }))
-  }
-
-  const items = raw
-    .map((item) => ({
-      label: typeof item?.label === 'string' ? item.label.trim() : '',
-      href: typeof item?.href === 'string' ? item.href.trim() : '',
-    }))
-    .filter((item) => item.label && item.href)
-
-  return items.length > 0 ? items : DEFAULT_PRIMARY_NAV.map((item) => ({ ...item }))
 }
 
 function normalizeFlags(doc: SiteSettingsDoc | null | undefined): FeatureFlags {
@@ -58,7 +60,13 @@ function normalizeFlags(doc: SiteSettingsDoc | null | undefined): FeatureFlags {
 }
 
 export function normalizeSiteSettings(doc: SiteSettingsDoc | null | undefined): SiteSettingsData {
-  if (!doc) return { ...DEFAULT_SITE_SETTINGS, features: { ...DEFAULT_FEATURE_FLAGS }, primaryNav: DEFAULT_PRIMARY_NAV.map((i) => ({ ...i })) }
+  if (!doc) {
+    return {
+      ...DEFAULT_SITE_SETTINGS,
+      features: { ...DEFAULT_FEATURE_FLAGS },
+      primaryNav: DEFAULT_PRIMARY_NAV.map((i) => ({ ...i })),
+    }
+  }
 
   const siteName =
     typeof doc.siteName === 'string' && doc.siteName.trim()
@@ -67,13 +75,14 @@ export function normalizeSiteSettings(doc: SiteSettingsDoc | null | undefined): 
 
   return {
     siteName,
-    primaryNav: normalizeNav(doc.primaryNav),
+    primaryNav: resolveNavItems(doc.primaryNav),
     features: normalizeFlags(doc),
   }
 }
 
 /**
  * Load site settings (Payload global). Cached per request via React `cache`.
+ * Depth 1 so page relationships resolve to slugs for public hrefs.
  * Falls back to defaults if Payload/global is unavailable.
  */
 export const getSiteSettings = cache(async (): Promise<SiteSettingsData> => {
@@ -81,7 +90,7 @@ export const getSiteSettings = cache(async (): Promise<SiteSettingsData> => {
     const payload = await getPayload({ config })
     const doc = (await payload.findGlobal({
       slug: 'site-settings',
-      depth: 0,
+      depth: 1,
       // Public chrome + flags; global read access is open.
       overrideAccess: false,
     })) as SiteSettingsDoc
@@ -108,8 +117,21 @@ export async function isRegistrationEnabled(): Promise<boolean> {
 
 export type UpdateSiteSettingsInput = {
   siteName: string
-  primaryNav: NavItem[]
+  /**
+   * Resolved public nav (label + href) — written as custom-URL rows.
+   * Prefer `primaryNavInputs` when seeding page relationships.
+   */
+  primaryNav?: NavItem[]
+  /** Full Payload nav rows (page relationships and/or custom URLs). */
+  primaryNavInputs?: NavItemInput[]
   features: FeatureFlags
+}
+
+function toPayloadNavData(input: UpdateSiteSettingsInput): NavItemInput[] {
+  if (input.primaryNavInputs && input.primaryNavInputs.length > 0) {
+    return input.primaryNavInputs
+  }
+  return navItemsToCustomInputs(input.primaryNav ?? [])
 }
 
 /**
@@ -118,12 +140,7 @@ export type UpdateSiteSettingsInput = {
  */
 export async function updateSiteSettings(input: UpdateSiteSettingsInput): Promise<SiteSettingsData> {
   const siteName = input.siteName.trim() || DEFAULT_SITE_NAME
-  const primaryNav = input.primaryNav
-    .map((item) => ({
-      label: item.label.trim(),
-      href: item.href.trim(),
-    }))
-    .filter((item) => item.label && item.href)
+  const primaryNav = toPayloadNavData(input)
 
   const payload = await getPayload({ config })
   const doc = (await payload.updateGlobal({
@@ -137,6 +154,7 @@ export async function updateSiteSettings(input: UpdateSiteSettingsInput): Promis
       featureModules: input.features.modules,
       featureDraftPreview: input.features.draftPreview,
     },
+    depth: 1,
     overrideAccess: true,
   })) as SiteSettingsDoc
 
@@ -149,7 +167,7 @@ export async function ensureSiteSettingsDefaults(): Promise<SiteSettingsData> {
     const payload = await getPayload({ config })
     const existing = (await payload.findGlobal({
       slug: 'site-settings',
-      depth: 0,
+      depth: 1,
       overrideAccess: true,
     })) as SiteSettingsDoc & { id?: unknown }
 
@@ -163,7 +181,7 @@ export async function ensureSiteSettingsDefaults(): Promise<SiteSettingsData> {
     return updateSiteSettings({
       siteName: hasName ? String(existing.siteName).trim() : DEFAULT_SITE_NAME,
       primaryNav: hasNav
-        ? normalizeNav(existing.primaryNav)
+        ? resolveNavItems(existing.primaryNav)
         : DEFAULT_PRIMARY_NAV.map((i) => ({ ...i })),
       features: normalizeFlags(existing),
     })
@@ -173,5 +191,86 @@ export async function ensureSiteSettingsDefaults(): Promise<SiteSettingsData> {
       primaryNav: DEFAULT_PRIMARY_NAV.map((i) => ({ ...i })),
       features: { ...DEFAULT_FEATURE_FLAGS },
     })
+  }
+}
+
+/**
+ * Point primary nav at published sample pages by relationship (seed).
+ * Idempotent: skips when page links already exist, or when nav was customized
+ * beyond the sample page paths.
+ */
+export async function seedPrimaryNavFromPages(
+  entries: Array<{ label: string; slug: string }>,
+): Promise<{ updated: boolean; primaryNav: NavItem[] }> {
+  const payload = await getPayload({ config })
+  const existing = (await payload.findGlobal({
+    slug: 'site-settings',
+    depth: 0,
+    overrideAccess: true,
+  })) as SiteSettingsDoc
+
+  const sampleHrefs = new Set(entries.map((e) => `/${e.slug}`))
+  const resolvedExisting = resolveNavItems(existing.primaryNav)
+  const hasRows = Array.isArray(existing.primaryNav) && existing.primaryNav.length > 0
+  const onlySamplePaths =
+    !hasRows ||
+    (resolvedExisting.length > 0 &&
+      resolvedExisting.every((item) => sampleHrefs.has(item.href) || item.href === '/'))
+
+  if (navHasPageLinks(existing.primaryNav) || (hasRows && !onlySamplePaths)) {
+    const resolved = await getSiteSettingsUncached()
+    return { updated: false, primaryNav: resolved.primaryNav }
+  }
+
+  const inputs: NavItemInput[] = []
+  for (const entry of entries) {
+    const found = await payload.find({
+      collection: 'pages',
+      where: { slug: { equals: entry.slug } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    const doc = found.docs[0]
+    if (!doc || typeof doc.id !== 'number') continue
+    inputs.push({
+      label: entry.label,
+      linkType: 'page',
+      page: doc.id,
+    })
+  }
+
+  if (inputs.length === 0) {
+    const fallback = await ensureSiteSettingsDefaults()
+    return { updated: false, primaryNav: fallback.primaryNav }
+  }
+
+  const next = await updateSiteSettings({
+    siteName:
+      typeof existing.siteName === 'string' && existing.siteName.trim()
+        ? existing.siteName.trim()
+        : DEFAULT_SITE_NAME,
+    primaryNavInputs: inputs,
+    features: normalizeFlags(existing),
+  })
+
+  return { updated: true, primaryNav: next.primaryNav }
+}
+
+async function getSiteSettingsUncached(): Promise<SiteSettingsData> {
+  try {
+    const payload = await getPayload({ config })
+    const doc = (await payload.findGlobal({
+      slug: 'site-settings',
+      depth: 1,
+      overrideAccess: true,
+    })) as SiteSettingsDoc
+    return normalizeSiteSettings(doc)
+  } catch {
+    return {
+      ...DEFAULT_SITE_SETTINGS,
+      features: { ...DEFAULT_FEATURE_FLAGS },
+      primaryNav: DEFAULT_PRIMARY_NAV.map((i) => ({ ...i })),
+    }
   }
 }

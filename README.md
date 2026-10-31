@@ -84,21 +84,23 @@ App login uses **email**, not a separate username. Forgot / reset password is **
 | `member` | Default product user | App routes only (no Payload stub unless CMS access toggled on) |
 | `cms_access` | Per-user switch on Users | Payload `/admin` via Better Auth session |
 
-### Site settings + feature toggles
+### Site settings + primary nav + feature toggles
 
 One Payload global (`site-settings`) is the source of truth for site chrome and capability flags. Core admins edit it at **`/app/admin/settings`** (no CMS login required). CMS editors can edit the same document under Payload **Globals → Site settings**.
 
 | Field | Default | What it does |
 | --- | --- | --- |
 | Site name | `Starforge` | Public header brand + metadata default |
-| Primary nav | About, Getting started | Links in the public site header |
+| Primary nav | Seed links **About**, **Getting started**, **Welcome** via **CMS page** relationships | Ordered header links; current path gets an active style. Prefer **CMS page**; **Custom URL** for paths / external links |
 | Registration | on | Hide `/register` + reject signup when off |
 | Rich editor | on | Flag reserved for a future simpler mode (Lexical stays on Pages today) |
 | Posts | **off** | Placeholder — no Posts collection yet |
 | Modules | **off** | Placeholder — first extension module not shipped |
 | Draft preview | **off** | Placeholder — preview slice not shipped |
 
-`npm run seed` ensures the global exists with those defaults. Flags are **product capabilities**, not npm libraries.
+`npm run seed` ensures the global exists and points primary nav at the sample pages. Flags are **product capabilities**, not npm libraries.
+
+**Later (not in this slice):** nested menus, module assignment, draft preview, Joomla-like menu params beyond the stub `cssClass` / `browserTitle` fields (stubs are not applied on the public site yet).
 
 **First admin paths:**
 
@@ -123,7 +125,7 @@ Members visiting `/app/admin/users` are redirected home with an **Admins only** 
 Idempotent local demo data:
 
 - **Published CMS pages:** `/about`, `/getting-started`, `/welcome`
-- **Site settings** global defaults
+- **Site settings** global defaults + **primary nav** linked to those pages (Payload relationships)
 - **Bootstrap app admin**: `admin@starforge.local` / `starforge-admin` → `admin` + `cms_access` + Payload stub
 - **Demo app member**: `demo@starforge.local` / `starforge-demo` → `member`, **no** CMS access
 - Promotes `STARFORGE_ADMIN_EMAILS` and grants them CMS access
@@ -137,6 +139,33 @@ Idempotent local demo data:
 
 Public render: `src/app/(frontend)/(public)/[slug]/page.tsx` · `getPublishedPageBySlug` · `buildPageMetadata`.
 
+### Windows: primary nav + public layout
+
+```bat
+cd %USERPROFILE%\starforge
+git fetch origin
+git checkout cursor/primary-nav-public-layout-4226
+git pull origin cursor/primary-nav-public-layout-4226
+
+docker compose up -d
+if not exist .env copy .env.example .env
+npm install
+npm run db:core:push
+npm run seed
+npm run generate:types
+
+rem Stop ANY old npm run dev window (Ctrl+C), then:
+npm run dev
+```
+
+PowerShell equivalent start: `cd $env:USERPROFILE\starforge`
+
+1. Open **http://localhost:3000** — header shows site name (**Starforge**) + nav (**About**, **Getting started**, **Welcome**).
+2. Open **http://localhost:3000/about** — **About** nav link is active (underlined / primary color).
+3. Open **http://localhost:3000/getting-started** and **/welcome** — matching nav item active.
+4. Sign in at **/login** as `admin@starforge.local` / `starforge-admin`, open **/admin** → Globals → **Site settings** — primary nav items use **CMS page** link type.
+5. Optional: **/app/admin/settings** still edits site name / path nav / toggles.
+
 ### Windows: one-login CMS smoke test
 
 **How it works now:** core `/login` (Better Auth) → `/admin` or `/admin/login` is blocked by middleware → `/api/cms/exchange` sets a Payload `payload-token` JWT → Payload **Dashboard**. Payload’s stock email/password form is never served.
@@ -146,8 +175,8 @@ Public render: `src/app/(frontend)/(public)/[slug]/page.tsx` · `getPublishedPag
 ```bat
 cd %USERPROFILE%\starforge
 git fetch origin
-git checkout cursor/global-admin-cms-bridge-35ec
-git pull origin cursor/global-admin-cms-bridge-35ec
+git checkout main
+git pull origin main
 
 docker compose up -d
 if not exist .env copy .env.example .env
@@ -211,13 +240,13 @@ src/
     api/health/             # core health route
     api/me/                 # current app session
   collections/              # Payload content collections (Pages, Media, Users)
-  globals/SiteSettings.ts   # site name, primary nav, feature toggles
-  components/               # SiteHeader + RichText (Lexical → JSX)
+  globals/SiteSettings.ts   # site name, primary nav (page/URL), feature toggles
+  components/               # SiteHeader + SiteNav + RichText (Lexical → JSX)
   core/
     auth/                   # Better Auth + roles/admin helpers + Zod schemas
     cms-bridge/             # cms_access + Payload session strategy (one login)
     content/                # published CMS reads + page SEO metadata helpers
-    settings/               # read/update site-settings + flag helpers
+    settings/               # site-settings + nav resolve + flag helpers
     db/                     # Drizzle core schema + client
   fields/pagesLexical.ts    # Lexical editor features for Pages
   seed.ts                   # pages + settings + bootstrap admin + CMS bridge + demo member
@@ -230,6 +259,7 @@ src/
 - Forgot / reset password (needs email — deferred), OAuth
 - Second Payload password login (removed — Better Auth session strategy only)
 - Draft preview (flag exists as placeholder), Posts collection, extension modules
+- Nested menus, module assignment, Joomla-like menu CSS / browser-title overrides (stub fields only)
 - Airsoftnexus 2.0 feature parity
 
 ## Troubleshooting

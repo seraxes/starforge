@@ -14,7 +14,8 @@ export async function generateMetadata() {
 }
 
 /**
- * Public site shell — brand + primary nav from Payload site-settings.
+ * Public site shell — brand + primary nav from Payload site-settings
+ * (page relationships / custom URLs resolved in core).
  * Core admin (`/app/admin`) uses its own layout without this chrome.
  */
 export default async function PublicSiteLayout(props: { children: React.ReactNode }) {
