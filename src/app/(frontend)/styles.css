@@ -1466,6 +1466,60 @@ button:disabled {
   margin: 0 0 0.25rem;
 }
 
+.gantry-section-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.gantry-inline-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.gantry-field-hint {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--sf-muted);
+}
+
+.gantry-inline-input {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 22rem;
+  margin: 0;
+  padding: 0.28rem 0.45rem;
+  border: 1px solid var(--sf-line);
+  background: rgba(255, 255, 255, 0.92);
+  color: inherit;
+  font: inherit;
+}
+
+.gantry-section-name-input {
+  font-size: 1.05rem;
+  font-weight: 700;
+  max-width: 18rem;
+}
+
+.gantry-section-class-input {
+  font-size: 0.85rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  max-width: 22rem;
+}
+
+.gantry-slot-name-input {
+  font-size: 0.92rem;
+  font-weight: 700;
+  max-width: 12rem;
+  min-width: 5rem;
+}
+
 .gantry-section-actions,
 .gantry-row-actions,
 .gantry-slot-actions {

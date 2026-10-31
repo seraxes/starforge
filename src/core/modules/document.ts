@@ -20,6 +20,27 @@ export function slugifyLayoutId(raw: string): string {
   return slug || 'untitled'
 }
 
+/**
+ * Keep only safe CSS class tokens (letters/digits/_/-; must start with letter or _).
+ * Returns undefined when nothing remains.
+ */
+export function sanitizeCssClassList(raw: string | undefined | null): string | undefined {
+  if (typeof raw !== 'string') return undefined
+  const tokens = raw
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter((t) => /^[A-Za-z_][\w-]*$/.test(t))
+  if (tokens.length === 0) return undefined
+  return [...new Set(tokens)].join(' ')
+}
+
+/** Trim instance / section display labels; empty → undefined. */
+export function sanitizeDisplayName(raw: string | undefined | null): string | undefined {
+  if (typeof raw !== 'string') return undefined
+  const trimmed = raw.trim()
+  return trimmed.length > 0 ? trimmed : undefined
+}
+
 export function newLayoutEntityId(prefix: string): string {
   const rand =
     typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -50,9 +71,11 @@ function normalizeSlot(entry: LayoutSlot | null | undefined, index: number): Lay
       ? entry.id.trim()
       : newLayoutEntityId(`slot-${entry.moduleId}`)
   const config = normalizeConfig(entry.config)
+  const name = sanitizeDisplayName(entry.name)
   return {
     id,
     moduleId: entry.moduleId.trim(),
+    ...(name ? { name } : {}),
     // Provisional width — row pass converts legacy 1–12 columns → %.
     width: typeof entry.width === 'number' && Number.isFinite(entry.width) ? entry.width : LAYOUT_WIDTH_FULL,
     enabled: entry.enabled !== false,
@@ -87,6 +110,7 @@ function normalizeSection(entry: LayoutSection | null | undefined, index: number
   const id = entry.id.trim()
   const label =
     typeof entry.label === 'string' && entry.label.trim() ? entry.label.trim() : id
+  const cssClass = sanitizeCssClassList(entry.cssClass)
   const rows = Array.isArray(entry.rows)
     ? (entry.rows.map((r, i) => normalizeRow(r, i)).filter(Boolean) as LayoutRow[])
     : []
@@ -94,6 +118,7 @@ function normalizeSection(entry: LayoutSection | null | undefined, index: number
   return {
     id,
     label,
+    ...(cssClass ? { cssClass } : {}),
     order: typeof entry.order === 'number' && Number.isFinite(entry.order) ? entry.order : index,
     rows,
   }

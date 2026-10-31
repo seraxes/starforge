@@ -11,6 +11,8 @@ import {
   findSection,
   findSlot,
   newLayoutEntityId,
+  sanitizeCssClassList,
+  sanitizeDisplayName,
   slugifyLayoutId,
 } from './document'
 import { clampGridWidth, evenColumnWidths, LAYOUT_WIDTH_FULL, resizeAdjacentPair } from './grid'
@@ -137,6 +139,80 @@ export async function renameLayoutSectionAction(
   })
 
   if (state.ok) state.message = `Section renamed to “${label}”.`
+  return state
+}
+
+/**
+ * Persist section display name and/or CSS classes from the layout canvas.
+ * Section `id` is never changed. Empty cssClass clears the field.
+ */
+export async function updateLayoutSectionMetaAction(
+  _prev: LayoutActionState,
+  formData: FormData,
+): Promise<LayoutActionState> {
+  const sectionId = String(formData.get('sectionId') ?? '').trim()
+  if (!sectionId) return { error: 'Missing section id.' }
+
+  const hasLabel = formData.has('label')
+  const hasCssClass = formData.has('cssClass')
+  if (!hasLabel && !hasCssClass) {
+    return { error: 'Nothing to update on this section.' }
+  }
+
+  const label = hasLabel ? String(formData.get('label') ?? '').trim() : undefined
+  if (hasLabel && !label) return { error: 'Section name is required.' }
+
+  const cssClassRaw = hasCssClass ? String(formData.get('cssClass') ?? '') : undefined
+  const cssClass = hasCssClass ? sanitizeCssClassList(cssClassRaw) : undefined
+
+  const state = await mutateLayout((doc) => {
+    const section = findSection(doc, sectionId)
+    if (!section) return { error: `Section “${sectionId}” not found.` }
+    if (hasLabel && label) section.label = label
+    if (hasCssClass) {
+      if (cssClass) section.cssClass = cssClass
+      else delete section.cssClass
+    }
+    return doc
+  })
+
+  if (state.ok) {
+    const bits: string[] = []
+    if (hasLabel && label) bits.push(`name “${label}”`)
+    if (hasCssClass) bits.push(cssClass ? `classes “${cssClass}”` : 'classes cleared')
+    state.message = `Section ${bits.join(' · ')} saved.`
+  }
+  return state
+}
+
+/**
+ * Persist a particle/module instance display name on a layout slot.
+ * Does not change `moduleId` (particle type). Empty name clears the override.
+ */
+export async function renameLayoutSlotAction(
+  _prev: LayoutActionState,
+  formData: FormData,
+): Promise<LayoutActionState> {
+  const sectionId = String(formData.get('sectionId') ?? '').trim()
+  const rowId = String(formData.get('rowId') ?? '').trim()
+  const slotId = String(formData.get('slotId') ?? '').trim()
+  if (!sectionId || !rowId || !slotId) return { error: 'Missing slot reference.' }
+
+  const name = sanitizeDisplayName(String(formData.get('name') ?? ''))
+
+  const state = await mutateLayout((doc) => {
+    const found = findSlot(doc, sectionId, rowId, slotId)
+    if (!found) return { error: 'Slot not found.' }
+    if (name) found.slot.name = name
+    else delete found.slot.name
+    return doc
+  })
+
+  if (state.ok) {
+    state.message = name
+      ? `Particle renamed to “${name}”.`
+      : 'Particle display name cleared (uses catalog name).'
+  }
   return state
 }
 

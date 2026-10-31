@@ -9,11 +9,13 @@ import {
   dropParticleIntoRowAction,
   removeLayoutRowAction,
   removeSlotAction,
+  renameLayoutSlotAction,
   reorderLayoutSectionsAction,
   reorderRowSlotsAction,
   resetLayoutToDefaultAction,
   resizeAdjacentSlotsAction,
   toggleSlotAction,
+  updateLayoutSectionMetaAction,
   type LayoutActionState,
 } from '@/core/modules/actions'
 import {
@@ -195,8 +197,29 @@ function ParticleBlock({
   const [pending, startTransition] = useTransition()
   const [flash, setFlash] = useState<LayoutActionState>({})
   const meta = modules.find((m) => m.id === slot.moduleId)
+  const catalogName = meta?.name ?? slot.moduleId
+  const displayName = slot.name?.trim() || catalogName
   const enabled = slot.enabled !== false
   const pctLabel = widthToPercentLabel(slot.width)
+
+  const persistName = useCallback(
+    (nextRaw: string) => {
+      const next = nextRaw.trim()
+      const prev = (slot.name ?? '').trim()
+      if (next === prev) return
+      const fd = new FormData()
+      fd.set('sectionId', sectionId)
+      fd.set('rowId', rowId)
+      fd.set('slotId', slot.id)
+      fd.set('name', next)
+      startTransition(async () => {
+        const result = await renameLayoutSlotAction({}, fd)
+        setFlash(result)
+        router.refresh()
+      })
+    },
+    [rowId, router, sectionId, slot.id, slot.name],
+  )
 
   const classNames = [
     'gantry-slot',
@@ -245,7 +268,7 @@ function ParticleBlock({
             className="gantry-slot-handle"
             draggable
             title="Drag to reorder in this row"
-            aria-label={`Drag to reorder ${meta?.name ?? slot.moduleId}`}
+            aria-label={`Drag to reorder ${displayName}`}
             onDragStart={(event) => {
               event.stopPropagation()
               event.dataTransfer.setData(DND_SLOT, slot.id)
@@ -260,7 +283,26 @@ function ParticleBlock({
           >
             ⋮⋮
           </button>
-          <strong>{meta?.name ?? slot.moduleId}</strong>
+          <label className="gantry-inline-label gantry-slot-name-label">
+            <span className="sr-only">Particle display name</span>
+            <input
+              key={`slot-name-${slot.id}-${slot.name ?? ''}`}
+              type="text"
+              className="gantry-inline-input gantry-slot-name-input"
+              defaultValue={slot.name ?? ''}
+              placeholder={catalogName}
+              disabled={pending}
+              title="Instance display name (does not change particle type)"
+              aria-label={`Display name for ${catalogName}`}
+              onBlur={(event) => persistName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault()
+                  ;(event.target as HTMLInputElement).blur()
+                }
+              }}
+            />
+          </label>
         </div>
         <span className="gantry-slot-pct" title={`Width ${pctLabel} (min ${LAYOUT_WIDTH_MIN}%)`}>
           {pctLabel}
@@ -572,6 +614,9 @@ function SectionCanvas({
   onSectionDragOver: (sectionId: string, position: 'before' | 'after') => void
   onSectionDrop: (targetSectionId: string, position: 'before' | 'after') => void
 }) {
+  const router = useRouter()
+  const [metaPending, startMetaSave] = useTransition()
+  const [metaFlash, setMetaFlash] = useState<LayoutActionState>({})
   const [rowState, rowAction, rowPending] = useActionState(addLayoutRowAction, initialState)
   const rows = sortRows(section.rows)
   const [slotMap, setSlotMap] = useState<Record<string, LayoutSlot[]>>(() => {
@@ -579,13 +624,49 @@ function SectionCanvas({
     for (const row of section.rows) map[row.id] = sortSlots(row.slots)
     return map
   })
+  const [slotMapSource, setSlotMapSource] = useState(section)
 
-  // Keep local map in sync when server document refreshes.
-  React.useEffect(() => {
+  // Adjust local slot widths/order when the server section document refreshes.
+  if (section !== slotMapSource) {
+    setSlotMapSource(section)
     const map: Record<string, LayoutSlot[]> = {}
     for (const row of section.rows) map[row.id] = sortSlots(row.slots)
     setSlotMap(map)
-  }, [section])
+  }
+
+  const persistSectionMeta = useCallback(
+    (fields: { label?: string; cssClass?: string }) => {
+      const fd = new FormData()
+      fd.set('sectionId', section.id)
+      let changed = false
+      if (fields.label !== undefined) {
+        const next = fields.label.trim()
+        if (!next) {
+          // Revert empty label in the uncontrolled input via remount key on refresh/no-op.
+          return
+        }
+        if (next !== section.label) {
+          fd.set('label', next)
+          changed = true
+        }
+      }
+      if (fields.cssClass !== undefined) {
+        const next = fields.cssClass.trim()
+        const prev = (section.cssClass ?? '').trim()
+        if (next !== prev) {
+          fd.set('cssClass', next)
+          changed = true
+        }
+      }
+      if (!changed) return
+      startMetaSave(async () => {
+        const result = await updateLayoutSectionMetaAction({}, fd)
+        setMetaFlash(result)
+        router.refresh()
+      })
+    },
+    [router, section.cssClass, section.id, section.label],
+  )
 
   const classNames = [
     'gantry-section',
@@ -635,9 +716,55 @@ function SectionCanvas({
           >
             ⋮⋮
           </button>
-          <div>
-            <h3>{section.label}</h3>
+          <div className="gantry-section-identity">
+            <label className="gantry-inline-label">
+              <span className="sr-only">Section name</span>
+              <input
+                key={`section-label-${section.id}-${section.label}`}
+                type="text"
+                className="gantry-inline-input gantry-section-name-input"
+                defaultValue={section.label}
+                disabled={metaPending}
+                required
+                title="Section display name"
+                aria-label="Section name"
+                onBlur={(event) => {
+                  const next = event.target.value.trim()
+                  if (!next) {
+                    event.target.value = section.label
+                    return
+                  }
+                  persistSectionMeta({ label: next })
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    ;(event.target as HTMLInputElement).blur()
+                  }
+                }}
+              />
+            </label>
             <code className="layout-id">{section.id}</code>
+            <label className="gantry-inline-label gantry-section-class-label">
+              <span className="gantry-field-hint">CSS classes</span>
+              <input
+                key={`section-class-${section.id}-${section.cssClass ?? ''}`}
+                type="text"
+                className="gantry-inline-input gantry-section-class-input"
+                defaultValue={section.cssClass ?? ''}
+                disabled={metaPending}
+                placeholder="e.g. boxed dark-header"
+                title="Space-separated CSS classes on the public section wrapper"
+                aria-label="Section CSS classes"
+                onBlur={(event) => persistSectionMeta({ cssClass: event.target.value })}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    ;(event.target as HTMLInputElement).blur()
+                  }
+                }}
+              />
+            </label>
           </div>
         </div>
         <form action={rowAction} className="gantry-section-actions">
@@ -647,6 +774,7 @@ function SectionCanvas({
           </button>
         </form>
       </header>
+      <ActionFeedback state={metaFlash} />
       <ActionFeedback state={rowState} />
 
       {rows.length === 0 ? (
@@ -693,10 +821,13 @@ export function LayoutEditor({ document, source, modules }: Props) {
   } | null>(null)
 
   const [sectionList, setSectionList] = useState(() => sortSections(document.sections))
+  const [sectionListSource, setSectionListSource] = useState(document.sections)
 
-  React.useEffect(() => {
+  // Adjust canvas section order when the server layout document refreshes.
+  if (document.sections !== sectionListSource) {
+    setSectionListSource(document.sections)
     setSectionList(sortSections(document.sections))
-  }, [document.sections])
+  }
 
   const persistSectionOrder = useCallback(
     (ordered: LayoutSection[]) => {
@@ -813,11 +944,13 @@ export function LayoutEditor({ document, source, modules }: Props) {
 
           <ol className="gantry-howto">
             <li>
-              Create a <strong>section</strong> — drag the <strong>⋮⋮</strong> handle to reorder
+              Create a <strong>section</strong> — edit its <strong>name</strong> /{' '}
+              <strong>CSS classes</strong>; drag the <strong>⋮⋮</strong> handle to reorder
             </li>
             <li>Add a <strong>row</strong> inside it</li>
             <li>
-              <strong>Drag</strong> a particle from the left into the row
+              <strong>Drag</strong> a particle from the left into the row — edit the instance{' '}
+              <strong>display name</strong> (type id stays the same)
             </li>
             <li>
               Drop another beside it (side-by-side), then <strong>drag the divider</strong> — 1%
@@ -864,8 +997,9 @@ export function LayoutEditor({ document, source, modules }: Props) {
         <summary>Layout document (JSON storage)</summary>
         <pre>{JSON.stringify({ ...document, sections: sectionList }, null, 2)}</pre>
         <p className="layout-muted">
-          Section <code>order</code> is persisted when you drag sections. Widths are integer
-          percents. Custom uses CodeMirror. Styles / Outlines / Menu remain next polish — see{' '}
+          Section <code>label</code> / <code>cssClass</code> and slot <code>name</code> save on
+          blur. Section <code>order</code> persists on drag. Widths are integer percents. Custom
+          uses CodeMirror. Styles / Outlines / Menu remain next polish — see{' '}
           <code>src/core/modules/README.md</code>.
         </p>
       </details>

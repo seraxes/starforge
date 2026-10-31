@@ -28,11 +28,18 @@ Reference: [docs.gantry.org](https://docs.gantry.org/).
     {
       "id": "header",
       "label": "Header",
+      "cssClass": "boxed dark-header",
       "rows": [
         {
           "id": "header-row-1",
           "slots": [
-            { "id": "…", "moduleId": "notice-bar", "width": 100, "enabled": true }
+            {
+              "id": "…",
+              "moduleId": "notice-bar",
+              "name": "Promo notice",
+              "width": 100,
+              "enabled": true
+            }
           ]
         }
       ]
@@ -53,6 +60,10 @@ Reference: [docs.gantry.org](https://docs.gantry.org/).
 }
 ```
 
+- `section.label` — editable canvas display name (id stays stable).
+- `section.cssClass` — space-separated classes on the public section/`footer` wrapper (plus `sf-layout-section`).
+- `slot.name` — optional instance display name on the canvas; does **not** change `moduleId`.
+
 Legacy v1 / v2 upgrade on read.
 
 ## Rules
@@ -67,9 +78,9 @@ Legacy v1 / v2 upgrade on read.
 
 ## Admin UX (this PR) — Gantry Layout Manager flow
 
-1. **Create section** — drag the **⋮⋮** handle to **reorder sections** (persists `order` in JSON)
+1. **Create section** — edit **name** + **CSS classes** inline; drag the **⋮⋮** handle to **reorder sections** (persists `order` in JSON)
 2. **Add row** inside the section
-3. **Drag** a particle from the left palette **into the row**
+3. **Drag** a particle from the left palette **into the row** — edit the instance **display name** (type id unchanged)
 4. Drop a second beside it → **side-by-side** in one horizontal row (~50%/50%; `flex-wrap: nowrap`); **drag the divider** to resize in **1%** steps (**5%–95%**, pair sums to **100%**). Particle settings expand **inside** the cell — they never force the row to stack.
 5. Layout admin page is **full width** (no narrow max-width column)
 6. **Drag ⋮⋮** on a particle already in a row to **reorder** left↔right (persists `order`; keeps % widths)
@@ -91,8 +102,8 @@ Custom stays available for free-form HTML — do **not** generate Logo/Copyright
 | Gantry concept | Starforge next step |
 | --- | --- |
 | Drag particles between rows | Extend HTML5 DnD |
-| **Block settings** (CSS classes, variations, tag attributes) | Per-slot settings panel |
-| **Section settings** (boxed/fullwidth, classes) | Fields on `LayoutSection` |
+| **Block settings** (CSS classes, variations, tag attributes) | Per-slot settings panel (section `cssClass` + slot `name` already ship) |
+| **Section settings** (boxed/fullwidth beyond classes) | More fields on `LayoutSection` |
 | **Styles** | Styles admin with CodeMirror or **Monaco** |
 | **Outlines** | Multiple named layout docs / inheritance |
 | **Menu editor** | After nav/menu depth grows |

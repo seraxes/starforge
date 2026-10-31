@@ -38,6 +38,11 @@ export type LayoutSlotConfig = {
 export type LayoutSlot = {
   id: string
   moduleId: string
+  /**
+   * Optional instance display name on the canvas (editable).
+   * Does not change `moduleId` / particle type. Empty → catalog name.
+   */
+  name?: string
   /** Percent of the row (typically 5–100). Defaults to 100. */
   width: LayoutGridWidth
   enabled?: boolean
@@ -55,7 +60,13 @@ export type LayoutRow = {
 /** Vertical section on the canvas (Header, Main, Footer, …). */
 export type LayoutSection = {
   id: string
+  /** Display name on the canvas (editable; id stays stable). */
   label: string
+  /**
+   * Optional space-separated CSS classes applied on the public section wrapper.
+   * Does not replace the built-in `sf-layout-section` class.
+   */
+  cssClass?: string
   order?: number
   rows: LayoutRow[]
 }

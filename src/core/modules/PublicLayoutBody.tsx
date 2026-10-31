@@ -21,6 +21,11 @@ function sortByOrder<T extends { order?: number; id: string }>(items: T[]): T[] 
   return [...items].sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id))
 }
 
+function sectionWrapperClass(section: LayoutSection, base: string): string {
+  const extra = typeof section.cssClass === 'string' ? section.cssClass.trim() : ''
+  return extra ? `${base} ${extra}` : base
+}
+
 function SectionBlock({
   section,
   pageContent,
@@ -42,14 +47,20 @@ function SectionBlock({
 
   if (isFooter) {
     return (
-      <footer className="site-footer sf-layout-section" data-sf-section={section.id}>
+      <footer
+        className={sectionWrapperClass(section, 'site-footer sf-layout-section')}
+        data-sf-section={section.id}
+      >
         {inner}
       </footer>
     )
   }
 
   return (
-    <section className="sf-layout-section" data-sf-section={section.id}>
+    <section
+      className={sectionWrapperClass(section, 'sf-layout-section')}
+      data-sf-section={section.id}
+    >
       {inner}
     </section>
   )
