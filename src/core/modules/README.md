@@ -74,7 +74,7 @@ Legacy v1 / v2 upgrade on read.
 5. Layout admin page is **full width** (no narrow max-width column)
 6. **Drag ⋮⋮** on a particle already in a row to **reorder** left↔right (persists `order`; keeps % widths)
 7. Custom particle: CodeMirror HTML/CSS/JS (resizable panels — no plain code textareas)
-8. Typed particles open field editors on the canvas (Logo media/URL/alt/size; Copyright text/year/link; Social link list)
+8. Typed / Custom settings open in a **floating overlay** (does not expand the slot or push the row; Escape / outside click closes)
 
 ### Typed Core particles
 

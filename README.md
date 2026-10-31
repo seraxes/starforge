@@ -389,8 +389,8 @@ npm run dev
 4. Create a section → **Add row** → **drag** Notice bar (or Custom) into the row.
 5. Drag a second particle into the same row — both sit **side by side**; drag the divider (1% steps, 5%–95%, sum 100%).
 6. Drag a particle’s **⋮⋮** handle to **reorder** within the row (order persists; widths stay).
-7. Drag **Logo / Image**, **Copyright**, and **Social** from the palette — each opens typed field editors (not Custom HTML). Save and confirm public render.
-8. Edit a Custom particle with CodeMirror; **Reset to default** restores the seeded layout.
+7. Drag **Logo / Image**, **Copyright**, and **Social** from the palette — **Settings** opens a floating overlay (row stays side-by-side). Save and confirm public render.
+8. Edit Custom via its Settings overlay (CodeMirror); Escape / outside click closes. **Reset to default** restores the seeded layout.
 
 ## Not in this scaffold
 

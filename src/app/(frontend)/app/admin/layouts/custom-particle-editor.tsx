@@ -9,6 +9,8 @@ import {
 } from '@/core/modules/actions'
 import type { LayoutSlot } from '@/core/modules/types'
 
+import { ParticleSettingsPopover } from './particle-settings-popover'
+
 const initialState: LayoutActionState = {}
 
 function ActionFeedback({ state }: { state: LayoutActionState }) {
@@ -31,9 +33,7 @@ function ActionFeedback({ state }: { state: LayoutActionState }) {
 
 /**
  * Gantry-like Custom particle settings — HTML / CSS / JS with CodeMirror
- * (syntax highlighting + resizable panels). Plain textareas are intentionally
- * avoided per product preference; Monaco is reserved as an optional later
- * upgrade for a full Styles IDE surface.
+ * in a floating overlay (does not expand the slot / push the row).
  */
 export function CustomParticleEditor({
   sectionId,
@@ -48,8 +48,7 @@ export function CustomParticleEditor({
   const cfg = slot.config ?? {}
 
   return (
-    <details className="gantry-custom-editor">
-      <summary>Custom particle — HTML / CSS / JS</summary>
+    <ParticleSettingsPopover title="Custom particle — HTML / CSS / JS">
       <form action={formAction} className="gantry-custom-form">
         <input type="hidden" name="sectionId" value={sectionId} />
         <input type="hidden" name="rowId" value={rowId} />
@@ -90,6 +89,6 @@ export function CustomParticleEditor({
         </button>
         <ActionFeedback state={state} />
       </form>
-    </details>
+    </ParticleSettingsPopover>
   )
 }

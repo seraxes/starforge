@@ -1444,7 +1444,7 @@ button:disabled {
   box-sizing: border-box;
   min-width: 0;
   max-width: 100%;
-  overflow: hidden;
+  overflow: visible;
   padding: 0.55rem;
   border: 1px solid var(--sf-line);
   background: rgba(255, 255, 255, 0.9);
@@ -1544,14 +1544,88 @@ button:disabled {
   outline: none;
 }
 
-/* Editors expand inside the % width cell — never force the row to wrap. */
-.gantry-custom-editor,
-.gantry-typed-editor {
+/* Particle settings open as a floating overlay — never expand the slot / push the row. */
+.gantry-settings-trigger-wrap {
   margin-top: 0.45rem;
+}
+
+.gantry-settings-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  pointer-events: none;
+}
+
+.gantry-settings-backdrop {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+  background: color-mix(in srgb, var(--sf-ink, #1a1a1a) 18%, transparent);
+}
+
+.gantry-settings-panel {
+  position: fixed;
+  z-index: 81;
+  pointer-events: auto;
+  max-height: min(70vh, 640px);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  border: 1px solid var(--sf-line);
+  background: #fff;
+  box-shadow:
+    0 12px 32px color-mix(in srgb, var(--sf-ink, #1a1a1a) 18%, transparent),
+    0 2px 8px color-mix(in srgb, var(--sf-ink, #1a1a1a) 8%, transparent);
+}
+
+.gantry-settings-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  border-bottom: 1px solid var(--sf-line);
+  background: color-mix(in srgb, var(--sf-secondary) 10%, white);
+}
+
+.gantry-settings-panel-head h3 {
+  margin: 0;
+  font-size: 0.98rem;
+}
+
+.gantry-settings-panel-head button,
+.gantry-settings-trigger,
+.gantry-settings-panel .gantry-typed-form button,
+.gantry-settings-panel .gantry-custom-form button {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--sf-line);
+  background: color-mix(in srgb, var(--sf-primary) 45%, white);
+  color: var(--sf-primary-ink);
+  cursor: pointer;
+}
+
+.gantry-settings-panel-head button.secondary,
+.gantry-settings-trigger.secondary,
+.gantry-settings-panel .gantry-typed-form button.secondary,
+.gantry-settings-panel .gantry-custom-form button.secondary {
+  background: color-mix(in srgb, var(--sf-secondary) 22%, white);
+  color: var(--sf-secondary-strong);
+}
+
+.gantry-settings-panel .gantry-typed-form button.danger,
+.gantry-settings-panel .gantry-custom-form button.danger {
+  background: color-mix(in srgb, #c45c5c 18%, white);
+  color: #7a2e2e;
+  border-color: color-mix(in srgb, #c45c5c 35%, var(--sf-line));
+}
+
+.gantry-settings-panel-body {
+  padding: 0.85rem;
+  overflow: auto;
+  min-height: 0;
   font-size: 0.88rem;
-  min-width: 0;
-  max-width: 100%;
-  overflow-x: auto;
 }
 
 .gantry-custom-form,
@@ -1559,7 +1633,7 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  margin-top: 0.55rem;
+  margin-top: 0;
 }
 
 .gantry-typed-form > label,

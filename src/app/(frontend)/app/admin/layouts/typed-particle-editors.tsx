@@ -16,6 +16,8 @@ import {
 } from '@/core/modules/particles/config'
 import type { LayoutSlot } from '@/core/modules/types'
 
+import { ParticleSettingsPopover } from './particle-settings-popover'
+
 const initialState: LayoutActionState = {}
 
 function ActionFeedback({ state }: { state: LayoutActionState }) {
@@ -53,8 +55,7 @@ export function LogoParticleEditor({
   const cfg = readLogoConfig(slot.config)
 
   return (
-    <details className="gantry-typed-editor">
-      <summary>Logo / Image settings</summary>
+    <ParticleSettingsPopover title="Logo / Image settings">
       <form action={formAction} className="gantry-typed-form">
         <input type="hidden" name="sectionId" value={sectionId} />
         <input type="hidden" name="rowId" value={rowId} />
@@ -110,7 +111,7 @@ export function LogoParticleEditor({
         </button>
         <ActionFeedback state={state} />
       </form>
-    </details>
+    </ParticleSettingsPopover>
   )
 }
 
@@ -128,8 +129,7 @@ export function CopyrightParticleEditor({
   const [yearMode, setYearMode] = useState(cfg.yearMode ?? 'auto')
 
   return (
-    <details className="gantry-typed-editor">
-      <summary>Copyright settings</summary>
+    <ParticleSettingsPopover title="Copyright settings">
       <form action={formAction} className="gantry-typed-form">
         <input type="hidden" name="sectionId" value={sectionId} />
         <input type="hidden" name="rowId" value={rowId} />
@@ -170,7 +170,7 @@ export function CopyrightParticleEditor({
         </button>
         <ActionFeedback state={state} />
       </form>
-    </details>
+    </ParticleSettingsPopover>
   )
 }
 
@@ -192,8 +192,7 @@ export function SocialParticleEditor({
   )
 
   return (
-    <details className="gantry-typed-editor">
-      <summary>Social links</summary>
+    <ParticleSettingsPopover title="Social links">
       <form action={formAction} className="gantry-typed-form">
         <input type="hidden" name="sectionId" value={sectionId} />
         <input type="hidden" name="rowId" value={rowId} />
@@ -285,7 +284,7 @@ export function SocialParticleEditor({
         </button>
         <ActionFeedback state={state} />
       </form>
-    </details>
+    </ParticleSettingsPopover>
   )
 }
 
