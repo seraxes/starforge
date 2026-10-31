@@ -618,6 +618,7 @@ button:disabled {
 .admin-nav {
   display: flex;
   flex-wrap: wrap;
+  align-items: flex-start;
   gap: 0.75rem;
 }
 
@@ -628,6 +629,34 @@ button:disabled {
   background: color-mix(in srgb, var(--sf-secondary) 14%, transparent);
   color: var(--sf-secondary-strong);
   font-weight: 600;
+}
+
+.admin-nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.admin-nav-group > .admin-nav-parent {
+  display: inline-block;
+}
+
+.admin-nav-sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding-left: 0.65rem;
+  border-left: 2px solid color-mix(in srgb, var(--sf-secondary) 45%, var(--sf-line));
+  margin-left: 0.35rem;
+}
+
+.admin-nav-sub a {
+  padding: 0.3rem 0.65rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--sf-primary) 12%, transparent);
+  color: var(--sf-primary-strong);
+  border-color: color-mix(in srgb, var(--sf-primary) 35%, var(--sf-line));
 }
 
 .admin-subhead {
