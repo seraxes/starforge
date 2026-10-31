@@ -37,15 +37,15 @@ export default async function HomePage({
         <p className="brand">{settings.siteName}</p>
         <h1>Core + content module scaffold</h1>
         <p className="lede">
-          Product APIs and auth live in Starforge core. Payload CMS handles editorial
-          content and media only.
+          Product APIs and auth live in Starforge core. Payload is the Content CMS module
+          (pages and media only).
         </p>
 
         {showAdminsOnly ? (
           <div className="notice-banner" role="status">
             <p>
-              <strong>Admins only.</strong> <code>/app/admin/*</code> is for core app role{' '}
-              <code>admin</code>. Members are redirected here on purpose.
+              <strong>Admins only.</strong> Starforge admin (<code>/app/admin</code>) is for
+              role <code>admin</code>. Members are redirected here on purpose.
             </p>
             <p>
               Sign in as the seed admin <code>admin@starforge.local</code> /{' '}
@@ -60,19 +60,20 @@ export default async function HomePage({
         {params.notice === 'cms-denied' ? (
           <div className="notice-banner" role="status">
             <p>
-              <strong>No CMS access.</strong> Payload <code>/admin</code> requires the{' '}
-              <code>cms_access</code> flag (admins get it by default). Ask a core admin to turn it
-              on under <Link href="/app/admin/users">Users</Link>, or sign in as the seed admin.
+              <strong>No CMS access.</strong> Content CMS (<code>/admin</code>) needs the{' '}
+              <code>cms_access</code> flag (admins get it by default). Ask a Starforge admin to
+              turn it on under <Link href="/app/admin/users">Users</Link>, or sign in as the seed
+              admin.
             </p>
           </div>
         ) : null}
 
         <div className="clarity-callout" role="note">
           <p>
-            <strong>One login:</strong> <code>/login</code> (Better Auth). With CMS access on,{' '}
-            <strong>/admin</strong> opens with no second password. <strong>/app/admin</strong> =
-            core users, CMS toggles, and feature settings (<code>admin</code> only). Ordinary
-            members stay in core — never bulk-synced into Payload.
+            <strong>Two admin surfaces, one login:</strong> <Link href="/app/admin">Starforge
+            admin</Link> (<code>/app/admin</code>) for users and settings ·{' '}
+            <Link href="/admin">Payload CMS</Link> (<code>/admin</code>) for content. Sign in once
+            at <code>/login</code>; CMS access is toggled per user.
           </p>
         </div>
 
@@ -87,10 +88,7 @@ export default async function HomePage({
                 {isAdmin ? (
                   <>
                     <Link className="primary" href="/app/admin/users">
-                      Core user admin
-                    </Link>
-                    <Link className="secondary" href="/app/admin/settings">
-                      Site settings
+                      Starforge admin
                     </Link>
                     {hasCmsAccess ? (
                       <Link className="secondary" href="/admin">
@@ -121,7 +119,7 @@ export default async function HomePage({
               {!registrationOn ? (
                 <p className="session-hint">
                   Registration is off (feature toggle). Sign in with an existing app account, or
-                  ask a core admin to enable it under Site settings.
+                  ask a Starforge admin to enable it under Site settings.
                 </p>
               ) : null}
             </>
@@ -129,11 +127,6 @@ export default async function HomePage({
         </div>
 
         <div className="links muted-links">
-          {!(isAdmin && hasCmsAccess) ? (
-            <Link className="secondary" href="/admin">
-              Payload CMS
-            </Link>
-          ) : null}
           <Link className="secondary" href="/about">
             Sample page /about
           </Link>
@@ -144,9 +137,9 @@ export default async function HomePage({
       </div>
       <div className="footer">
         <p>
-          One login: <code>/login</code> → <code>/admin</code> (cms_access) · Core admin:{' '}
-          <code>/app/admin</code> · seed: <code>admin@starforge.local</code> /{' '}
-          <code>starforge-admin</code> · <code>npm run seed</code> · see README
+          Starforge admin <code>/app/admin</code> · Content CMS <code>/admin</code> · seed:{' '}
+          <code>admin@starforge.local</code> / <code>starforge-admin</code> ·{' '}
+          <code>npm run seed</code> · see README
         </p>
       </div>
     </div>

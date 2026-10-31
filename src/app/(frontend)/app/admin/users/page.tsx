@@ -38,8 +38,9 @@ export default async function AdminUsersPage() {
       <h2>App users</h2>
       <p className="lede admin-lede">
         List core accounts (`sf_users`), set <code>admin</code> / <code>member</code>, toggle{' '}
-        <strong>CMS access</strong> (Payload <code>/admin</code> via the same Better Auth login),
-        or disable (ban). Product members without CMS access are never pushed into Payload.
+        <strong>CMS access</strong> (Content CMS at <code>/admin</code> via the same Better Auth
+        login), or disable (ban). Product members without CMS access are never pushed into
+        Payload.
       </p>
       <UsersAdminTable users={users} />
     </section>

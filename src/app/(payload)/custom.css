@@ -12,3 +12,8 @@
 html[data-theme='light'] {
   --theme-success-500: var(--sf-secondary-strong);
 }
+
+/* Core admin nav link (outside Payload routes — plain <a>, still looks like a nav item). */
+#nav-starforge-admin.nav__link {
+  text-decoration: none;
+}

@@ -17,7 +17,7 @@ export const Users: CollectionConfig = {
   admin: {
     useAsTitle: 'email',
     description:
-      'CMS editor stubs linked to core app users (cms_access). Sign-in is Better Auth only — Payload password form is disabled. Manage CMS access under Core admin → Users.',
+      'CMS editor stubs linked to core app users (cms_access). Sign-in is Better Auth only — Payload password form is disabled. Manage CMS access under Starforge admin → Users.',
   },
   auth: {
     // JWT strategy must stay enabled for payload-token cookie exchange.

@@ -24,7 +24,8 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
     meta: {
-      titleSuffix: '— Starforge CMS',
+      // Browser tab: Content CMS surface (pair with Starforge / App admin at /app/admin).
+      titleSuffix: '— Starforge Content CMS',
     },
     components: {
       // Belt-and-suspenders with src/middleware.ts (which blocks /admin/login).
@@ -37,6 +38,8 @@ export default buildConfig({
         '@/components/payload/AdminLoginRedirect',
         '@/components/payload/KillPayloadLoginForm',
       ],
+      // Persistent link back to Starforge / App admin (users, settings).
+      afterNavLinks: ['@/components/payload/CoreAdminNavLink'],
     },
   },
   // Empty = accept cookie JWT from any Origin (needed for admin RSC).
