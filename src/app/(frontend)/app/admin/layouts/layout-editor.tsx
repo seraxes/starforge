@@ -18,6 +18,7 @@ import {
   updateLayoutSectionMetaAction,
   type LayoutActionState,
 } from '@/core/modules/actions'
+import { LayoutIdField, useLayoutOutlineId } from './layout-outline-context'
 import {
   gridWidthPercent,
   LAYOUT_WIDTH_FULL,
@@ -43,6 +44,8 @@ type Props = {
   document: LayoutDocument
   source: 'database' | 'default-json'
   modules: ModuleOption[]
+  layoutId: string
+  layoutLabel: string
 }
 
 const initialState: LayoutActionState = {}
@@ -51,6 +54,11 @@ const DND_PARTICLE = 'application/x-starforge-particle'
 const DND_SECTION = 'application/x-starforge-section'
 /** Existing row particle being reordered (same row). */
 const DND_SLOT = 'application/x-starforge-slot'
+
+function withOutlineId(fd: FormData, layoutId: string): FormData {
+  fd.set('layoutId', layoutId)
+  return fd
+}
 
 function moveSlotInOrder(
   slots: LayoutSlot[],
@@ -194,6 +202,7 @@ function ParticleBlock({
   onSlotDrop: (targetSlotId: string, edge: 'before' | 'after') => void
 }) {
   const router = useRouter()
+  const layoutId = useLayoutOutlineId()
   const [pending, startTransition] = useTransition()
   const [flash, setFlash] = useState<LayoutActionState>({})
   const meta = modules.find((m) => m.id === slot.moduleId)
@@ -207,7 +216,7 @@ function ParticleBlock({
       const next = nextRaw.trim()
       const prev = (slot.name ?? '').trim()
       if (next === prev) return
-      const fd = new FormData()
+      const fd = withOutlineId(new FormData(), layoutId)
       fd.set('sectionId', sectionId)
       fd.set('rowId', rowId)
       fd.set('slotId', slot.id)
@@ -218,7 +227,7 @@ function ParticleBlock({
         router.refresh()
       })
     },
-    [rowId, router, sectionId, slot.id, slot.name],
+    [layoutId, rowId, router, sectionId, slot.id, slot.name],
   )
 
   const classNames = [
@@ -319,7 +328,7 @@ function ParticleBlock({
           className="secondary"
           disabled={pending}
           onClick={() => {
-            const fd = new FormData()
+            const fd = withOutlineId(new FormData(), layoutId)
             fd.set('sectionId', sectionId)
             fd.set('rowId', rowId)
             fd.set('slotId', slot.id)
@@ -337,7 +346,7 @@ function ParticleBlock({
           className="danger"
           disabled={pending}
           onClick={() => {
-            const fd = new FormData()
+            const fd = withOutlineId(new FormData(), layoutId)
             fd.set('sectionId', sectionId)
             fd.set('rowId', rowId)
             fd.set('slotId', slot.id)
@@ -375,6 +384,7 @@ function DropRow({
   setLocalSlots: (slots: LayoutSlot[]) => void
 }) {
   const router = useRouter()
+  const layoutId = useLayoutOutlineId()
   const [pending, startTransition] = useTransition()
   const [dropActive, setDropActive] = useState(false)
   const [flash, setFlash] = useState<LayoutActionState>({})
@@ -394,7 +404,7 @@ function DropRow({
 
   const persistDrop = useCallback(
     (moduleId: string, index?: number) => {
-      const fd = new FormData()
+      const fd = withOutlineId(new FormData(), layoutId)
       fd.set('sectionId', sectionId)
       fd.set('rowId', row.id)
       fd.set('moduleId', moduleId)
@@ -405,12 +415,12 @@ function DropRow({
         router.refresh()
       })
     },
-    [row.id, router, sectionId],
+    [layoutId, row.id, router, sectionId],
   )
 
   const persistSlotOrder = useCallback(
     (ordered: LayoutSlot[]) => {
-      const fd = new FormData()
+      const fd = withOutlineId(new FormData(), layoutId)
       fd.set('sectionId', sectionId)
       fd.set('rowId', row.id)
       fd.set('orderJson', JSON.stringify(ordered.map((s) => s.id)))
@@ -420,7 +430,7 @@ function DropRow({
         router.refresh()
       })
     },
-    [row.id, router, sectionId],
+    [layoutId, row.id, router, sectionId],
   )
 
   const handleSlotDrop = useCallback(
@@ -459,7 +469,7 @@ function DropRow({
 
   const commitResize = useCallback(
     (leftId: string, leftWidth: number, rightId: string, rightWidth: number) => {
-      const fd = new FormData()
+      const fd = withOutlineId(new FormData(), layoutId)
       fd.set('sectionId', sectionId)
       fd.set('rowId', row.id)
       fd.set('leftSlotId', leftId)
@@ -480,7 +490,7 @@ function DropRow({
         void rightWidth
       })
     },
-    [localSlots, row.id, router, sectionId, setLocalSlots],
+    [layoutId, localSlots, row.id, router, sectionId, setLocalSlots],
   )
 
   return (
@@ -522,6 +532,7 @@ function DropRow({
         </span>
         <div className="gantry-row-actions">
           <form action={removeRowAction}>
+            <LayoutIdField />
             <input type="hidden" name="sectionId" value={sectionId} />
             <input type="hidden" name="rowId" value={row.id} />
             <button type="submit" className="danger" disabled={removeRowPending}>
@@ -615,6 +626,7 @@ function SectionCanvas({
   onSectionDrop: (targetSectionId: string, position: 'before' | 'after') => void
 }) {
   const router = useRouter()
+  const layoutId = useLayoutOutlineId()
   const [metaPending, startMetaSave] = useTransition()
   const [metaFlash, setMetaFlash] = useState<LayoutActionState>({})
   const [rowState, rowAction, rowPending] = useActionState(addLayoutRowAction, initialState)
@@ -636,7 +648,7 @@ function SectionCanvas({
 
   const persistSectionMeta = useCallback(
     (fields: { label?: string; cssClass?: string }) => {
-      const fd = new FormData()
+      const fd = withOutlineId(new FormData(), layoutId)
       fd.set('sectionId', section.id)
       let changed = false
       if (fields.label !== undefined) {
@@ -665,7 +677,7 @@ function SectionCanvas({
         router.refresh()
       })
     },
-    [router, section.cssClass, section.id, section.label],
+    [layoutId, router, section.cssClass, section.id, section.label],
   )
 
   const classNames = [
@@ -769,6 +781,7 @@ function SectionCanvas({
             />
           </label>
           <form action={rowAction} className="gantry-section-actions">
+            <LayoutIdField />
             <input type="hidden" name="sectionId" value={section.id} />
             <button type="submit" className="secondary" disabled={rowPending}>
               {rowPending ? 'Adding…' : 'Add row'}
@@ -803,8 +816,9 @@ function SectionCanvas({
  * 4) Drop another beside it and resize by % → drag ⋮⋮ on particles to reorder in-row →
  * sections reorder via drag handle.
  */
-export function LayoutEditor({ document, source, modules }: Props) {
+export function LayoutEditor({ document, source, modules, layoutId, layoutLabel }: Props) {
   const router = useRouter()
+  const outlineId = layoutId
   const [sectionPendingSave, startSectionSave] = useTransition()
   const [sectionState, sectionAction, sectionPending] = useActionState(
     addLayoutSectionAction,
@@ -833,7 +847,7 @@ export function LayoutEditor({ document, source, modules }: Props) {
 
   const persistSectionOrder = useCallback(
     (ordered: LayoutSection[]) => {
-      const fd = new FormData()
+      const fd = withOutlineId(new FormData(), outlineId)
       fd.set('orderJson', JSON.stringify(ordered.map((s) => s.id)))
       startSectionSave(async () => {
         const result = await reorderLayoutSectionsAction({}, fd)
@@ -841,7 +855,7 @@ export function LayoutEditor({ document, source, modules }: Props) {
         router.refresh()
       })
     },
-    [router],
+    [outlineId, router],
   )
 
   const handleSectionDrop = useCallback(
@@ -881,6 +895,8 @@ export function LayoutEditor({ document, source, modules }: Props) {
       <p className="layout-source">
         Source:{' '}
         <strong>{source === 'database' ? 'Database (sf_layouts)' : 'Default JSON fallback'}</strong>
+        {' · outline '}
+        <strong>{layoutLabel}</strong> (<code>{layoutId}</code>)
         {source === 'default-json' ? ' — first drop/save writes to Postgres.' : null}{' '}
         UX matches{' '}
         <a
@@ -928,12 +944,14 @@ export function LayoutEditor({ document, source, modules }: Props) {
         <div className="gantry-canvas" aria-label="Layout canvas">
           <div className="gantry-canvas-toolbar">
             <form action={sectionAction} className="layout-inline-form">
+              <LayoutIdField />
               <input type="text" name="label" placeholder="New section name" required />
               <button type="submit" disabled={sectionPending}>
                 {sectionPending ? 'Adding…' : 'Create section'}
               </button>
             </form>
             <form action={resetAction}>
+              <LayoutIdField />
               <button type="submit" className="secondary" disabled={resetPending}>
                 {resetPending ? 'Resetting…' : 'Reset to default'}
               </button>
@@ -1001,7 +1019,8 @@ export function LayoutEditor({ document, source, modules }: Props) {
         <p className="layout-muted">
           Section <code>label</code> / <code>cssClass</code> and slot <code>name</code> save on
           blur. Section <code>order</code> persists on drag. Widths are integer percents. Custom
-          uses CodeMirror. Styles / Outlines / Menu remain next polish — see{' '}
+          uses CodeMirror. Outlines manager is under{' '}
+          <code>/app/admin/outlines</code>. Styles / Menu remain next polish — see{' '}
           <code>src/core/modules/README.md</code>.
         </p>
       </details>

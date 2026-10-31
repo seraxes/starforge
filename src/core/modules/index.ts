@@ -48,11 +48,25 @@ export {
 } from './grid'
 export { getAssignmentsForPosition, getLayoutDocument } from './layout'
 export {
+  createLayoutOutline,
+  deleteLayoutOutline,
+  duplicateLayoutOutline,
   ensureDefaultLayoutSeeded,
+  getLayoutOutline,
+  isDefaultLayoutOutline,
+  listLayoutOutlines,
   loadLayoutDocument,
+  renameLayoutOutline,
   saveLayoutDocument,
 } from './layout-store'
-export type { LayoutLoadResult, LayoutLoadSource } from './layout-store'
+export type { LayoutLoadResult, LayoutLoadSource, LayoutOutlineMeta } from './layout-store'
+export {
+  createOutlineAction,
+  deleteOutlineAction,
+  duplicateOutlineAction,
+  renameOutlineAction,
+} from './outline-actions'
+export type { OutlineActionState } from './outline-actions'
 export { ModuleSlot } from './ModuleSlot'
 export {
   builtinParticles,

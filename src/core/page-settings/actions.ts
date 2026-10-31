@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 
 import { requireAppAdmin, userIsDeveloperAdmin } from '@/core/auth/admin'
 import { GLOBAL_PAGE_CHROME_ID } from '@/core/db'
+import { listLayoutOutlines } from '@/core/modules/layout-store'
 import { getPayload } from 'payload'
 import config from '@payload-config'
 
@@ -176,6 +177,9 @@ export type PageSettingsAdminBootstrap = {
   globalChrome: PageChrome
   overrideKeys: string[]
   pages: Array<{ slug: string; title: string }>
+  /** All layout outlines (`sf_layouts`) for Layout assignment. */
+  layouts: Array<{ id: string; label: string }>
+  /** @deprecated Prefer `layouts` — kept for older form code paths. */
   layoutIds: string[]
   atoms: Array<{
     type: string
@@ -219,8 +223,9 @@ export async function loadPageSettingsAdmin(editingPageKey: string | null): Prom
     pages = []
   }
 
-  // v1: only the default layout id is selectable; list stays open for more rows later.
-  const layoutIds = ['default']
+  const outlines = await listLayoutOutlines()
+  const layouts = outlines.map((o) => ({ id: o.id, label: o.label }))
+  const layoutIds = layouts.map((l) => l.id)
 
   let editingChrome: PageChrome = { ...globalChrome, pageKey: null }
   let hasOverride = false
@@ -236,6 +241,7 @@ export async function loadPageSettingsAdmin(editingPageKey: string | null): Prom
     globalChrome,
     overrideKeys,
     pages,
+    layouts,
     layoutIds,
     atoms: listRegisteredAtoms().map((a) => ({
       type: a.type,

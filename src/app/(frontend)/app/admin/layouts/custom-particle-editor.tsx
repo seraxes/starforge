@@ -9,6 +9,7 @@ import {
 } from '@/core/modules/actions'
 import type { LayoutSlot } from '@/core/modules/types'
 
+import { LayoutIdField } from './layout-outline-context'
 import { ParticleSettingsPopover } from './particle-settings-popover'
 
 const initialState: LayoutActionState = {}
@@ -50,6 +51,7 @@ export function CustomParticleEditor({
   return (
     <ParticleSettingsPopover title="Custom particle — HTML / CSS / JS">
       <form action={formAction} className="gantry-custom-form">
+        <LayoutIdField />
         <input type="hidden" name="sectionId" value={sectionId} />
         <input type="hidden" name="rowId" value={rowId} />
         <input type="hidden" name="slotId" value={slot.id} />

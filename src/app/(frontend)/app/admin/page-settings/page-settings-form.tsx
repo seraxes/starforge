@@ -279,9 +279,12 @@ export function PageSettingsForm({ bootstrap }: Props) {
           <label className="settings-field">
             <span>Layout</span>
             <select name="layoutId" value={layoutId} onChange={(e) => setLayoutId(e.target.value)}>
-              {bootstrap.layoutIds.map((id) => (
-                <option key={id} value={id}>
-                  {id}
+              {(bootstrap.layouts?.length
+                ? bootstrap.layouts
+                : bootstrap.layoutIds.map((id) => ({ id, label: id }))
+              ).map((layout) => (
+                <option key={layout.id} value={layout.id}>
+                  {layout.label} ({layout.id})
                 </option>
               ))}
             </select>

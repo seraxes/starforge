@@ -16,6 +16,7 @@ import {
 } from '@/core/modules/particles/config'
 import type { LayoutSlot } from '@/core/modules/types'
 
+import { LayoutIdField } from './layout-outline-context'
 import { ParticleSettingsPopover } from './particle-settings-popover'
 
 const initialState: LayoutActionState = {}
@@ -57,6 +58,7 @@ export function LogoParticleEditor({
   return (
     <ParticleSettingsPopover title="Logo / Image settings">
       <form action={formAction} className="gantry-typed-form">
+        <LayoutIdField />
         <input type="hidden" name="sectionId" value={sectionId} />
         <input type="hidden" name="rowId" value={rowId} />
         <input type="hidden" name="slotId" value={slot.id} />
@@ -131,6 +133,7 @@ export function CopyrightParticleEditor({
   return (
     <ParticleSettingsPopover title="Copyright settings">
       <form action={formAction} className="gantry-typed-form">
+        <LayoutIdField />
         <input type="hidden" name="sectionId" value={sectionId} />
         <input type="hidden" name="rowId" value={rowId} />
         <input type="hidden" name="slotId" value={slot.id} />
@@ -194,6 +197,7 @@ export function SocialParticleEditor({
   return (
     <ParticleSettingsPopover title="Social links">
       <form action={formAction} className="gantry-typed-form">
+        <LayoutIdField />
         <input type="hidden" name="sectionId" value={sectionId} />
         <input type="hidden" name="rowId" value={rowId} />
         <input type="hidden" name="slotId" value={slot.id} />

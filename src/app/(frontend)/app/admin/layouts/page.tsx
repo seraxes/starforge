@@ -1,37 +1,82 @@
 import React from 'react'
 import Link from 'next/link'
 
-import { listModulesForLayoutAdmin, loadLayoutDocument } from '@/core/modules'
+import { DEFAULT_LAYOUT_ID } from '@/core/db'
+import {
+  getLayoutOutline,
+  listLayoutOutlines,
+  listModulesForLayoutAdmin,
+  loadLayoutDocument,
+} from '@/core/modules'
 
 import { LayoutEditor } from './layout-editor'
+import { LayoutOutlineProvider } from './layout-outline-context'
+import { OutlineSwitcher } from './outline-switcher'
 
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
   title: 'Layout — Starforge',
-  description: 'Gantry-like visual layout manager — particles, sections, 12-col widths.',
+  description: 'Gantry-like visual layout manager — particles, sections, percent widths.',
 }
 
-export default async function AdminLayoutsPage() {
-  const { document, source, isFallback } = await loadLayoutDocument()
+type SearchParams = Promise<{ outline?: string | string[] }> | { outline?: string | string[] }
+
+function pickOutlineParam(raw: string | string[] | undefined): string {
+  const value = Array.isArray(raw) ? raw[0] : raw
+  return typeof value === 'string' && value.trim() ? value.trim() : DEFAULT_LAYOUT_ID
+}
+
+export default async function AdminLayoutsPage(props: { searchParams?: SearchParams }) {
+  const search = props.searchParams ? await props.searchParams : {}
+  const requestedId = pickOutlineParam(search.outline)
+
+  const outlines = await listLayoutOutlines()
+  const known = outlines.some((o) => o.id === requestedId)
+  const layoutId = known ? requestedId : DEFAULT_LAYOUT_ID
+
+  const { document, source, isFallback, label } = await loadLayoutDocument(layoutId)
+  const outlineMeta = (await getLayoutOutline(layoutId)) ?? {
+    id: layoutId,
+    label: label || layoutId,
+  }
   const modules = await listModulesForLayoutAdmin()
 
   return (
-    <section className="admin-section">
+    <section className="admin-section layout-admin-section">
       <h2>Layout manager</h2>
       <p className="lede admin-lede">
-        Full-width Gantry Layout Manager: create <strong>section</strong> → add <strong>row</strong> →{' '}
-        <strong>drag</strong> particles into the row (side-by-side) → resize in <strong>1%</strong>{' '}
-        steps (<strong>5%–95%</strong>, pair sums to 100%). Built-ins: Page Content, Site Header,
-        Custom (CodeMirror). Storage: JSON in <code>sf_layouts</code>
-        {isFallback ? ' — default until first drop/save' : ''}. Extension particles need{' '}
-        <Link href="/app/admin/settings">Modules</Link> on.{' '}
-        <a href="https://docs.gantry.org/gantry5/configure/layout-manager" target="_blank" rel="noreferrer">
+        Editing outline <strong>{outlineMeta.label}</strong> (<code>{layoutId}</code>
+        {isFallback ? ' — default until first drop/save' : ''}). Full-width Gantry Layout Manager:
+        section → row → drag particles → resize in <strong>1%</strong> steps (
+        <strong>5%–95%</strong>). Manage named layouts under{' '}
+        <Link href="/app/admin/outlines">Outlines</Link>; assign via{' '}
+        <Link href="/app/admin/page-settings">Page settings</Link>. Storage:{' '}
+        <code>sf_layouts</code>.{' '}
+        <a
+          href="https://docs.gantry.org/gantry5/configure/layout-manager"
+          target="_blank"
+          rel="noreferrer"
+        >
           Gantry docs
         </a>
         .
       </p>
-      <LayoutEditor document={document} source={source} modules={modules} />
+
+      <OutlineSwitcher
+        outlines={outlines.map((o) => ({ id: o.id, label: o.label }))}
+        currentId={layoutId}
+      />
+
+      <LayoutOutlineProvider layoutId={layoutId}>
+        <LayoutEditor
+          document={document}
+          source={source}
+          modules={modules}
+          layoutId={layoutId}
+          layoutLabel={outlineMeta.label}
+        />
+      </LayoutOutlineProvider>
     </section>
   )
 }

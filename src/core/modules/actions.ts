@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 
 import { requireAppAdmin } from '@/core/auth/admin'
+import { DEFAULT_LAYOUT_ID } from '@/core/db'
 import { ensureModulesRegistered } from '@/modules/catalog'
 
 import {
@@ -20,6 +21,12 @@ import { loadLayoutDocument, saveLayoutDocument } from './layout-store'
 import { defaultConfigForModule, readSocialConfig } from './particles/config'
 import { getRegisteredModule, listRegisteredModules } from './registry'
 import type { LayoutDocument, LayoutRow, LayoutSection, LayoutSlot, LayoutSlotConfig } from './types'
+
+/** Resolve outline id from form (`layoutId`) — defaults to Base Outline. */
+function layoutIdFromForm(formData: FormData | null | undefined): string {
+  const raw = formData ? String(formData.get('layoutId') ?? '').trim() : ''
+  return raw || DEFAULT_LAYOUT_ID
+}
 
 function makeSlot(moduleId: string, width: number, order: number): LayoutSlot {
   const config = defaultConfigForModule(moduleId)
@@ -55,18 +62,25 @@ async function requireLayoutAdmin(): Promise<LayoutActionState | null> {
   return null
 }
 
-function revalidateLayoutPaths() {
+function revalidateLayoutPaths(layoutId?: string) {
   revalidatePath('/', 'layout')
   revalidatePath('/app/admin/layouts')
+  revalidatePath('/app/admin/outlines')
+  revalidatePath('/app/admin/page-settings')
+  if (layoutId && layoutId !== DEFAULT_LAYOUT_ID) {
+    revalidatePath(`/app/admin/layouts?outline=${encodeURIComponent(layoutId)}`)
+  }
 }
 
 async function mutateLayout(
+  formData: FormData,
   mutator: (doc: LayoutDocument) => LayoutDocument | { error: string },
 ): Promise<LayoutActionState> {
   const denied = await requireLayoutAdmin()
   if (denied) return denied
 
-  const { document } = await loadLayoutDocument()
+  const layoutId = layoutIdFromForm(formData)
+  const { document } = await loadLayoutDocument(layoutId)
   const working =
     document.sections.length > 0 ? structuredClone(document) : cloneDefaultLayoutDocument()
 
@@ -74,7 +88,7 @@ async function mutateLayout(
   if ('error' in result) return { error: result.error }
 
   try {
-    await saveLayoutDocument(result)
+    await saveLayoutDocument(result, layoutId)
   } catch (error) {
     const message =
       error instanceof Error && error.message
@@ -83,7 +97,7 @@ async function mutateLayout(
     return { error: message }
   }
 
-  revalidateLayoutPaths()
+  revalidateLayoutPaths(layoutId)
   return { ok: true }
 }
 
@@ -97,7 +111,7 @@ export async function addLayoutSectionAction(
   const requestedId = String(formData.get('id') ?? '').trim()
   const id = slugifyLayoutId(requestedId || label)
 
-  const state = await mutateLayout((doc) => {
+  const state = await mutateLayout(formData, (doc) => {
     if (doc.sections.some((s) => s.id === id)) {
       return { error: `Section id “${id}” already exists.` }
     }
@@ -131,7 +145,7 @@ export async function renameLayoutSectionAction(
   if (!sectionId) return { error: 'Missing section id.' }
   if (!label) return { error: 'Section name is required.' }
 
-  const state = await mutateLayout((doc) => {
+  const state = await mutateLayout(formData, (doc) => {
     const section = findSection(doc, sectionId)
     if (!section) return { error: `Section “${sectionId}” not found.` }
     section.label = label
@@ -165,7 +179,7 @@ export async function updateLayoutSectionMetaAction(
   const cssClassRaw = hasCssClass ? String(formData.get('cssClass') ?? '') : undefined
   const cssClass = hasCssClass ? sanitizeCssClassList(cssClassRaw) : undefined
 
-  const state = await mutateLayout((doc) => {
+  const state = await mutateLayout(formData, (doc) => {
     const section = findSection(doc, sectionId)
     if (!section) return { error: `Section “${sectionId}” not found.` }
     if (hasLabel && label) section.label = label
@@ -200,7 +214,7 @@ export async function renameLayoutSlotAction(
 
   const name = sanitizeDisplayName(String(formData.get('name') ?? ''))
 
-  const state = await mutateLayout((doc) => {
+  const state = await mutateLayout(formData, (doc) => {
     const found = findSlot(doc, sectionId, rowId, slotId)
     if (!found) return { error: 'Slot not found.' }
     if (name) found.slot.name = name
@@ -236,7 +250,7 @@ export async function reorderLayoutSectionsAction(
   }
   if (orderedIds.length === 0) return { error: 'Section order is empty.' }
 
-  const state = await mutateLayout((doc) => {
+  const state = await mutateLayout(formData, (doc) => {
     const byId = new Map(doc.sections.map((s) => [s.id, s]))
     if (orderedIds.length !== doc.sections.length) {
       return { error: 'Section order length does not match the layout.' }
@@ -280,7 +294,7 @@ export async function reorderRowSlotsAction(
   }
   if (orderedIds.length === 0) return { error: 'Slot order is empty.' }
 
-  const state = await mutateLayout((doc) => {
+  const state = await mutateLayout(formData, (doc) => {
     const found = findRow(doc, sectionId, rowId)
     if (!found) return { error: 'Row not found.' }
 
@@ -311,7 +325,7 @@ export async function addLayoutRowAction(
   const sectionId = String(formData.get('sectionId') ?? '').trim()
   if (!sectionId) return { error: 'Missing section id.' }
 
-  const state = await mutateLayout((doc) => {
+  const state = await mutateLayout(formData, (doc) => {
     const section = findSection(doc, sectionId)
     if (!section) return { error: `Section “${sectionId}” not found.` }
     const maxOrder = section.rows.reduce((m, r) => Math.max(m, r.order ?? 0), -1)
@@ -336,7 +350,7 @@ export async function removeLayoutRowAction(
   const rowId = String(formData.get('rowId') ?? '').trim()
   if (!sectionId || !rowId) return { error: 'Missing section or row id.' }
 
-  const state = await mutateLayout((doc) => {
+  const state = await mutateLayout(formData, (doc) => {
     const section = findSection(doc, sectionId)
     if (!section) return { error: `Section “${sectionId}” not found.` }
     const next = section.rows.filter((r) => r.id !== rowId)
@@ -373,7 +387,7 @@ export async function dropParticleIntoRowAction(
   const mod = getRegisteredModule(moduleId)
   if (!mod) return { error: `Particle “${moduleId}” is not registered.` }
 
-  const state = await mutateLayout((doc) => {
+  const state = await mutateLayout(formData, (doc) => {
     const found = findRow(doc, sectionId, rowId)
     if (!found) return { error: 'Row not found — add a row in the section first.' }
 
@@ -408,7 +422,7 @@ export async function setSlotWidthAction(
   const width = clampGridWidth(formData.get('width'))
   if (!sectionId || !rowId || !slotId) return { error: 'Missing slot reference.' }
 
-  const state = await mutateLayout((doc) => {
+  const state = await mutateLayout(formData, (doc) => {
     const found = findSlot(doc, sectionId, rowId, slotId)
     if (!found) return { error: 'Slot not found.' }
     found.slot.width = width
@@ -436,7 +450,7 @@ export async function resizeAdjacentSlotsAction(
     return { error: 'Missing resize pair.' }
   }
 
-  const state = await mutateLayout((doc) => {
+  const state = await mutateLayout(formData, (doc) => {
     const found = findRow(doc, sectionId, rowId)
     if (!found) return { error: 'Row not found.' }
     const left = found.row.slots.find((s) => s.id === leftSlotId)
@@ -470,7 +484,7 @@ export async function setRowSlotWidthsAction(
     return { error: 'Invalid widths payload.' }
   }
 
-  const state = await mutateLayout((doc) => {
+  const state = await mutateLayout(formData, (doc) => {
     const found = findRow(doc, sectionId, rowId)
     if (!found) return { error: 'Row not found.' }
     for (const entry of widths) {
@@ -493,7 +507,7 @@ export async function removeSlotAction(
   const slotId = String(formData.get('slotId') ?? '').trim()
   if (!sectionId || !rowId || !slotId) return { error: 'Missing slot reference.' }
 
-  const state = await mutateLayout((doc) => {
+  const state = await mutateLayout(formData, (doc) => {
     const found = findRow(doc, sectionId, rowId)
     if (!found) return { error: 'Row not found.' }
     const next = found.row.slots.filter((s) => s.id !== slotId)
@@ -516,7 +530,7 @@ export async function toggleSlotAction(
   const slotId = String(formData.get('slotId') ?? '').trim()
   if (!sectionId || !rowId || !slotId) return { error: 'Missing slot reference.' }
 
-  const state = await mutateLayout((doc) => {
+  const state = await mutateLayout(formData, (doc) => {
     const found = findSlot(doc, sectionId, rowId, slotId)
     if (!found) return { error: 'Slot not found.' }
     found.slot.enabled = found.slot.enabled === false
@@ -543,7 +557,7 @@ export async function updateCustomSlotAction(
     js: String(formData.get('js') ?? ''),
   }
 
-  const state = await mutateLayout((doc) => {
+  const state = await mutateLayout(formData, (doc) => {
     const found = findSlot(doc, sectionId, rowId, slotId)
     if (!found) return { error: 'Slot not found.' }
     if (found.slot.moduleId !== 'custom') {
@@ -581,7 +595,7 @@ export async function updateLogoSlotAction(
       : {}),
   }
 
-  const state = await mutateLayout((doc) => {
+  const state = await mutateLayout(formData, (doc) => {
     const found = findSlot(doc, sectionId, rowId, slotId)
     if (!found) return { error: 'Slot not found.' }
     if (found.slot.moduleId !== 'logo') return { error: 'Not a Logo / Image particle.' }
@@ -612,7 +626,7 @@ export async function updateCopyrightSlotAction(
     linkLabel: String(formData.get('linkLabel') ?? '').trim(),
   }
 
-  const state = await mutateLayout((doc) => {
+  const state = await mutateLayout(formData, (doc) => {
     const found = findSlot(doc, sectionId, rowId, slotId)
     if (!found) return { error: 'Slot not found.' }
     if (found.slot.moduleId !== 'copyright') return { error: 'Not a Copyright particle.' }
@@ -643,7 +657,7 @@ export async function updateSocialSlotAction(
 
   const config: LayoutSlotConfig = { items: readSocialConfig({ items: parsed }).items }
 
-  const state = await mutateLayout((doc) => {
+  const state = await mutateLayout(formData, (doc) => {
     const found = findSlot(doc, sectionId, rowId, slotId)
     if (!found) return { error: 'Slot not found.' }
     if (found.slot.moduleId !== 'social') return { error: 'Not a Social particle.' }
@@ -657,13 +671,15 @@ export async function updateSocialSlotAction(
 
 export async function resetLayoutToDefaultAction(
   _prev: LayoutActionState,
-  _formData: FormData,
+  formData: FormData,
 ): Promise<LayoutActionState> {
   const denied = await requireLayoutAdmin()
   if (denied) return denied
 
+  const layoutId = layoutIdFromForm(formData)
+
   try {
-    await saveLayoutDocument(cloneDefaultLayoutDocument())
+    await saveLayoutDocument(cloneDefaultLayoutDocument(), layoutId)
   } catch (error) {
     const message =
       error instanceof Error && error.message
@@ -672,7 +688,7 @@ export async function resetLayoutToDefaultAction(
     return { error: message }
   }
 
-  revalidateLayoutPaths()
+  revalidateLayoutPaths(layoutId)
   return {
     ok: true,
     message: 'Layout reset to default (notice-bar, site-header, page-content, custom footer).',
