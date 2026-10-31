@@ -180,6 +180,54 @@ export async function reorderLayoutSectionsAction(
   return state
 }
 
+/**
+ * Persist slot order within one row after drag-and-drop reorder.
+ * `orderJson` = JSON array of slot ids left→right. Widths are kept as-is.
+ */
+export async function reorderRowSlotsAction(
+  _prev: LayoutActionState,
+  formData: FormData,
+): Promise<LayoutActionState> {
+  const sectionId = String(formData.get('sectionId') ?? '').trim()
+  const rowId = String(formData.get('rowId') ?? '').trim()
+  const raw = String(formData.get('orderJson') ?? '').trim()
+  if (!sectionId || !rowId) return { error: 'Missing row reference.' }
+
+  let orderedIds: string[]
+  try {
+    orderedIds = JSON.parse(raw) as string[]
+    if (!Array.isArray(orderedIds) || orderedIds.some((id) => typeof id !== 'string')) {
+      throw new Error('not string array')
+    }
+  } catch {
+    return { error: 'Invalid slot order payload.' }
+  }
+  if (orderedIds.length === 0) return { error: 'Slot order is empty.' }
+
+  const state = await mutateLayout((doc) => {
+    const found = findRow(doc, sectionId, rowId)
+    if (!found) return { error: 'Row not found.' }
+
+    const byId = new Map(found.row.slots.map((s) => [s.id, s]))
+    if (orderedIds.length !== found.row.slots.length) {
+      return { error: 'Slot order length does not match the row.' }
+    }
+    for (const id of orderedIds) {
+      if (!byId.has(id)) return { error: `Unknown slot “${id}”.` }
+    }
+
+    found.row.slots = orderedIds.map((id, index) => {
+      const slot = byId.get(id)!
+      slot.order = index
+      return slot
+    })
+    return doc
+  })
+
+  if (state.ok) state.message = 'Particle order saved.'
+  return state
+}
+
 export async function addLayoutRowAction(
   _prev: LayoutActionState,
   formData: FormData,

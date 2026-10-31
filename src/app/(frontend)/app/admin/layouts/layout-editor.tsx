@@ -10,6 +10,7 @@ import {
   removeLayoutRowAction,
   removeSlotAction,
   reorderLayoutSectionsAction,
+  reorderRowSlotsAction,
   resetLayoutToDefaultAction,
   resizeAdjacentSlotsAction,
   toggleSlotAction,
@@ -46,6 +47,25 @@ const initialState: LayoutActionState = {}
 
 const DND_PARTICLE = 'application/x-starforge-particle'
 const DND_SECTION = 'application/x-starforge-section'
+/** Existing row particle being reordered (same row). */
+const DND_SLOT = 'application/x-starforge-slot'
+
+function moveSlotInOrder(
+  slots: LayoutSlot[],
+  slotId: string,
+  destIndex: number,
+): LayoutSlot[] {
+  const sorted = sortSlots(slots)
+  const fromIndex = sorted.findIndex((s) => s.id === slotId)
+  if (fromIndex < 0) return sorted
+  const next = [...sorted]
+  const [moved] = next.splice(fromIndex, 1)
+  let dest = destIndex
+  if (fromIndex < destIndex) dest = destIndex - 1
+  dest = Math.max(0, Math.min(dest, next.length))
+  next.splice(dest, 0, moved)
+  return next.map((slot, index) => ({ ...slot, order: index }))
+}
 
 function ActionFeedback({ state }: { state: LayoutActionState }) {
   if (state.error) {
@@ -152,12 +172,24 @@ function ParticleBlock({
   slot,
   modules,
   percent,
+  isDragging,
+  dropEdge,
+  onSlotDragStart,
+  onSlotDragEnd,
+  onSlotDragOver,
+  onSlotDrop,
 }: {
   sectionId: string
   rowId: string
   slot: LayoutSlot
   modules: ModuleOption[]
   percent: number
+  isDragging: boolean
+  dropEdge: 'before' | 'after' | null
+  onSlotDragStart: (slotId: string) => void
+  onSlotDragEnd: () => void
+  onSlotDragOver: (slotId: string, edge: 'before' | 'after') => void
+  onSlotDrop: (targetSlotId: string, edge: 'before' | 'after') => void
 }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
@@ -166,9 +198,18 @@ function ParticleBlock({
   const enabled = slot.enabled !== false
   const pctLabel = widthToPercentLabel(slot.width)
 
+  const classNames = [
+    'gantry-slot',
+    isDragging ? 'is-slot-dragging' : '',
+    dropEdge === 'before' ? 'is-slot-drop-before' : '',
+    dropEdge === 'after' ? 'is-slot-drop-after' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+
   return (
     <article
-      className="gantry-slot"
+      className={classNames}
       data-enabled={enabled ? 'true' : 'false'}
       data-sf-width={slot.width}
       data-sf-slot={slot.id}
@@ -179,9 +220,48 @@ function ParticleBlock({
         maxWidth: '100%',
         boxSizing: 'border-box',
       }}
+      onDragOver={(event) => {
+        if (![...event.dataTransfer.types].includes(DND_SLOT)) return
+        event.preventDefault()
+        event.stopPropagation()
+        event.dataTransfer.dropEffect = 'move'
+        const rect = event.currentTarget.getBoundingClientRect()
+        const mid = rect.left + rect.width / 2
+        onSlotDragOver(slot.id, event.clientX < mid ? 'before' : 'after')
+      }}
+      onDrop={(event) => {
+        if (![...event.dataTransfer.types].includes(DND_SLOT)) return
+        event.preventDefault()
+        event.stopPropagation()
+        const rect = event.currentTarget.getBoundingClientRect()
+        const mid = rect.left + rect.width / 2
+        onSlotDrop(slot.id, event.clientX < mid ? 'before' : 'after')
+      }}
     >
       <header className="gantry-slot-head">
-        <strong>{meta?.name ?? slot.moduleId}</strong>
+        <div className="gantry-slot-title">
+          <button
+            type="button"
+            className="gantry-slot-handle"
+            draggable
+            title="Drag to reorder in this row"
+            aria-label={`Drag to reorder ${meta?.name ?? slot.moduleId}`}
+            onDragStart={(event) => {
+              event.stopPropagation()
+              event.dataTransfer.setData(DND_SLOT, slot.id)
+              event.dataTransfer.setData('text/plain', slot.id)
+              event.dataTransfer.effectAllowed = 'move'
+              onSlotDragStart(slot.id)
+            }}
+            onDragEnd={(event) => {
+              event.stopPropagation()
+              onSlotDragEnd()
+            }}
+          >
+            ⋮⋮
+          </button>
+          <strong>{meta?.name ?? slot.moduleId}</strong>
+        </div>
         <span className="gantry-slot-pct" title={`Width ${pctLabel} (min ${LAYOUT_WIDTH_MIN}%)`}>
           {pctLabel}
         </span>
@@ -261,6 +341,12 @@ function DropRow({
     initialState,
   )
 
+  const [draggingSlotId, setDraggingSlotId] = useState<string | null>(null)
+  const [slotDropHint, setSlotDropHint] = useState<{
+    slotId: string
+    edge: 'before' | 'after'
+  } | null>(null)
+
   const slots = sortSlots(localSlots)
   const widthSum = sumRowWidths(slots.map((s) => s.width))
 
@@ -278,6 +364,55 @@ function DropRow({
       })
     },
     [row.id, router, sectionId],
+  )
+
+  const persistSlotOrder = useCallback(
+    (ordered: LayoutSlot[]) => {
+      const fd = new FormData()
+      fd.set('sectionId', sectionId)
+      fd.set('rowId', row.id)
+      fd.set('orderJson', JSON.stringify(ordered.map((s) => s.id)))
+      startTransition(async () => {
+        const result = await reorderRowSlotsAction({}, fd)
+        setFlash(result)
+        router.refresh()
+      })
+    },
+    [row.id, router, sectionId],
+  )
+
+  const handleSlotDrop = useCallback(
+    (targetSlotId: string, edge: 'before' | 'after') => {
+      if (!draggingSlotId) {
+        setSlotDropHint(null)
+        return
+      }
+      const sorted = sortSlots(localSlots)
+      const targetIndex = sorted.findIndex((s) => s.id === targetSlotId)
+      if (targetIndex < 0) {
+        setDraggingSlotId(null)
+        setSlotDropHint(null)
+        return
+      }
+      const destIndex = edge === 'before' ? targetIndex : targetIndex + 1
+      const fromIndex = sorted.findIndex((s) => s.id === draggingSlotId)
+      // No-op when dropping onto own edges that keep the same position.
+      if (
+        fromIndex < 0 ||
+        destIndex === fromIndex ||
+        destIndex === fromIndex + 1
+      ) {
+        setDraggingSlotId(null)
+        setSlotDropHint(null)
+        return
+      }
+      const next = moveSlotInOrder(localSlots, draggingSlotId, destIndex)
+      setLocalSlots(next)
+      setDraggingSlotId(null)
+      setSlotDropHint(null)
+      persistSlotOrder(next)
+    },
+    [draggingSlotId, localSlots, persistSlotOrder, setLocalSlots],
   )
 
   const commitResize = useCallback(
@@ -319,11 +454,13 @@ function DropRow({
       onDragLeave={(event) => {
         if (event.currentTarget.contains(event.relatedTarget as Node)) return
         setDropActive(false)
+        setSlotDropHint(null)
       }}
       onDrop={(event) => {
         event.preventDefault()
         setDropActive(false)
-        // Only accept palette particles — not section reorder payloads.
+        setSlotDropHint(null)
+        // Palette particle into row (not an in-row reorder payload).
         const moduleId = event.dataTransfer.getData(DND_PARTICLE)
         if (!moduleId) return
         persistDrop(moduleId)
@@ -336,8 +473,8 @@ function DropRow({
           {widthSum > LAYOUT_WIDTH_FULL ? (
             <span className="admin-badge admin-badge-warn"> overflows 100%</span>
           ) : null}
-          {slots.length === 2 ? (
-            <span className="layout-muted"> · resize 5%–95% (1% steps)</span>
+          {slots.length >= 2 ? (
+            <span className="layout-muted"> · drag ⋮⋮ to reorder · resize 5%–95%</span>
           ) : null}
           {pending ? <span className="layout-muted"> · saving…</span> : null}
         </span>
@@ -367,6 +504,25 @@ function DropRow({
                   slot={slot}
                   modules={modules}
                   percent={percent}
+                  isDragging={draggingSlotId === slot.id}
+                  dropEdge={
+                    slotDropHint?.slotId === slot.id && draggingSlotId !== slot.id
+                      ? slotDropHint.edge
+                      : null
+                  }
+                  onSlotDragStart={(id) => {
+                    setDraggingSlotId(id)
+                    setSlotDropHint(null)
+                  }}
+                  onSlotDragEnd={() => {
+                    setDraggingSlotId(null)
+                    setSlotDropHint(null)
+                  }}
+                  onSlotDragOver={(id, edge) => {
+                    if (!draggingSlotId || draggingSlotId === id) return
+                    setSlotDropHint({ slotId: id, edge })
+                  }}
+                  onSlotDrop={handleSlotDrop}
                 />
                 {next ? (
                   <ResizeHandle
@@ -514,7 +670,8 @@ function SectionCanvas({
 /**
  * Gantry Layout Manager–style canvas:
  * 1) Create section → 2) Add row → 3) Drag particle from left into row →
- * 4) Drop another beside it and resize by % → sections reorder via drag handle.
+ * 4) Drop another beside it and resize by % → drag ⋮⋮ on particles to reorder in-row →
+ * sections reorder via drag handle.
  */
 export function LayoutEditor({ document, source, modules }: Props) {
   const router = useRouter()

@@ -388,8 +388,9 @@ npm run dev
 3. Open **http://localhost:3000/app/admin/layouts** — page is **full width**; left palette + canvas.
 4. Create a section → **Add row** → **drag** Notice bar (or Custom) into the row.
 5. Drag a second particle into the same row — both sit **side by side**; drag the divider (1% steps, 5%–95%, sum 100%).
-6. Drag **Logo / Image**, **Copyright**, and **Social** from the palette — each opens typed field editors (not Custom HTML). Save and confirm public render.
-7. Edit a Custom particle with CodeMirror; **Reset to default** restores the seeded layout.
+6. Drag a particle’s **⋮⋮** handle to **reorder** within the row (order persists; widths stay).
+7. Drag **Logo / Image**, **Copyright**, and **Social** from the palette — each opens typed field editors (not Custom HTML). Save and confirm public render.
+8. Edit a Custom particle with CodeMirror; **Reset to default** restores the seeded layout.
 
 ## Not in this scaffold
 
