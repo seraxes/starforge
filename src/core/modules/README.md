@@ -64,28 +64,27 @@ Legacy v1 / v2 upgrade on read.
 5. **Custom** stores HTML + CSS + JS; JS is **not executed** until developer-admin ACL.
 6. **No plain textareas for code** — Custom / future Styles use CodeMirror (syntax highlight + resizable panels). Monaco is an optional later upgrade for a heavier Styles IDE.
 
-## Admin UX (this PR)
+## Admin UX (this PR) — Gantry Layout Manager flow
 
-- Left: particle palette (select → add).
-- Canvas: sections with rows; click-to-add (drag-drop next).
-- Per slot: width 1–12, enable/disable, remove.
-- Custom: CodeMirror editors for HTML / CSS / JS (resizable).
+1. **Create section**
+2. **Add row** inside the section
+3. **Drag** a particle from the left palette **into the row**
+4. Drop a second beside it → same row, widths rebalance (~50%/50%); **drag the divider** to resize by % (stored as 1–12)
+5. Custom particle: CodeMirror HTML/CSS/JS (resizable panels — no plain code textareas)
 
 ## Next polish (not in this PR)
 
-Gantry admin surfaces still to grow toward — keep the same visual/functional model:
-
 | Gantry concept | Starforge next step |
 | --- | --- |
-| **Drag-drop** particles onto sections / reorder | HTML5 DnD or dnd-kit on the canvas |
-| **Block settings** (CSS classes, variations, tag attributes, fixed size) | Per-slot settings panel (see [Block settings](https://docs.gantry.org/gantry5/tutorials/using-block-settings)) |
+| Reorder particles / drag between rows | Extend HTML5 DnD |
+| **Block settings** (CSS classes, variations, tag attributes) | Per-slot settings panel |
 | **Section settings** (boxed/fullwidth, classes) | Fields on `LayoutSection` |
-| **Styles** (theme SCSS / CSS) | Dedicated Styles admin with CodeMirror or **Monaco** + resizable panels — never plain textareas |
-| **Outlines** (Base + per-context layouts) | Multiple named layout docs / inheritance |
-| **Menu editor** (particles in menus) | After nav/menu depth grows |
-| **Particle defaults** + inheritance | Defaults store + per-instance overrides |
+| **Styles** | Styles admin with CodeMirror or **Monaco** |
+| **Outlines** | Multiple named layout docs / inheritance |
+| **Menu editor** | After nav/menu depth grows |
+| **Particle defaults** + inheritance | Defaults store + overrides |
 | **Custom JS execution** | Developer-admin ACL only |
-| **YAML export / edit mode** | Dev-admin optional surface; JSON remains storage |
+| **YAML export / edit mode** | Dev-admin optional; JSON remains storage |
 
 ## Add an extension particle
 

@@ -20,17 +20,17 @@ export default async function AdminLayoutsPage() {
     <section className="admin-section">
       <h2>Layout manager</h2>
       <p className="lede admin-lede">
-        Aligned with the{' '}
+        Gantry Layout Manager flow: create <strong>section</strong> → add <strong>row</strong> →{' '}
+        <strong>drag</strong> particles from the left into the row → drop a second beside it and{' '}
+        <strong>resize by %</strong> (12-col under the hood, Starforge math — not Bootstrap).
+        Built-ins: Page Content, Site Header, Custom (CodeMirror). Storage: JSON in{' '}
+        <code>sf_layouts</code>
+        {isFallback ? ' — default until first drop/save' : ''}. Extension particles need{' '}
+        <Link href="/app/admin/settings">Modules</Link> on.{' '}
         <a href="https://docs.gantry.org/gantry5/configure/layout-manager" target="_blank" rel="noreferrer">
-          Gantry Layout Manager
+          Gantry docs
         </a>
-        : left palette = particles; canvas = sections with 12-column widths (Starforge grid math —
-        not Bootstrap). Built-ins: <strong>Page Content</strong>, <strong>Site Header</strong>,{' '}
-        <strong>Custom</strong> (CodeMirror HTML/CSS/JS — no plain code textareas). Storage is JSON
-        in <code>sf_layouts</code>
-        {isFallback ? ' — using the checked-in default until the first save' : ''}. Extension
-        particles need <Link href="/app/admin/settings">Modules</Link> on. Styles / Outlines / Menu
-        editors are next polish.
+        .
       </p>
       <LayoutEditor document={document} source={source} modules={modules} />
     </section>

@@ -1123,8 +1123,17 @@ button:disabled {
   padding: 0.55rem 0.65rem;
   border: 1px solid var(--sf-line);
   background: rgba(255, 255, 255, 0.85);
-  cursor: pointer;
+  cursor: grab;
   font: inherit;
+  user-select: none;
+}
+
+.gantry-palette-item:active,
+.gantry-palette-item.is-dragging {
+  cursor: grabbing;
+  opacity: 0.85;
+  border-color: color-mix(in srgb, var(--sf-primary-strong) 45%, var(--sf-line));
+  background: color-mix(in srgb, var(--sf-primary) 28%, white);
 }
 
 .gantry-palette-item strong {
@@ -1143,18 +1152,18 @@ button:disabled {
   color: var(--sf-secondary-strong);
 }
 
-.gantry-palette-item.is-selected {
-  border-color: color-mix(in srgb, var(--sf-primary-strong) 45%, var(--sf-line));
-  background: color-mix(in srgb, var(--sf-primary) 28%, white);
+.gantry-howto {
+  margin: 0 0 1rem;
+  padding: 0.75rem 0.75rem 0.75rem 1.5rem;
+  border: 1px solid var(--sf-line);
+  background: color-mix(in srgb, var(--sf-secondary) 10%, white);
+  color: var(--sf-muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
 }
 
-.gantry-palette-width {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  font-size: 0.88rem;
-  font-weight: 600;
-  margin-bottom: 0.65rem;
+.gantry-howto li + li {
+  margin-top: 0.2rem;
 }
 
 .gantry-canvas {
@@ -1211,6 +1220,12 @@ button:disabled {
   padding: 0.55rem;
   border: 1px dashed var(--sf-line);
   background: color-mix(in srgb, var(--sf-paper) 75%, white);
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.gantry-row.is-drop-target {
+  border-color: color-mix(in srgb, var(--sf-primary-strong) 55%, var(--sf-line));
+  background: color-mix(in srgb, var(--sf-primary) 18%, white);
 }
 
 .gantry-row-meta {
@@ -1226,14 +1241,28 @@ button:disabled {
 
 .gantry-row-slots {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 0;
   width: 100%;
+  min-height: 4.5rem;
+}
+
+.gantry-row-empty {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem 0.75rem;
+  color: var(--sf-muted);
+  font-size: 0.92rem;
+  border: 1px dashed color-mix(in srgb, var(--sf-primary-strong) 35%, var(--sf-line));
+  background: color-mix(in srgb, white 70%, transparent);
 }
 
 .gantry-slot {
   box-sizing: border-box;
-  min-width: 8rem;
+  min-width: 0;
   padding: 0.55rem;
   border: 1px solid var(--sf-line);
   background: rgba(255, 255, 255, 0.9);
@@ -1248,40 +1277,62 @@ button:disabled {
   flex-wrap: wrap;
   gap: 0.35rem;
   align-items: center;
-  margin-bottom: 0.4rem;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
 }
 
-.gantry-slot-head code {
+.gantry-slot-pct {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--sf-primary-strong);
+  background: color-mix(in srgb, var(--sf-primary) 22%, white);
+  padding: 0.1rem 0.35rem;
+}
+
+.gantry-slot-meta {
+  margin: 0 0 0.4rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.gantry-slot-meta code {
   font-size: 0.75rem;
   color: var(--sf-muted);
 }
 
-.gantry-width-bar {
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: 2px;
-  height: 0.45rem;
-  margin-bottom: 0.45rem;
+.gantry-resize-handle {
+  flex: 0 0 0.55rem;
+  align-self: stretch;
+  cursor: col-resize;
+  background:
+    linear-gradient(
+      to right,
+      transparent 35%,
+      var(--sf-line) 35%,
+      var(--sf-line) 65%,
+      transparent 65%
+    ),
+    color-mix(in srgb, var(--sf-secondary) 16%, white);
+  border-top: 1px solid var(--sf-line);
+  border-bottom: 1px solid var(--sf-line);
 }
 
-.gantry-width-bar span {
-  background: color-mix(in srgb, var(--sf-muted) 18%, white);
+.gantry-resize-handle:hover,
+.gantry-resize-handle:focus-visible {
+  background-color: color-mix(in srgb, var(--sf-primary) 35%, white);
+  outline: none;
 }
 
-.gantry-width-bar span.is-filled {
-  background: color-mix(in srgb, var(--sf-primary-strong) 55%, var(--sf-primary));
-}
-
-.gantry-width-form {
-  display: flex;
+.gantry-row-slots:has(.gantry-custom-editor[open]) {
   flex-wrap: wrap;
-  gap: 0.35rem;
-  margin-bottom: 0.4rem;
 }
 
 .gantry-slot:has(.gantry-custom-editor[open]) {
   flex: 0 0 100% !important;
   max-width: 100% !important;
+  width: 100% !important;
 }
 
 .gantry-custom-editor {

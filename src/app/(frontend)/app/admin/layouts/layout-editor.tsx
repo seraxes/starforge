@@ -1,20 +1,27 @@
 'use client'
 
-import React, { useActionState, useMemo, useState } from 'react'
+import React, { useActionState, useCallback, useRef, useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 
 import {
   addLayoutRowAction,
   addLayoutSectionAction,
-  addParticleToSectionAction,
+  dropParticleIntoRowAction,
   removeLayoutRowAction,
   removeSlotAction,
   resetLayoutToDefaultAction,
-  setSlotWidthAction,
+  resizeAdjacentSlotsAction,
   toggleSlotAction,
   type LayoutActionState,
 } from '@/core/modules/actions'
-import { sumRowWidths } from '@/core/modules/grid'
-import { LAYOUT_GRID_COLUMNS, type LayoutDocument, type LayoutSlot } from '@/core/modules/types'
+import { gridWidthPercent, resizeAdjacentPair, sumRowWidths, widthToPercentLabel } from '@/core/modules/grid'
+import {
+  LAYOUT_GRID_COLUMNS,
+  type LayoutDocument,
+  type LayoutRow,
+  type LayoutSection,
+  type LayoutSlot,
+} from '@/core/modules/types'
 
 import { CustomParticleEditor } from './custom-particle-editor'
 
@@ -34,7 +41,7 @@ type Props = {
 
 const initialState: LayoutActionState = {}
 
-const WIDTH_OPTIONS = Array.from({ length: LAYOUT_GRID_COLUMNS }, (_, i) => i + 1)
+const DND_PARTICLE = 'application/x-starforge-particle'
 
 function ActionFeedback({ state }: { state: LayoutActionState }) {
   if (state.error) {
@@ -54,173 +61,452 @@ function ActionFeedback({ state }: { state: LayoutActionState }) {
   return null
 }
 
-function WidthBar({ width }: { width: number }) {
+function sortSections(sections: LayoutSection[]) {
+  return [...sections].sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id))
+}
+
+function sortRows(rows: LayoutRow[]) {
+  return [...rows].sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id))
+}
+
+function sortSlots(slots: LayoutSlot[]) {
+  return [...slots].sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id))
+}
+
+function ResizeHandle({
+  sectionId,
+  rowId,
+  left,
+  right,
+  onLocalResize,
+  onCommit,
+}: {
+  sectionId: string
+  rowId: string
+  left: LayoutSlot
+  right: LayoutSlot
+  onLocalResize: (leftId: string, leftWidth: number, rightId: string, rightWidth: number) => void
+  onCommit: (leftId: string, leftWidth: number, rightId: string, rightWidth: number) => void
+}) {
+  const dragging = useRef(false)
+
   return (
-    <div className="gantry-width-bar" aria-hidden="true">
-      {WIDTH_OPTIONS.map((n) => (
-        <span key={n} className={n <= width ? 'is-filled' : undefined} />
-      ))}
-    </div>
+    <div
+      className="gantry-resize-handle"
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="Resize particles"
+      tabIndex={0}
+      onPointerDown={(event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        const handle = event.currentTarget
+        const rowEl = handle.closest('.gantry-row-slots') as HTMLElement | null
+        const leftEl = handle.previousElementSibling as HTMLElement | null
+        if (!rowEl || !leftEl) return
+        dragging.current = true
+        handle.setPointerCapture(event.pointerId)
+        const pairSum = left.width + right.width
+        const rowRect = rowEl.getBoundingClientRect()
+        const pairLeft = leftEl.getBoundingClientRect().left - rowRect.left
+        let lastLeft = left.width
+        let lastRight = right.width
+
+        const onMove = (moveEvent: PointerEvent) => {
+          if (!dragging.current) return
+          const x = moveEvent.clientX - rowRect.left
+          const pairWidthPx = Math.max(1, (pairSum / LAYOUT_GRID_COLUMNS) * rowRect.width)
+          const localX = x - pairLeft
+          const newLeftCols = (localX / pairWidthPx) * pairSum
+          const [lw, rw] = resizeAdjacentPair(left.width, right.width, newLeftCols)
+          lastLeft = lw
+          lastRight = rw
+          onLocalResize(left.id, lw, right.id, rw)
+        }
+
+        const onUp = (upEvent: PointerEvent) => {
+          dragging.current = false
+          handle.releasePointerCapture(upEvent.pointerId)
+          window.removeEventListener('pointermove', onMove)
+          window.removeEventListener('pointerup', onUp)
+          onCommit(left.id, lastLeft, right.id, lastRight)
+          void sectionId
+          void rowId
+        }
+
+        window.addEventListener('pointermove', onMove)
+        window.addEventListener('pointerup', onUp)
+      }}
+    />
   )
 }
 
-function SlotCard({
+function ParticleBlock({
   sectionId,
   rowId,
   slot,
   modules,
+  percent,
 }: {
   sectionId: string
   rowId: string
   slot: LayoutSlot
   modules: ModuleOption[]
+  percent: number
 }) {
-  const [widthState, widthAction, widthPending] = useActionState(setSlotWidthAction, initialState)
-  const [toggleState, toggleAction, togglePending] = useActionState(toggleSlotAction, initialState)
-  const [removeState, removeAction, removePending] = useActionState(removeSlotAction, initialState)
+  const router = useRouter()
+  const [pending, startTransition] = useTransition()
+  const [flash, setFlash] = useState<LayoutActionState>({})
   const meta = modules.find((m) => m.id === slot.moduleId)
   const enabled = slot.enabled !== false
+  const pctLabel = widthToPercentLabel(slot.width)
 
   return (
     <article
       className="gantry-slot"
       data-enabled={enabled ? 'true' : 'false'}
-      style={{ flex: `0 0 ${(slot.width / LAYOUT_GRID_COLUMNS) * 100}%`, maxWidth: `${(slot.width / LAYOUT_GRID_COLUMNS) * 100}%` }}
+      data-sf-width={slot.width}
+      data-sf-slot={slot.id}
+      style={{
+        flex: `0 0 ${percent}%`,
+        maxWidth: `${percent}%`,
+        width: `${percent}%`,
+      }}
     >
       <header className="gantry-slot-head">
         <strong>{meta?.name ?? slot.moduleId}</strong>
-        <code>{slot.moduleId}</code>
-        {!enabled ? <span className="admin-badge admin-badge-warn">off</span> : null}
-        {meta?.builtin ? <span className="admin-badge">built-in</span> : null}
+        <span className="gantry-slot-pct" title={`${slot.width}/12 columns`}>
+          {pctLabel}
+        </span>
       </header>
-      <WidthBar width={slot.width} />
-      <form action={widthAction} className="gantry-width-form">
-        <input type="hidden" name="sectionId" value={sectionId} />
-        <input type="hidden" name="rowId" value={rowId} />
-        <input type="hidden" name="slotId" value={slot.id} />
-        <label>
-          <span className="sr-only">Width</span>
-          <select name="width" defaultValue={slot.width} disabled={widthPending}>
-            {WIDTH_OPTIONS.map((n) => (
-              <option key={n} value={n}>
-                {n}/12
-              </option>
-            ))}
-          </select>
-        </label>
-        <button type="submit" className="secondary" disabled={widthPending}>
-          Set width
-        </button>
-      </form>
+      <p className="gantry-slot-meta">
+        <code>{slot.moduleId}</code>
+        {meta?.builtin ? <span className="admin-badge">built-in</span> : null}
+        {!enabled ? <span className="admin-badge admin-badge-warn">off</span> : null}
+      </p>
       <div className="gantry-slot-actions">
-        <form action={toggleAction}>
-          <input type="hidden" name="sectionId" value={sectionId} />
-          <input type="hidden" name="rowId" value={rowId} />
-          <input type="hidden" name="slotId" value={slot.id} />
-          <button type="submit" className="secondary" disabled={togglePending}>
-            {enabled ? 'Disable' : 'Enable'}
-          </button>
-        </form>
-        <form action={removeAction}>
-          <input type="hidden" name="sectionId" value={sectionId} />
-          <input type="hidden" name="rowId" value={rowId} />
-          <input type="hidden" name="slotId" value={slot.id} />
-          <button type="submit" className="danger" disabled={removePending}>
-            Remove
-          </button>
-        </form>
+        <button
+          type="button"
+          className="secondary"
+          disabled={pending}
+          onClick={() => {
+            const fd = new FormData()
+            fd.set('sectionId', sectionId)
+            fd.set('rowId', rowId)
+            fd.set('slotId', slot.id)
+            startTransition(async () => {
+              const result = await toggleSlotAction({}, fd)
+              setFlash(result)
+              router.refresh()
+            })
+          }}
+        >
+          {enabled ? 'Disable' : 'Enable'}
+        </button>
+        <button
+          type="button"
+          className="danger"
+          disabled={pending}
+          onClick={() => {
+            const fd = new FormData()
+            fd.set('sectionId', sectionId)
+            fd.set('rowId', rowId)
+            fd.set('slotId', slot.id)
+            startTransition(async () => {
+              const result = await removeSlotAction({}, fd)
+              setFlash(result)
+              router.refresh()
+            })
+          }}
+        >
+          Remove
+        </button>
       </div>
       {slot.moduleId === 'custom' ? (
         <CustomParticleEditor sectionId={sectionId} rowId={rowId} slot={slot} />
       ) : null}
-      <ActionFeedback
-        state={widthState.error ? widthState : toggleState.error ? toggleState : removeState}
-      />
+      <ActionFeedback state={flash} />
     </article>
   )
 }
 
+function DropRow({
+  sectionId,
+  row,
+  modules,
+  localSlots,
+  setLocalSlots,
+}: {
+  sectionId: string
+  row: LayoutRow
+  modules: ModuleOption[]
+  localSlots: LayoutSlot[]
+  setLocalSlots: (slots: LayoutSlot[]) => void
+}) {
+  const router = useRouter()
+  const [pending, startTransition] = useTransition()
+  const [dropActive, setDropActive] = useState(false)
+  const [flash, setFlash] = useState<LayoutActionState>({})
+  const [removeRowState, removeRowAction, removeRowPending] = useActionState(
+    removeLayoutRowAction,
+    initialState,
+  )
+
+  const slots = sortSlots(localSlots)
+  const widthSum = sumRowWidths(slots.map((s) => s.width))
+
+  const persistDrop = useCallback(
+    (moduleId: string, index?: number) => {
+      const fd = new FormData()
+      fd.set('sectionId', sectionId)
+      fd.set('rowId', row.id)
+      fd.set('moduleId', moduleId)
+      if (index != null) fd.set('index', String(index))
+      startTransition(async () => {
+        const result = await dropParticleIntoRowAction({}, fd)
+        setFlash(result)
+        router.refresh()
+      })
+    },
+    [row.id, router, sectionId],
+  )
+
+  const commitResize = useCallback(
+    (leftId: string, leftWidth: number, rightId: string, rightWidth: number) => {
+      const fd = new FormData()
+      fd.set('sectionId', sectionId)
+      fd.set('rowId', row.id)
+      fd.set('leftSlotId', leftId)
+      fd.set('rightSlotId', rightId)
+      fd.set('leftWidth', String(leftWidth))
+      startTransition(async () => {
+        const result = await resizeAdjacentSlotsAction({}, fd)
+        setFlash(result)
+        // Keep local in sync even before refresh
+        setLocalSlots(
+          localSlots.map((s) => {
+            if (s.id === leftId) return { ...s, width: leftWidth }
+            if (s.id === rightId) return { ...s, width: rightWidth }
+            return s
+          }),
+        )
+        router.refresh()
+        void rightWidth
+      })
+    },
+    [localSlots, row.id, router, sectionId, setLocalSlots],
+  )
+
+  return (
+    <div
+      className={dropActive ? 'gantry-row is-drop-target' : 'gantry-row'}
+      data-sf-row={row.id}
+      onDragOver={(event) => {
+        if (![...event.dataTransfer.types].includes(DND_PARTICLE)) return
+        event.preventDefault()
+        event.dataTransfer.dropEffect = 'copy'
+        setDropActive(true)
+      }}
+      onDragLeave={(event) => {
+        if (event.currentTarget.contains(event.relatedTarget as Node)) return
+        setDropActive(false)
+      }}
+      onDrop={(event) => {
+        event.preventDefault()
+        setDropActive(false)
+        const moduleId = event.dataTransfer.getData(DND_PARTICLE) || event.dataTransfer.getData('text/plain')
+        if (!moduleId) return
+        persistDrop(moduleId)
+      }}
+    >
+      <div className="gantry-row-meta">
+        <span>
+          Row · drop particles here
+          {slots.length > 0 ? (
+            <>
+              {' '}
+              · {Math.round((widthSum / LAYOUT_GRID_COLUMNS) * 100)}% filled ({widthSum}/12)
+            </>
+          ) : null}
+          {widthSum > LAYOUT_GRID_COLUMNS ? (
+            <span className="admin-badge admin-badge-warn"> overflows</span>
+          ) : null}
+          {pending ? <span className="layout-muted"> · saving…</span> : null}
+        </span>
+        <form action={removeRowAction}>
+          <input type="hidden" name="sectionId" value={sectionId} />
+          <input type="hidden" name="rowId" value={row.id} />
+          <button type="submit" className="danger" disabled={removeRowPending}>
+            Remove row
+          </button>
+        </form>
+      </div>
+
+      <div className="gantry-row-slots">
+        {slots.length === 0 ? (
+          <div className="gantry-row-empty">Drag a particle from the left into this row</div>
+        ) : (
+          slots.map((slot, index) => {
+            const percent = gridWidthPercent(slot.width)
+            const next = slots[index + 1]
+            return (
+              <React.Fragment key={slot.id}>
+                <ParticleBlock
+                  sectionId={sectionId}
+                  rowId={row.id}
+                  slot={slot}
+                  modules={modules}
+                  percent={percent}
+                />
+                {next ? (
+                  <ResizeHandle
+                    sectionId={sectionId}
+                    rowId={row.id}
+                    left={slot}
+                    right={next}
+                    onLocalResize={(leftId, lw, rightId, rw) => {
+                      setLocalSlots(
+                        localSlots.map((s) => {
+                          if (s.id === leftId) return { ...s, width: lw }
+                          if (s.id === rightId) return { ...s, width: rw }
+                          return s
+                        }),
+                      )
+                    }}
+                    onCommit={commitResize}
+                  />
+                ) : null}
+              </React.Fragment>
+            )
+          })
+        )}
+      </div>
+      <ActionFeedback state={flash} />
+      <ActionFeedback state={removeRowState} />
+    </div>
+  )
+}
+
+function SectionCanvas({
+  section,
+  modules,
+}: {
+  section: LayoutSection
+  modules: ModuleOption[]
+}) {
+  const [rowState, rowAction, rowPending] = useActionState(addLayoutRowAction, initialState)
+  const rows = sortRows(section.rows)
+  const [slotMap, setSlotMap] = useState<Record<string, LayoutSlot[]>>(() => {
+    const map: Record<string, LayoutSlot[]> = {}
+    for (const row of section.rows) map[row.id] = sortSlots(row.slots)
+    return map
+  })
+
+  // Keep local map in sync when server document refreshes.
+  React.useEffect(() => {
+    const map: Record<string, LayoutSlot[]> = {}
+    for (const row of section.rows) map[row.id] = sortSlots(row.slots)
+    setSlotMap(map)
+  }, [section])
+
+  return (
+    <li className="gantry-section">
+      <header className="gantry-section-head">
+        <div>
+          <h3>{section.label}</h3>
+          <code className="layout-id">{section.id}</code>
+        </div>
+        <form action={rowAction} className="gantry-section-actions">
+          <input type="hidden" name="sectionId" value={section.id} />
+          <button type="submit" className="secondary" disabled={rowPending}>
+            {rowPending ? 'Adding…' : 'Add row'}
+          </button>
+        </form>
+      </header>
+      <ActionFeedback state={rowState} />
+
+      {rows.length === 0 ? (
+        <p className="layout-muted">Add a row, then drag particles into it.</p>
+      ) : (
+        rows.map((row) => (
+          <DropRow
+            key={row.id}
+            sectionId={section.id}
+            row={row}
+            modules={modules}
+            localSlots={slotMap[row.id] ?? sortSlots(row.slots)}
+            setLocalSlots={(slots) => setSlotMap((prev) => ({ ...prev, [row.id]: slots }))}
+          />
+        ))
+      )}
+    </li>
+  )
+}
+
+/**
+ * Gantry Layout Manager–style canvas:
+ * 1) Create section → 2) Add row → 3) Drag particle from left into row →
+ * 4) Drop another beside it and resize by % (12-col under the hood).
+ */
 export function LayoutEditor({ document, source, modules }: Props) {
-  const [selectedModuleId, setSelectedModuleId] = useState<string>(modules[0]?.id ?? '')
-  const [selectedWidth, setSelectedWidth] = useState<number>(12)
-  const [addState, addAction, addPending] = useActionState(addParticleToSectionAction, initialState)
   const [sectionState, sectionAction, sectionPending] = useActionState(
     addLayoutSectionAction,
     initialState,
   )
-  const [rowState, rowAction, rowPending] = useActionState(addLayoutRowAction, initialState)
   const [resetState, resetAction, resetPending] = useActionState(
     resetLayoutToDefaultAction,
     initialState,
   )
-  const [removeRowState, removeRowAction] = useActionState(removeLayoutRowAction, initialState)
+  const [draggingId, setDraggingId] = useState<string | null>(null)
 
-  const selectedModule = useMemo(
-    () => modules.find((m) => m.id === selectedModuleId),
-    [modules, selectedModuleId],
-  )
-
-  const sections = [...document.sections].sort(
-    (a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id),
-  )
+  const sections = sortSections(document.sections)
 
   return (
     <div className="gantry-editor">
       <p className="layout-source">
         Source:{' '}
         <strong>{source === 'database' ? 'Database (sf_layouts)' : 'Default JSON fallback'}</strong>
-        {source === 'default-json'
-          ? ' — first edit writes the document to Postgres.'
-          : null}{' '}
-        Storage is JSON (12-col widths). Model follows{' '}
-        <a href="https://docs.gantry.org/gantry5/configure/layout-manager" target="_blank" rel="noreferrer">
+        {source === 'default-json' ? ' — first drop/save writes to Postgres.' : null}{' '}
+        UX matches{' '}
+        <a
+          href="https://docs.gantry.org/gantry5/configure/layout-manager"
+          target="_blank"
+          rel="noreferrer"
+        >
           Gantry Layout Manager
         </a>
-        : particles → sections. v1 is click-to-add (drag-drop next).
+        : <strong>section → row → drag particles</strong>, resize side-by-side by %.
       </p>
 
       <div className="gantry-workspace">
         <aside className="gantry-palette" aria-label="Available particles">
           <h3>Particles</h3>
-          <p className="layout-muted">Select, then add to a section (or row).</p>
+          <p className="layout-muted">Drag a particle onto a row on the canvas.</p>
           <ul className="gantry-palette-list">
             {modules.map((mod) => (
               <li key={mod.id}>
-                <button
-                  type="button"
+                <div
                   className={
-                    selectedModuleId === mod.id
-                      ? 'gantry-palette-item is-selected'
+                    draggingId === mod.id
+                      ? 'gantry-palette-item is-dragging'
                       : 'gantry-palette-item'
                   }
-                  onClick={() => {
-                    setSelectedModuleId(mod.id)
-                    setSelectedWidth(mod.defaultWidth || 12)
+                  draggable
+                  onDragStart={(event) => {
+                    event.dataTransfer.setData(DND_PARTICLE, mod.id)
+                    event.dataTransfer.setData('text/plain', mod.id)
+                    event.dataTransfer.effectAllowed = 'copy'
+                    setDraggingId(mod.id)
                   }}
+                  onDragEnd={() => setDraggingId(null)}
                 >
                   <strong>{mod.name}</strong>
                   <span>{mod.description || mod.id}</span>
                   {mod.builtin ? <em>built-in</em> : null}
-                </button>
+                </div>
               </li>
             ))}
           </ul>
-          <label className="gantry-palette-width">
-            <span>Default width</span>
-            <select
-              value={selectedWidth}
-              onChange={(e) => setSelectedWidth(Number(e.target.value))}
-            >
-              {WIDTH_OPTIONS.map((n) => (
-                <option key={n} value={n}>
-                  {n}/12
-                </option>
-              ))}
-            </select>
-          </label>
-          <p className="layout-muted">
-            Selected: <strong>{selectedModule?.name ?? '—'}</strong>
-          </p>
         </aside>
 
         <div className="gantry-canvas" aria-label="Layout canvas">
@@ -228,7 +514,7 @@ export function LayoutEditor({ document, source, modules }: Props) {
             <form action={sectionAction} className="layout-inline-form">
               <input type="text" name="label" placeholder="New section name" required />
               <button type="submit" disabled={sectionPending}>
-                {sectionPending ? 'Adding…' : 'Add section'}
+                {sectionPending ? 'Adding…' : 'Create section'}
               </button>
             </form>
             <form action={resetAction}>
@@ -239,105 +525,25 @@ export function LayoutEditor({ document, source, modules }: Props) {
           </div>
           <ActionFeedback state={sectionState} />
           <ActionFeedback state={resetState} />
-          <ActionFeedback state={addState} />
-          <ActionFeedback state={rowState} />
-          <ActionFeedback state={removeRowState} />
+
+          <ol className="gantry-howto">
+            <li>Create a <strong>section</strong></li>
+            <li>Add a <strong>row</strong> inside it</li>
+            <li>
+              <strong>Drag</strong> a particle from the left into the row
+            </li>
+            <li>
+              Drop another beside it, then <strong>drag the divider</strong> to resize by %
+            </li>
+          </ol>
 
           {sections.length === 0 ? (
-            <p className="admin-empty">No sections — add one to start the canvas.</p>
+            <p className="admin-empty">No sections yet — create one to start.</p>
           ) : (
             <ol className="gantry-sections">
-              {sections.map((section) => {
-                const rows = [...section.rows].sort(
-                  (a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id),
-                )
-                return (
-                  <li key={section.id} className="gantry-section">
-                    <header className="gantry-section-head">
-                      <div>
-                        <h3>{section.label}</h3>
-                        <code className="layout-id">{section.id}</code>
-                      </div>
-                      <div className="gantry-section-actions">
-                        <form action={addAction}>
-                          <input type="hidden" name="sectionId" value={section.id} />
-                          <input type="hidden" name="moduleId" value={selectedModuleId} />
-                          <input type="hidden" name="width" value={selectedWidth} />
-                          <button type="submit" disabled={addPending || !selectedModuleId}>
-                            {addPending ? 'Adding…' : `Add ${selectedModule?.name ?? 'particle'}`}
-                          </button>
-                        </form>
-                        <form action={rowAction}>
-                          <input type="hidden" name="sectionId" value={section.id} />
-                          <button type="submit" className="secondary" disabled={rowPending}>
-                            Add row
-                          </button>
-                        </form>
-                      </div>
-                    </header>
-
-                    {rows.length === 0 ? (
-                      <p className="layout-muted">Empty section — add a particle or row.</p>
-                    ) : (
-                      rows.map((row) => {
-                        const slots = [...row.slots].sort(
-                          (a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id),
-                        )
-                        const widthSum = sumRowWidths(slots.map((s) => s.width))
-                        return (
-                          <div key={row.id} className="gantry-row" data-sf-row={row.id}>
-                            <div className="gantry-row-meta">
-                              <span>
-                                Row · {widthSum}/12
-                                {widthSum > LAYOUT_GRID_COLUMNS ? (
-                                  <span className="admin-badge admin-badge-warn"> overflows</span>
-                                ) : null}
-                              </span>
-                              <div className="gantry-row-actions">
-                                <form action={addAction}>
-                                  <input type="hidden" name="sectionId" value={section.id} />
-                                  <input type="hidden" name="rowId" value={row.id} />
-                                  <input type="hidden" name="moduleId" value={selectedModuleId} />
-                                  <input type="hidden" name="width" value={selectedWidth} />
-                                  <button
-                                    type="submit"
-                                    className="secondary"
-                                    disabled={addPending || !selectedModuleId}
-                                  >
-                                    Add here
-                                  </button>
-                                </form>
-                                <form action={removeRowAction}>
-                                  <input type="hidden" name="sectionId" value={section.id} />
-                                  <input type="hidden" name="rowId" value={row.id} />
-                                  <button type="submit" className="danger">
-                                    Remove row
-                                  </button>
-                                </form>
-                              </div>
-                            </div>
-                            <div className="gantry-row-slots">
-                              {slots.length === 0 ? (
-                                <p className="layout-muted">Drop particles here via Add.</p>
-                              ) : (
-                                slots.map((slot) => (
-                                  <SlotCard
-                                    key={slot.id}
-                                    sectionId={section.id}
-                                    rowId={row.id}
-                                    slot={slot}
-                                    modules={modules}
-                                  />
-                                ))
-                              )}
-                            </div>
-                          </div>
-                        )
-                      })
-                    )}
-                  </li>
-                )
-              })}
+              {sections.map((section) => (
+                <SectionCanvas key={section.id} section={section} modules={modules} />
+              ))}
             </ol>
           )}
         </div>
@@ -347,10 +553,8 @@ export function LayoutEditor({ document, source, modules }: Props) {
         <summary>Layout document (JSON storage)</summary>
         <pre>{JSON.stringify(document, null, 2)}</pre>
         <p className="layout-muted">
-          Gantry-like model: left palette = particles; canvas = sections → rows → slots with{' '}
-          <code>width</code> 1–12 (Starforge grid math, not Bootstrap). Custom uses CodeMirror
-          (not plain textareas). Next polish: drag-drop, Styles / Outlines / Menu editor, block
-          settings (CSS classes, variations), YAML export, developer-admin JS ACL — see{' '}
+          Widths are stored as 1–12 columns and shown as % on the canvas. Custom particle still uses
+          CodeMirror. Styles / Outlines / Menu editors remain next polish — see{' '}
           <code>src/core/modules/README.md</code>.
         </p>
       </details>

@@ -118,7 +118,7 @@ One Payload global (`site-settings`) is the source of truth for site chrome and 
 
 ### Extension modules + Gantry-like layout manager
 
-Public chrome is driven by a **layout document**: **sections → rows → slots** (`moduleId` + **`width` 1–12**). Storage is **JSON** in `sf_layouts` (fallback `default-layout.json`). Admin UX at **`/app/admin/layouts`** mirrors Gantry basics: **left particle palette**, **canvas of sections**, click-to-add + width control (Starforge flex grid math — **not Bootstrap**). Drag-drop polish comes later.
+Public chrome is driven by a **layout document**: **sections → rows → slots** (`moduleId` + **`width` 1–12**, shown as %). Storage is **JSON** in `sf_layouts` (fallback `default-layout.json`). Admin UX at **`/app/admin/layouts`** follows Gantry Layout Manager: create section → add row → **drag** particles from the left palette into the row → resize side-by-side by % (Starforge flex math — **not Bootstrap**).
 
 | Piece | Where |
 | --- | --- |
@@ -134,7 +134,7 @@ Default seed: Header → notice-bar (12); Navigation → site-header (12); Main 
 
 **Code editors:** Custom particle HTML/CSS/JS use **CodeMirror** (syntax highlighting + resizable panels) — not plain textareas. Monaco remains an option for a heavier Styles IDE later.
 
-**Next polish (not this PR):** true drag-drop; Gantry-like **Styles / Outlines / Menu** editors; block settings (CSS classes, variations); Custom JS execution + ACL; YAML export; nested menus; Redis on DO. See `src/core/modules/README.md` and [docs.gantry.org](https://docs.gantry.org/).
+**Next polish (not this PR):** Gantry-like **Styles / Outlines / Menu** editors; block settings; cross-row reorder; Custom JS execution + ACL; YAML export; nested menus; Redis on DO. See `src/core/modules/README.md` and [docs.gantry.org](https://docs.gantry.org/).
 
 **First admin paths:**
 
@@ -365,10 +365,10 @@ npm run dev
 
 1. Open **http://localhost:3000** — notice bar in the header (Modules on from seed).
 2. Sign in as `admin@starforge.local` / `starforge-admin`.
-3. Open **http://localhost:3000/app/admin/layouts** — left particle palette; canvas sections Header / Navigation / Main / Footer.
-4. Select **Custom** (or Notice bar), set width, **Add** to a section — confirm on the public site.
-5. Edit the footer Custom particle — CodeMirror HTML/CSS/JS panels (resize the bottom handle); JS is stored but not executed yet.
-6. **Reset to default** restores the seeded v3 layout.
+3. Open **http://localhost:3000/app/admin/layouts** — left particle palette; canvas sections.
+4. Create a section → **Add row** → **drag** Notice bar (or Custom) from the left into the row.
+5. Drag a second particle into the same row — both sit side by side; drag the vertical divider to resize by %.
+6. Edit a Custom particle with CodeMirror; **Reset to default** restores the seeded layout.
 
 ## Not in this scaffold
 
@@ -376,7 +376,7 @@ npm run dev
 - Forgot / reset password (needs email — deferred), OAuth
 - Second Payload password login (removed — Better Auth session strategy only)
 - Posts collection
-- Full Gantry Styles / Outlines / Menu editors, drag-drop polish, YAML mode, Custom JS execution + ACL (v1: palette + canvas + CodeMirror Custom + JSON storage)
+- Full Gantry Styles / Outlines / Menu editors, cross-row reorder, YAML mode, Custom JS execution + ACL (layout DnD canvas + CodeMirror Custom + JSON storage are in)
 - Nested menus, Joomla-like menu CSS / browser-title overrides (stub fields only)
 - Airsoftnexus 2.0 feature parity
 

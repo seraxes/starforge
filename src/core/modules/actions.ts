@@ -13,10 +13,38 @@ import {
   newLayoutEntityId,
   slugifyLayoutId,
 } from './document'
-import { clampGridWidth } from './grid'
+import { clampGridWidth, evenColumnWidths, resizeAdjacentPair } from './grid'
 import { loadLayoutDocument, saveLayoutDocument } from './layout-store'
 import { getRegisteredModule, listRegisteredModules } from './registry'
 import type { LayoutDocument, LayoutRow, LayoutSection, LayoutSlot, LayoutSlotConfig } from './types'
+
+function customDefaultConfig(): LayoutSlotConfig {
+  return {
+    title: 'Custom',
+    html: '<p>Custom HTML</p>',
+    css: '',
+    js: '',
+  }
+}
+
+function makeSlot(moduleId: string, width: number, order: number): LayoutSlot {
+  return {
+    id: newLayoutEntityId(`slot-${moduleId}`),
+    moduleId,
+    width: clampGridWidth(width),
+    enabled: true,
+    order,
+    ...(moduleId === 'custom' ? { config: customDefaultConfig() } : {}),
+  }
+}
+
+function rebalanceRowSlots(row: LayoutRow): void {
+  const widths = evenColumnWidths(row.slots.length)
+  row.slots.forEach((slot, index) => {
+    slot.width = widths[index] ?? 1
+    slot.order = index
+  })
+}
 
 export type LayoutActionState = {
   error?: string
@@ -164,67 +192,55 @@ export async function removeLayoutRowAction(
   return state
 }
 
-/** Click-to-add: place a particle into a section row (creates a row if needed). */
-export async function addParticleToSectionAction(
+/**
+ * Drag-drop primary path: drop a palette particle into a row.
+ * Inserts at `index` (optional) and rebalances widths to sum to 12.
+ */
+export async function dropParticleIntoRowAction(
   _prev: LayoutActionState,
   formData: FormData,
 ): Promise<LayoutActionState> {
   const sectionId = String(formData.get('sectionId') ?? '').trim()
-  const moduleId = String(formData.get('moduleId') ?? '').trim()
   const rowId = String(formData.get('rowId') ?? '').trim()
-  const widthRaw = formData.get('width')
+  const moduleId = String(formData.get('moduleId') ?? '').trim()
+  const indexRaw = formData.get('index')
+  const index =
+    indexRaw != null && String(indexRaw) !== '' && Number.isFinite(Number(indexRaw))
+      ? Math.max(0, Math.floor(Number(indexRaw)))
+      : undefined
 
-  if (!sectionId) return { error: 'Choose a section on the canvas.' }
-  if (!moduleId) return { error: 'Select a particle from the palette.' }
+  if (!sectionId || !rowId) return { error: 'Drop onto a row inside a section.' }
+  if (!moduleId) return { error: 'Drag a particle from the left palette.' }
 
   ensureModulesRegistered()
   const mod = getRegisteredModule(moduleId)
   if (!mod) return { error: `Particle “${moduleId}” is not registered.` }
 
-  const width = clampGridWidth(widthRaw ?? mod.defaultWidth ?? 12)
-
   const state = await mutateLayout((doc) => {
-    const section = findSection(doc, sectionId)
-    if (!section) return { error: `Section “${sectionId}” not found.` }
+    const found = findRow(doc, sectionId, rowId)
+    if (!found) return { error: 'Row not found — add a row in the section first.' }
 
-    let row = rowId ? section.rows.find((r) => r.id === rowId) : undefined
-    if (!row) {
-      // Prefer last row; create one if the section is empty.
-      if (section.rows.length === 0) {
-        row = { id: newLayoutEntityId(`${sectionId}-row`), order: 0, slots: [] }
-        section.rows.push(row)
-      } else {
-        row = [...section.rows].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).at(-1)
-      }
-    }
-    if (!row) return { error: 'Could not resolve a row.' }
-
-    const maxOrder = row.slots.reduce((m, s) => Math.max(m, s.order ?? 0), -1)
-    const slot: LayoutSlot = {
-      id: newLayoutEntityId(`slot-${moduleId}`),
-      moduleId,
-      width,
-      enabled: true,
-      order: maxOrder + 1,
-      ...(moduleId === 'custom'
-        ? {
-            config: {
-              title: 'Custom',
-              html: '<p>Custom HTML</p>',
-              css: '',
-              js: '',
-            } satisfies LayoutSlotConfig,
-          }
-        : {}),
-    }
-    row.slots.push(slot)
+    const insertAt =
+      index == null ? found.row.slots.length : Math.min(index, found.row.slots.length)
+    const slot = makeSlot(moduleId, 12, insertAt)
+    found.row.slots.splice(insertAt, 0, slot)
+    rebalanceRowSlots(found.row)
     return doc
   })
 
-  if (state.ok) state.message = `Added “${mod.name}” (${width}/12).`
+  if (state.ok) state.message = `Dropped “${mod.name}” into the row.`
   return state
 }
 
+/** @deprecated Prefer dropParticleIntoRowAction — kept for transitional imports. */
+export async function addParticleToSectionAction(
+  prev: LayoutActionState,
+  formData: FormData,
+): Promise<LayoutActionState> {
+  return dropParticleIntoRowAction(prev, formData)
+}
+
+/** Persist a single slot width (manual / accessibility). */
 export async function setSlotWidthAction(
   _prev: LayoutActionState,
   formData: FormData,
@@ -246,6 +262,71 @@ export async function setSlotWidthAction(
   return state
 }
 
+/**
+ * Drag the divider between two adjacent particles: resize by % (stored as 1–12).
+ * form: leftSlotId, rightSlotId, leftWidth
+ */
+export async function resizeAdjacentSlotsAction(
+  _prev: LayoutActionState,
+  formData: FormData,
+): Promise<LayoutActionState> {
+  const sectionId = String(formData.get('sectionId') ?? '').trim()
+  const rowId = String(formData.get('rowId') ?? '').trim()
+  const leftSlotId = String(formData.get('leftSlotId') ?? '').trim()
+  const rightSlotId = String(formData.get('rightSlotId') ?? '').trim()
+  const leftWidthRaw = Number(formData.get('leftWidth'))
+  if (!sectionId || !rowId || !leftSlotId || !rightSlotId) {
+    return { error: 'Missing resize pair.' }
+  }
+
+  const state = await mutateLayout((doc) => {
+    const found = findRow(doc, sectionId, rowId)
+    if (!found) return { error: 'Row not found.' }
+    const left = found.row.slots.find((s) => s.id === leftSlotId)
+    const right = found.row.slots.find((s) => s.id === rightSlotId)
+    if (!left || !right) return { error: 'Adjacent slots not found.' }
+    const [lw, rw] = resizeAdjacentPair(left.width, right.width, leftWidthRaw)
+    left.width = lw
+    right.width = rw
+    return doc
+  })
+
+  if (state.ok) state.message = 'Widths updated.'
+  return state
+}
+
+/** Set every slot width in a row (after a full redistribute). */
+export async function setRowSlotWidthsAction(
+  _prev: LayoutActionState,
+  formData: FormData,
+): Promise<LayoutActionState> {
+  const sectionId = String(formData.get('sectionId') ?? '').trim()
+  const rowId = String(formData.get('rowId') ?? '').trim()
+  const raw = String(formData.get('widthsJson') ?? '')
+  if (!sectionId || !rowId) return { error: 'Missing row reference.' }
+
+  let widths: Array<{ slotId: string; width: number }>
+  try {
+    widths = JSON.parse(raw) as Array<{ slotId: string; width: number }>
+    if (!Array.isArray(widths)) throw new Error('not array')
+  } catch {
+    return { error: 'Invalid widths payload.' }
+  }
+
+  const state = await mutateLayout((doc) => {
+    const found = findRow(doc, sectionId, rowId)
+    if (!found) return { error: 'Row not found.' }
+    for (const entry of widths) {
+      const slot = found.row.slots.find((s) => s.id === entry.slotId)
+      if (slot) slot.width = clampGridWidth(entry.width)
+    }
+    return doc
+  })
+
+  if (state.ok) state.message = 'Row widths saved.'
+  return state
+}
+
 export async function removeSlotAction(
   _prev: LayoutActionState,
   formData: FormData,
@@ -261,6 +342,7 @@ export async function removeSlotAction(
     const next = found.row.slots.filter((s) => s.id !== slotId)
     if (next.length === found.row.slots.length) return { error: 'Slot not found.' }
     found.row.slots = next
+    rebalanceRowSlots(found.row)
     return doc
   })
 

@@ -2,11 +2,14 @@ export {
   addLayoutRowAction,
   addLayoutSectionAction,
   addParticleToSectionAction,
+  dropParticleIntoRowAction,
   listModulesForLayoutAdmin,
   removeLayoutRowAction,
   removeSlotAction,
   renameLayoutSectionAction,
   resetLayoutToDefaultAction,
+  resizeAdjacentSlotsAction,
+  setRowSlotWidthsAction,
   setSlotWidthAction,
   toggleSlotAction,
   updateCustomSlotAction,
@@ -21,7 +24,15 @@ export {
   serializeLayoutDocument,
   slugifyLayoutId,
 } from './document'
-export { clampGridWidth, gridColStyle, gridWidthPercent, sumRowWidths } from './grid'
+export {
+  clampGridWidth,
+  evenColumnWidths,
+  gridColStyle,
+  gridWidthPercent,
+  resizeAdjacentPair,
+  sumRowWidths,
+  widthToPercentLabel,
+} from './grid'
 export { getAssignmentsForPosition, getLayoutDocument } from './layout'
 export {
   ensureDefaultLayoutSeeded,
