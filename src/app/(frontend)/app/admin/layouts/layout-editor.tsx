@@ -350,12 +350,12 @@ function ParticleBlock({
         >
           Remove
         </button>
+        {slot.moduleId === 'custom' ? (
+          <CustomParticleEditor sectionId={sectionId} rowId={rowId} slot={slot} />
+        ) : (
+          <TypedParticleEditor sectionId={sectionId} rowId={rowId} slot={slot} />
+        )}
       </div>
-      {slot.moduleId === 'custom' ? (
-        <CustomParticleEditor sectionId={sectionId} rowId={rowId} slot={slot} />
-      ) : (
-        <TypedParticleEditor sectionId={sectionId} rowId={rowId} slot={slot} />
-      )}
       <ActionFeedback state={flash} />
     </article>
   )
@@ -717,7 +717,7 @@ function SectionCanvas({
             ⋮⋮
           </button>
           <div className="gantry-section-identity">
-            <label className="gantry-inline-label">
+            <label className="gantry-inline-label gantry-section-name-label">
               <span className="sr-only">Section name</span>
               <input
                 key={`section-label-${section.id}-${section.label}`}
@@ -745,34 +745,36 @@ function SectionCanvas({
               />
             </label>
             <code className="layout-id">{section.id}</code>
-            <label className="gantry-inline-label gantry-section-class-label">
-              <span className="gantry-field-hint">CSS classes</span>
-              <input
-                key={`section-class-${section.id}-${section.cssClass ?? ''}`}
-                type="text"
-                className="gantry-inline-input gantry-section-class-input"
-                defaultValue={section.cssClass ?? ''}
-                disabled={metaPending}
-                placeholder="e.g. boxed dark-header"
-                title="Space-separated CSS classes on the public section wrapper"
-                aria-label="Section CSS classes"
-                onBlur={(event) => persistSectionMeta({ cssClass: event.target.value })}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault()
-                    ;(event.target as HTMLInputElement).blur()
-                  }
-                }}
-              />
-            </label>
           </div>
         </div>
-        <form action={rowAction} className="gantry-section-actions">
-          <input type="hidden" name="sectionId" value={section.id} />
-          <button type="submit" className="secondary" disabled={rowPending}>
-            {rowPending ? 'Adding…' : 'Add row'}
-          </button>
-        </form>
+        <div className="gantry-section-toolbar">
+          <label className="gantry-inline-label gantry-section-class-label">
+            <span className="gantry-field-hint">CSS classes</span>
+            <input
+              key={`section-class-${section.id}-${section.cssClass ?? ''}`}
+              type="text"
+              className="gantry-inline-input gantry-section-class-input"
+              defaultValue={section.cssClass ?? ''}
+              disabled={metaPending}
+              placeholder="e.g. boxed dark-header"
+              title="Space-separated CSS classes on the public section wrapper"
+              aria-label="Section CSS classes"
+              onBlur={(event) => persistSectionMeta({ cssClass: event.target.value })}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault()
+                  ;(event.target as HTMLInputElement).blur()
+                }
+              }}
+            />
+          </label>
+          <form action={rowAction} className="gantry-section-actions">
+            <input type="hidden" name="sectionId" value={section.id} />
+            <button type="submit" className="secondary" disabled={rowPending}>
+              {rowPending ? 'Adding…' : 'Add row'}
+            </button>
+          </form>
+        </div>
       </header>
       <ActionFeedback state={metaFlash} />
       <ActionFeedback state={rowState} />
