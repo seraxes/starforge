@@ -104,13 +104,16 @@ export const sfVerifications = pgTable(
 )
 
 /**
- * Visual layout manager document (JSON: sections → positions → module ids).
- * One row (`default`) is the active site layout. Empty/missing → fall back to
- * `src/core/modules/default-layout.json`. ACL for custom JS comes later.
+ * Layout outlines (Gantry-style named layouts).
+ * Multiple rows: `id` is the stable slug (Page Settings `layoutId`);
+ * `label` is the admin display name. Seed row `default` is the Base Outline.
+ * Empty/missing document → fall back to `src/core/modules/default-layout.json`.
  */
 export const sfLayouts = pgTable('sf_layouts', {
   id: text('id').primaryKey(),
-  /** Canonical layout document JSON (version 2). */
+  /** Human display name (Outlines manager / Page Settings dropdown). */
+  label: text('label').notNull().default('Untitled'),
+  /** Canonical layout document JSON (version 3). */
   document: text('document').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true })

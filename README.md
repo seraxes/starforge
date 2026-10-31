@@ -127,23 +127,24 @@ Public chrome is driven by a **layout document**: **sections → rows → slots*
 | Built-in particles | `page-content`, `site-header`, `logo`, `copyright`, `social`, `custom` (HTML/CSS; JS stub) |
 | Example extension | `src/modules/notice-bar/` |
 | Catalog boot | `src/modules/catalog.ts` (+ builtins) |
-| Layout document | `sf_layouts.document` (v3 JSON) · fallback `default-layout.json` |
-| Admin UI | `/app/admin/layouts` |
-| Public render | `PublicLayoutBody` + `SlotRenderer` |
+| Layout document | `sf_layouts` rows (id + label + v3 JSON) · fallback `default-layout.json` |
+| Outlines | `/app/admin/outlines` — create / rename / duplicate / select (opens Layout canvas) |
+| Admin UI | `/app/admin/layouts?outline=<id>` |
+| Public render | `PublicLayoutBody` + `SlotRenderer` (Page Settings `layoutId`) |
 
 Default seed: Header → notice-bar (12); Navigation → site-header (12); Main → page-content (12); Footer → custom note (12). Docs: `src/core/modules/README.md`.
 
 **Code editors:** Custom particle HTML/CSS/JS use **CodeMirror** (syntax highlighting + resizable panels) — not plain textareas. Monaco remains an option for a heavier Styles IDE later.
 
-**Next polish (not this PR):** Gantry-like **Styles / Outlines / Menu** editors; per-slot CSS/variations; cross-row reorder; Custom JS execution + ACL; YAML export; nested menus; Redis on DO. See `src/core/modules/README.md` and [docs.gantry.org](https://docs.gantry.org/).
+**Next polish (not this PR):** Gantry-like **Styles / Menu** editors; per-slot CSS/variations; outline inheritance; cross-row reorder; Custom JS execution + ACL; YAML export; nested menus; Redis on DO. See `src/core/modules/README.md` and [docs.gantry.org](https://docs.gantry.org/).
 
 ### Page Settings (document chrome)
 
-Gantry-style **Page Settings** (Core admin nav: parent **Layouts** reveals a hover submenu — **Layout** default + **Page settings**; parent click → Layout canvas; route **`/app/admin/page-settings`**): site defaults + per-page overrides (picker: global / home / CMS pages). Storage: JSON in **`sf_page_chrome`** (`global` row + slug/`home` overrides). Public layout merges **page → global**, then emits head meta/icons/CSS, body attrs/hooks, Font Awesome, ordered JS, and **atoms**. Styles / Particle Defaults join the same submenu later.
+Gantry-style **Page Settings** (Core admin nav: parent **Layouts** reveals a hover submenu — **Layout** default + **Outlines** + **Page settings**; parent click → Layout canvas; route **`/app/admin/page-settings`**): site defaults + per-page overrides (picker: global / home / CMS pages). Storage: JSON in **`sf_page_chrome`** (`global` row + slug/`home` overrides). Public layout merges **page → global**, then emits head meta/icons/CSS, body attrs/hooks, Font Awesome, ordered JS, and **atoms**. Styles / Particle Defaults join the same submenu later.
 
 | Panel | Notes |
 | --- | --- |
-| Layout assignment | `layoutId` → `sf_layouts` + sections mode (fullwidth / boxed) |
+| Layout assignment | `layoutId` → any outline in `sf_layouts` + sections mode (fullwidth / boxed) |
 | Head Properties | Repeatable meta tags + custom head HTML |
 | Assets | Favicon, touch icon, ordered CSS / JS lists |
 | Body Attributes | Id, classes, tag attrs, after `<body>` / before `</body>` |

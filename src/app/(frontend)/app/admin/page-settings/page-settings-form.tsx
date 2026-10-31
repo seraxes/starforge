@@ -24,22 +24,26 @@ const INITIAL: PageSettingsActionState = {}
 
 function Panel({
   title,
-  defaultOpen = false,
+  wide,
   children,
 }: {
   title: string
+  /** @deprecated Panels are always expanded (no collapse). Kept for call-site compat. */
   defaultOpen?: boolean
+  /** Span two mosaic columns on wide screens. */
+  wide?: boolean
   children: React.ReactNode
 }) {
+  // Always-open mosaic tiles — not <details>; Body / FA / Atoms / etc. must never start collapsed.
   return (
-    // React's DOM types omit `defaultOpen` on <details>; HTML supports it.
-    <details
-      className="page-settings-panel"
-      {...({ defaultOpen } as React.HTMLAttributes<HTMLDetailsElement>)}
+    <section
+      className={wide ? 'page-settings-panel page-settings-panel-wide' : 'page-settings-panel'}
     >
-      <summary>{title}</summary>
+      <header className="page-settings-panel-head">
+        <h3>{title}</h3>
+      </header>
       <div className="page-settings-panel-body">{children}</div>
-    </details>
+    </section>
   )
 }
 
@@ -275,13 +279,17 @@ export function PageSettingsForm({ bootstrap }: Props) {
           </>
         ) : null}
 
-        <Panel title="Layout assignment" defaultOpen>
+        <div className="page-settings-mosaic">
+        <Panel title="Layout assignment">
           <label className="settings-field">
             <span>Layout</span>
             <select name="layoutId" value={layoutId} onChange={(e) => setLayoutId(e.target.value)}>
-              {bootstrap.layoutIds.map((id) => (
-                <option key={id} value={id}>
-                  {id}
+              {(bootstrap.layouts?.length
+                ? bootstrap.layouts
+                : bootstrap.layoutIds.map((id) => ({ id, label: id }))
+              ).map((layout) => (
+                <option key={layout.id} value={layout.id}>
+                  {layout.label} ({layout.id})
                 </option>
               ))}
             </select>
@@ -299,7 +307,7 @@ export function PageSettingsForm({ bootstrap }: Props) {
           </label>
         </Panel>
 
-        <Panel title="Head Properties" defaultOpen>
+        <Panel title="Head Properties" wide>
           <div className="page-settings-list">
             <div className="page-settings-list-head">
               <strong>Meta Tags</strong>
@@ -538,7 +546,7 @@ export function PageSettingsForm({ bootstrap }: Props) {
           </div>
         </Panel>
 
-        <Panel title="Atoms" defaultOpen>
+        <Panel title="Atoms" wide>
           <p className="settings-hint">
             Non-visual injectors (like Gantry atoms). Add with a pill, configure in a popup overlay.
           </p>
@@ -657,6 +665,8 @@ export function PageSettingsForm({ bootstrap }: Props) {
           </ul>
           {atoms.length === 0 ? <p className="settings-hint">No atoms on this chrome yet.</p> : null}
         </Panel>
+
+        </div>
 
         <div className="page-settings-actions">
           <button type="submit" className="primary" disabled={pending}>

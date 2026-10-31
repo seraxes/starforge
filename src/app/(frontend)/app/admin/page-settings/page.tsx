@@ -22,7 +22,7 @@ export default async function AdminPageSettingsPage({ searchParams }: Props) {
   const bootstrap = await loadPageSettingsAdmin(editingPageKey)
 
   return (
-    <section className="admin-section">
+    <section className="admin-section admin-layouts-full">
       <h2>Page Settings</h2>
       <p className="lede admin-lede">
         Site defaults and per-page overrides for document chrome (meta, assets, body, Font Awesome,

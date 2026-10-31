@@ -105,7 +105,7 @@ Custom stays available for free-form HTML — do **not** generate Logo/Copyright
 | **Block settings** (CSS classes, variations, tag attributes) | Per-slot settings panel (section `cssClass` + slot `name` already ship) |
 | **Section settings** (boxed/fullwidth beyond classes) | More fields on `LayoutSection` |
 | **Styles** | Styles admin with CodeMirror or **Monaco** |
-| **Outlines** | Multiple named layout docs / inheritance |
+| **Outlines** | ✅ Multiple named layout docs (`/app/admin/outlines`) — create / rename / duplicate / select; Page Settings assigns any outline |
 | **Menu editor** | After nav/menu depth grows |
 | **Particle defaults** + inheritance | Defaults store + overrides |
 | **Custom JS execution** | Developer-admin ACL only |

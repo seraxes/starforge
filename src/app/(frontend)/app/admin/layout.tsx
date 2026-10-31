@@ -57,7 +57,7 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
         <Link href="/app/admin/settings">Site settings</Link>
         {/*
           Gantry-style: parent Layouts → default Layout canvas.
-          Hover/focus reveals submenu (Layout, Page settings; Styles / Particle Defaults later).
+          Hover/focus reveals submenu (Layout, Outlines, Page settings; Styles / Particle Defaults later).
         */}
         <div className="admin-nav-dropdown">
           <Link href="/app/admin/layouts" className="admin-nav-dropdown-trigger">
@@ -69,6 +69,9 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
           <ul className="admin-nav-dropdown-menu" aria-label="Layouts submenu">
             <li>
               <Link href="/app/admin/layouts">Layout</Link>
+            </li>
+            <li>
+              <Link href="/app/admin/outlines">Outlines</Link>
             </li>
             <li>
               <Link href="/app/admin/page-settings">Page settings</Link>
