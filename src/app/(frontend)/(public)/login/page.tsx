@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 
 import { getAppSession } from '@/core/auth/session'
 import { safeNextPath } from '@/core/auth/safe-next-path'
+import { getSiteSettings } from '@/core/settings'
 import { LoginForm } from './login-form'
 
 export const metadata = {
@@ -18,7 +19,7 @@ export default async function LoginPage({
 }) {
   const params = await searchParams
   const next = safeNextPath(params.next, '/')
-  const session = await getAppSession()
+  const [session, settings] = await Promise.all([getAppSession(), getSiteSettings()])
   if (session) {
     redirect(next)
   }
@@ -26,7 +27,7 @@ export default async function LoginPage({
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <p className="brand">Starforge</p>
+        <p className="brand">{settings.siteName}</p>
         <h1>Sign in</h1>
         <p className="lede">
           Sign in with the <strong>email</strong> you registered (not your
@@ -35,8 +36,14 @@ export default async function LoginPage({
         </p>
         <LoginForm next={next === '/' ? undefined : next} />
         <p className="auth-switch">
-          No account yet, or registered before the auth fix?{' '}
-          <Link href="/register">Create a new app account</Link>
+          {settings.features.registration ? (
+            <>
+              No account yet, or registered before the auth fix?{' '}
+              <Link href="/register">Create a new app account</Link>
+            </>
+          ) : (
+            <>Registration is currently off. Ask a core admin if you need a new account.</>
+          )}
         </p>
       </div>
     </div>

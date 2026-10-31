@@ -23,6 +23,7 @@ import {
 } from './core/auth/admin'
 import { db } from './core/db'
 import { sfUsers } from './core/db/schema'
+import { ensureSiteSettingsDefaults } from './core/settings'
 import { eq } from 'drizzle-orm'
 
 const DEMO_APP_EMAIL = 'demo@starforge.local'
@@ -273,14 +274,27 @@ async function seedBootstrapAdmin() {
 }
 
 async function main() {
+  // Lets Better Auth create bootstrap users even if registration toggle is off.
+  process.env.STARFORGE_SEEDING = '1'
+
   console.log('')
   console.log('Starforge seed')
   console.log('--------------')
   console.log('CMS editors (Payload /admin) are NOT created here.')
   console.log('Create the first CMS editor in the browser at http://localhost:3000/admin')
   console.log('App accounts (/login) are separate from CMS editors.')
-  console.log('Core admin UI: http://localhost:3000/app/admin/users (app role admin only).')
+  console.log('Core admin UI: http://localhost:3000/app/admin (users + site settings).')
   console.log('')
+
+  try {
+    const settings = await ensureSiteSettingsDefaults()
+    console.log(
+      `Site settings: "${settings.siteName}" · nav ${settings.primaryNav.length} · registration=${settings.features.registration}`,
+    )
+  } catch (error) {
+    console.warn('Could not seed site settings (Payload global).')
+    console.warn(error instanceof Error ? error.message : error)
+  }
 
   const pages = await seedPages()
   if (pages.created.length) {
@@ -332,7 +346,8 @@ async function main() {
   console.log('Try: http://localhost:3000/about  ·  /getting-started  ·  /welcome')
   console.log('CMS:  http://localhost:3000/admin')
   console.log('App:  http://localhost:3000/login')
-  console.log('Core admin users: http://localhost:3000/app/admin/users')
+  console.log('Core admin users:    http://localhost:3000/app/admin/users')
+  console.log('Core site settings:  http://localhost:3000/app/admin/settings')
   console.log('')
 
   process.exit(0)

@@ -7,8 +7,8 @@ import {
   userIsAppAdmin,
 } from '@/core/auth/admin'
 import { getAppSession } from '@/core/auth/session'
+import { getSiteSettings } from '@/core/settings'
 import { SignOutButton } from './sign-out-button'
-import './styles.css'
 
 export default async function HomePage({
   searchParams,
@@ -16,7 +16,7 @@ export default async function HomePage({
   searchParams: Promise<{ notice?: string }>
 }) {
   const params = await searchParams
-  const session = await getAppSession()
+  const [session, settings] = await Promise.all([getAppSession(), getSiteSettings()])
   const user = session?.user
   let role = user ? roleFromUser(user) : null
   if (user) {
@@ -26,11 +26,12 @@ export default async function HomePage({
   }
   const isAdmin = userIsAppAdmin(user) || role === 'admin'
   const showAdminsOnly = params.notice === 'admins-only'
+  const registrationOn = settings.features.registration
 
   return (
     <div className="home">
       <div className="content">
-        <p className="brand">Starforge</p>
+        <p className="brand">{settings.siteName}</p>
         <h1>Core + content module scaffold</h1>
         <p className="lede">
           Product APIs and auth live in Starforge core. Payload CMS handles editorial
@@ -40,8 +41,8 @@ export default async function HomePage({
         {showAdminsOnly ? (
           <div className="notice-banner" role="status">
             <p>
-              <strong>Admins only.</strong> <code>/app/admin/users</code> is for core app
-              role <code>admin</code>. Members are redirected here on purpose.
+              <strong>Admins only.</strong> <code>/app/admin/*</code> is for core app role{' '}
+              <code>admin</code>. Members are redirected here on purpose.
             </p>
             <p>
               Sign in as the seed admin <code>admin@starforge.local</code> /{' '}
@@ -55,10 +56,10 @@ export default async function HomePage({
 
         <div className="clarity-callout" role="note">
           <p>
-            <strong>/admin</strong> = CMS content (pages, media, editors).{' '}
-            <strong>/login</strong> = app accounts. <strong>/app/admin/users</strong> = core
-            user admin (roles — <code>admin</code> only). Separate systems — one login does not
-            work in the other.
+            <strong>/admin</strong> = CMS content (pages, media, editors, site settings global).{' '}
+            <strong>/login</strong> = app accounts. <strong>/app/admin</strong> = core users +
+            feature toggles (<code>admin</code> only). Separate systems — one login does not work
+            in the other.
           </p>
         </div>
 
@@ -71,9 +72,14 @@ export default async function HomePage({
               </p>
               <div className="links">
                 {isAdmin ? (
-                  <Link className="primary" href="/app/admin/users">
-                    Core user admin
-                  </Link>
+                  <>
+                    <Link className="primary" href="/app/admin/users">
+                      Core user admin
+                    </Link>
+                    <Link className="secondary" href="/app/admin/settings">
+                      Site settings
+                    </Link>
+                  </>
                 ) : null}
                 <Link className="secondary" href="/api/me">
                   View /api/me
@@ -85,13 +91,21 @@ export default async function HomePage({
             <>
               <p className="session-status">Not signed in (app account).</p>
               <div className="links">
-                <Link className="primary" href="/register">
-                  Register
-                </Link>
-                <Link className="secondary" href="/login">
+                {registrationOn ? (
+                  <Link className="primary" href="/register">
+                    Register
+                  </Link>
+                ) : null}
+                <Link className={registrationOn ? 'secondary' : 'primary'} href="/login">
                   Sign in
                 </Link>
               </div>
+              {!registrationOn ? (
+                <p className="session-hint">
+                  Registration is off (feature toggle). Sign in with an existing app account, or
+                  ask a core admin to enable it under Site settings.
+                </p>
+              ) : null}
             </>
           )}
         </div>
@@ -111,7 +125,7 @@ export default async function HomePage({
       <div className="footer">
         <p>
           Content: Payload <code>/admin</code> · App accounts: <code>/login</code> · Core
-          admin: <code>/app/admin/users</code> (seed:{' '}
+          admin: <code>/app/admin</code> (seed:{' '}
           <code>admin@starforge.local</code> / <code>starforge-admin</code>) ·{' '}
           <code>npm run seed</code> · see README
         </p>

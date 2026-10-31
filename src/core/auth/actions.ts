@@ -6,6 +6,7 @@ import { APIError } from 'better-auth/api'
 import { and, eq } from 'drizzle-orm'
 
 import { db, sfAccounts, sfUsers } from '@/core/db'
+import { isRegistrationEnabled } from '@/core/settings'
 import { auth } from './index'
 import { safeNextPath } from './safe-next-path'
 import { loginSchema, registerSchema } from './schemas'
@@ -65,6 +66,15 @@ export async function registerAction(
   _prev: AuthActionState,
   formData: FormData,
 ): Promise<AuthActionState> {
+  const registrationOn = await isRegistrationEnabled()
+  if (!registrationOn) {
+    return {
+      error: 'Registration is turned off in site settings. Ask a core admin to enable it.',
+      email: String(formData.get('email') ?? ''),
+      name: String(formData.get('name') ?? ''),
+    }
+  }
+
   const parsed = registerSchema.safeParse({
     name: formData.get('name'),
     email: formData.get('email'),

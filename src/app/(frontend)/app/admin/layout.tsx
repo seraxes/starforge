@@ -49,6 +49,7 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
       </header>
       <nav className="admin-nav" aria-label="Core admin">
         <Link href="/app/admin/users">Users</Link>
+        <Link href="/app/admin/settings">Site settings</Link>
         <Link href="/">Back to home</Link>
         <Link href="/admin">Payload CMS</Link>
       </nav>

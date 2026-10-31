@@ -89,8 +89,12 @@ export interface Config {
     defaultIDType: number;
   };
   fallbackLocale: null;
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    'site-settings': SiteSetting;
+  };
+  globalsSelect: {
+    'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
+  };
   locale: null;
   widgets: {
     collections: CollectionsWidget;
@@ -392,6 +396,76 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * Site name, primary nav, and feature toggles. Core admins can also edit at /app/admin/settings. App accounts stay separate from CMS editors.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings".
+ */
+export interface SiteSetting {
+  id: number;
+  /**
+   * Shown in the public site header / brand.
+   */
+  siteName: string;
+  /**
+   * Links in the public site header. Use paths like /about or full URLs.
+   */
+  primaryNav?:
+    | {
+        label: string;
+        /**
+         * Path (/about) or absolute URL.
+         */
+        href: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Allow new app accounts via /register. When off, the link is hidden and signup is rejected.
+   */
+  featureRegistration?: boolean | null;
+  /**
+   * Product flag for richer page editing. Lexical stays wired in Pages for now; off is reserved for a future simpler mode.
+   */
+  featureRichEditor?: boolean | null;
+  /**
+   * Placeholder — Posts collection not shipped yet. Keep off until P2.
+   */
+  featurePosts?: boolean | null;
+  /**
+   * Placeholder for extension modules (contact, notice bar, …). Keep off until the first module lands.
+   */
+  featureModules?: boolean | null;
+  /**
+   * Placeholder — draft preview slice is next. No public preview path yet.
+   */
+  featureDraftPreview?: boolean | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings_select".
+ */
+export interface SiteSettingsSelect<T extends boolean = true> {
+  siteName?: T;
+  primaryNav?:
+    | T
+    | {
+        label?: T;
+        href?: T;
+        id?: T;
+      };
+  featureRegistration?: T;
+  featureRichEditor?: T;
+  featurePosts?: T;
+  featureModules?: T;
+  featureDraftPreview?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

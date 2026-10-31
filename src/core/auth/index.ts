@@ -1,4 +1,5 @@
 import { betterAuth } from 'better-auth'
+import { APIError } from 'better-auth/api'
 import { drizzleAdapter } from '@better-auth/drizzle-adapter'
 import { nextCookies } from 'better-auth/next-js'
 import { admin as adminPlugin } from 'better-auth/plugins'
@@ -62,6 +63,20 @@ export const auth = betterAuth({
   databaseHooks: {
     user: {
       create: {
+        before: async (user) => {
+          // `npm run seed` sets STARFORGE_SEEDING=1 so bootstrap users can still be created
+          // even if an existing site-settings global has registration off.
+          if (process.env.STARFORGE_SEEDING === '1') {
+            return { data: user }
+          }
+          const { isRegistrationEnabled } = await import('@/core/settings')
+          if (!(await isRegistrationEnabled())) {
+            throw new APIError('BAD_REQUEST', {
+              message: 'Registration is turned off in site settings.',
+            })
+          }
+          return { data: user }
+        },
         after: async (user) => {
           // Bootstrap admins: STARFORGE_ADMIN_EMAILS (comma-separated) get role=admin on signup.
           if (emailIsBootstrapAdmin(user.email)) {
