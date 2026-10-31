@@ -2058,26 +2058,41 @@ button:disabled {
   max-width: none;
 }
 
-/* Mosaic: multi-column tile grid of open panels */
+/*
+ * Break Site Settings’ `.settings-form { max-width: 40rem }` —
+ * Page Settings mosaic must span the full Layouts admin shell.
+ */
+.page-settings .page-settings-form.settings-form,
+.page-settings-form.settings-form {
+  max-width: none;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+/* Mosaic: columns stretch edge-to-edge under admin chrome */
 .page-settings-mosaic {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
   width: 100%;
-  align-items: start;
+  max-width: none;
+  box-sizing: border-box;
+  align-items: stretch;
 }
 
 .page-settings-mosaic > .page-settings-panel {
   margin: 0;
   min-width: 0;
-  height: 100%;
+  width: 100%;
+  height: auto;
+  align-self: stretch;
 }
 
 .page-settings-mosaic > .page-settings-panel-wide {
   grid-column: 1 / -1;
 }
 
-@media (min-width: 1100px) {
+@media (min-width: 900px) {
   .page-settings-mosaic {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -2087,14 +2102,25 @@ button:disabled {
   }
 }
 
-@media (min-width: 1500px) {
+@media (min-width: 1400px) {
   .page-settings-mosaic {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .page-settings-mosaic {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .page-settings-mosaic > .page-settings-panel-wide {
+    grid-column: 1 / -1;
   }
 }
 
 .page-settings-form .page-settings-actions {
   margin-top: 0.25rem;
+  width: 100%;
 }
 
 .page-settings-toolbar {

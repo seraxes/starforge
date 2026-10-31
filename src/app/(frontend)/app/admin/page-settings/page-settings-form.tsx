@@ -36,10 +36,13 @@ function Panel({
   children: React.ReactNode
 }) {
   return (
-    // React's DOM types omit `defaultOpen` on <details>; HTML supports it.
+    // Keep tiles expanded on first paint; users can still collapse via <summary>.
+    // React’s DOM typings historically omit `defaultOpen` on <details>.
     <details
       className={wide ? 'page-settings-panel page-settings-panel-wide' : 'page-settings-panel'}
-      {...({ defaultOpen } as React.HTMLAttributes<HTMLDetailsElement>)}
+      {...({
+        defaultOpen: defaultOpen !== false,
+      } as React.HTMLAttributes<HTMLDetailsElement>)}
     >
       <summary>{title}</summary>
       <div className="page-settings-panel-body">{children}</div>
