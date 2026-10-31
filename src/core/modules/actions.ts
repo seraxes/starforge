@@ -13,7 +13,7 @@ import {
   newLayoutEntityId,
   slugifyLayoutId,
 } from './document'
-import { clampGridWidth, evenColumnWidths, resizeAdjacentPair } from './grid'
+import { clampGridWidth, evenColumnWidths, LAYOUT_WIDTH_FULL, resizeAdjacentPair } from './grid'
 import { loadLayoutDocument, saveLayoutDocument } from './layout-store'
 import { getRegisteredModule, listRegisteredModules } from './registry'
 import type { LayoutDocument, LayoutRow, LayoutSection, LayoutSlot, LayoutSlotConfig } from './types'
@@ -31,7 +31,7 @@ function makeSlot(moduleId: string, width: number, order: number): LayoutSlot {
   return {
     id: newLayoutEntityId(`slot-${moduleId}`),
     moduleId,
-    width: clampGridWidth(width),
+    width: clampGridWidth(width, LAYOUT_WIDTH_FULL),
     enabled: true,
     order,
     ...(moduleId === 'custom' ? { config: customDefaultConfig() } : {}),
@@ -222,7 +222,7 @@ export async function dropParticleIntoRowAction(
 
     const insertAt =
       index == null ? found.row.slots.length : Math.min(index, found.row.slots.length)
-    const slot = makeSlot(moduleId, 12, insertAt)
+    const slot = makeSlot(moduleId, LAYOUT_WIDTH_FULL, insertAt)
     found.row.slots.splice(insertAt, 0, slot)
     rebalanceRowSlots(found.row)
     return doc
@@ -258,7 +258,7 @@ export async function setSlotWidthAction(
     return doc
   })
 
-  if (state.ok) state.message = `Width set to ${width}/12.`
+  if (state.ok) state.message = `Width set to ${width}%.`
   return state
 }
 
@@ -431,6 +431,6 @@ export async function listModulesForLayoutAdmin() {
     name: m.name,
     description: m.description ?? '',
     builtin: Boolean(m.builtin),
-    defaultWidth: m.defaultWidth ?? 12,
+    defaultWidth: m.defaultWidth ?? 100,
   }))
 }

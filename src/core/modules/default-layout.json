@@ -13,7 +13,7 @@
             {
               "id": "header-notice",
               "moduleId": "notice-bar",
-              "width": 12,
+              "width": 100,
               "enabled": true,
               "order": 0
             }
@@ -33,7 +33,7 @@
             {
               "id": "navigation-site-header",
               "moduleId": "site-header",
-              "width": 12,
+              "width": 100,
               "enabled": true,
               "order": 0
             }
@@ -53,7 +53,7 @@
             {
               "id": "main-page-content",
               "moduleId": "page-content",
-              "width": 12,
+              "width": 100,
               "enabled": true,
               "order": 0
             }
@@ -73,7 +73,7 @@
             {
               "id": "footer-custom",
               "moduleId": "custom",
-              "width": 12,
+              "width": 100,
               "enabled": true,
               "order": 0,
               "config": {

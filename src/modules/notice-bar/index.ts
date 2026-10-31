@@ -5,7 +5,7 @@ import type { StarforgeModule } from '@/core/modules/types'
 import { NoticeBar } from './NoticeBar'
 
 const DEFAULT_MESSAGE =
-  'Extension modules are on — this notice bar particle sits in the Header section (12/12). Edit layout under /app/admin/layouts.'
+  'Extension modules are on — this notice bar particle sits in the Header section (100%). Edit layout under /app/admin/layouts.'
 
 /**
  * Example Starforge particle: dismissible notice bar.
@@ -14,8 +14,8 @@ const DEFAULT_MESSAGE =
 export const noticeBarModule: StarforgeModule = {
   id: 'notice-bar',
   name: 'Notice bar',
-  description: 'Dismissible site-wide notice. Seed places it in Header at width 12.',
-  defaultWidth: 12,
+  description: 'Dismissible site-wide notice. Seed places it in Header at 100%.',
+  defaultWidth: 100,
   featureFlag: 'modules',
   render: () =>
     React.createElement(NoticeBar, {

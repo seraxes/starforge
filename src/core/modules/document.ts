@@ -1,5 +1,5 @@
 import defaultLayoutJson from './default-layout.json'
-import { clampGridWidth } from './grid'
+import { clampGridWidth, LAYOUT_WIDTH_FULL, normalizeRowWidthsToPercent } from './grid'
 import type {
   LayoutDocument,
   LayoutDocumentV1,
@@ -53,7 +53,8 @@ function normalizeSlot(entry: LayoutSlot | null | undefined, index: number): Lay
   return {
     id,
     moduleId: entry.moduleId.trim(),
-    width: clampGridWidth(entry.width, 12),
+    // Provisional width — row pass converts legacy 1–12 columns → %.
+    width: typeof entry.width === 'number' && Number.isFinite(entry.width) ? entry.width : LAYOUT_WIDTH_FULL,
     enabled: entry.enabled !== false,
     order: typeof entry.order === 'number' && Number.isFinite(entry.order) ? entry.order : index,
     ...(config ? { config } : {}),
@@ -70,6 +71,10 @@ function normalizeRow(entry: LayoutRow | null | undefined, index: number): Layou
     ? (entry.slots.map((s, i) => normalizeSlot(s, i)).filter(Boolean) as LayoutSlot[])
     : []
   slots.sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id))
+  const percents = normalizeRowWidthsToPercent(slots.map((s) => s.width))
+  slots.forEach((slot, i) => {
+    slot.width = clampGridWidth(percents[i] ?? LAYOUT_WIDTH_FULL)
+  })
   return {
     id,
     order: typeof entry.order === 'number' && Number.isFinite(entry.order) ? entry.order : index,
@@ -133,7 +138,7 @@ export function upgradeLayoutV1(doc: LayoutDocumentV1): LayoutDocument {
       {
         id: `${position}-${raw.moduleId}-${list.length}`,
         moduleId: raw.moduleId,
-        width: 12,
+        width: 100,
         enabled: raw.enabled,
         order: raw.order ?? list.length,
       },
@@ -172,7 +177,7 @@ export function upgradeLayoutV1(doc: LayoutDocumentV1): LayoutDocument {
             {
               id: 'main-page-content',
               moduleId: 'page-content',
-              width: 12,
+              width: 100,
               enabled: true,
               order: 0,
             },
@@ -202,7 +207,7 @@ export function upgradeLayoutV2(doc: LayoutDocumentV2): LayoutDocument {
           {
             id: `${section.id}-page-content`,
             moduleId: 'page-content',
-            width: 12,
+            width: 100,
             enabled: true,
             order: 0,
           },
@@ -264,7 +269,7 @@ export function upgradeLayoutV2(doc: LayoutDocumentV2): LayoutDocument {
             {
               id: 'navigation-site-header',
               moduleId: 'site-header',
-              width: 12,
+              width: 100,
               enabled: true,
               order: 0,
             },
@@ -287,7 +292,7 @@ export function upgradeLayoutV2(doc: LayoutDocumentV2): LayoutDocument {
             {
               id: 'main-page-content',
               moduleId: 'page-content',
-              width: 12,
+              width: 100,
               enabled: true,
               order: 0,
             },

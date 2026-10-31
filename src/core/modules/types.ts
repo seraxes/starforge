@@ -2,8 +2,11 @@ import type { ReactNode } from 'react'
 
 import type { FeatureFlags, SiteSettingsData } from '@/core/settings/defaults'
 
-/** 12-column grid (Gantry-style). Not Bootstrap — Starforge owns the math. */
-export const LAYOUT_GRID_COLUMNS = 12 as const
+/**
+ * Slot width is an integer **percent** of the row (Gantry-style block size).
+ * Not Bootstrap. Resize steps are 1%; shared-row min 5% / max 95%.
+ */
+export const LAYOUT_GRID_COLUMNS = 100 as const
 
 export type LayoutGridWidth = number
 
@@ -30,19 +33,19 @@ export type LayoutSlotConfig = {
 
 /**
  * One particle instance in a row (Gantry “particle” / module assignment).
- * `width` is columns out of 12.
+ * `width` is percent of the row (1% steps; min 5% when shared).
  */
 export type LayoutSlot = {
   id: string
   moduleId: string
-  /** Columns 1–12. Defaults to 12. */
+  /** Percent of the row (typically 5–100). Defaults to 100. */
   width: LayoutGridWidth
   enabled?: boolean
   order?: number
   config?: LayoutSlotConfig
 }
 
-/** Horizontal row of slots inside a section (sums toward 12 columns). */
+/** Horizontal row of slots inside a section (widths should sum to ~100%). */
 export type LayoutRow = {
   id: string
   order?: number

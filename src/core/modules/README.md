@@ -1,8 +1,8 @@
 # Starforge modules + Gantry-like layout manager
 
 Follows the [Gantry 5 Layout Manager](https://docs.gantry.org/gantry5/configure/layout-manager) model:
-left **Particles** palette, main canvas of **Sections**, slots with block widths on a
-**12-column** grid. Starforge owns the grid math (flex) — **do not** pull Bootstrap.
+left **Particles** palette, main canvas of **Sections**, slots with block widths as
+**percent** (1% steps; min 5%). Starforge owns the flex math — **do not** pull Bootstrap.
 
 Reference: [docs.gantry.org](https://docs.gantry.org/).
 
@@ -13,7 +13,7 @@ Reference: [docs.gantry.org](https://docs.gantry.org/).
 | Register API | `registerModule()` in `registry.ts` |
 | Built-in particles | `page-content`, `site-header`, `custom` · `particles/` |
 | Example extension | `src/modules/notice-bar/` |
-| Layout document (v3) | sections → rows → slots (`moduleId` + `width` 1–12) |
+| Layout document (v3) | sections → rows → slots (`moduleId` + `width` %) |
 | Storage | `sf_layouts` JSON · fallback `default-layout.json` |
 | Admin UI | `/app/admin/layouts` — palette + canvas |
 | Code editors | CodeMirror 6 (`CodeEditorField`) for Custom HTML/CSS/JS |
@@ -32,7 +32,7 @@ Reference: [docs.gantry.org](https://docs.gantry.org/).
         {
           "id": "header-row-1",
           "slots": [
-            { "id": "…", "moduleId": "notice-bar", "width": 12, "enabled": true }
+            { "id": "…", "moduleId": "notice-bar", "width": 100, "enabled": true }
           ]
         }
       ]
@@ -44,7 +44,7 @@ Reference: [docs.gantry.org](https://docs.gantry.org/).
         {
           "id": "main-row-1",
           "slots": [
-            { "id": "…", "moduleId": "page-content", "width": 12 }
+            { "id": "…", "moduleId": "page-content", "width": 100 }
           ]
         }
       ]
@@ -60,7 +60,7 @@ Legacy v1 / v2 upgrade on read.
 1. **Any particle → any section/slot** — no hard locks.
 2. **Built-ins** (`page-content`, `site-header`, `custom`) always render.
 3. **Extension particles** need site-settings **Modules** on (+ optional per-module flag).
-4. **Width** is 1–12 columns; Starforge flex math only (no Bootstrap CSS).
+4. **Width** is an integer **percent** (1% steps; min **5%**, max **95%** when shared so the pair can sum to 100%). Starforge flex math only (no Bootstrap).
 5. **Custom** stores HTML + CSS + JS; JS is **not executed** until developer-admin ACL.
 6. **No plain textareas for code** — Custom / future Styles use CodeMirror (syntax highlight + resizable panels). Monaco is an optional later upgrade for a heavier Styles IDE.
 
@@ -69,8 +69,9 @@ Legacy v1 / v2 upgrade on read.
 1. **Create section**
 2. **Add row** inside the section
 3. **Drag** a particle from the left palette **into the row**
-4. Drop a second beside it → same row, widths rebalance (~50%/50%); **drag the divider** to resize by % (stored as 1–12)
-5. Custom particle: CodeMirror HTML/CSS/JS (resizable panels — no plain code textareas)
+4. Drop a second beside it → **side-by-side** in one horizontal row (~50%/50%); **drag the divider** to resize in **1%** steps (**5%–95%**, pair sums to **100%**)
+5. Layout admin page is **full width** (no narrow max-width column)
+6. Custom particle: CodeMirror HTML/CSS/JS (resizable panels — no plain code textareas)
 
 ## Next polish (not in this PR)
 

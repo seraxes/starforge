@@ -118,7 +118,7 @@ One Payload global (`site-settings`) is the source of truth for site chrome and 
 
 ### Extension modules + Gantry-like layout manager
 
-Public chrome is driven by a **layout document**: **sections → rows → slots** (`moduleId` + **`width` 1–12**, shown as %). Storage is **JSON** in `sf_layouts` (fallback `default-layout.json`). Admin UX at **`/app/admin/layouts`** follows Gantry Layout Manager: create section → add row → **drag** particles from the left palette into the row → resize side-by-side by % (Starforge flex math — **not Bootstrap**).
+Public chrome is driven by a **layout document**: **sections → rows → slots** (`moduleId` + **`width` as %**). Storage is **JSON** in `sf_layouts` (fallback `default-layout.json`). Admin at **`/app/admin/layouts`** is **full width** and follows Gantry Layout Manager: create section → add row → **drag** particles into the row (side-by-side) → resize by **1%** steps (**5%–95%**, pair sums to 100%; Starforge flex math — **not Bootstrap**).
 
 | Piece | Where |
 | --- | --- |
@@ -347,6 +347,8 @@ src/
 
 ### Windows: layout manager smoke test
 
+Command Prompt:
+
 ```bat
 cd %USERPROFILE%\starforge
 git fetch origin
@@ -363,11 +365,29 @@ rem Stop ANY old npm run dev window (Ctrl+C), then:
 npm run dev
 ```
 
+PowerShell:
+
+```powershell
+cd $env:USERPROFILE\starforge
+git fetch origin
+git checkout cursor/visual-layout-manager-foundation-55de
+git pull origin cursor/visual-layout-manager-foundation-55de
+
+docker compose up -d
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+npm install
+npm run db:core:push
+npm run seed
+
+# Stop ANY old npm run dev window (Ctrl+C), then:
+npm run dev
+```
+
 1. Open **http://localhost:3000** — notice bar in the header (Modules on from seed).
 2. Sign in as `admin@starforge.local` / `starforge-admin`.
-3. Open **http://localhost:3000/app/admin/layouts** — left particle palette; canvas sections.
-4. Create a section → **Add row** → **drag** Notice bar (or Custom) from the left into the row.
-5. Drag a second particle into the same row — both sit side by side; drag the vertical divider to resize by %.
+3. Open **http://localhost:3000/app/admin/layouts** — page is **full width**; left palette + canvas.
+4. Create a section → **Add row** → **drag** Notice bar (or Custom) into the row.
+5. Drag a second particle into the same row — both sit **side by side**; drag the divider (1% steps, 5%–95%, sum 100%).
 6. Edit a Custom particle with CodeMirror; **Reset to default** restores the seeded layout.
 
 ## Not in this scaffold

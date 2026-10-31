@@ -12,7 +12,7 @@ export const siteHeaderModule: StarforgeModule = {
   name: 'Site Header',
   description: 'Brand name and primary navigation.',
   builtin: true,
-  defaultWidth: 12,
+  defaultWidth: 100,
   render: ({ settings }) => (
     <SiteHeader siteName={settings.siteName} primaryNav={settings.primaryNav} />
   ),

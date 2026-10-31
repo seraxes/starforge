@@ -20,11 +20,10 @@ export default async function AdminLayoutsPage() {
     <section className="admin-section">
       <h2>Layout manager</h2>
       <p className="lede admin-lede">
-        Gantry Layout Manager flow: create <strong>section</strong> → add <strong>row</strong> →{' '}
-        <strong>drag</strong> particles from the left into the row → drop a second beside it and{' '}
-        <strong>resize by %</strong> (12-col under the hood, Starforge math — not Bootstrap).
-        Built-ins: Page Content, Site Header, Custom (CodeMirror). Storage: JSON in{' '}
-        <code>sf_layouts</code>
+        Full-width Gantry Layout Manager: create <strong>section</strong> → add <strong>row</strong> →{' '}
+        <strong>drag</strong> particles into the row (side-by-side) → resize in <strong>1%</strong>{' '}
+        steps (<strong>5%–95%</strong>, pair sums to 100%). Built-ins: Page Content, Site Header,
+        Custom (CodeMirror). Storage: JSON in <code>sf_layouts</code>
         {isFallback ? ' — default until first drop/save' : ''}. Extension particles need{' '}
         <Link href="/app/admin/settings">Modules</Link> on.{' '}
         <a href="https://docs.gantry.org/gantry5/configure/layout-manager" target="_blank" rel="noreferrer">

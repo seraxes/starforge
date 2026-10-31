@@ -11,7 +11,7 @@ export const customModule: StarforgeModule = {
   name: 'Custom',
   description: 'HTML + CSS (+ JS stub for developer-admins later).',
   builtin: true,
-  defaultWidth: 12,
+  defaultWidth: 100,
   render: ({ slot }) => {
     const html = typeof slot.config?.html === 'string' ? slot.config.html : ''
     const css = typeof slot.config?.css === 'string' ? slot.config.css : ''

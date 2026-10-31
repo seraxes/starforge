@@ -11,7 +11,7 @@ export const pageContentModule: StarforgeModule = {
   name: 'Page Content',
   description: 'Main CMS / route body (like Gantry Page Content).',
   builtin: true,
-  defaultWidth: 12,
+  defaultWidth: 100,
   render: ({ pageContent }) => {
     if (pageContent == null) {
       return (

@@ -570,6 +570,24 @@ button:disabled {
   gap: 1.25rem;
 }
 
+/* Layout manager needs the full viewport — no narrow content column */
+.admin-shell:has(.gantry-editor) {
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  padding: 1.25rem 1.25rem 2.5rem;
+  box-sizing: border-box;
+}
+
+.admin-shell:has(.gantry-editor) .admin-lede {
+  max-width: none;
+}
+
+.admin-shell:has(.gantry-editor) .admin-main {
+  max-width: none;
+  width: 100%;
+}
+
 .admin-header {
   display: flex;
   flex-wrap: wrap;
@@ -985,12 +1003,14 @@ button:disabled {
   border: 1px dashed var(--sf-line);
 }
 
-/* Gantry-like visual layout manager */
+/* Gantry-like visual layout manager — full width canvas */
 .gantry-editor {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
   margin-top: 1rem;
+  max-width: none;
+  width: 100%;
 }
 
 .layout-source {
@@ -1241,6 +1261,7 @@ button:disabled {
 
 .gantry-row-slots {
   display: flex;
+  flex-direction: row;
   flex-wrap: nowrap;
   align-items: stretch;
   gap: 0;
@@ -1479,11 +1500,7 @@ button:disabled {
     align-items: stretch;
   }
 
-  .gantry-slot {
-    flex: 0 0 100% !important;
-    max-width: 100% !important;
-  }
-
+  /* Keep admin row particles side-by-side; only stack public grid on small screens */
   .sf-grid-col {
     flex: 0 0 100% !important;
     max-width: 100% !important;

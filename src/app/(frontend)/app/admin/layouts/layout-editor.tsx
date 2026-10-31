@@ -14,14 +14,15 @@ import {
   toggleSlotAction,
   type LayoutActionState,
 } from '@/core/modules/actions'
-import { gridWidthPercent, resizeAdjacentPair, sumRowWidths, widthToPercentLabel } from '@/core/modules/grid'
 import {
-  LAYOUT_GRID_COLUMNS,
-  type LayoutDocument,
-  type LayoutRow,
-  type LayoutSection,
-  type LayoutSlot,
-} from '@/core/modules/types'
+  gridWidthPercent,
+  LAYOUT_WIDTH_FULL,
+  LAYOUT_WIDTH_MIN,
+  resizeAdjacentPair,
+  sumRowWidths,
+  widthToPercentLabel,
+} from '@/core/modules/grid'
+import type { LayoutDocument, LayoutRow, LayoutSection, LayoutSlot } from '@/core/modules/types'
 
 import { CustomParticleEditor } from './custom-particle-editor'
 
@@ -115,10 +116,11 @@ function ResizeHandle({
         const onMove = (moveEvent: PointerEvent) => {
           if (!dragging.current) return
           const x = moveEvent.clientX - rowRect.left
-          const pairWidthPx = Math.max(1, (pairSum / LAYOUT_GRID_COLUMNS) * rowRect.width)
+          // Widths are already percents; map pointer X → left % in 1% steps (5–95 when pair=100).
+          const pairWidthPx = Math.max(1, (pairSum / LAYOUT_WIDTH_FULL) * rowRect.width)
           const localX = x - pairLeft
-          const newLeftCols = (localX / pairWidthPx) * pairSum
-          const [lw, rw] = resizeAdjacentPair(left.width, right.width, newLeftCols)
+          const newLeftPercent = (localX / pairWidthPx) * pairSum
+          const [lw, rw] = resizeAdjacentPair(left.width, right.width, newLeftPercent)
           lastLeft = lw
           lastRight = rw
           onLocalResize(left.id, lw, right.id, rw)
@@ -175,7 +177,7 @@ function ParticleBlock({
     >
       <header className="gantry-slot-head">
         <strong>{meta?.name ?? slot.moduleId}</strong>
-        <span className="gantry-slot-pct" title={`${slot.width}/12 columns`}>
+        <span className="gantry-slot-pct" title={`Width ${pctLabel} (min ${LAYOUT_WIDTH_MIN}%)`}>
           {pctLabel}
         </span>
       </header>
@@ -322,14 +324,12 @@ function DropRow({
       <div className="gantry-row-meta">
         <span>
           Row · drop particles here
-          {slots.length > 0 ? (
-            <>
-              {' '}
-              · {Math.round((widthSum / LAYOUT_GRID_COLUMNS) * 100)}% filled ({widthSum}/12)
-            </>
+          {slots.length > 0 ? <> · {widthSum}% total</> : null}
+          {widthSum > LAYOUT_WIDTH_FULL ? (
+            <span className="admin-badge admin-badge-warn"> overflows 100%</span>
           ) : null}
-          {widthSum > LAYOUT_GRID_COLUMNS ? (
-            <span className="admin-badge admin-badge-warn"> overflows</span>
+          {slots.length === 2 ? (
+            <span className="layout-muted"> · resize 5%–95% (1% steps)</span>
           ) : null}
           {pending ? <span className="layout-muted"> · saving…</span> : null}
         </span>
@@ -475,7 +475,8 @@ export function LayoutEditor({ document, source, modules }: Props) {
         >
           Gantry Layout Manager
         </a>
-        : <strong>section → row → drag particles</strong>, resize side-by-side by %.
+        : <strong>section → row → drag particles</strong>, side-by-side, resize by % (1% steps,
+        min 5%).
       </p>
 
       <div className="gantry-workspace">
@@ -533,7 +534,8 @@ export function LayoutEditor({ document, source, modules }: Props) {
               <strong>Drag</strong> a particle from the left into the row
             </li>
             <li>
-              Drop another beside it, then <strong>drag the divider</strong> to resize by %
+              Drop another beside it (side-by-side), then <strong>drag the divider</strong> — 1%
+              steps, 5%–95%, pair sums to 100%
             </li>
           </ol>
 
@@ -553,8 +555,8 @@ export function LayoutEditor({ document, source, modules }: Props) {
         <summary>Layout document (JSON storage)</summary>
         <pre>{JSON.stringify(document, null, 2)}</pre>
         <p className="layout-muted">
-          Widths are stored as 1–12 columns and shown as % on the canvas. Custom particle still uses
-          CodeMirror. Styles / Outlines / Menu editors remain next polish — see{' '}
+          Widths are stored as integer percents (1% steps; min 5% when shared). Custom uses
+          CodeMirror. Styles / Outlines / Menu remain next polish — see{' '}
           <code>src/core/modules/README.md</code>.
         </p>
       </details>
