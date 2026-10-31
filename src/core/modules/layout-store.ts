@@ -24,16 +24,19 @@ export type LayoutLoadResult = {
 }
 
 /**
- * Read the active layout document.
- * Prefers `sf_layouts.default`; falls back to `default-layout.json` when empty
+ * Read a layout document by id (default: site `default`).
+ * Prefers `sf_layouts`; falls back to `default-layout.json` when empty
  * or when the table is missing (before `db:core:push`).
  */
-export async function loadLayoutDocument(): Promise<LayoutLoadResult> {
+export async function loadLayoutDocument(
+  layoutId: string = DEFAULT_LAYOUT_ID,
+): Promise<LayoutLoadResult> {
+  const id = layoutId.trim() || DEFAULT_LAYOUT_ID
   try {
     const [row] = await db
       .select({ document: sfLayouts.document })
       .from(sfLayouts)
-      .where(eq(sfLayouts.id, DEFAULT_LAYOUT_ID))
+      .where(eq(sfLayouts.id, id))
       .limit(1)
 
     if (row?.document?.trim()) {

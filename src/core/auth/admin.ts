@@ -19,6 +19,37 @@ export function userIsAppAdmin(user: { role?: string | null; email?: string | nu
   return false
 }
 
+/**
+ * Developer-admin: can edit script-capable Page Settings / Custom JS fields.
+ * Emails from `STARFORGE_DEVELOPER_ADMIN_EMAILS`. When that list is empty,
+ * all app admins are treated as developer-admins (local-friendly default).
+ */
+export function getDeveloperAdminEmails(): string[] {
+  const raw = process.env.STARFORGE_DEVELOPER_ADMIN_EMAILS ?? ''
+  return raw
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean)
+}
+
+export function userIsDeveloperAdmin(
+  user: { role?: string | null; email?: string | null } | null | undefined,
+): boolean {
+  if (!userIsAppAdmin(user)) return false
+  const list = getDeveloperAdminEmails()
+  if (list.length === 0) return true
+  const email = user?.email?.trim().toLowerCase()
+  return Boolean(email && list.includes(email))
+}
+
+/** Current session must be developer-admin; otherwise `null`. */
+export async function requireDeveloperAdmin() {
+  const session = await requireAppAdmin()
+  if (!session?.user) return null
+  if (!userIsDeveloperAdmin(session.user)) return null
+  return session
+}
+
 async function grantAdminCmsAccess(userId: string) {
   // Global admins get CMS access by default (provisions Payload stub).
   await setCoreUserCmsAccess(userId, true)

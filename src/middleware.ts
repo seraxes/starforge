@@ -13,11 +13,21 @@ function hasPayloadToken(request: NextRequest): boolean {
 }
 
 /**
- * Never let Payload render `/admin/login` (stock email/password form).
+ * Stash pathname for Page Settings chrome resolution (public layouts).
+ * Also: never let Payload render `/admin/login` (stock email/password form).
  * Core Better Auth is the only sign-in; `/api/cms/exchange` mints `payload-token`.
  */
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl
+
+  // Public + app routes: expose pathname to RSC layouts for chrome merge.
+  if (!pathname.startsWith('/admin') && !pathname.startsWith('/api')) {
+    const requestHeaders = new Headers(request.headers)
+    requestHeaders.set('x-sf-pathname', pathname)
+    return NextResponse.next({
+      request: { headers: requestHeaders },
+    })
+  }
 
   if (!pathname.startsWith('/admin')) {
     return NextResponse.next()
@@ -56,5 +66,11 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin', '/admin/:path*'],
+  matcher: [
+    /*
+     * Page Settings pathname + Payload admin gate.
+     * Skip Next internals and static files.
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 }

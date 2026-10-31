@@ -118,3 +118,20 @@ export const sfLayouts = pgTable('sf_layouts', {
     .$onUpdate(() => new Date())
     .notNull(),
 })
+
+/**
+ * Page Settings chrome (Gantry-style Head / Assets / Body / FA / Atoms).
+ * Row id `global` = site defaults; other ids = pageKey (usually CMS slug, or `home`).
+ */
+export const GLOBAL_PAGE_CHROME_ID = 'global'
+
+export const sfPageChrome = pgTable('sf_page_chrome', {
+  id: text('id').primaryKey(),
+  /** Canonical PageChrome JSON. */
+  document: text('document').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+})

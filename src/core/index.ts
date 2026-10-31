@@ -13,12 +13,33 @@ export {
   db,
   pool,
   DEFAULT_LAYOUT_ID,
+  GLOBAL_PAGE_CHROME_ID,
   sfUsers,
   sfSessions,
   sfAccounts,
   sfVerifications,
   sfLayouts,
+  sfPageChrome,
 } from './db'
+export {
+  BodyAttributesApplier,
+  DocumentBodyChrome,
+  DocumentHeadChrome,
+  ensureGlobalPageChromeSeeded,
+  ensureAtomsRegistered,
+  getResolvedPageChrome,
+  HOME_PAGE_KEY,
+  mergePageChrome,
+  pageKeyFromPathname,
+  resolvePageChrome,
+} from './page-settings'
+export type {
+  PageChrome,
+  ResolvedPageChrome,
+  PageAtomInstance,
+  MetaTag,
+  AssetRef,
+} from './page-settings'
 export {
   ensureDefaultLayoutSeeded,
   getAssignmentsForPosition,
