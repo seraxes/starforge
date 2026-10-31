@@ -26,7 +26,7 @@ import {
 import { BOOTSTRAP_ADMIN_EMAIL, setCoreUserCmsAccess } from './core/cms-bridge'
 import { db } from './core/db'
 import { sfUsers } from './core/db/schema'
-import { ensureSiteSettingsDefaults } from './core/settings'
+import { ensureSiteSettingsDefaults, seedPrimaryNavFromPages } from './core/settings'
 import { eq } from 'drizzle-orm'
 
 const DEMO_APP_EMAIL = 'demo@starforge.local'
@@ -326,6 +326,26 @@ async function main() {
   }
   if (pages.skipped.length) {
     console.log(`Pages skipped (already exist): ${pages.skipped.map((s) => `/${s}`).join(', ')}`)
+  }
+
+  try {
+    const nav = await seedPrimaryNavFromPages([
+      { label: 'About', slug: 'about' },
+      { label: 'Getting started', slug: 'getting-started' },
+      { label: 'Welcome', slug: 'welcome' },
+    ])
+    if (nav.updated) {
+      console.log(
+        `Primary nav → CMS pages: ${nav.primaryNav.map((i) => `${i.label} (${i.href})`).join(', ')}`,
+      )
+    } else {
+      console.log(
+        `Primary nav unchanged (${nav.primaryNav.length} items): ${nav.primaryNav.map((i) => i.href).join(', ')}`,
+      )
+    }
+  } catch (error) {
+    console.warn('Could not seed primary nav page links.')
+    console.warn(error instanceof Error ? error.message : error)
   }
 
   try {

@@ -82,6 +82,13 @@ body {
   color: var(--sf-primary-strong);
 }
 
+.site-nav a.is-active {
+  color: var(--sf-primary-strong);
+  text-decoration: underline;
+  text-underline-offset: 0.22em;
+  text-decoration-thickness: 2px;
+}
+
 .session-hint {
   margin: 0;
   color: var(--sf-muted);

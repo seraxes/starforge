@@ -389,7 +389,7 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   createdAt?: T;
 }
 /**
- * Site name, primary nav, and feature toggles. Core admins can also edit at /app/admin/settings. App accounts stay separate from CMS editors.
+ * Site name, primary nav (pages / URLs), and feature toggles. Core admins can also edit at /app/admin/settings. App accounts stay separate from CMS editors.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "site-settings".
@@ -401,15 +401,31 @@ export interface SiteSetting {
    */
   siteName: string;
   /**
-   * Links in the public site header. Use paths like /about or full URLs.
+   * Ordered header links. Prefer “CMS page” so URLs stay in sync with the page slug. Custom URL for external links or fixed paths. Nested menus / module assignment / draft preview come later.
    */
   primaryNav?:
     | {
         label: string;
         /**
-         * Path (/about) or absolute URL.
+         * Page relationship (preferred) or a path / absolute URL.
          */
-        href: string;
+        linkType: 'page' | 'custom';
+        /**
+         * Published page rendered at /{slug}.
+         */
+        page?: (number | null) | Page;
+        /**
+         * Path (/about) or absolute URL (https://…).
+         */
+        url?: string | null;
+        /**
+         * Stub — reserved for later Joomla-like menu CSS class. Not applied on the public site yet.
+         */
+        cssClass?: string | null;
+        /**
+         * Stub — reserved for later browser / page title override when this item is active. Not applied yet.
+         */
+        browserTitle?: string | null;
         id?: string | null;
       }[]
     | null;
@@ -446,7 +462,11 @@ export interface SiteSettingsSelect<T extends boolean = true> {
     | T
     | {
         label?: T;
-        href?: T;
+        linkType?: T;
+        page?: T;
+        url?: T;
+        cssClass?: T;
+        browserTitle?: T;
         id?: T;
       };
   featureRegistration?: T;

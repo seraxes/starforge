@@ -58,6 +58,8 @@ export async function updateSiteSettingsAction(
   }
 
   try {
+    // Core admin form edits resolved paths as custom URLs.
+    // Prefer Payload Globals → Site settings for Page relationships.
     await updateSiteSettings({ siteName, primaryNav, features })
   } catch (error) {
     const message =
@@ -73,5 +75,6 @@ export async function updateSiteSettingsAction(
   revalidatePath('/app/admin/settings')
   revalidatePath('/about')
   revalidatePath('/getting-started')
+  revalidatePath('/welcome')
   return { ok: true }
 }

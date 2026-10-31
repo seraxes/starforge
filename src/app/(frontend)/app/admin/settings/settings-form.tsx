@@ -48,7 +48,9 @@ export function SettingsForm({ siteName, primaryNav, features }: Props) {
       <fieldset className="settings-fieldset">
         <legend>Site chrome</legend>
         <p className="settings-hint">
-          Also editable in Payload <code>/admin</code> → Globals → Site settings (CMS editors).
+          Also editable in Payload <code>/admin</code> → Globals → Site settings. Saving here stores
+          nav rows as custom paths/URLs. Prefer Payload’s <strong>CMS page</strong> link type so
+          header links stay tied to page slugs.
         </p>
         <label className="settings-field">
           <span>Site name</span>

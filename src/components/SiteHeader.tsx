@@ -1,7 +1,8 @@
 import React from 'react'
 import Link from 'next/link'
 
-import type { NavItem } from '@/core/settings'
+import { SiteNav } from '@/components/SiteNav'
+import type { NavItem } from '@/core/settings/defaults'
 
 type Props = {
   siteName: string
@@ -11,7 +12,8 @@ type Props = {
 }
 
 /**
- * Public site chrome — brand + primary nav from Payload site-settings global.
+ * Public site chrome — brand + primary nav from Payload site-settings.
+ * Nav items are resolved in core (`label` + `href`); active state is client-side.
  */
 export function SiteHeader({ siteName, primaryNav, compact = false }: Props) {
   return (
@@ -19,15 +21,7 @@ export function SiteHeader({ siteName, primaryNav, compact = false }: Props) {
       <p className="brand site-brand">
         <Link href="/">{siteName}</Link>
       </p>
-      {!compact && primaryNav.length > 0 ? (
-        <nav className="site-nav" aria-label="Primary">
-          {primaryNav.map((item) => (
-            <Link key={`${item.href}-${item.label}`} href={item.href}>
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-      ) : null}
+      {!compact ? <SiteNav items={primaryNav} /> : null}
     </header>
   )
 }

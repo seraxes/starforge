@@ -18,9 +18,10 @@ export default async function AdminSettingsPage() {
     <section className="admin-section">
       <h2>Site settings & feature toggles</h2>
       <p className="lede admin-lede">
-        Site name and primary nav power the public header. Feature toggles gate product
-        capabilities (e.g. registration). Same document lives in Payload Globals →{' '}
-        <Link href="/admin/globals/site-settings">Site settings</Link> for CMS editors.
+        Site name and primary nav power the public header (active link on the current path).
+        Prefer linking to CMS pages in Payload Globals →{' '}
+        <Link href="/admin/globals/site-settings">Site settings</Link>; this form edits
+        resolved paths. Feature toggles gate product capabilities (e.g. registration).
       </p>
       <SettingsForm
         siteName={settings.siteName}
