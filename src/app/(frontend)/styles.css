@@ -441,12 +441,43 @@ button:disabled {
   font-size: 0.95rem;
 }
 
-/* Public CMS page (`/[slug]`) */
+/* Public CMS page (`/[slug]`) + draft preview (`/preview/[slug]`) */
 .cms-page {
   min-height: 100vh;
   max-width: 42rem;
   margin: 0 auto;
   padding: 3rem 1.5rem 3rem;
+}
+
+.preview-banner {
+  margin: 0 0 1.5rem;
+  padding: 0.9rem 1rem;
+  border-left: 3px solid var(--sf-secondary-strong);
+  background: color-mix(in srgb, var(--sf-secondary) 28%, transparent);
+  color: var(--sf-ink);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.preview-banner p {
+  margin: 0 0 0.45rem;
+}
+
+.preview-banner p:last-child {
+  margin-bottom: 0;
+}
+
+.preview-banner-actions {
+  font-size: 0.9rem;
+}
+
+.preview-banner a {
+  color: var(--sf-secondary-strong);
+  font-weight: 600;
+}
+
+.preview-banner code {
+  font-size: 0.88em;
 }
 
 .cms-page-header {
@@ -579,6 +610,11 @@ button:disabled {
   background: color-mix(in srgb, var(--sf-secondary) 14%, transparent);
   color: var(--sf-secondary-strong);
   font-weight: 600;
+}
+
+.admin-subhead {
+  margin: 1.75rem 0 0.5rem;
+  font-size: 1.05rem;
 }
 
 .admin-section h2 {

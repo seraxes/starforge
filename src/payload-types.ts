@@ -401,7 +401,7 @@ export interface SiteSetting {
    */
   siteName: string;
   /**
-   * Ordered header links. Prefer “CMS page” so URLs stay in sync with the page slug. Custom URL for external links or fixed paths. Nested menus / module assignment / draft preview come later.
+   * Ordered header links. Prefer “CMS page” so URLs stay in sync with the page slug. Custom URL for external links or fixed paths. Nested menus / module assignment come later.
    */
   primaryNav?:
     | {
@@ -446,7 +446,7 @@ export interface SiteSetting {
    */
   featureModules?: boolean | null;
   /**
-   * Placeholder — draft preview slice is next. No public preview path yet.
+   * Allow users with CMS access to open /preview/{slug} and see unpublished page drafts. Anonymous visitors still only see published /{slug}.
    */
   featureDraftPreview?: boolean | null;
   updatedAt?: string | null;
