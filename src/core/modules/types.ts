@@ -18,7 +18,7 @@ export const LAYOUT_POSITIONS = ['header', 'navigation', 'main', 'footer'] as co
 
 export type LayoutPositionId = (typeof LAYOUT_POSITIONS)[number] | (string & {})
 
-/** Per-slot particle config (Custom HTML/CSS/JS, future particle settings). */
+/** Per-slot particle config (typed Logo/Copyright/Social fields, Custom HTML/CSS/JS, …). */
 export type LayoutSlotConfig = {
   html?: string
   css?: string

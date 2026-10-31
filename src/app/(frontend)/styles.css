@@ -1003,6 +1003,99 @@ button:disabled {
   border: 1px dashed var(--sf-line);
 }
 
+/* Typed core particles — Logo / Copyright / Social (not Custom HTML) */
+.sf-logo {
+  display: block;
+  margin: 0.5rem 1.5rem;
+}
+
+.sf-logo-link {
+  display: inline-block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.sf-logo-img {
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.sf-logo-placeholder {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-height: 3.5rem;
+  max-width: 12rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px dashed var(--sf-line);
+  background: color-mix(in srgb, var(--sf-secondary) 10%, white);
+  color: var(--sf-muted);
+  font-size: 0.88rem;
+}
+
+.sf-logo-placeholder small {
+  font-size: 0.75rem;
+}
+
+.sf-copyright {
+  margin: 0.65rem 1.5rem;
+  font-size: 0.92rem;
+  color: var(--sf-muted);
+  line-height: 1.45;
+}
+
+.sf-copyright-mark {
+  font-weight: 600;
+  color: var(--sf-ink);
+}
+
+.sf-copyright-link {
+  color: var(--sf-primary-ink);
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+.sf-social {
+  margin: 0.5rem 1.5rem;
+}
+
+.sf-social-empty {
+  color: var(--sf-muted);
+  font-size: 0.9rem;
+}
+
+.sf-social-empty p {
+  margin: 0;
+}
+
+.sf-social-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 0.85rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sf-social-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--sf-primary-ink);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.sf-social-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+.sf-social-icon {
+  line-height: 1;
+}
+
 /* Gantry-like visual layout manager — full width canvas */
 .gantry-editor {
   display: flex;
@@ -1044,6 +1137,7 @@ button:disabled {
 .gantry-slot-actions button,
 .gantry-width-form button,
 .gantry-custom-form button,
+.gantry-typed-form button,
 .gantry-canvas-toolbar button {
   font: inherit;
   font-weight: 600;
@@ -1060,6 +1154,7 @@ button:disabled {
 .gantry-row-meta button.secondary,
 .gantry-slot-actions button.secondary,
 .gantry-width-form button.secondary,
+.gantry-typed-form button.secondary,
 .gantry-canvas-toolbar button.secondary {
   background: color-mix(in srgb, var(--sf-secondary) 22%, white);
   color: var(--sf-secondary-strong);
@@ -1067,7 +1162,8 @@ button:disabled {
 
 .gantry-row-actions button.danger,
 .gantry-row-meta button.danger,
-.gantry-slot-actions button.danger {
+.gantry-slot-actions button.danger,
+.gantry-typed-form button.danger {
   background: color-mix(in srgb, #c45c5c 18%, white);
   color: #7a2e2e;
   border-color: color-mix(in srgb, #c45c5c 35%, var(--sf-line));
@@ -1075,7 +1171,8 @@ button:disabled {
 
 .gantry-row-actions button.danger:hover,
 .gantry-row-meta button.danger:hover,
-.gantry-slot-actions button.danger:hover {
+.gantry-slot-actions button.danger:hover,
+.gantry-typed-form button.danger:hover {
   background: color-mix(in srgb, #c45c5c 28%, white);
 }
 
@@ -1403,26 +1500,78 @@ button:disabled {
   outline: none;
 }
 
-.gantry-row-slots:has(.gantry-custom-editor[open]) {
+.gantry-row-slots:has(.gantry-custom-editor[open]),
+.gantry-row-slots:has(.gantry-typed-editor[open]) {
   flex-wrap: wrap;
 }
 
-.gantry-slot:has(.gantry-custom-editor[open]) {
+.gantry-slot:has(.gantry-custom-editor[open]),
+.gantry-slot:has(.gantry-typed-editor[open]) {
   flex: 0 0 100% !important;
   max-width: 100% !important;
   width: 100% !important;
 }
 
-.gantry-custom-editor {
+.gantry-custom-editor,
+.gantry-typed-editor {
   margin-top: 0.45rem;
   font-size: 0.88rem;
 }
 
-.gantry-custom-form {
+.gantry-custom-form,
+.gantry-typed-form {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
   margin-top: 0.55rem;
+}
+
+.gantry-typed-form > label,
+.gantry-typed-row > label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-weight: 600;
+}
+
+.gantry-typed-form input[type='text'],
+.gantry-typed-form input[type='url'],
+.gantry-typed-form input[type='number'],
+.gantry-typed-form select {
+  font: inherit;
+  font-weight: 400;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--sf-line);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.gantry-typed-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+}
+
+.gantry-social-editor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gantry-social-editor-item {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+  padding: 0.65rem;
+  border: 1px solid var(--sf-line);
+  background: color-mix(in srgb, var(--sf-secondary) 8%, white);
+}
+
+.gantry-social-editor-item button.danger {
+  grid-column: 1 / -1;
+  justify-self: start;
 }
 
 .gantry-custom-title {

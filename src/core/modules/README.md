@@ -11,7 +11,7 @@ Reference: [docs.gantry.org](https://docs.gantry.org/).
 | Piece | Path |
 | --- | --- |
 | Register API | `registerModule()` in `registry.ts` |
-| Built-in particles | `page-content`, `site-header`, `custom` · `particles/` |
+| Built-in particles | `page-content`, `site-header`, `logo`, `copyright`, `social`, `custom` · `particles/` |
 | Example extension | `src/modules/notice-bar/` |
 | Layout document (v3) | sections → rows → slots (`moduleId` + `width` %) |
 | Storage | `sf_layouts` JSON · fallback `default-layout.json` |
@@ -58,11 +58,12 @@ Legacy v1 / v2 upgrade on read.
 ## Rules
 
 1. **Any particle → any section/slot** — no hard locks.
-2. **Built-ins** (`page-content`, `site-header`, `custom`) always render.
+2. **Built-ins** (`page-content`, `site-header`, `logo`, `copyright`, `social`, `custom`) always render.
 3. **Extension particles** need site-settings **Modules** on (+ optional per-module flag).
 4. **Width** is an integer **percent** (1% steps; min **5%**, max **95%** when shared so the pair can sum to 100%). Starforge flex math only (no Bootstrap).
-5. **Custom** stores HTML + CSS + JS; JS is **not executed** until developer-admin ACL.
-6. **No plain textareas for code** — Custom / future Styles use CodeMirror (syntax highlight + resizable panels). Monaco is an optional later upgrade for a heavier Styles IDE.
+5. **Typed Core particles** (`logo`, `copyright`, `social`) store structured config JSON and render with their own components — **not** Custom HTML blobs.
+6. **Custom** remains the free-form escape hatch (HTML + CSS + JS); JS is **not executed** until developer-admin ACL.
+7. **No plain textareas for code** — Custom / future Styles use CodeMirror (syntax highlight + resizable panels). Monaco is an optional later upgrade for a heavier Styles IDE.
 
 ## Admin UX (this PR) — Gantry Layout Manager flow
 
@@ -72,6 +73,17 @@ Legacy v1 / v2 upgrade on read.
 4. Drop a second beside it → **side-by-side** in one horizontal row (~50%/50%); **drag the divider** to resize in **1%** steps (**5%–95%**, pair sums to **100%**)
 5. Layout admin page is **full width** (no narrow max-width column)
 6. Custom particle: CodeMirror HTML/CSS/JS (resizable panels — no plain code textareas)
+7. Typed particles open field editors on the canvas (Logo media/URL/alt/size; Copyright text/year/link; Social link list)
+
+### Typed Core particles
+
+| Id | Config | Public render |
+| --- | --- | --- |
+| `logo` | `mediaId` / `mediaUrl`, `alt`, optional `maxWidth`/`maxHeight`, optional `linkUrl` | `<img>` or placeholder; Media id resolves via Payload |
+| `copyright` | `text`, `yearMode` (`auto`\|`manual`) + `year`, optional `linkUrl`/`linkLabel` | `© {year} {text}` + optional link |
+| `social` | `items[]` of `{ id, platform, url, label?, icon? }` | Nav list of links |
+
+Custom stays available for free-form HTML — do **not** generate Logo/Copyright/Social into Custom blobs.
 
 ## Next polish (not in this PR)
 

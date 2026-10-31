@@ -15,26 +15,19 @@ import {
 } from './document'
 import { clampGridWidth, evenColumnWidths, LAYOUT_WIDTH_FULL, resizeAdjacentPair } from './grid'
 import { loadLayoutDocument, saveLayoutDocument } from './layout-store'
+import { defaultConfigForModule, readSocialConfig } from './particles/config'
 import { getRegisteredModule, listRegisteredModules } from './registry'
 import type { LayoutDocument, LayoutRow, LayoutSection, LayoutSlot, LayoutSlotConfig } from './types'
 
-function customDefaultConfig(): LayoutSlotConfig {
-  return {
-    title: 'Custom',
-    html: '<p>Custom HTML</p>',
-    css: '',
-    js: '',
-  }
-}
-
 function makeSlot(moduleId: string, width: number, order: number): LayoutSlot {
+  const config = defaultConfigForModule(moduleId)
   return {
     id: newLayoutEntityId(`slot-${moduleId}`),
     moduleId,
     width: clampGridWidth(width, LAYOUT_WIDTH_FULL),
     enabled: true,
     order,
-    ...(moduleId === 'custom' ? { config: customDefaultConfig() } : {}),
+    ...(config ? { config } : {}),
   }
 }
 
@@ -437,6 +430,104 @@ export async function updateCustomSlotAction(
   })
 
   if (state.ok) state.message = 'Custom particle saved.'
+  return state
+}
+
+export async function updateLogoSlotAction(
+  _prev: LayoutActionState,
+  formData: FormData,
+): Promise<LayoutActionState> {
+  const sectionId = String(formData.get('sectionId') ?? '').trim()
+  const rowId = String(formData.get('rowId') ?? '').trim()
+  const slotId = String(formData.get('slotId') ?? '').trim()
+  if (!sectionId || !rowId || !slotId) return { error: 'Missing slot reference.' }
+
+  const maxWidthRaw = Number(formData.get('maxWidth'))
+  const maxHeightRaw = Number(formData.get('maxHeight'))
+  const config: LayoutSlotConfig = {
+    mediaId: String(formData.get('mediaId') ?? '').trim(),
+    mediaUrl: String(formData.get('mediaUrl') ?? '').trim(),
+    alt: String(formData.get('alt') ?? '').trim() || 'Logo',
+    linkUrl: String(formData.get('linkUrl') ?? '').trim(),
+    ...(Number.isFinite(maxWidthRaw) && maxWidthRaw > 0
+      ? { maxWidth: Math.round(maxWidthRaw) }
+      : {}),
+    ...(Number.isFinite(maxHeightRaw) && maxHeightRaw > 0
+      ? { maxHeight: Math.round(maxHeightRaw) }
+      : {}),
+  }
+
+  const state = await mutateLayout((doc) => {
+    const found = findSlot(doc, sectionId, rowId, slotId)
+    if (!found) return { error: 'Slot not found.' }
+    if (found.slot.moduleId !== 'logo') return { error: 'Not a Logo / Image particle.' }
+    found.slot.config = config
+    return doc
+  })
+
+  if (state.ok) state.message = 'Logo / Image saved.'
+  return state
+}
+
+export async function updateCopyrightSlotAction(
+  _prev: LayoutActionState,
+  formData: FormData,
+): Promise<LayoutActionState> {
+  const sectionId = String(formData.get('sectionId') ?? '').trim()
+  const rowId = String(formData.get('rowId') ?? '').trim()
+  const slotId = String(formData.get('slotId') ?? '').trim()
+  if (!sectionId || !rowId || !slotId) return { error: 'Missing slot reference.' }
+
+  const yearMode = String(formData.get('yearMode') ?? 'auto') === 'manual' ? 'manual' : 'auto'
+  const yearRaw = Number(formData.get('year'))
+  const config: LayoutSlotConfig = {
+    text: String(formData.get('text') ?? '').trim(),
+    yearMode,
+    year: Number.isFinite(yearRaw) ? Math.round(yearRaw) : new Date().getFullYear(),
+    linkUrl: String(formData.get('linkUrl') ?? '').trim(),
+    linkLabel: String(formData.get('linkLabel') ?? '').trim(),
+  }
+
+  const state = await mutateLayout((doc) => {
+    const found = findSlot(doc, sectionId, rowId, slotId)
+    if (!found) return { error: 'Slot not found.' }
+    if (found.slot.moduleId !== 'copyright') return { error: 'Not a Copyright particle.' }
+    found.slot.config = config
+    return doc
+  })
+
+  if (state.ok) state.message = 'Copyright saved.'
+  return state
+}
+
+export async function updateSocialSlotAction(
+  _prev: LayoutActionState,
+  formData: FormData,
+): Promise<LayoutActionState> {
+  const sectionId = String(formData.get('sectionId') ?? '').trim()
+  const rowId = String(formData.get('rowId') ?? '').trim()
+  const slotId = String(formData.get('slotId') ?? '').trim()
+  if (!sectionId || !rowId || !slotId) return { error: 'Missing slot reference.' }
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(String(formData.get('itemsJson') ?? '[]'))
+  } catch {
+    return { error: 'Invalid social items JSON.' }
+  }
+  if (!Array.isArray(parsed)) return { error: 'Social items must be an array.' }
+
+  const config: LayoutSlotConfig = { items: readSocialConfig({ items: parsed }).items }
+
+  const state = await mutateLayout((doc) => {
+    const found = findSlot(doc, sectionId, rowId, slotId)
+    if (!found) return { error: 'Slot not found.' }
+    if (found.slot.moduleId !== 'social') return { error: 'Not a Social particle.' }
+    found.slot.config = config
+    return doc
+  })
+
+  if (state.ok) state.message = 'Social links saved.'
   return state
 }
 

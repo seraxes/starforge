@@ -26,6 +26,7 @@ import {
 import type { LayoutDocument, LayoutRow, LayoutSection, LayoutSlot } from '@/core/modules/types'
 
 import { CustomParticleEditor } from './custom-particle-editor'
+import { TypedParticleEditor } from './typed-particle-editors'
 
 type ModuleOption = {
   id: string
@@ -228,7 +229,9 @@ function ParticleBlock({
       </div>
       {slot.moduleId === 'custom' ? (
         <CustomParticleEditor sectionId={sectionId} rowId={rowId} slot={slot} />
-      ) : null}
+      ) : (
+        <TypedParticleEditor sectionId={sectionId} rowId={rowId} slot={slot} />
+      )}
       <ActionFeedback state={flash} />
     </article>
   )

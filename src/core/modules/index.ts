@@ -13,7 +13,10 @@ export {
   setRowSlotWidthsAction,
   setSlotWidthAction,
   toggleSlotAction,
+  updateCopyrightSlotAction,
   updateCustomSlotAction,
+  updateLogoSlotAction,
+  updateSocialSlotAction,
 } from './actions'
 export type { LayoutActionState } from './actions'
 export {
@@ -46,7 +49,19 @@ export {
 } from './layout-store'
 export type { LayoutLoadResult, LayoutLoadSource } from './layout-store'
 export { ModuleSlot } from './ModuleSlot'
-export { builtinParticles } from './particles'
+export {
+  builtinParticles,
+  copyrightModule,
+  defaultConfigForModule,
+  logoModule,
+  socialModule,
+} from './particles'
+export type {
+  CopyrightParticleConfig,
+  LogoParticleConfig,
+  SocialLinkItem,
+  SocialParticleConfig,
+} from './particles'
 export { PublicLayoutBody } from './PublicLayoutBody'
 export {
   clearModuleRegistry,

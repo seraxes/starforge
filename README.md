@@ -4,7 +4,7 @@ Reusable **product core** for ordinary web apps (auth, users, app shell, extensi
 
 **Two admin surfaces, one login:** **Starforge admin** (`/app/admin` — users, roles, site settings) ↔ **Payload Content CMS** (`/admin` — pages, media); each sidebar links to the other.
 
-This is an early scaffold plus **core app auth** (Better Auth), **roles + core user admin**, **one-login Payload CMS access** (`cms_access` toggle), **site settings + feature toggles**, **Lexical** page editing, **public `/[slug]`** rendering, **draft preview** (`/preview/[slug]`), **published content cache** (Next.js tags; Redis later), **page SEO fields**, **extension modules + Gantry-like layout manager** (sections/rows/slots + 12-col widths in `sf_layouts`, palette UI at `/app/admin/layouts`, page-content + custom particles), and **`npm run seed`**. It is intentionally small and runnable locally — not Airsoftnexus 2.0 feature parity, and not a DigitalOcean deploy.
+This is an early scaffold plus **core app auth** (Better Auth), **roles + core user admin**, **one-login Payload CMS access** (`cms_access` toggle), **site settings + feature toggles**, **Lexical** page editing, **public `/[slug]`** rendering, **draft preview** (`/preview/[slug]`), **published content cache** (Next.js tags; Redis later), **page SEO fields**, **extension modules + Gantry-like layout manager** (sections/rows/slots + % widths in `sf_layouts`, palette UI at `/app/admin/layouts`, typed Logo/Copyright/Social + page-content + Custom particles), and **`npm run seed`**. It is intentionally small and runnable locally — not Airsoftnexus 2.0 feature parity, and not a DigitalOcean deploy.
 
 ## Architecture
 
@@ -123,7 +123,7 @@ Public chrome is driven by a **layout document**: **sections → rows → slots*
 | Piece | Where |
 | --- | --- |
 | Register API | `registerModule()` · `src/core/modules/` |
-| Built-in particles | `page-content`, `site-header`, `custom` (HTML/CSS; JS stub) |
+| Built-in particles | `page-content`, `site-header`, `logo`, `copyright`, `social`, `custom` (HTML/CSS; JS stub) |
 | Example extension | `src/modules/notice-bar/` |
 | Catalog boot | `src/modules/catalog.ts` (+ builtins) |
 | Layout document | `sf_layouts.document` (v3 JSON) · fallback `default-layout.json` |
@@ -388,7 +388,8 @@ npm run dev
 3. Open **http://localhost:3000/app/admin/layouts** — page is **full width**; left palette + canvas.
 4. Create a section → **Add row** → **drag** Notice bar (or Custom) into the row.
 5. Drag a second particle into the same row — both sit **side by side**; drag the divider (1% steps, 5%–95%, sum 100%).
-6. Edit a Custom particle with CodeMirror; **Reset to default** restores the seeded layout.
+6. Drag **Logo / Image**, **Copyright**, and **Social** from the palette — each opens typed field editors (not Custom HTML). Save and confirm public render.
+7. Edit a Custom particle with CodeMirror; **Reset to default** restores the seeded layout.
 
 ## Not in this scaffold
 
@@ -396,7 +397,7 @@ npm run dev
 - Forgot / reset password (needs email — deferred), OAuth
 - Second Payload password login (removed — Better Auth session strategy only)
 - Posts collection
-- Full Gantry Styles / Outlines / Menu editors, cross-row reorder, YAML mode, Custom JS execution + ACL (layout DnD canvas + CodeMirror Custom + JSON storage are in)
+- Full Gantry Styles / Outlines / Menu editors, cross-row reorder, YAML mode, Custom JS execution + ACL, Payload media picker for Logo (layout DnD canvas + typed Logo/Copyright/Social + CodeMirror Custom + JSON storage are in)
 - Nested menus, Joomla-like menu CSS / browser-title overrides (stub fields only)
 - Airsoftnexus 2.0 feature parity
 
