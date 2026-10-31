@@ -26,6 +26,8 @@ export default buildConfig({
     meta: {
       titleSuffix: '— Starforge CMS',
     },
+    // Intentionally no afterNavLinks / beforeNavLinks / Logo href into core
+    // (`/app/admin`, “Back to Starforge”, etc.). Core may link → Payload; not reverse.
     components: {
       // Belt-and-suspenders with src/middleware.ts (which blocks /admin/login).
       views: {

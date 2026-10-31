@@ -124,7 +124,7 @@ export interface UserAuthOperations {
   };
 }
 /**
- * CMS editor stubs linked to core app users (cms_access). Sign-in is Better Auth only — Payload password form is disabled. Manage CMS access under Core admin → Users.
+ * CMS editor stubs linked to app users with CMS access. Sign-in is Better Auth only — Payload’s password form is disabled. Do not manage product users from here.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
@@ -389,7 +389,7 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   createdAt?: T;
 }
 /**
- * Site name, primary nav (pages / URLs), and feature toggles. Core admins can also edit at /app/admin/settings. App accounts stay separate from CMS editors.
+ * Site name, primary nav (pages / URLs), and feature toggles for the public site. App accounts stay separate from CMS editors.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "site-settings".

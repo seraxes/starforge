@@ -4,7 +4,7 @@ import type { GlobalConfig } from 'payload'
  * Site chrome + product capability toggles.
  *
  * - Editors: edit in Payload `/admin` → Globals → Site settings
- * - Core admins: edit the same doc via `/app/admin/settings` (Local API)
+ * - Core can also upsert the same doc via Local API (no Payload→core UI links)
  *
  * Primary nav items prefer a **Page** relationship; custom URL is for external
  * links or paths. Flat menu for v1 — Joomla-like extras (CSS class, browser
@@ -18,7 +18,7 @@ export const SiteSettings: GlobalConfig = {
   label: 'Site settings',
   admin: {
     description:
-      'Site name, primary nav (pages / URLs), and feature toggles. Core admins can also edit at /app/admin/settings. App accounts stay separate from CMS editors.',
+      'Site name, primary nav (pages / URLs), and feature toggles for the public site. App accounts stay separate from CMS editors.',
   },
   access: {
     read: () => true,
