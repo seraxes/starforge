@@ -4,11 +4,9 @@ import { cache } from 'react'
 import config from '@payload-config'
 import type { Page } from '@/payload-types'
 
-/**
- * Load a published CMS page by slug for the public site.
- * Drafts are never returned here (Payload access + draft: false).
- */
-export const getPublishedPageBySlug = cache(async (slug: string): Promise<Page | null> => {
+import { contentCacheTags, getPublishedContentCache } from './cache'
+
+async function loadPublishedPageUncached(slug: string): Promise<Page | null> {
   const payload = await getPayload({ config })
 
   const result = await payload.find({
@@ -35,12 +33,31 @@ export const getPublishedPageBySlug = cache(async (slug: string): Promise<Page |
   })
 
   return result.docs[0] ?? null
+}
+
+/**
+ * Load a published CMS page by slug for the public site.
+ *
+ * Uses the published-content cache (Next.js tags locally; Redis-ready later).
+ * Drafts are never returned here (Payload access + draft: false).
+ * For preview, use `getDraftPageBySlug` (uncached + auth-gated).
+ */
+export const getPublishedPageBySlug = cache(async (slug: string): Promise<Page | null> => {
+  return getPublishedContentCache().getCached(
+    {
+      key: ['sf', 'published-page', slug],
+      tags: [contentCacheTags.pages, contentCacheTags.page(slug)],
+      revalidate: false,
+    },
+    () => loadPublishedPageUncached(slug),
+  )
 })
 
 /**
  * Load the latest draft (or published) version of a page by slug.
  *
  * Used only by `/preview/[slug]` after core auth + feature-flag checks.
+ * Intentionally **not** cached — editors must see the latest draft.
  * `overrideAccess: true` is intentional — the public route has a Better Auth
  * session, not a Payload `req.user`, so collection access would otherwise hide drafts.
  */
