@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 
 import { requireAppAdmin } from '@/core/auth/admin'
+import { invalidateSiteSettings } from '@/core/content/revalidate'
 import {
   DEFAULT_SITE_NAME,
   type FeatureFlags,
@@ -69,12 +70,12 @@ export async function updateSiteSettingsAction(
     return { error: message }
   }
 
+  // Tag invalidation covers cached site settings + pages that embed chrome.
+  // Payload global afterChange also calls this; safe to run twice.
+  invalidateSiteSettings()
   revalidatePath('/', 'layout')
   revalidatePath('/register')
   revalidatePath('/login')
   revalidatePath('/app/admin/settings')
-  revalidatePath('/about')
-  revalidatePath('/getting-started')
-  revalidatePath('/welcome')
   return { ok: true }
 }

@@ -1,4 +1,11 @@
-import type { GlobalConfig } from 'payload'
+import type { GlobalAfterChangeHook, GlobalConfig } from 'payload'
+
+import { invalidateSiteSettings } from '../core/content/revalidate'
+
+const revalidateSiteSettingsAfterChange: GlobalAfterChangeHook = ({ doc }) => {
+  invalidateSiteSettings()
+  return doc
+}
 
 /**
  * Site chrome + product capability toggles.
@@ -12,13 +19,18 @@ import type { GlobalConfig } from 'payload'
  *
  * Flags are product *capabilities* (registration, modules, posts placeholder…),
  * not npm libraries. Core reads them to hide UI and reject gated APIs.
+ *
+ * Saves invalidate the published-content cache tag for site chrome / nav.
  */
 export const SiteSettings: GlobalConfig = {
   slug: 'site-settings',
   label: 'Site settings',
   admin: {
     description:
-      'Site name, primary nav (pages / URLs), and feature toggles. Core admins can also edit at /app/admin/settings. App accounts stay separate from CMS editors.',
+      'Site name, primary nav (pages / URLs), and feature toggles. Core admins can also edit at /app/admin/settings. App accounts stay separate from CMS editors. Saving refreshes the public header cache.',
+  },
+  hooks: {
+    afterChange: [revalidateSiteSettingsAfterChange],
   },
   access: {
     read: () => true,

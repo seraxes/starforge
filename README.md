@@ -4,7 +4,7 @@ Reusable **product core** for ordinary web apps (auth, users, app shell, extensi
 
 **Two admin surfaces, one login:** **Starforge admin** (`/app/admin` — users, roles, site settings) ↔ **Payload Content CMS** (`/admin` — pages, media); each sidebar links to the other.
 
-This is an early scaffold plus **core app auth** (Better Auth), **roles + core user admin**, **one-login Payload CMS access** (`cms_access` toggle), **site settings + feature toggles**, **Lexical** page editing, **public `/[slug]`** rendering, **draft preview** (`/preview/[slug]`), **page SEO fields**, **named layout positions + first extension module** (dismissible notice bar), and **`npm run seed`**. It is intentionally small and runnable locally — not Airsoftnexus 2.0 feature parity, and not a DigitalOcean deploy.
+This is an early scaffold plus **core app auth** (Better Auth), **roles + core user admin**, **one-login Payload CMS access** (`cms_access` toggle), **site settings + feature toggles**, **Lexical** page editing, **public `/[slug]`** rendering, **draft preview** (`/preview/[slug]`), **published content cache** (Next.js tags; Redis later), **page SEO fields**, **named layout positions + first extension module** (dismissible notice bar), and **`npm run seed`**. It is intentionally small and runnable locally — not Airsoftnexus 2.0 feature parity, and not a DigitalOcean deploy.
 
 ## Architecture
 
@@ -16,6 +16,19 @@ This is an early scaffold plus **core app auth** (Better Auth), **roles + core u
 - Payload tables use Postgres schema **`payload`** (created by `docker/postgres/init.sql`).
 - Core auth tables: `sf_users`, `sf_sessions`, `sf_accounts`, `sf_verifications` (push with `npm run db:core:push`).
 - Hot paths stay in core — do not put high-QPS app traffic through Payload Local API.
+
+### Published content cache
+
+Anonymous `/[slug]` and public site chrome load through core helpers (`getPublishedPageBySlug`, `getSiteSettings`) backed by a small **pluggable cache**:
+
+| Piece | Behavior |
+| --- | --- |
+| Default (local) | Next.js `unstable_cache` + cache tags (`sf:published-page:{slug}`, `sf:site-settings`, …) |
+| Revalidate | Payload `afterChange` / `afterDelete` on Pages + Site settings call `invalidatePublishedPage` / `invalidateSiteSettings` |
+| Draft preview | `/preview/[slug]` stays **uncached** and auth-gated (`cms_access` + feature toggle) |
+| Redis | **Planned for DigitalOcean production** (multi-instance). Not required locally. Same loader API — swap backend via `STARFORGE_CONTENT_CACHE=redis` once Redis is wired (`src/core/content/cache/`). |
+
+Do not call Payload Local API from hot anonymous paths except through these helpers.
 
 ### App users vs Payload CMS stubs (one login)
 
@@ -116,7 +129,7 @@ Named positions in the public layout: **`header`**, **`after-content`**, **`foot
 
 After seed, open **http://localhost:3000** — a pastel notice bar sits in the **header** position. Dismiss it (session only) or turn **Modules** off under `/app/admin/settings`. Docs: `src/core/modules/README.md`.
 
-**Later (not in this slice):** nested menus, visual layout editor, draft preview, Joomla-like menu params beyond the stub `cssClass` / `browserTitle` fields (stubs are not applied on the public site yet).
+**Later (not in this slice):** nested menus, visual layout editor, Redis content cache on DO, Joomla-like menu params beyond the stub `cssClass` / `browserTitle` fields (stubs are not applied on the public site yet).
 
 **First admin paths:**
 
@@ -185,13 +198,39 @@ PowerShell equivalent start: `cd $env:USERPROFILE\starforge`
 4. Sign in at **/login** as `admin@starforge.local` / `starforge-admin`, open **/admin** → Globals → **Site settings** — primary nav items use **CMS page** link type.
 5. Optional: **/app/admin/settings** still edits site name / path nav / toggles.
 
+### Windows: published content cache smoke test
+
+```bat
+cd %USERPROFILE%\starforge
+git fetch origin
+git checkout cursor/published-content-cache-8a53
+git pull origin cursor/published-content-cache-8a53
+
+docker compose up -d
+if not exist .env copy .env.example .env
+npm install
+npm run db:core:push
+npm run seed
+
+rem Stop ANY old npm run dev window (Ctrl+C), then:
+npm run dev
+```
+
+1. Open **http://localhost:3000/about** (anonymous) — sample published page.
+2. Sign in → `/admin` → Pages → edit **About**, change the title, **Publish**.
+3. Hard-refresh **http://localhost:3000/about** — new title should show (cache tag revalidated on publish).
+4. Unpublish (save as draft) → anonymous `/about` must **404**.
+5. `/preview/about` with Draft preview on still works for CMS-access users (uncached path).
+
+Leave `STARFORGE_CONTENT_CACHE` unset locally. Redis is for DigitalOcean later.
+
 ### Windows: draft preview smoke test
 
 ```bat
 cd %USERPROFILE%\starforge
 git fetch origin
-git checkout cursor/draft-preview-9629
-git pull origin cursor/draft-preview-9629
+git checkout main
+git pull origin main
 
 docker compose up -d
 if not exist .env copy .env.example .env
@@ -291,7 +330,8 @@ src/
   core/
     auth/                   # Better Auth + roles/admin helpers + Zod schemas
     cms-bridge/             # cms_access + Payload session strategy (one login)
-    content/                # published + draft CMS reads, preview gate, SEO metadata
+    content/                # published + draft CMS reads, cache layer, preview gate, SEO
+      cache/                # Next tags (default) + Redis stub for DO
     modules/                # register API, layout JSON, ModuleSlot
     settings/               # site-settings + nav resolve + flag helpers
     db/                     # Drizzle core schema + client
@@ -302,7 +342,7 @@ src/
 
 ## Not in this scaffold
 
-- Production / DigitalOcean deploy
+- Production / DigitalOcean deploy (including Redis — cache interface is ready; backend not wired)
 - Forgot / reset password (needs email — deferred), OAuth
 - Second Payload password login (removed — Better Auth session strategy only)
 - Posts collection

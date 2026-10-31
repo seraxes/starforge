@@ -1,10 +1,25 @@
-import type { CollectionConfig } from 'payload'
+import type { CollectionAfterChangeHook, CollectionAfterDeleteHook, CollectionConfig } from 'payload'
 
 import { pagesLexicalEditor } from '../fields/pagesLexical'
+import { invalidatePublishedPage } from '../core/content/revalidate'
+
+const revalidatePageAfterChange: CollectionAfterChangeHook = ({ doc, previousDoc }) => {
+  const slug = typeof doc?.slug === 'string' ? doc.slug : null
+  const previousSlug = typeof previousDoc?.slug === 'string' ? previousDoc.slug : null
+  invalidatePublishedPage({ slug, previousSlug })
+  return doc
+}
+
+const revalidatePageAfterDelete: CollectionAfterDeleteHook = ({ doc }) => {
+  const slug = typeof doc?.slug === 'string' ? doc.slug : null
+  invalidatePublishedPage({ slug })
+  return doc
+}
 
 /**
  * Editorial pages — drafts/publish + Lexical rich text body + SEO meta.
  * Anonymous visitors may only read published docs (used by `/[slug]`).
+ * Publish / unpublish / delete invalidates the published-content cache tags.
  */
 export const Pages: CollectionConfig = {
   slug: 'pages',
@@ -12,10 +27,14 @@ export const Pages: CollectionConfig = {
     useAsTitle: 'title',
     defaultColumns: ['title', 'slug', '_status', 'updatedAt'],
     description:
-      'Marketing / brochure pages for the public site. Edit content here in Payload (/admin). App accounts use /login — not this collection. Publish so `/[slug]` can show the page. With Draft preview on, CMS-access users can open `/preview/{slug}` before publishing.',
+      'Marketing / brochure pages for the public site. Edit content here in Payload (/admin). App accounts use /login — not this collection. Publish so `/[slug]` can show the page. With Draft preview on, CMS-access users can open `/preview/{slug}` before publishing. Saving/publishing refreshes the public cached page.',
   },
   versions: {
     drafts: true,
+  },
+  hooks: {
+    afterChange: [revalidatePageAfterChange],
+    afterDelete: [revalidatePageAfterDelete],
   },
   access: {
     read: ({ req: { user } }) => {

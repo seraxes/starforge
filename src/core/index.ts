@@ -3,9 +3,12 @@
  * Feature modules (auth, users, jobs, …) should export through here over time.
  */
 export { auth } from './auth'
+export { contentCacheTags, getPublishedContentCache } from './content/cache'
+export type { ContentCacheGetOptions, PublishedContentCache } from './content/cache'
 export { absoluteMediaUrl, buildPageMetadata } from './content/metadata'
 export { getDraftPageBySlug, getPublishedPageBySlug } from './content/pages'
 export { requireDraftPreviewAccess, resolveDraftPreviewAccess } from './content/preview'
+export { invalidatePublishedPage, invalidateSiteSettings } from './content/revalidate'
 export { db, pool, sfUsers, sfSessions, sfAccounts, sfVerifications } from './db'
 export {
   getAssignmentsForPosition,
