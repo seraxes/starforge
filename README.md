@@ -4,7 +4,7 @@ Reusable **product core** for ordinary web apps (auth, users, app shell, extensi
 
 **Two admin surfaces, one login:** **Starforge admin** (`/app/admin` — users, roles, site settings) ↔ **Payload Content CMS** (`/admin` — pages, media); each sidebar links to the other.
 
-This is an early scaffold plus **core app auth** (Better Auth), **roles + core user admin**, **one-login Payload CMS access** (`cms_access` toggle), **site settings + feature toggles**, **Lexical** page editing, **public `/[slug]`** rendering, **draft preview** (`/preview/[slug]`), **published content cache** (Next.js tags; Redis later), **page SEO fields**, **named layout positions + first extension module** (dismissible notice bar), and **`npm run seed`**. It is intentionally small and runnable locally — not Airsoftnexus 2.0 feature parity, and not a DigitalOcean deploy.
+This is an early scaffold plus **core app auth** (Better Auth), **roles + core user admin**, **one-login Payload CMS access** (`cms_access` toggle), **site settings + feature toggles**, **Lexical** page editing, **public `/[slug]`** rendering, **draft preview** (`/preview/[slug]`), **published content cache** (Next.js tags; Redis later), **page SEO fields**, **extension modules + visual layout manager foundation** (JSON layout document in `sf_layouts`, admin UI at `/app/admin/layouts`, notice-bar module), and **`npm run seed`**. It is intentionally small and runnable locally — not Airsoftnexus 2.0 feature parity, and not a DigitalOcean deploy.
 
 ## Architecture
 
@@ -14,7 +14,7 @@ This is an early scaffold plus **core app auth** (Better Auth), **roles + core u
 | **Payload content module** | Collections, globals (site settings), drafts, media, CMS admin | `src/collections/`, `src/globals/`, `src/payload.config.ts`, `src/app/(payload)/` |
 
 - Payload tables use Postgres schema **`payload`** (created by `docker/postgres/init.sql`).
-- Core auth tables: `sf_users`, `sf_sessions`, `sf_accounts`, `sf_verifications` (push with `npm run db:core:push`).
+- Core auth + layout tables: `sf_users`, `sf_sessions`, `sf_accounts`, `sf_verifications`, `sf_layouts` (push with `npm run db:core:push`).
 - Hot paths stay in core — do not put high-QPS app traffic through Payload Local API.
 
 ### Published content cache
@@ -81,6 +81,7 @@ Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so coo
 | http://localhost:3000/login | **Only** sign-in (Better Auth). Also used when `/admin` redirects unauthenticated visitors |
 | http://localhost:3000/app/admin/users | Starforge admin — roles, **CMS access** switch, disable |
 | http://localhost:3000/app/admin/settings | Starforge admin — site name, primary nav, feature toggles (same Payload global) |
+| http://localhost:3000/app/admin/layouts | Starforge admin — layout manager (sections → positions → modules) |
 | http://localhost:3000/api/me | Current app session JSON including `role` / `isAdmin` (`401` when signed out) |
 | http://localhost:3000/admin | Payload Content CMS — nav **Payload CMS** when `cms_access` is on; sidebar **Core admin** → `/app/admin` |
 | http://localhost:3000/about | Sample published page (after `npm run seed`) |
@@ -115,21 +116,22 @@ One Payload global (`site-settings`) is the source of truth for site chrome and 
 
 `npm run seed` ensures the global exists, points primary nav at the sample pages, and **enables Modules** so the notice bar shows. Flags are **product capabilities**, not npm libraries.
 
-### Extension modules + layout positions
+### Extension modules + visual layout manager (foundation)
 
-Named positions in the public layout: **`header`**, **`after-content`**, **`footer`**. Any registered module can target any position (no hard locks). Assignments live in `src/core/modules/default-layout.json` — the path toward a later visual layout editor (same JSON/YAML shape under the hood).
+Public chrome is driven by a **layout document**: **sections → named positions → module assignments**. Any registered module can target any position (no hard locks). Storage is **JSON** in core Postgres (`sf_layouts`); `default-layout.json` is the checked-in seed/fallback. The primary UX is the visual admin at **`/app/admin/layouts`** (add/rename sections & positions, assign modules) — not hand-editing YAML day to day.
 
 | Piece | Where |
 | --- | --- |
 | Register API | `registerModule()` · `src/core/modules/` |
 | Example module | `src/modules/notice-bar/` (dismissible notice) |
 | Catalog boot | `src/modules/catalog.ts` |
-| Layout document | `src/core/modules/default-layout.json` |
-| Public slots | `<ModuleSlot position="…" />` in `(public)/layout.tsx` |
+| Layout document | `sf_layouts.document` (JSON) · fallback `src/core/modules/default-layout.json` |
+| Admin UI | `/app/admin/layouts` |
+| Public render | `PublicLayoutBody` + `<ModuleSlot>` from the document |
 
-After seed, open **http://localhost:3000** — a pastel notice bar sits in the **header** position. Dismiss it (session only) or turn **Modules** off under `/app/admin/settings`. Docs: `src/core/modules/README.md`.
+Default seed: **Header** section → `header` position → **notice-bar**; **Main** (content) → `after-content`; **Footer** → `footer`. After seed, open **http://localhost:3000** — notice bar in the header when **Modules** is on. Docs: `src/core/modules/README.md`.
 
-**Later (not in this slice):** nested menus, visual layout editor, Redis content cache on DO, Joomla-like menu params beyond the stub `cssClass` / `browserTitle` fields (stubs are not applied on the public site yet).
+**Later (not in this slice):** full drag-drop Gantry-class editor, developer-admin YAML mode, custom JS particles + ACL, nested menus, Redis content cache on DO, Joomla-like menu params beyond stub `cssClass` / `browserTitle` fields.
 
 **First admin paths:**
 
@@ -155,7 +157,7 @@ Idempotent local demo data:
 
 - **Published CMS pages:** `/about`, `/getting-started`, `/welcome`
 - **Site settings** global defaults + **primary nav** linked to those pages (Payload relationships)
-- **Modules** feature enabled + notice bar assigned to the **header** position
+- **Modules** feature enabled + **layout document** seeded into `sf_layouts` (notice bar → **header** position)
 - **Bootstrap app admin**: `admin@starforge.local` / `starforge-admin` → `admin` + `cms_access` + Payload stub
 - **Demo app member**: `demo@starforge.local` / `starforge-demo` → `member`, **no** CMS access
 - Promotes `STARFORGE_ADMIN_EMAILS` and grants them CMS access
@@ -318,7 +320,7 @@ src/
   app/
     (frontend)/             # public app shell + /login + /register + /[slug] + /preview/[slug]
       (public)/             # site header + ModuleSlots (header / after-content / footer)
-      app/admin/            # core app admin (users + settings + CMS bridge)
+      app/admin/            # core app admin (users + settings + layouts + CMS bridge)
     (payload)/              # Payload admin + REST/GraphQL (do not hand-edit)
     api/auth/               # Better Auth handler
     api/health/             # core health route
@@ -332,13 +334,37 @@ src/
     cms-bridge/             # cms_access + Payload session strategy (one login)
     content/                # published + draft CMS reads, cache layer, preview gate, SEO
       cache/                # Next tags (default) + Redis stub for DO
-    modules/                # register API, layout JSON, ModuleSlot
+    modules/                # register API, layout document, ModuleSlot, PublicLayoutBody
     settings/               # site-settings + nav resolve + flag helpers
-    db/                     # Drizzle core schema + client
+    db/                     # Drizzle core schema + client (incl. sf_layouts)
   fields/pagesLexical.ts    # Lexical editor features for Pages
-  seed.ts                   # pages + settings + modules on + bootstrap admin + demo member
+  seed.ts                   # pages + settings + layout + modules on + bootstrap admin + demo member
   payload.config.ts         # Payload config (content module)
 ```
+
+### Windows: layout manager smoke test
+
+```bat
+cd %USERPROFILE%\starforge
+git fetch origin
+git checkout cursor/visual-layout-manager-foundation-55de
+git pull origin cursor/visual-layout-manager-foundation-55de
+
+docker compose up -d
+if not exist .env copy .env.example .env
+npm install
+npm run db:core:push
+npm run seed
+
+rem Stop ANY old npm run dev window (Ctrl+C), then:
+npm run dev
+```
+
+1. Open **http://localhost:3000** — notice bar in the header (Modules on from seed).
+2. Sign in as `admin@starforge.local` / `starforge-admin`.
+3. Open **http://localhost:3000/app/admin/layouts** — sections Header / Main / Footer; notice-bar under Header → header.
+4. Add a position (e.g. in Footer), assign **Notice bar**, save — confirm it appears in the public footer.
+5. **Reset to default layout** restores notice-bar → header only.
 
 ## Not in this scaffold
 
@@ -346,7 +372,7 @@ src/
 - Forgot / reset password (needs email — deferred), OAuth
 - Second Payload password login (removed — Better Auth session strategy only)
 - Posts collection
-- Visual layout editor (layout JSON exists; editor comes later), Gantry-full UX
+- Full drag-drop Gantry clone, custom JS particles, layout ACL (foundation editor + JSON storage only)
 - Nested menus, Joomla-like menu CSS / browser-title overrides (stub fields only)
 - Airsoftnexus 2.0 feature parity
 

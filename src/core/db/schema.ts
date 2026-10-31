@@ -1,5 +1,8 @@
 import { boolean, index, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 
+/** Stable id for the active site layout document row. */
+export const DEFAULT_LAYOUT_ID = 'default'
+
 /**
  * Starforge core tables (public schema).
  * Prefixed `sf_` so names never collide with Payload's `payload` schema tables.
@@ -99,3 +102,19 @@ export const sfVerifications = pgTable(
   },
   (table) => [index('sf_verifications_identifier_idx').on(table.identifier)],
 )
+
+/**
+ * Visual layout manager document (JSON: sections → positions → module ids).
+ * One row (`default`) is the active site layout. Empty/missing → fall back to
+ * `src/core/modules/default-layout.json`. ACL for custom JS comes later.
+ */
+export const sfLayouts = pgTable('sf_layouts', {
+  id: text('id').primaryKey(),
+  /** Canonical layout document JSON (version 2). */
+  document: text('document').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+})

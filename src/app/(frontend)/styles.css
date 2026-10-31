@@ -947,6 +947,203 @@ button:disabled {
   border: 0;
 }
 
+/* Visual layout manager (foundation) */
+.layout-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-top: 1rem;
+  max-width: 52rem;
+}
+
+.layout-source {
+  margin: 0;
+  color: var(--sf-muted);
+  font-size: 0.92rem;
+}
+
+.layout-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.layout-inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.layout-inline-form input[type='text'],
+.layout-inline-form select {
+  font: inherit;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--sf-line);
+  background: rgba(255, 255, 255, 0.85);
+  min-width: 10rem;
+}
+
+.layout-inline-form button,
+.layout-reset-form button,
+.layout-module-actions button {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--sf-line);
+  background: color-mix(in srgb, var(--sf-primary) 45%, white);
+  color: var(--sf-primary-ink);
+  cursor: pointer;
+}
+
+.layout-inline-form button.secondary,
+.layout-reset-form button.secondary,
+.layout-module-actions button.secondary {
+  background: color-mix(in srgb, var(--sf-secondary) 22%, white);
+  color: var(--sf-secondary-strong);
+}
+
+.layout-module-actions button.danger {
+  background: color-mix(in srgb, #c45c5c 18%, white);
+  color: #7a2e2e;
+}
+
+.layout-check {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+  font-size: 0.9rem;
+  color: var(--sf-muted);
+}
+
+.layout-sections {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.layout-section-card {
+  margin: 0;
+  padding: 1rem 1.1rem 1.15rem;
+  border: 1px solid var(--sf-line);
+  background: color-mix(in srgb, white 60%, transparent);
+}
+
+.layout-section-head,
+.layout-position-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.85rem;
+}
+
+.layout-section-head h3,
+.layout-position-head h4 {
+  margin: 0 0 0.25rem;
+}
+
+.layout-meta {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.65rem;
+  align-items: center;
+}
+
+.layout-id {
+  font-size: 0.82rem;
+  color: var(--sf-muted);
+  background: color-mix(in srgb, var(--sf-secondary) 12%, white);
+  padding: 0.1rem 0.35rem;
+}
+
+.layout-positions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.layout-position-card {
+  padding: 0.75rem 0.85rem;
+  border: 1px dashed var(--sf-line);
+  background: color-mix(in srgb, var(--sf-paper) 70%, white);
+}
+
+.layout-module-list {
+  list-style: none;
+  margin: 0 0 0.65rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.layout-module-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.85rem;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--sf-line);
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.layout-module-row[data-enabled='false'] {
+  opacity: 0.72;
+}
+
+.layout-module-row strong {
+  margin-right: 0.45rem;
+}
+
+.layout-module-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.layout-muted {
+  margin: 0 0 0.55rem;
+  color: var(--sf-muted);
+  font-size: 0.9rem;
+}
+
+.layout-json-preview {
+  margin-top: 0.5rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--sf-line);
+  background: color-mix(in srgb, white 50%, transparent);
+}
+
+.layout-json-preview summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.layout-json-preview pre {
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  overflow: auto;
+  max-height: 22rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  background: color-mix(in srgb, var(--sf-ink) 4%, white);
+  border: 1px solid var(--sf-line);
+}
+
+.sf-layout-section-content {
+  display: contents;
+}
+
 @media (max-width: 640px) {
   .home {
     padding: 2rem 1.15rem 1.5rem;
@@ -976,6 +1173,21 @@ button:disabled {
 
   .settings-nav-row {
     grid-template-columns: 1fr;
+  }
+
+  .layout-section-head,
+  .layout-position-head,
+  .layout-module-row,
+  .layout-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .layout-inline-form input[type='text'],
+  .layout-inline-form select,
+  .layout-inline-form button,
+  .layout-module-actions button {
+    width: 100%;
   }
 
   .links a,

@@ -1,11 +1,52 @@
 {
-  "version": 1,
-  "assignments": [
+  "version": 2,
+  "sections": [
     {
-      "moduleId": "notice-bar",
-      "position": "header",
-      "enabled": true,
-      "order": 0
+      "id": "header-section",
+      "label": "Header",
+      "order": 0,
+      "positions": [
+        {
+          "id": "header",
+          "label": "Header",
+          "order": 0,
+          "modules": [
+            {
+              "moduleId": "notice-bar",
+              "enabled": true,
+              "order": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "main-section",
+      "label": "Main",
+      "order": 1,
+      "content": true,
+      "positions": [
+        {
+          "id": "after-content",
+          "label": "After content",
+          "order": 0,
+          "placement": "after",
+          "modules": []
+        }
+      ]
+    },
+    {
+      "id": "footer-section",
+      "label": "Footer",
+      "order": 2,
+      "positions": [
+        {
+          "id": "footer",
+          "label": "Footer",
+          "order": 0,
+          "modules": []
+        }
+      ]
     }
   ]
 }

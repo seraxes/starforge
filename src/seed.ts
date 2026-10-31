@@ -26,6 +26,7 @@ import {
 import { BOOTSTRAP_ADMIN_EMAIL, setCoreUserCmsAccess } from './core/cms-bridge'
 import { db } from './core/db'
 import { sfUsers } from './core/db/schema'
+import { ensureDefaultLayoutSeeded } from './core/modules'
 import {
   ensureSiteSettingsDefaults,
   getSiteSettings,
@@ -357,6 +358,19 @@ async function main() {
     console.warn(error instanceof Error ? error.message : error)
   }
 
+  try {
+    const layoutSeed = await ensureDefaultLayoutSeeded()
+    console.log(
+      layoutSeed.created
+        ? 'Layout document: seeded default (notice-bar → header) into sf_layouts'
+        : 'Layout document: sf_layouts.default already present',
+    )
+  } catch (error) {
+    console.warn('Could not seed layout document (sf_layouts).')
+    console.warn('Run: npm run db:core:push')
+    console.warn(error instanceof Error ? error.message : error)
+  }
+
   const pages = await seedPages()
   if (pages.created.length) {
     console.log(`Pages created (published): ${pages.created.map((s) => `/${s}`).join(', ')}`)
@@ -445,6 +459,7 @@ async function main() {
   console.log('Login once: http://localhost:3000/login  then open http://localhost:3000/admin')
   console.log('Core admin users:    http://localhost:3000/app/admin/users')
   console.log('Core site settings:  http://localhost:3000/app/admin/settings')
+  console.log('Core layout manager: http://localhost:3000/app/admin/layouts')
   console.log('Payload CMS:         http://localhost:3000/admin  (nav: Payload CMS)')
   console.log('')
 
