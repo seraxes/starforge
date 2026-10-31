@@ -54,12 +54,22 @@ export default async function HomePage({
           </div>
         ) : null}
 
+        {params.notice === 'cms-denied' ? (
+          <div className="notice-banner" role="status">
+            <p>
+              <strong>No CMS access.</strong> Payload <code>/admin</code> requires the{' '}
+              <code>cms_access</code> flag (admins get it by default). Ask a core admin to turn it
+              on under <Link href="/app/admin/users">Users</Link>, or sign in as the seed admin.
+            </p>
+          </div>
+        ) : null}
+
         <div className="clarity-callout" role="note">
           <p>
-            <strong>/admin</strong> = CMS content (pages, media, editors, site settings global).{' '}
-            <strong>/login</strong> = app accounts. <strong>/app/admin</strong> = core users +
-            feature toggles (<code>admin</code> only). Separate systems — one login does not work
-            in the other.
+            <strong>One login:</strong> <code>/login</code> (Better Auth). With CMS access on,{' '}
+            <strong>/admin</strong> opens with no second password. <strong>/app/admin</strong> =
+            core users, CMS toggles, and feature settings (<code>admin</code> only). Ordinary
+            members stay in core — never bulk-synced into Payload.
           </p>
         </div>
 
@@ -78,6 +88,9 @@ export default async function HomePage({
                     </Link>
                     <Link className="secondary" href="/app/admin/settings">
                       Site settings
+                    </Link>
+                    <Link className="secondary" href="/app/admin/cms">
+                      CMS access
                     </Link>
                   </>
                 ) : null}
@@ -124,10 +137,9 @@ export default async function HomePage({
       </div>
       <div className="footer">
         <p>
-          Content: Payload <code>/admin</code> · App accounts: <code>/login</code> · Core
-          admin: <code>/app/admin</code> (seed:{' '}
-          <code>admin@starforge.local</code> / <code>starforge-admin</code>) ·{' '}
-          <code>npm run seed</code> · see README
+          One login: <code>/login</code> → <code>/admin</code> (cms_access) · Core admin:{' '}
+          <code>/app/admin</code> · seed: <code>admin@starforge.local</code> /{' '}
+          <code>starforge-admin</code> · <code>npm run seed</code> · see README
         </p>
       </div>
     </div>

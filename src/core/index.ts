@@ -13,4 +13,20 @@ export {
   isRegistrationEnabled,
   updateSiteSettings,
 } from './settings'
-
+export {
+  BOOTSTRAP_ADMIN_EMAIL,
+  ensureCmsAccessForCoreUserIds,
+  ensurePayloadCmsUser,
+  findPayloadCmsUserByCoreUserId,
+  findPayloadCmsUserByEmail,
+  loadCoreUserCmsAccess,
+  revokePayloadCmsUser,
+  setCoreUserCmsAccess,
+  userHasCmsAccess,
+} from './cms-bridge'
+export {
+  clearPayloadAdminSession,
+  establishPayloadAdminSession,
+  PAYLOAD_TOKEN_COOKIE,
+  setPayloadAdminSessionCookie,
+} from './cms-bridge/payload-session'

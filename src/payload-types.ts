@@ -124,13 +124,17 @@ export interface UserAuthOperations {
   };
 }
 /**
- * CMS editors only — edit pages/media in Payload /admin. Product app accounts use /register and /login (Better Auth); they are not listed here.
+ * CMS editor stubs linked to core app users (cms_access). Sign-in is Better Auth only — Payload password form is disabled. Manage CMS access under Core admin → Users.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
 export interface User {
   id: number;
+  /**
+   * Starforge `sf_users.id` this CMS stub is linked to.
+   */
+  coreUserId?: string | null;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -141,13 +145,6 @@ export interface User {
   resetPasswordRequestedAt?: string | null;
   loginAttempts?: number | null;
   lockUntil?: string | null;
-  sessions?:
-    | {
-        id: string;
-        createdAt?: string | null;
-        expiresAt: string;
-      }[]
-    | null;
   password?: string | null;
   collection: 'users';
 }
@@ -302,6 +299,7 @@ export interface PayloadMigration {
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
+  coreUserId?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -312,13 +310,6 @@ export interface UsersSelect<T extends boolean = true> {
   resetPasswordRequestedAt?: T;
   loginAttempts?: T;
   lockUntil?: T;
-  sessions?:
-    | T
-    | {
-        id?: T;
-        createdAt?: T;
-        expiresAt?: T;
-      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

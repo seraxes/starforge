@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 
 import { db, sfUsers } from '@/core/db'
+import { setCoreUserCmsAccess } from '@/core/cms-bridge'
 import { getBootstrapAdminEmails, emailIsBootstrapAdmin } from './bootstrap-admins'
 import { getAppSession } from './session'
 import { DEFAULT_APP_ROLE, normalizeAppRole, type AppRole } from './permissions'
@@ -18,10 +19,14 @@ export function userIsAppAdmin(user: { role?: string | null; email?: string | nu
   return false
 }
 
+async function grantAdminCmsAccess(userId: string) {
+  // Global admins get CMS access by default (provisions Payload stub).
+  await setCoreUserCmsAccess(userId, true)
+}
+
 /**
  * If the signed-in email is listed in STARFORGE_ADMIN_EMAILS, persist role=admin
- * on this request (idempotent). Lets an existing member become admin after env
- * change + server restart without re-registering.
+ * (+ cms_access) on this request (idempotent).
  */
 export async function promoteSessionUserIfBootstrapAdmin(user: {
   id: string
@@ -31,16 +36,17 @@ export async function promoteSessionUserIfBootstrapAdmin(user: {
   if (!user?.id || !user.email || !emailIsBootstrapAdmin(user.email)) {
     return false
   }
-  if (normalizeAppRole(user.role) === 'admin') {
-    return true
+  if (normalizeAppRole(user.role) !== 'admin') {
+    await db
+      .update(sfUsers)
+      .set({
+        role: 'admin',
+        cmsAccess: true,
+        updatedAt: new Date(),
+      })
+      .where(eq(sfUsers.id, user.id))
   }
-  await db
-    .update(sfUsers)
-    .set({
-      role: 'admin',
-      updatedAt: new Date(),
-    })
-    .where(eq(sfUsers.id, user.id))
+  await grantAdminCmsAccess(user.id)
   return true
 }
 
@@ -60,22 +66,24 @@ export async function promoteBootstrapAdminsByEmail(emails?: string[]) {
     return { promoted: [] as string[] }
   }
 
-  const all = await db.select({ id: sfUsers.id, email: sfUsers.email, role: sfUsers.role }).from(sfUsers)
+  const all = await db
+    .select({ id: sfUsers.id, email: sfUsers.email, role: sfUsers.role })
+    .from(sfUsers)
   const promoted: string[] = []
 
   for (const row of all) {
     if (!list.has(row.email.toLowerCase())) continue
-    if (normalizeAppRole(row.role) === 'admin') {
-      promoted.push(row.email)
-      continue
+    if (normalizeAppRole(row.role) !== 'admin') {
+      await db
+        .update(sfUsers)
+        .set({
+          role: 'admin',
+          cmsAccess: true,
+          updatedAt: new Date(),
+        })
+        .where(eq(sfUsers.id, row.id))
     }
-    await db
-      .update(sfUsers)
-      .set({
-        role: 'admin',
-        updatedAt: new Date(),
-      })
-      .where(eq(sfUsers.id, row.id))
+    await grantAdminCmsAccess(row.id)
     promoted.push(row.email)
   }
 
@@ -87,6 +95,9 @@ export async function setUserRole(userId: string, role: AppRole) {
     .update(sfUsers)
     .set({
       role,
+      // Admins get CMS access by default; demoting to member leaves the toggle as-is
+      // so an editor-member can keep content access until an admin turns it off.
+      ...(role === 'admin' ? { cmsAccess: true } : {}),
       updatedAt: new Date(),
     })
     .where(eq(sfUsers.id, userId))
@@ -94,7 +105,12 @@ export async function setUserRole(userId: string, role: AppRole) {
       id: sfUsers.id,
       email: sfUsers.email,
       role: sfUsers.role,
+      cmsAccess: sfUsers.cmsAccess,
     })
+
+  if (row && role === 'admin') {
+    await grantAdminCmsAccess(row.id)
+  }
 
   return row ?? null
 }

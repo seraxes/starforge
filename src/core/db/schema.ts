@@ -19,6 +19,11 @@ export const sfUsers = pgTable('sf_users', {
    * Starforge uses `admin` (global app admin) and `member` (default).
    */
   role: text('role').default('member').notNull(),
+  /**
+   * When true, this core user may open Payload `/admin` via the Better Auth
+   * session strategy (linked CMS stub). Global admins get this by default.
+   */
+  cmsAccess: boolean('cms_access').default(false).notNull(),
   banned: boolean('banned').default(false).notNull(),
   banReason: text('ban_reason'),
   banExpires: timestamp('ban_expires', { withTimezone: true }),

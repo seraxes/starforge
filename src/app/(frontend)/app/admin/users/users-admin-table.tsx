@@ -8,6 +8,10 @@ import {
   setAppUserRoleAction,
   type AdminActionState,
 } from '@/core/auth/admin-actions'
+import {
+  setAppUserCmsAccessAction,
+  type CmsAccessActionState,
+} from '@/core/cms-bridge/actions'
 import type { AppRole } from '@/core/auth/permissions'
 
 export type AdminUserRow = {
@@ -15,12 +19,14 @@ export type AdminUserRow = {
   name: string
   email: string
   role: AppRole
+  cmsAccess: boolean
   banned: boolean
   banReason: string | null
   createdAt: string
 }
 
 const initial: AdminActionState = {}
+const cmsInitial: CmsAccessActionState = {}
 
 function RoleForm({ user }: { user: AdminUserRow }) {
   const [state, action, pending] = useActionState(setAppUserRoleAction, initial)
@@ -54,6 +60,33 @@ function RoleForm({ user }: { user: AdminUserRow }) {
       </button>
       {state.error ? <span className="admin-inline-error">{state.error}</span> : null}
       {state.ok ? <span className="admin-inline-ok">Saved</span> : null}
+    </form>
+  )
+}
+
+function CmsAccessToggle({ user }: { user: AdminUserRow }) {
+  const [state, action, pending] = useActionState(setAppUserCmsAccessAction, cmsInitial)
+  const nextEnabled = !user.cmsAccess
+
+  return (
+    <form action={action} className="admin-inline-form cms-access-toggle">
+      <input type="hidden" name="userId" value={user.id} />
+      <input type="hidden" name="cmsAccess" value={nextEnabled ? 'true' : 'false'} />
+      <label className="cms-switch" title={user.cmsAccess ? 'CMS access on' : 'CMS access off'}>
+        <span className="sr-only">CMS access for {user.email}</span>
+        <button
+          type="submit"
+          role="switch"
+          aria-checked={user.cmsAccess}
+          className={user.cmsAccess ? 'cms-switch-track is-on' : 'cms-switch-track'}
+          disabled={pending}
+        >
+          <span className="cms-switch-thumb" />
+        </button>
+        <span className="cms-switch-label">{user.cmsAccess ? 'On' : 'Off'}</span>
+      </label>
+      {state.error ? <span className="admin-inline-error">{state.error}</span> : null}
+      {state.ok ? <span className="admin-inline-ok">Updated</span> : null}
     </form>
   )
 }
@@ -97,6 +130,7 @@ export function UsersAdminTable({ users }: { users: AdminUserRow[] }) {
             <th scope="col">Name</th>
             <th scope="col">Email</th>
             <th scope="col">Role</th>
+            <th scope="col">CMS access</th>
             <th scope="col">Status</th>
             <th scope="col">Created</th>
             <th scope="col">Actions</th>
@@ -111,6 +145,9 @@ export function UsersAdminTable({ users }: { users: AdminUserRow[] }) {
               </td>
               <td>
                 <RoleForm user={user} />
+              </td>
+              <td>
+                <CmsAccessToggle user={user} />
               </td>
               <td>
                 {user.banned ? (

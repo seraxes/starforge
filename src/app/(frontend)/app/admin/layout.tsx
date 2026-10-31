@@ -39,8 +39,9 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
           </p>
           <h1>Core admin</h1>
           <p className="lede admin-lede">
-            App users and roles live here. Payload <Link href="/admin">/admin</Link> is still a
-            separate CMS editor login — global-admin → CMS bridge is a follow-up.
+            App users, roles, CMS access toggles, and site settings. One Better Auth login —
+            open <Link href="/admin">/admin</Link> with no second password when CMS access is on
+            (see <Link href="/app/admin/cms">CMS access</Link>).
           </p>
         </div>
         <p className="admin-who">
@@ -50,8 +51,9 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
       <nav className="admin-nav" aria-label="Core admin">
         <Link href="/app/admin/users">Users</Link>
         <Link href="/app/admin/settings">Site settings</Link>
+        <Link href="/app/admin/cms">CMS access</Link>
+        <Link href="/admin">Open Payload CMS</Link>
         <Link href="/">Back to home</Link>
-        <Link href="/admin">Payload CMS</Link>
       </nav>
       <div className="admin-main">{props.children}</div>
     </div>

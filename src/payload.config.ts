@@ -26,7 +26,22 @@ export default buildConfig({
     meta: {
       titleSuffix: '— Starforge CMS',
     },
+    components: {
+      // Belt-and-suspenders with src/middleware.ts (which blocks /admin/login).
+      views: {
+        login: {
+          Component: '@/components/payload/AdminLoginRedirect',
+        },
+      },
+      beforeLogin: [
+        '@/components/payload/AdminLoginRedirect',
+        '@/components/payload/KillPayloadLoginForm',
+      ],
+    },
   },
+  // Empty = accept cookie JWT from any Origin (needed for admin RSC).
+  csrf: [],
+
   collections: [Users, Media, Pages],
   globals: [SiteSettings],
   // Default rich text = Pages Lexical (headings, lists, links, Media uploads + fixed toolbar).

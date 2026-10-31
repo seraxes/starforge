@@ -574,6 +574,142 @@ button:disabled {
   margin-top: 1rem;
 }
 
+/* Global-admin → Payload CMS bridge */
+.cms-bridge-meta {
+  display: grid;
+  gap: 0.85rem 1.5rem;
+  margin: 1.25rem 0 0;
+  padding: 1rem 0;
+  border-top: 1px solid var(--sf-line);
+  border-bottom: 1px solid var(--sf-line);
+}
+
+.cms-bridge-meta div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.cms-bridge-meta dt {
+  margin: 0;
+  color: var(--sf-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cms-bridge-meta dd {
+  margin: 0;
+  font-size: 0.98rem;
+}
+
+.cms-bridge-panel {
+  margin-top: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.cms-bridge-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.cms-bridge-actions .primary,
+.cms-bridge-actions .secondary {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  padding: 0.55rem 0.95rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.cms-bridge-actions .primary {
+  background: color-mix(in srgb, var(--sf-primary) 55%, white);
+  color: var(--sf-primary-ink);
+  border-color: color-mix(in srgb, var(--sf-primary-strong) 35%, var(--sf-line));
+}
+
+.cms-bridge-actions .secondary {
+  background: color-mix(in srgb, var(--sf-secondary) 22%, white);
+  color: var(--sf-secondary-strong);
+  border-color: var(--sf-line);
+}
+
+.cms-bridge-actions .secondary:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.cms-bridge-password-hint {
+  margin: 0;
+  padding: 0.75rem 0.9rem;
+  background: color-mix(in srgb, var(--sf-secondary) 18%, white);
+  border-left: 3px solid var(--sf-secondary-strong);
+  font-size: 0.95rem;
+}
+
+.cms-bridge-footnote {
+  margin-top: 1.5rem;
+}
+
+.cms-access-toggle {
+  align-items: center;
+}
+
+.cms-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.cms-switch-track {
+  position: relative;
+  width: 2.6rem;
+  height: 1.45rem;
+  padding: 0;
+  border: 1px solid var(--sf-line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--sf-muted) 18%, white);
+  cursor: pointer;
+}
+
+.cms-switch-track.is-on {
+  background: color-mix(in srgb, var(--sf-secondary) 45%, white);
+  border-color: color-mix(in srgb, var(--sf-secondary-strong) 40%, var(--sf-line));
+}
+
+.cms-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 999px;
+  background: white;
+  box-shadow: 0 1px 2px rgba(28, 40, 52, 0.18);
+  transition: transform 0.15s ease;
+}
+
+.cms-switch-track.is-on .cms-switch-thumb {
+  transform: translateX(1.15rem);
+}
+
+.cms-switch-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--sf-muted);
+  min-width: 1.5rem;
+}
+
+.cms-switch-track.is-on + .cms-switch-label {
+  color: var(--sf-secondary-strong);
+}
+
 /* Core admin site settings form */
 .settings-form {
   display: flex;

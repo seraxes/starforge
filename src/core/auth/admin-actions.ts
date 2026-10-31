@@ -69,12 +69,17 @@ export async function setAppUserRoleAction(
       body: { userId, role },
       headers: await headers(),
     })
+    // Better Auth setRole does not touch cms_access — grant CMS for new admins.
+    if (role === 'admin') {
+      await setUserRole(userId, 'admin')
+    }
   } catch {
     // Fallback for bootstrap-email admins whose DB role may lag until promote runs.
     await setUserRole(userId, role)
   }
 
   revalidatePath('/app/admin/users')
+  revalidatePath('/app/admin/cms')
   return { ok: true, role }
 }
 

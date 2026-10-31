@@ -1,13 +1,15 @@
 /**
  * Local demo seed for Starforge.
  *
- * Creates sample **published** CMS pages (Payload). Optionally creates one
- * **core app user** (Better Auth) — never a Payload CMS editor.
+ * Creates sample **published** CMS pages (Payload), site settings, core app
+ * users (Better Auth), and grants **cms_access** (+ Payload stub) for the
+ * bootstrap global admin. One Better Auth login opens `/admin` — no second
+ * password. Product members stay in core unless CMS access is toggled on.
  *
  * Usage (Compose up, `.env` present, core tables pushed):
  *   npm run seed
  *
- * Idempotent: skips pages / app user that already exist.
+ * Idempotent: skips pages / users that already exist.
  */
 import 'dotenv/config'
 
@@ -21,6 +23,7 @@ import {
   promoteBootstrapAdminsByEmail,
   setUserRole,
 } from './core/auth/admin'
+import { BOOTSTRAP_ADMIN_EMAIL, setCoreUserCmsAccess } from './core/cms-bridge'
 import { db } from './core/db'
 import { sfUsers } from './core/db/schema'
 import { ensureSiteSettingsDefaults } from './core/settings'
@@ -30,8 +33,7 @@ const DEMO_APP_EMAIL = 'demo@starforge.local'
 const DEMO_APP_PASSWORD = 'starforge-demo'
 const DEMO_APP_NAME = 'Demo Member'
 
-/** Local bootstrap admin (core /app/admin — not Payload CMS). */
-const BOOTSTRAP_ADMIN_EMAIL = 'admin@starforge.local'
+/** Local bootstrap admin — same email/password for core `/login` and Payload `/admin`. */
 const BOOTSTRAP_ADMIN_PASSWORD = 'starforge-admin'
 const BOOTSTRAP_ADMIN_NAME = 'Demo Admin'
 
@@ -133,7 +135,7 @@ const SAMPLE_PAGES = [
       ),
       bulletList(
         'Core app accounts: /register and /login',
-        'CMS editors: Payload /admin (separate accounts)',
+        'CMS: Payload /admin via the same Better Auth login (cms_access)',
         'Published pages render at /{slug}',
       ),
     ),
@@ -151,13 +153,13 @@ const SAMPLE_PAGES = [
       bulletList(
         'npm run seed — sample published pages (+ optional demo app user)',
         'Open /about and /getting-started on the public site',
-        'Edit pages in /admin (create a CMS editor on first visit)',
+        'Edit pages in /admin after one core login (no second password)',
         'Register an app account at /register if you did not use the demo user',
       ),
       heading('h3', 'Two kinds of users'),
       paragraph(
         textNode(
-          'Payload /admin users edit content. Core /login users are product accounts. Creating one never creates the other.',
+          'Core /login owns every session. Payload /admin opens for users with cms_access (admins by default). Ordinary members are never synced into Payload.',
         ),
       ),
     ),
@@ -253,8 +255,10 @@ async function seedBootstrapAdmin() {
   if (existing) {
     if (existing.role !== 'admin') {
       await setUserRole(existing.id, 'admin')
+    } else {
+      await setCoreUserCmsAccess(existing.id, true)
     }
-    return { created: false as const, email: BOOTSTRAP_ADMIN_EMAIL }
+    return { created: false as const, email: BOOTSTRAP_ADMIN_EMAIL, id: existing.id }
   }
 
   const result = await auth.api.signUpEmail({
@@ -270,7 +274,29 @@ async function seedBootstrapAdmin() {
     await setUserRole(userId, 'admin')
   }
 
-  return { created: true as const, email: BOOTSTRAP_ADMIN_EMAIL }
+  return { created: true as const, email: BOOTSTRAP_ADMIN_EMAIL, id: userId ?? null }
+}
+
+async function seedCmsAccessForAdmins() {
+  const admins = await db
+    .select({ id: sfUsers.id, email: sfUsers.email, role: sfUsers.role })
+    .from(sfUsers)
+
+  const envEmails = new Set(getBootstrapAdminEmails().map((e) => e.toLowerCase()))
+  const targets = admins.filter(
+    (row) => row.role === 'admin' || envEmails.has(row.email.toLowerCase()),
+  )
+
+  const enabled: string[] = []
+  const failed: { email: string; error: string }[] = []
+
+  for (const row of targets) {
+    const result = await setCoreUserCmsAccess(row.id, true)
+    if (result.ok) enabled.push(row.email)
+    else failed.push({ email: row.email, error: result.error })
+  }
+
+  return { enabled, failed }
 }
 
 async function main() {
@@ -280,10 +306,8 @@ async function main() {
   console.log('')
   console.log('Starforge seed')
   console.log('--------------')
-  console.log('CMS editors (Payload /admin) are NOT created here.')
-  console.log('Create the first CMS editor in the browser at http://localhost:3000/admin')
-  console.log('App accounts (/login) are separate from CMS editors.')
-  console.log('Core admin UI: http://localhost:3000/app/admin (users + site settings).')
+  console.log('One login: Better Auth at /login. CMS access opens /admin with no second password.')
+  console.log('Toggle CMS access under /app/admin/users (admins get it by default).')
   console.log('')
 
   try {
@@ -308,10 +332,10 @@ async function main() {
     const adminUser = await seedBootstrapAdmin()
     if (adminUser.created) {
       console.log('')
-      console.log(`Bootstrap app admin created (core /app/admin — not CMS):`)
+      console.log(`Bootstrap app admin created (core /app/admin):`)
       console.log(`  email:    ${BOOTSTRAP_ADMIN_EMAIL}`)
       console.log(`  password: ${BOOTSTRAP_ADMIN_PASSWORD}`)
-      console.log(`  role:     admin`)
+      console.log(`  role:     admin (+ cms_access)`)
     } else {
       console.log(`Bootstrap app admin already exists: ${adminUser.email}`)
     }
@@ -342,12 +366,28 @@ async function main() {
     console.warn(error instanceof Error ? error.message : error)
   }
 
+  try {
+    const { enabled, failed } = await seedCmsAccessForAdmins()
+    console.log('')
+    console.log(
+      `CMS access (+ Payload stub) for admins: ${enabled.length ? enabled.join(', ') : '(none)'}`,
+    )
+    for (const fail of failed) {
+      console.warn(`CMS access failed for ${fail.email}: ${fail.error}`)
+    }
+    console.log('Open /admin after /login — no second password prompt.')
+  } catch (error) {
+    console.warn('')
+    console.warn('Could not ensure CMS access / Payload stubs.')
+    console.warn(error instanceof Error ? error.message : error)
+  }
+
   console.log('')
   console.log('Try: http://localhost:3000/about  ·  /getting-started  ·  /welcome')
-  console.log('CMS:  http://localhost:3000/admin')
-  console.log('App:  http://localhost:3000/login')
+  console.log('Login once: http://localhost:3000/login  then open http://localhost:3000/admin')
   console.log('Core admin users:    http://localhost:3000/app/admin/users')
   console.log('Core site settings:  http://localhost:3000/app/admin/settings')
+  console.log('CMS access help:     http://localhost:3000/app/admin/cms')
   console.log('')
 
   process.exit(0)

@@ -2,7 +2,7 @@
 
 Reusable **product core** for ordinary web apps (auth, users, app shell, extension points) with **Payload CMS 3** as a swappable **content/media module** — not the whole product.
 
-This is an early scaffold plus **core app auth** (Better Auth), **roles + core user admin**, **site settings + feature toggles**, **Lexical** page editing, **public `/[slug]`** rendering, **page SEO fields**, and **`npm run seed`**. It is intentionally small and runnable locally — not Airsoftnexus 2.0 feature parity, and not a DigitalOcean deploy.
+This is an early scaffold plus **core app auth** (Better Auth), **roles + core user admin**, **one-login Payload CMS access** (`cms_access` toggle), **site settings + feature toggles**, **Lexical** page editing, **public `/[slug]`** rendering, **page SEO fields**, and **`npm run seed`**. It is intentionally small and runnable locally — not Airsoftnexus 2.0 feature parity, and not a DigitalOcean deploy.
 
 ## Architecture
 
@@ -15,18 +15,18 @@ This is an early scaffold plus **core app auth** (Better Auth), **roles + core u
 - Core auth tables: `sf_users`, `sf_sessions`, `sf_accounts`, `sf_verifications` (push with `npm run db:core:push`).
 - Hot paths stay in core — do not put high-QPS app traffic through Payload Local API.
 
-### App users ≠ Payload CMS users
+### App users vs Payload CMS stubs (one login)
 
-| | Starforge app account | Payload CMS editor |
+| | Starforge app account | Payload CMS stub |
 | --- | --- | --- |
-| Purpose | Product login (membership, gated app features) | Edit pages/media in the CMS |
-| UI | `/register`, `/login`, signed-in indicator on `/`; admins also `/app/admin/*` | **`/admin`** (content + Site settings global) |
+| Purpose | Product login (membership, gated app features) | Content editor identity inside Payload |
+| UI | `/register`, `/login`; admins also `/app/admin/*` | **`/admin`** (opens with the **same** Better Auth session when `cms_access` is on) |
 | API | Better Auth `/api/auth/*`, `GET /api/me` | Payload REST/GraphQL under `/api/...` |
-| Storage | `public.sf_*` via Drizzle (`role`: `admin` \| `member`) | `payload` schema via Payload |
+| Storage | `public.sf_*` (`role`, **`cms_access`**) | `payload` schema — stub linked by `coreUserId` |
 
-**`/admin` = CMS content (+ Site settings global). `/login` = app accounts. `/app/admin` = core users + feature toggles.** Creating a user in one place does **not** create a user in the other. Product users stay in core — never moved into Payload. Seed never creates a CMS editor — open `/admin` once to create the first editor in the browser.
+**One login only:** Better Auth at `/login`. With `cms_access`, `/admin` is already authenticated (custom Payload strategy — no second password). Product **members** stay in core unless an admin turns CMS access on for them. Payload stays a swappable content module.
 
-A core `admin` role does **not** yet unlock Payload `/admin`. **Global-admin → CMS bridge is a follow-up** (preference: one platform admin reaches all areas).
+**Bootstrap path:** after seed, sign in as `admin@starforge.local` / `starforge-admin` at `/login`, then open `/admin` — no second prompt.
 
 ## Requirements
 
@@ -63,11 +63,12 @@ Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so coo
 | --- | --- |
 | http://localhost:3000 | App shell (register / sign in / signed-in state) |
 | http://localhost:3000/register | Create a **core app** account (email + password; auto sign-in; default role `member`) |
-| http://localhost:3000/login | Sign in as an **app** user (not CMS) |
-| http://localhost:3000/app/admin/users | Core admin — list users, set `admin`/`member`, disable (requires app `admin`) |
+| http://localhost:3000/login | **Only** sign-in (Better Auth). Also used when `/admin` redirects unauthenticated visitors |
+| http://localhost:3000/app/admin/users | Core admin — roles, **CMS access** switch, disable |
 | http://localhost:3000/app/admin/settings | Core admin — site name, primary nav, feature toggles (same Payload global) |
+| http://localhost:3000/app/admin/cms | Explains one-login CMS access + open `/admin` |
 | http://localhost:3000/api/me | Current app session JSON including `role` / `isAdmin` (`401` when signed out) |
-| http://localhost:3000/admin | Payload admin — **content** (pages, media) + **Globals → Site settings**; create first **CMS editor** on first visit |
+| http://localhost:3000/admin | Payload admin — already logged in when you have `cms_access` (no second password form) |
 | http://localhost:3000/about | Sample published page (after `npm run seed`) |
 | http://localhost:3000/getting-started | Sample published page |
 | http://localhost:3000/welcome | Sample published page with SEO meta filled |
@@ -77,10 +78,11 @@ App login uses **email**, not a separate username. Forgot / reset password is **
 
 ### Roles + bootstrap admin
 
-| Role | Who | Can open |
+| Role / flag | Who | Can open |
 | --- | --- | --- |
-| `admin` | Global **app** admin | `/app/admin/users`, `/app/admin/settings` (+ normal app routes) |
-| `member` | Default product user | App routes only |
+| `admin` | Global **app** admin | `/app/admin/*`; **`cms_access` on by default** → `/admin` |
+| `member` | Default product user | App routes only (no Payload stub unless CMS access toggled on) |
+| `cms_access` | Per-user switch on Users | Payload `/admin` via Better Auth session |
 
 ### Site settings + feature toggles
 
@@ -100,77 +102,72 @@ One Payload global (`site-settings`) is the source of truth for site chrome and 
 
 **First admin paths:**
 
-1. `npm run seed` creates bootstrap admin `admin@starforge.local` / `starforge-admin` (role `admin`). Sign in with that on `/login` (not Payload `/admin`).
-2. Or set `STARFORGE_ADMIN_EMAILS=you@example.com` in `.env`, **restart** `npm run dev`, then reload while signed in as that email — role is promoted to `admin` on the next request (also on signup / seed).
+1. `npm run seed` creates bootstrap admin `admin@starforge.local` / `starforge-admin` (role `admin` + `cms_access`) and a Payload stub. Sign in **once** at `/login`, then open `/admin` — already authenticated.
+2. Or set `STARFORGE_ADMIN_EMAILS=you@example.com` in `.env`, **restart** `npm run dev`, reload while signed in — promoted to admin + CMS access.
 
-Members visiting `/app/admin/users` are redirected home with an **Admins only** notice — expected. Disabled users cannot sign in.
+Members visiting `/app/admin/users` are redirected home with an **Admins only** notice. Users without CMS access who open `/admin` get **No CMS access**. Disabled users cannot sign in.
+
+### One-login CMS access
+
+| Piece | Behavior |
+| --- | --- |
+| Auth | Custom Payload strategy reads the Better Auth session cookie |
+| Flag | `sf_users.cms_access` — toggle on `/app/admin/users` (On/Off switch) |
+| Enable | Sets flag + creates/links Payload stub (`coreUserId` + email) |
+| Disable | Clears flag + deletes Payload stub |
+| Unauthenticated `/admin` | Redirect → `/login?next=/admin` → return already in CMS |
+| Members | Not provisioned unless an admin turns CMS access on |
 
 ### Seed (`npm run seed`)
 
 Idempotent local demo data:
 
-- **Published CMS pages:** `/about`, `/getting-started`, `/welcome` (Lexical body + SEO meta title/description). Skips slugs that already exist.
-- **Site settings** global: site name, sample primary nav, feature-toggle defaults
-- **Bootstrap app admin** (core only): `admin@starforge.local` / `starforge-admin` → role `admin`
-- **Demo app member** (core `/login` only): `demo@starforge.local` / `starforge-demo` → role `member`
-- Promotes any emails listed in `STARFORGE_ADMIN_EMAILS`
-- **Does not** create a Payload CMS editor — use `/admin` first-run for that.
-
-Console output repeats the CMS vs app-user split.
+- **Published CMS pages:** `/about`, `/getting-started`, `/welcome`
+- **Site settings** global defaults
+- **Bootstrap app admin**: `admin@starforge.local` / `starforge-admin` → `admin` + `cms_access` + Payload stub
+- **Demo app member**: `demo@starforge.local` / `starforge-demo` → `member`, **no** CMS access
+- Promotes `STARFORGE_ADMIN_EMAILS` and grants them CMS access
 
 ### Edit pages in Payload admin (Lexical + SEO)
 
-1. Open **http://localhost:3000/admin** and create the first **CMS editor** (email + password). This is separate from app `/register` / seed demo accounts.
-2. In the sidebar: **Media** → upload an image (fill in **Alt** text) if you want an OG image.
-3. Open **Pages** → create or edit a page (seed already added three published samples).
-4. **Content** tab: Lexical body (toolbar or `/` slash menu — headings, lists, links, Media images).
-5. **SEO** tab: meta title, meta description, optional OG image (Media relation). Used by public `/[slug]` `<head>` / Open Graph.
-6. **Save Draft** while writing; **Publish** when the page should be public.
-7. Open **http://localhost:3000/{slug}**. Drafts return **404** for anonymous visitors.
+1. Sign in at **http://localhost:3000/login** as the seed admin, then open **http://localhost:3000/admin** (no second login).
+2. **Media** → upload if needed (fill **Alt**).
+3. **Pages** → edit a seeded page (Lexical + SEO tab).
+4. **Publish** → open **http://localhost:3000/{slug}**. Drafts stay 404 for anonymous visitors.
 
-Public render: `src/app/(frontend)/[slug]/page.tsx` · `getPublishedPageBySlug` · `buildPageMetadata`.
+Public render: `src/app/(frontend)/(public)/[slug]/page.tsx` · `getPublishedPageBySlug` · `buildPageMetadata`.
 
-### Windows: site settings + feature toggles smoke test
+### Windows: one-login CMS smoke test
 
-No new core Drizzle columns in this slice (site settings live in the Payload `site-settings` global). Still run `npm run db:core:push` if your DB is behind on auth/role columns from earlier PRs.
+**How it works now:** core `/login` (Better Auth) → `/admin` or `/admin/login` is blocked by middleware → `/api/cms/exchange` sets a Payload `payload-token` JWT → Payload **Dashboard**. Payload’s stock email/password form is never served.
 
-Already on the branch? Pull + seed defaults + restart:
+**Required after pull:** `npm run db:core:push` (adds `sf_users.cms_access`), then **fully stop and restart** `npm run dev` (middleware only loads on process start).
 
 ```bat
-cd starforge
-git pull origin cursor/site-settings-feature-toggles-cd64
-npm run seed
-
-rem Stop the old npm run dev window (Ctrl+C), then:
-npm run dev
-```
-
-Fresh checkout / first-time on this branch:
-
-```bat
-cd starforge
+cd %USERPROFILE%\starforge
 git fetch origin
-git checkout cursor/site-settings-feature-toggles-cd64
-git pull origin cursor/site-settings-feature-toggles-cd64
+git checkout cursor/global-admin-cms-bridge-35ec
+git pull origin cursor/global-admin-cms-bridge-35ec
 
 docker compose up -d
 if not exist .env copy .env.example .env
 npm install
 npm run db:core:push
 npm run seed
+npm run generate:importmap
 
-rem Stop any old npm run dev window (Ctrl+C), then:
+rem Stop ANY old npm run dev window (Ctrl+C). Auth/config does not hot-reload.
 npm run dev
 ```
 
-1. Open **http://localhost:3000** — public header should show site name **Starforge** and nav links (About / Getting started after seed).
-2. Sign in as bootstrap admin `admin@starforge.local` / `starforge-admin` → open **http://localhost:3000/app/admin/settings**.
-3. Change the site name, add/remove a nav item, **uncheck Registration**, Save. Confirm home header updates and the Register link is gone; **http://localhost:3000/register** shows “Registration closed”; signup is rejected if forced.
-4. Re-enable Registration and Save. Confirm Register returns.
-5. Optional: open Payload **http://localhost:3000/admin** → Globals → Site settings (CMS editor login) and confirm the same values; edit there and reload the public site.
-6. Regression: **http://localhost:3000/app/admin/users** still works; **http://localhost:3000/about** still renders Lexical/SEO; pastel brand still shows; **http://localhost:3000/api/health** is `"database":"up"`; login/logout unchanged.
+1. Use **http://localhost:3000** only (not `127.0.0.1`).
+2. Open **http://localhost:3000/login** — sign in as `admin@starforge.local` / `starforge-admin` (**only** password prompt in the whole flow).
+3. Open **http://localhost:3000/admin** — briefly `/api/cms/exchange`, then Payload **Dashboard** (no email/password form). Edit a page under Pages.
+4. Also try **http://localhost:3000/admin/login** — must redirect away (never show Payload’s password form). Hard-refresh (Ctrl+F5) if an old login page was cached.
+5. **http://localhost:3000/app/admin/users** — seed admin **CMS access On**; demo member **Off**.
+6. Sign out → `/admin` → core `/login?next=/admin` → after login, CMS again with no second form.
 
-If Payload admin UI looks broken after pulling: `npm run generate:importmap`, then restart `npm run dev`.
+Optional checks: `npm run verify:cms-sso` and `npm run verify:admin-no-login-form`.
 
 ### Useful commands
 
@@ -208,7 +205,7 @@ src/
   app/
     (frontend)/             # public app shell + /login + /register + /[slug]
       (public)/             # site header (name + nav) from site-settings
-      app/admin/            # core app admin (users + settings) — not Payload
+      app/admin/            # core app admin (users + settings + CMS bridge)
     (payload)/              # Payload admin + REST/GraphQL (do not hand-edit)
     api/auth/               # Better Auth handler
     api/health/             # core health route
@@ -218,11 +215,12 @@ src/
   components/               # SiteHeader + RichText (Lexical → JSX)
   core/
     auth/                   # Better Auth + roles/admin helpers + Zod schemas
+    cms-bridge/             # cms_access + Payload session strategy (one login)
     content/                # published CMS reads + page SEO metadata helpers
     settings/               # read/update site-settings + flag helpers
     db/                     # Drizzle core schema + client
   fields/pagesLexical.ts    # Lexical editor features for Pages
-  seed.ts                   # npm run seed — pages + settings + bootstrap admin + demo member
+  seed.ts                   # pages + settings + bootstrap admin + CMS bridge + demo member
   payload.config.ts         # Payload config (content module)
 ```
 
@@ -230,7 +228,7 @@ src/
 
 - Production / DigitalOcean deploy
 - Forgot / reset password (needs email — deferred), OAuth
-- Global-admin → Payload CMS login bridge (follow-up)
+- Second Payload password login (removed — Better Auth session strategy only)
 - Draft preview (flag exists as placeholder), Posts collection, extension modules
 - Airsoftnexus 2.0 feature parity
 
@@ -244,4 +242,5 @@ src/
 6. **`column "impersonated_by" does not exist` (or missing `role` / `banned` on `sf_users`)** — code already defines these in `src/core/db/schema.ts`; your Postgres is behind. With Compose up: `npm run db:core:push`, then restart `npm run dev`.
 7. **Seed fails on demo app user** — ensure `npm run db:core:push` succeeded; pages may still have been created.
 8. **Windows** — use PowerShell or Command Prompt from the repo root; ensure Docker Desktop is **Running** before `docker compose up -d`. Copy env with `copy .env.example .env` if `cp` is unavailable. Always open the app as `http://localhost:3000` (mixing `127.0.0.1` can break sessions).
-9. **Login says invalid email/password after register** — confirm recent main (auth fix commits); restart `npm run dev`; register a **new** email (or use seed demo); sign in with that **email** (not display name). Payload `/admin` users are separate. Last resort: `docker compose down -v && docker compose up -d` then `npm run db:core:push` and `npm run seed`.
+9. **Login says invalid email/password after register** — restart `npm run dev`; register a **new** email (or use seed demo); sign in with that **email**. Last resort: `docker compose down -v && docker compose up -d` then `npm run db:core:push` and `npm run seed`.
+10. **Payload `/admin` asks for a password or denies access** — confirm `npm run db:core:push` applied `cms_access`, re-run `npm run seed`, sign in at `/login` first, then open `/admin`. Members need the Users **CMS access** switch On.

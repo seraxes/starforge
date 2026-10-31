@@ -21,7 +21,8 @@ const appUrl =
  * and credential lookups (email + password on `account`) stay reliable.
  *
  * Roles live on `sf_users.role` via the Better Auth admin plugin (`admin` | `member`).
- * Payload `/admin` stays a separate CMS editor surface — global-admin→CMS bridge is follow-up.
+ * CMS access (`sf_users.cms_access`) opens Payload `/admin` via the Better Auth
+ * session strategy — one login only (no second Payload password).
  */
 export const auth = betterAuth({
   appName: 'Starforge',
@@ -78,12 +79,18 @@ export const auth = betterAuth({
           return { data: user }
         },
         after: async (user) => {
-          // Bootstrap admins: STARFORGE_ADMIN_EMAILS (comma-separated) get role=admin on signup.
+          // Bootstrap admins: STARFORGE_ADMIN_EMAILS get role=admin + cms_access on signup.
           if (emailIsBootstrapAdmin(user.email)) {
             await db
               .update(sfUsers)
-              .set({ role: 'admin', updatedAt: new Date() })
+              .set({ role: 'admin', cmsAccess: true, updatedAt: new Date() })
               .where(eq(sfUsers.id, user.id))
+            try {
+              const { setCoreUserCmsAccess } = await import('@/core/cms-bridge')
+              await setCoreUserCmsAccess(user.id, true)
+            } catch {
+              // Payload may be unavailable during early bootstrap; seed will retry.
+            }
           }
         },
       },
