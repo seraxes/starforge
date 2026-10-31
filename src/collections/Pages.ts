@@ -3,7 +3,7 @@ import type { CollectionConfig } from 'payload'
 import { pagesLexicalEditor } from '../fields/pagesLexical'
 
 /**
- * Editorial pages — drafts/publish + Lexical rich text body.
+ * Editorial pages — drafts/publish + Lexical rich text body + SEO meta.
  * Anonymous visitors may only read published docs (used by `/[slug]`).
  */
 export const Pages: CollectionConfig = {
@@ -12,7 +12,7 @@ export const Pages: CollectionConfig = {
     useAsTitle: 'title',
     defaultColumns: ['title', 'slug', '_status', 'updatedAt'],
     description:
-      'Marketing / brochure pages. Write with Lexical (headings, lists, links, Media images), then Publish so `/[slug]` can show them.',
+      'Marketing / brochure pages for the public site. Edit content here in Payload (/admin). App accounts use /login — not this collection. Publish so `/[slug]` can show the page.',
   },
   versions: {
     drafts: true,
@@ -49,13 +49,62 @@ export const Pages: CollectionConfig = {
       },
     },
     {
-      name: 'body',
-      type: 'richText',
-      editor: pagesLexicalEditor,
-      admin: {
-        description:
-          'Use the toolbar or “/” slash menu for headings, lists, links, and images from Media.',
-      },
+      type: 'tabs',
+      tabs: [
+        {
+          label: 'Content',
+          fields: [
+            {
+              name: 'body',
+              type: 'richText',
+              editor: pagesLexicalEditor,
+              admin: {
+                description:
+                  'Use the toolbar or “/” slash menu for headings, lists, links, and images from Media.',
+              },
+            },
+          ],
+        },
+        {
+          label: 'SEO',
+          description: 'Used in the public page `<head>` / Open Graph when the page is published.',
+          fields: [
+            {
+              name: 'meta',
+              type: 'group',
+              label: false,
+              fields: [
+                {
+                  name: 'title',
+                  type: 'text',
+                  label: 'Meta title',
+                  admin: {
+                    description:
+                      'Browser tab / search title. Falls back to the page title + “— Starforge” when empty.',
+                  },
+                },
+                {
+                  name: 'description',
+                  type: 'textarea',
+                  label: 'Meta description',
+                  admin: {
+                    description: 'Short summary for search results and link previews.',
+                  },
+                },
+                {
+                  name: 'image',
+                  type: 'upload',
+                  relationTo: 'media',
+                  label: 'OG image',
+                  admin: {
+                    description: 'Optional share image (Open Graph / social preview).',
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
     },
   ],
 }

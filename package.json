@@ -14,7 +14,8 @@
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
     "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
     "db:core:push": "drizzle-kit push",
-    "db:core:studio": "drizzle-kit studio"
+    "db:core:studio": "drizzle-kit studio",
+    "seed": "cross-env NODE_OPTIONS=--no-deprecation tsx src/seed.ts"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.7.14",
@@ -43,6 +44,7 @@
     "drizzle-kit": "0.31.4",
     "eslint": "^9.28.0",
     "eslint-config-next": "16.4.2",
+    "tsx": "^4.20.5",
     "typescript": "5.8.3"
   },
   "engines": {

@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import React from 'react'
 
 import { RichText } from '@/components/RichText'
+import { buildPageMetadata } from '@/core/content/metadata'
 import { getPublishedPageBySlug } from '@/core/content/pages'
 
 type Args = {
@@ -22,9 +23,7 @@ export async function generateMetadata({ params }: Args): Promise<Metadata> {
     }
   }
 
-  return {
-    title: `${page.title} — Starforge`,
-  }
+  return buildPageMetadata(page)
 }
 
 export default async function PublicCmsPage({ params }: Args) {

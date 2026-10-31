@@ -8,7 +8,8 @@ export const Users: CollectionConfig = {
   slug: 'users',
   admin: {
     useAsTitle: 'email',
-    description: 'CMS editors for the Payload content module (not Starforge app users).',
+    description:
+      'CMS editors only — edit pages/media in Payload /admin. Product app accounts use /register and /login (Better Auth); they are not listed here.',
   },
   auth: true,
   fields: [],
