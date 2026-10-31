@@ -24,6 +24,13 @@ export const generateMetadata = ({ params, searchParams }: Args): Promise<Metada
   generatePageMetadata({ config, params, searchParams })
 
 const Page = async ({ params, searchParams }: Args) => {
+  const { segments } = await params
+  const first = segments?.[0]
+  // Never render Payload stock login / create-first-user (middleware also blocks these).
+  if (first === 'login' || first === 'create-first-user') {
+    redirect('/api/cms/exchange?next=/admin')
+  }
+
   const session = await getAppSession()
   if (!session?.user?.id) {
     redirect('/login?next=/admin')

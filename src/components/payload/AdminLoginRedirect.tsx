@@ -1,27 +1,10 @@
-import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
-import { auth } from '@/core/auth'
-import { loadCoreUserCmsAccess } from '@/core/cms-bridge'
-
 /**
- * Replaces Payload `/admin/login` — never show email/password.
- * Send through JWT exchange so the admin UI gets payload-token.
+ * Last-resort Payload login view override.
+ * Middleware should already redirect `/admin/login` away; this ensures the
+ * stock LoginView never paints a password form if a view override is used.
  */
-export default async function AdminLoginRedirect() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-    query: { disableRefresh: true },
-  })
-
-  if (!session?.user?.id) {
-    redirect('/login?next=/admin')
-  }
-
-  const access = await loadCoreUserCmsAccess(session.user.id)
-  if (!access?.cmsAccess || access.banned) {
-    redirect('/?notice=cms-denied')
-  }
-
+export default function AdminLoginRedirect() {
   redirect('/api/cms/exchange?next=/admin')
 }

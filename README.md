@@ -139,9 +139,9 @@ Public render: `src/app/(frontend)/(public)/[slug]/page.tsx` · `getPublishedPag
 
 ### Windows: one-login CMS smoke test
 
-**How it works now:** core `/login` (Better Auth) → visiting `/admin` hits `/api/cms/exchange`, which sets a Payload `payload-token` JWT cookie → Payload dashboard with **no** second password form.
+**How it works now:** core `/login` (Better Auth) → `/admin` or `/admin/login` is blocked by middleware → `/api/cms/exchange` sets a Payload `payload-token` JWT → Payload **Dashboard**. Payload’s stock email/password form is never served.
 
-**Required after pull:** `npm run db:core:push` (adds `sf_users.cms_access`), then **fully restart** `npm run dev`.
+**Required after pull:** `npm run db:core:push` (adds `sf_users.cms_access`), then **fully stop and restart** `npm run dev` (middleware only loads on process start).
 
 ```bat
 cd %USERPROFILE%\starforge
@@ -162,12 +162,12 @@ npm run dev
 
 1. Use **http://localhost:3000** only (not `127.0.0.1`).
 2. Open **http://localhost:3000/login** — sign in as `admin@starforge.local` / `starforge-admin` (**only** password prompt in the whole flow).
-3. Open **http://localhost:3000/admin** — you may briefly hit `/api/cms/exchange`, then land on the Payload **Dashboard** with **no** email/password form. Edit a page under Pages.
-4. Hard-refresh (Ctrl+F5) if an old Payload login page was cached.
+3. Open **http://localhost:3000/admin** — briefly `/api/cms/exchange`, then Payload **Dashboard** (no email/password form). Edit a page under Pages.
+4. Also try **http://localhost:3000/admin/login** — must redirect away (never show Payload’s password form). Hard-refresh (Ctrl+F5) if an old login page was cached.
 5. **http://localhost:3000/app/admin/users** — seed admin **CMS access On**; demo member **Off**.
 6. Sign out → `/admin` → core `/login?next=/admin` → after login, CMS again with no second form.
 
-Optional API check: `npm run verify:cms-sso` (strategy + stub for seed admin).
+Optional checks: `npm run verify:cms-sso` and `npm run verify:admin-no-login-form`.
 
 ### Useful commands
 
