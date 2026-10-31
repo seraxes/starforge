@@ -32,12 +32,15 @@ const Page = async ({ params, searchParams }: Args) => {
     redirect('/?notice=cms-denied')
   }
 
-  // Ensure linked Payload stub exists before RootPage runs auth strategies.
-  await ensurePayloadCmsUser({
+  const ensured = await ensurePayloadCmsUser({
     coreUserId: session.user.id,
     email: session.user.email,
     name: session.user.name,
   })
+  if (!ensured.ok) {
+    console.error('[admin gate] ensure Payload CMS user failed:', ensured.error)
+    redirect('/?notice=cms-denied')
+  }
 
   return RootPage({ config, params, searchParams, importMap })
 }

@@ -5,12 +5,16 @@ import { auth } from '@/core/auth'
 import { loadCoreUserCmsAccess } from '@/core/cms-bridge'
 
 /**
- * Payload `/admin/login` beforeLogin hook.
- * With local strategy disabled there is no email/password form — send people
- * through core `/login`, or deny when signed in without cms_access.
+ * Replaces Payload's `/admin/login` view.
+ * Local strategy is disabled — never show an email/password form here.
+ * Send people through core Better Auth, or deny when signed in without cms_access.
  */
 export default async function AdminLoginRedirect() {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await auth.api.getSession({
+    headers: await headers(),
+    query: { disableRefresh: true },
+  })
+
   if (!session?.user?.id) {
     redirect('/login?next=/admin')
   }
@@ -20,6 +24,6 @@ export default async function AdminLoginRedirect() {
     redirect('/?notice=cms-denied')
   }
 
-  // Signed in with CMS rights — strategy should already auth; land on dashboard.
+  // Session + CMS rights exist — strategy should auth on /admin.
   redirect('/admin')
 }

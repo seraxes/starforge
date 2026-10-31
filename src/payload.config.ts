@@ -27,7 +27,12 @@ export default buildConfig({
       titleSuffix: '— Starforge CMS',
     },
     components: {
-      // Local auth disabled — send /admin/login through core Better Auth.
+      // Replace Payload login entirely — never show email/password; use Better Auth.
+      views: {
+        login: {
+          Component: '@/components/payload/AdminLoginRedirect',
+        },
+      },
       beforeLogin: ['@/components/payload/AdminLoginRedirect'],
     },
   },

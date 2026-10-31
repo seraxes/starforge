@@ -122,6 +122,8 @@ export async function ensurePayloadCmsUser(
     }
 
     const payload = await getPayload({ config })
+    // Local strategy is disabled — do not send `password` (no registerLocalStrategy).
+    // Better Auth owns the session; this row is only a CMS identity stub.
     const created = await payload.create({
       collection: 'users',
       data: {

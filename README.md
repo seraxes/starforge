@@ -159,7 +159,7 @@ npm run dev
 ```
 
 1. Open **http://localhost:3000/login** — sign in as `admin@starforge.local` / `starforge-admin` (**only** password prompt).
-2. Open **http://localhost:3000/admin** — Payload dashboard should load **without** asking for email/password again. Edit a page under Pages.
+2. Open **http://localhost:3000/admin** — Payload dashboard should load **without** asking for email/password again. Edit a page under Pages. If you still see a Payload login form, fully stop `npm run dev` (auth strategies do not hot-reload), run `npm run generate:importmap`, start again, hard-refresh the browser.
 3. Open **http://localhost:3000/app/admin/users** — confirm seed admin has **CMS access On**; demo member is **Off**. Toggle the demo member On, open `/admin` as that user after login; toggle Off and confirm deny (`/?notice=cms-denied`).
 4. Sign out, visit `/admin` while logged out → should redirect to `/login?next=/admin`, then after login land in CMS.
 5. Regression: `/app/admin/settings`, `/about`, pastel brand, `/api/health` → `"database":"up"`.
