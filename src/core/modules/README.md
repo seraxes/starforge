@@ -66,7 +66,7 @@ Legacy v1 / v2 upgrade on read.
 
 ## Admin UX (this PR) — Gantry Layout Manager flow
 
-1. **Create section**
+1. **Create section** — drag the **⋮⋮** handle to **reorder sections** (persists `order` in JSON)
 2. **Add row** inside the section
 3. **Drag** a particle from the left palette **into the row**
 4. Drop a second beside it → **side-by-side** in one horizontal row (~50%/50%); **drag the divider** to resize in **1%** steps (**5%–95%**, pair sums to **100%**)

@@ -9,6 +9,7 @@ import {
   dropParticleIntoRowAction,
   removeLayoutRowAction,
   removeSlotAction,
+  reorderLayoutSectionsAction,
   resetLayoutToDefaultAction,
   resizeAdjacentSlotsAction,
   toggleSlotAction,
@@ -43,6 +44,7 @@ type Props = {
 const initialState: LayoutActionState = {}
 
 const DND_PARTICLE = 'application/x-starforge-particle'
+const DND_SECTION = 'application/x-starforge-section'
 
 function ActionFeedback({ state }: { state: LayoutActionState }) {
   if (state.error) {
@@ -316,7 +318,8 @@ function DropRow({
       onDrop={(event) => {
         event.preventDefault()
         setDropActive(false)
-        const moduleId = event.dataTransfer.getData(DND_PARTICLE) || event.dataTransfer.getData('text/plain')
+        // Only accept palette particles — not section reorder payloads.
+        const moduleId = event.dataTransfer.getData(DND_PARTICLE)
         if (!moduleId) return
         persistDrop(moduleId)
       }}
@@ -333,13 +336,15 @@ function DropRow({
           ) : null}
           {pending ? <span className="layout-muted"> · saving…</span> : null}
         </span>
-        <form action={removeRowAction}>
-          <input type="hidden" name="sectionId" value={sectionId} />
-          <input type="hidden" name="rowId" value={row.id} />
-          <button type="submit" className="danger" disabled={removeRowPending}>
-            Remove row
-          </button>
-        </form>
+        <div className="gantry-row-actions">
+          <form action={removeRowAction}>
+            <input type="hidden" name="sectionId" value={sectionId} />
+            <input type="hidden" name="rowId" value={row.id} />
+            <button type="submit" className="danger" disabled={removeRowPending}>
+              Remove row
+            </button>
+          </form>
+        </div>
       </div>
 
       <div className="gantry-row-slots">
@@ -390,9 +395,21 @@ function DropRow({
 function SectionCanvas({
   section,
   modules,
+  isDraggingSection,
+  dropPosition,
+  onSectionDragStart,
+  onSectionDragEnd,
+  onSectionDragOver,
+  onSectionDrop,
 }: {
   section: LayoutSection
   modules: ModuleOption[]
+  isDraggingSection: boolean
+  dropPosition: 'before' | 'after' | null
+  onSectionDragStart: (sectionId: string) => void
+  onSectionDragEnd: () => void
+  onSectionDragOver: (sectionId: string, position: 'before' | 'after') => void
+  onSectionDrop: (targetSectionId: string, position: 'before' | 'after') => void
 }) {
   const [rowState, rowAction, rowPending] = useActionState(addLayoutRowAction, initialState)
   const rows = sortRows(section.rows)
@@ -409,12 +426,58 @@ function SectionCanvas({
     setSlotMap(map)
   }, [section])
 
+  const classNames = [
+    'gantry-section',
+    isDraggingSection ? 'is-section-dragging' : '',
+    dropPosition === 'before' ? 'is-section-drop-before' : '',
+    dropPosition === 'after' ? 'is-section-drop-after' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+
   return (
-    <li className="gantry-section">
+    <li
+      className={classNames}
+      data-sf-section={section.id}
+      onDragOver={(event) => {
+        if (![...event.dataTransfer.types].includes(DND_SECTION)) return
+        event.preventDefault()
+        event.dataTransfer.dropEffect = 'move'
+        const rect = event.currentTarget.getBoundingClientRect()
+        const mid = rect.top + rect.height / 2
+        onSectionDragOver(section.id, event.clientY < mid ? 'before' : 'after')
+      }}
+      onDrop={(event) => {
+        if (![...event.dataTransfer.types].includes(DND_SECTION)) return
+        event.preventDefault()
+        event.stopPropagation()
+        const rect = event.currentTarget.getBoundingClientRect()
+        const mid = rect.top + rect.height / 2
+        onSectionDrop(section.id, event.clientY < mid ? 'before' : 'after')
+      }}
+    >
       <header className="gantry-section-head">
-        <div>
-          <h3>{section.label}</h3>
-          <code className="layout-id">{section.id}</code>
+        <div className="gantry-section-title">
+          <button
+            type="button"
+            className="gantry-section-handle"
+            draggable
+            title="Drag to reorder section"
+            aria-label={`Drag to reorder section ${section.label}`}
+            onDragStart={(event) => {
+              event.dataTransfer.setData(DND_SECTION, section.id)
+              event.dataTransfer.setData('text/plain', section.id)
+              event.dataTransfer.effectAllowed = 'move'
+              onSectionDragStart(section.id)
+            }}
+            onDragEnd={onSectionDragEnd}
+          >
+            ⋮⋮
+          </button>
+          <div>
+            <h3>{section.label}</h3>
+            <code className="layout-id">{section.id}</code>
+          </div>
         </div>
         <form action={rowAction} className="gantry-section-actions">
           <input type="hidden" name="sectionId" value={section.id} />
@@ -446,9 +509,11 @@ function SectionCanvas({
 /**
  * Gantry Layout Manager–style canvas:
  * 1) Create section → 2) Add row → 3) Drag particle from left into row →
- * 4) Drop another beside it and resize by % (12-col under the hood).
+ * 4) Drop another beside it and resize by % → sections reorder via drag handle.
  */
 export function LayoutEditor({ document, source, modules }: Props) {
+  const router = useRouter()
+  const [sectionPendingSave, startSectionSave] = useTransition()
   const [sectionState, sectionAction, sectionPending] = useActionState(
     addLayoutSectionAction,
     initialState,
@@ -457,9 +522,64 @@ export function LayoutEditor({ document, source, modules }: Props) {
     resetLayoutToDefaultAction,
     initialState,
   )
-  const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [reorderFlash, setReorderFlash] = useState<LayoutActionState>({})
+  const [draggingParticleId, setDraggingParticleId] = useState<string | null>(null)
+  const [draggingSectionId, setDraggingSectionId] = useState<string | null>(null)
+  const [dropHint, setDropHint] = useState<{
+    sectionId: string
+    position: 'before' | 'after'
+  } | null>(null)
 
-  const sections = sortSections(document.sections)
+  const [sectionList, setSectionList] = useState(() => sortSections(document.sections))
+
+  React.useEffect(() => {
+    setSectionList(sortSections(document.sections))
+  }, [document.sections])
+
+  const persistSectionOrder = useCallback(
+    (ordered: LayoutSection[]) => {
+      const fd = new FormData()
+      fd.set('orderJson', JSON.stringify(ordered.map((s) => s.id)))
+      startSectionSave(async () => {
+        const result = await reorderLayoutSectionsAction({}, fd)
+        setReorderFlash(result)
+        router.refresh()
+      })
+    },
+    [router],
+  )
+
+  const handleSectionDrop = useCallback(
+    (targetSectionId: string, position: 'before' | 'after') => {
+      if (!draggingSectionId || draggingSectionId === targetSectionId) {
+        setDraggingSectionId(null)
+        setDropHint(null)
+        return
+      }
+      const without = sectionList.filter((s) => s.id !== draggingSectionId)
+      const moving = sectionList.find((s) => s.id === draggingSectionId)
+      if (!moving) {
+        setDraggingSectionId(null)
+        setDropHint(null)
+        return
+      }
+      const targetIndex = without.findIndex((s) => s.id === targetSectionId)
+      if (targetIndex < 0) {
+        setDraggingSectionId(null)
+        setDropHint(null)
+        return
+      }
+      const insertAt = position === 'before' ? targetIndex : targetIndex + 1
+      const next = [...without.slice(0, insertAt), moving, ...without.slice(insertAt)].map(
+        (section, index) => ({ ...section, order: index }),
+      )
+      setSectionList(next)
+      setDraggingSectionId(null)
+      setDropHint(null)
+      persistSectionOrder(next)
+    },
+    [draggingSectionId, persistSectionOrder, sectionList],
+  )
 
   return (
     <div className="gantry-editor">
@@ -475,8 +595,8 @@ export function LayoutEditor({ document, source, modules }: Props) {
         >
           Gantry Layout Manager
         </a>
-        : <strong>section → row → drag particles</strong>, side-by-side, resize by % (1% steps,
-        min 5%).
+        : <strong>drag sections</strong> to reorder · section → row → drag particles · resize by %
+        (1% steps, min 5%).
       </p>
 
       <div className="gantry-workspace">
@@ -488,7 +608,7 @@ export function LayoutEditor({ document, source, modules }: Props) {
               <li key={mod.id}>
                 <div
                   className={
-                    draggingId === mod.id
+                    draggingParticleId === mod.id
                       ? 'gantry-palette-item is-dragging'
                       : 'gantry-palette-item'
                   }
@@ -497,9 +617,9 @@ export function LayoutEditor({ document, source, modules }: Props) {
                     event.dataTransfer.setData(DND_PARTICLE, mod.id)
                     event.dataTransfer.setData('text/plain', mod.id)
                     event.dataTransfer.effectAllowed = 'copy'
-                    setDraggingId(mod.id)
+                    setDraggingParticleId(mod.id)
                   }}
-                  onDragEnd={() => setDraggingId(null)}
+                  onDragEnd={() => setDraggingParticleId(null)}
                 >
                   <strong>{mod.name}</strong>
                   <span>{mod.description || mod.id}</span>
@@ -526,9 +646,13 @@ export function LayoutEditor({ document, source, modules }: Props) {
           </div>
           <ActionFeedback state={sectionState} />
           <ActionFeedback state={resetState} />
+          <ActionFeedback state={reorderFlash} />
+          {sectionPendingSave ? <p className="layout-muted">Saving section order…</p> : null}
 
           <ol className="gantry-howto">
-            <li>Create a <strong>section</strong></li>
+            <li>
+              Create a <strong>section</strong> — drag the <strong>⋮⋮</strong> handle to reorder
+            </li>
             <li>Add a <strong>row</strong> inside it</li>
             <li>
               <strong>Drag</strong> a particle from the left into the row
@@ -539,12 +663,35 @@ export function LayoutEditor({ document, source, modules }: Props) {
             </li>
           </ol>
 
-          {sections.length === 0 ? (
+          {sectionList.length === 0 ? (
             <p className="admin-empty">No sections yet — create one to start.</p>
           ) : (
             <ol className="gantry-sections">
-              {sections.map((section) => (
-                <SectionCanvas key={section.id} section={section} modules={modules} />
+              {sectionList.map((section) => (
+                <SectionCanvas
+                  key={section.id}
+                  section={section}
+                  modules={modules}
+                  isDraggingSection={draggingSectionId === section.id}
+                  dropPosition={
+                    dropHint?.sectionId === section.id && draggingSectionId !== section.id
+                      ? dropHint.position
+                      : null
+                  }
+                  onSectionDragStart={(id) => {
+                    setDraggingSectionId(id)
+                    setDropHint(null)
+                  }}
+                  onSectionDragEnd={() => {
+                    setDraggingSectionId(null)
+                    setDropHint(null)
+                  }}
+                  onSectionDragOver={(id, position) => {
+                    if (!draggingSectionId || draggingSectionId === id) return
+                    setDropHint({ sectionId: id, position })
+                  }}
+                  onSectionDrop={handleSectionDrop}
+                />
               ))}
             </ol>
           )}
@@ -553,10 +700,10 @@ export function LayoutEditor({ document, source, modules }: Props) {
 
       <details className="layout-json-preview">
         <summary>Layout document (JSON storage)</summary>
-        <pre>{JSON.stringify(document, null, 2)}</pre>
+        <pre>{JSON.stringify({ ...document, sections: sectionList }, null, 2)}</pre>
         <p className="layout-muted">
-          Widths are stored as integer percents (1% steps; min 5% when shared). Custom uses
-          CodeMirror. Styles / Outlines / Menu remain next polish — see{' '}
+          Section <code>order</code> is persisted when you drag sections. Widths are integer
+          percents. Custom uses CodeMirror. Styles / Outlines / Menu remain next polish — see{' '}
           <code>src/core/modules/README.md</code>.
         </p>
       </details>

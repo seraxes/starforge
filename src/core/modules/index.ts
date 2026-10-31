@@ -7,6 +7,7 @@ export {
   removeLayoutRowAction,
   removeSlotAction,
   renameLayoutSectionAction,
+  reorderLayoutSectionsAction,
   resetLayoutToDefaultAction,
   resizeAdjacentSlotsAction,
   setRowSlotWidthsAction,

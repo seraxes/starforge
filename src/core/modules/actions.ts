@@ -147,6 +147,46 @@ export async function renameLayoutSectionAction(
   return state
 }
 
+/**
+ * Persist section order after drag-and-drop reorder on the layout canvas.
+ * `orderJson` = JSON array of section ids top→bottom.
+ */
+export async function reorderLayoutSectionsAction(
+  _prev: LayoutActionState,
+  formData: FormData,
+): Promise<LayoutActionState> {
+  const raw = String(formData.get('orderJson') ?? '').trim()
+  let orderedIds: string[]
+  try {
+    orderedIds = JSON.parse(raw) as string[]
+    if (!Array.isArray(orderedIds) || orderedIds.some((id) => typeof id !== 'string')) {
+      throw new Error('not string array')
+    }
+  } catch {
+    return { error: 'Invalid section order payload.' }
+  }
+  if (orderedIds.length === 0) return { error: 'Section order is empty.' }
+
+  const state = await mutateLayout((doc) => {
+    const byId = new Map(doc.sections.map((s) => [s.id, s]))
+    if (orderedIds.length !== doc.sections.length) {
+      return { error: 'Section order length does not match the layout.' }
+    }
+    for (const id of orderedIds) {
+      if (!byId.has(id)) return { error: `Unknown section “${id}”.` }
+    }
+    doc.sections = orderedIds.map((id, index) => {
+      const section = byId.get(id)!
+      section.order = index
+      return section
+    })
+    return doc
+  })
+
+  if (state.ok) state.message = 'Section order saved.'
+  return state
+}
+
 export async function addLayoutRowAction(
   _prev: LayoutActionState,
   formData: FormData,

@@ -1040,6 +1040,7 @@ button:disabled {
 .layout-inline-form button,
 .gantry-section-actions button,
 .gantry-row-actions button,
+.gantry-row-meta button,
 .gantry-slot-actions button,
 .gantry-width-form button,
 .gantry-custom-form button,
@@ -1056,6 +1057,7 @@ button:disabled {
 .layout-inline-form button.secondary,
 .gantry-section-actions button.secondary,
 .gantry-row-actions button.secondary,
+.gantry-row-meta button.secondary,
 .gantry-slot-actions button.secondary,
 .gantry-width-form button.secondary,
 .gantry-canvas-toolbar button.secondary {
@@ -1064,9 +1066,24 @@ button:disabled {
 }
 
 .gantry-row-actions button.danger,
+.gantry-row-meta button.danger,
 .gantry-slot-actions button.danger {
   background: color-mix(in srgb, #c45c5c 18%, white);
   color: #7a2e2e;
+  border-color: color-mix(in srgb, #c45c5c 35%, var(--sf-line));
+}
+
+.gantry-row-actions button.danger:hover,
+.gantry-row-meta button.danger:hover,
+.gantry-slot-actions button.danger:hover {
+  background: color-mix(in srgb, #c45c5c 28%, white);
+}
+
+.gantry-row-actions button:disabled,
+.gantry-row-meta button:disabled,
+.gantry-slot-actions button:disabled {
+  opacity: 0.65;
+  cursor: wait;
 }
 
 .layout-id {
@@ -1212,6 +1229,19 @@ button:disabled {
   padding: 0.85rem;
   border: 1px solid var(--sf-line);
   background: color-mix(in srgb, white 58%, transparent);
+  position: relative;
+}
+
+.gantry-section.is-section-dragging {
+  opacity: 0.55;
+}
+
+.gantry-section.is-section-drop-before {
+  box-shadow: inset 0 3px 0 0 color-mix(in srgb, var(--sf-primary-strong) 75%, white);
+}
+
+.gantry-section.is-section-drop-after {
+  box-shadow: inset 0 -3px 0 0 color-mix(in srgb, var(--sf-primary-strong) 75%, white);
 }
 
 .gantry-section-head {
@@ -1221,6 +1251,33 @@ button:disabled {
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 0.75rem;
+}
+
+.gantry-section-title {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.gantry-section-handle {
+  flex: 0 0 auto;
+  margin: 0.15rem 0 0;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--sf-line);
+  background: color-mix(in srgb, var(--sf-secondary) 18%, white);
+  color: var(--sf-secondary-strong);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: -0.08em;
+  line-height: 1;
+  cursor: grab;
+  user-select: none;
+}
+
+.gantry-section-handle:active {
+  cursor: grabbing;
 }
 
 .gantry-section-head h3 {
