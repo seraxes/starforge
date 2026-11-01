@@ -85,7 +85,7 @@ Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so coo
 | http://localhost:3000/app/admin/site-chrome | Starforge admin — **Site Chrome** (offline, metadata, robots, cookies) |
 | http://localhost:3000/app/admin/settings | Starforge admin — Modules on/off + primary nav menu assignment |
 | http://localhost:3000/app/admin/nav | Starforge admin — **Nav** manager (navigation sets + items) |
-| http://localhost:3000/app/admin/forms | Starforge admin — **Forms** submissions (Core Form particle) |
+| http://localhost:3000/app/admin/forms | Starforge admin — **Forms** definitions + builder + submissions |
 | http://localhost:3000/robots.txt | Site Chrome robots.txt snippet |
 | http://localhost:3000/app/admin/layouts | Starforge admin — **Layouts** (hover submenu) → **Layout** canvas (default) |
 | http://localhost:3000/app/admin/page-settings | Starforge admin — **Layouts → Page settings** (Head / Assets / Body / FA / Atoms) |
@@ -126,7 +126,7 @@ Global app admins still open all Core admin today; the matrix is the enforcement
 
 **Nav** is a **top-level** Core admin item (`/app/admin/nav`, sibling of Users / Site Chrome / Site settings / Layouts): multiple named **navigation sets** (menus) in `sf_nav_menus`, each with items (CMS page, URL, or module view; reorder; copy/paste; CSS class; browser/page title; multi-select access tags). Site Settings only **assigns** which set is the site primary header menu — not nested under Site Chrome.
 
-**Forms** (`/app/admin/forms`, gated by Modules → **Forms** / `product:forms`) lists submissions from the Core **Form** layout particle (`sf_form_submissions`). Place the particle on the layout canvas; optional Site Chrome captcha (Turnstile) when the form opts into the site default.
+**Forms** (`/app/admin/forms`, gated by Modules → **Forms** / `product:forms`) is the modular Form engine: visual builder (dnd-kit → JSON Schema / Zod), definitions in `sf_forms`, submissions in `sf_form_submissions`. Place the **Form** particle on the layout canvas and bind a definition (Contact preset ships ready; survey/event/voting/ticket are stubs). Optional Site Chrome captcha (Turnstile) when the form opts into the site default. Run `npm run db:core:push` after pull so `sf_forms` / `definition_id` exist.
 
 One Payload global (`site-settings`) holds synced site name, `primaryNavMenuId`, capability flags, and module toggles. Core admins edit Modules at **`/app/admin/settings`**. CMS editors can edit the same document under Payload **Globals → Site settings** (legacy `primaryNav` array is a fallback only).
 

@@ -2,14 +2,20 @@ import React from 'react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
-import { listFormSubmissions } from '@/core/forms/store'
+import {
+  ensureDefaultContactFormSeeded,
+  listFormDefinitions,
+  listFormSubmissions,
+} from '@/core/forms'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
+
+import { FormsManager } from './forms-manager'
 
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
   title: 'Forms — Starforge',
-  description: 'Core Form module submissions.',
+  description: 'Modular Form engine — definitions, builder, and submissions.',
 }
 
 function formatWhen(d: Date): string {
@@ -26,7 +32,7 @@ function formatWhen(d: Date): string {
 function payloadSummary(payload: Record<string, string>): string {
   const name = payload.name?.trim()
   const email = payload.email?.trim()
-  const message = payload.message?.trim()
+  const message = payload.message?.trim() || payload.notes?.trim() || payload.subject?.trim()
   const parts = [name, email].filter(Boolean)
   if (parts.length === 0 && message) return message.slice(0, 80)
   if (message) return `${parts.join(' · ')} — ${message.slice(0, 60)}`
@@ -41,19 +47,36 @@ export default async function AdminFormsPage() {
     redirect('/app/admin/settings')
   }
 
-  const submissions = await listFormSubmissions({ limit: 100 })
+  await ensureDefaultContactFormSeeded()
+  const [definitions, submissions] = await Promise.all([
+    listFormDefinitions(),
+    listFormSubmissions({ limit: 100 }),
+  ])
 
   return (
-    <section className="admin-section">
+    <section className="admin-section admin-layouts-full">
       <h2>Forms</h2>
       <p className="lede admin-lede">
-        Submissions from the Core <strong>Form</strong> particle (layout canvas). Place a Form
-        module under <Link href="/app/admin/layouts">Layouts</Link>; captcha defaults live in{' '}
-        <Link href="/app/admin/site-chrome">Site Chrome</Link> (Turnstile keys in env). Storage:{' '}
-        <code>sf_form_submissions</code>. Toggle the Forms product module under{' '}
-        <Link href="/app/admin/settings">Site Settings</Link>.
+        Modular Form engine (SF-65): visual builder → JSON Schema / Zod. Place the{' '}
+        <strong>Form</strong> particle under <Link href="/app/admin/layouts">Layouts</Link> and
+        bind a definition. Captcha defaults in{' '}
+        <Link href="/app/admin/site-chrome">Site Chrome</Link>. Toggle under{' '}
+        <Link href="/app/admin/settings">Site Settings</Link>. Storage:{' '}
+        <code>sf_forms</code> + <code>sf_form_submissions</code>.
       </p>
 
+      <h3>Definitions</h3>
+      <FormsManager
+        forms={definitions.map((d) => ({
+          id: d.id,
+          label: d.label,
+          preset: d.preset,
+          fieldCount: d.fieldCount,
+          updatedAt: d.updatedAt.toISOString(),
+        }))}
+      />
+
+      <h3 className="sf-forms-submissions-heading">Submissions</h3>
       {submissions.length === 0 ? (
         <p className="admin-empty">No submissions yet.</p>
       ) : (
@@ -63,6 +86,7 @@ export default async function AdminFormsPage() {
               <tr>
                 <th scope="col">When</th>
                 <th scope="col">Form</th>
+                <th scope="col">Definition</th>
                 <th scope="col">Summary</th>
                 <th scope="col">IP</th>
               </tr>
@@ -77,6 +101,15 @@ export default async function AdminFormsPage() {
                   </td>
                   <td>
                     <code className="sf-forms-key">{row.formKey}</code>
+                  </td>
+                  <td>
+                    {row.definitionId ? (
+                      <Link href={`/app/admin/forms/${row.definitionId}`}>
+                        <code>{row.definitionId}</code>
+                      </Link>
+                    ) : (
+                      '—'
+                    )}
                   </td>
                   <td>
                     <details className="sf-forms-details">

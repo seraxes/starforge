@@ -1224,19 +1224,25 @@ export async function updateFormSlotAction(
   const slotId = String(formData.get('slotId') ?? '').trim()
   if (!sectionId || !rowId || !slotId) return { error: 'Missing slot reference.' }
 
-  let parsedFields: unknown
-  try {
-    parsedFields = JSON.parse(String(formData.get('fieldsJson') ?? '[]'))
-  } catch {
-    return { error: 'Invalid fields JSON.' }
+  const formId = String(formData.get('formId') ?? '').trim()
+
+  let parsedFields: unknown = []
+  const fieldsJsonRaw = String(formData.get('fieldsJson') ?? '')
+  if (fieldsJsonRaw.trim()) {
+    try {
+      parsedFields = JSON.parse(fieldsJsonRaw)
+    } catch {
+      return { error: 'Invalid fields JSON.' }
+    }
   }
 
   const { formConfigToSlotConfig, normalizeFormFields } = await import('@/core/forms/config')
   const config: LayoutSlotConfig = formConfigToSlotConfig({
+    formId: formId || undefined,
     heading: String(formData.get('heading') ?? '').trim(),
-    fields: normalizeFormFields(parsedFields),
-    successMessage: String(formData.get('successMessage') ?? '').trim(),
-    submitLabel: String(formData.get('submitLabel') ?? '').trim() || 'Send',
+    fields: formId ? undefined : normalizeFormFields(parsedFields),
+    successMessage: String(formData.get('successMessage') ?? '').trim() || undefined,
+    submitLabel: String(formData.get('submitLabel') ?? '').trim() || undefined,
     useSiteCaptchaDefault: String(formData.get('useSiteCaptchaDefault') ?? '') === 'on',
   })
 

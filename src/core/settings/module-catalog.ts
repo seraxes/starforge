@@ -126,7 +126,7 @@ export const PRODUCT_MODULE_CATALOG: ModuleCatalogItem[] = [
     kind: 'product',
     label: 'Forms',
     description:
-      'Core Form particle + Admin → Forms submissions. Captcha defaults come from Site Chrome; Turnstile keys from env.',
+      'Modular Form engine — visual builder (JSON Schema/Zod), Form particle, presets (contact + stubs). Captcha from Site Chrome; Turnstile keys from env.',
     required: false,
     defaultEnabled: true,
     installed: true,

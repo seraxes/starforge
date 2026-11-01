@@ -27,6 +27,7 @@ function mapRow(row: typeof sfFormSubmissions.$inferSelect): FormSubmissionRecor
   return {
     id: row.id,
     formKey: row.formKey,
+    definitionId: row.definitionId ?? null,
     layoutId: row.layoutId,
     slotId: row.slotId,
     payload: parsePayload(row.payload),
@@ -38,6 +39,7 @@ function mapRow(row: typeof sfFormSubmissions.$inferSelect): FormSubmissionRecor
 
 export async function createFormSubmission(input: {
   formKey: string
+  definitionId?: string | null
   layoutId?: string | null
   slotId?: string | null
   payload: Record<string, string>
@@ -50,6 +52,7 @@ export async function createFormSubmission(input: {
     .values({
       id,
       formKey: input.formKey,
+      definitionId: input.definitionId ?? null,
       layoutId: input.layoutId ?? null,
       slotId: input.slotId ?? null,
       payload: JSON.stringify(input.payload),
@@ -67,8 +70,19 @@ export async function createFormSubmission(input: {
 export async function listFormSubmissions(options?: {
   limit?: number
   formKey?: string
+  definitionId?: string
 }): Promise<FormSubmissionRecord[]> {
   const limit = Math.min(Math.max(options?.limit ?? 100, 1), 500)
+
+  if (options?.definitionId) {
+    const rows = await db
+      .select()
+      .from(sfFormSubmissions)
+      .where(eq(sfFormSubmissions.definitionId, options.definitionId))
+      .orderBy(desc(sfFormSubmissions.createdAt))
+      .limit(limit)
+    return rows.map(mapRow)
+  }
 
   if (options?.formKey) {
     const rows = await db

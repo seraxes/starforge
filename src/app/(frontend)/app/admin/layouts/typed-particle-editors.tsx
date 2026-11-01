@@ -26,6 +26,7 @@ import { cssColorToColorInputValue, parseCssColorInput } from '@/core/modules/st
 import type { LayoutSlot, LayoutSlotConfig } from '@/core/modules/types'
 
 export type NavMenuOption = { id: string; label: string }
+export type FormDefinitionOption = { id: string; label: string }
 
 import { useNotifySavedOnOk } from '../admin-toast'
 import { useAutosaveForm } from '../use-autosave-form'
@@ -684,12 +685,14 @@ export function FormParticleEditor({
   sectionId,
   rowId,
   slot,
+  formDefinitions = [],
   embedded = false,
   onConfigSaved,
 }: {
   sectionId: string
   rowId: string
   slot: LayoutSlot
+  formDefinitions?: FormDefinitionOption[]
   embedded?: boolean
   onConfigSaved?: (config: LayoutSlotConfig) => void
 }) {
@@ -700,33 +703,39 @@ export function FormParticleEditor({
   const seed = () => {
     const cfg = readFormConfig(slot.config)
     return {
+      formId: cfg.formId ?? (formDefinitions[0]?.id || 'contact'),
       heading: cfg.heading ?? '',
-      successMessage: cfg.successMessage ?? '',
-      submitLabel: cfg.submitLabel ?? 'Send',
       useSiteCaptchaDefault: cfg.useSiteCaptchaDefault !== false,
+      useInline: !cfg.formId && Array.isArray(cfg.fields) && (cfg.fields?.length ?? 0) > 0,
       fields: [...(cfg.fields ?? [])] as FormFieldDef[],
       fieldsJson: JSON.stringify(cfg.fields ?? [], null, 2),
+      successMessage: cfg.successMessage ?? '',
+      submitLabel: cfg.submitLabel ?? '',
     }
   }
 
+  const [formId, setFormId] = useState(() => seed().formId)
   const [heading, setHeading] = useState(() => seed().heading)
-  const [successMessage, setSuccessMessage] = useState(() => seed().successMessage)
-  const [submitLabel, setSubmitLabel] = useState(() => seed().submitLabel)
   const [useSiteCaptchaDefault, setUseSiteCaptchaDefault] = useState(
     () => seed().useSiteCaptchaDefault,
   )
+  const [useInline, setUseInline] = useState(() => seed().useInline)
   const [fields, setFields] = useState<FormFieldDef[]>(() => seed().fields)
   const [fieldsJson, setFieldsJson] = useState(() => seed().fieldsJson)
+  const [successMessage, setSuccessMessage] = useState(() => seed().successMessage)
+  const [submitLabel, setSubmitLabel] = useState(() => seed().submitLabel)
   const [jsonError, setJsonError] = useState<string | null>(null)
 
   useEffect(() => {
     const next = seed()
+    setFormId(next.formId)
     setHeading(next.heading)
-    setSuccessMessage(next.successMessage)
-    setSubmitLabel(next.submitLabel)
     setUseSiteCaptchaDefault(next.useSiteCaptchaDefault)
+    setUseInline(next.useInline)
     setFields(next.fields)
     setFieldsJson(next.fieldsJson)
+    setSuccessMessage(next.successMessage)
+    setSubmitLabel(next.submitLabel)
     setJsonError(null)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when switching slots
   }, [slot.id])
@@ -759,34 +768,107 @@ export function FormParticleEditor({
         <input type="hidden" name="sectionId" value={sectionId} />
         <input type="hidden" name="rowId" value={rowId} />
         <input type="hidden" name="slotId" value={slot.id} />
-        <input type="hidden" name="fieldsJson" value={JSON.stringify(fields)} />
+        <input
+          type="hidden"
+          name="formId"
+          value={useInline ? '' : formId}
+        />
+        <input
+          type="hidden"
+          name="fieldsJson"
+          value={useInline ? JSON.stringify(fields) : ''}
+        />
+        <label className="gantry-typed-check">
+          <input
+            type="checkbox"
+            checked={useInline}
+            onChange={(e) => {
+              setUseInline(e.target.checked)
+              queueMicrotask(saveNow)
+            }}
+          />
+          <span>Legacy inline fields (prefer Form definition)</span>
+        </label>
+        {!useInline ? (
+          <label>
+            <span>Form definition</span>
+            <select
+              value={formId}
+              onChange={(e) => {
+                setFormId(e.target.value)
+                queueMicrotask(saveNow)
+              }}
+            >
+              {formDefinitions.length === 0 ? (
+                <option value="contact">Contact (default)</option>
+              ) : (
+                formDefinitions.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.label} ({f.id})
+                  </option>
+                ))
+              )}
+            </select>
+          </label>
+        ) : null}
+        <p className="layout-muted">
+          Edit fields in{' '}
+          <a href={useInline ? '/app/admin/forms' : `/app/admin/forms/${formId || 'contact'}`}>
+            Admin → Forms
+          </a>
+          .
+        </p>
         <label>
-          <span>Heading</span>
+          <span>Heading override</span>
           <input
             type="text"
             name="heading"
             value={heading}
             onChange={(e) => setHeading(e.target.value)}
+            placeholder="Uses definition title when empty"
           />
         </label>
-        <label>
-          <span>Success message</span>
-          <input
-            type="text"
-            name="successMessage"
-            value={successMessage}
-            onChange={(e) => setSuccessMessage(e.target.value)}
-          />
-        </label>
-        <label>
-          <span>Submit label</span>
-          <input
-            type="text"
-            name="submitLabel"
-            value={submitLabel}
-            onChange={(e) => setSubmitLabel(e.target.value)}
-          />
-        </label>
+        {useInline ? (
+          <>
+            <label>
+              <span>Success message</span>
+              <input
+                type="text"
+                name="successMessage"
+                value={successMessage}
+                onChange={(e) => setSuccessMessage(e.target.value)}
+              />
+            </label>
+            <label>
+              <span>Submit label</span>
+              <input
+                type="text"
+                name="submitLabel"
+                value={submitLabel}
+                onChange={(e) => setSubmitLabel(e.target.value)}
+              />
+            </label>
+            <label>
+              <span>Fields (JSON)</span>
+              <textarea
+                rows={8}
+                value={fieldsJson}
+                onChange={(e) => applyFieldsJson(e.target.value)}
+                spellCheck={false}
+              />
+            </label>
+            {jsonError ? (
+              <p className="admin-inline-error" role="alert">
+                {jsonError}
+              </p>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <input type="hidden" name="successMessage" value="" />
+            <input type="hidden" name="submitLabel" value="" />
+          </>
+        )}
         <label className="gantry-typed-check">
           <input
             type="checkbox"
@@ -799,25 +881,6 @@ export function FormParticleEditor({
           />
           <span>Use site captcha default (Site Chrome)</span>
         </label>
-        <p className="layout-muted">
-          Fields JSON — each item: <code>name</code>, <code>label</code>,{' '}
-          <code>type</code> (text|email|textarea), optional <code>required</code>,{' '}
-          <code>placeholder</code>. Defaults: name, email, message.
-        </p>
-        <label>
-          <span>Fields (JSON)</span>
-          <textarea
-            rows={10}
-            value={fieldsJson}
-            onChange={(e) => applyFieldsJson(e.target.value)}
-            spellCheck={false}
-          />
-        </label>
-        {jsonError ? (
-          <p className="admin-inline-error" role="alert">
-            {jsonError}
-          </p>
-        ) : null}
         {pending ? <p className="layout-muted">Saving…</p> : null}
         <ActionFeedback state={state} />
       </form>
@@ -831,6 +894,7 @@ export function TypedParticleEditor({
   rowId,
   slot,
   navMenus = [],
+  formDefinitions = [],
   primaryNavMenuId = 'main',
   embedded = false,
   onConfigSaved,
@@ -839,6 +903,7 @@ export function TypedParticleEditor({
   rowId: string
   slot: LayoutSlot
   navMenus?: NavMenuOption[]
+  formDefinitions?: FormDefinitionOption[]
   primaryNavMenuId?: string
   embedded?: boolean
   onConfigSaved?: (config: LayoutSlotConfig) => void
@@ -895,6 +960,7 @@ export function TypedParticleEditor({
         sectionId={sectionId}
         rowId={rowId}
         slot={slot}
+        formDefinitions={formDefinitions}
         embedded={embedded}
         onConfigSaved={onConfigSaved}
       />
