@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useActionState, useCallback, useRef, useState, useTransition } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 import { AccessTagsField } from '@/components/admin/AccessTagsField'
@@ -1353,28 +1354,64 @@ export function LayoutEditor({
 
         <div className="gantry-canvas" aria-label="Layout canvas">
           <div className="gantry-canvas-toolbar">
-            <form action={sectionAction} className="layout-inline-form">
+            <form action={sectionAction} className="layout-inline-form gantry-toolbar-create">
               <LayoutIdField />
               <input type="text" name="label" placeholder="New section name" required />
-              <button type="submit" className="secondary" disabled={sectionPending}>
-                {sectionPending ? 'Adding…' : 'Create section'}
+              <button type="submit" className="gantry-toolbar-btn gantry-toolbar-btn-muted" disabled={sectionPending}>
+                {sectionPending ? 'Adding…' : '+ Section'}
               </button>
             </form>
             <div className="gantry-canvas-toolbar-end">
-              <form action={resetAction}>
-                <LayoutIdField />
-                <button type="submit" className="secondary" disabled={resetPending}>
-                  {resetPending ? 'Resetting…' : 'Clear'}
+              <div className="gantry-canvas-toolbar-primary">
+                <Link
+                  href="/app/admin/outlines"
+                  className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+                  title="Load / manage outlines"
+                >
+                  <span aria-hidden="true">⎇</span> Load
+                </Link>
+                <form action={resetAction} className="gantry-toolbar-clear-form">
+                  <LayoutIdField />
+                  <button
+                    type="submit"
+                    className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+                    disabled={resetPending}
+                    title="Reset outline to default layout"
+                  >
+                    <span aria-hidden="true">🗑</span>
+                    {resetPending ? 'Clearing…' : 'Clear'}
+                    <span aria-hidden="true" className="gantry-toolbar-caret">
+                      ▾
+                    </span>
+                  </button>
+                </form>
+                <button
+                  type="button"
+                  className="gantry-toolbar-btn gantry-toolbar-btn-save"
+                  title="Layout saves automatically — refresh the canvas"
+                  onClick={() => router.refresh()}
+                >
+                  <span aria-hidden="true">✓</span> Save Layout
                 </button>
-              </form>
-              <button
-                type="button"
-                className="primary"
-                title="Layout saves automatically — refresh the canvas"
-                onClick={() => router.refresh()}
-              >
-                Save Layout
-              </button>
+              </div>
+              <div className="gantry-canvas-toolbar-history" role="group" aria-label="History">
+                <button
+                  type="button"
+                  className="gantry-toolbar-btn gantry-toolbar-btn-quiet"
+                  disabled
+                  title="Undo (coming soon)"
+                >
+                  <span aria-hidden="true">↶</span> Undo
+                </button>
+                <button
+                  type="button"
+                  className="gantry-toolbar-btn gantry-toolbar-btn-quiet"
+                  disabled
+                  title="Redo (coming soon)"
+                >
+                  Redo <span aria-hidden="true">↷</span>
+                </button>
+              </div>
             </div>
           </div>
           <ActionFeedback state={sectionState} />

@@ -13,7 +13,7 @@ import {
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
 import { LayoutOutlineProvider } from '../layouts/layout-outline-context'
-import { OutlineSwitcher } from '../layouts/outline-switcher'
+import { LayoutsAdminNav } from '../layouts/layouts-admin-nav'
 import { BreakpointsForm } from './breakpoints-form'
 
 export const dynamic = 'force-dynamic'
@@ -57,27 +57,28 @@ export default async function AdminBreakpointsPage(props: { searchParams?: Searc
     document.styles?.breakpoints ?? DEFAULT_LAYOUT_BREAKPOINTS,
   )
 
+  const pageSettingsOn = isCatalogModuleEnabled(settings, MODULE_IDS.pageSettings)
+
   return (
     <section className="admin-section layout-admin-section admin-layouts-full">
-      <h2>Breakpoints</h2>
-      <p className="lede admin-lede">
-        Outline-scoped responsive breakpoints (Large desktop / Desktop / Tablet / Mobile / Mobile
-        menu). Same outline switcher as the{' '}
+      <LayoutsAdminNav
+        active="styles"
+        outlines={outlines.map((o) => ({ id: o.id, label: o.label }))}
+        currentOutlineId={layoutId}
+        showPageSettingsTab={pageSettingsOn}
+      />
+      <h2>Styles · Breakpoints</h2>
+      <p className="lede admin-lede gantry-layouts-lede">
+        Outline-scoped breakpoints (Large desktop / Desktop / Tablet / Mobile / Mobile menu) — no
+        Styles mega-page. Public CSS exposes <code>--sf-bp-*</code> and{' '}
+        <code>--sf-container-max</code>. Section Background/Text live on the{' '}
         <Link
           href={`/app/admin/layouts${layoutId === 'default' ? '' : `?outline=${encodeURIComponent(layoutId)}`}`}
         >
           Layout
         </Link>{' '}
-        canvas — no separate Styles mega-page. Public CSS exposes <code>--sf-bp-*</code> and{' '}
-        <code>--sf-container-max</code>; boxed sections use the large desktop value as their max
-        width.
+        canvas.
       </p>
-
-      <OutlineSwitcher
-        outlines={outlines.map((o) => ({ id: o.id, label: o.label }))}
-        currentId={layoutId}
-        basePath="/app/admin/breakpoints"
-      />
 
       <LayoutOutlineProvider layoutId={layoutId}>
         <BreakpointsForm layoutLabel={outlineMeta.label} breakpoints={breakpoints} />

@@ -1,10 +1,12 @@
 import React from 'react'
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
+import { DEFAULT_LAYOUT_ID } from '@/core/db'
+import { listLayoutOutlines } from '@/core/modules'
 import { loadPageSettingsAdmin } from '@/core/page-settings/actions'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
+import { LayoutsAdminNav } from '../layouts/layouts-admin-nav'
 import { PageSettingsForm } from './page-settings-form'
 
 export const dynamic = 'force-dynamic'
@@ -15,7 +17,7 @@ export const metadata = {
 }
 
 type Props = {
-  searchParams: Promise<{ page?: string }>
+  searchParams: Promise<{ page?: string; outline?: string }>
 }
 
 export default async function AdminPageSettingsPage({ searchParams }: Props) {
@@ -27,16 +29,32 @@ export default async function AdminPageSettingsPage({ searchParams }: Props) {
   const params = await searchParams
   const editingPageKey = params.page?.trim() || null
   const bootstrap = await loadPageSettingsAdmin(editingPageKey)
+  const layoutOn = isCatalogModuleEnabled(settings, MODULE_IDS.layoutManager)
+
+  const outlines = layoutOn ? await listLayoutOutlines() : []
+  const requestedOutline = params.outline?.trim() || DEFAULT_LAYOUT_ID
+  const layoutId = outlines.some((o) => o.id === requestedOutline)
+    ? requestedOutline
+    : DEFAULT_LAYOUT_ID
 
   return (
     <section className="admin-section admin-layouts-full">
-      <h2>Page Settings</h2>
-      <p className="lede admin-lede">
-        Site defaults and per-page overrides for document chrome (meta, assets, body, Font Awesome,
-        atoms), layout assignment, and <strong>Who can see</strong> viewing tags (same groups as
-        Nav / Layout — match ANY; empty = public). Public pages merge page → global; restricted
-        pages hide for unmatched viewers. Layout canvas:{' '}
-        <Link href="/app/admin/layouts">Layout manager</Link>.
+      <LayoutsAdminNav
+        active="page-settings"
+        outlines={
+          outlines.length
+            ? outlines.map((o) => ({ id: o.id, label: o.label }))
+            : [{ id: DEFAULT_LAYOUT_ID, label: 'Base Outline' }]
+        }
+        currentOutlineId={layoutId}
+        showOutlineSwitcher={layoutOn}
+        showLayoutTabs={layoutOn}
+        showPageSettingsTab
+      />
+      <h2 className="sr-only">Page Settings</h2>
+      <p className="lede admin-lede gantry-layouts-lede">
+        Site defaults and per-page overrides for document chrome, layout assignment, and{' '}
+        <strong>Who can see</strong> tags (match ANY; empty = public).
       </p>
       <PageSettingsForm bootstrap={bootstrap} />
     </section>

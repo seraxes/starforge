@@ -15,7 +15,7 @@ import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/sett
 
 import { LayoutEditor } from './layout-editor'
 import { LayoutOutlineProvider } from './layout-outline-context'
-import { OutlineSwitcher } from './outline-switcher'
+import { LayoutsAdminNav } from './layouts-admin-nav'
 
 export const dynamic = 'force-dynamic'
 
@@ -56,32 +56,29 @@ export default async function AdminLayoutsPage(props: { searchParams?: SearchPar
     listNavMenus(),
   ])
 
+  const pageSettingsOn = isCatalogModuleEnabled(settings, MODULE_IDS.pageSettings)
+
   return (
     <section className="admin-section layout-admin-section admin-layouts-full">
-      <h2>Layout manager</h2>
-      <p className="lede admin-lede">
+      <LayoutsAdminNav
+        active="layout"
+        outlines={outlines.map((o) => ({ id: o.id, label: o.label }))}
+        currentOutlineId={layoutId}
+        showPageSettingsTab={pageSettingsOn}
+      />
+      <h2 className="sr-only">Layout manager</h2>
+      <p className="lede admin-lede gantry-layouts-lede">
         Editing outline <strong>{outlineMeta.label}</strong> (<code>{layoutId}</code>
-        {isFallback ? ' — default until first drop/save' : ''}). Full-width Gantry Layout Manager:
-        section → row → drag particles → resize in <strong>1%</strong> steps (
-        <strong>5%–95%</strong>). Per-particle multi-select <strong>Who can see</strong> tags
-        (Public / Registered / groups — match ANY; empty = public). Manage named layouts under{' '}
-        <Link href="/app/admin/outlines">Outlines</Link>; assign via{' '}
-        <Link href="/app/admin/page-settings">Page settings</Link>. Storage:{' '}
-        <code>sf_layouts</code>.{' '}
-        <a
-          href="https://docs.gantry.org/gantry5/configure/layout-manager"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Gantry docs
-        </a>
+        {isFallback ? ' — default until first drop/save' : ''}). Drag particles · resize 1% ·{' '}
+        <Link href="/app/admin/outlines">Manage outlines</Link>
+        {pageSettingsOn ? (
+          <>
+            {' · '}
+            <Link href="/app/admin/page-settings">Page settings</Link>
+          </>
+        ) : null}
         .
       </p>
-
-      <OutlineSwitcher
-        outlines={outlines.map((o) => ({ id: o.id, label: o.label }))}
-        currentId={layoutId}
-      />
 
       <LayoutOutlineProvider layoutId={layoutId}>
         <LayoutEditor

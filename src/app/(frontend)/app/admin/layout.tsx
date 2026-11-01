@@ -107,7 +107,10 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
                     <Link href="/app/admin/layouts">Layout</Link>
                   </li>
                   <li>
-                    <Link href="/app/admin/breakpoints">Breakpoints</Link>
+                    <Link href="/app/admin/breakpoints">Styles</Link>
+                  </li>
+                  <li>
+                    <Link href="/app/admin/particle-defaults">Particle Defaults</Link>
                   </li>
                   <li>
                     <Link href="/app/admin/outlines">Outlines</Link>
