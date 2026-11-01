@@ -1,10 +1,7 @@
 import React from 'react'
 
-import {
-  canSeeNavAccessTags,
-  getAccessViewer,
-  resolveAccessTags,
-} from '@/core/acl'
+import { getAccessViewer } from '@/core/acl/access'
+import { canSeeNavAccessTags, resolveAccessTags } from '@/core/acl/nav-access'
 import { getSiteSettings, isParticleModuleEnabled } from '@/core/settings'
 import { ensureModulesRegistered } from '@/modules/catalog'
 

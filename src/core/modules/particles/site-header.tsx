@@ -1,7 +1,8 @@
 import React from 'react'
 
 import { SiteHeader } from '@/components/SiteHeader'
-import { filterNavItemsForViewer, getAccessViewer } from '@/core/acl'
+import { getAccessViewer } from '@/core/acl/access'
+import { filterNavItemsForViewer } from '@/core/acl/nav-access'
 import { MODULE_IDS, isModuleToggleEnabled } from '@/core/settings/module-toggles'
 
 import type { StarforgeModule } from '../types'

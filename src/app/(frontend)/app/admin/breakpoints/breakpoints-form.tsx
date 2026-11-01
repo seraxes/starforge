@@ -6,8 +6,8 @@ import { useRouter } from 'next/navigation'
 import {
   updateLayoutBreakpointsAction,
   type LayoutActionState,
-  type LayoutBreakpoints,
-} from '@/core/modules'
+} from '@/core/modules/actions'
+import type { LayoutBreakpoints } from '@/core/modules/styles'
 
 import { LayoutIdField, useLayoutOutlineId } from '../layouts/layout-outline-context'
 

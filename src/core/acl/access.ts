@@ -4,27 +4,14 @@ import { userIsAppAdmin } from '@/core/auth/admin'
 import { getAppSession } from '@/core/auth/session'
 
 import { listGroupIdsForUser } from './members'
-import {
-  accessTagsForStorage,
-  canSeeNavAccessLevel,
-  canSeeNavAccessTags,
-  filterNavItemsForViewer,
-  normalizeAccessTags,
-  resolveAccessTags,
-  toggleAccessTag,
-} from './nav-access'
 import { anyGroupAllowsResource } from './permissions'
 import type { AccessViewer, AclAdminResourceKey } from './types'
 
-export {
-  accessTagsForStorage,
-  canSeeNavAccessLevel,
-  canSeeNavAccessTags,
-  filterNavItemsForViewer,
-  normalizeAccessTags,
-  resolveAccessTags,
-  toggleAccessTag,
-}
+/**
+ * Session-bound ACL helpers only.
+ * Pure nav/tag helpers live in `nav-access.ts` (client-safe) — do not re-export
+ * them from this file or they inherit `server-only` via the barrel.
+ */
 
 /** Build viewer context from the current Better Auth session. */
 export async function getAccessViewer(): Promise<AccessViewer> {
