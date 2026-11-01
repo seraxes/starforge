@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 import { AccessTagsField } from '@/components/admin/AccessTagsField'
+import { GantryBarRemoveButton } from '@/components/admin/GantryBarRemoveButton'
 import { resolveAccessTags } from '@/core/acl/nav-access'
 import type { UserGroupOption } from '@/core/acl/types'
 import {
@@ -603,29 +604,27 @@ function ParticleBlock({
                       >
                         {enabled ? 'Disable' : 'Enable'}
                       </button>
-                      <button
-                        type="button"
-                        className="danger"
-                        disabled={pending}
-                        onClick={() => {
-                          const fd = withOutlineId(new FormData(), layoutId)
-                          fd.set('sectionId', sectionId)
-                          fd.set('rowId', rowId)
-                          fd.set('slotId', slot.id)
-                          startTransition(async () => {
-                            const result = await removeSlotAction({}, fd)
-                            setFlash(result)
-                            router.refresh()
-                          })
-                        }}
-                      >
-                        Remove
-                      </button>
                       <ActionFeedback state={flash} />
                     </div>
                   ),
                 },
               ]}
+            />
+            <GantryBarRemoveButton
+              label={`Remove ${displayName}`}
+              confirmMessage={`Remove “${displayName}” from this layout?`}
+              disabled={pending}
+              onConfirm={() => {
+                const fd = withOutlineId(new FormData(), layoutId)
+                fd.set('sectionId', sectionId)
+                fd.set('rowId', rowId)
+                fd.set('slotId', slot.id)
+                startTransition(async () => {
+                  const result = await removeSlotAction({}, fd)
+                  setFlash(result)
+                  router.refresh()
+                })
+              }}
             />
           </div>
         </div>
