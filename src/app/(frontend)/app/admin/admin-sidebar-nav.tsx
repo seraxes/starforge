@@ -33,37 +33,10 @@ function groupIsActive(pathname: string, group: AdminSidebarGroup): boolean {
   return group.links.some((link) => pathMatches(pathname, link.href, link.exact))
 }
 
-/** One clear SVG caret — same vocabulary as admin select chevrons (no unicode ▾/▸/▴). */
-function AdminCaret({ direction }: { direction: 'down' | 'up' | 'right' }) {
-  const d =
-    direction === 'down'
-      ? 'M3.5 5.75L8 10.25L12.5 5.75'
-      : direction === 'up'
-        ? 'M3.5 10.25L8 5.75L12.5 10.25'
-        : 'M5.75 3.5L10.25 8L5.75 12.5'
-  return (
-    <svg
-      className="admin-sidebar-caret"
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path
-        d={d}
-        stroke="currentColor"
-        strokeWidth="2.25"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
-
 /**
  * Joomla-style Core admin sidebar: collapsible groups + mobile accordion.
+ * Accordion carets are CSS SVG backgrounds on empty spans (admin-dark.css) —
+ * keep markup empty so they never double with unicode or inline SVG.
  */
 export function AdminSidebarNav({
   groups,
@@ -113,9 +86,10 @@ export function AdminSidebarNav({
           onClick={() => setMobileOpen((v) => !v)}
         >
           <span className="admin-sidebar-menu-toggle-label">Menu</span>
-          <span className="admin-sidebar-menu-toggle-icon" aria-hidden="true">
-            <AdminCaret direction={mobileOpen ? 'up' : 'down'} />
-          </span>
+          <span
+            className={`admin-sidebar-menu-toggle-icon${mobileOpen ? ' is-open' : ''}`}
+            aria-hidden="true"
+          />
         </button>
       </div>
 
@@ -163,9 +137,10 @@ export function AdminSidebarNav({
                   onClick={() => toggleGroup(group.id)}
                 >
                   <span className="admin-sidebar-group-title">{group.label}</span>
-                  <span className="admin-sidebar-group-toggle" aria-hidden="true">
-                    <AdminCaret direction={isOpen ? 'down' : 'right'} />
-                  </span>
+                  <span
+                    className={`admin-sidebar-group-toggle${isOpen ? ' is-open' : ''}`}
+                    aria-hidden="true"
+                  />
                 </button>
                 {isOpen ? (
                   <ul

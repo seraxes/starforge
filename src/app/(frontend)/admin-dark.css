@@ -390,13 +390,50 @@ body:has(.admin-shell) > main {
   color: #9eb1c7;
 }
 
+/*
+ * Accordion chevron — one CSS SVG caret (same stroke as selects).
+ * No unicode ▾/▸, no native disclosure, no dual backgrounds.
+ */
 .admin-shell .admin-sidebar-group-toggle {
-  color: #c5d2e0;
+  display: inline-block;
+  width: 1.15rem;
+  height: 1.15rem;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M5.75 3.5L10.25 8L5.75 12.5' stroke='%23c5d2e0' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 1.05rem 1.05rem;
+  color: transparent;
+  font-size: 0;
+  line-height: 0;
+  overflow: hidden;
 }
 
-.admin-shell .admin-sidebar-caret {
-  width: 1.05rem;
-  height: 1.05rem;
+.admin-shell .admin-sidebar-group-toggle.is-open {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 5.75L8 10.25L12.5 5.75' stroke='%23c5d2e0' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+.admin-shell .admin-sidebar-menu-toggle-icon {
+  display: inline-block;
+  width: 1.15rem;
+  height: 1.15rem;
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 5.75L8 10.25L12.5 5.75' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 1.05rem 1.05rem;
+  color: transparent;
+  font-size: 0;
+  line-height: 0;
+  overflow: hidden;
+}
+
+.admin-shell .admin-sidebar-menu-toggle-icon.is-open {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 10.25L8 5.75L12.5 10.25' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 /* Bright mid-blue hover/active rows (Gantry/Joomla ~#3498db) */
@@ -414,7 +451,12 @@ body:has(.admin-shell) > main {
 
 .admin-shell .admin-sidebar-group-head:hover .admin-sidebar-group-toggle,
 .admin-shell .admin-sidebar-item.is-active > .admin-sidebar-group-head .admin-sidebar-group-toggle {
-  color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M5.75 3.5L10.25 8L5.75 12.5' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+.admin-shell .admin-sidebar-group-head:hover .admin-sidebar-group-toggle.is-open,
+.admin-shell .admin-sidebar-item.is-active > .admin-sidebar-group-head .admin-sidebar-group-toggle.is-open {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 5.75L8 10.25L12.5 5.75' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 .admin-shell .admin-nav {
@@ -462,6 +504,7 @@ body:has(.admin-shell) > main {
     box-shadow: none;
   }
 }
+
 
 .admin-shell .admin-table-wrap,
 .admin-shell .admin-table th,
