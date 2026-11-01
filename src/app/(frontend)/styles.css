@@ -1749,6 +1749,19 @@ button:disabled {
   padding: 0.1rem 0.35rem;
 }
 
+.gantry-slot-access-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0.35rem 0 0;
+  max-width: 100%;
+}
+
+.gantry-slot-access-label .gantry-inline-input {
+  width: 100%;
+  max-width: 11rem;
+}
+
 .gantry-slot-meta {
   margin: 0 0 0.4rem;
   display: flex;

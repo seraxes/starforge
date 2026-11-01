@@ -14,10 +14,12 @@ import {
   reorderRowSlotsAction,
   resetLayoutToDefaultAction,
   resizeAdjacentSlotsAction,
+  setSlotAccessLevelAction,
   toggleSlotAction,
   updateLayoutSectionMetaAction,
   type LayoutActionState,
 } from '@/core/modules/actions'
+import type { UserGroupOption } from '@/core/acl/types'
 import { LayoutIdField, useLayoutOutlineId } from './layout-outline-context'
 import {
   gridWidthPercent,
@@ -44,6 +46,8 @@ type Props = {
   document: LayoutDocument
   source: 'database' | 'default-json'
   modules: ModuleOption[]
+  /** Users → Groups options for slot accessLevel stub. */
+  groups: UserGroupOption[]
   layoutId: string
   layoutLabel: string
 }
@@ -181,6 +185,7 @@ function ParticleBlock({
   rowId,
   slot,
   modules,
+  groups,
   percent,
   isDragging,
   dropEdge,
@@ -193,6 +198,7 @@ function ParticleBlock({
   rowId: string
   slot: LayoutSlot
   modules: ModuleOption[]
+  groups: UserGroupOption[]
   percent: number
   isDragging: boolean
   dropEdge: 'before' | 'after' | null
@@ -210,6 +216,13 @@ function ParticleBlock({
   const displayName = slot.name?.trim() || catalogName
   const enabled = slot.enabled !== false
   const pctLabel = widthToPercentLabel(slot.width)
+  const accessRaw = String(slot.accessLevel || 'public')
+  const accessKind: 'public' | 'registered' | 'group' = accessRaw.startsWith('group:')
+    ? 'group'
+    : accessRaw === 'registered'
+      ? 'registered'
+      : 'public'
+  const accessGroupId = accessKind === 'group' ? accessRaw.slice('group:'.length) : ''
 
   const persistName = useCallback(
     (nextRaw: string) => {
@@ -321,7 +334,77 @@ function ParticleBlock({
         <code>{slot.moduleId}</code>
         {meta?.builtin ? <span className="admin-badge">built-in</span> : null}
         {!enabled ? <span className="admin-badge admin-badge-warn">off</span> : null}
+        {accessKind !== 'public' ? (
+          <span className="admin-badge" title="View access level">
+            {accessKind === 'registered' ? 'registered' : `group:${accessGroupId || '…'}`}
+          </span>
+        ) : null}
       </p>
+      <label className="gantry-inline-label gantry-slot-access-label">
+        <span className="gantry-field-hint">Access</span>
+        <select
+          className="gantry-inline-input"
+          disabled={pending}
+          value={accessKind}
+          aria-label={`Access level for ${displayName}`}
+          onChange={(event) => {
+            const kind = event.target.value as 'public' | 'registered' | 'group'
+            const fd = withOutlineId(new FormData(), layoutId)
+            fd.set('sectionId', sectionId)
+            fd.set('rowId', rowId)
+            fd.set('slotId', slot.id)
+            fd.set('accessKind', kind)
+            if (kind === 'group') {
+              fd.set('accessGroupId', accessGroupId || groups[0]?.id || '')
+            }
+            startTransition(async () => {
+              const result = await setSlotAccessLevelAction({}, fd)
+              setFlash(result)
+              router.refresh()
+            })
+          }}
+        >
+          <option value="public">Public</option>
+          <option value="registered">Registered</option>
+          <option value="group" disabled={groups.length === 0}>
+            Group…
+          </option>
+        </select>
+      </label>
+      {accessKind === 'group' ? (
+        <label className="gantry-inline-label gantry-slot-access-label">
+          <span className="gantry-field-hint">Group</span>
+          <select
+            className="gantry-inline-input"
+            disabled={pending || groups.length === 0}
+            value={accessGroupId}
+            aria-label={`User group for ${displayName}`}
+            onChange={(event) => {
+              const fd = withOutlineId(new FormData(), layoutId)
+              fd.set('sectionId', sectionId)
+              fd.set('rowId', rowId)
+              fd.set('slotId', slot.id)
+              fd.set('accessKind', 'group')
+              fd.set('accessGroupId', event.target.value)
+              startTransition(async () => {
+                const result = await setSlotAccessLevelAction({}, fd)
+                setFlash(result)
+                router.refresh()
+              })
+            }}
+          >
+            {groups.length === 0 ? (
+              <option value="">No groups</option>
+            ) : (
+              groups.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.label}
+                </option>
+              ))
+            )}
+          </select>
+        </label>
+      ) : null}
       <div className="gantry-slot-actions">
         <button
           type="button"
@@ -374,12 +457,14 @@ function DropRow({
   sectionId,
   row,
   modules,
+  groups,
   localSlots,
   setLocalSlots,
 }: {
   sectionId: string
   row: LayoutRow
   modules: ModuleOption[]
+  groups: UserGroupOption[]
   localSlots: LayoutSlot[]
   setLocalSlots: (slots: LayoutSlot[]) => void
 }) {
@@ -556,6 +641,7 @@ function DropRow({
                   rowId={row.id}
                   slot={slot}
                   modules={modules}
+                  groups={groups}
                   percent={percent}
                   isDragging={draggingSlotId === slot.id}
                   dropEdge={
@@ -609,6 +695,7 @@ function DropRow({
 function SectionCanvas({
   section,
   modules,
+  groups,
   isDraggingSection,
   dropPosition,
   onSectionDragStart,
@@ -618,6 +705,7 @@ function SectionCanvas({
 }: {
   section: LayoutSection
   modules: ModuleOption[]
+  groups: UserGroupOption[]
   isDraggingSection: boolean
   dropPosition: 'before' | 'after' | null
   onSectionDragStart: (sectionId: string) => void
@@ -801,6 +889,7 @@ function SectionCanvas({
             sectionId={section.id}
             row={row}
             modules={modules}
+            groups={groups}
             localSlots={slotMap[row.id] ?? sortSlots(row.slots)}
             setLocalSlots={(slots) => setSlotMap((prev) => ({ ...prev, [row.id]: slots }))}
           />
@@ -816,7 +905,14 @@ function SectionCanvas({
  * 4) Drop another beside it and resize by % → drag ⋮⋮ on particles to reorder in-row →
  * sections reorder via drag handle.
  */
-export function LayoutEditor({ document, source, modules, layoutId, layoutLabel }: Props) {
+export function LayoutEditor({
+  document,
+  source,
+  modules,
+  groups,
+  layoutId,
+  layoutLabel,
+}: Props) {
   const router = useRouter()
   const outlineId = layoutId
   const [sectionPendingSave, startSectionSave] = useTransition()
@@ -987,6 +1083,7 @@ export function LayoutEditor({ document, source, modules, layoutId, layoutLabel 
                   key={section.id}
                   section={section}
                   modules={modules}
+                  groups={groups}
                   isDraggingSection={draggingSectionId === section.id}
                   dropPosition={
                     dropHint?.sectionId === section.id && draggingSectionId !== section.id

@@ -13,6 +13,7 @@ export {
   resetLayoutToDefaultAction,
   resizeAdjacentSlotsAction,
   setRowSlotWidthsAction,
+  setSlotAccessLevelAction,
   setSlotWidthAction,
   toggleSlotAction,
   updateCopyrightSlotAction,

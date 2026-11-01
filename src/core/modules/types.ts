@@ -47,6 +47,12 @@ export type LayoutSlot = {
   width: LayoutGridWidth
   enabled?: boolean
   order?: number
+  /**
+   * Joomla-style view access stub (same tokens as Nav items):
+   * `public` | `registered` | `group:<id>`. Omitted = public.
+   * Public SlotRenderer filters by session; fuller ACL UX → SF-45.
+   */
+  accessLevel?: string
   config?: LayoutSlotConfig
 }
 

@@ -2,6 +2,7 @@ import React from 'react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
+import { ensureDefaultUserGroupsSeeded, listUserGroupOptions } from '@/core/acl'
 import { DEFAULT_LAYOUT_ID } from '@/core/db'
 import {
   getLayoutOutline,
@@ -47,7 +48,11 @@ export default async function AdminLayoutsPage(props: { searchParams?: SearchPar
     id: layoutId,
     label: label || layoutId,
   }
-  const modules = await listModulesForLayoutAdmin()
+  await ensureDefaultUserGroupsSeeded()
+  const [modules, groups] = await Promise.all([
+    listModulesForLayoutAdmin(),
+    listUserGroupOptions(),
+  ])
 
   return (
     <section className="admin-section layout-admin-section admin-layouts-full">
@@ -56,7 +61,8 @@ export default async function AdminLayoutsPage(props: { searchParams?: SearchPar
         Editing outline <strong>{outlineMeta.label}</strong> (<code>{layoutId}</code>
         {isFallback ? ' — default until first drop/save' : ''}). Full-width Gantry Layout Manager:
         section → row → drag particles → resize in <strong>1%</strong> steps (
-        <strong>5%–95%</strong>). Manage named layouts under{' '}
+        <strong>5%–95%</strong>). Per-particle <strong>Access</strong> is a Joomla-style view stub
+        (public / registered / group). Manage named layouts under{' '}
         <Link href="/app/admin/outlines">Outlines</Link>; assign via{' '}
         <Link href="/app/admin/page-settings">Page settings</Link>. Storage:{' '}
         <code>sf_layouts</code>.{' '}
@@ -80,6 +86,7 @@ export default async function AdminLayoutsPage(props: { searchParams?: SearchPar
           document={document}
           source={source}
           modules={modules}
+          groups={groups}
           layoutId={layoutId}
           layoutLabel={outlineMeta.label}
         />

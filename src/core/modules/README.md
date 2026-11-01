@@ -38,7 +38,8 @@ Reference: [docs.gantry.org](https://docs.gantry.org/).
               "moduleId": "notice-bar",
               "name": "Promo notice",
               "width": 100,
-              "enabled": true
+              "enabled": true,
+              "accessLevel": "public"
             }
           ]
         }
@@ -63,6 +64,7 @@ Reference: [docs.gantry.org](https://docs.gantry.org/).
 - `section.label` — editable canvas display name (id stays stable).
 - `section.cssClass` — space-separated classes on the public section/`footer` wrapper (plus `sf-layout-section`).
 - `slot.name` — optional instance display name on the canvas; does **not** change `moduleId`.
+- `slot.accessLevel` — Joomla-style view stub (`public` / `registered` / `group:<id>`); `SlotRenderer` filters by session. Fuller ACL UX → SF-45.
 
 Legacy v1 / v2 upgrade on read.
 
