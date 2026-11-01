@@ -101,8 +101,8 @@ body:has(.admin-shell) > main {
   gap: 0.85rem 1.25rem;
   margin: 0 0 0.85rem;
   padding: 0.35rem 0.5rem;
-  background: var(--sf-admin-nav-bar);
-  border: 1px solid #243246;
+  background: #0c121c;
+  border: 1px solid #1a2433;
   border-radius: 3px;
   min-height: 2.85rem;
 }
@@ -308,12 +308,12 @@ body:has(.admin-shell) > main {
   color: var(--sf-primary-strong);
 }
 
-/* Joomla-style left sidebar — darker navy than content / palette */
+/* Joomla-style left sidebar — a few shades darker than content canvas */
 .admin-shell .admin-sidebar {
   background:
-    linear-gradient(180deg, #070b12 0%, #0a1018 48%, #080e16 100%);
-  border-right-color: #141c28;
-  box-shadow: inset -1px 0 0 color-mix(in srgb, #000 45%, transparent);
+    linear-gradient(180deg, #0c121c 0%, #0f1622 48%, #0d141e 100%);
+  border-right-color: #1a2433;
+  box-shadow: inset -1px 0 0 color-mix(in srgb, #000 40%, transparent);
 }
 
 .admin-shell .admin-sidebar-title {
@@ -406,8 +406,8 @@ body:has(.admin-shell) > main {
 
 @media (max-width: 900px) {
   .admin-shell .admin-sidebar {
-    background: #070b12;
-    border-bottom-color: #141c28;
+    background: #0c121c;
+    border-bottom-color: #1a2433;
     box-shadow: none;
   }
 }
@@ -533,8 +533,8 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .gantry-palette {
-  background: #0a1018;
-  border: 1px solid #141c28;
+  background: #1b2531;
+  border: 1px solid #243246;
   border-radius: 3px;
   padding: 0.55rem 0.55rem 0.65rem;
 }
