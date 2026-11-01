@@ -14,18 +14,18 @@ type Props = {
   triggerLabel?: string
   /** Single-pane body when `tabs` is omitted. */
   children?: React.ReactNode
-  /** Tabbed body — use for Config / Access / Particle. */
+  /** Tabbed body — Helium-style Particle / Block / Inheritance chrome. */
   tabs?: ParticleSettingsTab[]
   /** When true, render only the body (no gear trigger / portal). */
   embedded?: boolean
 }
 
-const PANEL_WIDTH = 440
+const PANEL_WIDTH = 460
 const VIEW_PAD = 12
 
 /**
  * Particle settings as a floating overlay — does not expand the slot or push the row.
- * Opens on click. Portal is dark Gantry-styled (outside `.admin-shell`).
+ * Opens on click. Portal is dark Gantry Helium–styled (outside `.admin-shell`).
  */
 export function ParticleSettingsPopover({
   title,
@@ -109,27 +109,30 @@ export function ParticleSettingsPopover({
     first?.focus()
   }, [open, activeTab])
 
-  const body = tabs?.length ? (
+  const tablist = tabs?.length ? (
+    <div className="gantry-settings-tablist" role="tablist" aria-label={title} id={tablistId}>
+      {tabs.map((tab) => {
+        const selected = tab.id === activeTab
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            id={`${tablistId}-${tab.id}`}
+            aria-selected={selected}
+            aria-controls={`${tablistId}-panel-${tab.id}`}
+            className={selected ? 'gantry-settings-tab is-active' : 'gantry-settings-tab'}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.label}
+          </button>
+        )
+      })}
+    </div>
+  ) : null
+
+  const panels = tabs?.length ? (
     <div className="gantry-settings-tabs">
-      <div className="gantry-settings-tablist" role="tablist" aria-label={title} id={tablistId}>
-        {tabs.map((tab) => {
-          const selected = tab.id === activeTab
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              id={`${tablistId}-${tab.id}`}
-              aria-selected={selected}
-              aria-controls={`${tablistId}-panel-${tab.id}`}
-              className={selected ? 'gantry-settings-tab is-active' : 'gantry-settings-tab'}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              {tab.label}
-            </button>
-          )
-        })}
-      </div>
       {tabs.map((tab) => {
         const selected = tab.id === activeTab
         return (
@@ -151,7 +154,12 @@ export function ParticleSettingsPopover({
   )
 
   if (embedded) {
-    return <div className="gantry-settings-embedded">{body}</div>
+    return (
+      <div className="gantry-settings-embedded">
+        {tablist}
+        {panels}
+      </div>
+    )
   }
 
   return (
@@ -194,19 +202,21 @@ export function ParticleSettingsPopover({
                   ),
                 }}
               >
+                {/* Helium: tabs sit on the dark chrome strip at the top */}
+                {tablist ? <div className="gantry-settings-panel-tabs">{tablist}</div> : null}
                 <header className="gantry-settings-panel-head">
                   <h3 id={titleId}>{title}</h3>
                   <button
                     type="button"
-                    className="secondary"
+                    className="gantry-settings-cancel"
                     data-sf-settings-close=""
-                    aria-label="Close settings"
+                    aria-label="Cancel"
                     onClick={() => setOpen(false)}
                   >
-                    Close
+                    Cancel
                   </button>
                 </header>
-                <div className="gantry-settings-panel-body">{body}</div>
+                <div className="gantry-settings-panel-body">{panels}</div>
               </div>
             </div>,
             document.body,

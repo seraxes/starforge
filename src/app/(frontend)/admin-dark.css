@@ -962,19 +962,19 @@ body:has(.admin-shell) > main {
   background-color: color-mix(in srgb, var(--sf-admin-blue-mid) 35%, transparent);
 }
 
-/* Helium particle/section settings portal (document.body) */
+/* Helium particle/section settings portal — match logo/block/inheritance/custom refs */
 .gantry-settings-theme-dark {
-  --sf-admin-bg: #212933;
-  --sf-admin-bg-deep: #1a222e;
-  --sf-admin-surface: #2a3240;
-  --sf-admin-elevated: #323b4c;
-  --sf-admin-input: #1b2431;
-  --sf-admin-blue-border: #3a4a63;
+  --sf-admin-bg: #1d2531;
+  --sf-admin-bg-deep: #161e27;
+  --sf-admin-surface: #1d2531;
+  --sf-admin-elevated: #2d3a4b;
+  --sf-admin-input: #161e27;
+  --sf-admin-blue-border: #2f3d50;
   --sf-admin-blue-mid: #3498db;
-  --sf-admin-blue-action: #3b82b8;
+  --sf-admin-blue-action: #3182ce;
   --sf-ink: #ffffff;
   --sf-muted: #9aa8bc;
-  --sf-line: #3a4a63;
+  --sf-line: #2f3d50;
   --sf-primary: #f2a66a;
   --sf-primary-strong: #f5b888;
   --sf-primary-ink: #1c2834;
@@ -983,46 +983,34 @@ body:has(.admin-shell) > main {
 }
 
 .gantry-settings-theme-dark .gantry-settings-backdrop {
-  background: color-mix(in srgb, #0a1018 52%, transparent);
+  background: color-mix(in srgb, #0a1018 55%, transparent);
 }
 
 .gantry-settings-theme-dark .gantry-settings-panel {
-  background: #2a3240;
-  border: 1px solid #3a4a63;
+  background: #1d2531;
+  border: 1px solid #2f3d50;
   border-radius: 3px;
   color: #fff;
+  overflow: hidden;
   box-shadow:
-    0 18px 42px color-mix(in srgb, #000 52%, transparent),
+    0 18px 42px color-mix(in srgb, #000 55%, transparent),
     0 2px 10px color-mix(in srgb, #000 30%, transparent);
 }
 
-.gantry-settings-theme-dark .gantry-settings-panel-head {
-  background: #323b4c;
-  border-bottom: 1px solid #3a4a63;
-  padding: 0.55rem 0.75rem;
+/* Top chrome strip holding Particle / Block / Inheritance–style tabs */
+.gantry-settings-theme-dark .gantry-settings-panel-tabs {
+  background: #161e27;
+  border-bottom: 1px solid #2f3d50;
+  padding: 0.35rem 0.45rem 0;
 }
 
-.gantry-settings-theme-dark .gantry-settings-panel-head h3 {
-  color: #fff;
-  font-size: 0.95rem;
-  font-weight: 650;
-}
-
-.gantry-settings-theme-dark .gantry-settings-panel-body {
-  color: #fff;
-  background: #2a3240;
-  padding: 0.7rem 0.75rem 0.85rem;
-}
-
-/* Helium tabs: quiet inactive, active = lighter strip + blue underline */
 .gantry-settings-theme-dark .gantry-settings-tablist {
   display: flex;
   flex-wrap: wrap;
-  gap: 0;
-  margin: 0 0 0.85rem;
+  gap: 0.15rem;
+  margin: 0;
   padding: 0;
   border: 0;
-  border-bottom: 1px solid #3a4a63;
   border-radius: 0;
   background: transparent;
 }
@@ -1030,34 +1018,65 @@ body:has(.admin-shell) > main {
 .gantry-settings-theme-dark .gantry-settings-tab {
   appearance: none;
   border: 0;
-  border-bottom: 2px solid transparent;
   background: transparent;
-  color: #9aa8bc;
+  color: #8b98ab;
   font: inherit;
   font-weight: 650;
-  font-size: 0.82rem;
-  padding: 0.45rem 0.85rem;
-  border-radius: 0;
-  margin-bottom: -1px;
+  font-size: 0.84rem;
+  padding: 0.5rem 0.95rem;
+  border-radius: 3px 3px 0 0;
   cursor: pointer;
+  line-height: 1.2;
 }
 
 .gantry-settings-theme-dark .gantry-settings-tab:hover {
   color: #fff;
-  background: color-mix(in srgb, #fff 4%, transparent);
+  background: color-mix(in srgb, #2d3a4b 55%, transparent);
 }
 
 .gantry-settings-theme-dark .gantry-settings-tab.is-active,
 .gantry-settings-theme-dark .gantry-settings-tab[aria-selected='true'] {
-  background: color-mix(in srgb, #3498db 14%, #2a3240);
-  border-bottom-color: #3498db;
+  background: #2d3a4b;
   color: #fff;
+  box-shadow: none;
+  border-bottom: 0;
+}
+
+.gantry-settings-theme-dark .gantry-settings-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  background: #1d2531;
+  border-bottom: 1px solid #2f3d50;
+  padding: 0.65rem 0.85rem;
+}
+
+.gantry-settings-theme-dark .gantry-settings-panel-head h3 {
+  margin: 0;
+  color: #fff;
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+
+.gantry-settings-theme-dark .gantry-settings-panel-body {
+  color: #fff;
+  background: #1d2531;
+  padding: 0.75rem 0.85rem 0.9rem;
 }
 
 .gantry-settings-theme-dark .gantry-settings-tabpanel {
   color: #fff;
 }
 
+.gantry-settings-theme-dark .gantry-settings-embedded .gantry-settings-tablist {
+  margin: 0 0 0.75rem;
+  padding: 0.25rem 0.25rem 0;
+  background: #161e27;
+  border-bottom: 1px solid #2f3d50;
+}
+
+/* Dense Helium field rows: muted labels, near-black inputs */
 .gantry-settings-theme-dark label,
 .gantry-settings-theme-dark .gantry-typed-form > label,
 .gantry-settings-theme-dark .gantry-custom-title,
@@ -1072,8 +1091,27 @@ body:has(.admin-shell) > main {
 }
 
 .gantry-settings-theme-dark .gantry-typed-form > label > span,
-.gantry-settings-theme-dark .gantry-custom-title > span {
+.gantry-settings-theme-dark .gantry-custom-title > span,
+.gantry-settings-theme-dark .sf-code-field-label {
   color: #9aa8bc;
+}
+
+.gantry-settings-theme-dark .gantry-typed-form {
+  gap: 0.55rem;
+}
+
+.gantry-settings-theme-dark .gantry-typed-form > label,
+.gantry-settings-theme-dark .gantry-custom-title,
+.gantry-settings-theme-dark .gantry-typed-row > label {
+  gap: 0.28rem;
+  padding: 0.15rem 0;
+  border-bottom: 1px solid color-mix(in srgb, #2f3d50 55%, transparent);
+  padding-bottom: 0.45rem;
+}
+
+.gantry-settings-theme-dark .gantry-typed-form > label:last-of-type,
+.gantry-settings-theme-dark .gantry-typed-row > label:last-of-type {
+  border-bottom: 0;
 }
 
 .gantry-settings-theme-dark input[type='text'],
@@ -1082,33 +1120,57 @@ body:has(.admin-shell) > main {
 .gantry-settings-theme-dark input[type='email'],
 .gantry-settings-theme-dark textarea,
 .gantry-settings-theme-dark select {
-  background: #1b2431 !important;
-  border: 1px solid #3a4a63 !important;
+  background: #161e27 !important;
+  border: 1px solid #2f3d50 !important;
   border-radius: 3px;
   color: #fff !important;
   box-shadow: none !important;
+  min-height: 2rem;
+  padding: 0.35rem 0.5rem !important;
 }
 
 .gantry-settings-theme-dark .sf-code-field-panel {
-  background: #1b2431;
-  border-color: #3a4a63;
+  background: #161e27;
+  border-color: #2f3d50;
+  border-radius: 3px;
 }
 
-/* Close / secondary = Cancel ghost; submit Save = Starforge orange */
-.gantry-settings-theme-dark .gantry-settings-panel-head button,
+.gantry-settings-theme-dark .gantry-color-swatch {
+  border-color: #2f3d50;
+  background: #161e27;
+}
+
+/* Helium footer actions: Apply blue · Save orange · Cancel dark */
+.gantry-settings-theme-dark .gantry-settings-cancel,
+.gantry-settings-theme-dark .gantry-settings-panel-head .gantry-settings-cancel {
+  background: #2a3340;
+  border: 1px solid #3a4a5c;
+  color: #fff;
+  border-radius: 3px;
+  font: inherit;
+  font-weight: 650;
+  font-size: 0.82rem;
+  padding: 0.4rem 0.75rem;
+  cursor: pointer;
+}
+
+.gantry-settings-theme-dark .gantry-settings-cancel:hover {
+  background: #323b4c;
+}
+
 .gantry-settings-theme-dark .gantry-settings-panel .gantry-typed-form button.secondary,
 .gantry-settings-theme-dark .gantry-settings-panel .gantry-custom-form button.secondary,
 .gantry-settings-theme-dark .gantry-slot-extra-actions button.secondary {
-  background: #323b4c;
-  border: 1px solid #4a5a73;
-  color: #d5deea;
+  background: #3182ce;
+  border: 1px solid #2a6faf;
+  color: #fff;
   border-radius: 3px;
 }
 
 .gantry-settings-theme-dark .gantry-settings-panel .gantry-typed-form button:not(.secondary):not(.danger):not([type='submit']),
 .gantry-settings-theme-dark .gantry-settings-panel .gantry-custom-form button:not(.secondary):not(.danger):not([type='submit']) {
-  background: #3b82b8;
-  border: 1px solid #2f6a96;
+  background: #3182ce;
+  border: 1px solid #2a6faf;
   color: #fff;
   border-radius: 3px;
 }
@@ -1119,20 +1181,27 @@ body:has(.admin-shell) > main {
   border: 1px solid color-mix(in srgb, #f2a66a 65%, #f5b888);
   color: #1c2834;
   border-radius: 3px;
+  font-weight: 700;
 }
 
 .gantry-settings-theme-dark .gantry-settings-panel .gantry-typed-form button.danger,
 .gantry-settings-theme-dark .gantry-settings-panel .gantry-custom-form button.danger,
 .gantry-settings-theme-dark .gantry-slot-extra-actions button.danger {
-  background: color-mix(in srgb, #c45c5c 28%, #2a3240);
-  border-color: color-mix(in srgb, #c45c5c 45%, #3a4a63);
+  background: color-mix(in srgb, #c45c5c 28%, #1d2531);
+  border-color: color-mix(in srgb, #c45c5c 45%, #2f3d50);
   color: #f0b4b4;
 }
 
 .gantry-settings-theme-dark .gantry-particle-attrs {
-  border-bottom-color: #3a4a63;
-  padding-bottom: 0.75rem;
-  margin-bottom: 0.15rem;
+  border-bottom-color: #2f3d50;
+  padding-bottom: 0.7rem;
+  margin-bottom: 0.2rem;
+}
+
+.gantry-settings-theme-dark .gantry-particle-attrs button[type='submit'].secondary {
+  background: #3182ce;
+  border-color: #2a6faf;
+  color: #fff;
 }
 
 .gantry-settings-theme-dark .admin-inline-ok {
@@ -1148,8 +1217,8 @@ body:has(.admin-shell) > main {
   color: #d5deea;
 }
 
-.gantry-settings-theme-dark .gantry-typed-form {
-  gap: 0.65rem;
+.gantry-settings-theme-dark .gantry-slot-extra-actions {
+  padding-top: 0.25rem;
 }
 
 .admin-shell .layout-id {
@@ -1184,9 +1253,17 @@ body:has(.admin-shell) > main {
 }
 
 /* Page settings / outlines / nav / forms on dark */
+/* Global Page Settings / Styles — Helium collapsible panel chrome */
 .admin-shell .page-settings-panel-head {
-  background: color-mix(in srgb, var(--sf-secondary) 12%, var(--sf-admin-surface));
-  border-bottom-color: var(--sf-line);
+  background: #121a24;
+  border-bottom: 1px solid #2f3d50;
+  color: #fff;
+}
+
+.admin-shell .page-settings-panel-head h3 {
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 700;
 }
 
 .admin-shell .page-settings-atom-pill {
@@ -1221,16 +1298,33 @@ body:has(.admin-shell) > main {
   color: var(--sf-ink);
 }
 
+/* Helium info/callout bars (login CSS / atom version banners) */
 .admin-shell .cms-bridge-password-hint,
 .admin-shell .clarity-callout,
 .admin-shell .notice-banner {
-  background: color-mix(in srgb, var(--sf-secondary) 14%, var(--sf-admin-surface));
-  color: var(--sf-ink);
+  background: #2f7f9e;
+  color: #fff;
+  border: 0;
+  border-radius: 3px;
+  padding: 0.65rem 0.85rem;
+}
+
+.admin-shell .clarity-callout a,
+.admin-shell .notice-banner a {
+  color: #dff3ff;
 }
 
 .admin-shell .notice-banner {
-  background: color-mix(in srgb, var(--sf-secondary) 16%, var(--sf-admin-surface));
-  border-left-color: var(--sf-secondary-strong);
+  background: #2f7f9e;
+  border-left: 0;
+}
+
+.admin-shell .admin-info-ok,
+.admin-shell .gantry-atom-banner {
+  background: #3c763d;
+  color: #fff;
+  border-radius: 3px;
+  padding: 0.55rem 0.75rem;
 }
 
 .admin-shell .cms-switch-track {
@@ -1248,10 +1342,11 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .breakpoints-form,
-.admin-shell .layout-outline-switcher-form {
-  background: color-mix(in srgb, var(--sf-secondary) 8%, var(--sf-admin-surface));
-  border: 1px solid var(--sf-line);
-  border-radius: 4px;
+.admin-shell .layout-outline-switcher-form,
+.admin-shell .settings-fieldset {
+  background: color-mix(in srgb, var(--sf-secondary) 6%, #1b2432);
+  border: 1px solid #2f3d50;
+  border-radius: 3px;
   box-sizing: border-box;
 }
 
@@ -1259,15 +1354,28 @@ body:has(.admin-shell) > main {
   padding: 1rem 1.1rem 1.15rem;
 }
 
-/* Styles · Breakpoints content card — roomy inner padding so fields aren't edge-flush */
+/* Styles · Breakpoints — Helium dense field card + wash behind */
 .admin-shell .breakpoints-form {
   max-width: 48rem;
-  padding: 1.5rem 1.75rem 1.65rem;
+  padding: 1.25rem 1.35rem 1.4rem;
+}
+
+.admin-shell .breakpoints-form .settings-field,
+.admin-shell .settings-fieldset .settings-field {
+  border-bottom: 1px solid color-mix(in srgb, #2f3d50 65%, transparent);
+  padding-bottom: 0.65rem;
+  margin-bottom: 0.65rem;
+}
+
+.admin-shell .breakpoints-form .settings-field:last-of-type,
+.admin-shell .settings-fieldset .settings-field:last-of-type {
+  border-bottom: 0;
+  margin-bottom: 0.35rem;
 }
 
 @media (max-width: 640px) {
   .admin-shell .breakpoints-form {
-    padding: 1.25rem 1.15rem 1.35rem;
+    padding: 1.1rem 1rem 1.2rem;
   }
 }
 
@@ -1371,10 +1479,25 @@ body:has(.admin-shell) > main {
 .admin-shell .page-settings-panel {
   border-radius: 3px;
   overflow: hidden;
+  background: #1b2432;
+  border: 1px solid #2f3d50;
 }
 
 .admin-shell .page-settings-panel-body {
-  background: color-mix(in srgb, var(--sf-secondary) 4%, var(--sf-admin-surface));
+  background: #1b2432;
+  padding: 0.75rem 0.85rem;
+}
+
+.admin-shell .page-settings-toolbar {
+  gap: 0.55rem;
+  margin-bottom: 0.85rem;
+}
+
+.admin-shell .page-settings-actions button[type='submit'],
+.admin-shell .page-settings-toolbar button.primary {
+  background: var(--sf-primary);
+  border-color: color-mix(in srgb, var(--sf-primary) 65%, var(--sf-primary-strong));
+  color: var(--sf-primary-ink);
 }
 
 .admin-shell .nav-item-card-head,
@@ -1403,9 +1526,29 @@ body:has(.admin-shell) > main {
 
 /* Section settings flyout — same Helium modal vocabulary */
 .admin-shell .gantry-section-settings[open] > .gantry-section-toolbar {
-  background: #2a3240;
-  border: 1px solid #3a4a63;
+  background: #262e3d;
+  border: 1px solid #2f3d50;
   border-radius: 3px;
+}
+
+/* Atom/Headroom-style modal green status strip helper */
+.gantry-settings-theme-dark .gantry-atom-banner,
+.gantry-settings-theme-dark .admin-info-ok {
+  display: block;
+  margin-top: 0.65rem;
+  background: #3c763d;
+  color: #fff;
+  border-radius: 3px;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.82rem;
+}
+
+.gantry-settings-theme-dark .clarity-callout,
+.gantry-settings-theme-dark .cms-bridge-password-hint {
+  background: #2f7f9e;
+  color: #fff;
+  border-radius: 3px;
+  padding: 0.55rem 0.75rem;
 }
 
 /* Padded admin pages keep Site Settings blue radial wash (shell default).
