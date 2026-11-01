@@ -308,6 +308,68 @@ body:has(.admin-shell) > main {
   color: var(--sf-primary-strong);
 }
 
+/* Joomla-style left sidebar (dark Helium chrome) */
+.admin-shell .admin-sidebar {
+  background:
+    linear-gradient(180deg, #172033 0%, #1b2533 55%, #1a222e 100%);
+  border-right-color: #243246;
+  box-shadow: inset -1px 0 0 color-mix(in srgb, #000 25%, transparent);
+}
+
+.admin-shell .admin-sidebar-title {
+  color: #fff;
+}
+
+.admin-shell .admin-sidebar-menu-toggle {
+  background: var(--sf-admin-surface);
+  border-color: #314257;
+  color: #fff;
+}
+
+.admin-shell .admin-sidebar-menu-toggle:hover {
+  background: var(--sf-admin-nav-active);
+  border-color: var(--sf-admin-blue-border);
+}
+
+.admin-shell .admin-sidebar-link,
+.admin-shell .admin-sidebar-group-title {
+  color: #e8eef8;
+}
+
+.admin-shell .admin-sidebar-sub {
+  border-left-color: #314257;
+}
+
+.admin-shell .admin-sidebar-sublink {
+  color: #9eb1c7;
+}
+
+.admin-shell .admin-sidebar-group-toggle {
+  color: #8fa3bb;
+}
+
+.admin-shell .admin-sidebar-link:hover,
+.admin-shell .admin-sidebar-group-title:hover,
+.admin-shell .admin-sidebar-sublink:hover,
+.admin-shell .admin-sidebar-group-toggle:hover {
+  background: var(--sf-admin-nav-active);
+  color: #fff;
+}
+
+.admin-shell .admin-sidebar-link.is-current,
+.admin-shell .admin-sidebar-group-title.is-current,
+.admin-shell .admin-sidebar-sublink.is-current,
+.admin-shell .admin-sidebar-item.is-active > .admin-sidebar-link {
+  background: var(--sf-admin-nav-active);
+  color: #fff;
+  box-shadow: inset 3px 0 0 var(--sf-admin-blue-mid);
+}
+
+.admin-shell .admin-sidebar-item.is-active > .admin-sidebar-group-head {
+  background: color-mix(in srgb, var(--sf-admin-nav-active) 70%, transparent);
+  border-radius: 3px;
+}
+
 .admin-shell .admin-nav {
   gap: 0.35rem;
   padding-bottom: 0.85rem;
@@ -344,6 +406,14 @@ body:has(.admin-shell) > main {
 .admin-shell .admin-nav-dropdown-menu a:focus-visible {
   background: color-mix(in srgb, var(--sf-secondary) 22%, var(--sf-admin-surface));
   color: var(--sf-secondary-strong);
+}
+
+@media (max-width: 900px) {
+  .admin-shell .admin-sidebar {
+    background: #172033;
+    border-bottom-color: #243246;
+    box-shadow: none;
+  }
 }
 
 .admin-shell .admin-table-wrap,

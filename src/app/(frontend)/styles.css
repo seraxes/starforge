@@ -564,17 +564,183 @@ button:disabled {
   padding: 3rem 1.5rem;
 }
 
-/* Core admin (`/app/admin/*`) — full-bleed content width (no boxed shell) */
+/* Core admin (`/app/admin/*`) — left sidebar + full-bleed content */
 .admin-shell {
   min-height: 100vh;
   width: 100%;
   max-width: none;
   margin: 0;
-  padding: 2rem 1.5rem 3rem;
+  padding: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0;
+}
+
+.admin-sidebar {
+  flex: 0 0 15.5rem;
+  width: 15.5rem;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.15rem 0.85rem 2rem;
+  border-right: 1px solid var(--sf-line);
+  background: color-mix(in srgb, var(--sf-secondary) 8%, transparent);
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  max-height: 100vh;
+  overflow-y: auto;
+}
+
+.admin-sidebar-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.admin-sidebar-brand .brand {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.admin-sidebar-title {
+  margin: 0.2rem 0 0;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.admin-sidebar-menu-toggle {
+  display: none;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--sf-line);
+  background: color-mix(in srgb, var(--sf-secondary) 14%, transparent);
+  color: var(--sf-secondary-strong);
+  font: inherit;
+  font-weight: 650;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.admin-sidebar-who {
+  padding: 0 0.15rem;
+}
+
+.admin-sidebar-who .admin-who {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.admin-sidebar-nav {
+  margin-top: 0.25rem;
+}
+
+.admin-sidebar-list,
+.admin-sidebar-sub {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-sidebar-item {
+  margin: 0 0 0.2rem;
+}
+
+.admin-sidebar-link,
+.admin-sidebar-group-title,
+.admin-sidebar-sublink {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  text-decoration: none;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: var(--sf-ink);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.admin-sidebar-link,
+.admin-sidebar-group-head {
+  padding: 0.45rem 0.6rem;
+  border-radius: 3px;
+}
+
+.admin-sidebar-group-head {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.admin-sidebar-group-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0;
+}
+
+.admin-sidebar-group-toggle {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0.15rem 0.35rem;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--sf-muted);
+  font: inherit;
+  font-size: 0.75rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.admin-sidebar-sub {
+  margin: 0.1rem 0 0.35rem;
+  padding: 0.15rem 0 0.15rem 0.55rem;
+  border-left: 2px solid color-mix(in srgb, var(--sf-secondary) 35%, var(--sf-line));
+}
+
+.admin-sidebar-sublink {
+  padding: 0.35rem 0.55rem;
+  border-radius: 3px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--sf-muted);
+}
+
+.admin-sidebar-link:hover,
+.admin-sidebar-group-title:hover,
+.admin-sidebar-sublink:hover,
+.admin-sidebar-group-toggle:hover {
+  background: color-mix(in srgb, var(--sf-secondary) 16%, transparent);
+  color: var(--sf-secondary-strong);
+}
+
+.admin-sidebar-link.is-current,
+.admin-sidebar-group-title.is-current,
+.admin-sidebar-sublink.is-current,
+.admin-sidebar-item.is-active > .admin-sidebar-link {
+  background: color-mix(in srgb, var(--sf-secondary) 22%, transparent);
+  color: var(--sf-secondary-strong);
+}
+
+.admin-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
   gap: 1.25rem;
+  padding: 2rem 1.5rem 3rem;
+  box-sizing: border-box;
 }
 
 .admin-shell .admin-main,
@@ -594,8 +760,8 @@ button:disabled {
  * - `.admin-layouts-padded` — Styles / Page settings / Particle Defaults / Outlines
  * Both share the same full-bleed content width as other Core admin pages.
  */
-.admin-shell:has(.admin-layouts-full),
-.admin-shell:has(.gantry-editor) {
+.admin-shell:has(.admin-layouts-full) .admin-body,
+.admin-shell:has(.gantry-editor) .admin-body {
   padding: 1.25rem 1.25rem 2.5rem;
 }
 
@@ -607,14 +773,53 @@ button:disabled {
   box-sizing: border-box;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 900px) {
   .admin-shell {
-    padding: 1.5rem 1.15rem 2rem;
+    flex-direction: column;
   }
 
-  .admin-shell:has(.admin-layouts-full),
-  .admin-shell:has(.gantry-editor) {
+  .admin-sidebar {
+    flex: 0 0 auto;
+    width: 100%;
+    border-right: 0;
+    border-bottom: 1px solid var(--sf-line);
+    padding: 0.85rem 1rem 0.75rem;
+    position: relative;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .admin-sidebar-menu-toggle {
+    display: inline-flex;
+  }
+
+  .admin-sidebar-who,
+  .admin-sidebar-nav {
+    display: none;
+  }
+
+  .admin-sidebar[data-mobile-open='true'] .admin-sidebar-who,
+  .admin-sidebar[data-mobile-open='true'] .admin-sidebar-nav {
+    display: block;
+  }
+
+  .admin-sidebar[data-mobile-open='true'] .admin-sidebar-who {
+    margin-bottom: 0.35rem;
+  }
+
+  .admin-body {
+    padding: 1.35rem 1.15rem 2rem;
+  }
+
+  .admin-shell:has(.admin-layouts-full) .admin-body,
+  .admin-shell:has(.gantry-editor) .admin-body {
     padding: 1.15rem 1rem 2rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-body {
+    padding: 1.15rem 1rem 1.75rem;
   }
 }
 
@@ -646,6 +851,7 @@ button:disabled {
   align-self: flex-start;
 }
 
+/* Legacy horizontal nav kept for any leftover markup; Core admin uses sidebar. */
 .admin-nav {
   display: flex;
   flex-wrap: wrap;
@@ -663,7 +869,6 @@ button:disabled {
   font-weight: 600;
 }
 
-/* Gantry-like: hover/focus reveals submenu; parent click still goes to default child. */
 .admin-nav-dropdown {
   position: relative;
   display: inline-flex;
@@ -694,7 +899,6 @@ button:disabled {
   border: 1px solid var(--sf-line);
   background: #fff;
   box-shadow: 0 8px 20px color-mix(in srgb, var(--sf-ink) 12%, transparent);
-  /* Keep a hover bridge so the menu does not vanish in the 1px gap. */
   padding-top: 0.45rem;
   margin-top: 0;
   visibility: hidden;
