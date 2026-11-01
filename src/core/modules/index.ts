@@ -19,8 +19,10 @@ export {
   toggleSlotAction,
   updateCopyrightSlotAction,
   updateCustomSlotAction,
+  updateFormSlotAction,
   updateLayoutSectionMetaAction,
   updateLogoSlotAction,
+  updateMenuSlotAction,
   updateSocialSlotAction,
 } from './actions'
 export type { LayoutActionState } from './actions'
@@ -35,6 +37,13 @@ export {
   serializeLayoutDocument,
   slugifyLayoutId,
 } from './document'
+export {
+  compareLayoutSectionsByOrder,
+  isFooterLayoutSection,
+  partitionSectionsForPublicPaint,
+  reindexLayoutSectionOrders,
+  sortLayoutSectionsByOrder,
+} from './section-order'
 export {
   clampGridWidth,
   evenColumnWidths,

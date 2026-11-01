@@ -11,8 +11,9 @@ Reference: [docs.gantry.org](https://docs.gantry.org/).
 | Piece | Path |
 | --- | --- |
 | Register API | `registerModule()` in `registry.ts` |
-| Built-in particles | `page-content`, `site-header`, `logo`, `copyright`, `social`, `custom` · `particles/` |
+| Built-in particles | `page-content`, `site-header`, `logo` (image/text), `menu`, `copyright`, `social`, `custom` · `particles/` |
 | Example extension | `src/modules/notice-bar/` |
+| Core Form | `src/modules/form/` · submissions `sf_form_submissions` · Admin `/app/admin/forms` |
 | Layout document (v3) | sections → rows → slots (`moduleId` + `width` %) |
 | Storage | `sf_layouts` JSON · fallback `default-layout.json` |
 | Admin UI | `/app/admin/layouts` — palette + canvas |

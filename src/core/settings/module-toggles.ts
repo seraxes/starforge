@@ -21,6 +21,7 @@ export const MODULE_IDS = {
   richEditor: 'product:rich-editor',
   posts: 'product:posts',
   draftPreview: 'product:draft-preview',
+  forms: 'product:forms',
 } as const
 
 /** Core pieces that cannot be turned off. */

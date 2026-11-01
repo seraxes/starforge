@@ -9,6 +9,8 @@ import { isExternalHref, isNavItemActive } from '@/core/settings/nav'
 
 type Props = {
   items: NavItem[]
+  /** Accessible name for the nav landmark (default: Primary). */
+  ariaLabel?: string
 }
 
 function linkClassName(item: NavItem, active: boolean): string | undefined {
@@ -22,13 +24,13 @@ function linkClassName(item: NavItem, active: boolean): string | undefined {
  * Primary header links with active state for the current path.
  * Optional per-item CSS class comes from Nav manager.
  */
-export function SiteNav({ items }: Props) {
+export function SiteNav({ items, ariaLabel = 'Primary' }: Props) {
   const pathname = usePathname() || '/'
 
   if (items.length === 0) return null
 
   return (
-    <nav className="site-nav" aria-label="Primary">
+    <nav className="site-nav" aria-label={ariaLabel || 'Primary'}>
       {items.map((item) => {
         const active = isNavItemActive(pathname, item.href)
         const className = linkClassName(item, active)

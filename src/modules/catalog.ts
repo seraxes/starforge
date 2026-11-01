@@ -1,6 +1,7 @@
 import { builtinParticles } from '@/core/modules/particles'
 import { registerModule } from '@/core/modules/registry'
 
+import { formModule } from './form'
 import { noticeBarModule } from './notice-bar'
 
 let registered = false
@@ -15,5 +16,6 @@ export function ensureModulesRegistered(): void {
     registerModule(particle)
   }
   registerModule(noticeBarModule)
+  registerModule(formModule)
   registered = true
 }

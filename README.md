@@ -85,6 +85,7 @@ Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so coo
 | http://localhost:3000/app/admin/site-chrome | Starforge admin — **Site Chrome** (offline, metadata, robots, cookies) |
 | http://localhost:3000/app/admin/settings | Starforge admin — Modules on/off + primary nav menu assignment |
 | http://localhost:3000/app/admin/nav | Starforge admin — **Nav** manager (navigation sets + items) |
+| http://localhost:3000/app/admin/forms | Starforge admin — **Forms** submissions (Core Form particle) |
 | http://localhost:3000/robots.txt | Site Chrome robots.txt snippet |
 | http://localhost:3000/app/admin/layouts | Starforge admin — **Layouts** (hover submenu) → **Layout** canvas (default) |
 | http://localhost:3000/app/admin/page-settings | Starforge admin — **Layouts → Page settings** (Head / Assets / Body / FA / Atoms) |
@@ -121,9 +122,11 @@ Global app admins still open all Core admin today; the matrix is the enforcement
 
 ### Site Chrome + Site settings + Nav
 
-**Site Chrome** (`/app/admin/site-chrome`, `sf_site_chrome`) is the top-level policy panel: site offline (+ message), default captcha stub, site metadata (name / description / OG image), robots meta + `/robots.txt`, content rights, cookie domain/path. Offline mode blocks public visitors; app admins still browse (banner) and can sign in via `/login`.
+**Site Chrome** (`/app/admin/site-chrome`, `sf_site_chrome`) is the top-level policy panel: site offline (+ message), default captcha (enable + provider; Turnstile keys in env), site metadata (name / description / OG image), robots meta + `/robots.txt`, content rights, cookie domain/path. Offline mode blocks public visitors; app admins still browse (banner) and can sign in via `/login`.
 
 **Nav** is a **top-level** Core admin item (`/app/admin/nav`, sibling of Users / Site Chrome / Site settings / Layouts): multiple named **navigation sets** (menus) in `sf_nav_menus`, each with items (CMS page, URL, or module view; reorder; copy/paste; CSS class; browser/page title; multi-select access tags). Site Settings only **assigns** which set is the site primary header menu — not nested under Site Chrome.
+
+**Forms** (`/app/admin/forms`, gated by Modules → **Forms** / `product:forms`) lists submissions from the Core **Form** layout particle (`sf_form_submissions`). Place the particle on the layout canvas; optional Site Chrome captcha (Turnstile) when the form opts into the site default.
 
 One Payload global (`site-settings`) holds synced site name, `primaryNavMenuId`, capability flags, and module toggles. Core admins edit Modules at **`/app/admin/settings`**. CMS editors can edit the same document under Payload **Globals → Site settings** (legacy `primaryNav` array is a fallback only).
 
@@ -197,7 +200,7 @@ Members visiting `/app/admin/users` are redirected home with an **Admins only** 
 
 Idempotent local demo data:
 
-- **Published CMS pages:** `/about`, `/getting-started`, `/welcome`
+- **Published CMS pages:** `/` (Payload slug `home`), `/about`, `/getting-started`, `/welcome`
 - **Site settings** global defaults + **Nav manager Main** menu linked to those pages (`sf_nav_menus`)
 - **Modules** feature enabled + **layout document v3** seeded into `sf_layouts` (notice-bar, site-header, page-content, custom footer)
 - **Page Settings** global chrome defaults seeded into `sf_page_chrome`
@@ -256,10 +259,10 @@ npm run seed
 npm run dev
 ```
 
-1. Admin bar must show **Site Chrome | Site Settings | Navigation | Users | Layouts | CMS | Check site** (in that order).
-2. **/app/admin/site-chrome** — offline, metadata, robots, rights, cookies. **/app/admin/settings** — **Primary nav assignment** + Modules (no nav item editor).
+1. Admin bar must show **Site Chrome | Site Settings | Navigation | Forms | Users | Layouts | CMS | Check site** (Forms gated by Modules → Forms).
+2. **/app/admin/site-chrome** — offline, captcha defaults, metadata, robots, rights, cookies. **/app/admin/settings** — **Primary nav assignment** + Modules (no nav item editor).
 3. **/app/admin/nav** — edit Main menu items (CMS page / URL / **module view**, CSS class, title overrides, Up/Down, Copy/Paste). Module views come from enabled Modules catalog entries that declare `navViews`.
-4. Modules → Primary nav on/off gates the Nav link + public header.
+4. Modules → Primary nav on/off gates the Nav link + public header. Forms on/off gates Admin → Forms + Form particle.
 5. Public **/about** — matching nav active.
 
 ### Windows: published content cache smoke test

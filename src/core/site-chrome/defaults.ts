@@ -12,10 +12,10 @@ export const DEFAULT_OFFLINE_MESSAGE =
   'This site is temporarily offline. Please check back soon.'
 
 export const CAPTCHA_PROVIDERS: Array<{ value: CaptchaProvider; label: string }> = [
-  { value: 'none', label: 'None (stub)' },
-  { value: 'turnstile', label: 'Cloudflare Turnstile (stub)' },
-  { value: 'recaptcha', label: 'Google reCAPTCHA (stub)' },
-  { value: 'hcaptcha', label: 'hCaptcha (stub)' },
+  { value: 'none', label: 'None' },
+  { value: 'turnstile', label: 'Cloudflare Turnstile' },
+  { value: 'recaptcha', label: 'Google reCAPTCHA (not wired)' },
+  { value: 'hcaptcha', label: 'hCaptcha (not wired)' },
 ]
 
 export const DEFAULT_SITE_CHROME: SiteChromeDocument = {

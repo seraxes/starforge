@@ -42,6 +42,7 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
   const layoutOn = isCatalogModuleEnabled(settings, MODULE_IDS.layoutManager)
   const pageSettingsOn = isCatalogModuleEnabled(settings, MODULE_IDS.pageSettings)
   const navOn = isCatalogModuleEnabled(settings, MODULE_IDS.primaryNav)
+  const formsOn = isCatalogModuleEnabled(settings, MODULE_IDS.forms)
   const showPayloadCms = payloadOn && userHasCmsAccess(access)
   const showLayoutsNav = layoutOn || pageSettingsOn
 
@@ -54,8 +55,8 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
           </p>
           <h1>Starforge admin</h1>
           <p className="lede admin-lede">
-            Top-level areas: Site Chrome, Site Settings (Modules), Navigation, Users (Accounts ·
-            Groups · ACL), Layouts, CMS. Content (pages, media) lives in{' '}
+            Top-level areas: Site Chrome, Site Settings (Modules), Navigation, Forms, Users
+            (Accounts · Groups · ACL), Layouts, CMS. Content (pages, media) lives in{' '}
             {showPayloadCms ? <Link href="/admin">CMS</Link> : 'CMS'} — same login when CMS access
             is on.
           </p>
@@ -68,6 +69,7 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
         <Link href="/app/admin/site-chrome">Site Chrome</Link>
         <Link href="/app/admin/settings">Site Settings</Link>
         {navOn ? <Link href="/app/admin/nav">Navigation</Link> : null}
+        {formsOn ? <Link href="/app/admin/forms">Forms</Link> : null}
         <div className="admin-nav-dropdown">
           <Link href="/app/admin/users" className="admin-nav-dropdown-trigger">
             Users

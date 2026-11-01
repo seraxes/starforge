@@ -8,17 +8,19 @@ import type { StarforgeModule } from '../types'
 
 /**
  * Built-in particle wrapping the public brand + primary nav chrome.
- * Links come from Nav manager (site default menu); gated by Modules
- * (`product:primary-nav`). Group/registered access levels are filtered
- * against the current session (SF-41).
+ * Prefer **Logo** (image/text) + **Menu** particles for flexible layouts;
+ * this remains a convenience combo. Links from Nav manager (site default);
+ * gated by Modules (`product:primary-nav`).
  */
 export const siteHeaderModule: StarforgeModule = {
   id: 'site-header',
   name: 'Site Header',
-  description: 'Brand name and primary navigation.',
+  description:
+    'Convenience brand + primary nav. Prefer Logo (text/image) + Menu particles when assembling the header row.',
   builtin: true,
   defaultWidth: 100,
-  render: async ({ settings }) => {
+  render: async ({ settings, slot }) => {
+    const showBrand = slot.config?.showBrand !== false
     let siteName = settings.siteName
     try {
       const { getSiteChrome } = await import('@/core/site-chrome')
@@ -31,10 +33,17 @@ export const siteHeaderModule: StarforgeModule = {
       defaultEnabled: true,
     })
     if (!navOn) {
-      return <SiteHeader siteName={siteName} primaryNav={[]} compact />
+      return showBrand ? <SiteHeader siteName={siteName} primaryNav={[]} compact /> : null
     }
     const viewer = await getAccessViewer()
     const primaryNav = filterNavItemsForViewer(settings.primaryNav, viewer)
-    return <SiteHeader siteName={siteName} primaryNav={primaryNav} />
+    return (
+      <SiteHeader
+        siteName={siteName}
+        primaryNav={primaryNav}
+        showBrand={showBrand}
+        compact={!showBrand}
+      />
+    )
   },
 }

@@ -4,6 +4,7 @@ import type { NavItem } from '@/core/settings/defaults'
 import { ensureModulesRegistered } from '@/modules/catalog'
 
 import { getLayoutDocument } from './layout'
+import { isFooterLayoutSection, partitionSectionsForPublicPaint } from './section-order'
 import { SlotRenderer } from './SlotRenderer'
 import type { LayoutRow, LayoutSection } from './types'
 
@@ -39,8 +40,7 @@ function SectionBlock({
   pageContent: React.ReactNode
 }) {
   const rows = sortByOrder(section.rows)
-  const isFooter =
-    section.id.includes('footer') || section.label.toLowerCase().includes('footer')
+  const isFooter = isFooterLayoutSection(section)
 
   const inner = (
     <>
@@ -104,6 +104,10 @@ function documentHasPageContent(sections: LayoutSection[]): boolean {
 /**
  * Public site body driven by the layout document (sections → rows → slots).
  * Page route children render via the built-in `page-content` particle.
+ *
+ * Section canvas order is user `order` (DnD). Public paint only moves
+ * footer-named sections to the end so Main particles stay above `<footer>` —
+ * stored orders are not rewritten.
  */
 export async function PublicLayoutBody({
   children,
@@ -147,8 +151,8 @@ export async function PublicLayoutBody({
   }
 
   const document = await getLayoutDocument(layoutId)
-  const sections = sortByOrder(document.sections)
-  const hasPageContent = documentHasPageContent(sections)
+  const { flow, footers } = partitionSectionsForPublicPaint(document.sections)
+  const hasPageContent = documentHasPageContent([...flow, ...footers])
 
   return (
     <div
@@ -157,7 +161,7 @@ export async function PublicLayoutBody({
       data-sf-layout-id={layoutId || 'default'}
       data-sf-sections-layout={sectionsLayout}
     >
-      {sections.map((section) => (
+      {flow.map((section) => (
         <SectionBlock key={section.id} section={section} pageContent={children} />
       ))}
 
@@ -170,6 +174,10 @@ export async function PublicLayoutBody({
           </div>
         </section>
       ) : null}
+
+      {footers.map((section) => (
+        <SectionBlock key={section.id} section={section} pageContent={children} />
+      ))}
 
       <p className="site-footer-meta sf-layout-chrome-meta">
         <span className="site-footer-brand">{siteName}</span>

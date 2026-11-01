@@ -59,17 +59,16 @@ export function AccessTagsField({
         </label>
         {groups.map((g) => {
           const tag = `group:${g.id}`
+          const label = (g.label || g.id).trim() || g.id
           return (
-            <label key={g.id} className="outlines-check">
+            <label key={g.id} className="outlines-check" title={g.id !== label ? g.id : undefined}>
               <input
                 type="checkbox"
                 disabled={disabled}
                 checked={tags.includes(tag)}
                 onChange={(e) => onChange(toggleAccessTag(tags, tag, e.target.checked))}
               />
-              <span>
-                {g.label} <code>{g.id}</code>
-              </span>
+              <span>{label}</span>
             </label>
           )
         })}

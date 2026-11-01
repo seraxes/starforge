@@ -213,6 +213,30 @@ export const sfUserGroupMembers = pgTable(
 )
 
 /**
+ * Public Form particle submissions (SF-48).
+ * Payload is JSON of field values; formKey identifies the layout slot instance.
+ */
+export const sfFormSubmissions = pgTable(
+  'sf_form_submissions',
+  {
+    id: text('id').primaryKey(),
+    /** Stable form instance key (usually layout slot id). */
+    formKey: text('form_key').notNull(),
+    layoutId: text('layout_id'),
+    slotId: text('slot_id'),
+    /** Submitted field values as JSON object. */
+    payload: text('payload').notNull(),
+    ipAddress: text('ip_address'),
+    userAgent: text('user_agent'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('sf_form_submissions_form_key_idx').on(table.formKey),
+    index('sf_form_submissions_created_at_idx').on(table.createdAt),
+  ],
+)
+
+/**
  * Group-keyed ACL stub matrix (admin areas for now).
  * Full frontend/backend enforcement comes after groups exist; this stores the
  * foundation and powers the Groups → Permissions UI.

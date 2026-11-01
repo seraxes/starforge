@@ -96,8 +96,10 @@ body {
   flex-direction: column;
 }
 
+/* Page Content particle wrapper — grow only as content needs (not a spacer). */
 .public-main {
-  flex: 1 0 auto;
+  flex: 0 0 auto;
+  width: 100%;
 }
 
 .sf-module-slot {
@@ -145,8 +147,16 @@ body {
   color: var(--sf-secondary-strong);
 }
 
-.site-footer {
+/*
+ * Sticky footer: only the *last* layout footer section should eat free space.
+ * (If a mis-ordered footer painted first, margin-top:auto on every .site-footer
+ * pushed Main/Form below it in the flex column.)
+ */
+.public-shell > .site-footer:last-of-type {
   margin-top: auto;
+}
+
+.site-footer {
   border-top: 1px solid var(--sf-line);
   background: color-mix(in srgb, var(--sf-paper) 70%, white);
 }
@@ -178,24 +188,6 @@ body {
   font-size: 0.92rem;
   max-width: 36rem;
   line-height: 1.45;
-}
-
-.home {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 3rem 1.5rem 2rem;
-  max-width: 52rem;
-  margin: 0 auto;
-}
-
-.content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 0.75rem;
 }
 
 .brand {
@@ -292,22 +284,6 @@ h1 {
 
 .links .secondary:hover {
   background: color-mix(in srgb, var(--sf-secondary) 32%, transparent);
-}
-
-.footer {
-  border-top: 1px solid var(--sf-line);
-  padding-top: 1rem;
-  color: var(--sf-muted);
-  font-size: 0.92rem;
-}
-
-.footer code {
-  font-size: 0.85em;
-}
-
-.footer a {
-  color: var(--sf-secondary-strong);
-  font-weight: 600;
 }
 
 .session-bar {
@@ -1245,6 +1221,38 @@ button:disabled {
   font-size: 0.75rem;
 }
 
+.sf-logo-mode-text {
+  display: flex;
+  align-items: center;
+}
+
+.sf-logo-text {
+  display: inline-block;
+  letter-spacing: 0.02em;
+}
+
+.sf-logo-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.sf-menu {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.35rem 1.5rem;
+}
+
+.sf-menu .site-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 1rem;
+  align-items: center;
+}
+
+.sf-menu-empty {
+  padding: 0.35rem 1.5rem;
+}
+
 .sf-copyright {
   margin: 0.65rem 1.5rem;
   font-size: 0.92rem;
@@ -1302,6 +1310,136 @@ button:disabled {
 
 .sf-social-icon {
   line-height: 1;
+}
+
+/*
+ * Core Form particle — fill the layout slot / row %.
+ * Section owns boxed vs full-bleed width; do not cap particle max-width.
+ */
+.sf-form {
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+  margin: 0.75rem 0;
+  padding: 0 1.5rem;
+}
+
+.sf-form-heading {
+  margin: 0 0 0.75rem;
+  font-size: 1.15rem;
+  font-weight: 650;
+  color: var(--sf-ink);
+}
+
+.sf-form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.sf-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.92rem;
+  color: var(--sf-ink);
+  width: 100%;
+}
+
+.sf-form-field input,
+.sf-form-field textarea {
+  font: inherit;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--sf-ink) 18%, transparent);
+  border-radius: 0.35rem;
+  background: color-mix(in srgb, var(--sf-bg, #fff) 92%, var(--sf-primary, #9ec9e8) 8%);
+  color: var(--sf-ink);
+}
+
+.sf-form-field abbr {
+  text-decoration: none;
+  margin-left: 0.15rem;
+  color: var(--sf-accent, #e8a87c);
+}
+
+.sf-form-hp {
+  position: absolute;
+  left: -10000px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.sf-form-captcha {
+  margin: 0.25rem 0;
+}
+
+.sf-form-submit {
+  align-self: flex-start;
+  font: inherit;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.35rem;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--sf-primary, #9ec9e8) 75%, var(--sf-accent, #e8a87c));
+  color: var(--sf-ink);
+}
+
+.sf-form-submit:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.sf-form-error {
+  margin: 0;
+  color: #a33;
+  font-size: 0.9rem;
+}
+
+.sf-form-success-message {
+  margin: 0;
+  padding: 0.75rem 0;
+  color: var(--sf-ink);
+  font-size: 0.98rem;
+}
+
+.sf-forms-table .sf-forms-key {
+  font-size: 0.82rem;
+}
+
+.sf-forms-details summary {
+  cursor: pointer;
+}
+
+.sf-forms-payload {
+  margin: 0.5rem 0 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.sf-forms-payload div {
+  display: grid;
+  grid-template-columns: 7rem 1fr;
+  gap: 0.35rem;
+  font-size: 0.88rem;
+}
+
+.sf-forms-payload dt {
+  margin: 0;
+  font-weight: 600;
+  color: var(--sf-muted);
+}
+
+.sf-forms-payload dd {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 /* Gantry-like visual layout manager — full width canvas */
@@ -1948,9 +2086,17 @@ button:disabled {
   font-weight: 600;
 }
 
+.gantry-typed-check {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.45rem !important;
+}
+
 .gantry-typed-form input[type='text'],
 .gantry-typed-form input[type='url'],
 .gantry-typed-form input[type='number'],
+.gantry-typed-form input[type='email'],
+.gantry-typed-form textarea,
 .gantry-typed-form select {
   font: inherit;
   font-weight: 400;
@@ -2077,10 +2223,6 @@ button:disabled {
 }
 
 @media (max-width: 640px) {
-  .home {
-    padding: 2rem 1.15rem 1.5rem;
-  }
-
   .cms-page {
     padding: 2rem 1.15rem 2rem;
   }
