@@ -1,7 +1,6 @@
 'use client'
 
-import React, { useActionState, useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import React, { useActionState, useEffect, useState } from 'react'
 
 import { readFormConfig } from '@/core/forms/config'
 import type { FormFieldDef } from '@/core/forms/types'
@@ -18,6 +17,9 @@ import {
   readLogoConfig,
   readMenuConfig,
   readSocialConfig,
+  type CopyrightParticleConfig,
+  type LogoParticleConfig,
+  type MenuParticleConfig,
   type SocialLinkItem,
 } from '@/core/modules/particles/config'
 import { cssColorToColorInputValue, parseCssColorInput } from '@/core/modules/styles'
@@ -53,18 +55,51 @@ function ActionFeedback({ state }: { state: LayoutActionState }) {
       </p>
     )
   }
-  if (state.ok && state.message) {
-    return (
-      <p className="admin-inline-ok" role="status">
-        {state.message}
-      </p>
-    )
-  }
   return null
 }
 
 function newSocialId() {
   return `social-${Math.random().toString(36).slice(2, 9)}`
+}
+
+/**
+ * Toast on ok + patch parent slot config. Does not remount the form or call router.refresh —
+ * local controlled drafts stay focused while debounce autosave runs.
+ */
+function useParticleAutosaveResult(
+  state: LayoutActionState,
+  onConfigSaved?: (config: LayoutSlotConfig) => void,
+) {
+  useNotifySavedOnOk(state, { toastErrors: true })
+  useEffect(() => {
+    if (!state.ok || !state.config) return
+    onConfigSaved?.(state.config)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: only when action result changes
+  }, [state.ok, state.config, state.message])
+}
+
+/** Form chrome shared by typed particle cogs: debounce text, immediate discrete controls. */
+function particleFormAutosaveProps(
+  saveDebounced: () => void,
+  saveNow: () => void,
+): React.HTMLAttributes<HTMLFormElement> {
+  return {
+    onInput: saveDebounced,
+    onChange: (e) => {
+      const t = e.target
+      if (
+        t instanceof HTMLSelectElement ||
+        (t instanceof HTMLInputElement &&
+          (t.type === 'checkbox' || t.type === 'radio' || t.type === 'color'))
+      ) {
+        saveNow()
+      }
+    },
+    onBlur: (e) => {
+      const t = e.target
+      if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement) saveNow()
+    },
+  }
 }
 
 export function LogoParticleEditor({
@@ -80,58 +115,39 @@ export function LogoParticleEditor({
   embedded?: boolean
   onConfigSaved?: (config: LayoutSlotConfig) => void
 }) {
-  const router = useRouter()
   const [state, formAction, pending] = useActionState(updateLogoSlotAction, initialState)
-  useNotifySavedOnOk(state, { toastErrors: true })
+  useParticleAutosaveResult(state, onConfigSaved)
   const { formRef, saveNow, saveDebounced } = useAutosaveForm()
-  const cfg = readLogoConfig(state.config ?? slot.config)
-  const [mode, setMode] = useState(cfg.mode ?? 'image')
-  const [colorText, setColorText] = useState(cfg.color ?? '')
-  const [formRev, setFormRev] = useState(0)
 
+  const [draft, setDraft] = useState<LogoParticleConfig>(() => readLogoConfig(slot.config))
+  const [colorText, setColorText] = useState(() => readLogoConfig(slot.config).color ?? '')
+
+  // Local draft while cog is open — reset only when switching particles (never from save responses).
   useEffect(() => {
-    setMode(cfg.mode ?? 'image')
-    setColorText(cfg.color ?? '')
-  }, [cfg.mode, cfg.color])
+    const next = readLogoConfig(slot.config)
+    setDraft(next)
+    setColorText(next.color ?? '')
+  }, [slot.id])
 
-  useEffect(() => {
-    if (!state.ok || !state.config) return
-    onConfigSaved?.(state.config)
-    setFormRev((n) => n + 1)
-    router.refresh()
-    // Hydrate only when the server action result changes (not when parent re-creates callbacks).
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional
-  }, [state.ok, state.config, state.message])
-
+  const mode = draft.mode ?? 'image'
   const validHiddenColor =
     parseCssColorInput(colorText).status === 'ok'
       ? colorText.trim()
-      : parseCssColorInput(cfg.color ?? '').status === 'ok'
-        ? (cfg.color ?? '')
+      : parseCssColorInput(draft.color ?? '').status === 'ok'
+        ? (draft.color ?? '')
         : ''
+
+  const patchDraft = (partial: Partial<LogoParticleConfig>) => {
+    setDraft((prev) => ({ ...prev, ...partial }))
+  }
 
   return (
     <SettingsShell title="Logo / Image settings" embedded={embedded}>
       <form
-        key={formRev}
         ref={formRef}
         action={formAction}
         className="gantry-typed-form"
-        onInput={saveDebounced}
-        onChange={(e) => {
-          const t = e.target
-          if (
-            t instanceof HTMLSelectElement ||
-            (t instanceof HTMLInputElement &&
-              (t.type === 'checkbox' || t.type === 'radio' || t.type === 'color'))
-          ) {
-            saveNow()
-          }
-        }}
-        onBlur={(e) => {
-          const t = e.target
-          if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement) saveNow()
-        }}
+        {...particleFormAutosaveProps(saveDebounced, saveNow)}
       >
         <LayoutIdField />
         <input type="hidden" name="sectionId" value={sectionId} />
@@ -143,7 +159,7 @@ export function LogoParticleEditor({
             name="mode"
             value={mode}
             onChange={(e) => {
-              setMode(e.target.value === 'text' ? 'text' : 'image')
+              patchDraft({ mode: e.target.value === 'text' ? 'text' : 'image' })
               queueMicrotask(saveNow)
             }}
           >
@@ -153,21 +169,34 @@ export function LogoParticleEditor({
         </label>
         <label>
           <span>Link URL (optional)</span>
-          <input type="text" name="linkUrl" defaultValue={cfg.linkUrl ?? ''} placeholder="/" />
+          <input
+            type="text"
+            name="linkUrl"
+            value={draft.linkUrl ?? ''}
+            onChange={(e) => patchDraft({ linkUrl: e.target.value })}
+            placeholder="/"
+          />
         </label>
 
         {mode === 'text' ? (
           <>
             <label>
               <span>Text</span>
-              <input type="text" name="text" defaultValue={cfg.text ?? ''} placeholder="Brand name" />
+              <input
+                type="text"
+                name="text"
+                value={draft.text ?? ''}
+                onChange={(e) => patchDraft({ text: e.target.value })}
+                placeholder="Brand name"
+              />
             </label>
             <label>
               <span>Font family</span>
               <input
                 type="text"
                 name="fontFamily"
-                defaultValue={cfg.fontFamily ?? ''}
+                value={draft.fontFamily ?? ''}
+                onChange={(e) => patchDraft({ fontFamily: e.target.value })}
                 placeholder="e.g. Georgia, serif (empty = site default)"
               />
             </label>
@@ -179,7 +208,10 @@ export function LogoParticleEditor({
                   name="fontSize"
                   min={10}
                   max={120}
-                  defaultValue={cfg.fontSize ?? 28}
+                  value={draft.fontSize ?? 28}
+                  onChange={(e) =>
+                    patchDraft({ fontSize: Number(e.target.value) || draft.fontSize || 28 })
+                  }
                 />
               </label>
               <label>
@@ -187,7 +219,8 @@ export function LogoParticleEditor({
                 <input
                   type="text"
                   name="fontWeight"
-                  defaultValue={String(cfg.fontWeight ?? 700)}
+                  value={String(draft.fontWeight ?? 700)}
+                  onChange={(e) => patchDraft({ fontWeight: e.target.value })}
                   placeholder="700"
                 />
               </label>
@@ -198,17 +231,23 @@ export function LogoParticleEditor({
                 <input
                   type="color"
                   className="gantry-color-swatch"
-                  value={cssColorToColorInputValue(colorText || cfg.color)}
+                  value={cssColorToColorInputValue(colorText || draft.color)}
                   title="Logo text color"
                   aria-label="Logo text color picker"
-                  onChange={(event) => setColorText(event.target.value)}
+                  onChange={(event) => {
+                    setColorText(event.target.value)
+                    patchDraft({ color: event.target.value })
+                  }}
                 />
                 <input
                   type="text"
                   name="color"
                   className="gantry-section-color-input"
                   value={colorText}
-                  onChange={(event) => setColorText(event.target.value)}
+                  onChange={(event) => {
+                    setColorText(event.target.value)
+                    patchDraft({ color: event.target.value })
+                  }}
                   placeholder="#2a3340, rgb(), or named (empty = inherit)"
                   spellCheck={false}
                   autoComplete="off"
@@ -219,10 +258,9 @@ export function LogoParticleEditor({
               Text logo replaces Site Header brand text when you assemble Logo + Menu in the header
               row. Color accepts hex, rgb/rgba, hsl/hsla, or CSS named colors.
             </p>
-            {/* Keep image fields in the form so switching modes does not wipe saved values */}
-            <input type="hidden" name="mediaId" value={cfg.mediaId ?? ''} />
-            <input type="hidden" name="mediaUrl" value={cfg.mediaUrl ?? ''} />
-            <input type="hidden" name="alt" value={cfg.alt ?? 'Logo'} />
+            <input type="hidden" name="mediaId" value={draft.mediaId ?? ''} />
+            <input type="hidden" name="mediaUrl" value={draft.mediaUrl ?? ''} />
+            <input type="hidden" name="alt" value={draft.alt ?? 'Logo'} />
           </>
         ) : (
           <>
@@ -231,7 +269,8 @@ export function LogoParticleEditor({
               <input
                 type="text"
                 name="mediaId"
-                defaultValue={cfg.mediaId ?? ''}
+                value={draft.mediaId ?? ''}
+                onChange={(e) => patchDraft({ mediaId: e.target.value })}
                 placeholder="optional"
               />
             </label>
@@ -240,7 +279,8 @@ export function LogoParticleEditor({
               <input
                 type="url"
                 name="mediaUrl"
-                defaultValue={cfg.mediaUrl ?? ''}
+                value={draft.mediaUrl ?? ''}
+                onChange={(e) => patchDraft({ mediaUrl: e.target.value })}
                 placeholder="https://… or /media/…"
               />
             </label>
@@ -249,7 +289,13 @@ export function LogoParticleEditor({
             </p>
             <label>
               <span>Alt text</span>
-              <input type="text" name="alt" defaultValue={cfg.alt ?? ''} required />
+              <input
+                type="text"
+                name="alt"
+                value={draft.alt ?? ''}
+                onChange={(e) => patchDraft({ alt: e.target.value })}
+                required
+              />
             </label>
             <div className="gantry-typed-row">
               <label>
@@ -258,7 +304,11 @@ export function LogoParticleEditor({
                   type="number"
                   name="maxWidth"
                   min={1}
-                  defaultValue={cfg.maxWidth ?? ''}
+                  value={draft.maxWidth ?? ''}
+                  onChange={(e) => {
+                    const n = Number(e.target.value)
+                    patchDraft({ maxWidth: Number.isFinite(n) && n > 0 ? n : undefined })
+                  }}
                   placeholder="e.g. 180"
                 />
               </label>
@@ -268,20 +318,24 @@ export function LogoParticleEditor({
                   type="number"
                   name="maxHeight"
                   min={1}
-                  defaultValue={cfg.maxHeight ?? ''}
+                  value={draft.maxHeight ?? ''}
+                  onChange={(e) => {
+                    const n = Number(e.target.value)
+                    patchDraft({ maxHeight: Number.isFinite(n) && n > 0 ? n : undefined })
+                  }}
                   placeholder="e.g. 64"
                 />
               </label>
             </div>
-            <input type="hidden" name="text" value={cfg.text ?? ''} />
-            <input type="hidden" name="fontFamily" value={cfg.fontFamily ?? ''} />
-            <input type="hidden" name="fontSize" value={String(cfg.fontSize ?? 28)} />
-            <input type="hidden" name="fontWeight" value={String(cfg.fontWeight ?? 700)} />
+            <input type="hidden" name="text" value={draft.text ?? ''} />
+            <input type="hidden" name="fontFamily" value={draft.fontFamily ?? ''} />
+            <input type="hidden" name="fontSize" value={String(draft.fontSize ?? 28)} />
+            <input type="hidden" name="fontWeight" value={String(draft.fontWeight ?? 700)} />
             <input type="hidden" name="color" value={validHiddenColor} />
           </>
         )}
         {pending ? <p className="layout-muted">Saving…</p> : null}
-        {state.error ? <ActionFeedback state={state} /> : null}
+        <ActionFeedback state={state} />
       </form>
     </SettingsShell>
   )
@@ -294,6 +348,7 @@ export function MenuParticleEditor({
   navMenus,
   primaryNavMenuId,
   embedded = false,
+  onConfigSaved,
 }: {
   sectionId: string
   rowId: string
@@ -301,29 +356,19 @@ export function MenuParticleEditor({
   navMenus: NavMenuOption[]
   primaryNavMenuId: string
   embedded?: boolean
+  onConfigSaved?: (config: LayoutSlotConfig) => void
 }) {
-  const formRef = useRef<HTMLFormElement>(null)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [state, formAction, pending] = useActionState(updateMenuSlotAction, initialState)
-  useNotifySavedOnOk(state, { toastErrors: true })
-  const cfg = readMenuConfig(slot.config)
-  const selected = (cfg.menuId ?? '').trim() || 'primary'
+  useParticleAutosaveResult(state, onConfigSaved)
+  const { formRef, saveNow, saveDebounced } = useAutosaveForm()
 
-  const saveNow = () => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current)
-      debounceRef.current = null
-    }
-    formRef.current?.requestSubmit()
-  }
+  const [draft, setDraft] = useState<MenuParticleConfig>(() => readMenuConfig(slot.config))
 
-  const saveDebounced = () => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => {
-      debounceRef.current = null
-      formRef.current?.requestSubmit()
-    }, 500)
-  }
+  useEffect(() => {
+    setDraft(readMenuConfig(slot.config))
+  }, [slot.id])
+
+  const selected = (draft.menuId ?? '').trim() || 'primary'
 
   return (
     <SettingsShell title="Menu settings" embedded={embedded}>
@@ -331,11 +376,7 @@ export function MenuParticleEditor({
         ref={formRef}
         action={formAction}
         className="gantry-typed-form"
-        onInput={saveDebounced}
-        onBlur={(e) => {
-          const t = e.target
-          if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement) saveNow()
-        }}
+        {...particleFormAutosaveProps(saveDebounced, saveNow)}
       >
         <LayoutIdField />
         <input type="hidden" name="sectionId" value={sectionId} />
@@ -343,7 +384,14 @@ export function MenuParticleEditor({
         <input type="hidden" name="slotId" value={slot.id} />
         <label>
           <span>Nav menu set</span>
-          <select name="menuId" defaultValue={selected} disabled={pending} onChange={saveNow}>
+          <select
+            name="menuId"
+            value={selected}
+            onChange={(e) => {
+              setDraft((prev) => ({ ...prev, menuId: e.target.value }))
+              queueMicrotask(saveNow)
+            }}
+          >
             <option value="primary">
               Site primary
               {primaryNavMenuId ? ` (${primaryNavMenuId})` : ''}
@@ -363,14 +411,12 @@ export function MenuParticleEditor({
           <input
             type="text"
             name="ariaLabel"
-            defaultValue={cfg.ariaLabel ?? 'Primary'}
-            disabled={pending}
-            onChange={saveDebounced}
-            onBlur={saveNow}
+            value={draft.ariaLabel ?? 'Primary'}
+            onChange={(e) => setDraft((prev) => ({ ...prev, ariaLabel: e.target.value }))}
           />
         </label>
         {pending ? <p className="layout-muted">Saving…</p> : null}
-        {state.error ? <ActionFeedback state={state} /> : null}
+        <ActionFeedback state={state} />
       </form>
     </SettingsShell>
   )
@@ -381,38 +427,39 @@ export function CopyrightParticleEditor({
   rowId,
   slot,
   embedded = false,
+  onConfigSaved,
 }: {
   sectionId: string
   rowId: string
   slot: LayoutSlot
   embedded?: boolean
+  onConfigSaved?: (config: LayoutSlotConfig) => void
 }) {
-  const formRef = useRef<HTMLFormElement>(null)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [state, formAction, pending] = useActionState(updateCopyrightSlotAction, initialState)
-  useNotifySavedOnOk(state, { toastErrors: true })
-  const cfg = readCopyrightConfig(slot.config)
-  const [yearMode, setYearMode] = useState(cfg.yearMode ?? 'auto')
+  useParticleAutosaveResult(state, onConfigSaved)
+  const { formRef, saveNow, saveDebounced } = useAutosaveForm()
 
-  const saveNow = () => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current)
-      debounceRef.current = null
-    }
-    formRef.current?.requestSubmit()
-  }
+  const [draft, setDraft] = useState<CopyrightParticleConfig>(() =>
+    readCopyrightConfig(slot.config),
+  )
 
-  const saveDebounced = () => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => {
-      debounceRef.current = null
-      formRef.current?.requestSubmit()
-    }, 500)
+  useEffect(() => {
+    setDraft(readCopyrightConfig(slot.config))
+  }, [slot.id])
+
+  const yearMode = draft.yearMode ?? 'auto'
+  const patchDraft = (partial: Partial<CopyrightParticleConfig>) => {
+    setDraft((prev) => ({ ...prev, ...partial }))
   }
 
   return (
     <SettingsShell title="Copyright settings" embedded={embedded}>
-      <form ref={formRef} action={formAction} className="gantry-typed-form">
+      <form
+        ref={formRef}
+        action={formAction}
+        className="gantry-typed-form"
+        {...particleFormAutosaveProps(saveDebounced, saveNow)}
+      >
         <LayoutIdField />
         <input type="hidden" name="sectionId" value={sectionId} />
         <input type="hidden" name="rowId" value={rowId} />
@@ -422,10 +469,8 @@ export function CopyrightParticleEditor({
           <input
             type="text"
             name="text"
-            defaultValue={cfg.text ?? ''}
-            disabled={pending}
-            onChange={saveDebounced}
-            onBlur={saveNow}
+            value={draft.text ?? ''}
+            onChange={(e) => patchDraft({ text: e.target.value })}
           />
         </label>
         <label>
@@ -433,10 +478,8 @@ export function CopyrightParticleEditor({
           <select
             name="yearMode"
             value={yearMode}
-            disabled={pending}
             onChange={(e) => {
-              setYearMode(e.target.value === 'manual' ? 'manual' : 'auto')
-              // Defer submit so React commits yearMode + fields first.
+              patchDraft({ yearMode: e.target.value === 'manual' ? 'manual' : 'auto' })
               queueMicrotask(saveNow)
             }}
           >
@@ -450,24 +493,28 @@ export function CopyrightParticleEditor({
             <input
               type="number"
               name="year"
-              defaultValue={cfg.year ?? new Date().getFullYear()}
-              disabled={pending}
-              onChange={saveDebounced}
-              onBlur={saveNow}
+              value={draft.year ?? new Date().getFullYear()}
+              onChange={(e) =>
+                patchDraft({
+                  year: Number(e.target.value) || new Date().getFullYear(),
+                })
+              }
             />
           </label>
         ) : (
-          <input type="hidden" name="year" value={String(cfg.year ?? new Date().getFullYear())} />
+          <input
+            type="hidden"
+            name="year"
+            value={String(draft.year ?? new Date().getFullYear())}
+          />
         )}
         <label>
           <span>Link URL (optional)</span>
           <input
             type="text"
             name="linkUrl"
-            defaultValue={cfg.linkUrl ?? ''}
-            disabled={pending}
-            onChange={saveDebounced}
-            onBlur={saveNow}
+            value={draft.linkUrl ?? ''}
+            onChange={(e) => patchDraft({ linkUrl: e.target.value })}
           />
         </label>
         <label>
@@ -475,14 +522,12 @@ export function CopyrightParticleEditor({
           <input
             type="text"
             name="linkLabel"
-            defaultValue={cfg.linkLabel ?? ''}
-            disabled={pending}
-            onChange={saveDebounced}
-            onBlur={saveNow}
+            value={draft.linkLabel ?? ''}
+            onChange={(e) => patchDraft({ linkLabel: e.target.value })}
           />
         </label>
         {pending ? <p className="layout-muted">Saving…</p> : null}
-        {state.error ? <ActionFeedback state={state} /> : null}
+        <ActionFeedback state={state} />
       </form>
     </SettingsShell>
   )
@@ -493,25 +538,37 @@ export function SocialParticleEditor({
   rowId,
   slot,
   embedded = false,
+  onConfigSaved,
 }: {
   sectionId: string
   rowId: string
   slot: LayoutSlot
   embedded?: boolean
+  onConfigSaved?: (config: LayoutSlotConfig) => void
 }) {
   const [state, formAction, pending] = useActionState(updateSocialSlotAction, initialState)
-  useNotifySavedOnOk(state, { toastErrors: true })
+  useParticleAutosaveResult(state, onConfigSaved)
   const { formRef, saveDebounced, saveNow } = useAutosaveForm()
-  const initial = readSocialConfig(slot.config).items ?? []
-  const [items, setItems] = useState<SocialLinkItem[]>(
-    initial.length > 0
+
+  const seedItems = (): SocialLinkItem[] => {
+    const initial = readSocialConfig(slot.config).items ?? []
+    return initial.length > 0
       ? initial
-      : [{ id: newSocialId(), platform: '', url: '', label: '', icon: '' }],
-  )
-  const skipSocial = React.useRef(true)
+      : [{ id: newSocialId(), platform: '', url: '', label: '', icon: '' }]
+  }
+
+  const [items, setItems] = useState<SocialLinkItem[]>(seedItems)
+  const skipHydrateSave = React.useRef(true)
+
   useEffect(() => {
-    if (skipSocial.current) {
-      skipSocial.current = false
+    skipHydrateSave.current = true
+    setItems(seedItems())
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when switching slots
+  }, [slot.id])
+
+  useEffect(() => {
+    if (skipHydrateSave.current) {
+      skipHydrateSave.current = false
       return
     }
     saveDebounced()
@@ -519,7 +576,15 @@ export function SocialParticleEditor({
 
   return (
     <SettingsShell title="Social links" embedded={embedded}>
-      <form ref={formRef} action={formAction} className="gantry-typed-form">
+      <form
+        ref={formRef}
+        action={formAction}
+        className="gantry-typed-form"
+        onBlur={(e) => {
+          const t = e.target
+          if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement) saveNow()
+        }}
+      >
         <LayoutIdField />
         <input type="hidden" name="sectionId" value={sectionId} />
         <input type="hidden" name="rowId" value={rowId} />
@@ -585,7 +650,9 @@ export function SocialParticleEditor({
               <button
                 type="button"
                 className="danger"
-                onClick={() => setItems(items.filter((row) => row.id !== item.id))}
+                onClick={() => {
+                  setItems(items.filter((row) => row.id !== item.id))
+                }}
                 disabled={items.length <= 1}
               >
                 Remove link
@@ -607,7 +674,7 @@ export function SocialParticleEditor({
           Add link
         </button>
         {pending ? <p className="layout-muted">Saving…</p> : null}
-        {state.error ? <ActionFeedback state={state} /> : null}
+        <ActionFeedback state={state} />
       </form>
     </SettingsShell>
   )
@@ -618,19 +685,51 @@ export function FormParticleEditor({
   rowId,
   slot,
   embedded = false,
+  onConfigSaved,
 }: {
   sectionId: string
   rowId: string
   slot: LayoutSlot
   embedded?: boolean
+  onConfigSaved?: (config: LayoutSlotConfig) => void
 }) {
   const [state, formAction, pending] = useActionState(updateFormSlotAction, initialState)
-  useNotifySavedOnOk(state, { toastErrors: true })
+  useParticleAutosaveResult(state, onConfigSaved)
   const { formRef, saveDebounced, saveNow } = useAutosaveForm()
-  const cfg = readFormConfig(slot.config)
-  const [fields, setFields] = useState<FormFieldDef[]>(() => [...(cfg.fields ?? [])])
-  const [fieldsJson, setFieldsJson] = useState(() => JSON.stringify(cfg.fields ?? [], null, 2))
+
+  const seed = () => {
+    const cfg = readFormConfig(slot.config)
+    return {
+      heading: cfg.heading ?? '',
+      successMessage: cfg.successMessage ?? '',
+      submitLabel: cfg.submitLabel ?? 'Send',
+      useSiteCaptchaDefault: cfg.useSiteCaptchaDefault !== false,
+      fields: [...(cfg.fields ?? [])] as FormFieldDef[],
+      fieldsJson: JSON.stringify(cfg.fields ?? [], null, 2),
+    }
+  }
+
+  const [heading, setHeading] = useState(() => seed().heading)
+  const [successMessage, setSuccessMessage] = useState(() => seed().successMessage)
+  const [submitLabel, setSubmitLabel] = useState(() => seed().submitLabel)
+  const [useSiteCaptchaDefault, setUseSiteCaptchaDefault] = useState(
+    () => seed().useSiteCaptchaDefault,
+  )
+  const [fields, setFields] = useState<FormFieldDef[]>(() => seed().fields)
+  const [fieldsJson, setFieldsJson] = useState(() => seed().fieldsJson)
   const [jsonError, setJsonError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const next = seed()
+    setHeading(next.heading)
+    setSuccessMessage(next.successMessage)
+    setSubmitLabel(next.submitLabel)
+    setUseSiteCaptchaDefault(next.useSiteCaptchaDefault)
+    setFields(next.fields)
+    setFieldsJson(next.fieldsJson)
+    setJsonError(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when switching slots
+  }, [slot.id])
 
   function applyFieldsJson(raw: string) {
     setFieldsJson(raw)
@@ -654,15 +753,7 @@ export function FormParticleEditor({
         ref={formRef}
         action={formAction}
         className="gantry-typed-form"
-        onInput={saveDebounced}
-        onChange={(e) => {
-          const t = e.target
-          if (t instanceof HTMLInputElement && t.type === 'checkbox') saveNow()
-        }}
-        onBlur={(e) => {
-          const t = e.target
-          if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement) saveNow()
-        }}
+        {...particleFormAutosaveProps(saveDebounced, saveNow)}
       >
         <LayoutIdField />
         <input type="hidden" name="sectionId" value={sectionId} />
@@ -671,21 +762,40 @@ export function FormParticleEditor({
         <input type="hidden" name="fieldsJson" value={JSON.stringify(fields)} />
         <label>
           <span>Heading</span>
-          <input type="text" name="heading" defaultValue={cfg.heading ?? ''} />
+          <input
+            type="text"
+            name="heading"
+            value={heading}
+            onChange={(e) => setHeading(e.target.value)}
+          />
         </label>
         <label>
           <span>Success message</span>
-          <input type="text" name="successMessage" defaultValue={cfg.successMessage ?? ''} />
+          <input
+            type="text"
+            name="successMessage"
+            value={successMessage}
+            onChange={(e) => setSuccessMessage(e.target.value)}
+          />
         </label>
         <label>
           <span>Submit label</span>
-          <input type="text" name="submitLabel" defaultValue={cfg.submitLabel ?? 'Send'} />
+          <input
+            type="text"
+            name="submitLabel"
+            value={submitLabel}
+            onChange={(e) => setSubmitLabel(e.target.value)}
+          />
         </label>
         <label className="gantry-typed-check">
           <input
             type="checkbox"
             name="useSiteCaptchaDefault"
-            defaultChecked={cfg.useSiteCaptchaDefault !== false}
+            checked={useSiteCaptchaDefault}
+            onChange={(e) => {
+              setUseSiteCaptchaDefault(e.target.checked)
+              queueMicrotask(saveNow)
+            }}
           />
           <span>Use site captcha default (Site Chrome)</span>
         </label>
@@ -709,7 +819,7 @@ export function FormParticleEditor({
           </p>
         ) : null}
         {pending ? <p className="layout-muted">Saving…</p> : null}
-        {state.error ? <ActionFeedback state={state} /> : null}
+        <ActionFeedback state={state} />
       </form>
     </SettingsShell>
   )
@@ -753,6 +863,7 @@ export function TypedParticleEditor({
         navMenus={navMenus}
         primaryNavMenuId={primaryNavMenuId}
         embedded={embedded}
+        onConfigSaved={onConfigSaved}
       />
     )
   }
@@ -763,17 +874,30 @@ export function TypedParticleEditor({
         rowId={rowId}
         slot={slot}
         embedded={embedded}
+        onConfigSaved={onConfigSaved}
       />
     )
   }
   if (slot.moduleId === 'social') {
     return (
-      <SocialParticleEditor sectionId={sectionId} rowId={rowId} slot={slot} embedded={embedded} />
+      <SocialParticleEditor
+        sectionId={sectionId}
+        rowId={rowId}
+        slot={slot}
+        embedded={embedded}
+        onConfigSaved={onConfigSaved}
+      />
     )
   }
   if (slot.moduleId === 'form') {
     return (
-      <FormParticleEditor sectionId={sectionId} rowId={rowId} slot={slot} embedded={embedded} />
+      <FormParticleEditor
+        sectionId={sectionId}
+        rowId={rowId}
+        slot={slot}
+        embedded={embedded}
+        onConfigSaved={onConfigSaved}
+      />
     )
   }
   return null

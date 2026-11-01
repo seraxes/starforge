@@ -21,7 +21,7 @@ type AttrDraft = { htmlId: string; cssClass: string }
 
 /**
  * Optional HTML id + CSS classes — autosave (~500ms + blur), no Save button.
- * Action always rewrites both fields, so drafts keep both values in sync.
+ * Inputs are keyed by slot.id only (not saved values) so debounce patches do not remount/clear.
  */
 export function ParticleAttributesEditor({
   sectionId,
@@ -37,6 +37,14 @@ export function ParticleAttributesEditor({
     htmlId: slot.htmlId ?? '',
     cssClass: slot.cssClass ?? '',
   })
+  const slotIdRef = useRef(slot.id)
+  if (slotIdRef.current !== slot.id) {
+    slotIdRef.current = slot.id
+    draftRef.current = {
+      htmlId: slot.htmlId ?? '',
+      cssClass: slot.cssClass ?? '',
+    }
+  }
 
   const persist = useCallback(
     (draft: AttrDraft) => {
@@ -99,12 +107,11 @@ export function ParticleAttributesEditor({
           <span>HTML id</span>
           <input
             type="text"
-            key={`htmlId-${slot.id}-${slot.htmlId ?? ''}`}
+            key={`htmlId-${slot.id}`}
             defaultValue={slot.htmlId ?? ''}
             placeholder="optional"
             spellCheck={false}
             autoComplete="off"
-            disabled={pending}
             onChange={(event) => schedule('attrs', updateDraft({ htmlId: event.target.value }))}
             onBlur={(event) => flush('attrs', updateDraft({ htmlId: event.target.value }))}
             onKeyDown={(event) => {
@@ -119,12 +126,11 @@ export function ParticleAttributesEditor({
           <span>CSS class</span>
           <input
             type="text"
-            key={`cssClass-${slot.id}-${slot.cssClass ?? ''}`}
+            key={`cssClass-${slot.id}`}
             defaultValue={slot.cssClass ?? ''}
             placeholder="optional space-separated"
             spellCheck={false}
             autoComplete="off"
-            disabled={pending}
             onChange={(event) => schedule('attrs', updateDraft({ cssClass: event.target.value }))}
             onBlur={(event) => flush('attrs', updateDraft({ cssClass: event.target.value }))}
             onKeyDown={(event) => {
