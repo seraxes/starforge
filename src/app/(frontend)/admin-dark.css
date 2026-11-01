@@ -27,7 +27,7 @@ body:has(.admin-shell) > main {
   --sf-admin-input: #152033;
   --sf-admin-blue-border: #1e4d72;
   --sf-admin-blue-mid: #3498db;
-  --sf-admin-drop-bg: #161e2b; /* empty drop zone — recessed Gantry navy */
+  --sf-admin-drop-bg: #101926; /* empty drop zone — darker than Particles palette */
   --sf-admin-blue-action: #2f80b9;
   --sf-admin-toolbar-muted: #405475;
   --sf-admin-nav-bar: #1b2431;
@@ -860,8 +860,8 @@ body:has(.admin-shell) > main {
   min-height: 2.75rem;
   padding: 0.55rem 0.65rem;
   background: var(--sf-admin-drop-bg);
-  border: 1px solid #121924;
-  box-shadow: inset 0 1px 2px color-mix(in srgb, #000 40%, transparent);
+  border: 1px solid #0c121c;
+  box-shadow: inset 0 1px 2px color-mix(in srgb, #000 48%, transparent);
   border-radius: 3px;
   color: #7f93aa;
   font-size: 0.84rem;
