@@ -634,7 +634,8 @@ button:disabled {
 
 .admin-lede {
   margin: 0.35rem 0 0;
-  max-width: 40rem;
+  max-width: none;
+  width: 100%;
   font-size: 0.98rem;
 }
 
