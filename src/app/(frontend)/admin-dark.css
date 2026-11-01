@@ -114,19 +114,24 @@ body:has(.admin-shell) > main {
   gap: 0.25rem;
 }
 
+/*
+ * One clear dropdown chevron (SVG). Hide native arrow entirely —
+ * dual linear-gradient triangles + native caret looked broken/doubled.
+ */
 .admin-shell .gantry-layouts-nav-outline-select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
   appearance: none;
   min-width: 10rem;
   margin: 0;
-  padding: 0.4rem 1.75rem 0.4rem 0.7rem;
+  padding: 0.4rem 2.35rem 0.4rem 0.7rem;
   border: 1px solid #314257;
   border-radius: 3px;
-  background:
-    linear-gradient(45deg, transparent 50%, #fff 50%) right 0.7rem top 0.8rem / 0.35rem 0.35rem
-      no-repeat,
-    linear-gradient(135deg, transparent 50%, #fff 50%) right 0.45rem top 0.8rem / 0.35rem 0.35rem
-      no-repeat,
-    #161e2b;
+  background-color: #161e2b;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 5.75L8 10.25L12.5 5.75' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.65rem center;
+  background-size: 1rem 1rem;
   color: #fff;
   font: inherit;
   font-weight: 700;
@@ -134,17 +139,23 @@ body:has(.admin-shell) > main {
   cursor: pointer;
 }
 
+.admin-shell .gantry-layouts-nav-outline-select::-ms-expand {
+  display: none;
+}
+
 .admin-shell .gantry-layouts-nav-outline-manage {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-width: 2.1rem;
   padding: 0 0.5rem;
   border: 1px solid #314257;
   border-radius: 3px;
   background: #161e2b;
-  color: #fff;
+  color: #c5d2e0;
   text-decoration: none;
-  font-size: 0.78rem;
+  font-size: 0.95rem;
+  line-height: 1;
 }
 
 .admin-shell .gantry-layouts-nav-outline-manage:hover {
@@ -288,6 +299,40 @@ body:has(.admin-shell) > main {
   border: 1px solid var(--sf-admin-blue-border) !important;
   color: var(--sf-ink) !important;
   min-height: 2.1rem;
+}
+
+/* Form selects: one large custom chevron; suppress native caret */
+.admin-shell .admin-inline-form select,
+.admin-shell .layout-inline-form select,
+.admin-shell .gantry-palette-width select,
+.admin-shell .gantry-width-form select,
+.admin-shell .gantry-typed-form select,
+.admin-shell .settings-field select,
+.admin-shell .page-settings-picker select,
+.admin-shell .page-settings-panel-body select,
+.admin-shell .outlines-inline-form select,
+.admin-shell .acl-matrix-form select,
+.admin-shell .admin-groups-form select,
+.admin-shell .section-styles-form select,
+.admin-shell .gantry-section-container-select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  padding-right: 2.25rem !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 5.75L8 10.25L12.5 5.75' stroke='%23c5d2e0' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.6rem center !important;
+  background-size: 0.95rem 0.95rem !important;
+  background-color: var(--sf-admin-input) !important;
+  cursor: pointer;
+}
+
+.admin-shell .admin-inline-form select::-ms-expand,
+.admin-shell .layout-inline-form select::-ms-expand,
+.admin-shell .settings-field select::-ms-expand,
+.admin-shell .section-styles-form select::-ms-expand,
+.admin-shell .gantry-section-container-select::-ms-expand {
+  display: none;
 }
 
 .admin-shell .gantry-inline-input:focus,

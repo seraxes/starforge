@@ -111,8 +111,9 @@ export function LayoutsAdminNav({
             className="gantry-layouts-nav-outline-manage"
             href="/app/admin/outlines"
             title="Manage outlines"
+            aria-label="Manage outlines"
           >
-            ▾
+            ☰
           </Link>
         </div>
       ) : null}

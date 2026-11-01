@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useActionState, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
 import {
@@ -12,9 +12,7 @@ import {
   type LayoutSectionStyles,
 } from '@/core/modules/styles'
 
-import { LayoutIdField } from '../layouts/layout-outline-context'
-
-const initialState: LayoutActionState = {}
+import { useLayoutOutlineId } from '../layouts/layout-outline-context'
 
 export type SectionStylesListItem = {
   id: string
@@ -26,29 +24,56 @@ type Props = {
   sections: SectionStylesListItem[]
 }
 
+type StylePatch = {
+  backgroundColor?: string
+  textColor?: string
+  backgroundImage?: string
+  backgroundOverlay?: 'enabled' | 'disabled'
+  overlayColor?: string
+  allowGradientBackground?: boolean
+  allowGradientOverlay?: boolean
+}
+
+function ActionFeedback({ state }: { state: LayoutActionState }) {
+  if (state.error) {
+    return (
+      <p className="form-error" role="alert">
+        {state.error}
+      </p>
+    )
+  }
+  if (state.ok && state.message) {
+    return (
+      <p className="form-ok" role="status">
+        {state.message}
+      </p>
+    )
+  }
+  return null
+}
+
 function ColorField({
   label,
-  name,
+  fieldKey,
   value,
   placeholder,
   allowGradient,
   onAllowGradientChange,
-  gradientFlagName,
+  onPersistColor,
   disabled,
 }: {
   label: string
-  name: string
+  fieldKey: 'backgroundColor' | 'textColor' | 'overlayColor'
   value: string | undefined
   placeholder: string
-  /** When set, shows an inline “Allow gradient” checkbox on this color row. */
   allowGradient?: boolean
   onAllowGradientChange?: (next: boolean) => void
-  gradientFlagName?: 'allowGradientBackground' | 'allowGradientOverlay'
+  onPersistColor: (next: string) => void
   disabled?: boolean
 }) {
   const isGradient = Boolean(value && /gradient\(/i.test(value))
   const swatchValue = isGradient ? '#ffffff' : cssColorToColorInputValue(value)
-  const showGradientToggle = Boolean(gradientFlagName)
+  const showGradientToggle = fieldKey === 'backgroundColor' || fieldKey === 'overlayColor'
 
   return (
     <div className="settings-field section-styles-color-field">
@@ -58,21 +83,25 @@ function ColorField({
           <input
             type="color"
             className="gantry-color-swatch"
+            key={`swatch-${fieldKey}-${value ?? ''}`}
             defaultValue={swatchValue}
             disabled={disabled}
             aria-label={`${label} picker`}
             onChange={(event) => {
+              const hex = event.target.value
               const text = event.currentTarget
                 .closest('.section-styles-color-row')
-                ?.querySelector<HTMLInputElement>(`input[name="${name}"]`)
-              if (text) text.value = event.target.value
+                ?.querySelector<HTMLInputElement>(`input[data-style-field="${fieldKey}"]`)
+              if (text) text.value = hex
+              onPersistColor(hex)
             }}
           />
         ) : null}
         <input
           type="text"
-          name={name}
+          data-style-field={fieldKey}
           className="gantry-inline-input"
+          key={`text-${fieldKey}-${value ?? ''}`}
           defaultValue={value ?? ''}
           placeholder={
             allowGradient ? `${placeholder} or linear-gradient(…)` : placeholder
@@ -81,15 +110,19 @@ function ColorField({
           autoComplete="off"
           disabled={disabled}
           aria-label={label}
+          onBlur={(event) => onPersistColor(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              ;(event.target as HTMLInputElement).blur()
+            }
+          }}
         />
-        {showGradientToggle && gradientFlagName ? (
+        {showGradientToggle ? (
           <label className="section-styles-gradient-inline" title="Allow CSS gradients">
-            <input type="hidden" name={gradientFlagName} value="0" />
             <input
               type="checkbox"
-              name={gradientFlagName}
-              value="1"
-              defaultChecked={Boolean(allowGradient)}
+              checked={Boolean(allowGradient)}
               disabled={disabled}
               onChange={(event) => onAllowGradientChange?.(event.target.checked)}
               aria-label={`Allow gradient for ${label}`}
@@ -102,6 +135,10 @@ function ColorField({
   )
 }
 
+/**
+ * Per-section Styles card — same persist UX as Layout canvas section Settings:
+ * color/select/checkbox save on change; text fields save on blur (Enter blurs).
+ */
 function SectionStylesCard({
   section,
   forceOpen,
@@ -110,7 +147,10 @@ function SectionStylesCard({
   forceOpen: boolean | null
 }) {
   const router = useRouter()
+  const layoutId = useLayoutOutlineId()
   const styles = section.styles
+  const [metaPending, startMetaSave] = useTransition()
+  const [metaFlash, setMetaFlash] = useState<LayoutActionState>({})
   const [allowGradientBackground, setAllowGradientBackground] = useState(
     Boolean(styles?.allowGradientBackground),
   )
@@ -121,13 +161,74 @@ function SectionStylesCard({
     styles?.backgroundOverlay === 'enabled',
   )
 
-  const [state, action, pending] = useActionState(
-    async (prev: LayoutActionState, formData: FormData) => {
-      const result = await updateLayoutSectionMetaAction(prev, formData)
-      if (result.ok) router.refresh()
-      return result
+  const persistStyles = useCallback(
+    (patch: StylePatch) => {
+      const fd = new FormData()
+      fd.set('layoutId', layoutId)
+      fd.set('sectionId', section.id)
+
+      let changed = false
+      const prev = section.styles
+
+      if (patch.backgroundColor !== undefined) {
+        const next = patch.backgroundColor.trim()
+        if (next !== (prev?.backgroundColor ?? '').trim()) {
+          fd.set('backgroundColor', next)
+          changed = true
+        }
+      }
+      if (patch.textColor !== undefined) {
+        const next = patch.textColor.trim()
+        if (next !== (prev?.textColor ?? '').trim()) {
+          fd.set('textColor', next)
+          changed = true
+        }
+      }
+      if (patch.backgroundImage !== undefined) {
+        const next = patch.backgroundImage.trim()
+        if (next !== (prev?.backgroundImage ?? '').trim()) {
+          fd.set('backgroundImage', next)
+          changed = true
+        }
+      }
+      if (patch.backgroundOverlay !== undefined) {
+        const next = patch.backgroundOverlay
+        if (next !== (prev?.backgroundOverlay ?? 'disabled')) {
+          fd.set('backgroundOverlay', next)
+          changed = true
+        }
+      }
+      if (patch.overlayColor !== undefined) {
+        const next = patch.overlayColor.trim()
+        if (next !== (prev?.overlayColor ?? '').trim()) {
+          fd.set('overlayColor', next)
+          changed = true
+        }
+      }
+      if (patch.allowGradientBackground !== undefined) {
+        const next = patch.allowGradientBackground
+        if (next !== Boolean(prev?.allowGradientBackground)) {
+          fd.set('allowGradientBackground', next ? '1' : '0')
+          changed = true
+        }
+      }
+      if (patch.allowGradientOverlay !== undefined) {
+        const next = patch.allowGradientOverlay
+        if (next !== Boolean(prev?.allowGradientOverlay)) {
+          fd.set('allowGradientOverlay', next ? '1' : '0')
+          changed = true
+        }
+      }
+
+      if (!changed) return
+
+      startMetaSave(async () => {
+        const result = await updateLayoutSectionMetaAction({}, fd)
+        setMetaFlash(result)
+        if (result.ok) router.refresh()
+      })
     },
-    initialState,
+    [layoutId, router, section.id, section.styles],
   )
 
   const openProps =
@@ -140,39 +241,48 @@ function SectionStylesCard({
         <code className="section-styles-card-id">{section.id}</code>
       </summary>
 
-      <form action={action} className="settings-form section-styles-form">
-        <LayoutIdField />
-        <input type="hidden" name="sectionId" value={section.id} />
-
+      <div className="settings-form section-styles-form">
         <ColorField
           label="Background"
-          name="backgroundColor"
+          fieldKey="backgroundColor"
           value={styles?.backgroundColor}
           placeholder="#18191c"
           allowGradient={allowGradientBackground}
-          onAllowGradientChange={setAllowGradientBackground}
-          gradientFlagName="allowGradientBackground"
-          disabled={pending}
+          onAllowGradientChange={(next) => {
+            setAllowGradientBackground(next)
+            persistStyles({ allowGradientBackground: next })
+          }}
+          onPersistColor={(next) => persistStyles({ backgroundColor: next })}
+          disabled={metaPending}
         />
 
         <ColorField
           label="Text"
-          name="textColor"
+          fieldKey="textColor"
           value={styles?.textColor}
           placeholder="#ffffff"
-          disabled={pending}
+          onPersistColor={(next) => persistStyles({ textColor: next })}
+          disabled={metaPending}
         />
 
         <label className="settings-field">
           <span>Background image</span>
           <input
             type="url"
-            name="backgroundImage"
+            key={`bg-image-${section.id}-${styles?.backgroundImage ?? ''}`}
+            className="gantry-inline-input"
             defaultValue={styles?.backgroundImage ?? ''}
             placeholder="/media/hero.jpg or https://…"
             spellCheck={false}
             autoComplete="off"
-            disabled={pending}
+            disabled={metaPending}
+            onBlur={(event) => persistStyles({ backgroundImage: event.target.value })}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault()
+                ;(event.target as HTMLInputElement).blur()
+              }
+            }}
           />
           <small className="field-hint">http(s), root-relative, or data:image URL</small>
         </label>
@@ -180,10 +290,14 @@ function SectionStylesCard({
         <label className="settings-field">
           <span>Background overlay</span>
           <select
-            name="backgroundOverlay"
+            key={`overlay-${section.id}-${styles?.backgroundOverlay ?? 'disabled'}`}
             defaultValue={styles?.backgroundOverlay ?? 'disabled'}
-            disabled={pending}
-            onChange={(event) => setOverlayEnabled(event.target.value === 'enabled')}
+            disabled={metaPending}
+            onChange={(event) => {
+              const next = event.target.value === 'enabled' ? 'enabled' : 'disabled'
+              setOverlayEnabled(next === 'enabled')
+              persistStyles({ backgroundOverlay: next })
+            }}
           >
             <option value="disabled">Disabled</option>
             <option value="enabled">Enabled</option>
@@ -192,24 +306,21 @@ function SectionStylesCard({
 
         <ColorField
           label="Overlay color"
-          name="overlayColor"
+          fieldKey="overlayColor"
           value={styles?.overlayColor}
           placeholder="#000000"
           allowGradient={allowGradientOverlay}
-          onAllowGradientChange={setAllowGradientOverlay}
-          gradientFlagName="allowGradientOverlay"
-          disabled={pending || !overlayEnabled}
+          onAllowGradientChange={(next) => {
+            setAllowGradientOverlay(next)
+            persistStyles({ allowGradientOverlay: next })
+          }}
+          onPersistColor={(next) => persistStyles({ overlayColor: next })}
+          disabled={metaPending || !overlayEnabled}
         />
 
-        {state.error ? <p className="form-error">{state.error}</p> : null}
-        {state.ok && state.message ? <p className="form-ok">{state.message}</p> : null}
-
-        <div className="page-settings-actions">
-          <button type="submit" disabled={pending}>
-            {pending ? 'Saving…' : 'Save section styles'}
-          </button>
-        </div>
-      </form>
+        <ActionFeedback state={metaFlash} />
+        {metaPending ? <p className="field-hint">Saving…</p> : null}
+      </div>
     </details>
   )
 }
