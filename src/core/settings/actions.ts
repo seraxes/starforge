@@ -6,8 +6,8 @@ import { requireAppAdmin } from '@/core/auth/admin'
 import { invalidateSiteSettings } from '@/core/content/revalidate'
 import {
   DEFAULT_SITE_NAME,
+  featureFlagsFromModuleToggles,
   listInstalledModuleCatalog,
-  type FeatureFlags,
   type ModuleToggleMap,
   type NavItem,
   updateSiteSettings,
@@ -16,13 +16,6 @@ import {
 export type SettingsActionState = {
   error?: string
   ok?: boolean
-}
-
-/** Checkbox fields: missing key means unchecked → false. */
-function parseCheckbox(formData: FormData, key: string): boolean {
-  const raw = formData.get(key)
-  if (raw == null) return false
-  return String(raw) === 'true' || String(raw) === 'on' || String(raw) === '1'
 }
 
 function parseNav(formData: FormData): NavItem[] {
@@ -54,7 +47,6 @@ function parseModuleToggles(formData: FormData): ModuleToggleMap {
       map[item.id] = true
       continue
     }
-    // Prefer explicit id list from the form; fall back to catalog ids.
     const present = ids.length === 0 || ids.includes(item.id)
     if (!present) continue
     map[item.id] = enabledRaw.has(item.id)
@@ -73,25 +65,11 @@ export async function updateSiteSettingsAction(
 
   const siteName = String(formData.get('siteName') ?? '').trim() || DEFAULT_SITE_NAME
   const primaryNav = parseNav(formData)
-  const moduleToggles = parseModuleToggles(formData)
-
   const catalog = listInstalledModuleCatalog()
-  const anyExtensionOn = catalog.some(
-    (item) => item.kind === 'particle' && !item.required && moduleToggles[item.id] === true,
-  )
-
-  const features: FeatureFlags = {
-    registration: parseCheckbox(formData, 'featureRegistration'),
-    richEditor: parseCheckbox(formData, 'featureRichEditor'),
-    posts: parseCheckbox(formData, 'featurePosts'),
-    // Master flag mirrors “any extension particle on” for legacy callers.
-    modules: anyExtensionOn,
-    draftPreview: parseCheckbox(formData, 'featureDraftPreview'),
-  }
+  const moduleToggles = parseModuleToggles(formData)
+  const features = featureFlagsFromModuleToggles(moduleToggles, catalog)
 
   try {
-    // Core admin form edits resolved paths as custom URLs.
-    // Prefer Payload Globals → Site settings for Page relationships.
     await updateSiteSettings({ siteName, primaryNav, features, moduleToggles })
   } catch (error) {
     const message =
@@ -101,14 +79,14 @@ export async function updateSiteSettingsAction(
     return { error: message }
   }
 
-  // Tag invalidation covers cached site settings + pages that embed chrome.
-  // Payload global afterChange also calls this; safe to run twice.
   invalidateSiteSettings()
   revalidatePath('/', 'layout')
   revalidatePath('/register')
   revalidatePath('/login')
   revalidatePath('/app/admin/settings')
   revalidatePath('/app/admin/layouts')
+  revalidatePath('/app/admin/outlines')
   revalidatePath('/app/admin/page-settings')
+  revalidatePath('/app/admin')
   return { ok: true }
 }

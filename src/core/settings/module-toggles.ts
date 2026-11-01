@@ -1,17 +1,35 @@
 /**
  * P0 runtime module toggles (Site Settings → Modules).
- * Installed catalog = registered particles + atoms; disabled → skip palette / public / atoms.
+ * Catalog = platform + product capabilities + registered particles + atoms.
+ * Disabled → skip admin nav/routes where safe, palette, public inject.
  */
 
-import type { SiteSettingsData } from './defaults'
+import type { FeatureFlags, SiteSettingsData } from './defaults'
 
 /** Prefix for Page Settings atom types in the shared toggle map. */
 export const ATOM_TOGGLE_PREFIX = 'atom:' as const
 
-/** Core chrome particles that cannot be turned off (layout always needs them). */
-export const REQUIRED_MODULE_IDS = new Set(['page-content'])
+/** Stable product / platform catalog ids (also used as gate keys). */
+export const MODULE_IDS = {
+  betterAuth: 'platform:better-auth',
+  payloadCms: 'platform:payload-cms',
+  layoutManager: 'product:layout-manager',
+  pageSettings: 'product:page-settings',
+  primaryNav: 'product:primary-nav',
+  fontAwesome: 'product:font-awesome',
+  registration: 'product:registration',
+  richEditor: 'product:rich-editor',
+  posts: 'product:posts',
+  draftPreview: 'product:draft-preview',
+} as const
 
-export type ModuleToggleKind = 'particle' | 'atom'
+/** Core pieces that cannot be turned off. */
+export const REQUIRED_MODULE_IDS = new Set<string>([
+  MODULE_IDS.betterAuth,
+  'page-content',
+])
+
+export type ModuleToggleKind = 'platform' | 'product' | 'particle' | 'atom'
 
 export type ModuleToggleEntry = {
   id: string
@@ -20,16 +38,18 @@ export type ModuleToggleEntry = {
 
 /** Row for the Site Settings → Modules admin list. */
 export type ModuleCatalogItem = {
-  /** Storage / gate key (`notice-bar` or `atom:analytics`). */
+  /** Storage / gate key (`notice-bar`, `atom:analytics`, `product:primary-nav`). */
   id: string
   kind: ModuleToggleKind
   label: string
   description: string
-  /** When true, toggle is locked on (required chrome). */
+  /** When true, toggle is locked on (required chrome / auth). */
   required: boolean
   /** Default when no stored row exists. */
   defaultEnabled: boolean
   installed: true
+  /** Optional link to legacy FeatureFlags key (kept in sync on save). */
+  featureFlag?: keyof FeatureFlags
 }
 
 export function atomToggleId(type: string): string {
@@ -108,4 +128,12 @@ export function anyExtensionModuleEnabled(
       legacyModulesFlag: item.id === 'notice-bar' || item.defaultEnabled === false,
     })
   })
+}
+
+/** Kind sort order for the Modules admin list. */
+export const MODULE_KIND_ORDER: Record<ModuleToggleKind, number> = {
+  platform: 0,
+  product: 1,
+  particle: 2,
+  atom: 3,
 }

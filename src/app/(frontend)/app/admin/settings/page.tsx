@@ -22,8 +22,8 @@ export default async function AdminSettingsPage() {
         Site name and primary nav power the public header (active link on the current path).
         Prefer linking to CMS pages in Payload Globals →{' '}
         <Link href="/admin/globals/site-settings">Site settings</Link>; this form edits
-        resolved paths. <strong>Modules</strong> lists installed particles/atoms with on/off
-        toggles (layout palette + public/atoms). Feature toggles gate other product capabilities.
+        resolved paths. <strong>Modules</strong> lists every modular product piece (platform,
+        Layout/Page Settings, particles, atoms, nav, FA, registration, …) with on/off gates.
       </p>
       <SettingsForm
         siteName={settings.siteName}

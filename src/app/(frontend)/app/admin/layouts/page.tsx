@@ -1,5 +1,6 @@
 import React from 'react'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 
 import { DEFAULT_LAYOUT_ID } from '@/core/db'
 import {
@@ -8,6 +9,7 @@ import {
   listModulesForLayoutAdmin,
   loadLayoutDocument,
 } from '@/core/modules'
+import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
 import { LayoutEditor } from './layout-editor'
 import { LayoutOutlineProvider } from './layout-outline-context'
@@ -28,6 +30,11 @@ function pickOutlineParam(raw: string | string[] | undefined): string {
 }
 
 export default async function AdminLayoutsPage(props: { searchParams?: SearchParams }) {
+  const settings = await getSiteSettings()
+  if (!isCatalogModuleEnabled(settings, MODULE_IDS.layoutManager)) {
+    redirect('/app/admin/settings')
+  }
+
   const search = props.searchParams ? await props.searchParams : {}
   const requestedId = pickOutlineParam(search.outline)
 

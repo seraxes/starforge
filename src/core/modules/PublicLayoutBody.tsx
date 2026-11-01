@@ -15,6 +15,11 @@ type Props = {
   layoutId?: string
   /** Sections layout mode from Page Settings. */
   sectionsLayout?: 'fullwidth' | 'boxed'
+  /**
+   * When false (Site Settings → Modules: Layout manager off), skip the full
+   * layout document and render a minimal page-content shell.
+   */
+  layoutManagerEnabled?: boolean
 }
 
 function sortByOrder<T extends { order?: number; id: string }>(items: T[]): T[] {
@@ -103,17 +108,47 @@ function documentHasPageContent(sections: LayoutSection[]): boolean {
 export async function PublicLayoutBody({
   children,
   siteName,
+  primaryNav,
   layoutId,
   sectionsLayout = 'fullwidth',
+  layoutManagerEnabled = true,
 }: Props) {
   ensureModulesRegistered()
-  const document = await getLayoutDocument(layoutId)
-  const sections = sortByOrder(document.sections)
-  const hasPageContent = documentHasPageContent(sections)
   const shellClass = [
     'public-shell',
     sectionsLayout === 'boxed' ? 'sf-sections-boxed' : 'sf-sections-fullwidth',
   ].join(' ')
+
+  if (!layoutManagerEnabled) {
+    const { SiteHeader } = await import('@/components/SiteHeader')
+    return (
+      <div className={shellClass} data-sf-layout-id="minimal" data-sf-sections-layout={sectionsLayout}>
+        <SiteHeader siteName={siteName} primaryNav={primaryNav} />
+        <section className="sf-layout-section" data-sf-section="fallback-main">
+          <div className="sf-grid-row">
+            <div
+              className="sf-grid-col"
+              data-sf-width={12}
+              style={{ flex: '0 0 100%', maxWidth: '100%', width: '100%' }}
+            >
+              <div className="sf-page-content public-main">{children}</div>
+            </div>
+          </div>
+        </section>
+        <p className="site-footer-meta sf-layout-chrome-meta">
+          <span className="site-footer-brand">{siteName}</span>
+          <span className="site-footer-sep" aria-hidden="true">
+            ·
+          </span>
+          <span>Built with Starforge</span>
+        </p>
+      </div>
+    )
+  }
+
+  const document = await getLayoutDocument(layoutId)
+  const sections = sortByOrder(document.sections)
+  const hasPageContent = documentHasPageContent(sections)
 
   return (
     <div

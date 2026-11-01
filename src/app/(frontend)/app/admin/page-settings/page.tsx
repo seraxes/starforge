@@ -1,7 +1,9 @@
 import React from 'react'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 
 import { loadPageSettingsAdmin } from '@/core/page-settings/actions'
+import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
 import { PageSettingsForm } from './page-settings-form'
 
@@ -17,6 +19,11 @@ type Props = {
 }
 
 export default async function AdminPageSettingsPage({ searchParams }: Props) {
+  const settings = await getSiteSettings()
+  if (!isCatalogModuleEnabled(settings, MODULE_IDS.pageSettings)) {
+    redirect('/app/admin/settings')
+  }
+
   const params = await searchParams
   const editingPageKey = params.page?.trim() || null
   const bootstrap = await loadPageSettingsAdmin(editingPageKey)

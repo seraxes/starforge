@@ -40,6 +40,8 @@ export {
 }
 export {
   ATOM_TOGGLE_PREFIX,
+  MODULE_IDS,
+  MODULE_KIND_ORDER,
   REQUIRED_MODULE_IDS,
   anyExtensionModuleEnabled,
   atomToggleId,
@@ -49,7 +51,12 @@ export {
   parseAtomToggleId,
 } from './module-toggles'
 export type { ModuleCatalogItem, ModuleToggleEntry, ModuleToggleKind } from './module-toggles'
-export { listInstalledModuleCatalog } from './module-catalog'
+export {
+  PRODUCT_MODULE_CATALOG,
+  featureFlagsFromModuleToggles,
+  isCatalogModuleEnabled,
+  listInstalledModuleCatalog,
+} from './module-catalog'
 export {
   isExternalHref,
   isNavItemActive,
@@ -359,3 +366,4 @@ export function isParticleModuleEnabled(
 export function isAtomModuleEnabled(settings: SiteSettingsData, atomType: string): boolean {
   return isModuleToggleEnabled(settings, atomToggleId(atomType), { defaultEnabled: true })
 }
+

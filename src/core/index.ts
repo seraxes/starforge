@@ -77,10 +77,12 @@ export type {
   StarforgeModule,
 } from './modules'
 export {
+  MODULE_IDS,
   ensureSiteSettingsDefaults,
   getFeatureFlags,
   getSiteSettings,
   isAtomModuleEnabled,
+  isCatalogModuleEnabled,
   isDraftPreviewEnabled,
   isModulesEnabled,
   isParticleModuleEnabled,
