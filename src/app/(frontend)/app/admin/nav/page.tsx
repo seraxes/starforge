@@ -26,9 +26,10 @@ export default async function AdminNavPage() {
     <section className="admin-section admin-layouts-full">
       <h2>Nav</h2>
       <p className="lede admin-lede">
-        Named <strong>navigation sets</strong> (menus) with their own items — bind to CMS pages or
-        URLs, reorder, copy/paste. Pick the site default under{' '}
-        <Link href="/app/admin/settings">Site settings → Primary nav menu</Link>. Storage:{' '}
+        Top-level navigation manager (sibling of Users / Site settings / Layouts) — named{' '}
+        <strong>navigation sets</strong> with their own items: CMS page or URL, reorder, copy/paste.
+        Site settings only <em>assigns</em> which set is the public primary (
+        <Link href="/app/admin/settings">Primary nav assignment</Link>). Storage:{' '}
         <code>sf_nav_menus</code>. Default set id: <code>{DEFAULT_NAV_MENU_ID}</code>.
       </p>
       <NavMenusManager

@@ -123,11 +123,10 @@ export function SettingsForm({
   return (
     <form action={formAction} className="settings-form settings-form-wide">
       <fieldset className="settings-fieldset">
-        <legend>Site chrome</legend>
+        <legend>Site</legend>
         <p className="settings-hint">
-          Site name and which <Link href="/app/admin/nav">Nav</Link> menu set powers the public
-          header. Edit menu items under <strong>Nav</strong> — not here. Primary nav visibility is
-          gated under Modules → Primary nav.
+          Site name for the public header brand. (Site Chrome policy fields — offline, robots,
+          cookies — land here later; they are not Nav.)
         </p>
         <label className="settings-field">
           <span>Site name</span>
@@ -139,7 +138,15 @@ export function SettingsForm({
             autoComplete="off"
           />
         </label>
+      </fieldset>
 
+      <fieldset className="settings-fieldset">
+        <legend>Primary nav assignment</legend>
+        <p className="settings-hint">
+          Assignment only — pick which menu set the public header uses. Create and edit menus under
+          the top-level <Link href="/app/admin/nav">Nav</Link> admin item (sibling of Site settings),
+          not here. Visibility: Modules → Primary nav.
+        </p>
         <label className="settings-field">
           <span>Primary nav menu</span>
           <select name="primaryNavMenuId" defaultValue={primaryNavMenuId}>
@@ -155,10 +162,6 @@ export function SettingsForm({
             )}
           </select>
         </label>
-        <p className="settings-hint">
-          Manage sets and items at{' '}
-          <Link href="/app/admin/nav">Starforge admin → Nav</Link>.
-        </p>
       </fieldset>
 
       <fieldset className="settings-fieldset settings-modules">

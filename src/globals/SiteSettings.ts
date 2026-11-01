@@ -8,14 +8,15 @@ const revalidateSiteSettingsAfterChange: GlobalAfterChangeHook = ({ doc }) => {
 }
 
 /**
- * Site chrome + product capability toggles.
+ * Site settings + product capability toggles.
  *
  * - Editors: edit in Payload `/admin` → Globals → Site settings
  * - Core admins: edit the same doc via `/app/admin/settings` (Local API)
  *
- * Primary nav menus live in Core **Nav manager** (`sf_nav_menus`). This global
- * only stores which menu set is the site default (`primaryNavMenuId`). Legacy
- * `primaryNav` array is kept as a read fallback until migrated.
+ * Navigation sets live in Core **Nav** (`/app/admin/nav`, `sf_nav_menus`) — a
+ * top-level admin sibling of Site settings, not nested under Site Chrome.
+ * This global only assigns which menu is the site default (`primaryNavMenuId`).
+ * Legacy `primaryNav` array is a read fallback until migrated.
  *
  * Flags are product *capabilities* (registration, modules, posts placeholder…),
  * not npm libraries. Core reads them to hide UI and reject gated APIs.
@@ -27,7 +28,7 @@ export const SiteSettings: GlobalConfig = {
   label: 'Site settings',
   admin: {
     description:
-      'Site name, default primary nav menu, and feature toggles. Edit menu items under Starforge admin → Nav. Core admins: /app/admin/settings. Saving refreshes the public header cache.',
+      'Site name, primary nav menu assignment, and feature toggles. Manage menus under Starforge admin → Nav (top-level). Core admins: /app/admin/settings.',
   },
   hooks: {
     afterChange: [revalidateSiteSettingsAfterChange],
@@ -52,7 +53,7 @@ export const SiteSettings: GlobalConfig = {
       defaultValue: 'main',
       admin: {
         description:
-          'Id of the Nav manager menu set (`sf_nav_menus`) used for the public primary header. Manage sets at /app/admin/nav. Default: main.',
+          'Assignment only: which Nav menu set (`sf_nav_menus`) powers the public header. Edit sets under Starforge admin → Nav (top-level). Default: main.',
       },
     },
     {

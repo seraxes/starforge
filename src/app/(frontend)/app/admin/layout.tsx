@@ -18,7 +18,7 @@ import {
 export const metadata = {
   title: 'Starforge admin',
   description:
-    'Starforge / App admin — users, roles, site settings, page settings, and layout (not Content CMS).',
+    'Starforge / App admin — users, site settings, nav, layouts, page settings (not Content CMS).',
 }
 
 export default async function CoreAdminLayout(props: { children: React.ReactNode }) {
@@ -54,9 +54,9 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
           </p>
           <h1>Starforge admin</h1>
           <p className="lede admin-lede">
-            App users, roles, site settings, nav, page settings, and layout. Content (pages, media)
-            lives in {showPayloadCms ? <Link href="/admin">Payload CMS</Link> : 'Payload CMS'} —
-            same login when CMS access is on.
+            Top-level areas: Users, Site settings, Nav, Layouts. Content (pages, media) lives in{' '}
+            {showPayloadCms ? <Link href="/admin">Payload CMS</Link> : 'Payload CMS'} — same login
+            when CMS access is on.
           </p>
         </div>
         <p className="admin-who">
