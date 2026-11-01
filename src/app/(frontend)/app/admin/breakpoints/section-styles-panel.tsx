@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useMemo, useState, useTransition } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
 import {
@@ -34,6 +34,46 @@ type StylePatch = {
   allowGradientOverlay?: boolean
 }
 
+/** Best-practice text/color autosave: debounce onChange, flush on blur. */
+const STYLE_SAVE_DEBOUNCE_MS = 500
+
+function useDebouncedPersist(persist: (patch: StylePatch) => void) {
+  const timers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
+  const persistRef = useRef(persist)
+  persistRef.current = persist
+
+  useEffect(() => {
+    const active = timers.current
+    return () => {
+      for (const timer of active.values()) clearTimeout(timer)
+      active.clear()
+    }
+  }, [])
+
+  const schedule = useCallback((key: string, patch: StylePatch) => {
+    const existing = timers.current.get(key)
+    if (existing) clearTimeout(existing)
+    timers.current.set(
+      key,
+      setTimeout(() => {
+        timers.current.delete(key)
+        persistRef.current(patch)
+      }, STYLE_SAVE_DEBOUNCE_MS),
+    )
+  }, [])
+
+  const flush = useCallback((key: string, patch: StylePatch) => {
+    const existing = timers.current.get(key)
+    if (existing) {
+      clearTimeout(existing)
+      timers.current.delete(key)
+    }
+    persistRef.current(patch)
+  }, [])
+
+  return { schedule, flush }
+}
+
 function ActionFeedback({ state }: { state: LayoutActionState }) {
   if (state.error) {
     return (
@@ -59,7 +99,8 @@ function ColorField({
   placeholder,
   allowGradient,
   onAllowGradientChange,
-  onPersistColor,
+  onColorChange,
+  onColorBlur,
   disabled,
 }: {
   label: string
@@ -68,7 +109,10 @@ function ColorField({
   placeholder: string
   allowGradient?: boolean
   onAllowGradientChange?: (next: boolean) => void
-  onPersistColor: (next: string) => void
+  /** Debounced path (typing / color drag). */
+  onColorChange: (next: string) => void
+  /** Immediate flush (blur / Enter). */
+  onColorBlur: (next: string) => void
   disabled?: boolean
 }) {
   const isGradient = Boolean(value && /gradient\(/i.test(value))
@@ -93,7 +137,13 @@ function ColorField({
                 .closest('.section-styles-color-row')
                 ?.querySelector<HTMLInputElement>(`input[data-style-field="${fieldKey}"]`)
               if (text) text.value = hex
-              onPersistColor(hex)
+              onColorChange(hex)
+            }}
+            onBlur={(event) => {
+              const text = event.currentTarget
+                .closest('.section-styles-color-row')
+                ?.querySelector<HTMLInputElement>(`input[data-style-field="${fieldKey}"]`)
+              onColorBlur(text?.value ?? event.target.value)
             }}
           />
         ) : null}
@@ -110,7 +160,8 @@ function ColorField({
           autoComplete="off"
           disabled={disabled}
           aria-label={label}
-          onBlur={(event) => onPersistColor(event.target.value)}
+          onChange={(event) => onColorChange(event.target.value)}
+          onBlur={(event) => onColorBlur(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === 'Enter') {
               event.preventDefault()
@@ -136,8 +187,9 @@ function ColorField({
 }
 
 /**
- * Per-section Styles card — same persist UX as Layout canvas section Settings:
- * color/select/checkbox save on change; text fields save on blur (Enter blurs).
+ * Per-section Styles card — no Save button.
+ * Text/color/URL: ~500ms debounce onChange + flush on blur.
+ * Select/checkbox: immediate onChange (discrete).
  */
 function SectionStylesCard({
   section,
@@ -231,6 +283,8 @@ function SectionStylesCard({
     [layoutId, router, section.id, section.styles],
   )
 
+  const { schedule, flush } = useDebouncedPersist(persistStyles)
+
   const openProps =
     forceOpen === null ? { open: true as const } : forceOpen ? { open: true as const } : {}
 
@@ -252,7 +306,8 @@ function SectionStylesCard({
             setAllowGradientBackground(next)
             persistStyles({ allowGradientBackground: next })
           }}
-          onPersistColor={(next) => persistStyles({ backgroundColor: next })}
+          onColorChange={(next) => schedule('backgroundColor', { backgroundColor: next })}
+          onColorBlur={(next) => flush('backgroundColor', { backgroundColor: next })}
           disabled={metaPending}
         />
 
@@ -261,7 +316,8 @@ function SectionStylesCard({
           fieldKey="textColor"
           value={styles?.textColor}
           placeholder="#ffffff"
-          onPersistColor={(next) => persistStyles({ textColor: next })}
+          onColorChange={(next) => schedule('textColor', { textColor: next })}
+          onColorBlur={(next) => flush('textColor', { textColor: next })}
           disabled={metaPending}
         />
 
@@ -276,7 +332,10 @@ function SectionStylesCard({
             spellCheck={false}
             autoComplete="off"
             disabled={metaPending}
-            onBlur={(event) => persistStyles({ backgroundImage: event.target.value })}
+            onChange={(event) =>
+              schedule('backgroundImage', { backgroundImage: event.target.value })
+            }
+            onBlur={(event) => flush('backgroundImage', { backgroundImage: event.target.value })}
             onKeyDown={(event) => {
               if (event.key === 'Enter') {
                 event.preventDefault()
@@ -314,7 +373,8 @@ function SectionStylesCard({
             setAllowGradientOverlay(next)
             persistStyles({ allowGradientOverlay: next })
           }}
-          onPersistColor={(next) => persistStyles({ overlayColor: next })}
+          onColorChange={(next) => schedule('overlayColor', { overlayColor: next })}
+          onColorBlur={(next) => flush('overlayColor', { overlayColor: next })}
           disabled={metaPending || !overlayEnabled}
         />
 
