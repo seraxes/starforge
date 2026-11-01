@@ -19,14 +19,22 @@ export const siteHeaderModule: StarforgeModule = {
   builtin: true,
   defaultWidth: 100,
   render: async ({ settings }) => {
+    let siteName = settings.siteName
+    try {
+      const { getSiteChrome } = await import('@/core/site-chrome')
+      const chrome = await getSiteChrome()
+      if (chrome.siteName.trim()) siteName = chrome.siteName.trim()
+    } catch {
+      // Site Chrome table may be missing before db:core:push.
+    }
     const navOn = isModuleToggleEnabled(settings, MODULE_IDS.primaryNav, {
       defaultEnabled: true,
     })
     if (!navOn) {
-      return <SiteHeader siteName={settings.siteName} primaryNav={[]} compact />
+      return <SiteHeader siteName={siteName} primaryNav={[]} compact />
     }
     const viewer = await getAccessViewer()
     const primaryNav = filterNavItemsForViewer(settings.primaryNav, viewer)
-    return <SiteHeader siteName={settings.siteName} primaryNav={primaryNav} />
+    return <SiteHeader siteName={siteName} primaryNav={primaryNav} />
   },
 }

@@ -1,11 +1,14 @@
 import React from 'react'
 import Link from 'next/link'
 
+import { getSiteChrome } from '@/core/site-chrome'
+
 import type { StarforgeModule } from '../types'
 import { readCopyrightConfig } from './config'
 
 /**
  * Typed Copyright particle — text + auto/manual year + optional link.
+ * Empty particle text falls back to Site Chrome content rights.
  */
 export const copyrightModule: StarforgeModule = {
   id: 'copyright',
@@ -13,13 +16,22 @@ export const copyrightModule: StarforgeModule = {
   description: 'Copyright text with auto or manual year and optional link.',
   builtin: true,
   defaultWidth: 50,
-  render: ({ slot }) => {
+  render: async ({ slot }) => {
     const cfg = readCopyrightConfig(slot.config)
     const year =
       cfg.yearMode === 'manual' && typeof cfg.year === 'number'
         ? cfg.year
         : new Date().getFullYear()
-    const text = (cfg.text ?? '').trim() || 'All rights reserved.'
+    let text = (cfg.text ?? '').trim()
+    if (!text) {
+      try {
+        const chrome = await getSiteChrome()
+        text = chrome.contentRights.trim()
+      } catch {
+        // ignore
+      }
+    }
+    if (!text) text = 'All rights reserved.'
     const linkUrl = (cfg.linkUrl ?? '').trim()
     const linkLabel = (cfg.linkLabel ?? '').trim() || linkUrl
 

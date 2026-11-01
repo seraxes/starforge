@@ -7,6 +7,8 @@ export const contentCacheTags = {
   pages: 'sf:published-pages',
   /** One published page by slug. */
   page: (slug: string) => `sf:published-page:${slug}`,
-  /** Site chrome (name + primary nav + feature flags). */
+  /** Site settings global (Modules / nav assignment / legacy site name). */
   siteSettings: 'sf:site-settings',
+  /** Site Chrome policy document (`sf_site_chrome`). */
+  siteChrome: 'sf:site-chrome',
 } as const

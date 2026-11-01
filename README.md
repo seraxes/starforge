@@ -82,12 +82,14 @@ Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so coo
 | http://localhost:3000/app/admin/users | Starforge admin — accounts (roles, groups, **CMS access**, disable) |
 | http://localhost:3000/app/admin/users/groups | Starforge admin — **user groups** |
 | http://localhost:3000/app/admin/users/acl | Starforge admin — **ACL** stub matrix + view-access overview |
-| http://localhost:3000/app/admin/settings | Starforge admin — site name, primary nav menu binding, feature toggles |
+| http://localhost:3000/app/admin/site-chrome | Starforge admin — **Site Chrome** (offline, metadata, robots, cookies) |
+| http://localhost:3000/app/admin/settings | Starforge admin — Modules on/off + primary nav menu assignment |
 | http://localhost:3000/app/admin/nav | Starforge admin — **Nav** manager (navigation sets + items) |
+| http://localhost:3000/robots.txt | Site Chrome robots.txt snippet |
 | http://localhost:3000/app/admin/layouts | Starforge admin — **Layouts** (hover submenu) → **Layout** canvas (default) |
 | http://localhost:3000/app/admin/page-settings | Starforge admin — **Layouts → Page settings** (Head / Assets / Body / FA / Atoms) |
 | http://localhost:3000/api/me | Current app session JSON including `role` / `isAdmin` (`401` when signed out) |
-| http://localhost:3000/admin | Payload Content CMS — nav **Payload CMS** when `cms_access` is on; sidebar **Core admin** → `/app/admin` |
+| http://localhost:3000/admin | Payload Content CMS — nav **CMS** when `cms_access` is on; sidebar **Core admin** → `/app/admin` |
 | http://localhost:3000/about | Sample published page (after `npm run seed`) |
 | http://localhost:3000/getting-started | Sample published page |
 | http://localhost:3000/welcome | Sample published page with SEO meta filled |
@@ -117,15 +119,17 @@ App login uses **email**, not a separate username. Forgot / reset password is **
 
 Global app admins still open all Core admin today; the matrix is the enforcement stub.
 
-### Site settings + Nav manager + feature toggles
+### Site Chrome + Site settings + Nav
 
-**Nav** is a **top-level** Core admin item (`/app/admin/nav`, sibling of Users / Site settings / Layouts): multiple named **navigation sets** (menus) in `sf_nav_menus`, each with items (CMS page, URL, or module view; reorder; copy/paste; CSS class; browser/page title; multi-select access tags). Site Settings only **assigns** which set is the site primary header menu — not nested under Site Chrome.
+**Site Chrome** (`/app/admin/site-chrome`, `sf_site_chrome`) is the top-level policy panel: site offline (+ message), default captcha stub, site metadata (name / description / OG image), robots meta + `/robots.txt`, content rights, cookie domain/path. Offline mode blocks public visitors; app admins still browse (banner) and can sign in via `/login`.
 
-One Payload global (`site-settings`) holds site name, `primaryNavMenuId`, capability flags, and module toggles. Core admins edit it at **`/app/admin/settings`**. CMS editors can edit the same document under Payload **Globals → Site settings** (legacy `primaryNav` array is a fallback only).
+**Nav** is a **top-level** Core admin item (`/app/admin/nav`, sibling of Users / Site Chrome / Site settings / Layouts): multiple named **navigation sets** (menus) in `sf_nav_menus`, each with items (CMS page, URL, or module view; reorder; copy/paste; CSS class; browser/page title; multi-select access tags). Site Settings only **assigns** which set is the site primary header menu — not nested under Site Chrome.
+
+One Payload global (`site-settings`) holds synced site name, `primaryNavMenuId`, capability flags, and module toggles. Core admins edit Modules at **`/app/admin/settings`**. CMS editors can edit the same document under Payload **Globals → Site settings** (legacy `primaryNav` array is a fallback only).
 
 | Field | Default | What it does |
 | --- | --- | --- |
-| Site name | `Starforge` | Public header brand + metadata default |
+| Site name | `Starforge` | Owned by Site Chrome; synced to Payload for header/legacy |
 | Primary nav assignment | `main` | Which Nav menu set powers the public header (assignment only) |
 | Registration | on | Hide `/register` + reject signup when off |
 | Rich editor | on | Flag reserved for a future simpler mode (Lexical stays on Pages today) |
@@ -252,8 +256,8 @@ npm run seed
 npm run dev
 ```
 
-1. Admin bar must show **Users | Site settings | Nav | Layouts** (Nav is top-level).
-2. **/app/admin/settings** — site name + **Primary nav assignment** dropdown only (no About/Getting started row editor).
+1. Admin bar must show **Site Chrome | Site Settings | Navigation | Users | Layouts | CMS | Check site** (in that order).
+2. **/app/admin/site-chrome** — offline, metadata, robots, rights, cookies. **/app/admin/settings** — **Primary nav assignment** + Modules (no nav item editor).
 3. **/app/admin/nav** — edit Main menu items (CMS page / URL / **module view**, CSS class, title overrides, Up/Down, Copy/Paste). Module views come from enabled Modules catalog entries that declare `navViews`.
 4. Modules → Primary nav on/off gates the Nav link + public header.
 5. Public **/about** — matching nav active.

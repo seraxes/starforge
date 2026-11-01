@@ -54,10 +54,10 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
           </p>
           <h1>Starforge admin</h1>
           <p className="lede admin-lede">
-            Top-level areas: Users (Accounts · Groups · ACL), Site settings, Nav, Layouts. Content
-            (pages, media) lives in{' '}
-            {showPayloadCms ? <Link href="/admin">Payload CMS</Link> : 'Payload CMS'} — same login
-            when CMS access is on.
+            Top-level areas: Site Chrome, Site Settings (Modules), Navigation, Users (Accounts ·
+            Groups · ACL), Layouts, CMS. Content (pages, media) lives in{' '}
+            {showPayloadCms ? <Link href="/admin">CMS</Link> : 'CMS'} — same login when CMS access
+            is on.
           </p>
         </div>
         <p className="admin-who">
@@ -65,6 +65,9 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
         </p>
       </header>
       <nav className="admin-nav" aria-label="Starforge admin">
+        <Link href="/app/admin/site-chrome">Site Chrome</Link>
+        <Link href="/app/admin/settings">Site Settings</Link>
+        {navOn ? <Link href="/app/admin/nav">Navigation</Link> : null}
         <div className="admin-nav-dropdown">
           <Link href="/app/admin/users" className="admin-nav-dropdown-trigger">
             Users
@@ -84,8 +87,6 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
             </li>
           </ul>
         </div>
-        <Link href="/app/admin/settings">Site settings</Link>
-        {navOn ? <Link href="/app/admin/nav">Nav</Link> : null}
         {showLayoutsNav ? (
           <div className="admin-nav-dropdown">
             <Link
@@ -116,8 +117,8 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
             </ul>
           </div>
         ) : null}
-        {showPayloadCms ? <Link href="/admin">Payload CMS</Link> : null}
-        <Link href="/">Back to site</Link>
+        {showPayloadCms ? <Link href="/admin">CMS</Link> : null}
+        <Link href="/">Check site</Link>
       </nav>
       <div className="admin-main">{props.children}</div>
     </div>

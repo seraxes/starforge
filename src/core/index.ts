@@ -5,22 +5,34 @@
 export { auth } from './auth'
 export { contentCacheTags, getPublishedContentCache } from './content/cache'
 export type { ContentCacheGetOptions, PublishedContentCache } from './content/cache'
-export { absoluteMediaUrl, buildPageMetadata } from './content/metadata'
+export {
+  absoluteAssetUrl,
+  absoluteMediaUrl,
+  appOrigin,
+  buildPageMetadata,
+} from './content/metadata'
+export type { SiteChromeSeoDefaults } from './content/metadata'
 export { getDraftPageBySlug, getPublishedPageBySlug } from './content/pages'
 export { requireDraftPreviewAccess, resolveDraftPreviewAccess } from './content/preview'
-export { invalidatePublishedPage, invalidateSiteSettings } from './content/revalidate'
+export {
+  invalidatePublishedPage,
+  invalidateSiteChrome,
+  invalidateSiteSettings,
+} from './content/revalidate'
 export {
   db,
   pool,
   DEFAULT_LAYOUT_ID,
   DEFAULT_NAV_MENU_ID,
   GLOBAL_PAGE_CHROME_ID,
+  SITE_CHROME_ID,
   sfUsers,
   sfSessions,
   sfAccounts,
   sfVerifications,
   sfLayouts,
   sfPageChrome,
+  sfSiteChrome,
   sfNavMenus,
   sfUserGroups,
   sfUserGroupMembers,
@@ -106,6 +118,13 @@ export {
   updateSiteSettings,
 } from './settings'
 export type { ModuleCatalogItem, ModuleToggleMap } from './settings'
+export {
+  ensureSiteChromeSeeded,
+  getSiteChrome,
+  saveSiteChrome,
+  siteChromeCookieAttributes,
+} from './site-chrome'
+export type { CaptchaProvider, SiteChromeDocument } from './site-chrome'
 export {
   BOOTSTRAP_ADMIN_EMAIL,
   ensureCmsAccessForCoreUserIds,

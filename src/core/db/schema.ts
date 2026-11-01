@@ -139,6 +139,24 @@ export const sfPageChrome = pgTable('sf_page_chrome', {
     .notNull(),
 })
 
+/**
+ * Site Chrome (site-wide policy — offline, metadata, robots, cookies, …).
+ * Singleton row `global`. Separate from Payload `site-settings` (Modules / nav
+ * assignment) and from `sf_page_chrome` (per-page document chrome).
+ */
+export const SITE_CHROME_ID = 'global'
+
+export const sfSiteChrome = pgTable('sf_site_chrome', {
+  id: text('id').primaryKey(),
+  /** Canonical SiteChromeDocument JSON. */
+  document: text('document').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+})
+
 /** Stable id for the default (site primary) navigation set. */
 export const DEFAULT_NAV_MENU_ID = 'main'
 

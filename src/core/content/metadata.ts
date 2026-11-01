@@ -4,7 +4,8 @@ import type { Media, Page } from '@/payload-types'
 
 const DEFAULT_SITE_NAME = 'Starforge'
 
-function appOrigin(): string {
+/** Public site origin (no trailing slash) for absolute asset / OG URLs. */
+export function appOrigin(): string {
   return (
     process.env.NEXT_PUBLIC_APP_URL ||
     process.env.BETTER_AUTH_URL ||
@@ -18,11 +19,18 @@ export function absoluteMediaUrl(media: Media | null | undefined): string | unde
     return undefined
   }
 
-  if (media.url.startsWith('http://') || media.url.startsWith('https://')) {
-    return media.url
-  }
+  return absoluteAssetUrl(media.url)
+}
 
-  return `${appOrigin()}${media.url.startsWith('/') ? '' : '/'}${media.url}`
+/**
+ * Absolute URL for a site-relative path or pass-through for http(s).
+ * Empty / whitespace → undefined.
+ */
+export function absoluteAssetUrl(url: string | null | undefined): string | undefined {
+  const raw = typeof url === 'string' ? url.trim() : ''
+  if (!raw) return undefined
+  if (raw.startsWith('http://') || raw.startsWith('https://')) return raw
+  return `${appOrigin()}${raw.startsWith('/') ? '' : '/'}${raw}`
 }
 
 function resolveOgImage(page: Page): Media | null {
@@ -36,13 +44,44 @@ function resolveOgImage(page: Page): Media | null {
   return null
 }
 
+export type SiteChromeSeoDefaults = {
+  siteName?: string | null
+  defaultDescription?: string | null
+  defaultOgImage?: string | null
+}
+
+async function loadChromeSeoDefaults(): Promise<SiteChromeSeoDefaults> {
+  try {
+    const { getSiteChrome } = await import('@/core/site-chrome')
+    const chrome = await getSiteChrome()
+    return {
+      siteName: chrome.siteName,
+      defaultDescription: chrome.defaultDescription,
+      defaultOgImage: chrome.defaultOgImage,
+    }
+  } catch {
+    return {}
+  }
+}
+
 /**
- * Next.js Metadata for a published CMS page (title, description, Open Graph).
+ * Next.js Metadata for a CMS page (title, description, Open Graph, Twitter).
+ * Empty page SEO fields fall back to Site Chrome defaults.
  */
-export function buildPageMetadata(page: Page): Metadata {
-  const title = page.meta?.title?.trim() || `${page.title} — ${DEFAULT_SITE_NAME}`
-  const description = page.meta?.description?.trim() || undefined
-  const ogImageUrl = absoluteMediaUrl(resolveOgImage(page))
+export async function buildPageMetadata(page: Page): Promise<Metadata> {
+  const chrome = await loadChromeSeoDefaults()
+  const siteName = chrome.siteName?.trim() || DEFAULT_SITE_NAME
+
+  const pageMetaTitle = page.meta?.title?.trim()
+  const title = pageMetaTitle || `${page.title} — ${siteName}`
+
+  const description =
+    page.meta?.description?.trim() || chrome.defaultDescription?.trim() || undefined
+
+  const pageOg = absoluteMediaUrl(resolveOgImage(page))
+  const chromeOg = absoluteAssetUrl(chrome.defaultOgImage)
+  const ogImageUrl = pageOg || chromeOg
+  const ogAlt = resolveOgImage(page)?.alt || page.title
 
   return {
     title,
@@ -51,12 +90,13 @@ export function buildPageMetadata(page: Page): Metadata {
       title,
       description,
       type: 'website',
+      siteName,
       ...(ogImageUrl
         ? {
             images: [
               {
                 url: ogImageUrl,
-                alt: resolveOgImage(page)?.alt || page.title,
+                alt: ogAlt,
               },
             ],
           }

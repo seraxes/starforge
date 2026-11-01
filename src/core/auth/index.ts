@@ -6,6 +6,7 @@ import { admin as adminPlugin } from 'better-auth/plugins'
 import { eq } from 'drizzle-orm'
 
 import { db, sfAccounts, sfSessions, sfUsers, sfVerifications } from '@/core/db'
+import { siteChromeCookieAttributes } from '@/core/site-chrome/cookie-attrs'
 import { emailIsBootstrapAdmin } from './bootstrap-admins'
 import { ac, appRoles, DEFAULT_APP_ROLE } from './permissions'
 
@@ -99,12 +100,8 @@ export const auth = betterAuth({
   advanced: {
     // Local http:// — never force Secure cookies (breaks Windows localhost).
     useSecureCookies: false,
-    defaultCookieAttributes: {
-      sameSite: 'lax',
-      httpOnly: true,
-      path: '/',
-      secure: false,
-    },
+    // Shared by ref with Site Chrome — domain/path update on save without restart.
+    defaultCookieAttributes: siteChromeCookieAttributes,
   },
   // nextCookies must be last so Set-Cookie from server actions reaches the browser.
   plugins: [

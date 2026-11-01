@@ -122,30 +122,16 @@ export function SettingsForm({
 
   return (
     <form action={formAction} className="settings-form settings-form-wide">
-      <fieldset className="settings-fieldset">
-        <legend>Site</legend>
-        <p className="settings-hint">
-          Site name for the public header brand. (Site Chrome policy fields — offline, robots,
-          cookies — land here later; they are not Nav.)
-        </p>
-        <label className="settings-field">
-          <span>Site name</span>
-          <input
-            type="text"
-            name="siteName"
-            defaultValue={siteName}
-            required
-            autoComplete="off"
-          />
-        </label>
-      </fieldset>
+      {/* Keep siteName in the form so Modules save does not wipe Payload site name. */}
+      <input type="hidden" name="siteName" value={siteName} />
 
       <fieldset className="settings-fieldset">
         <legend>Primary nav assignment</legend>
         <p className="settings-hint">
           Assignment only — pick which menu set the public header uses. Create and edit menus under
-          the top-level <Link href="/app/admin/nav">Nav</Link> admin item (sibling of Site settings),
-          not here. Visibility: Modules → Primary nav.
+          the top-level <Link href="/app/admin/nav">Nav</Link> admin item. Site name / offline /
+          robots / cookies: <Link href="/app/admin/site-chrome">Site Chrome</Link>. Visibility:
+          Modules → Primary nav.
         </p>
         <label className="settings-field">
           <span>Primary nav menu</span>
