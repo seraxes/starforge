@@ -2,7 +2,11 @@
  * Modular Form engine types (SF-65).
  * Field list is canonical; JSON Schema is a derived + editable projection.
  * Definitions live in `sf_forms`; submissions in `sf_form_submissions`.
+ *
+ * Client-safe — do not add server-only imports here.
  */
+
+import type { CaptchaProvider } from '@/core/site-chrome/types'
 
 /** Built-in field kinds for the visual builder + public widget. */
 export type FormFieldType =
@@ -122,4 +126,15 @@ export type FormAdminActionState = {
   ok?: boolean
   message?: string
   formId?: string
+}
+
+/** Resolved captcha challenge for a Form instance (public props / server verify). */
+export type ResolvedCaptcha = {
+  /** Whether this form instance should challenge the visitor. */
+  required: boolean
+  provider: CaptchaProvider
+  /** Public site key (Turnstile) when required + provider is turnstile. */
+  siteKey: string | null
+  /** Human-readable reason when required but misconfigured. */
+  misconfiguredReason?: string
 }
