@@ -1,4 +1,4 @@
-import { boolean, index, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
+import { boolean, index, pgTable, primaryKey, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core'
 
 /** Stable id for the active site layout document row. */
 export const DEFAULT_LAYOUT_ID = 'default'
@@ -159,3 +159,63 @@ export const sfNavMenus = pgTable('sf_nav_menus', {
     .$onUpdate(() => new Date())
     .notNull(),
 })
+
+/**
+ * Named user groups (Users → Groups). Membership is many-to-many via
+ * `sf_user_group_members`. Nav item `accessLevel: group:<id>` and ACL
+ * permissions key off these ids.
+ */
+export const sfUserGroups = pgTable('sf_user_groups', {
+  id: text('id').primaryKey(),
+  label: text('label').notNull(),
+  description: text('description'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+})
+
+/** User ↔ group membership (a user may belong to many groups). */
+export const sfUserGroupMembers = pgTable(
+  'sf_user_group_members',
+  {
+    groupId: text('group_id')
+      .notNull()
+      .references(() => sfUserGroups.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => sfUsers.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.groupId, table.userId] }),
+    index('sf_user_group_members_user_id_idx').on(table.userId),
+  ],
+)
+
+/**
+ * Group-keyed ACL stub matrix (admin areas for now).
+ * Full frontend/backend enforcement comes after groups exist; this stores the
+ * foundation and powers the Groups → Permissions UI.
+ */
+export const sfAclPermissions = pgTable(
+  'sf_acl_permissions',
+  {
+    id: text('id').primaryKey(),
+    groupId: text('group_id')
+      .notNull()
+      .references(() => sfUserGroups.id, { onDelete: 'cascade' }),
+    /** Stable resource key, e.g. `admin.users`, `admin.nav`. */
+    resource: text('resource').notNull(),
+    allowed: boolean('allowed').default(false).notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex('sf_acl_permissions_group_resource_uidx').on(table.groupId, table.resource),
+    index('sf_acl_permissions_group_id_idx').on(table.groupId),
+  ],
+)

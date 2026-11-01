@@ -4,6 +4,11 @@ import React, { useActionState, useEffect, useState } from 'react'
 import Link from 'next/link'
 
 import {
+  setUserGroupsAction,
+  type AclActionState,
+  type UserGroupOption,
+} from '@/core/acl'
+import {
   setAppUserDisabledAction,
   setAppUserRoleAction,
   type AdminActionState,
@@ -23,10 +28,12 @@ export type AdminUserRow = {
   banned: boolean
   banReason: string | null
   createdAt: string
+  groupIds: string[]
 }
 
 const initial: AdminActionState = {}
 const cmsInitial: CmsAccessActionState = {}
+const groupsInitial: AclActionState = {}
 
 function RoleForm({ user }: { user: AdminUserRow }) {
   const [state, action, pending] = useActionState(setAppUserRoleAction, initial)
@@ -111,7 +118,56 @@ function DisableForm({ user }: { user: AdminUserRow }) {
   )
 }
 
-export function UsersAdminTable({ users }: { users: AdminUserRow[] }) {
+function GroupsForm({
+  user,
+  groupOptions,
+}: {
+  user: AdminUserRow
+  groupOptions: UserGroupOption[]
+}) {
+  const [state, action, pending] = useActionState(setUserGroupsAction, groupsInitial)
+
+  if (groupOptions.length === 0) {
+    return (
+      <span className="settings-hint">
+        <Link href="/app/admin/users/groups">Create groups</Link>
+      </span>
+    )
+  }
+
+  return (
+    <form action={action} className="admin-inline-form admin-groups-form">
+      <input type="hidden" name="userId" value={user.id} />
+      <fieldset className="admin-groups-fieldset">
+        <legend className="sr-only">Groups for {user.email}</legend>
+        {groupOptions.map((g) => (
+          <label key={g.id} className="outlines-check">
+            <input
+              type="checkbox"
+              name="groupId"
+              value={g.id}
+              defaultChecked={user.groupIds.includes(g.id)}
+            />
+            <span>{g.label}</span>
+          </label>
+        ))}
+      </fieldset>
+      <button type="submit" className="secondary" disabled={pending}>
+        {pending ? 'Saving…' : 'Save groups'}
+      </button>
+      {state.error ? <span className="admin-inline-error">{state.error}</span> : null}
+      {state.ok ? <span className="admin-inline-ok">Saved</span> : null}
+    </form>
+  )
+}
+
+export function UsersAdminTable({
+  users,
+  groupOptions,
+}: {
+  users: AdminUserRow[]
+  groupOptions: UserGroupOption[]
+}) {
   if (users.length === 0) {
     return (
       <p className="admin-empty">
@@ -130,6 +186,7 @@ export function UsersAdminTable({ users }: { users: AdminUserRow[] }) {
             <th scope="col">Name</th>
             <th scope="col">Email</th>
             <th scope="col">Role</th>
+            <th scope="col">Groups</th>
             <th scope="col">CMS access</th>
             <th scope="col">Status</th>
             <th scope="col">Created</th>
@@ -145,6 +202,9 @@ export function UsersAdminTable({ users }: { users: AdminUserRow[] }) {
               </td>
               <td>
                 <RoleForm user={user} />
+              </td>
+              <td>
+                <GroupsForm user={user} groupOptions={groupOptions} />
               </td>
               <td>
                 <CmsAccessToggle user={user} />

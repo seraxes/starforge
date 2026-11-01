@@ -1,6 +1,7 @@
 import React from 'react'
 import { headers } from 'next/headers'
 
+import { filterNavItemsForViewer, getAccessViewer } from '@/core/acl'
 import { PublicLayoutBody } from '@/core/modules'
 import {
   BodyAttributesApplier,
@@ -28,7 +29,11 @@ export async function generateMetadata() {
  * Product module toggles gate chrome emit and layout manager shell.
  */
 export default async function PublicSiteLayout(props: { children: React.ReactNode }) {
-  const [settings, headerList] = await Promise.all([getSiteSettings(), headers()])
+  const [settings, headerList, viewer] = await Promise.all([
+    getSiteSettings(),
+    headers(),
+    getAccessViewer(),
+  ])
   const pathname = headerList.get('x-sf-pathname') || '/'
   const pageKey = pageKeyFromPathname(pathname)
   const pageSettingsOn = isCatalogModuleEnabled(settings, MODULE_IDS.pageSettings)
@@ -41,6 +46,11 @@ export default async function PublicSiteLayout(props: { children: React.ReactNod
   if (!isCatalogModuleEnabled(settings, MODULE_IDS.fontAwesome) && chrome.fontAwesome) {
     chrome.fontAwesome = { ...chrome.fontAwesome, enabled: false }
   }
+
+  const rawNav = isCatalogModuleEnabled(settings, MODULE_IDS.primaryNav)
+    ? settings.primaryNav
+    : []
+  const primaryNav = filterNavItemsForViewer(rawNav, viewer)
 
   return (
     <>
@@ -56,9 +66,7 @@ export default async function PublicSiteLayout(props: { children: React.ReactNod
       {pageSettingsOn ? <DocumentBodyChrome chrome={chrome} position="start" /> : null}
       <PublicLayoutBody
         siteName={settings.siteName}
-        primaryNav={
-          isCatalogModuleEnabled(settings, MODULE_IDS.primaryNav) ? settings.primaryNav : []
-        }
+        primaryNav={primaryNav}
         layoutId={chrome.layoutId}
         sectionsLayout={chrome.sectionsLayout}
         layoutManagerEnabled={layoutOn}

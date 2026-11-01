@@ -2,6 +2,7 @@ import React from 'react'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 
+import { ensureDefaultUserGroupsSeeded, listUserGroupOptions } from '@/core/acl'
 import {
   flattenNavItemsInOrder,
   listEnabledModuleNavOptions,
@@ -44,9 +45,11 @@ export default async function AdminNavMenuItemsPage({ params }: Args) {
     notFound()
   }
 
-  const [pages, modules] = await Promise.all([
+  await ensureDefaultUserGroupsSeeded()
+  const [pages, modules, groups] = await Promise.all([
     listNavPageOptions(),
     Promise.resolve(listEnabledModuleNavOptions(settings)),
+    listUserGroupOptions(),
   ])
   const items = flattenNavItemsInOrder(loaded.document.items)
 
@@ -56,7 +59,8 @@ export default async function AdminNavMenuItemsPage({ params }: Args) {
       <p className="lede admin-lede">
         Bind each item to a CMS page, URL, or an <strong>enabled module view</strong> (Modules
         catalog / registry <code>navViews</code>). Reorder with Up/Down; Copy/Paste to duplicate.
-        Access level is a stub for upcoming ACL.{' '}
+        Access level uses public / registered /{' '}
+        <Link href="/app/admin/users/groups">user groups</Link>.{' '}
         <Link href="/app/admin/nav">Back to menus</Link>
         {settings.primaryNavMenuId === loaded.id ? (
           <>
@@ -72,6 +76,7 @@ export default async function AdminNavMenuItemsPage({ params }: Args) {
         items={items}
         pages={pages}
         modules={modules}
+        groups={groups}
         isSitePrimary={settings.primaryNavMenuId === loaded.id}
       />
     </section>

@@ -3,11 +3,10 @@
  * Flat list + optional `parentId` for later nesting; public layout is flat for now.
  */
 
-/** Access stub until user-group ACL ships. */
+/** Access level — `group:<id>` maps to Users → Groups (`sf_user_groups.id`). */
 export type NavAccessLevel =
   | 'public'
   | 'registered'
-  /** Placeholder: `group:<id>` until Users → groups exist. */
   | `group:${string}`
 
 /**

@@ -16,7 +16,7 @@ export type NavItem = {
   browserTitle?: string
   /** On-page H1 override when this item’s path is active. */
   pageHeading?: string
-  /** Access stub (`public` / `registered` / `group:<id>`) — not filtered yet. */
+  /** Access level (`public` / `registered` / `group:<id>`) — filtered for the viewer. */
   accessLevel?: string
 }
 

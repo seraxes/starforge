@@ -11,6 +11,7 @@ import {
   saveNavMenuItemsAction,
   type NavActionState,
 } from '@/core/nav/actions'
+import type { UserGroupOption } from '@/core/acl'
 import type { NavLinkType, NavMenuItem, NavModuleOption, NavPageOption } from '@/core/nav/types'
 
 type EditableItem = {
@@ -35,6 +36,7 @@ type Props = {
   items: NavMenuItem[]
   pages: NavPageOption[]
   modules: NavModuleOption[]
+  groups: UserGroupOption[]
   isSitePrimary: boolean
 }
 
@@ -137,6 +139,7 @@ export function NavItemsEditor({
   items,
   pages,
   modules,
+  groups,
   isSitePrimary,
 }: Props) {
   const router = useRouter()
@@ -461,31 +464,48 @@ export function NavItemsEditor({
                         />
                       </label>
                       <label className="settings-field">
-                        <span>Access level (stub)</span>
+                        <span>Access level</span>
                         <select
                           value={row.accessKind}
                           onChange={(e) =>
                             updateRow(row.id, {
                               accessKind: e.target.value as EditableItem['accessKind'],
+                              accessGroupId:
+                                e.target.value === 'group'
+                                  ? row.accessGroupId || groups[0]?.id || ''
+                                  : '',
                             })
                           }
                         >
                           <option value="public">Public</option>
                           <option value="registered">Registered</option>
-                          <option value="group">Group id…</option>
+                          <option value="group" disabled={groups.length === 0}>
+                            Group…
+                          </option>
                         </select>
                       </label>
                       {row.accessKind === 'group' ? (
                         <label className="settings-field">
-                          <span>Group id (placeholder)</span>
-                          <input
-                            type="text"
-                            value={row.accessGroupId}
-                            placeholder="e.g. editors"
-                            onChange={(e) =>
-                              updateRow(row.id, { accessGroupId: e.target.value })
-                            }
-                          />
+                          <span>User group</span>
+                          {groups.length === 0 ? (
+                            <span className="settings-hint">
+                              <Link href="/app/admin/users/groups">Create a group</Link> first.
+                            </span>
+                          ) : (
+                            <select
+                              value={row.accessGroupId}
+                              onChange={(e) =>
+                                updateRow(row.id, { accessGroupId: e.target.value })
+                              }
+                            >
+                              <option value="">Select group…</option>
+                              {groups.map((g) => (
+                                <option key={g.id} value={g.id}>
+                                  {g.label} ({g.id})
+                                </option>
+                              ))}
+                            </select>
+                          )}
                         </label>
                       ) : null}
                     </div>

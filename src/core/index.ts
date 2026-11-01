@@ -22,6 +22,9 @@ export {
   sfLayouts,
   sfPageChrome,
   sfNavMenus,
+  sfUserGroups,
+  sfUserGroupMembers,
+  sfAclPermissions,
 } from './db'
 export {
   ensureDefaultNavMenuSeeded,
@@ -120,3 +123,19 @@ export {
   PAYLOAD_TOKEN_COOKIE,
   setPayloadAdminSessionCookie,
 } from './cms-bridge/payload-session'
+export {
+  ACL_ADMIN_RESOURCES,
+  canSeeNavAccessLevel,
+  ensureDefaultUserGroupsSeeded,
+  filterNavItemsForViewer,
+  getAccessViewer,
+  listUserGroupOptions,
+  listUserGroups,
+  viewerMayAccessAdminResource,
+} from './acl'
+export type {
+  AccessViewer,
+  AclAdminResourceKey,
+  UserGroup,
+  UserGroupOption,
+} from './acl'

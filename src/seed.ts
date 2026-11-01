@@ -17,6 +17,7 @@ import { getPayload } from 'payload'
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical'
 
 import config from '@payload-config'
+import { ensureDefaultUserGroupsSeeded } from './core/acl'
 import { auth } from './core/auth'
 import {
   getBootstrapAdminEmails,
@@ -428,6 +429,19 @@ async function main() {
   }
 
   try {
+    const groups = await ensureDefaultUserGroupsSeeded()
+    if (groups.created.length) {
+      console.log(`User groups created: ${groups.created.join(', ')}`)
+    } else {
+      console.log('User groups: already present (or skipped)')
+    }
+  } catch (error) {
+    console.warn('Could not seed user groups (sf_user_groups).')
+    console.warn('Run: npm run db:core:push')
+    console.warn(error instanceof Error ? error.message : error)
+  }
+
+  try {
     const adminUser = await seedBootstrapAdmin()
     if (adminUser.created) {
       console.log('')
@@ -486,6 +500,7 @@ async function main() {
   console.log('Notice bar (modules): header position when Modules is on')
   console.log('Login once: http://localhost:3000/login  then open http://localhost:3000/admin')
   console.log('Core admin users:    http://localhost:3000/app/admin/users')
+  console.log('Core user groups:    http://localhost:3000/app/admin/users/groups')
   console.log('Core site settings:  http://localhost:3000/app/admin/settings')
   console.log('Core page settings:  http://localhost:3000/app/admin/page-settings')
   console.log('Core layout manager: http://localhost:3000/app/admin/layouts')

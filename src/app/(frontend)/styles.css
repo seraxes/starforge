@@ -2674,3 +2674,40 @@ button.danger,
     grid-template-columns: 1fr;
   }
 }
+
+/* Users → Groups */
+.admin-groups-form {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+
+.admin-groups-fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.admin-code-inline {
+  font-size: 0.85em;
+  font-weight: 500;
+  color: var(--sf-muted);
+}
+
+.group-detail-manager .outlines-create + .outlines-create {
+  margin-top: 1.75rem;
+}
+
+.acl-matrix-form > button {
+  margin-top: 0.75rem;
+}
+
+.groups-manager .outlines-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}

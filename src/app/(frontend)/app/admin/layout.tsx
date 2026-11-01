@@ -54,7 +54,8 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
           </p>
           <h1>Starforge admin</h1>
           <p className="lede admin-lede">
-            Top-level areas: Users, Site settings, Nav, Layouts. Content (pages, media) lives in{' '}
+            Top-level areas: Users (accounts + groups), Site settings, Nav, Layouts. Content
+            (pages, media) lives in{' '}
             {showPayloadCms ? <Link href="/admin">Payload CMS</Link> : 'Payload CMS'} — same login
             when CMS access is on.
           </p>
@@ -64,7 +65,22 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
         </p>
       </header>
       <nav className="admin-nav" aria-label="Starforge admin">
-        <Link href="/app/admin/users">Users</Link>
+        <div className="admin-nav-dropdown">
+          <Link href="/app/admin/users" className="admin-nav-dropdown-trigger">
+            Users
+            <span className="admin-nav-dropdown-caret" aria-hidden="true">
+              ▾
+            </span>
+          </Link>
+          <ul className="admin-nav-dropdown-menu" aria-label="Users submenu">
+            <li>
+              <Link href="/app/admin/users">Accounts</Link>
+            </li>
+            <li>
+              <Link href="/app/admin/users/groups">Groups</Link>
+            </li>
+          </ul>
+        </div>
         <Link href="/app/admin/settings">Site settings</Link>
         {navOn ? <Link href="/app/admin/nav">Nav</Link> : null}
         {showLayoutsNav ? (
