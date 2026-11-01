@@ -4,6 +4,10 @@ import type { NavItem } from '@/core/settings/defaults'
 import { ensureModulesRegistered } from '@/modules/catalog'
 
 import { getLayoutDocument } from './layout'
+import {
+  isFooterLayoutSection,
+  sortLayoutSections,
+} from './section-order'
 import { SlotRenderer } from './SlotRenderer'
 import type { LayoutRow, LayoutSection } from './types'
 
@@ -39,8 +43,7 @@ function SectionBlock({
   pageContent: React.ReactNode
 }) {
   const rows = sortByOrder(section.rows)
-  const isFooter =
-    section.id.includes('footer') || section.label.toLowerCase().includes('footer')
+  const isFooter = isFooterLayoutSection(section)
 
   const inner = (
     <>
@@ -102,6 +105,25 @@ function documentHasPageContent(sections: LayoutSection[]): boolean {
 }
 
 /**
+ * Split so footer-band sections always paint after Main (and other) flow,
+ * even if stored `order` values are wrong/tied. Main-row particles (Form)
+ * cannot appear after `<footer class="site-footer">` in the DOM.
+ */
+function partitionSectionsForPaint(sections: LayoutSection[]): {
+  flow: LayoutSection[]
+  footers: LayoutSection[]
+} {
+  const sorted = sortLayoutSections(sections)
+  const flow: LayoutSection[] = []
+  const footers: LayoutSection[] = []
+  for (const section of sorted) {
+    if (isFooterLayoutSection(section)) footers.push(section)
+    else flow.push(section)
+  }
+  return { flow, footers }
+}
+
+/**
  * Public site body driven by the layout document (sections → rows → slots).
  * Page route children render via the built-in `page-content` particle.
  */
@@ -147,8 +169,8 @@ export async function PublicLayoutBody({
   }
 
   const document = await getLayoutDocument(layoutId)
-  const sections = sortByOrder(document.sections)
-  const hasPageContent = documentHasPageContent(sections)
+  const { flow, footers } = partitionSectionsForPaint(document.sections)
+  const hasPageContent = documentHasPageContent([...flow, ...footers])
 
   return (
     <div
@@ -157,7 +179,7 @@ export async function PublicLayoutBody({
       data-sf-layout-id={layoutId || 'default'}
       data-sf-sections-layout={sectionsLayout}
     >
-      {sections.map((section) => (
+      {flow.map((section) => (
         <SectionBlock key={section.id} section={section} pageContent={children} />
       ))}
 
@@ -170,6 +192,10 @@ export async function PublicLayoutBody({
           </div>
         </section>
       ) : null}
+
+      {footers.map((section) => (
+        <SectionBlock key={section.id} section={section} pageContent={children} />
+      ))}
 
       <p className="site-footer-meta sf-layout-chrome-meta">
         <span className="site-footer-brand">{siteName}</span>

@@ -2,6 +2,7 @@ import { accessTagsForStorage } from '@/core/acl/nav-access'
 
 import defaultLayoutJson from './default-layout.json'
 import { clampGridWidth, LAYOUT_WIDTH_FULL, normalizeRowWidthsToPercent } from './grid'
+import { reindexLayoutSectionOrders } from './section-order'
 import type {
   LayoutDocument,
   LayoutDocumentV1,
@@ -334,10 +335,7 @@ export function upgradeLayoutV2(doc: LayoutDocumentV2): LayoutDocument {
     })
   }
 
-  sections.sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id))
-  sections.forEach((s, i) => {
-    s.order = i
-  })
+  reindexLayoutSectionOrders(sections)
 
   return normalizeLayoutDocument({ version: 3, sections }) ?? { version: 3, sections }
 }
@@ -365,8 +363,7 @@ export function normalizeLayoutDocument(raw: unknown): LayoutDocument | null {
       const sections = maybe.sections
         .map((s, i) => normalizeSection(s, i))
         .filter(Boolean) as LayoutSection[]
-      sections.sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id))
-      return { version: 3, sections }
+      return { version: 3, sections: reindexLayoutSectionOrders(sections) }
     }
     return null
   }
@@ -374,9 +371,9 @@ export function normalizeLayoutDocument(raw: unknown): LayoutDocument | null {
   const sections = ((raw as LayoutDocument).sections.map((s, i) => normalizeSection(s, i)).filter(
     Boolean,
   ) as LayoutSection[])
-  sections.sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id))
-
-  return { version: 3, sections }
+  // Semantic band + heal stored orders so Footer cannot paint before Main
+  // when `order` ties (id alpha put `footer` before `main`).
+  return { version: 3, sections: reindexLayoutSectionOrders(sections) }
 }
 
 export function cloneDefaultLayoutDocument(): LayoutDocument {

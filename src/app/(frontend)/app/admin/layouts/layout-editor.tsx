@@ -31,6 +31,7 @@ import {
   sumRowWidths,
   widthToPercentLabel,
 } from '@/core/modules/grid'
+import { sortLayoutSections } from '@/core/modules/section-order'
 import type { LayoutDocument, LayoutRow, LayoutSection, LayoutSlot } from '@/core/modules/types'
 
 import { CustomParticleEditor } from './custom-particle-editor'
@@ -102,7 +103,8 @@ function ActionFeedback({ state }: { state: LayoutActionState }) {
 }
 
 function sortSections(sections: LayoutSection[]) {
-  return [...sections].sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id))
+  // Same semantic band as public paint — Footer never sorts before Main on ties.
+  return sortLayoutSections(sections)
 }
 
 function sortRows(rows: LayoutRow[]) {

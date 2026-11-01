@@ -147,8 +147,16 @@ body {
   color: var(--sf-secondary-strong);
 }
 
-.site-footer {
+/*
+ * Sticky footer: only the *last* layout footer section should eat free space.
+ * (If a mis-ordered footer painted first, margin-top:auto on every .site-footer
+ * pushed Main/Form below it in the flex column.)
+ */
+.public-shell > .site-footer:last-of-type {
   margin-top: auto;
+}
+
+.site-footer {
   border-top: 1px solid var(--sf-line);
   background: color-mix(in srgb, var(--sf-paper) 70%, white);
 }

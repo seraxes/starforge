@@ -37,6 +37,13 @@ export {
   slugifyLayoutId,
 } from './document'
 export {
+  compareLayoutSections,
+  isFooterLayoutSection,
+  layoutSectionBand,
+  reindexLayoutSectionOrders,
+  sortLayoutSections,
+} from './section-order'
+export {
   clampGridWidth,
   evenColumnWidths,
   gridColStyle,
