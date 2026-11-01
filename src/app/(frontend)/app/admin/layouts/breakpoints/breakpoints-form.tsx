@@ -9,7 +9,7 @@ import {
   type LayoutBreakpoints,
 } from '@/core/modules'
 
-import { LayoutIdField } from '../layout-outline-context'
+import { LayoutIdField, useLayoutOutlineId } from '../layout-outline-context'
 
 const initialState: LayoutActionState = {}
 
