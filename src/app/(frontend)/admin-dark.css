@@ -175,12 +175,12 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .gantry-layouts-nav-tab:hover {
-  background: color-mix(in srgb, var(--sf-admin-nav-active) 70%, transparent);
+  background: color-mix(in srgb, #5ba3d0 42%, transparent);
   color: #fff;
 }
 
 .admin-shell .gantry-layouts-nav-tab.is-active {
-  background: var(--sf-admin-nav-active);
+  background: #4a8fc4;
   box-shadow: none;
   color: #fff;
 }
@@ -308,12 +308,12 @@ body:has(.admin-shell) > main {
   color: var(--sf-primary-strong);
 }
 
-/* Joomla-style left sidebar — a few shades darker than content canvas */
+/* Joomla-style left sidebar — darker navy than content / palette */
 .admin-shell .admin-sidebar {
   background:
-    linear-gradient(180deg, #0c121c 0%, #0f1622 48%, #0d141e 100%);
-  border-right-color: #1a2433;
-  box-shadow: inset -1px 0 0 color-mix(in srgb, #000 40%, transparent);
+    linear-gradient(180deg, #070b12 0%, #0a1018 48%, #080e16 100%);
+  border-right-color: #141c28;
+  box-shadow: inset -1px 0 0 color-mix(in srgb, #000 45%, transparent);
 }
 
 .admin-shell .admin-sidebar-title {
@@ -406,8 +406,8 @@ body:has(.admin-shell) > main {
 
 @media (max-width: 900px) {
   .admin-shell .admin-sidebar {
-    background: #0c121c;
-    border-bottom-color: #1a2433;
+    background: #070b12;
+    border-bottom-color: #141c28;
     box-shadow: none;
   }
 }
@@ -501,9 +501,19 @@ body:has(.admin-shell) > main {
 .admin-shell .gantry-typed-form button.danger,
 .admin-shell button.danger,
 .admin-shell .outlines-actions .danger {
-  background: color-mix(in srgb, #c45c5c 22%, var(--sf-admin-surface));
-  color: #f0b4b4;
-  border-color: color-mix(in srgb, #c45c5c 40%, var(--sf-line));
+  background: color-mix(in srgb, #c0392b 38%, var(--sf-admin-surface));
+  color: #ffb0a8;
+  border-color: color-mix(in srgb, #e74c3c 55%, var(--sf-line));
+}
+
+.admin-shell .gantry-row-actions button.danger:hover,
+.admin-shell .gantry-row-meta button.danger:hover,
+.admin-shell .gantry-slot-actions button.danger:hover,
+.admin-shell button.danger:hover,
+.admin-shell .outlines-actions .danger:hover {
+  background: color-mix(in srgb, #c0392b 52%, var(--sf-admin-surface));
+  color: #ffc9c2;
+  border-color: color-mix(in srgb, #e74c3c 70%, var(--sf-line));
 }
 
 /* —— Layout editor: steal Gantry Helium —— */
@@ -523,8 +533,8 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .gantry-palette {
-  background: #1b2531;
-  border: 1px solid #243246;
+  background: #0a1018;
+  border: 1px solid #141c28;
   border-radius: 3px;
   padding: 0.55rem 0.55rem 0.65rem;
 }
@@ -766,6 +776,13 @@ body:has(.admin-shell) > main {
   line-height: 1;
 }
 
+/* Section cog ~50% larger than sibling + control */
+.admin-shell .gantry-section-settings > summary.gantry-section-icon-btn {
+  width: 2.45rem;
+  height: 2.45rem;
+  font-size: 1.5rem;
+}
+
 .admin-shell .gantry-section-icon-btn:hover,
 .admin-shell .gantry-section-settings > summary:hover {
   background: color-mix(in srgb, var(--sf-admin-blue-mid) 22%, transparent);
@@ -986,14 +1003,14 @@ body:has(.admin-shell) > main {
 
 .admin-shell .gantry-slot-actions .gantry-settings-trigger,
 .admin-shell .gantry-settings-gear {
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 2.25rem;
+  height: 2.25rem;
   padding: 0;
   border: 0;
   border-radius: 2px;
   background: transparent;
   color: #fff;
-  font-size: 0.92rem;
+  font-size: 1.38rem;
   line-height: 1;
 }
 

@@ -804,7 +804,7 @@ function DropRow({
             <input type="hidden" name="sectionId" value={sectionId} />
             <input type="hidden" name="rowId" value={row.id} />
             <button type="submit" className="danger" disabled={removeRowPending}>
-              Remove row
+              ✕ Remove row
             </button>
           </form>
         </div>
