@@ -564,72 +564,57 @@ button:disabled {
   padding: 3rem 1.5rem;
 }
 
-/* Core admin (`/app/admin/*`) — app users, not Payload */
+/* Core admin (`/app/admin/*`) — full-bleed content width (no boxed shell) */
 .admin-shell {
   min-height: 100vh;
-  max-width: 64rem;
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
   padding: 2rem 1.5rem 3rem;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
 }
 
+.admin-shell .admin-main,
+.admin-shell .admin-section,
+.admin-shell .admin-lede,
+.admin-shell .settings-form,
+.admin-shell .settings-form-wide,
+.admin-shell .breakpoints-form,
+.admin-shell .page-settings-form.settings-form {
+  width: 100%;
+  max-width: none;
+}
+
 /*
  * Layouts family:
- * - `.admin-layouts-full` / `.gantry-editor` — full viewport canvas (Layout)
+ * - `.admin-layouts-full` / `.gantry-editor` — denser Layout canvas padding
  * - `.admin-layouts-padded` — Styles / Page settings / Particle Defaults / Outlines
- *   (same margins as other dark admin pages; not edge-flush)
+ * Both share the same full-bleed content width as other Core admin pages.
  */
 .admin-shell:has(.admin-layouts-full),
 .admin-shell:has(.gantry-editor) {
-  max-width: none;
-  width: 100%;
-  margin: 0;
   padding: 1.25rem 1.25rem 2.5rem;
-  box-sizing: border-box;
 }
 
-.admin-shell:has(.admin-layouts-full) .admin-lede,
-.admin-shell:has(.gantry-editor) .admin-lede {
-  max-width: none;
-}
-
-.admin-shell:has(.admin-layouts-full) .admin-main,
-.admin-shell:has(.gantry-editor) .admin-main {
-  max-width: none;
-  width: 100%;
-}
-
-.admin-layouts-full {
-  width: 100%;
-  max-width: none;
-}
-
-.admin-shell:has(.admin-layouts-padded) {
-  max-width: none;
-  width: 100%;
-  margin: 0;
-  padding: 2rem 1.5rem 3rem;
-  box-sizing: border-box;
-}
-
-.admin-shell:has(.admin-layouts-padded) .admin-main {
-  max-width: none;
-  width: 100%;
-}
-
+.admin-layouts-full,
 .admin-layouts-padded {
   width: 100%;
-  max-width: 64rem;
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
   box-sizing: border-box;
-  padding: 0 0.25rem;
 }
 
 @media (max-width: 640px) {
-  .admin-shell:has(.admin-layouts-padded) {
+  .admin-shell {
     padding: 1.5rem 1.15rem 2rem;
+  }
+
+  .admin-shell:has(.admin-layouts-full),
+  .admin-shell:has(.gantry-editor) {
+    padding: 1.15rem 1rem 2rem;
   }
 }
 
@@ -986,12 +971,14 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  max-width: 40rem;
+  width: 100%;
+  max-width: none;
   margin-top: 1rem;
 }
 
 .settings-form-wide {
-  max-width: 48rem;
+  width: 100%;
+  max-width: none;
 }
 
 .settings-modules-subhead {
@@ -1900,7 +1887,8 @@ button:disabled {
 }
 
 .breakpoints-form {
-  max-width: 48rem;
+  width: 100%;
+  max-width: none;
   margin-top: 0.5rem;
 }
 

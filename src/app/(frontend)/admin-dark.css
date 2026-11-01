@@ -1354,9 +1354,10 @@ body:has(.admin-shell) > main {
   padding: 1rem 1.1rem 1.15rem;
 }
 
-/* Styles · Breakpoints — Helium dense field card + wash behind */
+/* Styles · Breakpoints — Helium dense field card + wash behind (full width) */
 .admin-shell .breakpoints-form {
-  max-width: 48rem;
+  width: 100%;
+  max-width: none;
   padding: 1.25rem 1.35rem 1.4rem;
 }
 
