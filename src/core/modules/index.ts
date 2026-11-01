@@ -22,6 +22,7 @@ export {
   updateFormSlotAction,
   updateLayoutSectionMetaAction,
   updateLogoSlotAction,
+  updateMenuSlotAction,
   updateSocialSlotAction,
 } from './actions'
 export type { LayoutActionState } from './actions'
@@ -37,11 +38,11 @@ export {
   slugifyLayoutId,
 } from './document'
 export {
-  compareLayoutSections,
+  compareLayoutSectionsByOrder,
   isFooterLayoutSection,
-  layoutSectionBand,
+  partitionSectionsForPublicPaint,
   reindexLayoutSectionOrders,
-  sortLayoutSections,
+  sortLayoutSectionsByOrder,
 } from './section-order'
 export {
   clampGridWidth,

@@ -31,11 +31,11 @@ import {
   sumRowWidths,
   widthToPercentLabel,
 } from '@/core/modules/grid'
-import { sortLayoutSections } from '@/core/modules/section-order'
+import { sortLayoutSectionsByOrder } from '@/core/modules/section-order'
 import type { LayoutDocument, LayoutRow, LayoutSection, LayoutSlot } from '@/core/modules/types'
 
 import { CustomParticleEditor } from './custom-particle-editor'
-import { TypedParticleEditor } from './typed-particle-editors'
+import { TypedParticleEditor, type NavMenuOption } from './typed-particle-editors'
 
 type ModuleOption = {
   id: string
@@ -51,6 +51,9 @@ type Props = {
   modules: ModuleOption[]
   /** Users → Groups options for slot accessTags multi-select. */
   groups: UserGroupOption[]
+  /** Nav manager menu sets for Menu particle picker. */
+  navMenus?: NavMenuOption[]
+  primaryNavMenuId?: string
   layoutId: string
   layoutLabel: string
 }
@@ -103,8 +106,8 @@ function ActionFeedback({ state }: { state: LayoutActionState }) {
 }
 
 function sortSections(sections: LayoutSection[]) {
-  // Same semantic band as public paint — Footer never sorts before Main on ties.
-  return sortLayoutSections(sections)
+  // User DnD order only — do not apply public footer-partition / semantic bands.
+  return sortLayoutSectionsByOrder(sections)
 }
 
 function sortRows(rows: LayoutRow[]) {
@@ -190,6 +193,8 @@ function ParticleBlock({
   slot,
   modules,
   groups,
+  navMenus,
+  primaryNavMenuId,
   percent,
   isDragging,
   dropEdge,
@@ -203,6 +208,8 @@ function ParticleBlock({
   slot: LayoutSlot
   modules: ModuleOption[]
   groups: UserGroupOption[]
+  navMenus: NavMenuOption[]
+  primaryNavMenuId: string
   percent: number
   isDragging: boolean
   dropEdge: 'before' | 'after' | null
@@ -408,7 +415,13 @@ function ParticleBlock({
         {slot.moduleId === 'custom' ? (
           <CustomParticleEditor sectionId={sectionId} rowId={rowId} slot={slot} />
         ) : (
-          <TypedParticleEditor sectionId={sectionId} rowId={rowId} slot={slot} />
+          <TypedParticleEditor
+            sectionId={sectionId}
+            rowId={rowId}
+            slot={slot}
+            navMenus={navMenus}
+            primaryNavMenuId={primaryNavMenuId}
+          />
         )}
       </div>
       <ActionFeedback state={flash} />
@@ -421,6 +434,8 @@ function DropRow({
   row,
   modules,
   groups,
+  navMenus,
+  primaryNavMenuId,
   localSlots,
   setLocalSlots,
 }: {
@@ -428,6 +443,8 @@ function DropRow({
   row: LayoutRow
   modules: ModuleOption[]
   groups: UserGroupOption[]
+  navMenus: NavMenuOption[]
+  primaryNavMenuId: string
   localSlots: LayoutSlot[]
   setLocalSlots: (slots: LayoutSlot[]) => void
 }) {
@@ -605,6 +622,8 @@ function DropRow({
                   slot={slot}
                   modules={modules}
                   groups={groups}
+                  navMenus={navMenus}
+                  primaryNavMenuId={primaryNavMenuId}
                   percent={percent}
                   isDragging={draggingSlotId === slot.id}
                   dropEdge={
@@ -659,6 +678,8 @@ function SectionCanvas({
   section,
   modules,
   groups,
+  navMenus,
+  primaryNavMenuId,
   isDraggingSection,
   dropPosition,
   onSectionDragStart,
@@ -669,6 +690,8 @@ function SectionCanvas({
   section: LayoutSection
   modules: ModuleOption[]
   groups: UserGroupOption[]
+  navMenus: NavMenuOption[]
+  primaryNavMenuId: string
   isDraggingSection: boolean
   dropPosition: 'before' | 'after' | null
   onSectionDragStart: (sectionId: string) => void
@@ -853,6 +876,8 @@ function SectionCanvas({
             row={row}
             modules={modules}
             groups={groups}
+            navMenus={navMenus}
+            primaryNavMenuId={primaryNavMenuId}
             localSlots={slotMap[row.id] ?? sortSlots(row.slots)}
             setLocalSlots={(slots) => setSlotMap((prev) => ({ ...prev, [row.id]: slots }))}
           />
@@ -873,6 +898,8 @@ export function LayoutEditor({
   source,
   modules,
   groups,
+  navMenus = [],
+  primaryNavMenuId = 'main',
   layoutId,
   layoutLabel,
 }: Props) {
@@ -1047,6 +1074,8 @@ export function LayoutEditor({
                   section={section}
                   modules={modules}
                   groups={groups}
+                  navMenus={navMenus}
+                  primaryNavMenuId={primaryNavMenuId}
                   isDraggingSection={draggingSectionId === section.id}
                   dropPosition={
                     dropHint?.sectionId === section.id && draggingSectionId !== section.id

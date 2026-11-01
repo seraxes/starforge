@@ -8,16 +8,20 @@ import {
   updateCopyrightSlotAction,
   updateFormSlotAction,
   updateLogoSlotAction,
+  updateMenuSlotAction,
   updateSocialSlotAction,
   type LayoutActionState,
 } from '@/core/modules/actions'
 import {
   readCopyrightConfig,
   readLogoConfig,
+  readMenuConfig,
   readSocialConfig,
   type SocialLinkItem,
 } from '@/core/modules/particles/config'
 import type { LayoutSlot } from '@/core/modules/types'
+
+export type NavMenuOption = { id: string; label: string }
 
 import { LayoutIdField } from './layout-outline-context'
 import { ParticleSettingsPopover } from './particle-settings-popover'
@@ -57,6 +61,7 @@ export function LogoParticleEditor({
 }) {
   const [state, formAction, pending] = useActionState(updateLogoSlotAction, initialState)
   const cfg = readLogoConfig(slot.config)
+  const [mode, setMode] = useState(cfg.mode ?? 'image')
 
   return (
     <ParticleSettingsPopover title="Logo / Image settings">
@@ -66,53 +71,187 @@ export function LogoParticleEditor({
         <input type="hidden" name="rowId" value={rowId} />
         <input type="hidden" name="slotId" value={slot.id} />
         <label>
-          <span>Payload Media id</span>
-          <input type="text" name="mediaId" defaultValue={cfg.mediaId ?? ''} placeholder="optional" />
+          <span>Mode</span>
+          <select
+            name="mode"
+            value={mode}
+            onChange={(e) => setMode(e.target.value === 'text' ? 'text' : 'image')}
+          >
+            <option value="image">Image</option>
+            <option value="text">Text logo</option>
+          </select>
         </label>
-        <label>
-          <span>Image URL</span>
-          <input
-            type="url"
-            name="mediaUrl"
-            defaultValue={cfg.mediaUrl ?? ''}
-            placeholder="https://… or /media/…"
-          />
-        </label>
-        <p className="layout-muted">
-          Use Media id when available, or a URL as a placeholder until the media picker lands.
-        </p>
-        <label>
-          <span>Alt text</span>
-          <input type="text" name="alt" defaultValue={cfg.alt ?? ''} required />
-        </label>
-        <div className="gantry-typed-row">
-          <label>
-            <span>Max width (px)</span>
-            <input
-              type="number"
-              name="maxWidth"
-              min={1}
-              defaultValue={cfg.maxWidth ?? ''}
-              placeholder="e.g. 180"
-            />
-          </label>
-          <label>
-            <span>Max height (px)</span>
-            <input
-              type="number"
-              name="maxHeight"
-              min={1}
-              defaultValue={cfg.maxHeight ?? ''}
-              placeholder="e.g. 64"
-            />
-          </label>
-        </div>
         <label>
           <span>Link URL (optional)</span>
           <input type="text" name="linkUrl" defaultValue={cfg.linkUrl ?? ''} placeholder="/" />
         </label>
+
+        {mode === 'text' ? (
+          <>
+            <label>
+              <span>Text</span>
+              <input type="text" name="text" defaultValue={cfg.text ?? ''} placeholder="Brand name" />
+            </label>
+            <label>
+              <span>Font family</span>
+              <input
+                type="text"
+                name="fontFamily"
+                defaultValue={cfg.fontFamily ?? ''}
+                placeholder="e.g. Georgia, serif (empty = site default)"
+              />
+            </label>
+            <div className="gantry-typed-row">
+              <label>
+                <span>Size (px)</span>
+                <input
+                  type="number"
+                  name="fontSize"
+                  min={10}
+                  max={120}
+                  defaultValue={cfg.fontSize ?? 28}
+                />
+              </label>
+              <label>
+                <span>Weight</span>
+                <input
+                  type="text"
+                  name="fontWeight"
+                  defaultValue={String(cfg.fontWeight ?? 700)}
+                  placeholder="700"
+                />
+              </label>
+            </div>
+            <label>
+              <span>Color</span>
+              <input
+                type="text"
+                name="color"
+                defaultValue={cfg.color ?? ''}
+                placeholder="#2a3340 or CSS color (empty = inherit)"
+              />
+            </label>
+            <p className="layout-muted">
+              Text logo replaces Site Header brand text when you assemble Logo + Menu in the header
+              row.
+            </p>
+            {/* Keep image fields in the form so switching modes does not wipe saved values */}
+            <input type="hidden" name="mediaId" value={cfg.mediaId ?? ''} />
+            <input type="hidden" name="mediaUrl" value={cfg.mediaUrl ?? ''} />
+            <input type="hidden" name="alt" value={cfg.alt ?? 'Logo'} />
+          </>
+        ) : (
+          <>
+            <label>
+              <span>Payload Media id</span>
+              <input
+                type="text"
+                name="mediaId"
+                defaultValue={cfg.mediaId ?? ''}
+                placeholder="optional"
+              />
+            </label>
+            <label>
+              <span>Image URL</span>
+              <input
+                type="url"
+                name="mediaUrl"
+                defaultValue={cfg.mediaUrl ?? ''}
+                placeholder="https://… or /media/…"
+              />
+            </label>
+            <p className="layout-muted">
+              Use Media id when available, or a URL as a placeholder until the media picker lands.
+            </p>
+            <label>
+              <span>Alt text</span>
+              <input type="text" name="alt" defaultValue={cfg.alt ?? ''} required />
+            </label>
+            <div className="gantry-typed-row">
+              <label>
+                <span>Max width (px)</span>
+                <input
+                  type="number"
+                  name="maxWidth"
+                  min={1}
+                  defaultValue={cfg.maxWidth ?? ''}
+                  placeholder="e.g. 180"
+                />
+              </label>
+              <label>
+                <span>Max height (px)</span>
+                <input
+                  type="number"
+                  name="maxHeight"
+                  min={1}
+                  defaultValue={cfg.maxHeight ?? ''}
+                  placeholder="e.g. 64"
+                />
+              </label>
+            </div>
+            <input type="hidden" name="text" value={cfg.text ?? ''} />
+            <input type="hidden" name="fontFamily" value={cfg.fontFamily ?? ''} />
+            <input type="hidden" name="fontSize" value={String(cfg.fontSize ?? 28)} />
+            <input type="hidden" name="fontWeight" value={String(cfg.fontWeight ?? 700)} />
+            <input type="hidden" name="color" value={cfg.color ?? ''} />
+          </>
+        )}
         <button type="submit" disabled={pending}>
           {pending ? 'Saving…' : 'Save Logo / Image'}
+        </button>
+        <ActionFeedback state={state} />
+      </form>
+    </ParticleSettingsPopover>
+  )
+}
+
+export function MenuParticleEditor({
+  sectionId,
+  rowId,
+  slot,
+  navMenus,
+  primaryNavMenuId,
+}: {
+  sectionId: string
+  rowId: string
+  slot: LayoutSlot
+  navMenus: NavMenuOption[]
+  primaryNavMenuId: string
+}) {
+  const [state, formAction, pending] = useActionState(updateMenuSlotAction, initialState)
+  const cfg = readMenuConfig(slot.config)
+  const selected = (cfg.menuId ?? '').trim() || 'primary'
+
+  return (
+    <ParticleSettingsPopover title="Menu settings">
+      <form action={formAction} className="gantry-typed-form">
+        <LayoutIdField />
+        <input type="hidden" name="sectionId" value={sectionId} />
+        <input type="hidden" name="rowId" value={rowId} />
+        <input type="hidden" name="slotId" value={slot.id} />
+        <label>
+          <span>Nav menu set</span>
+          <select name="menuId" defaultValue={selected}>
+            <option value="primary">
+              Site primary
+              {primaryNavMenuId ? ` (${primaryNavMenuId})` : ''}
+            </option>
+            {navMenus.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.label} ({m.id})
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="layout-muted">
+          Menus come from <code>/app/admin/nav</code>. Site primary is assigned under Site Settings.
+        </p>
+        <label>
+          <span>Aria label</span>
+          <input type="text" name="ariaLabel" defaultValue={cfg.ariaLabel ?? 'Primary'} />
+        </label>
+        <button type="submit" disabled={pending}>
+          {pending ? 'Saving…' : 'Save Menu'}
         </button>
         <ActionFeedback state={state} />
       </form>
@@ -381,18 +520,33 @@ export function FormParticleEditor({
   )
 }
 
-/** Renders the typed config editor for logo / copyright / social / form slots. */
+/** Renders the typed config editor for logo / menu / copyright / social / form slots. */
 export function TypedParticleEditor({
   sectionId,
   rowId,
   slot,
+  navMenus = [],
+  primaryNavMenuId = 'main',
 }: {
   sectionId: string
   rowId: string
   slot: LayoutSlot
+  navMenus?: NavMenuOption[]
+  primaryNavMenuId?: string
 }) {
   if (slot.moduleId === 'logo') {
     return <LogoParticleEditor sectionId={sectionId} rowId={rowId} slot={slot} />
+  }
+  if (slot.moduleId === 'menu') {
+    return (
+      <MenuParticleEditor
+        sectionId={sectionId}
+        rowId={rowId}
+        slot={slot}
+        navMenus={navMenus}
+        primaryNavMenuId={primaryNavMenuId}
+      />
+    )
   }
   if (slot.moduleId === 'copyright') {
     return <CopyrightParticleEditor sectionId={sectionId} rowId={rowId} slot={slot} />

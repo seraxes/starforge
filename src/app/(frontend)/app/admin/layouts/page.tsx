@@ -10,6 +10,7 @@ import {
   listModulesForLayoutAdmin,
   loadLayoutDocument,
 } from '@/core/modules'
+import { listNavMenus } from '@/core/nav'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
 import { LayoutEditor } from './layout-editor'
@@ -49,9 +50,10 @@ export default async function AdminLayoutsPage(props: { searchParams?: SearchPar
     label: label || layoutId,
   }
   await ensureDefaultUserGroupsSeeded()
-  const [modules, groups] = await Promise.all([
+  const [modules, groups, navMenus] = await Promise.all([
     listModulesForLayoutAdmin(),
     listUserGroupOptions(),
+    listNavMenus(),
   ])
 
   return (
@@ -87,6 +89,8 @@ export default async function AdminLayoutsPage(props: { searchParams?: SearchPar
           source={source}
           modules={modules}
           groups={groups}
+          navMenus={navMenus.map((m) => ({ id: m.id, label: m.label }))}
+          primaryNavMenuId={settings.primaryNavMenuId}
           layoutId={layoutId}
           layoutLabel={outlineMeta.label}
         />

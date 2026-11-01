@@ -635,19 +635,33 @@ export async function updateLogoSlotAction(
   const slotId = String(formData.get('slotId') ?? '').trim()
   if (!sectionId || !rowId || !slotId) return { error: 'Missing slot reference.' }
 
+  const mode = String(formData.get('mode') ?? 'image') === 'text' ? 'text' : 'image'
   const maxWidthRaw = Number(formData.get('maxWidth'))
   const maxHeightRaw = Number(formData.get('maxHeight'))
+  const fontSizeRaw = Number(formData.get('fontSize'))
+  const fontWeightRaw = String(formData.get('fontWeight') ?? '').trim()
+  const fontWeightNum = Number(fontWeightRaw)
   const config: LayoutSlotConfig = {
+    mode,
     mediaId: String(formData.get('mediaId') ?? '').trim(),
     mediaUrl: String(formData.get('mediaUrl') ?? '').trim(),
     alt: String(formData.get('alt') ?? '').trim() || 'Logo',
     linkUrl: String(formData.get('linkUrl') ?? '').trim(),
+    text: String(formData.get('text') ?? '').trim(),
+    fontFamily: String(formData.get('fontFamily') ?? '').trim(),
+    color: String(formData.get('color') ?? '').trim(),
     ...(Number.isFinite(maxWidthRaw) && maxWidthRaw > 0
       ? { maxWidth: Math.round(maxWidthRaw) }
       : {}),
     ...(Number.isFinite(maxHeightRaw) && maxHeightRaw > 0
       ? { maxHeight: Math.round(maxHeightRaw) }
       : {}),
+    ...(Number.isFinite(fontSizeRaw) && fontSizeRaw > 0
+      ? { fontSize: Math.round(fontSizeRaw) }
+      : {}),
+    fontWeight: Number.isFinite(fontWeightNum) && fontWeightNum > 0
+      ? Math.round(fontWeightNum)
+      : fontWeightRaw || 700,
   }
 
   const state = await mutateLayout(formData, (doc) => {
@@ -659,6 +673,33 @@ export async function updateLogoSlotAction(
   })
 
   if (state.ok) state.message = 'Logo / Image saved.'
+  return state
+}
+
+export async function updateMenuSlotAction(
+  _prev: LayoutActionState,
+  formData: FormData,
+): Promise<LayoutActionState> {
+  const sectionId = String(formData.get('sectionId') ?? '').trim()
+  const rowId = String(formData.get('rowId') ?? '').trim()
+  const slotId = String(formData.get('slotId') ?? '').trim()
+  if (!sectionId || !rowId || !slotId) return { error: 'Missing slot reference.' }
+
+  const menuIdRaw = String(formData.get('menuId') ?? '').trim()
+  const config: LayoutSlotConfig = {
+    menuId: menuIdRaw === 'primary' ? '' : menuIdRaw,
+    ariaLabel: String(formData.get('ariaLabel') ?? '').trim() || 'Primary',
+  }
+
+  const state = await mutateLayout(formData, (doc) => {
+    const found = findSlot(doc, sectionId, rowId, slotId)
+    if (!found) return { error: 'Slot not found.' }
+    if (found.slot.moduleId !== 'menu') return { error: 'Not a Menu particle.' }
+    found.slot.config = config
+    return doc
+  })
+
+  if (state.ok) state.message = 'Menu settings saved.'
   return state
 }
 

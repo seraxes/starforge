@@ -2,8 +2,12 @@ import { defaultFormConfig } from '@/core/forms/config'
 
 import type { LayoutSlotConfig } from '../types'
 
+export type LogoParticleMode = 'image' | 'text'
+
 /** Logo / Image particle settings (typed — not Custom HTML). */
 export type LogoParticleConfig = {
+  /** `image` = Media/URL; `text` = styled text logo (replaces site-header brand). */
+  mode?: LogoParticleMode
   /** Payload Media document id when known. */
   mediaId?: string
   /** Direct image URL (placeholder until a media picker lands). */
@@ -13,6 +17,23 @@ export type LogoParticleConfig = {
   maxHeight?: number
   /** Optional wrap link (e.g. home). */
   linkUrl?: string
+  /** Text-logo fields (when mode === 'text'). */
+  text?: string
+  fontFamily?: string
+  fontSize?: number
+  fontWeight?: number | string
+  color?: string
+}
+
+/** Menu particle — binds to a Nav manager menu set. */
+export type MenuParticleConfig = {
+  /**
+   * Nav menu id (`sf_nav_menus`). Empty / `primary` = site primary
+   * (`settings.primaryNavMenuId` / default Main).
+   */
+  menuId?: string
+  /** Optional aria-label for the nav landmark. */
+  ariaLabel?: string
 }
 
 /** Copyright particle settings. */
@@ -42,12 +63,25 @@ export type SocialParticleConfig = {
 
 export function defaultLogoConfig(): LogoParticleConfig {
   return {
+    mode: 'image',
     mediaId: '',
     mediaUrl: '',
     alt: 'Logo',
     maxWidth: 180,
     maxHeight: 64,
     linkUrl: '/',
+    text: 'Starforge',
+    fontFamily: '',
+    fontSize: 28,
+    fontWeight: 700,
+    color: '',
+  }
+}
+
+export function defaultMenuConfig(): MenuParticleConfig {
+  return {
+    menuId: '',
+    ariaLabel: 'Primary',
   }
 }
 
@@ -86,6 +120,8 @@ export function defaultConfigForModule(moduleId: string): LayoutSlotConfig | und
       }
     case 'logo':
       return { ...defaultLogoConfig() }
+    case 'menu':
+      return { ...defaultMenuConfig() }
     case 'copyright':
       return { ...defaultCopyrightConfig() }
     case 'social':
@@ -101,13 +137,37 @@ export function readLogoConfig(config: LayoutSlotConfig | undefined): LogoPartic
   const c = config ?? {}
   const maxWidth = Number(c.maxWidth)
   const maxHeight = Number(c.maxHeight)
+  const fontSize = Number(c.fontSize)
+  const fontWeightRaw = c.fontWeight
+  let fontWeight: number | string = 700
+  if (typeof fontWeightRaw === 'number' && Number.isFinite(fontWeightRaw)) {
+    fontWeight = Math.round(fontWeightRaw)
+  } else if (typeof fontWeightRaw === 'string' && fontWeightRaw.trim()) {
+    fontWeight = fontWeightRaw.trim()
+  }
   return {
+    mode: c.mode === 'text' ? 'text' : 'image',
     mediaId: typeof c.mediaId === 'string' ? c.mediaId : '',
     mediaUrl: typeof c.mediaUrl === 'string' ? c.mediaUrl : '',
     alt: typeof c.alt === 'string' ? c.alt : 'Logo',
     maxWidth: Number.isFinite(maxWidth) && maxWidth > 0 ? Math.round(maxWidth) : undefined,
     maxHeight: Number.isFinite(maxHeight) && maxHeight > 0 ? Math.round(maxHeight) : undefined,
     linkUrl: typeof c.linkUrl === 'string' ? c.linkUrl : '',
+    text: typeof c.text === 'string' ? c.text : 'Starforge',
+    fontFamily: typeof c.fontFamily === 'string' ? c.fontFamily : '',
+    fontSize: Number.isFinite(fontSize) && fontSize > 0 ? Math.round(fontSize) : 28,
+    fontWeight,
+    color: typeof c.color === 'string' ? c.color : '',
+  }
+}
+
+export function readMenuConfig(config: LayoutSlotConfig | undefined): MenuParticleConfig {
+  const c = config ?? {}
+  const menuId = typeof c.menuId === 'string' ? c.menuId.trim() : ''
+  return {
+    menuId: menuId === 'primary' ? '' : menuId,
+    ariaLabel:
+      typeof c.ariaLabel === 'string' && c.ariaLabel.trim() ? c.ariaLabel.trim() : 'Primary',
   }
 }
 

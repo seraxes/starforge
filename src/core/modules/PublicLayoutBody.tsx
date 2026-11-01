@@ -4,10 +4,7 @@ import type { NavItem } from '@/core/settings/defaults'
 import { ensureModulesRegistered } from '@/modules/catalog'
 
 import { getLayoutDocument } from './layout'
-import {
-  isFooterLayoutSection,
-  sortLayoutSections,
-} from './section-order'
+import { isFooterLayoutSection, partitionSectionsForPublicPaint } from './section-order'
 import { SlotRenderer } from './SlotRenderer'
 import type { LayoutRow, LayoutSection } from './types'
 
@@ -105,27 +102,12 @@ function documentHasPageContent(sections: LayoutSection[]): boolean {
 }
 
 /**
- * Split so footer-band sections always paint after Main (and other) flow,
- * even if stored `order` values are wrong/tied. Main-row particles (Form)
- * cannot appear after `<footer class="site-footer">` in the DOM.
- */
-function partitionSectionsForPaint(sections: LayoutSection[]): {
-  flow: LayoutSection[]
-  footers: LayoutSection[]
-} {
-  const sorted = sortLayoutSections(sections)
-  const flow: LayoutSection[] = []
-  const footers: LayoutSection[] = []
-  for (const section of sorted) {
-    if (isFooterLayoutSection(section)) footers.push(section)
-    else flow.push(section)
-  }
-  return { flow, footers }
-}
-
-/**
  * Public site body driven by the layout document (sections → rows → slots).
  * Page route children render via the built-in `page-content` particle.
+ *
+ * Section canvas order is user `order` (DnD). Public paint only moves
+ * footer-named sections to the end so Main particles stay above `<footer>` —
+ * stored orders are not rewritten.
  */
 export async function PublicLayoutBody({
   children,
@@ -169,7 +151,7 @@ export async function PublicLayoutBody({
   }
 
   const document = await getLayoutDocument(layoutId)
-  const { flow, footers } = partitionSectionsForPaint(document.sections)
+  const { flow, footers } = partitionSectionsForPublicPaint(document.sections)
   const hasPageContent = documentHasPageContent([...flow, ...footers])
 
   return (
