@@ -79,7 +79,7 @@ export function GroupDetailManager({
         <Feedback state={removeState} />
 
         {candidates.length > 0 ? (
-          <form action={addAction} className="outlines-create-form">
+          <form action={addAction} className="outlines-create-form admin-create-form">
             <input type="hidden" name="groupId" value={groupId} />
             <label className="settings-field">
               <span>Add user</span>
@@ -94,7 +94,11 @@ export function GroupDetailManager({
                 ))}
               </select>
             </label>
-            <button type="submit" disabled={addPending}>
+            <button
+              type="submit"
+              className="gantry-toolbar-btn gantry-toolbar-btn-save"
+              disabled={addPending}
+            >
               {addPending ? 'Adding…' : 'Add member'}
             </button>
           </form>
@@ -137,7 +141,11 @@ export function GroupDetailManager({
                       <form action={removeAction} className="admin-inline-form">
                         <input type="hidden" name="groupId" value={groupId} />
                         <input type="hidden" name="userId" value={m.userId} />
-                        <button type="submit" className="secondary" disabled={removePending}>
+                        <button
+                          type="submit"
+                          className="gantry-toolbar-btn gantry-toolbar-btn-danger danger"
+                          disabled={removePending}
+                        >
                           Remove
                         </button>
                       </form>

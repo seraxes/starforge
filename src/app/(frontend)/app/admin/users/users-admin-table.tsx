@@ -123,7 +123,15 @@ function DisableForm({ user }: { user: AdminUserRow }) {
       {nextDisabled ? (
         <input type="hidden" name="reason" value="Disabled by admin" />
       ) : null}
-      <button type="submit" className={nextDisabled ? 'secondary' : 'primary'} disabled={pending}>
+      <button
+        type="submit"
+        className={
+          nextDisabled
+            ? 'gantry-toolbar-btn gantry-toolbar-btn-muted secondary'
+            : 'gantry-toolbar-btn gantry-toolbar-btn-save'
+        }
+        disabled={pending}
+      >
         {pending ? 'Updating…' : nextDisabled ? 'Disable' : 'Enable'}
       </button>
       {state.error ? <span className="admin-inline-error">{state.error}</span> : null}
@@ -139,7 +147,14 @@ function GroupsForm({
   user: AdminUserRow
   groupOptions: UserGroupOption[]
 }) {
+  const formRef = React.useRef<HTMLFormElement>(null)
   const [state, action, pending] = useActionState(setUserGroupsAction, groupsInitial)
+  const { notifySaved, notifyError } = useAdminToast()
+
+  useEffect(() => {
+    if (state.ok) notifySaved('Saved')
+    else if (state.error) notifyError(state.error)
+  }, [state, notifySaved, notifyError])
 
   if (groupOptions.length === 0) {
     return (
@@ -150,7 +165,7 @@ function GroupsForm({
   }
 
   return (
-    <form action={action} className="admin-inline-form admin-groups-form">
+    <form ref={formRef} action={action} className="admin-inline-form admin-groups-form">
       <input type="hidden" name="userId" value={user.id} />
       <fieldset className="admin-groups-fieldset">
         <legend className="sr-only">Groups for {user.email}</legend>
@@ -161,16 +176,15 @@ function GroupsForm({
               name="groupId"
               value={g.id}
               defaultChecked={user.groupIds.includes(g.id)}
+              disabled={pending}
+              onChange={() => formRef.current?.requestSubmit()}
             />
             <span>{g.label}</span>
           </label>
         ))}
       </fieldset>
-      <button type="submit" className="secondary" disabled={pending}>
-        {pending ? 'Saving…' : 'Save groups'}
-      </button>
+      {pending ? <span className="admin-inline-ok">Saving…</span> : null}
       {state.error ? <span className="admin-inline-error">{state.error}</span> : null}
-      {state.ok ? <span className="admin-inline-ok">Saved</span> : null}
     </form>
   )
 }

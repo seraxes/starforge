@@ -26,6 +26,7 @@ import type { LayoutSlot, LayoutSlotConfig } from '@/core/modules/types'
 export type NavMenuOption = { id: string; label: string }
 
 import { useNotifySavedOnOk } from '../admin-toast'
+import { useAutosaveForm } from '../use-autosave-form'
 import { LayoutIdField } from './layout-outline-context'
 import { ParticleSettingsPopover } from './particle-settings-popover'
 
@@ -82,6 +83,7 @@ export function LogoParticleEditor({
   const router = useRouter()
   const [state, formAction, pending] = useActionState(updateLogoSlotAction, initialState)
   useNotifySavedOnOk(state, { toastErrors: true })
+  const { formRef, saveNow, saveDebounced } = useAutosaveForm()
   const cfg = readLogoConfig(state.config ?? slot.config)
   const [mode, setMode] = useState(cfg.mode ?? 'image')
   const [colorText, setColorText] = useState(cfg.color ?? '')
@@ -110,7 +112,27 @@ export function LogoParticleEditor({
 
   return (
     <SettingsShell title="Logo / Image settings" embedded={embedded}>
-      <form key={formRev} action={formAction} className="gantry-typed-form">
+      <form
+        key={formRev}
+        ref={formRef}
+        action={formAction}
+        className="gantry-typed-form"
+        onInput={saveDebounced}
+        onChange={(e) => {
+          const t = e.target
+          if (
+            t instanceof HTMLSelectElement ||
+            (t instanceof HTMLInputElement &&
+              (t.type === 'checkbox' || t.type === 'radio' || t.type === 'color'))
+          ) {
+            saveNow()
+          }
+        }}
+        onBlur={(e) => {
+          const t = e.target
+          if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement) saveNow()
+        }}
+      >
         <LayoutIdField />
         <input type="hidden" name="sectionId" value={sectionId} />
         <input type="hidden" name="rowId" value={rowId} />
@@ -120,7 +142,10 @@ export function LogoParticleEditor({
           <select
             name="mode"
             value={mode}
-            onChange={(e) => setMode(e.target.value === 'text' ? 'text' : 'image')}
+            onChange={(e) => {
+              setMode(e.target.value === 'text' ? 'text' : 'image')
+              queueMicrotask(saveNow)
+            }}
           >
             <option value="image">Image</option>
             <option value="text">Text logo</option>
@@ -255,10 +280,8 @@ export function LogoParticleEditor({
             <input type="hidden" name="color" value={validHiddenColor} />
           </>
         )}
-        <button type="submit" disabled={pending}>
-          {pending ? 'Saving…' : 'Save Logo / Image'}
-        </button>
-        <ActionFeedback state={state} />
+        {pending ? <p className="layout-muted">Saving…</p> : null}
+        {state.error ? <ActionFeedback state={state} /> : null}
       </form>
     </SettingsShell>
   )
@@ -304,7 +327,16 @@ export function MenuParticleEditor({
 
   return (
     <SettingsShell title="Menu settings" embedded={embedded}>
-      <form ref={formRef} action={formAction} className="gantry-typed-form">
+      <form
+        ref={formRef}
+        action={formAction}
+        className="gantry-typed-form"
+        onInput={saveDebounced}
+        onBlur={(e) => {
+          const t = e.target
+          if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement) saveNow()
+        }}
+      >
         <LayoutIdField />
         <input type="hidden" name="sectionId" value={sectionId} />
         <input type="hidden" name="rowId" value={rowId} />
@@ -469,16 +501,25 @@ export function SocialParticleEditor({
 }) {
   const [state, formAction, pending] = useActionState(updateSocialSlotAction, initialState)
   useNotifySavedOnOk(state, { toastErrors: true })
+  const { formRef, saveDebounced, saveNow } = useAutosaveForm()
   const initial = readSocialConfig(slot.config).items ?? []
   const [items, setItems] = useState<SocialLinkItem[]>(
     initial.length > 0
       ? initial
       : [{ id: newSocialId(), platform: '', url: '', label: '', icon: '' }],
   )
+  const skipSocial = React.useRef(true)
+  useEffect(() => {
+    if (skipSocial.current) {
+      skipSocial.current = false
+      return
+    }
+    saveDebounced()
+  }, [items, saveDebounced])
 
   return (
     <SettingsShell title="Social links" embedded={embedded}>
-      <form action={formAction} className="gantry-typed-form">
+      <form ref={formRef} action={formAction} className="gantry-typed-form">
         <LayoutIdField />
         <input type="hidden" name="sectionId" value={sectionId} />
         <input type="hidden" name="rowId" value={rowId} />
@@ -555,7 +596,7 @@ export function SocialParticleEditor({
 
         <button
           type="button"
-          className="secondary"
+          className="gantry-toolbar-btn gantry-toolbar-btn-muted secondary"
           onClick={() =>
             setItems([
               ...items,
@@ -565,10 +606,8 @@ export function SocialParticleEditor({
         >
           Add link
         </button>
-        <button type="submit" disabled={pending}>
-          {pending ? 'Saving…' : 'Save Social'}
-        </button>
-        <ActionFeedback state={state} />
+        {pending ? <p className="layout-muted">Saving…</p> : null}
+        {state.error ? <ActionFeedback state={state} /> : null}
       </form>
     </SettingsShell>
   )
@@ -587,6 +626,7 @@ export function FormParticleEditor({
 }) {
   const [state, formAction, pending] = useActionState(updateFormSlotAction, initialState)
   useNotifySavedOnOk(state, { toastErrors: true })
+  const { formRef, saveDebounced, saveNow } = useAutosaveForm()
   const cfg = readFormConfig(slot.config)
   const [fields, setFields] = useState<FormFieldDef[]>(() => [...(cfg.fields ?? [])])
   const [fieldsJson, setFieldsJson] = useState(() => JSON.stringify(cfg.fields ?? [], null, 2))
@@ -602,6 +642,7 @@ export function FormParticleEditor({
       }
       setFields(parsed as FormFieldDef[])
       setJsonError(null)
+      saveDebounced()
     } catch {
       setJsonError('Invalid JSON.')
     }
@@ -609,7 +650,20 @@ export function FormParticleEditor({
 
   return (
     <SettingsShell title="Form settings" embedded={embedded}>
-      <form action={formAction} className="gantry-typed-form">
+      <form
+        ref={formRef}
+        action={formAction}
+        className="gantry-typed-form"
+        onInput={saveDebounced}
+        onChange={(e) => {
+          const t = e.target
+          if (t instanceof HTMLInputElement && t.type === 'checkbox') saveNow()
+        }}
+        onBlur={(e) => {
+          const t = e.target
+          if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement) saveNow()
+        }}
+      >
         <LayoutIdField />
         <input type="hidden" name="sectionId" value={sectionId} />
         <input type="hidden" name="rowId" value={rowId} />
@@ -654,10 +708,8 @@ export function FormParticleEditor({
             {jsonError}
           </p>
         ) : null}
-        <button type="submit" disabled={pending || Boolean(jsonError)}>
-          {pending ? 'Saving…' : 'Save Form'}
-        </button>
-        <ActionFeedback state={state} />
+        {pending ? <p className="layout-muted">Saving…</p> : null}
+        {state.error ? <ActionFeedback state={state} /> : null}
       </form>
     </SettingsShell>
   )

@@ -11,6 +11,7 @@ import { CAPTCHA_PROVIDERS } from '@/core/site-chrome/defaults'
 import type { SiteChromeDocument } from '@/core/site-chrome/types'
 
 import { useNotifySavedOnOk } from '../admin-toast'
+import { useAutosaveForm } from '../use-autosave-form'
 
 type Props = {
   chrome: SiteChromeDocument
@@ -20,11 +21,15 @@ const initialState: SiteChromeActionState = {}
 
 export function SiteChromeForm({ chrome }: Props) {
   const [state, formAction, pending] = useActionState(updateSiteChromeAction, initialState)
-  // KEEP Save: multi-section Site Chrome document (offline / captcha / SEO / robots / cookies).
   useNotifySavedOnOk(state, { toastErrors: true })
+  const { formRef, textAutosaveProps, discreteAutosaveProps } = useAutosaveForm()
 
   return (
-    <form action={formAction} className="settings-form settings-form-wide">
+    <form
+      ref={formRef}
+      action={formAction}
+      className="settings-form settings-form-wide"
+    >
       <fieldset className="settings-fieldset">
         <legend>Site offline</legend>
         <p className="settings-hint">
@@ -37,6 +42,8 @@ export function SiteChromeForm({ chrome }: Props) {
             type="checkbox"
             name="offlineEnabled"
             defaultChecked={chrome.offlineEnabled}
+            disabled={pending}
+            {...discreteAutosaveProps}
           />
           <span>
             <strong>Take site offline</strong>
@@ -52,6 +59,8 @@ export function SiteChromeForm({ chrome }: Props) {
             rows={3}
             defaultValue={chrome.offlineMessage}
             autoComplete="off"
+            disabled={pending}
+            {...textAutosaveProps}
           />
         </label>
       </fieldset>
@@ -69,6 +78,8 @@ export function SiteChromeForm({ chrome }: Props) {
             type="checkbox"
             name="captchaEnabled"
             defaultChecked={chrome.captchaEnabled}
+            disabled={pending}
+            {...discreteAutosaveProps}
           />
           <span>
             <strong>Enable captcha by default</strong>
@@ -79,7 +90,12 @@ export function SiteChromeForm({ chrome }: Props) {
         </label>
         <label className="settings-field">
           <span>Provider</span>
-          <select name="captchaProvider" defaultValue={chrome.captchaProvider}>
+          <select
+            name="captchaProvider"
+            defaultValue={chrome.captchaProvider}
+            disabled={pending}
+            {...discreteAutosaveProps}
+          >
             {CAPTCHA_PROVIDERS.map((p) => (
               <option key={p.value} value={p.value}>
                 {p.label}
@@ -103,6 +119,8 @@ export function SiteChromeForm({ chrome }: Props) {
             defaultValue={chrome.siteName}
             required
             autoComplete="off"
+            disabled={pending}
+            {...textAutosaveProps}
           />
         </label>
         <label className="settings-field">
@@ -113,6 +131,8 @@ export function SiteChromeForm({ chrome }: Props) {
             defaultValue={chrome.defaultDescription}
             autoComplete="off"
             placeholder="Short site summary for search / social"
+            disabled={pending}
+            {...textAutosaveProps}
           />
         </label>
         <label className="settings-field">
@@ -123,6 +143,8 @@ export function SiteChromeForm({ chrome }: Props) {
             defaultValue={chrome.defaultOgImage}
             autoComplete="off"
             placeholder="/media/… or https://…"
+            disabled={pending}
+            {...textAutosaveProps}
           />
         </label>
       </fieldset>
@@ -141,6 +163,8 @@ export function SiteChromeForm({ chrome }: Props) {
             defaultValue={chrome.robotsMeta}
             autoComplete="off"
             placeholder="index, follow"
+            disabled={pending}
+            {...textAutosaveProps}
           />
         </label>
         <label className="settings-field">
@@ -151,6 +175,8 @@ export function SiteChromeForm({ chrome }: Props) {
             defaultValue={chrome.robotsTxt}
             spellCheck={false}
             className="settings-field-mono"
+            disabled={pending}
+            {...textAutosaveProps}
           />
         </label>
       </fieldset>
@@ -169,6 +195,8 @@ export function SiteChromeForm({ chrome }: Props) {
             defaultValue={chrome.contentRights}
             autoComplete="off"
             placeholder="All rights reserved."
+            disabled={pending}
+            {...textAutosaveProps}
           />
         </label>
       </fieldset>
@@ -187,6 +215,8 @@ export function SiteChromeForm({ chrome }: Props) {
             defaultValue={chrome.cookieDomain}
             autoComplete="off"
             placeholder="(empty = host-only)"
+            disabled={pending}
+            {...textAutosaveProps}
           />
         </label>
         <label className="settings-field">
@@ -197,6 +227,8 @@ export function SiteChromeForm({ chrome }: Props) {
             defaultValue={chrome.cookiePath}
             autoComplete="off"
             placeholder="/"
+            disabled={pending}
+            {...textAutosaveProps}
           />
         </label>
       </fieldset>
@@ -206,15 +238,7 @@ export function SiteChromeForm({ chrome }: Props) {
           {state.error}
         </p>
       ) : null}
-      {state.ok ? (
-        <p className="admin-inline-ok" role="status">
-          Site Chrome saved.
-        </p>
-      ) : null}
-
-      <button type="submit" className="primary" disabled={pending}>
-        {pending ? 'Saving…' : 'Save Site Chrome'}
-      </button>
+      {pending ? <p className="field-hint">Saving…</p> : null}
     </form>
   )
 }

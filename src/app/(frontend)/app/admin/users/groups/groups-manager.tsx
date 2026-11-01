@@ -81,7 +81,7 @@ export function GroupsManager({ groups }: Props) {
     <div className="groups-manager">
       <section className="outlines-create" aria-label="Create user group">
         <h3>Create group</h3>
-        <form action={createAction} className="outlines-create-form">
+        <form action={createAction} className="outlines-create-form admin-create-form">
           <label className="settings-field">
             <span>Name</span>
             <input type="text" name="label" placeholder="e.g. Moderators" required maxLength={80} />
@@ -98,7 +98,7 @@ export function GroupsManager({ groups }: Props) {
             <input type="checkbox" name="openAfter" value="1" defaultChecked />
             <span>Open members after create</span>
           </label>
-          <button type="submit" disabled={createPending}>
+          <button type="submit" className="gantry-toolbar-btn gantry-toolbar-btn-save" disabled={createPending}>
             {createPending ? 'Creating…' : 'Create'}
           </button>
         </form>
@@ -148,7 +148,7 @@ export function GroupsManager({ groups }: Props) {
                     {renamingId === group.id ? (
                       <form
                         action={renameAction}
-                        className="admin-inline-form"
+                        className="admin-inline-form outlines-inline-form"
                         onSubmit={() => setTimeout(() => setRenamingId(null), 50)}
                       >
                         <input type="hidden" name="groupId" value={group.id} />
@@ -159,6 +159,7 @@ export function GroupsManager({ groups }: Props) {
                           required
                           maxLength={80}
                           aria-label={`Rename ${group.id}`}
+                          autoFocus
                         />
                         <input
                           type="text"
@@ -168,12 +169,16 @@ export function GroupsManager({ groups }: Props) {
                           maxLength={200}
                           aria-label={`Description for ${group.id}`}
                         />
-                        <button type="submit" disabled={renamePending}>
-                          Save
+                        <button
+                          type="submit"
+                          className="gantry-toolbar-btn gantry-toolbar-btn-save"
+                          disabled={renamePending}
+                        >
+                          {renamePending ? 'Saving…' : 'Save'}
                         </button>
                         <button
                           type="button"
-                          className="secondary"
+                          className="gantry-toolbar-btn gantry-toolbar-btn-quiet"
                           onClick={() => setRenamingId(null)}
                         >
                           Cancel
@@ -198,7 +203,7 @@ export function GroupsManager({ groups }: Props) {
                           <input type="hidden" name="groupId" value={group.id} />
                           <button
                             type="submit"
-                            className="secondary"
+                            className="gantry-toolbar-btn gantry-toolbar-btn-danger danger"
                             disabled={deletePending}
                             onClick={(e) => {
                               if (

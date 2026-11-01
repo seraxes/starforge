@@ -74,7 +74,7 @@ export function NavMenusManager({ menus, primaryNavMenuId }: Props) {
         <h3>Create menu</h3>
         <form
           action={createAction}
-          className="outlines-create-form"
+          className="outlines-create-form admin-create-form"
           onSubmit={() => setTimeout(refresh, 50)}
         >
           <label className="settings-field">
@@ -100,7 +100,7 @@ export function NavMenusManager({ menus, primaryNavMenuId }: Props) {
             <input type="checkbox" name="openAfter" value="1" defaultChecked />
             <span>Open items editor after create</span>
           </label>
-          <button type="submit" disabled={createPending}>
+          <button type="submit" className="gantry-toolbar-btn gantry-toolbar-btn-save" disabled={createPending}>
             {createPending ? 'Creating…' : 'Create'}
           </button>
         </form>
@@ -177,11 +177,25 @@ export function NavMenusManager({ menus, primaryNavMenuId }: Props) {
                             defaultValue={menu.label}
                             required
                             maxLength={80}
+                            aria-label="New menu name"
+                            autoFocus
+                            onBlur={(e) => {
+                              if (e.currentTarget.form && e.currentTarget.value.trim()) {
+                                e.currentTarget.form.requestSubmit()
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault()
+                                ;(e.target as HTMLInputElement).blur()
+                              }
+                            }}
                           />
-                          <button type="submit" disabled={renamePending}>
-                            Save
-                          </button>
-                          <button type="button" className="secondary" onClick={() => setRenamingId(null)}>
+                          <button
+                            type="button"
+                            className="gantry-toolbar-btn gantry-toolbar-btn-quiet"
+                            onClick={() => setRenamingId(null)}
+                          >
                             Cancel
                           </button>
                         </form>
@@ -211,12 +225,16 @@ export function NavMenusManager({ menus, primaryNavMenuId }: Props) {
                             required
                             maxLength={80}
                           />
-                          <button type="submit" disabled={dupPending}>
-                            Duplicate
+                          <button
+                            type="submit"
+                            className="gantry-toolbar-btn gantry-toolbar-btn-save"
+                            disabled={dupPending}
+                          >
+                            {dupPending ? 'Copying…' : 'Duplicate'}
                           </button>
                           <button
                             type="button"
-                            className="secondary"
+                            className="gantry-toolbar-btn gantry-toolbar-btn-quiet"
                             onClick={() => setDuplicatingId(null)}
                           >
                             Cancel
@@ -240,7 +258,11 @@ export function NavMenusManager({ menus, primaryNavMenuId }: Props) {
                           }}
                         >
                           <input type="hidden" name="id" value={menu.id} />
-                          <button type="submit" className="danger" disabled={deletePending}>
+                          <button
+                            type="submit"
+                            className="gantry-toolbar-btn gantry-toolbar-btn-danger danger"
+                            disabled={deletePending}
+                          >
                             Delete
                           </button>
                         </form>

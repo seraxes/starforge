@@ -1908,3 +1908,105 @@ body:has(.admin-shell) > main {
     transform: translateY(0);
   }
 }
+
+/* —— Compact Gantry-style Create / Add / action buttons (not full-width bars) —— */
+.admin-shell .admin-create-form,
+.admin-shell .outlines-create-form.admin-create-form {
+  align-items: end;
+}
+
+.admin-shell .admin-create-form > button[type='submit'],
+.admin-shell .outlines-create-form > button[type='submit'],
+.admin-shell .nav-items-add button[type='submit'],
+.admin-shell .group-detail-manager .outlines-create-form > button[type='submit'],
+.admin-shell .admin-action-row > button,
+.admin-shell .outlines-inline-form > button[type='submit'],
+.admin-shell .outlines-inline-form > button[type='button'],
+.admin-shell .admin-inline-form > button[type='submit'],
+.admin-shell .admin-inline-form > button[type='button'],
+.admin-shell .gantry-typed-form > button.gantry-toolbar-btn,
+.admin-shell .outlines-actions > form > button[type='submit'] {
+  width: auto;
+  max-width: max-content;
+  justify-self: start;
+  align-self: end;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0.4rem 0.85rem;
+  border-radius: 3px;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.admin-shell .gantry-toolbar-btn-save,
+.admin-shell .admin-create-form > button.gantry-toolbar-btn-save,
+.admin-shell .outlines-create-form > button.gantry-toolbar-btn-save,
+.admin-shell .nav-items-add button.gantry-toolbar-btn-save,
+.admin-shell .admin-inline-form > button.gantry-toolbar-btn-save {
+  background: var(--sf-primary);
+  border: 0;
+  color: var(--sf-primary-ink);
+}
+
+.admin-shell .gantry-toolbar-btn-save:hover:not(:disabled) {
+  background: var(--sf-primary-strong);
+}
+
+.admin-shell .gantry-toolbar-btn-muted,
+.admin-shell button.gantry-toolbar-btn-muted {
+  background: var(--sf-admin-blue-action);
+  border: 1px solid var(--sf-admin-blue-border);
+  color: #fff;
+}
+
+.admin-shell .gantry-toolbar-btn-muted:hover:not(:disabled),
+.admin-shell button.gantry-toolbar-btn-muted:hover:not(:disabled) {
+  background: var(--sf-admin-blue-mid);
+}
+
+.admin-shell .gantry-toolbar-btn-quiet,
+.admin-shell button.gantry-toolbar-btn-quiet {
+  background: transparent;
+  border: 1px solid var(--sf-line);
+  color: #c9d4e4;
+}
+
+.admin-shell .gantry-toolbar-btn-quiet:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--sf-admin-blue-mid) 35%, transparent);
+}
+
+.admin-shell .admin-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.admin-shell .gantry-toolbar-btn-danger,
+.admin-shell button.gantry-toolbar-btn.danger,
+.admin-shell button.gantry-toolbar-btn-danger {
+  background: color-mix(in srgb, #c45c5c 28%, #1d2531);
+  border: 0;
+  color: #f0b4b4;
+  padding: 0.4rem 0.85rem;
+  border-radius: 3px;
+  font-size: 0.86rem;
+  font-weight: 650;
+}
+
+.admin-shell .page-settings-saving {
+  margin: 0.75rem 0 0;
+}
+
+.admin-shell .nav-item-quick > button {
+  width: auto;
+  padding: 0.28rem 0.55rem;
+  font-size: 0.8rem;
+}

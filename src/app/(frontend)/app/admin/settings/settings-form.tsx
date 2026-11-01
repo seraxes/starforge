@@ -11,6 +11,7 @@ import type { FeatureFlags, ModuleToggleMap } from '@/core/settings/defaults'
 import type { ModuleCatalogItem, ModuleToggleKind } from '@/core/settings/module-toggles'
 
 import { useNotifySavedOnOk } from '../admin-toast'
+import { useAutosaveForm } from '../use-autosave-form'
 
 type NavMenuOption = {
   id: string
@@ -28,8 +29,6 @@ type Props = {
 }
 
 const initialState: SettingsActionState = {}
-
-// KEEP Save: module toggles gate whole admin areas — explicit commit avoids thrash.
 
 const KIND_LABEL: Record<ModuleToggleKind, string> = {
   platform: 'Platform',
@@ -73,10 +72,14 @@ function ModuleRows({
   items,
   moduleToggles,
   features,
+  onToggle,
+  disabled,
 }: {
   items: ModuleCatalogItem[]
   moduleToggles: ModuleToggleMap
   features: FeatureFlags
+  onToggle?: () => void
+  disabled?: boolean
 }) {
   if (items.length === 0) return <p className="settings-hint">None in this group.</p>
   return (
@@ -92,7 +95,8 @@ function ModuleRows({
                 name="moduleToggleEnabled"
                 value={item.id}
                 defaultChecked={checked}
-                disabled={item.required}
+                disabled={item.required || disabled}
+                onChange={onToggle}
               />
               <span>
                 <strong>{item.label}</strong>
@@ -124,9 +128,10 @@ export function SettingsForm({
 }: Props) {
   const [state, formAction, pending] = useActionState(updateSiteSettingsAction, initialState)
   useNotifySavedOnOk(state, { toastErrors: true })
+  const { formRef, discreteAutosaveProps, saveNow } = useAutosaveForm()
 
   return (
-    <form action={formAction} className="settings-form settings-form-wide">
+    <form ref={formRef} action={formAction} className="settings-form settings-form-wide">
       {/* Keep siteName in the form so Modules save does not wipe Payload site name. */}
       <input type="hidden" name="siteName" value={siteName} />
 
@@ -140,7 +145,12 @@ export function SettingsForm({
         </p>
         <label className="settings-field">
           <span>Primary nav menu</span>
-          <select name="primaryNavMenuId" defaultValue={primaryNavMenuId}>
+          <select
+            name="primaryNavMenuId"
+            defaultValue={primaryNavMenuId}
+            disabled={pending}
+            {...discreteAutosaveProps}
+          >
             {navMenus.length === 0 ? (
               <option value="main">Main (create under Nav)</option>
             ) : (
@@ -160,7 +170,8 @@ export function SettingsForm({
         <p className="settings-hint">
           All modular product pieces in this build — platform, capabilities, layout particles, and
           atoms. Each row: name, short description, on/off. Off gates admin nav/routes where safe,
-          layout palette, and public render/inject. Package uninstall is a later phase.
+          layout palette, and public render/inject. Package uninstall is a later phase. Saves
+          automatically.
         </p>
 
         {KIND_SECTIONS.map((section) => (
@@ -171,6 +182,8 @@ export function SettingsForm({
               items={moduleCatalog.filter((m) => m.kind === section.kind)}
               moduleToggles={moduleToggles}
               features={features}
+              disabled={pending}
+              onToggle={saveNow}
             />
           </div>
         ))}
@@ -181,15 +194,7 @@ export function SettingsForm({
           {state.error}
         </p>
       ) : null}
-      {state.ok ? (
-        <p className="admin-inline-ok" role="status">
-          Settings saved.
-        </p>
-      ) : null}
-
-      <button type="submit" className="primary" disabled={pending}>
-        {pending ? 'Saving…' : 'Save settings'}
-      </button>
+      {pending ? <p className="field-hint">Saving…</p> : null}
     </form>
   )
 }
