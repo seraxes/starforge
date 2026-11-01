@@ -417,11 +417,10 @@ button:disabled {
   font-size: 0.95rem;
 }
 
-/* Public CMS page (`/[slug]`) + draft preview (`/preview/[slug]`) */
+/* Public CMS page (`/[slug]`) + draft preview (`/preview/[slug]`)
+ * No max-width here — layout sections own boxed vs full (SF-34). */
 .cms-page {
   min-height: 100vh;
-  max-width: 42rem;
-  margin: 0 auto;
   padding: 3rem 1.5rem 3rem;
 }
 
