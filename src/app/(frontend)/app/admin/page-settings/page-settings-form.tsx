@@ -305,7 +305,7 @@ export function PageSettingsForm({ bootstrap }: Props) {
             </select>
           </label>
           <label className="settings-field">
-            <span>Sections layout</span>
+            <span>Sections layout (default)</span>
             <select
               name="sectionsLayout"
               value={sectionsLayout}
@@ -314,6 +314,10 @@ export function PageSettingsForm({ bootstrap }: Props) {
               <option value="fullwidth">Fullwidth</option>
               <option value="boxed">Boxed content</option>
             </select>
+            <small className="field-hint">
+              Default only when a section has no Width setting. Prefer Layout canvas section Width
+              (full / boxed) — section owns container width.
+            </small>
           </label>
           <AccessTagsField
             value={accessTags}

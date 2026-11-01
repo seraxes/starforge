@@ -1,7 +1,8 @@
 import React from 'react'
 
 import { SiteNav } from '@/components/SiteNav'
-import { filterNavItemsForViewer, getAccessViewer } from '@/core/acl'
+import { getAccessViewer } from '@/core/acl/access'
+import { filterNavItemsForViewer } from '@/core/acl/nav-access'
 import { DEFAULT_NAV_MENU_ID, resolveNavMenuItems } from '@/core/nav'
 import { MODULE_IDS, isModuleToggleEnabled } from '@/core/settings/module-toggles'
 

@@ -1,4 +1,12 @@
+/*
+ * CSS layers (keep separate — do not mix Page Settings / Custom into admin chrome):
+ * 1) Design tokens — `:root` below (later Tailwind theme / SF-33 Core Styles)
+ * 2) Outline Layout Styles — public `.sf-layout-section` width + section bg/text + breakpoints
+ * 3) Custom CSS — Page Settings document chrome / Custom particle only
+ */
+
 :root {
+  /* —— Layer 1: design tokens —— */
   /* Brand — pastel orange primary, pastel blue secondary */
   --sf-primary: #f2a66a;
   --sf-primary-strong: #a85220;
@@ -417,11 +425,10 @@ button:disabled {
   font-size: 0.95rem;
 }
 
-/* Public CMS page (`/[slug]`) + draft preview (`/preview/[slug]`) */
+/* Public CMS page (`/[slug]`) + draft preview (`/preview/[slug]`)
+ * No max-width here — layout sections own boxed vs full (SF-34). */
 .cms-page {
   min-height: 100vh;
-  max-width: 42rem;
-  margin: 0 auto;
   padding: 3rem 1.5rem 3rem;
 }
 
@@ -1163,8 +1170,36 @@ button:disabled {
   padding: 0;
 }
 
+/* —— Layer 2: outline Layout Styles (public sections) —— */
 .sf-layout-section {
   width: 100%;
+  box-sizing: border-box;
+}
+
+/*
+ * Section owns container width (SF-34).
+ * Boxed uses outline --sf-container-max (large desktop breakpoint).
+ * Row % is share inside this wrapper — do not re-box .cms-page.
+ */
+.sf-layout-section[data-sf-container='boxed'] {
+  max-width: var(--sf-container-max, 75rem);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+}
+
+.sf-layout-section[data-sf-container='full'] {
+  max-width: none;
+  width: 100%;
+}
+
+/*
+ * Section Styles (bg + text) apply via inline style / --sf-section-* on the
+ * public wrapper only — never on `.admin-shell`.
+ */
+.sf-layout-section[data-sf-section-styled='true'] {
+  /* background-color + color set inline from layout JSON */
 }
 
 .sf-layout-chrome-meta {
@@ -1760,6 +1795,88 @@ button:disabled {
   gap: 0.35rem;
   flex: 1 1 10rem;
   max-width: 22rem;
+}
+
+.gantry-section-container-label {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 0 1 auto;
+}
+
+.gantry-section-container-select {
+  width: auto;
+  min-width: 8.5rem;
+  max-width: 11rem;
+  cursor: pointer;
+}
+
+.gantry-section-styles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.75rem;
+  align-items: center;
+}
+
+.gantry-section-color-label {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.gantry-color-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.gantry-color-swatch {
+  width: 1.85rem;
+  height: 1.85rem;
+  padding: 0;
+  border: 1px solid var(--sf-line);
+  background: transparent;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.gantry-section-color-input {
+  width: 6.5rem;
+  max-width: 7.5rem;
+  font-size: 0.82rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.breakpoints-form {
+  max-width: 48rem;
+  margin-top: 0.5rem;
+}
+
+.breakpoints-form-lede {
+  margin: 0 0 1rem;
+  color: var(--sf-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.breakpoints-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 0.85rem 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.breakpoints-form .field-hint,
+.settings-field .field-hint {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.78rem;
+  color: var(--sf-muted);
+  line-height: 1.35;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .gantry-field-hint {
@@ -2594,17 +2711,23 @@ button:disabled {
   margin: 0;
 }
 
-/* Sections layout mode (public shell) */
-.public-shell.sf-sections-boxed .sf-layout-section {
-  max-width: 64rem;
+/*
+ * Page Settings sectionsLayout is a *default* only (SF-34).
+ * Prefer per-section data-sf-container. Keep shell markers for body chrome /
+ * legacy selectors; do not force every section when containerMode is set.
+ */
+.public-shell.sf-sections-boxed .sf-layout-section:not([data-sf-container]),
+.public-shell.sf-sections-boxed .sf-layout-section[data-sf-container='boxed'] {
+  max-width: var(--sf-container-max, 75rem);
   margin-left: auto;
   margin-right: auto;
   padding-left: 1.25rem;
   padding-right: 1.25rem;
 }
 
-.public-shell.sf-sections-fullwidth .sf-layout-section {
+.public-shell.sf-sections-fullwidth .sf-layout-section[data-sf-container='full'] {
   width: 100%;
+  max-width: none;
 }
 
 @media (max-width: 720px) {

@@ -7,6 +7,7 @@
   "type": "module",
   "scripts": {
     "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev",
+    "dev:webpack": "cross-env NODE_OPTIONS=--no-deprecation next dev --webpack",
     "build": "cross-env NODE_OPTIONS=\"--no-deprecation --max-old-space-size=8000\" next build",
     "start": "cross-env NODE_OPTIONS=--no-deprecation next start",
     "lint": "cross-env NODE_OPTIONS=--no-deprecation eslint .",

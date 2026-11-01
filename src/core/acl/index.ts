@@ -1,22 +1,29 @@
 /**
  * User groups + group-keyed ACL foundation (SF-41).
  *
- * **Client components** must import from `@/core/acl/actions` and
- * `@/core/acl/types` only — this barrel re-exports server-only session
- * helpers (`access.ts` → `next/headers`) and must not enter the client graph.
+ * **Client components** must import from:
+ * - `@/core/acl/actions` (server actions)
+ * - `@/core/acl/types` (types / constants)
+ * - `@/core/acl/nav-access` (pure visibility helpers)
+ *
+ * Do **not** import this barrel from client components — it re-exports
+ * server-only session helpers (`access.ts` → `next/headers`).
  */
 
+/** Pure helpers — safe for shared server/client graphs when imported directly. */
 export {
   accessTagsForStorage,
   canSeeNavAccessLevel,
   canSeeNavAccessTags,
   filterNavItemsForViewer,
-  getAccessViewer,
   normalizeAccessTags,
   resolveAccessTags,
   toggleAccessTag,
-  viewerMayAccessAdminResource,
-} from './access'
+} from './nav-access'
+
+/** Session-bound checks — server-only (`import 'server-only'`). */
+export { getAccessViewer, viewerMayAccessAdminResource } from './access'
+
 export type { AccessViewer } from './types'
 export {
   ACL_ADMIN_RESOURCES,

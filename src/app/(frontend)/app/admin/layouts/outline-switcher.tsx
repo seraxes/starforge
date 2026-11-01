@@ -6,12 +6,20 @@ import { useRouter } from 'next/navigation'
 
 type OutlineOption = { id: string; label: string }
 
+function outlineHref(basePath: string, id: string): string {
+  if (id === 'default') return basePath
+  return `${basePath}?outline=${encodeURIComponent(id)}`
+}
+
 export function OutlineSwitcher({
   outlines,
   currentId,
+  /** Admin path this switcher should stay on (default: Layout canvas). */
+  basePath = '/app/admin/layouts',
 }: {
   outlines: OutlineOption[]
   currentId: string
+  basePath?: string
 }) {
   const router = useRouter()
 
@@ -24,12 +32,7 @@ export function OutlineSwitcher({
           value={currentId}
           aria-label="Switch layout outline"
           onChange={(event) => {
-            const id = event.target.value
-            router.push(
-              id === 'default'
-                ? '/app/admin/layouts'
-                : `/app/admin/layouts?outline=${encodeURIComponent(id)}`,
-            )
+            router.push(outlineHref(basePath, event.target.value))
           }}
         >
           {outlines.map((o) => (
