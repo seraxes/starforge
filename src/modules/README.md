@@ -5,6 +5,7 @@ Product features that hang off Starforge core (not Payload plugins).
 | Particle | Id | Notes |
 | --- | --- | --- |
 | Notice bar | `notice-bar` | Extension — needs Modules toggle |
+| Form | `form` | Core Form — fields JSON, submissions in Admin → Forms; needs `product:forms` |
 | Page Content | `page-content` | Built-in (core) |
 | Site Header | `site-header` | Built-in (core) |
 | Logo / Image | `logo` | Built-in — Media id/URL, alt, max size |

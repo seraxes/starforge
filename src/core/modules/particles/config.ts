@@ -1,3 +1,5 @@
+import { defaultFormConfig } from '@/core/forms/config'
+
 import type { LayoutSlotConfig } from '../types'
 
 /** Logo / Image particle settings (typed — not Custom HTML). */
@@ -88,6 +90,8 @@ export function defaultConfigForModule(moduleId: string): LayoutSlotConfig | und
       return { ...defaultCopyrightConfig() }
     case 'social':
       return { ...defaultSocialConfig() }
+    case 'form':
+      return { ...defaultFormConfig() }
     default:
       return undefined
   }

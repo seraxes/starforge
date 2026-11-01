@@ -19,6 +19,7 @@ export {
   toggleSlotAction,
   updateCopyrightSlotAction,
   updateCustomSlotAction,
+  updateFormSlotAction,
   updateLayoutSectionMetaAction,
   updateLogoSlotAction,
   updateSocialSlotAction,

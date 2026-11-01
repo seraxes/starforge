@@ -55,8 +55,10 @@ export function SiteChromeForm({ chrome }: Props) {
       <fieldset className="settings-fieldset">
         <legend>Default sitewide captcha</legend>
         <p className="settings-hint">
-          Provider/enable defaults for forms. Integration is a stub in v1 — values are stored for
-          later wiring.
+          Provider/enable defaults for the Core Form module when a form opts into “use site captcha
+          default”. Turnstile site/secret keys stay in env (
+          <code>NEXT_PUBLIC_TURNSTILE_SITE_KEY</code>, <code>TURNSTILE_SECRET_KEY</code>) — never in
+          this form. reCAPTCHA / hCaptcha remain unwired.
         </p>
         <label className="settings-flag">
           <input
@@ -67,7 +69,7 @@ export function SiteChromeForm({ chrome }: Props) {
           <span>
             <strong>Enable captcha by default</strong>
             <span className="settings-flag-desc">
-              Forms may opt into the site default when captcha support lands.
+              Form particles that opt in will challenge visitors (Turnstile when selected).
             </span>
           </span>
         </label>

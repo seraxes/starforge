@@ -724,6 +724,43 @@ export async function updateSocialSlotAction(
   return state
 }
 
+export async function updateFormSlotAction(
+  _prev: LayoutActionState,
+  formData: FormData,
+): Promise<LayoutActionState> {
+  const sectionId = String(formData.get('sectionId') ?? '').trim()
+  const rowId = String(formData.get('rowId') ?? '').trim()
+  const slotId = String(formData.get('slotId') ?? '').trim()
+  if (!sectionId || !rowId || !slotId) return { error: 'Missing slot reference.' }
+
+  let parsedFields: unknown
+  try {
+    parsedFields = JSON.parse(String(formData.get('fieldsJson') ?? '[]'))
+  } catch {
+    return { error: 'Invalid fields JSON.' }
+  }
+
+  const { formConfigToSlotConfig, normalizeFormFields } = await import('@/core/forms/config')
+  const config: LayoutSlotConfig = formConfigToSlotConfig({
+    heading: String(formData.get('heading') ?? '').trim(),
+    fields: normalizeFormFields(parsedFields),
+    successMessage: String(formData.get('successMessage') ?? '').trim(),
+    submitLabel: String(formData.get('submitLabel') ?? '').trim() || 'Send',
+    useSiteCaptchaDefault: String(formData.get('useSiteCaptchaDefault') ?? '') === 'on',
+  })
+
+  const state = await mutateLayout(formData, (doc) => {
+    const found = findSlot(doc, sectionId, rowId, slotId)
+    if (!found) return { error: 'Slot not found.' }
+    if (found.slot.moduleId !== 'form') return { error: 'Not a Form particle.' }
+    found.slot.config = config
+    return doc
+  })
+
+  if (state.ok) state.message = 'Form settings saved.'
+  return state
+}
+
 export async function resetLayoutToDefaultAction(
   _prev: LayoutActionState,
   formData: FormData,
@@ -752,16 +789,23 @@ export async function resetLayoutToDefaultAction(
 
 export async function listModulesForLayoutAdmin() {
   ensureModulesRegistered()
-  const { getSiteSettings, isParticleModuleEnabled } = await import('@/core/settings')
+  const {
+    MODULE_IDS,
+    getSiteSettings,
+    isCatalogModuleEnabled,
+    isParticleModuleEnabled,
+  } = await import('@/core/settings')
   const settings = await getSiteSettings()
+  const formsProductOn = isCatalogModuleEnabled(settings, MODULE_IDS.forms)
 
   return listRegisteredModules()
-    .filter((m) =>
-      isParticleModuleEnabled(settings, m.id, {
+    .filter((m) => {
+      if (m.id === 'form' && !formsProductOn) return false
+      return isParticleModuleEnabled(settings, m.id, {
         builtin: m.builtin,
         featureFlag: m.featureFlag,
-      }),
-    )
+      })
+    })
     .map((m) => ({
       id: m.id,
       name: m.name,

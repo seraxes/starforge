@@ -2,8 +2,11 @@
 
 import React, { useActionState, useState } from 'react'
 
+import { readFormConfig } from '@/core/forms/config'
+import type { FormFieldDef } from '@/core/forms/types'
 import {
   updateCopyrightSlotAction,
+  updateFormSlotAction,
   updateLogoSlotAction,
   updateSocialSlotAction,
   type LayoutActionState,
@@ -292,7 +295,93 @@ export function SocialParticleEditor({
   )
 }
 
-/** Renders the typed config editor for logo / copyright / social slots. */
+export function FormParticleEditor({
+  sectionId,
+  rowId,
+  slot,
+}: {
+  sectionId: string
+  rowId: string
+  slot: LayoutSlot
+}) {
+  const [state, formAction, pending] = useActionState(updateFormSlotAction, initialState)
+  const cfg = readFormConfig(slot.config)
+  const [fields, setFields] = useState<FormFieldDef[]>(() => [...(cfg.fields ?? [])])
+  const [fieldsJson, setFieldsJson] = useState(() => JSON.stringify(cfg.fields ?? [], null, 2))
+  const [jsonError, setJsonError] = useState<string | null>(null)
+
+  function applyFieldsJson(raw: string) {
+    setFieldsJson(raw)
+    try {
+      const parsed = JSON.parse(raw) as unknown
+      if (!Array.isArray(parsed)) {
+        setJsonError('Fields must be a JSON array.')
+        return
+      }
+      setFields(parsed as FormFieldDef[])
+      setJsonError(null)
+    } catch {
+      setJsonError('Invalid JSON.')
+    }
+  }
+
+  return (
+    <ParticleSettingsPopover title="Form settings">
+      <form action={formAction} className="gantry-typed-form">
+        <LayoutIdField />
+        <input type="hidden" name="sectionId" value={sectionId} />
+        <input type="hidden" name="rowId" value={rowId} />
+        <input type="hidden" name="slotId" value={slot.id} />
+        <input type="hidden" name="fieldsJson" value={JSON.stringify(fields)} />
+        <label>
+          <span>Heading</span>
+          <input type="text" name="heading" defaultValue={cfg.heading ?? ''} />
+        </label>
+        <label>
+          <span>Success message</span>
+          <input type="text" name="successMessage" defaultValue={cfg.successMessage ?? ''} />
+        </label>
+        <label>
+          <span>Submit label</span>
+          <input type="text" name="submitLabel" defaultValue={cfg.submitLabel ?? 'Send'} />
+        </label>
+        <label className="gantry-typed-check">
+          <input
+            type="checkbox"
+            name="useSiteCaptchaDefault"
+            defaultChecked={cfg.useSiteCaptchaDefault !== false}
+          />
+          <span>Use site captcha default (Site Chrome)</span>
+        </label>
+        <p className="layout-muted">
+          Fields JSON — each item: <code>name</code>, <code>label</code>,{' '}
+          <code>type</code> (text|email|textarea), optional <code>required</code>,{' '}
+          <code>placeholder</code>. Defaults: name, email, message.
+        </p>
+        <label>
+          <span>Fields (JSON)</span>
+          <textarea
+            rows={10}
+            value={fieldsJson}
+            onChange={(e) => applyFieldsJson(e.target.value)}
+            spellCheck={false}
+          />
+        </label>
+        {jsonError ? (
+          <p className="admin-inline-error" role="alert">
+            {jsonError}
+          </p>
+        ) : null}
+        <button type="submit" disabled={pending || Boolean(jsonError)}>
+          {pending ? 'Saving…' : 'Save Form'}
+        </button>
+        <ActionFeedback state={state} />
+      </form>
+    </ParticleSettingsPopover>
+  )
+}
+
+/** Renders the typed config editor for logo / copyright / social / form slots. */
 export function TypedParticleEditor({
   sectionId,
   rowId,
@@ -310,6 +399,9 @@ export function TypedParticleEditor({
   }
   if (slot.moduleId === 'social') {
     return <SocialParticleEditor sectionId={sectionId} rowId={rowId} slot={slot} />
+  }
+  if (slot.moduleId === 'form') {
+    return <FormParticleEditor sectionId={sectionId} rowId={rowId} slot={slot} />
   }
   return null
 }

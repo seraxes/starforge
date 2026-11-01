@@ -42,6 +42,11 @@ export async function SlotRenderer({ sectionId, slot, pageContent }: Props) {
   if (mod.featureFlag && mod.featureFlag !== 'modules' && !settings.features[mod.featureFlag]) {
     return null
   }
+  // Core Form also requires the product:forms capability.
+  if (mod.id === 'form') {
+    const { MODULE_IDS, isCatalogModuleEnabled } = await import('@/core/settings')
+    if (!isCatalogModuleEnabled(settings, MODULE_IDS.forms)) return null
+  }
 
   const accessTags = resolveAccessTags({
     accessTags: slot.accessTags,

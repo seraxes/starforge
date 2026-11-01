@@ -1304,6 +1304,125 @@ button:disabled {
   line-height: 1;
 }
 
+/* Core Form particle */
+.sf-form {
+  margin: 0.75rem 1.5rem;
+  max-width: 28rem;
+}
+
+.sf-form-heading {
+  margin: 0 0 0.75rem;
+  font-size: 1.15rem;
+  font-weight: 650;
+  color: var(--sf-ink);
+}
+
+.sf-form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sf-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.92rem;
+  color: var(--sf-ink);
+}
+
+.sf-form-field input,
+.sf-form-field textarea {
+  font: inherit;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--sf-ink) 18%, transparent);
+  border-radius: 0.35rem;
+  background: color-mix(in srgb, var(--sf-bg, #fff) 92%, var(--sf-primary, #9ec9e8) 8%);
+  color: var(--sf-ink);
+}
+
+.sf-form-field abbr {
+  text-decoration: none;
+  margin-left: 0.15rem;
+  color: var(--sf-accent, #e8a87c);
+}
+
+.sf-form-hp {
+  position: absolute;
+  left: -10000px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.sf-form-captcha {
+  margin: 0.25rem 0;
+}
+
+.sf-form-submit {
+  align-self: flex-start;
+  font: inherit;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.35rem;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--sf-primary, #9ec9e8) 75%, var(--sf-accent, #e8a87c));
+  color: var(--sf-ink);
+}
+
+.sf-form-submit:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.sf-form-error {
+  margin: 0;
+  color: #a33;
+  font-size: 0.9rem;
+}
+
+.sf-form-success-message {
+  margin: 0;
+  padding: 0.75rem 0;
+  color: var(--sf-ink);
+  font-size: 0.98rem;
+}
+
+.sf-forms-table .sf-forms-key {
+  font-size: 0.82rem;
+}
+
+.sf-forms-details summary {
+  cursor: pointer;
+}
+
+.sf-forms-payload {
+  margin: 0.5rem 0 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.sf-forms-payload div {
+  display: grid;
+  grid-template-columns: 7rem 1fr;
+  gap: 0.35rem;
+  font-size: 0.88rem;
+}
+
+.sf-forms-payload dt {
+  margin: 0;
+  font-weight: 600;
+  color: var(--sf-muted);
+}
+
+.sf-forms-payload dd {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 /* Gantry-like visual layout manager — full width canvas */
 .gantry-editor {
   display: flex;
@@ -1948,9 +2067,17 @@ button:disabled {
   font-weight: 600;
 }
 
+.gantry-typed-check {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.45rem !important;
+}
+
 .gantry-typed-form input[type='text'],
 .gantry-typed-form input[type='url'],
 .gantry-typed-form input[type='number'],
+.gantry-typed-form input[type='email'],
+.gantry-typed-form textarea,
 .gantry-typed-form select {
   font: inherit;
   font-weight: 400;

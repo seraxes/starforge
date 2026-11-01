@@ -77,6 +77,7 @@ export async function updateSiteSettingsAction(
   revalidatePath('/login')
   revalidatePath('/app/admin/settings')
   revalidatePath('/app/admin/nav')
+  revalidatePath('/app/admin/forms')
   revalidatePath('/app/admin/layouts')
   revalidatePath('/app/admin/outlines')
   revalidatePath('/app/admin/page-settings')
