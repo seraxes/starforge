@@ -14,6 +14,7 @@ export {
   resizeAdjacentSlotsAction,
   setRowSlotWidthsAction,
   setSlotAccessLevelAction,
+  setSlotAccessTagsAction,
   setSlotWidthAction,
   toggleSlotAction,
   updateCopyrightSlotAction,

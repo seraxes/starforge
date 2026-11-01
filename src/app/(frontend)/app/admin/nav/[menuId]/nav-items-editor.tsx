@@ -4,6 +4,8 @@ import React, { useActionState, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
+import { AccessTagsField } from '@/components/admin/AccessTagsField'
+import type { UserGroupOption } from '@/core/acl/types'
 import {
   addNavMenuItemAction,
   moveNavMenuItemAction,
@@ -11,7 +13,6 @@ import {
   saveNavMenuItemsAction,
   type NavActionState,
 } from '@/core/nav/actions'
-import type { UserGroupOption } from '@/core/acl/types'
 import type { NavLinkType, NavMenuItem, NavModuleOption, NavPageOption } from '@/core/nav/types'
 
 type EditableItem = {
@@ -67,14 +68,6 @@ function toEditable(item: NavMenuItem): EditableItem {
     pageHeading: item.pageHeading ?? '',
     accessTags: tags,
   }
-}
-
-function toggleAccessTag(tags: string[], tag: string, on: boolean): string[] {
-  const next = new Set(tags)
-  if (on) next.add(tag)
-  else next.delete(tag)
-  const list = [...next]
-  return list.length > 0 ? list : ['public']
 }
 
 function Feedback({ state }: { state: NavActionState }) {
@@ -467,76 +460,11 @@ export function NavItemsEditor({
                           onChange={(e) => updateRow(row.id, { pageHeading: e.target.value })}
                         />
                       </label>
-                      <fieldset className="settings-field nav-access-tags">
-                        <legend>Who can see</legend>
-                        <p className="settings-hint">
-                          Multi-select groups (plus Public / Registered). Visible if the viewer
-                          matches <strong>any</strong> tag.{' '}
-                          <Link href="/app/admin/users/groups">Manage groups</Link>.
-                        </p>
-                        <div className="nav-access-tag-list">
-                          <label className="outlines-check">
-                            <input
-                              type="checkbox"
-                              checked={row.accessTags.includes('public')}
-                              onChange={(e) =>
-                                updateRow(row.id, {
-                                  accessTags: toggleAccessTag(
-                                    row.accessTags,
-                                    'public',
-                                    e.target.checked,
-                                  ),
-                                })
-                              }
-                            />
-                            <span>Public</span>
-                          </label>
-                          <label className="outlines-check">
-                            <input
-                              type="checkbox"
-                              checked={row.accessTags.includes('registered')}
-                              onChange={(e) =>
-                                updateRow(row.id, {
-                                  accessTags: toggleAccessTag(
-                                    row.accessTags,
-                                    'registered',
-                                    e.target.checked,
-                                  ),
-                                })
-                              }
-                            />
-                            <span>Registered</span>
-                          </label>
-                          {groups.map((g) => {
-                            const tag = `group:${g.id}`
-                            return (
-                              <label key={g.id} className="outlines-check">
-                                <input
-                                  type="checkbox"
-                                  checked={row.accessTags.includes(tag)}
-                                  onChange={(e) =>
-                                    updateRow(row.id, {
-                                      accessTags: toggleAccessTag(
-                                        row.accessTags,
-                                        tag,
-                                        e.target.checked,
-                                      ),
-                                    })
-                                  }
-                                />
-                                <span>
-                                  {g.label} <code>{g.id}</code>
-                                </span>
-                              </label>
-                            )
-                          })}
-                          {groups.length === 0 ? (
-                            <span className="settings-hint">
-                              No groups yet — create under Users → Groups.
-                            </span>
-                          ) : null}
-                        </div>
-                      </fieldset>
+                      <AccessTagsField
+                        value={row.accessTags}
+                        groups={groups}
+                        onChange={(accessTags) => updateRow(row.id, { accessTags })}
+                      />
                     </div>
                   ) : null}
                 </li>

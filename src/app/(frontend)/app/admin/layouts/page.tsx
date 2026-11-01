@@ -61,8 +61,8 @@ export default async function AdminLayoutsPage(props: { searchParams?: SearchPar
         Editing outline <strong>{outlineMeta.label}</strong> (<code>{layoutId}</code>
         {isFallback ? ' — default until first drop/save' : ''}). Full-width Gantry Layout Manager:
         section → row → drag particles → resize in <strong>1%</strong> steps (
-        <strong>5%–95%</strong>). Per-particle <strong>Who can see</strong> tags the same groups
-        as Nav (Public / Registered / group). Manage named layouts under{' '}
+        <strong>5%–95%</strong>). Per-particle multi-select <strong>Who can see</strong> tags
+        (Public / Registered / groups — match ANY; empty = public). Manage named layouts under{' '}
         <Link href="/app/admin/outlines">Outlines</Link>; assign via{' '}
         <Link href="/app/admin/page-settings">Page settings</Link>. Storage:{' '}
         <code>sf_layouts</code>.{' '}

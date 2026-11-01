@@ -1,5 +1,6 @@
 import React from 'react'
 import { headers } from 'next/headers'
+import { notFound } from 'next/navigation'
 
 import { filterNavItemsForViewer, getAccessViewer } from '@/core/acl'
 import { PublicLayoutBody } from '@/core/modules'
@@ -11,6 +12,7 @@ import {
   getResolvedPageChrome,
   pageKeyFromPathname,
 } from '@/core/page-settings'
+import { viewerCanSeePageChrome } from '@/core/page-settings/view-access'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
 export async function generateMetadata() {
@@ -41,6 +43,12 @@ export default async function PublicSiteLayout(props: { children: React.ReactNod
   const chrome = pageSettingsOn
     ? await getResolvedPageChrome(pageKey)
     : emptyResolvedChrome(pageKey)
+
+  // Page viewing tags (Page Settings) — hide when viewer matches none (empty = public).
+  if (pageKey && pageSettingsOn) {
+    const allowed = await viewerCanSeePageChrome(chrome)
+    if (!allowed) notFound()
+  }
 
   // Font Awesome product toggle (even when Page Settings chrome is on).
   if (!isCatalogModuleEnabled(settings, MODULE_IDS.fontAwesome) && chrome.fontAwesome) {

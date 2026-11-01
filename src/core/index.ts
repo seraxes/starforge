@@ -125,6 +125,7 @@ export {
 } from './cms-bridge/payload-session'
 export {
   ACL_ADMIN_RESOURCES,
+  accessTagsForStorage,
   canSeeNavAccessLevel,
   canSeeNavAccessTags,
   ensureDefaultUserGroupsSeeded,
@@ -133,6 +134,8 @@ export {
   listUserGroupOptions,
   listUserGroups,
   normalizeAccessTags,
+  resolveAccessTags,
+  toggleAccessTag,
   viewerMayAccessAdminResource,
 } from './acl'
 export type {

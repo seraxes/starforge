@@ -33,8 +33,9 @@ export default async function AdminPageSettingsPage({ searchParams }: Props) {
       <h2>Page Settings</h2>
       <p className="lede admin-lede">
         Site defaults and per-page overrides for document chrome (meta, assets, body, Font Awesome,
-        atoms) plus layout assignment — Gantry Page Settings style. Public pages merge page →
-        global. Layout canvas:{' '}
+        atoms), layout assignment, and <strong>Who can see</strong> viewing tags (same groups as
+        Nav / Layout — match ANY; empty = public). Public pages merge page → global; restricted
+        pages hide for unmatched viewers. Layout canvas:{' '}
         <Link href="/app/admin/layouts">Layout manager</Link>.
       </p>
       <PageSettingsForm bootstrap={bootstrap} />

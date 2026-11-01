@@ -3,6 +3,9 @@
 import React, { useActionState, useCallback, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
+import { AccessTagsField } from '@/components/admin/AccessTagsField'
+import { resolveAccessTags } from '@/core/acl/nav-access'
+import type { UserGroupOption } from '@/core/acl/types'
 import {
   addLayoutRowAction,
   addLayoutSectionAction,
@@ -14,12 +17,11 @@ import {
   reorderRowSlotsAction,
   resetLayoutToDefaultAction,
   resizeAdjacentSlotsAction,
-  setSlotAccessLevelAction,
+  setSlotAccessTagsAction,
   toggleSlotAction,
   updateLayoutSectionMetaAction,
   type LayoutActionState,
 } from '@/core/modules/actions'
-import type { UserGroupOption } from '@/core/acl/types'
 import { LayoutIdField, useLayoutOutlineId } from './layout-outline-context'
 import {
   gridWidthPercent,
@@ -46,7 +48,7 @@ type Props = {
   document: LayoutDocument
   source: 'database' | 'default-json'
   modules: ModuleOption[]
-  /** Users → Groups options for slot accessLevel stub. */
+  /** Users → Groups options for slot accessTags multi-select. */
   groups: UserGroupOption[]
   layoutId: string
   layoutLabel: string
@@ -216,13 +218,30 @@ function ParticleBlock({
   const displayName = slot.name?.trim() || catalogName
   const enabled = slot.enabled !== false
   const pctLabel = widthToPercentLabel(slot.width)
-  const accessRaw = String(slot.accessLevel || 'public')
-  const accessKind: 'public' | 'registered' | 'group' = accessRaw.startsWith('group:')
-    ? 'group'
-    : accessRaw === 'registered'
-      ? 'registered'
-      : 'public'
-  const accessGroupId = accessKind === 'group' ? accessRaw.slice('group:'.length) : ''
+  const accessTags = resolveAccessTags({
+    accessTags: slot.accessTags,
+    accessLevel: slot.accessLevel,
+  })
+  const accessSummary =
+    accessTags.length === 1 && accessTags[0] === 'public'
+      ? null
+      : accessTags.map((t) => (t.startsWith('group:') ? t.slice('group:'.length) : t)).join(', ')
+
+  const persistAccessTags = useCallback(
+    (next: string[]) => {
+      const fd = withOutlineId(new FormData(), layoutId)
+      fd.set('sectionId', sectionId)
+      fd.set('rowId', rowId)
+      fd.set('slotId', slot.id)
+      fd.set('accessTags', JSON.stringify(next.length ? next : ['public']))
+      startTransition(async () => {
+        const result = await setSlotAccessTagsAction({}, fd)
+        setFlash(result)
+        router.refresh()
+      })
+    },
+    [layoutId, rowId, router, sectionId, slot.id],
+  )
 
   const persistName = useCallback(
     (nextRaw: string) => {
@@ -334,77 +353,19 @@ function ParticleBlock({
         <code>{slot.moduleId}</code>
         {meta?.builtin ? <span className="admin-badge">built-in</span> : null}
         {!enabled ? <span className="admin-badge admin-badge-warn">off</span> : null}
-        {accessKind !== 'public' ? (
+        {accessSummary ? (
           <span className="admin-badge" title="Who can see">
-            {accessKind === 'registered' ? 'registered' : `group:${accessGroupId || '…'}`}
+            {accessSummary}
           </span>
         ) : null}
       </p>
-      <label className="gantry-inline-label gantry-slot-access-label">
-        <span className="gantry-field-hint">Who can see</span>
-        <select
-          className="gantry-inline-input"
-          disabled={pending}
-          value={accessKind}
-          aria-label={`Who can see ${displayName}`}
-          onChange={(event) => {
-            const kind = event.target.value as 'public' | 'registered' | 'group'
-            const fd = withOutlineId(new FormData(), layoutId)
-            fd.set('sectionId', sectionId)
-            fd.set('rowId', rowId)
-            fd.set('slotId', slot.id)
-            fd.set('accessKind', kind)
-            if (kind === 'group') {
-              fd.set('accessGroupId', accessGroupId || groups[0]?.id || '')
-            }
-            startTransition(async () => {
-              const result = await setSlotAccessLevelAction({}, fd)
-              setFlash(result)
-              router.refresh()
-            })
-          }}
-        >
-          <option value="public">Public</option>
-          <option value="registered">Registered</option>
-          <option value="group" disabled={groups.length === 0}>
-            Group…
-          </option>
-        </select>
-      </label>
-      {accessKind === 'group' ? (
-        <label className="gantry-inline-label gantry-slot-access-label">
-          <span className="gantry-field-hint">Group</span>
-          <select
-            className="gantry-inline-input"
-            disabled={pending || groups.length === 0}
-            value={accessGroupId}
-            aria-label={`User group for ${displayName}`}
-            onChange={(event) => {
-              const fd = withOutlineId(new FormData(), layoutId)
-              fd.set('sectionId', sectionId)
-              fd.set('rowId', rowId)
-              fd.set('slotId', slot.id)
-              fd.set('accessKind', 'group')
-              fd.set('accessGroupId', event.target.value)
-              startTransition(async () => {
-                const result = await setSlotAccessLevelAction({}, fd)
-                setFlash(result)
-                router.refresh()
-              })
-            }}
-          >
-            {groups.length === 0 ? (
-              <option value="">No groups</option>
-            ) : (
-              groups.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.label}
-                </option>
-              ))
-            )}
-          </select>
-        </label>
-      ) : null}
+      <AccessTagsField
+        className="gantry-slot-access-tags"
+        value={accessTags}
+        groups={groups}
+        disabled={pending}
+        onChange={persistAccessTags}
+      />
       <div className="gantry-slot-actions">
         <button
           type="button"

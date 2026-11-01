@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 
+import { accessTagsForStorage, normalizeAccessTags } from '@/core/acl/nav-access'
 import { requireAppAdmin } from '@/core/auth/admin'
 import { DEFAULT_LAYOUT_ID } from '@/core/db'
 import { ensureModulesRegistered } from '@/modules/catalog'
@@ -541,8 +542,8 @@ export async function toggleSlotAction(
   return state
 }
 
-/** Persist Joomla-style view access stub on a layout slot (SF-41 foundation). */
-export async function setSlotAccessLevelAction(
+/** Persist multi-tag view access on a layout slot (Nav-consistent; SF-45). */
+export async function setSlotAccessTagsAction(
   _prev: LayoutActionState,
   formData: FormData,
 ): Promise<LayoutActionState> {
@@ -551,27 +552,48 @@ export async function setSlotAccessLevelAction(
   const slotId = String(formData.get('slotId') ?? '').trim()
   if (!sectionId || !rowId || !slotId) return { error: 'Missing slot reference.' }
 
-  const kind = String(formData.get('accessKind') ?? 'public').trim() || 'public'
-  const groupId = String(formData.get('accessGroupId') ?? '').trim()
-  let accessLevel: string | undefined
-  if (kind === 'registered') accessLevel = 'registered'
-  else if (kind === 'group' && groupId) accessLevel = `group:${groupId}`
-  else accessLevel = undefined
+  let rawTags: unknown = formData.get('accessTags')
+  const asString = rawTags == null ? '' : String(rawTags).trim()
+  if (asString.startsWith('[')) {
+    try {
+      rawTags = JSON.parse(asString) as unknown
+    } catch {
+      rawTags = asString
+    }
+  }
+  const accessTags = accessTagsForStorage({ accessTags: rawTags })
+  const label = (accessTags ?? normalizeAccessTags({})).join(', ')
 
   const state = await mutateLayout(formData, (doc) => {
     const found = findSlot(doc, sectionId, rowId, slotId)
     if (!found) return { error: 'Slot not found.' }
-    if (accessLevel) found.slot.accessLevel = accessLevel
-    else delete found.slot.accessLevel
+    if (accessTags) found.slot.accessTags = accessTags
+    else delete found.slot.accessTags
+    delete found.slot.accessLevel
     return doc
   })
 
   if (state.ok) {
-    state.message = accessLevel
-      ? `Particle access set to ${accessLevel}.`
-      : 'Particle access set to public.'
+    state.message = `Particle access set to ${label}.`
   }
   return state
+}
+
+/** @deprecated Prefer `setSlotAccessTagsAction` (multi-tag). */
+export async function setSlotAccessLevelAction(
+  prev: LayoutActionState,
+  formData: FormData,
+): Promise<LayoutActionState> {
+  const kind = String(formData.get('accessKind') ?? 'public').trim() || 'public'
+  const groupId = String(formData.get('accessGroupId') ?? '').trim()
+  const tags: string[] =
+    kind === 'registered'
+      ? ['registered']
+      : kind === 'group' && groupId
+        ? [`group:${groupId}`]
+        : ['public']
+  formData.set('accessTags', JSON.stringify(tags))
+  return setSlotAccessTagsAction(prev, formData)
 }
 
 export async function updateCustomSlotAction(
