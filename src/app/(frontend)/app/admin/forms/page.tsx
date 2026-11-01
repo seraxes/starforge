@@ -44,7 +44,7 @@ export default async function AdminFormsPage() {
   const submissions = await listFormSubmissions({ limit: 100 })
 
   return (
-    <section className="admin-section admin-layouts-full">
+    <section className="admin-section">
       <h2>Forms</h2>
       <p className="lede admin-lede">
         Submissions from the Core <strong>Form</strong> particle (layout canvas). Place a Form
