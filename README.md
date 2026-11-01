@@ -89,7 +89,7 @@ Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so coo
 | http://localhost:3000/app/admin/layouts | Starforge admin — **Layouts** (hover submenu) → **Layout** canvas (default) |
 | http://localhost:3000/app/admin/page-settings | Starforge admin — **Layouts → Page settings** (Head / Assets / Body / FA / Atoms) |
 | http://localhost:3000/api/me | Current app session JSON including `role` / `isAdmin` (`401` when signed out) |
-| http://localhost:3000/admin | Payload Content CMS — nav **Payload CMS** when `cms_access` is on; sidebar **Core admin** → `/app/admin` |
+| http://localhost:3000/admin | Payload Content CMS — nav **CMS** when `cms_access` is on; sidebar **Core admin** → `/app/admin` |
 | http://localhost:3000/about | Sample published page (after `npm run seed`) |
 | http://localhost:3000/getting-started | Sample published page |
 | http://localhost:3000/welcome | Sample published page with SEO meta filled |
