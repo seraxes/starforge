@@ -104,14 +104,14 @@ App login uses **email**, not a separate username. Forgot / reset password is **
 
 ### Site settings + Nav manager + feature toggles
 
-**Nav** is its own Core admin area (`/app/admin/nav`): multiple named **navigation sets** (menus) in `sf_nav_menus`, each with items (CMS page or URL, reorder, copy/paste, CSS class, browser/page title overrides, access-level stub). Site Settings only picks which set is the **site primary** header menu.
+**Nav** is a **top-level** Core admin item (`/app/admin/nav`, sibling of Users / Site settings / Layouts): multiple named **navigation sets** (menus) in `sf_nav_menus`, each with items (CMS page or URL, reorder, copy/paste, CSS class, browser/page title overrides, access-level stub). Site Settings only **assigns** which set is the site primary header menu — not nested under Site Chrome.
 
 One Payload global (`site-settings`) holds site name, `primaryNavMenuId`, capability flags, and module toggles. Core admins edit it at **`/app/admin/settings`**. CMS editors can edit the same document under Payload **Globals → Site settings** (legacy `primaryNav` array is a fallback only).
 
 | Field | Default | What it does |
 | --- | --- | --- |
 | Site name | `Starforge` | Public header brand + metadata default |
-| Primary nav menu | `main` | Which Nav manager set powers the public header |
+| Primary nav assignment | `main` | Which Nav menu set powers the public header (assignment only) |
 | Registration | on | Hide `/register` + reject signup when off |
 | Rich editor | on | Flag reserved for a future simpler mode (Lexical stays on Pages today) |
 | Posts | **off** | Placeholder — no Posts collection yet |
@@ -238,7 +238,7 @@ npm run dev
 1. Sign in at **/login** as `admin@starforge.local` / `starforge-admin`.
 2. Open **/app/admin/nav** — Main menu with About / Getting started / Welcome; create another set if you like.
 3. Edit items: bind CMS page or URL, CSS class, browser/page heading overrides, access stub; Up/Down; Copy/Paste.
-4. **/app/admin/settings** → Primary nav menu picks the site default set (Modules → Primary nav gates admin + public).
+4. **/app/admin/settings** → **Primary nav assignment** picks the site default set (Modules → Primary nav gates admin + public). Nav is not under Site settings / Site Chrome in the admin bar.
 5. Public **/about** — matching nav active; CSS class / title overrides apply when set.
 
 ### Windows: published content cache smoke test
