@@ -41,7 +41,7 @@ export default async function AdminParticleDefaultsPage(props: {
   const pageSettingsOn = isCatalogModuleEnabled(settings, MODULE_IDS.pageSettings)
 
   return (
-    <section className="admin-section admin-layouts-full">
+    <section className="admin-section admin-layouts-padded">
       <LayoutsAdminNav
         active="particle-defaults"
         outlines={outlines.map((o) => ({ id: o.id, label: o.label }))}

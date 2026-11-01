@@ -60,7 +60,7 @@ export default async function AdminBreakpointsPage(props: { searchParams?: Searc
   const pageSettingsOn = isCatalogModuleEnabled(settings, MODULE_IDS.pageSettings)
 
   return (
-    <section className="admin-section layout-admin-section admin-layouts-full">
+    <section className="admin-section layout-admin-section admin-layouts-padded">
       <LayoutsAdminNav
         active="styles"
         outlines={outlines.map((o) => ({ id: o.id, label: o.label }))}

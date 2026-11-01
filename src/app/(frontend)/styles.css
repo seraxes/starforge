@@ -576,8 +576,10 @@ button:disabled {
 }
 
 /*
- * Layouts family (Layout canvas, Outlines, Page settings) — full viewport width.
- * Marker: `.admin-layouts-full` on the page section (also keeps `.gantry-editor` for canvas).
+ * Layouts family:
+ * - `.admin-layouts-full` / `.gantry-editor` — full viewport canvas (Layout)
+ * - `.admin-layouts-padded` — Styles / Page settings / Particle Defaults / Outlines
+ *   (same margins as other dark admin pages; not edge-flush)
  */
 .admin-shell:has(.admin-layouts-full),
 .admin-shell:has(.gantry-editor) {
@@ -602,6 +604,33 @@ button:disabled {
 .admin-layouts-full {
   width: 100%;
   max-width: none;
+}
+
+.admin-shell:has(.admin-layouts-padded) {
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  padding: 2rem 1.5rem 3rem;
+  box-sizing: border-box;
+}
+
+.admin-shell:has(.admin-layouts-padded) .admin-main {
+  max-width: none;
+  width: 100%;
+}
+
+.admin-layouts-padded {
+  width: 100%;
+  max-width: 64rem;
+  margin: 0 auto;
+  box-sizing: border-box;
+  padding: 0 0.25rem;
+}
+
+@media (max-width: 640px) {
+  .admin-shell:has(.admin-layouts-padded) {
+    padding: 1.5rem 1.15rem 2rem;
+  }
 }
 
 .admin-header {

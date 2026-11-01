@@ -83,7 +83,7 @@ body:has(.admin-shell) > main {
     linear-gradient(180deg, #1a2638 0%, var(--sf-admin-bg) 45%, #24334a 100%);
 }
 
-/* Layout editor full-bleed navy canvas */
+/* Layout editor full-bleed navy canvas (keep glow on padded Styles/settings pages) */
 .admin-shell:has(.gantry-editor),
 .admin-shell:has(.admin-layouts-full) {
   background: var(--sf-admin-bg);
@@ -1138,7 +1138,25 @@ body:has(.admin-shell) > main {
 .admin-shell .breakpoints-form,
 .admin-shell .layout-outline-switcher-form {
   background: color-mix(in srgb, var(--sf-secondary) 8%, var(--sf-admin-surface));
-  border-color: var(--sf-line);
+  border: 1px solid var(--sf-line);
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.admin-shell .layout-outline-switcher-form {
+  padding: 1rem 1.1rem 1.15rem;
+}
+
+/* Styles · Breakpoints content card — roomy inner padding so fields aren't edge-flush */
+.admin-shell .breakpoints-form {
+  max-width: 48rem;
+  padding: 1.5rem 1.75rem 1.65rem;
+}
+
+@media (max-width: 640px) {
+  .admin-shell .breakpoints-form {
+    padding: 1.25rem 1.15rem 1.35rem;
+  }
 }
 
 .admin-shell a:not(.admin-nav > a):not(.admin-nav-dropdown-trigger):not(.button-link):not(.links a) {

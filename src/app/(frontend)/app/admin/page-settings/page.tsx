@@ -38,7 +38,7 @@ export default async function AdminPageSettingsPage({ searchParams }: Props) {
     : DEFAULT_LAYOUT_ID
 
   return (
-    <section className="admin-section admin-layouts-full">
+    <section className="admin-section admin-layouts-padded">
       <LayoutsAdminNav
         active="page-settings"
         outlines={
