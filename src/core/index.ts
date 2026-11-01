@@ -34,22 +34,29 @@ export {
   sfPageChrome,
   sfSiteChrome,
   sfNavMenus,
+  sfForms,
   sfFormSubmissions,
   sfUserGroups,
   sfUserGroupMembers,
   sfAclPermissions,
 } from './db'
 export {
+  DEFAULT_CONTACT_FORM_ID,
   defaultFormConfig,
+  ensureDefaultContactFormSeeded,
+  listFormDefinitions,
   listFormSubmissions,
+  loadFormDefinition,
   readFormConfig,
   resolveFormCaptcha,
   submitFormAction,
   verifyTurnstileToken,
 } from './forms'
 export type {
+  FormDefinitionDocument,
   FormFieldDef,
   FormParticleConfig,
+  FormPresetId,
   FormSubmissionRecord,
   FormSubmitActionState,
 } from './forms'

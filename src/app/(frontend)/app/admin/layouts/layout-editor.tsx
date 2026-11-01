@@ -41,7 +41,11 @@ import { useAdminToast } from '../admin-toast'
 import { CustomParticleEditor } from './custom-particle-editor'
 import { ParticleAttributesEditor } from './particle-attributes-editor'
 import { ParticleSettingsPopover } from './particle-settings-popover'
-import { TypedParticleEditor, type NavMenuOption } from './typed-particle-editors'
+import {
+  TypedParticleEditor,
+  type FormDefinitionOption,
+  type NavMenuOption,
+} from './typed-particle-editors'
 
 type ModuleOption = {
   id: string
@@ -59,6 +63,8 @@ type Props = {
   groups: UserGroupOption[]
   /** Nav manager menu sets for Menu particle picker. */
   navMenus?: NavMenuOption[]
+  /** Form definitions for Form particle picker. */
+  formDefinitions?: FormDefinitionOption[]
   primaryNavMenuId?: string
   layoutId: string
   layoutLabel: string
@@ -155,6 +161,7 @@ function ParticleConfigTab({
   rowId,
   slot,
   navMenus,
+  formDefinitions,
   primaryNavMenuId,
   onSlotPatched,
 }: {
@@ -162,6 +169,7 @@ function ParticleConfigTab({
   rowId: string
   slot: LayoutSlot
   navMenus: NavMenuOption[]
+  formDefinitions: FormDefinitionOption[]
   primaryNavMenuId: string
   onSlotPatched?: (patch: Partial<LayoutSlot>) => void
 }) {
@@ -210,6 +218,7 @@ function ParticleConfigTab({
           rowId={rowId}
           slot={slot}
           navMenus={navMenus}
+          formDefinitions={formDefinitions}
           primaryNavMenuId={primaryNavMenuId}
           embedded
           onConfigSaved={(config) => onSlotPatched?.({ config })}
@@ -353,6 +362,7 @@ function ParticleBlock({
   modules,
   groups,
   navMenus,
+  formDefinitions,
   primaryNavMenuId,
   percent,
   isDragging,
@@ -369,6 +379,7 @@ function ParticleBlock({
   modules: ModuleOption[]
   groups: UserGroupOption[]
   navMenus: NavMenuOption[]
+  formDefinitions: FormDefinitionOption[]
   primaryNavMenuId: string
   percent: number
   isDragging: boolean
@@ -550,6 +561,7 @@ function ParticleBlock({
                       rowId={rowId}
                       slot={slot}
                       navMenus={navMenus}
+                      formDefinitions={formDefinitions}
                       primaryNavMenuId={primaryNavMenuId}
                       onSlotPatched={onSlotPatched}
                     />
@@ -628,6 +640,7 @@ function DropRow({
   modules,
   groups,
   navMenus,
+  formDefinitions,
   primaryNavMenuId,
   localSlots,
   setLocalSlots,
@@ -637,6 +650,7 @@ function DropRow({
   modules: ModuleOption[]
   groups: UserGroupOption[]
   navMenus: NavMenuOption[]
+  formDefinitions: FormDefinitionOption[]
   primaryNavMenuId: string
   localSlots: LayoutSlot[]
   setLocalSlots: (slots: LayoutSlot[]) => void
@@ -874,6 +888,7 @@ function DropRow({
                   modules={modules}
                   groups={groups}
                   navMenus={navMenus}
+                  formDefinitions={formDefinitions}
                   primaryNavMenuId={primaryNavMenuId}
                   percent={percent}
                   isDragging={draggingSlotId === slot.id}
@@ -941,6 +956,7 @@ function SectionCanvas({
   modules,
   groups,
   navMenus,
+  formDefinitions,
   primaryNavMenuId,
   isDraggingSection,
   dropPosition,
@@ -953,6 +969,7 @@ function SectionCanvas({
   modules: ModuleOption[]
   groups: UserGroupOption[]
   navMenus: NavMenuOption[]
+  formDefinitions: FormDefinitionOption[]
   primaryNavMenuId: string
   isDraggingSection: boolean
   dropPosition: 'before' | 'after' | null
@@ -1305,6 +1322,7 @@ function SectionCanvas({
             modules={modules}
             groups={groups}
             navMenus={navMenus}
+            formDefinitions={formDefinitions}
             primaryNavMenuId={primaryNavMenuId}
             localSlots={slotMap[row.id] ?? sortSlots(row.slots)}
             setLocalSlots={(slots) => setSlotMap((prev) => ({ ...prev, [row.id]: slots }))}
@@ -1327,6 +1345,7 @@ export function LayoutEditor({
   modules,
   groups,
   navMenus = [],
+  formDefinitions = [],
   primaryNavMenuId = 'main',
   layoutId,
   layoutLabel,
@@ -1537,6 +1556,7 @@ export function LayoutEditor({
                   modules={modules}
                   groups={groups}
                   navMenus={navMenus}
+                  formDefinitions={formDefinitions}
                   primaryNavMenuId={primaryNavMenuId}
                   isDraggingSection={draggingSectionId === section.id}
                   dropPosition={

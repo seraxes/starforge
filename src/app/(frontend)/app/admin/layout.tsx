@@ -75,7 +75,10 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
     groups.push({
       id: 'forms',
       label: 'Forms',
-      links: [{ href: '/app/admin/forms', label: 'Forms' }],
+      href: '/app/admin/forms',
+      links: [
+        { href: '/app/admin/forms', label: 'Definitions', exact: true },
+      ],
     })
   }
 

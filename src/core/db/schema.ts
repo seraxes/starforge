@@ -213,7 +213,26 @@ export const sfUserGroupMembers = pgTable(
 )
 
 /**
- * Public Form particle submissions (SF-48).
+ * Form definitions (SF-65 modular Form engine).
+ * Document JSON is FormDefinitionDocument (fields + JSON Schema + preset).
+ */
+export const sfForms = pgTable('sf_forms', {
+  id: text('id').primaryKey(),
+  /** Human display name (Forms admin list). */
+  label: text('label').notNull().default('Untitled'),
+  /** Preset id: contact | survey | event-registration | voting | ticket | blank. */
+  preset: text('preset').notNull().default('blank'),
+  /** Canonical FormDefinitionDocument JSON (version 1). */
+  document: text('document').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+})
+
+/**
+ * Public Form particle submissions (SF-48 / SF-65).
  * Payload is JSON of field values; formKey identifies the layout slot instance.
  */
 export const sfFormSubmissions = pgTable(
@@ -222,6 +241,8 @@ export const sfFormSubmissions = pgTable(
     id: text('id').primaryKey(),
     /** Stable form instance key (usually layout slot id). */
     formKey: text('form_key').notNull(),
+    /** Bound Form definition id when submitted via a definition. */
+    definitionId: text('definition_id'),
     layoutId: text('layout_id'),
     slotId: text('slot_id'),
     /** Submitted field values as JSON object. */
@@ -232,6 +253,7 @@ export const sfFormSubmissions = pgTable(
   },
   (table) => [
     index('sf_form_submissions_form_key_idx').on(table.formKey),
+    index('sf_form_submissions_definition_id_idx').on(table.definitionId),
     index('sf_form_submissions_created_at_idx').on(table.createdAt),
   ],
 )
