@@ -5,7 +5,13 @@
 export { auth } from './auth'
 export { contentCacheTags, getPublishedContentCache } from './content/cache'
 export type { ContentCacheGetOptions, PublishedContentCache } from './content/cache'
-export { absoluteMediaUrl, buildPageMetadata } from './content/metadata'
+export {
+  absoluteAssetUrl,
+  absoluteMediaUrl,
+  appOrigin,
+  buildPageMetadata,
+} from './content/metadata'
+export type { SiteChromeSeoDefaults } from './content/metadata'
 export { getDraftPageBySlug, getPublishedPageBySlug } from './content/pages'
 export { requireDraftPreviewAccess, resolveDraftPreviewAccess } from './content/preview'
 export {

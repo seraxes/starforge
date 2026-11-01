@@ -11,6 +11,7 @@ import {
   resolveDraftPreviewAccess,
 } from '@/core/content/preview'
 import { getSiteSettings } from '@/core/settings'
+import { getSiteChrome } from '@/core/site-chrome'
 
 type Args = {
   params: Promise<{
@@ -23,24 +24,25 @@ export const dynamic = 'force-dynamic'
 export async function generateMetadata({ params }: Args): Promise<Metadata> {
   const { slug } = await params
   const decodedSlug = decodeURIComponent(slug)
-  const settings = await getSiteSettings()
+  const [settings, chrome] = await Promise.all([getSiteSettings(), getSiteChrome()])
+  const siteName = chrome.siteName || settings.siteName
   const robots = { index: false, follow: false } as const
 
   // Same capability check as the page body — never leak draft titles otherwise.
   const gate = await resolveDraftPreviewAccess()
   if (!gate.ok) {
-    return { title: `Preview — ${settings.siteName}`, robots }
+    return { title: `Preview — ${siteName}`, robots }
   }
 
   const page = await getDraftPageBySlug(decodedSlug)
   if (!page) {
-    return { title: `Not found — ${settings.siteName}`, robots }
+    return { title: `Not found — ${siteName}`, robots }
   }
 
-  const meta = buildPageMetadata(page)
+  const meta = await buildPageMetadata(page)
   return {
     ...meta,
-    title: `Preview: ${page.title} — ${settings.siteName}`,
+    title: `Preview: ${page.title} — ${siteName}`,
     robots,
   }
 }

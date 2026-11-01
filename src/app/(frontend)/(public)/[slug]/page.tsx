@@ -7,6 +7,7 @@ import { buildPageMetadata } from '@/core/content/metadata'
 import { getPublishedPageBySlug } from '@/core/content/pages'
 import { findNavOverridesForPath } from '@/core/nav'
 import { getSiteSettings } from '@/core/settings'
+import { getSiteChrome } from '@/core/site-chrome'
 
 type Args = {
   params: Promise<{
@@ -25,15 +26,16 @@ export async function generateMetadata({ params }: Args): Promise<Metadata> {
   const page = await getPublishedPageBySlug(decoded)
 
   if (!page) {
-    const settings = await getSiteSettings()
+    const [settings, chrome] = await Promise.all([getSiteSettings(), getSiteChrome()])
+    const siteName = chrome.siteName || settings.siteName
     return {
-      title: `Not found — ${settings.siteName}`,
+      title: `Not found — ${siteName}`,
     }
   }
 
   const settings = await getSiteSettings()
   const overrides = findNavOverridesForPath(settings.primaryNav, `/${decoded}`)
-  const meta = buildPageMetadata(page)
+  const meta = await buildPageMetadata(page)
   if (overrides?.browserTitle) {
     return { ...meta, title: overrides.browserTitle }
   }

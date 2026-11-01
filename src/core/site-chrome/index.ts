@@ -16,6 +16,12 @@ export {
 } from './defaults'
 export { normalizeSiteChrome, parseSiteChromeJson, serializeSiteChrome } from './normalize'
 export {
+  SITE_OFFLINE_PATH,
+  SITE_OFFLINE_RETRY_AFTER_SECONDS,
+  isOfflineAllowedPath,
+  isOfflineExemptPath,
+} from './offline'
+export {
   ensureSiteChromeSeeded,
   getSiteChrome,
   loadSiteChrome,

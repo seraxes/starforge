@@ -5,6 +5,7 @@ import { headers } from 'next/headers'
 import { filterNavItemsForViewer, getAccessViewer } from '@/core/acl'
 import { userIsAppAdmin } from '@/core/auth/admin'
 import { getAppSession } from '@/core/auth/session'
+import { absoluteAssetUrl, appOrigin } from '@/core/content/metadata'
 import { PublicLayoutBody } from '@/core/modules'
 import {
   BodyAttributesApplier,
@@ -15,16 +16,17 @@ import {
   pageKeyFromPathname,
 } from '@/core/page-settings'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
-import { getSiteChrome } from '@/core/site-chrome'
+import { getSiteChrome, isOfflineAllowedPath } from '@/core/site-chrome'
 import { SiteOffline } from '@/components/SiteOffline'
 
 export async function generateMetadata(): Promise<Metadata> {
   const [settings, chrome] = await Promise.all([getSiteSettings(), getSiteChrome()])
   const siteName = chrome.siteName || settings.siteName
   const description = chrome.defaultDescription || undefined
-  const ogImage = chrome.defaultOgImage || undefined
+  const ogImage = absoluteAssetUrl(chrome.defaultOgImage)
 
   return {
+    metadataBase: new URL(`${appOrigin()}/`),
     title: {
       default: siteName,
       template: `%s — ${siteName}`,
@@ -36,22 +38,23 @@ export async function generateMetadata(): Promise<Metadata> {
       description,
       images: ogImage ? [{ url: ogImage }] : undefined,
       siteName,
+      type: 'website',
+    },
+    twitter: {
+      card: ogImage ? 'summary_large_image' : 'summary',
+      title: siteName,
+      description,
+      images: ogImage ? [ogImage] : undefined,
     },
   }
-}
-
-/** Paths that must stay reachable while the site is offline (admins + login). */
-function isOfflineAllowedPath(pathname: string): boolean {
-  if (pathname === '/login' || pathname.startsWith('/login/')) return true
-  if (pathname === '/sign-out' || pathname.startsWith('/sign-out/')) return true
-  return false
 }
 
 /**
  * Public site shell — Page Settings document chrome + layout document body.
  * Core admin (`/app/admin`) skips this route group.
  * Product module toggles gate chrome emit and layout manager shell.
- * Site Chrome offline mode replaces public content for non-admins.
+ * Site Chrome offline: middleware rewrites locked visitors to 503; this layout
+ * keeps a soft fallback (and admin banner) if the rewrite did not run.
  */
 export default async function PublicSiteLayout(props: { children: React.ReactNode }) {
   const [settings, siteChrome, headerList, viewer, session] = await Promise.all([
@@ -67,6 +70,8 @@ export default async function PublicSiteLayout(props: { children: React.ReactNod
     siteChrome.offlineEnabled && !isAdmin && !isOfflineAllowedPath(pathname)
 
   if (offlineLocked) {
+    // Soft fallback when middleware rewrite did not run (should be rare).
+    // Prefer HTTP 503 via middleware → /site-offline.
     return (
       <SiteOffline
         siteName={siteChrome.siteName || settings.siteName}
