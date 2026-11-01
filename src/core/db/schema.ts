@@ -212,6 +212,23 @@ export const sfUserGroupMembers = pgTable(
   ],
 )
 
+/** Stable id for Forms module settings singleton (email defaults, etc.). */
+export const FORMS_MODULE_SETTINGS_ID = 'global'
+
+/**
+ * Forms module settings (SF-65) — email defaults / transport stub.
+ * Document JSON is FormsModuleSettings.
+ */
+export const sfFormSettings = pgTable('sf_form_settings', {
+  id: text('id').primaryKey(),
+  document: text('document').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+})
+
 /**
  * Form definitions (SF-65 modular Form engine).
  * Document JSON is FormDefinitionDocument (fields + JSON Schema + preset).

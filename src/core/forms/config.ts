@@ -64,6 +64,7 @@ export function mergeParticleWithDefinition(
   definition: {
     title: string
     fields: FormFieldDef[]
+    sections?: import('./types').FormSectionDef[]
     successMessage: string
     submitLabel: string
     useSiteCaptchaDefault: boolean
@@ -71,6 +72,7 @@ export function mergeParticleWithDefinition(
 ): {
   heading: string
   fields: FormFieldDef[]
+  sections?: import('./types').FormSectionDef[]
   successMessage: string
   submitLabel: string
   useSiteCaptchaDefault: boolean
@@ -83,6 +85,7 @@ export function mergeParticleWithDefinition(
           ? particle.heading.trim()
           : definition.title,
       fields: definition.fields.length > 0 ? definition.fields : defaultFormFields(),
+      sections: definition.sections,
       successMessage: definition.successMessage,
       submitLabel: definition.submitLabel,
       useSiteCaptchaDefault:

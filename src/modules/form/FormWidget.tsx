@@ -1,9 +1,16 @@
 'use client'
 
-import React, { useActionState, useEffect } from 'react'
+import React, { useActionState, useEffect, useMemo, useState } from 'react'
 
 import { submitFormAction, type FormSubmitActionState } from '@/core/forms/actions'
-import type { FormFieldDef, ResolvedCaptcha } from '@/core/forms/types'
+import {
+  describeDateTimeConstraints,
+  htmlInputTypeForField,
+  isDateTimeFieldType,
+} from '@/core/forms/date-constraints'
+import { computeLiveValues } from '@/core/forms/evaluate'
+import type { FormFieldDef, FormFieldOption, FormSectionDef, ResolvedCaptcha } from '@/core/forms/types'
+import { normalizeFormSections } from '@/core/forms/definition'
 
 import { TurnstileWidget } from './TurnstileWidget'
 
@@ -14,6 +21,7 @@ export type FormWidgetProps = {
   definitionId?: string | null
   heading?: string
   fields: FormFieldDef[]
+  sections?: FormSectionDef[]
   successMessage: string
   submitLabel: string
   useSiteCaptchaDefault: boolean
@@ -23,15 +31,61 @@ export type FormWidgetProps = {
 
 const initialState: FormSubmitActionState = {}
 
+function OptionMedia({ option }: { option: FormFieldOption }) {
+  const media = option.media
+  if (!media?.url && !media?.mediaId) return null
+  const src = media.url || (media.mediaId ? `/api/media/${media.mediaId}` : '')
+  if (!src) return null
+  if (media.kind === 'file') {
+    return (
+      <a className="sf-form-option-file" href={src} target="_blank" rel="noreferrer">
+        {media.alt || 'File'}
+      </a>
+    )
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- interim media bind until SF-28
+    <img
+      className="sf-form-option-media"
+      src={src}
+      alt={media.alt || option.label}
+      width={32}
+      height={32}
+    />
+  )
+}
+
 export function FormWidget(props: FormWidgetProps) {
   const [state, formAction, pending] = useActionState(submitFormAction, initialState)
   const formRef = React.useRef<HTMLFormElement>(null)
+  const [values, setValues] = useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {}
+    for (const f of props.fields) init[f.name] = ''
+    return init
+  })
+
+  const live = useMemo(
+    () => computeLiveValues(props.fields, values),
+    [props.fields, values],
+  )
+
+  const sections = useMemo(
+    () => normalizeFormSections(props.sections, props.fields),
+    [props.sections, props.fields],
+  )
 
   useEffect(() => {
     if (state.ok) {
       formRef.current?.reset()
+      const init: Record<string, string> = {}
+      for (const f of props.fields) init[f.name] = ''
+      setValues(init)
     }
-  }, [state.ok, state.message])
+  }, [state.ok, state.message, props.fields])
+
+  function setFieldValue(name: string, value: string) {
+    setValues((prev) => ({ ...prev, [name]: value }))
+  }
 
   if (state.ok) {
     return (
@@ -46,6 +100,221 @@ export function FormWidget(props: FormWidgetProps) {
     props.captcha.required &&
     props.captcha.provider === 'turnstile' &&
     Boolean(props.captcha.siteKey)
+
+  function renderField(field: FormFieldDef) {
+    if (!live.visible[field.name]) return null
+    const key = field.id || field.name
+    const required = live.required[field.name]
+    const value = live.values[field.name] ?? ''
+
+    if (field.type === 'checkbox') {
+      return (
+        <label key={key} className="sf-form-field sf-form-field-check">
+          <span className="sf-form-check-row">
+            <input
+              type="checkbox"
+              name={field.name}
+              value="on"
+              checked={value === 'on' || value === 'true' || value === '1'}
+              required={required}
+              disabled={pending}
+              onChange={(e) => setFieldValue(field.name, e.target.checked ? 'on' : '')}
+            />
+            <span>
+              {field.label}
+              {required ? <abbr title="required">*</abbr> : null}
+            </span>
+          </span>
+          {field.description ? (
+            <span className="sf-form-field-hint">{field.description}</span>
+          ) : null}
+        </label>
+      )
+    }
+
+    if (field.type === 'select') {
+      return (
+        <label key={key} className="sf-form-field">
+          <span>
+            {field.label}
+            {required ? <abbr title="required">*</abbr> : null}
+          </span>
+          <select
+            name={field.name}
+            required={required}
+            disabled={pending}
+            value={value}
+            onChange={(e) => setFieldValue(field.name, e.target.value)}
+          >
+            <option value="" disabled>
+              {field.placeholder || 'Select…'}
+            </option>
+            {(field.options ?? []).map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          <ul className="sf-form-option-media-list" aria-hidden={!field.options?.some((o) => o.media)}>
+            {(field.options ?? [])
+              .filter((o) => o.media)
+              .map((opt) => (
+                <li key={opt.value}>
+                  <OptionMedia option={opt} />
+                  <span>{opt.label}</span>
+                </li>
+              ))}
+          </ul>
+          {field.description ? (
+            <span className="sf-form-field-hint">{field.description}</span>
+          ) : null}
+        </label>
+      )
+    }
+
+    if (field.type === 'radio' || field.type === 'checkbox-group') {
+      const multi = field.type === 'checkbox-group'
+      const picked = new Set(value.split(',').map((s) => s.trim()).filter(Boolean))
+      return (
+        <fieldset key={key} className="sf-form-field sf-form-field-options">
+          <legend>
+            {field.label}
+            {required ? <abbr title="required">*</abbr> : null}
+          </legend>
+          <ul className="sf-form-options">
+            {(field.options ?? []).map((opt) => (
+              <li key={opt.value}>
+                <label className="sf-form-option">
+                  <input
+                    type={multi ? 'checkbox' : 'radio'}
+                    name={field.name}
+                    value={opt.value}
+                    checked={multi ? picked.has(opt.value) : value === opt.value}
+                    required={required && !multi ? !value : undefined}
+                    disabled={pending}
+                    onChange={(e) => {
+                      if (!multi) {
+                        setFieldValue(field.name, e.target.value)
+                        return
+                      }
+                      const next = new Set(picked)
+                      if (e.target.checked) next.add(opt.value)
+                      else next.delete(opt.value)
+                      setFieldValue(field.name, [...next].join(','))
+                    }}
+                  />
+                  <OptionMedia option={opt} />
+                  <span>{opt.label}</span>
+                </label>
+              </li>
+            ))}
+          </ul>
+          {field.description ? (
+            <span className="sf-form-field-hint">{field.description}</span>
+          ) : null}
+        </fieldset>
+      )
+    }
+
+    if (field.type === 'textarea') {
+      return (
+        <label key={key} className="sf-form-field">
+          <span>
+            {field.label}
+            {required ? <abbr title="required">*</abbr> : null}
+          </span>
+          <textarea
+            name={field.name}
+            rows={5}
+            required={required}
+            placeholder={field.placeholder || undefined}
+            disabled={pending}
+            value={value}
+            onChange={(e) => setFieldValue(field.name, e.target.value)}
+          />
+          {field.description ? (
+            <span className="sf-form-field-hint">{field.description}</span>
+          ) : null}
+        </label>
+      )
+    }
+
+    if (field.type === 'computed') {
+      return (
+        <label key={key} className="sf-form-field sf-form-field-computed">
+          <span>{field.label}</span>
+          <input type="text" name={field.name} value={value} readOnly disabled={pending} />
+          {field.description || field.computed?.expression ? (
+            <span className="sf-form-field-hint">
+              {field.description || `= ${field.computed?.expression}`}
+            </span>
+          ) : null}
+        </label>
+      )
+    }
+
+    if (isDateTimeFieldType(field.type)) {
+      const inputType = htmlInputTypeForField(field.type)!
+      const constraintHint = describeDateTimeConstraints(field.type, field.constraints)
+      const hint = [field.description, constraintHint].filter(Boolean).join(' · ')
+      return (
+        <label key={key} className="sf-form-field">
+          <span>
+            {field.label}
+            {required ? <abbr title="required">*</abbr> : null}
+          </span>
+          <input
+            type={inputType}
+            name={field.name}
+            required={required}
+            min={field.constraints?.min || undefined}
+            max={field.constraints?.max || undefined}
+            disabled={pending}
+            value={value}
+            onChange={(e) => setFieldValue(field.name, e.target.value)}
+          />
+          {hint ? <span className="sf-form-field-hint">{hint}</span> : null}
+        </label>
+      )
+    }
+
+    const inputType =
+      field.type === 'email'
+        ? 'email'
+        : field.type === 'number'
+          ? 'number'
+          : field.type === 'tel'
+            ? 'tel'
+            : field.type === 'url'
+              ? 'url'
+              : 'text'
+
+    return (
+      <label key={key} className="sf-form-field">
+        <span>
+          {field.label}
+          {required ? <abbr title="required">*</abbr> : null}
+        </span>
+        <input
+          type={inputType}
+          name={field.name}
+          required={required}
+          placeholder={field.placeholder || undefined}
+          min={field.numberBounds?.min}
+          max={field.numberBounds?.max}
+          autoComplete={
+            field.name === 'email' ? 'email' : field.name === 'name' ? 'name' : 'off'
+          }
+          disabled={pending}
+          value={value}
+          onChange={(e) => setFieldValue(field.name, e.target.value)}
+        />
+        {field.description ? (
+          <span className="sf-form-field-hint">{field.description}</span>
+        ) : null}
+      </label>
+    )
+  }
 
   return (
     <div
@@ -71,122 +340,23 @@ export function FormWidget(props: FormWidgetProps) {
         <div className="sf-form-hp" aria-hidden="true">
           <label>
             Website
-            <input
-              type="text"
-              name="website"
-              tabIndex={-1}
-              autoComplete="off"
-              defaultValue=""
-            />
+            <input type="text" name="website" tabIndex={-1} autoComplete="off" defaultValue="" />
           </label>
         </div>
 
-        {props.fields.map((field) => {
-          const key = field.id || field.name
-          if (field.type === 'checkbox') {
-            return (
-              <label key={key} className="sf-form-field sf-form-field-check">
-                <span className="sf-form-check-row">
-                  <input
-                    type="checkbox"
-                    name={field.name}
-                    value="on"
-                    required={field.required}
-                    disabled={pending}
-                  />
-                  <span>
-                    {field.label}
-                    {field.required ? <abbr title="required">*</abbr> : null}
-                  </span>
-                </span>
-                {field.description ? (
-                  <span className="sf-form-field-hint">{field.description}</span>
-                ) : null}
-              </label>
-            )
-          }
-
-          if (field.type === 'select') {
-            return (
-              <label key={key} className="sf-form-field">
-                <span>
-                  {field.label}
-                  {field.required ? <abbr title="required">*</abbr> : null}
-                </span>
-                <select
-                  name={field.name}
-                  required={field.required}
-                  disabled={pending}
-                  defaultValue=""
-                >
-                  <option value="" disabled>
-                    {field.placeholder || 'Select…'}
-                  </option>
-                  {(field.options ?? []).map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-                {field.description ? (
-                  <span className="sf-form-field-hint">{field.description}</span>
-                ) : null}
-              </label>
-            )
-          }
-
-          if (field.type === 'textarea') {
-            return (
-              <label key={key} className="sf-form-field">
-                <span>
-                  {field.label}
-                  {field.required ? <abbr title="required">*</abbr> : null}
-                </span>
-                <textarea
-                  name={field.name}
-                  rows={5}
-                  required={field.required}
-                  placeholder={field.placeholder || undefined}
-                  disabled={pending}
-                />
-                {field.description ? (
-                  <span className="sf-form-field-hint">{field.description}</span>
-                ) : null}
-              </label>
-            )
-          }
-
-          const inputType =
-            field.type === 'email'
-              ? 'email'
-              : field.type === 'number'
-                ? 'number'
-                : field.type === 'tel'
-                  ? 'tel'
-                  : field.type === 'url'
-                    ? 'url'
-                    : 'text'
-
+        {sections.map((section) => {
+          const sectionFields = section.fieldNames
+            .map((n) => props.fields.find((f) => f.name === n))
+            .filter((f): f is FormFieldDef => Boolean(f))
+          const visibleFields = sectionFields.filter((f) => live.visible[f.name])
+          if (!visibleFields.length) return null
           return (
-            <label key={key} className="sf-form-field">
-              <span>
-                {field.label}
-                {field.required ? <abbr title="required">*</abbr> : null}
-              </span>
-              <input
-                type={inputType}
-                name={field.name}
-                required={field.required}
-                placeholder={field.placeholder || undefined}
-                autoComplete={
-                  field.name === 'email' ? 'email' : field.name === 'name' ? 'name' : 'off'
-                }
-                disabled={pending}
-              />
-              {field.description ? (
-                <span className="sf-form-field-hint">{field.description}</span>
+            <div key={section.id} className="sf-form-section">
+              {sections.length > 1 || section.label !== 'Fields' ? (
+                <h4 className="sf-form-section-title">{section.label}</h4>
               ) : null}
-            </label>
+              {sectionFields.map((field) => renderField(field))}
+            </div>
           )
         })}
 

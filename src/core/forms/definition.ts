@@ -1,3 +1,8 @@
+import {
+  isDateTimeFieldType,
+  normalizeDateTimeConstraints,
+} from './date-constraints'
+import { normalizeFieldLogic } from './logic'
 import { fieldsToJsonSchema, normalizeFormJsonSchema, syncSchemaFromFields } from './schema-json'
 import {
   DEFAULT_CONTACT_FORM_ID,
@@ -6,18 +11,30 @@ import {
   isFormPresetId,
 } from './presets'
 import type {
+  FormComputedConfig,
   FormDefinitionDocument,
+  FormEmailNotifyConfig,
   FormFieldDef,
   FormFieldOption,
   FormFieldType,
+  FormNumberBounds,
+  FormOptionMedia,
   FormPresetId,
+  FormSectionDef,
+  FormValidateExpr,
 } from './types'
 import { isFormFieldType } from './schema-json'
 
 const RESERVED_NAMES = new Set(['website', 'cf-turnstile-response'])
 
+const OPTION_TYPES = new Set<FormFieldType>(['select', 'radio', 'checkbox-group'])
+
 function newFieldId(): string {
   return `fld_${Math.random().toString(36).slice(2, 10)}`
+}
+
+function newSectionId(): string {
+  return `sec_${Math.random().toString(36).slice(2, 10)}`
 }
 
 function slugifyName(raw: string): string {
@@ -26,6 +43,21 @@ function slugifyName(raw: string): string {
     .toLowerCase()
     .replace(/\s+/g, '_')
     .replace(/[^a-z0-9_:-]/g, '')
+}
+
+function normalizeOptionMedia(raw: unknown): FormOptionMedia | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  const row = raw as Record<string, unknown>
+  const media: FormOptionMedia = {}
+  if (typeof row.mediaId === 'string' && row.mediaId.trim()) media.mediaId = row.mediaId.trim()
+  if (typeof row.url === 'string' && row.url.trim()) media.url = row.url.trim()
+  if (typeof row.alt === 'string' && row.alt.trim()) media.alt = row.alt.trim()
+  if (row.kind === 'image' || row.kind === 'icon' || row.kind === 'file') media.kind = row.kind
+  if (!media.mediaId && !media.url) return undefined
+  if (!media.kind) {
+    media.kind = media.url && /\.(png|jpe?g|gif|webp|svg)(\?|$)/i.test(media.url) ? 'image' : 'file'
+  }
+  return media
 }
 
 function normalizeOptions(raw: unknown): FormFieldOption[] | undefined {
@@ -43,9 +75,136 @@ function normalizeOptions(raw: unknown): FormFieldOption[] | undefined {
     if (!value) continue
     const label =
       typeof row.label === 'string' && row.label.trim() ? row.label.trim() : value
-    options.push({ value, label })
+    const option: FormFieldOption = { value, label }
+    const media = normalizeOptionMedia(row.media)
+    if (media) option.media = media
+    options.push(option)
   }
   return options.length ? options : undefined
+}
+
+function defaultOptions(): FormFieldOption[] {
+  return [
+    { value: 'option_a', label: 'Option A' },
+    { value: 'option_b', label: 'Option B' },
+  ]
+}
+
+function normalizeComputed(raw: unknown): FormComputedConfig | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  const row = raw as Record<string, unknown>
+  const expression = typeof row.expression === 'string' ? row.expression.trim() : ''
+  if (!expression) return undefined
+  const precision =
+    typeof row.precision === 'number' && Number.isFinite(row.precision)
+      ? Math.max(0, Math.min(8, Math.floor(row.precision)))
+      : undefined
+  return precision != null ? { expression, precision } : { expression }
+}
+
+function normalizeValidateExpr(raw: unknown): FormValidateExpr | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  const row = raw as Record<string, unknown>
+  const expression = typeof row.expression === 'string' ? row.expression.trim() : ''
+  if (!expression) return undefined
+  const message =
+    typeof row.message === 'string' && row.message.trim() ? row.message.trim() : undefined
+  return message ? { expression, message } : { expression }
+}
+
+function normalizeNumberBounds(raw: unknown): FormNumberBounds | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  const row = raw as Record<string, unknown>
+  const bounds: FormNumberBounds = {}
+  if (typeof row.min === 'number' && Number.isFinite(row.min)) bounds.min = row.min
+  if (typeof row.max === 'number' && Number.isFinite(row.max)) bounds.max = row.max
+  if (typeof row.minExpr === 'string' && row.minExpr.trim()) bounds.minExpr = row.minExpr.trim()
+  if (typeof row.maxExpr === 'string' && row.maxExpr.trim()) bounds.maxExpr = row.maxExpr.trim()
+  if (
+    bounds.min == null &&
+    bounds.max == null &&
+    !bounds.minExpr &&
+    !bounds.maxExpr
+  ) {
+    return undefined
+  }
+  return bounds
+}
+
+function normalizeEmailNotify(raw: unknown): FormEmailNotifyConfig | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  const row = raw as Record<string, unknown>
+  const cfg: FormEmailNotifyConfig = {}
+  if (row.notifyAdmin === true) cfg.notifyAdmin = true
+  if (row.notifyRespondent === true) cfg.notifyRespondent = true
+  if (typeof row.respondentEmailField === 'string' && row.respondentEmailField.trim()) {
+    cfg.respondentEmailField = slugifyName(row.respondentEmailField)
+  }
+  if (Array.isArray(row.adminEmails)) {
+    const emails = row.adminEmails
+      .map((e) => (typeof e === 'string' ? e.trim() : ''))
+      .filter(Boolean)
+    if (emails.length) cfg.adminEmails = emails
+  }
+  if (typeof row.adminSubject === 'string' && row.adminSubject.trim()) {
+    cfg.adminSubject = row.adminSubject.trim()
+  }
+  if (typeof row.respondentSubject === 'string' && row.respondentSubject.trim()) {
+    cfg.respondentSubject = row.respondentSubject.trim()
+  }
+  if (
+    !cfg.notifyAdmin &&
+    !cfg.notifyRespondent &&
+    !cfg.adminEmails &&
+    !cfg.adminSubject &&
+    !cfg.respondentSubject &&
+    !cfg.respondentEmailField
+  ) {
+    return undefined
+  }
+  return cfg
+}
+
+export function normalizeFormSections(
+  raw: unknown,
+  fields: FormFieldDef[],
+): FormSectionDef[] {
+  const names = fields.map((f) => f.name)
+  const nameSet = new Set(names)
+  if (Array.isArray(raw) && raw.length > 0) {
+    const sections: FormSectionDef[] = []
+    const assigned = new Set<string>()
+    for (const entry of raw) {
+      if (!entry || typeof entry !== 'object') continue
+      const row = entry as Record<string, unknown>
+      const id =
+        typeof row.id === 'string' && row.id.trim() ? row.id.trim() : newSectionId()
+      const label =
+        typeof row.label === 'string' && row.label.trim() ? row.label.trim() : 'Section'
+      const fieldNames = Array.isArray(row.fieldNames)
+        ? row.fieldNames
+            .filter((n): n is string => typeof n === 'string' && nameSet.has(n))
+            .filter((n) => {
+              if (assigned.has(n)) return false
+              assigned.add(n)
+              return true
+            })
+        : []
+      sections.push({ id, label, fieldNames })
+    }
+    const orphan = names.filter((n) => !assigned.has(n))
+    if (sections.length === 0) {
+      return [{ id: 'sec_main', label: 'Fields', fieldNames: names }]
+    }
+    if (orphan.length) {
+      sections[0] = {
+        ...sections[0]!,
+        fieldNames: [...sections[0]!.fieldNames, ...orphan],
+      }
+    }
+    return sections
+  }
+  return [{ id: 'sec_main', label: 'Fields', fieldNames: names }]
 }
 
 export function normalizeFormFields(raw: unknown): FormFieldDef[] {
@@ -74,15 +233,30 @@ export function normalizeFormFields(raw: unknown): FormFieldDef[] {
     if (typeof row.description === 'string' && row.description.trim()) {
       field.description = row.description.trim()
     }
-    if (type === 'select') {
-      field.options = normalizeOptions(row.options) ?? [
-        { value: 'option_a', label: 'Option A' },
-        { value: 'option_b', label: 'Option B' },
-      ]
+    if (OPTION_TYPES.has(type)) {
+      field.options = normalizeOptions(row.options) ?? defaultOptions()
     }
-    if (type === 'checkbox') {
-      // Checkbox default: not required unless explicitly true
+    if (type === 'checkbox' || type === 'checkbox-group') {
       field.required = row.required === true
+    }
+    if (type === 'computed') {
+      field.required = false
+      field.computed = normalizeComputed(row.computed) ?? {
+        expression: '0',
+        precision: 2,
+      }
+    }
+    if (isDateTimeFieldType(type)) {
+      const constraints = normalizeDateTimeConstraints(type, row.constraints)
+      if (constraints) field.constraints = constraints
+    }
+    const logic = normalizeFieldLogic(row.logic)
+    if (logic) field.logic = logic
+    const validateExpr = normalizeValidateExpr(row.validateExpr)
+    if (validateExpr) field.validateExpr = validateExpr
+    if (type === 'number' || type === 'computed') {
+      const numberBounds = normalizeNumberBounds(row.numberBounds)
+      if (numberBounds) field.numberBounds = numberBounds
     }
     fields.push(field)
   }
@@ -106,6 +280,7 @@ export function emptyFormDefinitionDocument(
     title: meta.title,
     description: meta.description,
     fields,
+    sections: normalizeFormSections(undefined, fields),
     schema: fieldsToJsonSchema(fields, {
       title: meta.title,
       description: meta.description,
@@ -124,6 +299,7 @@ export function normalizeFormDefinitionDocument(raw: unknown): FormDefinitionDoc
   const obj = raw as Record<string, unknown>
   const preset: FormPresetId = isFormPresetId(obj.preset) ? obj.preset : 'blank'
   const fields = normalizeFormFields(obj.fields)
+  const sections = normalizeFormSections(obj.sections, fields)
   const title =
     typeof obj.title === 'string' && obj.title.trim()
       ? obj.title.trim()
@@ -134,6 +310,7 @@ export function normalizeFormDefinitionDocument(raw: unknown): FormDefinitionDoc
   const schema = schemaDirty
     ? normalizeFormJsonSchema(obj.schema, fields)
     : syncSchemaFromFields(fields, undefined, { title, description })
+  const emailNotify = normalizeEmailNotify(obj.emailNotify)
 
   return {
     version: 1,
@@ -141,6 +318,7 @@ export function normalizeFormDefinitionDocument(raw: unknown): FormDefinitionDoc
     title,
     description,
     fields,
+    sections,
     schema,
     schemaDirty,
     successMessage:
@@ -152,6 +330,7 @@ export function normalizeFormDefinitionDocument(raw: unknown): FormDefinitionDoc
         ? obj.submitLabel.trim()
         : defaultMessagesForPreset(preset).submitLabel,
     useSiteCaptchaDefault: obj.useSiteCaptchaDefault !== false,
+    emailNotify,
   }
 }
 
@@ -180,23 +359,50 @@ export function slugifyFormId(label: string): string {
 
 export { DEFAULT_CONTACT_FORM_ID }
 
+const FIELD_DRAFT_LABELS: Partial<Record<FormFieldType, string>> = {
+  email: 'Email',
+  textarea: 'Message',
+  tel: 'Phone',
+  url: 'URL',
+  datetime: 'Date & time',
+  date: 'Date',
+  time: 'Time',
+  radio: 'Radio',
+  'checkbox-group': 'Choices',
+  computed: 'Computed',
+  select: 'Select',
+  checkbox: 'Checkbox',
+}
+
 export function createFieldDraft(type: FormFieldType = 'text'): FormFieldDef {
   const id = newFieldId()
-  const baseName = type === 'textarea' ? 'message' : type === 'email' ? 'email' : type
-  return {
+  const baseName =
+    type === 'textarea'
+      ? 'message'
+      : type === 'email'
+        ? 'email'
+        : type === 'datetime'
+          ? 'datetime'
+          : type === 'checkbox-group'
+            ? 'choices'
+            : type
+  const draft: FormFieldDef = {
     id,
     name: `${baseName}_${id.slice(-4)}`,
-    label: type === 'email' ? 'Email' : type.charAt(0).toUpperCase() + type.slice(1),
+    label: FIELD_DRAFT_LABELS[type] ?? type.charAt(0).toUpperCase() + type.slice(1),
     type,
-    required: type !== 'checkbox',
+    required: type !== 'checkbox' && type !== 'checkbox-group' && type !== 'computed',
     placeholder: '',
-    ...(type === 'select'
-      ? {
-          options: [
-            { value: 'option_a', label: 'Option A' },
-            { value: 'option_b', label: 'Option B' },
-          ],
-        }
-      : {}),
   }
+  if (OPTION_TYPES.has(type)) {
+    draft.options = defaultOptions()
+  }
+  if (type === 'computed') {
+    draft.computed = { expression: '0', precision: 2 }
+  }
+  return draft
+}
+
+export function createSectionDraft(label = 'Section'): FormSectionDef {
+  return { id: newSectionId(), label, fieldNames: [] }
 }

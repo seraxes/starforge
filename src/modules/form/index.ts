@@ -32,6 +32,7 @@ export const formModule: StarforgeModule = {
         definition = {
           title: loaded.document.title,
           fields: loaded.document.fields,
+          sections: loaded.document.sections,
           successMessage: loaded.document.successMessage,
           submitLabel: loaded.document.submitLabel,
           useSiteCaptchaDefault: loaded.document.useSiteCaptchaDefault,
@@ -50,6 +51,7 @@ export const formModule: StarforgeModule = {
       definitionId: resolved.definitionId,
       heading: resolved.heading,
       fields: resolved.fields,
+      sections: resolved.sections,
       successMessage: resolved.successMessage,
       submitLabel: resolved.submitLabel,
       useSiteCaptchaDefault: resolved.useSiteCaptchaDefault,

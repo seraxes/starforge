@@ -50,6 +50,15 @@ function collectRawValues(
     if (field.type === 'checkbox') {
       const raw = formData.get(field.name)
       values[field.name] = raw == null ? '' : String(raw)
+    } else if (field.type === 'checkbox-group') {
+      const all = formData
+        .getAll(field.name)
+        .map((v) => String(v).trim())
+        .filter(Boolean)
+      values[field.name] = all.join(',')
+    } else if (field.type === 'computed') {
+      // Server recomputes — ignore client tampering for storage path
+      values[field.name] = String(formData.get(field.name) ?? '').trim()
     } else {
       values[field.name] = String(formData.get(field.name) ?? '').trim()
     }
@@ -89,6 +98,7 @@ export async function submitFormAction(
     String(formData.get('successMessage') ?? '').trim() ||
     'Thanks — your message was sent.'
   let definitionId: string | null = null
+  let definitionDocument: FormDefinitionDocument | null = null
 
   if (definitionIdRaw) {
     const loaded = await loadFormDefinition(definitionIdRaw)
@@ -98,6 +108,7 @@ export async function submitFormAction(
     fields = loaded.document.fields
     successMessage = loaded.document.successMessage || successMessage
     definitionId = loaded.id || definitionIdRaw
+    definitionDocument = loaded.document
   } else {
     try {
       const fieldsJson = String(formData.get('fieldsJson') ?? '[]')
@@ -158,7 +169,23 @@ export async function submitFormAction(
     return { error: message }
   }
 
+  if (definitionDocument) {
+    try {
+      const { dispatchFormEmailNotify, planFormEmailNotify } = await import('./email-notify')
+      const plan = await planFormEmailNotify({
+        document: definitionDocument,
+        payload: values,
+        formKey,
+        definitionId,
+      })
+      await dispatchFormEmailNotify(plan)
+    } catch {
+      // Email stub must not fail the submission.
+    }
+  }
+
   revalidatePath('/app/admin/forms')
+  revalidatePath('/app/admin/forms/submissions')
   return { ok: true, message: successMessage }
 }
 
@@ -188,7 +215,37 @@ export async function listFormDefinitionsForAdmin() {
 
 function revalidateFormsAdmin(formId?: string) {
   revalidatePath('/app/admin/forms')
+  revalidatePath('/app/admin/forms/submissions')
+  revalidatePath('/app/admin/forms/settings')
   if (formId) revalidatePath(`/app/admin/forms/${formId}`)
+}
+
+export async function saveFormsModuleSettingsAction(
+  _prev: FormAdminActionState,
+  formData: FormData,
+): Promise<FormAdminActionState> {
+  const denied = await requireFormsAdmin()
+  if (denied) return denied
+
+  const { normalizeFormsModuleSettings } = await import('./module-settings')
+  const { saveFormsModuleSettings } = await import('./settings-store')
+  const settings = normalizeFormsModuleSettings({
+    defaultAdminEmails: String(formData.get('defaultAdminEmails') ?? ''),
+    fromAddress: String(formData.get('fromAddress') ?? ''),
+    defaultSuccessMessage: String(formData.get('defaultSuccessMessage') ?? ''),
+    transport: 'stub',
+  })
+
+  try {
+    await saveFormsModuleSettings(settings)
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : 'Could not save Forms Settings.',
+    }
+  }
+
+  revalidateFormsAdmin()
+  return { ok: true, message: 'Forms settings saved.' }
 }
 
 export async function createFormDefinitionAction(
@@ -253,6 +310,21 @@ export async function saveFormDefinitionAction(
     return { error: 'Invalid JSON Schema.' }
   }
 
+  let sections: unknown
+  try {
+    sections = JSON.parse(String(formData.get('sectionsJson') ?? '[]'))
+  } catch {
+    sections = undefined
+  }
+
+  let emailNotify: unknown
+  try {
+    const raw = String(formData.get('emailNotifyJson') ?? '').trim()
+    emailNotify = raw ? JSON.parse(raw) : undefined
+  } catch {
+    emailNotify = undefined
+  }
+
   const presetRaw = String(formData.get('preset') ?? 'blank').trim()
   const document: FormDefinitionDocument = normalizeFormDefinitionDocument({
     version: 1,
@@ -260,11 +332,13 @@ export async function saveFormDefinitionAction(
     title: String(formData.get('title') ?? '').trim() || 'Untitled form',
     description: String(formData.get('description') ?? '').trim(),
     fields: normalizeFormFields(fields),
+    sections,
     schema: normalizeFormJsonSchema(schemaRaw, normalizeFormFields(fields)),
     schemaDirty,
     successMessage: String(formData.get('successMessage') ?? '').trim(),
     submitLabel: String(formData.get('submitLabel') ?? '').trim() || 'Submit',
     useSiteCaptchaDefault: String(formData.get('useSiteCaptchaDefault') ?? '') === 'on',
+    emailNotify,
   })
 
   // If not dirty, regenerate schema from fields (ignore pasted schema for storage sync)
