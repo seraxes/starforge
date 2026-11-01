@@ -256,7 +256,7 @@ npm run seed
 npm run dev
 ```
 
-1. Admin bar must show **Users | Site Chrome | Site settings | Nav | Layouts** (Nav is top-level).
+1. Admin bar must show **Site Chrome | Site Settings | Navigation | Users | Layouts | CMS | Check site** (in that order).
 2. **/app/admin/site-chrome** — offline, metadata, robots, rights, cookies. **/app/admin/settings** — **Primary nav assignment** + Modules (no nav item editor).
 3. **/app/admin/nav** — edit Main menu items (CMS page / URL / **module view**, CSS class, title overrides, Up/Down, Copy/Paste). Module views come from enabled Modules catalog entries that declare `navViews`.
 4. Modules → Primary nav on/off gates the Nav link + public header.
