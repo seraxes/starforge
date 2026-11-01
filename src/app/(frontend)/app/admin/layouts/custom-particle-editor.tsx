@@ -9,6 +9,7 @@ import {
 } from '@/core/modules/actions'
 import type { LayoutSlot } from '@/core/modules/types'
 
+import { useNotifySavedOnOk } from '../admin-toast'
 import { LayoutIdField } from './layout-outline-context'
 import { ParticleSettingsPopover } from './particle-settings-popover'
 
@@ -49,6 +50,8 @@ export function CustomParticleEditor({
   embedded?: boolean
 }) {
   const [state, formAction, pending] = useActionState(updateCustomSlotAction, initialState)
+  // KEEP Save: large HTML/CSS/JS buffers — avoid accidental autosave.
+  useNotifySavedOnOk(state, { toastErrors: true })
   const cfg = slot.config ?? {}
 
   const form = (

@@ -37,6 +37,7 @@ import { sortLayoutSectionsByOrder } from '@/core/modules/section-order'
 import { cssColorToColorInputValue } from '@/core/modules/styles'
 import type { LayoutDocument, LayoutRow, LayoutSection, LayoutSlot } from '@/core/modules/types'
 
+import { useAdminToast } from '../admin-toast'
 import { CustomParticleEditor } from './custom-particle-editor'
 import { ParticleAttributesEditor } from './particle-attributes-editor'
 import { ParticleSettingsPopover } from './particle-settings-popover'
@@ -917,6 +918,7 @@ function SectionCanvas({
   const layoutId = useLayoutOutlineId()
   const [metaPending, startMetaSave] = useTransition()
   const [metaFlash, setMetaFlash] = useState<LayoutActionState>({})
+  const { notifySaved, notifyError } = useAdminToast()
   const [rowState, rowAction, rowPending] = useActionState(addLayoutRowAction, initialState)
   const rows = sortRows(section.rows)
   const [slotMap, setSlotMap] = useState<Record<string, LayoutSlot[]>>(() => {
@@ -991,11 +993,15 @@ function SectionCanvas({
       startMetaSave(async () => {
         const result = await updateLayoutSectionMetaAction({}, fd)
         setMetaFlash(result)
+        if (result.ok) notifySaved('Saved')
+        else if (result.error) notifyError(result.error)
         router.refresh()
       })
     },
     [
       layoutId,
+      notifyError,
+      notifySaved,
       router,
       section.containerMode,
       section.cssClass,
@@ -1427,11 +1433,11 @@ export function LayoutEditor({
                 </form>
                 <button
                   type="button"
-                  className="gantry-toolbar-btn gantry-toolbar-btn-save"
-                  title="Layout saves automatically — refresh the canvas"
+                  className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+                  title="Layout already saves on change — refresh the canvas"
                   onClick={() => router.refresh()}
                 >
-                  <span aria-hidden="true">✓</span> Save Layout
+                  <span aria-hidden="true">↻</span> Refresh
                 </button>
               </div>
               <div className="gantry-canvas-toolbar-history" role="group" aria-label="History">

@@ -19,6 +19,8 @@ import {
 } from '@/core/cms-bridge/actions'
 import type { AppRole } from '@/core/auth/permissions'
 
+import { useAdminToast } from '../admin-toast'
+
 export type AdminUserRow = {
   id: string
   name: string
@@ -36,18 +38,25 @@ const cmsInitial: CmsAccessActionState = {}
 const groupsInitial: AclActionState = {}
 
 function RoleForm({ user }: { user: AdminUserRow }) {
+  const formRef = React.useRef<HTMLFormElement>(null)
   const [state, action, pending] = useActionState(setAppUserRoleAction, initial)
   // Prefer the role returned by the action so a successful save (and React's
   // post-action form reset) cannot snap the select back to a stale defaultValue.
   const committedRole = state.role ?? user.role
   const [role, setRole] = useState<AppRole>(committedRole)
+  const { notifySaved, notifyError } = useAdminToast()
 
   useEffect(() => {
     setRole(committedRole)
   }, [committedRole])
 
+  useEffect(() => {
+    if (state.ok) notifySaved('Saved')
+    else if (state.error) notifyError(state.error)
+  }, [state, notifySaved, notifyError])
+
   return (
-    <form action={action} className="admin-inline-form">
+    <form ref={formRef} action={action} className="admin-inline-form">
       <input type="hidden" name="userId" value={user.id} />
       <label className="sr-only" htmlFor={`role-${user.id}`}>
         Role for {user.email}
@@ -56,24 +65,30 @@ function RoleForm({ user }: { user: AdminUserRow }) {
         id={`role-${user.id}`}
         name="role"
         value={role}
-        onChange={(event) => setRole(event.target.value as AppRole)}
         disabled={pending}
+        onChange={(event) => {
+          setRole(event.target.value as AppRole)
+          queueMicrotask(() => formRef.current?.requestSubmit())
+        }}
       >
         <option value="member">member</option>
         <option value="admin">admin</option>
       </select>
-      <button type="submit" className="secondary" disabled={pending}>
-        {pending ? 'Saving…' : 'Set role'}
-      </button>
+      {pending ? <span className="admin-inline-ok">Saving…</span> : null}
       {state.error ? <span className="admin-inline-error">{state.error}</span> : null}
-      {state.ok ? <span className="admin-inline-ok">Saved</span> : null}
     </form>
   )
 }
 
 function CmsAccessToggle({ user }: { user: AdminUserRow }) {
   const [state, action, pending] = useActionState(setAppUserCmsAccessAction, cmsInitial)
+  const { notifySaved, notifyError } = useAdminToast()
   const nextEnabled = !user.cmsAccess
+
+  useEffect(() => {
+    if (state.ok) notifySaved('Saved')
+    else if (state.error) notifyError(state.error)
+  }, [state, notifySaved, notifyError])
 
   return (
     <form action={action} className="admin-inline-form cms-access-toggle">
@@ -93,7 +108,6 @@ function CmsAccessToggle({ user }: { user: AdminUserRow }) {
         <span className="cms-switch-label">{user.cmsAccess ? 'On' : 'Off'}</span>
       </label>
       {state.error ? <span className="admin-inline-error">{state.error}</span> : null}
-      {state.ok ? <span className="admin-inline-ok">Updated</span> : null}
     </form>
   )
 }

@@ -10,6 +10,8 @@ import {
 import type { FeatureFlags, ModuleToggleMap } from '@/core/settings/defaults'
 import type { ModuleCatalogItem, ModuleToggleKind } from '@/core/settings/module-toggles'
 
+import { useNotifySavedOnOk } from '../admin-toast'
+
 type NavMenuOption = {
   id: string
   label: string
@@ -26,6 +28,8 @@ type Props = {
 }
 
 const initialState: SettingsActionState = {}
+
+// KEEP Save: module toggles gate whole admin areas — explicit commit avoids thrash.
 
 const KIND_LABEL: Record<ModuleToggleKind, string> = {
   platform: 'Platform',
@@ -119,6 +123,7 @@ export function SettingsForm({
   moduleToggles,
 }: Props) {
   const [state, formAction, pending] = useActionState(updateSiteSettingsAction, initialState)
+  useNotifySavedOnOk(state, { toastErrors: true })
 
   return (
     <form action={formAction} className="settings-form settings-form-wide">

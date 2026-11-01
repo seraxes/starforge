@@ -16,6 +16,7 @@ import {
 import { newPageSettingsEntityId } from '@/core/page-settings/defaults'
 import type { AssetRef, MetaTag, PageAtomInstance, PageChrome } from '@/core/page-settings/types'
 
+import { useNotifySavedOnOk } from '../admin-toast'
 import { AtomSettingsPopover } from './atom-settings-popover'
 
 type Props = {
@@ -151,6 +152,9 @@ export function PageSettingsForm({ bootstrap }: Props) {
   const saveAction = isPage ? savePageOverrideAction : saveGlobalPageSettingsAction
   const [state, formAction, pending] = useActionState(saveAction, INITIAL)
   const [clearState, clearAction, clearPending] = useActionState(clearPageOverrideAction, INITIAL)
+  // KEEP Save: large multi-panel page chrome batch (layout / head / assets / body / atoms).
+  useNotifySavedOnOk(state, { toastErrors: true })
+  useNotifySavedOnOk(clearState, { successMessage: 'Saved', toastErrors: true })
   const [, startTransition] = useTransition()
 
   const initial = bootstrap.editingChrome

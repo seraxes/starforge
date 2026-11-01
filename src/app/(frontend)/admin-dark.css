@@ -1858,3 +1858,53 @@ body:has(.admin-shell) > main {
 
 /* Padded admin pages keep Site Settings blue radial wash (shell default).
    Only Layout canvas / admin-layouts-full flatten to denser navy above. */
+
+/* —— Global Core admin toast (top center) —— */
+.admin-toast-host {
+  position: fixed;
+  top: 0.85rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  pointer-events: none;
+  width: min(22rem, calc(100vw - 2rem));
+}
+
+.admin-toast {
+  pointer-events: none;
+  width: 100%;
+  text-align: center;
+  padding: 0.55rem 1rem;
+  border-radius: 3px;
+  font-size: 0.92rem;
+  font-weight: 650;
+  box-shadow: 0 6px 20px color-mix(in srgb, #000 45%, transparent);
+  animation: admin-toast-in 160ms ease-out;
+}
+
+.admin-toast-success {
+  background: #1e5a8a;
+  color: #fff;
+  border: 1px solid color-mix(in srgb, #5ba3d0 55%, #1e5a8a);
+}
+
+.admin-toast-error {
+  background: #8b2e2e;
+  color: #fff;
+  border: 1px solid color-mix(in srgb, #e07474 45%, #8b2e2e);
+}
+
+@keyframes admin-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.35rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

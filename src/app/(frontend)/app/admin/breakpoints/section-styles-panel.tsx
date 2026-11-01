@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
+import React, { useCallback, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
 import {
@@ -12,6 +12,8 @@ import {
   type LayoutSectionStyles,
 } from '@/core/modules/styles'
 
+import { useAdminToast } from '../admin-toast'
+import { useDebouncedPersist } from '../use-debounced-persist'
 import { useLayoutOutlineId } from '../layouts/layout-outline-context'
 
 export type SectionStylesListItem = {
@@ -32,46 +34,6 @@ type StylePatch = {
   overlayColor?: string
   allowGradientBackground?: boolean
   allowGradientOverlay?: boolean
-}
-
-/** Best-practice text/color autosave: debounce onChange, flush on blur. */
-const STYLE_SAVE_DEBOUNCE_MS = 500
-
-function useDebouncedPersist(persist: (patch: StylePatch) => void) {
-  const timers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
-  const persistRef = useRef(persist)
-  persistRef.current = persist
-
-  useEffect(() => {
-    const active = timers.current
-    return () => {
-      for (const timer of active.values()) clearTimeout(timer)
-      active.clear()
-    }
-  }, [])
-
-  const schedule = useCallback((key: string, patch: StylePatch) => {
-    const existing = timers.current.get(key)
-    if (existing) clearTimeout(existing)
-    timers.current.set(
-      key,
-      setTimeout(() => {
-        timers.current.delete(key)
-        persistRef.current(patch)
-      }, STYLE_SAVE_DEBOUNCE_MS),
-    )
-  }, [])
-
-  const flush = useCallback((key: string, patch: StylePatch) => {
-    const existing = timers.current.get(key)
-    if (existing) {
-      clearTimeout(existing)
-      timers.current.delete(key)
-    }
-    persistRef.current(patch)
-  }, [])
-
-  return { schedule, flush }
 }
 
 function ActionFeedback({ state }: { state: LayoutActionState }) {
@@ -200,6 +162,7 @@ function SectionStylesCard({
 }) {
   const router = useRouter()
   const layoutId = useLayoutOutlineId()
+  const { notifySaved, notifyError } = useAdminToast()
   const styles = section.styles
   const [metaPending, startMetaSave] = useTransition()
   const [metaFlash, setMetaFlash] = useState<LayoutActionState>({})
@@ -277,10 +240,15 @@ function SectionStylesCard({
       startMetaSave(async () => {
         const result = await updateLayoutSectionMetaAction({}, fd)
         setMetaFlash(result)
-        if (result.ok) router.refresh()
+        if (result.ok) {
+          notifySaved('Saved')
+          router.refresh()
+        } else if (result.error) {
+          notifyError(result.error)
+        }
       })
     },
-    [layoutId, router, section.id, section.styles],
+    [layoutId, notifyError, notifySaved, router, section.id, section.styles],
   )
 
   const { schedule, flush } = useDebouncedPersist(persistStyles)

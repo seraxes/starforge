@@ -15,6 +15,8 @@ import {
 } from '@/core/nav/actions'
 import type { NavLinkType, NavMenuItem, NavModuleOption, NavPageOption } from '@/core/nav/types'
 
+import { useNotifySavedOnOk } from '../../admin-toast'
+
 type EditableItem = {
   id: string
   parentId: string
@@ -150,6 +152,10 @@ export function NavItemsEditor({
   const [moveState, moveAction, movePending] = useActionState(moveNavMenuItemAction, initial)
   const [addState, addAction, addPending] = useActionState(addNavMenuItemAction, initial)
   const [pasteState, pasteAction, pastePending] = useActionState(pasteNavMenuItemAction, initial)
+  // KEEP Save items: multi-row local batch across the whole menu.
+  useNotifySavedOnOk(saveState, { toastErrors: true })
+  useNotifySavedOnOk(addState, { successMessage: 'Saved', toastErrors: true })
+  useNotifySavedOnOk(pasteState, { successMessage: 'Saved', toastErrors: true })
 
   useEffect(() => {
     setRows(items.map(toEditable))

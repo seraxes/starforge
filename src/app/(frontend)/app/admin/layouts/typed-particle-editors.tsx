@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useActionState, useEffect, useState } from 'react'
+import React, { useActionState, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { readFormConfig } from '@/core/forms/config'
@@ -25,6 +25,7 @@ import type { LayoutSlot, LayoutSlotConfig } from '@/core/modules/types'
 
 export type NavMenuOption = { id: string; label: string }
 
+import { useNotifySavedOnOk } from '../admin-toast'
 import { LayoutIdField } from './layout-outline-context'
 import { ParticleSettingsPopover } from './particle-settings-popover'
 
@@ -80,6 +81,7 @@ export function LogoParticleEditor({
 }) {
   const router = useRouter()
   const [state, formAction, pending] = useActionState(updateLogoSlotAction, initialState)
+  useNotifySavedOnOk(state, { toastErrors: true })
   const cfg = readLogoConfig(state.config ?? slot.config)
   const [mode, setMode] = useState(cfg.mode ?? 'image')
   const [colorText, setColorText] = useState(cfg.color ?? '')
@@ -277,20 +279,39 @@ export function MenuParticleEditor({
   primaryNavMenuId: string
   embedded?: boolean
 }) {
+  const formRef = useRef<HTMLFormElement>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [state, formAction, pending] = useActionState(updateMenuSlotAction, initialState)
+  useNotifySavedOnOk(state, { toastErrors: true })
   const cfg = readMenuConfig(slot.config)
   const selected = (cfg.menuId ?? '').trim() || 'primary'
 
+  const saveNow = () => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current)
+      debounceRef.current = null
+    }
+    formRef.current?.requestSubmit()
+  }
+
+  const saveDebounced = () => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      debounceRef.current = null
+      formRef.current?.requestSubmit()
+    }, 500)
+  }
+
   return (
     <SettingsShell title="Menu settings" embedded={embedded}>
-      <form action={formAction} className="gantry-typed-form">
+      <form ref={formRef} action={formAction} className="gantry-typed-form">
         <LayoutIdField />
         <input type="hidden" name="sectionId" value={sectionId} />
         <input type="hidden" name="rowId" value={rowId} />
         <input type="hidden" name="slotId" value={slot.id} />
         <label>
           <span>Nav menu set</span>
-          <select name="menuId" defaultValue={selected}>
+          <select name="menuId" defaultValue={selected} disabled={pending} onChange={saveNow}>
             <option value="primary">
               Site primary
               {primaryNavMenuId ? ` (${primaryNavMenuId})` : ''}
@@ -307,12 +328,17 @@ export function MenuParticleEditor({
         </p>
         <label>
           <span>Aria label</span>
-          <input type="text" name="ariaLabel" defaultValue={cfg.ariaLabel ?? 'Primary'} />
+          <input
+            type="text"
+            name="ariaLabel"
+            defaultValue={cfg.ariaLabel ?? 'Primary'}
+            disabled={pending}
+            onChange={saveDebounced}
+            onBlur={saveNow}
+          />
         </label>
-        <button type="submit" disabled={pending}>
-          {pending ? 'Saving…' : 'Save Menu'}
-        </button>
-        <ActionFeedback state={state} />
+        {pending ? <p className="layout-muted">Saving…</p> : null}
+        {state.error ? <ActionFeedback state={state} /> : null}
       </form>
     </SettingsShell>
   )
@@ -329,27 +355,58 @@ export function CopyrightParticleEditor({
   slot: LayoutSlot
   embedded?: boolean
 }) {
+  const formRef = useRef<HTMLFormElement>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [state, formAction, pending] = useActionState(updateCopyrightSlotAction, initialState)
+  useNotifySavedOnOk(state, { toastErrors: true })
   const cfg = readCopyrightConfig(slot.config)
   const [yearMode, setYearMode] = useState(cfg.yearMode ?? 'auto')
 
+  const saveNow = () => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current)
+      debounceRef.current = null
+    }
+    formRef.current?.requestSubmit()
+  }
+
+  const saveDebounced = () => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      debounceRef.current = null
+      formRef.current?.requestSubmit()
+    }, 500)
+  }
+
   return (
     <SettingsShell title="Copyright settings" embedded={embedded}>
-      <form action={formAction} className="gantry-typed-form">
+      <form ref={formRef} action={formAction} className="gantry-typed-form">
         <LayoutIdField />
         <input type="hidden" name="sectionId" value={sectionId} />
         <input type="hidden" name="rowId" value={rowId} />
         <input type="hidden" name="slotId" value={slot.id} />
         <label>
           <span>Text</span>
-          <input type="text" name="text" defaultValue={cfg.text ?? ''} />
+          <input
+            type="text"
+            name="text"
+            defaultValue={cfg.text ?? ''}
+            disabled={pending}
+            onChange={saveDebounced}
+            onBlur={saveNow}
+          />
         </label>
         <label>
           <span>Year mode</span>
           <select
             name="yearMode"
             value={yearMode}
-            onChange={(e) => setYearMode(e.target.value === 'manual' ? 'manual' : 'auto')}
+            disabled={pending}
+            onChange={(e) => {
+              setYearMode(e.target.value === 'manual' ? 'manual' : 'auto')
+              // Defer submit so React commits yearMode + fields first.
+              queueMicrotask(saveNow)
+            }}
           >
             <option value="auto">Auto (current year)</option>
             <option value="manual">Manual</option>
@@ -358,23 +415,42 @@ export function CopyrightParticleEditor({
         {yearMode === 'manual' ? (
           <label>
             <span>Year</span>
-            <input type="number" name="year" defaultValue={cfg.year ?? new Date().getFullYear()} />
+            <input
+              type="number"
+              name="year"
+              defaultValue={cfg.year ?? new Date().getFullYear()}
+              disabled={pending}
+              onChange={saveDebounced}
+              onBlur={saveNow}
+            />
           </label>
         ) : (
           <input type="hidden" name="year" value={String(cfg.year ?? new Date().getFullYear())} />
         )}
         <label>
           <span>Link URL (optional)</span>
-          <input type="text" name="linkUrl" defaultValue={cfg.linkUrl ?? ''} />
+          <input
+            type="text"
+            name="linkUrl"
+            defaultValue={cfg.linkUrl ?? ''}
+            disabled={pending}
+            onChange={saveDebounced}
+            onBlur={saveNow}
+          />
         </label>
         <label>
           <span>Link label (optional)</span>
-          <input type="text" name="linkLabel" defaultValue={cfg.linkLabel ?? ''} />
+          <input
+            type="text"
+            name="linkLabel"
+            defaultValue={cfg.linkLabel ?? ''}
+            disabled={pending}
+            onChange={saveDebounced}
+            onBlur={saveNow}
+          />
         </label>
-        <button type="submit" disabled={pending}>
-          {pending ? 'Saving…' : 'Save Copyright'}
-        </button>
-        <ActionFeedback state={state} />
+        {pending ? <p className="layout-muted">Saving…</p> : null}
+        {state.error ? <ActionFeedback state={state} /> : null}
       </form>
     </SettingsShell>
   )
@@ -392,6 +468,7 @@ export function SocialParticleEditor({
   embedded?: boolean
 }) {
   const [state, formAction, pending] = useActionState(updateSocialSlotAction, initialState)
+  useNotifySavedOnOk(state, { toastErrors: true })
   const initial = readSocialConfig(slot.config).items ?? []
   const [items, setItems] = useState<SocialLinkItem[]>(
     initial.length > 0
@@ -509,6 +586,7 @@ export function FormParticleEditor({
   embedded?: boolean
 }) {
   const [state, formAction, pending] = useActionState(updateFormSlotAction, initialState)
+  useNotifySavedOnOk(state, { toastErrors: true })
   const cfg = readFormConfig(slot.config)
   const [fields, setFields] = useState<FormFieldDef[]>(() => [...(cfg.fields ?? [])])
   const [fieldsJson, setFieldsJson] = useState(() => JSON.stringify(cfg.fields ?? [], null, 2))

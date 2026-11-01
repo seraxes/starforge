@@ -1,17 +1,14 @@
 'use client'
 
-import React, { useActionState, useEffect } from 'react'
+import React, { useCallback, useRef, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
-import {
-  updateSlotAttributesAction,
-  type LayoutActionState,
-} from '@/core/modules/actions'
+import { updateSlotAttributesAction } from '@/core/modules/actions'
 import type { LayoutSlot } from '@/core/modules/types'
 
-import { LayoutIdField } from './layout-outline-context'
-
-const initialState: LayoutActionState = {}
+import { useAdminToast } from '../admin-toast'
+import { useDebouncedPersist } from '../use-debounced-persist'
+import { useLayoutOutlineId } from './layout-outline-context'
 
 type Props = {
   sectionId: string
@@ -20,9 +17,11 @@ type Props = {
   onAttrsSaved?: (attrs: { htmlId?: string; cssClass?: string }) => void
 }
 
+type AttrDraft = { htmlId: string; cssClass: string }
+
 /**
- * Optional HTML id + CSS classes for any particle — applied on the public
- * column wrapper (`sf-grid-col`). Shown in Config for every module.
+ * Optional HTML id + CSS classes — autosave (~500ms + blur), no Save button.
+ * Action always rewrites both fields, so drafts keep both values in sync.
  */
 export function ParticleAttributesEditor({
   sectionId,
@@ -31,32 +30,67 @@ export function ParticleAttributesEditor({
   onAttrsSaved,
 }: Props) {
   const router = useRouter()
-  const [state, formAction, pending] = useActionState(updateSlotAttributesAction, initialState)
+  const layoutId = useLayoutOutlineId()
+  const { notifySaved, notifyError } = useAdminToast()
+  const [pending, startSave] = useTransition()
+  const draftRef = useRef<AttrDraft>({
+    htmlId: slot.htmlId ?? '',
+    cssClass: slot.cssClass ?? '',
+  })
 
-  useEffect(() => {
-    if (!state.ok || state.slotAttrs === undefined) return
-    onAttrsSaved?.({
-      htmlId: state.slotAttrs.htmlId,
-      cssClass: state.slotAttrs.cssClass,
-    })
-    router.refresh()
-    // Hydrate only when the server action result changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional
-  }, [state.ok, state.slotAttrs, state.message])
+  const persist = useCallback(
+    (draft: AttrDraft) => {
+      if (
+        draft.htmlId.trim() === (slot.htmlId ?? '').trim() &&
+        draft.cssClass.trim() === (slot.cssClass ?? '').trim()
+      ) {
+        return
+      }
+      const fd = new FormData()
+      fd.set('layoutId', layoutId)
+      fd.set('sectionId', sectionId)
+      fd.set('rowId', rowId)
+      fd.set('slotId', slot.id)
+      fd.set('htmlId', draft.htmlId)
+      fd.set('cssClass', draft.cssClass)
 
-  const attrsKey = `${slot.htmlId ?? ''}|${slot.cssClass ?? ''}`
+      startSave(async () => {
+        const result = await updateSlotAttributesAction({}, fd)
+        if (result.ok) {
+          onAttrsSaved?.({
+            htmlId: result.slotAttrs?.htmlId,
+            cssClass: result.slotAttrs?.cssClass,
+          })
+          notifySaved('Saved')
+          router.refresh()
+        } else if (result.error) {
+          notifyError(result.error)
+        }
+      })
+    },
+    [
+      layoutId,
+      notifyError,
+      notifySaved,
+      onAttrsSaved,
+      router,
+      rowId,
+      sectionId,
+      slot.cssClass,
+      slot.htmlId,
+      slot.id,
+    ],
+  )
+
+  const { schedule, flush } = useDebouncedPersist(persist)
+
+  const updateDraft = (partial: Partial<AttrDraft>) => {
+    draftRef.current = { ...draftRef.current, ...partial }
+    return draftRef.current
+  }
 
   return (
-    <form
-      key={attrsKey}
-      action={formAction}
-      className="gantry-typed-form gantry-particle-attrs"
-    >
-      <LayoutIdField />
-      <input type="hidden" name="sectionId" value={sectionId} />
-      <input type="hidden" name="rowId" value={rowId} />
-      <input type="hidden" name="slotId" value={slot.id} />
-
+    <div className="gantry-typed-form gantry-particle-attrs">
       <p className="gantry-field-hint" style={{ margin: '0 0 0.35rem' }}>
         Block attributes
       </p>
@@ -65,38 +99,44 @@ export function ParticleAttributesEditor({
           <span>HTML id</span>
           <input
             type="text"
-            name="htmlId"
+            key={`htmlId-${slot.id}-${slot.htmlId ?? ''}`}
             defaultValue={slot.htmlId ?? ''}
             placeholder="optional"
             spellCheck={false}
             autoComplete="off"
+            disabled={pending}
+            onChange={(event) => schedule('attrs', updateDraft({ htmlId: event.target.value }))}
+            onBlur={(event) => flush('attrs', updateDraft({ htmlId: event.target.value }))}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault()
+                ;(event.target as HTMLInputElement).blur()
+              }
+            }}
           />
         </label>
         <label>
           <span>CSS class</span>
           <input
             type="text"
-            name="cssClass"
+            key={`cssClass-${slot.id}-${slot.cssClass ?? ''}`}
             defaultValue={slot.cssClass ?? ''}
             placeholder="optional space-separated"
             spellCheck={false}
             autoComplete="off"
+            disabled={pending}
+            onChange={(event) => schedule('attrs', updateDraft({ cssClass: event.target.value }))}
+            onBlur={(event) => flush('attrs', updateDraft({ cssClass: event.target.value }))}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault()
+                ;(event.target as HTMLInputElement).blur()
+              }
+            }}
           />
         </label>
       </div>
-      <button type="submit" className="secondary" disabled={pending}>
-        {pending ? 'Saving…' : 'Save attributes'}
-      </button>
-      {state.error ? (
-        <p className="admin-inline-error" role="alert">
-          {state.error}
-        </p>
-      ) : null}
-      {state.ok && state.message ? (
-        <p className="admin-inline-ok" role="status">
-          {state.message}
-        </p>
-      ) : null}
-    </form>
+      {pending ? <p className="gantry-field-hint">Saving…</p> : null}
+    </div>
   )
 }

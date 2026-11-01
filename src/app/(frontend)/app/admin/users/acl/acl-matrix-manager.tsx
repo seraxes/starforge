@@ -9,6 +9,8 @@ import {
   type AclActionState,
 } from '@/core/acl/actions'
 
+import { useNotifySavedOnOk } from '../../admin-toast'
+
 type ResourceOpt = { key: string; label: string }
 
 type GroupCol = {
@@ -45,6 +47,8 @@ function Feedback({ state }: { state: AclActionState }) {
 export function AclMatrixManager({ resources, groups }: Props) {
   const router = useRouter()
   const [state, action, pending] = useActionState(saveAllGroupsAclMatrixAction, initial)
+  // KEEP Save: full group×resource ACL matrix — high blast radius.
+  useNotifySavedOnOk(state, { toastErrors: true })
 
   useEffect(() => {
     if (state.ok) router.refresh()

@@ -10,6 +10,8 @@ import {
 import { CAPTCHA_PROVIDERS } from '@/core/site-chrome/defaults'
 import type { SiteChromeDocument } from '@/core/site-chrome/types'
 
+import { useNotifySavedOnOk } from '../admin-toast'
+
 type Props = {
   chrome: SiteChromeDocument
 }
@@ -18,6 +20,8 @@ const initialState: SiteChromeActionState = {}
 
 export function SiteChromeForm({ chrome }: Props) {
   const [state, formAction, pending] = useActionState(updateSiteChromeAction, initialState)
+  // KEEP Save: multi-section Site Chrome document (offline / captcha / SEO / robots / cookies).
+  useNotifySavedOnOk(state, { toastErrors: true })
 
   return (
     <form action={formAction} className="settings-form settings-form-wide">
