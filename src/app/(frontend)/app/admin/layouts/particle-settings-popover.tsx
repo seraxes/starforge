@@ -18,7 +18,7 @@ const VIEW_PAD = 12
  */
 export function ParticleSettingsPopover({
   title,
-  triggerLabel = 'Settings',
+  triggerLabel = '⚙',
   children,
 }: Props) {
   const [open, setOpen] = useState(false)
@@ -92,12 +92,14 @@ export function ParticleSettingsPopover({
       <button
         ref={triggerRef}
         type="button"
-        className="secondary gantry-settings-trigger"
+        className="secondary gantry-settings-trigger gantry-settings-gear"
         aria-expanded={open}
         aria-haspopup="dialog"
+        aria-label={open ? 'Close settings' : title}
+        title={open ? 'Close settings' : title}
         onClick={() => setOpen((value) => !value)}
       >
-        {open ? 'Close settings' : triggerLabel}
+        {open ? '✕' : triggerLabel}
       </button>
       {mounted && open
         ? createPortal(
