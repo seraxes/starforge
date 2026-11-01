@@ -2,17 +2,24 @@
 
 import { useCallback, useEffect, useRef } from 'react'
 
-/** Default Core admin field autosave debounce. */
-export const ADMIN_AUTOSAVE_DEBOUNCE_MS = 500
+import { DEFAULT_ADMIN_AUTOSAVE_DEBOUNCE_MS } from '@/core/settings/defaults'
+
+import { useAdminAutosaveDebounceMs } from './admin-autosave-context'
+
+/** @deprecated Prefer Site Settings / useAdminAutosaveDebounceMs(); kept as fallback default. */
+export const ADMIN_AUTOSAVE_DEBOUNCE_MS = DEFAULT_ADMIN_AUTOSAVE_DEBOUNCE_MS
 
 /**
  * Schedule keyed persists with debounce; flush cancels the timer and runs now.
  * Used by Styles / Breakpoints and other single-resource field panels.
+ * Delay comes from Site Settings unless `delayMs` is passed explicitly.
  */
 export function useDebouncedPersist<T>(
   persist: (patch: T) => void,
-  delayMs: number = ADMIN_AUTOSAVE_DEBOUNCE_MS,
+  delayMs?: number,
 ) {
+  const fromSettings = useAdminAutosaveDebounceMs()
+  const ms = delayMs ?? fromSettings
   const timers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
   const persistRef = useRef(persist)
   persistRef.current = persist
@@ -34,10 +41,10 @@ export function useDebouncedPersist<T>(
         setTimeout(() => {
           timers.current.delete(key)
           persistRef.current(patch)
-        }, delayMs),
+        }, ms),
       )
     },
-    [delayMs],
+    [ms],
   )
 
   const flush = useCallback((key: string, patch: T) => {

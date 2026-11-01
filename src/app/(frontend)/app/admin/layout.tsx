@@ -15,6 +15,7 @@ import {
   isCatalogModuleEnabled,
 } from '@/core/settings'
 
+import { AdminAutosaveProvider } from './admin-autosave-context'
 import { AdminSidebarNav, type AdminSidebarGroup } from './admin-sidebar-nav'
 import { AdminToastProvider } from './admin-toast'
 
@@ -126,38 +127,40 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
 
   return (
     <AdminToastProvider>
-      <div className="admin-shell" data-sf-admin-theme="dark">
-        <AdminSidebarNav
-          groups={groups}
-          brand={
-            <>
-              <p className="brand">
-                <Link href="/">Starforge</Link>
+      <AdminAutosaveProvider delayMs={settings.adminAutosaveDebounceMs}>
+        <div className="admin-shell" data-sf-admin-theme="dark">
+          <AdminSidebarNav
+            groups={groups}
+            brand={
+              <>
+                <p className="brand">
+                  <Link href="/">Starforge</Link>
+                </p>
+                <p className="admin-sidebar-title">Starforge admin</p>
+              </>
+            }
+            who={
+              <p className="admin-who">
+                Signed in as <strong>{session.user.email}</strong> ({role})
               </p>
-              <p className="admin-sidebar-title">Starforge admin</p>
-            </>
-          }
-          who={
-            <p className="admin-who">
-              Signed in as <strong>{session.user.email}</strong> ({role})
-            </p>
-          }
-        />
-        <div className="admin-body">
-          <header className="admin-header">
-            <div>
-              <h1>Starforge admin</h1>
-              <p className="lede admin-lede">
-                Top-level areas: Site Chrome, Site Settings (Modules), Navigation, Forms, Users
-                (Accounts · Groups · ACL), Layouts, CMS. Content (pages, media) lives in{' '}
-                {showPayloadCms ? <Link href="/admin">CMS</Link> : 'CMS'} — same login when CMS
-                access is on.
-              </p>
-            </div>
-          </header>
-          <div className="admin-main">{props.children}</div>
+            }
+          />
+          <div className="admin-body">
+            <header className="admin-header">
+              <div>
+                <h1>Starforge admin</h1>
+                <p className="lede admin-lede">
+                  Top-level areas: Site Chrome, Site Settings (Modules), Navigation, Forms, Users
+                  (Accounts · Groups · ACL), Layouts, CMS. Content (pages, media) lives in{' '}
+                  {showPayloadCms ? <Link href="/admin">CMS</Link> : 'CMS'} — same login when CMS
+                  access is on.
+                </p>
+              </div>
+            </header>
+            <div className="admin-main">{props.children}</div>
+          </div>
         </div>
-      </div>
+      </AdminAutosaveProvider>
     </AdminToastProvider>
   )
 }

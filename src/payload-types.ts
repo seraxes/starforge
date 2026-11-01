@@ -405,6 +405,10 @@ export interface SiteSetting {
    */
   primaryNavMenuId?: string | null;
   /**
+   * Core /app/admin text-field autosave delay in milliseconds (300–2000). Blur still saves immediately.
+   */
+  adminAutosaveDebounceMs?: number | null;
+  /**
    * Legacy fallback only — prefer Nav manager + primaryNavMenuId.
    */
   primaryNav?:
@@ -467,6 +471,7 @@ export interface SiteSetting {
 export interface SiteSettingsSelect<T extends boolean = true> {
   siteName?: T;
   primaryNavMenuId?: T;
+  adminAutosaveDebounceMs?: T;
   primaryNav?:
     | T
     | {

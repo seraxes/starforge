@@ -150,7 +150,7 @@ function ColorField({
 
 /**
  * Per-section Styles card — no Save button.
- * Text/color/URL: ~500ms debounce onChange + flush on blur.
+ * Text/color/URL: Site Settings debounce onChange + flush on blur.
  * Select/checkbox: immediate onChange (discrete).
  */
 function SectionStylesCard({

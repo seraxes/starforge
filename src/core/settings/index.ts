@@ -9,11 +9,13 @@ import { resolveNavMenuItems } from '@/core/nav/resolve'
 import { DEFAULT_NAV_MENU_ID } from '@/core/db'
 
 import {
+  DEFAULT_ADMIN_AUTOSAVE_DEBOUNCE_MS,
   DEFAULT_FEATURE_FLAGS,
   DEFAULT_PRIMARY_NAV,
   DEFAULT_PRIMARY_NAV_MENU_ID,
   DEFAULT_SITE_NAME,
   DEFAULT_SITE_SETTINGS,
+  clampAdminAutosaveDebounceMs,
   type FeatureFlags,
   type ModuleToggleMap,
   type NavItem,
@@ -38,12 +40,16 @@ import {
 export type { FeatureFlags, ModuleToggleMap, NavItem, NavItemInput, SiteSettingsData }
 export type { RawNavRow }
 export {
+  ADMIN_AUTOSAVE_DEBOUNCE_MAX_MS,
+  ADMIN_AUTOSAVE_DEBOUNCE_MIN_MS,
+  DEFAULT_ADMIN_AUTOSAVE_DEBOUNCE_MS,
   DEFAULT_FEATURE_FLAGS,
   DEFAULT_PRIMARY_NAV,
   DEFAULT_PRIMARY_NAV_MENU_ID,
   DEFAULT_SITE_NAME,
   DEFAULT_SITE_SETTINGS,
-}
+  clampAdminAutosaveDebounceMs,
+} from './defaults'
 export {
   ATOM_TOGGLE_PREFIX,
   MODULE_IDS,
@@ -76,6 +82,7 @@ export {
 type SiteSettingsDoc = {
   siteName?: string | null
   primaryNavMenuId?: string | null
+  adminAutosaveDebounceMs?: number | null
   primaryNav?: RawNavRow[] | null
   featureRegistration?: boolean | null
   featureRichEditor?: boolean | null
@@ -111,6 +118,7 @@ export function normalizeSiteSettings(
       features: { ...DEFAULT_FEATURE_FLAGS },
       primaryNav: (resolvedNav ?? DEFAULT_PRIMARY_NAV).map((i) => ({ ...i })),
       primaryNavMenuId: DEFAULT_PRIMARY_NAV_MENU_ID,
+      adminAutosaveDebounceMs: DEFAULT_ADMIN_AUTOSAVE_DEBOUNCE_MS,
       moduleToggles: {},
     }
   }
@@ -123,6 +131,7 @@ export function normalizeSiteSettings(
   return {
     siteName,
     primaryNavMenuId: normalizePrimaryNavMenuId(doc.primaryNavMenuId),
+    adminAutosaveDebounceMs: clampAdminAutosaveDebounceMs(doc.adminAutosaveDebounceMs),
     primaryNav: resolvedNav ?? resolveNavItems(doc.primaryNav),
     features: normalizeFlags(doc),
     moduleToggles: normalizeModuleToggles(doc.moduleToggles),
@@ -238,6 +247,8 @@ export type UpdateSiteSettingsInput = {
   siteName: string
   /** Which Nav manager menu powers the public primary nav. */
   primaryNavMenuId?: string
+  /** Core admin text autosave debounce (ms); clamped on write. */
+  adminAutosaveDebounceMs?: number
   /**
    * Legacy: resolved public nav (label + href) — written as custom-URL rows.
    * Prefer Nav manager (`sf_nav_menus`) + `primaryNavMenuId`.
@@ -281,6 +292,10 @@ export async function updateSiteSettings(input: UpdateSiteSettingsInput): Promis
     featureModules: input.features.modules,
     featureDraftPreview: input.features.draftPreview,
     moduleToggles: moduleTogglesToPayloadRows(moduleToggles),
+  }
+
+  if (input.adminAutosaveDebounceMs !== undefined) {
+    data.adminAutosaveDebounceMs = clampAdminAutosaveDebounceMs(input.adminAutosaveDebounceMs)
   }
 
   if (!input.keepLegacyPrimaryNav) {
