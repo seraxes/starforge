@@ -1,4 +1,6 @@
-import type { NavAccessLevel, NavMenuDocument, NavMenuItem, NavLinkType } from './types'
+import { normalizeAccessTags } from '@/core/acl/nav-access'
+
+import type { NavMenuDocument, NavMenuItem, NavLinkType } from './types'
 
 export const NAV_MENU_DOCUMENT_VERSION = 1 as const
 
@@ -17,22 +19,6 @@ export function slugifyNavMenuId(raw: string): string {
 
 function newItemId(): string {
   return `ni_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36).slice(-4)}`
-}
-
-function normalizeAccessLevel(raw: unknown): NavAccessLevel | string {
-  if (typeof raw !== 'string') return 'public'
-  const v = raw.trim()
-  if (!v) return 'public'
-  if (v === 'public' || v === 'registered') return v
-  if (v.startsWith('group:')) {
-    const id = v.slice('group:'.length).trim()
-    return id ? (`group:${id}` as NavAccessLevel) : 'public'
-  }
-  // Free-text group id → normalize to group: prefix
-  if (/^\d+$/.test(v) || /^[a-zA-Z0-9_-]+$/.test(v)) {
-    return `group:${v}` as NavAccessLevel
-  }
-  return 'public'
 }
 
 /** Accept `custom` as legacy alias for `url`. */
@@ -90,7 +76,10 @@ export function normalizeNavMenuItem(
       typeof row.browserTitle === 'string' ? row.browserTitle.trim() || null : null,
     pageHeading:
       typeof row.pageHeading === 'string' ? row.pageHeading.trim() || null : null,
-    accessLevel: normalizeAccessLevel(row.accessLevel),
+    accessTags: normalizeAccessTags({
+      accessTags: row.accessTags,
+      accessLevel: row.accessLevel,
+    }),
   }
 }
 
@@ -153,7 +142,8 @@ export function createNavMenuItem(
         cssClass: partial.cssClass ?? null,
         browserTitle: partial.browserTitle ?? null,
         pageHeading: partial.pageHeading ?? null,
-        accessLevel: partial.accessLevel ?? 'public',
+        accessTags: partial.accessTags,
+        accessLevel: partial.accessLevel,
       },
       sortOrder,
     ) ?? {
@@ -163,7 +153,7 @@ export function createNavMenuItem(
       label: partial.label,
       linkType: 'url',
       url: '/',
-      accessLevel: 'public',
+      accessTags: ['public'],
     }
   )
 }

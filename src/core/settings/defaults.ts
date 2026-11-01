@@ -16,7 +16,12 @@ export type NavItem = {
   browserTitle?: string
   /** On-page H1 override when this item’s path is active. */
   pageHeading?: string
-  /** Access level (`public` / `registered` / `group:<id>`) — filtered for the viewer. */
+  /**
+   * View access tags (`public` / `registered` / `group:<id>`).
+   * Visible if the viewer matches **any** tag (OR).
+   */
+  accessTags?: string[]
+  /** @deprecated Prefer `accessTags`; still read for legacy single-value rows. */
   accessLevel?: string
 }
 

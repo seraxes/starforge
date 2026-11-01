@@ -15,6 +15,7 @@ export type ResolvedNavItem = NavItem & {
   cssClass?: string
   browserTitle?: string
   pageHeading?: string
+  accessTags?: string[]
   accessLevel?: string
   pageId?: number | null
   moduleId?: string | null
@@ -76,7 +77,11 @@ function itemToResolved(
   if (item.cssClass) resolved.cssClass = item.cssClass
   if (item.browserTitle) resolved.browserTitle = item.browserTitle
   if (item.pageHeading) resolved.pageHeading = item.pageHeading
-  if (item.accessLevel) resolved.accessLevel = String(item.accessLevel)
+  if (item.accessTags?.length) {
+    resolved.accessTags = [...item.accessTags]
+    // Legacy single field for older consumers / layout slot parity helpers.
+    resolved.accessLevel = item.accessTags[0]
+  }
   if (item.linkType === 'page' && item.pageId != null) resolved.pageId = item.pageId
   if (item.linkType === 'module') {
     resolved.moduleId = item.moduleId ?? null

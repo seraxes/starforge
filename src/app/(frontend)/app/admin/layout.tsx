@@ -79,6 +79,9 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
             <li>
               <Link href="/app/admin/users/groups">Groups</Link>
             </li>
+            <li>
+              <Link href="/app/admin/users/acl">ACL</Link>
+            </li>
           </ul>
         </div>
         <Link href="/app/admin/settings">Site settings</Link>

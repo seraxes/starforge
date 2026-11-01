@@ -4,11 +4,21 @@ import { userIsAppAdmin } from '@/core/auth/admin'
 import { getAppSession } from '@/core/auth/session'
 
 import { listGroupIdsForUser } from './members'
-import { canSeeNavAccessLevel, filterNavItemsForViewer } from './nav-access'
+import {
+  canSeeNavAccessLevel,
+  canSeeNavAccessTags,
+  filterNavItemsForViewer,
+  normalizeAccessTags,
+} from './nav-access'
 import { anyGroupAllowsResource } from './permissions'
 import type { AccessViewer, AclAdminResourceKey } from './types'
 
-export { canSeeNavAccessLevel, filterNavItemsForViewer }
+export {
+  canSeeNavAccessLevel,
+  canSeeNavAccessTags,
+  filterNavItemsForViewer,
+  normalizeAccessTags,
+}
 
 /** Build viewer context from the current Better Auth session. */
 export async function getAccessViewer(): Promise<AccessViewer> {

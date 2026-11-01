@@ -8,8 +8,10 @@
 
 export {
   canSeeNavAccessLevel,
+  canSeeNavAccessTags,
   filterNavItemsForViewer,
   getAccessViewer,
+  normalizeAccessTags,
   viewerMayAccessAdminResource,
 } from './access'
 export type { AccessViewer } from './types'
@@ -55,6 +57,7 @@ export {
   deleteUserGroupAction,
   removeGroupMemberAction,
   renameUserGroupAction,
+  saveAllGroupsAclMatrixAction,
   saveGroupAclMatrixAction,
   setUserGroupsAction,
 } from './actions'

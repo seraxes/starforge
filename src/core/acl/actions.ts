@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 
 import { requireAppAdmin } from '@/core/auth/admin'
+// Client components import this module for server actions only — keep free of session/headers.
 
 import {
   createUserGroup,
@@ -166,4 +167,46 @@ export async function saveGroupAclMatrixAction(
 
   revalidateUsersPaths(groupId)
   return { ok: true, message: 'ACL matrix saved (stub).', groupId }
+}
+
+/**
+ * Save admin ACL stub for all groups from the Users → ACL matrix page.
+ * Checkbox values are `groupId::resourceKey`.
+ */
+export async function saveAllGroupsAclMatrixAction(
+  _prev: AclActionState,
+  formData: FormData,
+): Promise<AclActionState> {
+  if (!(await requireAppAdmin())) {
+    return { error: 'Sign in as a Starforge app admin to manage ACL.' }
+  }
+
+  const groupIds = formData
+    .getAll('matrixGroupId')
+    .map((v) => String(v ?? '').trim())
+    .filter(Boolean)
+
+  const grants = formData.getAll('grant').map((v) => String(v ?? ''))
+  const allowedByGroup = new Map<string, string[]>()
+  for (const id of groupIds) allowedByGroup.set(id, [])
+
+  for (const raw of grants) {
+    const sep = raw.indexOf('::')
+    if (sep <= 0) continue
+    const groupId = raw.slice(0, sep).trim()
+    const resource = raw.slice(sep + 2).trim()
+    if (!groupId || !isAclAdminResourceKey(resource)) continue
+    const list = allowedByGroup.get(groupId) ?? []
+    list.push(resource)
+    allowedByGroup.set(groupId, list)
+  }
+
+  for (const [groupId, resources] of allowedByGroup) {
+    const result = await replaceGroupAclMatrix(groupId, resources)
+    if ('error' in result) return { error: result.error }
+  }
+
+  revalidateUsersPaths()
+  revalidatePath('/app/admin/users/acl')
+  return { ok: true, message: 'ACL matrix saved (stub).' }
 }

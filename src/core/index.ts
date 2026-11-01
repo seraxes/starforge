@@ -126,11 +126,13 @@ export {
 export {
   ACL_ADMIN_RESOURCES,
   canSeeNavAccessLevel,
+  canSeeNavAccessTags,
   ensureDefaultUserGroupsSeeded,
   filterNavItemsForViewer,
   getAccessViewer,
   listUserGroupOptions,
   listUserGroups,
+  normalizeAccessTags,
   viewerMayAccessAdminResource,
 } from './acl'
 export type {

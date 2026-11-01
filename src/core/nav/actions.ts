@@ -156,8 +156,8 @@ function parseItemsFromForm(formData: FormData): NavMenuItem[] {
   const cssClasses = formData.getAll('itemCssClass').map((v) => String(v ?? ''))
   const browserTitles = formData.getAll('itemBrowserTitle').map((v) => String(v ?? ''))
   const pageHeadings = formData.getAll('itemPageHeading').map((v) => String(v ?? ''))
-  const accessLevels = formData.getAll('itemAccessLevel').map((v) => String(v ?? ''))
-  const accessGroupIds = formData.getAll('itemAccessGroupId').map((v) => String(v ?? ''))
+  // One JSON array string per item (multi-select access tags).
+  const accessTagsRaw = formData.getAll('itemAccessTags').map((v) => String(v ?? ''))
 
   const count = Math.max(ids.length, labels.length)
   const items: NavMenuItem[] = []
@@ -166,14 +166,15 @@ function parseItemsFromForm(formData: FormData): NavMenuItem[] {
     const label = (labels[i] ?? '').trim()
     if (!label) continue
 
-    const accessRaw = (accessLevels[i] ?? 'public').trim()
-    const groupId = (accessGroupIds[i] ?? '').trim()
-    const accessLevel =
-      accessRaw === 'group' && groupId
-        ? `group:${groupId}`
-        : accessRaw === 'group'
-          ? 'public'
-          : accessRaw || 'public'
+    let accessTags: unknown = ['public']
+    const tagsField = (accessTagsRaw[i] ?? '').trim()
+    if (tagsField) {
+      try {
+        accessTags = JSON.parse(tagsField) as unknown
+      } catch {
+        accessTags = tagsField.split(/[,|]/).map((t) => t.trim()).filter(Boolean)
+      }
+    }
 
     const rawType = (linkTypes[i] ?? 'page').trim()
     const linkType =
@@ -192,7 +193,7 @@ function parseItemsFromForm(formData: FormData): NavMenuItem[] {
         cssClass: cssClasses[i] || null,
         browserTitle: browserTitles[i] || null,
         pageHeading: pageHeadings[i] || null,
-        accessLevel,
+        accessTags,
         sortOrder: i,
       },
       i,
@@ -293,7 +294,7 @@ export async function addNavMenuItemAction(
         url: linkType === 'url' ? url : null,
         moduleId: linkType === 'module' ? moduleId || null : null,
         moduleViewKey: linkType === 'module' ? moduleViewKey || null : null,
-        accessLevel: 'public',
+        accessTags: ['public'],
       },
       items.length,
     ),

@@ -2688,6 +2688,38 @@ button.danger,
   }
 }
 
+/* Nav access tags (multi-select) */
+.nav-access-tags {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  grid-column: 1 / -1;
+}
+
+.nav-access-tags legend {
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+.nav-access-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+
+.acl-matrix-table th code,
+.acl-matrix-table td {
+  text-align: center;
+}
+
+.acl-matrix-table th[scope='row'] {
+  text-align: left;
+}
+
+.acl-page .outlines-create + .outlines-create {
+  margin-top: 1.75rem;
+}
+
 /* Users → Groups */
 .admin-groups-form {
   flex-direction: column;

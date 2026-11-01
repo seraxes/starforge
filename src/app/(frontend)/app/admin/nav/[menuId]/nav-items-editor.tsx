@@ -26,8 +26,8 @@ type EditableItem = {
   cssClass: string
   browserTitle: string
   pageHeading: string
-  accessKind: 'public' | 'registered' | 'group'
-  accessGroupId: string
+  /** Multi-select tags: public | registered | group:<id> (OR match). */
+  accessTags: string[]
 }
 
 type Props = {
@@ -43,14 +43,12 @@ type Props = {
 const initial: NavActionState = {}
 
 function toEditable(item: NavMenuItem): EditableItem {
-  const access = String(item.accessLevel || 'public')
-  let accessKind: EditableItem['accessKind'] = 'public'
-  let accessGroupId = ''
-  if (access === 'registered') accessKind = 'registered'
-  else if (access.startsWith('group:')) {
-    accessKind = 'group'
-    accessGroupId = access.slice('group:'.length)
-  }
+  const tags =
+    item.accessTags && item.accessTags.length > 0
+      ? [...item.accessTags]
+      : item.accessLevel
+        ? [String(item.accessLevel)]
+        : ['public']
 
   const linkType: NavLinkType =
     item.linkType === 'module' ? 'module' : item.linkType === 'url' ? 'url' : 'page'
@@ -67,9 +65,16 @@ function toEditable(item: NavMenuItem): EditableItem {
     cssClass: item.cssClass ?? '',
     browserTitle: item.browserTitle ?? '',
     pageHeading: item.pageHeading ?? '',
-    accessKind,
-    accessGroupId,
+    accessTags: tags,
   }
+}
+
+function toggleAccessTag(tags: string[], tag: string, on: boolean): string[] {
+  const next = new Set(tags)
+  if (on) next.add(tag)
+  else next.delete(tag)
+  const list = [...next]
+  return list.length > 0 ? list : ['public']
 }
 
 function Feedback({ state }: { state: NavActionState }) {
@@ -110,8 +115,7 @@ function appendItemFields(form: HTMLFormElement, rows: EditableItem[]) {
     add('itemCssClass', row.cssClass)
     add('itemBrowserTitle', row.browserTitle)
     add('itemPageHeading', row.pageHeading)
-    add('itemAccessLevel', row.accessKind)
-    add('itemAccessGroupId', row.accessGroupId)
+    add('itemAccessTags', JSON.stringify(row.accessTags.length ? row.accessTags : ['public']))
   }
 }
 
@@ -194,10 +198,7 @@ export function NavItemsEditor({
       cssClass: row.cssClass || null,
       browserTitle: row.browserTitle || null,
       pageHeading: row.pageHeading || null,
-      accessLevel:
-        row.accessKind === 'group' && row.accessGroupId
-          ? `group:${row.accessGroupId}`
-          : row.accessKind,
+      accessTags: row.accessTags.length ? row.accessTags : ['public'],
     }
     const json = JSON.stringify(payload)
     setClipboard(json)
@@ -313,8 +314,11 @@ export function NavItemsEditor({
                   <input type="hidden" name="itemCssClass" value={row.cssClass} />
                   <input type="hidden" name="itemBrowserTitle" value={row.browserTitle} />
                   <input type="hidden" name="itemPageHeading" value={row.pageHeading} />
-                  <input type="hidden" name="itemAccessLevel" value={row.accessKind} />
-                  <input type="hidden" name="itemAccessGroupId" value={row.accessGroupId} />
+                  <input
+                    type="hidden"
+                    name="itemAccessTags"
+                    value={JSON.stringify(row.accessTags.length ? row.accessTags : ['public'])}
+                  />
 
                   {expanded ? (
                     <div className="nav-item-card-body">
@@ -463,51 +467,76 @@ export function NavItemsEditor({
                           onChange={(e) => updateRow(row.id, { pageHeading: e.target.value })}
                         />
                       </label>
-                      <label className="settings-field">
-                        <span>Access level</span>
-                        <select
-                          value={row.accessKind}
-                          onChange={(e) =>
-                            updateRow(row.id, {
-                              accessKind: e.target.value as EditableItem['accessKind'],
-                              accessGroupId:
-                                e.target.value === 'group'
-                                  ? row.accessGroupId || groups[0]?.id || ''
-                                  : '',
-                            })
-                          }
-                        >
-                          <option value="public">Public</option>
-                          <option value="registered">Registered</option>
-                          <option value="group" disabled={groups.length === 0}>
-                            Group…
-                          </option>
-                        </select>
-                      </label>
-                      {row.accessKind === 'group' ? (
-                        <label className="settings-field">
-                          <span>User group</span>
+                      <fieldset className="settings-field nav-access-tags">
+                        <legend>Access tags</legend>
+                        <p className="settings-hint">
+                          Multi-select — item is visible if the viewer matches{' '}
+                          <strong>any</strong> tag.{' '}
+                          <Link href="/app/admin/users/groups">Manage groups</Link>.
+                        </p>
+                        <div className="nav-access-tag-list">
+                          <label className="outlines-check">
+                            <input
+                              type="checkbox"
+                              checked={row.accessTags.includes('public')}
+                              onChange={(e) =>
+                                updateRow(row.id, {
+                                  accessTags: toggleAccessTag(
+                                    row.accessTags,
+                                    'public',
+                                    e.target.checked,
+                                  ),
+                                })
+                              }
+                            />
+                            <span>Public</span>
+                          </label>
+                          <label className="outlines-check">
+                            <input
+                              type="checkbox"
+                              checked={row.accessTags.includes('registered')}
+                              onChange={(e) =>
+                                updateRow(row.id, {
+                                  accessTags: toggleAccessTag(
+                                    row.accessTags,
+                                    'registered',
+                                    e.target.checked,
+                                  ),
+                                })
+                              }
+                            />
+                            <span>Registered</span>
+                          </label>
+                          {groups.map((g) => {
+                            const tag = `group:${g.id}`
+                            return (
+                              <label key={g.id} className="outlines-check">
+                                <input
+                                  type="checkbox"
+                                  checked={row.accessTags.includes(tag)}
+                                  onChange={(e) =>
+                                    updateRow(row.id, {
+                                      accessTags: toggleAccessTag(
+                                        row.accessTags,
+                                        tag,
+                                        e.target.checked,
+                                      ),
+                                    })
+                                  }
+                                />
+                                <span>
+                                  {g.label} <code>{g.id}</code>
+                                </span>
+                              </label>
+                            )
+                          })}
                           {groups.length === 0 ? (
                             <span className="settings-hint">
-                              <Link href="/app/admin/users/groups">Create a group</Link> first.
+                              No groups yet — create under Users → Groups.
                             </span>
-                          ) : (
-                            <select
-                              value={row.accessGroupId}
-                              onChange={(e) =>
-                                updateRow(row.id, { accessGroupId: e.target.value })
-                              }
-                            >
-                              <option value="">Select group…</option>
-                              {groups.map((g) => (
-                                <option key={g.id} value={g.id}>
-                                  {g.label} ({g.id})
-                                </option>
-                              ))}
-                            </select>
-                          )}
-                        </label>
-                      ) : null}
+                          ) : null}
+                        </div>
+                      </fieldset>
                     </div>
                   ) : null}
                 </li>

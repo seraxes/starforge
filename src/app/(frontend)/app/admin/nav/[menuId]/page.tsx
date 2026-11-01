@@ -59,8 +59,9 @@ export default async function AdminNavMenuItemsPage({ params }: Args) {
       <p className="lede admin-lede">
         Bind each item to a CMS page, URL, or an <strong>enabled module view</strong> (Modules
         catalog / registry <code>navViews</code>). Reorder with Up/Down; Copy/Paste to duplicate.
-        Access level uses public / registered /{' '}
-        <Link href="/app/admin/users/groups">user groups</Link>.{' '}
+        Access tags are multi-select (public / registered /{' '}
+        <Link href="/app/admin/users/groups">groups</Link>) — visible if the viewer matches any
+        tag.{' '}
         <Link href="/app/admin/nav">Back to menus</Link>
         {settings.primaryNavMenuId === loaded.id ? (
           <>

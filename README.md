@@ -80,7 +80,8 @@ Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so coo
 | http://localhost:3000/register | Create a **core app** account (email + password; auto sign-in; default role `member`) |
 | http://localhost:3000/login | **Only** sign-in (Better Auth). Also used when `/admin` redirects unauthenticated visitors |
 | http://localhost:3000/app/admin/users | Starforge admin — accounts (roles, groups, **CMS access**, disable) |
-| http://localhost:3000/app/admin/users/groups | Starforge admin — **user groups** + ACL stub matrix |
+| http://localhost:3000/app/admin/users/groups | Starforge admin — **user groups** |
+| http://localhost:3000/app/admin/users/acl | Starforge admin — **ACL** stub matrix + view-access overview |
 | http://localhost:3000/app/admin/settings | Starforge admin — site name, primary nav menu binding, feature toggles |
 | http://localhost:3000/app/admin/nav | Starforge admin — **Nav** manager (navigation sets + items) |
 | http://localhost:3000/app/admin/layouts | Starforge admin — **Layouts** (hover submenu) → **Layout** canvas (default) |

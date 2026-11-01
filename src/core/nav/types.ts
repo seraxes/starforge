@@ -3,7 +3,10 @@
  * Flat list + optional `parentId` for later nesting; public layout is flat for now.
  */
 
-/** Access level — `group:<id>` maps to Users → Groups (`sf_user_groups.id`). */
+/**
+ * Access tag — `group:<id>` maps to Users → Groups (`sf_user_groups.id`).
+ * Items store multiple tags; visible if the viewer matches **any** (OR).
+ */
 export type NavAccessLevel =
   | 'public'
   | 'registered'
@@ -38,7 +41,13 @@ export type NavMenuItem = {
   browserTitle?: string | null
   /** On-page H1 override when this item is the active page. */
   pageHeading?: string | null
-  accessLevel: NavAccessLevel | string
+  /**
+   * Multi-select access tags (`public` / `registered` / `group:<id>`).
+   * Visible if viewer matches any tag. Default `['public']`.
+   */
+  accessTags: string[]
+  /** @deprecated Migrated into `accessTags` on read. */
+  accessLevel?: NavAccessLevel | string
 }
 
 export type NavMenuDocument = {
