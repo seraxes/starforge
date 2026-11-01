@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { requireAppAdmin, userIsDeveloperAdmin } from '@/core/auth/admin'
 import { GLOBAL_PAGE_CHROME_ID } from '@/core/db'
 import { listLayoutOutlines } from '@/core/modules/layout-store'
+import { getSiteSettings, isAtomModuleEnabled } from '@/core/settings'
 import { getPayload } from 'payload'
 import config from '@payload-config'
 
@@ -237,19 +238,23 @@ export async function loadPageSettingsAdmin(editingPageKey: string | null): Prom
       : { pageKey: editingPageKey }
   }
 
+  const settingsSite = await getSiteSettings()
+
   return {
     globalChrome,
     overrideKeys,
     pages,
     layouts,
     layoutIds,
-    atoms: listRegisteredAtoms().map((a) => ({
-      type: a.type,
-      label: a.label,
-      description: a.description,
-      requiresDeveloperAdmin: a.requiresDeveloperAdmin,
-      defaultConfig: a.defaultConfig(),
-    })),
+    atoms: listRegisteredAtoms()
+      .filter((a) => isAtomModuleEnabled(settingsSite, a.type))
+      .map((a) => ({
+        type: a.type,
+        label: a.label,
+        description: a.description,
+        requiresDeveloperAdmin: a.requiresDeveloperAdmin,
+        defaultConfig: a.defaultConfig(),
+      })),
     isDeveloperAdmin: isDev,
     editingPageKey,
     editingChrome,
@@ -266,6 +271,10 @@ export async function createAtomInstanceAction(
   ensureAtomsRegistered()
   const def = getRegisteredAtom(type)
   if (!def) return { ok: false, error: `Unknown atom type “${type}”.` }
+  const settings = await getSiteSettings()
+  if (!isAtomModuleEnabled(settings, type)) {
+    return { ok: false, error: `Atom “${type}” is disabled in Site Settings → Modules.` }
+  }
   if (def.requiresDeveloperAdmin && !userIsDeveloperAdmin(session.user)) {
     return { ok: false, error: 'This atom requires developer-admin.' }
   }

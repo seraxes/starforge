@@ -6,7 +6,9 @@ import { requireAppAdmin } from '@/core/auth/admin'
 import { invalidateSiteSettings } from '@/core/content/revalidate'
 import {
   DEFAULT_SITE_NAME,
-  type FeatureFlags,
+  featureFlagsFromModuleToggles,
+  listInstalledModuleCatalog,
+  type ModuleToggleMap,
   type NavItem,
   updateSiteSettings,
 } from '@/core/settings'
@@ -14,13 +16,6 @@ import {
 export type SettingsActionState = {
   error?: string
   ok?: boolean
-}
-
-/** Checkbox fields: missing key means unchecked → false. */
-function parseCheckbox(formData: FormData, key: string): boolean {
-  const raw = formData.get(key)
-  if (raw == null) return false
-  return String(raw) === 'true' || String(raw) === 'on' || String(raw) === '1'
 }
 
 function parseNav(formData: FormData): NavItem[] {
@@ -38,6 +33,27 @@ function parseNav(formData: FormData): NavItem[] {
   return items
 }
 
+/** Read Site Settings → Modules toggles; required ids forced on. */
+function parseModuleToggles(formData: FormData): ModuleToggleMap {
+  const catalog = listInstalledModuleCatalog()
+  const ids = formData.getAll('moduleToggleId').map((v) => String(v ?? '').trim()).filter(Boolean)
+  const enabledRaw = new Set(
+    formData.getAll('moduleToggleEnabled').map((v) => String(v ?? '').trim()).filter(Boolean),
+  )
+
+  const map: ModuleToggleMap = {}
+  for (const item of catalog) {
+    if (item.required) {
+      map[item.id] = true
+      continue
+    }
+    const present = ids.length === 0 || ids.includes(item.id)
+    if (!present) continue
+    map[item.id] = enabledRaw.has(item.id)
+  }
+  return map
+}
+
 export async function updateSiteSettingsAction(
   _prev: SettingsActionState,
   formData: FormData,
@@ -49,19 +65,12 @@ export async function updateSiteSettingsAction(
 
   const siteName = String(formData.get('siteName') ?? '').trim() || DEFAULT_SITE_NAME
   const primaryNav = parseNav(formData)
-
-  const features: FeatureFlags = {
-    registration: parseCheckbox(formData, 'featureRegistration'),
-    richEditor: parseCheckbox(formData, 'featureRichEditor'),
-    posts: parseCheckbox(formData, 'featurePosts'),
-    modules: parseCheckbox(formData, 'featureModules'),
-    draftPreview: parseCheckbox(formData, 'featureDraftPreview'),
-  }
+  const catalog = listInstalledModuleCatalog()
+  const moduleToggles = parseModuleToggles(formData)
+  const features = featureFlagsFromModuleToggles(moduleToggles, catalog)
 
   try {
-    // Core admin form edits resolved paths as custom URLs.
-    // Prefer Payload Globals → Site settings for Page relationships.
-    await updateSiteSettings({ siteName, primaryNav, features })
+    await updateSiteSettings({ siteName, primaryNav, features, moduleToggles })
   } catch (error) {
     const message =
       error instanceof Error && error.message
@@ -70,12 +79,14 @@ export async function updateSiteSettingsAction(
     return { error: message }
   }
 
-  // Tag invalidation covers cached site settings + pages that embed chrome.
-  // Payload global afterChange also calls this; safe to run twice.
   invalidateSiteSettings()
   revalidatePath('/', 'layout')
   revalidatePath('/register')
   revalidatePath('/login')
   revalidatePath('/app/admin/settings')
+  revalidatePath('/app/admin/layouts')
+  revalidatePath('/app/admin/outlines')
+  revalidatePath('/app/admin/page-settings')
+  revalidatePath('/app/admin')
   return { ok: true }
 }

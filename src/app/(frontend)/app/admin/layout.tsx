@@ -9,6 +9,11 @@ import {
 } from '@/core/auth/admin'
 import { getAppSession } from '@/core/auth/session'
 import { loadCoreUserCmsAccess, userHasCmsAccess } from '@/core/cms-bridge'
+import {
+  MODULE_IDS,
+  getSiteSettings,
+  isCatalogModuleEnabled,
+} from '@/core/settings'
 
 export const metadata = {
   title: 'Starforge admin',
@@ -32,7 +37,12 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
 
   const role = roleFromUser(session.user)
   const access = session.user.id ? await loadCoreUserCmsAccess(session.user.id) : null
-  const showPayloadCms = userHasCmsAccess(access)
+  const settings = await getSiteSettings()
+  const payloadOn = isCatalogModuleEnabled(settings, MODULE_IDS.payloadCms)
+  const layoutOn = isCatalogModuleEnabled(settings, MODULE_IDS.layoutManager)
+  const pageSettingsOn = isCatalogModuleEnabled(settings, MODULE_IDS.pageSettings)
+  const showPayloadCms = payloadOn && userHasCmsAccess(access)
+  const showLayoutsNav = layoutOn || pageSettingsOn
 
   return (
     <div className="admin-shell">
@@ -55,29 +65,36 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
       <nav className="admin-nav" aria-label="Starforge admin">
         <Link href="/app/admin/users">Users</Link>
         <Link href="/app/admin/settings">Site settings</Link>
-        {/*
-          Gantry-style: parent Layouts → default Layout canvas.
-          Hover/focus reveals submenu (Layout, Outlines, Page settings; Styles / Particle Defaults later).
-        */}
-        <div className="admin-nav-dropdown">
-          <Link href="/app/admin/layouts" className="admin-nav-dropdown-trigger">
-            Layouts
-            <span className="admin-nav-dropdown-caret" aria-hidden="true">
-              ▾
-            </span>
-          </Link>
-          <ul className="admin-nav-dropdown-menu" aria-label="Layouts submenu">
-            <li>
-              <Link href="/app/admin/layouts">Layout</Link>
-            </li>
-            <li>
-              <Link href="/app/admin/outlines">Outlines</Link>
-            </li>
-            <li>
-              <Link href="/app/admin/page-settings">Page settings</Link>
-            </li>
-          </ul>
-        </div>
+        {showLayoutsNav ? (
+          <div className="admin-nav-dropdown">
+            <Link
+              href={layoutOn ? '/app/admin/layouts' : '/app/admin/page-settings'}
+              className="admin-nav-dropdown-trigger"
+            >
+              Layouts
+              <span className="admin-nav-dropdown-caret" aria-hidden="true">
+                ▾
+              </span>
+            </Link>
+            <ul className="admin-nav-dropdown-menu" aria-label="Layouts submenu">
+              {layoutOn ? (
+                <>
+                  <li>
+                    <Link href="/app/admin/layouts">Layout</Link>
+                  </li>
+                  <li>
+                    <Link href="/app/admin/outlines">Outlines</Link>
+                  </li>
+                </>
+              ) : null}
+              {pageSettingsOn ? (
+                <li>
+                  <Link href="/app/admin/page-settings">Page settings</Link>
+                </li>
+              ) : null}
+            </ul>
+          </div>
+        ) : null}
         {showPayloadCms ? <Link href="/admin">Payload CMS</Link> : null}
         <Link href="/">Back to site</Link>
       </nav>

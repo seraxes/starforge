@@ -77,15 +77,21 @@ export type {
   StarforgeModule,
 } from './modules'
 export {
+  MODULE_IDS,
   ensureSiteSettingsDefaults,
   getFeatureFlags,
   getSiteSettings,
+  isAtomModuleEnabled,
+  isCatalogModuleEnabled,
   isDraftPreviewEnabled,
   isModulesEnabled,
+  isParticleModuleEnabled,
   isRegistrationEnabled,
+  listInstalledModuleCatalog,
   seedPrimaryNavFromPages,
   updateSiteSettings,
 } from './settings'
+export type { ModuleCatalogItem, ModuleToggleMap } from './settings'
 export {
   BOOTSTRAP_ADMIN_EMAIL,
   ensureCmsAccessForCoreUserIds,

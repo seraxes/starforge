@@ -112,10 +112,10 @@ One Payload global (`site-settings`) is the source of truth for site chrome and 
 | Registration | on | Hide `/register` + reject signup when off |
 | Rich editor | on | Flag reserved for a future simpler mode (Lexical stays on Pages today) |
 | Posts | **off** | Placeholder — no Posts collection yet |
-| Modules | **off** (seed turns **on**) | Render extension modules in named layout positions |
+| Modules | Site Settings → **Modules** list (per particle/atom); seed enables `notice-bar` | Off = hide from layout palette + skip public/atom inject |
 | Draft preview | **off** | When on, `cms_access` users can open `/preview/{slug}` for unpublished drafts |
 
-`npm run seed` ensures the global exists, points primary nav at the sample pages, and **enables Modules** so the notice bar shows. Flags are **product capabilities**, not npm libraries.
+`npm run seed` ensures the global exists, points primary nav at the sample pages, and enables the **notice-bar** module toggle (plus legacy master Modules flag) so the notice bar shows. Per-module toggles live under **Site Settings → Modules**. Flags are **product capabilities**, not npm libraries.
 
 ### Extension modules + Gantry-like layout manager
 

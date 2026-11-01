@@ -697,11 +697,23 @@ export async function resetLayoutToDefaultAction(
 
 export async function listModulesForLayoutAdmin() {
   ensureModulesRegistered()
-  return listRegisteredModules().map((m) => ({
-    id: m.id,
-    name: m.name,
-    description: m.description ?? '',
-    builtin: Boolean(m.builtin),
-    defaultWidth: m.defaultWidth ?? 100,
-  }))
+  const { getSiteSettings, isParticleModuleEnabled } = await import('@/core/settings')
+  const settings = await getSiteSettings()
+
+  return listRegisteredModules()
+    .filter((m) =>
+      isParticleModuleEnabled(settings, m.id, {
+        builtin: m.builtin,
+        featureFlag: m.featureFlag,
+      }),
+    )
+    .map((m) => ({
+      id: m.id,
+      name: m.name,
+      description: m.description ?? '',
+      builtin: Boolean(m.builtin),
+      defaultWidth: m.defaultWidth ?? 100,
+    }))
 }
+
+// Note: dynamic import avoids a circular init edge (settings catalog ↔ modules).

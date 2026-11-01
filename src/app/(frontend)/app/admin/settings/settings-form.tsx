@@ -6,51 +6,123 @@ import {
   updateSiteSettingsAction,
   type SettingsActionState,
 } from '@/core/settings/actions'
-import type { FeatureFlags, NavItem } from '@/core/settings/defaults'
+import type { FeatureFlags, ModuleToggleMap, NavItem } from '@/core/settings/defaults'
+import type { ModuleCatalogItem, ModuleToggleKind } from '@/core/settings/module-toggles'
 
 type Props = {
   siteName: string
   primaryNav: NavItem[]
   features: FeatureFlags
+  moduleCatalog: ModuleCatalogItem[]
+  moduleToggles: ModuleToggleMap
 }
 
 const initialState: SettingsActionState = {}
 
-function FlagRow(props: {
-  name: string
-  label: string
-  description: string
-  checked: boolean
-  placeholder?: boolean
+const KIND_LABEL: Record<ModuleToggleKind, string> = {
+  platform: 'Platform',
+  product: 'Product',
+  particle: 'Particle',
+  atom: 'Atom',
+}
+
+const KIND_SECTIONS: Array<{ kind: ModuleToggleKind; title: string; hint: string }> = [
+  {
+    kind: 'platform',
+    title: 'Platform',
+    hint: 'Core stack pieces. Better Auth stays required.',
+  },
+  {
+    kind: 'product',
+    title: 'Product capabilities',
+    hint: 'Layout, Page Settings, nav, Font Awesome, and former feature toggles.',
+  },
+  {
+    kind: 'particle',
+    title: 'Layout particles',
+    hint: 'Palette + public layout slots. page-content is required.',
+  },
+  {
+    kind: 'atom',
+    title: 'Page Settings atoms',
+    hint: 'Non-visual injectors (Analytics, Custom CSS/JS, …).',
+  },
+]
+
+function resolveChecked(item: ModuleCatalogItem, toggles: ModuleToggleMap, features: FeatureFlags) {
+  if (item.required) return true
+  if (typeof toggles[item.id] === 'boolean') return toggles[item.id]!
+  if (item.featureFlag) return Boolean(features[item.featureFlag])
+  if (!item.defaultEnabled) return features.modules
+  return true
+}
+
+function ModuleRows({
+  items,
+  moduleToggles,
+  features,
+}: {
+  items: ModuleCatalogItem[]
+  moduleToggles: ModuleToggleMap
+  features: FeatureFlags
 }) {
+  if (items.length === 0) return <p className="settings-hint">None in this group.</p>
   return (
-    <label className="settings-flag">
-      <input type="checkbox" name={props.name} value="true" defaultChecked={props.checked} />
-      <span>
-        <strong>
-          {props.label}
-          {props.placeholder ? ' (placeholder)' : null}
-        </strong>
-        <span className="settings-flag-desc">{props.description}</span>
-      </span>
-    </label>
+    <ul className="settings-modules-list">
+      {items.map((item) => {
+        const checked = resolveChecked(item, moduleToggles, features)
+        return (
+          <li key={item.id} className="settings-modules-row">
+            <input type="hidden" name="moduleToggleId" value={item.id} />
+            <label className="settings-modules-toggle">
+              <input
+                type="checkbox"
+                name="moduleToggleEnabled"
+                value={item.id}
+                defaultChecked={checked}
+                disabled={item.required}
+              />
+              <span>
+                <strong>{item.label}</strong>
+                {item.required ? (
+                  <span className="settings-modules-badge">Required</span>
+                ) : (
+                  <span className="settings-modules-badge settings-modules-badge-muted">
+                    {KIND_LABEL[item.kind]}
+                  </span>
+                )}
+                <code className="settings-modules-id">{item.id}</code>
+                <span className="settings-flag-desc">{item.description}</span>
+              </span>
+            </label>
+          </li>
+        )
+      })}
+    </ul>
   )
 }
 
-export function SettingsForm({ siteName, primaryNav, features }: Props) {
+export function SettingsForm({
+  siteName,
+  primaryNav,
+  features,
+  moduleCatalog,
+  moduleToggles,
+}: Props) {
   const [state, formAction, pending] = useActionState(updateSiteSettingsAction, initialState)
   const [navRows, setNavRows] = useState<NavItem[]>(
     primaryNav.length > 0 ? primaryNav : [{ label: '', href: '' }],
   )
 
   return (
-    <form action={formAction} className="settings-form">
+    <form action={formAction} className="settings-form settings-form-wide">
       <fieldset className="settings-fieldset">
         <legend>Site chrome</legend>
         <p className="settings-hint">
           Also editable in Payload <code>/admin</code> → Globals → Site settings. Saving here stores
           nav rows as custom paths/URLs. Prefer Payload’s <strong>CMS page</strong> link type so
-          header links stay tied to page slugs.
+          header links stay tied to page slugs. Primary nav visibility is gated under Modules →
+          Primary nav.
         </p>
         <label className="settings-field">
           <span>Site name</span>
@@ -115,42 +187,25 @@ export function SettingsForm({ siteName, primaryNav, features }: Props) {
         </div>
       </fieldset>
 
-      <fieldset className="settings-fieldset">
-        <legend>Feature toggles</legend>
+      <fieldset className="settings-fieldset settings-modules">
+        <legend>Modules</legend>
         <p className="settings-hint">
-          Product capabilities — not npm packages. Off = hide UI and reject gated APIs where wired.
+          All modular product pieces in this build — platform, capabilities, layout particles, and
+          atoms. Each row: name, short description, on/off. Off gates admin nav/routes where safe,
+          layout palette, and public render/inject. Package uninstall is a later phase.
         </p>
-        <FlagRow
-          name="featureRegistration"
-          label="Registration"
-          description="Allow /register for new app accounts."
-          checked={features.registration}
-        />
-        <FlagRow
-          name="featureRichEditor"
-          label="Rich editor"
-          description="Lexical stays on Pages for now; flag reserved for a future simpler mode."
-          checked={features.richEditor}
-        />
-        <FlagRow
-          name="featurePosts"
-          label="Posts"
-          description="No Posts collection yet — keep off until that slice."
-          checked={features.posts}
-          placeholder
-        />
-        <FlagRow
-          name="featureModules"
-          label="Modules"
-          description="Show registered modules in layout positions (notice bar in header after seed)."
-          checked={features.modules}
-        />
-        <FlagRow
-          name="featureDraftPreview"
-          label="Draft preview"
-          description="When on, users with CMS access can open /preview/{slug} to see unpublished drafts. Public /{slug} stays published-only."
-          checked={features.draftPreview}
-        />
+
+        {KIND_SECTIONS.map((section) => (
+          <div key={section.kind} className="settings-modules-group">
+            <h3 className="settings-modules-subhead">{section.title}</h3>
+            <p className="settings-hint">{section.hint}</p>
+            <ModuleRows
+              items={moduleCatalog.filter((m) => m.kind === section.kind)}
+              moduleToggles={moduleToggles}
+              features={features}
+            />
+          </div>
+        ))}
       </fieldset>
 
       {state.error ? (

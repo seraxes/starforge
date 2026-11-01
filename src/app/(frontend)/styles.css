@@ -956,6 +956,71 @@ button:disabled {
   margin-top: 1rem;
 }
 
+.settings-form-wide {
+  max-width: 48rem;
+}
+
+.settings-modules-subhead {
+  margin: 1rem 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.settings-modules-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.settings-modules-row {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--sf-line);
+  background: color-mix(in srgb, white 70%, var(--sf-paper, #fff));
+}
+
+.settings-modules-toggle {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  cursor: pointer;
+}
+
+.settings-modules-toggle input[type='checkbox'] {
+  margin-top: 0.2rem;
+}
+
+.settings-modules-toggle strong {
+  display: inline;
+  margin-right: 0.35rem;
+}
+
+.settings-modules-id {
+  display: inline-block;
+  margin-left: 0.35rem;
+  font-size: 0.78rem;
+  color: var(--sf-muted);
+}
+
+.settings-modules-badge {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.08rem 0.35rem;
+  border: 1px solid var(--sf-line);
+  background: color-mix(in srgb, var(--sf-primary) 22%, white);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.settings-modules-badge-muted {
+  background: color-mix(in srgb, var(--sf-secondary) 16%, white);
+}
+
 .settings-fieldset {
   margin: 0;
   padding: 1rem 1.1rem 1.15rem;

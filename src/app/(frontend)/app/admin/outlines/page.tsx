@@ -1,8 +1,10 @@
 import React from 'react'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 
 import { DEFAULT_LAYOUT_ID } from '@/core/db'
 import { listLayoutOutlines } from '@/core/modules'
+import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
 import { OutlinesManager } from './outlines-manager'
 
@@ -14,6 +16,11 @@ export const metadata = {
 }
 
 export default async function AdminOutlinesPage() {
+  const settings = await getSiteSettings()
+  if (!isCatalogModuleEnabled(settings, MODULE_IDS.layoutManager)) {
+    redirect('/app/admin/settings')
+  }
+
   const outlines = await listLayoutOutlines()
 
   return (

@@ -290,14 +290,23 @@ async function seedBootstrapAdmin() {
  */
 async function seedEnableModulesDemo() {
   const settings = await getSiteSettings()
-  if (settings.features.modules) {
+  const noticeOn = settings.moduleToggles['notice-bar'] === true
+  if (settings.features.modules && noticeOn) {
     return { updated: false as const, modules: true as const }
   }
 
   const payload = await getPayload({ config })
+  const otherToggles = Object.entries(settings.moduleToggles)
+    .filter(([id]) => id !== 'notice-bar')
+    .map(([moduleId, enabled]) => ({ moduleId, enabled }))
+
   await payload.updateGlobal({
     slug: 'site-settings',
-    data: { featureModules: true },
+    // Cast until Payload types are regenerated for `moduleToggles`.
+    data: {
+      featureModules: true,
+      moduleToggles: [{ moduleId: 'notice-bar', enabled: true }, ...otherToggles],
+    } as Record<string, unknown>,
     overrideAccess: true,
   })
 
