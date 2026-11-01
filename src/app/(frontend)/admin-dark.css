@@ -27,7 +27,7 @@ body:has(.admin-shell) > main {
   --sf-admin-input: #152033;
   --sf-admin-blue-border: #1e4d72;
   --sf-admin-blue-mid: #3498db;
-  --sf-admin-drop-bg: #161e2b; /* empty drop zone — recessed Gantry navy */
+  --sf-admin-drop-bg: #101926; /* empty drop zone — darker than Particles palette */
   --sf-admin-blue-action: #2f80b9;
   --sf-admin-toolbar-muted: #405475;
   --sf-admin-nav-bar: #1b2431;
@@ -101,10 +101,11 @@ body:has(.admin-shell) > main {
   gap: 0.85rem 1.25rem;
   margin: 0 0 0.85rem;
   padding: 0.35rem 0.5rem;
-  background: var(--sf-admin-nav-bar);
-  border: 1px solid #243246;
+  background: #0c121c;
+  border: 1px solid #1a2433;
   border-radius: 3px;
   min-height: 2.85rem;
+  box-shadow: none;
 }
 
 .admin-shell .gantry-layouts-nav-outline {
@@ -175,12 +176,12 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .gantry-layouts-nav-tab:hover {
-  background: color-mix(in srgb, var(--sf-admin-nav-active) 70%, transparent);
+  background: color-mix(in srgb, #5ba3d0 42%, transparent);
   color: #fff;
 }
 
 .admin-shell .gantry-layouts-nav-tab.is-active {
-  background: var(--sf-admin-nav-active);
+  background: #4a8fc4;
   box-shadow: none;
   color: #fff;
 }
@@ -313,7 +314,7 @@ body:has(.admin-shell) > main {
   background:
     linear-gradient(180deg, #0c121c 0%, #0f1622 48%, #0d141e 100%);
   border-right-color: #1a2433;
-  box-shadow: inset -1px 0 0 color-mix(in srgb, #000 40%, transparent);
+  box-shadow: none;
 }
 
 .admin-shell .admin-sidebar-title {
@@ -391,7 +392,7 @@ body:has(.admin-shell) > main {
 .admin-shell .admin-nav-dropdown-menu {
   background: var(--sf-admin-elevated);
   border-color: var(--sf-admin-blue-border);
-  box-shadow: 0 10px 28px color-mix(in srgb, #000 35%, transparent);
+  box-shadow: none;
 }
 
 .admin-shell .admin-nav-dropdown-menu a {
@@ -501,9 +502,19 @@ body:has(.admin-shell) > main {
 .admin-shell .gantry-typed-form button.danger,
 .admin-shell button.danger,
 .admin-shell .outlines-actions .danger {
-  background: color-mix(in srgb, #c45c5c 22%, var(--sf-admin-surface));
-  color: #f0b4b4;
-  border-color: color-mix(in srgb, #c45c5c 40%, var(--sf-line));
+  background: color-mix(in srgb, #c0392b 38%, var(--sf-admin-surface));
+  color: #ffb0a8;
+  border-color: color-mix(in srgb, #e74c3c 55%, var(--sf-line));
+}
+
+.admin-shell .gantry-row-actions button.danger:hover,
+.admin-shell .gantry-row-meta button.danger:hover,
+.admin-shell .gantry-slot-actions button.danger:hover,
+.admin-shell button.danger:hover,
+.admin-shell .outlines-actions .danger:hover {
+  background: color-mix(in srgb, #c0392b 52%, var(--sf-admin-surface));
+  color: #ffc9c2;
+  border-color: color-mix(in srgb, #e74c3c 70%, var(--sf-line));
 }
 
 /* —— Layout editor: steal Gantry Helium —— */
@@ -547,12 +558,15 @@ body:has(.admin-shell) > main {
   flex-direction: row;
   align-items: center;
   gap: 0.45rem;
+  box-sizing: border-box;
   background: #182230;
   border: 1px solid var(--sf-admin-blue-border);
   border-radius: 3px;
   color: #fff;
-  padding: 0.35rem 0.45rem;
-  min-height: 2.05rem;
+  padding: 0.32rem 0.45rem;
+  /* Match placed module bar height */
+  min-height: 3.25rem;
+  box-shadow: none;
 }
 
 .admin-shell .gantry-palette-icon {
@@ -560,13 +574,34 @@ body:has(.admin-shell) > main {
   width: 1.05rem;
   text-align: center;
   opacity: 0.9;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.admin-shell .gantry-palette-labels {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .admin-shell .gantry-palette-item strong {
-  font-size: 0.82rem;
-  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1.2;
+  font-weight: 700;
   color: #fff;
+}
+
+.admin-shell .gantry-palette-key {
+  font-size: 0.8rem;
+  line-height: 1.15;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.75);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .admin-shell .gantry-palette-item:active,
@@ -766,6 +801,13 @@ body:has(.admin-shell) > main {
   line-height: 1;
 }
 
+/* Section cog ~50% larger than sibling + control */
+.admin-shell .gantry-section-settings > summary.gantry-section-icon-btn {
+  width: 2.45rem;
+  height: 2.45rem;
+  font-size: 1.5rem;
+}
+
 .admin-shell .gantry-section-icon-btn:hover,
 .admin-shell .gantry-section-settings > summary:hover {
   background: color-mix(in srgb, var(--sf-admin-blue-mid) 22%, transparent);
@@ -792,7 +834,7 @@ body:has(.admin-shell) > main {
   background: #1b2531;
   border: 1px solid var(--sf-admin-blue-border);
   border-radius: 3px;
-  box-shadow: 0 10px 24px color-mix(in srgb, #000 42%, transparent);
+  box-shadow: none;
 }
 
 .admin-shell .gantry-section-settings:not([open]) > .gantry-section-toolbar {
@@ -832,7 +874,7 @@ body:has(.admin-shell) > main {
 
 .admin-shell .gantry-row-slots {
   gap: 0.28rem;
-  min-height: 2.75rem;
+  min-height: 4.25rem;
 }
 
 .admin-shell .gantry-row-empty {
@@ -840,11 +882,13 @@ body:has(.admin-shell) > main {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 2.75rem;
-  padding: 0.55rem 0.65rem;
+  box-sizing: border-box;
+  min-height: 4.25rem;
+  /* Gantry5-like roomy empty slot */
+  padding: 1.35rem 1.75rem;
   background: var(--sf-admin-drop-bg);
-  border: 1px solid #121924;
-  box-shadow: inset 0 1px 2px color-mix(in srgb, #000 40%, transparent);
+  border: 4px solid #0f3d63;
+  box-shadow: none;
   border-radius: 3px;
   color: #7f93aa;
   font-size: 0.84rem;
@@ -857,18 +901,20 @@ body:has(.admin-shell) > main {
   color: #b7d6ec;
 }
 
-/* Particle bars — flat Gantry mid-blue, tight padding, subtle radius */
+/* Particle bars — flat mid-blue + 4px dark-blue edge (no inset glow) */
 .admin-shell .gantry-slot {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 0;
+  box-sizing: border-box;
   background: var(--sf-admin-card);
-  border: 1px solid #1a6ea3;
+  border: 4px solid #0f3d63;
   border-radius: 3px;
   color: #fff;
   padding: 0.32rem 0.45rem;
-  min-height: 2.65rem;
-  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 12%, transparent);
+  min-height: 3.25rem;
+  box-shadow: none;
 }
 
 .admin-shell .gantry-slot,
@@ -906,6 +952,7 @@ body:has(.admin-shell) > main {
 .admin-shell .gantry-slot-labels {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 0;
   min-width: 0;
   flex: 1 1 auto;
@@ -913,6 +960,8 @@ body:has(.admin-shell) > main {
 
 .admin-shell .gantry-slot-name-label {
   margin: 0;
+  display: flex;
+  align-items: center;
 }
 
 .admin-shell .gantry-slot .gantry-slot-name-input {
@@ -922,8 +971,9 @@ body:has(.admin-shell) > main {
   -webkit-text-fill-color: #fff;
   caret-color: #fff;
   font-weight: 700 !important;
-  font-size: 0.88rem !important;
-  min-height: 1.15rem !important;
+  font-size: 1rem !important;
+  line-height: 1.2 !important;
+  min-height: 1.2rem !important;
   padding: 0 !important;
   max-width: none;
   width: 100%;
@@ -937,7 +987,7 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .gantry-slot-sub {
-  font-size: 0.68rem;
+  font-size: 0.8rem; /* ~80% of title 1rem */
   line-height: 1.15;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.82) !important;
@@ -986,14 +1036,14 @@ body:has(.admin-shell) > main {
 
 .admin-shell .gantry-slot-actions .gantry-settings-trigger,
 .admin-shell .gantry-settings-gear {
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 2.25rem;
+  height: 2.25rem;
   padding: 0;
   border: 0;
   border-radius: 2px;
   background: transparent;
   color: #fff;
-  font-size: 0.92rem;
+  font-size: 1.38rem;
   line-height: 1;
 }
 
@@ -1058,9 +1108,7 @@ body:has(.admin-shell) > main {
   border-radius: 3px;
   color: #fff;
   overflow: hidden;
-  box-shadow:
-    0 18px 42px color-mix(in srgb, #000 55%, transparent),
-    0 2px 10px color-mix(in srgb, #000 30%, transparent);
+  box-shadow: none;
 }
 
 /* Top chrome strip holding Particle / Block / Inheritance–style tabs */

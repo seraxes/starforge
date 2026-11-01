@@ -804,7 +804,7 @@ function DropRow({
             <input type="hidden" name="sectionId" value={sectionId} />
             <input type="hidden" name="rowId" value={row.id} />
             <button type="submit" className="danger" disabled={removeRowPending}>
-              Remove row
+              ✕ Remove row
             </button>
           </form>
         </div>
@@ -1382,7 +1382,10 @@ export function LayoutEditor({
                   <span className="gantry-palette-icon" aria-hidden="true">
                     ▣
                   </span>
-                  <strong>{mod.name}</strong>
+                  <span className="gantry-palette-labels">
+                    <strong>{mod.name}</strong>
+                    <span className="gantry-palette-key">{mod.id}</span>
+                  </span>
                 </div>
               </li>
             ))}
