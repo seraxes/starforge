@@ -19,6 +19,7 @@ Reference: [docs.gantry.org](https://docs.gantry.org/).
 | Admin UI | `/app/admin/layouts` — palette + canvas |
 | Code editors | CodeMirror 6 (`CodeEditorField`) for Custom HTML/CSS/JS |
 | Public render | `PublicLayoutBody` + `SlotRenderer` |
+| Page surround | `.public-shell` fills `html`/`body`/`main` (100dvh); sticky footer — no nested wrapper yet |
 
 ## Document shape
 
