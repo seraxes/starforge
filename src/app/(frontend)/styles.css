@@ -58,13 +58,26 @@
   box-sizing: border-box;
 }
 
+/*
+ * Full-height chain (SF-75): fill the viewport on html/body/main first.
+ * `.public-shell` is the de-facto Gantry page-surround (header/content/footer);
+ * defer an extra #sf-page-surround wrapper unless this chain is not enough.
+ */
+html {
+  min-height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
 html,
 body {
-  min-height: 100%;
   margin: 0;
 }
 
 body {
+  min-height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
   font-family: var(--font-body);
   color: var(--sf-ink);
   background:
@@ -72,6 +85,15 @@ body {
     radial-gradient(900px 520px at 100% 0%, color-mix(in srgb, var(--sf-secondary) 38%, white) 0%, transparent 52%),
     linear-gradient(180deg, #eef4fa 0%, var(--sf-paper) 48%, #eef2f6 100%);
   -webkit-font-smoothing: antialiased;
+}
+
+/* Root layout wraps all routes in <main> — flex so public/admin shells fill. */
+body > main {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 /* Public site chrome (site name + primary nav) */
@@ -119,11 +141,19 @@ body {
   text-decoration-thickness: 2px;
 }
 
-/* Named module positions + notice-bar example module */
+/*
+ * Public layout shell = page-surround role (Gantry #g-page-surround).
+ * Fills body>main via flex; sticky footer uses margin-top:auto below.
+ */
 .public-shell {
-  min-height: 100vh;
+  flex: 1 0 auto;
+  width: 100%;
   display: flex;
   flex-direction: column;
+  min-height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  box-sizing: border-box;
 }
 
 /* Page Content particle wrapper — grow only as content needs (not a spacer). */
@@ -178,11 +208,12 @@ body {
 }
 
 /*
- * Sticky footer: only the *last* layout footer section should eat free space.
- * (If a mis-ordered footer painted first, margin-top:auto on every .site-footer
- * pushed Main/Form below it in the flex column.)
+ * Sticky footer: push the first trailing chrome block to the bottom of the
+ * surround. Prefer the last layout footer; if none, the Built-with meta line.
+ * (Do not put margin-top:auto on both — that splits free space between them.)
  */
-.public-shell > .site-footer:last-of-type {
+.public-shell > .site-footer:last-of-type,
+.public-shell:not(:has(> .site-footer)) > .sf-layout-chrome-meta {
   margin-top: auto;
 }
 
@@ -448,9 +479,9 @@ button:disabled {
 }
 
 /* Public CMS page (`/[slug]`) + draft preview (`/preview/[slug]`)
- * No max-width here — layout sections own boxed vs full (SF-34). */
+ * No max-width here — layout sections own boxed vs full (SF-34).
+ * No min-height — viewport fill is html/body/main + `.public-shell` (SF-75). */
 .cms-page {
-  min-height: 100vh;
   padding: 3rem 1.5rem 3rem;
 }
 
@@ -1472,9 +1503,7 @@ button:disabled {
   z-index: 1;
 }
 
-.sf-layout-chrome-meta {
-  margin-top: auto;
-}
+/* Sticky push for chrome-meta is scoped under `.public-shell` (see above). */
 
 .sf-custom-js-stub {
   margin: 0.5rem 1.5rem;

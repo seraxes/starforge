@@ -131,6 +131,10 @@ function documentHasPageContent(sections: LayoutSection[]): boolean {
  * Public site body driven by the layout document (sections → rows → slots).
  * Page route children render via the built-in `page-content` particle.
  *
+ * `.public-shell` is the Gantry-like page-surround: header/content/footer in
+ * one flex column that fills `body > main` (html/body min-height 100dvh).
+ * No nested `#sf-page-surround` unless body stretch later proves insufficient.
+ *
  * Section canvas order is user `order` (DnD). Public paint only moves
  * footer-named sections to the end so Main particles stay above `<footer>` —
  * stored orders are not rewritten.

@@ -11,7 +11,7 @@ body:has(.admin-shell) {
 }
 
 body:has(.admin-shell) > main {
-  min-height: 100vh;
+  /* Height/flex come from styles.css `body > main`; keep admin bg wipe. */
   background: transparent;
 }
 
