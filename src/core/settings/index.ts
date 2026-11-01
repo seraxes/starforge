@@ -131,11 +131,14 @@ export function normalizeSiteSettings(
 
 /**
  * Prefer Nav manager menu set; fall back to legacy Payload primaryNav rows.
+ * Passes a settings snapshot (without resolved nav) so module link types can
+ * honor Modules on/off without re-entering getSiteSettings.
  */
 async function resolvePrimaryNavForDoc(doc: SiteSettingsDoc): Promise<NavItem[]> {
   const menuId = normalizePrimaryNavMenuId(doc.primaryNavMenuId)
+  const settingsForModules = normalizeSiteSettings(doc, [])
   try {
-    const fromMenu = await resolveNavMenuItems(menuId)
+    const fromMenu = await resolveNavMenuItems(menuId, settingsForModules)
     // Non-default fallbacks from resolveNavMenuItems still count as usable.
     if (fromMenu.length > 0) {
       // If menu resolve returned only the hard-coded DEFAULT_PRIMARY_NAV and
@@ -173,14 +176,15 @@ async function loadSiteSettingsUncached(): Promise<SiteSettingsData> {
     return normalizeSiteSettings(doc, primaryNav)
   } catch {
     try {
-      const fromMenu = await resolveNavMenuItems(DEFAULT_NAV_MENU_ID)
-      return {
+      const fallbackSettings = {
         ...DEFAULT_SITE_SETTINGS,
         features: { ...DEFAULT_FEATURE_FLAGS },
-        primaryNav: fromMenu,
+        primaryNav: [] as NavItem[],
         primaryNavMenuId: DEFAULT_PRIMARY_NAV_MENU_ID,
         moduleToggles: {},
       }
+      const fromMenu = await resolveNavMenuItems(DEFAULT_NAV_MENU_ID, fallbackSettings)
+      return { ...fallbackSettings, primaryNav: fromMenu }
     } catch {
       return {
         ...DEFAULT_SITE_SETTINGS,
@@ -395,7 +399,8 @@ export async function seedPrimaryNavFromPages(
     // Settings global may be unavailable; menu seed still applied.
   }
 
-  const resolved = await resolveNavMenuItems(DEFAULT_NAV_MENU_ID)
+  const settingsSnap = await getSiteSettingsUncached()
+  const resolved = await resolveNavMenuItems(DEFAULT_NAV_MENU_ID, settingsSnap)
   return { updated: seeded.updated, primaryNav: resolved }
 }
 

@@ -357,7 +357,14 @@ export async function migrateLegacyPrimaryNavToMain(legacyRows: unknown): Promis
       pageId = (row.page as { id: number }).id
     }
 
-    const linkType = row.linkType === 'custom' ? 'custom' : row.linkType === 'page' ? 'page' : null
+    const linkType =
+      row.linkType === 'custom' || row.linkType === 'url'
+        ? 'url'
+        : row.linkType === 'page'
+          ? 'page'
+          : row.linkType === 'module'
+            ? 'module'
+            : null
 
     if (linkType === 'page' || (!linkType && pageId != null)) {
       if (pageId == null) continue
@@ -389,7 +396,7 @@ export async function migrateLegacyPrimaryNavToMain(legacyRows: unknown): Promis
       createNavMenuItem(
         {
           label,
-          linkType: 'custom',
+          linkType: 'url',
           url,
           cssClass,
           browserTitle,
@@ -483,7 +490,7 @@ export async function ensureDefaultNavMenuSeeded(options?: {
         createNavMenuItem(
           {
             label: entry.label,
-            linkType: 'custom',
+            linkType: 'url',
             url: normalizeHref(entry.href),
             accessLevel: 'public',
           },
@@ -532,7 +539,7 @@ export async function seedMainNavFromPages(
   if (!loaded.isFallback && loaded.document.items.length > 0) {
     // Already customized — leave alone
     const hasOnlyPageOrEmpty = loaded.document.items.every(
-      (item) => item.linkType === 'page' || item.linkType === 'custom',
+      (item) => item.linkType === 'page' || item.linkType === 'url' || item.linkType === 'module',
     )
     if (hasOnlyPageOrEmpty && loaded.document.items.some((i) => i.linkType === 'page')) {
       return { updated: false, itemCount: loaded.document.items.length }

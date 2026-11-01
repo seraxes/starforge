@@ -1,11 +1,12 @@
 import { getPayload } from 'payload'
 
 import config from '@payload-config'
-import type { NavItem } from '@/core/settings/defaults'
+import type { NavItem, SiteSettingsData } from '@/core/settings/defaults'
 import { DEFAULT_PRIMARY_NAV } from '@/core/settings/defaults'
 import { normalizeHref, type RawNavRow, resolveNavItems } from '@/core/settings/nav'
 
 import { flattenNavItemsInOrder } from './document'
+import { resolveModuleNavHref } from './module-views'
 import { DEFAULT_NAV_MENU_ID, loadNavMenu } from './store'
 import type { NavMenuItem } from './types'
 
@@ -16,6 +17,9 @@ export type ResolvedNavItem = NavItem & {
   pageHeading?: string
   accessLevel?: string
   pageId?: number | null
+  moduleId?: string | null
+  moduleViewKey?: string | null
+  linkType?: NavMenuItem['linkType']
 }
 
 async function resolvePageSlugMap(
@@ -47,6 +51,7 @@ async function resolvePageSlugMap(
 function itemToResolved(
   item: NavMenuItem,
   slugById: Map<number, string>,
+  moduleHref: string | null,
 ): ResolvedNavItem | null {
   const label = item.label.trim()
   if (!label) return null
@@ -58,35 +63,44 @@ function itemToResolved(
     const slug = slugById.get(pageId)
     if (!slug) return null
     href = normalizeHref(slug)
+  } else if (item.linkType === 'module') {
+    if (!moduleHref) return null
+    href = normalizeHref(moduleHref)
+    if (!href) return null
   } else {
     href = normalizeHref(item.url ?? '')
     if (!href) return null
   }
 
-  const resolved: ResolvedNavItem = { label, href, id: item.id }
+  const resolved: ResolvedNavItem = { label, href, id: item.id, linkType: item.linkType }
   if (item.cssClass) resolved.cssClass = item.cssClass
   if (item.browserTitle) resolved.browserTitle = item.browserTitle
   if (item.pageHeading) resolved.pageHeading = item.pageHeading
   if (item.accessLevel) resolved.accessLevel = String(item.accessLevel)
   if (item.linkType === 'page' && item.pageId != null) resolved.pageId = item.pageId
+  if (item.linkType === 'module') {
+    resolved.moduleId = item.moduleId ?? null
+    resolved.moduleViewKey = item.moduleViewKey ?? null
+  }
   return resolved
 }
 
 /**
  * Resolve a navigation set to public `{ label, href, … }` items.
- * Flat order (parents then children); nesting render comes later.
- * Access-level filtering is stubbed — all items returned for now.
+ * Pass `settings` so module links can honor Modules on/off (avoids circular
+ * import with getSiteSettings). Module items are skipped when settings is
+ * omitted, the module is off, or the view key is unknown.
  */
 export async function resolveNavMenuItems(
   menuId: string | null | undefined,
+  settings?: SiteSettingsData | null,
 ): Promise<ResolvedNavItem[]> {
   const id = (menuId || DEFAULT_NAV_MENU_ID).trim() || DEFAULT_NAV_MENU_ID
   const loaded = await loadNavMenu(id)
 
   if (loaded.isFallback && loaded.document.items.length === 0) {
-    // Try default Main if a custom id was empty
     if (id !== DEFAULT_NAV_MENU_ID) {
-      return resolveNavMenuItems(DEFAULT_NAV_MENU_ID)
+      return resolveNavMenuItems(DEFAULT_NAV_MENU_ID, settings)
     }
     return DEFAULT_PRIMARY_NAV.map((i) => ({ ...i }))
   }
@@ -99,7 +113,11 @@ export async function resolveNavMenuItems(
 
   const out: ResolvedNavItem[] = []
   for (const item of ordered) {
-    const resolved = itemToResolved(item, slugById)
+    const moduleHref =
+      item.linkType === 'module' && settings
+        ? resolveModuleNavHref(settings, item.moduleId, item.moduleViewKey)
+        : null
+    const resolved = itemToResolved(item, slugById, moduleHref)
     if (resolved) out.push(resolved)
   }
 

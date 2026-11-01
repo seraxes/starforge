@@ -11,15 +11,17 @@ import {
   saveNavMenuItemsAction,
   type NavActionState,
 } from '@/core/nav/actions'
-import type { NavMenuItem, NavPageOption } from '@/core/nav/types'
+import type { NavLinkType, NavMenuItem, NavModuleOption, NavPageOption } from '@/core/nav/types'
 
 type EditableItem = {
   id: string
   parentId: string
   label: string
-  linkType: 'page' | 'custom'
+  linkType: NavLinkType
   pageId: string
   url: string
+  moduleId: string
+  moduleViewKey: string
   cssClass: string
   browserTitle: string
   pageHeading: string
@@ -32,6 +34,7 @@ type Props = {
   menuLabel: string
   items: NavMenuItem[]
   pages: NavPageOption[]
+  modules: NavModuleOption[]
   isSitePrimary: boolean
 }
 
@@ -47,13 +50,18 @@ function toEditable(item: NavMenuItem): EditableItem {
     accessGroupId = access.slice('group:'.length)
   }
 
+  const linkType: NavLinkType =
+    item.linkType === 'module' ? 'module' : item.linkType === 'url' ? 'url' : 'page'
+
   return {
     id: item.id,
     parentId: item.parentId ?? '',
     label: item.label,
-    linkType: item.linkType === 'custom' ? 'custom' : 'page',
+    linkType,
     pageId: item.pageId != null ? String(item.pageId) : '',
     url: item.url ?? '',
+    moduleId: item.moduleId ?? '',
+    moduleViewKey: item.moduleViewKey ?? '',
     cssClass: item.cssClass ?? '',
     browserTitle: item.browserTitle ?? '',
     pageHeading: item.pageHeading ?? '',
@@ -94,6 +102,8 @@ function appendItemFields(form: HTMLFormElement, rows: EditableItem[]) {
     add('itemLinkType', row.linkType)
     add('itemPageId', row.pageId)
     add('itemUrl', row.url)
+    add('itemModuleId', row.moduleId)
+    add('itemModuleViewKey', row.moduleViewKey)
     add('itemParentId', row.parentId)
     add('itemCssClass', row.cssClass)
     add('itemBrowserTitle', row.browserTitle)
@@ -103,24 +113,56 @@ function appendItemFields(form: HTMLFormElement, rows: EditableItem[]) {
   }
 }
 
-export function NavItemsEditor({ menuId, menuLabel, items, pages, isSitePrimary }: Props) {
+function summarizeLink(
+  row: EditableItem,
+  pages: NavPageOption[],
+  modules: NavModuleOption[],
+): string {
+  if (row.linkType === 'page') {
+    const page = pages.find((p) => String(p.id) === row.pageId)
+    return page ? `/${page.slug}` : 'CMS page'
+  }
+  if (row.linkType === 'module') {
+    const mod = modules.find((m) => m.moduleId === row.moduleId)
+    const view = mod?.views.find((v) => v.key === row.moduleViewKey)
+    if (mod && view) return `${mod.moduleLabel} → ${view.label}`
+    return 'Module view'
+  }
+  return row.url || 'URL'
+}
+
+export function NavItemsEditor({
+  menuId,
+  menuLabel,
+  items,
+  pages,
+  modules,
+  isSitePrimary,
+}: Props) {
   const router = useRouter()
   const [rows, setRows] = useState<EditableItem[]>(() => items.map(toEditable))
   const [clipboard, setClipboard] = useState<string>('')
   const [expandedId, setExpandedId] = useState<string | null>(items[0]?.id ?? null)
-
-  useEffect(() => {
-    setRows(items.map(toEditable))
-  }, [items])
+  const [newLinkType, setNewLinkType] = useState<NavLinkType>('page')
+  const [newModuleId, setNewModuleId] = useState(modules[0]?.moduleId ?? '')
 
   const [saveState, saveAction, savePending] = useActionState(saveNavMenuItemsAction, initial)
   const [moveState, moveAction, movePending] = useActionState(moveNavMenuItemAction, initial)
   const [addState, addAction, addPending] = useActionState(addNavMenuItemAction, initial)
   const [pasteState, pasteAction, pastePending] = useActionState(pasteNavMenuItemAction, initial)
 
+  useEffect(() => {
+    setRows(items.map(toEditable))
+  }, [items])
+
   const parentOptions = useMemo(
     () => rows.map((r) => ({ id: r.id, label: r.label })),
     [rows],
+  )
+
+  const newModuleViews = useMemo(
+    () => modules.find((m) => m.moduleId === newModuleId)?.views ?? [],
+    [modules, newModuleId],
   )
 
   const refresh = () => router.refresh()
@@ -143,6 +185,8 @@ export function NavItemsEditor({ menuId, menuLabel, items, pages, isSitePrimary 
       linkType: row.linkType,
       pageId: row.pageId ? Number(row.pageId) : null,
       url: row.url,
+      moduleId: row.moduleId || null,
+      moduleViewKey: row.moduleViewKey || null,
       parentId: null,
       cssClass: row.cssClass || null,
       browserTitle: row.browserTitle || null,
@@ -157,6 +201,18 @@ export function NavItemsEditor({ menuId, menuLabel, items, pages, isSitePrimary 
     if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
       void navigator.clipboard.writeText(json)
     }
+  }
+
+  const setMoveTarget = (form: HTMLFormElement | null, itemId: string) => {
+    if (!form) return
+    let moveItem = form.querySelector<HTMLInputElement>('input[name="moveItemId"]')
+    if (!moveItem) {
+      moveItem = document.createElement('input')
+      moveItem.type = 'hidden'
+      moveItem.name = 'moveItemId'
+      form.appendChild(moveItem)
+    }
+    moveItem.value = itemId
   }
 
   return (
@@ -190,6 +246,8 @@ export function NavItemsEditor({ menuId, menuLabel, items, pages, isSitePrimary 
           <ul className="nav-items-list">
             {rows.map((row, index) => {
               const expanded = expandedId === row.id
+              const moduleViews =
+                modules.find((m) => m.moduleId === row.moduleId)?.views ?? []
               return (
                 <li key={row.id} className="nav-item-card">
                   <input type="hidden" name="itemId" value={row.id} />
@@ -203,11 +261,7 @@ export function NavItemsEditor({ menuId, menuLabel, items, pages, isSitePrimary 
                       <span className="nav-item-index">{index + 1}</span>
                       <strong>{row.label || 'Untitled'}</strong>
                       <span className="outlines-muted">
-                        {row.linkType === 'page'
-                          ? pages.find((p) => String(p.id) === row.pageId)?.slug
-                            ? `/${pages.find((p) => String(p.id) === row.pageId)!.slug}`
-                            : 'CMS page'
-                          : row.url || 'Custom URL'}
+                        {summarizeLink(row, pages, modules)}
                       </span>
                     </button>
                     <div className="nav-item-quick">
@@ -218,20 +272,7 @@ export function NavItemsEditor({ menuId, menuLabel, items, pages, isSitePrimary 
                         disabled={movePending || index === 0}
                         name="direction"
                         value="up"
-                        onClick={(e) => {
-                          const form = e.currentTarget.form
-                          if (!form) return
-                          let moveItem = form.querySelector<HTMLInputElement>(
-                            'input[name="moveItemId"]',
-                          )
-                          if (!moveItem) {
-                            moveItem = document.createElement('input')
-                            moveItem.type = 'hidden'
-                            moveItem.name = 'moveItemId'
-                            form.appendChild(moveItem)
-                          }
-                          moveItem.value = row.id
-                        }}
+                        onClick={(e) => setMoveTarget(e.currentTarget.form, row.id)}
                       >
                         Up
                       </button>
@@ -242,28 +283,11 @@ export function NavItemsEditor({ menuId, menuLabel, items, pages, isSitePrimary 
                         disabled={movePending || index === rows.length - 1}
                         name="direction"
                         value="down"
-                        onClick={(e) => {
-                          const form = e.currentTarget.form
-                          if (!form) return
-                          let moveItem = form.querySelector<HTMLInputElement>(
-                            'input[name="moveItemId"]',
-                          )
-                          if (!moveItem) {
-                            moveItem = document.createElement('input')
-                            moveItem.type = 'hidden'
-                            moveItem.name = 'moveItemId'
-                            form.appendChild(moveItem)
-                          }
-                          moveItem.value = row.id
-                        }}
+                        onClick={(e) => setMoveTarget(e.currentTarget.form, row.id)}
                       >
                         Down
                       </button>
-                      <button
-                        type="button"
-                        className="secondary"
-                        onClick={() => copyRow(row)}
-                      >
+                      <button type="button" className="secondary" onClick={() => copyRow(row)}>
                         Copy
                       </button>
                       <button
@@ -276,11 +300,12 @@ export function NavItemsEditor({ menuId, menuLabel, items, pages, isSitePrimary 
                     </div>
                   </div>
 
-                  {/* Always submit current field values */}
                   <input type="hidden" name="itemLabel" value={row.label} />
                   <input type="hidden" name="itemLinkType" value={row.linkType} />
                   <input type="hidden" name="itemPageId" value={row.pageId} />
                   <input type="hidden" name="itemUrl" value={row.url} />
+                  <input type="hidden" name="itemModuleId" value={row.moduleId} />
+                  <input type="hidden" name="itemModuleViewKey" value={row.moduleViewKey} />
                   <input type="hidden" name="itemParentId" value={row.parentId} />
                   <input type="hidden" name="itemCssClass" value={row.cssClass} />
                   <input type="hidden" name="itemBrowserTitle" value={row.browserTitle} />
@@ -303,14 +328,19 @@ export function NavItemsEditor({ menuId, menuLabel, items, pages, isSitePrimary 
                         <span>Link type</span>
                         <select
                           value={row.linkType}
-                          onChange={(e) =>
-                            updateRow(row.id, {
-                              linkType: e.target.value === 'custom' ? 'custom' : 'page',
-                            })
-                          }
+                          onChange={(e) => {
+                            const next = e.target.value as NavLinkType
+                            const patch: Partial<EditableItem> = { linkType: next }
+                            if (next === 'module' && !row.moduleId && modules[0]) {
+                              patch.moduleId = modules[0].moduleId
+                              patch.moduleViewKey = modules[0].views[0]?.key ?? ''
+                            }
+                            updateRow(row.id, patch)
+                          }}
                         >
                           <option value="page">CMS page</option>
-                          <option value="custom">Custom URL</option>
+                          <option value="url">URL</option>
+                          <option value="module">Module view</option>
                         </select>
                       </label>
                       {row.linkType === 'page' ? (
@@ -328,7 +358,8 @@ export function NavItemsEditor({ menuId, menuLabel, items, pages, isSitePrimary 
                             ))}
                           </select>
                         </label>
-                      ) : (
+                      ) : null}
+                      {row.linkType === 'url' ? (
                         <label className="settings-field">
                           <span>URL</span>
                           <input
@@ -338,7 +369,56 @@ export function NavItemsEditor({ menuId, menuLabel, items, pages, isSitePrimary 
                             onChange={(e) => updateRow(row.id, { url: e.target.value })}
                           />
                         </label>
-                      )}
+                      ) : null}
+                      {row.linkType === 'module' ? (
+                        <>
+                          <label className="settings-field">
+                            <span>Module</span>
+                            <select
+                              value={row.moduleId}
+                              onChange={(e) => {
+                                const moduleId = e.target.value
+                                const views =
+                                  modules.find((m) => m.moduleId === moduleId)?.views ?? []
+                                updateRow(row.id, {
+                                  moduleId,
+                                  moduleViewKey: views[0]?.key ?? '',
+                                })
+                              }}
+                            >
+                              <option value="">Select module…</option>
+                              {modules.map((m) => (
+                                <option key={m.moduleId} value={m.moduleId}>
+                                  {m.moduleLabel}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <label className="settings-field">
+                            <span>View</span>
+                            <select
+                              value={row.moduleViewKey}
+                              onChange={(e) =>
+                                updateRow(row.id, { moduleViewKey: e.target.value })
+                              }
+                              disabled={!row.moduleId || moduleViews.length === 0}
+                            >
+                              <option value="">Select view…</option>
+                              {moduleViews.map((v) => (
+                                <option key={v.key} value={v.key}>
+                                  {v.label} ({v.href})
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          {modules.length === 0 ? (
+                            <p className="settings-hint">
+                              No enabled modules declare navigable views. Turn modules on under Site
+                              settings → Modules, or register <code>navViews</code> on a module.
+                            </p>
+                          ) : null}
+                        </>
+                      ) : null}
                       <label className="settings-field">
                         <span>Parent (optional)</span>
                         <select
@@ -461,26 +541,75 @@ export function NavItemsEditor({ menuId, menuLabel, items, pages, isSitePrimary 
           </label>
           <label className="settings-field">
             <span>Link type</span>
-            <select name="newLinkType" defaultValue="page">
+            <select
+              name="newLinkType"
+              value={newLinkType}
+              onChange={(e) => {
+                const next = e.target.value as NavLinkType
+                setNewLinkType(next)
+                if (next === 'module' && !newModuleId && modules[0]) {
+                  setNewModuleId(modules[0].moduleId)
+                }
+              }}
+            >
               <option value="page">CMS page</option>
-              <option value="custom">Custom URL</option>
+              <option value="url">URL</option>
+              <option value="module">Module view</option>
             </select>
           </label>
-          <label className="settings-field">
-            <span>Page</span>
-            <select name="newPageId" defaultValue="">
-              <option value="">Select…</option>
-              {pages.map((p) => (
-                <option key={p.id} value={String(p.id)}>
-                  {p.title} (/{p.slug})
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="settings-field">
-            <span>URL (if custom)</span>
-            <input type="text" name="newUrl" placeholder="/path" />
-          </label>
+          {newLinkType === 'page' ? (
+            <label className="settings-field">
+              <span>Page</span>
+              <select name="newPageId" defaultValue="">
+                <option value="">Select…</option>
+                {pages.map((p) => (
+                  <option key={p.id} value={String(p.id)}>
+                    {p.title} (/{p.slug})
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+          {newLinkType === 'url' ? (
+            <label className="settings-field">
+              <span>URL</span>
+              <input type="text" name="newUrl" placeholder="/path" />
+            </label>
+          ) : null}
+          {newLinkType === 'module' ? (
+            <>
+              <label className="settings-field">
+                <span>Module</span>
+                <select
+                  name="newModuleId"
+                  value={newModuleId}
+                  onChange={(e) => setNewModuleId(e.target.value)}
+                >
+                  <option value="">Select…</option>
+                  {modules.map((m) => (
+                    <option key={m.moduleId} value={m.moduleId}>
+                      {m.moduleLabel}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="settings-field">
+                <span>View</span>
+                <select
+                  name="newModuleViewKey"
+                  defaultValue={newModuleViews[0]?.key ?? ''}
+                  key={newModuleId}
+                >
+                  <option value="">Select…</option>
+                  {newModuleViews.map((v) => (
+                    <option key={v.key} value={v.key}>
+                      {v.label} ({v.href})
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </>
+          ) : null}
           <button type="submit" disabled={addPending}>
             {addPending ? 'Adding…' : 'Add item'}
           </button>

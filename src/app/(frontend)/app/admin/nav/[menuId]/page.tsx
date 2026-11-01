@@ -4,10 +4,12 @@ import { notFound, redirect } from 'next/navigation'
 
 import {
   flattenNavItemsInOrder,
+  listEnabledModuleNavOptions,
   listNavPageOptions,
   loadNavMenu,
 } from '@/core/nav'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
+import { ensureModulesRegistered } from '@/modules/catalog'
 
 import { NavItemsEditor } from './nav-items-editor'
 
@@ -32,6 +34,8 @@ export default async function AdminNavMenuItemsPage({ params }: Args) {
     redirect('/app/admin/settings')
   }
 
+  ensureModulesRegistered()
+
   const { menuId: rawId } = await params
   const menuId = decodeURIComponent(rawId)
   const loaded = await loadNavMenu(menuId)
@@ -40,16 +44,19 @@ export default async function AdminNavMenuItemsPage({ params }: Args) {
     notFound()
   }
 
-  const pages = await listNavPageOptions()
+  const [pages, modules] = await Promise.all([
+    listNavPageOptions(),
+    Promise.resolve(listEnabledModuleNavOptions(settings)),
+  ])
   const items = flattenNavItemsInOrder(loaded.document.items)
 
   return (
     <section className="admin-section admin-layouts-full">
       <h2>Nav items — {loaded.label}</h2>
       <p className="lede admin-lede">
-        Bind each item to a CMS page or custom URL. Reorder with Up/Down, Copy then Paste to
-        duplicate. Parent id is stored for later nesting (public nav stays flat). Access level is a
-        stub for upcoming user-group ACL.{' '}
+        Bind each item to a CMS page, URL, or an <strong>enabled module view</strong> (Modules
+        catalog / registry <code>navViews</code>). Reorder with Up/Down; Copy/Paste to duplicate.
+        Access level is a stub for upcoming ACL.{' '}
         <Link href="/app/admin/nav">Back to menus</Link>
         {settings.primaryNavMenuId === loaded.id ? (
           <>
@@ -64,6 +71,7 @@ export default async function AdminNavMenuItemsPage({ params }: Args) {
         menuLabel={loaded.label}
         items={items}
         pages={pages}
+        modules={modules}
         isSitePrimary={settings.primaryNavMenuId === loaded.id}
       />
     </section>

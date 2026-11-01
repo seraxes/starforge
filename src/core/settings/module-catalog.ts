@@ -25,6 +25,7 @@ export const PRODUCT_MODULE_CATALOG: ModuleCatalogItem[] = [
     required: true,
     defaultEnabled: true,
     installed: true,
+    navViews: [{ key: 'login', label: 'Sign in', href: '/login' }],
   },
   {
     id: MODULE_IDS.payloadCms,
@@ -34,6 +35,7 @@ export const PRODUCT_MODULE_CATALOG: ModuleCatalogItem[] = [
     required: false,
     defaultEnabled: true,
     installed: true,
+    navViews: [{ key: 'admin', label: 'Content CMS', href: '/admin' }],
   },
   {
     id: MODULE_IDS.layoutManager,
@@ -43,6 +45,10 @@ export const PRODUCT_MODULE_CATALOG: ModuleCatalogItem[] = [
     required: false,
     defaultEnabled: true,
     installed: true,
+    navViews: [
+      { key: 'layout', label: 'Layout canvas', href: '/app/admin/layouts' },
+      { key: 'outlines', label: 'Outlines', href: '/app/admin/outlines' },
+    ],
   },
   {
     id: MODULE_IDS.pageSettings,
@@ -52,6 +58,7 @@ export const PRODUCT_MODULE_CATALOG: ModuleCatalogItem[] = [
     required: false,
     defaultEnabled: true,
     installed: true,
+    navViews: [{ key: 'page-settings', label: 'Page settings', href: '/app/admin/page-settings' }],
   },
   {
     id: MODULE_IDS.primaryNav,
@@ -62,6 +69,7 @@ export const PRODUCT_MODULE_CATALOG: ModuleCatalogItem[] = [
     required: false,
     defaultEnabled: true,
     installed: true,
+    navViews: [{ key: 'nav-manager', label: 'Nav manager', href: '/app/admin/nav' }],
   },
   {
     id: MODULE_IDS.fontAwesome,
@@ -81,6 +89,7 @@ export const PRODUCT_MODULE_CATALOG: ModuleCatalogItem[] = [
     defaultEnabled: true,
     installed: true,
     featureFlag: 'registration',
+    navViews: [{ key: 'register', label: 'Register', href: '/register' }],
   },
   {
     id: MODULE_IDS.richEditor,
@@ -135,6 +144,7 @@ export function listInstalledModuleCatalog(): ModuleCatalogItem[] {
       required,
       defaultEnabled: required || !legacyOffByDefault,
       installed: true as const,
+      ...(mod.navViews?.length ? { navViews: mod.navViews } : {}),
     }
   })
 

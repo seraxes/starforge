@@ -24,6 +24,11 @@ export {
 } from './document'
 
 export {
+  listEnabledModuleNavOptions,
+  resolveModuleNavHref,
+} from './module-views'
+
+export {
   findNavOverridesForPath,
   resolveLegacyPrimaryNav,
   resolveNavMenuItems,
@@ -52,6 +57,8 @@ export type {
   NavMenuDocument,
   NavMenuItem,
   NavMenuMeta,
+  NavModuleOption,
+  NavModuleViewOption,
   NavPageOption,
 } from './types'
 

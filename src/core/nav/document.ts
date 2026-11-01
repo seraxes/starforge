@@ -35,8 +35,11 @@ function normalizeAccessLevel(raw: unknown): NavAccessLevel | string {
   return 'public'
 }
 
-function normalizeLinkType(raw: unknown): NavLinkType {
-  return raw === 'custom' ? 'custom' : 'page'
+/** Accept `custom` as legacy alias for `url`. */
+export function normalizeLinkType(raw: unknown): NavLinkType {
+  if (raw === 'module') return 'module'
+  if (raw === 'url' || raw === 'custom') return 'url'
+  return 'page'
 }
 
 export function normalizeNavMenuItem(
@@ -65,6 +68,12 @@ export function normalizeNavMenuItem(
         ? Number(row.pageId)
         : null
   const url = typeof row.url === 'string' ? row.url.trim() : null
+  const moduleId =
+    typeof row.moduleId === 'string' && row.moduleId.trim() ? row.moduleId.trim() : null
+  const moduleViewKey =
+    typeof row.moduleViewKey === 'string' && row.moduleViewKey.trim()
+      ? row.moduleViewKey.trim()
+      : null
 
   return {
     id,
@@ -73,7 +82,9 @@ export function normalizeNavMenuItem(
     label,
     linkType,
     pageId: linkType === 'page' ? pageId : null,
-    url: linkType === 'custom' ? url : null,
+    url: linkType === 'url' ? url : null,
+    moduleId: linkType === 'module' ? moduleId : null,
+    moduleViewKey: linkType === 'module' ? moduleViewKey : null,
     cssClass: typeof row.cssClass === 'string' ? row.cssClass.trim() || null : null,
     browserTitle:
       typeof row.browserTitle === 'string' ? row.browserTitle.trim() || null : null,
@@ -134,9 +145,11 @@ export function createNavMenuItem(
         parentId: partial.parentId ?? null,
         sortOrder: partial.sortOrder ?? sortOrder,
         label: partial.label,
-        linkType: partial.linkType ?? 'custom',
+        linkType: partial.linkType ?? 'url',
         pageId: partial.pageId ?? null,
         url: partial.url ?? null,
+        moduleId: partial.moduleId ?? null,
+        moduleViewKey: partial.moduleViewKey ?? null,
         cssClass: partial.cssClass ?? null,
         browserTitle: partial.browserTitle ?? null,
         pageHeading: partial.pageHeading ?? null,
@@ -148,7 +161,7 @@ export function createNavMenuItem(
       parentId: null,
       sortOrder,
       label: partial.label,
-      linkType: 'custom',
+      linkType: 'url',
       url: '/',
       accessLevel: 'public',
     }

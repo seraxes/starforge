@@ -239,7 +239,7 @@ npm run dev
 
 1. Admin bar must show **Users | Site settings | Nav | Layouts** (Nav is top-level).
 2. **/app/admin/settings** — site name + **Primary nav assignment** dropdown only (no About/Getting started row editor).
-3. **/app/admin/nav** — edit Main menu items (page/URL, CSS class, title overrides, Up/Down, Copy/Paste).
+3. **/app/admin/nav** — edit Main menu items (CMS page / URL / **module view**, CSS class, title overrides, Up/Down, Copy/Paste). Module views come from enabled Modules catalog entries that declare `navViews`.
 4. Modules → Primary nav on/off gates the Nav link + public header.
 5. Public **/about** — matching nav active.
 

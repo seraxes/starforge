@@ -10,7 +10,13 @@ export type NavAccessLevel =
   /** Placeholder: `group:<id>` until Users → groups exist. */
   | `group:${string}`
 
-export type NavLinkType = 'page' | 'custom'
+/**
+ * Link bind types.
+ * - `page` — Payload CMS page
+ * - `url` — path or absolute URL (legacy storage may still say `custom`)
+ * - `module` — installed/enabled module navigable view
+ */
+export type NavLinkType = 'page' | 'url' | 'module'
 
 export type NavMenuItem = {
   id: string
@@ -22,8 +28,12 @@ export type NavMenuItem = {
   linkType: NavLinkType
   /** Payload `pages` document id when linkType is `page`. */
   pageId?: number | null
-  /** Path or absolute URL when linkType is `custom`. */
+  /** Path or absolute URL when linkType is `url`. */
   url?: string | null
+  /** Modules catalog / registry id when linkType is `module`. */
+  moduleId?: string | null
+  /** View key within that module’s `navViews`. */
+  moduleViewKey?: string | null
   cssClass?: string | null
   /** Browser tab title override when this item is the active page. */
   browserTitle?: string | null
@@ -50,4 +60,18 @@ export type NavPageOption = {
   id: number
   title: string
   slug: string
+}
+
+/** One navigable view on an enabled module (admin picker). */
+export type NavModuleViewOption = {
+  key: string
+  label: string
+  href: string
+}
+
+/** Enabled module that exposes at least one nav view. */
+export type NavModuleOption = {
+  moduleId: string
+  moduleLabel: string
+  views: NavModuleViewOption[]
 }

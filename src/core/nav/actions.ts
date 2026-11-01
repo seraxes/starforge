@@ -150,6 +150,8 @@ function parseItemsFromForm(formData: FormData): NavMenuItem[] {
   const linkTypes = formData.getAll('itemLinkType').map((v) => String(v ?? ''))
   const pageIds = formData.getAll('itemPageId').map((v) => String(v ?? ''))
   const urls = formData.getAll('itemUrl').map((v) => String(v ?? ''))
+  const moduleIds = formData.getAll('itemModuleId').map((v) => String(v ?? ''))
+  const moduleViewKeys = formData.getAll('itemModuleViewKey').map((v) => String(v ?? ''))
   const parentIds = formData.getAll('itemParentId').map((v) => String(v ?? ''))
   const cssClasses = formData.getAll('itemCssClass').map((v) => String(v ?? ''))
   const browserTitles = formData.getAll('itemBrowserTitle').map((v) => String(v ?? ''))
@@ -173,13 +175,19 @@ function parseItemsFromForm(formData: FormData): NavMenuItem[] {
           ? 'public'
           : accessRaw || 'public'
 
+    const rawType = (linkTypes[i] ?? 'page').trim()
+    const linkType =
+      rawType === 'module' ? 'module' : rawType === 'url' || rawType === 'custom' ? 'url' : 'page'
+
     const normalized = normalizeNavMenuItem(
       {
         id: (ids[i] ?? '').trim() || undefined,
         label,
-        linkType: linkTypes[i] === 'custom' ? 'custom' : 'page',
+        linkType,
         pageId: pageIds[i] || null,
         url: urls[i] || null,
+        moduleId: moduleIds[i] || null,
+        moduleViewKey: moduleViewKeys[i] || null,
         parentId: (parentIds[i] ?? '').trim() || null,
         cssClass: cssClasses[i] || null,
         browserTitle: browserTitles[i] || null,
@@ -268,9 +276,13 @@ export async function addNavMenuItemAction(
       : [...loaded.document.items]
 
   const label = String(formData.get('newLabel') ?? '').trim() || 'New item'
-  const linkType = String(formData.get('newLinkType') ?? 'page') === 'custom' ? 'custom' : 'page'
+  const rawType = String(formData.get('newLinkType') ?? 'page').trim()
+  const linkType =
+    rawType === 'module' ? 'module' : rawType === 'url' || rawType === 'custom' ? 'url' : 'page'
   const pageIdRaw = String(formData.get('newPageId') ?? '').trim()
   const url = String(formData.get('newUrl') ?? '').trim() || '/'
+  const moduleId = String(formData.get('newModuleId') ?? '').trim()
+  const moduleViewKey = String(formData.get('newModuleViewKey') ?? '').trim()
 
   items.push(
     createNavMenuItem(
@@ -278,7 +290,9 @@ export async function addNavMenuItemAction(
         label,
         linkType,
         pageId: pageIdRaw ? Number(pageIdRaw) : null,
-        url: linkType === 'custom' ? url : null,
+        url: linkType === 'url' ? url : null,
+        moduleId: linkType === 'module' ? moduleId || null : null,
+        moduleViewKey: linkType === 'module' ? moduleViewKey || null : null,
         accessLevel: 'public',
       },
       items.length,
