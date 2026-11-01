@@ -54,6 +54,8 @@ import type {
   FormWeekday,
 } from '@/core/forms/types'
 
+import { GantryBarRemoveButton } from '@/components/admin/GantryBarRemoveButton'
+
 import { useNotifySavedOnOk } from '../admin-toast'
 import { ParticleSettingsPopover } from '../layouts/particle-settings-popover'
 import { useAutosaveForm } from '../use-autosave-form'
@@ -679,18 +681,12 @@ function SortableFieldBar({
                     />
                   ),
                 },
-                {
-                  id: 'field',
-                  label: 'Field',
-                  content: (
-                    <div className="gantry-slot-extra-actions">
-                      <button type="button" className="danger" onClick={onRemove}>
-                        Remove
-                      </button>
-                    </div>
-                  ),
-                },
               ]}
+            />
+            <GantryBarRemoveButton
+              label={`Remove ${displayName}`}
+              confirmMessage={`Remove field “${displayName}”?`}
+              onConfirm={onRemove}
             />
           </div>
         </div>

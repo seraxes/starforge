@@ -1147,6 +1147,51 @@ body:has(.admin-shell) > main {
   background: color-mix(in srgb, #0f1a2a 30%, transparent);
 }
 
+/* Red ✕ beside cog — Form field bars + Layout module bars */
+.admin-shell .gantry-slot-actions .gantry-bar-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: #e74c3c;
+  font-size: 1.28rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.admin-shell .gantry-slot-actions .gantry-bar-remove:hover,
+.admin-shell .gantry-slot-actions .gantry-bar-remove:focus-visible {
+  background: color-mix(in srgb, #c0392b 28%, transparent);
+  color: #ff7a6e;
+  outline: none;
+}
+
+.admin-shell .gantry-slot-actions .gantry-bar-remove:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Remove row — redder + ✕ (prefs) */
+.admin-shell .gantry-row-actions button.danger {
+  background: color-mix(in srgb, #c0392b 55%, #1a1010);
+  color: #ffc9c2;
+  border: 1px solid color-mix(in srgb, #e74c3c 75%, var(--sf-line));
+  font-weight: 700;
+}
+
+.admin-shell .gantry-row-actions button.danger:hover {
+  background: color-mix(in srgb, #e74c3c 62%, #1a1010);
+  color: #ffe0db;
+  border-color: #ff6b5a;
+}
+
 .admin-shell .gantry-slot-extra-actions {
   display: flex;
   flex-wrap: wrap;
