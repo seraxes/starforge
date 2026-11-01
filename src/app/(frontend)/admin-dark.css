@@ -391,7 +391,12 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .admin-sidebar-group-toggle {
-  color: #8fa3bb;
+  color: #c5d2e0;
+}
+
+.admin-shell .admin-sidebar-caret {
+  width: 1.05rem;
+  height: 1.05rem;
 }
 
 /* Bright mid-blue hover/active rows (Gantry/Joomla ~#3498db) */
