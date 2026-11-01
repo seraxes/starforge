@@ -11,7 +11,7 @@ import {
   saveNavMenuItemsAction,
   type NavActionState,
 } from '@/core/nav/actions'
-import type { UserGroupOption } from '@/core/acl'
+import type { UserGroupOption } from '@/core/acl/types'
 import type { NavLinkType, NavMenuItem, NavModuleOption, NavPageOption } from '@/core/nav/types'
 
 type EditableItem = {

@@ -1,3 +1,5 @@
+import 'server-only'
+
 import { asc, count, eq, inArray } from 'drizzle-orm'
 
 import { db, sfAclPermissions, sfUserGroupMembers, sfUserGroups } from '@/core/db'

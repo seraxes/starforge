@@ -8,8 +8,8 @@ import {
   removeGroupMemberAction,
   saveGroupAclMatrixAction,
   type AclActionState,
-  type AclPermissionRow,
-} from '@/core/acl'
+} from '@/core/acl/actions'
+import type { AclPermissionRow } from '@/core/acl/types'
 import type { AppRole } from '@/core/auth/permissions'
 
 type MemberRow = {

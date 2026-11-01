@@ -1,9 +1,9 @@
 /**
  * User groups + group-keyed ACL foundation (SF-41).
  *
- * Groups live under Users admin. Nav `accessLevel: group:<id>` resolves
- * against membership. Admin-area ACL is a stub matrix stored in Core DB —
- * global app admins still gate `/app/admin` today.
+ * **Client components** must import from `@/core/acl/actions` and
+ * `@/core/acl/types` only — this barrel re-exports server-only session
+ * helpers (`access.ts` → `next/headers`) and must not enter the client graph.
  */
 
 export {

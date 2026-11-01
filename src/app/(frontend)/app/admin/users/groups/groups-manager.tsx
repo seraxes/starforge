@@ -9,7 +9,7 @@ import {
   deleteUserGroupAction,
   renameUserGroupAction,
   type AclActionState,
-} from '@/core/acl'
+} from '@/core/acl/actions'
 
 type GroupRow = {
   id: string

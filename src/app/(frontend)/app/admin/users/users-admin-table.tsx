@@ -6,8 +6,8 @@ import Link from 'next/link'
 import {
   setUserGroupsAction,
   type AclActionState,
-  type UserGroupOption,
-} from '@/core/acl'
+} from '@/core/acl/actions'
+import type { UserGroupOption } from '@/core/acl/types'
 import {
   setAppUserDisabledAction,
   setAppUserRoleAction,

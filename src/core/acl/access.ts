@@ -1,10 +1,14 @@
+import 'server-only'
+
 import { userIsAppAdmin } from '@/core/auth/admin'
 import { getAppSession } from '@/core/auth/session'
-import type { NavItem } from '@/core/settings/defaults'
 
 import { listGroupIdsForUser } from './members'
+import { canSeeNavAccessLevel, filterNavItemsForViewer } from './nav-access'
 import { anyGroupAllowsResource } from './permissions'
 import type { AccessViewer, AclAdminResourceKey } from './types'
+
+export { canSeeNavAccessLevel, filterNavItemsForViewer }
 
 /** Build viewer context from the current Better Auth session. */
 export async function getAccessViewer(): Promise<AccessViewer> {
@@ -26,35 +30,6 @@ export async function getAccessViewer(): Promise<AccessViewer> {
     isAppAdmin: userIsAppAdmin(user),
     groupIds,
   }
-}
-
-/**
- * Whether a nav item’s accessLevel is visible to the viewer.
- * - missing / `public` → everyone
- * - `registered` → signed-in users
- * - `group:<id>` → members of that group (app admins always)
- */
-export function canSeeNavAccessLevel(
-  accessLevel: string | null | undefined,
-  viewer: AccessViewer,
-): boolean {
-  const raw = (accessLevel || 'public').trim() || 'public'
-  if (raw === 'public') return true
-  if (viewer.isAppAdmin) return true
-  if (raw === 'registered') return viewer.isRegistered
-  if (raw.startsWith('group:')) {
-    const groupId = raw.slice('group:'.length).trim()
-    if (!groupId) return true
-    return viewer.groupIds.includes(groupId)
-  }
-  return true
-}
-
-export function filterNavItemsForViewer<T extends NavItem>(
-  items: T[],
-  viewer: AccessViewer,
-): T[] {
-  return items.filter((item) => canSeeNavAccessLevel(item.accessLevel, viewer))
 }
 
 /**
