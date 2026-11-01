@@ -1,4 +1,12 @@
+/*
+ * CSS layers (keep separate — do not mix Page Settings / Custom into admin chrome):
+ * 1) Design tokens — `:root` below (later Tailwind theme / SF-33 Core Styles)
+ * 2) Outline Layout Styles — public `.sf-layout-section` width + section bg/text + breakpoints
+ * 3) Custom CSS — Page Settings document chrome / Custom particle only
+ */
+
 :root {
+  /* —— Layer 1: design tokens —— */
   /* Brand — pastel orange primary, pastel blue secondary */
   --sf-primary: #f2a66a;
   --sf-primary-strong: #a85220;
@@ -1162,6 +1170,7 @@ button:disabled {
   padding: 0;
 }
 
+/* —— Layer 2: outline Layout Styles (public sections) —— */
 .sf-layout-section {
   width: 100%;
   box-sizing: border-box;
@@ -1183,6 +1192,14 @@ button:disabled {
 .sf-layout-section[data-sf-container='full'] {
   max-width: none;
   width: 100%;
+}
+
+/*
+ * Section Styles (bg + text) apply via inline style / --sf-section-* on the
+ * public wrapper only — never on `.admin-shell`.
+ */
+.sf-layout-section[data-sf-section-styled='true'] {
+  /* background-color + color set inline from layout JSON */
 }
 
 .sf-layout-chrome-meta {
@@ -1792,6 +1809,43 @@ button:disabled {
   min-width: 8.5rem;
   max-width: 11rem;
   cursor: pointer;
+}
+
+.gantry-section-styles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.75rem;
+  align-items: center;
+}
+
+.gantry-section-color-label {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.gantry-color-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.gantry-color-swatch {
+  width: 1.85rem;
+  height: 1.85rem;
+  padding: 0;
+  border: 1px solid var(--sf-line);
+  background: transparent;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.gantry-section-color-input {
+  width: 6.5rem;
+  max-width: 7.5rem;
+  font-size: 0.82rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 .breakpoints-form {

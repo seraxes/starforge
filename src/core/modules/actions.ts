@@ -24,8 +24,11 @@ import { getRegisteredModule, listRegisteredModules } from './registry'
 import {
   DEFAULT_LAYOUT_BREAKPOINTS,
   normalizeLayoutBreakpoints,
+  normalizeLayoutSectionStyles,
+  sanitizeCssColor,
   type LayoutBreakpoints,
   type LayoutContainerMode,
+  type LayoutSectionStyles,
 } from './styles'
 import type { LayoutDocument, LayoutRow, LayoutSection, LayoutSlot, LayoutSlotConfig } from './types'
 
@@ -165,9 +168,24 @@ export async function renameLayoutSectionAction(
   return state
 }
 
+function patchSectionStyles(
+  current: LayoutSectionStyles | undefined,
+  patch: Partial<LayoutSectionStyles> & {
+    clearBackgroundColor?: boolean
+    clearTextColor?: boolean
+  },
+): LayoutSectionStyles | undefined {
+  const next: LayoutSectionStyles = { ...(current ?? {}) }
+  if (patch.clearBackgroundColor) delete next.backgroundColor
+  else if (patch.backgroundColor !== undefined) next.backgroundColor = patch.backgroundColor
+  if (patch.clearTextColor) delete next.textColor
+  else if (patch.textColor !== undefined) next.textColor = patch.textColor
+  return normalizeLayoutSectionStyles(next)
+}
+
 /**
- * Persist section display name, CSS classes, and/or container mode from the layout canvas.
- * Section `id` is never changed. Empty cssClass clears the field.
+ * Persist section display name, CSS classes, container mode, and/or Section Styles
+ * (background + text). Section `id` is never changed. Empty cssClass / colors clear.
  */
 export async function updateLayoutSectionMetaAction(
   _prev: LayoutActionState,
@@ -179,7 +197,9 @@ export async function updateLayoutSectionMetaAction(
   const hasLabel = formData.has('label')
   const hasCssClass = formData.has('cssClass')
   const hasContainerMode = formData.has('containerMode')
-  if (!hasLabel && !hasCssClass && !hasContainerMode) {
+  const hasBackgroundColor = formData.has('backgroundColor')
+  const hasTextColor = formData.has('textColor')
+  if (!hasLabel && !hasCssClass && !hasContainerMode && !hasBackgroundColor && !hasTextColor) {
     return { error: 'Nothing to update on this section.' }
   }
 
@@ -198,6 +218,34 @@ export async function updateLayoutSectionMetaAction(
     containerMode = raw
   }
 
+  let backgroundColor: string | undefined
+  let clearBackgroundColor = false
+  if (hasBackgroundColor) {
+    const raw = String(formData.get('backgroundColor') ?? '').trim()
+    if (!raw) {
+      clearBackgroundColor = true
+    } else {
+      backgroundColor = sanitizeCssColor(raw)
+      if (!backgroundColor) {
+        return { error: 'Background color must be a hex value (e.g. #18191c) or transparent.' }
+      }
+    }
+  }
+
+  let textColor: string | undefined
+  let clearTextColor = false
+  if (hasTextColor) {
+    const raw = String(formData.get('textColor') ?? '').trim()
+    if (!raw) {
+      clearTextColor = true
+    } else {
+      textColor = sanitizeCssColor(raw)
+      if (!textColor) {
+        return { error: 'Text color must be a hex value (e.g. #ffffff) or transparent.' }
+      }
+    }
+  }
+
   const state = await mutateLayout(formData, (doc) => {
     const section = findSection(doc, sectionId)
     if (!section) return { error: `Section “${sectionId}” not found.` }
@@ -209,6 +257,22 @@ export async function updateLayoutSectionMetaAction(
     if (hasContainerMode && containerMode) {
       section.containerMode = containerMode
     }
+    if (hasBackgroundColor || hasTextColor) {
+      const nextStyles = patchSectionStyles(section.styles, {
+        ...(hasBackgroundColor
+          ? clearBackgroundColor
+            ? { clearBackgroundColor: true }
+            : { backgroundColor }
+          : {}),
+        ...(hasTextColor
+          ? clearTextColor
+            ? { clearTextColor: true }
+            : { textColor }
+          : {}),
+      })
+      if (nextStyles) section.styles = nextStyles
+      else delete section.styles
+    }
     return doc
   })
 
@@ -217,6 +281,16 @@ export async function updateLayoutSectionMetaAction(
     if (hasLabel && label) bits.push(`name “${label}”`)
     if (hasCssClass) bits.push(cssClass ? `classes “${cssClass}”` : 'classes cleared')
     if (hasContainerMode && containerMode) bits.push(`container ${containerMode}`)
+    if (hasBackgroundColor) {
+      bits.push(
+        clearBackgroundColor
+          ? 'background cleared'
+          : `background ${backgroundColor}`,
+      )
+    }
+    if (hasTextColor) {
+      bits.push(clearTextColor ? 'text color cleared' : `text ${textColor}`)
+    }
     state.message = `Section ${bits.join(' · ')} saved.`
   }
   return state

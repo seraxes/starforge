@@ -8,6 +8,7 @@ import { getLayoutDocument } from './layout'
 import { isFooterLayoutSection, partitionSectionsForPublicPaint } from './section-order'
 import {
   DEFAULT_LAYOUT_BREAKPOINTS,
+  buildSectionInlineStyle,
   resolveSectionContainerMode,
   type LayoutContainerMode,
 } from './styles'
@@ -56,6 +57,7 @@ function SectionBlock({
     section.containerMode,
     pageDefault,
   )
+  const sectionStyle = buildSectionInlineStyle(section.styles)
 
   const inner = (
     <>
@@ -71,6 +73,8 @@ function SectionBlock({
         className={sectionWrapperClass(section, 'site-footer sf-layout-section')}
         data-sf-section={section.id}
         data-sf-container={containerMode}
+        data-sf-section-styled={sectionStyle ? 'true' : undefined}
+        style={sectionStyle}
       >
         {inner}
       </footer>
@@ -82,6 +86,8 @@ function SectionBlock({
       className={sectionWrapperClass(section, 'sf-layout-section')}
       data-sf-section={section.id}
       data-sf-container={containerMode}
+      data-sf-section-styled={sectionStyle ? 'true' : undefined}
+      style={sectionStyle}
     >
       {inner}
     </section>

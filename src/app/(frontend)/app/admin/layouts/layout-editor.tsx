@@ -33,6 +33,7 @@ import {
   widthToPercentLabel,
 } from '@/core/modules/grid'
 import { sortLayoutSectionsByOrder } from '@/core/modules/section-order'
+import { cssColorToColorInputValue } from '@/core/modules/styles'
 import type { LayoutDocument, LayoutRow, LayoutSection, LayoutSlot } from '@/core/modules/types'
 
 import { CustomParticleEditor } from './custom-particle-editor'
@@ -830,7 +831,13 @@ function SectionCanvas({
   }
 
   const persistSectionMeta = useCallback(
-    (fields: { label?: string; cssClass?: string; containerMode?: 'full' | 'boxed' }) => {
+    (fields: {
+      label?: string
+      cssClass?: string
+      containerMode?: 'full' | 'boxed'
+      backgroundColor?: string
+      textColor?: string
+    }) => {
       const fd = withOutlineId(new FormData(), layoutId)
       fd.set('sectionId', section.id)
       let changed = false
@@ -860,6 +867,22 @@ function SectionCanvas({
           changed = true
         }
       }
+      if (fields.backgroundColor !== undefined) {
+        const next = fields.backgroundColor.trim()
+        const prev = (section.styles?.backgroundColor ?? '').trim()
+        if (next !== prev) {
+          fd.set('backgroundColor', next)
+          changed = true
+        }
+      }
+      if (fields.textColor !== undefined) {
+        const next = fields.textColor.trim()
+        const prev = (section.styles?.textColor ?? '').trim()
+        if (next !== prev) {
+          fd.set('textColor', next)
+          changed = true
+        }
+      }
       if (!changed) return
       startMetaSave(async () => {
         const result = await updateLayoutSectionMetaAction({}, fd)
@@ -867,7 +890,16 @@ function SectionCanvas({
         router.refresh()
       })
     },
-    [layoutId, router, section.containerMode, section.cssClass, section.id, section.label],
+    [
+      layoutId,
+      router,
+      section.containerMode,
+      section.cssClass,
+      section.id,
+      section.label,
+      section.styles?.backgroundColor,
+      section.styles?.textColor,
+    ],
   )
 
   const classNames = [
@@ -968,6 +1000,78 @@ function SectionCanvas({
               <option value="boxed">Boxed width</option>
             </select>
           </label>
+          <div className="gantry-section-styles" role="group" aria-label="Section styles">
+            <label className="gantry-inline-label gantry-section-color-label">
+              <span className="gantry-field-hint">Background</span>
+              <span className="gantry-color-field">
+                <input
+                  key={`section-bg-swatch-${section.id}-${section.styles?.backgroundColor ?? ''}`}
+                  type="color"
+                  className="gantry-color-swatch"
+                  value={cssColorToColorInputValue(section.styles?.backgroundColor)}
+                  disabled={metaPending}
+                  title="Section background color"
+                  aria-label="Section background color picker"
+                  onChange={(event) =>
+                    persistSectionMeta({ backgroundColor: event.target.value })
+                  }
+                />
+                <input
+                  key={`section-bg-hex-${section.id}-${section.styles?.backgroundColor ?? ''}`}
+                  type="text"
+                  className="gantry-inline-input gantry-section-color-input"
+                  defaultValue={section.styles?.backgroundColor ?? ''}
+                  disabled={metaPending}
+                  placeholder="#18191c"
+                  spellCheck={false}
+                  autoComplete="off"
+                  title="Hex background (empty = inherit). Image/overlay later."
+                  aria-label="Section background hex"
+                  onBlur={(event) => persistSectionMeta({ backgroundColor: event.target.value })}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault()
+                      ;(event.target as HTMLInputElement).blur()
+                    }
+                  }}
+                />
+              </span>
+            </label>
+            <label className="gantry-inline-label gantry-section-color-label">
+              <span className="gantry-field-hint">Text</span>
+              <span className="gantry-color-field">
+                <input
+                  key={`section-text-swatch-${section.id}-${section.styles?.textColor ?? ''}`}
+                  type="color"
+                  className="gantry-color-swatch"
+                  value={cssColorToColorInputValue(section.styles?.textColor)}
+                  disabled={metaPending}
+                  title="Section text color"
+                  aria-label="Section text color picker"
+                  onChange={(event) => persistSectionMeta({ textColor: event.target.value })}
+                />
+                <input
+                  key={`section-text-hex-${section.id}-${section.styles?.textColor ?? ''}`}
+                  type="text"
+                  className="gantry-inline-input gantry-section-color-input"
+                  defaultValue={section.styles?.textColor ?? ''}
+                  disabled={metaPending}
+                  placeholder="#ffffff"
+                  spellCheck={false}
+                  autoComplete="off"
+                  title="Hex text color (empty = inherit)"
+                  aria-label="Section text hex"
+                  onBlur={(event) => persistSectionMeta({ textColor: event.target.value })}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault()
+                      ;(event.target as HTMLInputElement).blur()
+                    }
+                  }}
+                />
+              </span>
+            </label>
+          </div>
           <label className="gantry-inline-label gantry-section-class-label">
             <span className="gantry-field-hint">CSS classes</span>
             <input
@@ -1240,7 +1344,8 @@ export function LayoutEditor({
         <summary>Layout document (JSON storage)</summary>
         <pre>{JSON.stringify({ ...document, sections: sectionList }, null, 2)}</pre>
         <p className="layout-muted">
-          Section <code>label</code> / <code>containerMode</code> / <code>cssClass</code> and slot{' '}
+          Section <code>label</code> / <code>containerMode</code> / Section Styles (
+          <code>backgroundColor</code> · <code>textColor</code>) / <code>cssClass</code> and slot{' '}
           <code>name</code> save on blur/change. Section <code>order</code> persists on drag.
           Widths are integer percents inside the section container. Outline breakpoints live under{' '}
           <code>/app/admin/breakpoints</code>. See{' '}

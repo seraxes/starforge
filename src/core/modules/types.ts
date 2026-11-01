@@ -2,9 +2,14 @@ import type { ReactNode } from 'react'
 
 import type { FeatureFlags, SiteSettingsData } from '@/core/settings/defaults'
 
-import type { LayoutContainerMode, LayoutDocumentStyles } from './styles'
+import type { LayoutContainerMode, LayoutDocumentStyles, LayoutSectionStyles } from './styles'
 
-export type { LayoutBreakpoints, LayoutContainerMode, LayoutDocumentStyles } from './styles'
+export type {
+  LayoutBreakpoints,
+  LayoutContainerMode,
+  LayoutDocumentStyles,
+  LayoutSectionStyles,
+} from './styles'
 
 /**
  * Slot width is an integer **percent** of the row (Gantry-style block size).
@@ -86,6 +91,11 @@ export type LayoutSection = {
    * sections layout default (`fullwidth` → full).
    */
   containerMode?: LayoutContainerMode
+  /**
+   * Gantry-like Section Styles on this instance (bg + text; image/overlay later).
+   * Outline-scoped via the layout document — not a fixed Navigation/Header name list.
+   */
+  styles?: LayoutSectionStyles
   order?: number
   rows: LayoutRow[]
 }

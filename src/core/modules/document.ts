@@ -3,7 +3,11 @@ import { accessTagsForStorage } from '@/core/acl/nav-access'
 import defaultLayoutJson from './default-layout.json'
 import { clampGridWidth, LAYOUT_WIDTH_FULL, normalizeRowWidthsToPercent } from './grid'
 import { sortLayoutSectionsByOrder } from './section-order'
-import { asContainerMode, normalizeLayoutOutlineStyles } from './styles'
+import {
+  asContainerMode,
+  normalizeLayoutOutlineStyles,
+  normalizeLayoutSectionStyles,
+} from './styles'
 import type {
   LayoutDocument,
   LayoutDocumentV1,
@@ -121,6 +125,7 @@ function normalizeSection(entry: LayoutSection | null | undefined, index: number
     typeof entry.label === 'string' && entry.label.trim() ? entry.label.trim() : id
   const cssClass = sanitizeCssClassList(entry.cssClass)
   const containerMode = asContainerMode(entry.containerMode)
+  const styles = normalizeLayoutSectionStyles(entry.styles)
   const rows = Array.isArray(entry.rows)
     ? (entry.rows.map((r, i) => normalizeRow(r, i)).filter(Boolean) as LayoutRow[])
     : []
@@ -130,6 +135,7 @@ function normalizeSection(entry: LayoutSection | null | undefined, index: number
     label,
     ...(cssClass ? { cssClass } : {}),
     ...(containerMode ? { containerMode } : {}),
+    ...(styles ? { styles } : {}),
     order: typeof entry.order === 'number' && Number.isFinite(entry.order) ? entry.order : index,
     rows,
   }

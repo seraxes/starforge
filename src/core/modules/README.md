@@ -75,8 +75,9 @@ Reference: [docs.gantry.org](https://docs.gantry.org/).
 
 - `section.label` — editable canvas display name (id stays stable).
 - `section.containerMode` — `full` | `boxed` (section owns width; row % inside). Omitted → Page Settings sections-layout default.
+- `section.styles` — Gantry-like Section Styles: `backgroundColor` / `textColor` (hex); `backgroundImage` / `backgroundOverlay` reserved. Applied on the public section wrapper only.
 - `section.cssClass` — space-separated classes on the public section/`footer` wrapper (plus `sf-layout-section`).
-- `styles.breakpoints` — outline-scoped rem/px presets (Layouts → Breakpoints child). Default outline = site global. No separate Styles mega-page.
+- `styles.breakpoints` — outline-scoped rem/px presets (`/app/admin/breakpoints`). Default outline = site global. No separate Styles mega-page.
 - `slot.name` — optional instance display name on the canvas; does **not** change `moduleId`.
 - `slot.accessLevel` — who can see (`public` / `registered` / `group:<id>`); same groups as Nav tags; `SlotRenderer` filters by session.
 

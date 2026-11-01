@@ -100,15 +100,20 @@ export {
   DEFAULT_LAYOUT_BREAKPOINTS,
   asContainerMode,
   buildOutlineBreakpointCss,
+  buildSectionInlineStyle,
+  cssColorToColorInputValue,
   normalizeLayoutBreakpoints,
   normalizeLayoutOutlineStyles,
+  normalizeLayoutSectionStyles,
   resolveSectionContainerMode,
+  sanitizeCssColor,
   sanitizeCssLength,
 } from './styles'
 export type {
   LayoutBreakpoints,
   LayoutContainerMode,
   LayoutDocumentStyles,
+  LayoutSectionStyles,
 } from './styles'
 export {
   clearModuleRegistry,
