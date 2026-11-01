@@ -47,6 +47,12 @@ export type LayoutSlot = {
   width: LayoutGridWidth
   enabled?: boolean
   order?: number
+  /**
+   * Who can see this particle (same tokens as Nav `accessTags`):
+   * `public` | `registered` | `group:<id>`. Omitted = public.
+   * Groups are the only ACL entity; SlotRenderer filters by session.
+   */
+  accessLevel?: string
   config?: LayoutSlotConfig
 }
 

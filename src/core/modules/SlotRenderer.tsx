@@ -1,5 +1,6 @@
 import React from 'react'
 
+import { canSeeNavAccessLevel, getAccessViewer } from '@/core/acl'
 import { getSiteSettings, isParticleModuleEnabled } from '@/core/settings'
 import { ensureModulesRegistered } from '@/modules/catalog'
 
@@ -16,6 +17,7 @@ type Props = {
 /**
  * Renders one layout slot (particle) inside a grid cell.
  * Site Settings → Modules per-id toggles gate public render (required chrome always on).
+ * Slot `accessLevel` (public / registered / group:<id>) filters viewing like Nav tags.
  */
 export async function SlotRenderer({ sectionId, slot, pageContent }: Props) {
   if (slot.enabled === false) return null
@@ -37,6 +39,12 @@ export async function SlotRenderer({ sectionId, slot, pageContent }: Props) {
     return null
   }
 
+  // Viewing filter — same group/public/registered tokens as Nav (SF-41).
+  if (slot.accessLevel && slot.accessLevel !== 'public') {
+    const viewer = await getAccessViewer()
+    if (!canSeeNavAccessLevel(slot.accessLevel, viewer)) return null
+  }
+
   const rendered = await mod.render({
     position: sectionId,
     settings,
@@ -53,6 +61,7 @@ export async function SlotRenderer({ sectionId, slot, pageContent }: Props) {
       data-sf-slot={slot.id}
       data-sf-module={slot.moduleId}
       data-sf-width={slot.width}
+      data-sf-access={slot.accessLevel || 'public'}
       style={style}
     >
       {rendered}

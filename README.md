@@ -2,9 +2,9 @@
 
 Reusable **product core** for ordinary web apps (auth, users, app shell, extension points) with **Payload CMS 3** as a swappable **content/media module** — not the whole product.
 
-**Two admin surfaces, one login:** **Starforge admin** (`/app/admin` — users, roles, site settings, page settings, layout) ↔ **Payload Content CMS** (`/admin` — pages, media); each sidebar links to the other.
+**Two admin surfaces, one login:** **Starforge admin** (`/app/admin` — users, groups, site settings, nav, layouts) ↔ **Payload Content CMS** (`/admin` — pages, media); each sidebar links to the other.
 
-This is an early scaffold plus **core app auth** (Better Auth), **roles + core user admin**, **one-login Payload CMS access** (`cms_access` toggle), **site settings + feature toggles**, **Page Settings** (Gantry-style Head / Assets / Body / Font Awesome / Atoms + layout assignment in `sf_page_chrome`), **Lexical** page editing, **public `/[slug]`** rendering, **draft preview** (`/preview/[slug]`), **published content cache** (Next.js tags; Redis later), **page SEO fields**, **extension modules + Gantry-like layout manager** (sections/rows/slots + % widths in `sf_layouts`, palette UI at `/app/admin/layouts`, typed Logo/Copyright/Social + page-content + Custom particles), and **`npm run seed`**. It is intentionally small and runnable locally — not Airsoftnexus 2.0 feature parity, and not a DigitalOcean deploy.
+This is an early scaffold plus **core app auth** (Better Auth), **roles + user groups + ACL stub**, **one-login Payload CMS access** (`cms_access` toggle), **site settings + feature toggles**, **Nav manager**, **Page Settings** (Gantry-style Head / Assets / Body / Font Awesome / Atoms + layout assignment in `sf_page_chrome`), **Lexical** page editing, **public `/[slug]`** rendering, **draft preview** (`/preview/[slug]`), **published content cache** (Next.js tags; Redis later), **page SEO fields**, **extension modules + Gantry-like layout manager** (sections/rows/slots + % widths in `sf_layouts`, palette UI at `/app/admin/layouts`, typed Logo/Copyright/Social + page-content + Custom particles), and **`npm run seed`**. It is intentionally small and runnable locally — not Airsoftnexus 2.0 feature parity, and not a DigitalOcean deploy.
 
 ## Architecture
 
@@ -14,7 +14,7 @@ This is an early scaffold plus **core app auth** (Better Auth), **roles + core u
 | **Payload content module** | Collections, globals (site settings), drafts, media, CMS admin | `src/collections/`, `src/globals/`, `src/payload.config.ts`, `src/app/(payload)/` |
 
 - Payload tables use Postgres schema **`payload`** (created by `docker/postgres/init.sql`).
-- Core auth + layout + page chrome + nav tables: `sf_users`, `sf_sessions`, `sf_accounts`, `sf_verifications`, `sf_layouts`, `sf_page_chrome`, `sf_nav_menus` (push with `npm run db:core:push`).
+- Core auth + layout + page chrome + nav + groups/ACL tables: `sf_users`, `sf_sessions`, `sf_accounts`, `sf_verifications`, `sf_layouts`, `sf_page_chrome`, `sf_nav_menus`, `sf_user_groups`, `sf_user_group_members`, `sf_acl_permissions` (push with `npm run db:core:push`).
 - Hot paths stay in core — do not put high-QPS app traffic through Payload Local API.
 
 ### Published content cache
@@ -79,7 +79,9 @@ Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so coo
 | http://localhost:3000 | App shell (register / sign in / signed-in state) |
 | http://localhost:3000/register | Create a **core app** account (email + password; auto sign-in; default role `member`) |
 | http://localhost:3000/login | **Only** sign-in (Better Auth). Also used when `/admin` redirects unauthenticated visitors |
-| http://localhost:3000/app/admin/users | Starforge admin — roles, **CMS access** switch, disable |
+| http://localhost:3000/app/admin/users | Starforge admin — accounts (roles, groups, **CMS access**, disable) |
+| http://localhost:3000/app/admin/users/groups | Starforge admin — **user groups** |
+| http://localhost:3000/app/admin/users/acl | Starforge admin — **ACL** stub matrix + view-access overview |
 | http://localhost:3000/app/admin/settings | Starforge admin — site name, primary nav menu binding, feature toggles |
 | http://localhost:3000/app/admin/nav | Starforge admin — **Nav** manager (navigation sets + items) |
 | http://localhost:3000/app/admin/layouts | Starforge admin — **Layouts** (hover submenu) → **Layout** canvas (default) |
@@ -98,13 +100,26 @@ App login uses **email**, not a separate username. Forgot / reset password is **
 
 | Role / flag | Who | Can open |
 | --- | --- | --- |
-| `admin` | Global **app** admin | `/app/admin/*`; **`cms_access` on by default** → `/admin` |
+| `admin` | Global **app** admin | `/app/admin/*`; **`cms_access` on by default** → `/admin`; bypasses group ACL stubs |
 | `member` | Default product user | App routes only (no Payload stub unless CMS access toggled on) |
 | `cms_access` | Per-user switch on Users | Payload `/admin` via Better Auth session |
+| User groups | Named sets under Users → Groups | Membership drives nav `group:<id>` visibility + ACL stub matrix |
+
+### User groups + ACL foundation
+
+**Users** hover submenu: **Accounts** · **Groups** · **ACL**.
+
+| Piece | Role |
+| --- | --- |
+| **Groups** | Create / rename / delete; assign members. Only ACL entity (no separate Access Level table). |
+| **ACL** | One matrix: grant admin-area permissions **to groups** (`sf_acl_permissions`). |
+| **Nav / Layout “Who can see”** | Multi-select tags on each item (`public` / `registered` / `group:<id>`). Visible if the viewer matches **any** tag. |
+
+Global app admins still open all Core admin today; the matrix is the enforcement stub.
 
 ### Site settings + Nav manager + feature toggles
 
-**Nav** is a **top-level** Core admin item (`/app/admin/nav`, sibling of Users / Site settings / Layouts): multiple named **navigation sets** (menus) in `sf_nav_menus`, each with items (CMS page or URL, reorder, copy/paste, CSS class, browser/page title overrides, access-level stub). Site Settings only **assigns** which set is the site primary header menu — not nested under Site Chrome.
+**Nav** is a **top-level** Core admin item (`/app/admin/nav`, sibling of Users / Site settings / Layouts): multiple named **navigation sets** (menus) in `sf_nav_menus`, each with items (CMS page, URL, or module view; reorder; copy/paste; CSS class; browser/page title; multi-select access tags). Site Settings only **assigns** which set is the site primary header menu — not nested under Site Chrome.
 
 One Payload global (`site-settings`) holds site name, `primaryNavMenuId`, capability flags, and module toggles. Core admins edit it at **`/app/admin/settings`**. CMS editors can edit the same document under Payload **Globals → Site settings** (legacy `primaryNav` array is a fallback only).
 
@@ -363,7 +378,7 @@ src/
   app/
     (frontend)/             # public app shell + /login + /register + /[slug] + /preview/[slug]
       (public)/             # site header + ModuleSlots (header / after-content / footer)
-      app/admin/            # core app admin (users + settings + nav + layouts + CMS bridge)
+      app/admin/            # core app admin (users/groups + settings + nav + layouts + CMS bridge)
     (payload)/              # Payload admin + REST/GraphQL (do not hand-edit)
     api/auth/               # Better Auth handler
     api/health/             # core health route
@@ -378,9 +393,10 @@ src/
     content/                # published + draft CMS reads, cache layer, preview gate, SEO
       cache/                # Next tags (default) + Redis stub for DO
     nav/                    # Nav manager (sf_nav_menus) store + resolve + actions
+    acl/                    # User groups + ACL stub (sf_user_groups, sf_acl_permissions)
     modules/                # register API, layout document, ModuleSlot, PublicLayoutBody
     settings/               # site-settings + legacy nav resolve + flag helpers
-    db/                     # Drizzle core schema + client (sf_layouts, sf_nav_menus, …)
+    db/                     # Drizzle core schema + client (sf_layouts, sf_nav_menus, groups, …)
   fields/pagesLexical.ts    # Lexical editor features for Pages
   seed.ts                   # pages + settings + layout + modules on + bootstrap admin + demo member
   payload.config.ts         # Payload config (content module)

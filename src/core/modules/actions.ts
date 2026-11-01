@@ -541,6 +541,39 @@ export async function toggleSlotAction(
   return state
 }
 
+/** Persist Joomla-style view access stub on a layout slot (SF-41 foundation). */
+export async function setSlotAccessLevelAction(
+  _prev: LayoutActionState,
+  formData: FormData,
+): Promise<LayoutActionState> {
+  const sectionId = String(formData.get('sectionId') ?? '').trim()
+  const rowId = String(formData.get('rowId') ?? '').trim()
+  const slotId = String(formData.get('slotId') ?? '').trim()
+  if (!sectionId || !rowId || !slotId) return { error: 'Missing slot reference.' }
+
+  const kind = String(formData.get('accessKind') ?? 'public').trim() || 'public'
+  const groupId = String(formData.get('accessGroupId') ?? '').trim()
+  let accessLevel: string | undefined
+  if (kind === 'registered') accessLevel = 'registered'
+  else if (kind === 'group' && groupId) accessLevel = `group:${groupId}`
+  else accessLevel = undefined
+
+  const state = await mutateLayout(formData, (doc) => {
+    const found = findSlot(doc, sectionId, rowId, slotId)
+    if (!found) return { error: 'Slot not found.' }
+    if (accessLevel) found.slot.accessLevel = accessLevel
+    else delete found.slot.accessLevel
+    return doc
+  })
+
+  if (state.ok) {
+    state.message = accessLevel
+      ? `Particle access set to ${accessLevel}.`
+      : 'Particle access set to public.'
+  }
+  return state
+}
+
 export async function updateCustomSlotAction(
   _prev: LayoutActionState,
   formData: FormData,

@@ -38,7 +38,8 @@ Reference: [docs.gantry.org](https://docs.gantry.org/).
               "moduleId": "notice-bar",
               "name": "Promo notice",
               "width": 100,
-              "enabled": true
+              "enabled": true,
+              "accessLevel": "public"
             }
           ]
         }
@@ -63,6 +64,7 @@ Reference: [docs.gantry.org](https://docs.gantry.org/).
 - `section.label` — editable canvas display name (id stays stable).
 - `section.cssClass` — space-separated classes on the public section/`footer` wrapper (plus `sf-layout-section`).
 - `slot.name` — optional instance display name on the canvas; does **not** change `moduleId`.
+- `slot.accessLevel` — who can see (`public` / `registered` / `group:<id>`); same groups as Nav tags; `SlotRenderer` filters by session.
 
 Legacy v1 / v2 upgrade on read.
 

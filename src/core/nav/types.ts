@@ -3,11 +3,13 @@
  * Flat list + optional `parentId` for later nesting; public layout is flat for now.
  */
 
-/** Access stub until user-group ACL ships. */
+/**
+ * Who-can-see tag — `group:<id>` maps to Users → Groups (no separate Access Level entity).
+ * Items store multiple tags; visible if the viewer matches **any** (OR).
+ */
 export type NavAccessLevel =
   | 'public'
   | 'registered'
-  /** Placeholder: `group:<id>` until Users → groups exist. */
   | `group:${string}`
 
 /**
@@ -39,7 +41,13 @@ export type NavMenuItem = {
   browserTitle?: string | null
   /** On-page H1 override when this item is the active page. */
   pageHeading?: string | null
-  accessLevel: NavAccessLevel | string
+  /**
+   * Multi-select access tags (`public` / `registered` / `group:<id>`).
+   * Visible if viewer matches any tag. Default `['public']`.
+   */
+  accessTags: string[]
+  /** @deprecated Migrated into `accessTags` on read. */
+  accessLevel?: NavAccessLevel | string
 }
 
 export type NavMenuDocument = {
