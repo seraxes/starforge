@@ -37,6 +37,7 @@ import { cssColorToColorInputValue } from '@/core/modules/styles'
 import type { LayoutDocument, LayoutRow, LayoutSection, LayoutSlot } from '@/core/modules/types'
 
 import { CustomParticleEditor } from './custom-particle-editor'
+import { ParticleSettingsPopover } from './particle-settings-popover'
 import { TypedParticleEditor, type NavMenuOption } from './typed-particle-editors'
 
 type ModuleOption = {
@@ -144,6 +145,51 @@ function ActionFeedback({ state }: { state: LayoutActionState }) {
     )
   }
   return null
+}
+
+function ParticleConfigTab({
+  sectionId,
+  rowId,
+  slot,
+  navMenus,
+  primaryNavMenuId,
+}: {
+  sectionId: string
+  rowId: string
+  slot: LayoutSlot
+  navMenus: NavMenuOption[]
+  primaryNavMenuId: string
+}) {
+  if (slot.moduleId === 'custom') {
+    return (
+      <CustomParticleEditor sectionId={sectionId} rowId={rowId} slot={slot} embedded />
+    )
+  }
+  const typed = (
+    <TypedParticleEditor
+      sectionId={sectionId}
+      rowId={rowId}
+      slot={slot}
+      navMenus={navMenus}
+      primaryNavMenuId={primaryNavMenuId}
+      embedded
+    />
+  )
+  // TypedParticleEditor returns null for unknown module ids.
+  if (
+    slot.moduleId !== 'logo' &&
+    slot.moduleId !== 'menu' &&
+    slot.moduleId !== 'copyright' &&
+    slot.moduleId !== 'social' &&
+    slot.moduleId !== 'form'
+  ) {
+    return (
+      <p className="layout-muted">
+        No particle-specific config for <code>{slot.moduleId}</code>.
+      </p>
+    )
+  }
+  return typed
 }
 
 function sortSections(sections: LayoutSection[]) {
@@ -418,71 +464,85 @@ function ParticleBlock({
             {pctLabel}
           </span>
           <div className="gantry-slot-actions">
-            {slot.moduleId === 'custom' ? (
-              <CustomParticleEditor sectionId={sectionId} rowId={rowId} slot={slot} />
-            ) : (
-              <TypedParticleEditor
-                sectionId={sectionId}
-                rowId={rowId}
-                slot={slot}
-                navMenus={navMenus}
-                primaryNavMenuId={primaryNavMenuId}
-              />
-            )}
+            <ParticleSettingsPopover
+              title={`${displayName} settings`}
+              tabs={[
+                {
+                  id: 'config',
+                  label: 'Config',
+                  content: (
+                    <ParticleConfigTab
+                      sectionId={sectionId}
+                      rowId={rowId}
+                      slot={slot}
+                      navMenus={navMenus}
+                      primaryNavMenuId={primaryNavMenuId}
+                    />
+                  ),
+                },
+                {
+                  id: 'access',
+                  label: 'Access',
+                  content: (
+                    <AccessTagsField
+                      className="gantry-slot-access-tags"
+                      value={accessTags}
+                      groups={groups}
+                      disabled={pending}
+                      onChange={persistAccessTags}
+                    />
+                  ),
+                },
+                {
+                  id: 'particle',
+                  label: 'Particle',
+                  content: (
+                    <div className="gantry-slot-extra-actions">
+                      <button
+                        type="button"
+                        className="secondary"
+                        disabled={pending}
+                        onClick={() => {
+                          const fd = withOutlineId(new FormData(), layoutId)
+                          fd.set('sectionId', sectionId)
+                          fd.set('rowId', rowId)
+                          fd.set('slotId', slot.id)
+                          startTransition(async () => {
+                            const result = await toggleSlotAction({}, fd)
+                            setFlash(result)
+                            router.refresh()
+                          })
+                        }}
+                      >
+                        {enabled ? 'Disable' : 'Enable'}
+                      </button>
+                      <button
+                        type="button"
+                        className="danger"
+                        disabled={pending}
+                        onClick={() => {
+                          const fd = withOutlineId(new FormData(), layoutId)
+                          fd.set('sectionId', sectionId)
+                          fd.set('rowId', rowId)
+                          fd.set('slotId', slot.id)
+                          startTransition(async () => {
+                            const result = await removeSlotAction({}, fd)
+                            setFlash(result)
+                            router.refresh()
+                          })
+                        }}
+                      >
+                        Remove
+                      </button>
+                      <ActionFeedback state={flash} />
+                    </div>
+                  ),
+                },
+              ]}
+            />
           </div>
         </div>
       </header>
-      <details className="gantry-slot-extra">
-        <summary>More</summary>
-        <div className="gantry-slot-extra-body">
-          <AccessTagsField
-            className="gantry-slot-access-tags"
-            value={accessTags}
-            groups={groups}
-            disabled={pending}
-            onChange={persistAccessTags}
-          />
-          <div className="gantry-slot-extra-actions">
-            <button
-              type="button"
-              className="secondary"
-              disabled={pending}
-              onClick={() => {
-                const fd = withOutlineId(new FormData(), layoutId)
-                fd.set('sectionId', sectionId)
-                fd.set('rowId', rowId)
-                fd.set('slotId', slot.id)
-                startTransition(async () => {
-                  const result = await toggleSlotAction({}, fd)
-                  setFlash(result)
-                  router.refresh()
-                })
-              }}
-            >
-              {enabled ? 'Disable' : 'Enable'}
-            </button>
-            <button
-              type="button"
-              className="danger"
-              disabled={pending}
-              onClick={() => {
-                const fd = withOutlineId(new FormData(), layoutId)
-                fd.set('sectionId', sectionId)
-                fd.set('rowId', rowId)
-                fd.set('slotId', slot.id)
-                startTransition(async () => {
-                  const result = await removeSlotAction({}, fd)
-                  setFlash(result)
-                  router.refresh()
-                })
-              }}
-            >
-              Remove
-            </button>
-          </div>
-          <ActionFeedback state={flash} />
-        </div>
-      </details>
     </article>
   )
 }

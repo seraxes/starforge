@@ -675,59 +675,11 @@ body:has(.admin-shell) > main {
   background: color-mix(in srgb, #0f1a2a 28%, transparent);
 }
 
-/* Extra particle controls — click to open (not hover) */
-.admin-shell .gantry-slot-extra {
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-
-.admin-shell .gantry-slot-extra > summary {
-  list-style: none;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  margin-top: 0.35rem;
-  padding: 0.15rem 0.25rem;
-  color: #fff;
-  font-size: 0.78rem;
-  font-weight: 600;
-  user-select: none;
-}
-
-.admin-shell .gantry-slot-extra > summary::-webkit-details-marker {
-  display: none;
-}
-
-.admin-shell .gantry-slot-extra > summary::before {
-  content: '▸';
-  font-size: 0.75rem;
-}
-
-.admin-shell .gantry-slot-extra[open] > summary::before {
-  content: '▾';
-}
-
-.admin-shell .gantry-slot-extra-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-  margin-top: 0.45rem;
-  padding-top: 0.45rem;
-  border-top: 1px solid color-mix(in srgb, #fff 22%, transparent);
-}
-
 .admin-shell .gantry-slot-extra-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
-}
-
-.admin-shell .gantry-slot-extra-actions button {
-  background: color-mix(in srgb, #0f1a2a 32%, transparent);
-  border: 1px solid #1e4d72;
-  color: #fff;
+  gap: 0.45rem;
+  align-items: center;
 }
 
 .admin-shell .gantry-resize-handle {
@@ -748,21 +700,148 @@ body:has(.admin-shell) > main {
   background-color: color-mix(in srgb, var(--sf-secondary) 28%, var(--sf-admin-elevated));
 }
 
-.admin-shell .gantry-settings-backdrop {
-  background: color-mix(in srgb, #0a1018 45%, transparent);
+/* Settings portal renders on document.body — style via theme class, not .admin-shell */
+.gantry-settings-theme-dark {
+  --sf-admin-bg: #24334a;
+  --sf-admin-bg-deep: #1d2a3d;
+  --sf-admin-surface: #1b2531;
+  --sf-admin-elevated: #222e3f;
+  --sf-admin-input: #152033;
+  --sf-admin-blue-border: #1e4d72;
+  --sf-admin-blue-mid: #3498db;
+  --sf-admin-blue-action: #2f80b9;
+  --sf-ink: #ffffff;
+  --sf-muted: #9eb1c7;
+  --sf-line: #3d5270;
+  --sf-primary: #f2a66a;
+  --sf-primary-strong: #f5b888;
+  --sf-primary-ink: #1c2834;
+  --sf-secondary: #8ebad4;
+  --sf-secondary-strong: #b7d6ec;
 }
 
-.admin-shell .gantry-settings-panel {
-  background: var(--sf-admin-elevated);
-  border-color: var(--sf-admin-blue-border);
+.gantry-settings-theme-dark .gantry-settings-backdrop {
+  background: color-mix(in srgb, #0a1018 55%, transparent);
+}
+
+.gantry-settings-theme-dark .gantry-settings-panel {
+  background: #1b2531;
+  border: 1px solid #1e4d72;
+  color: #fff;
   box-shadow:
-    0 16px 40px color-mix(in srgb, #000 40%, transparent),
-    0 2px 8px color-mix(in srgb, #000 25%, transparent);
+    0 16px 40px color-mix(in srgb, #000 45%, transparent),
+    0 2px 8px color-mix(in srgb, #000 28%, transparent);
 }
 
-.admin-shell .gantry-settings-panel-head {
-  background: color-mix(in srgb, var(--sf-secondary) 12%, var(--sf-admin-surface));
-  border-bottom-color: var(--sf-line);
+.gantry-settings-theme-dark .gantry-settings-panel-head {
+  background: #222e3f;
+  border-bottom: 1px solid #1e4d72;
+}
+
+.gantry-settings-theme-dark .gantry-settings-panel-head h3 {
+  color: #fff;
+}
+
+.gantry-settings-theme-dark .gantry-settings-panel-body {
+  color: #fff;
+  background: #1b2531;
+}
+
+.gantry-settings-theme-dark .gantry-settings-tablist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0 0 0.75rem;
+  padding: 0.2rem;
+  border: 1px solid #1e4d72;
+  border-radius: 4px;
+  background: #152033;
+}
+
+.gantry-settings-theme-dark .gantry-settings-tab {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #9eb1c7;
+  font: inherit;
+  font-weight: 650;
+  font-size: 0.82rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.gantry-settings-theme-dark .gantry-settings-tab.is-active,
+.gantry-settings-theme-dark .gantry-settings-tab[aria-selected='true'] {
+  background: #3498db;
+  color: #fff;
+}
+
+.gantry-settings-theme-dark .gantry-settings-tabpanel {
+  color: #fff;
+}
+
+.gantry-settings-theme-dark label,
+.gantry-settings-theme-dark .gantry-typed-form > label,
+.gantry-settings-theme-dark .gantry-custom-title,
+.gantry-settings-theme-dark .settings-hint,
+.gantry-settings-theme-dark .layout-muted,
+.gantry-settings-theme-dark .sf-code-field-label,
+.gantry-settings-theme-dark .sf-code-field-hint {
+  color: #fff;
+}
+
+.gantry-settings-theme-dark input[type='text'],
+.gantry-settings-theme-dark input[type='url'],
+.gantry-settings-theme-dark input[type='number'],
+.gantry-settings-theme-dark input[type='email'],
+.gantry-settings-theme-dark textarea,
+.gantry-settings-theme-dark select {
+  background: #152033 !important;
+  border: 1px solid #1e4d72 !important;
+  color: #fff !important;
+}
+
+.gantry-settings-theme-dark .sf-code-field-panel {
+  background: #121c2e;
+  border-color: #1e4d72;
+}
+
+.gantry-settings-theme-dark .gantry-settings-panel-head button,
+.gantry-settings-theme-dark .gantry-settings-panel .gantry-typed-form button,
+.gantry-settings-theme-dark .gantry-settings-panel .gantry-custom-form button,
+.gantry-settings-theme-dark .gantry-slot-extra-actions button.secondary {
+  background: #2f80b9;
+  border: 1px solid #1e4d72;
+  color: #fff;
+}
+
+.gantry-settings-theme-dark .gantry-settings-panel .gantry-typed-form button[type='submit'],
+.gantry-settings-theme-dark .gantry-settings-panel .gantry-custom-form button[type='submit'] {
+  background: #f2a66a;
+  border-color: color-mix(in srgb, #f2a66a 65%, #f5b888);
+  color: #1c2834;
+}
+
+.gantry-settings-theme-dark .gantry-settings-panel .gantry-typed-form button.danger,
+.gantry-settings-theme-dark .gantry-settings-panel .gantry-custom-form button.danger,
+.gantry-settings-theme-dark .gantry-slot-extra-actions button.danger {
+  background: color-mix(in srgb, #c45c5c 28%, #1b2531);
+  border-color: color-mix(in srgb, #c45c5c 45%, #1e4d72);
+  color: #f0b4b4;
+}
+
+.gantry-settings-theme-dark .admin-inline-ok {
+  color: #b7d6ec;
+}
+
+.gantry-settings-theme-dark .admin-inline-error {
+  color: #f0a0a0;
+}
+
+.gantry-settings-theme-dark .nav-access-tag-list label,
+.gantry-settings-theme-dark .gantry-slot-access-tags {
+  color: #fff;
 }
 
 .admin-shell .layout-id {

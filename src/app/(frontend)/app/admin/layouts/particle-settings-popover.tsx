@@ -3,34 +3,56 @@
 import React, { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
+export type ParticleSettingsTab = {
+  id: string
+  label: string
+  content: React.ReactNode
+}
+
 type Props = {
   title: string
   triggerLabel?: string
-  children: React.ReactNode
+  /** Single-pane body when `tabs` is omitted. */
+  children?: React.ReactNode
+  /** Tabbed body — use for Config / Access / Particle. */
+  tabs?: ParticleSettingsTab[]
+  /** When true, render only the body (no gear trigger / portal). */
+  embedded?: boolean
 }
 
-const PANEL_WIDTH = 420
+const PANEL_WIDTH = 440
 const VIEW_PAD = 12
 
 /**
  * Particle settings as a floating overlay — does not expand the slot or push the row.
- * Closes on Escape and outside click.
+ * Opens on click. Portal is dark Gantry-styled (outside `.admin-shell`).
  */
 export function ParticleSettingsPopover({
   title,
   triggerLabel = '⚙',
   children,
+  tabs,
+  embedded = false,
 }: Props) {
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [coords, setCoords] = useState({ top: 0, left: 0 })
+  const [activeTab, setActiveTab] = useState(() => tabs?.[0]?.id ?? 'main')
   const triggerRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const titleId = useId()
+  const tablistId = useId()
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  useEffect(() => {
+    if (!tabs?.length) return
+    if (!tabs.some((tab) => tab.id === activeTab)) {
+      setActiveTab(tabs[0]!.id)
+    }
+  }, [tabs, activeTab])
 
   const placePanel = () => {
     const trigger = triggerRef.current
@@ -52,7 +74,7 @@ export function ParticleSettingsPopover({
   useLayoutEffect(() => {
     if (!open) return
     placePanel()
-  }, [open])
+  }, [open, activeTab])
 
   useEffect(() => {
     if (!open) return
@@ -82,10 +104,55 @@ export function ParticleSettingsPopover({
   useEffect(() => {
     if (!open) return
     const first = panelRef.current?.querySelector<HTMLElement>(
-      'input, select, textarea, button, [contenteditable="true"]',
+      'input, select, textarea, button:not([data-sf-settings-close]), [contenteditable="true"]',
     )
     first?.focus()
-  }, [open])
+  }, [open, activeTab])
+
+  const body = tabs?.length ? (
+    <div className="gantry-settings-tabs">
+      <div className="gantry-settings-tablist" role="tablist" aria-label={title} id={tablistId}>
+        {tabs.map((tab) => {
+          const selected = tab.id === activeTab
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              id={`${tablistId}-${tab.id}`}
+              aria-selected={selected}
+              aria-controls={`${tablistId}-panel-${tab.id}`}
+              className={selected ? 'gantry-settings-tab is-active' : 'gantry-settings-tab'}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          )
+        })}
+      </div>
+      {tabs.map((tab) => {
+        const selected = tab.id === activeTab
+        return (
+          <div
+            key={tab.id}
+            role="tabpanel"
+            id={`${tablistId}-panel-${tab.id}`}
+            aria-labelledby={`${tablistId}-${tab.id}`}
+            hidden={!selected}
+            className="gantry-settings-tabpanel"
+          >
+            {selected ? tab.content : null}
+          </div>
+        )
+      })}
+    </div>
+  ) : (
+    children
+  )
+
+  if (embedded) {
+    return <div className="gantry-settings-embedded">{body}</div>
+  }
 
   return (
     <div className="gantry-settings-trigger-wrap">
@@ -103,7 +170,10 @@ export function ParticleSettingsPopover({
       </button>
       {mounted && open
         ? createPortal(
-            <div className="gantry-settings-layer" data-sf-settings-overlay="">
+            <div
+              className="gantry-settings-layer gantry-settings-theme-dark"
+              data-sf-settings-overlay=""
+            >
               <div
                 className="gantry-settings-backdrop"
                 aria-hidden="true"
@@ -118,7 +188,10 @@ export function ParticleSettingsPopover({
                 style={{
                   top: coords.top,
                   left: coords.left,
-                  width: Math.min(PANEL_WIDTH, typeof window !== 'undefined' ? window.innerWidth - VIEW_PAD * 2 : PANEL_WIDTH),
+                  width: Math.min(
+                    PANEL_WIDTH,
+                    typeof window !== 'undefined' ? window.innerWidth - VIEW_PAD * 2 : PANEL_WIDTH,
+                  ),
                 }}
               >
                 <header className="gantry-settings-panel-head">
@@ -126,13 +199,14 @@ export function ParticleSettingsPopover({
                   <button
                     type="button"
                     className="secondary"
+                    data-sf-settings-close=""
                     aria-label="Close settings"
                     onClick={() => setOpen(false)}
                   >
                     Close
                   </button>
                 </header>
-                <div className="gantry-settings-panel-body">{children}</div>
+                <div className="gantry-settings-panel-body">{body}</div>
               </div>
             </div>,
             document.body,

@@ -2148,15 +2148,38 @@ button:disabled {
   position: fixed;
   z-index: 81;
   pointer-events: auto;
-  max-height: min(70vh, 640px);
+  max-height: min(75vh, 680px);
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
   border: 1px solid var(--sf-line);
+  /* Default light; `.gantry-settings-theme-dark` overrides for Core admin */
   background: #fff;
   box-shadow:
     0 12px 32px color-mix(in srgb, var(--sf-ink, #1a1a1a) 18%, transparent),
     0 2px 8px color-mix(in srgb, var(--sf-ink, #1a1a1a) 8%, transparent);
+}
+
+.gantry-settings-tabs {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.gantry-settings-tablist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0 0 0.75rem;
+}
+
+.gantry-settings-tab {
+  font: inherit;
+  cursor: pointer;
+}
+
+.gantry-settings-tabpanel {
+  min-height: 0;
 }
 
 .gantry-settings-panel-head {

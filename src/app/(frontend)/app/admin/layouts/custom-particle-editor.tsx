@@ -40,57 +40,63 @@ export function CustomParticleEditor({
   sectionId,
   rowId,
   slot,
+  embedded = false,
 }: {
   sectionId: string
   rowId: string
   slot: LayoutSlot
+  /** When true, render form only (parent owns the gear popup). */
+  embedded?: boolean
 }) {
   const [state, formAction, pending] = useActionState(updateCustomSlotAction, initialState)
   const cfg = slot.config ?? {}
 
+  const form = (
+    <form action={formAction} className="gantry-custom-form">
+      <LayoutIdField />
+      <input type="hidden" name="sectionId" value={sectionId} />
+      <input type="hidden" name="rowId" value={rowId} />
+      <input type="hidden" name="slotId" value={slot.id} />
+      <label className="gantry-custom-title">
+        <span>Title</span>
+        <input type="text" name="title" defaultValue={String(cfg.title ?? '')} />
+      </label>
+
+      <CodeEditorField
+        name="html"
+        label="HTML"
+        language="html"
+        initialValue={String(cfg.html ?? '')}
+        initialHeight={180}
+        placeholder="<p>Custom HTML</p>"
+      />
+      <CodeEditorField
+        name="css"
+        label="CSS"
+        language="css"
+        initialValue={String(cfg.css ?? '')}
+        initialHeight={140}
+        placeholder=".my-block { color: … }"
+      />
+      <CodeEditorField
+        name="js"
+        label="JavaScript"
+        language="javascript"
+        initialValue={String(cfg.js ?? '')}
+        initialHeight={120}
+        placeholder="// Stored only — execution gated to developer-admins later"
+        hint="JS is saved on the slot but not executed in this foundation slice."
+      />
+
+      <button type="submit" disabled={pending}>
+        {pending ? 'Saving…' : 'Save Custom'}
+      </button>
+      <ActionFeedback state={state} />
+    </form>
+  )
+
+  if (embedded) return form
   return (
-    <ParticleSettingsPopover title="Custom particle — HTML / CSS / JS">
-      <form action={formAction} className="gantry-custom-form">
-        <LayoutIdField />
-        <input type="hidden" name="sectionId" value={sectionId} />
-        <input type="hidden" name="rowId" value={rowId} />
-        <input type="hidden" name="slotId" value={slot.id} />
-        <label className="gantry-custom-title">
-          <span>Title</span>
-          <input type="text" name="title" defaultValue={String(cfg.title ?? '')} />
-        </label>
-
-        <CodeEditorField
-          name="html"
-          label="HTML"
-          language="html"
-          initialValue={String(cfg.html ?? '')}
-          initialHeight={180}
-          placeholder="<p>Custom HTML</p>"
-        />
-        <CodeEditorField
-          name="css"
-          label="CSS"
-          language="css"
-          initialValue={String(cfg.css ?? '')}
-          initialHeight={140}
-          placeholder=".my-block { color: … }"
-        />
-        <CodeEditorField
-          name="js"
-          label="JavaScript"
-          language="javascript"
-          initialValue={String(cfg.js ?? '')}
-          initialHeight={120}
-          placeholder="// Stored only — execution gated to developer-admins later"
-          hint="JS is saved on the slot but not executed in this foundation slice."
-        />
-
-        <button type="submit" disabled={pending}>
-          {pending ? 'Saving…' : 'Save Custom'}
-        </button>
-        <ActionFeedback state={state} />
-      </form>
-    </ParticleSettingsPopover>
+    <ParticleSettingsPopover title="Custom particle — HTML / CSS / JS">{form}</ParticleSettingsPopover>
   )
 }

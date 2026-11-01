@@ -26,6 +26,19 @@ export type NavMenuOption = { id: string; label: string }
 import { LayoutIdField } from './layout-outline-context'
 import { ParticleSettingsPopover } from './particle-settings-popover'
 
+function SettingsShell({
+  title,
+  embedded,
+  children,
+}: {
+  title: string
+  embedded?: boolean
+  children: React.ReactNode
+}) {
+  if (embedded) return <>{children}</>
+  return <ParticleSettingsPopover title={title}>{children}</ParticleSettingsPopover>
+}
+
 const initialState: LayoutActionState = {}
 
 function ActionFeedback({ state }: { state: LayoutActionState }) {
@@ -54,17 +67,19 @@ export function LogoParticleEditor({
   sectionId,
   rowId,
   slot,
+  embedded = false,
 }: {
   sectionId: string
   rowId: string
   slot: LayoutSlot
+  embedded?: boolean
 }) {
   const [state, formAction, pending] = useActionState(updateLogoSlotAction, initialState)
   const cfg = readLogoConfig(slot.config)
   const [mode, setMode] = useState(cfg.mode ?? 'image')
 
   return (
-    <ParticleSettingsPopover title="Logo / Image settings">
+    <SettingsShell title="Logo / Image settings" embedded={embedded}>
       <form action={formAction} className="gantry-typed-form">
         <LayoutIdField />
         <input type="hidden" name="sectionId" value={sectionId} />
@@ -201,7 +216,7 @@ export function LogoParticleEditor({
         </button>
         <ActionFeedback state={state} />
       </form>
-    </ParticleSettingsPopover>
+    </SettingsShell>
   )
 }
 
@@ -211,19 +226,21 @@ export function MenuParticleEditor({
   slot,
   navMenus,
   primaryNavMenuId,
+  embedded = false,
 }: {
   sectionId: string
   rowId: string
   slot: LayoutSlot
   navMenus: NavMenuOption[]
   primaryNavMenuId: string
+  embedded?: boolean
 }) {
   const [state, formAction, pending] = useActionState(updateMenuSlotAction, initialState)
   const cfg = readMenuConfig(slot.config)
   const selected = (cfg.menuId ?? '').trim() || 'primary'
 
   return (
-    <ParticleSettingsPopover title="Menu settings">
+    <SettingsShell title="Menu settings" embedded={embedded}>
       <form action={formAction} className="gantry-typed-form">
         <LayoutIdField />
         <input type="hidden" name="sectionId" value={sectionId} />
@@ -255,7 +272,7 @@ export function MenuParticleEditor({
         </button>
         <ActionFeedback state={state} />
       </form>
-    </ParticleSettingsPopover>
+    </SettingsShell>
   )
 }
 
@@ -263,17 +280,19 @@ export function CopyrightParticleEditor({
   sectionId,
   rowId,
   slot,
+  embedded = false,
 }: {
   sectionId: string
   rowId: string
   slot: LayoutSlot
+  embedded?: boolean
 }) {
   const [state, formAction, pending] = useActionState(updateCopyrightSlotAction, initialState)
   const cfg = readCopyrightConfig(slot.config)
   const [yearMode, setYearMode] = useState(cfg.yearMode ?? 'auto')
 
   return (
-    <ParticleSettingsPopover title="Copyright settings">
+    <SettingsShell title="Copyright settings" embedded={embedded}>
       <form action={formAction} className="gantry-typed-form">
         <LayoutIdField />
         <input type="hidden" name="sectionId" value={sectionId} />
@@ -315,7 +334,7 @@ export function CopyrightParticleEditor({
         </button>
         <ActionFeedback state={state} />
       </form>
-    </ParticleSettingsPopover>
+    </SettingsShell>
   )
 }
 
@@ -323,10 +342,12 @@ export function SocialParticleEditor({
   sectionId,
   rowId,
   slot,
+  embedded = false,
 }: {
   sectionId: string
   rowId: string
   slot: LayoutSlot
+  embedded?: boolean
 }) {
   const [state, formAction, pending] = useActionState(updateSocialSlotAction, initialState)
   const initial = readSocialConfig(slot.config).items ?? []
@@ -337,7 +358,7 @@ export function SocialParticleEditor({
   )
 
   return (
-    <ParticleSettingsPopover title="Social links">
+    <SettingsShell title="Social links" embedded={embedded}>
       <form action={formAction} className="gantry-typed-form">
         <LayoutIdField />
         <input type="hidden" name="sectionId" value={sectionId} />
@@ -430,7 +451,7 @@ export function SocialParticleEditor({
         </button>
         <ActionFeedback state={state} />
       </form>
-    </ParticleSettingsPopover>
+    </SettingsShell>
   )
 }
 
@@ -438,10 +459,12 @@ export function FormParticleEditor({
   sectionId,
   rowId,
   slot,
+  embedded = false,
 }: {
   sectionId: string
   rowId: string
   slot: LayoutSlot
+  embedded?: boolean
 }) {
   const [state, formAction, pending] = useActionState(updateFormSlotAction, initialState)
   const cfg = readFormConfig(slot.config)
@@ -465,7 +488,7 @@ export function FormParticleEditor({
   }
 
   return (
-    <ParticleSettingsPopover title="Form settings">
+    <SettingsShell title="Form settings" embedded={embedded}>
       <form action={formAction} className="gantry-typed-form">
         <LayoutIdField />
         <input type="hidden" name="sectionId" value={sectionId} />
@@ -516,7 +539,7 @@ export function FormParticleEditor({
         </button>
         <ActionFeedback state={state} />
       </form>
-    </ParticleSettingsPopover>
+    </SettingsShell>
   )
 }
 
@@ -527,15 +550,19 @@ export function TypedParticleEditor({
   slot,
   navMenus = [],
   primaryNavMenuId = 'main',
+  embedded = false,
 }: {
   sectionId: string
   rowId: string
   slot: LayoutSlot
   navMenus?: NavMenuOption[]
   primaryNavMenuId?: string
+  embedded?: boolean
 }) {
   if (slot.moduleId === 'logo') {
-    return <LogoParticleEditor sectionId={sectionId} rowId={rowId} slot={slot} />
+    return (
+      <LogoParticleEditor sectionId={sectionId} rowId={rowId} slot={slot} embedded={embedded} />
+    )
   }
   if (slot.moduleId === 'menu') {
     return (
@@ -545,17 +572,29 @@ export function TypedParticleEditor({
         slot={slot}
         navMenus={navMenus}
         primaryNavMenuId={primaryNavMenuId}
+        embedded={embedded}
       />
     )
   }
   if (slot.moduleId === 'copyright') {
-    return <CopyrightParticleEditor sectionId={sectionId} rowId={rowId} slot={slot} />
+    return (
+      <CopyrightParticleEditor
+        sectionId={sectionId}
+        rowId={rowId}
+        slot={slot}
+        embedded={embedded}
+      />
+    )
   }
   if (slot.moduleId === 'social') {
-    return <SocialParticleEditor sectionId={sectionId} rowId={rowId} slot={slot} />
+    return (
+      <SocialParticleEditor sectionId={sectionId} rowId={rowId} slot={slot} embedded={embedded} />
+    )
   }
   if (slot.moduleId === 'form') {
-    return <FormParticleEditor sectionId={sectionId} rowId={rowId} slot={slot} />
+    return (
+      <FormParticleEditor sectionId={sectionId} rowId={rowId} slot={slot} embedded={embedded} />
+    )
   }
   return null
 }
