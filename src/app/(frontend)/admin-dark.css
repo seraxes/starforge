@@ -101,7 +101,14 @@ body:has(.admin-shell) > main {
   gap: 0.85rem 1.25rem;
   margin: 0 0 0.85rem;
   padding: 0.35rem 0.5rem;
-  background: #0c121c;
+  /* Elite-minimal soft light spot — quieter than Site Settings wash */
+  background:
+    radial-gradient(
+      72% 160% at 8% 0%,
+      color-mix(in srgb, var(--sf-secondary) 10%, transparent) 0%,
+      transparent 68%
+    ),
+    #0c121c;
   border: 1px solid #1a2433;
   border-radius: 3px;
   min-height: 2.85rem;
@@ -310,7 +317,13 @@ body:has(.admin-shell) > main {
 
 /* Joomla-style left sidebar — a few shades darker than content canvas */
 .admin-shell .admin-sidebar {
+  /* Soft elite light spot (Site Settings–like wash, quieter — no glow stack) */
   background:
+    radial-gradient(
+      140% 48% at 35% -8%,
+      color-mix(in srgb, var(--sf-secondary) 11%, transparent) 0%,
+      transparent 64%
+    ),
     linear-gradient(180deg, #0c121c 0%, #0f1622 48%, #0d141e 100%);
   border-right-color: #1a2433;
   box-shadow: inset -1px 0 0 color-mix(in srgb, #000 40%, transparent);
@@ -406,7 +419,13 @@ body:has(.admin-shell) > main {
 
 @media (max-width: 900px) {
   .admin-shell .admin-sidebar {
-    background: #0c121c;
+    background:
+      radial-gradient(
+        90% 120% at 18% 0%,
+        color-mix(in srgb, var(--sf-secondary) 10%, transparent) 0%,
+        transparent 70%
+      ),
+      #0c121c;
     border-bottom-color: #1a2433;
     box-shadow: none;
   }
