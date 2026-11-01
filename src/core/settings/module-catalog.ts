@@ -57,7 +57,8 @@ export const PRODUCT_MODULE_CATALOG: ModuleCatalogItem[] = [
     id: MODULE_IDS.primaryNav,
     kind: 'product',
     label: 'Primary nav',
-    description: 'Public header menu from Site Settings (until a dedicated Nav manager ships). Off hides header links.',
+    description:
+      'Nav manager + public header menu. Off hides Core admin → Nav and public header links. Site Settings picks which menu set is the site default.',
     required: false,
     defaultEnabled: true,
     installed: true,

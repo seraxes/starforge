@@ -13,6 +13,7 @@ export {
   db,
   pool,
   DEFAULT_LAYOUT_ID,
+  DEFAULT_NAV_MENU_ID,
   GLOBAL_PAGE_CHROME_ID,
   sfUsers,
   sfSessions,
@@ -20,7 +21,17 @@ export {
   sfVerifications,
   sfLayouts,
   sfPageChrome,
+  sfNavMenus,
 } from './db'
+export {
+  ensureDefaultNavMenuSeeded,
+  findNavOverridesForPath,
+  listNavMenus,
+  loadNavMenu,
+  resolveNavMenuItems,
+  seedMainNavFromPages,
+} from './nav'
+export type { NavMenuItem, NavMenuMeta, ResolvedNavItem } from './nav'
 export {
   BodyAttributesApplier,
   DocumentBodyChrome,

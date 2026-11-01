@@ -7,7 +7,8 @@ import type { StarforgeModule } from '../types'
 
 /**
  * Built-in particle wrapping the public brand + primary nav chrome.
- * Primary nav links honor Site Settings → Modules (`product:primary-nav`).
+ * Links come from Nav manager (site default menu); gated by Modules
+ * (`product:primary-nav`).
  */
 export const siteHeaderModule: StarforgeModule = {
   id: 'site-header',

@@ -1,17 +1,25 @@
 'use client'
 
-import React, { useActionState, useState } from 'react'
+import React, { useActionState } from 'react'
+import Link from 'next/link'
 
 import {
   updateSiteSettingsAction,
   type SettingsActionState,
 } from '@/core/settings/actions'
-import type { FeatureFlags, ModuleToggleMap, NavItem } from '@/core/settings/defaults'
+import type { FeatureFlags, ModuleToggleMap } from '@/core/settings/defaults'
 import type { ModuleCatalogItem, ModuleToggleKind } from '@/core/settings/module-toggles'
+
+type NavMenuOption = {
+  id: string
+  label: string
+  itemCount: number
+}
 
 type Props = {
   siteName: string
-  primaryNav: NavItem[]
+  primaryNavMenuId: string
+  navMenus: NavMenuOption[]
   features: FeatureFlags
   moduleCatalog: ModuleCatalogItem[]
   moduleToggles: ModuleToggleMap
@@ -35,7 +43,7 @@ const KIND_SECTIONS: Array<{ kind: ModuleToggleKind; title: string; hint: string
   {
     kind: 'product',
     title: 'Product capabilities',
-    hint: 'Layout, Page Settings, nav, Font Awesome, and former feature toggles.',
+    hint: 'Layout, Page Settings, Nav manager, Font Awesome, and former feature toggles.',
   },
   {
     kind: 'particle',
@@ -104,25 +112,22 @@ function ModuleRows({
 
 export function SettingsForm({
   siteName,
-  primaryNav,
+  primaryNavMenuId,
+  navMenus,
   features,
   moduleCatalog,
   moduleToggles,
 }: Props) {
   const [state, formAction, pending] = useActionState(updateSiteSettingsAction, initialState)
-  const [navRows, setNavRows] = useState<NavItem[]>(
-    primaryNav.length > 0 ? primaryNav : [{ label: '', href: '' }],
-  )
 
   return (
     <form action={formAction} className="settings-form settings-form-wide">
       <fieldset className="settings-fieldset">
         <legend>Site chrome</legend>
         <p className="settings-hint">
-          Also editable in Payload <code>/admin</code> → Globals → Site settings. Saving here stores
-          nav rows as custom paths/URLs. Prefer Payload’s <strong>CMS page</strong> link type so
-          header links stay tied to page slugs. Primary nav visibility is gated under Modules →
-          Primary nav.
+          Site name and which <Link href="/app/admin/nav">Nav</Link> menu set powers the public
+          header. Edit menu items under <strong>Nav</strong> — not here. Primary nav visibility is
+          gated under Modules → Primary nav.
         </p>
         <label className="settings-field">
           <span>Site name</span>
@@ -135,56 +140,25 @@ export function SettingsForm({
           />
         </label>
 
-        <div className="settings-nav">
-          <p className="settings-nav-label">Primary nav</p>
-          {navRows.map((row, index) => (
-            <div className="settings-nav-row" key={`nav-${index}`}>
-              <label>
-                <span className="sr-only">Label {index + 1}</span>
-                <input
-                  type="text"
-                  name="navLabel"
-                  placeholder="Label"
-                  value={row.label}
-                  onChange={(e) => {
-                    const next = [...navRows]
-                    next[index] = { ...next[index], label: e.target.value }
-                    setNavRows(next)
-                  }}
-                />
-              </label>
-              <label>
-                <span className="sr-only">Href {index + 1}</span>
-                <input
-                  type="text"
-                  name="navHref"
-                  placeholder="/about"
-                  value={row.href}
-                  onChange={(e) => {
-                    const next = [...navRows]
-                    next[index] = { ...next[index], href: e.target.value }
-                    setNavRows(next)
-                  }}
-                />
-              </label>
-              <button
-                type="button"
-                className="secondary"
-                disabled={navRows.length <= 1}
-                onClick={() => setNavRows(navRows.filter((_, i) => i !== index))}
-              >
-                Remove
-              </button>
-            </div>
-          ))}
-          <button
-            type="button"
-            className="secondary"
-            onClick={() => setNavRows([...navRows, { label: '', href: '' }])}
-          >
-            Add nav item
-          </button>
-        </div>
+        <label className="settings-field">
+          <span>Primary nav menu</span>
+          <select name="primaryNavMenuId" defaultValue={primaryNavMenuId}>
+            {navMenus.length === 0 ? (
+              <option value="main">Main (create under Nav)</option>
+            ) : (
+              navMenus.map((menu) => (
+                <option key={menu.id} value={menu.id}>
+                  {menu.label} ({menu.id}) · {menu.itemCount} item
+                  {menu.itemCount === 1 ? '' : 's'}
+                </option>
+              ))
+            )}
+          </select>
+        </label>
+        <p className="settings-hint">
+          Manage sets and items at{' '}
+          <Link href="/app/admin/nav">Starforge admin → Nav</Link>.
+        </p>
       </fieldset>
 
       <fieldset className="settings-fieldset settings-modules">

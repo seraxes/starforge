@@ -389,7 +389,7 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   createdAt?: T;
 }
 /**
- * Site name, primary nav (pages / URLs), and feature toggles. Core admins can also edit at /app/admin/settings. App accounts stay separate from CMS editors.
+ * Site name, default primary nav menu, and feature toggles. Edit menu items under Starforge admin → Nav.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "site-settings".
@@ -401,7 +401,11 @@ export interface SiteSetting {
    */
   siteName: string;
   /**
-   * Ordered header links. Prefer “CMS page” so URLs stay in sync with the page slug. Custom URL for external links or fixed paths. Nested menus / module assignment come later.
+   * Id of the Nav manager menu set (`sf_nav_menus`) used for the public primary header.
+   */
+  primaryNavMenuId?: string | null;
+  /**
+   * Legacy fallback only — prefer Nav manager + primaryNavMenuId.
    */
   primaryNav?:
     | {
@@ -418,13 +422,7 @@ export interface SiteSetting {
          * Path (/about) or absolute URL (https://…).
          */
         url?: string | null;
-        /**
-         * Stub — reserved for later Joomla-like menu CSS class. Not applied on the public site yet.
-         */
         cssClass?: string | null;
-        /**
-         * Stub — reserved for later browser / page title override when this item is active. Not applied yet.
-         */
         browserTitle?: string | null;
         id?: string | null;
       }[]
@@ -442,13 +440,23 @@ export interface SiteSetting {
    */
   featurePosts?: boolean | null;
   /**
-   * Render extension modules in named layout positions (e.g. notice bar in header). Off = all ModuleSlots empty.
+   * Legacy master flag. Prefer the Modules list (per particle/atom).
    */
   featureModules?: boolean | null;
   /**
    * Allow users with CMS access to open /preview/{slug} and see unpublished page drafts. Anonymous visitors still only see published /{slug}.
    */
   featureDraftPreview?: boolean | null;
+  /**
+   * Per installed module / atom on/off (P0).
+   */
+  moduleToggles?:
+    | {
+        moduleId: string;
+        enabled?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -458,6 +466,7 @@ export interface SiteSetting {
  */
 export interface SiteSettingsSelect<T extends boolean = true> {
   siteName?: T;
+  primaryNavMenuId?: T;
   primaryNav?:
     | T
     | {
@@ -474,6 +483,13 @@ export interface SiteSettingsSelect<T extends boolean = true> {
   featurePosts?: T;
   featureModules?: T;
   featureDraftPreview?: T;
+  moduleToggles?:
+    | T
+    | {
+        moduleId?: T;
+        enabled?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
