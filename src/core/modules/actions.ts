@@ -996,7 +996,10 @@ export async function updateCustomSlotAction(
     return doc
   })
 
-  if (state.ok) state.message = 'Custom particle saved.'
+  if (state.ok) {
+    state.message = 'Custom particle saved.'
+    state.config = config
+  }
   return state
 }
 
@@ -1137,7 +1140,10 @@ export async function updateMenuSlotAction(
     return doc
   })
 
-  if (state.ok) state.message = 'Menu settings saved.'
+  if (state.ok) {
+    state.message = 'Menu settings saved.'
+    state.config = config
+  }
   return state
 }
 
@@ -1168,7 +1174,10 @@ export async function updateCopyrightSlotAction(
     return doc
   })
 
-  if (state.ok) state.message = 'Copyright saved.'
+  if (state.ok) {
+    state.message = 'Copyright saved.'
+    state.config = config
+  }
   return state
 }
 
@@ -1199,7 +1208,10 @@ export async function updateSocialSlotAction(
     return doc
   })
 
-  if (state.ok) state.message = 'Social links saved.'
+  if (state.ok) {
+    state.message = 'Social links saved.'
+    state.config = config
+  }
   return state
 }
 
@@ -1236,7 +1248,10 @@ export async function updateFormSlotAction(
     return doc
   })
 
-  if (state.ok) state.message = 'Form settings saved.'
+  if (state.ok) {
+    state.message = 'Form settings saved.'
+    state.config = config
+  }
   return state
 }
 

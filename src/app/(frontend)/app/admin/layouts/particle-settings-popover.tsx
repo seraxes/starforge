@@ -85,6 +85,8 @@ export function ParticleSettingsPopover({
     const onPointer = (event: MouseEvent) => {
       const target = event.target as Node
       if (panelRef.current?.contains(target) || triggerRef.current?.contains(target)) return
+      // Global Saved toast mounts outside the panel — ignore so autosave toasts do not close the cog.
+      if (target instanceof Element && target.closest('.admin-toast-host')) return
       setOpen(false)
     }
     const onReposition = () => placePanel()
@@ -131,6 +133,7 @@ export function ParticleSettingsPopover({
     </div>
   ) : null
 
+  // Keep tab bodies mounted (hidden) so autosave drafts / focus survive tab switches and parent re-renders.
   const panels = tabs?.length ? (
     <div className="gantry-settings-tabs">
       {tabs.map((tab) => {
@@ -144,7 +147,7 @@ export function ParticleSettingsPopover({
             hidden={!selected}
             className="gantry-settings-tabpanel"
           >
-            {selected ? tab.content : null}
+            {tab.content}
           </div>
         )
       })}

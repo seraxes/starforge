@@ -183,7 +183,13 @@ function ParticleConfigTab({
     return (
       <div className="gantry-particle-config-stack">
         {attrs}
-        <CustomParticleEditor sectionId={sectionId} rowId={rowId} slot={slot} embedded />
+        <CustomParticleEditor
+          sectionId={sectionId}
+          rowId={rowId}
+          slot={slot}
+          embedded
+          onConfigSaved={(config) => onSlotPatched?.({ config })}
+        />
       </div>
     )
   }
@@ -228,6 +234,47 @@ function sortRows(rows: LayoutRow[]) {
 
 function sortSlots(slots: LayoutSlot[]) {
   return [...slots].sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id))
+}
+
+/** Section / row / slot id topology — used to soft-merge server refreshes without remounting open cogs. */
+function layoutStructureKey(sections: LayoutSection[]): string {
+  return sortSections(sections)
+    .map((section) => {
+      const rows = sortRows(section.rows)
+        .map((row) => `${row.id}:${sortSlots(row.slots).map((s) => s.id).join(',')}`)
+        .join('+')
+      return `${section.id}{${rows}}`
+    })
+    .join('|')
+}
+
+/**
+ * When autosave revalidates the layout document, keep the same section/row/slot topology
+ * and merge fields onto the existing tree. A wholesale replace remounts particle cogs mid-type.
+ */
+function mergeSectionsFromServer(prev: LayoutSection[], next: LayoutSection[]): LayoutSection[] {
+  const sortedNext = sortSections(next)
+  if (layoutStructureKey(prev) !== layoutStructureKey(sortedNext)) {
+    return sortedNext
+  }
+  return sortSections(prev).map((prevSection) => {
+    const serverSection = sortedNext.find((s) => s.id === prevSection.id)!
+    return {
+      ...prevSection,
+      ...serverSection,
+      rows: sortRows(prevSection.rows).map((prevRow) => {
+        const serverRow = sortRows(serverSection.rows).find((r) => r.id === prevRow.id)!
+        return {
+          ...prevRow,
+          ...serverRow,
+          slots: sortSlots(prevRow.slots).map((prevSlot) => {
+            const serverSlot = sortSlots(serverRow.slots).find((s) => s.id === prevSlot.id)!
+            return { ...prevSlot, ...serverSlot }
+          }),
+        }
+      }),
+    }
+  })
 }
 
 function ResizeHandle({
@@ -928,12 +975,26 @@ function SectionCanvas({
   })
   const [slotMapSource, setSlotMapSource] = useState(section)
 
-  // Adjust local slot widths/order when the server section document refreshes.
+  // Soft-merge slot rows when the server section refreshes (autosave) — keep topology stable.
   if (section !== slotMapSource) {
     setSlotMapSource(section)
-    const map: Record<string, LayoutSlot[]> = {}
-    for (const row of section.rows) map[row.id] = sortSlots(row.slots)
-    setSlotMap(map)
+    setSlotMap((prev) => {
+      const map: Record<string, LayoutSlot[]> = {}
+      for (const row of section.rows) {
+        const serverSlots = sortSlots(row.slots)
+        const local = prev[row.id]
+        if (
+          local &&
+          local.length === serverSlots.length &&
+          local.every((slot, index) => slot.id === serverSlots[index]!.id)
+        ) {
+          map[row.id] = local.map((slot, index) => ({ ...slot, ...serverSlots[index]! }))
+        } else {
+          map[row.id] = serverSlots
+        }
+      }
+      return map
+    })
   }
 
   const persistSectionMeta = useCallback(
@@ -1292,10 +1353,10 @@ export function LayoutEditor({
   const [sectionList, setSectionList] = useState(() => sortSections(document.sections))
   const [sectionListSource, setSectionListSource] = useState(document.sections)
 
-  // Adjust canvas section order when the server layout document refreshes.
+  // Soft-merge when the server layout document refreshes (particle autosave revalidate).
   if (document.sections !== sectionListSource) {
     setSectionListSource(document.sections)
-    setSectionList(sortSections(document.sections))
+    setSectionList((prev) => mergeSectionsFromServer(prev, document.sections))
   }
 
   const persistSectionOrder = useCallback(
