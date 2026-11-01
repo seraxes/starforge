@@ -19,7 +19,8 @@ export type LayoutBreakpoints = {
   mobileMenu: string
 }
 
-export type LayoutOutlineStyles = {
+/** Outline document `styles` bag (breakpoints now; accents later). */
+export type LayoutDocumentStyles = {
   breakpoints: LayoutBreakpoints
 }
 
@@ -54,7 +55,7 @@ export function normalizeLayoutBreakpoints(raw: unknown): LayoutBreakpoints {
   }
 }
 
-export function normalizeLayoutOutlineStyles(raw: unknown): LayoutOutlineStyles | undefined {
+export function normalizeLayoutOutlineStyles(raw: unknown): LayoutDocumentStyles | undefined {
   if (!raw || typeof raw !== 'object') return undefined
   const breakpointsRaw = (raw as { breakpoints?: unknown }).breakpoints
   if (breakpointsRaw === undefined) return undefined

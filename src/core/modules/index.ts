@@ -108,7 +108,7 @@ export {
 export type {
   LayoutBreakpoints,
   LayoutContainerMode,
-  LayoutOutlineStyles,
+  LayoutDocumentStyles,
 } from './styles'
 export {
   clearModuleRegistry,

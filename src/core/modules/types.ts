@@ -2,9 +2,9 @@ import type { ReactNode } from 'react'
 
 import type { FeatureFlags, SiteSettingsData } from '@/core/settings/defaults'
 
-import type { LayoutContainerMode, LayoutOutlineStyles } from './styles'
+import type { LayoutContainerMode, LayoutDocumentStyles } from './styles'
 
-export type { LayoutBreakpoints, LayoutContainerMode, LayoutOutlineStyles } from './styles'
+export type { LayoutBreakpoints, LayoutContainerMode, LayoutDocumentStyles } from './styles'
 
 /**
  * Slot width is an integer **percent** of the row (Gantry-style block size).
@@ -99,7 +99,7 @@ export type LayoutDocument = {
   version: 3
   sections: LayoutSection[]
   /** Outline-scoped styles (breakpoints now; accents later with theme SF-33). */
-  styles?: LayoutOutlineStyles
+  styles?: LayoutDocumentStyles
 }
 
 export type ModuleRenderContext = {
