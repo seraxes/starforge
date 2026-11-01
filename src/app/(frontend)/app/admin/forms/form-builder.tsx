@@ -24,16 +24,15 @@ import {
   saveFormDefinitionAction,
   type FormAdminActionState,
 } from '@/core/forms/actions'
-import {
-  FORM_PRESETS,
-  createFieldDraft,
-  fieldsToJsonSchema,
-  stringifyFormJsonSchema,
-  type FormDefinitionDocument,
-  type FormFieldDef,
-  type FormFieldType,
-  type FormPresetId,
-} from '@/core/forms'
+import { createFieldDraft } from '@/core/forms/definition'
+import { FORM_PRESETS } from '@/core/forms/presets'
+import { fieldsToJsonSchema, stringifyFormJsonSchema } from '@/core/forms/schema-json'
+import type {
+  FormDefinitionDocument,
+  FormFieldDef,
+  FormFieldType,
+  FormPresetId,
+} from '@/core/forms/types'
 
 import { useNotifySavedOnOk } from '../admin-toast'
 import { useAutosaveForm } from '../use-autosave-form'

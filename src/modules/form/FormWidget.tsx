@@ -3,7 +3,7 @@
 import React, { useActionState, useEffect } from 'react'
 
 import { submitFormAction, type FormSubmitActionState } from '@/core/forms/actions'
-import type { FormFieldDef } from '@/core/forms/types'
+import type { FormFieldDef, ResolvedCaptcha } from '@/core/forms/types'
 
 import { TurnstileWidget } from './TurnstileWidget'
 
@@ -17,12 +17,8 @@ export type FormWidgetProps = {
   successMessage: string
   submitLabel: string
   useSiteCaptchaDefault: boolean
-  captcha: {
-    required: boolean
-    provider: string
-    siteKey: string | null
-    misconfiguredReason?: string
-  }
+  /** Pre-resolved on the server — never import `@/core/forms/captcha` here. */
+  captcha: ResolvedCaptcha
 }
 
 const initialState: FormSubmitActionState = {}

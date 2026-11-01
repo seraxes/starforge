@@ -10,7 +10,8 @@ import {
   duplicateFormDefinitionAction,
   type FormAdminActionState,
 } from '@/core/forms/actions'
-import { FORM_PRESETS, type FormPresetId } from '@/core/forms'
+import { FORM_PRESETS } from '@/core/forms/presets'
+import type { FormPresetId } from '@/core/forms/types'
 
 import { useNotifySavedOnOk } from '../admin-toast'
 

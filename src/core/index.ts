@@ -59,6 +59,7 @@ export type {
   FormPresetId,
   FormSubmissionRecord,
   FormSubmitActionState,
+  ResolvedCaptcha,
 } from './forms'
 export {
   ensureDefaultNavMenuSeeded,

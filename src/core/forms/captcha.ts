@@ -1,17 +1,10 @@
 import 'server-only'
 
 import { getSiteChrome } from '@/core/site-chrome'
-import type { CaptchaProvider } from '@/core/site-chrome/types'
 
-export type ResolvedCaptcha = {
-  /** Whether this form instance should challenge the visitor. */
-  required: boolean
-  provider: CaptchaProvider
-  /** Public site key (Turnstile) when required + provider is turnstile. */
-  siteKey: string | null
-  /** Human-readable reason when required but misconfigured. */
-  misconfiguredReason?: string
-}
+import type { ResolvedCaptcha } from './types'
+
+export type { ResolvedCaptcha }
 
 /**
  * Resolve captcha for a Form particle.
