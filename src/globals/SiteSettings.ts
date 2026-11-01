@@ -8,27 +8,30 @@ const revalidateSiteSettingsAfterChange: GlobalAfterChangeHook = ({ doc }) => {
 }
 
 /**
- * Site settings + product capability toggles.
+ * Site settings + product capability toggles (Modules).
  *
  * - Editors: edit in Payload `/admin` → Globals → Site settings
- * - Core admins: edit the same doc via `/app/admin/settings` (Local API)
+ * - Core admins: edit Modules via `/app/admin/settings` (Local API)
+ *
+ * Site-wide policy (offline, metadata, robots, cookies) lives in Core
+ * **Site Chrome** (`/app/admin/site-chrome`, `sf_site_chrome`) — not here.
+ * `siteName` is kept in sync when Site Chrome saves.
  *
  * Navigation sets live in Core **Nav** (`/app/admin/nav`, `sf_nav_menus`) — a
- * top-level admin sibling of Site settings, not nested under Site Chrome.
- * This global only assigns which menu is the site default (`primaryNavMenuId`).
- * Legacy `primaryNav` array is a read fallback until migrated.
+ * top-level admin sibling. This global only assigns which menu is the site
+ * default (`primaryNavMenuId`). Legacy `primaryNav` array is a read fallback.
  *
  * Flags are product *capabilities* (registration, modules, posts placeholder…),
  * not npm libraries. Core reads them to hide UI and reject gated APIs.
  *
- * Saves invalidate the published-content cache tag for site chrome / nav.
+ * Saves invalidate the published-content cache tag for site settings / nav.
  */
 export const SiteSettings: GlobalConfig = {
   slug: 'site-settings',
   label: 'Site settings',
   admin: {
     description:
-      'Site name, primary nav menu assignment, and feature toggles. Manage menus under Starforge admin → Nav (top-level). Core admins: /app/admin/settings.',
+      'Primary nav assignment + module/feature toggles. Site Chrome (offline/metadata/robots) is /app/admin/site-chrome. Menus: Starforge admin → Nav. Core Modules: /app/admin/settings.',
   },
   hooks: {
     afterChange: [revalidateSiteSettingsAfterChange],
@@ -44,7 +47,8 @@ export const SiteSettings: GlobalConfig = {
       required: true,
       defaultValue: 'Starforge',
       admin: {
-        description: 'Shown in the public site header / brand.',
+        description:
+          'Synced from Starforge admin → Site Chrome. Prefer editing site name there.',
       },
     },
     {

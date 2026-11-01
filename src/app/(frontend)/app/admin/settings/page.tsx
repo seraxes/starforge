@@ -9,8 +9,7 @@ export const dynamic = 'force-dynamic'
 
 export const metadata = {
   title: 'Site settings — Starforge',
-  description:
-    'Site name, primary nav menu assignment, feature toggles, and module on/off list.',
+  description: 'Primary nav menu assignment and module on/off list.',
 }
 
 export default async function AdminSettingsPage() {
@@ -22,12 +21,12 @@ export default async function AdminSettingsPage() {
 
   return (
     <section className="admin-section">
-      <h2>Site settings & feature toggles</h2>
+      <h2>Site settings & Modules</h2>
       <p className="lede admin-lede">
-        Site name, module on/off, and <em>which</em> menu is the public primary (assignment only).
-        Navigation sets and items are managed under the top-level{' '}
-        <Link href="/app/admin/nav">Nav</Link> admin item — not nested under Site settings or Site
-        Chrome. Also editable in Payload Globals →{' '}
+        Module on/off and <em>which</em> menu is the public primary (assignment only). Site name,
+        offline, robots, and cookies live under{' '}
+        <Link href="/app/admin/site-chrome">Site Chrome</Link>. Navigation sets under the top-level{' '}
+        <Link href="/app/admin/nav">Nav</Link> admin item. Also editable in Payload Globals →{' '}
         <Link href="/admin/globals/site-settings">Site settings</Link>.
       </p>
       <SettingsForm

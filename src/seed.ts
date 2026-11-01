@@ -29,6 +29,7 @@ import { db } from './core/db'
 import { sfUsers } from './core/db/schema'
 import { ensureDefaultLayoutSeeded } from './core/modules'
 import { ensureGlobalPageChromeSeeded } from './core/page-settings'
+import { ensureSiteChromeSeeded } from './core/site-chrome'
 import {
   ensureSiteSettingsDefaults,
   getSiteSettings,
@@ -395,6 +396,19 @@ async function main() {
     )
   } catch (error) {
     console.warn('Could not seed Page Settings (sf_page_chrome).')
+    console.warn('Run: npm run db:core:push')
+    console.warn(error instanceof Error ? error.message : error)
+  }
+
+  try {
+    const siteChromeSeed = await ensureSiteChromeSeeded()
+    console.log(
+      siteChromeSeed.created
+        ? `Site Chrome: seeded defaults into sf_site_chrome ("${siteChromeSeed.chrome.siteName}")`
+        : `Site Chrome: sf_site_chrome.global already present ("${siteChromeSeed.chrome.siteName}")`,
+    )
+  } catch (error) {
+    console.warn('Could not seed Site Chrome (sf_site_chrome).')
     console.warn('Run: npm run db:core:push')
     console.warn(error instanceof Error ? error.message : error)
   }

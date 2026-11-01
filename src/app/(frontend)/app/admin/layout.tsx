@@ -54,8 +54,8 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
           </p>
           <h1>Starforge admin</h1>
           <p className="lede admin-lede">
-            Top-level areas: Users (Accounts · Groups · ACL), Site settings, Nav, Layouts. Content
-            (pages, media) lives in{' '}
+            Top-level areas: Users (Accounts · Groups · ACL), Site Chrome, Site settings (Modules),
+            Nav, Layouts. Content (pages, media) lives in{' '}
             {showPayloadCms ? <Link href="/admin">Payload CMS</Link> : 'Payload CMS'} — same login
             when CMS access is on.
           </p>
@@ -84,6 +84,7 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
             </li>
           </ul>
         </div>
+        <Link href="/app/admin/site-chrome">Site Chrome</Link>
         <Link href="/app/admin/settings">Site settings</Link>
         {navOn ? <Link href="/app/admin/nav">Nav</Link> : null}
         {showLayoutsNav ? (

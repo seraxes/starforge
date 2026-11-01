@@ -28,3 +28,8 @@ export function invalidatePublishedPage(options: {
 export function invalidateSiteSettings(): void {
   getPublishedContentCache().invalidateTags([contentCacheTags.siteSettings])
 }
+
+/** Drop cached Site Chrome policy document. */
+export function invalidateSiteChrome(): void {
+  getPublishedContentCache().invalidateTags([contentCacheTags.siteChrome])
+}
