@@ -1,9 +1,34 @@
 /*
+<<<<<<< HEAD
  * CSS layers (keep separate — do not mix Page Settings / Custom into admin chrome):
  * 1) Design tokens — `:root` below (later Tailwind theme / SF-33 Core Styles)
  * 2) Outline Layout Styles — public `.sf-layout-section` width + section bg/text + breakpoints
  * 3) Custom CSS — Page Settings document chrome / Custom particle only
  */
+=======
+ * Tailwind v4 (theme + utilities only — no preflight) so existing
+ * public/admin CSS keeps working. Design tokens live in :root / @theme;
+ * Core admin dark chrome is in admin-dark.css (scoped to .admin-shell).
+ */
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+@source '../../**/*.{ts,tsx,js,jsx}';
+
+@theme {
+  --color-sf-primary: #f2a66a;
+  --color-sf-primary-strong: #a85220;
+  --color-sf-secondary: #8ebad4;
+  --color-sf-secondary-strong: #2f6f96;
+  --color-sf-ink: #1c2834;
+  --color-sf-muted: #5a6674;
+  --color-sf-paper: #f5f8fc;
+  --color-sf-line: #d3dce6;
+  --color-sf-admin-bg: #1f2733;
+  --radius-sf: 0.375rem;
+}
+>>>>>>> 612231e (Add Gantry-like dark admin chrome with orange accents)
 
 :root {
   /* —— Layer 1: design tokens —— */

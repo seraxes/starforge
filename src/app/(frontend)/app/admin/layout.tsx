@@ -47,7 +47,7 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
   const showLayoutsNav = layoutOn || pageSettingsOn
 
   return (
-    <div className="admin-shell">
+    <div className="admin-shell" data-sf-admin-theme="dark">
       <header className="admin-header">
         <div>
           <p className="brand">
