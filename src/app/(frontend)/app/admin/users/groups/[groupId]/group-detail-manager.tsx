@@ -143,7 +143,7 @@ export function GroupDetailManager({
                       </form>
                     </td>
                   </tr>
-                ))}
+                ))
               )}
             </tbody>
           </table>
