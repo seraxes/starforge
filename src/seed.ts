@@ -128,6 +128,29 @@ function lexicalBody(...blocks: TextChild[]): SerializedEditorState {
 
 const SAMPLE_PAGES = [
   {
+    title: 'Welcome to Starforge',
+    slug: 'home',
+    meta: {
+      title: 'Starforge',
+      description:
+        'Reusable product core with Payload as the content module. Edit this home page in CMS.',
+    },
+    body: lexicalBody(
+      heading('h2', 'Core + content'),
+      paragraph(
+        textNode(
+          'Product APIs and auth live in Starforge core. Payload CMS handles editorial pages and media. This home page is a published Payload document (slug: home) — edit it under /admin.',
+        ),
+      ),
+      bulletList(
+        'Starforge admin: /app/admin (users, Site Chrome, layouts, modules)',
+        'Content CMS: /admin — same Better Auth login when cms_access is on',
+        'Other sample pages: /about, /getting-started, /welcome',
+        'Seed credentials: admin@starforge.local / starforge-admin',
+      ),
+    ),
+  },
+  {
     title: 'About',
     slug: 'about',
     meta: {
@@ -144,7 +167,7 @@ const SAMPLE_PAGES = [
       bulletList(
         'Core app accounts: /register and /login',
         'CMS: Payload /admin via the same Better Auth login (cms_access)',
-        'Published pages render at /{slug}',
+        'Published pages render at /{slug}; home is slug home at /',
       ),
     ),
   },
@@ -510,7 +533,7 @@ async function main() {
   }
 
   console.log('')
-  console.log('Try: http://localhost:3000/about  ·  /getting-started  ·  /welcome')
+  console.log('Try: http://localhost:3000/  (Payload home)  ·  /about  ·  /getting-started  ·  /welcome')
   console.log('Notice bar (modules): header position when Modules is on')
   console.log('Login once: http://localhost:3000/login  then open http://localhost:3000/admin')
   console.log('Core admin users:    http://localhost:3000/app/admin/users')

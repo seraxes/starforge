@@ -190,44 +190,6 @@ body {
   line-height: 1.45;
 }
 
-/*
- * Home route body — normal document flow inside the layout shell.
- * Do not use min-height:100vh / space-between here: that left a giant gap
- * before particles placed under Page Content (e.g. Form).
- * Sticky footer lives on `.public-shell` + `.site-footer { margin-top: auto }`.
- * Keep bottom padding tight so the next Main-row particle (Form) reads as
- * continuing Main, not after a page-end chrome block.
- */
-.home {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding: 3rem 1.5rem 1rem;
-  max-width: 52rem;
-  margin: 0 auto;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.content {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-/* Seed / ops hint inside page content — not `.site-footer` / layout chrome. */
-.home-meta {
-  margin: 0.5rem 0 0;
-  max-width: 36rem;
-  color: var(--sf-muted);
-  font-size: 0.88rem;
-  line-height: 1.45;
-}
-
-.home-meta code {
-  font-size: 0.85em;
-}
-
 .brand {
   margin: 0;
   font-size: 0.95rem;
@@ -2229,10 +2191,6 @@ button:disabled {
 }
 
 @media (max-width: 640px) {
-  .home {
-    padding: 2rem 1.15rem 0.75rem;
-  }
-
   .cms-page {
     padding: 2rem 1.15rem 2rem;
   }

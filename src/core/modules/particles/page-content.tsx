@@ -4,7 +4,7 @@ import type { StarforgeModule } from '../types'
 
 /**
  * Gantry-like “Page Content” particle — renders the current route’s page body
- * (CMS `[slug]`, home shell, etc.) wherever it is placed in the layout.
+ * (CMS `/` home slug + `/[slug]`, etc.) wherever it is placed in the layout.
  */
 export const pageContentModule: StarforgeModule = {
   id: 'page-content',

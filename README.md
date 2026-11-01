@@ -200,7 +200,7 @@ Members visiting `/app/admin/users` are redirected home with an **Admins only** 
 
 Idempotent local demo data:
 
-- **Published CMS pages:** `/about`, `/getting-started`, `/welcome`
+- **Published CMS pages:** `/` (Payload slug `home`), `/about`, `/getting-started`, `/welcome`
 - **Site settings** global defaults + **Nav manager Main** menu linked to those pages (`sf_nav_menus`)
 - **Modules** feature enabled + **layout document v3** seeded into `sf_layouts` (notice-bar, site-header, page-content, custom footer)
 - **Page Settings** global chrome defaults seeded into `sf_page_chrome`

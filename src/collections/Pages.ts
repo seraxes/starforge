@@ -27,7 +27,7 @@ export const Pages: CollectionConfig = {
     useAsTitle: 'title',
     defaultColumns: ['title', 'slug', '_status', 'updatedAt'],
     description:
-      'Marketing / brochure pages for the public site. Edit content here in Payload (/admin). App accounts use /login — not this collection. Publish so `/[slug]` can show the page. With Draft preview on, CMS-access users can open `/preview/{slug}` before publishing. Saving/publishing refreshes the public cached page.',
+      'Marketing / brochure pages for the public site. Edit content here in Payload (/admin). App accounts use /login — not this collection. Publish so `/[slug]` can show the page; slug `home` is the public `/` route. With Draft preview on, CMS-access users can open `/preview/{slug}` before publishing. Saving/publishing refreshes the public cached page.',
   },
   versions: {
     drafts: true,
@@ -64,7 +64,7 @@ export const Pages: CollectionConfig = {
       index: true,
       admin: {
         position: 'sidebar',
-        description: 'Public URL path, e.g. about → http://localhost:3000/about',
+        description: 'Public URL path, e.g. about → /about; home → / (site root)',
       },
     },
     {
