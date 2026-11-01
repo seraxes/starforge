@@ -7,6 +7,7 @@ import { invalidateSiteSettings } from '@/core/content/revalidate'
 import {
   DEFAULT_PRIMARY_NAV_MENU_ID,
   DEFAULT_SITE_NAME,
+  clampAdminAutosaveDebounceMs,
   featureFlagsFromModuleToggles,
   listInstalledModuleCatalog,
   type ModuleToggleMap,
@@ -51,6 +52,9 @@ export async function updateSiteSettingsAction(
   const siteName = String(formData.get('siteName') ?? '').trim() || DEFAULT_SITE_NAME
   const primaryNavMenuId =
     String(formData.get('primaryNavMenuId') ?? '').trim() || DEFAULT_PRIMARY_NAV_MENU_ID
+  const adminAutosaveDebounceMs = clampAdminAutosaveDebounceMs(
+    formData.get('adminAutosaveDebounceMs'),
+  )
   const catalog = listInstalledModuleCatalog()
   const moduleToggles = parseModuleToggles(formData)
   const features = featureFlagsFromModuleToggles(moduleToggles, catalog)
@@ -59,6 +63,7 @@ export async function updateSiteSettingsAction(
     await updateSiteSettings({
       siteName,
       primaryNavMenuId,
+      adminAutosaveDebounceMs,
       keepLegacyPrimaryNav: true,
       features,
       moduleToggles,

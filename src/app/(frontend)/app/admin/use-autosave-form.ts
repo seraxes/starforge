@@ -2,13 +2,15 @@
 
 import { useCallback, useEffect, useRef } from 'react'
 
-import { ADMIN_AUTOSAVE_DEBOUNCE_MS } from './use-debounced-persist'
+import { useAdminAutosaveDebounceMs } from './admin-autosave-context'
 
 /**
  * Bind an existing <form action={…}> to autosave: discrete controls save now,
- * text fields debounce (~500ms) and flush on blur.
+ * text fields debounce (Site Settings ms) and flush on blur.
  */
-export function useAutosaveForm(delayMs: number = ADMIN_AUTOSAVE_DEBOUNCE_MS) {
+export function useAutosaveForm(delayMs?: number) {
+  const fromSettings = useAdminAutosaveDebounceMs()
+  const ms = delayMs ?? fromSettings
   const formRef = useRef<HTMLFormElement>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -31,8 +33,8 @@ export function useAutosaveForm(delayMs: number = ADMIN_AUTOSAVE_DEBOUNCE_MS) {
     timerRef.current = setTimeout(() => {
       timerRef.current = null
       formRef.current?.requestSubmit()
-    }, delayMs)
-  }, [delayMs])
+    }, ms)
+  }, [ms])
 
   /** Spread onto text/textarea/url/number inputs. */
   const textAutosaveProps = {

@@ -7,7 +7,12 @@ import {
   updateSiteSettingsAction,
   type SettingsActionState,
 } from '@/core/settings/actions'
-import type { FeatureFlags, ModuleToggleMap } from '@/core/settings/defaults'
+import {
+  ADMIN_AUTOSAVE_DEBOUNCE_MAX_MS,
+  ADMIN_AUTOSAVE_DEBOUNCE_MIN_MS,
+  type FeatureFlags,
+  type ModuleToggleMap,
+} from '@/core/settings/defaults'
 import type { ModuleCatalogItem, ModuleToggleKind } from '@/core/settings/module-toggles'
 
 import { useNotifySavedOnOk } from '../admin-toast'
@@ -22,6 +27,7 @@ type NavMenuOption = {
 type Props = {
   siteName: string
   primaryNavMenuId: string
+  adminAutosaveDebounceMs: number
   navMenus: NavMenuOption[]
   features: FeatureFlags
   moduleCatalog: ModuleCatalogItem[]
@@ -121,6 +127,7 @@ function ModuleRows({
 export function SettingsForm({
   siteName,
   primaryNavMenuId,
+  adminAutosaveDebounceMs,
   navMenus,
   features,
   moduleCatalog,
@@ -128,7 +135,7 @@ export function SettingsForm({
 }: Props) {
   const [state, formAction, pending] = useActionState(updateSiteSettingsAction, initialState)
   useNotifySavedOnOk(state, { toastErrors: true })
-  const { formRef, discreteAutosaveProps, saveNow } = useAutosaveForm()
+  const { formRef, discreteAutosaveProps, textAutosaveProps, saveNow } = useAutosaveForm()
 
   return (
     <form ref={formRef} action={formAction} className="settings-form settings-form-wide">
@@ -162,6 +169,27 @@ export function SettingsForm({
               ))
             )}
           </select>
+        </label>
+      </fieldset>
+
+      <fieldset className="settings-fieldset">
+        <legend>Admin autosave</legend>
+        <p className="settings-hint">
+          Delay before Core admin text fields patch after typing. Blur still saves immediately.
+          Applies to particle cogs, Styles, Site Chrome, and other autosave forms.
+        </p>
+        <label className="settings-field">
+          <span>Autosave debounce (ms)</span>
+          <input
+            type="number"
+            name="adminAutosaveDebounceMs"
+            defaultValue={adminAutosaveDebounceMs}
+            min={ADMIN_AUTOSAVE_DEBOUNCE_MIN_MS}
+            max={ADMIN_AUTOSAVE_DEBOUNCE_MAX_MS}
+            step={50}
+            disabled={pending}
+            {...textAutosaveProps}
+          />
         </label>
       </fieldset>
 

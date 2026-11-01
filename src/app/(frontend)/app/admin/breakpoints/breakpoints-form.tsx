@@ -51,7 +51,7 @@ type Props = {
 }
 
 /**
- * Outline breakpoints — autosave (~500ms debounce + blur), no Save button.
+ * Outline breakpoints — autosave (Site Settings debounce + blur), no Save button.
  */
 export function BreakpointsForm({ layoutLabel, breakpoints }: Props) {
   const router = useRouter()

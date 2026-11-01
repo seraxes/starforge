@@ -20,7 +20,7 @@ type Props = {
 type AttrDraft = { htmlId: string; cssClass: string }
 
 /**
- * Optional HTML id + CSS classes — autosave (~500ms + blur), no Save button.
+ * Optional HTML id + CSS classes — autosave (Site Settings debounce + blur), no Save button.
  * Inputs are keyed by slot.id only (not saved values) so debounce patches do not remount/clear.
  */
 export function ParticleAttributesEditor({

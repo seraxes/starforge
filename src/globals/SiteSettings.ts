@@ -61,6 +61,17 @@ export const SiteSettings: GlobalConfig = {
       },
     },
     {
+      name: 'adminAutosaveDebounceMs',
+      type: 'number',
+      defaultValue: 800,
+      min: 300,
+      max: 2000,
+      admin: {
+        description:
+          'Core /app/admin text-field autosave delay in milliseconds (300–2000). Blur still saves immediately. Prefer editing under Starforge admin → Site Settings.',
+      },
+    },
+    {
       name: 'primaryNav',
       type: 'array',
       labels: {

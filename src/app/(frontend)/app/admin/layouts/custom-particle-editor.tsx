@@ -28,7 +28,7 @@ function ActionFeedback({ state }: { state: LayoutActionState }) {
 }
 
 /**
- * Custom particle — HTML / CSS / JS. Autosaves (~500ms) on edit; local title draft
+ * Custom particle — HTML / CSS / JS. Autosaves (Site Settings debounce) on edit; local title draft
  * stays stable across saves (no form remount / focus loss).
  */
 export function CustomParticleEditor({
