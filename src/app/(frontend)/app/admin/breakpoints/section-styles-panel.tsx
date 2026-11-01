@@ -32,21 +32,27 @@ function ColorField({
   value,
   placeholder,
   allowGradient,
+  onAllowGradientChange,
+  gradientFlagName,
   disabled,
 }: {
   label: string
   name: string
   value: string | undefined
   placeholder: string
+  /** When set, shows an inline “Allow gradient” checkbox on this color row. */
   allowGradient?: boolean
+  onAllowGradientChange?: (next: boolean) => void
+  gradientFlagName?: 'allowGradientBackground' | 'allowGradientOverlay'
   disabled?: boolean
 }) {
   const isGradient = Boolean(value && /gradient\(/i.test(value))
   const swatchValue = isGradient ? '#ffffff' : cssColorToColorInputValue(value)
+  const showGradientToggle = Boolean(gradientFlagName)
 
   return (
-    <label className="settings-field section-styles-color-field">
-      <span>{label}</span>
+    <div className="settings-field section-styles-color-field">
+      <span className="section-styles-color-label">{label}</span>
       <span className="gantry-color-field section-styles-color-row">
         {!allowGradient || !isGradient ? (
           <input
@@ -76,8 +82,23 @@ function ColorField({
           disabled={disabled}
           aria-label={label}
         />
+        {showGradientToggle && gradientFlagName ? (
+          <label className="section-styles-gradient-inline" title="Allow CSS gradients">
+            <input type="hidden" name={gradientFlagName} value="0" />
+            <input
+              type="checkbox"
+              name={gradientFlagName}
+              value="1"
+              defaultChecked={Boolean(allowGradient)}
+              disabled={disabled}
+              onChange={(event) => onAllowGradientChange?.(event.target.checked)}
+              aria-label={`Allow gradient for ${label}`}
+            />
+            <span>Allow gradient</span>
+          </label>
+        ) : null}
       </span>
-    </label>
+    </div>
   )
 }
 
@@ -129,6 +150,8 @@ function SectionStylesCard({
           value={styles?.backgroundColor}
           placeholder="#18191c"
           allowGradient={allowGradientBackground}
+          onAllowGradientChange={setAllowGradientBackground}
+          gradientFlagName="allowGradientBackground"
           disabled={pending}
         />
 
@@ -173,34 +196,10 @@ function SectionStylesCard({
           value={styles?.overlayColor}
           placeholder="#000000"
           allowGradient={allowGradientOverlay}
+          onAllowGradientChange={setAllowGradientOverlay}
+          gradientFlagName="allowGradientOverlay"
           disabled={pending || !overlayEnabled}
         />
-
-        <label className="settings-field section-styles-check">
-          <span>Allow gradient backgrounds</span>
-          <input type="hidden" name="allowGradientBackground" value="0" />
-          <input
-            type="checkbox"
-            name="allowGradientBackground"
-            value="1"
-            defaultChecked={allowGradientBackground}
-            disabled={pending}
-            onChange={(event) => setAllowGradientBackground(event.target.checked)}
-          />
-        </label>
-
-        <label className="settings-field section-styles-check">
-          <span>Allow gradient overlays</span>
-          <input type="hidden" name="allowGradientOverlay" value="0" />
-          <input
-            type="checkbox"
-            name="allowGradientOverlay"
-            value="1"
-            defaultChecked={allowGradientOverlay}
-            disabled={pending}
-            onChange={(event) => setAllowGradientOverlay(event.target.checked)}
-          />
-        </label>
 
         {state.error ? <p className="form-error">{state.error}</p> : null}
         {state.ok && state.message ? <p className="form-ok">{state.message}</p> : null}
