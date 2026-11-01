@@ -1809,11 +1809,11 @@ button:disabled {
   gap: 1rem;
 }
 
-/* Layout-aligned Form workspace: palette | sections canvas | inspector */
+/* Layout-aligned Form workspace: palette | sections canvas (field cog = Layout module cog) */
 .sf-form-workspace.gantry-workspace,
 .gantry-workspace.sf-form-workspace {
   display: grid;
-  grid-template-columns: minmax(11rem, 14rem) minmax(0, 1fr) minmax(16rem, 20rem);
+  grid-template-columns: minmax(11rem, 14rem) minmax(0, 1fr);
   gap: 1rem;
   align-items: start;
 }
@@ -1844,40 +1844,27 @@ button:disabled {
   max-width: none !important;
 }
 
-.sf-form-slot.is-selected {
-  border-color: var(--sf-secondary, #8ebad4);
-}
-
-.sf-form-slot-main {
+.sf-form-slot .gantry-slot-labels {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
   gap: 0.15rem;
-  border: none;
-  background: transparent;
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-  padding: 0;
   min-width: 0;
 }
 
-.sf-form-slot-main strong {
+.sf-form-slot-name {
   font-size: 1rem;
   line-height: 1.2;
+  font-weight: 700;
 }
 
-.sf-form-builder-inspector {
-  border: 1px solid color-mix(in srgb, var(--sf-secondary-strong, #2f6f96) 45%, #0b1524);
-  background: color-mix(in srgb, #1a2740 88%, #0b1524);
-  padding: 0.75rem 0.9rem;
-  max-height: min(80vh, 56rem);
-  overflow: auto;
+.sf-form-field-cog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
 }
 
-.sf-form-builder-inspector h3 {
-  margin: 0 0 0.65rem;
-  font-size: 0.95rem;
+.sf-form-builder-email {
+  grid-column: 1 / -1;
 }
 
 .sf-form-logic-block {

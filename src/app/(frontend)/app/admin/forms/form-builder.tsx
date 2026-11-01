@@ -55,6 +55,7 @@ import type {
 } from '@/core/forms/types'
 
 import { useNotifySavedOnOk } from '../admin-toast'
+import { ParticleSettingsPopover } from '../layouts/particle-settings-popover'
 import { useAutosaveForm } from '../use-autosave-form'
 import { FormsAdminNav } from './forms-admin-nav'
 
@@ -84,18 +85,539 @@ type Props = {
   initialDocument: FormDefinitionDocument
 }
 
+function emptyGroup(): FormConditionGroup {
+  return { logic: 'and', conditions: [{ field: '', op: 'eq', value: '' }] }
+}
+
+function fieldKey(field: FormFieldDef) {
+  return field.id || field.name
+}
+
+type FieldSettingsProps = {
+  field: FormFieldDef
+  fields: FormFieldDef[]
+  onPatch: (patch: Partial<FormFieldDef>) => void
+  onRename: (nextName: string) => void
+  onPatchConstraints: (patch: Partial<FormDateTimeConstraints>) => void
+  onUpdateOptions: (options: FormFieldOption[]) => void
+  onPatchLogic: (key: 'showWhen' | 'requireWhen', group: FormConditionGroup | undefined) => void
+  onRemove: () => void
+  saveNow: () => void
+  saveDebounced: () => void
+}
+
+/** Field config body — same content as the old right inspector, for the Layout cog popup. */
+function FieldSettingsBody({
+  field,
+  fields,
+  onPatch,
+  onRename,
+  onPatchConstraints,
+  onUpdateOptions,
+  onPatchLogic,
+  saveNow,
+  saveDebounced,
+}: Omit<FieldSettingsProps, 'onRemove'>) {
+  return (
+    <div className="gantry-typed-form sf-form-field-cog-body">
+      <label>
+        <span>Label</span>
+        <input
+          type="text"
+          value={field.label}
+          onChange={(e) => onPatch({ label: e.target.value })}
+          onBlur={saveNow}
+        />
+      </label>
+      <label>
+        <span>Name</span>
+        <input
+          type="text"
+          value={field.name}
+          onChange={(e) => {
+            const nextName = e.target.value
+              .toLowerCase()
+              .replace(/\s+/g, '_')
+              .replace(/[^a-z0-9_:-]/g, '')
+            onRename(nextName)
+          }}
+          onBlur={saveNow}
+        />
+      </label>
+      <label>
+        <span>Type</span>
+        <select
+          value={field.type}
+          onChange={(e) => {
+            const type = e.target.value as FormFieldType
+            const next: Partial<FormFieldDef> = {
+              type,
+              options: OPTION_TYPES.has(type)
+                ? field.options ?? [
+                    { value: 'option_a', label: 'Option A' },
+                    { value: 'option_b', label: 'Option B' },
+                  ]
+                : undefined,
+              computed:
+                type === 'computed'
+                  ? field.computed ?? { expression: '0', precision: 2 }
+                  : undefined,
+            }
+            if (isDateTimeFieldType(type)) {
+              next.constraints = normalizeDateTimeConstraints(type, field.constraints ?? {})
+            } else {
+              next.constraints = undefined
+            }
+            onPatch(next)
+            queueMicrotask(saveNow)
+          }}
+        >
+          {FIELD_PALETTE.map((item) => (
+            <option key={item.type} value={item.type}>
+              {item.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      {!isDateTimeFieldType(field.type) && field.type !== 'computed' ? (
+        <label>
+          <span>Placeholder</span>
+          <input
+            type="text"
+            value={field.placeholder ?? ''}
+            onChange={(e) => onPatch({ placeholder: e.target.value })}
+            onBlur={saveNow}
+          />
+        </label>
+      ) : null}
+      <label>
+        <span>Help text</span>
+        <input
+          type="text"
+          value={field.description ?? ''}
+          onChange={(e) => onPatch({ description: e.target.value })}
+          onBlur={saveNow}
+        />
+      </label>
+      <label className="gantry-typed-check">
+        <input
+          type="checkbox"
+          checked={Boolean(field.required)}
+          onChange={(e) => {
+            onPatch({ required: e.target.checked })
+            queueMicrotask(saveNow)
+          }}
+        />
+        <span>Required</span>
+      </label>
+
+      {OPTION_TYPES.has(field.type) ? (
+        <fieldset className="sf-form-builder-constraints">
+          <legend>Options + media</legend>
+          <p className="layout-muted">
+            value|label|url|mediaId|alt per line (URL / id interim until SF-28).
+          </p>
+          <textarea
+            rows={5}
+            value={(field.options ?? [])
+              .map((o) => {
+                const parts = [o.value, o.label]
+                if (o.media?.url) parts.push(o.media.url)
+                else parts.push('')
+                if (o.media?.mediaId) parts.push(o.media.mediaId)
+                else parts.push('')
+                if (o.media?.alt) parts.push(o.media.alt)
+                return parts.join('|')
+              })
+              .join('\n')}
+            onChange={(e) => {
+              const options = e.target.value
+                .split('\n')
+                .map((line) => line.trim())
+                .filter(Boolean)
+                .map((line) => {
+                  const [value, label, url, mediaId, alt] = line.split('|')
+                  const opt: FormFieldOption = {
+                    value: (value ?? '').trim(),
+                    label: (label ?? value ?? '').trim() || (value ?? '').trim(),
+                  }
+                  const mediaUrl = url?.trim()
+                  const mid = mediaId?.trim()
+                  const malt = alt?.trim()
+                  if (mediaUrl || mid) {
+                    opt.media = {
+                      ...(mediaUrl ? { url: mediaUrl } : {}),
+                      ...(mid ? { mediaId: mid } : {}),
+                      ...(malt ? { alt: malt } : {}),
+                      kind: 'image',
+                    }
+                  }
+                  return opt
+                })
+                .filter((o) => o.value)
+              onUpdateOptions(options)
+            }}
+            onBlur={saveNow}
+            spellCheck={false}
+          />
+        </fieldset>
+      ) : null}
+
+      {isDateTimeFieldType(field.type) ? (
+        <fieldset className="sf-form-builder-constraints">
+          <legend>Date / time constraints</legend>
+          <label>
+            <span>Minimum</span>
+            <input
+              type={htmlInputTypeForField(field.type)!}
+              value={field.constraints?.min ?? ''}
+              onChange={(e) => onPatchConstraints({ min: e.target.value || undefined })}
+              onBlur={saveNow}
+            />
+          </label>
+          <label>
+            <span>Maximum</span>
+            <input
+              type={htmlInputTypeForField(field.type)!}
+              value={field.constraints?.max ?? ''}
+              onChange={(e) => onPatchConstraints({ max: e.target.value || undefined })}
+              onBlur={saveNow}
+            />
+          </label>
+          {field.type !== 'time' ? (
+            <>
+              <div className="sf-form-builder-weekdays">
+                <span className="sf-form-builder-constraints-label">Weekdays</span>
+                <ul className="sf-form-builder-weekday-list">
+                  {FORM_WEEKDAY_LABELS.map((day) => {
+                    const checked = Boolean(field.constraints?.weekdays?.includes(day.value))
+                    return (
+                      <li key={day.value}>
+                        <label className="gantry-typed-check">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(e) => {
+                              const current = new Set<FormWeekday>(field.constraints?.weekdays ?? [])
+                              if (e.target.checked) current.add(day.value)
+                              else current.delete(day.value)
+                              onPatchConstraints({
+                                weekdays: [...current] as FormWeekday[],
+                              })
+                              queueMicrotask(saveNow)
+                            }}
+                          />
+                          <span>{day.short}</span>
+                        </label>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+              <label>
+                <span>Days of month</span>
+                <input
+                  type="text"
+                  placeholder="1, 15, 28"
+                  value={(field.constraints?.daysOfMonth ?? []).join(', ')}
+                  onChange={(e) => {
+                    const parts = e.target.value
+                      .split(/[\s,]+/)
+                      .map((p) => p.trim())
+                      .filter(Boolean)
+                    onPatchConstraints({
+                      daysOfMonth: normalizeDaysOfMonth(parts.map((p) => Number(p))),
+                    })
+                  }}
+                  onBlur={saveNow}
+                />
+              </label>
+            </>
+          ) : null}
+        </fieldset>
+      ) : null}
+
+      {field.type === 'computed' || field.type === 'number' ? (
+        <fieldset className="sf-form-builder-constraints">
+          <legend>Math</legend>
+          {field.type === 'computed' ? (
+            <>
+              <label>
+                <span>Expression</span>
+                <input
+                  type="text"
+                  value={field.computed?.expression ?? ''}
+                  placeholder="price * qty"
+                  onChange={(e) =>
+                    onPatch({
+                      computed: {
+                        expression: e.target.value,
+                        precision: field.computed?.precision ?? 2,
+                      },
+                    })
+                  }
+                  onBlur={saveNow}
+                  spellCheck={false}
+                />
+              </label>
+              <label>
+                <span>Precision</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={8}
+                  value={field.computed?.precision ?? 2}
+                  onChange={(e) =>
+                    onPatch({
+                      computed: {
+                        expression: field.computed?.expression ?? '0',
+                        precision: Number(e.target.value) || 0,
+                      },
+                    })
+                  }
+                  onBlur={saveNow}
+                />
+              </label>
+            </>
+          ) : null}
+          <label>
+            <span>Min (static)</span>
+            <input
+              type="number"
+              value={field.numberBounds?.min ?? ''}
+              onChange={(e) =>
+                onPatch({
+                  numberBounds: {
+                    ...field.numberBounds,
+                    min: e.target.value === '' ? undefined : Number(e.target.value),
+                  },
+                })
+              }
+              onBlur={saveNow}
+            />
+          </label>
+          <label>
+            <span>Max (static)</span>
+            <input
+              type="number"
+              value={field.numberBounds?.max ?? ''}
+              onChange={(e) =>
+                onPatch({
+                  numberBounds: {
+                    ...field.numberBounds,
+                    max: e.target.value === '' ? undefined : Number(e.target.value),
+                  },
+                })
+              }
+              onBlur={saveNow}
+            />
+          </label>
+          <label>
+            <span>Min expression</span>
+            <input
+              type="text"
+              value={field.numberBounds?.minExpr ?? ''}
+              placeholder="min(a, b)"
+              onChange={(e) =>
+                onPatch({
+                  numberBounds: {
+                    ...field.numberBounds,
+                    minExpr: e.target.value || undefined,
+                  },
+                })
+              }
+              onBlur={saveNow}
+              spellCheck={false}
+            />
+          </label>
+          <label>
+            <span>Max expression</span>
+            <input
+              type="text"
+              value={field.numberBounds?.maxExpr ?? ''}
+              onChange={(e) =>
+                onPatch({
+                  numberBounds: {
+                    ...field.numberBounds,
+                    maxExpr: e.target.value || undefined,
+                  },
+                })
+              }
+              onBlur={saveNow}
+              spellCheck={false}
+            />
+          </label>
+          <label>
+            <span>Validate expression</span>
+            <input
+              type="text"
+              value={field.validateExpr?.expression ?? ''}
+              placeholder="total >= 10"
+              onChange={(e) =>
+                onPatch({
+                  validateExpr: e.target.value
+                    ? {
+                        expression: e.target.value,
+                        message: field.validateExpr?.message,
+                      }
+                    : undefined,
+                })
+              }
+              onBlur={saveNow}
+              spellCheck={false}
+            />
+          </label>
+          <label>
+            <span>Validate message</span>
+            <input
+              type="text"
+              value={field.validateExpr?.message ?? ''}
+              onChange={(e) =>
+                onPatch({
+                  validateExpr: field.validateExpr?.expression
+                    ? {
+                        expression: field.validateExpr.expression,
+                        message: e.target.value || undefined,
+                      }
+                    : undefined,
+                })
+              }
+              onBlur={saveNow}
+            />
+          </label>
+        </fieldset>
+      ) : null}
+
+      <fieldset className="sf-form-builder-constraints">
+        <legend>Conditional logic</legend>
+        <p className="layout-muted">Show / require when other fields match.</p>
+        {(['showWhen', 'requireWhen'] as const).map((key) => {
+          const group = field.logic?.[key] ?? emptyGroup()
+          const enabled = Boolean(field.logic?.[key])
+          return (
+            <div key={key} className="sf-form-logic-block">
+              <label className="gantry-typed-check">
+                <input
+                  type="checkbox"
+                  checked={enabled}
+                  onChange={(e) => {
+                    onPatchLogic(key, e.target.checked ? emptyGroup() : undefined)
+                    queueMicrotask(saveNow)
+                  }}
+                />
+                <span>{key === 'showWhen' ? 'Show when' : 'Require when'}</span>
+              </label>
+              {enabled ? (
+                <>
+                  <label>
+                    <span>Match</span>
+                    <select
+                      value={group.logic}
+                      onChange={(e) => {
+                        onPatchLogic(key, {
+                          ...group,
+                          logic: e.target.value === 'or' ? 'or' : 'and',
+                        })
+                        queueMicrotask(saveNow)
+                      }}
+                    >
+                      <option value="and">all (AND)</option>
+                      <option value="or">any (OR)</option>
+                    </select>
+                  </label>
+                  {group.conditions.map((cond, idx) => (
+                    <div key={idx} className="sf-form-logic-row">
+                      <select
+                        value={cond.field}
+                        onChange={(e) => {
+                          const conditions = group.conditions.map((c, i) =>
+                            i === idx ? { ...c, field: e.target.value } : c,
+                          )
+                          onPatchLogic(key, { ...group, conditions })
+                          queueMicrotask(saveNow)
+                        }}
+                      >
+                        <option value="">Field…</option>
+                        {fields
+                          .filter((f) => f.name !== field.name)
+                          .map((f) => (
+                            <option key={f.name} value={f.name}>
+                              {f.label || f.name}
+                            </option>
+                          ))}
+                      </select>
+                      <select
+                        value={cond.op}
+                        onChange={(e) => {
+                          const conditions = group.conditions.map((c, i) =>
+                            i === idx ? { ...c, op: e.target.value as FormConditionOp } : c,
+                          )
+                          onPatchLogic(key, { ...group, conditions })
+                          queueMicrotask(saveNow)
+                        }}
+                      >
+                        {FORM_CONDITION_OP_LABELS.map((op) => (
+                          <option key={op.value} value={op.value}>
+                            {op.label}
+                          </option>
+                        ))}
+                      </select>
+                      {cond.op !== 'empty' && cond.op !== 'notEmpty' ? (
+                        <input
+                          type="text"
+                          value={
+                            Array.isArray(cond.value)
+                              ? cond.value.join(',')
+                              : (cond.value ?? '')
+                          }
+                          onChange={(e) => {
+                            const conditions = group.conditions.map((c, i) =>
+                              i === idx ? { ...c, value: e.target.value } : c,
+                            ) as FormCondition[]
+                            onPatchLogic(key, { ...group, conditions })
+                          }}
+                          onBlur={saveNow}
+                          placeholder="value"
+                        />
+                      ) : null}
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    className="gantry-toolbar-btn secondary"
+                    onClick={() => {
+                      onPatchLogic(key, {
+                        ...group,
+                        conditions: [...group.conditions, { field: '', op: 'eq', value: '' }],
+                      })
+                      queueMicrotask(saveNow)
+                    }}
+                  >
+                    Add condition
+                  </button>
+                </>
+              ) : null}
+            </div>
+          )
+        })}
+      </fieldset>
+    </div>
+  )
+}
+
 function SortableFieldBar({
   field,
-  selected,
-  onSelect,
+  fields,
+  onPatch,
+  onRename,
+  onPatchConstraints,
+  onUpdateOptions,
+  onPatchLogic,
   onRemove,
-}: {
-  field: FormFieldDef
-  selected: boolean
-  onSelect: () => void
-  onRemove: () => void
-}) {
-  const id = field.id || field.name
+  saveNow,
+  saveDebounced,
+}: FieldSettingsProps) {
+  const id = fieldKey(field)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
   })
@@ -104,12 +626,13 @@ function SortableFieldBar({
     transition,
     opacity: isDragging ? 0.85 : 1,
   }
+  const displayName = field.label || field.name
 
   return (
     <article
       ref={setNodeRef}
       style={style}
-      className={`gantry-slot sf-form-slot${selected ? ' is-selected' : ''}${isDragging ? ' is-slot-dragging' : ''}`}
+      className={`gantry-slot sf-form-slot${isDragging ? ' is-slot-dragging' : ''}`}
     >
       <header className="gantry-slot-head">
         <div className="gantry-slot-title">
@@ -122,8 +645,8 @@ function SortableFieldBar({
           >
             ▣
           </button>
-          <button type="button" className="sf-form-slot-main" onClick={onSelect}>
-            <strong>{field.label || field.name}</strong>
+          <div className="gantry-slot-labels">
+            <strong className="sf-form-slot-name">{displayName}</strong>
             <span className="gantry-slot-sub">
               {field.type}
               {field.required ? ' · required' : ''}
@@ -132,25 +655,48 @@ function SortableFieldBar({
               {' · '}
               <code>{field.name}</code>
             </span>
-          </button>
+          </div>
         </div>
         <div className="gantry-slot-end">
-          <button
-            type="button"
-            className="gantry-toolbar-btn danger"
-            onClick={onRemove}
-            aria-label={`Remove ${field.label || field.name}`}
-          >
-            ×
-          </button>
+          <div className="gantry-slot-actions">
+            <ParticleSettingsPopover
+              title={`${displayName} settings`}
+              tabs={[
+                {
+                  id: 'config',
+                  label: 'Config',
+                  content: (
+                    <FieldSettingsBody
+                      field={field}
+                      fields={fields}
+                      onPatch={onPatch}
+                      onRename={onRename}
+                      onPatchConstraints={onPatchConstraints}
+                      onUpdateOptions={onUpdateOptions}
+                      onPatchLogic={onPatchLogic}
+                      saveNow={saveNow}
+                      saveDebounced={saveDebounced}
+                    />
+                  ),
+                },
+                {
+                  id: 'field',
+                  label: 'Field',
+                  content: (
+                    <div className="gantry-slot-extra-actions">
+                      <button type="button" className="danger" onClick={onRemove}>
+                        Remove
+                      </button>
+                    </div>
+                  ),
+                },
+              ]}
+            />
+          </div>
         </div>
       </header>
     </article>
   )
-}
-
-function emptyGroup(): FormConditionGroup {
-  return { logic: 'and', conditions: [{ field: '', op: 'eq', value: '' }] }
 }
 
 export function FormBuilder({ formId, initialDocument }: Props) {
@@ -178,9 +724,6 @@ export function FormBuilder({ formId, initialDocument }: Props) {
   const [sections, setSections] = useState<FormSectionDef[]>(() =>
     normalizeFormSections(initialDocument.sections, initialDocument.fields),
   )
-  const [selectedId, setSelectedId] = useState<string | null>(
-    () => fields[0]?.id || fields[0]?.name || null,
-  )
   const [schemaDirty, setSchemaDirty] = useState(Boolean(initialDocument.schemaDirty))
   const [schemaJson, setSchemaJson] = useState(() =>
     stringifyFormJsonSchema(
@@ -194,15 +737,16 @@ export function FormBuilder({ formId, initialDocument }: Props) {
   )
   const [schemaError, setSchemaError] = useState<string | null>(null)
 
-  const selected = useMemo(
-    () => fields.find((f) => (f.id || f.name) === selectedId) ?? null,
-    [fields, selectedId],
-  )
-
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
+
+  const fieldsByKey = useMemo(() => {
+    const map = new Map<string, FormFieldDef>()
+    for (const f of fields) map.set(fieldKey(f), f)
+    return map
+  }, [fields])
 
   function regenerateSchema(nextFields: FormFieldDef[], nextTitle = title, nextDesc = description) {
     if (schemaDirty) return
@@ -242,21 +786,31 @@ export function FormBuilder({ formId, initialDocument }: Props) {
     const nextSections = sections.map((s) =>
       s.id === targetSec ? { ...s, fieldNames: [...s.fieldNames, draft.name] } : s,
     )
-    setSelectedId(draft.id || draft.name)
     updateFields(next, nextSections.length ? nextSections : undefined)
   }
 
-  function patchSelected(patch: Partial<FormFieldDef>) {
-    if (!selected) return
-    const id = selected.id || selected.name
-    const next = fields.map((f) => ((f.id || f.name) === id ? { ...f, ...patch } : f))
+  function patchField(id: string, patch: Partial<FormFieldDef>) {
+    const next = fields.map((f) => (fieldKey(f) === id ? { ...f, ...patch } : f))
     updateFields(next)
   }
 
-  function patchSelectedConstraints(patch: Partial<FormDateTimeConstraints>) {
-    if (!selected || !isDateTimeFieldType(selected.type)) return
+  function renameField(id: string, nextName: string) {
+    const current = fieldsByKey.get(id)
+    if (!current) return
+    const prev = current.name
+    const nextFields = fields.map((f) => (fieldKey(f) === id ? { ...f, name: nextName } : f))
+    const nextSections = sections.map((s) => ({
+      ...s,
+      fieldNames: s.fieldNames.map((n) => (n === prev ? nextName : n)),
+    }))
+    updateFields(nextFields, nextSections)
+  }
+
+  function patchFieldConstraints(id: string, patch: Partial<FormDateTimeConstraints>) {
+    const current = fieldsByKey.get(id)
+    if (!current || !isDateTimeFieldType(current.type)) return
     const merged: FormDateTimeConstraints = {
-      ...(selected.constraints ?? {}),
+      ...(current.constraints ?? {}),
       ...patch,
     }
     if (patch.min !== undefined && !patch.min) delete merged.min
@@ -270,7 +824,31 @@ export function FormBuilder({ formId, initialDocument }: Props) {
     ) {
       delete merged.daysOfMonth
     }
-    patchSelected({ constraints: normalizeDateTimeConstraints(selected.type, merged) })
+    patchField(id, { constraints: normalizeDateTimeConstraints(current.type, merged) })
+  }
+
+  function patchFieldLogic(
+    id: string,
+    key: 'showWhen' | 'requireWhen',
+    group: FormConditionGroup | undefined,
+  ) {
+    const current = fieldsByKey.get(id)
+    if (!current) return
+    const logic = { ...(current.logic ?? {}) }
+    if (!group || !group.conditions.length) delete logic[key]
+    else logic[key] = group
+    patchField(id, {
+      logic: logic.showWhen || logic.requireWhen ? logic : undefined,
+    })
+  }
+
+  function removeField(id: string, name: string) {
+    const next = fields.filter((f) => fieldKey(f) !== id)
+    const nextSections = sections.map((s) => ({
+      ...s,
+      fieldNames: s.fieldNames.filter((n) => n !== name),
+    }))
+    updateFields(next, nextSections)
   }
 
   function onDragEnd(event: DragEndEvent, sectionId: string) {
@@ -292,7 +870,6 @@ export function FormBuilder({ formId, initialDocument }: Props) {
     const nextSections = sections.map((s) =>
       s.id === sectionId ? { ...s, fieldNames: nextNames } : s,
     )
-    // Reorder flat fields to match section order concatenation
     const orderedNames = nextSections.flatMap((s) => s.fieldNames)
     const byName = new Map(fields.map((f) => [f.name, f]))
     const nextFields = orderedNames.map((n) => byName.get(n)!).filter(Boolean)
@@ -329,30 +906,13 @@ export function FormBuilder({ formId, initialDocument }: Props) {
     saveDebounced()
   }
 
-  function updateOptions(options: FormFieldOption[]) {
-    patchSelected({ options })
-  }
-
-  function patchLogicGroup(
-    key: 'showWhen' | 'requireWhen',
-    group: FormConditionGroup | undefined,
-  ) {
-    if (!selected) return
-    const logic = { ...(selected.logic ?? {}) }
-    if (!group || !group.conditions.length) delete logic[key]
-    else logic[key] = group
-    patchSelected({
-      logic: logic.showWhen || logic.requireWhen ? logic : undefined,
-    })
-  }
-
   return (
     <div className="sf-form-builder gantry-editor">
       <FormsAdminNav active="forms" />
       <p className="admin-lede">
         <Link href="/app/admin/forms">← Forms</Link>
         {' · '}
-        Layout-aligned builder: palette → section canvas (dnd-kit) → inspector. Same Gantry dark
+        Layout-aligned builder: palette → section canvas (dnd-kit) → field cog. Same Gantry dark
         chrome as Layouts; fields stay a flat Form model (sections are grouping only).
       </p>
 
@@ -449,6 +1009,64 @@ export function FormBuilder({ formId, initialDocument }: Props) {
             />
             <span>Use site captcha default (Site Chrome)</span>
           </label>
+
+          <fieldset className="sf-form-builder-constraints sf-form-builder-email">
+            <legend>Email on submit</legend>
+            <p className="layout-muted">
+              Transport is stubbed until platform email is ready — settings still save.
+            </p>
+            <label className="gantry-typed-check">
+              <input
+                type="checkbox"
+                checked={Boolean(emailNotify.notifyAdmin)}
+                onChange={(e) => {
+                  setEmailNotify({ ...emailNotify, notifyAdmin: e.target.checked })
+                  queueMicrotask(saveNow)
+                }}
+              />
+              <span>Notify admin</span>
+            </label>
+            <label className="gantry-typed-check">
+              <input
+                type="checkbox"
+                checked={Boolean(emailNotify.notifyRespondent)}
+                onChange={(e) => {
+                  setEmailNotify({ ...emailNotify, notifyRespondent: e.target.checked })
+                  queueMicrotask(saveNow)
+                }}
+              />
+              <span>Notify respondent</span>
+            </label>
+            <label>
+              <span>Respondent email field</span>
+              <input
+                type="text"
+                value={emailNotify.respondentEmailField ?? 'email'}
+                onChange={(e) =>
+                  setEmailNotify({ ...emailNotify, respondentEmailField: e.target.value })
+                }
+                onBlur={saveNow}
+              />
+            </label>
+            <label>
+              <span>Admin emails override</span>
+              <input
+                type="text"
+                value={(emailNotify.adminEmails ?? []).join(', ')}
+                placeholder="Leave empty → Forms Settings default"
+                onChange={(e) =>
+                  setEmailNotify({
+                    ...emailNotify,
+                    adminEmails: e.target.value
+                      .split(/[,;\s]+/)
+                      .map((x) => x.trim())
+                      .filter(Boolean),
+                  })
+                }
+                onBlur={saveNow}
+              />
+            </label>
+          </fieldset>
         </div>
 
         <div className="gantry-workspace sf-form-workspace">
@@ -469,7 +1087,8 @@ export function FormBuilder({ formId, initialDocument }: Props) {
               ))}
             </ul>
             <p className="layout-muted">
-              Option media: interim URL / mediaId until SF-28 Payload picker.
+              Option media: interim URL / mediaId until SF-28 Payload picker. Use the field cog for
+              settings (same as Layout modules).
             </p>
           </aside>
 
@@ -491,7 +1110,7 @@ export function FormBuilder({ formId, initialDocument }: Props) {
               const sectionFields = section.fieldNames
                 .map((n) => fields.find((f) => f.name === n))
                 .filter((f): f is FormFieldDef => Boolean(f))
-              const sortableIds = sectionFields.map((f) => f.id || f.name)
+              const sortableIds = sectionFields.map((f) => fieldKey(f))
               return (
                 <section key={section.id} className="gantry-section">
                   <header className="gantry-section-head">
@@ -548,24 +1167,20 @@ export function FormBuilder({ formId, initialDocument }: Props) {
                         <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
                           <div className="sf-form-section-fields">
                             {sectionFields.map((field) => {
-                              const id = field.id || field.name
+                              const id = fieldKey(field)
                               return (
                                 <SortableFieldBar
                                   key={id}
                                   field={field}
-                                  selected={id === selectedId}
-                                  onSelect={() => setSelectedId(id)}
-                                  onRemove={() => {
-                                    const next = fields.filter((f) => (f.id || f.name) !== id)
-                                    const nextSections = sections.map((s) => ({
-                                      ...s,
-                                      fieldNames: s.fieldNames.filter((n) => n !== field.name),
-                                    }))
-                                    if (selectedId === id) {
-                                      setSelectedId(next[0]?.id || next[0]?.name || null)
-                                    }
-                                    updateFields(next, nextSections)
-                                  }}
+                                  fields={fields}
+                                  onPatch={(patch) => patchField(id, patch)}
+                                  onRename={(nextName) => renameField(id, nextName)}
+                                  onPatchConstraints={(patch) => patchFieldConstraints(id, patch)}
+                                  onUpdateOptions={(options) => patchField(id, { options })}
+                                  onPatchLogic={(key, group) => patchFieldLogic(id, key, group)}
+                                  onRemove={() => removeField(id, field.name)}
+                                  saveNow={saveNow}
+                                  saveDebounced={saveDebounced}
                                 />
                               )
                             })}
@@ -578,581 +1193,6 @@ export function FormBuilder({ formId, initialDocument }: Props) {
               )
             })}
           </div>
-
-          <aside className="sf-form-builder-inspector gantry-typed-form" aria-label="Field settings">
-            <h3>Inspector</h3>
-            {!selected ? (
-              <p className="layout-muted">Select a field bar to edit (Layout cog pattern).</p>
-            ) : (
-              <>
-                <label>
-                  <span>Label</span>
-                  <input
-                    type="text"
-                    value={selected.label}
-                    onChange={(e) => patchSelected({ label: e.target.value })}
-                    onBlur={saveNow}
-                  />
-                </label>
-                <label>
-                  <span>Name</span>
-                  <input
-                    type="text"
-                    value={selected.name}
-                    onChange={(e) => {
-                      const nextName = e.target.value
-                        .toLowerCase()
-                        .replace(/\s+/g, '_')
-                        .replace(/[^a-z0-9_:-]/g, '')
-                      const prev = selected.name
-                      const nextFields = fields.map((f) =>
-                        (f.id || f.name) === (selected.id || selected.name)
-                          ? { ...f, name: nextName }
-                          : f,
-                      )
-                      const nextSections = sections.map((s) => ({
-                        ...s,
-                        fieldNames: s.fieldNames.map((n) => (n === prev ? nextName : n)),
-                      }))
-                      updateFields(nextFields, nextSections)
-                    }}
-                    onBlur={saveNow}
-                  />
-                </label>
-                <label>
-                  <span>Type</span>
-                  <select
-                    value={selected.type}
-                    onChange={(e) => {
-                      const type = e.target.value as FormFieldType
-                      const next: Partial<FormFieldDef> = {
-                        type,
-                        options: OPTION_TYPES.has(type)
-                          ? selected.options ?? [
-                              { value: 'option_a', label: 'Option A' },
-                              { value: 'option_b', label: 'Option B' },
-                            ]
-                          : undefined,
-                        computed:
-                          type === 'computed'
-                            ? selected.computed ?? { expression: '0', precision: 2 }
-                            : undefined,
-                      }
-                      if (isDateTimeFieldType(type)) {
-                        next.constraints = normalizeDateTimeConstraints(
-                          type,
-                          selected.constraints ?? {},
-                        )
-                      } else {
-                        next.constraints = undefined
-                      }
-                      patchSelected(next)
-                      queueMicrotask(saveNow)
-                    }}
-                  >
-                    {FIELD_PALETTE.map((item) => (
-                      <option key={item.type} value={item.type}>
-                        {item.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                {!isDateTimeFieldType(selected.type) && selected.type !== 'computed' ? (
-                  <label>
-                    <span>Placeholder</span>
-                    <input
-                      type="text"
-                      value={selected.placeholder ?? ''}
-                      onChange={(e) => patchSelected({ placeholder: e.target.value })}
-                      onBlur={saveNow}
-                    />
-                  </label>
-                ) : null}
-                <label>
-                  <span>Help text</span>
-                  <input
-                    type="text"
-                    value={selected.description ?? ''}
-                    onChange={(e) => patchSelected({ description: e.target.value })}
-                    onBlur={saveNow}
-                  />
-                </label>
-                <label className="gantry-typed-check">
-                  <input
-                    type="checkbox"
-                    checked={Boolean(selected.required)}
-                    onChange={(e) => {
-                      patchSelected({ required: e.target.checked })
-                      queueMicrotask(saveNow)
-                    }}
-                  />
-                  <span>Required</span>
-                </label>
-
-                {OPTION_TYPES.has(selected.type) ? (
-                  <fieldset className="sf-form-builder-constraints">
-                    <legend>Options + media</legend>
-                    <p className="layout-muted">
-                      value|label|url|mediaId|alt per line (URL / id interim until SF-28).
-                    </p>
-                    <textarea
-                      rows={5}
-                      value={(selected.options ?? [])
-                        .map((o) => {
-                          const parts = [o.value, o.label]
-                          if (o.media?.url) parts.push(o.media.url)
-                          else parts.push('')
-                          if (o.media?.mediaId) parts.push(o.media.mediaId)
-                          else parts.push('')
-                          if (o.media?.alt) parts.push(o.media.alt)
-                          return parts.join('|')
-                        })
-                        .join('\n')}
-                      onChange={(e) => {
-                        const options = e.target.value
-                          .split('\n')
-                          .map((line) => line.trim())
-                          .filter(Boolean)
-                          .map((line) => {
-                            const [value, label, url, mediaId, alt] = line.split('|')
-                            const opt: FormFieldOption = {
-                              value: (value ?? '').trim(),
-                              label: (label ?? value ?? '').trim() || (value ?? '').trim(),
-                            }
-                            const mediaUrl = url?.trim()
-                            const mid = mediaId?.trim()
-                            const malt = alt?.trim()
-                            if (mediaUrl || mid) {
-                              opt.media = {
-                                ...(mediaUrl ? { url: mediaUrl } : {}),
-                                ...(mid ? { mediaId: mid } : {}),
-                                ...(malt ? { alt: malt } : {}),
-                                kind: 'image',
-                              }
-                            }
-                            return opt
-                          })
-                          .filter((o) => o.value)
-                        updateOptions(options)
-                      }}
-                      onBlur={saveNow}
-                      spellCheck={false}
-                    />
-                  </fieldset>
-                ) : null}
-
-                {isDateTimeFieldType(selected.type) ? (
-                  <fieldset className="sf-form-builder-constraints">
-                    <legend>Date / time constraints</legend>
-                    <label>
-                      <span>Minimum</span>
-                      <input
-                        type={htmlInputTypeForField(selected.type)!}
-                        value={selected.constraints?.min ?? ''}
-                        onChange={(e) =>
-                          patchSelectedConstraints({ min: e.target.value || undefined })
-                        }
-                        onBlur={saveNow}
-                      />
-                    </label>
-                    <label>
-                      <span>Maximum</span>
-                      <input
-                        type={htmlInputTypeForField(selected.type)!}
-                        value={selected.constraints?.max ?? ''}
-                        onChange={(e) =>
-                          patchSelectedConstraints({ max: e.target.value || undefined })
-                        }
-                        onBlur={saveNow}
-                      />
-                    </label>
-                    {selected.type !== 'time' ? (
-                      <>
-                        <div className="sf-form-builder-weekdays">
-                          <span className="sf-form-builder-constraints-label">Weekdays</span>
-                          <ul className="sf-form-builder-weekday-list">
-                            {FORM_WEEKDAY_LABELS.map((day) => {
-                              const checked = Boolean(
-                                selected.constraints?.weekdays?.includes(day.value),
-                              )
-                              return (
-                                <li key={day.value}>
-                                  <label className="gantry-typed-check">
-                                    <input
-                                      type="checkbox"
-                                      checked={checked}
-                                      onChange={(e) => {
-                                        const current = new Set<FormWeekday>(
-                                          selected.constraints?.weekdays ?? [],
-                                        )
-                                        if (e.target.checked) current.add(day.value)
-                                        else current.delete(day.value)
-                                        patchSelectedConstraints({
-                                          weekdays: [...current] as FormWeekday[],
-                                        })
-                                        queueMicrotask(saveNow)
-                                      }}
-                                    />
-                                    <span>{day.short}</span>
-                                  </label>
-                                </li>
-                              )
-                            })}
-                          </ul>
-                        </div>
-                        <label>
-                          <span>Days of month</span>
-                          <input
-                            type="text"
-                            placeholder="1, 15, 28"
-                            value={(selected.constraints?.daysOfMonth ?? []).join(', ')}
-                            onChange={(e) => {
-                              const parts = e.target.value
-                                .split(/[\s,]+/)
-                                .map((p) => p.trim())
-                                .filter(Boolean)
-                              patchSelectedConstraints({
-                                daysOfMonth: normalizeDaysOfMonth(parts.map((p) => Number(p))),
-                              })
-                            }}
-                            onBlur={saveNow}
-                          />
-                        </label>
-                      </>
-                    ) : null}
-                  </fieldset>
-                ) : null}
-
-                {selected.type === 'computed' || selected.type === 'number' ? (
-                  <fieldset className="sf-form-builder-constraints">
-                    <legend>Math</legend>
-                    {selected.type === 'computed' ? (
-                      <>
-                        <label>
-                          <span>Expression</span>
-                          <input
-                            type="text"
-                            value={selected.computed?.expression ?? ''}
-                            placeholder="price * qty"
-                            onChange={(e) =>
-                              patchSelected({
-                                computed: {
-                                  expression: e.target.value,
-                                  precision: selected.computed?.precision ?? 2,
-                                },
-                              })
-                            }
-                            onBlur={saveNow}
-                            spellCheck={false}
-                          />
-                        </label>
-                        <label>
-                          <span>Precision</span>
-                          <input
-                            type="number"
-                            min={0}
-                            max={8}
-                            value={selected.computed?.precision ?? 2}
-                            onChange={(e) =>
-                              patchSelected({
-                                computed: {
-                                  expression: selected.computed?.expression ?? '0',
-                                  precision: Number(e.target.value) || 0,
-                                },
-                              })
-                            }
-                            onBlur={saveNow}
-                          />
-                        </label>
-                      </>
-                    ) : null}
-                    <label>
-                      <span>Min (static)</span>
-                      <input
-                        type="number"
-                        value={selected.numberBounds?.min ?? ''}
-                        onChange={(e) =>
-                          patchSelected({
-                            numberBounds: {
-                              ...selected.numberBounds,
-                              min: e.target.value === '' ? undefined : Number(e.target.value),
-                            },
-                          })
-                        }
-                        onBlur={saveNow}
-                      />
-                    </label>
-                    <label>
-                      <span>Max (static)</span>
-                      <input
-                        type="number"
-                        value={selected.numberBounds?.max ?? ''}
-                        onChange={(e) =>
-                          patchSelected({
-                            numberBounds: {
-                              ...selected.numberBounds,
-                              max: e.target.value === '' ? undefined : Number(e.target.value),
-                            },
-                          })
-                        }
-                        onBlur={saveNow}
-                      />
-                    </label>
-                    <label>
-                      <span>Min expression</span>
-                      <input
-                        type="text"
-                        value={selected.numberBounds?.minExpr ?? ''}
-                        placeholder="min(a, b)"
-                        onChange={(e) =>
-                          patchSelected({
-                            numberBounds: {
-                              ...selected.numberBounds,
-                              minExpr: e.target.value || undefined,
-                            },
-                          })
-                        }
-                        onBlur={saveNow}
-                        spellCheck={false}
-                      />
-                    </label>
-                    <label>
-                      <span>Max expression</span>
-                      <input
-                        type="text"
-                        value={selected.numberBounds?.maxExpr ?? ''}
-                        onChange={(e) =>
-                          patchSelected({
-                            numberBounds: {
-                              ...selected.numberBounds,
-                              maxExpr: e.target.value || undefined,
-                            },
-                          })
-                        }
-                        onBlur={saveNow}
-                        spellCheck={false}
-                      />
-                    </label>
-                    <label>
-                      <span>Validate expression</span>
-                      <input
-                        type="text"
-                        value={selected.validateExpr?.expression ?? ''}
-                        placeholder="total >= 10"
-                        onChange={(e) =>
-                          patchSelected({
-                            validateExpr: e.target.value
-                              ? {
-                                  expression: e.target.value,
-                                  message: selected.validateExpr?.message,
-                                }
-                              : undefined,
-                          })
-                        }
-                        onBlur={saveNow}
-                        spellCheck={false}
-                      />
-                    </label>
-                    <label>
-                      <span>Validate message</span>
-                      <input
-                        type="text"
-                        value={selected.validateExpr?.message ?? ''}
-                        onChange={(e) =>
-                          patchSelected({
-                            validateExpr: selected.validateExpr?.expression
-                              ? {
-                                  expression: selected.validateExpr.expression,
-                                  message: e.target.value || undefined,
-                                }
-                              : undefined,
-                          })
-                        }
-                        onBlur={saveNow}
-                      />
-                    </label>
-                  </fieldset>
-                ) : null}
-
-                <fieldset className="sf-form-builder-constraints">
-                  <legend>Conditional logic</legend>
-                  <p className="layout-muted">Show / require when other fields match.</p>
-                  {(['showWhen', 'requireWhen'] as const).map((key) => {
-                    const group = selected.logic?.[key] ?? emptyGroup()
-                    const enabled = Boolean(selected.logic?.[key])
-                    return (
-                      <div key={key} className="sf-form-logic-block">
-                        <label className="gantry-typed-check">
-                          <input
-                            type="checkbox"
-                            checked={enabled}
-                            onChange={(e) => {
-                              patchLogicGroup(key, e.target.checked ? emptyGroup() : undefined)
-                              queueMicrotask(saveNow)
-                            }}
-                          />
-                          <span>{key === 'showWhen' ? 'Show when' : 'Require when'}</span>
-                        </label>
-                        {enabled ? (
-                          <>
-                            <label>
-                              <span>Match</span>
-                              <select
-                                value={group.logic}
-                                onChange={(e) => {
-                                  patchLogicGroup(key, {
-                                    ...group,
-                                    logic: e.target.value === 'or' ? 'or' : 'and',
-                                  })
-                                  queueMicrotask(saveNow)
-                                }}
-                              >
-                                <option value="and">all (AND)</option>
-                                <option value="or">any (OR)</option>
-                              </select>
-                            </label>
-                            {group.conditions.map((cond, idx) => (
-                              <div key={idx} className="sf-form-logic-row">
-                                <select
-                                  value={cond.field}
-                                  onChange={(e) => {
-                                    const conditions = group.conditions.map((c, i) =>
-                                      i === idx ? { ...c, field: e.target.value } : c,
-                                    )
-                                    patchLogicGroup(key, { ...group, conditions })
-                                    queueMicrotask(saveNow)
-                                  }}
-                                >
-                                  <option value="">Field…</option>
-                                  {fields
-                                    .filter((f) => f.name !== selected.name)
-                                    .map((f) => (
-                                      <option key={f.name} value={f.name}>
-                                        {f.label || f.name}
-                                      </option>
-                                    ))}
-                                </select>
-                                <select
-                                  value={cond.op}
-                                  onChange={(e) => {
-                                    const conditions = group.conditions.map((c, i) =>
-                                      i === idx
-                                        ? { ...c, op: e.target.value as FormConditionOp }
-                                        : c,
-                                    )
-                                    patchLogicGroup(key, { ...group, conditions })
-                                    queueMicrotask(saveNow)
-                                  }}
-                                >
-                                  {FORM_CONDITION_OP_LABELS.map((op) => (
-                                    <option key={op.value} value={op.value}>
-                                      {op.label}
-                                    </option>
-                                  ))}
-                                </select>
-                                {cond.op !== 'empty' && cond.op !== 'notEmpty' ? (
-                                  <input
-                                    type="text"
-                                    value={
-                                      Array.isArray(cond.value)
-                                        ? cond.value.join(',')
-                                        : (cond.value ?? '')
-                                    }
-                                    onChange={(e) => {
-                                      const conditions = group.conditions.map((c, i) =>
-                                        i === idx ? { ...c, value: e.target.value } : c,
-                                      ) as FormCondition[]
-                                      patchLogicGroup(key, { ...group, conditions })
-                                    }}
-                                    onBlur={saveNow}
-                                    placeholder="value"
-                                  />
-                                ) : null}
-                              </div>
-                            ))}
-                            <button
-                              type="button"
-                              className="gantry-toolbar-btn secondary"
-                              onClick={() => {
-                                patchLogicGroup(key, {
-                                  ...group,
-                                  conditions: [
-                                    ...group.conditions,
-                                    { field: '', op: 'eq', value: '' },
-                                  ],
-                                })
-                                queueMicrotask(saveNow)
-                              }}
-                            >
-                              Add condition
-                            </button>
-                          </>
-                        ) : null}
-                      </div>
-                    )
-                  })}
-                </fieldset>
-              </>
-            )}
-
-            <fieldset className="sf-form-builder-constraints">
-              <legend>Email on submit</legend>
-              <p className="layout-muted">
-                Transport is stubbed until platform email is ready — settings still save.
-              </p>
-              <label className="gantry-typed-check">
-                <input
-                  type="checkbox"
-                  checked={Boolean(emailNotify.notifyAdmin)}
-                  onChange={(e) => {
-                    setEmailNotify({ ...emailNotify, notifyAdmin: e.target.checked })
-                    queueMicrotask(saveNow)
-                  }}
-                />
-                <span>Notify admin</span>
-              </label>
-              <label className="gantry-typed-check">
-                <input
-                  type="checkbox"
-                  checked={Boolean(emailNotify.notifyRespondent)}
-                  onChange={(e) => {
-                    setEmailNotify({ ...emailNotify, notifyRespondent: e.target.checked })
-                    queueMicrotask(saveNow)
-                  }}
-                />
-                <span>Notify respondent</span>
-              </label>
-              <label>
-                <span>Respondent email field</span>
-                <input
-                  type="text"
-                  value={emailNotify.respondentEmailField ?? 'email'}
-                  onChange={(e) =>
-                    setEmailNotify({ ...emailNotify, respondentEmailField: e.target.value })
-                  }
-                  onBlur={saveNow}
-                />
-              </label>
-              <label>
-                <span>Admin emails override</span>
-                <input
-                  type="text"
-                  value={(emailNotify.adminEmails ?? []).join(', ')}
-                  placeholder="Leave empty → Forms Settings default"
-                  onChange={(e) =>
-                    setEmailNotify({
-                      ...emailNotify,
-                      adminEmails: e.target.value
-                        .split(/[,;\s]+/)
-                        .map((x) => x.trim())
-                        .filter(Boolean),
-                    })
-                  }
-                  onBlur={saveNow}
-                />
-              </label>
-            </fieldset>
-          </aside>
         </div>
 
         <section className="sf-form-builder-schema" aria-label="JSON Schema">
