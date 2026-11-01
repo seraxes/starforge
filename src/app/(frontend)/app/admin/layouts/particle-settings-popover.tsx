@@ -213,10 +213,10 @@ export function ParticleSettingsPopover({
                     type="button"
                     className="gantry-settings-cancel"
                     data-sf-settings-close=""
-                    aria-label="Cancel"
+                    aria-label="Close"
                     onClick={() => setOpen(false)}
                   >
-                    Cancel
+                    Close
                   </button>
                 </header>
                 <div className="gantry-settings-panel-body">{panels}</div>

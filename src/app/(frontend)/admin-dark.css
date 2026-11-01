@@ -1349,7 +1349,7 @@ body:has(.admin-shell) > main {
   background: #161e27;
 }
 
-/* Helium footer actions: Apply blue · Save orange · Cancel dark */
+/* Helium footer actions: Apply blue · Save orange · Close dark */
 .gantry-settings-theme-dark .gantry-settings-cancel,
 .gantry-settings-theme-dark .gantry-settings-panel-head .gantry-settings-cancel {
   background: #2a3340;
