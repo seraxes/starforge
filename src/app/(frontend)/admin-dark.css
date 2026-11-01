@@ -25,7 +25,7 @@ body:has(.admin-shell) > main {
   --sf-admin-card: #3498db; /* solid mid-blue particle bars */
   --sf-admin-card-light: #4691d1;
   --sf-admin-input: #152033;
-  --sf-admin-blue-border: #4691d1;
+  --sf-admin-blue-border: #1e4d72; /* dark-blue borders (not light) */
   --sf-admin-blue-mid: #3498db;
   --sf-admin-blue-action: #2f80b9;
 
@@ -341,7 +341,7 @@ body:has(.admin-shell) > main {
 
 .admin-shell .gantry-palette-item:active,
 .admin-shell .gantry-palette-item.is-dragging {
-  border-color: #8ec4ea;
+  border-color: #163a56;
   background: color-mix(in srgb, var(--sf-admin-blue-mid) 28%, #1b2531);
 }
 
@@ -537,12 +537,28 @@ body:has(.admin-shell) > main {
   flex-direction: column;
   gap: 0;
   background: var(--sf-admin-card);
-  border: 1px solid color-mix(in srgb, #2f86c4 70%, #fff);
+  border: 1px solid #1e4d72;
   border-radius: 3px;
   color: #fff;
   padding: 0.4rem 0.55rem;
   min-height: 3.1rem;
   box-shadow: none;
+}
+
+.admin-shell .gantry-slot,
+.admin-shell .gantry-slot * {
+  color: #fff;
+}
+
+.admin-shell .gantry-slot .admin-badge,
+.admin-shell .gantry-slot code,
+.admin-shell .gantry-slot .settings-hint,
+.admin-shell .gantry-slot .gantry-field-hint,
+.admin-shell .gantry-slot label,
+.admin-shell .gantry-slot span,
+.admin-shell .gantry-slot strong,
+.admin-shell .gantry-slot p {
+  color: #fff !important;
 }
 
 .admin-shell .gantry-slot-head {
@@ -577,6 +593,8 @@ body:has(.admin-shell) > main {
   background: transparent !important;
   border: 0 !important;
   color: #fff !important;
+  -webkit-text-fill-color: #fff;
+  caret-color: #fff;
   font-weight: 700 !important;
   font-size: 0.95rem !important;
   min-height: 1.25rem !important;
@@ -586,10 +604,16 @@ body:has(.admin-shell) > main {
   box-shadow: none !important;
 }
 
+.admin-shell .gantry-slot .gantry-slot-name-input::placeholder {
+  color: rgba(255, 255, 255, 0.85);
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.85);
+  opacity: 1;
+}
+
 .admin-shell .gantry-slot-sub {
   font-size: 0.72rem;
   line-height: 1.2;
-  color: color-mix(in srgb, #fff 78%, #1b2531);
+  color: #fff !important;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -651,18 +675,47 @@ body:has(.admin-shell) > main {
   background: color-mix(in srgb, #0f1a2a 28%, transparent);
 }
 
+/* Extra particle controls — click to open (not hover) */
 .admin-shell .gantry-slot-extra {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.admin-shell .gantry-slot-extra > summary {
+  list-style: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+  padding: 0.15rem 0.25rem;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  user-select: none;
+}
+
+.admin-shell .gantry-slot-extra > summary::-webkit-details-marker {
   display: none;
+}
+
+.admin-shell .gantry-slot-extra > summary::before {
+  content: '▸';
+  font-size: 0.75rem;
+}
+
+.admin-shell .gantry-slot-extra[open] > summary::before {
+  content: '▾';
+}
+
+.admin-shell .gantry-slot-extra-body {
+  display: flex;
+  flex-direction: column;
   gap: 0.45rem;
   margin-top: 0.45rem;
   padding-top: 0.45rem;
   border-top: 1px solid color-mix(in srgb, #fff 22%, transparent);
-}
-
-.admin-shell .gantry-slot:focus-within .gantry-slot-extra,
-.admin-shell .gantry-slot:hover .gantry-slot-extra {
-  display: flex;
-  flex-direction: column;
 }
 
 .admin-shell .gantry-slot-extra-actions {
@@ -673,7 +726,7 @@ body:has(.admin-shell) > main {
 
 .admin-shell .gantry-slot-extra-actions button {
   background: color-mix(in srgb, #0f1a2a 32%, transparent);
-  border: 1px solid color-mix(in srgb, #fff 35%, transparent);
+  border: 1px solid #1e4d72;
   color: #fff;
 }
 

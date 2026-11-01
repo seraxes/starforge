@@ -432,54 +432,57 @@ function ParticleBlock({
           </div>
         </div>
       </header>
-      <div className="gantry-slot-extra">
-        <AccessTagsField
-          className="gantry-slot-access-tags"
-          value={accessTags}
-          groups={groups}
-          disabled={pending}
-          onChange={persistAccessTags}
-        />
-        <div className="gantry-slot-extra-actions">
-          <button
-            type="button"
-            className="secondary"
+      <details className="gantry-slot-extra">
+        <summary>More</summary>
+        <div className="gantry-slot-extra-body">
+          <AccessTagsField
+            className="gantry-slot-access-tags"
+            value={accessTags}
+            groups={groups}
             disabled={pending}
-            onClick={() => {
-              const fd = withOutlineId(new FormData(), layoutId)
-              fd.set('sectionId', sectionId)
-              fd.set('rowId', rowId)
-              fd.set('slotId', slot.id)
-              startTransition(async () => {
-                const result = await toggleSlotAction({}, fd)
-                setFlash(result)
-                router.refresh()
-              })
-            }}
-          >
-            {enabled ? 'Disable' : 'Enable'}
-          </button>
-          <button
-            type="button"
-            className="danger"
-            disabled={pending}
-            onClick={() => {
-              const fd = withOutlineId(new FormData(), layoutId)
-              fd.set('sectionId', sectionId)
-              fd.set('rowId', rowId)
-              fd.set('slotId', slot.id)
-              startTransition(async () => {
-                const result = await removeSlotAction({}, fd)
-                setFlash(result)
-                router.refresh()
-              })
-            }}
-          >
-            Remove
-          </button>
+            onChange={persistAccessTags}
+          />
+          <div className="gantry-slot-extra-actions">
+            <button
+              type="button"
+              className="secondary"
+              disabled={pending}
+              onClick={() => {
+                const fd = withOutlineId(new FormData(), layoutId)
+                fd.set('sectionId', sectionId)
+                fd.set('rowId', rowId)
+                fd.set('slotId', slot.id)
+                startTransition(async () => {
+                  const result = await toggleSlotAction({}, fd)
+                  setFlash(result)
+                  router.refresh()
+                })
+              }}
+            >
+              {enabled ? 'Disable' : 'Enable'}
+            </button>
+            <button
+              type="button"
+              className="danger"
+              disabled={pending}
+              onClick={() => {
+                const fd = withOutlineId(new FormData(), layoutId)
+                fd.set('sectionId', sectionId)
+                fd.set('rowId', rowId)
+                fd.set('slotId', slot.id)
+                startTransition(async () => {
+                  const result = await removeSlotAction({}, fd)
+                  setFlash(result)
+                  router.refresh()
+                })
+              }}
+            >
+              Remove
+            </button>
+          </div>
+          <ActionFeedback state={flash} />
         </div>
-        <ActionFeedback state={flash} />
-      </div>
+      </details>
     </article>
   )
 }
