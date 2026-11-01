@@ -414,15 +414,16 @@ async function main() {
     ])
     if (nav.updated) {
       console.log(
-        `Primary nav → CMS pages: ${nav.primaryNav.map((i) => `${i.label} (${i.href})`).join(', ')}`,
+        `Nav manager Main menu → CMS pages: ${nav.primaryNav.map((i) => `${i.label} (${i.href})`).join(', ')}`,
       )
     } else {
       console.log(
-        `Primary nav unchanged (${nav.primaryNav.length} items): ${nav.primaryNav.map((i) => i.href).join(', ')}`,
+        `Nav manager Main unchanged (${nav.primaryNav.length} items): ${nav.primaryNav.map((i) => i.href).join(', ')}`,
       )
     }
   } catch (error) {
-    console.warn('Could not seed primary nav page links.')
+    console.warn('Could not seed Nav manager Main menu (sf_nav_menus).')
+    console.warn('Run: npm run db:core:push')
     console.warn(error instanceof Error ? error.message : error)
   }
 

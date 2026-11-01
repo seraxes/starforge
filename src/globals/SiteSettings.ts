@@ -8,14 +8,15 @@ const revalidateSiteSettingsAfterChange: GlobalAfterChangeHook = ({ doc }) => {
 }
 
 /**
- * Site chrome + product capability toggles.
+ * Site settings + product capability toggles.
  *
  * - Editors: edit in Payload `/admin` → Globals → Site settings
  * - Core admins: edit the same doc via `/app/admin/settings` (Local API)
  *
- * Primary nav items prefer a **Page** relationship; custom URL is for external
- * links or paths. Flat menu for v1 — Joomla-like extras (CSS class, browser
- * title override) are stub fields only; not used by the public layout yet.
+ * Navigation sets live in Core **Nav** (`/app/admin/nav`, `sf_nav_menus`) — a
+ * top-level admin sibling of Site settings, not nested under Site Chrome.
+ * This global only assigns which menu is the site default (`primaryNavMenuId`).
+ * Legacy `primaryNav` array is a read fallback until migrated.
  *
  * Flags are product *capabilities* (registration, modules, posts placeholder…),
  * not npm libraries. Core reads them to hide UI and reject gated APIs.
@@ -27,7 +28,7 @@ export const SiteSettings: GlobalConfig = {
   label: 'Site settings',
   admin: {
     description:
-      'Site name, primary nav (pages / URLs), and feature toggles. Core admins can also edit at /app/admin/settings. App accounts stay separate from CMS editors. Saving refreshes the public header cache.',
+      'Site name, primary nav menu assignment, and feature toggles. Manage menus under Starforge admin → Nav (top-level). Core admins: /app/admin/settings.',
   },
   hooks: {
     afterChange: [revalidateSiteSettingsAfterChange],
@@ -47,15 +48,26 @@ export const SiteSettings: GlobalConfig = {
       },
     },
     {
+      name: 'primaryNavMenuId',
+      type: 'text',
+      defaultValue: 'main',
+      admin: {
+        description:
+          'Assignment only: which Nav menu set (`sf_nav_menus`) powers the public header. Edit sets under Starforge admin → Nav (top-level). Default: main.',
+      },
+    },
+    {
       name: 'primaryNav',
       type: 'array',
       labels: {
         singular: 'Nav item',
-        plural: 'Primary nav',
+        plural: 'Legacy primary nav',
       },
       admin: {
+        // Hidden: Core Site Settings no longer edits items. Migrated into sf_nav_menus Main.
+        hidden: true,
         description:
-          'Ordered header links. Prefer “CMS page” so URLs stay in sync with the page slug. Custom URL for external links or fixed paths. Nested menus / module assignment come later.',
+          'Legacy storage only — migrated into Nav manager Main. Do not edit; use /app/admin/nav.',
       },
       fields: [
         {
@@ -97,16 +109,14 @@ export const SiteSettings: GlobalConfig = {
           name: 'cssClass',
           type: 'text',
           admin: {
-            description:
-              'Stub — reserved for later Joomla-like menu CSS class. Not applied on the public site yet.',
+            description: 'Legacy stub — use Nav manager item CSS class instead.',
           },
         },
         {
           name: 'browserTitle',
           type: 'text',
           admin: {
-            description:
-              'Stub — reserved for later browser / page title override when this item is active. Not applied yet.',
+            description: 'Legacy stub — use Nav manager browser title instead.',
           },
         },
       ],

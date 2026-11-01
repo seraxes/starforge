@@ -36,6 +36,13 @@ export type ModuleToggleEntry = {
   enabled: boolean
 }
 
+/** Navigable view a catalog module exposes for Nav manager bindings. */
+export type ModuleCatalogNavView = {
+  key: string
+  label: string
+  href: string
+}
+
 /** Row for the Site Settings → Modules admin list. */
 export type ModuleCatalogItem = {
   /** Storage / gate key (`notice-bar`, `atom:analytics`, `product:primary-nav`). */
@@ -50,6 +57,8 @@ export type ModuleCatalogItem = {
   installed: true
   /** Optional link to legacy FeatureFlags key (kept in sync on save). */
   featureFlag?: keyof FeatureFlags
+  /** Optional routes this module exposes for Nav → Module link type. */
+  navViews?: ModuleCatalogNavView[]
 }
 
 export function atomToggleId(type: string): string {

@@ -5,9 +5,13 @@ import config from '@payload-config'
 
 import { contentCacheTags, getPublishedContentCache } from '@/core/content/cache'
 
+import { resolveNavMenuItems } from '@/core/nav/resolve'
+import { DEFAULT_NAV_MENU_ID } from '@/core/db'
+
 import {
   DEFAULT_FEATURE_FLAGS,
   DEFAULT_PRIMARY_NAV,
+  DEFAULT_PRIMARY_NAV_MENU_ID,
   DEFAULT_SITE_NAME,
   DEFAULT_SITE_SETTINGS,
   type FeatureFlags,
@@ -17,6 +21,7 @@ import {
   type SiteSettingsData,
 } from './defaults'
 import {
+  MODULE_IDS,
   REQUIRED_MODULE_IDS,
   atomToggleId,
   isModuleToggleEnabled,
@@ -35,6 +40,7 @@ export type { RawNavRow }
 export {
   DEFAULT_FEATURE_FLAGS,
   DEFAULT_PRIMARY_NAV,
+  DEFAULT_PRIMARY_NAV_MENU_ID,
   DEFAULT_SITE_NAME,
   DEFAULT_SITE_SETTINGS,
 }
@@ -69,6 +75,7 @@ export {
 
 type SiteSettingsDoc = {
   siteName?: string | null
+  primaryNavMenuId?: string | null
   primaryNav?: RawNavRow[] | null
   featureRegistration?: boolean | null
   featureRichEditor?: boolean | null
@@ -76,6 +83,11 @@ type SiteSettingsDoc = {
   featureModules?: boolean | null
   featureDraftPreview?: boolean | null
   moduleToggles?: Array<{ moduleId?: string | null; enabled?: boolean | null }> | null
+}
+
+function normalizePrimaryNavMenuId(raw: string | null | undefined): string {
+  const id = typeof raw === 'string' ? raw.trim() : ''
+  return id || DEFAULT_PRIMARY_NAV_MENU_ID
 }
 
 function normalizeFlags(doc: SiteSettingsDoc | null | undefined): FeatureFlags {
@@ -89,12 +101,16 @@ function normalizeFlags(doc: SiteSettingsDoc | null | undefined): FeatureFlags {
   }
 }
 
-export function normalizeSiteSettings(doc: SiteSettingsDoc | null | undefined): SiteSettingsData {
+export function normalizeSiteSettings(
+  doc: SiteSettingsDoc | null | undefined,
+  resolvedNav?: NavItem[],
+): SiteSettingsData {
   if (!doc) {
     return {
       ...DEFAULT_SITE_SETTINGS,
       features: { ...DEFAULT_FEATURE_FLAGS },
-      primaryNav: DEFAULT_PRIMARY_NAV.map((i) => ({ ...i })),
+      primaryNav: (resolvedNav ?? DEFAULT_PRIMARY_NAV).map((i) => ({ ...i })),
+      primaryNavMenuId: DEFAULT_PRIMARY_NAV_MENU_ID,
       moduleToggles: {},
     }
   }
@@ -106,10 +122,44 @@ export function normalizeSiteSettings(doc: SiteSettingsDoc | null | undefined): 
 
   return {
     siteName,
-    primaryNav: resolveNavItems(doc.primaryNav),
+    primaryNavMenuId: normalizePrimaryNavMenuId(doc.primaryNavMenuId),
+    primaryNav: resolvedNav ?? resolveNavItems(doc.primaryNav),
     features: normalizeFlags(doc),
     moduleToggles: normalizeModuleToggles(doc.moduleToggles),
   }
+}
+
+/**
+ * Prefer Nav manager menu set; fall back to legacy Payload primaryNav rows.
+ * Passes a settings snapshot (without resolved nav) so module link types can
+ * honor Modules on/off without re-entering getSiteSettings.
+ */
+async function resolvePrimaryNavForDoc(doc: SiteSettingsDoc): Promise<NavItem[]> {
+  const menuId = normalizePrimaryNavMenuId(doc.primaryNavMenuId)
+  const settingsForModules = normalizeSiteSettings(doc, [])
+  try {
+    const fromMenu = await resolveNavMenuItems(menuId, settingsForModules)
+    // Non-default fallbacks from resolveNavMenuItems still count as usable.
+    if (fromMenu.length > 0) {
+      // If menu resolve returned only the hard-coded DEFAULT_PRIMARY_NAV and
+      // legacy rows exist with page links, prefer legacy once — then seed owns migration.
+      const legacy = resolveNavItems(doc.primaryNav)
+      const menuLooksLikeDefaults =
+        fromMenu.length === DEFAULT_PRIMARY_NAV.length &&
+        fromMenu.every(
+          (item, i) =>
+            item.href === DEFAULT_PRIMARY_NAV[i]?.href &&
+            item.label === DEFAULT_PRIMARY_NAV[i]?.label,
+        )
+      if (menuLooksLikeDefaults && navHasPageLinks(doc.primaryNav)) {
+        return legacy
+      }
+      return fromMenu
+    }
+  } catch {
+    // sf_nav_menus missing — use legacy
+  }
+  return resolveNavItems(doc.primaryNav)
 }
 
 async function loadSiteSettingsUncached(): Promise<SiteSettingsData> {
@@ -122,13 +172,27 @@ async function loadSiteSettingsUncached(): Promise<SiteSettingsData> {
       overrideAccess: false,
     })) as SiteSettingsDoc
 
-    return normalizeSiteSettings(doc)
+    const primaryNav = await resolvePrimaryNavForDoc(doc)
+    return normalizeSiteSettings(doc, primaryNav)
   } catch {
-    return {
-      ...DEFAULT_SITE_SETTINGS,
-      features: { ...DEFAULT_FEATURE_FLAGS },
-      primaryNav: DEFAULT_PRIMARY_NAV.map((i) => ({ ...i })),
-      moduleToggles: {},
+    try {
+      const fallbackSettings = {
+        ...DEFAULT_SITE_SETTINGS,
+        features: { ...DEFAULT_FEATURE_FLAGS },
+        primaryNav: [] as NavItem[],
+        primaryNavMenuId: DEFAULT_PRIMARY_NAV_MENU_ID,
+        moduleToggles: {},
+      }
+      const fromMenu = await resolveNavMenuItems(DEFAULT_NAV_MENU_ID, fallbackSettings)
+      return { ...fallbackSettings, primaryNav: fromMenu }
+    } catch {
+      return {
+        ...DEFAULT_SITE_SETTINGS,
+        features: { ...DEFAULT_FEATURE_FLAGS },
+        primaryNav: DEFAULT_PRIMARY_NAV.map((i) => ({ ...i })),
+        primaryNavMenuId: DEFAULT_PRIMARY_NAV_MENU_ID,
+        moduleToggles: {},
+      }
     }
   }
 }
@@ -172,13 +236,17 @@ export async function isModulesEnabled(): Promise<boolean> {
 
 export type UpdateSiteSettingsInput = {
   siteName: string
+  /** Which Nav manager menu powers the public primary nav. */
+  primaryNavMenuId?: string
   /**
-   * Resolved public nav (label + href) — written as custom-URL rows.
-   * Prefer `primaryNavInputs` when seeding page relationships.
+   * Legacy: resolved public nav (label + href) — written as custom-URL rows.
+   * Prefer Nav manager (`sf_nav_menus`) + `primaryNavMenuId`.
    */
   primaryNav?: NavItem[]
-  /** Full Payload nav rows (page relationships and/or custom URLs). */
+  /** Legacy: full Payload nav rows (page relationships and/or custom URLs). */
   primaryNavInputs?: NavItemInput[]
+  /** When true, leave legacy `primaryNav` array unchanged on the global. */
+  keepLegacyPrimaryNav?: boolean
   features: FeatureFlags
   /** Per-module / atom runtime toggles (P0). */
   moduleToggles?: ModuleToggleMap
@@ -197,28 +265,38 @@ function toPayloadNavData(input: UpdateSiteSettingsInput): NavItemInput[] {
  */
 export async function updateSiteSettings(input: UpdateSiteSettingsInput): Promise<SiteSettingsData> {
   const siteName = input.siteName.trim() || DEFAULT_SITE_NAME
-  const primaryNav = toPayloadNavData(input)
+  const primaryNavMenuId = normalizePrimaryNavMenuId(
+    input.primaryNavMenuId ?? DEFAULT_PRIMARY_NAV_MENU_ID,
+  )
   const moduleToggles = input.moduleToggles ?? {}
 
   const payload = await getPayload({ config })
+
+  const data: Record<string, unknown> = {
+    siteName,
+    primaryNavMenuId,
+    featureRegistration: input.features.registration,
+    featureRichEditor: input.features.richEditor,
+    featurePosts: input.features.posts,
+    featureModules: input.features.modules,
+    featureDraftPreview: input.features.draftPreview,
+    moduleToggles: moduleTogglesToPayloadRows(moduleToggles),
+  }
+
+  if (!input.keepLegacyPrimaryNav) {
+    data.primaryNav = toPayloadNavData(input)
+  }
+
   // Cast: Payload generated types lag until `payload generate:types` after schema add.
   const doc = (await payload.updateGlobal({
     slug: 'site-settings',
-    data: {
-      siteName,
-      primaryNav,
-      featureRegistration: input.features.registration,
-      featureRichEditor: input.features.richEditor,
-      featurePosts: input.features.posts,
-      featureModules: input.features.modules,
-      featureDraftPreview: input.features.draftPreview,
-      moduleToggles: moduleTogglesToPayloadRows(moduleToggles),
-    } as Record<string, unknown>,
+    data,
     depth: 1,
     overrideAccess: true,
   })) as SiteSettingsDoc
 
-  return normalizeSiteSettings(doc)
+  const primaryNav = await resolvePrimaryNavForDoc(doc)
+  return normalizeSiteSettings(doc, primaryNav)
 }
 
 /** Ensure the global exists with sensible defaults (idempotent). */
@@ -232,24 +310,36 @@ export async function ensureSiteSettingsDefaults(): Promise<SiteSettingsData> {
     })) as SiteSettingsDoc & { id?: unknown }
 
     const hasName = typeof existing?.siteName === 'string' && existing.siteName.trim()
-    const hasNav = Array.isArray(existing?.primaryNav) && existing.primaryNav.length > 0
+    const hasMenuId =
+      typeof existing?.primaryNavMenuId === 'string' && existing.primaryNavMenuId.trim()
 
-    if (hasName && hasNav) {
-      return normalizeSiteSettings(existing)
+    // Move leftover Payload primaryNav rows into sf_nav_menus Main when empty.
+    try {
+      const { migrateLegacyPrimaryNavToMain } = await import('@/core/nav/store')
+      await migrateLegacyPrimaryNavToMain(existing.primaryNav)
+    } catch {
+      // Table may not exist yet (before db:core:push).
+    }
+
+    if (hasName && hasMenuId) {
+      const primaryNav = await resolvePrimaryNavForDoc(existing)
+      return normalizeSiteSettings(existing, primaryNav)
     }
 
     return updateSiteSettings({
       siteName: hasName ? String(existing.siteName).trim() : DEFAULT_SITE_NAME,
-      primaryNav: hasNav
-        ? resolveNavItems(existing.primaryNav)
-        : DEFAULT_PRIMARY_NAV.map((i) => ({ ...i })),
+      primaryNavMenuId: hasMenuId
+        ? String(existing.primaryNavMenuId).trim()
+        : DEFAULT_PRIMARY_NAV_MENU_ID,
+      keepLegacyPrimaryNav: true,
       features: normalizeFlags(existing),
       moduleToggles: normalizeModuleToggles(existing.moduleToggles),
     })
   } catch {
     return updateSiteSettings({
       siteName: DEFAULT_SITE_NAME,
-      primaryNav: DEFAULT_PRIMARY_NAV.map((i) => ({ ...i })),
+      primaryNavMenuId: DEFAULT_PRIMARY_NAV_MENU_ID,
+      keepLegacyPrimaryNav: true,
       features: { ...DEFAULT_FEATURE_FLAGS },
       moduleToggles: {},
     })
@@ -257,67 +347,61 @@ export async function ensureSiteSettingsDefaults(): Promise<SiteSettingsData> {
 }
 
 /**
- * Point primary nav at published sample pages by relationship (seed).
- * Idempotent: skips when page links already exist, or when nav was customized
- * beyond the sample page paths.
+ * Seed primary nav via Nav manager Main menu + point site default at it.
+ * Idempotent: skips when Main already has items.
  */
 export async function seedPrimaryNavFromPages(
   entries: Array<{ label: string; slug: string }>,
 ): Promise<{ updated: boolean; primaryNav: NavItem[] }> {
-  const payload = await getPayload({ config })
-  const existing = (await payload.findGlobal({
-    slug: 'site-settings',
-    depth: 0,
-    overrideAccess: true,
-  })) as SiteSettingsDoc
+  const { migrateLegacyPrimaryNavToMain, seedMainNavFromPages } = await import(
+    '@/core/nav/store'
+  )
 
-  const sampleHrefs = new Set(entries.map((e) => `/${e.slug}`))
-  const resolvedExisting = resolveNavItems(existing.primaryNav)
-  const hasRows = Array.isArray(existing.primaryNav) && existing.primaryNav.length > 0
-  const onlySamplePaths =
-    !hasRows ||
-    (resolvedExisting.length > 0 &&
-      resolvedExisting.every((item) => sampleHrefs.has(item.href) || item.href === '/'))
-
-  if (navHasPageLinks(existing.primaryNav) || (hasRows && !onlySamplePaths)) {
-    const resolved = await getSiteSettingsUncached()
-    return { updated: false, primaryNav: resolved.primaryNav }
+  try {
+    const payload = await getPayload({ config })
+    const existing = (await payload.findGlobal({
+      slug: 'site-settings',
+      depth: 1,
+      overrideAccess: true,
+    })) as SiteSettingsDoc
+    await migrateLegacyPrimaryNavToMain(existing.primaryNav)
+  } catch {
+    // Ignore — seedMainNavFromPages still runs.
   }
 
-  const inputs: NavItemInput[] = []
-  for (const entry of entries) {
-    const found = await payload.find({
-      collection: 'pages',
-      where: { slug: { equals: entry.slug } },
-      limit: 1,
+  const seeded = await seedMainNavFromPages(entries)
+
+  try {
+    const payload = await getPayload({ config })
+    const existing = (await payload.findGlobal({
+      slug: 'site-settings',
       depth: 0,
       overrideAccess: true,
+    })) as SiteSettingsDoc
+
+    const toggles = normalizeModuleToggles(existing.moduleToggles)
+    // Ensure Primary nav module is on so Core admin shows the Nav link.
+    if (typeof toggles[MODULE_IDS.primaryNav] !== 'boolean') {
+      toggles[MODULE_IDS.primaryNav] = true
+    }
+
+    await updateSiteSettings({
+      siteName:
+        typeof existing.siteName === 'string' && existing.siteName.trim()
+          ? existing.siteName.trim()
+          : DEFAULT_SITE_NAME,
+      primaryNavMenuId: DEFAULT_PRIMARY_NAV_MENU_ID,
+      keepLegacyPrimaryNav: true,
+      features: normalizeFlags(existing),
+      moduleToggles: toggles,
     })
-    const doc = found.docs[0]
-    if (!doc || typeof doc.id !== 'number') continue
-    inputs.push({
-      label: entry.label,
-      linkType: 'page',
-      page: doc.id,
-    })
+  } catch {
+    // Settings global may be unavailable; menu seed still applied.
   }
 
-  if (inputs.length === 0) {
-    const fallback = await ensureSiteSettingsDefaults()
-    return { updated: false, primaryNav: fallback.primaryNav }
-  }
-
-  const next = await updateSiteSettings({
-    siteName:
-      typeof existing.siteName === 'string' && existing.siteName.trim()
-        ? existing.siteName.trim()
-        : DEFAULT_SITE_NAME,
-    primaryNavInputs: inputs,
-    features: normalizeFlags(existing),
-    moduleToggles: normalizeModuleToggles(existing.moduleToggles),
-  })
-
-  return { updated: true, primaryNav: next.primaryNav }
+  const settingsSnap = await getSiteSettingsUncached()
+  const resolved = await resolveNavMenuItems(DEFAULT_NAV_MENU_ID, settingsSnap)
+  return { updated: seeded.updated, primaryNav: resolved }
 }
 
 async function getSiteSettingsUncached(): Promise<SiteSettingsData> {
@@ -328,12 +412,14 @@ async function getSiteSettingsUncached(): Promise<SiteSettingsData> {
       depth: 1,
       overrideAccess: true,
     })) as SiteSettingsDoc
-    return normalizeSiteSettings(doc)
+    const primaryNav = await resolvePrimaryNavForDoc(doc)
+    return normalizeSiteSettings(doc, primaryNav)
   } catch {
     return {
       ...DEFAULT_SITE_SETTINGS,
       features: { ...DEFAULT_FEATURE_FLAGS },
       primaryNav: DEFAULT_PRIMARY_NAV.map((i) => ({ ...i })),
+      primaryNavMenuId: DEFAULT_PRIMARY_NAV_MENU_ID,
       moduleToggles: {},
     }
   }

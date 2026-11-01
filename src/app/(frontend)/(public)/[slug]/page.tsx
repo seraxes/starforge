@@ -5,6 +5,7 @@ import React from 'react'
 import { RichText } from '@/components/RichText'
 import { buildPageMetadata } from '@/core/content/metadata'
 import { getPublishedPageBySlug } from '@/core/content/pages'
+import { findNavOverridesForPath } from '@/core/nav'
 import { getSiteSettings } from '@/core/settings'
 
 type Args = {
@@ -16,10 +17,12 @@ type Args = {
 /**
  * Anonymous public CMS page — published-only via cached `getPublishedPageBySlug`.
  * Draft preview lives at `/preview/[slug]` (uncached + auth-gated).
+ * Nav manager browser-title / page-heading overrides apply when the path matches.
  */
 export async function generateMetadata({ params }: Args): Promise<Metadata> {
   const { slug } = await params
-  const page = await getPublishedPageBySlug(decodeURIComponent(slug))
+  const decoded = decodeURIComponent(slug)
+  const page = await getPublishedPageBySlug(decoded)
 
   if (!page) {
     const settings = await getSiteSettings()
@@ -28,7 +31,13 @@ export async function generateMetadata({ params }: Args): Promise<Metadata> {
     }
   }
 
-  return buildPageMetadata(page)
+  const settings = await getSiteSettings()
+  const overrides = findNavOverridesForPath(settings.primaryNav, `/${decoded}`)
+  const meta = buildPageMetadata(page)
+  if (overrides?.browserTitle) {
+    return { ...meta, title: overrides.browserTitle }
+  }
+  return meta
 }
 
 export default async function PublicCmsPage({ params }: Args) {
@@ -40,10 +49,14 @@ export default async function PublicCmsPage({ params }: Args) {
     notFound()
   }
 
+  const settings = await getSiteSettings()
+  const overrides = findNavOverridesForPath(settings.primaryNav, `/${decodedSlug}`)
+  const heading = overrides?.pageHeading?.trim() || page.title
+
   return (
     <article className="cms-page">
       <header className="cms-page-header">
-        <h1>{page.title}</h1>
+        <h1>{heading}</h1>
       </header>
       {page.body ? <RichText data={page.body} /> : <p className="lede">This page has no body yet.</p>}
     </article>

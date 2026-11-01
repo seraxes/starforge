@@ -14,7 +14,7 @@ This is an early scaffold plus **core app auth** (Better Auth), **roles + core u
 | **Payload content module** | Collections, globals (site settings), drafts, media, CMS admin | `src/collections/`, `src/globals/`, `src/payload.config.ts`, `src/app/(payload)/` |
 
 - Payload tables use Postgres schema **`payload`** (created by `docker/postgres/init.sql`).
-- Core auth + layout + page chrome tables: `sf_users`, `sf_sessions`, `sf_accounts`, `sf_verifications`, `sf_layouts`, `sf_page_chrome` (push with `npm run db:core:push`).
+- Core auth + layout + page chrome + nav tables: `sf_users`, `sf_sessions`, `sf_accounts`, `sf_verifications`, `sf_layouts`, `sf_page_chrome`, `sf_nav_menus` (push with `npm run db:core:push`).
 - Hot paths stay in core — do not put high-QPS app traffic through Payload Local API.
 
 ### Published content cache
@@ -80,7 +80,8 @@ Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so coo
 | http://localhost:3000/register | Create a **core app** account (email + password; auto sign-in; default role `member`) |
 | http://localhost:3000/login | **Only** sign-in (Better Auth). Also used when `/admin` redirects unauthenticated visitors |
 | http://localhost:3000/app/admin/users | Starforge admin — roles, **CMS access** switch, disable |
-| http://localhost:3000/app/admin/settings | Starforge admin — site name, primary nav, feature toggles (same Payload global) |
+| http://localhost:3000/app/admin/settings | Starforge admin — site name, primary nav menu binding, feature toggles |
+| http://localhost:3000/app/admin/nav | Starforge admin — **Nav** manager (navigation sets + items) |
 | http://localhost:3000/app/admin/layouts | Starforge admin — **Layouts** (hover submenu) → **Layout** canvas (default) |
 | http://localhost:3000/app/admin/page-settings | Starforge admin — **Layouts → Page settings** (Head / Assets / Body / FA / Atoms) |
 | http://localhost:3000/api/me | Current app session JSON including `role` / `isAdmin` (`401` when signed out) |
@@ -101,21 +102,23 @@ App login uses **email**, not a separate username. Forgot / reset password is **
 | `member` | Default product user | App routes only (no Payload stub unless CMS access toggled on) |
 | `cms_access` | Per-user switch on Users | Payload `/admin` via Better Auth session |
 
-### Site settings + primary nav + feature toggles
+### Site settings + Nav manager + feature toggles
 
-One Payload global (`site-settings`) is the source of truth for site chrome and capability flags. Core admins edit it at **`/app/admin/settings`** (no CMS login required). CMS editors can edit the same document under Payload **Globals → Site settings**.
+**Nav** is a **top-level** Core admin item (`/app/admin/nav`, sibling of Users / Site settings / Layouts): multiple named **navigation sets** (menus) in `sf_nav_menus`, each with items (CMS page or URL, reorder, copy/paste, CSS class, browser/page title overrides, access-level stub). Site Settings only **assigns** which set is the site primary header menu — not nested under Site Chrome.
+
+One Payload global (`site-settings`) holds site name, `primaryNavMenuId`, capability flags, and module toggles. Core admins edit it at **`/app/admin/settings`**. CMS editors can edit the same document under Payload **Globals → Site settings** (legacy `primaryNav` array is a fallback only).
 
 | Field | Default | What it does |
 | --- | --- | --- |
 | Site name | `Starforge` | Public header brand + metadata default |
-| Primary nav | Seed links **About**, **Getting started**, **Welcome** via **CMS page** relationships | Ordered header links; current path gets an active style. Prefer **CMS page**; **Custom URL** for paths / external links |
+| Primary nav assignment | `main` | Which Nav menu set powers the public header (assignment only) |
 | Registration | on | Hide `/register` + reject signup when off |
 | Rich editor | on | Flag reserved for a future simpler mode (Lexical stays on Pages today) |
 | Posts | **off** | Placeholder — no Posts collection yet |
-| Modules | Site Settings → **Modules** list (per particle/atom); seed enables `notice-bar` | Off = hide from layout palette + skip public/atom inject |
+| Modules | Site Settings → **Modules** list (incl. **Primary nav**); seed enables `notice-bar` | Off = hide from layout palette + skip public/atom inject; Primary nav off hides Nav admin + header links |
 | Draft preview | **off** | When on, `cms_access` users can open `/preview/{slug}` for unpublished drafts |
 
-`npm run seed` ensures the global exists, points primary nav at the sample pages, and enables the **notice-bar** module toggle (plus legacy master Modules flag) so the notice bar shows. Per-module toggles live under **Site Settings → Modules**. Flags are **product capabilities**, not npm libraries.
+`npm run seed` ensures the global exists, seeds Nav manager **Main** with About / Getting started / Welcome page binds, sets `primaryNavMenuId=main`, and enables the **notice-bar** module toggle. Flags are **product capabilities**, not npm libraries.
 
 ### Extension modules + Gantry-like layout manager
 
@@ -176,7 +179,7 @@ Members visiting `/app/admin/users` are redirected home with an **Admins only** 
 Idempotent local demo data:
 
 - **Published CMS pages:** `/about`, `/getting-started`, `/welcome`
-- **Site settings** global defaults + **primary nav** linked to those pages (Payload relationships)
+- **Site settings** global defaults + **Nav manager Main** menu linked to those pages (`sf_nav_menus`)
 - **Modules** feature enabled + **layout document v3** seeded into `sf_layouts` (notice-bar, site-header, page-content, custom footer)
 - **Page Settings** global chrome defaults seeded into `sf_page_chrome`
 - **Bootstrap app admin**: `admin@starforge.local` / `starforge-admin` → `admin` + `cms_access` + Payload stub
@@ -194,32 +197,51 @@ Idempotent local demo data:
 Public render: `src/app/(frontend)/(public)/[slug]/page.tsx` · `getPublishedPageBySlug` · `buildPageMetadata`.  
 Draft preview: `src/app/(frontend)/(public)/preview/[slug]/page.tsx` · `getDraftPageBySlug` · `requireDraftPreviewAccess`.
 
-### Windows: primary nav + public layout
+### Windows: Nav manager (SF-40)
+
+If Site Settings still shows **Site chrome → Primary nav** add/remove rows and the top bar has no **Nav** link, you are on old `main` — hard-reset onto this branch (stop `npm run dev` first).
+
+**CMD**
 
 ```bat
 cd %USERPROFILE%\starforge
 git fetch origin
-git checkout cursor/primary-nav-public-layout-4226
-git pull origin cursor/primary-nav-public-layout-4226
+git checkout cursor/nav-manager-menus-541e
+git reset --hard origin/cursor/nav-manager-menus-541e
 
 docker compose up -d
 if not exist .env copy .env.example .env
 npm install
 npm run db:core:push
 npm run seed
-npm run generate:types
 
 rem Stop ANY old npm run dev window (Ctrl+C), then:
 npm run dev
 ```
 
-PowerShell equivalent start: `cd $env:USERPROFILE\starforge`
+**PowerShell**
 
-1. Open **http://localhost:3000** — header shows site name (**Starforge**) + nav (**About**, **Getting started**, **Welcome**).
-2. Open **http://localhost:3000/about** — **About** nav link is active (underlined / primary color).
-3. Open **http://localhost:3000/getting-started** and **/welcome** — matching nav item active.
-4. Sign in at **/login** as `admin@starforge.local` / `starforge-admin`, open **/admin** → Globals → **Site settings** — primary nav items use **CMS page** link type.
-5. Optional: **/app/admin/settings** still edits site name / path nav / toggles.
+```powershell
+cd $env:USERPROFILE\starforge
+git fetch origin
+git checkout cursor/nav-manager-menus-541e
+git reset --hard origin/cursor/nav-manager-menus-541e
+
+docker compose up -d
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+npm install
+npm run db:core:push
+npm run seed
+
+# Stop ANY old npm run dev window (Ctrl+C), then:
+npm run dev
+```
+
+1. Admin bar must show **Users | Site settings | Nav | Layouts** (Nav is top-level).
+2. **/app/admin/settings** — site name + **Primary nav assignment** dropdown only (no About/Getting started row editor).
+3. **/app/admin/nav** — edit Main menu items (CMS page / URL / **module view**, CSS class, title overrides, Up/Down, Copy/Paste). Module views come from enabled Modules catalog entries that declare `navViews`.
+4. Modules → Primary nav on/off gates the Nav link + public header.
+5. Public **/about** — matching nav active.
 
 ### Windows: published content cache smoke test
 
@@ -341,13 +363,13 @@ src/
   app/
     (frontend)/             # public app shell + /login + /register + /[slug] + /preview/[slug]
       (public)/             # site header + ModuleSlots (header / after-content / footer)
-      app/admin/            # core app admin (users + settings + layouts + CMS bridge)
+      app/admin/            # core app admin (users + settings + nav + layouts + CMS bridge)
     (payload)/              # Payload admin + REST/GraphQL (do not hand-edit)
     api/auth/               # Better Auth handler
     api/health/             # core health route
     api/me/                 # current app session
   collections/              # Payload content collections (Pages, Media, Users)
-  globals/SiteSettings.ts   # site name, primary nav (page/URL), feature toggles
+  globals/SiteSettings.ts   # site name, primaryNavMenuId, feature toggles, modules
   components/               # SiteHeader + SiteNav + RichText (Lexical → JSX)
   modules/                  # extension modules (notice-bar) + catalog register
   core/
@@ -355,9 +377,10 @@ src/
     cms-bridge/             # cms_access + Payload session strategy (one login)
     content/                # published + draft CMS reads, cache layer, preview gate, SEO
       cache/                # Next tags (default) + Redis stub for DO
+    nav/                    # Nav manager (sf_nav_menus) store + resolve + actions
     modules/                # register API, layout document, ModuleSlot, PublicLayoutBody
-    settings/               # site-settings + nav resolve + flag helpers
-    db/                     # Drizzle core schema + client (incl. sf_layouts)
+    settings/               # site-settings + legacy nav resolve + flag helpers
+    db/                     # Drizzle core schema + client (sf_layouts, sf_nav_menus, …)
   fields/pagesLexical.ts    # Lexical editor features for Pages
   seed.ts                   # pages + settings + layout + modules on + bootstrap admin + demo member
   payload.config.ts         # Payload config (content module)

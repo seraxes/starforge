@@ -138,3 +138,24 @@ export const sfPageChrome = pgTable('sf_page_chrome', {
     .$onUpdate(() => new Date())
     .notNull(),
 })
+
+/** Stable id for the default (site primary) navigation set. */
+export const DEFAULT_NAV_MENU_ID = 'main'
+
+/**
+ * Navigation sets (menus) for the Nav manager.
+ * Multiple rows: `id` is the stable slug; `document` is NavMenuDocument JSON
+ * (items with page/URL binds, parentId, access-level stub, etc.).
+ */
+export const sfNavMenus = pgTable('sf_nav_menus', {
+  id: text('id').primaryKey(),
+  /** Human display name (Nav manager list). */
+  label: text('label').notNull().default('Untitled'),
+  /** Canonical NavMenuDocument JSON (version 1). */
+  document: text('document').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+})

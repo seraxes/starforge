@@ -11,8 +11,16 @@ type Props = {
   items: NavItem[]
 }
 
+function linkClassName(item: NavItem, active: boolean): string | undefined {
+  const parts: string[] = []
+  if (item.cssClass?.trim()) parts.push(item.cssClass.trim())
+  if (active) parts.push('is-active')
+  return parts.length > 0 ? parts.join(' ') : undefined
+}
+
 /**
  * Primary header links with active state for the current path.
+ * Optional per-item CSS class comes from Nav manager.
  */
 export function SiteNav({ items }: Props) {
   const pathname = usePathname() || '/'
@@ -23,8 +31,8 @@ export function SiteNav({ items }: Props) {
     <nav className="site-nav" aria-label="Primary">
       {items.map((item) => {
         const active = isNavItemActive(pathname, item.href)
-        const className = active ? 'is-active' : undefined
-        const key = `${item.href}-${item.label}`
+        const className = linkClassName(item, active)
+        const key = `${item.href}-${item.label}-${item.cssClass ?? ''}`
 
         if (isExternalHref(item.href)) {
           return (

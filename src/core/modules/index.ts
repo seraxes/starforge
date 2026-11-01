@@ -100,6 +100,7 @@ export type {
   LayoutSection,
   LayoutSlot,
   LayoutSlotConfig,
+  ModuleNavView,
   ModuleRenderContext,
   StarforgeModule,
 } from './types'

@@ -5,32 +5,17 @@ import { revalidatePath } from 'next/cache'
 import { requireAppAdmin } from '@/core/auth/admin'
 import { invalidateSiteSettings } from '@/core/content/revalidate'
 import {
+  DEFAULT_PRIMARY_NAV_MENU_ID,
   DEFAULT_SITE_NAME,
   featureFlagsFromModuleToggles,
   listInstalledModuleCatalog,
   type ModuleToggleMap,
-  type NavItem,
   updateSiteSettings,
 } from '@/core/settings'
 
 export type SettingsActionState = {
   error?: string
   ok?: boolean
-}
-
-function parseNav(formData: FormData): NavItem[] {
-  const labels = formData.getAll('navLabel').map((v) => String(v ?? ''))
-  const hrefs = formData.getAll('navHref').map((v) => String(v ?? ''))
-  const count = Math.max(labels.length, hrefs.length)
-  const items: NavItem[] = []
-  for (let i = 0; i < count; i++) {
-    const label = (labels[i] ?? '').trim()
-    const href = (hrefs[i] ?? '').trim()
-    if (!label && !href) continue
-    if (!label || !href) continue
-    items.push({ label, href })
-  }
-  return items
 }
 
 /** Read Site Settings → Modules toggles; required ids forced on. */
@@ -64,13 +49,20 @@ export async function updateSiteSettingsAction(
   }
 
   const siteName = String(formData.get('siteName') ?? '').trim() || DEFAULT_SITE_NAME
-  const primaryNav = parseNav(formData)
+  const primaryNavMenuId =
+    String(formData.get('primaryNavMenuId') ?? '').trim() || DEFAULT_PRIMARY_NAV_MENU_ID
   const catalog = listInstalledModuleCatalog()
   const moduleToggles = parseModuleToggles(formData)
   const features = featureFlagsFromModuleToggles(moduleToggles, catalog)
 
   try {
-    await updateSiteSettings({ siteName, primaryNav, features, moduleToggles })
+    await updateSiteSettings({
+      siteName,
+      primaryNavMenuId,
+      keepLegacyPrimaryNav: true,
+      features,
+      moduleToggles,
+    })
   } catch (error) {
     const message =
       error instanceof Error && error.message
@@ -84,6 +76,7 @@ export async function updateSiteSettingsAction(
   revalidatePath('/register')
   revalidatePath('/login')
   revalidatePath('/app/admin/settings')
+  revalidatePath('/app/admin/nav')
   revalidatePath('/app/admin/layouts')
   revalidatePath('/app/admin/outlines')
   revalidatePath('/app/admin/page-settings')

@@ -90,6 +90,19 @@ export type ModuleRenderContext = {
 }
 
 /**
+ * A public (or admin) route a module exposes for Nav manager “module” links.
+ * Declared on the module / catalog entry; only enabled modules appear in pickers.
+ */
+export type ModuleNavView = {
+  /** Stable key within the module (e.g. `register`, `login`). */
+  key: string
+  /** Admin picker label. */
+  label: string
+  /** Resolved path or absolute URL. */
+  href: string
+}
+
+/**
  * A Starforge extension module / particle — own folder under `src/modules/`
  * (or built-in under `src/core/modules/particles/`), registered via `registerModule`.
  */
@@ -105,6 +118,8 @@ export type StarforgeModule = {
   featureFlag?: keyof FeatureFlags
   /** Hint for palette / seeds. */
   defaultWidth?: LayoutGridWidth
+  /** Optional navigable views for Nav manager module link type. */
+  navViews?: ModuleNavView[]
   render: (ctx: ModuleRenderContext) => ReactNode | Promise<ReactNode>
 }
 
