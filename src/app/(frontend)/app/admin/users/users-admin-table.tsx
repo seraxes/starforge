@@ -248,7 +248,7 @@ export function UsersAdminTable({
               </td>
               <td>
                 <time dateTime={user.createdAt}>
-                  {new Date(user.createdAt).toLocaleDateString()}
+                  {new Date(user.createdAt).toLocaleDateString('hu-HU')}
                 </time>
               </td>
               <td>
