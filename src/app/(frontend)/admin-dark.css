@@ -1027,6 +1027,10 @@ body:has(.admin-shell) > main {
   color: #f0b4b4;
 }
 
+.gantry-settings-theme-dark .gantry-particle-attrs {
+  border-bottom-color: #314257;
+}
+
 .gantry-settings-theme-dark .admin-inline-ok {
   color: #b7d6ec;
 }

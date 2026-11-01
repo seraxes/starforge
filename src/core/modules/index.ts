@@ -25,6 +25,7 @@ export {
   updateLayoutSectionMetaAction,
   updateLogoSlotAction,
   updateMenuSlotAction,
+  updateSlotAttributesAction,
   updateSocialSlotAction,
 } from './actions'
 export type { LayoutActionState } from './actions'
@@ -36,6 +37,7 @@ export {
   normalizeLayoutDocument,
   sanitizeCssClassList,
   sanitizeDisplayName,
+  sanitizeHtmlId,
   serializeLayoutDocument,
   slugifyLayoutId,
 } from './document'
@@ -105,10 +107,12 @@ export {
   normalizeLayoutBreakpoints,
   normalizeLayoutOutlineStyles,
   normalizeLayoutSectionStyles,
+  parseCssColorInput,
   resolveSectionContainerMode,
   sanitizeCssColor,
   sanitizeCssLength,
 } from './styles'
+export type { CssColorParseResult } from './styles'
 export type {
   LayoutBreakpoints,
   LayoutContainerMode,

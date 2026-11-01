@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useActionState, useState } from 'react'
+import React, { useActionState, useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 import { readFormConfig } from '@/core/forms/config'
 import type { FormFieldDef } from '@/core/forms/types'
@@ -19,7 +20,8 @@ import {
   readSocialConfig,
   type SocialLinkItem,
 } from '@/core/modules/particles/config'
-import type { LayoutSlot } from '@/core/modules/types'
+import { cssColorToColorInputValue, parseCssColorInput } from '@/core/modules/styles'
+import type { LayoutSlot, LayoutSlotConfig } from '@/core/modules/types'
 
 export type NavMenuOption = { id: string; label: string }
 
@@ -68,19 +70,45 @@ export function LogoParticleEditor({
   rowId,
   slot,
   embedded = false,
+  onConfigSaved,
 }: {
   sectionId: string
   rowId: string
   slot: LayoutSlot
   embedded?: boolean
+  onConfigSaved?: (config: LayoutSlotConfig) => void
 }) {
+  const router = useRouter()
   const [state, formAction, pending] = useActionState(updateLogoSlotAction, initialState)
-  const cfg = readLogoConfig(slot.config)
+  const cfg = readLogoConfig(state.config ?? slot.config)
   const [mode, setMode] = useState(cfg.mode ?? 'image')
+  const [colorText, setColorText] = useState(cfg.color ?? '')
+  const [formRev, setFormRev] = useState(0)
+
+  useEffect(() => {
+    setMode(cfg.mode ?? 'image')
+    setColorText(cfg.color ?? '')
+  }, [cfg.mode, cfg.color])
+
+  useEffect(() => {
+    if (!state.ok || !state.config) return
+    onConfigSaved?.(state.config)
+    setFormRev((n) => n + 1)
+    router.refresh()
+    // Hydrate only when the server action result changes (not when parent re-creates callbacks).
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional
+  }, [state.ok, state.config, state.message])
+
+  const validHiddenColor =
+    parseCssColorInput(colorText).status === 'ok'
+      ? colorText.trim()
+      : parseCssColorInput(cfg.color ?? '').status === 'ok'
+        ? (cfg.color ?? '')
+        : ''
 
   return (
     <SettingsShell title="Logo / Image settings" embedded={embedded}>
-      <form action={formAction} className="gantry-typed-form">
+      <form key={formRev} action={formAction} className="gantry-typed-form">
         <LayoutIdField />
         <input type="hidden" name="sectionId" value={sectionId} />
         <input type="hidden" name="rowId" value={rowId} />
@@ -137,18 +165,32 @@ export function LogoParticleEditor({
                 />
               </label>
             </div>
-            <label>
+            <label className="gantry-section-color-label">
               <span>Color</span>
-              <input
-                type="text"
-                name="color"
-                defaultValue={cfg.color ?? ''}
-                placeholder="#2a3340 or CSS color (empty = inherit)"
-              />
+              <span className="gantry-color-field">
+                <input
+                  type="color"
+                  className="gantry-color-swatch"
+                  value={cssColorToColorInputValue(colorText || cfg.color)}
+                  title="Logo text color"
+                  aria-label="Logo text color picker"
+                  onChange={(event) => setColorText(event.target.value)}
+                />
+                <input
+                  type="text"
+                  name="color"
+                  className="gantry-section-color-input"
+                  value={colorText}
+                  onChange={(event) => setColorText(event.target.value)}
+                  placeholder="#2a3340, rgb(), or named (empty = inherit)"
+                  spellCheck={false}
+                  autoComplete="off"
+                />
+              </span>
             </label>
             <p className="layout-muted">
               Text logo replaces Site Header brand text when you assemble Logo + Menu in the header
-              row.
+              row. Color accepts hex, rgb/rgba, hsl/hsla, or CSS named colors.
             </p>
             {/* Keep image fields in the form so switching modes does not wipe saved values */}
             <input type="hidden" name="mediaId" value={cfg.mediaId ?? ''} />
@@ -208,7 +250,7 @@ export function LogoParticleEditor({
             <input type="hidden" name="fontFamily" value={cfg.fontFamily ?? ''} />
             <input type="hidden" name="fontSize" value={String(cfg.fontSize ?? 28)} />
             <input type="hidden" name="fontWeight" value={String(cfg.fontWeight ?? 700)} />
-            <input type="hidden" name="color" value={cfg.color ?? ''} />
+            <input type="hidden" name="color" value={validHiddenColor} />
           </>
         )}
         <button type="submit" disabled={pending}>
@@ -551,6 +593,7 @@ export function TypedParticleEditor({
   navMenus = [],
   primaryNavMenuId = 'main',
   embedded = false,
+  onConfigSaved,
 }: {
   sectionId: string
   rowId: string
@@ -558,10 +601,17 @@ export function TypedParticleEditor({
   navMenus?: NavMenuOption[]
   primaryNavMenuId?: string
   embedded?: boolean
+  onConfigSaved?: (config: LayoutSlotConfig) => void
 }) {
   if (slot.moduleId === 'logo') {
     return (
-      <LogoParticleEditor sectionId={sectionId} rowId={rowId} slot={slot} embedded={embedded} />
+      <LogoParticleEditor
+        sectionId={sectionId}
+        rowId={rowId}
+        slot={slot}
+        embedded={embedded}
+        onConfigSaved={onConfigSaved}
+      />
     )
   }
   if (slot.moduleId === 'menu') {

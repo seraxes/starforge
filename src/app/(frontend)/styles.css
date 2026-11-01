@@ -2262,6 +2262,17 @@ button:disabled {
 }
 
 .gantry-custom-form,
+.gantry-particle-config-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.gantry-particle-attrs {
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--sf-line);
+}
+
 .gantry-typed-form {
   display: flex;
   flex-direction: column;

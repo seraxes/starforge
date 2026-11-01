@@ -38,6 +38,7 @@ import { cssColorToColorInputValue } from '@/core/modules/styles'
 import type { LayoutDocument, LayoutRow, LayoutSection, LayoutSlot } from '@/core/modules/types'
 
 import { CustomParticleEditor } from './custom-particle-editor'
+import { ParticleAttributesEditor } from './particle-attributes-editor'
 import { ParticleSettingsPopover } from './particle-settings-popover'
 import { TypedParticleEditor, type NavMenuOption } from './typed-particle-editors'
 
@@ -154,43 +155,65 @@ function ParticleConfigTab({
   slot,
   navMenus,
   primaryNavMenuId,
+  onSlotPatched,
 }: {
   sectionId: string
   rowId: string
   slot: LayoutSlot
   navMenus: NavMenuOption[]
   primaryNavMenuId: string
+  onSlotPatched?: (patch: Partial<LayoutSlot>) => void
 }) {
-  if (slot.moduleId === 'custom') {
-    return (
-      <CustomParticleEditor sectionId={sectionId} rowId={rowId} slot={slot} embedded />
-    )
-  }
-  const typed = (
-    <TypedParticleEditor
+  const attrs = (
+    <ParticleAttributesEditor
       sectionId={sectionId}
       rowId={rowId}
       slot={slot}
-      navMenus={navMenus}
-      primaryNavMenuId={primaryNavMenuId}
-      embedded
+      onAttrsSaved={(next) =>
+        onSlotPatched?.({
+          htmlId: next.htmlId,
+          cssClass: next.cssClass,
+        } as Partial<LayoutSlot>)
+      }
     />
   )
-  // TypedParticleEditor returns null for unknown module ids.
-  if (
-    slot.moduleId !== 'logo' &&
-    slot.moduleId !== 'menu' &&
-    slot.moduleId !== 'copyright' &&
-    slot.moduleId !== 'social' &&
-    slot.moduleId !== 'form'
-  ) {
+
+  if (slot.moduleId === 'custom') {
     return (
-      <p className="layout-muted">
-        No particle-specific config for <code>{slot.moduleId}</code>.
-      </p>
+      <div className="gantry-particle-config-stack">
+        {attrs}
+        <CustomParticleEditor sectionId={sectionId} rowId={rowId} slot={slot} embedded />
+      </div>
     )
   }
-  return typed
+
+  const hasTyped =
+    slot.moduleId === 'logo' ||
+    slot.moduleId === 'menu' ||
+    slot.moduleId === 'copyright' ||
+    slot.moduleId === 'social' ||
+    slot.moduleId === 'form'
+
+  return (
+    <div className="gantry-particle-config-stack">
+      {attrs}
+      {hasTyped ? (
+        <TypedParticleEditor
+          sectionId={sectionId}
+          rowId={rowId}
+          slot={slot}
+          navMenus={navMenus}
+          primaryNavMenuId={primaryNavMenuId}
+          embedded
+          onConfigSaved={(config) => onSlotPatched?.({ config })}
+        />
+      ) : (
+        <p className="layout-muted">
+          No particle-specific config for <code>{slot.moduleId}</code>.
+        </p>
+      )}
+    </div>
+  )
 }
 
 function sortSections(sections: LayoutSection[]) {
@@ -290,6 +313,7 @@ function ParticleBlock({
   onSlotDragEnd,
   onSlotDragOver,
   onSlotDrop,
+  onSlotPatched,
 }: {
   sectionId: string
   rowId: string
@@ -309,6 +333,7 @@ function ParticleBlock({
     edge: 'before' | 'after',
     payload: SlotDragPayload,
   ) => void
+  onSlotPatched?: (patch: Partial<LayoutSlot>) => void
 }) {
   const router = useRouter()
   const layoutId = useLayoutOutlineId()
@@ -478,6 +503,7 @@ function ParticleBlock({
                       slot={slot}
                       navMenus={navMenus}
                       primaryNavMenuId={primaryNavMenuId}
+                      onSlotPatched={onSlotPatched}
                     />
                   ),
                 },
@@ -821,6 +847,17 @@ function DropRow({
                     setAcceptingForeignSlot(true)
                   }}
                   onSlotDrop={handleSlotDrop}
+                  onSlotPatched={(patch) => {
+                    setLocalSlots(
+                      localSlots.map((s) => {
+                        if (s.id !== slot.id) return s
+                        const next: LayoutSlot = { ...s, ...patch }
+                        if ('htmlId' in patch && !patch.htmlId) delete next.htmlId
+                        if ('cssClass' in patch && !patch.cssClass) delete next.cssClass
+                        return next
+                      }),
+                    )
+                  }}
                 />
                 {next ? (
                   <ResizeHandle

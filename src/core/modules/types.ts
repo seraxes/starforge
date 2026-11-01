@@ -64,6 +64,10 @@ export type LayoutSlot = {
   accessTags?: string[]
   /** @deprecated Prefer `accessTags`; still read for legacy single-value slots. */
   accessLevel?: string
+  /** Optional public HTML `id` on the particle column wrapper. */
+  htmlId?: string
+  /** Optional public CSS classes on the particle column wrapper. */
+  cssClass?: string
   config?: LayoutSlotConfig
 }
 

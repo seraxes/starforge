@@ -42,6 +42,18 @@ export function sanitizeCssClassList(raw: string | undefined | null): string | u
   return [...new Set(tokens)].join(' ')
 }
 
+/**
+ * Safe HTML id for public particle wrappers (letter/_ start; letters/digits/_/:/-/.).
+ * Returns undefined when empty or invalid.
+ */
+export function sanitizeHtmlId(raw: string | undefined | null): string | undefined {
+  if (typeof raw !== 'string') return undefined
+  const trimmed = raw.trim()
+  if (!trimmed) return undefined
+  if (!/^[A-Za-z_][\w:.-]*$/.test(trimmed)) return undefined
+  return trimmed
+}
+
 /** Trim instance / section display labels; empty → undefined. */
 export function sanitizeDisplayName(raw: string | undefined | null): string | undefined {
   if (typeof raw !== 'string') return undefined
@@ -80,6 +92,8 @@ function normalizeSlot(entry: LayoutSlot | null | undefined, index: number): Lay
       : newLayoutEntityId(`slot-${entry.moduleId}`)
   const config = normalizeConfig(entry.config)
   const name = sanitizeDisplayName(entry.name)
+  const htmlId = sanitizeHtmlId(entry.htmlId)
+  const cssClass = sanitizeCssClassList(entry.cssClass)
   const accessTags = accessTagsForStorage({
     accessTags: entry.accessTags,
     accessLevel: entry.accessLevel,
@@ -93,6 +107,8 @@ function normalizeSlot(entry: LayoutSlot | null | undefined, index: number): Lay
     enabled: entry.enabled !== false,
     order: typeof entry.order === 'number' && Number.isFinite(entry.order) ? entry.order : index,
     ...(accessTags ? { accessTags } : {}),
+    ...(htmlId ? { htmlId } : {}),
+    ...(cssClass ? { cssClass } : {}),
     ...(config ? { config } : {}),
   }
 }
