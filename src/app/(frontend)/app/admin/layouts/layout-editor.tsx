@@ -1382,7 +1382,10 @@ export function LayoutEditor({
                   <span className="gantry-palette-icon" aria-hidden="true">
                     ▣
                   </span>
-                  <strong>{mod.name}</strong>
+                  <span className="gantry-palette-labels">
+                    <strong>{mod.name}</strong>
+                    <span className="gantry-palette-key">{mod.id}</span>
+                  </span>
                 </div>
               </li>
             ))}

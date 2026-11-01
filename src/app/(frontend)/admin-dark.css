@@ -558,12 +558,14 @@ body:has(.admin-shell) > main {
   flex-direction: row;
   align-items: center;
   gap: 0.45rem;
+  box-sizing: border-box;
   background: #182230;
   border: 1px solid var(--sf-admin-blue-border);
   border-radius: 3px;
   color: #fff;
-  padding: 0.35rem 0.45rem;
-  min-height: 2.05rem;
+  padding: 0.32rem 0.45rem;
+  /* Match placed module bar height */
+  min-height: 3.25rem;
   box-shadow: none;
 }
 
@@ -572,13 +574,34 @@ body:has(.admin-shell) > main {
   width: 1.05rem;
   text-align: center;
   opacity: 0.9;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.admin-shell .gantry-palette-labels {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .admin-shell .gantry-palette-item strong {
-  font-size: 0.82rem;
-  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1.2;
+  font-weight: 700;
   color: #fff;
+}
+
+.admin-shell .gantry-palette-key {
+  font-size: 0.8rem;
+  line-height: 1.15;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.75);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .admin-shell .gantry-palette-item:active,
@@ -882,6 +905,7 @@ body:has(.admin-shell) > main {
 .admin-shell .gantry-slot {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 0;
   box-sizing: border-box;
   background: var(--sf-admin-card);
@@ -889,7 +913,7 @@ body:has(.admin-shell) > main {
   border-radius: 3px;
   color: #fff;
   padding: 0.32rem 0.45rem;
-  min-height: 2.65rem;
+  min-height: 3.25rem;
   box-shadow: none;
 }
 
@@ -928,6 +952,7 @@ body:has(.admin-shell) > main {
 .admin-shell .gantry-slot-labels {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 0;
   min-width: 0;
   flex: 1 1 auto;
@@ -935,6 +960,8 @@ body:has(.admin-shell) > main {
 
 .admin-shell .gantry-slot-name-label {
   margin: 0;
+  display: flex;
+  align-items: center;
 }
 
 .admin-shell .gantry-slot .gantry-slot-name-input {
@@ -944,8 +971,9 @@ body:has(.admin-shell) > main {
   -webkit-text-fill-color: #fff;
   caret-color: #fff;
   font-weight: 700 !important;
-  font-size: 0.88rem !important;
-  min-height: 1.15rem !important;
+  font-size: 1rem !important;
+  line-height: 1.2 !important;
+  min-height: 1.2rem !important;
   padding: 0 !important;
   max-width: none;
   width: 100%;
@@ -959,7 +987,7 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .gantry-slot-sub {
-  font-size: 0.68rem;
+  font-size: 0.8rem; /* ~80% of title 1rem */
   line-height: 1.15;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.82) !important;
