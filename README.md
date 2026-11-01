@@ -113,7 +113,7 @@ App login uses **email**, not a separate username. Forgot / reset password is **
 | --- | --- |
 | **Groups** | Create / rename / delete; assign members. Only ACL entity (no separate Access Level table). |
 | **ACL** | One matrix: grant admin-area permissions **to groups** (`sf_acl_permissions`). |
-| **Nav / Layout “Who can see”** | Multi-select tags on each item (`public` / `registered` / `group:<id>`). Visible if the viewer matches **any** tag. |
+| **Nav / Layout / Page “Who can see”** | Multi-select tags (`public` / `registered` / `group:<id>`) on Nav items, layout particles, and Page Settings chrome. Visible if the viewer matches **any** tag; empty = public. Restricted pages hide (`notFound`). |
 
 Global app admins still open all Core admin today; the matrix is the enforcement stub.
 
@@ -162,7 +162,7 @@ Gantry-style **Page Settings** (Core admin nav: parent **Layouts** reveals a hov
 
 | Panel | Notes |
 | --- | --- |
-| Layout assignment | `layoutId` → any outline in `sf_layouts` + sections mode (fullwidth / boxed) |
+| Layout assignment | `layoutId` → any outline in `sf_layouts` + sections mode (fullwidth / boxed) + **Who can see** page viewing tags |
 | Head Properties | Repeatable meta tags + custom head HTML |
 | Assets | Favicon, touch icon, ordered CSS / JS lists |
 | Body Attributes | Id, classes, tag attrs, after `<body>` / before `</body>` |

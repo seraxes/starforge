@@ -7,11 +7,14 @@
  */
 
 export {
+  accessTagsForStorage,
   canSeeNavAccessLevel,
   canSeeNavAccessTags,
   filterNavItemsForViewer,
   getAccessViewer,
   normalizeAccessTags,
+  resolveAccessTags,
+  toggleAccessTag,
   viewerMayAccessAdminResource,
 } from './access'
 export type { AccessViewer } from './types'

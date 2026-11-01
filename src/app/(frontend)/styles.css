@@ -2707,6 +2707,21 @@ button.danger,
   gap: 0.5rem 1rem;
 }
 
+/* Layout canvas — compact Who can see on each particle */
+.gantry-slot-access-tags {
+  margin: 0.35rem 0 0;
+  padding: 0.35rem 0 0;
+}
+
+.gantry-slot-access-tags .settings-hint {
+  font-size: 0.8rem;
+  margin: 0 0 0.35rem;
+}
+
+.gantry-slot-access-tags .nav-access-tag-list {
+  gap: 0.35rem 0.75rem;
+}
+
 .acl-matrix-table th code,
 .acl-matrix-table td {
   text-align: center;

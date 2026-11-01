@@ -1,3 +1,5 @@
+import { normalizeAccessTags } from '@/core/acl/nav-access'
+
 import { DEFAULT_FONT_AWESOME, DEFAULT_PAGE_LAYOUT_ID, emptyResolvedChrome } from './defaults'
 import type {
   AssetRef,
@@ -102,6 +104,13 @@ export function normalizePageChrome(raw: unknown, pageKey?: string | null): Page
   const sectionsLayout = asSectionsLayout(raw.sectionsLayout)
   if (sectionsLayout) chrome.sectionsLayout = sectionsLayout
 
+  if ('accessTags' in raw || 'accessLevel' in raw) {
+    chrome.accessTags = normalizeAccessTags({
+      accessTags: raw.accessTags,
+      accessLevel: raw.accessLevel,
+    })
+  }
+
   const metaTags = normalizeMetaTags(raw.metaTags)
   if (metaTags) chrome.metaTags = metaTags
 
@@ -178,10 +187,16 @@ export function mergePageChrome(
     jsScriptHtml: faP.jsScriptHtml ?? faG.jsScriptHtml ?? '',
   }
 
+  const accessRaw = pick('accessTags')
+  const accessTags = Array.isArray(accessRaw)
+    ? normalizeAccessTags({ accessTags: accessRaw })
+    : base.accessTags
+
   return {
     pageKey,
     layoutId,
     sectionsLayout,
+    accessTags,
     metaTags: pick('metaTags') ?? base.metaTags,
     customHeadHtml: asString(pick('customHeadHtml')),
     faviconUrl: asString(pick('faviconUrl')).trim(),

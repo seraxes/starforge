@@ -115,3 +115,34 @@ export function filterNavItemsForViewer<T extends NavItem>(
     return canSeeNavAccessTags(tags, viewer)
   })
 }
+
+/** Toggle one access tag in a multi-select set. Empty → `['public']`. */
+export function toggleAccessTag(tags: string[], tag: string, on: boolean): string[] {
+  const next = new Set(tags)
+  if (on) next.add(tag)
+  else next.delete(tag)
+  const list = [...next].map((t) => normalizeAccessTag(t)).filter((t): t is string => Boolean(t))
+  const unique = [...new Set(list)]
+  return unique.length > 0 ? unique : ['public']
+}
+
+/**
+ * Compact tags for JSON storage: omit when public-only (empty = public on read).
+ * Keeps multi-tag lists (including explicit `public` + groups).
+ */
+export function accessTagsForStorage(raw: {
+  accessTags?: unknown
+  accessLevel?: unknown
+}): string[] | undefined {
+  const list = normalizeAccessTags(raw)
+  if (list.length === 1 && list[0] === 'public') return undefined
+  return list
+}
+
+/** Resolve view tags from `accessTags` and/or legacy `accessLevel`. */
+export function resolveAccessTags(raw: {
+  accessTags?: unknown
+  accessLevel?: unknown
+}): string[] {
+  return normalizeAccessTags(raw)
+}

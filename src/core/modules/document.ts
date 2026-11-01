@@ -1,3 +1,5 @@
+import { accessTagsForStorage } from '@/core/acl/nav-access'
+
 import defaultLayoutJson from './default-layout.json'
 import { clampGridWidth, LAYOUT_WIDTH_FULL, normalizeRowWidthsToPercent } from './grid'
 import type {
@@ -64,20 +66,6 @@ function normalizeConfig(raw: unknown): LayoutSlotConfig | undefined {
   return Object.keys(out).length > 0 ? out : undefined
 }
 
-/** Same tokens as Nav items: public | registered | group:<id>. */
-function normalizeSlotAccessLevel(raw: unknown): string | undefined {
-  if (typeof raw !== 'string') return undefined
-  const v = raw.trim()
-  if (!v || v === 'public') return undefined
-  if (v === 'registered') return 'registered'
-  if (v.startsWith('group:')) {
-    const id = v.slice('group:'.length).trim()
-    return id ? `group:${id}` : undefined
-  }
-  if (/^[a-zA-Z0-9_-]+$/.test(v)) return `group:${v}`
-  return undefined
-}
-
 function normalizeSlot(entry: LayoutSlot | null | undefined, index: number): LayoutSlot | null {
   if (!entry || typeof entry.moduleId !== 'string' || !entry.moduleId.trim()) return null
   const id =
@@ -86,7 +74,10 @@ function normalizeSlot(entry: LayoutSlot | null | undefined, index: number): Lay
       : newLayoutEntityId(`slot-${entry.moduleId}`)
   const config = normalizeConfig(entry.config)
   const name = sanitizeDisplayName(entry.name)
-  const accessLevel = normalizeSlotAccessLevel(entry.accessLevel)
+  const accessTags = accessTagsForStorage({
+    accessTags: entry.accessTags,
+    accessLevel: entry.accessLevel,
+  })
   return {
     id,
     moduleId: entry.moduleId.trim(),
@@ -95,7 +86,7 @@ function normalizeSlot(entry: LayoutSlot | null | undefined, index: number): Lay
     width: typeof entry.width === 'number' && Number.isFinite(entry.width) ? entry.width : LAYOUT_WIDTH_FULL,
     enabled: entry.enabled !== false,
     order: typeof entry.order === 'number' && Number.isFinite(entry.order) ? entry.order : index,
-    ...(accessLevel ? { accessLevel } : {}),
+    ...(accessTags ? { accessTags } : {}),
     ...(config ? { config } : {}),
   }
 }

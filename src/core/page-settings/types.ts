@@ -42,6 +42,11 @@ export type PageChrome = {
   pageKey?: string | null
   layoutId?: string
   sectionsLayout?: SectionsLayoutMode
+  /**
+   * Who can VIEW this page (Nav/Layout tokens): `public` | `registered` | `group:<id>`.
+   * Match ANY; omitted / empty = public. Groups only — no Access Level entity.
+   */
+  accessTags?: string[]
   metaTags?: MetaTag[]
   /** Free HTML in `<head>`. Developer-admin. */
   customHeadHtml?: string
@@ -67,6 +72,8 @@ export type ResolvedPageChrome = {
   pageKey: string | null
   layoutId: string
   sectionsLayout: SectionsLayoutMode
+  /** Resolved viewing tags (empty / public-only = public). */
+  accessTags: string[]
   metaTags: MetaTag[]
   customHeadHtml: string
   faviconUrl: string

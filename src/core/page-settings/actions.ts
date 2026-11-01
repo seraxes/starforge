@@ -2,6 +2,11 @@
 
 import { revalidatePath } from 'next/cache'
 
+import {
+  ensureDefaultUserGroupsSeeded,
+  listUserGroupOptions,
+} from '@/core/acl/groups'
+import type { UserGroupOption } from '@/core/acl/types'
 import { requireAppAdmin, userIsDeveloperAdmin } from '@/core/auth/admin'
 import { GLOBAL_PAGE_CHROME_ID } from '@/core/db'
 import { listLayoutOutlines } from '@/core/modules/layout-store'
@@ -45,11 +50,13 @@ function parseCheckbox(formData: FormData, key: string): boolean {
 
 function chromeFromFormData(formData: FormData, pageKey: string | null): PageChrome {
   const atoms = parseJsonField<PageAtomInstance[]>(formData, 'atomsJson', [])
+  const accessTags = parseJsonField<string[]>(formData, 'accessTagsJson', ['public'])
   return normalizePageChrome(
     {
       pageKey,
       layoutId: String(formData.get('layoutId') ?? '').trim() || undefined,
       sectionsLayout: String(formData.get('sectionsLayout') ?? '').trim() || undefined,
+      accessTags,
       metaTags: parseJsonField(formData, 'metaTagsJson', []),
       customHeadHtml: String(formData.get('customHeadHtml') ?? ''),
       faviconUrl: String(formData.get('faviconUrl') ?? ''),
@@ -182,6 +189,8 @@ export type PageSettingsAdminBootstrap = {
   layouts: Array<{ id: string; label: string }>
   /** @deprecated Prefer `layouts` — kept for older form code paths. */
   layoutIds: string[]
+  /** Users → Groups for page viewing tags. */
+  groups: UserGroupOption[]
   atoms: Array<{
     type: string
     label: string
@@ -201,8 +210,13 @@ export async function loadPageSettingsAdmin(editingPageKey: string | null): Prom
   const isDev = userIsDeveloperAdmin(session?.user)
 
   ensureAtomsRegistered()
-  const globalChrome = (await loadGlobalPageChrome()).chrome
-  const overrideKeys = await listPageChromeOverrideKeys()
+  await ensureDefaultUserGroupsSeeded()
+  const [globalResult, overrideKeys, groups] = await Promise.all([
+    loadGlobalPageChrome(),
+    listPageChromeOverrideKeys(),
+    listUserGroupOptions(),
+  ])
+  const globalChrome = globalResult.chrome
 
   let pages: Array<{ slug: string; title: string }> = []
   try {
@@ -246,6 +260,7 @@ export async function loadPageSettingsAdmin(editingPageKey: string | null): Prom
     pages,
     layouts,
     layoutIds,
+    groups,
     atoms: listRegisteredAtoms()
       .filter((a) => isAtomModuleEnabled(settingsSite, a.type))
       .map((a) => ({

@@ -3,7 +3,9 @@
 import React, { useActionState, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
+import { AccessTagsField } from '@/components/admin/AccessTagsField'
 import { CodeEditorField } from '@/components/admin/CodeEditorField'
+import { resolveAccessTags } from '@/core/acl/nav-access'
 import {
   clearPageOverrideAction,
   saveGlobalPageSettingsAction,
@@ -154,6 +156,9 @@ export function PageSettingsForm({ bootstrap }: Props) {
   const initial = bootstrap.editingChrome
   const [layoutId, setLayoutId] = useState(initial.layoutId ?? 'default')
   const [sectionsLayout, setSectionsLayout] = useState(initial.sectionsLayout ?? 'fullwidth')
+  const [accessTags, setAccessTags] = useState<string[]>(() =>
+    resolveAccessTags({ accessTags: initial.accessTags }),
+  )
   const [metaTags, setMetaTags] = useState<MetaTag[]>(initial.metaTags ?? [])
   const customHeadHtml = initial.customHeadHtml ?? ''
   const [faviconUrl, setFaviconUrl] = useState(initial.faviconUrl ?? '')
@@ -265,6 +270,11 @@ export function PageSettingsForm({ bootstrap }: Props) {
 
       <form action={formAction} className="page-settings-form settings-form">
         {isPage ? <input type="hidden" name="pageKey" value={bootstrap.editingPageKey ?? ''} /> : null}
+        <input
+          type="hidden"
+          name="accessTagsJson"
+          value={JSON.stringify(accessTags.length ? accessTags : ['public'])}
+        />
         <input type="hidden" name="metaTagsJson" value={JSON.stringify(metaTags)} />
         <input type="hidden" name="cssJson" value={JSON.stringify(css)} />
         <input type="hidden" name="javascriptJson" value={JSON.stringify(javascript)} />
@@ -305,6 +315,13 @@ export function PageSettingsForm({ bootstrap }: Props) {
               <option value="boxed">Boxed content</option>
             </select>
           </label>
+          <AccessTagsField
+            value={accessTags}
+            groups={bootstrap.groups}
+            disabled={pending || clearPending}
+            onChange={setAccessTags}
+            legend="Who can see this page"
+          />
         </Panel>
 
         <Panel title="Head Properties" wide>

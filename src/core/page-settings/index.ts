@@ -46,6 +46,7 @@ export {
   pageKeyFromPathname,
   resolvePageChrome,
 } from './resolve'
+export { viewerCanSeePageChrome } from './view-access'
 export {
   deletePageChromeOverride,
   ensureGlobalPageChromeSeeded,

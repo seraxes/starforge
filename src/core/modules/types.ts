@@ -48,10 +48,12 @@ export type LayoutSlot = {
   enabled?: boolean
   order?: number
   /**
-   * Who can see this particle (same tokens as Nav `accessTags`):
-   * `public` | `registered` | `group:<id>`. Omitted = public.
+   * Who can see this particle (same tokens as Nav):
+   * `public` | `registered` | `group:<id>`. Match ANY; omitted / empty = public.
    * Groups are the only ACL entity; SlotRenderer filters by session.
    */
+  accessTags?: string[]
+  /** @deprecated Prefer `accessTags`; still read for legacy single-value slots. */
   accessLevel?: string
   config?: LayoutSlotConfig
 }

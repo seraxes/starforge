@@ -5,19 +5,25 @@ import { getAppSession } from '@/core/auth/session'
 
 import { listGroupIdsForUser } from './members'
 import {
+  accessTagsForStorage,
   canSeeNavAccessLevel,
   canSeeNavAccessTags,
   filterNavItemsForViewer,
   normalizeAccessTags,
+  resolveAccessTags,
+  toggleAccessTag,
 } from './nav-access'
 import { anyGroupAllowsResource } from './permissions'
 import type { AccessViewer, AclAdminResourceKey } from './types'
 
 export {
+  accessTagsForStorage,
   canSeeNavAccessLevel,
   canSeeNavAccessTags,
   filterNavItemsForViewer,
   normalizeAccessTags,
+  resolveAccessTags,
+  toggleAccessTag,
 }
 
 /** Build viewer context from the current Better Auth session. */
