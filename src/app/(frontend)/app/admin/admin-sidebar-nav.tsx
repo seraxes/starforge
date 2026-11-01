@@ -35,6 +35,8 @@ function groupIsActive(pathname: string, group: AdminSidebarGroup): boolean {
 
 /**
  * Joomla-style Core admin sidebar: collapsible groups + mobile accordion.
+ * Accordion carets are CSS SVG backgrounds on empty spans (admin-dark.css) —
+ * keep markup empty so they never double with unicode or inline SVG.
  */
 export function AdminSidebarNav({
   groups,
@@ -84,9 +86,10 @@ export function AdminSidebarNav({
           onClick={() => setMobileOpen((v) => !v)}
         >
           <span className="admin-sidebar-menu-toggle-label">Menu</span>
-          <span className="admin-sidebar-menu-toggle-icon" aria-hidden="true">
-            {mobileOpen ? '▴' : '▾'}
-          </span>
+          <span
+            className={`admin-sidebar-menu-toggle-icon${mobileOpen ? ' is-open' : ''}`}
+            aria-hidden="true"
+          />
         </button>
       </div>
 
@@ -134,9 +137,10 @@ export function AdminSidebarNav({
                   onClick={() => toggleGroup(group.id)}
                 >
                   <span className="admin-sidebar-group-title">{group.label}</span>
-                  <span className="admin-sidebar-group-toggle" aria-hidden="true">
-                    {isOpen ? '▾' : '▸'}
-                  </span>
+                  <span
+                    className={`admin-sidebar-group-toggle${isOpen ? ' is-open' : ''}`}
+                    aria-hidden="true"
+                  />
                 </button>
                 {isOpen ? (
                   <ul

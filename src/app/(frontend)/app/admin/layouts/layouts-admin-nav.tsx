@@ -37,7 +37,7 @@ const TABS: {
     label: 'Styles',
     href: '/app/admin/breakpoints',
     icon: '◐',
-    title: 'Breakpoints / outline styles',
+    title: 'Section styles + breakpoints',
   },
   {
     id: 'page-settings',
@@ -111,8 +111,9 @@ export function LayoutsAdminNav({
             className="gantry-layouts-nav-outline-manage"
             href="/app/admin/outlines"
             title="Manage outlines"
+            aria-label="Manage outlines"
           >
-            ▾
+            ☰
           </Link>
         </div>
       ) : null}

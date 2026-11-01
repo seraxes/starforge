@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useActionState, useMemo, useState, useTransition } from 'react'
+import React, { useActionState, useEffect, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { AccessTagsField } from '@/components/admin/AccessTagsField'
@@ -16,6 +16,8 @@ import {
 import { newPageSettingsEntityId } from '@/core/page-settings/defaults'
 import type { AssetRef, MetaTag, PageAtomInstance, PageChrome } from '@/core/page-settings/types'
 
+import { useNotifySavedOnOk } from '../admin-toast'
+import { useAutosaveForm } from '../use-autosave-form'
 import { AtomSettingsPopover } from './atom-settings-popover'
 
 type Props = {
@@ -151,7 +153,11 @@ export function PageSettingsForm({ bootstrap }: Props) {
   const saveAction = isPage ? savePageOverrideAction : saveGlobalPageSettingsAction
   const [state, formAction, pending] = useActionState(saveAction, INITIAL)
   const [clearState, clearAction, clearPending] = useActionState(clearPageOverrideAction, INITIAL)
+  useNotifySavedOnOk(state, { toastErrors: true })
+  useNotifySavedOnOk(clearState, { successMessage: 'Saved', toastErrors: true })
   const [, startTransition] = useTransition()
+  const { formRef, saveNow, saveDebounced } = useAutosaveForm()
+  const skipAutosave = React.useRef(true)
 
   const initial = bootstrap.editingChrome
   const [layoutId, setLayoutId] = useState(initial.layoutId ?? 'default')
@@ -179,6 +185,37 @@ export function PageSettingsForm({ bootstrap }: Props) {
   const [atoms, setAtoms] = useState<PageAtomInstance[]>(initial.atoms ?? [])
 
   const lockedScripts = !bootstrap.isDeveloperAdmin
+
+  // Autosave whenever chrome draft changes (skip first mount / server hydrate).
+  useEffect(() => {
+    if (skipAutosave.current) {
+      skipAutosave.current = false
+      return
+    }
+    saveDebounced()
+  }, [
+    layoutId,
+    sectionsLayout,
+    accessTags,
+    metaTags,
+    faviconUrl,
+    touchIconUrl,
+    css,
+    javascript,
+    bodyId,
+    bodyClasses,
+    bodyTagAttributes,
+    afterBodyHtml,
+    beforeBodyCloseHtml,
+    faEnabled,
+    faV4Compat,
+    faContentCompat,
+    faVersion,
+    faCssLinkHtml,
+    faJsScriptHtml,
+    atoms,
+    saveDebounced,
+  ])
 
   const pageOptions = useMemo(() => {
     const opts = [{ value: '', label: 'Site default (global)' }]
@@ -268,7 +305,7 @@ export function PageSettingsForm({ bootstrap }: Props) {
         </p>
       )}
 
-      <form action={formAction} className="page-settings-form settings-form">
+      <form ref={formRef} action={formAction} className="page-settings-form settings-form">
         {isPage ? <input type="hidden" name="pageKey" value={bootstrap.editingPageKey ?? ''} /> : null}
         <input
           type="hidden"
@@ -689,18 +726,18 @@ export function PageSettingsForm({ bootstrap }: Props) {
 
         </div>
 
-        <div className="page-settings-actions">
-          <button type="submit" className="primary" disabled={pending}>
-            {pending ? 'Saving…' : isPage ? 'Save page override' : 'Save site defaults'}
-          </button>
-        </div>
+        {pending ? <p className="field-hint page-settings-saving">Saving…</p> : null}
       </form>
 
       {isPage && bootstrap.hasOverride ? (
-        <form action={clearAction} className="page-settings-clear">
+        <form action={clearAction} className="page-settings-clear admin-action-row">
           <input type="hidden" name="pageKey" value={bootstrap.editingPageKey ?? ''} />
-          <button type="submit" className="danger" disabled={clearPending}>
-            {clearPending ? 'Clearing…' : 'Clear override (inherit site defaults)'}
+          <button
+            type="submit"
+            className="gantry-toolbar-btn gantry-toolbar-btn-danger danger"
+            disabled={clearPending}
+          >
+            {clearPending ? 'Clearing…' : 'Clear override'}
           </button>
         </form>
       ) : null}

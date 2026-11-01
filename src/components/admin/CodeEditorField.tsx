@@ -19,6 +19,8 @@ type Props = {
   initialHeight?: number
   minHeight?: number
   hint?: string
+  /** Fired on each edit — use for debounced form autosave. */
+  onValueChange?: (value: string) => void
 }
 
 function languageExtension(language: CodeEditorLanguage) {
@@ -47,6 +49,7 @@ export function CodeEditorField({
   initialHeight = 160,
   minHeight = 96,
   hint,
+  onValueChange,
 }: Props) {
   const [value, setValue] = useState(initialValue)
   const [height, setHeight] = useState(initialHeight)
@@ -73,7 +76,10 @@ export function CodeEditorField({
           theme="light"
           placeholder={placeholder}
           extensions={[languageExtension(language)]}
-          onChange={(next) => setValue(next)}
+          onChange={(next) => {
+            setValue(next)
+            onValueChange?.(next)
+          }}
           basicSetup={{
             lineNumbers: true,
             foldGutter: true,

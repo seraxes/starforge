@@ -69,7 +69,7 @@ export function OutlinesManager({ outlines }: Props) {
     <div className="outlines-manager">
       <section className="outlines-create" aria-label="Create outline">
         <h3>Create outline</h3>
-        <form action={createAction} className="outlines-create-form" onSubmit={() => setTimeout(refresh, 50)}>
+        <form action={createAction} className="outlines-create-form admin-create-form" onSubmit={() => setTimeout(refresh, 50)}>
           <label className="settings-field">
             <span>Name</span>
             <input type="text" name="label" placeholder="e.g. Home" required maxLength={80} />
@@ -93,7 +93,7 @@ export function OutlinesManager({ outlines }: Props) {
             <input type="checkbox" name="openAfter" value="1" defaultChecked />
             <span>Open in Layout after create</span>
           </label>
-          <button type="submit" disabled={createPending}>
+          <button type="submit" className="gantry-toolbar-btn gantry-toolbar-btn-save" disabled={createPending}>
             {createPending ? 'Creating…' : 'Create'}
           </button>
         </form>
@@ -169,7 +169,11 @@ export function OutlinesManager({ outlines }: Props) {
                         }}
                       >
                         <input type="hidden" name="layoutId" value={outline.id} />
-                        <button type="submit" className="secondary danger" disabled={deletePending}>
+                        <button
+                          type="submit"
+                          className="gantry-toolbar-btn gantry-toolbar-btn-danger danger"
+                          disabled={deletePending}
+                        >
                           Delete
                         </button>
                       </form>
@@ -193,13 +197,22 @@ export function OutlinesManager({ outlines }: Props) {
                         required
                         maxLength={80}
                         aria-label="New outline name"
+                        autoFocus
+                        onBlur={(e) => {
+                          if (e.currentTarget.form && e.currentTarget.value.trim()) {
+                            e.currentTarget.form.requestSubmit()
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            ;(e.target as HTMLInputElement).blur()
+                          }
+                        }}
                       />
-                      <button type="submit" disabled={renamePending}>
-                        {renamePending ? 'Saving…' : 'Save name'}
-                      </button>
                       <button
                         type="button"
-                        className="secondary"
+                        className="gantry-toolbar-btn gantry-toolbar-btn-quiet"
                         onClick={() => setRenamingId(null)}
                       >
                         Cancel
@@ -226,12 +239,12 @@ export function OutlinesManager({ outlines }: Props) {
                         maxLength={80}
                         aria-label="Duplicate outline name"
                       />
-                      <button type="submit" disabled={dupPending}>
+                      <button type="submit" className="gantry-toolbar-btn gantry-toolbar-btn-save" disabled={dupPending}>
                         {dupPending ? 'Copying…' : 'Create copy'}
                       </button>
                       <button
                         type="button"
-                        className="secondary"
+                        className="gantry-toolbar-btn gantry-toolbar-btn-quiet"
                         onClick={() => setDuplicatingId(null)}
                       >
                         Cancel

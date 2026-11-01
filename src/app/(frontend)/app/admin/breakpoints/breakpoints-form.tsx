@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useActionState } from 'react'
+import React, { useCallback, useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
 import {
@@ -9,9 +9,9 @@ import {
 } from '@/core/modules/actions'
 import type { LayoutBreakpoints } from '@/core/modules/styles'
 
-import { LayoutIdField, useLayoutOutlineId } from '../layouts/layout-outline-context'
-
-const initialState: LayoutActionState = {}
+import { useAdminToast } from '../admin-toast'
+import { useDebouncedPersist } from '../use-debounced-persist'
+import { useLayoutOutlineId } from '../layouts/layout-outline-context'
 
 const FIELDS: Array<{
   key: keyof LayoutBreakpoints
@@ -50,26 +50,63 @@ type Props = {
   breakpoints: LayoutBreakpoints
 }
 
+/**
+ * Outline breakpoints — autosave (~500ms debounce + blur), no Save button.
+ */
 export function BreakpointsForm({ layoutLabel, breakpoints }: Props) {
   const router = useRouter()
   const layoutId = useLayoutOutlineId()
-  const [state, action, pending] = useActionState(
-    async (prev: LayoutActionState, formData: FormData) => {
-      const result = await updateLayoutBreakpointsAction(prev, formData)
-      if (result.ok) router.refresh()
-      return result
+  const { notifySaved, notifyError } = useAdminToast()
+  const [pending, startSave] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+  const [draft, setDraft] = useState<LayoutBreakpoints>(breakpoints)
+
+  useEffect(() => {
+    setDraft(breakpoints)
+  }, [breakpoints])
+
+  const persist = useCallback(
+    (next: LayoutBreakpoints) => {
+      const fd = new FormData()
+      fd.set('layoutId', layoutId)
+      for (const field of FIELDS) {
+        fd.set(field.key, next[field.key])
+      }
+      startSave(async () => {
+        const result: LayoutActionState = await updateLayoutBreakpointsAction({}, fd)
+        if (result.ok) {
+          setError(null)
+          notifySaved('Saved')
+          router.refresh()
+        } else {
+          setError(result.error ?? 'Could not save breakpoints.')
+          notifyError(result.error ?? 'Could not save breakpoints.')
+        }
+      })
     },
-    initialState,
+    [layoutId, notifyError, notifySaved, router],
   )
 
-  return (
-    <form action={action} className="settings-form breakpoints-form">
-      <LayoutIdField />
+  const { schedule, flush } = useDebouncedPersist(persist)
 
+  const onFieldChange = (key: keyof LayoutBreakpoints, value: string) => {
+    const next = { ...draft, [key]: value }
+    setDraft(next)
+    schedule('breakpoints', next)
+  }
+
+  const onFieldBlur = (key: keyof LayoutBreakpoints, value: string) => {
+    const next = { ...draft, [key]: value }
+    setDraft(next)
+    flush('breakpoints', next)
+  }
+
+  return (
+    <div className="settings-form breakpoints-form">
       <p className="breakpoints-form-lede">
         Outline <strong>{layoutLabel}</strong> (<code>{layoutId}</code>). Values are CSS lengths —
-        prefer <code>rem</code> (Gantry Helium defaults). Applies to public CSS variables for this
-        outline only; Default outline = site global.
+        prefer <code>rem</code> (Gantry Helium defaults). Saves automatically. Applies to public CSS
+        variables for this outline only; Default outline = site global.
       </p>
 
       <div className="breakpoints-grid">
@@ -79,12 +116,20 @@ export function BreakpointsForm({ layoutLabel, breakpoints }: Props) {
             <input
               type="text"
               name={field.key}
-              defaultValue={breakpoints[field.key]}
+              value={draft[field.key]}
               placeholder={breakpoints[field.key]}
               spellCheck={false}
               autoComplete="off"
               disabled={pending}
               aria-describedby={`bp-hint-${field.key}`}
+              onChange={(event) => onFieldChange(field.key, event.target.value)}
+              onBlur={(event) => onFieldBlur(field.key, event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault()
+                  ;(event.target as HTMLInputElement).blur()
+                }
+              }}
             />
             <small id={`bp-hint-${field.key}`} className="field-hint">
               {field.hint}
@@ -93,14 +138,12 @@ export function BreakpointsForm({ layoutLabel, breakpoints }: Props) {
         ))}
       </div>
 
-      {state.error ? <p className="form-error">{state.error}</p> : null}
-      {state.ok && state.message ? <p className="form-ok">{state.message}</p> : null}
-
-      <div className="page-settings-actions">
-        <button type="submit" disabled={pending}>
-          {pending ? 'Saving…' : 'Save breakpoints'}
-        </button>
-      </div>
-    </form>
+      {error ? (
+        <p className="form-error" role="alert">
+          {error}
+        </p>
+      ) : null}
+      {pending ? <p className="field-hint">Saving…</p> : null}
+    </div>
   )
 }

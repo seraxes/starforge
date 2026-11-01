@@ -114,19 +114,24 @@ body:has(.admin-shell) > main {
   gap: 0.25rem;
 }
 
+/*
+ * One clear dropdown chevron (SVG). Hide native arrow entirely —
+ * dual linear-gradient triangles + native caret looked broken/doubled.
+ */
 .admin-shell .gantry-layouts-nav-outline-select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
   appearance: none;
   min-width: 10rem;
   margin: 0;
-  padding: 0.4rem 1.75rem 0.4rem 0.7rem;
+  padding: 0.4rem 2.35rem 0.4rem 0.7rem;
   border: 1px solid #314257;
   border-radius: 3px;
-  background:
-    linear-gradient(45deg, transparent 50%, #fff 50%) right 0.7rem top 0.8rem / 0.35rem 0.35rem
-      no-repeat,
-    linear-gradient(135deg, transparent 50%, #fff 50%) right 0.45rem top 0.8rem / 0.35rem 0.35rem
-      no-repeat,
-    #161e2b;
+  background-color: #161e2b;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 5.75L8 10.25L12.5 5.75' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.65rem center;
+  background-size: 1rem 1rem;
   color: #fff;
   font: inherit;
   font-weight: 700;
@@ -134,17 +139,23 @@ body:has(.admin-shell) > main {
   cursor: pointer;
 }
 
+.admin-shell .gantry-layouts-nav-outline-select::-ms-expand {
+  display: none;
+}
+
 .admin-shell .gantry-layouts-nav-outline-manage {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-width: 2.1rem;
   padding: 0 0.5rem;
   border: 1px solid #314257;
   border-radius: 3px;
   background: #161e2b;
-  color: #fff;
+  color: #c5d2e0;
   text-decoration: none;
-  font-size: 0.78rem;
+  font-size: 0.95rem;
+  line-height: 1;
 }
 
 .admin-shell .gantry-layouts-nav-outline-manage:hover {
@@ -290,6 +301,40 @@ body:has(.admin-shell) > main {
   min-height: 2.1rem;
 }
 
+/* Form selects: one large custom chevron; suppress native caret */
+.admin-shell .admin-inline-form select,
+.admin-shell .layout-inline-form select,
+.admin-shell .gantry-palette-width select,
+.admin-shell .gantry-width-form select,
+.admin-shell .gantry-typed-form select,
+.admin-shell .settings-field select,
+.admin-shell .page-settings-picker select,
+.admin-shell .page-settings-panel-body select,
+.admin-shell .outlines-inline-form select,
+.admin-shell .acl-matrix-form select,
+.admin-shell .admin-groups-form select,
+.admin-shell .section-styles-form select,
+.admin-shell .gantry-section-container-select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  padding-right: 2.25rem !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 5.75L8 10.25L12.5 5.75' stroke='%23c5d2e0' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.6rem center !important;
+  background-size: 0.95rem 0.95rem !important;
+  background-color: var(--sf-admin-input) !important;
+  cursor: pointer;
+}
+
+.admin-shell .admin-inline-form select::-ms-expand,
+.admin-shell .layout-inline-form select::-ms-expand,
+.admin-shell .settings-field select::-ms-expand,
+.admin-shell .section-styles-form select::-ms-expand,
+.admin-shell .gantry-section-container-select::-ms-expand {
+  display: none;
+}
+
 .admin-shell .gantry-inline-input:focus,
 .admin-shell .gantry-section-name-input:focus,
 .admin-shell .gantry-slot-name-input:focus,
@@ -345,8 +390,50 @@ body:has(.admin-shell) > main {
   color: #9eb1c7;
 }
 
+/*
+ * Accordion chevron — one CSS SVG caret (same stroke as selects).
+ * No unicode ▾/▸, no native disclosure, no dual backgrounds.
+ */
 .admin-shell .admin-sidebar-group-toggle {
-  color: #8fa3bb;
+  display: inline-block;
+  width: 1.15rem;
+  height: 1.15rem;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M5.75 3.5L10.25 8L5.75 12.5' stroke='%23c5d2e0' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 1.05rem 1.05rem;
+  color: transparent;
+  font-size: 0;
+  line-height: 0;
+  overflow: hidden;
+}
+
+.admin-shell .admin-sidebar-group-toggle.is-open {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 5.75L8 10.25L12.5 5.75' stroke='%23c5d2e0' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+.admin-shell .admin-sidebar-menu-toggle-icon {
+  display: inline-block;
+  width: 1.15rem;
+  height: 1.15rem;
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 5.75L8 10.25L12.5 5.75' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 1.05rem 1.05rem;
+  color: transparent;
+  font-size: 0;
+  line-height: 0;
+  overflow: hidden;
+}
+
+.admin-shell .admin-sidebar-menu-toggle-icon.is-open {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 10.25L8 5.75L12.5 10.25' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 /* Bright mid-blue hover/active rows (Gantry/Joomla ~#3498db) */
@@ -364,7 +451,12 @@ body:has(.admin-shell) > main {
 
 .admin-shell .admin-sidebar-group-head:hover .admin-sidebar-group-toggle,
 .admin-shell .admin-sidebar-item.is-active > .admin-sidebar-group-head .admin-sidebar-group-toggle {
-  color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M5.75 3.5L10.25 8L5.75 12.5' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+.admin-shell .admin-sidebar-group-head:hover .admin-sidebar-group-toggle.is-open,
+.admin-shell .admin-sidebar-item.is-active > .admin-sidebar-group-head .admin-sidebar-group-toggle.is-open {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 5.75L8 10.25L12.5 5.75' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 .admin-shell .admin-nav {
@@ -412,6 +504,7 @@ body:has(.admin-shell) > main {
     box-shadow: none;
   }
 }
+
 
 .admin-shell .admin-table-wrap,
 .admin-shell .admin-table th,
@@ -473,6 +566,7 @@ body:has(.admin-shell) > main {
 .admin-shell .page-settings-form button[type='submit']:not(.secondary):not(.danger):not(.ghost),
 .admin-shell .page-settings-actions button[type='submit']:not(.secondary):not(.danger),
 .admin-shell .breakpoints-form button[type='submit'],
+.admin-shell .section-styles-form button[type='submit'],
 .admin-shell .outlines-create button[type='submit']:not(.secondary):not(.danger),
 .admin-shell .outlines-inline-form button[type='submit']:not(.danger),
 .admin-shell .admin-inline-form button[type='submit']:not(.secondary):not(.danger),
@@ -492,6 +586,7 @@ body:has(.admin-shell) > main {
 .admin-shell .settings-form button[type='submit']:not(.secondary):not(.danger):not(.ghost):hover,
 .admin-shell .page-settings-actions button[type='submit']:not(.secondary):not(.danger):hover,
 .admin-shell .breakpoints-form button[type='submit']:hover,
+.admin-shell .section-styles-form button[type='submit']:hover,
 .admin-shell .outlines-create button[type='submit']:not(.secondary):not(.danger):hover {
   background: color-mix(in srgb, var(--sf-primary) 82%, var(--sf-primary-strong));
 }
@@ -1469,13 +1564,15 @@ body:has(.admin-shell) > main {
 }
 
 /* Styles · Breakpoints — Helium dense field card + wash behind (full width) */
-.admin-shell .breakpoints-form {
+.admin-shell .breakpoints-form,
+.admin-shell .section-styles-form {
   width: 100%;
   max-width: none;
   padding: 1.25rem 1.35rem 1.4rem;
 }
 
 .admin-shell .breakpoints-form .settings-field,
+.admin-shell .section-styles-form .settings-field,
 .admin-shell .settings-fieldset .settings-field {
   border-bottom: 1px solid color-mix(in srgb, #2f3d50 65%, transparent);
   padding-bottom: 0.65rem;
@@ -1483,15 +1580,156 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .breakpoints-form .settings-field:last-of-type,
+.admin-shell .section-styles-form .settings-field:last-of-type,
 .admin-shell .settings-fieldset .settings-field:last-of-type {
   border-bottom: 0;
   margin-bottom: 0.35rem;
 }
 
 @media (max-width: 640px) {
-  .admin-shell .breakpoints-form {
+  .admin-shell .breakpoints-form,
+  .admin-shell .section-styles-form {
     padding: 1.1rem 1rem 1.2rem;
   }
+}
+
+.admin-shell .section-styles-heading {
+  margin: 1.75rem 0 0.75rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #e8eef6;
+}
+
+.admin-shell .section-styles-heading:first-of-type {
+  margin-top: 0.35rem;
+}
+
+.admin-shell .section-styles-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 0.85rem;
+  margin-bottom: 0.85rem;
+}
+
+.admin-shell .section-styles-filter {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.admin-shell .section-styles-filter input {
+  width: 100%;
+  box-sizing: border-box;
+  background: #151c26;
+  border: 1px solid #2f3d50;
+  color: #e8eef6;
+  border-radius: 3px;
+  padding: 0.45rem 0.65rem;
+}
+
+.admin-shell .section-styles-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.admin-shell .section-styles-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem 1rem;
+}
+
+@media (max-width: 900px) {
+  .admin-shell .section-styles-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admin-shell .section-styles-card {
+  background: color-mix(in srgb, var(--sf-secondary) 6%, #1b2432);
+  border: 1px solid #2f3d50;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.admin-shell .section-styles-card-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  cursor: pointer;
+  list-style: none;
+  color: #e8eef6;
+  background: color-mix(in srgb, #0f1722 55%, #1b2432);
+  border-bottom: 1px solid #2f3d50;
+}
+
+.admin-shell .section-styles-card-summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-shell .section-styles-card-title {
+  font-weight: 600;
+}
+
+.admin-shell .section-styles-card-id {
+  font-size: 0.75rem;
+  color: #8fa0b5;
+}
+
+.admin-shell .section-styles-form {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.admin-shell .section-styles-color-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.admin-shell .section-styles-color-label {
+  font-size: 0.9rem;
+  color: #c8d2e0;
+}
+
+.admin-shell .section-styles-color-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.65rem;
+  width: 100%;
+}
+
+.admin-shell .section-styles-color-row .gantry-inline-input {
+  flex: 1 1 8rem;
+  min-width: 0;
+}
+
+.admin-shell .section-styles-gradient-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  flex: 0 0 auto;
+  font-size: 0.8rem;
+  color: #a8b6c8;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.admin-shell .section-styles-gradient-inline input[type='checkbox'] {
+  width: 0.95rem;
+  height: 0.95rem;
+  margin: 0;
+  accent-color: var(--sf-admin-blue, #3498db);
+}
+
+.admin-shell .section-styles-empty {
+  margin: 0.5rem 0 1rem;
+  color: #8fa0b5;
 }
 
 .admin-shell a:not(.admin-nav > a):not(.admin-nav-dropdown-trigger):not(.button-link):not(.links a) {
@@ -1668,3 +1906,155 @@ body:has(.admin-shell) > main {
 
 /* Padded admin pages keep Site Settings blue radial wash (shell default).
    Only Layout canvas / admin-layouts-full flatten to denser navy above. */
+
+/* —— Global Core admin toast (top center) —— */
+.admin-toast-host {
+  position: fixed;
+  top: 0.85rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  pointer-events: none;
+  width: min(22rem, calc(100vw - 2rem));
+}
+
+.admin-toast {
+  pointer-events: none;
+  width: 100%;
+  text-align: center;
+  padding: 0.55rem 1rem;
+  border-radius: 3px;
+  font-size: 0.92rem;
+  font-weight: 650;
+  box-shadow: 0 6px 20px color-mix(in srgb, #000 45%, transparent);
+  animation: admin-toast-in 160ms ease-out;
+}
+
+.admin-toast-success {
+  background: #1e5a8a;
+  color: #fff;
+  border: 1px solid color-mix(in srgb, #5ba3d0 55%, #1e5a8a);
+}
+
+.admin-toast-error {
+  background: #8b2e2e;
+  color: #fff;
+  border: 1px solid color-mix(in srgb, #e07474 45%, #8b2e2e);
+}
+
+@keyframes admin-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.35rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* —— Compact Gantry-style Create / Add / action buttons (not full-width bars) —— */
+.admin-shell .admin-create-form,
+.admin-shell .outlines-create-form.admin-create-form {
+  align-items: end;
+}
+
+.admin-shell .admin-create-form > button[type='submit'],
+.admin-shell .outlines-create-form > button[type='submit'],
+.admin-shell .nav-items-add button[type='submit'],
+.admin-shell .group-detail-manager .outlines-create-form > button[type='submit'],
+.admin-shell .admin-action-row > button,
+.admin-shell .outlines-inline-form > button[type='submit'],
+.admin-shell .outlines-inline-form > button[type='button'],
+.admin-shell .admin-inline-form > button[type='submit'],
+.admin-shell .admin-inline-form > button[type='button'],
+.admin-shell .gantry-typed-form > button.gantry-toolbar-btn,
+.admin-shell .outlines-actions > form > button[type='submit'] {
+  width: auto;
+  max-width: max-content;
+  justify-self: start;
+  align-self: end;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0.4rem 0.85rem;
+  border-radius: 3px;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.admin-shell .gantry-toolbar-btn-save,
+.admin-shell .admin-create-form > button.gantry-toolbar-btn-save,
+.admin-shell .outlines-create-form > button.gantry-toolbar-btn-save,
+.admin-shell .nav-items-add button.gantry-toolbar-btn-save,
+.admin-shell .admin-inline-form > button.gantry-toolbar-btn-save {
+  background: var(--sf-primary);
+  border: 0;
+  color: var(--sf-primary-ink);
+}
+
+.admin-shell .gantry-toolbar-btn-save:hover:not(:disabled) {
+  background: var(--sf-primary-strong);
+}
+
+.admin-shell .gantry-toolbar-btn-muted,
+.admin-shell button.gantry-toolbar-btn-muted {
+  background: var(--sf-admin-blue-action);
+  border: 1px solid var(--sf-admin-blue-border);
+  color: #fff;
+}
+
+.admin-shell .gantry-toolbar-btn-muted:hover:not(:disabled),
+.admin-shell button.gantry-toolbar-btn-muted:hover:not(:disabled) {
+  background: var(--sf-admin-blue-mid);
+}
+
+.admin-shell .gantry-toolbar-btn-quiet,
+.admin-shell button.gantry-toolbar-btn-quiet {
+  background: transparent;
+  border: 1px solid var(--sf-line);
+  color: #c9d4e4;
+}
+
+.admin-shell .gantry-toolbar-btn-quiet:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--sf-admin-blue-mid) 35%, transparent);
+}
+
+.admin-shell .admin-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.admin-shell .gantry-toolbar-btn-danger,
+.admin-shell button.gantry-toolbar-btn.danger,
+.admin-shell button.gantry-toolbar-btn-danger {
+  background: color-mix(in srgb, #c45c5c 28%, #1d2531);
+  border: 0;
+  color: #f0b4b4;
+  padding: 0.4rem 0.85rem;
+  border-radius: 3px;
+  font-size: 0.86rem;
+  font-weight: 650;
+}
+
+.admin-shell .page-settings-saving {
+  margin: 0.75rem 0 0;
+}
+
+.admin-shell .nav-item-quick > button {
+  width: auto;
+  padding: 0.28rem 0.55rem;
+  font-size: 0.8rem;
+}

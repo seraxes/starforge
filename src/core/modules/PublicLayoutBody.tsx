@@ -58,6 +58,7 @@ function SectionBlock({
     pageDefault,
   )
   const sectionStyle = buildSectionInlineStyle(section.styles)
+  const overlayOn = section.styles?.backgroundOverlay === 'enabled'
 
   const inner = (
     <>
@@ -74,6 +75,7 @@ function SectionBlock({
         data-sf-section={section.id}
         data-sf-container={containerMode}
         data-sf-section-styled={sectionStyle ? 'true' : undefined}
+        data-sf-overlay={overlayOn ? 'enabled' : undefined}
         style={sectionStyle}
       >
         {inner}
@@ -87,6 +89,7 @@ function SectionBlock({
       data-sf-section={section.id}
       data-sf-container={containerMode}
       data-sf-section-styled={sectionStyle ? 'true' : undefined}
+      data-sf-overlay={overlayOn ? 'enabled' : undefined}
       style={sectionStyle}
     >
       {inner}

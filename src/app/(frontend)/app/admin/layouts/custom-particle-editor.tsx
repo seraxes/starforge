@@ -9,6 +9,8 @@ import {
 } from '@/core/modules/actions'
 import type { LayoutSlot } from '@/core/modules/types'
 
+import { useNotifySavedOnOk } from '../admin-toast'
+import { useAutosaveForm } from '../use-autosave-form'
 import { LayoutIdField } from './layout-outline-context'
 import { ParticleSettingsPopover } from './particle-settings-popover'
 
@@ -22,19 +24,11 @@ function ActionFeedback({ state }: { state: LayoutActionState }) {
       </p>
     )
   }
-  if (state.ok && state.message) {
-    return (
-      <p className="admin-inline-ok" role="status">
-        {state.message}
-      </p>
-    )
-  }
   return null
 }
 
 /**
- * Gantry-like Custom particle settings — HTML / CSS / JS with CodeMirror
- * in a floating overlay (does not expand the slot / push the row).
+ * Custom particle — HTML / CSS / JS. Autosaves (~500ms) on edit; no Save button.
  */
 export function CustomParticleEditor({
   sectionId,
@@ -49,10 +43,21 @@ export function CustomParticleEditor({
   embedded?: boolean
 }) {
   const [state, formAction, pending] = useActionState(updateCustomSlotAction, initialState)
+  useNotifySavedOnOk(state, { toastErrors: true })
+  const { formRef, saveDebounced, saveNow } = useAutosaveForm()
   const cfg = slot.config ?? {}
 
   const form = (
-    <form action={formAction} className="gantry-custom-form">
+    <form
+      ref={formRef}
+      action={formAction}
+      className="gantry-custom-form"
+      onInput={saveDebounced}
+      onBlur={(e) => {
+        const t = e.target
+        if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement) saveNow()
+      }}
+    >
       <LayoutIdField />
       <input type="hidden" name="sectionId" value={sectionId} />
       <input type="hidden" name="rowId" value={rowId} />
@@ -69,6 +74,7 @@ export function CustomParticleEditor({
         initialValue={String(cfg.html ?? '')}
         initialHeight={180}
         placeholder="<p>Custom HTML</p>"
+        onValueChange={saveDebounced}
       />
       <CodeEditorField
         name="css"
@@ -77,6 +83,7 @@ export function CustomParticleEditor({
         initialValue={String(cfg.css ?? '')}
         initialHeight={140}
         placeholder=".my-block { color: … }"
+        onValueChange={saveDebounced}
       />
       <CodeEditorField
         name="js"
@@ -86,11 +93,10 @@ export function CustomParticleEditor({
         initialHeight={120}
         placeholder="// Stored only — execution gated to developer-admins later"
         hint="JS is saved on the slot but not executed in this foundation slice."
+        onValueChange={saveDebounced}
       />
 
-      <button type="submit" disabled={pending}>
-        {pending ? 'Saving…' : 'Save Custom'}
-      </button>
+      {pending ? <p className="layout-muted">Saving…</p> : null}
       <ActionFeedback state={state} />
     </form>
   )

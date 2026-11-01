@@ -15,6 +15,9 @@ import {
 } from '@/core/nav/actions'
 import type { NavLinkType, NavMenuItem, NavModuleOption, NavPageOption } from '@/core/nav/types'
 
+import { useNotifySavedOnOk } from '../../admin-toast'
+import { useAutosaveForm } from '../../use-autosave-form'
+
 type EditableItem = {
   id: string
   parentId: string
@@ -150,10 +153,29 @@ export function NavItemsEditor({
   const [moveState, moveAction, movePending] = useActionState(moveNavMenuItemAction, initial)
   const [addState, addAction, addPending] = useActionState(addNavMenuItemAction, initial)
   const [pasteState, pasteAction, pastePending] = useActionState(pasteNavMenuItemAction, initial)
+  useNotifySavedOnOk(saveState, { toastErrors: true })
+  useNotifySavedOnOk(addState, { successMessage: 'Saved', toastErrors: true })
+  useNotifySavedOnOk(pasteState, { successMessage: 'Saved', toastErrors: true })
+  const { formRef, saveDebounced } = useAutosaveForm()
+  const skipAutosave = React.useRef(true)
+  const hydrating = React.useRef(false)
 
   useEffect(() => {
+    hydrating.current = true
     setRows(items.map(toEditable))
+    queueMicrotask(() => {
+      hydrating.current = false
+    })
   }, [items])
+
+  useEffect(() => {
+    if (skipAutosave.current) {
+      skipAutosave.current = false
+      return
+    }
+    if (hydrating.current) return
+    saveDebounced()
+  }, [rows, saveDebounced])
 
   const parentOptions = useMemo(
     () => rows.map((r) => ({ id: r.id, label: r.label })),
@@ -231,6 +253,7 @@ export function NavItemsEditor({
       <Feedback state={pasteState} />
 
       <form
+        ref={formRef}
         action={saveAction}
         className="nav-items-form"
         onSubmit={() => setTimeout(refresh, 80)}
@@ -473,13 +496,11 @@ export function NavItemsEditor({
           </ul>
         )}
 
-        <div className="nav-items-toolbar">
-          <button type="submit" className="primary" disabled={savePending}>
-            {savePending ? 'Saving…' : 'Save items'}
-          </button>
+        <div className="nav-items-toolbar admin-action-row">
+          {savePending ? <span className="field-hint">Saving…</span> : null}
           <button
             type="submit"
-            className="secondary"
+            className="gantry-toolbar-btn gantry-toolbar-btn-muted"
             formAction={pasteAction}
             disabled={pastePending || !clipboard}
             onClick={(e) => {
@@ -504,7 +525,7 @@ export function NavItemsEditor({
         <h3>Add item</h3>
         <form
           action={addAction}
-          className="outlines-create-form"
+          className="outlines-create-form admin-create-form"
           onSubmit={(e) => {
             const form = e.currentTarget
             appendItemFields(form, rows)
@@ -587,7 +608,11 @@ export function NavItemsEditor({
               </label>
             </>
           ) : null}
-          <button type="submit" disabled={addPending}>
+          <button
+            type="submit"
+            className="gantry-toolbar-btn gantry-toolbar-btn-save"
+            disabled={addPending}
+          >
             {addPending ? 'Adding…' : 'Add item'}
           </button>
         </form>
