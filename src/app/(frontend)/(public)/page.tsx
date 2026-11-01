@@ -134,12 +134,12 @@ export default async function HomePage({
             Core health API
           </Link>
         </div>
-      </div>
-      <div className="footer">
-        <p>
-          Starforge admin <code>/app/admin</code> · Content CMS <code>/admin</code> · seed:{' '}
+
+        {/* In-page seed blurb — not layout chrome. Real footer is layout `site-footer`. */}
+        <p className="home-meta">
+          Dev seed: Starforge admin <code>/app/admin</code> · Content CMS <code>/admin</code> ·{' '}
           <code>admin@starforge.local</code> / <code>starforge-admin</code> ·{' '}
-          <code>npm run seed</code> · see README
+          <code>npm run seed</code>
         </p>
       </div>
     </div>

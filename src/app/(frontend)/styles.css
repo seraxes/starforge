@@ -187,12 +187,14 @@ body {
  * Do not use min-height:100vh / space-between here: that left a giant gap
  * before particles placed under Page Content (e.g. Form).
  * Sticky footer lives on `.public-shell` + `.site-footer { margin-top: auto }`.
+ * Keep bottom padding tight so the next Main-row particle (Form) reads as
+ * continuing Main, not after a page-end chrome block.
  */
 .home {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  padding: 3rem 1.5rem 2rem;
+  gap: 1rem;
+  padding: 3rem 1.5rem 1rem;
   max-width: 52rem;
   margin: 0 auto;
   width: 100%;
@@ -203,6 +205,19 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+}
+
+/* Seed / ops hint inside page content — not `.site-footer` / layout chrome. */
+.home-meta {
+  margin: 0.5rem 0 0;
+  max-width: 36rem;
+  color: var(--sf-muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.home-meta code {
+  font-size: 0.85em;
 }
 
 .brand {
@@ -299,22 +314,6 @@ h1 {
 
 .links .secondary:hover {
   background: color-mix(in srgb, var(--sf-secondary) 32%, transparent);
-}
-
-.footer {
-  border-top: 1px solid var(--sf-line);
-  padding-top: 1rem;
-  color: var(--sf-muted);
-  font-size: 0.92rem;
-}
-
-.footer code {
-  font-size: 0.85em;
-}
-
-.footer a {
-  color: var(--sf-secondary-strong);
-  font-weight: 600;
 }
 
 .session-bar {
@@ -2223,7 +2222,7 @@ button:disabled {
 
 @media (max-width: 640px) {
   .home {
-    padding: 2rem 1.15rem 1.5rem;
+    padding: 2rem 1.15rem 0.75rem;
   }
 
   .cms-page {
