@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useActionState, useCallback, useRef, useState, useTransition } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 import { AccessTagsField } from '@/components/admin/AccessTagsField'
@@ -37,6 +38,8 @@ import { cssColorToColorInputValue } from '@/core/modules/styles'
 import type { LayoutDocument, LayoutRow, LayoutSection, LayoutSlot } from '@/core/modules/types'
 
 import { CustomParticleEditor } from './custom-particle-editor'
+import { ParticleAttributesEditor } from './particle-attributes-editor'
+import { ParticleSettingsPopover } from './particle-settings-popover'
 import { TypedParticleEditor, type NavMenuOption } from './typed-particle-editors'
 
 type ModuleOption = {
@@ -146,6 +149,73 @@ function ActionFeedback({ state }: { state: LayoutActionState }) {
   return null
 }
 
+function ParticleConfigTab({
+  sectionId,
+  rowId,
+  slot,
+  navMenus,
+  primaryNavMenuId,
+  onSlotPatched,
+}: {
+  sectionId: string
+  rowId: string
+  slot: LayoutSlot
+  navMenus: NavMenuOption[]
+  primaryNavMenuId: string
+  onSlotPatched?: (patch: Partial<LayoutSlot>) => void
+}) {
+  const attrs = (
+    <ParticleAttributesEditor
+      sectionId={sectionId}
+      rowId={rowId}
+      slot={slot}
+      onAttrsSaved={(next) =>
+        onSlotPatched?.({
+          htmlId: next.htmlId,
+          cssClass: next.cssClass,
+        } as Partial<LayoutSlot>)
+      }
+    />
+  )
+
+  if (slot.moduleId === 'custom') {
+    return (
+      <div className="gantry-particle-config-stack">
+        {attrs}
+        <CustomParticleEditor sectionId={sectionId} rowId={rowId} slot={slot} embedded />
+      </div>
+    )
+  }
+
+  const hasTyped =
+    slot.moduleId === 'logo' ||
+    slot.moduleId === 'menu' ||
+    slot.moduleId === 'copyright' ||
+    slot.moduleId === 'social' ||
+    slot.moduleId === 'form'
+
+  return (
+    <div className="gantry-particle-config-stack">
+      {attrs}
+      {hasTyped ? (
+        <TypedParticleEditor
+          sectionId={sectionId}
+          rowId={rowId}
+          slot={slot}
+          navMenus={navMenus}
+          primaryNavMenuId={primaryNavMenuId}
+          embedded
+          onConfigSaved={(config) => onSlotPatched?.({ config })}
+        />
+      ) : (
+        <p className="layout-muted">
+          No particle-specific config for <code>{slot.moduleId}</code>.
+        </p>
+      )}
+    </div>
+  )
+}
+
 function sortSections(sections: LayoutSection[]) {
   // User DnD order only — do not apply public footer-partition / semantic bands.
   return sortLayoutSectionsByOrder(sections)
@@ -243,6 +313,7 @@ function ParticleBlock({
   onSlotDragEnd,
   onSlotDragOver,
   onSlotDrop,
+  onSlotPatched,
 }: {
   sectionId: string
   rowId: string
@@ -262,6 +333,7 @@ function ParticleBlock({
     edge: 'before' | 'after',
     payload: SlotDragPayload,
   ) => void
+  onSlotPatched?: (patch: Partial<LayoutSlot>) => void
 }) {
   const router = useRouter()
   const layoutId = useLayoutOutlineId()
@@ -383,100 +455,121 @@ function ParticleBlock({
               onSlotDragEnd()
             }}
           >
-            ⋮⋮
+            ▣
           </button>
-          <label className="gantry-inline-label gantry-slot-name-label">
-            <span className="sr-only">Particle display name</span>
-            <input
-              key={`slot-name-${slot.id}-${slot.name ?? ''}`}
-              type="text"
-              className="gantry-inline-input gantry-slot-name-input"
-              defaultValue={slot.name ?? ''}
-              placeholder={catalogName}
-              disabled={pending}
-              title="Instance display name (does not change particle type)"
-              aria-label={`Display name for ${catalogName}`}
-              onBlur={(event) => persistName(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.preventDefault()
-                  ;(event.target as HTMLInputElement).blur()
-                }
-              }}
-            />
-          </label>
+          <div className="gantry-slot-labels">
+            <label className="gantry-inline-label gantry-slot-name-label">
+              <span className="sr-only">Particle display name</span>
+              <input
+                key={`slot-name-${slot.id}-${slot.name ?? ''}`}
+                type="text"
+                className="gantry-inline-input gantry-slot-name-input"
+                defaultValue={slot.name ?? ''}
+                placeholder={catalogName}
+                disabled={pending}
+                title="Instance display name (does not change particle type)"
+                aria-label={`Display name for ${catalogName}`}
+                onBlur={(event) => persistName(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    ;(event.target as HTMLInputElement).blur()
+                  }
+                }}
+              />
+            </label>
+            <span className="gantry-slot-sub">
+              {slot.moduleId}
+              {!enabled ? ' · off' : ''}
+              {accessSummary ? ` · ${accessSummary}` : ''}
+            </span>
+          </div>
         </div>
-        <span className="gantry-slot-pct" title={`Width ${pctLabel} (min ${LAYOUT_WIDTH_MIN}%)`}>
-          {pctLabel}
-        </span>
-      </header>
-      <p className="gantry-slot-meta">
-        <code>{slot.moduleId}</code>
-        {meta?.builtin ? <span className="admin-badge">built-in</span> : null}
-        {!enabled ? <span className="admin-badge admin-badge-warn">off</span> : null}
-        {accessSummary ? (
-          <span className="admin-badge" title="Who can see">
-            {accessSummary}
+        <div className="gantry-slot-end">
+          <span className="gantry-slot-pct" title={`Width ${pctLabel} (min ${LAYOUT_WIDTH_MIN}%)`}>
+            {pctLabel}
           </span>
-        ) : null}
-      </p>
-      <AccessTagsField
-        className="gantry-slot-access-tags"
-        value={accessTags}
-        groups={groups}
-        disabled={pending}
-        onChange={persistAccessTags}
-      />
-      <div className="gantry-slot-actions">
-        <button
-          type="button"
-          className="secondary"
-          disabled={pending}
-          onClick={() => {
-            const fd = withOutlineId(new FormData(), layoutId)
-            fd.set('sectionId', sectionId)
-            fd.set('rowId', rowId)
-            fd.set('slotId', slot.id)
-            startTransition(async () => {
-              const result = await toggleSlotAction({}, fd)
-              setFlash(result)
-              router.refresh()
-            })
-          }}
-        >
-          {enabled ? 'Disable' : 'Enable'}
-        </button>
-        <button
-          type="button"
-          className="danger"
-          disabled={pending}
-          onClick={() => {
-            const fd = withOutlineId(new FormData(), layoutId)
-            fd.set('sectionId', sectionId)
-            fd.set('rowId', rowId)
-            fd.set('slotId', slot.id)
-            startTransition(async () => {
-              const result = await removeSlotAction({}, fd)
-              setFlash(result)
-              router.refresh()
-            })
-          }}
-        >
-          Remove
-        </button>
-        {slot.moduleId === 'custom' ? (
-          <CustomParticleEditor sectionId={sectionId} rowId={rowId} slot={slot} />
-        ) : (
-          <TypedParticleEditor
-            sectionId={sectionId}
-            rowId={rowId}
-            slot={slot}
-            navMenus={navMenus}
-            primaryNavMenuId={primaryNavMenuId}
-          />
-        )}
-      </div>
-      <ActionFeedback state={flash} />
+          <div className="gantry-slot-actions">
+            <ParticleSettingsPopover
+              title={`${displayName} settings`}
+              tabs={[
+                {
+                  id: 'config',
+                  label: 'Config',
+                  content: (
+                    <ParticleConfigTab
+                      sectionId={sectionId}
+                      rowId={rowId}
+                      slot={slot}
+                      navMenus={navMenus}
+                      primaryNavMenuId={primaryNavMenuId}
+                      onSlotPatched={onSlotPatched}
+                    />
+                  ),
+                },
+                {
+                  id: 'access',
+                  label: 'Access',
+                  content: (
+                    <AccessTagsField
+                      className="gantry-slot-access-tags"
+                      value={accessTags}
+                      groups={groups}
+                      disabled={pending}
+                      onChange={persistAccessTags}
+                    />
+                  ),
+                },
+                {
+                  id: 'particle',
+                  label: 'Particle',
+                  content: (
+                    <div className="gantry-slot-extra-actions">
+                      <button
+                        type="button"
+                        className="secondary"
+                        disabled={pending}
+                        onClick={() => {
+                          const fd = withOutlineId(new FormData(), layoutId)
+                          fd.set('sectionId', sectionId)
+                          fd.set('rowId', rowId)
+                          fd.set('slotId', slot.id)
+                          startTransition(async () => {
+                            const result = await toggleSlotAction({}, fd)
+                            setFlash(result)
+                            router.refresh()
+                          })
+                        }}
+                      >
+                        {enabled ? 'Disable' : 'Enable'}
+                      </button>
+                      <button
+                        type="button"
+                        className="danger"
+                        disabled={pending}
+                        onClick={() => {
+                          const fd = withOutlineId(new FormData(), layoutId)
+                          fd.set('sectionId', sectionId)
+                          fd.set('rowId', rowId)
+                          fd.set('slotId', slot.id)
+                          startTransition(async () => {
+                            const result = await removeSlotAction({}, fd)
+                            setFlash(result)
+                            router.refresh()
+                          })
+                        }}
+                      >
+                        Remove
+                      </button>
+                      <ActionFeedback state={flash} />
+                    </div>
+                  ),
+                },
+              ]}
+            />
+          </div>
+        </div>
+      </header>
     </article>
   )
 }
@@ -719,7 +812,7 @@ function DropRow({
 
       <div className="gantry-row-slots">
         {slots.length === 0 ? (
-          <div className="gantry-row-empty">Drag a particle from the left into this row</div>
+          <div className="gantry-row-empty">Drop particles here…</div>
         ) : (
           slots.map((slot, index) => {
             const percent = gridWidthPercent(slot.width)
@@ -754,6 +847,17 @@ function DropRow({
                     setAcceptingForeignSlot(true)
                   }}
                   onSlotDrop={handleSlotDrop}
+                  onSlotPatched={(patch) => {
+                    setLocalSlots(
+                      localSlots.map((s) => {
+                        if (s.id !== slot.id) return s
+                        const next: LayoutSlot = { ...s, ...patch }
+                        if ('htmlId' in patch && !patch.htmlId) delete next.htmlId
+                        if ('cssClass' in patch && !patch.cssClass) delete next.cssClass
+                        return next
+                      }),
+                    )
+                  }}
                 />
                 {next ? (
                   <ResizeHandle
@@ -978,127 +1082,146 @@ function SectionCanvas({
                 }}
               />
             </label>
-            <code className="layout-id">{section.id}</code>
           </div>
         </div>
-        <div className="gantry-section-toolbar">
-          <label className="gantry-inline-label gantry-section-container-label">
-            <span className="gantry-field-hint">Width</span>
-            <select
-              key={`section-container-${section.id}-${section.containerMode ?? 'full'}`}
-              className="gantry-inline-input gantry-section-container-select"
-              defaultValue={section.containerMode ?? 'full'}
-              disabled={metaPending}
-              title="Section owns container width — row % is share inside"
-              aria-label="Section container width"
-              onChange={(event) => {
-                const next = event.target.value === 'boxed' ? 'boxed' : 'full'
-                persistSectionMeta({ containerMode: next })
-              }}
-            >
-              <option value="full">Full width</option>
-              <option value="boxed">Boxed width</option>
-            </select>
-          </label>
-          <div className="gantry-section-styles" role="group" aria-label="Section styles">
-            <label className="gantry-inline-label gantry-section-color-label">
-              <span className="gantry-field-hint">Background</span>
-              <span className="gantry-color-field">
-                <input
-                  key={`section-bg-swatch-${section.id}-${section.styles?.backgroundColor ?? ''}`}
-                  type="color"
-                  className="gantry-color-swatch"
-                  value={cssColorToColorInputValue(section.styles?.backgroundColor)}
-                  disabled={metaPending}
-                  title="Section background color"
-                  aria-label="Section background color picker"
-                  onChange={(event) =>
-                    persistSectionMeta({ backgroundColor: event.target.value })
-                  }
-                />
-                <input
-                  key={`section-bg-hex-${section.id}-${section.styles?.backgroundColor ?? ''}`}
-                  type="text"
-                  className="gantry-inline-input gantry-section-color-input"
-                  defaultValue={section.styles?.backgroundColor ?? ''}
-                  disabled={metaPending}
-                  placeholder="#18191c"
-                  spellCheck={false}
-                  autoComplete="off"
-                  title="Hex background (empty = inherit). Image/overlay later."
-                  aria-label="Section background hex"
-                  onBlur={(event) => persistSectionMeta({ backgroundColor: event.target.value })}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault()
-                      ;(event.target as HTMLInputElement).blur()
-                    }
-                  }}
-                />
-              </span>
-            </label>
-            <label className="gantry-inline-label gantry-section-color-label">
-              <span className="gantry-field-hint">Text</span>
-              <span className="gantry-color-field">
-                <input
-                  key={`section-text-swatch-${section.id}-${section.styles?.textColor ?? ''}`}
-                  type="color"
-                  className="gantry-color-swatch"
-                  value={cssColorToColorInputValue(section.styles?.textColor)}
-                  disabled={metaPending}
-                  title="Section text color"
-                  aria-label="Section text color picker"
-                  onChange={(event) => persistSectionMeta({ textColor: event.target.value })}
-                />
-                <input
-                  key={`section-text-hex-${section.id}-${section.styles?.textColor ?? ''}`}
-                  type="text"
-                  className="gantry-inline-input gantry-section-color-input"
-                  defaultValue={section.styles?.textColor ?? ''}
-                  disabled={metaPending}
-                  placeholder="#ffffff"
-                  spellCheck={false}
-                  autoComplete="off"
-                  title="Hex text color (empty = inherit)"
-                  aria-label="Section text hex"
-                  onBlur={(event) => persistSectionMeta({ textColor: event.target.value })}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault()
-                      ;(event.target as HTMLInputElement).blur()
-                    }
-                  }}
-                />
-              </span>
-            </label>
-          </div>
-          <label className="gantry-inline-label gantry-section-class-label">
-            <span className="gantry-field-hint">CSS classes</span>
-            <input
-              key={`section-class-${section.id}-${section.cssClass ?? ''}`}
-              type="text"
-              className="gantry-inline-input gantry-section-class-input"
-              defaultValue={section.cssClass ?? ''}
-              disabled={metaPending}
-              placeholder="e.g. dark-header"
-              title="Space-separated CSS classes on the public section wrapper"
-              aria-label="Section CSS classes"
-              onBlur={(event) => persistSectionMeta({ cssClass: event.target.value })}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.preventDefault()
-                  ;(event.target as HTMLInputElement).blur()
-                }
-              }}
-            />
-          </label>
+        <div className="gantry-section-head-actions">
           <form action={rowAction} className="gantry-section-actions">
             <LayoutIdField />
             <input type="hidden" name="sectionId" value={section.id} />
-            <button type="submit" className="secondary" disabled={rowPending}>
-              {rowPending ? 'Adding…' : 'Add row'}
+            <button
+              type="submit"
+              className="gantry-section-icon-btn"
+              disabled={rowPending}
+              title="Add row"
+              aria-label="Add row"
+            >
+              {rowPending ? '…' : '+'}
             </button>
           </form>
+          <details className="gantry-section-settings">
+            <summary
+              className="gantry-section-icon-btn"
+              title="Section settings"
+              aria-label="Section settings"
+            >
+              ⚙
+            </summary>
+            <div className="gantry-section-toolbar">
+              <label className="gantry-inline-label gantry-section-container-label">
+                <span className="gantry-field-hint">Width</span>
+                <select
+                  key={`section-container-${section.id}-${section.containerMode ?? 'full'}`}
+                  className="gantry-inline-input gantry-section-container-select"
+                  defaultValue={section.containerMode ?? 'full'}
+                  disabled={metaPending}
+                  title="Section owns container width — row % is share inside"
+                  aria-label="Section container width"
+                  onChange={(event) => {
+                    const next = event.target.value === 'boxed' ? 'boxed' : 'full'
+                    persistSectionMeta({ containerMode: next })
+                  }}
+                >
+                  <option value="full">Full width</option>
+                  <option value="boxed">Boxed width</option>
+                </select>
+              </label>
+              <div className="gantry-section-styles" role="group" aria-label="Section styles">
+                <label className="gantry-inline-label gantry-section-color-label">
+                  <span className="gantry-field-hint">Background</span>
+                  <span className="gantry-color-field">
+                    <input
+                      key={`section-bg-swatch-${section.id}-${section.styles?.backgroundColor ?? ''}`}
+                      type="color"
+                      className="gantry-color-swatch"
+                      value={cssColorToColorInputValue(section.styles?.backgroundColor)}
+                      disabled={metaPending}
+                      title="Section background color"
+                      aria-label="Section background color picker"
+                      onChange={(event) =>
+                        persistSectionMeta({ backgroundColor: event.target.value })
+                      }
+                    />
+                    <input
+                      key={`section-bg-hex-${section.id}-${section.styles?.backgroundColor ?? ''}`}
+                      type="text"
+                      className="gantry-inline-input gantry-section-color-input"
+                      defaultValue={section.styles?.backgroundColor ?? ''}
+                      disabled={metaPending}
+                      placeholder="#18191c"
+                      spellCheck={false}
+                      autoComplete="off"
+                      title="Hex background (empty = inherit). Image/overlay later."
+                      aria-label="Section background hex"
+                      onBlur={(event) =>
+                        persistSectionMeta({ backgroundColor: event.target.value })
+                      }
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault()
+                          ;(event.target as HTMLInputElement).blur()
+                        }
+                      }}
+                    />
+                  </span>
+                </label>
+                <label className="gantry-inline-label gantry-section-color-label">
+                  <span className="gantry-field-hint">Text</span>
+                  <span className="gantry-color-field">
+                    <input
+                      key={`section-text-swatch-${section.id}-${section.styles?.textColor ?? ''}`}
+                      type="color"
+                      className="gantry-color-swatch"
+                      value={cssColorToColorInputValue(section.styles?.textColor)}
+                      disabled={metaPending}
+                      title="Section text color"
+                      aria-label="Section text color picker"
+                      onChange={(event) => persistSectionMeta({ textColor: event.target.value })}
+                    />
+                    <input
+                      key={`section-text-hex-${section.id}-${section.styles?.textColor ?? ''}`}
+                      type="text"
+                      className="gantry-inline-input gantry-section-color-input"
+                      defaultValue={section.styles?.textColor ?? ''}
+                      disabled={metaPending}
+                      placeholder="#ffffff"
+                      spellCheck={false}
+                      autoComplete="off"
+                      title="Hex text color (empty = inherit)"
+                      aria-label="Section text hex"
+                      onBlur={(event) => persistSectionMeta({ textColor: event.target.value })}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault()
+                          ;(event.target as HTMLInputElement).blur()
+                        }
+                      }}
+                    />
+                  </span>
+                </label>
+              </div>
+              <label className="gantry-inline-label gantry-section-class-label">
+                <span className="gantry-field-hint">CSS classes</span>
+                <input
+                  key={`section-class-${section.id}-${section.cssClass ?? ''}`}
+                  type="text"
+                  className="gantry-inline-input gantry-section-class-input"
+                  defaultValue={section.cssClass ?? ''}
+                  disabled={metaPending}
+                  placeholder="e.g. dark-header"
+                  title="Space-separated CSS classes on the public section wrapper"
+                  aria-label="Section CSS classes"
+                  onBlur={(event) => persistSectionMeta({ cssClass: event.target.value })}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault()
+                      ;(event.target as HTMLInputElement).blur()
+                    }
+                  }}
+                />
+              </label>
+              <code className="layout-id">{section.id}</code>
+            </div>
+          </details>
         </div>
       </header>
       <ActionFeedback state={metaFlash} />
@@ -1237,7 +1360,6 @@ export function LayoutEditor({
       <div className="gantry-workspace">
         <aside className="gantry-palette" aria-label="Available particles">
           <h3>Particles</h3>
-          <p className="layout-muted">Drag a particle onto a row on the canvas.</p>
           <ul className="gantry-palette-list">
             {modules.map((mod) => (
               <li key={mod.id}>
@@ -1248,6 +1370,7 @@ export function LayoutEditor({
                       : 'gantry-palette-item'
                   }
                   draggable
+                  title={mod.description || mod.id}
                   onDragStart={(event) => {
                     event.dataTransfer.setData(DND_PARTICLE, mod.id)
                     event.dataTransfer.setData('text/plain', mod.id)
@@ -1256,9 +1379,10 @@ export function LayoutEditor({
                   }}
                   onDragEnd={() => setDraggingParticleId(null)}
                 >
+                  <span className="gantry-palette-icon" aria-hidden="true">
+                    ▣
+                  </span>
                   <strong>{mod.name}</strong>
-                  <span>{mod.description || mod.id}</span>
-                  {mod.builtin ? <em>built-in</em> : null}
                 </div>
               </li>
             ))}
@@ -1267,40 +1391,70 @@ export function LayoutEditor({
 
         <div className="gantry-canvas" aria-label="Layout canvas">
           <div className="gantry-canvas-toolbar">
-            <form action={sectionAction} className="layout-inline-form">
+            <form action={sectionAction} className="layout-inline-form gantry-toolbar-create">
               <LayoutIdField />
               <input type="text" name="label" placeholder="New section name" required />
-              <button type="submit" disabled={sectionPending}>
-                {sectionPending ? 'Adding…' : 'Create section'}
+              <button type="submit" className="gantry-toolbar-btn gantry-toolbar-btn-muted" disabled={sectionPending}>
+                {sectionPending ? 'Adding…' : '+ Section'}
               </button>
             </form>
-            <form action={resetAction}>
-              <LayoutIdField />
-              <button type="submit" className="secondary" disabled={resetPending}>
-                {resetPending ? 'Resetting…' : 'Reset to default'}
-              </button>
-            </form>
+            <div className="gantry-canvas-toolbar-end">
+              <div className="gantry-canvas-toolbar-primary">
+                <Link
+                  href="/app/admin/outlines"
+                  className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+                  title="Load / manage outlines"
+                >
+                  <span aria-hidden="true">⎇</span> Load
+                </Link>
+                <form action={resetAction} className="gantry-toolbar-clear-form">
+                  <LayoutIdField />
+                  <button
+                    type="submit"
+                    className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+                    disabled={resetPending}
+                    title="Reset outline to default layout"
+                  >
+                    <span aria-hidden="true">🗑</span>
+                    {resetPending ? 'Clearing…' : 'Clear'}
+                    <span aria-hidden="true" className="gantry-toolbar-caret">
+                      ▾
+                    </span>
+                  </button>
+                </form>
+                <button
+                  type="button"
+                  className="gantry-toolbar-btn gantry-toolbar-btn-save"
+                  title="Layout saves automatically — refresh the canvas"
+                  onClick={() => router.refresh()}
+                >
+                  <span aria-hidden="true">✓</span> Save Layout
+                </button>
+              </div>
+              <div className="gantry-canvas-toolbar-history" role="group" aria-label="History">
+                <button
+                  type="button"
+                  className="gantry-toolbar-btn gantry-toolbar-btn-quiet"
+                  disabled
+                  title="Undo (coming soon)"
+                >
+                  <span aria-hidden="true">↶</span> Undo
+                </button>
+                <button
+                  type="button"
+                  className="gantry-toolbar-btn gantry-toolbar-btn-quiet"
+                  disabled
+                  title="Redo (coming soon)"
+                >
+                  Redo <span aria-hidden="true">↷</span>
+                </button>
+              </div>
+            </div>
           </div>
           <ActionFeedback state={sectionState} />
           <ActionFeedback state={resetState} />
           <ActionFeedback state={reorderFlash} />
           {sectionPendingSave ? <p className="layout-muted">Saving section order…</p> : null}
-
-          <ol className="gantry-howto">
-            <li>
-              Create a <strong>section</strong> — edit its <strong>name</strong> /{' '}
-              <strong>CSS classes</strong>; drag the <strong>⋮⋮</strong> handle to reorder
-            </li>
-            <li>Add a <strong>row</strong> inside it</li>
-            <li>
-              <strong>Drag</strong> a particle from the left into the row — edit the instance{' '}
-              <strong>display name</strong> (type id stays the same)
-            </li>
-            <li>
-              Drop another beside it (side-by-side), then <strong>drag the divider</strong> — 1%
-              steps, 5%–95%, pair sums to 100%
-            </li>
-          </ol>
 
           {sectionList.length === 0 ? (
             <p className="admin-empty">No sections yet — create one to start.</p>

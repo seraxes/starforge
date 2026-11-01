@@ -15,6 +15,7 @@ import {
   newLayoutEntityId,
   sanitizeCssClassList,
   sanitizeDisplayName,
+  sanitizeHtmlId,
   slugifyLayoutId,
 } from './document'
 import { clampGridWidth, evenColumnWidths, LAYOUT_WIDTH_FULL, resizeAdjacentPair } from './grid'
@@ -25,6 +26,7 @@ import {
   DEFAULT_LAYOUT_BREAKPOINTS,
   normalizeLayoutBreakpoints,
   normalizeLayoutSectionStyles,
+  parseCssColorInput,
   sanitizeCssColor,
   type LayoutBreakpoints,
   type LayoutContainerMode,
@@ -62,6 +64,10 @@ export type LayoutActionState = {
   error?: string
   ok?: boolean
   message?: string
+  /** Saved particle config echoed for client hydrate after typed-slot saves. */
+  config?: LayoutSlotConfig
+  /** Saved HTML id / CSS class echoed for client hydrate after attribute saves. */
+  slotAttrs?: { htmlId?: string; cssClass?: string }
 }
 
 async function requireLayoutAdmin(): Promise<LayoutActionState | null> {
@@ -842,6 +848,58 @@ export async function updateCustomSlotAction(
   return state
 }
 
+/** Optional HTML id + CSS classes on any particle (public column wrapper). */
+export async function updateSlotAttributesAction(
+  _prev: LayoutActionState,
+  formData: FormData,
+): Promise<LayoutActionState> {
+  const sectionId = String(formData.get('sectionId') ?? '').trim()
+  const rowId = String(formData.get('rowId') ?? '').trim()
+  const slotId = String(formData.get('slotId') ?? '').trim()
+  if (!sectionId || !rowId || !slotId) return { error: 'Missing slot reference.' }
+
+  const htmlIdRaw = String(formData.get('htmlId') ?? '').trim()
+  let htmlId: string | undefined
+  if (htmlIdRaw) {
+    htmlId = sanitizeHtmlId(htmlIdRaw)
+    if (!htmlId) {
+      return {
+        error:
+          'HTML id must start with a letter or underscore and use only letters, digits, _, :, ., or -.',
+      }
+    }
+  }
+
+  const cssClassRaw = String(formData.get('cssClass') ?? '')
+  const cssClassTyped = cssClassRaw.trim()
+  const cssClass = sanitizeCssClassList(cssClassRaw)
+  if (cssClassTyped && !cssClass) {
+    return {
+      error:
+        'CSS class tokens must start with a letter or underscore (letters, digits, _, - only).',
+    }
+  }
+
+  const state = await mutateLayout(formData, (doc) => {
+    const found = findSlot(doc, sectionId, rowId, slotId)
+    if (!found) return { error: 'Slot not found.' }
+    if (htmlId) found.slot.htmlId = htmlId
+    else delete found.slot.htmlId
+    if (cssClass) found.slot.cssClass = cssClass
+    else delete found.slot.cssClass
+    return doc
+  })
+
+  if (state.ok) {
+    state.message = 'Particle attributes saved.'
+    state.slotAttrs = {
+      ...(htmlId ? { htmlId } : {}),
+      ...(cssClass ? { cssClass } : {}),
+    }
+  }
+  return state
+}
+
 export async function updateLogoSlotAction(
   _prev: LayoutActionState,
   formData: FormData,
@@ -852,6 +910,15 @@ export async function updateLogoSlotAction(
   if (!sectionId || !rowId || !slotId) return { error: 'Missing slot reference.' }
 
   const mode = String(formData.get('mode') ?? 'image') === 'text' ? 'text' : 'image'
+  const colorRaw = String(formData.get('color') ?? '').trim()
+  const colorParsed = parseCssColorInput(colorRaw)
+  if (colorParsed.status === 'invalid') {
+    return {
+      error: 'Color must be a CSS color (hex, rgb/rgba, hsl/hsla, or named). Leave blank to inherit.',
+    }
+  }
+  const color = colorParsed.status === 'ok' ? colorParsed.value : ''
+
   const maxWidthRaw = Number(formData.get('maxWidth'))
   const maxHeightRaw = Number(formData.get('maxHeight'))
   const fontSizeRaw = Number(formData.get('fontSize'))
@@ -865,7 +932,7 @@ export async function updateLogoSlotAction(
     linkUrl: String(formData.get('linkUrl') ?? '').trim(),
     text: String(formData.get('text') ?? '').trim(),
     fontFamily: String(formData.get('fontFamily') ?? '').trim(),
-    color: String(formData.get('color') ?? '').trim(),
+    color,
     ...(Number.isFinite(maxWidthRaw) && maxWidthRaw > 0
       ? { maxWidth: Math.round(maxWidthRaw) }
       : {}),
@@ -888,7 +955,10 @@ export async function updateLogoSlotAction(
     return doc
   })
 
-  if (state.ok) state.message = 'Logo / Image saved.'
+  if (state.ok) {
+    state.message = 'Logo / Image saved.'
+    state.config = config
+  }
   return state
 }
 

@@ -6,6 +6,7 @@ import config from '@payload-config'
 import { absoluteMediaUrl } from '@/core/content/metadata'
 import type { Media } from '@/payload-types'
 
+import { parseCssColorInput } from '../styles'
 import type { StarforgeModule } from '../types'
 import { readLogoConfig } from './config'
 
@@ -60,11 +61,12 @@ export const logoModule: StarforgeModule = {
     if (cfg.mode === 'text') {
       let label = (cfg.text ?? '').trim()
       if (!label) label = await resolveTextLogoFallback()
+      const colorParsed = parseCssColorInput(cfg.color ?? '')
       const style: React.CSSProperties = {
         fontFamily: (cfg.fontFamily ?? '').trim() || undefined,
         fontSize: cfg.fontSize ? `${cfg.fontSize}px` : undefined,
         fontWeight: cfg.fontWeight ?? 700,
-        color: (cfg.color ?? '').trim() || undefined,
+        color: colorParsed.status === 'ok' ? colorParsed.value : undefined,
         lineHeight: 1.15,
         margin: 0,
       }

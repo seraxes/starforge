@@ -1,9 +1,31 @@
 /*
  * CSS layers (keep separate — do not mix Page Settings / Custom into admin chrome):
- * 1) Design tokens — `:root` below (later Tailwind theme / SF-33 Core Styles)
+ * 1) Design tokens — `:root` / Tailwind `@theme` below (SF-33 Core Styles later)
  * 2) Outline Layout Styles — public `.sf-layout-section` width + section bg/text + breakpoints
  * 3) Custom CSS — Page Settings document chrome / Custom particle only
+ *
+ * Tailwind v4 (theme + utilities only — no preflight) so existing CSS keeps working.
+ * Core admin dark chrome is in admin-dark.css (scoped to .admin-shell).
  */
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+@source '../../**/*.{ts,tsx,js,jsx}';
+
+@theme {
+  --color-sf-primary: #f2a66a;
+  --color-sf-primary-strong: #a85220;
+  --color-sf-secondary: #8ebad4;
+  --color-sf-secondary-strong: #2f6f96;
+  --color-sf-ink: #1c2834;
+  --color-sf-muted: #5a6674;
+  --color-sf-paper: #f5f8fc;
+  --color-sf-line: #d3dce6;
+  --color-sf-admin-bg: #24334a;
+  --color-sf-admin-blue: #3498db;
+  --radius-sf: 0.375rem;
+}
 
 :root {
   /* —— Layer 1: design tokens —— */
@@ -542,44 +564,269 @@ button:disabled {
   padding: 3rem 1.5rem;
 }
 
-/* Core admin (`/app/admin/*`) — app users, not Payload */
+/* Core admin (`/app/admin/*`) — left sidebar + full-bleed content */
 .admin-shell {
   min-height: 100vh;
-  max-width: 64rem;
-  margin: 0 auto;
-  padding: 2rem 1.5rem 3rem;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0;
+}
+
+.admin-sidebar {
+  flex: 0 0 15.5rem;
+  width: 15.5rem;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.15rem 0.85rem 2rem;
+  border-right: 1px solid var(--sf-line);
+  background: color-mix(in srgb, var(--sf-ink) 6%, transparent);
+  /* Full viewport rail; sticky so the dark column stays to page bottom while content scrolls */
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  min-height: 100vh;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.admin-sidebar-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.admin-sidebar-brand .brand {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.admin-sidebar-title {
+  margin: 0.2rem 0 0;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.admin-sidebar-menu-toggle {
+  display: none;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--sf-line);
+  background: color-mix(in srgb, var(--sf-secondary) 14%, transparent);
+  color: var(--sf-secondary-strong);
+  font: inherit;
+  font-weight: 650;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.admin-sidebar-who {
+  padding: 0 0.15rem;
+}
+
+.admin-sidebar-who .admin-who {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.admin-sidebar-nav {
+  margin-top: 0.25rem;
+}
+
+.admin-sidebar-list,
+.admin-sidebar-sub {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-sidebar-item {
+  margin: 0 0 0.2rem;
+}
+
+.admin-sidebar-link,
+.admin-sidebar-group-head,
+.admin-sidebar-sublink {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  text-decoration: none;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: var(--sf-ink);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.admin-sidebar-link,
+.admin-sidebar-group-head {
+  padding: 0.45rem 0.6rem;
+  border-radius: 3px;
+}
+
+.admin-sidebar-group-head {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.admin-sidebar-group-title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.admin-sidebar-group-toggle {
+  flex: 0 0 auto;
+  color: var(--sf-muted);
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.admin-sidebar-sub {
+  margin: 0.1rem 0 0.35rem;
+  padding: 0.15rem 0 0.15rem 0.55rem;
+  border-left: 2px solid color-mix(in srgb, var(--sf-secondary) 35%, var(--sf-line));
+}
+
+.admin-sidebar-sublink {
+  padding: 0.35rem 0.55rem;
+  border-radius: 3px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--sf-muted);
+}
+
+/* Joomla/Gantry accent — bright mid-blue row hover/active */
+.admin-sidebar-link:hover,
+.admin-sidebar-group-head:hover,
+.admin-sidebar-sublink:hover {
+  background: #3498db;
+  color: #fff;
+}
+
+.admin-sidebar-link:hover,
+.admin-sidebar-group-head:hover .admin-sidebar-group-title,
+.admin-sidebar-group-head:hover .admin-sidebar-group-toggle,
+.admin-sidebar-sublink:hover {
+  color: #fff;
+}
+
+.admin-sidebar-link.is-current,
+.admin-sidebar-sublink.is-current,
+.admin-sidebar-item.is-active > .admin-sidebar-link,
+.admin-sidebar-item.is-active > .admin-sidebar-group-head {
+  background: #3498db;
+  color: #fff;
+}
+
+.admin-sidebar-item.is-active > .admin-sidebar-group-head .admin-sidebar-group-toggle {
+  color: #fff;
+}
+
+.admin-body {
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-}
-
-/*
- * Layouts family (Layout canvas, Outlines, Page settings) — full viewport width.
- * Marker: `.admin-layouts-full` on the page section (also keeps `.gantry-editor` for canvas).
- */
-.admin-shell:has(.admin-layouts-full),
-.admin-shell:has(.gantry-editor) {
-  max-width: none;
-  width: 100%;
-  margin: 0;
-  padding: 1.25rem 1.25rem 2.5rem;
+  padding: 2rem 1.5rem 3rem;
   box-sizing: border-box;
 }
 
-.admin-shell:has(.admin-layouts-full) .admin-lede,
-.admin-shell:has(.gantry-editor) .admin-lede {
+.admin-shell .admin-main,
+.admin-shell .admin-section,
+.admin-shell .admin-lede,
+.admin-shell .settings-form,
+.admin-shell .settings-form-wide,
+.admin-shell .breakpoints-form,
+.admin-shell .page-settings-form.settings-form {
+  width: 100%;
   max-width: none;
 }
 
-.admin-shell:has(.admin-layouts-full) .admin-main,
-.admin-shell:has(.gantry-editor) .admin-main {
-  max-width: none;
-  width: 100%;
+/*
+ * Layouts family:
+ * - `.admin-layouts-full` / `.gantry-editor` — denser Layout canvas padding
+ * - `.admin-layouts-padded` — Styles / Page settings / Particle Defaults / Outlines
+ * Both share the same full-bleed content width as other Core admin pages.
+ */
+.admin-shell:has(.admin-layouts-full) .admin-body,
+.admin-shell:has(.gantry-editor) .admin-body {
+  padding: 1.25rem 1.25rem 2.5rem;
 }
 
-.admin-layouts-full {
+.admin-layouts-full,
+.admin-layouts-padded {
   width: 100%;
   max-width: none;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+@media (max-width: 900px) {
+  .admin-shell {
+    flex-direction: column;
+  }
+
+  .admin-sidebar {
+    flex: 0 0 auto;
+    width: 100%;
+    border-right: 0;
+    border-bottom: 1px solid var(--sf-line);
+    padding: 0.85rem 1rem 0.75rem;
+    position: relative;
+    min-height: 0;
+    height: auto;
+    overflow: visible;
+  }
+
+  .admin-sidebar-menu-toggle {
+    display: inline-flex;
+  }
+
+  .admin-sidebar-who,
+  .admin-sidebar-nav {
+    display: none;
+  }
+
+  .admin-sidebar[data-mobile-open='true'] .admin-sidebar-who,
+  .admin-sidebar[data-mobile-open='true'] .admin-sidebar-nav {
+    display: block;
+  }
+
+  .admin-sidebar[data-mobile-open='true'] .admin-sidebar-who {
+    margin-bottom: 0.35rem;
+  }
+
+  .admin-body {
+    padding: 1.35rem 1.15rem 2rem;
+  }
+
+  .admin-shell:has(.admin-layouts-full) .admin-body,
+  .admin-shell:has(.gantry-editor) .admin-body {
+    padding: 1.15rem 1rem 2rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-body {
+    padding: 1.15rem 1rem 1.75rem;
+  }
 }
 
 .admin-header {
@@ -598,7 +845,8 @@ button:disabled {
 
 .admin-lede {
   margin: 0.35rem 0 0;
-  max-width: 40rem;
+  max-width: none;
+  width: 100%;
   font-size: 0.98rem;
 }
 
@@ -609,6 +857,7 @@ button:disabled {
   align-self: flex-start;
 }
 
+/* Legacy horizontal nav kept for any leftover markup; Core admin uses sidebar. */
 .admin-nav {
   display: flex;
   flex-wrap: wrap;
@@ -626,7 +875,6 @@ button:disabled {
   font-weight: 600;
 }
 
-/* Gantry-like: hover/focus reveals submenu; parent click still goes to default child. */
 .admin-nav-dropdown {
   position: relative;
   display: inline-flex;
@@ -657,7 +905,6 @@ button:disabled {
   border: 1px solid var(--sf-line);
   background: #fff;
   box-shadow: 0 8px 20px color-mix(in srgb, var(--sf-ink) 12%, transparent);
-  /* Keep a hover bridge so the menu does not vanish in the 1px gap. */
   padding-top: 0.45rem;
   margin-top: 0;
   visibility: hidden;
@@ -935,12 +1182,14 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  max-width: 40rem;
+  width: 100%;
+  max-width: none;
   margin-top: 1rem;
 }
 
 .settings-form-wide {
-  max-width: 48rem;
+  width: 100%;
+  max-width: none;
 }
 
 .settings-modules-subhead {
@@ -1849,7 +2098,8 @@ button:disabled {
 }
 
 .breakpoints-form {
-  max-width: 48rem;
+  width: 100%;
+  max-width: none;
   margin-top: 0.5rem;
 }
 
@@ -2126,15 +2376,38 @@ button:disabled {
   position: fixed;
   z-index: 81;
   pointer-events: auto;
-  max-height: min(70vh, 640px);
+  max-height: min(75vh, 680px);
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
   border: 1px solid var(--sf-line);
+  /* Default light; `.gantry-settings-theme-dark` overrides for Core admin */
   background: #fff;
   box-shadow:
     0 12px 32px color-mix(in srgb, var(--sf-ink, #1a1a1a) 18%, transparent),
     0 2px 8px color-mix(in srgb, var(--sf-ink, #1a1a1a) 8%, transparent);
+}
+
+.gantry-settings-tabs {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.gantry-settings-tablist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0 0 0.75rem;
+}
+
+.gantry-settings-tab {
+  font: inherit;
+  cursor: pointer;
+}
+
+.gantry-settings-tabpanel {
+  min-height: 0;
 }
 
 .gantry-settings-panel-head {
@@ -2188,6 +2461,17 @@ button:disabled {
 }
 
 .gantry-custom-form,
+.gantry-particle-config-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.gantry-particle-attrs {
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--sf-line);
+}
+
 .gantry-typed-form {
   display: flex;
   flex-direction: column;

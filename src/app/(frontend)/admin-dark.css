@@ -1,0 +1,1622 @@
+/*
+ * Core admin dark chrome (Gantry 5–like) — scoped to `.admin-shell`.
+ * Dark navy + mid/light blue panels/borders (Gantry Helium), orange only for
+ * primary actions. No green accents. Public site stays light in styles.css.
+ */
+
+/* Prevent the public light body wash from peeking around admin chrome. */
+body:has(.admin-shell) {
+  background: #152033;
+  color: #e8eef8;
+}
+
+body:has(.admin-shell) > main {
+  min-height: 100vh;
+  background: transparent;
+}
+
+.admin-shell {
+  /* —— Steal Gantry Helium layout chrome —— */
+  --sf-admin-bg: #212933; /* denser Gantry navy canvas */
+  --sf-admin-bg-deep: #1a222e;
+  --sf-admin-surface: #1b2531;
+  --sf-admin-elevated: #222e3f;
+  --sf-admin-section: transparent;
+  --sf-admin-card: #3498db; /* solid mid-blue particle bars */
+  --sf-admin-card-light: #4691d1;
+  --sf-admin-input: #152033;
+  --sf-admin-blue-border: #1e4d72;
+  --sf-admin-blue-mid: #3498db;
+  --sf-admin-drop-bg: #161e2b; /* empty drop zone — recessed Gantry navy */
+  --sf-admin-blue-action: #2f80b9;
+  --sf-admin-toolbar-muted: #405475;
+  --sf-admin-nav-bar: #1b2431;
+  --sf-admin-nav-active: #263248;
+
+  /* Remap shared brand aliases used by existing admin/gantry CSS */
+  --sf-ink: #ffffff;
+  --sf-muted: #9eb1c7;
+  --sf-paper: var(--sf-admin-bg);
+  --sf-line: #3d5270;
+
+  /* Orange = primary actions only; blue = chrome / secondary */
+  --sf-primary: #f2a66a;
+  --sf-primary-strong: #f5b888;
+  --sf-primary-ink: #1c2834;
+  --sf-secondary: #8ebad4;
+  --sf-secondary-strong: #b7d6ec;
+  --sf-secondary-ink: #e8eef8;
+  --sf-accent: var(--sf-primary);
+  --sf-accent-ink: #1c2834;
+
+  /* shadcn-compatible CSS variables (admin scope) */
+  --background: var(--sf-admin-bg);
+  --foreground: var(--sf-ink);
+  --card: var(--sf-admin-card);
+  --card-foreground: var(--sf-ink);
+  --popover: var(--sf-admin-elevated);
+  --popover-foreground: var(--sf-ink);
+  --primary: var(--sf-primary);
+  --primary-foreground: var(--sf-primary-ink);
+  --secondary: color-mix(in srgb, var(--sf-secondary) 28%, var(--sf-admin-surface));
+  --secondary-foreground: var(--sf-secondary-strong);
+  --muted: var(--sf-admin-surface);
+  --muted-foreground: var(--sf-muted);
+  --accent: color-mix(in srgb, var(--sf-secondary) 22%, var(--sf-admin-surface));
+  --accent-foreground: var(--sf-secondary-strong);
+  --destructive: #c45c5c;
+  --destructive-foreground: #f5d0d0;
+  --border: var(--sf-line);
+  --input: var(--sf-admin-input);
+  --ring: var(--sf-secondary-strong);
+  --radius: 0.375rem;
+
+  color: var(--sf-ink);
+  /* Site Settings–style subtle blue light wash (padded admin pages) */
+  background:
+    radial-gradient(
+      980px 520px at 0% -10%,
+      color-mix(in srgb, var(--sf-secondary) 16%, transparent) 0%,
+      transparent 58%
+    ),
+    radial-gradient(
+      860px 460px at 100% -4%,
+      color-mix(in srgb, var(--sf-admin-blue-mid) 24%, transparent) 0%,
+      transparent 52%
+    ),
+    linear-gradient(180deg, #1a2638 0%, #24334a 42%, #24334a 100%);
+}
+
+/* Layout editor full-bleed denser navy (keep glow on padded Styles/settings pages) */
+.admin-shell:has(.gantry-editor),
+.admin-shell:has(.admin-layouts-full) {
+  background: var(--sf-admin-bg);
+}
+
+/* —— Gantry Layouts top nav (outline + icon tabs) —— */
+.admin-shell .gantry-layouts-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.85rem 1.25rem;
+  margin: 0 0 0.85rem;
+  padding: 0.35rem 0.5rem;
+  background: var(--sf-admin-nav-bar);
+  border: 1px solid #243246;
+  border-radius: 3px;
+  min-height: 2.85rem;
+}
+
+.admin-shell .gantry-layouts-nav-outline {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 0.25rem;
+}
+
+.admin-shell .gantry-layouts-nav-outline-select {
+  appearance: none;
+  min-width: 10rem;
+  margin: 0;
+  padding: 0.4rem 1.75rem 0.4rem 0.7rem;
+  border: 1px solid #314257;
+  border-radius: 3px;
+  background:
+    linear-gradient(45deg, transparent 50%, #fff 50%) right 0.7rem top 0.8rem / 0.35rem 0.35rem
+      no-repeat,
+    linear-gradient(135deg, transparent 50%, #fff 50%) right 0.45rem top 0.8rem / 0.35rem 0.35rem
+      no-repeat,
+    #161e2b;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.admin-shell .gantry-layouts-nav-outline-manage {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.5rem;
+  border: 1px solid #314257;
+  border-radius: 3px;
+  background: #161e2b;
+  color: #fff;
+  text-decoration: none;
+  font-size: 0.78rem;
+}
+
+.admin-shell .gantry-layouts-nav-outline-manage:hover {
+  background: var(--sf-admin-nav-active);
+  color: #fff;
+}
+
+.admin-shell .gantry-layouts-nav-tabs {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.15rem 0.35rem;
+  margin: 0;
+  padding: 0;
+  flex: 1 1 auto;
+}
+
+.admin-shell .gantry-layouts-nav-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1rem;
+  border-radius: 0;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 650;
+  font-size: 0.88rem;
+}
+
+.admin-shell .gantry-layouts-nav-tab:hover {
+  background: color-mix(in srgb, var(--sf-admin-nav-active) 70%, transparent);
+  color: #fff;
+}
+
+.admin-shell .gantry-layouts-nav-tab.is-active {
+  background: var(--sf-admin-nav-active);
+  box-shadow: none;
+  color: #fff;
+}
+
+.admin-shell .gantry-layouts-nav-tab-icon {
+  opacity: 0.95;
+  font-size: 0.92rem;
+  line-height: 1;
+}
+
+.admin-shell .gantry-layouts-lede {
+  max-width: none;
+  margin-top: 0;
+  font-size: 0.92rem;
+}
+
+/* Cards / panels — elevated navy surfaces (not input wells). */
+.admin-shell .admin-nav-dropdown-menu,
+.admin-shell .gantry-settings-panel,
+.admin-shell .settings-fieldset,
+.admin-shell .settings-modules-row,
+.admin-shell .page-settings-panel,
+.admin-shell .page-settings-atom-row,
+.admin-shell .outlines-create,
+.admin-shell .outlines-table-wrap,
+.admin-shell .nav-item-card,
+.admin-shell .layout-json-preview,
+.admin-shell .sf-code-field-panel,
+.admin-shell .admin-card,
+.admin-shell .admin-panel,
+.admin-shell .acl-page .outlines-create,
+.admin-shell .group-detail-manager .outlines-create,
+.admin-shell .forms-admin-card,
+.admin-shell .site-chrome-preview,
+.admin-shell .cms-bridge-card {
+  background: color-mix(in srgb, var(--sf-secondary) 8%, var(--sf-admin-surface));
+  color: var(--sf-ink);
+  border: 1px solid var(--sf-line);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 5%, transparent);
+}
+
+/* Form controls — deep input wells */
+.admin-shell .gantry-palette-item,
+.admin-shell .admin-inline-form select,
+.admin-shell .layout-inline-form input[type='text'],
+.admin-shell .layout-inline-form select,
+.admin-shell .gantry-palette-width select,
+.admin-shell .gantry-width-form select,
+.admin-shell .gantry-inline-input,
+.admin-shell .gantry-typed-form input[type='text'],
+.admin-shell .gantry-typed-form input[type='url'],
+.admin-shell .gantry-typed-form input[type='number'],
+.admin-shell .gantry-typed-form input[type='email'],
+.admin-shell .gantry-typed-form textarea,
+.admin-shell .gantry-typed-form select,
+.admin-shell .gantry-custom-title input[type='text'],
+.admin-shell .settings-field input[type='text'],
+.admin-shell .settings-field input[type='url'],
+.admin-shell .settings-field select,
+.admin-shell .settings-field textarea,
+.admin-shell .settings-nav-row input,
+.admin-shell .page-settings-picker select,
+.admin-shell .page-settings-asset-list input[type='text'],
+.admin-shell .page-settings-asset-list input[type='url'],
+.admin-shell .page-settings-panel-body textarea,
+.admin-shell .page-settings-panel-body select,
+.admin-shell .page-settings-panel-body input[type='text'],
+.admin-shell .page-settings-panel-body input[type='url'],
+.admin-shell .outlines-inline-form input[type='text'],
+.admin-shell .layout-outline-switcher-form,
+.admin-shell .admin-inline-form input[type='text'],
+.admin-shell .admin-inline-form input[type='email'],
+.admin-shell .admin-inline-form input[type='password'],
+.admin-shell .admin-inline-form input[type='number'],
+.admin-shell .admin-inline-form textarea,
+.admin-shell .outlines-inline-form select,
+.admin-shell .acl-matrix-form select,
+.admin-shell .admin-groups-form input,
+.admin-shell .admin-groups-form select {
+  background: var(--sf-admin-input);
+  color: var(--sf-ink);
+  border: 1px solid var(--sf-admin-blue-border);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 6%, transparent);
+}
+
+.admin-shell .admin-inline-form select,
+.admin-shell .layout-inline-form input[type='text'],
+.admin-shell .layout-inline-form select,
+.admin-shell .gantry-inline-input,
+.admin-shell .gantry-section-name-input,
+.admin-shell .gantry-section-class-input,
+.admin-shell .gantry-slot-name-input,
+.admin-shell .settings-field input[type='text'],
+.admin-shell .settings-field input[type='url'],
+.admin-shell .settings-field select,
+.admin-shell .settings-field textarea,
+.admin-shell .gantry-typed-form input[type='text'],
+.admin-shell .gantry-typed-form input[type='url'],
+.admin-shell .gantry-typed-form input[type='number'],
+.admin-shell .gantry-typed-form input[type='email'],
+.admin-shell .gantry-typed-form textarea,
+.admin-shell .gantry-typed-form select {
+  background: var(--sf-admin-input) !important;
+  border: 1px solid var(--sf-admin-blue-border) !important;
+  color: var(--sf-ink) !important;
+  min-height: 2.1rem;
+}
+
+.admin-shell .gantry-inline-input:focus,
+.admin-shell .gantry-section-name-input:focus,
+.admin-shell .gantry-slot-name-input:focus,
+.admin-shell input:focus,
+.admin-shell select:focus,
+.admin-shell textarea:focus {
+  outline: 2px solid color-mix(in srgb, var(--sf-admin-blue-border) 75%, white);
+  outline-offset: 1px;
+}
+
+.admin-shell .admin-header {
+  border-bottom-color: var(--sf-line);
+}
+
+.admin-shell .brand,
+.admin-shell .brand a {
+  color: var(--sf-primary-strong);
+}
+
+/* Joomla-style left sidebar — a few shades darker than content canvas */
+.admin-shell .admin-sidebar {
+  background:
+    linear-gradient(180deg, #0c121c 0%, #0f1622 48%, #0d141e 100%);
+  border-right-color: #1a2433;
+  box-shadow: inset -1px 0 0 color-mix(in srgb, #000 40%, transparent);
+}
+
+.admin-shell .admin-sidebar-title {
+  color: #fff;
+}
+
+.admin-shell .admin-sidebar-menu-toggle {
+  background: var(--sf-admin-surface);
+  border-color: #314257;
+  color: #fff;
+}
+
+.admin-shell .admin-sidebar-menu-toggle:hover {
+  background: var(--sf-admin-nav-active);
+  border-color: var(--sf-admin-blue-border);
+}
+
+.admin-shell .admin-sidebar-link,
+.admin-shell .admin-sidebar-group-head {
+  color: #e8eef8;
+}
+
+.admin-shell .admin-sidebar-sub {
+  border-left-color: #314257;
+}
+
+.admin-shell .admin-sidebar-sublink {
+  color: #9eb1c7;
+}
+
+.admin-shell .admin-sidebar-group-toggle {
+  color: #8fa3bb;
+}
+
+/* Bright mid-blue hover/active rows (Gantry/Joomla ~#3498db) */
+.admin-shell .admin-sidebar-link:hover,
+.admin-shell .admin-sidebar-group-head:hover,
+.admin-shell .admin-sidebar-sublink:hover,
+.admin-shell .admin-sidebar-link.is-current,
+.admin-shell .admin-sidebar-sublink.is-current,
+.admin-shell .admin-sidebar-item.is-active > .admin-sidebar-link,
+.admin-shell .admin-sidebar-item.is-active > .admin-sidebar-group-head {
+  background: var(--sf-admin-blue-mid); /* #3498db */
+  color: #fff;
+  box-shadow: none;
+}
+
+.admin-shell .admin-sidebar-group-head:hover .admin-sidebar-group-toggle,
+.admin-shell .admin-sidebar-item.is-active > .admin-sidebar-group-head .admin-sidebar-group-toggle {
+  color: #fff;
+}
+
+.admin-shell .admin-nav {
+  gap: 0.35rem;
+  padding-bottom: 0.85rem;
+  border-bottom-color: var(--sf-line);
+}
+
+.admin-shell .admin-nav > a,
+.admin-shell .admin-nav-dropdown-trigger {
+  background: var(--sf-admin-surface);
+  border: 1px solid #314257;
+  border-radius: 3px;
+  color: #fff;
+  font-weight: 650;
+}
+
+.admin-shell .admin-nav > a:hover,
+.admin-shell .admin-nav-dropdown-trigger:hover {
+  background: var(--sf-admin-nav-active);
+  border-color: var(--sf-admin-blue-border);
+  color: #fff;
+}
+
+.admin-shell .admin-nav-dropdown-menu {
+  background: var(--sf-admin-elevated);
+  border-color: var(--sf-admin-blue-border);
+  box-shadow: 0 10px 28px color-mix(in srgb, #000 35%, transparent);
+}
+
+.admin-shell .admin-nav-dropdown-menu a {
+  color: var(--sf-ink);
+}
+
+.admin-shell .admin-nav-dropdown-menu a:hover,
+.admin-shell .admin-nav-dropdown-menu a:focus-visible {
+  background: color-mix(in srgb, var(--sf-secondary) 22%, var(--sf-admin-surface));
+  color: var(--sf-secondary-strong);
+}
+
+@media (max-width: 900px) {
+  .admin-shell .admin-sidebar {
+    background: #0c121c;
+    border-bottom-color: #1a2433;
+    box-shadow: none;
+  }
+}
+
+.admin-shell .admin-table-wrap,
+.admin-shell .admin-table th,
+.admin-shell .admin-table td {
+  border-color: var(--sf-line);
+}
+
+.admin-shell .admin-inline-ok,
+.admin-shell .admin-badge {
+  color: var(--sf-secondary-strong);
+}
+
+/*
+ * Default chrome actions → solid mid-blue (visible on dark).
+ * `.primary` / Save → pastel orange (Starforge).
+ */
+.admin-shell .layout-inline-form button,
+.admin-shell .gantry-section-actions button,
+.admin-shell .gantry-row-actions button,
+.admin-shell .gantry-row-meta button,
+.admin-shell .gantry-slot-actions button,
+.admin-shell .gantry-width-form button,
+.admin-shell .gantry-custom-form button,
+.admin-shell .gantry-typed-form button,
+.admin-shell .gantry-canvas-toolbar button,
+.admin-shell .gantry-settings-panel-head button,
+.admin-shell .gantry-settings-trigger,
+.admin-shell .button-link,
+.admin-shell button.secondary,
+.admin-shell .links .secondary,
+.admin-shell .cms-bridge-actions .secondary {
+  background: var(--sf-admin-blue-action);
+  border: 1px solid var(--sf-admin-blue-border);
+  color: #fff;
+  font-weight: 650;
+}
+
+.admin-shell .layout-inline-form button:hover,
+.admin-shell .gantry-section-actions button:hover,
+.admin-shell .gantry-row-actions button:hover,
+.admin-shell .gantry-slot-actions button:hover,
+.admin-shell .gantry-canvas-toolbar button:hover,
+.admin-shell .gantry-settings-trigger:hover,
+.admin-shell button.secondary:hover {
+  background: var(--sf-admin-blue-mid);
+  border-color: color-mix(in srgb, var(--sf-admin-blue-border) 70%, white);
+}
+
+/* Orange = primary Save across all Core admin forms */
+.admin-shell button.primary,
+.admin-shell .links .primary,
+.admin-shell .cms-bridge-actions .primary,
+.admin-shell .gantry-canvas-toolbar button.primary,
+.admin-shell .layout-inline-form button.primary,
+.admin-shell .gantry-typed-form button.primary,
+.admin-shell .gantry-custom-form button.primary,
+.admin-shell .gantry-settings-panel-head button.primary,
+.admin-shell .settings-form button[type='submit']:not(.secondary):not(.danger):not(.ghost),
+.admin-shell .page-settings-form button[type='submit']:not(.secondary):not(.danger):not(.ghost),
+.admin-shell .page-settings-actions button[type='submit']:not(.secondary):not(.danger),
+.admin-shell .breakpoints-form button[type='submit'],
+.admin-shell .outlines-create button[type='submit']:not(.secondary):not(.danger),
+.admin-shell .outlines-inline-form button[type='submit']:not(.danger),
+.admin-shell .admin-inline-form button[type='submit']:not(.secondary):not(.danger),
+.admin-shell .admin-groups-form button[type='submit']:not(.danger),
+.admin-shell .acl-matrix-form > button[type='submit'],
+.admin-shell .site-chrome-form button[type='submit']:not(.secondary):not(.danger),
+.admin-shell .nav-manager button[type='submit']:not(.secondary):not(.danger),
+.admin-shell .forms-admin button[type='submit']:not(.secondary):not(.danger) {
+  background: var(--sf-primary);
+  border: 1px solid color-mix(in srgb, var(--sf-primary) 65%, var(--sf-primary-strong));
+  color: var(--sf-primary-ink);
+  font-weight: 650;
+}
+
+.admin-shell button.primary:hover,
+.admin-shell .gantry-canvas-toolbar button.primary:hover,
+.admin-shell .settings-form button[type='submit']:not(.secondary):not(.danger):not(.ghost):hover,
+.admin-shell .page-settings-actions button[type='submit']:not(.secondary):not(.danger):hover,
+.admin-shell .breakpoints-form button[type='submit']:hover,
+.admin-shell .outlines-create button[type='submit']:not(.secondary):not(.danger):hover {
+  background: color-mix(in srgb, var(--sf-primary) 82%, var(--sf-primary-strong));
+}
+
+.admin-shell .gantry-row-actions button.danger,
+.admin-shell .gantry-row-meta button.danger,
+.admin-shell .gantry-slot-actions button.danger,
+.admin-shell .gantry-typed-form button.danger,
+.admin-shell button.danger,
+.admin-shell .outlines-actions .danger {
+  background: color-mix(in srgb, #c45c5c 22%, var(--sf-admin-surface));
+  color: #f0b4b4;
+  border-color: color-mix(in srgb, #c45c5c 40%, var(--sf-line));
+}
+
+/* —— Layout editor: steal Gantry Helium —— */
+.admin-shell .gantry-editor {
+  gap: 0.75rem;
+}
+
+.admin-shell .gantry-editor > .layout-source {
+  margin: 0 0 0.15rem;
+  font-size: 0.8rem;
+  color: #8fa3ba;
+}
+
+.admin-shell .gantry-workspace {
+  gap: 0.75rem;
+  grid-template-columns: minmax(12rem, 14.5rem) minmax(0, 1fr);
+}
+
+.admin-shell .gantry-palette {
+  background: #1b2531;
+  border: 1px solid #243246;
+  border-radius: 3px;
+  padding: 0.55rem 0.55rem 0.65rem;
+}
+
+.admin-shell .gantry-palette h3 {
+  color: #c5d2e0;
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+  font-weight: 600;
+  margin: 0 0 0.45rem;
+  text-transform: none;
+}
+
+.admin-shell .gantry-palette-list {
+  gap: 0.28rem;
+}
+
+.admin-shell .gantry-palette-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.45rem;
+  background: #182230;
+  border: 1px solid var(--sf-admin-blue-border);
+  border-radius: 3px;
+  color: #fff;
+  padding: 0.35rem 0.45rem;
+  min-height: 2.05rem;
+}
+
+.admin-shell .gantry-palette-icon {
+  flex: 0 0 auto;
+  width: 1.05rem;
+  text-align: center;
+  opacity: 0.9;
+  font-size: 0.8rem;
+}
+
+.admin-shell .gantry-palette-item strong {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.admin-shell .gantry-palette-item:active,
+.admin-shell .gantry-palette-item.is-dragging {
+  border-color: #3498db;
+  background: color-mix(in srgb, var(--sf-admin-blue-mid) 28%, #1b2531);
+}
+
+.admin-shell .gantry-canvas {
+  background: transparent;
+  min-width: 0;
+}
+
+.admin-shell .gantry-canvas-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.55rem 0.85rem;
+  padding: 0.25rem 0;
+  margin-bottom: 0.55rem;
+  background: transparent;
+  border: 0;
+}
+
+.admin-shell .gantry-canvas-toolbar-end {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+}
+
+.admin-shell .gantry-canvas-toolbar-primary,
+.admin-shell .gantry-canvas-toolbar-history {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.admin-shell .gantry-toolbar-clear-form {
+  display: inline-flex;
+  margin: 0;
+}
+
+/* Gantry toolbar: Load/Clear muted · Save = Starforge orange · Undo/Redo quiet */
+.admin-shell .gantry-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0.4rem 0.75rem;
+  border: 0;
+  border-radius: 3px;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 650;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.admin-shell .gantry-toolbar-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.admin-shell .gantry-canvas-toolbar .gantry-toolbar-btn-muted,
+.admin-shell .gantry-canvas-toolbar a.gantry-toolbar-btn-muted,
+.admin-shell .gantry-canvas-toolbar button.gantry-toolbar-btn-muted {
+  background: var(--sf-admin-toolbar-muted);
+  border: 0;
+  color: #fff;
+}
+
+.admin-shell .gantry-canvas-toolbar .gantry-toolbar-btn-muted:hover:not(:disabled),
+.admin-shell .gantry-canvas-toolbar a.gantry-toolbar-btn-muted:hover {
+  background: #4a6085;
+  color: #fff;
+}
+
+.admin-shell .gantry-canvas-toolbar .gantry-toolbar-btn-save,
+.admin-shell .gantry-canvas-toolbar button.gantry-toolbar-btn-save,
+.admin-shell .gantry-canvas-toolbar button.primary {
+  background: var(--sf-primary);
+  border: 0;
+  color: var(--sf-primary-ink);
+}
+
+.admin-shell .gantry-canvas-toolbar .gantry-toolbar-btn-save:hover:not(:disabled),
+.admin-shell .gantry-canvas-toolbar button.gantry-toolbar-btn-save:hover:not(:disabled),
+.admin-shell .gantry-canvas-toolbar button.primary:hover {
+  background: var(--sf-primary-strong);
+  color: var(--sf-primary-ink);
+}
+
+.admin-shell .gantry-canvas-toolbar .gantry-toolbar-btn-quiet,
+.admin-shell .gantry-canvas-toolbar button.gantry-toolbar-btn-quiet {
+  background: #2c3648;
+  border: 0;
+  color: #7f93aa;
+  padding: 0.28rem 0.55rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.admin-shell .gantry-canvas-toolbar .gantry-toolbar-btn-quiet:hover:not(:disabled) {
+  background: #354358;
+  color: #c5d2e0;
+}
+
+.admin-shell .gantry-toolbar-caret {
+  margin-left: 0.15rem;
+  font-size: 0.75em;
+  opacity: 0.9;
+}
+
+/* Section chrome — white title + / gear; particles are the blue bars */
+.admin-shell .gantry-section {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  border-radius: 0;
+  overflow: visible;
+}
+
+.admin-shell .gantry-section.is-section-drop-before {
+  box-shadow: inset 0 3px 0 0 var(--sf-admin-blue-mid);
+}
+
+.admin-shell .gantry-section.is-section-drop-after {
+  box-shadow: inset 0 -3px 0 0 var(--sf-admin-blue-mid);
+}
+
+.admin-shell .gantry-section-head {
+  margin: 0 0 0.35rem;
+  padding: 0.05rem 0;
+  background: transparent;
+  border: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem;
+}
+
+.admin-shell .gantry-section-title {
+  gap: 0.35rem;
+}
+
+.admin-shell .gantry-section-handle {
+  background: transparent;
+  border: 0;
+  color: #9eb1c7;
+  padding: 0.1rem 0.2rem;
+}
+
+.admin-shell .gantry-section-name-input {
+  background: transparent !important;
+  border: 0 !important;
+  border-bottom: 1px dashed color-mix(in srgb, #fff 18%, transparent) !important;
+  color: #fff !important;
+  font-size: 0.98rem !important;
+  font-weight: 650 !important;
+  min-height: 1.45rem !important;
+  padding: 0.05rem 0.15rem !important;
+  max-width: 16rem;
+  box-shadow: none !important;
+}
+
+.admin-shell .gantry-section-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.admin-shell .gantry-section-icon-btn,
+.admin-shell .gantry-section-actions .gantry-section-icon-btn,
+.admin-shell .gantry-section-settings > summary.gantry-section-icon-btn {
+  appearance: none;
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: #c5d2e0;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.admin-shell .gantry-section-icon-btn:hover,
+.admin-shell .gantry-section-settings > summary:hover {
+  background: color-mix(in srgb, var(--sf-admin-blue-mid) 22%, transparent);
+  color: #fff;
+}
+
+.admin-shell .gantry-section-settings {
+  position: relative;
+}
+
+.admin-shell .gantry-section-settings > summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-shell .gantry-section-settings[open] > .gantry-section-toolbar {
+  display: grid;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.3rem);
+  z-index: 30;
+  min-width: 17.5rem;
+  gap: 0.55rem;
+  padding: 0.65rem;
+  background: #1b2531;
+  border: 1px solid var(--sf-admin-blue-border);
+  border-radius: 3px;
+  box-shadow: 0 10px 24px color-mix(in srgb, #000 42%, transparent);
+}
+
+.admin-shell .gantry-section-settings:not([open]) > .gantry-section-toolbar {
+  display: none;
+}
+
+.admin-shell .gantry-sections {
+  gap: 0.95rem;
+}
+
+.admin-shell .gantry-sections > .gantry-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding-bottom: 0.1rem;
+}
+
+.admin-shell .gantry-row {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  border-radius: 0;
+}
+
+.admin-shell .gantry-row-meta {
+  margin-bottom: 0.25rem;
+  opacity: 0.75;
+  font-size: 0.78rem;
+}
+
+.admin-shell .gantry-row.is-drop-target {
+  outline: 1px dashed var(--sf-admin-blue-border);
+  outline-offset: 2px;
+  background: color-mix(in srgb, var(--sf-admin-blue-mid) 10%, transparent);
+}
+
+.admin-shell .gantry-row-slots {
+  gap: 0.28rem;
+  min-height: 2.75rem;
+}
+
+.admin-shell .gantry-row-empty {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.55rem 0.65rem;
+  background: var(--sf-admin-drop-bg);
+  border: 1px solid #121924;
+  box-shadow: inset 0 1px 2px color-mix(in srgb, #000 40%, transparent);
+  border-radius: 3px;
+  color: #7f93aa;
+  font-size: 0.84rem;
+  font-weight: 400;
+}
+
+.admin-shell .gantry-row.is-drop-target .gantry-row-empty {
+  border-color: #1e4d72;
+  background: #1a2433;
+  color: #b7d6ec;
+}
+
+/* Particle bars — flat Gantry mid-blue, tight padding, subtle radius */
+.admin-shell .gantry-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: var(--sf-admin-card);
+  border: 1px solid #1a6ea3;
+  border-radius: 3px;
+  color: #fff;
+  padding: 0.32rem 0.45rem;
+  min-height: 2.65rem;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 12%, transparent);
+}
+
+.admin-shell .gantry-slot,
+.admin-shell .gantry-slot * {
+  color: #fff;
+}
+
+.admin-shell .gantry-slot .admin-badge,
+.admin-shell .gantry-slot code,
+.admin-shell .gantry-slot .settings-hint,
+.admin-shell .gantry-slot .gantry-field-hint,
+.admin-shell .gantry-slot label,
+.admin-shell .gantry-slot span,
+.admin-shell .gantry-slot strong,
+.admin-shell .gantry-slot p {
+  color: #fff !important;
+}
+
+.admin-shell .gantry-slot-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.admin-shell .gantry-slot-title {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.admin-shell .gantry-slot-labels {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.admin-shell .gantry-slot-name-label {
+  margin: 0;
+}
+
+.admin-shell .gantry-slot .gantry-slot-name-input {
+  background: transparent !important;
+  border: 0 !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff;
+  caret-color: #fff;
+  font-weight: 700 !important;
+  font-size: 0.88rem !important;
+  min-height: 1.15rem !important;
+  padding: 0 !important;
+  max-width: none;
+  width: 100%;
+  box-shadow: none !important;
+}
+
+.admin-shell .gantry-slot .gantry-slot-name-input::placeholder {
+  color: rgba(255, 255, 255, 0.85);
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.85);
+  opacity: 1;
+}
+
+.admin-shell .gantry-slot-sub {
+  font-size: 0.68rem;
+  line-height: 1.15;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.82) !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-shell .gantry-slot-end {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex: 0 0 auto;
+}
+
+.admin-shell .gantry-slot.is-slot-drop-before {
+  box-shadow: inset 3px 0 0 #fff;
+}
+
+.admin-shell .gantry-slot.is-slot-drop-after {
+  box-shadow: inset -3px 0 0 #fff;
+}
+
+.admin-shell .gantry-slot-handle {
+  background: transparent;
+  border: 0;
+  color: rgba(255, 255, 255, 0.92);
+  padding: 0.05rem;
+  font-size: 0.82rem;
+}
+
+.admin-shell .gantry-slot-pct {
+  color: #fff;
+  background: transparent;
+  border: 0;
+  font-weight: 700;
+  font-size: 0.78rem;
+  padding: 0.05rem 0.1rem;
+}
+
+.admin-shell .gantry-slot-actions {
+  width: auto;
+  margin: 0;
+  gap: 0.1rem;
+}
+
+.admin-shell .gantry-slot-actions .gantry-settings-trigger,
+.admin-shell .gantry-settings-gear {
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: #fff;
+  font-size: 0.92rem;
+  line-height: 1;
+}
+
+.admin-shell .gantry-slot-actions .gantry-settings-trigger:hover,
+.admin-shell .gantry-settings-gear:hover {
+  background: color-mix(in srgb, #0f1a2a 30%, transparent);
+}
+
+.admin-shell .gantry-slot-extra-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.admin-shell .gantry-resize-handle {
+  width: 0.45rem;
+  background:
+    linear-gradient(
+      to right,
+      transparent 35%,
+      color-mix(in srgb, #fff 35%, transparent) 35%,
+      color-mix(in srgb, #fff 35%, transparent) 65%,
+      transparent 65%
+    ),
+    color-mix(in srgb, var(--sf-admin-blue-mid) 18%, transparent);
+  border-color: transparent;
+}
+
+.admin-shell .gantry-resize-handle:hover,
+.admin-shell .gantry-resize-handle:focus-visible {
+  background-color: color-mix(in srgb, var(--sf-admin-blue-mid) 35%, transparent);
+}
+
+/* Helium particle/section settings portal — match logo/block/inheritance/custom refs */
+.gantry-settings-theme-dark {
+  --sf-admin-bg: #1d2531;
+  --sf-admin-bg-deep: #161e27;
+  --sf-admin-surface: #1d2531;
+  --sf-admin-elevated: #2d3a4b;
+  --sf-admin-input: #161e27;
+  --sf-admin-blue-border: #2f3d50;
+  --sf-admin-blue-mid: #3498db;
+  --sf-admin-blue-action: #3182ce;
+  --sf-ink: #ffffff;
+  --sf-muted: #9aa8bc;
+  --sf-line: #2f3d50;
+  --sf-primary: #f2a66a;
+  --sf-primary-strong: #f5b888;
+  --sf-primary-ink: #1c2834;
+  --sf-secondary: #8ebad4;
+  --sf-secondary-strong: #b7d6ec;
+}
+
+.gantry-settings-theme-dark .gantry-settings-backdrop {
+  background: color-mix(in srgb, #0a1018 55%, transparent);
+}
+
+.gantry-settings-theme-dark .gantry-settings-panel {
+  background: #1d2531;
+  border: 1px solid #2f3d50;
+  border-radius: 3px;
+  color: #fff;
+  overflow: hidden;
+  box-shadow:
+    0 18px 42px color-mix(in srgb, #000 55%, transparent),
+    0 2px 10px color-mix(in srgb, #000 30%, transparent);
+}
+
+/* Top chrome strip holding Particle / Block / Inheritance–style tabs */
+.gantry-settings-theme-dark .gantry-settings-panel-tabs {
+  background: #161e27;
+  border-bottom: 1px solid #2f3d50;
+  padding: 0.35rem 0.45rem 0;
+}
+
+.gantry-settings-theme-dark .gantry-settings-tablist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.gantry-settings-theme-dark .gantry-settings-tab {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #8b98ab;
+  font: inherit;
+  font-weight: 650;
+  font-size: 0.84rem;
+  padding: 0.5rem 0.95rem;
+  border-radius: 3px 3px 0 0;
+  cursor: pointer;
+  line-height: 1.2;
+}
+
+.gantry-settings-theme-dark .gantry-settings-tab:hover {
+  color: #fff;
+  background: color-mix(in srgb, #2d3a4b 55%, transparent);
+}
+
+.gantry-settings-theme-dark .gantry-settings-tab.is-active,
+.gantry-settings-theme-dark .gantry-settings-tab[aria-selected='true'] {
+  background: #2d3a4b;
+  color: #fff;
+  box-shadow: none;
+  border-bottom: 0;
+}
+
+.gantry-settings-theme-dark .gantry-settings-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  background: #1d2531;
+  border-bottom: 1px solid #2f3d50;
+  padding: 0.65rem 0.85rem;
+}
+
+.gantry-settings-theme-dark .gantry-settings-panel-head h3 {
+  margin: 0;
+  color: #fff;
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+
+.gantry-settings-theme-dark .gantry-settings-panel-body {
+  color: #fff;
+  background: #1d2531;
+  padding: 0.75rem 0.85rem 0.9rem;
+}
+
+.gantry-settings-theme-dark .gantry-settings-tabpanel {
+  color: #fff;
+}
+
+.gantry-settings-theme-dark .gantry-settings-embedded .gantry-settings-tablist {
+  margin: 0 0 0.75rem;
+  padding: 0.25rem 0.25rem 0;
+  background: #161e27;
+  border-bottom: 1px solid #2f3d50;
+}
+
+/* Dense Helium field rows: muted labels, near-black inputs */
+.gantry-settings-theme-dark label,
+.gantry-settings-theme-dark .gantry-typed-form > label,
+.gantry-settings-theme-dark .gantry-custom-title,
+.gantry-settings-theme-dark .settings-hint,
+.gantry-settings-theme-dark .layout-muted,
+.gantry-settings-theme-dark .sf-code-field-label,
+.gantry-settings-theme-dark .sf-code-field-hint,
+.gantry-settings-theme-dark .gantry-field-hint {
+  color: #9aa8bc;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.gantry-settings-theme-dark .gantry-typed-form > label > span,
+.gantry-settings-theme-dark .gantry-custom-title > span,
+.gantry-settings-theme-dark .sf-code-field-label {
+  color: #9aa8bc;
+}
+
+.gantry-settings-theme-dark .gantry-typed-form {
+  gap: 0.55rem;
+}
+
+.gantry-settings-theme-dark .gantry-typed-form > label,
+.gantry-settings-theme-dark .gantry-custom-title,
+.gantry-settings-theme-dark .gantry-typed-row > label {
+  gap: 0.28rem;
+  padding: 0.15rem 0;
+  border-bottom: 1px solid color-mix(in srgb, #2f3d50 55%, transparent);
+  padding-bottom: 0.45rem;
+}
+
+.gantry-settings-theme-dark .gantry-typed-form > label:last-of-type,
+.gantry-settings-theme-dark .gantry-typed-row > label:last-of-type {
+  border-bottom: 0;
+}
+
+.gantry-settings-theme-dark input[type='text'],
+.gantry-settings-theme-dark input[type='url'],
+.gantry-settings-theme-dark input[type='number'],
+.gantry-settings-theme-dark input[type='email'],
+.gantry-settings-theme-dark textarea,
+.gantry-settings-theme-dark select {
+  background: #161e27 !important;
+  border: 1px solid #2f3d50 !important;
+  border-radius: 3px;
+  color: #fff !important;
+  box-shadow: none !important;
+  min-height: 2rem;
+  padding: 0.35rem 0.5rem !important;
+}
+
+.gantry-settings-theme-dark .sf-code-field-panel {
+  background: #161e27;
+  border-color: #2f3d50;
+  border-radius: 3px;
+}
+
+.gantry-settings-theme-dark .gantry-color-swatch {
+  border-color: #2f3d50;
+  background: #161e27;
+}
+
+/* Helium footer actions: Apply blue · Save orange · Cancel dark */
+.gantry-settings-theme-dark .gantry-settings-cancel,
+.gantry-settings-theme-dark .gantry-settings-panel-head .gantry-settings-cancel {
+  background: #2a3340;
+  border: 1px solid #3a4a5c;
+  color: #fff;
+  border-radius: 3px;
+  font: inherit;
+  font-weight: 650;
+  font-size: 0.82rem;
+  padding: 0.4rem 0.75rem;
+  cursor: pointer;
+}
+
+.gantry-settings-theme-dark .gantry-settings-cancel:hover {
+  background: #323b4c;
+}
+
+.gantry-settings-theme-dark .gantry-settings-panel .gantry-typed-form button.secondary,
+.gantry-settings-theme-dark .gantry-settings-panel .gantry-custom-form button.secondary,
+.gantry-settings-theme-dark .gantry-slot-extra-actions button.secondary {
+  background: #3182ce;
+  border: 1px solid #2a6faf;
+  color: #fff;
+  border-radius: 3px;
+}
+
+.gantry-settings-theme-dark .gantry-settings-panel .gantry-typed-form button:not(.secondary):not(.danger):not([type='submit']),
+.gantry-settings-theme-dark .gantry-settings-panel .gantry-custom-form button:not(.secondary):not(.danger):not([type='submit']) {
+  background: #3182ce;
+  border: 1px solid #2a6faf;
+  color: #fff;
+  border-radius: 3px;
+}
+
+.gantry-settings-theme-dark .gantry-settings-panel .gantry-typed-form button[type='submit'],
+.gantry-settings-theme-dark .gantry-settings-panel .gantry-custom-form button[type='submit'] {
+  background: #f2a66a;
+  border: 1px solid color-mix(in srgb, #f2a66a 65%, #f5b888);
+  color: #1c2834;
+  border-radius: 3px;
+  font-weight: 700;
+}
+
+.gantry-settings-theme-dark .gantry-settings-panel .gantry-typed-form button.danger,
+.gantry-settings-theme-dark .gantry-settings-panel .gantry-custom-form button.danger,
+.gantry-settings-theme-dark .gantry-slot-extra-actions button.danger {
+  background: color-mix(in srgb, #c45c5c 28%, #1d2531);
+  border-color: color-mix(in srgb, #c45c5c 45%, #2f3d50);
+  color: #f0b4b4;
+}
+
+.gantry-settings-theme-dark .gantry-particle-attrs {
+  border-bottom-color: #2f3d50;
+  padding-bottom: 0.7rem;
+  margin-bottom: 0.2rem;
+}
+
+.gantry-settings-theme-dark .gantry-particle-attrs button[type='submit'].secondary {
+  background: #3182ce;
+  border-color: #2a6faf;
+  color: #fff;
+}
+
+.gantry-settings-theme-dark .admin-inline-ok {
+  color: #b7d6ec;
+}
+
+.gantry-settings-theme-dark .admin-inline-error {
+  color: #f0a0a0;
+}
+
+.gantry-settings-theme-dark .nav-access-tag-list label,
+.gantry-settings-theme-dark .gantry-slot-access-tags {
+  color: #d5deea;
+}
+
+.gantry-settings-theme-dark .gantry-slot-extra-actions {
+  padding-top: 0.25rem;
+}
+
+.admin-shell .layout-id {
+  background: color-mix(in srgb, var(--sf-secondary) 14%, var(--sf-admin-surface));
+  color: var(--sf-muted);
+}
+
+.admin-shell .layout-json-preview pre {
+  background: var(--sf-admin-bg-deep);
+  border-color: var(--sf-line);
+  color: var(--sf-ink);
+}
+
+.admin-shell .sf-code-field-panel {
+  background: var(--sf-admin-bg-deep);
+}
+
+.admin-shell .sf-code-field-lang {
+  color: var(--sf-secondary-strong);
+}
+
+.admin-shell .sf-code-field-resize {
+  background:
+    linear-gradient(to bottom, transparent 35%, var(--sf-line) 35%, var(--sf-line) 45%, transparent 45%),
+    color-mix(in srgb, var(--sf-secondary) 10%, var(--sf-admin-elevated));
+  border-top-color: var(--sf-line);
+}
+
+.admin-shell .gantry-social-editor-item {
+  background: color-mix(in srgb, var(--sf-secondary) 8%, var(--sf-admin-surface));
+  border-color: var(--sf-line);
+}
+
+/* Page settings / outlines / nav / forms on dark */
+/* Global Page Settings / Styles — Helium collapsible panel chrome */
+.admin-shell .page-settings-panel-head {
+  background: #121a24;
+  border-bottom: 1px solid #2f3d50;
+  color: #fff;
+}
+
+.admin-shell .page-settings-panel-head h3 {
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.admin-shell .page-settings-atom-pill {
+  border-color: var(--sf-admin-blue-border);
+  background: color-mix(in srgb, var(--sf-secondary) 18%, var(--sf-admin-surface));
+  color: var(--sf-secondary-strong);
+}
+
+.admin-shell .page-settings-acl {
+  background: color-mix(in srgb, var(--sf-secondary) 22%, var(--sf-admin-surface));
+  color: var(--sf-secondary-strong);
+}
+
+.admin-shell .outlines-table th {
+  background: color-mix(in srgb, var(--sf-secondary) 12%, var(--sf-admin-surface));
+}
+
+.admin-shell .outlines-badge,
+.admin-shell .settings-modules-badge {
+  background: color-mix(in srgb, var(--sf-secondary) 22%, var(--sf-admin-surface));
+  border-color: var(--sf-admin-blue-border);
+  color: var(--sf-secondary-strong);
+}
+
+.admin-shell .nav-item-card {
+  background: color-mix(in srgb, var(--sf-secondary) 10%, var(--sf-admin-surface));
+  border-color: color-mix(in srgb, var(--sf-secondary-strong) 28%, var(--sf-line));
+}
+
+.admin-shell .nav-item-index {
+  background: color-mix(in srgb, var(--sf-secondary) 35%, var(--sf-admin-elevated));
+  color: var(--sf-ink);
+}
+
+/* Helium info/callout bars (login CSS / atom version banners) */
+.admin-shell .cms-bridge-password-hint,
+.admin-shell .clarity-callout,
+.admin-shell .notice-banner {
+  background: #2f7f9e;
+  color: #fff;
+  border: 0;
+  border-radius: 3px;
+  padding: 0.65rem 0.85rem;
+}
+
+.admin-shell .clarity-callout a,
+.admin-shell .notice-banner a {
+  color: #dff3ff;
+}
+
+.admin-shell .notice-banner {
+  background: #2f7f9e;
+  border-left: 0;
+}
+
+.admin-shell .admin-info-ok,
+.admin-shell .gantry-atom-banner {
+  background: #3c763d;
+  color: #fff;
+  border-radius: 3px;
+  padding: 0.55rem 0.75rem;
+}
+
+.admin-shell .cms-switch-track {
+  background: color-mix(in srgb, var(--sf-muted) 28%, var(--sf-admin-elevated));
+  border-color: var(--sf-line);
+}
+
+.admin-shell .cms-switch-track.is-on {
+  background: color-mix(in srgb, var(--sf-secondary) 40%, var(--sf-admin-elevated));
+  border-color: color-mix(in srgb, var(--sf-secondary-strong) 40%, var(--sf-line));
+}
+
+.admin-shell .cms-switch-thumb {
+  background: #e8eef6;
+}
+
+.admin-shell .breakpoints-form,
+.admin-shell .layout-outline-switcher-form,
+.admin-shell .settings-fieldset {
+  background: color-mix(in srgb, var(--sf-secondary) 6%, #1b2432);
+  border: 1px solid #2f3d50;
+  border-radius: 3px;
+  box-sizing: border-box;
+}
+
+.admin-shell .layout-outline-switcher-form {
+  padding: 1rem 1.1rem 1.15rem;
+}
+
+/* Styles · Breakpoints — Helium dense field card + wash behind (full width) */
+.admin-shell .breakpoints-form {
+  width: 100%;
+  max-width: none;
+  padding: 1.25rem 1.35rem 1.4rem;
+}
+
+.admin-shell .breakpoints-form .settings-field,
+.admin-shell .settings-fieldset .settings-field {
+  border-bottom: 1px solid color-mix(in srgb, #2f3d50 65%, transparent);
+  padding-bottom: 0.65rem;
+  margin-bottom: 0.65rem;
+}
+
+.admin-shell .breakpoints-form .settings-field:last-of-type,
+.admin-shell .settings-fieldset .settings-field:last-of-type {
+  border-bottom: 0;
+  margin-bottom: 0.35rem;
+}
+
+@media (max-width: 640px) {
+  .admin-shell .breakpoints-form {
+    padding: 1.1rem 1rem 1.2rem;
+  }
+}
+
+.admin-shell a:not(.admin-nav > a):not(.admin-nav-dropdown-trigger):not(.button-link):not(.links a) {
+  color: var(--sf-secondary-strong);
+}
+
+.admin-shell a:not(.admin-nav > a):not(.admin-nav-dropdown-trigger):not(.button-link):hover {
+  color: var(--sf-primary-strong);
+}
+
+.admin-shell .form-ok,
+.admin-shell .page-settings-form .form-ok,
+.admin-shell .page-settings .form-ok {
+  color: var(--sf-secondary-strong);
+}
+
+.admin-shell .form-error,
+.admin-shell .page-settings-form .form-error,
+.admin-shell .page-settings .form-error,
+.admin-shell .admin-inline-error {
+  color: #f0a0a0;
+}
+
+.admin-shell .session-bar,
+.admin-shell .cms-bridge-meta {
+  border-color: var(--sf-line);
+}
+
+/* —— Global Core admin pass (Site Chrome / Settings / Nav / Users / Forms / …) —— */
+.admin-shell .admin-section > h2,
+.admin-shell .admin-section > h3 {
+  color: #fff;
+}
+
+.admin-shell .settings-hint,
+.admin-shell .lede,
+.admin-shell .admin-lede,
+.admin-shell .outlines-muted,
+.admin-shell .admin-empty {
+  color: var(--sf-muted);
+}
+
+.admin-shell .settings-fieldset legend,
+.admin-shell .settings-flag,
+.admin-shell .settings-field > span,
+.admin-shell .outlines-create h3,
+.admin-shell .admin-code-inline {
+  color: #fff;
+}
+
+.admin-shell .settings-flag-desc {
+  color: var(--sf-muted);
+  font-weight: 400;
+}
+
+.admin-shell .admin-table-wrap,
+.admin-shell .outlines-table-wrap {
+  background: color-mix(in srgb, var(--sf-secondary) 6%, var(--sf-admin-surface));
+  border: 1px solid var(--sf-line);
+  border-radius: 3px;
+  overflow: auto;
+}
+
+.admin-shell .admin-table,
+.admin-shell .outlines-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-shell .admin-table th,
+.admin-shell .outlines-table th {
+  background: color-mix(in srgb, var(--sf-secondary) 12%, var(--sf-admin-surface));
+  color: #fff;
+  font-weight: 650;
+  text-align: left;
+  padding: 0.55rem 0.7rem;
+  border-bottom: 1px solid var(--sf-line);
+}
+
+.admin-shell .admin-table td,
+.admin-shell .outlines-table td {
+  padding: 0.5rem 0.7rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--sf-line) 70%, transparent);
+  color: #e8eef8;
+  vertical-align: middle;
+}
+
+.admin-shell .admin-table tr:hover td,
+.admin-shell .outlines-table tr:hover td {
+  background: color-mix(in srgb, var(--sf-admin-blue-mid) 8%, transparent);
+}
+
+.admin-shell .outlines-check,
+.admin-shell .settings-flag {
+  display: flex;
+  gap: 0.45rem;
+  align-items: flex-start;
+}
+
+.admin-shell .page-settings-panel {
+  border-radius: 3px;
+  overflow: hidden;
+  background: #1b2432;
+  border: 1px solid #2f3d50;
+}
+
+.admin-shell .page-settings-panel-body {
+  background: #1b2432;
+  padding: 0.75rem 0.85rem;
+}
+
+.admin-shell .page-settings-toolbar {
+  gap: 0.55rem;
+  margin-bottom: 0.85rem;
+}
+
+.admin-shell .page-settings-actions button[type='submit'],
+.admin-shell .page-settings-toolbar button.primary {
+  background: var(--sf-primary);
+  border-color: color-mix(in srgb, var(--sf-primary) 65%, var(--sf-primary-strong));
+  color: var(--sf-primary-ink);
+}
+
+.admin-shell .nav-item-card-head,
+.admin-shell .nav-item-quick {
+  gap: 0.35rem;
+}
+
+.admin-shell .nav-item-toggle,
+.admin-shell .nav-manager button.secondary,
+.admin-shell .outlines-actions .secondary,
+.admin-shell .admin-inline-form button.secondary {
+  background: var(--sf-admin-blue-action);
+  border: 1px solid var(--sf-admin-blue-border);
+  color: #fff;
+  border-radius: 3px;
+}
+
+.admin-shell .sf-forms-details,
+.admin-shell .sf-forms-payload {
+  color: var(--sf-muted);
+}
+
+.admin-shell .sf-forms-key {
+  color: var(--sf-secondary-strong);
+}
+
+/* Section settings flyout — same Helium modal vocabulary */
+.admin-shell .gantry-section-settings[open] > .gantry-section-toolbar {
+  background: #262e3d;
+  border: 1px solid #2f3d50;
+  border-radius: 3px;
+}
+
+/* Atom/Headroom-style modal green status strip helper */
+.gantry-settings-theme-dark .gantry-atom-banner,
+.gantry-settings-theme-dark .admin-info-ok {
+  display: block;
+  margin-top: 0.65rem;
+  background: #3c763d;
+  color: #fff;
+  border-radius: 3px;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.82rem;
+}
+
+.gantry-settings-theme-dark .clarity-callout,
+.gantry-settings-theme-dark .cms-bridge-password-hint {
+  background: #2f7f9e;
+  color: #fff;
+  border-radius: 3px;
+  padding: 0.55rem 0.75rem;
+}
+
+/* Padded admin pages keep Site Settings blue radial wash (shell default).
+   Only Layout canvas / admin-layouts-full flatten to denser navy above. */

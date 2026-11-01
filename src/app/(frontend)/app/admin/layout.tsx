@@ -15,6 +15,8 @@ import {
   isCatalogModuleEnabled,
 } from '@/core/settings'
 
+import { AdminSidebarNav, type AdminSidebarGroup } from './admin-sidebar-nav'
+
 export const metadata = {
   title: 'Starforge admin',
   description:
@@ -46,86 +48,113 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
   const showPayloadCms = payloadOn && userHasCmsAccess(access)
   const showLayoutsNav = layoutOn || pageSettingsOn
 
+  const groups: AdminSidebarGroup[] = [
+    {
+      id: 'site-chrome',
+      label: 'Site Chrome',
+      links: [{ href: '/app/admin/site-chrome', label: 'Site Chrome' }],
+    },
+    {
+      id: 'site-settings',
+      label: 'Site Settings',
+      links: [{ href: '/app/admin/settings', label: 'Site Settings' }],
+    },
+  ]
+
+  if (navOn) {
+    groups.push({
+      id: 'navigation',
+      label: 'Navigation',
+      links: [{ href: '/app/admin/nav', label: 'Navigation' }],
+    })
+  }
+
+  if (formsOn) {
+    groups.push({
+      id: 'forms',
+      label: 'Forms',
+      links: [{ href: '/app/admin/forms', label: 'Forms' }],
+    })
+  }
+
+  groups.push({
+    id: 'users',
+    label: 'Users',
+    href: '/app/admin/users',
+    links: [
+      { href: '/app/admin/users', label: 'Accounts', exact: true },
+      { href: '/app/admin/users/groups', label: 'Groups' },
+      { href: '/app/admin/users/acl', label: 'ACL' },
+    ],
+  })
+
+  if (showLayoutsNav) {
+    const layoutLinks: AdminSidebarGroup['links'] = []
+    if (layoutOn) {
+      layoutLinks.push(
+        { href: '/app/admin/layouts', label: 'Layout' },
+        { href: '/app/admin/breakpoints', label: 'Styles' },
+        { href: '/app/admin/particle-defaults', label: 'Particle Defaults' },
+        { href: '/app/admin/outlines', label: 'Outlines' },
+      )
+    }
+    if (pageSettingsOn) {
+      layoutLinks.push({ href: '/app/admin/page-settings', label: 'Page settings' })
+    }
+    groups.push({
+      id: 'layouts',
+      label: 'Layouts',
+      href: layoutOn ? '/app/admin/layouts' : '/app/admin/page-settings',
+      links: layoutLinks,
+    })
+  }
+
+  if (showPayloadCms) {
+    groups.push({
+      id: 'cms',
+      label: 'CMS',
+      links: [{ href: '/admin', label: 'CMS', external: true }],
+    })
+  }
+
+  groups.push({
+    id: 'check-site',
+    label: 'Check site',
+    links: [{ href: '/', label: 'Check site', exact: true }],
+  })
+
   return (
-    <div className="admin-shell">
-      <header className="admin-header">
-        <div>
-          <p className="brand">
-            <Link href="/">Starforge</Link>
+    <div className="admin-shell" data-sf-admin-theme="dark">
+      <AdminSidebarNav
+        groups={groups}
+        brand={
+          <>
+            <p className="brand">
+              <Link href="/">Starforge</Link>
+            </p>
+            <p className="admin-sidebar-title">Starforge admin</p>
+          </>
+        }
+        who={
+          <p className="admin-who">
+            Signed in as <strong>{session.user.email}</strong> ({role})
           </p>
-          <h1>Starforge admin</h1>
-          <p className="lede admin-lede">
-            Top-level areas: Site Chrome, Site Settings (Modules), Navigation, Forms, Users
-            (Accounts · Groups · ACL), Layouts, CMS. Content (pages, media) lives in{' '}
-            {showPayloadCms ? <Link href="/admin">CMS</Link> : 'CMS'} — same login when CMS access
-            is on.
-          </p>
-        </div>
-        <p className="admin-who">
-          Signed in as <strong>{session.user.email}</strong> ({role})
-        </p>
-      </header>
-      <nav className="admin-nav" aria-label="Starforge admin">
-        <Link href="/app/admin/site-chrome">Site Chrome</Link>
-        <Link href="/app/admin/settings">Site Settings</Link>
-        {navOn ? <Link href="/app/admin/nav">Navigation</Link> : null}
-        {formsOn ? <Link href="/app/admin/forms">Forms</Link> : null}
-        <div className="admin-nav-dropdown">
-          <Link href="/app/admin/users" className="admin-nav-dropdown-trigger">
-            Users
-            <span className="admin-nav-dropdown-caret" aria-hidden="true">
-              ▾
-            </span>
-          </Link>
-          <ul className="admin-nav-dropdown-menu" aria-label="Users submenu">
-            <li>
-              <Link href="/app/admin/users">Accounts</Link>
-            </li>
-            <li>
-              <Link href="/app/admin/users/groups">Groups</Link>
-            </li>
-            <li>
-              <Link href="/app/admin/users/acl">ACL</Link>
-            </li>
-          </ul>
-        </div>
-        {showLayoutsNav ? (
-          <div className="admin-nav-dropdown">
-            <Link
-              href={layoutOn ? '/app/admin/layouts' : '/app/admin/page-settings'}
-              className="admin-nav-dropdown-trigger"
-            >
-              Layouts
-              <span className="admin-nav-dropdown-caret" aria-hidden="true">
-                ▾
-              </span>
-            </Link>
-            <ul className="admin-nav-dropdown-menu" aria-label="Layouts submenu">
-              {layoutOn ? (
-                <>
-                  <li>
-                    <Link href="/app/admin/layouts">Layout</Link>
-                  </li>
-                  <li>
-                    <Link href="/app/admin/breakpoints">Breakpoints</Link>
-                  </li>
-                  <li>
-                    <Link href="/app/admin/outlines">Outlines</Link>
-                  </li>
-                </>
-              ) : null}
-              {pageSettingsOn ? (
-                <li>
-                  <Link href="/app/admin/page-settings">Page settings</Link>
-                </li>
-              ) : null}
-            </ul>
+        }
+      />
+      <div className="admin-body">
+        <header className="admin-header">
+          <div>
+            <h1>Starforge admin</h1>
+            <p className="lede admin-lede">
+              Top-level areas: Site Chrome, Site Settings (Modules), Navigation, Forms, Users
+              (Accounts · Groups · ACL), Layouts, CMS. Content (pages, media) lives in{' '}
+              {showPayloadCms ? <Link href="/admin">CMS</Link> : 'CMS'} — same login when CMS access
+              is on.
+            </p>
           </div>
-        ) : null}
-        {showPayloadCms ? <Link href="/admin">CMS</Link> : null}
-        <Link href="/">Check site</Link>
-      </nav>
-      <div className="admin-main">{props.children}</div>
+        </header>
+        <div className="admin-main">{props.children}</div>
+      </div>
     </div>
   )
 }

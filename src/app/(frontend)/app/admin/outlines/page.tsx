@@ -24,7 +24,7 @@ export default async function AdminOutlinesPage() {
   const outlines = await listLayoutOutlines()
 
   return (
-    <section className="admin-section admin-layouts-full">
+    <section className="admin-section admin-layouts-padded">
       <h2>Layout outlines</h2>
       <p className="lede admin-lede">
         Gantry-style <strong>outlines</strong> are named layout documents stored in{' '}

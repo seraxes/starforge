@@ -64,10 +64,14 @@ export async function SlotRenderer({ sectionId, slot, pageContent }: Props) {
   if (rendered == null || rendered === false) return null
 
   const style = gridColStyle(slot.width)
+  const extraClass = typeof slot.cssClass === 'string' ? slot.cssClass.trim() : ''
+  const className = ['sf-grid-col', extraClass].filter(Boolean).join(' ')
+  const htmlId = typeof slot.htmlId === 'string' ? slot.htmlId.trim() : ''
 
   return (
     <div
-      className="sf-grid-col"
+      id={htmlId || undefined}
+      className={className}
       data-sf-slot={slot.id}
       data-sf-module={slot.moduleId}
       data-sf-width={slot.width}
