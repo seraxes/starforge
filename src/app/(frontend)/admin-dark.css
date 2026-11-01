@@ -308,12 +308,12 @@ body:has(.admin-shell) > main {
   color: var(--sf-primary-strong);
 }
 
-/* Joomla-style left sidebar (dark Helium chrome) */
+/* Joomla-style left sidebar — a few shades darker than content canvas */
 .admin-shell .admin-sidebar {
   background:
-    linear-gradient(180deg, #172033 0%, #1b2533 55%, #1a222e 100%);
-  border-right-color: #243246;
-  box-shadow: inset -1px 0 0 color-mix(in srgb, #000 25%, transparent);
+    linear-gradient(180deg, #0c121c 0%, #0f1622 48%, #0d141e 100%);
+  border-right-color: #1a2433;
+  box-shadow: inset -1px 0 0 color-mix(in srgb, #000 40%, transparent);
 }
 
 .admin-shell .admin-sidebar-title {
@@ -332,7 +332,7 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .admin-sidebar-link,
-.admin-shell .admin-sidebar-group-title {
+.admin-shell .admin-sidebar-group-head {
   color: #e8eef8;
 }
 
@@ -348,26 +348,22 @@ body:has(.admin-shell) > main {
   color: #8fa3bb;
 }
 
+/* Bright mid-blue hover/active rows (Gantry/Joomla ~#3498db) */
 .admin-shell .admin-sidebar-link:hover,
-.admin-shell .admin-sidebar-group-title:hover,
+.admin-shell .admin-sidebar-group-head:hover,
 .admin-shell .admin-sidebar-sublink:hover,
-.admin-shell .admin-sidebar-group-toggle:hover {
-  background: var(--sf-admin-nav-active);
-  color: #fff;
-}
-
 .admin-shell .admin-sidebar-link.is-current,
-.admin-shell .admin-sidebar-group-title.is-current,
 .admin-shell .admin-sidebar-sublink.is-current,
-.admin-shell .admin-sidebar-item.is-active > .admin-sidebar-link {
-  background: var(--sf-admin-nav-active);
+.admin-shell .admin-sidebar-item.is-active > .admin-sidebar-link,
+.admin-shell .admin-sidebar-item.is-active > .admin-sidebar-group-head {
+  background: var(--sf-admin-blue-mid); /* #3498db */
   color: #fff;
-  box-shadow: inset 3px 0 0 var(--sf-admin-blue-mid);
+  box-shadow: none;
 }
 
-.admin-shell .admin-sidebar-item.is-active > .admin-sidebar-group-head {
-  background: color-mix(in srgb, var(--sf-admin-nav-active) 70%, transparent);
-  border-radius: 3px;
+.admin-shell .admin-sidebar-group-head:hover .admin-sidebar-group-toggle,
+.admin-shell .admin-sidebar-item.is-active > .admin-sidebar-group-head .admin-sidebar-group-toggle {
+  color: #fff;
 }
 
 .admin-shell .admin-nav {
@@ -410,8 +406,8 @@ body:has(.admin-shell) > main {
 
 @media (max-width: 900px) {
   .admin-shell .admin-sidebar {
-    background: #172033;
-    border-bottom-color: #243246;
+    background: #0c121c;
+    border-bottom-color: #1a2433;
     box-shadow: none;
   }
 }

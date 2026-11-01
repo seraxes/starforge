@@ -126,37 +126,18 @@ export function AdminSidebarNav({
                   isOpen ? ' is-open' : ''
                 }`}
               >
-                <div className="admin-sidebar-group-head">
-                  {group.href ? (
-                    <Link
-                      href={group.href}
-                      className={`admin-sidebar-group-title${
-                        pathMatches(pathname, group.href) ? ' is-current' : ''
-                      }`}
-                    >
-                      {group.label}
-                    </Link>
-                  ) : (
-                    <button
-                      type="button"
-                      className="admin-sidebar-group-title"
-                      onClick={() => toggleGroup(group.id)}
-                      aria-expanded={isOpen}
-                    >
-                      {group.label}
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    className="admin-sidebar-group-toggle"
-                    aria-expanded={isOpen}
-                    aria-controls={`admin-sidebar-sub-${group.id}`}
-                    aria-label={`${isOpen ? 'Collapse' : 'Expand'} ${group.label}`}
-                    onClick={() => toggleGroup(group.id)}
-                  >
-                    <span aria-hidden="true">{isOpen ? '▾' : '▸'}</span>
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className="admin-sidebar-group-head"
+                  aria-expanded={isOpen}
+                  aria-controls={`admin-sidebar-sub-${group.id}`}
+                  onClick={() => toggleGroup(group.id)}
+                >
+                  <span className="admin-sidebar-group-title">{group.label}</span>
+                  <span className="admin-sidebar-group-toggle" aria-hidden="true">
+                    {isOpen ? '▾' : '▸'}
+                  </span>
+                </button>
                 {isOpen ? (
                   <ul
                     id={`admin-sidebar-sub-${group.id}`}

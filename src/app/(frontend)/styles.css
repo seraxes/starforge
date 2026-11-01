@@ -587,11 +587,13 @@ button:disabled {
   gap: 0.75rem;
   padding: 1.15rem 0.85rem 2rem;
   border-right: 1px solid var(--sf-line);
-  background: color-mix(in srgb, var(--sf-secondary) 8%, transparent);
+  background: color-mix(in srgb, var(--sf-ink) 6%, transparent);
+  /* Full viewport rail; sticky so the dark column stays to page bottom while content scrolls */
   position: sticky;
   top: 0;
   align-self: flex-start;
-  max-height: 100vh;
+  min-height: 100vh;
+  height: 100vh;
   overflow-y: auto;
 }
 
@@ -656,7 +658,7 @@ button:disabled {
 }
 
 .admin-sidebar-link,
-.admin-sidebar-group-title,
+.admin-sidebar-group-head,
 .admin-sidebar-sublink {
   display: block;
   width: 100%;
@@ -680,27 +682,19 @@ button:disabled {
 .admin-sidebar-group-head {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.35rem;
 }
 
 .admin-sidebar-group-title {
   flex: 1 1 auto;
   min-width: 0;
-  padding: 0;
 }
 
 .admin-sidebar-group-toggle {
   flex: 0 0 auto;
-  margin: 0;
-  padding: 0.15rem 0.35rem;
-  border: 0;
-  border-radius: 3px;
-  background: transparent;
   color: var(--sf-muted);
-  font: inherit;
   font-size: 0.75rem;
   line-height: 1;
-  cursor: pointer;
 }
 
 .admin-sidebar-sub {
@@ -717,20 +711,31 @@ button:disabled {
   color: var(--sf-muted);
 }
 
+/* Joomla/Gantry accent — bright mid-blue row hover/active */
 .admin-sidebar-link:hover,
-.admin-sidebar-group-title:hover,
-.admin-sidebar-sublink:hover,
-.admin-sidebar-group-toggle:hover {
-  background: color-mix(in srgb, var(--sf-secondary) 16%, transparent);
-  color: var(--sf-secondary-strong);
+.admin-sidebar-group-head:hover,
+.admin-sidebar-sublink:hover {
+  background: #3498db;
+  color: #fff;
+}
+
+.admin-sidebar-link:hover,
+.admin-sidebar-group-head:hover .admin-sidebar-group-title,
+.admin-sidebar-group-head:hover .admin-sidebar-group-toggle,
+.admin-sidebar-sublink:hover {
+  color: #fff;
 }
 
 .admin-sidebar-link.is-current,
-.admin-sidebar-group-title.is-current,
 .admin-sidebar-sublink.is-current,
-.admin-sidebar-item.is-active > .admin-sidebar-link {
-  background: color-mix(in srgb, var(--sf-secondary) 22%, transparent);
-  color: var(--sf-secondary-strong);
+.admin-sidebar-item.is-active > .admin-sidebar-link,
+.admin-sidebar-item.is-active > .admin-sidebar-group-head {
+  background: #3498db;
+  color: #fff;
+}
+
+.admin-sidebar-item.is-active > .admin-sidebar-group-head .admin-sidebar-group-toggle {
+  color: #fff;
 }
 
 .admin-body {
@@ -785,7 +790,8 @@ button:disabled {
     border-bottom: 1px solid var(--sf-line);
     padding: 0.85rem 1rem 0.75rem;
     position: relative;
-    max-height: none;
+    min-height: 0;
+    height: auto;
     overflow: visible;
   }
 
