@@ -1243,7 +1243,7 @@ export function LayoutEditor({
           Section <code>label</code> / <code>containerMode</code> / <code>cssClass</code> and slot{' '}
           <code>name</code> save on blur/change. Section <code>order</code> persists on drag.
           Widths are integer percents inside the section container. Outline breakpoints live under{' '}
-          <code>/app/admin/layouts/breakpoints</code>. See{' '}
+          <code>/app/admin/breakpoints</code>. See{' '}
           <code>src/core/modules/README.md</code>.
         </p>
       </details>

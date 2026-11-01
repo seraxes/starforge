@@ -11,6 +11,16 @@ const nextConfig: NextConfig = {
   agentRules: false,
   // Allow opening the app as 127.0.0.1 during local Windows/macOS testing.
   allowedDevOrigins: ['127.0.0.1'],
+  // Old nested path hit Next 16 Turbopack stale build-manifest ENOENT; keep bookmarks working.
+  async redirects() {
+    return [
+      {
+        source: '/app/admin/layouts/breakpoints',
+        destination: '/app/admin/breakpoints',
+        permanent: false,
+      },
+    ]
+  },
   images: {
     localPatterns: [
       {

@@ -72,14 +72,12 @@ async function requireLayoutAdmin(): Promise<LayoutActionState | null> {
 function revalidateLayoutPaths(layoutId?: string) {
   revalidatePath('/', 'layout')
   revalidatePath('/app/admin/layouts')
-  revalidatePath('/app/admin/layouts/breakpoints')
+  revalidatePath('/app/admin/breakpoints')
   revalidatePath('/app/admin/outlines')
   revalidatePath('/app/admin/page-settings')
   if (layoutId && layoutId !== DEFAULT_LAYOUT_ID) {
     revalidatePath(`/app/admin/layouts?outline=${encodeURIComponent(layoutId)}`)
-    revalidatePath(
-      `/app/admin/layouts/breakpoints?outline=${encodeURIComponent(layoutId)}`,
-    )
+    revalidatePath(`/app/admin/breakpoints?outline=${encodeURIComponent(layoutId)}`)
   }
 }
 

@@ -94,7 +94,7 @@ Legacy v1 / v2 upgrade on read.
 
 ## Admin UX (this PR) — Gantry Layout Manager flow
 
-1. **Create section** — edit **name**, **Width** (full / boxed), + **CSS classes** inline; drag the **⋮⋮** handle to **reorder sections** (persists `order` in JSON). Outline **Breakpoints** live under Layouts → Breakpoints.
+1. **Create section** — edit **name**, **Width** (full / boxed), + **CSS classes** inline; drag the **⋮⋮** handle to **reorder sections** (persists `order` in JSON). Outline **Breakpoints** live at `/app/admin/breakpoints` (Layouts → Breakpoints).
 2. **Add row** inside the section
 3. **Drag** a particle from the left palette **into the row** — edit the instance **display name** (type id unchanged)
 4. Drop a second beside it → **side-by-side** in one horizontal row (~50%/50%; `flex-wrap: nowrap`); **drag the divider** to resize in **1%** steps (**5%–95%**, pair sums to **100%**). Particle settings expand **inside** the cell — they never force the row to stack.

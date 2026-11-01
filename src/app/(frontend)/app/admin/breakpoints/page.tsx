@@ -12,8 +12,8 @@ import {
 } from '@/core/modules'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
-import { LayoutOutlineProvider } from '../layout-outline-context'
-import { OutlineSwitcher } from '../outline-switcher'
+import { LayoutOutlineProvider } from '../layouts/layout-outline-context'
+import { OutlineSwitcher } from '../layouts/outline-switcher'
 import { BreakpointsForm } from './breakpoints-form'
 
 export const dynamic = 'force-dynamic'
@@ -30,7 +30,12 @@ function pickOutlineParam(raw: string | string[] | undefined): string {
   return typeof value === 'string' && value.trim() ? value.trim() : DEFAULT_LAYOUT_ID
 }
 
-export default async function AdminLayoutBreakpointsPage(props: { searchParams?: SearchParams }) {
+/**
+ * Outline-scoped breakpoints admin (Layouts child).
+ * Lives at `/app/admin/breakpoints` (not nested under `layouts/`) to avoid a
+ * Next 16 Turbopack stale `build-manifest` ENOENT for nested layout routes.
+ */
+export default async function AdminBreakpointsPage(props: { searchParams?: SearchParams }) {
   const settings = await getSiteSettings()
   if (!isCatalogModuleEnabled(settings, MODULE_IDS.layoutManager)) {
     redirect('/app/admin/settings')
@@ -58,25 +63,24 @@ export default async function AdminLayoutBreakpointsPage(props: { searchParams?:
       <p className="lede admin-lede">
         Outline-scoped responsive breakpoints (Large desktop / Desktop / Tablet / Mobile / Mobile
         menu). Same outline switcher as the{' '}
-        <Link href={`/app/admin/layouts${layoutId === 'default' ? '' : `?outline=${encodeURIComponent(layoutId)}`}`}>
+        <Link
+          href={`/app/admin/layouts${layoutId === 'default' ? '' : `?outline=${encodeURIComponent(layoutId)}`}`}
+        >
           Layout
         </Link>{' '}
-        canvas — no separate Styles mega-page. Public CSS exposes{' '}
-        <code>--sf-bp-*</code> and <code>--sf-container-max</code>; boxed sections use the large
-        desktop value as their max width.
+        canvas — no separate Styles mega-page. Public CSS exposes <code>--sf-bp-*</code> and{' '}
+        <code>--sf-container-max</code>; boxed sections use the large desktop value as their max
+        width.
       </p>
 
       <OutlineSwitcher
         outlines={outlines.map((o) => ({ id: o.id, label: o.label }))}
         currentId={layoutId}
-        basePath="/app/admin/layouts/breakpoints"
+        basePath="/app/admin/breakpoints"
       />
 
       <LayoutOutlineProvider layoutId={layoutId}>
-        <BreakpointsForm
-          layoutLabel={outlineMeta.label}
-          breakpoints={breakpoints}
-        />
+        <BreakpointsForm layoutLabel={outlineMeta.label} breakpoints={breakpoints} />
       </LayoutOutlineProvider>
     </section>
   )
