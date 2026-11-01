@@ -27,7 +27,9 @@ import {
   normalizeLayoutBreakpoints,
   normalizeLayoutSectionStyles,
   parseCssColorInput,
+  sanitizeBackgroundImageUrl,
   sanitizeCssColor,
+  sanitizeCssColorOrGradient,
   type LayoutBreakpoints,
   type LayoutContainerMode,
   type LayoutSectionStyles,
@@ -179,6 +181,11 @@ function patchSectionStyles(
   patch: Partial<LayoutSectionStyles> & {
     clearBackgroundColor?: boolean
     clearTextColor?: boolean
+    clearBackgroundImage?: boolean
+    clearOverlayColor?: boolean
+    clearBackgroundOverlay?: boolean
+    clearAllowGradientBackground?: boolean
+    clearAllowGradientOverlay?: boolean
   },
 ): LayoutSectionStyles | undefined {
   const next: LayoutSectionStyles = { ...(current ?? {}) }
@@ -186,12 +193,28 @@ function patchSectionStyles(
   else if (patch.backgroundColor !== undefined) next.backgroundColor = patch.backgroundColor
   if (patch.clearTextColor) delete next.textColor
   else if (patch.textColor !== undefined) next.textColor = patch.textColor
+  if (patch.clearBackgroundImage) delete next.backgroundImage
+  else if (patch.backgroundImage !== undefined) next.backgroundImage = patch.backgroundImage
+  if (patch.clearBackgroundOverlay) delete next.backgroundOverlay
+  else if (patch.backgroundOverlay !== undefined) next.backgroundOverlay = patch.backgroundOverlay
+  if (patch.clearOverlayColor) delete next.overlayColor
+  else if (patch.overlayColor !== undefined) next.overlayColor = patch.overlayColor
+  if (patch.clearAllowGradientBackground) delete next.allowGradientBackground
+  else if (patch.allowGradientBackground !== undefined) {
+    next.allowGradientBackground = patch.allowGradientBackground
+  }
+  if (patch.clearAllowGradientOverlay) delete next.allowGradientOverlay
+  else if (patch.allowGradientOverlay !== undefined) {
+    next.allowGradientOverlay = patch.allowGradientOverlay
+  }
   return normalizeLayoutSectionStyles(next)
 }
 
 /**
  * Persist section display name, CSS classes, container mode, and/or Section Styles
- * (background + text). Section `id` is never changed. Empty cssClass / colors clear.
+ * (background, text, image, overlay). Section `id` is never changed.
+ * Empty cssClass / colors / image clear. Styles live on the section — deleting
+ * the section removes its Styles entry automatically.
  */
 export async function updateLayoutSectionMetaAction(
   _prev: LayoutActionState,
@@ -205,7 +228,21 @@ export async function updateLayoutSectionMetaAction(
   const hasContainerMode = formData.has('containerMode')
   const hasBackgroundColor = formData.has('backgroundColor')
   const hasTextColor = formData.has('textColor')
-  if (!hasLabel && !hasCssClass && !hasContainerMode && !hasBackgroundColor && !hasTextColor) {
+  const hasBackgroundImage = formData.has('backgroundImage')
+  const hasBackgroundOverlay = formData.has('backgroundOverlay')
+  const hasOverlayColor = formData.has('overlayColor')
+  // Checkbox pair: hidden "0" + checkbox "1" — always present on Styles form saves.
+  const hasAllowGradientBackground = formData.has('allowGradientBackground')
+  const hasAllowGradientOverlay = formData.has('allowGradientOverlay')
+  const stylesTouched =
+    hasBackgroundColor ||
+    hasTextColor ||
+    hasBackgroundImage ||
+    hasBackgroundOverlay ||
+    hasOverlayColor ||
+    hasAllowGradientBackground ||
+    hasAllowGradientOverlay
+  if (!hasLabel && !hasCssClass && !hasContainerMode && !stylesTouched) {
     return { error: 'Nothing to update on this section.' }
   }
 
@@ -224,31 +261,34 @@ export async function updateLayoutSectionMetaAction(
     containerMode = raw
   }
 
-  let backgroundColor: string | undefined
-  let clearBackgroundColor = false
-  if (hasBackgroundColor) {
-    const raw = String(formData.get('backgroundColor') ?? '').trim()
-    if (!raw) {
-      clearBackgroundColor = true
-    } else {
-      backgroundColor = sanitizeCssColor(raw)
-      if (!backgroundColor) {
-        return { error: 'Background color must be a hex value (e.g. #18191c) or transparent.' }
-      }
-    }
+  const truthyFormFlag = (name: string): boolean => {
+    const values = formData.getAll(name).map((v) => String(v).trim().toLowerCase())
+    return values.some((v) => v === '1' || v === 'true' || v === 'on' || v === 'yes')
   }
+  const allowGradientBackground = hasAllowGradientBackground
+    ? truthyFormFlag('allowGradientBackground')
+    : false
+  const allowGradientOverlay = hasAllowGradientOverlay
+    ? truthyFormFlag('allowGradientOverlay')
+    : false
 
-  let textColor: string | undefined
-  let clearTextColor = false
-  if (hasTextColor) {
-    const raw = String(formData.get('textColor') ?? '').trim()
-    if (!raw) {
-      clearTextColor = true
-    } else {
-      textColor = sanitizeCssColor(raw)
-      if (!textColor) {
-        return { error: 'Text color must be a hex value (e.g. #ffffff) or transparent.' }
-      }
+  const backgroundColorRaw = hasBackgroundColor
+    ? String(formData.get('backgroundColor') ?? '').trim()
+    : undefined
+  const textColorRaw = hasTextColor ? String(formData.get('textColor') ?? '').trim() : undefined
+  const backgroundImageRaw = hasBackgroundImage
+    ? String(formData.get('backgroundImage') ?? '').trim()
+    : undefined
+  const backgroundOverlayRaw = hasBackgroundOverlay
+    ? String(formData.get('backgroundOverlay') ?? '').trim().toLowerCase()
+    : undefined
+  const overlayColorRaw = hasOverlayColor
+    ? String(formData.get('overlayColor') ?? '').trim()
+    : undefined
+
+  if (hasBackgroundOverlay && backgroundOverlayRaw) {
+    if (backgroundOverlayRaw !== 'enabled' && backgroundOverlayRaw !== 'disabled') {
+      return { error: 'Background overlay must be enabled or disabled.' }
     }
   }
 
@@ -263,7 +303,83 @@ export async function updateLayoutSectionMetaAction(
     if (hasContainerMode && containerMode) {
       section.containerMode = containerMode
     }
-    if (hasBackgroundColor || hasTextColor) {
+    if (stylesTouched) {
+      const nextAllowBg = hasAllowGradientBackground
+        ? allowGradientBackground
+        : Boolean(section.styles?.allowGradientBackground)
+      const nextAllowOverlay = hasAllowGradientOverlay
+        ? allowGradientOverlay
+        : Boolean(section.styles?.allowGradientOverlay)
+
+      let backgroundColor: string | undefined
+      let clearBackgroundColor = false
+      if (hasBackgroundColor) {
+        if (!backgroundColorRaw) {
+          clearBackgroundColor = true
+        } else {
+          backgroundColor = sanitizeCssColorOrGradient(backgroundColorRaw, nextAllowBg)
+          if (!backgroundColor) {
+            return {
+              error: nextAllowBg
+                ? 'Background must be hex, transparent, or a CSS gradient.'
+                : 'Background color must be a hex value (e.g. #18191c) or transparent.',
+            }
+          }
+        }
+      }
+
+      let textColor: string | undefined
+      let clearTextColor = false
+      if (hasTextColor) {
+        if (!textColorRaw) {
+          clearTextColor = true
+        } else {
+          textColor = sanitizeCssColor(textColorRaw)
+          if (!textColor) {
+            return { error: 'Text color must be a hex value (e.g. #ffffff) or transparent.' }
+          }
+        }
+      }
+
+      let backgroundImage: string | undefined
+      let clearBackgroundImage = false
+      if (hasBackgroundImage) {
+        if (!backgroundImageRaw) {
+          clearBackgroundImage = true
+        } else {
+          backgroundImage = sanitizeBackgroundImageUrl(backgroundImageRaw)
+          if (!backgroundImage) {
+            return {
+              error: 'Background image must be an http(s), root-relative, or data:image URL.',
+            }
+          }
+        }
+      }
+
+      let backgroundOverlay: 'enabled' | 'disabled' | undefined
+      let clearBackgroundOverlay = false
+      if (hasBackgroundOverlay) {
+        if (!backgroundOverlayRaw) clearBackgroundOverlay = true
+        else backgroundOverlay = backgroundOverlayRaw as 'enabled' | 'disabled'
+      }
+
+      let overlayColor: string | undefined
+      let clearOverlayColor = false
+      if (hasOverlayColor) {
+        if (!overlayColorRaw) {
+          clearOverlayColor = true
+        } else {
+          overlayColor = sanitizeCssColorOrGradient(overlayColorRaw, nextAllowOverlay)
+          if (!overlayColor) {
+            return {
+              error: nextAllowOverlay
+                ? 'Overlay must be hex, transparent, or a CSS gradient.'
+                : 'Overlay color must be a hex value (e.g. #000000) or transparent.',
+            }
+          }
+        }
+      }
+
       const nextStyles = patchSectionStyles(section.styles, {
         ...(hasBackgroundColor
           ? clearBackgroundColor
@@ -274,6 +390,31 @@ export async function updateLayoutSectionMetaAction(
           ? clearTextColor
             ? { clearTextColor: true }
             : { textColor }
+          : {}),
+        ...(hasBackgroundImage
+          ? clearBackgroundImage
+            ? { clearBackgroundImage: true }
+            : { backgroundImage }
+          : {}),
+        ...(hasBackgroundOverlay
+          ? clearBackgroundOverlay
+            ? { clearBackgroundOverlay: true }
+            : { backgroundOverlay }
+          : {}),
+        ...(hasOverlayColor
+          ? clearOverlayColor
+            ? { clearOverlayColor: true }
+            : { overlayColor }
+          : {}),
+        ...(hasAllowGradientBackground
+          ? allowGradientBackground
+            ? { allowGradientBackground: true }
+            : { clearAllowGradientBackground: true }
+          : {}),
+        ...(hasAllowGradientOverlay
+          ? allowGradientOverlay
+            ? { allowGradientOverlay: true }
+            : { clearAllowGradientOverlay: true }
           : {}),
       })
       if (nextStyles) section.styles = nextStyles
@@ -288,14 +429,25 @@ export async function updateLayoutSectionMetaAction(
     if (hasCssClass) bits.push(cssClass ? `classes “${cssClass}”` : 'classes cleared')
     if (hasContainerMode && containerMode) bits.push(`container ${containerMode}`)
     if (hasBackgroundColor) {
-      bits.push(
-        clearBackgroundColor
-          ? 'background cleared'
-          : `background ${backgroundColor}`,
-      )
+      bits.push(backgroundColorRaw ? 'background updated' : 'background cleared')
     }
     if (hasTextColor) {
-      bits.push(clearTextColor ? 'text color cleared' : `text ${textColor}`)
+      bits.push(textColorRaw ? 'text updated' : 'text color cleared')
+    }
+    if (hasBackgroundImage) {
+      bits.push(backgroundImageRaw ? 'background image set' : 'background image cleared')
+    }
+    if (hasBackgroundOverlay && backgroundOverlayRaw) {
+      bits.push(`overlay ${backgroundOverlayRaw}`)
+    }
+    if (hasOverlayColor) {
+      bits.push(overlayColorRaw ? 'overlay color updated' : 'overlay color cleared')
+    }
+    if (hasAllowGradientBackground) {
+      bits.push(allowGradientBackground ? 'gradient backgrounds on' : 'gradient backgrounds off')
+    }
+    if (hasAllowGradientOverlay) {
+      bits.push(allowGradientOverlay ? 'gradient overlays on' : 'gradient overlays off')
     }
     state.message = `Section ${bits.join(' · ')} saved.`
   }

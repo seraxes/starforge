@@ -1444,11 +1444,30 @@ button:disabled {
 }
 
 /*
- * Section Styles (bg + text) apply via inline style / --sf-section-* on the
- * public wrapper only — never on `.admin-shell`.
+ * Section Styles (bg + text + image + overlay) apply via inline style /
+ * --sf-section-* on the public wrapper only — never on `.admin-shell`.
  */
 .sf-layout-section[data-sf-section-styled='true'] {
-  /* background-color + color set inline from layout JSON */
+  /* background-color + color + background-image set inline from layout JSON */
+}
+
+.sf-layout-section[data-sf-overlay='enabled'] {
+  position: relative;
+  isolation: isolate;
+}
+
+.sf-layout-section[data-sf-overlay='enabled']::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: var(--sf-section-overlay, rgba(0, 0, 0, 0.35));
+}
+
+.sf-layout-section[data-sf-overlay='enabled'] > * {
+  position: relative;
+  z-index: 1;
 }
 
 .sf-layout-chrome-meta {

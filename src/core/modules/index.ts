@@ -100,6 +100,7 @@ export { LayoutOutlineStyles } from './LayoutOutlineStyles'
 export { PublicLayoutBody } from './PublicLayoutBody'
 export {
   DEFAULT_LAYOUT_BREAKPOINTS,
+  asBackgroundOverlay,
   asContainerMode,
   buildOutlineBreakpointCss,
   buildSectionInlineStyle,
@@ -109,8 +110,11 @@ export {
   normalizeLayoutSectionStyles,
   parseCssColorInput,
   resolveSectionContainerMode,
+  sanitizeBackgroundImageUrl,
   sanitizeCssColor,
+  sanitizeCssColorOrGradient,
   sanitizeCssLength,
+  sectionStylesNeedPaintLayer,
 } from './styles'
 export type { CssColorParseResult } from './styles'
 export type {

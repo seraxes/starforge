@@ -1150,7 +1150,7 @@ function SectionCanvas({
                       placeholder="#18191c"
                       spellCheck={false}
                       autoComplete="off"
-                      title="Hex background (empty = inherit). Image/overlay later."
+                      title="Hex background (empty = inherit). Image/overlay on Styles."
                       aria-label="Section background hex"
                       onBlur={(event) =>
                         persistSectionMeta({ backgroundColor: event.target.value })
@@ -1504,9 +1504,9 @@ export function LayoutEditor({
           Section <code>label</code> / <code>containerMode</code> / Section Styles (
           <code>backgroundColor</code> · <code>textColor</code>) / <code>cssClass</code> and slot{' '}
           <code>name</code> save on blur/change. Section <code>order</code> persists on drag.
-          Widths are integer percents inside the section container. Outline breakpoints live under{' '}
-          <code>/app/admin/breakpoints</code>. See{' '}
-          <code>src/core/modules/README.md</code>.
+          Widths are integer percents inside the section container. Full Section Styles (image /
+          overlay / gradients) and breakpoints live under Styles (
+          <code>/app/admin/breakpoints</code>). See <code>src/core/modules/README.md</code>.
         </p>
       </details>
     </div>

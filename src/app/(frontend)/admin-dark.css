@@ -473,6 +473,7 @@ body:has(.admin-shell) > main {
 .admin-shell .page-settings-form button[type='submit']:not(.secondary):not(.danger):not(.ghost),
 .admin-shell .page-settings-actions button[type='submit']:not(.secondary):not(.danger),
 .admin-shell .breakpoints-form button[type='submit'],
+.admin-shell .section-styles-form button[type='submit'],
 .admin-shell .outlines-create button[type='submit']:not(.secondary):not(.danger),
 .admin-shell .outlines-inline-form button[type='submit']:not(.danger),
 .admin-shell .admin-inline-form button[type='submit']:not(.secondary):not(.danger),
@@ -492,6 +493,7 @@ body:has(.admin-shell) > main {
 .admin-shell .settings-form button[type='submit']:not(.secondary):not(.danger):not(.ghost):hover,
 .admin-shell .page-settings-actions button[type='submit']:not(.secondary):not(.danger):hover,
 .admin-shell .breakpoints-form button[type='submit']:hover,
+.admin-shell .section-styles-form button[type='submit']:hover,
 .admin-shell .outlines-create button[type='submit']:not(.secondary):not(.danger):hover {
   background: color-mix(in srgb, var(--sf-primary) 82%, var(--sf-primary-strong));
 }
@@ -1469,13 +1471,15 @@ body:has(.admin-shell) > main {
 }
 
 /* Styles · Breakpoints — Helium dense field card + wash behind (full width) */
-.admin-shell .breakpoints-form {
+.admin-shell .breakpoints-form,
+.admin-shell .section-styles-form {
   width: 100%;
   max-width: none;
   padding: 1.25rem 1.35rem 1.4rem;
 }
 
 .admin-shell .breakpoints-form .settings-field,
+.admin-shell .section-styles-form .settings-field,
 .admin-shell .settings-fieldset .settings-field {
   border-bottom: 1px solid color-mix(in srgb, #2f3d50 65%, transparent);
   padding-bottom: 0.65rem;
@@ -1483,15 +1487,138 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .breakpoints-form .settings-field:last-of-type,
+.admin-shell .section-styles-form .settings-field:last-of-type,
 .admin-shell .settings-fieldset .settings-field:last-of-type {
   border-bottom: 0;
   margin-bottom: 0.35rem;
 }
 
 @media (max-width: 640px) {
-  .admin-shell .breakpoints-form {
+  .admin-shell .breakpoints-form,
+  .admin-shell .section-styles-form {
     padding: 1.1rem 1rem 1.2rem;
   }
+}
+
+.admin-shell .section-styles-heading {
+  margin: 1.75rem 0 0.75rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #e8eef6;
+}
+
+.admin-shell .section-styles-heading:first-of-type {
+  margin-top: 0.35rem;
+}
+
+.admin-shell .section-styles-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 0.85rem;
+  margin-bottom: 0.85rem;
+}
+
+.admin-shell .section-styles-filter {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.admin-shell .section-styles-filter input {
+  width: 100%;
+  box-sizing: border-box;
+  background: #151c26;
+  border: 1px solid #2f3d50;
+  color: #e8eef6;
+  border-radius: 3px;
+  padding: 0.45rem 0.65rem;
+}
+
+.admin-shell .section-styles-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.admin-shell .section-styles-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem 1rem;
+}
+
+@media (max-width: 900px) {
+  .admin-shell .section-styles-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admin-shell .section-styles-card {
+  background: color-mix(in srgb, var(--sf-secondary) 6%, #1b2432);
+  border: 1px solid #2f3d50;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.admin-shell .section-styles-card-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  cursor: pointer;
+  list-style: none;
+  color: #e8eef6;
+  background: color-mix(in srgb, #0f1722 55%, #1b2432);
+  border-bottom: 1px solid #2f3d50;
+}
+
+.admin-shell .section-styles-card-summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-shell .section-styles-card-title {
+  font-weight: 600;
+}
+
+.admin-shell .section-styles-card-id {
+  font-size: 0.75rem;
+  color: #8fa0b5;
+}
+
+.admin-shell .section-styles-form {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.admin-shell .section-styles-color-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+}
+
+.admin-shell .section-styles-color-row .gantry-inline-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.admin-shell .section-styles-check {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.admin-shell .section-styles-check input[type='checkbox'] {
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: var(--sf-admin-blue, #3498db);
+}
+
+.admin-shell .section-styles-empty {
+  margin: 0.5rem 0 1rem;
+  color: #8fa0b5;
 }
 
 .admin-shell a:not(.admin-nav > a):not(.admin-nav-dropdown-trigger):not(.button-link):not(.links a) {

@@ -37,7 +37,7 @@ const TABS: {
     label: 'Styles',
     href: '/app/admin/breakpoints',
     icon: '◐',
-    title: 'Breakpoints / outline styles',
+    title: 'Section styles + breakpoints',
   },
   {
     id: 'page-settings',

@@ -1,13 +1,15 @@
 /**
- * Outline-scoped layout styles (SF-34).
+ * Outline-scoped layout styles (SF-34 / SF-64).
  *
  * CSS ownership (keep layers separate — do not mix into admin chrome):
  * 1) Design tokens — `:root` (later Tailwind theme)
- * 2) Outline Layout Styles — section full/boxed + section bg/text + breakpoints
+ * 2) Outline Layout Styles — section full/boxed + section bg/text/image/overlay
+ *    + outline breakpoints
  * 3) Custom CSS — Page Settings / Custom particle (not admin chrome)
  *
- * Breakpoints live on the layout document (`styles.breakpoints`), not a
- * separate Gantry-style Styles mega-page. Defaults match Helium / Gantry rem presets.
+ * Section Styles live on each live section instance (`section.styles`) — listing
+ * under Layouts → Styles mirrors the outline canvas; deleting a section drops
+ * its styles with it. Breakpoints stay on `document.styles.breakpoints`.
  */
 
 import type { CSSProperties } from 'react'
@@ -16,17 +18,23 @@ export type LayoutContainerMode = 'full' | 'boxed'
 
 /**
  * Gantry-like Section Styles on a layout section instance (not a fixed name list).
- * Background image / overlay reserved for a later slice.
+ * Live sections only — no Navigation/Header preset name map.
  */
 export type LayoutSectionStyles = {
-  /** Hex / transparent background fill. */
+  /** Hex / transparent fill, or CSS gradient when allowGradientBackground. */
   backgroundColor?: string
   /** Hex text / foreground color (inherits into section content). */
   textColor?: string
-  /** Reserved — media URL (Gantry Background Image). */
+  /** Background image URL (http(s), /, or data:). */
   backgroundImage?: string
-  /** Reserved — Gantry Background Overlay enabled|disabled. */
+  /** Gantry-style Background Overlay toggle. */
   backgroundOverlay?: 'enabled' | 'disabled'
+  /** Overlay fill (hex / transparent, or gradient when allowGradientOverlay). */
+  overlayColor?: string
+  /** Permit CSS gradient syntax in backgroundColor. */
+  allowGradientBackground?: boolean
+  /** Permit CSS gradient syntax in overlayColor. */
+  allowGradientOverlay?: boolean
 }
 
 export type LayoutBreakpoints = {
@@ -170,27 +178,84 @@ export function sanitizeCssColor(raw: unknown): string | undefined {
   return undefined
 }
 
+const CSS_GRADIENT_RE =
+  /^(linear|radial|conic)-gradient\(\s*[\s\S]{1,512}\)$/i
+
+/** Solid color, or CSS gradient when `allowGradient` is true. */
+export function sanitizeCssColorOrGradient(
+  raw: unknown,
+  allowGradient = false,
+): string | undefined {
+  const solid = sanitizeCssColor(raw)
+  if (solid) return solid
+  if (!allowGradient || typeof raw !== 'string') return undefined
+  const trimmed = raw.trim().replace(/\s+/g, ' ')
+  if (!trimmed || trimmed.length > 512) return undefined
+  if (!CSS_GRADIENT_RE.test(trimmed)) return undefined
+  // Reject url()/expression/etc inside gradient payloads.
+  if (/url\s*\(|expression\s*\(|@import|<\/?[a-z]/i.test(trimmed)) return undefined
+  return trimmed
+}
+
+/** Allow http(s), root-relative, and data:image URLs for section backgrounds. */
+export function sanitizeBackgroundImageUrl(raw: unknown): string | undefined {
+  if (typeof raw !== 'string') return undefined
+  const trimmed = raw.trim()
+  if (!trimmed) return undefined
+  if (trimmed.length > 2048) return undefined
+  if (/[\r\n"'<>]/.test(trimmed)) return undefined
+  if (/^(https?:\/\/|\/|data:image\/)/i.test(trimmed)) return trimmed
+  return undefined
+}
+
+export function asBackgroundOverlay(raw: unknown): 'enabled' | 'disabled' | undefined {
+  if (raw === 'enabled' || raw === 'disabled') return raw
+  if (raw === true || raw === 'true' || raw === '1' || raw === 'on') return 'enabled'
+  if (raw === false || raw === 'false' || raw === '0' || raw === 'off') return 'disabled'
+  return undefined
+}
+
+function asBoolFlag(raw: unknown): boolean | undefined {
+  if (raw === true || raw === 'true' || raw === '1' || raw === 'on') return true
+  if (raw === false || raw === 'false' || raw === '0' || raw === 'off') return false
+  return undefined
+}
+
 export function normalizeLayoutSectionStyles(raw: unknown): LayoutSectionStyles | undefined {
   if (!raw || typeof raw !== 'object') return undefined
-  const src = raw as Partial<LayoutSectionStyles>
-  const backgroundColor = sanitizeCssColor(src.backgroundColor)
+  const src = raw as Partial<LayoutSectionStyles> & Record<string, unknown>
+  const allowGradientBackground = asBoolFlag(src.allowGradientBackground) === true
+  const allowGradientOverlay = asBoolFlag(src.allowGradientOverlay) === true
+  const backgroundColor = sanitizeCssColorOrGradient(src.backgroundColor, allowGradientBackground)
   const textColor = sanitizeCssColor(src.textColor)
-  const backgroundImage =
-    typeof src.backgroundImage === 'string' && src.backgroundImage.trim()
-      ? src.backgroundImage.trim().slice(0, 2048)
-      : undefined
-  const backgroundOverlay =
-    src.backgroundOverlay === 'enabled' || src.backgroundOverlay === 'disabled'
-      ? src.backgroundOverlay
-      : undefined
+  const backgroundImage = sanitizeBackgroundImageUrl(src.backgroundImage)
+  const backgroundOverlay = asBackgroundOverlay(src.backgroundOverlay)
+  const overlayColor = sanitizeCssColorOrGradient(src.overlayColor, allowGradientOverlay)
 
   const out: LayoutSectionStyles = {
     ...(backgroundColor ? { backgroundColor } : {}),
     ...(textColor ? { textColor } : {}),
     ...(backgroundImage ? { backgroundImage } : {}),
     ...(backgroundOverlay ? { backgroundOverlay } : {}),
+    ...(overlayColor ? { overlayColor } : {}),
+    ...(allowGradientBackground ? { allowGradientBackground: true } : {}),
+    ...(allowGradientOverlay ? { allowGradientOverlay: true } : {}),
   }
   return Object.keys(out).length > 0 ? out : undefined
+}
+
+function isCssGradient(value: string | undefined): boolean {
+  return Boolean(value && CSS_GRADIENT_RE.test(value))
+}
+
+/** True when section styles need a public overlay / image paint layer. */
+export function sectionStylesNeedPaintLayer(styles?: LayoutSectionStyles | null): boolean {
+  const normalized = normalizeLayoutSectionStyles(styles ?? undefined)
+  if (!normalized) return false
+  if (normalized.backgroundImage) return true
+  if (normalized.backgroundOverlay === 'enabled') return true
+  if (normalized.backgroundColor && isCssGradient(normalized.backgroundColor)) return true
+  return false
 }
 
 /** Inline public styles for a section (layer 2 — outline Layout Styles). */
@@ -201,15 +266,34 @@ export function buildSectionInlineStyle(
   if (!normalized) return undefined
 
   const out: CSSProperties & Record<string, string> = {}
-  if (normalized.backgroundColor) {
-    out.backgroundColor = normalized.backgroundColor
-    out['--sf-section-bg'] = normalized.backgroundColor
+  const bg = normalized.backgroundColor
+  if (bg) {
+    if (isCssGradient(bg)) {
+      out['--sf-section-bg'] = bg
+      out['--sf-section-bg-image'] = bg
+    } else {
+      out.backgroundColor = bg
+      out['--sf-section-bg'] = bg
+    }
   }
   if (normalized.textColor) {
     out.color = normalized.textColor
     out['--sf-section-text'] = normalized.textColor
   }
-  // Background image / overlay intentionally not applied yet (reserved).
+  if (normalized.backgroundImage) {
+    const url = `url(${JSON.stringify(normalized.backgroundImage)})`
+    const existing = out['--sf-section-bg-image']
+    out['--sf-section-bg-image'] = existing ? `${existing}, ${url}` : url
+    out.backgroundImage = out['--sf-section-bg-image']
+    out.backgroundSize = 'cover'
+    out.backgroundPosition = 'center'
+    out.backgroundRepeat = 'no-repeat'
+  } else if (bg && isCssGradient(bg)) {
+    out.backgroundImage = bg
+  }
+  if (normalized.backgroundOverlay === 'enabled') {
+    out['--sf-section-overlay'] = normalized.overlayColor || 'rgba(0,0,0,0.35)'
+  }
   return Object.keys(out).length > 0 ? out : undefined
 }
 

@@ -1,5 +1,4 @@
 import React from 'react'
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { DEFAULT_LAYOUT_ID } from '@/core/db'
@@ -15,12 +14,14 @@ import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/sett
 import { LayoutOutlineProvider } from '../layouts/layout-outline-context'
 import { LayoutsAdminNav } from '../layouts/layouts-admin-nav'
 import { BreakpointsForm } from './breakpoints-form'
+import { SectionStylesPanel } from './section-styles-panel'
 
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'Breakpoints — Layouts — Starforge',
-  description: 'Outline-scoped responsive breakpoints (Gantry-style rem presets).',
+  title: 'Styles — Layouts — Starforge',
+  description:
+    'Outline-scoped section styles (colors, background image, overlay) and breakpoints.',
 }
 
 type SearchParams = Promise<{ outline?: string | string[] }> | { outline?: string | string[] }
@@ -31,11 +32,11 @@ function pickOutlineParam(raw: string | string[] | undefined): string {
 }
 
 /**
- * Outline-scoped breakpoints admin (Layouts child).
- * Lives at `/app/admin/breakpoints` (not nested under `layouts/`) to avoid a
+ * Layouts → Styles: live section style panels + outline breakpoints.
+ * Route stays `/app/admin/breakpoints` (not nested under `layouts/`) to avoid
  * Next 16 Turbopack stale `build-manifest` ENOENT for nested layout routes.
  */
-export default async function AdminBreakpointsPage(props: { searchParams?: SearchParams }) {
+export default async function AdminStylesPage(props: { searchParams?: SearchParams }) {
   const settings = await getSiteSettings()
   if (!isCatalogModuleEnabled(settings, MODULE_IDS.layoutManager)) {
     redirect('/app/admin/settings')
@@ -57,6 +58,14 @@ export default async function AdminBreakpointsPage(props: { searchParams?: Searc
     document.styles?.breakpoints ?? DEFAULT_LAYOUT_BREAKPOINTS,
   )
 
+  const sections = [...document.sections]
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id))
+    .map((section) => ({
+      id: section.id,
+      label: section.label || section.id,
+      styles: section.styles,
+    }))
+
   const pageSettingsOn = isCatalogModuleEnabled(settings, MODULE_IDS.pageSettings)
 
   return (
@@ -67,20 +76,20 @@ export default async function AdminBreakpointsPage(props: { searchParams?: Searc
         currentOutlineId={layoutId}
         showPageSettingsTab={pageSettingsOn}
       />
-      <h2>Styles · Breakpoints</h2>
+      <h2>Styles</h2>
       <p className="lede admin-lede gantry-layouts-lede">
-        Outline-scoped breakpoints (Large desktop / Desktop / Tablet / Mobile / Mobile menu) — no
-        Styles mega-page. Public CSS exposes <code>--sf-bp-*</code> and{' '}
-        <code>--sf-container-max</code>. Section Background/Text live on the{' '}
-        <Link
-          href={`/app/admin/layouts${layoutId === 'default' ? '' : `?outline=${encodeURIComponent(layoutId)}`}`}
-        >
-          Layout
-        </Link>{' '}
-        canvas.
+        Live sections on outline <strong>{outlineMeta.label}</strong> — text/background colors,
+        background image, and overlay. Deleting a section on Layout removes its Styles entry.
+        Breakpoints below stay outline-scoped (<code>--sf-bp-*</code>).
       </p>
 
       <LayoutOutlineProvider layoutId={layoutId}>
+        <h3 className="section-styles-heading">Section Styles</h3>
+        <SectionStylesPanel sections={sections} />
+
+        <h3 className="section-styles-heading" id="breakpoints">
+          Breakpoints
+        </h3>
         <BreakpointsForm layoutLabel={outlineMeta.label} breakpoints={breakpoints} />
       </LayoutOutlineProvider>
     </section>
