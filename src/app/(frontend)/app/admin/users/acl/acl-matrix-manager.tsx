@@ -52,21 +52,12 @@ export function AclMatrixManager({ resources, groups }: Props) {
 
   return (
     <div className="acl-page">
-      <section className="outlines-create" aria-label="View access">
-        <h3>View access (menus + modules)</h3>
+      <section className="outlines-create" aria-label="Group permissions matrix">
+        <h3>Permissions by group</h3>
         <p className="settings-hint">
-          Nav items use <strong>multi-select access tags</strong> (public / registered / groups) —
-          visible if the viewer matches <strong>any</strong> tag. Layout particles have a matching
-          per-slot Access stub. Configure tags in the Nav / Layout editors; manage membership under{' '}
-          <Link href="/app/admin/users/groups">Groups</Link>.
-        </p>
-      </section>
-
-      <section className="outlines-create" aria-label="Admin ACL stub matrix">
-        <h3>Admin area stub matrix</h3>
-        <p className="settings-hint">
-          Permissions keyed by group for Core admin resources (`sf_acl_permissions`). Enforcement
-          beyond global app-admin is follow-up (SF-45).
+          Check a cell to grant that admin area to the group. Viewing (menus / modules) is tagged
+          on each Nav item or layout particle — not here. Stored in{' '}
+          <code>sf_acl_permissions</code>.
         </p>
         <Feedback state={state} />
 
@@ -124,7 +115,7 @@ export function AclMatrixManager({ resources, groups }: Props) {
               </table>
             </div>
             <button type="submit" disabled={pending}>
-              {pending ? 'Saving…' : 'Save ACL matrix'}
+              {pending ? 'Saving…' : 'Save permissions'}
             </button>
           </form>
         )}

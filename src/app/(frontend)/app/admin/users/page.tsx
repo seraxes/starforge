@@ -49,11 +49,10 @@ export default async function AdminUsersPage() {
     <section className="admin-section">
       <h2>App users</h2>
       <p className="lede admin-lede">
-        List core accounts (`sf_users`), set <code>admin</code> / <code>member</code>, assign{' '}
-        <Link href="/app/admin/users/groups">groups</Link>, edit the{' '}
-        <Link href="/app/admin/users/acl">ACL</Link> stub, toggle <strong>CMS access</strong>{' '}
-        (Content CMS at <code>/admin</code> via the same Better Auth login), or disable (ban).
-        Product members without CMS access are never pushed into Payload.
+        Core accounts (`sf_users`): set role, assign{' '}
+        <Link href="/app/admin/users/groups">groups</Link>, toggle <strong>CMS access</strong>, or
+        disable. Group permissions → <Link href="/app/admin/users/acl">ACL</Link>. Product members
+        without CMS access are never pushed into Payload.
       </p>
       <UsersAdminTable users={users} groupOptions={groupOptions} />
     </section>

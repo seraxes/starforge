@@ -468,10 +468,10 @@ export function NavItemsEditor({
                         />
                       </label>
                       <fieldset className="settings-field nav-access-tags">
-                        <legend>Access tags</legend>
+                        <legend>Who can see</legend>
                         <p className="settings-hint">
-                          Multi-select — item is visible if the viewer matches{' '}
-                          <strong>any</strong> tag.{' '}
+                          Multi-select groups (plus Public / Registered). Visible if the viewer
+                          matches <strong>any</strong> tag.{' '}
                           <Link href="/app/admin/users/groups">Manage groups</Link>.
                         </p>
                         <div className="nav-access-tag-list">

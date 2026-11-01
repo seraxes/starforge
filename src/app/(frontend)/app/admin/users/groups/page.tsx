@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
 
 export const metadata = {
   title: 'User groups — Starforge',
-  description: 'Create and manage Starforge user groups and ACL stubs.',
+  description: 'Create and manage Starforge user groups.',
 }
 
 export default async function AdminUserGroupsPage() {
@@ -20,10 +20,10 @@ export default async function AdminUserGroupsPage() {
     <section className="admin-section">
       <h2>User groups</h2>
       <p className="lede admin-lede">
-        Groups under <Link href="/app/admin/users">Users</Link> — create, rename, delete, and
-        assign members. Nav items can target <code>group:&lt;id&gt;</code>; the ACL matrix on each
-        group is a stub foundation for admin areas (global app admins still open all Core admin
-        today).
+        Create groups and assign members. The same groups are tagged on{' '}
+        <Link href="/app/admin/nav">Nav</Link> / Layout items for viewing, and receive admin
+        permissions under <Link href="/app/admin/users/acl">ACL</Link> — no separate Access Level
+        entity.
       </p>
       <GroupsManager
         groups={groups.map((g) => ({

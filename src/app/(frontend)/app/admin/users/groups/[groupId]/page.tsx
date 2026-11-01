@@ -3,11 +3,7 @@ import Link from 'next/link'
 import { desc } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 
-import {
-  getGroupAclMatrix,
-  getUserGroup,
-  listGroupMembers,
-} from '@/core/acl'
+import { getUserGroup, listGroupMembers } from '@/core/acl'
 import { db, sfUsers } from '@/core/db'
 import { normalizeAppRole } from '@/core/auth/permissions'
 
@@ -33,9 +29,8 @@ export default async function AdminUserGroupDetailPage({ params }: Args) {
   const group = await getUserGroup(groupId)
   if (!group) notFound()
 
-  const [members, matrix, allUsers] = await Promise.all([
+  const [members, allUsers] = await Promise.all([
     listGroupMembers(group.id),
-    getGroupAclMatrix(group.id),
     db
       .select({
         id: sfUsers.id,
@@ -64,8 +59,9 @@ export default async function AdminUserGroupDetailPage({ params }: Args) {
         <code className="admin-code-inline">{group.id}</code>
       </h2>
       <p className="lede admin-lede">
-        Assign members and edit the admin-area ACL stub for this group. Nav items can use{' '}
-        <code>group:{group.id}</code>.{' '}
+        Members of this group. Tag this group on{' '}
+        <Link href="/app/admin/nav">Nav</Link> / Layout items for viewing, and grant admin rights
+        under <Link href="/app/admin/users/acl">ACL</Link>.{' '}
         <Link href="/app/admin/users/groups">Back to groups</Link>
       </p>
       {group.description ? <p className="settings-hint">{group.description}</p> : null}
@@ -80,7 +76,6 @@ export default async function AdminUserGroupDetailPage({ params }: Args) {
           joinedAt: m.joinedAt.toISOString(),
         }))}
         candidates={candidates}
-        matrix={matrix}
       />
     </section>
   )

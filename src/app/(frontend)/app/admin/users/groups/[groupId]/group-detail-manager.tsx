@@ -6,10 +6,8 @@ import { useRouter } from 'next/navigation'
 import {
   addGroupMemberAction,
   removeGroupMemberAction,
-  saveGroupAclMatrixAction,
   type AclActionState,
 } from '@/core/acl/actions'
-import type { AclPermissionRow } from '@/core/acl/types'
 import type { AppRole } from '@/core/auth/permissions'
 
 type MemberRow = {
@@ -32,7 +30,6 @@ type Props = {
   groupLabel: string
   members: MemberRow[]
   candidates: Candidate[]
-  matrix: AclPermissionRow[]
 }
 
 const initial: AclActionState = {}
@@ -60,7 +57,6 @@ export function GroupDetailManager({
   groupLabel,
   members,
   candidates,
-  matrix,
 }: Props) {
   const router = useRouter()
   const [addState, addAction, addPending] = useActionState(addGroupMemberAction, initial)
@@ -68,13 +64,12 @@ export function GroupDetailManager({
     removeGroupMemberAction,
     initial,
   )
-  const [aclState, aclAction, aclPending] = useActionState(saveGroupAclMatrixAction, initial)
 
   useEffect(() => {
-    if (addState.ok || removeState.ok || aclState.ok) {
+    if (addState.ok || removeState.ok) {
       router.refresh()
     }
-  }, [addState, removeState, aclState, router])
+  }, [addState, removeState, router])
 
   return (
     <div className="group-detail-manager">
@@ -148,59 +143,11 @@ export function GroupDetailManager({
                       </form>
                     </td>
                   </tr>
-                ))
+                ))}
               )}
             </tbody>
           </table>
         </div>
-      </section>
-
-      <section className="outlines-create" aria-label={`ACL matrix for ${groupLabel}`}>
-        <h3>Admin ACL stub</h3>
-        <p className="settings-hint">
-          Permissions keyed by this group for Core admin areas. Stored in{' '}
-          <code>sf_acl_permissions</code>. Enforcement beyond global app-admin is follow-up —
-          this matrix is the foundation.
-        </p>
-        <Feedback state={aclState} />
-        <form action={aclAction} className="acl-matrix-form">
-          <input type="hidden" name="groupId" value={groupId} />
-          <div className="outlines-table-wrap">
-            <table className="outlines-table">
-              <thead>
-                <tr>
-                  <th scope="col">Allow</th>
-                  <th scope="col">Resource</th>
-                  <th scope="col">Key</th>
-                </tr>
-              </thead>
-              <tbody>
-                {matrix.map((row) => (
-                  <tr key={row.resource}>
-                    <td>
-                      <label className="outlines-check">
-                        <input
-                          type="checkbox"
-                          name="resource"
-                          value={row.resource}
-                          defaultChecked={row.allowed}
-                        />
-                        <span className="sr-only">Allow {row.label}</span>
-                      </label>
-                    </td>
-                    <td>{row.label}</td>
-                    <td>
-                      <code>{row.resource}</code>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <button type="submit" disabled={aclPending}>
-            {aclPending ? 'Saving…' : 'Save ACL matrix'}
-          </button>
-        </form>
       </section>
     </div>
   )

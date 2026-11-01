@@ -96,7 +96,7 @@ export function GroupsManager({ groups }: Props) {
           </label>
           <label className="outlines-check">
             <input type="checkbox" name="openAfter" value="1" defaultChecked />
-            <span>Open members / ACL after create</span>
+            <span>Open members after create</span>
           </label>
           <button type="submit" disabled={createPending}>
             {createPending ? 'Creating…' : 'Create'}
@@ -192,7 +192,7 @@ export function GroupsManager({ groups }: Props) {
                           className="secondary"
                           href={`/app/admin/users/groups/${encodeURIComponent(group.id)}`}
                         >
-                          Members / ACL
+                          Members
                         </Link>
                         <form action={deleteAction} className="admin-inline-form">
                           <input type="hidden" name="groupId" value={group.id} />

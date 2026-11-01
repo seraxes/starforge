@@ -17,7 +17,7 @@ type Props = {
 /**
  * Renders one layout slot (particle) inside a grid cell.
  * Site Settings → Modules per-id toggles gate public render (required chrome always on).
- * Slot `accessLevel` (public / registered / group:<id>) filters viewing like Nav items.
+ * Slot `accessLevel` (public / registered / group:<id>) filters viewing like Nav tags.
  */
 export async function SlotRenderer({ sectionId, slot, pageContent }: Props) {
   if (slot.enabled === false) return null
@@ -39,7 +39,7 @@ export async function SlotRenderer({ sectionId, slot, pageContent }: Props) {
     return null
   }
 
-  // Joomla-style view ACL stub — same tokens as Nav (SF-41 foundation; SF-45 expands UX).
+  // Viewing filter — same group/public/registered tokens as Nav (SF-41).
   if (slot.accessLevel && slot.accessLevel !== 'public') {
     const viewer = await getAccessViewer()
     if (!canSeeNavAccessLevel(slot.accessLevel, viewer)) return null

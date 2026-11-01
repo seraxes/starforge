@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic'
 
 export const metadata = {
   title: 'ACL — Starforge',
-  description: 'Group-keyed ACL stub and Joomla-style view access overview.',
+  description: 'Assign admin permissions to user groups.',
 }
 
 export default async function AdminAclPage() {
@@ -32,10 +32,11 @@ export default async function AdminAclPage() {
     <section className="admin-section">
       <h2>ACL</h2>
       <p className="lede admin-lede">
-        Joomla-style direction: view access tags on{' '}
-        <Link href="/app/admin/nav">menu items</Link> and layout particles; admin-area grants keyed
-        by <Link href="/app/admin/users/groups">groups</Link>. Global app admins still open all Core
-        admin today — this matrix is the foundation stub.
+        One model: <strong>groups</strong> hold permissions here; the same groups (plus Public /
+        Registered tags) control who can <em>see</em> Nav items and layout particles. There is no
+        separate Access Level table — manage membership under{' '}
+        <Link href="/app/admin/users/groups">Groups</Link>. Global app admins still open all Core
+        admin today; this matrix is the stub for later enforcement.
       </p>
 
       <AclMatrixManager

@@ -4,7 +4,7 @@
  */
 
 /**
- * Access tag — `group:<id>` maps to Users → Groups (`sf_user_groups.id`).
+ * Who-can-see tag — `group:<id>` maps to Users → Groups (no separate Access Level entity).
  * Items store multiple tags; visible if the viewer matches **any** (OR).
  */
 export type NavAccessLevel =

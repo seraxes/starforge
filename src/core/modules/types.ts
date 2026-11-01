@@ -48,9 +48,9 @@ export type LayoutSlot = {
   enabled?: boolean
   order?: number
   /**
-   * Joomla-style view access stub (same tokens as Nav items):
+   * Who can see this particle (same tokens as Nav `accessTags`):
    * `public` | `registered` | `group:<id>`. Omitted = public.
-   * Public SlotRenderer filters by session; fuller ACL UX → SF-45.
+   * Groups are the only ACL entity; SlotRenderer filters by session.
    */
   accessLevel?: string
   config?: LayoutSlotConfig

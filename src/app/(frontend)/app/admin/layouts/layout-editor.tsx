@@ -335,18 +335,18 @@ function ParticleBlock({
         {meta?.builtin ? <span className="admin-badge">built-in</span> : null}
         {!enabled ? <span className="admin-badge admin-badge-warn">off</span> : null}
         {accessKind !== 'public' ? (
-          <span className="admin-badge" title="View access level">
+          <span className="admin-badge" title="Who can see">
             {accessKind === 'registered' ? 'registered' : `group:${accessGroupId || '…'}`}
           </span>
         ) : null}
       </p>
       <label className="gantry-inline-label gantry-slot-access-label">
-        <span className="gantry-field-hint">Access</span>
+        <span className="gantry-field-hint">Who can see</span>
         <select
           className="gantry-inline-input"
           disabled={pending}
           value={accessKind}
-          aria-label={`Access level for ${displayName}`}
+          aria-label={`Who can see ${displayName}`}
           onChange={(event) => {
             const kind = event.target.value as 'public' | 'registered' | 'group'
             const fd = withOutlineId(new FormData(), layoutId)

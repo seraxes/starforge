@@ -107,13 +107,19 @@ App login uses **email**, not a separate username. Forgot / reset password is **
 
 ### User groups + ACL foundation
 
-**Users** is a hover submenu: **Accounts** (`/app/admin/users`) and **Groups** (`/app/admin/users/groups`). Groups support create / rename / delete, member assign (also from the Accounts table), and a per-group **admin ACL stub** stored in `sf_acl_permissions` (resource keys like `admin.nav`, `admin.layouts`). Global app admins still open all Core admin today — the matrix is the foundation for fuller frontend/backend ACL later.
+**Users** hover submenu: **Accounts** · **Groups** · **ACL**.
 
-Nav item **access levels**: `public` (everyone), `registered` (signed-in), `group:<id>` (members of that Users → Groups row). Public header filters by the current session.
+| Piece | Role |
+| --- | --- |
+| **Groups** | Create / rename / delete; assign members. Only ACL entity (no separate Access Level table). |
+| **ACL** | One matrix: grant admin-area permissions **to groups** (`sf_acl_permissions`). |
+| **Nav / Layout “Who can see”** | Multi-select tags on each item (`public` / `registered` / `group:<id>`). Visible if the viewer matches **any** tag. |
+
+Global app admins still open all Core admin today; the matrix is the enforcement stub.
 
 ### Site settings + Nav manager + feature toggles
 
-**Nav** is a **top-level** Core admin item (`/app/admin/nav`, sibling of Users / Site settings / Layouts): multiple named **navigation sets** (menus) in `sf_nav_menus`, each with items (CMS page, URL, or module view; reorder; copy/paste; CSS class; browser/page title; access level wired to groups). Site Settings only **assigns** which set is the site primary header menu — not nested under Site Chrome.
+**Nav** is a **top-level** Core admin item (`/app/admin/nav`, sibling of Users / Site settings / Layouts): multiple named **navigation sets** (menus) in `sf_nav_menus`, each with items (CMS page, URL, or module view; reorder; copy/paste; CSS class; browser/page title; multi-select access tags). Site Settings only **assigns** which set is the site primary header menu — not nested under Site Chrome.
 
 One Payload global (`site-settings`) holds site name, `primaryNavMenuId`, capability flags, and module toggles. Core admins edit it at **`/app/admin/settings`**. CMS editors can edit the same document under Payload **Globals → Site settings** (legacy `primaryNav` array is a fallback only).
 
