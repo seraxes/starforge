@@ -10,6 +10,7 @@ import {
   addLayoutRowAction,
   addLayoutSectionAction,
   dropParticleIntoRowAction,
+  moveSlotToRowAction,
   removeLayoutRowAction,
   removeSlotAction,
   renameLayoutSlotAction,
@@ -62,12 +63,51 @@ const initialState: LayoutActionState = {}
 
 const DND_PARTICLE = 'application/x-starforge-particle'
 const DND_SECTION = 'application/x-starforge-section'
-/** Existing row particle being reordered (same row). */
+/** Existing placed particle — JSON `{ sectionId, rowId, slotId }` (any section → any row). */
 const DND_SLOT = 'application/x-starforge-slot'
+
+type SlotDragPayload = {
+  sectionId: string
+  rowId: string
+  slotId: string
+}
+
+function encodeSlotDragPayload(payload: SlotDragPayload): string {
+  return JSON.stringify(payload)
+}
+
+function parseSlotDragPayload(raw: string): SlotDragPayload | null {
+  const trimmed = raw.trim()
+  if (!trimmed) return null
+  try {
+    const parsed = JSON.parse(trimmed) as Partial<SlotDragPayload>
+    if (
+      typeof parsed.sectionId === 'string' &&
+      parsed.sectionId &&
+      typeof parsed.rowId === 'string' &&
+      parsed.rowId &&
+      typeof parsed.slotId === 'string' &&
+      parsed.slotId
+    ) {
+      return {
+        sectionId: parsed.sectionId,
+        rowId: parsed.rowId,
+        slotId: parsed.slotId,
+      }
+    }
+  } catch {
+    // Legacy: plain slot id only — cannot move across sections without path.
+  }
+  return null
+}
 
 function withOutlineId(fd: FormData, layoutId: string): FormData {
   fd.set('layoutId', layoutId)
   return fd
+}
+
+function dataTransferHasType(dt: DataTransfer, type: string): boolean {
+  return [...dt.types].includes(type)
 }
 
 function moveSlotInOrder(
@@ -213,10 +253,14 @@ function ParticleBlock({
   percent: number
   isDragging: boolean
   dropEdge: 'before' | 'after' | null
-  onSlotDragStart: (slotId: string) => void
+  onSlotDragStart: (payload: SlotDragPayload) => void
   onSlotDragEnd: () => void
   onSlotDragOver: (slotId: string, edge: 'before' | 'after') => void
-  onSlotDrop: (targetSlotId: string, edge: 'before' | 'after') => void
+  onSlotDrop: (
+    targetSlotId: string,
+    edge: 'before' | 'after',
+    payload: SlotDragPayload,
+  ) => void
 }) {
   const router = useRouter()
   const layoutId = useLayoutOutlineId()
@@ -294,7 +338,7 @@ function ParticleBlock({
         boxSizing: 'border-box',
       }}
       onDragOver={(event) => {
-        if (![...event.dataTransfer.types].includes(DND_SLOT)) return
+        if (!dataTransferHasType(event.dataTransfer, DND_SLOT)) return
         event.preventDefault()
         event.stopPropagation()
         event.dataTransfer.dropEffect = 'move'
@@ -303,12 +347,14 @@ function ParticleBlock({
         onSlotDragOver(slot.id, event.clientX < mid ? 'before' : 'after')
       }}
       onDrop={(event) => {
-        if (![...event.dataTransfer.types].includes(DND_SLOT)) return
+        if (!dataTransferHasType(event.dataTransfer, DND_SLOT)) return
         event.preventDefault()
         event.stopPropagation()
+        const payload = parseSlotDragPayload(event.dataTransfer.getData(DND_SLOT))
+        if (!payload) return
         const rect = event.currentTarget.getBoundingClientRect()
         const mid = rect.left + rect.width / 2
-        onSlotDrop(slot.id, event.clientX < mid ? 'before' : 'after')
+        onSlotDrop(slot.id, event.clientX < mid ? 'before' : 'after', payload)
       }}
     >
       <header className="gantry-slot-head">
@@ -317,14 +363,19 @@ function ParticleBlock({
             type="button"
             className="gantry-slot-handle"
             draggable
-            title="Drag to reorder in this row"
-            aria-label={`Drag to reorder ${displayName}`}
+            title="Drag to reorder in this row or move to another section"
+            aria-label={`Drag to move ${displayName}`}
             onDragStart={(event) => {
               event.stopPropagation()
-              event.dataTransfer.setData(DND_SLOT, slot.id)
+              const payload: SlotDragPayload = {
+                sectionId,
+                rowId,
+                slotId: slot.id,
+              }
+              event.dataTransfer.setData(DND_SLOT, encodeSlotDragPayload(payload))
               event.dataTransfer.setData('text/plain', slot.id)
               event.dataTransfer.effectAllowed = 'move'
-              onSlotDragStart(slot.id)
+              onSlotDragStart(payload)
             }}
             onDragEnd={(event) => {
               event.stopPropagation()
@@ -459,6 +510,7 @@ function DropRow({
   )
 
   const [draggingSlotId, setDraggingSlotId] = useState<string | null>(null)
+  const [acceptingForeignSlot, setAcceptingForeignSlot] = useState(false)
   const [slotDropHint, setSlotDropHint] = useState<{
     slotId: string
     edge: 'before' | 'after'
@@ -498,38 +550,72 @@ function DropRow({
     [layoutId, row.id, router, sectionId],
   )
 
+  const persistMoveSlot = useCallback(
+    (payload: SlotDragPayload, index?: number) => {
+      const fd = withOutlineId(new FormData(), layoutId)
+      fd.set('sourceSectionId', payload.sectionId)
+      fd.set('sourceRowId', payload.rowId)
+      fd.set('slotId', payload.slotId)
+      fd.set('targetSectionId', sectionId)
+      fd.set('targetRowId', row.id)
+      if (index != null) fd.set('index', String(index))
+      startTransition(async () => {
+        const result = await moveSlotToRowAction({}, fd)
+        setFlash(result)
+        router.refresh()
+      })
+    },
+    [layoutId, row.id, router, sectionId],
+  )
+
+  const clearSlotDragUi = useCallback(() => {
+    setDraggingSlotId(null)
+    setAcceptingForeignSlot(false)
+    setSlotDropHint(null)
+    setDropActive(false)
+  }, [])
+
   const handleSlotDrop = useCallback(
-    (targetSlotId: string, edge: 'before' | 'after') => {
-      if (!draggingSlotId) {
-        setSlotDropHint(null)
-        return
-      }
+    (targetSlotId: string, edge: 'before' | 'after', payload: SlotDragPayload) => {
       const sorted = sortSlots(localSlots)
       const targetIndex = sorted.findIndex((s) => s.id === targetSlotId)
       if (targetIndex < 0) {
-        setDraggingSlotId(null)
-        setSlotDropHint(null)
+        clearSlotDragUi()
         return
       }
       const destIndex = edge === 'before' ? targetIndex : targetIndex + 1
-      const fromIndex = sorted.findIndex((s) => s.id === draggingSlotId)
-      // No-op when dropping onto own edges that keep the same position.
-      if (
-        fromIndex < 0 ||
-        destIndex === fromIndex ||
-        destIndex === fromIndex + 1
-      ) {
-        setDraggingSlotId(null)
-        setSlotDropHint(null)
+      const sameRow = payload.sectionId === sectionId && payload.rowId === row.id
+
+      if (sameRow) {
+        const fromIndex = sorted.findIndex((s) => s.id === payload.slotId)
+        // No-op when dropping onto own edges that keep the same position.
+        if (
+          fromIndex < 0 ||
+          destIndex === fromIndex ||
+          destIndex === fromIndex + 1
+        ) {
+          clearSlotDragUi()
+          return
+        }
+        const next = moveSlotInOrder(localSlots, payload.slotId, destIndex)
+        setLocalSlots(next)
+        clearSlotDragUi()
+        persistSlotOrder(next)
         return
       }
-      const next = moveSlotInOrder(localSlots, draggingSlotId, destIndex)
-      setLocalSlots(next)
-      setDraggingSlotId(null)
-      setSlotDropHint(null)
-      persistSlotOrder(next)
+
+      clearSlotDragUi()
+      persistMoveSlot(payload, destIndex)
     },
-    [draggingSlotId, localSlots, persistSlotOrder, setLocalSlots],
+    [
+      clearSlotDragUi,
+      localSlots,
+      persistMoveSlot,
+      persistSlotOrder,
+      row.id,
+      sectionId,
+      setLocalSlots,
+    ],
   )
 
   const commitResize = useCallback(
@@ -560,25 +646,45 @@ function DropRow({
 
   return (
     <div
-      className={dropActive ? 'gantry-row is-drop-target' : 'gantry-row'}
+      className={
+        dropActive || acceptingForeignSlot ? 'gantry-row is-drop-target' : 'gantry-row'
+      }
       data-sf-row={row.id}
       onDragOver={(event) => {
-        if (![...event.dataTransfer.types].includes(DND_PARTICLE)) return
-        event.preventDefault()
-        event.dataTransfer.dropEffect = 'copy'
-        setDropActive(true)
+        if (dataTransferHasType(event.dataTransfer, DND_PARTICLE)) {
+          event.preventDefault()
+          event.dataTransfer.dropEffect = 'copy'
+          setDropActive(true)
+          return
+        }
+        if (dataTransferHasType(event.dataTransfer, DND_SLOT)) {
+          event.preventDefault()
+          event.dataTransfer.dropEffect = 'move'
+          setAcceptingForeignSlot(true)
+          setDropActive(true)
+        }
       }}
       onDragLeave={(event) => {
         if (event.currentTarget.contains(event.relatedTarget as Node)) return
         setDropActive(false)
+        setAcceptingForeignSlot(false)
         setSlotDropHint(null)
       }}
       onDrop={(event) => {
         event.preventDefault()
-        setDropActive(false)
-        setSlotDropHint(null)
-        // Palette particle into row (not an in-row reorder payload).
+        // Existing placed particle → this row (any section).
+        const slotPayload = parseSlotDragPayload(event.dataTransfer.getData(DND_SLOT))
+        if (slotPayload) {
+          const sameRow =
+            slotPayload.sectionId === sectionId && slotPayload.rowId === row.id
+          clearSlotDragUi()
+          if (sameRow) return
+          persistMoveSlot(slotPayload)
+          return
+        }
+        // Palette particle into row.
         const moduleId = event.dataTransfer.getData(DND_PARTICLE)
+        clearSlotDragUi()
         if (!moduleId) return
         persistDrop(moduleId)
       }}
@@ -590,8 +696,11 @@ function DropRow({
           {widthSum > LAYOUT_WIDTH_FULL ? (
             <span className="admin-badge admin-badge-warn"> overflows 100%</span>
           ) : null}
-          {slots.length >= 2 ? (
-            <span className="layout-muted"> · drag ⋮⋮ to reorder · resize 5%–95%</span>
+          {slots.length > 0 ? (
+            <span className="layout-muted">
+              {' '}
+              · drag ⋮⋮ to reorder or move across sections · resize 5%–95%
+            </span>
           ) : null}
           {pending ? <span className="layout-muted"> · saving…</span> : null}
         </span>
@@ -631,17 +740,17 @@ function DropRow({
                       ? slotDropHint.edge
                       : null
                   }
-                  onSlotDragStart={(id) => {
-                    setDraggingSlotId(id)
+                  onSlotDragStart={(payload) => {
+                    setDraggingSlotId(payload.slotId)
                     setSlotDropHint(null)
                   }}
                   onSlotDragEnd={() => {
-                    setDraggingSlotId(null)
-                    setSlotDropHint(null)
+                    clearSlotDragUi()
                   }}
                   onSlotDragOver={(id, edge) => {
-                    if (!draggingSlotId || draggingSlotId === id) return
+                    if (draggingSlotId === id) return
                     setSlotDropHint({ slotId: id, edge })
+                    setAcceptingForeignSlot(true)
                   }}
                   onSlotDrop={handleSlotDrop}
                 />
@@ -721,7 +830,7 @@ function SectionCanvas({
   }
 
   const persistSectionMeta = useCallback(
-    (fields: { label?: string; cssClass?: string }) => {
+    (fields: { label?: string; cssClass?: string; containerMode?: 'full' | 'boxed' }) => {
       const fd = withOutlineId(new FormData(), layoutId)
       fd.set('sectionId', section.id)
       let changed = false
@@ -744,6 +853,13 @@ function SectionCanvas({
           changed = true
         }
       }
+      if (fields.containerMode !== undefined) {
+        const prev = section.containerMode ?? 'full'
+        if (fields.containerMode !== prev) {
+          fd.set('containerMode', fields.containerMode)
+          changed = true
+        }
+      }
       if (!changed) return
       startMetaSave(async () => {
         const result = await updateLayoutSectionMetaAction({}, fd)
@@ -751,7 +867,7 @@ function SectionCanvas({
         router.refresh()
       })
     },
-    [layoutId, router, section.cssClass, section.id, section.label],
+    [layoutId, router, section.containerMode, section.cssClass, section.id, section.label],
   )
 
   const classNames = [
@@ -834,6 +950,24 @@ function SectionCanvas({
           </div>
         </div>
         <div className="gantry-section-toolbar">
+          <label className="gantry-inline-label gantry-section-container-label">
+            <span className="gantry-field-hint">Width</span>
+            <select
+              key={`section-container-${section.id}-${section.containerMode ?? 'full'}`}
+              className="gantry-inline-input gantry-section-container-select"
+              defaultValue={section.containerMode ?? 'full'}
+              disabled={metaPending}
+              title="Section owns container width — row % is share inside"
+              aria-label="Section container width"
+              onChange={(event) => {
+                const next = event.target.value === 'boxed' ? 'boxed' : 'full'
+                persistSectionMeta({ containerMode: next })
+              }}
+            >
+              <option value="full">Full width</option>
+              <option value="boxed">Boxed width</option>
+            </select>
+          </label>
           <label className="gantry-inline-label gantry-section-class-label">
             <span className="gantry-field-hint">CSS classes</span>
             <input
@@ -842,7 +976,7 @@ function SectionCanvas({
               className="gantry-inline-input gantry-section-class-input"
               defaultValue={section.cssClass ?? ''}
               disabled={metaPending}
-              placeholder="e.g. boxed dark-header"
+              placeholder="e.g. dark-header"
               title="Space-separated CSS classes on the public section wrapper"
               aria-label="Section CSS classes"
               onBlur={(event) => persistSectionMeta({ cssClass: event.target.value })}
@@ -1106,10 +1240,10 @@ export function LayoutEditor({
         <summary>Layout document (JSON storage)</summary>
         <pre>{JSON.stringify({ ...document, sections: sectionList }, null, 2)}</pre>
         <p className="layout-muted">
-          Section <code>label</code> / <code>cssClass</code> and slot <code>name</code> save on
-          blur. Section <code>order</code> persists on drag. Widths are integer percents. Custom
-          uses CodeMirror. Outlines manager is under{' '}
-          <code>/app/admin/outlines</code>. Styles / Menu remain next polish — see{' '}
+          Section <code>label</code> / <code>containerMode</code> / <code>cssClass</code> and slot{' '}
+          <code>name</code> save on blur/change. Section <code>order</code> persists on drag.
+          Widths are integer percents inside the section container. Outline breakpoints live under{' '}
+          <code>/app/admin/layouts/breakpoints</code>. See{' '}
           <code>src/core/modules/README.md</code>.
         </p>
       </details>

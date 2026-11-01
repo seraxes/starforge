@@ -3,8 +3,14 @@ import React from 'react'
 import type { NavItem } from '@/core/settings/defaults'
 import { ensureModulesRegistered } from '@/modules/catalog'
 
+import { LayoutOutlineStyles } from './LayoutOutlineStyles'
 import { getLayoutDocument } from './layout'
 import { isFooterLayoutSection, partitionSectionsForPublicPaint } from './section-order'
+import {
+  DEFAULT_LAYOUT_BREAKPOINTS,
+  resolveSectionContainerMode,
+  type LayoutContainerMode,
+} from './styles'
 import { SlotRenderer } from './SlotRenderer'
 import type { LayoutRow, LayoutSection } from './types'
 
@@ -14,7 +20,10 @@ type Props = {
   primaryNav: NavItem[]
   /** Page Settings layout assignment (`sf_layouts` id). */
   layoutId?: string
-  /** Sections layout mode from Page Settings. */
+  /**
+   * Page-level default when a section omits `containerMode`.
+   * Section Settings own width; this is inheritance only (SF-34).
+   */
   sectionsLayout?: 'fullwidth' | 'boxed'
   /**
    * When false (Site Settings → Modules: Layout manager off), skip the full
@@ -35,12 +44,18 @@ function sectionWrapperClass(section: LayoutSection, base: string): string {
 function SectionBlock({
   section,
   pageContent,
+  pageDefault,
 }: {
   section: LayoutSection
   pageContent: React.ReactNode
+  pageDefault: 'fullwidth' | 'boxed'
 }) {
   const rows = sortByOrder(section.rows)
   const isFooter = isFooterLayoutSection(section)
+  const containerMode: LayoutContainerMode = resolveSectionContainerMode(
+    section.containerMode,
+    pageDefault,
+  )
 
   const inner = (
     <>
@@ -55,6 +70,7 @@ function SectionBlock({
       <footer
         className={sectionWrapperClass(section, 'site-footer sf-layout-section')}
         data-sf-section={section.id}
+        data-sf-container={containerMode}
       >
         {inner}
       </footer>
@@ -65,6 +81,7 @@ function SectionBlock({
     <section
       className={sectionWrapperClass(section, 'sf-layout-section')}
       data-sf-section={section.id}
+      data-sf-container={containerMode}
     >
       {inner}
     </section>
@@ -108,6 +125,8 @@ function documentHasPageContent(sections: LayoutSection[]): boolean {
  * Section canvas order is user `order` (DnD). Public paint only moves
  * footer-named sections to the end so Main particles stay above `<footer>` —
  * stored orders are not rewritten.
+ *
+ * Section `containerMode` owns full vs boxed width; row % is share inside.
  */
 export async function PublicLayoutBody({
   children,
@@ -118,6 +137,7 @@ export async function PublicLayoutBody({
   layoutManagerEnabled = true,
 }: Props) {
   ensureModulesRegistered()
+  const resolvedLayoutId = layoutId || 'default'
   const shellClass = [
     'public-shell',
     sectionsLayout === 'boxed' ? 'sf-sections-boxed' : 'sf-sections-fullwidth',
@@ -125,10 +145,21 @@ export async function PublicLayoutBody({
 
   if (!layoutManagerEnabled) {
     const { SiteHeader } = await import('@/components/SiteHeader')
+    const fallbackMode = resolveSectionContainerMode(undefined, sectionsLayout)
     return (
-      <div className={shellClass} data-sf-layout-id="minimal" data-sf-sections-layout={sectionsLayout}>
+      <div
+        className={shellClass}
+        data-sf-layout-id="minimal"
+        data-sf-sections-layout={sectionsLayout}
+        data-sf-mobile-menu="collapse"
+      >
+        <LayoutOutlineStyles layoutId="minimal" breakpoints={DEFAULT_LAYOUT_BREAKPOINTS} />
         <SiteHeader siteName={siteName} primaryNav={primaryNav} />
-        <section className="sf-layout-section" data-sf-section="fallback-main">
+        <section
+          className="sf-layout-section"
+          data-sf-section="fallback-main"
+          data-sf-container={fallbackMode}
+        >
           <div className="sf-grid-row">
             <div
               className="sf-grid-col"
@@ -153,20 +184,33 @@ export async function PublicLayoutBody({
   const document = await getLayoutDocument(layoutId)
   const { flow, footers } = partitionSectionsForPublicPaint(document.sections)
   const hasPageContent = documentHasPageContent([...flow, ...footers])
+  const breakpoints = document.styles?.breakpoints ?? DEFAULT_LAYOUT_BREAKPOINTS
+  const pageDefault = sectionsLayout
 
   return (
     <div
       className={shellClass}
       data-sf-layout-version={document.version}
-      data-sf-layout-id={layoutId || 'default'}
+      data-sf-layout-id={resolvedLayoutId}
       data-sf-sections-layout={sectionsLayout}
+      data-sf-mobile-menu="collapse"
     >
+      <LayoutOutlineStyles layoutId={resolvedLayoutId} breakpoints={breakpoints} />
       {flow.map((section) => (
-        <SectionBlock key={section.id} section={section} pageContent={children} />
+        <SectionBlock
+          key={section.id}
+          section={section}
+          pageContent={children}
+          pageDefault={pageDefault}
+        />
       ))}
 
       {!hasPageContent ? (
-        <section className="sf-layout-section" data-sf-section="fallback-main">
+        <section
+          className="sf-layout-section"
+          data-sf-section="fallback-main"
+          data-sf-container={resolveSectionContainerMode(undefined, pageDefault)}
+        >
           <div className="sf-grid-row">
             <div className="sf-grid-col" data-sf-width={12} style={{ flex: '0 0 100%', maxWidth: '100%', width: '100%' }}>
               <div className="sf-page-content public-main">{children}</div>
@@ -176,7 +220,12 @@ export async function PublicLayoutBody({
       ) : null}
 
       {footers.map((section) => (
-        <SectionBlock key={section.id} section={section} pageContent={children} />
+        <SectionBlock
+          key={section.id}
+          section={section}
+          pageContent={children}
+          pageDefault={pageDefault}
+        />
       ))}
 
       <p className="site-footer-meta sf-layout-chrome-meta">

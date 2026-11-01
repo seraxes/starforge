@@ -25,11 +25,21 @@ Reference: [docs.gantry.org](https://docs.gantry.org/).
 ```json
 {
   "version": 3,
+  "styles": {
+    "breakpoints": {
+      "largeDesktop": "75rem",
+      "desktop": "60rem",
+      "tablet": "48rem",
+      "mobile": "30rem",
+      "mobileMenu": "48rem"
+    }
+  },
   "sections": [
     {
       "id": "header",
       "label": "Header",
-      "cssClass": "boxed dark-header",
+      "containerMode": "full",
+      "cssClass": "dark-header",
       "rows": [
         {
           "id": "header-row-1",
@@ -49,6 +59,7 @@ Reference: [docs.gantry.org](https://docs.gantry.org/).
     {
       "id": "main",
       "label": "Main",
+      "containerMode": "boxed",
       "rows": [
         {
           "id": "main-row-1",
@@ -63,7 +74,9 @@ Reference: [docs.gantry.org](https://docs.gantry.org/).
 ```
 
 - `section.label` — editable canvas display name (id stays stable).
+- `section.containerMode` — `full` | `boxed` (section owns width; row % inside). Omitted → Page Settings sections-layout default.
 - `section.cssClass` — space-separated classes on the public section/`footer` wrapper (plus `sf-layout-section`).
+- `styles.breakpoints` — outline-scoped rem/px presets (Layouts → Breakpoints child). Default outline = site global. No separate Styles mega-page.
 - `slot.name` — optional instance display name on the canvas; does **not** change `moduleId`.
 - `slot.accessLevel` — who can see (`public` / `registered` / `group:<id>`); same groups as Nav tags; `SlotRenderer` filters by session.
 
@@ -81,12 +94,12 @@ Legacy v1 / v2 upgrade on read.
 
 ## Admin UX (this PR) — Gantry Layout Manager flow
 
-1. **Create section** — edit **name** + **CSS classes** inline; drag the **⋮⋮** handle to **reorder sections** (persists `order` in JSON)
+1. **Create section** — edit **name**, **Width** (full / boxed), + **CSS classes** inline; drag the **⋮⋮** handle to **reorder sections** (persists `order` in JSON). Outline **Breakpoints** live under Layouts → Breakpoints.
 2. **Add row** inside the section
 3. **Drag** a particle from the left palette **into the row** — edit the instance **display name** (type id unchanged)
 4. Drop a second beside it → **side-by-side** in one horizontal row (~50%/50%; `flex-wrap: nowrap`); **drag the divider** to resize in **1%** steps (**5%–95%**, pair sums to **100%**). Particle settings expand **inside** the cell — they never force the row to stack.
 5. Layout admin page is **full width** (no narrow max-width column)
-6. **Drag ⋮⋮** on a particle already in a row to **reorder** left↔right (persists `order`; keeps % widths)
+6. **Drag ⋮⋮** on a particle to **reorder** left↔right in the same row (keeps % widths) **or move** into another section’s row (both rows rebalance %)
 7. Custom particle: CodeMirror HTML/CSS/JS (resizable panels — no plain code textareas)
 8. Typed / Custom settings open in a **floating overlay** (does not expand the slot or push the row; Escape / outside click closes)
 

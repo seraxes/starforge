@@ -3,6 +3,7 @@ import { accessTagsForStorage } from '@/core/acl/nav-access'
 import defaultLayoutJson from './default-layout.json'
 import { clampGridWidth, LAYOUT_WIDTH_FULL, normalizeRowWidthsToPercent } from './grid'
 import { sortLayoutSectionsByOrder } from './section-order'
+import { asContainerMode, normalizeLayoutOutlineStyles } from './styles'
 import type {
   LayoutDocument,
   LayoutDocumentV1,
@@ -119,6 +120,7 @@ function normalizeSection(entry: LayoutSection | null | undefined, index: number
   const label =
     typeof entry.label === 'string' && entry.label.trim() ? entry.label.trim() : id
   const cssClass = sanitizeCssClassList(entry.cssClass)
+  const containerMode = asContainerMode(entry.containerMode)
   const rows = Array.isArray(entry.rows)
     ? (entry.rows.map((r, i) => normalizeRow(r, i)).filter(Boolean) as LayoutRow[])
     : []
@@ -127,9 +129,17 @@ function normalizeSection(entry: LayoutSection | null | undefined, index: number
     id,
     label,
     ...(cssClass ? { cssClass } : {}),
+    ...(containerMode ? { containerMode } : {}),
     order: typeof entry.order === 'number' && Number.isFinite(entry.order) ? entry.order : index,
     rows,
   }
+}
+
+function withNormalizedStyles(doc: LayoutDocument, raw: unknown): LayoutDocument {
+  const styles = normalizeLayoutOutlineStyles(
+    raw && typeof raw === 'object' ? (raw as { styles?: unknown }).styles : undefined,
+  )
+  return styles ? { ...doc, styles } : doc
 }
 
 function slotsFromModules(
@@ -367,7 +377,10 @@ export function normalizeLayoutDocument(raw: unknown): LayoutDocument | null {
         .map((s, i) => normalizeSection(s, i))
         .filter(Boolean) as LayoutSection[]
       // Sort by stored order only — never semantic bands (breaks admin DnD).
-      return { version: 3, sections: sortLayoutSectionsByOrder(sections) }
+      return withNormalizedStyles(
+        { version: 3, sections: sortLayoutSectionsByOrder(sections) },
+        raw,
+      )
     }
     return null
   }
@@ -376,7 +389,10 @@ export function normalizeLayoutDocument(raw: unknown): LayoutDocument | null {
     Boolean,
   ) as LayoutSection[])
   // Keep user / drag order. Public paint partitions footers separately.
-  return { version: 3, sections: sortLayoutSectionsByOrder(sections) }
+  return withNormalizedStyles(
+    { version: 3, sections: sortLayoutSectionsByOrder(sections) },
+    raw,
+  )
 }
 
 export function cloneDefaultLayoutDocument(): LayoutDocument {

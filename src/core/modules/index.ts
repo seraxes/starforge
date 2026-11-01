@@ -4,6 +4,7 @@ export {
   addParticleToSectionAction,
   dropParticleIntoRowAction,
   listModulesForLayoutAdmin,
+  moveSlotToRowAction,
   removeLayoutRowAction,
   removeSlotAction,
   renameLayoutSectionAction,
@@ -20,6 +21,7 @@ export {
   updateCopyrightSlotAction,
   updateCustomSlotAction,
   updateFormSlotAction,
+  updateLayoutBreakpointsAction,
   updateLayoutSectionMetaAction,
   updateLogoSlotAction,
   updateMenuSlotAction,
@@ -92,7 +94,22 @@ export type {
   SocialLinkItem,
   SocialParticleConfig,
 } from './particles'
+export { LayoutOutlineStyles } from './LayoutOutlineStyles'
 export { PublicLayoutBody } from './PublicLayoutBody'
+export {
+  DEFAULT_LAYOUT_BREAKPOINTS,
+  asContainerMode,
+  buildOutlineBreakpointCss,
+  normalizeLayoutBreakpoints,
+  normalizeLayoutOutlineStyles,
+  resolveSectionContainerMode,
+  sanitizeCssLength,
+} from './styles'
+export type {
+  LayoutBreakpoints,
+  LayoutContainerMode,
+  LayoutOutlineStyles,
+} from './styles'
 export {
   clearModuleRegistry,
   getRegisteredModule,

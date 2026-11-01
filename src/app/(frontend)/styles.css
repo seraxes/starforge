@@ -417,11 +417,10 @@ button:disabled {
   font-size: 0.95rem;
 }
 
-/* Public CMS page (`/[slug]`) + draft preview (`/preview/[slug]`) */
+/* Public CMS page (`/[slug]`) + draft preview (`/preview/[slug]`)
+ * No max-width here — layout sections own boxed vs full (SF-34). */
 .cms-page {
   min-height: 100vh;
-  max-width: 42rem;
-  margin: 0 auto;
   padding: 3rem 1.5rem 3rem;
 }
 
@@ -1165,6 +1164,25 @@ button:disabled {
 
 .sf-layout-section {
   width: 100%;
+  box-sizing: border-box;
+}
+
+/*
+ * Section owns container width (SF-34).
+ * Boxed uses outline --sf-container-max (large desktop breakpoint).
+ * Row % is share inside this wrapper — do not re-box .cms-page.
+ */
+.sf-layout-section[data-sf-container='boxed'] {
+  max-width: var(--sf-container-max, 75rem);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+}
+
+.sf-layout-section[data-sf-container='full'] {
+  max-width: none;
+  width: 100%;
 }
 
 .sf-layout-chrome-meta {
@@ -1760,6 +1778,51 @@ button:disabled {
   gap: 0.35rem;
   flex: 1 1 10rem;
   max-width: 22rem;
+}
+
+.gantry-section-container-label {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 0 1 auto;
+}
+
+.gantry-section-container-select {
+  width: auto;
+  min-width: 8.5rem;
+  max-width: 11rem;
+  cursor: pointer;
+}
+
+.breakpoints-form {
+  max-width: 48rem;
+  margin-top: 0.5rem;
+}
+
+.breakpoints-form-lede {
+  margin: 0 0 1rem;
+  color: var(--sf-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.breakpoints-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 0.85rem 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.breakpoints-form .field-hint,
+.settings-field .field-hint {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.78rem;
+  color: var(--sf-muted);
+  line-height: 1.35;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .gantry-field-hint {
@@ -2594,17 +2657,23 @@ button:disabled {
   margin: 0;
 }
 
-/* Sections layout mode (public shell) */
-.public-shell.sf-sections-boxed .sf-layout-section {
-  max-width: 64rem;
+/*
+ * Page Settings sectionsLayout is a *default* only (SF-34).
+ * Prefer per-section data-sf-container. Keep shell markers for body chrome /
+ * legacy selectors; do not force every section when containerMode is set.
+ */
+.public-shell.sf-sections-boxed .sf-layout-section:not([data-sf-container]),
+.public-shell.sf-sections-boxed .sf-layout-section[data-sf-container='boxed'] {
+  max-width: var(--sf-container-max, 75rem);
   margin-left: auto;
   margin-right: auto;
   padding-left: 1.25rem;
   padding-right: 1.25rem;
 }
 
-.public-shell.sf-sections-fullwidth .sf-layout-section {
+.public-shell.sf-sections-fullwidth .sf-layout-section[data-sf-container='full'] {
   width: 100%;
+  max-width: none;
 }
 
 @media (max-width: 720px) {

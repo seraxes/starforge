@@ -2,6 +2,10 @@ import type { ReactNode } from 'react'
 
 import type { FeatureFlags, SiteSettingsData } from '@/core/settings/defaults'
 
+import type { LayoutContainerMode, LayoutOutlineStyles } from './styles'
+
+export type { LayoutBreakpoints, LayoutContainerMode, LayoutOutlineStyles } from './styles'
+
 /**
  * Slot width is an integer **percent** of the row (Gantry-style block size).
  * Not Bootstrap. Resize steps are 1%; shared-row min 5% / max 95%.
@@ -75,6 +79,13 @@ export type LayoutSection = {
    * Does not replace the built-in `sf-layout-section` class.
    */
   cssClass?: string
+  /**
+   * Section owns container width (SF-34): `full` = edge-to-edge, `boxed` =
+   * constrained to `--sf-container-max` (outline large-desktop breakpoint).
+   * Row % is share *inside* this container. Omitted → inherit Page Settings
+   * sections layout default (`fullwidth` → full).
+   */
+  containerMode?: LayoutContainerMode
   order?: number
   rows: LayoutRow[]
 }
@@ -82,10 +93,13 @@ export type LayoutSection = {
 /**
  * Canonical layout document (version 3).
  * Storage: JSON in `sf_layouts`. Seed / fallback: `default-layout.json`.
+ * `styles.breakpoints` are outline-scoped (default outline = site global).
  */
 export type LayoutDocument = {
   version: 3
   sections: LayoutSection[]
+  /** Outline-scoped styles (breakpoints now; accents later with theme SF-33). */
+  styles?: LayoutOutlineStyles
 }
 
 export type ModuleRenderContext = {
