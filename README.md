@@ -199,13 +199,15 @@ Draft preview: `src/app/(frontend)/(public)/preview/[slug]/page.tsx` · `getDraf
 
 ### Windows: Nav manager (SF-40)
 
+If Site Settings still shows **Site chrome → Primary nav** add/remove rows and the top bar has no **Nav** link, you are on old `main` — hard-reset onto this branch (stop `npm run dev` first).
+
 **CMD**
 
 ```bat
 cd %USERPROFILE%\starforge
 git fetch origin
 git checkout cursor/nav-manager-menus-541e
-git pull origin cursor/nav-manager-menus-541e
+git reset --hard origin/cursor/nav-manager-menus-541e
 
 docker compose up -d
 if not exist .env copy .env.example .env
@@ -223,7 +225,7 @@ npm run dev
 cd $env:USERPROFILE\starforge
 git fetch origin
 git checkout cursor/nav-manager-menus-541e
-git pull origin cursor/nav-manager-menus-541e
+git reset --hard origin/cursor/nav-manager-menus-541e
 
 docker compose up -d
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
@@ -235,11 +237,11 @@ npm run seed
 npm run dev
 ```
 
-1. Sign in at **/login** as `admin@starforge.local` / `starforge-admin`.
-2. Open **/app/admin/nav** — Main menu with About / Getting started / Welcome; create another set if you like.
-3. Edit items: bind CMS page or URL, CSS class, browser/page heading overrides, access stub; Up/Down; Copy/Paste.
-4. **/app/admin/settings** → **Primary nav assignment** picks the site default set (Modules → Primary nav gates admin + public). Nav is not under Site settings / Site Chrome in the admin bar.
-5. Public **/about** — matching nav active; CSS class / title overrides apply when set.
+1. Admin bar must show **Users | Site settings | Nav | Layouts** (Nav is top-level).
+2. **/app/admin/settings** — site name + **Primary nav assignment** dropdown only (no About/Getting started row editor).
+3. **/app/admin/nav** — edit Main menu items (page/URL, CSS class, title overrides, Up/Down, Copy/Paste).
+4. Modules → Primary nav on/off gates the Nav link + public header.
+5. Public **/about** — matching nav active.
 
 ### Windows: published content cache smoke test
 

@@ -21,6 +21,7 @@ import {
   type SiteSettingsData,
 } from './defaults'
 import {
+  MODULE_IDS,
   REQUIRED_MODULE_IDS,
   atomToggleId,
   isModuleToggleEnabled,
@@ -308,6 +309,14 @@ export async function ensureSiteSettingsDefaults(): Promise<SiteSettingsData> {
     const hasMenuId =
       typeof existing?.primaryNavMenuId === 'string' && existing.primaryNavMenuId.trim()
 
+    // Move leftover Payload primaryNav rows into sf_nav_menus Main when empty.
+    try {
+      const { migrateLegacyPrimaryNavToMain } = await import('@/core/nav/store')
+      await migrateLegacyPrimaryNavToMain(existing.primaryNav)
+    } catch {
+      // Table may not exist yet (before db:core:push).
+    }
+
     if (hasName && hasMenuId) {
       const primaryNav = await resolvePrimaryNavForDoc(existing)
       return normalizeSiteSettings(existing, primaryNav)
@@ -340,7 +349,22 @@ export async function ensureSiteSettingsDefaults(): Promise<SiteSettingsData> {
 export async function seedPrimaryNavFromPages(
   entries: Array<{ label: string; slug: string }>,
 ): Promise<{ updated: boolean; primaryNav: NavItem[] }> {
-  const { seedMainNavFromPages } = await import('@/core/nav/store')
+  const { migrateLegacyPrimaryNavToMain, seedMainNavFromPages } = await import(
+    '@/core/nav/store'
+  )
+
+  try {
+    const payload = await getPayload({ config })
+    const existing = (await payload.findGlobal({
+      slug: 'site-settings',
+      depth: 1,
+      overrideAccess: true,
+    })) as SiteSettingsDoc
+    await migrateLegacyPrimaryNavToMain(existing.primaryNav)
+  } catch {
+    // Ignore — seedMainNavFromPages still runs.
+  }
+
   const seeded = await seedMainNavFromPages(entries)
 
   try {
@@ -351,6 +375,12 @@ export async function seedPrimaryNavFromPages(
       overrideAccess: true,
     })) as SiteSettingsDoc
 
+    const toggles = normalizeModuleToggles(existing.moduleToggles)
+    // Ensure Primary nav module is on so Core admin shows the Nav link.
+    if (typeof toggles[MODULE_IDS.primaryNav] !== 'boolean') {
+      toggles[MODULE_IDS.primaryNav] = true
+    }
+
     await updateSiteSettings({
       siteName:
         typeof existing.siteName === 'string' && existing.siteName.trim()
@@ -359,7 +389,7 @@ export async function seedPrimaryNavFromPages(
       primaryNavMenuId: DEFAULT_PRIMARY_NAV_MENU_ID,
       keepLegacyPrimaryNav: true,
       features: normalizeFlags(existing),
-      moduleToggles: normalizeModuleToggles(existing.moduleToggles),
+      moduleToggles: toggles,
     })
   } catch {
     // Settings global may be unavailable; menu seed still applied.

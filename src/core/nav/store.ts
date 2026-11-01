@@ -313,6 +313,121 @@ export async function listNavPageOptions(): Promise<NavPageOption[]> {
 }
 
 /**
+ * Migrate leftover Payload `site-settings.primaryNav` rows into the Main menu
+ * when Main is missing or empty. Idempotent — never overwrites a non-empty Main.
+ */
+export async function migrateLegacyPrimaryNavToMain(legacyRows: unknown): Promise<{
+  migrated: boolean
+  itemCount: number
+}> {
+  const loaded = await loadNavMenu(DEFAULT_NAV_MENU_ID)
+  if (!loaded.isFallback && loaded.document.items.length > 0) {
+    return { migrated: false, itemCount: loaded.document.items.length }
+  }
+
+  if (!Array.isArray(legacyRows) || legacyRows.length === 0) {
+    if (loaded.isFallback) {
+      await ensureDefaultNavMenuSeeded()
+    }
+    return { migrated: false, itemCount: 0 }
+  }
+
+  const items: NavMenuItem[] = []
+  let order = 0
+  for (const raw of legacyRows) {
+    if (!raw || typeof raw !== 'object') continue
+    const row = raw as {
+      label?: unknown
+      linkType?: unknown
+      page?: unknown
+      url?: unknown
+      href?: unknown
+      cssClass?: unknown
+      browserTitle?: unknown
+    }
+    const label = typeof row.label === 'string' ? row.label.trim() : ''
+    if (!label) continue
+
+    const cssClass = typeof row.cssClass === 'string' ? row.cssClass.trim() : null
+    const browserTitle = typeof row.browserTitle === 'string' ? row.browserTitle.trim() : null
+
+    let pageId: number | null = null
+    if (typeof row.page === 'number') pageId = row.page
+    else if (row.page && typeof row.page === 'object' && typeof (row.page as { id?: unknown }).id === 'number') {
+      pageId = (row.page as { id: number }).id
+    }
+
+    const linkType = row.linkType === 'custom' ? 'custom' : row.linkType === 'page' ? 'page' : null
+
+    if (linkType === 'page' || (!linkType && pageId != null)) {
+      if (pageId == null) continue
+      items.push(
+        createNavMenuItem(
+          {
+            label,
+            linkType: 'page',
+            pageId,
+            cssClass,
+            browserTitle,
+            accessLevel: 'public',
+          },
+          order++,
+        ),
+      )
+      continue
+    }
+
+    const urlRaw =
+      typeof row.url === 'string' && row.url.trim()
+        ? row.url
+        : typeof row.href === 'string'
+          ? row.href
+          : ''
+    const url = normalizeHref(urlRaw)
+    if (!url) continue
+    items.push(
+      createNavMenuItem(
+        {
+          label,
+          linkType: 'custom',
+          url,
+          cssClass,
+          browserTitle,
+          accessLevel: 'public',
+        },
+        order++,
+      ),
+    )
+  }
+
+  if (items.length === 0) {
+    if (loaded.isFallback) await ensureDefaultNavMenuSeeded()
+    return { migrated: false, itemCount: 0 }
+  }
+
+  const now = new Date()
+  const document = normalizeNavMenuDocument({ version: 1, items })
+
+  if (loaded.isFallback) {
+    try {
+      await db.insert(sfNavMenus).values({
+        id: DEFAULT_NAV_MENU_ID,
+        label: 'Main',
+        document: serializeNavMenuDocument(document),
+        createdAt: now,
+        updatedAt: now,
+      })
+    } catch {
+      await replaceNavMenuItems(DEFAULT_NAV_MENU_ID, items)
+    }
+  } else {
+    await replaceNavMenuItems(DEFAULT_NAV_MENU_ID, items)
+  }
+
+  return { migrated: true, itemCount: items.length }
+}
+
+/**
  * Ensure the default Main menu exists. Optionally seed items from page entries
  * or legacy custom hrefs. Idempotent when Main already has items.
  */
@@ -321,7 +436,11 @@ export async function ensureDefaultNavMenuSeeded(options?: {
   legacyCustom?: Array<{ label: string; href: string }>
 }): Promise<{ created: boolean; updated: boolean; menuId: string }> {
   const existing = await loadNavMenu(DEFAULT_NAV_MENU_ID)
-  if (!existing.isFallback) {
+  if (!existing.isFallback && existing.document.items.length > 0) {
+    return { created: false, updated: false, menuId: existing.id }
+  }
+  // Empty Main row exists — fall through to fill when options provided.
+  if (!existing.isFallback && !options?.pageEntries?.length && !options?.legacyCustom?.length) {
     return { created: false, updated: false, menuId: existing.id }
   }
 

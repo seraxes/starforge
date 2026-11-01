@@ -64,9 +64,10 @@ export const SiteSettings: GlobalConfig = {
         plural: 'Legacy primary nav',
       },
       admin: {
+        // Hidden: Core Site Settings no longer edits items. Migrated into sf_nav_menus Main.
+        hidden: true,
         description:
-          'Legacy fallback only — prefer Nav manager + primaryNavMenuId. Kept so older sites keep working until seed/migration fills sf_nav_menus.',
-        initCollapsed: true,
+          'Legacy storage only — migrated into Nav manager Main. Do not edit; use /app/admin/nav.',
       },
       fields: [
         {

@@ -38,6 +38,7 @@ export {
   listNavMenus,
   listNavPageOptions,
   loadNavMenu,
+  migrateLegacyPrimaryNavToMain,
   renameNavMenu,
   replaceNavMenuItems,
   reorderNavMenuItem,
