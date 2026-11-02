@@ -33,16 +33,6 @@ export async function updateSiteChromeAction(
     return { error: 'Sign in as a Starforge app admin to edit Site Chrome.' }
   }
 
-  const captchaRaw = String(formData.get('captchaProvider') ?? 'none').trim()
-  const captchaProvider: CaptchaProvider = isCaptchaProvider(captchaRaw)
-    ? captchaRaw
-    : 'none'
-
-  // Guard against unexpected provider values from a stale form.
-  if (!CAPTCHA_PROVIDERS.some((p) => p.value === captchaProvider)) {
-    return { error: 'Unknown captcha provider.' }
-  }
-
   const emailRaw = String(formData.get('emailProvider') ?? 'console').trim()
   const emailProvider: MailProvider = isMailProvider(emailRaw) ? emailRaw : 'console'
   if (!MAIL_PROVIDERS.some((p) => p.value === emailProvider)) {
@@ -50,11 +40,10 @@ export async function updateSiteChromeAction(
   }
 
   try {
+    // Captcha lives under Site Settings → Integrations (preserve existing values).
     await saveSiteChrome({
       offlineEnabled: parseBool(formData, 'offlineEnabled'),
       offlineMessage: String(formData.get('offlineMessage') ?? ''),
-      captchaEnabled: parseBool(formData, 'captchaEnabled'),
-      captchaProvider,
       emailEnabled: parseBool(formData, 'emailEnabled'),
       emailProvider,
       emailFrom: String(formData.get('emailFrom') ?? ''),
@@ -81,6 +70,49 @@ export async function updateSiteChromeAction(
   revalidatePath('/robots.txt')
   revalidatePath('/app/admin/site-chrome')
   revalidatePath('/app/admin/settings')
+  revalidatePath('/app/admin')
+  return { ok: true }
+}
+
+/**
+ * Site Settings → Integrations: captcha enable + provider.
+ * Storage remains `sf_site_chrome` (no migration); Site Chrome form no longer edits these.
+ */
+export async function updateCaptchaIntegrationAction(
+  _prev: SiteChromeActionState,
+  formData: FormData,
+): Promise<SiteChromeActionState> {
+  const admin = await requireAppAdmin()
+  if (!admin) {
+    return { error: 'Sign in as a Starforge app admin to edit captcha settings.' }
+  }
+
+  const captchaRaw = String(formData.get('captchaProvider') ?? 'none').trim()
+  const captchaProvider: CaptchaProvider = isCaptchaProvider(captchaRaw)
+    ? captchaRaw
+    : 'none'
+
+  if (!CAPTCHA_PROVIDERS.some((p) => p.value === captchaProvider)) {
+    return { error: 'Unknown captcha provider.' }
+  }
+
+  try {
+    await saveSiteChrome({
+      captchaEnabled: parseBool(formData, 'captchaEnabled'),
+      captchaProvider,
+    })
+  } catch (error) {
+    const message =
+      error instanceof Error && error.message
+        ? error.message
+        : 'Could not save captcha settings.'
+    return { error: message }
+  }
+
+  invalidateSiteChrome()
+  revalidatePath('/', 'layout')
+  revalidatePath('/app/admin/settings/integrations')
+  revalidatePath('/app/admin/forms')
   revalidatePath('/app/admin')
   return { ok: true }
 }

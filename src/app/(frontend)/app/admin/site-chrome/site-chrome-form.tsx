@@ -7,7 +7,7 @@ import {
   updateSiteChromeAction,
   type SiteChromeActionState,
 } from '@/core/site-chrome/actions'
-import { CAPTCHA_PROVIDERS, MAIL_PROVIDERS } from '@/core/site-chrome/defaults'
+import { MAIL_PROVIDERS } from '@/core/site-chrome/defaults'
 import type { SiteChromeDocument } from '@/core/site-chrome/types'
 
 import { useNotifySavedOnOk } from '../admin-toast'
@@ -62,47 +62,6 @@ export function SiteChromeForm({ chrome }: Props) {
             disabled={pending}
             {...textAutosaveProps}
           />
-        </label>
-      </fieldset>
-
-      <fieldset className="settings-fieldset">
-        <legend>Default sitewide captcha</legend>
-        <p className="settings-hint">
-          Provider/enable defaults for the Core Form module when a form opts into “use site captcha
-          default”. Turnstile site/secret keys stay in env (
-          <code>NEXT_PUBLIC_TURNSTILE_SITE_KEY</code>, <code>TURNSTILE_SECRET_KEY</code>) — edit via
-          gated <Link href="/app/admin/site-chrome/environment">Environment</Link>, never this form
-          or the database. reCAPTCHA / hCaptcha remain unwired.
-        </p>
-        <label className="settings-flag">
-          <input
-            type="checkbox"
-            name="captchaEnabled"
-            defaultChecked={chrome.captchaEnabled}
-            disabled={pending}
-            {...discreteAutosaveProps}
-          />
-          <span>
-            <strong>Enable captcha by default</strong>
-            <span className="settings-flag-desc">
-              Form particles that opt in will challenge visitors (Turnstile when selected).
-            </span>
-          </span>
-        </label>
-        <label className="settings-field">
-          <span>Provider</span>
-          <select
-            name="captchaProvider"
-            defaultValue={chrome.captchaProvider}
-            disabled={pending}
-            {...discreteAutosaveProps}
-          >
-            {CAPTCHA_PROVIDERS.map((p) => (
-              <option key={p.value} value={p.value}>
-                {p.label}
-              </option>
-            ))}
-          </select>
         </label>
       </fieldset>
 

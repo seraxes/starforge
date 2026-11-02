@@ -43,7 +43,15 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
     {
       id: 'site-settings',
       label: 'Site Settings',
-      links: [{ href: '/app/admin/settings', label: 'Site Settings' }],
+      href: '/app/admin/settings',
+      expandable: true,
+      links: [
+        { href: '/app/admin/settings', label: 'Modules', exact: true },
+        { href: '/app/admin/settings/admin-ux', label: 'Admin UX' },
+        { href: '/app/admin/settings/auth', label: 'Auth & registration' },
+        { href: '/app/admin/settings/integrations', label: 'Integrations' },
+        { href: '/app/admin/settings/performance', label: 'Performance' },
+      ],
     },
   ]
 
@@ -100,7 +108,11 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
       )
     }
     if (flags.pageSettings) {
-      layoutLinks.push({ href: '/app/admin/page-settings', label: 'Page settings' })
+      layoutLinks.push(
+        { href: '/app/admin/page-settings', label: 'Page settings' },
+        // FA config lives under Page settings (Layouts), not Site Settings topics.
+        { href: '/app/admin/page-settings#font-awesome', label: 'Font Awesome' },
+      )
     }
     groups.push({
       id: 'layouts',

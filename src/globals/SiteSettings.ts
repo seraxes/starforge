@@ -11,11 +11,13 @@ const revalidateSiteSettingsAfterChange: GlobalAfterChangeHook = ({ doc }) => {
  * Site settings + product capability toggles (Modules).
  *
  * - Editors: edit in Payload `/admin` → Globals → Site settings
- * - Core admins: edit Modules via `/app/admin/settings` (Local API)
+ * - Core admins: topic pages under `/app/admin/settings` (Modules, Admin UX,
+ *   Auth, Integrations, Performance).
  *
- * Site-wide policy (offline, metadata, robots, cookies) lives in Core
+ * Site-wide policy (offline, metadata, robots, cookies, email) lives in Core
  * **Site Chrome** (`/app/admin/site-chrome`, `sf_site_chrome`) — not here.
- * `siteName` is kept in sync when Site Chrome saves.
+ * Captcha enable/provider is edited under Site Settings → Integrations
+ * (still stored on Site Chrome JSON). `siteName` syncs when Site Chrome saves.
  *
  * Navigation sets live in Core **Nav** (`/app/admin/nav`, `sf_nav_menus`) — a
  * top-level admin sibling. This global only assigns which menu is the site
@@ -31,7 +33,7 @@ export const SiteSettings: GlobalConfig = {
   label: 'Site settings',
   admin: {
     description:
-      'Primary nav assignment + module/feature toggles. Site Chrome (offline/metadata/robots) is /app/admin/site-chrome. Menus: Starforge admin → Navigation. Core Modules: /app/admin/settings.',
+      'Primary nav assignment + module/feature toggles. Topics: /app/admin/settings (Modules, Admin UX, Auth, Integrations, Performance). Site Chrome (offline/metadata/robots/email): /app/admin/site-chrome. Menus: Navigation.',
   },
   hooks: {
     afterChange: [revalidateSiteSettingsAfterChange],
@@ -68,7 +70,7 @@ export const SiteSettings: GlobalConfig = {
       max: 2000,
       admin: {
         description:
-          'Core /app/admin text-field autosave delay in milliseconds (300–2000). Blur still saves immediately. Prefer editing under Starforge admin → Site Settings.',
+          'Core /app/admin text-field autosave delay in milliseconds (300–2000). Blur still saves immediately. Prefer Starforge admin → Site Settings → Admin UX.',
       },
     },
     {

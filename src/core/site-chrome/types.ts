@@ -15,7 +15,10 @@ export type SiteChromeDocument = {
   /** When true, public site shows the offline message (admins still pass). */
   offlineEnabled: boolean
   offlineMessage: string
-  /** Default sitewide captcha for forms (enable + provider; keys in env). */
+  /**
+   * Default sitewide captcha for forms (enable + provider; keys in env).
+   * Edited under Site Settings → Integrations; kept here for storage continuity.
+   */
   captchaEnabled: boolean
   captchaProvider: CaptchaProvider
   /**

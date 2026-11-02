@@ -29,6 +29,7 @@ const INITIAL: PageSettingsActionState = {}
 function Panel({
   title,
   wide,
+  id,
   children,
 }: {
   title: string
@@ -36,11 +37,14 @@ function Panel({
   defaultOpen?: boolean
   /** Span two mosaic columns on wide screens. */
   wide?: boolean
+  /** Optional anchor id (Layouts → Font Awesome deep link). */
+  id?: string
   children: React.ReactNode
 }) {
   // Always-open mosaic tiles — not <details>; Body / FA / Atoms / etc. must never start collapsed.
   return (
     <section
+      id={id}
       className={wide ? 'page-settings-panel page-settings-panel-wide' : 'page-settings-panel'}
     >
       <header className="page-settings-panel-head">
@@ -589,7 +593,11 @@ export function PageSettingsForm({ bootstrap }: Props) {
           </div>
         </Panel>
 
-        <Panel title="Font Awesome Settings">
+        <Panel id="font-awesome" title="Font Awesome Settings">
+          <p className="settings-hint">
+            Layouts area — not Site Settings. Product gate <code>product:font-awesome</code> still
+            lives under Site Settings → Modules (off skips public FA assets).
+          </p>
           <label className="settings-flag">
             <input
               type="checkbox"

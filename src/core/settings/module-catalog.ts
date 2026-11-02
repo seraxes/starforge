@@ -84,7 +84,8 @@ export const PRODUCT_MODULE_CATALOG: ModuleCatalogItem[] = [
     id: MODULE_IDS.fontAwesome,
     kind: 'product',
     label: 'Font Awesome',
-    description: 'Optional Font Awesome CDN from Page Settings. Off skips FA assets on the public site.',
+    description:
+      'Optional Font Awesome CDN from Layouts → Page settings / Font Awesome. Off skips FA assets on the public site.',
     required: false,
     defaultEnabled: true,
     installed: true,
@@ -93,7 +94,8 @@ export const PRODUCT_MODULE_CATALOG: ModuleCatalogItem[] = [
     id: MODULE_IDS.registration,
     kind: 'product',
     label: 'Registration',
-    description: 'Allow /register for new app accounts.',
+    description:
+      'Allow /register for new app accounts. Also edited under Site Settings → Auth & registration.',
     required: false,
     defaultEnabled: true,
     installed: true,
