@@ -216,7 +216,7 @@ export const sfUserGroupMembers = pgTable(
 export const FORMS_MODULE_SETTINGS_ID = 'global'
 
 /**
- * Forms module settings (SF-65) — email defaults / transport stub.
+ * Forms module settings (SF-65) — email defaults; transport is platform Mailer.
  * Document JSON is FormsModuleSettings.
  */
 export const sfFormSettings = pgTable('sf_form_settings', {

@@ -180,7 +180,7 @@ export async function submitFormAction(
       })
       await dispatchFormEmailNotify(plan)
     } catch {
-      // Email stub must not fail the submission.
+      // Mailer failures must not fail the submission.
     }
   }
 
@@ -233,7 +233,7 @@ export async function saveFormsModuleSettingsAction(
     defaultAdminEmails: String(formData.get('defaultAdminEmails') ?? ''),
     fromAddress: String(formData.get('fromAddress') ?? ''),
     defaultSuccessMessage: String(formData.get('defaultSuccessMessage') ?? ''),
-    transport: 'stub',
+    transport: 'platform',
   })
 
   try {

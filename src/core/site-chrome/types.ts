@@ -3,7 +3,12 @@
  * Not Page Settings (per-page) and not Modules toggles.
  */
 
+import type { MailProvider } from '@/core/mail/types'
+
 export type CaptchaProvider = 'none' | 'turnstile' | 'recaptcha' | 'hcaptcha'
+
+/** Re-export for Site Chrome consumers — secrets stay in env. */
+export type { MailProvider }
 
 export type SiteChromeDocument = {
   version: 1
@@ -13,6 +18,14 @@ export type SiteChromeDocument = {
   /** Default sitewide captcha for forms (enable + provider; keys in env). */
   captchaEnabled: boolean
   captchaProvider: CaptchaProvider
+  /**
+   * Outbound email (SF-96). Enable + provider + From only;
+   * SMTP / Resend secrets stay in env.
+   */
+  emailEnabled: boolean
+  emailProvider: MailProvider
+  /** Default From address (forms / transactional). Empty → STARFORGE_MAIL_FROM. */
+  emailFrom: string
   /** Public brand / default document title base. */
   siteName: string
   defaultDescription: string

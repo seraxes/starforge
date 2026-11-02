@@ -7,7 +7,7 @@ import {
   updateSiteChromeAction,
   type SiteChromeActionState,
 } from '@/core/site-chrome/actions'
-import { CAPTCHA_PROVIDERS } from '@/core/site-chrome/defaults'
+import { CAPTCHA_PROVIDERS, MAIL_PROVIDERS } from '@/core/site-chrome/defaults'
 import type { SiteChromeDocument } from '@/core/site-chrome/types'
 
 import { useNotifySavedOnOk } from '../admin-toast'
@@ -102,6 +102,62 @@ export function SiteChromeForm({ chrome }: Props) {
               </option>
             ))}
           </select>
+        </label>
+      </fieldset>
+
+      <fieldset className="settings-fieldset">
+        <legend>Outbound email</legend>
+        <p className="settings-hint">
+          Platform Mailer for Forms notify (and later forgot-password). Choose enable + provider +
+          From here. SMTP credentials (<code>SMTP_HOST</code>, <code>SMTP_USER</code>,{' '}
+          <code>SMTP_PASS</code>, …) and <code>RESEND_API_KEY</code> stay in env — never in this
+          form. Console logs locally with no network send.
+        </p>
+        <label className="settings-flag">
+          <input
+            type="checkbox"
+            name="emailEnabled"
+            defaultChecked={chrome.emailEnabled}
+            disabled={pending}
+            {...discreteAutosaveProps}
+          />
+          <span>
+            <strong>Enable outbound email</strong>
+            <span className="settings-flag-desc">
+              When off, Form notify intents are skipped (submissions still save).
+            </span>
+          </span>
+        </label>
+        <label className="settings-field">
+          <span>Provider</span>
+          <select
+            name="emailProvider"
+            defaultValue={chrome.emailProvider}
+            disabled={pending}
+            {...discreteAutosaveProps}
+          >
+            {MAIL_PROVIDERS.map((p) => (
+              <option key={p.value} value={p.value}>
+                {p.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="settings-field">
+          <span>Default From address</span>
+          <input
+            type="email"
+            name="emailFrom"
+            defaultValue={chrome.emailFrom}
+            autoComplete="off"
+            placeholder="noreply@example.com"
+            disabled={pending}
+            {...textAutosaveProps}
+          />
+          <span className="settings-flag-desc">
+            Forms Settings From overrides this when set. Empty → optional{' '}
+            <code>STARFORGE_MAIL_FROM</code> env.
+          </span>
         </label>
       </fieldset>
 

@@ -1271,7 +1271,8 @@ export function FormBuilder({ formId, initialDocument }: Props) {
             <fieldset className="sf-form-builder-constraints sf-form-builder-email">
               <legend>Email on submit</legend>
               <p className="layout-muted">
-                Transport is stubbed until platform email is ready — settings still save.
+                Uses the platform Mailer (Site Chrome enable / provider). Soft-fails if email is
+                off or misconfigured — submissions still save.
               </p>
               <label className="gantry-typed-check">
                 <input

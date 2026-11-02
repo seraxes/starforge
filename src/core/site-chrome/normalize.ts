@@ -5,6 +5,7 @@ import {
   DEFAULT_SITE_CHROME,
   DEFAULT_SITE_CHROME_NAME,
   isCaptchaProvider,
+  isMailProvider,
 } from './defaults'
 import type { SiteChromeDocument } from './types'
 
@@ -31,6 +32,10 @@ export function normalizeSiteChrome(raw: unknown): SiteChromeDocument {
     ? src.captchaProvider
     : DEFAULT_SITE_CHROME.captchaProvider
 
+  const emailProvider = isMailProvider(src.emailProvider)
+    ? src.emailProvider
+    : DEFAULT_SITE_CHROME.emailProvider
+
   return {
     version: 1,
     offlineEnabled: asBool(src.offlineEnabled, false),
@@ -38,6 +43,9 @@ export function normalizeSiteChrome(raw: unknown): SiteChromeDocument {
       asString(src.offlineMessage).trim() || DEFAULT_OFFLINE_MESSAGE,
     captchaEnabled: asBool(src.captchaEnabled, false),
     captchaProvider,
+    emailEnabled: asBool(src.emailEnabled, false),
+    emailProvider,
+    emailFrom: asString(src.emailFrom).trim(),
     siteName,
     defaultDescription: asString(src.defaultDescription).trim(),
     defaultOgImage: asString(src.defaultOgImage).trim(),

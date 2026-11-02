@@ -12,7 +12,9 @@ export {
   DEFAULT_ROBOTS_TXT,
   DEFAULT_SITE_CHROME,
   DEFAULT_SITE_CHROME_NAME,
+  MAIL_PROVIDERS,
   isCaptchaProvider,
+  isMailProvider,
 } from './defaults'
 export { normalizeSiteChrome, parseSiteChromeJson, serializeSiteChrome } from './normalize'
 export {
@@ -29,6 +31,7 @@ export {
 } from './store'
 export type {
   CaptchaProvider,
+  MailProvider,
   SiteChromeDocument,
   SiteChromeLoadResult,
   SiteChromeLoadSource,

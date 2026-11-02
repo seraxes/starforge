@@ -22,7 +22,7 @@ const TABS: { id: FormsAdminTab; label: string; href: string; title: string }[] 
     id: 'settings',
     label: 'Settings',
     href: '/app/admin/forms/settings',
-    title: 'Forms module settings (email stub)',
+    title: 'Forms module settings (email notify)',
   },
 ]
 
