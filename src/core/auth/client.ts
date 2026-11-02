@@ -1,7 +1,12 @@
 'use client'
 
 import { createAuthClient } from 'better-auth/react'
-import { adminClient } from 'better-auth/client/plugins'
+import {
+  adminClient,
+  emailOTPClient,
+  magicLinkClient,
+  twoFactorClient,
+} from 'better-auth/client/plugins'
 
 import { ac, appRoles } from './permissions'
 
@@ -18,5 +23,10 @@ export const authClient = createAuthClient({
       ac,
       roles: appRoles,
     }),
+    twoFactorClient({
+      twoFactorPage: '/two-factor',
+    }),
+    magicLinkClient(),
+    emailOTPClient(),
   ],
 })

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useActionState } from 'react'
+import Link from 'next/link'
 
 import { registerAction, type AuthActionState } from '@/core/auth/actions'
 
@@ -35,6 +36,10 @@ export function RegisterForm() {
           key={`email-${state.email ?? ''}-${state.error ?? 'ok'}`}
         />
       </label>
+      <p className="auth-hint">
+        This email is your sign-in ID (not the display name). You can add authenticator 2FA later
+        under Account security.
+      </p>
       <label>
         Password
         <input
@@ -54,6 +59,11 @@ export function RegisterForm() {
       <button type="submit" className="primary" disabled={pending}>
         {pending ? 'Creating account…' : 'Create account'}
       </button>
+      <p className="auth-helpers">
+        <Link href="/login">Already have an account?</Link>
+        {' · '}
+        <Link href="/forgot-password">Forgot password?</Link>
+      </p>
     </form>
   )
 }
