@@ -27,8 +27,12 @@ export default async function AdminFormsSettingsPage() {
 
   return (
     <section className="admin-section admin-layouts-full">
-      <FormsAdminNav active="settings" />
+      <FormsAdminNav active="forms" />
       <h2>Forms settings</h2>
+      <p className="settings-hint">
+        Deep link — not listed under Forms nav (defaults + Mailer wiring). Per-form overrides live in
+        the builder.
+      </p>
       <p className="lede admin-lede">
         Module defaults for success copy and email-on-submit. Transport is the platform{' '}
         <strong>Mailer</strong> (Site Chrome enable / provider / From; secrets in env). Per-form

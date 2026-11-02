@@ -1177,13 +1177,13 @@ button:disabled {
   padding: 0;
   border: 1px solid var(--sf-line);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--sf-muted) 18%, white);
+  background: color-mix(in srgb, var(--sf-muted) 22%, white);
   cursor: pointer;
 }
 
 .cms-switch-track.is-on {
-  background: color-mix(in srgb, var(--sf-secondary) 45%, white);
-  border-color: color-mix(in srgb, var(--sf-secondary-strong) 40%, var(--sf-line));
+  background: color-mix(in srgb, var(--sf-secondary) 55%, white);
+  border-color: color-mix(in srgb, var(--sf-secondary-strong) 45%, var(--sf-line));
 }
 
 .cms-switch-thumb {
@@ -1209,8 +1209,25 @@ button:disabled {
   min-width: 1.5rem;
 }
 
+.cms-switch-label.is-off {
+  color: color-mix(in srgb, var(--sf-muted) 70%, white);
+}
+
+.cms-switch-label.is-on,
 .cms-switch-track.is-on + .cms-switch-label {
   color: var(--sf-secondary-strong);
+}
+
+.gantry-toolbar-btn-disable {
+  background: color-mix(in srgb, #c45c5c 18%, white);
+  border: 1px solid color-mix(in srgb, #c45c5c 35%, var(--sf-line));
+  color: #a94442;
+}
+
+.gantry-toolbar-btn-enable {
+  background: color-mix(in srgb, #3c9a5f 18%, white);
+  border: 1px solid color-mix(in srgb, #3c9a5f 35%, var(--sf-line));
+  color: #2e7d4f;
 }
 
 /* Core admin site settings form */
@@ -3034,6 +3051,12 @@ button:disabled {
   border: 1px solid var(--sf-line);
   background: #fbfcfe;
   overflow: hidden;
+}
+
+.sf-code-field-panel-dark {
+  background: #0f1a2a;
+  border-color: #1e4d72;
+  color: #ffffff;
 }
 
 .sf-code-mirror {

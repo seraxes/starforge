@@ -1494,19 +1494,59 @@ body:has(.admin-shell) > main {
   color: var(--sf-ink);
 }
 
-.admin-shell .sf-code-field-panel {
-  background: var(--sf-admin-bg-deep);
+.admin-shell .sf-code-field-panel,
+.admin-shell .sf-code-field-panel-dark {
+  background: #0f1a2a;
+  border-color: #1e4d72;
 }
 
 .admin-shell .sf-code-field-lang {
   color: var(--sf-secondary-strong);
 }
 
+.admin-shell .sf-code-field-label {
+  color: #e8eef8;
+}
+
+.admin-shell .sf-code-field-hint {
+  color: #8fa3bc;
+}
+
+.admin-shell .sf-code-mirror .cm-editor,
+.admin-shell .sf-code-mirror .cm-editor.cm-focused {
+  background: #0f1a2a !important;
+  color: #ffffff !important;
+}
+
+.admin-shell .sf-code-mirror .cm-scroller {
+  color: #ffffff;
+}
+
+.admin-shell .sf-code-mirror .cm-content {
+  color: #ffffff;
+  caret-color: #ffffff;
+}
+
+.admin-shell .sf-code-mirror .cm-gutters {
+  background: #0c1522 !important;
+  color: #8fa3bc !important;
+  border-right: 1px solid #1e4d72 !important;
+}
+
+.admin-shell .sf-code-mirror .cm-activeLineGutter {
+  background: #152436 !important;
+  color: #cfe3f7 !important;
+}
+
+.admin-shell .sf-code-mirror .cm-activeLine {
+  background: rgba(52, 152, 219, 0.14) !important;
+}
+
 .admin-shell .sf-code-field-resize {
   background:
-    linear-gradient(to bottom, transparent 35%, var(--sf-line) 35%, var(--sf-line) 45%, transparent 45%),
-    color-mix(in srgb, var(--sf-secondary) 10%, var(--sf-admin-elevated));
-  border-top-color: var(--sf-line);
+    linear-gradient(to bottom, transparent 35%, #1e4d72 35%, #1e4d72 45%, transparent 45%),
+    color-mix(in srgb, var(--sf-secondary) 10%, #0f1a2a);
+  border-top-color: #1e4d72;
 }
 
 .admin-shell .gantry-social-editor-item {
@@ -1605,17 +1645,60 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .cms-switch-track {
-  background: color-mix(in srgb, var(--sf-muted) 28%, var(--sf-admin-elevated));
-  border-color: var(--sf-line);
+  background: #3a4556;
+  border-color: #5a6578;
 }
 
 .admin-shell .cms-switch-track.is-on {
-  background: color-mix(in srgb, var(--sf-secondary) 40%, var(--sf-admin-elevated));
-  border-color: color-mix(in srgb, var(--sf-secondary-strong) 40%, var(--sf-line));
+  background: #3498db;
+  border-color: #5eb0e8;
 }
 
 .admin-shell .cms-switch-thumb {
-  background: #e8eef6;
+  background: #f4f7fb;
+}
+
+.admin-shell .cms-switch-label.is-off {
+  color: #c5cdd8;
+}
+
+.admin-shell .cms-switch-label.is-on {
+  color: #7ec8f0;
+}
+
+/* Accounts table: Disable = red, Enable = green (semantic action colors). */
+.admin-shell .gantry-toolbar-btn-disable,
+.admin-shell button.gantry-toolbar-btn-disable {
+  background: color-mix(in srgb, #c45c5c 42%, #1d2531);
+  border: 0;
+  color: #f5c0c0;
+  padding: 0.4rem 0.85rem;
+  border-radius: 3px;
+  font-size: 0.86rem;
+  font-weight: 650;
+}
+
+.admin-shell .gantry-toolbar-btn-disable:hover:not(:disabled),
+.admin-shell button.gantry-toolbar-btn-disable:hover:not(:disabled) {
+  background: color-mix(in srgb, #c45c5c 58%, #1d2531);
+  color: #ffe0e0;
+}
+
+.admin-shell .gantry-toolbar-btn-enable,
+.admin-shell button.gantry-toolbar-btn-enable {
+  background: color-mix(in srgb, #3c9a5f 45%, #1d2531);
+  border: 0;
+  color: #b8f0c8;
+  padding: 0.4rem 0.85rem;
+  border-radius: 3px;
+  font-size: 0.86rem;
+  font-weight: 650;
+}
+
+.admin-shell .gantry-toolbar-btn-enable:hover:not(:disabled),
+.admin-shell button.gantry-toolbar-btn-enable:hover:not(:disabled) {
+  background: color-mix(in srgb, #3c9a5f 62%, #1d2531);
+  color: #d8ffe4;
 }
 
 .admin-shell .breakpoints-form,

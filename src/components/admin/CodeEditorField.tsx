@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useId, useState } from 'react'
+import React, { useId, useMemo, useState } from 'react'
 import CodeMirror from '@uiw/react-codemirror'
 import { css } from '@codemirror/lang-css'
 import { html } from '@codemirror/lang-html'
@@ -9,8 +9,8 @@ import { javascript } from '@codemirror/lang-javascript'
 export type CodeEditorLanguage = 'html' | 'css' | 'javascript'
 
 type Props = {
-  /** Form field name (submitted via hidden input). */
-  name: string
+  /** Form field name (submitted via hidden input). Omit when the parent owns serialization. */
+  name?: string
   label: string
   language: CodeEditorLanguage
   initialValue?: string
@@ -36,9 +36,9 @@ function languageExtension(language: CodeEditorLanguage) {
 }
 
 /**
- * Syntax-highlighted code field for layout Custom / future Styles editors.
- * CodeMirror 6 via `@uiw/react-codemirror` — not a plain textarea.
- * Monaco remains an option for a heavier IDE-style Styles panel later.
+ * Syntax-highlighted code field for layout Custom / Page Settings / atoms.
+ * CodeMirror 6 via `@uiw/react-codemirror` — dark navy + line numbers (not a plain textarea).
+ * Admin chrome CSS (`.sf-code-field-panel-dark`) paints dark-blue bg + white text over the dark theme.
  */
 export function CodeEditorField({
   name,
@@ -54,6 +54,7 @@ export function CodeEditorField({
   const [value, setValue] = useState(initialValue)
   const [height, setHeight] = useState(initialHeight)
   const labelId = useId()
+  const extensions = useMemo(() => [languageExtension(language)], [language])
 
   return (
     <div className="sf-code-field">
@@ -64,18 +65,18 @@ export function CodeEditorField({
         <span className="sf-code-field-lang">{language}</span>
       </div>
       {hint ? <p className="sf-code-field-hint">{hint}</p> : null}
-      <input type="hidden" name={name} value={value} />
+      {name ? <input type="hidden" name={name} value={value} /> : null}
       <div
-        className="sf-code-field-panel"
+        className="sf-code-field-panel sf-code-field-panel-dark"
         style={{ height }}
         data-language={language}
       >
         <CodeMirror
           value={value}
           height="100%"
-          theme="light"
+          theme="dark"
           placeholder={placeholder}
-          extensions={[languageExtension(language)]}
+          extensions={extensions}
           onChange={(next) => {
             setValue(next)
             onValueChange?.(next)
