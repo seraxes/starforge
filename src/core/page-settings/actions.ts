@@ -228,12 +228,17 @@ export async function loadPageSettingsAdmin(editingPageKey: string | null): Prom
       overrideAccess: true,
       sort: 'title',
     })
+    const seenSlugs = new Set<string>()
     pages = result.docs
       .map((doc) => ({
-        slug: typeof doc.slug === 'string' ? doc.slug : '',
+        slug: typeof doc.slug === 'string' ? doc.slug.trim() : '',
         title: typeof doc.title === 'string' ? doc.title : '',
       }))
-      .filter((p) => p.slug)
+      .filter((p) => {
+        if (!p.slug || seenSlugs.has(p.slug)) return false
+        seenSlugs.add(p.slug)
+        return true
+      })
   } catch {
     pages = []
   }

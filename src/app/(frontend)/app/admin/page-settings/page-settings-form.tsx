@@ -13,7 +13,7 @@ import {
   type PageSettingsActionState,
   type PageSettingsAdminBootstrap,
 } from '@/core/page-settings/actions'
-import { newPageSettingsEntityId } from '@/core/page-settings/defaults'
+import { HOME_PAGE_KEY, newPageSettingsEntityId } from '@/core/page-settings/defaults'
 import type { AssetRef, MetaTag, PageAtomInstance, PageChrome } from '@/core/page-settings/types'
 
 import { useNotifySavedOnOk } from '../admin-toast'
@@ -207,16 +207,30 @@ export function PageSettingsForm({ bootstrap }: Props) {
   // Explicit onChange/blur autosave only — no effect watching draft state (Strict Mode was
   // firing a false "Saved" on open via skipAutosave flip + second effect pass).
 
+  // One Global + one Home (/) + unique CMS pages/overrides.
+  // Seed creates Payload slug `home` for `/` — do not add it again after HOME_PAGE_KEY.
   const pageOptions = useMemo(() => {
-    const opts = [{ value: '', label: 'Site default (global)' }]
-    opts.push({ value: 'home', label: 'Home (/)' })
+    const opts: Array<{ value: string; label: string }> = []
+    const seen = new Set<string>()
+    const push = (value: string, label: string) => {
+      if (seen.has(value)) return
+      seen.add(value)
+      opts.push({ value, label })
+    }
+
+    push('', 'Site default (global)')
+
+    const homePage = bootstrap.pages.find((p) => p.slug === HOME_PAGE_KEY)
+    push(HOME_PAGE_KEY, homePage?.title ? `${homePage.title} (/)` : 'Home (/)')
+
     for (const page of bootstrap.pages) {
-      opts.push({ value: page.slug, label: `${page.title} (/${page.slug})` })
+      if (page.slug === HOME_PAGE_KEY) continue
+      push(page.slug, `${page.title} (/${page.slug})`)
     }
     for (const key of bootstrap.overrideKeys) {
-      if (key === 'home') continue
+      if (key === HOME_PAGE_KEY) continue
       if (bootstrap.pages.some((p) => p.slug === key)) continue
-      opts.push({ value: key, label: `${key} (override only)` })
+      push(key, `${key} (override only)`)
     }
     return opts
   }, [bootstrap.pages, bootstrap.overrideKeys])
