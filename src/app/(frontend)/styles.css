@@ -2717,7 +2717,7 @@ button:disabled {
 }
 
 /* Particle settings open as a floating overlay — never expand the slot / push the row.
-   Trigger lives in `.gantry-slot-actions` beside the red ✕ remove. */
+   Trigger lives in `.gantry-slot-actions` beside the red danger remove. */
 .gantry-settings-trigger-wrap {
   display: inline-flex;
   margin: 0;
