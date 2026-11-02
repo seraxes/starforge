@@ -23,7 +23,7 @@ type Props = {
 export async function SlotRenderer({ sectionId, slot, pageContent }: Props) {
   if (slot.enabled === false) return null
 
-  ensureModulesRegistered()
+  await ensureModulesRegistered()
   const mod = getRegisteredModule(slot.moduleId)
   if (!mod) return null
 

@@ -4,6 +4,7 @@ import { cache } from 'react'
 import config from '@payload-config'
 
 import { contentCacheTags, getPublishedContentCache } from '@/core/content/cache'
+import { isModuleAllowlisted } from '@/generated/module-registry'
 
 import { resolveNavMenuItems } from '@/core/nav/resolve'
 import { DEFAULT_NAV_MENU_ID } from '@/core/db'
@@ -69,6 +70,11 @@ export {
   isCatalogModuleEnabled,
   listInstalledModuleCatalog,
 } from './module-catalog'
+export {
+  ALLOWLISTED_MODULE_IDS,
+  MODULE_ALLOWLIST_FLAVOR,
+  isModuleAllowlisted,
+} from '@/generated/module-registry'
 export {
   isExternalHref,
   isNavItemActive,
@@ -455,6 +461,8 @@ export function isParticleModuleEnabled(
   const id = moduleId.trim()
   if (!id) return false
   if (REQUIRED_MODULE_IDS.has(id)) return true
+  // Install allowlist — packs not in starforge.modules.json stay off.
+  if (!isModuleAllowlisted(id)) return false
 
   const usesLegacyModulesFlag = options?.featureFlag === 'modules'
   return isModuleToggleEnabled(settings, id, {
@@ -465,6 +473,8 @@ export function isParticleModuleEnabled(
 
 /** Atom type gate (`analytics` → `atom:analytics`). Defaults on when unset. */
 export function isAtomModuleEnabled(settings: SiteSettingsData, atomType: string): boolean {
-  return isModuleToggleEnabled(settings, atomToggleId(atomType), { defaultEnabled: true })
+  const toggleId = atomToggleId(atomType)
+  if (!isModuleAllowlisted(toggleId)) return false
+  return isModuleToggleEnabled(settings, toggleId, { defaultEnabled: true })
 }
 

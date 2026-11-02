@@ -11,8 +11,9 @@ Reference: [docs.gantry.org](https://docs.gantry.org/).
 | Piece | Path |
 | --- | --- |
 | Register API | `registerModule()` in `registry.ts` |
+| Install allowlist | `starforge.modules.json` → `npm run modules:generate` → `src/generated/module-registry.ts` |
 | Built-in particles | `page-content`, `site-header`, `logo` (image/text), `menu`, `copyright`, `social`, `custom` · `particles/` |
-| Example extension | `src/modules/notice-bar/` |
+| Example extension | `src/modules/notice-bar/` (dynamic import when allowlisted) |
 | Core Form engine | `src/modules/form/` + `src/core/forms/` · definitions `sf_forms` · submissions `sf_form_submissions` · Admin `/app/admin/forms` |
 | Layout document (v3) | sections → rows → slots (`moduleId` + `width` %) |
 | Storage | `sf_layouts` JSON · fallback `default-layout.json` |

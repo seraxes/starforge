@@ -1,20 +1,23 @@
-import { ensureAtomsRegistered, listRegisteredAtoms } from '@/core/page-settings/atoms'
-import { listRegisteredModules } from '@/core/modules/registry'
-import { ensureModulesRegistered } from '@/modules/catalog'
+import { builtinParticles } from '@/core/modules/particles'
+import {
+  ALLOWLISTED_ATOM_META,
+  ALLOWLISTED_OPTIONAL_PARTICLE_META,
+  ALLOWLISTED_PRODUCT_PLATFORM_IDS,
+  isModuleAllowlisted,
+} from '@/generated/module-registry'
 
 import type { FeatureFlags, SiteSettingsData } from './defaults'
 import {
   MODULE_IDS,
   MODULE_KIND_ORDER,
   REQUIRED_MODULE_IDS,
-  atomToggleId,
   isModuleToggleEnabled,
   type ModuleCatalogItem,
 } from './module-toggles'
 
 /**
- * Platform + product capabilities always present in this Starforge build (P0).
- * Particles/atoms append from registries.
+ * Platform + product capabilities declared for Starforge core.
+ * Site Settings only lists rows whose ids are in the install allowlist.
  */
 export const PRODUCT_MODULE_CATALOG: ModuleCatalogItem[] = [
   {
@@ -134,42 +137,60 @@ export const PRODUCT_MODULE_CATALOG: ModuleCatalogItem[] = [
   },
 ]
 
+const productPlatformAllow = new Set<string>(ALLOWLISTED_PRODUCT_PLATFORM_IDS)
+
 /**
- * Installed catalog for Site Settings → Modules (P0).
- * Platform + product capabilities + registered particles + atoms.
+ * Installed catalog for Site Settings → Modules.
+ * Only allowlisted (install/build) modules appear — runtime toggles apply on top.
+ * Particle/atom rows use generated allowlist metadata so listing stays sync
+ * without eager-importing optional packs.
  */
 export function listInstalledModuleCatalog(): ModuleCatalogItem[] {
-  ensureModulesRegistered()
-  ensureAtomsRegistered()
+  const products = PRODUCT_MODULE_CATALOG.filter(
+    (item) => item.required || productPlatformAllow.has(item.id) || isModuleAllowlisted(item.id),
+  )
 
-  const particles: ModuleCatalogItem[] = listRegisteredModules().map((mod) => {
-    const required = REQUIRED_MODULE_IDS.has(mod.id)
-    const legacyOffByDefault = mod.featureFlag === 'modules'
-    return {
-      id: mod.id,
-      kind: 'particle' as const,
-      label: mod.name,
-      description:
-        mod.description?.trim() ||
-        (mod.builtin ? 'Built-in layout particle' : 'Extension module'),
-      required,
-      defaultEnabled: required || !legacyOffByDefault,
-      installed: true as const,
-      ...(mod.navViews?.length ? { navViews: mod.navViews } : {}),
-    }
-  })
+  const builtinParticlesRows: ModuleCatalogItem[] = builtinParticles
+    .filter((mod) => isModuleAllowlisted(mod.id))
+    .map((mod) => {
+      const required = REQUIRED_MODULE_IDS.has(mod.id)
+      return {
+        id: mod.id,
+        kind: 'particle' as const,
+        label: mod.name,
+        description:
+          mod.description?.trim() ||
+          (mod.builtin ? 'Built-in layout particle' : 'Extension module'),
+        required,
+        defaultEnabled: required || mod.featureFlag !== 'modules',
+        installed: true as const,
+        ...(mod.navViews?.length ? { navViews: mod.navViews } : {}),
+      }
+    })
 
-  const atoms: ModuleCatalogItem[] = listRegisteredAtoms().map((atom) => ({
-    id: atomToggleId(atom.type),
+  const optionalParticles: ModuleCatalogItem[] = ALLOWLISTED_OPTIONAL_PARTICLE_META.map((meta) => ({
+    id: meta.id,
+    kind: 'particle' as const,
+    label: meta.name,
+    description: meta.description,
+    required: meta.required,
+    defaultEnabled: meta.defaultEnabled,
+    installed: true as const,
+    ...(meta.featureFlag ? { featureFlag: meta.featureFlag } : {}),
+    ...(meta.navViews?.length ? { navViews: meta.navViews } : {}),
+  }))
+
+  const atoms: ModuleCatalogItem[] = ALLOWLISTED_ATOM_META.map((meta) => ({
+    id: meta.toggleId,
     kind: 'atom' as const,
-    label: atom.label,
-    description: atom.description?.trim() || `Page Settings atom (${atom.type})`,
+    label: meta.label,
+    description: meta.description,
     required: false,
-    defaultEnabled: true,
+    defaultEnabled: meta.defaultEnabled,
     installed: true as const,
   }))
 
-  return [...PRODUCT_MODULE_CATALOG, ...particles, ...atoms].sort((a, b) => {
+  return [...products, ...builtinParticlesRows, ...optionalParticles, ...atoms].sort((a, b) => {
     const kindDelta = MODULE_KIND_ORDER[a.kind] - MODULE_KIND_ORDER[b.kind]
     if (kindDelta !== 0) return kindDelta
     return a.label.localeCompare(b.label)
@@ -184,6 +205,8 @@ export function isCatalogModuleEnabled(
   const id = catalogId.trim()
   if (!id) return false
   if (REQUIRED_MODULE_IDS.has(id)) return true
+  // Not in this install/build → treat as off (no deadweight toggle surface).
+  if (!isModuleAllowlisted(id)) return false
 
   const item = listInstalledModuleCatalog().find((m) => m.id === id)
   if (item?.featureFlag) {
