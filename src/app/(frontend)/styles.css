@@ -5,7 +5,7 @@
  * 3) Custom CSS — Page Settings document chrome / Custom particle only
  *
  * Tailwind v4 (theme + utilities only — no preflight) so existing CSS keeps working.
- * Core admin dark chrome is in admin-dark.css (scoped to .admin-shell).
+ * Core admin dark chrome: src/core/admin-theme (active-core.css → starforge-gantry).
  */
 @layer theme, base, components, utilities;
 @import 'tailwindcss/theme.css' layer(theme);
@@ -726,7 +726,7 @@ button:disabled {
 
 .admin-sidebar-group-toggle {
   flex: 0 0 auto;
-  /* Chevron drawn in admin-dark.css (single SVG background). */
+  /* Chevron drawn in admin-theme core-chrome.css (single SVG background). */
 }
 
 .admin-sidebar-menu-toggle-icon {

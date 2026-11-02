@@ -156,6 +156,19 @@ export {
 } from './settings'
 export type { ModuleCatalogItem, ModuleToggleMap } from './settings'
 export {
+  getActiveAdminTheme,
+  getActiveAdminThemeId,
+  listAdminThemes,
+} from './admin-theme'
+export type { AdminTheme, AdminThemeId, AdminThemeTokens } from './admin-theme'
+export { buildAdminNavGroups, CMS_NAV_LINKS } from './admin-nav'
+export type {
+  AdminNavFeatureFlags,
+  AdminNavGroup,
+  AdminNavLink,
+  AdminNavSurface,
+} from './admin-nav'
+export {
   createMailer,
   getMailer,
   getMailerInfo,

@@ -1,19 +1,5 @@
 /*
- * Light Starforge brand touch for Payload admin.
- * Full theming stays with Payload; these only hint the product palette.
+ * Payload admin custom styles entry.
+ * Theme CSS comes from the admin-theme port (active theme stylesheet).
  */
-:root {
-  --sf-primary: #f2a66a;
-  --sf-primary-strong: #a85220;
-  --sf-secondary: #8ebad4;
-  --sf-secondary-strong: #2f6f96;
-}
-
-html[data-theme='light'] {
-  --theme-success-500: var(--sf-secondary-strong);
-}
-
-/* Core admin nav link (outside Payload routes — plain <a>, still looks like a nav item). */
-#nav-starforge-admin.nav__link {
-  text-decoration: none;
-}
+@import '../../core/admin-theme/active-payload.css';

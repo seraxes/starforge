@@ -1,7 +1,7 @@
 import React from 'react'
 
 import './styles.css'
-import './admin-dark.css'
+import '@/core/admin-theme/active-core.css'
 
 export const metadata = {
   description:

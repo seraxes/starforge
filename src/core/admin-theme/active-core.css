@@ -1,0 +1,6 @@
+/*
+ * Active admin theme → Core chrome.
+ * Swap the @import (or add a build step) when registering a second theme.
+ * Default: starforge-gantry (Gantry Helium dark navy + orange primary).
+ */
+@import './themes/starforge-gantry/core-chrome.css';
