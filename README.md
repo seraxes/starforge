@@ -386,6 +386,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
 Change `PAYLOAD_SECRET` and `BETTER_AUTH_SECRET` before any shared or non-local use.
+`BETTER_AUTH_SECRET` is also required to unlock Site Chrome → Environment (gate cookie HMAC).
 
 ## Project layout
 

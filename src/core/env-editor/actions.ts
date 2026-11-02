@@ -49,9 +49,12 @@ export async function unlockEnvEditorAction(
     return { error: verified.error }
   }
 
-  const expiresAt = await setEnvEditorGateCookie(verified.userId)
+  const gate = await setEnvEditorGateCookie(verified.userId)
+  if (!gate.ok) {
+    return { error: gate.error }
+  }
   revalidatePath('/app/admin/site-chrome/environment')
-  return { ok: true, expiresAt }
+  return { ok: true, expiresAt: gate.expiresAt }
 }
 
 export async function lockEnvEditorAction(
