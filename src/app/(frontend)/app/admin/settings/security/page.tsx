@@ -22,7 +22,8 @@ export default async function AdminSettingsSecurityPage() {
         room for honeypot, rate-limit, and security-header controls. Turnstile keys stay in env
         (gated <Link href="/app/admin/site-chrome/environment">Environment</Link>), never this form
         or the database. Font Awesome lives under{' '}
-        <Link href="/app/admin/page-settings#font-awesome">Layouts → Font Awesome</Link>, not here.
+        <Link href="/app/admin/page-settings#font-awesome">Layouts → Page settings</Link>, not
+        here.
         Offline / SEO / cookies / email remain under{' '}
         <Link href="/app/admin/site-chrome">Chrome</Link>.
       </p>

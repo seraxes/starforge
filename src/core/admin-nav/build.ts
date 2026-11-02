@@ -107,11 +107,8 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
       )
     }
     if (flags.pageSettings) {
-      layoutLinks.push(
-        { href: '/app/admin/page-settings', label: 'Page settings' },
-        // FA config lives under Page settings (Layouts), not Site Settings topics.
-        { href: '/app/admin/page-settings#font-awesome', label: 'Font Awesome' },
-      )
+      // FA config is a Page settings panel (id=font-awesome), not its own left-nav leaf.
+      layoutLinks.push({ href: '/app/admin/page-settings', label: 'Page settings' })
     }
     groups.push({
       id: 'layouts',

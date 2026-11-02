@@ -73,14 +73,23 @@ for (const surface of ['core', 'payload'] as const) {
   console.log(`[${surface}] ok — Settings accordion topics`)
 
   const layouts = groups.find((g) => g.id === 'layouts')
-  const fa = layouts?.links.find(
-    (l) => l.href === '/app/admin/page-settings#font-awesome' && l.label === 'Font Awesome',
-  )
-  if (!fa) {
-    console.error(`[${surface}] Layouts missing Font Awesome child`, layouts?.links)
+  if (!layouts?.links.some((l) => l.href === '/app/admin/page-settings' && l.label === 'Page settings')) {
+    console.error(`[${surface}] Layouts missing Page settings child`, layouts?.links)
     process.exit(1)
   }
-  console.log(`[${surface}] ok — Layouts → Font Awesome`)
+  const faNav = layouts.links.find(
+    (l) =>
+      l.href === '/app/admin/page-settings#font-awesome' ||
+      /^font awesome$/i.test(l.label.trim()),
+  )
+  if (faNav) {
+    console.error(
+      `[${surface}] Layouts must not list orphan Font Awesome leaf (Page settings panel only)`,
+      layouts.links,
+    )
+    process.exit(1)
+  }
+  console.log(`[${surface}] ok — Layouts → Page settings (no Font Awesome nav leaf)`)
 
   const cms = groups.find((g) => g.id === 'cms')
   if (!cms) {
