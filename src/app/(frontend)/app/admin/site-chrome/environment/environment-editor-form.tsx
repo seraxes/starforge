@@ -5,11 +5,11 @@ import React, { useActionState } from 'react'
 import {
   lockEnvEditorAction,
   saveEnvEditorAction,
-  ENV_EDITOR_GROUPS,
   type EnvEditorLockActionState,
   type EnvEditorSaveActionState,
-  type EnvEditorSnapshot,
-} from '@/core/env-editor'
+} from '@/core/env-editor/actions'
+import { ENV_EDITOR_GROUPS } from '@/core/env-editor/catalog'
+import type { EnvEditorSnapshot } from '@/core/env-editor/types'
 
 import { useNotifySavedOnOk } from '../../admin-toast'
 

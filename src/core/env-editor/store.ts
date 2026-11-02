@@ -3,32 +3,14 @@ import 'server-only'
 import { access, mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
-import { ENV_EDITOR_FIELDS, ENV_EDITOR_KEY_SET, type EnvEditorField } from './catalog'
+import { ENV_EDITOR_FIELDS, ENV_EDITOR_KEY_SET } from './catalog'
 import { envEditorIsWritable } from './mode'
 import { parseEnvFile, serializeEnvFile, type EnvMap } from './parse'
+import type { EnvEditorRow, EnvEditorSnapshot } from './types'
+
+export type { EnvEditorRow, EnvEditorSnapshot } from './types'
 
 const OVERLAY_FILENAME = '.env.local'
-
-export type EnvEditorRow = {
-  field: EnvEditorField
-  /** Effective value from process.env (may come from .env, .env.local, or host). */
-  effective: string
-  /** Value present in the `.env.local` overlay only (empty if unset there). */
-  overlay: string
-  /** Whether a non-empty effective value exists (for secret masking). */
-  isSet: boolean
-  /** Masked display for secrets; plain for non-secrets. */
-  displayValue: string
-}
-
-export type EnvEditorSnapshot = {
-  rows: EnvEditorRow[]
-  overlayPath: string
-  overlayExists: boolean
-  writable: boolean
-  writeMode: 'write' | 'readonly'
-  nodeEnv: string
-}
 
 function projectRoot(): string {
   return process.cwd()
