@@ -852,7 +852,9 @@ body:has(.admin-shell) > main {
   background: transparent;
   border: 0;
   color: #9eb1c7;
-  padding: 0.1rem 0.2rem;
+  padding: 0.15rem 0.3rem;
+  font-size: 1.6rem; /* secondary admin icon */
+  line-height: 1;
 }
 
 .admin-shell .gantry-section-name-input {
@@ -882,25 +884,25 @@ body:has(.admin-shell) > main {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.65rem;
-  height: 1.65rem;
+  width: 2.2rem;
+  height: 2.2rem;
   margin: 0;
   padding: 0;
   border: 0;
   border-radius: 2px;
   background: transparent;
   color: #c5d2e0;
-  font-size: 1rem;
+  font-size: 1.6rem; /* secondary admin icon (+ row) */
   font-weight: 700;
   cursor: pointer;
   line-height: 1;
 }
 
-/* Section cog ~50% larger than sibling + control */
+/* Section cog — primary admin icon */
 .admin-shell .gantry-section-settings > summary.gantry-section-icon-btn {
-  width: 2.45rem;
-  height: 2.45rem;
-  font-size: 1.5rem;
+  width: 2.7rem;
+  height: 2.7rem;
+  font-size: 1.8rem;
 }
 
 .admin-shell .gantry-section-icon-btn:hover,
@@ -1110,8 +1112,9 @@ body:has(.admin-shell) > main {
   background: transparent;
   border: 0;
   color: rgba(255, 255, 255, 0.92);
-  padding: 0.05rem;
-  font-size: 0.82rem;
+  padding: 0.1rem 0.2rem;
+  font-size: 1.6rem; /* secondary admin icon (drag grip) */
+  line-height: 1;
 }
 
 .admin-shell .gantry-slot-pct {
@@ -1131,14 +1134,14 @@ body:has(.admin-shell) > main {
 
 .admin-shell .gantry-slot-actions .gantry-settings-trigger,
 .admin-shell .gantry-settings-gear {
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2.7rem;
+  height: 2.7rem;
   padding: 0;
   border: 0;
   border-radius: 2px;
   background: transparent;
   color: #fff;
-  font-size: 1.38rem;
+  font-size: 1.8rem; /* primary admin icon (cog) */
   line-height: 1;
 }
 
@@ -1147,18 +1150,18 @@ body:has(.admin-shell) > main {
   background: color-mix(in srgb, #0f1a2a 30%, transparent);
 }
 
-/* Red danger remove beside cog — white thick X (Form field bars + Layout module bars) */
+/* Soft muted danger beside cog — white thick X on subtle red/dark (Form + Layout) */
 .admin-shell .gantry-slot-actions .gantry-bar-remove {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2.7rem;
+  height: 2.7rem;
   margin: 0;
   padding: 0;
-  border: 1px solid color-mix(in srgb, #e74c3c 75%, var(--sf-line));
+  border: 1px solid color-mix(in srgb, #8a555c 48%, var(--sf-line));
   border-radius: 2px;
-  background: color-mix(in srgb, #c0392b 55%, #1a1010);
+  background: color-mix(in srgb, #6e3f46 36%, #1a2433);
   color: #fff;
   line-height: 1;
   cursor: pointer;
@@ -1166,8 +1169,8 @@ body:has(.admin-shell) > main {
 
 .admin-shell .gantry-slot-actions .gantry-bar-remove:hover,
 .admin-shell .gantry-slot-actions .gantry-bar-remove:focus-visible {
-  background: color-mix(in srgb, #e74c3c 62%, #1a1010);
-  border-color: #ff6b5a;
+  background: color-mix(in srgb, #7d4a52 48%, #1a2433);
+  border-color: color-mix(in srgb, #a07078 55%, var(--sf-line));
   color: #fff;
   outline: none;
 }
@@ -1175,20 +1178,6 @@ body:has(.admin-shell) > main {
 .admin-shell .gantry-slot-actions .gantry-bar-remove:disabled {
   opacity: 0.45;
   cursor: not-allowed;
-}
-
-/* Remove row — redder + ✕ (prefs) */
-.admin-shell .gantry-row-actions button.danger {
-  background: color-mix(in srgb, #c0392b 55%, #1a1010);
-  color: #ffc9c2;
-  border: 1px solid color-mix(in srgb, #e74c3c 75%, var(--sf-line));
-  font-weight: 700;
-}
-
-.admin-shell .gantry-row-actions button.danger:hover {
-  background: color-mix(in srgb, #e74c3c 62%, #1a1010);
-  color: #ffe0db;
-  border-color: #ff6b5a;
 }
 
 .admin-shell .gantry-slot-extra-actions {

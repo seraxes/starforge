@@ -13,7 +13,6 @@ import {
   addLayoutSectionAction,
   dropParticleIntoRowAction,
   moveSlotToRowAction,
-  removeLayoutRowAction,
   removeSlotAction,
   renameLayoutSlotAction,
   reorderLayoutSectionsAction,
@@ -659,10 +658,6 @@ function DropRow({
   const [pending, startTransition] = useTransition()
   const [dropActive, setDropActive] = useState(false)
   const [flash, setFlash] = useState<LayoutActionState>({})
-  const [removeRowState, removeRowAction, removeRowPending] = useActionState(
-    removeLayoutRowAction,
-    initialState,
-  )
 
   const [draggingSlotId, setDraggingSlotId] = useState<string | null>(null)
   const [acceptingForeignSlot, setAcceptingForeignSlot] = useState(false)
@@ -856,19 +851,11 @@ function DropRow({
               {' '}
               · drag ⋮⋮ to reorder or move across sections · resize 5%–95%
             </span>
-          ) : null}
+          ) : (
+            <span className="layout-muted"> · empty trailing row (auto)</span>
+          )}
           {pending ? <span className="layout-muted"> · saving…</span> : null}
         </span>
-        <div className="gantry-row-actions">
-          <form action={removeRowAction}>
-            <LayoutIdField />
-            <input type="hidden" name="sectionId" value={sectionId} />
-            <input type="hidden" name="rowId" value={row.id} />
-            <button type="submit" className="danger" disabled={removeRowPending}>
-              ✕ Remove row
-            </button>
-          </form>
-        </div>
       </div>
 
       <div className="gantry-row-slots">
@@ -945,7 +932,6 @@ function DropRow({
         )}
       </div>
       <ActionFeedback state={flash} />
-      <ActionFeedback state={removeRowState} />
     </div>
   )
 }

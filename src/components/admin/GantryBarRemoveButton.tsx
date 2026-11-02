@@ -12,8 +12,8 @@ type Props = {
 }
 
 /**
- * Red danger remove beside the bar cog (Layout modules / Form fields).
- * White thick X glyph; confirms before calling onConfirm.
+ * Soft danger remove beside the bar cog (Layout modules / Form fields).
+ * White thick X on muted red/dark; confirms before calling onConfirm.
  */
 export function GantryBarRemoveButton({
   label,
@@ -37,8 +37,8 @@ export function GantryBarRemoveButton({
       <svg
         className="gantry-bar-remove-icon"
         viewBox="0 0 16 16"
-        width="14"
-        height="14"
+        width="16"
+        height="16"
         aria-hidden="true"
         focusable="false"
       >

@@ -2362,7 +2362,7 @@ button:disabled {
   background: color-mix(in srgb, var(--sf-secondary) 18%, white);
   color: var(--sf-secondary-strong);
   font: inherit;
-  font-size: 0.85rem;
+  font-size: 1.6rem;
   font-weight: 700;
   letter-spacing: -0.08em;
   line-height: 1;
@@ -2646,7 +2646,7 @@ button:disabled {
   flex: 0 0 auto;
   cursor: grab;
   font: inherit;
-  font-size: 0.85rem;
+  font-size: 1.6rem;
   letter-spacing: -0.08em;
   line-height: 1;
   padding: 0.2rem 0.35rem;
@@ -2717,24 +2717,25 @@ button:disabled {
 }
 
 /* Particle settings open as a floating overlay — never expand the slot / push the row.
-   Trigger lives in `.gantry-slot-actions` beside the red danger remove. */
+   Trigger lives in `.gantry-slot-actions` beside the soft danger remove. */
 .gantry-settings-trigger-wrap {
   display: inline-flex;
   margin: 0;
   vertical-align: middle;
 }
 
+/* Soft muted danger — white X, not ketchup-red */
 .gantry-bar-remove {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
+  width: 2.7rem;
+  height: 2.7rem;
   margin: 0;
   padding: 0;
-  border: 1px solid color-mix(in srgb, #c0392b 55%, var(--sf-line));
+  border: 1px solid color-mix(in srgb, #9a6a6e 40%, var(--sf-line));
   border-radius: 2px;
-  background: color-mix(in srgb, #c0392b 72%, white);
+  background: color-mix(in srgb, #8b5a5e 22%, white);
   color: #fff;
   line-height: 1;
   cursor: pointer;
@@ -2747,8 +2748,8 @@ button:disabled {
 
 .gantry-bar-remove:hover,
 .gantry-bar-remove:focus-visible {
-  background: #c0392b;
-  border-color: #a93226;
+  background: color-mix(in srgb, #8b5a5e 38%, white);
+  border-color: color-mix(in srgb, #9a6a6e 55%, var(--sf-line));
   color: #fff;
   outline: none;
 }

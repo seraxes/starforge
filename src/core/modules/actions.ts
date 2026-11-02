@@ -717,6 +717,7 @@ export async function addLayoutRowAction(
   return state
 }
 
+/** @deprecated Prefer auto trailing empty rows (normalize). Kept for transitional imports. */
 export async function removeLayoutRowAction(
   _prev: LayoutActionState,
   formData: FormData,
@@ -731,6 +732,7 @@ export async function removeLayoutRowAction(
     const next = section.rows.filter((r) => r.id !== rowId)
     if (next.length === section.rows.length) return { error: 'Row not found.' }
     section.rows = next
+    // saveLayoutDocument → normalizeLayoutDocument ensures one trailing empty row.
     return doc
   })
 

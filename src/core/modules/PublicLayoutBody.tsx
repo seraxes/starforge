@@ -62,9 +62,11 @@ function SectionBlock({
 
   const inner = (
     <>
-      {rows.map((row) => (
-        <LayoutRowView key={row.id} sectionId={section.id} row={row} pageContent={pageContent} />
-      ))}
+      {rows
+        .filter((row) => row.slots.length > 0)
+        .map((row) => (
+          <LayoutRowView key={row.id} sectionId={section.id} row={row} pageContent={pageContent} />
+        ))}
     </>
   )
 
