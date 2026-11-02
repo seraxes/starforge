@@ -18,6 +18,11 @@
               "order": 0
             }
           ]
+        },
+        {
+          "id": "header__trailing-empty",
+          "order": 1,
+          "slots": []
         }
       ]
     },
@@ -38,6 +43,11 @@
               "order": 0
             }
           ]
+        },
+        {
+          "id": "navigation__trailing-empty",
+          "order": 1,
+          "slots": []
         }
       ]
     },
@@ -58,6 +68,11 @@
               "order": 0
             }
           ]
+        },
+        {
+          "id": "main__trailing-empty",
+          "order": 1,
+          "slots": []
         }
       ]
     },
@@ -84,6 +99,11 @@
               }
             }
           ]
+        },
+        {
+          "id": "footer__trailing-empty",
+          "order": 1,
+          "slots": []
         }
       ]
     }
