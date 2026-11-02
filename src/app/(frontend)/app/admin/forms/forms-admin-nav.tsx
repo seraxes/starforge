@@ -3,7 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 
-export type FormsAdminTab = 'forms' | 'submissions'
+export type FormsAdminTab = 'forms' | 'settings'
 
 const TABS: { id: FormsAdminTab; label: string; href: string; title: string }[] = [
   {
@@ -13,14 +13,14 @@ const TABS: { id: FormsAdminTab; label: string; href: string; title: string }[] 
     title: 'Form definitions + visual builder',
   },
   {
-    id: 'submissions',
-    label: 'Submissions',
-    href: '/app/admin/forms/submissions',
-    title: 'Form submissions inbox',
+    id: 'settings',
+    label: 'Settings',
+    href: '/app/admin/forms/settings',
+    title: 'Forms module defaults + Mailer wiring',
   },
 ]
 
-/** Horizontal Forms chrome — Forms + Submissions only (module settings live under Form edit tabs / Site Chrome Mailer). */
+/** Horizontal Forms chrome — Forms + Settings (submissions stay as data, not nav). */
 export function FormsAdminNav({ active }: { active: FormsAdminTab }) {
   return (
     <nav className="layouts-admin-nav sf-forms-admin-nav" aria-label="Forms">

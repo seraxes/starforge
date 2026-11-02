@@ -91,7 +91,7 @@ Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so coo
 | http://localhost:3000/app/admin/site-chrome | Starforge admin — **Site Chrome** (offline, metadata, robots, cookies) |
 | http://localhost:3000/app/admin/settings | Starforge admin — Modules on/off + primary nav menu assignment |
 | http://localhost:3000/app/admin/nav | Starforge admin — **Nav** manager (navigation sets + items) |
-| http://localhost:3000/app/admin/forms | Starforge admin — **Forms** definitions + builder + submissions |
+| http://localhost:3000/app/admin/forms | Starforge admin — **Forms** definitions + builder + settings |
 | http://localhost:3000/app/admin/media | Starforge admin — **Media** library (Payload store + resize/WebP pipeline) |
 | http://localhost:3000/robots.txt | Site Chrome robots.txt snippet |
 | http://localhost:3000/app/admin/layouts | Starforge admin — **Layouts** (hover submenu) → **Layout** canvas (default) |

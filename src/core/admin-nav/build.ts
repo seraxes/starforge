@@ -71,7 +71,6 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
       expandable: true,
       links: [
         { href: '/app/admin/forms', label: 'Forms', exact: true },
-        { href: '/app/admin/forms/submissions', label: 'Submissions' },
         { href: '/app/admin/forms/settings', label: 'Settings' },
       ],
     })

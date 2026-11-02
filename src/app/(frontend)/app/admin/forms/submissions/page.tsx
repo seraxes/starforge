@@ -47,10 +47,10 @@ export default async function AdminFormSubmissionsPage() {
 
   return (
     <section className="admin-section admin-layouts-full">
-      <FormsAdminNav active="submissions" />
+      <FormsAdminNav active="forms" />
       <h2>Submissions</h2>
       <p className="lede admin-lede">
-        Public Form particle submissions. Definitions live under{' '}
+        Inbox retained for stored submission data (no admin nav link). Definitions live under{' '}
         <Link href="/app/admin/forms">Forms</Link>.
       </p>
 
