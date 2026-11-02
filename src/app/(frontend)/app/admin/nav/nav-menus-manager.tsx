@@ -113,7 +113,7 @@ export function NavMenusManager({ menus, primaryNavMenuId }: Props) {
 
       <p className="settings-hint">
         Site primary menu: <code>{primaryNavMenuId}</code> (change under{' '}
-        <Link href="/app/admin/settings">Site settings</Link>).
+        <Link href="/app/admin/settings">Settings</Link>).
       </p>
 
       <div className="outlines-table-wrap">

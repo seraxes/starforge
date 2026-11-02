@@ -91,7 +91,7 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
               <div>
                 <h1>Starforge admin</h1>
                 <p className="lede admin-lede">
-                  Top-level areas: Site Chrome, Site Settings (Modules · Admin UX · Auth ·
+                  Top-level areas: Chrome, Settings (Modules · Admin UX · Auth ·
                   Security · Performance), Navigation, Forms, Users (Accounts · Groups · ACL),
                   Media, Layouts, CMS (Payload). Pages live under CMS → Pages
                   {showPayloadCms ? (

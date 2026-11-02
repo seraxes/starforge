@@ -142,7 +142,7 @@ export function SettingsForm({
           Assignment only — pick which menu set the public header uses. Create and edit menus under
           the top-level <Link href="/app/admin/nav">Navigation</Link> admin item. Site name /
           offline / robots / cookies / email:{' '}
-          <Link href="/app/admin/site-chrome">Site Chrome</Link>. Visibility: Modules → Primary nav.
+          <Link href="/app/admin/site-chrome">Chrome</Link>. Visibility: Modules → Primary nav.
         </p>
         <label className="settings-field">
           <span>Primary nav menu</span>
@@ -173,7 +173,7 @@ export function SettingsForm({
           platform, capabilities, layout particles, and atoms. Each row: name, short description,
           on/off. Off gates admin nav/routes where safe, layout palette, and public render/inject.
           To drop deadweight from the bundle, remove an id from the allowlist and run{' '}
-          <code>npm run modules:generate</code>. Saves automatically. Other Site Settings topics:{' '}
+          <code>npm run modules:generate</code>. Saves automatically. Other Settings topics:{' '}
           <Link href="/app/admin/settings/admin-ux">Admin UX</Link>,{' '}
           <Link href="/app/admin/settings/auth">Auth</Link>,{' '}
           <Link href="/app/admin/settings/security">Security</Link>.

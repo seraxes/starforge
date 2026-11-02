@@ -90,7 +90,7 @@ export const INSTALLABLE_MANIFEST: InstallableEntry[] = [
     kind: 'product',
     label: 'Primary nav',
     description:
-      'Navigation manager + public header menu. Off hides Core admin → Navigation and public header links. Site Settings picks which menu set is the site default.',
+      'Navigation manager + public header menu. Off hides Core admin → Navigation and public header links. Settings picks which menu set is the site default.',
     defaultEnabled: true,
     navViews: [{ key: 'nav-manager', label: 'Navigation manager', href: '/app/admin/nav' }],
   },
@@ -107,7 +107,7 @@ export const INSTALLABLE_MANIFEST: InstallableEntry[] = [
     kind: 'product',
     label: 'Registration',
     description:
-      'Allow /register for new app accounts. Also edited under Site Settings → Auth & registration.',
+      'Allow /register for new app accounts. Also edited under Settings → Auth & registration.',
     defaultEnabled: true,
     featureFlag: 'registration',
     navViews: [{ key: 'register', label: 'Register', href: '/register' }],
@@ -142,7 +142,7 @@ export const INSTALLABLE_MANIFEST: InstallableEntry[] = [
     kind: 'product',
     label: 'Forms',
     description:
-      'Modular Form engine — visual builder (JSON Schema/Zod), Form particle, presets (contact + stubs). Captcha from Site Chrome; Turnstile keys from env.',
+      'Modular Form engine — visual builder (JSON Schema/Zod), Form particle, presets (contact + stubs). Captcha from Chrome; Turnstile keys from env.',
     defaultEnabled: true,
     navViews: [{ key: 'admin', label: 'Forms', href: '/app/admin/forms' }],
   },
@@ -233,7 +233,7 @@ export const INSTALLABLE_MANIFEST: InstallableEntry[] = [
     kind: 'particle',
     label: 'Form',
     description:
-      'Modular Form engine particle — contact and other presets via Admin → Forms. Optional Site Settings → Security captcha (Turnstile).',
+      'Modular Form engine particle — contact and other presets via Admin → Forms. Optional Settings → Security captcha (Turnstile).',
     defaultEnabled: true,
     importPath: '@/modules/form',
     exportName: 'formModule',

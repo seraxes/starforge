@@ -33,7 +33,7 @@ export const SiteSettings: GlobalConfig = {
   label: 'Site settings',
   admin: {
     description:
-      'Primary nav assignment + module/feature toggles. Topics: /app/admin/settings (Modules, Admin UX, Auth, Security, Performance). Site Chrome (offline/metadata/robots/email): /app/admin/site-chrome. Menus: Navigation.',
+      'Primary nav assignment + module/feature toggles. Topics: /app/admin/settings (Modules, Admin UX, Auth, Security, Performance). Chrome (offline/metadata/robots/email): /app/admin/site-chrome. Menus: Navigation.',
   },
   hooks: {
     afterChange: [revalidateSiteSettingsAfterChange],
@@ -50,7 +50,7 @@ export const SiteSettings: GlobalConfig = {
       defaultValue: 'Starforge',
       admin: {
         description:
-          'Synced from Starforge admin → Site Chrome. Prefer editing site name there.',
+          'Synced from Starforge admin → Chrome. Prefer editing site name there.',
       },
     },
     {
@@ -70,7 +70,7 @@ export const SiteSettings: GlobalConfig = {
       max: 2000,
       admin: {
         description:
-          'Core /app/admin text-field autosave delay in milliseconds (300–2000). Blur still saves immediately. Prefer Starforge admin → Site Settings → Admin UX.',
+          'Core /app/admin text-field autosave delay in milliseconds (300–2000). Blur still saves immediately. Prefer Starforge admin → Settings → Admin UX.',
       },
     },
     {

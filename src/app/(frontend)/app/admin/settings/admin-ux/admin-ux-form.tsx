@@ -31,7 +31,7 @@ export function AdminUxForm({ adminAutosaveDebounceMs }: Props) {
         <legend>Admin autosave</legend>
         <p className="settings-hint">
           Delay before Core admin text fields patch after typing. Blur still saves immediately.
-          Applies to particle cogs, Styles, Site Chrome, Forms, and other autosave forms.
+          Applies to particle cogs, Styles, Chrome, Forms, and other autosave forms.
         </p>
         <label className="settings-field">
           <span>Autosave debounce (ms)</span>

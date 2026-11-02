@@ -52,7 +52,7 @@ export function AuthSettingsForm({ registrationEnabled }: Props) {
         <p className="settings-hint">
           Magic link, email OTP, and TOTP 2FA ship with Better Auth. Users manage authenticator
           apps under account security; site-wide policy toggles for those helpers can land here
-          later. Mail delivery: Site Chrome → Outbound email + Environment secrets.
+          later. Mail delivery: Chrome → Outbound email + Environment secrets.
         </p>
       </fieldset>
 

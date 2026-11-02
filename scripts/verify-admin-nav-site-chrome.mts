@@ -1,5 +1,5 @@
 /**
- * Smoke check: shared admin-nav keeps Site Chrome expandable with Environment.
+ * Smoke check: shared admin-nav keeps Chrome expandable with Environment.
  * Run: npx tsx scripts/verify-admin-nav-site-chrome.mts
  */
 import { buildAdminNavGroups } from '../src/core/admin-nav/build.ts'
@@ -19,6 +19,10 @@ for (const surface of ['core', 'payload'] as const) {
     console.error(`[${surface}] missing site-chrome group`)
     process.exit(1)
   }
+  if (siteChrome.label !== 'Chrome') {
+    console.error(`[${surface}] site-chrome parent label must be Chrome`, siteChrome.label)
+    process.exit(1)
+  }
   if (!siteChrome.expandable) {
     console.error(`[${surface}] site-chrome must be expandable`)
     process.exit(1)
@@ -27,20 +31,29 @@ for (const surface of ['core', 'payload'] as const) {
     console.error(`[${surface}] site-chrome must defaultOpen so Environment is visible`)
     process.exit(1)
   }
+  const chromeLeaf = siteChrome.links.find((l) => l.href === '/app/admin/site-chrome')
+  if (!chromeLeaf || chromeLeaf.label !== 'Chrome') {
+    console.error(`[${surface}] Chrome missing Chrome leaf`, siteChrome.links)
+    process.exit(1)
+  }
   const env = siteChrome.links.find((l) => l.href === '/app/admin/site-chrome/environment')
   if (!env || env.label !== 'Environment') {
-    console.error(`[${surface}] Site Chrome missing Environment child`, siteChrome.links)
+    console.error(`[${surface}] Chrome missing Environment child`, siteChrome.links)
     process.exit(1)
   }
   if (siteChrome.links.length < 2) {
-    console.error(`[${surface}] Site Chrome must have submenu children`, siteChrome.links)
+    console.error(`[${surface}] Chrome must have submenu children`, siteChrome.links)
     process.exit(1)
   }
-  console.log(`[${surface}] ok — Site Chrome accordion → Environment (defaultOpen)`)
+  console.log(`[${surface}] ok — Chrome accordion → Environment (defaultOpen)`)
 
   const siteSettings = groups.find((g) => g.id === 'site-settings')
   if (!siteSettings?.expandable) {
-    console.error(`[${surface}] Site Settings must be expandable`, siteSettings)
+    console.error(`[${surface}] Settings must be expandable`, siteSettings)
+    process.exit(1)
+  }
+  if (siteSettings.label !== 'Settings') {
+    console.error(`[${surface}] site-settings parent label must be Settings`, siteSettings.label)
     process.exit(1)
   }
   const expectedSettings = [
@@ -53,11 +66,11 @@ for (const surface of ['core', 'payload'] as const) {
   for (const want of expectedSettings) {
     const hit = siteSettings.links.find((l) => l.href === want.href && l.label === want.label)
     if (!hit) {
-      console.error(`[${surface}] Site Settings missing ${want.label}`, siteSettings.links)
+      console.error(`[${surface}] Settings missing ${want.label}`, siteSettings.links)
       process.exit(1)
     }
   }
-  console.log(`[${surface}] ok — Site Settings accordion topics`)
+  console.log(`[${surface}] ok — Settings accordion topics`)
 
   const layouts = groups.find((g) => g.id === 'layouts')
   const fa = layouts?.links.find(
@@ -81,12 +94,12 @@ for (const surface of ['core', 'payload'] as const) {
   )
   if (cmsSiteSettings) {
     console.error(
-      `[${surface}] CMS accordion must not list Site Settings (Core top-level only)`,
+      `[${surface}] CMS accordion must not list Settings (Core top-level only)`,
       cms.links,
     )
     process.exit(1)
   }
-  console.log(`[${surface}] ok — Site Settings top-level only (not under CMS)`)
+  console.log(`[${surface}] ok — Settings top-level only (not under CMS)`)
 }
 
 console.log('verify-admin-nav-site-chrome: pass')

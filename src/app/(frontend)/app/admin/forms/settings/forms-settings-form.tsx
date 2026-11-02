@@ -27,7 +27,7 @@ export function FormsSettingsForm({
   const { formRef, saveDebounced, flushOnBlur } = useAutosaveForm()
 
   const transportLabel = !mailer.enabled
-    ? 'Disabled (Site Chrome)'
+    ? 'Disabled (Chrome)'
     : `${mailer.label}${mailer.ready ? '' : ' — not ready'}`
 
   return (
@@ -55,7 +55,7 @@ export function FormsSettingsForm({
           onBlur={flushOnBlur}
         />
         <span className="layout-muted">
-          Overrides Site Chrome default From when set. Empty → Chrome /{' '}
+          Overrides Chrome default From when set. Empty → Chrome /{' '}
           <code>STARFORGE_MAIL_FROM</code>.
         </span>
       </label>
@@ -75,7 +75,7 @@ export function FormsSettingsForm({
         <input type="text" value={transportLabel} disabled readOnly />
         <span className="layout-muted">
           Platform Mailer — configure enable / provider / From under{' '}
-          <Link href="/app/admin/site-chrome">Site Chrome</Link>
+          <Link href="/app/admin/site-chrome">Chrome</Link>
           {mailer.detail ? `. ${mailer.detail}` : '.'} Secrets stay in env.
         </span>
       </label>

@@ -11,7 +11,7 @@ import { AdminUxForm } from './admin-ux-form'
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'Site settings — Admin UX — Starforge',
+  title: 'Settings — Admin UX — Starforge',
   description: 'Core admin autosave debounce and related UX controls.',
 }
 
@@ -20,7 +20,7 @@ export default async function AdminSettingsAdminUxPage() {
 
   return (
     <section className="admin-section">
-      <h2>Site settings — Admin UX</h2>
+      <h2>Settings — Admin UX</h2>
       <p className="lede admin-lede">
         Core <code>/app/admin</code> text-field autosave delay ({ADMIN_AUTOSAVE_DEBOUNCE_MIN_MS}–
         {ADMIN_AUTOSAVE_DEBOUNCE_MAX_MS} ms). Blur still saves immediately. Modules on/off:{' '}

@@ -68,7 +68,7 @@ export default async function AdminNavMenuItemsPage({ params }: Args) {
           <>
             {' '}
             · This set is the site primary (
-            <Link href="/app/admin/settings">Site settings</Link>).
+            <Link href="/app/admin/settings">Settings</Link>).
           </>
         ) : null}
       </p>

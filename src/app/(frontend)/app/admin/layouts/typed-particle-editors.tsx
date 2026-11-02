@@ -401,7 +401,7 @@ export function MenuParticleEditor({
           </select>
         </label>
         <p className="layout-muted">
-          Menus come from <code>/app/admin/nav</code>. Site primary is assigned under Site Settings →
+          Menus come from <code>/app/admin/nav</code>. Site primary is assigned under Settings →
           Modules.
         </p>
         <label>
@@ -876,7 +876,7 @@ export function FormParticleEditor({
               queueMicrotask(saveNow)
             }}
           />
-          <span>Use site captcha default (Site Settings → Security)</span>
+          <span>Use site captcha default (Settings → Security)</span>
         </label>
         {pending ? <p className="layout-muted">Saving…</p> : null}
         <ActionFeedback state={state} />

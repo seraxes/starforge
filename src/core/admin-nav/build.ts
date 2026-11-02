@@ -28,21 +28,21 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
   const groups: AdminNavGroup[] = [
     {
       id: 'site-chrome',
-      label: 'Site Chrome',
+      label: 'Chrome',
       href: '/app/admin/site-chrome',
       // Always accordion — Environment must stay a visible child (Core + Payload).
       expandable: true,
       // Keep Environment visible without hunting the caret on other admin pages.
       defaultOpen: true,
       links: [
-        { href: '/app/admin/site-chrome', label: 'Site Chrome', exact: true },
+        { href: '/app/admin/site-chrome', label: 'Chrome', exact: true },
         // #55 gated Environment editor (must stay in shared nav — Core + Payload)
         { href: '/app/admin/site-chrome/environment', label: 'Environment' },
       ],
     },
     {
       id: 'site-settings',
-      label: 'Site Settings',
+      label: 'Settings',
       href: '/app/admin/settings',
       expandable: true,
       links: [

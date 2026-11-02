@@ -131,7 +131,7 @@ export async function dispatchFormEmailNotify(
         ok: false,
         provider: 'disabled' as const,
         skipped: true,
-        error: 'Outbound email is disabled in Site Chrome.',
+        error: 'Outbound email is disabled in Chrome.',
       })),
     }
   }

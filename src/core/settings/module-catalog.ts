@@ -74,7 +74,7 @@ export const PRODUCT_MODULE_CATALOG: ModuleCatalogItem[] = [
     kind: 'product',
     label: 'Primary nav',
     description:
-      'Navigation manager + public header menu. Off hides Core admin → Navigation and public header links. Site Settings picks which menu set is the site default.',
+      'Navigation manager + public header menu. Off hides Core admin → Navigation and public header links. Settings picks which menu set is the site default.',
     required: false,
     defaultEnabled: true,
     installed: true,
@@ -95,7 +95,7 @@ export const PRODUCT_MODULE_CATALOG: ModuleCatalogItem[] = [
     kind: 'product',
     label: 'Registration',
     description:
-      'Allow /register for new app accounts. Also edited under Site Settings → Auth & registration.',
+      'Allow /register for new app accounts. Also edited under Settings → Auth & registration.',
     required: false,
     defaultEnabled: true,
     installed: true,
@@ -137,7 +137,7 @@ export const PRODUCT_MODULE_CATALOG: ModuleCatalogItem[] = [
     kind: 'product',
     label: 'Forms',
     description:
-      'Modular Form engine — visual builder (JSON Schema/Zod), Form particle, presets (contact + stubs). Captcha from Site Chrome; Turnstile keys from env.',
+      'Modular Form engine — visual builder (JSON Schema/Zod), Form particle, presets (contact + stubs). Captcha from Chrome; Turnstile keys from env.',
     required: false,
     defaultEnabled: true,
     installed: true,
@@ -148,7 +148,7 @@ export const PRODUCT_MODULE_CATALOG: ModuleCatalogItem[] = [
 const productPlatformAllow = new Set<string>(ALLOWLISTED_PRODUCT_PLATFORM_IDS)
 
 /**
- * Installed catalog for Site Settings → Modules.
+ * Installed catalog for Settings → Modules.
  * Only allowlisted (install/build) modules appear — runtime toggles apply on top.
  * Particle/atom rows use generated allowlist metadata so listing stays sync
  * without eager-importing optional packs.

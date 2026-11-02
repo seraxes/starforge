@@ -288,7 +288,7 @@ export async function createAtomInstanceAction(
   if (!def) return { ok: false, error: `Unknown atom type “${type}”.` }
   const settings = await getSiteSettings()
   if (!isAtomModuleEnabled(settings, type)) {
-    return { ok: false, error: `Atom “${type}” is disabled in Site Settings → Modules.` }
+    return { ok: false, error: `Atom “${type}” is disabled in Settings → Modules.` }
   }
   if (def.requiresDeveloperAdmin && !userIsDeveloperAdmin(session.user)) {
     return { ok: false, error: 'This atom requires developer-admin.' }

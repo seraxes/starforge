@@ -24,7 +24,7 @@ export default async function ForgotPasswordPage() {
         <h1>Forgot password</h1>
         <p className="lede">
           Enter the <strong>email</strong> you registered with. If an account exists, we email a
-          reset link (via Site Chrome Mailer — console / SMTP / Resend). Links expire; you can
+          reset link (via Chrome Mailer — console / SMTP / Resend). Links expire; you can
           request again if nothing arrives.
         </p>
         <ForgotPasswordForm />
