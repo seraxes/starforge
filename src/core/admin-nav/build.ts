@@ -29,7 +29,12 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
     {
       id: 'site-chrome',
       label: 'Site Chrome',
-      links: [{ href: '/app/admin/site-chrome', label: 'Site Chrome' }],
+      href: '/app/admin/site-chrome',
+      links: [
+        { href: '/app/admin/site-chrome', label: 'Site Chrome', exact: true },
+        // #55 gated Environment editor (must stay in shared nav — Core + Payload)
+        { href: '/app/admin/site-chrome/environment', label: 'Environment' },
+      ],
     },
     {
       id: 'site-settings',

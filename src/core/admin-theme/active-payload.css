@@ -1,5 +1,6 @@
 /*
- * Active admin theme → Payload chrome.
- * Swap the @import when registering a second theme (see active-core.css).
+ * Active admin theme → Payload chrome (documentation entry).
+ * Live import: src/app/(payload)/custom.css → themes/starforge-gantry/payload-chrome.css
+ * (nested @import via this file was unreliable under Next/Turbopack).
  */
 @import './themes/starforge-gantry/payload-chrome.css';

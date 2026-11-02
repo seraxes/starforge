@@ -1,5 +1,7 @@
 /*
  * Payload admin custom styles entry.
- * Theme CSS comes from the admin-theme port (active theme stylesheet).
+ * Active admin theme (port): import the theme sheet directly.
+ * Nested CSS @import via active-payload.css was unreliable in Next/Turbopack.
+ * To switch themes, change this import (and Core layout) to the new theme folder.
  */
-@import '../../core/admin-theme/active-payload.css';
+@import '../../core/admin-theme/themes/starforge-gantry/payload-chrome.css';
