@@ -52,6 +52,10 @@
 
   --font-display: 'Segoe UI', 'Helvetica Neue', sans-serif;
   --font-body: 'Segoe UI', 'Helvetica Neue', sans-serif;
+
+  /* Core admin icon glyphs (cogs primary; grips / X / nav secondary) */
+  --sf-admin-icon-primary: 1.8rem;
+  --sf-admin-icon-secondary: 1.6rem;
 }
 
 * {
@@ -2356,13 +2360,18 @@ button:disabled {
 
 .gantry-section-handle {
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--sf-admin-icon-secondary);
+  min-height: var(--sf-admin-icon-secondary);
   margin: 0;
   padding: 0.25rem 0.4rem;
   border: 1px solid var(--sf-line);
   background: color-mix(in srgb, var(--sf-secondary) 18%, white);
   color: var(--sf-secondary-strong);
   font: inherit;
-  font-size: 0.85rem;
+  font-size: var(--sf-admin-icon-secondary);
   font-weight: 700;
   letter-spacing: -0.08em;
   line-height: 1;
@@ -2644,9 +2653,14 @@ button:disabled {
 
 .gantry-slot-handle {
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--sf-admin-icon-secondary);
+  min-height: var(--sf-admin-icon-secondary);
   cursor: grab;
   font: inherit;
-  font-size: 0.85rem;
+  font-size: var(--sf-admin-icon-secondary);
   letter-spacing: -0.08em;
   line-height: 1;
   padding: 0.2rem 0.35rem;
@@ -2729,14 +2743,15 @@ button:disabled {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
+  width: var(--sf-admin-icon-secondary);
+  height: var(--sf-admin-icon-secondary);
   margin: 0;
   padding: 0;
   border: 1px solid color-mix(in srgb, #c45c5c 28%, var(--sf-line));
   border-radius: 2px;
   background: transparent;
   color: color-mix(in srgb, #c45c5c 72%, #5a6674);
+  font-size: var(--sf-admin-icon-secondary);
   line-height: 1;
   cursor: pointer;
 }
@@ -2744,6 +2759,8 @@ button:disabled {
 .gantry-bar-remove-icon {
   display: block;
   flex-shrink: 0;
+  width: 1em;
+  height: 1em;
 }
 
 .gantry-bar-remove:hover,

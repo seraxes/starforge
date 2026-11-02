@@ -32,6 +32,9 @@ body:has(.admin-shell) > main {
   --sf-admin-toolbar-muted: #405475;
   --sf-admin-nav-bar: #1b2431;
   --sf-admin-nav-active: #263248;
+  /* Primary = settings cogs; secondary = grips, remove X, nav chevrons/tabs */
+  --sf-admin-icon-primary: 1.8rem;
+  --sf-admin-icon-secondary: 1.6rem;
 
   /* Remap shared brand aliases used by existing admin/gantry CSS */
   --sf-ink: #ffffff;
@@ -147,14 +150,15 @@ body:has(.admin-shell) > main {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 2.1rem;
+  min-width: var(--sf-admin-icon-secondary);
+  min-height: var(--sf-admin-icon-secondary);
   padding: 0 0.5rem;
   border: 1px solid #314257;
   border-radius: 3px;
   background: #161e2b;
   color: #c5d2e0;
   text-decoration: none;
-  font-size: 0.95rem;
+  font-size: var(--sf-admin-icon-secondary);
   line-height: 1;
 }
 
@@ -199,7 +203,7 @@ body:has(.admin-shell) > main {
 
 .admin-shell .gantry-layouts-nav-tab-icon {
   opacity: 0.95;
-  font-size: 0.92rem;
+  font-size: var(--sf-admin-icon-secondary);
   line-height: 1;
 }
 
@@ -396,8 +400,8 @@ body:has(.admin-shell) > main {
  */
 .admin-shell .admin-sidebar-group-toggle {
   display: inline-block;
-  width: 1.15rem;
-  height: 1.15rem;
+  width: var(--sf-admin-icon-secondary);
+  height: var(--sf-admin-icon-secondary);
   flex: 0 0 auto;
   margin: 0;
   padding: 0;
@@ -406,7 +410,7 @@ body:has(.admin-shell) > main {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M5.75 3.5L10.25 8L5.75 12.5' stroke='%23c5d2e0' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: center;
-  background-size: 1.05rem 1.05rem;
+  background-size: var(--sf-admin-icon-secondary) var(--sf-admin-icon-secondary);
   color: transparent;
   font-size: 0;
   line-height: 0;
@@ -419,13 +423,13 @@ body:has(.admin-shell) > main {
 
 .admin-shell .admin-sidebar-menu-toggle-icon {
   display: inline-block;
-  width: 1.15rem;
-  height: 1.15rem;
+  width: var(--sf-admin-icon-secondary);
+  height: var(--sf-admin-icon-secondary);
   background-color: transparent;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 5.75L8 10.25L12.5 5.75' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: center;
-  background-size: 1.05rem 1.05rem;
+  background-size: var(--sf-admin-icon-secondary) var(--sf-admin-icon-secondary);
   color: transparent;
   font-size: 0;
   line-height: 0;
@@ -849,10 +853,17 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .gantry-section-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--sf-admin-icon-secondary);
+  min-height: var(--sf-admin-icon-secondary);
   background: transparent;
   border: 0;
   color: #9eb1c7;
   padding: 0.1rem 0.2rem;
+  font-size: var(--sf-admin-icon-secondary);
+  line-height: 1;
 }
 
 .admin-shell .gantry-section-name-input {
@@ -882,25 +893,25 @@ body:has(.admin-shell) > main {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.65rem;
-  height: 1.65rem;
+  width: var(--sf-admin-icon-secondary);
+  height: var(--sf-admin-icon-secondary);
   margin: 0;
   padding: 0;
   border: 0;
   border-radius: 2px;
   background: transparent;
   color: #c5d2e0;
-  font-size: 1rem;
+  font-size: var(--sf-admin-icon-secondary);
   font-weight: 700;
   cursor: pointer;
   line-height: 1;
 }
 
-/* Section cog ~50% larger than sibling + control */
+/* Section settings cog — primary admin icon */
 .admin-shell .gantry-section-settings > summary.gantry-section-icon-btn {
-  width: 2.45rem;
-  height: 2.45rem;
-  font-size: 1.5rem;
+  width: var(--sf-admin-icon-primary);
+  height: var(--sf-admin-icon-primary);
+  font-size: var(--sf-admin-icon-primary);
 }
 
 .admin-shell .gantry-section-icon-btn:hover,
@@ -1107,11 +1118,17 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .gantry-slot-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--sf-admin-icon-secondary);
+  min-height: var(--sf-admin-icon-secondary);
   background: transparent;
   border: 0;
   color: rgba(255, 255, 255, 0.92);
   padding: 0.05rem;
-  font-size: 0.82rem;
+  font-size: var(--sf-admin-icon-secondary);
+  line-height: 1;
 }
 
 .admin-shell .gantry-slot-pct {
@@ -1131,14 +1148,14 @@ body:has(.admin-shell) > main {
 
 .admin-shell .gantry-slot-actions .gantry-settings-trigger,
 .admin-shell .gantry-settings-gear {
-  width: 2.25rem;
-  height: 2.25rem;
+  width: var(--sf-admin-icon-primary);
+  height: var(--sf-admin-icon-primary);
   padding: 0;
   border: 0;
   border-radius: 2px;
   background: transparent;
   color: #fff;
-  font-size: 1.38rem;
+  font-size: var(--sf-admin-icon-primary);
   line-height: 1;
 }
 
@@ -1152,16 +1169,22 @@ body:has(.admin-shell) > main {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: var(--sf-admin-icon-secondary);
+  height: var(--sf-admin-icon-secondary);
   margin: 0;
   padding: 0;
   border: 1px solid color-mix(in srgb, #c45c5c 32%, var(--sf-line));
   border-radius: 2px;
   background: transparent;
   color: color-mix(in srgb, #e8a8a0 55%, #c5d2e0);
+  font-size: var(--sf-admin-icon-secondary);
   line-height: 1;
   cursor: pointer;
+}
+
+.admin-shell .gantry-slot-actions .gantry-bar-remove-icon {
+  width: 1em;
+  height: 1em;
 }
 
 .admin-shell .gantry-slot-actions .gantry-bar-remove:hover,
