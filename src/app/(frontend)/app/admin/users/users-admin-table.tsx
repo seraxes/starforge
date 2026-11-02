@@ -105,7 +105,9 @@ function CmsAccessToggle({ user }: { user: AdminUserRow }) {
         >
           <span className="cms-switch-thumb" />
         </button>
-        <span className="cms-switch-label">{user.cmsAccess ? 'On' : 'Off'}</span>
+        <span className={user.cmsAccess ? 'cms-switch-label is-on' : 'cms-switch-label is-off'}>
+          {user.cmsAccess ? 'On' : 'Off'}
+        </span>
       </label>
       {state.error ? <span className="admin-inline-error">{state.error}</span> : null}
     </form>
@@ -127,8 +129,8 @@ function DisableForm({ user }: { user: AdminUserRow }) {
         type="submit"
         className={
           nextDisabled
-            ? 'gantry-toolbar-btn gantry-toolbar-btn-muted secondary'
-            : 'gantry-toolbar-btn gantry-toolbar-btn-save'
+            ? 'gantry-toolbar-btn gantry-toolbar-btn-disable'
+            : 'gantry-toolbar-btn gantry-toolbar-btn-enable'
         }
         disabled={pending}
       >

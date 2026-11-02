@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useActionState, useEffect, useMemo, useState, useTransition } from 'react'
+import React, { useActionState, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { AccessTagsField } from '@/components/admin/AccessTagsField'
@@ -55,12 +55,18 @@ function OrderedAssetList({
   label,
   items,
   onChange,
+  onTextChange,
+  onDiscreteChange,
   disabled,
   developerOnly,
 }: {
   label: string
   items: AssetRef[]
   onChange: (next: AssetRef[]) => void
+  /** Debounced persist for typing name/url. */
+  onTextChange?: () => void
+  /** Immediate persist for add/remove/reorder. */
+  onDiscreteChange?: () => void
   disabled?: boolean
   developerOnly?: boolean
 }) {
@@ -72,6 +78,7 @@ function OrderedAssetList({
     next[index] = next[target]!
     next[target] = tmp
     onChange(next)
+    onDiscreteChange?.()
   }
 
   return (
@@ -83,12 +90,13 @@ function OrderedAssetList({
           type="button"
           className="secondary"
           disabled={disabled}
-          onClick={() =>
+          onClick={() => {
             onChange([
               ...items,
               { id: newPageSettingsEntityId('asset'), name: '', url: '' },
             ])
-          }
+            onDiscreteChange?.()
+          }}
         >
           Add
         </button>
@@ -106,7 +114,9 @@ function OrderedAssetList({
                 const next = [...items]
                 next[index] = { ...item, name: e.target.value }
                 onChange(next)
+                onTextChange?.()
               }}
+              onBlur={() => onDiscreteChange?.()}
             />
             <input
               type="url"
@@ -117,7 +127,9 @@ function OrderedAssetList({
                 const next = [...items]
                 next[index] = { ...item, url: e.target.value }
                 onChange(next)
+                onTextChange?.()
               }}
+              onBlur={() => onDiscreteChange?.()}
             />
             <div className="page-settings-row-actions">
               <button type="button" className="secondary" disabled={disabled || index === 0} onClick={() => move(index, -1)}>
@@ -135,7 +147,10 @@ function OrderedAssetList({
                 type="button"
                 className="danger"
                 disabled={disabled}
-                onClick={() => onChange(items.filter((_, i) => i !== index))}
+                onClick={() => {
+                  onChange(items.filter((_, i) => i !== index))
+                  onDiscreteChange?.()
+                }}
               >
                 Remove
               </button>
@@ -157,7 +172,6 @@ export function PageSettingsForm({ bootstrap }: Props) {
   useNotifySavedOnOk(clearState, { successMessage: 'Saved', toastErrors: true })
   const [, startTransition] = useTransition()
   const { formRef, saveNow, saveDebounced } = useAutosaveForm()
-  const skipAutosave = React.useRef(true)
 
   const initial = bootstrap.editingChrome
   const [layoutId, setLayoutId] = useState(initial.layoutId ?? 'default')
@@ -166,7 +180,7 @@ export function PageSettingsForm({ bootstrap }: Props) {
     resolveAccessTags({ accessTags: initial.accessTags }),
   )
   const [metaTags, setMetaTags] = useState<MetaTag[]>(initial.metaTags ?? [])
-  const customHeadHtml = initial.customHeadHtml ?? ''
+  const [customHeadHtml, setCustomHeadHtml] = useState(initial.customHeadHtml ?? '')
   const [faviconUrl, setFaviconUrl] = useState(initial.faviconUrl ?? '')
   const [touchIconUrl, setTouchIconUrl] = useState(initial.touchIconUrl ?? '')
   const [css, setCss] = useState<AssetRef[]>(initial.css ?? [])
@@ -186,36 +200,8 @@ export function PageSettingsForm({ bootstrap }: Props) {
 
   const lockedScripts = !bootstrap.isDeveloperAdmin
 
-  // Autosave whenever chrome draft changes (skip first mount / server hydrate).
-  useEffect(() => {
-    if (skipAutosave.current) {
-      skipAutosave.current = false
-      return
-    }
-    saveDebounced()
-  }, [
-    layoutId,
-    sectionsLayout,
-    accessTags,
-    metaTags,
-    faviconUrl,
-    touchIconUrl,
-    css,
-    javascript,
-    bodyId,
-    bodyClasses,
-    bodyTagAttributes,
-    afterBodyHtml,
-    beforeBodyCloseHtml,
-    faEnabled,
-    faV4Compat,
-    faContentCompat,
-    faVersion,
-    faCssLinkHtml,
-    faJsScriptHtml,
-    atoms,
-    saveDebounced,
-  ])
+  // Explicit onChange/blur autosave only — no effect watching draft state (Strict Mode was
+  // firing a false "Saved" on open via skipAutosave flip + second effect pass).
 
   const pageOptions = useMemo(() => {
     const opts = [{ value: '', label: 'Site default (global)' }]
@@ -244,10 +230,13 @@ export function PageSettingsForm({ bootstrap }: Props) {
         config: { ...def.defaultConfig },
       },
     ])
+    saveNow()
   }
 
-  const updateAtomConfig = (id: string, config: Record<string, unknown>) => {
+  const updateAtomConfig = (id: string, config: Record<string, unknown>, persist: 'now' | 'debounce' = 'debounce') => {
     setAtoms((prev) => prev.map((a) => (a.id === id ? { ...a, config } : a)))
+    if (persist === 'now') saveNow()
+    else saveDebounced()
   }
 
   return (
@@ -330,7 +319,14 @@ export function PageSettingsForm({ bootstrap }: Props) {
         <Panel title="Layout assignment">
           <label className="settings-field">
             <span>Layout</span>
-            <select name="layoutId" value={layoutId} onChange={(e) => setLayoutId(e.target.value)}>
+            <select
+              name="layoutId"
+              value={layoutId}
+              onChange={(e) => {
+                setLayoutId(e.target.value)
+                saveNow()
+              }}
+            >
               {(bootstrap.layouts?.length
                 ? bootstrap.layouts
                 : bootstrap.layoutIds.map((id) => ({ id, label: id }))
@@ -346,7 +342,10 @@ export function PageSettingsForm({ bootstrap }: Props) {
             <select
               name="sectionsLayout"
               value={sectionsLayout}
-              onChange={(e) => setSectionsLayout(e.target.value as PageChrome['sectionsLayout'] & string)}
+              onChange={(e) => {
+                setSectionsLayout(e.target.value as PageChrome['sectionsLayout'] & string)
+                saveNow()
+              }}
             >
               <option value="fullwidth">Fullwidth</option>
               <option value="boxed">Boxed content</option>
@@ -360,7 +359,10 @@ export function PageSettingsForm({ bootstrap }: Props) {
             value={accessTags}
             groups={bootstrap.groups}
             disabled={pending || clearPending}
-            onChange={setAccessTags}
+            onChange={(next) => {
+              setAccessTags(next)
+              saveNow()
+            }}
             legend="Who can see this page"
           />
         </Panel>
@@ -372,12 +374,13 @@ export function PageSettingsForm({ bootstrap }: Props) {
               <button
                 type="button"
                 className="secondary"
-                onClick={() =>
+                onClick={() => {
                   setMetaTags((prev) => [
                     ...prev,
                     { id: newPageSettingsEntityId('meta'), nameOrProperty: '', content: '' },
                   ])
-                }
+                  saveNow()
+                }}
               >
                 Add
               </button>
@@ -393,7 +396,9 @@ export function PageSettingsForm({ bootstrap }: Props) {
                       const next = [...metaTags]
                       next[index] = { ...tag, nameOrProperty: e.target.value }
                       setMetaTags(next)
+                      saveDebounced()
                     }}
+                    onBlur={() => saveNow()}
                   />
                   <input
                     type="text"
@@ -403,12 +408,17 @@ export function PageSettingsForm({ bootstrap }: Props) {
                       const next = [...metaTags]
                       next[index] = { ...tag, content: e.target.value }
                       setMetaTags(next)
+                      saveDebounced()
                     }}
+                    onBlur={() => saveNow()}
                   />
                   <button
                     type="button"
                     className="danger"
-                    onClick={() => setMetaTags(metaTags.filter((_, i) => i !== index))}
+                    onClick={() => {
+                      setMetaTags(metaTags.filter((_, i) => i !== index))
+                      saveNow()
+                    }}
                   >
                     Remove
                   </button>
@@ -426,11 +436,17 @@ export function PageSettingsForm({ bootstrap }: Props) {
               <p className="settings-hint">Locked — existing custom head HTML is preserved on save.</p>
             ) : (
               <CodeEditorField
+                key={`pageHead-${bootstrap.editingPageKey ?? 'global'}`}
                 name="customHeadHtml"
-                label="Custom head HTML"
+                label="Page Head (custom HTML)"
                 language="html"
                 initialValue={customHeadHtml}
+                initialHeight={200}
                 hint="Injected into <head> (manifest links, scripts, …)."
+                onValueChange={(next) => {
+                  setCustomHeadHtml(next)
+                  saveDebounced()
+                }}
               />
             )}
           </div>
@@ -443,7 +459,11 @@ export function PageSettingsForm({ bootstrap }: Props) {
               type="url"
               name="faviconUrl"
               value={faviconUrl}
-              onChange={(e) => setFaviconUrl(e.target.value)}
+              onChange={(e) => {
+                setFaviconUrl(e.target.value)
+                saveDebounced()
+              }}
+              onBlur={() => saveNow()}
               placeholder="https://…/favicon.ico"
             />
           </label>
@@ -453,15 +473,27 @@ export function PageSettingsForm({ bootstrap }: Props) {
               type="url"
               name="touchIconUrl"
               value={touchIconUrl}
-              onChange={(e) => setTouchIconUrl(e.target.value)}
+              onChange={(e) => {
+                setTouchIconUrl(e.target.value)
+                saveDebounced()
+              }}
+              onBlur={() => saveNow()}
               placeholder="https://…/apple-touch-icon.png"
             />
           </label>
-          <OrderedAssetList label="CSS" items={css} onChange={setCss} />
+          <OrderedAssetList
+            label="CSS"
+            items={css}
+            onChange={setCss}
+            onTextChange={saveDebounced}
+            onDiscreteChange={saveNow}
+          />
           <OrderedAssetList
             label="JavaScript"
             items={javascript}
             onChange={setJavascript}
+            onTextChange={saveDebounced}
+            onDiscreteChange={saveNow}
             disabled={lockedScripts}
             developerOnly
           />
@@ -470,7 +502,16 @@ export function PageSettingsForm({ bootstrap }: Props) {
         <Panel title="Body Attributes">
           <label className="settings-field">
             <span>Body Id</span>
-            <input type="text" name="bodyId" value={bodyId} onChange={(e) => setBodyId(e.target.value)} />
+            <input
+              type="text"
+              name="bodyId"
+              value={bodyId}
+              onChange={(e) => {
+                setBodyId(e.target.value)
+                saveDebounced()
+              }}
+              onBlur={() => saveNow()}
+            />
           </label>
           <label className="settings-field">
             <span>Body Classes</span>
@@ -478,7 +519,11 @@ export function PageSettingsForm({ bootstrap }: Props) {
               type="text"
               name="bodyClasses"
               value={bodyClasses}
-              onChange={(e) => setBodyClasses(e.target.value)}
+              onChange={(e) => {
+                setBodyClasses(e.target.value)
+                saveDebounced()
+              }}
+              onBlur={() => saveNow()}
               placeholder="class-a class-b"
             />
           </label>
@@ -488,7 +533,11 @@ export function PageSettingsForm({ bootstrap }: Props) {
               type="text"
               name="bodyTagAttributes"
               value={bodyTagAttributes}
-              onChange={(e) => setBodyTagAttributes(e.target.value)}
+              onChange={(e) => {
+                setBodyTagAttributes(e.target.value)
+                saveDebounced()
+              }}
+              onBlur={() => saveNow()}
               placeholder={'data-theme="light"'}
             />
           </label>
@@ -500,12 +549,18 @@ export function PageSettingsForm({ bootstrap }: Props) {
             {lockedScripts ? (
               <p className="settings-hint">Locked — preserved on save.</p>
             ) : (
-              <textarea
+              <CodeEditorField
+                key={`afterBody-${bootstrap.editingPageKey ?? 'global'}`}
                 name="afterBodyHtml"
-                rows={4}
-                value={afterBodyHtml}
-                onChange={(e) => setAfterBodyHtml(e.target.value)}
+                label="After <body>"
+                language="html"
+                initialValue={afterBodyHtml}
+                initialHeight={140}
                 placeholder="HTML after opening body tag"
+                onValueChange={(next) => {
+                  setAfterBodyHtml(next)
+                  saveDebounced()
+                }}
               />
             )}
           </div>
@@ -517,12 +572,18 @@ export function PageSettingsForm({ bootstrap }: Props) {
             {lockedScripts ? (
               <p className="settings-hint">Locked — preserved on save.</p>
             ) : (
-              <textarea
+              <CodeEditorField
+                key={`beforeBody-${bootstrap.editingPageKey ?? 'global'}`}
                 name="beforeBodyCloseHtml"
-                rows={4}
-                value={beforeBodyCloseHtml}
-                onChange={(e) => setBeforeBodyCloseHtml(e.target.value)}
+                label="Before </body>"
+                language="html"
+                initialValue={beforeBodyCloseHtml}
+                initialHeight={140}
                 placeholder="HTML before closing body tag"
+                onValueChange={(next) => {
+                  setBeforeBodyCloseHtml(next)
+                  saveDebounced()
+                }}
               />
             )}
           </div>
@@ -535,7 +596,10 @@ export function PageSettingsForm({ bootstrap }: Props) {
               name="faEnabled"
               value="true"
               checked={faEnabled}
-              onChange={(e) => setFaEnabled(e.target.checked)}
+              onChange={(e) => {
+                setFaEnabled(e.target.checked)
+                saveNow()
+              }}
             />
             <span>
               <strong>Enable Font Awesome</strong>
@@ -548,7 +612,10 @@ export function PageSettingsForm({ bootstrap }: Props) {
               name="faV4Compat"
               value="true"
               checked={faV4Compat}
-              onChange={(e) => setFaV4Compat(e.target.checked)}
+              onChange={(e) => {
+                setFaV4Compat(e.target.checked)
+                saveNow()
+              }}
             />
             <span>
               <strong>V4 Compatibility</strong>
@@ -560,7 +627,10 @@ export function PageSettingsForm({ bootstrap }: Props) {
               name="faContentCompat"
               value="true"
               checked={faContentCompat}
-              onChange={(e) => setFaContentCompat(e.target.checked)}
+              onChange={(e) => {
+                setFaContentCompat(e.target.checked)
+                saveNow()
+              }}
             />
             <span>
               <strong>Content Compatibility</strong>
@@ -569,38 +639,57 @@ export function PageSettingsForm({ bootstrap }: Props) {
           </label>
           <label className="settings-field">
             <span>Version</span>
-            <select name="faVersion" value={faVersion} onChange={(e) => setFaVersion(e.target.value)}>
+            <select
+              name="faVersion"
+              value={faVersion}
+              onChange={(e) => {
+                setFaVersion(e.target.value)
+                saveNow()
+              }}
+            >
               <option value="6-free">Font Awesome 6 Free</option>
               <option value="7-free">Font Awesome 7 Free</option>
             </select>
           </label>
           <div className={lockedScripts ? 'page-settings-locked' : undefined}>
-            <label className="settings-field">
-              <span>
-                CSS Link HTML <span className="page-settings-acl">Developer-admin</span>
-              </span>
-              <textarea
-                name={lockedScripts ? undefined : 'faCssLinkHtml'}
-                rows={2}
-                value={faCssLinkHtml}
-                disabled={lockedScripts}
-                onChange={(e) => setFaCssLinkHtml(e.target.value)}
-                placeholder="Optional raw <link> override"
-              />
-            </label>
-            <label className="settings-field">
-              <span>
-                JS Script HTML <span className="page-settings-acl">Developer-admin</span>
-              </span>
-              <textarea
-                name={lockedScripts ? undefined : 'faJsScriptHtml'}
-                rows={2}
-                value={faJsScriptHtml}
-                disabled={lockedScripts}
-                onChange={(e) => setFaJsScriptHtml(e.target.value)}
-                placeholder="Optional raw <script> override"
-              />
-            </label>
+            {lockedScripts ? (
+              <>
+                <input type="hidden" name="faCssLinkHtml" value={faCssLinkHtml} />
+                <input type="hidden" name="faJsScriptHtml" value={faJsScriptHtml} />
+                <p className="settings-hint">FA HTML overrides locked — preserved on save.</p>
+              </>
+            ) : (
+              <>
+                <CodeEditorField
+                  key={`faCss-${bootstrap.editingPageKey ?? 'global'}`}
+                  name="faCssLinkHtml"
+                  label="CSS Link HTML"
+                  language="html"
+                  initialValue={faCssLinkHtml}
+                  initialHeight={96}
+                  minHeight={72}
+                  placeholder="Optional raw <link> override"
+                  onValueChange={(next) => {
+                    setFaCssLinkHtml(next)
+                    saveDebounced()
+                  }}
+                />
+                <CodeEditorField
+                  key={`faJs-${bootstrap.editingPageKey ?? 'global'}`}
+                  name="faJsScriptHtml"
+                  label="JS Script HTML"
+                  language="html"
+                  initialValue={faJsScriptHtml}
+                  initialHeight={96}
+                  minHeight={72}
+                  placeholder="Optional raw <script> override"
+                  onValueChange={(next) => {
+                    setFaJsScriptHtml(next)
+                    saveDebounced()
+                  }}
+                />
+              </>
+            )}
           </div>
         </Panel>
 
@@ -634,11 +723,12 @@ export function PageSettingsForm({ bootstrap }: Props) {
                     <input
                       type="checkbox"
                       checked={atom.enabled}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setAtoms((prev) =>
                           prev.map((a) => (a.id === atom.id ? { ...a, enabled: e.target.checked } : a)),
                         )
-                      }
+                        saveNow()
+                      }}
                     />
                     <strong>{def?.label || atom.type}</strong>
                   </label>
@@ -646,31 +736,35 @@ export function PageSettingsForm({ bootstrap }: Props) {
                   <AtomSettingsPopover title={def?.label || atom.type}>
                     {atom.type === 'custom-css-js' ? (
                       <div className="gantry-typed-form">
-                        <label>
-                          CSS
-                          <textarea
-                            rows={5}
-                            value={String(atom.config.css ?? '')}
-                            disabled={lockedScripts}
-                            onChange={(e) =>
-                              updateAtomConfig(atom.id, { ...atom.config, css: e.target.value })
-                            }
-                          />
-                        </label>
-                        <label>
-                          JavaScript <span className="page-settings-acl">Developer-admin</span>
-                          <textarea
-                            rows={5}
-                            value={String(atom.config.javascript ?? '')}
-                            disabled={lockedScripts}
-                            onChange={(e) =>
-                              updateAtomConfig(atom.id, {
-                                ...atom.config,
-                                javascript: e.target.value,
-                              })
-                            }
-                          />
-                        </label>
+                        {lockedScripts ? (
+                          <p className="settings-hint">Locked — atom CSS/JS preserved on save.</p>
+                        ) : (
+                          <>
+                            <CodeEditorField
+                              key={`atom-css-${atom.id}`}
+                              label="CSS"
+                              language="css"
+                              initialValue={String(atom.config.css ?? '')}
+                              initialHeight={140}
+                              onValueChange={(next) =>
+                                updateAtomConfig(atom.id, { ...atom.config, css: next })
+                              }
+                            />
+                            <CodeEditorField
+                              key={`atom-js-${atom.id}`}
+                              label="JavaScript"
+                              language="javascript"
+                              initialValue={String(atom.config.javascript ?? '')}
+                              initialHeight={140}
+                              onValueChange={(next) =>
+                                updateAtomConfig(atom.id, {
+                                  ...atom.config,
+                                  javascript: next,
+                                })
+                              }
+                            />
+                          </>
+                        )}
                       </div>
                     ) : atom.type === 'analytics' ? (
                       <div className="gantry-typed-form">
@@ -680,10 +774,14 @@ export function PageSettingsForm({ bootstrap }: Props) {
                             value={String(atom.config.provider ?? 'google')}
                             disabled={lockedScripts}
                             onChange={(e) =>
-                              updateAtomConfig(atom.id, {
-                                ...atom.config,
-                                provider: e.target.value,
-                              })
+                              updateAtomConfig(
+                                atom.id,
+                                {
+                                  ...atom.config,
+                                  provider: e.target.value,
+                                },
+                                'now',
+                              )
                             }
                           >
                             <option value="google">Google Analytics (gtag)</option>
@@ -703,6 +801,7 @@ export function PageSettingsForm({ bootstrap }: Props) {
                                 measurementId: e.target.value,
                               })
                             }
+                            onBlur={() => saveNow()}
                           />
                         </label>
                       </div>
@@ -713,7 +812,10 @@ export function PageSettingsForm({ bootstrap }: Props) {
                   <button
                     type="button"
                     className="danger"
-                    onClick={() => setAtoms((prev) => prev.filter((a) => a.id !== atom.id))}
+                    onClick={() => {
+                      setAtoms((prev) => prev.filter((a) => a.id !== atom.id))
+                      saveNow()
+                    }}
                   >
                     Remove
                   </button>

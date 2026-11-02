@@ -79,7 +79,6 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
       links: [
         { href: '/app/admin/forms', label: 'Forms', exact: true },
         { href: '/app/admin/forms/submissions', label: 'Submissions' },
-        { href: '/app/admin/forms/settings', label: 'Settings' },
       ],
     })
   }
