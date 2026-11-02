@@ -2547,7 +2547,7 @@ button:disabled {
 }
 
 .gantry-slot-actions {
-  /* Cog + red danger remove (white X) sit in the same control row. */
+  /* Cog + muted bar-remove X sit in the same control row. */
   width: 100%;
 }
 
@@ -2717,13 +2717,14 @@ button:disabled {
 }
 
 /* Particle settings open as a floating overlay — never expand the slot / push the row.
-   Trigger lives in `.gantry-slot-actions` beside the red danger remove. */
+   Trigger lives in `.gantry-slot-actions` beside the muted bar-remove X. */
 .gantry-settings-trigger-wrap {
   display: inline-flex;
   margin: 0;
   vertical-align: middle;
 }
 
+/* Soft muted danger — no ketchup-red fill; rose X on quiet chrome. */
 .gantry-bar-remove {
   display: inline-flex;
   align-items: center;
@@ -2732,10 +2733,10 @@ button:disabled {
   height: 2rem;
   margin: 0;
   padding: 0;
-  border: 1px solid color-mix(in srgb, #c0392b 55%, var(--sf-line));
+  border: 1px solid color-mix(in srgb, #c45c5c 28%, var(--sf-line));
   border-radius: 2px;
-  background: color-mix(in srgb, #c0392b 72%, white);
-  color: #fff;
+  background: transparent;
+  color: color-mix(in srgb, #c45c5c 72%, #5a6674);
   line-height: 1;
   cursor: pointer;
 }
@@ -2747,9 +2748,9 @@ button:disabled {
 
 .gantry-bar-remove:hover,
 .gantry-bar-remove:focus-visible {
-  background: #c0392b;
-  border-color: #a93226;
-  color: #fff;
+  background: color-mix(in srgb, #c45c5c 14%, white);
+  border-color: color-mix(in srgb, #c45c5c 42%, var(--sf-line));
+  color: #c45c5c;
   outline: none;
 }
 

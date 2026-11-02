@@ -1,6 +1,7 @@
 import { accessTagsForStorage } from '@/core/acl/nav-access'
 
 import defaultLayoutJson from './default-layout.json'
+import { ensureSectionEmptyRows } from './empty-rows'
 import { clampGridWidth, LAYOUT_WIDTH_FULL, normalizeRowWidthsToPercent } from './grid'
 import { sortLayoutSectionsByOrder } from './section-order'
 import {
@@ -146,7 +147,7 @@ function normalizeSection(entry: LayoutSection | null | undefined, index: number
     ? (entry.rows.map((r, i) => normalizeRow(r, i)).filter(Boolean) as LayoutRow[])
     : []
   rows.sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id))
-  return {
+  const section: LayoutSection = {
     id,
     label,
     ...(cssClass ? { cssClass } : {}),
@@ -155,6 +156,9 @@ function normalizeSection(entry: LayoutSection | null | undefined, index: number
     order: typeof entry.order === 'number' && Number.isFinite(entry.order) ? entry.order : index,
     rows,
   }
+  // SF-87: one open empty row; trailing empty after modules (stable ids).
+  ensureSectionEmptyRows(section)
+  return section
 }
 
 function withNormalizedStyles(doc: LayoutDocument, raw: unknown): LayoutDocument {
