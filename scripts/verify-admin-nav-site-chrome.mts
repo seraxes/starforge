@@ -37,6 +37,31 @@ for (const surface of ['core', 'payload'] as const) {
     process.exit(1)
   }
   console.log(`[${surface}] ok — Site Chrome accordion → Environment (defaultOpen)`)
+
+  const siteSettings = groups.find((g) => g.id === 'site-settings')
+  if (!siteSettings?.links.some((l) => l.href === '/app/admin/settings')) {
+    console.error(`[${surface}] missing top-level Core Site Settings`, groups)
+    process.exit(1)
+  }
+
+  const cms = groups.find((g) => g.id === 'cms')
+  if (!cms) {
+    console.error(`[${surface}] missing cms group`)
+    process.exit(1)
+  }
+  const cmsSiteSettings = cms.links.find(
+    (l) =>
+      l.href.includes('/globals/site-settings') ||
+      /^site settings$/i.test(l.label.trim()),
+  )
+  if (cmsSiteSettings) {
+    console.error(
+      `[${surface}] CMS accordion must not list Site Settings (Core top-level only)`,
+      cms.links,
+    )
+    process.exit(1)
+  }
+  console.log(`[${surface}] ok — Site Settings top-level only (not under CMS)`)
 }
 
 console.log('verify-admin-nav-site-chrome: pass')
