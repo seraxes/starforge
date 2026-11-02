@@ -5,7 +5,7 @@ import React, { useActionState } from 'react'
 import {
   unlockEnvEditorAction,
   type EnvEditorGateActionState,
-} from '@/core/env-editor'
+} from '@/core/env-editor/actions'
 
 const initial: EnvEditorGateActionState = {}
 
