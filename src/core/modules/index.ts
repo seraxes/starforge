@@ -112,6 +112,7 @@ export {
   parseCssColorInput,
   resolveSectionContainerMode,
   sanitizeBackgroundImageUrl,
+  sanitizeBackgroundMediaId,
   sanitizeCssColor,
   sanitizeCssColorOrGradient,
   sanitizeCssLength,

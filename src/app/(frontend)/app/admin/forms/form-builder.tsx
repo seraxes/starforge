@@ -55,6 +55,7 @@ import type {
 } from '@/core/forms/types'
 
 import { GantryBarRemoveButton } from '@/components/admin/GantryBarRemoveButton'
+import { MediaPicker } from '@/components/admin/MediaPicker'
 
 import { useNotifySavedOnOk } from '../admin-toast'
 import { ParticleSettingsPopover } from '../layouts/particle-settings-popover'
@@ -217,51 +218,93 @@ function FieldSettingsBody({
         <fieldset className="sf-form-builder-constraints">
           <legend>Options + media</legend>
           <p className="layout-muted">
-            value|label|url|mediaId|alt per line (URL / id interim until SF-28).
+            Library Media id is primary per option; raw URL remains advanced fallback.
           </p>
-          <textarea
-            rows={5}
-            value={(field.options ?? [])
-              .map((o) => {
-                const parts = [o.value, o.label]
-                if (o.media?.url) parts.push(o.media.url)
-                else parts.push('')
-                if (o.media?.mediaId) parts.push(o.media.mediaId)
-                else parts.push('')
-                if (o.media?.alt) parts.push(o.media.alt)
-                return parts.join('|')
-              })
-              .join('\n')}
-            onChange={(e) => {
-              const options = e.target.value
-                .split('\n')
-                .map((line) => line.trim())
-                .filter(Boolean)
-                .map((line) => {
-                  const [value, label, url, mediaId, alt] = line.split('|')
-                  const opt: FormFieldOption = {
-                    value: (value ?? '').trim(),
-                    label: (label ?? value ?? '').trim() || (value ?? '').trim(),
-                  }
-                  const mediaUrl = url?.trim()
-                  const mid = mediaId?.trim()
-                  const malt = alt?.trim()
-                  if (mediaUrl || mid) {
-                    opt.media = {
-                      ...(mediaUrl ? { url: mediaUrl } : {}),
-                      ...(mid ? { mediaId: mid } : {}),
-                      ...(malt ? { alt: malt } : {}),
-                      kind: 'image',
+          <ul className="sf-form-option-editor-list">
+            {(field.options ?? []).map((opt, index) => (
+              <li key={`${field.id ?? field.name}-opt-${index}`} className="sf-form-option-editor-row">
+                <label>
+                  <span>Value</span>
+                  <input
+                    type="text"
+                    value={opt.value}
+                    onChange={(e) => {
+                      const next = [...(field.options ?? [])]
+                      next[index] = { ...opt, value: e.target.value }
+                      onUpdateOptions(next.filter((o) => o.value.trim()))
+                    }}
+                    onBlur={saveNow}
+                  />
+                </label>
+                <label>
+                  <span>Label</span>
+                  <input
+                    type="text"
+                    value={opt.label}
+                    onChange={(e) => {
+                      const next = [...(field.options ?? [])]
+                      next[index] = { ...opt, label: e.target.value }
+                      onUpdateOptions(next)
+                    }}
+                    onBlur={saveNow}
+                  />
+                </label>
+                <MediaPicker
+                  label="Option media"
+                  value={{
+                    mediaId: opt.media?.mediaId ?? '',
+                    url: opt.media?.url ?? '',
+                    alt: opt.media?.alt ?? '',
+                  }}
+                  defaultFolder="forms"
+                  defaultPurpose="other"
+                  includeHiddenInputs={false}
+                  onChange={(media) => {
+                    const next = [...(field.options ?? [])]
+                    const hasMedia = Boolean(media.mediaId || media.url)
+                    next[index] = {
+                      ...opt,
+                      media: hasMedia
+                        ? {
+                            ...(media.mediaId ? { mediaId: media.mediaId } : {}),
+                            ...(media.url ? { url: media.url } : {}),
+                            ...(media.alt ? { alt: media.alt } : {}),
+                            kind: 'image',
+                          }
+                        : undefined,
                     }
-                  }
-                  return opt
-                })
-                .filter((o) => o.value)
-              onUpdateOptions(options)
+                    onUpdateOptions(next)
+                    queueMicrotask(saveNow)
+                  }}
+                />
+                <button
+                  type="button"
+                  className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+                  onClick={() => {
+                    const next = (field.options ?? []).filter((_, i) => i !== index)
+                    onUpdateOptions(next)
+                    queueMicrotask(saveNow)
+                  }}
+                >
+                  Remove option
+                </button>
+              </li>
+            ))}
+          </ul>
+          <button
+            type="button"
+            className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+            onClick={() => {
+              const n = (field.options ?? []).length + 1
+              onUpdateOptions([
+                ...(field.options ?? []),
+                { value: `option-${n}`, label: `Option ${n}` },
+              ])
+              queueMicrotask(saveNow)
             }}
-            onBlur={saveNow}
-            spellCheck={false}
-          />
+          >
+            Add option
+          </button>
         </fieldset>
       ) : null}
 
@@ -985,8 +1028,8 @@ export function FormBuilder({ formId, initialDocument }: Props) {
                 ))}
               </ul>
               <p className="layout-muted">
-                Option media: interim URL / mediaId until SF-28 Payload picker. Use the field cog for
-                settings (same as Layout modules).
+                Option media binds to the Media library (picker in the field cog). Use the field cog
+                for settings (same as Layout modules).
               </p>
             </aside>
 

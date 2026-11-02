@@ -29,12 +29,14 @@ import {
   normalizeLayoutSectionStyles,
   parseCssColorInput,
   sanitizeBackgroundImageUrl,
+  sanitizeBackgroundMediaId,
   sanitizeCssColor,
   sanitizeCssColorOrGradient,
   type LayoutBreakpoints,
   type LayoutContainerMode,
   type LayoutSectionStyles,
 } from './styles'
+import { resolveMediaById } from '@/core/media/resolve'
 import type { LayoutDocument, LayoutRow, LayoutSection, LayoutSlot, LayoutSlotConfig } from './types'
 
 /** Resolve outline id from form (`layoutId`) — defaults to Base Outline. */
@@ -186,6 +188,7 @@ function patchSectionStyles(
     clearBackgroundColor?: boolean
     clearTextColor?: boolean
     clearBackgroundImage?: boolean
+    clearBackgroundMediaId?: boolean
     clearOverlayColor?: boolean
     clearBackgroundOverlay?: boolean
     clearAllowGradientBackground?: boolean
@@ -197,6 +200,8 @@ function patchSectionStyles(
   else if (patch.backgroundColor !== undefined) next.backgroundColor = patch.backgroundColor
   if (patch.clearTextColor) delete next.textColor
   else if (patch.textColor !== undefined) next.textColor = patch.textColor
+  if (patch.clearBackgroundMediaId) delete next.backgroundMediaId
+  else if (patch.backgroundMediaId !== undefined) next.backgroundMediaId = patch.backgroundMediaId
   if (patch.clearBackgroundImage) delete next.backgroundImage
   else if (patch.backgroundImage !== undefined) next.backgroundImage = patch.backgroundImage
   if (patch.clearBackgroundOverlay) delete next.backgroundOverlay
@@ -233,6 +238,7 @@ export async function updateLayoutSectionMetaAction(
   const hasBackgroundColor = formData.has('backgroundColor')
   const hasTextColor = formData.has('textColor')
   const hasBackgroundImage = formData.has('backgroundImage')
+  const hasBackgroundMediaId = formData.has('backgroundMediaId')
   const hasBackgroundOverlay = formData.has('backgroundOverlay')
   const hasOverlayColor = formData.has('overlayColor')
   // Checkbox pair: hidden "0" + checkbox "1" — always present on Styles form saves.
@@ -242,6 +248,7 @@ export async function updateLayoutSectionMetaAction(
     hasBackgroundColor ||
     hasTextColor ||
     hasBackgroundImage ||
+    hasBackgroundMediaId ||
     hasBackgroundOverlay ||
     hasOverlayColor ||
     hasAllowGradientBackground ||
@@ -283,6 +290,9 @@ export async function updateLayoutSectionMetaAction(
   const backgroundImageRaw = hasBackgroundImage
     ? String(formData.get('backgroundImage') ?? '').trim()
     : undefined
+  const backgroundMediaIdRaw = hasBackgroundMediaId
+    ? String(formData.get('backgroundMediaId') ?? '').trim()
+    : undefined
   const backgroundOverlayRaw = hasBackgroundOverlay
     ? String(formData.get('backgroundOverlay') ?? '').trim().toLowerCase()
     : undefined
@@ -294,6 +304,20 @@ export async function updateLayoutSectionMetaAction(
     if (backgroundOverlayRaw !== 'enabled' && backgroundOverlayRaw !== 'disabled') {
       return { error: 'Background overlay must be enabled or disabled.' }
     }
+  }
+
+  // Resolve library id → URL before mutate so styles stay sync-renderable.
+  let resolvedFromMedia: string | undefined
+  if (hasBackgroundMediaId && backgroundMediaIdRaw) {
+    const mediaId = sanitizeBackgroundMediaId(backgroundMediaIdRaw)
+    if (!mediaId) {
+      return { error: 'Background media id is invalid.' }
+    }
+    const resolved = await resolveMediaById(mediaId, { size: 'large', preferWebp: true })
+    if (!resolved?.url) {
+      return { error: 'Background media id was not found in the library.' }
+    }
+    resolvedFromMedia = resolved.url
   }
 
   const state = await mutateLayout(formData, (doc) => {
@@ -360,6 +384,24 @@ export async function updateLayoutSectionMetaAction(
         }
       }
 
+      let backgroundMediaId: string | undefined
+      let clearBackgroundMediaId = false
+      if (hasBackgroundMediaId) {
+        if (!backgroundMediaIdRaw) {
+          clearBackgroundMediaId = true
+        } else {
+          backgroundMediaId = sanitizeBackgroundMediaId(backgroundMediaIdRaw)
+          if (!backgroundMediaId) {
+            return { error: 'Background media id is invalid.' }
+          }
+          // Prefer resolved library URL when media id is set.
+          if (resolvedFromMedia) {
+            backgroundImage = resolvedFromMedia
+            clearBackgroundImage = false
+          }
+        }
+      }
+
       let backgroundOverlay: 'enabled' | 'disabled' | undefined
       let clearBackgroundOverlay = false
       if (hasBackgroundOverlay) {
@@ -395,10 +437,17 @@ export async function updateLayoutSectionMetaAction(
             ? { clearTextColor: true }
             : { textColor }
           : {}),
-        ...(hasBackgroundImage
-          ? clearBackgroundImage
+        ...(hasBackgroundMediaId
+          ? clearBackgroundMediaId
+            ? { clearBackgroundMediaId: true }
+            : { backgroundMediaId }
+          : {}),
+        ...(hasBackgroundImage || resolvedFromMedia
+          ? clearBackgroundImage && !resolvedFromMedia
             ? { clearBackgroundImage: true }
-            : { backgroundImage }
+            : backgroundImage
+              ? { backgroundImage }
+              : {}
           : {}),
         ...(hasBackgroundOverlay
           ? clearBackgroundOverlay
@@ -437,6 +486,9 @@ export async function updateLayoutSectionMetaAction(
     }
     if (hasTextColor) {
       bits.push(textColorRaw ? 'text updated' : 'text color cleared')
+    }
+    if (hasBackgroundMediaId) {
+      bits.push(backgroundMediaIdRaw ? 'background media set' : 'background media cleared')
     }
     if (hasBackgroundImage) {
       bits.push(backgroundImageRaw ? 'background image set' : 'background image cleared')

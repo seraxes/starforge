@@ -95,6 +95,13 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
     ],
   })
 
+  // Media library is always available to app admins (Payload store + Starforge pipeline).
+  groups.push({
+    id: 'media',
+    label: 'Media',
+    links: [{ href: '/app/admin/media', label: 'Media' }],
+  })
+
   if (showLayoutsNav) {
     const layoutLinks: AdminSidebarGroup['links'] = []
     if (layoutOn) {
@@ -156,9 +163,10 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
                 <h1>Starforge admin</h1>
                 <p className="lede admin-lede">
                   Top-level areas: Site Chrome, Site Settings (Modules), Navigation, Forms, Users
-                  (Accounts · Groups · ACL), Layouts, CMS. Content (pages, media) lives in{' '}
-                  {showPayloadCms ? <Link href="/admin">CMS</Link> : 'CMS'} — same login when CMS
-                  access is on.
+                  (Accounts · Groups · ACL), Media, Layouts, CMS. Pages live in{' '}
+                  {showPayloadCms ? <Link href="/admin">CMS</Link> : 'CMS'}; media library is under{' '}
+                  <Link href="/app/admin/media">Media</Link> (same Payload store) — same login when
+                  CMS access is on.
                 </p>
               </div>
             </header>

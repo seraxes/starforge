@@ -11,6 +11,17 @@ export {
   appOrigin,
   buildPageMetadata,
 } from './content/metadata'
+export {
+  MEDIA_FOLDERS,
+  MEDIA_PURPOSES,
+  findMediaById,
+  getMediaStorageInfo,
+  listMedia,
+  preferredMediaUrl,
+  resolveMediaBind,
+  resolveMediaById,
+} from './media'
+export type { MediaFolder, MediaPurpose, MediaStorageInfo, ResolvedMedia } from './media'
 export type { SiteChromeSeoDefaults } from './content/metadata'
 export { getDraftPageBySlug, getPublishedPageBySlug } from './content/pages'
 export { requireDraftPreviewAccess, resolveDraftPreviewAccess } from './content/preview'

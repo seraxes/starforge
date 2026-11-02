@@ -6,11 +6,11 @@ export type LogoParticleMode = 'image' | 'text'
 
 /** Logo / Image particle settings (typed — not Custom HTML). */
 export type LogoParticleConfig = {
-  /** `image` = Media/URL; `text` = styled text logo (replaces site-header brand). */
+  /** `image` = Media library / URL fallback; `text` = styled text logo (replaces site-header brand). */
   mode?: LogoParticleMode
-  /** Payload Media document id when known. */
+  /** Payload Media document id (primary bind — SF-66). */
   mediaId?: string
-  /** Direct image URL (placeholder until a media picker lands). */
+  /** Direct image URL fallback when no mediaId. */
   mediaUrl?: string
   alt?: string
   maxWidth?: number

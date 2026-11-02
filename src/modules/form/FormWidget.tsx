@@ -34,7 +34,8 @@ const initialState: FormSubmitActionState = {}
 function OptionMedia({ option }: { option: FormFieldOption }) {
   const media = option.media
   if (!media?.url && !media?.mediaId) return null
-  const src = media.url || (media.mediaId ? `/api/media/${media.mediaId}` : '')
+  // Prefer library id redirect; fall back to stored/resolved URL.
+  const src = media.mediaId ? `/api/media/${media.mediaId}` : media.url || ''
   if (!src) return null
   if (media.kind === 'file') {
     return (
@@ -44,7 +45,7 @@ function OptionMedia({ option }: { option: FormFieldOption }) {
     )
   }
   return (
-    // eslint-disable-next-line @next/next/no-img-element -- interim media bind until SF-28
+    // eslint-disable-next-line @next/next/no-img-element -- library / URL bind via SF-28 pipeline
     <img
       className="sf-form-option-media"
       src={src}
