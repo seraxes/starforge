@@ -28,10 +28,12 @@ export {
 export { getEnvEditorWriteMode, envEditorIsWritable } from './mode'
 export type { EnvEditorWriteMode } from './mode'
 
+export type { EnvEditorRow, EnvEditorSnapshot } from './types'
+
 export {
   getEnvOverlayPath,
   loadEnvEditorSnapshot,
   readEnvOverlayMap,
   saveEnvOverlay,
 } from './store'
-export type { EnvEditorRow, EnvEditorSnapshot, EnvEditorSaveResult } from './store'
+export type { EnvEditorSaveResult } from './store'
