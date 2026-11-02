@@ -202,7 +202,7 @@ export function NavMenusManager({ menus, primaryNavMenuId }: Props) {
                       ) : (
                         <button
                           type="button"
-                          className="secondary"
+                          className="gantry-toolbar-btn secondary"
                           onClick={() => setRenamingId(menu.id)}
                         >
                           Rename
@@ -243,7 +243,7 @@ export function NavMenusManager({ menus, primaryNavMenuId }: Props) {
                       ) : (
                         <button
                           type="button"
-                          className="secondary"
+                          className="gantry-toolbar-btn secondary"
                           onClick={() => setDuplicatingId(menu.id)}
                         >
                           Duplicate

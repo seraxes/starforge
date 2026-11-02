@@ -1886,11 +1886,12 @@ body:has(.admin-shell) > main {
   color: #8fa0b5;
 }
 
-.admin-shell a:not(.admin-nav > a):not(.admin-nav-dropdown-trigger):not(.button-link):not(.links a) {
+/* Text links only — exclude Gantry action buttons (Edit items, Forms Edit, …). */
+.admin-shell a:not(.admin-nav > a):not(.admin-nav-dropdown-trigger):not(.button-link):not(.gantry-toolbar-btn):not(.links a) {
   color: var(--sf-secondary-strong);
 }
 
-.admin-shell a:not(.admin-nav > a):not(.admin-nav-dropdown-trigger):not(.button-link):hover {
+.admin-shell a:not(.admin-nav > a):not(.admin-nav-dropdown-trigger):not(.button-link):not(.gantry-toolbar-btn):hover {
   color: var(--sf-primary-strong);
 }
 
@@ -2009,11 +2010,20 @@ body:has(.admin-shell) > main {
 
 .admin-shell .nav-manager button.secondary,
 .admin-shell .outlines-actions .secondary,
+.admin-shell .outlines-actions a.gantry-toolbar-btn.secondary,
+.admin-shell a.gantry-toolbar-btn.secondary,
 .admin-shell .admin-inline-form button.secondary {
   background: var(--sf-admin-blue-action);
   border: 1px solid var(--sf-admin-blue-border);
   color: #fff;
   border-radius: 3px;
+}
+
+.admin-shell .outlines-actions a.gantry-toolbar-btn.secondary:hover,
+.admin-shell a.gantry-toolbar-btn.secondary:hover {
+  background: var(--sf-admin-blue-mid);
+  border-color: color-mix(in srgb, var(--sf-admin-blue-border) 70%, white);
+  color: #fff;
 }
 
 .admin-shell .nav-items-add {
@@ -2129,7 +2139,11 @@ body:has(.admin-shell) > main {
 .admin-shell .admin-inline-form > button[type='submit'],
 .admin-shell .admin-inline-form > button[type='button'],
 .admin-shell .gantry-typed-form > button.gantry-toolbar-btn,
-.admin-shell .outlines-actions > form > button[type='submit'] {
+.admin-shell .outlines-actions > form > button[type='submit'],
+/* Nav/Forms/Outlines row actions: Edit items + siblings (links + buttons) */
+.admin-shell .outlines-actions > a.gantry-toolbar-btn,
+.admin-shell .outlines-actions > button.gantry-toolbar-btn,
+.admin-shell .outlines-actions > button.secondary {
   width: auto;
   max-width: max-content;
   justify-self: start;
@@ -2146,6 +2160,9 @@ body:has(.admin-shell) > main {
   font-weight: 650;
   line-height: 1.2;
   white-space: nowrap;
+  text-decoration: none;
+  box-sizing: border-box;
+  min-height: 2.1rem;
 }
 
 .admin-shell .gantry-toolbar-btn-save,
