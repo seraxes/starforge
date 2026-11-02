@@ -42,6 +42,9 @@ export default async function AdminFormsSettingsPage() {
       ) : null}
       <FormsSettingsForm initial={loaded.settings} mailer={mailer} />
       <p className="admin-lede">
+        Deep link (not in nav):{' '}
+        <Link href="/app/admin/forms/submissions">View recent submissions</Link>
+        {' · '}
         <Link href="/app/admin/forms">← Forms</Link>
       </p>
     </section>

@@ -50,8 +50,10 @@ export default async function AdminFormSubmissionsPage() {
       <FormsAdminNav active="forms" />
       <h2>Submissions</h2>
       <p className="lede admin-lede">
-        Inbox retained for stored submission data (no admin nav link). Definitions live under{' '}
-        <Link href="/app/admin/forms">Forms</Link>.
+        Deep-link inbox only (Submissions is not in Core/Payload nav or Forms tabs). Reach here from{' '}
+        <Link href="/app/admin/forms/settings">Forms → Settings</Link>. Definitions live under{' '}
+        <Link href="/app/admin/forms">Forms</Link>. File fields store Payload Media ids (open via{' '}
+        <code>/api/media/&lt;id&gt;</code>).
       </p>
 
       {submissions.length === 0 ? (

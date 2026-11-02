@@ -14,6 +14,8 @@ const FIELD_TYPES = new Set<FormFieldType>([
   'date',
   'time',
   'datetime',
+  'file',
+  'hidden',
   'computed',
 ])
 
@@ -24,6 +26,10 @@ export const SF_COMPUTED_KEY = 'x-sf-computed' as const
 export const SF_VALIDATE_EXPR_KEY = 'x-sf-validateExpr' as const
 export const SF_NUMBER_BOUNDS_KEY = 'x-sf-numberBounds' as const
 export const SF_OPTIONS_MEDIA_KEY = 'x-sf-options' as const
+export const SF_STRING_CONSTRAINTS_KEY = 'x-sf-stringConstraints' as const
+export const SF_UPLOAD_KEY = 'x-sf-upload' as const
+export const SF_DEFAULT_VALUE_KEY = 'x-sf-defaultValue' as const
+export const SF_FIELD_TYPE_KEY = 'x-sf-fieldType' as const
 
 export function isFormFieldType(value: unknown): value is FormFieldType {
   return typeof value === 'string' && FIELD_TYPES.has(value as FormFieldType)
@@ -50,6 +56,13 @@ function attachLogicExtensions(
   field: FormFieldDef,
   prop: Record<string, unknown>,
 ): Record<string, unknown> {
+  prop[SF_FIELD_TYPE_KEY] = field.type
+  if (field.defaultValue != null && field.defaultValue !== '') {
+    prop.default = field.defaultValue
+    prop[SF_DEFAULT_VALUE_KEY] = field.defaultValue
+  }
+  if (field.stringConstraints) prop[SF_STRING_CONSTRAINTS_KEY] = field.stringConstraints
+  if (field.upload) prop[SF_UPLOAD_KEY] = field.upload
   if (field.logic) prop[SF_LOGIC_KEY] = field.logic
   if (field.computed) prop[SF_COMPUTED_KEY] = field.computed
   if (field.validateExpr) prop[SF_VALIDATE_EXPR_KEY] = field.validateExpr
@@ -119,12 +132,32 @@ function propertyForField(field: FormFieldDef): Record<string, unknown> {
       }
       break
     }
+    case 'file':
+      prop = {
+        ...base,
+        type: 'string',
+        description:
+          (typeof base.description === 'string' ? base.description + ' ' : '') +
+          '(Payload media id)',
+      }
+      break
+    case 'hidden':
+      prop = { ...base, type: 'string', readOnly: true }
+      break
     case 'textarea':
     case 'text':
     default:
       prop = { ...base, type: 'string' }
       break
   }
+
+  const sc = field.stringConstraints
+  if (sc && prop.type === 'string') {
+    if (typeof sc.minLength === 'number') prop.minLength = sc.minLength
+    if (typeof sc.maxLength === 'number') prop.maxLength = sc.maxLength
+    if (sc.pattern) prop.pattern = sc.pattern
+  }
+
   return attachLogicExtensions(field, prop)
 }
 
@@ -141,8 +174,10 @@ export function fieldsToJsonSchema(
     properties[field.name] = propertyForField(field)
     if (field.type === 'checkbox' || field.type === 'checkbox-group') {
       if (field.required) required.push(field.name)
-    } else if (field.type === 'computed') {
-      // computed always derived — not user-required
+    } else if (field.type === 'computed' || field.type === 'hidden') {
+      // computed always derived; hidden uses defaultValue — not user-required
+    } else if (field.type === 'file') {
+      if (field.required) required.push(field.name)
     } else if (field.required !== false) {
       required.push(field.name)
     }

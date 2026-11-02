@@ -77,6 +77,44 @@ function checkValidateExpr(field: FormFieldDef, values: Record<string, string>):
   return null
 }
 
+function applyDefaultValues(
+  fields: FormFieldDef[],
+  values: Record<string, string>,
+): Record<string, string> {
+  const next = { ...values }
+  for (const field of fields) {
+    if (field.defaultValue == null) continue
+    const current = next[field.name] ?? ''
+    if (!current.trim()) {
+      next[field.name] = field.defaultValue
+    }
+  }
+  return next
+}
+
+function checkStringConstraints(field: FormFieldDef, raw: string): string | null {
+  const sc = field.stringConstraints
+  if (!sc || !raw) return null
+  const label = field.label || field.name
+  if (sc.minLength != null && raw.length < sc.minLength) {
+    return `${label} must be at least ${sc.minLength} characters.`
+  }
+  if (sc.maxLength != null && raw.length > sc.maxLength) {
+    return `${label} must be at most ${sc.maxLength} characters.`
+  }
+  if (sc.pattern) {
+    try {
+      const re = new RegExp(sc.pattern)
+      if (!re.test(raw)) {
+        return sc.patternMessage || `${label} has an invalid format.`
+      }
+    } catch {
+      return sc.patternMessage || `${label} has an invalid format.`
+    }
+  }
+  return null
+}
+
 /**
  * Merge raw submitted values with computed fields, then validate visible fields.
  */
@@ -84,16 +122,19 @@ export function evaluateAndValidateFields(
   fields: FormFieldDef[],
   rawValues: Record<string, string>,
 ): FormEvaluateResult {
-  const withComputed = applyComputed(fields, rawValues)
+  const withDefaults = applyDefaultValues(fields, rawValues)
+  const withComputed = applyComputed(fields, withDefaults)
   const visible: Record<string, boolean> = {}
   const required: Record<string, boolean> = {}
   const computed: Record<string, string> = {}
   const values: Record<string, string> = {}
 
   for (const field of fields) {
-    const show = isFieldVisible(field, withComputed)
+    // Hidden fields are never "shown" in the UI but stay in the payload when present.
+    const show = field.type === 'hidden' ? true : isFieldVisible(field, withComputed)
     visible[field.name] = show
-    required[field.name] = isFieldRequired(field, withComputed)
+    required[field.name] =
+      field.type === 'hidden' ? false : isFieldRequired(field, withComputed)
     if (field.type === 'computed') {
       computed[field.name] = withComputed[field.name] ?? ''
     }
@@ -195,6 +236,9 @@ export function evaluateAndValidateFields(
       }
     }
 
+    const stringErr = checkStringConstraints(field, raw)
+    if (stringErr) return { values, visible, required, computed, error: stringErr }
+
     const boundErr = checkNumberBounds(field, values)
     if (boundErr) return { values, visible, required, computed, error: boundErr }
 
@@ -222,12 +266,15 @@ export function computeLiveValues(
   visible: Record<string, boolean>
   required: Record<string, boolean>
 } {
-  const withComputed = applyComputed(fields, values)
+  const withDefaults = applyDefaultValues(fields, values)
+  const withComputed = applyComputed(fields, withDefaults)
   const visible: Record<string, boolean> = {}
   const required: Record<string, boolean> = {}
   for (const field of fields) {
-    visible[field.name] = isFieldVisible(field, withComputed)
-    required[field.name] = isFieldRequired(field, withComputed)
+    visible[field.name] =
+      field.type === 'hidden' ? true : isFieldVisible(field, withComputed)
+    required[field.name] =
+      field.type === 'hidden' ? false : isFieldRequired(field, withComputed)
   }
   return { values: withComputed, visible, required }
 }
