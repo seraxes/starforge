@@ -444,7 +444,7 @@ export async function verifyEmailOtpAction(
   const parsed = emailOtpVerifySchema.safeParse({
     email: formData.get('email'),
     otp: formData.get('otp'),
-    rememberMe: formBool(formData.get('rememberMe'), true),
+    rememberMe: formBool(formData.get('rememberMe'), false),
   })
   if (!parsed.success) {
     return {
