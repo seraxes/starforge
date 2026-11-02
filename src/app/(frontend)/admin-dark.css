@@ -621,11 +621,9 @@ body:has(.admin-shell) > main {
   color: #8fa3ba;
 }
 
-/* Denser Gantry panel only on the editor workspace — not the page shell. */
 .admin-shell .gantry-workspace {
   gap: 0.75rem;
   grid-template-columns: minmax(12rem, 14.5rem) minmax(0, 1fr);
-  background: var(--sf-admin-bg);
 }
 
 .admin-shell .gantry-palette {
@@ -2054,7 +2052,7 @@ body:has(.admin-shell) > main {
 }
 
 /* Padded admin pages keep Site Settings blue radial wash (shell default).
-   Layout/Form denser navy is scoped to `.gantry-workspace`, not the shell. */
+   Layout/Form workspace stays transparent over that wash — no denser gray block. */
 
 /* —— Global Core admin toast (top center) —— */
 .admin-toast-host {
