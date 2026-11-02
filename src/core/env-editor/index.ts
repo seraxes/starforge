@@ -20,6 +20,7 @@ export type {
 export {
   ENV_EDITOR_GATE_COOKIE,
   ENV_EDITOR_GATE_TTL_SEC,
+  ENV_EDITOR_GATE_SECRET_MISSING,
   readEnvEditorGate,
   requireEnvEditorGate,
   clearEnvEditorGateCookie,

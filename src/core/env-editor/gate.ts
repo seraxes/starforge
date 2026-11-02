@@ -11,26 +11,33 @@ export const ENV_EDITOR_GATE_COOKIE = 'sf_env_gate'
 /** Gate lifetime after successful password confirm (15 minutes). */
 export const ENV_EDITOR_GATE_TTL_SEC = 15 * 60
 
+/** Shown on unlock when the server cannot sign the gate cookie. */
+export const ENV_EDITOR_GATE_SECRET_MISSING =
+  'BETTER_AUTH_SECRET is missing from the server environment. Add it to `.env` (same secret Better Auth already needs), then restart next dev / the Node process.'
+
 type GatePayload = {
   userId: string
   exp: number
 }
 
-function gateSecret(): string {
+function gateSecret(): string | null {
   const secret = process.env.BETTER_AUTH_SECRET
-  if (!secret || !secret.trim()) {
-    throw new Error('BETTER_AUTH_SECRET is required to sign the Environment gate cookie.')
-  }
+  if (!secret || !secret.trim()) return null
   return secret
 }
 
-function signPayload(payload: GatePayload): string {
+function signPayload(payload: GatePayload): string | null {
+  const secret = gateSecret()
+  if (!secret) return null
   const body = `${payload.userId}.${payload.exp}`
-  const sig = createHmac('sha256', gateSecret()).update(body).digest('base64url')
+  const sig = createHmac('sha256', secret).update(body).digest('base64url')
   return `${body}.${sig}`
 }
 
 function verifySigned(token: string): GatePayload | null {
+  const secret = gateSecret()
+  if (!secret) return null
+
   const parts = token.split('.')
   if (parts.length !== 3) return null
   const [userId, expRaw, sig] = parts
@@ -39,7 +46,7 @@ function verifySigned(token: string): GatePayload | null {
   if (!Number.isFinite(exp) || exp <= Date.now()) return null
 
   const body = `${userId}.${expRaw}`
-  const expected = createHmac('sha256', gateSecret()).update(body).digest('base64url')
+  const expected = createHmac('sha256', secret).update(body).digest('base64url')
   try {
     const a = Buffer.from(sig)
     const b = Buffer.from(expected)
@@ -74,9 +81,14 @@ export async function readEnvEditorGate(): Promise<{
   return { unlocked: true, expiresAt: payload.exp, userId: session.user.id }
 }
 
-export async function setEnvEditorGateCookie(userId: string): Promise<number> {
+export async function setEnvEditorGateCookie(
+  userId: string,
+): Promise<{ ok: true; expiresAt: number } | { ok: false; error: string }> {
   const exp = Date.now() + ENV_EDITOR_GATE_TTL_SEC * 1000
   const token = signPayload({ userId, exp })
+  if (!token) {
+    return { ok: false, error: ENV_EDITOR_GATE_SECRET_MISSING }
+  }
   const jar = await cookies()
   jar.set(ENV_EDITOR_GATE_COOKIE, token, {
     httpOnly: true,
@@ -86,7 +98,7 @@ export async function setEnvEditorGateCookie(userId: string): Promise<number> {
     secure: process.env.NODE_ENV === 'production',
     maxAge: ENV_EDITOR_GATE_TTL_SEC,
   })
-  return exp
+  return { ok: true, expiresAt: exp }
 }
 
 export async function clearEnvEditorGateCookie(): Promise<void> {

@@ -100,7 +100,8 @@ export const ENV_EDITOR_FIELDS: EnvEditorField[] = [
   {
     key: 'BETTER_AUTH_SECRET',
     label: 'BETTER_AUTH_SECRET',
-    description: 'Better Auth signing secret (sole Starforge sign-in).',
+    description:
+      'Better Auth signing secret (sole Starforge sign-in). Also used to sign the Environment unlock cookie.',
     secret: true,
     kind: 'password',
     warning: 'Changing this invalidates app sessions after restart.',
