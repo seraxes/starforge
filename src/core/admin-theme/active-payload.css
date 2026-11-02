@@ -1,6 +1,11 @@
 /*
  * Active admin theme → Payload chrome (documentation entry).
- * Live import: src/app/(payload)/custom.css → themes/starforge-gantry/payload-chrome.css
- * (nested @import via this file was unreliable under Next/Turbopack).
+ *
+ * Live import (JS, not CSS @import):
+ *   src/app/(payload)/layout.tsx
+ *     → @/core/admin-theme/themes/starforge-gantry/payload-chrome.css
+ *
+ * Nested CSS @import (this file or custom.css) was unreliable under Next/Turbopack
+ * and left /admin looking like stock Payload.
  */
 @import './themes/starforge-gantry/payload-chrome.css';

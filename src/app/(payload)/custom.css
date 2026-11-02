@@ -1,7 +1,10 @@
 /*
- * Payload admin custom styles entry.
- * Active admin theme (port): import the theme sheet directly.
- * Nested CSS @import via active-payload.css was unreliable in Next/Turbopack.
- * To switch themes, change this import (and Core layout) to the new theme folder.
+ * Payload admin custom styles entry (Payload-conventional hook).
+ *
+ * Live Starforge chrome is imported from layout.tsx:
+ *   import '@/core/admin-theme/themes/starforge-gantry/payload-chrome.css'
+ * Do not reintroduce theme rules via CSS @import here — Next/Turbopack often
+ * drops nested @import and /admin stays stock Payload.
+ *
+ * Extra one-off Payload admin overrides can go below.
  */
-@import '../../core/admin-theme/themes/starforge-gantry/payload-chrome.css';
