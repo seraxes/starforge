@@ -106,7 +106,8 @@ type FieldSettingsProps = {
   onPatchLogic: (key: 'showWhen' | 'requireWhen', group: FormConditionGroup | undefined) => void
   onRemove: () => void
   saveNow: () => void
-  saveDebounced: () => void
+  /** Blur flush — no-op unless a real edit marked the form dirty. */
+  flushOnBlur: () => void
 }
 
 /** Field config body — same content as the old right inspector, for the Layout cog popup. */
@@ -119,7 +120,7 @@ function FieldSettingsBody({
   onUpdateOptions,
   onPatchLogic,
   saveNow,
-  saveDebounced,
+  flushOnBlur,
 }: Omit<FieldSettingsProps, 'onRemove'>) {
   return (
     <div className="gantry-typed-form sf-form-field-cog-body">
@@ -129,7 +130,7 @@ function FieldSettingsBody({
           type="text"
           value={field.label}
           onChange={(e) => onPatch({ label: e.target.value })}
-          onBlur={saveNow}
+          onBlur={flushOnBlur}
         />
       </label>
       <label>
@@ -144,7 +145,7 @@ function FieldSettingsBody({
               .replace(/[^a-z0-9_:-]/g, '')
             onRename(nextName)
           }}
-          onBlur={saveNow}
+          onBlur={flushOnBlur}
         />
       </label>
       <label>
@@ -189,7 +190,7 @@ function FieldSettingsBody({
             type="text"
             value={field.placeholder ?? ''}
             onChange={(e) => onPatch({ placeholder: e.target.value })}
-            onBlur={saveNow}
+            onBlur={flushOnBlur}
           />
         </label>
       ) : null}
@@ -199,7 +200,7 @@ function FieldSettingsBody({
           type="text"
           value={field.description ?? ''}
           onChange={(e) => onPatch({ description: e.target.value })}
-          onBlur={saveNow}
+          onBlur={flushOnBlur}
         />
       </label>
       <label className="gantry-typed-check">
@@ -233,7 +234,7 @@ function FieldSettingsBody({
                       next[index] = { ...opt, value: e.target.value }
                       onUpdateOptions(next.filter((o) => o.value.trim()))
                     }}
-                    onBlur={saveNow}
+                    onBlur={flushOnBlur}
                   />
                 </label>
                 <label>
@@ -246,7 +247,7 @@ function FieldSettingsBody({
                       next[index] = { ...opt, label: e.target.value }
                       onUpdateOptions(next)
                     }}
-                    onBlur={saveNow}
+                    onBlur={flushOnBlur}
                   />
                 </label>
                 <MediaPicker
@@ -317,7 +318,7 @@ function FieldSettingsBody({
               type={htmlInputTypeForField(field.type)!}
               value={field.constraints?.min ?? ''}
               onChange={(e) => onPatchConstraints({ min: e.target.value || undefined })}
-              onBlur={saveNow}
+              onBlur={flushOnBlur}
             />
           </label>
           <label>
@@ -326,7 +327,7 @@ function FieldSettingsBody({
               type={htmlInputTypeForField(field.type)!}
               value={field.constraints?.max ?? ''}
               onChange={(e) => onPatchConstraints({ max: e.target.value || undefined })}
-              onBlur={saveNow}
+              onBlur={flushOnBlur}
             />
           </label>
           {field.type !== 'time' ? (
@@ -374,7 +375,7 @@ function FieldSettingsBody({
                       daysOfMonth: normalizeDaysOfMonth(parts.map((p) => Number(p))),
                     })
                   }}
-                  onBlur={saveNow}
+                  onBlur={flushOnBlur}
                 />
               </label>
             </>
@@ -401,7 +402,7 @@ function FieldSettingsBody({
                       },
                     })
                   }
-                  onBlur={saveNow}
+                  onBlur={flushOnBlur}
                   spellCheck={false}
                 />
               </label>
@@ -420,7 +421,7 @@ function FieldSettingsBody({
                       },
                     })
                   }
-                  onBlur={saveNow}
+                  onBlur={flushOnBlur}
                 />
               </label>
             </>
@@ -438,7 +439,7 @@ function FieldSettingsBody({
                   },
                 })
               }
-              onBlur={saveNow}
+              onBlur={flushOnBlur}
             />
           </label>
           <label>
@@ -454,7 +455,7 @@ function FieldSettingsBody({
                   },
                 })
               }
-              onBlur={saveNow}
+              onBlur={flushOnBlur}
             />
           </label>
           <label>
@@ -471,7 +472,7 @@ function FieldSettingsBody({
                   },
                 })
               }
-              onBlur={saveNow}
+              onBlur={flushOnBlur}
               spellCheck={false}
             />
           </label>
@@ -488,7 +489,7 @@ function FieldSettingsBody({
                   },
                 })
               }
-              onBlur={saveNow}
+              onBlur={flushOnBlur}
               spellCheck={false}
             />
           </label>
@@ -508,7 +509,7 @@ function FieldSettingsBody({
                     : undefined,
                 })
               }
-              onBlur={saveNow}
+              onBlur={flushOnBlur}
               spellCheck={false}
             />
           </label>
@@ -527,7 +528,7 @@ function FieldSettingsBody({
                     : undefined,
                 })
               }
-              onBlur={saveNow}
+              onBlur={flushOnBlur}
             />
           </label>
         </fieldset>
@@ -621,7 +622,7 @@ function FieldSettingsBody({
                             ) as FormCondition[]
                             onPatchLogic(key, { ...group, conditions })
                           }}
-                          onBlur={saveNow}
+                          onBlur={flushOnBlur}
                           placeholder="value"
                         />
                       ) : null}
@@ -660,7 +661,7 @@ function SortableFieldBar({
   onPatchLogic,
   onRemove,
   saveNow,
-  saveDebounced,
+  flushOnBlur,
 }: FieldSettingsProps) {
   const id = fieldKey(field)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -720,7 +721,7 @@ function SortableFieldBar({
                       onUpdateOptions={onUpdateOptions}
                       onPatchLogic={onPatchLogic}
                       saveNow={saveNow}
-                      saveDebounced={saveDebounced}
+                      flushOnBlur={flushOnBlur}
                     />
                   ),
                 },
@@ -752,7 +753,7 @@ const FORM_EDIT_TABS: { id: FormEditTab; label: string; title: string }[] = [
 export function FormBuilder({ formId, initialDocument }: Props) {
   const [state, formAction, pending] = useActionState(saveFormDefinitionAction, initial)
   useNotifySavedOnOk(state)
-  const { formRef, saveDebounced, saveNow } = useAutosaveForm()
+  const { formRef, saveDebounced, saveNow, flushOnBlur } = useAutosaveForm()
 
   const [editTab, setEditTab] = useState<FormEditTab>('editor')
   const [title, setTitle] = useState(initialDocument.title)
@@ -816,8 +817,17 @@ export function FormBuilder({ formId, initialDocument }: Props) {
   }
 
   function updateFields(next: FormFieldDef[], nextSections?: FormSectionDef[]) {
+    const synced = syncSectionsWithFields(next, nextSections ?? sections)
+    // Skip no-op patches (same serialized fields/sections) so focus/empty onChange
+    // cannot schedule an autosave / Saved toast.
+    if (
+      JSON.stringify(next) === JSON.stringify(fields) &&
+      JSON.stringify(synced) === JSON.stringify(sections)
+    ) {
+      return
+    }
     setFields(next)
-    setSections(syncSectionsWithFields(next, nextSections ?? sections))
+    setSections(synced)
     regenerateSchema(next)
     saveDebounced()
   }
@@ -1068,7 +1078,7 @@ export function FormBuilder({ formId, initialDocument }: Props) {
                             )
                             saveDebounced()
                           }}
-                          onBlur={saveNow}
+                          onBlur={flushOnBlur}
                           aria-label="Section label"
                         />
                       </div>
@@ -1128,7 +1138,7 @@ export function FormBuilder({ formId, initialDocument }: Props) {
                                     }
                                     onRemove={() => removeField(id, field.name)}
                                     saveNow={saveNow}
-                                    saveDebounced={saveDebounced}
+                                    flushOnBlur={flushOnBlur}
                                   />
                                 )
                               })}
@@ -1165,7 +1175,7 @@ export function FormBuilder({ formId, initialDocument }: Props) {
               rows={14}
               value={schemaJson}
               onChange={(e) => applySchemaJson(e.target.value)}
-              onBlur={saveNow}
+              onBlur={flushOnBlur}
               spellCheck={false}
             />
             {schemaError ? (
@@ -1195,7 +1205,7 @@ export function FormBuilder({ formId, initialDocument }: Props) {
                   regenerateSchema(fields, e.target.value, description)
                   saveDebounced()
                 }}
-                onBlur={saveNow}
+                onBlur={flushOnBlur}
               />
             </label>
             <label>
@@ -1209,7 +1219,7 @@ export function FormBuilder({ formId, initialDocument }: Props) {
                   regenerateSchema(fields, title, e.target.value)
                   saveDebounced()
                 }}
-                onBlur={saveNow}
+                onBlur={flushOnBlur}
               />
             </label>
             <label>
@@ -1239,7 +1249,7 @@ export function FormBuilder({ formId, initialDocument }: Props) {
                   setSuccessMessage(e.target.value)
                   saveDebounced()
                 }}
-                onBlur={saveNow}
+                onBlur={flushOnBlur}
               />
             </label>
             <label>
@@ -1252,7 +1262,7 @@ export function FormBuilder({ formId, initialDocument }: Props) {
                   setSubmitLabel(e.target.value)
                   saveDebounced()
                 }}
-                onBlur={saveNow}
+                onBlur={flushOnBlur}
               />
             </label>
             <label className="gantry-typed-check">
@@ -1301,10 +1311,11 @@ export function FormBuilder({ formId, initialDocument }: Props) {
                 <input
                   type="text"
                   value={emailNotify.respondentEmailField ?? 'email'}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setEmailNotify({ ...emailNotify, respondentEmailField: e.target.value })
-                  }
-                  onBlur={saveNow}
+                    saveDebounced()
+                  }}
+                  onBlur={flushOnBlur}
                 />
               </label>
               <label>
@@ -1313,7 +1324,7 @@ export function FormBuilder({ formId, initialDocument }: Props) {
                   type="text"
                   value={(emailNotify.adminEmails ?? []).join(', ')}
                   placeholder="Leave empty → Forms Settings default"
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setEmailNotify({
                       ...emailNotify,
                       adminEmails: e.target.value
@@ -1321,8 +1332,9 @@ export function FormBuilder({ formId, initialDocument }: Props) {
                         .map((x) => x.trim())
                         .filter(Boolean),
                     })
-                  }
-                  onBlur={saveNow}
+                    saveDebounced()
+                  }}
+                  onBlur={flushOnBlur}
                 />
               </label>
             </fieldset>
