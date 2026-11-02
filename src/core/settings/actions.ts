@@ -5,10 +5,10 @@ import { revalidatePath } from 'next/cache'
 import { requireAppAdmin } from '@/core/auth/admin'
 import { invalidateSiteSettings } from '@/core/content/revalidate'
 import {
-  DEFAULT_PRIMARY_NAV_MENU_ID,
-  DEFAULT_SITE_NAME,
+  MODULE_IDS,
   clampAdminAutosaveDebounceMs,
   featureFlagsFromModuleToggles,
+  getSiteSettings,
   listInstalledModuleCatalog,
   type ModuleToggleMap,
   updateSiteSettings,
@@ -17,6 +17,11 @@ import {
 export type SettingsActionState = {
   error?: string
   ok?: boolean
+}
+
+function parseBool(formData: FormData, key: string): boolean {
+  const raw = formData.get(key)
+  return raw === 'on' || raw === 'true' || raw === '1'
 }
 
 /** Read Site Settings → Modules toggles; required ids forced on. */
@@ -40,6 +45,28 @@ function parseModuleToggles(formData: FormData): ModuleToggleMap {
   return map
 }
 
+function revalidateSettingsPaths() {
+  invalidateSiteSettings()
+  revalidatePath('/', 'layout')
+  revalidatePath('/register')
+  revalidatePath('/login')
+  revalidatePath('/app/admin/settings')
+  revalidatePath('/app/admin/settings/admin-ux')
+  revalidatePath('/app/admin/settings/auth')
+  revalidatePath('/app/admin/settings/integrations')
+  revalidatePath('/app/admin/settings/performance')
+  revalidatePath('/app/admin/nav')
+  revalidatePath('/app/admin/forms')
+  revalidatePath('/app/admin/layouts')
+  revalidatePath('/app/admin/outlines')
+  revalidatePath('/app/admin/page-settings')
+  revalidatePath('/app/admin')
+}
+
+/**
+ * Site Settings → Modules: module on/off + primary nav assignment.
+ * Preserves Admin UX debounce from the current global.
+ */
 export async function updateSiteSettingsAction(
   _prev: SettingsActionState,
   formData: FormData,
@@ -49,12 +76,10 @@ export async function updateSiteSettingsAction(
     return { error: 'Sign in as a Starforge app admin to edit site settings.' }
   }
 
-  const siteName = String(formData.get('siteName') ?? '').trim() || DEFAULT_SITE_NAME
+  const current = await getSiteSettings()
+  const siteName = String(formData.get('siteName') ?? '').trim() || current.siteName
   const primaryNavMenuId =
-    String(formData.get('primaryNavMenuId') ?? '').trim() || DEFAULT_PRIMARY_NAV_MENU_ID
-  const adminAutosaveDebounceMs = clampAdminAutosaveDebounceMs(
-    formData.get('adminAutosaveDebounceMs'),
-  )
+    String(formData.get('primaryNavMenuId') ?? '').trim() || current.primaryNavMenuId
   const catalog = listInstalledModuleCatalog()
   const moduleToggles = parseModuleToggles(formData)
   const features = featureFlagsFromModuleToggles(moduleToggles, catalog)
@@ -63,7 +88,7 @@ export async function updateSiteSettingsAction(
     await updateSiteSettings({
       siteName,
       primaryNavMenuId,
-      adminAutosaveDebounceMs,
+      adminAutosaveDebounceMs: current.adminAutosaveDebounceMs,
       keepLegacyPrimaryNav: true,
       features,
       moduleToggles,
@@ -76,16 +101,88 @@ export async function updateSiteSettingsAction(
     return { error: message }
   }
 
-  invalidateSiteSettings()
-  revalidatePath('/', 'layout')
-  revalidatePath('/register')
-  revalidatePath('/login')
-  revalidatePath('/app/admin/settings')
-  revalidatePath('/app/admin/nav')
-  revalidatePath('/app/admin/forms')
-  revalidatePath('/app/admin/layouts')
-  revalidatePath('/app/admin/outlines')
-  revalidatePath('/app/admin/page-settings')
-  revalidatePath('/app/admin')
+  revalidateSettingsPaths()
+  return { ok: true }
+}
+
+/** Site Settings → Admin UX: autosave debounce only. */
+export async function updateAdminUxSettingsAction(
+  _prev: SettingsActionState,
+  formData: FormData,
+): Promise<SettingsActionState> {
+  const admin = await requireAppAdmin()
+  if (!admin) {
+    return { error: 'Sign in as a Starforge app admin to edit Admin UX settings.' }
+  }
+
+  const current = await getSiteSettings()
+  const adminAutosaveDebounceMs = clampAdminAutosaveDebounceMs(
+    formData.get('adminAutosaveDebounceMs'),
+  )
+
+  try {
+    await updateSiteSettings({
+      siteName: current.siteName,
+      primaryNavMenuId: current.primaryNavMenuId,
+      adminAutosaveDebounceMs,
+      keepLegacyPrimaryNav: true,
+      features: current.features,
+      moduleToggles: current.moduleToggles,
+    })
+  } catch (error) {
+    const message =
+      error instanceof Error && error.message
+        ? error.message
+        : 'Could not save Admin UX settings.'
+    return { error: message }
+  }
+
+  revalidateSettingsPaths()
+  return { ok: true }
+}
+
+/**
+ * Site Settings → Auth & registration: registration enable.
+ * Writes the same `product:registration` module toggle + feature flag as Modules.
+ */
+export async function updateAuthSettingsAction(
+  _prev: SettingsActionState,
+  formData: FormData,
+): Promise<SettingsActionState> {
+  const admin = await requireAppAdmin()
+  if (!admin) {
+    return { error: 'Sign in as a Starforge app admin to edit auth settings.' }
+  }
+
+  const current = await getSiteSettings()
+  const registrationOn = parseBool(formData, 'registrationEnabled')
+  const moduleToggles: ModuleToggleMap = {
+    ...current.moduleToggles,
+    [MODULE_IDS.registration]: registrationOn,
+  }
+  // Preserve other feature flags — only flip registration (also mirrored on the module row).
+  const features = {
+    ...current.features,
+    registration: registrationOn,
+  }
+
+  try {
+    await updateSiteSettings({
+      siteName: current.siteName,
+      primaryNavMenuId: current.primaryNavMenuId,
+      adminAutosaveDebounceMs: current.adminAutosaveDebounceMs,
+      keepLegacyPrimaryNav: true,
+      features,
+      moduleToggles,
+    })
+  } catch (error) {
+    const message =
+      error instanceof Error && error.message
+        ? error.message
+        : 'Could not save auth settings.'
+    return { error: message }
+  }
+
+  revalidateSettingsPaths()
   return { ok: true }
 }

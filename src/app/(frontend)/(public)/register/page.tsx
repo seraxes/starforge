@@ -26,7 +26,7 @@ export default async function RegisterPage() {
           <p className="lede">
             New app accounts are turned off in site settings (feature toggle). Existing users can{' '}
             <Link href="/login">sign in</Link>. Core admins can re-enable registration at{' '}
-            <Link href="/app/admin/settings">/app/admin/settings</Link>.
+            <Link href="/app/admin/settings/auth">/app/admin/settings/auth</Link>.
           </p>
           <p className="auth-switch">
             <Link href="/">Back to home</Link>

@@ -39,10 +39,35 @@ for (const surface of ['core', 'payload'] as const) {
   console.log(`[${surface}] ok — Site Chrome accordion → Environment (defaultOpen)`)
 
   const siteSettings = groups.find((g) => g.id === 'site-settings')
-  if (!siteSettings?.links.some((l) => l.href === '/app/admin/settings')) {
-    console.error(`[${surface}] missing top-level Core Site Settings`, groups)
+  if (!siteSettings?.expandable) {
+    console.error(`[${surface}] Site Settings must be expandable`, siteSettings)
     process.exit(1)
   }
+  const expectedSettings = [
+    { href: '/app/admin/settings', label: 'Modules' },
+    { href: '/app/admin/settings/admin-ux', label: 'Admin UX' },
+    { href: '/app/admin/settings/auth', label: 'Auth & registration' },
+    { href: '/app/admin/settings/integrations', label: 'Integrations' },
+    { href: '/app/admin/settings/performance', label: 'Performance' },
+  ]
+  for (const want of expectedSettings) {
+    const hit = siteSettings.links.find((l) => l.href === want.href && l.label === want.label)
+    if (!hit) {
+      console.error(`[${surface}] Site Settings missing ${want.label}`, siteSettings.links)
+      process.exit(1)
+    }
+  }
+  console.log(`[${surface}] ok — Site Settings accordion topics`)
+
+  const layouts = groups.find((g) => g.id === 'layouts')
+  const fa = layouts?.links.find(
+    (l) => l.href === '/app/admin/page-settings#font-awesome' && l.label === 'Font Awesome',
+  )
+  if (!fa) {
+    console.error(`[${surface}] Layouts missing Font Awesome child`, layouts?.links)
+    process.exit(1)
+  }
+  console.log(`[${surface}] ok — Layouts → Font Awesome`)
 
   const cms = groups.find((g) => g.id === 'cms')
   if (!cms) {

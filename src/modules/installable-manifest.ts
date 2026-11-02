@@ -98,14 +98,16 @@ export const INSTALLABLE_MANIFEST: InstallableEntry[] = [
     id: 'product:font-awesome',
     kind: 'product',
     label: 'Font Awesome',
-    description: 'Optional Font Awesome CDN from Page Settings. Off skips FA assets on the public site.',
+    description:
+      'Optional Font Awesome CDN from Layouts → Page settings / Font Awesome. Off skips FA assets on the public site.',
     defaultEnabled: true,
   },
   {
     id: 'product:registration',
     kind: 'product',
     label: 'Registration',
-    description: 'Allow /register for new app accounts.',
+    description:
+      'Allow /register for new app accounts. Also edited under Site Settings → Auth & registration.',
     defaultEnabled: true,
     featureFlag: 'registration',
     navViews: [{ key: 'register', label: 'Register', href: '/register' }],
@@ -231,7 +233,7 @@ export const INSTALLABLE_MANIFEST: InstallableEntry[] = [
     kind: 'particle',
     label: 'Form',
     description:
-      'Modular Form engine particle — contact and other presets via Admin → Forms. Optional Site Chrome captcha (Turnstile).',
+      'Modular Form engine particle — contact and other presets via Admin → Forms. Optional Site Settings → Integrations captcha (Turnstile).',
     defaultEnabled: true,
     importPath: '@/modules/form',
     exportName: 'formModule',

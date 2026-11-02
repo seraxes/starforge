@@ -2,22 +2,17 @@ import React from 'react'
 import Link from 'next/link'
 
 import { listNavMenus } from '@/core/nav'
-import {
-  ADMIN_AUTOSAVE_DEBOUNCE_MAX_MS,
-  ADMIN_AUTOSAVE_DEBOUNCE_MIN_MS,
-  getSiteSettings,
-  listInstalledModuleCatalog,
-} from '@/core/settings'
+import { getSiteSettings, listInstalledModuleCatalog } from '@/core/settings'
 import { SettingsForm } from './settings-form'
 
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'Site settings — Starforge',
-  description: 'Primary nav menu assignment, module on/off list, and admin autosave debounce.',
+  title: 'Site settings — Modules — Starforge',
+  description: 'Module on/off list and primary nav menu assignment.',
 }
 
-export default async function AdminSettingsPage() {
+export default async function AdminSettingsModulesPage() {
   const [settings, moduleCatalog, navMenus] = await Promise.all([
     getSiteSettings(),
     Promise.resolve(listInstalledModuleCatalog()),
@@ -26,19 +21,19 @@ export default async function AdminSettingsPage() {
 
   return (
     <section className="admin-section">
-      <h2>Site settings & Modules</h2>
+      <h2>Site settings — Modules</h2>
       <p className="lede admin-lede">
-        Module on/off, admin autosave debounce ({ADMIN_AUTOSAVE_DEBOUNCE_MIN_MS}–
-        {ADMIN_AUTOSAVE_DEBOUNCE_MAX_MS} ms), and <em>which</em> menu is the public primary
-        (assignment only). Site name, offline, robots, and cookies live under{' '}
-        <Link href="/app/admin/site-chrome">Site Chrome</Link>. Navigation sets under the top-level{' '}
-        <Link href="/app/admin/nav">Navigation</Link> admin item. Also editable in Payload Globals →{' '}
+        Installed module on/off and which Navigation menu is the public primary. Admin autosave
+        debounce lives under <Link href="/app/admin/settings/admin-ux">Admin UX</Link>; registration
+        under <Link href="/app/admin/settings/auth">Auth & registration</Link>; captcha under{' '}
+        <Link href="/app/admin/settings/integrations">Integrations</Link>. Site name, offline,
+        robots, cookies, and email live under{' '}
+        <Link href="/app/admin/site-chrome">Site Chrome</Link>. Also editable in Payload Globals →{' '}
         <Link href="/admin/globals/site-settings">Site settings</Link>.
       </p>
       <SettingsForm
         siteName={settings.siteName}
         primaryNavMenuId={settings.primaryNavMenuId}
-        adminAutosaveDebounceMs={settings.adminAutosaveDebounceMs}
         navMenus={navMenus.map((m) => ({
           id: m.id,
           label: m.label,

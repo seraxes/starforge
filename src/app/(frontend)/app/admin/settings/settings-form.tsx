@@ -7,12 +7,7 @@ import {
   updateSiteSettingsAction,
   type SettingsActionState,
 } from '@/core/settings/actions'
-import {
-  ADMIN_AUTOSAVE_DEBOUNCE_MAX_MS,
-  ADMIN_AUTOSAVE_DEBOUNCE_MIN_MS,
-  type FeatureFlags,
-  type ModuleToggleMap,
-} from '@/core/settings/defaults'
+import type { FeatureFlags, ModuleToggleMap } from '@/core/settings/defaults'
 import type { ModuleCatalogItem, ModuleToggleKind } from '@/core/settings/module-toggles'
 
 import { useNotifySavedOnOk } from '../admin-toast'
@@ -27,7 +22,6 @@ type NavMenuOption = {
 type Props = {
   siteName: string
   primaryNavMenuId: string
-  adminAutosaveDebounceMs: number
   navMenus: NavMenuOption[]
   features: FeatureFlags
   moduleCatalog: ModuleCatalogItem[]
@@ -52,7 +46,7 @@ const KIND_SECTIONS: Array<{ kind: ModuleToggleKind; title: string; hint: string
   {
     kind: 'product',
     title: 'Product capabilities',
-    hint: 'Layout, Page Settings, Navigation manager, Font Awesome, and former feature toggles.',
+    hint: 'Layout, Page Settings, Navigation manager, and former feature toggles. Font Awesome config is under Layouts → Page settings; Registration policy also under Auth & registration.',
   },
   {
     kind: 'particle',
@@ -124,10 +118,10 @@ function ModuleRows({
   )
 }
 
+/** Site Settings → Modules topic form. */
 export function SettingsForm({
   siteName,
   primaryNavMenuId,
-  adminAutosaveDebounceMs,
   navMenus,
   features,
   moduleCatalog,
@@ -135,7 +129,7 @@ export function SettingsForm({
 }: Props) {
   const [state, formAction, pending] = useActionState(updateSiteSettingsAction, initialState)
   useNotifySavedOnOk(state, { toastErrors: true })
-  const { formRef, discreteAutosaveProps, textAutosaveProps, saveNow } = useAutosaveForm()
+  const { formRef, discreteAutosaveProps, saveNow } = useAutosaveForm()
 
   return (
     <form ref={formRef} action={formAction} className="settings-form settings-form-wide">
@@ -147,8 +141,8 @@ export function SettingsForm({
         <p className="settings-hint">
           Assignment only — pick which menu set the public header uses. Create and edit menus under
           the top-level <Link href="/app/admin/nav">Navigation</Link> admin item. Site name /
-          offline / robots / cookies: <Link href="/app/admin/site-chrome">Site Chrome</Link>.
-          Visibility: Modules → Primary nav.
+          offline / robots / cookies / email:{' '}
+          <Link href="/app/admin/site-chrome">Site Chrome</Link>. Visibility: Modules → Primary nav.
         </p>
         <label className="settings-field">
           <span>Primary nav menu</span>
@@ -172,27 +166,6 @@ export function SettingsForm({
         </label>
       </fieldset>
 
-      <fieldset className="settings-fieldset">
-        <legend>Admin autosave</legend>
-        <p className="settings-hint">
-          Delay before Core admin text fields patch after typing. Blur still saves immediately.
-          Applies to particle cogs, Styles, Site Chrome, and other autosave forms.
-        </p>
-        <label className="settings-field">
-          <span>Autosave debounce (ms)</span>
-          <input
-            type="number"
-            name="adminAutosaveDebounceMs"
-            defaultValue={adminAutosaveDebounceMs}
-            min={ADMIN_AUTOSAVE_DEBOUNCE_MIN_MS}
-            max={ADMIN_AUTOSAVE_DEBOUNCE_MAX_MS}
-            step={50}
-            disabled={pending}
-            {...textAutosaveProps}
-          />
-        </label>
-      </fieldset>
-
       <fieldset className="settings-fieldset settings-modules">
         <legend>Modules</legend>
         <p className="settings-hint">
@@ -200,7 +173,10 @@ export function SettingsForm({
           platform, capabilities, layout particles, and atoms. Each row: name, short description,
           on/off. Off gates admin nav/routes where safe, layout palette, and public render/inject.
           To drop deadweight from the bundle, remove an id from the allowlist and run{' '}
-          <code>npm run modules:generate</code>. Saves automatically.
+          <code>npm run modules:generate</code>. Saves automatically. Other Site Settings topics:{' '}
+          <Link href="/app/admin/settings/admin-ux">Admin UX</Link>,{' '}
+          <Link href="/app/admin/settings/auth">Auth</Link>,{' '}
+          <Link href="/app/admin/settings/integrations">Integrations</Link>.
         </p>
 
         {KIND_SECTIONS.map((section) => (
