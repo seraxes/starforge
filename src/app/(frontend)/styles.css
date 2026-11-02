@@ -2547,7 +2547,7 @@ button:disabled {
 }
 
 .gantry-slot-actions {
-  /* Cog + red ✕ remove sit in the same control row. */
+  /* Cog + red danger remove (white X) sit in the same control row. */
   width: 100%;
 }
 
@@ -2717,7 +2717,7 @@ button:disabled {
 }
 
 /* Particle settings open as a floating overlay — never expand the slot / push the row.
-   Trigger lives in `.gantry-slot-actions` beside the red ✕ remove. */
+   Trigger lives in `.gantry-slot-actions` beside the red danger remove. */
 .gantry-settings-trigger-wrap {
   display: inline-flex;
   margin: 0;
@@ -2732,20 +2732,24 @@ button:disabled {
   height: 2rem;
   margin: 0;
   padding: 0;
-  border: 0;
+  border: 1px solid color-mix(in srgb, #c0392b 55%, var(--sf-line));
   border-radius: 2px;
-  background: transparent;
-  color: #c0392b;
-  font-size: 1.15rem;
-  font-weight: 700;
+  background: color-mix(in srgb, #c0392b 72%, white);
+  color: #fff;
   line-height: 1;
   cursor: pointer;
 }
 
+.gantry-bar-remove-icon {
+  display: block;
+  flex-shrink: 0;
+}
+
 .gantry-bar-remove:hover,
 .gantry-bar-remove:focus-visible {
-  background: color-mix(in srgb, #c0392b 18%, transparent);
-  color: #e74c3c;
+  background: #c0392b;
+  border-color: #a93226;
+  color: #fff;
   outline: none;
 }
 
