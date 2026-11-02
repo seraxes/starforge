@@ -66,7 +66,7 @@ export type AllowlistedParticleMeta = {
 /** Catalog rows for allowlisted optional particles (Site Settings → Modules). */
 export const ALLOWLISTED_OPTIONAL_PARTICLE_META: AllowlistedParticleMeta[] = [
   { id: "notice-bar", name: "Notice bar", description: "Dismissible site-wide notice. Seed places it in Header at 100%.", required: false, defaultEnabled: false, featureFlag: "modules" },
-  { id: "form", name: "Form", description: "Modular Form engine particle — contact and other presets via Admin → Forms. Optional Site Settings → Security captcha (Turnstile).", required: false, defaultEnabled: true, navViews: [{"key":"admin","label":"Forms","href":"/app/admin/forms"}] }
+  { id: "form", name: "Form", description: "Modular Form engine particle — contact and other presets via Admin → Forms. Optional Settings → Security captcha (Turnstile).", required: false, defaultEnabled: true, navViews: [{"key":"admin","label":"Forms","href":"/app/admin/forms"}] }
 ]
 
 export type OptionalAtomLoader = {

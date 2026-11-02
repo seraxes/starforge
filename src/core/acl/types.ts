@@ -9,8 +9,8 @@
 export const ACL_ADMIN_RESOURCES = [
   { key: 'admin.users', label: 'Users — accounts' },
   { key: 'admin.groups', label: 'Users — groups' },
-  { key: 'admin.settings', label: 'Site settings (Modules)' },
-  { key: 'admin.site-chrome', label: 'Site Chrome' },
+  { key: 'admin.settings', label: 'Settings (Modules)' },
+  { key: 'admin.site-chrome', label: 'Chrome' },
   { key: 'admin.environment', label: 'Environment (.env.local)' },
   { key: 'admin.nav', label: 'Navigation manager' },
   { key: 'admin.forms', label: 'Forms' },

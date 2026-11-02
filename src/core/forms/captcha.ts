@@ -8,7 +8,7 @@ export type { ResolvedCaptcha }
 
 /**
  * Resolve captcha for a Form particle.
- * Site Settings → Security owns enable + provider (stored on Site Chrome JSON);
+ * Settings → Security owns enable + provider (stored on Site Chrome JSON);
  * keys stay in env.
  */
 export async function resolveFormCaptcha(options: {
@@ -34,7 +34,7 @@ export async function resolveFormCaptcha(options: {
         provider,
         siteKey: siteKey || null,
         misconfiguredReason:
-          'Turnstile is enabled in Site Settings → Security but NEXT_PUBLIC_TURNSTILE_SITE_KEY / TURNSTILE_SECRET_KEY are not set.',
+          'Turnstile is enabled in Settings → Security but NEXT_PUBLIC_TURNSTILE_SITE_KEY / TURNSTILE_SECRET_KEY are not set.',
       }
     }
     return { required: true, provider, siteKey }

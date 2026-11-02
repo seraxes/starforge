@@ -30,7 +30,7 @@ export default async function AdminEnvironmentPage() {
           so all app admins qualify (local default).
         </p>
         <p>
-          <Link href="/app/admin/site-chrome">← Site Chrome</Link>
+          <Link href="/app/admin/site-chrome">← Chrome</Link>
         </p>
       </section>
     )
@@ -47,8 +47,8 @@ export default async function AdminEnvironmentPage() {
       <h2>Environment</h2>
       <p className="lede admin-lede">
         Joomla-style env overlay for local/ops — writes <code>.env.local</code> (gitignored), not
-        Site Chrome / Site Settings / Postgres. Captcha and mail <em>policy</em> stay under{' '}
-        <Link href="/app/admin/site-chrome">Site Chrome</Link>; secret <em>values</em> live here.
+        Chrome / Settings / Postgres. Captcha and mail <em>policy</em> stay under{' '}
+        <Link href="/app/admin/site-chrome">Chrome</Link>; secret <em>values</em> live here.
         Restart the Node process after writes so Next reloads env.
       </p>
 

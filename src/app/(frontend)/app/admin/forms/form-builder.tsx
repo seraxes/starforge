@@ -1275,13 +1275,13 @@ export function FormBuilder({ formId, initialDocument }: Props) {
                   queueMicrotask(saveNow)
                 }}
               />
-              <span>Use site captcha default (Site Settings → Security)</span>
+              <span>Use site captcha default (Settings → Security)</span>
             </label>
 
             <fieldset className="sf-form-builder-constraints sf-form-builder-email">
               <legend>Email on submit</legend>
               <p className="layout-muted">
-                Uses the platform Mailer (Site Chrome enable / provider). Soft-fails if email is
+                Uses the platform Mailer (Chrome enable / provider). Soft-fails if email is
                 off or misconfigured — submissions still save.
               </p>
               <label className="gantry-typed-check">

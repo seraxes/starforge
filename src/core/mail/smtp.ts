@@ -59,7 +59,7 @@ export function createSmtpMailer(from: string): Mailer {
         return {
           ok: false,
           provider: 'smtp',
-          error: 'No From address — set Site Chrome email From or STARFORGE_MAIL_FROM.',
+          error: 'No From address — set Chrome email From or STARFORGE_MAIL_FROM.',
           skipped: true,
         }
       }

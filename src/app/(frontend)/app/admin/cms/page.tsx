@@ -88,7 +88,7 @@ export default async function AdminCmsBridgePage() {
       <h3 className="admin-subhead">Draft preview</h3>
       <p className="admin-lede">
         Turn on <strong>Draft preview</strong> under{' '}
-        <Link href="/app/admin/settings">Site settings</Link>, then open{' '}
+        <Link href="/app/admin/settings">Settings</Link>, then open{' '}
         <code>/preview/&#123;slug&#125;</code> while signed in with CMS access. Unpublished pages
         render there; anonymous visitors still only see published <code>/&#123;slug&#125;</code>.
       </p>

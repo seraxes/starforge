@@ -595,8 +595,8 @@ export function PageSettingsForm({ bootstrap }: Props) {
 
         <Panel id="font-awesome" title="Font Awesome Settings">
           <p className="settings-hint">
-            Layouts area — not Site Settings. Product gate <code>product:font-awesome</code> still
-            lives under Site Settings → Modules (off skips public FA assets).
+            Layouts area — not Settings. Product gate <code>product:font-awesome</code> still
+            lives under Settings → Modules (off skips public FA assets).
           </p>
           <label className="settings-flag">
             <input

@@ -12,7 +12,7 @@ function resendApiKey(): string {
 
 export function resendReadyDetail(): { ready: boolean; detail: string } {
   if (!resendApiKey()) {
-    return { ready: false, detail: 'Set RESEND_API_KEY in env (never in Site Chrome).' }
+    return { ready: false, detail: 'Set RESEND_API_KEY in env (never in Chrome).' }
   }
   return { ready: true, detail: 'Resend HTTP API' }
 }
@@ -46,7 +46,7 @@ export function createResendMailer(from: string): Mailer {
         return {
           ok: false,
           provider: 'resend',
-          error: 'No From address — set Site Chrome email From or STARFORGE_MAIL_FROM.',
+          error: 'No From address — set Chrome email From or STARFORGE_MAIL_FROM.',
           skipped: true,
         }
       }

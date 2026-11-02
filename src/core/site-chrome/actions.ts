@@ -30,7 +30,7 @@ export async function updateSiteChromeAction(
 ): Promise<SiteChromeActionState> {
   const admin = await requireAppAdmin()
   if (!admin) {
-    return { error: 'Sign in as a Starforge app admin to edit Site Chrome.' }
+    return { error: 'Sign in as a Starforge app admin to edit Chrome.' }
   }
 
   const emailRaw = String(formData.get('emailProvider') ?? 'console').trim()
@@ -60,7 +60,7 @@ export async function updateSiteChromeAction(
     const message =
       error instanceof Error && error.message
         ? error.message
-        : 'Could not save Site Chrome.'
+        : 'Could not save Chrome.'
     return { error: message }
   }
 

@@ -18,7 +18,7 @@ export function EnvironmentGateForm({ email }: { email: string }) {
         <legend>Confirm password</legend>
         <p className="settings-hint">
           Environment editing is developer-admin only and requires re-entering the password for{' '}
-          <strong>{email}</strong>. Secrets stay in <code>.env.local</code> — never Site Chrome or
+          <strong>{email}</strong>. Secrets stay in <code>.env.local</code> — never Chrome or
           the database.
         </p>
         <label className="settings-field">

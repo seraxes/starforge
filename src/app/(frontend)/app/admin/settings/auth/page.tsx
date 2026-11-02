@@ -11,7 +11,7 @@ import { AuthSettingsForm } from './auth-settings-form'
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'Site settings — Auth & registration — Starforge',
+  title: 'Settings — Auth & registration — Starforge',
   description: 'Registration enable and auth site policy.',
 }
 
@@ -21,11 +21,11 @@ export default async function AdminSettingsAuthPage() {
 
   return (
     <section className="admin-section">
-      <h2>Site settings — Auth & registration</h2>
+      <h2>Settings — Auth & registration</h2>
       <p className="lede admin-lede">
         Public registration and related auth policy. Forgot password, magic link, email OTP, and
         2FA use Better Auth + Mailer (outbound email under{' '}
-        <Link href="/app/admin/site-chrome">Site Chrome</Link>). The same registration gate appears
+        <Link href="/app/admin/site-chrome">Chrome</Link>). The same registration gate appears
         as <code>product:registration</code> under{' '}
         <Link href="/app/admin/settings">Modules</Link>.
       </p>

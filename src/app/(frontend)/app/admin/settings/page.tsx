@@ -8,7 +8,7 @@ import { SettingsForm } from './settings-form'
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'Site settings — Modules — Starforge',
+  title: 'Settings — Modules — Starforge',
   description: 'Module on/off list and primary nav menu assignment.',
 }
 
@@ -21,14 +21,14 @@ export default async function AdminSettingsModulesPage() {
 
   return (
     <section className="admin-section">
-      <h2>Site settings — Modules</h2>
+      <h2>Settings — Modules</h2>
       <p className="lede admin-lede">
         Installed module on/off and which Navigation menu is the public primary. Admin autosave
         debounce lives under <Link href="/app/admin/settings/admin-ux">Admin UX</Link>; registration
         under <Link href="/app/admin/settings/auth">Auth & registration</Link>; captcha under{' '}
         <Link href="/app/admin/settings/security">Security</Link>. Site name, offline,
         robots, cookies, and email live under{' '}
-        <Link href="/app/admin/site-chrome">Site Chrome</Link>. Also editable in Payload Globals →{' '}
+        <Link href="/app/admin/site-chrome">Chrome</Link>. Also editable in Payload Globals →{' '}
         <Link href="/admin/globals/site-settings">Site settings</Link>.
       </p>
       <SettingsForm

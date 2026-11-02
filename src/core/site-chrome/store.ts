@@ -144,7 +144,7 @@ export async function ensureSiteChromeSeeded(): Promise<{
   } catch (error) {
     if (error instanceof Error && error.message.includes('sf_site_chrome')) throw error
     throw new Error(
-      'sf_site_chrome table missing — run npm run db:core:push before seeding Site Chrome.',
+      'sf_site_chrome table missing — run npm run db:core:push before seeding Chrome.',
     )
   }
 

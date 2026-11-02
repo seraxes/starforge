@@ -10,7 +10,7 @@ export function createDisabledMailer(from = ''): Mailer {
         enabled: false,
         ready: false,
         from,
-        detail: 'Turn on email under Site Chrome to send.',
+        detail: 'Turn on email under Chrome to send.',
       }
     },
     async send(_message: MailMessage): Promise<MailSendResult> {
@@ -18,7 +18,7 @@ export function createDisabledMailer(from = ''): Mailer {
         ok: false,
         provider: 'disabled',
         skipped: true,
-        error: 'Outbound email is disabled in Site Chrome.',
+        error: 'Outbound email is disabled in Chrome.',
       }
     },
   }

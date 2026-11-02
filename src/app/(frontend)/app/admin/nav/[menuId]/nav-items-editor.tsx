@@ -382,7 +382,7 @@ function SortableNavItem({
               </label>
               {modules.length === 0 ? (
                 <p className="settings-hint">
-                  No enabled modules declare navigable views. Turn modules on under Site settings →
+                  No enabled modules declare navigable views. Turn modules on under Settings →
                   Modules, or register <code>navViews</code> on a module.
                 </p>
               ) : null}

@@ -59,9 +59,9 @@ export function serializeEnvFile(map: EnvMap, keysOrder?: string[]): string {
 
   return [
     '# Starforge Environment editor overlay (.env.local)',
-    '# Gitignored. Secrets must not be copied into Site Chrome / Site Settings / DB.',
+    '# Gitignored. Secrets must not be copied into Chrome / Settings / DB.',
     '# Restart `next dev` / the Node process after changes for Next to reload env.',
-    '# Written by Core admin → Site Chrome → Environment.',
+    '# Written by Core admin → Chrome → Environment.',
     '',
     body,
     body ? '' : '',

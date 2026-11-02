@@ -103,7 +103,7 @@ export default async function PublicSiteLayout(props: { children: React.ReactNod
       {siteChrome.offlineEnabled && isAdmin ? (
         <p className="sf-offline-admin-banner" role="status">
           Site is offline for visitors. You can browse because you are an app admin.{' '}
-          <a href="/app/admin/site-chrome">Site Chrome</a>
+          <a href="/app/admin/site-chrome">Chrome</a>
         </p>
       ) : null}
       {pageSettingsOn ? <DocumentHeadChrome chrome={chrome} /> : null}

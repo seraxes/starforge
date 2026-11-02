@@ -64,12 +64,12 @@ export const ENV_EDITOR_GROUPS: EnvEditorGroup[] = [
   {
     id: 'captcha',
     label: 'Turnstile',
-    hint: 'Site Chrome only enables/provider; keys live here.',
+    hint: 'Chrome only enables/provider; keys live here.',
   },
   {
     id: 'mail',
     label: 'Outbound email secrets',
-    hint: 'Site Chrome enable/provider/From; SMTP / Resend credentials here.',
+    hint: 'Chrome enable/provider/From; SMTP / Resend credentials here.',
   },
   {
     id: 'editor',
@@ -184,7 +184,7 @@ export const ENV_EDITOR_FIELDS: EnvEditorField[] = [
   {
     key: 'TURNSTILE_SECRET_KEY',
     label: 'TURNSTILE_SECRET_KEY',
-    description: 'Turnstile server secret — never Site Chrome DB.',
+    description: 'Turnstile server secret — never Chrome DB.',
     secret: true,
     kind: 'password',
     group: 'captcha',
@@ -192,7 +192,7 @@ export const ENV_EDITOR_FIELDS: EnvEditorField[] = [
   {
     key: 'STARFORGE_MAIL_FROM',
     label: 'STARFORGE_MAIL_FROM',
-    description: 'Ops From override when Site Chrome From is empty.',
+    description: 'Ops From override when Chrome From is empty.',
     secret: false,
     kind: 'text',
     group: 'mail',
