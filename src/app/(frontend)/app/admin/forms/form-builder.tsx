@@ -695,11 +695,23 @@ function SortableFieldBar({
   )
 }
 
+type FormEditTab = 'editor' | 'settings'
+
+const FORM_EDIT_TABS: { id: FormEditTab; label: string; title: string }[] = [
+  { id: 'editor', label: 'Editor', title: 'Field palette + section canvas + JSON Schema' },
+  {
+    id: 'settings',
+    label: 'Form settings',
+    title: 'Title, success message, captcha, email notify',
+  },
+]
+
 export function FormBuilder({ formId, initialDocument }: Props) {
   const [state, formAction, pending] = useActionState(saveFormDefinitionAction, initial)
   useNotifySavedOnOk(state)
   const { formRef, saveDebounced, saveNow } = useAutosaveForm()
 
+  const [editTab, setEditTab] = useState<FormEditTab>('editor')
   const [title, setTitle] = useState(initialDocument.title)
   const [description, setDescription] = useState(initialDocument.description ?? '')
   const [preset, setPreset] = useState<FormPresetId>(initialDocument.preset)
@@ -908,9 +920,35 @@ export function FormBuilder({ formId, initialDocument }: Props) {
       <p className="admin-lede">
         <Link href="/app/admin/forms">← Forms</Link>
         {' · '}
-        Layout-aligned builder: palette → section canvas (dnd-kit) → field cog. Same Gantry dark
-        chrome as Layouts; fields stay a flat Form model (sections are grouping only).
+        Layout-aligned builder: palette → section canvas (dnd-kit) → field cog. Meta, success, and
+        email live under Form settings.
       </p>
+
+      <nav className="gantry-layouts-nav sf-form-edit-nav" aria-label="Form edit">
+        <ul className="gantry-layouts-nav-tabs" role="tablist">
+          {FORM_EDIT_TABS.map((tab) => {
+            const selected = tab.id === editTab
+            return (
+              <li key={tab.id}>
+                <button
+                  type="button"
+                  role="tab"
+                  id={`sf-form-edit-tab-${tab.id}`}
+                  aria-selected={selected}
+                  aria-controls={`sf-form-edit-panel-${tab.id}`}
+                  title={tab.title}
+                  className={
+                    selected ? 'gantry-layouts-nav-tab is-active' : 'gantry-layouts-nav-tab'
+                  }
+                  onClick={() => setEditTab(tab.id)}
+                >
+                  <span className="gantry-layouts-nav-tab-label">{tab.label}</span>
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      </nav>
 
       <form ref={formRef} action={formAction} className="sf-form-builder-form">
         <input type="hidden" name="formId" value={formId} />
@@ -921,307 +959,331 @@ export function FormBuilder({ formId, initialDocument }: Props) {
         <input type="hidden" name="preset" value={preset} />
         <input type="hidden" name="emailNotifyJson" value={JSON.stringify(emailNotify)} />
 
-        <div className="sf-form-builder-meta gantry-typed-form">
-          <label>
-            <span>Title</span>
-            <input
-              type="text"
-              name="title"
-              value={title}
-              onChange={(e) => {
-                setTitle(e.target.value)
-                regenerateSchema(fields, e.target.value, description)
-                saveDebounced()
-              }}
-              onBlur={saveNow}
-            />
-          </label>
-          <label>
-            <span>Description</span>
-            <input
-              type="text"
-              name="description"
-              value={description}
-              onChange={(e) => {
-                setDescription(e.target.value)
-                regenerateSchema(fields, title, e.target.value)
-                saveDebounced()
-              }}
-              onBlur={saveNow}
-            />
-          </label>
-          <label>
-            <span>Preset</span>
-            <select
-              value={preset}
-              onChange={(e) => {
-                setPreset(e.target.value as FormPresetId)
-                queueMicrotask(saveNow)
-              }}
-            >
-              {FORM_PRESETS.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.label}
-                  {p.stub ? ' (stub)' : ''}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>Success message</span>
-            <input
-              type="text"
-              name="successMessage"
-              value={successMessage}
-              onChange={(e) => {
-                setSuccessMessage(e.target.value)
-                saveDebounced()
-              }}
-              onBlur={saveNow}
-            />
-          </label>
-          <label>
-            <span>Submit label</span>
-            <input
-              type="text"
-              name="submitLabel"
-              value={submitLabel}
-              onChange={(e) => {
-                setSubmitLabel(e.target.value)
-                saveDebounced()
-              }}
-              onBlur={saveNow}
-            />
-          </label>
-          <label className="gantry-typed-check">
-            <input
-              type="checkbox"
-              name="useSiteCaptchaDefault"
-              checked={useSiteCaptchaDefault}
-              onChange={(e) => {
-                setUseSiteCaptchaDefault(e.target.checked)
-                queueMicrotask(saveNow)
-              }}
-            />
-            <span>Use site captcha default (Site Chrome)</span>
-          </label>
+        {/* Keep both panels mounted so named fields + drafts survive tab switches / autosave. */}
+        <div
+          role="tabpanel"
+          id="sf-form-edit-panel-editor"
+          aria-labelledby="sf-form-edit-tab-editor"
+          hidden={editTab !== 'editor'}
+          className="sf-form-edit-panel"
+        >
+          <div className="gantry-workspace sf-form-workspace">
+            <aside className="gantry-palette" aria-label="Field types">
+              <h3>Fields</h3>
+              <ul className="gantry-palette-list">
+                {FIELD_PALETTE.map((item) => (
+                  <li key={item.type}>
+                    <button
+                      type="button"
+                      className="gantry-palette-item"
+                      onClick={() => addField(item.type)}
+                    >
+                      <strong>{item.label}</strong>
+                      <span>{item.hint}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <p className="layout-muted">
+                Option media: interim URL / mediaId until SF-28 Payload picker. Use the field cog for
+                settings (same as Layout modules).
+              </p>
+            </aside>
 
-          <fieldset className="sf-form-builder-constraints sf-form-builder-email">
-            <legend>Email on submit</legend>
-            <p className="layout-muted">
-              Transport is stubbed until platform email is ready — settings still save.
-            </p>
-            <label className="gantry-typed-check">
-              <input
-                type="checkbox"
-                checked={Boolean(emailNotify.notifyAdmin)}
-                onChange={(e) => {
-                  setEmailNotify({ ...emailNotify, notifyAdmin: e.target.checked })
-                  queueMicrotask(saveNow)
-                }}
-              />
-              <span>Notify admin</span>
-            </label>
-            <label className="gantry-typed-check">
-              <input
-                type="checkbox"
-                checked={Boolean(emailNotify.notifyRespondent)}
-                onChange={(e) => {
-                  setEmailNotify({ ...emailNotify, notifyRespondent: e.target.checked })
-                  queueMicrotask(saveNow)
-                }}
-              />
-              <span>Notify respondent</span>
-            </label>
-            <label>
-              <span>Respondent email field</span>
-              <input
-                type="text"
-                value={emailNotify.respondentEmailField ?? 'email'}
-                onChange={(e) =>
-                  setEmailNotify({ ...emailNotify, respondentEmailField: e.target.value })
-                }
-                onBlur={saveNow}
-              />
-            </label>
-            <label>
-              <span>Admin emails override</span>
-              <input
-                type="text"
-                value={(emailNotify.adminEmails ?? []).join(', ')}
-                placeholder="Leave empty → Forms Settings default"
-                onChange={(e) =>
-                  setEmailNotify({
-                    ...emailNotify,
-                    adminEmails: e.target.value
-                      .split(/[,;\s]+/)
-                      .map((x) => x.trim())
-                      .filter(Boolean),
-                  })
-                }
-                onBlur={saveNow}
-              />
-            </label>
-          </fieldset>
-        </div>
-
-        <div className="gantry-workspace sf-form-workspace">
-          <aside className="gantry-palette" aria-label="Field types">
-            <h3>Fields</h3>
-            <ul className="gantry-palette-list">
-              {FIELD_PALETTE.map((item) => (
-                <li key={item.type}>
-                  <button
-                    type="button"
-                    className="gantry-palette-item"
-                    onClick={() => addField(item.type)}
-                  >
-                    <strong>{item.label}</strong>
-                    <span>{item.hint}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-            <p className="layout-muted">
-              Option media: interim URL / mediaId until SF-28 Payload picker. Use the field cog for
-              settings (same as Layout modules).
-            </p>
-          </aside>
-
-          <div className="gantry-sections sf-form-sections" aria-label="Form canvas">
-            <div className="gantry-section-actions">
-              <button
-                type="button"
-                className="gantry-toolbar-btn secondary"
-                onClick={() => {
-                  const sec = createSectionDraft(`Section ${sections.length + 1}`)
-                  setSections([...sections, sec])
-                  saveDebounced()
-                }}
-              >
-                Add section
-              </button>
-            </div>
-            {sections.map((section) => {
-              const sectionFields = section.fieldNames
-                .map((n) => fields.find((f) => f.name === n))
-                .filter((f): f is FormFieldDef => Boolean(f))
-              const sortableIds = sectionFields.map((f) => fieldKey(f))
-              return (
-                <section key={section.id} className="gantry-section">
-                  <header className="gantry-section-head">
-                    <div className="gantry-section-title">
-                      <input
-                        type="text"
-                        className="gantry-section-name-input"
-                        value={section.label}
-                        onChange={(e) => {
-                          setSections(
-                            sections.map((s) =>
-                              s.id === section.id ? { ...s, label: e.target.value } : s,
-                            ),
-                          )
-                          saveDebounced()
-                        }}
-                        onBlur={saveNow}
-                        aria-label="Section label"
-                      />
-                    </div>
-                    <div className="gantry-section-actions">
-                      {sections.length > 1 ? (
-                        <button
-                          type="button"
-                          className="gantry-toolbar-btn danger"
-                          onClick={() => {
-                            const orphan = section.fieldNames
-                            const remaining = sections.filter((s) => s.id !== section.id)
-                            if (!remaining[0]) return
-                            remaining[0] = {
-                              ...remaining[0],
-                              fieldNames: [...remaining[0].fieldNames, ...orphan],
-                            }
-                            setSections(remaining)
-                            saveDebounced()
-                          }}
-                        >
-                          Remove section
-                        </button>
-                      ) : null}
-                    </div>
-                  </header>
-                  <div className="gantry-row sf-form-section-row">
-                    {sectionFields.length === 0 ? (
-                      <p className="gantry-drop-empty admin-empty">
-                        Drop fields here — add from the palette.
-                      </p>
-                    ) : (
-                      <DndContext
-                        sensors={sensors}
-                        collisionDetection={closestCenter}
-                        onDragEnd={(e) => onDragEnd(e, section.id)}
-                      >
-                        <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
-                          <div className="sf-form-section-fields">
-                            {sectionFields.map((field) => {
-                              const id = fieldKey(field)
-                              return (
-                                <SortableFieldBar
-                                  key={id}
-                                  field={field}
-                                  fields={fields}
-                                  onPatch={(patch) => patchField(id, patch)}
-                                  onRename={(nextName) => renameField(id, nextName)}
-                                  onPatchConstraints={(patch) => patchFieldConstraints(id, patch)}
-                                  onUpdateOptions={(options) => patchField(id, { options })}
-                                  onPatchLogic={(key, group) => patchFieldLogic(id, key, group)}
-                                  onRemove={() => removeField(id, field.name)}
-                                  saveNow={saveNow}
-                                  saveDebounced={saveDebounced}
-                                />
-                              )
-                            })}
-                          </div>
-                        </SortableContext>
-                      </DndContext>
-                    )}
-                  </div>
-                </section>
-              )
-            })}
-          </div>
-        </div>
-
-        <section className="sf-form-builder-schema" aria-label="JSON Schema">
-          <div className="sf-form-builder-schema-head">
-            <h3>JSON Schema</h3>
-            <div className="sf-form-builder-schema-actions">
-              {schemaDirty ? (
+            <div className="gantry-sections sf-form-sections" aria-label="Form canvas">
+              <div className="gantry-section-actions">
                 <button
                   type="button"
                   className="gantry-toolbar-btn secondary"
-                  onClick={resetSchemaFromFields}
+                  onClick={() => {
+                    const sec = createSectionDraft(`Section ${sections.length + 1}`)
+                    setSections([...sections, sec])
+                    saveDebounced()
+                  }}
                 >
-                  Reset from fields
+                  Add section
                 </button>
-              ) : (
-                <span className="layout-muted">Synced from fields</span>
-              )}
+              </div>
+              {sections.map((section) => {
+                const sectionFields = section.fieldNames
+                  .map((n) => fields.find((f) => f.name === n))
+                  .filter((f): f is FormFieldDef => Boolean(f))
+                const sortableIds = sectionFields.map((f) => fieldKey(f))
+                return (
+                  <section key={section.id} className="gantry-section">
+                    <header className="gantry-section-head">
+                      <div className="gantry-section-title">
+                        <input
+                          type="text"
+                          className="gantry-section-name-input"
+                          value={section.label}
+                          onChange={(e) => {
+                            setSections(
+                              sections.map((s) =>
+                                s.id === section.id ? { ...s, label: e.target.value } : s,
+                              ),
+                            )
+                            saveDebounced()
+                          }}
+                          onBlur={saveNow}
+                          aria-label="Section label"
+                        />
+                      </div>
+                      <div className="gantry-section-actions">
+                        {sections.length > 1 ? (
+                          <button
+                            type="button"
+                            className="gantry-toolbar-btn danger"
+                            onClick={() => {
+                              const orphan = section.fieldNames
+                              const remaining = sections.filter((s) => s.id !== section.id)
+                              if (!remaining[0]) return
+                              remaining[0] = {
+                                ...remaining[0],
+                                fieldNames: [...remaining[0].fieldNames, ...orphan],
+                              }
+                              setSections(remaining)
+                              saveDebounced()
+                            }}
+                          >
+                            Remove section
+                          </button>
+                        ) : null}
+                      </div>
+                    </header>
+                    <div className="gantry-row sf-form-section-row">
+                      {sectionFields.length === 0 ? (
+                        <p className="gantry-drop-empty admin-empty">
+                          Drop fields here — add from the palette.
+                        </p>
+                      ) : (
+                        <DndContext
+                          sensors={sensors}
+                          collisionDetection={closestCenter}
+                          onDragEnd={(e) => onDragEnd(e, section.id)}
+                        >
+                          <SortableContext
+                            items={sortableIds}
+                            strategy={verticalListSortingStrategy}
+                          >
+                            <div className="sf-form-section-fields">
+                              {sectionFields.map((field) => {
+                                const id = fieldKey(field)
+                                return (
+                                  <SortableFieldBar
+                                    key={id}
+                                    field={field}
+                                    fields={fields}
+                                    onPatch={(patch) => patchField(id, patch)}
+                                    onRename={(nextName) => renameField(id, nextName)}
+                                    onPatchConstraints={(patch) =>
+                                      patchFieldConstraints(id, patch)
+                                    }
+                                    onUpdateOptions={(options) => patchField(id, { options })}
+                                    onPatchLogic={(key, group) =>
+                                      patchFieldLogic(id, key, group)
+                                    }
+                                    onRemove={() => removeField(id, field.name)}
+                                    saveNow={saveNow}
+                                    saveDebounced={saveDebounced}
+                                  />
+                                )
+                              })}
+                            </div>
+                          </SortableContext>
+                        </DndContext>
+                      )}
+                    </div>
+                  </section>
+                )
+              })}
             </div>
           </div>
-          <textarea
-            className="sf-form-builder-schema-editor"
-            rows={14}
-            value={schemaJson}
-            onChange={(e) => applySchemaJson(e.target.value)}
-            onBlur={saveNow}
-            spellCheck={false}
-          />
-          {schemaError ? (
-            <p className="admin-inline-error" role="alert">
-              {schemaError}
-            </p>
-          ) : null}
-        </section>
+
+          <section className="sf-form-builder-schema" aria-label="JSON Schema">
+            <div className="sf-form-builder-schema-head">
+              <h3>JSON Schema</h3>
+              <div className="sf-form-builder-schema-actions">
+                {schemaDirty ? (
+                  <button
+                    type="button"
+                    className="gantry-toolbar-btn secondary"
+                    onClick={resetSchemaFromFields}
+                  >
+                    Reset from fields
+                  </button>
+                ) : (
+                  <span className="layout-muted">Synced from fields</span>
+                )}
+              </div>
+            </div>
+            <textarea
+              className="sf-form-builder-schema-editor"
+              rows={14}
+              value={schemaJson}
+              onChange={(e) => applySchemaJson(e.target.value)}
+              onBlur={saveNow}
+              spellCheck={false}
+            />
+            {schemaError ? (
+              <p className="admin-inline-error" role="alert">
+                {schemaError}
+              </p>
+            ) : null}
+          </section>
+        </div>
+
+        <div
+          role="tabpanel"
+          id="sf-form-edit-panel-settings"
+          aria-labelledby="sf-form-edit-tab-settings"
+          hidden={editTab !== 'settings'}
+          className="sf-form-edit-panel"
+        >
+          <div className="sf-form-builder-meta gantry-typed-form">
+            <label>
+              <span>Title</span>
+              <input
+                type="text"
+                name="title"
+                value={title}
+                onChange={(e) => {
+                  setTitle(e.target.value)
+                  regenerateSchema(fields, e.target.value, description)
+                  saveDebounced()
+                }}
+                onBlur={saveNow}
+              />
+            </label>
+            <label>
+              <span>Description</span>
+              <input
+                type="text"
+                name="description"
+                value={description}
+                onChange={(e) => {
+                  setDescription(e.target.value)
+                  regenerateSchema(fields, title, e.target.value)
+                  saveDebounced()
+                }}
+                onBlur={saveNow}
+              />
+            </label>
+            <label>
+              <span>Preset</span>
+              <select
+                value={preset}
+                onChange={(e) => {
+                  setPreset(e.target.value as FormPresetId)
+                  queueMicrotask(saveNow)
+                }}
+              >
+                {FORM_PRESETS.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.label}
+                    {p.stub ? ' (stub)' : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>Success message</span>
+              <input
+                type="text"
+                name="successMessage"
+                value={successMessage}
+                onChange={(e) => {
+                  setSuccessMessage(e.target.value)
+                  saveDebounced()
+                }}
+                onBlur={saveNow}
+              />
+            </label>
+            <label>
+              <span>Submit label</span>
+              <input
+                type="text"
+                name="submitLabel"
+                value={submitLabel}
+                onChange={(e) => {
+                  setSubmitLabel(e.target.value)
+                  saveDebounced()
+                }}
+                onBlur={saveNow}
+              />
+            </label>
+            <label className="gantry-typed-check">
+              <input
+                type="checkbox"
+                name="useSiteCaptchaDefault"
+                checked={useSiteCaptchaDefault}
+                onChange={(e) => {
+                  setUseSiteCaptchaDefault(e.target.checked)
+                  queueMicrotask(saveNow)
+                }}
+              />
+              <span>Use site captcha default (Site Chrome)</span>
+            </label>
+
+            <fieldset className="sf-form-builder-constraints sf-form-builder-email">
+              <legend>Email on submit</legend>
+              <p className="layout-muted">
+                Transport is stubbed until platform email is ready — settings still save.
+              </p>
+              <label className="gantry-typed-check">
+                <input
+                  type="checkbox"
+                  checked={Boolean(emailNotify.notifyAdmin)}
+                  onChange={(e) => {
+                    setEmailNotify({ ...emailNotify, notifyAdmin: e.target.checked })
+                    queueMicrotask(saveNow)
+                  }}
+                />
+                <span>Notify admin</span>
+              </label>
+              <label className="gantry-typed-check">
+                <input
+                  type="checkbox"
+                  checked={Boolean(emailNotify.notifyRespondent)}
+                  onChange={(e) => {
+                    setEmailNotify({ ...emailNotify, notifyRespondent: e.target.checked })
+                    queueMicrotask(saveNow)
+                  }}
+                />
+                <span>Notify respondent</span>
+              </label>
+              <label>
+                <span>Respondent email field</span>
+                <input
+                  type="text"
+                  value={emailNotify.respondentEmailField ?? 'email'}
+                  onChange={(e) =>
+                    setEmailNotify({ ...emailNotify, respondentEmailField: e.target.value })
+                  }
+                  onBlur={saveNow}
+                />
+              </label>
+              <label>
+                <span>Admin emails override</span>
+                <input
+                  type="text"
+                  value={(emailNotify.adminEmails ?? []).join(', ')}
+                  placeholder="Leave empty → Forms Settings default"
+                  onChange={(e) =>
+                    setEmailNotify({
+                      ...emailNotify,
+                      adminEmails: e.target.value
+                        .split(/[,;\s]+/)
+                        .map((x) => x.trim())
+                        .filter(Boolean),
+                    })
+                  }
+                  onBlur={saveNow}
+                />
+              </label>
+            </fieldset>
+          </div>
+        </div>
 
         {pending ? <p className="layout-muted">Saving…</p> : null}
         {state.error ? (

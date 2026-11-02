@@ -1892,6 +1892,29 @@ button:disabled {
   margin-bottom: 0.75rem;
 }
 
+/* Form edit: Editor | Form settings (Layout-aligned chrome) */
+.sf-form-edit-nav {
+  margin-bottom: 0.85rem;
+}
+
+.sf-form-edit-nav .gantry-layouts-nav-tab {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+}
+
+.sf-form-edit-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sf-form-edit-panel[hidden] {
+  display: none;
+}
+
 .sf-form-option-media {
   width: 2rem;
   height: 2rem;
