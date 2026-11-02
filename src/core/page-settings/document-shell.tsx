@@ -19,7 +19,7 @@ function metaAttrName(nameOrProperty: string): { name?: string; property?: strin
 }
 
 async function collectAtomInjects(chrome: ResolvedPageChrome): Promise<AtomInjectResult[]> {
-  ensureAtomsRegistered()
+  await ensureAtomsRegistered()
   const { getSiteSettings, isAtomModuleEnabled } = await import('@/core/settings')
   const settings = await getSiteSettings()
   const results: AtomInjectResult[] = []

@@ -137,6 +137,8 @@ export type {
   StarforgeModule,
 } from './modules'
 export {
+  ALLOWLISTED_MODULE_IDS,
+  MODULE_ALLOWLIST_FLAVOR,
   MODULE_IDS,
   ensureSiteSettingsDefaults,
   getFeatureFlags,
@@ -144,6 +146,7 @@ export {
   isAtomModuleEnabled,
   isCatalogModuleEnabled,
   isDraftPreviewEnabled,
+  isModuleAllowlisted,
   isModulesEnabled,
   isParticleModuleEnabled,
   isRegistrationEnabled,

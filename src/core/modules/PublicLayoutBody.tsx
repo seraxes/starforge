@@ -167,7 +167,7 @@ export async function PublicLayoutBody({
   sectionsLayout = 'fullwidth',
   layoutManagerEnabled = true,
 }: Props) {
-  ensureModulesRegistered()
+  await ensureModulesRegistered()
   const resolvedLayoutId = layoutId || 'default'
   const shellClass = [
     'public-shell',

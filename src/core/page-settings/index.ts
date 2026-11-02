@@ -7,13 +7,12 @@ export {
 } from './actions'
 export type { PageSettingsActionState, PageSettingsAdminBootstrap } from './actions'
 export {
-  analyticsAtom,
   clearAtomRegistry,
-  customCssJsAtom,
   ensureAtomsRegistered,
   getRegisteredAtom,
   listRegisteredAtoms,
   registerAtom,
+  resetAtomsRegistrationForTests,
 } from './atoms'
 export {
   DEFAULT_FONT_AWESOME,

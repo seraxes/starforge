@@ -1,0 +1,28 @@
+{
+  "$comment": "Install/build allowlist for Starforge Module Manager (SF-95). Edit modules[], then run: npm run modules:generate. Runtime on/off stays in Site Settings → Modules for *installed* ids only. Override with env SF_MODULES=id1,id2,...",
+  "flavor": "core",
+  "modules": [
+    "platform:better-auth",
+    "platform:payload-cms",
+    "product:layout-manager",
+    "product:page-settings",
+    "product:primary-nav",
+    "product:font-awesome",
+    "product:registration",
+    "product:rich-editor",
+    "product:posts",
+    "product:draft-preview",
+    "product:forms",
+    "page-content",
+    "site-header",
+    "logo",
+    "menu",
+    "copyright",
+    "social",
+    "custom",
+    "notice-bar",
+    "form",
+    "atom:analytics",
+    "atom:custom-css-js"
+  ]
+}

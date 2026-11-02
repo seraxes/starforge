@@ -138,10 +138,19 @@ One Payload global (`site-settings`) holds synced site name, `primaryNavMenuId`,
 | Registration | on | Hide `/register` + reject signup when off |
 | Rich editor | on | Flag reserved for a future simpler mode (Lexical stays on Pages today) |
 | Posts | **off** | Placeholder — no Posts collection yet |
-| Modules | Site Settings → **Modules** list (incl. **Primary nav**); seed enables `notice-bar` | Off = hide from layout palette + skip public/atom inject; Primary nav off hides Nav admin + header links |
+| Modules | Site Settings → **Modules** lists *installed* packs only; seed enables `notice-bar` | Runtime off = hide palette / public inject. Install allowlist (`starforge.modules.json`) drops packs from the generated registry so they are not eager-imported |
 | Draft preview | **off** | When on, `cms_access` users can open `/preview/{slug}` for unpublished drafts |
 
 `npm run seed` ensures the global exists, seeds Nav manager **Main** with About / Getting started / Welcome page binds, sets `primaryNavMenuId=main`, and enables the **notice-bar** module toggle. Flags are **product capabilities**, not npm libraries.
+
+### Module Manager — allowlist vs runtime toggle
+
+| Layer | File / UI | Effect |
+| --- | --- | --- |
+| **Install / build allowlist** | `starforge.modules.json` (or env `SF_MODULES`) → `npm run modules:generate` | Only listed packs appear in `src/generated/module-registry.ts` with `import()` loaders. Omit Form/Notice (etc.) for a lean build — no deadweight eager imports. |
+| **Runtime toggle** | Site Settings → **Modules** | On/off for *installed* modules — admin nav, palette, public render. Does not remove code from disk. |
+
+Required always: `platform:better-auth`, `page-content`. See `src/generated/README.md`. P2 will add `@starforge/module-*` packages + `modules:sync` from GitHub Packages.
 
 ### Extension modules + Gantry-like layout manager
 
@@ -150,9 +159,10 @@ Public chrome is driven by a **layout document**: **sections → rows → slots*
 | Piece | Where |
 | --- | --- |
 | Register API | `registerModule()` · `src/core/modules/` |
+| Install allowlist | `starforge.modules.json` → `npm run modules:generate` → `src/generated/module-registry.ts` |
 | Built-in particles | `page-content`, `site-header`, `logo`, `copyright`, `social`, `custom` (HTML/CSS; JS stub) |
-| Example extension | `src/modules/notice-bar/` |
-| Catalog boot | `src/modules/catalog.ts` (+ builtins) |
+| Example extension | `src/modules/notice-bar/` (dynamic-imported only when allowlisted) |
+| Catalog boot | `src/modules/catalog.ts` (+ generated optional loaders) |
 | Layout document | `sf_layouts` rows (id + label + v3 JSON) · fallback `default-layout.json` |
 | Outlines | `/app/admin/outlines` — create / rename / duplicate / select (opens Layout canvas) |
 | Admin UI | `/app/admin/layouts?outline=<id>` |

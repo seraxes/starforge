@@ -35,7 +35,7 @@ export default async function AdminNavMenuItemsPage({ params }: Args) {
     redirect('/app/admin/settings')
   }
 
-  ensureModulesRegistered()
+  await ensureModulesRegistered()
 
   const { menuId: rawId } = await params
   const menuId = decodeURIComponent(rawId)

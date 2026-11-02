@@ -196,10 +196,11 @@ export function SettingsForm({
       <fieldset className="settings-fieldset settings-modules">
         <legend>Modules</legend>
         <p className="settings-hint">
-          All modular product pieces in this build — platform, capabilities, layout particles, and
-          atoms. Each row: name, short description, on/off. Off gates admin nav/routes where safe,
-          layout palette, and public render/inject. Package uninstall is a later phase. Saves
-          automatically.
+          Installed modules for this build (from <code>starforge.modules.json</code> allowlist) —
+          platform, capabilities, layout particles, and atoms. Each row: name, short description,
+          on/off. Off gates admin nav/routes where safe, layout palette, and public render/inject.
+          To drop deadweight from the bundle, remove an id from the allowlist and run{' '}
+          <code>npm run modules:generate</code>. Saves automatically.
         </p>
 
         {KIND_SECTIONS.map((section) => (

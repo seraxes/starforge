@@ -209,7 +209,7 @@ export async function loadPageSettingsAdmin(editingPageKey: string | null): Prom
   const session = await requireAppAdmin()
   const isDev = userIsDeveloperAdmin(session?.user)
 
-  ensureAtomsRegistered()
+  await ensureAtomsRegistered()
   await ensureDefaultUserGroupsSeeded()
   const [globalResult, overrideKeys, groups] = await Promise.all([
     loadGlobalPageChrome(),
@@ -283,7 +283,7 @@ export async function createAtomInstanceAction(
   const session = await requireAppAdmin()
   if (!session?.user) return { ok: false, error: 'Admins only.' }
 
-  ensureAtomsRegistered()
+  await ensureAtomsRegistered()
   const def = getRegisteredAtom(type)
   if (!def) return { ok: false, error: `Unknown atom type “${type}”.` }
   const settings = await getSiteSettings()

@@ -814,7 +814,7 @@ export async function dropParticleIntoRowAction(
   if (!sectionId || !rowId) return { error: 'Drop onto a row inside a section.' }
   if (!moduleId) return { error: 'Drag a particle from the left palette.' }
 
-  ensureModulesRegistered()
+  await ensureModulesRegistered()
   const mod = getRegisteredModule(moduleId)
   if (!mod) return { error: `Particle “${moduleId}” is not registered.` }
 
@@ -1344,7 +1344,7 @@ export async function resetLayoutToDefaultAction(
 }
 
 export async function listModulesForLayoutAdmin() {
-  ensureModulesRegistered()
+  await ensureModulesRegistered()
   const {
     MODULE_IDS,
     getSiteSettings,
