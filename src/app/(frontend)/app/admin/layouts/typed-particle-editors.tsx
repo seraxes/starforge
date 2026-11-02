@@ -24,6 +24,7 @@ import {
 } from '@/core/modules/particles/config'
 import { cssColorToColorInputValue, parseCssColorInput } from '@/core/modules/styles'
 import type { LayoutSlot, LayoutSlotConfig } from '@/core/modules/types'
+import { MediaPicker } from '@/components/admin/MediaPicker'
 
 export type NavMenuOption = { id: string; label: string }
 export type FormDefinitionOption = { id: string; label: string }
@@ -265,29 +266,24 @@ export function LogoParticleEditor({
           </>
         ) : (
           <>
-            <label>
-              <span>Payload Media id</span>
-              <input
-                type="text"
-                name="mediaId"
-                value={draft.mediaId ?? ''}
-                onChange={(e) => patchDraft({ mediaId: e.target.value })}
-                placeholder="optional"
-              />
-            </label>
-            <label>
-              <span>Image URL</span>
-              <input
-                type="url"
-                name="mediaUrl"
-                value={draft.mediaUrl ?? ''}
-                onChange={(e) => patchDraft({ mediaUrl: e.target.value })}
-                placeholder="https://… or /media/…"
-              />
-            </label>
-            <p className="layout-muted">
-              Use Media id when available, or a URL as a placeholder until the media picker lands.
-            </p>
+            <MediaPicker
+              label="Logo image"
+              value={{
+                mediaId: draft.mediaId ?? '',
+                url: draft.mediaUrl ?? '',
+                alt: draft.alt ?? '',
+              }}
+              defaultFolder="logos"
+              defaultPurpose="logo"
+              hint="Library Media id is primary; raw URL is advanced fallback."
+              onChange={(next) =>
+                patchDraft({
+                  mediaId: next.mediaId,
+                  mediaUrl: next.url ?? '',
+                  alt: next.alt || draft.alt || 'Logo',
+                })
+              }
+            />
             <label>
               <span>Alt text</span>
               <input

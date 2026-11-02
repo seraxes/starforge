@@ -25,7 +25,9 @@ export type LayoutSectionStyles = {
   backgroundColor?: string
   /** Hex text / foreground color (inherits into section content). */
   textColor?: string
-  /** Background image URL (http(s), /, or data:). */
+  /** Payload Media id for section background (SF-66 primary). */
+  backgroundMediaId?: string
+  /** Background image URL (http(s), /, or data:) — fallback when no media id. */
   backgroundImage?: string
   /** Gantry-style Background Overlay toggle. */
   backgroundOverlay?: 'enabled' | 'disabled'
@@ -221,6 +223,15 @@ function asBoolFlag(raw: unknown): boolean | undefined {
   return undefined
 }
 
+export function sanitizeBackgroundMediaId(raw: unknown): string | undefined {
+  if (typeof raw !== 'string') return undefined
+  const trimmed = raw.trim()
+  if (!trimmed) return undefined
+  if (trimmed.length > 64) return undefined
+  if (!/^[A-Za-z0-9_-]+$/.test(trimmed)) return undefined
+  return trimmed
+}
+
 export function normalizeLayoutSectionStyles(raw: unknown): LayoutSectionStyles | undefined {
   if (!raw || typeof raw !== 'object') return undefined
   const src = raw as Partial<LayoutSectionStyles> & Record<string, unknown>
@@ -228,6 +239,7 @@ export function normalizeLayoutSectionStyles(raw: unknown): LayoutSectionStyles 
   const allowGradientOverlay = asBoolFlag(src.allowGradientOverlay) === true
   const backgroundColor = sanitizeCssColorOrGradient(src.backgroundColor, allowGradientBackground)
   const textColor = sanitizeCssColor(src.textColor)
+  const backgroundMediaId = sanitizeBackgroundMediaId(src.backgroundMediaId)
   const backgroundImage = sanitizeBackgroundImageUrl(src.backgroundImage)
   const backgroundOverlay = asBackgroundOverlay(src.backgroundOverlay)
   const overlayColor = sanitizeCssColorOrGradient(src.overlayColor, allowGradientOverlay)
@@ -235,6 +247,7 @@ export function normalizeLayoutSectionStyles(raw: unknown): LayoutSectionStyles 
   const out: LayoutSectionStyles = {
     ...(backgroundColor ? { backgroundColor } : {}),
     ...(textColor ? { textColor } : {}),
+    ...(backgroundMediaId ? { backgroundMediaId } : {}),
     ...(backgroundImage ? { backgroundImage } : {}),
     ...(backgroundOverlay ? { backgroundOverlay } : {}),
     ...(overlayColor ? { overlayColor } : {}),
@@ -252,7 +265,7 @@ function isCssGradient(value: string | undefined): boolean {
 export function sectionStylesNeedPaintLayer(styles?: LayoutSectionStyles | null): boolean {
   const normalized = normalizeLayoutSectionStyles(styles ?? undefined)
   if (!normalized) return false
-  if (normalized.backgroundImage) return true
+  if (normalized.backgroundImage || normalized.backgroundMediaId) return true
   if (normalized.backgroundOverlay === 'enabled') return true
   if (normalized.backgroundColor && isCssGradient(normalized.backgroundColor)) return true
   return false

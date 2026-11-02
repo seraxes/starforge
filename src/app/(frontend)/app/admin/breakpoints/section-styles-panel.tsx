@@ -11,6 +11,7 @@ import {
   cssColorToColorInputValue,
   type LayoutSectionStyles,
 } from '@/core/modules/styles'
+import { MediaPicker } from '@/components/admin/MediaPicker'
 
 import { useAdminToast } from '../admin-toast'
 import { useDebouncedPersist } from '../use-debounced-persist'
@@ -29,6 +30,7 @@ type Props = {
 type StylePatch = {
   backgroundColor?: string
   textColor?: string
+  backgroundMediaId?: string
   backgroundImage?: string
   backgroundOverlay?: 'enabled' | 'disabled'
   overlayColor?: string
@@ -199,6 +201,13 @@ function SectionStylesCard({
           changed = true
         }
       }
+      if (patch.backgroundMediaId !== undefined) {
+        const next = patch.backgroundMediaId.trim()
+        if (next !== (prev?.backgroundMediaId ?? '').trim()) {
+          fd.set('backgroundMediaId', next)
+          changed = true
+        }
+      }
       if (patch.backgroundImage !== undefined) {
         const next = patch.backgroundImage.trim()
         if (next !== (prev?.backgroundImage ?? '').trim()) {
@@ -289,30 +298,26 @@ function SectionStylesCard({
           disabled={metaPending}
         />
 
-        <label className="settings-field">
-          <span>Background image</span>
-          <input
-            type="url"
-            key={`bg-image-${section.id}-${styles?.backgroundImage ?? ''}`}
-            className="gantry-inline-input"
-            defaultValue={styles?.backgroundImage ?? ''}
-            placeholder="/media/hero.jpg or https://…"
-            spellCheck={false}
-            autoComplete="off"
+        <div className="settings-field">
+          <MediaPicker
+            label="Background image"
+            value={{
+              mediaId: styles?.backgroundMediaId ?? '',
+              url: styles?.backgroundImage ?? '',
+            }}
+            defaultFolder="backgrounds"
+            defaultPurpose="photo"
             disabled={metaPending}
-            onChange={(event) =>
-              schedule('backgroundImage', { backgroundImage: event.target.value })
-            }
-            onBlur={(event) => flush('backgroundImage', { backgroundImage: event.target.value })}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                event.preventDefault()
-                ;(event.target as HTMLInputElement).blur()
-              }
+            includeHiddenInputs={false}
+            hint="Library Media id is primary; URL is advanced fallback."
+            onChange={(next) => {
+              flush('backgroundMedia', {
+                backgroundMediaId: next.mediaId,
+                backgroundImage: next.url ?? '',
+              })
             }}
           />
-          <small className="field-hint">http(s), root-relative, or data:image URL</small>
-        </label>
+        </div>
 
         <label className="settings-field">
           <span>Background overlay</span>

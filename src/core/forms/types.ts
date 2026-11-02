@@ -27,13 +27,12 @@ export type FormFieldType =
   | 'computed'
 
 /**
- * Interim media bind for an option (SF-28 will resolve Payload media ids).
- * Prefer `mediaId` when the library exists; `url` is the interim public bind.
+ * Option media bind (SF-66) — Payload library id is primary; url is fallback / cache.
  */
 export type FormOptionMedia = {
-  /** Payload media document id when available. */
+  /** Payload media document id (primary). */
   mediaId?: string
-  /** Interim or resolved public URL / path. */
+  /** Resolved or advanced-fallback public URL / path. */
   url?: string
   /** Optional alt text for images / icons. */
   alt?: string

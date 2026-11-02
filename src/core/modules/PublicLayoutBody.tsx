@@ -6,14 +6,29 @@ import { ensureModulesRegistered } from '@/modules/catalog'
 import { LayoutOutlineStyles } from './LayoutOutlineStyles'
 import { getLayoutDocument } from './layout'
 import { isFooterLayoutSection, partitionSectionsForPublicPaint } from './section-order'
+import { resolveMediaById } from '@/core/media/resolve'
+
 import {
   DEFAULT_LAYOUT_BREAKPOINTS,
   buildSectionInlineStyle,
   resolveSectionContainerMode,
   type LayoutContainerMode,
+  type LayoutSectionStyles,
 } from './styles'
 import { SlotRenderer } from './SlotRenderer'
 import type { LayoutRow, LayoutSection } from './types'
+
+async function stylesWithResolvedBackground(
+  styles: LayoutSectionStyles | undefined,
+): Promise<LayoutSectionStyles | undefined> {
+  if (!styles?.backgroundMediaId) return styles
+  const resolved = await resolveMediaById(styles.backgroundMediaId, {
+    size: 'large',
+    preferWebp: true,
+  })
+  if (!resolved?.url) return styles
+  return { ...styles, backgroundImage: resolved.url }
+}
 
 type Props = {
   children: React.ReactNode
@@ -42,7 +57,7 @@ function sectionWrapperClass(section: LayoutSection, base: string): string {
   return extra ? `${base} ${extra}` : base
 }
 
-function SectionBlock({
+async function SectionBlock({
   section,
   pageContent,
   pageDefault,
@@ -57,8 +72,9 @@ function SectionBlock({
     section.containerMode,
     pageDefault,
   )
-  const sectionStyle = buildSectionInlineStyle(section.styles)
-  const overlayOn = section.styles?.backgroundOverlay === 'enabled'
+  const resolvedStyles = await stylesWithResolvedBackground(section.styles)
+  const sectionStyle = buildSectionInlineStyle(resolvedStyles)
+  const overlayOn = resolvedStyles?.backgroundOverlay === 'enabled'
 
   const inner = (
     <>

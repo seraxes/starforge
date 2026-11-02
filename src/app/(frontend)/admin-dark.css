@@ -2123,3 +2123,179 @@ body:has(.admin-shell) > main {
   margin: 0.75rem 0 0;
 }
 
+
+
+/* —— Media library + picker (SF-28 / SF-66) —— */
+.admin-shell .sf-media-library-status {
+  margin: 0 0 1rem;
+}
+
+.admin-shell .sf-media-library-filters,
+.admin-shell .sf-media-library-upload-row,
+.admin-shell .sf-media-picker-toolbar,
+.admin-shell .sf-media-picker-upload {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+  margin-bottom: 1rem;
+}
+
+.admin-shell .sf-media-library-filters label,
+.admin-shell .sf-media-library-upload-row label,
+.admin-shell .sf-media-picker-upload label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.admin-shell .sf-media-library-grid,
+.admin-shell .sf-media-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 0.85rem;
+}
+
+.admin-shell .sf-media-library-card,
+.admin-shell .sf-media-picker-tile {
+  border: 4px solid var(--sf-admin-blue-dark, #1a2330);
+  background: color-mix(in srgb, #121820 88%, #243044);
+  color: #e8eef6;
+  text-align: left;
+  padding: 0;
+  overflow: hidden;
+}
+
+.admin-shell .sf-media-library-thumb,
+.admin-shell .sf-media-picker-tile img,
+.admin-shell .sf-media-picker-preview img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  background: #0d1218;
+}
+
+.admin-shell .sf-media-library-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.65rem 0.75rem 0.85rem;
+  font-size: 0.82rem;
+}
+
+.admin-shell .sf-media-library-card-body code,
+.admin-shell .sf-media-picker-meta code {
+  font-size: 0.75rem;
+  word-break: break-all;
+}
+
+.admin-shell .sf-media-picker-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.admin-shell .sf-media-picker-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.admin-shell .sf-media-picker-preview {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr;
+  gap: 0.65rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.admin-shell .sf-media-picker-preview img {
+  aspect-ratio: 1;
+  width: 4.5rem;
+  border: 2px solid #2a3a4e;
+}
+
+.admin-shell .sf-media-picker-advanced {
+  margin-top: 0.5rem;
+}
+
+.admin-shell .sf-media-picker-advanced summary {
+  cursor: pointer;
+  color: #9eb4cc;
+  font-size: 0.82rem;
+}
+
+.admin-shell .sf-media-picker-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: color-mix(in srgb, #06090e 72%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.admin-shell .sf-media-picker-dialog {
+  width: min(56rem, 100%);
+  max-height: min(90vh, 52rem);
+  overflow: auto;
+  background: #151c27;
+  border: 4px solid #2a3f58;
+  padding: 1rem 1.1rem 1.25rem;
+}
+
+.admin-shell .sf-media-picker-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.admin-shell .sf-media-picker-dialog-head h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.admin-shell .sf-media-picker-tile {
+  cursor: pointer;
+  color: inherit;
+}
+
+.admin-shell .sf-media-picker-tile.is-selected {
+  border-color: var(--sf-admin-blue-mid, #3d7ab5);
+}
+
+.admin-shell .sf-media-picker-tile-cap {
+  display: block;
+  padding: 0.4rem 0.5rem 0.55rem;
+  font-size: 0.75rem;
+  line-height: 1.25;
+}
+
+.admin-shell .sf-media-picker-grid[data-pending='1'] {
+  opacity: 0.65;
+}
+
+.admin-shell .sf-form-option-editor-list {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.admin-shell .sf-form-option-editor-row {
+  border: 2px solid #2a3a4e;
+  padding: 0.65rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}

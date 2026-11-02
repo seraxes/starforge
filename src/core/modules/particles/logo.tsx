@@ -1,35 +1,21 @@
 import React from 'react'
 import Link from 'next/link'
-import { getPayload } from 'payload'
 
-import config from '@payload-config'
-import { absoluteMediaUrl } from '@/core/content/metadata'
-import type { Media } from '@/payload-types'
+import { resolveMediaBind } from '@/core/media/resolve'
 
 import { parseCssColorInput } from '../styles'
 import type { StarforgeModule } from '../types'
 import { readLogoConfig } from './config'
 
 async function resolveLogoSrc(mediaId: string, mediaUrl: string, alt: string) {
-  if (mediaUrl.trim()) {
-    return { src: mediaUrl.trim(), alt }
-  }
-  if (!mediaId.trim()) {
-    return { src: '', alt }
-  }
-  try {
-    const payload = await getPayload({ config })
-    const doc = (await payload.findByID({
-      collection: 'media',
-      id: mediaId.trim(),
-      depth: 0,
-      overrideAccess: true,
-    })) as Media
-    const src = absoluteMediaUrl(doc) || ''
-    return { src, alt: alt.trim() || doc.alt || 'Logo' }
-  } catch {
-    return { src: '', alt }
-  }
+  const resolved = await resolveMediaBind({
+    mediaId,
+    mediaUrl,
+    alt,
+    preferWebp: false,
+  })
+  if (!resolved) return { src: '', alt }
+  return { src: resolved.src, alt: resolved.alt }
 }
 
 async function resolveTextLogoFallback(): Promise<string> {
@@ -51,7 +37,7 @@ export const logoModule: StarforgeModule = {
   id: 'logo',
   name: 'Logo / Image',
   description:
-    'Image (Media id/URL) or text logo (font, size, weight, color). Prefer with Menu particle instead of Site Header brand text.',
+    'Image (library Media id, URL fallback) or text logo (font, size, weight, color). Prefer with Menu particle instead of Site Header brand text.',
   builtin: true,
   defaultWidth: 25,
   render: async ({ slot }) => {
@@ -103,7 +89,7 @@ export const logoModule: StarforgeModule = {
     ) : (
       <div className="sf-logo-placeholder" role="img" aria-label={alt || 'Logo placeholder'}>
         <span>Logo / Image</span>
-        <small>Set Media id or URL, or switch to Text logo mode</small>
+        <small>Choose Media from the library, or switch to Text logo mode</small>
       </div>
     )
 
