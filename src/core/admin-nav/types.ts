@@ -19,6 +19,12 @@ export type AdminNavGroup = {
    * (so children like Site Chrome → Environment stay discoverable).
    */
   defaultOpen?: boolean
+  /**
+   * Force Joomla-style accordion even when `links.length === 1`.
+   * Multi-link groups are always expandable; set this on Site Chrome so
+   * Environment cannot be flattened away by a one-link heuristic drift.
+   */
+  expandable?: boolean
   links: AdminNavLink[]
 }
 

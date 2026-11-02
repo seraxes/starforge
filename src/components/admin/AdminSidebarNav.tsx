@@ -21,6 +21,12 @@ function groupIsActive(pathname: string, group: AdminSidebarGroup): boolean {
   return group.links.some((link) => pathMatches(pathname, link.href, link.exact))
 }
 
+/** Accordion when flagged expandable or when there is more than one leaf. */
+function groupIsExpandable(group: AdminSidebarGroup): boolean {
+  if (group.expandable) return true
+  return group.links.length > 1
+}
+
 export type AdminSidebarNavVariant = 'shell' | 'embedded'
 
 /**
@@ -68,7 +74,7 @@ function AdminSidebarNavInner({
   const [openIds, setOpenIds] = useState<Set<string>>(() => {
     const next = new Set(activeIds)
     for (const group of groups) {
-      if (group.defaultOpen && group.links.length > 1) next.add(group.id)
+      if (group.defaultOpen && groupIsExpandable(group)) next.add(group.id)
     }
     return next
   })
@@ -115,12 +121,12 @@ function AdminSidebarNavInner({
       <nav id="admin-sidebar-nav" className="admin-sidebar-nav" aria-label={navLabel}>
         <ul className="admin-sidebar-list">
           {groups.map((group) => {
-            const hasChildren = group.links.length > 1
-            const isOpen = hasChildren ? openIds.has(group.id) : true
+            const expandable = groupIsExpandable(group)
+            const isOpen = expandable ? openIds.has(group.id) : true
             const isActive = activeIds.has(group.id)
             const primary = group.links[0]
 
-            if (!hasChildren && primary) {
+            if (!expandable && primary) {
               return (
                 <li
                   key={group.id}
@@ -145,6 +151,8 @@ function AdminSidebarNavInner({
                 className={`admin-sidebar-item admin-sidebar-group${isActive ? ' is-active' : ''}${
                   isOpen ? ' is-open' : ''
                 }`}
+                data-nav-group={group.id}
+                data-nav-children={group.links.length}
               >
                 <button
                   type="button"

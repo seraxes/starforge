@@ -30,7 +30,9 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
       id: 'site-chrome',
       label: 'Site Chrome',
       href: '/app/admin/site-chrome',
-      // Keep Environment (and future siblings) visible without hunting the caret.
+      // Always accordion — Environment must stay a visible child (Core + Payload).
+      expandable: true,
+      // Keep Environment visible without hunting the caret on other admin pages.
       defaultOpen: true,
       links: [
         { href: '/app/admin/site-chrome', label: 'Site Chrome', exact: true },
@@ -58,6 +60,7 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
       id: 'forms',
       label: 'Forms',
       href: '/app/admin/forms',
+      expandable: true,
       links: [
         { href: '/app/admin/forms', label: 'Forms', exact: true },
         { href: '/app/admin/forms/submissions', label: 'Submissions' },
@@ -70,6 +73,7 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
     id: 'users',
     label: 'Users',
     href: '/app/admin/users',
+    expandable: true,
     links: [
       { href: '/app/admin/users', label: 'Accounts', exact: true },
       { href: '/app/admin/users/groups', label: 'Groups' },
@@ -102,6 +106,7 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
       id: 'layouts',
       label: 'Layouts',
       href: flags.layout ? '/app/admin/layouts' : '/app/admin/page-settings',
+      expandable: true,
       links: layoutLinks,
     })
   }
@@ -111,6 +116,7 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
       id: 'cms',
       label: 'CMS',
       href: '/admin',
+      expandable: true,
       links: cmsLinks.map((link) => ({
         href: link.href,
         label: link.label,
