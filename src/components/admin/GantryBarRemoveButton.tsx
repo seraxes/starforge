@@ -12,8 +12,8 @@ type Props = {
 }
 
 /**
- * Red ✕ beside the bar cog (Layout modules / Form fields).
- * Confirms before calling onConfirm — replaces in-panel Remove buttons.
+ * Red danger remove beside the bar cog (Layout modules / Form fields).
+ * White thick X glyph; confirms before calling onConfirm.
  */
 export function GantryBarRemoveButton({
   label,
@@ -34,7 +34,22 @@ export function GantryBarRemoveButton({
         onConfirm()
       }}
     >
-      ✕
+      <svg
+        className="gantry-bar-remove-icon"
+        viewBox="0 0 16 16"
+        width="14"
+        height="14"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path
+          d="M3.25 3.25 L12.75 12.75 M12.75 3.25 L3.25 12.75"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.4"
+          strokeLinecap="square"
+        />
+      </svg>
     </button>
   )
 }
