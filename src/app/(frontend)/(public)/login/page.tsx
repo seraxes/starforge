@@ -5,7 +5,7 @@ import { AuthWelcomePanel } from '@/components/AuthWelcomePanel'
 import { getAppSession } from '@/core/auth/session'
 import { safeNextPath } from '@/core/auth/safe-next-path'
 import { getSiteSettings } from '@/core/settings'
-import { parseLoginMode } from './login-form'
+import { parseLoginMode } from './login-mode'
 
 export const metadata = {
   title: 'Sign in — Starforge',

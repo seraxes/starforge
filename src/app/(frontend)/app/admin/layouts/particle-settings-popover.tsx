@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import React, { useEffect, useId, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useFloatingSettingsPanel } from '@/components/admin/useFloatingSettingsPanel'
 
 export type ParticleSettingsTab = {
   id: string
@@ -21,11 +22,10 @@ type Props = {
 }
 
 const PANEL_WIDTH = 460
-const VIEW_PAD = 12
 
 /**
  * Particle settings as a floating overlay — does not expand the slot or push the row.
- * Opens on click. Portal is dark Gantry Helium–styled (outside `.admin-shell`).
+ * Opens centered; title chrome is draggable. Portal is dark Gantry Helium–styled.
  */
 export function ParticleSettingsPopover({
   title,
@@ -36,12 +36,15 @@ export function ParticleSettingsPopover({
 }: Props) {
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const [coords, setCoords] = useState({ top: 0, left: 0 })
   const [activeTab, setActiveTab] = useState(() => tabs?.[0]?.id ?? 'main')
-  const triggerRef = useRef<HTMLButtonElement>(null)
-  const panelRef = useRef<HTMLDivElement>(null)
+  const triggerRef = React.useRef<HTMLButtonElement>(null)
   const titleId = useId()
   const tablistId = useId()
+  const { panelRef, panelStyle, panelClassName, onDragHandlePointerDown } = useFloatingSettingsPanel({
+    open,
+    preferredWidth: PANEL_WIDTH,
+    layoutKey: activeTab,
+  })
 
   useEffect(() => {
     setMounted(true)
@@ -53,28 +56,6 @@ export function ParticleSettingsPopover({
       setActiveTab(tabs[0]!.id)
     }
   }, [tabs, activeTab])
-
-  const placePanel = () => {
-    const trigger = triggerRef.current
-    if (!trigger) return
-    const rect = trigger.getBoundingClientRect()
-    const width = Math.min(PANEL_WIDTH, window.innerWidth - VIEW_PAD * 2)
-    let left = rect.left
-    if (left + width > window.innerWidth - VIEW_PAD) {
-      left = Math.max(VIEW_PAD, window.innerWidth - VIEW_PAD - width)
-    }
-    let top = rect.bottom + 8
-    const panelHeight = panelRef.current?.offsetHeight ?? 360
-    if (top + panelHeight > window.innerHeight - VIEW_PAD) {
-      top = Math.max(VIEW_PAD, rect.top - panelHeight - 8)
-    }
-    setCoords({ top, left })
-  }
-
-  useLayoutEffect(() => {
-    if (!open) return
-    placePanel()
-  }, [open, activeTab])
 
   useEffect(() => {
     if (!open) return
@@ -89,19 +70,14 @@ export function ParticleSettingsPopover({
       if (target instanceof Element && target.closest('.admin-toast-host')) return
       setOpen(false)
     }
-    const onReposition = () => placePanel()
 
     document.addEventListener('keydown', onKey)
     document.addEventListener('mousedown', onPointer)
-    window.addEventListener('resize', onReposition)
-    window.addEventListener('scroll', onReposition, true)
     return () => {
       document.removeEventListener('keydown', onKey)
       document.removeEventListener('mousedown', onPointer)
-      window.removeEventListener('resize', onReposition)
-      window.removeEventListener('scroll', onReposition, true)
     }
-  }, [open])
+  }, [open, panelRef])
 
   useEffect(() => {
     if (!open) return
@@ -109,7 +85,7 @@ export function ParticleSettingsPopover({
       'input, select, textarea, button:not([data-sf-settings-close]), [contenteditable="true"]',
     )
     first?.focus()
-  }, [open, activeTab])
+  }, [open, activeTab, panelRef])
 
   const tablist = tabs?.length ? (
     <div className="gantry-settings-tablist" role="tablist" aria-label={title} id={tablistId}>
@@ -192,22 +168,25 @@ export function ParticleSettingsPopover({
               />
               <div
                 ref={panelRef}
-                className="gantry-settings-panel"
+                className={panelClassName}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={titleId}
-                style={{
-                  top: coords.top,
-                  left: coords.left,
-                  width: Math.min(
-                    PANEL_WIDTH,
-                    typeof window !== 'undefined' ? window.innerWidth - VIEW_PAD * 2 : PANEL_WIDTH,
-                  ),
-                }}
+                style={panelStyle}
               >
                 {/* Helium: tabs sit on the dark chrome strip at the top */}
-                {tablist ? <div className="gantry-settings-panel-tabs">{tablist}</div> : null}
-                <header className="gantry-settings-panel-head">
+                {tablist ? (
+                  <div
+                    className="gantry-settings-panel-tabs gantry-settings-drag-handle"
+                    onPointerDown={onDragHandlePointerDown}
+                  >
+                    {tablist}
+                  </div>
+                ) : null}
+                <header
+                  className="gantry-settings-panel-head gantry-settings-drag-handle"
+                  onPointerDown={onDragHandlePointerDown}
+                >
                   <h3 id={titleId}>{title}</h3>
                   <button
                     type="button"

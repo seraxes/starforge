@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import React, { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useFloatingSettingsPanel } from '@/components/admin/useFloatingSettingsPanel'
 
 type Props = {
   title: string
@@ -10,11 +11,10 @@ type Props = {
 }
 
 const PANEL_WIDTH = 440
-const VIEW_PAD = 12
 
 /**
  * Atom settings as a floating overlay — same pattern as layout particle editors.
- * Does not expand the atom row. Closes on Escape and outside click.
+ * Opens centered; title chrome is draggable. Closes on Escape and outside click.
  */
 export function AtomSettingsPopover({
   title,
@@ -23,38 +23,18 @@ export function AtomSettingsPopover({
 }: Props) {
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const [coords, setCoords] = useState({ top: 0, left: 0 })
   const triggerRef = useRef<HTMLButtonElement>(null)
-  const panelRef = useRef<HTMLDivElement>(null)
   const titleId = useId()
+  const { panelRef, panelStyle, panelClassName, onDragHandlePointerDown } = useFloatingSettingsPanel({
+    open,
+    preferredWidth: PANEL_WIDTH,
+  })
 
   useEffect(() => {
     // Portal needs document.body — mark mounted after hydration.
     // eslint-disable-next-line react-hooks/set-state-in-effect -- client portal gate
     setMounted(true)
   }, [])
-
-  const placePanel = () => {
-    const trigger = triggerRef.current
-    if (!trigger) return
-    const rect = trigger.getBoundingClientRect()
-    const width = Math.min(PANEL_WIDTH, window.innerWidth - VIEW_PAD * 2)
-    let left = rect.left
-    if (left + width > window.innerWidth - VIEW_PAD) {
-      left = Math.max(VIEW_PAD, window.innerWidth - VIEW_PAD - width)
-    }
-    let top = rect.bottom + 8
-    const panelHeight = panelRef.current?.offsetHeight ?? 360
-    if (top + panelHeight > window.innerHeight - VIEW_PAD) {
-      top = Math.max(VIEW_PAD, rect.top - panelHeight - 8)
-    }
-    setCoords({ top, left })
-  }
-
-  useLayoutEffect(() => {
-    if (!open) return
-    placePanel()
-  }, [open])
 
   useEffect(() => {
     if (!open) return
@@ -65,21 +45,17 @@ export function AtomSettingsPopover({
     const onPointer = (event: MouseEvent) => {
       const target = event.target as Node
       if (panelRef.current?.contains(target) || triggerRef.current?.contains(target)) return
+      if (target instanceof Element && target.closest('.admin-toast-host')) return
       setOpen(false)
     }
-    const onReposition = () => placePanel()
 
     document.addEventListener('keydown', onKey)
     document.addEventListener('mousedown', onPointer)
-    window.addEventListener('resize', onReposition)
-    window.addEventListener('scroll', onReposition, true)
     return () => {
       document.removeEventListener('keydown', onKey)
       document.removeEventListener('mousedown', onPointer)
-      window.removeEventListener('resize', onReposition)
-      window.removeEventListener('scroll', onReposition, true)
     }
-  }, [open])
+  }, [open, panelRef])
 
   return (
     <div className="gantry-settings-trigger-wrap">
@@ -103,20 +79,16 @@ export function AtomSettingsPopover({
               />
               <div
                 ref={panelRef}
-                className="gantry-settings-panel"
+                className={panelClassName}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={titleId}
-                style={{
-                  top: coords.top,
-                  left: coords.left,
-                  width: Math.min(
-                    PANEL_WIDTH,
-                    typeof window !== 'undefined' ? window.innerWidth - VIEW_PAD * 2 : PANEL_WIDTH,
-                  ),
-                }}
+                style={panelStyle}
               >
-                <header className="gantry-settings-panel-head">
+                <header
+                  className="gantry-settings-panel-head gantry-settings-drag-handle"
+                  onPointerDown={onDragHandlePointerDown}
+                >
                   <h3 id={titleId}>{title}</h3>
                   <button
                     type="button"
