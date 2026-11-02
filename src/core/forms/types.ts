@@ -140,7 +140,7 @@ export type FormNumberBounds = {
 }
 
 /**
- * Per-form email notify preferences (transport stub until email is wired).
+ * Per-form email notify preferences (platform Mailer via Site Chrome).
  * Module defaults live in Forms → Settings.
  */
 export type FormEmailNotifyConfig = {
@@ -227,22 +227,22 @@ export type FormDefinitionDocument = {
   successMessage: string
   submitLabel: string
   useSiteCaptchaDefault: boolean
-  /** Email-on-submit preferences (stub until transport exists). */
+  /** Email-on-submit preferences (uses platform Mailer when Site Chrome email is on). */
   emailNotify?: FormEmailNotifyConfig
 }
 
 /**
  * Module-level Forms Settings (Forms → Settings).
- * Email transport stays stubbed until platform email is available.
+ * Transport is always the platform Mailer (Site Chrome enable/provider).
  */
 export type FormsModuleSettings = {
   version: 1
   /** Default admin recipients for notifyAdmin (comma-separated in UI). */
   defaultAdminEmails: string[]
-  /** From address used when transport is ready (stored now). */
+  /** From override for form mail; empty → Site Chrome emailFrom / STARFORGE_MAIL_FROM. */
   fromAddress: string
-  /** Only `stub` until email is wired — logs / records intent, does not send. */
-  transport: 'stub'
+  /** Always platform Mailer — retained for stored JSON compatibility. */
+  transport: 'platform'
   /** Default success message seeded into new form definitions. */
   defaultSuccessMessage: string
 }

@@ -98,7 +98,7 @@ Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so coo
 | http://localhost:3000/preview/{slug} | Draft preview (CMS access + **Draft preview** toggle on) |
 | http://localhost:3000/api/health | Core health JSON (`database: "up"` when Postgres is reachable) |
 
-App login uses **email**, not a separate username. Forgot / reset password is **deferred** until outbound email is wired.
+App login uses **email**, not a separate username. Forgot / reset password is **deferred** until SF-17 (Mailer port is wired; console / SMTP / Resend adapters available).
 
 ### Roles + bootstrap admin
 
@@ -123,11 +123,11 @@ Global app admins still open all Core admin today; the matrix is the enforcement
 
 ### Site Chrome + Site settings + Nav
 
-**Site Chrome** (`/app/admin/site-chrome`, `sf_site_chrome`) is the top-level policy panel: site offline (+ message), default captcha (enable + provider; Turnstile keys in env), site metadata (name / description / OG image), robots meta + `/robots.txt`, content rights, cookie domain/path. Offline mode blocks public visitors; app admins still browse (banner) and can sign in via `/login`.
+**Site Chrome** (`/app/admin/site-chrome`, `sf_site_chrome`) is the top-level policy panel: site offline (+ message), default captcha (enable + provider; Turnstile keys in env), outbound email (enable + provider + From; SMTP / Resend secrets in env), site metadata (name / description / OG image), robots meta + `/robots.txt`, content rights, cookie domain/path. Offline mode blocks public visitors; app admins still browse (banner) and can sign in via `/login`.
 
 **Nav** is a **top-level** Core admin item (`/app/admin/nav`, sibling of Users / Site Chrome / Site settings / Layouts): multiple named **navigation sets** (menus) in `sf_nav_menus`, each with items (CMS page, URL, or module view; reorder; copy/paste; CSS class; browser/page title; multi-select access tags). Site Settings only **assigns** which set is the site primary header menu — not nested under Site Chrome.
 
-**Forms** (`/app/admin/forms`, gated by Modules → **Forms** / `product:forms`) is the modular Form engine: visual builder (dnd-kit → JSON Schema / Zod), definitions in `sf_forms`, submissions in `sf_form_submissions`. Place the **Form** particle on the layout canvas and bind a definition (Contact preset ships ready; survey/event/voting/ticket are stubs). Optional Site Chrome captcha (Turnstile) when the form opts into the site default. Run `npm run db:core:push` after pull so `sf_forms` / `definition_id` exist.
+**Forms** (`/app/admin/forms`, gated by Modules → **Forms** / `product:forms`) is the modular Form engine: visual builder (dnd-kit → JSON Schema / Zod), definitions in `sf_forms`, submissions in `sf_form_submissions`. Place the **Form** particle on the layout canvas and bind a definition (Contact preset ships ready; survey/event/voting/ticket are stubs). Optional Site Chrome captcha (Turnstile) when the form opts into the site default. Email-on-submit uses the platform **Mailer** (Site Chrome enable / provider / From). Run `npm run db:core:push` after pull so `sf_forms` / `definition_id` exist.
 
 One Payload global (`site-settings`) holds synced site name, `primaryNavMenuId`, capability flags, and module toggles. Core admins edit Modules at **`/app/admin/settings`**. CMS editors can edit the same document under Payload **Globals → Site settings** (legacy `primaryNav` array is a fallback only).
 
@@ -471,7 +471,7 @@ npm run dev
 ## Not in this scaffold
 
 - Production / DigitalOcean deploy (including Redis — cache interface is ready; backend not wired)
-- Forgot / reset password (needs email — deferred), OAuth
+- Forgot / reset password (SF-17 — Mailer ready; wire auth flows next), OAuth
 - Second Payload password login (removed — Better Auth session strategy only)
 - Posts collection
 - Full Gantry Styles / Outlines / Menu editors, cross-row reorder, YAML mode, Custom JS execution + ACL, Payload media picker for Logo (layout DnD canvas + typed Logo/Copyright/Social + CodeMirror Custom + JSON storage are in)

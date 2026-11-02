@@ -156,6 +156,19 @@ export {
 } from './settings'
 export type { ModuleCatalogItem, ModuleToggleMap } from './settings'
 export {
+  createMailer,
+  getMailer,
+  getMailerInfo,
+  sendMail,
+} from './mail'
+export type {
+  Mailer,
+  MailerInfo,
+  MailMessage,
+  MailProvider,
+  MailSendResult,
+} from './mail'
+export {
   ensureSiteChromeSeeded,
   getSiteChrome,
   saveSiteChrome,

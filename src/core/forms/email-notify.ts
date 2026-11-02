@@ -1,9 +1,12 @@
 /**
- * Form email-on-submit — schema + stub transport until platform email exists.
+ * Form email-on-submit — plan intents + dispatch via platform Mailer (SF-96).
  * Server-only: call from submitFormAction after a successful save.
  */
 
 import 'server-only'
+
+import { getMailer } from '@/core/mail'
+import type { MailSendResult } from '@/core/mail/types'
 
 import { getFormsModuleSettings } from './settings-store'
 import type { FormDefinitionDocument, FormEmailNotifyConfig } from './types'
@@ -17,10 +20,13 @@ export type FormEmailNotifyIntent = {
 
 export type FormEmailNotifyResult = {
   attempted: boolean
-  transport: 'stub'
+  /** Active Mailer provider (or disabled / none when no intents). */
+  transport: string
   intents: FormEmailNotifyIntent[]
-  /** Always true for stub — nothing was actually sent. */
-  stubbed: true
+  /** Per-intent send outcomes when dispatch ran. */
+  results?: MailSendResult[]
+  /** True when nothing was handed to the network (disabled, empty, or console-only log). */
+  stubbed?: boolean
 }
 
 function splitEmails(list: string[] | undefined): string[] {
@@ -38,7 +44,6 @@ function formatPayloadBody(payload: Record<string, string>, title: string): stri
 
 /**
  * Build notify intents from per-form config + module defaults.
- * Does not send — stub logs intent for when SMTP/transactional email lands.
  */
 export async function planFormEmailNotify(options: {
   document: FormDefinitionDocument
@@ -81,28 +86,77 @@ export async function planFormEmailNotify(options: {
     }
   }
 
+  const mailer = await getMailer()
+  const info = mailer.info()
+
   return {
     attempted: intents.length > 0,
-    transport: 'stub',
+    transport: info.provider,
     intents,
-    stubbed: true,
   }
 }
 
-/** Stub dispatch — records intent; replace with real transport later. */
+/**
+ * Dispatch planned intents through the platform Mailer.
+ * Soft-fails per message — never throws for transport errors.
+ */
 export async function dispatchFormEmailNotify(
   plan: FormEmailNotifyResult,
 ): Promise<FormEmailNotifyResult> {
-  if (plan.intents.length && process.env.NODE_ENV !== 'production') {
-    console.info(
-      '[forms:email-stub]',
-      JSON.stringify({
-        transport: plan.transport,
-        count: plan.intents.length,
-        to: plan.intents.map((i) => ({ kind: i.kind, to: i.to, subject: i.subject })),
-      }),
-    )
+  if (!plan.intents.length) {
+    return plan
   }
-  return plan
-}
 
+  const mailer = await getMailer()
+  const info = mailer.info()
+  const settings = await getFormsModuleSettings()
+  const from = settings.fromAddress.trim() || undefined
+
+  if (!info.enabled) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.info(
+        '[forms:email-skip]',
+        JSON.stringify({
+          reason: 'email disabled',
+          count: plan.intents.length,
+          to: plan.intents.map((i) => ({ kind: i.kind, to: i.to, subject: i.subject })),
+        }),
+      )
+    }
+    return {
+      ...plan,
+      transport: 'disabled',
+      stubbed: true,
+      results: plan.intents.map(() => ({
+        ok: false,
+        provider: 'disabled' as const,
+        skipped: true,
+        error: 'Outbound email is disabled in Site Chrome.',
+      })),
+    }
+  }
+
+  const results: MailSendResult[] = []
+  for (const intent of plan.intents) {
+    const result = await mailer.send({
+      to: intent.to,
+      from,
+      subject: intent.subject,
+      text: intent.body,
+    })
+    results.push(result)
+    if (!result.ok && process.env.NODE_ENV !== 'production') {
+      console.warn('[forms:email-send]', result.error || 'send failed', {
+        kind: intent.kind,
+        to: intent.to,
+      })
+    }
+  }
+
+  return {
+    ...plan,
+    transport: info.provider,
+    results,
+    stubbed: info.provider === 'console',
+  }
+}

@@ -1,3 +1,9 @@
+import {
+  MAIL_PROVIDERS,
+  isMailProvider,
+  type MailProvider,
+} from '@/core/mail/types'
+
 import type { CaptchaProvider, SiteChromeDocument } from './types'
 
 export const DEFAULT_SITE_CHROME_NAME = 'Starforge'
@@ -18,12 +24,18 @@ export const CAPTCHA_PROVIDERS: Array<{ value: CaptchaProvider; label: string }>
   { value: 'hcaptcha', label: 'hCaptcha (not wired)' },
 ]
 
+export { MAIL_PROVIDERS, isMailProvider }
+export type { MailProvider }
+
 export const DEFAULT_SITE_CHROME: SiteChromeDocument = {
   version: 1,
   offlineEnabled: false,
   offlineMessage: DEFAULT_OFFLINE_MESSAGE,
   captchaEnabled: false,
   captchaProvider: 'none',
+  emailEnabled: false,
+  emailProvider: 'console',
+  emailFrom: '',
   siteName: DEFAULT_SITE_CHROME_NAME,
   defaultDescription: '',
   defaultOgImage: '',

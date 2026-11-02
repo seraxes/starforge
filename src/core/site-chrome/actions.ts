@@ -5,9 +5,14 @@ import { revalidatePath } from 'next/cache'
 import { requireAppAdmin } from '@/core/auth/admin'
 import { invalidateSiteChrome, invalidateSiteSettings } from '@/core/content/revalidate'
 
-import { CAPTCHA_PROVIDERS, isCaptchaProvider } from './defaults'
+import {
+  CAPTCHA_PROVIDERS,
+  MAIL_PROVIDERS,
+  isCaptchaProvider,
+  isMailProvider,
+} from './defaults'
 import { saveSiteChrome } from './store'
-import type { CaptchaProvider } from './types'
+import type { CaptchaProvider, MailProvider } from './types'
 
 export type SiteChromeActionState = {
   error?: string
@@ -38,12 +43,21 @@ export async function updateSiteChromeAction(
     return { error: 'Unknown captcha provider.' }
   }
 
+  const emailRaw = String(formData.get('emailProvider') ?? 'console').trim()
+  const emailProvider: MailProvider = isMailProvider(emailRaw) ? emailRaw : 'console'
+  if (!MAIL_PROVIDERS.some((p) => p.value === emailProvider)) {
+    return { error: 'Unknown email provider.' }
+  }
+
   try {
     await saveSiteChrome({
       offlineEnabled: parseBool(formData, 'offlineEnabled'),
       offlineMessage: String(formData.get('offlineMessage') ?? ''),
       captchaEnabled: parseBool(formData, 'captchaEnabled'),
       captchaProvider,
+      emailEnabled: parseBool(formData, 'emailEnabled'),
+      emailProvider,
+      emailFrom: String(formData.get('emailFrom') ?? ''),
       siteName: String(formData.get('siteName') ?? ''),
       defaultDescription: String(formData.get('defaultDescription') ?? ''),
       defaultOgImage: String(formData.get('defaultOgImage') ?? ''),

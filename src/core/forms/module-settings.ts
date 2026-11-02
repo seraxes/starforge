@@ -9,7 +9,7 @@ export function defaultFormsModuleSettings(): FormsModuleSettings {
     version: 1,
     defaultAdminEmails: [],
     fromAddress: '',
-    transport: 'stub',
+    transport: 'platform',
     defaultSuccessMessage: 'Thanks — your message was sent.',
   }
 }
@@ -33,7 +33,8 @@ export function normalizeFormsModuleSettings(raw: unknown): FormsModuleSettings 
     defaultAdminEmails: emails,
     fromAddress:
       typeof row.fromAddress === 'string' ? row.fromAddress.trim() : base.fromAddress,
-    transport: 'stub',
+    // Legacy `stub` documents normalize to platform Mailer.
+    transport: 'platform',
     defaultSuccessMessage:
       typeof row.defaultSuccessMessage === 'string' && row.defaultSuccessMessage.trim()
         ? row.defaultSuccessMessage.trim()
