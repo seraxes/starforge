@@ -10,7 +10,7 @@ import { NavMenusManager } from './nav-menus-manager'
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'Nav — Starforge',
+  title: 'Navigation — Starforge',
   description: 'Navigation sets (menus) and menu items for the public site.',
 }
 
@@ -24,7 +24,7 @@ export default async function AdminNavPage() {
 
   return (
     <section className="admin-section admin-layouts-full">
-      <h2>Nav</h2>
+      <h2>Navigation</h2>
       <p className="lede admin-lede">
         Top-level navigation manager (sibling of Users / Site settings / Layouts) — named{' '}
         <strong>navigation sets</strong> with their own items: CMS page or URL, reorder, copy/paste.

@@ -33,8 +33,8 @@ export default async function AdminAclPage() {
       <h2>ACL</h2>
       <p className="lede admin-lede">
         One model: <strong>groups</strong> hold permissions here; the same groups (plus Public /
-        Registered tags) control who can <em>see</em> Nav items and layout particles. There is no
-        separate Access Level table — manage membership under{' '}
+        Registered tags) control who can <em>see</em> Navigation items and layout particles. There is
+        no separate Access Level table — manage membership under{' '}
         <Link href="/app/admin/users/groups">Groups</Link>. Global app admins still open all Core
         admin today; this matrix is the stub for later enforcement.
       </p>

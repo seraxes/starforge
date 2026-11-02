@@ -52,7 +52,7 @@ const KIND_SECTIONS: Array<{ kind: ModuleToggleKind; title: string; hint: string
   {
     kind: 'product',
     title: 'Product capabilities',
-    hint: 'Layout, Page Settings, Nav manager, Font Awesome, and former feature toggles.',
+    hint: 'Layout, Page Settings, Navigation manager, Font Awesome, and former feature toggles.',
   },
   {
     kind: 'particle',
@@ -146,9 +146,9 @@ export function SettingsForm({
         <legend>Primary nav assignment</legend>
         <p className="settings-hint">
           Assignment only — pick which menu set the public header uses. Create and edit menus under
-          the top-level <Link href="/app/admin/nav">Nav</Link> admin item. Site name / offline /
-          robots / cookies: <Link href="/app/admin/site-chrome">Site Chrome</Link>. Visibility:
-          Modules → Primary nav.
+          the top-level <Link href="/app/admin/nav">Navigation</Link> admin item. Site name /
+          offline / robots / cookies: <Link href="/app/admin/site-chrome">Site Chrome</Link>.
+          Visibility: Modules → Primary nav.
         </p>
         <label className="settings-field">
           <span>Primary nav menu</span>
@@ -159,7 +159,7 @@ export function SettingsForm({
             {...discreteAutosaveProps}
           >
             {navMenus.length === 0 ? (
-              <option value="main">Main (create under Nav)</option>
+              <option value="main">Main (create under Navigation)</option>
             ) : (
               navMenus.map((menu) => (
                 <option key={menu.id} value={menu.id}>

@@ -32,7 +32,7 @@ export default async function AdminSettingsPage() {
         {ADMIN_AUTOSAVE_DEBOUNCE_MAX_MS} ms), and <em>which</em> menu is the public primary
         (assignment only). Site name, offline, robots, and cookies live under{' '}
         <Link href="/app/admin/site-chrome">Site Chrome</Link>. Navigation sets under the top-level{' '}
-        <Link href="/app/admin/nav">Nav</Link> admin item. Also editable in Payload Globals →{' '}
+        <Link href="/app/admin/nav">Navigation</Link> admin item. Also editable in Payload Globals →{' '}
         <Link href="/admin/globals/site-settings">Site settings</Link>.
       </p>
       <SettingsForm

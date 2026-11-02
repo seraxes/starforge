@@ -17,7 +17,7 @@ export const menuModule: StarforgeModule = {
   id: 'menu',
   name: 'Menu',
   description:
-    'Navigation links from a Nav manager menu set. Empty menu id = site primary (Main).',
+    'Navigation links from a Navigation manager menu set. Empty menu id = site primary (Main).',
   builtin: true,
   defaultWidth: 75,
   render: async ({ slot, settings }) => {

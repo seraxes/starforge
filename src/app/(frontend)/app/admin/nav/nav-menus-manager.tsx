@@ -156,7 +156,7 @@ export function NavMenusManager({ menus, primaryNavMenuId }: Props) {
                   <td>
                     <div className="outlines-actions">
                       <Link
-                        className="secondary"
+                        className="gantry-toolbar-btn secondary"
                         href={`/app/admin/nav/${encodeURIComponent(menu.id)}`}
                       >
                         Edit items

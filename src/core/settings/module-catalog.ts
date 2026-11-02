@@ -68,11 +68,11 @@ export const PRODUCT_MODULE_CATALOG: ModuleCatalogItem[] = [
     kind: 'product',
     label: 'Primary nav',
     description:
-      'Nav manager + public header menu. Off hides Core admin → Nav and public header links. Site Settings picks which menu set is the site default.',
+      'Navigation manager + public header menu. Off hides Core admin → Navigation and public header links. Site Settings picks which menu set is the site default.',
     required: false,
     defaultEnabled: true,
     installed: true,
-    navViews: [{ key: 'nav-manager', label: 'Nav manager', href: '/app/admin/nav' }],
+    navViews: [{ key: 'nav-manager', label: 'Navigation manager', href: '/app/admin/nav' }],
   },
   {
     id: MODULE_IDS.fontAwesome,

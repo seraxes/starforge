@@ -22,7 +22,7 @@ import { AdminToastProvider } from './admin-toast'
 export const metadata = {
   title: 'Starforge admin',
   description:
-    'Starforge / App admin — users, site settings, nav, layouts, page settings (not Content CMS).',
+    'Starforge / App admin — users, site settings, navigation, layouts, page settings (not Content CMS).',
 }
 
 export default async function CoreAdminLayout(props: { children: React.ReactNode }) {

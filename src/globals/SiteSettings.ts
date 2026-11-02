@@ -31,7 +31,7 @@ export const SiteSettings: GlobalConfig = {
   label: 'Site settings',
   admin: {
     description:
-      'Primary nav assignment + module/feature toggles. Site Chrome (offline/metadata/robots) is /app/admin/site-chrome. Menus: Starforge admin → Nav. Core Modules: /app/admin/settings.',
+      'Primary nav assignment + module/feature toggles. Site Chrome (offline/metadata/robots) is /app/admin/site-chrome. Menus: Starforge admin → Navigation. Core Modules: /app/admin/settings.',
   },
   hooks: {
     afterChange: [revalidateSiteSettingsAfterChange],
@@ -57,7 +57,7 @@ export const SiteSettings: GlobalConfig = {
       defaultValue: 'main',
       admin: {
         description:
-          'Assignment only: which Nav menu set (`sf_nav_menus`) powers the public header. Edit sets under Starforge admin → Nav (top-level). Default: main.',
+          'Assignment only: which Navigation menu set (`sf_nav_menus`) powers the public header. Edit sets under Starforge admin → Navigation (top-level). Default: main.',
       },
     },
     {
@@ -75,14 +75,14 @@ export const SiteSettings: GlobalConfig = {
       name: 'primaryNav',
       type: 'array',
       labels: {
-        singular: 'Nav item',
+        singular: 'Navigation item',
         plural: 'Legacy primary nav',
       },
       admin: {
         // Hidden: Core Site Settings no longer edits items. Migrated into sf_nav_menus Main.
         hidden: true,
         description:
-          'Legacy storage only — migrated into Nav manager Main. Do not edit; use /app/admin/nav.',
+          'Legacy storage only — migrated into Navigation manager Main. Do not edit; use /app/admin/nav.',
       },
       fields: [
         {
@@ -124,14 +124,14 @@ export const SiteSettings: GlobalConfig = {
           name: 'cssClass',
           type: 'text',
           admin: {
-            description: 'Legacy stub — use Nav manager item CSS class instead.',
+            description: 'Legacy stub — use Navigation manager item CSS class instead.',
           },
         },
         {
           name: 'browserTitle',
           type: 'text',
           admin: {
-            description: 'Legacy stub — use Nav manager browser title instead.',
+            description: 'Legacy stub — use Navigation manager browser title instead.',
           },
         },
       ],

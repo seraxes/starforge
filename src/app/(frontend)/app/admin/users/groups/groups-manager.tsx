@@ -208,7 +208,7 @@ export function GroupsManager({ groups }: Props) {
                             onClick={(e) => {
                               if (
                                 !window.confirm(
-                                  `Delete group “${group.label}”? Members and ACL rows are removed. Nav items using group:${group.id} will hide until reassigned.`,
+                                  `Delete group “${group.label}”? Members and ACL rows are removed. Navigation items using group:${group.id} will hide until reassigned.`,
                                 )
                               ) {
                                 e.preventDefault()

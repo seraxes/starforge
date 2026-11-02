@@ -380,7 +380,7 @@ export function MenuParticleEditor({
         <input type="hidden" name="rowId" value={rowId} />
         <input type="hidden" name="slotId" value={slot.id} />
         <label>
-          <span>Nav menu set</span>
+          <span>Navigation menu set</span>
           <select
             name="menuId"
             value={selected}
