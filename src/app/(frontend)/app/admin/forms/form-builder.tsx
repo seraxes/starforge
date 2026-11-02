@@ -1275,7 +1275,7 @@ export function FormBuilder({ formId, initialDocument }: Props) {
                   queueMicrotask(saveNow)
                 }}
               />
-              <span>Use site captcha default (Site Settings → Integrations)</span>
+              <span>Use site captcha default (Site Settings → Security)</span>
             </label>
 
             <fieldset className="sf-form-builder-constraints sf-form-builder-email">

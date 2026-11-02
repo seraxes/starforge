@@ -1,4 +1,8 @@
-export { updateCaptchaIntegrationAction, updateSiteChromeAction } from './actions'
+export {
+  updateCaptchaIntegrationAction,
+  updateSecurityCaptchaAction,
+  updateSiteChromeAction,
+} from './actions'
 export type { SiteChromeActionState } from './actions'
 export {
   applySiteChromeCookieAttributes,

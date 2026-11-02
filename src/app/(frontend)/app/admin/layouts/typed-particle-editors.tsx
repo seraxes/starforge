@@ -876,7 +876,7 @@ export function FormParticleEditor({
               queueMicrotask(saveNow)
             }}
           />
-          <span>Use site captcha default (Site Settings → Integrations)</span>
+          <span>Use site captcha default (Site Settings → Security)</span>
         </label>
         {pending ? <p className="layout-muted">Saving…</p> : null}
         <ActionFeedback state={state} />

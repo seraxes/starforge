@@ -17,7 +17,7 @@ export type SiteChromeDocument = {
   offlineMessage: string
   /**
    * Default sitewide captcha for forms (enable + provider; keys in env).
-   * Edited under Site Settings → Integrations; kept here for storage continuity.
+   * Edited under Site Settings → Security; kept here for storage continuity.
    */
   captchaEnabled: boolean
   captchaProvider: CaptchaProvider

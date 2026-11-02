@@ -233,7 +233,7 @@ export const INSTALLABLE_MANIFEST: InstallableEntry[] = [
     kind: 'particle',
     label: 'Form',
     description:
-      'Modular Form engine particle — contact and other presets via Admin → Forms. Optional Site Settings → Integrations captcha (Turnstile).',
+      'Modular Form engine particle — contact and other presets via Admin → Forms. Optional Site Settings → Security captcha (Turnstile).',
     defaultEnabled: true,
     importPath: '@/modules/form',
     exportName: 'formModule',

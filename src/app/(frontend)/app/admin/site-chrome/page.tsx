@@ -21,7 +21,7 @@ export default async function AdminSiteChromePage() {
       <p className="lede admin-lede">
         Site-wide policy and defaults — offline, SEO/metadata, cookies, outbound email, and
         Environment. Captcha enable/provider moved to{' '}
-        <Link href="/app/admin/settings/integrations">Site Settings → Integrations</Link>. Modules
+        <Link href="/app/admin/settings/security">Site Settings → Security</Link>. Modules
         on/off under <Link href="/app/admin/settings">Site Settings → Modules</Link>; navigation
         sets under <Link href="/app/admin/nav">Navigation</Link>; document chrome / Font Awesome
         under <Link href="/app/admin/page-settings">Layouts → Page settings</Link>. Secrets stay in

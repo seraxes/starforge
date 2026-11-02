@@ -47,7 +47,7 @@ for (const surface of ['core', 'payload'] as const) {
     { href: '/app/admin/settings', label: 'Modules' },
     { href: '/app/admin/settings/admin-ux', label: 'Admin UX' },
     { href: '/app/admin/settings/auth', label: 'Auth & registration' },
-    { href: '/app/admin/settings/integrations', label: 'Integrations' },
+    { href: '/app/admin/settings/security', label: 'Security' },
     { href: '/app/admin/settings/performance', label: 'Performance' },
   ]
   for (const want of expectedSettings) {

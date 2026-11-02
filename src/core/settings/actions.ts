@@ -53,7 +53,7 @@ function revalidateSettingsPaths() {
   revalidatePath('/app/admin/settings')
   revalidatePath('/app/admin/settings/admin-ux')
   revalidatePath('/app/admin/settings/auth')
-  revalidatePath('/app/admin/settings/integrations')
+  revalidatePath('/app/admin/settings/security')
   revalidatePath('/app/admin/settings/performance')
   revalidatePath('/app/admin/nav')
   revalidatePath('/app/admin/forms')

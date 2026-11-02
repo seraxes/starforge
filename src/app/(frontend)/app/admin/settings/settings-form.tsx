@@ -176,7 +176,7 @@ export function SettingsForm({
           <code>npm run modules:generate</code>. Saves automatically. Other Site Settings topics:{' '}
           <Link href="/app/admin/settings/admin-ux">Admin UX</Link>,{' '}
           <Link href="/app/admin/settings/auth">Auth</Link>,{' '}
-          <Link href="/app/admin/settings/integrations">Integrations</Link>.
+          <Link href="/app/admin/settings/security">Security</Link>.
         </p>
 
         {KIND_SECTIONS.map((section) => (

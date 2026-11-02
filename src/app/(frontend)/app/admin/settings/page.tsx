@@ -26,7 +26,7 @@ export default async function AdminSettingsModulesPage() {
         Installed module on/off and which Navigation menu is the public primary. Admin autosave
         debounce lives under <Link href="/app/admin/settings/admin-ux">Admin UX</Link>; registration
         under <Link href="/app/admin/settings/auth">Auth & registration</Link>; captcha under{' '}
-        <Link href="/app/admin/settings/integrations">Integrations</Link>. Site name, offline,
+        <Link href="/app/admin/settings/security">Security</Link>. Site name, offline,
         robots, cookies, and email live under{' '}
         <Link href="/app/admin/site-chrome">Site Chrome</Link>. Also editable in Payload Globals →{' '}
         <Link href="/admin/globals/site-settings">Site settings</Link>.

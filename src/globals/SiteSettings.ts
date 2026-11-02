@@ -12,11 +12,11 @@ const revalidateSiteSettingsAfterChange: GlobalAfterChangeHook = ({ doc }) => {
  *
  * - Editors: edit in Payload `/admin` → Globals → Site settings
  * - Core admins: topic pages under `/app/admin/settings` (Modules, Admin UX,
- *   Auth, Integrations, Performance).
+ *   Auth, Security, Performance).
  *
  * Site-wide policy (offline, metadata, robots, cookies, email) lives in Core
  * **Site Chrome** (`/app/admin/site-chrome`, `sf_site_chrome`) — not here.
- * Captcha enable/provider is edited under Site Settings → Integrations
+ * Captcha enable/provider is edited under Site Settings → Security
  * (still stored on Site Chrome JSON). `siteName` syncs when Site Chrome saves.
  *
  * Navigation sets live in Core **Nav** (`/app/admin/nav`, `sf_nav_menus`) — a
@@ -33,7 +33,7 @@ export const SiteSettings: GlobalConfig = {
   label: 'Site settings',
   admin: {
     description:
-      'Primary nav assignment + module/feature toggles. Topics: /app/admin/settings (Modules, Admin UX, Auth, Integrations, Performance). Site Chrome (offline/metadata/robots/email): /app/admin/site-chrome. Menus: Navigation.',
+      'Primary nav assignment + module/feature toggles. Topics: /app/admin/settings (Modules, Admin UX, Auth, Security, Performance). Site Chrome (offline/metadata/robots/email): /app/admin/site-chrome. Menus: Navigation.',
   },
   hooks: {
     afterChange: [revalidateSiteSettingsAfterChange],

@@ -4,7 +4,7 @@ import React, { useActionState } from 'react'
 import Link from 'next/link'
 
 import {
-  updateCaptchaIntegrationAction,
+  updateSecurityCaptchaAction,
   type SiteChromeActionState,
 } from '@/core/site-chrome/actions'
 import { CAPTCHA_PROVIDERS } from '@/core/site-chrome/defaults'
@@ -20,8 +20,8 @@ type Props = {
 
 const initialState: SiteChromeActionState = {}
 
-export function IntegrationsForm({ captchaEnabled, captchaProvider }: Props) {
-  const [state, formAction, pending] = useActionState(updateCaptchaIntegrationAction, initialState)
+export function SecuritySettingsForm({ captchaEnabled, captchaProvider }: Props) {
+  const [state, formAction, pending] = useActionState(updateSecurityCaptchaAction, initialState)
   useNotifySavedOnOk(state, { toastErrors: true })
   const { formRef, discreteAutosaveProps } = useAutosaveForm()
 
@@ -65,6 +65,48 @@ export function IntegrationsForm({ captchaEnabled, captchaProvider }: Props) {
               </option>
             ))}
           </select>
+        </label>
+      </fieldset>
+
+      <fieldset className="settings-fieldset">
+        <legend>Form defenses</legend>
+        <p className="settings-hint">
+          Sitewide honeypot and rate-limit policy will land here. Forms already apply a hidden
+          honeypot field and an in-memory per-form bucket today; these toggles are stubs until a
+          shared Security store/Redis-backed limiter ships.
+        </p>
+        <label className="settings-flag">
+          <input type="checkbox" name="honeypotEnabledStub" disabled defaultChecked />
+          <span>
+            <strong>Honeypot field</strong>
+            <span className="settings-flag-desc">Coming soon — Forms already use a honeypot.</span>
+          </span>
+        </label>
+        <label className="settings-flag">
+          <input type="checkbox" name="rateLimitEnabledStub" disabled defaultChecked />
+          <span>
+            <strong>Submission rate limit</strong>
+            <span className="settings-flag-desc">
+              Coming soon — in-memory Form buckets now; Redis later.
+            </span>
+          </span>
+        </label>
+      </fieldset>
+
+      <fieldset className="settings-fieldset">
+        <legend>HTTP security headers</legend>
+        <p className="settings-hint">
+          CSP / HSTS / related header middleware will be controlled here. No runtime toggles yet —
+          production hardening lands with hosting prep.
+        </p>
+        <label className="settings-flag">
+          <input type="checkbox" name="securityHeadersEnabledStub" disabled />
+          <span>
+            <strong>Enable security headers</strong>
+            <span className="settings-flag-desc">
+              Coming soon — Next middleware / <code>headers()</code> (CSP, HSTS in prod).
+            </span>
+          </span>
         </label>
       </fieldset>
 
