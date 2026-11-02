@@ -23,7 +23,9 @@ export default async function AdminSiteChromePage() {
         Modules on/off lives under <Link href="/app/admin/settings">Site settings</Link>; navigation
         sets under <Link href="/app/admin/nav">Navigation</Link>; document chrome under{' '}
         <Link href="/app/admin/page-settings">Page settings</Link>. Outbound email enable /
-        provider / From live here; secrets stay in env.
+        provider / From live here; secrets stay in env — gated{' '}
+        <Link href="/app/admin/site-chrome/environment">Environment</Link> writes{' '}
+        <code>.env.local</code>, not this form or the database.
       </p>
       <SiteChromeForm chrome={chrome} />
     </section>

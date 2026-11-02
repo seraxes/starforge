@@ -54,7 +54,11 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
     {
       id: 'site-chrome',
       label: 'Site Chrome',
-      links: [{ href: '/app/admin/site-chrome', label: 'Site Chrome' }],
+      href: '/app/admin/site-chrome',
+      links: [
+        { href: '/app/admin/site-chrome', label: 'Site Chrome', exact: true },
+        { href: '/app/admin/site-chrome/environment', label: 'Environment' },
+      ],
     },
     {
       id: 'site-settings',

@@ -176,6 +176,15 @@ export {
 } from './site-chrome'
 export type { CaptchaProvider, SiteChromeDocument } from './site-chrome'
 export {
+  ENV_EDITOR_FIELDS,
+  ENV_EDITOR_GROUPS,
+  envEditorIsWritable,
+  getEnvEditorWriteMode,
+  getEnvOverlayPath,
+  loadEnvEditorSnapshot,
+} from './env-editor'
+export type { EnvEditorSnapshot, EnvEditorWriteMode } from './env-editor'
+export {
   BOOTSTRAP_ADMIN_EMAIL,
   ensureCmsAccessForCoreUserIds,
   ensurePayloadCmsUser,

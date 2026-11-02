@@ -70,8 +70,9 @@ export function SiteChromeForm({ chrome }: Props) {
         <p className="settings-hint">
           Provider/enable defaults for the Core Form module when a form opts into “use site captcha
           default”. Turnstile site/secret keys stay in env (
-          <code>NEXT_PUBLIC_TURNSTILE_SITE_KEY</code>, <code>TURNSTILE_SECRET_KEY</code>) — never in
-          this form. reCAPTCHA / hCaptcha remain unwired.
+          <code>NEXT_PUBLIC_TURNSTILE_SITE_KEY</code>, <code>TURNSTILE_SECRET_KEY</code>) — edit via
+          gated <Link href="/app/admin/site-chrome/environment">Environment</Link>, never this form
+          or the database. reCAPTCHA / hCaptcha remain unwired.
         </p>
         <label className="settings-flag">
           <input
@@ -110,8 +111,9 @@ export function SiteChromeForm({ chrome }: Props) {
         <p className="settings-hint">
           Platform Mailer for Forms notify (and later forgot-password). Choose enable + provider +
           From here. SMTP credentials (<code>SMTP_HOST</code>, <code>SMTP_USER</code>,{' '}
-          <code>SMTP_PASS</code>, …) and <code>RESEND_API_KEY</code> stay in env — never in this
-          form. Console logs locally with no network send.
+          <code>SMTP_PASS</code>, …) and <code>RESEND_API_KEY</code> stay in env — gated{' '}
+          <Link href="/app/admin/site-chrome/environment">Environment</Link>, never this form or the
+          database. Console logs locally with no network send.
         </p>
         <label className="settings-flag">
           <input

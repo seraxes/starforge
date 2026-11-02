@@ -123,7 +123,7 @@ Global app admins still open all Core admin today; the matrix is the enforcement
 
 ### Site Chrome + Site settings + Nav
 
-**Site Chrome** (`/app/admin/site-chrome`, `sf_site_chrome`) is the top-level policy panel: site offline (+ message), default captcha (enable + provider; Turnstile keys in env), outbound email (enable + provider + From; SMTP / Resend secrets in env), site metadata (name / description / OG image), robots meta + `/robots.txt`, content rights, cookie domain/path. Offline mode blocks public visitors; app admins still browse (banner) and can sign in via `/login`.
+**Site Chrome** (`/app/admin/site-chrome`, `sf_site_chrome`) is the top-level policy panel: site offline (+ message), default captcha (enable + provider; Turnstile keys in env), outbound email (enable + provider + From; SMTP / Resend secrets in env), site metadata (name / description / OG image), robots meta + `/robots.txt`, content rights, cookie domain/path. Offline mode blocks public visitors; app admins still browse (banner) and can sign in via `/login`. **Environment** (`/app/admin/site-chrome/environment`) is a developer-admin panel behind password re-auth that writes allowlisted keys to gitignored `.env.local` (never Postgres). Production is read-only unless `STARFORGE_ENV_EDITOR=write`; restart Node after writes so Next reloads env.
 
 **Nav** is a **top-level** Core admin item (`/app/admin/nav`, sibling of Users / Site Chrome / Site settings / Layouts): multiple named **navigation sets** (menus) in `sf_nav_menus`, each with items (CMS page, URL, or module view; reorder; copy/paste; CSS class; browser/page title; multi-select access tags). Site Settings only **assigns** which set is the site primary header menu — not nested under Site Chrome.
 
