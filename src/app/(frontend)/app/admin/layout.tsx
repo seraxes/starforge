@@ -2,6 +2,9 @@ import React from 'react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
+import { AdminSidebarNav } from '@/components/admin/AdminSidebarNav'
+import { buildAdminNavGroups } from '@/core/admin-nav'
+import { getActiveAdminTheme } from '@/core/admin-theme'
 import {
   promoteSessionUserIfBootstrapAdmin,
   roleFromUser,
@@ -16,13 +19,12 @@ import {
 } from '@/core/settings'
 
 import { AdminAutosaveProvider } from './admin-autosave-context'
-import { AdminSidebarNav, type AdminSidebarGroup } from './admin-sidebar-nav'
 import { AdminToastProvider } from './admin-toast'
 
 export const metadata = {
   title: 'Starforge admin',
   description:
-    'Starforge / App admin — users, site settings, navigation, layouts, page settings (not Content CMS).',
+    'Starforge / App admin — users, site settings, nav, layouts, page settings (not Content CMS).',
 }
 
 export default async function CoreAdminLayout(props: { children: React.ReactNode }) {
@@ -48,102 +50,26 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
   const navOn = isCatalogModuleEnabled(settings, MODULE_IDS.primaryNav)
   const formsOn = isCatalogModuleEnabled(settings, MODULE_IDS.forms)
   const showPayloadCms = payloadOn && userHasCmsAccess(access)
-  const showLayoutsNav = layoutOn || pageSettingsOn
+  const theme = getActiveAdminTheme()
 
-  const groups: AdminSidebarGroup[] = [
-    {
-      id: 'site-chrome',
-      label: 'Site Chrome',
-      href: '/app/admin/site-chrome',
-      links: [
-        { href: '/app/admin/site-chrome', label: 'Site Chrome', exact: true },
-        { href: '/app/admin/site-chrome/environment', label: 'Environment' },
-      ],
+  const groups = buildAdminNavGroups({
+    surface: 'core',
+    flags: {
+      nav: navOn,
+      forms: formsOn,
+      layout: layoutOn,
+      pageSettings: pageSettingsOn,
+      cms: showPayloadCms,
     },
-    {
-      id: 'site-settings',
-      label: 'Site Settings',
-      links: [{ href: '/app/admin/settings', label: 'Site Settings' }],
-    },
-  ]
-
-  if (navOn) {
-    groups.push({
-      id: 'navigation',
-      label: 'Navigation',
-      links: [{ href: '/app/admin/nav', label: 'Navigation' }],
-    })
-  }
-
-  if (formsOn) {
-    groups.push({
-      id: 'forms',
-      label: 'Forms',
-      href: '/app/admin/forms',
-      links: [
-        { href: '/app/admin/forms', label: 'Forms', exact: true },
-        { href: '/app/admin/forms/submissions', label: 'Submissions' },
-      ],
-    })
-  }
-
-  groups.push({
-    id: 'users',
-    label: 'Users',
-    href: '/app/admin/users',
-    links: [
-      { href: '/app/admin/users', label: 'Accounts', exact: true },
-      { href: '/app/admin/users/groups', label: 'Groups' },
-      { href: '/app/admin/users/acl', label: 'ACL' },
-    ],
-  })
-
-  // Media library is always available to app admins (Payload store + Starforge pipeline).
-  groups.push({
-    id: 'media',
-    label: 'Media',
-    links: [{ href: '/app/admin/media', label: 'Media' }],
-  })
-
-  if (showLayoutsNav) {
-    const layoutLinks: AdminSidebarGroup['links'] = []
-    if (layoutOn) {
-      layoutLinks.push(
-        { href: '/app/admin/layouts', label: 'Layout' },
-        { href: '/app/admin/breakpoints', label: 'Styles' },
-        { href: '/app/admin/particle-defaults', label: 'Particle Defaults' },
-        { href: '/app/admin/outlines', label: 'Outlines' },
-      )
-    }
-    if (pageSettingsOn) {
-      layoutLinks.push({ href: '/app/admin/page-settings', label: 'Page settings' })
-    }
-    groups.push({
-      id: 'layouts',
-      label: 'Layouts',
-      href: layoutOn ? '/app/admin/layouts' : '/app/admin/page-settings',
-      links: layoutLinks,
-    })
-  }
-
-  if (showPayloadCms) {
-    groups.push({
-      id: 'cms',
-      label: 'CMS',
-      links: [{ href: '/admin', label: 'CMS', external: true }],
-    })
-  }
-
-  groups.push({
-    id: 'check-site',
-    label: 'Check site',
-    links: [{ href: '/', label: 'Check site', exact: true }],
   })
 
   return (
     <AdminToastProvider>
       <AdminAutosaveProvider delayMs={settings.adminAutosaveDebounceMs}>
-        <div className="admin-shell" data-sf-admin-theme="dark">
+        <div
+          className="admin-shell"
+          data-sf-admin-theme={theme.dataAttr}
+        >
           <AdminSidebarNav
             groups={groups}
             brand={
@@ -166,10 +92,16 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
                 <h1>Starforge admin</h1>
                 <p className="lede admin-lede">
                   Top-level areas: Site Chrome, Site Settings (Modules), Navigation, Forms, Users
-                  (Accounts · Groups · ACL), Media, Layouts, CMS. Pages live in{' '}
-                  {showPayloadCms ? <Link href="/admin">CMS</Link> : 'CMS'}; media library is under{' '}
-                  <Link href="/app/admin/media">Media</Link> (same Payload store) — same login when
-                  CMS access is on.
+                  (Accounts · Groups · ACL), Media, Layouts, CMS (Payload). Pages live under CMS →
+                  Pages
+                  {showPayloadCms ? (
+                    <>
+                      {' '}
+                      (<Link href="/admin/collections/pages">open</Link>)
+                    </>
+                  ) : null}
+                  ; media library is under <Link href="/app/admin/media">Media</Link> (same Payload
+                  store) — same login when CMS access is on.
                 </p>
               </div>
             </header>

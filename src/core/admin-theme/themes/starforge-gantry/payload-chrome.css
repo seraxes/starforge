@@ -1,0 +1,301 @@
+/*
+ * Starforge Gantry theme — Payload `/admin` chrome.
+ * Maps Core admin tokens onto Payload CSS variables; styles shared AdminSidebarNav
+ * when embedded in Payload NavWrapper. Orange = primary actions only.
+ */
+
+:root {
+  --sf-admin-bg: #212933;
+  --sf-admin-bg-deep: #1a222e;
+  --sf-admin-surface: #1b2531;
+  --sf-admin-elevated: #222e3f;
+  --sf-admin-input: #152033;
+  --sf-admin-blue-border: #1e4d72;
+  --sf-admin-blue-mid: #3498db;
+  --sf-admin-blue-action: #2f80b9;
+  --sf-admin-nav-bar: #0c121c;
+  --sf-admin-nav-active: #263248;
+  --sf-admin-icon-primary: 1.8rem;
+  --sf-admin-icon-secondary: 1.6rem;
+
+  --sf-ink: #ffffff;
+  --sf-muted: #9eb1c7;
+  --sf-paper: var(--sf-admin-bg);
+  --sf-line: #3d5270;
+  --sf-primary: #f2a66a;
+  --sf-primary-strong: #f5b888;
+  --sf-primary-ink: #1c2834;
+  --sf-secondary: #8ebad4;
+  --sf-secondary-strong: #b7d6ec;
+
+  /* Cool navy base scale (replaces Payload gray) — light mode rarely used (theme locked dark). */
+  --color-base-0: #e8eef8;
+  --color-base-50: #d5e0ec;
+  --color-base-100: #c0cedc;
+  --color-base-150: #a8b9cc;
+  --color-base-200: #91a5bb;
+  --color-base-250: #7b91a9;
+  --color-base-300: #667d96;
+  --color-base-350: #556a82;
+  --color-base-400: #46586e;
+  --color-base-450: #3a4a5e;
+  --color-base-500: #314257;
+  --color-base-550: #2a384a;
+  --color-base-600: #243040;
+  --color-base-650: #1f2938;
+  --color-base-700: #1b2531;
+  --color-base-750: #17202b;
+  --color-base-800: #141c26;
+  --color-base-850: #101822;
+  --color-base-900: #0c121c;
+  --color-base-950: #080d14;
+  --color-base-1000: #05080c;
+
+  /* Mid-blue “success” (Payload uses success for focus rings / accents) → Helium blue */
+  --color-success-50: #eaf5fc;
+  --color-success-100: #d5ebf8;
+  --color-success-150: #b7dcf2;
+  --color-success-200: #94cceb;
+  --color-success-250: #6fb8e0;
+  --color-success-300: #4fa4d4;
+  --color-success-350: #3a94c8;
+  --color-success-400: #3498db;
+  --color-success-450: #2f80b9;
+  --color-success-500: #2a73a8;
+  --color-success-550: #256697;
+  --color-success-600: #1e4d72;
+  --color-success-650: #1a4364;
+  --color-success-700: #163856;
+  --color-success-750: #122e47;
+  --color-success-800: #0e2539;
+  --color-success-850: #0b1d2d;
+  --color-success-900: #081522;
+  --color-success-950: #050e17;
+
+  /* Warning scale nudged toward pastel orange (not used as primary Save) */
+  --color-warning-300: #f2a66a;
+  --color-warning-400: #ef9550;
+  --color-warning-500: #e0843c;
+}
+
+html[data-theme='dark'] {
+  --theme-bg: #212933;
+  --theme-input-bg: #152033;
+  --theme-text: #e8eef8;
+  --theme-overlay: rgba(5, 10, 18, 0.72);
+
+  --theme-elevation-0: #212933;
+  --theme-elevation-50: #1b2531;
+  --theme-elevation-100: #222e3f;
+  --theme-elevation-150: #2a384a;
+  --theme-elevation-200: #314257;
+  --theme-elevation-250: #3a4a5e;
+  --theme-elevation-300: #46586e;
+  --theme-elevation-350: #556a82;
+  --theme-elevation-400: #667d96;
+  --theme-elevation-450: #7b91a9;
+  --theme-elevation-500: #91a5bb;
+  --theme-elevation-550: #a8b9cc;
+  --theme-elevation-600: #c0cedc;
+  --theme-elevation-650: #d5e0ec;
+  --theme-elevation-700: #e0e8f2;
+  --theme-elevation-750: #e8eef8;
+  --theme-elevation-800: #f0f4f9;
+  --theme-elevation-850: #f5f8fc;
+  --theme-elevation-900: #fafcfe;
+  --theme-elevation-950: #ffffff;
+  --theme-elevation-1000: #ffffff;
+
+  --theme-border-color: #3d5270;
+}
+
+/* —— Primary actions = Starforge pastel orange (not elevation gray / purple) —— */
+html[data-theme='dark'] .btn.btn--style-primary {
+  --color: var(--sf-primary-ink);
+  --bg-color: var(--sf-primary);
+  --hover-bg: var(--sf-primary-strong);
+  --hover-color: var(--sf-primary-ink);
+}
+
+html[data-theme='dark'] .btn.btn--style-primary.btn--disabled {
+  --bg-color: color-mix(in srgb, var(--sf-primary) 40%, var(--sf-admin-surface));
+  --color: color-mix(in srgb, var(--sf-primary-ink) 55%, var(--sf-muted));
+  --hover-bg: var(--bg-color);
+  --hover-color: var(--color);
+}
+
+html[data-theme='dark'] .btn.btn--style-secondary {
+  --color: var(--sf-ink);
+  --btn-border: 1px solid var(--sf-admin-blue-border);
+  --hover-color: #fff;
+  --hover-btn-border: 1px solid var(--sf-admin-blue-mid);
+}
+
+/* —— Payload left rail → Gantry Helium sidebar —— */
+.nav {
+  background:
+    linear-gradient(180deg, #0c121c 0%, #0f1622 48%, #0d141e 100%) !important;
+  border-right: 1px solid #1a2433 !important;
+  box-shadow: none !important;
+}
+
+.nav__wrap.sf-payload-admin-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 0.75rem 1.25rem;
+  box-sizing: border-box;
+  min-height: 100%;
+}
+
+.nav__wrap.sf-payload-admin-nav .nav__controls {
+  margin-top: auto;
+  padding-top: 0.75rem;
+  border-top: 1px solid #1a2433;
+}
+
+/* Shared AdminSidebarNav (embedded) inside Payload nav */
+.nav .admin-sidebar--embedded {
+  position: static;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  height: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  overflow: visible;
+  gap: 0.65rem;
+}
+
+.nav .admin-sidebar-brand .brand {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.nav .admin-sidebar-brand .brand a {
+  color: #fff;
+  text-decoration: none;
+}
+
+.nav .admin-sidebar-title {
+  margin: 0.2rem 0 0;
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.nav .admin-sidebar-who .admin-who {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: var(--sf-muted);
+}
+
+.nav .admin-sidebar-list,
+.nav .admin-sidebar-sub {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.nav .admin-sidebar-item {
+  margin: 0 0 0.2rem;
+}
+
+.nav .admin-sidebar-link,
+.nav .admin-sidebar-group-head,
+.nav .admin-sidebar-sublink {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  text-decoration: none;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: #e8eef8;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.nav .admin-sidebar-link,
+.nav .admin-sidebar-group-head {
+  padding: 0.45rem 0.6rem;
+  border-radius: 3px;
+}
+
+.nav .admin-sidebar-group-head {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.nav .admin-sidebar-group-title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.nav .admin-sidebar-group-toggle {
+  display: inline-block;
+  width: var(--sf-admin-icon-secondary);
+  height: var(--sf-admin-icon-secondary);
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M5.75 3.5L10.25 8L5.75 12.5' stroke='%23c5d2e0' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: var(--sf-admin-icon-secondary) var(--sf-admin-icon-secondary);
+  color: transparent;
+  font-size: 0;
+  line-height: 0;
+  overflow: hidden;
+}
+
+.nav .admin-sidebar-group-toggle.is-open {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 5.75L8 10.25L12.5 5.75' stroke='%23c5d2e0' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+.nav .admin-sidebar-sub {
+  margin: 0.1rem 0 0.35rem;
+  padding: 0.15rem 0 0.15rem 0.55rem;
+  border-left: 2px solid #314257;
+}
+
+.nav .admin-sidebar-sublink {
+  padding: 0.35rem 0.55rem;
+  border-radius: 3px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #9eb1c7;
+}
+
+.nav .admin-sidebar-link:hover,
+.nav .admin-sidebar-group-head:hover,
+.nav .admin-sidebar-sublink:hover,
+.nav .admin-sidebar-link.is-current,
+.nav .admin-sidebar-sublink.is-current,
+.nav .admin-sidebar-item.is-active > .admin-sidebar-link,
+.nav .admin-sidebar-item.is-active > .admin-sidebar-group-head {
+  background: var(--sf-admin-blue-mid);
+  color: #fff;
+  box-shadow: none;
+}
+
+.nav .admin-sidebar-group-head:hover .admin-sidebar-group-toggle,
+.nav .admin-sidebar-item.is-active > .admin-sidebar-group-head .admin-sidebar-group-toggle {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M5.75 3.5L10.25 8L5.75 12.5' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+.nav .admin-sidebar-group-head:hover .admin-sidebar-group-toggle.is-open,
+.nav .admin-sidebar-item.is-active > .admin-sidebar-group-head .admin-sidebar-group-toggle.is-open {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 5.75L8 10.25L12.5 5.75' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+html[data-theme='dark'] .template-default__wrap {
+  background: var(--theme-bg);
+}

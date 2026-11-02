@@ -20,6 +20,8 @@ const dirname = path.dirname(filename)
 export default buildConfig({
   admin: {
     user: Users.slug,
+    // Lock dark — Starforge Gantry theme (see src/core/admin-theme).
+    theme: 'dark',
     importMap: {
       baseDir: path.resolve(dirname),
     },
@@ -38,8 +40,8 @@ export default buildConfig({
         '@/components/payload/AdminLoginRedirect',
         '@/components/payload/KillPayloadLoginForm',
       ],
-      // Persistent link back to Starforge / App admin (users, settings).
-      afterNavLinks: ['@/components/payload/CoreAdminNavLink'],
+      // Shared Core↔Payload left nav (replaces DefaultNav + old CoreAdminNavLink).
+      Nav: '@/components/payload/StarforgeAdminNav',
     },
   },
   // Empty = accept cookie JWT from any Origin (needed for admin RSC).

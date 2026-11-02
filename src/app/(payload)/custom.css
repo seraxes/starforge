@@ -1,19 +1,7 @@
 /*
- * Light Starforge brand touch for Payload admin.
- * Full theming stays with Payload; these only hint the product palette.
+ * Payload admin custom styles entry.
+ * Active admin theme (port): import the theme sheet directly.
+ * Nested CSS @import via active-payload.css was unreliable in Next/Turbopack.
+ * To switch themes, change this import (and Core layout) to the new theme folder.
  */
-:root {
-  --sf-primary: #f2a66a;
-  --sf-primary-strong: #a85220;
-  --sf-secondary: #8ebad4;
-  --sf-secondary-strong: #2f6f96;
-}
-
-html[data-theme='light'] {
-  --theme-success-500: var(--sf-secondary-strong);
-}
-
-/* Core admin nav link (outside Payload routes — plain <a>, still looks like a nav item). */
-#nav-starforge-admin.nav__link {
-  text-decoration: none;
-}
+@import '../../core/admin-theme/themes/starforge-gantry/payload-chrome.css';

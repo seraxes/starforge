@@ -1,7 +1,8 @@
 /*
- * Core admin dark chrome (Gantry 5–like) — scoped to `.admin-shell`.
- * Dark navy + mid/light blue panels/borders (Gantry Helium), orange only for
- * primary actions. No green accents. Public site stays light in styles.css.
+ * Starforge Gantry theme — Core `/app/admin` chrome (Gantry 5–like).
+ * Scoped to `.admin-shell`. Dark navy + mid/light blue panels/borders
+ * (Helium), orange only for primary actions. No green accents.
+ * Public site stays light in styles.css. Active import: admin-theme/active-core.css.
  */
 
 /* Prevent the public light body wash from peeking around admin chrome. */
