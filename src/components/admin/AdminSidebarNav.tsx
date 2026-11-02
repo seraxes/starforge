@@ -65,7 +65,13 @@ function AdminSidebarNavInner({
     [groups, pathname],
   )
 
-  const [openIds, setOpenIds] = useState<Set<string>>(() => new Set(activeIds))
+  const [openIds, setOpenIds] = useState<Set<string>>(() => {
+    const next = new Set(activeIds)
+    for (const group of groups) {
+      if (group.defaultOpen && group.links.length > 1) next.add(group.id)
+    }
+    return next
+  })
   const [mobileOpen, setMobileOpen] = useState(false)
 
   function toggleGroup(id: string) {

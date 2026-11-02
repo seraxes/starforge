@@ -14,6 +14,11 @@ export type AdminNavGroup = {
   label: string
   /** Default landing when useful for “group is active” heuristics. */
   href?: string
+  /**
+   * When true, accordion starts expanded even if the route is outside this group
+   * (so children like Site Chrome → Environment stay discoverable).
+   */
+  defaultOpen?: boolean
   links: AdminNavLink[]
 }
 

@@ -30,6 +30,8 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
       id: 'site-chrome',
       label: 'Site Chrome',
       href: '/app/admin/site-chrome',
+      // Keep Environment (and future siblings) visible without hunting the caret.
+      defaultOpen: true,
       links: [
         { href: '/app/admin/site-chrome', label: 'Site Chrome', exact: true },
         // #55 gated Environment editor (must stay in shared nav — Core + Payload)
