@@ -40,7 +40,7 @@ export async function updateSiteChromeAction(
   }
 
   try {
-    // Captcha lives under Site Settings → Integrations (preserve existing values).
+    // Captcha lives under Site Settings → Security (preserve existing values).
     await saveSiteChrome({
       offlineEnabled: parseBool(formData, 'offlineEnabled'),
       offlineMessage: String(formData.get('offlineMessage') ?? ''),
@@ -75,10 +75,11 @@ export async function updateSiteChromeAction(
 }
 
 /**
- * Site Settings → Integrations: captcha enable + provider.
+ * Site Settings → Security: captcha enable + provider.
  * Storage remains `sf_site_chrome` (no migration); Site Chrome form no longer edits these.
+ * Honeypot / rate-limit / headers stubs on the Security page are UI-only until persisted.
  */
-export async function updateCaptchaIntegrationAction(
+export async function updateSecurityCaptchaAction(
   _prev: SiteChromeActionState,
   formData: FormData,
 ): Promise<SiteChromeActionState> {
@@ -111,8 +112,11 @@ export async function updateCaptchaIntegrationAction(
 
   invalidateSiteChrome()
   revalidatePath('/', 'layout')
-  revalidatePath('/app/admin/settings/integrations')
+  revalidatePath('/app/admin/settings/security')
   revalidatePath('/app/admin/forms')
   revalidatePath('/app/admin')
   return { ok: true }
 }
+
+/** @deprecated Prefer updateSecurityCaptchaAction (Integrations → Security rename). */
+export const updateCaptchaIntegrationAction = updateSecurityCaptchaAction

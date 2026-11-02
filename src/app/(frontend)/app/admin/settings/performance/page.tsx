@@ -18,7 +18,7 @@ export default function AdminSettingsPerformancePage() {
         Site Settings topics: <Link href="/app/admin/settings">Modules</Link>,{' '}
         <Link href="/app/admin/settings/admin-ux">Admin UX</Link>,{' '}
         <Link href="/app/admin/settings/auth">Auth</Link>,{' '}
-        <Link href="/app/admin/settings/integrations">Integrations</Link>.
+        <Link href="/app/admin/settings/security">Security</Link>.
       </p>
       <div className="settings-form settings-form-wide">
         <fieldset className="settings-fieldset">

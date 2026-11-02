@@ -16,7 +16,7 @@ export const formModule: StarforgeModule = {
   id: 'form',
   name: 'Form',
   description:
-    'Modular Form engine particle — contact and other presets via Admin → Forms. Optional Site Settings → Integrations captcha (Turnstile).',
+    'Modular Form engine particle — contact and other presets via Admin → Forms. Optional Site Settings → Security captcha (Turnstile).',
   defaultWidth: 50,
   navViews: [{ key: 'admin', label: 'Forms', href: '/app/admin/forms' }],
   render: async ({ slot, settings }) => {

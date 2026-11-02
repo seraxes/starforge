@@ -270,7 +270,7 @@ export type FormParticleConfig = {
   successMessage?: string
   submitLabel?: string
   /**
-   * When true, use Site Settings → Integrations captchaEnabled + captchaProvider
+   * When true, use Site Settings → Security captchaEnabled + captchaProvider
    * (stored on Site Chrome JSON; Turnstile keys from env). When false, skip captcha.
    */
   useSiteCaptchaDefault?: boolean
