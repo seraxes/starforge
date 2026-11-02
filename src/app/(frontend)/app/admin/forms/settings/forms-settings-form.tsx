@@ -24,7 +24,7 @@ export function FormsSettingsForm({
 }) {
   const [state, formAction, pending] = useActionState(saveFormsModuleSettingsAction, initial)
   useNotifySavedOnOk(state)
-  const { formRef, saveDebounced, saveNow } = useAutosaveForm()
+  const { formRef, saveDebounced, flushOnBlur } = useAutosaveForm()
 
   const transportLabel = !mailer.enabled
     ? 'Disabled (Site Chrome)'
@@ -40,7 +40,7 @@ export function FormsSettingsForm({
           defaultValue={settings.defaultAdminEmails.join(', ')}
           placeholder="admin@example.com, ops@example.com"
           onChange={() => saveDebounced()}
-          onBlur={saveNow}
+          onBlur={flushOnBlur}
         />
         <span className="layout-muted">Used when a form enables “Notify admin” without overrides.</span>
       </label>
@@ -52,7 +52,7 @@ export function FormsSettingsForm({
           defaultValue={settings.fromAddress}
           placeholder="forms@example.com"
           onChange={() => saveDebounced()}
-          onBlur={saveNow}
+          onBlur={flushOnBlur}
         />
         <span className="layout-muted">
           Overrides Site Chrome default From when set. Empty → Chrome /{' '}
@@ -66,7 +66,7 @@ export function FormsSettingsForm({
           name="defaultSuccessMessage"
           defaultValue={settings.defaultSuccessMessage}
           onChange={() => saveDebounced()}
-          onBlur={saveNow}
+          onBlur={flushOnBlur}
         />
         <span className="layout-muted">Seeded into new form definitions (per-form editable).</span>
       </label>
