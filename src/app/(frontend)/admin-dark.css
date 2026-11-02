@@ -1150,7 +1150,7 @@ body:has(.admin-shell) > main {
   background: color-mix(in srgb, #0f1a2a 30%, transparent);
 }
 
-/* Soft muted danger beside cog — white thick X on subtle red/dark (Form + Layout) */
+/* Muted danger remove beside cog — soft rose X, no ketchup fill (Layout + Form bars) */
 .admin-shell .gantry-slot-actions .gantry-bar-remove {
   display: inline-flex;
   align-items: center;
@@ -1159,19 +1159,19 @@ body:has(.admin-shell) > main {
   height: 2.7rem;
   margin: 0;
   padding: 0;
-  border: 1px solid color-mix(in srgb, #8a555c 48%, var(--sf-line));
+  border: 1px solid color-mix(in srgb, #c45c5c 32%, var(--sf-line));
   border-radius: 2px;
-  background: color-mix(in srgb, #6e3f46 36%, #1a2433);
-  color: #fff;
+  background: transparent;
+  color: color-mix(in srgb, #e8a8a0 55%, #c5d2e0);
   line-height: 1;
   cursor: pointer;
 }
 
 .admin-shell .gantry-slot-actions .gantry-bar-remove:hover,
 .admin-shell .gantry-slot-actions .gantry-bar-remove:focus-visible {
-  background: color-mix(in srgb, #7d4a52 48%, #1a2433);
-  border-color: color-mix(in srgb, #a07078 55%, var(--sf-line));
-  color: #fff;
+  background: color-mix(in srgb, #c45c5c 16%, var(--sf-admin-surface));
+  border-color: color-mix(in srgb, #c45c5c 48%, var(--sf-line));
+  color: #f0c4be;
   outline: none;
 }
 

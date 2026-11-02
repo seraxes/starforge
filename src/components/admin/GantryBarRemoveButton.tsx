@@ -12,8 +12,8 @@ type Props = {
 }
 
 /**
- * Soft danger remove beside the bar cog (Layout modules / Form fields).
- * White thick X on muted red/dark; confirms before calling onConfirm.
+ * Soft muted-danger remove beside the bar cog (Layout modules / Form fields).
+ * Thick X glyph on quiet chrome (no ketchup-red fill); confirms before onConfirm.
  */
 export function GantryBarRemoveButton({
   label,

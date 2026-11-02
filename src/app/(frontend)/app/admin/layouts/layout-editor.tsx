@@ -9,7 +9,6 @@ import { GantryBarRemoveButton } from '@/components/admin/GantryBarRemoveButton'
 import { resolveAccessTags } from '@/core/acl/nav-access'
 import type { UserGroupOption } from '@/core/acl/types'
 import {
-  addLayoutRowAction,
   addLayoutSectionAction,
   dropParticleIntoRowAction,
   moveSlotToRowAction,
@@ -968,7 +967,6 @@ function SectionCanvas({
   const [metaPending, startMetaSave] = useTransition()
   const [metaFlash, setMetaFlash] = useState<LayoutActionState>({})
   const { notifySaved, notifyError } = useAdminToast()
-  const [rowState, rowAction, rowPending] = useActionState(addLayoutRowAction, initialState)
   const rows = sortRows(section.rows)
   const [slotMap, setSlotMap] = useState<Record<string, LayoutSlot[]>>(() => {
     const map: Record<string, LayoutSlot[]> = {}
@@ -1154,19 +1152,6 @@ function SectionCanvas({
           </div>
         </div>
         <div className="gantry-section-head-actions">
-          <form action={rowAction} className="gantry-section-actions">
-            <LayoutIdField />
-            <input type="hidden" name="sectionId" value={section.id} />
-            <button
-              type="submit"
-              className="gantry-section-icon-btn"
-              disabled={rowPending}
-              title="Add row"
-              aria-label="Add row"
-            >
-              {rowPending ? '…' : '+'}
-            </button>
-          </form>
           <details className="gantry-section-settings">
             <summary
               className="gantry-section-icon-btn"
@@ -1294,10 +1279,9 @@ function SectionCanvas({
         </div>
       </header>
       <ActionFeedback state={metaFlash} />
-      <ActionFeedback state={rowState} />
 
       {rows.length === 0 ? (
-        <p className="layout-muted">Add a row, then drag particles into it.</p>
+        <p className="layout-muted">Drag particles into the empty row.</p>
       ) : (
         rows.map((row) => (
           <DropRow
@@ -1320,9 +1304,9 @@ function SectionCanvas({
 
 /**
  * Gantry Layout Manager–style canvas:
- * 1) Create section → 2) Add row → 3) Drag particle from left into row →
- * 4) Drop another beside it and resize by % → drag ⋮⋮ on particles to reorder in-row →
- * sections reorder via drag handle.
+ * 1) Create section → 2) Drag particle into the trailing empty row (auto-cascades) →
+ * 3) Drop another beside it and resize by % → drag ⋮⋮ on particles to reorder in-row →
+ * sections reorder via drag handle. Empty trailing rows are automatic (SF-87).
  */
 export function LayoutEditor({
   document,

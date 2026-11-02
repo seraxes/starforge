@@ -109,6 +109,8 @@ function LayoutRowView({
   pageContent: React.ReactNode
 }) {
   const slots = sortByOrder(row.slots)
+  // Admin keeps trailing empty drop rows; skip them on the public site.
+  if (slots.length === 0) return null
   return (
     <div className="sf-grid-row" data-sf-row={row.id}>
       {slots.map((slot) => (

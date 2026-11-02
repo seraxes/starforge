@@ -18,6 +18,7 @@ import {
   sanitizeHtmlId,
   slugifyLayoutId,
 } from './document'
+import { ensureDocumentEmptyRows } from './empty-rows'
 import { clampGridWidth, evenColumnWidths, LAYOUT_WIDTH_FULL, resizeAdjacentPair } from './grid'
 import { loadLayoutDocument, saveLayoutDocument } from './layout-store'
 import { defaultConfigForModule, readSocialConfig } from './particles/config'
@@ -106,6 +107,9 @@ async function mutateLayout(
 
   const result = mutator(working)
   if ('error' in result) return { error: result.error }
+
+  // SF-87: always one trailing empty row after modules; collapse empty pairs.
+  ensureDocumentEmptyRows(result)
 
   try {
     await saveLayoutDocument(result, layoutId)

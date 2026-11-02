@@ -1,6 +1,7 @@
 import { accessTagsForStorage } from '@/core/acl/nav-access'
 
 import defaultLayoutJson from './default-layout.json'
+import { ensureSectionEmptyRows } from './empty-rows'
 import { clampGridWidth, LAYOUT_WIDTH_FULL, normalizeRowWidthsToPercent } from './grid'
 import { sortLayoutSectionsByOrder } from './section-order'
 import {
@@ -134,33 +135,6 @@ function normalizeRow(entry: LayoutRow | null | undefined, index: number): Layou
   }
 }
 
-/**
- * Keep rows that have modules, plus one empty trailing drop-target row.
- * Replaces manual “Remove row” — empty middle rows are pruned on normalize/save.
- */
-export function ensureTrailingEmptyRow(section: LayoutSection): void {
-  const sorted = [...section.rows].sort(
-    (a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id),
-  )
-  const filled = sorted.filter((row) => row.slots.length > 0)
-  const empties = sorted.filter((row) => row.slots.length === 0)
-  const trailing = empties.length > 0 ? empties[empties.length - 1]! : null
-  const nextRows = [...filled]
-  if (trailing) {
-    nextRows.push(trailing)
-  } else {
-    nextRows.push({
-      id: newLayoutEntityId(`${section.id}-row`),
-      order: filled.length,
-      slots: [],
-    })
-  }
-  nextRows.forEach((row, i) => {
-    row.order = i
-  })
-  section.rows = nextRows
-}
-
 function normalizeSection(entry: LayoutSection | null | undefined, index: number): LayoutSection | null {
   if (!entry || typeof entry.id !== 'string' || !entry.id.trim()) return null
   const id = entry.id.trim()
@@ -182,7 +156,8 @@ function normalizeSection(entry: LayoutSection | null | undefined, index: number
     order: typeof entry.order === 'number' && Number.isFinite(entry.order) ? entry.order : index,
     rows,
   }
-  ensureTrailingEmptyRow(section)
+  // SF-87: one open empty row; trailing empty after modules (stable ids).
+  ensureSectionEmptyRows(section)
   return section
 }
 

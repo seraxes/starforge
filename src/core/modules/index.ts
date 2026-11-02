@@ -31,7 +31,6 @@ export {
 export type { LayoutActionState } from './actions'
 export {
   cloneDefaultLayoutDocument,
-  ensureTrailingEmptyRow,
   findRow,
   findSection,
   findSlot,
@@ -42,6 +41,7 @@ export {
   serializeLayoutDocument,
   slugifyLayoutId,
 } from './document'
+export { ensureDocumentEmptyRows, ensureSectionEmptyRows } from './empty-rows'
 export {
   compareLayoutSectionsByOrder,
   isFooterLayoutSection,
