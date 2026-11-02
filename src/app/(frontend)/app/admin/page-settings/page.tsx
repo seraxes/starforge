@@ -56,7 +56,10 @@ export default async function AdminPageSettingsPage({ searchParams }: Props) {
         Site defaults and per-page overrides for document chrome, layout assignment, and{' '}
         <strong>Who can see</strong> tags (match ANY; empty = public).
       </p>
-      <PageSettingsForm bootstrap={bootstrap} />
+      <PageSettingsForm
+        key={editingPageKey ?? 'global'}
+        bootstrap={bootstrap}
+      />
     </section>
   )
 }

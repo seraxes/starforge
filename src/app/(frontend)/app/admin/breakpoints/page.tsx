@@ -84,13 +84,16 @@ export default async function AdminStylesPage(props: { searchParams?: SearchPara
       </p>
 
       <LayoutOutlineProvider layoutId={layoutId}>
-        <h3 className="section-styles-heading">Section Styles</h3>
-        <SectionStylesPanel sections={sections} />
+        {/* Remount Styles/Breakpoints with the outline so autosave cannot bleed across outlines. */}
+        <React.Fragment key={layoutId}>
+          <h3 className="section-styles-heading">Section Styles</h3>
+          <SectionStylesPanel sections={sections} />
 
-        <h3 className="section-styles-heading" id="breakpoints">
-          Breakpoints
-        </h3>
-        <BreakpointsForm layoutLabel={outlineMeta.label} breakpoints={breakpoints} />
+          <h3 className="section-styles-heading" id="breakpoints">
+            Breakpoints
+          </h3>
+          <BreakpointsForm layoutLabel={outlineMeta.label} breakpoints={breakpoints} />
+        </React.Fragment>
       </LayoutOutlineProvider>
     </section>
   )

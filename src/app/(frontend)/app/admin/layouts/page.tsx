@@ -87,7 +87,9 @@ export default async function AdminLayoutsPage(props: { searchParams?: SearchPar
       </p>
 
       <LayoutOutlineProvider layoutId={layoutId}>
+        {/* Remount on outline switch so soft-merge / cog drafts cannot target the wrong layoutId. */}
         <LayoutEditor
+          key={layoutId}
           document={document}
           source={source}
           modules={modules}
