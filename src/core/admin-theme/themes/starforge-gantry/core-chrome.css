@@ -1261,6 +1261,14 @@ body:has(.admin-shell) > main {
   padding: 0.35rem 0.45rem 0;
 }
 
+.gantry-settings-theme-dark .gantry-settings-drag-handle {
+  cursor: grab;
+}
+
+.gantry-settings-theme-dark .gantry-settings-panel.is-dragging .gantry-settings-drag-handle {
+  cursor: grabbing;
+}
+
 .gantry-settings-theme-dark .gantry-settings-tablist {
   display: flex;
   flex-wrap: wrap;

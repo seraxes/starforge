@@ -3067,6 +3067,27 @@ button:disabled {
   min-height: 0;
 }
 
+.gantry-settings-drag-handle {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.gantry-settings-panel.is-dragging .gantry-settings-drag-handle {
+  cursor: grabbing;
+}
+
+.gantry-settings-drag-handle button,
+.gantry-settings-drag-handle [role='tab'],
+.gantry-settings-drag-handle a,
+.gantry-settings-drag-handle input,
+.gantry-settings-drag-handle select,
+.gantry-settings-drag-handle textarea {
+  cursor: pointer;
+  user-select: auto;
+  touch-action: manipulation;
+}
+
 .gantry-settings-panel-head {
   display: flex;
   align-items: center;

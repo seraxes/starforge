@@ -11,14 +11,12 @@ import {
   type AuthActionState,
 } from '@/core/auth/actions'
 
+import { type LoginMode, parseLoginMode } from './login-mode'
+
+export type { LoginMode }
+export { parseLoginMode }
+
 const initialState: AuthActionState = {}
-
-export type LoginMode = 'password' | 'magic' | 'otp'
-
-export function parseLoginMode(raw: string | undefined | null): LoginMode {
-  if (raw === 'magic' || raw === 'otp' || raw === 'password') return raw
-  return 'password'
-}
 
 async function otpFormAction(
   prev: AuthActionState,
