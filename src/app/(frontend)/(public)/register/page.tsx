@@ -53,6 +53,12 @@ export default async function RegisterPage() {
           Already have an account? <Link href="/login">Sign in</Link>
           {' · '}
           <Link href="/forgot-password">Forgot password?</Link>
+          {' · '}
+          <Link href="/forgot-username">Forgot login email?</Link>
+          {' · '}
+          <Link href="/login?mode=magic">Magic link</Link>
+          {' · '}
+          <Link href="/account/security">2FA after sign-in</Link>
         </p>
       </div>
     </div>

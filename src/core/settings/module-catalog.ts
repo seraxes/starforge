@@ -24,11 +24,17 @@ export const PRODUCT_MODULE_CATALOG: ModuleCatalogItem[] = [
     id: MODULE_IDS.betterAuth,
     kind: 'platform',
     label: 'Better Auth',
-    description: 'Core app login, sessions, and users. Required — sole sign-in for Starforge.',
+    description:
+      'Core app login, sessions, password reset, passwordless, and TOTP 2FA. Required — sole sign-in for Starforge.',
     required: true,
     defaultEnabled: true,
     installed: true,
-    navViews: [{ key: 'login', label: 'Sign in', href: '/login' }],
+    navViews: [
+      { key: 'login', label: 'Sign in', href: '/login' },
+      { key: 'forgot-password', label: 'Forgot password', href: '/forgot-password' },
+      { key: 'forgot-username', label: 'Forgot login email', href: '/forgot-username' },
+      { key: 'account-security', label: 'Account security', href: '/account/security' },
+    ],
   },
   {
     id: MODULE_IDS.payloadCms,

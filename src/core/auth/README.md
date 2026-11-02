@@ -49,10 +49,21 @@ Unauthenticated `/admin` → core `/login?next=/admin` → after login, exchange
 
 Register / login / logout use **Next.js server actions** so session cookies are set via the `nextCookies` plugin. Prefer `http://localhost:3000`.
 
+## Recovery / passwordless / 2FA
+
+Public routes (Better Auth + Mailer — see SF-17 / PR #64):
+
+- `/forgot-password`, `/reset-password?token=…`
+- `/forgot-username` (sign-in email reminder)
+- `/login` — Password / Magic link / Email code tabs + stay signed in; `?mode=magic|otp|password`
+- `/two-factor` — TOTP or recovery code after password when 2FA is on
+- `/account/security` — enable/disable TOTP, recovery codes
+
+Welcome/home embeds a login panel + short note (not in branded hero). Layout particle **Login / Welcome** (`login`) can place the same panel in Main.
+
 ## Deferred
 
-- **Forgot / reset password** — needs outbound email.
-- Optional later: richer Payload logout → core sign-out button (core `/login` session still rules).
+- Optional later: richer Payload logout → core sign-out in site chrome (home panel already offers Sign out).
 
 ## Env
 

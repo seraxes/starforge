@@ -2,6 +2,7 @@ import type { StarforgeModule } from '../types'
 
 import { copyrightModule } from './copyright'
 import { customModule } from './custom'
+import { loginModule } from './login'
 import { logoModule } from './logo'
 import { menuModule } from './menu'
 import { pageContentModule } from './page-content'
@@ -17,11 +18,13 @@ export const builtinParticles: StarforgeModule[] = [
   copyrightModule,
   socialModule,
   customModule,
+  loginModule,
 ]
 
 export {
   copyrightModule,
   customModule,
+  loginModule,
   logoModule,
   menuModule,
   pageContentModule,
@@ -32,16 +35,19 @@ export {
 export {
   defaultConfigForModule,
   defaultCopyrightConfig,
+  defaultLoginConfig,
   defaultLogoConfig,
   defaultMenuConfig,
   defaultSocialConfig,
   readCopyrightConfig,
+  readLoginConfig,
   readLogoConfig,
   readMenuConfig,
   readSocialConfig,
 } from './config'
 export type {
   CopyrightParticleConfig,
+  LoginParticleConfig,
   LogoParticleConfig,
   LogoParticleMode,
   MenuParticleConfig,

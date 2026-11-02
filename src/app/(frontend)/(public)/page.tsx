@@ -3,7 +3,9 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import React from 'react'
 
+import { AuthWelcomePanel } from '@/components/AuthWelcomePanel'
 import { RichText } from '@/components/RichText'
+import { getAppSession } from '@/core/auth/session'
 import { buildPageMetadata } from '@/core/content/metadata'
 import { getPublishedPageBySlug } from '@/core/content/pages'
 import { findNavOverridesForPath } from '@/core/nav'
@@ -46,35 +48,55 @@ export default async function HomePage({ searchParams }: Props) {
     notFound()
   }
 
-  const settings = await getSiteSettings()
+  const [settings, session] = await Promise.all([getSiteSettings(), getAppSession()])
   const overrides = findNavOverridesForPath(settings.primaryNav, '/')
   const heading = overrides?.pageHeading?.trim() || page.title
   const showAdminsOnly = params.notice === 'admins-only'
   const showCmsDenied = params.notice === 'cms-denied'
+  const user = session?.user as
+    | { email?: string | null; name?: string | null }
+    | undefined
 
   return (
-    <article className="cms-page">
-      {showAdminsOnly ? (
-        <div className="notice-banner" role="status">
-          <p>
-            <strong>Admins only.</strong> Starforge admin (<code>/app/admin</code>) is for role{' '}
-            <code>admin</code>. Sign in as a seed admin or set <code>STARFORGE_ADMIN_EMAILS</code>.
-          </p>
-        </div>
-      ) : null}
-      {showCmsDenied ? (
-        <div className="notice-banner" role="status">
-          <p>
-            <strong>No CMS access.</strong> Content CMS (<code>/admin</code>) needs{' '}
-            <code>cms_access</code>. Ask a Starforge admin under{' '}
-            <Link href="/app/admin/users">Users</Link>, or sign in as the seed admin.
-          </p>
-        </div>
-      ) : null}
-      <header className="cms-page-header">
-        <h1>{heading}</h1>
-      </header>
-      {page.body ? <RichText data={page.body} /> : <p className="lede">This page has no body yet.</p>}
-    </article>
+    <div className="cms-page cms-page--with-auth">
+      <article className="cms-page-main">
+        {showAdminsOnly ? (
+          <div className="notice-banner" role="status">
+            <p>
+              <strong>Admins only.</strong> Starforge admin (<code>/app/admin</code>) is for role{' '}
+              <code>admin</code>. Sign in as a seed admin or set <code>STARFORGE_ADMIN_EMAILS</code>.
+            </p>
+          </div>
+        ) : null}
+        {showCmsDenied ? (
+          <div className="notice-banner" role="status">
+            <p>
+              <strong>No CMS access.</strong> Content CMS (<code>/admin</code>) needs{' '}
+              <code>cms_access</code>. Ask a Starforge admin under{' '}
+              <Link href="/app/admin/users">Users</Link>, or sign in as the seed admin.
+            </p>
+          </div>
+        ) : null}
+        <header className="cms-page-header">
+          <h1>{heading}</h1>
+        </header>
+        {page.body ? <RichText data={page.body} /> : <p className="lede">This page has no body yet.</p>}
+      </article>
+      {/* Login panel + short welcome — below branded CMS hero/content, not in the header. */}
+      <AuthWelcomePanel
+        siteName={settings.siteName}
+        variant="embed"
+        registrationEnabled={settings.features.registration}
+        signedIn={Boolean(session?.user)}
+        userEmail={user?.email}
+        userName={user?.name}
+        showForm={!session?.user}
+        welcomeNote={
+          session?.user
+            ? undefined
+            : 'Welcome — use the panel for password, magic link, or email code. Helpers cover forgot password, forgot login email, stay signed in, and 2FA after you sign in.'
+        }
+      />
+    </div>
   )
 }

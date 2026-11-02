@@ -51,6 +51,7 @@ export const INSTALLABLE_MANIFEST: InstallableEntry[] = [
     navViews: [
       { key: 'login', label: 'Sign in', href: '/login' },
       { key: 'forgot-password', label: 'Forgot password', href: '/forgot-password' },
+      { key: 'forgot-username', label: 'Forgot login email', href: '/forgot-username' },
       { key: 'account-security', label: 'Account security', href: '/account/security' },
     ],
   },
@@ -199,6 +200,21 @@ export const INSTALLABLE_MANIFEST: InstallableEntry[] = [
     description: 'Built-in HTML/CSS (+ JS stub); free-form escape hatch.',
     defaultEnabled: true,
     builtin: true,
+  },
+  {
+    id: 'login',
+    kind: 'particle',
+    label: 'Login / Welcome',
+    description:
+      'Welcome note + sign-in panel (password / magic link / email OTP / stay signed in). Signed-in: Account security 2FA. Place in Main — not branded heroes.',
+    defaultEnabled: true,
+    builtin: true,
+    navViews: [
+      { key: 'login', label: 'Sign in', href: '/login' },
+      { key: 'forgot-password', label: 'Forgot password', href: '/forgot-password' },
+      { key: 'forgot-username', label: 'Forgot login email', href: '/forgot-username' },
+      { key: 'account-security', label: 'Account security', href: '/account/security' },
+    ],
   },
   {
     id: 'notice-bar',

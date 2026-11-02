@@ -35,6 +35,10 @@ export default async function AccountSecurityPage() {
           <Link href="/">Home</Link>
           {' · '}
           <Link href="/forgot-password">Change password via email</Link>
+          {' · '}
+          <Link href="/login?mode=magic">Magic link sign-in</Link>
+          {' · '}
+          <Link href="/login?mode=otp">Email code sign-in</Link>
         </p>
       </div>
     </div>
