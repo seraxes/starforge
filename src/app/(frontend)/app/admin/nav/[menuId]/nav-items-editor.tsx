@@ -1,14 +1,31 @@
 'use client'
 
-import React, { useActionState, useEffect, useMemo, useState } from 'react'
+import React, { useActionState, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 import { AccessTagsField } from '@/components/admin/AccessTagsField'
+import { GantryBarRemoveButton } from '@/components/admin/GantryBarRemoveButton'
 import type { UserGroupOption } from '@/core/acl/types'
 import {
   addNavMenuItemAction,
-  moveNavMenuItemAction,
   pasteNavMenuItemAction,
   saveNavMenuItemsAction,
   type NavActionState,
@@ -73,6 +90,12 @@ function toEditable(item: NavMenuItem): EditableItem {
   }
 }
 
+function sameIdSet(a: { id: string }[], b: { id: string }[]) {
+  if (a.length !== b.length) return false
+  const set = new Set(a.map((row) => row.id))
+  return b.every((row) => set.has(row.id))
+}
+
 function Feedback({ state }: { state: NavActionState }) {
   if (state.error) {
     return (
@@ -133,6 +156,308 @@ function summarizeLink(
   return row.url || 'URL'
 }
 
+type SortableNavItemProps = {
+  row: EditableItem
+  index: number
+  expanded: boolean
+  pages: NavPageOption[]
+  modules: NavModuleOption[]
+  groups: UserGroupOption[]
+  parentOptions: { id: string; label: string }[]
+  onToggle: () => void
+  onPatch: (patch: Partial<EditableItem>) => void
+  onCopy: () => void
+  onRemove: () => void
+  saveNow: () => void
+  saveDebounced: () => void
+}
+
+function SortableNavItem({
+  row,
+  index,
+  expanded,
+  pages,
+  modules,
+  groups,
+  parentOptions,
+  onToggle,
+  onPatch,
+  onCopy,
+  onRemove,
+  saveNow,
+  saveDebounced,
+}: SortableNavItemProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: row.id,
+  })
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.85 : 1,
+  }
+  const moduleViews = modules.find((m) => m.moduleId === row.moduleId)?.views ?? []
+
+  return (
+    <li ref={setNodeRef} style={style} className="nav-item-row">
+      <article
+        className={`gantry-slot nav-item-slot${expanded ? ' is-nav-item-open' : ''}${isDragging ? ' is-slot-dragging' : ''}`}
+      >
+        <header className="gantry-slot-head">
+          <div className="gantry-slot-title">
+            <button
+              type="button"
+              className="gantry-slot-handle"
+              aria-label={`Drag to reorder item ${index + 1}`}
+              {...attributes}
+              {...listeners}
+            >
+              ▣
+            </button>
+            <button
+              type="button"
+              className="nav-item-toggle"
+              aria-expanded={expanded}
+              onClick={onToggle}
+            >
+              <div className="gantry-slot-labels">
+                <strong className="sf-form-slot-name">{row.label || 'Untitled'}</strong>
+                <span className="gantry-slot-sub">{summarizeLink(row, pages, modules)}</span>
+              </div>
+            </button>
+          </div>
+          <div className="gantry-slot-end">
+            <div className="gantry-slot-actions">
+              <button
+                type="button"
+                className="gantry-settings-trigger"
+                aria-expanded={expanded}
+                aria-label={expanded ? 'Collapse item settings' : 'Expand item settings'}
+                title={expanded ? 'Collapse' : 'Settings'}
+                onClick={onToggle}
+              >
+                ⚙
+              </button>
+              <GantryBarRemoveButton
+                label={`Remove ${row.label || 'item'}`}
+                confirmMessage={`Remove nav item “${row.label || 'Untitled'}”?`}
+                onConfirm={onRemove}
+              />
+            </div>
+          </div>
+        </header>
+      </article>
+
+      <input type="hidden" name="itemId" value={row.id} />
+      <input type="hidden" name="itemLabel" value={row.label} />
+      <input type="hidden" name="itemLinkType" value={row.linkType} />
+      <input type="hidden" name="itemPageId" value={row.pageId} />
+      <input type="hidden" name="itemUrl" value={row.url} />
+      <input type="hidden" name="itemModuleId" value={row.moduleId} />
+      <input type="hidden" name="itemModuleViewKey" value={row.moduleViewKey} />
+      <input type="hidden" name="itemParentId" value={row.parentId} />
+      <input type="hidden" name="itemCssClass" value={row.cssClass} />
+      <input type="hidden" name="itemBrowserTitle" value={row.browserTitle} />
+      <input type="hidden" name="itemPageHeading" value={row.pageHeading} />
+      <input
+        type="hidden"
+        name="itemAccessTags"
+        value={JSON.stringify(row.accessTags.length ? row.accessTags : ['public'])}
+      />
+
+      {expanded ? (
+        <div className="nav-item-card-body">
+          <div className="nav-item-body-actions admin-action-row">
+            <button type="button" className="gantry-toolbar-btn gantry-toolbar-btn-muted" onClick={onCopy}>
+              Copy item
+            </button>
+          </div>
+          <label className="settings-field">
+            <span>Label</span>
+            <input
+              type="text"
+              value={row.label}
+              onChange={(e) => {
+                onPatch({ label: e.target.value })
+                saveDebounced()
+              }}
+              onBlur={saveNow}
+              required
+            />
+          </label>
+          <label className="settings-field">
+            <span>Link type</span>
+            <select
+              value={row.linkType}
+              onChange={(e) => {
+                const next = e.target.value as NavLinkType
+                const patch: Partial<EditableItem> = { linkType: next }
+                if (next === 'module' && !row.moduleId && modules[0]) {
+                  patch.moduleId = modules[0].moduleId
+                  patch.moduleViewKey = modules[0].views[0]?.key ?? ''
+                }
+                onPatch(patch)
+                queueMicrotask(saveNow)
+              }}
+            >
+              <option value="page">CMS page</option>
+              <option value="url">URL</option>
+              <option value="module">Module view</option>
+            </select>
+          </label>
+          {row.linkType === 'page' ? (
+            <label className="settings-field">
+              <span>Page</span>
+              <select
+                value={row.pageId}
+                onChange={(e) => {
+                  onPatch({ pageId: e.target.value })
+                  queueMicrotask(saveNow)
+                }}
+              >
+                <option value="">Select page…</option>
+                {pages.map((p) => (
+                  <option key={p.id} value={String(p.id)}>
+                    {p.title} (/{p.slug})
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+          {row.linkType === 'url' ? (
+            <label className="settings-field">
+              <span>URL</span>
+              <input
+                type="text"
+                value={row.url}
+                placeholder="/about or https://…"
+                onChange={(e) => {
+                  onPatch({ url: e.target.value })
+                  saveDebounced()
+                }}
+                onBlur={saveNow}
+              />
+            </label>
+          ) : null}
+          {row.linkType === 'module' ? (
+            <>
+              <label className="settings-field">
+                <span>Module</span>
+                <select
+                  value={row.moduleId}
+                  onChange={(e) => {
+                    const moduleId = e.target.value
+                    const views = modules.find((m) => m.moduleId === moduleId)?.views ?? []
+                    onPatch({
+                      moduleId,
+                      moduleViewKey: views[0]?.key ?? '',
+                    })
+                    queueMicrotask(saveNow)
+                  }}
+                >
+                  <option value="">Select module…</option>
+                  {modules.map((m) => (
+                    <option key={m.moduleId} value={m.moduleId}>
+                      {m.moduleLabel}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="settings-field">
+                <span>View</span>
+                <select
+                  value={row.moduleViewKey}
+                  onChange={(e) => {
+                    onPatch({ moduleViewKey: e.target.value })
+                    queueMicrotask(saveNow)
+                  }}
+                  disabled={!row.moduleId || moduleViews.length === 0}
+                >
+                  <option value="">Select view…</option>
+                  {moduleViews.map((v) => (
+                    <option key={v.key} value={v.key}>
+                      {v.label} ({v.href})
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {modules.length === 0 ? (
+                <p className="settings-hint">
+                  No enabled modules declare navigable views. Turn modules on under Site settings →
+                  Modules, or register <code>navViews</code> on a module.
+                </p>
+              ) : null}
+            </>
+          ) : null}
+          <label className="settings-field">
+            <span>Parent (optional)</span>
+            <select
+              value={row.parentId}
+              onChange={(e) => {
+                onPatch({ parentId: e.target.value })
+                queueMicrotask(saveNow)
+              }}
+            >
+              <option value="">Top level</option>
+              {parentOptions
+                .filter((p) => p.id !== row.id)
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.label}
+                  </option>
+                ))}
+            </select>
+          </label>
+          <label className="settings-field">
+            <span>CSS class</span>
+            <input
+              type="text"
+              value={row.cssClass}
+              placeholder="e.g. nav-highlight"
+              onChange={(e) => {
+                onPatch({ cssClass: e.target.value })
+                saveDebounced()
+              }}
+              onBlur={saveNow}
+            />
+          </label>
+          <label className="settings-field">
+            <span>Browser title override</span>
+            <input
+              type="text"
+              value={row.browserTitle}
+              onChange={(e) => {
+                onPatch({ browserTitle: e.target.value })
+                saveDebounced()
+              }}
+              onBlur={saveNow}
+            />
+          </label>
+          <label className="settings-field">
+            <span>Page heading override</span>
+            <input
+              type="text"
+              value={row.pageHeading}
+              onChange={(e) => {
+                onPatch({ pageHeading: e.target.value })
+                saveDebounced()
+              }}
+              onBlur={saveNow}
+            />
+          </label>
+          <AccessTagsField
+            value={row.accessTags}
+            groups={groups}
+            onChange={(accessTags) => {
+              onPatch({ accessTags })
+              queueMicrotask(saveNow)
+            }}
+          />
+        </div>
+      ) : null}
+    </li>
+  )
+}
+
 export function NavItemsEditor({
   menuId,
   menuLabel,
@@ -150,32 +475,46 @@ export function NavItemsEditor({
   const [newModuleId, setNewModuleId] = useState(modules[0]?.moduleId ?? '')
 
   const [saveState, saveAction, savePending] = useActionState(saveNavMenuItemsAction, initial)
-  const [moveState, moveAction, movePending] = useActionState(moveNavMenuItemAction, initial)
   const [addState, addAction, addPending] = useActionState(addNavMenuItemAction, initial)
   const [pasteState, pasteAction, pastePending] = useActionState(pasteNavMenuItemAction, initial)
   useNotifySavedOnOk(saveState, { toastErrors: true })
   useNotifySavedOnOk(addState, { successMessage: 'Saved', toastErrors: true })
   useNotifySavedOnOk(pasteState, { successMessage: 'Saved', toastErrors: true })
-  const { formRef, saveDebounced } = useAutosaveForm()
-  const skipAutosave = React.useRef(true)
-  const hydrating = React.useRef(false)
+  const { formRef, saveDebounced, saveNow } = useAutosaveForm()
 
+  /**
+   * Local draft is source of truth while editing (same class of fix as particle cogs #32).
+   * Accept server `items` only when membership changes (add/paste refresh) — never remount
+   * drafts from autosave revalidation, which would retrigger save in a loop.
+   */
+  const menuIdRef = useRef(menuId)
   useEffect(() => {
-    hydrating.current = true
-    setRows(items.map(toEditable))
-    queueMicrotask(() => {
-      hydrating.current = false
-    })
-  }, [items])
-
-  useEffect(() => {
-    if (skipAutosave.current) {
-      skipAutosave.current = false
+    if (menuIdRef.current !== menuId) {
+      menuIdRef.current = menuId
+      setRows(items.map(toEditable))
+      setExpandedId(items[0]?.id ?? null)
       return
     }
-    if (hydrating.current) return
-    saveDebounced()
-  }, [rows, saveDebounced])
+    setRows((prev) => {
+      if (sameIdSet(prev, items)) return prev
+      return items.map(toEditable)
+    })
+  }, [menuId, items])
+
+  // Add/paste create server-side ids — refresh once so membership soft-sync can pick them up.
+  const pasteOkRef = useRef(false)
+  useEffect(() => {
+    if (pasteState.ok && !pasteOkRef.current) {
+      pasteOkRef.current = true
+      router.refresh()
+    }
+    if (!pasteState.ok) pasteOkRef.current = false
+  }, [pasteState, router])
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
 
   const parentOptions = useMemo(
     () => rows.map((r) => ({ id: r.id, label: r.label })),
@@ -186,6 +525,8 @@ export function NavItemsEditor({
     () => modules.find((m) => m.moduleId === newModuleId)?.views ?? [],
     [modules, newModuleId],
   )
+
+  const sortableIds = useMemo(() => rows.map((r) => r.id), [rows])
 
   const refresh = () => router.refresh()
 
@@ -199,6 +540,8 @@ export function NavItemsEditor({
         .filter((row) => row.id !== id)
         .map((row) => (row.parentId === id ? { ...row, parentId: '' } : row)),
     )
+    if (expandedId === id) setExpandedId(null)
+    queueMicrotask(saveNow)
   }
 
   const copyRow = (row: EditableItem) => {
@@ -222,16 +565,16 @@ export function NavItemsEditor({
     }
   }
 
-  const setMoveTarget = (form: HTMLFormElement | null, itemId: string) => {
-    if (!form) return
-    let moveItem = form.querySelector<HTMLInputElement>('input[name="moveItemId"]')
-    if (!moveItem) {
-      moveItem = document.createElement('input')
-      moveItem.type = 'hidden'
-      moveItem.name = 'moveItemId'
-      form.appendChild(moveItem)
-    }
-    moveItem.value = itemId
+  const onDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    setRows((prev) => {
+      const oldIndex = prev.findIndex((row) => row.id === active.id)
+      const newIndex = prev.findIndex((row) => row.id === over.id)
+      if (oldIndex < 0 || newIndex < 0) return prev
+      return arrayMove(prev, oldIndex, newIndex)
+    })
+    queueMicrotask(saveNow)
   }
 
   return (
@@ -248,252 +591,39 @@ export function NavItemsEditor({
       </p>
 
       <Feedback state={saveState} />
-      <Feedback state={moveState} />
       <Feedback state={addState} />
       <Feedback state={pasteState} />
 
-      <form
-        ref={formRef}
-        action={saveAction}
-        className="nav-items-form"
-        onSubmit={() => setTimeout(refresh, 80)}
-      >
+      <form ref={formRef} action={saveAction} className="nav-items-form">
         <input type="hidden" name="menuId" value={menuId} />
 
         {rows.length === 0 ? (
           <p className="outlines-muted">No items yet — add one below.</p>
         ) : (
-          <ul className="nav-items-list">
-            {rows.map((row, index) => {
-              const expanded = expandedId === row.id
-              const moduleViews =
-                modules.find((m) => m.moduleId === row.moduleId)?.views ?? []
-              return (
-                <li key={row.id} className="nav-item-card">
-                  <input type="hidden" name="itemId" value={row.id} />
-                  <div className="nav-item-card-head">
-                    <button
-                      type="button"
-                      className="nav-item-toggle"
-                      aria-expanded={expanded}
-                      onClick={() => setExpandedId(expanded ? null : row.id)}
-                    >
-                      <span className="nav-item-index">{index + 1}</span>
-                      <strong>{row.label || 'Untitled'}</strong>
-                      <span className="outlines-muted">
-                        {summarizeLink(row, pages, modules)}
-                      </span>
-                    </button>
-                    <div className="nav-item-quick">
-                      <button
-                        type="submit"
-                        className="secondary"
-                        formAction={moveAction}
-                        disabled={movePending || index === 0}
-                        name="direction"
-                        value="up"
-                        onClick={(e) => setMoveTarget(e.currentTarget.form, row.id)}
-                      >
-                        Up
-                      </button>
-                      <button
-                        type="submit"
-                        className="secondary"
-                        formAction={moveAction}
-                        disabled={movePending || index === rows.length - 1}
-                        name="direction"
-                        value="down"
-                        onClick={(e) => setMoveTarget(e.currentTarget.form, row.id)}
-                      >
-                        Down
-                      </button>
-                      <button type="button" className="secondary" onClick={() => copyRow(row)}>
-                        Copy
-                      </button>
-                      <button
-                        type="button"
-                        className="secondary"
-                        onClick={() => removeRow(row.id)}
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-
-                  <input type="hidden" name="itemLabel" value={row.label} />
-                  <input type="hidden" name="itemLinkType" value={row.linkType} />
-                  <input type="hidden" name="itemPageId" value={row.pageId} />
-                  <input type="hidden" name="itemUrl" value={row.url} />
-                  <input type="hidden" name="itemModuleId" value={row.moduleId} />
-                  <input type="hidden" name="itemModuleViewKey" value={row.moduleViewKey} />
-                  <input type="hidden" name="itemParentId" value={row.parentId} />
-                  <input type="hidden" name="itemCssClass" value={row.cssClass} />
-                  <input type="hidden" name="itemBrowserTitle" value={row.browserTitle} />
-                  <input type="hidden" name="itemPageHeading" value={row.pageHeading} />
-                  <input
-                    type="hidden"
-                    name="itemAccessTags"
-                    value={JSON.stringify(row.accessTags.length ? row.accessTags : ['public'])}
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+            <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+              <ul className="nav-items-list">
+                {rows.map((row, index) => (
+                  <SortableNavItem
+                    key={row.id}
+                    row={row}
+                    index={index}
+                    expanded={expandedId === row.id}
+                    pages={pages}
+                    modules={modules}
+                    groups={groups}
+                    parentOptions={parentOptions}
+                    onToggle={() => setExpandedId(expandedId === row.id ? null : row.id)}
+                    onPatch={(patch) => updateRow(row.id, patch)}
+                    onCopy={() => copyRow(row)}
+                    onRemove={() => removeRow(row.id)}
+                    saveNow={saveNow}
+                    saveDebounced={saveDebounced}
                   />
-
-                  {expanded ? (
-                    <div className="nav-item-card-body">
-                      <label className="settings-field">
-                        <span>Label</span>
-                        <input
-                          type="text"
-                          value={row.label}
-                          onChange={(e) => updateRow(row.id, { label: e.target.value })}
-                          required
-                        />
-                      </label>
-                      <label className="settings-field">
-                        <span>Link type</span>
-                        <select
-                          value={row.linkType}
-                          onChange={(e) => {
-                            const next = e.target.value as NavLinkType
-                            const patch: Partial<EditableItem> = { linkType: next }
-                            if (next === 'module' && !row.moduleId && modules[0]) {
-                              patch.moduleId = modules[0].moduleId
-                              patch.moduleViewKey = modules[0].views[0]?.key ?? ''
-                            }
-                            updateRow(row.id, patch)
-                          }}
-                        >
-                          <option value="page">CMS page</option>
-                          <option value="url">URL</option>
-                          <option value="module">Module view</option>
-                        </select>
-                      </label>
-                      {row.linkType === 'page' ? (
-                        <label className="settings-field">
-                          <span>Page</span>
-                          <select
-                            value={row.pageId}
-                            onChange={(e) => updateRow(row.id, { pageId: e.target.value })}
-                          >
-                            <option value="">Select page…</option>
-                            {pages.map((p) => (
-                              <option key={p.id} value={String(p.id)}>
-                                {p.title} (/{p.slug})
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                      ) : null}
-                      {row.linkType === 'url' ? (
-                        <label className="settings-field">
-                          <span>URL</span>
-                          <input
-                            type="text"
-                            value={row.url}
-                            placeholder="/about or https://…"
-                            onChange={(e) => updateRow(row.id, { url: e.target.value })}
-                          />
-                        </label>
-                      ) : null}
-                      {row.linkType === 'module' ? (
-                        <>
-                          <label className="settings-field">
-                            <span>Module</span>
-                            <select
-                              value={row.moduleId}
-                              onChange={(e) => {
-                                const moduleId = e.target.value
-                                const views =
-                                  modules.find((m) => m.moduleId === moduleId)?.views ?? []
-                                updateRow(row.id, {
-                                  moduleId,
-                                  moduleViewKey: views[0]?.key ?? '',
-                                })
-                              }}
-                            >
-                              <option value="">Select module…</option>
-                              {modules.map((m) => (
-                                <option key={m.moduleId} value={m.moduleId}>
-                                  {m.moduleLabel}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                          <label className="settings-field">
-                            <span>View</span>
-                            <select
-                              value={row.moduleViewKey}
-                              onChange={(e) =>
-                                updateRow(row.id, { moduleViewKey: e.target.value })
-                              }
-                              disabled={!row.moduleId || moduleViews.length === 0}
-                            >
-                              <option value="">Select view…</option>
-                              {moduleViews.map((v) => (
-                                <option key={v.key} value={v.key}>
-                                  {v.label} ({v.href})
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                          {modules.length === 0 ? (
-                            <p className="settings-hint">
-                              No enabled modules declare navigable views. Turn modules on under Site
-                              settings → Modules, or register <code>navViews</code> on a module.
-                            </p>
-                          ) : null}
-                        </>
-                      ) : null}
-                      <label className="settings-field">
-                        <span>Parent (optional)</span>
-                        <select
-                          value={row.parentId}
-                          onChange={(e) => updateRow(row.id, { parentId: e.target.value })}
-                        >
-                          <option value="">Top level</option>
-                          {parentOptions
-                            .filter((p) => p.id !== row.id)
-                            .map((p) => (
-                              <option key={p.id} value={p.id}>
-                                {p.label}
-                              </option>
-                            ))}
-                        </select>
-                      </label>
-                      <label className="settings-field">
-                        <span>CSS class</span>
-                        <input
-                          type="text"
-                          value={row.cssClass}
-                          placeholder="e.g. nav-highlight"
-                          onChange={(e) => updateRow(row.id, { cssClass: e.target.value })}
-                        />
-                      </label>
-                      <label className="settings-field">
-                        <span>Browser title override</span>
-                        <input
-                          type="text"
-                          value={row.browserTitle}
-                          onChange={(e) => updateRow(row.id, { browserTitle: e.target.value })}
-                        />
-                      </label>
-                      <label className="settings-field">
-                        <span>Page heading override</span>
-                        <input
-                          type="text"
-                          value={row.pageHeading}
-                          onChange={(e) => updateRow(row.id, { pageHeading: e.target.value })}
-                        />
-                      </label>
-                      <AccessTagsField
-                        value={row.accessTags}
-                        groups={groups}
-                        onChange={(accessTags) => updateRow(row.id, { accessTags })}
-                      />
-                    </div>
-                  ) : null}
-                </li>
-              )
-            })}
-          </ul>
+                ))}
+              </ul>
+            </SortableContext>
+          </DndContext>
         )}
 
         <div className="nav-items-toolbar admin-action-row">

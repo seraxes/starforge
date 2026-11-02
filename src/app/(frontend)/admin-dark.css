@@ -222,7 +222,7 @@ body:has(.admin-shell) > main {
 .admin-shell .page-settings-atom-row,
 .admin-shell .outlines-create,
 .admin-shell .outlines-table-wrap,
-.admin-shell .nav-item-card,
+.admin-shell .nav-item-card-body,
 .admin-shell .layout-json-preview,
 .admin-shell .sf-code-field-panel,
 .admin-shell .admin-card,
@@ -1550,14 +1550,29 @@ body:has(.admin-shell) > main {
   color: var(--sf-secondary-strong);
 }
 
-.admin-shell .nav-item-card {
-  background: color-mix(in srgb, var(--sf-secondary) 10%, var(--sf-admin-surface));
-  border-color: color-mix(in srgb, var(--sf-secondary-strong) 28%, var(--sf-line));
+/* Nav item bars reuse .gantry-slot mid-blue chrome; settings body is elevated navy. */
+.admin-shell .nav-item-card-body {
+  background: var(--sf-admin-elevated);
+  border: 1px solid #2f3d50;
+  border-top: 0;
+  color: var(--sf-ink);
+  box-shadow: none;
 }
 
-.admin-shell .nav-item-index {
-  background: color-mix(in srgb, var(--sf-secondary) 35%, var(--sf-admin-elevated));
-  color: var(--sf-ink);
+.admin-shell .nav-item-card-body .settings-field > span,
+.admin-shell .nav-item-card-body .settings-hint,
+.admin-shell .nav-item-card-body .nav-access-tags legend {
+  color: var(--sf-muted);
+}
+
+.admin-shell .nav-item-toggle {
+  color: inherit;
+}
+
+.admin-shell .nav-item-toggle .gantry-slot-labels,
+.admin-shell .nav-item-toggle .gantry-slot-sub,
+.admin-shell .nav-item-toggle strong {
+  color: #fff !important;
 }
 
 /* Helium info/callout bars (login CSS / atom version banners) */
@@ -1906,12 +1921,6 @@ body:has(.admin-shell) > main {
   color: var(--sf-primary-ink);
 }
 
-.admin-shell .nav-item-card-head,
-.admin-shell .nav-item-quick {
-  gap: 0.35rem;
-}
-
-.admin-shell .nav-item-toggle,
 .admin-shell .nav-manager button.secondary,
 .admin-shell .outlines-actions .secondary,
 .admin-shell .admin-inline-form button.secondary {
@@ -1919,6 +1928,14 @@ body:has(.admin-shell) > main {
   border: 1px solid var(--sf-admin-blue-border);
   color: #fff;
   border-radius: 3px;
+}
+
+.admin-shell .nav-items-add {
+  border-top-color: #2f3d50;
+}
+
+.admin-shell .nav-item-slot.is-nav-item-open {
+  border-radius: 3px 3px 0 0;
 }
 
 .admin-shell .sf-forms-details,
@@ -2106,8 +2123,3 @@ body:has(.admin-shell) > main {
   margin: 0.75rem 0 0;
 }
 
-.admin-shell .nav-item-quick > button {
-  width: auto;
-  padding: 0.28rem 0.55rem;
-  font-size: 0.8rem;
-}

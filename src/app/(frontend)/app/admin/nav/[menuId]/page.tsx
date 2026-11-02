@@ -58,10 +58,11 @@ export default async function AdminNavMenuItemsPage({ params }: Args) {
       <h2>Nav items — {loaded.label}</h2>
       <p className="lede admin-lede">
         Bind each item to a CMS page, URL, or an <strong>enabled module view</strong> (Modules
-        catalog / registry <code>navViews</code>). Reorder with Up/Down; Copy/Paste to duplicate.
-        <strong>Who can see</strong> — multi-select tags (Public, Registered, or{' '}
-        <Link href="/app/admin/users/groups">groups</Link>). Visible if the viewer matches any
-        tag. Admin rights live under <Link href="/app/admin/users/acl">Users → ACL</Link>.{' '}
+        catalog / registry <code>navViews</code>). Drag bars to reorder; cog opens item settings;
+        Copy/Paste to duplicate. <strong>Who can see</strong> — multi-select tags (Public,
+        Registered, or <Link href="/app/admin/users/groups">groups</Link>). Visible if the viewer
+        matches any tag. Admin rights live under{' '}
+        <Link href="/app/admin/users/acl">Users → ACL</Link>.{' '}
         <Link href="/app/admin/nav">Back to menus</Link>
         {settings.primaryNavMenuId === loaded.id ? (
           <>
@@ -72,6 +73,7 @@ export default async function AdminNavMenuItemsPage({ params }: Args) {
         ) : null}
       </p>
       <NavItemsEditor
+        key={loaded.id}
         menuId={loaded.id}
         menuLabel={loaded.label}
         items={items}
