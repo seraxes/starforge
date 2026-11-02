@@ -19,9 +19,9 @@ export default async function AdminSiteChromePage() {
     <section className="admin-section">
       <h2>Site Chrome</h2>
       <p className="lede admin-lede">
-        Site-wide policy and defaults — not Modules, not Nav, not per-page Page settings. Modules
-        on/off lives under <Link href="/app/admin/settings">Site settings</Link>; navigation sets
-        under <Link href="/app/admin/nav">Nav</Link>; document chrome under{' '}
+        Site-wide policy and defaults — not Modules, not Navigation, not per-page Page settings.
+        Modules on/off lives under <Link href="/app/admin/settings">Site settings</Link>; navigation
+        sets under <Link href="/app/admin/nav">Navigation</Link>; document chrome under{' '}
         <Link href="/app/admin/page-settings">Page settings</Link>. Outbound email enable /
         provider / From live here; secrets stay in env.
       </p>

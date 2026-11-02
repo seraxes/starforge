@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: Args) {
   const { menuId } = await params
   const loaded = await loadNavMenu(decodeURIComponent(menuId))
   return {
-    title: `${loaded.label} — Nav — Starforge`,
+    title: `${loaded.label} — Navigation — Starforge`,
     description: `Edit items for navigation set ${loaded.id}.`,
   }
 }
@@ -55,7 +55,7 @@ export default async function AdminNavMenuItemsPage({ params }: Args) {
 
   return (
     <section className="admin-section admin-layouts-full">
-      <h2>Nav items — {loaded.label}</h2>
+      <h2>Navigation items — {loaded.label}</h2>
       <p className="lede admin-lede">
         Bind each item to a CMS page, URL, or an <strong>enabled module view</strong> (Modules
         catalog / registry <code>navViews</code>). Drag bars to reorder; cog opens item settings;

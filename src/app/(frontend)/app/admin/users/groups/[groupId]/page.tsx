@@ -60,7 +60,7 @@ export default async function AdminUserGroupDetailPage({ params }: Args) {
       </h2>
       <p className="lede admin-lede">
         Members of this group. Tag this group on{' '}
-        <Link href="/app/admin/nav">Nav</Link> / Layout items for viewing, and grant admin rights
+        <Link href="/app/admin/nav">Navigation</Link> / Layout items for viewing, and grant admin rights
         under <Link href="/app/admin/users/acl">ACL</Link>.{' '}
         <Link href="/app/admin/users/groups">Back to groups</Link>
       </p>

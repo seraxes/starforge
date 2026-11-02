@@ -21,7 +21,7 @@ export default async function AdminUserGroupsPage() {
       <h2>User groups</h2>
       <p className="lede admin-lede">
         Create groups and assign members. The same groups are tagged on{' '}
-        <Link href="/app/admin/nav">Nav</Link> / Layout items for viewing, and receive admin
+        <Link href="/app/admin/nav">Navigation</Link> / Layout items for viewing, and receive admin
         permissions under <Link href="/app/admin/users/acl">ACL</Link> — no separate Access Level
         entity.
       </p>

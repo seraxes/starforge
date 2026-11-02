@@ -84,9 +84,9 @@ export const INSTALLABLE_MANIFEST: InstallableEntry[] = [
     kind: 'product',
     label: 'Primary nav',
     description:
-      'Nav manager + public header menu. Off hides Core admin → Nav and public header links. Site Settings picks which menu set is the site default.',
+      'Navigation manager + public header menu. Off hides Core admin → Navigation and public header links. Site Settings picks which menu set is the site default.',
     defaultEnabled: true,
-    navViews: [{ key: 'nav-manager', label: 'Nav manager', href: '/app/admin/nav' }],
+    navViews: [{ key: 'nav-manager', label: 'Navigation manager', href: '/app/admin/nav' }],
   },
   {
     id: 'product:font-awesome',
@@ -167,7 +167,7 @@ export const INSTALLABLE_MANIFEST: InstallableEntry[] = [
     id: 'menu',
     kind: 'particle',
     label: 'Menu',
-    description: 'Built-in — Nav manager menu set (default = site primary).',
+    description: 'Built-in — Navigation manager menu set (default = site primary).',
     defaultEnabled: true,
     builtin: true,
   },
