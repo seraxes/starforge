@@ -90,12 +90,6 @@ body:has(.admin-shell) > main {
     linear-gradient(180deg, #1a2638 0%, #24334a 42%, #24334a 100%);
 }
 
-/* Layout editor full-bleed denser navy (keep glow on padded Styles/settings pages) */
-.admin-shell:has(.gantry-editor),
-.admin-shell:has(.admin-layouts-full) {
-  background: var(--sf-admin-bg);
-}
-
 /* —— Gantry Layouts top nav (outline + icon tabs) —— */
 .admin-shell .gantry-layouts-nav {
   display: flex;
@@ -2058,7 +2052,7 @@ body:has(.admin-shell) > main {
 }
 
 /* Padded admin pages keep Site Settings blue radial wash (shell default).
-   Only Layout canvas / admin-layouts-full flatten to denser navy above. */
+   Layout/Form workspace stays transparent over that wash — no denser gray block. */
 
 /* —— Global Core admin toast (top center) —— */
 .admin-toast-host {
