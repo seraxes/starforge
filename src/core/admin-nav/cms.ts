@@ -3,8 +3,12 @@ import type { AdminCmsNavLink } from './types'
 const PAYLOAD_ADMIN = '/admin'
 
 /**
- * Canonical CMS accordion children — Payload destinations (dashboard + collections + globals).
+ * Canonical CMS accordion children — Payload destinations (dashboard + collections).
  * Both Core and Payload sidebars render this list under **CMS**.
+ *
+ * Do not list Payload `site-settings` here — Core already has a top-level
+ * **Site Settings** (`/app/admin/settings`). Duplicating the global under CMS
+ * is redundant on both surfaces.
  */
 export const CMS_NAV_LINKS: AdminCmsNavLink[] = [
   {
@@ -33,13 +37,6 @@ export const CMS_NAV_LINKS: AdminCmsNavLink[] = [
     label: 'Users',
     entity: 'collection',
     slug: 'users',
-    external: true,
-  },
-  {
-    href: `${PAYLOAD_ADMIN}/globals/site-settings`,
-    label: 'Site settings',
-    entity: 'global',
-    slug: 'site-settings',
     external: true,
   },
 ]
