@@ -475,6 +475,92 @@ button:disabled {
   font-size: 0.92rem;
 }
 
+.auth-success {
+  margin: 0;
+  color: #1f5a32;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.auth-hint {
+  margin: 0;
+  color: var(--sf-muted);
+  font-size: 0.9rem;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.auth-helpers {
+  margin: 0.25rem 0 0;
+  font-size: 0.92rem;
+  color: var(--sf-muted);
+}
+
+.auth-check {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.55rem !important;
+  font-weight: 500 !important;
+}
+
+.auth-check input {
+  width: auto;
+  margin: 0;
+}
+
+.auth-mode-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.35rem;
+}
+
+.auth-mode-tab {
+  border: 1px solid var(--sf-line);
+  background: transparent;
+  color: var(--sf-ink);
+  padding: 0.4rem 0.7rem;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.auth-mode-tab.is-active {
+  border-color: var(--sf-accent);
+  background: color-mix(in srgb, var(--sf-accent) 18%, transparent);
+}
+
+.auth-login,
+.auth-security,
+.auth-enroll {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.auth-card--wide {
+  max-width: 32rem;
+}
+
+.auth-qr {
+  align-self: flex-start;
+  padding: 0.75rem;
+  background: #fff;
+  border: 1px solid var(--sf-line);
+}
+
+.auth-backup-codes ul {
+  margin: 0.35rem 0 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.auth-backup-codes code {
+  font-size: 0.92rem;
+}
+
 .auth-switch {
   margin: 0.5rem 0 0;
   color: var(--sf-muted);

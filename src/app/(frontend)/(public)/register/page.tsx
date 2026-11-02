@@ -42,12 +42,17 @@ export default async function RegisterPage() {
         <p className="brand">{settings.siteName}</p>
         <h1>Create account</h1>
         <p className="lede">
-          Registers a <strong>core app user</strong>. Payload CMS editors are
-          created separately at <Link href="/admin">/admin</Link>.
+          Registers a <strong>core app user</strong>. Your email is the sign-in ID. After
+          registering you can enable authenticator 2FA under{' '}
+          <Link href="/account/security">Account security</Link>. CMS access is granted
+          separately by an admin (one login still — no second password at{' '}
+          <Link href="/admin">/admin</Link>).
         </p>
         <RegisterForm />
         <p className="auth-switch">
           Already have an account? <Link href="/login">Sign in</Link>
+          {' · '}
+          <Link href="/forgot-password">Forgot password?</Link>
         </p>
       </div>
     </div>

@@ -41,6 +41,7 @@ export {
   sfSessions,
   sfAccounts,
   sfVerifications,
+  sfTwoFactors,
   sfLayouts,
   sfPageChrome,
   sfSiteChrome,

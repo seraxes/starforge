@@ -10,11 +10,11 @@ This is an early scaffold plus **core app auth** (Better Auth), **roles + user g
 
 | Layer | Owns | Location |
 | --- | --- | --- |
-| **Starforge core** | Product APIs, auth/sessions/users, Drizzle tables in Postgres `public` | `src/core/`, `src/app/api/` |
+| **Starforge core** | Product APIs, auth/sessions/users (incl. 2FA), Drizzle tables in Postgres `public` | `src/core/`, `src/app/api/` |
 | **Payload content module** | Collections, globals (site settings), drafts, media, CMS admin | `src/collections/`, `src/globals/`, `src/payload.config.ts`, `src/app/(payload)/` |
 
 - Payload tables use Postgres schema **`payload`** (created by `docker/postgres/init.sql`).
-- Core auth + layout + page chrome + nav + groups/ACL tables: `sf_users`, `sf_sessions`, `sf_accounts`, `sf_verifications`, `sf_layouts`, `sf_page_chrome`, `sf_nav_menus`, `sf_user_groups`, `sf_user_group_members`, `sf_acl_permissions` (push with `npm run db:core:push`).
+- Core auth + layout + page chrome + nav + groups/ACL tables: `sf_users` (incl. `two_factor_enabled`), `sf_sessions`, `sf_accounts`, `sf_verifications`, `sf_two_factors`, `sf_layouts`, `sf_page_chrome`, `sf_nav_menus`, `sf_user_groups`, `sf_user_group_members`, `sf_acl_permissions` (push with `npm run db:core:push`).
 - Hot paths stay in core — do not put high-QPS app traffic through Payload Local API.
 
 ### Published content cache
@@ -78,7 +78,12 @@ Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so coo
 | --- | --- |
 | http://localhost:3000 | App shell (register / sign in / signed-in state) |
 | http://localhost:3000/register | Create a **core app** account (email + password; auto sign-in; default role `member`) |
-| http://localhost:3000/login | **Only** sign-in (Better Auth). Also used when `/admin` redirects unauthenticated visitors |
+| http://localhost:3000/login | **Only** sign-in (Better Auth: password, magic link, email OTP). Also used when `/admin` redirects unauthenticated visitors |
+| http://localhost:3000/forgot-password | Request password reset email (Mailer) |
+| http://localhost:3000/forgot-username | Sign-in email reminder (login is email, not a separate username) |
+| http://localhost:3000/reset-password | Set a new password from the emailed token link |
+| http://localhost:3000/two-factor | TOTP / recovery-code challenge when 2FA is enabled |
+| http://localhost:3000/account/security | Enable/disable authenticator 2FA + recovery codes (signed-in) |
 | http://localhost:3000/app/admin/users | Starforge admin — accounts (roles, groups, **CMS access**, disable) |
 | http://localhost:3000/app/admin/users/groups | Starforge admin — **user groups** |
 | http://localhost:3000/app/admin/users/acl | Starforge admin — **ACL** stub matrix + view-access overview |
@@ -98,7 +103,7 @@ Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so coo
 | http://localhost:3000/preview/{slug} | Draft preview (CMS access + **Draft preview** toggle on) |
 | http://localhost:3000/api/health | Core health JSON (`database: "up"` when Postgres is reachable) |
 
-App login uses **email**, not a separate username. Forgot / reset password is **deferred** until SF-17 (Mailer port is wired; console / SMTP / Resend adapters available).
+App login uses **email**, not a separate username. Auth helpers (SF-17) use **Better Auth first-party plugins** only — `emailAndPassword` reset, `magicLink`, `emailOTP`, `twoFactor` (TOTP + backup codes) — plus the platform Mailer port (console / SMTP / Resend). No second auth stack.
 
 ### Roles + bootstrap admin
 
@@ -472,7 +477,7 @@ npm run dev
 ## Not in this scaffold
 
 - Production / DigitalOcean deploy (including Redis — cache interface is ready; backend not wired)
-- Forgot / reset password (SF-17 — Mailer ready; wire auth flows next), OAuth
+- OAuth / social providers
 - Second Payload password login (removed — Better Auth session strategy only)
 - Posts collection
 - Full Gantry Styles / Outlines / Menu editors, cross-row reorder, YAML mode, Custom JS execution + ACL, Payload media picker for Logo (layout DnD canvas + typed Logo/Copyright/Social + CodeMirror Custom + JSON storage are in)
@@ -486,7 +491,7 @@ npm run dev
 3. **Payload admin import errors after upgrading** — run `npm run generate:importmap`.
 4. **Fresh DB without `payload` schema** — Compose mounts `init.sql` only on first volume create. If you need to recreate: `docker compose down -v && docker compose up -d`.
 5. **Auth tables missing / Better Auth schema errors** — run `npm run db:core:push` with Compose up and `.env` loaded.
-6. **`column "impersonated_by" does not exist` (or missing `role` / `banned` on `sf_users`)** — code already defines these in `src/core/db/schema.ts`; your Postgres is behind. With Compose up: `npm run db:core:push`, then restart `npm run dev`.
+6. **`column "impersonated_by" does not exist` (or missing `role` / `banned` / `two_factor_enabled` on `sf_users`, or missing `sf_two_factors`)** — code already defines these in `src/core/db/schema.ts`; your Postgres is behind. With Compose up: `npm run db:core:push`, then restart `npm run dev`.
 7. **Seed fails on demo app user** — ensure `npm run db:core:push` succeeded; pages may still have been created.
 8. **Windows** — use PowerShell or Command Prompt from the repo root; ensure Docker Desktop is **Running** before `docker compose up -d`. Copy env with `copy .env.example .env` if `cp` is unavailable. Always open the app as `http://localhost:3000` (mixing `127.0.0.1` can break sessions).
 9. **Login says invalid email/password after register** — restart `npm run dev`; register a **new** email (or use seed demo); sign in with that **email**. Last resort: `docker compose down -v && docker compose up -d` then `npm run db:core:push` and `npm run seed`.

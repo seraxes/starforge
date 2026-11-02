@@ -44,10 +44,15 @@ export const INSTALLABLE_MANIFEST: InstallableEntry[] = [
     id: 'platform:better-auth',
     kind: 'platform',
     label: 'Better Auth',
-    description: 'Core app login, sessions, and users. Required — sole sign-in for Starforge.',
+    description:
+      'Core app login, sessions, users, password reset, passwordless, and TOTP 2FA. Required — sole sign-in for Starforge.',
     required: true,
     defaultEnabled: true,
-    navViews: [{ key: 'login', label: 'Sign in', href: '/login' }],
+    navViews: [
+      { key: 'login', label: 'Sign in', href: '/login' },
+      { key: 'forgot-password', label: 'Forgot password', href: '/forgot-password' },
+      { key: 'account-security', label: 'Account security', href: '/account/security' },
+    ],
   },
   {
     id: 'platform:payload-cms',

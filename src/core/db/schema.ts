@@ -1,4 +1,13 @@
-import { boolean, index, pgTable, primaryKey, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core'
+import {
+  boolean,
+  index,
+  integer,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core'
 
 /** Stable id for the active site layout document row. */
 export const DEFAULT_LAYOUT_ID = 'default'
@@ -30,12 +39,40 @@ export const sfUsers = pgTable('sf_users', {
   banned: boolean('banned').default(false).notNull(),
   banReason: text('ban_reason'),
   banExpires: timestamp('ban_expires', { withTimezone: true }),
+  /**
+   * Better Auth twoFactor plugin — true after TOTP enrollment is verified.
+   * Column: `two_factor_enabled`. Apply with `npm run db:core:push` after pull.
+   */
+  twoFactorEnabled: boolean('two_factor_enabled').default(false).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true })
     .defaultNow()
     .$onUpdate(() => new Date())
     .notNull(),
 })
+
+/**
+ * Better Auth twoFactor plugin secrets + backup codes (encrypted/hashed by BA).
+ * Physical table `sf_two_factors`; adapter model key stays `twoFactor`.
+ */
+export const sfTwoFactors = pgTable(
+  'sf_two_factors',
+  {
+    id: text('id').primaryKey(),
+    secret: text('secret').notNull(),
+    backupCodes: text('backup_codes').notNull(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => sfUsers.id, { onDelete: 'cascade' }),
+    verified: boolean('verified').default(true),
+    failedVerificationCount: integer('failed_verification_count').default(0),
+    lockedUntil: timestamp('locked_until', { withTimezone: true }),
+  },
+  (table) => [
+    index('sf_two_factors_user_id_idx').on(table.userId),
+    index('sf_two_factors_secret_idx').on(table.secret),
+  ],
+)
 
 export const sfSessions = pgTable(
   'sf_sessions',

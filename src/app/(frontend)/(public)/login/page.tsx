@@ -15,7 +15,7 @@ export const metadata = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>
+  searchParams: Promise<{ next?: string; reset?: string; error?: string }>
 }) {
   const params = await searchParams
   const next = safeNextPath(params.next, '/')
@@ -32,14 +32,17 @@ export default async function LoginPage({
         <p className="lede">
           Sign in with the <strong>email</strong> you registered (not your display name). This is
           the only login — if you have CMS access, <Link href="/admin">/admin</Link> opens without
-          a second password.
+          a second password. Passwordless options use the same Better Auth stack + Mailer.
         </p>
-        <LoginForm next={next === '/' ? undefined : next} />
+        <LoginForm
+          next={next === '/' ? undefined : next}
+          resetSuccess={params.reset === '1'}
+          magicError={params.error === 'magic_link'}
+        />
         <p className="auth-switch">
           {settings.features.registration ? (
             <>
-              No account yet, or registered before the auth fix?{' '}
-              <Link href="/register">Create a new app account</Link>
+              No account yet? <Link href="/register">Create an app account</Link>
             </>
           ) : (
             <>Registration is currently off. Ask a core admin if you need a new account.</>
