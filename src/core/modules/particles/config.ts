@@ -61,6 +61,14 @@ export type SocialParticleConfig = {
   items?: SocialLinkItem[]
 }
 
+/** Login / welcome particle — short note + auth panel (not for branded heroes). */
+export type LoginParticleConfig = {
+  /** Optional override for the short welcome sentence. */
+  welcomeNote?: string
+  /** When false, show Sign in CTA + option links only (no embedded form). */
+  showForm?: boolean
+}
+
 export function defaultLogoConfig(): LogoParticleConfig {
   return {
     mode: 'image',
@@ -109,6 +117,13 @@ export function defaultSocialConfig(): SocialParticleConfig {
   }
 }
 
+export function defaultLoginConfig(): LoginParticleConfig {
+  return {
+    welcomeNote: '',
+    showForm: true,
+  }
+}
+
 export function defaultConfigForModule(moduleId: string): LayoutSlotConfig | undefined {
   switch (moduleId) {
     case 'custom':
@@ -128,8 +143,18 @@ export function defaultConfigForModule(moduleId: string): LayoutSlotConfig | und
       return { ...defaultSocialConfig() }
     case 'form':
       return { ...defaultFormConfig() }
+    case 'login':
+      return { ...defaultLoginConfig() }
     default:
       return undefined
+  }
+}
+
+export function readLoginConfig(config: LayoutSlotConfig | undefined): LoginParticleConfig {
+  const c = config ?? {}
+  return {
+    welcomeNote: typeof c.welcomeNote === 'string' ? c.welcomeNote : '',
+    showForm: c.showForm !== false,
   }
 }
 

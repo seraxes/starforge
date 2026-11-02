@@ -13,7 +13,12 @@ import {
 
 const initialState: AuthActionState = {}
 
-type LoginMode = 'password' | 'magic' | 'otp'
+export type LoginMode = 'password' | 'magic' | 'otp'
+
+export function parseLoginMode(raw: string | undefined | null): LoginMode {
+  if (raw === 'magic' || raw === 'otp' || raw === 'password') return raw
+  return 'password'
+}
 
 async function otpFormAction(
   prev: AuthActionState,
@@ -30,12 +35,18 @@ export function LoginForm({
   next,
   resetSuccess,
   magicError,
+  initialMode = 'password',
+  showHelperLinks = true,
 }: {
   next?: string
   resetSuccess?: boolean
   magicError?: boolean
+  /** Deep-link from welcome/home CTAs (`?mode=magic|otp|password`). */
+  initialMode?: LoginMode
+  /** When false, omit forgot-password helpers (parent panel already lists them). */
+  showHelperLinks?: boolean
 }) {
-  const [mode, setMode] = useState<LoginMode>('password')
+  const [mode, setMode] = useState<LoginMode>(initialMode)
   const [passwordState, passwordAction, passwordPending] = useActionState(loginAction, {
     ...initialState,
     next,
@@ -138,11 +149,13 @@ export function LoginForm({
           <button type="submit" className="primary" disabled={passwordPending}>
             {passwordPending ? 'Signing in…' : 'Sign in'}
           </button>
-          <p className="auth-helpers">
-            <Link href="/forgot-password">Forgot password?</Link>
-            {' · '}
-            <Link href="/forgot-username">Forgot login email?</Link>
-          </p>
+          {showHelperLinks ? (
+            <p className="auth-helpers">
+              <Link href="/forgot-password">Forgot password?</Link>
+              {' · '}
+              <Link href="/forgot-username">Forgot login email?</Link>
+            </p>
+          ) : null}
         </form>
       ) : null}
 

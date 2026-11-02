@@ -145,6 +145,8 @@ const SAMPLE_PAGES = [
       bulletList(
         'Starforge admin: /app/admin (users, Site Chrome, layouts, modules)',
         'Content CMS: /admin — same Better Auth login when cms_access is on',
+        'Sign-in options (home panel + /login): password, magic link, email code, stay signed in',
+        'Recovery: /forgot-password · /forgot-username · 2FA at /account/security after sign-in',
         'Other sample pages: /about, /getting-started, /welcome',
         'Seed credentials: admin@starforge.local / starforge-admin',
       ),
@@ -200,17 +202,27 @@ const SAMPLE_PAGES = [
     slug: 'welcome',
     meta: {
       title: 'Welcome — Starforge sample page',
-      description: 'A third sample published page from npm run seed, with SEO meta fields filled in.',
+      description:
+        'Welcome sample with auth recovery, passwordless, and 2FA entry points after seed.',
     },
     body: lexicalBody(
-      heading('h2', 'Seeded sample'),
+      heading('h2', 'Welcome — sign-in options'),
+      paragraph(
+        textNode(
+          'Home keeps CMS branding in the main column and puts a login panel beside it (not in the hero). The same panel powers /login.',
+        ),
+      ),
+      bulletList(
+        '/login — password, magic link, or email code (stay signed in on password / OTP)',
+        '/forgot-password — reset link via Mailer',
+        '/forgot-username — sign-in email reminder',
+        '/account/security — authenticator 2FA + recovery codes (after you sign in)',
+        'Layout particle “Login / Welcome” — place in Main for other outlines',
+      ),
       paragraph(
         textNode(
           'This page was created by npm run seed. Open the SEO tab in Payload admin to change meta title, description, and OG image.',
         ),
-      ),
-      paragraph(
-        textNode('Pastel brand colors, Better Auth sessions, and Lexical editing should still work after seeding.'),
       ),
     ),
   },

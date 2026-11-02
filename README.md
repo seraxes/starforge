@@ -78,7 +78,8 @@ Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so coo
 | --- | --- |
 | http://localhost:3000 | App shell (register / sign in / signed-in state) |
 | http://localhost:3000/register | Create a **core app** account (email + password; auto sign-in; default role `member`) |
-| http://localhost:3000/login | **Only** sign-in (Better Auth: password, magic link, email OTP). Also used when `/admin` redirects unauthenticated visitors |
+| http://localhost:3000/ | Home — CMS content plus welcome/login panel (options + form; signed-in → Account security / 2FA). Not in the branded hero |
+| http://localhost:3000/login | **Only** sign-in page (Better Auth: password, magic link, email OTP; `?mode=` deep-links). Also used when `/admin` redirects unauthenticated visitors |
 | http://localhost:3000/forgot-password | Request password reset email (Mailer) |
 | http://localhost:3000/forgot-username | Sign-in email reminder (login is email, not a separate username) |
 | http://localhost:3000/reset-password | Set a new password from the emailed token link |

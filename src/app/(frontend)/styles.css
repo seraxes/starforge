@@ -567,6 +567,102 @@ button:disabled {
   font-size: 0.95rem;
 }
 
+.auth-switch-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Welcome + login panel (home / Login particle) — match auth-card, not a hero overlay. */
+.auth-welcome-embed {
+  max-width: 26rem;
+  margin: 0;
+  padding: 1.25rem 1.35rem 1.5rem;
+  border: 1px solid var(--sf-line);
+  background: color-mix(in srgb, white 82%, var(--sf-secondary) 18%);
+}
+
+.auth-welcome-title {
+  margin: 0;
+  font-size: clamp(1.35rem, 3vw, 1.75rem);
+  line-height: 1.2;
+}
+
+.auth-welcome-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.25rem 0 0.5rem;
+}
+
+.auth-options {
+  margin: 0.35rem 0 0;
+}
+
+.auth-options-label {
+  margin: 0 0 0.35rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--sf-ink);
+}
+
+.auth-options-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.auth-options--strip .auth-options-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+}
+
+.auth-options-list a {
+  color: var(--sf-accent);
+  font-weight: 600;
+  font-size: 0.92rem;
+  text-decoration: none;
+}
+
+.auth-options-list a:hover,
+.auth-options-list a:focus-visible {
+  text-decoration: underline;
+}
+
+.auth-options-hint {
+  display: block;
+  margin-top: 0.1rem;
+  color: var(--sf-muted);
+  font-size: 0.82rem;
+  font-weight: 400;
+}
+
+.cms-page--with-auth {
+  display: grid;
+  gap: 2rem;
+  align-items: start;
+}
+
+@media (min-width: 960px) {
+  .cms-page--with-auth {
+    grid-template-columns: minmax(0, 1fr) minmax(16rem, 26rem);
+    gap: 2.5rem;
+  }
+}
+
+.cms-page-main {
+  min-width: 0;
+}
+
+.sf-login-particle {
+  width: 100%;
+}
+
 /* Public CMS page (`/[slug]`) + draft preview (`/preview/[slug]`)
  * No max-width here — layout sections own boxed vs full (SF-34).
  * No min-height — viewport fill is html/body/main + `.public-shell` (SF-75). */
