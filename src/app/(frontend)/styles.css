@@ -725,8 +725,25 @@ button:disabled {
 }
 
 .admin-sidebar-group-toggle {
+  display: inline-block;
   flex: 0 0 auto;
-  /* Chevron drawn in admin-theme core-chrome.css (single SVG background). */
+  width: var(--sf-admin-icon-secondary, 1.6rem);
+  height: var(--sf-admin-icon-secondary, 1.6rem);
+  /* Fallback caret so Site Chrome/Forms/… read as expandable even if theme CSS lags.
+   * Theme core-chrome.css overrides stroke/color to match Gantry chrome. */
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M5.75 3.5L10.25 8L5.75 12.5' stroke='%239eb1c7' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: var(--sf-admin-icon-secondary, 1.6rem) var(--sf-admin-icon-secondary, 1.6rem);
+  color: transparent;
+  font-size: 0;
+  line-height: 0;
+  overflow: hidden;
+}
+
+.admin-sidebar-group-toggle.is-open {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 5.75L8 10.25L12.5 5.75' stroke='%239eb1c7' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 .admin-sidebar-menu-toggle-icon {

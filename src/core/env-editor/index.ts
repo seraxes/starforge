@@ -1,3 +1,12 @@
+/**
+ * Client-safe Environment editor barrel.
+ *
+ * Do **not** re-export gate/store here — they use `server-only` + `next/headers`.
+ * Importing this barrel from a Client Component would pull those in and break the
+ * App Router segment (looks like a 404 on `/app/admin/site-chrome/environment`).
+ * Server code: `@/core/env-editor/server`. Actions: `@/core/env-editor/actions`.
+ */
+
 export {
   ENV_EDITOR_FIELDS,
   ENV_EDITOR_GROUPS,
@@ -17,24 +26,7 @@ export type {
   EnvEditorLockActionState,
 } from './actions'
 
-export {
-  ENV_EDITOR_GATE_COOKIE,
-  ENV_EDITOR_GATE_TTL_SEC,
-  ENV_EDITOR_GATE_SECRET_MISSING,
-  readEnvEditorGate,
-  requireEnvEditorGate,
-  clearEnvEditorGateCookie,
-} from './gate'
-
 export { getEnvEditorWriteMode, envEditorIsWritable } from './mode'
 export type { EnvEditorWriteMode } from './mode'
 
 export type { EnvEditorRow, EnvEditorSnapshot } from './types'
-
-export {
-  getEnvOverlayPath,
-  loadEnvEditorSnapshot,
-  readEnvOverlayMap,
-  saveEnvOverlay,
-} from './store'
-export type { EnvEditorSaveResult } from './store'

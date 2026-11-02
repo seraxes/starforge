@@ -3,7 +3,7 @@ import Link from 'next/link'
 
 import { requireDeveloperAdmin, userIsDeveloperAdmin } from '@/core/auth/admin'
 import { getAppSession } from '@/core/auth/session'
-import { loadEnvEditorSnapshot, readEnvEditorGate } from '@/core/env-editor'
+import { loadEnvEditorSnapshot, readEnvEditorGate } from '@/core/env-editor/server'
 
 import { EnvironmentEditorForm } from './environment-editor-form'
 import { EnvironmentGateForm } from './environment-gate-form'

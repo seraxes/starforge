@@ -193,10 +193,9 @@ export {
   ENV_EDITOR_GROUPS,
   envEditorIsWritable,
   getEnvEditorWriteMode,
-  getEnvOverlayPath,
-  loadEnvEditorSnapshot,
 } from './env-editor'
 export type { EnvEditorSnapshot, EnvEditorWriteMode } from './env-editor'
+export { getEnvOverlayPath, loadEnvEditorSnapshot } from './env-editor/server'
 export {
   BOOTSTRAP_ADMIN_EMAIL,
   ensureCmsAccessForCoreUserIds,
