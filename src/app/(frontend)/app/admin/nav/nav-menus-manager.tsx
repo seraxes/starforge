@@ -69,7 +69,7 @@ export function NavMenusManager({ menus, primaryNavMenuId }: Props) {
   const refresh = () => router.refresh()
 
   return (
-    <div className="nav-menus-manager">
+    <div className="nav-menus-manager admin-settings-mosaic">
       <section className="outlines-create" aria-label="Create navigation set">
         <h3>Create menu</h3>
         <form
@@ -111,12 +111,12 @@ export function NavMenusManager({ menus, primaryNavMenuId }: Props) {
       <Feedback state={dupState} />
       <Feedback state={deleteState} />
 
-      <p className="settings-hint">
+      <p className="settings-hint admin-settings-panel-wide">
         Site primary menu: <code>{primaryNavMenuId}</code> (change under{' '}
         <Link href="/app/admin/settings">Settings</Link>).
       </p>
 
-      <div className="outlines-table-wrap">
+      <div className="outlines-table-wrap admin-settings-panel-wide">
         <table className="outlines-table">
           <thead>
             <tr>

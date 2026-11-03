@@ -27,7 +27,8 @@ export function AdminUxForm({ adminAutosaveDebounceMs }: Props) {
 
   return (
     <form ref={formRef} action={formAction} className="settings-form settings-form-wide">
-      <fieldset className="settings-fieldset">
+      <div className="admin-settings-mosaic">
+      <fieldset className="settings-fieldset settings-fieldset-wide">
         <legend>Admin autosave</legend>
         <p className="settings-hint">
           Delay before Core admin text fields patch after typing. Blur still saves immediately.
@@ -47,6 +48,7 @@ export function AdminUxForm({ adminAutosaveDebounceMs }: Props) {
           />
         </label>
       </fieldset>
+      </div>
 
       {state.error ? (
         <p className="admin-inline-error" role="alert">

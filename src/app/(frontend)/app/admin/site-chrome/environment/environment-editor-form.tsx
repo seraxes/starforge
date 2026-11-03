@@ -58,6 +58,7 @@ export function EnvironmentEditorForm({ snapshot, expiresAt }: Props) {
           </p>
         ) : null}
 
+        <div className="admin-settings-mosaic">
         {ENV_EDITOR_GROUPS.map((group) => {
           const rows = snapshot.rows.filter((r) => r.field.group === group.id)
           if (!rows.length) return null
@@ -118,6 +119,7 @@ export function EnvironmentEditorForm({ snapshot, expiresAt }: Props) {
             </fieldset>
           )
         })}
+        </div>
 
         {saveState.error ? (
           <p className="admin-inline-error" role="alert">

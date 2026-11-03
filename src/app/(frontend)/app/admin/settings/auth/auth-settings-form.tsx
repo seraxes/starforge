@@ -24,6 +24,7 @@ export function AuthSettingsForm({ registrationEnabled }: Props) {
 
   return (
     <form ref={formRef} action={formAction} className="settings-form settings-form-wide">
+      <div className="admin-settings-mosaic">
       <fieldset className="settings-fieldset">
         <legend>Registration</legend>
         <p className="settings-hint">
@@ -55,6 +56,7 @@ export function AuthSettingsForm({ registrationEnabled }: Props) {
           later. Mail delivery: Chrome → Outbound email + Environment secrets.
         </p>
       </fieldset>
+      </div>
 
       {state.error ? (
         <p className="admin-inline-error" role="alert">

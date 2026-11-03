@@ -49,8 +49,8 @@ export function AclMatrixManager({ resources, groups }: Props) {
   }, [state, router])
 
   return (
-    <div className="acl-page">
-      <section className="outlines-create" aria-label="Group permissions matrix">
+    <div className="acl-page admin-settings-mosaic">
+      <section className="outlines-create admin-settings-panel-wide" aria-label="Group permissions matrix">
         <h3>Permissions by group</h3>
         <p className="settings-hint">
           Check a cell to grant that admin area to the group. Viewing (menus / modules) is tagged

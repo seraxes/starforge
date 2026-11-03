@@ -209,7 +209,8 @@ export function UsersAdminTable({
   }
 
   return (
-    <div className="admin-table-wrap">
+    <div className="admin-settings-mosaic">
+    <div className="admin-table-wrap admin-settings-panel-wide">
       <table className="admin-table">
         <thead>
           <tr>
@@ -260,6 +261,7 @@ export function UsersAdminTable({
           ))}
         </tbody>
       </table>
+    </div>
     </div>
   )
 }

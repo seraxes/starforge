@@ -30,6 +30,7 @@ export function SiteChromeForm({ chrome }: Props) {
       action={formAction}
       className="settings-form settings-form-wide"
     >
+      <div className="admin-settings-mosaic">
       <fieldset className="settings-fieldset">
         <legend>Site offline</legend>
         <p className="settings-hint">
@@ -294,6 +295,7 @@ export function SiteChromeForm({ chrome }: Props) {
           />
         </label>
       </fieldset>
+      </div>
 
       {state.error ? (
         <p className="admin-inline-error" role="alert">

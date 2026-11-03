@@ -72,8 +72,8 @@ export function GroupDetailManager({
   }, [addState, removeState, router])
 
   return (
-    <div className="group-detail-manager">
-      <section className="outlines-create" aria-label={`Members of ${groupLabel}`}>
+    <div className="group-detail-manager admin-settings-mosaic">
+      <section className="outlines-create admin-settings-panel-wide" aria-label={`Members of ${groupLabel}`}>
         <h3>Members</h3>
         <Feedback state={addState} />
         <Feedback state={removeState} />

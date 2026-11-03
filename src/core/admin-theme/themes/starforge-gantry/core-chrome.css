@@ -46,6 +46,10 @@ body:has(.admin-shell) > main {
   --sf-admin-btn-min-height: 2.35rem;
   --sf-admin-btn-radius: 3px;
   --sf-admin-btn-gap: 0.55rem;
+  /* Page Settings form panels — shared by Settings / Chrome / Users / Media / … */
+  --sf-admin-panel: #1b2432;
+  --sf-admin-panel-head: #121a24;
+  --sf-admin-panel-border: #2f3d50;
 
   /* Remap shared brand aliases used by existing admin/gantry CSS */
   --sf-ink: #ffffff;
@@ -218,7 +222,7 @@ body:has(.admin-shell) > main {
   font-size: 0.92rem;
 }
 
-/* Cards / panels — elevated navy surfaces (not input wells). */
+/* Cards / panels — Page Settings navy tiles (not Layout module bars). */
 .admin-shell .admin-nav-dropdown-menu,
 .admin-shell .gantry-settings-panel,
 .admin-shell .settings-fieldset,
@@ -236,11 +240,16 @@ body:has(.admin-shell) > main {
 .admin-shell .group-detail-manager .outlines-create,
 .admin-shell .forms-admin-card,
 .admin-shell .site-chrome-preview,
-.admin-shell .cms-bridge-card {
-  background: color-mix(in srgb, var(--sf-secondary) 8%, var(--sf-admin-surface));
+.admin-shell .cms-bridge-card,
+.admin-shell .admin-table-wrap,
+.admin-shell .sf-media-library-filters,
+.admin-shell .sf-media-library-upload,
+.admin-shell .sf-forms-settings-panel {
+  background: var(--sf-admin-panel);
   color: var(--sf-ink);
-  border: 1px solid var(--sf-line);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 5%, transparent);
+  border: 1px solid var(--sf-admin-panel-border);
+  box-shadow: none;
+  border-radius: 3px;
 }
 
 /* Form controls — deep input wells (palette items use module-weight borders below) */
@@ -259,6 +268,10 @@ body:has(.admin-shell) > main {
 .admin-shell .gantry-custom-title input[type='text'],
 .admin-shell .settings-field input[type='text'],
 .admin-shell .settings-field input[type='url'],
+.admin-shell .settings-field input[type='email'],
+.admin-shell .settings-field input[type='password'],
+.admin-shell .settings-field input[type='number'],
+.admin-shell .settings-field input[type='search'],
 .admin-shell .settings-field select,
 .admin-shell .settings-field textarea,
 .admin-shell .settings-nav-row input,
@@ -295,6 +308,10 @@ body:has(.admin-shell) > main {
 .admin-shell .gantry-slot-name-input,
 .admin-shell .settings-field input[type='text'],
 .admin-shell .settings-field input[type='url'],
+.admin-shell .settings-field input[type='email'],
+.admin-shell .settings-field input[type='password'],
+.admin-shell .settings-field input[type='number'],
+.admin-shell .settings-field input[type='search'],
 .admin-shell .settings-field select,
 .admin-shell .settings-field textarea,
 .admin-shell .gantry-typed-form input[type='text'],
@@ -1628,10 +1645,10 @@ body:has(.admin-shell) > main {
 }
 
 /* Page settings / outlines / nav / forms on dark */
-/* Global Page Settings / Styles — Helium collapsible panel chrome */
+/* Global Page Settings / Styles — Helium panel chrome */
 .admin-shell .page-settings-panel-head {
-  background: #121a24;
-  border-bottom: 1px solid #2f3d50;
+  background: var(--sf-admin-panel-head);
+  border-bottom: 1px solid var(--sf-admin-panel-border);
   color: #fff;
 }
 
@@ -1777,16 +1794,74 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .breakpoints-form,
-.admin-shell .layout-outline-switcher-form,
-.admin-shell .settings-fieldset {
-  background: color-mix(in srgb, var(--sf-secondary) 6%, #1b2432);
-  border: 1px solid #2f3d50;
+.admin-shell .layout-outline-switcher-form {
+  background: var(--sf-admin-panel);
+  border: 1px solid var(--sf-admin-panel-border);
   border-radius: 3px;
   box-sizing: border-box;
 }
 
 .admin-shell .layout-outline-switcher-form {
   padding: 1rem 1.1rem 1.15rem;
+}
+
+/*
+ * Page Settings panel language for fieldsets / create cards / media tiles.
+ * Legend / h3 = dark head strip; body sits on --sf-admin-panel.
+ */
+.admin-shell .settings-fieldset,
+.admin-shell .outlines-create,
+.admin-shell .sf-media-library-filters,
+.admin-shell .sf-media-library-upload,
+.admin-shell .sf-forms-settings-panel {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0 0 0.85rem;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: var(--sf-admin-panel);
+  border: 1px solid var(--sf-admin-panel-border);
+  border-radius: 3px;
+  box-shadow: none;
+}
+
+.admin-shell .settings-fieldset > legend,
+.admin-shell .outlines-create > h3,
+.admin-shell .sf-media-library-upload > h3,
+.admin-shell .sf-forms-settings-panel > h3,
+.admin-shell .sf-media-library-filters > .admin-settings-panel-title {
+  float: left;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 0.75rem;
+  padding: 0.55rem 0.85rem;
+  background: var(--sf-admin-panel-head);
+  border-bottom: 1px solid var(--sf-admin-panel-border);
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.admin-shell .settings-fieldset::after,
+.admin-shell .outlines-create::after,
+.admin-shell .sf-media-library-upload::after,
+.admin-shell .sf-forms-settings-panel::after {
+  content: '';
+  display: table;
+  clear: both;
+}
+
+.admin-shell .settings-fieldset > :not(legend),
+.admin-shell .outlines-create > :not(h3),
+.admin-shell .sf-media-library-upload > :not(h3),
+.admin-shell .sf-forms-settings-panel > :not(h3),
+.admin-shell .sf-media-library-filters > :not(.admin-settings-panel-title) {
+  margin-left: 0.85rem;
+  margin-right: 0.85rem;
 }
 
 /* Styles · Breakpoints — Helium dense field card + wash behind (full width) */
@@ -2014,10 +2089,11 @@ body:has(.admin-shell) > main {
 
 .admin-shell .admin-table-wrap,
 .admin-shell .outlines-table-wrap {
-  background: color-mix(in srgb, var(--sf-secondary) 6%, var(--sf-admin-surface));
-  border: 1px solid var(--sf-line);
+  background: var(--sf-admin-panel);
+  border: 1px solid var(--sf-admin-panel-border);
   border-radius: 3px;
   overflow: auto;
+  box-shadow: none;
 }
 
 .admin-shell .admin-table,
@@ -2059,12 +2135,13 @@ body:has(.admin-shell) > main {
 .admin-shell .page-settings-panel {
   border-radius: 3px;
   overflow: hidden;
-  background: #1b2432;
-  border: 1px solid #2f3d50;
+  background: var(--sf-admin-panel);
+  border: 1px solid var(--sf-admin-panel-border);
+  box-shadow: none;
 }
 
 .admin-shell .page-settings-panel-body {
-  background: #1b2432;
+  background: var(--sf-admin-panel);
   padding: 0.75rem 0.85rem;
 }
 
@@ -2319,7 +2396,7 @@ body:has(.admin-shell) > main {
   margin: 0 0 1rem;
 }
 
-.admin-shell .sf-media-library-filters,
+.admin-shell .sf-media-library-filters-row,
 .admin-shell .sf-media-library-upload-row,
 .admin-shell .sf-media-picker-toolbar,
 .admin-shell .sf-media-picker-upload {
@@ -2327,7 +2404,7 @@ body:has(.admin-shell) > main {
   flex-wrap: wrap;
   gap: var(--sf-admin-btn-gap);
   align-items: flex-end;
-  margin-bottom: 1rem;
+  margin-bottom: 0;
 }
 
 .admin-shell .sf-media-library-filters label,
@@ -2337,6 +2414,23 @@ body:has(.admin-shell) > main {
   flex-direction: column;
   gap: 0.25rem;
   font-size: 0.85rem;
+  color: var(--sf-muted);
+}
+
+.admin-shell .sf-media-library-filters input,
+.admin-shell .sf-media-library-filters select,
+.admin-shell .sf-media-library-upload-row input,
+.admin-shell .sf-media-library-upload-row select,
+.admin-shell .sf-media-picker-upload input,
+.admin-shell .sf-media-picker-upload select,
+.admin-shell .sf-media-picker-toolbar input,
+.admin-shell .sf-media-picker-toolbar select {
+  background: var(--sf-admin-input) !important;
+  border: 1px solid var(--sf-admin-blue-border) !important;
+  color: var(--sf-ink) !important;
+  min-height: 2.1rem;
+  border-radius: 3px;
+  padding: 0.35rem 0.55rem;
 }
 
 .admin-shell .sf-media-library-grid,
@@ -2344,17 +2438,18 @@ body:has(.admin-shell) > main {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
   gap: 0.85rem;
+  margin-top: 1rem;
 }
 
 .admin-shell .sf-media-library-card,
 .admin-shell .sf-media-picker-tile {
-  border: var(--sf-admin-module-border-width) solid var(--sf-admin-module-border-color);
-  background: color-mix(in srgb, #121820 88%, #243044);
+  border: 1px solid var(--sf-admin-panel-border);
+  background: var(--sf-admin-panel);
   color: #e8eef6;
   text-align: left;
   padding: 0;
   overflow: hidden;
-  border-radius: var(--sf-admin-btn-radius);
+  border-radius: 3px;
 }
 
 .admin-shell .sf-media-library-thumb,
@@ -2436,10 +2531,11 @@ body:has(.admin-shell) > main {
   width: min(56rem, 100%);
   max-height: min(90vh, 52rem);
   overflow: auto;
-  background: #151c27;
-  border: var(--sf-admin-module-border-width) solid var(--sf-admin-module-border-color);
-  padding: 1rem 1.1rem 1.25rem;
-  border-radius: var(--sf-admin-btn-radius);
+  background: var(--sf-admin-panel);
+  border: 1px solid var(--sf-admin-panel-border);
+  padding: 0 0 1rem;
+  border-radius: 3px;
+  box-shadow: none;
 }
 
 .admin-shell .sf-media-picker-dialog-head {
@@ -2447,12 +2543,22 @@ body:has(.admin-shell) > main {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  margin-bottom: 0.75rem;
+  margin: 0 0 0.85rem;
+  padding: 0.55rem 0.85rem;
+  background: var(--sf-admin-panel-head);
+  border-bottom: 1px solid var(--sf-admin-panel-border);
 }
 
 .admin-shell .sf-media-picker-dialog-head h3 {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.admin-shell .sf-media-picker-dialog > :not(.sf-media-picker-dialog-head) {
+  margin-left: 0.85rem;
+  margin-right: 0.85rem;
 }
 
 .admin-shell .sf-media-picker-tile {

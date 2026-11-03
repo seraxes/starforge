@@ -27,6 +27,7 @@ export function SecuritySettingsForm({ captchaEnabled, captchaProvider }: Props)
 
   return (
     <form ref={formRef} action={formAction} className="settings-form settings-form-wide">
+      <div className="admin-settings-mosaic">
       <fieldset className="settings-fieldset">
         <legend>Default sitewide captcha</legend>
         <p className="settings-hint">
@@ -113,6 +114,7 @@ export function SecuritySettingsForm({ captchaEnabled, captchaProvider }: Props)
           </span>
         </label>
       </fieldset>
+      </div>
 
       {state.error ? (
         <p className="admin-inline-error" role="alert">
