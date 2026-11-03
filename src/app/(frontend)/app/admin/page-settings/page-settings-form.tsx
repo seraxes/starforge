@@ -333,7 +333,7 @@ export function PageSettingsForm({ bootstrap }: Props) {
           </>
         ) : null}
 
-        <div className="page-settings-mosaic">
+        <div className="page-settings-mosaic admin-settings-mosaic">
         <Panel title="Layout assignment">
           <label className="settings-field">
             <span>Layout</span>

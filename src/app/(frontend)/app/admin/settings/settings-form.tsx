@@ -136,6 +136,7 @@ export function SettingsForm({
       {/* Keep siteName in the form so Modules save does not wipe Payload site name. */}
       <input type="hidden" name="siteName" value={siteName} />
 
+      <div className="admin-settings-mosaic">
       <fieldset className="settings-fieldset">
         <legend>Primary nav assignment</legend>
         <p className="settings-hint">
@@ -166,7 +167,7 @@ export function SettingsForm({
         </label>
       </fieldset>
 
-      <fieldset className="settings-fieldset settings-modules">
+      <fieldset className="settings-fieldset settings-fieldset-wide settings-modules">
         <legend>Modules</legend>
         <p className="settings-hint">
           Installed modules for this build (from <code>starforge.modules.json</code> allowlist) —
@@ -191,8 +192,9 @@ export function SettingsForm({
               onToggle={saveNow}
             />
           </div>
-        ))}
-      </fieldset>
+          ))}
+        </fieldset>
+      </div>
 
       {state.error ? (
         <p className="admin-inline-error" role="alert">

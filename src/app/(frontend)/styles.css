@@ -3711,7 +3711,12 @@ button:disabled {
   margin-top: 0.5rem;
 }
 
-/* Mosaic: columns stretch edge-to-edge under admin chrome */
+/*
+ * Admin settings mosaic — Page Settings language for form tiles.
+ * Desktop: 2 columns; mobile: single column. Wide tiles span both.
+ * Alias: `.page-settings-mosaic` (Layouts → Page Settings).
+ */
+.admin-settings-mosaic,
 .page-settings-mosaic {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3722,6 +3727,15 @@ button:disabled {
   align-items: stretch;
 }
 
+.admin-settings-mosaic > .page-settings-panel,
+.admin-settings-mosaic > .settings-fieldset,
+.admin-settings-mosaic > .outlines-create,
+.admin-settings-mosaic > .outlines-table-wrap,
+.admin-settings-mosaic > .admin-table-wrap,
+.admin-settings-mosaic > .sf-media-library-filters,
+.admin-settings-mosaic > .sf-media-library-upload,
+.admin-settings-mosaic > .sf-forms-settings-panel,
+.admin-settings-mosaic > .admin-settings-panel-wide,
 .page-settings-mosaic > .page-settings-panel {
   margin: 0;
   min-width: 0;
@@ -3730,31 +3744,27 @@ button:disabled {
   align-self: stretch;
 }
 
+.admin-settings-mosaic > .page-settings-panel-wide,
+.admin-settings-mosaic > .settings-fieldset-wide,
+.admin-settings-mosaic > .admin-settings-panel-wide,
+.admin-settings-mosaic > .admin-inline-error,
+.admin-settings-mosaic > .admin-inline-ok,
+.admin-settings-mosaic > .settings-hint,
+.admin-settings-mosaic > .form-error,
+.admin-settings-mosaic > .form-ok,
 .page-settings-mosaic > .page-settings-panel-wide {
   grid-column: 1 / -1;
 }
 
-@media (min-width: 900px) {
-  .page-settings-mosaic {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .page-settings-mosaic > .page-settings-panel-wide {
-    grid-column: span 2;
-  }
-}
-
-@media (min-width: 1400px) {
-  .page-settings-mosaic {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 640px) {
+@media (max-width: 720px) {
+  .admin-settings-mosaic,
   .page-settings-mosaic {
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .admin-settings-mosaic > .page-settings-panel-wide,
+  .admin-settings-mosaic > .settings-fieldset-wide,
+  .admin-settings-mosaic > .admin-settings-panel-wide,
   .page-settings-mosaic > .page-settings-panel-wide {
     grid-column: 1 / -1;
   }

@@ -89,7 +89,7 @@ export function FormsManager({ forms }: Props) {
   }, [createState, dupState, deleteState, router])
 
   return (
-    <div className="sf-forms-manager">
+    <div className="sf-forms-manager admin-settings-mosaic">
       <section className="outlines-create" aria-label="Create form">
         <h3>Create form</h3>
         <form action={createAction} className="outlines-create-form admin-create-form">
@@ -141,7 +141,7 @@ export function FormsManager({ forms }: Props) {
       <Feedback state={dupState} />
       <Feedback state={deleteState} />
 
-      <div className="outlines-table-wrap">
+      <div className="outlines-table-wrap admin-settings-panel-wide">
         <table className="outlines-table">
           <thead>
             <tr>

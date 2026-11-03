@@ -38,6 +38,10 @@ export type AdminThemeTokens = {
   btnPadX?: string
   btnFont?: string
   btnMinHeight?: string
+  /** Page Settings–style form panels (non-Layout admin) */
+  panel?: string
+  panelHead?: string
+  panelBorder?: string
 }
 
 export type AdminTheme = {

@@ -21,13 +21,15 @@ export default function AdminSettingsPerformancePage() {
         <Link href="/app/admin/settings/security">Security</Link>.
       </p>
       <div className="settings-form settings-form-wide">
-        <fieldset className="settings-fieldset">
-          <legend>Cache</legend>
-          <p className="settings-hint">
-            No runtime toggles yet. Local can stay Next/in-memory; production Redis plugs into the
-            same cache abstraction when hosting prep starts.
-          </p>
-        </fieldset>
+        <div className="admin-settings-mosaic">
+          <fieldset className="settings-fieldset settings-fieldset-wide">
+            <legend>Cache</legend>
+            <p className="settings-hint">
+              No runtime toggles yet. Local can stay Next/in-memory; production Redis plugs into the
+              same cache abstraction when hosting prep starts.
+            </p>
+          </fieldset>
+        </div>
       </div>
     </section>
   )

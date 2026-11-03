@@ -133,6 +133,7 @@ export function MediaLibraryClient({
         </p>
       </div>
 
+      <div className="admin-settings-mosaic">
       <form
         className="sf-media-library-filters"
         onSubmit={(e) => {
@@ -140,6 +141,8 @@ export function MediaLibraryClient({
           startTransition(() => router.push(filterHref))
         }}
       >
+        <h3 className="admin-settings-panel-title">Filter</h3>
+        <div className="sf-media-library-filters-row">
         <label>
           <span>Folder</span>
           <select value={folderDraft} onChange={(e) => setFolderDraft(e.target.value)}>
@@ -199,13 +202,14 @@ export function MediaLibraryClient({
             Clear
           </button>
         ) : null}
+        </div>
+        {tagOptions.length === 0 ? (
+          <p className="layout-muted">
+            No shared tags yet — create some in <Link href="/admin/collections/tags">CMS → Tags</Link>{' '}
+            to filter and tag uploads.
+          </p>
+        ) : null}
       </form>
-      {tagOptions.length === 0 ? (
-        <p className="layout-muted">
-          No shared tags yet — create some in <Link href="/admin/collections/tags">CMS → Tags</Link>{' '}
-          to filter and tag uploads.
-        </p>
-      ) : null}
 
       <form className="sf-media-library-upload" action={uploadAction}>
         <h3>Upload</h3>
@@ -276,6 +280,7 @@ export function MediaLibraryClient({
           </p>
         ) : null}
       </form>
+      </div>
 
       <div className="sf-media-library-grid">
         {initialDocs.length === 0 ? (

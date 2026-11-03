@@ -26,4 +26,7 @@ export const starforgeGantryTokens: AdminThemeTokens = {
   btnPadX: '1rem',
   btnFont: '0.9rem',
   btnMinHeight: '2.35rem',
+  panel: '#1b2432',
+  panelHead: '#121a24',
+  panelBorder: '#2f3d50',
 }

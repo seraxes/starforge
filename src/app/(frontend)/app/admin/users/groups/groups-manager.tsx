@@ -78,7 +78,7 @@ export function GroupsManager({ groups }: Props) {
   }, [createState, renameState, deleteState, router])
 
   return (
-    <div className="groups-manager">
+    <div className="groups-manager admin-settings-mosaic">
       <section className="outlines-create" aria-label="Create user group">
         <h3>Create group</h3>
         <form action={createAction} className="outlines-create-form admin-create-form">
@@ -108,7 +108,7 @@ export function GroupsManager({ groups }: Props) {
       <Feedback state={renameState} />
       <Feedback state={deleteState} />
 
-      <div className="outlines-table-wrap">
+      <div className="outlines-table-wrap admin-settings-panel-wide">
         <table className="outlines-table">
           <thead>
             <tr>

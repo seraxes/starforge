@@ -91,7 +91,7 @@ export function RedirectsManager({ redirects }: Props) {
   const busy = createPending || updatePending || togglePending || deletePending
 
   return (
-    <div className="sf-redirects-manager">
+    <div className="sf-redirects-manager admin-settings-mosaic">
       <section className="outlines-create" aria-label="Create redirect">
         <h3>Add redirect</h3>
         <form action={createAction} className="outlines-create-form admin-create-form">
@@ -148,7 +148,7 @@ export function RedirectsManager({ redirects }: Props) {
       <Feedback state={toggleState} />
       <Feedback state={deleteState} />
 
-      <div className="outlines-table-wrap">
+      <div className="outlines-table-wrap admin-settings-panel-wide">
         <table className="outlines-table">
           <thead>
             <tr>

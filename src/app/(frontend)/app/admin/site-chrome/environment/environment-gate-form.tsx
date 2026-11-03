@@ -14,7 +14,8 @@ export function EnvironmentGateForm({ email }: { email: string }) {
 
   return (
     <form action={formAction} className="settings-form settings-form-wide">
-      <fieldset className="settings-fieldset">
+      <div className="admin-settings-mosaic">
+      <fieldset className="settings-fieldset settings-fieldset-wide">
         <legend>Confirm password</legend>
         <p className="settings-hint">
           Environment editing is developer-admin only and requires re-entering the password for{' '}
@@ -33,6 +34,7 @@ export function EnvironmentGateForm({ email }: { email: string }) {
           />
         </label>
       </fieldset>
+      </div>
       {state.error ? (
         <p className="admin-inline-error" role="alert">
           {state.error}
