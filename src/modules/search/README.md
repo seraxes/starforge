@@ -16,7 +16,6 @@ Tags live in Payload (`tags` + `pages.tags` → `payload.pages_rels`). After pul
 
 ## Deferred
 
-- Media library facets / tag filters on Media
 - Public tag browse routes
 - Full-text ranking / Postgres `tsvector`
 - Particle cog editor (placeholder/button use defaults; M1 generic editor later)

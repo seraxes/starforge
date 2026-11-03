@@ -16,6 +16,7 @@
     "product:redirects",
     "product:consent",
     "product:search",
+    "product:media",
     "page-content",
     "site-header",
     "logo",

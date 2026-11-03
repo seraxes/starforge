@@ -1,10 +1,10 @@
 import type { CollectionConfig } from 'payload'
 
 /**
- * Shared content taxonomy (SF-132) — one Tags collection for pages (and later
- * posts/media filters). Not a Site Settings product toggle; editors use it from
- * Payload when CMS is on. Keep ACL tags (groups) separate — those stay on Nav /
- * layout slots / Page Settings.
+ * Shared content taxonomy (SF-132 / SF-148) — one Tags collection for pages and
+ * media filters. Not a Site Settings product toggle; editors use it from Payload
+ * when CMS is on. Keep ACL tags (groups) separate — those stay on Nav / layout
+ * slots / Page Settings.
  */
 export const Tags: CollectionConfig = {
   slug: 'tags',
@@ -12,7 +12,7 @@ export const Tags: CollectionConfig = {
     useAsTitle: 'title',
     defaultColumns: ['title', 'slug', 'updatedAt'],
     description:
-      'Shared content tags for pages (and later posts/media). Distinct from viewing ACL group tags.',
+      'Shared content tags for pages and media. Distinct from viewing ACL group tags.',
     group: 'Content',
   },
   access: {

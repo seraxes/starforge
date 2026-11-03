@@ -160,6 +160,10 @@ export interface Media {
   folder?: ('general' | 'logos' | 'backgrounds' | 'pages' | 'forms') | null;
   purpose?: ('photo' | 'logo' | 'other') | null;
   /**
+   * Shared content tags (SF-132 taxonomy). Same Tags as Pages — filter in Core Media library.
+   */
+  tags?: (number | Tag)[] | null;
+  /**
    * When set (Form respondent uploads), hide from public Media list/API. Serve via Core admin attachment route.
    */
   private?: boolean | null;
@@ -381,6 +385,8 @@ export interface MediaSelect<T extends boolean = true> {
   alt?: T;
   folder?: T;
   purpose?: T;
+  tags?: T;
+  private?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;

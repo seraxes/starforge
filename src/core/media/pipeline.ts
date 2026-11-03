@@ -1,26 +1,61 @@
 /**
- * Starforge media pipeline defaults (SF-28).
+ * Starforge media pipeline defaults (SF-28 / SF-117 / SF-148).
  * Applied around Payload Media upload — one library for all features.
+ * Image engine = sharp only; video = ffmpeg later (not here).
  */
 
+/** Typed image rules — Site Settings editor later; code defaults now. */
+export type MediaPipelineRules = {
+  /** Cap longest edges on originals (no enlargement). */
+  maxWidth: number
+  maxHeight: number
+  /** JPEG re-encode when keeping JPEG (e.g. logo JPEG). */
+  jpegQuality: number
+  /** WebP quality for photo originals + Payload size derivatives. */
+  webpQuality: number
+  /** Photo / other originals: always WebP (default). */
+  photoOriginalFormat: 'webp'
+  /** PNG mime always kept; purpose=logo also skips forced WebP. */
+  keepPngForLogos: true
+  sizes: {
+    thumbnail: number
+    card: number
+    large: number
+  }
+}
+
+export const DEFAULT_MEDIA_PIPELINE_RULES: MediaPipelineRules = {
+  maxWidth: 2560,
+  maxHeight: 2560,
+  jpegQuality: 82,
+  webpQuality: 80,
+  photoOriginalFormat: 'webp',
+  keepPngForLogos: true,
+  sizes: {
+    thumbnail: 320,
+    card: 768,
+    large: 1920,
+  },
+}
+
 /** Max edge for original uploads (without enlargement). */
-export const MEDIA_MAX_WIDTH = 2560
-export const MEDIA_MAX_HEIGHT = 2560
+export const MEDIA_MAX_WIDTH = DEFAULT_MEDIA_PIPELINE_RULES.maxWidth
+export const MEDIA_MAX_HEIGHT = DEFAULT_MEDIA_PIPELINE_RULES.maxHeight
 
 /** JPEG quality for originals when Payload formats as jpeg. */
-export const MEDIA_JPEG_QUALITY = 82
+export const MEDIA_JPEG_QUALITY = DEFAULT_MEDIA_PIPELINE_RULES.jpegQuality
 
 /** WebP quality for generated sizes. */
-export const MEDIA_WEBP_QUALITY = 80
+export const MEDIA_WEBP_QUALITY = DEFAULT_MEDIA_PIPELINE_RULES.webpQuality
 
 /** Thumbnail edge (square crop for admin / picker). */
-export const MEDIA_THUMB_SIZE = 320
+export const MEDIA_THUMB_SIZE = DEFAULT_MEDIA_PIPELINE_RULES.sizes.thumbnail
 
 /** Card / content width. */
-export const MEDIA_CARD_WIDTH = 768
+export const MEDIA_CARD_WIDTH = DEFAULT_MEDIA_PIPELINE_RULES.sizes.card
 
 /** Large / hero width. */
-export const MEDIA_LARGE_WIDTH = 1920
+export const MEDIA_LARGE_WIDTH = DEFAULT_MEDIA_PIPELINE_RULES.sizes.large
 
 export const MEDIA_FOLDERS = [
   { value: 'general', label: 'General' },
