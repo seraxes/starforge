@@ -14,6 +14,8 @@ export type ResolvedMedia = {
   url: string
   /** Best-effort absolute URL for OG / external. */
   absoluteUrl: string
+  /** Raw Payload file URL (pre-derivative) when available — logos / lightbox. */
+  originalUrl?: string
   mimeType?: string | null
   width?: number | null
   height?: number | null
@@ -100,11 +102,13 @@ export function toResolvedMedia(
   if (!url) return null
   const absolute = absoluteAssetUrl(url) || url
   const tags = mediaTagMeta(media)
+  const originalUrl = media.url?.trim() || undefined
   return {
     id: String(media.id),
     alt: media.alt || '',
     url,
     absoluteUrl: absolute,
+    ...(originalUrl ? { originalUrl } : {}),
     mimeType: media.mimeType,
     width: media.width,
     height: media.height,
@@ -273,6 +277,7 @@ export async function listMedia(opts?: {
         alt: m.alt || '',
         url: m.url || '',
         absoluteUrl: absoluteMediaUrl(m) || m.url || '',
+        ...(m.url ? { originalUrl: m.url } : {}),
         mimeType: m.mimeType,
         width: m.width,
         height: m.height,

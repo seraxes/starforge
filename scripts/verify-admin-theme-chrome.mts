@@ -21,10 +21,17 @@ const tokensPath = join(
   'src/core/admin-theme/themes/starforge-gantry/tokens.ts',
 )
 const stylesPath = join(root, 'src/app/(frontend)/styles.css')
+const mediaLibraryPath = join(
+  root,
+  'src/app/(frontend)/app/admin/media/media-library.tsx',
+)
+const mediaLightboxPath = join(root, 'src/components/admin/MediaLightbox.tsx')
 const chrome = readFileSync(chromePath, 'utf8')
 const payloadChrome = readFileSync(payloadChromePath, 'utf8')
 const tokens = readFileSync(tokensPath, 'utf8')
 const styles = readFileSync(stylesPath, 'utf8')
+const mediaLibrary = readFileSync(mediaLibraryPath, 'utf8')
+const mediaLightbox = readFileSync(mediaLightboxPath, 'utf8')
 
 function mustInclude(haystack: string, label: string, needle: string) {
   if (!haystack.includes(needle)) {
@@ -57,6 +64,16 @@ mustInclude(chrome, 'page-settings panel uses panel token', 'background: var(--s
 mustInclude(chrome, 'media folder sidebar layout', '.admin-shell .sf-media-library-layout')
 mustInclude(chrome, 'media folder nav', '.admin-shell .sf-media-folder-nav')
 mustInclude(chrome, 'media folder item', '.admin-shell .sf-media-folder-item')
+mustInclude(chrome, 'media lightbox dialog', '.admin-shell .sf-media-lightbox-dialog')
+mustInclude(chrome, 'media lightbox preview', '.admin-shell .sf-media-lightbox-preview')
+mustInclude(chrome, 'media library empty state', '.admin-shell .sf-media-library-empty')
+mustInclude(chrome, 'media chip', '.admin-shell .sf-media-chip')
+mustInclude(mediaLibrary, 'library opens MediaLightbox', 'MediaLightbox')
+mustInclude(mediaLibrary, 'library folder sidebar', 'sf-media-folder-nav')
+mustInclude(mediaLightbox, 'lightbox Esc handler', "event.key === 'Escape'")
+mustInclude(mediaLightbox, 'lightbox prev arrow', "event.key === 'ArrowLeft'")
+mustInclude(mediaLightbox, 'lightbox next arrow', "event.key === 'ArrowRight'")
+mustInclude(mediaLightbox, 'lightbox Close label', 'aria-label="Close"')
 
 mustInclude(
   chrome,
