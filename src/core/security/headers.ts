@@ -1,15 +1,21 @@
+import { buildCspHeaders, type CspMode, type CspSources } from './csp'
 import { shouldUseSecureCookies } from './secure-cookies'
 
 export type SecurityHeader = { key: string; value: string }
 
 /**
- * Practical baseline for Next 16 + Payload 3 + Turnstile — not a WAF.
- * Allows inline/eval scripts Payload/Next still need; frames Turnstile only.
- * HSTS is included only when the app is on the Secure-cookie / HTTPS path.
+ * Practical baseline for Next 16 + Payload 3 — not a WAF.
+ * CSP is composed from source groups (see `./csp`); feature sources
+ * (Turnstile, Font Awesome, analytics, Page Settings assets) come from the
+ * caller. HSTS is included only on the Secure-cookie / HTTPS path.
  */
 export function buildSecurityHeaders(options?: {
   /** Override HSTS inclusion (defaults to same signal as Secure cookies). */
   hsts?: boolean
+  /** Feature-driven CSP sources (middleware fetches them; static config omits). */
+  cspSources?: CspSources | null
+  /** Override `STARFORGE_CSP_MODE`. */
+  cspMode?: CspMode
 }): SecurityHeader[] {
   const hsts = options?.hsts ?? shouldUseSecureCookies()
 
@@ -22,25 +28,7 @@ export function buildSecurityHeaders(options?: {
       key: 'Permissions-Policy',
       value: 'camera=(self), microphone=(), geolocation=(), payment=()',
     },
-    {
-      key: 'Content-Security-Policy',
-      value: [
-        "default-src 'self'",
-        // Next + Payload admin still rely on inline / eval in places.
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com",
-        "style-src 'self' 'unsafe-inline'",
-        "img-src 'self' data: blob: https:",
-        "font-src 'self' data:",
-        "connect-src 'self' https://challenges.cloudflare.com",
-        "frame-src 'self' https://challenges.cloudflare.com",
-        "media-src 'self' blob:",
-        "worker-src 'self' blob:",
-        "object-src 'none'",
-        "base-uri 'self'",
-        "form-action 'self'",
-        "frame-ancestors 'self'",
-      ].join('; '),
-    },
+    ...buildCspHeaders({ features: options?.cspSources, mode: options?.cspMode }),
   ]
 
   if (hsts) {
@@ -56,7 +44,7 @@ export function buildSecurityHeaders(options?: {
 /** Apply baseline security headers onto a NextResponse (or any Headers bag). */
 export function applySecurityHeaders(
   headers: Headers,
-  options?: { hsts?: boolean },
+  options?: Parameters<typeof buildSecurityHeaders>[0],
 ): void {
   for (const { key, value } of buildSecurityHeaders(options)) {
     headers.set(key, value)
