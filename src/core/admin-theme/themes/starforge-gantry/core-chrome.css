@@ -2402,7 +2402,8 @@ body:has(.admin-shell) > main {
 
 .admin-shell .sf-media-library-layout {
   display: grid;
-  grid-template-columns: minmax(11rem, 14rem) minmax(0, 1fr);
+  /* Wider Folders column so 2× tree icons leave room for readable names */
+  grid-template-columns: minmax(16rem, 19rem) minmax(0, 1fr);
   gap: 1rem;
   align-items: start;
 }
@@ -2417,7 +2418,7 @@ body:has(.admin-shell) > main {
   border: 1px solid var(--sf-admin-panel-border);
   background: var(--sf-admin-panel);
   border-radius: 3px;
-  padding: 0.85rem 0.75rem 1rem;
+  padding: 0.85rem 0.55rem 1rem 0.45rem;
   position: sticky;
   top: 0.75rem;
 }
@@ -2481,12 +2482,15 @@ body:has(.admin-shell) > main {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  /* Tighten left padding — toggle already provides the left chrome */
+  padding-left: 0.25rem;
+  padding-right: 0.35rem;
 }
 
 .admin-shell .sf-media-tree-toggle {
-  /* SF-177: 2× prior expand/collapse glyphs (was 0.75rem) */
-  flex: 0 0 1.5rem;
-  width: 1.5rem;
+  /* SF-177: 2× glyph (1.5rem) in a narrow slot so names stay readable */
+  flex: 0 0 1.1rem;
+  width: 1.1rem;
   height: 1.75rem;
   display: inline-flex;
   align-items: center;
@@ -2499,6 +2503,7 @@ body:has(.admin-shell) > main {
   line-height: 1;
   padding: 0;
   cursor: pointer;
+  overflow: visible;
 }
 
 .admin-shell .sf-media-tree-toggle.is-leaf {
@@ -2524,10 +2529,10 @@ body:has(.admin-shell) > main {
   background: transparent;
   color: #c5d2e0;
   font: inherit;
-  /* SF-177: 2× prior row action glyphs (was 0.85rem) */
+  /* SF-177: 2× prior row action glyphs (was 0.85rem); tight pad so labels fit */
   font-size: 1.7rem;
   line-height: 1;
-  padding: 0.3rem 0.6rem;
+  padding: 0.15rem 0.28rem;
   cursor: pointer;
   border-radius: 2px;
 }

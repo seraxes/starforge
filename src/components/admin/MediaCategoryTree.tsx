@@ -51,7 +51,7 @@ function TreeNode({
     <li>
       <div
         className={`sf-media-tree-row${current ? ' is-current' : ''}`}
-        style={{ paddingLeft: `${0.35 + depth * 0.75}rem` }}
+        style={{ paddingLeft: `${0.1 + depth * 0.55}rem` }}
       >
         {hasChildren ? (
           <button
