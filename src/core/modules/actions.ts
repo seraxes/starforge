@@ -1280,25 +1280,64 @@ export async function updateFormSlotAction(
   const slotId = String(formData.get('slotId') ?? '').trim()
   if (!sectionId || !rowId || !slotId) return { error: 'Missing slot reference.' }
 
+  const sourceRaw = String(formData.get('source') ?? '').trim()
+  const source = sourceRaw === 'custom' ? 'custom' : 'definition'
   const formId = String(formData.get('formId') ?? '').trim()
 
   let parsedFields: unknown = []
   const fieldsJsonRaw = String(formData.get('fieldsJson') ?? '')
-  if (fieldsJsonRaw.trim()) {
+  if (source === 'custom' && fieldsJsonRaw.trim()) {
     try {
       parsedFields = JSON.parse(fieldsJsonRaw)
     } catch {
-      return { error: 'Invalid fields JSON.' }
+      return { error: 'Invalid custom form JSON.' }
     }
   }
 
-  const { formConfigToSlotConfig, normalizeFormFields } = await import('@/core/forms/config')
+  const { formConfigToSlotConfig, parseCustomFormParticleJson } = await import(
+    '@/core/forms/config'
+  )
+
+  let customFields: import('@/core/forms/types').FormFieldDef[] | undefined
+  let customHeading: string | undefined
+  let customSuccess: string | undefined
+  let customSubmit: string | undefined
+  if (source === 'custom') {
+    try {
+      const parsed = parseCustomFormParticleJson(
+        fieldsJsonRaw.trim() ? parsedFields : [],
+      )
+      customFields = parsed.fields
+      customHeading = parsed.heading
+      customSuccess = parsed.successMessage
+      customSubmit = parsed.submitLabel
+    } catch (error) {
+      return {
+        error:
+          error instanceof Error && error.message
+            ? error.message
+            : 'Invalid custom form JSON.',
+      }
+    }
+  }
+
+  const headingOverride = String(formData.get('heading') ?? '').trim()
   const config: LayoutSlotConfig = formConfigToSlotConfig({
-    formId: formId || undefined,
-    heading: String(formData.get('heading') ?? '').trim(),
-    fields: formId ? undefined : normalizeFormFields(parsedFields),
-    successMessage: String(formData.get('successMessage') ?? '').trim() || undefined,
-    submitLabel: String(formData.get('submitLabel') ?? '').trim() || undefined,
+    source,
+    formId: source === 'definition' ? formId || undefined : undefined,
+    heading:
+      headingOverride ||
+      (source === 'custom' ? customHeading : undefined) ||
+      undefined,
+    fields: source === 'custom' ? customFields : undefined,
+    successMessage:
+      String(formData.get('successMessage') ?? '').trim() ||
+      (source === 'custom' ? customSuccess : undefined) ||
+      undefined,
+    submitLabel:
+      String(formData.get('submitLabel') ?? '').trim() ||
+      (source === 'custom' ? customSubmit : undefined) ||
+      undefined,
     useSiteCaptchaDefault: String(formData.get('useSiteCaptchaDefault') ?? '') === 'on',
   })
 

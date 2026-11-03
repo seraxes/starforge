@@ -54,12 +54,15 @@ export default async function AdminLayoutsPage(props: { searchParams?: SearchPar
     label: label || layoutId,
   }
   await ensureDefaultUserGroupsSeeded()
-  await ensureDefaultContactFormSeeded()
+  const formsModuleEnabled = isCatalogModuleEnabled(settings, MODULE_IDS.forms)
+  if (formsModuleEnabled) {
+    await ensureDefaultContactFormSeeded()
+  }
   const [modules, groups, navMenus, formDefinitions] = await Promise.all([
     listModulesForLayoutAdmin(),
     listUserGroupOptions(),
     listNavMenus(),
-    listFormDefinitions(),
+    formsModuleEnabled ? listFormDefinitions() : Promise.resolve([]),
   ])
 
   const pageSettingsOn = isCatalogModuleEnabled(settings, MODULE_IDS.pageSettings)
@@ -96,6 +99,7 @@ export default async function AdminLayoutsPage(props: { searchParams?: SearchPar
           groups={groups}
           navMenus={navMenus.map((m) => ({ id: m.id, label: m.label }))}
           formDefinitions={formDefinitions.map((f) => ({ id: f.id, label: f.label }))}
+          formsModuleEnabled={formsModuleEnabled}
           primaryNavMenuId={settings.primaryNavMenuId}
           layoutId={layoutId}
           layoutLabel={outlineMeta.label}

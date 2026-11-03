@@ -88,8 +88,10 @@ export {
   listFormDefinitions,
   listFormSubmissions,
   loadFormDefinition,
+  parseCustomFormParticleJson,
   readFormConfig,
   resolveFormCaptcha,
+  resolveFormParticleSource,
   submitFormAction,
   verifyTurnstileToken,
 } from './forms'
@@ -97,6 +99,7 @@ export type {
   FormDefinitionDocument,
   FormFieldDef,
   FormParticleConfig,
+  FormParticleSource,
   FormPresetId,
   FormSubmissionPayload,
   FormSubmissionRecord,

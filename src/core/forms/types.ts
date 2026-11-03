@@ -305,15 +305,24 @@ export type FormDefinitionMeta = {
   updatedAt: Date
 }
 
+/** How the Form particle gets its field schema. */
+export type FormParticleSource = 'definition' | 'custom'
+
 /** Layout slot config for the `form` particle. */
 export type FormParticleConfig = {
-  /** Preferred: bind a Form definition from Admin → Forms. */
+  /**
+   * `definition` — pick a Form from Admin → Forms (`formId`).
+   * `custom` — paste/own JSON (fields array, definition doc, or JSON Schema).
+   * Omitted on older slots: inferred from formId vs fields.
+   */
+  source?: FormParticleSource
+  /** Bind a Form definition id/slug when source is `definition`. */
   formId?: string
   /** Optional heading above the form (overrides definition title when set). */
   heading?: string
   /**
-   * Legacy inline fields (SF-48). Used when `formId` is empty / definition missing.
-   * Prefer editing definitions in the Forms builder going forward.
+   * Custom / inline fields when source is `custom` (or legacy slots without formId).
+   * Prefer Admin → Forms definitions when the Forms module is on.
    */
   fields?: FormFieldDef[]
   successMessage?: string

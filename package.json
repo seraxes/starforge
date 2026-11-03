@@ -34,12 +34,13 @@
     "verify:redirects-paths": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-redirects-paths.mts",
     "verify:form-upload-security": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-form-upload-security.mts",
     "verify:form-should-slice": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-form-should-slice-sf133.mts",
+    "verify:form-particle-binding": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-form-particle-binding.mts",
     "verify:consent-cookie": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-consent-cookie.mts",
     "verify:csp-sources": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-csp-sources.mts",
     "verify:forms-nav-no-submissions": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-forms-nav-no-submissions.mts",
     "verify:search-query": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-search-query.mts",
     "verify:media-pipeline": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-media-pipeline-sf148.mts",
-    "verify:all": "npm run verify:security-headers-cookies && npm run verify:redirects-paths && npm run verify:form-upload-security && npm run verify:form-should-slice && npm run verify:consent-cookie && npm run verify:csp-sources && npm run verify:admin-nav-site-chrome && npm run verify:forms-nav-no-submissions && npm run verify:search-query && npm run verify:media-pipeline"
+    "verify:all": "npm run verify:security-headers-cookies && npm run verify:redirects-paths && npm run verify:form-upload-security && npm run verify:form-should-slice && npm run verify:form-particle-binding && npm run verify:consent-cookie && npm run verify:csp-sources && npm run verify:admin-nav-site-chrome && npm run verify:forms-nav-no-submissions && npm run verify:search-query && npm run verify:media-pipeline"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.7.14",
