@@ -122,8 +122,10 @@ function AdminSidebarNavInner({
         <ul className="admin-sidebar-list">
           {groups.map((group) => {
             const expandable = groupIsExpandable(group)
-            const isOpen = expandable ? openIds.has(group.id) : true
             const isActive = activeIds.has(group.id)
+            // Active groups always show children — collapsing the current section
+            // made Media look like a flat highlighted leaf on /app/admin/media.
+            const isOpen = expandable ? openIds.has(group.id) || isActive : true
             const primary = group.links[0]
 
             if (!expandable && primary) {
@@ -159,7 +161,11 @@ function AdminSidebarNavInner({
                   className="admin-sidebar-group-head"
                   aria-expanded={isOpen}
                   aria-controls={`admin-sidebar-sub-${group.id}`}
-                  onClick={() => toggleGroup(group.id)}
+                  onClick={() => {
+                    // Do not collapse the section that owns the current route.
+                    if (isActive && isOpen) return
+                    toggleGroup(group.id)
+                  }}
                 >
                   <span className="admin-sidebar-group-title">{group.label}</span>
                   <span
