@@ -143,6 +143,17 @@ export const PRODUCT_MODULE_CATALOG: ModuleCatalogItem[] = [
     installed: true,
     navViews: [{ key: 'admin', label: 'Forms', href: '/app/admin/forms' }],
   },
+  {
+    id: MODULE_IDS.redirects,
+    kind: 'product',
+    label: 'Redirects',
+    description:
+      'URL redirects (from → to + status) with middleware lookup. Sitemap of published pages is always at /sitemap.xml (not gated by this toggle).',
+    required: false,
+    defaultEnabled: true,
+    installed: true,
+    navViews: [{ key: 'admin', label: 'Redirects', href: '/app/admin/redirects' }],
+  },
 ]
 
 const productPlatformAllow = new Set<string>(ALLOWLISTED_PRODUCT_PLATFORM_IDS)

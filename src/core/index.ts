@@ -24,6 +24,8 @@ export {
 export type { MediaFolder, MediaPurpose, MediaStorageInfo, ResolvedMedia } from './media'
 export type { SiteChromeSeoDefaults } from './content/metadata'
 export { getDraftPageBySlug, getPublishedPageBySlug } from './content/pages'
+export { listPublishedPagesForSitemap } from './content/sitemap'
+export type { SitemapPageEntry } from './content/sitemap'
 export { requireDraftPreviewAccess, resolveDraftPreviewAccess } from './content/preview'
 export {
   invalidatePublishedPage,
@@ -48,10 +50,29 @@ export {
   sfNavMenus,
   sfForms,
   sfFormSubmissions,
+  sfRedirects,
   sfUserGroups,
   sfUserGroupMembers,
   sfAclPermissions,
 } from './db'
+export {
+  REDIRECT_STATUS_CODES,
+  createRedirect,
+  deleteRedirect,
+  findRedirectById,
+  isRedirectStatusCode,
+  listRedirects,
+  lookupEnabledRedirect,
+  normalizeRedirectFromPath,
+  normalizeRedirectToPath,
+  resolveRedirectDestination,
+  updateRedirect,
+} from './redirects'
+export type {
+  RedirectLookupHit,
+  RedirectRecord,
+  RedirectStatusCode,
+} from './redirects'
 export {
   DEFAULT_CONTACT_FORM_ID,
   defaultFormConfig,

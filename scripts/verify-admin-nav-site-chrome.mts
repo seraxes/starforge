@@ -7,6 +7,7 @@ import { buildAdminNavGroups } from '../src/core/admin-nav/build.ts'
 const flags = {
   nav: true,
   forms: true,
+  redirects: true,
   layout: true,
   pageSettings: true,
   cms: true,
@@ -71,6 +72,13 @@ for (const surface of ['core', 'payload'] as const) {
     }
   }
   console.log(`[${surface}] ok — Settings accordion topics`)
+
+  const redirects = groups.find((g) => g.id === 'redirects')
+  if (!redirects?.links.some((l) => l.href === '/app/admin/redirects' && l.label === 'Redirects')) {
+    console.error(`[${surface}] missing Redirects nav leaf`, redirects?.links)
+    process.exit(1)
+  }
+  console.log(`[${surface}] ok — Redirects leaf`)
 
   const layouts = groups.find((g) => g.id === 'layouts')
   if (!layouts?.links.some((l) => l.href === '/app/admin/page-settings' && l.label === 'Page settings')) {
