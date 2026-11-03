@@ -115,3 +115,34 @@ export async function countFormSubmissions(): Promise<number> {
   const rows = await db.select({ id: sfFormSubmissions.id }).from(sfFormSubmissions)
   return rows.length
 }
+
+export async function getFormSubmission(
+  id: string,
+): Promise<FormSubmissionRecord | null> {
+  const trimmed = id.trim()
+  if (!trimmed) return null
+  const [row] = await db
+    .select()
+    .from(sfFormSubmissions)
+    .where(eq(sfFormSubmissions.id, trimmed))
+    .limit(1)
+  return row ? mapRow(row) : null
+}
+
+export async function deleteFormSubmission(id: string): Promise<boolean> {
+  const trimmed = id.trim()
+  if (!trimmed) return false
+  const deleted = await db
+    .delete(sfFormSubmissions)
+    .where(eq(sfFormSubmissions.id, trimmed))
+    .returning({ id: sfFormSubmissions.id })
+  return deleted.length > 0
+}
+
+export async function deleteFormSubmissions(ids: string[]): Promise<number> {
+  let count = 0
+  for (const id of ids) {
+    if (await deleteFormSubmission(id)) count += 1
+  }
+  return count
+}

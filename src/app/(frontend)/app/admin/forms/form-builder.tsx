@@ -970,6 +970,9 @@ export function FormBuilder({ formId, initialDocument }: Props) {
   const [description, setDescription] = useState(initialDocument.description ?? '')
   const [preset, setPreset] = useState<FormPresetId>(initialDocument.preset)
   const [successMessage, setSuccessMessage] = useState(initialDocument.successMessage)
+  const [successRedirectUrl, setSuccessRedirectUrl] = useState(
+    initialDocument.successRedirectUrl ?? '',
+  )
   const [submitLabel, setSubmitLabel] = useState(initialDocument.submitLabel)
   const [useSiteCaptchaDefault, setUseSiteCaptchaDefault] = useState(
     initialDocument.useSiteCaptchaDefault !== false,
@@ -1493,6 +1496,20 @@ export function FormBuilder({ formId, initialDocument }: Props) {
                 value={successMessage}
                 onChange={(e) => {
                   setSuccessMessage(e.target.value)
+                  saveDebounced()
+                }}
+                onBlur={flushOnBlur}
+              />
+            </label>
+            <label>
+              <span>Success redirect URL (optional)</span>
+              <input
+                type="text"
+                name="successRedirectUrl"
+                value={successRedirectUrl}
+                placeholder="/thanks — relative path only"
+                onChange={(e) => {
+                  setSuccessRedirectUrl(e.target.value)
                   saveDebounced()
                 }}
                 onBlur={flushOnBlur}

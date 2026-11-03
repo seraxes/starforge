@@ -4,6 +4,7 @@ import {
 } from './date-constraints'
 import { normalizeFieldLogic } from './logic'
 import { fieldsToJsonSchema, normalizeFormJsonSchema, syncSchemaFromFields } from './schema-json'
+import { normalizeSuccessRedirectUrl } from './csv'
 import {
   DEFAULT_CONTACT_FORM_ID,
   defaultMessagesForPreset,
@@ -406,6 +407,7 @@ export function normalizeFormDefinitionDocument(raw: unknown): FormDefinitionDoc
     ? normalizeFormJsonSchema(obj.schema, fields)
     : syncSchemaFromFields(fields, undefined, { title, description })
   const emailNotify = normalizeEmailNotify(obj.emailNotify)
+  const successRedirectUrl = normalizeSuccessRedirectUrl(obj.successRedirectUrl)
 
   return {
     version: 1,
@@ -420,6 +422,7 @@ export function normalizeFormDefinitionDocument(raw: unknown): FormDefinitionDoc
       typeof obj.successMessage === 'string' && obj.successMessage.trim()
         ? obj.successMessage.trim()
         : defaultMessagesForPreset(preset).successMessage,
+    ...(successRedirectUrl ? { successRedirectUrl } : {}),
     submitLabel:
       typeof obj.submitLabel === 'string' && obj.submitLabel.trim()
         ? obj.submitLabel.trim()

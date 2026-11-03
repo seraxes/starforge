@@ -34,6 +34,7 @@ export const formModule: StarforgeModule = {
           fields: loaded.document.fields,
           sections: loaded.document.sections,
           successMessage: loaded.document.successMessage,
+          successRedirectUrl: loaded.document.successRedirectUrl,
           submitLabel: loaded.document.submitLabel,
           useSiteCaptchaDefault: loaded.document.useSiteCaptchaDefault,
         }

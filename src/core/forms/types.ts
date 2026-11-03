@@ -269,6 +269,11 @@ export type FormDefinitionDocument = {
   schemaDirty?: boolean
   /** Shown on the public widget after a successful submit. */
   successMessage: string
+  /**
+   * Optional post-submit redirect (relative path only, e.g. `/thanks`).
+   * When set, the public widget navigates after a successful submit.
+   */
+  successRedirectUrl?: string
   submitLabel: string
   useSiteCaptchaDefault: boolean
   /** Email-on-submit preferences (uses platform Mailer when Site Chrome email is on). */
@@ -353,6 +358,8 @@ export type FormSubmitActionState = {
   error?: string
   ok?: boolean
   message?: string
+  /** Relative success redirect from the definition (open-redirect safe). */
+  redirectUrl?: string
 }
 
 export type FormAdminActionState = {

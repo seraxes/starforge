@@ -22,7 +22,13 @@ import { isFormPresetId } from './presets'
 import { checkFormRateLimit } from './rate-limit'
 import { normalizeFormJsonSchema, stringifyFormJsonSchema } from './schema-json'
 import { validateFieldsWithZod } from './schema-zod'
-import { createFormSubmission, listFormSubmissions } from './store'
+import { normalizeSuccessRedirectUrl } from './csv'
+import {
+  createFormSubmission,
+  deleteFormSubmission,
+  getFormSubmission,
+  listFormSubmissions,
+} from './store'
 import type {
   FormAdminActionState,
   FormDefinitionDocument,
@@ -180,6 +186,7 @@ export async function submitFormAction(
   let successMessage =
     String(formData.get('successMessage') ?? '').trim() ||
     'Thanks — your message was sent.'
+  let successRedirectUrl: string | undefined
   let definitionId: string | null = null
   let definitionDocument: FormDefinitionDocument | null = null
   let fromServerDefinition = false
@@ -191,6 +198,7 @@ export async function submitFormAction(
     }
     fields = loaded.document.fields
     successMessage = loaded.document.successMessage || successMessage
+    successRedirectUrl = loaded.document.successRedirectUrl
     definitionId = loaded.id || definitionIdRaw
     definitionDocument = loaded.document
     fromServerDefinition = true
@@ -302,7 +310,11 @@ export async function submitFormAction(
 
   revalidatePath('/app/admin/forms')
   revalidatePath('/app/admin/forms/submissions')
-  return { ok: true, message: successMessage }
+  return {
+    ok: true,
+    message: successMessage,
+    ...(successRedirectUrl ? { redirectUrl: successRedirectUrl } : {}),
+  }
 }
 
 /** Admin-only gate for Forms area. */
@@ -452,6 +464,9 @@ export async function saveFormDefinitionAction(
     schema: normalizeFormJsonSchema(schemaRaw, normalizeFormFields(fields)),
     schemaDirty,
     successMessage: String(formData.get('successMessage') ?? '').trim(),
+    successRedirectUrl: normalizeSuccessRedirectUrl(
+      String(formData.get('successRedirectUrl') ?? ''),
+    ),
     submitLabel: String(formData.get('submitLabel') ?? '').trim() || 'Submit',
     useSiteCaptchaDefault: String(formData.get('useSiteCaptchaDefault') ?? '') === 'on',
     emailNotify,
@@ -535,6 +550,99 @@ export async function previewFormSchemaAction(fieldsJson: string): Promise<strin
     return stringifyFormJsonSchema(fieldsToJsonSchema(fields))
   } catch {
     return '{}'
+  }
+}
+
+export async function deleteFormSubmissionAction(
+  _prev: FormAdminActionState,
+  formData: FormData,
+): Promise<FormAdminActionState> {
+  const denied = await requireFormsAdmin()
+  if (denied) return denied
+
+  const submissionId = String(formData.get('submissionId') ?? '').trim()
+  if (!submissionId) return { error: 'Missing submission id.' }
+
+  try {
+    const ok = await deleteFormSubmission(submissionId)
+    if (!ok) return { error: 'Submission not found.' }
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : 'Could not delete submission.',
+    }
+  }
+
+  revalidateFormsAdmin()
+  return { ok: true, message: 'Submission deleted.' }
+}
+
+/**
+ * Re-dispatch admin/respondent notify for a stored submission (lightweight).
+ * Soft-fails Mailer errors into the action message — does not throw.
+ */
+export async function resendFormSubmissionNotifyAction(
+  _prev: FormAdminActionState,
+  formData: FormData,
+): Promise<FormAdminActionState> {
+  const denied = await requireFormsAdmin()
+  if (denied) return denied
+
+  const submissionId = String(formData.get('submissionId') ?? '').trim()
+  if (!submissionId) return { error: 'Missing submission id.' }
+
+  const submission = await getFormSubmission(submissionId)
+  if (!submission) return { error: 'Submission not found.' }
+  if (!submission.definitionId) {
+    return { error: 'Submission has no form definition — cannot resend notify.' }
+  }
+
+  const loaded = await loadFormDefinition(submission.definitionId)
+  if (loaded.isFallback && loaded.source !== 'database' && submission.definitionId !== 'contact') {
+    return { error: 'Form definition not found.' }
+  }
+
+  const notify = loaded.document.emailNotify
+  if (!notify?.notifyAdmin && !notify?.notifyRespondent) {
+    return {
+      error: 'Email notify is off for this form — enable admin or respondent notify in Form settings.',
+    }
+  }
+
+  try {
+    const { dispatchFormEmailNotify, planFormEmailNotify } = await import('./email-notify')
+    const plan = await planFormEmailNotify({
+      document: loaded.document,
+      payload: submission.payload,
+      formKey: submission.formKey,
+      definitionId: submission.definitionId,
+    })
+    if (!plan.intents.length) {
+      return {
+        error:
+          'No notify recipients resolved (check admin emails / respondent email field).',
+      }
+    }
+    const result = await dispatchFormEmailNotify(plan)
+    const failed = (result.results ?? []).filter((r) => !r.ok && !r.skipped)
+    if (result.stubbed) {
+      return {
+        ok: true,
+        message: `Notify planned (${plan.intents.length}) but Mailer is disabled or console-only.`,
+      }
+    }
+    if (failed.length) {
+      return {
+        error: `Notify partially failed (${failed.length}/${plan.intents.length}).`,
+      }
+    }
+    return {
+      ok: true,
+      message: `Notify resent (${plan.intents.map((i) => i.kind).join(', ')}).`,
+    }
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : 'Could not resend notify.',
+    }
   }
 }
 
