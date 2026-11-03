@@ -1925,6 +1925,16 @@ button:disabled {
   margin-top: 0.2rem;
 }
 
+.sf-form-field-file input[type='file'] {
+  padding: 0.35rem 0;
+  border: none;
+  background: transparent;
+}
+
+.sf-form-file-name {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
 .sf-form-field-hint {
   font-size: 0.82rem;
   color: var(--sf-muted);

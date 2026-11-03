@@ -56,14 +56,21 @@ function OptionMedia({ option }: { option: FormFieldOption }) {
   )
 }
 
+function initialFieldValues(fields: FormFieldDef[]): Record<string, string> {
+  const init: Record<string, string> = {}
+  for (const f of fields) {
+    init[f.name] = f.defaultValue ?? ''
+  }
+  return init
+}
+
 export function FormWidget(props: FormWidgetProps) {
   const [state, formAction, pending] = useActionState(submitFormAction, initialState)
   const formRef = React.useRef<HTMLFormElement>(null)
-  const [values, setValues] = useState<Record<string, string>>(() => {
-    const init: Record<string, string> = {}
-    for (const f of props.fields) init[f.name] = ''
-    return init
-  })
+  const [values, setValues] = useState<Record<string, string>>(() =>
+    initialFieldValues(props.fields),
+  )
+  const [fileNames, setFileNames] = useState<Record<string, string>>({})
 
   const live = useMemo(
     () => computeLiveValues(props.fields, values),
@@ -75,12 +82,16 @@ export function FormWidget(props: FormWidgetProps) {
     [props.sections, props.fields],
   )
 
+  const hasFileFields = useMemo(
+    () => props.fields.some((f) => f.type === 'file'),
+    [props.fields],
+  )
+
   useEffect(() => {
     if (state.ok) {
       formRef.current?.reset()
-      const init: Record<string, string> = {}
-      for (const f of props.fields) init[f.name] = ''
-      setValues(init)
+      setValues(initialFieldValues(props.fields))
+      setFileNames({})
     }
   }, [state.ok, state.message, props.fields])
 
@@ -107,6 +118,53 @@ export function FormWidget(props: FormWidgetProps) {
     const key = field.id || field.name
     const required = live.required[field.name]
     const value = live.values[field.name] ?? ''
+
+    if (field.type === 'hidden') {
+      return (
+        <input
+          key={key}
+          type="hidden"
+          name={field.name}
+          value={value || field.defaultValue || ''}
+          readOnly
+        />
+      )
+    }
+
+    if (field.type === 'file') {
+      const accept = field.upload?.accept || 'image/*,application/pdf'
+      const chosen = fileNames[field.name]
+      return (
+        <label key={key} className="sf-form-field sf-form-field-file">
+          <span>
+            {field.label}
+            {required ? <abbr title="required">*</abbr> : null}
+          </span>
+          <input
+            type="file"
+            name={field.name}
+            accept={accept}
+            required={required}
+            disabled={pending}
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              setFileNames((prev) => ({
+                ...prev,
+                [field.name]: file?.name ?? '',
+              }))
+              // Keep live state non-empty so requireWhen / showWhen can react.
+              setFieldValue(field.name, file ? 'pending' : '')
+            }}
+          />
+          {chosen ? (
+            <span className="sf-form-field-hint sf-form-file-name">{chosen}</span>
+          ) : null}
+          {field.description ? (
+            <span className="sf-form-field-hint">{field.description}</span>
+          ) : null}
+        </label>
+      )
+    }
 
     if (field.type === 'checkbox') {
       return (
@@ -229,6 +287,8 @@ export function FormWidget(props: FormWidgetProps) {
             rows={5}
             required={required}
             placeholder={field.placeholder || undefined}
+            minLength={field.stringConstraints?.minLength}
+            maxLength={field.stringConstraints?.maxLength}
             disabled={pending}
             value={value}
             onChange={(e) => setFieldValue(field.name, e.target.value)}
@@ -303,6 +363,10 @@ export function FormWidget(props: FormWidgetProps) {
           placeholder={field.placeholder || undefined}
           min={field.numberBounds?.min}
           max={field.numberBounds?.max}
+          minLength={field.stringConstraints?.minLength}
+          maxLength={field.stringConstraints?.maxLength}
+          pattern={field.stringConstraints?.pattern || undefined}
+          title={field.stringConstraints?.patternMessage || undefined}
           autoComplete={
             field.name === 'email' ? 'email' : field.name === 'name' ? 'name' : 'off'
           }
@@ -325,7 +389,13 @@ export function FormWidget(props: FormWidgetProps) {
       data-sf-definition={props.definitionId ?? undefined}
     >
       {props.heading ? <h3 className="sf-form-heading">{props.heading}</h3> : null}
-      <form ref={formRef} action={formAction} className="sf-form-fields" noValidate>
+      <form
+        ref={formRef}
+        action={formAction}
+        className="sf-form-fields"
+        noValidate
+        encType={hasFileFields ? 'multipart/form-data' : undefined}
+      >
         <input type="hidden" name="formKey" value={props.formKey} />
         <input type="hidden" name="slotId" value={props.slotId} />
         <input type="hidden" name="layoutId" value={props.layoutId ?? ''} />

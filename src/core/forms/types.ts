@@ -23,8 +23,40 @@ export type FormFieldType =
   | 'date'
   | 'time'
   | 'datetime'
+  /** Respondent file → Payload Media id in the submission payload. */
+  | 'file'
+  /** Non-editable value (tracking / context); uses `defaultValue`. */
+  | 'hidden'
   /** Read-only derived number from a math expression over other fields. */
   | 'computed'
+
+/**
+ * String length / regex constraints for text-like fields (and hidden).
+ * Complements `validateExpr` for common contact/ticket cases.
+ */
+export type FormStringConstraints = {
+  /** Inclusive minimum length (Unicode code units / JS string length). */
+  minLength?: number
+  /** Inclusive maximum length. */
+  maxLength?: number
+  /** JS RegExp source (no surrounding slashes); matched against the whole value. */
+  pattern?: string
+  /** Message when `pattern` fails (length messages are generated). */
+  patternMessage?: string
+}
+
+/**
+ * Upload limits for `file` fields — stored media goes into the single Payload library.
+ */
+export type FormFileUploadConfig = {
+  /**
+   * HTML `accept` list (e.g. `image/*,application/pdf`).
+   * Empty → Core default allowlist (images + PDF + plain text + Word).
+   */
+  accept?: string
+  /** Max bytes per file (default 10 MiB). */
+  maxSizeBytes?: number
+}
 
 /**
  * Option media bind (SF-66) — Payload library id is primary; url is fallback / cache.
@@ -166,10 +198,19 @@ export type FormFieldDef = {
   required?: boolean
   placeholder?: string
   description?: string
+  /**
+   * Seed / fixed value — required for `hidden`; also applied when a visible
+   * text-like field is submitted empty.
+   */
+  defaultValue?: string
   /** Options for select / radio / checkbox-group. */
   options?: FormFieldOption[]
   /** Constraints for date / time / datetime fields. */
   constraints?: FormDateTimeConstraints
+  /** Length / pattern rules for text-like (+ hidden) fields. */
+  stringConstraints?: FormStringConstraints
+  /** Accept / size for `file` fields (Payload Media bind). */
+  upload?: FormFileUploadConfig
   /** Show / require rules based on other field values. */
   logic?: FormFieldLogic
   /** For `computed` fields — expression that derives the value. */

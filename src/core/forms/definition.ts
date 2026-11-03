@@ -17,10 +17,12 @@ import type {
   FormFieldDef,
   FormFieldOption,
   FormFieldType,
+  FormFileUploadConfig,
   FormNumberBounds,
   FormOptionMedia,
   FormPresetId,
   FormSectionDef,
+  FormStringConstraints,
   FormValidateExpr,
 } from './types'
 import { isFormFieldType } from './schema-json'
@@ -131,6 +133,65 @@ function normalizeNumberBounds(raw: unknown): FormNumberBounds | undefined {
   return bounds
 }
 
+function normalizeStringConstraints(raw: unknown): FormStringConstraints | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  const row = raw as Record<string, unknown>
+  const out: FormStringConstraints = {}
+  if (typeof row.minLength === 'number' && Number.isFinite(row.minLength) && row.minLength >= 0) {
+    out.minLength = Math.floor(row.minLength)
+  }
+  if (typeof row.maxLength === 'number' && Number.isFinite(row.maxLength) && row.maxLength >= 0) {
+    out.maxLength = Math.floor(row.maxLength)
+  }
+  if (typeof row.pattern === 'string' && row.pattern.trim()) {
+    out.pattern = row.pattern.trim()
+  }
+  if (typeof row.patternMessage === 'string' && row.patternMessage.trim()) {
+    out.patternMessage = row.patternMessage.trim()
+  }
+  if (
+    out.minLength == null &&
+    out.maxLength == null &&
+    !out.pattern &&
+    !out.patternMessage
+  ) {
+    return undefined
+  }
+  if (
+    out.minLength != null &&
+    out.maxLength != null &&
+    out.maxLength < out.minLength
+  ) {
+    out.maxLength = out.minLength
+  }
+  return out
+}
+
+function normalizeFileUpload(raw: unknown): FormFileUploadConfig | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  const row = raw as Record<string, unknown>
+  const out: FormFileUploadConfig = {}
+  if (typeof row.accept === 'string' && row.accept.trim()) out.accept = row.accept.trim()
+  if (
+    typeof row.maxSizeBytes === 'number' &&
+    Number.isFinite(row.maxSizeBytes) &&
+    row.maxSizeBytes > 0
+  ) {
+    out.maxSizeBytes = Math.floor(row.maxSizeBytes)
+  }
+  if (!out.accept && out.maxSizeBytes == null) return undefined
+  return out
+}
+
+const STRING_CONSTRAINT_TYPES = new Set<FormFieldType>([
+  'text',
+  'email',
+  'textarea',
+  'tel',
+  'url',
+  'hidden',
+])
+
 function normalizeEmailNotify(raw: unknown): FormEmailNotifyConfig | undefined {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
   const row = raw as Record<string, unknown>
@@ -233,11 +294,18 @@ export function normalizeFormFields(raw: unknown): FormFieldDef[] {
     if (typeof row.description === 'string' && row.description.trim()) {
       field.description = row.description.trim()
     }
+    if (typeof row.defaultValue === 'string') {
+      field.defaultValue = row.defaultValue
+    }
     if (OPTION_TYPES.has(type)) {
       field.options = normalizeOptions(row.options) ?? defaultOptions()
     }
-    if (type === 'checkbox' || type === 'checkbox-group') {
+    if (type === 'checkbox' || type === 'checkbox-group' || type === 'file') {
       field.required = row.required === true
+    }
+    if (type === 'hidden') {
+      field.required = false
+      if (field.defaultValue == null) field.defaultValue = ''
     }
     if (type === 'computed') {
       field.required = false
@@ -249,6 +317,14 @@ export function normalizeFormFields(raw: unknown): FormFieldDef[] {
     if (isDateTimeFieldType(type)) {
       const constraints = normalizeDateTimeConstraints(type, row.constraints)
       if (constraints) field.constraints = constraints
+    }
+    if (STRING_CONSTRAINT_TYPES.has(type)) {
+      const stringConstraints = normalizeStringConstraints(row.stringConstraints)
+      if (stringConstraints) field.stringConstraints = stringConstraints
+    }
+    if (type === 'file') {
+      const upload = normalizeFileUpload(row.upload)
+      if (upload) field.upload = upload
     }
     const logic = normalizeFieldLogic(row.logic)
     if (logic) field.logic = logic
@@ -372,6 +448,8 @@ const FIELD_DRAFT_LABELS: Partial<Record<FormFieldType, string>> = {
   computed: 'Computed',
   select: 'Select',
   checkbox: 'Checkbox',
+  file: 'Attachment',
+  hidden: 'Hidden',
 }
 
 export function createFieldDraft(type: FormFieldType = 'text'): FormFieldDef {
@@ -385,13 +463,20 @@ export function createFieldDraft(type: FormFieldType = 'text'): FormFieldDef {
           ? 'datetime'
           : type === 'checkbox-group'
             ? 'choices'
-            : type
+            : type === 'file'
+              ? 'attachment'
+              : type
   const draft: FormFieldDef = {
     id,
     name: `${baseName}_${id.slice(-4)}`,
     label: FIELD_DRAFT_LABELS[type] ?? type.charAt(0).toUpperCase() + type.slice(1),
     type,
-    required: type !== 'checkbox' && type !== 'checkbox-group' && type !== 'computed',
+    required:
+      type !== 'checkbox' &&
+      type !== 'checkbox-group' &&
+      type !== 'computed' &&
+      type !== 'file' &&
+      type !== 'hidden',
     placeholder: '',
   }
   if (OPTION_TYPES.has(type)) {
@@ -399,6 +484,12 @@ export function createFieldDraft(type: FormFieldType = 'text'): FormFieldDef {
   }
   if (type === 'computed') {
     draft.computed = { expression: '0', precision: 2 }
+  }
+  if (type === 'hidden') {
+    draft.defaultValue = ''
+  }
+  if (type === 'file') {
+    draft.upload = { accept: 'image/*,application/pdf', maxSizeBytes: 10 * 1024 * 1024 }
   }
   return draft
 }

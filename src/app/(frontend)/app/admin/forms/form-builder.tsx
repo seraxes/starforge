@@ -76,8 +76,19 @@ const FIELD_PALETTE: { type: FormFieldType; label: string; hint: string }[] = [
   { type: 'radio', label: 'Radio', hint: 'Single choice + media' },
   { type: 'checkbox', label: 'Checkbox', hint: 'Yes / no' },
   { type: 'checkbox-group', label: 'Choices', hint: 'Multi + media' },
+  { type: 'file', label: 'File', hint: 'Upload → Media' },
+  { type: 'hidden', label: 'Hidden', hint: 'Default value' },
   { type: 'computed', label: 'Computed', hint: 'Math expression' },
 ]
+
+const STRING_CONSTRAINT_TYPES = new Set<FormFieldType>([
+  'text',
+  'email',
+  'textarea',
+  'tel',
+  'url',
+  'hidden',
+])
 
 const OPTION_TYPES = new Set<FormFieldType>(['select', 'radio', 'checkbox-group'])
 
@@ -166,11 +177,28 @@ function FieldSettingsBody({
                 type === 'computed'
                   ? field.computed ?? { expression: '0', precision: 2 }
                   : undefined,
+              upload:
+                type === 'file'
+                  ? field.upload ?? {
+                      accept: 'image/*,application/pdf',
+                      maxSizeBytes: 10 * 1024 * 1024,
+                    }
+                  : undefined,
+              stringConstraints: STRING_CONSTRAINT_TYPES.has(type)
+                ? field.stringConstraints
+                : undefined,
+              defaultValue:
+                type === 'hidden'
+                  ? field.defaultValue ?? ''
+                  : field.defaultValue,
             }
             if (isDateTimeFieldType(type)) {
               next.constraints = normalizeDateTimeConstraints(type, field.constraints ?? {})
             } else {
               next.constraints = undefined
+            }
+            if (type === 'hidden' || type === 'computed') {
+              next.required = false
             }
             onPatch(next)
             queueMicrotask(saveNow)
@@ -183,7 +211,10 @@ function FieldSettingsBody({
           ))}
         </select>
       </label>
-      {!isDateTimeFieldType(field.type) && field.type !== 'computed' ? (
+      {!isDateTimeFieldType(field.type) &&
+      field.type !== 'computed' &&
+      field.type !== 'hidden' &&
+      field.type !== 'file' ? (
         <label>
           <span>Placeholder</span>
           <input
@@ -191,6 +222,24 @@ function FieldSettingsBody({
             value={field.placeholder ?? ''}
             onChange={(e) => onPatch({ placeholder: e.target.value })}
             onBlur={flushOnBlur}
+          />
+        </label>
+      ) : null}
+      {field.type === 'hidden' ||
+      field.type === 'text' ||
+      field.type === 'email' ||
+      field.type === 'tel' ||
+      field.type === 'url' ||
+      field.type === 'textarea' ||
+      field.type === 'number' ? (
+        <label>
+          <span>{field.type === 'hidden' ? 'Default value' : 'Default value (optional)'}</span>
+          <input
+            type="text"
+            value={field.defaultValue ?? ''}
+            onChange={(e) => onPatch({ defaultValue: e.target.value })}
+            onBlur={flushOnBlur}
+            placeholder={field.type === 'hidden' ? 'tracking / context value' : undefined}
           />
         </label>
       ) : null}
@@ -203,17 +252,19 @@ function FieldSettingsBody({
           onBlur={flushOnBlur}
         />
       </label>
-      <label className="gantry-typed-check">
-        <input
-          type="checkbox"
-          checked={Boolean(field.required)}
-          onChange={(e) => {
-            onPatch({ required: e.target.checked })
-            queueMicrotask(saveNow)
-          }}
-        />
-        <span>Required</span>
-      </label>
+      {field.type !== 'hidden' && field.type !== 'computed' ? (
+        <label className="gantry-typed-check">
+          <input
+            type="checkbox"
+            checked={Boolean(field.required)}
+            onChange={(e) => {
+              onPatch({ required: e.target.checked })
+              queueMicrotask(saveNow)
+            }}
+          />
+          <span>Required</span>
+        </label>
+      ) : null}
 
       {OPTION_TYPES.has(field.type) ? (
         <fieldset className="sf-form-builder-constraints">
@@ -380,6 +431,135 @@ function FieldSettingsBody({
               </label>
             </>
           ) : null}
+        </fieldset>
+      ) : null}
+
+      {field.type === 'file' ? (
+        <fieldset className="sf-form-builder-constraints">
+          <legend>Upload → Media</legend>
+          <p className="layout-muted">
+            Files land in the Payload Media library (folder Forms). Submission stores the media id.
+          </p>
+          <label>
+            <span>Accept</span>
+            <input
+              type="text"
+              value={field.upload?.accept ?? ''}
+              placeholder="image/*,application/pdf"
+              onChange={(e) =>
+                onPatch({
+                  upload: {
+                    ...field.upload,
+                    accept: e.target.value || undefined,
+                  },
+                })
+              }
+              onBlur={flushOnBlur}
+              spellCheck={false}
+            />
+          </label>
+          <label>
+            <span>Max size (MB)</span>
+            <input
+              type="number"
+              min={0.1}
+              step={0.1}
+              value={
+                field.upload?.maxSizeBytes != null
+                  ? Math.round((field.upload.maxSizeBytes / (1024 * 1024)) * 10) / 10
+                  : 10
+              }
+              onChange={(e) => {
+                const mb = Number(e.target.value)
+                onPatch({
+                  upload: {
+                    ...field.upload,
+                    maxSizeBytes:
+                      Number.isFinite(mb) && mb > 0
+                        ? Math.floor(mb * 1024 * 1024)
+                        : undefined,
+                  },
+                })
+              }}
+              onBlur={flushOnBlur}
+            />
+          </label>
+        </fieldset>
+      ) : null}
+
+      {STRING_CONSTRAINT_TYPES.has(field.type) ? (
+        <fieldset className="sf-form-builder-constraints">
+          <legend>String validation</legend>
+          <label>
+            <span>Min length</span>
+            <input
+              type="number"
+              min={0}
+              value={field.stringConstraints?.minLength ?? ''}
+              onChange={(e) =>
+                onPatch({
+                  stringConstraints: {
+                    ...field.stringConstraints,
+                    minLength:
+                      e.target.value === '' ? undefined : Math.max(0, Number(e.target.value) || 0),
+                  },
+                })
+              }
+              onBlur={flushOnBlur}
+            />
+          </label>
+          <label>
+            <span>Max length</span>
+            <input
+              type="number"
+              min={0}
+              value={field.stringConstraints?.maxLength ?? ''}
+              onChange={(e) =>
+                onPatch({
+                  stringConstraints: {
+                    ...field.stringConstraints,
+                    maxLength:
+                      e.target.value === '' ? undefined : Math.max(0, Number(e.target.value) || 0),
+                  },
+                })
+              }
+              onBlur={flushOnBlur}
+            />
+          </label>
+          <label>
+            <span>Pattern (RegExp)</span>
+            <input
+              type="text"
+              value={field.stringConstraints?.pattern ?? ''}
+              placeholder="^[A-Z0-9_-]+$"
+              onChange={(e) =>
+                onPatch({
+                  stringConstraints: {
+                    ...field.stringConstraints,
+                    pattern: e.target.value || undefined,
+                  },
+                })
+              }
+              onBlur={flushOnBlur}
+              spellCheck={false}
+            />
+          </label>
+          <label>
+            <span>Pattern message</span>
+            <input
+              type="text"
+              value={field.stringConstraints?.patternMessage ?? ''}
+              onChange={(e) =>
+                onPatch({
+                  stringConstraints: {
+                    ...field.stringConstraints,
+                    patternMessage: e.target.value || undefined,
+                  },
+                })
+              }
+              onBlur={flushOnBlur}
+            />
+          </label>
         </fieldset>
       ) : null}
 

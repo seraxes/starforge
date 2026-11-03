@@ -47,6 +47,11 @@ function collectRawValues(
 ): Record<string, string> {
   const values: Record<string, string> = {}
   for (const field of fields) {
+    if (field.type === 'file') {
+      // File → Payload Media happens in ingestFormUploads; leave empty here.
+      values[field.name] = ''
+      continue
+    }
     if (field.type === 'checkbox') {
       const raw = formData.get(field.name)
       values[field.name] = raw == null ? '' : String(raw)
@@ -59,11 +64,44 @@ function collectRawValues(
     } else if (field.type === 'computed') {
       // Server recomputes — ignore client tampering for storage path
       values[field.name] = String(formData.get(field.name) ?? '').trim()
+    } else if (field.type === 'hidden') {
+      const raw = String(formData.get(field.name) ?? '').trim()
+      values[field.name] = raw || (field.defaultValue ?? '')
     } else {
       values[field.name] = String(formData.get(field.name) ?? '').trim()
     }
   }
   return values
+}
+
+/**
+ * Upload `file` field blobs into Payload Media; write media ids into values.
+ */
+async function ingestFormUploads(
+  formData: FormData,
+  fields: FormFieldDef[],
+  values: Record<string, string>,
+): Promise<{ error?: string }> {
+  const { uploadFormAttachmentToMedia } = await import('@/core/media/form-upload')
+  for (const field of fields) {
+    if (field.type !== 'file') continue
+    const entry = formData.get(field.name)
+    if (!(entry instanceof File) || entry.size <= 0) {
+      values[field.name] = ''
+      continue
+    }
+    const uploaded = await uploadFormAttachmentToMedia({
+      file: entry,
+      accept: field.upload?.accept,
+      maxSizeBytes: field.upload?.maxSizeBytes,
+      alt: field.label || field.name,
+    })
+    if (!uploaded.ok) {
+      return { error: uploaded.error || `Could not upload ${field.label || field.name}.` }
+    }
+    values[field.name] = uploaded.mediaId
+  }
+  return {}
 }
 
 /**
@@ -136,6 +174,9 @@ export async function submitFormAction(
   }
 
   const rawValues = collectRawValues(formData, fields)
+  const uploadError = await ingestFormUploads(formData, fields, rawValues)
+  if (uploadError.error) return { error: uploadError.error }
+
   const { values, error: fieldError } = validateFieldsWithZod(fields, rawValues)
   if (fieldError) return { error: fieldError }
 

@@ -37,8 +37,17 @@ function splitEmails(list: string[] | undefined): string[] {
     .filter((e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e))
 }
 
-function formatPayloadBody(payload: Record<string, string>, title: string): string {
-  const lines = Object.entries(payload).map(([k, v]) => `${k}: ${v}`)
+function formatPayloadBody(
+  payload: Record<string, string>,
+  title: string,
+  fileFieldNames?: Set<string>,
+): string {
+  const lines = Object.entries(payload).map(([k, v]) => {
+    if (fileFieldNames?.has(k) && v.trim()) {
+      return `${k}: /api/media/${v.trim()} (media id ${v.trim()})`
+    }
+    return `${k}: ${v}`
+  })
   return [`Form: ${title}`, '', ...lines].join('\n')
 }
 
@@ -55,7 +64,10 @@ export async function planFormEmailNotify(options: {
   const cfg: FormEmailNotifyConfig = options.document.emailNotify ?? {}
   const intents: FormEmailNotifyIntent[] = []
   const title = options.document.title || options.definitionId || options.formKey
-  const body = formatPayloadBody(options.payload, title)
+  const fileFieldNames = new Set(
+    options.document.fields.filter((f) => f.type === 'file').map((f) => f.name),
+  )
+  const body = formatPayloadBody(options.payload, title, fileFieldNames)
 
   if (cfg.notifyAdmin) {
     const to = splitEmails(cfg.adminEmails?.length ? cfg.adminEmails : settings.defaultAdminEmails)

@@ -71,7 +71,14 @@ export const Media: CollectionConfig = {
   ],
   upload: {
     staticDir: path.resolve(dirname, '../../media'),
-    mimeTypes: ['image/*'],
+    // Images + common Form attachment types (single library; Form tags folder=forms).
+    mimeTypes: [
+      'image/*',
+      'application/pdf',
+      'text/plain',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ],
     resizeOptions: {
       width: MEDIA_MAX_WIDTH,
       height: MEDIA_MAX_HEIGHT,
