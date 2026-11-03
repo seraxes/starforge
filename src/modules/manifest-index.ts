@@ -10,6 +10,7 @@ import type { StarforgeModuleManifest } from '@/core/modules/define-module'
 import consentManifest from './consent/manifest'
 import formParticleManifest from './form/manifest'
 import formsManifest from './forms/manifest'
+import mediaManifest from './media/manifest'
 import noticeBarManifest from './notice-bar/manifest'
 import redirectsManifest from './redirects/manifest'
 import searchManifest from './search/manifest'
@@ -22,6 +23,7 @@ export const ALL_MODULE_MANIFESTS: StarforgeModuleManifest[] = [
   redirectsManifest,
   consentManifest,
   searchManifest,
+  mediaManifest,
   noticeBarManifest,
   formParticleManifest,
   searchParticleManifest,

@@ -20,8 +20,31 @@ export type ResolvedMedia = {
   folder?: string | null
   purpose?: MediaPurpose | null
   filename?: string | null
+  /** Shared taxonomy tag ids (SF-132 / SF-148). */
+  tagIds?: string[]
+  /** Display titles when tags were populated. */
+  tagLabels?: string[]
   /** Thumbnail / card / large derivative URLs when present. */
   sizes?: Partial<Record<MediaSizeName, string>>
+}
+
+function mediaTagMeta(media: Media): { tagIds: string[]; tagLabels: string[] } {
+  const raw = media.tags
+  if (!Array.isArray(raw) || raw.length === 0) return { tagIds: [], tagLabels: [] }
+  const tagIds: string[] = []
+  const tagLabels: string[] = []
+  for (const entry of raw) {
+    if (entry == null) continue
+    if (typeof entry === 'object' && 'id' in entry) {
+      tagIds.push(String(entry.id))
+      if (typeof entry.title === 'string' && entry.title.trim()) {
+        tagLabels.push(entry.title.trim())
+      }
+    } else {
+      tagIds.push(String(entry))
+    }
+  }
+  return { tagIds, tagLabels }
 }
 
 type MediaSizes = Media['sizes']
@@ -76,6 +99,7 @@ export function toResolvedMedia(
   const url = preferredMediaUrl(media, opts)
   if (!url) return null
   const absolute = absoluteAssetUrl(url) || url
+  const tags = mediaTagMeta(media)
   return {
     id: String(media.id),
     alt: media.alt || '',
@@ -87,6 +111,8 @@ export function toResolvedMedia(
     folder: media.folder ?? null,
     purpose: (media.purpose as MediaPurpose | null | undefined) ?? null,
     filename: media.filename,
+    ...(tags.tagIds.length ? { tagIds: tags.tagIds } : {}),
+    ...(tags.tagLabels.length ? { tagLabels: tags.tagLabels } : {}),
     sizes: {
       thumbnail: sizeUrl(media.sizes, 'thumbnail'),
       card: sizeUrl(media.sizes, 'card'),
@@ -155,10 +181,39 @@ export async function resolveMediaBind(opts: {
   return null
 }
 
+export type MediaTagOption = {
+  id: string
+  title: string
+  slug: string
+}
+
+/** List shared Tags for Media library facets (SF-148). */
+export async function listMediaTagOptions(): Promise<MediaTagOption[]> {
+  try {
+    const payload = await getPayload({ config })
+    const result = await payload.find({
+      collection: 'tags',
+      limit: 200,
+      sort: 'title',
+      depth: 0,
+      overrideAccess: true,
+    })
+    return result.docs.map((doc) => ({
+      id: String(doc.id),
+      title: typeof doc.title === 'string' ? doc.title : String(doc.id),
+      slug: typeof doc.slug === 'string' ? doc.slug : '',
+    }))
+  } catch {
+    return []
+  }
+}
+
 /** List media for admin library / picker. */
 export async function listMedia(opts?: {
   folder?: string
   purpose?: string
+  /** Tag id (Payload tags collection). */
+  tag?: string
   q?: string
   limit?: number
   page?: number
@@ -174,6 +229,7 @@ export async function listMedia(opts?: {
   const where: Where = {}
   const folder = (opts?.folder ?? '').trim()
   const purpose = (opts?.purpose ?? '').trim()
+  const tag = (opts?.tag ?? '').trim()
   const q = (opts?.q ?? '').trim()
 
   if (folder && folder !== 'all') {
@@ -181,6 +237,9 @@ export async function listMedia(opts?: {
   }
   if (purpose && purpose !== 'all') {
     where.purpose = { equals: purpose }
+  }
+  if (tag && tag !== 'all') {
+    where.tags = { contains: tag }
   }
   if (q) {
     where.or = [
@@ -195,7 +254,8 @@ export async function listMedia(opts?: {
     limit,
     page,
     sort: '-createdAt',
-    depth: 0,
+    // depth 1 so tag titles show on library cards
+    depth: 1,
     overrideAccess: true,
   })
 
@@ -205,6 +265,7 @@ export async function listMedia(opts?: {
     if (resolved) docs.push(resolved)
     else {
       const m = raw as Media
+      const tags = mediaTagMeta(m)
       docs.push({
         id: String(m.id),
         alt: m.alt || '',
@@ -216,6 +277,8 @@ export async function listMedia(opts?: {
         folder: m.folder ?? null,
         purpose: (m.purpose as MediaPurpose | null | undefined) ?? null,
         filename: m.filename,
+        ...(tags.tagIds.length ? { tagIds: tags.tagIds } : {}),
+        ...(tags.tagLabels.length ? { tagLabels: tags.tagLabels } : {}),
       })
     }
   }

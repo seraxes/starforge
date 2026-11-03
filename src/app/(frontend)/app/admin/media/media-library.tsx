@@ -11,6 +11,7 @@ import {
   type ResolvedMedia,
 } from '@/core/media/actions'
 import { MEDIA_FOLDERS, MEDIA_PURPOSES } from '@/core/media/pipeline'
+import type { MediaTagOption } from '@/core/media/resolve'
 import type { MediaStorageInfo } from '@/core/media/storage'
 
 import { useAdminToast } from '../admin-toast'
@@ -23,7 +24,9 @@ type Props = {
   storage: MediaStorageInfo
   folder: string
   purpose: string
+  tag: string
   q: string
+  tagOptions: MediaTagOption[]
 }
 
 export function MediaLibraryClient({
@@ -32,7 +35,9 @@ export function MediaLibraryClient({
   storage,
   folder,
   purpose,
+  tag,
   q,
+  tagOptions,
 }: Props) {
   const router = useRouter()
   const { notifySaved } = useAdminToast()
@@ -42,9 +47,11 @@ export function MediaLibraryClient({
 
   const [folderDraft, setFolderDraft] = useState(folder)
   const [purposeDraft, setPurposeDraft] = useState(purpose)
+  const [tagDraft, setTagDraft] = useState(tag)
   const [qDraft, setQDraft] = useState(q)
   const [uploadFolder, setUploadFolder] = useState(folder !== 'all' ? folder : 'general')
   const [uploadPurpose, setUploadPurpose] = useState('photo')
+  const [uploadTag, setUploadTag] = useState(tag !== 'all' ? tag : '')
 
   const busy = uploading || deleting || pending
 
@@ -66,10 +73,11 @@ export function MediaLibraryClient({
     const params = new URLSearchParams()
     if (folderDraft && folderDraft !== 'all') params.set('folder', folderDraft)
     if (purposeDraft && purposeDraft !== 'all') params.set('purpose', purposeDraft)
+    if (tagDraft && tagDraft !== 'all') params.set('tag', tagDraft)
     if (qDraft.trim()) params.set('q', qDraft.trim())
     const qs = params.toString()
     return qs ? `/app/admin/media?${qs}` : '/app/admin/media'
-  }, [folderDraft, purposeDraft, qDraft])
+  }, [folderDraft, purposeDraft, tagDraft, qDraft])
 
   return (
     <div className="sf-media-library">
@@ -114,6 +122,17 @@ export function MediaLibraryClient({
             ))}
           </select>
         </label>
+        <label>
+          <span>Tag</span>
+          <select value={tagDraft} onChange={(e) => setTagDraft(e.target.value)}>
+            <option value="all">All</option>
+            {tagOptions.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.title}
+              </option>
+            ))}
+          </select>
+        </label>
         <label className="sf-media-library-search">
           <span>Search</span>
           <input
@@ -132,7 +151,7 @@ export function MediaLibraryClient({
         <h3>Upload</h3>
         <p className="layout-muted">
           Mobile-friendly: use the file control to pick from gallery or camera. Photos convert to
-          WebP; PNG logos stay PNG. Max edge {2560}px.
+          WebP; PNG logos stay PNG. Max edge {2560}px. Optional tag uses shared CMS Tags.
         </p>
         <div className="sf-media-library-upload-row">
           <label>
@@ -171,6 +190,17 @@ export function MediaLibraryClient({
               ))}
             </select>
           </label>
+          <label>
+            <span>Tag</span>
+            <select name="tag" value={uploadTag} onChange={(e) => setUploadTag(e.target.value)}>
+              <option value="">None</option>
+              {tagOptions.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.title}
+                </option>
+              ))}
+            </select>
+          </label>
           <button type="submit" className="gantry-toolbar-btn gantry-toolbar-btn-save" disabled={busy || !storage.ready}>
             {uploading ? 'Uploading…' : 'Upload'}
           </button>
@@ -188,6 +218,11 @@ export function MediaLibraryClient({
         ) : null}
         {initialDocs.map((doc) => {
           const thumb = doc.sizes?.thumbnail || doc.url
+          const tagLine = doc.tagLabels?.length
+            ? doc.tagLabels.join(', ')
+            : doc.tagIds?.length
+              ? `${doc.tagIds.length} tag${doc.tagIds.length === 1 ? '' : 's'}`
+              : null
           return (
             <article key={doc.id} className="sf-media-library-card">
               <div className="sf-media-library-thumb">
@@ -202,7 +237,7 @@ export function MediaLibraryClient({
                 <strong>{doc.alt || doc.filename || doc.id}</strong>
                 <code title="Payload Media id">{doc.id}</code>
                 <span className="layout-muted">
-                  {[doc.folder, doc.purpose].filter(Boolean).join(' · ') || '—'}
+                  {[doc.folder, doc.purpose, tagLine].filter(Boolean).join(' · ') || '—'}
                 </span>
                 {doc.url ? (
                   <a href={doc.url} target="_blank" rel="noreferrer">

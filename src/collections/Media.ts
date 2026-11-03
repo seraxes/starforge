@@ -1,7 +1,11 @@
 import path from 'path'
 import { fileURLToPath } from 'url'
-import type { CollectionConfig, Where } from 'payload'
+import type { CollectionBeforeChangeHook, CollectionConfig, Where } from 'payload'
 
+import {
+  STARFORGE_PIPELINE_APPLIED,
+  applyMediaPipelineRules,
+} from '@/core/media/apply-pipeline'
 import {
   MEDIA_CARD_WIDTH,
   MEDIA_FOLDERS,
@@ -11,21 +15,55 @@ import {
   MEDIA_PURPOSES,
   MEDIA_THUMB_SIZE,
   MEDIA_WEBP_QUALITY,
+  normalizeMediaPurpose,
 } from '@/core/media/pipeline'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
 /**
- * Payload Media — Starforge's single media library (SF-28).
+ * Apply the same sharp rules when uploads bypass Core UI (Payload admin / Lexical).
+ * Core `uploadMediaAction` sets context.starforgePipelineApplied to skip a second pass.
+ */
+const applyPipelineBeforeChange: CollectionBeforeChangeHook = async ({ data, req }) => {
+  const already =
+    req.context &&
+    typeof req.context === 'object' &&
+    (req.context as Record<string, unknown>)[STARFORGE_PIPELINE_APPLIED] === true
+  if (already) return data
+
+  const file = req.file
+  if (!file?.data || !Buffer.isBuffer(file.data)) return data
+
+  const mime = (file.mimetype || '').toLowerCase()
+  if (!mime.startsWith('image/')) return data
+
+  const purpose = normalizeMediaPurpose(data?.purpose)
+  const processed = await applyMediaPipelineRules({
+    buffer: file.data,
+    mimeType: file.mimetype || 'application/octet-stream',
+    purpose,
+  })
+
+  file.data = processed.data
+  file.mimetype = processed.mimetype
+  file.size = processed.data.length
+  if (processed.extHint && typeof file.name === 'string' && file.name) {
+    file.name = file.name.replace(/\.[^.]+$/, '') + `.${processed.extHint}`
+  }
+
+  return data
+}
+
+/**
+ * Payload Media — Starforge's single media library (SF-28 / SF-148).
  *
  * Pipeline:
  * - Max W×H resize on original (no enlargement)
  * - WebP derivatives (thumbnail / card / large) at MEDIA_WEBP_QUALITY
  * - PNG originals kept (no top-level formatOptions) — use purpose=logo for logos
- * - folder + purpose for library filtering (categories where practical)
- * - JPEG original re-encode quality: deferred (avoid fighting Payload upload order);
- *   dimension cap + WebP sizes cover the bulk of weight today
+ * - folder + purpose + shared Tags for library filtering
+ * - Core preprocess + this beforeChange share applyMediaPipelineRules
  *
  * Privacy: Form respondent attachments use folder=forms + private=true and are
  * not world-readable via REST/list/file routes. Core admins open them via
@@ -33,14 +71,15 @@ const dirname = path.dirname(filename)
  *
  * Storage: local `staticDir` by default; Spaces/S3 when STARFORGE_MEDIA_STORAGE=s3
  * (Payload `@payloadcms/storage-s3` plugin — same Media library, no second store).
+ * Incomplete s3 env throws (no silent local fallback).
  */
 export const Media: CollectionConfig = {
   slug: 'media',
   admin: {
     group: 'Content',
     description:
-      'Starforge media library. Prefer Core admin → Media for upload/picker; Payload edit for alt/folder. Form attachments (private) stay admin-only.',
-    defaultColumns: ['filename', 'alt', 'folder', 'purpose', 'private', 'updatedAt'],
+      'Starforge media library. Prefer Core admin → Media for upload/picker; Payload edit for alt/folder/tags. Form attachments (private) stay admin-only.',
+    defaultColumns: ['filename', 'alt', 'folder', 'purpose', 'tags', 'private', 'updatedAt'],
     listSearchableFields: ['alt', 'filename', 'folder'],
   },
   access: {
@@ -56,6 +95,9 @@ export const Media: CollectionConfig = {
       }
       return where
     },
+  },
+  hooks: {
+    beforeChange: [applyPipelineBeforeChange],
   },
   fields: [
     {
@@ -82,6 +124,17 @@ export const Media: CollectionConfig = {
         description:
           'Logo keeps PNG originals in public binds; photos prefer WebP derivatives.',
         position: 'sidebar',
+      },
+    },
+    {
+      name: 'tags',
+      type: 'relationship',
+      relationTo: 'tags',
+      hasMany: true,
+      admin: {
+        position: 'sidebar',
+        description:
+          'Shared content tags (SF-132 taxonomy). Same Tags as Pages — filter in Core Media library.',
       },
     },
     {

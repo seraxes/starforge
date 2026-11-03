@@ -2,16 +2,15 @@
 
 import { revalidatePath } from 'next/cache'
 import { getPayload } from 'payload'
-import sharp from 'sharp'
 
 import config from '@payload-config'
 import { requireAppAdmin } from '@/core/auth/admin'
 
 import {
-  MEDIA_JPEG_QUALITY,
-  MEDIA_MAX_HEIGHT,
-  MEDIA_MAX_WIDTH,
-  MEDIA_WEBP_QUALITY,
+  STARFORGE_PIPELINE_APPLIED,
+  applyMediaPipelineRules,
+} from './apply-pipeline'
+import {
   normalizeMediaFolder,
   normalizeMediaPurpose,
   type MediaFolder,
@@ -19,57 +18,6 @@ import {
 } from './pipeline'
 import { listMedia, toResolvedMedia, type ResolvedMedia } from './resolve'
 import { getMediaStorageInfo } from './storage'
-
-/**
- * Cap dimensions; re-encode JPEG at MEDIA_JPEG_QUALITY; leave PNG alone (logos).
- * Payload collection still applies resizeOptions + WebP sizes as a second pass.
- */
-async function preprocessUploadBuffer(
-  buffer: Buffer,
-  mimeType: string,
-  purpose: MediaPurpose,
-): Promise<{ data: Buffer; mimetype: string; extHint?: string }> {
-  const mime = mimeType.toLowerCase()
-  const image = sharp(buffer).rotate()
-  const meta = await image.metadata()
-  const width = meta.width ?? MEDIA_MAX_WIDTH
-  const height = meta.height ?? MEDIA_MAX_HEIGHT
-  const needsResize = width > MEDIA_MAX_WIDTH || height > MEDIA_MAX_HEIGHT
-  let pipeline = image
-  if (needsResize) {
-    pipeline = pipeline.resize({
-      width: MEDIA_MAX_WIDTH,
-      height: MEDIA_MAX_HEIGHT,
-      fit: 'inside',
-      withoutEnlargement: true,
-    })
-  }
-
-  // Logos / PNG: keep format (PNG logos must stay PNG).
-  if (mime === 'image/png') {
-    const data = await pipeline.png().toBuffer()
-    return { data, mimetype: 'image/png' }
-  }
-  if (purpose === 'logo' && (mime === 'image/jpeg' || mime === 'image/jpg')) {
-    const data = await pipeline.jpeg({ quality: MEDIA_JPEG_QUALITY, mozjpeg: true }).toBuffer()
-    return { data, mimetype: 'image/jpeg', extHint: 'jpg' }
-  }
-
-  // Photos / other: convert to WebP (modern default).
-  if (
-    mime === 'image/jpeg' ||
-    mime === 'image/jpg' ||
-    mime === 'image/webp' ||
-    mime === 'image/gif' ||
-    mime.startsWith('image/')
-  ) {
-    const data = await pipeline.webp({ quality: MEDIA_WEBP_QUALITY }).toBuffer()
-    return { data, mimetype: 'image/webp', extHint: 'webp' }
-  }
-
-  const data = await pipeline.toBuffer()
-  return { data, mimetype: mimeType }
-}
 
 export type MediaActionState = {
   error?: string
@@ -95,6 +43,7 @@ async function requireMediaAdmin(): Promise<MediaActionState | null> {
 export async function listMediaAction(input?: {
   folder?: string
   purpose?: string
+  tag?: string
   q?: string
   limit?: number
   page?: number
@@ -128,21 +77,29 @@ export async function uploadMediaAction(
   const alt = String(formData.get('alt') ?? '').trim() || file.name.replace(/\.[^.]+$/, '') || 'Image'
   const folder = normalizeMediaFolder(String(formData.get('folder') ?? 'general'))
   const purpose = normalizeMediaPurpose(String(formData.get('purpose') ?? 'photo'))
+  const tagRaw = String(formData.get('tag') ?? '').trim()
 
   try {
     const payload = await getPayload({ config })
     const raw = Buffer.from(await file.arrayBuffer())
-    const processed = await preprocessUploadBuffer(raw, file.type, purpose)
+    const processed = await applyMediaPipelineRules({
+      buffer: raw,
+      mimeType: file.type,
+      purpose,
+    })
     let name = file.name || `upload-${Date.now()}.jpg`
     if (processed.extHint) {
       name = name.replace(/\.[^.]+$/, '') + `.${processed.extHint}`
     }
+
+    const tagId = tagRaw ? Number(tagRaw) : NaN
     const doc = await payload.create({
       collection: 'media',
       data: {
         alt,
         folder,
         purpose,
+        ...(Number.isFinite(tagId) ? { tags: [tagId] } : {}),
       },
       file: {
         data: processed.data,
@@ -150,6 +107,7 @@ export async function uploadMediaAction(
         name,
         size: processed.data.length,
       },
+      context: { [STARFORGE_PIPELINE_APPLIED]: true },
       overrideAccess: true,
     })
 

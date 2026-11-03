@@ -1,0 +1,102 @@
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import path from 'node:path'
+import { describe, it } from 'node:test'
+import { fileURLToPath } from 'node:url'
+import sharp from 'sharp'
+
+import { applyMediaPipelineRules } from './apply-pipeline'
+import { DEFAULT_MEDIA_PIPELINE_RULES } from './pipeline'
+
+const here = path.dirname(fileURLToPath(import.meta.url))
+
+async function tinyJpeg(width = 40, height = 30): Promise<Buffer> {
+  return sharp({
+    create: {
+      width,
+      height,
+      channels: 3,
+      background: { r: 200, g: 120, b: 80 },
+    },
+  })
+    .jpeg()
+    .toBuffer()
+}
+
+async function tinyPng(width = 32, height = 32): Promise<Buffer> {
+  return sharp({
+    create: {
+      width,
+      height,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    },
+  })
+    .png()
+    .toBuffer()
+}
+
+describe('applyMediaPipelineRules', () => {
+  it('converts photo JPEG to WebP', async () => {
+    const input = await tinyJpeg()
+    const out = await applyMediaPipelineRules({
+      buffer: input,
+      mimeType: 'image/jpeg',
+      purpose: 'photo',
+    })
+    assert.equal(out.mimetype, 'image/webp')
+    assert.equal(out.extHint, 'webp')
+    const meta = await sharp(out.data).metadata()
+    assert.equal(meta.format, 'webp')
+  })
+
+  it('keeps PNG originals', async () => {
+    const input = await tinyPng()
+    const out = await applyMediaPipelineRules({
+      buffer: input,
+      mimeType: 'image/png',
+      purpose: 'logo',
+    })
+    assert.equal(out.mimetype, 'image/png')
+    const meta = await sharp(out.data).metadata()
+    assert.equal(meta.format, 'png')
+  })
+
+  it('keeps logo JPEG as JPEG', async () => {
+    const input = await tinyJpeg()
+    const out = await applyMediaPipelineRules({
+      buffer: input,
+      mimeType: 'image/jpeg',
+      purpose: 'logo',
+      rules: DEFAULT_MEDIA_PIPELINE_RULES,
+    })
+    assert.equal(out.mimetype, 'image/jpeg')
+    assert.equal(out.extHint, 'jpg')
+  })
+
+  it('passes non-images through', async () => {
+    const pdf = Buffer.from('%PDF-1.4 tiny')
+    const out = await applyMediaPipelineRules({
+      buffer: pdf,
+      mimeType: 'application/pdf',
+      purpose: 'other',
+    })
+    assert.equal(out.mimetype, 'application/pdf')
+    assert.equal(out.data.equals(pdf), true)
+  })
+
+  it('caps oversized edges without enlargement of small images', async () => {
+    const input = await tinyJpeg(20, 10)
+    const out = await applyMediaPipelineRules({
+      buffer: input,
+      mimeType: 'image/jpeg',
+      purpose: 'photo',
+    })
+    const meta = await sharp(out.data).metadata()
+    assert.ok((meta.width ?? 0) <= 20)
+    assert.ok((meta.height ?? 0) <= 10)
+  })
+})
+
+// Touch repo root so the test file is discoverable without side effects.
+void readFileSync(path.join(here, 'pipeline.ts'), 'utf8')

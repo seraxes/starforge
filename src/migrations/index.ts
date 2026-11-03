@@ -1,5 +1,6 @@
 import * as migration_20261103_005622_baseline from './20261103_005622_baseline';
 import * as migration_20261103_181356_pages_tags_taxonomy from './20261103_181356_pages_tags_taxonomy';
+import * as migration_20261103_media_tags_sf148 from './20261103_media_tags_sf148';
 
 export const migrations = [
   {
@@ -10,6 +11,11 @@ export const migrations = [
   {
     up: migration_20261103_181356_pages_tags_taxonomy.up,
     down: migration_20261103_181356_pages_tags_taxonomy.down,
-    name: '20261103_181356_pages_tags_taxonomy'
+    name: '20261103_181356_pages_tags_taxonomy',
+  },
+  {
+    up: migration_20261103_media_tags_sf148.up,
+    down: migration_20261103_media_tags_sf148.down,
+    name: '20261103_media_tags_sf148',
   },
 ];

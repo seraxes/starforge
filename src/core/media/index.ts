@@ -1,9 +1,11 @@
 /**
- * Starforge media pipeline around Payload Media (SF-28 / SF-128).
+ * Starforge media pipeline around Payload Media (SF-28 / SF-128 / SF-148).
  * One library; features bind by id. Storage port: local default, Spaces/S3 via env.
+ * Analysis port: thin OCR/AI hook stub (no vendor).
  */
 
 export {
+  DEFAULT_MEDIA_PIPELINE_RULES,
   MEDIA_CARD_WIDTH,
   MEDIA_FOLDERS,
   MEDIA_JPEG_QUALITY,
@@ -18,20 +20,38 @@ export {
   normalizeMediaFolder,
   normalizeMediaPurpose,
 } from './pipeline'
-export type { MediaFolder, MediaPurpose } from './pipeline'
+export type { MediaFolder, MediaPipelineRules, MediaPurpose } from './pipeline'
+
+export {
+  STARFORGE_PIPELINE_APPLIED,
+  applyMediaPipelineRules,
+} from './apply-pipeline'
+export type { ApplyMediaPipelineInput, ApplyMediaPipelineResult } from './apply-pipeline'
 
 export {
   findMediaById,
   listMedia,
+  listMediaTagOptions,
   preferredMediaUrl,
   resolveMediaBind,
   resolveMediaById,
   toResolvedMedia,
 } from './resolve'
-export type { MediaSizeName, ResolvedMedia } from './resolve'
+export type { MediaSizeName, MediaTagOption, ResolvedMedia } from './resolve'
 
 export { getMediaStorage, getMediaStorageInfo } from './storage'
 export type { MediaStorage, MediaStorageInfo, MediaStorageKind } from './storage'
+
+export {
+  createNoopMediaAnalysisPort,
+  getMediaAnalysisPort,
+} from './analysis'
+export type {
+  MediaAnalysisPort,
+  MediaAnalysisResult,
+  MediaAnalyzer,
+  MediaAnalyzerInput,
+} from './analysis'
 
 // Form upload helpers live in `./form-upload` (server-only) — import that path
 // directly from server actions / route handlers; do not barrel-export here.
