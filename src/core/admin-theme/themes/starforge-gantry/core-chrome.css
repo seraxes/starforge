@@ -33,9 +33,19 @@ body:has(.admin-shell) > main {
   --sf-admin-toolbar-muted: #405475;
   --sf-admin-nav-bar: #1b2431;
   --sf-admin-nav-active: #263248;
+  /* Module / particle / drop-zone edge — same weight everywhere */
+  --sf-admin-module-border-width: 4px;
+  --sf-admin-module-border-color: #0f3d63;
   /* Primary = settings cogs; secondary = grips, remove X, nav chevrons/tabs */
-  --sf-admin-icon-primary: 1.8rem;
-  --sf-admin-icon-secondary: 1.6rem;
+  --sf-admin-icon-primary: 2rem;
+  --sf-admin-icon-secondary: 1.75rem;
+  /* Gantry-compact text buttons — comfortable, never skinny */
+  --sf-admin-btn-pad-y: 0.5rem;
+  --sf-admin-btn-pad-x: 1rem;
+  --sf-admin-btn-font: 0.9rem;
+  --sf-admin-btn-min-height: 2.35rem;
+  --sf-admin-btn-radius: 3px;
+  --sf-admin-btn-gap: 0.55rem;
 
   /* Remap shared brand aliases used by existing admin/gantry CSS */
   --sf-ink: #ffffff;
@@ -233,8 +243,7 @@ body:has(.admin-shell) > main {
   box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 5%, transparent);
 }
 
-/* Form controls — deep input wells */
-.admin-shell .gantry-palette-item,
+/* Form controls — deep input wells (palette items use module-weight borders below) */
 .admin-shell .admin-inline-form select,
 .admin-shell .layout-inline-form input[type='text'],
 .admin-shell .layout-inline-form select,
@@ -519,18 +528,18 @@ body:has(.admin-shell) > main {
 /*
  * Default chrome actions → solid mid-blue (visible on dark).
  * `.primary` / Save → pastel orange (Starforge).
+ * Icon-only controls (cog / bar-remove / section gear) are excluded — they stay borderless.
  */
 .admin-shell .layout-inline-form button,
-.admin-shell .gantry-section-actions button,
+.admin-shell .gantry-section-actions button:not(.gantry-section-icon-btn),
 .admin-shell .gantry-row-actions button,
 .admin-shell .gantry-row-meta button,
-.admin-shell .gantry-slot-actions button,
+.admin-shell .gantry-slot-actions button:not(.gantry-bar-remove):not(.gantry-settings-trigger),
 .admin-shell .gantry-width-form button,
 .admin-shell .gantry-custom-form button,
 .admin-shell .gantry-typed-form button,
 .admin-shell .gantry-canvas-toolbar button,
 .admin-shell .gantry-settings-panel-head button,
-.admin-shell .gantry-settings-trigger,
 .admin-shell .button-link,
 .admin-shell button.secondary,
 .admin-shell .links .secondary,
@@ -539,14 +548,18 @@ body:has(.admin-shell) > main {
   border: 1px solid var(--sf-admin-blue-border);
   color: #fff;
   font-weight: 650;
+  font-size: var(--sf-admin-btn-font);
+  padding: var(--sf-admin-btn-pad-y) var(--sf-admin-btn-pad-x);
+  min-height: var(--sf-admin-btn-min-height);
+  border-radius: var(--sf-admin-btn-radius);
+  box-sizing: border-box;
 }
 
 .admin-shell .layout-inline-form button:hover,
-.admin-shell .gantry-section-actions button:hover,
+.admin-shell .gantry-section-actions button:not(.gantry-section-icon-btn):hover,
 .admin-shell .gantry-row-actions button:hover,
-.admin-shell .gantry-slot-actions button:hover,
+.admin-shell .gantry-slot-actions button:not(.gantry-bar-remove):not(.gantry-settings-trigger):hover,
 .admin-shell .gantry-canvas-toolbar button:hover,
-.admin-shell .gantry-settings-trigger:hover,
 .admin-shell button.secondary:hover {
   background: var(--sf-admin-blue-mid);
   border-color: color-mix(in srgb, var(--sf-admin-blue-border) 70%, white);
@@ -654,7 +667,8 @@ body:has(.admin-shell) > main {
   gap: 0.45rem;
   box-sizing: border-box;
   background: #182230;
-  border: 1px solid var(--sf-admin-blue-border);
+  /* Same edge weight as placed module bars / empty drop zones */
+  border: var(--sf-admin-module-border-width) solid var(--sf-admin-module-border-color);
   border-radius: 3px;
   color: #fff;
   padding: 0.32rem 0.45rem;
@@ -742,22 +756,26 @@ body:has(.admin-shell) > main {
 }
 
 /* Gantry toolbar: Load/Clear muted · Save = Starforge orange · Undo/Redo quiet */
-.admin-shell .gantry-toolbar-btn {
+.admin-shell .gantry-toolbar-btn,
+.admin-shell a.gantry-toolbar-btn,
+.admin-shell button.gantry-toolbar-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.35rem;
   margin: 0;
-  padding: 0.4rem 0.75rem;
+  padding: var(--sf-admin-btn-pad-y) var(--sf-admin-btn-pad-x);
   border: 0;
-  border-radius: 3px;
+  border-radius: var(--sf-admin-btn-radius);
   font: inherit;
-  font-size: 0.86rem;
+  font-size: var(--sf-admin-btn-font);
   font-weight: 650;
   line-height: 1.2;
+  min-height: var(--sf-admin-btn-min-height);
   text-decoration: none;
   cursor: pointer;
   white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .admin-shell .gantry-toolbar-btn:disabled {
@@ -799,9 +817,11 @@ body:has(.admin-shell) > main {
   background: #2c3648;
   border: 0;
   color: #7f93aa;
-  padding: 0.28rem 0.55rem;
-  font-size: 0.8rem;
+  /* Same comfortable size as other toolbar buttons — not skinny */
+  padding: var(--sf-admin-btn-pad-y) var(--sf-admin-btn-pad-x);
+  font-size: var(--sf-admin-btn-font);
   font-weight: 600;
+  min-height: var(--sf-admin-btn-min-height);
 }
 
 .admin-shell .gantry-canvas-toolbar .gantry-toolbar-btn-quiet:hover:not(:disabled) {
@@ -988,7 +1008,7 @@ body:has(.admin-shell) > main {
   /* Gantry5-like roomy empty slot */
   padding: 1.35rem 1.75rem;
   background: var(--sf-admin-drop-bg);
-  border: 4px solid #0f3d63;
+  border: var(--sf-admin-module-border-width) solid var(--sf-admin-module-border-color);
   box-shadow: none;
   border-radius: 3px;
   color: #7f93aa;
@@ -996,13 +1016,33 @@ body:has(.admin-shell) > main {
   font-weight: 400;
 }
 
-.admin-shell .gantry-row.is-drop-target .gantry-row-empty {
+/* Form builder empty canvas uses the same drop-zone chrome as Layout */
+.admin-shell .gantry-drop-empty {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-height: 4.25rem;
+  margin: 0;
+  padding: 1.35rem 1.75rem;
+  background: var(--sf-admin-drop-bg);
+  border: var(--sf-admin-module-border-width) solid var(--sf-admin-module-border-color);
+  box-shadow: none;
+  border-radius: 3px;
+  color: #7f93aa;
+  font-size: 0.84rem;
+  font-weight: 400;
+}
+
+.admin-shell .gantry-row.is-drop-target .gantry-row-empty,
+.admin-shell .gantry-row.is-drop-target .gantry-drop-empty {
   border-color: #1e4d72;
   background: #1a2433;
   color: #b7d6ec;
 }
 
-/* Particle bars — flat mid-blue + 4px dark-blue edge (no inset glow) */
+/* Particle / module / nav-item bars — flat mid-blue + shared dark-blue edge */
 .admin-shell .gantry-slot {
   display: flex;
   flex-direction: column;
@@ -1010,7 +1050,7 @@ body:has(.admin-shell) > main {
   gap: 0;
   box-sizing: border-box;
   background: var(--sf-admin-card);
-  border: 4px solid #0f3d63;
+  border: var(--sf-admin-module-border-width) solid var(--sf-admin-module-border-color);
   border-radius: 3px;
   color: #fff;
   padding: 0.32rem 0.45rem;
@@ -1159,8 +1199,9 @@ body:has(.admin-shell) > main {
   background: color-mix(in srgb, #0f1a2a 30%, transparent);
 }
 
-/* Muted danger remove beside cog — soft rose X, no ketchup fill (Layout + Form bars) */
-.admin-shell .gantry-slot-actions .gantry-bar-remove {
+/* Muted danger remove beside cog — rose X only; no blue/chrome border box */
+.admin-shell .gantry-slot-actions .gantry-bar-remove,
+.admin-shell .gantry-bar-remove {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1168,26 +1209,32 @@ body:has(.admin-shell) > main {
   height: var(--sf-admin-icon-secondary);
   margin: 0;
   padding: 0;
-  border: 1px solid color-mix(in srgb, #c45c5c 32%, var(--sf-line));
+  border: 0;
   border-radius: 2px;
   background: transparent;
+  box-shadow: none;
+  outline: none;
   color: color-mix(in srgb, #e8a8a0 55%, #c5d2e0);
   font-size: var(--sf-admin-icon-secondary);
   line-height: 1;
   cursor: pointer;
 }
 
-.admin-shell .gantry-slot-actions .gantry-bar-remove-icon {
+.admin-shell .gantry-slot-actions .gantry-bar-remove-icon,
+.admin-shell .gantry-bar-remove-icon {
   width: 1em;
   height: 1em;
 }
 
 .admin-shell .gantry-slot-actions .gantry-bar-remove:hover,
-.admin-shell .gantry-slot-actions .gantry-bar-remove:focus-visible {
+.admin-shell .gantry-slot-actions .gantry-bar-remove:focus-visible,
+.admin-shell .gantry-bar-remove:hover,
+.admin-shell .gantry-bar-remove:focus-visible {
   background: color-mix(in srgb, #c45c5c 16%, var(--sf-admin-surface));
-  border-color: color-mix(in srgb, #c45c5c 48%, var(--sf-line));
-  color: #f0c4be;
+  border: 0;
+  box-shadow: none;
   outline: none;
+  color: #f0c4be;
 }
 
 .admin-shell .gantry-slot-actions .gantry-bar-remove:disabled {
@@ -1231,6 +1278,16 @@ body:has(.admin-shell) > main {
   --sf-admin-blue-border: #2f3d50;
   --sf-admin-blue-mid: #3498db;
   --sf-admin-blue-action: #3182ce;
+  --sf-admin-module-border-width: 4px;
+  --sf-admin-module-border-color: #0f3d63;
+  --sf-admin-icon-primary: 2rem;
+  --sf-admin-icon-secondary: 1.75rem;
+  --sf-admin-btn-pad-y: 0.5rem;
+  --sf-admin-btn-pad-x: 1rem;
+  --sf-admin-btn-font: 0.9rem;
+  --sf-admin-btn-min-height: 2.35rem;
+  --sf-admin-btn-radius: 3px;
+  --sf-admin-btn-gap: 0.55rem;
   --sf-ink: #ffffff;
   --sf-muted: #9aa8bc;
   --sf-line: #2f3d50;
@@ -1411,11 +1468,13 @@ body:has(.admin-shell) > main {
   background: #2a3340;
   border: 1px solid #3a4a5c;
   color: #fff;
-  border-radius: 3px;
+  border-radius: var(--sf-admin-btn-radius, 3px);
   font: inherit;
   font-weight: 650;
-  font-size: 0.82rem;
-  padding: 0.4rem 0.75rem;
+  font-size: var(--sf-admin-btn-font, 0.9rem);
+  padding: var(--sf-admin-btn-pad-y, 0.5rem) var(--sf-admin-btn-pad-x, 1rem);
+  min-height: var(--sf-admin-btn-min-height, 2.35rem);
+  box-sizing: border-box;
   cursor: pointer;
 }
 
@@ -1425,11 +1484,24 @@ body:has(.admin-shell) > main {
 
 .gantry-settings-theme-dark .gantry-settings-panel .gantry-typed-form button.secondary,
 .gantry-settings-theme-dark .gantry-settings-panel .gantry-custom-form button.secondary,
+.gantry-settings-theme-dark .gantry-slot-extra-actions button.secondary,
+.gantry-settings-theme-dark .gantry-settings-panel .gantry-typed-form button:not(.secondary):not(.danger):not([type='submit']),
+.gantry-settings-theme-dark .gantry-settings-panel .gantry-custom-form button:not(.secondary):not(.danger):not([type='submit']),
+.gantry-settings-theme-dark .gantry-settings-panel .gantry-typed-form button[type='submit'],
+.gantry-settings-theme-dark .gantry-settings-panel .gantry-custom-form button[type='submit'] {
+  border-radius: var(--sf-admin-btn-radius, 3px);
+  font-size: var(--sf-admin-btn-font, 0.9rem);
+  padding: var(--sf-admin-btn-pad-y, 0.5rem) var(--sf-admin-btn-pad-x, 1rem);
+  min-height: var(--sf-admin-btn-min-height, 2.35rem);
+  box-sizing: border-box;
+}
+
+.gantry-settings-theme-dark .gantry-settings-panel .gantry-typed-form button.secondary,
+.gantry-settings-theme-dark .gantry-settings-panel .gantry-custom-form button.secondary,
 .gantry-settings-theme-dark .gantry-slot-extra-actions button.secondary {
   background: #3182ce;
   border: 1px solid #2a6faf;
   color: #fff;
-  border-radius: 3px;
 }
 
 .gantry-settings-theme-dark .gantry-settings-panel .gantry-typed-form button:not(.secondary):not(.danger):not([type='submit']),
@@ -1437,7 +1509,6 @@ body:has(.admin-shell) > main {
   background: #3182ce;
   border: 1px solid #2a6faf;
   color: #fff;
-  border-radius: 3px;
 }
 
 .gantry-settings-theme-dark .gantry-settings-panel .gantry-typed-form button[type='submit'],
@@ -1445,7 +1516,6 @@ body:has(.admin-shell) > main {
   background: #f2a66a;
   border: 1px solid color-mix(in srgb, #f2a66a 65%, #f5b888);
   color: #1c2834;
-  border-radius: 3px;
   font-weight: 700;
 }
 
@@ -1675,10 +1745,11 @@ body:has(.admin-shell) > main {
   background: color-mix(in srgb, #c45c5c 42%, #1d2531);
   border: 0;
   color: #f5c0c0;
-  padding: 0.4rem 0.85rem;
-  border-radius: 3px;
-  font-size: 0.86rem;
+  padding: var(--sf-admin-btn-pad-y) var(--sf-admin-btn-pad-x);
+  border-radius: var(--sf-admin-btn-radius);
+  font-size: var(--sf-admin-btn-font);
   font-weight: 650;
+  min-height: var(--sf-admin-btn-min-height);
 }
 
 .admin-shell .gantry-toolbar-btn-disable:hover:not(:disabled),
@@ -1692,10 +1763,11 @@ body:has(.admin-shell) > main {
   background: color-mix(in srgb, #3c9a5f 45%, #1d2531);
   border: 0;
   color: #b8f0c8;
-  padding: 0.4rem 0.85rem;
-  border-radius: 3px;
-  font-size: 0.86rem;
+  padding: var(--sf-admin-btn-pad-y) var(--sf-admin-btn-pad-x);
+  border-radius: var(--sf-admin-btn-radius);
+  font-size: var(--sf-admin-btn-font);
   font-weight: 650;
+  min-height: var(--sf-admin-btn-min-height);
 }
 
 .admin-shell .gantry-toolbar-btn-enable:hover:not(:disabled),
@@ -2140,10 +2212,17 @@ body:has(.admin-shell) > main {
 .admin-shell .admin-inline-form > button[type='button'],
 .admin-shell .gantry-typed-form > button.gantry-toolbar-btn,
 .admin-shell .outlines-actions > form > button[type='submit'],
-/* Nav/Forms/Outlines row actions: Edit items + siblings (links + buttons) */
+/* Nav/Forms/Outlines/Users/Settings row actions: Edit items + siblings */
 .admin-shell .outlines-actions > a.gantry-toolbar-btn,
 .admin-shell .outlines-actions > button.gantry-toolbar-btn,
-.admin-shell .outlines-actions > button.secondary {
+.admin-shell .outlines-actions > button.secondary,
+.admin-shell .settings-form button[type='submit'],
+.admin-shell .site-chrome-form button[type='submit'],
+.admin-shell .sf-media-library-filters button,
+.admin-shell .sf-media-library-upload-row button,
+.admin-shell .sf-media-picker-actions button,
+.admin-shell .nav-manager button[type='submit'],
+.admin-shell .forms-admin button[type='submit'] {
   width: auto;
   max-width: max-content;
   justify-self: start;
@@ -2153,16 +2232,16 @@ body:has(.admin-shell) > main {
   justify-content: center;
   gap: 0.35rem;
   margin: 0;
-  padding: 0.4rem 0.85rem;
-  border-radius: 3px;
+  padding: var(--sf-admin-btn-pad-y) var(--sf-admin-btn-pad-x);
+  border-radius: var(--sf-admin-btn-radius);
   font: inherit;
-  font-size: 0.86rem;
+  font-size: var(--sf-admin-btn-font);
   font-weight: 650;
   line-height: 1.2;
   white-space: nowrap;
   text-decoration: none;
   box-sizing: border-box;
-  min-height: 2.1rem;
+  min-height: var(--sf-admin-btn-min-height);
 }
 
 .admin-shell .gantry-toolbar-btn-save,
@@ -2202,11 +2281,17 @@ body:has(.admin-shell) > main {
   background: color-mix(in srgb, var(--sf-admin-blue-mid) 35%, transparent);
 }
 
-.admin-shell .admin-action-row {
+.admin-shell .admin-action-row,
+.admin-shell .outlines-actions,
+.admin-shell .gantry-canvas-toolbar-primary,
+.admin-shell .gantry-canvas-toolbar-history {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--sf-admin-btn-gap);
+}
+
+.admin-shell .admin-action-row {
   margin-top: 0.75rem;
 }
 
@@ -2216,10 +2301,11 @@ body:has(.admin-shell) > main {
   background: color-mix(in srgb, #c45c5c 28%, #1d2531);
   border: 0;
   color: #f0b4b4;
-  padding: 0.4rem 0.85rem;
-  border-radius: 3px;
-  font-size: 0.86rem;
+  padding: var(--sf-admin-btn-pad-y) var(--sf-admin-btn-pad-x);
+  border-radius: var(--sf-admin-btn-radius);
+  font-size: var(--sf-admin-btn-font);
   font-weight: 650;
+  min-height: var(--sf-admin-btn-min-height);
 }
 
 .admin-shell .page-settings-saving {
@@ -2239,7 +2325,7 @@ body:has(.admin-shell) > main {
 .admin-shell .sf-media-picker-upload {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: var(--sf-admin-btn-gap);
   align-items: flex-end;
   margin-bottom: 1rem;
 }
@@ -2262,12 +2348,13 @@ body:has(.admin-shell) > main {
 
 .admin-shell .sf-media-library-card,
 .admin-shell .sf-media-picker-tile {
-  border: 4px solid var(--sf-admin-blue-dark, #1a2330);
+  border: var(--sf-admin-module-border-width) solid var(--sf-admin-module-border-color);
   background: color-mix(in srgb, #121820 88%, #243044);
   color: #e8eef6;
   text-align: left;
   padding: 0;
   overflow: hidden;
+  border-radius: var(--sf-admin-btn-radius);
 }
 
 .admin-shell .sf-media-library-thumb,
@@ -2306,7 +2393,8 @@ body:has(.admin-shell) > main {
 .admin-shell .sf-media-picker-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  align-items: center;
+  gap: var(--sf-admin-btn-gap);
 }
 
 .admin-shell .sf-media-picker-preview {
@@ -2349,8 +2437,9 @@ body:has(.admin-shell) > main {
   max-height: min(90vh, 52rem);
   overflow: auto;
   background: #151c27;
-  border: 4px solid #2a3f58;
+  border: var(--sf-admin-module-border-width) solid var(--sf-admin-module-border-color);
   padding: 1rem 1.1rem 1.25rem;
+  border-radius: var(--sf-admin-btn-radius);
 }
 
 .admin-shell .sf-media-picker-dialog-head {
@@ -2396,11 +2485,13 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .sf-form-option-editor-row {
-  border: 2px solid #2a3a4e;
+  border: var(--sf-admin-module-border-width) solid var(--sf-admin-module-border-color);
   padding: 0.65rem 0.75rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  border-radius: var(--sf-admin-btn-radius);
+  background: color-mix(in srgb, var(--sf-secondary) 6%, var(--sf-admin-surface));
 }
 
 /* Environment editor (Site Chrome child) */
