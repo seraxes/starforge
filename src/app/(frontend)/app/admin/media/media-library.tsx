@@ -4,6 +4,7 @@ import React, { useActionState, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
+import { MediaLightbox } from '@/components/admin/MediaLightbox'
 import {
   deleteMediaAction,
   uploadMediaAction,
@@ -52,6 +53,11 @@ function folderHref(next: {
   return qs ? `/app/admin/media?${qs}` : '/app/admin/media'
 }
 
+function folderLabel(value: string | null | undefined): string | null {
+  if (!value) return null
+  return MEDIA_FOLDERS.find((f) => f.value === value)?.label || value
+}
+
 export function MediaLibraryClient({
   initialDocs,
   totalDocs,
@@ -76,6 +82,7 @@ export function MediaLibraryClient({
   const [uploadFolder, setUploadFolder] = useState(folder !== 'all' ? folder : 'general')
   const [uploadPurpose, setUploadPurpose] = useState('photo')
   const [uploadTag, setUploadTag] = useState(tag !== 'all' ? tag : '')
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
 
   const busy = uploading || deleting || pending
 
@@ -98,9 +105,22 @@ export function MediaLibraryClient({
   React.useEffect(() => {
     if (deleteState.ok) {
       notifySaved(deleteState.message || 'Deleted.')
+      setLightboxIndex(null)
       startTransition(() => router.refresh())
     }
   }, [deleteState, router, notifySaved])
+
+  // Drop lightbox if the filtered set no longer contains the open index.
+  React.useEffect(() => {
+    if (lightboxIndex == null) return
+    if (initialDocs.length === 0) {
+      setLightboxIndex(null)
+      return
+    }
+    if (lightboxIndex >= initialDocs.length) {
+      setLightboxIndex(initialDocs.length - 1)
+    }
+  }, [initialDocs, lightboxIndex])
 
   const filterHref = useMemo(
     () =>
@@ -134,6 +154,14 @@ export function MediaLibraryClient({
   function selectFolder(nextFolder: string) {
     if (nextFolder !== 'all') setUploadFolder(nextFolder)
     pushFilter({ folder: nextFolder })
+  }
+
+  function requestDelete(id: string) {
+    const fd = new FormData()
+    fd.set('id', id)
+    startTransition(() => {
+      void deleteAction(fd)
+    })
   }
 
   return (
@@ -371,82 +399,85 @@ export function MediaLibraryClient({
             </form>
           </div>
 
-          <div className="sf-media-library-grid">
+          <div className="sf-media-library-grid" role="list">
             {initialDocs.length === 0 ? (
-              <p className="layout-muted">
-                No media in {activeFolderLabel.toLowerCase()}. Upload above or pick another folder.
-              </p>
+              <div className="sf-media-library-empty" role="status">
+                <p>
+                  {folder === 'all' && !filtersActive
+                    ? 'No media yet.'
+                    : `No media in ${activeFolderLabel.toLowerCase()}.`}
+                </p>
+                <p className="layout-muted">
+                  {storage.ready
+                    ? 'Upload above to add images, or pick another folder.'
+                    : 'Configure storage, then upload to start the library.'}
+                </p>
+              </div>
             ) : null}
-            {initialDocs.map((doc) => {
+            {initialDocs.map((doc, index) => {
               const thumb = doc.sizes?.thumbnail || doc.url
+              const fLabel = folderLabel(doc.folder)
+              const pLabel = doc.purpose
+                ? MEDIA_PURPOSES.find((p) => p.value === doc.purpose)?.label || doc.purpose
+                : null
               return (
-                <article key={doc.id} className="sf-media-library-card">
-                  <div className="sf-media-library-thumb">
+                <article key={doc.id} className="sf-media-library-card" role="listitem">
+                  <button
+                    type="button"
+                    className="sf-media-library-thumb"
+                    disabled={busy}
+                    aria-label={`Preview ${doc.alt || doc.filename || doc.id}`}
+                    onClick={() => setLightboxIndex(index)}
+                  >
                     {thumb ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={thumb} alt={doc.alt || doc.filename || 'Media'} />
+                      <img src={thumb} alt="" />
                     ) : (
                       <span>No preview</span>
                     )}
-                  </div>
+                  </button>
                   <div className="sf-media-library-card-body">
-                    <strong>{doc.alt || doc.filename || doc.id}</strong>
-                    <code title="Payload Media id">{doc.id}</code>
-                    <span className="layout-muted">
-                      {[doc.folder, doc.purpose].filter(Boolean).join(' · ') || '—'}
-                    </span>
-                    {doc.folder ? (
-                      <button
-                        type="button"
-                        className="gantry-toolbar-btn gantry-toolbar-btn-muted"
-                        disabled={busy || folder === doc.folder}
-                        title={`Open folder ${doc.folder}`}
-                        onClick={() => selectFolder(doc.folder || 'general')}
-                      >
-                        Open folder
-                      </button>
-                    ) : null}
-                    {doc.tagIds?.length ? (
-                      <span className="layout-muted">
-                        Tags:{' '}
-                        {doc.tagIds.map((id, i) => {
-                          const label = doc.tagLabels?.[i] || id
-                          const active = tag === id
-                          return (
-                            <React.Fragment key={id}>
-                              {i > 0 ? ', ' : null}
-                              <button
-                                type="button"
-                                className="gantry-toolbar-btn gantry-toolbar-btn-muted"
-                                disabled={busy || active}
-                                title={active ? 'Already filtering this tag' : `Filter by ${label}`}
-                                onClick={() => pushFilter({ tag: id })}
-                              >
-                                {label}
-                              </button>
-                            </React.Fragment>
-                          )
-                        })}
-                      </span>
-                    ) : null}
-                    {doc.url ? (
-                      <a href={doc.url} target="_blank" rel="noreferrer">
-                        Open file
-                      </a>
-                    ) : null}
-                    <form action={deleteAction}>
-                      <input type="hidden" name="id" value={doc.id} />
-                      <button
-                        type="submit"
-                        className="gantry-toolbar-btn gantry-toolbar-btn-muted"
-                        disabled={busy}
-                        onClick={(e) => {
-                          if (!confirm('Delete this media item?')) e.preventDefault()
-                        }}
-                      >
-                        Delete
-                      </button>
-                    </form>
+                    <strong className="sf-media-library-card-title">
+                      {doc.alt || doc.filename || doc.id}
+                    </strong>
+                    <div className="sf-media-library-chips">
+                      {fLabel ? (
+                        <button
+                          type="button"
+                          className="sf-media-chip"
+                          disabled={busy || folder === doc.folder}
+                          title={`Open folder ${fLabel}`}
+                          onClick={() => selectFolder(doc.folder || 'general')}
+                        >
+                          {fLabel}
+                        </button>
+                      ) : null}
+                      {pLabel ? <span className="sf-media-chip is-static">{pLabel}</span> : null}
+                      {doc.tagIds?.map((id, i) => {
+                        const label = doc.tagLabels?.[i] || id
+                        const active = tag === id
+                        return (
+                          <button
+                            key={id}
+                            type="button"
+                            className={`sf-media-chip${active ? ' is-active' : ''}`}
+                            disabled={busy || active}
+                            title={active ? 'Already filtering this tag' : `Filter by ${label}`}
+                            onClick={() => pushFilter({ tag: id })}
+                          >
+                            {label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <button
+                      type="button"
+                      className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+                      disabled={busy}
+                      onClick={() => setLightboxIndex(index)}
+                    >
+                      Preview
+                    </button>
                   </div>
                 </article>
               )
@@ -459,6 +490,17 @@ export function MediaLibraryClient({
         <p className="form-error" role="alert">
           {deleteState.error}
         </p>
+      ) : null}
+
+      {lightboxIndex != null && initialDocs.length > 0 ? (
+        <MediaLightbox
+          docs={initialDocs}
+          index={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          onIndexChange={setLightboxIndex}
+          onDelete={requestDelete}
+          deleting={deleting}
+        />
       ) : null}
     </div>
   )

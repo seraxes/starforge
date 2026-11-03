@@ -97,6 +97,18 @@ export function MediaPicker({
     if (open) refresh()
   }, [open, refresh])
 
+  useEffect(() => {
+    if (!open) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        setOpen(false)
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [open])
+
   function selectDoc(doc: ResolvedMedia) {
     onChange({
       mediaId: doc.id,
