@@ -1,15 +1,57 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+import type { CspSources } from '@/core/security/csp'
 import { applySecurityHeaders } from '@/core/security/headers'
 import {
   SITE_OFFLINE_PATH,
   isOfflineExemptPath,
 } from '@/core/site-chrome/offline'
 
-function finalize(response: NextResponse): NextResponse {
-  applySecurityHeaders(response.headers)
+function finalize(response: NextResponse, cspSources?: CspSources | null): NextResponse {
+  applySecurityHeaders(response.headers, { cspSources })
   return response
+}
+
+const CSP_SOURCES_TTL_MS = 15_000
+const CSP_SOURCES_RETRY_MS = 5_000
+
+let cspSourcesCache: { sources: CspSources; expiresAt: number } | null = null
+let cspSourcesInflight: Promise<CspSources | null> | null = null
+
+async function fetchFeatureCspSources(request: NextRequest): Promise<CspSources | null> {
+  try {
+    const res = await fetch(new URL('/api/security/csp-sources', request.url), {
+      cache: 'no-store',
+    })
+    if (!res.ok) return null
+    const data = (await res.json()) as { sources?: CspSources }
+    return data.sources && typeof data.sources === 'object' ? data.sources : {}
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Feature-driven CSP sources (Turnstile, Font Awesome, analytics, Page
+ * Settings assets), cached per server instance so pages cost at most one
+ * internal hop per TTL. On failure keep the last good set and retry soon.
+ */
+async function featureCspSources(request: NextRequest): Promise<CspSources | null> {
+  if (cspSourcesCache && cspSourcesCache.expiresAt > Date.now()) {
+    return cspSourcesCache.sources
+  }
+  cspSourcesInflight ??= fetchFeatureCspSources(request).finally(() => {
+    cspSourcesInflight = null
+  })
+  const fresh = await cspSourcesInflight
+  if (fresh) {
+    cspSourcesCache = { sources: fresh, expiresAt: Date.now() + CSP_SOURCES_TTL_MS }
+    return fresh
+  }
+  const stale = cspSourcesCache?.sources ?? {}
+  cspSourcesCache = { sources: stale, expiresAt: Date.now() + CSP_SOURCES_RETRY_MS }
+  return stale
 }
 
 function hasBetterAuthSession(request: NextRequest): boolean {
@@ -133,12 +175,15 @@ export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl
 
   // Public + app routes: redirects → offline gate (HTML) + pathname for RSC layouts.
+  // Only these render Page Settings chrome, so only they get feature CSP sources
+  // (/api is skipped — the sources route itself would recurse).
   if (!pathname.startsWith('/admin') && !pathname.startsWith('/api')) {
     const redirected = await maybeRedirect(request)
     if (redirected) return redirected
+    const cspSources = await featureCspSources(request)
     const offline = await maybeRewriteOffline(request)
-    if (offline) return finalize(offline)
-    return finalize(withPathnameHeader(request, pathname))
+    if (offline) return finalize(offline, cspSources)
+    return finalize(withPathnameHeader(request, pathname), cspSources)
   }
 
   if (!pathname.startsWith('/admin')) {

@@ -1,3 +1,5 @@
+import { CSP_GOOGLE_ANALYTICS } from '@/core/security/csp'
+
 import type { StarforgeAtomDefinition } from '../types'
 
 export type AnalyticsConfig = {
@@ -110,5 +112,12 @@ export const analyticsAtom: StarforgeAtomDefinition = {
         html: googleImmediate(safeId),
       },
     ]
+  },
+  // Allowed whether or not consent is gated: the gated loader injects gtag on
+  // the same document after the visitor accepts, without a reload.
+  csp: (raw) => {
+    const config = asConfig(raw)
+    if (!config.measurementId || config.provider !== 'google') return null
+    return CSP_GOOGLE_ANALYTICS
   },
 }

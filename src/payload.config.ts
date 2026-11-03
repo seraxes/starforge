@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
 import { payloadMediaStoragePlugins } from './core/media/storage/payload-plugin'
+import { payloadCsrfOrigins } from './core/security/trusted-origins'
 import { Media } from './collections/Media'
 import { Pages } from './collections/Pages'
 import { Users } from './collections/Users'
@@ -49,8 +50,9 @@ export default buildConfig({
       Nav: '@/components/payload/StarforgeAdminNav',
     },
   },
-  // Empty = accept cookie JWT from any Origin (needed for admin RSC).
-  csrf: [],
+  // App origins only (an empty list accepts the cookie JWT from any Origin).
+  // Add extra hosts via STARFORGE_TRUSTED_ORIGINS.
+  csrf: payloadCsrfOrigins(),
 
   collections: [Users, Media, Pages],
   globals: [SiteSettings],

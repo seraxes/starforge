@@ -31,7 +31,8 @@ const nextConfig: NextConfig = {
     ]
   },
   // Baseline security headers (CSP / frame / referrer / …). HSTS only on HTTPS path.
-  // Middleware also applies the same set so rewrites/redirects stay covered.
+  // Static set without feature CSP sources; middleware re-applies the headers and
+  // adds Settings / Page Settings sources on public + app routes.
   async headers() {
     return [
       {

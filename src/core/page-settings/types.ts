@@ -1,3 +1,5 @@
+import type { CspSources } from '@/core/security/csp'
+
 /** Ordered stylesheet / script reference (Assets panel). */
 export type AssetRef = {
   id: string
@@ -112,4 +114,9 @@ export type StarforgeAtomDefinition = {
   defaultConfig: () => Record<string, unknown>
   /** Build inject fragments from instance config. */
   inject: (config: Record<string, unknown>) => AtomInjectResult[]
+  /**
+   * CSP sources the atom needs beyond what its inject URLs / HTML attributes
+   * show (e.g. a loader that builds the script URL in JS, XHR beacons).
+   */
+  csp?: (config: Record<string, unknown>) => CspSources | null
 }

@@ -1,5 +1,7 @@
 import type { AuthStrategy, AuthStrategyFunctionArgs, Payload } from 'payload'
 
+import { hasUntrustedOrigin } from '@/core/security/trusted-origins'
+
 /**
  * Authenticate Payload `/admin` from the Starforge Better Auth cookie.
  * No Payload email/password — core session is the only login.
@@ -58,6 +60,12 @@ export const starforgeCoreSessionStrategy: AuthStrategy = {
   authenticate: async ({ headers, payload }) => {
     try {
       const webHeaders = toWebHeaders(headers)
+      // Same Origin allowlist as Payload `csrf`. No Sec-Fetch-Site fallback:
+      // cross-site links into /admin carry no Origin and must still resolve,
+      // or the login → exchange → /admin redirect chain loops.
+      if (hasUntrustedOrigin(webHeaders)) {
+        return { user: null }
+      }
       const cookie = webHeaders.get('cookie') || ''
       // Soft presence check only — still call getSession if unsure (cookie names vary).
       const maybeSessionCookie =

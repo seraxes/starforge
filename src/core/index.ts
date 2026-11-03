@@ -205,10 +205,15 @@ export type {
 } from './mail'
 export {
   applySecurityHeaders,
+  buildCspHeaders,
   buildSecurityHeaders,
+  composeCspSources,
+  mergeCspSources,
+  payloadCsrfOrigins,
+  resolveCspMode,
   shouldUseSecureCookies,
 } from './security'
-export type { SecurityHeader } from './security'
+export type { CspDirective, CspMode, CspSources, SecurityHeader } from './security'
 export {
   CONSENT_COOKIE_NAME,
   CONSENT_EVENT,
