@@ -1,7 +1,7 @@
 /*
  * Starforge Gantry theme — Payload `/admin` chrome.
- * Maps Core admin tokens onto Payload CSS variables; styles shared AdminSidebarNav
- * when embedded in Payload NavWrapper. Orange = primary actions only.
+ * Shared tokens match Core `.admin-shell` (Page Settings panel language).
+ * Orange = primary actions only.
  */
 
 :root {
@@ -13,10 +13,22 @@
   --sf-admin-blue-border: #1e4d72;
   --sf-admin-blue-mid: #3498db;
   --sf-admin-blue-action: #2f80b9;
-  --sf-admin-nav-bar: #0c121c;
+  --sf-admin-toolbar-muted: #405475;
+  --sf-admin-nav-bar: #1b2431;
   --sf-admin-nav-active: #263248;
+  --sf-admin-module-border-width: 4px;
+  --sf-admin-module-border-color: #0f3d63;
   --sf-admin-icon-primary: 2rem;
   --sf-admin-icon-secondary: 1.75rem;
+  --sf-admin-btn-pad-y: 0.5rem;
+  --sf-admin-btn-pad-x: 1rem;
+  --sf-admin-btn-font: 0.9rem;
+  --sf-admin-btn-min-height: 2.35rem;
+  --sf-admin-btn-radius: 3px;
+  --sf-admin-btn-gap: 0.55rem;
+  --sf-admin-panel: #1b2432;
+  --sf-admin-panel-head: #121a24;
+  --sf-admin-panel-border: #2f3d50;
 
   --sf-ink: #ffffff;
   --sf-muted: #9eb1c7;
@@ -28,7 +40,6 @@
   --sf-secondary: #8ebad4;
   --sf-secondary-strong: #b7d6ec;
 
-  /* Cool navy base scale (replaces Payload gray) — light mode rarely used (theme locked dark). */
   --color-base-0: #e8eef8;
   --color-base-50: #d5e0ec;
   --color-base-100: #c0cedc;
@@ -43,15 +54,14 @@
   --color-base-550: #2a384a;
   --color-base-600: #243040;
   --color-base-650: #1f2938;
-  --color-base-700: #1b2531;
+  --color-base-700: #1b2432;
   --color-base-750: #17202b;
   --color-base-800: #141c26;
-  --color-base-850: #101822;
+  --color-base-850: #121a24;
   --color-base-900: #0c121c;
   --color-base-950: #080d14;
   --color-base-1000: #05080c;
 
-  /* Mid-blue “success” (Payload uses success for focus rings / accents) → Helium blue */
   --color-success-50: #eaf5fc;
   --color-success-100: #d5ebf8;
   --color-success-150: #b7dcf2;
@@ -72,21 +82,20 @@
   --color-success-900: #081522;
   --color-success-950: #050e17;
 
-  /* Warning scale nudged toward pastel orange (not used as primary Save) */
   --color-warning-300: #f2a66a;
   --color-warning-400: #ef9550;
   --color-warning-500: #e0843c;
 }
 
 html[data-theme='dark'] {
-  --theme-bg: #212933;
-  --theme-input-bg: #152033;
+  --theme-bg: var(--sf-admin-bg);
+  --theme-input-bg: var(--sf-admin-input);
   --theme-text: #e8eef8;
   --theme-overlay: rgba(5, 10, 18, 0.72);
 
-  --theme-elevation-0: #212933;
-  --theme-elevation-50: #1b2531;
-  --theme-elevation-100: #222e3f;
+  --theme-elevation-0: var(--sf-admin-bg);
+  --theme-elevation-50: var(--sf-admin-panel);
+  --theme-elevation-100: var(--sf-admin-elevated);
   --theme-elevation-150: #2a384a;
   --theme-elevation-200: #314257;
   --theme-elevation-250: #3a4a5e;
@@ -106,10 +115,9 @@ html[data-theme='dark'] {
   --theme-elevation-950: #ffffff;
   --theme-elevation-1000: #ffffff;
 
-  --theme-border-color: #3d5270;
+  --theme-border-color: var(--sf-admin-panel-border);
 }
 
-/* —— Primary actions = Starforge pastel orange (not elevation gray / purple) —— */
 html[data-theme='dark'] .btn.btn--style-primary {
   --color: var(--sf-primary-ink);
   --bg-color: var(--sf-primary);
@@ -118,7 +126,7 @@ html[data-theme='dark'] .btn.btn--style-primary {
 }
 
 html[data-theme='dark'] .btn.btn--style-primary.btn--disabled {
-  --bg-color: color-mix(in srgb, var(--sf-primary) 40%, var(--sf-admin-surface));
+  --bg-color: color-mix(in srgb, var(--sf-primary) 40%, var(--sf-admin-panel));
   --color: color-mix(in srgb, var(--sf-primary-ink) 55%, var(--sf-muted));
   --hover-bg: var(--bg-color);
   --hover-color: var(--color);
@@ -131,7 +139,20 @@ html[data-theme='dark'] .btn.btn--style-secondary {
   --hover-btn-border: 1px solid var(--sf-admin-blue-mid);
 }
 
-/* —— Payload left rail → Gantry Helium sidebar —— */
+html[data-theme='dark'] .btn {
+  font-size: var(--sf-admin-btn-font);
+  padding: var(--sf-admin-btn-pad-y) var(--sf-admin-btn-pad-x);
+  min-height: var(--sf-admin-btn-min-height);
+  border-radius: var(--sf-admin-btn-radius);
+  box-shadow: none;
+}
+
+html[data-theme='dark'] .btn.btn--size-small {
+  min-height: calc(var(--sf-admin-btn-min-height) - 0.35rem);
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+}
+
 .nav {
   background:
     linear-gradient(180deg, #0c121c 0%, #0f1622 48%, #0d141e 100%) !important;
@@ -154,10 +175,6 @@ html[data-theme='dark'] .btn.btn--style-secondary {
   border-top: 1px solid #1a2433;
 }
 
-/* Shared AdminSidebarNav (embedded) inside Payload nav.
- * Payload html is 13px / 20px lh (--base-body-size); Core /app/admin inherits
- * browser ~16px / normal. Pin a local Core-matched scale and use em (not rem)
- * so top items + accordion children match Core absolute sizes. */
 .nav .admin-sidebar--embedded {
   position: static;
   flex: 1 1 auto;
@@ -176,7 +193,7 @@ html[data-theme='dark'] .btn.btn--style-secondary {
 
 .nav .admin-sidebar-brand .brand {
   margin: 0;
-  font-size: 0.92em; /* Core styles.css 0.92rem @ 16px */
+  font-size: 0.92em;
 }
 
 .nav .admin-sidebar-brand .brand a {
@@ -187,14 +204,14 @@ html[data-theme='dark'] .btn.btn--style-secondary {
 .nav .admin-sidebar-title {
   margin: 0.2em 0 0;
   color: #fff;
-  font-size: 1.05em; /* Core 1.05rem @ 16px */
+  font-size: 1.05em;
   font-weight: 700;
   line-height: 1.25;
 }
 
 .nav .admin-sidebar-who .admin-who {
   margin: 0;
-  font-size: 0.8em; /* Core 0.8rem @ 16px */
+  font-size: 0.8em;
   line-height: 1.35;
   color: var(--sf-muted);
 }
@@ -222,7 +239,7 @@ html[data-theme='dark'] .btn.btn--style-secondary {
   background: transparent;
   color: #e8eef8;
   font-family: inherit;
-  font-size: 1em; /* Core: inherit body ≈ 16px */
+  font-size: 1em;
   font-weight: 650;
   line-height: normal;
   cursor: pointer;
@@ -278,7 +295,7 @@ html[data-theme='dark'] .btn.btn--style-secondary {
   padding: 0.35em 0.55em;
   border-radius: 3px;
   font-weight: 600;
-  font-size: 0.9em; /* Core 0.9rem @ 16px → 14.4px */
+  font-size: 0.9em;
   color: #9eb1c7;
 }
 
@@ -306,4 +323,85 @@ html[data-theme='dark'] .btn.btn--style-secondary {
 
 html[data-theme='dark'] .template-default__wrap {
   background: var(--theme-bg);
+  box-shadow: none;
+}
+
+html[data-theme='dark'] .card,
+html[data-theme='dark'] .group-field,
+html[data-theme='dark'] .collapsible,
+html[data-theme='dark'] .table,
+html[data-theme='dark'] .list-controls,
+html[data-theme='dark'] .collection-list__header,
+html[data-theme='dark'] .doc-header,
+html[data-theme='dark'] .doc-controls,
+html[data-theme='dark'] .drawer__header,
+html[data-theme='dark'] .modal-content,
+html[data-theme='dark'] .search-filter,
+html[data-theme='dark'] .where-builder,
+html[data-theme='dark'] .query-presets {
+  background: var(--sf-admin-panel);
+  border-color: var(--sf-admin-panel-border);
+  box-shadow: none;
+  border-radius: 3px;
+}
+
+html[data-theme='dark'] .card__title,
+html[data-theme='dark'] .group-field__header,
+html[data-theme='dark'] .collapsible__toggle,
+html[data-theme='dark'] .doc-header__content,
+html[data-theme='dark'] .drawer__header,
+html[data-theme='dark'] .table thead,
+html[data-theme='dark'] .table th {
+  background: var(--sf-admin-panel-head);
+  border-color: var(--sf-admin-panel-border);
+  color: #fff;
+  box-shadow: none;
+}
+
+html[data-theme='dark'] .field-type input:not([type='checkbox']):not([type='radio']),
+html[data-theme='dark'] .field-type textarea,
+html[data-theme='dark'] .field-type select,
+html[data-theme='dark'] .search-filter__input,
+html[data-theme='dark'] .react-select-container .rs__control,
+html[data-theme='dark'] .date-time-picker .react-datepicker__input-container input {
+  background: var(--sf-admin-input) !important;
+  color: var(--sf-ink) !important;
+  border: 1px solid var(--sf-admin-blue-border) !important;
+  border-radius: 3px;
+  box-shadow: none !important;
+}
+
+html[data-theme='dark'] .field-type input:not([type='checkbox']):not([type='radio']):focus,
+html[data-theme='dark'] .field-type textarea:focus,
+html[data-theme='dark'] .field-type select:focus,
+html[data-theme='dark'] .search-filter__input:focus,
+html[data-theme='dark'] .react-select-container .rs__control--is-focused {
+  border-color: var(--sf-admin-blue-mid) !important;
+  outline: none;
+  box-shadow: none !important;
+}
+
+html[data-theme='dark'] .pill,
+html[data-theme='dark'] .popup-button,
+html[data-theme='dark'] .step-nav__item {
+  background: color-mix(in srgb, var(--sf-secondary) 18%, var(--sf-admin-panel));
+  border-color: var(--sf-admin-blue-border);
+  color: var(--sf-secondary-strong);
+  box-shadow: none;
+}
+
+html[data-theme='dark'] .table td {
+  border-color: var(--sf-admin-panel-border);
+}
+
+html[data-theme='dark'] .table tbody tr:hover td {
+  background: color-mix(in srgb, var(--sf-admin-blue-mid) 12%, var(--sf-admin-panel));
+}
+
+html[data-theme='dark'] a {
+  color: var(--sf-secondary-strong);
+}
+
+html[data-theme='dark'] a:hover {
+  color: #fff;
 }
