@@ -4,11 +4,13 @@ import React, { useCallback, useEffect, useId, useState, useTransition } from 'r
 
 import {
   listMediaAction,
+  listMediaTagOptionsAction,
   uploadMediaAction,
   type MediaActionState,
   type ResolvedMedia,
 } from '@/core/media/actions'
 import { MEDIA_FOLDERS, MEDIA_PURPOSES } from '@/core/media/pipeline'
+import type { MediaTagOption } from '@/core/media/resolve'
 
 export type MediaPickerValue = {
   mediaId: string
@@ -59,8 +61,10 @@ export function MediaPicker({
   const [open, setOpen] = useState(false)
   const [folder, setFolder] = useState(defaultFolder)
   const [purpose, setPurpose] = useState('all')
+  const [tag, setTag] = useState('all')
   const [q, setQ] = useState('')
   const [docs, setDocs] = useState<ResolvedMedia[]>([])
+  const [tagOptions, setTagOptions] = useState<MediaTagOption[]>([])
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
   const [uploadState, setUploadState] = useState<MediaActionState>(emptyUploadState)
@@ -69,12 +73,17 @@ export function MediaPicker({
   const refresh = useCallback(() => {
     startTransition(async () => {
       setError(null)
-      const res = await listMediaAction({
-        folder: folder === 'all' ? undefined : folder,
-        purpose: purpose === 'all' ? undefined : purpose,
-        q: q.trim() || undefined,
-        limit: 48,
-      })
+      const [res, tagsRes] = await Promise.all([
+        listMediaAction({
+          folder: folder === 'all' ? undefined : folder,
+          purpose: purpose === 'all' ? undefined : purpose,
+          tag: tag === 'all' ? undefined : tag,
+          q: q.trim() || undefined,
+          limit: 48,
+        }),
+        listMediaTagOptionsAction(),
+      ])
+      if (tagsRes.tags) setTagOptions(tagsRes.tags)
       if (res.error) {
         setError(res.error)
         setDocs([])
@@ -82,7 +91,7 @@ export function MediaPicker({
       }
       setDocs(res.result?.docs ?? [])
     })
-  }, [folder, purpose, q])
+  }, [folder, purpose, tag, q])
 
   useEffect(() => {
     if (open) refresh()
@@ -224,6 +233,21 @@ export function MediaPicker({
                   ))}
                 </select>
               </label>
+              <label>
+                <span className="sr-only">Tag</span>
+                <select
+                  value={tag}
+                  onChange={(e) => setTag(e.target.value)}
+                  disabled={tagOptions.length === 0}
+                >
+                  <option value="all">All tags</option>
+                  {tagOptions.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <label className="sf-media-picker-search">
                 <span className="sr-only">Search</span>
                 <input
@@ -247,6 +271,7 @@ export function MediaPicker({
             <form className="sf-media-picker-upload" action={onUpload}>
               <input type="hidden" name="folder" value={defaultFolder} />
               <input type="hidden" name="purpose" value={defaultPurpose} />
+              {tag !== 'all' ? <input type="hidden" name="tag" value={tag} /> : null}
               <label>
                 <span>Upload</span>
                 <input

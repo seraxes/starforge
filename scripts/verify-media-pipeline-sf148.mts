@@ -45,6 +45,19 @@ async function main() {
   assert.equal(explicit.length, 1)
   assert.equal(explicit[0]?.ok, true)
 
+  // GIF photos must land as WebP originals (pipeline gap cover).
+  const gif = await sharp({
+    create: { width: 8, height: 8, channels: 3, background: '#336699' },
+  })
+    .gif()
+    .toBuffer()
+  const gifOut = await applyMediaPipelineRules({
+    buffer: gif,
+    mimeType: 'image/gif',
+    purpose: 'photo',
+  })
+  assert.equal(gifOut.mimetype, 'image/webp')
+
   // S3 selection without credentials must report missing keys (no silent local).
   const prev = process.env.STARFORGE_MEDIA_STORAGE
   process.env.STARFORGE_MEDIA_STORAGE = 's3'

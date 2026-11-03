@@ -239,7 +239,9 @@ export async function listMedia(opts?: {
     where.purpose = { equals: purpose }
   }
   if (tag && tag !== 'all') {
-    where.tags = { contains: tag }
+    // hasMany relationship: Payload docs use equals (contains is for text/select).
+    const tagId = Number(tag)
+    where.tags = { equals: Number.isFinite(tagId) ? tagId : tag }
   }
   if (q) {
     where.or = [

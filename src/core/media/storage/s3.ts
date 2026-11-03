@@ -26,7 +26,7 @@ export function createS3MediaStorage(): MediaStorage {
           kind: 's3',
           label: 'S3 / Spaces',
           ready: false,
-          detail: `S3/Spaces needs env: ${missing.join(', ')}. Or unset STARFORGE_MEDIA_STORAGE (local disk).`,
+          detail: `S3/Spaces needs env: ${missing.join(', ')}. Set them in .env or Chrome → Environment, or unset STARFORGE_MEDIA_STORAGE (local disk).`,
         }
       }
 

@@ -1,6 +1,7 @@
 import React from 'react'
 import Link from 'next/link'
 
+import { getMediaAnalysisPort } from '@/core/media/analysis'
 import { listMedia, listMediaTagOptions } from '@/core/media/resolve'
 import { getMediaStorageInfo } from '@/core/media/storage'
 
@@ -23,6 +24,9 @@ export default async function AdminMediaPage({ searchParams }: { searchParams: S
   const q = (params.q ?? '').trim()
 
   const storage = getMediaStorageInfo()
+  const analysisAdapters = getMediaAnalysisPort()
+    .list()
+    .map((a) => a.id)
   let docs: Awaited<ReturnType<typeof listMedia>>['docs'] = []
   let totalDocs = 0
   let listError: string | null = null
@@ -66,6 +70,7 @@ export default async function AdminMediaPage({ searchParams }: { searchParams: S
         tag={tag}
         q={q}
         tagOptions={tagOptions}
+        analysisAdapters={analysisAdapters}
       />
     </section>
   )

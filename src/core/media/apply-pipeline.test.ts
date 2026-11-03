@@ -85,6 +85,46 @@ describe('applyMediaPipelineRules', () => {
     assert.equal(out.data.equals(pdf), true)
   })
 
+  it('converts photo GIF to WebP', async () => {
+    const gif = await sharp({
+      create: {
+        width: 12,
+        height: 12,
+        channels: 3,
+        background: { r: 10, g: 120, b: 200 },
+      },
+    })
+      .gif()
+      .toBuffer()
+    const out = await applyMediaPipelineRules({
+      buffer: gif,
+      mimeType: 'image/gif',
+      purpose: 'photo',
+    })
+    assert.equal(out.mimetype, 'image/webp')
+    assert.equal(out.extHint, 'webp')
+  })
+
+  it('keeps logo WebP as WebP', async () => {
+    const webp = await sharp({
+      create: {
+        width: 16,
+        height: 16,
+        channels: 3,
+        background: { r: 40, g: 40, b: 40 },
+      },
+    })
+      .webp()
+      .toBuffer()
+    const out = await applyMediaPipelineRules({
+      buffer: webp,
+      mimeType: 'image/webp',
+      purpose: 'logo',
+    })
+    assert.equal(out.mimetype, 'image/webp')
+    assert.equal(out.extHint, 'webp')
+  })
+
   it('caps oversized edges without enlargement of small images', async () => {
     const input = await tinyJpeg(20, 10)
     const out = await applyMediaPipelineRules({
