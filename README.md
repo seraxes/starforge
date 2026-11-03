@@ -14,7 +14,7 @@ This is an early scaffold plus **core app auth** (Better Auth), **roles + user g
 | **Payload content module** | Collections, globals (site settings), drafts, media, CMS admin | `src/collections/`, `src/globals/`, `src/payload.config.ts`, `src/app/(payload)/` |
 
 - Payload tables use Postgres schema **`payload`** (created by `docker/postgres/init.sql`).
-- Core auth + layout + page chrome + nav + groups/ACL tables: `sf_users` (incl. `two_factor_enabled`), `sf_sessions`, `sf_accounts`, `sf_verifications`, `sf_two_factors`, `sf_layouts`, `sf_page_chrome`, `sf_nav_menus`, `sf_user_groups`, `sf_user_group_members`, `sf_acl_permissions` (push with `npm run db:core:push`).
+- Core tables (`sf_*` in `public`) and Payload (`payload` schema) are applied with **migrations** (`npm run db:migrate`). Local scratch may still use `npm run db:core:push` / `STARFORGE_PAYLOAD_PUSH=1`; never on shared/prod DBs.
 - Hot paths stay in core — do not put high-QPS app traffic through Payload Local API.
 
 ### Published content cache
@@ -26,7 +26,7 @@ Anonymous `/[slug]` and public site chrome load through core helpers (`getPublis
 | Default (local) | Next.js `unstable_cache` + cache tags (`sf:published-page:{slug}`, `sf:site-settings`, …) |
 | Revalidate | Payload `afterChange` / `afterDelete` on Pages + Site settings call `invalidatePublishedPage` / `invalidateSiteSettings` |
 | Draft preview | `/preview/[slug]` stays **uncached** and auth-gated (`cms_access` + feature toggle) |
-| Redis | **Optional for DigitalOcean multi-instance.** Not required locally. Same loader API — set `STARFORGE_CONTENT_CACHE=redis` and `REDIS_URL` (`src/core/content/cache/`). |
+| Redis | **Optional for DigitalOcean multi-instance.** Not required locally. Same loader API — set `STARFORGE_CONTENT_CACHE=redis` and `REDIS_URL` (`src/core/content/cache/`). Optional `STARFORGE_REDIS_PREFIX` (default `sf:${NODE_ENV}`). |
 
 Do not call Payload Local API from hot anonymous paths except through these helpers.
 
@@ -66,15 +66,16 @@ Keys live in `.env` / Environment editor only — never the database. Core admin
 git clone https://github.com/seraxes/starforge.git
 cd starforge
 
-# Start Postgres
+# Start Postgres (bound to 127.0.0.1 only)
 docker compose up -d
+# Optional Redis: docker compose --profile redis up -d
 
 # Env + install
 cp .env.example .env
 npm install
 
-# Push core auth tables to public schema
-npm run db:core:push
+# Apply Core (Drizzle) + Payload migrations on an empty DB
+npm run db:migrate
 
 # Sample published pages (+ optional demo app user)
 npm run seed
@@ -82,6 +83,18 @@ npm run seed
 # Run the app
 npm run dev
 ```
+
+### Database migrations (SF-139)
+
+| Script | Use |
+| --- | --- |
+| `db:core:generate` | New Core migration from schema diff (every PR that touches `src/core/db/schema.ts` or `src/modules/*/schema.ts`) |
+| `db:core:migrate` | Apply Core migrations (CI / deploy) |
+| `db:core:push` | **Local scratch only** — never prod |
+| `payload:migrate` / `payload:migrate:create` | Payload `payload` schema |
+| `db:migrate` | `db:core:migrate && payload:migrate` |
+
+**Existing push-created DBs:** either reset (`docker compose down -v && docker compose up -d` then `npm run db:migrate`), or mark the Core baseline applied by inserting its hash into `drizzle.__drizzle_migrations` (see `src/core/db/migrations/meta/_journal.json` for the tag). Payload’s `payload migrate` tracks its own table — after a push-era DB, prefer a volume reset, or run `payload migrate` only if the schema already matches and you need the journal row.
 
 Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so cookies and CSRF stay consistent):
 
@@ -148,9 +161,9 @@ Global app admins still open all Core admin today; the matrix is the enforcement
 
 **Nav** is a **top-level** Core admin item (`/app/admin/nav`, sibling of Users / Site Chrome / Site settings / Layouts): multiple named **navigation sets** (menus) in `sf_nav_menus`, each with items (CMS page, URL, or module view; reorder; copy/paste; CSS class; browser/page title; multi-select access tags). Site Settings only **assigns** which set is the site primary header menu — not nested under Site Chrome.
 
-**Forms** (`/app/admin/forms`, gated by Modules → **Forms** / `product:forms`) is the modular Form engine: visual builder (dnd-kit → JSON Schema / Zod), definitions in `sf_forms`, submissions in `sf_form_submissions`. Place the **Form** particle on the layout canvas and bind a definition (Contact preset ships ready; survey/event/voting/ticket are stubs). Optional Site Chrome captcha (Turnstile) when the form opts into the site default. Email-on-submit uses the platform **Mailer** (Site Chrome enable / provider / From). Run `npm run db:core:push` after pull so `sf_forms` / `definition_id` exist.
+**Forms** (`/app/admin/forms`, gated by Modules → **Forms** / `product:forms`) is the modular Form engine: visual builder (dnd-kit → JSON Schema / Zod), definitions in `sf_forms`, submissions in `sf_form_submissions`. Place the **Form** particle on the layout canvas and bind a definition (Contact preset ships ready; survey/event/voting/ticket are stubs). Optional Site Chrome captcha (Turnstile) when the form opts into the site default. Email-on-submit uses the platform **Mailer** (Site Chrome enable / provider / From). Run `npm run db:migrate` after pull so `sf_forms` / submission jsonb columns exist.
 
-**Redirects** (`/app/admin/redirects`, gated by Modules → **Redirects** / `product:redirects`) stores `from` / `to` / status (301·302·307·308) in `sf_redirects`. Middleware looks up enabled rules before offline / page render. **Sitemap** (`/sitemap.xml`) lists published Payload pages (home slug `home` → `/`) and is always available — not gated by the Redirects toggle. Run `npm run db:core:push` after pull so `sf_redirects` exists.
+**Redirects** (`/app/admin/redirects`, gated by Modules → **Redirects** / `product:redirects`) stores `from` / `to` / status (301·302·307·308) in `sf_redirects`. Middleware looks up enabled rules before offline / page render. **Sitemap** (`/sitemap.xml`) lists published Payload pages (home slug `home` → `/`) and is always available — not gated by the Redirects toggle. Run `npm run db:migrate` after pull so `sf_redirects` exists.
 
 One Payload global (`site-settings`) holds synced site name, `primaryNavMenuId`, capability flags, and module toggles. Core admins edit Modules at **`/app/admin/settings`**. CMS editors can edit the same document under Payload **Globals → Site settings** (legacy `primaryNav` array is a fallback only).
 
@@ -510,9 +523,9 @@ npm run dev
 2. **Port 5432 or 3000 in use** — stop the other process, or change the host port in `docker-compose.yml` / Next’s port (`npm run dev -- -p 3001`).
 3. **Payload admin import errors after upgrading** — run `npm run generate:importmap`.
 4. **Fresh DB without `payload` schema** — Compose mounts `init.sql` only on first volume create. If you need to recreate: `docker compose down -v && docker compose up -d`.
-5. **Auth tables missing / Better Auth schema errors** — run `npm run db:core:push` with Compose up and `.env` loaded.
-6. **`column "impersonated_by" does not exist` (or missing `role` / `banned` / `two_factor_enabled` on `sf_users`, or missing `sf_two_factors`)** — code already defines these in `src/core/db/schema.ts`; your Postgres is behind. With Compose up: `npm run db:core:push`, then restart `npm run dev`.
-7. **Seed fails on demo app user** — ensure `npm run db:core:push` succeeded; pages may still have been created.
+5. **Auth tables missing / Better Auth schema errors** — run `npm run db:migrate` with Compose up and `.env` loaded (or `db:core:push` on a local scratch DB only).
+6. **`column "impersonated_by" does not exist` (or missing `role` / `banned` / `two_factor_enabled` on `sf_users`, or missing `sf_two_factors`)** — code already defines these in `src/core/db/schema.ts`; your Postgres is behind. With Compose up: prefer `docker compose down -v` then `npm run db:migrate`, or `db:core:push` on scratch only; restart `npm run dev`.
+7. **Seed fails on demo app user** — ensure `npm run db:migrate` succeeded; pages may still have been created.
 8. **Windows** — use PowerShell or Command Prompt from the repo root; ensure Docker Desktop is **Running** before `docker compose up -d`. Copy env with `copy .env.example .env` if `cp` is unavailable. Always open the app as `http://localhost:3000` (mixing `127.0.0.1` can break sessions).
-9. **Login says invalid email/password after register** — restart `npm run dev`; register a **new** email (or use seed demo); sign in with that **email**. Last resort: `docker compose down -v && docker compose up -d` then `npm run db:core:push` and `npm run seed`.
-10. **Payload `/admin` asks for a password or denies access** — confirm `npm run db:core:push` applied `cms_access`, re-run `npm run seed`, sign in at `/login` first, then open `/admin`. Members need the Users **CMS access** switch On.
+9. **Login says invalid email/password after register** — restart `npm run dev`; register a **new** email (or use seed demo); sign in with that **email**. Last resort: `docker compose down -v && docker compose up -d` then `npm run db:migrate` and `npm run seed`.
+10. **Payload `/admin` asks for a password or denies access** — confirm migrations applied `cms_access`, re-run `npm run seed`, sign in at `/login` first, then open `/admin`. Members need the Users **CMS access** switch On.

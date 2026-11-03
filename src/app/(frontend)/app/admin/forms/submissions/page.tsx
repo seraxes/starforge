@@ -25,16 +25,27 @@ function formatWhen(d: Date): string {
   }
 }
 
-function payloadSummary(payload: Record<string, string>): string {
-  const name = payload.name?.trim()
-  const email = payload.email?.trim()
-  const message = payload.message?.trim() || payload.notes?.trim() || payload.subject?.trim()
+function payloadValueText(v: unknown): string {
+  if (v == null) return ''
+  if (typeof v === 'string') return v
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v)
+  if (Array.isArray(v)) return v.map((item) => String(item ?? '')).join(', ')
+  return String(v)
+}
+
+function payloadSummary(payload: Record<string, unknown>): string {
+  const name = payloadValueText(payload.name).trim()
+  const email = payloadValueText(payload.email).trim()
+  const message =
+    payloadValueText(payload.message).trim() ||
+    payloadValueText(payload.notes).trim() ||
+    payloadValueText(payload.subject).trim()
   const parts = [name, email].filter(Boolean)
   if (parts.length === 0 && message) return message.slice(0, 80)
   if (message) return `${parts.join(' · ')} — ${message.slice(0, 60)}`
   if (parts.length) return parts.join(' · ')
-  const first = Object.entries(payload).find(([, v]) => v.trim())
-  return first ? `${first[0]}: ${first[1].slice(0, 80)}` : '(empty)'
+  const first = Object.entries(payload).find(([, v]) => payloadValueText(v).trim())
+  return first ? `${first[0]}: ${payloadValueText(first[1]).slice(0, 80)}` : '(empty)'
 }
 
 export default async function AdminFormSubmissionsPage() {
@@ -92,22 +103,27 @@ export default async function AdminFormSubmissionsPage() {
                     <details className="sf-forms-details">
                       <summary>{payloadSummary(row.payload)}</summary>
                       <dl className="sf-forms-payload">
-                        {Object.entries(row.payload).map(([k, v]) => (
-                          <div key={k}>
-                            <dt>{k}</dt>
-                            <dd>
-                              {v &&
-                              /^\d+$/.test(v.trim()) &&
-                              /file|attach|upload|document|resume|photo|image/i.test(k) ? (
-                                <a href={`/api/admin/form-attachments/${v.trim()}`}>
-                                  Attachment #{v.trim()}
-                                </a>
-                              ) : (
-                                v || '—'
-                              )}
-                            </dd>
-                          </div>
-                        ))}
+                        {Object.entries(row.payload).map(([k, v]) => {
+                          const text = payloadValueText(v)
+                          const isFileId =
+                            Boolean(text) &&
+                            /^\d+$/.test(text.trim()) &&
+                            /file|attach|upload|document|resume|photo|image/i.test(k)
+                          return (
+                            <div key={k}>
+                              <dt>{k}</dt>
+                              <dd>
+                                {isFileId ? (
+                                  <a href={`/api/admin/form-attachments/${text.trim()}`}>
+                                    Attachment #{text.trim()}
+                                  </a>
+                                ) : (
+                                  text || '—'
+                                )}
+                              </dd>
+                            </div>
+                          )
+                        })}
                       </dl>
                     </details>
                   </td>

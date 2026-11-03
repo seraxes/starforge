@@ -2,6 +2,7 @@ import {
   boolean,
   index,
   integer,
+  jsonb,
   pgTable,
   primaryKey,
   text,
@@ -286,8 +287,10 @@ export const sfForms = pgTable('sf_forms', {
 })
 
 /**
- * Public Form particle submissions (SF-48 / SF-65).
- * Payload is JSON of field values; formKey identifies the layout slot instance.
+ * Public Form particle submissions (SF-48 / SF-65 / SF-139).
+ * `payload` is jsonb (queried later for CSV / registration). formKey identifies
+ * the layout slot instance. definition_version + fields_snapshot freeze the
+ * definition shape at submit time for export/audit before SF-133.
  */
 export const sfFormSubmissions = pgTable(
   'sf_form_submissions',
@@ -297,10 +300,19 @@ export const sfFormSubmissions = pgTable(
     formKey: text('form_key').notNull(),
     /** Bound Form definition id when submitted via a definition. */
     definitionId: text('definition_id'),
+    /** FormDefinitionDocument.version at submit time (null for legacy inline). */
+    definitionVersion: integer('definition_version'),
+    /** Snapshot of field defs (or definition hash object) at submit time. */
+    fieldsSnapshot: jsonb('fields_snapshot').$type<unknown>(),
+    /** Signed-in Better Auth user id when available; anonymous = null. */
+    userId: text('user_id'),
     layoutId: text('layout_id'),
     slotId: text('slot_id'),
-    /** Submitted field values as JSON object. */
-    payload: text('payload').notNull(),
+    /**
+     * Submitted field values as jsonb.
+     * Scalars stay strings; checkbox-group / multi-file may be string arrays.
+     */
+    payload: jsonb('payload').$type<Record<string, unknown>>().notNull(),
     ipAddress: text('ip_address'),
     userAgent: text('user_agent'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -309,6 +321,7 @@ export const sfFormSubmissions = pgTable(
     index('sf_form_submissions_form_key_idx').on(table.formKey),
     index('sf_form_submissions_definition_id_idx').on(table.definitionId),
     index('sf_form_submissions_created_at_idx').on(table.createdAt),
+    index('sf_form_submissions_user_id_idx').on(table.userId),
   ],
 )
 

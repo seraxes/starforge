@@ -68,6 +68,10 @@ export default buildConfig({
     },
     // Keep CMS tables out of `public` so core Drizzle tables do not collide.
     schemaName: 'payload',
+    // Explicit migrations dir (SF-139). Default push only in local scratch when
+    // STARFORGE_PAYLOAD_PUSH=1 — CI / deploy always migrate with push off.
+    migrationDir: path.resolve(dirname, 'migrations'),
+    push: process.env.STARFORGE_PAYLOAD_PUSH === '1',
   }),
   sharp,
   plugins: [...payloadMediaStoragePlugins()],

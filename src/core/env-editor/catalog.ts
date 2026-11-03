@@ -183,6 +183,31 @@ export const ENV_EDITOR_FIELDS: EnvEditorField[] = [
     group: 'infra',
   },
   {
+    key: 'STARFORGE_REDIS_PREFIX',
+    label: 'STARFORGE_REDIS_PREFIX',
+    description:
+      'Key prefix for Redis ports (cache / later rate-limit). Default sf:${NODE_ENV}. Lets staging + prod share one Redis.',
+    secret: false,
+    kind: 'text',
+    group: 'infra',
+  },
+  {
+    key: 'STARFORGE_TRUSTED_ORIGINS',
+    label: 'STARFORGE_TRUSTED_ORIGINS',
+    description: 'Comma-separated extra trusted origins (CSRF / CORS helpers). Optional.',
+    secret: false,
+    kind: 'text',
+    group: 'auth',
+  },
+  {
+    key: 'STARFORGE_TRUSTED_PROXY_HOPS',
+    label: 'STARFORGE_TRUSTED_PROXY_HOPS',
+    description: 'Number of trusted reverse-proxy hops for client IP (X-Forwarded-For). Optional.',
+    secret: false,
+    kind: 'text',
+    group: 'auth',
+  },
+  {
     key: 'STARFORGE_MEDIA_STORAGE',
     label: 'STARFORGE_MEDIA_STORAGE',
     description: 'Media object storage. Unset/local = Payload /media disk; s3 = Spaces/S3 (needs S3_*).',

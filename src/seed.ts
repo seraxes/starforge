@@ -418,7 +418,7 @@ async function main() {
     }
   } catch (error) {
     console.warn('Could not seed layout document (sf_layouts).')
-    console.warn('Run: npm run db:core:push')
+    console.warn('Run: npm run db:migrate')
     console.warn(error instanceof Error ? error.message : error)
   }
 
@@ -431,7 +431,7 @@ async function main() {
     )
   } catch (error) {
     console.warn('Could not seed Page Settings (sf_page_chrome).')
-    console.warn('Run: npm run db:core:push')
+    console.warn('Run: npm run db:migrate')
     console.warn(error instanceof Error ? error.message : error)
   }
 
@@ -444,7 +444,7 @@ async function main() {
     )
   } catch (error) {
     console.warn('Could not seed Site Chrome (sf_site_chrome).')
-    console.warn('Run: npm run db:core:push')
+    console.warn('Run: npm run db:migrate')
     console.warn(error instanceof Error ? error.message : error)
   }
 
@@ -473,7 +473,7 @@ async function main() {
     }
   } catch (error) {
     console.warn('Could not seed Nav manager Main menu (sf_nav_menus).')
-    console.warn('Run: npm run db:core:push')
+    console.warn('Run: npm run db:migrate')
     console.warn(error instanceof Error ? error.message : error)
   }
 
@@ -486,7 +486,7 @@ async function main() {
     }
   } catch (error) {
     console.warn('Could not seed user groups (sf_user_groups).')
-    console.warn('Run: npm run db:core:push')
+    console.warn('Run: npm run db:migrate')
     console.warn(error instanceof Error ? error.message : error)
   }
 
@@ -524,7 +524,7 @@ async function main() {
   } catch (error) {
     console.warn('')
     console.warn('Could not create demo app users (core tables may be missing).')
-    console.warn('Run: npm run db:core:push')
+    console.warn('Run: npm run db:migrate')
     console.warn(error instanceof Error ? error.message : error)
   }
 
