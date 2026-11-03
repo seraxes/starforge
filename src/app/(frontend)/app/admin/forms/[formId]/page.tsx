@@ -6,6 +6,7 @@ import {
   loadFormDefinition,
 } from '@/core/forms'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
+import { getSiteChrome } from '@/core/site-chrome'
 
 import { FormBuilder } from '../form-builder'
 
@@ -47,6 +48,12 @@ export default async function AdminFormBuilderPage({ params }: PageProps) {
     await saveFormDefinitionDocument(id, loaded.document, loaded.document.title)
   }
 
+  const chrome = await getSiteChrome()
+  const turnstileConfigured = Boolean(
+    (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? '').trim() &&
+      (process.env.TURNSTILE_SECRET_KEY ?? '').trim(),
+  )
+
   return (
     <section className="admin-section admin-layouts-full">
       <h2>
@@ -56,6 +63,11 @@ export default async function AdminFormBuilderPage({ params }: PageProps) {
         key={loaded.id || id}
         formId={loaded.id || id}
         initialDocument={loaded.document}
+        siteCaptcha={{
+          enabled: chrome.captchaEnabled,
+          provider: chrome.captchaProvider,
+          configured: turnstileConfigured,
+        }}
       />
     </section>
   )

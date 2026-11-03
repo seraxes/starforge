@@ -327,6 +327,16 @@ export function normalizeFormFields(raw: unknown): FormFieldDef[] {
       field.required = false
       if (field.defaultValue == null) field.defaultValue = ''
     }
+    if (type === 'captcha') {
+      // Challenge is enforced via Turnstile token, not a field value.
+      field.required = false
+      field.options = undefined
+      field.computed = undefined
+      field.upload = undefined
+      field.stringConstraints = undefined
+      field.defaultValue = undefined
+      field.placeholder = ''
+    }
     if (type === 'computed') {
       field.required = false
       field.computed = normalizeComputed(row.computed) ?? {
@@ -472,6 +482,12 @@ const FIELD_DRAFT_LABELS: Partial<Record<FormFieldType, string>> = {
   checkbox: 'Checkbox',
   file: 'Attachment',
   hidden: 'Hidden',
+  captcha: 'Captcha',
+}
+
+/** True when the definition places a captcha field on the canvas. */
+export function formHasCaptchaField(fields: FormFieldDef[]): boolean {
+  return fields.some((f) => f.type === 'captcha')
 }
 
 export function createFieldDraft(type: FormFieldType = 'text'): FormFieldDef {
@@ -487,7 +503,9 @@ export function createFieldDraft(type: FormFieldType = 'text'): FormFieldDef {
             ? 'choices'
             : type === 'file'
               ? 'attachment'
-              : type
+              : type === 'captcha'
+                ? 'captcha'
+                : type
   const draft: FormFieldDef = {
     id,
     name: `${baseName}_${id.slice(-4)}`,
@@ -498,7 +516,8 @@ export function createFieldDraft(type: FormFieldType = 'text'): FormFieldDef {
       type !== 'checkbox-group' &&
       type !== 'computed' &&
       type !== 'file' &&
-      type !== 'hidden',
+      type !== 'hidden' &&
+      type !== 'captcha',
     placeholder: '',
   }
   if (OPTION_TYPES.has(type)) {

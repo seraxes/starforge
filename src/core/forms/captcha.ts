@@ -7,14 +7,19 @@ import type { ResolvedCaptcha } from './types'
 export type { ResolvedCaptcha }
 
 /**
- * Resolve captcha for a Form particle.
+ * Resolve captcha for a Form particle / definition.
  * Settings → Security owns enable + provider (stored on Site Chrome JSON);
  * keys stay in env.
+ *
+ * Enforced when the form opts into the site default **or** places a `captcha`
+ * field on the canvas. Site captcha off → not required (field stays idle).
  */
 export async function resolveFormCaptcha(options: {
   useSiteCaptchaDefault: boolean
+  /** Definition includes a captcha field — still uses site Security config. */
+  hasCaptchaField?: boolean
 }): Promise<ResolvedCaptcha> {
-  if (!options.useSiteCaptchaDefault) {
+  if (!options.useSiteCaptchaDefault && !options.hasCaptchaField) {
     return { required: false, provider: 'none', siteKey: null }
   }
 

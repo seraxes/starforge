@@ -29,6 +29,11 @@ export type FormFieldType =
   | 'hidden'
   /** Read-only derived number from a math expression over other fields. */
   | 'computed'
+  /**
+   * Places Turnstile (or future provider) on the canvas.
+   * Config comes from Site Settings → Security + env keys — not per-field secrets.
+   */
+  | 'captcha'
 
 /**
  * String length / regex constraints for text-like fields (and hidden).

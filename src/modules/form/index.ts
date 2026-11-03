@@ -2,6 +2,7 @@ import React from 'react'
 
 import { resolveFormCaptcha } from '@/core/forms/captcha'
 import { mergeParticleWithDefinition, readFormConfig } from '@/core/forms/config'
+import { formHasCaptchaField } from '@/core/forms/definition'
 import { loadFormDefinition } from '@/core/forms/definitions-store'
 import type { StarforgeModule } from '@/core/modules/types'
 import { MODULE_IDS, isCatalogModuleEnabled } from '@/core/settings'
@@ -43,8 +44,10 @@ export const formModule: StarforgeModule = {
     }
 
     const resolved = mergeParticleWithDefinition(particle, definition)
+    const hasCaptchaField = formHasCaptchaField(resolved.fields)
     const captcha = await resolveFormCaptcha({
       useSiteCaptchaDefault: resolved.useSiteCaptchaDefault,
+      hasCaptchaField,
     })
 
     return React.createElement(FormWidget, {

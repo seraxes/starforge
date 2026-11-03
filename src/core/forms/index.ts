@@ -51,6 +51,7 @@ export {
   createFieldDraft,
   createSectionDraft,
   emptyFormDefinitionDocument,
+  formHasCaptchaField,
   normalizeFormDefinitionDocument,
   normalizeFormSections,
   parseFormDefinitionJson,

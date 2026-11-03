@@ -79,6 +79,7 @@ const FIELD_PALETTE: { type: FormFieldType; label: string; hint: string }[] = [
   { type: 'file', label: 'File', hint: 'Upload → Media' },
   { type: 'hidden', label: 'Hidden', hint: 'Default value' },
   { type: 'computed', label: 'Computed', hint: 'Math expression' },
+  { type: 'captcha', label: 'Captcha', hint: 'Turnstile widget' },
 ]
 
 const STRING_CONSTRAINT_TYPES = new Set<FormFieldType>([
@@ -94,9 +95,18 @@ const OPTION_TYPES = new Set<FormFieldType>(['select', 'radio', 'checkbox-group'
 
 const initial: FormAdminActionState = {}
 
+/** Site Settings → Security snapshot for builder warnings (no secrets). */
+export type FormBuilderSiteCaptcha = {
+  enabled: boolean
+  provider: string
+  /** Turnstile site + secret both present in env. */
+  configured: boolean
+}
+
 type Props = {
   formId: string
   initialDocument: FormDefinitionDocument
+  siteCaptcha?: FormBuilderSiteCaptcha
 }
 
 function emptyGroup(): FormConditionGroup {
@@ -119,6 +129,21 @@ type FieldSettingsProps = {
   saveNow: () => void
   /** Blur flush — no-op unless a real edit marked the form dirty. */
   flushOnBlur: () => void
+  siteCaptcha?: FormBuilderSiteCaptcha
+}
+
+function captchaSiteStatusMessage(siteCaptcha?: FormBuilderSiteCaptcha): string | null {
+  if (!siteCaptcha) return null
+  if (!siteCaptcha.enabled || siteCaptcha.provider === 'none') {
+    return 'Site captcha is off (Settings → Security). This field stays idle on public forms until enabled.'
+  }
+  if (siteCaptcha.provider === 'turnstile' && !siteCaptcha.configured) {
+    return 'Turnstile keys missing in Environment (NEXT_PUBLIC_TURNSTILE_SITE_KEY / TURNSTILE_SECRET_KEY).'
+  }
+  if (siteCaptcha.provider !== 'turnstile') {
+    return `${siteCaptcha.provider} is selected but not implemented yet — field stays idle.`
+  }
+  return null
 }
 
 /** Field config body — same content as the old right inspector, for the Layout cog popup. */
@@ -132,9 +157,18 @@ function FieldSettingsBody({
   onPatchLogic,
   saveNow,
   flushOnBlur,
+  siteCaptcha,
 }: Omit<FieldSettingsProps, 'onRemove'>) {
+  const captchaWarn = field.type === 'captcha' ? captchaSiteStatusMessage(siteCaptcha) : null
   return (
     <div className="gantry-typed-form sf-form-field-cog-body">
+      {field.type === 'captcha' ? (
+        <p className={captchaWarn ? 'admin-inline-error' : 'layout-muted'} role={captchaWarn ? 'alert' : undefined}>
+          {captchaWarn
+            ? captchaWarn
+            : 'Renders Cloudflare Turnstile using Site Settings → Security. Keys stay in Environment.'}
+        </p>
+      ) : null}
       <label>
         <span>Label</span>
         <input
@@ -197,7 +231,7 @@ function FieldSettingsBody({
             } else {
               next.constraints = undefined
             }
-            if (type === 'hidden' || type === 'computed') {
+            if (type === 'hidden' || type === 'computed' || type === 'captcha') {
               next.required = false
             }
             onPatch(next)
@@ -214,7 +248,8 @@ function FieldSettingsBody({
       {!isDateTimeFieldType(field.type) &&
       field.type !== 'computed' &&
       field.type !== 'hidden' &&
-      field.type !== 'file' ? (
+      field.type !== 'file' &&
+      field.type !== 'captcha' ? (
         <label>
           <span>Placeholder</span>
           <input
@@ -252,7 +287,7 @@ function FieldSettingsBody({
           onBlur={flushOnBlur}
         />
       </label>
-      {field.type !== 'hidden' && field.type !== 'computed' ? (
+      {field.type !== 'hidden' && field.type !== 'computed' && field.type !== 'captcha' ? (
         <label className="gantry-typed-check">
           <input
             type="checkbox"
@@ -856,18 +891,20 @@ function FieldBar({
   onRemove,
   saveNow,
   flushOnBlur,
+  siteCaptcha,
   setNodeRef,
   style,
   isDragging = false,
   dragHandleProps,
 }: FieldBarProps) {
   const displayName = field.label || field.name
+  const captchaWarn = field.type === 'captcha' ? captchaSiteStatusMessage(siteCaptcha) : null
 
   return (
     <article
       ref={setNodeRef}
       style={style}
-      className={`gantry-slot sf-form-slot${isDragging ? ' is-slot-dragging' : ''}`}
+      className={`gantry-slot sf-form-slot${isDragging ? ' is-slot-dragging' : ''}${captchaWarn ? ' sf-form-slot-captcha-warn' : ''}`}
     >
       <header className="gantry-slot-head">
         <div className="gantry-slot-title">
@@ -886,9 +923,15 @@ function FieldBar({
               {field.required ? ' · required' : ''}
               {field.logic?.showWhen ? ' · conditional' : ''}
               {field.computed ? ' · expr' : ''}
+              {captchaWarn ? ' · inactive' : field.type === 'captcha' ? ' · Turnstile' : ''}
               {' · '}
               <code>{field.name}</code>
             </span>
+            {captchaWarn ? (
+              <span className="sf-form-captcha-warn" role="status">
+                {captchaWarn}
+              </span>
+            ) : null}
           </div>
         </div>
         <div className="gantry-slot-end">
@@ -910,6 +953,7 @@ function FieldBar({
                       onPatchLogic={onPatchLogic}
                       saveNow={saveNow}
                       flushOnBlur={flushOnBlur}
+                      siteCaptcha={siteCaptcha}
                     />
                   ),
                 },
@@ -960,7 +1004,7 @@ const FORM_EDIT_TABS: { id: FormEditTab; label: string; title: string }[] = [
   },
 ]
 
-export function FormBuilder({ formId, initialDocument }: Props) {
+export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
   const [state, formAction, pending] = useActionState(saveFormDefinitionAction, initial)
   useNotifySavedOnOk(state)
   const { formRef, saveDebounced, saveNow, flushOnBlur } = useAutosaveForm()
@@ -1364,6 +1408,7 @@ export function FormBuilder({ formId, initialDocument }: Props) {
                                       onRemove={() => removeField(id, field.name)}
                                       saveNow={saveNow}
                                       flushOnBlur={flushOnBlur}
+                                      siteCaptcha={siteCaptcha}
                                     />
                                   )
                                 })}
@@ -1389,6 +1434,7 @@ export function FormBuilder({ formId, initialDocument }: Props) {
                                   onRemove={() => removeField(id, field.name)}
                                   saveNow={saveNow}
                                   flushOnBlur={flushOnBlur}
+                                  siteCaptcha={siteCaptcha}
                                 />
                               )
                             })
@@ -1538,7 +1584,10 @@ export function FormBuilder({ formId, initialDocument }: Props) {
                   queueMicrotask(saveNow)
                 }}
               />
-              <span>Use site captcha default (Settings → Security)</span>
+              <span>
+                Use site captcha default (Settings → Security). A Captcha field on the canvas also
+                triggers Turnstile when site captcha is on.
+              </span>
             </label>
 
             <fieldset className="sf-form-builder-constraints sf-form-builder-email">

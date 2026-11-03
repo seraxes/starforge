@@ -118,7 +118,7 @@ export function isFieldRequired(field: FormFieldDef, values: Record<string, stri
   if (field.type === 'checkbox' || field.type === 'checkbox-group') {
     return field.required === true
   }
-  if (field.type === 'computed') return false
+  if (field.type === 'computed' || field.type === 'captcha') return false
   return field.required !== false
 }
 
