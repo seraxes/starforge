@@ -40,7 +40,9 @@ export {
   formConfigToSlotConfig,
   mergeParticleWithDefinition,
   normalizeFormFields,
+  parseCustomFormParticleJson,
   readFormConfig,
+  resolveFormParticleSource,
 } from './config'
 /** Server-only resolve + Turnstile verify (`import 'server-only'`). */
 export { resolveFormCaptcha, verifyTurnstileToken } from './captcha'
@@ -146,6 +148,7 @@ export type {
   FormNumberBounds,
   FormOptionMedia,
   FormParticleConfig,
+  FormParticleSource,
   FormPresetId,
   FormSectionDef,
   FormStringConstraints,

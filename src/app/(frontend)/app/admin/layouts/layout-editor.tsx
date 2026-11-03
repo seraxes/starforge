@@ -62,8 +62,10 @@ type Props = {
   groups: UserGroupOption[]
   /** Nav manager menu sets for Menu particle picker. */
   navMenus?: NavMenuOption[]
-  /** Form definitions for Form particle picker. */
+  /** Form definitions for Form particle picker (when Forms module is on). */
   formDefinitions?: FormDefinitionOption[]
+  /** Site Settings → Modules → Forms product toggle. */
+  formsModuleEnabled?: boolean
   primaryNavMenuId?: string
   layoutId: string
   layoutLabel: string
@@ -161,6 +163,7 @@ function ParticleConfigTab({
   slot,
   navMenus,
   formDefinitions,
+  formsModuleEnabled,
   primaryNavMenuId,
   onSlotPatched,
 }: {
@@ -169,6 +172,7 @@ function ParticleConfigTab({
   slot: LayoutSlot
   navMenus: NavMenuOption[]
   formDefinitions: FormDefinitionOption[]
+  formsModuleEnabled: boolean
   primaryNavMenuId: string
   onSlotPatched?: (patch: Partial<LayoutSlot>) => void
 }) {
@@ -218,6 +222,7 @@ function ParticleConfigTab({
           slot={slot}
           navMenus={navMenus}
           formDefinitions={formDefinitions}
+          formsModuleEnabled={formsModuleEnabled}
           primaryNavMenuId={primaryNavMenuId}
           embedded
           onConfigSaved={(config) => onSlotPatched?.({ config })}
@@ -362,6 +367,7 @@ function ParticleBlock({
   groups,
   navMenus,
   formDefinitions,
+  formsModuleEnabled,
   primaryNavMenuId,
   percent,
   isDragging,
@@ -379,6 +385,7 @@ function ParticleBlock({
   groups: UserGroupOption[]
   navMenus: NavMenuOption[]
   formDefinitions: FormDefinitionOption[]
+  formsModuleEnabled: boolean
   primaryNavMenuId: string
   percent: number
   isDragging: boolean
@@ -561,6 +568,7 @@ function ParticleBlock({
                       slot={slot}
                       navMenus={navMenus}
                       formDefinitions={formDefinitions}
+                      formsModuleEnabled={formsModuleEnabled}
                       primaryNavMenuId={primaryNavMenuId}
                       onSlotPatched={onSlotPatched}
                     />
@@ -638,6 +646,7 @@ function DropRow({
   groups,
   navMenus,
   formDefinitions,
+  formsModuleEnabled,
   primaryNavMenuId,
   localSlots,
   setLocalSlots,
@@ -648,6 +657,7 @@ function DropRow({
   groups: UserGroupOption[]
   navMenus: NavMenuOption[]
   formDefinitions: FormDefinitionOption[]
+  formsModuleEnabled: boolean
   primaryNavMenuId: string
   localSlots: LayoutSlot[]
   setLocalSlots: (slots: LayoutSlot[]) => void
@@ -872,6 +882,7 @@ function DropRow({
                   groups={groups}
                   navMenus={navMenus}
                   formDefinitions={formDefinitions}
+                  formsModuleEnabled={formsModuleEnabled}
                   primaryNavMenuId={primaryNavMenuId}
                   percent={percent}
                   isDragging={draggingSlotId === slot.id}
@@ -939,6 +950,7 @@ function SectionCanvas({
   groups,
   navMenus,
   formDefinitions,
+  formsModuleEnabled,
   primaryNavMenuId,
   isDraggingSection,
   dropPosition,
@@ -952,6 +964,7 @@ function SectionCanvas({
   groups: UserGroupOption[]
   navMenus: NavMenuOption[]
   formDefinitions: FormDefinitionOption[]
+  formsModuleEnabled: boolean
   primaryNavMenuId: string
   isDraggingSection: boolean
   dropPosition: 'before' | 'after' | null
@@ -1290,6 +1303,7 @@ function SectionCanvas({
             groups={groups}
             navMenus={navMenus}
             formDefinitions={formDefinitions}
+            formsModuleEnabled={formsModuleEnabled}
             primaryNavMenuId={primaryNavMenuId}
             localSlots={slotMap[row.id] ?? sortSlots(row.slots)}
             setLocalSlots={(slots) => setSlotMap((prev) => ({ ...prev, [row.id]: slots }))}
@@ -1313,6 +1327,7 @@ export function LayoutEditor({
   groups,
   navMenus = [],
   formDefinitions = [],
+  formsModuleEnabled = true,
   primaryNavMenuId = 'main',
   layoutId,
   layoutLabel,
@@ -1524,6 +1539,7 @@ export function LayoutEditor({
                   groups={groups}
                   navMenus={navMenus}
                   formDefinitions={formDefinitions}
+                  formsModuleEnabled={formsModuleEnabled}
                   primaryNavMenuId={primaryNavMenuId}
                   isDraggingSection={draggingSectionId === section.id}
                   dropPosition={

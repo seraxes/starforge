@@ -9,24 +9,25 @@ import { MODULE_IDS, isCatalogModuleEnabled } from '@/core/settings'
 import { FormWidget } from './FormWidget'
 
 /**
- * Core Form particle — binds a Form definition (Admin → Forms) or legacy inline fields.
+ * Core Form particle — binds a Form definition (Admin → Forms) or custom JSON schema.
  * Submissions → `sf_form_submissions`. Gated by product:forms + particle toggle.
  */
 export const formModule: StarforgeModule = {
   id: 'form',
   name: 'Form',
   description:
-    'Modular Form engine particle — contact and other presets via Admin → Forms. Optional Settings → Security captcha (Turnstile).',
+    'Modular Form engine particle — pick a Form definition or paste custom JSON. Optional Settings → Security captcha (Turnstile).',
   defaultWidth: 50,
   navViews: [{ key: 'admin', label: 'Forms', href: '/app/admin/forms' }],
   render: async ({ slot, settings }) => {
+    // Graceful no-op when Forms product module is off (palette also hides this particle).
     if (!isCatalogModuleEnabled(settings, MODULE_IDS.forms)) {
       return null
     }
 
     const particle = readFormConfig(slot.config)
     let definition = null
-    if (particle.formId) {
+    if (particle.source !== 'custom' && particle.formId) {
       const loaded = await loadFormDefinition(particle.formId)
       if (!loaded.isFallback || loaded.source === 'database' || particle.formId === 'contact') {
         definition = {

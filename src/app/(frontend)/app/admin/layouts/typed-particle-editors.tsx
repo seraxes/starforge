@@ -2,8 +2,13 @@
 
 import React, { useActionState, useEffect, useState } from 'react'
 
-import { readFormConfig } from '@/core/forms/config'
-import type { FormFieldDef } from '@/core/forms/types'
+import {
+  defaultFormFields,
+  parseCustomFormParticleJson,
+  readFormConfig,
+  resolveFormParticleSource,
+} from '@/core/forms/config'
+import type { FormFieldDef, FormParticleSource } from '@/core/forms/types'
 import {
   updateCopyrightSlotAction,
   updateFormSlotAction,
@@ -683,6 +688,7 @@ export function FormParticleEditor({
   rowId,
   slot,
   formDefinitions = [],
+  formsModuleEnabled = true,
   embedded = false,
   onConfigSaved,
 }: {
@@ -690,6 +696,8 @@ export function FormParticleEditor({
   rowId: string
   slot: LayoutSlot
   formDefinitions?: FormDefinitionOption[]
+  /** When false, Forms product is off — definition list unavailable; custom JSON still editable. */
+  formsModuleEnabled?: boolean
   embedded?: boolean
   onConfigSaved?: (config: LayoutSlotConfig) => void
 }) {
@@ -699,24 +707,26 @@ export function FormParticleEditor({
 
   const seed = () => {
     const cfg = readFormConfig(slot.config)
+    const source = resolveFormParticleSource(cfg)
+    const fields = [...(cfg.fields ?? [])] as FormFieldDef[]
     return {
+      source,
       formId: cfg.formId ?? (formDefinitions[0]?.id || 'contact'),
       heading: cfg.heading ?? '',
       useSiteCaptchaDefault: cfg.useSiteCaptchaDefault !== false,
-      useInline: !cfg.formId && Array.isArray(cfg.fields) && (cfg.fields?.length ?? 0) > 0,
-      fields: [...(cfg.fields ?? [])] as FormFieldDef[],
-      fieldsJson: JSON.stringify(cfg.fields ?? [], null, 2),
+      fields,
+      fieldsJson: JSON.stringify(fields.length ? fields : [], null, 2),
       successMessage: cfg.successMessage ?? '',
       submitLabel: cfg.submitLabel ?? '',
     }
   }
 
+  const [source, setSource] = useState<FormParticleSource>(() => seed().source)
   const [formId, setFormId] = useState(() => seed().formId)
   const [heading, setHeading] = useState(() => seed().heading)
   const [useSiteCaptchaDefault, setUseSiteCaptchaDefault] = useState(
     () => seed().useSiteCaptchaDefault,
   )
-  const [useInline, setUseInline] = useState(() => seed().useInline)
   const [fields, setFields] = useState<FormFieldDef[]>(() => seed().fields)
   const [fieldsJson, setFieldsJson] = useState(() => seed().fieldsJson)
   const [successMessage, setSuccessMessage] = useState(() => seed().successMessage)
@@ -725,10 +735,10 @@ export function FormParticleEditor({
 
   useEffect(() => {
     const next = seed()
+    setSource(next.source)
     setFormId(next.formId)
     setHeading(next.heading)
     setUseSiteCaptchaDefault(next.useSiteCaptchaDefault)
-    setUseInline(next.useInline)
     setFields(next.fields)
     setFieldsJson(next.fieldsJson)
     setSuccessMessage(next.successMessage)
@@ -740,18 +750,22 @@ export function FormParticleEditor({
   function applyFieldsJson(raw: string) {
     setFieldsJson(raw)
     try {
-      const parsed = JSON.parse(raw) as unknown
-      if (!Array.isArray(parsed)) {
-        setJsonError('Fields must be a JSON array.')
-        return
-      }
-      setFields(parsed as FormFieldDef[])
+      const parsed = parseCustomFormParticleJson(JSON.parse(raw) as unknown)
+      setFields(parsed.fields)
+      if (parsed.heading) setHeading(parsed.heading)
+      if (parsed.successMessage) setSuccessMessage(parsed.successMessage)
+      if (parsed.submitLabel) setSubmitLabel(parsed.submitLabel)
       setJsonError(null)
       saveDebounced()
-    } catch {
-      setJsonError('Invalid JSON.')
+    } catch (error) {
+      setJsonError(
+        error instanceof Error && error.message ? error.message : 'Invalid JSON.',
+      )
     }
   }
+
+  const definitionMode = source === 'definition'
+  const selectedFormExists = formDefinitions.some((f) => f.id === formId)
 
   return (
     <SettingsShell title="Form settings" embedded={embedded}>
@@ -765,68 +779,106 @@ export function FormParticleEditor({
         <input type="hidden" name="sectionId" value={sectionId} />
         <input type="hidden" name="rowId" value={rowId} />
         <input type="hidden" name="slotId" value={slot.id} />
-        <input
-          type="hidden"
-          name="formId"
-          value={useInline ? '' : formId}
-        />
+        <input type="hidden" name="source" value={source} />
+        <input type="hidden" name="formId" value={definitionMode ? formId : ''} />
         <input
           type="hidden"
           name="fieldsJson"
-          value={useInline ? JSON.stringify(fields) : ''}
+          value={definitionMode ? '' : JSON.stringify(fields)}
         />
-        <label className="gantry-typed-check">
-          <input
-            type="checkbox"
-            checked={useInline}
+
+        <label>
+          <span>Mode</span>
+          <select
+            value={source}
             onChange={(e) => {
-              setUseInline(e.target.checked)
+              const next: FormParticleSource =
+                e.target.value === 'custom' ? 'custom' : 'definition'
+              setSource(next)
+              if (next === 'custom' && fields.length === 0) {
+                const seeded = defaultFormFields()
+                setFields(seeded)
+                setFieldsJson(JSON.stringify(seeded, null, 2))
+                if (!successMessage) {
+                  setSuccessMessage('Thanks — your message was sent.')
+                }
+                if (!submitLabel) setSubmitLabel('Send')
+              }
               queueMicrotask(saveNow)
             }}
-          />
-          <span>Legacy inline fields (prefer Form definition)</span>
+          >
+            <option value="definition" disabled={!formsModuleEnabled}>
+              Existing form
+            </option>
+            <option value="custom">Custom JSON</option>
+          </select>
         </label>
-        {!useInline ? (
-          <label>
-            <span>Form definition</span>
-            <select
-              value={formId}
-              onChange={(e) => {
-                setFormId(e.target.value)
-                queueMicrotask(saveNow)
-              }}
-            >
-              {formDefinitions.length === 0 ? (
-                <option value="contact">Contact (default)</option>
-              ) : (
-                formDefinitions.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.label} ({f.id})
-                  </option>
-                ))
-              )}
-            </select>
-          </label>
+
+        {!formsModuleEnabled ? (
+          <p className="layout-muted" role="status">
+            Forms module is off (Site Settings → Modules). Public Form particles stay hidden;
+            enable Forms to pick a saved definition, or keep Custom JSON for slot config only.
+          </p>
         ) : null}
-        <p className="layout-muted">
-          Edit fields in{' '}
-          <a href={useInline ? '/app/admin/forms' : `/app/admin/forms/${formId || 'contact'}`}>
-            Admin → Forms
-          </a>
-          .
-        </p>
-        <label>
-          <span>Heading override</span>
-          <input
-            type="text"
-            name="heading"
-            value={heading}
-            onChange={(e) => setHeading(e.target.value)}
-            placeholder="Uses definition title when empty"
-          />
-        </label>
-        {useInline ? (
+
+        {definitionMode ? (
           <>
+            <label>
+              <span>Form</span>
+              <select
+                value={formId}
+                disabled={!formsModuleEnabled}
+                onChange={(e) => {
+                  setFormId(e.target.value)
+                  queueMicrotask(saveNow)
+                }}
+              >
+                {formDefinitions.length === 0 ? (
+                  <option value="contact">Contact (default)</option>
+                ) : (
+                  formDefinitions.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.label} ({f.id})
+                    </option>
+                  ))
+                )}
+                {formId && !selectedFormExists && formId !== 'contact' ? (
+                  <option value={formId}>{formId} (missing)</option>
+                ) : null}
+              </select>
+            </label>
+            <p className="layout-muted">
+              Definitions from{' '}
+              <a href={`/app/admin/forms/${formId || 'contact'}`}>Admin → Forms</a>
+              {formDefinitions.length === 0
+                ? ' — none saved yet; Contact default is used until you create one.'
+                : '.'}
+            </p>
+            <label>
+              <span>Heading override</span>
+              <input
+                type="text"
+                name="heading"
+                value={heading}
+                onChange={(e) => setHeading(e.target.value)}
+                placeholder="Uses definition title when empty"
+              />
+            </label>
+            <input type="hidden" name="successMessage" value="" />
+            <input type="hidden" name="submitLabel" value="" />
+          </>
+        ) : (
+          <>
+            <label>
+              <span>Heading</span>
+              <input
+                type="text"
+                name="heading"
+                value={heading}
+                onChange={(e) => setHeading(e.target.value)}
+                placeholder="Contact"
+              />
+            </label>
             <label>
               <span>Success message</span>
               <input
@@ -846,26 +898,28 @@ export function FormParticleEditor({
               />
             </label>
             <label>
-              <span>Fields (JSON)</span>
+              <span>Form JSON</span>
               <textarea
-                rows={8}
+                rows={10}
                 value={fieldsJson}
                 onChange={(e) => applyFieldsJson(e.target.value)}
                 spellCheck={false}
+                placeholder='Fields array, definition document, or JSON Schema object'
               />
             </label>
+            <p className="layout-muted">
+              Paste a fields array, a Form definition document, or a JSON Schema{' '}
+              <code>{'{ type: "object", properties: … }'}</code>. Prefer Admin → Forms when the
+              module is on.
+            </p>
             {jsonError ? (
               <p className="admin-inline-error" role="alert">
                 {jsonError}
               </p>
             ) : null}
           </>
-        ) : (
-          <>
-            <input type="hidden" name="successMessage" value="" />
-            <input type="hidden" name="submitLabel" value="" />
-          </>
         )}
+
         <label className="gantry-typed-check">
           <input
             type="checkbox"
@@ -892,6 +946,7 @@ export function TypedParticleEditor({
   slot,
   navMenus = [],
   formDefinitions = [],
+  formsModuleEnabled = true,
   primaryNavMenuId = 'main',
   embedded = false,
   onConfigSaved,
@@ -901,6 +956,7 @@ export function TypedParticleEditor({
   slot: LayoutSlot
   navMenus?: NavMenuOption[]
   formDefinitions?: FormDefinitionOption[]
+  formsModuleEnabled?: boolean
   primaryNavMenuId?: string
   embedded?: boolean
   onConfigSaved?: (config: LayoutSlotConfig) => void
@@ -958,6 +1014,7 @@ export function TypedParticleEditor({
         rowId={rowId}
         slot={slot}
         formDefinitions={formDefinitions}
+        formsModuleEnabled={formsModuleEnabled}
         embedded={embedded}
         onConfigSaved={onConfigSaved}
       />
