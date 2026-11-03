@@ -2,28 +2,44 @@ import React from 'react'
 import Link from 'next/link'
 
 import { getMediaAnalysisPort } from '@/core/media/analysis'
+import { ensureLegacyCategoryRoots, listMediaCategoryTree } from '@/core/media/category-store'
 import { listMedia, listMediaTagOptions } from '@/core/media/resolve'
 import { loadMediaPipelineRules } from '@/core/media/settings-store'
 import { getMediaStorageInfo } from '@/core/media/storage'
 
 import { MediaAdminNav } from './media-admin-nav'
-import { MediaLibraryClient } from './media-library'
+import { MediaLibraryClient, type MediaLibraryView } from './media-library'
 
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
   title: 'Media library — Starforge',
-  description: 'Starforge media library around Payload Media (folders, tags, resize, WebP).',
+  description:
+    'Starforge media library around Payload Media (nested folders, tags, resize, WebP).',
 }
 
-type Search = Promise<{ folder?: string; purpose?: string; tag?: string; q?: string }>
+type Search = Promise<{
+  category?: string
+  folder?: string
+  purpose?: string
+  tag?: string
+  q?: string
+  view?: string
+}>
+
+function normalizeView(raw: string | undefined): MediaLibraryView {
+  return raw === 'list' ? 'list' : 'mosaic'
+}
 
 export default async function AdminMediaPage({ searchParams }: { searchParams: Search }) {
   const params = await searchParams
-  const folder = (params.folder ?? 'all').trim() || 'all'
+  // Prefer nested category; accept legacy ?folder= as fallback browse key via slug match below.
+  let category = (params.category ?? 'all').trim() || 'all'
+  const legacyFolder = (params.folder ?? '').trim()
   const purpose = (params.purpose ?? 'all').trim() || 'all'
   const tag = (params.tag ?? 'all').trim() || 'all'
   const q = (params.q ?? '').trim()
+  const view = normalizeView(params.view)
 
   const storage = getMediaStorageInfo()
   const analysisAdapters = getMediaAnalysisPort()
@@ -36,9 +52,30 @@ export default async function AdminMediaPage({ searchParams }: { searchParams: S
   let listError: string | null = null
   const tagOptions = await listMediaTagOptions()
 
+  let categoryTree: Awaited<ReturnType<typeof listMediaCategoryTree>> = []
+  try {
+    await ensureLegacyCategoryRoots()
+    categoryTree = await listMediaCategoryTree()
+  } catch {
+    categoryTree = []
+  }
+
+  if (category === 'all' && legacyFolder && legacyFolder !== 'all') {
+    const flat: typeof categoryTree = []
+    const walk = (nodes: typeof categoryTree) => {
+      for (const n of nodes) {
+        flat.push(n)
+        if (n.children.length) walk(n.children)
+      }
+    }
+    walk(categoryTree)
+    const hit = flat.find((n) => n.slug === legacyFolder)
+    if (hit) category = hit.id
+  }
+
   try {
     const result = await listMedia({
-      folder: folder === 'all' ? undefined : folder,
+      category: category === 'all' ? undefined : category,
       purpose: purpose === 'all' ? undefined : purpose,
       tag: tag === 'all' ? undefined : tag,
       q: q || undefined,
@@ -55,11 +92,11 @@ export default async function AdminMediaPage({ searchParams }: { searchParams: S
       <MediaAdminNav active="library" />
       <h2>Media library</h2>
       <p className="lede admin-lede">
-        Single Payload media library with Starforge pipeline (folders, tags, max size, WebP for
-        photos, PNG logos). Bind from Logo, Styles, and Forms via the media picker — raw URL is
-        fallback only. Pipeline rules:{' '}
-        <Link href="/app/admin/media/settings">Media → Settings</Link>. Manage tags in{' '}
-        <Link href="/admin/collections/tags">CMS → Tags</Link>; full CMS edit:{' '}
+        Single Payload media library with nested folders, tags, max size, WebP for photos, and PNG
+        logos. Bind from Logo, Styles, and Forms via the media picker — raw URL is fallback only.
+        Pipeline rules: <Link href="/app/admin/media/settings">Media → Settings</Link>. Manage tags
+        in <Link href="/admin/collections/tags">CMS → Tags</Link>; categories in{' '}
+        <Link href="/admin/collections/categories">CMS → Categories</Link>; full CMS edit:{' '}
         <Link href="/admin/collections/media">CMS → Media</Link>.
       </p>
       {listError ? (
@@ -71,11 +108,13 @@ export default async function AdminMediaPage({ searchParams }: { searchParams: S
         initialDocs={docs}
         totalDocs={totalDocs}
         storage={storage}
-        folder={folder}
+        category={category}
         purpose={purpose}
         tag={tag}
         q={q}
+        view={view}
         tagOptions={tagOptions}
+        categoryTree={categoryTree}
         analysisAdapters={analysisAdapters}
         maxEdge={maxEdge}
       />

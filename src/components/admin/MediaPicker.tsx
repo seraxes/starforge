@@ -4,12 +4,17 @@ import React, { useCallback, useEffect, useId, useState, useTransition } from 'r
 
 import {
   listMediaAction,
+  listMediaCategoryTreeAction,
   listMediaTagOptionsAction,
   uploadMediaAction,
   type MediaActionState,
   type ResolvedMedia,
 } from '@/core/media/actions'
-import { MEDIA_FOLDERS, MEDIA_PURPOSES } from '@/core/media/pipeline'
+import {
+  flattenCategoryOptions,
+  type MediaCategoryNode,
+} from '@/core/media/categories'
+import { MEDIA_PURPOSES } from '@/core/media/pipeline'
 import type { MediaTagOption } from '@/core/media/resolve'
 
 export type MediaPickerValue = {
@@ -22,7 +27,7 @@ type Props = {
   label?: string
   value: MediaPickerValue
   onChange: (next: MediaPickerValue) => void
-  /** Default folder for new uploads from this picker. */
+  /** Default legacy folder slug for new uploads (mapped to category when possible). */
   defaultFolder?: string
   /** Default purpose for new uploads. */
   defaultPurpose?: string
@@ -59,31 +64,40 @@ export function MediaPicker({
 }: Props) {
   const titleId = useId()
   const [open, setOpen] = useState(false)
-  const [folder, setFolder] = useState(defaultFolder)
+  const [category, setCategory] = useState('all')
   const [purpose, setPurpose] = useState('all')
   const [tag, setTag] = useState('all')
   const [q, setQ] = useState('')
   const [docs, setDocs] = useState<ResolvedMedia[]>([])
   const [tagOptions, setTagOptions] = useState<MediaTagOption[]>([])
+  const [categoryTree, setCategoryTree] = useState<MediaCategoryNode[]>([])
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
   const [uploadState, setUploadState] = useState<MediaActionState>(emptyUploadState)
   const [showUrl, setShowUrl] = useState(Boolean(value.url && !value.mediaId))
 
+  const categoryOptions = flattenCategoryOptions(categoryTree)
+  const defaultCategoryId =
+    categoryOptions.find((c) => c.slug === defaultFolder)?.id ||
+    categoryOptions[0]?.id ||
+    ''
+
   const refresh = useCallback(() => {
     startTransition(async () => {
       setError(null)
-      const [res, tagsRes] = await Promise.all([
+      const [res, tagsRes, catsRes] = await Promise.all([
         listMediaAction({
-          folder: folder === 'all' ? undefined : folder,
+          category: category === 'all' ? undefined : category,
           purpose: purpose === 'all' ? undefined : purpose,
           tag: tag === 'all' ? undefined : tag,
           q: q.trim() || undefined,
           limit: 48,
         }),
         listMediaTagOptionsAction(),
+        listMediaCategoryTreeAction(),
       ])
       if (tagsRes.tags) setTagOptions(tagsRes.tags)
+      if (catsRes.tree) setCategoryTree(catsRes.tree)
       if (res.error) {
         setError(res.error)
         setDocs([])
@@ -91,7 +105,7 @@ export function MediaPicker({
       }
       setDocs(res.result?.docs ?? [])
     })
-  }, [folder, purpose, tag, q])
+  }, [category, purpose, tag, q])
 
   useEffect(() => {
     if (open) refresh()
@@ -124,6 +138,12 @@ export function MediaPicker({
 
   async function onUpload(formData: FormData) {
     setUploadState(emptyUploadState)
+    if (!formData.get('category') && defaultCategoryId) {
+      formData.set('category', defaultCategoryId)
+    }
+    if (!formData.get('folder')) {
+      formData.set('folder', defaultFolder)
+    }
     const next = await uploadMediaAction(emptyUploadState, formData)
     setUploadState(next)
     if (next.ok && next.media) {
@@ -133,6 +153,8 @@ export function MediaPicker({
   }
 
   const previewSrc = value.url || (value.mediaId ? `/api/media/${value.mediaId}` : '')
+  const uploadCategory =
+    category !== 'all' ? category : defaultCategoryId
 
   return (
     <div className="sf-media-picker">
@@ -225,11 +247,12 @@ export function MediaPicker({
             <div className="sf-media-picker-toolbar">
               <label>
                 <span className="sr-only">Folder</span>
-                <select value={folder} onChange={(e) => setFolder(e.target.value)}>
+                <select value={category} onChange={(e) => setCategory(e.target.value)}>
                   <option value="all">All folders</option>
-                  {MEDIA_FOLDERS.map((f) => (
-                    <option key={f.value} value={f.value}>
-                      {f.label}
+                  {categoryOptions.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {'\u00A0'.repeat(c.depth * 2)}
+                      {c.title}
                     </option>
                   ))}
                 </select>
@@ -281,6 +304,7 @@ export function MediaPicker({
             </div>
 
             <form className="sf-media-picker-upload" action={onUpload}>
+              <input type="hidden" name="category" value={uploadCategory} />
               <input type="hidden" name="folder" value={defaultFolder} />
               <input type="hidden" name="purpose" value={defaultPurpose} />
               {tag !== 'all' ? <input type="hidden" name="tag" value={tag} /> : null}

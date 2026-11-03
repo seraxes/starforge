@@ -28,6 +28,18 @@ export {
 export type { MediaFolder, MediaPipelineRules, MediaPurpose } from './pipeline'
 
 export {
+  MEDIA_CATEGORY_MAX_DEPTH,
+  MEDIA_FORMS_CATEGORY_SLUG,
+  buildCategoryTree,
+  findCategoryInTree,
+  flattenCategoryOptions,
+  folderFromCategorySlug,
+  legacyFolderSeedCategories,
+  slugifyCategoryName,
+} from './categories'
+export type { MediaCategoryNode } from './categories'
+
+export {
   STARFORGE_PIPELINE_APPLIED,
   applyMediaPipelineRules,
 } from './apply-pipeline'
@@ -62,9 +74,13 @@ export type {
 // directly from server actions / route handlers; do not barrel-export here.
 
 export {
+  createMediaCategoryAction,
   deleteMediaAction,
+  deleteMediaCategoryAction,
   listMediaAction,
+  listMediaCategoryTreeAction,
   listMediaTagOptionsAction,
+  renameMediaCategoryAction,
   saveMediaPipelineSettingsAction,
   uploadMediaAction,
 } from './actions'

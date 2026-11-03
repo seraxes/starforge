@@ -22,9 +22,10 @@ export function mediaLightboxSrc(doc: ResolvedMedia): string {
   return doc.sizes?.large || doc.sizes?.card || doc.url || doc.sizes?.thumbnail || ''
 }
 
-function folderLabel(value: string | null | undefined): string | null {
-  if (!value) return null
-  return MEDIA_FOLDERS.find((f) => f.value === value)?.label || value
+function folderLabel(doc: ResolvedMedia): string | null {
+  if (doc.categoryLabel) return doc.categoryLabel
+  if (!doc.folder) return null
+  return MEDIA_FOLDERS.find((f) => f.value === doc.folder)?.label || doc.folder
 }
 
 function purposeLabel(value: string | null | undefined): string | null {
@@ -99,7 +100,7 @@ export function MediaLightbox({
   if (!doc) return null
 
   const preview = mediaLightboxSrc(doc)
-  const folder = folderLabel(doc.folder)
+  const folder = folderLabel(doc)
   const purpose = purposeLabel(doc.purpose)
   const dims = dimensions(doc)
   const tags =
@@ -186,7 +187,7 @@ export function MediaLightbox({
               </div>
               {folder ? (
                 <div>
-                  <dt>Folder</dt>
+                  <dt>Category</dt>
                   <dd>{folder}</dd>
                 </div>
               ) : null}

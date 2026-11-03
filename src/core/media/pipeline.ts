@@ -136,6 +136,10 @@ export const MEDIA_CARD_WIDTH = DEFAULT_MEDIA_PIPELINE_RULES.sizes.card
 /** Large / hero width. */
 export const MEDIA_LARGE_WIDTH = DEFAULT_MEDIA_PIPELINE_RULES.sizes.large
 
+/**
+ * Legacy flat folder buckets. Phase 2 browse uses nested Categories;
+ * keep these for Form privacy (`forms`), Payload select, and seed/migrate.
+ */
 export const MEDIA_FOLDERS = [
   { value: 'general', label: 'General' },
   { value: 'logos', label: 'Logos' },

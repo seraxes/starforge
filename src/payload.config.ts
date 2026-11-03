@@ -6,6 +6,7 @@ import sharp from 'sharp'
 
 import { payloadMediaStoragePlugins } from './core/media/storage/payload-plugin'
 import { payloadCsrfOrigins } from './core/security/trusted-origins'
+import { Categories } from './collections/Categories'
 import { Media } from './collections/Media'
 import { Pages } from './collections/Pages'
 import { Tags } from './collections/Tags'
@@ -55,7 +56,7 @@ export default buildConfig({
   // Add extra hosts via STARFORGE_TRUSTED_ORIGINS.
   csrf: payloadCsrfOrigins(),
 
-  collections: [Users, Media, Pages, Tags],
+  collections: [Users, Media, Pages, Tags, Categories],
   globals: [SiteSettings],
   // Default rich text = Pages Lexical (headings, lists, links, Media uploads + fixed toolbar).
   editor: pagesLexicalEditor,
