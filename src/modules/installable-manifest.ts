@@ -147,6 +147,15 @@ export const INSTALLABLE_MANIFEST: InstallableEntry[] = [
     navViews: [{ key: 'admin', label: 'Forms', href: '/app/admin/forms' }],
   },
   {
+    id: 'product:redirects',
+    kind: 'product',
+    label: 'Redirects / sitemap',
+    description:
+      'URL redirects (301/302) plus public sitemap.xml over published pages. Off hides Redirects admin and skips middleware redirect lookup; sitemap stays empty when disabled.',
+    defaultEnabled: true,
+    navViews: [{ key: 'admin', label: 'Redirects', href: '/app/admin/redirects' }],
+  },
+  {
     id: 'page-content',
     kind: 'particle',
     label: 'Page content',

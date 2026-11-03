@@ -33,6 +33,8 @@ export type AdminNavSurface = 'core' | 'payload'
 export type AdminNavFeatureFlags = {
   nav: boolean
   forms: boolean
+  /** product:redirects — SEO redirects CRUD + sitemap. */
+  redirects: boolean
   layout: boolean
   pageSettings: boolean
   /** Payload CMS module on + user may open /admin. */

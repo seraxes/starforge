@@ -49,6 +49,7 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
   const pageSettingsOn = isCatalogModuleEnabled(settings, MODULE_IDS.pageSettings)
   const navOn = isCatalogModuleEnabled(settings, MODULE_IDS.primaryNav)
   const formsOn = isCatalogModuleEnabled(settings, MODULE_IDS.forms)
+  const redirectsOn = isCatalogModuleEnabled(settings, MODULE_IDS.redirects)
   const showPayloadCms = payloadOn && userHasCmsAccess(access)
   const theme = getActiveAdminTheme()
 
@@ -57,6 +58,7 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
     flags: {
       nav: navOn,
       forms: formsOn,
+      redirects: redirectsOn,
       layout: layoutOn,
       pageSettings: pageSettingsOn,
       cms: showPayloadCms,

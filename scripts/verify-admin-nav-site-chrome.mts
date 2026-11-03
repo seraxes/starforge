@@ -7,6 +7,7 @@ import { buildAdminNavGroups } from '../src/core/admin-nav/build.ts'
 const flags = {
   nav: true,
   forms: true,
+  redirects: true,
   layout: true,
   pageSettings: true,
   cms: true,

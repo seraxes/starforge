@@ -143,6 +143,17 @@ export const PRODUCT_MODULE_CATALOG: ModuleCatalogItem[] = [
     installed: true,
     navViews: [{ key: 'admin', label: 'Forms', href: '/app/admin/forms' }],
   },
+  {
+    id: MODULE_IDS.redirects,
+    kind: 'product',
+    label: 'Redirects / sitemap',
+    description:
+      'URL redirects (301/302) plus public sitemap.xml over published pages. Off hides Redirects admin and skips middleware redirect lookup; sitemap stays empty when disabled.',
+    required: false,
+    defaultEnabled: true,
+    installed: true,
+    navViews: [{ key: 'admin', label: 'Redirects', href: '/app/admin/redirects' }],
+  },
 ]
 
 const productPlatformAllow = new Set<string>(ALLOWLISTED_PRODUCT_PLATFORM_IDS)

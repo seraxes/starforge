@@ -135,6 +135,8 @@ Global app admins still open all Core admin today; the matrix is the enforcement
 
 **Forms** (`/app/admin/forms`, gated by Modules → **Forms** / `product:forms`) is the modular Form engine: visual builder (dnd-kit → JSON Schema / Zod), definitions in `sf_forms`, submissions in `sf_form_submissions`. Place the **Form** particle on the layout canvas and bind a definition (Contact preset ships ready; survey/event/voting/ticket are stubs). Optional Site Chrome captcha (Turnstile) when the form opts into the site default. Email-on-submit uses the platform **Mailer** (Site Chrome enable / provider / From). Run `npm run db:core:push` after pull so `sf_forms` / `definition_id` exist.
 
+**Redirects / sitemap** (`/app/admin/redirects`, gated by Modules → **Redirects / sitemap** / `product:redirects`) stores `from` / `to` / `status` rows in `sf_redirects`. Middleware looks them up on public HTML paths (301/302). **`/sitemap.xml`** lists published Payload pages (`home` → `/`); **`/robots.txt`** injects a `Sitemap:` line when the module is on. Run `npm run db:core:push` after pull so `sf_redirects` exists.
+
 One Payload global (`site-settings`) holds synced site name, `primaryNavMenuId`, capability flags, and module toggles. Core admins edit Modules at **`/app/admin/settings`**. CMS editors can edit the same document under Payload **Globals → Site settings** (legacy `primaryNav` array is a fallback only).
 
 | Field | Default | What it does |
@@ -276,11 +278,11 @@ npm run seed
 npm run dev
 ```
 
-1. Admin bar must show **Site Chrome | Site Settings | Navigation | Forms | Users | Layouts | CMS | Check site** (Forms gated by Modules → Forms).
+1. Admin bar must show **Chrome | Settings | Navigation | Forms | Redirects | Users | Layouts | CMS | Check site** (Forms / Redirects gated by Modules).
 2. **/app/admin/site-chrome** — offline, captcha defaults, metadata, robots, rights, cookies. **/app/admin/settings** — **Primary nav assignment** + Modules (no nav item editor).
 3. **/app/admin/nav** — edit Main menu items (CMS page / URL / **module view**, CSS class, title overrides, Up/Down, Copy/Paste). Module views come from enabled Modules catalog entries that declare `navViews`.
-4. Modules → Primary nav on/off gates the Nav link + public header. Forms on/off gates Admin → Forms + Form particle.
-5. Public **/about** — matching nav active.
+4. Modules → Primary nav on/off gates the Nav link + public header. Forms on/off gates Admin → Forms + Form particle. Redirects on/off gates Admin → Redirects, middleware lookup, and sitemap.
+5. Public **/about** — matching nav active. **/sitemap.xml** lists published pages when Redirects is on.
 
 ### Windows: published content cache smoke test
 

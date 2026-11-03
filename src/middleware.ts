@@ -6,6 +6,14 @@ import {
   isOfflineExemptPath,
 } from '@/core/site-chrome/offline'
 
+/** Paths that skip SEO redirect lookup (same family as offline exempt + sitemap). */
+function isRedirectLookupExempt(pathname: string): boolean {
+  if (isOfflineExemptPath(pathname)) return true
+  if (pathname === '/robots.txt' || pathname === '/sitemap.xml') return true
+  if (pathname.startsWith('/sitemap')) return true
+  return false
+}
+
 function hasBetterAuthSession(request: NextRequest): boolean {
   return (
     request.cookies.has('better-auth.session_token') ||
@@ -23,6 +31,57 @@ function withPathnameHeader(request: NextRequest, pathname: string): NextRespons
   return NextResponse.next({
     request: { headers: requestHeaders },
   })
+}
+
+/**
+ * product:redirects — Edge-safe lookup via Node API (Drizzle stays off the Edge).
+ * Runs before offline rewrite so /old → /new still works while the site is up.
+ */
+async function maybeRedirect(request: NextRequest): Promise<NextResponse | null> {
+  const { pathname } = request.nextUrl
+  if (isRedirectLookupExempt(pathname)) return null
+
+  try {
+    const lookupUrl = new URL('/api/redirects/lookup', request.url)
+    lookupUrl.searchParams.set('path', pathname)
+    const lookupRes = await fetch(lookupUrl, {
+      headers: {
+        cookie: request.headers.get('cookie') ?? '',
+      },
+      cache: 'no-store',
+    })
+    if (!lookupRes.ok) return null
+    const data = (await lookupRes.json()) as {
+      match?: { to?: string; status?: number } | null
+    }
+    const match = data.match
+    if (!match?.to || typeof match.to !== 'string') return null
+
+    const status = match.status === 302 ? 302 : 301
+    const target = match.to.trim()
+    if (!target) return null
+
+    // Absolute target
+    if (/^https?:\/\//i.test(target)) {
+      return NextResponse.redirect(target, status)
+    }
+
+    // Site-relative path
+    const dest = request.nextUrl.clone()
+    const pathOnly = target.startsWith('/') ? target : `/${target}`
+    const q = pathOnly.indexOf('?')
+    if (q >= 0) {
+      dest.pathname = pathOnly.slice(0, q) || '/'
+      dest.search = pathOnly.slice(q)
+    } else {
+      dest.pathname = pathOnly || '/'
+      dest.search = ''
+    }
+    dest.hash = ''
+    return NextResponse.redirect(dest, status)
+  } catch {
+    return null
+  }
 }
 
 /**
@@ -57,6 +116,7 @@ async function maybeRewriteOffline(request: NextRequest): Promise<NextResponse |
 
 /**
  * Stash pathname for Page Settings chrome resolution (public layouts).
+ * SEO redirects (product:redirects) → 301/302 before offline gate.
  * Site Chrome offline → rewrite public HTML to 503.
  * Also: never let Payload render `/admin/login` (stock email/password form).
  * Core Better Auth is the only sign-in; `/api/cms/exchange` mints `payload-token`.
@@ -64,8 +124,10 @@ async function maybeRewriteOffline(request: NextRequest): Promise<NextResponse |
 export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl
 
-  // Public + app routes: offline gate (HTML) + pathname for RSC layouts.
+  // Public + app routes: redirects → offline gate (HTML) + pathname for RSC layouts.
   if (!pathname.startsWith('/admin') && !pathname.startsWith('/api')) {
+    const redirected = await maybeRedirect(request)
+    if (redirected) return redirected
     const offline = await maybeRewriteOffline(request)
     if (offline) return offline
     return withPathnameHeader(request, pathname)

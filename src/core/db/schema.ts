@@ -313,6 +313,34 @@ export const sfFormSubmissions = pgTable(
 )
 
 /**
+ * SEO redirects (SF-130 / product:redirects).
+ * Middleware looks up enabled from_path → to_url with 301/302.
+ */
+export const sfRedirects = pgTable(
+  'sf_redirects',
+  {
+    id: text('id').primaryKey(),
+    /** Path only, leading slash, no query — e.g. /old-about */
+    fromPath: text('from_path').notNull(),
+    /** Absolute URL or site-relative path */
+    toUrl: text('to_url').notNull(),
+    /** 301 | 302 */
+    statusCode: integer('status_code').notNull().default(301),
+    enabled: boolean('enabled').default(true).notNull(),
+    note: text('note'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex('sf_redirects_from_path_uidx').on(table.fromPath),
+    index('sf_redirects_enabled_idx').on(table.enabled),
+  ],
+)
+
+/**
  * Group-keyed ACL stub matrix (admin areas for now).
  * Full frontend/backend enforcement comes after groups exist; this stores the
  * foundation and powers the Groups → Permissions UI.
