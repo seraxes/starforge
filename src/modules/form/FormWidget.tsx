@@ -92,18 +92,27 @@ export function FormWidget(props: FormWidgetProps) {
       formRef.current?.reset()
       setValues(initialFieldValues(props.fields))
       setFileNames({})
+      const redirectTo = state.redirectUrl
+      if (redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//')) {
+        window.location.assign(redirectTo)
+      }
     }
-  }, [state.ok, state.message, props.fields])
+  }, [state.ok, state.message, state.redirectUrl, props.fields])
 
   function setFieldValue(name: string, value: string) {
     setValues((prev) => ({ ...prev, [name]: value }))
   }
 
   if (state.ok) {
+    const redirecting =
+      Boolean(state.redirectUrl) &&
+      state.redirectUrl!.startsWith('/') &&
+      !state.redirectUrl!.startsWith('//')
     return (
       <div className="sf-form sf-form-success" data-sf-form={props.formKey} role="status">
         {props.heading ? <h3 className="sf-form-heading">{props.heading}</h3> : null}
         <p className="sf-form-success-message">{state.message || props.successMessage}</p>
+        {redirecting ? <p className="sf-form-success-redirect">Redirecting…</p> : null}
       </div>
     )
   }

@@ -180,6 +180,18 @@ export function FormsManager({ forms }: Props) {
                     >
                       Edit
                     </Link>
+                    <a
+                      href={`/api/admin/forms/export?definitionId=${encodeURIComponent(f.id)}`}
+                      className="gantry-toolbar-btn secondary"
+                    >
+                      Export CSV
+                    </a>
+                    <Link
+                      href={`/app/admin/forms/submissions?definitionId=${encodeURIComponent(f.id)}`}
+                      className="gantry-toolbar-btn secondary"
+                    >
+                      Submissions
+                    </Link>
                     <form action={dupAction} className="outlines-inline-form">
                       <input type="hidden" name="formId" value={f.id} />
                       <button

@@ -13,6 +13,7 @@
 export {
   createFormDefinitionAction,
   deleteFormDefinitionAction,
+  deleteFormSubmissionAction,
   duplicateFormDefinitionAction,
   ensureDefaultContactFormSeeded,
   listFormDefinitions,
@@ -20,10 +21,18 @@ export {
   listFormSubmissionsForAdmin,
   loadFormDefinition,
   requireFormsAdmin,
+  resendFormSubmissionNotifyAction,
   saveFormDefinitionAction,
   saveFormsModuleSettingsAction,
   submitFormAction,
 } from './actions'
+export {
+  buildFormSubmissionsCsv,
+  collectCsvPayloadKeys,
+  csvRow,
+  escapeCsvCell,
+  normalizeSuccessRedirectUrl,
+} from './csv'
 export type { FormAdminActionState } from './actions'
 export {
   defaultFormConfig,
@@ -106,7 +115,14 @@ export {
   syncSchemaFromFields,
 } from './schema-json'
 export { validateFieldsWithZod } from './schema-zod'
-export { countFormSubmissions, createFormSubmission, listFormSubmissions } from './store'
+export {
+  countFormSubmissions,
+  createFormSubmission,
+  deleteFormSubmission,
+  deleteFormSubmissions,
+  getFormSubmission,
+  listFormSubmissions,
+} from './store'
 export {
   getFormsModuleSettings,
   loadFormsModuleSettings,

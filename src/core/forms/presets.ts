@@ -35,8 +35,8 @@ export const FORM_PRESETS: FormPresetMeta[] = [
   {
     id: 'ticket',
     label: 'Ticket / report',
-    description: 'Support ticket or report intake (stub).',
-    stub: true,
+    description:
+      'Support ticket / report intake — subject, priority, category, details, optional attachment.',
   },
   {
     id: 'blank',
@@ -169,13 +169,75 @@ export function fieldsForPreset(preset: FormPresetId): FormFieldDef[] {
       ]
     case 'ticket':
       return [
-        ...stubCoreFields('ticket'),
+        {
+          id: 'ticket_name',
+          name: 'name',
+          label: 'Your name',
+          type: 'text',
+          required: true,
+          stringConstraints: { maxLength: 120 },
+        },
+        {
+          id: 'ticket_email',
+          name: 'email',
+          label: 'Email',
+          type: 'email',
+          required: true,
+        },
         {
           id: 'ticket_subject',
           name: 'subject',
           label: 'Subject',
           type: 'text',
           required: true,
+          stringConstraints: { minLength: 3, maxLength: 160 },
+        },
+        {
+          id: 'ticket_priority',
+          name: 'priority',
+          label: 'Priority',
+          type: 'select',
+          required: true,
+          defaultValue: 'normal',
+          options: [
+            { value: 'low', label: 'Low' },
+            { value: 'normal', label: 'Normal' },
+            { value: 'high', label: 'High' },
+            { value: 'urgent', label: 'Urgent' },
+          ],
+        },
+        {
+          id: 'ticket_category',
+          name: 'category',
+          label: 'Category',
+          type: 'select',
+          required: true,
+          options: [
+            { value: 'bug', label: 'Bug / defect' },
+            { value: 'access', label: 'Access / account' },
+            { value: 'content', label: 'Content / pages' },
+            { value: 'other', label: 'Other' },
+          ],
+        },
+        {
+          id: 'ticket_details',
+          name: 'details',
+          label: 'Details',
+          type: 'textarea',
+          required: true,
+          placeholder: 'What happened? Steps to reproduce, expected vs actual…',
+          stringConstraints: { minLength: 10, maxLength: 5000 },
+        },
+        {
+          id: 'ticket_attachment',
+          name: 'attachment',
+          label: 'Attachment (optional)',
+          type: 'file',
+          required: false,
+          upload: {
+            accept: 'image/png,image/jpeg,image/webp,application/pdf',
+            maxSizeBytes: 5 * 1024 * 1024,
+          },
         },
       ]
     case 'blank':
@@ -222,9 +284,9 @@ export function defaultMessagesForPreset(preset: FormPresetId): {
     case 'ticket':
       return {
         title: 'Report an issue',
-        successMessage: 'Ticket received — we will follow up.',
+        successMessage: 'Ticket received — we will follow up by email.',
         submitLabel: 'Submit ticket',
-        description: 'Ticket / report preset (stub).',
+        description: 'Support ticket / report intake.',
       }
     case 'blank':
     default:
