@@ -222,7 +222,8 @@ export function SiteChromeForm({ chrome }: Props) {
         <legend>Cookie domain and path</legend>
         <p className="settings-hint">
           Session cookie scope for Better Auth. Leave domain empty for host-only cookies. Path
-          defaults to <code>/</code>.
+          defaults to <code>/</code>. The consent preference cookie (<code>sf-consent</code>) reuses
+          the same path/domain when the Consent module is on.
         </p>
         <label className="settings-field">
           <span>Cookie domain</span>
@@ -244,6 +245,50 @@ export function SiteChromeForm({ chrome }: Props) {
             defaultValue={chrome.cookiePath}
             autoComplete="off"
             placeholder="/"
+            disabled={pending}
+            {...textAutosaveProps}
+          />
+        </label>
+      </fieldset>
+
+      <fieldset className="settings-fieldset">
+        <legend>Consent banner</legend>
+        <p className="settings-hint">
+          Policy copy for the public cookie banner (<code>product:consent</code>). Turn the module
+          on/off under <Link href="/app/admin/settings">Settings → Modules</Link>. Visitor choices
+          stay in the <code>sf-consent</code> cookie (no database table). Analytics scripts load only
+          after the visitor accepts analytics.
+        </p>
+        <label className="settings-field">
+          <span>Banner message</span>
+          <textarea
+            name="consentMessage"
+            defaultValue={chrome.consentMessage}
+            rows={3}
+            disabled={pending}
+            {...textAutosaveProps}
+          />
+        </label>
+        <label className="settings-field">
+          <span>Privacy policy URL</span>
+          <input
+            type="text"
+            name="consentPrivacyUrl"
+            defaultValue={chrome.consentPrivacyUrl}
+            autoComplete="off"
+            placeholder="/privacy or https://…"
+            disabled={pending}
+            {...textAutosaveProps}
+          />
+        </label>
+        <label className="settings-field">
+          <span>Privacy link label</span>
+          <input
+            type="text"
+            name="consentPrivacyLinkLabel"
+            defaultValue={chrome.consentPrivacyLinkLabel}
+            autoComplete="off"
+            placeholder="Privacy policy"
             disabled={pending}
             {...textAutosaveProps}
           />

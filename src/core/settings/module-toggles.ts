@@ -23,6 +23,7 @@ export const MODULE_IDS = {
   draftPreview: 'product:draft-preview',
   forms: 'product:forms',
   redirects: 'product:redirects',
+  consent: 'product:consent',
 } as const
 
 /** Core pieces that cannot be turned off. */

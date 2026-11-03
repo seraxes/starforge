@@ -1589,6 +1589,88 @@ button:disabled {
   color: var(--sf-ink);
 }
 
+/* product:consent — fixed sitewide cookie banner (SF-131) */
+.sf-consent-banner {
+  position: fixed;
+  z-index: 40;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--sf-paper) 88%, var(--sf-secondary));
+  border-top: 1px solid color-mix(in srgb, var(--sf-secondary-strong) 28%, var(--sf-line));
+  color: var(--sf-ink);
+  box-shadow: 0 -6px 24px color-mix(in srgb, var(--sf-ink) 8%, transparent);
+}
+
+.sf-consent-banner-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.85rem 1.25rem;
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 0.9rem 1.5rem 1.1rem;
+}
+
+.sf-consent-banner-copy {
+  flex: 1 1 18rem;
+  min-width: 0;
+}
+
+.sf-consent-banner-text {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.sf-consent-banner-privacy {
+  margin: 0.4rem 0 0;
+  font-size: 0.88rem;
+}
+
+.sf-consent-banner-privacy a {
+  color: var(--sf-secondary-strong);
+  font-weight: 600;
+}
+
+.sf-consent-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.sf-consent-banner-btn {
+  appearance: none;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 0.4rem 0.85rem;
+  cursor: pointer;
+  border: 1px solid color-mix(in srgb, var(--sf-secondary-strong) 45%, var(--sf-line));
+}
+
+.sf-consent-banner-btn-secondary {
+  background: color-mix(in srgb, white 70%, var(--sf-secondary));
+  color: var(--sf-secondary-ink);
+}
+
+.sf-consent-banner-btn-secondary:hover {
+  border-color: var(--sf-secondary-strong);
+  color: var(--sf-secondary-strong);
+}
+
+.sf-consent-banner-btn-primary {
+  background: var(--sf-primary);
+  border-color: color-mix(in srgb, var(--sf-primary) 70%, var(--sf-ink));
+  color: var(--sf-ink);
+}
+
+.sf-consent-banner-btn-primary:hover {
+  filter: brightness(0.97);
+}
+
 .settings-nav {
   display: flex;
   flex-direction: column;
@@ -3378,6 +3460,7 @@ button:disabled {
   }
 
   .sf-notice-bar-inner,
+  .sf-consent-banner-inner,
   .site-footer-meta {
     padding-left: 1.15rem;
     padding-right: 1.15rem;
@@ -3385,6 +3468,14 @@ button:disabled {
 
   .sf-notice-bar-dismiss {
     width: 100%;
+  }
+
+  .sf-consent-banner-actions {
+    width: 100%;
+  }
+
+  .sf-consent-banner-btn {
+    flex: 1 1 auto;
   }
 
   .settings-nav-row {

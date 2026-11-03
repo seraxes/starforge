@@ -26,7 +26,8 @@
     "verify:nav-edit-items-button": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-nav-edit-items-button.mts",
     "verify:security-headers-cookies": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-security-headers-cookies.mts",
     "verify:redirects-paths": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-redirects-paths.mts",
-    "verify:form-upload-security": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-form-upload-security.mts"
+"verify:form-upload-security": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-form-upload-security.mts",
+    "verify:consent-cookie": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-consent-cookie.mts"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.7.14",

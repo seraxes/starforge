@@ -1,4 +1,6 @@
 import {
+  DEFAULT_CONSENT_MESSAGE,
+  DEFAULT_CONSENT_PRIVACY_LINK_LABEL,
   DEFAULT_OFFLINE_MESSAGE,
   DEFAULT_ROBOTS_META,
   DEFAULT_ROBOTS_TXT,
@@ -54,6 +56,12 @@ export function normalizeSiteChrome(raw: unknown): SiteChromeDocument {
     contentRights: asString(src.contentRights).trim(),
     cookieDomain: asString(src.cookieDomain).trim(),
     cookiePath: cookiePath || '/',
+    consentMessage:
+      asString(src.consentMessage).trim() || DEFAULT_CONSENT_MESSAGE,
+    consentPrivacyUrl: asString(src.consentPrivacyUrl).trim(),
+    consentPrivacyLinkLabel:
+      asString(src.consentPrivacyLinkLabel).trim() ||
+      DEFAULT_CONSENT_PRIVACY_LINK_LABEL,
   }
 }
 

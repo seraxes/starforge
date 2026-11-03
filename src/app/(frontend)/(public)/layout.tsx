@@ -18,6 +18,7 @@ import {
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { getSiteChrome, isOfflineAllowedPath } from '@/core/site-chrome'
 import { SiteOffline } from '@/components/SiteOffline'
+import { ConsentBanner } from '@/modules/consent'
 
 export async function generateMetadata(): Promise<Metadata> {
   const [settings, chrome] = await Promise.all([getSiteSettings(), getSiteChrome()])
@@ -97,6 +98,7 @@ export default async function PublicSiteLayout(props: { children: React.ReactNod
     : []
   const primaryNav = filterNavItemsForViewer(rawNav, viewer)
   const brandName = siteChrome.siteName || settings.siteName
+  const consentOn = isCatalogModuleEnabled(settings, MODULE_IDS.consent)
 
   return (
     <>
@@ -126,6 +128,15 @@ export default async function PublicSiteLayout(props: { children: React.ReactNod
         {props.children}
       </PublicLayoutBody>
       {pageSettingsOn ? <DocumentBodyChrome chrome={chrome} position="end" /> : null}
+      {consentOn ? (
+        <ConsentBanner
+          message={siteChrome.consentMessage}
+          privacyUrl={siteChrome.consentPrivacyUrl}
+          privacyLinkLabel={siteChrome.consentPrivacyLinkLabel}
+          cookieDomain={siteChrome.cookieDomain}
+          cookiePath={siteChrome.cookiePath}
+        />
+      ) : null}
     </>
   )
 }

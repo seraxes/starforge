@@ -20,15 +20,22 @@ function metaAttrName(nameOrProperty: string): { name?: string; property?: strin
 
 async function collectAtomInjects(chrome: ResolvedPageChrome): Promise<AtomInjectResult[]> {
   await ensureAtomsRegistered()
-  const { getSiteSettings, isAtomModuleEnabled } = await import('@/core/settings')
+  const { MODULE_IDS, getSiteSettings, isAtomModuleEnabled, isCatalogModuleEnabled } =
+    await import('@/core/settings')
   const settings = await getSiteSettings()
+  const consentGate = isCatalogModuleEnabled(settings, MODULE_IDS.consent)
   const results: AtomInjectResult[] = []
   for (const atom of chrome.atoms) {
     if (!atom.enabled) continue
     if (!isAtomModuleEnabled(settings, atom.type)) continue
     const def = getRegisteredAtom(atom.type)
     if (!def) continue
-    results.push(...def.inject(atom.config ?? {}))
+    const config: Record<string, unknown> = { ...(atom.config ?? {}) }
+    // product:consent — analytics scripts wait for sf-consent.analytics.
+    if (consentGate && atom.type === 'analytics') {
+      config.consentGate = true
+    }
+    results.push(...def.inject(config))
   }
   return results
 }
