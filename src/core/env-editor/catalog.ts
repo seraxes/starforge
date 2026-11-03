@@ -151,13 +151,21 @@ export const ENV_EDITOR_FIELDS: EnvEditorField[] = [
   {
     key: 'STARFORGE_CONTENT_CACHE',
     label: 'STARFORGE_CONTENT_CACHE',
-    description: 'Published content cache backend. Unset = Next tags; redis for DO later.',
+    description: 'Published content cache backend. Unset = Next tags; redis needs REDIS_URL.',
     secret: false,
     kind: 'enum',
     options: [
       { value: '', label: '(default — Next tags)' },
       { value: 'redis', label: 'redis' },
     ],
+    group: 'infra',
+  },
+  {
+    key: 'REDIS_URL',
+    label: 'REDIS_URL',
+    description: 'Redis connection URL for content cache (and later rate-limit/queues). Secret if passworded.',
+    secret: true,
+    kind: 'password',
     group: 'infra',
   },
   {

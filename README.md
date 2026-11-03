@@ -26,7 +26,7 @@ Anonymous `/[slug]` and public site chrome load through core helpers (`getPublis
 | Default (local) | Next.js `unstable_cache` + cache tags (`sf:published-page:{slug}`, `sf:site-settings`, …) |
 | Revalidate | Payload `afterChange` / `afterDelete` on Pages + Site settings call `invalidatePublishedPage` / `invalidateSiteSettings` |
 | Draft preview | `/preview/[slug]` stays **uncached** and auth-gated (`cms_access` + feature toggle) |
-| Redis | **Planned for DigitalOcean production** (multi-instance). Not required locally. Same loader API — swap backend via `STARFORGE_CONTENT_CACHE=redis` once Redis is wired (`src/core/content/cache/`). |
+| Redis | **Optional for DigitalOcean multi-instance.** Not required locally. Same loader API — set `STARFORGE_CONTENT_CACHE=redis` and `REDIS_URL` (`src/core/content/cache/`). |
 
 Do not call Payload Local API from hot anonymous paths except through these helpers.
 
@@ -306,7 +306,7 @@ npm run dev
 4. Unpublish (save as draft) → anonymous `/about` must **404**.
 5. `/preview/about` with Draft preview on still works for CMS-access users (uncached path).
 
-Leave `STARFORGE_CONTENT_CACHE` unset locally. Redis is for DigitalOcean later.
+Leave `STARFORGE_CONTENT_CACHE` unset locally. For DO multi-instance: `STARFORGE_CONTENT_CACHE=redis` + `REDIS_URL`.
 
 ### Windows: draft preview smoke test
 
