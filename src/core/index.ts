@@ -183,6 +183,12 @@ export type {
   MailSendResult,
 } from './mail'
 export {
+  applySecurityHeaders,
+  buildSecurityHeaders,
+  shouldUseSecureCookies,
+} from './security'
+export type { SecurityHeader } from './security'
+export {
   ensureSiteChromeSeeded,
   getSiteChrome,
   saveSiteChrome,

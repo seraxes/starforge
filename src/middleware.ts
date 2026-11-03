@@ -1,10 +1,16 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+import { applySecurityHeaders } from '@/core/security/headers'
 import {
   SITE_OFFLINE_PATH,
   isOfflineExemptPath,
 } from '@/core/site-chrome/offline'
+
+function finalize(response: NextResponse): NextResponse {
+  applySecurityHeaders(response.headers)
+  return response
+}
 
 function hasBetterAuthSession(request: NextRequest): boolean {
   return (
@@ -67,12 +73,12 @@ export async function middleware(request: NextRequest) {
   // Public + app routes: offline gate (HTML) + pathname for RSC layouts.
   if (!pathname.startsWith('/admin') && !pathname.startsWith('/api')) {
     const offline = await maybeRewriteOffline(request)
-    if (offline) return offline
-    return withPathnameHeader(request, pathname)
+    if (offline) return finalize(offline)
+    return finalize(withPathnameHeader(request, pathname))
   }
 
   if (!pathname.startsWith('/admin')) {
-    return NextResponse.next()
+    return finalize(NextResponse.next())
   }
 
   const ba = hasBetterAuthSession(request)
@@ -86,7 +92,7 @@ export async function middleware(request: NextRequest) {
 
   // No core session → always core /login (never Payload login UI).
   if (!ba) {
-    return NextResponse.redirect(loginDest)
+    return finalize(NextResponse.redirect(loginDest))
   }
 
   // Stock Payload login / create-first-user must never render.
@@ -96,15 +102,15 @@ export async function middleware(request: NextRequest) {
     pathname === '/admin/create-first-user' ||
     pathname.startsWith('/admin/create-first-user/')
   ) {
-    return NextResponse.redirect(exchangeDest)
+    return finalize(NextResponse.redirect(exchangeDest))
   }
 
   // Have Better Auth but no Payload JWT → exchange.
   if (!token) {
-    return NextResponse.redirect(exchangeDest)
+    return finalize(NextResponse.redirect(exchangeDest))
   }
 
-  return NextResponse.next()
+  return finalize(NextResponse.next())
 }
 
 export const config = {

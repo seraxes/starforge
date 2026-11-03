@@ -23,7 +23,8 @@
     "verify:cms-sso": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-cms-sso.mts",
     "verify:admin-no-login-form": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-admin-no-login-form.mts",
     "verify:admin-nav-site-chrome": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-admin-nav-site-chrome.mts",
-    "verify:nav-edit-items-button": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-nav-edit-items-button.mts"
+    "verify:nav-edit-items-button": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-nav-edit-items-button.mts",
+    "verify:security-headers-cookies": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-security-headers-cookies.mts"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.7.14",

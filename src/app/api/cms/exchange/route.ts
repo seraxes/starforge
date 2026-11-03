@@ -6,6 +6,7 @@ import { auth } from '@/core/auth'
 import { ensurePayloadCmsUser, loadCoreUserCmsAccess } from '@/core/cms-bridge'
 import { PAYLOAD_TOKEN_COOKIE } from '@/core/cms-bridge/payload-session'
 import { safeNextPath } from '@/core/auth/safe-next-path'
+import { shouldUseSecureCookies } from '@/core/security/secure-cookies'
 
 /**
  * Exchange a Better Auth session for a Payload JWT cookie, then redirect to /admin.
@@ -82,7 +83,7 @@ export async function GET(request: NextRequest) {
     httpOnly: true,
     path: '/',
     sameSite: 'lax',
-    secure: false,
+    secure: shouldUseSecureCookies(),
     maxAge: tokenExpiration,
   })
   return response

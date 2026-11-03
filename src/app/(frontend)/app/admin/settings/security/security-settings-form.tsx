@@ -96,15 +96,19 @@ export function SecuritySettingsForm({ captchaEnabled, captchaProvider }: Props)
       <fieldset className="settings-fieldset">
         <legend>HTTP security headers</legend>
         <p className="settings-hint">
-          CSP / HSTS / related header middleware will be controlled here. No runtime toggles yet —
-          production hardening lands with hosting prep.
+          Baseline headers ship from Next <code>headers()</code> + middleware (CSP for Next/Payload
+          + Turnstile, <code>X-Frame-Options</code>, <code>Referrer-Policy</code>,{' '}
+          <code>X-Content-Type-Options</code>, <code>Permissions-Policy</code>). HSTS is sent only
+          on the Secure-cookie path (HTTPS app URL or <code>STARFORGE_SECURE_COOKIES=1</code>). No
+          Site Settings toggle — secrets and prod URL stay in env / Environment, never the database.
         </p>
         <label className="settings-flag">
-          <input type="checkbox" name="securityHeadersEnabledStub" disabled />
+          <input type="checkbox" name="securityHeadersEnabledStub" disabled defaultChecked />
           <span>
-            <strong>Enable security headers</strong>
+            <strong>Security headers (always on)</strong>
             <span className="settings-flag-desc">
-              Coming soon — Next middleware / <code>headers()</code> (CSP, HSTS in prod).
+              Env-driven — see <code>STARFORGE_SECURE_COOKIES</code> and HTTPS{' '}
+              <code>BETTER_AUTH_URL</code> / <code>NEXT_PUBLIC_APP_URL</code>.
             </span>
           </span>
         </label>

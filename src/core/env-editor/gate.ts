@@ -5,6 +5,7 @@ import { cookies, headers } from 'next/headers'
 
 import { auth } from '@/core/auth'
 import { requireDeveloperAdmin } from '@/core/auth/admin'
+import { shouldUseSecureCookies } from '@/core/security/secure-cookies'
 
 export const ENV_EDITOR_GATE_COOKIE = 'sf_env_gate'
 
@@ -95,7 +96,7 @@ export async function setEnvEditorGateCookie(
     // Broad enough for Server Actions under /app/admin; still admin-only routes.
     path: '/app/admin',
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    secure: shouldUseSecureCookies(),
     maxAge: ENV_EDITOR_GATE_TTL_SEC,
   })
   return { ok: true, expiresAt: exp }
@@ -108,7 +109,7 @@ export async function clearEnvEditorGateCookie(): Promise<void> {
     httpOnly: true,
     path: '/app/admin',
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    secure: shouldUseSecureCookies(),
     maxAge: 0,
   })
 }
