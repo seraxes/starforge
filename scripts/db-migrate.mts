@@ -19,6 +19,24 @@ function run(label: string, args: string[]): void {
   }
 }
 
+async function columnExists(
+  client: Client,
+  schema: string,
+  table: string,
+  column: string,
+): Promise<boolean> {
+  const result = await client.query<{ exists: boolean }>(
+    `SELECT EXISTS (
+       SELECT 1 FROM information_schema.columns
+       WHERE table_schema = $1
+         AND table_name = $2
+         AND column_name = $3
+     ) AS exists`,
+    [schema, table, column],
+  )
+  return Boolean(result.rows[0]?.exists)
+}
+
 async function verify(): Promise<void> {
   const url =
     process.env.DATABASE_URL ||
@@ -38,22 +56,32 @@ async function verify(): Promise<void> {
       )
     }
 
-    const tagsCol = await client.query<{ exists: boolean }>(
-      `SELECT EXISTS (
-         SELECT 1 FROM information_schema.columns
-         WHERE table_schema = 'payload'
-           AND table_name = 'payload_locked_documents_rels'
-           AND column_name = 'tags_id'
-       ) AS exists`,
+    const tagsOk = await columnExists(
+      client,
+      'payload',
+      'payload_locked_documents_rels',
+      'tags_id',
     )
-    if (!tagsCol.rows[0]?.exists) {
+    if (!tagsOk) {
       throw new Error(
         'payload.payload_locked_documents_rels.tags_id missing after migrate',
       )
     }
 
+    const categoriesOk = await columnExists(
+      client,
+      'payload',
+      'payload_locked_documents_rels',
+      'categories_id',
+    )
+    if (!categoriesOk) {
+      throw new Error(
+        'payload.payload_locked_documents_rels.categories_id missing after migrate',
+      )
+    }
+
     console.log(
-      '\n✓ Verified public.sf_sessions + payload.payload_locked_documents_rels.tags_id',
+      '\n✓ Verified public.sf_sessions + payload.payload_locked_documents_rels.tags_id + categories_id',
     )
   } finally {
     await client.end()

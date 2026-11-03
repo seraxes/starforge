@@ -4,6 +4,9 @@ import { type MigrateUpArgs, type MigrateDownArgs, sql } from '@payloadcms/db-po
  * Phase 2: nested Categories taxonomy + Media.category.
  * Seeds root folders from legacy MEDIA_FOLDERS and maps media.folder → category.
  * Keeps media.folder for Form privacy (forms) during deprecation.
+ *
+ * Schema (incl. locked_documents_rels.categories_id) runs before seed so a seed
+ * hiccup cannot leave document-lock selects broken. All DDL is idempotent.
  */
 export async function up({ db }: MigrateUpArgs): Promise<void> {
   await db.execute(sql`
@@ -51,18 +54,23 @@ export async function up({ db }: MigrateUpArgs): Promise<void> {
 
   CREATE INDEX IF NOT EXISTS "payload_locked_documents_rels_categories_id_idx"
     ON "payload"."payload_locked_documents_rels" USING btree ("categories_id");
+  `)
 
-  -- Seed legacy flat folders as root categories (idempotent on slug).
+  // Seed separately so schema (especially categories_id) is already applied.
+  await db.execute(sql`
   INSERT INTO "payload"."categories" ("title", "slug", "parent_id", "path", "depth")
-  VALUES
-    ('General', 'general', NULL, 'General', 0),
-    ('Logos', 'logos', NULL, 'Logos', 0),
-    ('Backgrounds', 'backgrounds', NULL, 'Backgrounds', 0),
-    ('Pages', 'pages', NULL, 'Pages', 0),
-    ('Forms', 'forms', NULL, 'Forms', 0)
-  ON CONFLICT ("slug") DO NOTHING;
+  SELECT v."title", v."slug", NULL, v."path", 0
+  FROM (VALUES
+    ('General', 'general', 'General'),
+    ('Logos', 'logos', 'Logos'),
+    ('Backgrounds', 'backgrounds', 'Backgrounds'),
+    ('Pages', 'pages', 'Pages'),
+    ('Forms', 'forms', 'Forms')
+  ) AS v("title", "slug", "path")
+  WHERE NOT EXISTS (
+    SELECT 1 FROM "payload"."categories" AS c WHERE c."slug" = v."slug"
+  );
 
-  -- Map existing media.folder values onto seeded roots.
   UPDATE "payload"."media" AS m
   SET "category_id" = c."id"
   FROM "payload"."categories" AS c

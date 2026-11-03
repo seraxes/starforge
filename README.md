@@ -92,13 +92,13 @@ npm run dev
 | `db:core:migrate` | Apply Core migrations (CI / deploy) |
 | `db:core:push` | **Local scratch only** — never prod |
 | `payload:migrate` / `payload:migrate:create` | Payload `payload` schema |
-| `db:migrate` | Core Drizzle (`sf_*`) **then** Payload (`payload.*`), then verifies `sf_sessions` + `payload_locked_documents_rels.tags_id` |
+| `db:migrate` | Core Drizzle (`sf_*`) **then** Payload (`payload.*`), then verifies `sf_sessions` + `payload_locked_documents_rels.tags_id` + `categories_id` |
 
 **Always use `npm run db:migrate`** after pull / volume reset — it applies **both** Core and Payload. Running only `payload:migrate` leaves Better Auth tables (`sf_sessions`, …) missing.
 
 **Existing push-created DBs:** either reset (`docker compose down -v && docker compose up -d` then `npm run db:migrate`), or mark the Core baseline applied by inserting its hash into `drizzle.__drizzle_migrations` (see `src/core/db/migrations/meta/_journal.json` for the tag). Payload’s `payload migrate` tracks its own table — after a push-era DB, prefer a volume reset, or run `payload migrate` only if the schema already matches and you need the journal row.
 
-**After SF-132 taxonomy / SF-148 media tags:** Payload needs `tags`, `pages_rels`, `_pages_v_rels`, `media_rels`, and `payload_locked_documents_rels.tags_id`. Prefer a volume reset on local push-era DBs, then migrate + seed — do not rely on `STARFORGE_PAYLOAD_PUSH=1` for shared/CI.
+**After SF-132 taxonomy / SF-148 media tags / Media Categories:** Payload needs `tags`, `pages_rels`, `_pages_v_rels`, `media_rels`, `categories`, `media.category_id`, and `payload_locked_documents_rels.tags_id` + `categories_id`. Prefer a volume reset on local push-era DBs, then migrate + seed — do not rely on `STARFORGE_PAYLOAD_PUSH=1` for shared/CI.
 
 #### Local volume reset (Windows)
 
@@ -128,7 +128,7 @@ npm run seed
 npm run dev
 ```
 
-`db:migrate` must print Core then Payload steps and end with a verification line for `sf_sessions` + `tags_id`. If either is missing, fix migrate before `seed` / `dev`.
+`db:migrate` must print Core then Payload steps and end with a verification line for `sf_sessions` + `tags_id` + `categories_id`. If any are missing, fix migrate before `seed` / `dev`.
 
 Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so cookies and CSRF stay consistent):
 
@@ -565,3 +565,4 @@ npm run dev
 10. **Payload `/admin` asks for a password or denies access** — confirm migrations applied `cms_access`, re-run `npm run seed`, sign in at `/login` first, then open `/admin`. Members need the Users **CMS access** switch On.
 11. **`Failed query` / `relation "payload.pages_rels" does not exist` (home `/` or published pages)** — SF-132 added `pages.tags`; Payload depth queries join `pages_rels`. Run `npm run db:migrate` (taxonomy + media-tags migrations). Push-era DB: volume reset, then migrate + seed.
 12. **`Failed query` / missing `tags_id` on `payload.payload_locked_documents_rels`** — Tags taxonomy requires that column for document locks. `npm run db:migrate` applies it (idempotent). If migrate previously failed mid-chain, pull latest, run `db:migrate` again, or volume-reset then migrate + seed.
+13. **`Failed query` / missing `categories_id` on `payload.payload_locked_documents_rels`** — Nested Media Categories registers the `categories` collection, so lock queries select `categories_id`. `npm run db:migrate` applies phase2 + an idempotent heal migration. Prefer migrate over `STARFORGE_PAYLOAD_PUSH=1`; if still missing after pull, volume-reset then migrate + seed (Windows sequences above).
