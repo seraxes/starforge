@@ -80,6 +80,29 @@ for (const surface of ['core', 'payload'] as const) {
   }
   console.log(`[${surface}] ok — Redirects leaf`)
 
+  const media = groups.find((g) => g.id === 'media')
+  if (!media?.expandable) {
+    console.error(`[${surface}] Media must be expandable (Library + Settings)`, media)
+    process.exit(1)
+  }
+  if (!media.defaultOpen) {
+    console.error(`[${surface}] Media must defaultOpen so Library/Settings stay visible`, media)
+    process.exit(1)
+  }
+  const mediaLibrary = media.links.find((l) => l.href === '/app/admin/media' && l.label === 'Library')
+  const mediaSettings = media.links.find(
+    (l) => l.href === '/app/admin/media/settings' && l.label === 'Settings',
+  )
+  if (!mediaLibrary?.exact || !mediaSettings) {
+    console.error(`[${surface}] Media missing Library (exact) + Settings children`, media.links)
+    process.exit(1)
+  }
+  if (media.links.some((l) => l.label === 'Media' && l.href === '/app/admin/media')) {
+    console.error(`[${surface}] Media must not keep a flat Media leaf label`, media.links)
+    process.exit(1)
+  }
+  console.log(`[${surface}] ok — Media accordion → Library + Settings (defaultOpen)`)
+
   const layouts = groups.find((g) => g.id === 'layouts')
   if (!layouts?.links.some((l) => l.href === '/app/admin/page-settings' && l.label === 'Page settings')) {
     console.error(`[${surface}] Layouts missing Page settings child`, layouts?.links)

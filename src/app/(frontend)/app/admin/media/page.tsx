@@ -3,6 +3,7 @@ import Link from 'next/link'
 
 import { getMediaAnalysisPort } from '@/core/media/analysis'
 import { listMedia, listMediaTagOptions } from '@/core/media/resolve'
+import { loadMediaPipelineRules } from '@/core/media/settings-store'
 import { getMediaStorageInfo } from '@/core/media/storage'
 
 import { MediaAdminNav } from './media-admin-nav'
@@ -28,6 +29,8 @@ export default async function AdminMediaPage({ searchParams }: { searchParams: S
   const analysisAdapters = getMediaAnalysisPort()
     .list()
     .map((a) => a.id)
+  const pipeline = await loadMediaPipelineRules()
+  const maxEdge = Math.max(pipeline.rules.maxWidth, pipeline.rules.maxHeight)
   let docs: Awaited<ReturnType<typeof listMedia>>['docs'] = []
   let totalDocs = 0
   let listError: string | null = null
@@ -74,6 +77,7 @@ export default async function AdminMediaPage({ searchParams }: { searchParams: S
         q={q}
         tagOptions={tagOptions}
         analysisAdapters={analysisAdapters}
+        maxEdge={maxEdge}
       />
     </section>
   )

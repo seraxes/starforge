@@ -54,6 +54,10 @@ mustInclude(
 mustInclude(chrome, 'form drop-empty chrome', '.admin-shell .gantry-drop-empty')
 mustInclude(chrome, 'settings fieldset panel head', '.admin-shell .settings-fieldset > legend')
 mustInclude(chrome, 'page-settings panel uses panel token', 'background: var(--sf-admin-panel)')
+mustInclude(chrome, 'media folder sidebar layout', '.admin-shell .sf-media-library-layout')
+mustInclude(chrome, 'media folder nav', '.admin-shell .sf-media-folder-nav')
+mustInclude(chrome, 'media folder item', '.admin-shell .sf-media-folder-item')
+
 mustInclude(
   chrome,
   'media picker dialog panel border',

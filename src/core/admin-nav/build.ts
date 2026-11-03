@@ -97,11 +97,13 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
   })
 
   // Core media library + pipeline settings (same Payload store) — always for app admins.
+  // defaultOpen: Library + Settings stay visible like Chrome → Environment (not a flat leaf).
   groups.push({
     id: 'media',
     label: 'Media',
     href: '/app/admin/media',
     expandable: true,
+    defaultOpen: true,
     links: [
       { href: '/app/admin/media', label: 'Library', exact: true },
       { href: '/app/admin/media/settings', label: 'Settings' },

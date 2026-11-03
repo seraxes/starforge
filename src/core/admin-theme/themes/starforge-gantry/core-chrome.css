@@ -2392,8 +2392,84 @@ body:has(.admin-shell) > main {
 
 
 /* —— Media library + picker (SF-28 / SF-66) —— */
+.admin-shell .sf-media-admin-nav {
+  margin-bottom: 0.85rem;
+}
+
 .admin-shell .sf-media-library-status {
   margin: 0 0 1rem;
+}
+
+.admin-shell .sf-media-library-layout {
+  display: grid;
+  grid-template-columns: minmax(11rem, 14rem) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .admin-shell .sf-media-library-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admin-shell .sf-media-folder-nav {
+  border: 1px solid var(--sf-admin-panel-border);
+  background: var(--sf-admin-panel);
+  border-radius: 3px;
+  padding: 0.85rem 0.75rem 1rem;
+  position: sticky;
+  top: 0.75rem;
+}
+
+.admin-shell .sf-media-folder-nav > .admin-settings-panel-title {
+  margin: 0 0 0.65rem;
+}
+
+.admin-shell .sf-media-folder-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.admin-shell .sf-media-folder-item {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  color: #c5d2e0;
+  font: inherit;
+  font-weight: 650;
+  padding: 0.45rem 0.6rem;
+  cursor: pointer;
+  min-height: var(--sf-admin-btn-min-height, 2.1rem);
+}
+
+.admin-shell .sf-media-folder-item:hover:not(:disabled) {
+  background: var(--sf-admin-blue-mid);
+  color: #fff;
+  border-color: var(--sf-admin-blue-mid);
+}
+
+.admin-shell .sf-media-folder-item.is-current {
+  background: var(--sf-admin-blue-mid);
+  color: #fff;
+  border-color: var(--sf-admin-blue-border);
+}
+
+.admin-shell .sf-media-folder-item:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
+.admin-shell .sf-media-library-main {
+  min-width: 0;
 }
 
 .admin-shell .sf-media-library-filters-row,
