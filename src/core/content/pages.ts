@@ -38,7 +38,7 @@ async function loadPublishedPageUncached(slug: string): Promise<Page | null> {
 /**
  * Load a published CMS page by slug for the public site.
  *
- * Uses the published-content cache (Next.js tags locally; Redis-ready later).
+ * Uses the published-content cache (Next.js tags locally; Redis when selected).
  * Drafts are never returned here (Payload access + draft: false).
  * For preview, use `getDraftPageBySlug` (uncached + auth-gated).
  */
