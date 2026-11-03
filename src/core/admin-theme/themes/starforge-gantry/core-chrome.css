@@ -2484,14 +2484,18 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .sf-media-tree-toggle {
-  flex: 0 0 1.35rem;
-  width: 1.35rem;
-  height: 1.6rem;
+  /* SF-177: 2× prior expand/collapse glyphs (was 0.75rem) */
+  flex: 0 0 1.5rem;
+  width: 1.5rem;
+  height: 1.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 0;
   background: transparent;
   color: #9eb0c4;
   font: inherit;
-  font-size: 0.75rem;
+  font-size: 1.5rem;
   line-height: 1;
   padding: 0;
   cursor: pointer;
@@ -2505,7 +2509,8 @@ body:has(.admin-shell) > main {
 .admin-shell .sf-media-tree-actions {
   display: flex;
   flex: 0 0 auto;
-  gap: 0.05rem;
+  align-items: center;
+  gap: 0.1rem;
   opacity: 0.55;
 }
 
@@ -2519,9 +2524,10 @@ body:has(.admin-shell) > main {
   background: transparent;
   color: #c5d2e0;
   font: inherit;
-  font-size: 0.85rem;
+  /* SF-177: 2× prior row action glyphs (was 0.85rem) */
+  font-size: 1.7rem;
   line-height: 1;
-  padding: 0.15rem 0.3rem;
+  padding: 0.3rem 0.6rem;
   cursor: pointer;
   border-radius: 2px;
 }
