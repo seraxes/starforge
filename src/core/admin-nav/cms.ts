@@ -33,6 +33,13 @@ export const CMS_NAV_LINKS: AdminCmsNavLink[] = [
     external: true,
   },
   {
+    href: `${PAYLOAD_ADMIN}/collections/tags`,
+    label: 'Tags',
+    entity: 'collection',
+    slug: 'tags',
+    external: true,
+  },
+  {
     href: `${PAYLOAD_ADMIN}/collections/users`,
     label: 'Users',
     entity: 'collection',

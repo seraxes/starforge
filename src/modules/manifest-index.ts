@@ -12,6 +12,8 @@ import formParticleManifest from './form/manifest'
 import formsManifest from './forms/manifest'
 import noticeBarManifest from './notice-bar/manifest'
 import redirectsManifest from './redirects/manifest'
+import searchManifest from './search/manifest'
+import searchParticleManifest from './search/particle-manifest'
 
 /** All installable manifests (host + packs). Source of truth for codegen. */
 export const ALL_MODULE_MANIFESTS: StarforgeModuleManifest[] = [
@@ -19,8 +21,10 @@ export const ALL_MODULE_MANIFESTS: StarforgeModuleManifest[] = [
   formsManifest,
   redirectsManifest,
   consentManifest,
+  searchManifest,
   noticeBarManifest,
   formParticleManifest,
+  searchParticleManifest,
 ]
 
 export function getModuleManifest(id: string): StarforgeModuleManifest | undefined {

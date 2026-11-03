@@ -68,6 +68,17 @@ export const Pages: CollectionConfig = {
       },
     },
     {
+      name: 'tags',
+      type: 'relationship',
+      relationTo: 'tags',
+      hasMany: true,
+      admin: {
+        position: 'sidebar',
+        description:
+          'Shared content tags (SF-132 taxonomy). Optional — filterable later; distinct from ACL viewing groups.',
+      },
+    },
+    {
       type: 'tabs',
       tabs: [
         {

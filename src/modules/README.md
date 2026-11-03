@@ -40,6 +40,7 @@ Override allowlist for one run: `SF_MODULES=platform:better-auth,page-content,..
 | `product:consent` | `consent/` | Banner + `publicShell` bodyEnd via generated loaders |
 | `product:redirects` | `redirects/manifest.ts` | Catalog + admin meta; engine still in `src/core/redirects` (M3) |
 | `notice-bar` | `notice-bar/` | Example extension particle |
+| `product:search` / `search` | `search/` | Public `/search` + layout particle |
 
 ## Particles (builtin + optional)
 
@@ -47,6 +48,7 @@ Override allowlist for one run: `SF_MODULES=platform:better-auth,page-content,..
 | --- | --- | --- |
 | Notice bar | `notice-bar` | Extension — allowlist + Modules toggle |
 | Form | `form` | Needs allowlisted `product:forms` + `form` |
+| Search | `search` | Public search box → `/search` — needs allowlisted `product:search` + `search` |
 | Page Content | `page-content` | Built-in (core, required) |
 | Site Header | `site-header` | Built-in (core) |
 | Logo / Image | `logo` | Built-in |
