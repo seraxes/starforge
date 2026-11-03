@@ -24,6 +24,14 @@ export {
 export type { MediaFolder, MediaPurpose, MediaStorageInfo, ResolvedMedia } from './media'
 export type { SiteChromeSeoDefaults } from './content/metadata'
 export { getDraftPageBySlug, getPublishedPageBySlug } from './content/pages'
+export {
+  SEARCH_QUERY_MAX_LENGTH,
+  SEARCH_RESULT_LIMIT,
+  normalizeSearchQuery,
+  publishedPagePath,
+} from './content/search-query'
+export { searchPublishedPages } from './content/search'
+export type { PublishedSearchHit, PublishedSearchResult } from './content/search'
 export { listPublishedPagesForSitemap } from './content/sitemap'
 export type { SitemapPageEntry } from './content/sitemap'
 export { requireDraftPreviewAccess, resolveDraftPreviewAccess } from './content/preview'

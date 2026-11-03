@@ -44,6 +44,11 @@ export async function SlotRenderer({ sectionId, slot, pageContent }: Props) {
     const { MODULE_IDS, isCatalogModuleEnabled } = await import('@/core/settings')
     if (!isCatalogModuleEnabled(settings, MODULE_IDS.forms)) return null
   }
+  // Search particle requires product:search.
+  if (mod.id === 'search') {
+    const { MODULE_IDS, isCatalogModuleEnabled } = await import('@/core/settings')
+    if (!isCatalogModuleEnabled(settings, MODULE_IDS.search)) return null
+  }
 
   const accessTags = resolveAccessTags({
     accessTags: slot.accessTags,

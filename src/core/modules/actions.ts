@@ -1353,10 +1353,12 @@ export async function listModulesForLayoutAdmin() {
   } = await import('@/core/settings')
   const settings = await getSiteSettings()
   const formsProductOn = isCatalogModuleEnabled(settings, MODULE_IDS.forms)
+  const searchProductOn = isCatalogModuleEnabled(settings, MODULE_IDS.search)
 
   return listRegisteredModules()
     .filter((m) => {
       if (m.id === 'form' && !formsProductOn) return false
+      if (m.id === 'search' && !searchProductOn) return false
       return isParticleModuleEnabled(settings, m.id, {
         builtin: m.builtin,
         featureFlag: m.featureFlag,

@@ -24,6 +24,7 @@ export const MODULE_IDS = {
   forms: 'product:forms',
   redirects: 'product:redirects',
   consent: 'product:consent',
+  search: 'product:search',
 } as const
 
 /** Core pieces that cannot be turned off. */

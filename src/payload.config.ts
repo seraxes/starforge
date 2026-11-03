@@ -8,6 +8,7 @@ import { payloadMediaStoragePlugins } from './core/media/storage/payload-plugin'
 import { payloadCsrfOrigins } from './core/security/trusted-origins'
 import { Media } from './collections/Media'
 import { Pages } from './collections/Pages'
+import { Tags } from './collections/Tags'
 import { Users } from './collections/Users'
 import { pagesLexicalEditor } from './fields/pagesLexical'
 import { SiteSettings } from './globals/SiteSettings'
@@ -54,7 +55,7 @@ export default buildConfig({
   // Add extra hosts via STARFORGE_TRUSTED_ORIGINS.
   csrf: payloadCsrfOrigins(),
 
-  collections: [Users, Media, Pages],
+  collections: [Users, Media, Pages, Tags],
   globals: [SiteSettings],
   // Default rich text = Pages Lexical (headings, lists, links, Media uploads + fixed toolbar).
   editor: pagesLexicalEditor,
