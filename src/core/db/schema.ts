@@ -264,6 +264,23 @@ export const sfFormSettings = pgTable('sf_form_settings', {
     .notNull(),
 })
 
+/** Stable id for Media pipeline rules singleton. */
+export const MEDIA_PIPELINE_SETTINGS_ID = 'global'
+
+/**
+ * Media pipeline settings — max W×H, JPEG/WebP quality, PNG-for-logos.
+ * Document JSON is MediaPipelineRules (`src/core/media/pipeline.ts`).
+ */
+export const sfMediaSettings = pgTable('sf_media_settings', {
+  id: text('id').primaryKey(),
+  document: text('document').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+})
+
 /**
  * Form definitions (SF-65 modular Form engine).
  * Document JSON is FormDefinitionDocument (fields + JSON Schema + preset).

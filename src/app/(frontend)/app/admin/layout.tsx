@@ -95,15 +95,18 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
                 <p className="lede admin-lede">
                   Top-level areas: Chrome, Settings (Modules · Admin UX · Auth ·
                   Security · Performance), Navigation, Forms, Redirects, Users (Accounts ·
-                  Groups · ACL), Media, Layouts, CMS (Payload). Pages live under CMS → Pages
+                  Groups · ACL), Media (Library · Settings), Layouts, CMS (Payload). Pages live
+                  under CMS → Pages
                   {showPayloadCms ? (
                     <>
                       {' '}
                       (<Link href="/admin/collections/pages">open</Link>)
                     </>
                   ) : null}
-                  ; media library is under <Link href="/app/admin/media">Media</Link> (same Payload
-                  store) — same login when CMS access is on.
+                  ; media library is under <Link href="/app/admin/media">Media → Library</Link>{' '}
+                  (same Payload store); pipeline rules under{' '}
+                  <Link href="/app/admin/media/settings">Media → Settings</Link> — same login when
+                  CMS access is on.
                 </p>
               </div>
             </header>

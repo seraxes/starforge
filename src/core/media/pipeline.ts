@@ -2,9 +2,10 @@
  * Starforge media pipeline defaults (SF-28 / SF-117 / SF-148).
  * Applied around Payload Media upload — one library for all features.
  * Image engine = sharp only; video = ffmpeg later (not here).
+ * Editable under Core admin → Media → Settings (`sf_media_settings`).
  */
 
-/** Typed image rules — Site Settings editor later; code defaults now. */
+/** Typed image rules — Core Media Settings; code defaults when unset. */
 export type MediaPipelineRules = {
   /** Cap longest edges on originals (no enlargement). */
   maxWidth: number
@@ -16,7 +17,7 @@ export type MediaPipelineRules = {
   /** Photo / other originals: always WebP (default). */
   photoOriginalFormat: 'webp'
   /** PNG mime always kept; purpose=logo also skips forced WebP. */
-  keepPngForLogos: true
+  keepPngForLogos: boolean
   sizes: {
     thumbnail: number
     card: number
@@ -36,6 +37,84 @@ export const DEFAULT_MEDIA_PIPELINE_RULES: MediaPipelineRules = {
     card: 768,
     large: 1920,
   },
+}
+
+/** Inclusive bounds for Media Settings form + normalize. */
+export const MEDIA_PIPELINE_MAX_EDGE_MIN = 320
+export const MEDIA_PIPELINE_MAX_EDGE_MAX = 8192
+export const MEDIA_PIPELINE_QUALITY_MIN = 1
+export const MEDIA_PIPELINE_QUALITY_MAX = 100
+
+function clampInt(raw: unknown, min: number, max: number, fallback: number): number {
+  const n = typeof raw === 'number' ? raw : Number(raw)
+  if (!Number.isFinite(n)) return fallback
+  return Math.min(max, Math.max(min, Math.round(n)))
+}
+
+/** Merge/clamp partial rules onto defaults (safe for DB JSON + form posts). */
+export function normalizeMediaPipelineRules(raw: unknown): MediaPipelineRules {
+  const base = DEFAULT_MEDIA_PIPELINE_RULES
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return { ...base, sizes: { ...base.sizes } }
+  }
+  const row = raw as Record<string, unknown>
+  const sizesRaw =
+    row.sizes && typeof row.sizes === 'object' && !Array.isArray(row.sizes)
+      ? (row.sizes as Record<string, unknown>)
+      : {}
+  return {
+    maxWidth: clampInt(
+      row.maxWidth,
+      MEDIA_PIPELINE_MAX_EDGE_MIN,
+      MEDIA_PIPELINE_MAX_EDGE_MAX,
+      base.maxWidth,
+    ),
+    maxHeight: clampInt(
+      row.maxHeight,
+      MEDIA_PIPELINE_MAX_EDGE_MIN,
+      MEDIA_PIPELINE_MAX_EDGE_MAX,
+      base.maxHeight,
+    ),
+    jpegQuality: clampInt(
+      row.jpegQuality,
+      MEDIA_PIPELINE_QUALITY_MIN,
+      MEDIA_PIPELINE_QUALITY_MAX,
+      base.jpegQuality,
+    ),
+    webpQuality: clampInt(
+      row.webpQuality,
+      MEDIA_PIPELINE_QUALITY_MIN,
+      MEDIA_PIPELINE_QUALITY_MAX,
+      base.webpQuality,
+    ),
+    photoOriginalFormat: 'webp',
+    keepPngForLogos:
+      typeof row.keepPngForLogos === 'boolean'
+        ? row.keepPngForLogos
+        : row.keepPngForLogos === 'off' || row.keepPngForLogos === '0' || row.keepPngForLogos === 0
+          ? false
+          : base.keepPngForLogos,
+    sizes: {
+      thumbnail: clampInt(
+        sizesRaw.thumbnail,
+        MEDIA_PIPELINE_MAX_EDGE_MIN,
+        MEDIA_PIPELINE_MAX_EDGE_MAX,
+        base.sizes.thumbnail,
+      ),
+      card: clampInt(
+        sizesRaw.card,
+        MEDIA_PIPELINE_MAX_EDGE_MIN,
+        MEDIA_PIPELINE_MAX_EDGE_MAX,
+        base.sizes.card,
+      ),
+      large: clampInt(
+        sizesRaw.large,
+        MEDIA_PIPELINE_MAX_EDGE_MIN,
+        MEDIA_PIPELINE_MAX_EDGE_MAX,
+        base.sizes.large,
+      ),
+    },
+  }
 }
 
 /** Max edge for original uploads (without enlargement). */

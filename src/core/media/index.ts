@@ -12,12 +12,17 @@ export {
   MEDIA_LARGE_WIDTH,
   MEDIA_MAX_HEIGHT,
   MEDIA_MAX_WIDTH,
+  MEDIA_PIPELINE_MAX_EDGE_MAX,
+  MEDIA_PIPELINE_MAX_EDGE_MIN,
+  MEDIA_PIPELINE_QUALITY_MAX,
+  MEDIA_PIPELINE_QUALITY_MIN,
   MEDIA_PURPOSES,
   MEDIA_THUMB_SIZE,
   MEDIA_WEBP_QUALITY,
   isMediaFolder,
   isMediaPurpose,
   normalizeMediaFolder,
+  normalizeMediaPipelineRules,
   normalizeMediaPurpose,
 } from './pipeline'
 export type { MediaFolder, MediaPipelineRules, MediaPurpose } from './pipeline'
@@ -60,6 +65,7 @@ export {
   deleteMediaAction,
   listMediaAction,
   listMediaTagOptionsAction,
+  saveMediaPipelineSettingsAction,
   uploadMediaAction,
 } from './actions'
 export type { MediaActionState } from './actions'

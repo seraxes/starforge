@@ -96,11 +96,16 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
     ],
   })
 
-  // Core media library UI (same Payload store) — always for app admins.
+  // Core media library + pipeline settings (same Payload store) — always for app admins.
   groups.push({
     id: 'media',
     label: 'Media',
-    links: [{ href: '/app/admin/media', label: 'Media' }],
+    href: '/app/admin/media',
+    expandable: true,
+    links: [
+      { href: '/app/admin/media', label: 'Library', exact: true },
+      { href: '/app/admin/media/settings', label: 'Settings' },
+    ],
   })
 
   const showLayouts = flags.layout || flags.pageSettings

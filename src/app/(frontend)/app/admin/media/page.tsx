@@ -5,12 +5,13 @@ import { getMediaAnalysisPort } from '@/core/media/analysis'
 import { listMedia, listMediaTagOptions } from '@/core/media/resolve'
 import { getMediaStorageInfo } from '@/core/media/storage'
 
+import { MediaAdminNav } from './media-admin-nav'
 import { MediaLibraryClient } from './media-library'
 
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'Media — Starforge',
+  title: 'Media library — Starforge',
   description: 'Starforge media library around Payload Media (folders, tags, resize, WebP).',
 }
 
@@ -48,11 +49,13 @@ export default async function AdminMediaPage({ searchParams }: { searchParams: S
 
   return (
     <section className="admin-section admin-layouts-full">
-      <h2>Media</h2>
+      <MediaAdminNav active="library" />
+      <h2>Media library</h2>
       <p className="lede admin-lede">
         Single Payload media library with Starforge pipeline (folders, tags, max size, WebP for
         photos, PNG logos). Bind from Logo, Styles, and Forms via the media picker — raw URL is
-        fallback only. Manage tags in{' '}
+        fallback only. Pipeline rules:{' '}
+        <Link href="/app/admin/media/settings">Media → Settings</Link>. Manage tags in{' '}
         <Link href="/admin/collections/tags">CMS → Tags</Link>; full CMS edit:{' '}
         <Link href="/admin/collections/media">CMS → Media</Link>.
       </p>
