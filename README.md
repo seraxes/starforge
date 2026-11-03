@@ -37,9 +37,9 @@ One Payload **Media** library forever (sharp resize/WebP pipeline unchanged). Bl
 | Backend | When | Env |
 | --- | --- | --- |
 | Local disk (default) | Dev / single node | Unset or `STARFORGE_MEDIA_STORAGE=local` — files under `/media` |
-| DigitalOcean Spaces / S3 | Hosting | `STARFORGE_MEDIA_STORAGE=s3` plus `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` (`S3_REGION` defaults to `us-east-1` for the SDK; Spaces datacenter is in the endpoint). Optional: `S3_PUBLIC_BASE_URL` (CDN), `S3_FORCE_PATH_STYLE`, `S3_ACL` |
+| DigitalOcean Spaces / S3 | Hosting | `STARFORGE_MEDIA_STORAGE=s3` plus required `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` (`S3_REGION` defaults to `us-east-1` for the SDK; Spaces datacenter is in the endpoint). Optional: `S3_PUBLIC_BASE_URL` (CDN), `S3_FORCE_PATH_STYLE`, `S3_ACL` |
 
-Keys live in `.env` / Environment editor only — never the database. Incomplete `s3` env **throws** (no silent local fallback in prod). Core admin → Media shows storage readiness, folder/purpose/**tag** filters, and sharp WebP (PNG logos kept). OCR/AI: `MediaAnalysisPort` stub only — no vendor yet.
+Keys live in `.env` / Site Chrome → **Environment** only — never the database. Incomplete `s3` env **throws** at boot and marks Media storage not ready (no silent local fallback). Core admin → Media links to Environment when not ready; folder/purpose/**tag** filters + sharp WebP (PNG logos kept). OCR/AI: `MediaAnalysisPort` stub surfaced in Media status — no vendor / auto-run yet.
 
 ### App users vs Payload CMS stubs (one login)
 

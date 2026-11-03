@@ -16,7 +16,13 @@ import {
   type MediaFolder,
   type MediaPurpose,
 } from './pipeline'
-import { listMedia, toResolvedMedia, type ResolvedMedia } from './resolve'
+import {
+  listMedia,
+  listMediaTagOptions,
+  toResolvedMedia,
+  type MediaTagOption,
+  type ResolvedMedia,
+} from './resolve'
 import { getMediaStorageInfo } from './storage'
 
 export type MediaActionState = {
@@ -56,6 +62,22 @@ export async function listMediaAction(input?: {
     return { result }
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Failed to list media.' }
+  }
+}
+
+/** Shared Tags options for MediaPicker / library facets. */
+export async function listMediaTagOptionsAction(): Promise<{
+  error?: string
+  tags?: MediaTagOption[]
+}> {
+  const denied = await requireMediaAdmin()
+  if (denied) return { error: denied.error }
+
+  try {
+    const tags = await listMediaTagOptions()
+    return { tags }
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Failed to list tags.' }
   }
 }
 

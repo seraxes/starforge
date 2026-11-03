@@ -27,6 +27,8 @@ type Props = {
   tag: string
   q: string
   tagOptions: MediaTagOption[]
+  /** Registered MediaAnalysisPort adapter ids (stub usage; empty hooks = no auto-run). */
+  analysisAdapters: string[]
 }
 
 export function MediaLibraryClient({
@@ -38,6 +40,7 @@ export function MediaLibraryClient({
   tag,
   q,
   tagOptions,
+  analysisAdapters,
 }: Props) {
   const router = useRouter()
   const { notifySaved } = useAdminToast()
@@ -54,6 +57,15 @@ export function MediaLibraryClient({
   const [uploadTag, setUploadTag] = useState(tag !== 'all' ? tag : '')
 
   const busy = uploading || deleting || pending
+
+  // Keep drafts in sync when URL filters change (Clear / chip / back).
+  React.useEffect(() => {
+    setFolderDraft(folder)
+    setPurposeDraft(purpose)
+    setTagDraft(tag)
+    setQDraft(q)
+    if (tag !== 'all') setUploadTag(tag)
+  }, [folder, purpose, tag, q])
 
   React.useEffect(() => {
     if (uploadState.ok) {
@@ -79,6 +91,26 @@ export function MediaLibraryClient({
     return qs ? `/app/admin/media?${qs}` : '/app/admin/media'
   }, [folderDraft, purposeDraft, tagDraft, qDraft])
 
+  const filtersActive =
+    (folder && folder !== 'all') ||
+    (purpose && purpose !== 'all') ||
+    (tag && tag !== 'all') ||
+    Boolean(q.trim())
+
+  function pushFilter(next: { folder?: string; purpose?: string; tag?: string; q?: string }) {
+    const params = new URLSearchParams()
+    const f = next.folder ?? folderDraft
+    const p = next.purpose ?? purposeDraft
+    const t = next.tag ?? tagDraft
+    const query = next.q ?? qDraft
+    if (f && f !== 'all') params.set('folder', f)
+    if (p && p !== 'all') params.set('purpose', p)
+    if (t && t !== 'all') params.set('tag', t)
+    if (query.trim()) params.set('q', query.trim())
+    const qs = params.toString()
+    startTransition(() => router.push(qs ? `/app/admin/media?${qs}` : '/app/admin/media'))
+  }
+
   return (
     <div className="sf-media-library">
       <div className="sf-media-library-status">
@@ -87,9 +119,17 @@ export function MediaLibraryClient({
           {storage.ready ? ' (ready)' : ' (not ready)'}
           {storage.detail ? <span className="layout-muted"> — {storage.detail}</span> : null}
         </p>
+        {!storage.ready ? (
+          <p className="layout-muted" role="status">
+            Configure <code>STARFORGE_MEDIA_STORAGE</code> / <code>S3_*</code> in{' '}
+            <Link href="/app/admin/site-chrome/environment">Chrome → Environment</Link> (or{' '}
+            <code>.env</code>). Incomplete <code>s3</code> never falls back to local disk.
+          </p>
+        ) : null}
         <p className="layout-muted">
-          {totalDocs} item{totalDocs === 1 ? '' : 's'}. Payload CMS Media remains the store —{' '}
-          <Link href="/admin/collections/media">open in CMS</Link>.
+          Analysis port: {analysisAdapters.length ? analysisAdapters.join(', ') : 'none'} (stub —
+          hooks off until Site Settings). {totalDocs} item{totalDocs === 1 ? '' : 's'}. Payload CMS
+          Media remains the store — <Link href="/admin/collections/media">open in CMS</Link>.
         </p>
       </div>
 
@@ -124,7 +164,11 @@ export function MediaLibraryClient({
         </label>
         <label>
           <span>Tag</span>
-          <select value={tagDraft} onChange={(e) => setTagDraft(e.target.value)}>
+          <select
+            value={tagDraft}
+            onChange={(e) => setTagDraft(e.target.value)}
+            disabled={tagOptions.length === 0}
+          >
             <option value="all">All</option>
             {tagOptions.map((t) => (
               <option key={t.id} value={t.id}>
@@ -145,7 +189,23 @@ export function MediaLibraryClient({
         <button type="submit" className="gantry-toolbar-btn gantry-toolbar-btn-muted" disabled={busy}>
           Filter
         </button>
+        {filtersActive ? (
+          <button
+            type="button"
+            className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+            disabled={busy}
+            onClick={() => startTransition(() => router.push('/app/admin/media'))}
+          >
+            Clear
+          </button>
+        ) : null}
       </form>
+      {tagOptions.length === 0 ? (
+        <p className="layout-muted">
+          No shared tags yet — create some in <Link href="/admin/collections/tags">CMS → Tags</Link>{' '}
+          to filter and tag uploads.
+        </p>
+      ) : null}
 
       <form className="sf-media-library-upload" action={uploadAction}>
         <h3>Upload</h3>
@@ -192,7 +252,12 @@ export function MediaLibraryClient({
           </label>
           <label>
             <span>Tag</span>
-            <select name="tag" value={uploadTag} onChange={(e) => setUploadTag(e.target.value)}>
+            <select
+              name="tag"
+              value={uploadTag}
+              onChange={(e) => setUploadTag(e.target.value)}
+              disabled={tagOptions.length === 0}
+            >
               <option value="">None</option>
               {tagOptions.map((t) => (
                 <option key={t.id} value={t.id}>
@@ -218,11 +283,6 @@ export function MediaLibraryClient({
         ) : null}
         {initialDocs.map((doc) => {
           const thumb = doc.sizes?.thumbnail || doc.url
-          const tagLine = doc.tagLabels?.length
-            ? doc.tagLabels.join(', ')
-            : doc.tagIds?.length
-              ? `${doc.tagIds.length} tag${doc.tagIds.length === 1 ? '' : 's'}`
-              : null
           return (
             <article key={doc.id} className="sf-media-library-card">
               <div className="sf-media-library-thumb">
@@ -237,8 +297,31 @@ export function MediaLibraryClient({
                 <strong>{doc.alt || doc.filename || doc.id}</strong>
                 <code title="Payload Media id">{doc.id}</code>
                 <span className="layout-muted">
-                  {[doc.folder, doc.purpose, tagLine].filter(Boolean).join(' · ') || '—'}
+                  {[doc.folder, doc.purpose].filter(Boolean).join(' · ') || '—'}
                 </span>
+                {doc.tagIds?.length ? (
+                  <span className="layout-muted">
+                    Tags:{' '}
+                    {doc.tagIds.map((id, i) => {
+                      const label = doc.tagLabels?.[i] || id
+                      const active = tag === id
+                      return (
+                        <React.Fragment key={id}>
+                          {i > 0 ? ', ' : null}
+                          <button
+                            type="button"
+                            className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+                            disabled={busy || active}
+                            title={active ? 'Already filtering this tag' : `Filter by ${label}`}
+                            onClick={() => pushFilter({ tag: id })}
+                          >
+                            {label}
+                          </button>
+                        </React.Fragment>
+                      )
+                    })}
+                  </span>
+                ) : null}
                 {doc.url ? (
                   <a href={doc.url} target="_blank" rel="noreferrer">
                     Open file

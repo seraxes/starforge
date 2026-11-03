@@ -59,7 +59,7 @@ export const ENV_EDITOR_GROUPS: EnvEditorGroup[] = [
   {
     id: 'infra',
     label: 'Cache & media storage',
-    hint: 'Leave unset for local defaults (Next tags / disk media). S3_* only when STARFORGE_MEDIA_STORAGE=s3.',
+    hint: 'Leave unset for local defaults (Next tags / disk media). When STARFORGE_MEDIA_STORAGE=s3, set all required S3_* or boot/Media stay not ready (no silent local fallback).',
   },
   {
     id: 'captcha',
@@ -210,7 +210,8 @@ export const ENV_EDITOR_FIELDS: EnvEditorField[] = [
   {
     key: 'STARFORGE_MEDIA_STORAGE',
     label: 'STARFORGE_MEDIA_STORAGE',
-    description: 'Media object storage. Unset/local = Payload /media disk; s3 = Spaces/S3 (needs S3_*).',
+    description:
+      'Media object storage. Unset/local = Payload /media disk; s3 = Spaces/S3 (requires S3_*). Incomplete s3 throws — no silent local fallback. Core admin → Media shows readiness.',
     secret: false,
     kind: 'enum',
     options: [

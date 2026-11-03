@@ -68,7 +68,13 @@ export async function applyMediaPipelineRules(
     return { data, mimetype: 'image/jpeg', extHint: 'jpg' }
   }
 
-  // Photos / other: WebP original.
+  // Logo WebP: keep WebP (resize only) — do not bounce through photo re-encode path twice.
+  if (purpose === 'logo' && mime === 'image/webp') {
+    const data = await pipeline.webp({ quality: rules.webpQuality }).toBuffer()
+    return { data, mimetype: 'image/webp', extHint: 'webp' }
+  }
+
+  // Photos / other (JPEG, GIF, WebP, …): WebP original.
   if (rules.photoOriginalFormat === 'webp') {
     const data = await pipeline.webp({ quality: rules.webpQuality }).toBuffer()
     return { data, mimetype: 'image/webp', extHint: 'webp' }

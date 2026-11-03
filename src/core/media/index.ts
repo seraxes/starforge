@@ -59,6 +59,7 @@ export type {
 export {
   deleteMediaAction,
   listMediaAction,
+  listMediaTagOptionsAction,
   uploadMediaAction,
 } from './actions'
 export type { MediaActionState } from './actions'
