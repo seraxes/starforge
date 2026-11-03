@@ -2531,10 +2531,11 @@ body:has(.admin-shell) > main {
   width: min(56rem, 100%);
   max-height: min(90vh, 52rem);
   overflow: auto;
-  background: #151c27;
-  border: var(--sf-admin-module-border-width) solid var(--sf-admin-module-border-color);
-  padding: 1rem 1.1rem 1.25rem;
-  border-radius: var(--sf-admin-btn-radius);
+  background: var(--sf-admin-panel);
+  border: 1px solid var(--sf-admin-panel-border);
+  padding: 0 0 1rem;
+  border-radius: 3px;
+  box-shadow: none;
 }
 
 .admin-shell .sf-media-picker-dialog-head {
@@ -2542,12 +2543,22 @@ body:has(.admin-shell) > main {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  margin-bottom: 0.75rem;
+  margin: 0 0 0.85rem;
+  padding: 0.55rem 0.85rem;
+  background: var(--sf-admin-panel-head);
+  border-bottom: 1px solid var(--sf-admin-panel-border);
 }
 
 .admin-shell .sf-media-picker-dialog-head h3 {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.admin-shell .sf-media-picker-dialog > :not(.sf-media-picker-dialog-head) {
+  margin-left: 0.85rem;
+  margin-right: 0.85rem;
 }
 
 .admin-shell .sf-media-picker-tile {

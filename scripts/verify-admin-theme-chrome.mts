@@ -43,6 +43,25 @@ mustInclude(
 mustInclude(chrome, 'form drop-empty chrome', '.admin-shell .gantry-drop-empty')
 mustInclude(chrome, 'settings fieldset panel head', '.admin-shell .settings-fieldset > legend')
 mustInclude(chrome, 'page-settings panel uses panel token', 'background: var(--sf-admin-panel)')
+mustInclude(
+  chrome,
+  'media picker dialog panel border',
+  '.admin-shell .sf-media-picker-dialog',
+)
+{
+  const dialogBlock = chrome.slice(
+    chrome.indexOf('.admin-shell .sf-media-picker-dialog {'),
+    chrome.indexOf('.admin-shell .sf-media-picker-dialog-head {'),
+  )
+  if (dialogBlock.includes('--sf-admin-module-border-width')) {
+    console.error('sf-media-picker-dialog must use panel border, not Layout module edge')
+    process.exit(1)
+  }
+  if (!dialogBlock.includes('var(--sf-admin-panel-border)')) {
+    console.error('sf-media-picker-dialog missing panel border token')
+    process.exit(1)
+  }
+}
 
 mustInclude(styles, 'shared settings mosaic', '.admin-settings-mosaic')
 mustInclude(styles, 'mosaic two columns', 'grid-template-columns: repeat(2, minmax(0, 1fr))')
