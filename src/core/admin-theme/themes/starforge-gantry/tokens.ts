@@ -18,4 +18,12 @@ export const starforgeGantryTokens: AdminThemeTokens = {
   primaryInk: '#1c2834',
   secondary: '#8ebad4',
   secondaryStrong: '#b7d6ec',
+  iconPrimary: '2rem',
+  iconSecondary: '1.75rem',
+  moduleBorderWidth: '4px',
+  moduleBorderColor: '#0f3d63',
+  btnPadY: '0.5rem',
+  btnPadX: '1rem',
+  btnFont: '0.9rem',
+  btnMinHeight: '2.35rem',
 }

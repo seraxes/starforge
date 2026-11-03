@@ -29,6 +29,15 @@ export type AdminThemeTokens = {
   /** Pastel blue secondary */
   secondary: string
   secondaryStrong: string
+  /** Optional chrome metrics (Core CSS may also set these on `.admin-shell`) */
+  iconPrimary?: string
+  iconSecondary?: string
+  moduleBorderWidth?: string
+  moduleBorderColor?: string
+  btnPadY?: string
+  btnPadX?: string
+  btnFont?: string
+  btnMinHeight?: string
 }
 
 export type AdminTheme = {

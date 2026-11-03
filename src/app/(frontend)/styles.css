@@ -54,8 +54,8 @@
   --font-body: 'Segoe UI', 'Helvetica Neue', sans-serif;
 
   /* Core admin icon glyphs (cogs primary; grips / X / nav secondary) */
-  --sf-admin-icon-primary: 1.8rem;
-  --sf-admin-icon-secondary: 1.6rem;
+  --sf-admin-icon-primary: 2rem;
+  --sf-admin-icon-secondary: 1.75rem;
 }
 
 * {
@@ -3256,7 +3256,7 @@ button:disabled {
   vertical-align: middle;
 }
 
-/* Soft muted danger — no ketchup-red fill; rose X on quiet chrome. */
+/* Soft muted danger — rose X only; no border/outline box (admin theme overrides colors). */
 .gantry-bar-remove {
   display: inline-flex;
   align-items: center;
@@ -3265,9 +3265,10 @@ button:disabled {
   height: var(--sf-admin-icon-secondary);
   margin: 0;
   padding: 0;
-  border: 1px solid color-mix(in srgb, #c45c5c 28%, var(--sf-line));
+  border: 0;
   border-radius: 2px;
   background: transparent;
+  box-shadow: none;
   color: color-mix(in srgb, #c45c5c 72%, #5a6674);
   font-size: var(--sf-admin-icon-secondary);
   line-height: 1;
@@ -3284,7 +3285,8 @@ button:disabled {
 .gantry-bar-remove:hover,
 .gantry-bar-remove:focus-visible {
   background: color-mix(in srgb, #c45c5c 14%, white);
-  border-color: color-mix(in srgb, #c45c5c 42%, var(--sf-line));
+  border: 0;
+  box-shadow: none;
   color: #c45c5c;
   outline: none;
 }
