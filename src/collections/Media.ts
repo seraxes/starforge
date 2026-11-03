@@ -64,12 +64,13 @@ const applyPipelineBeforeChange: CollectionBeforeChangeHook = async ({ data, req
  * - Max W×H resize on original (no enlargement)
  * - WebP derivatives (thumbnail / card / large) at MEDIA_WEBP_QUALITY
  * - PNG originals kept (no top-level formatOptions) — use purpose=logo for logos
- * - folder + purpose + shared Tags for library filtering
+ * - category (nested) + legacy folder + purpose + shared Tags for library filtering
  * - Core preprocess + this beforeChange share applyMediaPipelineRules
  *
  * Privacy: Form respondent attachments use folder=forms + private=true and are
  * not world-readable via REST/list/file routes. Core admins open them via
- * `/api/admin/form-attachments/[id]`.
+ * `/api/admin/form-attachments/[id]`. Nested Categories browse lives in Core Media;
+ * `folder` stays for Form privacy + migration until fully deprecated.
  *
  * Storage: local `staticDir` by default; Spaces/S3 when STARFORGE_MEDIA_STORAGE=s3
  * (Payload `@payloadcms/storage-s3` plugin — same Media library, no second store).
@@ -80,8 +81,8 @@ export const Media: CollectionConfig = {
   admin: {
     group: 'Content',
     description:
-      'Starforge media library. Prefer Core admin → Media for upload/picker; Payload edit for alt/folder/tags. Form attachments (private) stay admin-only.',
-    defaultColumns: ['filename', 'alt', 'folder', 'purpose', 'tags', 'private', 'updatedAt'],
+      'Starforge media library. Prefer Core admin → Media for upload/picker; Payload edit for alt/category/tags. Form attachments (private) stay admin-only.',
+    defaultColumns: ['filename', 'alt', 'category', 'folder', 'purpose', 'tags', 'private', 'updatedAt'],
     listSearchableFields: ['alt', 'filename', 'folder'],
   },
   access: {
@@ -108,12 +109,23 @@ export const Media: CollectionConfig = {
       required: true,
     },
     {
+      name: 'category',
+      type: 'relationship',
+      relationTo: 'categories',
+      admin: {
+        position: 'sidebar',
+        description:
+          'Primary nested folder (Media Manager tree). Prefer Core library for browse/CRUD.',
+      },
+    },
+    {
       name: 'folder',
       type: 'select',
       defaultValue: 'general',
       options: MEDIA_FOLDERS.map((f) => ({ label: f.label, value: f.value })),
       admin: {
-        description: 'Library category for Core admin filters (not a second media store).',
+        description:
+          'Legacy flat bucket — kept for Form privacy (forms) and migration. Prefer category.',
         position: 'sidebar',
       },
     },

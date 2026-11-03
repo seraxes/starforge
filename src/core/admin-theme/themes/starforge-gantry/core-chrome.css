@@ -2468,6 +2468,103 @@ body:has(.admin-shell) > main {
   cursor: default;
 }
 
+.admin-shell .sf-media-tree-row {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.admin-shell .sf-media-tree-row .sf-media-folder-item {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-shell .sf-media-tree-toggle {
+  flex: 0 0 1.35rem;
+  width: 1.35rem;
+  height: 1.6rem;
+  border: 0;
+  background: transparent;
+  color: #9eb0c4;
+  font: inherit;
+  font-size: 0.75rem;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+}
+
+.admin-shell .sf-media-tree-toggle.is-leaf {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.admin-shell .sf-media-tree-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.05rem;
+  opacity: 0.55;
+}
+
+.admin-shell .sf-media-tree-row:hover .sf-media-tree-actions,
+.admin-shell .sf-media-tree-row.is-current .sf-media-tree-actions {
+  opacity: 1;
+}
+
+.admin-shell .sf-media-tree-action {
+  border: 0;
+  background: transparent;
+  color: #c5d2e0;
+  font: inherit;
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 0.15rem 0.3rem;
+  cursor: pointer;
+  border-radius: 2px;
+}
+
+.admin-shell .sf-media-tree-action:hover:not(:disabled) {
+  background: var(--sf-admin-blue-mid);
+  color: #fff;
+}
+
+.admin-shell .sf-media-tree-children {
+  margin: 0;
+}
+
+.admin-shell .sf-media-tree-create-root {
+  margin-top: 0.75rem;
+}
+
+.admin-shell .sf-media-library-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  margin-bottom: 0.35rem;
+}
+
+.admin-shell .sf-media-library-toolbar > .admin-settings-panel-title {
+  margin: 0;
+}
+
+.admin-shell .sf-media-view-toggle {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.admin-shell .sf-media-view-toggle .gantry-toolbar-btn.is-active,
+.admin-shell .sf-media-view-toggle .gantry-toolbar-btn[aria-pressed='true'] {
+  border-color: var(--sf-admin-blue-border);
+  background: var(--sf-admin-blue-mid);
+  color: #fff;
+}
+
 .admin-shell .sf-media-library-main {
   min-width: 0;
 }
@@ -2517,6 +2614,11 @@ body:has(.admin-shell) > main {
   margin-top: 1rem;
 }
 
+.admin-shell .sf-media-library-grid.is-list {
+  grid-template-columns: 1fr;
+  gap: 0.55rem;
+}
+
 .admin-shell .sf-media-library-empty {
   grid-column: 1 / -1;
   border: 1px dashed var(--sf-admin-panel-border);
@@ -2549,23 +2651,54 @@ body:has(.admin-shell) > main {
   border-color: var(--sf-admin-blue-border);
 }
 
-.admin-shell .sf-media-library-thumb,
-.admin-shell .sf-media-picker-tile img,
-.admin-shell .sf-media-picker-preview img {
-  display: block;
-  width: 100%;
-  aspect-ratio: 1;
-  object-fit: cover;
-  background: #0d1218;
+.admin-shell .sf-media-library-card.is-list {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  align-items: stretch;
 }
 
+.admin-shell .sf-media-library-card.is-list .sf-media-library-thumb {
+  width: 4.5rem;
+  min-height: 4.5rem;
+}
+
+.admin-shell .sf-media-library-card.is-list .sf-media-library-card-body {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem 0.75rem;
+}
+
+.admin-shell .sf-media-library-card.is-list .sf-media-library-card-title {
+  -webkit-line-clamp: 1;
+  flex: 1 1 10rem;
+}
+
+/* Fixed 1:1 thumbs (mosaic + list + picker). */
 .admin-shell .sf-media-library-thumb {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
   border: 0;
   padding: 0;
   margin: 0;
   cursor: pointer;
   color: inherit;
   font: inherit;
+  background: #0d1218;
+}
+
+.admin-shell .sf-media-library-thumb img,
+.admin-shell .sf-media-picker-tile img,
+.admin-shell .sf-media-picker-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  object-position: center;
+  background: #0d1218;
 }
 
 .admin-shell .sf-media-library-thumb:hover:not(:disabled) img,
@@ -2813,8 +2946,10 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .sf-media-picker-preview img {
-  aspect-ratio: 1;
+  aspect-ratio: 1 / 1;
   width: 4.5rem;
+  height: 4.5rem;
+  object-fit: cover;
   border: 2px solid #2a3a4e;
 }
 

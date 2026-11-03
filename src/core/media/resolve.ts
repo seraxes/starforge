@@ -19,7 +19,12 @@ export type ResolvedMedia = {
   mimeType?: string | null
   width?: number | null
   height?: number | null
+  /** Legacy flat folder (kept for Form privacy / migration). */
   folder?: string | null
+  /** Nested Categories id (Phase 2 primary browse). */
+  categoryId?: string | null
+  /** Nested Categories display path / title. */
+  categoryLabel?: string | null
   purpose?: MediaPurpose | null
   filename?: string | null
   /** Shared taxonomy tag ids (SF-132 / SF-148). */
@@ -28,6 +33,27 @@ export type ResolvedMedia = {
   tagLabels?: string[]
   /** Thumbnail / card / large derivative URLs when present. */
   sizes?: Partial<Record<MediaSizeName, string>>
+}
+
+function mediaCategoryMeta(media: Media): {
+  categoryId: string | null
+  categoryLabel: string | null
+} {
+  const raw = media.category
+  if (raw == null) return { categoryId: null, categoryLabel: null }
+  if (typeof raw === 'object' && 'id' in raw) {
+    const id = String(raw.id)
+    const title =
+      typeof (raw as { title?: unknown }).title === 'string'
+        ? String((raw as { title: string }).title).trim()
+        : ''
+    const path =
+      typeof (raw as { path?: unknown }).path === 'string'
+        ? String((raw as { path: string }).path).trim()
+        : ''
+    return { categoryId: id, categoryLabel: path || title || id }
+  }
+  return { categoryId: String(raw), categoryLabel: null }
 }
 
 function mediaTagMeta(media: Media): { tagIds: string[]; tagLabels: string[] } {
@@ -102,6 +128,7 @@ export function toResolvedMedia(
   if (!url) return null
   const absolute = absoluteAssetUrl(url) || url
   const tags = mediaTagMeta(media)
+  const category = mediaCategoryMeta(media)
   const originalUrl = media.url?.trim() || undefined
   return {
     id: String(media.id),
@@ -113,6 +140,8 @@ export function toResolvedMedia(
     width: media.width,
     height: media.height,
     folder: media.folder ?? null,
+    categoryId: category.categoryId,
+    categoryLabel: category.categoryLabel,
     purpose: (media.purpose as MediaPurpose | null | undefined) ?? null,
     filename: media.filename,
     ...(tags.tagIds.length ? { tagIds: tags.tagIds } : {}),
@@ -214,6 +243,9 @@ export async function listMediaTagOptions(): Promise<MediaTagOption[]> {
 
 /** List media for admin library / picker. */
 export async function listMedia(opts?: {
+  /** Nested Categories id (Phase 2). Prefer over folder when both set. */
+  category?: string
+  /** Legacy flat folder — used when category unset (Form / migrate). */
   folder?: string
   purpose?: string
   /** Tag id (Payload tags collection). */
@@ -231,12 +263,16 @@ export async function listMedia(opts?: {
   const limit = Math.min(Math.max(opts?.limit ?? 48, 1), 100)
   const page = Math.max(opts?.page ?? 1, 1)
   const where: Where = {}
+  const category = (opts?.category ?? '').trim()
   const folder = (opts?.folder ?? '').trim()
   const purpose = (opts?.purpose ?? '').trim()
   const tag = (opts?.tag ?? '').trim()
   const q = (opts?.q ?? '').trim()
 
-  if (folder && folder !== 'all') {
+  if (category && category !== 'all') {
+    const categoryId = Number(category)
+    where.category = { equals: Number.isFinite(categoryId) ? categoryId : category }
+  } else if (folder && folder !== 'all') {
     where.folder = { equals: folder }
   }
   if (purpose && purpose !== 'all') {
@@ -260,7 +296,7 @@ export async function listMedia(opts?: {
     limit,
     page,
     sort: '-createdAt',
-    // depth 1 so tag titles show on library cards
+    // depth 1 so tag + category titles show on library cards
     depth: 1,
     overrideAccess: true,
   })
@@ -272,6 +308,7 @@ export async function listMedia(opts?: {
     else {
       const m = raw as Media
       const tags = mediaTagMeta(m)
+      const categoryMeta = mediaCategoryMeta(m)
       docs.push({
         id: String(m.id),
         alt: m.alt || '',
@@ -282,6 +319,8 @@ export async function listMedia(opts?: {
         width: m.width,
         height: m.height,
         folder: m.folder ?? null,
+        categoryId: categoryMeta.categoryId,
+        categoryLabel: categoryMeta.categoryLabel,
         purpose: (m.purpose as MediaPurpose | null | undefined) ?? null,
         filename: m.filename,
         ...(tags.tagIds.length ? { tagIds: tags.tagIds } : {}),

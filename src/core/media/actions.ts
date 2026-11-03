@@ -10,6 +10,15 @@ import {
   STARFORGE_PIPELINE_APPLIED,
   applyMediaPipelineRules,
 } from './apply-pipeline'
+import type { MediaCategoryNode } from './categories'
+import {
+  createMediaCategory,
+  deleteMediaCategory,
+  ensureLegacyCategoryRoots,
+  listMediaCategoryTree,
+  renameMediaCategory,
+  resolveFolderForCategory,
+} from './category-store'
 import {
   normalizeMediaFolder,
   normalizeMediaPipelineRules,
@@ -50,6 +59,7 @@ async function requireMediaAdmin(): Promise<MediaActionState | null> {
 }
 
 export async function listMediaAction(input?: {
+  category?: string
   folder?: string
   purpose?: string
   tag?: string
@@ -84,6 +94,70 @@ export async function listMediaTagOptionsAction(): Promise<{
   }
 }
 
+/** Nested Categories tree for Media library sidebar / picker. */
+export async function listMediaCategoryTreeAction(): Promise<{
+  error?: string
+  tree?: MediaCategoryNode[]
+}> {
+  const denied = await requireMediaAdmin()
+  if (denied) return { error: denied.error }
+
+  try {
+    await ensureLegacyCategoryRoots()
+    const tree = await listMediaCategoryTree()
+    return { tree }
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Failed to list folders.' }
+  }
+}
+
+export async function createMediaCategoryAction(
+  _prev: MediaActionState,
+  formData: FormData,
+): Promise<MediaActionState> {
+  const denied = await requireMediaAdmin()
+  if (denied) return denied
+
+  const title = String(formData.get('title') ?? '').trim()
+  const parentId = String(formData.get('parentId') ?? '').trim()
+  const result = await createMediaCategory({
+    title,
+    parentId: parentId && parentId !== 'all' ? parentId : null,
+  })
+  if (result.error) return { error: result.error }
+  revalidatePath('/app/admin/media')
+  return { ok: true, message: 'Folder created.' }
+}
+
+export async function renameMediaCategoryAction(
+  _prev: MediaActionState,
+  formData: FormData,
+): Promise<MediaActionState> {
+  const denied = await requireMediaAdmin()
+  if (denied) return denied
+
+  const id = String(formData.get('id') ?? '').trim()
+  const title = String(formData.get('title') ?? '').trim()
+  const result = await renameMediaCategory({ id, title })
+  if (result.error) return { error: result.error }
+  revalidatePath('/app/admin/media')
+  return { ok: true, message: 'Folder renamed.' }
+}
+
+export async function deleteMediaCategoryAction(
+  _prev: MediaActionState,
+  formData: FormData,
+): Promise<MediaActionState> {
+  const denied = await requireMediaAdmin()
+  if (denied) return denied
+
+  const id = String(formData.get('id') ?? '').trim()
+  const result = await deleteMediaCategory({ id })
+  if (result.error) return { error: result.error }
+  revalidatePath('/app/admin/media')
+  return { ok: true, message: 'Folder deleted.' }
+}
+
 export async function uploadMediaAction(
   _prev: MediaActionState,
   formData: FormData,
@@ -100,12 +174,37 @@ export async function uploadMediaAction(
   }
 
   const alt = String(formData.get('alt') ?? '').trim() || file.name.replace(/\.[^.]+$/, '') || 'Image'
-  const folder = normalizeMediaFolder(String(formData.get('folder') ?? 'general'))
+  const categoryRaw = String(formData.get('category') ?? '').trim()
+  const folderRaw = String(formData.get('folder') ?? '').trim()
   const purpose = normalizeMediaPurpose(String(formData.get('purpose') ?? 'photo'))
   const tagRaw = String(formData.get('tag') ?? '').trim()
 
   try {
     const payload = await getPayload({ config })
+    await ensureLegacyCategoryRoots()
+
+    let categoryId: number | null = null
+    if (categoryRaw && categoryRaw !== 'all') {
+      const n = Number(categoryRaw)
+      if (Number.isFinite(n)) categoryId = n
+    }
+
+    const folder = categoryId
+      ? await resolveFolderForCategory(String(categoryId))
+      : normalizeMediaFolder(folderRaw || 'general')
+
+    // If only legacy folder was posted (picker defaultFolder), map onto category when possible.
+    if (!categoryId && folderRaw) {
+      const bySlug = await payload.find({
+        collection: 'categories',
+        where: { slug: { equals: normalizeMediaFolder(folderRaw) } },
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
+      })
+      if (bySlug.docs[0]) categoryId = Number(bySlug.docs[0].id)
+    }
+
     const raw = Buffer.from(await file.arrayBuffer())
     const rules = await getMediaPipelineRules()
     const processed = await applyMediaPipelineRules({
@@ -126,6 +225,7 @@ export async function uploadMediaAction(
         alt,
         folder,
         purpose,
+        ...(categoryId != null && Number.isFinite(categoryId) ? { category: categoryId } : {}),
         ...(Number.isFinite(tagId) ? { tags: [tagId] } : {}),
       },
       file: {

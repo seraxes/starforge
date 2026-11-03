@@ -71,6 +71,7 @@ export interface Config {
     media: Media;
     pages: Page;
     tags: Tag;
+    categories: Category;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -82,6 +83,7 @@ export interface Config {
     media: MediaSelect<false> | MediaSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
     tags: TagsSelect<false> | TagsSelect<true>;
+    categories: CategoriesSelect<false> | CategoriesSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -157,6 +159,13 @@ export interface User {
 export interface Media {
   id: number;
   alt: string;
+  /**
+   * Primary nested folder (Media Manager tree). Prefer Core library for browse/CRUD.
+   */
+  category?: (number | null) | Category;
+  /**
+   * Legacy flat bucket — kept for Form privacy (forms) and migration. Prefer category.
+   */
   folder?: ('general' | 'logos' | 'backgrounds' | 'pages' | 'forms') | null;
   purpose?: ('photo' | 'logo' | 'other') | null;
   /**
@@ -279,6 +288,32 @@ export interface Tag {
   createdAt: string;
 }
 /**
+ * Nested media folders (shared taxonomy). This interface was referenced by
+ * `Config`'s JSON-Schema via the definition "categories".
+ */
+export interface Category {
+  id: number;
+  title: string;
+  /**
+   * Stable key (legacy flat folders seed as general, logos, …).
+   */
+  slug: string;
+  /**
+   * Leave empty for a root folder. Max nested depth 6.
+   */
+  parent?: (number | null) | Category;
+  /**
+   * Derived breadcrumb (root → leaf).
+   */
+  path?: string | null;
+  /**
+   * 0 = root. Enforced max 6.
+   */
+  depth?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -317,6 +352,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'tags';
         value: number | Tag;
+      } | null)
+    | ({
+        relationTo: 'categories';
+        value: number | Category;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -383,6 +422,7 @@ export interface UsersSelect<T extends boolean = true> {
  */
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
+  category?: T;
   folder?: T;
   purpose?: T;
   tags?: T;
@@ -461,6 +501,19 @@ export interface TagsSelect<T extends boolean = true> {
   title?: T;
   slug?: T;
   description?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "categories_select".
+ */
+export interface CategoriesSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  parent?: T;
+  path?: T;
+  depth?: T;
   updatedAt?: T;
   createdAt?: T;
 }
