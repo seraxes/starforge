@@ -91,10 +91,7 @@ export const sfSessions = pgTable(
     userId: text('user_id')
       .notNull()
       .references(() => sfUsers.id, { onDelete: 'cascade' }),
-    /**
-     * Better Auth admin plugin field (required once the plugin is enabled).
-     * Column: `impersonated_by`. Apply with `npm run db:core:push` after pull.
-     */
+    /** Better Auth admin plugin — column `impersonated_by` (Core baseline). */
     impersonatedBy: text('impersonated_by'),
   },
   (table) => [index('sf_sessions_user_id_idx').on(table.userId)],

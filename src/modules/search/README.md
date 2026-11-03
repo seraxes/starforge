@@ -12,7 +12,7 @@ Public findability over **published** Payload pages — title, slug, meta title/
 
 ## DB
 
-Tags live in Payload (`tags` + `pages.tags` → `payload.pages_rels`). After pull, run `npm run db:migrate` so `20261103_181356_pages_tags_taxonomy` exists — otherwise published page loads fail joining `pages_rels`. Local push-era DBs: volume reset, then migrate + seed (see root README).
+Tags live in Payload (`tags` + `pages.tags` → `payload.pages_rels`). After pull, run `npm run db:migrate` (Core + Payload). That migration also ensures `payload_locked_documents_rels.tags_id`. Local push-era DBs: volume reset, then migrate + seed (see root README Windows sequences).
 
 ## Deferred
 

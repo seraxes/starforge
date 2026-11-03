@@ -92,11 +92,43 @@ npm run dev
 | `db:core:migrate` | Apply Core migrations (CI / deploy) |
 | `db:core:push` | **Local scratch only** — never prod |
 | `payload:migrate` / `payload:migrate:create` | Payload `payload` schema |
-| `db:migrate` | `db:core:migrate && payload:migrate` |
+| `db:migrate` | Core Drizzle (`sf_*`) **then** Payload (`payload.*`), then verifies `sf_sessions` + `payload_locked_documents_rels.tags_id` |
+
+**Always use `npm run db:migrate`** after pull / volume reset — it applies **both** Core and Payload. Running only `payload:migrate` leaves Better Auth tables (`sf_sessions`, …) missing.
 
 **Existing push-created DBs:** either reset (`docker compose down -v && docker compose up -d` then `npm run db:migrate`), or mark the Core baseline applied by inserting its hash into `drizzle.__drizzle_migrations` (see `src/core/db/migrations/meta/_journal.json` for the tag). Payload’s `payload migrate` tracks its own table — after a push-era DB, prefer a volume reset, or run `payload migrate` only if the schema already matches and you need the journal row.
 
-**After SF-132 taxonomy (#87) / SF-139 migrate path (#85):** Payload pages always join `payload.pages_rels` (for `pages.tags`). DBs that only have the Payload baseline (or were created with `STARFORGE_PAYLOAD_PUSH=1` before tags) need `npm run db:migrate` so `20261103_181356_pages_tags_taxonomy` creates `tags`, `pages_rels`, and `_pages_v_rels`. Prefer a volume reset on local push-era DBs, then migrate + seed — do not rely on push alone for shared/CI.
+**After SF-132 taxonomy / SF-148 media tags:** Payload needs `tags`, `pages_rels`, `_pages_v_rels`, `media_rels`, and `payload_locked_documents_rels.tags_id`. Prefer a volume reset on local push-era DBs, then migrate + seed — do not rely on `STARFORGE_PAYLOAD_PUSH=1` for shared/CI.
+
+#### Local volume reset (Windows)
+
+Run from the repo root (`…\starforge`). Docker Desktop must be **Running**.
+
+**CMD:**
+
+```bat
+cd %USERPROFILE%\starforge
+git pull
+docker compose down -v
+docker compose up -d
+npm run db:migrate
+npm run seed
+npm run dev
+```
+
+**PowerShell:**
+
+```powershell
+cd $env:USERPROFILE\starforge
+git pull
+docker compose down -v
+docker compose up -d
+npm run db:migrate
+npm run seed
+npm run dev
+```
+
+`db:migrate` must print Core then Payload steps and end with a verification line for `sf_sessions` + `tags_id`. If either is missing, fix migrate before `seed` / `dev`.
 
 Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so cookies and CSRF stay consistent):
 
@@ -525,10 +557,11 @@ npm run dev
 2. **Port 5432 or 3000 in use** — stop the other process, or change the host port in `docker-compose.yml` / Next’s port (`npm run dev -- -p 3001`).
 3. **Payload admin import errors after upgrading** — run `npm run generate:importmap`.
 4. **Fresh DB without `payload` schema** — Compose mounts `init.sql` only on first volume create. If you need to recreate: `docker compose down -v && docker compose up -d`.
-5. **Auth tables missing / Better Auth schema errors** — run `npm run db:migrate` with Compose up and `.env` loaded (or `db:core:push` on a local scratch DB only).
+5. **Auth tables missing / Better Auth schema errors / `Failed query` on `sf_sessions`** — Core tables live in `public` and come from Drizzle (`0000_baseline` includes `sf_sessions`). Run **`npm run db:migrate`** (not Payload-only). After a volume reset, use the Windows CMD/PowerShell sequence under Database migrations. Scratch-only fallback: `db:core:push`.
 6. **`column "impersonated_by" does not exist` (or missing `role` / `banned` / `two_factor_enabled` on `sf_users`, or missing `sf_two_factors`)** — code already defines these in `src/core/db/schema.ts`; your Postgres is behind. With Compose up: prefer `docker compose down -v` then `npm run db:migrate`, or `db:core:push` on scratch only; restart `npm run dev`.
 7. **Seed fails on demo app user** — ensure `npm run db:migrate` succeeded; pages may still have been created.
 8. **Windows** — use PowerShell or Command Prompt from the repo root; ensure Docker Desktop is **Running** before `docker compose up -d`. Copy env with `copy .env.example .env` if `cp` is unavailable. Always open the app as `http://localhost:3000` (mixing `127.0.0.1` can break sessions).
-9. **Login says invalid email/password after register** — restart `npm run dev`; register a **new** email (or use seed demo); sign in with that **email**. Last resort: `docker compose down -v && docker compose up -d` then `npm run db:migrate` and `npm run seed`.
+9. **Login says invalid email/password after register** — restart `npm run dev`; register a **new** email (or use seed demo); sign in with that **email**. Last resort: volume reset + `npm run db:migrate` + `npm run seed` (Windows sequences above).
 10. **Payload `/admin` asks for a password or denies access** — confirm migrations applied `cms_access`, re-run `npm run seed`, sign in at `/login` first, then open `/admin`. Members need the Users **CMS access** switch On.
-11. **`Failed query` / `relation "payload.pages_rels" does not exist` (home `/` or published pages)** — SF-132 added `pages.tags`; Payload depth queries join `pages_rels`. Run `npm run db:migrate` (applies `20261103_181356_pages_tags_taxonomy`). If the DB was created with push before migrations: `docker compose down -v && docker compose up -d`, then `npm run db:migrate` and `npm run seed`.
+11. **`Failed query` / `relation "payload.pages_rels" does not exist` (home `/` or published pages)** — SF-132 added `pages.tags`; Payload depth queries join `pages_rels`. Run `npm run db:migrate` (taxonomy + media-tags migrations). Push-era DB: volume reset, then migrate + seed.
+12. **`Failed query` / missing `tags_id` on `payload.payload_locked_documents_rels`** — Tags taxonomy requires that column for document locks. `npm run db:migrate` applies it (idempotent). If migrate previously failed mid-chain, pull latest, run `db:migrate` again, or volume-reset then migrate + seed.
