@@ -96,6 +96,8 @@ npm run dev
 
 **Existing push-created DBs:** either reset (`docker compose down -v && docker compose up -d` then `npm run db:migrate`), or mark the Core baseline applied by inserting its hash into `drizzle.__drizzle_migrations` (see `src/core/db/migrations/meta/_journal.json` for the tag). Payload’s `payload migrate` tracks its own table — after a push-era DB, prefer a volume reset, or run `payload migrate` only if the schema already matches and you need the journal row.
 
+**After SF-132 taxonomy (#87) / SF-139 migrate path (#85):** Payload pages always join `payload.pages_rels` (for `pages.tags`). DBs that only have the Payload baseline (or were created with `STARFORGE_PAYLOAD_PUSH=1` before tags) need `npm run db:migrate` so `20261103_181356_pages_tags_taxonomy` creates `tags`, `pages_rels`, and `_pages_v_rels`. Prefer a volume reset on local push-era DBs, then migrate + seed — do not rely on push alone for shared/CI.
+
 Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so cookies and CSRF stay consistent):
 
 | URL | What |
@@ -529,3 +531,4 @@ npm run dev
 8. **Windows** — use PowerShell or Command Prompt from the repo root; ensure Docker Desktop is **Running** before `docker compose up -d`. Copy env with `copy .env.example .env` if `cp` is unavailable. Always open the app as `http://localhost:3000` (mixing `127.0.0.1` can break sessions).
 9. **Login says invalid email/password after register** — restart `npm run dev`; register a **new** email (or use seed demo); sign in with that **email**. Last resort: `docker compose down -v && docker compose up -d` then `npm run db:migrate` and `npm run seed`.
 10. **Payload `/admin` asks for a password or denies access** — confirm migrations applied `cms_access`, re-run `npm run seed`, sign in at `/login` first, then open `/admin`. Members need the Users **CMS access** switch On.
+11. **`Failed query` / `relation "payload.pages_rels" does not exist` (home `/` or published pages)** — SF-132 added `pages.tags`; Payload depth queries join `pages_rels`. Run `npm run db:migrate` (applies `20261103_181356_pages_tags_taxonomy`). If the DB was created with push before migrations: `docker compose down -v && docker compose up -d`, then `npm run db:migrate` and `npm run seed`.
