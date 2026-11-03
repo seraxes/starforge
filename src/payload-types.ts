@@ -157,6 +157,10 @@ export interface Media {
   alt: string;
   folder?: ('general' | 'logos' | 'backgrounds' | 'pages' | 'forms') | null;
   purpose?: ('photo' | 'logo' | 'other') | null;
+  /**
+   * When set (Form respondent uploads), hide from public Media list/API. Serve via Core admin attachment route.
+   */
+  private?: boolean | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;

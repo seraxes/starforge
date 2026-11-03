@@ -1,6 +1,6 @@
 import path from 'path'
 import { fileURLToPath } from 'url'
-import type { CollectionConfig } from 'payload'
+import type { CollectionConfig, Where } from 'payload'
 
 import {
   MEDIA_CARD_WIDTH,
@@ -27,6 +27,10 @@ const dirname = path.dirname(filename)
  * - JPEG original re-encode quality: deferred (avoid fighting Payload upload order);
  *   dimension cap + WebP sizes cover the bulk of weight today
  *
+ * Privacy: Form respondent attachments use folder=forms + private=true and are
+ * not world-readable via REST/list/file routes. Core admins open them via
+ * `/api/admin/form-attachments/[id]`.
+ *
  * Storage: local `staticDir` by default; Spaces/S3 when STARFORGE_MEDIA_STORAGE=s3
  * (Payload `@payloadcms/storage-s3` plugin — same Media library, no second store).
  */
@@ -35,12 +39,23 @@ export const Media: CollectionConfig = {
   admin: {
     group: 'Content',
     description:
-      'Starforge media library. Prefer Core admin → Media for upload/picker; Payload edit for alt/folder.',
-    defaultColumns: ['filename', 'alt', 'folder', 'purpose', 'updatedAt'],
+      'Starforge media library. Prefer Core admin → Media for upload/picker; Payload edit for alt/folder. Form attachments (private) stay admin-only.',
+    defaultColumns: ['filename', 'alt', 'folder', 'purpose', 'private', 'updatedAt'],
     listSearchableFields: ['alt', 'filename', 'folder'],
   },
   access: {
-    read: () => true,
+    // Anonymous: public library only. Form intake (folder=forms / private) requires a CMS user
+    // (Payload admin) or Core's admin-gated attachment route (overrideAccess).
+    read: ({ req: { user } }) => {
+      if (user) return true
+      const where: Where = {
+        and: [
+          { private: { not_equals: true } },
+          { folder: { not_equals: 'forms' } },
+        ],
+      }
+      return where
+    },
   },
   fields: [
     {
@@ -69,10 +84,21 @@ export const Media: CollectionConfig = {
         position: 'sidebar',
       },
     },
+    {
+      name: 'private',
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        description:
+          'When set (Form respondent uploads), hide from public Media list/API. Serve via Core admin attachment route.',
+        position: 'sidebar',
+      },
+    },
   ],
   upload: {
     staticDir: path.resolve(dirname, '../../media'),
     // Images + common Form attachment types (single library; Form tags folder=forms).
+    // Anonymous Form path additionally rejects SVG (see form-upload.ts).
     mimeTypes: [
       'image/*',
       'application/pdf',

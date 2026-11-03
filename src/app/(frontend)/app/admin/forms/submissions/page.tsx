@@ -52,8 +52,8 @@ export default async function AdminFormSubmissionsPage() {
       <p className="lede admin-lede">
         Deep-link inbox only (Submissions is not in Core/Payload nav or Forms tabs). Reach here from{' '}
         <Link href="/app/admin/forms/settings">Forms → Settings</Link>. Definitions live under{' '}
-        <Link href="/app/admin/forms">Forms</Link>. File fields store Payload Media ids (open via{' '}
-        <code>/api/media/&lt;id&gt;</code>).
+        <Link href="/app/admin/forms">Forms</Link>. File fields store private Payload Media ids
+        (open via <code>/api/admin/form-attachments/&lt;id&gt;</code>, admins only).
       </p>
 
       {submissions.length === 0 ? (
@@ -95,7 +95,17 @@ export default async function AdminFormSubmissionsPage() {
                         {Object.entries(row.payload).map(([k, v]) => (
                           <div key={k}>
                             <dt>{k}</dt>
-                            <dd>{v || '—'}</dd>
+                            <dd>
+                              {v &&
+                              /^\d+$/.test(v.trim()) &&
+                              /file|attach|upload|document|resume|photo|image/i.test(k) ? (
+                                <a href={`/api/admin/form-attachments/${v.trim()}`}>
+                                  Attachment #{v.trim()}
+                                </a>
+                              ) : (
+                                v || '—'
+                              )}
+                            </dd>
                           </div>
                         ))}
                       </dl>

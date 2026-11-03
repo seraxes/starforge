@@ -167,17 +167,36 @@ function normalizeStringConstraints(raw: unknown): FormStringConstraints | undef
   return out
 }
 
+/** Hard ceiling — keep in sync with FORM_FILE_HARD_MAX_BYTES / next.config bodySizeLimit. */
+const FORM_UPLOAD_HARD_MAX_BYTES = 10 * 1024 * 1024
+
+function sanitizeFormAccept(raw: string): string {
+  return raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .filter((token) => {
+      const lower = token.toLowerCase()
+      return lower !== 'image/svg+xml' && lower !== '.svg' && lower !== '.svgz'
+    })
+    .map((token) => (token.toLowerCase() === 'image/*' ? 'image/png,image/jpeg,image/gif,image/webp' : token))
+    .join(',')
+}
+
 function normalizeFileUpload(raw: unknown): FormFileUploadConfig | undefined {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
   const row = raw as Record<string, unknown>
   const out: FormFileUploadConfig = {}
-  if (typeof row.accept === 'string' && row.accept.trim()) out.accept = row.accept.trim()
+  if (typeof row.accept === 'string' && row.accept.trim()) {
+    const accept = sanitizeFormAccept(row.accept)
+    if (accept) out.accept = accept
+  }
   if (
     typeof row.maxSizeBytes === 'number' &&
     Number.isFinite(row.maxSizeBytes) &&
     row.maxSizeBytes > 0
   ) {
-    out.maxSizeBytes = Math.floor(row.maxSizeBytes)
+    out.maxSizeBytes = Math.min(Math.floor(row.maxSizeBytes), FORM_UPLOAD_HARD_MAX_BYTES)
   }
   if (!out.accept && out.maxSizeBytes == null) return undefined
   return out
@@ -489,7 +508,10 @@ export function createFieldDraft(type: FormFieldType = 'text'): FormFieldDef {
     draft.defaultValue = ''
   }
   if (type === 'file') {
-    draft.upload = { accept: 'image/*,application/pdf', maxSizeBytes: 10 * 1024 * 1024 }
+    draft.upload = {
+      accept: 'image/png,image/jpeg,image/gif,image/webp,application/pdf',
+      maxSizeBytes: FORM_UPLOAD_HARD_MAX_BYTES,
+    }
   }
   return draft
 }
