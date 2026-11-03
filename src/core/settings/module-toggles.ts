@@ -22,6 +22,7 @@ export const MODULE_IDS = {
   posts: 'product:posts',
   draftPreview: 'product:draft-preview',
   forms: 'product:forms',
+  redirects: 'product:redirects',
 } as const
 
 /** Core pieces that cannot be turned off. */

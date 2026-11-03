@@ -14,6 +14,7 @@ export const ACL_ADMIN_RESOURCES = [
   { key: 'admin.environment', label: 'Environment (.env.local)' },
   { key: 'admin.nav', label: 'Navigation manager' },
   { key: 'admin.forms', label: 'Forms' },
+  { key: 'admin.redirects', label: 'Redirects' },
   { key: 'admin.layouts', label: 'Layouts' },
   { key: 'admin.page-settings', label: 'Page settings' },
   { key: 'admin.cms', label: 'Payload CMS' },

@@ -103,8 +103,10 @@ Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so coo
 | http://localhost:3000/app/admin/settings | Starforge admin — Modules on/off + primary nav menu assignment |
 | http://localhost:3000/app/admin/nav | Starforge admin — **Nav** manager (navigation sets + items) |
 | http://localhost:3000/app/admin/forms | Starforge admin — **Forms** definitions + builder + settings |
+| http://localhost:3000/app/admin/redirects | Starforge admin — **Redirects** (from → to + status; module `product:redirects`) |
 | http://localhost:3000/app/admin/media | Starforge admin — **Media** library (Payload store + resize/WebP pipeline) |
-| http://localhost:3000/robots.txt | Site Chrome robots.txt snippet |
+| http://localhost:3000/robots.txt | Site Chrome robots.txt snippet (+ Sitemap line) |
+| http://localhost:3000/sitemap.xml | Published Payload pages sitemap |
 | http://localhost:3000/app/admin/layouts | Starforge admin — **Layouts** (hover submenu) → **Layout** canvas (default) |
 | http://localhost:3000/app/admin/page-settings | Starforge admin — **Layouts → Page settings** (Head / Assets / Body / FA / Atoms) |
 | http://localhost:3000/api/me | Current app session JSON including `role` / `isAdmin` (`401` when signed out) |
@@ -147,6 +149,8 @@ Global app admins still open all Core admin today; the matrix is the enforcement
 **Nav** is a **top-level** Core admin item (`/app/admin/nav`, sibling of Users / Site Chrome / Site settings / Layouts): multiple named **navigation sets** (menus) in `sf_nav_menus`, each with items (CMS page, URL, or module view; reorder; copy/paste; CSS class; browser/page title; multi-select access tags). Site Settings only **assigns** which set is the site primary header menu — not nested under Site Chrome.
 
 **Forms** (`/app/admin/forms`, gated by Modules → **Forms** / `product:forms`) is the modular Form engine: visual builder (dnd-kit → JSON Schema / Zod), definitions in `sf_forms`, submissions in `sf_form_submissions`. Place the **Form** particle on the layout canvas and bind a definition (Contact preset ships ready; survey/event/voting/ticket are stubs). Optional Site Chrome captcha (Turnstile) when the form opts into the site default. Email-on-submit uses the platform **Mailer** (Site Chrome enable / provider / From). Run `npm run db:core:push` after pull so `sf_forms` / `definition_id` exist.
+
+**Redirects** (`/app/admin/redirects`, gated by Modules → **Redirects** / `product:redirects`) stores `from` / `to` / status (301·302·307·308) in `sf_redirects`. Middleware looks up enabled rules before offline / page render. **Sitemap** (`/sitemap.xml`) lists published Payload pages (home slug `home` → `/`) and is always available — not gated by the Redirects toggle. Run `npm run db:core:push` after pull so `sf_redirects` exists.
 
 One Payload global (`site-settings`) holds synced site name, `primaryNavMenuId`, capability flags, and module toggles. Core admins edit Modules at **`/app/admin/settings`**. CMS editors can edit the same document under Payload **Globals → Site settings** (legacy `primaryNav` array is a fallback only).
 

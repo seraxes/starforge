@@ -2032,6 +2032,53 @@ button:disabled {
   gap: 1.25rem;
 }
 
+.sf-redirects-manager {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.sf-redirect-row-grid {
+  display: grid;
+  grid-template-columns: minmax(8rem, 1.2fr) minmax(8rem, 1.4fr) 5.5rem auto auto auto;
+  gap: 0.65rem 0.75rem;
+  align-items: end;
+}
+
+.sf-redirect-row-actions,
+.sf-redirect-row-secondary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.sf-redirect-row-secondary {
+  margin-top: 0.5rem;
+}
+
+.sf-redirect-note {
+  margin: 0.35rem 0 0;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 960px) {
+  .sf-redirect-row-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Modular Form builder (SF-65) */
 .sf-form-builder {
   display: flex;

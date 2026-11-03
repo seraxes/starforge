@@ -1,11 +1,19 @@
+import { appOrigin } from '@/core/content/metadata'
 import { getSiteChrome } from '@/core/site-chrome'
 
 export const dynamic = 'force-dynamic'
 
-/** Serve Site Chrome robots.txt snippet at /robots.txt. */
+/**
+ * Serve Site Chrome robots.txt at /robots.txt.
+ * Appends an absolute Sitemap line when the snippet has none.
+ */
 export async function GET() {
   const chrome = await getSiteChrome()
-  const body = chrome.robotsTxt.trimEnd() + '\n'
+  let body = chrome.robotsTxt.trimEnd()
+  if (!/^\s*Sitemap\s*:/im.test(body)) {
+    body = `${body}\n\nSitemap: ${appOrigin()}/sitemap.xml`
+  }
+  body = `${body}\n`
   return new Response(body, {
     status: 200,
     headers: {

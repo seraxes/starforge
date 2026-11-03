@@ -12,6 +12,8 @@ export const DEFAULT_ROBOTS_META = 'index, follow'
 
 export const DEFAULT_ROBOTS_TXT = `User-agent: *
 Allow: /
+
+Sitemap: /sitemap.xml
 `
 
 export const DEFAULT_OFFLINE_MESSAGE =

@@ -33,5 +33,8 @@ export function isOfflineExemptPath(pathname: string): boolean {
   if (pathname.startsWith('/admin')) return true
   if (pathname.startsWith('/app/')) return true
   if (pathname.startsWith('/_next/')) return true
+  // SEO surfaces stay reachable while the HTML site is offline.
+  if (pathname === '/robots.txt') return true
+  if (pathname === '/sitemap.xml' || pathname.startsWith('/sitemap')) return true
   return false
 }

@@ -31,6 +31,68 @@ function withPathnameHeader(request: NextRequest, pathname: string): NextRespons
   })
 }
 
+function isRedirectLookupExemptPath(pathname: string): boolean {
+  if (pathname.startsWith('/api/')) return true
+  if (pathname.startsWith('/admin')) return true
+  if (pathname.startsWith('/app/')) return true
+  if (pathname.startsWith('/_next/')) return true
+  if (pathname === '/sitemap.xml' || pathname.startsWith('/sitemap')) return true
+  if (pathname === '/robots.txt') return true
+  return false
+}
+
+/**
+ * product:redirects — apply enabled from→to before offline / page render.
+ * Fail-open when the lookup API is down or the module is off.
+ */
+async function maybeRedirect(request: NextRequest): Promise<NextResponse | null> {
+  const { pathname } = request.nextUrl
+  if (isRedirectLookupExemptPath(pathname)) return null
+
+  try {
+    const lookupUrl = new URL('/api/redirects/lookup', request.url)
+    lookupUrl.searchParams.set('path', pathname)
+    const lookupRes = await fetch(lookupUrl, { cache: 'no-store' })
+    if (!lookupRes.ok) return null
+    const data = (await lookupRes.json()) as {
+      hit?: boolean
+      to?: string
+      status?: number
+    }
+    if (!data.hit || typeof data.to !== 'string' || !data.to) return null
+
+    const status =
+      data.status === 301 ||
+      data.status === 302 ||
+      data.status === 307 ||
+      data.status === 308
+        ? data.status
+        : 301
+
+    let destination: URL
+    if (/^https?:\/\//i.test(data.to)) {
+      destination = new URL(data.to)
+    } else {
+      destination = request.nextUrl.clone()
+      destination.pathname = data.to.startsWith('/') ? data.to : `/${data.to}`
+      destination.search = ''
+      destination.hash = ''
+    }
+
+    // Avoid redirect loops onto the same path.
+    if (
+      destination.origin === request.nextUrl.origin &&
+      destination.pathname === pathname
+    ) {
+      return null
+    }
+
+    return NextResponse.redirect(destination, status)
+  } catch {
+    return null
+  }
+}
+
 /**
  * When Site Chrome offline mode locks public HTML, rewrite to the 503 route
  * (URL stays the visitor path). Skips /api, /admin, /app, login, health, etc.
@@ -63,15 +125,17 @@ async function maybeRewriteOffline(request: NextRequest): Promise<NextResponse |
 
 /**
  * Stash pathname for Page Settings chrome resolution (public layouts).
- * Site Chrome offline → rewrite public HTML to 503.
+ * product:redirects lookup → Site Chrome offline 503 → continue.
  * Also: never let Payload render `/admin/login` (stock email/password form).
  * Core Better Auth is the only sign-in; `/api/cms/exchange` mints `payload-token`.
  */
 export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl
 
-  // Public + app routes: offline gate (HTML) + pathname for RSC layouts.
+  // Public + app routes: redirects → offline gate (HTML) + pathname for RSC layouts.
   if (!pathname.startsWith('/admin') && !pathname.startsWith('/api')) {
+    const redirected = await maybeRedirect(request)
+    if (redirected) return redirected
     const offline = await maybeRewriteOffline(request)
     if (offline) return finalize(offline)
     return finalize(withPathnameHeader(request, pathname))

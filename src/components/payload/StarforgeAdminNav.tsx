@@ -30,6 +30,7 @@ export default async function StarforgeAdminNav(props: ServerProps) {
     flags: {
       nav: isCatalogModuleEnabled(settings, MODULE_IDS.primaryNav),
       forms: isCatalogModuleEnabled(settings, MODULE_IDS.forms),
+      redirects: isCatalogModuleEnabled(settings, MODULE_IDS.redirects),
       layout: isCatalogModuleEnabled(settings, MODULE_IDS.layoutManager),
       pageSettings: isCatalogModuleEnabled(settings, MODULE_IDS.pageSettings),
       // Payload surface always shows CMS children the user can see.

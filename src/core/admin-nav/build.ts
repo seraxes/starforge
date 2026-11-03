@@ -76,6 +76,14 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
     })
   }
 
+  if (flags.redirects) {
+    groups.push({
+      id: 'redirects',
+      label: 'Redirects',
+      links: [{ href: '/app/admin/redirects', label: 'Redirects' }],
+    })
+  }
+
   groups.push({
     id: 'users',
     label: 'Users',

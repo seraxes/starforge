@@ -13,6 +13,7 @@
     "product:posts",
     "product:draft-preview",
     "product:forms",
+    "product:redirects",
     "page-content",
     "site-header",
     "logo",
