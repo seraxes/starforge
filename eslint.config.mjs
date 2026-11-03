@@ -24,6 +24,24 @@ const eslintConfig = [
     },
   },
   {
+    // SF-141: Core hosts extension points; modules contribute via manifests + generated registry.
+    files: ['src/core/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/modules', '@/modules/*', '@/modules/**'],
+              message:
+                'Core must not import @/modules/**. Use @/generated/* (module-registry) or public Core ports.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     ignores: ['.next/', 'src/payload-types.ts'],
   },
 ]

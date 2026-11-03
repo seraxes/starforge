@@ -1,6 +1,20 @@
-# Extension modules (particles)
+# Extension modules
 
-Product features that hang off Starforge core (not Payload plugins).
+Product packs hang off Starforge Core via **`defineStarforgeModule`** manifests (SF-141).
+Core hosts extension points; packs contribute metadata + lazy import pointers. Codegen
+writes `src/generated/module-registry.ts` — Core may import `@/generated/*` only, not
+`@/modules/**` internals.
+
+## Layout
+
+```
+src/modules/<id>/
+  manifest.ts     # defineStarforgeModule({...}) — codegen reads this eagerly
+  …               # public/, admin/, server/, api.ts as the pack grows
+```
+
+Core-owned platform / builtin particle / atom rows live in
+`src/core/modules/host-manifests.ts`. Packs are aggregated in `manifest-index.ts`.
 
 ## Allowlist (install / build)
 
@@ -10,27 +24,36 @@ Edit [`starforge.modules.json`](../../starforge.modules.json), then:
 npm run modules:generate
 ```
 
-That regenerates [`src/generated/module-registry.ts`](../generated/module-registry.ts). Optional packs use **dynamic `import()`** loaders only when allowlisted — Site Settings still toggles installed modules at runtime.
-
 | Layer | Role |
 | --- | --- |
 | Allowlist | Which packs are installed in this build (no deadweight) |
-| Site Settings → Modules | On/off for installed packs |
+| Site Settings → Modules | On/off for installed packs (derived catalog) |
 
-Override allowlist for one run: `SF_MODULES=platform:better-auth,page-content,product:layout-manager,... npm run modules:generate`.
+Override allowlist for one run: `SF_MODULES=platform:better-auth,page-content,... npm run modules:generate`.
 
-## Particles
+## Packs in this tree
+
+| Id | Path | Notes |
+| --- | --- | --- |
+| `product:forms` | `forms/manifest.ts` | Catalog + admin nav meta; engine still in `src/core/forms` (M4) |
+| `form` | `form/` | Form particle (dynamic import when allowlisted) |
+| `product:consent` | `consent/` | Banner + `publicShell` bodyEnd via generated loaders |
+| `product:redirects` | `redirects/manifest.ts` | Catalog + admin meta; engine still in `src/core/redirects` (M3) |
+| `notice-bar` | `notice-bar/` | Example extension particle |
+
+## Particles (builtin + optional)
 
 | Particle | Id | Notes |
 | --- | --- | --- |
 | Notice bar | `notice-bar` | Extension — allowlist + Modules toggle |
-| Form | `form` | Modular Form engine — needs allowlisted `product:forms` + `form` |
+| Form | `form` | Needs allowlisted `product:forms` + `form` |
 | Page Content | `page-content` | Built-in (core, required) |
 | Site Header | `site-header` | Built-in (core) |
-| Logo / Image | `logo` | Built-in — image (Media/URL) or **text logo** (font/size/weight/color) |
-| Menu | `menu` | Built-in — Nav manager menu set (default = site primary) |
-| Copyright | `copyright` | Built-in — text + auto/manual year + link |
-| Social | `social` | Built-in — platform/url/label/icon list |
-| Custom | `custom` | Built-in HTML/CSS (+ JS stub); free-form escape hatch |
+| Logo / Image | `logo` | Built-in |
+| Menu | `menu` | Built-in |
+| Copyright | `copyright` | Built-in |
+| Social | `social` | Built-in |
+| Custom | `custom` | Built-in escape hatch |
+| Login / Welcome | `login` | Built-in |
 
 Place particles on the canvas at **`/app/admin/layouts`**. See `src/core/modules/README.md`.

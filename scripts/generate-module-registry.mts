@@ -1,7 +1,9 @@
 /**
- * Reads `starforge.modules.json` (or `SF_MODULES`) + installable manifest and writes
+ * Reads `starforge.modules.json` (or `SF_MODULES`) + module manifests and writes
  * `src/generated/module-registry.ts` — only allowlisted optional packs get dynamic import()
- * loaders so unused product modules are not eager-imported (SF-95 / P1).
+ * loaders so unused product modules are not eager-imported (SF-95 / SF-141).
+ *
+ * Manifest source: `defineStarforgeModule` entries via `src/modules/manifest-index.ts`.
  *
  * Usage: npm run modules:generate
  */
@@ -10,10 +12,8 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import {
-  INSTALLABLE_MANIFEST,
-  type InstallableEntry,
-} from '../src/modules/installable-manifest.ts'
+import type { StarforgeModuleManifest } from '../src/core/modules/define-module.ts'
+import { ALL_MODULE_MANIFESTS } from '../src/modules/manifest-index.ts'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const ALLOWLIST_PATH = path.join(ROOT, 'starforge.modules.json')
@@ -24,7 +24,7 @@ type AllowlistFile = {
   modules?: unknown
 }
 
-const FIXED_REQUIRED = INSTALLABLE_MANIFEST.filter((e) => e.required).map((e) => e.id)
+const FIXED_REQUIRED = ALL_MODULE_MANIFESTS.filter((e) => e.required).map((e) => e.id)
 
 function parseSfModulesEnv(raw: string | undefined): string[] | null {
   if (raw == null || !raw.trim()) return null
@@ -51,20 +51,44 @@ function jsonString(value: unknown): string {
   return JSON.stringify(value)
 }
 
-function particleMetaLiteral(entry: InstallableEntry): string {
+function isPlatformOrProduct(kind: StarforgeModuleManifest['kind']): boolean {
+  return kind === 'platform' || kind === 'product'
+}
+
+function isParticleKind(kind: StarforgeModuleManifest['kind']): boolean {
+  return kind === 'particle' || kind === 'particle-pack'
+}
+
+function catalogMetaLiteral(entry: StarforgeModuleManifest): string {
   const parts = [
     `id: ${jsonString(entry.id)}`,
-    `name: ${jsonString(entry.label)}`,
+    `kind: ${jsonString(entry.kind === 'particle-pack' ? 'particle' : entry.kind === 'hero' ? 'product' : entry.kind)}`,
+    `label: ${jsonString(entry.label)}`,
     `description: ${jsonString(entry.description)}`,
     `required: ${entry.required === true}`,
     `defaultEnabled: ${entry.defaultEnabled !== false}`,
+    `installed: true as const`,
   ]
   if (entry.featureFlag) parts.push(`featureFlag: ${jsonString(entry.featureFlag)}`)
   if (entry.navViews?.length) parts.push(`navViews: ${jsonString(entry.navViews)}`)
   return `{ ${parts.join(', ')} }`
 }
 
-function atomMetaLiteral(entry: InstallableEntry): string {
+function particleMetaLiteral(entry: StarforgeModuleManifest): string {
+  const parts = [
+    `id: ${jsonString(entry.id)}`,
+    `name: ${jsonString(entry.label)}`,
+    `description: ${jsonString(entry.description)}`,
+    `required: ${entry.required === true}`,
+    `defaultEnabled: ${entry.defaultEnabled !== false}`,
+    `builtin: ${entry.builtin === true}`,
+  ]
+  if (entry.featureFlag) parts.push(`featureFlag: ${jsonString(entry.featureFlag)}`)
+  if (entry.navViews?.length) parts.push(`navViews: ${jsonString(entry.navViews)}`)
+  return `{ ${parts.join(', ')} }`
+}
+
+function atomMetaLiteral(entry: StarforgeModuleManifest): string {
   const type = entry.id.startsWith('atom:') ? entry.id.slice('atom:'.length) : entry.id
   return `{ type: ${jsonString(type)}, toggleId: ${jsonString(entry.id)}, label: ${jsonString(entry.label)}, description: ${jsonString(entry.description)}, defaultEnabled: ${entry.defaultEnabled !== false} }`
 }
@@ -85,10 +109,17 @@ async function main(): Promise<void> {
     console.log(`[modules:generate] Using ${path.relative(ROOT, ALLOWLIST_PATH)} flavor=${flavor}`)
   }
 
-  const known = new Map(INSTALLABLE_MANIFEST.map((e) => [e.id, e]))
+  const known = new Map(ALL_MODULE_MANIFESTS.map((e) => [e.id, e]))
   const unknown = requested.filter((id) => !known.has(id))
   if (unknown.length) {
     console.warn(`[modules:generate] Ignoring unknown ids: ${unknown.join(', ')}`)
+  }
+
+  const dupes = ALL_MODULE_MANIFESTS.map((e) => e.id).filter(
+    (id, i, arr) => arr.indexOf(id) !== i,
+  )
+  if (dupes.length) {
+    throw new Error(`[modules:generate] Duplicate manifest ids: ${[...new Set(dupes)].join(', ')}`)
   }
 
   let allowlisted = uniqSorted([
@@ -114,23 +145,45 @@ async function main(): Promise<void> {
   allowlisted = uniqSorted([...FIXED_REQUIRED, ...allowlisted])
 
   const allowSet = new Set(allowlisted)
-  const optionalParticles = INSTALLABLE_MANIFEST.filter(
+  const allowlistedEntries = ALL_MODULE_MANIFESTS.filter((e) => allowSet.has(e.id))
+
+  const optionalParticles = allowlistedEntries.filter(
     (e) =>
-      e.kind === 'particle' &&
+      isParticleKind(e.kind) &&
       !e.builtin &&
       e.importPath &&
-      e.exportName &&
-      allowSet.has(e.id),
+      e.exportName,
   )
-  const optionalAtoms = INSTALLABLE_MANIFEST.filter(
-    (e) => e.kind === 'atom' && e.importPath && e.exportName && allowSet.has(e.id),
+  const optionalAtoms = allowlistedEntries.filter(
+    (e) => e.kind === 'atom' && e.importPath && e.exportName,
   )
-  const builtinParticleIds = INSTALLABLE_MANIFEST.filter(
-    (e) => e.kind === 'particle' && e.builtin && allowSet.has(e.id),
-  ).map((e) => e.id)
-  const productPlatformIds = INSTALLABLE_MANIFEST.filter(
-    (e) => (e.kind === 'platform' || e.kind === 'product') && allowSet.has(e.id),
-  ).map((e) => e.id)
+  const builtinParticles = allowlistedEntries.filter(
+    (e) => isParticleKind(e.kind) && e.builtin,
+  )
+  const productPlatform = allowlistedEntries.filter((e) => isPlatformOrProduct(e.kind))
+
+  const publicShellEntries: Array<{
+    moduleId: string
+    slot: string
+    importPath: string
+    exportName: string
+  }> = []
+  for (const entry of allowlistedEntries) {
+    for (const shell of entry.publicShell ?? []) {
+      if (!shell.importPath?.trim()) {
+        console.warn(
+          `[modules:generate] Skipping publicShell on ${entry.id} — missing importPath`,
+        )
+        continue
+      }
+      publicShellEntries.push({
+        moduleId: entry.id,
+        slot: shell.slot,
+        importPath: shell.importPath.trim(),
+        exportName: shell.exportName?.trim() || 'default',
+      })
+    }
+  }
 
   const particleLoaders = optionalParticles
     .map((e) => {
@@ -152,18 +205,42 @@ async function main(): Promise<void> {
     })
     .join(',\n')
 
-  const particleMeta = optionalParticles.map(particleMetaLiteral).join(',\n  ')
+  const publicShellLoaders = publicShellEntries
+    .map((e) => {
+      const loadExpr =
+        e.exportName === 'default'
+          ? `async () => (await import(${jsonString(e.importPath)})).default`
+          : `async () => (await import(${jsonString(e.importPath)})).${e.exportName}`
+      return `  {
+    moduleId: ${jsonString(e.moduleId)},
+    slot: ${jsonString(e.slot)},
+    load: ${loadExpr},
+  }`
+    })
+    .join(',\n')
+
+  const productPlatformMeta = productPlatform.map(catalogMetaLiteral).join(',\n  ')
+  const particleMeta = [...builtinParticles, ...optionalParticles]
+    .map(particleMetaLiteral)
+    .join(',\n  ')
+  const optionalParticleMeta = optionalParticles.map(particleMetaLiteral).join(',\n  ')
   const atomMeta = optionalAtoms.map(atomMetaLiteral).join(',\n  ')
+  const builtinParticleIds = builtinParticles.map((e) => e.id)
+  const productPlatformIds = productPlatform.map((e) => e.id)
 
   const body = `/**
  * AUTO-GENERATED by \`npm run modules:generate\` — do not edit.
- * Source: starforge.modules.json (or SF_MODULES) + src/modules/installable-manifest.ts
+ * Source: starforge.modules.json (or SF_MODULES) + src/modules/manifest-index.ts
  * Flavor: ${flavor}
  * Generated: ${new Date().toISOString()}
  */
 
+import type { ComponentType, ReactNode } from 'react'
+
 import type { StarforgeModule } from '@/core/modules/types'
 import type { StarforgeAtomDefinition } from '@/core/page-settings/types'
+import type { FeatureFlags } from '@/core/settings/defaults'
+import type { ModuleCatalogItem } from '@/core/settings/module-toggles'
 
 export const MODULE_ALLOWLIST_FLAVOR = ${jsonString(flavor)} as const
 
@@ -190,6 +267,14 @@ export const ALLOWLISTED_BUILTIN_PARTICLE_IDS: readonly string[] = ${jsonString(
 /** Platform + product catalog ids installed in this build. */
 export const ALLOWLISTED_PRODUCT_PLATFORM_IDS: readonly string[] = ${jsonString(productPlatformIds)}
 
+/**
+ * Derived Site Settings → Modules rows for platform + product packs.
+ * Replaces the hand-maintained PRODUCT_MODULE_CATALOG.
+ */
+export const ALLOWLISTED_PRODUCT_PLATFORM_META: ModuleCatalogItem[] = [
+  ${productPlatformMeta || '// (none)'}
+]
+
 export type OptionalParticleLoader = {
   id: string
   load: () => Promise<StarforgeModule>
@@ -209,13 +294,19 @@ export type AllowlistedParticleMeta = {
   description: string
   required: boolean
   defaultEnabled: boolean
-  featureFlag?: 'registration' | 'richEditor' | 'posts' | 'modules' | 'draftPreview'
+  builtin: boolean
+  featureFlag?: keyof FeatureFlags
   navViews?: Array<{ key: string; label: string; href: string }>
 }
 
-/** Catalog rows for allowlisted optional particles (Site Settings → Modules). */
-export const ALLOWLISTED_OPTIONAL_PARTICLE_META: AllowlistedParticleMeta[] = [
+/** Catalog rows for allowlisted particles (builtin + optional). */
+export const ALLOWLISTED_PARTICLE_META: AllowlistedParticleMeta[] = [
   ${particleMeta || '// (none)'}
+]
+
+/** @deprecated Prefer ALLOWLISTED_PARTICLE_META filtered by !builtin — kept for older callers. */
+export const ALLOWLISTED_OPTIONAL_PARTICLE_META: AllowlistedParticleMeta[] = [
+  ${optionalParticleMeta || '// (none)'}
 ]
 
 export type OptionalAtomLoader = {
@@ -240,6 +331,19 @@ export const ALLOWLISTED_ATOM_META: AllowlistedAtomMeta[] = [
   ${atomMeta || '// (none)'}
 ]
 
+export type PublicShellSlot = 'head' | 'bodyStart' | 'bodyEnd'
+
+export type PublicShellLoader = {
+  moduleId: string
+  slot: PublicShellSlot
+  load: () => Promise<ComponentType<Record<string, never>> | ((...args: never[]) => ReactNode)>
+}
+
+/** Public layout shell contributions from allowlisted module manifests. */
+export const publicShellLoaders: PublicShellLoader[] = [
+${publicShellLoaders || '  // (none allowlisted)'}
+]
+
 export async function loadAllowlistedOptionalParticles(): Promise<StarforgeModule[]> {
   return Promise.all(optionalParticleLoaders.map((entry) => entry.load()))
 }
@@ -247,12 +351,25 @@ export async function loadAllowlistedOptionalParticles(): Promise<StarforgeModul
 export async function loadAllowlistedAtoms(): Promise<StarforgeAtomDefinition[]> {
   return Promise.all(optionalAtomLoaders.map((entry) => entry.load()))
 }
+
+export async function loadPublicShellSlot(
+  slot: PublicShellSlot,
+): Promise<Array<{ moduleId: string; Component: ComponentType<Record<string, never>> }>> {
+  const matched = publicShellLoaders.filter((entry) => entry.slot === slot)
+  const loaded = await Promise.all(
+    matched.map(async (entry) => ({
+      moduleId: entry.moduleId,
+      Component: (await entry.load()) as ComponentType<Record<string, never>>,
+    })),
+  )
+  return loaded
+}
 `
 
   await mkdir(path.dirname(OUT_PATH), { recursive: true })
   await writeFile(OUT_PATH, body, 'utf8')
   console.log(
-    `[modules:generate] Wrote ${path.relative(ROOT, OUT_PATH)} (${allowlisted.length} ids, ${optionalParticles.length} optional particles, ${optionalAtoms.length} atoms)`,
+    `[modules:generate] Wrote ${path.relative(ROOT, OUT_PATH)} (${allowlisted.length} ids, ${optionalParticles.length} optional particles, ${optionalAtoms.length} atoms, ${publicShellEntries.length} publicShell)`,
   )
 }
 

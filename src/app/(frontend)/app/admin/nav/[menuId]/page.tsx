@@ -10,7 +10,7 @@ import {
   loadNavMenu,
 } from '@/core/nav'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
-import { ensureModulesRegistered } from '@/modules/catalog'
+import { ensureModulesRegistered } from '@/core/modules/boot'
 
 import { NavItemsEditor } from './nav-items-editor'
 

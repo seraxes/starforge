@@ -131,6 +131,21 @@ export {
   listRegisteredModules,
   registerModule,
 } from './registry'
+export {
+  ensureModulesRegistered,
+  resetModulesRegistrationForTests,
+} from './boot'
+export { defineStarforgeModule } from './define-module'
+export type {
+  StarforgeModuleAdminNavItem,
+  StarforgeModuleKind,
+  StarforgeModuleManifest,
+  StarforgeModuleNavView,
+  StarforgeModuleParticleDecl,
+  StarforgePublicShellContribution,
+  StarforgePublicShellSlot,
+} from './define-module'
+export { PublicShellSlots } from './PublicShellSlots'
 export { SlotRenderer } from './SlotRenderer'
 export { LAYOUT_GRID_COLUMNS, LAYOUT_POSITIONS } from './types'
 export type {
