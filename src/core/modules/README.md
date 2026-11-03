@@ -11,7 +11,10 @@ Reference: [docs.gantry.org](https://docs.gantry.org/).
 | Piece | Path |
 | --- | --- |
 | Register API | `registerModule()` in `registry.ts` |
-| Install allowlist | `starforge.modules.json` → `npm run modules:generate` → `src/generated/module-registry.ts` |
+| Install allowlist | `starforge.modules.json` + `defineStarforgeModule` manifests → `npm run modules:generate` → `src/generated/module-registry.ts` |
+| Manifest contract | `define-module.ts` + `host-manifests.ts`; packs under `src/modules/<id>/manifest.ts` |
+| Particle boot | `boot.ts` (`ensureModulesRegistered`) — Core imports `@/generated` only |
+| Public shell host | `PublicShellSlots` — Consent (etc.) via generated `publicShellLoaders` |
 | Built-in particles | `page-content`, `site-header`, `logo` (image/text), `menu`, `copyright`, `social`, `custom` · `particles/` |
 | Example extension | `src/modules/notice-bar/` (dynamic import when allowlisted) |
 | Core Form engine | `src/modules/form/` + `src/core/forms/` · definitions `sf_forms` · submissions `sf_form_submissions` · Admin `/app/admin/forms` |

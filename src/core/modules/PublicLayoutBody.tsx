@@ -1,7 +1,7 @@
 import React from 'react'
 
 import type { NavItem } from '@/core/settings/defaults'
-import { ensureModulesRegistered } from '@/modules/catalog'
+import { ensureModulesRegistered } from '@/core/modules/boot'
 
 import { LayoutOutlineStyles } from './LayoutOutlineStyles'
 import { getLayoutDocument } from './layout'

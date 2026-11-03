@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { accessTagsForStorage, normalizeAccessTags } from '@/core/acl/nav-access'
 import { requireAppAdmin } from '@/core/auth/admin'
 import { DEFAULT_LAYOUT_ID } from '@/core/db'
-import { ensureModulesRegistered } from '@/modules/catalog'
+import { ensureModulesRegistered } from '@/core/modules/boot'
 
 import {
   cloneDefaultLayoutDocument,
