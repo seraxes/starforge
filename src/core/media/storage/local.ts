@@ -7,7 +7,7 @@ export const localMediaStorage: MediaStorage = {
       kind: 'local',
       label: 'Local disk',
       ready: true,
-      detail: 'Files under /media via Payload staticDir. Swap to S3/Spaces when hosting.',
+      detail: 'Files under /media via Payload staticDir. Set STARFORGE_MEDIA_STORAGE=s3 for Spaces/S3.',
     }
   },
 }

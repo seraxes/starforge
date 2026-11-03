@@ -27,7 +27,8 @@ const dirname = path.dirname(filename)
  * - JPEG original re-encode quality: deferred (avoid fighting Payload upload order);
  *   dimension cap + WebP sizes cover the bulk of weight today
  *
- * Storage: local `staticDir` now; S3/Spaces via media storage port later.
+ * Storage: local `staticDir` by default; Spaces/S3 when STARFORGE_MEDIA_STORAGE=s3
+ * (Payload `@payloadcms/storage-s3` plugin — same Media library, no second store).
  */
 export const Media: CollectionConfig = {
   slug: 'media',
