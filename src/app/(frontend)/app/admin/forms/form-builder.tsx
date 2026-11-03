@@ -180,7 +180,7 @@ function FieldSettingsBody({
               upload:
                 type === 'file'
                   ? field.upload ?? {
-                      accept: 'image/*,application/pdf',
+                      accept: 'image/png,image/jpeg,image/gif,image/webp,application/pdf',
                       maxSizeBytes: 10 * 1024 * 1024,
                     }
                   : undefined,
@@ -445,7 +445,7 @@ function FieldSettingsBody({
             <input
               type="text"
               value={field.upload?.accept ?? ''}
-              placeholder="image/*,application/pdf"
+              placeholder="image/png,image/jpeg,application/pdf"
               onChange={(e) =>
                 onPatch({
                   upload: {

@@ -33,6 +33,9 @@ export type { MediaSizeName, ResolvedMedia } from './resolve'
 export { getMediaStorage, getMediaStorageInfo } from './storage'
 export type { MediaStorage, MediaStorageInfo, MediaStorageKind } from './storage'
 
+// Form upload helpers live in `./form-upload` (server-only) — import that path
+// directly from server actions / route handlers; do not barrel-export here.
+
 export {
   deleteMediaAction,
   listMediaAction,

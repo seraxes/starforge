@@ -1,6 +1,7 @@
 /**
- * Public Form file → Payload Media (single library).
- * Used by submitFormAction — no admin session required.
+ * Public Form file → Payload Media (single library, private intake).
+ * Used by submitFormAction — no admin session required for *create*.
+ * Reads stay admin-gated (folder=forms + private flag).
  */
 
 import 'server-only'
@@ -13,12 +14,20 @@ import { normalizeMediaFolder } from './pipeline'
 import { getMediaStorageInfo } from './storage'
 import { toResolvedMedia, type ResolvedMedia } from './resolve'
 
-/** Default max attachment size (10 MiB). */
+export { isPrivateFormMedia } from './privacy'
+
+/** Default max attachment size (10 MiB). Keep in sync with next.config serverActions.bodySizeLimit. */
 export const FORM_FILE_DEFAULT_MAX_BYTES = 10 * 1024 * 1024
 
-/** Default HTML accept when the field leaves accept empty. */
+/**
+ * Absolute ceiling for any Form file field (definition cannot raise above this).
+ * Also the value that Next `serverActions.bodySizeLimit` must meet or exceed.
+ */
+export const FORM_FILE_HARD_MAX_BYTES = FORM_FILE_DEFAULT_MAX_BYTES
+
+/** Default HTML accept when the field leaves accept empty. SVG is never allowed. */
 export const FORM_FILE_DEFAULT_ACCEPT =
-  'image/*,application/pdf,text/plain,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  'image/png,image/jpeg,image/gif,image/webp,application/pdf,text/plain,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 
 const EXT_MIME: Record<string, string[]> = {
   '.pdf': ['application/pdf'],
@@ -32,21 +41,23 @@ const EXT_MIME: Record<string, string[]> = {
   '.jpeg': ['image/jpeg'],
   '.gif': ['image/gif'],
   '.webp': ['image/webp'],
-  '.svg': ['image/svg+xml'],
 }
 
+/** Built-in allowlist for anonymous Form uploads — no SVG (stored XSS). */
 const BUILTIN_ALLOWED_MIME = new Set([
   'image/png',
   'image/jpeg',
   'image/jpg',
   'image/gif',
   'image/webp',
-  'image/svg+xml',
   'application/pdf',
   'text/plain',
   'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ])
+
+const BLOCKED_EXT = new Set(['.svg', '.svgz'])
+const BLOCKED_MIME = new Set(['image/svg+xml', 'image/svg'])
 
 function parseAcceptList(accept: string | undefined): {
   wildcards: string[]
@@ -58,15 +69,51 @@ function parseAcceptList(accept: string | undefined): {
   const mimes = new Set<string>()
   const exts = new Set<string>()
   for (const token of raw) {
+    const lower = token.toLowerCase()
+    if (lower === 'image/svg+xml' || lower === '.svg' || lower === '.svgz') {
+      continue
+    }
     if (token.endsWith('/*')) {
+      // image/* would otherwise admit SVG — narrow to raster only.
+      if (lower === 'image/*') {
+        for (const m of ['image/png', 'image/jpeg', 'image/gif', 'image/webp']) {
+          mimes.add(m)
+        }
+        continue
+      }
       wildcards.push(token.slice(0, -1).toLowerCase())
     } else if (token.startsWith('.')) {
-      exts.add(token.toLowerCase())
-    } else {
-      mimes.add(token.toLowerCase())
+      if (!BLOCKED_EXT.has(lower)) exts.add(lower)
+    } else if (!BLOCKED_MIME.has(lower)) {
+      mimes.add(lower)
     }
   }
   return { wildcards, mimes, exts }
+}
+
+function fileExt(fileName: string): string {
+  const name = (fileName || '').toLowerCase()
+  return name.includes('.') ? `.${name.split('.').pop()}` : ''
+}
+
+export function isFormUploadSvgBlocked(mimeType: string, fileName: string): boolean {
+  const mime = (mimeType || '').toLowerCase()
+  const ext = fileExt(fileName)
+  return BLOCKED_MIME.has(mime) || BLOCKED_EXT.has(ext)
+}
+
+/**
+ * Clamp definition-configured max to the hard ceiling (never trust a huge client/def value).
+ */
+export function clampFormUploadMaxBytes(maxSizeBytes?: number): number {
+  if (
+    typeof maxSizeBytes !== 'number' ||
+    !Number.isFinite(maxSizeBytes) ||
+    maxSizeBytes <= 0
+  ) {
+    return FORM_FILE_DEFAULT_MAX_BYTES
+  }
+  return Math.min(Math.floor(maxSizeBytes), FORM_FILE_HARD_MAX_BYTES)
 }
 
 export function isFormUploadMimeAllowed(
@@ -74,26 +121,31 @@ export function isFormUploadMimeAllowed(
   fileName: string,
   accept?: string,
 ): boolean {
+  if (isFormUploadSvgBlocked(mimeType, fileName)) return false
+
   const mime = (mimeType || '').toLowerCase()
-  const name = (fileName || '').toLowerCase()
-  const ext = name.includes('.') ? `.${name.split('.').pop()}` : ''
+  const ext = fileExt(fileName)
   const { wildcards, mimes, exts } = parseAcceptList(accept)
+
+  // Always require membership in the built-in allowlist (server definition cannot widen to SVG / exe).
+  const builtinOk =
+    (mime && BUILTIN_ALLOWED_MIME.has(mime)) ||
+    (ext && EXT_MIME[ext]?.some((m) => BUILTIN_ALLOWED_MIME.has(m)))
+  if (!builtinOk) return false
 
   if (exts.size && ext && exts.has(ext)) return true
   if (mimes.size && mime && mimes.has(mime)) return true
   if (wildcards.length && mime) {
     if (wildcards.some((w) => mime.startsWith(w))) return true
   }
-  // When accept is empty we already used defaults; still gate against built-in set.
+  // When accept is empty we already used defaults; gate against built-in set.
   if (!accept || !accept.trim()) {
-    if (mime && BUILTIN_ALLOWED_MIME.has(mime)) return true
-    if (ext && EXT_MIME[ext]?.some((m) => BUILTIN_ALLOWED_MIME.has(m))) return true
+    return true
   }
   // Extension ↔ mime fallback for browsers that send empty type.
   if (ext && EXT_MIME[ext]) {
     const allowed = EXT_MIME[ext]!
     if (!mime || allowed.includes(mime)) {
-      if (!accept || !accept.trim()) return true
       if (exts.has(ext)) return true
       if (allowed.some((m) => mimes.has(m) || wildcards.some((w) => m.startsWith(w)))) {
         return true
@@ -103,12 +155,39 @@ export function isFormUploadMimeAllowed(
   return false
 }
 
+/**
+ * Validate a respondent File against server field limits *without* storing it.
+ */
+export function validateFormUploadFile(options: {
+  file: File
+  accept?: string
+  maxSizeBytes?: number
+}): { ok: true } | { ok: false; error: string } {
+  const file = options.file
+  if (!(file instanceof File) || file.size <= 0) {
+    return { ok: false, error: 'Choose a file to upload.' }
+  }
+  if (isFormUploadSvgBlocked(file.type, file.name)) {
+    return { ok: false, error: 'SVG uploads are not allowed.' }
+  }
+  const maxBytes = clampFormUploadMaxBytes(options.maxSizeBytes)
+  if (file.size > maxBytes) {
+    const mb = Math.round((maxBytes / (1024 * 1024)) * 10) / 10
+    return { ok: false, error: `File is too large (max ${mb} MB).` }
+  }
+  if (!isFormUploadMimeAllowed(file.type, file.name, options.accept)) {
+    return { ok: false, error: 'That file type is not allowed.' }
+  }
+  return { ok: true }
+}
+
 export type FormMediaUploadResult =
   | { ok: true; mediaId: string; media?: ResolvedMedia }
   | { ok: false; error: string }
 
 /**
- * Store a respondent file in Payload Media (folder=forms). Returns media id for the payload.
+ * Store a respondent file in Payload Media (folder=forms, private=true).
+ * Caller must already have passed captcha + field validation.
  */
 export async function uploadFormAttachmentToMedia(options: {
   file: File
@@ -121,20 +200,10 @@ export async function uploadFormAttachmentToMedia(options: {
     return { ok: false, error: storage.detail || 'Media storage is not ready.' }
   }
 
+  const checked = validateFormUploadFile(options)
+  if (!checked.ok) return checked
+
   const file = options.file
-  if (!(file instanceof File) || file.size <= 0) {
-    return { ok: false, error: 'Choose a file to upload.' }
-  }
-
-  const maxBytes = options.maxSizeBytes ?? FORM_FILE_DEFAULT_MAX_BYTES
-  if (file.size > maxBytes) {
-    const mb = Math.round((maxBytes / (1024 * 1024)) * 10) / 10
-    return { ok: false, error: `File is too large (max ${mb} MB).` }
-  }
-
-  if (!isFormUploadMimeAllowed(file.type, file.name, options.accept)) {
-    return { ok: false, error: 'That file type is not allowed.' }
-  }
 
   try {
     const payload = await getPayload({ config })
@@ -152,6 +221,7 @@ export async function uploadFormAttachmentToMedia(options: {
         alt,
         folder: normalizeMediaFolder('forms'),
         purpose: 'other',
+        private: true,
       },
       file: {
         data,

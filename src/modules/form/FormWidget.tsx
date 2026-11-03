@@ -132,7 +132,9 @@ export function FormWidget(props: FormWidgetProps) {
     }
 
     if (field.type === 'file') {
-      const accept = field.upload?.accept || 'image/*,application/pdf'
+      const accept =
+        field.upload?.accept ||
+        'image/png,image/jpeg,image/gif,image/webp,application/pdf'
       const chosen = fileNames[field.name]
       return (
         <label key={key} className="sf-form-field sf-form-field-file">

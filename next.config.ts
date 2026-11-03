@@ -13,6 +13,13 @@ const nextConfig: NextConfig = {
   agentRules: false,
   // Allow opening the app as 127.0.0.1 during local Windows/macOS testing.
   allowedDevOrigins: ['127.0.0.1'],
+  // Form file fields default to 10 MiB (FORM_FILE_HARD_MAX_BYTES). Multipart
+  // overhead needs headroom above that app-level cap — keep these aligned.
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '12mb',
+    },
+  },
   // Old nested path hit Next 16 Turbopack stale build-manifest ENOENT; keep bookmarks working.
   async redirects() {
     return [

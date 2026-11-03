@@ -46,15 +46,18 @@ export type FormStringConstraints = {
 }
 
 /**
- * Upload limits for `file` fields — stored media goes into the single Payload library.
+ * Upload limits for `file` fields — stored media goes into the single Payload
+ * library as private (folder=forms). Server clamps accept (no SVG) and size
+ * to FORM_FILE_HARD_MAX_BYTES; client fieldsJson cannot widen these.
  */
 export type FormFileUploadConfig = {
   /**
-   * HTML `accept` list (e.g. `image/*,application/pdf`).
-   * Empty → Core default allowlist (images + PDF + plain text + Word).
+   * HTML `accept` list (e.g. `image/png,application/pdf`).
+   * Empty → Core default allowlist (raster images + PDF + plain text + Word).
+   * SVG is always rejected for anonymous Form uploads.
    */
   accept?: string
-  /** Max bytes per file (default 10 MiB). */
+  /** Max bytes per file (default / hard max 10 MiB). */
   maxSizeBytes?: number
 }
 

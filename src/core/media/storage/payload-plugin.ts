@@ -23,13 +23,19 @@ export function createPayloadS3StoragePlugin(): Plugin | null {
     enabled: true,
     bucket: config.bucket,
     acl: config.acl,
-    // One Payload Media library — public read matches collection access.
+    // Keep Payload access control so folder=forms / private media are not
+    // world-readable via /api/media/file/* (Form respondent attachments).
+    // Direct CDN URLs would bypass ACL — only wire generateFileURL when ACL is
+    // public-read *and* you accept that private form files must not use CDN.
     collections: {
+      // Omit disablePayloadAccessControl (default false) so /api/media/file/*
+      // honors collection access.read — required for private Form attachments.
       media: {
-        // Point file URLs at Spaces/CDN instead of Payload static handlers.
-        disablePayloadAccessControl: true,
-        ...(publicBase
+        ...(publicBase && config.acl === 'public-read'
           ? {
+              // Public library assets may use the CDN; private docs still rely on
+              // collection access.read (anonymous queries exclude private/forms).
+              // Prefer S3_ACL=private in production when Form uploads carry PII.
               generateFileURL: ({
                 filename,
                 prefix,

@@ -75,7 +75,50 @@ function collectRawValues(
 }
 
 /**
+ * Mark file fields present in FormData so required checks pass before storage.
+ * Does not upload — real media ids are written after captcha + rate-limit.
+ */
+function prepareFileValuesForValidation(
+  formData: FormData,
+  fields: FormFieldDef[],
+  values: Record<string, string>,
+): void {
+  for (const field of fields) {
+    if (field.type !== 'file') continue
+    const entry = formData.get(field.name)
+    if (!(entry instanceof File) || entry.size <= 0) {
+      values[field.name] = ''
+      continue
+    }
+    // Placeholder so evaluate required checks pass; real id set after captcha.
+    values[field.name] = 'pending'
+  }
+}
+
+async function assertFormUploadsAllowed(
+  formData: FormData,
+  fields: FormFieldDef[],
+): Promise<{ error?: string }> {
+  const { validateFormUploadFile } = await import('@/core/media/form-upload')
+  for (const field of fields) {
+    if (field.type !== 'file') continue
+    const entry = formData.get(field.name)
+    if (!(entry instanceof File) || entry.size <= 0) continue
+    const checked = validateFormUploadFile({
+      file: entry,
+      accept: field.upload?.accept,
+      maxSizeBytes: field.upload?.maxSizeBytes,
+    })
+    if (!checked.ok) {
+      return { error: checked.error || `Could not accept ${field.label || field.name}.` }
+    }
+  }
+  return {}
+}
+
+/**
  * Upload `file` field blobs into Payload Media; write media ids into values.
+ * Call only after field validation + captcha succeed.
  */
 async function ingestFormUploads(
   formData: FormData,
@@ -107,6 +150,8 @@ async function ingestFormUploads(
 /**
  * Public Form particle submit — honeypot + rate limit + optional Turnstile.
  * Prefer definitionId → load fields from `sf_forms`; else fieldsJson (legacy).
+ * Order: validate → captcha → rate-limit → *then* upload (never store before checks).
+ * Legacy fieldsJson never trusts client `file` field defs (accept / maxSize).
  */
 export async function submitFormAction(
   _prev: FormSubmitActionState,
@@ -137,6 +182,7 @@ export async function submitFormAction(
     'Thanks — your message was sent.'
   let definitionId: string | null = null
   let definitionDocument: FormDefinitionDocument | null = null
+  let fromServerDefinition = false
 
   if (definitionIdRaw) {
     const loaded = await loadFormDefinition(definitionIdRaw)
@@ -147,10 +193,13 @@ export async function submitFormAction(
     successMessage = loaded.document.successMessage || successMessage
     definitionId = loaded.id || definitionIdRaw
     definitionDocument = loaded.document
+    fromServerDefinition = true
   } else {
     try {
       const fieldsJson = String(formData.get('fieldsJson') ?? '[]')
       fields = normalizeFormFields(JSON.parse(fieldsJson))
+      // Never trust client-supplied file field defs (accept / maxSizeBytes / required).
+      fields = fields.filter((f) => f.type !== 'file')
       if (fields.length === 0) {
         const { defaultFormFields } = await import('./definition')
         fields = defaultFormFields()
@@ -160,22 +209,26 @@ export async function submitFormAction(
     }
   }
 
+  // File uploads require a server-side definition (not legacy fieldsJson alone).
+  if (!fromServerDefinition) {
+    for (const [key, entry] of formData.entries()) {
+      if (entry instanceof File && entry.size > 0 && key !== 'website') {
+        return { error: 'File uploads require a saved Form definition.' }
+      }
+    }
+  }
+
   const useSiteCaptchaDefault = String(formData.get('useSiteCaptchaDefault') ?? '1') !== '0'
 
   const h = await headers()
   const ip = clientIpFromHeaders(h)
   const userAgent = h.get('user-agent')
 
-  const limited = checkFormRateLimit(`form:${ip}:${formKey}`)
-  if (!limited.ok) {
-    return {
-      error: `Too many submissions. Try again in ${limited.retryAfterSec ?? 60}s.`,
-    }
-  }
-
   const rawValues = collectRawValues(formData, fields)
-  const uploadError = await ingestFormUploads(formData, fields, rawValues)
-  if (uploadError.error) return { error: uploadError.error }
+  prepareFileValuesForValidation(formData, fields, rawValues)
+
+  const uploadCheck = await assertFormUploadsAllowed(formData, fields)
+  if (uploadCheck.error) return { error: uploadCheck.error }
 
   const { values, error: fieldError } = validateFieldsWithZod(fields, rawValues)
   if (fieldError) return { error: fieldError }
@@ -191,6 +244,16 @@ export async function submitFormAction(
       return { error: verified.error || 'Captcha verification failed.' }
     }
   }
+
+  const limited = checkFormRateLimit(`form:${ip}:${formKey}`)
+  if (!limited.ok) {
+    return {
+      error: `Too many submissions. Try again in ${limited.retryAfterSec ?? 60}s.`,
+    }
+  }
+
+  const uploadError = await ingestFormUploads(formData, fields, values)
+  if (uploadError.error) return { error: uploadError.error }
 
   try {
     await createFormSubmission({

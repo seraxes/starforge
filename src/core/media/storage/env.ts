@@ -21,7 +21,11 @@ export type S3MediaEnvConfig = {
    * When unset, Payload builds `{endpoint}/{bucket}/{key}`.
    */
   publicBaseUrl?: string
-  /** Object ACL on upload. Media collection is public-read in Payload. */
+  /**
+   * Object ACL on upload. Prefer `private` when Form respondent attachments
+   * may land in the same bucket (Payload access control + admin route serve them).
+   * `public-read` keeps library CDN URLs working but object URLs are guessable.
+   */
   acl: S3ObjectAcl
 }
 
