@@ -30,6 +30,17 @@ Anonymous `/[slug]` and public site chrome load through core helpers (`getPublis
 
 Do not call Payload Local API from hot anonymous paths except through these helpers.
 
+### Media storage
+
+One Payload **Media** library forever (sharp resize/WebP pipeline unchanged). Blob backend is a Core port:
+
+| Backend | When | Env |
+| --- | --- | --- |
+| Local disk (default) | Dev / single node | Unset or `STARFORGE_MEDIA_STORAGE=local` — files under `/media` |
+| DigitalOcean Spaces / S3 | Hosting | `STARFORGE_MEDIA_STORAGE=s3` plus `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` (`S3_REGION` defaults to `us-east-1` for the SDK; Spaces datacenter is in the endpoint). Optional: `S3_PUBLIC_BASE_URL` (CDN), `S3_FORCE_PATH_STYLE`, `S3_ACL` |
+
+Keys live in `.env` / Environment editor only — never the database. Core admin → Media shows storage readiness.
+
 ### App users vs Payload CMS stubs (one login)
 
 | | Starforge app account | Payload CMS stub |

@@ -1,6 +1,6 @@
 /**
- * Starforge media pipeline around Payload Media (SF-28).
- * One library; features bind by id. Storage port: local now, S3 later.
+ * Starforge media pipeline around Payload Media (SF-28 / SF-128).
+ * One library; features bind by id. Storage port: local default, Spaces/S3 via env.
  */
 
 export {

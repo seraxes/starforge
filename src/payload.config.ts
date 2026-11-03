@@ -4,6 +4,7 @@ import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
+import { payloadMediaStoragePlugins } from './core/media/storage/payload-plugin'
 import { Media } from './collections/Media'
 import { Pages } from './collections/Pages'
 import { Users } from './collections/Users'
@@ -16,6 +17,10 @@ const dirname = path.dirname(filename)
 /**
  * Payload is Starforge's *content/media module* only.
  * Product auth, app users, and public APIs belong in `src/core/` — not here.
+ *
+ * Media blobs: local `staticDir` by default; Spaces/S3 when
+ * `STARFORGE_MEDIA_STORAGE=s3` + `S3_*` env (see MediaStorage port).
+ * Image pipeline stays sharp (resizeOptions / imageSizes) — storage swap only.
  */
 export default buildConfig({
   admin: {
@@ -63,4 +68,5 @@ export default buildConfig({
     schemaName: 'payload',
   }),
   sharp,
+  plugins: [...payloadMediaStoragePlugins()],
 })
