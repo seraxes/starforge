@@ -90,6 +90,7 @@ export type {
   FormFieldDef,
   FormParticleConfig,
   FormPresetId,
+  FormSubmissionPayload,
   FormSubmissionRecord,
   FormSubmitActionState,
   ResolvedCaptcha,

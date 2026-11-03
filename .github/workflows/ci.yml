@@ -1,0 +1,173 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DATABASE_URL: postgresql://starforge:starforge@127.0.0.1:5432/starforge
+  PAYLOAD_SECRET: ci-only-payload-secret-32chars-min
+  BETTER_AUTH_SECRET: ci-only-better-auth-secret-32ch
+  BETTER_AUTH_URL: http://127.0.0.1:3000
+  NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+  STARFORGE_SECURE_COOKIES: '0'
+
+jobs:
+  check:
+    name: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: modules:generate (fail on drift)
+        run: |
+          npm run modules:generate
+          git diff --exit-code -- src/generated/module-registry.ts
+      - run: npx tsc --noEmit
+      - run: npm run lint
+
+  unit:
+    name: unit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run test:unit
+
+  migrate:
+    name: migrate
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: starforge
+          POSTGRES_PASSWORD: starforge
+          POSTGRES_DB: starforge
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U starforge -d starforge"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Create payload schema
+        run: PGPASSWORD=starforge psql -h 127.0.0.1 -U starforge -d starforge -c 'CREATE SCHEMA IF NOT EXISTS payload;'
+      - name: Apply migrations
+        run: npm run db:migrate
+      - name: Drizzle schema drift check
+        run: |
+          before=$(find src/core/db/migrations -type f | sort | cksum)
+          npx drizzle-kit generate --name ci_drift_check
+          after=$(find src/core/db/migrations -type f | sort | cksum)
+          if [ "$before" != "$after" ]; then
+            echo "Schema drift: drizzle-kit generate produced new files. Commit a migration."
+            git status --short src/core/db/migrations || true
+            exit 1
+          fi
+
+  smoke:
+    name: smoke
+    runs-on: ubuntu-latest
+    needs: [check, migrate]
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: starforge
+          POSTGRES_PASSWORD: starforge
+          POSTGRES_DB: starforge
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U starforge -d starforge"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Create payload schema
+        run: PGPASSWORD=starforge psql -h 127.0.0.1 -U starforge -d starforge -c 'CREATE SCHEMA IF NOT EXISTS payload;'
+      - run: npm run db:migrate
+      - run: npm run seed
+      - run: npm run build
+      - name: Start server and smoke curl
+        run: |
+          npm run start &
+          echo $! > /tmp/starforge-next.pid
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:3000/api/health >/dev/null; then
+              break
+            fi
+            sleep 2
+          done
+          curl -sf http://127.0.0.1:3000/api/health | tee /tmp/health.json
+          grep -q '"ok":true' /tmp/health.json
+          code_home=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/)
+          test "$code_home" = "200"
+          code_login=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/login)
+          test "$code_login" = "200"
+          code_sitemap=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/sitemap.xml)
+          test "$code_sitemap" = "200"
+          code_robots=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/robots.txt)
+          test "$code_robots" = "200"
+          # /admin must bounce unauthenticated users to /login
+          loc=$(curl -s -o /dev/null -w '%{redirect_url}' http://127.0.0.1:3000/admin)
+          echo "admin redirect -> $loc"
+          echo "$loc" | grep -q '/login'
+          headers=$(curl -sI http://127.0.0.1:3000/)
+          echo "$headers" | grep -qi 'content-security-policy'
+          echo "$headers" | grep -qi 'x-frame-options'
+          kill "$(cat /tmp/starforge-next.pid)" || true
+      - run: npm run verify:all
+
+  flavor:
+    name: flavor
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Minimal module flavor build
+        env:
+          SF_MODULES: platform:better-auth,page-content,product:layout-manager
+        run: |
+          npm run modules:generate
+          npm run build

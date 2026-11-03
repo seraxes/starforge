@@ -1,5 +1,7 @@
-import 'server-only'
-
+/**
+ * Loaded from `payload.config.ts` (and Payload CLI). No `server-only` —
+ * `payload migrate*` / `generate:*` run outside Next and would throw.
+ */
 import { s3Storage } from '@payloadcms/storage-s3'
 import type { Plugin } from 'payload'
 
@@ -14,8 +16,13 @@ import { isS3MediaStorageSelected, readS3MediaEnv } from './env'
 export function createPayloadS3StoragePlugin(): Plugin | null {
   if (!isS3MediaStorageSelected()) return null
 
-  const { config } = readS3MediaEnv()
-  if (!config) return null
+  const { config, missing } = readS3MediaEnv()
+  if (!config) {
+    // design-data-deploy §3 / §5: never silently fall back to local disk when s3 is selected.
+    throw new Error(
+      `STARFORGE_MEDIA_STORAGE=s3 but incomplete env: ${missing.join(', ')}. Unset STARFORGE_MEDIA_STORAGE for local disk.`,
+    )
+  }
 
   const publicBase = config.publicBaseUrl
 

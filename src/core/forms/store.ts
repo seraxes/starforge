@@ -5,22 +5,22 @@ import { randomUUID } from 'node:crypto'
 
 import { db, sfFormSubmissions } from '@/core/db'
 
-import type { FormSubmissionRecord } from './types'
+import type { FormSubmissionPayload, FormSubmissionRecord } from './types'
 
-function parsePayload(raw: string): Record<string, string> {
-  try {
-    const parsed = JSON.parse(raw) as unknown
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
-    const out: Record<string, string> = {}
-    for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
-      if (typeof v === 'string') out[k] = v
-      else if (v == null) out[k] = ''
-      else out[k] = String(v)
+function normalizePayload(raw: unknown): FormSubmissionPayload {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
+  const out: FormSubmissionPayload = {}
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (v === undefined) continue
+    if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean' || v === null) {
+      out[k] = v
+    } else if (Array.isArray(v)) {
+      out[k] = v.map((item) => (item == null ? '' : String(item)))
+    } else {
+      out[k] = String(v)
     }
-    return out
-  } catch {
-    return {}
   }
+  return out
 }
 
 function mapRow(row: typeof sfFormSubmissions.$inferSelect): FormSubmissionRecord {
@@ -28,9 +28,12 @@ function mapRow(row: typeof sfFormSubmissions.$inferSelect): FormSubmissionRecor
     id: row.id,
     formKey: row.formKey,
     definitionId: row.definitionId ?? null,
+    definitionVersion: row.definitionVersion ?? null,
+    fieldsSnapshot: row.fieldsSnapshot ?? null,
+    userId: row.userId ?? null,
     layoutId: row.layoutId,
     slotId: row.slotId,
-    payload: parsePayload(row.payload),
+    payload: normalizePayload(row.payload),
     ipAddress: row.ipAddress,
     userAgent: row.userAgent,
     createdAt: row.createdAt,
@@ -40,9 +43,12 @@ function mapRow(row: typeof sfFormSubmissions.$inferSelect): FormSubmissionRecor
 export async function createFormSubmission(input: {
   formKey: string
   definitionId?: string | null
+  definitionVersion?: number | null
+  fieldsSnapshot?: unknown
+  userId?: string | null
   layoutId?: string | null
   slotId?: string | null
-  payload: Record<string, string>
+  payload: FormSubmissionPayload
   ipAddress?: string | null
   userAgent?: string | null
 }): Promise<FormSubmissionRecord> {
@@ -53,9 +59,12 @@ export async function createFormSubmission(input: {
       id,
       formKey: input.formKey,
       definitionId: input.definitionId ?? null,
+      definitionVersion: input.definitionVersion ?? null,
+      fieldsSnapshot: input.fieldsSnapshot ?? null,
+      userId: input.userId ?? null,
       layoutId: input.layoutId ?? null,
       slotId: input.slotId ?? null,
-      payload: JSON.stringify(input.payload),
+      payload: input.payload,
       ipAddress: input.ipAddress ?? null,
       userAgent: input.userAgent ?? null,
     })

@@ -255,10 +255,22 @@ export async function submitFormAction(
   const uploadError = await ingestFormUploads(formData, fields, values)
   if (uploadError.error) return { error: uploadError.error }
 
+  let userId: string | null = null
+  try {
+    const { getAppSession } = await import('@/core/auth/session')
+    const session = await getAppSession()
+    userId = session?.user?.id ?? null
+  } catch {
+    userId = null
+  }
+
   try {
     await createFormSubmission({
       formKey,
       definitionId,
+      definitionVersion: definitionDocument?.version ?? null,
+      fieldsSnapshot: definitionDocument?.fields ?? fields,
+      userId,
       layoutId,
       slotId,
       payload: values,

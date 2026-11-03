@@ -133,6 +133,7 @@ export type {
   FormPresetId,
   FormSectionDef,
   FormStringConstraints,
+  FormSubmissionPayload,
   FormSubmissionRecord,
   FormSubmitActionState,
   FormValidateExpr,

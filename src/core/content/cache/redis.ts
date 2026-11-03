@@ -6,17 +6,26 @@ import { getRedisClient } from '@/core/redis'
 
 import type { ContentCacheGetOptions, PublishedContentCache } from './types'
 
-/** Value keys: sf:pcc:v:{joined key parts} */
-const VALUE_PREFIX = 'sf:pcc:v:'
-/** Tag → value-key sets: sf:pcc:t:{tag} */
-const TAG_PREFIX = 'sf:pcc:t:'
+/** Short TTL for cached null / miss markers so random slug probes do not stick forever. */
+const NULL_MISS_TTL_SECONDS = 60
+
+/**
+ * Key prefix so staging and prod can share one Redis safely.
+ * Default: `sf:${NODE_ENV}` (e.g. `sf:production`). Override with STARFORGE_REDIS_PREFIX.
+ */
+export function redisKeyPrefix(): string {
+  const raw = (process.env.STARFORGE_REDIS_PREFIX ?? '').trim()
+  if (raw) return raw.replace(/:+$/, '')
+  const env = (process.env.NODE_ENV ?? 'development').trim() || 'development'
+  return `sf:${env}`
+}
 
 function valueKey(parts: readonly string[]): string {
-  return `${VALUE_PREFIX}${parts.join(':')}`
+  return `${redisKeyPrefix()}:pcc:v:${parts.join(':')}`
 }
 
 function tagSetKey(tag: string): string {
-  return `${TAG_PREFIX}${tag}`
+  return `${redisKeyPrefix()}:pcc:t:${tag}`
 }
 
 async function invalidateTagsAsync(redis: Redis, tags: readonly string[]): Promise<void> {
@@ -37,9 +46,9 @@ let cachedAdapter: PublishedContentCache | null = null
  * Redis-backed published-content cache for multi-instance (DigitalOcean).
  *
  * - Selected via `STARFORGE_CONTENT_CACHE=redis` + `REDIS_URL`
- * - Same `ContentCacheGetOptions.key` / `.tags` contract as the Next adapter
+ * - Keys prefixed with `STARFORGE_REDIS_PREFIX` (default `sf:${NODE_ENV}`)
+ * - Null loader results get a short TTL (null-miss) so probes do not linger
  * - Tag index = Redis Sets; invalidation deletes member keys + the set
- * - Local default stays Next/tag — leave `STARFORGE_CONTENT_CACHE` unset
  *
  * Callers keep using `getPublishedPageBySlug` / `getSiteSettings` — do not
  * call Redis from routes or Payload hooks directly.
@@ -69,14 +78,27 @@ export function createRedisPublishedContentCache(): PublishedContentCache {
       try {
         const payload = JSON.stringify(value)
         const pipeline = redis.pipeline()
-        const ttl = options.revalidate
-        if (typeof ttl === 'number' && ttl > 0) {
-          pipeline.set(key, payload, 'EX', ttl)
+        const memberTtl =
+          value === null || value === undefined
+            ? NULL_MISS_TTL_SECONDS
+            : typeof options.revalidate === 'number' && options.revalidate > 0
+              ? options.revalidate
+              : null
+
+        if (memberTtl != null) {
+          pipeline.set(key, payload, 'EX', memberTtl)
         } else {
           pipeline.set(key, payload)
         }
+
+        let longestTtl = memberTtl ?? 0
         for (const tag of options.tags) {
-          pipeline.sadd(tagSetKey(tag), key)
+          const setKey = tagSetKey(tag)
+          pipeline.sadd(setKey, key)
+          if (longestTtl > 0) {
+            // Keep the tag set at least as long as the member we just wrote.
+            pipeline.expire(setKey, Math.max(longestTtl, NULL_MISS_TTL_SECONDS))
+          }
         }
         await pipeline.exec()
       } catch {
@@ -88,6 +110,7 @@ export function createRedisPublishedContentCache(): PublishedContentCache {
 
     invalidateTags(tags: readonly string[]): void {
       // Interface is sync (matches Next `revalidateTag`); fire-and-forget Redis work.
+      // Follow-up (design §4): return Promise + await from hooks/actions.
       void invalidateTagsAsync(redis, tags).catch(() => {
         // Hooks / seed may run when Redis is unreachable; ignore quietly.
       })

@@ -320,14 +320,30 @@ export type FormParticleConfig = {
   useSiteCaptchaDefault?: boolean
 }
 
+/**
+ * Stored submission field values (jsonb).
+ * Scalars remain strings for the public widget; checkbox-group / multi-file
+ * may use string arrays. Numbers/booleans allowed for typed presets later.
+ */
+export type FormSubmissionPayload = Record<
+  string,
+  string | string[] | number | boolean | null
+>
+
 export type FormSubmissionRecord = {
   id: string
   formKey: string
   /** Bound Form definition id when submitted via a definition. */
   definitionId: string | null
+  /** FormDefinitionDocument.version frozen at submit (SF-139). */
+  definitionVersion: number | null
+  /** Field defs (or hash object) frozen at submit for CSV/audit (SF-139). */
+  fieldsSnapshot: unknown
+  /** Better Auth user id when signed in; null for anonymous. */
+  userId: string | null
   layoutId: string | null
   slotId: string | null
-  payload: Record<string, string>
+  payload: FormSubmissionPayload
   ipAddress: string | null
   userAgent: string | null
   createdAt: Date
