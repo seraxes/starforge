@@ -8,7 +8,11 @@ import { requireAppAdmin } from '@/core/auth/admin'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
 import { resolveFormCaptcha, verifyTurnstileToken } from './captcha'
-import { normalizeFormFields, normalizeFormDefinitionDocument } from './definition'
+import {
+  formHasCaptchaField,
+  normalizeFormFields,
+  normalizeFormDefinitionDocument,
+} from './definition'
 import {
   createFormDefinition,
   deleteFormDefinition,
@@ -53,8 +57,8 @@ function collectRawValues(
 ): Record<string, string> {
   const values: Record<string, string> = {}
   for (const field of fields) {
-    if (field.type === 'file') {
-      // File → Payload Media happens in ingestFormUploads; leave empty here.
+    if (field.type === 'file' || field.type === 'captcha') {
+      // File → Payload Media after checks; captcha token is cf-turnstile-response.
       values[field.name] = ''
       continue
     }
@@ -226,7 +230,11 @@ export async function submitFormAction(
     }
   }
 
-  const useSiteCaptchaDefault = String(formData.get('useSiteCaptchaDefault') ?? '1') !== '0'
+  // Prefer server definition over client hidden field (anti-tamper).
+  const useSiteCaptchaDefault = definitionDocument
+    ? definitionDocument.useSiteCaptchaDefault !== false
+    : String(formData.get('useSiteCaptchaDefault') ?? '1') !== '0'
+  const hasCaptchaField = formHasCaptchaField(fields)
 
   const h = await headers()
   const ip = clientIpFromHeaders(h)
@@ -241,7 +249,12 @@ export async function submitFormAction(
   const { values, error: fieldError } = validateFieldsWithZod(fields, rawValues)
   if (fieldError) return { error: fieldError }
 
-  const captcha = await resolveFormCaptcha({ useSiteCaptchaDefault })
+  // Never persist captcha placeholders in the submission payload.
+  for (const field of fields) {
+    if (field.type === 'captcha') delete values[field.name]
+  }
+
+  const captcha = await resolveFormCaptcha({ useSiteCaptchaDefault, hasCaptchaField })
   if (captcha.required && captcha.provider === 'turnstile') {
     if (captcha.misconfiguredReason && !captcha.siteKey) {
       return { error: 'Captcha is misconfigured. Please contact the site administrator.' }

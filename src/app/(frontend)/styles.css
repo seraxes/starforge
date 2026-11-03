@@ -2162,6 +2162,25 @@ button:disabled {
   margin: 0.25rem 0;
 }
 
+.sf-form-field-captcha .sf-form-captcha-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-weight: 600;
+}
+
+.sf-form-captcha-warn {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.78rem;
+  color: color-mix(in srgb, #b45309 80%, var(--sf-ink) 20%);
+  max-width: 36rem;
+  line-height: 1.35;
+}
+
+.sf-form-slot-captcha-warn {
+  border-color: color-mix(in srgb, #b45309 35%, transparent);
+}
+
 .sf-form-submit {
   align-self: flex-start;
   font: inherit;

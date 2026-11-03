@@ -17,6 +17,7 @@ const FIELD_TYPES = new Set<FormFieldType>([
   'file',
   'hidden',
   'computed',
+  'captcha',
 ])
 
 /** Extension keys for Starforge field metadata on JSON Schema properties. */
@@ -144,6 +145,10 @@ function propertyForField(field: FormFieldDef): Record<string, unknown> {
     case 'hidden':
       prop = { ...base, type: 'string', readOnly: true }
       break
+    case 'captcha':
+      // Token lives in cf-turnstile-response; not a stored submission property.
+      prop = { ...base, type: 'null', readOnly: true }
+      break
     case 'textarea':
     case 'text':
     default:
@@ -174,8 +179,12 @@ export function fieldsToJsonSchema(
     properties[field.name] = propertyForField(field)
     if (field.type === 'checkbox' || field.type === 'checkbox-group') {
       if (field.required) required.push(field.name)
-    } else if (field.type === 'computed' || field.type === 'hidden') {
-      // computed always derived; hidden uses defaultValue — not user-required
+    } else if (
+      field.type === 'computed' ||
+      field.type === 'hidden' ||
+      field.type === 'captcha'
+    ) {
+      // computed/hidden/captcha — not user-required schema properties
     } else if (field.type === 'file') {
       if (field.required) required.push(field.name)
     } else if (field.required !== false) {

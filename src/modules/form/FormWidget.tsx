@@ -122,11 +122,47 @@ export function FormWidget(props: FormWidgetProps) {
     props.captcha.provider === 'turnstile' &&
     Boolean(props.captcha.siteKey)
 
+  const captchaFieldNames = useMemo(
+    () => props.fields.filter((f) => f.type === 'captcha').map((f) => f.name),
+    [props.fields],
+  )
+  const hasCaptchaField = captchaFieldNames.length > 0
+  const firstCaptchaName = captchaFieldNames[0] ?? null
+
   function renderField(field: FormFieldDef) {
     if (!live.visible[field.name]) return null
     const key = field.id || field.name
     const required = live.required[field.name]
     const value = live.values[field.name] ?? ''
+
+    if (field.type === 'captcha') {
+      // Only the first captcha field hosts the widget (one Turnstile per form).
+      if (field.name !== firstCaptchaName) {
+        return (
+          <div key={key} className="sf-form-field sf-form-field-captcha" aria-hidden="true" />
+        )
+      }
+      if (showTurnstile && props.captcha.siteKey) {
+        return (
+          <div key={key} className="sf-form-field sf-form-field-captcha">
+            {field.label ? <span className="sf-form-captcha-label">{field.label}</span> : null}
+            <TurnstileWidget siteKey={props.captcha.siteKey} />
+            {field.description ? (
+              <span className="sf-form-field-hint">{field.description}</span>
+            ) : null}
+          </div>
+        )
+      }
+      if (props.captcha.required && props.captcha.provider === 'turnstile' && !props.captcha.siteKey) {
+        return (
+          <p key={key} className="sf-form-error" role="alert">
+            Captcha is enabled but not configured. Submissions are blocked.
+          </p>
+        )
+      }
+      // Site captcha off / other provider stub — idle (do not block public submit).
+      return null
+    }
 
     if (field.type === 'hidden') {
       return (
@@ -442,11 +478,13 @@ export function FormWidget(props: FormWidgetProps) {
           )
         })}
 
-        {showTurnstile && props.captcha.siteKey ? (
+        {/* Fallback placement when form uses site default but has no captcha field. */}
+        {!hasCaptchaField && showTurnstile && props.captcha.siteKey ? (
           <TurnstileWidget siteKey={props.captcha.siteKey} />
         ) : null}
 
-        {props.captcha.required &&
+        {!hasCaptchaField &&
+        props.captcha.required &&
         props.captcha.provider === 'turnstile' &&
         !props.captcha.siteKey ? (
           <p className="sf-form-error" role="alert">

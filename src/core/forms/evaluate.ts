@@ -131,12 +131,22 @@ export function evaluateAndValidateFields(
 
   for (const field of fields) {
     // Hidden fields are never "shown" in the UI but stay in the payload when present.
-    const show = field.type === 'hidden' ? true : isFieldVisible(field, withComputed)
+    // Captcha tokens are verified separately — never stored as field values.
+    const show =
+      field.type === 'hidden' || field.type === 'captcha'
+        ? true
+        : isFieldVisible(field, withComputed)
     visible[field.name] = show
     required[field.name] =
-      field.type === 'hidden' ? false : isFieldRequired(field, withComputed)
+      field.type === 'hidden' || field.type === 'captcha'
+        ? false
+        : isFieldRequired(field, withComputed)
     if (field.type === 'computed') {
       computed[field.name] = withComputed[field.name] ?? ''
+    }
+    if (field.type === 'captcha') {
+      values[field.name] = ''
+      continue
     }
     if (!show) {
       values[field.name] = ''
@@ -147,6 +157,7 @@ export function evaluateAndValidateFields(
 
   for (const field of fields) {
     if (!visible[field.name]) continue
+    if (field.type === 'captcha') continue
     const label = field.label || field.name
     const raw = values[field.name] ?? ''
 
@@ -272,9 +283,13 @@ export function computeLiveValues(
   const required: Record<string, boolean> = {}
   for (const field of fields) {
     visible[field.name] =
-      field.type === 'hidden' ? true : isFieldVisible(field, withComputed)
+      field.type === 'hidden' || field.type === 'captcha'
+        ? true
+        : isFieldVisible(field, withComputed)
     required[field.name] =
-      field.type === 'hidden' ? false : isFieldRequired(field, withComputed)
+      field.type === 'hidden' || field.type === 'captcha'
+        ? false
+        : isFieldRequired(field, withComputed)
   }
   return { values: withComputed, visible, required }
 }
