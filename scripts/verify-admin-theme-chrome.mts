@@ -125,6 +125,23 @@ mustInclude(
   'payload primary remains orange',
   '--bg-color: var(--sf-primary)',
 )
+mustInclude(
+  payloadChrome,
+  'payload content canvas blue wash',
+  'linear-gradient(180deg, #1a2638 0%, #24334a 42%, #24334a 100%)',
+)
+mustInclude(
+  payloadChrome,
+  'payload dashboard card mid-blue accent',
+  'border-left: 4px solid var(--sf-admin-blue-mid)',
+)
+mustInclude(
+  payloadChrome,
+  'payload elevation-150 uses panel border',
+  '--theme-elevation-150: var(--sf-admin-panel-border)',
+)
+mustInclude(payloadChrome, 'payload list-header panel head', 'html[data-theme=\'dark\'] .list-header')
+mustInclude(payloadChrome, 'payload app-header navy bar', 'html[data-theme=\'dark\'] .app-header__bg')
 
 mustInclude(tokens, 'tokens panel', "panel: '#1b2432'")
 mustInclude(tokens, 'tokens panelHead', "panelHead: '#121a24'")

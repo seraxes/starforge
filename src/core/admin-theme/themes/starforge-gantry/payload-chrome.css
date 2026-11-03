@@ -93,18 +93,19 @@ html[data-theme='dark'] {
   --theme-text: #e8eef8;
   --theme-overlay: rgba(5, 10, 18, 0.72);
 
+  /* Page Settings panel ladder — elevation-150 ≈ visible panel border (not near-black). */
   --theme-elevation-0: var(--sf-admin-bg);
   --theme-elevation-50: var(--sf-admin-panel);
   --theme-elevation-100: var(--sf-admin-elevated);
-  --theme-elevation-150: #2a384a;
-  --theme-elevation-200: #314257;
-  --theme-elevation-250: #3a4a5e;
-  --theme-elevation-300: #46586e;
-  --theme-elevation-350: #556a82;
-  --theme-elevation-400: #667d96;
-  --theme-elevation-450: #7b91a9;
-  --theme-elevation-500: #91a5bb;
-  --theme-elevation-550: #a8b9cc;
+  --theme-elevation-150: var(--sf-admin-panel-border);
+  --theme-elevation-200: #3a4a5e;
+  --theme-elevation-250: #46586e;
+  --theme-elevation-300: #556a82;
+  --theme-elevation-350: #667d96;
+  --theme-elevation-400: #7b91a9;
+  --theme-elevation-450: #91a5bb;
+  --theme-elevation-500: #a8b9cc;
+  --theme-elevation-550: #b7c6d8;
   --theme-elevation-600: #c0cedc;
   --theme-elevation-650: #d5e0ec;
   --theme-elevation-700: #e0e8f2;
@@ -116,6 +117,16 @@ html[data-theme='dark'] {
   --theme-elevation-1000: #ffffff;
 
   --theme-border-color: var(--sf-admin-panel-border);
+  --style-radius-s: 3px;
+  --style-radius-m: 3px;
+  --style-radius-l: 3px;
+}
+
+/* Kill stock Payload light body/html so /admin never flashes default gray. */
+html[data-theme='dark'],
+html[data-theme='dark'] body {
+  background: #152033;
+  color: #e8eef8;
 }
 
 html[data-theme='dark'] .btn.btn--style-primary {
@@ -321,28 +332,144 @@ html[data-theme='dark'] .btn.btn--size-small {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 5.75L8 10.25L12.5 5.75' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
+/* —— Content canvas = Core padded-admin blue wash (visible vs flat Payload gray) —— */
 html[data-theme='dark'] .template-default__wrap {
-  background: var(--theme-bg);
+  background:
+    radial-gradient(
+      980px 520px at 0% -10%,
+      color-mix(in srgb, var(--sf-secondary) 16%, transparent) 0%,
+      transparent 58%
+    ),
+    radial-gradient(
+      860px 460px at 100% -4%,
+      color-mix(in srgb, var(--sf-admin-blue-mid) 24%, transparent) 0%,
+      transparent 52%
+    ),
+    linear-gradient(180deg, #1a2638 0%, #24334a 42%, #24334a 100%);
+  box-shadow: none;
+  color: #e8eef8;
+}
+
+html[data-theme='dark'] .app-header__bg {
+  opacity: 1 !important;
+  background: var(--sf-admin-nav-bar);
+  border-bottom: 1px solid var(--sf-admin-panel-border);
   box-shadow: none;
 }
 
+html[data-theme='dark'] .app-header__gradient-placeholder {
+  background: linear-gradient(to right, transparent, var(--sf-admin-nav-bar));
+}
+
+html[data-theme='dark'] .step-nav__item,
+html[data-theme='dark'] .app-header .step-nav a {
+  color: #e8eef8;
+}
+
+html[data-theme='dark'] .dashboard,
+html[data-theme='dark'] .collection-list,
+html[data-theme='dark'] .collection-list__wrap,
+html[data-theme='dark'] .doc-header,
+html[data-theme='dark'] .editorial-view,
+html[data-theme='dark'] .edit-view,
+html[data-theme='dark'] .globals-edit,
+html[data-theme='dark'] .collection-edit {
+  color: #e8eef8;
+}
+
+/* Dashboard group labels — Page Settings panel-head weight */
+html[data-theme='dark'] .collections__label,
+html[data-theme='dark'] .dashboard__label,
+html[data-theme='dark'] .list-header__title,
+html[data-theme='dark'] .doc-header__title.render-title,
+html[data-theme='dark'] .doc-header .render-title {
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+/* —— Shared panel surfaces (Page Settings tiles) —— */
 html[data-theme='dark'] .card,
 html[data-theme='dark'] .group-field,
 html[data-theme='dark'] .collapsible,
 html[data-theme='dark'] .table,
-html[data-theme='dark'] .list-controls,
 html[data-theme='dark'] .collection-list__header,
 html[data-theme='dark'] .doc-header,
 html[data-theme='dark'] .doc-controls,
 html[data-theme='dark'] .drawer__header,
 html[data-theme='dark'] .modal-content,
 html[data-theme='dark'] .search-filter,
+html[data-theme='dark'] .search-bar,
 html[data-theme='dark'] .where-builder,
-html[data-theme='dark'] .query-presets {
+html[data-theme='dark'] .query-presets,
+html[data-theme='dark'] .widget {
   background: var(--sf-admin-panel);
-  border-color: var(--sf-admin-panel-border);
+  border: 1px solid var(--sf-admin-panel-border);
   box-shadow: none;
   border-radius: 3px;
+}
+
+/* Dashboard collection cards — denser Page Settings panel look */
+html[data-theme='dark'] .collections__card-list .card,
+html[data-theme='dark'] .dashboard .card {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  align-items: stretch !important;
+  gap: 0 !important;
+  min-height: 5rem;
+  padding: 0 !important;
+  overflow: hidden;
+  background: var(--sf-admin-panel) !important;
+  border: 1px solid var(--sf-admin-panel-border) !important;
+  border-left: 4px solid var(--sf-admin-blue-mid) !important;
+  border-radius: 3px !important;
+  box-shadow: none !important;
+  transition: border-color 100ms ease, background 100ms ease;
+}
+
+html[data-theme='dark'] .collections__card-list .card__title,
+html[data-theme='dark'] .dashboard .card__title {
+  margin: 0 !important;
+  padding: 0.75rem 0.9rem !important;
+  background: #0c121c !important;
+  border-bottom: 1px solid var(--sf-admin-panel-border) !important;
+  color: #fff !important;
+  font-size: 0.95rem !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+html[data-theme='dark'] .collections__card-list .card__actions,
+html[data-theme='dark'] .dashboard .card__actions {
+  padding: 0.35rem 0.75rem 0.65rem;
+  margin-top: auto;
+}
+
+html[data-theme='dark'] .collections__card-list .card.card--has-onclick:hover,
+html[data-theme='dark'] .dashboard .card.card--has-onclick:hover {
+  background: color-mix(in srgb, var(--sf-admin-blue-mid) 14%, var(--sf-admin-panel));
+  border-color: var(--sf-admin-blue-mid);
+  border-left-color: var(--sf-admin-blue-mid);
+  box-shadow: none;
+}
+
+html[data-theme='dark'] .collections__card-list .card .btn__icon,
+html[data-theme='dark'] .dashboard .card .btn__icon {
+  border: 1px solid var(--sf-admin-blue-border);
+  background: var(--sf-admin-input);
+  color: #e8eef8;
+  box-shadow: none;
+}
+
+html[data-theme='dark'] .collections__card-list .card .btn__icon:hover,
+html[data-theme='dark'] .dashboard .card .btn__icon:hover {
+  border-color: var(--sf-admin-blue-mid);
+  background: var(--sf-admin-nav-active);
+  color: #fff;
+  box-shadow: none;
 }
 
 html[data-theme='dark'] .card__title,
@@ -358,10 +485,68 @@ html[data-theme='dark'] .table th {
   box-shadow: none;
 }
 
+/* Pages / collection list — toolbar + table as Page Settings panels */
+html[data-theme='dark'] .list-header {
+  margin-bottom: 0.85rem;
+  padding: 0.75rem 1rem;
+  background: #0c121c;
+  border: 1px solid var(--sf-admin-panel-border);
+  border-left: 4px solid var(--sf-admin-blue-mid);
+  border-radius: 3px;
+  box-shadow: none;
+}
+
+html[data-theme='dark'] .search-bar {
+  --search-bg: var(--sf-admin-panel);
+  background: var(--sf-admin-panel) !important;
+  border: 1px solid var(--sf-admin-panel-border);
+  border-radius: 3px;
+  box-shadow: none;
+}
+
+html[data-theme='dark'] .list-controls {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+html[data-theme='dark'] .table {
+  background: var(--sf-admin-panel);
+  border: 1px solid var(--sf-admin-panel-border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+html[data-theme='dark'] .table thead th {
+  background: color-mix(in srgb, var(--sf-secondary) 12%, var(--sf-admin-surface));
+  color: #fff;
+  font-weight: 650;
+  border-bottom: 1px solid var(--sf-line);
+}
+
+html[data-theme='dark'] .table tbody tr:nth-child(odd) {
+  background: color-mix(in srgb, var(--sf-admin-panel-head) 55%, var(--sf-admin-panel));
+}
+
+html[data-theme='dark'] .table td {
+  border-color: var(--sf-admin-panel-border);
+  color: #e8eef8;
+}
+
+html[data-theme='dark'] .table tbody tr:hover td {
+  background: color-mix(in srgb, var(--sf-admin-blue-mid) 12%, var(--sf-admin-panel));
+}
+
+html[data-theme='dark'] .collection-list__list-selection {
+  background: var(--sf-admin-nav-bar);
+  border-top: 1px solid var(--sf-admin-panel-border);
+}
+
 html[data-theme='dark'] .field-type input:not([type='checkbox']):not([type='radio']),
 html[data-theme='dark'] .field-type textarea,
 html[data-theme='dark'] .field-type select,
 html[data-theme='dark'] .search-filter__input,
+html[data-theme='dark'] .search-bar input,
 html[data-theme='dark'] .react-select-container .rs__control,
 html[data-theme='dark'] .date-time-picker .react-datepicker__input-container input {
   background: var(--sf-admin-input) !important;
@@ -375,6 +560,7 @@ html[data-theme='dark'] .field-type input:not([type='checkbox']):not([type='radi
 html[data-theme='dark'] .field-type textarea:focus,
 html[data-theme='dark'] .field-type select:focus,
 html[data-theme='dark'] .search-filter__input:focus,
+html[data-theme='dark'] .search-bar input:focus,
 html[data-theme='dark'] .react-select-container .rs__control--is-focused {
   border-color: var(--sf-admin-blue-mid) !important;
   outline: none;
@@ -390,12 +576,11 @@ html[data-theme='dark'] .step-nav__item {
   box-shadow: none;
 }
 
-html[data-theme='dark'] .table td {
-  border-color: var(--sf-admin-panel-border);
-}
-
-html[data-theme='dark'] .table tbody tr:hover td {
-  background: color-mix(in srgb, var(--sf-admin-blue-mid) 12%, var(--sf-admin-panel));
+html[data-theme='dark'] .pill--style-light,
+html[data-theme='dark'] .pill--style-white {
+  background: color-mix(in srgb, var(--sf-admin-blue-mid) 22%, var(--sf-admin-panel));
+  color: #fff;
+  border-color: var(--sf-admin-blue-border);
 }
 
 html[data-theme='dark'] a {
@@ -404,4 +589,18 @@ html[data-theme='dark'] a {
 
 html[data-theme='dark'] a:hover {
   color: #fff;
+}
+
+/* Payload nav Logout + hamburger — match Core quiet chrome */
+html[data-theme='dark'] .nav__controls .btn,
+html[data-theme='dark'] .nav .log-out,
+html[data-theme='dark'] .nav .nav-toggler {
+  color: #e8eef8;
+}
+
+html[data-theme='dark'] .nav__controls .btn:hover,
+html[data-theme='dark'] .nav .log-out:hover {
+  color: #fff;
+  background: var(--sf-admin-blue-mid);
+  border-radius: 3px;
 }
