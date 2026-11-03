@@ -35,7 +35,7 @@ function Panel({
   title: string
   /** @deprecated Panels are always expanded (no collapse). Kept for call-site compat. */
   defaultOpen?: boolean
-  /** Span two mosaic columns on wide screens. */
+  /** Span the full mosaic row. */
   wide?: boolean
   /** Optional anchor id (Layouts → Font Awesome deep link). */
   id?: string
@@ -385,7 +385,7 @@ export function PageSettingsForm({ bootstrap }: Props) {
           />
         </Panel>
 
-        <Panel title="Head Properties" wide>
+        <Panel title="Head Properties">
           <div className="page-settings-list">
             <div className="page-settings-list-head">
               <strong>Meta Tags</strong>
