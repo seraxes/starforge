@@ -19,6 +19,11 @@ Sitemap: /sitemap.xml
 export const DEFAULT_OFFLINE_MESSAGE =
   'This site is temporarily offline. Please check back soon.'
 
+export const DEFAULT_CONSENT_MESSAGE =
+  'We use cookies for essential site functions and optional analytics. You can accept all cookies or continue with essential cookies only.'
+
+export const DEFAULT_CONSENT_PRIVACY_LINK_LABEL = 'Privacy policy'
+
 export const CAPTCHA_PROVIDERS: Array<{ value: CaptchaProvider; label: string }> = [
   { value: 'none', label: 'None' },
   { value: 'turnstile', label: 'Cloudflare Turnstile' },
@@ -46,6 +51,9 @@ export const DEFAULT_SITE_CHROME: SiteChromeDocument = {
   contentRights: '',
   cookieDomain: '',
   cookiePath: '/',
+  consentMessage: DEFAULT_CONSENT_MESSAGE,
+  consentPrivacyUrl: '',
+  consentPrivacyLinkLabel: DEFAULT_CONSENT_PRIVACY_LINK_LABEL,
 }
 
 const CAPTCHA_SET = new Set<CaptchaProvider>(

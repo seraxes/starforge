@@ -156,6 +156,14 @@ export const INSTALLABLE_MANIFEST: InstallableEntry[] = [
     navViews: [{ key: 'admin', label: 'Redirects', href: '/app/admin/redirects' }],
   },
   {
+    id: 'product:consent',
+    kind: 'product',
+    label: 'Consent',
+    description:
+      'Cookie consent banner + preference cookie (sf-consent). Policy copy under Chrome; gates atom:analytics until analytics is accepted.',
+    defaultEnabled: true,
+  },
+  {
     id: 'page-content',
     kind: 'particle',
     label: 'Page content',

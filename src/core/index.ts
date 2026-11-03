@@ -210,6 +210,18 @@ export {
 } from './security'
 export type { SecurityHeader } from './security'
 export {
+  CONSENT_COOKIE_NAME,
+  CONSENT_EVENT,
+  buildConsentPreferences,
+  hasAnalyticsConsent,
+  parseConsentPreferences,
+  readConsentFromCookieHeader,
+  readConsentFromDocumentCookie,
+  serializeConsentPreferences,
+  writeConsentCookie,
+} from './consent'
+export type { ConsentChangeDetail, ConsentPreferences } from './consent'
+export {
   ensureSiteChromeSeeded,
   getSiteChrome,
   saveSiteChrome,

@@ -44,6 +44,15 @@ export type SiteChromeDocument = {
   cookieDomain: string
   /** Session cookie Path attribute. */
   cookiePath: string
+  /**
+   * Consent banner copy (product:consent). Empty → module default message.
+   * Visitor choice is stored in the sf-consent cookie — not here.
+   */
+  consentMessage: string
+  /** Optional privacy / cookie policy page URL (absolute or site-relative). */
+  consentPrivacyUrl: string
+  /** Link label for consentPrivacyUrl. */
+  consentPrivacyLinkLabel: string
 }
 
 export type SiteChromeLoadSource = 'database' | 'default'

@@ -11,6 +11,8 @@ export {
 export type { SiteChromeCookieAttributes } from './cookie-attrs'
 export {
   CAPTCHA_PROVIDERS,
+  DEFAULT_CONSENT_MESSAGE,
+  DEFAULT_CONSENT_PRIVACY_LINK_LABEL,
   DEFAULT_OFFLINE_MESSAGE,
   DEFAULT_ROBOTS_META,
   DEFAULT_ROBOTS_TXT,

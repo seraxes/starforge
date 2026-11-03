@@ -154,6 +154,16 @@ export const PRODUCT_MODULE_CATALOG: ModuleCatalogItem[] = [
     installed: true,
     navViews: [{ key: 'admin', label: 'Redirects', href: '/app/admin/redirects' }],
   },
+  {
+    id: MODULE_IDS.consent,
+    kind: 'product',
+    label: 'Consent',
+    description:
+      'Cookie consent banner + preference cookie (sf-consent). Policy copy under Chrome; gates atom:analytics until the visitor accepts analytics.',
+    required: false,
+    defaultEnabled: true,
+    installed: true,
+  },
 ]
 
 const productPlatformAllow = new Set<string>(ALLOWLISTED_PRODUCT_PLATFORM_IDS)

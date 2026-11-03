@@ -55,6 +55,9 @@ export async function updateSiteChromeAction(
       contentRights: String(formData.get('contentRights') ?? ''),
       cookieDomain: String(formData.get('cookieDomain') ?? ''),
       cookiePath: String(formData.get('cookiePath') ?? '/'),
+      consentMessage: String(formData.get('consentMessage') ?? ''),
+      consentPrivacyUrl: String(formData.get('consentPrivacyUrl') ?? ''),
+      consentPrivacyLinkLabel: String(formData.get('consentPrivacyLinkLabel') ?? ''),
     })
   } catch (error) {
     const message =
