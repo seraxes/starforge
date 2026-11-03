@@ -1,5 +1,6 @@
 /**
- * Smoke check: Core admin theme chrome — Layout module tokens + Page Settings panel language.
+ * Smoke check: Core + Payload admin theme chrome — Layout module tokens +
+ * Page Settings panel language shared across shells.
  * Run: npx tsx scripts/verify-admin-theme-chrome.mts
  */
 import { readFileSync } from 'node:fs'
@@ -11,8 +12,18 @@ const chromePath = join(
   root,
   'src/core/admin-theme/themes/starforge-gantry/core-chrome.css',
 )
+const payloadChromePath = join(
+  root,
+  'src/core/admin-theme/themes/starforge-gantry/payload-chrome.css',
+)
+const tokensPath = join(
+  root,
+  'src/core/admin-theme/themes/starforge-gantry/tokens.ts',
+)
 const stylesPath = join(root, 'src/app/(frontend)/styles.css')
 const chrome = readFileSync(chromePath, 'utf8')
+const payloadChrome = readFileSync(payloadChromePath, 'utf8')
+const tokens = readFileSync(tokensPath, 'utf8')
 const styles = readFileSync(stylesPath, 'utf8')
 
 function mustInclude(haystack: string, label: string, needle: string) {
@@ -85,6 +96,36 @@ if (barRemoveBlock.includes('border: 1px')) {
   process.exit(1)
 }
 
+mustInclude(payloadChrome, 'payload panel token', '--sf-admin-panel: #1b2432')
+mustInclude(payloadChrome, 'payload panel head token', '--sf-admin-panel-head: #121a24')
+mustInclude(
+  payloadChrome,
+  'payload panel border token',
+  '--sf-admin-panel-border: #2f3d50',
+)
+mustInclude(payloadChrome, 'payload btn min height', '--sf-admin-btn-min-height: 2.35rem')
+mustInclude(payloadChrome, 'payload nav-bar token', '--sf-admin-nav-bar: #1b2431')
+mustInclude(
+  payloadChrome,
+  'payload theme border uses panel border',
+  '--theme-border-color: var(--sf-admin-panel-border)',
+)
+mustInclude(
+  payloadChrome,
+  'payload elevation-50 uses panel',
+  '--theme-elevation-50: var(--sf-admin-panel)',
+)
+mustInclude(payloadChrome, 'payload card panel chrome', 'html[data-theme=\'dark\'] .card')
+mustInclude(
+  payloadChrome,
+  'payload primary remains orange',
+  '--bg-color: var(--sf-primary)',
+)
+
+mustInclude(tokens, 'tokens panel', "panel: '#1b2432'")
+mustInclude(tokens, 'tokens panelHead', "panelHead: '#121a24'")
+mustInclude(tokens, 'tokens panelBorder', "panelBorder: '#2f3d50'")
+
 console.log(
-  'ok — admin theme chrome (Layout module edge + Page Settings panel mosaic 2-col)',
+  'ok — admin theme chrome (Core Layout/Page Settings + Payload panel align)',
 )
