@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
 import { starforgeCoreSessionStrategy } from '@/core/cms-bridge/payload-strategy'
+import { shouldUseSecureCookies } from '@/core/security/secure-cookies'
 
 /**
  * Payload CMS editor stubs — product users stay in `sf_*`.
@@ -25,7 +26,8 @@ export const Users: CollectionConfig = {
     tokenExpiration: 60 * 60 * 8,
     cookies: {
       sameSite: 'Lax',
-      secure: false,
+      // Same HTTPS / STARFORGE_SECURE_COOKIES signal as Better Auth.
+      secure: shouldUseSecureCookies(),
     },
     // Better Auth first; local-jwt is appended by Payload when local strategy is on.
     strategies: [starforgeCoreSessionStrategy],

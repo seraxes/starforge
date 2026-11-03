@@ -142,6 +142,8 @@ Global app admins still open all Core admin today; the matrix is the enforcement
 
 **Site Chrome** (`/app/admin/site-chrome`, `sf_site_chrome`) is the top-level policy panel: site offline (+ message), default captcha (enable + provider; Turnstile keys in env), outbound email (enable + provider + From; SMTP / Resend secrets in env), site metadata (name / description / OG image), robots meta + `/robots.txt`, content rights, cookie domain/path. Offline mode blocks public visitors; app admins still browse (banner) and can sign in via `/login`. **Environment** (`/app/admin/site-chrome/environment`) is a developer-admin panel behind password re-auth that writes allowlisted keys to gitignored `.env.local` (never Postgres). Production is read-only unless `STARFORGE_ENV_EDITOR=write`; restart Node after writes so Next reloads env.
 
+**Security headers + Secure cookies (SF-129):** Next `headers()` + middleware send a practical CSP (Next/Payload + Turnstile), `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy`, `nosniff`, and `Permissions-Policy`. HSTS and Better Auth `useSecureCookies` (plus Payload JWT / Environment gate cookies) turn on when `BETTER_AUTH_URL` / `NEXT_PUBLIC_APP_URL` is `https://`, or when `STARFORGE_SECURE_COOKIES=1`. Local `http://localhost` stays insecure so Windows/macOS HTTP keeps working. Override with `STARFORGE_SECURE_COOKIES=0|1`. Site Settings → Security documents this; no DB toggle for headers. Postgres must stay private (localhost / VPC) — not exposed on the public internet.
+
 **Nav** is a **top-level** Core admin item (`/app/admin/nav`, sibling of Users / Site Chrome / Site settings / Layouts): multiple named **navigation sets** (menus) in `sf_nav_menus`, each with items (CMS page, URL, or module view; reorder; copy/paste; CSS class; browser/page title; multi-select access tags). Site Settings only **assigns** which set is the site primary header menu — not nested under Site Chrome.
 
 **Forms** (`/app/admin/forms`, gated by Modules → **Forms** / `product:forms`) is the modular Form engine: visual builder (dnd-kit → JSON Schema / Zod), definitions in `sf_forms`, submissions in `sf_form_submissions`. Place the **Form** particle on the layout canvas and bind a definition (Contact preset ships ready; survey/event/voting/ticket are stubs). Optional Site Chrome captcha (Turnstile) when the form opts into the site default. Email-on-submit uses the platform **Mailer** (Site Chrome enable / provider / From). Run `npm run db:core:push` after pull so `sf_forms` / `definition_id` exist.
@@ -404,6 +406,8 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 Change `PAYLOAD_SECRET` and `BETTER_AUTH_SECRET` before any shared or non-local use.
 `BETTER_AUTH_SECRET` is also required to unlock Site Chrome → Environment (gate cookie HMAC).
+
+For production HTTPS, set `BETTER_AUTH_URL` / `NEXT_PUBLIC_APP_URL` to `https://…` so Secure cookies and HSTS enable automatically (or set `STARFORGE_SECURE_COOKIES=1`). Keep `STARFORGE_SECURE_COOKIES` unset or `0` for local HTTP.
 
 ## Project layout
 

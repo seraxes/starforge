@@ -3,6 +3,8 @@ import type { NextConfig } from 'next'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
+import { buildSecurityHeaders } from './src/core/security/headers'
+
 const __filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(__filename)
 
@@ -18,6 +20,16 @@ const nextConfig: NextConfig = {
         source: '/app/admin/layouts/breakpoints',
         destination: '/app/admin/breakpoints',
         permanent: false,
+      },
+    ]
+  },
+  // Baseline security headers (CSP / frame / referrer / …). HSTS only on HTTPS path.
+  // Middleware also applies the same set so rewrites/redirects stay covered.
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: buildSecurityHeaders(),
       },
     ]
   },

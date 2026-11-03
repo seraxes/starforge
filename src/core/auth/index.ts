@@ -18,6 +18,7 @@ import {
   sfUsers,
   sfVerifications,
 } from '@/core/db'
+import { shouldUseSecureCookies } from '@/core/security/secure-cookies'
 import { siteChromeCookieAttributes } from '@/core/site-chrome/cookie-attrs'
 import { emailIsBootstrapAdmin } from './bootstrap-admins'
 import {
@@ -131,9 +132,9 @@ export const auth = betterAuth({
     },
   },
   advanced: {
-    // Local http:// — never force Secure cookies (breaks Windows localhost).
-    useSecureCookies: false,
-    // Shared by ref with Site Chrome — domain/path update on save without restart.
+    // Secure + `__Secure-` prefix when HTTPS / STARFORGE_SECURE_COOKIES — not local HTTP.
+    useSecureCookies: shouldUseSecureCookies(),
+    // Shared by ref with Site Chrome — domain/path/secure update on save without restart.
     defaultCookieAttributes: siteChromeCookieAttributes,
   },
   // nextCookies must be last so Set-Cookie from server actions reaches the browser.

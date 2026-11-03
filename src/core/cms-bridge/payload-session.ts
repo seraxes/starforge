@@ -3,6 +3,8 @@ import { getFieldsToSign, getPayload, jwtSign } from 'payload'
 
 import config from '@payload-config'
 
+import { shouldUseSecureCookies } from '@/core/security/secure-cookies'
+
 import { ensurePayloadCmsUser } from './index'
 
 export const PAYLOAD_TOKEN_COOKIE = 'payload-token'
@@ -68,7 +70,7 @@ export async function setPayloadAdminSessionCookie(input: {
     httpOnly: true,
     path: '/',
     sameSite: 'lax',
-    secure: false,
+    secure: shouldUseSecureCookies(),
     maxAge: established.tokenExpiration,
   })
   return { ok: true }
@@ -84,7 +86,7 @@ export async function clearPayloadAdminSession(): Promise<void> {
       httpOnly: true,
       path: '/',
       sameSite: 'lax',
-      secure: false,
+      secure: shouldUseSecureCookies(),
       maxAge: 0,
     })
   }

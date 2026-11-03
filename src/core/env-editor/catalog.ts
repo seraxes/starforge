@@ -124,6 +124,20 @@ export const ENV_EDITOR_FIELDS: EnvEditorField[] = [
     group: 'auth',
   },
   {
+    key: 'STARFORGE_SECURE_COOKIES',
+    label: 'STARFORGE_SECURE_COOKIES',
+    description:
+      'Force Secure session cookies (+ Better Auth __Secure- prefix, HSTS). Unset = derive from https:// app URL, else NODE_ENV=production. Use 0 for local http:// next start.',
+    secret: false,
+    kind: 'enum',
+    options: [
+      { value: '', label: '(auto — URL / NODE_ENV)' },
+      { value: '1', label: '1 — force Secure' },
+      { value: '0', label: '0 — force insecure (local HTTP)' },
+    ],
+    group: 'auth',
+  },
+  {
     key: 'STARFORGE_ADMIN_EMAILS',
     label: 'STARFORGE_ADMIN_EMAILS',
     description: 'Emails promoted to app admin (+ cms_access) on signup / seed / next request.',
