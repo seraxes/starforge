@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useActionState, useMemo, useState } from 'react'
+import React, { useActionState, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
   DndContext,
@@ -831,7 +831,21 @@ function FieldSettingsBody({
   )
 }
 
-function SortableFieldBar({
+type FieldBarProps = FieldSettingsProps & {
+  /** Optional sortable node ref / transform when DnD is active. */
+  setNodeRef?: (node: HTMLElement | null) => void
+  style?: React.CSSProperties
+  isDragging?: boolean
+  /** Drag handle props from useSortable; omitted until client DnD mounts. */
+  dragHandleProps?: React.HTMLAttributes<HTMLButtonElement>
+}
+
+/**
+ * Presentational field bar. Drag handle props are optional so SSR / pre-hydration
+ * can render the same markup without dnd-kit's generated aria-describedby ids
+ * (DndDescribedBy-N), which drift vs the client counter and cause hydration mismatches.
+ */
+function FieldBar({
   field,
   fields,
   onPatch,
@@ -842,16 +856,11 @@ function SortableFieldBar({
   onRemove,
   saveNow,
   flushOnBlur,
-}: FieldSettingsProps) {
-  const id = fieldKey(field)
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id,
-  })
-  const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.85 : 1,
-  }
+  setNodeRef,
+  style,
+  isDragging = false,
+  dragHandleProps,
+}: FieldBarProps) {
   const displayName = field.label || field.name
 
   return (
@@ -866,8 +875,7 @@ function SortableFieldBar({
             type="button"
             className="gantry-slot-handle"
             aria-label="Drag to reorder"
-            {...attributes}
-            {...listeners}
+            {...(dragHandleProps ?? {})}
           >
             ▣
           </button>
@@ -916,6 +924,28 @@ function SortableFieldBar({
         </div>
       </header>
     </article>
+  )
+}
+
+function SortableFieldBar(props: FieldSettingsProps) {
+  const id = fieldKey(props.field)
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+  })
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.85 : 1,
+  }
+
+  return (
+    <FieldBar
+      {...props}
+      setNodeRef={setNodeRef}
+      style={style}
+      isDragging={isDragging}
+      dragHandleProps={{ ...attributes, ...listeners }}
+    />
   )
 }
 
@@ -968,6 +998,14 @@ export function FormBuilder({ formId, initialDocument }: Props) {
     ),
   )
   const [schemaError, setSchemaError] = useState<string | null>(null)
+
+  // dnd-kit Accessibility assigns module-counter ids (DndDescribedBy-N). SSR vs client
+  // counters diverge when multiple DndContexts mount — defer sortable until after hydrate
+  // (same client-mount gate as Layout particle popovers).
+  const [dndReady, setDndReady] = useState(false)
+  useEffect(() => {
+    setDndReady(true)
+  }, [])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -1290,41 +1328,69 @@ export function FormBuilder({ formId, initialDocument }: Props) {
                           Drop fields here — add from the palette.
                         </p>
                       ) : (
-                        <DndContext
-                          sensors={sensors}
-                          collisionDetection={closestCenter}
-                          onDragEnd={(e) => onDragEnd(e, section.id)}
-                        >
-                          <SortableContext
-                            items={sortableIds}
-                            strategy={verticalListSortingStrategy}
-                          >
-                            <div className="sf-form-section-fields">
-                              {sectionFields.map((field) => {
-                                const id = fieldKey(field)
-                                return (
-                                  <SortableFieldBar
-                                    key={id}
-                                    field={field}
-                                    fields={fields}
-                                    onPatch={(patch) => patchField(id, patch)}
-                                    onRename={(nextName) => renameField(id, nextName)}
-                                    onPatchConstraints={(patch) =>
-                                      patchFieldConstraints(id, patch)
-                                    }
-                                    onUpdateOptions={(options) => patchField(id, { options })}
-                                    onPatchLogic={(key, group) =>
-                                      patchFieldLogic(id, key, group)
-                                    }
-                                    onRemove={() => removeField(id, field.name)}
-                                    saveNow={saveNow}
-                                    flushOnBlur={flushOnBlur}
-                                  />
-                                )
-                              })}
-                            </div>
-                          </SortableContext>
-                        </DndContext>
+                        <div className="sf-form-section-fields">
+                          {dndReady ? (
+                            <DndContext
+                              id={`form-section-${section.id}`}
+                              sensors={sensors}
+                              collisionDetection={closestCenter}
+                              onDragEnd={(e) => onDragEnd(e, section.id)}
+                            >
+                              <SortableContext
+                                items={sortableIds}
+                                strategy={verticalListSortingStrategy}
+                              >
+                                {sectionFields.map((field) => {
+                                  const id = fieldKey(field)
+                                  return (
+                                    <SortableFieldBar
+                                      key={id}
+                                      field={field}
+                                      fields={fields}
+                                      onPatch={(patch) => patchField(id, patch)}
+                                      onRename={(nextName) => renameField(id, nextName)}
+                                      onPatchConstraints={(patch) =>
+                                        patchFieldConstraints(id, patch)
+                                      }
+                                      onUpdateOptions={(options) =>
+                                        patchField(id, { options })
+                                      }
+                                      onPatchLogic={(key, group) =>
+                                        patchFieldLogic(id, key, group)
+                                      }
+                                      onRemove={() => removeField(id, field.name)}
+                                      saveNow={saveNow}
+                                      flushOnBlur={flushOnBlur}
+                                    />
+                                  )
+                                })}
+                              </SortableContext>
+                            </DndContext>
+                          ) : (
+                            sectionFields.map((field) => {
+                              const id = fieldKey(field)
+                              return (
+                                <FieldBar
+                                  key={id}
+                                  field={field}
+                                  fields={fields}
+                                  onPatch={(patch) => patchField(id, patch)}
+                                  onRename={(nextName) => renameField(id, nextName)}
+                                  onPatchConstraints={(patch) =>
+                                    patchFieldConstraints(id, patch)
+                                  }
+                                  onUpdateOptions={(options) => patchField(id, { options })}
+                                  onPatchLogic={(key, group) =>
+                                    patchFieldLogic(id, key, group)
+                                  }
+                                  onRemove={() => removeField(id, field.name)}
+                                  saveNow={saveNow}
+                                  flushOnBlur={flushOnBlur}
+                                />
+                              )
+                            })
+                          )}
+                        </div>
                       )}
                     </div>
                   </section>
