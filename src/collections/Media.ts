@@ -10,13 +10,13 @@ import {
   MEDIA_CARD_WIDTH,
   MEDIA_FOLDERS,
   MEDIA_LARGE_WIDTH,
-  MEDIA_MAX_HEIGHT,
-  MEDIA_MAX_WIDTH,
+  MEDIA_PIPELINE_MAX_EDGE_MAX,
   MEDIA_PURPOSES,
   MEDIA_THUMB_SIZE,
   MEDIA_WEBP_QUALITY,
   normalizeMediaPurpose,
 } from '@/core/media/pipeline'
+import { getMediaPipelineRules } from '@/core/media/settings-store'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -39,10 +39,12 @@ const applyPipelineBeforeChange: CollectionBeforeChangeHook = async ({ data, req
   if (!mime.startsWith('image/')) return data
 
   const purpose = normalizeMediaPurpose(data?.purpose)
+  const rules = await getMediaPipelineRules()
   const processed = await applyMediaPipelineRules({
     buffer: file.data,
     mimeType: file.mimetype || 'application/octet-stream',
     purpose,
+    rules,
   })
 
   file.data = processed.data
@@ -159,9 +161,10 @@ export const Media: CollectionConfig = {
       'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     ],
+    // Ceiling only — Core Media Settings + beforeChange own the real max W×H.
     resizeOptions: {
-      width: MEDIA_MAX_WIDTH,
-      height: MEDIA_MAX_HEIGHT,
+      width: MEDIA_PIPELINE_MAX_EDGE_MAX,
+      height: MEDIA_PIPELINE_MAX_EDGE_MAX,
       withoutEnlargement: true,
     },
     imageSizes: [

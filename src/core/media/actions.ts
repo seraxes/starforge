@@ -12,8 +12,10 @@ import {
 } from './apply-pipeline'
 import {
   normalizeMediaFolder,
+  normalizeMediaPipelineRules,
   normalizeMediaPurpose,
   type MediaFolder,
+  type MediaPipelineRules,
   type MediaPurpose,
 } from './pipeline'
 import {
@@ -23,6 +25,7 @@ import {
   type MediaTagOption,
   type ResolvedMedia,
 } from './resolve'
+import { getMediaPipelineRules, saveMediaPipelineRules } from './settings-store'
 import { getMediaStorageInfo } from './storage'
 
 export type MediaActionState = {
@@ -104,10 +107,12 @@ export async function uploadMediaAction(
   try {
     const payload = await getPayload({ config })
     const raw = Buffer.from(await file.arrayBuffer())
+    const rules = await getMediaPipelineRules()
     const processed = await applyMediaPipelineRules({
       buffer: raw,
       mimeType: file.type,
       purpose,
+      rules,
     })
     let name = file.name || `upload-${Date.now()}.jpg`
     if (processed.extHint) {
@@ -170,6 +175,37 @@ export async function deleteMediaAction(
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Delete failed.' }
   }
+}
+
+export async function saveMediaPipelineSettingsAction(
+  _prev: MediaActionState,
+  formData: FormData,
+): Promise<MediaActionState> {
+  const admin = await requireAppAdmin()
+  if (!admin) {
+    return { error: 'Sign in as a Starforge app admin to edit Media settings.' }
+  }
+
+  const current = await getMediaPipelineRules()
+  const next: MediaPipelineRules = normalizeMediaPipelineRules({
+    ...current,
+    maxWidth: formData.get('maxWidth'),
+    maxHeight: formData.get('maxHeight'),
+    jpegQuality: formData.get('jpegQuality'),
+    webpQuality: formData.get('webpQuality'),
+    keepPngForLogos: formData.get('keepPngForLogos') === 'on',
+    sizes: current.sizes,
+  })
+
+  try {
+    await saveMediaPipelineRules(next)
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Could not save Media settings.' }
+  }
+
+  revalidatePath('/app/admin/media')
+  revalidatePath('/app/admin/media/settings')
+  return { ok: true, message: 'Saved.' }
 }
 
 export type { MediaFolder, MediaPurpose, ResolvedMedia }

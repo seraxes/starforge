@@ -6,7 +6,10 @@ import { fileURLToPath } from 'node:url'
 import sharp from 'sharp'
 
 import { applyMediaPipelineRules } from './apply-pipeline'
-import { DEFAULT_MEDIA_PIPELINE_RULES } from './pipeline'
+import {
+  DEFAULT_MEDIA_PIPELINE_RULES,
+  normalizeMediaPipelineRules,
+} from './pipeline'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 
@@ -135,6 +138,43 @@ describe('applyMediaPipelineRules', () => {
     const meta = await sharp(out.data).metadata()
     assert.ok((meta.width ?? 0) <= 20)
     assert.ok((meta.height ?? 0) <= 10)
+  })
+
+  it('honors custom rules max edge + webp quality path', async () => {
+    const input = await tinyJpeg(800, 600)
+    const out = await applyMediaPipelineRules({
+      buffer: input,
+      mimeType: 'image/jpeg',
+      purpose: 'photo',
+      rules: normalizeMediaPipelineRules({
+        ...DEFAULT_MEDIA_PIPELINE_RULES,
+        maxWidth: 400,
+        maxHeight: 400,
+        webpQuality: 50,
+      }),
+    })
+    assert.equal(out.mimetype, 'image/webp')
+    const meta = await sharp(out.data).metadata()
+    assert.ok((meta.width ?? 0) <= 400)
+    assert.ok((meta.height ?? 0) <= 400)
+  })
+})
+
+describe('normalizeMediaPipelineRules', () => {
+  it('clamps quality and edges; keeps PNG flag off when false', () => {
+    const rules = normalizeMediaPipelineRules({
+      maxWidth: 50,
+      maxHeight: 99999,
+      jpegQuality: 0,
+      webpQuality: 200,
+      keepPngForLogos: false,
+    })
+    assert.equal(rules.maxWidth, 320)
+    assert.equal(rules.maxHeight, 8192)
+    assert.equal(rules.jpegQuality, 1)
+    assert.equal(rules.webpQuality, 100)
+    assert.equal(rules.keepPngForLogos, false)
+    assert.equal(rules.photoOriginalFormat, 'webp')
   })
 })
 
