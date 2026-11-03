@@ -1,7 +1,8 @@
 /*
  * Starforge Gantry theme — Payload `/admin` chrome.
- * Shared tokens match Core `.admin-shell` (Page Settings panel language).
- * Orange = primary actions only.
+ * Structural match to Core `.admin-shell` / Page Settings panels:
+ * sidebar geometry + density, panel head/body language, typography —
+ * not token recolor alone. Orange = primary CTAs only.
  */
 
 :root {
@@ -93,7 +94,7 @@ html[data-theme='dark'] {
   --theme-text: #e8eef8;
   --theme-overlay: rgba(5, 10, 18, 0.72);
 
-  /* Page Settings panel ladder — elevation-150 ≈ visible panel border (not near-black). */
+  /* Page Settings panel ladder — elevation-150 ≈ visible panel border. */
   --theme-elevation-0: var(--sf-admin-bg);
   --theme-elevation-50: var(--sf-admin-panel);
   --theme-elevation-100: var(--sf-admin-elevated);
@@ -120,6 +121,19 @@ html[data-theme='dark'] {
   --style-radius-s: 3px;
   --style-radius-m: 3px;
   --style-radius-l: 3px;
+
+  /*
+   * Structural density — Core admin-body / sidebar geometry, not Payload airy gutters.
+   * Core sidebar = 15.5rem; Core body pad ≈ 2rem 1.5rem.
+   */
+  --nav-width: 15.5rem;
+  --gutter-h: 1.5rem;
+  --spacing-view-bottom: 2.25rem;
+  --app-header-height: 2.85rem;
+  --doc-controls-height: 2.85rem;
+  --base-body-size: 14;
+  --font-body:
+    'Segoe UI', 'Helvetica Neue', ui-sans-serif, system-ui, sans-serif;
 }
 
 /* Kill stock Payload light body/html so /admin never flashes default gray. */
@@ -150,6 +164,19 @@ html[data-theme='dark'] .btn.btn--style-secondary {
   --hover-btn-border: 1px solid var(--sf-admin-blue-mid);
 }
 
+/* Create New is Payload pill — paint it Core primary orange. */
+html[data-theme='dark'] .list-header .btn.btn--style-pill,
+html[data-theme='dark'] .list-create-new-doc__create-new-button.btn,
+html[data-theme='dark'] .list-header__title-actions .btn.btn--style-pill {
+  --bg-color: var(--sf-primary);
+  --color: var(--sf-primary-ink);
+  --hover-bg: var(--sf-primary-strong);
+  --hover-color: var(--sf-primary-ink);
+  font-weight: 650;
+  border-radius: var(--sf-admin-btn-radius);
+  box-shadow: none;
+}
+
 html[data-theme='dark'] .btn {
   font-size: var(--sf-admin-btn-font);
   padding: var(--sf-admin-btn-pad-y) var(--sf-admin-btn-pad-x);
@@ -164,26 +191,38 @@ html[data-theme='dark'] .btn.btn--size-small {
   font-size: 0.85rem;
 }
 
+/* —— Left rail = Core sticky sidebar column (darker than canvas) —— */
 .nav {
+  --nav-padding-inline-start: 0;
+  --nav-padding-inline-end: 0;
+  --nav-padding-block-start: 0;
+  --nav-padding-block-end: 0;
+  width: var(--nav-width) !important;
   background:
     linear-gradient(180deg, #0c121c 0%, #0f1622 48%, #0d141e 100%) !important;
   border-right: 1px solid #1a2433 !important;
   box-shadow: none !important;
 }
 
+.nav .nav__scroll {
+  padding: 0 !important;
+}
+
 .nav__wrap.sf-payload-admin-nav {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  padding: 1rem 0.75rem 1.25rem;
+  padding: 1.15rem 0.85rem 2rem;
   box-sizing: border-box;
   min-height: 100%;
+  width: 100%;
 }
 
 .nav__wrap.sf-payload-admin-nav .nav__controls {
   margin-top: auto;
   padding-top: 0.75rem;
   border-top: 1px solid #1a2433;
+  gap: 0.55rem;
 }
 
 .nav .admin-sidebar--embedded {
@@ -197,14 +236,14 @@ html[data-theme='dark'] .btn.btn--size-small {
   background: transparent;
   overflow: visible;
   gap: 0.65rem;
-  font-size: 16px;
-  line-height: normal;
+  font-size: 0.92rem;
+  line-height: 1.3;
   font-weight: 400;
 }
 
 .nav .admin-sidebar-brand .brand {
   margin: 0;
-  font-size: 0.92em;
+  font-size: 0.92rem;
 }
 
 .nav .admin-sidebar-brand .brand a {
@@ -213,16 +252,16 @@ html[data-theme='dark'] .btn.btn--size-small {
 }
 
 .nav .admin-sidebar-title {
-  margin: 0.2em 0 0;
+  margin: 0.2rem 0 0;
   color: #fff;
-  font-size: 1.05em;
+  font-size: 1.05rem;
   font-weight: 700;
   line-height: 1.25;
 }
 
 .nav .admin-sidebar-who .admin-who {
   margin: 0;
-  font-size: 0.8em;
+  font-size: 0.8rem;
   line-height: 1.35;
   color: var(--sf-muted);
 }
@@ -235,7 +274,7 @@ html[data-theme='dark'] .btn.btn--size-small {
 }
 
 .nav .admin-sidebar-item {
-  margin: 0 0 0.2em;
+  margin: 0 0 0.2rem;
 }
 
 .nav .admin-sidebar-link,
@@ -250,22 +289,22 @@ html[data-theme='dark'] .btn.btn--size-small {
   background: transparent;
   color: #e8eef8;
   font-family: inherit;
-  font-size: 1em;
+  font-size: 0.92rem;
   font-weight: 650;
-  line-height: normal;
+  line-height: 1.25;
   cursor: pointer;
 }
 
 .nav .admin-sidebar-link,
 .nav .admin-sidebar-group-head {
-  padding: 0.45em 0.6em;
+  padding: 0.45rem 0.6rem;
   border-radius: 3px;
 }
 
 .nav .admin-sidebar-group-head {
   display: flex;
   align-items: center;
-  gap: 0.35em;
+  gap: 0.35rem;
 }
 
 .nav .admin-sidebar-group-title {
@@ -297,16 +336,16 @@ html[data-theme='dark'] .btn.btn--size-small {
 }
 
 .nav .admin-sidebar-sub {
-  margin: 0.1em 0 0.35em;
-  padding: 0.15em 0 0.15em 0.55em;
+  margin: 0.1rem 0 0.35rem;
+  padding: 0.15rem 0 0.15rem 0.55rem;
   border-left: 2px solid #314257;
 }
 
 .nav .admin-sidebar-sublink {
-  padding: 0.35em 0.55em;
+  padding: 0.35rem 0.55rem;
   border-radius: 3px;
   font-weight: 600;
-  font-size: 0.9em;
+  font-size: 0.85rem;
   color: #9eb1c7;
 }
 
@@ -332,7 +371,7 @@ html[data-theme='dark'] .btn.btn--size-small {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 5.75L8 10.25L12.5 5.75' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
-/* —— Content canvas = Core padded-admin blue wash (visible vs flat Payload gray) —— */
+/* —— Content canvas = Core padded-admin blue wash —— */
 html[data-theme='dark'] .template-default__wrap {
   background:
     radial-gradient(
@@ -364,6 +403,8 @@ html[data-theme='dark'] .app-header__gradient-placeholder {
 html[data-theme='dark'] .step-nav__item,
 html[data-theme='dark'] .app-header .step-nav a {
   color: #e8eef8;
+  font-size: 0.88rem;
+  font-weight: 650;
 }
 
 html[data-theme='dark'] .dashboard,
@@ -377,15 +418,49 @@ html[data-theme='dark'] .collection-edit {
   color: #e8eef8;
 }
 
-/* Dashboard group labels — Page Settings panel-head weight */
+/* Tighten Payload view spacing toward Core admin-body density */
+html[data-theme='dark'] .collection-list__wrap > *:not(:last-child) {
+  margin-bottom: 0.85rem;
+}
+
+html[data-theme='dark'] .collections__wrap {
+  gap: 1.15rem;
+}
+
+html[data-theme='dark'] .collections__group {
+  gap: 0.65rem;
+}
+
+html[data-theme='dark'] .collections__card-list {
+  gap: 0.75rem;
+}
+
+/* Dashboard / list labels — Page Settings panel-head weight */
 html[data-theme='dark'] .collections__label,
-html[data-theme='dark'] .dashboard__label,
+html[data-theme='dark'] .dashboard__label {
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+}
+
 html[data-theme='dark'] .list-header__title,
 html[data-theme='dark'] .doc-header__title.render-title,
 html[data-theme='dark'] .doc-header .render-title {
   color: #fff;
+  font-size: 1.05rem !important;
   font-weight: 700;
   letter-spacing: 0.01em;
+  line-height: 1.25;
+}
+
+html[data-theme='dark'] .collection-list__sub-header,
+html[data-theme='dark'] .list-header__after-header-content {
+  padding-top: 0.45rem;
+  color: var(--sf-muted);
+  font-size: 0.85rem;
+  line-height: 1.4;
 }
 
 /* —— Shared panel surfaces (Page Settings tiles) —— */
@@ -409,15 +484,19 @@ html[data-theme='dark'] .widget {
   border-radius: 3px;
 }
 
-/* Dashboard collection cards — denser Page Settings panel look */
+/*
+ * Dashboard collection cards — Page Settings panel architecture:
+ * darker head strip + body + 4px mid-blue left accent (not stock row card).
+ */
 html[data-theme='dark'] .collections__card-list .card,
-html[data-theme='dark'] .dashboard .card {
+html[data-theme='dark'] .dashboard .card,
+html[data-theme='dark'] .card.card--has-onclick {
   display: flex !important;
   flex-direction: column !important;
   justify-content: flex-start !important;
   align-items: stretch !important;
   gap: 0 !important;
-  min-height: 5rem;
+  min-height: 4.75rem;
   padding: 0 !important;
   overflow: hidden;
   background: var(--sf-admin-panel) !important;
@@ -429,31 +508,41 @@ html[data-theme='dark'] .dashboard .card {
 }
 
 html[data-theme='dark'] .collections__card-list .card__title,
-html[data-theme='dark'] .dashboard .card__title {
+html[data-theme='dark'] .dashboard .card__title,
+html[data-theme='dark'] .card.card--has-onclick .card__title {
   margin: 0 !important;
-  padding: 0.75rem 0.9rem !important;
-  background: #0c121c !important;
+  padding: 0.55rem 0.85rem !important;
+  background: var(--sf-admin-panel-head) !important;
   border-bottom: 1px solid var(--sf-admin-panel-border) !important;
   color: #fff !important;
-  font-size: 0.95rem !important;
+  font-size: 0.92rem !important;
   font-weight: 700 !important;
-  line-height: 1.25 !important;
+  line-height: 1.3 !important;
+  letter-spacing: 0.01em;
   width: 100%;
   box-sizing: border-box;
 }
 
 html[data-theme='dark'] .collections__card-list .card__actions,
-html[data-theme='dark'] .dashboard .card__actions {
-  padding: 0.35rem 0.75rem 0.65rem;
+html[data-theme='dark'] .dashboard .card__actions,
+html[data-theme='dark'] .card.card--has-onclick .card__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.75rem 0.65rem;
   margin-top: auto;
+  background: var(--sf-admin-panel);
+  box-sizing: border-box;
+  width: 100%;
 }
 
 html[data-theme='dark'] .collections__card-list .card.card--has-onclick:hover,
-html[data-theme='dark'] .dashboard .card.card--has-onclick:hover {
-  background: color-mix(in srgb, var(--sf-admin-blue-mid) 14%, var(--sf-admin-panel));
-  border-color: var(--sf-admin-blue-mid);
-  border-left-color: var(--sf-admin-blue-mid);
-  box-shadow: none;
+html[data-theme='dark'] .dashboard .card.card--has-onclick:hover,
+html[data-theme='dark'] .card.card--has-onclick:hover {
+  background: color-mix(in srgb, var(--sf-admin-blue-mid) 10%, var(--sf-admin-panel)) !important;
+  border-color: var(--sf-admin-blue-mid) !important;
+  border-left-color: var(--sf-admin-blue-mid) !important;
+  box-shadow: none !important;
 }
 
 html[data-theme='dark'] .collections__card-list .card .btn__icon,
@@ -462,6 +551,7 @@ html[data-theme='dark'] .dashboard .card .btn__icon {
   background: var(--sf-admin-input);
   color: #e8eef8;
   box-shadow: none;
+  border-radius: 3px;
 }
 
 html[data-theme='dark'] .collections__card-list .card .btn__icon:hover,
@@ -472,9 +562,10 @@ html[data-theme='dark'] .dashboard .card .btn__icon:hover {
   box-shadow: none;
 }
 
+/* Generic panel heads (edit/doc chrome) */
 html[data-theme='dark'] .card__title,
 html[data-theme='dark'] .group-field__header,
-html[data-theme='dark'] .collapsible__toggle,
+html[data-theme='dark'] .collapsible__toggle-wrap,
 html[data-theme='dark'] .doc-header__content,
 html[data-theme='dark'] .drawer__header,
 html[data-theme='dark'] .table thead,
@@ -485,43 +576,147 @@ html[data-theme='dark'] .table th {
   box-shadow: none;
 }
 
-/* Pages / collection list — toolbar + table as Page Settings panels */
+html[data-theme='dark'] .collapsible {
+  overflow: hidden;
+  border: 1px solid var(--sf-admin-panel-border) !important;
+  border-radius: 3px;
+  background: var(--sf-admin-panel);
+}
+
+html[data-theme='dark'] .collapsible__toggle-wrap {
+  padding: 0.55rem 0.85rem !important;
+  border-bottom: 1px solid var(--sf-admin-panel-border);
+  border-radius: 0 !important;
+  background: var(--sf-admin-panel-head) !important;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+html[data-theme='dark'] .collapsible__toggle-wrap:not(.toggle-disabled):hover {
+  background: color-mix(in srgb, var(--sf-admin-blue-mid) 16%, var(--sf-admin-panel-head)) !important;
+}
+
+html[data-theme='dark'] .group-field--top-level {
+  margin-left: 0;
+  margin-right: 0;
+  padding: 0 0 0.85rem;
+  border: 1px solid var(--sf-admin-panel-border);
+  border-radius: 3px;
+  background: var(--sf-admin-panel);
+  overflow: hidden;
+}
+
+html[data-theme='dark'] .group-field__header {
+  margin: 0 0 0.75rem;
+  padding: 0.55rem 0.85rem;
+  border-bottom: 1px solid var(--sf-admin-panel-border);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+html[data-theme='dark'] .group-field--top-level > :not(.group-field__header) {
+  margin-left: 0.85rem;
+  margin-right: 0.85rem;
+}
+
+/*
+ * Pages / collection list — toolbar as Page Settings panel head;
+ * search + table as stacked panel tiles (not floating stock Payload chrome).
+ */
 html[data-theme='dark'] .list-header {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
   margin-bottom: 0.85rem;
-  padding: 0.75rem 1rem;
-  background: #0c121c;
+  padding: 0;
+  overflow: hidden;
+  background: var(--sf-admin-panel);
   border: 1px solid var(--sf-admin-panel-border);
   border-left: 4px solid var(--sf-admin-blue-mid);
   border-radius: 3px;
   box-shadow: none;
 }
 
+html[data-theme='dark'] .list-header__content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem 0.85rem;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.55rem 0.85rem;
+  background: var(--sf-admin-panel-head);
+  border-bottom: 1px solid var(--sf-admin-panel-border);
+}
+
+html[data-theme='dark'] .list-header__title-and-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem 0.75rem;
+}
+
+html[data-theme='dark'] .list-header__after-header-content {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.65rem 0.85rem 0.75rem;
+  background: var(--sf-admin-panel);
+}
+
 html[data-theme='dark'] .search-bar {
-  --search-bg: var(--sf-admin-panel);
-  background: var(--sf-admin-panel) !important;
+  --search-bg: var(--sf-admin-input);
+  background: var(--sf-admin-input) !important;
+  border: 1px solid var(--sf-admin-blue-border);
+  border-radius: 3px;
+  box-shadow: none;
+  min-height: var(--sf-admin-btn-min-height);
+}
+
+html[data-theme='dark'] .list-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0.55rem;
+  margin-bottom: 0.85rem;
+  padding: 0.65rem 0.75rem;
+  background: var(--sf-admin-panel);
   border: 1px solid var(--sf-admin-panel-border);
   border-radius: 3px;
   box-shadow: none;
 }
 
-html[data-theme='dark'] .list-controls {
-  background: transparent;
-  border: 0;
+html[data-theme='dark'] .list-controls .search-bar {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+html[data-theme='dark'] .table-wrap,
+html[data-theme='dark'] .collection-list__tables {
+  background: var(--sf-admin-panel);
+  border: 1px solid var(--sf-admin-panel-border);
+  border-radius: 3px;
+  overflow: hidden;
   box-shadow: none;
 }
 
 html[data-theme='dark'] .table {
-  background: var(--sf-admin-panel);
-  border: 1px solid var(--sf-admin-panel-border);
-  border-radius: 3px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   overflow: hidden;
 }
 
 html[data-theme='dark'] .table thead th {
   background: color-mix(in srgb, var(--sf-secondary) 12%, var(--sf-admin-surface));
   color: #fff;
+  font-size: 0.82rem;
   font-weight: 650;
+  letter-spacing: 0.02em;
   border-bottom: 1px solid var(--sf-line);
+  padding-top: 0.55rem;
+  padding-bottom: 0.55rem;
 }
 
 html[data-theme='dark'] .table tbody tr:nth-child(odd) {
@@ -531,6 +726,9 @@ html[data-theme='dark'] .table tbody tr:nth-child(odd) {
 html[data-theme='dark'] .table td {
   border-color: var(--sf-admin-panel-border);
   color: #e8eef8;
+  font-size: 0.9rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
 }
 
 html[data-theme='dark'] .table tbody tr:hover td {
@@ -554,6 +752,8 @@ html[data-theme='dark'] .date-time-picker .react-datepicker__input-container inp
   border: 1px solid var(--sf-admin-blue-border) !important;
   border-radius: 3px;
   box-shadow: none !important;
+  min-height: calc(var(--sf-admin-btn-min-height) - 0.15rem);
+  font-size: 0.9rem;
 }
 
 html[data-theme='dark'] .field-type input:not([type='checkbox']):not([type='radio']):focus,
@@ -567,6 +767,13 @@ html[data-theme='dark'] .react-select-container .rs__control--is-focused {
   box-shadow: none !important;
 }
 
+html[data-theme='dark'] .field-type .field-label,
+html[data-theme='dark'] .field-type label {
+  color: var(--sf-muted);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
 html[data-theme='dark'] .pill,
 html[data-theme='dark'] .popup-button,
 html[data-theme='dark'] .step-nav__item {
@@ -574,6 +781,9 @@ html[data-theme='dark'] .step-nav__item {
   border-color: var(--sf-admin-blue-border);
   color: var(--sf-secondary-strong);
   box-shadow: none;
+  border-radius: 3px;
+  font-size: 0.85rem;
+  font-weight: 650;
 }
 
 html[data-theme='dark'] .pill--style-light,

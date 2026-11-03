@@ -170,10 +170,45 @@ mustInclude(
 mustInclude(payloadChrome, 'payload list-header panel head', 'html[data-theme=\'dark\'] .list-header')
 mustInclude(payloadChrome, 'payload app-header navy bar', 'html[data-theme=\'dark\'] .app-header__bg')
 
+/* Structural chrome — density / sidebar / panel architecture (not tokens alone). */
+mustInclude(payloadChrome, 'payload nav width matches Core sidebar', '--nav-width: 15.5rem')
+mustInclude(payloadChrome, 'payload gutter denser than stock', '--gutter-h: 1.5rem')
+mustInclude(payloadChrome, 'payload nav scroll padding cleared', '.nav .nav__scroll')
+mustInclude(
+  payloadChrome,
+  'payload wrap uses Core sidebar padding',
+  'padding: 1.15rem 0.85rem 2rem',
+)
+mustInclude(
+  payloadChrome,
+  'payload card title uses panel-head token',
+  'background: var(--sf-admin-panel-head) !important',
+)
+mustInclude(
+  payloadChrome,
+  'payload list-header content is panel-head strip',
+  'html[data-theme=\'dark\'] .list-header__content',
+)
+mustInclude(
+  payloadChrome,
+  'payload Create New pill painted orange',
+  '.list-create-new-doc__create-new-button.btn',
+)
+mustInclude(
+  payloadChrome,
+  'payload collapsible toggle is panel head',
+  'html[data-theme=\'dark\'] .collapsible__toggle-wrap',
+)
+mustInclude(
+  payloadChrome,
+  'payload list-controls panel tile',
+  'html[data-theme=\'dark\'] .list-controls',
+)
+
 mustInclude(tokens, 'tokens panel', "panel: '#1b2432'")
 mustInclude(tokens, 'tokens panelHead', "panelHead: '#121a24'")
 mustInclude(tokens, 'tokens panelBorder', "panelBorder: '#2f3d50'")
 
 console.log(
-  'ok — admin theme chrome (Core Layout/Page Settings + Payload panel align)',
+  'ok — admin theme chrome (Core Layout/Page Settings + Payload structural chrome)',
 )
