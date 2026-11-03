@@ -10,6 +10,10 @@ Public findability over **published** Payload pages — title, slug, meta title/
 | Route | `/search?q=` (404 when product off) |
 | Particle | Layout palette `search` → GET form to `/search` |
 
+## DB
+
+Tags live in Payload (`tags` + `pages.tags` → `payload.pages_rels`). After pull, run `npm run db:migrate` so `20261103_181356_pages_tags_taxonomy` exists — otherwise published page loads fail joining `pages_rels`. Local push-era DBs: volume reset, then migrate + seed (see root README).
+
 ## Deferred
 
 - Media library facets / tag filters on Media
