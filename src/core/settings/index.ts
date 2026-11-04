@@ -3,7 +3,11 @@ import { cache } from 'react'
 
 import config from '@payload-config'
 
-import { contentCacheTags, getPublishedContentCache } from '@/core/content/cache'
+import {
+  contentCacheTags,
+  getPublishedContentCache,
+  setPublishedCacheRuntimeConfig,
+} from '@/core/content/cache'
 import { isModuleAllowlisted } from '@/generated/module-registry'
 
 import { resolveNavMenuItems } from '@/core/nav/resolve'
@@ -14,13 +18,19 @@ import {
   DEFAULT_FEATURE_FLAGS,
   DEFAULT_FORM_RATE_LIMIT_MAX,
   DEFAULT_FORM_RATE_LIMIT_WINDOW_SEC,
+  DEFAULT_NULL_MISS_TTL_SEC,
   DEFAULT_PRIMARY_NAV,
   DEFAULT_PRIMARY_NAV_MENU_ID,
+  DEFAULT_PUBLISHED_CACHE_ENABLED,
+  DEFAULT_PUBLISHED_CACHE_TTL_SEC,
   DEFAULT_SITE_NAME,
   DEFAULT_SITE_SETTINGS,
   clampAdminAutosaveDebounceMs,
   clampFormRateLimitMax,
   clampFormRateLimitWindowSec,
+  clampNullMissTtlSec,
+  clampPublishedCacheTtlSec,
+  coercePublishedCacheEnabled,
   type FeatureFlags,
   type ModuleToggleMap,
   type NavItem,
@@ -51,17 +61,27 @@ export {
   DEFAULT_FEATURE_FLAGS,
   DEFAULT_FORM_RATE_LIMIT_MAX,
   DEFAULT_FORM_RATE_LIMIT_WINDOW_SEC,
+  DEFAULT_NULL_MISS_TTL_SEC,
   DEFAULT_PRIMARY_NAV,
   DEFAULT_PRIMARY_NAV_MENU_ID,
+  DEFAULT_PUBLISHED_CACHE_ENABLED,
+  DEFAULT_PUBLISHED_CACHE_TTL_SEC,
   DEFAULT_SITE_NAME,
   DEFAULT_SITE_SETTINGS,
   FORM_RATE_LIMIT_MAX_MAX,
   FORM_RATE_LIMIT_MAX_MIN,
   FORM_RATE_LIMIT_WINDOW_SEC_MAX,
   FORM_RATE_LIMIT_WINDOW_SEC_MIN,
+  NULL_MISS_TTL_SEC_MAX,
+  NULL_MISS_TTL_SEC_MIN,
+  PUBLISHED_CACHE_TTL_SEC_MAX,
+  PUBLISHED_CACHE_TTL_SEC_MIN,
   clampAdminAutosaveDebounceMs,
   clampFormRateLimitMax,
   clampFormRateLimitWindowSec,
+  clampNullMissTtlSec,
+  clampPublishedCacheTtlSec,
+  coercePublishedCacheEnabled,
 } from './defaults'
 export {
   ATOM_TOGGLE_PREFIX,
@@ -103,6 +123,9 @@ type SiteSettingsDoc = {
   adminAutosaveDebounceMs?: number | null
   formRateLimitMax?: number | null
   formRateLimitWindowSec?: number | null
+  publishedCacheEnabled?: boolean | null
+  publishedCacheTtlSec?: number | null
+  nullMissTtlSec?: number | null
   primaryNav?: RawNavRow[] | null
   featureRegistration?: boolean | null
   featureRichEditor?: boolean | null
@@ -110,6 +133,15 @@ type SiteSettingsDoc = {
   featureModules?: boolean | null
   featureDraftPreview?: boolean | null
   moduleToggles?: Array<{ moduleId?: string | null; enabled?: boolean | null }> | null
+}
+
+/** Push Performance cache knobs into the sync snapshot used by cache adapters. */
+function syncPublishedCacheRuntime(settings: SiteSettingsData): void {
+  setPublishedCacheRuntimeConfig({
+    enabled: settings.publishedCacheEnabled,
+    ttlSec: settings.publishedCacheTtlSec,
+    nullMissTtlSec: settings.nullMissTtlSec,
+  })
 }
 
 function normalizePrimaryNavMenuId(raw: string | null | undefined): string {
@@ -133,7 +165,7 @@ export function normalizeSiteSettings(
   resolvedNav?: NavItem[],
 ): SiteSettingsData {
   if (!doc) {
-    return {
+    const defaults: SiteSettingsData = {
       ...DEFAULT_SITE_SETTINGS,
       features: { ...DEFAULT_FEATURE_FLAGS },
       primaryNav: (resolvedNav ?? DEFAULT_PRIMARY_NAV).map((i) => ({ ...i })),
@@ -141,8 +173,13 @@ export function normalizeSiteSettings(
       adminAutosaveDebounceMs: DEFAULT_ADMIN_AUTOSAVE_DEBOUNCE_MS,
       formRateLimitMax: DEFAULT_FORM_RATE_LIMIT_MAX,
       formRateLimitWindowSec: DEFAULT_FORM_RATE_LIMIT_WINDOW_SEC,
+      publishedCacheEnabled: DEFAULT_PUBLISHED_CACHE_ENABLED,
+      publishedCacheTtlSec: DEFAULT_PUBLISHED_CACHE_TTL_SEC,
+      nullMissTtlSec: DEFAULT_NULL_MISS_TTL_SEC,
       moduleToggles: {},
     }
+    syncPublishedCacheRuntime(defaults)
+    return defaults
   }
 
   const siteName =
@@ -150,16 +187,21 @@ export function normalizeSiteSettings(
       ? doc.siteName.trim()
       : DEFAULT_SITE_NAME
 
-  return {
+  const normalized: SiteSettingsData = {
     siteName,
     primaryNavMenuId: normalizePrimaryNavMenuId(doc.primaryNavMenuId),
     adminAutosaveDebounceMs: clampAdminAutosaveDebounceMs(doc.adminAutosaveDebounceMs),
     formRateLimitMax: clampFormRateLimitMax(doc.formRateLimitMax),
     formRateLimitWindowSec: clampFormRateLimitWindowSec(doc.formRateLimitWindowSec),
+    publishedCacheEnabled: coercePublishedCacheEnabled(doc.publishedCacheEnabled),
+    publishedCacheTtlSec: clampPublishedCacheTtlSec(doc.publishedCacheTtlSec),
+    nullMissTtlSec: clampNullMissTtlSec(doc.nullMissTtlSec),
     primaryNav: resolvedNav ?? resolveNavItems(doc.primaryNav),
     features: normalizeFlags(doc),
     moduleToggles: normalizeModuleToggles(doc.moduleToggles),
   }
+  syncPublishedCacheRuntime(normalized)
+  return normalized
 }
 
 /**
@@ -277,6 +319,12 @@ export type UpdateSiteSettingsInput = {
   formRateLimitMax?: number
   /** Form submit rate-limit window (seconds); clamped on write. */
   formRateLimitWindowSec?: number
+  /** Published-content cache on/off; Site Settings → Performance. */
+  publishedCacheEnabled?: boolean
+  /** Published-content TTL seconds (`0` = tag invalidate only). */
+  publishedCacheTtlSec?: number
+  /** Redis null-miss TTL seconds. */
+  nullMissTtlSec?: number
   /**
    * Legacy: resolved public nav (label + href) — written as custom-URL rows.
    * Prefer Nav manager (`sf_nav_menus`) + `primaryNavMenuId`.
@@ -330,6 +378,15 @@ export async function updateSiteSettings(input: UpdateSiteSettingsInput): Promis
   }
   if (input.formRateLimitWindowSec !== undefined) {
     data.formRateLimitWindowSec = clampFormRateLimitWindowSec(input.formRateLimitWindowSec)
+  }
+  if (input.publishedCacheEnabled !== undefined) {
+    data.publishedCacheEnabled = coercePublishedCacheEnabled(input.publishedCacheEnabled)
+  }
+  if (input.publishedCacheTtlSec !== undefined) {
+    data.publishedCacheTtlSec = clampPublishedCacheTtlSec(input.publishedCacheTtlSec)
+  }
+  if (input.nullMissTtlSec !== undefined) {
+    data.nullMissTtlSec = clampNullMissTtlSec(input.nullMissTtlSec)
   }
 
   if (!input.keepLegacyPrimaryNav) {

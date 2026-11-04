@@ -98,6 +98,38 @@ export const SiteSettings: GlobalConfig = {
       },
     },
     {
+      name: 'publishedCacheEnabled',
+      type: 'checkbox',
+      defaultValue: true,
+      label: 'Published content cache',
+      admin: {
+        description:
+          'When off, published pages/settings always load fresh (bypass Next/Redis adapters). Backend enum + REDIS_URL stay in Environment. Prefer Starforge admin → Settings → Performance.',
+      },
+    },
+    {
+      name: 'publishedCacheTtlSec',
+      type: 'number',
+      defaultValue: 0,
+      min: 0,
+      max: 86400,
+      admin: {
+        description:
+          'Published-content TTL in seconds (0 = until tag invalidation). Prefer Starforge admin → Settings → Performance.',
+      },
+    },
+    {
+      name: 'nullMissTtlSec',
+      type: 'number',
+      defaultValue: 60,
+      min: 1,
+      max: 3600,
+      admin: {
+        description:
+          'Redis null-miss marker TTL in seconds (1–3600). Ignored by the Next.js tag cache. Prefer Starforge admin → Settings → Performance.',
+      },
+    },
+    {
       name: 'primaryNav',
       type: 'array',
       labels: {
