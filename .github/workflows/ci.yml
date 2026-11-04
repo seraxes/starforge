@@ -12,7 +12,7 @@ concurrency:
 env:
   DATABASE_URL: postgresql://starforge:starforge@127.0.0.1:5432/starforge
   PAYLOAD_SECRET: ci-only-payload-secret-32chars-min
-  BETTER_AUTH_SECRET: ci-only-better-auth-secret-32ch
+  BETTER_AUTH_SECRET: ci-only-better-auth-secret-32chars
   BETTER_AUTH_URL: http://127.0.0.1:3000
   NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
   STARFORGE_SECURE_COOKIES: '0'
