@@ -166,11 +166,11 @@ export async function saveGroupAclMatrixAction(
   if ('error' in result) return { error: result.error }
 
   revalidateUsersPaths(groupId)
-  return { ok: true, message: 'ACL matrix saved (stub).', groupId }
+  return { ok: true, message: 'ACL matrix saved.', groupId }
 }
 
 /**
- * Save admin ACL stub for all groups from the Users → ACL matrix page.
+ * Save admin ACL for all groups from the Users → ACL matrix page.
  * Checkbox values are `groupId::resourceKey`.
  */
 export async function saveAllGroupsAclMatrixAction(
@@ -208,5 +208,5 @@ export async function saveAllGroupsAclMatrixAction(
 
   revalidateUsersPaths()
   revalidatePath('/app/admin/users/acl')
-  return { ok: true, message: 'ACL matrix saved (stub).' }
+  return { ok: true, message: 'ACL matrix saved.' }
 }

@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
-import { requireAppAdmin } from '@/core/auth/admin'
+import { requireAdminArea } from '@/core/acl'
 import { invalidateNavMenu } from '@/core/content/revalidate'
 import { DEFAULT_NAV_MENU_ID } from '@/core/db'
 
@@ -32,9 +32,12 @@ export type NavActionState = {
 }
 
 async function requireNavAdmin(): Promise<NavActionState | null> {
-  const admin = await requireAppAdmin()
-  if (!admin) {
-    return { error: 'Sign in as a Starforge app admin to manage navigation.' }
+  const session = await requireAdminArea('admin.nav')
+  if (!session) {
+    return {
+      error:
+        'Sign in with Navigation ACL (Users → ACL → admin.nav) or as a Starforge app admin.',
+    }
   }
   return null
 }

@@ -53,9 +53,10 @@ export function AclMatrixManager({ resources, groups }: Props) {
       <section className="outlines-create admin-settings-panel-wide" aria-label="Group permissions matrix">
         <h3>Permissions by group</h3>
         <p className="settings-hint">
-          Check a cell to grant that admin area to the group. Viewing (menus / modules) is tagged
-          on each Nav item or layout particle — not here. Saves automatically into{' '}
-          <code>sf_acl_permissions</code>.
+          Check a cell to grant that admin area to the group. Enforced on Core admin routes and
+          matching server actions (Navigation uses <code>admin.nav</code>). Viewing (menus /
+          modules) is tagged on each Nav item or layout particle — not here. Saves automatically
+          into <code>sf_acl_permissions</code>.
         </p>
         <Feedback state={state} />
 

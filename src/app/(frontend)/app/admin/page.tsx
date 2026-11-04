@@ -1,6 +1,21 @@
 import { redirect } from 'next/navigation'
 
-/** Core admin home — users list is the first surface. */
-export default function CoreAdminIndexPage() {
-  redirect('/app/admin/users')
+import {
+  firstAdminLandingPath,
+  getAccessViewer,
+  listViewerAllowedAdminResources,
+} from '@/core/acl'
+
+/** Core admin home — land on the first area this viewer may open. */
+export default async function CoreAdminIndexPage() {
+  const viewer = await getAccessViewer()
+  const allowed = viewer.isAppAdmin
+    ? new Set<never>()
+    : await listViewerAllowedAdminResources(viewer)
+  redirect(
+    firstAdminLandingPath({
+      isAppAdmin: viewer.isAppAdmin,
+      allowed,
+    }),
+  )
 }

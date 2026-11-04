@@ -4,11 +4,18 @@ import { redirect } from 'next/navigation'
 
 import { AdminSidebarNav } from '@/components/admin/AdminSidebarNav'
 import { buildAdminNavGroups } from '@/core/admin-nav'
+import type { AdminNavGroup } from '@/core/admin-nav'
 import { getActiveAdminTheme } from '@/core/admin-theme'
+import {
+  adminHrefAllowed,
+  getAccessViewer,
+  requireAdminAreaForRequest,
+  viewerMayEnterAdminShell,
+  type AclAdminResourceKey,
+} from '@/core/acl'
 import {
   promoteSessionUserIfBootstrapAdmin,
   roleFromUser,
-  userIsAppAdmin,
 } from '@/core/auth/admin'
 import { getAppSession } from '@/core/auth/session'
 import { loadCoreUserCmsAccess, userHasCmsAccess } from '@/core/cms-bridge'
@@ -27,6 +34,28 @@ export const metadata = {
     'Starforge / App admin — users, site settings, nav, layouts, page settings (not Content CMS).',
 }
 
+function filterNavByAcl(
+  groups: AdminNavGroup[],
+  isAppAdmin: boolean,
+  allowed: ReadonlySet<AclAdminResourceKey>,
+): AdminNavGroup[] {
+  if (isAppAdmin) return groups
+  return groups
+    .map((group) => {
+      const links = group.links.filter((link) =>
+        adminHrefAllowed(link.href, false, allowed),
+      )
+      if (links.length === 0) return null
+      if (group.href && !adminHrefAllowed(group.href, false, allowed)) {
+        const { href: _unused, ...rest } = group
+        void _unused
+        return { ...rest, links }
+      }
+      return { ...group, links }
+    })
+    .filter((g): g is AdminNavGroup => g != null)
+}
+
 export default async function CoreAdminLayout(props: { children: React.ReactNode }) {
   const session = await getAppSession()
   if (!session?.user) {
@@ -36,8 +65,13 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
   // STARFORGE_ADMIN_EMAILS: promote matching member → admin on this request.
   await promoteSessionUserIfBootstrapAdmin(session.user)
 
-  if (!userIsAppAdmin(session.user)) {
-    // Expected for members — not a bug. Flash on home explains how to get admin.
+  const viewer = await getAccessViewer()
+  if (!(await viewerMayEnterAdminShell(viewer))) {
+    redirect('/?notice=admins-only')
+  }
+
+  const gated = await requireAdminAreaForRequest()
+  if (!gated) {
     redirect('/?notice=admins-only')
   }
 
@@ -59,16 +93,20 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
   if (redirectsOn) enabledModuleIds.add(MODULE_IDS.redirects)
   if (mediaOn) enabledModuleIds.add(MODULE_IDS.media)
 
-  const groups = buildAdminNavGroups({
-    surface: 'core',
-    flags: {
-      nav: navOn,
-      layout: layoutOn,
-      pageSettings: pageSettingsOn,
-      cms: showPayloadCms,
-    },
-    enabledModuleIds,
-  })
+  const groups = filterNavByAcl(
+    buildAdminNavGroups({
+      surface: 'core',
+      flags: {
+        nav: navOn,
+        layout: layoutOn,
+        pageSettings: pageSettingsOn,
+        cms: showPayloadCms,
+      },
+      enabledModuleIds,
+    }),
+    viewer.isAppAdmin,
+    gated.allowed,
+  )
 
   return (
     <AdminToastProvider>

@@ -15,7 +15,7 @@ function permissionId(groupId: string, resource: string): string {
   return `acl_${groupId}__${resource.replace(/[^a-z0-9]+/gi, '_')}`
 }
 
-/** Full stub matrix for one group (missing rows = denied). */
+/** Full matrix for one group (missing rows = denied). */
 export async function getGroupAclMatrix(groupId: string): Promise<AclPermissionRow[]> {
   const trimmed = groupId.trim()
   const rows = trimmed
@@ -92,7 +92,7 @@ export async function replaceGroupAclMatrix(
 
 /**
  * True when any of the given groups has `allowed` for the resource.
- * App admins should bypass this (see `groupMayAccessAdminResource`).
+ * App admins should bypass this (see `viewerMayAccessAdminResource`).
  */
 export async function anyGroupAllowsResource(
   groupIds: string[],
@@ -111,4 +111,25 @@ export async function anyGroupAllowsResource(
     )
     .limit(1)
   return rows.length > 0
+}
+
+/** Distinct allowed admin resource keys across the given groups. */
+export async function listAllowedResourcesForGroups(
+  groupIds: string[],
+): Promise<Set<AclAdminResourceKey>> {
+  const out = new Set<AclAdminResourceKey>()
+  if (groupIds.length === 0) return out
+  const rows = await db
+    .select({ resource: sfAclPermissions.resource })
+    .from(sfAclPermissions)
+    .where(
+      and(
+        inArray(sfAclPermissions.groupId, groupIds),
+        eq(sfAclPermissions.allowed, true),
+      ),
+    )
+  for (const row of rows) {
+    if (isAclAdminResourceKey(row.resource)) out.add(row.resource)
+  }
+  return out
 }

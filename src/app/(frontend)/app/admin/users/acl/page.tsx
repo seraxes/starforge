@@ -35,8 +35,9 @@ export default async function AdminAclPage() {
         One model: <strong>groups</strong> hold permissions here; the same groups (plus Public /
         Registered tags) control who can <em>see</em> Navigation items and layout particles. There is
         no separate Access Level table — manage membership under{' '}
-        <Link href="/app/admin/users/groups">Groups</Link>. Global app admins still open all Core
-        admin today; this matrix is the stub for later enforcement.
+        <Link href="/app/admin/users/groups">Groups</Link>. Global app admins open every Core admin
+        area; other signed-in users open only areas granted to their groups (e.g. Managers +{' '}
+        <code>admin.nav</code> → Navigation).
       </p>
 
       <AclMatrixManager

@@ -4,7 +4,7 @@ Reusable **product core** for ordinary web apps (auth, users, app shell, extensi
 
 **Two admin surfaces, one login:** **Starforge admin** (`/app/admin` — users, groups, site settings, nav, layouts) ↔ **Payload Content CMS** (`/admin` — pages, media); each sidebar links to the other.
 
-This is an early scaffold plus **core app auth** (Better Auth), **roles + user groups + ACL stub**, **one-login Payload CMS access** (`cms_access` toggle), **site settings + feature toggles**, **Nav manager**, **Page Settings** (Gantry-style Head / Assets / Body / Font Awesome / Atoms + layout assignment in `sf_page_chrome`), **Lexical** page editing, **public `/[slug]`** rendering, **draft preview** (`/preview/[slug]`), **published content cache** (Next.js tags; Redis later), **page SEO fields**, **extension modules + Gantry-like layout manager** (sections/rows/slots + % widths in `sf_layouts`, palette UI at `/app/admin/layouts`, typed Logo/Copyright/Social + page-content + Custom particles), and **`npm run seed`**. It is intentionally small and runnable locally — not Airsoftnexus 2.0 feature parity, and not a DigitalOcean deploy.
+This is an early scaffold plus **core app auth** (Better Auth), **roles + user groups + ACL matrix**, **one-login Payload CMS access** (`cms_access` toggle), **site settings + feature toggles**, **Nav manager**, **Page Settings** (Gantry-style Head / Assets / Body / Font Awesome / Atoms + layout assignment in `sf_page_chrome`), **Lexical** page editing, **public `/[slug]`** rendering, **draft preview** (`/preview/[slug]`), **published content cache** (Next.js tags; Redis later), **page SEO fields**, **extension modules + Gantry-like layout manager** (sections/rows/slots + % widths in `sf_layouts`, palette UI at `/app/admin/layouts`, typed Logo/Copyright/Social + page-content + Custom particles), and **`npm run seed`**. It is intentionally small and runnable locally — not Airsoftnexus 2.0 feature parity, and not a DigitalOcean deploy.
 
 ## Architecture
 
@@ -147,7 +147,7 @@ Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so coo
 | http://localhost:3000/account/security | Enable/disable authenticator 2FA + recovery codes (signed-in) |
 | http://localhost:3000/app/admin/users | Starforge admin — accounts (roles, groups, **CMS access**, disable) |
 | http://localhost:3000/app/admin/users/groups | Starforge admin — **user groups** |
-| http://localhost:3000/app/admin/users/acl | Starforge admin — **ACL** stub matrix + view-access overview |
+| http://localhost:3000/app/admin/users/acl | Starforge admin — **ACL** groups matrix (admin-area grants) |
 | http://localhost:3000/app/admin/site-chrome | Starforge admin — **Site Chrome** (offline, metadata, robots, cookies) |
 | http://localhost:3000/app/admin/settings | Starforge admin — Modules on/off + primary nav menu assignment |
 | http://localhost:3000/app/admin/nav | Starforge admin — **Nav** manager (navigation sets + items) |
@@ -172,10 +172,10 @@ App login uses **email**, not a separate username. Auth helpers (SF-17) use **Be
 
 | Role / flag | Who | Can open |
 | --- | --- | --- |
-| `admin` | Global **app** admin | `/app/admin/*`; **`cms_access` on by default** → `/admin`; bypasses group ACL stubs |
-| `member` | Default product user | App routes only (no Payload stub unless CMS access toggled on) |
+| `admin` | Global **app** admin | `/app/admin/*`; **`cms_access` on by default** → `/admin`; bypasses group ACL |
+| `member` | Default product user | App routes; Core admin only when a group grant exists |
 | `cms_access` | Per-user switch on Users | Payload `/admin` via Better Auth session |
-| User groups | Named sets under Users → Groups | Membership drives nav `group:<id>` visibility + ACL stub matrix |
+| User groups | Named sets under Users → Groups | Membership drives nav `group:<id>` visibility + ACL matrix (Managers = group, not a Role) |
 
 ### User groups + ACL foundation
 
@@ -184,10 +184,10 @@ App login uses **email**, not a separate username. Auth helpers (SF-17) use **Be
 | Piece | Role |
 | --- | --- |
 | **Groups** | Create / rename / delete; assign members. Only ACL entity (no separate Access Level table). |
-| **ACL** | One matrix: grant admin-area permissions **to groups** (`sf_acl_permissions`). |
+| **ACL** | One matrix: grant admin-area permissions **to groups** (`sf_acl_permissions`). Enforced via `requireAdminArea` / path gates (Navigation = `admin.nav`). |
 | **Nav / Layout / Page “Who can see”** | Multi-select tags (`public` / `registered` / `group:<id>`) on Nav items, layout particles, and Page Settings chrome. Visible if the viewer matches **any** tag; empty = public. Restricted pages hide (`notFound`). |
 
-Global app admins still open all Core admin today; the matrix is the enforcement stub.
+Global app admins open all Core admin. Members in a group with matrix grants (e.g. seed **Managers** + `admin.nav`) enter `/app/admin` for those areas only. Media stays app-admin until a matrix row is added.
 
 ### Site Chrome + Site settings + Nav
 
@@ -486,7 +486,7 @@ src/
     content/                # published + draft CMS reads, cache layer, preview gate, SEO
       cache/                # Next tags (default) + Redis stub for DO
     nav/                    # Nav manager (sf_nav_menus) store + resolve + actions
-    acl/                    # User groups + ACL stub (sf_user_groups, sf_acl_permissions)
+    acl/                    # User groups + ACL matrix (sf_user_groups, sf_acl_permissions)
     modules/                # register API, layout document, ModuleSlot, PublicLayoutBody
     settings/               # site-settings + legacy nav resolve + flag helpers
     db/                     # Drizzle core schema + client (sf_layouts, sf_nav_menus, groups, …)

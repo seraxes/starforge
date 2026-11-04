@@ -5,7 +5,7 @@
  * Custom levels use `group:<groupId>` against `sf_user_groups.id`.
  */
 
-/** Admin-area resources for the stub permission matrix. */
+/** Admin-area resources for the Users → ACL permission matrix. */
 export const ACL_ADMIN_RESOURCES = [
   { key: 'admin.users', label: 'Users — accounts' },
   { key: 'admin.groups', label: 'Users — groups' },
@@ -53,7 +53,7 @@ export type AccessViewer = {
   userId: string | null
   /** True when signed in (any role). */
   isRegistered: boolean
-  /** Global app admin — bypasses group ACL stubs. */
+  /** Global app admin — bypasses group ACL grants. */
   isAppAdmin: boolean
   /** Group ids this user belongs to. */
   groupIds: string[]
