@@ -23,9 +23,12 @@ const tokensPath = join(
 const stylesPath = join(root, 'src/app/(frontend)/styles.css')
 const mediaLibraryPath = join(
   root,
-  'src/app/(frontend)/app/admin/media/media-library.tsx',
+  'src/modules/media/admin/media-library.tsx',
 )
-const mediaLightboxPath = join(root, 'src/components/admin/MediaLightbox.tsx')
+const mediaLightboxPath = join(
+  root,
+  'src/modules/media/admin/MediaLightbox.tsx',
+)
 const chrome = readFileSync(chromePath, 'utf8')
 const payloadChrome = readFileSync(payloadChromePath, 'utf8')
 const tokens = readFileSync(tokensPath, 'utf8')
