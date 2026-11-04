@@ -4,12 +4,15 @@ import type Redis from 'ioredis'
 
 import { getRedisClient, redisKeyPrefix } from '@/core/redis'
 
+import { getPublishedCacheRuntimeConfig } from './runtime-config'
 import type { ContentCacheGetOptions, PublishedContentCache } from './types'
 
 export { redisKeyPrefix } from '@/core/redis'
 
-/** Short TTL for cached null / miss markers so random slug probes do not stick forever. */
-const NULL_MISS_TTL_SECONDS = 60
+/** Null-miss TTL from Site Settings → Performance (code default 60s). */
+function nullMissTtlSeconds(): number {
+  return getPublishedCacheRuntimeConfig().nullMissTtlSec
+}
 
 function valueKey(parts: readonly string[]): string {
   return `${redisKeyPrefix()}:pcc:v:${parts.join(':')}`
@@ -38,7 +41,7 @@ let cachedAdapter: PublishedContentCache | null = null
  *
  * - Selected via `STARFORGE_CONTENT_CACHE=redis` + `REDIS_URL`
  * - Keys prefixed with `STARFORGE_REDIS_PREFIX` (default `sf:${NODE_ENV}`)
- * - Null loader results get a short TTL (null-miss) so probes do not linger
+ * - Null loader results get a short TTL (null-miss; Site Settings → Performance)
  * - Tag index = Redis Sets; invalidation deletes member keys + the set
  *
  * Callers keep using `getPublishedPageBySlug` / `getSiteSettings` — do not
@@ -69,9 +72,10 @@ export function createRedisPublishedContentCache(): PublishedContentCache {
       try {
         const payload = JSON.stringify(value)
         const pipeline = redis.pipeline()
+        const missTtl = nullMissTtlSeconds()
         const memberTtl =
           value === null || value === undefined
-            ? NULL_MISS_TTL_SECONDS
+            ? missTtl
             : typeof options.revalidate === 'number' && options.revalidate > 0
               ? options.revalidate
               : null
@@ -88,7 +92,7 @@ export function createRedisPublishedContentCache(): PublishedContentCache {
           pipeline.sadd(setKey, key)
           if (longestTtl > 0) {
             // Keep the tag set at least as long as the member we just wrote.
-            pipeline.expire(setKey, Math.max(longestTtl, NULL_MISS_TTL_SECONDS))
+            pipeline.expire(setKey, Math.max(longestTtl, missTtl))
           }
         }
         await pipeline.exec()

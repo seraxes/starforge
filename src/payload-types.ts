@@ -586,6 +586,18 @@ export interface SiteSetting {
    */
   formRateLimitWindowSec?: number | null;
   /**
+   * When off, published pages/settings always load fresh (bypass Next/Redis adapters). Backend enum + REDIS_URL stay in Environment. Prefer Starforge admin → Settings → Performance.
+   */
+  publishedCacheEnabled?: boolean | null;
+  /**
+   * Published-content TTL in seconds (0 = until tag invalidation). Prefer Starforge admin → Settings → Performance.
+   */
+  publishedCacheTtlSec?: number | null;
+  /**
+   * Redis null-miss marker TTL in seconds (1–3600). Ignored by the Next.js tag cache. Prefer Starforge admin → Settings → Performance.
+   */
+  nullMissTtlSec?: number | null;
+  /**
    * Legacy fallback only — prefer Nav manager + primaryNavMenuId.
    */
   primaryNav?:
@@ -651,6 +663,9 @@ export interface SiteSettingsSelect<T extends boolean = true> {
   adminAutosaveDebounceMs?: T;
   formRateLimitMax?: T;
   formRateLimitWindowSec?: T;
+  publishedCacheEnabled?: T;
+  publishedCacheTtlSec?: T;
+  nullMissTtlSec?: T;
   primaryNav?:
     | T
     | {

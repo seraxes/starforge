@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic'
 
 export const metadata = {
   title: 'Settings — Performance — Starforge',
-  description: 'Form rate limits and related non-secret performance controls.',
+  description: 'Form rate limits and published-content cache controls.',
 }
 
 export default async function AdminSettingsPerformancePage() {
@@ -26,7 +26,8 @@ export default async function AdminSettingsPerformancePage() {
       <p className="lede admin-lede">
         Non-secret performance knobs (Form rate-limit max {FORM_RATE_LIMIT_MAX_MIN}–
         {FORM_RATE_LIMIT_MAX_MAX}, window {FORM_RATE_LIMIT_WINDOW_SEC_MIN}–
-        {FORM_RATE_LIMIT_WINDOW_SEC_MAX}s). Redis URL, trusted proxy hops, and cache backend stay in{' '}
+        {FORM_RATE_LIMIT_WINDOW_SEC_MAX}s; published-cache on/off, TTL, null-miss TTL). Redis URL,
+        trusted proxy hops, and cache backend stay in{' '}
         <Link href="/app/admin/site-chrome/environment">Environment</Link>. Other topics:{' '}
         <Link href="/app/admin/settings">Modules</Link>,{' '}
         <Link href="/app/admin/settings/admin-ux">Admin UX</Link>,{' '}
@@ -36,6 +37,9 @@ export default async function AdminSettingsPerformancePage() {
       <PerformanceSettingsForm
         formRateLimitMax={settings.formRateLimitMax}
         formRateLimitWindowSec={settings.formRateLimitWindowSec}
+        publishedCacheEnabled={settings.publishedCacheEnabled}
+        publishedCacheTtlSec={settings.publishedCacheTtlSec}
+        nullMissTtlSec={settings.nullMissTtlSec}
       />
     </section>
   )
