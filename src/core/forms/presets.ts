@@ -1,14 +1,18 @@
+import { getRegisteredFormPreset, listRegisteredFormPresets } from './preset-registry'
 import type { FormDefinitionDocument, FormFieldDef, FormPresetId } from './types'
 
 export type FormPresetMeta = {
   id: FormPresetId
   label: string
   description: string
-  /** Foundation stub — only contact ships a full field set. */
+  /**
+   * @deprecated Built-in presets are real seeds. Kept optional for older
+   * verify scripts / overlays that may still mark experimental packs.
+   */
   stub?: boolean
 }
 
-export const FORM_PRESETS: FormPresetMeta[] = [
+const BUILTIN_PRESETS: FormPresetMeta[] = [
   {
     id: 'contact',
     label: 'Contact',
@@ -17,20 +21,18 @@ export const FORM_PRESETS: FormPresetMeta[] = [
   {
     id: 'survey',
     label: 'Survey',
-    description: 'Opinion / feedback survey (stub — reuse Form engine fields).',
-    stub: true,
+    description: 'Satisfaction survey — rating, topics, written feedback.',
   },
   {
     id: 'event-registration',
     label: 'Event registration',
-    description: 'Event signup fields (stub — ASN/events layer later).',
-    stub: true,
+    description:
+      'Attendee signup — contact, guests, attendance mode; bind event via hidden id.',
   },
   {
     id: 'voting',
     label: 'Voting',
-    description: 'Poll / vote intake (stub — workflow layer later).',
-    stub: true,
+    description: 'Single-choice poll — radio options + optional comment.',
   },
   {
     id: 'ticket',
@@ -45,14 +47,44 @@ export const FORM_PRESETS: FormPresetMeta[] = [
   },
 ]
 
+/**
+ * Built-in presets for Forms admin create-from-preset.
+ * Registered overlays may adjust label/description via `registerFormPreset`.
+ */
+export const FORM_PRESETS: FormPresetMeta[] = BUILTIN_PRESETS
+
 export function isFormPresetId(value: unknown): value is FormPresetId {
   return (
-    typeof value === 'string' && FORM_PRESETS.some((p) => p.id === value)
+    typeof value === 'string' && BUILTIN_PRESETS.some((p) => p.id === value)
   )
 }
 
 export function getFormPresetMeta(id: FormPresetId): FormPresetMeta {
-  return FORM_PRESETS.find((p) => p.id === id) ?? FORM_PRESETS[FORM_PRESETS.length - 1]!
+  const overlay = getRegisteredFormPreset(id)
+  const base =
+    BUILTIN_PRESETS.find((p) => p.id === id) ?? BUILTIN_PRESETS[BUILTIN_PRESETS.length - 1]!
+  if (!overlay) return base
+  return {
+    ...base,
+    label: overlay.label || base.label,
+    description: overlay.description ?? base.description,
+  }
+}
+
+/** Admin select list — built-ins with registry label/description overlays. */
+export function listFormPresetMetas(): FormPresetMeta[] {
+  const overlays = new Map(
+    listRegisteredFormPresets().map((r) => [r.id, r] as const),
+  )
+  return BUILTIN_PRESETS.map((p) => {
+    const overlay = overlays.get(p.id)
+    if (!overlay) return p
+    return {
+      ...p,
+      label: overlay.label || p.label,
+      description: overlay.description ?? p.description,
+    }
+  })
 }
 
 function contactFields(): FormFieldDef[] {
@@ -64,6 +96,7 @@ function contactFields(): FormFieldDef[] {
       type: 'text',
       required: true,
       placeholder: '',
+      stringConstraints: { maxLength: 120 },
     },
     {
       id: 'fld_email',
@@ -80,93 +113,185 @@ function contactFields(): FormFieldDef[] {
       type: 'textarea',
       required: true,
       placeholder: '',
+      stringConstraints: { minLength: 3, maxLength: 5000 },
     },
   ]
 }
 
-/** Stub presets start from a thin contact-like core so the engine is usable today. */
-function stubCoreFields(prefix: string): FormFieldDef[] {
+function surveyFields(): FormFieldDef[] {
   return [
     {
-      id: `${prefix}_name`,
+      id: 'survey_name',
       name: 'name',
       label: 'Name',
       type: 'text',
-      required: true,
+      required: false,
+      stringConstraints: { maxLength: 120 },
     },
     {
-      id: `${prefix}_email`,
+      id: 'survey_email',
+      name: 'email',
+      label: 'Email (optional)',
+      type: 'email',
+      required: false,
+    },
+    {
+      id: 'survey_rating',
+      name: 'rating',
+      label: 'Overall satisfaction',
+      type: 'radio',
+      required: true,
+      options: [
+        { value: '5', label: 'Excellent' },
+        { value: '4', label: 'Good' },
+        { value: '3', label: 'Okay' },
+        { value: '2', label: 'Poor' },
+        { value: '1', label: 'Bad' },
+      ],
+    },
+    {
+      id: 'survey_topics',
+      name: 'topics',
+      label: 'Topics (optional)',
+      type: 'checkbox-group',
+      required: false,
+      options: [
+        { value: 'product', label: 'Product' },
+        { value: 'support', label: 'Support' },
+        { value: 'content', label: 'Content' },
+        { value: 'other', label: 'Other' },
+      ],
+    },
+    {
+      id: 'survey_feedback',
+      name: 'feedback',
+      label: 'Feedback',
+      type: 'textarea',
+      required: true,
+      placeholder: 'What worked well? What could improve?',
+      stringConstraints: { minLength: 5, maxLength: 5000 },
+    },
+  ]
+}
+
+function eventRegistrationFields(): FormFieldDef[] {
+  return [
+    {
+      id: 'event_name',
+      name: 'name',
+      label: 'Full name',
+      type: 'text',
+      required: true,
+      stringConstraints: { maxLength: 120 },
+    },
+    {
+      id: 'event_email',
       name: 'email',
       label: 'Email',
       type: 'email',
       required: true,
     },
     {
-      id: `${prefix}_notes`,
+      id: 'event_phone',
+      name: 'phone',
+      label: 'Phone (optional)',
+      type: 'tel',
+      required: false,
+      stringConstraints: { maxLength: 40 },
+    },
+    {
+      id: 'event_guests',
+      name: 'guests',
+      label: 'Guests (including you)',
+      type: 'number',
+      required: true,
+      defaultValue: '1',
+      numberBounds: { min: 1, max: 20 },
+    },
+    {
+      id: 'event_attendance',
+      name: 'attendance',
+      label: 'Attendance',
+      type: 'select',
+      required: true,
+      defaultValue: 'in_person',
+      options: [
+        { value: 'in_person', label: 'In person' },
+        { value: 'online', label: 'Online' },
+      ],
+    },
+    {
+      id: 'event_notes',
       name: 'notes',
-      label: 'Notes',
+      label: 'Notes (optional)',
       type: 'textarea',
       required: false,
+      placeholder: 'Dietary needs, accessibility, questions…',
+      stringConstraints: { maxLength: 2000 },
+    },
+    {
+      id: 'event_id',
+      name: 'event_id',
+      label: 'Event id',
+      type: 'hidden',
+      required: false,
+      defaultValue: '',
+      description: 'Filled by Events / layout when bound to a specific event.',
     },
   ]
 }
 
-export function fieldsForPreset(preset: FormPresetId): FormFieldDef[] {
+function votingFields(): FormFieldDef[] {
+  return [
+    {
+      id: 'vote_choice',
+      name: 'choice',
+      label: 'Your choice',
+      type: 'radio',
+      required: true,
+      options: [
+        { value: 'a', label: 'Option A' },
+        { value: 'b', label: 'Option B' },
+        { value: 'c', label: 'Option C' },
+      ],
+    },
+    {
+      id: 'vote_email',
+      name: 'email',
+      label: 'Email (optional)',
+      type: 'email',
+      required: false,
+    },
+    {
+      id: 'vote_comment',
+      name: 'comment',
+      label: 'Comment (optional)',
+      type: 'textarea',
+      required: false,
+      stringConstraints: { maxLength: 2000 },
+    },
+    {
+      id: 'vote_poll_id',
+      name: 'poll_id',
+      label: 'Poll id',
+      type: 'hidden',
+      required: false,
+      defaultValue: '',
+      description: 'Filled when the Form is bound to a specific poll.',
+    },
+  ]
+}
+
+function builtinFieldsForPreset(preset: FormPresetId): FormFieldDef[] {
   switch (preset) {
     case 'contact':
       return contactFields()
     case 'survey':
-      return [
-        ...stubCoreFields('survey'),
-        {
-          id: 'survey_rating',
-          name: 'rating',
-          label: 'Rating',
-          type: 'select',
-          required: true,
-          options: [
-            { value: '5', label: 'Excellent' },
-            { value: '4', label: 'Good' },
-            { value: '3', label: 'Okay' },
-            { value: '2', label: 'Poor' },
-            { value: '1', label: 'Bad' },
-          ],
-        },
-      ]
+      return surveyFields()
     case 'event-registration':
-      return [
-        ...stubCoreFields('event'),
-        {
-          id: 'event_guests',
-          name: 'guests',
-          label: 'Guests',
-          type: 'number',
-          required: false,
-          placeholder: '1',
-        },
-      ]
+      return eventRegistrationFields()
     case 'voting':
-      return [
-        {
-          id: 'vote_choice',
-          name: 'choice',
-          label: 'Choice',
-          type: 'select',
-          required: true,
-          options: [
-            { value: 'a', label: 'Option A' },
-            { value: 'b', label: 'Option B' },
-            { value: 'c', label: 'Option C' },
-          ],
-        },
-        {
-          id: 'vote_comment',
-          name: 'comment',
-          label: 'Comment',
-          type: 'textarea',
-          required: false,
-        },
-      ]
+      return votingFields()
     case 'ticket':
       return [
         {
@@ -246,56 +371,85 @@ export function fieldsForPreset(preset: FormPresetId): FormFieldDef[] {
   }
 }
 
+export function fieldsForPreset(preset: FormPresetId): FormFieldDef[] {
+  const overlay = getRegisteredFormPreset(preset)
+  if (overlay?.seedFields) {
+    return overlay.seedFields.map((f) => ({ ...f }))
+  }
+  return builtinFieldsForPreset(preset)
+}
+
 export function defaultMessagesForPreset(preset: FormPresetId): {
   title: string
   successMessage: string
   submitLabel: string
   description: string
 } {
+  let base: {
+    title: string
+    successMessage: string
+    submitLabel: string
+    description: string
+  }
   switch (preset) {
     case 'contact':
-      return {
+      base = {
         title: 'Contact',
         successMessage: 'Thanks — your message was sent.',
         submitLabel: 'Send',
         description: 'Public contact form.',
       }
+      break
     case 'survey':
-      return {
+      base = {
         title: 'Survey',
         successMessage: 'Thanks for your feedback.',
-        submitLabel: 'Submit',
-        description: 'Survey preset (stub).',
+        submitLabel: 'Submit survey',
+        description: 'Satisfaction survey.',
       }
+      break
     case 'event-registration':
-      return {
+      base = {
         title: 'Event registration',
         successMessage: 'You are registered.',
         submitLabel: 'Register',
-        description: 'Event registration preset (stub).',
+        description: 'Event attendee registration.',
       }
+      break
     case 'voting':
-      return {
+      base = {
         title: 'Vote',
         successMessage: 'Your vote was recorded.',
-        submitLabel: 'Vote',
-        description: 'Voting preset (stub).',
+        submitLabel: 'Cast vote',
+        description: 'Single-choice poll.',
       }
+      break
     case 'ticket':
-      return {
+      base = {
         title: 'Report an issue',
         successMessage: 'Ticket received — we will follow up by email.',
         submitLabel: 'Submit ticket',
         description: 'Support ticket / report intake.',
       }
+      break
     case 'blank':
     default:
-      return {
+      base = {
         title: 'Untitled form',
         successMessage: 'Thanks — your response was saved.',
         submitLabel: 'Submit',
         description: '',
       }
+  }
+
+  const overlay = getRegisteredFormPreset(preset)?.messages
+  if (!overlay) return base
+  return {
+    title: overlay.title?.trim() || base.title,
+    successMessage: overlay.successMessage?.trim() || base.successMessage,
+    submitLabel: overlay.submitLabel?.trim() || base.submitLabel,
+    description:
+      overlay.description !== undefined ? String(overlay.description) : base.description,
   }
 }
 

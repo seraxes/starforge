@@ -281,8 +281,9 @@ export async function submitFormAction(
     userId = null
   }
 
+  let submissionId: string
   try {
-    await createFormSubmission({
+    const created = await createFormSubmission({
       formKey,
       definitionId,
       definitionVersion: definitionDocument?.version ?? null,
@@ -294,6 +295,7 @@ export async function submitFormAction(
       ipAddress: ip === 'unknown' ? null : ip,
       userAgent,
     })
+    submissionId = created.id
   } catch (error) {
     const message =
       error instanceof Error && error.message
@@ -314,6 +316,21 @@ export async function submitFormAction(
       await dispatchFormEmailNotify(plan)
     } catch {
       // Mailer failures must not fail the submission.
+    }
+
+    // Preset onSubmitted hook (Events capacity / confirm later) — soft-fail.
+    try {
+      const { runFormPresetOnSubmitted } = await import('./preset-registry')
+      await runFormPresetOnSubmitted({
+        presetId: definitionDocument.preset,
+        definitionId,
+        formKey,
+        submissionId,
+        userId,
+        payload: values,
+      })
+    } catch {
+      // Hook failures must not fail the public success response.
     }
   }
 

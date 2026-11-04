@@ -37,7 +37,7 @@ import {
   normalizeFormSections,
 } from '@/core/forms/definition'
 import { FORM_CONDITION_OP_LABELS } from '@/core/forms/logic'
-import { FORM_PRESETS } from '@/core/forms/presets'
+import { listFormPresetMetas } from '@/core/forms/presets'
 import { fieldsToJsonSchema, stringifyFormJsonSchema } from '@/core/forms/schema-json'
 import type {
   FormCondition,
@@ -1526,10 +1526,9 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                   queueMicrotask(saveNow)
                 }}
               >
-                {FORM_PRESETS.map((p) => (
-                  <option key={p.id} value={p.id}>
+                {listFormPresetMetas().map((p) => (
+                  <option key={p.id} value={p.id} title={p.description}>
                     {p.label}
-                    {p.stub ? ' (stub)' : ''}
                   </option>
                 ))}
               </select>
