@@ -68,5 +68,7 @@ Welcome/home embeds a login panel + short note (not in branded hero). Layout par
 ## Env
 
 - `BETTER_AUTH_SECRET` — long random string (required)
-- `BETTER_AUTH_URL` / `NEXT_PUBLIC_APP_URL` — `http://localhost:3000` locally
+- `BETTER_AUTH_URL` / `NEXT_PUBLIC_APP_URL` — `http://localhost:3000` locally; production `https://…` origin feeds `trustedOrigins`
+- `STARFORGE_TRUSTED_ORIGINS` — optional comma-separated extra origins (Environment catalog); same allowlist as Payload `csrf`
+- `REDIS_URL` — when set, Better Auth uses Redis `secondaryStorage` + `rateLimit.storage: 'secondary-storage'` (`{prefix}:ba:*`); sessions stay in Postgres
 - `STARFORGE_ADMIN_EMAILS` — optional comma-separated emails auto-promoted to `admin` + CMS access

@@ -222,6 +222,8 @@ export {
   getCaptchaProvider,
   getRateLimiter,
   mergeCspSources,
+  appTrustedOrigins,
+  hasUntrustedOrigin,
   payloadCsrfOrigins,
   resolveCaptchaForSurface,
   resolveCspMode,

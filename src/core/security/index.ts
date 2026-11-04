@@ -7,7 +7,11 @@ export {
   resolveCspMode,
 } from './csp'
 export type { CspDirective, CspMode, CspSources } from './csp'
-export { payloadCsrfOrigins } from './trusted-origins'
+export {
+  appTrustedOrigins,
+  hasUntrustedOrigin,
+  payloadCsrfOrigins,
+} from './trusted-origins'
 export { shouldUseSecureCookies } from './secure-cookies'
 export { clientIp, trustedProxyHops } from './client-ip'
 export {
