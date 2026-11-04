@@ -63,4 +63,12 @@ describe('validateStarforgeEnv', () => {
     })
     assert.equal(result.ok, true)
   })
+
+  it('warns when STARFORGE_DEVELOPER_ADMIN_EMAILS is empty (fail-closed in prod)', () => {
+    const result = validateStarforgeEnv(baseProd)
+    assert.equal(result.ok, true)
+    const warn = result.warnings.find((w) => w.key === 'STARFORGE_DEVELOPER_ADMIN_EMAILS')
+    assert.ok(warn)
+    assert.match(warn!.message, /fail-closed/)
+  })
 })

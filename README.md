@@ -257,7 +257,7 @@ Gantry-style **Page Settings** (Core admin nav: parent **Layouts** reveals a hov
 | Font Awesome | Optional CDN (6/7 Free) + advanced HTML overrides |
 | Atoms | Registry (v1: Custom CSS/JS, Analytics); settings open in a **popup overlay** |
 
-**ACL:** meta / classes / favicon / CSS URLs / FA enable = app admin. Custom head, body hooks, JS lists, atom scripts, FA HTML overrides = **developer-admin** (`STARFORGE_DEVELOPER_ADMIN_EMAILS`; empty list → all admins, local default).
+**ACL:** meta / classes / favicon / CSS URLs / FA enable = app admin. Custom head, body hooks, JS lists, atom scripts, FA HTML overrides = **developer-admin** (`STARFORGE_DEVELOPER_ADMIN_EMAILS`; empty → nobody in production, all app admins locally).
 
 **First admin paths:**
 

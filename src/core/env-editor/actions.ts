@@ -39,7 +39,7 @@ export async function unlockEnvEditorAction(
   if (!admin?.user) {
     return {
       error:
-        'Developer-admin only. Set STARFORGE_DEVELOPER_ADMIN_EMAILS or leave it empty so all app admins qualify.',
+        'Developer-admin only. Add your email to STARFORGE_DEVELOPER_ADMIN_EMAILS (empty list grants nobody in production).',
     }
   }
 
