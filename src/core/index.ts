@@ -219,13 +219,24 @@ export {
   applySecurityHeaders,
   buildCspHeaders,
   buildSecurityHeaders,
+  clientIp,
   composeCspSources,
+  getRateLimiter,
   mergeCspSources,
   payloadCsrfOrigins,
   resolveCspMode,
   shouldUseSecureCookies,
+  trustedProxyHops,
 } from './security'
-export type { CspDirective, CspMode, CspSources, SecurityHeader } from './security'
+export type {
+  CspDirective,
+  CspMode,
+  CspSources,
+  RateLimitConsumeOptions,
+  RateLimitResult,
+  RateLimiter,
+  SecurityHeader,
+} from './security'
 export {
   CONSENT_COOKIE_NAME,
   CONSENT_EVENT,

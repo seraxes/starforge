@@ -3,8 +3,8 @@ import 'server-only'
 import Redis from 'ioredis'
 
 /**
- * Shared Redis client for Starforge ports (published-content cache first;
- * rate-limit / queues later). One connection per process via globalThis.
+ * Shared Redis client for Starforge ports (published-content cache,
+ * rate-limit; queues later). One connection per process via globalThis.
  *
  * Secrets stay in env — prefer `REDIS_URL` (DO Managed Redis / local).
  */

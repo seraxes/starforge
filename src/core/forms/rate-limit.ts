@@ -1,52 +1,30 @@
-/**
- * Simple in-memory rate limit for form submissions (per process).
- * Redis can replace this later without changing the call sites.
- */
+import {
+  clearMemoryRateLimitBuckets,
+  getRateLimiter,
+  type RateLimitResult,
+} from '@/core/security/rate-limit'
 
-type Bucket = {
-  count: number
-  resetAt: number
-}
-
-const buckets = new Map<string, Bucket>()
-
-const DEFAULT_WINDOW_MS = 60_000
+const DEFAULT_WINDOW_SEC = 60
 const DEFAULT_MAX = 8
 
-export type RateLimitResult = {
-  ok: boolean
-  retryAfterSec?: number
-}
+export type { RateLimitResult }
 
 /**
- * Sliding fixed-window counter. Key should include IP (and optionally formKey).
+ * Form submit bucket via the shared RateLimiter port (memory / Redis).
+ * Key should include IP (and optionally formKey): `form:${ip}:${formKey}`.
  */
-export function checkFormRateLimit(
+export async function checkFormRateLimit(
   key: string,
-  options?: { windowMs?: number; max?: number },
-): RateLimitResult {
-  const windowMs = options?.windowMs ?? DEFAULT_WINDOW_MS
-  const max = options?.max ?? DEFAULT_MAX
-  const now = Date.now()
-  const existing = buckets.get(key)
-
-  if (!existing || existing.resetAt <= now) {
-    buckets.set(key, { count: 1, resetAt: now + windowMs })
-    return { ok: true }
-  }
-
-  if (existing.count >= max) {
-    return {
-      ok: false,
-      retryAfterSec: Math.max(1, Math.ceil((existing.resetAt - now) / 1000)),
-    }
-  }
-
-  existing.count += 1
-  return { ok: true }
+  options?: { windowMs?: number; windowSec?: number; max?: number },
+): Promise<RateLimitResult> {
+  const windowSec =
+    options?.windowSec ??
+    (options?.windowMs != null ? Math.max(1, Math.ceil(options.windowMs / 1000)) : DEFAULT_WINDOW_SEC)
+  const limit = options?.max ?? DEFAULT_MAX
+  return getRateLimiter().consume(key, { limit, windowSec })
 }
 
-/** Test helper — clear buckets between tests. */
+/** Test helper — clear in-memory buckets between tests. */
 export function clearFormRateLimitBuckets(): void {
-  buckets.clear()
+  clearMemoryRateLimitBuckets()
 }

@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
 import { requireAppAdmin } from '@/core/auth/admin'
+import { clientIp } from '@/core/security/client-ip'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
 import { resolveFormCaptcha, verifyTurnstileToken } from './captcha'
@@ -41,15 +42,6 @@ import type {
 } from './types'
 
 export type { FormSubmitActionState, FormAdminActionState }
-
-function clientIpFromHeaders(h: Headers): string {
-  const forwarded = h.get('x-forwarded-for')
-  if (forwarded) {
-    const first = forwarded.split(',')[0]?.trim()
-    if (first) return first
-  }
-  return h.get('x-real-ip')?.trim() || 'unknown'
-}
 
 function collectRawValues(
   formData: FormData,
@@ -237,7 +229,7 @@ export async function submitFormAction(
   const hasCaptchaField = formHasCaptchaField(fields)
 
   const h = await headers()
-  const ip = clientIpFromHeaders(h)
+  const ip = clientIp(h)
   const userAgent = h.get('user-agent')
 
   const rawValues = collectRawValues(formData, fields)
@@ -266,7 +258,7 @@ export async function submitFormAction(
     }
   }
 
-  const limited = checkFormRateLimit(`form:${ip}:${formKey}`)
+  const limited = await checkFormRateLimit(`form:${ip}:${formKey}`)
   if (!limited.ok) {
     return {
       error: `Too many submissions. Try again in ${limited.retryAfterSec ?? 60}s.`,

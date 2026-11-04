@@ -2,23 +2,14 @@ import 'server-only'
 
 import type Redis from 'ioredis'
 
-import { getRedisClient } from '@/core/redis'
+import { getRedisClient, redisKeyPrefix } from '@/core/redis'
 
 import type { ContentCacheGetOptions, PublishedContentCache } from './types'
 
+export { redisKeyPrefix } from '@/core/redis'
+
 /** Short TTL for cached null / miss markers so random slug probes do not stick forever. */
 const NULL_MISS_TTL_SECONDS = 60
-
-/**
- * Key prefix so staging and prod can share one Redis safely.
- * Default: `sf:${NODE_ENV}` (e.g. `sf:production`). Override with STARFORGE_REDIS_PREFIX.
- */
-export function redisKeyPrefix(): string {
-  const raw = (process.env.STARFORGE_REDIS_PREFIX ?? '').trim()
-  if (raw) return raw.replace(/:+$/, '')
-  const env = (process.env.NODE_ENV ?? 'development').trim() || 'development'
-  return `sf:${env}`
-}
 
 function valueKey(parts: readonly string[]): string {
   return `${redisKeyPrefix()}:pcc:v:${parts.join(':')}`
