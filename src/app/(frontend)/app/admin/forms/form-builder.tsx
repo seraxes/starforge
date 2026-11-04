@@ -55,7 +55,7 @@ import type {
 } from '@/core/forms/types'
 
 import { GantryBarRemoveButton } from '@/components/admin/GantryBarRemoveButton'
-import { MediaPicker } from '@/components/admin/MediaPicker'
+import { MediaPicker } from '@/modules/media/api'
 
 import { useNotifySavedOnOk } from '../admin-toast'
 import { ParticleSettingsPopover } from '../layouts/particle-settings-popover'

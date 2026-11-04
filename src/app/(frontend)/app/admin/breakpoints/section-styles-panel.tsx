@@ -11,7 +11,7 @@ import {
   cssColorToColorInputValue,
   type LayoutSectionStyles,
 } from '@/core/modules/styles'
-import { MediaPicker } from '@/components/admin/MediaPicker'
+import { MediaPicker } from '@/modules/media/api'
 
 import { useAdminToast } from '../admin-toast'
 import { useDebouncedPersist } from '../use-debounced-persist'

@@ -25,7 +25,7 @@ import {
 } from '@/core/modules/particles/config'
 import { cssColorToColorInputValue, parseCssColorInput } from '@/core/modules/styles'
 import type { LayoutSlot, LayoutSlotConfig } from '@/core/modules/types'
-import { MediaPicker } from '@/components/admin/MediaPicker'
+import { MediaPicker } from '@/modules/media/api'
 
 export type NavMenuOption = { id: string; label: string }
 export type FormDefinitionOption = { id: string; label: string }

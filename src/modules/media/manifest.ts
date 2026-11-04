@@ -1,9 +1,13 @@
 import { defineStarforgeModule } from '@/core/modules/define-module'
 
 /**
- * product:media — Media library module boundary stub (SF-148 / design M5 start).
- * Library UX + pipeline still live under `src/core/media` and `/app/admin/media`;
- * this manifest makes Media a required catalog row (locked on). Full UI move later.
+ * product:media — required Media library module pack (design M5).
+ *
+ * Library + Settings admin UI: `src/modules/media/admin/*`
+ * Public bind contract: `@/modules/media/api` (`mediaId` + MediaPicker)
+ * Ports stay Core: MediaStorage, sharp pipeline, MediaAnalysisPort, resolve helpers
+ *
+ * Site Settings → Modules shows this row locked on (Logo/Styles/Forms bind mediaId).
  */
 export default defineStarforgeModule({
   id: 'product:media',
@@ -11,7 +15,7 @@ export default defineStarforgeModule({
   label: 'Media library',
   description:
     'Single Payload Media library with sharp WebP/PNG pipeline, Spaces/S3 storage port, tags filter, and MediaAnalysisPort hooks. Required — Logo/Styles/Forms bind by mediaId.',
-  version: '0.1.0',
+  version: '0.2.0',
   required: true,
   defaultEnabled: true,
   admin: {

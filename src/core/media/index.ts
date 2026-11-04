@@ -1,7 +1,8 @@
 /**
- * Starforge media pipeline around Payload Media (SF-28 / SF-128 / SF-148).
+ * Starforge media ports around Payload Media (SF-28 / SF-128 / SF-148 / M5).
  * One library; features bind by id. Storage port: local default, Spaces/S3 via env.
  * Analysis port: thin OCR/AI hook stub (no vendor).
+ * Library admin UI + MediaPicker live in `src/modules/media` (import `@/modules/media/api`).
  */
 
 export {
