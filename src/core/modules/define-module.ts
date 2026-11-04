@@ -51,6 +51,15 @@ export type StarforgeModuleParticleDecl = {
   defaults?: () => Record<string, unknown>
   render?: () => Promise<unknown>
   editor?: () => Promise<unknown>
+  /** Codegen-visible schema import (preferred over lazy fn). */
+  configSchemaImportPath?: string
+  configSchemaExportName?: string
+  /** Codegen-visible editor import (client component). */
+  editorImportPath?: string
+  editorExportName?: string
+  /** Codegen-visible defaults() export. */
+  defaultsImportPath?: string
+  defaultsExportName?: string
 }
 
 export type StarforgeModuleAdminNavItem = {
@@ -59,6 +68,7 @@ export type StarforgeModuleAdminNavItem = {
   href: string
   order?: number
   area?: string
+  exact?: boolean
 }
 
 export type StarforgeModuleManifest = {
@@ -87,10 +97,29 @@ export type StarforgeModuleManifest = {
    */
   importPath?: string
   exportName?: string
+  /**
+   * Flat particle schema/editor pointers (kind: 'particle').
+   * Same codegen fields as `particles[]` entries — builtins use these.
+   */
+  configSchemaImportPath?: string
+  configSchemaExportName?: string
+  editorImportPath?: string
+  editorExportName?: string
+  defaultsImportPath?: string
+  defaultsExportName?: string
   /** Optional admin nav contributions (M2 host). */
   admin?: {
     nav?: StarforgeModuleAdminNavItem[]
     areas?: Array<{ key: string; label: string }>
+    /** Group chrome when merging contributed nav (M2). */
+    navGroup?: {
+      id?: string
+      label?: string
+      href?: string
+      expandable?: boolean
+      defaultOpen?: boolean
+      order?: number
+    }
   }
   /** Public layout shell slots (M2 host; Consent uses bodyEnd). */
   publicShell?: StarforgePublicShellContribution[]

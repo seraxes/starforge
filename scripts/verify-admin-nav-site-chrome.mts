@@ -6,15 +6,19 @@ import { buildAdminNavGroups } from '../src/core/admin-nav/build.ts'
 
 const flags = {
   nav: true,
-  forms: true,
-  redirects: true,
   layout: true,
   pageSettings: true,
   cms: true,
 }
 
+const enabledModuleIds = new Set([
+  'product:forms',
+  'product:redirects',
+  'product:media',
+])
+
 for (const surface of ['core', 'payload'] as const) {
-  const groups = buildAdminNavGroups({ surface, flags })
+  const groups = buildAdminNavGroups({ surface, flags, enabledModuleIds })
   const siteChrome = groups.find((g) => g.id === 'site-chrome')
   if (!siteChrome) {
     console.error(`[${surface}] missing site-chrome group`)

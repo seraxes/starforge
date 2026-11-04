@@ -14,12 +14,17 @@ export default defineStarforgeModule({
   defaultEnabled: true,
   navViews: [{ key: 'admin', label: 'Redirects', href: '/app/admin/redirects' }],
   admin: {
+    navGroup: {
+      id: 'redirects',
+      label: 'Redirects',
+      order: 50,
+    },
     nav: [
       {
-        group: 'Content',
+        group: 'redirects',
         label: 'Redirects',
         href: '/app/admin/redirects',
-        order: 50,
+        order: 10,
         area: 'redirects',
       },
     ],

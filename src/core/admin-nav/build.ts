@@ -1,3 +1,5 @@
+import { adminNavContributions } from '@/generated/module-registry'
+
 import { CMS_NAV_LINKS, filterCmsNavLinks, type CmsVisibility } from './cms'
 import type {
   AdminCmsNavLink,
@@ -14,11 +16,57 @@ export type BuildAdminNavOptions = {
   cmsVisibility?: CmsVisibility | null
   /** Override CMS children (tests); default = filtered CMS_NAV_LINKS. */
   cmsLinks?: AdminCmsNavLink[]
+  /**
+   * Module ids whose Site Settings toggle (or required catalog row) is on.
+   * Used to filter manifest `admin.nav` contributions (M2).
+   * When omitted, all generated contributions are included (tests / legacy).
+   */
+  enabledModuleIds?: ReadonlySet<string> | readonly string[]
+}
+
+function asEnabledSet(
+  enabledModuleIds: BuildAdminNavOptions['enabledModuleIds'],
+): ReadonlySet<string> | null {
+  if (!enabledModuleIds) return null
+  return enabledModuleIds instanceof Set ? enabledModuleIds : new Set(enabledModuleIds)
+}
+
+/** Build AdminNavGroup[] from generated module admin.nav contributions. */
+export function buildContributedAdminNavGroups(
+  enabledModuleIds?: BuildAdminNavOptions['enabledModuleIds'],
+): AdminNavGroup[] {
+  const enabled = asEnabledSet(enabledModuleIds)
+  const matched = adminNavContributions
+    .filter((entry) => (enabled ? enabled.has(entry.moduleId) : true))
+    .slice()
+    .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id))
+
+  return matched.map((entry) => {
+    const links = entry.links
+      .slice()
+      .sort((a, b) => a.order - b.order || a.label.localeCompare(b.label))
+      .map((link) => ({
+        href: link.href,
+        label: link.label,
+        ...(link.exact ? { exact: true as const } : {}),
+      }))
+
+    const group: AdminNavGroup = {
+      id: entry.id,
+      label: entry.label,
+      links,
+    }
+    if (entry.href) group.href = entry.href
+    if (entry.expandable) group.expandable = true
+    if (entry.defaultOpen) group.defaultOpen = true
+    return group
+  })
 }
 
 /**
  * One seamless admin tree for Core + Payload.
  * CMS accordion children are Payload destinations; other leaves stay on Core routes.
+ * Product packs (Forms / Redirects / Media / …) contribute via manifest admin.nav (M2).
  */
 export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGroup[] {
   const { flags, surface, cmsVisibility } = options
@@ -63,26 +111,12 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
     })
   }
 
-  if (flags.forms) {
-    groups.push({
-      id: 'forms',
-      label: 'Forms',
-      href: '/app/admin/forms',
-      expandable: true,
-      links: [
-        { href: '/app/admin/forms', label: 'Forms', exact: true },
-        { href: '/app/admin/forms/settings', label: 'Settings' },
-      ],
-    })
-  }
-
-  if (flags.redirects) {
-    groups.push({
-      id: 'redirects',
-      label: 'Redirects',
-      links: [{ href: '/app/admin/redirects', label: 'Redirects' }],
-    })
-  }
+  // Manifest-contributed packs (Forms, Redirects, Media, …).
+  // Keep historical order: Forms → Redirects → Users → Media → Layouts.
+  const contributed = buildContributedAdminNavGroups(options.enabledModuleIds)
+  const early = contributed.filter((g) => g.id === 'forms' || g.id === 'redirects')
+  const late = contributed.filter((g) => g.id !== 'forms' && g.id !== 'redirects')
+  groups.push(...early)
 
   groups.push({
     id: 'users',
@@ -96,19 +130,7 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
     ],
   })
 
-  // Core media library + pipeline settings (same Payload store) — always for app admins.
-  // defaultOpen: Library + Settings stay visible like Chrome → Environment (not a flat leaf).
-  groups.push({
-    id: 'media',
-    label: 'Media',
-    href: '/app/admin/media',
-    expandable: true,
-    defaultOpen: true,
-    links: [
-      { href: '/app/admin/media', label: 'Library', exact: true },
-      { href: '/app/admin/media/settings', label: 'Settings' },
-    ],
-  })
+  groups.push(...late)
 
   const showLayouts = flags.layout || flags.pageSettings
   if (showLayouts) {

@@ -10,11 +10,7 @@ import {
 } from '@/core/forms/config'
 import type { FormFieldDef, FormParticleSource } from '@/core/forms/types'
 import {
-  updateCopyrightSlotAction,
-  updateFormSlotAction,
-  updateLogoSlotAction,
-  updateMenuSlotAction,
-  updateSocialSlotAction,
+  updateSlotConfigAction,
   type LayoutActionState,
 } from '@/core/modules/actions'
 import {
@@ -122,7 +118,7 @@ export function LogoParticleEditor({
   embedded?: boolean
   onConfigSaved?: (config: LayoutSlotConfig) => void
 }) {
-  const [state, formAction, pending] = useActionState(updateLogoSlotAction, initialState)
+  const [state, formAction, pending] = useActionState(updateSlotConfigAction, initialState)
   useParticleAutosaveResult(state, onConfigSaved)
   const { formRef, saveNow, saveDebounced } = useAutosaveForm()
 
@@ -148,6 +144,11 @@ export function LogoParticleEditor({
     setDraft((prev) => ({ ...prev, ...partial }))
   }
 
+  const configJson = JSON.stringify({
+    ...draft,
+    color: mode === 'text' ? colorText : validHiddenColor,
+  })
+
   return (
     <SettingsShell title="Logo / Image settings" embedded={embedded}>
       <form
@@ -160,10 +161,10 @@ export function LogoParticleEditor({
         <input type="hidden" name="sectionId" value={sectionId} />
         <input type="hidden" name="rowId" value={rowId} />
         <input type="hidden" name="slotId" value={slot.id} />
+        <input type="hidden" name="configJson" value={configJson} />
         <label>
           <span>Mode</span>
           <select
-            name="mode"
             value={mode}
             onChange={(e) => {
               patchDraft({ mode: e.target.value === 'text' ? 'text' : 'image' })
@@ -347,20 +348,20 @@ export function MenuParticleEditor({
   sectionId,
   rowId,
   slot,
-  navMenus,
-  primaryNavMenuId,
+  navMenus = [],
+  primaryNavMenuId = 'main',
   embedded = false,
   onConfigSaved,
 }: {
   sectionId: string
   rowId: string
   slot: LayoutSlot
-  navMenus: NavMenuOption[]
-  primaryNavMenuId: string
+  navMenus?: NavMenuOption[]
+  primaryNavMenuId?: string
   embedded?: boolean
   onConfigSaved?: (config: LayoutSlotConfig) => void
 }) {
-  const [state, formAction, pending] = useActionState(updateMenuSlotAction, initialState)
+  const [state, formAction, pending] = useActionState(updateSlotConfigAction, initialState)
   useParticleAutosaveResult(state, onConfigSaved)
   const { formRef, saveNow, saveDebounced } = useAutosaveForm()
 
@@ -371,6 +372,10 @@ export function MenuParticleEditor({
   }, [slot.id])
 
   const selected = (draft.menuId ?? '').trim() || 'primary'
+  const configJson = JSON.stringify({
+    menuId: selected === 'primary' ? '' : selected,
+    ariaLabel: draft.ariaLabel ?? 'Primary',
+  })
 
   return (
     <SettingsShell title="Menu settings" embedded={embedded}>
@@ -384,10 +389,10 @@ export function MenuParticleEditor({
         <input type="hidden" name="sectionId" value={sectionId} />
         <input type="hidden" name="rowId" value={rowId} />
         <input type="hidden" name="slotId" value={slot.id} />
+        <input type="hidden" name="configJson" value={configJson} />
         <label>
           <span>Navigation menu set</span>
           <select
-            name="menuId"
             value={selected}
             onChange={(e) => {
               setDraft((prev) => ({ ...prev, menuId: e.target.value }))
@@ -413,7 +418,6 @@ export function MenuParticleEditor({
           <span>Aria label</span>
           <input
             type="text"
-            name="ariaLabel"
             value={draft.ariaLabel ?? 'Primary'}
             onChange={(e) => setDraft((prev) => ({ ...prev, ariaLabel: e.target.value }))}
           />
@@ -438,7 +442,7 @@ export function CopyrightParticleEditor({
   embedded?: boolean
   onConfigSaved?: (config: LayoutSlotConfig) => void
 }) {
-  const [state, formAction, pending] = useActionState(updateCopyrightSlotAction, initialState)
+  const [state, formAction, pending] = useActionState(updateSlotConfigAction, initialState)
   useParticleAutosaveResult(state, onConfigSaved)
   const { formRef, saveNow, saveDebounced } = useAutosaveForm()
 
@@ -454,6 +458,7 @@ export function CopyrightParticleEditor({
   const patchDraft = (partial: Partial<CopyrightParticleConfig>) => {
     setDraft((prev) => ({ ...prev, ...partial }))
   }
+  const configJson = JSON.stringify(draft)
 
   return (
     <SettingsShell title="Copyright settings" embedded={embedded}>
@@ -467,11 +472,11 @@ export function CopyrightParticleEditor({
         <input type="hidden" name="sectionId" value={sectionId} />
         <input type="hidden" name="rowId" value={rowId} />
         <input type="hidden" name="slotId" value={slot.id} />
+        <input type="hidden" name="configJson" value={configJson} />
         <label>
           <span>Text</span>
           <input
             type="text"
-            name="text"
             value={draft.text ?? ''}
             onChange={(e) => patchDraft({ text: e.target.value })}
           />
@@ -479,7 +484,6 @@ export function CopyrightParticleEditor({
         <label>
           <span>Year mode</span>
           <select
-            name="yearMode"
             value={yearMode}
             onChange={(e) => {
               patchDraft({ yearMode: e.target.value === 'manual' ? 'manual' : 'auto' })
@@ -495,7 +499,6 @@ export function CopyrightParticleEditor({
             <span>Year</span>
             <input
               type="number"
-              name="year"
               value={draft.year ?? new Date().getFullYear()}
               onChange={(e) =>
                 patchDraft({
@@ -504,18 +507,11 @@ export function CopyrightParticleEditor({
               }
             />
           </label>
-        ) : (
-          <input
-            type="hidden"
-            name="year"
-            value={String(draft.year ?? new Date().getFullYear())}
-          />
-        )}
+        ) : null}
         <label>
           <span>Link URL (optional)</span>
           <input
             type="text"
-            name="linkUrl"
             value={draft.linkUrl ?? ''}
             onChange={(e) => patchDraft({ linkUrl: e.target.value })}
           />
@@ -524,7 +520,6 @@ export function CopyrightParticleEditor({
           <span>Link label (optional)</span>
           <input
             type="text"
-            name="linkLabel"
             value={draft.linkLabel ?? ''}
             onChange={(e) => patchDraft({ linkLabel: e.target.value })}
           />
@@ -549,7 +544,7 @@ export function SocialParticleEditor({
   embedded?: boolean
   onConfigSaved?: (config: LayoutSlotConfig) => void
 }) {
-  const [state, formAction, pending] = useActionState(updateSocialSlotAction, initialState)
+  const [state, formAction, pending] = useActionState(updateSlotConfigAction, initialState)
   useParticleAutosaveResult(state, onConfigSaved)
   const { formRef, saveDebounced, saveNow } = useAutosaveForm()
 
@@ -577,6 +572,8 @@ export function SocialParticleEditor({
     saveDebounced()
   }, [items, saveDebounced])
 
+  const configJson = JSON.stringify({ items })
+
   return (
     <SettingsShell title="Social links" embedded={embedded}>
       <form
@@ -592,7 +589,7 @@ export function SocialParticleEditor({
         <input type="hidden" name="sectionId" value={sectionId} />
         <input type="hidden" name="rowId" value={rowId} />
         <input type="hidden" name="slotId" value={slot.id} />
-        <input type="hidden" name="itemsJson" value={JSON.stringify(items)} />
+        <input type="hidden" name="configJson" value={configJson} />
 
         <ul className="gantry-social-editor-list">
           {items.map((item, index) => (
@@ -701,7 +698,7 @@ export function FormParticleEditor({
   embedded?: boolean
   onConfigSaved?: (config: LayoutSlotConfig) => void
 }) {
-  const [state, formAction, pending] = useActionState(updateFormSlotAction, initialState)
+  const [state, formAction, pending] = useActionState(updateSlotConfigAction, initialState)
   useParticleAutosaveResult(state, onConfigSaved)
   const { formRef, saveDebounced, saveNow } = useAutosaveForm()
 
@@ -766,6 +763,16 @@ export function FormParticleEditor({
 
   const definitionMode = source === 'definition'
   const selectedFormExists = formDefinitions.some((f) => f.id === formId)
+  const configJson = JSON.stringify({
+    source,
+    formId: definitionMode ? formId : undefined,
+    heading: heading || undefined,
+    successMessage: successMessage || undefined,
+    submitLabel: submitLabel || undefined,
+    useSiteCaptchaDefault,
+    fields: definitionMode ? undefined : fields,
+    fieldsJson: definitionMode ? undefined : fieldsJson,
+  })
 
   return (
     <SettingsShell title="Form settings" embedded={embedded}>
@@ -779,13 +786,7 @@ export function FormParticleEditor({
         <input type="hidden" name="sectionId" value={sectionId} />
         <input type="hidden" name="rowId" value={rowId} />
         <input type="hidden" name="slotId" value={slot.id} />
-        <input type="hidden" name="source" value={source} />
-        <input type="hidden" name="formId" value={definitionMode ? formId : ''} />
-        <input
-          type="hidden"
-          name="fieldsJson"
-          value={definitionMode ? '' : JSON.stringify(fields)}
-        />
+        <input type="hidden" name="configJson" value={configJson} />
 
         <label>
           <span>Mode</span>
@@ -858,14 +859,11 @@ export function FormParticleEditor({
               <span>Heading override</span>
               <input
                 type="text"
-                name="heading"
                 value={heading}
                 onChange={(e) => setHeading(e.target.value)}
                 placeholder="Uses definition title when empty"
               />
             </label>
-            <input type="hidden" name="successMessage" value="" />
-            <input type="hidden" name="submitLabel" value="" />
           </>
         ) : (
           <>
@@ -873,7 +871,6 @@ export function FormParticleEditor({
               <span>Heading</span>
               <input
                 type="text"
-                name="heading"
                 value={heading}
                 onChange={(e) => setHeading(e.target.value)}
                 placeholder="Contact"
@@ -883,7 +880,6 @@ export function FormParticleEditor({
               <span>Success message</span>
               <input
                 type="text"
-                name="successMessage"
                 value={successMessage}
                 onChange={(e) => setSuccessMessage(e.target.value)}
               />
@@ -892,7 +888,6 @@ export function FormParticleEditor({
               <span>Submit label</span>
               <input
                 type="text"
-                name="submitLabel"
                 value={submitLabel}
                 onChange={(e) => setSubmitLabel(e.target.value)}
               />
@@ -923,7 +918,6 @@ export function FormParticleEditor({
         <label className="gantry-typed-check">
           <input
             type="checkbox"
-            name="useSiteCaptchaDefault"
             checked={useSiteCaptchaDefault}
             onChange={(e) => {
               setUseSiteCaptchaDefault(e.target.checked)
@@ -937,88 +931,4 @@ export function FormParticleEditor({
       </form>
     </SettingsShell>
   )
-}
-
-/** Renders the typed config editor for logo / menu / copyright / social / form slots. */
-export function TypedParticleEditor({
-  sectionId,
-  rowId,
-  slot,
-  navMenus = [],
-  formDefinitions = [],
-  formsModuleEnabled = true,
-  primaryNavMenuId = 'main',
-  embedded = false,
-  onConfigSaved,
-}: {
-  sectionId: string
-  rowId: string
-  slot: LayoutSlot
-  navMenus?: NavMenuOption[]
-  formDefinitions?: FormDefinitionOption[]
-  formsModuleEnabled?: boolean
-  primaryNavMenuId?: string
-  embedded?: boolean
-  onConfigSaved?: (config: LayoutSlotConfig) => void
-}) {
-  if (slot.moduleId === 'logo') {
-    return (
-      <LogoParticleEditor
-        sectionId={sectionId}
-        rowId={rowId}
-        slot={slot}
-        embedded={embedded}
-        onConfigSaved={onConfigSaved}
-      />
-    )
-  }
-  if (slot.moduleId === 'menu') {
-    return (
-      <MenuParticleEditor
-        sectionId={sectionId}
-        rowId={rowId}
-        slot={slot}
-        navMenus={navMenus}
-        primaryNavMenuId={primaryNavMenuId}
-        embedded={embedded}
-        onConfigSaved={onConfigSaved}
-      />
-    )
-  }
-  if (slot.moduleId === 'copyright') {
-    return (
-      <CopyrightParticleEditor
-        sectionId={sectionId}
-        rowId={rowId}
-        slot={slot}
-        embedded={embedded}
-        onConfigSaved={onConfigSaved}
-      />
-    )
-  }
-  if (slot.moduleId === 'social') {
-    return (
-      <SocialParticleEditor
-        sectionId={sectionId}
-        rowId={rowId}
-        slot={slot}
-        embedded={embedded}
-        onConfigSaved={onConfigSaved}
-      />
-    )
-  }
-  if (slot.moduleId === 'form') {
-    return (
-      <FormParticleEditor
-        sectionId={sectionId}
-        rowId={rowId}
-        slot={slot}
-        formDefinitions={formDefinitions}
-        formsModuleEnabled={formsModuleEnabled}
-        embedded={embedded}
-        onConfigSaved={onConfigSaved}
-      />
-    )
-  }
-  return null
 }

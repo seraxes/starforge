@@ -185,6 +185,56 @@ async function main(): Promise<void> {
     }
   }
 
+  type ParticleHostDecl = {
+    id: string
+    configSchemaImportPath?: string
+    configSchemaExportName?: string
+    editorImportPath?: string
+    editorExportName?: string
+    defaultsImportPath?: string
+    defaultsExportName?: string
+  }
+
+  const particleHostDecls: ParticleHostDecl[] = []
+  for (const entry of allowlistedEntries) {
+    if (isParticleKind(entry.kind)) {
+      particleHostDecls.push({
+        id: entry.id,
+        configSchemaImportPath: entry.configSchemaImportPath,
+        configSchemaExportName: entry.configSchemaExportName,
+        editorImportPath: entry.editorImportPath,
+        editorExportName: entry.editorExportName,
+        defaultsImportPath: entry.defaultsImportPath,
+        defaultsExportName: entry.defaultsExportName,
+      })
+    }
+    for (const particle of entry.particles ?? []) {
+      particleHostDecls.push({
+        id: particle.id,
+        configSchemaImportPath: particle.configSchemaImportPath,
+        configSchemaExportName: particle.configSchemaExportName,
+        editorImportPath: particle.editorImportPath,
+        editorExportName: particle.editorExportName,
+        defaultsImportPath: particle.defaultsImportPath,
+        defaultsExportName: particle.defaultsExportName,
+      })
+    }
+  }
+
+  const schemaDecls = particleHostDecls.filter(
+    (d) => d.configSchemaImportPath?.trim() && d.configSchemaExportName?.trim(),
+  )
+  const editorDecls = particleHostDecls.filter(
+    (d) => d.editorImportPath?.trim() && d.editorExportName?.trim(),
+  )
+  const defaultsDecls = particleHostDecls.filter(
+    (d) => d.defaultsImportPath?.trim() && d.defaultsExportName?.trim(),
+  )
+
+  const adminNavModules = allowlistedEntries.filter(
+    (e) => e.admin?.nav && e.admin.nav.length > 0,
+  )
+
   const particleLoaders = optionalParticles
     .map((e) => {
       return `  {
@@ -219,6 +269,63 @@ async function main(): Promise<void> {
     })
     .join(',\n')
 
+  const schemaLoaders = schemaDecls
+    .map(
+      (d) => `  {
+    id: ${jsonString(d.id)},
+    load: async () => (await import(${jsonString(d.configSchemaImportPath!)})).${d.configSchemaExportName!},
+  }`,
+    )
+    .join(',\n')
+
+  const editorLoaders = editorDecls
+    .map(
+      (d) => `  {
+    id: ${jsonString(d.id)},
+    load: async () => (await import(${jsonString(d.editorImportPath!)})).${d.editorExportName!},
+  }`,
+    )
+    .join(',\n')
+
+  const defaultsLoaders = defaultsDecls
+    .map(
+      (d) => `  {
+    id: ${jsonString(d.id)},
+    load: async () => (await import(${jsonString(d.defaultsImportPath!)})).${d.defaultsExportName!}(),
+  }`,
+    )
+    .join(',\n')
+
+  const adminNavLiterals = adminNavModules
+    .map((e) => {
+      const group = e.admin?.navGroup
+      const links = (e.admin?.nav ?? [])
+        .map((link) => {
+          const parts = [
+            `label: ${jsonString(link.label)}`,
+            `href: ${jsonString(link.href)}`,
+            `order: ${link.order ?? 0}`,
+          ]
+          if (link.exact) parts.push(`exact: true`)
+          if (link.area) parts.push(`area: ${jsonString(link.area)}`)
+          if (link.group) parts.push(`group: ${jsonString(link.group)}`)
+          return `{ ${parts.join(', ')} }`
+        })
+        .join(', ')
+      const groupParts = [
+        `moduleId: ${jsonString(e.id)}`,
+        `id: ${jsonString(group?.id ?? e.id)}`,
+        `label: ${jsonString(group?.label ?? e.label)}`,
+        `order: ${group?.order ?? 100}`,
+      ]
+      if (group?.href) groupParts.push(`href: ${jsonString(group.href)}`)
+      if (group?.expandable) groupParts.push(`expandable: true`)
+      if (group?.defaultOpen) groupParts.push(`defaultOpen: true`)
+      groupParts.push(`links: [${links}]`)
+      return `  { ${groupParts.join(', ')} }`
+    })
+    .join(',\n')
+
   const productPlatformMeta = productPlatform.map(catalogMetaLiteral).join(',\n  ')
   const particleMeta = [...builtinParticles, ...optionalParticles]
     .map(particleMetaLiteral)
@@ -236,7 +343,9 @@ async function main(): Promise<void> {
  */
 
 import type { ComponentType, ReactNode } from 'react'
+import type { ZodType } from 'zod'
 
+import type { ParticleEditorProps } from '@/core/modules/particles/editor-props'
 import type { StarforgeModule } from '@/core/modules/types'
 import type { StarforgeAtomDefinition } from '@/core/page-settings/types'
 import type { FeatureFlags } from '@/core/settings/defaults'
@@ -344,6 +453,62 @@ export const publicShellLoaders: PublicShellLoader[] = [
 ${publicShellLoaders || '  // (none allowlisted)'}
 ]
 
+export type ParticleConfigSchemaLoader = {
+  id: string
+  load: () => Promise<ZodType>
+}
+
+/** Zod schemas for particle slot config (M1 generic updateSlotConfigAction). */
+export const particleConfigSchemaLoaders: ParticleConfigSchemaLoader[] = [
+${schemaLoaders || '  // (none)'}
+]
+
+export type ParticleEditorLoader = {
+  id: string
+  // Editors accept ParticleEditorProps; concrete components may tighten fields.
+  load: () => Promise<ComponentType<ParticleEditorProps> | ComponentType<Record<string, unknown>>>
+}
+
+/** Client cog editors loaded by ParticleEditorHost (M1). */
+export const particleEditorLoaders: ParticleEditorLoader[] = [
+${editorLoaders || '  // (none)'}
+]
+
+export type ParticleDefaultsLoader = {
+  id: string
+  load: () => Promise<Record<string, unknown>>
+}
+
+/** Defaults for new slots (M1). */
+export const particleDefaultsLoaders: ParticleDefaultsLoader[] = [
+${defaultsLoaders || '  // (none)'}
+]
+
+export type AdminNavContributionLink = {
+  label: string
+  href: string
+  order: number
+  exact?: boolean
+  area?: string
+  group?: string
+}
+
+export type AdminNavContribution = {
+  moduleId: string
+  id: string
+  label: string
+  order: number
+  href?: string
+  expandable?: boolean
+  defaultOpen?: boolean
+  links: AdminNavContributionLink[]
+}
+
+/** Admin left-nav groups contributed by allowlisted module manifests (M2). */
+export const adminNavContributions: AdminNavContribution[] = [
+${adminNavLiterals || '  // (none)'}
+]
+
 export async function loadAllowlistedOptionalParticles(): Promise<StarforgeModule[]> {
   return Promise.all(optionalParticleLoaders.map((entry) => entry.load()))
 }
@@ -369,7 +534,7 @@ export async function loadPublicShellSlot(
   await mkdir(path.dirname(OUT_PATH), { recursive: true })
   await writeFile(OUT_PATH, body, 'utf8')
   console.log(
-    `[modules:generate] Wrote ${path.relative(ROOT, OUT_PATH)} (${allowlisted.length} ids, ${optionalParticles.length} optional particles, ${optionalAtoms.length} atoms, ${publicShellEntries.length} publicShell)`,
+    `[modules:generate] Wrote ${path.relative(ROOT, OUT_PATH)} (${allowlisted.length} ids, ${optionalParticles.length} optional particles, ${optionalAtoms.length} atoms, ${publicShellEntries.length} publicShell, ${schemaDecls.length} schemas, ${editorDecls.length} editors, ${adminNavModules.length} adminNav)`,
   )
 }
 

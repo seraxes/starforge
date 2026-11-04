@@ -21,13 +21,12 @@ import {
 import { ensureDocumentEmptyRows } from './empty-rows'
 import { clampGridWidth, evenColumnWidths, LAYOUT_WIDTH_FULL, resizeAdjacentPair } from './grid'
 import { loadLayoutDocument, saveLayoutDocument } from './layout-store'
-import { defaultConfigForModule, readSocialConfig } from './particles/config'
+import { defaultConfigForModule } from './particles/config'
 import { getRegisteredModule, listRegisteredModules } from './registry'
 import {
   DEFAULT_LAYOUT_BREAKPOINTS,
   normalizeLayoutBreakpoints,
   normalizeLayoutSectionStyles,
-  parseCssColorInput,
   sanitizeBackgroundImageUrl,
   sanitizeBackgroundMediaId,
   sanitizeCssColor,
@@ -1026,7 +1025,11 @@ export async function setSlotAccessLevelAction(
   return setSlotAccessTagsAction(prev, formData)
 }
 
-export async function updateCustomSlotAction(
+/**
+ * Generic particle slot config save (M1).
+ * Editors post `configJson`; Core validates via the module's generated Zod schema.
+ */
+export async function updateSlotConfigAction(
   _prev: LayoutActionState,
   formData: FormData,
 ): Promise<LayoutActionState> {
@@ -1035,25 +1038,52 @@ export async function updateCustomSlotAction(
   const slotId = String(formData.get('slotId') ?? '').trim()
   if (!sectionId || !rowId || !slotId) return { error: 'Missing slot reference.' }
 
-  const config: LayoutSlotConfig = {
-    title: String(formData.get('title') ?? '').trim(),
-    html: String(formData.get('html') ?? ''),
-    css: String(formData.get('css') ?? ''),
-    js: String(formData.get('js') ?? ''),
+  const layoutId = layoutIdFromForm(formData)
+  const { document } = await loadLayoutDocument(layoutId)
+  const working =
+    document.sections.length > 0 ? structuredClone(document) : cloneDefaultLayoutDocument()
+  const found = findSlot(working, sectionId, rowId, slotId)
+  if (!found) return { error: 'Slot not found.' }
+
+  const moduleId = found.slot.moduleId
+  const { loadParticleConfigSchema } = await import('@/core/modules/particle-config')
+  const schema = await loadParticleConfigSchema(moduleId)
+  if (!schema) {
+    return { error: `No config schema registered for particle “${moduleId}”.` }
   }
 
-  const state = await mutateLayout(formData, (doc) => {
-    const found = findSlot(doc, sectionId, rowId, slotId)
-    if (!found) return { error: 'Slot not found.' }
-    if (found.slot.moduleId !== 'custom') {
-      return { error: 'Only Custom particles have HTML/CSS/JS config.' }
+  const configJson = String(formData.get('configJson') ?? '').trim()
+  if (!configJson) return { error: 'Missing config JSON.' }
+
+  let raw: unknown
+  try {
+    raw = JSON.parse(configJson)
+  } catch {
+    return { error: 'Invalid config JSON.' }
+  }
+
+  const parsed = schema.safeParse(raw)
+  if (!parsed.success) {
+    const first = parsed.error.issues[0]
+    return {
+      error: first?.message || `Invalid ${moduleId} particle config.`,
     }
-    found.slot.config = config
+  }
+
+  const config = parsed.data as LayoutSlotConfig
+
+  const state = await mutateLayout(formData, (doc) => {
+    const slotFound = findSlot(doc, sectionId, rowId, slotId)
+    if (!slotFound) return { error: 'Slot not found.' }
+    if (slotFound.slot.moduleId !== moduleId) {
+      return { error: `Particle type mismatch for “${moduleId}”.` }
+    }
+    slotFound.slot.config = config
     return doc
   })
 
   if (state.ok) {
-    state.message = 'Custom particle saved.'
+    state.message = `${getRegisteredModule(moduleId)?.name ?? moduleId} saved.`
     state.config = config
   }
   return state
@@ -1107,251 +1137,6 @@ export async function updateSlotAttributesAction(
       ...(htmlId ? { htmlId } : {}),
       ...(cssClass ? { cssClass } : {}),
     }
-  }
-  return state
-}
-
-export async function updateLogoSlotAction(
-  _prev: LayoutActionState,
-  formData: FormData,
-): Promise<LayoutActionState> {
-  const sectionId = String(formData.get('sectionId') ?? '').trim()
-  const rowId = String(formData.get('rowId') ?? '').trim()
-  const slotId = String(formData.get('slotId') ?? '').trim()
-  if (!sectionId || !rowId || !slotId) return { error: 'Missing slot reference.' }
-
-  const mode = String(formData.get('mode') ?? 'image') === 'text' ? 'text' : 'image'
-  const colorRaw = String(formData.get('color') ?? '').trim()
-  const colorParsed = parseCssColorInput(colorRaw)
-  if (colorParsed.status === 'invalid') {
-    return {
-      error: 'Color must be a CSS color (hex, rgb/rgba, hsl/hsla, or named). Leave blank to inherit.',
-    }
-  }
-  const color = colorParsed.status === 'ok' ? colorParsed.value : ''
-
-  const maxWidthRaw = Number(formData.get('maxWidth'))
-  const maxHeightRaw = Number(formData.get('maxHeight'))
-  const fontSizeRaw = Number(formData.get('fontSize'))
-  const fontWeightRaw = String(formData.get('fontWeight') ?? '').trim()
-  const fontWeightNum = Number(fontWeightRaw)
-  const config: LayoutSlotConfig = {
-    mode,
-    mediaId: String(formData.get('mediaId') ?? '').trim(),
-    mediaUrl: String(formData.get('mediaUrl') ?? '').trim(),
-    alt: String(formData.get('alt') ?? '').trim() || 'Logo',
-    linkUrl: String(formData.get('linkUrl') ?? '').trim(),
-    text: String(formData.get('text') ?? '').trim(),
-    fontFamily: String(formData.get('fontFamily') ?? '').trim(),
-    color,
-    ...(Number.isFinite(maxWidthRaw) && maxWidthRaw > 0
-      ? { maxWidth: Math.round(maxWidthRaw) }
-      : {}),
-    ...(Number.isFinite(maxHeightRaw) && maxHeightRaw > 0
-      ? { maxHeight: Math.round(maxHeightRaw) }
-      : {}),
-    ...(Number.isFinite(fontSizeRaw) && fontSizeRaw > 0
-      ? { fontSize: Math.round(fontSizeRaw) }
-      : {}),
-    fontWeight: Number.isFinite(fontWeightNum) && fontWeightNum > 0
-      ? Math.round(fontWeightNum)
-      : fontWeightRaw || 700,
-  }
-
-  const state = await mutateLayout(formData, (doc) => {
-    const found = findSlot(doc, sectionId, rowId, slotId)
-    if (!found) return { error: 'Slot not found.' }
-    if (found.slot.moduleId !== 'logo') return { error: 'Not a Logo / Image particle.' }
-    found.slot.config = config
-    return doc
-  })
-
-  if (state.ok) {
-    state.message = 'Logo / Image saved.'
-    state.config = config
-  }
-  return state
-}
-
-export async function updateMenuSlotAction(
-  _prev: LayoutActionState,
-  formData: FormData,
-): Promise<LayoutActionState> {
-  const sectionId = String(formData.get('sectionId') ?? '').trim()
-  const rowId = String(formData.get('rowId') ?? '').trim()
-  const slotId = String(formData.get('slotId') ?? '').trim()
-  if (!sectionId || !rowId || !slotId) return { error: 'Missing slot reference.' }
-
-  const menuIdRaw = String(formData.get('menuId') ?? '').trim()
-  const config: LayoutSlotConfig = {
-    menuId: menuIdRaw === 'primary' ? '' : menuIdRaw,
-    ariaLabel: String(formData.get('ariaLabel') ?? '').trim() || 'Primary',
-  }
-
-  const state = await mutateLayout(formData, (doc) => {
-    const found = findSlot(doc, sectionId, rowId, slotId)
-    if (!found) return { error: 'Slot not found.' }
-    if (found.slot.moduleId !== 'menu') return { error: 'Not a Menu particle.' }
-    found.slot.config = config
-    return doc
-  })
-
-  if (state.ok) {
-    state.message = 'Menu settings saved.'
-    state.config = config
-  }
-  return state
-}
-
-export async function updateCopyrightSlotAction(
-  _prev: LayoutActionState,
-  formData: FormData,
-): Promise<LayoutActionState> {
-  const sectionId = String(formData.get('sectionId') ?? '').trim()
-  const rowId = String(formData.get('rowId') ?? '').trim()
-  const slotId = String(formData.get('slotId') ?? '').trim()
-  if (!sectionId || !rowId || !slotId) return { error: 'Missing slot reference.' }
-
-  const yearMode = String(formData.get('yearMode') ?? 'auto') === 'manual' ? 'manual' : 'auto'
-  const yearRaw = Number(formData.get('year'))
-  const config: LayoutSlotConfig = {
-    text: String(formData.get('text') ?? '').trim(),
-    yearMode,
-    year: Number.isFinite(yearRaw) ? Math.round(yearRaw) : new Date().getFullYear(),
-    linkUrl: String(formData.get('linkUrl') ?? '').trim(),
-    linkLabel: String(formData.get('linkLabel') ?? '').trim(),
-  }
-
-  const state = await mutateLayout(formData, (doc) => {
-    const found = findSlot(doc, sectionId, rowId, slotId)
-    if (!found) return { error: 'Slot not found.' }
-    if (found.slot.moduleId !== 'copyright') return { error: 'Not a Copyright particle.' }
-    found.slot.config = config
-    return doc
-  })
-
-  if (state.ok) {
-    state.message = 'Copyright saved.'
-    state.config = config
-  }
-  return state
-}
-
-export async function updateSocialSlotAction(
-  _prev: LayoutActionState,
-  formData: FormData,
-): Promise<LayoutActionState> {
-  const sectionId = String(formData.get('sectionId') ?? '').trim()
-  const rowId = String(formData.get('rowId') ?? '').trim()
-  const slotId = String(formData.get('slotId') ?? '').trim()
-  if (!sectionId || !rowId || !slotId) return { error: 'Missing slot reference.' }
-
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(String(formData.get('itemsJson') ?? '[]'))
-  } catch {
-    return { error: 'Invalid social items JSON.' }
-  }
-  if (!Array.isArray(parsed)) return { error: 'Social items must be an array.' }
-
-  const config: LayoutSlotConfig = { items: readSocialConfig({ items: parsed }).items }
-
-  const state = await mutateLayout(formData, (doc) => {
-    const found = findSlot(doc, sectionId, rowId, slotId)
-    if (!found) return { error: 'Slot not found.' }
-    if (found.slot.moduleId !== 'social') return { error: 'Not a Social particle.' }
-    found.slot.config = config
-    return doc
-  })
-
-  if (state.ok) {
-    state.message = 'Social links saved.'
-    state.config = config
-  }
-  return state
-}
-
-export async function updateFormSlotAction(
-  _prev: LayoutActionState,
-  formData: FormData,
-): Promise<LayoutActionState> {
-  const sectionId = String(formData.get('sectionId') ?? '').trim()
-  const rowId = String(formData.get('rowId') ?? '').trim()
-  const slotId = String(formData.get('slotId') ?? '').trim()
-  if (!sectionId || !rowId || !slotId) return { error: 'Missing slot reference.' }
-
-  const sourceRaw = String(formData.get('source') ?? '').trim()
-  const source = sourceRaw === 'custom' ? 'custom' : 'definition'
-  const formId = String(formData.get('formId') ?? '').trim()
-
-  let parsedFields: unknown = []
-  const fieldsJsonRaw = String(formData.get('fieldsJson') ?? '')
-  if (source === 'custom' && fieldsJsonRaw.trim()) {
-    try {
-      parsedFields = JSON.parse(fieldsJsonRaw)
-    } catch {
-      return { error: 'Invalid custom form JSON.' }
-    }
-  }
-
-  const { formConfigToSlotConfig, parseCustomFormParticleJson } = await import(
-    '@/core/forms/config'
-  )
-
-  let customFields: import('@/core/forms/types').FormFieldDef[] | undefined
-  let customHeading: string | undefined
-  let customSuccess: string | undefined
-  let customSubmit: string | undefined
-  if (source === 'custom') {
-    try {
-      const parsed = parseCustomFormParticleJson(
-        fieldsJsonRaw.trim() ? parsedFields : [],
-      )
-      customFields = parsed.fields
-      customHeading = parsed.heading
-      customSuccess = parsed.successMessage
-      customSubmit = parsed.submitLabel
-    } catch (error) {
-      return {
-        error:
-          error instanceof Error && error.message
-            ? error.message
-            : 'Invalid custom form JSON.',
-      }
-    }
-  }
-
-  const headingOverride = String(formData.get('heading') ?? '').trim()
-  const config: LayoutSlotConfig = formConfigToSlotConfig({
-    source,
-    formId: source === 'definition' ? formId || undefined : undefined,
-    heading:
-      headingOverride ||
-      (source === 'custom' ? customHeading : undefined) ||
-      undefined,
-    fields: source === 'custom' ? customFields : undefined,
-    successMessage:
-      String(formData.get('successMessage') ?? '').trim() ||
-      (source === 'custom' ? customSuccess : undefined) ||
-      undefined,
-    submitLabel:
-      String(formData.get('submitLabel') ?? '').trim() ||
-      (source === 'custom' ? customSubmit : undefined) ||
-      undefined,
-    useSiteCaptchaDefault: String(formData.get('useSiteCaptchaDefault') ?? '') === 'on',
-  })
-
-  const state = await mutateLayout(formData, (doc) => {
-    const found = findSlot(doc, sectionId, rowId, slotId)
-    if (!found) return { error: 'Slot not found.' }
-    if (found.slot.moduleId !== 'form') return { error: 'Not a Form particle.' }
-    found.slot.config = config
-    return doc
-  })
-
-  if (state.ok) {
-    state.message = 'Form settings saved.'
-    state.config = config
   }
   return state
 }

@@ -50,19 +50,24 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
   const navOn = isCatalogModuleEnabled(settings, MODULE_IDS.primaryNav)
   const formsOn = isCatalogModuleEnabled(settings, MODULE_IDS.forms)
   const redirectsOn = isCatalogModuleEnabled(settings, MODULE_IDS.redirects)
+  const mediaOn = isCatalogModuleEnabled(settings, MODULE_IDS.media)
   const showPayloadCms = payloadOn && userHasCmsAccess(access)
   const theme = getActiveAdminTheme()
+
+  const enabledModuleIds = new Set<string>()
+  if (formsOn) enabledModuleIds.add(MODULE_IDS.forms)
+  if (redirectsOn) enabledModuleIds.add(MODULE_IDS.redirects)
+  if (mediaOn) enabledModuleIds.add(MODULE_IDS.media)
 
   const groups = buildAdminNavGroups({
     surface: 'core',
     flags: {
       nav: navOn,
-      forms: formsOn,
-      redirects: redirectsOn,
       layout: layoutOn,
       pageSettings: pageSettingsOn,
       cms: showPayloadCms,
     },
+    enabledModuleIds,
   })
 
   return (
