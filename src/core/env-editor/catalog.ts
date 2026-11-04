@@ -177,7 +177,8 @@ export const ENV_EDITOR_FIELDS: EnvEditorField[] = [
   {
     key: 'REDIS_URL',
     label: 'REDIS_URL',
-    description: 'Redis connection URL for content cache + rate-limit (queues later). Secret if passworded.',
+    description:
+      'Redis connection URL for content cache, Form rate-limit, and Better Auth secondaryStorage / rateLimit (queues later). Secret if passworded.',
     secret: true,
     kind: 'password',
     group: 'infra',
@@ -186,7 +187,7 @@ export const ENV_EDITOR_FIELDS: EnvEditorField[] = [
     key: 'STARFORGE_REDIS_PREFIX',
     label: 'STARFORGE_REDIS_PREFIX',
     description:
-      'Key prefix for Redis ports (cache / rate-limit). Default sf:${NODE_ENV}. Lets staging + prod share one Redis.',
+      'Key prefix for Redis ports (cache / rate-limit / Better Auth :ba:). Default sf:${NODE_ENV}. Lets staging + prod share one Redis.',
     secret: false,
     kind: 'text',
     group: 'infra',
@@ -194,7 +195,8 @@ export const ENV_EDITOR_FIELDS: EnvEditorField[] = [
   {
     key: 'STARFORGE_TRUSTED_ORIGINS',
     label: 'STARFORGE_TRUSTED_ORIGINS',
-    description: 'Comma-separated extra trusted origins (CSRF / CORS helpers). Optional.',
+    description:
+      'Comma-separated extra trusted origins for Better Auth trustedOrigins + Payload csrf. App URL origins (+ localhost/127.0.0.1 twin) are always included. Optional.',
     secret: false,
     kind: 'text',
     group: 'auth',

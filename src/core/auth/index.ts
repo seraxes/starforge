@@ -19,6 +19,7 @@ import {
   sfVerifications,
 } from '@/core/db'
 import { shouldUseSecureCookies } from '@/core/security/secure-cookies'
+import { appTrustedOrigins } from '@/core/security/trusted-origins'
 import { siteChromeCookieAttributes } from '@/core/site-chrome/cookie-attrs'
 import { emailIsBootstrapAdmin } from './bootstrap-admins'
 import {
@@ -31,6 +32,29 @@ import { ac, appRoles, DEFAULT_APP_ROLE } from './permissions'
 
 const appUrl =
   process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+
+function redisUrlConfigured(): boolean {
+  // Inline env read so the no-Redis path stays free of ioredis / server-only.
+  return Boolean((process.env.REDIS_URL ?? '').trim())
+}
+
+/**
+ * When `REDIS_URL` is set: Better Auth secondaryStorage + rateLimit on Redis
+ * (`{prefix}:ba:*`). Sessions stay durable in Postgres (`storeSessionInDatabase`)
+ * and are mirrored to Redis for multi-instance lookups.
+ */
+function redisAuthOptions() {
+  if (!redisUrlConfigured()) return {}
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- lazy Redis load
+  const { createRedisSecondaryStorage } =
+    require('./redis-secondary-storage') as typeof import('./redis-secondary-storage')
+  return {
+    secondaryStorage: createRedisSecondaryStorage(),
+    rateLimit: {
+      storage: 'secondary-storage' as const,
+    },
+  }
+}
 
 /**
  * Starforge product auth (app users).
@@ -55,12 +79,9 @@ export const auth = betterAuth({
     fallback: appUrl,
   },
   secret: process.env.BETTER_AUTH_SECRET,
-  trustedOrigins: [
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'http://localhost:*',
-    'http://127.0.0.1:*',
-  ],
+  // Env-driven: BETTER_AUTH_URL / NEXT_PUBLIC_APP_URL / STARFORGE_TRUSTED_ORIGINS
+  // (Environment catalog). Loopback twins only when the app URL is loopback.
+  trustedOrigins: appTrustedOrigins(),
   database: drizzleAdapter(db, {
     provider: 'pg',
     schema: {
@@ -91,11 +112,15 @@ export const auth = betterAuth({
     // Default ~7d; rememberMe=false shortens via Better Auth's dontRememberMe path.
     expiresIn: 60 * 60 * 24 * 7,
     updateAge: 60 * 60 * 24,
+    // Keep Postgres as durable session store when Redis secondaryStorage is on.
+    storeSessionInDatabase: true,
     cookieCache: {
       enabled: true,
       maxAge: 5 * 60,
     },
   },
+  ...redisAuthOptions(),
+
   databaseHooks: {
     user: {
       create: {
