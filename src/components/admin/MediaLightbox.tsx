@@ -1,8 +1,9 @@
 'use client'
 
-import React, { useEffect, useId, useRef } from 'react'
+import React, { useEffect, useId, useRef, useState } from 'react'
 import Link from 'next/link'
 
+import type { MediaSuggestionPatch } from '@/core/media/library-query'
 import type { ResolvedMedia } from '@/core/media/resolve'
 import { MEDIA_FOLDERS, MEDIA_PURPOSES } from '@/core/media/pipeline'
 
@@ -48,6 +49,15 @@ type Props = {
   /** Optional delete handler — confirm lives here. */
   onDelete?: (id: string) => void
   deleting?: boolean
+  /** Phase 3 — MediaAnalysisPort Analyze (explicit; never auto). */
+  onAnalyze?: (id: string) => void
+  analyzing?: boolean
+  analysisMessage?: string | null
+  analysisError?: string | null
+  suggestions?: MediaSuggestionPatch | null
+  onApplySuggestions?: (id: string, patch: MediaSuggestionPatch) => void
+  applyingSuggestions?: boolean
+  onDismissSuggestions?: () => void
 }
 
 /**
@@ -61,9 +71,18 @@ export function MediaLightbox({
   onIndexChange,
   onDelete,
   deleting,
+  onAnalyze,
+  analyzing,
+  analysisMessage,
+  analysisError,
+  suggestions,
+  onApplySuggestions,
+  applyingSuggestions,
+  onDismissSuggestions,
 }: Props) {
   const titleId = useId()
   const closeRef = useRef<HTMLButtonElement>(null)
+  const [copied, setCopied] = useState(false)
 
   const safeIndex = docs.length === 0 ? -1 : Math.min(Math.max(index, 0), docs.length - 1)
   const doc = safeIndex >= 0 ? docs[safeIndex] : null
@@ -110,6 +129,8 @@ export function MediaLightbox({
         ? doc.tagIds
         : []
 
+  const busy = Boolean(deleting || analyzing || applyingSuggestions)
+
   // Stay inside `.admin-shell` so panel tokens inherit (no body portal).
   return (
     <div className="sf-media-lightbox" role="presentation">
@@ -132,7 +153,7 @@ export function MediaLightbox({
             <button
               type="button"
               className="gantry-toolbar-btn gantry-toolbar-btn-muted"
-              disabled={!canPrev}
+              disabled={!canPrev || busy}
               aria-label="Previous media"
               onClick={() => onIndexChange(safeIndex - 1)}
             >
@@ -141,7 +162,7 @@ export function MediaLightbox({
             <button
               type="button"
               className="gantry-toolbar-btn gantry-toolbar-btn-muted"
-              disabled={!canNext}
+              disabled={!canNext || busy}
               aria-label="Next media"
               onClick={() => onIndexChange(safeIndex + 1)}
             >
@@ -152,6 +173,7 @@ export function MediaLightbox({
               type="button"
               className="gantry-toolbar-btn gantry-toolbar-btn-muted"
               aria-label="Close"
+              disabled={busy}
               onClick={onClose}
             >
               Close
@@ -237,21 +259,34 @@ export function MediaLightbox({
               <button
                 type="button"
                 className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+                disabled={busy}
                 onClick={async () => {
                   try {
                     await navigator.clipboard.writeText(doc.id)
+                    setCopied(true)
+                    window.setTimeout(() => setCopied(false), 1200)
                   } catch {
                     /* ignore */
                   }
                 }}
               >
-                Copy mediaId
+                {copied ? 'Copied' : 'Copy mediaId'}
               </button>
+              {onAnalyze ? (
+                <button
+                  type="button"
+                  className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+                  disabled={busy}
+                  onClick={() => onAnalyze(doc.id)}
+                >
+                  {analyzing ? 'Analyzing…' : 'Analyze'}
+                </button>
+              ) : null}
               {onDelete ? (
                 <button
                   type="button"
                   className="gantry-toolbar-btn gantry-toolbar-btn-muted"
-                  disabled={deleting}
+                  disabled={busy}
                   onClick={() => {
                     if (!confirm('Delete this media item?')) return
                     onDelete(doc.id)
@@ -261,6 +296,66 @@ export function MediaLightbox({
                 </button>
               ) : null}
             </div>
+
+            {analysisError ? (
+              <p className="form-error" role="alert">
+                {analysisError}
+              </p>
+            ) : null}
+            {analysisMessage ? (
+              <p className="layout-muted" role="status">
+                {analysisMessage}
+              </p>
+            ) : null}
+
+            {suggestions && onApplySuggestions ? (
+              <div className="sf-media-lightbox-suggestions" role="region" aria-label="Analysis suggestions">
+                <h4>Suggestions</h4>
+                <ul>
+                  {suggestions.alt ? (
+                    <li>
+                      Alt: <strong>{suggestions.alt}</strong>
+                    </li>
+                  ) : null}
+                  {suggestions.purpose ? (
+                    <li>
+                      Purpose: <strong>{purposeLabel(suggestions.purpose)}</strong>
+                    </li>
+                  ) : null}
+                  {suggestions.categoryId ? (
+                    <li>
+                      Folder id: <code>{suggestions.categoryId}</code>
+                    </li>
+                  ) : null}
+                  {suggestions.tagIds?.length ? (
+                    <li>
+                      Tags: <code>{suggestions.tagIds.join(', ')}</code>
+                    </li>
+                  ) : null}
+                </ul>
+                <div className="sf-media-lightbox-actions">
+                  <button
+                    type="button"
+                    className="gantry-toolbar-btn gantry-toolbar-btn-save"
+                    disabled={busy}
+                    onClick={() => onApplySuggestions(doc.id, suggestions)}
+                  >
+                    {applyingSuggestions ? 'Applying…' : 'Apply suggestions'}
+                  </button>
+                  {onDismissSuggestions ? (
+                    <button
+                      type="button"
+                      className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+                      disabled={busy}
+                      onClick={onDismissSuggestions}
+                    >
+                      Dismiss
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+
             <p className="layout-muted sf-media-lightbox-hint">
               Esc closes · ← → browse current filter
               {docs.length > 1 ? ` (${safeIndex + 1} / ${docs.length})` : null}

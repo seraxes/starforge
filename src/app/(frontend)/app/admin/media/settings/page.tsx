@@ -34,8 +34,9 @@ export default async function AdminMediaSettingsPage() {
       ) : null}
       <MediaSettingsForm rules={loaded.rules} />
       <p className="admin-lede layout-muted">
-        Note: Payload <code>imageSizes</code> derivative widths still use boot-time constants;
-        original preprocess honors these settings immediately.
+        Original preprocess honors max W×H / quality immediately. Derivative size fields sync into
+        Media Settings storage; Payload <code>imageSizes</code> still need an app restart to match
+        (see Derivative sizes panel).
       </p>
     </section>
   )
