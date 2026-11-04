@@ -9,12 +9,27 @@ import {
   clampAdminAutosaveDebounceMs,
   clampFormRateLimitMax,
   clampFormRateLimitWindowSec,
+  clampNullMissTtlSec,
+  clampPublishedCacheTtlSec,
+  coercePublishedCacheEnabled,
   featureFlagsFromModuleToggles,
   getSiteSettings,
   listInstalledModuleCatalog,
   type ModuleToggleMap,
+  type SiteSettingsData,
   updateSiteSettings,
 } from '@/core/settings'
+
+/** Preserve Performance knobs when another Settings topic saves. */
+function performanceFieldsFrom(current: SiteSettingsData) {
+  return {
+    formRateLimitMax: current.formRateLimitMax,
+    formRateLimitWindowSec: current.formRateLimitWindowSec,
+    publishedCacheEnabled: current.publishedCacheEnabled,
+    publishedCacheTtlSec: current.publishedCacheTtlSec,
+    nullMissTtlSec: current.nullMissTtlSec,
+  }
+}
 
 export type SettingsActionState = {
   error?: string
@@ -91,8 +106,7 @@ export async function updateSiteSettingsAction(
       siteName,
       primaryNavMenuId,
       adminAutosaveDebounceMs: current.adminAutosaveDebounceMs,
-      formRateLimitMax: current.formRateLimitMax,
-      formRateLimitWindowSec: current.formRateLimitWindowSec,
+      ...performanceFieldsFrom(current),
       keepLegacyPrimaryNav: true,
       features,
       moduleToggles,
@@ -129,8 +143,7 @@ export async function updateAdminUxSettingsAction(
       siteName: current.siteName,
       primaryNavMenuId: current.primaryNavMenuId,
       adminAutosaveDebounceMs,
-      formRateLimitMax: current.formRateLimitMax,
-      formRateLimitWindowSec: current.formRateLimitWindowSec,
+      ...performanceFieldsFrom(current),
       keepLegacyPrimaryNav: true,
       features: current.features,
       moduleToggles: current.moduleToggles,
@@ -147,7 +160,7 @@ export async function updateAdminUxSettingsAction(
   return { ok: true }
 }
 
-/** Site Settings → Performance: Form rate-limit window/max (non-secret). */
+/** Site Settings → Performance: Form rate-limit + published-cache knobs (non-secret). */
 export async function updatePerformanceSettingsAction(
   _prev: SettingsActionState,
   formData: FormData,
@@ -162,6 +175,13 @@ export async function updatePerformanceSettingsAction(
   const formRateLimitWindowSec = clampFormRateLimitWindowSec(
     formData.get('formRateLimitWindowSec'),
   )
+  const publishedCacheEnabled = coercePublishedCacheEnabled(
+    formData.get('publishedCacheEnabled') ?? false,
+  )
+  const publishedCacheTtlSec = clampPublishedCacheTtlSec(
+    formData.get('publishedCacheTtlSec'),
+  )
+  const nullMissTtlSec = clampNullMissTtlSec(formData.get('nullMissTtlSec'))
 
   try {
     await updateSiteSettings({
@@ -170,6 +190,9 @@ export async function updatePerformanceSettingsAction(
       adminAutosaveDebounceMs: current.adminAutosaveDebounceMs,
       formRateLimitMax,
       formRateLimitWindowSec,
+      publishedCacheEnabled,
+      publishedCacheTtlSec,
+      nullMissTtlSec,
       keepLegacyPrimaryNav: true,
       features: current.features,
       moduleToggles: current.moduleToggles,
@@ -216,8 +239,7 @@ export async function updateAuthSettingsAction(
       siteName: current.siteName,
       primaryNavMenuId: current.primaryNavMenuId,
       adminAutosaveDebounceMs: current.adminAutosaveDebounceMs,
-      formRateLimitMax: current.formRateLimitMax,
-      formRateLimitWindowSec: current.formRateLimitWindowSec,
+      ...performanceFieldsFrom(current),
       keepLegacyPrimaryNav: true,
       features,
       moduleToggles,

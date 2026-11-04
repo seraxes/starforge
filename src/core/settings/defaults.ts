@@ -119,6 +119,67 @@ export function clampFormRateLimitWindowSec(raw: unknown): number {
   )
 }
 
+/**
+ * Default: published-content cache on. Off bypasses Next/Redis adapters (loader
+ * every time). Backend selection (`STARFORGE_CONTENT_CACHE` / `REDIS_URL`) stays
+ * in Environment — this is only the non-secret on/off knob.
+ */
+export const DEFAULT_PUBLISHED_CACHE_ENABLED = true
+
+/**
+ * Default published-content TTL (seconds). `0` = keep until tag invalidation
+ * (preferred for CMS). Positive values add a time-based safety net.
+ */
+export const DEFAULT_PUBLISHED_CACHE_TTL_SEC = 0
+/** Inclusive lower bound for published-content TTL (0 = tag-only). */
+export const PUBLISHED_CACHE_TTL_SEC_MIN = 0
+/** Inclusive upper bound for published-content TTL (24h). */
+export const PUBLISHED_CACHE_TTL_SEC_MAX = 86_400
+
+/** Default Redis null-miss TTL (seconds) for cached empty published reads. */
+export const DEFAULT_NULL_MISS_TTL_SEC = 60
+/** Inclusive lower bound for null-miss TTL. */
+export const NULL_MISS_TTL_SEC_MIN = 1
+/** Inclusive upper bound for null-miss TTL. */
+export const NULL_MISS_TTL_SEC_MAX = 3600
+
+function coerceBool(raw: unknown, fallback: boolean): boolean {
+  if (raw == null) return fallback
+  if (typeof raw === 'boolean') return raw
+  if (typeof raw === 'number') return raw !== 0
+  if (typeof raw === 'string') {
+    const v = raw.trim().toLowerCase()
+    if (v === 'true' || v === '1' || v === 'on' || v === 'yes') return true
+    if (v === 'false' || v === '0' || v === 'off' || v === 'no' || v === '') return false
+  }
+  return fallback
+}
+
+/** Coerce Site Settings published-content cache enable flag. */
+export function coercePublishedCacheEnabled(raw: unknown): boolean {
+  return coerceBool(raw, DEFAULT_PUBLISHED_CACHE_ENABLED)
+}
+
+/** Clamp / coerce Site Settings published-content TTL (seconds). */
+export function clampPublishedCacheTtlSec(raw: unknown): number {
+  const n = coerceFiniteNumber(raw)
+  if (n == null) return DEFAULT_PUBLISHED_CACHE_TTL_SEC
+  return Math.min(
+    PUBLISHED_CACHE_TTL_SEC_MAX,
+    Math.max(PUBLISHED_CACHE_TTL_SEC_MIN, Math.round(n)),
+  )
+}
+
+/** Clamp / coerce Site Settings Redis null-miss TTL (seconds). */
+export function clampNullMissTtlSec(raw: unknown): number {
+  const n = coerceFiniteNumber(raw)
+  if (n == null) return DEFAULT_NULL_MISS_TTL_SEC
+  return Math.min(
+    NULL_MISS_TTL_SEC_MAX,
+    Math.max(NULL_MISS_TTL_SEC_MIN, Math.round(n)),
+  )
+}
+
 export type SiteSettingsData = {
   siteName: string
   /**
@@ -144,6 +205,21 @@ export type SiteSettingsData = {
    * Redis URL / cache backend stay in env (Environment), not here.
    */
   formRateLimitWindowSec: number
+  /**
+   * When false, published-content cache adapters are bypassed (always load).
+   * Site Settings → Performance. Not Redis URL / backend enum.
+   */
+  publishedCacheEnabled: boolean
+  /**
+   * Published-content TTL in seconds (`0` = until tag invalidate).
+   * Site Settings → Performance.
+   */
+  publishedCacheTtlSec: number
+  /**
+   * Redis null-miss marker TTL in seconds. Site Settings → Performance.
+   * Ignored by the Next.js tag cache.
+   */
+  nullMissTtlSec: number
   features: FeatureFlags
   /** Runtime gates for registered particles + atoms (`atom:` prefix). */
   moduleToggles: ModuleToggleMap
@@ -175,6 +251,9 @@ export const DEFAULT_SITE_SETTINGS: SiteSettingsData = {
   adminAutosaveDebounceMs: DEFAULT_ADMIN_AUTOSAVE_DEBOUNCE_MS,
   formRateLimitMax: DEFAULT_FORM_RATE_LIMIT_MAX,
   formRateLimitWindowSec: DEFAULT_FORM_RATE_LIMIT_WINDOW_SEC,
+  publishedCacheEnabled: DEFAULT_PUBLISHED_CACHE_ENABLED,
+  publishedCacheTtlSec: DEFAULT_PUBLISHED_CACHE_TTL_SEC,
+  nullMissTtlSec: DEFAULT_NULL_MISS_TTL_SEC,
   features: { ...DEFAULT_FEATURE_FLAGS },
   moduleToggles: {},
 }
