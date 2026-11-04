@@ -4,6 +4,7 @@ import { asc, count, eq, inArray } from 'drizzle-orm'
 
 import { db, sfAclPermissions, sfUserGroupMembers, sfUserGroups } from '@/core/db'
 
+import { replaceGroupAclMatrix } from './permissions'
 import { slugifyGroupId } from './slug'
 import type { UserGroup, UserGroupOption } from './types'
 
@@ -159,9 +160,15 @@ export async function ensureDefaultUserGroupsSeeded(): Promise<{
 
   const seeds = [
     {
+      id: 'managers',
+      label: 'Managers',
+      description:
+        'Site managers — grant admin areas under Users → ACL (group, not a Role).',
+    },
+    {
       id: 'staff',
       label: 'Staff',
-      description: 'Trusted site staff (nav + ACL stub grants).',
+      description: 'Trusted site staff (assign ACL grants as needed).',
     },
     {
       id: 'editors',
@@ -175,5 +182,11 @@ export async function ensureDefaultUserGroupsSeeded(): Promise<{
     const result = await createUserGroup(seed)
     if ('ok' in result && result.ok) created.push(result.group.id)
   }
+
+  // Default Managers model: Navigation admin so a member-in-Managers can open /app/admin/nav.
+  if (created.includes('managers')) {
+    await replaceGroupAclMatrix('managers', ['admin.nav'])
+  }
+
   return { created }
 }

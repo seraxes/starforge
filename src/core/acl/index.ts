@@ -22,7 +22,26 @@ export {
 } from './nav-access'
 
 /** Session-bound checks — server-only (`import 'server-only'`). */
-export { getAccessViewer, viewerMayAccessAdminResource } from './access'
+export {
+  getAccessViewer,
+  listViewerAllowedAdminResources,
+  requireAdminArea,
+  requireAdminAreaForRequest,
+  viewerMayAccessAdminResource,
+  viewerMayEnterAdminShell,
+} from './access'
+
+/** Pure ACL decision helpers — safe for unit tests / shared graphs. */
+export {
+  adminAreaGateForPath,
+  adminHrefAllowed,
+  adminResourcesForHref,
+  decideAdminResourceAccess,
+  decideAdminShellAccess,
+  firstAdminLandingPath,
+  viewerAllowsGate,
+} from './decide'
+export type { AdminAreaGate } from './decide'
 
 export type { AccessViewer } from './types'
 export {
@@ -58,6 +77,7 @@ export type { GroupMemberRow } from './members'
 export {
   anyGroupAllowsResource,
   getGroupAclMatrix,
+  listAllowedResourcesForGroups,
   replaceGroupAclMatrix,
   setGroupAclPermission,
 } from './permissions'
