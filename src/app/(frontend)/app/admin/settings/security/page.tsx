@@ -1,6 +1,10 @@
 import React from 'react'
 import Link from 'next/link'
 
+import {
+  emptyDeveloperAdminEmailsGrantAllAdmins,
+  getDeveloperAdminEmails,
+} from '@/core/auth/admin'
 import { getSiteChrome } from '@/core/site-chrome'
 import { SecuritySettingsForm } from './security-settings-form'
 
@@ -13,6 +17,8 @@ export const metadata = {
 
 export default async function AdminSettingsSecurityPage() {
   const chrome = await getSiteChrome()
+  const developerAdminEmailsEmpty = getDeveloperAdminEmails().length === 0
+  const emptyListOpenLocally = emptyDeveloperAdminEmailsGrantAllAdmins()
 
   return (
     <section className="admin-section">
@@ -27,6 +33,16 @@ export default async function AdminSettingsSecurityPage() {
         Offline / SEO / cookies / email remain under{' '}
         <Link href="/app/admin/site-chrome">Chrome</Link>.
       </p>
+      {developerAdminEmailsEmpty ? (
+        <p className="notice-banner" role="status">
+          <code>STARFORGE_DEVELOPER_ADMIN_EMAILS</code> is empty
+          {emptyListOpenLocally
+            ? ' — locally all app admins are developer-admins; production grants nobody (fail-closed).'
+            : ' — developer-admin is fail-closed (nobody). Set emails for Environment / script fields.'}{' '}
+          Edit via{' '}
+          <Link href="/app/admin/site-chrome/environment">Chrome → Environment</Link>.
+        </p>
+      ) : null}
       <SecuritySettingsForm
         captchaEnabled={chrome.captchaEnabled}
         captchaProvider={chrome.captchaProvider}

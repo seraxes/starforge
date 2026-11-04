@@ -296,8 +296,8 @@ export function PageSettingsForm({ bootstrap }: Props) {
       {!bootstrap.isDeveloperAdmin ? (
         <p className="notice-banner page-settings-acl-banner" role="status">
           Script fields (custom head, body hooks, JS lists, atom scripts, FA HTML overrides) are
-          developer-admin only. Set <code>STARFORGE_DEVELOPER_ADMIN_EMAILS</code> or leave it empty
-          so all admins can edit them.
+          developer-admin only. Add your email to <code>STARFORGE_DEVELOPER_ADMIN_EMAILS</code>{' '}
+          (empty list grants nobody in production).
         </p>
       ) : null}
 

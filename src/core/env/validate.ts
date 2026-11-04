@@ -129,8 +129,9 @@ export function validateStarforgeEnv(
     warnings.push({
       level: 'warn',
       key: 'STARFORGE_DEVELOPER_ADMIN_EMAILS',
-      message:
-        'STARFORGE_DEVELOPER_ADMIN_EMAILS is empty — Environment editor / script fields fall back to all app admins (or nobody when none).',
+      message: prod
+        ? 'STARFORGE_DEVELOPER_ADMIN_EMAILS is empty — developer-admin is fail-closed in production (nobody). Set emails for Environment / script fields.'
+        : 'STARFORGE_DEVELOPER_ADMIN_EMAILS is empty — locally all app admins qualify; production would grant nobody (fail-closed).',
     })
   }
 
