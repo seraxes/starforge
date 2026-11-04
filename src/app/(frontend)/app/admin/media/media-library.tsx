@@ -7,6 +7,10 @@ import Link from 'next/link'
 import { MediaCategoryTree } from '@/components/admin/MediaCategoryTree'
 import { MediaLightbox } from '@/components/admin/MediaLightbox'
 import {
+  analyzeMediaAction,
+  applyMediaAnalysisSuggestionsAction,
+  bulkDeleteMediaAction,
+  bulkUpdateMediaAction,
   createMediaCategoryAction,
   deleteMediaAction,
   deleteMediaCategoryAction,
@@ -20,6 +24,12 @@ import {
   flattenCategoryOptions,
   type MediaCategoryNode,
 } from '@/core/media/categories'
+import {
+  parseMediaTagFilter,
+  serializeMediaTagFilter,
+  type MediaSuggestionPatch,
+  type MediaTagMatchMode,
+} from '@/core/media/library-query'
 import { MEDIA_PURPOSES } from '@/core/media/pipeline'
 import type { MediaTagOption } from '@/core/media/resolve'
 import type { MediaStorageInfo } from '@/core/media/storage'
@@ -37,6 +47,7 @@ type Props = {
   category: string
   purpose: string
   tag: string
+  tagMode: MediaTagMatchMode
   q: string
   view: MediaLibraryView
   tagOptions: MediaTagOption[]
@@ -51,18 +62,21 @@ function libraryHref(next: {
   category?: string
   purpose?: string
   tag?: string
+  tagMode?: MediaTagMatchMode
   q?: string
   view?: MediaLibraryView
 }): string {
   const params = new URLSearchParams()
   const c = next.category ?? 'all'
   const p = next.purpose ?? 'all'
-  const t = next.tag ?? 'all'
+  const tagFilter = parseMediaTagFilter(next.tag, next.tagMode)
+  const serialized = serializeMediaTagFilter(tagFilter)
   const query = next.q ?? ''
   const view = next.view ?? 'mosaic'
   if (c && c !== 'all') params.set('category', c)
   if (p && p !== 'all') params.set('purpose', p)
-  if (t && t !== 'all') params.set('tag', t)
+  if (serialized.tag) params.set('tag', serialized.tag)
+  if (serialized.tagMode) params.set('tagMode', serialized.tagMode)
   if (query.trim()) params.set('q', query.trim())
   if (view && view !== 'mosaic') params.set('view', view)
   const qs = params.toString()
@@ -76,6 +90,7 @@ export function MediaLibraryClient({
   category,
   purpose,
   tag,
+  tagMode,
   q,
   view,
   tagOptions,
@@ -87,6 +102,19 @@ export function MediaLibraryClient({
   const { notifySaved } = useAdminToast()
   const [uploadState, uploadAction, uploading] = useActionState(uploadMediaAction, empty)
   const [deleteState, deleteAction, deleting] = useActionState(deleteMediaAction, empty)
+  const [bulkDeleteState, bulkDeleteAction, bulkDeleting] = useActionState(
+    bulkDeleteMediaAction,
+    empty,
+  )
+  const [bulkUpdateState, bulkUpdateAction, bulkUpdating] = useActionState(
+    bulkUpdateMediaAction,
+    empty,
+  )
+  const [analyzeState, analyzeAction, analyzing] = useActionState(analyzeMediaAction, empty)
+  const [applySuggestState, applySuggestAction, applyingSuggest] = useActionState(
+    applyMediaAnalysisSuggestionsAction,
+    empty,
+  )
   const [createCatState, createCatAction, creatingCat] = useActionState(
     createMediaCategoryAction,
     empty,
@@ -102,24 +130,46 @@ export function MediaLibraryClient({
   const [pending, startTransition] = useTransition()
 
   const [purposeDraft, setPurposeDraft] = useState(purpose)
-  const [tagDraft, setTagDraft] = useState(tag)
+  const [tagDraft, setTagDraft] = useState(tag === 'all' ? '' : tag)
+  const [tagModeDraft, setTagModeDraft] = useState<MediaTagMatchMode>(tagMode)
   const [qDraft, setQDraft] = useState(q)
   const [uploadCategory, setUploadCategory] = useState(category !== 'all' ? category : '')
   const [uploadPurpose, setUploadPurpose] = useState('photo')
-  const [uploadTag, setUploadTag] = useState(tag !== 'all' ? tag : '')
+  const [uploadTag, setUploadTag] = useState(() => {
+    const ids = parseMediaTagFilter(tag).ids
+    return ids[0] ?? ''
+  })
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
+  const [selected, setSelected] = useState<Set<string>>(() => new Set())
+  const [bulkCategory, setBulkCategory] = useState('')
+  const [bulkTag, setBulkTag] = useState('')
+  const [suggestions, setSuggestions] = useState<MediaSuggestionPatch | null>(null)
+  const [analysisMessage, setAnalysisMessage] = useState<string | null>(null)
 
-  const busy = uploading || deleting || pending || creatingCat || renamingCat || deletingCat
+  const busy =
+    uploading ||
+    deleting ||
+    pending ||
+    creatingCat ||
+    renamingCat ||
+    deletingCat ||
+    bulkDeleting ||
+    bulkUpdating ||
+    analyzing ||
+    applyingSuggest
   const categoryOptions = useMemo(() => flattenCategoryOptions(categoryTree), [categoryTree])
+  const selectedIds = useMemo(() => [...selected], [selected])
 
   // Keep drafts in sync when URL filters change (Clear / chip / folder / back).
   React.useEffect(() => {
     setPurposeDraft(purpose)
-    setTagDraft(tag)
+    setTagDraft(tag === 'all' ? '' : tag)
+    setTagModeDraft(tagMode)
     setQDraft(q)
     if (category !== 'all') setUploadCategory(category)
-    if (tag !== 'all') setUploadTag(tag)
-  }, [category, purpose, tag, q])
+    const ids = parseMediaTagFilter(tag).ids
+    if (ids[0]) setUploadTag(ids[0])
+  }, [category, purpose, tag, tagMode, q])
 
   React.useEffect(() => {
     if (uploadState.ok) {
@@ -137,6 +187,18 @@ export function MediaLibraryClient({
   }, [deleteState, router, notifySaved])
 
   React.useEffect(() => {
+    const state = bulkDeleteState.ok
+      ? bulkDeleteState
+      : bulkUpdateState.ok
+        ? bulkUpdateState
+        : null
+    if (!state?.ok) return
+    notifySaved(state.message || 'Saved.')
+    setSelected(new Set())
+    startTransition(() => router.refresh())
+  }, [bulkDeleteState, bulkUpdateState, router, notifySaved])
+
+  React.useEffect(() => {
     const state = createCatState.ok
       ? createCatState
       : renameCatState.ok
@@ -148,6 +210,25 @@ export function MediaLibraryClient({
     notifySaved(state.message || 'Saved.')
     startTransition(() => router.refresh())
   }, [createCatState, renameCatState, deleteCatState, router, notifySaved])
+
+  React.useEffect(() => {
+    if (!analyzeState.ok && !analyzeState.error) return
+    if (analyzeState.error) {
+      setAnalysisMessage(null)
+      return
+    }
+    setAnalysisMessage(analyzeState.message || 'Analysis complete.')
+    setSuggestions(analyzeState.suggestions ?? null)
+  }, [analyzeState])
+
+  React.useEffect(() => {
+    if (applySuggestState.ok) {
+      notifySaved(applySuggestState.message || 'Suggestions applied.')
+      setSuggestions(null)
+      setAnalysisMessage(null)
+      startTransition(() => router.refresh())
+    }
+  }, [applySuggestState, router, notifySaved])
 
   // Drop lightbox if the filtered set no longer contains the open index.
   React.useEffect(() => {
@@ -161,20 +242,38 @@ export function MediaLibraryClient({
     }
   }, [initialDocs, lightboxIndex])
 
+  // Drop selection for ids that left the current page.
+  React.useEffect(() => {
+    const visible = new Set(initialDocs.map((d) => d.id))
+    setSelected((prev) => {
+      let changed = false
+      const next = new Set<string>()
+      for (const id of prev) {
+        if (visible.has(id)) next.add(id)
+        else changed = true
+      }
+      return changed ? next : prev
+    })
+  }, [initialDocs])
+
   const filterHref = useMemo(
     () =>
       libraryHref({
         category,
         purpose: purposeDraft,
-        tag: tagDraft,
+        tag: tagDraft || 'all',
+        tagMode: tagModeDraft,
         q: qDraft,
         view,
       }),
-    [category, purposeDraft, tagDraft, qDraft, view],
+    [category, purposeDraft, tagDraft, tagModeDraft, qDraft, view],
   )
 
+  const activeTagIds = parseMediaTagFilter(tag === 'all' ? '' : tag, tagMode).ids
   const filtersActive =
-    (purpose && purpose !== 'all') || (tag && tag !== 'all') || Boolean(q.trim())
+    (purpose && purpose !== 'all') ||
+    activeTagIds.length > 0 ||
+    Boolean(q.trim())
 
   const activeCategory = category !== 'all' ? findCategoryInTree(categoryTree, category) : null
   const activeFolderLabel = activeCategory?.path || activeCategory?.title || 'All media'
@@ -183,13 +282,15 @@ export function MediaLibraryClient({
     category?: string
     purpose?: string
     tag?: string
+    tagMode?: MediaTagMatchMode
     q?: string
     view?: MediaLibraryView
   }) {
     const href = libraryHref({
       category: next.category ?? category,
       purpose: next.purpose ?? purposeDraft,
-      tag: next.tag ?? tagDraft,
+      tag: next.tag ?? (tagDraft || 'all'),
+      tagMode: next.tagMode ?? tagModeDraft,
       q: next.q ?? qDraft,
       view: next.view ?? view,
     })
@@ -201,11 +302,74 @@ export function MediaLibraryClient({
     pushFilter({ category: nextCategory })
   }
 
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function selectAllVisible() {
+    setSelected(new Set(initialDocs.map((d) => d.id)))
+  }
+
+  function clearSelection() {
+    setSelected(new Set())
+  }
+
   function requestDelete(id: string) {
     const fd = new FormData()
     fd.set('id', id)
     startTransition(() => {
       void deleteAction(fd)
+    })
+  }
+
+  function requestAnalyze(id: string) {
+    setSuggestions(null)
+    setAnalysisMessage(null)
+    const fd = new FormData()
+    fd.set('id', id)
+    startTransition(() => {
+      void analyzeAction(fd)
+    })
+  }
+
+  function requestApplySuggestions(id: string, patch: MediaSuggestionPatch) {
+    const fd = new FormData()
+    fd.set('id', id)
+    if (patch.alt) fd.set('alt', patch.alt)
+    if (patch.purpose) fd.set('purpose', patch.purpose)
+    if (patch.categoryId) fd.set('categoryId', patch.categoryId)
+    if (patch.tagIds?.length) fd.set('tagIds', patch.tagIds.join(','))
+    startTransition(() => {
+      void applySuggestAction(fd)
+    })
+  }
+
+  function runBulkDelete() {
+    if (!selectedIds.length) return
+    if (!confirm(`Delete ${selectedIds.length} selected item${selectedIds.length === 1 ? '' : 's'}?`)) {
+      return
+    }
+    const fd = new FormData()
+    fd.set('idsCsv', selectedIds.join(','))
+    startTransition(() => {
+      void bulkDeleteAction(fd)
+    })
+  }
+
+  function runBulkUpdate() {
+    if (!selectedIds.length) return
+    if (!bulkCategory && !bulkTag) return
+    const fd = new FormData()
+    fd.set('idsCsv', selectedIds.join(','))
+    if (bulkCategory) fd.set('category', bulkCategory)
+    if (bulkTag) fd.set('tag', bulkTag)
+    startTransition(() => {
+      void bulkUpdateAction(fd)
     })
   }
 
@@ -220,8 +384,19 @@ export function MediaLibraryClient({
     })
   }
 
+  function toggleTagFilter(tagId: string) {
+    const current = parseMediaTagFilter(tagDraft || tag, tagModeDraft)
+    const nextIds = current.ids.includes(tagId)
+      ? current.ids.filter((id) => id !== tagId)
+      : [...current.ids, tagId]
+    const next = serializeMediaTagFilter({ ids: nextIds, mode: tagModeDraft })
+    setTagDraft(next.tag ?? '')
+    pushFilter({ tag: next.tag ?? 'all', tagMode: tagModeDraft })
+  }
+
   const catError =
     createCatState.error || renameCatState.error || deleteCatState.error || null
+  const bulkError = bulkDeleteState.error || bulkUpdateState.error || null
 
   return (
     <div className="sf-media-library">
@@ -239,9 +414,9 @@ export function MediaLibraryClient({
           </p>
         ) : null}
         <p className="layout-muted">
-          Analysis port: {analysisAdapters.length ? analysisAdapters.join(', ') : 'none'} (stub —
-          hooks off until Site Settings). {totalDocs} item{totalDocs === 1 ? '' : 's'} in{' '}
-          <strong>{activeFolderLabel}</strong>. Pipeline rules:{' '}
+          Analysis port: {analysisAdapters.length ? analysisAdapters.join(', ') : 'none'} (Analyze
+          in lightbox runs adapters explicitly — never auto). {totalDocs} item
+          {totalDocs === 1 ? '' : 's'} in <strong>{activeFolderLabel}</strong>. Pipeline rules:{' '}
           <Link href="/app/admin/media/settings">Media → Settings</Link>. Payload CMS Media remains
           the store — <Link href="/admin/collections/media">open in CMS</Link>.
         </p>
@@ -318,33 +493,72 @@ export function MediaLibraryClient({
                     </button>
                   </>
                 ) : null}
-                . Use the folder tree to open a folder; purpose / tag / search refine within it.
+                . Purpose chips + tag AND/OR refine within the folder.
               </p>
+
+              <div className="sf-media-purpose-chips" role="group" aria-label="Purpose">
+                <button
+                  type="button"
+                  className={`sf-media-chip${purposeDraft === 'all' || !purposeDraft ? ' is-active' : ''}`}
+                  disabled={busy}
+                  aria-pressed={purposeDraft === 'all' || !purposeDraft}
+                  onClick={() => {
+                    setPurposeDraft('all')
+                    pushFilter({ purpose: 'all' })
+                  }}
+                >
+                  All purposes
+                </button>
+                {MEDIA_PURPOSES.map((p) => (
+                  <button
+                    key={p.value}
+                    type="button"
+                    className={`sf-media-chip${purposeDraft === p.value ? ' is-active' : ''}`}
+                    disabled={busy}
+                    aria-pressed={purposeDraft === p.value}
+                    onClick={() => {
+                      setPurposeDraft(p.value)
+                      pushFilter({ purpose: p.value })
+                    }}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+
               <div className="sf-media-library-filters-row">
                 <label>
-                  <span>Purpose</span>
-                  <select value={purposeDraft} onChange={(e) => setPurposeDraft(e.target.value)}>
-                    <option value="all">All</option>
-                    {MEDIA_PURPOSES.map((p) => (
-                      <option key={p.value} value={p.value}>
-                        {p.label}
+                  <span>Tags</span>
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      const id = e.target.value
+                      if (id) toggleTagFilter(id)
+                      e.target.value = ''
+                    }}
+                    disabled={tagOptions.length === 0 || busy}
+                  >
+                    <option value="">Add tag filter…</option>
+                    {tagOptions.map((t) => (
+                      <option key={t.id} value={t.id} disabled={activeTagIds.includes(t.id)}>
+                        {t.title}
                       </option>
                     ))}
                   </select>
                 </label>
                 <label>
-                  <span>Tag</span>
+                  <span>Tag match</span>
                   <select
-                    value={tagDraft}
-                    onChange={(e) => setTagDraft(e.target.value)}
-                    disabled={tagOptions.length === 0}
+                    value={tagModeDraft}
+                    disabled={busy || activeTagIds.length < 2}
+                    onChange={(e) => {
+                      const mode = e.target.value === 'and' ? 'and' : 'or'
+                      setTagModeDraft(mode)
+                      pushFilter({ tag: tagDraft || 'all', tagMode: mode })
+                    }}
                   >
-                    <option value="all">All</option>
-                    {tagOptions.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.title}
-                      </option>
-                    ))}
+                    <option value="or">Any tag (OR)</option>
+                    <option value="and">All tags (AND)</option>
                   </select>
                 </label>
                 <label className="sf-media-library-search">
@@ -375,6 +589,7 @@ export function MediaLibraryClient({
                             category,
                             purpose: 'all',
                             tag: 'all',
+                            tagMode: 'or',
                             q: '',
                             view,
                           }),
@@ -386,6 +601,28 @@ export function MediaLibraryClient({
                   </button>
                 ) : null}
               </div>
+
+              {activeTagIds.length ? (
+                <div className="sf-media-tag-filter-chips" role="list" aria-label="Active tags">
+                  {activeTagIds.map((id) => {
+                    const label = tagOptions.find((t) => t.id === id)?.title || id
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        className="sf-media-chip is-active"
+                        role="listitem"
+                        disabled={busy}
+                        title={`Remove ${label}`}
+                        onClick={() => toggleTagFilter(id)}
+                      >
+                        {label} ×
+                      </button>
+                    )
+                  })}
+                </div>
+              ) : null}
+
               {tagOptions.length === 0 ? (
                 <p className="layout-muted">
                   No shared tags yet — create some in{' '}
@@ -479,6 +716,90 @@ export function MediaLibraryClient({
             </form>
           </div>
 
+          {initialDocs.length > 0 ? (
+            <div className="sf-media-bulk-bar" role="toolbar" aria-label="Bulk actions">
+              <label className="sf-media-bulk-select-all">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.length > 0 && selectedIds.length === initialDocs.length}
+                  ref={(el) => {
+                    if (el) {
+                      el.indeterminate =
+                        selectedIds.length > 0 && selectedIds.length < initialDocs.length
+                    }
+                  }}
+                  disabled={busy}
+                  onChange={(e) => {
+                    if (e.target.checked) selectAllVisible()
+                    else clearSelection()
+                  }}
+                />
+                <span>
+                  {selectedIds.length
+                    ? `${selectedIds.length} selected`
+                    : 'Select all on page'}
+                </span>
+              </label>
+              <label>
+                <span className="visually-hidden">Move to folder</span>
+                <select
+                  value={bulkCategory}
+                  disabled={busy || !selectedIds.length}
+                  onChange={(e) => setBulkCategory(e.target.value)}
+                >
+                  <option value="">Move to folder…</option>
+                  {categoryOptions.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {'\u00A0'.repeat(c.depth * 2)}
+                      {c.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span className="visually-hidden">Add tag</span>
+                <select
+                  value={bulkTag}
+                  disabled={busy || !selectedIds.length || tagOptions.length === 0}
+                  onChange={(e) => setBulkTag(e.target.value)}
+                >
+                  <option value="">Add tag…</option>
+                  {tagOptions.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                type="button"
+                className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+                disabled={busy || !selectedIds.length || (!bulkCategory && !bulkTag)}
+                onClick={runBulkUpdate}
+              >
+                {bulkUpdating ? 'Updating…' : 'Apply'}
+              </button>
+              <button
+                type="button"
+                className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+                disabled={busy || !selectedIds.length}
+                onClick={runBulkDelete}
+              >
+                {bulkDeleting ? 'Deleting…' : 'Delete'}
+              </button>
+              {selectedIds.length ? (
+                <button
+                  type="button"
+                  className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+                  disabled={busy}
+                  onClick={clearSelection}
+                >
+                  Clear selection
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+
           <div
             className={`sf-media-library-grid${view === 'list' ? ' is-list' : ' is-mosaic'}`}
             role="list"
@@ -504,12 +825,22 @@ export function MediaLibraryClient({
               const pLabel = doc.purpose
                 ? MEDIA_PURPOSES.find((p) => p.value === doc.purpose)?.label || doc.purpose
                 : null
+              const isSelected = selected.has(doc.id)
               return (
                 <article
                   key={doc.id}
-                  className={`sf-media-library-card${view === 'list' ? ' is-list' : ''}`}
+                  className={`sf-media-library-card${view === 'list' ? ' is-list' : ''}${isSelected ? ' is-selected' : ''}`}
                   role="listitem"
                 >
+                  <label className="sf-media-library-select">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      disabled={busy}
+                      aria-label={`Select ${doc.alt || doc.filename || doc.id}`}
+                      onChange={() => toggleSelect(doc.id)}
+                    />
+                  </label>
                   <button
                     type="button"
                     className="sf-media-library-thumb"
@@ -540,18 +871,31 @@ export function MediaLibraryClient({
                           {cLabel}
                         </button>
                       ) : null}
-                      {pLabel ? <span className="sf-media-chip is-static">{pLabel}</span> : null}
+                      {pLabel && doc.purpose ? (
+                        <button
+                          type="button"
+                          className={`sf-media-chip${purpose === doc.purpose ? ' is-active' : ''}`}
+                          disabled={busy || purpose === doc.purpose}
+                          title={`Filter purpose ${pLabel}`}
+                          onClick={() => {
+                            setPurposeDraft(doc.purpose || 'all')
+                            pushFilter({ purpose: doc.purpose || 'all' })
+                          }}
+                        >
+                          {pLabel}
+                        </button>
+                      ) : null}
                       {doc.tagIds?.map((id, i) => {
                         const label = doc.tagLabels?.[i] || id
-                        const active = tag === id
+                        const active = activeTagIds.includes(id)
                         return (
                           <button
                             key={id}
                             type="button"
                             className={`sf-media-chip${active ? ' is-active' : ''}`}
-                            disabled={busy || active}
-                            title={active ? 'Already filtering this tag' : `Filter by ${label}`}
-                            onClick={() => pushFilter({ tag: id })}
+                            disabled={busy}
+                            title={active ? `Remove tag filter ${label}` : `Filter by ${label}`}
+                            onClick={() => toggleTagFilter(id)}
                           >
                             {label}
                           </button>
@@ -574,9 +918,9 @@ export function MediaLibraryClient({
         </div>
       </div>
 
-      {deleteState.error || catError ? (
+      {deleteState.error || catError || bulkError || applySuggestState.error ? (
         <p className="form-error" role="alert">
-          {deleteState.error || catError}
+          {deleteState.error || catError || bulkError || applySuggestState.error}
         </p>
       ) : null}
 
@@ -584,10 +928,29 @@ export function MediaLibraryClient({
         <MediaLightbox
           docs={initialDocs}
           index={lightboxIndex}
-          onClose={() => setLightboxIndex(null)}
-          onIndexChange={setLightboxIndex}
+          onClose={() => {
+            setLightboxIndex(null)
+            setSuggestions(null)
+            setAnalysisMessage(null)
+          }}
+          onIndexChange={(next) => {
+            setLightboxIndex(next)
+            setSuggestions(null)
+            setAnalysisMessage(null)
+          }}
           onDelete={requestDelete}
           deleting={deleting}
+          onAnalyze={analysisAdapters.length ? requestAnalyze : undefined}
+          analyzing={analyzing}
+          analysisMessage={analysisMessage}
+          analysisError={analyzeState.error || null}
+          suggestions={suggestions}
+          onApplySuggestions={requestApplySuggestions}
+          applyingSuggestions={applyingSuggest}
+          onDismissSuggestions={() => {
+            setSuggestions(null)
+            setAnalysisMessage(null)
+          }}
         />
       ) : null}
     </div>

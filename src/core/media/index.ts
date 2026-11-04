@@ -74,6 +74,10 @@ export type {
 // directly from server actions / route handlers; do not barrel-export here.
 
 export {
+  analyzeMediaAction,
+  applyMediaAnalysisSuggestionsAction,
+  bulkDeleteMediaAction,
+  bulkUpdateMediaAction,
   createMediaCategoryAction,
   deleteMediaAction,
   deleteMediaCategoryAction,
@@ -84,4 +88,21 @@ export {
   saveMediaPipelineSettingsAction,
   uploadMediaAction,
 } from './actions'
-export type { MediaActionState } from './actions'
+export type { MediaActionState, MediaSuggestionPatch } from './actions'
+
+export {
+  bootMediaDerivativeSizes,
+  mediaDerivativeSizeDrift,
+  mediaSuggestionPatchIsEmpty,
+  mediaTagWhereClause,
+  mergeMediaAnalysisSuggestions,
+  normalizeMediaPurposeFilter,
+  parseMediaBulkIds,
+  parseMediaTagFilter,
+  serializeMediaTagFilter,
+} from './library-query'
+export type {
+  MediaDerivativeSizeDrift,
+  MediaLibraryTagFilter,
+  MediaTagMatchMode,
+} from './library-query'

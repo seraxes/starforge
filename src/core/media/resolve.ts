@@ -4,6 +4,11 @@ import config from '@payload-config'
 import { absoluteAssetUrl, absoluteMediaUrl } from '@/core/content/metadata'
 import type { Media } from '@/payload-types'
 
+import {
+  mediaTagWhereClause,
+  parseMediaTagFilter,
+  type MediaTagMatchMode,
+} from './library-query'
 import type { MediaPurpose } from './pipeline'
 
 export type MediaSizeName = 'thumbnail' | 'card' | 'large'
@@ -248,8 +253,10 @@ export async function listMedia(opts?: {
   /** Legacy flat folder — used when category unset (Form / migrate). */
   folder?: string
   purpose?: string
-  /** Tag id (Payload tags collection). */
+  /** Tag id(s) — single or comma-separated (Phase 3). */
   tag?: string
+  /** Tag match mode when multiple ids (default OR). */
+  tagMode?: MediaTagMatchMode | string
   q?: string
   limit?: number
   page?: number
@@ -262,37 +269,41 @@ export async function listMedia(opts?: {
   const payload = await getPayload({ config })
   const limit = Math.min(Math.max(opts?.limit ?? 48, 1), 100)
   const page = Math.max(opts?.page ?? 1, 1)
-  const where: Where = {}
   const category = (opts?.category ?? '').trim()
   const folder = (opts?.folder ?? '').trim()
   const purpose = (opts?.purpose ?? '').trim()
-  const tag = (opts?.tag ?? '').trim()
+  const tagFilter = parseMediaTagFilter(opts?.tag, opts?.tagMode)
   const q = (opts?.q ?? '').trim()
+
+  const and: Where[] = []
 
   if (category && category !== 'all') {
     const categoryId = Number(category)
-    where.category = { equals: Number.isFinite(categoryId) ? categoryId : category }
+    and.push({
+      category: { equals: Number.isFinite(categoryId) ? categoryId : category },
+    })
   } else if (folder && folder !== 'all') {
-    where.folder = { equals: folder }
+    and.push({ folder: { equals: folder } })
   }
   if (purpose && purpose !== 'all') {
-    where.purpose = { equals: purpose }
+    and.push({ purpose: { equals: purpose } })
   }
-  if (tag && tag !== 'all') {
-    // hasMany relationship: Payload docs use equals (contains is for text/select).
-    const tagId = Number(tag)
-    where.tags = { equals: Number.isFinite(tagId) ? tagId : tag }
+  const tagWhere = mediaTagWhereClause(tagFilter)
+  if (tagWhere) {
+    and.push(tagWhere as Where)
   }
   if (q) {
-    where.or = [
-      { alt: { contains: q } },
-      { filename: { contains: q } },
-    ]
+    and.push({
+      or: [{ alt: { contains: q } }, { filename: { contains: q } }],
+    })
   }
+
+  const where: Where | undefined =
+    and.length === 0 ? undefined : and.length === 1 ? and[0] : { and }
 
   const result = await payload.find({
     collection: 'media',
-    where: Object.keys(where).length ? where : undefined,
+    where,
     limit,
     page,
     sort: '-createdAt',

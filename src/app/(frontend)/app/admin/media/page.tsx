@@ -3,6 +3,11 @@ import Link from 'next/link'
 
 import { getMediaAnalysisPort } from '@/core/media/analysis'
 import { ensureLegacyCategoryRoots, listMediaCategoryTree } from '@/core/media/category-store'
+import {
+  normalizeMediaPurposeFilter,
+  parseMediaTagFilter,
+  serializeMediaTagFilter,
+} from '@/core/media/library-query'
 import { listMedia, listMediaTagOptions } from '@/core/media/resolve'
 import { loadMediaPipelineRules } from '@/core/media/settings-store'
 import { getMediaStorageInfo } from '@/core/media/storage'
@@ -23,6 +28,7 @@ type Search = Promise<{
   folder?: string
   purpose?: string
   tag?: string
+  tagMode?: string
   q?: string
   view?: string
 }>
@@ -36,8 +42,11 @@ export default async function AdminMediaPage({ searchParams }: { searchParams: S
   // Prefer nested category; accept legacy ?folder= as fallback browse key via slug match below.
   let category = (params.category ?? 'all').trim() || 'all'
   const legacyFolder = (params.folder ?? '').trim()
-  const purpose = (params.purpose ?? 'all').trim() || 'all'
-  const tag = (params.tag ?? 'all').trim() || 'all'
+  const purpose = normalizeMediaPurposeFilter(params.purpose)
+  const tagFilter = parseMediaTagFilter(params.tag, params.tagMode)
+  const tagSerialized = serializeMediaTagFilter(tagFilter)
+  const tag = tagSerialized.tag ?? 'all'
+  const tagMode = tagFilter.mode
   const q = (params.q ?? '').trim()
   const view = normalizeView(params.view)
 
@@ -78,6 +87,7 @@ export default async function AdminMediaPage({ searchParams }: { searchParams: S
       category: category === 'all' ? undefined : category,
       purpose: purpose === 'all' ? undefined : purpose,
       tag: tag === 'all' ? undefined : tag,
+      tagMode,
       q: q || undefined,
       limit: 60,
     })
@@ -111,6 +121,7 @@ export default async function AdminMediaPage({ searchParams }: { searchParams: S
         category={category}
         purpose={purpose}
         tag={tag}
+        tagMode={tagMode}
         q={q}
         view={view}
         tagOptions={tagOptions}
