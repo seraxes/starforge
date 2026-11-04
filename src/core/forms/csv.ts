@@ -18,6 +18,15 @@ export function csvRow(cells: string[]): string {
   return cells.map(escapeCsvCell).join(',')
 }
 
+/** Flatten a jsonb submission cell for CSV (arrays → `; `-joined). */
+export function formatCsvPayloadCell(
+  value: string | string[] | number | boolean | null | undefined,
+): string {
+  if (value == null) return ''
+  if (Array.isArray(value)) return value.map(String).join('; ')
+  return String(value)
+}
+
 /**
  * Ordered payload column keys: definition field names first (when provided),
  * then any extra keys seen in submissions (stable alpha).
@@ -79,7 +88,7 @@ export function buildFormSubmissionsCsv(options: FormSubmissionsCsvOptions): str
         row.formKey,
         row.definitionId ?? '',
         row.ipAddress ?? '',
-        ...payloadKeys.map((k) => row.payload[k] ?? ''),
+        ...payloadKeys.map((k) => formatCsvPayloadCell(row.payload[k])),
       ]),
     )
   }

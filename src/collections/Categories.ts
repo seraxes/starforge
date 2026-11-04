@@ -28,7 +28,7 @@ const ensureSlugAndDepth: CollectionBeforeChangeHook = async ({ data, originalDo
         : Number(parentRaw)
 
   let depth = 0
-  if (Number.isFinite(parentId) && parentId > 0) {
+  if (parentId != null && Number.isFinite(parentId) && parentId > 0) {
     const selfId =
       operation === 'update' && originalDoc?.id != null ? Number(originalDoc.id) : null
     let walk: number | null = parentId
@@ -45,47 +45,47 @@ const ensureSlugAndDepth: CollectionBeforeChangeHook = async ({ data, originalDo
       if (depth > MEDIA_CATEGORY_MAX_DEPTH) {
         throw new Error(`Category depth cannot exceed ${MEDIA_CATEGORY_MAX_DEPTH}.`)
       }
-      const parent = await req.payload.findByID({
+      const parentDoc: { parent?: unknown } = await req.payload.findByID({
         collection: 'categories',
         id: walk,
         depth: 0,
         overrideAccess: true,
       })
-      const p = parent?.parent
+      const p = parentDoc.parent
       walk =
         p == null
           ? null
           : typeof p === 'object' && p !== null && 'id' in p
             ? Number((p as { id: number | string }).id)
             : Number(p)
-      if (!Number.isFinite(walk as number)) walk = null
+      if (walk == null || !Number.isFinite(walk)) walk = null
     }
   }
   next.depth = depth
 
   // Materialize breadcrumb path from ancestor titles (root → leaf).
   const segments: string[] = []
-  if (Number.isFinite(parentId) && parentId > 0) {
+  if (parentId != null && Number.isFinite(parentId) && parentId > 0) {
     let walk: number | null = parentId
     const titles: string[] = []
     while (walk != null) {
-      const doc = await req.payload.findByID({
+      const doc: { title?: unknown; parent?: unknown } = await req.payload.findByID({
         collection: 'categories',
         id: walk,
         depth: 0,
         overrideAccess: true,
       })
-      if (typeof doc?.title === 'string' && doc.title.trim()) {
+      if (typeof doc.title === 'string' && doc.title.trim()) {
         titles.unshift(doc.title.trim())
       }
-      const p = doc?.parent
+      const p = doc.parent
       walk =
         p == null
           ? null
           : typeof p === 'object' && p !== null && 'id' in p
             ? Number((p as { id: number | string }).id)
             : Number(p)
-      if (!Number.isFinite(walk as number)) walk = null
+      if (walk == null || !Number.isFinite(walk)) walk = null
     }
     segments.push(...titles)
   }

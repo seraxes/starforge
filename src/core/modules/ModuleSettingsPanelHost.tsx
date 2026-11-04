@@ -4,7 +4,7 @@
  */
 import React from 'react'
 
-import { moduleSettingsPanelLoaders } from '@/generated/module-registry'
+import { moduleSettingsPanelLoaders } from '@/generated/module-registry.server'
 
 export type ModuleSettingsPanelHostProps = {
   moduleId: string

@@ -87,6 +87,13 @@ export function FormWidget(props: FormWidgetProps) {
     [props.fields],
   )
 
+  const captchaFieldNames = useMemo(
+    () => props.fields.filter((f) => f.type === 'captcha').map((f) => f.name),
+    [props.fields],
+  )
+  const hasCaptchaField = captchaFieldNames.length > 0
+  const firstCaptchaName = captchaFieldNames[0] ?? null
+
   useEffect(() => {
     if (state.ok) {
       formRef.current?.reset()
@@ -121,13 +128,6 @@ export function FormWidget(props: FormWidgetProps) {
     props.captcha.required &&
     props.captcha.provider === 'turnstile' &&
     Boolean(props.captcha.siteKey)
-
-  const captchaFieldNames = useMemo(
-    () => props.fields.filter((f) => f.type === 'captcha').map((f) => f.name),
-    [props.fields],
-  )
-  const hasCaptchaField = captchaFieldNames.length > 0
-  const firstCaptchaName = captchaFieldNames[0] ?? null
 
   function renderField(field: FormFieldDef) {
     if (!live.visible[field.name]) return null

@@ -21,6 +21,10 @@ const eslintConfig = [
           caughtErrorsIgnorePattern: '^(_|ignore)',
         },
       ],
+      // React Compiler eslint (hooks 7) — widespread on existing admin hydration
+      // patterns; keep visible as warnings until packs are migrated systematically.
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/refs': 'warn',
     },
   },
   {

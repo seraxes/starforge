@@ -9,7 +9,17 @@ import { getMailer } from '@/core/mail'
 import type { MailSendResult } from '@/core/mail/types'
 
 import { getFormsModuleSettings } from './settings-store'
-import type { FormDefinitionDocument, FormEmailNotifyConfig } from './types'
+import type {
+  FormDefinitionDocument,
+  FormEmailNotifyConfig,
+  FormSubmissionPayload,
+} from './types'
+
+function formatPayloadValue(value: FormSubmissionPayload[string]): string {
+  if (value == null) return ''
+  if (Array.isArray(value)) return value.map(String).join(', ')
+  return String(value)
+}
 
 export type FormEmailNotifyIntent = {
   to: string[]
@@ -38,15 +48,16 @@ function splitEmails(list: string[] | undefined): string[] {
 }
 
 function formatPayloadBody(
-  payload: Record<string, string>,
+  payload: FormSubmissionPayload,
   title: string,
   fileFieldNames?: Set<string>,
 ): string {
   const lines = Object.entries(payload).map(([k, v]) => {
-    if (fileFieldNames?.has(k) && v.trim()) {
-      return `${k}: /api/media/${v.trim()} (media id ${v.trim()})`
+    const text = formatPayloadValue(v)
+    if (fileFieldNames?.has(k) && text.trim()) {
+      return `${k}: /api/media/${text.trim()} (media id ${text.trim()})`
     }
-    return `${k}: ${v}`
+    return `${k}: ${text}`
   })
   return [`Form: ${title}`, '', ...lines].join('\n')
 }
@@ -56,7 +67,7 @@ function formatPayloadBody(
  */
 export async function planFormEmailNotify(options: {
   document: FormDefinitionDocument
-  payload: Record<string, string>
+  payload: FormSubmissionPayload
   formKey: string
   definitionId: string | null
 }): Promise<FormEmailNotifyResult> {
@@ -83,7 +94,7 @@ export async function planFormEmailNotify(options: {
 
   if (cfg.notifyRespondent) {
     const field = cfg.respondentEmailField || 'email'
-    const respondent = String(options.payload[field] ?? '')
+    const respondent = formatPayloadValue(options.payload[field])
       .trim()
       .toLowerCase()
     if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(respondent)) {

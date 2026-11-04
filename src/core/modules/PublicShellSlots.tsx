@@ -1,6 +1,9 @@
 import React, { type ComponentType } from 'react'
 
-import { loadPublicShellSlot, type PublicShellSlot } from '@/generated/module-registry'
+import {
+  loadPublicShellSlot,
+  type PublicShellSlot,
+} from '@/generated/module-registry.server'
 
 type PublicShellSlotsProps = {
   slot: PublicShellSlot

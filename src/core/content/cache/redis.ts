@@ -86,7 +86,7 @@ export function createRedisPublishedContentCache(): PublishedContentCache {
           pipeline.set(key, payload)
         }
 
-        let longestTtl = memberTtl ?? 0
+        const longestTtl = memberTtl ?? 0
         for (const tag of options.tags) {
           const setKey = tagSetKey(tag)
           pipeline.sadd(setKey, key)
