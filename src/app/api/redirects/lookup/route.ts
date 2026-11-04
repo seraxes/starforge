@@ -9,7 +9,7 @@ import {
 export const dynamic = 'force-dynamic'
 
 /**
- * Lightweight lookup for middleware: enabled redirect for this pathname?
+ * Debug/compat redirect lookup (proxy calls lookupEnabledRedirect in-process).
  * Fail-open (no hit) when module off, table missing, or errors.
  */
 export async function GET(request: Request) {

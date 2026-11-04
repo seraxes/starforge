@@ -2,6 +2,8 @@ import { asc, eq } from 'drizzle-orm'
 import { getPayload } from 'payload'
 
 import config from '@payload-config'
+import { contentCacheTags, getPublishedContentCache } from '@/core/content/cache'
+import { invalidateNavMenu } from '@/core/content/revalidate'
 import { db, DEFAULT_NAV_MENU_ID, sfNavMenus } from '@/core/db'
 import { normalizeHref } from '@/core/settings/nav'
 
@@ -61,7 +63,8 @@ export async function listNavMenus(): Promise<NavMenuMeta[]> {
   }
 }
 
-export async function loadNavMenu(menuId: string): Promise<NavMenuLoadResult> {
+/** Uncached DB/empty load — used by admin mutators and as the cache loader. */
+async function loadNavMenuUncached(menuId: string): Promise<NavMenuLoadResult> {
   const id = (menuId || DEFAULT_NAV_MENU_ID).trim() || DEFAULT_NAV_MENU_ID
   try {
     const [row] = await db
@@ -96,6 +99,28 @@ export async function loadNavMenu(menuId: string): Promise<NavMenuLoadResult> {
   }
 }
 
+/**
+ * Load a Nav manager menu.
+ * Admin/store mutators call this (uncached) so save→reload in one request stays fresh.
+ * Public resolve path uses {@link getCachedNavMenu}.
+ */
+export async function loadNavMenu(menuId: string): Promise<NavMenuLoadResult> {
+  return loadNavMenuUncached(menuId)
+}
+
+/** Cross-request cached menu load for public nav resolution. */
+export async function getCachedNavMenu(menuId: string): Promise<NavMenuLoadResult> {
+  const id = (menuId || DEFAULT_NAV_MENU_ID).trim() || DEFAULT_NAV_MENU_ID
+  return getPublishedContentCache().getCached(
+    {
+      key: ['sf', 'nav-menu', id],
+      tags: [contentCacheTags.navMenus, contentCacheTags.navMenu(id)],
+      revalidate: false,
+    },
+    () => loadNavMenuUncached(id),
+  )
+}
+
 export async function saveNavMenuDocument(
   menuId: string,
   document: NavMenuDocument,
@@ -122,6 +147,7 @@ export async function saveNavMenuDocument(
       })
       .where(eq(sfNavMenus.id, id))
 
+    await invalidateNavMenu(id)
     return { ok: true }
   } catch (error) {
     return {

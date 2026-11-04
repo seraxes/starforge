@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
 import { requireAppAdmin } from '@/core/auth/admin'
-import { invalidateSiteSettings } from '@/core/content/revalidate'
+import { invalidateNavMenu } from '@/core/content/revalidate'
 import { DEFAULT_NAV_MENU_ID } from '@/core/db'
 
 import {
@@ -39,8 +39,8 @@ async function requireNavAdmin(): Promise<NavActionState | null> {
   return null
 }
 
-function revalidateNavPaths(menuId?: string) {
-  invalidateSiteSettings()
+async function revalidateNavPaths(menuId?: string) {
+  await invalidateNavMenu(menuId)
   revalidatePath('/', 'layout')
   revalidatePath('/app/admin/nav')
   revalidatePath('/app/admin/settings')
@@ -69,7 +69,7 @@ export async function createNavMenuAction(
 
   if ('error' in result) return { error: result.error }
 
-  revalidateNavPaths(result.menu.id)
+  await revalidateNavPaths(result.menu.id)
 
   if (openAfter) {
     redirect(`/app/admin/nav/${encodeURIComponent(result.menu.id)}`)
@@ -94,7 +94,7 @@ export async function renameNavMenuAction(
   const result = await renameNavMenu({ id, label })
   if ('error' in result) return { error: result.error }
 
-  revalidateNavPaths(result.menu.id)
+  await revalidateNavPaths(result.menu.id)
   return {
     ok: true,
     message: `Renamed to “${result.menu.label}”.`,
@@ -117,7 +117,7 @@ export async function duplicateNavMenuAction(
   })
   if ('error' in result) return { error: result.error }
 
-  revalidateNavPaths(result.menu.id)
+  await revalidateNavPaths(result.menu.id)
   return {
     ok: true,
     message: `Duplicated as “${result.menu.label}”.`,
@@ -140,7 +140,7 @@ export async function deleteNavMenuAction(
   const result = await deleteNavMenu(id)
   if ('error' in result) return { error: result.error }
 
-  revalidateNavPaths()
+  await revalidateNavPaths()
   return { ok: true, message: `Menu “${id}” deleted.` }
 }
 
@@ -218,7 +218,7 @@ export async function saveNavMenuItemsAction(
   const result = await replaceNavMenuItems(menuId, items)
   if ('error' in result) return { error: result.error }
 
-  revalidateNavPaths(menuId)
+  await revalidateNavPaths(menuId)
   return {
     ok: true,
     message: `Saved ${result.document.items.length} item${result.document.items.length === 1 ? '' : 's'}.`,
@@ -251,7 +251,7 @@ export async function moveNavMenuItemAction(
   const result = await reorderNavMenuItem(menuId, itemId, delta)
   if ('error' in result) return { error: result.error }
 
-  revalidateNavPaths(menuId)
+  await revalidateNavPaths(menuId)
   return { ok: true, message: 'Order updated.', menuId }
 }
 
@@ -303,7 +303,7 @@ export async function addNavMenuItemAction(
   const result = await replaceNavMenuItems(menuId, items)
   if ('error' in result) return { error: result.error }
 
-  revalidateNavPaths(menuId)
+  await revalidateNavPaths(menuId)
   return { ok: true, message: 'Item added.', menuId }
 }
 
@@ -349,6 +349,6 @@ export async function pasteNavMenuItemAction(
   const result = await replaceNavMenuItems(menuId, items)
   if ('error' in result) return { error: result.error }
 
-  revalidateNavPaths(menuId)
+  await revalidateNavPaths(menuId)
   return { ok: true, message: 'Item pasted.', menuId }
 }

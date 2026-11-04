@@ -18,7 +18,7 @@ const passthroughPublishedContentCache: PublishedContentCache = {
   getCached<T>(_options: ContentCacheGetOptions, loader: () => Promise<T>): Promise<T> {
     return loader()
   },
-  invalidateTags(): void {
+  async invalidateTags(): Promise<void> {
     // No cross-request entries when cache is off.
   },
 }
@@ -43,8 +43,8 @@ function wrapBackend(backend: PublishedContentCache): PublishedContentCache {
     getCached<T>(options: ContentCacheGetOptions, loader: () => Promise<T>): Promise<T> {
       return backend.getCached(withPerformanceTtl(options), loader)
     },
-    invalidateTags(tags: readonly string[]): void {
-      backend.invalidateTags(tags)
+    invalidateTags(tags: readonly string[]): void | Promise<void> {
+      return backend.invalidateTags(tags)
     },
   }
 }

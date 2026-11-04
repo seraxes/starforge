@@ -7,7 +7,7 @@ import { normalizeHref, type RawNavRow, resolveNavItems } from '@/core/settings/
 
 import { flattenNavItemsInOrder } from './document'
 import { resolveModuleNavHref } from './module-views'
-import { DEFAULT_NAV_MENU_ID, loadNavMenu } from './store'
+import { DEFAULT_NAV_MENU_ID, getCachedNavMenu } from './store'
 import type { NavMenuItem } from './types'
 
 export type ResolvedNavItem = NavItem & {
@@ -101,7 +101,7 @@ export async function resolveNavMenuItems(
   settings?: SiteSettingsData | null,
 ): Promise<ResolvedNavItem[]> {
   const id = (menuId || DEFAULT_NAV_MENU_ID).trim() || DEFAULT_NAV_MENU_ID
-  const loaded = await loadNavMenu(id)
+  const loaded = await getCachedNavMenu(id)
 
   if (loaded.isFallback && loaded.document.items.length === 0) {
     if (id !== DEFAULT_NAV_MENU_ID) {

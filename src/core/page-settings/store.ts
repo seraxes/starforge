@@ -1,5 +1,7 @@
 import { eq } from 'drizzle-orm'
 
+import { contentCacheTags, getPublishedContentCache } from '@/core/content/cache'
+import { invalidatePageChrome } from '@/core/content/revalidate'
 import { db, GLOBAL_PAGE_CHROME_ID, sfPageChrome } from '@/core/db'
 
 import { DEFAULT_GLOBAL_PAGE_CHROME } from './defaults'
@@ -15,10 +17,10 @@ export type PageChromeLoadResult = {
 }
 
 /**
- * Load one chrome row by id (`global` or pageKey).
+ * Load one chrome row by id (`global` or pageKey) — uncached DB/default path.
  * Missing/unreadable → empty chrome (caller merges with defaults).
  */
-export async function loadPageChromeRow(id: string): Promise<PageChromeLoadResult> {
+async function loadPageChromeRowUncached(id: string): Promise<PageChromeLoadResult> {
   const pageKey = id === GLOBAL_PAGE_CHROME_ID ? null : id
   try {
     const [row] = await db
@@ -50,6 +52,22 @@ export async function loadPageChromeRow(id: string): Promise<PageChromeLoadResul
     source: 'default',
     isFallback: true,
   }
+}
+
+/**
+ * Load one chrome row by id (`global` or pageKey).
+ * Cross-request cache via published-content cache.
+ */
+export async function loadPageChromeRow(id: string): Promise<PageChromeLoadResult> {
+  const rowId = id.trim() || GLOBAL_PAGE_CHROME_ID
+  return getPublishedContentCache().getCached(
+    {
+      key: ['sf', 'page-chrome', rowId],
+      tags: [contentCacheTags.pageChrome, contentCacheTags.pageChromeRow(rowId)],
+      revalidate: false,
+    },
+    () => loadPageChromeRowUncached(rowId),
+  )
 }
 
 export async function loadGlobalPageChrome(): Promise<PageChromeLoadResult> {
@@ -93,6 +111,7 @@ export async function savePageChrome(id: string, chrome: PageChrome): Promise<Pa
     })
   }
 
+  await invalidatePageChrome(id)
   return normalized
 }
 
@@ -111,6 +130,7 @@ export async function deletePageChromeOverride(pageKey: string): Promise<boolean
   if (!pageKey || pageKey === GLOBAL_PAGE_CHROME_ID) return false
   try {
     await db.delete(sfPageChrome).where(eq(sfPageChrome.id, pageKey))
+    await invalidatePageChrome(pageKey)
     return true
   } catch {
     return false

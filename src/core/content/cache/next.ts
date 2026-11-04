@@ -15,7 +15,7 @@ export const nextPublishedContentCache: PublishedContentCache = {
     return cached()
   },
 
-  invalidateTags(tags: readonly string[]): void {
+  async invalidateTags(tags: readonly string[]): Promise<void> {
     for (const tag of tags) {
       try {
         // expire: 0 — next request blocks for fresh CMS data (editors expect publish → refresh).

@@ -1,5 +1,6 @@
 import { asc, eq } from 'drizzle-orm'
 
+import { invalidateLayout } from '@/core/content/revalidate'
 import { db, DEFAULT_LAYOUT_ID, sfLayouts } from '@/core/db'
 
 import {
@@ -149,6 +150,7 @@ export async function saveLayoutDocument(
     })
   }
 
+  await invalidateLayout(id)
   return normalized
 }
 
@@ -370,6 +372,7 @@ export async function deleteLayoutOutline(
     }
   }
 
+  await invalidateLayout(id)
   return { ok: true }
 }
 

@@ -152,7 +152,7 @@ export function SecuritySettingsForm({
       <fieldset className="settings-fieldset">
         <legend>HTTP security headers</legend>
         <p className="settings-hint">
-          Baseline headers ship from Next <code>headers()</code> + middleware (CSP for Next/Payload
+          Baseline headers ship from Next <code>headers()</code> + proxy (CSP for Next/Payload
           + Turnstile, <code>X-Frame-Options</code>, <code>Referrer-Policy</code>,{' '}
           <code>X-Content-Type-Options</code>, <code>Permissions-Policy</code>). HSTS is sent only
           on the Secure-cookie path (HTTPS app URL or <code>STARFORGE_SECURE_COOKIES=1</code>). No

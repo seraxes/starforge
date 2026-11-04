@@ -67,8 +67,8 @@ export async function updateSiteChromeAction(
     return { error: message }
   }
 
-  invalidateSiteChrome()
-  invalidateSiteSettings()
+  await invalidateSiteChrome()
+  await invalidateSiteSettings()
   revalidatePath('/', 'layout')
   revalidatePath('/robots.txt')
   revalidatePath('/app/admin/site-chrome')
@@ -120,7 +120,7 @@ export async function updateSecurityCaptchaAction(
     return { error: message }
   }
 
-  invalidateSiteChrome()
+  await invalidateSiteChrome()
   revalidatePath('/', 'layout')
   revalidatePath('/app/admin/settings/security')
   revalidatePath('/app/admin/forms')
