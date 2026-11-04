@@ -10,7 +10,7 @@ import {
   duplicateFormDefinitionAction,
   type FormAdminActionState,
 } from '@/core/forms/actions'
-import { FORM_PRESETS } from '@/core/forms/presets'
+import { listFormPresetMetas } from '@/core/forms/presets'
 import type { FormPresetId } from '@/core/forms/types'
 
 import { useNotifySavedOnOk } from '../admin-toast'
@@ -58,7 +58,7 @@ function formatUpdated(iso: string) {
 }
 
 function presetLabel(id: FormPresetId): string {
-  return FORM_PRESETS.find((p) => p.id === id)?.label ?? id
+  return listFormPresetMetas().find((p) => p.id === id)?.label ?? id
 }
 
 export function FormsManager({ forms }: Props) {
@@ -104,10 +104,9 @@ export function FormsManager({ forms }: Props) {
           <label className="settings-field">
             <span>Preset</span>
             <select name="preset" defaultValue="contact">
-              {FORM_PRESETS.map((p) => (
-                <option key={p.id} value={p.id}>
+              {listFormPresetMetas().map((p) => (
+                <option key={p.id} value={p.id} title={p.description}>
                   {p.label}
-                  {p.stub ? ' (stub)' : ''}
                 </option>
               ))}
             </select>

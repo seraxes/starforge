@@ -74,8 +74,22 @@ export {
   fieldsForPreset,
   getFormPresetMeta,
   isFormPresetId,
+  listFormPresetMetas,
   presetSeedFields,
 } from './presets'
+export {
+  clearFormPresetRegistrations,
+  getRegisteredFormPreset,
+  listRegisteredFormPresets,
+  registerFormPreset,
+  runFormPresetOnSubmitted,
+} from './preset-registry'
+export type {
+  FormPresetMessages,
+  FormPresetOnSubmitted,
+  FormPresetRegistration,
+  FormSubmittedContext,
+} from './preset-registry'
 export { checkFormRateLimit, clearFormRateLimitBuckets } from './rate-limit'
 export {
   FORM_WEEKDAY_LABELS,

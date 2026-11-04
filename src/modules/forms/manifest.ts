@@ -10,7 +10,7 @@ export default defineStarforgeModule({
   kind: 'product',
   label: 'Forms',
   description:
-    'Modular Form engine — visual builder (JSON Schema/Zod), Form particle, presets (contact + stubs). Captcha from Chrome; Turnstile keys from env.',
+    'Modular Form engine — visual builder (JSON Schema/Zod), Form particle, typed presets (contact, survey, event-registration, voting, ticket). Captcha from Chrome; Turnstile keys from env.',
   version: '0.1.0',
   defaultEnabled: true,
   navViews: [{ key: 'admin', label: 'Forms', href: '/app/admin/forms' }],
