@@ -177,7 +177,7 @@ export const ENV_EDITOR_FIELDS: EnvEditorField[] = [
   {
     key: 'REDIS_URL',
     label: 'REDIS_URL',
-    description: 'Redis connection URL for content cache (and later rate-limit/queues). Secret if passworded.',
+    description: 'Redis connection URL for content cache + rate-limit (queues later). Secret if passworded.',
     secret: true,
     kind: 'password',
     group: 'infra',
@@ -186,7 +186,7 @@ export const ENV_EDITOR_FIELDS: EnvEditorField[] = [
     key: 'STARFORGE_REDIS_PREFIX',
     label: 'STARFORGE_REDIS_PREFIX',
     description:
-      'Key prefix for Redis ports (cache / later rate-limit). Default sf:${NODE_ENV}. Lets staging + prod share one Redis.',
+      'Key prefix for Redis ports (cache / rate-limit). Default sf:${NODE_ENV}. Lets staging + prod share one Redis.',
     secret: false,
     kind: 'text',
     group: 'infra',
@@ -202,7 +202,8 @@ export const ENV_EDITOR_FIELDS: EnvEditorField[] = [
   {
     key: 'STARFORGE_TRUSTED_PROXY_HOPS',
     label: 'STARFORGE_TRUSTED_PROXY_HOPS',
-    description: 'Number of trusted reverse-proxy hops for client IP (X-Forwarded-For). Optional.',
+    description:
+      'Trusted reverse-proxy hop count for clientIp(). When ≥1, prefer nginx x-real-ip, else the X-Forwarded-For entry at length−hops. Unset/0 = ignore proxy headers (do not trust the first XFF hop).',
     secret: false,
     kind: 'text',
     group: 'auth',
