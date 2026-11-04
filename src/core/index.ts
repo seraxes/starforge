@@ -90,10 +90,8 @@ export {
   loadFormDefinition,
   parseCustomFormParticleJson,
   readFormConfig,
-  resolveFormCaptcha,
   resolveFormParticleSource,
   submitFormAction,
-  verifyTurnstileToken,
 } from './forms'
 export type {
   FormDefinitionDocument,
@@ -104,7 +102,6 @@ export type {
   FormSubmissionPayload,
   FormSubmissionRecord,
   FormSubmitActionState,
-  ResolvedCaptcha,
 } from './forms'
 export {
   ensureDefaultNavMenuSeeded,
@@ -221,20 +218,30 @@ export {
   buildSecurityHeaders,
   clientIp,
   composeCspSources,
+  enforceCaptchaFromFormData,
+  getCaptchaProvider,
   getRateLimiter,
   mergeCspSources,
   payloadCsrfOrigins,
+  resolveCaptchaForSurface,
   resolveCspMode,
+  resolveFormCaptcha,
   shouldUseSecureCookies,
   trustedProxyHops,
+  verifyCaptchaToken,
+  verifyTurnstileToken,
 } from './security'
 export type {
+  CaptchaPort,
+  CaptchaProviderId,
+  CaptchaSurface,
   CspDirective,
   CspMode,
   CspSources,
   RateLimitConsumeOptions,
   RateLimitResult,
   RateLimiter,
+  ResolvedCaptcha,
   SecurityHeader,
 } from './security'
 export {

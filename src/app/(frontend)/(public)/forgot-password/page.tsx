@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { getAppSession } from '@/core/auth/session'
+import { resolveCaptchaForSurface } from '@/core/security/captcha'
 import { getSiteSettings } from '@/core/settings'
 import { ForgotPasswordForm } from './forgot-password-form'
 
@@ -17,6 +18,8 @@ export default async function ForgotPasswordPage() {
     redirect('/account/security')
   }
 
+  const captcha = await resolveCaptchaForSurface('auth-recovery')
+
   return (
     <div className="auth-page">
       <div className="auth-card">
@@ -27,7 +30,7 @@ export default async function ForgotPasswordPage() {
           reset link (via Chrome Mailer — console / SMTP / Resend). Links expire; you can
           request again if nothing arrives.
         </p>
-        <ForgotPasswordForm />
+        <ForgotPasswordForm captcha={captcha} />
         <p className="auth-switch">
           <Link href="/login">Back to sign in</Link>
           {' · '}

@@ -45,6 +45,8 @@ export function normalizeSiteChrome(raw: unknown): SiteChromeDocument {
       asString(src.offlineMessage).trim() || DEFAULT_OFFLINE_MESSAGE,
     captchaEnabled: asBool(src.captchaEnabled, false),
     captchaProvider,
+    captchaOnRegister: asBool(src.captchaOnRegister, false),
+    captchaOnAuthRecovery: asBool(src.captchaOnAuthRecovery, false),
     emailEnabled: asBool(src.emailEnabled, false),
     emailProvider,
     emailFrom: asString(src.emailFrom).trim(),

@@ -10,6 +10,8 @@ import {
   verifyEmailOtpAction,
   type AuthActionState,
 } from '@/core/auth/actions'
+import { AuthCaptchaFields } from '@/core/security/captcha/AuthCaptchaFields'
+import type { ResolvedCaptcha } from '@/core/security/captcha/types'
 
 import { type LoginMode, parseLoginMode } from './login-mode'
 
@@ -29,12 +31,19 @@ async function otpFormAction(
   return requestEmailOtpAction(prev, formData)
 }
 
+const IDLE_CAPTCHA: ResolvedCaptcha = {
+  required: false,
+  provider: 'none',
+  siteKey: null,
+}
+
 export function LoginForm({
   next,
   resetSuccess,
   magicError,
   initialMode = 'password',
   showHelperLinks = true,
+  captcha = IDLE_CAPTCHA,
 }: {
   next?: string
   resetSuccess?: boolean
@@ -43,6 +52,8 @@ export function LoginForm({
   initialMode?: LoginMode
   /** When false, omit forgot-password helpers (parent panel already lists them). */
   showHelperLinks?: boolean
+  /** Auth-recovery captcha (magic link / email OTP request). */
+  captcha?: ResolvedCaptcha
 }) {
   const [mode, setMode] = useState<LoginMode>(initialMode)
   const [passwordState, passwordAction, passwordPending] = useActionState(loginAction, {
@@ -182,6 +193,7 @@ export function LoginForm({
               {magicState.error}
             </p>
           ) : null}
+          <AuthCaptchaFields captcha={captcha} />
           {magicState.success ? (
             <p className="auth-success" role="status">
               {magicState.success}
@@ -240,6 +252,8 @@ export function LoginForm({
               </label>
             </>
           ) : null}
+          {/* Required on request / resend; verify OTP ignores the token. */}
+          <AuthCaptchaFields captcha={captcha} />
           {otpState.error ? (
             <p className="auth-error" role="alert">
               {otpState.error}

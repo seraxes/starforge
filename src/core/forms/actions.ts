@@ -8,7 +8,7 @@ import { requireAppAdmin } from '@/core/auth/admin'
 import { clientIp } from '@/core/security/client-ip'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
-import { resolveFormCaptcha, verifyTurnstileToken } from './captcha'
+import { resolveFormCaptcha, verifyCaptchaToken } from './captcha'
 import {
   formHasCaptchaField,
   normalizeFormFields,
@@ -247,12 +247,16 @@ export async function submitFormAction(
   }
 
   const captcha = await resolveFormCaptcha({ useSiteCaptchaDefault, hasCaptchaField })
-  if (captcha.required && captcha.provider === 'turnstile') {
+  if (captcha.required) {
     if (captcha.misconfiguredReason && !captcha.siteKey) {
       return { error: 'Captcha is misconfigured. Please contact the site administrator.' }
     }
     const token = String(formData.get('cf-turnstile-response') ?? '').trim()
-    const verified = await verifyTurnstileToken({ token, remoteip: ip })
+    const verified = await verifyCaptchaToken({
+      provider: captcha.provider,
+      token,
+      remoteip: ip,
+    })
     if (!verified.ok) {
       return { error: verified.error || 'Captcha verification failed.' }
     }

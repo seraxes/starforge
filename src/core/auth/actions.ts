@@ -6,6 +6,7 @@ import { APIError } from 'better-auth/api'
 import { and, eq } from 'drizzle-orm'
 
 import { db, sfAccounts, sfUsers } from '@/core/db'
+import { enforceCaptchaFromFormData } from '@/core/security/captcha'
 import { isRegistrationEnabled } from '@/core/settings'
 import { sendAccountReminderMail } from './mail'
 import { auth } from './index'
@@ -133,6 +134,19 @@ export async function registerAction(
   if (!registrationOn) {
     return {
       error: 'Registration is turned off in site settings. Ask a core admin to enable it.',
+      email: String(formData.get('email') ?? ''),
+      name: String(formData.get('name') ?? ''),
+    }
+  }
+
+  const captchaGate = await enforceCaptchaFromFormData(
+    'register',
+    formData,
+    await headers(),
+  )
+  if (!captchaGate.ok) {
+    return {
+      error: captchaGate.error,
       email: String(formData.get('email') ?? ''),
       name: String(formData.get('name') ?? ''),
     }
@@ -271,6 +285,18 @@ export async function requestPasswordResetAction(
   _prev: AuthActionState,
   formData: FormData,
 ): Promise<AuthActionState> {
+  const captchaGate = await enforceCaptchaFromFormData(
+    'auth-recovery',
+    formData,
+    await headers(),
+  )
+  if (!captchaGate.ok) {
+    return {
+      error: captchaGate.error,
+      email: String(formData.get('email') ?? ''),
+    }
+  }
+
   const parsed = forgotPasswordSchema.safeParse({
     email: formData.get('email'),
   })
@@ -338,6 +364,18 @@ export async function forgotUsernameAction(
   _prev: AuthActionState,
   formData: FormData,
 ): Promise<AuthActionState> {
+  const captchaGate = await enforceCaptchaFromFormData(
+    'auth-recovery',
+    formData,
+    await headers(),
+  )
+  if (!captchaGate.ok) {
+    return {
+      error: captchaGate.error,
+      email: String(formData.get('email') ?? ''),
+    }
+  }
+
   const parsed = forgotUsernameSchema.safeParse({
     email: formData.get('email'),
   })
@@ -371,6 +409,18 @@ export async function magicLinkAction(
   _prev: AuthActionState,
   formData: FormData,
 ): Promise<AuthActionState> {
+  const captchaGate = await enforceCaptchaFromFormData(
+    'auth-recovery',
+    formData,
+    await headers(),
+  )
+  if (!captchaGate.ok) {
+    return {
+      error: captchaGate.error,
+      email: String(formData.get('email') ?? ''),
+    }
+  }
+
   const parsed = magicLinkSchema.safeParse({
     email: formData.get('email'),
   })
@@ -407,6 +457,18 @@ export async function requestEmailOtpAction(
   _prev: AuthActionState,
   formData: FormData,
 ): Promise<AuthActionState> {
+  const captchaGate = await enforceCaptchaFromFormData(
+    'auth-recovery',
+    formData,
+    await headers(),
+  )
+  if (!captchaGate.ok) {
+    return {
+      error: captchaGate.error,
+      email: String(formData.get('email') ?? ''),
+    }
+  }
+
   const parsed = emailOtpRequestSchema.safeParse({
     email: formData.get('email'),
   })

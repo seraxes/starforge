@@ -7,6 +7,7 @@ import {
   LoginForm,
   type LoginMode,
 } from '@/app/(frontend)/(public)/login/login-form'
+import { resolveCaptchaForSurface } from '@/core/security/captcha'
 
 export type AuthWelcomePanelProps = {
   siteName: string
@@ -39,7 +40,7 @@ const DEFAULT_SIGNED_IN_NOTE =
  * Welcome note + login panel matching public `/login` / `/register` look.
  * Prefer this beside (or below) branded CMS content — do not park it in the hero.
  */
-export function AuthWelcomePanel({
+export async function AuthWelcomePanel({
   siteName,
   title,
   welcomeNote,
@@ -87,6 +88,9 @@ export function AuthWelcomePanel({
     )
   }
 
+  const captcha =
+    showForm ? await resolveCaptchaForSurface('auth-recovery') : null
+
   return (
     <aside className={cardClass} aria-label="Welcome sign-in">
       <p className="brand">{siteName}</p>
@@ -94,13 +98,14 @@ export function AuthWelcomePanel({
         {heading}
       </TitleTag>
       <p className="lede">{note}</p>
-      {showForm ? (
+      {showForm && captcha ? (
         <LoginForm
           next={next}
           resetSuccess={resetSuccess}
           magicError={magicError}
           initialMode={initialMode}
           showHelperLinks={false}
+          captcha={captcha}
         />
       ) : (
         <p className="auth-welcome-actions">

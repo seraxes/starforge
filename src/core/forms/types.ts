@@ -6,8 +6,6 @@
  * Client-safe — do not add server-only imports here.
  */
 
-import type { CaptchaProvider } from '@/core/site-chrome/types'
-
 /** Built-in field kinds for the visual builder + public widget. */
 export type FormFieldType =
   | 'text'
@@ -383,13 +381,8 @@ export type FormAdminActionState = {
   formId?: string
 }
 
-/** Resolved captcha challenge for a Form instance (public props / server verify). */
-export type ResolvedCaptcha = {
-  /** Whether this form instance should challenge the visitor. */
-  required: boolean
-  provider: CaptchaProvider
-  /** Public site key (Turnstile) when required + provider is turnstile. */
-  siteKey: string | null
-  /** Human-readable reason when required but misconfigured. */
-  misconfiguredReason?: string
-}
+/** Resolved captcha challenge — re-export from security captcha port. */
+export type {
+  CaptchaProvider,
+  ResolvedCaptcha,
+} from '@/core/security/captcha/types'

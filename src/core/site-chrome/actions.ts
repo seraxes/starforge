@@ -78,8 +78,9 @@ export async function updateSiteChromeAction(
 }
 
 /**
- * Site Settings → Security: captcha enable + provider.
+ * Site Settings → Security: captcha enable + provider + auth surfaces.
  * Storage remains `sf_site_chrome` (no migration); Site Chrome form no longer edits these.
+ * Only wired providers (None / Turnstile) are accepted — unwired stubs stay hidden.
  * Honeypot / rate-limit / headers stubs on the Security page are UI-only until persisted.
  */
 export async function updateSecurityCaptchaAction(
@@ -96,14 +97,20 @@ export async function updateSecurityCaptchaAction(
     ? captchaRaw
     : 'none'
 
+  // Reject unwired providers (recaptcha/hcaptcha) — fail closed at the admin boundary.
   if (!CAPTCHA_PROVIDERS.some((p) => p.value === captchaProvider)) {
-    return { error: 'Unknown captcha provider.' }
+    return {
+      error:
+        'Unknown or unwired captcha provider. Choose None or Cloudflare Turnstile.',
+    }
   }
 
   try {
     await saveSiteChrome({
       captchaEnabled: parseBool(formData, 'captchaEnabled'),
       captchaProvider,
+      captchaOnRegister: parseBool(formData, 'captchaOnRegister'),
+      captchaOnAuthRecovery: parseBool(formData, 'captchaOnAuthRecovery'),
     })
   } catch (error) {
     const message =
@@ -117,6 +124,10 @@ export async function updateSecurityCaptchaAction(
   revalidatePath('/', 'layout')
   revalidatePath('/app/admin/settings/security')
   revalidatePath('/app/admin/forms')
+  revalidatePath('/register')
+  revalidatePath('/forgot-password')
+  revalidatePath('/forgot-username')
+  revalidatePath('/login')
   revalidatePath('/app/admin')
   return { ok: true }
 }

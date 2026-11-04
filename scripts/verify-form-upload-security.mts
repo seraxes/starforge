@@ -116,7 +116,7 @@ mustInclude(
 // Order smoke: captcha / rate-limit must appear before ingestFormUploads call site
 {
   const src = read('src/core/forms/actions.ts')
-  const captcha = src.indexOf('verifyTurnstileToken')
+  const captcha = src.indexOf('verifyCaptchaToken')
   const rate = src.indexOf('checkFormRateLimit')
   const ingestCall = src.indexOf('await ingestFormUploads')
   if (captcha < 0 || rate < 0 || ingestCall < 0) {
