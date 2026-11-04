@@ -28,12 +28,12 @@ mustExist('src/modules/media/admin/MediaLightbox.tsx')
 mustExist('src/modules/media/admin/MediaCategoryTree.tsx')
 mustExist('src/modules/media/admin/media-settings-form.tsx')
 
-// Thin App Router shims (no library UI body)
-const libraryShim = read('src/app/(frontend)/app/admin/media/page.tsx')
+// Thin App Router shims — codegen under admin/(modules)/ (M2 leftovers)
+const libraryShim = read('src/app/(frontend)/app/admin/(modules)/media/page.tsx')
 assert.match(libraryShim, /@\/modules\/media\/admin\/MediaLibraryPage/)
 assert.doesNotMatch(libraryShim, /MediaLibraryClient/)
 
-const settingsShim = read('src/app/(frontend)/app/admin/media/settings/page.tsx')
+const settingsShim = read('src/app/(frontend)/app/admin/(modules)/media/settings/page.tsx')
 assert.match(settingsShim, /@\/modules\/media\/admin\/MediaSettingsPage/)
 assert.doesNotMatch(settingsShim, /MediaSettingsForm/)
 

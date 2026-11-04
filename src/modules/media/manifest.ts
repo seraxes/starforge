@@ -45,6 +45,19 @@ export default defineStarforgeModule({
       },
     ],
     areas: [{ key: 'media', label: 'Media library' }],
+    /** Codegen writes App Router shims under admin/(modules)/ — no hand Core pages. */
+    routes: [
+      {
+        path: 'media',
+        pageImportPath: '@/modules/media/admin/MediaLibraryPage',
+        pageExportName: 'default',
+      },
+      {
+        path: 'media/settings',
+        pageImportPath: '@/modules/media/admin/MediaSettingsPage',
+        pageExportName: 'default',
+      },
+    ],
   },
   navViews: [
     { key: 'admin', label: 'Media library', href: '/app/admin/media' },

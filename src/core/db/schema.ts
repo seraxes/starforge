@@ -368,6 +368,24 @@ export const sfRedirects = pgTable(
 )
 
 /**
+ * Generic per-module settings documents (design-module-boundary M2).
+ * Keyed by module id (`product:forms`, …). Packs own the JSON shape via
+ * manifest `settings.schema`; Core only hosts load/save.
+ * Legacy Forms/Media singletons (`sf_form_settings`, `sf_media_settings`) stay
+ * until those packs migrate (M4/M5 follow-ups) — do not dual-write here yet.
+ */
+export const sfModuleSettings = pgTable('sf_module_settings', {
+  /** Module manifest id (e.g. `product:consent`). */
+  id: text('id').primaryKey(),
+  /** Pack-defined settings document. */
+  document: jsonb('document').$type<Record<string, unknown>>().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+})
+
+/**
  * Group-keyed ACL stub matrix (admin areas for now).
  * Full frontend/backend enforcement comes after groups exist; this stores the
  * foundation and powers the Groups → Permissions UI.

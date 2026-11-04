@@ -71,6 +71,33 @@ export type StarforgeModuleAdminNavItem = {
   exact?: boolean
 }
 
+/**
+ * Admin App Router page contributed by a module (M2 route shims).
+ * `path` is relative to `/app/admin/` (e.g. `media`, `media/settings`).
+ * Codegen writes thin re-export shims under `app/admin/(modules)/…`.
+ */
+export type StarforgeModuleAdminRoute = {
+  path: string
+  /** Codegen-visible page import (Server Component). */
+  pageImportPath: string
+  /** Named export; omit or `default` for default export. */
+  pageExportName?: string
+}
+
+/**
+ * Optional Site Settings topic panel contributed by a module (M2).
+ * Document JSON lives in `sf_module_settings` keyed by module id.
+ */
+export type StarforgeModuleSettingsDecl = {
+  topic: 'modules' | 'security' | 'performance' | 'auth' | string
+  schemaImportPath?: string
+  schemaExportName?: string
+  defaultsImportPath?: string
+  defaultsExportName?: string
+  panelImportPath?: string
+  panelExportName?: string
+}
+
 export type StarforgeModuleManifest = {
   id: string
   kind: StarforgeModuleKind
@@ -120,7 +147,14 @@ export type StarforgeModuleManifest = {
       defaultOpen?: boolean
       order?: number
     }
+    /** Admin pages — codegen writes App Router shims (M2 leftovers). */
+    routes?: StarforgeModuleAdminRoute[]
   }
+  /**
+   * Module settings document + optional Site Settings topic panel (M2).
+   * Storage: `sf_module_settings` (id = module id, document jsonb).
+   */
+  settings?: StarforgeModuleSettingsDecl
   /** Public layout shell slots (M2 host; Consent uses bodyEnd). */
   publicShell?: StarforgePublicShellContribution[]
   /** Declared particles for particle-pack kind (M1+). */
