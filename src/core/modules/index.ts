@@ -133,13 +133,27 @@ export {
 export { defineStarforgeModule } from './define-module'
 export type {
   StarforgeModuleAdminNavItem,
+  StarforgeModuleAdminRoute,
   StarforgeModuleKind,
   StarforgeModuleManifest,
   StarforgeModuleNavView,
   StarforgeModuleParticleDecl,
+  StarforgeModuleSettingsDecl,
   StarforgePublicShellContribution,
   StarforgePublicShellSlot,
 } from './define-module'
+export {
+  asModuleSettingsDocument,
+  mergeModuleSettingsDocument,
+} from './module-settings-document'
+export {
+  getModuleSettingsDocument,
+  loadModuleSettingsDocument,
+  saveModuleSettingsDocument,
+} from './module-settings-store'
+export type { ModuleSettingsLoadResult } from './module-settings-store'
+export { ModuleSettingsPanelHost } from './ModuleSettingsPanelHost'
+export type { ModuleSettingsPanelHostProps } from './ModuleSettingsPanelHost'
 export { PublicShellSlots } from './PublicShellSlots'
 export { SlotRenderer } from './SlotRenderer'
 export { LAYOUT_GRID_COLUMNS, LAYOUT_POSITIONS } from './types'
