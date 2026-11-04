@@ -125,7 +125,8 @@ export async function verifyDeveloperAdminPassword(
   if (!session?.user?.id || !session.user.email) {
     return {
       ok: false,
-      error: 'Developer-admin only. Set STARFORGE_DEVELOPER_ADMIN_EMAILS or use an app admin when that list is empty.',
+      error:
+        'Developer-admin only. Add your email to STARFORGE_DEVELOPER_ADMIN_EMAILS (empty list grants nobody in production).',
     }
   }
 

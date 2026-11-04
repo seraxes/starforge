@@ -26,8 +26,8 @@ export default async function AdminEnvironmentPage() {
         <h2>Environment</h2>
         <p className="lede admin-lede">
           Developer-admin only (same gate as script-capable Page Settings). Ask a platform owner to
-          add your email to <code>STARFORGE_DEVELOPER_ADMIN_EMAILS</code>, or leave that list empty
-          so all app admins qualify (local default).
+          add your email to <code>STARFORGE_DEVELOPER_ADMIN_EMAILS</code>. An empty list grants
+          nobody in production (fail-closed); outside production all app admins qualify.
         </p>
         <p>
           <Link href="/app/admin/site-chrome">← Chrome</Link>

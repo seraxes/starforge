@@ -1,5 +1,6 @@
 import type { GlobalAfterChangeHook, GlobalConfig } from 'payload'
 
+import { isCoreAdmin } from '@/core/cms-bridge/payload-access'
 import { invalidateSiteSettings } from '../core/content/revalidate'
 
 const revalidateSiteSettingsAfterChange: GlobalAfterChangeHook = ({ doc }) => {
@@ -40,7 +41,8 @@ export const SiteSettings: GlobalConfig = {
   },
   access: {
     read: () => true,
-    update: ({ req: { user } }) => Boolean(user),
+    // Module toggles / registration — Core app admins only (not any CMS editor).
+    update: isCoreAdmin,
   },
   fields: [
     {

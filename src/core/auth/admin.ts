@@ -3,10 +3,20 @@ import { eq } from 'drizzle-orm'
 import { db, sfUsers } from '@/core/db'
 import { setCoreUserCmsAccess } from '@/core/cms-bridge'
 import { getBootstrapAdminEmails, emailIsBootstrapAdmin } from './bootstrap-admins'
+import {
+  emptyDeveloperAdminEmailsGrantAllAdmins,
+  getDeveloperAdminEmails,
+  userIsDeveloperAdmin,
+} from './developer-admin'
 import { getAppSession } from './session'
 import { DEFAULT_APP_ROLE, normalizeAppRole, type AppRole } from './permissions'
 
 export { getBootstrapAdminEmails, emailIsBootstrapAdmin }
+export {
+  emptyDeveloperAdminEmailsGrantAllAdmins,
+  getDeveloperAdminEmails,
+  userIsDeveloperAdmin,
+}
 
 export function roleFromUser(user: { role?: string | null } | null | undefined): AppRole {
   return normalizeAppRole(user?.role)
@@ -17,29 +27,6 @@ export function userIsAppAdmin(user: { role?: string | null; email?: string | nu
   if (roleFromUser(user) === 'admin') return true
   if (user.email && emailIsBootstrapAdmin(user.email)) return true
   return false
-}
-
-/**
- * Developer-admin: can edit script-capable Page Settings / Custom JS fields.
- * Emails from `STARFORGE_DEVELOPER_ADMIN_EMAILS`. When that list is empty,
- * all app admins are treated as developer-admins (local-friendly default).
- */
-export function getDeveloperAdminEmails(): string[] {
-  const raw = process.env.STARFORGE_DEVELOPER_ADMIN_EMAILS ?? ''
-  return raw
-    .split(',')
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean)
-}
-
-export function userIsDeveloperAdmin(
-  user: { role?: string | null; email?: string | null } | null | undefined,
-): boolean {
-  if (!userIsAppAdmin(user)) return false
-  const list = getDeveloperAdminEmails()
-  if (list.length === 0) return true
-  const email = user?.email?.trim().toLowerCase()
-  return Boolean(email && list.includes(email))
 }
 
 /** Current session must be developer-admin; otherwise `null`. */

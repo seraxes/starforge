@@ -149,7 +149,7 @@ export const ENV_EDITOR_FIELDS: EnvEditorField[] = [
     key: 'STARFORGE_DEVELOPER_ADMIN_EMAILS',
     label: 'STARFORGE_DEVELOPER_ADMIN_EMAILS',
     description:
-      'Emails allowed as developer-admins. Empty = all app admins (local default).',
+      'Emails allowed as developer-admins. Empty = nobody in production; all app admins locally.',
     secret: false,
     kind: 'text',
     group: 'admins',
