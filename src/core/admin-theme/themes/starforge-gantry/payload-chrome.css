@@ -131,7 +131,8 @@ html[data-theme='dark'] {
   --spacing-view-bottom: 2.25rem;
   --app-header-height: 2.85rem;
   --doc-controls-height: 2.85rem;
-  --base-body-size: 14;
+  /* Match Core /app/admin readable root (~1rem = 16px). Do not densify to 13–14. */
+  --base-body-size: 16;
   --font-body:
     'Segoe UI', 'Helvetica Neue', ui-sans-serif, system-ui, sans-serif;
 }
@@ -236,14 +237,15 @@ html[data-theme='dark'] .btn.btn--size-small {
   background: transparent;
   overflow: visible;
   gap: 0.65rem;
-  font-size: 0.92rem;
-  line-height: 1.3;
+  /* Local 16px scale so nav matches Core regardless of Payload html size. */
+  font-size: 16px;
+  line-height: normal;
   font-weight: 400;
 }
 
 .nav .admin-sidebar-brand .brand {
   margin: 0;
-  font-size: 0.92rem;
+  font-size: 0.92em;
 }
 
 .nav .admin-sidebar-brand .brand a {
@@ -252,16 +254,16 @@ html[data-theme='dark'] .btn.btn--size-small {
 }
 
 .nav .admin-sidebar-title {
-  margin: 0.2rem 0 0;
+  margin: 0.2em 0 0;
   color: #fff;
-  font-size: 1.05rem;
+  font-size: 1.05em;
   font-weight: 700;
   line-height: 1.25;
 }
 
 .nav .admin-sidebar-who .admin-who {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: 0.8em;
   line-height: 1.35;
   color: var(--sf-muted);
 }
@@ -274,7 +276,7 @@ html[data-theme='dark'] .btn.btn--size-small {
 }
 
 .nav .admin-sidebar-item {
-  margin: 0 0 0.2rem;
+  margin: 0 0 0.2em;
 }
 
 .nav .admin-sidebar-link,
@@ -289,22 +291,22 @@ html[data-theme='dark'] .btn.btn--size-small {
   background: transparent;
   color: #e8eef8;
   font-family: inherit;
-  font-size: 0.92rem;
+  font-size: 1em;
   font-weight: 650;
-  line-height: 1.25;
+  line-height: normal;
   cursor: pointer;
 }
 
 .nav .admin-sidebar-link,
 .nav .admin-sidebar-group-head {
-  padding: 0.45rem 0.6rem;
+  padding: 0.45em 0.6em;
   border-radius: 3px;
 }
 
 .nav .admin-sidebar-group-head {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.35em;
 }
 
 .nav .admin-sidebar-group-title {
@@ -336,16 +338,16 @@ html[data-theme='dark'] .btn.btn--size-small {
 }
 
 .nav .admin-sidebar-sub {
-  margin: 0.1rem 0 0.35rem;
-  padding: 0.15rem 0 0.15rem 0.55rem;
+  margin: 0.1em 0 0.35em;
+  padding: 0.15em 0 0.15em 0.55em;
   border-left: 2px solid #314257;
 }
 
 .nav .admin-sidebar-sublink {
-  padding: 0.35rem 0.55rem;
+  padding: 0.35em 0.55em;
   border-radius: 3px;
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.9em;
   color: #9eb1c7;
 }
 
@@ -435,11 +437,11 @@ html[data-theme='dark'] .collections__card-list {
   gap: 0.75rem;
 }
 
-/* Dashboard / list labels — Page Settings panel-head weight */
+/* Dashboard / list labels — Core Page Settings head (~1rem), not densified 0.92 */
 html[data-theme='dark'] .collections__label,
 html[data-theme='dark'] .dashboard__label {
   color: #fff;
-  font-size: 0.92rem;
+  font-size: 1rem;
   font-weight: 700;
   letter-spacing: 0.01em;
   line-height: 1.3;
@@ -449,7 +451,7 @@ html[data-theme='dark'] .list-header__title,
 html[data-theme='dark'] .doc-header__title.render-title,
 html[data-theme='dark'] .doc-header .render-title {
   color: #fff;
-  font-size: 1.05rem !important;
+  font-size: 1.25rem !important;
   font-weight: 700;
   letter-spacing: 0.01em;
   line-height: 1.25;
@@ -459,7 +461,7 @@ html[data-theme='dark'] .collection-list__sub-header,
 html[data-theme='dark'] .list-header__after-header-content {
   padding-top: 0.45rem;
   color: var(--sf-muted);
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   line-height: 1.4;
 }
 
@@ -474,7 +476,6 @@ html[data-theme='dark'] .doc-controls,
 html[data-theme='dark'] .drawer__header,
 html[data-theme='dark'] .modal-content,
 html[data-theme='dark'] .search-filter,
-html[data-theme='dark'] .search-bar,
 html[data-theme='dark'] .where-builder,
 html[data-theme='dark'] .query-presets,
 html[data-theme='dark'] .widget {
@@ -485,20 +486,21 @@ html[data-theme='dark'] .widget {
 }
 
 /*
- * Dashboard collection cards — Page Settings panel architecture:
- * darker head strip + body + 4px mid-blue left accent (not stock row card).
+ * Dashboard collection cards — Core Page Settings panel architecture:
+ * darker head strip + body + 4px mid-blue left accent (not stock Payload card).
  */
 html[data-theme='dark'] .collections__card-list .card,
 html[data-theme='dark'] .dashboard .card,
-html[data-theme='dark'] .card.card--has-onclick {
+html[data-theme='dark'] .card.card--has-onclick,
+html[data-theme='dark'] .widget {
   display: flex !important;
   flex-direction: column !important;
   justify-content: flex-start !important;
   align-items: stretch !important;
   gap: 0 !important;
-  min-height: 4.75rem;
+  min-height: 0;
   padding: 0 !important;
-  overflow: hidden;
+  overflow: hidden !important;
   background: var(--sf-admin-panel) !important;
   border: 1px solid var(--sf-admin-panel-border) !important;
   border-left: 4px solid var(--sf-admin-blue-mid) !important;
@@ -509,13 +511,18 @@ html[data-theme='dark'] .card.card--has-onclick {
 
 html[data-theme='dark'] .collections__card-list .card__title,
 html[data-theme='dark'] .dashboard .card__title,
-html[data-theme='dark'] .card.card--has-onclick .card__title {
+html[data-theme='dark'] .card.card--has-onclick .card__title,
+html[data-theme='dark'] .widget .card__title,
+html[data-theme='dark'] .widget__title {
+  display: block !important;
   margin: 0 !important;
-  padding: 0.55rem 0.85rem !important;
+  padding: 0.75rem 0.85rem !important;
   background: var(--sf-admin-panel-head) !important;
+  border: 0 !important;
   border-bottom: 1px solid var(--sf-admin-panel-border) !important;
+  border-radius: 0 !important;
   color: #fff !important;
-  font-size: 0.92rem !important;
+  font-size: 1rem !important;
   font-weight: 700 !important;
   line-height: 1.3 !important;
   letter-spacing: 0.01em;
@@ -525,13 +532,17 @@ html[data-theme='dark'] .card.card--has-onclick .card__title {
 
 html[data-theme='dark'] .collections__card-list .card__actions,
 html[data-theme='dark'] .dashboard .card__actions,
-html[data-theme='dark'] .card.card--has-onclick .card__actions {
+html[data-theme='dark'] .card.card--has-onclick .card__actions,
+html[data-theme='dark'] .widget .card__actions,
+html[data-theme='dark'] .card__content,
+html[data-theme='dark'] .widget__content {
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  padding: 0.55rem 0.75rem 0.65rem;
+  padding: 0.75rem 0.85rem !important;
+  margin: 0 !important;
   margin-top: auto;
-  background: var(--sf-admin-panel);
+  background: var(--sf-admin-panel) !important;
   box-sizing: border-box;
   width: 100%;
 }
@@ -562,7 +573,7 @@ html[data-theme='dark'] .dashboard .card .btn__icon:hover {
   box-shadow: none;
 }
 
-/* Generic panel heads (edit/doc chrome) */
+/* Generic panel heads (edit/doc chrome) — Core Page Settings head strip */
 html[data-theme='dark'] .card__title,
 html[data-theme='dark'] .group-field__header,
 html[data-theme='dark'] .collapsible__toggle-wrap,
@@ -577,41 +588,64 @@ html[data-theme='dark'] .table th {
 }
 
 html[data-theme='dark'] .collapsible {
-  overflow: hidden;
+  overflow: hidden !important;
   border: 1px solid var(--sf-admin-panel-border) !important;
-  border-radius: 3px;
-  background: var(--sf-admin-panel);
+  border-left: 4px solid var(--sf-admin-blue-mid) !important;
+  border-radius: 3px !important;
+  background: var(--sf-admin-panel) !important;
+  padding: 0 !important;
+  box-shadow: none !important;
 }
 
 html[data-theme='dark'] .collapsible__toggle-wrap {
-  padding: 0.55rem 0.85rem !important;
-  border-bottom: 1px solid var(--sf-admin-panel-border);
+  display: block !important;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.75rem 0.85rem !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--sf-admin-panel-border) !important;
   border-radius: 0 !important;
   background: var(--sf-admin-panel-head) !important;
-  font-size: 0.92rem;
+  font-size: 1rem;
   font-weight: 700;
+  line-height: 1.3;
+  color: #fff;
 }
 
 html[data-theme='dark'] .collapsible__toggle-wrap:not(.toggle-disabled):hover {
   background: color-mix(in srgb, var(--sf-admin-blue-mid) 16%, var(--sf-admin-panel-head)) !important;
 }
 
+html[data-theme='dark'] .collapsible__content {
+  padding: 0.75rem 0.85rem !important;
+  background: var(--sf-admin-panel);
+}
+
 html[data-theme='dark'] .group-field--top-level {
   margin-left: 0;
   margin-right: 0;
-  padding: 0 0 0.85rem;
-  border: 1px solid var(--sf-admin-panel-border);
-  border-radius: 3px;
-  background: var(--sf-admin-panel);
-  overflow: hidden;
+  padding: 0 0 0.85rem !important;
+  border: 1px solid var(--sf-admin-panel-border) !important;
+  border-left: 4px solid var(--sf-admin-blue-mid) !important;
+  border-radius: 3px !important;
+  background: var(--sf-admin-panel) !important;
+  overflow: hidden !important;
+  box-shadow: none !important;
 }
 
 html[data-theme='dark'] .group-field__header {
-  margin: 0 0 0.75rem;
-  padding: 0.55rem 0.85rem;
-  border-bottom: 1px solid var(--sf-admin-panel-border);
-  font-size: 0.92rem;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 0.75rem !important;
+  padding: 0.75rem 0.85rem !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--sf-admin-panel-border) !important;
+  background: var(--sf-admin-panel-head) !important;
+  font-size: 1rem;
   font-weight: 700;
+  line-height: 1.3;
+  color: #fff;
 }
 
 html[data-theme='dark'] .group-field--top-level > :not(.group-field__header) {
@@ -629,7 +663,7 @@ html[data-theme='dark'] .list-header {
   align-items: stretch;
   gap: 0;
   margin-bottom: 0.85rem;
-  padding: 0;
+  padding: 0 !important;
   overflow: hidden;
   background: var(--sf-admin-panel);
   border: 1px solid var(--sf-admin-panel-border);
@@ -646,7 +680,7 @@ html[data-theme='dark'] .list-header__content {
   gap: 0.55rem 0.85rem;
   width: 100%;
   box-sizing: border-box;
-  padding: 0.55rem 0.85rem;
+  padding: 0.75rem 0.85rem;
   background: var(--sf-admin-panel-head);
   border-bottom: 1px solid var(--sf-admin-panel-border);
 }
@@ -661,33 +695,46 @@ html[data-theme='dark'] .list-header__title-and-actions {
 html[data-theme='dark'] .list-header__after-header-content {
   width: 100%;
   box-sizing: border-box;
-  padding: 0.65rem 0.85rem 0.75rem;
+  padding: 0.75rem 0.85rem;
   background: var(--sf-admin-panel);
 }
 
-html[data-theme='dark'] .search-bar {
+/*
+ * Search — Core input density (≈2.1rem), not button-height "batár magas" bar.
+ * Wrapper must not stack min-height on top of the input.
+ */
+html[data-theme='dark'] .search-bar,
+html[data-theme='dark'] .search-filter {
   --search-bg: var(--sf-admin-input);
+  display: flex;
+  align-items: center;
   background: var(--sf-admin-input) !important;
-  border: 1px solid var(--sf-admin-blue-border);
-  border-radius: 3px;
-  box-shadow: none;
-  min-height: var(--sf-admin-btn-min-height);
+  border: 1px solid var(--sf-admin-blue-border) !important;
+  border-radius: 3px !important;
+  box-shadow: none !important;
+  min-height: 0 !important;
+  height: auto !important;
+  padding: 0 !important;
+  overflow: hidden;
 }
 
 html[data-theme='dark'] .list-controls {
   display: flex;
   flex-wrap: wrap;
-  align-items: stretch;
+  align-items: center;
   gap: 0.55rem;
   margin-bottom: 0.85rem;
-  padding: 0.65rem 0.75rem;
+  padding: 0.75rem 0.85rem;
   background: var(--sf-admin-panel);
   border: 1px solid var(--sf-admin-panel-border);
+  border-left: 4px solid var(--sf-admin-blue-mid);
   border-radius: 3px;
   box-shadow: none;
+  overflow: hidden;
 }
 
-html[data-theme='dark'] .list-controls .search-bar {
+html[data-theme='dark'] .list-controls .search-bar,
+html[data-theme='dark'] .list-controls .search-filter {
   flex: 1 1 14rem;
   min-width: 0;
 }
@@ -696,6 +743,7 @@ html[data-theme='dark'] .table-wrap,
 html[data-theme='dark'] .collection-list__tables {
   background: var(--sf-admin-panel);
   border: 1px solid var(--sf-admin-panel-border);
+  border-left: 4px solid var(--sf-admin-blue-mid);
   border-radius: 3px;
   overflow: hidden;
   box-shadow: none;
@@ -711,12 +759,12 @@ html[data-theme='dark'] .table {
 html[data-theme='dark'] .table thead th {
   background: color-mix(in srgb, var(--sf-secondary) 12%, var(--sf-admin-surface));
   color: #fff;
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   font-weight: 650;
   letter-spacing: 0.02em;
   border-bottom: 1px solid var(--sf-line);
-  padding-top: 0.55rem;
-  padding-bottom: 0.55rem;
+  padding-top: 0.6rem;
+  padding-bottom: 0.6rem;
 }
 
 html[data-theme='dark'] .table tbody tr:nth-child(odd) {
@@ -726,9 +774,9 @@ html[data-theme='dark'] .table tbody tr:nth-child(odd) {
 html[data-theme='dark'] .table td {
   border-color: var(--sf-admin-panel-border);
   color: #e8eef8;
-  font-size: 0.9rem;
-  padding-top: 0.5rem;
-  padding-bottom: 0.5rem;
+  font-size: 1rem;
+  padding-top: 0.55rem;
+  padding-bottom: 0.55rem;
 }
 
 html[data-theme='dark'] .table tbody tr:hover td {
@@ -743,8 +791,6 @@ html[data-theme='dark'] .collection-list__list-selection {
 html[data-theme='dark'] .field-type input:not([type='checkbox']):not([type='radio']),
 html[data-theme='dark'] .field-type textarea,
 html[data-theme='dark'] .field-type select,
-html[data-theme='dark'] .search-filter__input,
-html[data-theme='dark'] .search-bar input,
 html[data-theme='dark'] .react-select-container .rs__control,
 html[data-theme='dark'] .date-time-picker .react-datepicker__input-container input {
   background: var(--sf-admin-input) !important;
@@ -752,8 +798,27 @@ html[data-theme='dark'] .date-time-picker .react-datepicker__input-container inp
   border: 1px solid var(--sf-admin-blue-border) !important;
   border-radius: 3px;
   box-shadow: none !important;
-  min-height: calc(var(--sf-admin-btn-min-height) - 0.15rem);
-  font-size: 0.9rem;
+  min-height: 2.1rem;
+  font-size: 1rem;
+}
+
+/* Search input only — Core settings-field density, no button-tall control */
+html[data-theme='dark'] .search-filter__input,
+html[data-theme='dark'] .search-bar input,
+html[data-theme='dark'] .search-bar .search-filter__input,
+html[data-theme='dark'] .list-controls input[type='search'],
+html[data-theme='dark'] .list-controls input[type='text'] {
+  background: transparent !important;
+  color: var(--sf-ink) !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  min-height: 2.1rem !important;
+  height: 2.1rem !important;
+  max-height: 2.1rem !important;
+  padding: 0.35rem 0.65rem !important;
+  font-size: 1rem !important;
+  line-height: 1.25 !important;
 }
 
 html[data-theme='dark'] .field-type input:not([type='checkbox']):not([type='radio']):focus,
@@ -770,7 +835,7 @@ html[data-theme='dark'] .react-select-container .rs__control--is-focused {
 html[data-theme='dark'] .field-type .field-label,
 html[data-theme='dark'] .field-type label {
   color: var(--sf-muted);
-  font-size: 0.82rem;
+  font-size: 0.9rem;
   font-weight: 650;
 }
 
@@ -782,7 +847,7 @@ html[data-theme='dark'] .step-nav__item {
   color: var(--sf-secondary-strong);
   box-shadow: none;
   border-radius: 3px;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   font-weight: 650;
 }
 

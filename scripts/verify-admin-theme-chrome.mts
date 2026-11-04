@@ -205,6 +205,35 @@ mustInclude(
   'html[data-theme=\'dark\'] .list-controls',
 )
 
+/* Readable type + Core-density search (post-#106 typography hotfix). */
+mustInclude(payloadChrome, 'payload body size matches Core 16px', '--base-body-size: 16')
+mustInclude(payloadChrome, 'payload embedded nav local 16px scale', 'font-size: 16px')
+mustInclude(
+  payloadChrome,
+  'payload search not button-tall',
+  'min-height: 2.1rem !important',
+)
+mustInclude(
+  payloadChrome,
+  'payload search wrapper clears stacked min-height',
+  'min-height: 0 !important',
+)
+mustInclude(
+  payloadChrome,
+  'payload card title readable 1rem',
+  'font-size: 1rem !important',
+)
+mustInclude(
+  payloadChrome,
+  'payload list title larger than densified 1.05',
+  'font-size: 1.25rem !important',
+)
+mustInclude(
+  payloadChrome,
+  'payload list-controls keeps 4px accent',
+  'html[data-theme=\'dark\'] .list-controls',
+)
+
 mustInclude(tokens, 'tokens panel', "panel: '#1b2432'")
 mustInclude(tokens, 'tokens panelHead', "panelHead: '#121a24'")
 mustInclude(tokens, 'tokens panelBorder', "panelBorder: '#2f3d50'")
