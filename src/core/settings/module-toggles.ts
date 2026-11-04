@@ -25,11 +25,13 @@ export const MODULE_IDS = {
   redirects: 'product:redirects',
   consent: 'product:consent',
   search: 'product:search',
+  media: 'product:media',
 } as const
 
 /** Core pieces that cannot be turned off. */
 export const REQUIRED_MODULE_IDS = new Set<string>([
   MODULE_IDS.betterAuth,
+  MODULE_IDS.media,
   'page-content',
 ])
 

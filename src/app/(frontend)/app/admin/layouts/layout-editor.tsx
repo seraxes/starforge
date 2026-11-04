@@ -37,14 +37,10 @@ import { cssColorToColorInputValue } from '@/core/modules/styles'
 import type { LayoutDocument, LayoutRow, LayoutSection, LayoutSlot } from '@/core/modules/types'
 
 import { useAdminToast } from '../admin-toast'
-import { CustomParticleEditor } from './custom-particle-editor'
 import { ParticleAttributesEditor } from './particle-attributes-editor'
+import { ParticleEditorHost } from './particle-editor-host'
 import { ParticleSettingsPopover } from './particle-settings-popover'
-import {
-  TypedParticleEditor,
-  type FormDefinitionOption,
-  type NavMenuOption,
-} from './typed-particle-editors'
+import type { FormDefinitionOption, NavMenuOption } from './typed-particle-editors'
 
 type ModuleOption = {
   id: string
@@ -190,48 +186,20 @@ function ParticleConfigTab({
     />
   )
 
-  if (slot.moduleId === 'custom') {
-    return (
-      <div className="gantry-particle-config-stack">
-        {attrs}
-        <CustomParticleEditor
-          sectionId={sectionId}
-          rowId={rowId}
-          slot={slot}
-          embedded
-          onConfigSaved={(config) => onSlotPatched?.({ config })}
-        />
-      </div>
-    )
-  }
-
-  const hasTyped =
-    slot.moduleId === 'logo' ||
-    slot.moduleId === 'menu' ||
-    slot.moduleId === 'copyright' ||
-    slot.moduleId === 'social' ||
-    slot.moduleId === 'form'
-
   return (
     <div className="gantry-particle-config-stack">
       {attrs}
-      {hasTyped ? (
-        <TypedParticleEditor
-          sectionId={sectionId}
-          rowId={rowId}
-          slot={slot}
-          navMenus={navMenus}
-          formDefinitions={formDefinitions}
-          formsModuleEnabled={formsModuleEnabled}
-          primaryNavMenuId={primaryNavMenuId}
-          embedded
-          onConfigSaved={(config) => onSlotPatched?.({ config })}
-        />
-      ) : (
-        <p className="layout-muted">
-          No particle-specific config for <code>{slot.moduleId}</code>.
-        </p>
-      )}
+      <ParticleEditorHost
+        sectionId={sectionId}
+        rowId={rowId}
+        slot={slot}
+        navMenus={navMenus}
+        formDefinitions={formDefinitions}
+        formsModuleEnabled={formsModuleEnabled}
+        primaryNavMenuId={primaryNavMenuId}
+        embedded
+        onConfigSaved={(config) => onSlotPatched?.({ config })}
+      />
     </div>
   )
 }

@@ -32,9 +32,15 @@ export type AdminNavSurface = 'core' | 'payload'
 
 export type AdminNavFeatureFlags = {
   nav: boolean
-  forms: boolean
-  /** product:redirects — URL redirect CRUD. */
-  redirects: boolean
+  /**
+   * @deprecated Prefer enabledModuleIds + manifest admin.nav (M2).
+   * Kept optional for older callers/tests; ignored when contributions exist.
+   */
+  forms?: boolean
+  /**
+   * @deprecated Prefer enabledModuleIds + manifest admin.nav (M2).
+   */
+  redirects?: boolean
   layout: boolean
   pageSettings: boolean
   /** Payload CMS module on + user may open /admin. */

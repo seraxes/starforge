@@ -15,7 +15,30 @@ export default defineStarforgeModule({
   defaultEnabled: true,
   navViews: [{ key: 'admin', label: 'Forms', href: '/app/admin/forms' }],
   admin: {
-    nav: [{ group: 'Content', label: 'Forms', href: '/app/admin/forms', order: 40, area: 'forms' }],
+    navGroup: {
+      id: 'forms',
+      label: 'Forms',
+      href: '/app/admin/forms',
+      expandable: true,
+      order: 40,
+    },
+    nav: [
+      {
+        group: 'forms',
+        label: 'Forms',
+        href: '/app/admin/forms',
+        order: 10,
+        area: 'forms',
+        exact: true,
+      },
+      {
+        group: 'forms',
+        label: 'Settings',
+        href: '/app/admin/forms/settings',
+        order: 20,
+        area: 'forms',
+      },
+    ],
     areas: [{ key: 'forms', label: 'Forms' }],
   },
 })

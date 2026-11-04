@@ -18,15 +18,10 @@ export {
   setSlotAccessTagsAction,
   setSlotWidthAction,
   toggleSlotAction,
-  updateCopyrightSlotAction,
-  updateCustomSlotAction,
-  updateFormSlotAction,
   updateLayoutBreakpointsAction,
   updateLayoutSectionMetaAction,
-  updateLogoSlotAction,
-  updateMenuSlotAction,
   updateSlotAttributesAction,
-  updateSocialSlotAction,
+  updateSlotConfigAction,
 } from './actions'
 export type { LayoutActionState } from './actions'
 export {

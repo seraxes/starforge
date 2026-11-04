@@ -25,17 +25,27 @@ export default async function StarforgeAdminNav(props: ServerProps) {
   const settings = await getSiteSettings()
   const theme = getActiveAdminTheme()
 
+  const enabledModuleIds = new Set<string>()
+  if (isCatalogModuleEnabled(settings, MODULE_IDS.forms)) {
+    enabledModuleIds.add(MODULE_IDS.forms)
+  }
+  if (isCatalogModuleEnabled(settings, MODULE_IDS.redirects)) {
+    enabledModuleIds.add(MODULE_IDS.redirects)
+  }
+  if (isCatalogModuleEnabled(settings, MODULE_IDS.media)) {
+    enabledModuleIds.add(MODULE_IDS.media)
+  }
+
   const groups = buildAdminNavGroups({
     surface: 'payload',
     flags: {
       nav: isCatalogModuleEnabled(settings, MODULE_IDS.primaryNav),
-      forms: isCatalogModuleEnabled(settings, MODULE_IDS.forms),
-      redirects: isCatalogModuleEnabled(settings, MODULE_IDS.redirects),
       layout: isCatalogModuleEnabled(settings, MODULE_IDS.layoutManager),
       pageSettings: isCatalogModuleEnabled(settings, MODULE_IDS.pageSettings),
       // Payload surface always shows CMS children the user can see.
       cms: true,
     },
+    enabledModuleIds,
     cmsVisibility: visibleEntities
       ? {
           collections: visibleEntities.collections,

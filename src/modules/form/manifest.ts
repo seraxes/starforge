@@ -15,4 +15,10 @@ export default defineStarforgeModule({
   exportName: 'formModule',
   requires: ['product:forms'],
   navViews: [{ key: 'admin', label: 'Forms', href: '/app/admin/forms' }],
+  configSchemaImportPath: '@/modules/form/schema',
+  configSchemaExportName: 'formParticleConfigSchema',
+  defaultsImportPath: '@/modules/form/schema',
+  defaultsExportName: 'formParticleDefaults',
+  editorImportPath: '@/app/(frontend)/app/admin/layouts/typed-particle-editors',
+  editorExportName: 'FormParticleEditor',
 })

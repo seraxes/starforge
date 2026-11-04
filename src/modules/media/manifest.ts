@@ -15,13 +15,28 @@ export default defineStarforgeModule({
   required: true,
   defaultEnabled: true,
   admin: {
+    navGroup: {
+      id: 'media',
+      label: 'Media',
+      href: '/app/admin/media',
+      expandable: true,
+      defaultOpen: true,
+      order: 60,
+    },
     nav: [
-      { group: 'Content', label: 'Media library', href: '/app/admin/media', order: 20, area: 'media' },
       {
-        group: 'Content',
-        label: 'Media settings',
+        group: 'media',
+        label: 'Library',
+        href: '/app/admin/media',
+        order: 10,
+        area: 'media',
+        exact: true,
+      },
+      {
+        group: 'media',
+        label: 'Settings',
         href: '/app/admin/media/settings',
-        order: 21,
+        order: 20,
         area: 'media',
       },
     ],
