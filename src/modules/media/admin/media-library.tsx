@@ -4,8 +4,7 @@ import React, { useActionState, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-import { MediaCategoryTree } from '@/components/admin/MediaCategoryTree'
-import { MediaLightbox } from '@/components/admin/MediaLightbox'
+import { useAdminToast } from '@/app/(frontend)/app/admin/admin-toast'
 import {
   analyzeMediaAction,
   applyMediaAnalysisSuggestionsAction,
@@ -34,7 +33,8 @@ import { MEDIA_PURPOSES } from '@/core/media/pipeline'
 import type { MediaTagOption } from '@/core/media/resolve'
 import type { MediaStorageInfo } from '@/core/media/storage'
 
-import { useAdminToast } from '../admin-toast'
+import { MediaCategoryTree } from './MediaCategoryTree'
+import { MediaLightbox } from './MediaLightbox'
 
 const empty: MediaActionState = {}
 

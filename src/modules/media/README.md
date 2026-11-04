@@ -1,7 +1,21 @@
 # product:media
 
-Required Media library pack (SF-148). Catalog/manifest only for now — sharp pipeline, storage port, Core admin UI, and `MediaAnalysisPort` still live in `src/core/media` until design M5 moves the library surface here.
+Required Media library pack (design-module-boundary **M5**).
 
-- Public API consumers: `@/core/media` (`resolveMediaById`, `MediaPicker`, tags filter).
-- Storage: Core `MediaStorage` (local → Spaces/S3 via env / Chrome → Environment).
-- Analysis: Core `MediaAnalysisPort` stub (noop) — listed on Media admin; OCR/AI adapters later.
+| Layer | Home |
+| --- | --- |
+| Library + Settings admin UI | `admin/` (App Router shims under `/app/admin/media`) |
+| Shared bind contract | `api.ts` — `MediaPicker`, `resolveMediaById`, tag/category filters |
+| Ports (storage, pipeline, analysis, actions) | `src/core/media` — Core hosts |
+
+## Consumers
+
+```ts
+import { MediaPicker, resolveMediaById } from '@/modules/media/api'
+```
+
+Forms, Layout Styles/Logo, and future Events/Ads/Marketplace bind **`mediaId`** only — no forked library UI.
+
+## Site Settings → Modules
+
+Catalog row is **required / locked on** (Logo and other Core binds need the store). Toggle architecture still lists it; off is not supported.

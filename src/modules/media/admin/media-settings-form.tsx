@@ -18,8 +18,8 @@ import {
   type MediaPipelineRules,
 } from '@/core/media/pipeline'
 
-import { useNotifySavedOnOk } from '../../admin-toast'
-import { useAutosaveForm } from '../../use-autosave-form'
+import { useNotifySavedOnOk } from '@/app/(frontend)/app/admin/admin-toast'
+import { useAutosaveForm } from '@/app/(frontend)/app/admin/use-autosave-form'
 
 const initialState: MediaActionState = {}
 
