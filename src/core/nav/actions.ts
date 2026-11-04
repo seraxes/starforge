@@ -274,7 +274,7 @@ export async function addNavMenuItemAction(
   }
 
   // Prefer current form rows when the editor submitted them alongside Add
-  let items =
+  const items =
     formData.getAll('itemId').length > 0
       ? parseItemsFromForm(formData)
       : [...loaded.document.items]
@@ -337,7 +337,7 @@ export async function pasteNavMenuItemAction(
     return { error: `Menu “${menuId}” was not found.` }
   }
 
-  let items =
+  const items =
     formData.getAll('itemId').length > 0
       ? parseItemsFromForm(formData)
       : [...loaded.document.items]

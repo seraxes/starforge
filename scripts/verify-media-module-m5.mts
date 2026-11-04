@@ -44,11 +44,24 @@ mustExist('src/core/media/analysis/index.ts')
 mustExist('src/core/media/resolve.ts')
 mustExist('src/core/media/actions.ts')
 
-// Public API contract
+// Public API contract — client barrel stays Payload-free; resolve is server-only
 const api = read('src/modules/media/api.ts')
 assert.match(api, /export \{ MediaPicker/)
-assert.match(api, /resolveMediaById/)
-assert.match(api, /from '@\/core\/media\/resolve'/)
+assert.doesNotMatch(
+  api,
+  /(?:^|\n)export\s+(?!type\b)\{[^}]*\bfrom '@\/core\/media\/resolve'/,
+  'api.ts must not runtime-export from @/core/media/resolve (client graph / flavor CI)',
+)
+assert.doesNotMatch(
+  api,
+  /(?:^|\n)export\s+(?!type\b)[^\n]*\bresolveMediaById\b/,
+  'api.ts must not runtime-export resolveMediaById',
+)
+mustExist('src/modules/media/api.server.ts')
+const apiServer = read('src/modules/media/api.server.ts')
+assert.match(apiServer, /resolveMediaById/)
+assert.match(apiServer, /from '@\/core\/media\/resolve'/)
+assert.match(apiServer, /server-only/)
 
 // Manifest required + Site Settings Modules row
 const manifest = read('src/modules/media/manifest.ts')

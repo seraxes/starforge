@@ -24,10 +24,15 @@ assert.match(defineModule, /StarforgeModuleSettingsDecl/)
 assert.match(defineModule, /routes\?:/)
 assert.match(defineModule, /settings\?:/)
 
-// Generic settings table + store + panel host
-mustExist('src/core/db/migrations/0001_sf_module_settings.sql')
+// Generic settings table + store + panel host (bundled with media settings in 0001)
+mustExist('src/core/db/migrations/0001_module_and_media_settings.sql')
+assert.match(
+  read('src/core/db/migrations/0001_module_and_media_settings.sql'),
+  /sf_module_settings/,
+)
 assert.match(read('src/core/db/schema.ts'), /sfModuleSettings|sf_module_settings/)
-assert.match(read('src/core/db/migrations/meta/_journal.json'), /0001_sf_module_settings/)
+assert.match(read('src/core/db/migrations/meta/_journal.json'), /0001_module_and_media_settings/)
+mustExist('src/core/db/migrations/meta/0001_snapshot.json')
 mustExist('src/core/modules/module-settings-store.ts')
 mustExist('src/core/modules/module-settings-document.ts')
 mustExist('src/core/modules/ModuleSettingsPanelHost.tsx')
@@ -44,14 +49,19 @@ assert.match(mediaManifest, /path: 'media\/settings'/)
 assert.match(mediaManifest, /MediaLibraryPage/)
 assert.match(mediaManifest, /MediaSettingsPage/)
 
-// Generated registry loaders
+// Generated registry metadata (no import() of server pages — keeps flavor client graph clean)
 const registry = read('src/generated/module-registry.ts')
 assert.match(registry, /adminRouteLoaders/)
 assert.match(registry, /moduleSettingsPanelLoaders/)
 assert.match(registry, /path: "media"/)
 assert.match(registry, /path: "media\/settings"/)
-assert.match(registry, /MediaLibraryPage/)
-assert.match(registry, /MediaSettingsPage/)
+assert.match(registry, /pageImportPath: "@\/modules\/media\/admin\/MediaLibraryPage"/)
+assert.match(registry, /pageImportPath: "@\/modules\/media\/admin\/MediaSettingsPage"/)
+assert.doesNotMatch(
+  registry,
+  /await import\("@\/modules\/media\/admin\/MediaLibraryPage"\)/,
+  'registry must not import() MediaLibraryPage (client graph / flavor CI)',
+)
 
 // Generated App Router shims (no hand Core media pages)
 mustExist('src/app/(frontend)/app/admin/(modules)/media/page.tsx')

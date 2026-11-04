@@ -224,7 +224,7 @@ export async function getLayoutOutline(
 }
 
 function uniqueOutlineId(base: string, existing: Set<string>): string {
-  let candidate = slugifyLayoutId(base)
+  const candidate = slugifyLayoutId(base)
   if (!existing.has(candidate)) return candidate
   let n = 2
   while (existing.has(`${candidate}-${n}`)) n += 1

@@ -9,15 +9,21 @@ import {
   resendFormSubmissionNotifyAction,
   type FormAdminActionState,
 } from '@/core/forms/actions'
-import type { FormPresetId } from '@/core/forms/types'
+import type { FormPresetId, FormSubmissionPayload } from '@/core/forms/types'
 
 import { useNotifySavedOnOk } from '../../admin-toast'
+
+function payloadCellText(value: FormSubmissionPayload[string] | undefined): string {
+  if (value == null) return ''
+  if (Array.isArray(value)) return value.map(String).join(', ')
+  return String(value)
+}
 
 export type SubmissionRow = {
   id: string
   formKey: string
   definitionId: string | null
-  payload: Record<string, string>
+  payload: FormSubmissionPayload
   ipAddress: string | null
   createdAt: string
 }
@@ -47,20 +53,20 @@ function formatWhen(iso: string): string {
   }
 }
 
-function payloadSummary(payload: Record<string, string>): string {
-  const name = payload.name?.trim()
-  const email = payload.email?.trim()
+function payloadSummary(payload: FormSubmissionPayload): string {
+  const name = payloadCellText(payload.name).trim()
+  const email = payloadCellText(payload.email).trim()
   const message =
-    payload.message?.trim() ||
-    payload.notes?.trim() ||
-    payload.subject?.trim() ||
-    payload.details?.trim()
+    payloadCellText(payload.message).trim() ||
+    payloadCellText(payload.notes).trim() ||
+    payloadCellText(payload.subject).trim() ||
+    payloadCellText(payload.details).trim()
   const parts = [name, email].filter(Boolean)
   if (parts.length === 0 && message) return message.slice(0, 80)
   if (message) return `${parts.join(' · ')} — ${message.slice(0, 60)}`
   if (parts.length) return parts.join(' · ')
-  const first = Object.entries(payload).find(([, v]) => v.trim())
-  return first ? `${first[0]}: ${first[1].slice(0, 80)}` : '(empty)'
+  const first = Object.entries(payload).find(([, v]) => payloadCellText(v).trim())
+  return first ? `${first[0]}: ${payloadCellText(first[1]).slice(0, 80)}` : '(empty)'
 }
 
 function Feedback({ state }: { state: FormAdminActionState }) {
@@ -244,15 +250,21 @@ export function SubmissionsInbox({
                           <div key={k}>
                             <dt>{k}</dt>
                             <dd>
-                              {v &&
-                              /^\d+$/.test(v.trim()) &&
-                              /file|attach|upload|document|resume|photo|image/i.test(k) ? (
-                                <a href={`/api/admin/form-attachments/${v.trim()}`}>
-                                  Attachment #{v.trim()}
-                                </a>
-                              ) : (
-                                v || '—'
-                              )}
+                              {(() => {
+                                const text = payloadCellText(v).trim()
+                                if (
+                                  text &&
+                                  /^\d+$/.test(text) &&
+                                  /file|attach|upload|document|resume|photo|image/i.test(k)
+                                ) {
+                                  return (
+                                    <a href={`/api/admin/form-attachments/${text}`}>
+                                      Attachment #{text}
+                                    </a>
+                                  )
+                                }
+                                return text || '—'
+                              })()}
                             </dd>
                           </div>
                         ))}

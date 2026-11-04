@@ -1,5 +1,6 @@
 import React from 'react'
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { headers } from 'next/headers'
 
 import { filterNavItemsForViewer, getAccessViewer } from '@/core/acl'
@@ -103,7 +104,7 @@ export default async function PublicSiteLayout(props: { children: React.ReactNod
       {siteChrome.offlineEnabled && isAdmin ? (
         <p className="sf-offline-admin-banner" role="status">
           Site is offline for visitors. You can browse because you are an app admin.{' '}
-          <a href="/app/admin/site-chrome">Chrome</a>
+          <Link href="/app/admin/site-chrome">Chrome</Link>
         </p>
       ) : null}
       {pageSettingsOn ? <DocumentHeadChrome chrome={chrome} /> : null}

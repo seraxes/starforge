@@ -45,8 +45,8 @@ function redisUrlConfigured(): boolean {
  */
 function redisAuthOptions() {
   if (!redisUrlConfigured()) return {}
-  // eslint-disable-next-line @typescript-eslint/no-require-imports -- lazy Redis load
   const { createRedisSecondaryStorage } =
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- lazy Redis load
     require('./redis-secondary-storage') as typeof import('./redis-secondary-storage')
   return {
     secondaryStorage: createRedisSecondaryStorage(),
