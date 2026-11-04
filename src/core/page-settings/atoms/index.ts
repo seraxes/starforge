@@ -1,7 +1,5 @@
-import {
-  isModuleAllowlisted,
-  loadAllowlistedAtoms,
-} from '@/generated/module-registry'
+import { isModuleAllowlisted } from '@/generated/module-registry'
+import { loadAllowlistedAtoms } from '@/generated/module-registry.server'
 
 import {
   clearAtomRegistry,

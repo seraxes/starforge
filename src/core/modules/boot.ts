@@ -3,8 +3,8 @@ import { clearModuleRegistry, registerModule } from '@/core/modules/registry'
 import {
   ALLOWLISTED_BUILTIN_PARTICLE_IDS,
   isModuleAllowlisted,
-  loadAllowlistedOptionalParticles,
 } from '@/generated/module-registry'
+import { loadAllowlistedOptionalParticles } from '@/generated/module-registry.server'
 
 let registered = false
 let registering: Promise<void> | null = null
