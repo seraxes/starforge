@@ -74,6 +74,28 @@ export const SiteSettings: GlobalConfig = {
       },
     },
     {
+      name: 'formRateLimitMax',
+      type: 'number',
+      defaultValue: 8,
+      min: 1,
+      max: 100,
+      admin: {
+        description:
+          'Max public Form submissions per IP + form key within the window (1–100). Prefer Starforge admin → Settings → Performance. Redis URL stays in Environment.',
+      },
+    },
+    {
+      name: 'formRateLimitWindowSec',
+      type: 'number',
+      defaultValue: 60,
+      min: 10,
+      max: 3600,
+      admin: {
+        description:
+          'Form submit rate-limit window in seconds (10–3600). Prefer Starforge admin → Settings → Performance. Cache backend / REDIS_URL stay in Environment.',
+      },
+    },
+    {
       name: 'primaryNav',
       type: 'array',
       labels: {

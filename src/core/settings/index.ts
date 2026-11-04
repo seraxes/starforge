@@ -12,11 +12,15 @@ import { DEFAULT_NAV_MENU_ID } from '@/core/db'
 import {
   DEFAULT_ADMIN_AUTOSAVE_DEBOUNCE_MS,
   DEFAULT_FEATURE_FLAGS,
+  DEFAULT_FORM_RATE_LIMIT_MAX,
+  DEFAULT_FORM_RATE_LIMIT_WINDOW_SEC,
   DEFAULT_PRIMARY_NAV,
   DEFAULT_PRIMARY_NAV_MENU_ID,
   DEFAULT_SITE_NAME,
   DEFAULT_SITE_SETTINGS,
   clampAdminAutosaveDebounceMs,
+  clampFormRateLimitMax,
+  clampFormRateLimitWindowSec,
   type FeatureFlags,
   type ModuleToggleMap,
   type NavItem,
@@ -45,11 +49,19 @@ export {
   ADMIN_AUTOSAVE_DEBOUNCE_MIN_MS,
   DEFAULT_ADMIN_AUTOSAVE_DEBOUNCE_MS,
   DEFAULT_FEATURE_FLAGS,
+  DEFAULT_FORM_RATE_LIMIT_MAX,
+  DEFAULT_FORM_RATE_LIMIT_WINDOW_SEC,
   DEFAULT_PRIMARY_NAV,
   DEFAULT_PRIMARY_NAV_MENU_ID,
   DEFAULT_SITE_NAME,
   DEFAULT_SITE_SETTINGS,
+  FORM_RATE_LIMIT_MAX_MAX,
+  FORM_RATE_LIMIT_MAX_MIN,
+  FORM_RATE_LIMIT_WINDOW_SEC_MAX,
+  FORM_RATE_LIMIT_WINDOW_SEC_MIN,
   clampAdminAutosaveDebounceMs,
+  clampFormRateLimitMax,
+  clampFormRateLimitWindowSec,
 } from './defaults'
 export {
   ATOM_TOGGLE_PREFIX,
@@ -89,6 +101,8 @@ type SiteSettingsDoc = {
   siteName?: string | null
   primaryNavMenuId?: string | null
   adminAutosaveDebounceMs?: number | null
+  formRateLimitMax?: number | null
+  formRateLimitWindowSec?: number | null
   primaryNav?: RawNavRow[] | null
   featureRegistration?: boolean | null
   featureRichEditor?: boolean | null
@@ -125,6 +139,8 @@ export function normalizeSiteSettings(
       primaryNav: (resolvedNav ?? DEFAULT_PRIMARY_NAV).map((i) => ({ ...i })),
       primaryNavMenuId: DEFAULT_PRIMARY_NAV_MENU_ID,
       adminAutosaveDebounceMs: DEFAULT_ADMIN_AUTOSAVE_DEBOUNCE_MS,
+      formRateLimitMax: DEFAULT_FORM_RATE_LIMIT_MAX,
+      formRateLimitWindowSec: DEFAULT_FORM_RATE_LIMIT_WINDOW_SEC,
       moduleToggles: {},
     }
   }
@@ -138,6 +154,8 @@ export function normalizeSiteSettings(
     siteName,
     primaryNavMenuId: normalizePrimaryNavMenuId(doc.primaryNavMenuId),
     adminAutosaveDebounceMs: clampAdminAutosaveDebounceMs(doc.adminAutosaveDebounceMs),
+    formRateLimitMax: clampFormRateLimitMax(doc.formRateLimitMax),
+    formRateLimitWindowSec: clampFormRateLimitWindowSec(doc.formRateLimitWindowSec),
     primaryNav: resolvedNav ?? resolveNavItems(doc.primaryNav),
     features: normalizeFlags(doc),
     moduleToggles: normalizeModuleToggles(doc.moduleToggles),
@@ -255,6 +273,10 @@ export type UpdateSiteSettingsInput = {
   primaryNavMenuId?: string
   /** Core admin text autosave debounce (ms); clamped on write. */
   adminAutosaveDebounceMs?: number
+  /** Form submit rate-limit max; clamped on write. Site Settings → Performance. */
+  formRateLimitMax?: number
+  /** Form submit rate-limit window (seconds); clamped on write. */
+  formRateLimitWindowSec?: number
   /**
    * Legacy: resolved public nav (label + href) — written as custom-URL rows.
    * Prefer Nav manager (`sf_nav_menus`) + `primaryNavMenuId`.
@@ -302,6 +324,12 @@ export async function updateSiteSettings(input: UpdateSiteSettingsInput): Promis
 
   if (input.adminAutosaveDebounceMs !== undefined) {
     data.adminAutosaveDebounceMs = clampAdminAutosaveDebounceMs(input.adminAutosaveDebounceMs)
+  }
+  if (input.formRateLimitMax !== undefined) {
+    data.formRateLimitMax = clampFormRateLimitMax(input.formRateLimitMax)
+  }
+  if (input.formRateLimitWindowSec !== undefined) {
+    data.formRateLimitWindowSec = clampFormRateLimitWindowSec(input.formRateLimitWindowSec)
   }
 
   if (!input.keepLegacyPrimaryNav) {

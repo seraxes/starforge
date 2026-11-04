@@ -7,6 +7,8 @@ import { invalidateSiteSettings } from '@/core/content/revalidate'
 import {
   MODULE_IDS,
   clampAdminAutosaveDebounceMs,
+  clampFormRateLimitMax,
+  clampFormRateLimitWindowSec,
   featureFlagsFromModuleToggles,
   getSiteSettings,
   listInstalledModuleCatalog,
@@ -89,6 +91,8 @@ export async function updateSiteSettingsAction(
       siteName,
       primaryNavMenuId,
       adminAutosaveDebounceMs: current.adminAutosaveDebounceMs,
+      formRateLimitMax: current.formRateLimitMax,
+      formRateLimitWindowSec: current.formRateLimitWindowSec,
       keepLegacyPrimaryNav: true,
       features,
       moduleToggles,
@@ -125,6 +129,8 @@ export async function updateAdminUxSettingsAction(
       siteName: current.siteName,
       primaryNavMenuId: current.primaryNavMenuId,
       adminAutosaveDebounceMs,
+      formRateLimitMax: current.formRateLimitMax,
+      formRateLimitWindowSec: current.formRateLimitWindowSec,
       keepLegacyPrimaryNav: true,
       features: current.features,
       moduleToggles: current.moduleToggles,
@@ -134,6 +140,45 @@ export async function updateAdminUxSettingsAction(
       error instanceof Error && error.message
         ? error.message
         : 'Could not save Admin UX settings.'
+    return { error: message }
+  }
+
+  revalidateSettingsPaths()
+  return { ok: true }
+}
+
+/** Site Settings → Performance: Form rate-limit window/max (non-secret). */
+export async function updatePerformanceSettingsAction(
+  _prev: SettingsActionState,
+  formData: FormData,
+): Promise<SettingsActionState> {
+  const admin = await requireAppAdmin()
+  if (!admin) {
+    return { error: 'Sign in as a Starforge app admin to edit Performance settings.' }
+  }
+
+  const current = await getSiteSettings()
+  const formRateLimitMax = clampFormRateLimitMax(formData.get('formRateLimitMax'))
+  const formRateLimitWindowSec = clampFormRateLimitWindowSec(
+    formData.get('formRateLimitWindowSec'),
+  )
+
+  try {
+    await updateSiteSettings({
+      siteName: current.siteName,
+      primaryNavMenuId: current.primaryNavMenuId,
+      adminAutosaveDebounceMs: current.adminAutosaveDebounceMs,
+      formRateLimitMax,
+      formRateLimitWindowSec,
+      keepLegacyPrimaryNav: true,
+      features: current.features,
+      moduleToggles: current.moduleToggles,
+    })
+  } catch (error) {
+    const message =
+      error instanceof Error && error.message
+        ? error.message
+        : 'Could not save Performance settings.'
     return { error: message }
   }
 
@@ -171,6 +216,8 @@ export async function updateAuthSettingsAction(
       siteName: current.siteName,
       primaryNavMenuId: current.primaryNavMenuId,
       adminAutosaveDebounceMs: current.adminAutosaveDebounceMs,
+      formRateLimitMax: current.formRateLimitMax,
+      formRateLimitWindowSec: current.formRateLimitWindowSec,
       keepLegacyPrimaryNav: true,
       features,
       moduleToggles,
