@@ -578,6 +578,14 @@ export interface SiteSetting {
    */
   adminAutosaveDebounceMs?: number | null;
   /**
+   * Max public Form submissions per IP + form key within the window (1–100). Prefer Starforge admin → Settings → Performance. Redis URL stays in Environment.
+   */
+  formRateLimitMax?: number | null;
+  /**
+   * Form submit rate-limit window in seconds (10–3600). Prefer Starforge admin → Settings → Performance. Cache backend / REDIS_URL stay in Environment.
+   */
+  formRateLimitWindowSec?: number | null;
+  /**
    * Legacy fallback only — prefer Nav manager + primaryNavMenuId.
    */
   primaryNav?:
@@ -641,6 +649,8 @@ export interface SiteSettingsSelect<T extends boolean = true> {
   siteName?: T;
   primaryNavMenuId?: T;
   adminAutosaveDebounceMs?: T;
+  formRateLimitMax?: T;
+  formRateLimitWindowSec?: T;
   primaryNav?:
     | T
     | {

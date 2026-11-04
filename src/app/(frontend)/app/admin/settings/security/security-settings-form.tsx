@@ -72,9 +72,11 @@ export function SecuritySettingsForm({ captchaEnabled, captchaProvider }: Props)
       <fieldset className="settings-fieldset">
         <legend>Form defenses</legend>
         <p className="settings-hint">
-          Sitewide honeypot and rate-limit policy will land here. Forms already apply a hidden
-          honeypot field and an in-memory per-form bucket today; these toggles are stubs until a
-          shared Security store/Redis-backed limiter ships.
+          Honeypot enable remains a Security stub. Form rate-limit <em>window / max</em> numbers are
+          editable under{' '}
+          <Link href="/app/admin/settings/performance">Settings → Performance</Link> (DB). Redis URL
+          and trusted proxy hops stay in{' '}
+          <Link href="/app/admin/site-chrome/environment">Environment</Link>.
         </p>
         <label className="settings-flag">
           <input type="checkbox" name="honeypotEnabledStub" disabled defaultChecked />
@@ -88,7 +90,8 @@ export function SecuritySettingsForm({ captchaEnabled, captchaProvider }: Props)
           <span>
             <strong>Submission rate limit</strong>
             <span className="settings-flag-desc">
-              Coming soon — in-memory Form buckets now; Redis later.
+              Always on for Forms today — tune window/max under Performance; Redis when{' '}
+              <code>REDIS_URL</code> is set.
             </span>
           </span>
         </label>

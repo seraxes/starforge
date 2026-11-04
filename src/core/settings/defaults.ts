@@ -76,6 +76,49 @@ export function clampAdminAutosaveDebounceMs(raw: unknown): number {
   )
 }
 
+/**
+ * Default Form submit rate-limit max (per IP + formKey window).
+ * Prefer Site Settings → Performance; keep these as code fallbacks only.
+ */
+export const DEFAULT_FORM_RATE_LIMIT_MAX = 8
+/** Inclusive lower bound for Form rate-limit max. */
+export const FORM_RATE_LIMIT_MAX_MIN = 1
+/** Inclusive upper bound for Form rate-limit max. */
+export const FORM_RATE_LIMIT_MAX_MAX = 100
+
+/** Default Form submit rate-limit window (seconds). */
+export const DEFAULT_FORM_RATE_LIMIT_WINDOW_SEC = 60
+/** Inclusive lower bound for Form rate-limit window (seconds). */
+export const FORM_RATE_LIMIT_WINDOW_SEC_MIN = 10
+/** Inclusive upper bound for Form rate-limit window (seconds). */
+export const FORM_RATE_LIMIT_WINDOW_SEC_MAX = 3600
+
+function coerceFiniteNumber(raw: unknown): number | null {
+  if (raw == null || raw === '') return null
+  const n = typeof raw === 'number' ? raw : Number(raw)
+  return Number.isFinite(n) ? n : null
+}
+
+/** Clamp / coerce Site Settings Form rate-limit max. */
+export function clampFormRateLimitMax(raw: unknown): number {
+  const n = coerceFiniteNumber(raw)
+  if (n == null) return DEFAULT_FORM_RATE_LIMIT_MAX
+  return Math.min(
+    FORM_RATE_LIMIT_MAX_MAX,
+    Math.max(FORM_RATE_LIMIT_MAX_MIN, Math.round(n)),
+  )
+}
+
+/** Clamp / coerce Site Settings Form rate-limit window (seconds). */
+export function clampFormRateLimitWindowSec(raw: unknown): number {
+  const n = coerceFiniteNumber(raw)
+  if (n == null) return DEFAULT_FORM_RATE_LIMIT_WINDOW_SEC
+  return Math.min(
+    FORM_RATE_LIMIT_WINDOW_SEC_MAX,
+    Math.max(FORM_RATE_LIMIT_WINDOW_SEC_MIN, Math.round(n)),
+  )
+}
+
 export type SiteSettingsData = {
   siteName: string
   /**
@@ -91,6 +134,16 @@ export type SiteSettingsData = {
    * {@link ADMIN_AUTOSAVE_DEBOUNCE_MAX_MS}.
    */
   adminAutosaveDebounceMs: number
+  /**
+   * Max Form submissions per IP + formKey within
+   * {@link formRateLimitWindowSec}. Site Settings → Performance.
+   */
+  formRateLimitMax: number
+  /**
+   * Form submit rate-limit window in seconds. Site Settings → Performance.
+   * Redis URL / cache backend stay in env (Environment), not here.
+   */
+  formRateLimitWindowSec: number
   features: FeatureFlags
   /** Runtime gates for registered particles + atoms (`atom:` prefix). */
   moduleToggles: ModuleToggleMap
@@ -120,6 +173,8 @@ export const DEFAULT_SITE_SETTINGS: SiteSettingsData = {
   primaryNav: DEFAULT_PRIMARY_NAV,
   primaryNavMenuId: DEFAULT_PRIMARY_NAV_MENU_ID,
   adminAutosaveDebounceMs: DEFAULT_ADMIN_AUTOSAVE_DEBOUNCE_MS,
+  formRateLimitMax: DEFAULT_FORM_RATE_LIMIT_MAX,
+  formRateLimitWindowSec: DEFAULT_FORM_RATE_LIMIT_WINDOW_SEC,
   features: { ...DEFAULT_FEATURE_FLAGS },
   moduleToggles: {},
 }

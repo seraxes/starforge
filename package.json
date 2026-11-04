@@ -24,7 +24,7 @@
     "payload:migrate": "cross-env NODE_OPTIONS=\"--no-deprecation --import ./scripts/stub-server-only-loader.mjs\" payload migrate",
     "payload:migrate:create": "cross-env NODE_OPTIONS=\"--no-deprecation --import ./scripts/stub-server-only-loader.mjs\" payload migrate:create",
     "db:migrate": "tsx scripts/db-migrate.mts",
-    "test:unit": "tsx --test src/core/forms/expr.test.ts src/core/forms/logic.test.ts src/core/forms/evaluate.test.ts src/core/forms/date-constraints.test.ts src/core/modules/grid.test.ts src/core/modules/document.test.ts src/core/modules/empty-rows.test.ts src/core/redirects/paths.test.ts src/core/security/secure-cookies.test.ts src/core/security/client-ip.test.ts src/core/security/rate-limit/memory.test.ts src/core/env/validate.test.ts src/core/media/apply-pipeline.test.ts src/core/media/categories.test.ts",
+    "test:unit": "tsx --test src/core/forms/expr.test.ts src/core/forms/logic.test.ts src/core/forms/evaluate.test.ts src/core/forms/date-constraints.test.ts src/core/modules/grid.test.ts src/core/modules/document.test.ts src/core/modules/empty-rows.test.ts src/core/redirects/paths.test.ts src/core/security/secure-cookies.test.ts src/core/security/client-ip.test.ts src/core/security/rate-limit/memory.test.ts src/core/settings/defaults.test.ts src/core/env/validate.test.ts src/core/media/apply-pipeline.test.ts src/core/media/categories.test.ts",
     "seed": "cross-env NODE_OPTIONS=\"--no-deprecation --import ./scripts/stub-server-only-loader.mjs\" tsx src/seed.ts",
     "verify:cms-sso": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-cms-sso.mts",
     "verify:admin-no-login-form": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-admin-no-login-form.mts",
