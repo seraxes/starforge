@@ -1,3 +1,6 @@
+import { DEFAULT_LAYOUT_ID } from '@/core/db'
+import { contentCacheTags, getPublishedContentCache } from '@/core/content/cache'
+
 import { loadLayoutDocument } from './layout-store'
 import type { LayoutDocument, LayoutSlot, LayoutPositionId } from './types'
 
@@ -5,12 +8,24 @@ import type { LayoutDocument, LayoutSlot, LayoutPositionId } from './types'
  * Load a layout document by id (DB first, then default-layout.json).
  * Shape: sections → rows → slots (`moduleId` + `width` 1–12).
  * Page Settings `layoutId` selects which row; missing ids fall back to default JSON.
+ * Cross-request cache via published-content cache (admin mutators use uncached `loadLayoutDocument`).
  */
 export async function getLayoutDocument(
   layoutId?: string,
 ): Promise<LayoutDocument> {
-  const { document } = await loadLayoutDocument(layoutId)
-  return document
+  const id =
+    typeof layoutId === 'string' && layoutId.trim() ? layoutId.trim() : DEFAULT_LAYOUT_ID
+  return getPublishedContentCache().getCached(
+    {
+      key: ['sf', 'layout', id],
+      tags: [contentCacheTags.layouts, contentCacheTags.layout(id)],
+      revalidate: false,
+    },
+    async () => {
+      const { document } = await loadLayoutDocument(id)
+      return document
+    },
+  )
 }
 
 /**

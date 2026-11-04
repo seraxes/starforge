@@ -38,7 +38,7 @@ export default buildConfig({
       titleSuffix: '— Starforge Content CMS',
     },
     components: {
-      // Belt-and-suspenders with src/middleware.ts (which blocks /admin/login).
+      // Belt-and-suspenders with src/proxy.ts (which blocks /admin/login).
       views: {
         login: {
           Component: '@/components/payload/AdminLoginRedirect',

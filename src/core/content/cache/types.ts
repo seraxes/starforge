@@ -1,9 +1,9 @@
 /**
- * Pluggable cache for **published** CMS reads (pages + site chrome).
+ * Pluggable cache for **published** CMS reads (pages + site chrome + layout/nav/page-chrome).
  *
  * Default: Next.js `unstable_cache` + `revalidateTag` (local-friendly).
  * Production (DO): Redis via `STARFORGE_CONTENT_CACHE=redis` + `REDIS_URL` —
- * callers (`getPublishedPageBySlug`, `getSiteSettings`) stay unchanged.
+ * callers (`getPublishedPageBySlug`, `getSiteSettings`, …) stay unchanged.
  */
 export type ContentCacheGetOptions = {
   /** Stable key parts (include slug / resource id). */
@@ -26,7 +26,8 @@ export interface PublishedContentCache {
 
   /**
    * Invalidate entries that carry any of the given tags.
-   * Safe to call from Payload hooks and server actions.
+   * Callers **must await** this from server actions / Payload hooks so
+   * save → redirect never races a stale Redis read on another instance.
    */
-  invalidateTags(tags: readonly string[]): void
+  invalidateTags(tags: readonly string[]): void | Promise<void>
 }

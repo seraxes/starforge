@@ -24,7 +24,7 @@ export function isOfflineAllowedPath(pathname: string): boolean {
 }
 
 /**
- * Paths that middleware should never treat as locked public HTML.
+ * Paths that the Node proxy should never treat as locked public HTML.
  * API/health, Payload admin, Core admin, and auth stay up for ops.
  */
 export function isOfflineExemptPath(pathname: string): boolean {

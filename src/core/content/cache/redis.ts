@@ -43,9 +43,9 @@ let cachedAdapter: PublishedContentCache | null = null
  * - Keys prefixed with `STARFORGE_REDIS_PREFIX` (default `sf:${NODE_ENV}`)
  * - Null loader results get a short TTL (null-miss; Site Settings → Performance)
  * - Tag index = Redis Sets; invalidation deletes member keys + the set
+ * - `invalidateTags` is awaited by hooks/actions (no fire-and-forget)
  *
- * Callers keep using `getPublishedPageBySlug` / `getSiteSettings` — do not
- * call Redis from routes or Payload hooks directly.
+ * Callers keep using content helpers — do not call Redis from routes directly.
  */
 export function createRedisPublishedContentCache(): PublishedContentCache {
   if (cachedAdapter) {
@@ -103,12 +103,12 @@ export function createRedisPublishedContentCache(): PublishedContentCache {
       return value
     },
 
-    invalidateTags(tags: readonly string[]): void {
-      // Interface is sync (matches Next `revalidateTag`); fire-and-forget Redis work.
-      // Follow-up (design §4): return Promise + await from hooks/actions.
-      void invalidateTagsAsync(redis, tags).catch(() => {
+    async invalidateTags(tags: readonly string[]): Promise<void> {
+      try {
+        await invalidateTagsAsync(redis, tags)
+      } catch {
         // Hooks / seed may run when Redis is unreachable; ignore quietly.
-      })
+      }
     },
   }
 

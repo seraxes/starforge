@@ -12,7 +12,7 @@ export type SecurityHeader = { key: string; value: string }
 export function buildSecurityHeaders(options?: {
   /** Override HSTS inclusion (defaults to same signal as Secure cookies). */
   hsts?: boolean
-  /** Feature-driven CSP sources (middleware fetches them; static config omits). */
+  /** Feature-driven CSP sources (Node proxy supplies them; static config omits). */
   cspSources?: CspSources | null
   /** Override `STARFORGE_CSP_MODE`. */
   cspMode?: CspMode

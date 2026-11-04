@@ -10,7 +10,7 @@ import {
 export const dynamic = 'force-dynamic'
 
 /**
- * Lightweight gate for middleware: is this public HTML path locked offline?
+ * Debug/compat offline gate (proxy reads Site Chrome in-process).
  * Forwards cookies so app admins bypass. Does not gate /api, /admin, /app, login.
  */
 export async function GET(request: Request) {

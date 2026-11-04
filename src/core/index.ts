@@ -36,6 +36,9 @@ export { listPublishedPagesForSitemap } from './content/sitemap'
 export type { SitemapPageEntry } from './content/sitemap'
 export { requireDraftPreviewAccess, resolveDraftPreviewAccess } from './content/preview'
 export {
+  invalidateLayout,
+  invalidateNavMenu,
+  invalidatePageChrome,
   invalidatePublishedPage,
   invalidateSiteChrome,
   invalidateSiteSettings,

@@ -40,6 +40,7 @@ export {
   deleteNavMenu,
   duplicateNavMenu,
   ensureDefaultNavMenuSeeded,
+  getCachedNavMenu,
   listNavMenus,
   listNavPageOptions,
   loadNavMenu,

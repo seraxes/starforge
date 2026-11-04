@@ -1,7 +1,7 @@
 import { defineStarforgeModule } from '@/core/modules/define-module'
 
 /**
- * product:redirects — URL redirects admin + middleware lookup.
+ * product:redirects — URL redirects admin + Node proxy lookup.
  * Engine still in `src/core/redirects` until M3; manifest owns catalog/nav metadata.
  */
 export default defineStarforgeModule({
@@ -9,7 +9,7 @@ export default defineStarforgeModule({
   kind: 'product',
   label: 'Redirects',
   description:
-    'URL redirects (from → to + status) with middleware lookup. Sitemap of published pages stays at /sitemap.xml.',
+    'URL redirects (from → to + status) with Node proxy lookup. Sitemap of published pages stays at /sitemap.xml.',
   version: '0.1.0',
   defaultEnabled: true,
   navViews: [{ key: 'admin', label: 'Redirects', href: '/app/admin/redirects' }],

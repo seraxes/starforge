@@ -3,8 +3,8 @@ import type { GlobalAfterChangeHook, GlobalConfig } from 'payload'
 import { isCoreAdmin } from '@/core/cms-bridge/payload-access'
 import { invalidateSiteSettings } from '../core/content/revalidate'
 
-const revalidateSiteSettingsAfterChange: GlobalAfterChangeHook = ({ doc }) => {
-  invalidateSiteSettings()
+const revalidateSiteSettingsAfterChange: GlobalAfterChangeHook = async ({ doc }) => {
+  await invalidateSiteSettings()
   return doc
 }
 

@@ -3,16 +3,16 @@ import type { CollectionAfterChangeHook, CollectionAfterDeleteHook, CollectionCo
 import { pagesLexicalEditor } from '../fields/pagesLexical'
 import { invalidatePublishedPage } from '../core/content/revalidate'
 
-const revalidatePageAfterChange: CollectionAfterChangeHook = ({ doc, previousDoc }) => {
+const revalidatePageAfterChange: CollectionAfterChangeHook = async ({ doc, previousDoc }) => {
   const slug = typeof doc?.slug === 'string' ? doc.slug : null
   const previousSlug = typeof previousDoc?.slug === 'string' ? previousDoc.slug : null
-  invalidatePublishedPage({ slug, previousSlug })
+  await invalidatePublishedPage({ slug, previousSlug })
   return doc
 }
 
-const revalidatePageAfterDelete: CollectionAfterDeleteHook = ({ doc }) => {
+const revalidatePageAfterDelete: CollectionAfterDeleteHook = async ({ doc }) => {
   const slug = typeof doc?.slug === 'string' ? doc.slug : null
-  invalidatePublishedPage({ slug })
+  await invalidatePublishedPage({ slug })
   return doc
 }
 

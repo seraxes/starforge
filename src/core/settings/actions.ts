@@ -62,8 +62,8 @@ function parseModuleToggles(formData: FormData): ModuleToggleMap {
   return map
 }
 
-function revalidateSettingsPaths() {
-  invalidateSiteSettings()
+async function revalidateSettingsPaths() {
+  await invalidateSiteSettings()
   revalidatePath('/', 'layout')
   revalidatePath('/register')
   revalidatePath('/login')
@@ -119,7 +119,7 @@ export async function updateSiteSettingsAction(
     return { error: message }
   }
 
-  revalidateSettingsPaths()
+  await revalidateSettingsPaths()
   return { ok: true }
 }
 
@@ -156,7 +156,7 @@ export async function updateAdminUxSettingsAction(
     return { error: message }
   }
 
-  revalidateSettingsPaths()
+  await revalidateSettingsPaths()
   return { ok: true }
 }
 
@@ -205,7 +205,7 @@ export async function updatePerformanceSettingsAction(
     return { error: message }
   }
 
-  revalidateSettingsPaths()
+  await revalidateSettingsPaths()
   return { ok: true }
 }
 
@@ -252,6 +252,6 @@ export async function updateAuthSettingsAction(
     return { error: message }
   }
 
-  revalidateSettingsPaths()
+  await revalidateSettingsPaths()
   return { ok: true }
 }

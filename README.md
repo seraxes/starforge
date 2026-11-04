@@ -19,14 +19,16 @@ This is an early scaffold plus **core app auth** (Better Auth), **roles + user g
 
 ### Published content cache
 
-Anonymous `/[slug]` and public site chrome load through core helpers (`getPublishedPageBySlug`, `getSiteSettings`) backed by a small **pluggable cache**:
+Anonymous `/[slug]` and public chrome load through core helpers backed by a small **pluggable cache**:
 
 | Piece | Behavior |
 | --- | --- |
-| Default (local) | Next.js `unstable_cache` + cache tags (`sf:published-page:{slug}`, `sf:site-settings`, …) |
-| Revalidate | Payload `afterChange` / `afterDelete` on Pages + Site settings call `invalidatePublishedPage` / `invalidateSiteSettings` |
+| Default (local) | Next.js `unstable_cache` + cache tags (`sf:published-page:{slug}`, `sf:site-settings`, `sf:layout:*`, `sf:nav-menu:*`, `sf:page-chrome:*`, `sf:proxy-policy`, …) |
+| Revalidate | Payload hooks + Core admin actions **await** `invalidateTags` / helpers so Redis multi-instance never races save → redirect |
+| Cached reads | Pages, Site Settings, Site Chrome, layout outlines, Nav menus, Page Settings chrome, feature CSP sources |
 | Draft preview | `/preview/[slug]` stays **uncached** and auth-gated (`cms_access` + feature toggle) |
 | Redis | **Optional for DigitalOcean multi-instance.** Not required locally. Same loader API — set `STARFORGE_CONTENT_CACHE=redis` and `REDIS_URL` (`src/core/content/cache/`). Optional `STARFORGE_REDIS_PREFIX` (default `sf:${NODE_ENV}`). |
+| Node proxy | `src/proxy.ts` (Next 16; replaces Edge `middleware`) reads redirects / offline / CSP **in-process** — no internal HTTP hops. Leftover: optional redirect-map cache at volume + CSP report-only → enforce. |
 
 Do not call Payload Local API from hot anonymous paths except through these helpers.
 
@@ -191,7 +193,7 @@ Global app admins still open all Core admin today; the matrix is the enforcement
 
 **Site Chrome** (`/app/admin/site-chrome`, `sf_site_chrome`) is the top-level policy panel: site offline (+ message), default captcha (enable + provider; Turnstile keys in env), outbound email (enable + provider + From; SMTP / Resend secrets in env), site metadata (name / description / OG image), robots meta + `/robots.txt`, content rights, cookie domain/path. Offline mode blocks public visitors; app admins still browse (banner) and can sign in via `/login`. **Environment** (`/app/admin/site-chrome/environment`) is a developer-admin panel behind password re-auth that writes allowlisted keys to gitignored `.env.local` (never Postgres). Production is read-only unless `STARFORGE_ENV_EDITOR=write`; restart Node after writes so Next reloads env.
 
-**Security headers + Secure cookies (SF-129):** Next `headers()` + middleware send a practical CSP (Next/Payload + Turnstile), `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy`, `nosniff`, and `Permissions-Policy`. HSTS and Better Auth `useSecureCookies` (plus Payload JWT / Environment gate cookies) turn on when `BETTER_AUTH_URL` / `NEXT_PUBLIC_APP_URL` is `https://`, or when `STARFORGE_SECURE_COOKIES=1`. Local `http://localhost` stays insecure so Windows/macOS HTTP keeps working. Override with `STARFORGE_SECURE_COOKIES=0|1`. Site Settings → Security documents this; no DB toggle for headers. Postgres must stay private (localhost / VPC) — not exposed on the public internet.
+**Security headers + Secure cookies (SF-129):** Next `headers()` + `src/proxy.ts` send a practical CSP (Next/Payload + Turnstile), `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy`, `nosniff`, and `Permissions-Policy`. HSTS and Better Auth `useSecureCookies` (plus Payload JWT / Environment gate cookies) turn on when `BETTER_AUTH_URL` / `NEXT_PUBLIC_APP_URL` is `https://`, or when `STARFORGE_SECURE_COOKIES=1`. Local `http://localhost` stays insecure so Windows/macOS HTTP keeps working. Override with `STARFORGE_SECURE_COOKIES=0|1`. Site Settings → Security documents this; no DB toggle for headers. Postgres must stay private (localhost / VPC) — not exposed on the public internet.
 
 **Nav** is a **top-level** Core admin item (`/app/admin/nav`, sibling of Users / Site Chrome / Site settings / Layouts): multiple named **navigation sets** (menus) in `sf_nav_menus`, each with items (CMS page, URL, or module view; reorder; copy/paste; CSS class; browser/page title; multi-select access tags). Site Settings only **assigns** which set is the site primary header menu — not nested under Site Chrome.
 
@@ -400,9 +402,9 @@ npm run dev
 
 ### Windows: one-login CMS smoke test
 
-**How it works now:** core `/login` (Better Auth) → `/admin` or `/admin/login` is blocked by middleware → `/api/cms/exchange` sets a Payload `payload-token` JWT → Payload **Dashboard**. Payload’s stock email/password form is never served.
+**How it works now:** core `/login` (Better Auth) → `/admin` or `/admin/login` is blocked by `src/proxy.ts` → `/api/cms/exchange` sets a Payload `payload-token` JWT → Payload **Dashboard**. Payload’s stock email/password form is never served.
 
-**Required after pull:** `npm run db:core:push` (adds `sf_users.cms_access`), then **fully stop and restart** `npm run dev` (middleware only loads on process start).
+**Required after pull:** `npm run db:core:push` (adds `sf_users.cms_access`), then **fully stop and restart** `npm run dev` (proxy only loads on process start).
 
 ```bat
 cd %USERPROFILE%\starforge
