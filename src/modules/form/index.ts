@@ -1,6 +1,6 @@
 import React from 'react'
 
-import { resolveFormCaptcha } from '@/core/forms/captcha'
+import { resolveFormCaptcha } from '@/core/security/captcha'
 import { mergeParticleWithDefinition, readFormConfig } from '@/core/forms/config'
 import { formHasCaptchaField } from '@/core/forms/definition'
 import { loadFormDefinition } from '@/core/forms/definitions-store'

@@ -3,10 +3,12 @@
 import React, { useActionState } from 'react'
 
 import { forgotUsernameAction, type AuthActionState } from '@/core/auth/actions'
+import { AuthCaptchaFields } from '@/core/security/captcha/AuthCaptchaFields'
+import type { ResolvedCaptcha } from '@/core/security/captcha/types'
 
 const initialState: AuthActionState = {}
 
-export function ForgotUsernameForm() {
+export function ForgotUsernameForm({ captcha }: { captcha: ResolvedCaptcha }) {
   const [state, formAction, pending] = useActionState(forgotUsernameAction, initialState)
 
   return (
@@ -23,6 +25,7 @@ export function ForgotUsernameForm() {
           key={`email-${state.email ?? ''}-${state.success ?? state.error ?? 'ok'}`}
         />
       </label>
+      <AuthCaptchaFields captcha={captcha} />
       {state.error ? (
         <p className="auth-error" role="alert">
           {state.error}

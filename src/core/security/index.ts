@@ -21,3 +21,23 @@ export type {
   RateLimitResult,
   RateLimiter,
 } from './rate-limit'
+export {
+  ALL_CAPTCHA_PROVIDER_IDS,
+  CAPTCHA_PROVIDERS,
+  enforceCaptchaFromFormData,
+  getCaptchaProvider,
+  isCaptchaProvider,
+  isWiredCaptchaProvider,
+  resolveCaptchaForSurface,
+  resolveFormCaptcha,
+  resolveFromProvider,
+  verifyCaptchaToken,
+  verifyTurnstileToken,
+} from './captcha'
+export type {
+  CaptchaPort,
+  CaptchaProvider,
+  CaptchaProviderId,
+  CaptchaSurface,
+  ResolvedCaptcha,
+} from './captcha'

@@ -3,8 +3,13 @@ import {
   isMailProvider,
   type MailProvider,
 } from '@/core/mail/types'
+import {
+  CAPTCHA_PROVIDERS,
+  isCaptchaProvider,
+  isWiredCaptchaProvider,
+} from '@/core/security/captcha/providers'
 
-import type { CaptchaProvider, SiteChromeDocument } from './types'
+import type { SiteChromeDocument } from './types'
 
 export const DEFAULT_SITE_CHROME_NAME = 'Starforge'
 
@@ -24,12 +29,8 @@ export const DEFAULT_CONSENT_MESSAGE =
 
 export const DEFAULT_CONSENT_PRIVACY_LINK_LABEL = 'Privacy policy'
 
-export const CAPTCHA_PROVIDERS: Array<{ value: CaptchaProvider; label: string }> = [
-  { value: 'none', label: 'None' },
-  { value: 'turnstile', label: 'Cloudflare Turnstile' },
-  { value: 'recaptcha', label: 'Google reCAPTCHA (not wired)' },
-  { value: 'hcaptcha', label: 'hCaptcha (not wired)' },
-]
+/** Re-export Settings select list from the security captcha port (wired only). */
+export { CAPTCHA_PROVIDERS, isCaptchaProvider, isWiredCaptchaProvider }
 
 export { MAIL_PROVIDERS, isMailProvider }
 export type { MailProvider }
@@ -40,6 +41,8 @@ export const DEFAULT_SITE_CHROME: SiteChromeDocument = {
   offlineMessage: DEFAULT_OFFLINE_MESSAGE,
   captchaEnabled: false,
   captchaProvider: 'none',
+  captchaOnRegister: false,
+  captchaOnAuthRecovery: false,
   emailEnabled: false,
   emailProvider: 'console',
   emailFrom: '',
@@ -54,12 +57,4 @@ export const DEFAULT_SITE_CHROME: SiteChromeDocument = {
   consentMessage: DEFAULT_CONSENT_MESSAGE,
   consentPrivacyUrl: '',
   consentPrivacyLinkLabel: DEFAULT_CONSENT_PRIVACY_LINK_LABEL,
-}
-
-const CAPTCHA_SET = new Set<CaptchaProvider>(
-  CAPTCHA_PROVIDERS.map((p) => p.value),
-)
-
-export function isCaptchaProvider(value: unknown): value is CaptchaProvider {
-  return typeof value === 'string' && CAPTCHA_SET.has(value as CaptchaProvider)
 }

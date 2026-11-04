@@ -4,10 +4,12 @@ import React, { useActionState } from 'react'
 import Link from 'next/link'
 
 import { registerAction, type AuthActionState } from '@/core/auth/actions'
+import { AuthCaptchaFields } from '@/core/security/captcha/AuthCaptchaFields'
+import type { ResolvedCaptcha } from '@/core/security/captcha/types'
 
 const initialState: AuthActionState = {}
 
-export function RegisterForm() {
+export function RegisterForm({ captcha }: { captcha: ResolvedCaptcha }) {
   const [state, formAction, pending] = useActionState(registerAction, initialState)
 
   return (
@@ -51,6 +53,7 @@ export function RegisterForm() {
           disabled={pending}
         />
       </label>
+      <AuthCaptchaFields captcha={captcha} />
       {state.error ? (
         <p className="auth-error" role="alert">
           {state.error}

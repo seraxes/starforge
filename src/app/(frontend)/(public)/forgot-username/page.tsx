@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { getAppSession } from '@/core/auth/session'
+import { resolveCaptchaForSurface } from '@/core/security/captcha'
 import { getSiteSettings } from '@/core/settings'
 import { ForgotUsernameForm } from './forgot-username-form'
 
@@ -17,6 +18,8 @@ export default async function ForgotUsernamePage() {
     redirect('/')
   }
 
+  const captcha = await resolveCaptchaForSurface('auth-recovery')
+
   return (
     <div className="auth-page">
       <div className="auth-card">
@@ -27,7 +30,7 @@ export default async function ForgotUsernamePage() {
           only a label). Enter the email you think you used — if an account exists, we send a
           reminder with that sign-in email and your display name.
         </p>
-        <ForgotUsernameForm />
+        <ForgotUsernameForm captcha={captcha} />
         <p className="auth-switch">
           <Link href="/login">Back to sign in</Link>
           {' · '}

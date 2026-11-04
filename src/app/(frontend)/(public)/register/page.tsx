@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { getAppSession } from '@/core/auth/session'
+import { resolveCaptchaForSurface } from '@/core/security/captcha'
 import { getSiteSettings } from '@/core/settings'
 import { RegisterForm } from './register-form'
 
@@ -36,6 +37,8 @@ export default async function RegisterPage() {
     )
   }
 
+  const captcha = await resolveCaptchaForSurface('register')
+
   return (
     <div className="auth-page">
       <div className="auth-card">
@@ -48,7 +51,7 @@ export default async function RegisterPage() {
           separately by an admin (one login still — no second password at{' '}
           <Link href="/admin">/admin</Link>).
         </p>
-        <RegisterForm />
+        <RegisterForm captcha={captcha} />
         <p className="auth-switch">
           Already have an account? <Link href="/login">Sign in</Link>
           {' · '}

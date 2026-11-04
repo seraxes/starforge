@@ -24,7 +24,7 @@
     "payload:migrate": "cross-env NODE_OPTIONS=\"--no-deprecation --import ./scripts/stub-server-only-loader.mjs\" payload migrate",
     "payload:migrate:create": "cross-env NODE_OPTIONS=\"--no-deprecation --import ./scripts/stub-server-only-loader.mjs\" payload migrate:create",
     "db:migrate": "tsx scripts/db-migrate.mts",
-    "test:unit": "tsx --test src/core/forms/expr.test.ts src/core/forms/logic.test.ts src/core/forms/evaluate.test.ts src/core/forms/date-constraints.test.ts src/core/modules/grid.test.ts src/core/modules/document.test.ts src/core/modules/empty-rows.test.ts src/core/redirects/paths.test.ts src/core/security/secure-cookies.test.ts src/core/security/client-ip.test.ts src/core/security/rate-limit/memory.test.ts src/core/settings/defaults.test.ts src/core/env/validate.test.ts src/core/media/apply-pipeline.test.ts src/core/media/categories.test.ts src/core/auth/developer-admin.test.ts",
+    "test:unit": "tsx --test src/core/forms/expr.test.ts src/core/forms/logic.test.ts src/core/forms/evaluate.test.ts src/core/forms/date-constraints.test.ts src/core/modules/grid.test.ts src/core/modules/document.test.ts src/core/modules/empty-rows.test.ts src/core/redirects/paths.test.ts src/core/security/secure-cookies.test.ts src/core/security/client-ip.test.ts src/core/security/rate-limit/memory.test.ts src/core/security/captcha/policy.test.ts src/core/settings/defaults.test.ts src/core/env/validate.test.ts src/core/media/apply-pipeline.test.ts src/core/media/categories.test.ts src/core/auth/developer-admin.test.ts",
     "seed": "cross-env NODE_OPTIONS=\"--no-deprecation --import ./scripts/stub-server-only-loader.mjs\" tsx src/seed.ts",
     "verify:cms-sso": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-cms-sso.mts",
     "verify:admin-no-login-form": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-admin-no-login-form.mts",
@@ -34,6 +34,7 @@
     "verify:security-headers-cookies": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-security-headers-cookies.mts",
     "verify:redirects-paths": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-redirects-paths.mts",
     "verify:form-upload-security": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-form-upload-security.mts",
+    "verify:captcha-security-port": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-captcha-security-port.mts",
     "verify:form-should-slice": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-form-should-slice-sf133.mts",
     "verify:form-particle-binding": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-form-particle-binding.mts",
     "verify:consent-cookie": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-consent-cookie.mts",
@@ -41,7 +42,7 @@
     "verify:forms-nav-no-submissions": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-forms-nav-no-submissions.mts",
     "verify:search-query": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-search-query.mts",
     "verify:media-pipeline": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-media-pipeline-sf148.mts",
-    "verify:all": "npm run verify:security-headers-cookies && npm run verify:redirects-paths && npm run verify:form-upload-security && npm run verify:form-should-slice && npm run verify:form-particle-binding && npm run verify:consent-cookie && npm run verify:csp-sources && npm run verify:admin-nav-site-chrome && npm run verify:admin-theme-chrome && npm run verify:forms-nav-no-submissions && npm run verify:search-query && npm run verify:media-pipeline"
+    "verify:all": "npm run verify:security-headers-cookies && npm run verify:redirects-paths && npm run verify:form-upload-security && npm run verify:captcha-security-port && npm run verify:form-should-slice && npm run verify:form-particle-binding && npm run verify:consent-cookie && npm run verify:csp-sources && npm run verify:admin-nav-site-chrome && npm run verify:admin-theme-chrome && npm run verify:forms-nav-no-submissions && npm run verify:search-query && npm run verify:media-pipeline"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.7.14",

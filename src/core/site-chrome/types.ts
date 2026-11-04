@@ -4,8 +4,10 @@
  */
 
 import type { MailProvider } from '@/core/mail/types'
+import type { CaptchaProviderId } from '@/core/security/captcha/types'
 
-export type CaptchaProvider = 'none' | 'turnstile' | 'recaptcha' | 'hcaptcha'
+/** Captcha provider id — owned by core/security/captcha; stored on Chrome JSON. */
+export type CaptchaProvider = CaptchaProviderId
 
 /** Re-export for Site Chrome consumers — secrets stay in env. */
 export type { MailProvider }
@@ -16,11 +18,18 @@ export type SiteChromeDocument = {
   offlineEnabled: boolean
   offlineMessage: string
   /**
-   * Default sitewide captcha for forms (enable + provider; keys in env).
+   * Forms surface default (enable + provider; keys in env).
    * Edited under Site Settings → Security; kept here for storage continuity.
    */
   captchaEnabled: boolean
   captchaProvider: CaptchaProvider
+  /** Require captcha on /register when provider is wired. */
+  captchaOnRegister: boolean
+  /**
+   * Require captcha on auth recovery email sends:
+   * forgot password / username, magic link, email OTP request.
+   */
+  captchaOnAuthRecovery: boolean
   /**
    * Outbound email (SF-96). Enable + provider + From only;
    * SMTP / Resend secrets stay in env.
