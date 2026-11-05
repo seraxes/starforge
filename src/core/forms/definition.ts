@@ -11,6 +11,12 @@ import {
   fieldsForPreset,
   isFormPresetId,
 } from './presets'
+import {
+  appendOrphanFieldRows,
+  createRowDraft,
+  normalizeSectionRows,
+  sectionFieldNames,
+} from './rows'
 import type {
   FormComputedConfig,
   FormDefinitionDocument,
@@ -262,30 +268,28 @@ export function normalizeFormSections(
         typeof row.id === 'string' && row.id.trim() ? row.id.trim() : newSectionId()
       const label =
         typeof row.label === 'string' && row.label.trim() ? row.label.trim() : 'Section'
-      const fieldNames = Array.isArray(row.fieldNames)
-        ? row.fieldNames
-            .filter((n): n is string => typeof n === 'string' && nameSet.has(n))
-            .filter((n) => {
-              if (assigned.has(n)) return false
-              assigned.add(n)
-              return true
-            })
-        : []
-      sections.push({ id, label, fieldNames })
+      const rows = normalizeSectionRows(row.rows, row.fieldNames, nameSet, assigned)
+      sections.push({ id, label, rows })
     }
     const orphan = names.filter((n) => !assigned.has(n))
     if (sections.length === 0) {
-      return [{ id: 'sec_main', label: 'Fields', fieldNames: names }]
+      return [
+        {
+          id: 'sec_main',
+          label: 'Fields',
+          rows: names.map((n) => createRowDraft(n)),
+        },
+      ]
     }
-    if (orphan.length) {
-      sections[0] = {
-        ...sections[0]!,
-        fieldNames: [...sections[0]!.fieldNames, ...orphan],
-      }
-    }
-    return sections
+    return appendOrphanFieldRows(sections, orphan)
   }
-  return [{ id: 'sec_main', label: 'Fields', fieldNames: names }]
+  return [
+    {
+      id: 'sec_main',
+      label: 'Fields',
+      rows: names.map((n) => createRowDraft(n)),
+    },
+  ]
 }
 
 export function normalizeFormFields(raw: unknown): FormFieldDef[] {
@@ -539,5 +543,7 @@ export function createFieldDraft(type: FormFieldType = 'text'): FormFieldDef {
 }
 
 export function createSectionDraft(label = 'Section'): FormSectionDef {
-  return { id: newSectionId(), label, fieldNames: [] }
+  return { id: newSectionId(), label, rows: [] }
 }
+
+export { sectionFieldNames }

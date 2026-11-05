@@ -12,6 +12,7 @@ import {
 import { computeLiveValues } from '@/core/forms/evaluate'
 import type { FormFieldDef, FormFieldOption, FormSectionDef, ResolvedCaptcha } from '@/core/forms/types'
 import { normalizeFormSections } from '@/core/forms/definition'
+import { LAYOUT_WIDTH_FULL } from '@/core/forms/rows'
 
 import { TurnstileWidget } from './TurnstileWidget'
 
@@ -473,17 +474,62 @@ export function FormWidget(props: FormWidgetProps) {
         </div>
 
         {sections.map((section) => {
-          const sectionFields = section.fieldNames
-            .map((n) => props.fields.find((f) => f.name === n))
-            .filter((f): f is FormFieldDef => Boolean(f))
-          const visibleFields = sectionFields.filter((f) => live.visible[f.name])
-          if (!visibleFields.length) return null
+          const visibleInSection = section.rows.some((row) =>
+            row.columns.some((col) => {
+              const field = props.fields.find((f) => f.name === col.fieldName)
+              return field ? live.visible[field.name] : false
+            }),
+          )
+          if (!visibleInSection) return null
           return (
             <div key={section.id} className="sf-form-section">
               {sections.length > 1 || section.label !== 'Fields' ? (
                 <h4 className="sf-form-section-title">{section.label}</h4>
               ) : null}
-              {sectionFields.map((field) => renderField(field))}
+              {section.rows.map((row) => {
+                const placed = row.columns
+                  .map((col) => {
+                    const field = props.fields.find((f) => f.name === col.fieldName)
+                    if (!field || !live.visible[field.name]) return null
+                    return { col, field }
+                  })
+                  .filter((entry): entry is { col: (typeof row.columns)[number]; field: FormFieldDef } =>
+                    Boolean(entry),
+                  )
+                if (!placed.length) return null
+                const hiddenFields = placed.filter((p) => p.field.type === 'hidden')
+                const cols = placed.filter((p) => p.field.type !== 'hidden')
+                const multi = cols.length > 1
+                return (
+                  <div
+                    key={row.id}
+                    className={`sf-form-row${multi ? ' sf-form-row-multi' : ''}`}
+                    data-sf-form-row={row.id}
+                  >
+                    {hiddenFields.map(({ field }) => renderField(field))}
+                    {cols.map(({ col, field }) => {
+                      const pct = col.width || LAYOUT_WIDTH_FULL
+                      const rendered = renderField(field)
+                      if (rendered == null) return null
+                      return (
+                        <div
+                          key={field.id || field.name}
+                          className="sf-form-col"
+                          data-sf-width={pct}
+                          style={{
+                            flex: multi ? `${pct} 1 0` : '1 1 auto',
+                            maxWidth: multi ? `${pct}%` : undefined,
+                            width: multi ? `${pct}%` : undefined,
+                            minWidth: 0,
+                          }}
+                        >
+                          {rendered}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })}
             </div>
           )
         })}

@@ -55,10 +55,24 @@ export {
   normalizeFormDefinitionDocument,
   normalizeFormSections,
   parseFormDefinitionJson,
+  sectionFieldNames,
   serializeFormDefinitionDocument,
   slugifyFormId,
   DEFAULT_CONTACT_FORM_ID,
 } from './definition'
+export {
+  addFieldToRow,
+  appendFieldRow,
+  createRowDraft,
+  mergeRows,
+  moveFieldInSections,
+  redistributeRowWidths,
+  removeFieldFromSections,
+  renameFieldInSections,
+  resizeRowColumns,
+  sectionsFieldNames,
+  splitFieldToOwnRow,
+} from './rows'
 export {
   createFormDefinition,
   deleteFormDefinition,
@@ -165,6 +179,8 @@ export type {
   FormParticleConfig,
   FormParticleSource,
   FormPresetId,
+  FormRowColumn,
+  FormRowDef,
   FormSectionDef,
   FormStringConstraints,
   FormSubmissionPayload,

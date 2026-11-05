@@ -38,7 +38,20 @@ import {
 } from '@/core/forms/definition'
 import { FORM_CONDITION_OP_LABELS } from '@/core/forms/logic'
 import { listFormPresetMetas } from '@/core/forms/presets'
+import {
+  addFieldToRow,
+  appendFieldRow,
+  mergeRows,
+  moveFieldInSections,
+  removeFieldFromSections,
+  renameFieldInSections,
+  resizeRowColumns,
+  sectionFieldNames,
+  splitFieldToOwnRow,
+  LAYOUT_WIDTH_FULL,
+} from '@/core/forms/rows'
 import { fieldsToJsonSchema, stringifyFormJsonSchema } from '@/core/forms/schema-json'
+import { resizeAdjacentPair, widthToPercentLabel } from '@/core/modules/grid'
 import type {
   FormCondition,
   FormConditionGroup,
@@ -50,6 +63,7 @@ import type {
   FormFieldOption,
   FormFieldType,
   FormPresetId,
+  FormRowDef,
   FormSectionDef,
   FormWeekday,
 } from '@/core/forms/types'
@@ -130,6 +144,14 @@ type FieldSettingsProps = {
   /** Blur flush — no-op unless a real edit marked the form dirty. */
   flushOnBlur: () => void
   siteCaptcha?: FormBuilderSiteCaptcha
+  /** Column width percent when sitting in a multi-column row. */
+  widthPercent?: number
+  /** Split this column out to its own full-width row. */
+  onSplitToOwnRow?: () => void
+  /** Merge this field's row with the next row (side-by-side). */
+  onJoinNextRow?: () => void
+  canSplit?: boolean
+  canJoinNext?: boolean
 }
 
 function captchaSiteStatusMessage(siteCaptcha?: FormBuilderSiteCaptcha): string | null {
@@ -892,6 +914,11 @@ function FieldBar({
   saveNow,
   flushOnBlur,
   siteCaptcha,
+  widthPercent,
+  onSplitToOwnRow,
+  onJoinNextRow,
+  canSplit,
+  canJoinNext,
   setNodeRef,
   style,
   isDragging = false,
@@ -899,12 +926,14 @@ function FieldBar({
 }: FieldBarProps) {
   const displayName = field.label || field.name
   const captchaWarn = field.type === 'captcha' ? captchaSiteStatusMessage(siteCaptcha) : null
+  const pct = widthPercent ?? LAYOUT_WIDTH_FULL
 
   return (
     <article
       ref={setNodeRef}
       style={style}
       className={`gantry-slot sf-form-slot${isDragging ? ' is-slot-dragging' : ''}${captchaWarn ? ' sf-form-slot-captcha-warn' : ''}`}
+      data-sf-width={pct}
     >
       <header className="gantry-slot-head">
         <div className="gantry-slot-title">
@@ -916,6 +945,9 @@ function FieldBar({
           >
             ▣
           </button>
+          <span className="gantry-slot-pct" title="Column width">
+            {widthToPercentLabel(pct)}
+          </span>
           <div className="gantry-slot-labels">
             <strong className="sf-form-slot-name">{displayName}</strong>
             <span className="gantry-slot-sub">
@@ -935,7 +967,27 @@ function FieldBar({
           </div>
         </div>
         <div className="gantry-slot-end">
-          <div className="gantry-slot-actions">
+          <div className="gantry-slot-actions sf-form-slot-row-actions">
+            {canJoinNext && onJoinNextRow ? (
+              <button
+                type="button"
+                className="gantry-toolbar-btn secondary sf-form-row-action"
+                title="Join with next row (side-by-side)"
+                onClick={onJoinNextRow}
+              >
+                Join →
+              </button>
+            ) : null}
+            {canSplit && onSplitToOwnRow ? (
+              <button
+                type="button"
+                className="gantry-toolbar-btn secondary sf-form-row-action"
+                title="Move this field to its own row"
+                onClick={onSplitToOwnRow}
+              >
+                Own row
+              </button>
+            ) : null}
             <ParticleSettingsPopover
               title={`${displayName} settings`}
               tabs={[
@@ -971,15 +1023,82 @@ function FieldBar({
   )
 }
 
+function FormColumnResizeHandle({
+  leftWidth,
+  rightWidth,
+  onLocalResize,
+  onCommit,
+}: {
+  leftWidth: number
+  rightWidth: number
+  onLocalResize: (left: number, right: number) => void
+  onCommit: (left: number, right: number) => void
+}) {
+  const dragging = React.useRef(false)
+
+  return (
+    <div
+      className="gantry-resize-handle"
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="Resize form columns"
+      tabIndex={0}
+      onPointerDown={(event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        const handle = event.currentTarget
+        const rowEl = handle.closest('.sf-form-row-slots') as HTMLElement | null
+        const leftEl = handle.previousElementSibling as HTMLElement | null
+        if (!rowEl || !leftEl) return
+        dragging.current = true
+        handle.setPointerCapture(event.pointerId)
+        const pairSum = leftWidth + rightWidth
+        const rowRect = rowEl.getBoundingClientRect()
+        const pairLeft = leftEl.getBoundingClientRect().left - rowRect.left
+        let lastLeft = leftWidth
+        let lastRight = rightWidth
+
+        const onMove = (moveEvent: PointerEvent) => {
+          if (!dragging.current) return
+          const x = moveEvent.clientX - rowRect.left
+          const pairWidthPx = Math.max(1, (pairSum / LAYOUT_WIDTH_FULL) * rowRect.width)
+          const localX = x - pairLeft
+          const newLeftPercent = (localX / pairWidthPx) * pairSum
+          const [lw, rw] = resizeAdjacentPair(leftWidth, rightWidth, newLeftPercent)
+          lastLeft = lw
+          lastRight = rw
+          onLocalResize(lw, rw)
+        }
+
+        const onUp = (upEvent: PointerEvent) => {
+          dragging.current = false
+          handle.releasePointerCapture(upEvent.pointerId)
+          window.removeEventListener('pointermove', onMove)
+          window.removeEventListener('pointerup', onUp)
+          onCommit(lastLeft, lastRight)
+        }
+
+        window.addEventListener('pointermove', onMove)
+        window.addEventListener('pointerup', onUp)
+      }}
+    />
+  )
+}
+
 function SortableFieldBar(props: FieldSettingsProps) {
   const id = fieldKey(props.field)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
   })
+  const pct = props.widthPercent ?? LAYOUT_WIDTH_FULL
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.85 : 1,
+    flex: `${pct} 1 0`,
+    minWidth: 0,
+    maxWidth: '100%',
+    boxSizing: 'border-box',
   }
 
   return (
@@ -1045,6 +1164,8 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
     ),
   )
   const [schemaError, setSchemaError] = useState<string | null>(null)
+  /** When set, the next palette click adds a column into this row (even widths). */
+  const [targetRow, setTargetRow] = useState<{ sectionId: string; rowId: string } | null>(null)
 
   // dnd-kit Accessibility assigns module-counter ids (DndDescribedBy-N). SSR vs client
   // counters diverge when multiple DndContexts mount — defer sortable until after hydrate
@@ -1108,11 +1229,17 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
     }
     draft.name = name
     const next = [...fields, draft]
-    const targetSec = sectionId || sections[0]?.id
-    const nextSections = sections.map((s) =>
-      s.id === targetSec ? { ...s, fieldNames: [...s.fieldNames, draft.name] } : s,
-    )
-    updateFields(next, nextSections.length ? nextSections : undefined)
+    const targetSec = sectionId || targetRow?.sectionId || sections[0]?.id
+    if (!targetSec) {
+      updateFields(next)
+      return
+    }
+    const nextSections =
+      targetRow && targetRow.sectionId === targetSec
+        ? addFieldToRow(sections, targetSec, targetRow.rowId, draft.name)
+        : appendFieldRow(sections, targetSec, draft.name)
+    setTargetRow(null)
+    updateFields(next, nextSections)
   }
 
   function patchField(id: string, patch: Partial<FormFieldDef>) {
@@ -1125,10 +1252,7 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
     if (!current) return
     const prev = current.name
     const nextFields = fields.map((f) => (fieldKey(f) === id ? { ...f, name: nextName } : f))
-    const nextSections = sections.map((s) => ({
-      ...s,
-      fieldNames: s.fieldNames.map((n) => (n === prev ? nextName : n)),
-    }))
+    const nextSections = renameFieldInSections(sections, prev, nextName)
     updateFields(nextFields, nextSections)
   }
 
@@ -1170,36 +1294,114 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
 
   function removeField(id: string, name: string) {
     const next = fields.filter((f) => fieldKey(f) !== id)
-    const nextSections = sections.map((s) => ({
-      ...s,
-      fieldNames: s.fieldNames.filter((n) => n !== name),
-    }))
+    const nextSections = removeFieldFromSections(sections, name)
     updateFields(next, nextSections)
   }
 
+  function findFieldPlacement(section: FormSectionDef, activeId: string | number) {
+    for (let rowIndex = 0; rowIndex < section.rows.length; rowIndex++) {
+      const row = section.rows[rowIndex]!
+      for (let colIndex = 0; colIndex < row.columns.length; colIndex++) {
+        const col = row.columns[colIndex]!
+        const f = fields.find((x) => x.name === col.fieldName)
+        if ((f?.id || col.fieldName) === activeId) {
+          return { row, rowIndex, colIndex, fieldName: col.fieldName }
+        }
+      }
+    }
+    return null
+  }
+
+  function reorderFieldsFromSections(nextSections: FormSectionDef[]) {
+    const orderedNames = nextSections.flatMap((s) => sectionFieldNames(s))
+    const byName = new Map(fields.map((f) => [f.name, f]))
+    return orderedNames.map((n) => byName.get(n)!).filter(Boolean)
+  }
+
+  function commitSections(nextSections: FormSectionDef[]) {
+    const synced = normalizeFormSections(nextSections, fields)
+    if (JSON.stringify(synced) === JSON.stringify(sections)) return
+    setSections(synced)
+    const nextFields = reorderFieldsFromSections(synced)
+    if (JSON.stringify(nextFields) !== JSON.stringify(fields)) {
+      setFields(nextFields)
+      regenerateSchema(nextFields)
+    }
+    saveDebounced()
+  }
+
+  /**
+   * Drag a field onto another:
+   * - Same row → reorder columns (keep widths).
+   * - Different row → join the over field's row at before/after index (even widths).
+   */
   function onDragEnd(event: DragEndEvent, sectionId: string) {
     const { active, over } = event
     if (!over || active.id === over.id) return
     const section = sections.find((s) => s.id === sectionId)
     if (!section) return
-    const ids = section.fieldNames
-    const oldIndex = ids.findIndex((name) => {
-      const f = fields.find((x) => x.name === name)
-      return (f?.id || name) === active.id
+    const from = findFieldPlacement(section, active.id)
+    const to = findFieldPlacement(section, over.id)
+    if (!from || !to) return
+
+    if (from.row.id === to.row.id) {
+      const names = from.row.columns.map((c) => c.fieldName)
+      const nextNames = arrayMove(names, from.colIndex, to.colIndex)
+      const widths = from.row.columns.map((c) => c.width)
+      const nextRow: FormRowDef = {
+        ...from.row,
+        columns: nextNames.map((fieldName, i) => ({
+          fieldName,
+          width: widths[i] ?? LAYOUT_WIDTH_FULL,
+        })),
+      }
+      const nextSections = sections.map((s) =>
+        s.id === sectionId
+          ? {
+              ...s,
+              rows: s.rows.map((r) => (r.id === nextRow.id ? nextRow : r)),
+            }
+          : s,
+      )
+      commitSections(nextSections)
+      return
+    }
+
+    // Drop onto another row → insert as a column before the over field (even widths).
+    const nextSections = moveFieldInSections(sections, from.fieldName, {
+      sectionId,
+      rowId: to.row.id,
+      index: to.colIndex,
     })
-    const newIndex = ids.findIndex((name) => {
-      const f = fields.find((x) => x.name === name)
-      return (f?.id || name) === over.id
-    })
-    if (oldIndex < 0 || newIndex < 0) return
-    const nextNames = arrayMove(ids, oldIndex, newIndex)
-    const nextSections = sections.map((s) =>
-      s.id === sectionId ? { ...s, fieldNames: nextNames } : s,
-    )
-    const orderedNames = nextSections.flatMap((s) => s.fieldNames)
-    const byName = new Map(fields.map((f) => [f.name, f]))
-    const nextFields = orderedNames.map((n) => byName.get(n)!).filter(Boolean)
-    updateFields(nextFields, nextSections)
+    commitSections(nextSections)
+  }
+
+  function joinWithNextRow(sectionId: string, rowId: string) {
+    const section = sections.find((s) => s.id === sectionId)
+    if (!section) return
+    const idx = section.rows.findIndex((r) => r.id === rowId)
+    const next = section.rows[idx + 1]
+    if (!next) return
+    commitSections(mergeRows(sections, sectionId, rowId, next.id))
+  }
+
+  function splitToOwnRow(sectionId: string, fieldName: string) {
+    commitSections(splitFieldToOwnRow(sections, sectionId, fieldName))
+  }
+
+  function onResizeColumns(
+    sectionId: string,
+    rowId: string,
+    leftIndex: number,
+    left: number,
+    right: number,
+    commit: boolean,
+  ) {
+    const next = resizeRowColumns(sections, sectionId, rowId, leftIndex, left)
+    // Local preview: always apply; persist only on pointer-up.
+    setSections(next)
+    void right
+    if (commit) saveDebounced()
   }
 
   function applySchemaJson(raw: string) {
@@ -1238,8 +1440,9 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
       <p className="admin-lede">
         <Link href="/admin/forms">← Forms</Link>
         {' · '}
-        Layout-aligned builder: palette → section canvas (dnd-kit) → field cog. Meta, success, and
-        email live under Form settings.
+        Layout-aligned builder: palette → section rows (side-by-side % columns) → field cog. Drag a
+        field onto another to share a row; resize handles between columns; mobile stacks. Meta,
+        success, and email live under Form settings.
       </p>
 
       <nav className="gantry-layouts-nav sf-form-edit-nav" aria-label="Form edit">
@@ -1303,9 +1506,18 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                 ))}
               </ul>
               <p className="layout-muted">
-                Option media binds to the Media library (picker in the field cog). Use the field cog
-                for settings (same as Layout modules).
+                Click a field type to add a new row. Select <strong>+ column</strong> on a row first
+                to place the next field side-by-side. Drag onto another field to join rows; resize
+                with the divider.
               </p>
+              {targetRow ? (
+                <p className="sf-form-target-row" role="status">
+                  Next field → selected row.{' '}
+                  <button type="button" className="gantry-toolbar-btn secondary" onClick={() => setTargetRow(null)}>
+                    Clear
+                  </button>
+                </p>
+              ) : null}
             </aside>
 
             <div className="gantry-sections sf-form-sections" aria-label="Form canvas">
@@ -1323,10 +1535,10 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                 </button>
               </div>
               {sections.map((section) => {
-                const sectionFields = section.fieldNames
+                const sortableIds = sectionFieldNames(section)
                   .map((n) => fields.find((f) => f.name === n))
                   .filter((f): f is FormFieldDef => Boolean(f))
-                const sortableIds = sectionFields.map((f) => fieldKey(f))
+                  .map((f) => fieldKey(f))
                 return (
                   <section key={section.id} className="gantry-section">
                     <header className="gantry-section-head">
@@ -1353,12 +1565,12 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                             type="button"
                             className="gantry-toolbar-btn danger"
                             onClick={() => {
-                              const orphan = section.fieldNames
+                              const orphanRows = section.rows
                               const remaining = sections.filter((s) => s.id !== section.id)
                               if (!remaining[0]) return
                               remaining[0] = {
                                 ...remaining[0],
-                                fieldNames: [...remaining[0].fieldNames, ...orphan],
+                                rows: [...remaining[0].rows, ...orphanRows],
                               }
                               setSections(remaining)
                               saveDebounced()
@@ -1369,77 +1581,186 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                         ) : null}
                       </div>
                     </header>
-                    <div className="gantry-row sf-form-section-row">
-                      {sectionFields.length === 0 ? (
+                    <div className="sf-form-section-rows">
+                      {section.rows.length === 0 ? (
                         <p className="gantry-drop-empty admin-empty">
                           Drop fields here — add from the palette.
                         </p>
-                      ) : (
-                        <div className="sf-form-section-fields">
-                          {dndReady ? (
-                            <DndContext
-                              id={`form-section-${section.id}`}
-                              sensors={sensors}
-                              collisionDetection={closestCenter}
-                              onDragEnd={(e) => onDragEnd(e, section.id)}
-                            >
-                              <SortableContext
-                                items={sortableIds}
-                                strategy={verticalListSortingStrategy}
-                              >
-                                {sectionFields.map((field) => {
-                                  const id = fieldKey(field)
-                                  return (
-                                    <SortableFieldBar
-                                      key={id}
-                                      field={field}
-                                      fields={fields}
-                                      onPatch={(patch) => patchField(id, patch)}
-                                      onRename={(nextName) => renameField(id, nextName)}
-                                      onPatchConstraints={(patch) =>
-                                        patchFieldConstraints(id, patch)
-                                      }
-                                      onUpdateOptions={(options) =>
-                                        patchField(id, { options })
-                                      }
-                                      onPatchLogic={(key, group) =>
-                                        patchFieldLogic(id, key, group)
-                                      }
-                                      onRemove={() => removeField(id, field.name)}
-                                      saveNow={saveNow}
-                                      flushOnBlur={flushOnBlur}
-                                      siteCaptcha={siteCaptcha}
-                                    />
-                                  )
-                                })}
-                              </SortableContext>
-                            </DndContext>
-                          ) : (
-                            sectionFields.map((field) => {
-                              const id = fieldKey(field)
+                      ) : dndReady ? (
+                        <DndContext
+                          id={`form-section-${section.id}`}
+                          sensors={sensors}
+                          collisionDetection={closestCenter}
+                          onDragEnd={(e) => onDragEnd(e, section.id)}
+                        >
+                          <SortableContext
+                            items={sortableIds}
+                            strategy={verticalListSortingStrategy}
+                          >
+                            {section.rows.map((row, rowIndex) => {
+                              const isTarget =
+                                targetRow?.sectionId === section.id && targetRow.rowId === row.id
                               return (
-                                <FieldBar
-                                  key={id}
-                                  field={field}
-                                  fields={fields}
-                                  onPatch={(patch) => patchField(id, patch)}
-                                  onRename={(nextName) => renameField(id, nextName)}
-                                  onPatchConstraints={(patch) =>
-                                    patchFieldConstraints(id, patch)
-                                  }
-                                  onUpdateOptions={(options) => patchField(id, { options })}
-                                  onPatchLogic={(key, group) =>
-                                    patchFieldLogic(id, key, group)
-                                  }
-                                  onRemove={() => removeField(id, field.name)}
-                                  saveNow={saveNow}
-                                  flushOnBlur={flushOnBlur}
-                                  siteCaptcha={siteCaptcha}
-                                />
+                                <div
+                                  key={row.id}
+                                  className={`gantry-row sf-form-builder-row${isTarget ? ' is-column-target' : ''}`}
+                                  data-sf-form-row={row.id}
+                                >
+                                  <div className="gantry-row-meta sf-form-row-meta">
+                                    <span>
+                                      Row · {row.columns.length} column
+                                      {row.columns.length === 1 ? '' : 's'}
+                                    </span>
+                                    <div className="gantry-row-actions">
+                                      <button
+                                        type="button"
+                                        className={
+                                          isTarget
+                                            ? 'gantry-toolbar-btn primary'
+                                            : 'gantry-toolbar-btn secondary'
+                                        }
+                                        title="Next palette click adds a field into this row"
+                                        onClick={() =>
+                                          setTargetRow(
+                                            isTarget
+                                              ? null
+                                              : { sectionId: section.id, rowId: row.id },
+                                          )
+                                        }
+                                      >
+                                        {isTarget ? 'Column target ✓' : '+ column'}
+                                      </button>
+                                      {rowIndex < section.rows.length - 1 ? (
+                                        <button
+                                          type="button"
+                                          className="gantry-toolbar-btn secondary"
+                                          title="Merge this row with the next"
+                                          onClick={() => joinWithNextRow(section.id, row.id)}
+                                        >
+                                          Join next
+                                        </button>
+                                      ) : null}
+                                    </div>
+                                  </div>
+                                  <div className="gantry-row-slots sf-form-row-slots">
+                                    {row.columns.map((col, colIndex) => {
+                                      const field = fields.find((f) => f.name === col.fieldName)
+                                      if (!field) return null
+                                      const id = fieldKey(field)
+                                      const bar = (
+                                        <SortableFieldBar
+                                          key={id}
+                                          field={field}
+                                          fields={fields}
+                                          widthPercent={col.width}
+                                          canSplit={row.columns.length > 1}
+                                          canJoinNext={
+                                            row.columns.length === 1 &&
+                                            rowIndex < section.rows.length - 1
+                                          }
+                                          onSplitToOwnRow={() =>
+                                            splitToOwnRow(section.id, field.name)
+                                          }
+                                          onJoinNextRow={() =>
+                                            joinWithNextRow(section.id, row.id)
+                                          }
+                                          onPatch={(patch) => patchField(id, patch)}
+                                          onRename={(nextName) => renameField(id, nextName)}
+                                          onPatchConstraints={(patch) =>
+                                            patchFieldConstraints(id, patch)
+                                          }
+                                          onUpdateOptions={(options) =>
+                                            patchField(id, { options })
+                                          }
+                                          onPatchLogic={(key, group) =>
+                                            patchFieldLogic(id, key, group)
+                                          }
+                                          onRemove={() => removeField(id, field.name)}
+                                          saveNow={saveNow}
+                                          flushOnBlur={flushOnBlur}
+                                          siteCaptcha={siteCaptcha}
+                                        />
+                                      )
+                                      if (colIndex >= row.columns.length - 1) return bar
+                                      const right = row.columns[colIndex + 1]!
+                                      return (
+                                        <React.Fragment key={id}>
+                                          {bar}
+                                          <FormColumnResizeHandle
+                                            leftWidth={col.width}
+                                            rightWidth={right.width}
+                                            onLocalResize={(left) =>
+                                              onResizeColumns(
+                                                section.id,
+                                                row.id,
+                                                colIndex,
+                                                left,
+                                                0,
+                                                false,
+                                              )
+                                            }
+                                            onCommit={(left) =>
+                                              onResizeColumns(
+                                                section.id,
+                                                row.id,
+                                                colIndex,
+                                                left,
+                                                0,
+                                                true,
+                                              )
+                                            }
+                                          />
+                                        </React.Fragment>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
                               )
-                            })
-                          )}
-                        </div>
+                            })}
+                          </SortableContext>
+                        </DndContext>
+                      ) : (
+                        section.rows.map((row) => (
+                          <div
+                            key={row.id}
+                            className="gantry-row sf-form-builder-row"
+                            data-sf-form-row={row.id}
+                          >
+                            <div className="gantry-row-slots sf-form-row-slots">
+                              {row.columns.map((col) => {
+                                const field = fields.find((f) => f.name === col.fieldName)
+                                if (!field) return null
+                                const id = fieldKey(field)
+                                return (
+                                  <FieldBar
+                                    key={id}
+                                    field={field}
+                                    fields={fields}
+                                    widthPercent={col.width}
+                                    style={{
+                                      flex: `${col.width} 1 0`,
+                                      minWidth: 0,
+                                      maxWidth: '100%',
+                                    }}
+                                    onPatch={(patch) => patchField(id, patch)}
+                                    onRename={(nextName) => renameField(id, nextName)}
+                                    onPatchConstraints={(patch) =>
+                                      patchFieldConstraints(id, patch)
+                                    }
+                                    onUpdateOptions={(options) => patchField(id, { options })}
+                                    onPatchLogic={(key, group) =>
+                                      patchFieldLogic(id, key, group)
+                                    }
+                                    onRemove={() => removeField(id, field.name)}
+                                    saveNow={saveNow}
+                                    flushOnBlur={flushOnBlur}
+                                    siteCaptcha={siteCaptcha}
+                                  />
+                                )
+                              })}
+                            </div>
+                          </div>
+                        ))
                       )}
                     </div>
                   </section>
