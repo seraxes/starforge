@@ -3,6 +3,7 @@ import React from 'react'
 import { adminDashboardWidgetLoaders } from '@/generated/module-registry.server'
 
 import type { ResolvedDashboardWidget } from './types'
+import { DashboardSoftPlaceholder } from './widgets/DashboardSoftPlaceholder'
 
 async function softLoadWidget(
   moduleId: string,
@@ -21,10 +22,30 @@ async function softLoadWidget(
   }
 }
 
-function sizeClass(size: ResolvedDashboardWidget['size']): string {
-  if (size === 'lg') return 'sf-dashboard-card sf-dashboard-card-lg'
-  if (size === 'sm') return 'sf-dashboard-card sf-dashboard-card-sm'
-  return 'sf-dashboard-card'
+/** Page Settings mosaic language — wide tiles span both columns. */
+function panelClass(size: ResolvedDashboardWidget['size']): string {
+  if (size === 'lg') return 'page-settings-panel page-settings-panel-wide sf-dashboard-card'
+  if (size === 'sm') return 'page-settings-panel sf-dashboard-card sf-dashboard-card-sm'
+  return 'page-settings-panel sf-dashboard-card'
+}
+
+function WidgetShell(props: {
+  widget: ResolvedDashboardWidget
+  children: React.ReactNode
+}) {
+  const { widget, children } = props
+  return (
+    <article
+      className={panelClass(widget.size)}
+      data-widget={`${widget.moduleId}:${widget.id}`}
+      data-module-enabled={widget.moduleEnabled ? 'true' : 'false'}
+    >
+      <header className="page-settings-panel-head sf-dashboard-card-head">
+        <h3>{widget.title}</h3>
+      </header>
+      <div className="page-settings-panel-body sf-dashboard-card-body">{children}</div>
+    </article>
+  )
 }
 
 /** One contributed card — soft-fail so a broken pack cannot blank the page. */
@@ -32,30 +53,32 @@ export async function DashboardWidgetCard(props: {
   widget: ResolvedDashboardWidget
 }) {
   const { widget } = props
+
+  if (!widget.moduleEnabled) {
+    return (
+      <WidgetShell widget={widget}>
+        <DashboardSoftPlaceholder
+          status="module-disabled"
+          hint="Enable this module under Settings → Modules to activate the card."
+        />
+      </WidgetShell>
+    )
+  }
+
   const Widget = await softLoadWidget(widget.moduleId, widget.id)
 
   if (!Widget) {
     return (
-      <article className={sizeClass(widget.size)} data-widget={`${widget.moduleId}:${widget.id}`}>
-        <header className="sf-dashboard-card-head">
-          <h3>{widget.title}</h3>
-        </header>
-        <div className="sf-dashboard-card-body">
-          <p className="sf-dashboard-soft-fail">—</p>
-        </div>
-      </article>
+      <WidgetShell widget={widget}>
+        <DashboardSoftPlaceholder status="soft-fail" />
+      </WidgetShell>
     )
   }
 
   return (
-    <article className={sizeClass(widget.size)} data-widget={`${widget.moduleId}:${widget.id}`}>
-      <header className="sf-dashboard-card-head">
-        <h3>{widget.title}</h3>
-      </header>
-      <div className="sf-dashboard-card-body">
-        <Widget />
-      </div>
-    </article>
+    <WidgetShell widget={widget}>
+      <Widget />
+    </WidgetShell>
   )
 }
 

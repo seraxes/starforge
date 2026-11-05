@@ -54,6 +54,19 @@ export default defineStarforgeModule({
         pageExportName: 'default',
       },
     ],
+    dashboard: [
+      {
+        id: 'email.sent',
+        title: 'Email',
+        order: 60,
+        size: 'md',
+        // Soft stub — visible with Dashboard ACL; full metrics need send log (D3).
+        widgetImportPath: '@/modules/email-manager/dashboard/EmailSentWidget',
+        widgetExportName: 'EmailSentWidget',
+        statsImportPath: '@/modules/email-manager/dashboard/email-stats',
+        statsExportName: 'loadEmailSentStats',
+      },
+    ],
   },
   db: { schema: 'src/modules/email-manager/schema.ts' },
 })

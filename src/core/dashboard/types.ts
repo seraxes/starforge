@@ -8,6 +8,11 @@ export type ResolvedDashboardWidget = {
   order: number
   size: DashboardWidgetSize
   area?: string
+  /**
+   * False when the contributing module is catalog-off.
+   * Host still shows a soft card shell (“Module disabled”) — not an empty hole.
+   */
+  moduleEnabled: boolean
 }
 
 /** Soft-fail envelope for optional stats loaders. */
