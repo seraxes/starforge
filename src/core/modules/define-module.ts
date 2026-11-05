@@ -192,6 +192,28 @@ export type StarforgeModuleManifest = {
   particles?: StarforgeModuleParticleDecl[]
   /** Drizzle schema path hint for later glob (M2+). */
   db?: { schema: string }
+  /**
+   * Optional UI message packs (i18n P3).
+   * Prefer convention `src/modules/<folder>/messages/<locale>.json` discovered by
+   * `modules:generate`. Declare `namespaces` (usually the module id, e.g.
+   * `product:events`) so Core can merge only enabled packs into next-intl.
+   * `load` is documentation/runtime-shaped — codegen emits import() loaders from
+   * the messages directory and does not execute this function.
+   */
+  i18n?: StarforgeModuleI18nDecl
+}
+
+/** Module UI chrome messages — see `src/modules/MESSAGES.md`. */
+export type StarforgeModuleI18nDecl = {
+  /** Namespaces this pack owns (e.g. `['product:consent']`). */
+  namespaces: string[]
+  /**
+   * Folder under the module root that holds `<locale>.json` files.
+   * Default: `messages`.
+   */
+  messagesDir?: string
+  /** Optional typed loader; codegen prefers the messagesDir convention. */
+  load?: (locale: string) => Promise<Record<string, unknown>>
 }
 
 /** Identity helper — keeps manifests typed and discoverable. */

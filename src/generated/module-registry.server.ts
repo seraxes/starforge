@@ -215,3 +215,56 @@ export async function loadPublicShellSlot(
   )
   return loaded
 }
+
+export type ModuleMessageLoader = {
+  moduleId: string
+  namespaces: readonly string[]
+  load: (locale: string) => Promise<Record<string, unknown>>
+}
+
+/**
+ * Module UI message packs (i18n P3). Allowlisted only — Site Settings off packs
+ * are filtered at merge time in Core `loadMergedMessages`.
+ * Convention: `src/modules/<folder>/messages/<locale>.json`.
+ */
+export const moduleMessageLoaders: ModuleMessageLoader[] = [
+  {
+    moduleId: "product:consent",
+    namespaces: ["product:consent"] as const,
+    load: async (locale: string): Promise<Record<string, unknown>> => {
+      switch (locale) {
+      case "hu":
+        return (await import("@/modules/consent/messages/hu.json")).default
+      case 'en':
+      default:
+        return (await import("@/modules/consent/messages/en.json")).default
+      }
+    },
+  },
+  {
+    moduleId: "product:email-manager",
+    namespaces: ["product:email-manager"] as const,
+    load: async (locale: string): Promise<Record<string, unknown>> => {
+      switch (locale) {
+      case "hu":
+        return (await import("@/modules/email-manager/messages/hu.json")).default
+      case 'en':
+      default:
+        return (await import("@/modules/email-manager/messages/en.json")).default
+      }
+    },
+  },
+  {
+    moduleId: "product:forms",
+    namespaces: ["product:forms"] as const,
+    load: async (locale: string): Promise<Record<string, unknown>> => {
+      switch (locale) {
+      case "hu":
+        return (await import("@/modules/forms/messages/hu.json")).default
+      case 'en':
+      default:
+        return (await import("@/modules/forms/messages/en.json")).default
+      }
+    },
+  }
+]

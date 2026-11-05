@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useActionState, useEffect, useMemo, useState } from 'react'
+import { useTranslations } from 'next-intl'
 
 import { submitFormAction, type FormSubmitActionState } from '@/core/forms/actions'
 import {
@@ -31,7 +32,13 @@ export type FormWidgetProps = {
 
 const initialState: FormSubmitActionState = {}
 
-function OptionMedia({ option }: { option: FormFieldOption }) {
+function OptionMedia({
+  option,
+  fileFallback,
+}: {
+  option: FormFieldOption
+  fileFallback: string
+}) {
   const media = option.media
   if (!media?.url && !media?.mediaId) return null
   // Prefer library id redirect; fall back to stored/resolved URL.
@@ -40,7 +47,7 @@ function OptionMedia({ option }: { option: FormFieldOption }) {
   if (media.kind === 'file') {
     return (
       <a className="sf-form-option-file" href={src} target="_blank" rel="noreferrer">
-        {media.alt || 'File'}
+        {media.alt || fileFallback}
       </a>
     )
   }
@@ -65,6 +72,7 @@ function initialFieldValues(fields: FormFieldDef[]): Record<string, string> {
 }
 
 export function FormWidget(props: FormWidgetProps) {
+  const t = useTranslations('product:forms')
   const [state, formAction, pending] = useActionState(submitFormAction, initialState)
   const formRef = React.useRef<HTMLFormElement>(null)
   const [values, setValues] = useState<Record<string, string>>(() =>
@@ -119,7 +127,9 @@ export function FormWidget(props: FormWidgetProps) {
       <div className="sf-form sf-form-success" data-sf-form={props.formKey} role="status">
         {props.heading ? <h3 className="sf-form-heading">{props.heading}</h3> : null}
         <p className="sf-form-success-message">{state.message || props.successMessage}</p>
-        {redirecting ? <p className="sf-form-success-redirect">Redirecting…</p> : null}
+        {redirecting ? (
+          <p className="sf-form-success-redirect">{t('redirecting')}</p>
+        ) : null}
       </div>
     )
   }
@@ -156,7 +166,7 @@ export function FormWidget(props: FormWidgetProps) {
       if (props.captcha.required && props.captcha.provider === 'turnstile' && !props.captcha.siteKey) {
         return (
           <p key={key} className="sf-form-error" role="alert">
-            Captcha is enabled but not configured. Submissions are blocked.
+            {t('captchaNotConfigured')}
           </p>
         )
       }
@@ -185,7 +195,7 @@ export function FormWidget(props: FormWidgetProps) {
         <label key={key} className="sf-form-field sf-form-field-file">
           <span>
             {field.label}
-            {required ? <abbr title="required">*</abbr> : null}
+            {required ? <abbr title={t('requiredAbbr')}>*</abbr> : null}
           </span>
           <input
             type="file"
@@ -228,7 +238,7 @@ export function FormWidget(props: FormWidgetProps) {
             />
             <span>
               {field.label}
-              {required ? <abbr title="required">*</abbr> : null}
+              {required ? <abbr title={t('requiredAbbr')}>*</abbr> : null}
             </span>
           </span>
           {field.description ? (
@@ -243,7 +253,7 @@ export function FormWidget(props: FormWidgetProps) {
         <label key={key} className="sf-form-field">
           <span>
             {field.label}
-            {required ? <abbr title="required">*</abbr> : null}
+            {required ? <abbr title={t('requiredAbbr')}>*</abbr> : null}
           </span>
           <select
             name={field.name}
@@ -253,7 +263,7 @@ export function FormWidget(props: FormWidgetProps) {
             onChange={(e) => setFieldValue(field.name, e.target.value)}
           >
             <option value="" disabled>
-              {field.placeholder || 'Select…'}
+              {field.placeholder || t('selectPlaceholder')}
             </option>
             {(field.options ?? []).map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -266,7 +276,7 @@ export function FormWidget(props: FormWidgetProps) {
               .filter((o) => o.media)
               .map((opt) => (
                 <li key={opt.value}>
-                  <OptionMedia option={opt} />
+                  <OptionMedia option={opt} fileFallback={t('fileFallback')} />
                   <span>{opt.label}</span>
                 </li>
               ))}
@@ -285,7 +295,7 @@ export function FormWidget(props: FormWidgetProps) {
         <fieldset key={key} className="sf-form-field sf-form-field-options">
           <legend>
             {field.label}
-            {required ? <abbr title="required">*</abbr> : null}
+            {required ? <abbr title={t('requiredAbbr')}>*</abbr> : null}
           </legend>
           <ul className="sf-form-options">
             {(field.options ?? []).map((opt) => (
@@ -309,7 +319,7 @@ export function FormWidget(props: FormWidgetProps) {
                       setFieldValue(field.name, [...next].join(','))
                     }}
                   />
-                  <OptionMedia option={opt} />
+                  <OptionMedia option={opt} fileFallback={t('fileFallback')} />
                   <span>{opt.label}</span>
                 </label>
               </li>
@@ -327,7 +337,7 @@ export function FormWidget(props: FormWidgetProps) {
         <label key={key} className="sf-form-field">
           <span>
             {field.label}
-            {required ? <abbr title="required">*</abbr> : null}
+            {required ? <abbr title={t('requiredAbbr')}>*</abbr> : null}
           </span>
           <textarea
             name={field.name}
@@ -369,7 +379,7 @@ export function FormWidget(props: FormWidgetProps) {
         <label key={key} className="sf-form-field">
           <span>
             {field.label}
-            {required ? <abbr title="required">*</abbr> : null}
+            {required ? <abbr title={t('requiredAbbr')}>*</abbr> : null}
           </span>
           <input
             type={inputType}
@@ -401,7 +411,7 @@ export function FormWidget(props: FormWidgetProps) {
       <label key={key} className="sf-form-field">
         <span>
           {field.label}
-          {required ? <abbr title="required">*</abbr> : null}
+          {required ? <abbr title={t('requiredAbbr')}>*</abbr> : null}
         </span>
         <input
           type={inputType}
@@ -457,7 +467,7 @@ export function FormWidget(props: FormWidgetProps) {
 
         <div className="sf-form-hp" aria-hidden="true">
           <label>
-            Website
+            {t('honeypotWebsite')}
             <input type="text" name="website" tabIndex={-1} autoComplete="off" defaultValue="" />
           </label>
         </div>
@@ -488,7 +498,7 @@ export function FormWidget(props: FormWidgetProps) {
         props.captcha.provider === 'turnstile' &&
         !props.captcha.siteKey ? (
           <p className="sf-form-error" role="alert">
-            Captcha is enabled but not configured. Submissions are blocked.
+            {t('captchaNotConfigured')}
           </p>
         ) : null}
 
@@ -499,7 +509,7 @@ export function FormWidget(props: FormWidgetProps) {
         ) : null}
 
         <button type="submit" className="sf-form-submit" disabled={pending}>
-          {pending ? 'Sending…' : props.submitLabel}
+          {pending ? t('sending') : props.submitLabel}
         </button>
       </form>
     </div>
