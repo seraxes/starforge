@@ -362,6 +362,15 @@ export function addFieldToRow(
         return { ...s, rows: [...s.rows, createRowDraft(fieldName)] }
       }
       const row = s.rows[rowIndex]!
+      const nextRows = [...s.rows]
+      // Empty drop row (+ row) → fill as a single 100% column (keep row id).
+      if (rowIsEmpty(row)) {
+        nextRows[rowIndex] = {
+          id: row.id,
+          columns: [{ fieldName, width: LAYOUT_WIDTH_FULL }],
+        }
+        return { ...s, rows: nextRows }
+      }
       const insertAt =
         index == null ? row.columns.length : Math.max(0, Math.min(row.columns.length, index))
       const columns = [
@@ -369,7 +378,6 @@ export function addFieldToRow(
         { fieldName, width: LAYOUT_WIDTH_MIN },
         ...row.columns.slice(insertAt),
       ]
-      const nextRows = [...s.rows]
       nextRows[rowIndex] = redistributeRowWidths({ ...row, columns })
       return { ...s, rows: nextRows }
     }),

@@ -38,6 +38,7 @@ import {
 import { FORM_CONDITION_OP_LABELS } from '@/core/forms/logic'
 import { listFormPresetMetas } from '@/core/forms/presets'
 import {
+  addFieldToRow,
   appendEmptyRowToSection,
   appendFieldRow,
   ensureFormSectionsEmptyRows,
@@ -50,7 +51,11 @@ import {
   sectionFieldNames,
   LAYOUT_WIDTH_FULL,
 } from '@/core/forms/rows'
-import { fieldsToJsonSchema, stringifyFormJsonSchema } from '@/core/forms/schema-json'
+import {
+  fieldsToJsonSchema,
+  isFormFieldType,
+  stringifyFormJsonSchema,
+} from '@/core/forms/schema-json'
 import { resizeAdjacentPair, widthToPercentLabel } from '@/core/modules/grid'
 import type {
   FormCondition,
@@ -75,6 +80,14 @@ import { useNotifySavedOnOk } from '../admin-toast'
 import { ParticleSettingsPopover } from '../layouts/particle-settings-popover'
 import { useAutosaveForm } from '../use-autosave-form'
 import { FormsAdminNav } from './forms-admin-nav'
+
+/** Palette → canvas row (HTML5 DnD, same idea as Layout particles). */
+const DND_FORM_FIELD = 'application/x-starforge-form-field'
+
+function dataTransferHasFormField(dt: DataTransfer | null): boolean {
+  if (!dt) return false
+  return Array.from(dt.types).includes(DND_FORM_FIELD) || Array.from(dt.types).includes('text/plain')
+}
 
 const FIELD_PALETTE: { type: FormFieldType; label: string; hint: string }[] = [
   { type: 'text', label: 'Text', hint: 'Single line' },
@@ -1067,8 +1080,13 @@ function FormColumnResizeHandle({
 const formRowCollision: CollisionDetection = (args) => {
   const hits = pointerWithin(args)
   if (hits.length > 0) {
+    // Prefer a row droppable when it is the only hit, or when every field hit is nested
+    // under that row — empty (+row) targets must win so placed fields can fill them.
+    const rowHit = hits.find((c) => String(c.id).startsWith('row:'))
     const fieldHit = hits.find((c) => !String(c.id).startsWith('row:'))
-    return fieldHit ? [fieldHit] : hits
+    if (rowHit && !fieldHit) return [rowHit]
+    if (fieldHit) return [fieldHit]
+    return hits
   }
   return closestCenter(args)
 }
@@ -1129,20 +1147,27 @@ function DraggableFieldBar(
   )
 }
 
-/** Row drop zone — highlight like Layout `.gantry-row.is-drop-target`. */
+/** Row drop zone — dnd-kit for placed fields + HTML5 for palette (Layout-like). */
 function DroppableFormRow({
   rowId,
   isDropTarget,
   isEmpty,
+  onPaletteDragOver,
+  onPaletteDragLeave,
+  onPaletteDrop,
   children,
 }: {
   rowId: string
   isDropTarget: boolean
   isEmpty?: boolean
+  onPaletteDragOver?: () => void
+  onPaletteDragLeave?: () => void
+  onPaletteDrop?: (fieldType: FormFieldType) => void
   children: React.ReactNode
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: rowDroppableId(rowId) })
-  const active = isDropTarget || isOver
+  const [paletteOver, setPaletteOver] = React.useState(false)
+  const active = isDropTarget || isOver || paletteOver
   return (
     <div
       ref={setNodeRef}
@@ -1156,6 +1181,30 @@ function DroppableFormRow({
         .join(' ')}
       data-sf-form-row={rowId}
       data-sf-empty={isEmpty ? 'true' : undefined}
+      onDragOver={(event) => {
+        if (!dataTransferHasFormField(event.dataTransfer)) return
+        event.preventDefault()
+        event.stopPropagation()
+        event.dataTransfer.dropEffect = 'copy'
+        if (!paletteOver) setPaletteOver(true)
+        onPaletteDragOver?.()
+      }}
+      onDragLeave={(event) => {
+        if (event.currentTarget.contains(event.relatedTarget as Node)) return
+        setPaletteOver(false)
+        onPaletteDragLeave?.()
+      }}
+      onDrop={(event) => {
+        if (!dataTransferHasFormField(event.dataTransfer)) return
+        event.preventDefault()
+        event.stopPropagation()
+        setPaletteOver(false)
+        const raw =
+          event.dataTransfer.getData(DND_FORM_FIELD) || event.dataTransfer.getData('text/plain')
+        const type = raw.trim()
+        if (!isFormFieldType(type)) return
+        onPaletteDrop?.(type)
+      }}
     >
       {children}
     </div>
@@ -1228,6 +1277,7 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
     useSensor(KeyboardSensor),
   )
   const [draggingFieldId, setDraggingFieldId] = useState<string | null>(null)
+  const [draggingPaletteType, setDraggingPaletteType] = useState<FormFieldType | null>(null)
   /** Pixel size of the field when drag started — keep overlay + source slot from shrinking. */
   const [dragLockSize, setDragLockSize] = useState<{
     width: number
@@ -1280,7 +1330,7 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
     saveDebounced()
   }
 
-  function addField(type: FormFieldType, sectionId?: string) {
+  function mintFieldDraft(type: FormFieldType): FormFieldDef {
     const draft = createFieldDraft(type)
     const names = new Set(fields.map((f) => f.name))
     let name = draft.name
@@ -1290,14 +1340,26 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
       n += 1
     }
     draft.name = name
+    return draft
+  }
+
+  function addField(type: FormFieldType, sectionId?: string) {
+    const draft = mintFieldDraft(type)
     const next = [...fields, draft]
     const targetSec = sectionId || sections[0]?.id
     if (!targetSec) {
       updateFields(next)
       return
     }
-    // Palette → fill open trailing empty drop row, else append a filled row.
+    // Click → fill open trailing empty drop row, else append a filled row.
     updateFields(next, appendFieldRow(sections, targetSec, draft.name))
+  }
+
+  /** Palette HTML5 drop onto a specific open/filled row. */
+  function addFieldOntoRow(type: FormFieldType, sectionId: string, rowId: string) {
+    if (!isFormFieldType(type)) return
+    const draft = mintFieldDraft(type)
+    updateFields([...fields, draft], addFieldToRow(sections, sectionId, rowId, draft.name))
   }
 
   function patchField(id: string, patch: Partial<FormFieldDef>) {
@@ -1640,20 +1702,41 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
               <ul className="gantry-palette-list">
                 {FIELD_PALETTE.map((item) => (
                   <li key={item.type}>
-                    <button
-                      type="button"
-                      className="gantry-palette-item"
+                    <div
+                      className={
+                        draggingPaletteType === item.type
+                          ? 'gantry-palette-item is-dragging'
+                          : 'gantry-palette-item'
+                      }
+                      draggable
+                      title={`${item.label} — click to append, or drag onto a row`}
+                      role="button"
+                      tabIndex={0}
                       onClick={() => addField(item.type)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault()
+                          addField(item.type)
+                        }
+                      }}
+                      onDragStart={(event) => {
+                        event.dataTransfer.setData(DND_FORM_FIELD, item.type)
+                        event.dataTransfer.setData('text/plain', item.type)
+                        event.dataTransfer.effectAllowed = 'copy'
+                        setDraggingPaletteType(item.type)
+                      }}
+                      onDragEnd={() => setDraggingPaletteType(null)}
                     >
                       <strong>{item.label}</strong>
                       <span>{item.hint}</span>
-                    </button>
+                    </div>
                   </li>
                 ))}
               </ul>
               <p className="layout-muted">
-                Click a field type to add a row. Use <strong>+ row</strong> for an empty drop zone,
-                then drag fields onto a row to sit side-by-side; resize with the divider.
+                Drag a field onto an open or filled row (or click to append). Use{' '}
+                <strong>+ row</strong> for an empty drop zone; resize side-by-side columns with the
+                divider.
               </p>
             </aside>
 
@@ -1734,15 +1817,40 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                           {section.rows.map((row) => {
                             const empty = rowIsEmpty(row)
                             const isDropTarget =
-                              Boolean(draggingFieldId) &&
-                              dropHint?.sectionId === section.id &&
-                              dropHint.rowId === row.id
+                              (Boolean(draggingFieldId) &&
+                                dropHint?.sectionId === section.id &&
+                                dropHint.rowId === row.id) ||
+                              (Boolean(draggingPaletteType) &&
+                                dropHint?.sectionId === section.id &&
+                                dropHint.kind === 'row' &&
+                                dropHint.rowId === row.id)
                             return (
                               <React.Fragment key={row.id}>
                                 <DroppableFormRow
                                   rowId={row.id}
                                   isDropTarget={isDropTarget}
                                   isEmpty={empty}
+                                  onPaletteDragOver={() =>
+                                    setDropHint({
+                                      sectionId: section.id,
+                                      kind: 'row',
+                                      rowId: row.id,
+                                    })
+                                  }
+                                  onPaletteDragLeave={() => {
+                                    setDropHint((prev) =>
+                                      prev?.sectionId === section.id &&
+                                      prev.kind === 'row' &&
+                                      prev.rowId === row.id
+                                        ? null
+                                        : prev,
+                                    )
+                                  }}
+                                  onPaletteDrop={(type) => {
+                                    setDropHint(null)
+                                    setDraggingPaletteType(null)
+                                    addFieldOntoRow(type, section.id, row.id)
+                                  }}
                                 >
                                   <div className="gantry-row-meta sf-form-row-meta">
                                     <span>

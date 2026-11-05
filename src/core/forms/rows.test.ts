@@ -130,6 +130,29 @@ describe('form row layout mutations', () => {
     assert.equal(cols[0]!.width, 50)
   })
 
+  it('addFieldToRow fills an open empty (+row) drop target as 100%', () => {
+    const opened = appendEmptyRowToSection(base, 'sec_main')
+    const emptyId = opened[0]!.rows[opened[0]!.rows.length - 1]!.id
+    const filled = addFieldToRow(opened, 'sec_main', emptyId, 'phone')
+    const row = filled[0]!.rows.find((r) => r.id === emptyId)
+    assert.ok(row)
+    assert.deepEqual(row!.columns, [{ fieldName: 'phone', width: 100 }])
+  })
+
+  it('moveFieldInSections fills an open empty drop row', () => {
+    const opened = appendEmptyRowToSection(base, 'sec_main')
+    const emptyId = opened[0]!.rows[opened[0]!.rows.length - 1]!.id
+    const next = moveFieldInSections(opened, 'email', {
+      sectionId: 'sec_main',
+      rowId: emptyId,
+      index: 0,
+    })
+    const row = next[0]!.rows.find((r) => r.id === emptyId)
+    assert.ok(row)
+    assert.deepEqual(row!.columns, [{ fieldName: 'email', width: 100 }])
+    assert.equal(next[0]!.rows.filter((r) => !rowIsEmpty(r)).length, 3)
+  })
+
   it('moveFieldInSections joins into target row', () => {
     const targetRow = base[0]!.rows[0]!.id
     const next = moveFieldInSections(base, 'email', {

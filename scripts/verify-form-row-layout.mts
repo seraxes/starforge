@@ -5,6 +5,7 @@ import assert from 'node:assert/strict'
 
 import { normalizeFormDefinitionDocument, normalizeFormSections } from '../src/core/forms/definition.ts'
 import {
+  addFieldToRow,
   appendEmptyRowToSection,
   moveFieldInSections,
   removeEmptyRowFromSection,
@@ -29,7 +30,27 @@ assert.ok(legacy[0]!.rows.every((r) => r.columns.length === 1 && r.columns[0]!.w
 
 const opened = appendEmptyRowToSection(legacy, 'sec_main')
 assert.ok(rowIsEmpty(opened[0]!.rows[3]!), '+ row opens trailing empty')
-const closed = removeEmptyRowFromSection(opened, 'sec_main', opened[0]!.rows[3]!.id)
+const emptyId = opened[0]!.rows[3]!.id
+
+// Palette-style drop onto open empty row.
+const fromPalette = addFieldToRow(opened, 'sec_main', emptyId, 'phone')
+assert.deepEqual(fromPalette[0]!.rows.find((r) => r.id === emptyId)?.columns, [
+  { fieldName: 'phone', width: 100 },
+])
+
+// Placed-field move onto a fresh open empty row.
+const reopen = appendEmptyRowToSection(legacy, 'sec_main')
+const reopenEmpty = reopen[0]!.rows[reopen[0]!.rows.length - 1]!.id
+const fromPlaced = moveFieldInSections(reopen, 'email', {
+  sectionId: 'sec_main',
+  rowId: reopenEmpty,
+  index: 0,
+})
+assert.deepEqual(fromPlaced[0]!.rows.find((r) => r.id === reopenEmpty)?.columns, [
+  { fieldName: 'email', width: 100 },
+])
+
+const closed = removeEmptyRowFromSection(opened, 'sec_main', emptyId)
 assert.equal(closed[0]!.rows.length, 3, '− row closes empty')
 
 const joined = moveFieldInSections(legacy, 'last', {
@@ -40,6 +61,14 @@ const joined = moveFieldInSections(legacy, 'last', {
 assert.equal(joined[0]!.rows[0]!.columns.length, 2)
 assert.equal(joined[0]!.rows[0]!.columns[0]!.width, 50)
 assert.equal(joined[0]!.rows[0]!.columns[1]!.width, 50)
+
+// Palette-style drop onto a filled row → even columns.
+const ontoFilled = addFieldToRow(joined, 'sec_main', joined[0]!.rows[0]!.id, 'phone')
+assert.equal(ontoFilled[0]!.rows[0]!.columns.length, 3)
+assert.equal(
+  ontoFilled[0]!.rows[0]!.columns.reduce((sum, c) => sum + c.width, 0),
+  100,
+)
 
 const resized = resizeRowColumns(joined, 'sec_main', joined[0]!.rows[0]!.id, 0, 66)
 assert.equal(resized[0]!.rows[0]!.columns[0]!.width, 66)

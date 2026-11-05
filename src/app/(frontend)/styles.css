@@ -2484,9 +2484,13 @@ button:disabled {
   background: color-mix(in srgb, var(--sf-primary) 18%, transparent);
 }
 
+.sf-form-builder-row-empty {
+  min-height: 5.5rem;
+}
+
 .sf-form-builder-row-empty .gantry-row-empty {
   flex: 1 1 auto;
-  min-height: 3.25rem;
+  min-height: 4.25rem;
 }
 
 .sf-form-row-end-actions,
