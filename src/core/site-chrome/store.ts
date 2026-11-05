@@ -7,12 +7,35 @@ import { DEFAULT_SITE_NAME } from '@/core/settings/defaults'
 
 import { applySiteChromeCookieAttributes } from './cookie-attrs'
 import { DEFAULT_SITE_CHROME } from './defaults'
-import { normalizeSiteChrome, parseSiteChromeJson, serializeSiteChrome } from './normalize'
+import {
+  normalizeSiteChrome,
+  parseSiteChromeJson,
+  serializeSiteChrome,
+  siteChromeDocumentNeedsLocaleHeal,
+} from './normalize'
 import type { SiteChromeDocument, SiteChromeLoadResult } from './types'
 
 function withCookieAttrs(chrome: SiteChromeDocument): SiteChromeDocument {
   applySiteChromeCookieAttributes(chrome)
-  return chrome
+  // Always re-normalize so stale cache / pre-i18n JSON never leaks missing keys.
+  return normalizeSiteChrome(chrome)
+}
+
+/** Persist locale-stub defaults when the stored document omitted those keys. */
+async function softHealLocaleFields(
+  documentJson: string,
+  chrome: SiteChromeDocument,
+): Promise<void> {
+  if (!siteChromeDocumentNeedsLocaleHeal(documentJson)) return
+  try {
+    const now = new Date()
+    await db
+      .update(sfSiteChrome)
+      .set({ document: serializeSiteChrome(chrome), updatedAt: now })
+      .where(eq(sfSiteChrome.id, SITE_CHROME_ID))
+  } catch {
+    // Soft heal must not block reads (table missing / race).
+  }
 }
 
 async function loadSiteChromeUncached(): Promise<SiteChromeLoadResult> {
@@ -26,8 +49,11 @@ async function loadSiteChromeUncached(): Promise<SiteChromeLoadResult> {
     if (row?.document?.trim()) {
       const parsed = parseSiteChromeJson(row.document)
       if (parsed) {
+        const chrome = withCookieAttrs(parsed)
+        // Fire-and-forget persist when pre-i18n rows lack localesEnabled/defaultLocale.
+        void softHealLocaleFields(row.document, chrome)
         return {
-          chrome: withCookieAttrs(parsed),
+          chrome,
           source: 'database',
           isFallback: false,
         }
@@ -138,7 +164,9 @@ export async function ensureSiteChromeSeeded(): Promise<{
     if (row?.document?.trim()) {
       const parsed = parseSiteChromeJson(row.document)
       if (parsed) {
-        return { created: false, chrome: withCookieAttrs(parsed) }
+        const chrome = withCookieAttrs(parsed)
+        void softHealLocaleFields(row.document, chrome)
+        return { created: false, chrome }
       }
     }
   } catch (error) {

@@ -131,8 +131,8 @@ export function SiteChromeForm({ chrome }: Props) {
           <code>/admin</code>) and Payload (<code>/cms</code>) stay unprefixed. Routing comes from
           the Core i18n port; Payload content locales and Site Chrome enable/disable toggles follow
           in later phases. Stored stub:{' '}
-          <code>{chrome.localesEnabled.join(', ')}</code> (default{' '}
-          <code>{chrome.defaultLocale}</code>).
+          <code>{(chrome.localesEnabled ?? []).join(', ')}</code> (default{' '}
+          <code>{chrome.defaultLocale ?? 'en'}</code>).
         </p>
         <p className="settings-flag-desc">
           Platform catalog:{' '}

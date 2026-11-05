@@ -22,7 +22,12 @@ export {
   isCaptchaProvider,
   isMailProvider,
 } from './defaults'
-export { normalizeSiteChrome, parseSiteChromeJson, serializeSiteChrome } from './normalize'
+export {
+  normalizeSiteChrome,
+  parseSiteChromeJson,
+  serializeSiteChrome,
+  siteChromeDocumentNeedsLocaleHeal,
+} from './normalize'
 export {
   SITE_OFFLINE_PATH,
   SITE_OFFLINE_RETRY_AFTER_SECONDS,
