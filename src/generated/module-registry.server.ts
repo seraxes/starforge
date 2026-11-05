@@ -85,6 +85,46 @@ export const moduleSettingsPanelLoaders: ModuleSettingsPanelLoader[] = [
   // (none)
 ]
 
+export type AdminDashboardWidgetLoader = {
+  moduleId: string
+  id: string
+  load: () => Promise<ComponentType<Record<string, unknown>> | ((...args: never[]) => ReactNode)>
+}
+
+/** Dashboard card bodies from allowlisted manifests (D0 host). */
+export const adminDashboardWidgetLoaders: AdminDashboardWidgetLoader[] = [
+  {
+    moduleId: "platform:dashboard",
+    id: "users.strip",
+    load: async () => (await import("@/core/dashboard/widgets/UsersStripWidget")).UsersStripWidget,
+  },
+  {
+    moduleId: "platform:dashboard",
+    id: "users.latest",
+    load: async () => (await import("@/core/dashboard/widgets/LatestUsersWidget")).LatestUsersWidget,
+  }
+]
+
+export type AdminDashboardStatsLoader = {
+  moduleId: string
+  id: string
+  load: () => Promise<unknown>
+}
+
+/** Optional Dashboard stats loaders (SSR numbers / soft refresh). */
+export const adminDashboardStatsLoaders: AdminDashboardStatsLoader[] = [
+  {
+    moduleId: "platform:dashboard",
+    id: "users.strip",
+    load: async () => (await import("@/core/dashboard/widgets/users-stats")).loadUsersStripStats,
+  },
+  {
+    moduleId: "platform:dashboard",
+    id: "users.latest",
+    load: async () => (await import("@/core/dashboard/widgets/users-stats")).loadLatestUsersStats,
+  }
+]
+
 export async function loadAllowlistedOptionalParticles(): Promise<StarforgeModule[]> {
   return Promise.all(optionalParticleLoaders.map((entry) => entry.load()))
 }

@@ -49,6 +49,11 @@ describe('resolveEnabledAdminNavModuleIds + Email contribution', () => {
       enabledModuleIds: enabled,
     })
     const ids = groups.map((g) => g.id)
+    assert.equal(ids[0], 'dashboard')
+    assert.equal(
+      groups.find((g) => g.id === 'dashboard')?.links[0]?.href,
+      '/admin',
+    )
     assert.ok(ids.includes('email'), `expected Email in ${ids.join(',')}`)
     assert.ok(ids.indexOf('forms') < ids.indexOf('email'))
     assert.ok(ids.indexOf('email') < ids.indexOf('redirects'))

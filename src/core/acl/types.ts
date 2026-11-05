@@ -7,6 +7,7 @@
 
 /** Admin-area resources for the Users → ACL permission matrix. */
 export const ACL_ADMIN_RESOURCES = [
+  { key: 'admin.dashboard', label: 'Dashboard' },
   { key: 'admin.users', label: 'Users — accounts' },
   { key: 'admin.groups', label: 'Users — groups' },
   { key: 'admin.settings', label: 'Settings (Modules)' },

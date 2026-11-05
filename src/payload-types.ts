@@ -598,6 +598,14 @@ export interface SiteSetting {
    */
   nullMissTtlSec?: number | null;
   /**
+   * Admin Dashboard soft-refresh interval in seconds (15–600). Prefer Starforge admin → Settings → Performance.
+   */
+  dashboardRefreshIntervalSec?: number | null;
+  /**
+   * Dashboard “online now” session activity window in minutes (5–120). Prefer Starforge admin → Settings → Performance.
+   */
+  dashboardOnlineWindowMin?: number | null;
+  /**
    * Legacy fallback only — prefer Nav manager + primaryNavMenuId.
    */
   primaryNav?:
@@ -666,6 +674,8 @@ export interface SiteSettingsSelect<T extends boolean = true> {
   publishedCacheEnabled?: T;
   publishedCacheTtlSec?: T;
   nullMissTtlSec?: T;
+  dashboardRefreshIntervalSec?: T;
+  dashboardOnlineWindowMin?: T;
   primaryNav?:
     | T
     | {

@@ -63,7 +63,7 @@ function filterNavByAcl(
 export default async function CoreAdminLayout(props: { children: React.ReactNode }) {
   const session = await getAppSession()
   if (!session?.user) {
-    redirect('/login?next=/admin/users')
+    redirect('/login?next=/admin')
   }
 
   // STARFORGE_ADMIN_EMAILS: promote matching member → admin on this request.

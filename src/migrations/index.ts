@@ -4,6 +4,7 @@ import * as migration_20261103_media_tags_sf148 from './20261103_media_tags_sf14
 import * as migration_20261103_media_categories_phase2 from './20261103_media_categories_phase2';
 import * as migration_20261103_locked_docs_categories_heal from './20261103_locked_docs_categories_heal';
 import * as migration_20261105_site_settings_performance_heal from './20261105_site_settings_performance_heal';
+import * as migration_20261105_site_settings_dashboard_knobs from './20261105_site_settings_dashboard_knobs';
 
 export const migrations = [
   {
@@ -35,5 +36,10 @@ export const migrations = [
     up: migration_20261105_site_settings_performance_heal.up,
     down: migration_20261105_site_settings_performance_heal.down,
     name: '20261105_site_settings_performance_heal',
+  },
+  {
+    up: migration_20261105_site_settings_dashboard_knobs.up,
+    down: migration_20261105_site_settings_dashboard_knobs.down,
+    name: '20261105_site_settings_dashboard_knobs',
   },
 ];

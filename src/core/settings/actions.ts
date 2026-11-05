@@ -7,6 +7,8 @@ import { invalidateSiteSettings } from '@/core/content/revalidate'
 import {
   MODULE_IDS,
   clampAdminAutosaveDebounceMs,
+  clampDashboardOnlineWindowMin,
+  clampDashboardRefreshIntervalSec,
   clampFormRateLimitMax,
   clampFormRateLimitWindowSec,
   clampNullMissTtlSec,
@@ -28,6 +30,8 @@ function performanceFieldsFrom(current: SiteSettingsData) {
     publishedCacheEnabled: current.publishedCacheEnabled,
     publishedCacheTtlSec: current.publishedCacheTtlSec,
     nullMissTtlSec: current.nullMissTtlSec,
+    dashboardRefreshIntervalSec: current.dashboardRefreshIntervalSec,
+    dashboardOnlineWindowMin: current.dashboardOnlineWindowMin,
   }
 }
 
@@ -194,6 +198,12 @@ export async function updatePerformanceSettingsAction(
     formData.get('publishedCacheTtlSec'),
   )
   const nullMissTtlSec = clampNullMissTtlSec(formData.get('nullMissTtlSec'))
+  const dashboardRefreshIntervalSec = clampDashboardRefreshIntervalSec(
+    formData.get('dashboardRefreshIntervalSec'),
+  )
+  const dashboardOnlineWindowMin = clampDashboardOnlineWindowMin(
+    formData.get('dashboardOnlineWindowMin'),
+  )
 
   try {
     await updateSiteSettings({
@@ -205,6 +215,8 @@ export async function updatePerformanceSettingsAction(
       publishedCacheEnabled,
       publishedCacheTtlSec,
       nullMissTtlSec,
+      dashboardRefreshIntervalSec,
+      dashboardOnlineWindowMin,
       keepLegacyPrimaryNav: true,
       features: current.features,
       moduleToggles: current.moduleToggles,

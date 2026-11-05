@@ -18,6 +18,8 @@ import {
   DEFAULT_FEATURE_FLAGS,
   DEFAULT_FORM_RATE_LIMIT_MAX,
   DEFAULT_FORM_RATE_LIMIT_WINDOW_SEC,
+  DEFAULT_DASHBOARD_ONLINE_WINDOW_MIN,
+  DEFAULT_DASHBOARD_REFRESH_INTERVAL_SEC,
   DEFAULT_NULL_MISS_TTL_SEC,
   DEFAULT_PRIMARY_NAV,
   DEFAULT_PRIMARY_NAV_MENU_ID,
@@ -26,6 +28,8 @@ import {
   DEFAULT_SITE_NAME,
   DEFAULT_SITE_SETTINGS,
   clampAdminAutosaveDebounceMs,
+  clampDashboardOnlineWindowMin,
+  clampDashboardRefreshIntervalSec,
   clampFormRateLimitMax,
   clampFormRateLimitWindowSec,
   clampNullMissTtlSec,
@@ -77,11 +81,19 @@ export {
   PUBLISHED_CACHE_TTL_SEC_MAX,
   PUBLISHED_CACHE_TTL_SEC_MIN,
   clampAdminAutosaveDebounceMs,
+  clampDashboardOnlineWindowMin,
+  clampDashboardRefreshIntervalSec,
   clampFormRateLimitMax,
   clampFormRateLimitWindowSec,
   clampNullMissTtlSec,
   clampPublishedCacheTtlSec,
   coercePublishedCacheEnabled,
+  DEFAULT_DASHBOARD_ONLINE_WINDOW_MIN,
+  DEFAULT_DASHBOARD_REFRESH_INTERVAL_SEC,
+  DASHBOARD_ONLINE_WINDOW_MIN_MAX,
+  DASHBOARD_ONLINE_WINDOW_MIN_MIN,
+  DASHBOARD_REFRESH_INTERVAL_SEC_MAX,
+  DASHBOARD_REFRESH_INTERVAL_SEC_MIN,
 } from './defaults'
 export {
   ATOM_TOGGLE_PREFIX,
@@ -133,6 +145,8 @@ type SiteSettingsDoc = {
   publishedCacheEnabled?: boolean | null
   publishedCacheTtlSec?: number | null
   nullMissTtlSec?: number | null
+  dashboardRefreshIntervalSec?: number | null
+  dashboardOnlineWindowMin?: number | null
   primaryNav?: RawNavRow[] | null
   featureRegistration?: boolean | null
   featureRichEditor?: boolean | null
@@ -183,6 +197,8 @@ export function normalizeSiteSettings(
       publishedCacheEnabled: DEFAULT_PUBLISHED_CACHE_ENABLED,
       publishedCacheTtlSec: DEFAULT_PUBLISHED_CACHE_TTL_SEC,
       nullMissTtlSec: DEFAULT_NULL_MISS_TTL_SEC,
+      dashboardRefreshIntervalSec: DEFAULT_DASHBOARD_REFRESH_INTERVAL_SEC,
+      dashboardOnlineWindowMin: DEFAULT_DASHBOARD_ONLINE_WINDOW_MIN,
       moduleToggles: {},
     }
     syncPublishedCacheRuntime(defaults)
@@ -203,6 +219,10 @@ export function normalizeSiteSettings(
     publishedCacheEnabled: coercePublishedCacheEnabled(doc.publishedCacheEnabled),
     publishedCacheTtlSec: clampPublishedCacheTtlSec(doc.publishedCacheTtlSec),
     nullMissTtlSec: clampNullMissTtlSec(doc.nullMissTtlSec),
+    dashboardRefreshIntervalSec: clampDashboardRefreshIntervalSec(
+      doc.dashboardRefreshIntervalSec,
+    ),
+    dashboardOnlineWindowMin: clampDashboardOnlineWindowMin(doc.dashboardOnlineWindowMin),
     primaryNav: resolvedNav ?? resolveNavItems(doc.primaryNav),
     features: normalizeFlags(doc),
     moduleToggles: normalizeModuleToggles(doc.moduleToggles),
@@ -332,6 +352,10 @@ export type UpdateSiteSettingsInput = {
   publishedCacheTtlSec?: number
   /** Redis null-miss TTL seconds. */
   nullMissTtlSec?: number
+  /** Dashboard soft-refresh interval (seconds). */
+  dashboardRefreshIntervalSec?: number
+  /** Online-now session window (minutes). */
+  dashboardOnlineWindowMin?: number
   /**
    * Legacy: resolved public nav (label + href) — written as custom-URL rows.
    * Prefer Nav manager (`sf_nav_menus`) + `primaryNavMenuId`.
@@ -394,6 +418,16 @@ export async function updateSiteSettings(input: UpdateSiteSettingsInput): Promis
   }
   if (input.nullMissTtlSec !== undefined) {
     data.nullMissTtlSec = clampNullMissTtlSec(input.nullMissTtlSec)
+  }
+  if (input.dashboardRefreshIntervalSec !== undefined) {
+    data.dashboardRefreshIntervalSec = clampDashboardRefreshIntervalSec(
+      input.dashboardRefreshIntervalSec,
+    )
+  }
+  if (input.dashboardOnlineWindowMin !== undefined) {
+    data.dashboardOnlineWindowMin = clampDashboardOnlineWindowMin(
+      input.dashboardOnlineWindowMin,
+    )
   }
 
   if (!input.keepLegacyPrimaryNav) {
