@@ -63,6 +63,6 @@ export interface Mailer {
 export type MailerFactoryOptions = {
   enabled: boolean
   provider: MailProvider
-  /** Site Chrome default From. */
-  from: string
+  /** Site Chrome default From (may be missing on older/cached chrome). */
+  from?: string | null
 }

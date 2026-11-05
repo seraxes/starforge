@@ -135,8 +135,19 @@ assert.doesNotMatch(
 
 const rulesPage = read('src/modules/email-manager/admin/EmailRulesPage.tsx')
 assert.match(rulesPage, /admin-section admin-layouts-full/)
+assert.match(rulesPage, /getMailerInfo/)
 
 const templatesPage = read('src/modules/email-manager/admin/EmailTemplatesPage.tsx')
 assert.match(templatesPage, /admin-section admin-layouts-full/)
+
+// /admin/email calls getMailerInfo → resolveFrom; chromeFrom may be undefined.
+const resolveFromSrc = read('src/core/mail/resolve-from.ts')
+assert.match(
+  resolveFromSrc,
+  /\(chromeFrom\s*\?\?\s*['"]{2}\)\s*\.trim\(\)/,
+  'resolveFrom must guard chromeFrom before trim (Site Chrome From can be missing)',
+)
+const mailIndex = read('src/core/mail/index.ts')
+assert.match(mailIndex, /from ['"]\.\/resolve-from['"]/)
 
 console.log('verify:email-manager OK')

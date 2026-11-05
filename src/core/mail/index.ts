@@ -5,6 +5,7 @@ import { getSiteChrome } from '@/core/site-chrome'
 import { createConsoleMailer } from './console'
 import { createDisabledMailer } from './disabled'
 import { createResendMailer } from './resend'
+import { resolveFrom } from './resolve-from'
 import { createSmtpMailer } from './smtp'
 import type {
   Mailer,
@@ -27,12 +28,7 @@ export type {
   MailProvider,
   MailSendResult,
 } from './types'
-
-function resolveFrom(chromeFrom: string): string {
-  const chrome = chromeFrom.trim()
-  if (chrome) return chrome
-  return (process.env.STARFORGE_MAIL_FROM ?? '').trim()
-}
+export { resolveFrom } from './resolve-from'
 
 /**
  * Build a Mailer from explicit options (tests / callers that already loaded Chrome).
