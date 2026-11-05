@@ -182,7 +182,7 @@ export function clampNullMissTtlSec(raw: unknown): number {
 
 /**
  * Dashboard soft-refresh interval (seconds). Site Settings → Performance.
- * D0 exposes the setting; client poll / RSC refresh wiring is D4.
+ * `/admin` client poll / `router.refresh` honors this knob (D4).
  */
 export const DEFAULT_DASHBOARD_REFRESH_INTERVAL_SEC = 60
 export const DASHBOARD_REFRESH_INTERVAL_SEC_MIN = 15
