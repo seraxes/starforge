@@ -4429,35 +4429,24 @@ button.danger,
   margin-top: 0.75rem;
 }
 
+/* Dashboard cards reuse Page Settings panel chrome (mosaic + head/body). */
 .sf-dashboard-card {
   margin: 0;
   min-width: 0;
-  background: var(--sf-admin-panel-bg, rgba(12, 24, 48, 0.55));
-  border: 1px solid var(--sf-admin-border, rgba(120, 170, 230, 0.35));
-  border-radius: 2px;
-  padding: 0;
   display: flex;
   flex-direction: column;
 }
 
+.sf-dashboard-card.page-settings-panel-wide,
 .sf-dashboard-card-lg {
   grid-column: 1 / -1;
 }
 
-.sf-dashboard-card-head {
-  padding: 0.65rem 0.85rem;
-  border-bottom: 1px solid var(--sf-admin-border, rgba(120, 170, 230, 0.28));
-}
-
 .sf-dashboard-card-head h3 {
   margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #fff;
 }
 
 .sf-dashboard-card-body {
-  padding: 0.85rem;
   flex: 1;
 }
 
@@ -4465,6 +4454,63 @@ button.danger,
   margin: 0;
   opacity: 0.7;
   font-size: 1.25rem;
+}
+
+/* Soft placeholders — compact intentional copy, not empty padded junk. */
+.sf-dashboard-placeholder {
+  margin: 0;
+}
+
+.sf-dashboard-placeholder-status {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #fff;
+  opacity: 0.9;
+}
+
+.sf-dashboard-placeholder-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+  opacity: 0.75;
+}
+
+.sf-dashboard-placeholder-rows {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem 1rem;
+  margin: 0.75rem 0 0;
+}
+
+@media (max-width: 520px) {
+  .sf-dashboard-placeholder-rows {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.sf-dashboard-placeholder-row {
+  margin: 0;
+  min-width: 0;
+}
+
+.sf-dashboard-placeholder-row dt {
+  margin: 0 0 0.15rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+}
+
+.sf-dashboard-placeholder-row dd {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #fff;
+  opacity: 0.85;
+}
+
+.sf-dashboard-placeholder[data-status='module-disabled'] .sf-dashboard-placeholder-status {
+  opacity: 0.75;
 }
 
 .sf-dashboard-strip-grid {

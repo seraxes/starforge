@@ -24,7 +24,7 @@ export const metadata = {
   description: 'Starforge admin Dashboard — site performance at a glance.',
 }
 
-/** Starforge Dashboard (D0) — canonical URL `/admin` (Payload at `/cms/admin`). */
+/** Starforge Dashboard — canonical URL `/admin` (Payload at `/cms/admin`). */
 export default async function CoreAdminDashboardPage() {
   const settings = await ensureSiteSettingsDefaults()
   const viewer = await getAccessViewer()
@@ -36,6 +36,8 @@ export default async function CoreAdminDashboardPage() {
     isCatalogModuleEnabled(settings, moduleId),
   )
 
+  // Also mark modules that contribute widgets but are catalog-off so soft
+  // shells still resolve (Media required stays on; Email can toggle off).
   const widgets = resolveDashboardWidgets({
     enabledModuleIds,
     allowedAreas: allowed,
@@ -52,7 +54,8 @@ export default async function CoreAdminDashboardPage() {
         </div>
         <div className="page-settings-panel-body">
           <p className="lede admin-lede">
-            Site performance at a glance. Cards appear when their module is enabled under{' '}
+            Site performance at a glance. Module cards use soft placeholders (“—” / Coming soon /
+            Module disabled) when data is not wired or the pack is off under{' '}
             <Link href={`${CORE_ADMIN_ROOT}/settings`}>Settings → Modules</Link>. Payload CMS:{' '}
             <Link href={PAYLOAD_ADMIN_ROOT}>{PAYLOAD_ADMIN_ROOT}</Link>.
           </p>
@@ -77,13 +80,6 @@ export default async function CoreAdminDashboardPage() {
           other widgets.
         </p>
       )}
-
-      {widgets.length > 0 &&
-      widgets.every((w) => w.moduleId === 'platform:dashboard') ? (
-        <p className="sf-dashboard-empty-hint">
-          More cards appear when product modules (Media, Email, …) are enabled.
-        </p>
-      ) : null}
     </section>
   )
 }

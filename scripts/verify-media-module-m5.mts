@@ -68,6 +68,10 @@ const manifest = read('src/modules/media/manifest.ts')
 assert.match(manifest, /id: 'product:media'/)
 assert.match(manifest, /required: true/)
 assert.match(manifest, /navGroup/)
+assert.match(manifest, /dashboard:\s*\[/)
+assert.match(manifest, /id: 'media\.counts'/)
+mustExist('src/modules/media/dashboard/MediaCountsWidget.tsx')
+mustExist('src/modules/media/dashboard/media-stats.ts')
 
 // Consumers bind via module api (not Core-hosted picker)
 for (const rel of [

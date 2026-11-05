@@ -4,8 +4,12 @@ import type { AclAdminResourceKey } from '@/core/acl/types'
 import type { DashboardWidgetSize, ResolvedDashboardWidget } from './types'
 
 export type ResolveDashboardWidgetsOptions = {
-  /** Module ids with Site Settings toggle on (or required). */
-  enabledModuleIds?: ReadonlySet<string> | readonly string[]
+  /**
+   * Module ids with Site Settings toggle on (or required).
+   * When provided, widgets from other modules still resolve but with
+   * `moduleEnabled: false` (soft “Module disabled” shell). Omit / null → all on.
+   */
+  enabledModuleIds?: ReadonlySet<string> | readonly string[] | null
   /**
    * When set, drop widgets whose `area` maps to an ACL resource the viewer
    * lacks. App admins pass `null` (no filter). Omit area → `admin.dashboard`.
@@ -34,8 +38,12 @@ function normalizeSize(size: string | undefined): DashboardWidgetSize {
 }
 
 /**
- * Merge generated `admin.dashboard[]` contributions — filter by module toggle
- * + ACL. No product `if (flags.media)` in Core UI.
+ * Merge generated `admin.dashboard[]` contributions — ACL filter + soft
+ * module-off shells. No product `if (flags.media)` in Core UI.
+ *
+ * Module toggle off → card still resolves with `moduleEnabled: false` so the
+ * host can show “Module disabled” instead of hiding into empty padded gaps.
+ * Pass `enabledModuleIds: null` / omit to treat every contribution as enabled.
  */
 export function resolveDashboardWidgets(
   options: ResolveDashboardWidgetsOptions = {},
@@ -44,7 +52,6 @@ export function resolveDashboardWidgets(
   const allowed = options.allowedAreas
 
   return adminDashboardContributions
-    .filter((entry) => (enabled ? enabled.has(entry.moduleId) : true))
     .filter((entry) => {
       if (allowed == null) return true
       const key = dashboardAreaToAclKey(entry.area)
@@ -63,6 +70,7 @@ export function resolveDashboardWidgets(
       title: entry.title,
       order: entry.order,
       size: normalizeSize(entry.size),
+      moduleEnabled: enabled ? enabled.has(entry.moduleId) : true,
       ...(entry.area ? { area: entry.area } : {}),
     }))
 }

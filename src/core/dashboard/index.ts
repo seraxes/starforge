@@ -27,3 +27,7 @@ export {
   loadUsersStripStats,
 } from './widgets/users-stats'
 export { LATEST_USERS_LIMIT, NEW_USER_WINDOW_DAYS } from './widgets/users-metric-windows'
+export {
+  DashboardSoftPlaceholder,
+  type DashboardSoftPlaceholderStatus,
+} from './widgets/DashboardSoftPlaceholder'

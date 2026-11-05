@@ -102,6 +102,16 @@ export const adminDashboardWidgetLoaders: AdminDashboardWidgetLoader[] = [
     moduleId: "platform:dashboard",
     id: "users.latest",
     load: async () => (await import("@/core/dashboard/widgets/LatestUsersWidget")).LatestUsersWidget,
+  },
+  {
+    moduleId: "product:email-manager",
+    id: "email.sent",
+    load: async () => (await import("@/modules/email-manager/dashboard/EmailSentWidget")).EmailSentWidget,
+  },
+  {
+    moduleId: "product:media",
+    id: "media.counts",
+    load: async () => (await import("@/modules/media/dashboard/MediaCountsWidget")).MediaCountsWidget,
   }
 ]
 
@@ -122,6 +132,16 @@ export const adminDashboardStatsLoaders: AdminDashboardStatsLoader[] = [
     moduleId: "platform:dashboard",
     id: "users.latest",
     load: async () => (await import("@/core/dashboard/widgets/users-stats")).loadLatestUsersStats,
+  },
+  {
+    moduleId: "product:email-manager",
+    id: "email.sent",
+    load: async () => (await import("@/modules/email-manager/dashboard/email-stats")).loadEmailSentStats,
+  },
+  {
+    moduleId: "product:media",
+    id: "media.counts",
+    load: async () => (await import("@/modules/media/dashboard/media-stats")).loadMediaCountsStats,
   }
 ]
 
