@@ -1114,21 +1114,37 @@ function parseRowDroppableId(id: string | number): string | null {
 /**
  * Draggable field — stays in its row during drag (opacity only).
  * Avoids useSortable live-reorder, which emptied / hid the drop-target row.
+ * While dragging, lock to the measured pixel width so the slot does not shrink.
  */
 function DraggableFieldBar(
-  props: FieldSettingsProps & { dropEdge?: 'before' | 'after' | null },
+  props: FieldSettingsProps & {
+    dropEdge?: 'before' | 'after' | null
+    /** Locked pixel size while this field is the active drag. */
+    dragLockSize?: { width: number; height: number } | null
+  },
 ) {
   const id = fieldKey(props.field)
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id })
   const pct = props.widthPercent ?? LAYOUT_WIDTH_FULL
   const edge = props.dropEdge ?? null
-  const style: React.CSSProperties = {
-    opacity: isDragging ? 0.45 : 1,
-    flex: `${pct} 1 0`,
-    minWidth: 0,
-    maxWidth: '100%',
-    boxSizing: 'border-box',
-  }
+  const lock = isDragging ? props.dragLockSize : null
+  const style: React.CSSProperties = lock
+    ? {
+        opacity: 0.45,
+        flex: `0 0 ${lock.width}px`,
+        width: lock.width,
+        minWidth: lock.width,
+        maxWidth: lock.width,
+        height: lock.height,
+        boxSizing: 'border-box',
+      }
+    : {
+        opacity: 1,
+        flex: `${pct} 1 0`,
+        minWidth: 0,
+        maxWidth: '100%',
+        boxSizing: 'border-box',
+      }
 
   return (
     <FieldBar
@@ -1242,6 +1258,12 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
     useSensor(KeyboardSensor),
   )
   const [draggingFieldId, setDraggingFieldId] = useState<string | null>(null)
+  /** Pixel size of the field when drag started — keep overlay + source slot from shrinking. */
+  const [dragLockSize, setDragLockSize] = useState<{
+    width: number
+    height: number
+    widthPercent: number
+  } | null>(null)
   const [dropHint, setDropHint] = useState<{
     sectionId: string
     kind: 'row' | 'field'
@@ -1402,12 +1424,28 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
 
   function clearFieldDragUi() {
     setDraggingFieldId(null)
+    setDragLockSize(null)
     setDropHint(null)
   }
 
-  function onFieldDragStart(event: DragStartEvent) {
-    setDraggingFieldId(String(event.active.id))
+  function onFieldDragStart(event: DragStartEvent, sectionId: string) {
+    const id = String(event.active.id)
+    setDraggingFieldId(id)
     setDropHint(null)
+    const rect = event.active.rect.current.initial
+    const section = sections.find((s) => s.id === sectionId)
+    const placement = section ? findFieldPlacement(section, id) : null
+    const widthPercent =
+      placement?.row.columns[placement.colIndex]?.width ?? LAYOUT_WIDTH_FULL
+    if (rect && rect.width > 0) {
+      setDragLockSize({
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
+        widthPercent,
+      })
+    } else {
+      setDragLockSize(null)
+    }
   }
 
   function onFieldDragOver(event: DragOverEvent, sectionId: string) {
@@ -1737,7 +1775,7 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                           id={`form-section-${section.id}`}
                           sensors={sensors}
                           collisionDetection={formRowCollision}
-                          onDragStart={onFieldDragStart}
+                          onDragStart={(e) => onFieldDragStart(e, section.id)}
                           onDragOver={(e) => onFieldDragOver(e, section.id)}
                           onDragCancel={clearFieldDragUi}
                           onDragEnd={(e) => onDragEnd(e, section.id)}
@@ -1816,6 +1854,14 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                                         fields={fields}
                                         widthPercent={col.width}
                                         dropEdge={edge}
+                                        dragLockSize={
+                                          draggingFieldId === id && dragLockSize
+                                            ? {
+                                                width: dragLockSize.width,
+                                                height: dragLockSize.height,
+                                              }
+                                            : null
+                                        }
                                         canSplit={row.columns.length > 1}
                                         canJoinNext={
                                           row.columns.length === 1 &&
@@ -1881,12 +1927,21 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                             )
                           })}
                           <DragOverlay dropAnimation={null}>
-                            {overlayField ? (
-                              <div className="sf-form-drag-overlay">
+                            {overlayField && dragLockSize ? (
+                              <div
+                                className="sf-form-drag-overlay"
+                                style={{
+                                  width: dragLockSize.width,
+                                  minWidth: dragLockSize.width,
+                                  maxWidth: dragLockSize.width,
+                                  height: dragLockSize.height,
+                                  boxSizing: 'border-box',
+                                }}
+                              >
                                 <FieldBar
                                   field={overlayField}
                                   fields={fields}
-                                  widthPercent={LAYOUT_WIDTH_FULL}
+                                  widthPercent={dragLockSize.widthPercent}
                                   onPatch={() => {}}
                                   onRename={() => {}}
                                   onPatchConstraints={() => {}}
@@ -1896,7 +1951,14 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                                   saveNow={() => {}}
                                   flushOnBlur={() => {}}
                                   siteCaptcha={siteCaptcha}
-                                  style={{ width: '16rem', maxWidth: '80vw' }}
+                                  style={{
+                                    width: '100%',
+                                    minWidth: '100%',
+                                    maxWidth: '100%',
+                                    height: '100%',
+                                    boxSizing: 'border-box',
+                                    margin: 0,
+                                  }}
                                 />
                               </div>
                             ) : null}

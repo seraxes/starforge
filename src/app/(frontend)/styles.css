@@ -2505,6 +2505,14 @@ button:disabled {
   box-shadow: 0 8px 24px color-mix(in srgb, var(--sf-ink, #0b1c2c) 28%, transparent);
 }
 
+.sf-form-drag-overlay .gantry-slot.sf-form-slot {
+  width: 100%;
+  max-width: 100%;
+  min-width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
 .sf-form-row-meta {
   margin-bottom: 0.35rem;
 }
