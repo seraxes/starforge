@@ -25,6 +25,9 @@ mustExist('src/modules/email-manager/engine.ts')
 mustExist('src/modules/email-manager/store.ts')
 mustExist('src/modules/email-manager/admin/EmailRulesPage.tsx')
 mustExist('src/modules/email-manager/admin/EmailTemplatesPage.tsx')
+mustExist('src/modules/email-manager/admin/EmailSendsPage.tsx')
+mustExist('src/modules/email-manager/admin/email-sends-list.tsx')
+mustExist('src/modules/email-manager/list-sends.ts')
 mustExist('src/core/db/migrations/0002_email_manager.sql')
 mustExist('src/core/db/migrations/0003_email_send_log.sql')
 mustExist('src/modules/email-manager/send-log.ts')
@@ -34,6 +37,9 @@ const manifest = read('src/modules/email-manager/manifest.ts')
 assert.match(manifest, /id: 'product:email-manager'/)
 assert.match(manifest, /path: 'email'/)
 assert.match(manifest, /path: 'email\/templates'/)
+assert.match(manifest, /path: 'email\/sends'/)
+assert.match(manifest, /label: 'Sends'/)
+assert.match(manifest, /href: '\/admin\/email\/sends'/)
 
 const allowlist = read('starforge.modules.json')
 assert.match(allowlist, /product:email-manager/)
@@ -48,6 +54,9 @@ const templatesShim = read(
   'src/app/(frontend)/admin/(modules)/email/templates/page.tsx',
 )
 assert.match(templatesShim, /@\/modules\/email-manager\/admin\/EmailTemplatesPage/)
+
+const sendsShim = read('src/app/(frontend)/admin/(modules)/email/sends/page.tsx')
+assert.match(sendsShim, /@\/modules\/email-manager\/admin\/EmailSendsPage/)
 
 const api = read('src/modules/email-manager/api.ts')
 assert.match(api, /FORM_SUBMITTED_TRIGGER/)
@@ -149,6 +158,43 @@ assert.match(rulesPage, /getMailerInfo/)
 
 const templatesPage = read('src/modules/email-manager/admin/EmailTemplatesPage.tsx')
 assert.match(templatesPage, /admin-section admin-layouts-full/)
+
+const sendsPage = read('src/modules/email-manager/admin/EmailSendsPage.tsx')
+assert.match(sendsPage, /admin-section admin-layouts-full/)
+assert.match(sendsPage, /listRecentEmailSends/)
+assert.match(sendsPage, /getMailerInfo/)
+
+const sendsUi = read('src/modules/email-manager/admin/email-sends-list.tsx')
+assert.match(sendsUi, /admin-settings-mosaic/)
+assert.match(sendsUi, /outlines-create/)
+assert.match(sendsUi, /outlines-table-wrap admin-settings-panel-wide/)
+assert.match(sendsUi, /outlines-table/)
+assert.match(sendsUi, /admin-empty/)
+assert.match(sendsUi, /No sends logged yet/)
+assert.match(sendsUi, />When</)
+assert.match(sendsUi, />To</)
+assert.match(sendsUi, />Type</)
+assert.match(sendsUi, />Status</)
+assert.match(sendsUi, />Title</)
+assert.doesNotMatch(
+  sendsUi,
+  /page-settings-panel(?!-)/,
+  'sends UI must use outlines-create head strip, not bare page-settings-panel',
+)
+assert.doesNotMatch(
+  sendsUi,
+  /admin-table-wrap/,
+  'sends list must not nest admin-table-wrap inside outlines-table-wrap',
+)
+
+const emailNav = read('src/modules/email-manager/admin/email-admin-nav.tsx')
+assert.match(emailNav, /id: 'sends'/)
+assert.match(emailNav, /href: '\/admin\/email\/sends'/)
+
+const listSends = read('src/modules/email-manager/list-sends.ts')
+assert.match(listSends, /listRecentEmailSends/)
+assert.match(listSends, /sfEmailSends/)
+assert.match(listSends, /unavailable/)
 
 // /admin/email calls getMailerInfo → resolveFrom; chromeFrom may be undefined.
 const resolveFromSrc = read('src/core/mail/resolve-from.ts')

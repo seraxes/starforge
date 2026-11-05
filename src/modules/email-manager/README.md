@@ -24,5 +24,6 @@ Thin `sf_email_sends` rows are written on every Core Mailer send (success / fail
 
 - `/admin/email` — rules (filter by module category)
 - `/admin/email/templates` — templates + test send
+- `/admin/email/sends` — recent send log (when / to / type / status / title)
 
 Toggle under **Settings → Modules**. Auth recovery Mailer paths stay direct in v1 (triggers are registered for later).
