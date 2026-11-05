@@ -34,7 +34,7 @@ export type AdminSidebarNavVariant = 'shell' | 'embedded'
  * Accordion carets are CSS SVG backgrounds on empty spans (theme core-chrome) —
  * keep markup empty so they never double with unicode or inline SVG.
  *
- * - `shell` — full sticky aside (Core `/app/admin`)
+ * - `shell` — full sticky aside (Core `/admin`)
  * - `embedded` — fill Payload `NavWrapper` aside (no nested sticky rail)
  *
  * Remounts on pathname change (inner `key`) so active groups open and mobile
@@ -124,7 +124,7 @@ function AdminSidebarNavInner({
             const expandable = groupIsExpandable(group)
             const isActive = activeIds.has(group.id)
             // Active groups always show children — collapsing the current section
-            // made Media look like a flat highlighted leaf on /app/admin/media.
+            // made Media look like a flat highlighted leaf on /admin/media.
             const isOpen = expandable ? openIds.has(group.id) || isActive : true
             const primary = group.links[0]
 

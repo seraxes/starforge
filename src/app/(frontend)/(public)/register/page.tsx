@@ -27,7 +27,7 @@ export default async function RegisterPage() {
           <p className="lede">
             New app accounts are turned off in site settings (feature toggle). Existing users can{' '}
             <Link href="/login">sign in</Link>. Core admins can re-enable registration at{' '}
-            <Link href="/app/admin/settings/auth">/app/admin/settings/auth</Link>.
+            <Link href="/admin/settings/auth">/admin/settings/auth</Link>.
           </p>
           <p className="auth-switch">
             <Link href="/">Back to home</Link>
@@ -49,7 +49,7 @@ export default async function RegisterPage() {
           registering you can enable authenticator 2FA under{' '}
           <Link href="/account/security">Account security</Link>. CMS access is granted
           separately by an admin (one login still — no second password at{' '}
-          <Link href="/admin">/admin</Link>).
+          <Link href="/cms/admin">/cms/admin</Link>).
         </p>
         <RegisterForm captcha={captcha} />
         <p className="auth-switch">

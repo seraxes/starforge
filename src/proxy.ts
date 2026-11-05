@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+import { isPayloadAdminPath, PAYLOAD_ADMIN_BASE } from '@/core/admin-paths'
 import { auth } from '@/core/auth'
 import { userIsAppAdmin } from '@/core/auth/admin'
 import {
@@ -47,8 +48,8 @@ function withPathnameHeader(request: NextRequest, pathname: string): NextRespons
 
 function isRedirectLookupExemptPath(pathname: string): boolean {
   if (pathname.startsWith('/api/')) return true
+  if (pathname.startsWith('/cms')) return true
   if (pathname.startsWith('/admin')) return true
-  if (pathname.startsWith('/app/')) return true
   if (pathname.startsWith('/_next/')) return true
   if (pathname === '/sitemap.xml' || pathname.startsWith('/sitemap')) return true
   if (pathname === '/robots.txt') return true
@@ -127,62 +128,63 @@ async function maybeRewriteOffline(request: NextRequest): Promise<NextResponse |
 /**
  * Next.js 16 Node `proxy` (replaces deprecated Edge `middleware`).
  *
- * Public + app: redirects → offline 503 → pathname header + feature CSP.
- * Policy reads are in-process through PublishedContentCache (layout/nav/chrome
- * already cached; CSP sources under `sf:proxy-policy`). Legacy
- * `/api/redirects/lookup`, `/api/site-chrome/offline-gate`, and
- * `/api/security/csp-sources` remain for debugging but are unused here.
- *
- * Leftover (design-data-deploy §4–5 / design-security §4): optional single
- * aggregated security-policy document + redirect-map cache at volume;
- * CSP report-only → enforce cycle.
+ * Public + Core `/admin`: redirects → offline 503 → pathname header + feature CSP.
+ * Payload `/cms/admin`: Better Auth + payload-token exchange gate.
  */
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl
 
-  if (!pathname.startsWith('/admin') && !pathname.startsWith('/api')) {
-    const redirected = await maybeRedirect(request)
-    if (redirected) return redirected
-    const cspSources = await getCachedFeatureCspSources().catch(() => ({} as CspSources))
-    const offline = await maybeRewriteOffline(request)
-    if (offline) return finalize(offline, cspSources)
-    return finalize(withPathnameHeader(request, pathname), cspSources)
-  }
+  // Payload CMS admin — SSO exchange gate (not Core `/admin`).
+  if (isPayloadAdminPath(pathname)) {
+    const ba = hasBetterAuthSession(request)
+    const token = hasPayloadToken(request)
+    const nextPath = `${pathname}${search || ''}`
+    const loginDest = new URL(
+      `/login?next=${encodeURIComponent(
+        nextPath.startsWith(`${PAYLOAD_ADMIN_BASE}/login`) ? PAYLOAD_ADMIN_BASE : nextPath,
+      )}`,
+      request.url,
+    )
+    const exchangeDest = new URL(
+      `/api/cms/exchange?next=${encodeURIComponent(
+        pathname.startsWith(`${PAYLOAD_ADMIN_BASE}/login`) ||
+          pathname.startsWith(`${PAYLOAD_ADMIN_BASE}/create-first-user`)
+          ? PAYLOAD_ADMIN_BASE
+          : nextPath,
+      )}`,
+      request.url,
+    )
 
-  if (!pathname.startsWith('/admin')) {
+    if (!ba) {
+      return finalize(NextResponse.redirect(loginDest))
+    }
+
+    if (
+      pathname === `${PAYLOAD_ADMIN_BASE}/login` ||
+      pathname.startsWith(`${PAYLOAD_ADMIN_BASE}/login/`) ||
+      pathname === `${PAYLOAD_ADMIN_BASE}/create-first-user` ||
+      pathname.startsWith(`${PAYLOAD_ADMIN_BASE}/create-first-user/`)
+    ) {
+      return finalize(NextResponse.redirect(exchangeDest))
+    }
+
+    if (!token) {
+      return finalize(NextResponse.redirect(exchangeDest))
+    }
+
     return finalize(NextResponse.next())
   }
 
-  const ba = hasBetterAuthSession(request)
-  const token = hasPayloadToken(request)
-  const nextPath = `${pathname}${search || ''}`
-  const loginDest = new URL(
-    `/login?next=${encodeURIComponent(nextPath.startsWith('/admin/login') ? '/admin' : nextPath)}`,
-    request.url,
-  )
-  const exchangeDest = new URL(
-    `/api/cms/exchange?next=${encodeURIComponent(pathname.startsWith('/admin/login') || pathname.startsWith('/admin/create-first-user') ? '/admin' : nextPath)}`,
-    request.url,
-  )
-
-  if (!ba) {
-    return finalize(NextResponse.redirect(loginDest))
+  if (pathname.startsWith('/api')) {
+    return finalize(NextResponse.next())
   }
 
-  if (
-    pathname === '/admin/login' ||
-    pathname.startsWith('/admin/login/') ||
-    pathname === '/admin/create-first-user' ||
-    pathname.startsWith('/admin/create-first-user/')
-  ) {
-    return finalize(NextResponse.redirect(exchangeDest))
-  }
-
-  if (!token) {
-    return finalize(NextResponse.redirect(exchangeDest))
-  }
-
-  return finalize(NextResponse.next())
+  const redirected = await maybeRedirect(request)
+  if (redirected) return redirected
+  const cspSources = await getCachedFeatureCspSources().catch(() => ({} as CspSources))
+  const offline = await maybeRewriteOffline(request)
+  if (offline) return finalize(offline, cspSources)
+  return finalize(withPathnameHeader(request, pathname), cspSources)
 }
 
 export const config = {

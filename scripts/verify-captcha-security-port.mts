@@ -42,7 +42,7 @@ assert.match(securityIndex, /verifyCaptchaToken/)
 console.log('security barrel exports captcha port: ok')
 
 const settingsForm = read(
-  'src/app/(frontend)/app/admin/settings/security/security-settings-form.tsx',
+  'src/app/(frontend)/admin/settings/security/security-settings-form.tsx',
 )
 assert.match(settingsForm, /captchaOnRegister/)
 assert.match(settingsForm, /captchaOnAuthRecovery/)

@@ -6,8 +6,11 @@
 export const ADMIN_SHELL_LOGO_TOOLTIP =
   'Starforge admin — Top-level areas: Chrome, Settings (Modules · Admin UX · Auth · Security · Performance), Navigation, Forms, Email, Redirects, Users (Accounts · Groups · ACL), Media (Library · Settings), Layouts, CMS (Payload). Pages live under CMS → Pages; media library under Media → Library.'
 
-/** Core admin Dashboard home (canonical — not Payload `/admin`). */
-export const ADMIN_DASHBOARD_HREF = '/app/admin'
+/** Core admin Dashboard home (canonical — not Payload `/cms/admin`). */
+export const ADMIN_DASHBOARD_HREF = '/admin'
+
+/** Payload CMS dashboard home. */
+export const PAYLOAD_DASHBOARD_HREF = '/cms/admin'
 
 /** Logged-in account settings (Better Auth session — not Payload password). */
 export const ADMIN_ACCOUNT_HREF = '/account/security'

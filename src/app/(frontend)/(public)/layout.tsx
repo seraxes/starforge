@@ -52,7 +52,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /**
  * Public site shell — Page Settings document chrome + layout document body.
- * Core admin (`/app/admin`) skips this route group.
+ * Core admin (`/admin`) skips this route group.
  * Product module toggles gate chrome emit and layout manager shell.
  * Site Chrome offline: middleware rewrites locked visitors to 503; this layout
  * keeps a soft fallback (and admin banner) if the rewrite did not run.
@@ -104,7 +104,7 @@ export default async function PublicSiteLayout(props: { children: React.ReactNod
       {siteChrome.offlineEnabled && isAdmin ? (
         <p className="sf-offline-admin-banner" role="status">
           Site is offline for visitors. You can browse because you are an app admin.{' '}
-          <Link href="/app/admin/site-chrome">Chrome</Link>
+          <Link href="/admin/site-chrome">Chrome</Link>
         </p>
       ) : null}
       {pageSettingsOn ? <DocumentHeadChrome chrome={chrome} /> : null}

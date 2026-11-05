@@ -73,7 +73,7 @@ export type StarforgeModuleAdminNavItem = {
 
 /**
  * Admin App Router page contributed by a module (M2 route shims).
- * `path` is relative to `/app/admin/` (e.g. `media`, `media/settings`).
+ * `path` is relative to `/admin/` (e.g. `media`, `media/settings`).
  * Codegen writes thin re-export shims under `app/admin/(modules)/…`.
  */
 export type StarforgeModuleAdminRoute = {

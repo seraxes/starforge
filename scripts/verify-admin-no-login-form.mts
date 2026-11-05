@@ -1,5 +1,5 @@
 /**
- * Prove /admin and /admin/login never serve Payload's email/password form
+ * Prove /cms/admin and /cms/admin/login never serve Payload's email/password form
  * when a Better Auth session exists (with cms_access).
  *
  * Usage: npx tsx scripts/verify-admin-no-login-form.mts
@@ -91,33 +91,33 @@ async function main() {
     process.exit(1)
   }
 
-  // 2) /admin/login must never land on password form
-  console.log('\nGET /admin/login …')
-  const login = await fetchFollow(`${base}/admin/login`, cookie)
+  // 2) /cms/admin/login must never land on password form
+  console.log('\nGET /cms/admin/login …')
+  const login = await fetchFollow(`${base}/cms/admin/login`, cookie)
   console.log('  hops:', login.hops.map((u) => new URL(u).pathname + new URL(u).search).join(' → '))
   console.log('  final:', new URL(login.finalUrl).pathname + new URL(login.finalUrl).search, login.status)
-  if (login.finalUrl.includes('/admin/login')) {
-    console.error('FAIL: still on /admin/login')
+  if (login.finalUrl.includes('/cms/admin/login')) {
+    console.error('FAIL: still on /cms/admin/login')
     process.exit(1)
   }
   if (hasPasswordForm(login.html)) {
-    console.error('FAIL: password form in HTML after /admin/login')
+    console.error('FAIL: password form in HTML after /cms/admin/login')
     console.error(login.html.slice(0, 500))
     process.exit(1)
   }
   console.log('  OK: no password form')
 
-  // 3) Fresh jar (BA only) → /admin
-  console.log('\nGET /admin (BA only, no payload-token)…')
-  const admin = await fetchFollow(`${base}/admin`, cookie)
+  // 3) Fresh jar (BA only) → /cms/admin
+  console.log('\nGET /cms/admin (BA only, no payload-token)…')
+  const admin = await fetchFollow(`${base}/cms/admin`, cookie)
   console.log('  hops:', admin.hops.map((u) => new URL(u).pathname + new URL(u).search).join(' → '))
   console.log('  final:', new URL(admin.finalUrl).pathname + new URL(admin.finalUrl).search, admin.status)
-  if (admin.finalUrl.includes('/admin/login')) {
-    console.error('FAIL: /admin ended on /admin/login')
+  if (admin.finalUrl.includes('/cms/admin/login')) {
+    console.error('FAIL: /cms/admin ended on /cms/admin/login')
     process.exit(1)
   }
   if (hasPasswordForm(admin.html)) {
-    console.error('FAIL: password form in HTML after /admin')
+    console.error('FAIL: password form in HTML after /cms/admin')
     process.exit(1)
   }
   // Should be authenticated admin UI
@@ -129,18 +129,18 @@ async function main() {
   console.log('  looksAdmin-ish', looksAdmin, 'htmlLen', admin.html.length)
   console.log('  OK: no password form')
 
-  // 4) Unauthenticated /admin/login → core login
-  console.log('\nGET /admin/login (no cookies)…')
-  const bare = await fetch(`${base}/admin/login`, { redirect: 'manual' })
+  // 4) Unauthenticated /cms/admin/login → core login
+  console.log('\nGET /cms/admin/login (no cookies)…')
+  const bare = await fetch(`${base}/cms/admin/login`, { redirect: 'manual' })
   const loc = bare.headers.get('location') || ''
   console.log('  status', bare.status, 'location', loc)
   if (!(bare.status >= 300 && bare.status < 400 && loc.includes('/login'))) {
-    console.error('FAIL: unauthenticated /admin/login should redirect to /login')
+    console.error('FAIL: unauthenticated /cms/admin/login should redirect to /login')
     process.exit(1)
   }
   console.log('  OK')
 
-  console.log('\nPASS: /admin and /admin/login never show Payload password form')
+  console.log('\nPASS: /cms/admin and /cms/admin/login never show Payload password form')
 }
 
 main().catch((err) => {

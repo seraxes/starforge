@@ -780,7 +780,7 @@ button:disabled {
   padding: 3rem 1.5rem;
 }
 
-/* Core admin (`/app/admin/*`) — left sidebar + full-bleed content */
+/* Core admin (`/admin/*`) — left sidebar + full-bleed content */
 .admin-shell {
   min-height: 100vh;
   width: 100%;

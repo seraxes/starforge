@@ -76,37 +76,37 @@ describe('decideAdminShellAccess', () => {
 
 describe('adminAreaGateForPath', () => {
   it('maps Navigation to admin.nav (first real gate)', () => {
-    assert.deepEqual(adminAreaGateForPath('/app/admin/nav'), {
+    assert.deepEqual(adminAreaGateForPath('/admin/nav'), {
       type: 'resource',
       key: 'admin.nav',
     })
-    assert.deepEqual(adminAreaGateForPath('/app/admin/nav/primary'), {
+    assert.deepEqual(adminAreaGateForPath('/admin/nav/primary'), {
       type: 'resource',
       key: 'admin.nav',
     })
   })
 
   it('keeps Media app-admin-only until a matrix row exists', () => {
-    assert.deepEqual(adminAreaGateForPath('/app/admin/media'), { type: 'app-admin' })
-    assert.deepEqual(adminAreaGateForPath('/app/admin/media/settings'), {
+    assert.deepEqual(adminAreaGateForPath('/admin/media'), { type: 'app-admin' })
+    assert.deepEqual(adminAreaGateForPath('/admin/media/settings'), {
       type: 'app-admin',
     })
   })
 
   it('maps Email Manager admin paths to admin.email-manager', () => {
-    assert.deepEqual(adminAreaGateForPath('/app/admin/email'), {
+    assert.deepEqual(adminAreaGateForPath('/admin/email'), {
       type: 'resource',
       key: 'admin.email-manager',
     })
-    assert.deepEqual(adminAreaGateForPath('/app/admin/email/templates'), {
+    assert.deepEqual(adminAreaGateForPath('/admin/email/templates'), {
       type: 'resource',
       key: 'admin.email-manager',
     })
   })
 
-  it('treats /app/admin as shell entry', () => {
-    assert.deepEqual(adminAreaGateForPath('/app/admin'), { type: 'shell' })
-    assert.deepEqual(adminAreaGateForPath('/app/admin/'), { type: 'shell' })
+  it('treats /admin as shell entry', () => {
+    assert.deepEqual(adminAreaGateForPath('/admin'), { type: 'shell' })
+    assert.deepEqual(adminAreaGateForPath('/admin/'), { type: 'shell' })
   })
 })
 
@@ -125,19 +125,19 @@ describe('viewerAllowsGate + landing', () => {
     )
     assert.equal(viewerAllowsGate(member, { type: 'shell' }, allowed), true)
     assert.equal(viewerAllowsGate(member, { type: 'app-admin' }, allowed), false)
-    assert.equal(adminHrefAllowed('/app/admin/nav', false, allowed), true)
-    assert.equal(adminHrefAllowed('/app/admin/users', false, allowed), false)
-    assert.equal(adminHrefAllowed('/app/admin/media', false, allowed), false)
+    assert.equal(adminHrefAllowed('/admin/nav', false, allowed), true)
+    assert.equal(adminHrefAllowed('/admin/users', false, allowed), false)
+    assert.equal(adminHrefAllowed('/admin/media', false, allowed), false)
     assert.equal(
       firstAdminLandingPath({ isAppAdmin: false, allowed }),
-      '/app/admin/nav',
+      '/admin/nav',
     )
   })
 
   it('sends app admins to Users', () => {
     assert.equal(
       firstAdminLandingPath({ isAppAdmin: true, allowed: new Set() }),
-      '/app/admin/users',
+      '/admin/users',
     )
   })
 })

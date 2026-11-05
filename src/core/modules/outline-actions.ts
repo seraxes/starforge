@@ -30,11 +30,11 @@ async function requireOutlineAdmin(): Promise<OutlineActionState | null> {
 
 function revalidateOutlinePaths(outlineId?: string) {
   revalidatePath('/', 'layout')
-  revalidatePath('/app/admin/outlines')
-  revalidatePath('/app/admin/layouts')
-  revalidatePath('/app/admin/page-settings')
+  revalidatePath('/admin/outlines')
+  revalidatePath('/admin/layouts')
+  revalidatePath('/admin/page-settings')
   if (outlineId) {
-    revalidatePath(`/app/admin/layouts?outline=${encodeURIComponent(outlineId)}`)
+    revalidatePath(`/admin/layouts?outline=${encodeURIComponent(outlineId)}`)
   }
 }
 
@@ -61,7 +61,7 @@ export async function createOutlineAction(
   revalidateOutlinePaths(result.outline.id)
 
   if (openAfter) {
-    redirect(`/app/admin/layouts?outline=${encodeURIComponent(result.outline.id)}`)
+    redirect(`/admin/layouts?outline=${encodeURIComponent(result.outline.id)}`)
   }
 
   return {
@@ -110,7 +110,7 @@ export async function duplicateOutlineAction(
   revalidateOutlinePaths(result.outline.id)
 
   if (openAfter) {
-    redirect(`/app/admin/layouts?outline=${encodeURIComponent(result.outline.id)}`)
+    redirect(`/admin/layouts?outline=${encodeURIComponent(result.outline.id)}`)
   }
 
   return {

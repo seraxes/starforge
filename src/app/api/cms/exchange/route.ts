@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getFieldsToSign, getPayload, jwtSign } from 'payload'
 
 import config from '@payload-config'
+import { isPayloadAdminPath, PAYLOAD_ADMIN_BASE } from '@/core/admin-paths'
 import { auth } from '@/core/auth'
 import { ensurePayloadCmsUser, loadCoreUserCmsAccess } from '@/core/cms-bridge'
 import { PAYLOAD_TOKEN_COOKIE } from '@/core/cms-bridge/payload-session'
@@ -9,11 +10,11 @@ import { safeNextPath } from '@/core/auth/safe-next-path'
 import { shouldUseSecureCookies } from '@/core/security/secure-cookies'
 
 /**
- * Exchange a Better Auth session for a Payload JWT cookie, then redirect to /admin.
+ * Exchange a Better Auth session for a Payload JWT cookie, then redirect to /cms/admin.
  * Must be a Route Handler — Next.js only allows Set-Cookie here (not in RSC pages).
  */
 export async function GET(request: NextRequest) {
-  const next = safeNextPath(request.nextUrl.searchParams.get('next'), '/admin')
+  const next = safeNextPath(request.nextUrl.searchParams.get('next'), PAYLOAD_ADMIN_BASE)
   const loginUrl = new URL('/login', request.url)
   loginUrl.searchParams.set('next', next)
 
@@ -74,7 +75,7 @@ export async function GET(request: NextRequest) {
 
   const dest = new URL(next, request.url)
   // Mark exchange complete so the admin page does not bounce again.
-  if (dest.pathname.startsWith('/admin')) {
+  if (isPayloadAdminPath(dest.pathname)) {
     dest.searchParams.set('cms', '1')
   }
 

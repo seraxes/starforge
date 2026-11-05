@@ -1,9 +1,9 @@
-/** Shared admin left-nav model — Core `/app/admin` and Payload `/admin` consume the same tree. */
+/** Shared admin left-nav model — Core `/admin` and Payload `/cms/admin` consume the same tree. */
 
 export type AdminNavLink = {
   href: string
   label: string
-  /** Exact match only (e.g. Check site → `/`, CMS Dashboard → `/admin`). */
+  /** Exact match only (e.g. Check site → `/`, CMS Dashboard → `/cms/admin`). */
   exact?: boolean
   /** Cross-surface link (Core ↔ Payload); still same-tab navigation. */
   external?: boolean
@@ -43,7 +43,7 @@ export type AdminNavFeatureFlags = {
   redirects?: boolean
   layout: boolean
   pageSettings: boolean
-  /** Payload CMS module on + user may open /admin. */
+  /** Payload CMS module on + user may open /cms/admin. */
   cms: boolean
 }
 

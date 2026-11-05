@@ -252,7 +252,7 @@ export function MediaLightbox({
               ) : null}
               <Link
                 className="gantry-toolbar-btn gantry-toolbar-btn-muted"
-                href={`/admin/collections/media/${doc.id}`}
+                href={`/cms/admin/collections/media/${doc.id}`}
               >
                 Open in CMS
               </Link>

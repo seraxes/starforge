@@ -1,5 +1,5 @@
 /**
- * Admin theme port — replaceable visual chrome for Core `/app/admin` + Payload `/admin`.
+ * Admin theme port — replaceable visual chrome for Core `/admin` + Payload `/admin`.
  * Nav IA lives in `admin-nav` (independent); themes may only style / lightly hook chrome.
  */
 

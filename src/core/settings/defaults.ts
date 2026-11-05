@@ -190,7 +190,7 @@ export type SiteSettingsData = {
   /** Which `sf_nav_menus` id powers the public primary nav (site default). */
   primaryNavMenuId: string
   /**
-   * Core `/app/admin` text-field autosave debounce (ms). Blur still flushes
+   * Core `/admin` text-field autosave debounce (ms). Blur still flushes
    * immediately. Clamped to {@link ADMIN_AUTOSAVE_DEBOUNCE_MIN_MS}–
    * {@link ADMIN_AUTOSAVE_DEBOUNCE_MAX_MS}.
    */

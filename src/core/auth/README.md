@@ -5,7 +5,7 @@ Product auth / sessions for **app users** (Better Auth + Drizzle + Postgres `pub
 | Concern | Where |
 | --- | --- |
 | App register / login / logout / session | This module · `/login` · `/register` · `/api/auth/*` · `/api/me` |
-| App roles + user admin | `sf_users.role` · `/app/admin/users` (admins only) |
+| App roles + user admin | `sf_users.role` · `/admin/users` (admins only) |
 | CMS access toggle | `sf_users.cms_access` · Users table switch · provisions Payload stub |
 | Payload `/admin` auth | Better Auth cookie via `starforgeCoreSessionStrategy` (one login) |
 
@@ -26,7 +26,7 @@ Do **not** route high-QPS app login/session traffic through Payload Local API. P
 
 | Flag / role | Meaning |
 | --- | --- |
-| `admin` | Global app admin — `/app/admin/*`; **cms_access on by default** |
+| `admin` | Global app admin — `/admin/*`; **cms_access on by default** |
 | `member` | Default product user |
 | `cms_access` | May open Payload `/admin` via the Better Auth session (toggle on Users) |
 
@@ -35,15 +35,15 @@ Do **not** route high-QPS app login/session traffic through Payload Local API. P
 1. **Seed:** `npm run seed` creates `admin@starforge.local` / `starforge-admin` with role `admin` + `cms_access`, and a Payload stub. Sign in once at `/login`, then open `/admin` — no second password.
 2. **Env promote:** set `STARFORGE_ADMIN_EMAILS=you@example.com`, restart `npm run dev`, reload while signed in — promoted to admin + CMS access.
 
-Members visiting `/app/admin/users` are redirected to `/?notice=admins-only`. Users without `cms_access` who open `/admin` go to `/?notice=cms-denied`.
+Members visiting `/admin/users` are redirected to `/?notice=admins-only`. Users without `cms_access` who open `/admin` go to `/?notice=cms-denied`.
 
 ### Reach Payload `/admin`
 
 1. Sign in at `/login` (seed admin or any user with CMS access on).
-2. Open `/admin` (or `/admin/login`) — middleware sends you through `/api/cms/exchange`, which sets a Payload `payload-token` JWT, then the dashboard loads (**no** Payload password form; `/admin/login` never renders).
-3. Manage the per-user switch under `/app/admin/users` (CMS access column).
+2. Open `/cms/admin` (or `/cms/admin/login`) — middleware sends you through `/api/cms/exchange`, which sets a Payload `payload-token` JWT, then the dashboard loads (**no** Payload password form; `/admin/login` never renders).
+3. Manage the per-user switch under `/admin/users` (CMS access column).
 
-Unauthenticated `/admin` → core `/login?next=/admin` → after login, exchange → CMS.
+Unauthenticated `/cms/admin` → core `/login?next=/cms/admin` → after login, exchange → CMS.
 
 ## Local forms
 

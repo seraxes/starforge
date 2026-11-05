@@ -31,7 +31,7 @@ for (const surface of ['core', 'payload'] as const) {
     )
     process.exit(1)
   }
-  const settings = forms.links.find((l) => l.href === '/app/admin/forms/settings')
+  const settings = forms.links.find((l) => l.href === '/admin/forms/settings')
   if (!settings) {
     console.error(`[${surface}] Forms missing Settings child`, forms.links)
     process.exit(1)

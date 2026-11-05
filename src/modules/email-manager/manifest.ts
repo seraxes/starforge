@@ -13,14 +13,14 @@ export default defineStarforgeModule({
   version: '0.1.0',
   defaultEnabled: true,
   navViews: [
-    { key: 'admin', label: 'Email rules', href: '/app/admin/email' },
-    { key: 'templates', label: 'Email templates', href: '/app/admin/email/templates' },
+    { key: 'admin', label: 'Email rules', href: '/admin/email' },
+    { key: 'templates', label: 'Email templates', href: '/admin/email/templates' },
   ],
   admin: {
     navGroup: {
       id: 'email',
       label: 'Email',
-      href: '/app/admin/email',
+      href: '/admin/email',
       expandable: true,
       order: 45,
     },
@@ -28,7 +28,7 @@ export default defineStarforgeModule({
       {
         group: 'email',
         label: 'Rules',
-        href: '/app/admin/email',
+        href: '/admin/email',
         order: 10,
         area: 'email-manager',
         exact: true,
@@ -36,7 +36,7 @@ export default defineStarforgeModule({
       {
         group: 'email',
         label: 'Templates',
-        href: '/app/admin/email/templates',
+        href: '/admin/email/templates',
         order: 20,
         area: 'email-manager',
       },

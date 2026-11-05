@@ -1,46 +1,46 @@
-import type { AdminCmsNavLink } from './types'
+import { PAYLOAD_ADMIN_BASE } from '@/core/admin-paths'
 
-const PAYLOAD_ADMIN = '/admin'
+import type { AdminCmsNavLink } from './types'
 
 /**
  * Canonical CMS accordion children — Payload destinations (dashboard + collections).
  * Both Core and Payload sidebars render this list under **CMS**.
  *
  * Do not list Payload `site-settings` here — Core already has a top-level
- * **Site Settings** (`/app/admin/settings`). Duplicating the global under CMS
+ * **Site Settings** (`/admin/settings`). Duplicating the global under CMS
  * is redundant on both surfaces.
  */
 export const CMS_NAV_LINKS: AdminCmsNavLink[] = [
   {
-    href: PAYLOAD_ADMIN,
+    href: PAYLOAD_ADMIN_BASE,
     label: 'Dashboard',
     exact: true,
     entity: 'dashboard',
     external: true,
   },
   {
-    href: `${PAYLOAD_ADMIN}/collections/pages`,
+    href: `${PAYLOAD_ADMIN_BASE}/collections/pages`,
     label: 'Pages',
     entity: 'collection',
     slug: 'pages',
     external: true,
   },
   {
-    href: `${PAYLOAD_ADMIN}/collections/media`,
+    href: `${PAYLOAD_ADMIN_BASE}/collections/media`,
     label: 'Media',
     entity: 'collection',
     slug: 'media',
     external: true,
   },
   {
-    href: `${PAYLOAD_ADMIN}/collections/tags`,
+    href: `${PAYLOAD_ADMIN_BASE}/collections/tags`,
     label: 'Tags',
     entity: 'collection',
     slug: 'tags',
     external: true,
   },
   {
-    href: `${PAYLOAD_ADMIN}/collections/users`,
+    href: `${PAYLOAD_ADMIN_BASE}/collections/users`,
     label: 'Users',
     entity: 'collection',
     slug: 'users',

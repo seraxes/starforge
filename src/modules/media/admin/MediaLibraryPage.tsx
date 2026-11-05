@@ -103,10 +103,10 @@ export default async function MediaLibraryPage({ searchParams }: { searchParams:
       <p className="lede admin-lede">
         Single Payload media library with nested folders, tags, max size, WebP for photos, and PNG
         logos. Bind from Logo, Styles, and Forms via the media picker — raw URL is fallback only.
-        Pipeline rules: <Link href="/app/admin/media/settings">Media → Settings</Link>. Manage tags
-        in <Link href="/admin/collections/tags">CMS → Tags</Link>; categories in{' '}
-        <Link href="/admin/collections/categories">CMS → Categories</Link>; full CMS edit:{' '}
-        <Link href="/admin/collections/media">CMS → Media</Link>.
+        Pipeline rules: <Link href="/admin/media/settings">Media → Settings</Link>. Manage tags
+        in <Link href="/cms/admin/collections/tags">CMS → Tags</Link>; categories in{' '}
+        <Link href="/cms/admin/collections/categories">CMS → Categories</Link>; full CMS edit:{' '}
+        <Link href="/cms/admin/collections/media">CMS → Media</Link>.
       </p>
       {listError ? (
         <p className="form-error" role="alert">

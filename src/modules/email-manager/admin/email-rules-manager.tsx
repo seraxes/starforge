@@ -4,7 +4,7 @@ import React, { useActionState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
-import { useNotifySavedOnOk } from '@/app/(frontend)/app/admin/admin-toast'
+import { useNotifySavedOnOk } from '@/app/(frontend)/admin/admin-toast'
 
 import {
   createEmailRuleAction,
@@ -132,7 +132,7 @@ export function EmailRulesManager({
         </p>
         <div className="admin-inline-actions" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
           <Link
-            href="/app/admin/email"
+            href="/admin/email"
             className={
               category === 'all' ? 'gantry-btn gantry-btn-primary' : 'gantry-btn'
             }
@@ -142,7 +142,7 @@ export function EmailRulesManager({
           {categories.map((cat) => (
             <Link
               key={cat}
-              href={`/app/admin/email?category=${encodeURIComponent(cat)}`}
+              href={`/admin/email?category=${encodeURIComponent(cat)}`}
               className={
                 category === cat ? 'gantry-btn gantry-btn-primary' : 'gantry-btn'
               }

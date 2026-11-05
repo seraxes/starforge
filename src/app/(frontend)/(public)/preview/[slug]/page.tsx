@@ -80,9 +80,9 @@ export default async function DraftPreviewPage({ params }: Args) {
           )}
         </p>
         <p className="preview-banner-actions">
-          <Link href="/admin/collections/pages">Edit in Payload</Link>
+          <Link href="/cms/admin/collections/pages">Edit in Payload</Link>
           {' · '}
-          <Link href="/app/admin/settings">Feature toggles</Link>
+          <Link href="/admin/settings">Feature toggles</Link>
         </p>
       </div>
       <header className="cms-page-header">

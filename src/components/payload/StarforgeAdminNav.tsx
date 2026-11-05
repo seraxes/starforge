@@ -20,7 +20,7 @@ import {
 const baseClass = 'nav'
 
 /**
- * Payload admin left nav — same tree as Core `/app/admin`.
+ * Payload admin left nav — same tree as Core `/admin`.
  * Replaces DefaultNav so CMS collections sit under the shared CMS accordion
  * instead of a Payload-only IA.
  */
@@ -70,7 +70,7 @@ export default async function StarforgeAdminNav(props: ServerProps) {
         <AdminSidebarNav
           variant="embedded"
           groups={groups}
-          brand={<AdminSidebarBrand />}
+          brand={<AdminSidebarBrand surface="payload" />}
           who={
             email ? (
               <AdminSidebarAccount email={email} name={name} image={image} />

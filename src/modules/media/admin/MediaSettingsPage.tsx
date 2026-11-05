@@ -22,8 +22,8 @@ export default async function MediaSettingsPage() {
       <p className="lede admin-lede">
         Pipeline rules for decode / resize / re-encode (sharp). Stored in{' '}
         <code>sf_media_settings</code>; defaults match <code>MediaPipelineRules</code>. Library:{' '}
-        <Link href="/app/admin/media">Media → Library</Link>. Payload collection:{' '}
-        <Link href="/admin/collections/media">CMS → Media</Link>.
+        <Link href="/admin/media">Media → Library</Link>. Payload collection:{' '}
+        <Link href="/cms/admin/collections/media">CMS → Media</Link>.
       </p>
       {loaded.isFallback ? (
         <p className="layout-muted">

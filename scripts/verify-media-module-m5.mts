@@ -29,11 +29,11 @@ mustExist('src/modules/media/admin/MediaCategoryTree.tsx')
 mustExist('src/modules/media/admin/media-settings-form.tsx')
 
 // Thin App Router shims — codegen under admin/(modules)/ (M2 leftovers)
-const libraryShim = read('src/app/(frontend)/app/admin/(modules)/media/page.tsx')
+const libraryShim = read('src/app/(frontend)/admin/(modules)/media/page.tsx')
 assert.match(libraryShim, /@\/modules\/media\/admin\/MediaLibraryPage/)
 assert.doesNotMatch(libraryShim, /MediaLibraryClient/)
 
-const settingsShim = read('src/app/(frontend)/app/admin/(modules)/media/settings/page.tsx')
+const settingsShim = read('src/app/(frontend)/admin/(modules)/media/settings/page.tsx')
 assert.match(settingsShim, /@\/modules\/media\/admin\/MediaSettingsPage/)
 assert.doesNotMatch(settingsShim, /MediaSettingsForm/)
 
@@ -71,9 +71,9 @@ assert.match(manifest, /navGroup/)
 
 // Consumers bind via module api (not Core-hosted picker)
 for (const rel of [
-  'src/app/(frontend)/app/admin/forms/form-builder.tsx',
-  'src/app/(frontend)/app/admin/layouts/typed-particle-editors.tsx',
-  'src/app/(frontend)/app/admin/breakpoints/section-styles-panel.tsx',
+  'src/app/(frontend)/admin/forms/form-builder.tsx',
+  'src/app/(frontend)/admin/layouts/typed-particle-editors.tsx',
+  'src/app/(frontend)/admin/breakpoints/section-styles-panel.tsx',
 ]) {
   const src = read(rel)
   assert.match(src, /from '@\/modules\/media\/api'/, `${rel} should import MediaPicker from module api`)

@@ -30,7 +30,7 @@ function mustMatch(path: string, re: RegExp, label: string) {
   console.log(`[ok] ${label}`)
 }
 
-const navManager = 'src/app/(frontend)/app/admin/nav/nav-menus-manager.tsx'
+const navManager = 'src/app/(frontend)/admin/nav/nav-menus-manager.tsx'
 const chrome = 'src/core/admin-theme/themes/starforge-gantry/core-chrome.css'
 
 mustMatch(

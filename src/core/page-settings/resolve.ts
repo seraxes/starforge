@@ -13,8 +13,8 @@ export function pageKeyFromPathname(pathname: string | null | undefined): string
   if (!pathname) return null
   const path = pathname.split('?')[0]?.split('#')[0] || '/'
   if (
-    path.startsWith('/app') ||
     path.startsWith('/admin') ||
+    path.startsWith('/cms') ||
     path.startsWith('/api') ||
     path.startsWith('/login') ||
     path.startsWith('/register') ||

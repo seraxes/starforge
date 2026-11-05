@@ -3,7 +3,7 @@
  *
  * Creates sample **published** CMS pages (Payload), site settings, core app
  * users (Better Auth), and grants **cms_access** (+ Payload stub) for the
- * bootstrap global admin. One Better Auth login opens `/admin` — no second
+ * bootstrap global admin. One Better Auth login opens `/cms/admin` — no second
  * password. Product members stay in core unless CMS access is toggled on.
  *
  * Usage (Compose up, `.env` present, core tables pushed):
@@ -41,7 +41,7 @@ const DEMO_APP_EMAIL = 'demo@starforge.local'
 const DEMO_APP_PASSWORD = 'starforge-demo'
 const DEMO_APP_NAME = 'Demo Member'
 
-/** Local bootstrap admin — same email/password for core `/login` and Payload `/admin`. */
+/** Local bootstrap admin — same email/password for core `/login` and Payload `/cms/admin`. */
 const BOOTSTRAP_ADMIN_PASSWORD = 'starforge-admin'
 const BOOTSTRAP_ADMIN_NAME = 'Demo Admin'
 
@@ -139,12 +139,12 @@ const SAMPLE_PAGES = [
       heading('h2', 'Core + content'),
       paragraph(
         textNode(
-          'Product APIs and auth live in Starforge core. Payload CMS handles editorial pages and media. This home page is a published Payload document (slug: home) — edit it under /admin.',
+          'Product APIs and auth live in Starforge core. Payload CMS handles editorial pages and media. This home page is a published Payload document (slug: home) — edit it under /cms/admin.',
         ),
       ),
       bulletList(
-        'Starforge admin: /app/admin (users, Site Chrome, layouts, modules)',
-        'Content CMS: /admin — same Better Auth login when cms_access is on',
+        'Starforge admin: /admin (users, Site Chrome, layouts, modules)',
+        'Content CMS: /cms/admin — same Better Auth login when cms_access is on',
         'Sign-in options (home panel + /login): password, magic link, email code, stay signed in',
         'Recovery: /forgot-password · /forgot-username · 2FA at /account/security after sign-in',
         'Other sample pages: /about, /getting-started, /welcome',
@@ -168,7 +168,7 @@ const SAMPLE_PAGES = [
       ),
       bulletList(
         'Core app accounts: /register and /login',
-        'CMS: Payload /admin via the same Better Auth login (cms_access)',
+        'CMS: Payload /cms/admin via the same Better Auth login (cms_access)',
         'Published pages render at /{slug}; home is slug home at /',
       ),
     ),
@@ -178,7 +178,7 @@ const SAMPLE_PAGES = [
     slug: 'getting-started',
     meta: {
       title: 'Getting started with Starforge',
-      description: 'Local Compose, seed, edit in /admin, and open a published page by slug.',
+      description: 'Local Compose, seed, edit in /cms/admin, and open a published page by slug.',
     },
     body: lexicalBody(
       heading('h2', 'Local loop'),
@@ -186,13 +186,13 @@ const SAMPLE_PAGES = [
       bulletList(
         'npm run seed — sample published pages (+ optional demo app user)',
         'Open /about and /getting-started on the public site',
-        'Edit pages in /admin after one core login (no second password)',
+        'Edit pages in /cms/admin after one core login (no second password)',
         'Register an app account at /register if you did not use the demo user',
       ),
       heading('h3', 'Two kinds of users'),
       paragraph(
         textNode(
-          'Core /login owns every session. Payload /admin opens for users with cms_access (admins by default). Ordinary members are never synced into Payload.',
+          'Core /login owns every session. Payload /cms/admin opens for users with cms_access (admins by default). Ordinary members are never synced into Payload.',
         ),
       ),
     ),
@@ -379,8 +379,8 @@ async function main() {
   console.log('')
   console.log('Starforge seed')
   console.log('--------------')
-  console.log('One login: Better Auth at /login. CMS access opens /admin with no second password.')
-  console.log('Toggle CMS access under /app/admin/users (admins get it by default).')
+  console.log('One login: Better Auth at /login. CMS access opens /cms/admin with no second password.')
+  console.log('Toggle CMS access under /admin/users (admins get it by default).')
   console.log('')
 
   try {
@@ -494,7 +494,7 @@ async function main() {
     const adminUser = await seedBootstrapAdmin()
     if (adminUser.created) {
       console.log('')
-      console.log(`Bootstrap app admin created (core /app/admin):`)
+      console.log(`Bootstrap app admin created (core /admin):`)
       console.log(`  email:    ${BOOTSTRAP_ADMIN_EMAIL}`)
       console.log(`  password: ${BOOTSTRAP_ADMIN_PASSWORD}`)
       console.log(`  role:     admin (+ cms_access)`)
@@ -537,7 +537,7 @@ async function main() {
     for (const fail of failed) {
       console.warn(`CMS access failed for ${fail.email}: ${fail.error}`)
     }
-    console.log('Open /admin after /login — no second password prompt.')
+    console.log('Open /cms/admin after /login — no second password prompt.')
   } catch (error) {
     console.warn('')
     console.warn('Could not ensure CMS access / Payload stubs.')
@@ -547,13 +547,13 @@ async function main() {
   console.log('')
   console.log('Try: http://localhost:3000/  (Payload home)  ·  /about  ·  /getting-started  ·  /welcome')
   console.log('Notice bar (modules): header position when Modules is on')
-  console.log('Login once: http://localhost:3000/login  then open http://localhost:3000/admin')
-  console.log('Core admin users:    http://localhost:3000/app/admin/users')
-  console.log('Core user groups:    http://localhost:3000/app/admin/users/groups')
-  console.log('Core site settings:  http://localhost:3000/app/admin/settings')
-  console.log('Core page settings:  http://localhost:3000/app/admin/page-settings')
-  console.log('Core layout manager: http://localhost:3000/app/admin/layouts')
-  console.log('Payload CMS:         http://localhost:3000/admin  (nav: Payload CMS)')
+  console.log('Login once: http://localhost:3000/login  then open Core http://localhost:3000/admin')
+  console.log('Core admin users:    http://localhost:3000/admin/users')
+  console.log('Core user groups:    http://localhost:3000/admin/users/groups')
+  console.log('Core site settings:  http://localhost:3000/admin/settings')
+  console.log('Core page settings:  http://localhost:3000/admin/page-settings')
+  console.log('Core layout manager: http://localhost:3000/admin/layouts')
+  console.log('Payload CMS:         http://localhost:3000/cms/admin')
   console.log('')
 
   process.exit(0)

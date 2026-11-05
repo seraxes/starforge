@@ -4,7 +4,7 @@ import React, { useActionState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
-import { useNotifySavedOnOk } from '@/app/(frontend)/app/admin/admin-toast'
+import { useNotifySavedOnOk } from '@/app/(frontend)/admin/admin-toast'
 
 import {
   createEmailTemplateAction,
@@ -106,7 +106,7 @@ export function EmailTemplatesManager({
         </p>
         <div className="admin-inline-actions" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
           <Link
-            href="/app/admin/email/templates"
+            href="/admin/email/templates"
             className={
               category === 'all' ? 'gantry-btn gantry-btn-primary' : 'gantry-btn'
             }
@@ -116,7 +116,7 @@ export function EmailTemplatesManager({
           {categories.map((cat) => (
             <Link
               key={cat}
-              href={`/app/admin/email/templates?category=${encodeURIComponent(cat)}`}
+              href={`/admin/email/templates?category=${encodeURIComponent(cat)}`}
               className={
                 category === cat ? 'gantry-btn gantry-btn-primary' : 'gantry-btn'
               }
@@ -233,7 +233,7 @@ export function EmailTemplatesManager({
               <tr>
                 <td colSpan={5} className="admin-empty">
                   No templates yet. Add one above, or seed Forms starters from{' '}
-                  <Link href="/app/admin/email">Rules</Link>.
+                  <Link href="/admin/email">Rules</Link>.
                 </td>
               </tr>
             ) : (

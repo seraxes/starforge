@@ -5,7 +5,7 @@ import type { ServerFunctionClient } from 'payload'
 import { handleServerFunctions, RootLayout } from '@payloadcms/next/layouts'
 import React from 'react'
 
-import { importMap } from './admin/importMap.js'
+import { importMap } from './cms/admin/importMap.js'
 /* Starforge theme sheet via JS import — CSS @import from custom.css is unreliable
  * under Next/Turbopack (same failure that left Core admin unstyled). Keep custom.css
  * as the Payload-conventional hook; live chrome rules load here. */

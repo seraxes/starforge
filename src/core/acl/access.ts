@@ -77,7 +77,7 @@ export async function viewerMayAccessAdminResource(
   })
 }
 
-/** True when the viewer may enter `/app/admin` (app admin or any matrix grant). */
+/** True when the viewer may enter `/admin` (app admin or any matrix grant). */
 export async function viewerMayEnterAdminShell(viewer: AccessViewer): Promise<boolean> {
   if (viewer.isAppAdmin) return true
   if (!viewer.isRegistered) return false
@@ -126,7 +126,7 @@ export async function requireAdminAreaForRequest() {
   }
 
   const headerList = await headers()
-  const pathname = headerList.get('x-sf-pathname') || '/app/admin'
+  const pathname = headerList.get('x-sf-pathname') || '/admin'
   const gate = adminAreaGateForPath(pathname)
   const allowed = viewer.isAppAdmin
     ? new Set<AclAdminResourceKey>()

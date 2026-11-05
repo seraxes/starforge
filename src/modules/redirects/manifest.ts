@@ -12,7 +12,7 @@ export default defineStarforgeModule({
     'URL redirects (from → to + status) with Node proxy lookup. Sitemap of published pages stays at /sitemap.xml.',
   version: '0.1.0',
   defaultEnabled: true,
-  navViews: [{ key: 'admin', label: 'Redirects', href: '/app/admin/redirects' }],
+  navViews: [{ key: 'admin', label: 'Redirects', href: '/admin/redirects' }],
   admin: {
     navGroup: {
       id: 'redirects',
@@ -23,7 +23,7 @@ export default defineStarforgeModule({
       {
         group: 'redirects',
         label: 'Redirects',
-        href: '/app/admin/redirects',
+        href: '/admin/redirects',
         order: 10,
         area: 'redirects',
       },

@@ -14,7 +14,7 @@ export default function PublicNotFound() {
       <p className="lede">
         No published Payload page for this path. Seed creates slug <code>home</code> for{' '}
         <code>/</code> — run <code>npm run seed</code>, or publish a page in{' '}
-        <Link href="/admin">CMS</Link>.
+        <Link href="/cms/admin">CMS</Link>.
       </p>
       <p>
         <Link className="secondary" href="/">

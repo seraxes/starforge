@@ -17,10 +17,10 @@ Reference: [docs.gantry.org](https://docs.gantry.org/).
 | Public shell host | `PublicShellSlots` — Consent (etc.) via generated `publicShellLoaders` |
 | Built-in particles | `page-content`, `site-header`, `logo` (image/text), `menu`, `copyright`, `social`, `custom` · `particles/` |
 | Example extension | `src/modules/notice-bar/` (dynamic import when allowlisted) |
-| Core Form engine | `src/modules/form/` + `src/core/forms/` · definitions `sf_forms` · submissions `sf_form_submissions` · Admin `/app/admin/forms` |
+| Core Form engine | `src/modules/form/` + `src/core/forms/` · definitions `sf_forms` · submissions `sf_form_submissions` · Admin `/admin/forms` |
 | Layout document (v3) | sections → rows → slots (`moduleId` + `width` %) |
 | Storage | `sf_layouts` JSON · fallback `default-layout.json` |
-| Admin UI | `/app/admin/layouts` — palette + canvas |
+| Admin UI | `/admin/layouts` — palette + canvas |
 | Code editors | CodeMirror 6 (`CodeEditorField`) for Custom HTML/CSS/JS |
 | Public render | `PublicLayoutBody` + `SlotRenderer` |
 | Page surround | `.public-shell` fills `html`/`body`/`main` (100dvh); sticky footer — no nested wrapper yet |
@@ -82,7 +82,7 @@ Reference: [docs.gantry.org](https://docs.gantry.org/).
 - `section.containerMode` — `full` | `boxed` (section owns width; row % inside). Omitted → Page Settings sections-layout default.
 - `section.styles` — Gantry-like Section Styles: `backgroundColor` / `textColor` (hex); `backgroundImage` / `backgroundOverlay` reserved. Applied on the public section wrapper only.
 - `section.cssClass` — space-separated classes on the public section/`footer` wrapper (plus `sf-layout-section`).
-- `styles.breakpoints` — outline-scoped rem/px presets (`/app/admin/breakpoints`). Default outline = site global. No separate Styles mega-page.
+- `styles.breakpoints` — outline-scoped rem/px presets (`/admin/breakpoints`). Default outline = site global. No separate Styles mega-page.
 - `slot.name` — optional instance display name on the canvas; does **not** change `moduleId`.
 - `slot.accessLevel` — who can see (`public` / `registered` / `group:<id>`); same groups as Nav tags; `SlotRenderer` filters by session.
 
@@ -100,7 +100,7 @@ Legacy v1 / v2 upgrade on read.
 
 ## Admin UX (this PR) — Gantry Layout Manager flow
 
-1. **Create section** — edit **name**, **Width** (full / boxed), **Background / Text** (Section Styles), + **CSS classes** inline; drag the **⋮⋮** handle to **reorder sections** (persists `order` in JSON). Outline **Breakpoints** live at `/app/admin/breakpoints` (Layouts → Breakpoints).
+1. **Create section** — edit **name**, **Width** (full / boxed), **Background / Text** (Section Styles), + **CSS classes** inline; drag the **⋮⋮** handle to **reorder sections** (persists `order` in JSON). Outline **Breakpoints** live at `/admin/breakpoints` (Layouts → Breakpoints).
 2. **Add row** inside the section
 3. **Drag** a particle from the left palette **into the row** — edit the instance **display name** (type id unchanged)
 4. Drop a second beside it → **side-by-side** in one horizontal row (~50%/50%; `flex-wrap: nowrap`); **drag the divider** to resize in **1%** steps (**5%–95%**, pair sums to **100%**). Particle settings expand **inside** the cell — they never force the row to stack.
@@ -127,7 +127,7 @@ Custom stays available for free-form HTML — do **not** generate Logo/Copyright
 | **Block settings** (CSS classes, variations, tag attributes) | Per-slot settings panel (section `cssClass` + slot `name` already ship) |
 | **Section settings** (boxed/fullwidth beyond classes) | More fields on `LayoutSection` |
 | **Styles** | Styles admin with CodeMirror or **Monaco** |
-| **Outlines** | ✅ Multiple named layout docs (`/app/admin/outlines`) — create / rename / duplicate / select; Page Settings assigns any outline |
+| **Outlines** | ✅ Multiple named layout docs (`/admin/outlines`) — create / rename / duplicate / select; Page Settings assigns any outline |
 | **Menu editor** | After nav/menu depth grows |
 | **Particle defaults** + inheritance | Defaults store + overrides |
 | **Custom JS execution** | Developer-admin ACL only |
@@ -137,4 +137,4 @@ Custom stays available for free-form HTML — do **not** generate Logo/Copyright
 
 1. Create `src/modules/<id>/` with a `StarforgeModule`.
 2. Register from `src/modules/catalog.ts`.
-3. Place it on the canvas under `/app/admin/layouts`.
+3. Place it on the canvas under `/admin/layouts`.

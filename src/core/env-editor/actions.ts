@@ -53,7 +53,7 @@ export async function unlockEnvEditorAction(
   if (!gate.ok) {
     return { error: gate.error }
   }
-  revalidatePath('/app/admin/site-chrome/environment')
+  revalidatePath('/admin/site-chrome/environment')
   return { ok: true, expiresAt: gate.expiresAt }
 }
 
@@ -66,7 +66,7 @@ export async function lockEnvEditorAction(
     return { error: 'Not authorized.' }
   }
   await clearEnvEditorGateCookie()
-  revalidatePath('/app/admin/site-chrome/environment')
+  revalidatePath('/admin/site-chrome/environment')
   return { ok: true }
 }
 
@@ -92,8 +92,8 @@ export async function saveEnvEditorAction(
     return { error: result.error }
   }
 
-  revalidatePath('/app/admin/site-chrome/environment')
-  revalidatePath('/app/admin/site-chrome')
+  revalidatePath('/admin/site-chrome/environment')
+  revalidatePath('/admin/site-chrome')
 
   const count = result.changedKeys.length
   return {

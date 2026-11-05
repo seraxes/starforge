@@ -20,12 +20,44 @@ const nextConfig: NextConfig = {
       bodySizeLimit: '12mb',
     },
   },
-  // Old nested path hit Next 16 Turbopack stale build-manifest ENOENT; keep bookmarks working.
+  // Route migration bookmarks: Core `/admin` (was `/app/admin`); Payload `/cms/admin` (was `/admin`).
   async redirects() {
     return [
       {
-        source: '/app/admin/layouts/breakpoints',
-        destination: '/app/admin/breakpoints',
+        source: '/admin/layouts/breakpoints',
+        destination: '/admin/breakpoints',
+        permanent: false,
+      },
+      // Legacy Core admin prefix
+      {
+        source: '/app/admin',
+        destination: '/admin',
+        permanent: false,
+      },
+      {
+        source: '/app/admin/:path*',
+        destination: '/admin/:path*',
+        permanent: false,
+      },
+      // Legacy Payload deep links that used to live under /admin
+      {
+        source: '/admin/collections/:path*',
+        destination: '/cms/admin/collections/:path*',
+        permanent: false,
+      },
+      {
+        source: '/admin/globals/:path*',
+        destination: '/cms/admin/globals/:path*',
+        permanent: false,
+      },
+      {
+        source: '/admin/login',
+        destination: '/cms/admin/login',
+        permanent: false,
+      },
+      {
+        source: '/admin/create-first-user',
+        destination: '/cms/admin/create-first-user',
         permanent: false,
       },
     ]

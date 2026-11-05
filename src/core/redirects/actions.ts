@@ -28,7 +28,7 @@ async function requireRedirectsAdmin(): Promise<RedirectAdminActionState | null>
 }
 
 function revalidateRedirectPaths() {
-  revalidatePath('/app/admin/redirects')
+  revalidatePath('/admin/redirects')
 }
 
 function parseStatus(raw: FormDataEntryValue | null): number {

@@ -11,16 +11,16 @@ const revalidateSiteSettingsAfterChange: GlobalAfterChangeHook = async ({ doc })
 /**
  * Site settings + product capability toggles (Modules).
  *
- * - Editors: edit in Payload `/admin` → Globals → Site settings
- * - Core admins: topic pages under `/app/admin/settings` (Modules, Admin UX,
+ * - Editors: edit in Payload `/cms/admin` → Globals → Site settings
+ * - Core admins: topic pages under `/admin/settings` (Modules, Admin UX,
  *   Auth, Security, Performance).
  *
  * Site-wide policy (offline, metadata, robots, cookies, email) lives in Core
- * **Site Chrome** (`/app/admin/site-chrome`, `sf_site_chrome`) — not here.
+ * **Site Chrome** (`/admin/site-chrome`, `sf_site_chrome`) — not here.
  * Captcha enable/provider is edited under Site Settings → Security
  * (still stored on Site Chrome JSON). `siteName` syncs when Site Chrome saves.
  *
- * Navigation sets live in Core **Nav** (`/app/admin/nav`, `sf_nav_menus`) — a
+ * Navigation sets live in Core **Nav** (`/admin/nav`, `sf_nav_menus`) — a
  * top-level admin sibling. This global only assigns which menu is the site
  * default (`primaryNavMenuId`). Legacy `primaryNav` array is a read fallback.
  *
@@ -34,7 +34,7 @@ export const SiteSettings: GlobalConfig = {
   label: 'Site settings',
   admin: {
     description:
-      'Primary nav assignment + module/feature toggles. Topics: /app/admin/settings (Modules, Admin UX, Auth, Security, Performance). Chrome (offline/metadata/robots/email): /app/admin/site-chrome. Menus: Navigation.',
+      'Primary nav assignment + module/feature toggles. Topics: /admin/settings (Modules, Admin UX, Auth, Security, Performance). Chrome (offline/metadata/robots/email): /admin/site-chrome. Menus: Navigation.',
   },
   hooks: {
     afterChange: [revalidateSiteSettingsAfterChange],
@@ -72,7 +72,7 @@ export const SiteSettings: GlobalConfig = {
       max: 2000,
       admin: {
         description:
-          'Core /app/admin text-field autosave delay in milliseconds (300–2000). Blur still saves immediately. Prefer Starforge admin → Settings → Admin UX.',
+          'Core /admin text-field autosave delay in milliseconds (300–2000). Blur still saves immediately. Prefer Starforge admin → Settings → Admin UX.',
       },
     },
     {
@@ -140,7 +140,7 @@ export const SiteSettings: GlobalConfig = {
         // Hidden: Core Site Settings no longer edits items. Migrated into sf_nav_menus Main.
         hidden: true,
         description:
-          'Legacy storage only — migrated into Navigation manager Main. Do not edit; use /app/admin/nav.',
+          'Legacy storage only — migrated into Navigation manager Main. Do not edit; use /admin/nav.',
       },
       fields: [
         {
@@ -263,7 +263,7 @@ export const SiteSettings: GlobalConfig = {
       },
       admin: {
         description:
-          'Per installed particle / atom on/off (P0). Core admins edit the same list at /app/admin/settings → Modules. Disabled = hidden from layout palette and skipped on public/atoms.',
+          'Per installed particle / atom on/off (P0). Core admins edit the same list at /admin/settings → Modules. Disabled = hidden from layout palette and skipped on public/atoms.',
       },
       fields: [
         {

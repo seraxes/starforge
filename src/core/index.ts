@@ -196,6 +196,15 @@ export {
 } from './admin-theme'
 export type { AdminTheme, AdminThemeId, AdminThemeTokens } from './admin-theme'
 export {
+  CORE_ADMIN_BASE,
+  PAYLOAD_ADMIN_BASE,
+  PAYLOAD_ADMIN_PREFIX,
+  coreAdminPath,
+  payloadAdminPath,
+  isCoreAdminPath,
+  isPayloadAdminPath,
+} from './admin-paths'
+export {
   buildAdminNavGroups,
   resolveEnabledAdminNavModuleIds,
   CMS_NAV_LINKS,

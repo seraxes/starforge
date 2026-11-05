@@ -84,7 +84,7 @@ function chromeFromFormData(formData: FormData, pageKey: string | null): PageChr
 
 function revalidatePageSettingsPaths(pageKey: string | null) {
   revalidatePath('/', 'layout')
-  revalidatePath('/app/admin/page-settings')
+  revalidatePath('/admin/page-settings')
   if (pageKey && pageKey !== 'home') {
     revalidatePath(`/${pageKey}`)
   }

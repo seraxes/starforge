@@ -18,7 +18,7 @@ Soft-fails when the module is off, Chrome email is off, or SMTP/Resend secrets a
 
 ## Admin
 
-- `/app/admin/email` — rules (filter by module category)
-- `/app/admin/email/templates` — templates + test send
+- `/admin/email` — rules (filter by module category)
+- `/admin/email/templates` — templates + test send
 
 Toggle under **Settings → Modules**. Auth recovery Mailer paths stay direct in v1 (triggers are registered for later).

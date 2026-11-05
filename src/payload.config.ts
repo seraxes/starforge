@@ -26,19 +26,24 @@ const dirname = path.dirname(filename)
  * Image pipeline stays sharp (resizeOptions / imageSizes) — storage swap only.
  */
 export default buildConfig({
+  // Payload UI under /cms/admin (Core Starforge admin owns /admin).
+  routes: {
+    admin: '/cms/admin',
+  },
   admin: {
     user: Users.slug,
     // Lock dark — Starforge Gantry theme (see src/core/admin-theme).
     theme: 'dark',
     importMap: {
       baseDir: path.resolve(dirname),
+      importMapFile: path.resolve(dirname, 'app/(payload)/cms/admin/importMap.js'),
     },
     meta: {
-      // Browser tab: Content CMS surface (pair with Starforge / App admin at /app/admin).
+      // Browser tab: Content CMS surface (pair with Starforge Core admin at /admin).
       titleSuffix: '— Starforge Content CMS',
     },
     components: {
-      // Belt-and-suspenders with src/proxy.ts (which blocks /admin/login).
+      // Belt-and-suspenders with src/proxy.ts (which blocks /cms/admin/login).
       views: {
         login: {
           Component: '@/components/payload/AdminLoginRedirect',

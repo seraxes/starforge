@@ -71,9 +71,9 @@ export async function updateSiteChromeAction(
   await invalidateSiteSettings()
   revalidatePath('/', 'layout')
   revalidatePath('/robots.txt')
-  revalidatePath('/app/admin/site-chrome')
-  revalidatePath('/app/admin/settings')
-  revalidatePath('/app/admin')
+  revalidatePath('/admin/site-chrome')
+  revalidatePath('/admin/settings')
+  revalidatePath('/admin')
   return { ok: true }
 }
 
@@ -122,13 +122,13 @@ export async function updateSecurityCaptchaAction(
 
   await invalidateSiteChrome()
   revalidatePath('/', 'layout')
-  revalidatePath('/app/admin/settings/security')
-  revalidatePath('/app/admin/forms')
+  revalidatePath('/admin/settings/security')
+  revalidatePath('/admin/forms')
   revalidatePath('/register')
   revalidatePath('/forgot-password')
   revalidatePath('/forgot-username')
   revalidatePath('/login')
-  revalidatePath('/app/admin')
+  revalidatePath('/admin')
   return { ok: true }
 }
 

@@ -5,7 +5,7 @@ import type { StarforgeModule } from '@/core/modules/types'
 import { NoticeBar } from './NoticeBar'
 
 const DEFAULT_MESSAGE =
-  'Extension modules are on — this notice bar particle sits in the Header section (100%). Edit layout under /app/admin/layouts.'
+  'Extension modules are on — this notice bar particle sits in the Header section (100%). Edit layout under /admin/layouts.'
 
 /**
  * Example Starforge particle: dismissible notice bar.
