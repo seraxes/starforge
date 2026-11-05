@@ -23,6 +23,25 @@ export function isMailProvider(value: unknown): value is MailProvider {
 
 export type MailAddress = string
 
+/**
+ * Optional audit metadata for the durable send log (D3).
+ * Adapters ignore these fields — only the Mailer wrapper persists them.
+ */
+export type MailEmailType = 'transactional' | 'marketing' | 'system'
+
+export type MailSendMeta = {
+  /** Dashboard volume bucket (`email.sent` card). */
+  emailType?: MailEmailType
+  /** Optional display title (template label / rule label). */
+  title?: string
+  /** Caller tag for audit (auth, forms, email-manager, test, …). */
+  source?: string
+  ruleId?: string
+  templateId?: string
+  /** Email Manager module category when known. */
+  moduleCategory?: string
+}
+
 export type MailMessage = {
   to: MailAddress | MailAddress[]
   /** Overrides Site Chrome / env From when set. */
@@ -31,6 +50,8 @@ export type MailMessage = {
   text: string
   html?: string
   replyTo?: MailAddress
+  /** Soft-audit metadata — never required for transport. */
+  meta?: MailSendMeta
 }
 
 export type MailSendResult = {

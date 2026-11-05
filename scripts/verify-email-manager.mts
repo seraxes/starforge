@@ -26,6 +26,9 @@ mustExist('src/modules/email-manager/store.ts')
 mustExist('src/modules/email-manager/admin/EmailRulesPage.tsx')
 mustExist('src/modules/email-manager/admin/EmailTemplatesPage.tsx')
 mustExist('src/core/db/migrations/0002_email_manager.sql')
+mustExist('src/core/db/migrations/0003_email_send_log.sql')
+mustExist('src/modules/email-manager/send-log.ts')
+mustExist('src/core/mail/with-send-log.ts')
 
 const manifest = read('src/modules/email-manager/manifest.ts')
 assert.match(manifest, /id: 'product:email-manager'/)
@@ -61,7 +64,14 @@ assert.match(apiServer, /import ['"]server-only['"]/)
 
 const engine = read('src/modules/email-manager/engine.ts')
 assert.match(engine, /getMailer/)
+assert.match(engine, /emailTypeFromModuleCategory/)
 assert.doesNotMatch(engine, /SMTP_PASS|RESEND_API_KEY|createTransport/)
+
+const sendLog = read('src/modules/email-manager/send-log.ts')
+assert.match(sendLog, /recordEmailSend/)
+assert.match(sendLog, /sfEmailSends/)
+
+assert.match(read('src/core/mail/index.ts'), /withEmailSendLog/)
 
 const emailNotify = read('src/core/forms/email-notify.ts')
 assert.match(emailNotify, /email-manager\/api\.server/)

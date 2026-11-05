@@ -55,6 +55,11 @@ assert.doesNotMatch(mediaStats, /Media dashboard counts are not wired yet/)
 const emailManifest = read('src/modules/email-manager/manifest.ts')
 assert.match(emailManifest, /id: 'email\.sent'/)
 
+// D3: email.sent loader must hit sf_email_sends (not the old hard unavailable stub)
+const emailStats = read('src/modules/email-manager/dashboard/email-stats.ts')
+assert.match(emailStats, /sfEmailSends|sf_email_sends/)
+assert.doesNotMatch(emailStats, /Email send log is not wired yet/)
+
 const formsManifest = read('src/modules/forms/manifest.ts')
 assert.match(formsManifest, /id: 'forms\.submissions'/)
 

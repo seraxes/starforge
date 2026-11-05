@@ -31,6 +31,12 @@ export async function sendAuthMail(options: {
     subject: options.subject,
     text: options.text,
     html: options.html,
+    meta: {
+      emailType: 'system',
+      title: options.kind,
+      source: 'auth',
+      moduleCategory: 'auth',
+    },
   })
   if (!result.ok) {
     console.error(`[auth-mail:${options.kind}] send failed:`, result.error ?? result)

@@ -60,7 +60,7 @@ export default defineStarforgeModule({
         title: 'Email',
         order: 60,
         size: 'md',
-        // Soft stub — visible with Dashboard ACL; full metrics need send log (D3).
+        // Real counts from sf_email_sends (D3); soft-fail when log unreachable.
         widgetImportPath: '@/modules/email-manager/dashboard/EmailSentWidget',
         widgetExportName: 'EmailSentWidget',
         statsImportPath: '@/modules/email-manager/dashboard/email-stats',
