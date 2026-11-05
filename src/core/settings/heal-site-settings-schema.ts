@@ -102,13 +102,14 @@ export type SiteSettingsSchemaHealResult = {
 export async function healSiteSettingsSchema(
   client: Queryable,
 ): Promise<SiteSettingsSchemaHealResult> {
-  const exists = await client.query<{ exists: boolean }>(
+  const exists = await client.query(
     `SELECT EXISTS (
        SELECT 1 FROM information_schema.tables
        WHERE table_schema = 'payload' AND table_name = 'site_settings'
      ) AS exists`,
   )
-  if (!exists.rows[0]?.exists) {
+  const row = exists.rows[0] as { exists?: boolean } | undefined
+  if (!row?.exists) {
     return { healed: false, skipped: true }
   }
 
