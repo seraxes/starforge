@@ -1,3 +1,4 @@
+import { DEFAULT_LOCALE, LOCALES } from '@/core/i18n/locales'
 import {
   MAIL_PROVIDERS,
   isMailProvider,
@@ -57,4 +58,6 @@ export const DEFAULT_SITE_CHROME: SiteChromeDocument = {
   consentMessage: DEFAULT_CONSENT_MESSAGE,
   consentPrivacyUrl: '',
   consentPrivacyLinkLabel: DEFAULT_CONSENT_PRIVACY_LINK_LABEL,
+  localesEnabled: [...LOCALES],
+  defaultLocale: DEFAULT_LOCALE,
 }

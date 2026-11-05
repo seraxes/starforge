@@ -1,0 +1,24 @@
+{
+  "Auth": {
+    "signIn": "Sign in",
+    "signInDescription": "Sign in to Starforge (one login for app and CMS when you have CMS access).",
+    "signInTitle": "Sign in — Starforge",
+    "createAccount": "Create account",
+    "welcome": "Welcome",
+    "welcomeBack": "Welcome back",
+    "welcomeNoteGuest": "Welcome — password, magic link, or email code. Stay signed in when you trust this device. After sign-in, set up authenticator 2FA under Account security.",
+    "welcomeNoteHome": "Welcome — use the panel for password, magic link, or email code. Helpers cover forgot password, forgot login email, stay signed in, and 2FA after you sign in.",
+    "fullSignInPage": "Full sign-in page",
+    "alreadyHaveAccount": "Already have an account?",
+    "backToSignIn": "Back to sign in",
+    "adminSignIn": "Admin sign in"
+  },
+  "Layout": {
+    "offlineAdminBanner": "Site is offline for visitors. You can browse because you are an app admin.",
+    "offlineAdminChromeLink": "Chrome"
+  },
+  "Locale": {
+    "en": "English",
+    "hu": "Magyar"
+  }
+}

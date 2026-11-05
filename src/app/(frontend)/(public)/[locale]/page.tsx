@@ -1,4 +1,6 @@
 import type { Metadata } from 'next'
+import { hasLocale } from 'next-intl'
+import { getTranslations, setRequestLocale } from 'next-intl/server'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import React from 'react'
@@ -8,6 +10,7 @@ import { RichText } from '@/components/RichText'
 import { getAppSession } from '@/core/auth/session'
 import { buildPageMetadata } from '@/core/content/metadata'
 import { getPublishedPageBySlug } from '@/core/content/pages'
+import { routing } from '@/core/i18n'
 import { findNavOverridesForPath } from '@/core/nav'
 import { HOME_PAGE_KEY } from '@/core/page-settings'
 import { getSiteSettings } from '@/core/settings'
@@ -17,14 +20,16 @@ import { getSiteChrome } from '@/core/site-chrome'
 const HOME_SLUG = HOME_PAGE_KEY
 
 type Props = {
+  params: Promise<{ locale: string }>
   searchParams: Promise<{ notice?: string }>
 }
 
 /**
  * Public home — Payload page `home` via the layout page-content particle.
- * No hard-coded scaffold; edit content in CMS `/admin`.
+ * No hard-coded scaffold; edit content in CMS `/cms`.
  */
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale } = await params
   const page = await getPublishedPageBySlug(HOME_SLUG)
   if (!page) {
     const [settings, chrome] = await Promise.all([getSiteSettings(), getSiteChrome()])
@@ -37,22 +42,34 @@ export async function generateMetadata(): Promise<Metadata> {
   if (overrides?.browserTitle) {
     return { ...meta, title: overrides.browserTitle }
   }
+  // Silence unused locale until P1 content locales.
+  void locale
   return meta
 }
 
-export default async function HomePage({ searchParams }: Props) {
-  const params = await searchParams
+export default async function HomePage({ params, searchParams }: Props) {
+  const { locale } = await params
+  if (!hasLocale(routing.locales, locale)) {
+    notFound()
+  }
+  setRequestLocale(locale)
+
+  const query = await searchParams
   const page = await getPublishedPageBySlug(HOME_SLUG)
 
   if (!page) {
     notFound()
   }
 
-  const [settings, session] = await Promise.all([getSiteSettings(), getAppSession()])
+  const [settings, session, t] = await Promise.all([
+    getSiteSettings(),
+    getAppSession(),
+    getTranslations('Auth'),
+  ])
   const overrides = findNavOverridesForPath(settings.primaryNav, '/')
   const heading = overrides?.pageHeading?.trim() || page.title
-  const showAdminsOnly = params.notice === 'admins-only'
-  const showCmsDenied = params.notice === 'cms-denied'
+  const showAdminsOnly = query.notice === 'admins-only'
+  const showCmsDenied = query.notice === 'cms-denied'
   const user = session?.user as
     | { email?: string | null; name?: string | null }
     | undefined
@@ -91,11 +108,7 @@ export default async function HomePage({ searchParams }: Props) {
         userEmail={user?.email}
         userName={user?.name}
         showForm={!session?.user}
-        welcomeNote={
-          session?.user
-            ? undefined
-            : 'Welcome — use the panel for password, magic link, or email code. Helpers cover forgot password, forgot login email, stay signed in, and 2FA after you sign in.'
-        }
+        welcomeNote={session?.user ? undefined : t('welcomeNoteHome')}
       />
     </div>
   )

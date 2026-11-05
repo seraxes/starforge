@@ -1,3 +1,5 @@
+import { DEFAULT_LOCALE, isAppLocale } from '@/core/i18n/locales'
+
 import {
   DEFAULT_CONSENT_MESSAGE,
   DEFAULT_CONSENT_PRIVACY_LINK_LABEL,
@@ -10,6 +12,18 @@ import {
   isMailProvider,
 } from './defaults'
 import type { SiteChromeDocument } from './types'
+
+function normalizeLocalesEnabled(value: unknown): string[] {
+  if (!Array.isArray(value)) return [...DEFAULT_SITE_CHROME.localesEnabled]
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const entry of value) {
+    if (!isAppLocale(entry) || seen.has(entry)) continue
+    seen.add(entry)
+    out.push(entry)
+  }
+  return out.length > 0 ? out : [...DEFAULT_SITE_CHROME.localesEnabled]
+}
 
 function asString(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value : fallback
@@ -64,6 +78,10 @@ export function normalizeSiteChrome(raw: unknown): SiteChromeDocument {
     consentPrivacyLinkLabel:
       asString(src.consentPrivacyLinkLabel).trim() ||
       DEFAULT_CONSENT_PRIVACY_LINK_LABEL,
+    localesEnabled: normalizeLocalesEnabled(src.localesEnabled),
+    defaultLocale: isAppLocale(src.defaultLocale)
+      ? src.defaultLocale
+      : DEFAULT_LOCALE,
   }
 }
 
