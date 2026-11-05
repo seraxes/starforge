@@ -99,32 +99,36 @@ function isLayoutSlotDragIgnoredTarget(target: EventTarget | null): boolean {
 
 /**
  * HTML5 drag image: clone of the real mid-blue particle bar at ~50% opacity.
- * Removed after the browser snapshots it.
+ * Removed after the browser snapshots it. Never throws — drag must still work.
  */
 function setHalfOpacityDragImage(event: React.DragEvent<HTMLElement>) {
-  const src = event.currentTarget
-  const rect = src.getBoundingClientRect()
-  const ghost = src.cloneNode(true) as HTMLElement
-  ghost.setAttribute('aria-hidden', 'true')
-  ghost.style.position = 'fixed'
-  ghost.style.top = '-10000px'
-  ghost.style.left = '-10000px'
-  ghost.style.width = `${Math.max(rect.width, 1)}px`
-  ghost.style.height = `${Math.max(rect.height, 1)}px`
-  ghost.style.opacity = '0.5'
-  ghost.style.pointerEvents = 'none'
-  ghost.style.margin = '0'
-  ghost.style.zIndex = '10000'
-  ghost.removeAttribute('draggable')
-  document.body.appendChild(ghost)
-  event.dataTransfer.setDragImage(
-    ghost,
-    Math.max(0, event.clientX - rect.left),
-    Math.max(0, event.clientY - rect.top),
-  )
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => ghost.remove())
-  })
+  try {
+    const src = event.currentTarget
+    const rect = src.getBoundingClientRect()
+    const ghost = src.cloneNode(true) as HTMLElement
+    ghost.setAttribute('aria-hidden', 'true')
+    ghost.style.position = 'fixed'
+    ghost.style.top = '-10000px'
+    ghost.style.left = '-10000px'
+    ghost.style.width = `${Math.max(rect.width, 1)}px`
+    ghost.style.height = `${Math.max(rect.height, 1)}px`
+    ghost.style.opacity = '0.5'
+    ghost.style.pointerEvents = 'none'
+    ghost.style.margin = '0'
+    ghost.style.zIndex = '10000'
+    ghost.removeAttribute('draggable')
+    document.body.appendChild(ghost)
+    event.dataTransfer.setDragImage(
+      ghost,
+      Math.max(0, event.clientX - rect.left),
+      Math.max(0, event.clientY - rect.top),
+    )
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => ghost.remove())
+    })
+  } catch {
+    // Browser may reject custom drag images; native drag continues.
+  }
 }
 
 function parseSlotDragPayload(raw: string): SlotDragPayload | null {
@@ -492,13 +496,20 @@ function ParticleBlock({
       }}
       onMouseDown={(event) => {
         // Name field / cog / remove must not start an HTML5 drag.
-        ;(event.currentTarget as HTMLElement).draggable = !isLayoutSlotDragIgnoredTarget(
-          event.target,
-        )
+        const el = event.currentTarget as HTMLElement
+        el.draggable = !isLayoutSlotDragIgnoredTarget(event.target)
+      }}
+      onMouseUp={(event) => {
+        ;(event.currentTarget as HTMLElement).draggable = true
+      }}
+      onMouseLeave={(event) => {
+        // Restore after clicking into name/cog without a following drag.
+        if (!isDragging) (event.currentTarget as HTMLElement).draggable = true
       }}
       onDragStart={(event) => {
         if (isLayoutSlotDragIgnoredTarget(event.target)) {
           event.preventDefault()
+          ;(event.currentTarget as HTMLElement).draggable = true
           return
         }
         const payload: SlotDragPayload = {
@@ -512,7 +523,8 @@ function ParticleBlock({
         setHalfOpacityDragImage(event)
         onSlotDragStart(payload)
       }}
-      onDragEnd={() => {
+      onDragEnd={(event) => {
+        ;(event.currentTarget as HTMLElement).draggable = true
         onSlotDragEnd()
       }}
       onDragOver={(event) => {
