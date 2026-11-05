@@ -10,23 +10,26 @@ import {
   siteChromeDocumentNeedsLocaleHeal,
 } from './normalize'
 
-describe('normalizeSiteChrome locale stub', () => {
-  it('fills localesEnabled + defaultLocale when missing', () => {
+describe('normalizeSiteChrome locale fields', () => {
+  it('fills localesEnabled + defaultLocale + localeFallback when missing', () => {
     const chrome = normalizeSiteChrome({
       siteName: 'Test',
       offlineEnabled: false,
     })
     assert.deepEqual(chrome.localesEnabled, [...LOCALES])
     assert.equal(chrome.defaultLocale, DEFAULT_LOCALE)
+    assert.equal(chrome.localeFallback, true)
   })
 
-  it('keeps valid localesEnabled arrays', () => {
+  it('keeps valid localesEnabled arrays and coerces default into enabled', () => {
     const chrome = normalizeSiteChrome({
       localesEnabled: ['hu'],
-      defaultLocale: 'hu',
+      defaultLocale: 'en',
+      localeFallback: false,
     })
     assert.deepEqual(chrome.localesEnabled, ['hu'])
     assert.equal(chrome.defaultLocale, 'hu')
+    assert.equal(chrome.localeFallback, false)
   })
 
   it('parseSiteChromeJson soft-heals pre-i18n JSON', () => {
@@ -58,6 +61,7 @@ describe('normalizeSiteChrome locale stub', () => {
     assert.ok(parsed)
     assert.deepEqual(parsed.localesEnabled, [...DEFAULT_SITE_CHROME.localesEnabled])
     assert.equal(parsed.defaultLocale, DEFAULT_SITE_CHROME.defaultLocale)
+    assert.equal(parsed.localeFallback, DEFAULT_SITE_CHROME.localeFallback)
     assert.equal(siteChromeDocumentNeedsLocaleHeal(JSON.stringify(parsed)), false)
   })
 
@@ -65,6 +69,15 @@ describe('normalizeSiteChrome locale stub', () => {
     assert.equal(
       siteChromeDocumentNeedsLocaleHeal(
         JSON.stringify({ localesEnabled: null, defaultLocale: 'en' }),
+      ),
+      true,
+    )
+  })
+
+  it('siteChromeDocumentNeedsLocaleHeal detects missing localeFallback', () => {
+    assert.equal(
+      siteChromeDocumentNeedsLocaleHeal(
+        JSON.stringify({ localesEnabled: ['en'], defaultLocale: 'en' }),
       ),
       true,
     )

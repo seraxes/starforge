@@ -290,6 +290,13 @@ export {
 } from './site-chrome'
 export type { CaptchaProvider, SiteChromeDocument } from './site-chrome'
 export {
+  DEFAULT_LOCALIZATION,
+  getLocalizationSettings,
+  normalizeLocalizationSettings,
+  saveLocalizationSettings,
+} from './localization'
+export type { LocalizationSettings } from './localization'
+export {
   DEFAULT_LOCALE,
   LOCALES,
   LOCALE_LABELS,

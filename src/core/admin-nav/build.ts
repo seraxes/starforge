@@ -100,6 +100,11 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
       ],
     },
     {
+      id: 'localization',
+      label: 'Localization',
+      links: [{ href: `${CORE}/localization`, label: 'Localization' }],
+    },
+    {
       id: 'site-settings',
       label: 'Settings',
       href: `${CORE}/settings`,

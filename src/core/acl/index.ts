@@ -61,6 +61,7 @@ export {
   deleteUserGroup,
   ensureDefaultUserGroupsSeeded,
   ensureManagersDashboardAcl,
+  ensureManagersLocalizationAcl,
   getUserGroup,
   listUserGroupOptions,
   listUserGroups,

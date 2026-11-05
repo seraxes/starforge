@@ -168,6 +168,27 @@ export async function ensureManagersDashboardAcl(): Promise<{ healed: boolean }>
   return { healed: true }
 }
 
+/**
+ * Upgrade path: Localization left Site Chrome (SF-239). Managers who already
+ * had `admin.site-chrome` also get `admin.localization` so the moved page stays
+ * reachable. Idempotent — no-op when Localization already allowed, Chrome not
+ * granted, or group missing.
+ */
+export async function ensureManagersLocalizationAcl(): Promise<{ healed: boolean }> {
+  const managers = await getUserGroup('managers')
+  if (!managers) return { healed: false }
+
+  const matrix = await getGroupAclMatrix('managers')
+  const chrome = matrix.find((row) => row.resource === 'admin.site-chrome')
+  if (!chrome?.allowed) return { healed: false }
+
+  const localization = matrix.find((row) => row.resource === 'admin.localization')
+  if (localization?.allowed) return { healed: false }
+
+  await setGroupAclPermission('managers', 'admin.localization', true)
+  return { healed: true }
+}
+
 /** Seed a couple of starter groups when the table is empty. */
 export async function ensureDefaultUserGroupsSeeded(): Promise<{
   created: string[]
@@ -176,6 +197,8 @@ export async function ensureDefaultUserGroupsSeeded(): Promise<{
   if (existing.length > 0) {
     // Existing installs: still heal Managers → Dashboard after D0.
     await ensureManagersDashboardAcl()
+    // Localization left Chrome — heal Managers who already had Chrome.
+    await ensureManagersLocalizationAcl()
     return { created: [] }
   }
 

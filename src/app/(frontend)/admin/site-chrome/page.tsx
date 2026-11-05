@@ -20,7 +20,8 @@ export default async function AdminSiteChromePage() {
       <h2>Chrome</h2>
       <p className="lede admin-lede">
         Site-wide policy and defaults — offline, SEO/metadata, cookies, outbound email, and
-        Environment. Captcha enable/provider moved to{' '}
+        Environment. Languages live under{' '}
+        <Link href="/admin/localization">Localization</Link>. Captcha enable/provider moved to{' '}
         <Link href="/admin/settings/security">Settings → Security</Link>. Modules
         on/off under <Link href="/admin/settings">Settings → Modules</Link>; navigation
         sets under <Link href="/admin/nav">Navigation</Link>; document chrome / Font Awesome
