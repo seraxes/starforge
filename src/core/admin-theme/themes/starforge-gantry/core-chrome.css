@@ -1497,10 +1497,51 @@ body:has(.admin-shell) > main {
   padding: 0.35rem 0.5rem !important;
 }
 
-.gantry-settings-theme-dark .sf-code-field-panel {
-  background: #161e27;
-  border-color: #2f3d50;
+.gantry-settings-theme-dark .sf-code-field-panel,
+.gantry-settings-theme-dark .sf-code-field-panel-dark {
+  background: #0f1a2a;
+  border-color: #1e4d72;
   border-radius: 3px;
+  color: #ffffff;
+}
+
+.gantry-settings-theme-dark .sf-code-field-lang {
+  color: var(--sf-secondary-strong, #b7d6ec);
+}
+
+/* Portaled Assets/Custom CodeMirror — same navy chrome as `.admin-shell` editors */
+.gantry-settings-theme-dark .sf-code-mirror .cm-editor,
+.gantry-settings-theme-dark .sf-code-mirror .cm-editor.cm-focused {
+  background: #0f1a2a !important;
+  color: #e8eef8 !important;
+}
+
+.gantry-settings-theme-dark .sf-code-mirror .cm-scroller,
+.gantry-settings-theme-dark .sf-code-mirror .cm-content {
+  color: #e8eef8;
+  caret-color: #ffffff;
+}
+
+.gantry-settings-theme-dark .sf-code-mirror .cm-gutters {
+  background: #0c1522 !important;
+  color: #8fa3bc !important;
+  border-right: 1px solid #1e4d72 !important;
+}
+
+.gantry-settings-theme-dark .sf-code-mirror .cm-activeLineGutter {
+  background: #152436 !important;
+  color: #cfe3f7 !important;
+}
+
+.gantry-settings-theme-dark .sf-code-mirror .cm-activeLine {
+  background: rgba(52, 152, 219, 0.14) !important;
+}
+
+.gantry-settings-theme-dark .sf-code-field-resize {
+  background:
+    linear-gradient(to bottom, transparent 35%, #1e4d72 35%, #1e4d72 45%, transparent 45%),
+    color-mix(in srgb, var(--sf-secondary, #8ebad4) 10%, #0f1a2a);
+  border-top-color: #1e4d72;
 }
 
 .gantry-settings-theme-dark .gantry-color-swatch {

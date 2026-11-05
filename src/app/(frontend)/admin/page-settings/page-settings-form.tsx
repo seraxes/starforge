@@ -167,6 +167,7 @@ function OrderedAssetList({
                 <AtomSettingsPopover
                   title={`Edit ${item.name || fileLabel}`}
                   triggerLabel="Edit"
+                  preferredWidth={600}
                 >
                   <CodeEditorField
                     key={`${item.id}-editor`}
