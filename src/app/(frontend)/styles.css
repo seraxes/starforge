@@ -4413,3 +4413,131 @@ button.danger,
   gap: 0.35rem;
   align-items: center;
 }
+
+/* —— Admin Dashboard (D0) — Page Settings chrome language —— */
+.sf-dashboard-page-head {
+  margin-bottom: 1rem;
+}
+
+.sf-dashboard-refreshed {
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+.sf-dashboard-grid {
+  margin-top: 0.75rem;
+}
+
+.sf-dashboard-card {
+  margin: 0;
+  min-width: 0;
+  background: var(--sf-admin-panel-bg, rgba(12, 24, 48, 0.55));
+  border: 1px solid var(--sf-admin-border, rgba(120, 170, 230, 0.35));
+  border-radius: 2px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sf-dashboard-card-lg {
+  grid-column: 1 / -1;
+}
+
+.sf-dashboard-card-head {
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid var(--sf-admin-border, rgba(120, 170, 230, 0.28));
+}
+
+.sf-dashboard-card-head h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.sf-dashboard-card-body {
+  padding: 0.85rem;
+  flex: 1;
+}
+
+.sf-dashboard-soft-fail {
+  margin: 0;
+  opacity: 0.7;
+  font-size: 1.25rem;
+}
+
+.sf-dashboard-strip-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem 1rem;
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .sf-dashboard-strip-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .sf-dashboard-strip-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.sf-dashboard-stat {
+  margin: 0;
+  min-width: 0;
+}
+
+.sf-dashboard-stat dt {
+  margin: 0 0 0.2rem;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.75;
+}
+
+.sf-dashboard-stat dd {
+  margin: 0;
+  font-size: 1.45rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.sf-dashboard-stat-hint {
+  font-size: 0.75rem;
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+.sf-dashboard-chip {
+  display: inline-block;
+  font-size: 0.85rem;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid rgba(120, 170, 230, 0.45);
+  border-radius: 2px;
+}
+
+.sf-dashboard-chip-warn {
+  border-color: rgba(230, 160, 80, 0.65);
+  color: #ffd9a8;
+}
+
+.sf-dashboard-card-foot {
+  margin: 0.75rem 0 0;
+  font-size: 0.9rem;
+}
+
+.sf-dashboard-table-wrap {
+  margin: 0;
+  overflow-x: auto;
+}
+
+.sf-dashboard-empty,
+.sf-dashboard-empty-hint,
+.sf-dashboard-empty-inline {
+  margin: 0.75rem 0 0;
+  opacity: 0.85;
+}

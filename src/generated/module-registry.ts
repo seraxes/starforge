@@ -17,10 +17,10 @@ import type { ModuleCatalogItem } from '@/core/settings/module-toggles'
 export const MODULE_ALLOWLIST_FLAVOR = "core" as const
 
 /** Fixed required ids — always installed even if omitted from the allowlist file. */
-export const FIXED_REQUIRED_MODULE_IDS = ["platform:better-auth","page-content","product:media"] as const
+export const FIXED_REQUIRED_MODULE_IDS = ["platform:dashboard","platform:better-auth","page-content","product:media"] as const
 
 /** Allowlisted module ids for this install/build (platform + product + particles + atoms). */
-export const ALLOWLISTED_MODULE_IDS = ["atom:analytics","atom:custom-css-js","copyright","custom","form","login","logo","menu","notice-bar","page-content","platform:better-auth","platform:payload-cms","product:consent","product:draft-preview","product:email-manager","product:font-awesome","product:forms","product:layout-manager","product:media","product:page-settings","product:posts","product:primary-nav","product:redirects","product:registration","product:rich-editor","product:search","search","site-header","social"] as const
+export const ALLOWLISTED_MODULE_IDS = ["atom:analytics","atom:custom-css-js","copyright","custom","form","login","logo","menu","notice-bar","page-content","platform:better-auth","platform:dashboard","platform:payload-cms","product:consent","product:draft-preview","product:email-manager","product:font-awesome","product:forms","product:layout-manager","product:media","product:page-settings","product:posts","product:primary-nav","product:redirects","product:registration","product:rich-editor","product:search","search","site-header","social"] as const
 
 export type AllowlistedModuleId = (typeof ALLOWLISTED_MODULE_IDS)[number]
 
@@ -37,13 +37,14 @@ export function isModuleAllowlisted(id: string): boolean {
 export const ALLOWLISTED_BUILTIN_PARTICLE_IDS: readonly string[] = ["page-content","site-header","logo","menu","copyright","social","custom","login"]
 
 /** Platform + product catalog ids installed in this build. */
-export const ALLOWLISTED_PRODUCT_PLATFORM_IDS: readonly string[] = ["platform:better-auth","platform:payload-cms","product:layout-manager","product:page-settings","product:primary-nav","product:font-awesome","product:registration","product:rich-editor","product:posts","product:draft-preview","product:forms","product:email-manager","product:redirects","product:consent","product:search","product:media"]
+export const ALLOWLISTED_PRODUCT_PLATFORM_IDS: readonly string[] = ["platform:dashboard","platform:better-auth","platform:payload-cms","product:layout-manager","product:page-settings","product:primary-nav","product:font-awesome","product:registration","product:rich-editor","product:posts","product:draft-preview","product:forms","product:email-manager","product:redirects","product:consent","product:search","product:media"]
 
 /**
  * Derived Site Settings → Modules rows for platform + product packs.
  * Replaces the hand-maintained PRODUCT_MODULE_CATALOG.
  */
 export const ALLOWLISTED_PRODUCT_PLATFORM_META: ModuleCatalogItem[] = [
+  { id: "platform:dashboard", kind: "platform", label: "Dashboard", description: "Starforge admin home at /admin — Core user metrics strip + latest users. Product packs contribute more cards via admin.dashboard[]. Required.", required: true, defaultEnabled: true, installed: true as const },
   { id: "platform:better-auth", kind: "platform", label: "Better Auth", description: "Core app login, sessions, users, password reset, passwordless, and TOTP 2FA. Required — sole sign-in for Starforge.", required: true, defaultEnabled: true, installed: true as const, navViews: [{"key":"login","label":"Sign in","href":"/login"},{"key":"forgot-password","label":"Forgot password","href":"/forgot-password"},{"key":"forgot-username","label":"Forgot login email","href":"/forgot-username"},{"key":"account-security","label":"Account security","href":"/account/security"}] },
   { id: "platform:payload-cms", kind: "platform", label: "Payload CMS", description: "Content CMS (/cms/admin) for pages and media. Off hides CMS nav and blocks Payload admin entry when safe.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Content CMS","href":"/cms/admin"}] },
   { id: "product:layout-manager", kind: "product", label: "Layout manager / Outlines", description: "Gantry-like layout canvas and named outlines. Off hides Layout/Outlines admin and uses a minimal public shell.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"layout","label":"Layout canvas","href":"/admin/layouts"},{"key":"outlines","label":"Outlines","href":"/admin/outlines"}] },
@@ -236,6 +237,26 @@ export const adminNavContributions: AdminNavContribution[] = [
   { moduleId: "product:email-manager", id: "email", label: "Email", order: 45, href: "/admin/email", expandable: true, links: [{ label: "Rules", href: "/admin/email", order: 10, exact: true, area: "email-manager", group: "email" }, { label: "Templates", href: "/admin/email/templates", order: 20, area: "email-manager", group: "email" }] },
   { moduleId: "product:redirects", id: "redirects", label: "Redirects", order: 50, links: [{ label: "Redirects", href: "/admin/redirects", order: 10, area: "redirects", group: "redirects" }] },
   { moduleId: "product:media", id: "media", label: "Media", order: 60, href: "/admin/media", expandable: true, defaultOpen: true, links: [{ label: "Library", href: "/admin/media", order: 10, exact: true, area: "media", group: "media" }, { label: "Settings", href: "/admin/media/settings", order: 20, area: "media", group: "media" }] }
+]
+
+export type AdminDashboardContribution = {
+  moduleId: string
+  id: string
+  title: string
+  order: number
+  size: 'sm' | 'md' | 'lg'
+  area?: string
+  /** Module widget import — loaded by server registry, not here. */
+  widgetImportPath: string
+  widgetExportName: string
+  statsImportPath?: string
+  statsExportName?: string
+}
+
+/** Admin Dashboard widgets from allowlisted manifests (D0). Metadata only. */
+export const adminDashboardContributions: AdminDashboardContribution[] = [
+  { moduleId: "platform:dashboard", id: "users.strip", title: "Users", order: 10, size: "lg", area: "dashboard", widgetImportPath: "@/core/dashboard/widgets/UsersStripWidget", widgetExportName: "UsersStripWidget", statsImportPath: "@/core/dashboard/widgets/users-stats", statsExportName: "loadUsersStripStats" },
+  { moduleId: "platform:dashboard", id: "users.latest", title: "Latest users", order: 20, size: "lg", area: "dashboard", widgetImportPath: "@/core/dashboard/widgets/LatestUsersWidget", widgetExportName: "LatestUsersWidget", statsImportPath: "@/core/dashboard/widgets/users-stats", statsExportName: "loadLatestUsersStats" }
 ]
 
 export type AdminRouteLoader = {

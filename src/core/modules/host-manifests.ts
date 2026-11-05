@@ -7,6 +7,43 @@ import { defineStarforgeModule, type StarforgeModuleManifest } from './define-mo
 
 export const hostModuleManifests: StarforgeModuleManifest[] = [
   defineStarforgeModule({
+    id: 'platform:dashboard',
+    kind: 'platform',
+    label: 'Dashboard',
+    description:
+      'Starforge admin home at /admin — Core user metrics strip + latest users. Product packs contribute more cards via admin.dashboard[]. Required.',
+    version: '0.1.0',
+    required: true,
+    defaultEnabled: true,
+    admin: {
+      areas: [{ key: 'dashboard', label: 'Dashboard' }],
+      dashboard: [
+        {
+          id: 'users.strip',
+          title: 'Users',
+          order: 10,
+          size: 'lg',
+          area: 'dashboard',
+          widgetImportPath: '@/core/dashboard/widgets/UsersStripWidget',
+          widgetExportName: 'UsersStripWidget',
+          statsImportPath: '@/core/dashboard/widgets/users-stats',
+          statsExportName: 'loadUsersStripStats',
+        },
+        {
+          id: 'users.latest',
+          title: 'Latest users',
+          order: 20,
+          size: 'lg',
+          area: 'dashboard',
+          widgetImportPath: '@/core/dashboard/widgets/LatestUsersWidget',
+          widgetExportName: 'LatestUsersWidget',
+          statsImportPath: '@/core/dashboard/widgets/users-stats',
+          statsExportName: 'loadLatestUsersStats',
+        },
+      ],
+    },
+  }),
+  defineStarforgeModule({
     id: 'platform:better-auth',
     kind: 'platform',
     label: 'Better Auth',

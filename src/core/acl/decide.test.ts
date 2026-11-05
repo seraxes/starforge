@@ -104,9 +104,23 @@ describe('adminAreaGateForPath', () => {
     })
   })
 
-  it('treats /admin as shell entry', () => {
-    assert.deepEqual(adminAreaGateForPath('/admin'), { type: 'shell' })
-    assert.deepEqual(adminAreaGateForPath('/admin/'), { type: 'shell' })
+  it('maps Dashboard root to admin.dashboard (/admin + legacy /app/admin)', () => {
+    assert.deepEqual(adminAreaGateForPath('/admin'), {
+      type: 'resource',
+      key: 'admin.dashboard',
+    })
+    assert.deepEqual(adminAreaGateForPath('/admin/'), {
+      type: 'resource',
+      key: 'admin.dashboard',
+    })
+    assert.deepEqual(adminAreaGateForPath('/app/admin'), {
+      type: 'resource',
+      key: 'admin.dashboard',
+    })
+    assert.deepEqual(adminAreaGateForPath('/app/admin/'), {
+      type: 'resource',
+      key: 'admin.dashboard',
+    })
   })
 })
 
@@ -134,10 +148,19 @@ describe('viewerAllowsGate + landing', () => {
     )
   })
 
-  it('sends app admins to Users', () => {
+  it('sends app admins to Dashboard', () => {
     assert.equal(
       firstAdminLandingPath({ isAppAdmin: true, allowed: new Set() }),
-      '/admin/users',
+      '/admin',
     )
+  })
+
+  it('lands Managers with admin.dashboard on Dashboard', () => {
+    const allowed = new Set(['admin.dashboard', 'admin.nav'] as const)
+    assert.equal(
+      firstAdminLandingPath({ isAppAdmin: false, allowed }),
+      '/admin',
+    )
+    assert.equal(adminHrefAllowed('/admin', false, allowed), true)
   })
 })

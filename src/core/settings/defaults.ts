@@ -180,6 +180,37 @@ export function clampNullMissTtlSec(raw: unknown): number {
   )
 }
 
+/**
+ * Dashboard soft-refresh interval (seconds). Site Settings → Performance.
+ * D0 exposes the setting; client poll / RSC refresh wiring is D4.
+ */
+export const DEFAULT_DASHBOARD_REFRESH_INTERVAL_SEC = 60
+export const DASHBOARD_REFRESH_INTERVAL_SEC_MIN = 15
+export const DASHBOARD_REFRESH_INTERVAL_SEC_MAX = 600
+
+/** Online-now session activity window (minutes). Site Settings → Performance. */
+export const DEFAULT_DASHBOARD_ONLINE_WINDOW_MIN = 15
+export const DASHBOARD_ONLINE_WINDOW_MIN_MIN = 5
+export const DASHBOARD_ONLINE_WINDOW_MIN_MAX = 120
+
+export function clampDashboardRefreshIntervalSec(raw: unknown): number {
+  const n = coerceFiniteNumber(raw)
+  if (n == null) return DEFAULT_DASHBOARD_REFRESH_INTERVAL_SEC
+  return Math.min(
+    DASHBOARD_REFRESH_INTERVAL_SEC_MAX,
+    Math.max(DASHBOARD_REFRESH_INTERVAL_SEC_MIN, Math.round(n)),
+  )
+}
+
+export function clampDashboardOnlineWindowMin(raw: unknown): number {
+  const n = coerceFiniteNumber(raw)
+  if (n == null) return DEFAULT_DASHBOARD_ONLINE_WINDOW_MIN
+  return Math.min(
+    DASHBOARD_ONLINE_WINDOW_MIN_MAX,
+    Math.max(DASHBOARD_ONLINE_WINDOW_MIN_MIN, Math.round(n)),
+  )
+}
+
 export type SiteSettingsData = {
   siteName: string
   /**
@@ -220,6 +251,15 @@ export type SiteSettingsData = {
    * Ignored by the Next.js tag cache.
    */
   nullMissTtlSec: number
+  /**
+   * Dashboard soft-refresh interval (seconds). Site Settings → Performance.
+   * Host reads this in D0; client poll / RSC refresh is D4.
+   */
+  dashboardRefreshIntervalSec: number
+  /**
+   * “Online now” session activity window (minutes). Site Settings → Performance.
+   */
+  dashboardOnlineWindowMin: number
   features: FeatureFlags
   /** Runtime gates for registered particles + atoms (`atom:` prefix). */
   moduleToggles: ModuleToggleMap
@@ -254,6 +294,8 @@ export const DEFAULT_SITE_SETTINGS: SiteSettingsData = {
   publishedCacheEnabled: DEFAULT_PUBLISHED_CACHE_ENABLED,
   publishedCacheTtlSec: DEFAULT_PUBLISHED_CACHE_TTL_SEC,
   nullMissTtlSec: DEFAULT_NULL_MISS_TTL_SEC,
+  dashboardRefreshIntervalSec: DEFAULT_DASHBOARD_REFRESH_INTERVAL_SEC,
+  dashboardOnlineWindowMin: DEFAULT_DASHBOARD_ONLINE_WINDOW_MIN,
   features: { ...DEFAULT_FEATURE_FLAGS },
   moduleToggles: {},
 }

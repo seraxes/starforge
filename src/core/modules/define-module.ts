@@ -98,6 +98,32 @@ export type StarforgeModuleSettingsDecl = {
   panelExportName?: string
 }
 
+/**
+ * Admin Dashboard widget contribution (D0+).
+ * Mirror of `admin.nav` — codegen → `adminDashboardContributions` + server loaders.
+ * Core host merges/filters by module toggle + ACL; soft-fails per widget.
+ */
+export type StarforgeModuleAdminDashboardWidget = {
+  /** Stable id within the module, e.g. `users.strip` | `media.counts`. */
+  id: string
+  title: string
+  /** Default 100; Core strip uses reserved order &lt; 50. */
+  order?: number
+  /** Grid span hint — `lg` spans full width on desktop mosaic. */
+  size?: 'sm' | 'md' | 'lg'
+  /** ACL area key; omit = `admin.dashboard` only. */
+  area?: string
+  /** Codegen-visible Server Component that returns the card body. */
+  widgetImportPath: string
+  widgetExportName?: string
+  /**
+   * Optional JSON stats loader (preferred for SSR numbers / soft refresh).
+   * Host may call when enabled; soft-fail → card shows “—” / retry.
+   */
+  statsImportPath?: string
+  statsExportName?: string
+}
+
 export type StarforgeModuleManifest = {
   id: string
   kind: StarforgeModuleKind
@@ -134,7 +160,7 @@ export type StarforgeModuleManifest = {
   editorExportName?: string
   defaultsImportPath?: string
   defaultsExportName?: string
-  /** Optional admin nav contributions (M2 host). */
+  /** Optional admin nav + dashboard contributions (M2 / D0 host). */
   admin?: {
     nav?: StarforgeModuleAdminNavItem[]
     areas?: Array<{ key: string; label: string }>
@@ -149,6 +175,11 @@ export type StarforgeModuleManifest = {
     }
     /** Admin pages — codegen writes App Router shims (M2 leftovers). */
     routes?: StarforgeModuleAdminRoute[]
+    /**
+     * Dashboard widgets — codegen → registry; Core host at `/app/admin` merges
+     * by allowlist + Site Settings toggle + ACL (no hardcoded product `if`s).
+     */
+    dashboard?: StarforgeModuleAdminDashboardWidget[]
   }
   /**
    * Module settings document + optional Site Settings topic panel (M2).

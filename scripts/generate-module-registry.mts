@@ -244,6 +244,50 @@ async function main(): Promise<void> {
     (e) => e.admin?.nav && e.admin.nav.length > 0,
   )
 
+  type AdminDashboardDecl = {
+    moduleId: string
+    id: string
+    title: string
+    order: number
+    size: 'sm' | 'md' | 'lg'
+    area?: string
+    widgetImportPath: string
+    widgetExportName: string
+    statsImportPath?: string
+    statsExportName?: string
+  }
+  const adminDashboardDecls: AdminDashboardDecl[] = []
+  for (const entry of allowlistedEntries) {
+    for (const widget of entry.admin?.dashboard ?? []) {
+      const widgetId = widget.id?.trim() ?? ''
+      const title = widget.title?.trim() ?? ''
+      const widgetImportPath = widget.widgetImportPath?.trim() ?? ''
+      if (!widgetId || !title || !widgetImportPath) {
+        console.warn(
+          `[modules:generate] Skipping admin.dashboard entry on ${entry.id} — need id + title + widgetImportPath`,
+        )
+        continue
+      }
+      const size = widget.size === 'sm' || widget.size === 'md' || widget.size === 'lg' ? widget.size : 'md'
+      const decl: AdminDashboardDecl = {
+        moduleId: entry.id,
+        id: widgetId,
+        title,
+        order: widget.order ?? 100,
+        size,
+        widgetImportPath,
+        widgetExportName: widget.widgetExportName?.trim() || 'default',
+      }
+      if (widget.area?.trim()) decl.area = widget.area.trim()
+      const statsImportPath = widget.statsImportPath?.trim()
+      if (statsImportPath) {
+        decl.statsImportPath = statsImportPath
+        decl.statsExportName = widget.statsExportName?.trim() || 'default'
+      }
+      adminDashboardDecls.push(decl)
+    }
+  }
+
   type AdminRouteDecl = {
     moduleId: string
     path: string
@@ -381,6 +425,59 @@ async function main(): Promise<void> {
       if (group?.defaultOpen) groupParts.push(`defaultOpen: true`)
       groupParts.push(`links: [${links}]`)
       return `  { ${groupParts.join(', ')} }`
+    })
+    .join(',\n')
+
+  // Metadata only — server registry holds widget/stats dynamic import() loaders.
+  const adminDashboardLiterals = adminDashboardDecls
+    .slice()
+    .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id) || a.moduleId.localeCompare(b.moduleId))
+    .map((d) => {
+      const parts = [
+        `moduleId: ${jsonString(d.moduleId)}`,
+        `id: ${jsonString(d.id)}`,
+        `title: ${jsonString(d.title)}`,
+        `order: ${d.order}`,
+        `size: ${jsonString(d.size)}`,
+      ]
+      if (d.area) parts.push(`area: ${jsonString(d.area)}`)
+      parts.push(`widgetImportPath: ${jsonString(d.widgetImportPath)}`)
+      parts.push(`widgetExportName: ${jsonString(d.widgetExportName)}`)
+      if (d.statsImportPath) {
+        parts.push(`statsImportPath: ${jsonString(d.statsImportPath)}`)
+        parts.push(`statsExportName: ${jsonString(d.statsExportName)}`)
+      }
+      return `  { ${parts.join(', ')} }`
+    })
+    .join(',\n')
+
+  const adminDashboardWidgetLoaderLiterals = adminDashboardDecls
+    .map((d) => {
+      const loadExpr =
+        d.widgetExportName === 'default'
+          ? `async () => (await import(${jsonString(d.widgetImportPath)})).default`
+          : `async () => (await import(${jsonString(d.widgetImportPath)})).${d.widgetExportName}`
+      return `  {
+    moduleId: ${jsonString(d.moduleId)},
+    id: ${jsonString(d.id)},
+    load: ${loadExpr},
+  }`
+    })
+    .join(',\n')
+
+  const adminDashboardStatsLoaderLiterals = adminDashboardDecls
+    .filter((d) => d.statsImportPath)
+    .map((d) => {
+      const exportName = d.statsExportName || 'default'
+      const loadExpr =
+        exportName === 'default'
+          ? `async () => (await import(${jsonString(d.statsImportPath!)})).default`
+          : `async () => (await import(${jsonString(d.statsImportPath!)})).${exportName}`
+      return `  {
+    moduleId: ${jsonString(d.moduleId)},
+    id: ${jsonString(d.id)},
+    load: ${loadExpr},
+  }`
     })
     .join(',\n')
 
@@ -562,6 +659,25 @@ export const adminNavContributions: AdminNavContribution[] = [
 ${adminNavLiterals || '  // (none)'}
 ]
 
+export type AdminDashboardContribution = {
+  moduleId: string
+  id: string
+  title: string
+  order: number
+  size: 'sm' | 'md' | 'lg'
+  area?: string
+  /** Module widget import — loaded by server registry, not here. */
+  widgetImportPath: string
+  widgetExportName: string
+  statsImportPath?: string
+  statsExportName?: string
+}
+
+/** Admin Dashboard widgets from allowlisted manifests (D0). Metadata only. */
+export const adminDashboardContributions: AdminDashboardContribution[] = [
+${adminDashboardLiterals || '  // (none)'}
+]
+
 export type AdminRouteLoader = {
   moduleId: string
   /** Path under /admin/ (no leading slash), e.g. media/settings. */
@@ -643,6 +759,28 @@ export const moduleSettingsPanelLoaders: ModuleSettingsPanelLoader[] = [
 ${settingsPanelLoaderLiterals || '  // (none)'}
 ]
 
+export type AdminDashboardWidgetLoader = {
+  moduleId: string
+  id: string
+  load: () => Promise<ComponentType<Record<string, unknown>> | ((...args: never[]) => ReactNode)>
+}
+
+/** Dashboard card bodies from allowlisted manifests (D0 host). */
+export const adminDashboardWidgetLoaders: AdminDashboardWidgetLoader[] = [
+${adminDashboardWidgetLoaderLiterals || '  // (none)'}
+]
+
+export type AdminDashboardStatsLoader = {
+  moduleId: string
+  id: string
+  load: () => Promise<unknown>
+}
+
+/** Optional Dashboard stats loaders (SSR numbers / soft refresh). */
+export const adminDashboardStatsLoaders: AdminDashboardStatsLoader[] = [
+${adminDashboardStatsLoaderLiterals || '  // (none)'}
+]
+
 export async function loadAllowlistedOptionalParticles(): Promise<StarforgeModule[]> {
   return Promise.all(optionalParticleLoaders.map((entry) => entry.load()))
 }
@@ -672,7 +810,7 @@ export async function loadPublicShellSlot(
   await writeAdminRouteShims(adminRouteDecls)
 
   console.log(
-    `[modules:generate] Wrote ${path.relative(ROOT, OUT_PATH)} + ${path.relative(ROOT, OUT_SERVER_PATH)} (${allowlisted.length} ids, ${optionalParticles.length} optional particles, ${optionalAtoms.length} atoms, ${publicShellEntries.length} publicShell, ${schemaDecls.length} schemas, ${editorDecls.length} editors, ${adminNavModules.length} adminNav, ${adminRouteDecls.length} adminRoutes, ${settingsPanelDecls.length} settingsPanels)`,
+    `[modules:generate] Wrote ${path.relative(ROOT, OUT_PATH)} + ${path.relative(ROOT, OUT_SERVER_PATH)} (${allowlisted.length} ids, ${optionalParticles.length} optional particles, ${optionalAtoms.length} atoms, ${publicShellEntries.length} publicShell, ${schemaDecls.length} schemas, ${editorDecls.length} editors, ${adminNavModules.length} adminNav, ${adminDashboardDecls.length} adminDashboard, ${adminRouteDecls.length} adminRoutes, ${settingsPanelDecls.length} settingsPanels)`,
   )
 }
 

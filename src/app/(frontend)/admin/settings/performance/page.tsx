@@ -40,6 +40,8 @@ export default async function AdminSettingsPerformancePage() {
         publishedCacheEnabled={settings.publishedCacheEnabled}
         publishedCacheTtlSec={settings.publishedCacheTtlSec}
         nullMissTtlSec={settings.nullMissTtlSec}
+        dashboardRefreshIntervalSec={settings.dashboardRefreshIntervalSec}
+        dashboardOnlineWindowMin={settings.dashboardOnlineWindowMin}
       />
     </section>
   )

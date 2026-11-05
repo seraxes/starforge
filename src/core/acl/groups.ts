@@ -185,7 +185,7 @@ export async function ensureDefaultUserGroupsSeeded(): Promise<{
 
   // Default Managers model: Navigation admin so a member-in-Managers can open /admin/nav.
   if (created.includes('managers')) {
-    await replaceGroupAclMatrix('managers', ['admin.nav'])
+    await replaceGroupAclMatrix('managers', ['admin.dashboard', 'admin.nav'])
   }
 
   return { created }

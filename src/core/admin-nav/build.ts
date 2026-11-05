@@ -79,6 +79,11 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
 
   const groups: AdminNavGroup[] = [
     {
+      id: 'dashboard',
+      label: 'Dashboard',
+      links: [{ href: CORE, label: 'Dashboard', exact: true }],
+    },
+    {
       id: 'site-chrome',
       label: 'Chrome',
       href: `${CORE}/site-chrome`,

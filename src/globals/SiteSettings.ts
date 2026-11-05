@@ -130,6 +130,28 @@ export const SiteSettings: GlobalConfig = {
       },
     },
     {
+      name: 'dashboardRefreshIntervalSec',
+      type: 'number',
+      defaultValue: 60,
+      min: 15,
+      max: 600,
+      admin: {
+        description:
+          'Admin Dashboard soft-refresh interval in seconds (15–600). Prefer Starforge admin → Settings → Performance.',
+      },
+    },
+    {
+      name: 'dashboardOnlineWindowMin',
+      type: 'number',
+      defaultValue: 15,
+      min: 5,
+      max: 120,
+      admin: {
+        description:
+          'Dashboard “online now” session activity window in minutes (5–120). Prefer Starforge admin → Settings → Performance.',
+      },
+    },
+    {
       name: 'primaryNav',
       type: 'array',
       labels: {

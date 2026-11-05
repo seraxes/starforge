@@ -8,6 +8,10 @@ import {
   type SettingsActionState,
 } from '@/core/settings/actions'
 import {
+  DASHBOARD_ONLINE_WINDOW_MIN_MAX,
+  DASHBOARD_ONLINE_WINDOW_MIN_MIN,
+  DASHBOARD_REFRESH_INTERVAL_SEC_MAX,
+  DASHBOARD_REFRESH_INTERVAL_SEC_MIN,
   FORM_RATE_LIMIT_MAX_MAX,
   FORM_RATE_LIMIT_MAX_MIN,
   FORM_RATE_LIMIT_WINDOW_SEC_MAX,
@@ -27,6 +31,8 @@ type Props = {
   publishedCacheEnabled: boolean
   publishedCacheTtlSec: number
   nullMissTtlSec: number
+  dashboardRefreshIntervalSec: number
+  dashboardOnlineWindowMin: number
 }
 
 const initialState: SettingsActionState = {}
@@ -37,6 +43,8 @@ export function PerformanceSettingsForm({
   publishedCacheEnabled,
   publishedCacheTtlSec,
   nullMissTtlSec,
+  dashboardRefreshIntervalSec,
+  dashboardOnlineWindowMin,
 }: Props) {
   const [state, formAction, pending] = useActionState(
     updatePerformanceSettingsAction,
@@ -142,6 +150,42 @@ export function PerformanceSettingsForm({
               Redis only: how long empty published reads stay cached ({NULL_MISS_TTL_SEC_MIN}–
               {NULL_MISS_TTL_SEC_MAX}). Ignored by the Next.js tag cache.
             </span>
+          </label>
+        </fieldset>
+
+        <fieldset className="settings-fieldset settings-fieldset-wide">
+          <legend>Dashboard</legend>
+          <p className="settings-hint">
+            Soft-refresh interval for the admin Dashboard at <code>/admin</code>. Client poll / RSC
+            refresh wiring lands in a follow-up (D4); the host already reads these knobs. Online-now
+            counts sessions touched within the window (Better Auth <code>sf_sessions.updated_at</code>
+            ).
+          </p>
+          <label className="settings-field">
+            <span>Refresh interval (seconds)</span>
+            <input
+              type="number"
+              name="dashboardRefreshIntervalSec"
+              defaultValue={dashboardRefreshIntervalSec}
+              min={DASHBOARD_REFRESH_INTERVAL_SEC_MIN}
+              max={DASHBOARD_REFRESH_INTERVAL_SEC_MAX}
+              step={1}
+              disabled={pending}
+              {...textAutosaveProps}
+            />
+          </label>
+          <label className="settings-field">
+            <span>Online window (minutes)</span>
+            <input
+              type="number"
+              name="dashboardOnlineWindowMin"
+              defaultValue={dashboardOnlineWindowMin}
+              min={DASHBOARD_ONLINE_WINDOW_MIN_MIN}
+              max={DASHBOARD_ONLINE_WINDOW_MIN_MAX}
+              step={1}
+              disabled={pending}
+              {...textAutosaveProps}
+            />
           </label>
         </fieldset>
       </div>
