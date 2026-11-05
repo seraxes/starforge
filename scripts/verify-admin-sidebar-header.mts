@@ -68,9 +68,13 @@ mustInclude(brand, 'Admin kicker', 'admin-sidebar-kicker')
 mustInclude(brand, 'Admin kicker label', 'Admin')
 mustInclude(brand, 'logo tooltip const', 'ADMIN_SHELL_LOGO_TOOLTIP')
 mustInclude(brand, 'logo title attr', 'title={ADMIN_SHELL_LOGO_TOOLTIP}')
+mustInclude(brand, 'logo dashboard href const', 'ADMIN_DASHBOARD_HREF')
+mustInclude(brand, 'logo href attr', 'href={ADMIN_DASHBOARD_HREF}')
+mustNotInclude(brand, 'logo public-site href', 'href="/"')
 
 mustInclude(account, 'account settings href', 'ADMIN_ACCOUNT_HREF')
 mustInclude(account, 'avatar class', 'admin-sidebar-avatar')
+mustInclude(chrome, 'dashboard route', "ADMIN_DASHBOARD_HREF = '/app/admin'")
 mustInclude(chrome, 'account route', "/account/security")
 mustInclude(chrome, 'tooltip starts with Starforge admin', "'Starforge admin —")
 
@@ -82,4 +86,6 @@ mustInclude(coreChrome, 'dark avatar', '.admin-shell .admin-sidebar-avatar')
 mustInclude(payloadChrome, 'payload kicker', '.nav .admin-sidebar-kicker')
 mustInclude(payloadChrome, 'payload avatar', '.nav .admin-sidebar-avatar')
 
-console.log('ok — admin sidebar compact STARFORGE / Admin + avatar → /account/security')
+console.log(
+  'ok — admin sidebar compact STARFORGE → /app/admin + Admin + avatar → /account/security',
+)
