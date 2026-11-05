@@ -20,7 +20,7 @@ export const hostModuleManifests: StarforgeModuleManifest[] = [
       dashboard: [
         {
           id: 'users.strip',
-          title: 'Users',
+          title: 'User metrics',
           order: 10,
           size: 'lg',
           area: 'dashboard',

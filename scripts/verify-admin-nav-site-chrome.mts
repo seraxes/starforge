@@ -20,6 +20,17 @@ const enabledModuleIds = new Set([
 
 for (const surface of ['core', 'payload'] as const) {
   const groups = buildAdminNavGroups({ surface, flags, enabledModuleIds })
+  const dashboard = groups[0]
+  if (!dashboard || dashboard.id !== 'dashboard') {
+    console.error(`[${surface}] first nav group must be Dashboard`, groups.map((g) => g.id))
+    process.exit(1)
+  }
+  if (dashboard.href !== '/admin' || dashboard.links[0]?.href !== '/admin' || !dashboard.links[0]?.exact) {
+    console.error(`[${surface}] Dashboard must be exact /admin (not Users)`, dashboard)
+    process.exit(1)
+  }
+  console.log(`[${surface}] ok — first nav = Dashboard → /admin`)
+
   const siteChrome = groups.find((g) => g.id === 'site-chrome')
   if (!siteChrome) {
     console.error(`[${surface}] missing site-chrome group`)

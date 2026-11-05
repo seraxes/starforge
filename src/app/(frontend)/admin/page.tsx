@@ -24,7 +24,10 @@ export const metadata = {
   description: 'Starforge admin Dashboard — site performance at a glance.',
 }
 
-/** Starforge Dashboard — canonical URL `/admin` (Payload at `/cms/admin`). */
+/**
+ * Starforge Dashboard — canonical URL `/admin` (Payload at `/cms/admin`).
+ * Do **not** redirect to `/admin/users` — Users is a child area, never the admin home.
+ */
 export default async function CoreAdminDashboardPage() {
   const settings = await ensureSiteSettingsDefaults()
   const viewer = await getAccessViewer()

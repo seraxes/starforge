@@ -4,7 +4,7 @@ import { asc, count, eq, inArray } from 'drizzle-orm'
 
 import { db, sfAclPermissions, sfUserGroupMembers, sfUserGroups } from '@/core/db'
 
-import { replaceGroupAclMatrix } from './permissions'
+import { getGroupAclMatrix, replaceGroupAclMatrix, setGroupAclPermission } from './permissions'
 import { slugifyGroupId } from './slug'
 import type { UserGroup, UserGroupOption } from './types'
 
@@ -151,12 +151,33 @@ export async function deleteUserGroup(
   return { ok: true }
 }
 
+/**
+ * Upgrade path: Managers seeded before Dashboard D0 only had `admin.nav`.
+ * Grant `admin.dashboard` so `/admin` is the landing (not kicked home / Users).
+ * Idempotent — no-op when already allowed or group missing.
+ */
+export async function ensureManagersDashboardAcl(): Promise<{ healed: boolean }> {
+  const managers = await getUserGroup('managers')
+  if (!managers) return { healed: false }
+
+  const matrix = await getGroupAclMatrix('managers')
+  const dashboard = matrix.find((row) => row.resource === 'admin.dashboard')
+  if (dashboard?.allowed) return { healed: false }
+
+  await setGroupAclPermission('managers', 'admin.dashboard', true)
+  return { healed: true }
+}
+
 /** Seed a couple of starter groups when the table is empty. */
 export async function ensureDefaultUserGroupsSeeded(): Promise<{
   created: string[]
 }> {
   const existing = await listUserGroups()
-  if (existing.length > 0) return { created: [] }
+  if (existing.length > 0) {
+    // Existing installs: still heal Managers → Dashboard after D0.
+    await ensureManagersDashboardAcl()
+    return { created: [] }
+  }
 
   const seeds = [
     {
@@ -183,7 +204,7 @@ export async function ensureDefaultUserGroupsSeeded(): Promise<{
     if ('ok' in result && result.ok) created.push(result.group.id)
   }
 
-  // Default Managers model: Navigation admin so a member-in-Managers can open /admin/nav.
+  // Default Managers model: Dashboard + Navigation (member-in-Managers can open /admin).
   if (created.includes('managers')) {
     await replaceGroupAclMatrix('managers', ['admin.dashboard', 'admin.nav'])
   }

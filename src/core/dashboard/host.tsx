@@ -48,6 +48,24 @@ function WidgetShell(props: {
   )
 }
 
+async function softRenderWidget(
+  Widget: React.ComponentType<Record<string, never>>,
+  moduleId: string,
+  id: string,
+): Promise<React.ReactNode> {
+  try {
+    // Invoke as a function so async Server Component throws are catchable
+    // (JSX `<Widget />` would surface the rejection to the page boundary).
+    const node = await Promise.resolve(
+      (Widget as unknown as () => React.ReactNode | Promise<React.ReactNode>)(),
+    )
+    return node
+  } catch (error) {
+    console.error(`[dashboard] widget render failed ${moduleId}/${id}`, error)
+    return <p className="sf-dashboard-soft-fail">—</p>
+  }
+}
+
 /** One contributed card — soft-fail so a broken pack cannot blank the page. */
 export async function DashboardWidgetCard(props: {
   widget: ResolvedDashboardWidget
@@ -75,11 +93,9 @@ export async function DashboardWidgetCard(props: {
     )
   }
 
-  return (
-    <WidgetShell widget={widget}>
-      <Widget />
-    </WidgetShell>
-  )
+  const body = await softRenderWidget(Widget, widget.moduleId, widget.id)
+
+  return <WidgetShell widget={widget}>{body}</WidgetShell>
 }
 
 /** Grid of resolved widgets (Page Settings mosaic language). */

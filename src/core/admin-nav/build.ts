@@ -81,6 +81,8 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
     {
       id: 'dashboard',
       label: 'Dashboard',
+      // Canonical Core landing — logo + first nav leaf both point here (not Users).
+      href: CORE,
       links: [{ href: CORE, label: 'Dashboard', exact: true }],
     },
     {

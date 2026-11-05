@@ -145,6 +145,7 @@ Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so coo
 | http://localhost:3000/reset-password | Set a new password from the emailed token link |
 | http://localhost:3000/two-factor | TOTP / recovery-code challenge when 2FA is enabled |
 | http://localhost:3000/account/security | Enable/disable authenticator 2FA + recovery codes (signed-in) |
+| http://localhost:3000/admin | Starforge admin **Dashboard** (canonical home — not Users) |
 | http://localhost:3000/admin/users | Starforge admin — accounts (roles, groups, **CMS access**, disable) |
 | http://localhost:3000/admin/users/groups | Starforge admin — **user groups** |
 | http://localhost:3000/admin/users/acl | Starforge admin — **ACL** groups matrix (admin-area grants) |
@@ -427,8 +428,8 @@ npm run dev
 
 1. Use **http://localhost:3000** only (not `127.0.0.1`).
 2. Open **http://localhost:3000/login** — sign in as `admin@starforge.local` / `starforge-admin` (**only** password prompt in the whole flow).
-3. Open **http://localhost:3000/admin** — briefly `/api/cms/exchange`, then Payload **Dashboard** (no email/password form). Edit a page under Pages.
-4. Also try **http://localhost:3000/cms/admin/login** — must redirect away (never show Payload’s password form). Hard-refresh (Ctrl+F5) if an old login page was cached.
+3. Open **http://localhost:3000/admin** — Starforge **Dashboard** (not Users). Logo + first nav item also land here.
+4. Open **http://localhost:3000/cms/admin** — Payload Content CMS (SSO via `/api/cms/exchange`). **http://localhost:3000/cms/admin/login** must redirect away (never show Payload’s password form). Hard-refresh (Ctrl+F5) if an old login page was cached.
 5. **http://localhost:3000/admin/users** — seed admin **CMS access On**; demo member **Off**.
 6. Sign out → `/cms/admin` → core `/login?next=/cms/admin` → after login, CMS again with no second form.
 

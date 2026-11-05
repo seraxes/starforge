@@ -12,6 +12,7 @@ import type { AdminNavGroup } from '@/core/admin-nav'
 import { getActiveAdminTheme } from '@/core/admin-theme'
 import {
   adminHrefAllowed,
+  ensureManagersDashboardAcl,
   getAccessViewer,
   requireAdminAreaForRequest,
   viewerMayEnterAdminShell,
@@ -35,7 +36,7 @@ import { AdminToastProvider } from './admin-toast'
 export const metadata = {
   title: 'Starforge admin',
   description:
-    'Starforge / App admin — users, site settings, nav, layouts, page settings (not Content CMS).',
+    'Starforge admin — Dashboard home at /admin; users, site settings, nav, layouts (Payload CMS at /cms/admin).',
 }
 
 function filterNavByAcl(
@@ -68,6 +69,9 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
 
   // STARFORGE_ADMIN_EMAILS: promote matching member → admin on this request.
   await promoteSessionUserIfBootstrapAdmin(session.user)
+
+  // Heal Managers ACL so /admin (Dashboard) works after upgrades from pre-D0 seeds.
+  await ensureManagersDashboardAcl().catch(() => undefined)
 
   const viewer = await getAccessViewer()
   if (!(await viewerMayEnterAdminShell(viewer))) {

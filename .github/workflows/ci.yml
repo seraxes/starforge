@@ -149,9 +149,14 @@ jobs:
           loc=$(curl -s -o /dev/null -w '%{redirect_url}' http://127.0.0.1:3000/admin)
           echo "core admin redirect -> $loc"
           echo "$loc" | grep -q '/login'
+          # Unauthenticated /admin must not deep-link login next to Users
+          echo "$loc" | grep -qv 'admin%2Fusers'
+          echo "$loc" | grep -qv 'admin/users'
           loc_cms=$(curl -s -o /dev/null -w '%{redirect_url}' http://127.0.0.1:3000/cms/admin)
           echo "cms admin redirect -> $loc_cms"
           echo "$loc_cms" | grep -q '/login'
+          # Authenticated seed admin: /admin must render Dashboard (not redirect to /admin/users)
+          npx tsx scripts/verify-admin-root-dashboard-http.mts
           headers=$(curl -sI http://127.0.0.1:3000/)
           echo "$headers" | grep -qi 'content-security-policy'
           echo "$headers" | grep -qi 'x-frame-options'
