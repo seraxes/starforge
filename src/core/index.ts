@@ -23,7 +23,11 @@ export {
 } from './media'
 export type { MediaFolder, MediaPurpose, MediaStorageInfo, ResolvedMedia } from './media'
 export type { SiteChromeSeoDefaults } from './content/metadata'
-export { getDraftPageBySlug, getPublishedPageBySlug } from './content/pages'
+export {
+  getDraftPageBySlug,
+  getPublishedPageBySlug,
+  requireContentLocale,
+} from './content/pages'
 export {
   SEARCH_QUERY_MAX_LENGTH,
   SEARCH_RESULT_LIMIT,

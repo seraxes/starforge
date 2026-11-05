@@ -5,6 +5,8 @@ import type { Where } from 'payload'
 
 import config from '@payload-config'
 
+import { DEFAULT_LOCALE, type AppLocale } from '@/core/i18n/locales'
+
 import {
   SEARCH_RESULT_LIMIT,
   normalizeSearchQuery,
@@ -22,7 +24,7 @@ export type PublishedSearchHit = {
   id: string
   title: string
   slug: string
-  /** Public path (`/` for home). */
+  /** Locale-prefixed public path (`/en` for home). */
   path: string
   /** Meta description when present; else empty. */
   excerpt: string
@@ -35,12 +37,14 @@ export type PublishedSearchResult = {
 }
 
 /**
- * Search **published** Payload pages by title / slug / meta title / meta description.
+ * Search **published** Payload pages by title / slug / meta title / meta description
+ * for a given route locale (with fallback to default locale fields).
  * Uses Payload `contains` (Postgres ILIKE) — no Algolia/Meilisearch.
  * Empty query returns no hits (callers show the empty prompt).
  */
 export async function searchPublishedPages(
   rawQuery: unknown,
+  locale: AppLocale,
   options?: { limit?: number },
 ): Promise<PublishedSearchResult> {
   const query = normalizeSearchQuery(rawQuery)
@@ -74,6 +78,8 @@ export async function searchPublishedPages(
       depth: 0,
       draft: false,
       limit,
+      locale,
+      fallbackLocale: DEFAULT_LOCALE,
       pagination: true,
       overrideAccess: false,
       sort: 'title',
@@ -102,7 +108,7 @@ export async function searchPublishedPages(
         id: String(doc.id),
         title,
         slug,
-        path: publishedPagePath(slug),
+        path: publishedPagePath(slug, locale),
         excerpt,
       })
     }

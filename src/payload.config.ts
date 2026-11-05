@@ -4,6 +4,7 @@ import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
+import { DEFAULT_LOCALE, LOCALES, LOCALE_LABELS } from './core/i18n/locales'
 import { payloadMediaStoragePlugins } from './core/media/storage/payload-plugin'
 import { payloadCsrfOrigins } from './core/security/trusted-origins'
 import { Categories } from './collections/Categories'
@@ -63,6 +64,18 @@ export default buildConfig({
 
   collections: [Users, Media, Pages, Tags, Categories],
   globals: [SiteSettings],
+  /**
+   * Content locales (i18n P1) — same codes as Core next-intl public routes.
+   * Editors switch locale in `/cms`; public loaders pass route `locale` into find.
+   */
+  localization: {
+    locales: LOCALES.map((code) => ({
+      code,
+      label: LOCALE_LABELS[code],
+    })),
+    defaultLocale: DEFAULT_LOCALE,
+    fallback: true,
+  },
   // Default rich text = Pages Lexical (headings, lists, links, Media uploads + fixed toolbar).
   editor: pagesLexicalEditor,
   secret: process.env.PAYLOAD_SECRET || '',

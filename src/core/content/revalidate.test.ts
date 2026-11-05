@@ -60,7 +60,12 @@ describe('content cache invalidate helpers await', () => {
       previousSlug: 'old-home',
       slugChanged: true,
     })
-    assert.equal(contentCacheTags.page('home'), 'sf:published-page:home')
+    assert.equal(contentCacheTags.page('home', 'en'), 'sf:published-page:en:home')
+    assert.equal(contentCacheTags.page('home', 'hu'), 'sf:published-page:hu:home')
+    assert.deepEqual(contentCacheTags.pageAllLocales('home'), [
+      'sf:published-page:en:home',
+      'sf:published-page:hu:home',
+    ])
     assert.equal(contentCacheTags.layouts, 'sf:layouts')
     assert.equal(contentCacheTags.navMenu('main'), 'sf:nav-menu:main')
     assert.equal(contentCacheTags.pageChromeRow('global'), 'sf:page-chrome:global')
