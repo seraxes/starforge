@@ -1,16 +1,20 @@
 import type { Metadata } from 'next'
+import { hasLocale } from 'next-intl'
+import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import React from 'react'
 
 import { RichText } from '@/components/RichText'
 import { buildPageMetadata } from '@/core/content/metadata'
 import { getPublishedPageBySlug } from '@/core/content/pages'
+import { routing } from '@/core/i18n'
 import { findNavOverridesForPath } from '@/core/nav'
 import { getSiteSettings } from '@/core/settings'
 import { getSiteChrome } from '@/core/site-chrome'
 
 type Args = {
   params: Promise<{
+    locale: string
     slug: string
   }>
 }
@@ -43,7 +47,12 @@ export async function generateMetadata({ params }: Args): Promise<Metadata> {
 }
 
 export default async function PublicCmsPage({ params }: Args) {
-  const { slug } = await params
+  const { locale, slug } = await params
+  if (!hasLocale(routing.locales, locale)) {
+    notFound()
+  }
+  setRequestLocale(locale)
+
   const decodedSlug = decodeURIComponent(slug)
   const page = await getPublishedPageBySlug(decodedSlug)
 

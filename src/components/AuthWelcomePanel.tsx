@@ -6,7 +6,7 @@ import { SignOutButton } from '@/components/SignOutButton'
 import {
   LoginForm,
   type LoginMode,
-} from '@/app/(frontend)/(public)/login/login-form'
+} from '@/app/(frontend)/(public)/[locale]/login/login-form'
 import { resolveCaptchaForSurface } from '@/core/security/captcha'
 
 export type AuthWelcomePanelProps = {

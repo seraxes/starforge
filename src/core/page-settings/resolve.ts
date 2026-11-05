@@ -1,5 +1,7 @@
 import { cache } from 'react'
 
+import { pathnameWithoutLocale } from '@/core/i18n/path'
+
 import { HOME_PAGE_KEY } from './defaults'
 import { mergePageChrome } from './merge'
 import { loadGlobalPageChrome, loadPageChromeOverride } from './store'
@@ -7,18 +9,24 @@ import type { PageChrome, ResolvedPageChrome } from './types'
 
 /**
  * Map a public pathname to a pageKey for chrome overrides.
- * `/` → `home`; `/about` → `about`; auth/admin paths → null (site global only).
+ * `/` or `/en` → `home`; `/en/about` → `about`; auth/admin paths → null.
+ * Locale prefixes from Core i18n are stripped before matching.
  */
 export function pageKeyFromPathname(pathname: string | null | undefined): string | null {
   if (!pathname) return null
-  const path = pathname.split('?')[0]?.split('#')[0] || '/'
+  const path = pathnameWithoutLocale(pathname.split('?')[0]?.split('#')[0] || '/')
   if (
     path.startsWith('/admin') ||
     path.startsWith('/cms') ||
     path.startsWith('/api') ||
     path.startsWith('/login') ||
     path.startsWith('/register') ||
-    path.startsWith('/preview')
+    path.startsWith('/preview') ||
+    path.startsWith('/account') ||
+    path.startsWith('/search') ||
+    path.startsWith('/forgot-') ||
+    path.startsWith('/reset-password') ||
+    path.startsWith('/two-factor')
   ) {
     return null
   }

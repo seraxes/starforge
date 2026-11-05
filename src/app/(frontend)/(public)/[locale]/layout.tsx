@@ -1,12 +1,17 @@
 import React from 'react'
 import type { Metadata } from 'next'
+import { hasLocale, NextIntlClientProvider } from 'next-intl'
+import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server'
 import Link from 'next/link'
+import { notFound } from 'next/navigation'
 import { headers } from 'next/headers'
 
+import { SiteOffline } from '@/components/SiteOffline'
 import { filterNavItemsForViewer, getAccessViewer } from '@/core/acl'
 import { userIsAppAdmin } from '@/core/auth/admin'
 import { getAppSession } from '@/core/auth/session'
 import { absoluteAssetUrl, appOrigin } from '@/core/content/metadata'
+import { routing } from '@/core/i18n'
 import { PublicLayoutBody, PublicShellSlots } from '@/core/modules'
 import {
   BodyAttributesApplier,
@@ -18,7 +23,15 @@ import {
 } from '@/core/page-settings'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { getSiteChrome, isOfflineAllowedPath } from '@/core/site-chrome'
-import { SiteOffline } from '@/components/SiteOffline'
+
+type Props = {
+  children: React.ReactNode
+  params: Promise<{ locale: string }>
+}
+
+export function generateStaticParams() {
+  return routing.locales.map((locale) => ({ locale }))
+}
 
 export async function generateMetadata(): Promise<Metadata> {
   const [settings, chrome] = await Promise.all([getSiteSettings(), getSiteChrome()])
@@ -51,33 +64,43 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * Public site shell — Page Settings document chrome + layout document body.
- * Core admin (`/admin`) skips this route group.
- * Product module toggles gate chrome emit and layout manager shell.
- * Site Chrome offline: middleware rewrites locked visitors to 503; this layout
+ * Public site shell under `/[locale]/…` — Page Settings chrome + layout body.
+ * Core admin (`/admin`) and Payload (`/cms`) stay outside this segment.
+ * Site Chrome offline: proxy rewrites locked visitors to 503; this layout
  * keeps a soft fallback (and admin banner) if the rewrite did not run.
  */
-export default async function PublicSiteLayout(props: { children: React.ReactNode }) {
-  const [settings, siteChrome, headerList, viewer, session] = await Promise.all([
-    getSiteSettings(),
-    getSiteChrome(),
-    headers(),
-    getAccessViewer(),
-    getAppSession(),
-  ])
-  const pathname = headerList.get('x-sf-pathname') || '/'
+export default async function PublicLocaleLayout({ children, params }: Props) {
+  const { locale } = await params
+  if (!hasLocale(routing.locales, locale)) {
+    notFound()
+  }
+  setRequestLocale(locale)
+
+  const [settings, siteChrome, headerList, viewer, session, messages, t] =
+    await Promise.all([
+      getSiteSettings(),
+      getSiteChrome(),
+      headers(),
+      getAccessViewer(),
+      getAppSession(),
+      getMessages(),
+      getTranslations('Layout'),
+    ])
+  const pathname = headerList.get('x-sf-pathname') || `/${locale}`
   const isAdmin = userIsAppAdmin(session?.user)
   const offlineLocked =
     siteChrome.offlineEnabled && !isAdmin && !isOfflineAllowedPath(pathname)
 
   if (offlineLocked) {
-    // Soft fallback when middleware rewrite did not run (should be rare).
-    // Prefer HTTP 503 via middleware → /site-offline.
+    // Soft fallback when proxy rewrite did not run (should be rare).
+    // Prefer HTTP 503 via proxy → /site-offline.
     return (
-      <SiteOffline
-        siteName={siteChrome.siteName || settings.siteName}
-        message={siteChrome.offlineMessage}
-      />
+      <NextIntlClientProvider locale={locale} messages={messages}>
+        <SiteOffline
+          siteName={siteChrome.siteName || settings.siteName}
+          message={siteChrome.offlineMessage}
+        />
+      </NextIntlClientProvider>
     )
   }
 
@@ -100,11 +123,11 @@ export default async function PublicSiteLayout(props: { children: React.ReactNod
   const brandName = siteChrome.siteName || settings.siteName
 
   return (
-    <>
+    <NextIntlClientProvider locale={locale} messages={messages}>
       {siteChrome.offlineEnabled && isAdmin ? (
         <p className="sf-offline-admin-banner" role="status">
-          Site is offline for visitors. You can browse because you are an app admin.{' '}
-          <Link href="/admin/site-chrome">Chrome</Link>
+          {t('offlineAdminBanner')}{' '}
+          <Link href="/admin/site-chrome">{t('offlineAdminChromeLink')}</Link>
         </p>
       ) : null}
       {pageSettingsOn ? <DocumentHeadChrome chrome={chrome} /> : null}
@@ -126,10 +149,10 @@ export default async function PublicSiteLayout(props: { children: React.ReactNod
         sectionsLayout={chrome.sectionsLayout}
         layoutManagerEnabled={layoutOn}
       >
-        {props.children}
+        {children}
       </PublicLayoutBody>
       {pageSettingsOn ? <DocumentBodyChrome chrome={chrome} position="end" /> : null}
       <PublicShellSlots slot="bodyEnd" />
-    </>
+    </NextIntlClientProvider>
   )
 }

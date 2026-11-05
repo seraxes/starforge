@@ -286,6 +286,18 @@ export {
 } from './site-chrome'
 export type { CaptchaProvider, SiteChromeDocument } from './site-chrome'
 export {
+  DEFAULT_LOCALE,
+  LOCALES,
+  LOCALE_LABELS,
+  isAppLocale,
+  routing,
+  hasLocalePrefix,
+  pathnameWithoutLocale,
+  stripLocalePrefix,
+  withLocalePrefix,
+} from './i18n'
+export type { AppLocale, PathWithoutLocale } from './i18n'
+export {
   ENV_EDITOR_FIELDS,
   ENV_EDITOR_GROUPS,
   envEditorIsWritable,

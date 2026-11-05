@@ -1,9 +1,17 @@
+import createMiddleware from 'next-intl/middleware'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 import { isPayloadAdminPath, PAYLOAD_ADMIN_BASE } from '@/core/admin-paths'
 import { auth } from '@/core/auth'
 import { userIsAppAdmin } from '@/core/auth/admin'
+import {
+  DEFAULT_LOCALE,
+  pathnameWithoutLocale,
+  routing,
+  stripLocalePrefix,
+  withLocalePrefix,
+} from '@/core/i18n'
 import {
   lookupEnabledRedirect,
   normalizeRedirectFromPath,
@@ -22,6 +30,8 @@ import {
   isOfflineExemptPath,
 } from '@/core/site-chrome'
 
+const handleI18nRouting = createMiddleware(routing)
+
 function finalize(response: NextResponse, cspSources?: CspSources | null): NextResponse {
   applySecurityHeaders(response.headers, { cspSources })
   return response
@@ -38,12 +48,37 @@ function hasPayloadToken(request: NextRequest): boolean {
   return request.cookies.has('payload-token')
 }
 
-function withPathnameHeader(request: NextRequest, pathname: string): NextResponse {
+function withPathnameHeader(
+  request: NextRequest,
+  pathname: string,
+  base?: NextResponse,
+): NextResponse {
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set('x-sf-pathname', pathname)
-  return NextResponse.next({
+  requestHeaders.set('x-sf-pathname-bare', pathnameWithoutLocale(pathname))
+  const response = NextResponse.next({
     request: { headers: requestHeaders },
   })
+
+  // Preserve next-intl cookies / link headers when composing over its `next()`.
+  if (base) {
+    base.cookies.getAll().forEach((cookie) => {
+      response.cookies.set(cookie)
+    })
+    base.headers.forEach((value, key) => {
+      const lower = key.toLowerCase()
+      if (lower === 'set-cookie') return
+      if (lower.startsWith('x-middleware-')) {
+        response.headers.set(key, value)
+        return
+      }
+      if (lower === 'link') {
+        response.headers.set(key, value)
+      }
+    })
+  }
+
+  return response
 }
 
 function isRedirectLookupExemptPath(pathname: string): boolean {
@@ -56,8 +91,23 @@ function isRedirectLookupExemptPath(pathname: string): boolean {
   return false
 }
 
+/** Paths that stay outside `[locale]` (no next-intl negotiation). */
+function isNonLocalizedPath(pathname: string): boolean {
+  if (pathname.startsWith('/api')) return true
+  if (pathname.startsWith('/admin')) return true
+  if (pathname.startsWith('/cms')) return true
+  if (pathname.startsWith('/_next')) return true
+  if (pathname === SITE_OFFLINE_PATH || pathname.startsWith(`${SITE_OFFLINE_PATH}/`)) {
+    return true
+  }
+  if (pathname === '/robots.txt') return true
+  if (pathname === '/sitemap.xml' || pathname.startsWith('/sitemap')) return true
+  return false
+}
+
 /**
  * product:redirects — in-process lookup (Node proxy; no internal HTTP hop).
+ * Match stored paths without locale; re-prefix destination with the request locale.
  * Fail-open when the module is off or the store errors.
  */
 async function maybeRedirect(request: NextRequest): Promise<NextResponse | null> {
@@ -68,7 +118,8 @@ async function maybeRedirect(request: NextRequest): Promise<NextResponse | null>
     const settings = await getSiteSettings()
     if (!isCatalogModuleEnabled(settings, MODULE_IDS.redirects)) return null
 
-    const fromPath = normalizeRedirectFromPath(pathname)
+    const { locale, pathname: barePath } = stripLocalePrefix(pathname)
+    const fromPath = normalizeRedirectFromPath(barePath)
     if (!fromPath) return null
     const hit = await lookupEnabledRedirect(fromPath)
     if (!hit) return null
@@ -83,7 +134,9 @@ async function maybeRedirect(request: NextRequest): Promise<NextResponse | null>
       destination = new URL(hit.to)
     } else {
       destination = request.nextUrl.clone()
-      destination.pathname = hit.to.startsWith('/') ? hit.to : `/${hit.to}`
+      const targetPath = hit.to.startsWith('/') ? hit.to : `/${hit.to}`
+      const localeForDest = locale ?? DEFAULT_LOCALE
+      destination.pathname = withLocalePrefix(targetPath, localeForDest)
       destination.search = ''
       destination.hash = ''
     }
@@ -126,10 +179,31 @@ async function maybeRewriteOffline(request: NextRequest): Promise<NextResponse |
 }
 
 /**
+ * Apply public policy (redirects → offline → pathname + CSP) onto a next-intl response
+ * or a plain next() for non-localized routes.
+ */
+async function finalizePublic(
+  request: NextRequest,
+  base?: NextResponse,
+): Promise<NextResponse> {
+  const redirected = await maybeRedirect(request)
+  if (redirected) return redirected
+
+  const cspSources = await getCachedFeatureCspSources().catch(() => ({} as CspSources))
+  const offline = await maybeRewriteOffline(request)
+  if (offline) return finalize(offline, cspSources)
+
+  return finalize(
+    withPathnameHeader(request, request.nextUrl.pathname, base),
+    cspSources,
+  )
+}
+
+/**
  * Next.js 16 Node `proxy` (replaces deprecated Edge `middleware`).
  *
- * Public + Core `/admin`: redirects → offline 503 → pathname header + feature CSP.
- * Payload `/cms/admin`: Better Auth + payload-token exchange gate.
+ * Order: Payload SSO → skip locale for admin/cms/api → next-intl locale negotiation
+ * early on public paths → redirects → offline 503 → pathname header + feature CSP.
  */
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl
@@ -175,16 +249,21 @@ export async function proxy(request: NextRequest) {
     return finalize(NextResponse.next())
   }
 
-  if (pathname.startsWith('/api')) {
-    return finalize(NextResponse.next())
+  if (isNonLocalizedPath(pathname)) {
+    if (pathname.startsWith('/api')) {
+      return finalize(NextResponse.next())
+    }
+    return finalizePublic(request)
   }
 
-  const redirected = await maybeRedirect(request)
-  if (redirected) return redirected
-  const cspSources = await getCachedFeatureCspSources().catch(() => ({} as CspSources))
-  const offline = await maybeRewriteOffline(request)
-  if (offline) return finalize(offline, cspSources)
-  return finalize(withPathnameHeader(request, pathname), cspSources)
+  // Locale negotiation early (prefix always: `/` → `/en`, etc.).
+  const i18nResponse = handleI18nRouting(request)
+  if (i18nResponse.headers.get('location')) {
+    // Redirect/rewrite from next-intl — apply security headers and return.
+    return finalize(i18nResponse)
+  }
+
+  return finalizePublic(request, i18nResponse)
 }
 
 export const config = {

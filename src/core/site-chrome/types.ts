@@ -62,6 +62,13 @@ export type SiteChromeDocument = {
   consentPrivacyUrl: string
   /** Link label for consentPrivacyUrl. */
   consentPrivacyLinkLabel: string
+  /**
+   * Localization stub (P0) — enabled public locale codes + default.
+   * Routing still uses Core i18n catalog (`src/core/i18n`); Site Chrome toggles
+   * that limit prefixes land in a later phase.
+   */
+  localesEnabled: string[]
+  defaultLocale: string
 }
 
 export type SiteChromeLoadSource = 'database' | 'default'

@@ -1,7 +1,10 @@
 /**
  * Site Chrome offline helpers (public HTML gate).
  * `/api/*`, Core `/admin`, Payload `/cms`, and auth recovery pages stay reachable for ops / admins.
+ * Public auth paths may be locale-prefixed (`/en/login`) — strip via Core i18n.
  */
+
+import { pathnameWithoutLocale } from '@/core/i18n/path'
 
 export const SITE_OFFLINE_PATH = '/site-offline'
 
@@ -10,13 +13,15 @@ export const SITE_OFFLINE_RETRY_AFTER_SECONDS = 3600
 
 /** Paths that stay open while the site is offline (non-admin visitors). */
 export function isOfflineAllowedPath(pathname: string): boolean {
-  if (pathname === '/login' || pathname.startsWith('/login/')) return true
-  if (pathname === '/register' || pathname.startsWith('/register/')) return true
-  if (pathname === '/forgot-password' || pathname.startsWith('/forgot-password/')) return true
-  if (pathname === '/forgot-username' || pathname.startsWith('/forgot-username/')) return true
-  if (pathname === '/reset-password' || pathname.startsWith('/reset-password/')) return true
-  if (pathname === '/two-factor' || pathname.startsWith('/two-factor/')) return true
-  if (pathname === '/sign-out' || pathname.startsWith('/sign-out/')) return true
+  const path = pathnameWithoutLocale(pathname)
+  if (path === '/login' || path.startsWith('/login/')) return true
+  if (path === '/register' || path.startsWith('/register/')) return true
+  if (path === '/forgot-password' || path.startsWith('/forgot-password/')) return true
+  if (path === '/forgot-username' || path.startsWith('/forgot-username/')) return true
+  if (path === '/reset-password' || path.startsWith('/reset-password/')) return true
+  if (path === '/two-factor' || path.startsWith('/two-factor/')) return true
+  if (path === '/sign-out' || path.startsWith('/sign-out/')) return true
+  // Offline HTML route itself is never locale-prefixed.
   if (pathname === SITE_OFFLINE_PATH || pathname.startsWith(`${SITE_OFFLINE_PATH}/`)) {
     return true
   }

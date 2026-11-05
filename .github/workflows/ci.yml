@@ -137,15 +137,29 @@ jobs:
           done
           curl -sf http://127.0.0.1:3000/api/health | tee /tmp/health.json
           grep -q '"ok":true' /tmp/health.json
+          # localePrefix always: bare / and /login negotiate to /en|hu (307/308)
           code_home=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/)
-          test "$code_home" = "200"
-          code_login=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/login)
+          echo "bare / -> $code_home"
+          case "$code_home" in 307|308) ;; *) echo "expected 307/308 for bare /"; exit 1 ;; esac
+          loc_home=$(curl -s -o /dev/null -w '%{redirect_url}' http://127.0.0.1:3000/)
+          echo "bare / redirect -> $loc_home"
+          echo "$loc_home" | grep -Eq '/(en|hu)/?$'
+          code_en=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/en)
+          test "$code_en" = "200"
+          code_login_bare=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/login)
+          echo "bare /login -> $code_login_bare"
+          case "$code_login_bare" in 307|308) ;; *) echo "expected 307/308 for bare /login"; exit 1 ;; esac
+          loc_login=$(curl -s -o /dev/null -w '%{redirect_url}' http://127.0.0.1:3000/login)
+          echo "bare /login redirect -> $loc_login"
+          echo "$loc_login" | grep -Eq '/(en|hu)/login'
+          code_login=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/en/login)
           test "$code_login" = "200"
           code_sitemap=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/sitemap.xml)
           test "$code_sitemap" = "200"
           code_robots=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/robots.txt)
           test "$code_robots" = "200"
           # Core /admin and Payload /cms/admin must bounce unauthenticated users to /login
+          # (SSO may land on bare /login; next-intl then prefixes — Location still contains /login)
           loc=$(curl -s -o /dev/null -w '%{redirect_url}' http://127.0.0.1:3000/admin)
           echo "core admin redirect -> $loc"
           echo "$loc" | grep -q '/login'
@@ -157,6 +171,7 @@ jobs:
           echo "$loc_cms" | grep -q '/login'
           # Authenticated seed admin: /admin must render Dashboard (not redirect to /admin/users)
           npx tsx scripts/verify-admin-root-dashboard-http.mts
+          # Security headers on locale negotiate redirect (bare /)
           headers=$(curl -sI http://127.0.0.1:3000/)
           echo "$headers" | grep -qi 'content-security-policy'
           echo "$headers" | grep -qi 'x-frame-options'
