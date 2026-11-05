@@ -104,9 +104,34 @@ export const adminDashboardWidgetLoaders: AdminDashboardWidgetLoader[] = [
     load: async () => (await import("@/core/dashboard/widgets/LatestUsersWidget")).LatestUsersWidget,
   },
   {
+    moduleId: "platform:dashboard",
+    id: "security.posture",
+    load: async () => (await import("@/core/dashboard/widgets/SecurityPostureWidget")).SecurityPostureWidget,
+  },
+  {
+    moduleId: "platform:dashboard",
+    id: "performance.glance",
+    load: async () => (await import("@/core/dashboard/widgets/PerformanceGlanceWidget")).PerformanceGlanceWidget,
+  },
+  {
+    moduleId: "product:forms",
+    id: "forms.submissions",
+    load: async () => (await import("@/modules/forms/dashboard/FormsSubmissionsWidget")).FormsSubmissionsWidget,
+  },
+  {
     moduleId: "product:email-manager",
     id: "email.sent",
     load: async () => (await import("@/modules/email-manager/dashboard/EmailSentWidget")).EmailSentWidget,
+  },
+  {
+    moduleId: "product:events",
+    id: "events.upcoming",
+    load: async () => (await import("@/modules/events/dashboard/EventsUpcomingWidget")).EventsUpcomingWidget,
+  },
+  {
+    moduleId: "product:marketplace",
+    id: "marketplace.listings",
+    load: async () => (await import("@/modules/marketplace/dashboard/MarketplaceListingsWidget")).MarketplaceListingsWidget,
   },
   {
     moduleId: "product:media",
@@ -134,9 +159,34 @@ export const adminDashboardStatsLoaders: AdminDashboardStatsLoader[] = [
     load: async () => (await import("@/core/dashboard/widgets/users-stats")).loadLatestUsersStats,
   },
   {
+    moduleId: "platform:dashboard",
+    id: "security.posture",
+    load: async () => (await import("@/core/dashboard/widgets/security-stats")).loadSecurityPostureStats,
+  },
+  {
+    moduleId: "platform:dashboard",
+    id: "performance.glance",
+    load: async () => (await import("@/core/dashboard/widgets/performance-stats")).loadPerformanceGlanceStats,
+  },
+  {
+    moduleId: "product:forms",
+    id: "forms.submissions",
+    load: async () => (await import("@/modules/forms/dashboard/forms-stats")).loadFormsSubmissionsStats,
+  },
+  {
     moduleId: "product:email-manager",
     id: "email.sent",
     load: async () => (await import("@/modules/email-manager/dashboard/email-stats")).loadEmailSentStats,
+  },
+  {
+    moduleId: "product:events",
+    id: "events.upcoming",
+    load: async () => (await import("@/modules/events/dashboard/events-stats")).loadEventsUpcomingStats,
+  },
+  {
+    moduleId: "product:marketplace",
+    id: "marketplace.listings",
+    load: async () => (await import("@/modules/marketplace/dashboard/marketplace-stats")).loadMarketplaceListingsStats,
   },
   {
     moduleId: "product:media",

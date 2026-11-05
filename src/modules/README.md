@@ -35,8 +35,12 @@ Override allowlist for one run: `SF_MODULES=platform:better-auth,page-content,..
 
 | Id | Path | Notes |
 | --- | --- | --- |
-| `product:forms` | `forms/manifest.ts` | Catalog + admin nav meta; engine still in `src/core/forms` (M4) |
+| `product:forms` | `forms/manifest.ts` | Catalog + admin nav meta + Dashboard `forms.submissions` stub; engine still in `src/core/forms` (M4) |
 | `form` | `form/` | Form particle (dynamic import when allowlisted) |
+| `product:email-manager` | `email-manager/` | Rules/templates + Dashboard `email.sent` stub |
+| `product:events` | `events/` | Thin Dashboard `events.upcoming` stub (no schema yet) |
+| `product:marketplace` | `marketplace/` | Thin Dashboard `marketplace.listings` stub (no schema yet) |
+| `product:media` | `media/` | Library + Dashboard `media.counts` stub |
 | `product:consent` | `consent/` | Banner + `publicShell` bodyEnd via generated loaders |
 | `product:redirects` | `redirects/manifest.ts` | Catalog + admin meta; engine still in `src/core/redirects` (M3) |
 | `notice-bar` | `notice-bar/` | Example extension particle |
