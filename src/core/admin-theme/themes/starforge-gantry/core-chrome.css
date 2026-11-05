@@ -28,6 +28,8 @@ body:has(.admin-shell) > main {
   --sf-admin-input: #152033;
   --sf-admin-blue-border: #1e4d72;
   --sf-admin-blue-mid: #3498db;
+  /* Sidebar current leaf — same family as mid, a few shades darker */
+  --sf-admin-blue-active: #2471a3;
   --sf-admin-drop-bg: #101926; /* empty drop zone — darker than Particles palette */
   --sf-admin-blue-action: #2f80b9;
   --sf-admin-toolbar-muted: #405475;
@@ -478,7 +480,7 @@ body:has(.admin-shell) > main {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 10.25L8 5.75L12.5 10.25' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
-/* Bright mid-blue hover only — current/active keep transparent rail (no stuck fill) */
+/* Hover = mid-blue; current leaf = darker blue (no accordion group-head sticky) */
 .admin-shell .admin-sidebar-link:hover,
 .admin-shell .admin-sidebar-group-head:hover,
 .admin-shell .admin-sidebar-sublink:hover {
@@ -488,10 +490,8 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .admin-sidebar-link.is-current,
-.admin-shell .admin-sidebar-sublink.is-current,
-.admin-shell .admin-sidebar-item.is-active > .admin-sidebar-link,
-.admin-shell .admin-sidebar-item.is-active > .admin-sidebar-group-head {
-  background: transparent;
+.admin-shell .admin-sidebar-sublink.is-current {
+  background: var(--sf-admin-blue-active); /* #2471a3 */
   color: #fff;
   box-shadow: none;
 }
@@ -1314,6 +1314,7 @@ body:has(.admin-shell) > main {
   --sf-admin-input: #161e27;
   --sf-admin-blue-border: #2f3d50;
   --sf-admin-blue-mid: #3498db;
+  --sf-admin-blue-active: #2471a3;
   --sf-admin-blue-action: #3182ce;
   --sf-admin-module-border-width: 4px;
   --sf-admin-module-border-color: #0f3d63;
@@ -2090,22 +2091,21 @@ body:has(.admin-shell) > main {
   -webkit-text-fill-color: #fff;
 }
 
-.admin-shell .admin-sidebar .admin-sidebar-link.is-current,
-.admin-shell .admin-sidebar .admin-sidebar-sublink.is-current,
-.admin-shell .admin-sidebar .admin-sidebar-item.is-active > .admin-sidebar-link,
-.admin-shell .admin-sidebar .admin-sidebar-item.is-active > .admin-sidebar-group-head {
-  background: transparent !important;
-  color: #fff !important;
-  -webkit-text-fill-color: #fff;
-  box-shadow: none !important;
-}
-
 .admin-shell .admin-sidebar .admin-sidebar-link:hover,
 .admin-shell .admin-sidebar .admin-sidebar-group-head:hover,
 .admin-shell .admin-sidebar .admin-sidebar-sublink:hover {
   background: var(--sf-admin-blue-mid, #3498db) !important;
   color: #fff !important;
   -webkit-text-fill-color: #fff;
+}
+
+/* Current after hover so the active leaf stays the darker shade */
+.admin-shell .admin-sidebar .admin-sidebar-link.is-current,
+.admin-shell .admin-sidebar .admin-sidebar-sublink.is-current {
+  background: var(--sf-admin-blue-active, #2471a3) !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff;
+  box-shadow: none !important;
 }
 
 .admin-shell .form-ok,
