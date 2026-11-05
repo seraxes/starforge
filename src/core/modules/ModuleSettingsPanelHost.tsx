@@ -24,7 +24,8 @@ export async function ModuleSettingsPanelHost({
   if (!entry) {
     return (
       <p className="layout-muted">
-        No settings panel registered for <code>{moduleId}</code>.
+        No settings knobs for <code>{moduleId}</code> yet — soft stub. Toggle the pack under{' '}
+        Settings → Modules; packs can register a panel via <code>settings.panelImportPath</code>.
       </p>
     )
   }
