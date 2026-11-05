@@ -15,6 +15,10 @@ import {
 } from '@/core/page-settings/actions'
 import { HOME_PAGE_KEY, newPageSettingsEntityId } from '@/core/page-settings/defaults'
 import type { AssetRef, MetaTag, PageAtomInstance, PageChrome } from '@/core/page-settings/types'
+import {
+  ASSET_PRIORITY_MAX,
+  ASSET_PRIORITY_MIN,
+} from '@/core/page-settings/types'
 
 import { useNotifySavedOnOk } from '../admin-toast'
 import { useAutosaveForm } from '../use-autosave-form'
@@ -57,6 +61,7 @@ function Panel({
 
 function OrderedAssetList({
   label,
+  language,
   items,
   onChange,
   onTextChange,
@@ -65,25 +70,17 @@ function OrderedAssetList({
   developerOnly,
 }: {
   label: string
+  language: 'css' | 'javascript'
   items: AssetRef[]
   onChange: (next: AssetRef[]) => void
-  /** Debounced persist for typing name/url. */
+  /** Debounced persist for typing name/url/content. */
   onTextChange?: () => void
-  /** Immediate persist for add/remove/reorder. */
+  /** Immediate persist for add/remove/reorder/priority. */
   onDiscreteChange?: () => void
   disabled?: boolean
   developerOnly?: boolean
 }) {
-  const move = (index: number, dir: -1 | 1) => {
-    const target = index + dir
-    if (target < 0 || target >= items.length) return
-    const next = [...items]
-    const tmp = next[index]!
-    next[index] = next[target]!
-    next[target] = tmp
-    onChange(next)
-    onDiscreteChange?.()
-  }
+  const fileLabel = language === 'css' ? 'CSS file' : 'JS file'
 
   return (
     <div className="page-settings-list">
@@ -92,28 +89,42 @@ function OrderedAssetList({
         {developerOnly ? <span className="page-settings-acl">Developer-admin</span> : null}
         <button
           type="button"
-          className="secondary"
+          className="gantry-toolbar-btn secondary"
           disabled={disabled}
           onClick={() => {
+            const n = items.length + 1
             onChange([
               ...items,
-              { id: newPageSettingsEntityId('asset'), name: '', url: '' },
+              {
+                id: newPageSettingsEntityId('asset'),
+                name: `${language === 'css' ? 'style' : 'script'}-${n}`,
+                url: '',
+                content: '',
+                priority: 0,
+              },
             ])
             onDiscreteChange?.()
           }}
         >
-          Add
+          Add {fileLabel}
         </button>
       </div>
-      {items.length === 0 ? <p className="settings-hint">No items yet.</p> : null}
-      <ul className="page-settings-asset-list">
+      <p className="settings-hint">
+        Each item is an editable {language === 'css' ? 'stylesheet' : 'script'} file. Use{' '}
+        <strong>Edit</strong> for CodeMirror. Load priority (−10 … +10) orders inject in head
+        / before <code>&lt;/body&gt;</code> (lower first). Optional external URL still works
+        when content is empty.
+      </p>
+      {items.length === 0 ? <p className="settings-hint">No files yet.</p> : null}
+      <ul className="page-settings-asset-list page-settings-asset-list--files">
         {items.map((item, index) => (
           <li key={item.id}>
             <input
               type="text"
-              placeholder="Name"
+              placeholder="File name"
               value={item.name}
               disabled={disabled}
+              aria-label={`${label} file name`}
               onChange={(e) => {
                 const next = [...items]
                 next[index] = { ...item, name: e.target.value }
@@ -122,34 +133,82 @@ function OrderedAssetList({
               }}
               onBlur={() => onDiscreteChange?.()}
             />
-            <input
-              type="url"
-              placeholder="https://…"
-              value={item.url}
-              disabled={disabled}
-              onChange={(e) => {
-                const next = [...items]
-                next[index] = { ...item, url: e.target.value }
-                onChange(next)
-                onTextChange?.()
-              }}
-              onBlur={() => onDiscreteChange?.()}
-            />
+            <label className="page-settings-asset-priority">
+              <span>Priority</span>
+              <input
+                type="number"
+                min={ASSET_PRIORITY_MIN}
+                max={ASSET_PRIORITY_MAX}
+                step={1}
+                value={item.priority ?? 0}
+                disabled={disabled}
+                aria-label={`${label} load priority`}
+                onChange={(e) => {
+                  const raw = Number(e.target.value)
+                  const priority = Number.isFinite(raw)
+                    ? Math.min(
+                        ASSET_PRIORITY_MAX,
+                        Math.max(ASSET_PRIORITY_MIN, Math.round(raw)),
+                      )
+                    : 0
+                  const next = [...items]
+                  next[index] = { ...item, priority }
+                  onChange(next)
+                  onDiscreteChange?.()
+                }}
+              />
+            </label>
             <div className="page-settings-row-actions">
-              <button type="button" className="secondary" disabled={disabled || index === 0} onClick={() => move(index, -1)}>
-                ↑
-              </button>
+              {disabled ? (
+                <button type="button" className="gantry-toolbar-btn secondary" disabled>
+                  Edit
+                </button>
+              ) : (
+                <AtomSettingsPopover
+                  title={`Edit ${item.name || fileLabel}`}
+                  triggerLabel="Edit"
+                >
+                  <CodeEditorField
+                    key={`${item.id}-editor`}
+                    label={item.name || fileLabel}
+                    language={language}
+                    initialValue={item.content ?? ''}
+                    initialHeight={280}
+                    hint={
+                      language === 'css'
+                        ? 'Inline CSS injected as <style> in <head>.'
+                        : 'Inline JS injected before </body>.'
+                    }
+                    onValueChange={(nextContent) => {
+                      onChange(
+                        items.map((row, i) =>
+                          i === index ? { ...row, content: nextContent } : row,
+                        ),
+                      )
+                      onTextChange?.()
+                    }}
+                  />
+                  <label className="settings-field">
+                    <span>External URL (optional)</span>
+                    <input
+                      type="url"
+                      placeholder="https://… (used when content is empty)"
+                      defaultValue={item.url}
+                      onChange={(e) => {
+                        const url = e.target.value
+                        onChange(
+                          items.map((row, i) => (i === index ? { ...row, url } : row)),
+                        )
+                        onTextChange?.()
+                      }}
+                      onBlur={() => onDiscreteChange?.()}
+                    />
+                  </label>
+                </AtomSettingsPopover>
+              )}
               <button
                 type="button"
-                className="secondary"
-                disabled={disabled || index === items.length - 1}
-                onClick={() => move(index, 1)}
-              >
-                ↓
-              </button>
-              <button
-                type="button"
-                className="danger"
+                className="gantry-toolbar-btn gantry-toolbar-btn-danger danger"
                 disabled={disabled}
                 onClick={() => {
                   onChange(items.filter((_, i) => i !== index))
@@ -501,6 +560,7 @@ export function PageSettingsForm({ bootstrap }: Props) {
           </label>
           <OrderedAssetList
             label="CSS"
+            language="css"
             items={css}
             onChange={setCss}
             onTextChange={saveDebounced}
@@ -508,6 +568,7 @@ export function PageSettingsForm({ bootstrap }: Props) {
           />
           <OrderedAssetList
             label="JavaScript"
+            language="javascript"
             items={javascript}
             onChange={setJavascript}
             onTextChange={saveDebounced}

@@ -31,6 +31,19 @@ export type SiteChromeDocument = {
    */
   captchaOnAuthRecovery: boolean
   /**
+   * Public auth option policy (Site Settings → Auth & registration).
+   * Stored on Chrome JSON (no Payload migration); UI lives under Auth.
+   * When off, hide the corresponding login helpers / modes (Better Auth
+   * plugins stay installed — toggles are product surface gates).
+   */
+  authForgotPasswordEnabled: boolean
+  authForgotUsernameEnabled: boolean
+  authMagicLinkEnabled: boolean
+  authEmailOtpEnabled: boolean
+  authRememberMeEnabled: boolean
+  /** Show Account security / 2FA CTAs and allow enrollment links. */
+  authTwoFactorEnabled: boolean
+  /**
    * Outbound email (SF-96). Enable + provider + From only;
    * SMTP / Resend secrets stay in env.
    */

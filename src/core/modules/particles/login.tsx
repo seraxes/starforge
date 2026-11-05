@@ -31,10 +31,28 @@ export const loginModule: StarforgeModule = {
       | { email?: string | null; name?: string | null }
       | undefined
     let siteName = settings.siteName
+    let authOptions:
+      | {
+          forgotPassword: boolean
+          forgotUsername: boolean
+          magicLink: boolean
+          emailOtp: boolean
+          rememberMe: boolean
+          twoFactor: boolean
+        }
+      | undefined
     try {
       const { getSiteChrome } = await import('@/core/site-chrome')
       const chrome = await getSiteChrome()
       if (chrome.siteName.trim()) siteName = chrome.siteName.trim()
+      authOptions = {
+        forgotPassword: chrome.authForgotPasswordEnabled,
+        forgotUsername: chrome.authForgotUsernameEnabled,
+        magicLink: chrome.authMagicLinkEnabled,
+        emailOtp: chrome.authEmailOtpEnabled,
+        rememberMe: chrome.authRememberMeEnabled,
+        twoFactor: chrome.authTwoFactorEnabled,
+      }
     } catch {
       // Site Chrome table may be missing before db:core:push.
     }
@@ -49,6 +67,7 @@ export const loginModule: StarforgeModule = {
           userEmail={user?.email}
           userName={user?.name}
           showForm={cfg.showForm && !session?.user}
+          authOptions={authOptions}
         />
       </div>
     )

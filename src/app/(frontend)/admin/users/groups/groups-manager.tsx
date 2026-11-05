@@ -188,13 +188,13 @@ export function GroupsManager({ groups }: Props) {
                       <>
                         <button
                           type="button"
-                          className="secondary"
+                          className="gantry-toolbar-btn secondary"
                           onClick={() => setRenamingId(group.id)}
                         >
                           Rename
                         </button>
                         <Link
-                          className="secondary"
+                          className="gantry-toolbar-btn secondary"
                           href={`/admin/users/groups/${encodeURIComponent(group.id)}`}
                         >
                           Members

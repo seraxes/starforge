@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 
 import { requireAppAdmin } from '@/core/auth/admin'
-import { invalidateSiteSettings } from '@/core/content/revalidate'
+import { invalidateSiteChrome, invalidateSiteSettings } from '@/core/content/revalidate'
 import {
   MODULE_IDS,
   clampAdminAutosaveDebounceMs,
@@ -21,6 +21,7 @@ import {
   type SiteSettingsData,
   updateSiteSettings,
 } from '@/core/settings'
+import { saveSiteChrome } from '@/core/site-chrome/store'
 
 /** Preserve Performance knobs when another Settings topic saves. */
 function performanceFieldsFrom(current: SiteSettingsData) {
@@ -234,8 +235,10 @@ export async function updatePerformanceSettingsAction(
 }
 
 /**
- * Site Settings → Auth & registration: registration enable.
- * Writes the same `product:registration` module toggle + feature flag as Modules.
+ * Site Settings → Auth & registration: registration enable + public auth option toggles.
+ * Registration writes the same `product:registration` module toggle + feature flag as Modules.
+ * Auth option surfaces (forgot / magic / OTP / remember / 2FA) live on Site Chrome JSON
+ * (no Payload migration) — same storage pattern as Security captcha.
  */
 export async function updateAuthSettingsAction(
   _prev: SettingsActionState,
@@ -268,6 +271,14 @@ export async function updateAuthSettingsAction(
       features,
       moduleToggles,
     })
+    await saveSiteChrome({
+      authForgotPasswordEnabled: parseBool(formData, 'authForgotPasswordEnabled'),
+      authForgotUsernameEnabled: parseBool(formData, 'authForgotUsernameEnabled'),
+      authMagicLinkEnabled: parseBool(formData, 'authMagicLinkEnabled'),
+      authEmailOtpEnabled: parseBool(formData, 'authEmailOtpEnabled'),
+      authRememberMeEnabled: parseBool(formData, 'authRememberMeEnabled'),
+      authTwoFactorEnabled: parseBool(formData, 'authTwoFactorEnabled'),
+    })
   } catch (error) {
     const message =
       error instanceof Error && error.message
@@ -276,6 +287,12 @@ export async function updateAuthSettingsAction(
     return { error: message }
   }
 
+  await invalidateSiteChrome()
   await revalidateSettingsPaths()
+  revalidatePath('/login')
+  revalidatePath('/forgot-password')
+  revalidatePath('/forgot-username')
+  revalidatePath('/account/security')
+  revalidatePath('/admin/settings/auth')
   return { ok: true }
 }

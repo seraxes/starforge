@@ -10,6 +10,7 @@ import {
   verifyEmailOtpAction,
   type AuthActionState,
 } from '@/core/auth/actions'
+import type { AuthPublicOptions } from '@/components/AuthOptionsLinks'
 import { AuthCaptchaFields } from '@/core/security/captcha/AuthCaptchaFields'
 import type { ResolvedCaptcha } from '@/core/security/captcha/types'
 
@@ -37,6 +38,16 @@ const IDLE_CAPTCHA: ResolvedCaptcha = {
   siteKey: null,
 }
 
+function resolveInitialMode(
+  initial: LoginMode,
+  magicLink: boolean,
+  emailOtp: boolean,
+): LoginMode {
+  if (initial === 'magic' && !magicLink) return 'password'
+  if (initial === 'otp' && !emailOtp) return 'password'
+  return initial
+}
+
 export function LoginForm({
   next,
   resetSuccess,
@@ -44,6 +55,7 @@ export function LoginForm({
   initialMode = 'password',
   showHelperLinks = true,
   captcha = IDLE_CAPTCHA,
+  authOptions,
 }: {
   next?: string
   resetSuccess?: boolean
@@ -54,8 +66,19 @@ export function LoginForm({
   showHelperLinks?: boolean
   /** Auth-recovery captcha (magic link / email OTP request). */
   captcha?: ResolvedCaptcha
+  /** Site Settings → Auth option gates (default all on). */
+  authOptions?: AuthPublicOptions
 }) {
-  const [mode, setMode] = useState<LoginMode>(initialMode)
+  const magicLinkOn = authOptions?.magicLink !== false
+  const emailOtpOn = authOptions?.emailOtp !== false
+  const rememberMeOn = authOptions?.rememberMe !== false
+  const forgotPasswordOn = authOptions?.forgotPassword !== false
+  const forgotUsernameOn = authOptions?.forgotUsername !== false
+  const showModeTabs = magicLinkOn || emailOtpOn
+
+  const [mode, setMode] = useState<LoginMode>(() =>
+    resolveInitialMode(initialMode, magicLinkOn, emailOtpOn),
+  )
   const [passwordState, passwordAction, passwordPending] = useActionState(loginAction, {
     ...initialState,
     next,
@@ -68,6 +91,13 @@ export function LoginForm({
     ...initialState,
     next,
   })
+
+  const activeMode =
+    mode === 'magic' && !magicLinkOn
+      ? 'password'
+      : mode === 'otp' && !emailOtpOn
+        ? 'password'
+        : mode
 
   return (
     <div className="auth-login">
@@ -82,37 +112,43 @@ export function LoginForm({
         </p>
       ) : null}
 
-      <div className="auth-mode-tabs" role="tablist" aria-label="Sign-in method">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mode === 'password'}
-          className={mode === 'password' ? 'auth-mode-tab is-active' : 'auth-mode-tab'}
-          onClick={() => setMode('password')}
-        >
-          Password
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mode === 'magic'}
-          className={mode === 'magic' ? 'auth-mode-tab is-active' : 'auth-mode-tab'}
-          onClick={() => setMode('magic')}
-        >
-          Magic link
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mode === 'otp'}
-          className={mode === 'otp' ? 'auth-mode-tab is-active' : 'auth-mode-tab'}
-          onClick={() => setMode('otp')}
-        >
-          Email code
-        </button>
-      </div>
+      {showModeTabs ? (
+        <div className="auth-mode-tabs" role="tablist" aria-label="Sign-in method">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeMode === 'password'}
+            className={activeMode === 'password' ? 'auth-mode-tab is-active' : 'auth-mode-tab'}
+            onClick={() => setMode('password')}
+          >
+            Password
+          </button>
+          {magicLinkOn ? (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeMode === 'magic'}
+              className={activeMode === 'magic' ? 'auth-mode-tab is-active' : 'auth-mode-tab'}
+              onClick={() => setMode('magic')}
+            >
+              Magic link
+            </button>
+          ) : null}
+          {emailOtpOn ? (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeMode === 'otp'}
+              className={activeMode === 'otp' ? 'auth-mode-tab is-active' : 'auth-mode-tab'}
+              onClick={() => setMode('otp')}
+            >
+              Email code
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
-      {mode === 'password' ? (
+      {activeMode === 'password' ? (
         <form className="auth-form" action={passwordAction} noValidate>
           {next || passwordState.next ? (
             <input type="hidden" name="next" value={passwordState.next ?? next} />
@@ -140,16 +176,18 @@ export function LoginForm({
               disabled={passwordPending}
             />
           </label>
-          <label className="auth-check">
-            <input
-              name="rememberMe"
-              type="checkbox"
-              value="true"
-              defaultChecked
-              disabled={passwordPending}
-            />
-            <span>Stay signed in on this device</span>
-          </label>
+          {rememberMeOn ? (
+            <label className="auth-check">
+              <input
+                name="rememberMe"
+                type="checkbox"
+                value="true"
+                defaultChecked
+                disabled={passwordPending}
+              />
+              <span>Stay signed in on this device</span>
+            </label>
+          ) : null}
           {passwordState.error ? (
             <p className="auth-error" role="alert">
               {passwordState.error}
@@ -158,17 +196,19 @@ export function LoginForm({
           <button type="submit" className="primary" disabled={passwordPending}>
             {passwordPending ? 'Signing in…' : 'Sign in'}
           </button>
-          {showHelperLinks ? (
+          {showHelperLinks && (forgotPasswordOn || forgotUsernameOn) ? (
             <p className="auth-helpers">
-              <Link href="/forgot-password">Forgot password?</Link>
-              {' · '}
-              <Link href="/forgot-username">Forgot login email?</Link>
+              {forgotPasswordOn ? <Link href="/forgot-password">Forgot password?</Link> : null}
+              {forgotPasswordOn && forgotUsernameOn ? ' · ' : null}
+              {forgotUsernameOn ? (
+                <Link href="/forgot-username">Forgot login email?</Link>
+              ) : null}
             </p>
           ) : null}
         </form>
       ) : null}
 
-      {mode === 'magic' ? (
+      {activeMode === 'magic' && magicLinkOn ? (
         <form className="auth-form" action={magicAction} noValidate>
           {next || magicState.next ? (
             <input type="hidden" name="next" value={magicState.next ?? next} />
@@ -205,7 +245,7 @@ export function LoginForm({
         </form>
       ) : null}
 
-      {mode === 'otp' ? (
+      {activeMode === 'otp' && emailOtpOn ? (
         <form className="auth-form" action={otpAction} noValidate>
           {next || otpState.next ? (
             <input type="hidden" name="next" value={otpState.next ?? next} />
@@ -240,16 +280,18 @@ export function LoginForm({
                   disabled={otpPending}
                 />
               </label>
-              <label className="auth-check">
-                <input
-                  name="rememberMe"
-                  type="checkbox"
-                  value="true"
-                  defaultChecked
-                  disabled={otpPending}
-                />
-                <span>Stay signed in on this device</span>
-              </label>
+              {rememberMeOn ? (
+                <label className="auth-check">
+                  <input
+                    name="rememberMe"
+                    type="checkbox"
+                    value="true"
+                    defaultChecked
+                    disabled={otpPending}
+                  />
+                  <span>Stay signed in on this device</span>
+                </label>
+              ) : null}
             </>
           ) : null}
           {/* Required on request / resend; verify OTP ignores the token. */}

@@ -3888,8 +3888,26 @@ button:disabled {
 .admin-settings-mosaic > .settings-hint,
 .admin-settings-mosaic > .form-error,
 .admin-settings-mosaic > .form-ok,
+.admin-settings-mosaic > .field-hint,
 .page-settings-mosaic > .page-settings-panel-wide {
   grid-column: 1 / -1;
+}
+
+/*
+ * Solo card in a mosaic row → full width.
+ * Create/Add panels above wide tables always span; odd trailing tiles fill the row.
+ */
+.admin-settings-mosaic > .outlines-create {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 721px) {
+  .admin-settings-mosaic > .settings-fieldset:last-child:nth-child(odd),
+  .admin-settings-mosaic > .page-settings-panel:last-child:nth-child(odd),
+  .admin-settings-mosaic > .sf-forms-settings-panel:last-child:nth-child(odd),
+  .page-settings-mosaic > .page-settings-panel:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 720px) {
@@ -3901,6 +3919,7 @@ button:disabled {
   .admin-settings-mosaic > .page-settings-panel-wide,
   .admin-settings-mosaic > .settings-fieldset-wide,
   .admin-settings-mosaic > .admin-settings-panel-wide,
+  .admin-settings-mosaic > .outlines-create,
   .page-settings-mosaic > .page-settings-panel-wide {
     grid-column: 1 / -1;
   }
@@ -4009,6 +4028,25 @@ button:disabled {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto;
   gap: 0.45rem;
   align-items: center;
+}
+
+.page-settings-asset-list--files > li {
+  grid-template-columns: minmax(0, 1.4fr) auto auto;
+  align-items: end;
+}
+
+.page-settings-asset-priority {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--sf-muted);
+}
+
+.page-settings-asset-priority input[type='number'] {
+  width: 4.5rem;
+  min-width: 4.5rem;
 }
 
 .page-settings-asset-list input[type='text'],

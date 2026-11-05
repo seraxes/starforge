@@ -36,6 +36,7 @@ export function MediaSettingsForm({ rules }: { rules: MediaPipelineRules }) {
 
   return (
     <form ref={formRef} action={formAction} className="settings-form settings-form-wide">
+      <div className="admin-settings-mosaic">
       <fieldset className="settings-fieldset">
         <legend>Original resize</legend>
         <p className="settings-hint">
@@ -191,6 +192,7 @@ export function MediaSettingsForm({ rules }: { rules: MediaPipelineRules }) {
         </p>
       ) : null}
       {pending ? <p className="field-hint">Saving…</p> : null}
+      </div>
     </form>
   )
 }

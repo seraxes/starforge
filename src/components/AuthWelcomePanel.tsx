@@ -1,7 +1,10 @@
 import React from 'react'
 import Link from 'next/link'
 
-import { AuthOptionsLinks } from '@/components/AuthOptionsLinks'
+import {
+  AuthOptionsLinks,
+  type AuthPublicOptions,
+} from '@/components/AuthOptionsLinks'
 import { SignOutButton } from '@/components/SignOutButton'
 import {
   LoginForm,
@@ -28,6 +31,8 @@ export type AuthWelcomePanelProps = {
   magicError?: boolean
   /** When false, show option links + Sign in CTA only (no full form). */
   showForm?: boolean
+  /** Site Settings → Auth option gates. */
+  authOptions?: AuthPublicOptions
 }
 
 const DEFAULT_GUEST_NOTE =
@@ -54,6 +59,7 @@ export async function AuthWelcomePanel({
   resetSuccess,
   magicError,
   showForm = true,
+  authOptions,
 }: AuthWelcomePanelProps) {
   const note =
     welcomeNote?.trim() || (signedIn ? DEFAULT_SIGNED_IN_NOTE : DEFAULT_GUEST_NOTE)
@@ -61,6 +67,7 @@ export async function AuthWelcomePanel({
     variant === 'page' ? 'auth-card' : 'auth-card auth-welcome-embed'
   const TitleTag = variant === 'page' ? 'h1' : 'h2'
   const heading = title?.trim() || (signedIn ? 'Welcome back' : 'Welcome')
+  const twoFactorOn = authOptions?.twoFactor !== false
 
   if (signedIn) {
     return (
@@ -74,12 +81,14 @@ export async function AuthWelcomePanel({
           Signed in as <strong>{userEmail ?? 'member'}</strong>
           {userName ? <> ({userName})</> : null}.
         </p>
-        <p className="auth-welcome-actions">
-          <Link href="/account/security" className="button-link auth-welcome-primary">
-            Account security / 2FA
-          </Link>
-        </p>
-        <AuthOptionsLinks signedIn variant="panel" />
+        {twoFactorOn ? (
+          <p className="auth-welcome-actions">
+            <Link href="/account/security" className="button-link auth-welcome-primary">
+              Account security / 2FA
+            </Link>
+          </p>
+        ) : null}
+        <AuthOptionsLinks signedIn variant="panel" options={authOptions} />
         <p className="auth-switch auth-switch-row">
           <Link href="/">Home</Link>
           <SignOutButton />
@@ -106,6 +115,7 @@ export async function AuthWelcomePanel({
           initialMode={initialMode}
           showHelperLinks={false}
           captcha={captcha}
+          authOptions={authOptions}
         />
       ) : (
         <p className="auth-welcome-actions">
@@ -115,7 +125,7 @@ export async function AuthWelcomePanel({
           {registrationEnabled ? <Link href="/register">Create account</Link> : null}
         </p>
       )}
-      <AuthOptionsLinks variant="panel" />
+      <AuthOptionsLinks variant="panel" options={authOptions} />
       <p className="auth-switch">
         {registrationEnabled ? (
           <>
