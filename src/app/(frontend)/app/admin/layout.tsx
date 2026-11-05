@@ -3,7 +3,10 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { AdminSidebarNav } from '@/components/admin/AdminSidebarNav'
-import { buildAdminNavGroups } from '@/core/admin-nav'
+import {
+  buildAdminNavGroups,
+  resolveEnabledAdminNavModuleIds,
+} from '@/core/admin-nav'
 import type { AdminNavGroup } from '@/core/admin-nav'
 import { getActiveAdminTheme } from '@/core/admin-theme'
 import {
@@ -21,7 +24,7 @@ import { getAppSession } from '@/core/auth/session'
 import { loadCoreUserCmsAccess, userHasCmsAccess } from '@/core/cms-bridge'
 import {
   MODULE_IDS,
-  getSiteSettings,
+  ensureSiteSettingsDefaults,
   isCatalogModuleEnabled,
 } from '@/core/settings'
 
@@ -77,23 +80,17 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
 
   const role = roleFromUser(session.user)
   const access = session.user.id ? await loadCoreUserCmsAccess(session.user.id) : null
-  const settings = await getSiteSettings()
+  // ensure* backfills newly allowlisted defaultEnabled packs (e.g. Email Manager)
+  // into moduleToggles so upgrades do not need a SQL edit.
+  const settings = await ensureSiteSettingsDefaults()
   const payloadOn = isCatalogModuleEnabled(settings, MODULE_IDS.payloadCms)
   const layoutOn = isCatalogModuleEnabled(settings, MODULE_IDS.layoutManager)
   const pageSettingsOn = isCatalogModuleEnabled(settings, MODULE_IDS.pageSettings)
   const navOn = isCatalogModuleEnabled(settings, MODULE_IDS.primaryNav)
-  const formsOn = isCatalogModuleEnabled(settings, MODULE_IDS.forms)
-  const emailManagerOn = isCatalogModuleEnabled(settings, MODULE_IDS.emailManager)
-  const redirectsOn = isCatalogModuleEnabled(settings, MODULE_IDS.redirects)
-  const mediaOn = isCatalogModuleEnabled(settings, MODULE_IDS.media)
   const showPayloadCms = payloadOn && userHasCmsAccess(access)
   const theme = getActiveAdminTheme()
-
-  const enabledModuleIds = new Set<string>()
-  if (formsOn) enabledModuleIds.add(MODULE_IDS.forms)
-  if (emailManagerOn) enabledModuleIds.add(MODULE_IDS.emailManager)
-  if (redirectsOn) enabledModuleIds.add(MODULE_IDS.redirects)
-  if (mediaOn) enabledModuleIds.add(MODULE_IDS.media)
+  // Forms / Email / Redirects / Media — derived from manifest contributions + catalog toggles.
+  const enabledModuleIds = resolveEnabledAdminNavModuleIds(settings)
 
   const groups = filterNavByAcl(
     buildAdminNavGroups({

@@ -5,7 +5,7 @@ import {
   isModuleAllowlisted,
 } from '@/generated/module-registry'
 
-import type { FeatureFlags, SiteSettingsData } from './defaults'
+import type { FeatureFlags, ModuleToggleMap, SiteSettingsData } from './defaults'
 import {
   MODULE_KIND_ORDER,
   REQUIRED_MODULE_IDS,
@@ -83,6 +83,60 @@ export function isCatalogModuleEnabled(
     defaultEnabled: item?.defaultEnabled !== false,
     legacyModulesFlag: id === 'notice-bar',
   })
+}
+
+/**
+ * Persist catalog defaults for newly allowlisted packs.
+ * Missing row + defaultEnabled/required → write `true` so upgrades (e.g.
+ * product:email-manager) match Forms/Media without a SQL edit.
+ * Explicit `false` is preserved after the one-shot repair below.
+ */
+export function mergeMissingCatalogModuleDefaults(
+  toggles: ModuleToggleMap,
+): { toggles: ModuleToggleMap; changed: boolean } {
+  const next: ModuleToggleMap = { ...toggles }
+  let changed = false
+  for (const item of listInstalledModuleCatalog()) {
+    if (typeof next[item.id] === 'boolean') continue
+    if (item.required || item.defaultEnabled !== false) {
+      next[item.id] = true
+      changed = true
+    }
+  }
+  return { toggles: changed ? next : toggles, changed }
+}
+
+/**
+ * Marker written after repairing Modules empty-ids wipes that stored
+ * `enabled:false` for every catalog row (including Email Manager).
+ * After this runs once, explicit Modules off stays off.
+ */
+export const CATALOG_DEFAULTS_REPAIR_MARKER = '__sf_catalog_defaults_v1'
+
+/**
+ * One-shot: force defaultEnabled/required platform+product packs back on.
+ * Fixes sites where a Modules submit without `moduleToggleId` fields wiped
+ * every pack to false — Email never appeared even with codegen + nav wiring.
+ */
+export function repairCatalogModuleDefaultsOnce(
+  toggles: ModuleToggleMap,
+): { toggles: ModuleToggleMap; changed: boolean } {
+  if (toggles[CATALOG_DEFAULTS_REPAIR_MARKER] === true) {
+    return { toggles, changed: false }
+  }
+
+  const next: ModuleToggleMap = { ...toggles }
+  let changed = false
+  for (const item of listInstalledModuleCatalog()) {
+    if (item.kind !== 'platform' && item.kind !== 'product') continue
+    if (!(item.required || item.defaultEnabled !== false)) continue
+    if (next[item.id] !== true) {
+      next[item.id] = true
+      changed = true
+    }
+  }
+  next[CATALOG_DEFAULTS_REPAIR_MARKER] = true
+  return { toggles: next, changed: true }
 }
 
 /** Sync FeatureFlags from product module toggles (and legacy extension master). */

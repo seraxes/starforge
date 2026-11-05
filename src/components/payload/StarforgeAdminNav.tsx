@@ -5,11 +5,14 @@ import { NavHamburger, NavWrapper } from '@payloadcms/next/client'
 import type { ServerProps } from 'payload'
 
 import { AdminSidebarNav } from '@/components/admin/AdminSidebarNav'
-import { buildAdminNavGroups } from '@/core/admin-nav'
+import {
+  buildAdminNavGroups,
+  resolveEnabledAdminNavModuleIds,
+} from '@/core/admin-nav'
 import { getActiveAdminTheme } from '@/core/admin-theme'
 import {
   MODULE_IDS,
-  getSiteSettings,
+  ensureSiteSettingsDefaults,
   isCatalogModuleEnabled,
 } from '@/core/settings'
 
@@ -22,22 +25,9 @@ const baseClass = 'nav'
  */
 export default async function StarforgeAdminNav(props: ServerProps) {
   const { visibleEntities, user } = props
-  const settings = await getSiteSettings()
+  const settings = await ensureSiteSettingsDefaults()
   const theme = getActiveAdminTheme()
-
-  const enabledModuleIds = new Set<string>()
-  if (isCatalogModuleEnabled(settings, MODULE_IDS.forms)) {
-    enabledModuleIds.add(MODULE_IDS.forms)
-  }
-  if (isCatalogModuleEnabled(settings, MODULE_IDS.emailManager)) {
-    enabledModuleIds.add(MODULE_IDS.emailManager)
-  }
-  if (isCatalogModuleEnabled(settings, MODULE_IDS.redirects)) {
-    enabledModuleIds.add(MODULE_IDS.redirects)
-  }
-  if (isCatalogModuleEnabled(settings, MODULE_IDS.media)) {
-    enabledModuleIds.add(MODULE_IDS.media)
-  }
+  const enabledModuleIds = resolveEnabledAdminNavModuleIds(settings)
 
   const groups = buildAdminNavGroups({
     surface: 'payload',
