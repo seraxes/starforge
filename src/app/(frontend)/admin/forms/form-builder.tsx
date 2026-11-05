@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useActionState, useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import {
   DndContext,
@@ -1890,8 +1891,8 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                           aria-label="Section label"
                         />
                       </div>
-                      <div className="gantry-section-actions">
-                        {sections.length > 1 ? (
+                      {sections.length > 1 ? (
+                        <div className="gantry-section-actions">
                           <button
                             type="button"
                             className="gantry-toolbar-btn danger"
@@ -1909,8 +1910,8 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                           >
                             Remove section
                           </button>
-                        ) : null}
-                      </div>
+                        </div>
+                      ) : null}
                     </header>
                     <div className="sf-form-section-rows">
                       {section.rows.length === 0 && !dndReady ? (
@@ -1964,13 +1965,11 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                                     addFieldOntoRow(type, section.id, row.id)
                                   }}
                                 >
-                                  <div className="gantry-row-meta sf-form-row-meta">
-                                    <span>
-                                      {empty
-                                        ? 'Empty row · drop fields here'
-                                        : `Row · ${row.columns.length} column${row.columns.length === 1 ? '' : 's'}`}
-                                    </span>
-                                    {empty ? (
+                                  {/* Meta / − row only on empty drop rows — no leftover
+                                      “Row · N columns” actions strip on filled rows. */}
+                                  {empty ? (
+                                    <div className="gantry-row-meta sf-form-row-meta">
+                                      <span>Empty row · drop fields here</span>
                                       <div className="gantry-row-actions">
                                         <button
                                           type="button"
@@ -1981,8 +1980,8 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                                           − row
                                         </button>
                                       </div>
-                                    ) : null}
-                                  </div>
+                                    </div>
+                                  ) : null}
                                   <div className="gantry-row-slots sf-form-row-slots">
                                     {empty ? (
                                       <div className="gantry-row-empty">Drop fields here…</div>
@@ -2067,19 +2066,27 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                               </React.Fragment>
                             )
                           })}
-                          <DragOverlay
-                            dropAnimation={null}
-                            style={{ cursor: 'grabbing', zIndex: 10000 }}
-                          >
-                            {overlayField ? (
-                              <FieldDragPreview
-                                field={overlayField}
-                                widthPercent={dragLockSize?.widthPercent ?? LAYOUT_WIDTH_FULL}
-                                width={dragLockSize?.width ?? 240}
-                                height={dragLockSize?.height ?? 52}
-                              />
-                            ) : null}
-                          </DragOverlay>
+                          {/* Portal to body — admin chrome uses overflow/transform that clips
+                              in-tree DragOverlay (looks like “no grab feedback”). */}
+                          {createPortal(
+                            <DragOverlay
+                              dropAnimation={null}
+                              zIndex={10000}
+                              style={{ cursor: 'grabbing' }}
+                            >
+                              {overlayField ? (
+                                <FieldDragPreview
+                                  field={overlayField}
+                                  widthPercent={
+                                    dragLockSize?.widthPercent ?? LAYOUT_WIDTH_FULL
+                                  }
+                                  width={dragLockSize?.width ?? 240}
+                                  height={dragLockSize?.height ?? 52}
+                                />
+                              ) : null}
+                            </DragOverlay>,
+                            document.body,
+                          )}
                         </DndContext>
                       ) : (
                         section.rows.map((row) => (
