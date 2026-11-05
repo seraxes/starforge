@@ -1119,7 +1119,8 @@ function DraggableFieldBar(
   const lock = isDragging ? props.dragLockSize : null
   const style: React.CSSProperties = lock
     ? {
-        opacity: 0.45,
+        // Ghost left in place — grab feedback lives on DragOverlay (~50%).
+        opacity: 0.35,
         flex: `0 0 ${lock.width}px`,
         width: lock.width,
         minWidth: lock.width,
@@ -1955,8 +1956,9 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                               </React.Fragment>
                             )
                           })}
-                          <DragOverlay dropAnimation={null}>
+                          <DragOverlay dropAnimation={null} style={{ cursor: 'grabbing' }}>
                             {overlayField && dragLockSize ? (
+                              /* Portaled outside .admin-shell — styles.css paints the mid-blue bar. */
                               <div
                                 className="sf-form-drag-overlay"
                                 style={{
