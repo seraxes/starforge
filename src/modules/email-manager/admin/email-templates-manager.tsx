@@ -99,7 +99,10 @@ export function EmailTemplatesManager({
 
   return (
     <div className="sf-email-templates-manager admin-settings-mosaic">
-      <section className="outlines-create" aria-label="Filter templates">
+      <section
+        className="outlines-create admin-settings-panel-wide"
+        aria-label="Filter templates"
+      >
         <h3>Filter by module</h3>
         <p className="field-hint">
           Module tags keep Forms / Auth / Events templates findable as packs grow.
@@ -127,14 +130,17 @@ export function EmailTemplatesManager({
         </div>
       </section>
 
-      <section className="outlines-create" aria-label="Test send">
+      <section className="outlines-create sf-email-templates-card" aria-label="Test send">
         <h3>Test send</h3>
         <p className="field-hint">
           Uses platform Mailer ({mailerLabel}
           {!mailerEnabled ? ' — disabled in Chrome' : ''}). Console provider logs only; SMTP /
           Resend soft-fail when secrets are missing.
         </p>
-        <form action={testAction} className="outlines-create-form admin-create-form">
+        <form
+          action={testAction}
+          className="outlines-create-form admin-create-form sf-email-templates-card-form"
+        >
           <label className="settings-field">
             <span>To</span>
             <input type="email" name="to" required autoComplete="off" />
@@ -163,9 +169,12 @@ export function EmailTemplatesManager({
         <Feedback state={testState} />
       </section>
 
-      <section className="outlines-create" aria-label="Create template">
+      <section className="outlines-create sf-email-templates-card" aria-label="Create template">
         <h3>Add template</h3>
-        <form action={createAction} className="outlines-create-form admin-create-form">
+        <form
+          action={createAction}
+          className="outlines-create-form admin-create-form sf-email-templates-card-form"
+        >
           <label className="settings-field">
             <span>Label</span>
             <input type="text" name="label" required maxLength={200} autoComplete="off" />

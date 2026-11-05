@@ -4057,6 +4057,19 @@ button:disabled {
   grid-column: 1 / -1;
 }
 
+/*
+ * Email templates: Filter full width; Test send + Add template share a 2-col row.
+ * Forms inside those cards stay a single column (full width within the card).
+ */
+.admin-settings-mosaic.sf-email-templates-manager > .outlines-create.sf-email-templates-card {
+  grid-column: auto;
+}
+
+.sf-email-templates-manager .sf-email-templates-card-form.outlines-create-form,
+.sf-email-templates-manager .sf-email-templates-card-form.admin-create-form {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 @media (min-width: 721px) {
   .admin-settings-mosaic > .settings-fieldset:last-child:nth-child(odd),
   .admin-settings-mosaic > .page-settings-panel:last-child:nth-child(odd),
