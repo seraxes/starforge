@@ -313,7 +313,13 @@ export async function submitFormAction(
         formKey,
         definitionId,
       })
-      await dispatchFormEmailNotify(plan)
+      await dispatchFormEmailNotify(plan, {
+        document: definitionDocument,
+        payload: values,
+        formKey,
+        definitionId,
+        submissionId,
+      })
     } catch {
       // Mailer failures must not fail the submission.
     }
@@ -642,23 +648,41 @@ export async function resendFormSubmissionNotifyAction(
       formKey: submission.formKey,
       definitionId: submission.definitionId,
     })
-    if (!plan.intents.length) {
+    const result = await dispatchFormEmailNotify(plan, {
+      document: loaded.document,
+      payload: submission.payload,
+      formKey: submission.formKey,
+      definitionId: submission.definitionId,
+      submissionId,
+    })
+    if (!result.viaEmailManager && !plan.intents.length) {
       return {
         error:
-          'No notify recipients resolved (check admin emails / respondent email field).',
+          'No notify recipients resolved (check admin emails / respondent email field / Email Manager rules).',
       }
     }
-    const result = await dispatchFormEmailNotify(plan)
     const failed = (result.results ?? []).filter((r) => !r.ok && !r.skipped)
     if (result.stubbed) {
+      const count = result.viaEmailManager
+        ? (result.results?.length ?? 0)
+        : plan.intents.length
       return {
         ok: true,
-        message: `Notify planned (${plan.intents.length}) but Mailer is disabled or console-only.`,
+        message: `Notify planned (${count}) but Mailer is disabled or console-only${
+          result.viaEmailManager ? ' (Email Manager).' : '.'
+        }`,
       }
     }
     if (failed.length) {
+      const total = result.results?.length ?? plan.intents.length
       return {
-        error: `Notify partially failed (${failed.length}/${plan.intents.length}).`,
+        error: `Notify partially failed (${failed.length}/${total}).`,
+      }
+    }
+    if (result.viaEmailManager) {
+      return {
+        ok: true,
+        message: `Notify resent via Email Manager (${result.results?.length ?? 0} rule(s)).`,
       }
     }
     return {

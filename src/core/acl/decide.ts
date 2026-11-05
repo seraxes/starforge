@@ -66,6 +66,9 @@ export function adminAreaGateForPath(pathname: string): AdminAreaGate {
   if (path === '/app/admin/forms' || path.startsWith('/app/admin/forms/')) {
     return { type: 'resource', key: 'admin.forms' }
   }
+  if (path === '/app/admin/email' || path.startsWith('/app/admin/email/')) {
+    return { type: 'resource', key: 'admin.email-manager' }
+  }
   if (path === '/app/admin/redirects' || path.startsWith('/app/admin/redirects/')) {
     return { type: 'resource', key: 'admin.redirects' }
   }
@@ -124,6 +127,7 @@ const LANDING_ORDER: { key: AclAdminResourceKey; href: string }[] = [
   { key: 'admin.nav', href: '/app/admin/nav' },
   { key: 'admin.layouts', href: '/app/admin/layouts' },
   { key: 'admin.forms', href: '/app/admin/forms' },
+  { key: 'admin.email-manager', href: '/app/admin/email' },
   { key: 'admin.page-settings', href: '/app/admin/page-settings' },
   { key: 'admin.settings', href: '/app/admin/settings' },
   { key: 'admin.site-chrome', href: '/app/admin/site-chrome' },

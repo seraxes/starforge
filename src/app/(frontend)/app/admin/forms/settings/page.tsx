@@ -31,7 +31,9 @@ export default async function AdminFormsSettingsPage() {
       <h2>Forms settings</h2>
       <p className="lede admin-lede">
         Module defaults for success copy and email-on-submit. Transport is the platform{' '}
-        <strong>Mailer</strong> (Chrome enable / provider / From; secrets in env). Per-form
+        <strong>Mailer</strong> (Chrome enable / provider / From; secrets in env). Shared rules
+        live under{' '}
+        <Link href="/app/admin/email">Email Manager</Link> when that module is on. Per-form
         overrides live in the builder.
       </p>
       {loaded.isFallback ? (

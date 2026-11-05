@@ -1,5 +1,8 @@
 /**
  * Form email-on-submit — plan intents + dispatch via platform Mailer (SF-96).
+ * When Email Manager is enabled and matching rules fire for
+ * `product:forms/submitted`, prefer those rules and skip legacy intents
+ * (avoids double-send after seeding Forms starters).
  * Server-only: call from submitFormAction after a successful save.
  */
 
@@ -37,6 +40,16 @@ export type FormEmailNotifyResult = {
   results?: MailSendResult[]
   /** True when nothing was handed to the network (disabled, empty, or console-only log). */
   stubbed?: boolean
+  /** True when Email Manager rules handled the send (legacy intents skipped). */
+  viaEmailManager?: boolean
+}
+
+export type FormEmailNotifyDispatchContext = {
+  document: FormDefinitionDocument
+  payload: FormSubmissionPayload
+  formKey: string
+  definitionId: string | null
+  submissionId?: string | null
 }
 
 function splitEmails(list: string[] | undefined): string[] {
@@ -119,13 +132,116 @@ export async function planFormEmailNotify(options: {
   }
 }
 
+function buildEmailManagerPayload(
+  context: FormEmailNotifyDispatchContext,
+  settingsDefaultAdmin: string[],
+): Record<string, unknown> {
+  const cfg: FormEmailNotifyConfig = context.document.emailNotify ?? {}
+  const title =
+    context.document.title || context.definitionId || context.formKey
+  const fileFieldNames = new Set(
+    context.document.fields.filter((f) => f.type === 'file').map((f) => f.name),
+  )
+  const payloadText = formatPayloadBody(context.payload, title, fileFieldNames)
+  const adminEmails = splitEmails(
+    cfg.adminEmails?.length ? cfg.adminEmails : settingsDefaultAdmin,
+  )
+  const respondentField = cfg.respondentEmailField || 'email'
+  const respondentEmail = formatPayloadValue(context.payload[respondentField])
+    .trim()
+    .toLowerCase()
+
+  return {
+    formKey: context.formKey,
+    definitionId: context.definitionId,
+    formTitle: title,
+    preset: context.document.preset,
+    payload: context.payload,
+    payloadText,
+    notifyAdmin: Boolean(cfg.notifyAdmin),
+    notifyRespondent: Boolean(cfg.notifyRespondent),
+    adminEmails,
+    respondentEmail: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(respondentEmail)
+      ? respondentEmail
+      : '',
+    submissionId: context.submissionId ?? null,
+    successMessage: context.document.successMessage || '',
+  }
+}
+
+/**
+ * Prefer Email Manager rules when the module is on and at least one rule matches.
+ * Soft-fails — never throws.
+ */
+async function tryDispatchViaEmailManager(
+  context: FormEmailNotifyDispatchContext,
+): Promise<{
+  handled: boolean
+  result?: FormEmailNotifyResult
+}> {
+  try {
+    const { emitEmailTrigger, isEmailManagerEnabled } = await import(
+      '@/modules/email-manager/api.server'
+    )
+    const { FORM_SUBMITTED_TRIGGER } = await import('@/modules/email-manager/api')
+    if (!(await isEmailManagerEnabled())) {
+      return { handled: false }
+    }
+
+    const settings = await getFormsModuleSettings()
+    const payload = buildEmailManagerPayload(context, settings.defaultAdminEmails)
+    const from = settings.fromAddress.trim() || undefined
+    const emit = await emitEmailTrigger({
+      triggerKey: FORM_SUBMITTED_TRIGGER,
+      payload,
+      from,
+    })
+
+    if (!emit.matchedRuleIds.length) {
+      return { handled: false }
+    }
+
+    const mailer = await getMailer()
+    const info = mailer.info()
+    const results: MailSendResult[] = emit.results.map((r) => ({
+      ok: r.ok,
+      provider: (r.provider as MailSendResult['provider']) || info.provider,
+      skipped: r.skipped,
+      error: r.error,
+    }))
+
+    return {
+      handled: true,
+      result: {
+        attempted: true,
+        transport: info.enabled ? info.provider : 'disabled',
+        intents: [],
+        results,
+        stubbed: !info.enabled || info.provider === 'console' || Boolean(emit.skipped),
+        viaEmailManager: true,
+      },
+    }
+  } catch {
+    return { handled: false }
+  }
+}
+
 /**
  * Dispatch planned intents through the platform Mailer.
  * Soft-fails per message — never throws for transport errors.
+ * Pass `context` so Email Manager rules can take over when configured.
  */
 export async function dispatchFormEmailNotify(
   plan: FormEmailNotifyResult,
+  context?: FormEmailNotifyDispatchContext,
 ): Promise<FormEmailNotifyResult> {
+  if (context) {
+    const viaEm = await tryDispatchViaEmailManager(context)
+    if (viaEm.handled && viaEm.result) {
+      return viaEm.result
+    }
+  }
+
   if (!plan.intents.length) {
     return plan
   }

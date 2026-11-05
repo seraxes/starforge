@@ -111,11 +111,15 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
     })
   }
 
-  // Manifest-contributed packs (Forms, Redirects, Media, …).
-  // Keep historical order: Forms → Redirects → Users → Media → Layouts.
+  // Manifest-contributed packs (Forms, Email, Redirects, Media, …).
+  // Keep historical order: Forms → Email → Redirects → Users → Media → Layouts.
   const contributed = buildContributedAdminNavGroups(options.enabledModuleIds)
-  const early = contributed.filter((g) => g.id === 'forms' || g.id === 'redirects')
-  const late = contributed.filter((g) => g.id !== 'forms' && g.id !== 'redirects')
+  const earlyIds = new Set(['forms', 'email', 'redirects'])
+  const earlyRank: Record<string, number> = { forms: 0, email: 1, redirects: 2 }
+  const early = contributed
+    .filter((g) => earlyIds.has(g.id))
+    .sort((a, b) => (earlyRank[a.id] ?? 99) - (earlyRank[b.id] ?? 99))
+  const late = contributed.filter((g) => !earlyIds.has(g.id))
   groups.push(...early)
 
   groups.push({
