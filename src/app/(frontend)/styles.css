@@ -1582,6 +1582,22 @@ button:disabled {
   background: color-mix(in srgb, var(--sf-secondary) 16%, white);
 }
 
+.settings-modules-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.settings-modules-row-actions {
+  display: block;
+  padding-left: 1.55rem;
+}
+
+.settings-modules-info-link {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
 .settings-fieldset {
   margin: 0;
   padding: 1rem 1.1rem 1.15rem;

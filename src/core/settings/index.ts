@@ -130,6 +130,14 @@ export {
   CATALOG_DEFAULTS_REPAIR_MARKER,
 } from './module-catalog'
 export {
+  findExistingModuleSettingsHref,
+  isCoreModuleInfoSettingsHref,
+  moduleIdFromPathSegment,
+  moduleIdPathSegment,
+  moduleInfoSettingsHref,
+  resolveModuleInfoSettingsHref,
+} from './module-info-settings'
+export {
   ALLOWLISTED_MODULE_IDS,
   MODULE_ALLOWLIST_FLAVOR,
   isModuleAllowlisted,

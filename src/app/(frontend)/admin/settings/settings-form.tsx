@@ -8,6 +8,7 @@ import {
   type SettingsActionState,
 } from '@/core/settings/actions'
 import type { FeatureFlags, ModuleToggleMap } from '@/core/settings/defaults'
+import { resolveModuleInfoSettingsHref } from '@/core/settings/module-info-settings'
 import type { ModuleCatalogItem, ModuleToggleKind } from '@/core/settings/module-toggles'
 
 import { useNotifySavedOnOk } from '../admin-toast'
@@ -86,31 +87,39 @@ function ModuleRows({
     <ul className="settings-modules-list">
       {items.map((item) => {
         const checked = resolveChecked(item, moduleToggles, features)
+        const infoHref = resolveModuleInfoSettingsHref(item.id, item)
         return (
           <li key={item.id} className="settings-modules-row">
             <input type="hidden" name="moduleToggleId" value={item.id} />
-            <label className="settings-modules-toggle">
-              <input
-                type="checkbox"
-                name="moduleToggleEnabled"
-                value={item.id}
-                defaultChecked={checked}
-                disabled={item.required || disabled}
-                onChange={onToggle}
-              />
-              <span>
-                <strong>{item.label}</strong>
-                {item.required ? (
-                  <span className="settings-modules-badge">Required</span>
-                ) : (
-                  <span className="settings-modules-badge settings-modules-badge-muted">
-                    {KIND_LABEL[item.kind]}
-                  </span>
-                )}
-                <code className="settings-modules-id">{item.id}</code>
-                <span className="settings-flag-desc">{item.description}</span>
+            <div className="settings-modules-row-main">
+              <label className="settings-modules-toggle">
+                <input
+                  type="checkbox"
+                  name="moduleToggleEnabled"
+                  value={item.id}
+                  defaultChecked={checked}
+                  disabled={item.required || disabled}
+                  onChange={onToggle}
+                />
+                <span>
+                  <strong>{item.label}</strong>
+                  {item.required ? (
+                    <span className="settings-modules-badge">Required</span>
+                  ) : (
+                    <span className="settings-modules-badge settings-modules-badge-muted">
+                      {KIND_LABEL[item.kind]}
+                    </span>
+                  )}
+                  <code className="settings-modules-id">{item.id}</code>
+                  <span className="settings-flag-desc">{item.description}</span>
+                </span>
+              </label>
+              <span className="settings-modules-row-actions">
+                <Link href={infoHref} className="settings-modules-info-link">
+                  Info / Settings
+                </Link>
               </span>
-            </label>
+            </div>
           </li>
         )
       })}
@@ -172,10 +181,11 @@ export function SettingsForm({
         <p className="settings-hint">
           Installed modules for this build (from <code>starforge.modules.json</code> allowlist) —
           platform, capabilities, layout particles, and atoms. Each row: name, short description,
-          on/off. Off gates admin nav/routes where safe, layout palette, and public render/inject.
-          To drop deadweight from the bundle, remove an id from the allowlist and run{' '}
-          <code>npm run modules:generate</code>. Saves automatically. Other Settings topics:{' '}
-          <Link href="/admin/settings/admin-ux">Admin UX</Link>,{' '}
+          on/off, and <strong>Info / Settings</strong> (reuses a pack Settings menu when present;
+          otherwise a Core soft stub). Off gates admin nav/routes where safe, layout palette, and
+          public render/inject. To drop deadweight from the bundle, remove an id from the allowlist
+          and run <code>npm run modules:generate</code>. Saves automatically. Other Settings
+          topics: <Link href="/admin/settings/admin-ux">Admin UX</Link>,{' '}
           <Link href="/admin/settings/auth">Auth</Link>,{' '}
           <Link href="/admin/settings/security">Security</Link>.
         </p>
