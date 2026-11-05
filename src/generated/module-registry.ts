@@ -255,7 +255,7 @@ export type AdminDashboardContribution = {
 
 /** Admin Dashboard widgets from allowlisted manifests (D0). Metadata only. */
 export const adminDashboardContributions: AdminDashboardContribution[] = [
-  { moduleId: "platform:dashboard", id: "users.strip", title: "Users", order: 10, size: "lg", area: "dashboard", widgetImportPath: "@/core/dashboard/widgets/UsersStripWidget", widgetExportName: "UsersStripWidget", statsImportPath: "@/core/dashboard/widgets/users-stats", statsExportName: "loadUsersStripStats" },
+  { moduleId: "platform:dashboard", id: "users.strip", title: "User metrics", order: 10, size: "lg", area: "dashboard", widgetImportPath: "@/core/dashboard/widgets/UsersStripWidget", widgetExportName: "UsersStripWidget", statsImportPath: "@/core/dashboard/widgets/users-stats", statsExportName: "loadUsersStripStats" },
   { moduleId: "platform:dashboard", id: "users.latest", title: "Latest users", order: 20, size: "lg", area: "dashboard", widgetImportPath: "@/core/dashboard/widgets/LatestUsersWidget", widgetExportName: "LatestUsersWidget", statsImportPath: "@/core/dashboard/widgets/users-stats", statsExportName: "loadLatestUsersStats" },
   { moduleId: "product:media", id: "media.counts", title: "Media", order: 50, size: "md", widgetImportPath: "@/modules/media/dashboard/MediaCountsWidget", widgetExportName: "MediaCountsWidget", statsImportPath: "@/modules/media/dashboard/media-stats", statsExportName: "loadMediaCountsStats" },
   { moduleId: "product:email-manager", id: "email.sent", title: "Email", order: 60, size: "md", widgetImportPath: "@/modules/email-manager/dashboard/EmailSentWidget", widgetExportName: "EmailSentWidget", statsImportPath: "@/modules/email-manager/dashboard/email-stats", statsExportName: "loadEmailSentStats" }

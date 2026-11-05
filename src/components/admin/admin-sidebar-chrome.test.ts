@@ -31,6 +31,7 @@ describe('adminUserInitials', () => {
 describe('admin sidebar chrome constants', () => {
   it('keeps logo tooltip tied to former Starforge admin header copy', () => {
     assert.match(ADMIN_SHELL_LOGO_TOOLTIP, /^Starforge admin —/)
+    assert.match(ADMIN_SHELL_LOGO_TOOLTIP, /Dashboard \(\/admin\)/)
     assert.match(ADMIN_SHELL_LOGO_TOOLTIP, /Chrome/)
     assert.match(ADMIN_SHELL_LOGO_TOOLTIP, /CMS/)
   })

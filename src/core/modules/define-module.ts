@@ -176,7 +176,7 @@ export type StarforgeModuleManifest = {
     /** Admin pages — codegen writes App Router shims (M2 leftovers). */
     routes?: StarforgeModuleAdminRoute[]
     /**
-     * Dashboard widgets — codegen → registry; Core host at `/app/admin` merges
+     * Dashboard widgets — codegen → registry; Core host at `/admin` merges
      * by allowlist + Site Settings toggle + ACL (no hardcoded product `if`s).
      */
     dashboard?: StarforgeModuleAdminDashboardWidget[]

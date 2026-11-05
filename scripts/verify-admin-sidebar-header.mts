@@ -80,6 +80,7 @@ mustInclude(chrome, 'dashboard route', "ADMIN_DASHBOARD_HREF = '/admin'")
 mustInclude(chrome, 'payload dashboard route', "PAYLOAD_DASHBOARD_HREF = '/cms/admin'")
 mustInclude(chrome, 'account route', "/account/security")
 mustInclude(chrome, 'tooltip starts with Starforge admin', "'Starforge admin —")
+mustInclude(chrome, 'tooltip names Dashboard home', 'Dashboard (/admin)')
 mustInclude(payloadNav, 'Payload brand surface', 'surface="payload"')
 
 mustInclude(styles, 'kicker style', '.admin-sidebar-kicker')

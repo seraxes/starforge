@@ -60,6 +60,7 @@ export {
   createUserGroup,
   deleteUserGroup,
   ensureDefaultUserGroupsSeeded,
+  ensureManagersDashboardAcl,
   getUserGroup,
   listUserGroupOptions,
   listUserGroups,

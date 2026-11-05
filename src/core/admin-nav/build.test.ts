@@ -50,6 +50,7 @@ describe('resolveEnabledAdminNavModuleIds + Email contribution', () => {
     })
     const ids = groups.map((g) => g.id)
     assert.equal(ids[0], 'dashboard')
+    assert.equal(groups.find((g) => g.id === 'dashboard')?.href, '/admin')
     assert.equal(
       groups.find((g) => g.id === 'dashboard')?.links[0]?.href,
       '/admin',
