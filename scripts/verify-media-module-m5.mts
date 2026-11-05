@@ -72,6 +72,8 @@ assert.match(manifest, /dashboard:\s*\[/)
 assert.match(manifest, /id: 'media\.counts'/)
 mustExist('src/modules/media/dashboard/MediaCountsWidget.tsx')
 mustExist('src/modules/media/dashboard/media-stats.ts')
+mustExist('src/modules/media/dashboard/media-kind.ts')
+assert.match(read('src/modules/media/dashboard/media-stats.ts'), /payload\.media/)
 
 // Consumers bind via module api (not Core-hosted picker)
 for (const rel of [
