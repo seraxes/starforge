@@ -11,8 +11,9 @@ export type { MediaStorage, MediaStorageInfo, MediaStorageKind }
  * - `STARFORGE_MEDIA_STORAGE=s3`: DigitalOcean Spaces / S3 (`S3_*` env + Payload plugin)
  *
  * Payload plugin wiring: import `payloadMediaStoragePlugins` from
- * `@/core/media/storage/payload-plugin` in `payload.config.ts` (kept separate so
- * local admin paths do not pull `@payloadcms/storage-s3` / AWS SDK).
+ * `@/core/media/storage/payload-plugin` in `payload.config.ts`. That file
+ * lazy-requires `@payloadcms/storage-s3` only when `STARFORGE_MEDIA_STORAGE=s3`
+ * so local disk / migrate / generate / Turbopack proxy traces do not need it.
  */
 export function getMediaStorage(): MediaStorage {
   if (process.env.STARFORGE_MEDIA_STORAGE === 's3') {

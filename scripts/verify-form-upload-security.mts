@@ -112,6 +112,16 @@ mustInclude(
   'Omit disablePayloadAccessControl',
   'S3 plugin documents access-control default',
 )
+mustNotInclude(
+  'src/core/media/storage/payload-plugin.ts',
+  "from '@payloadcms/storage-s3'",
+  'S3 adapter must stay lazy — no static import (Turbopack / local disk)',
+)
+mustInclude(
+  'src/core/media/storage/payload-plugin.ts',
+  'createRequire',
+  'S3 adapter loads via createRequire when STARFORGE_MEDIA_STORAGE=s3',
+)
 
 // Order smoke: captcha / rate-limit must appear before ingestFormUploads call site
 {

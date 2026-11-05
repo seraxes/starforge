@@ -1,11 +1,36 @@
 /**
  * Loaded from `payload.config.ts` (and Payload CLI). No `server-only` —
  * `payload migrate*` / `generate:*` run outside Next and would throw.
+ *
+ * `@payloadcms/storage-s3` is required only when `STARFORGE_MEDIA_STORAGE=s3`.
+ * Local disk (default), migrate, and generate must not hard-import it — Turbopack
+ * traces `payload.config` via settings → `proxy.ts`, and a static import fails
+ * the whole app build when the optional package is unused / not installed.
  */
-import { s3Storage } from '@payloadcms/storage-s3'
+import { createRequire } from 'module'
 import type { Plugin } from 'payload'
 
 import { isS3MediaStorageSelected, readS3MediaEnv } from './env'
+
+const require = createRequire(import.meta.url)
+
+/** Runtime load so Turbopack / local disk builds do not resolve the optional package. */
+function loadS3Storage(): (options: Record<string, unknown>) => Plugin {
+  // Opaque specifier — no static ESM import of the optional adapter package.
+  const spec = '@payloadcms/' + 'storage-s3'
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- optional S3 adapter
+    const mod = require(spec) as {
+      s3Storage: (options: Record<string, unknown>) => Plugin
+    }
+    return mod.s3Storage
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err)
+    throw new Error(
+      `STARFORGE_MEDIA_STORAGE=s3 requires @payloadcms/storage-s3 (same version as payload in package.json). Run npm install, or unset STARFORGE_MEDIA_STORAGE for local disk. (${detail})`,
+    )
+  }
+}
 
 /**
  * Payload `@payloadcms/storage-s3` plugin when MediaStorage kind is s3 and env is complete.
@@ -24,6 +49,7 @@ export function createPayloadS3StoragePlugin(): Plugin | null {
     )
   }
 
+  const s3Storage = loadS3Storage()
   const publicBase = config.publicBaseUrl
 
   return s3Storage({
