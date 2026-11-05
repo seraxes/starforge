@@ -2,9 +2,9 @@
 
 Reusable **product core** for ordinary web apps (auth, users, app shell, extension points) with **Payload CMS 3** as a swappable **content/media module** — not the whole product.
 
-**Two admin surfaces, one login:** **Starforge admin** (`/app/admin` — users, groups, site settings, nav, layouts) ↔ **Payload Content CMS** (`/admin` — pages, media); each sidebar links to the other.
+**Two admin surfaces, one login:** **Starforge admin** (`/admin` — Dashboard, users, groups, site settings, nav, layouts) ↔ **Payload Content CMS** (`/cms/admin` — pages, media); each sidebar links to the other.
 
-This is an early scaffold plus **core app auth** (Better Auth), **roles + user groups + ACL matrix**, **one-login Payload CMS access** (`cms_access` toggle), **site settings + feature toggles**, **Nav manager**, **Page Settings** (Gantry-style Head / Assets / Body / Font Awesome / Atoms + layout assignment in `sf_page_chrome`), **Lexical** page editing, **public `/[slug]`** rendering, **draft preview** (`/preview/[slug]`), **published content cache** (Next.js tags; Redis later), **page SEO fields**, **extension modules + Gantry-like layout manager** (sections/rows/slots + % widths in `sf_layouts`, palette UI at `/app/admin/layouts`, typed Logo/Copyright/Social + page-content + Custom particles), and **`npm run seed`**. It is intentionally small and runnable locally — not Airsoftnexus 2.0 feature parity, and not a DigitalOcean deploy.
+This is an early scaffold plus **core app auth** (Better Auth), **roles + user groups + ACL matrix**, **one-login Payload CMS access** (`cms_access` toggle), **site settings + feature toggles**, **Nav manager**, **Page Settings** (Gantry-style Head / Assets / Body / Font Awesome / Atoms + layout assignment in `sf_page_chrome`), **Lexical** page editing, **public `/[slug]`** rendering, **draft preview** (`/preview/[slug]`), **published content cache** (Next.js tags; Redis later), **page SEO fields**, **extension modules + Gantry-like layout manager** (sections/rows/slots + % widths in `sf_layouts`, palette UI at `/admin/layouts`, typed Logo/Copyright/Social + page-content + Custom particles), and **`npm run seed`**. It is intentionally small and runnable locally — not Airsoftnexus 2.0 feature parity, and not a DigitalOcean deploy.
 
 ## Architecture
 
@@ -48,13 +48,13 @@ Keys live in `.env` / Site Chrome → **Environment** only — never the databas
 | | Starforge app account | Payload CMS stub |
 | --- | --- | --- |
 | Purpose | Product login (membership, gated app features) | Content editor identity inside Payload |
-| UI | `/register`, `/login`; admins also `/app/admin/*` | **`/admin`** (opens with the **same** Better Auth session when `cms_access` is on) |
+| UI | `/register`, `/login`; admins also `/admin/*` | **`/cms/admin`** (opens with the **same** Better Auth session when `cms_access` is on) |
 | API | Better Auth `/api/auth/*`, `GET /api/me` | Payload REST/GraphQL under `/api/...` |
 | Storage | `public.sf_*` (`role`, **`cms_access`**) | `payload` schema — stub linked by `coreUserId` |
 
-**One login only:** Better Auth at `/login`. With `cms_access`, `/admin` is already authenticated (custom Payload strategy — no second password). Product **members** stay in core unless an admin turns CMS access on for them. Payload stays a swappable content module.
+**One login only:** Better Auth at `/login`. With `cms_access`, `/cms/admin` is already authenticated (custom Payload strategy — no second password). Product **members** stay in core unless an admin turns CMS access on for them. Payload stays a swappable content module.
 
-**Bootstrap path:** after seed, sign in as `admin@starforge.local` / `starforge-admin` at `/login`, then open `/admin` — no second prompt.
+**Bootstrap path:** after seed, sign in as `admin@starforge.local` / `starforge-admin` at `/login`, then open `/admin` (Core) or `/cms/admin` (CMS) — no second prompt.
 
 ## Requirements
 
@@ -139,27 +139,27 @@ Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so coo
 | http://localhost:3000 | App shell (register / sign in / signed-in state) |
 | http://localhost:3000/register | Create a **core app** account (email + password; auto sign-in; default role `member`) |
 | http://localhost:3000/ | Home — CMS content plus welcome/login panel (options + form; signed-in → Account security / 2FA). Not in the branded hero |
-| http://localhost:3000/login | **Only** sign-in page (Better Auth: password, magic link, email OTP; `?mode=` deep-links). Also used when `/admin` redirects unauthenticated visitors |
+| http://localhost:3000/login | **Only** sign-in page (Better Auth: password, magic link, email OTP; `?mode=` deep-links). Also used when `/cms/admin` redirects unauthenticated visitors |
 | http://localhost:3000/forgot-password | Request password reset email (Mailer) |
 | http://localhost:3000/forgot-username | Sign-in email reminder (login is email, not a separate username) |
 | http://localhost:3000/reset-password | Set a new password from the emailed token link |
 | http://localhost:3000/two-factor | TOTP / recovery-code challenge when 2FA is enabled |
 | http://localhost:3000/account/security | Enable/disable authenticator 2FA + recovery codes (signed-in) |
-| http://localhost:3000/app/admin/users | Starforge admin — accounts (roles, groups, **CMS access**, disable) |
-| http://localhost:3000/app/admin/users/groups | Starforge admin — **user groups** |
-| http://localhost:3000/app/admin/users/acl | Starforge admin — **ACL** groups matrix (admin-area grants) |
-| http://localhost:3000/app/admin/site-chrome | Starforge admin — **Site Chrome** (offline, metadata, robots, cookies) |
-| http://localhost:3000/app/admin/settings | Starforge admin — Modules on/off + primary nav menu assignment |
-| http://localhost:3000/app/admin/nav | Starforge admin — **Nav** manager (navigation sets + items) |
-| http://localhost:3000/app/admin/forms | Starforge admin — **Forms** definitions + builder + settings |
-| http://localhost:3000/app/admin/redirects | Starforge admin — **Redirects** (from → to + status; module `product:redirects`) |
-| http://localhost:3000/app/admin/media | Starforge admin — **Media** library (Payload store + resize/WebP pipeline) |
+| http://localhost:3000/admin/users | Starforge admin — accounts (roles, groups, **CMS access**, disable) |
+| http://localhost:3000/admin/users/groups | Starforge admin — **user groups** |
+| http://localhost:3000/admin/users/acl | Starforge admin — **ACL** groups matrix (admin-area grants) |
+| http://localhost:3000/admin/site-chrome | Starforge admin — **Site Chrome** (offline, metadata, robots, cookies) |
+| http://localhost:3000/admin/settings | Starforge admin — Modules on/off + primary nav menu assignment |
+| http://localhost:3000/admin/nav | Starforge admin — **Nav** manager (navigation sets + items) |
+| http://localhost:3000/admin/forms | Starforge admin — **Forms** definitions + builder + settings |
+| http://localhost:3000/admin/redirects | Starforge admin — **Redirects** (from → to + status; module `product:redirects`) |
+| http://localhost:3000/admin/media | Starforge admin — **Media** library (Payload store + resize/WebP pipeline) |
 | http://localhost:3000/robots.txt | Site Chrome robots.txt snippet (+ Sitemap line) |
 | http://localhost:3000/sitemap.xml | Published Payload pages sitemap |
-| http://localhost:3000/app/admin/layouts | Starforge admin — **Layouts** (hover submenu) → **Layout** canvas (default) |
-| http://localhost:3000/app/admin/page-settings | Starforge admin — **Layouts → Page settings** (Head / Assets / Body / FA / Atoms) |
+| http://localhost:3000/admin/layouts | Starforge admin — **Layouts** (hover submenu) → **Layout** canvas (default) |
+| http://localhost:3000/admin/page-settings | Starforge admin — **Layouts → Page settings** (Head / Assets / Body / FA / Atoms) |
 | http://localhost:3000/api/me | Current app session JSON including `role` / `isAdmin` (`401` when signed out) |
-| http://localhost:3000/admin | Payload Content CMS — nav **CMS** when `cms_access` is on; sidebar **Core admin** → `/app/admin` |
+| http://localhost:3000/cms/admin | Payload Content CMS — nav **CMS** when `cms_access` is on; Core Dashboard → `/admin` |
 | http://localhost:3000/about | Sample published page (after `npm run seed`) |
 | http://localhost:3000/getting-started | Sample published page |
 | http://localhost:3000/welcome | Sample published page with SEO meta filled |
@@ -172,9 +172,9 @@ App login uses **email**, not a separate username. Auth helpers (SF-17) use **Be
 
 | Role / flag | Who | Can open |
 | --- | --- | --- |
-| `admin` | Global **app** admin | `/app/admin/*`; **`cms_access` on by default** → `/admin`; bypasses group ACL |
+| `admin` | Global **app** admin | `/admin/*`; **`cms_access` on by default** → `/cms/admin`; bypasses group ACL |
 | `member` | Default product user | App routes; Core admin only when a group grant exists |
-| `cms_access` | Per-user switch on Users | Payload `/admin` via Better Auth session |
+| `cms_access` | Per-user switch on Users | Payload `/cms/admin` via Better Auth session |
 | User groups | Named sets under Users → Groups | Membership drives nav `group:<id>` visibility + ACL matrix (Managers = group, not a Role) |
 
 ### User groups + ACL foundation
@@ -187,23 +187,23 @@ App login uses **email**, not a separate username. Auth helpers (SF-17) use **Be
 | **ACL** | One matrix: grant admin-area permissions **to groups** (`sf_acl_permissions`). Enforced via `requireAdminArea` / path gates (Navigation = `admin.nav`). |
 | **Nav / Layout / Page “Who can see”** | Multi-select tags (`public` / `registered` / `group:<id>`) on Nav items, layout particles, and Page Settings chrome. Visible if the viewer matches **any** tag; empty = public. Restricted pages hide (`notFound`). |
 
-Global app admins open all Core admin. Members in a group with matrix grants (e.g. seed **Managers** + `admin.nav`) enter `/app/admin` for those areas only. Media stays app-admin until a matrix row is added.
+Global app admins open all Core admin. Members in a group with matrix grants (e.g. seed **Managers** + `admin.nav`) enter `/admin` for those areas only. Media stays app-admin until a matrix row is added.
 
 ### Site Chrome + Site settings + Nav
 
-**Site Chrome** (`/app/admin/site-chrome`, `sf_site_chrome`) is the top-level policy panel: site offline (+ message), default captcha (enable + provider; Turnstile keys in env), outbound email (enable + provider + From; SMTP / Resend secrets in env), site metadata (name / description / OG image), robots meta + `/robots.txt`, content rights, cookie domain/path. Offline mode blocks public visitors; app admins still browse (banner) and can sign in via `/login`. **Environment** (`/app/admin/site-chrome/environment`) is a developer-admin panel behind password re-auth that writes allowlisted keys to gitignored `.env.local` (never Postgres). Production is read-only unless `STARFORGE_ENV_EDITOR=write`; restart Node after writes so Next reloads env.
+**Site Chrome** (`/admin/site-chrome`, `sf_site_chrome`) is the top-level policy panel: site offline (+ message), default captcha (enable + provider; Turnstile keys in env), outbound email (enable + provider + From; SMTP / Resend secrets in env), site metadata (name / description / OG image), robots meta + `/robots.txt`, content rights, cookie domain/path. Offline mode blocks public visitors; app admins still browse (banner) and can sign in via `/login`. **Environment** (`/admin/site-chrome/environment`) is a developer-admin panel behind password re-auth that writes allowlisted keys to gitignored `.env.local` (never Postgres). Production is read-only unless `STARFORGE_ENV_EDITOR=write`; restart Node after writes so Next reloads env.
 
 **Security headers + Secure cookies (SF-129):** Next `headers()` + `src/proxy.ts` send a practical CSP (Next/Payload + Turnstile), `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy`, `nosniff`, and `Permissions-Policy`. HSTS and Better Auth `useSecureCookies` (plus Payload JWT / Environment gate cookies) turn on when `BETTER_AUTH_URL` / `NEXT_PUBLIC_APP_URL` is `https://`, or when `STARFORGE_SECURE_COOKIES=1`. Local `http://localhost` stays insecure so Windows/macOS HTTP keeps working. Override with `STARFORGE_SECURE_COOKIES=0|1`. Site Settings → Security documents this; no DB toggle for headers. Postgres must stay private (localhost / VPC) — not exposed on the public internet.
 
-**Nav** is a **top-level** Core admin item (`/app/admin/nav`, sibling of Users / Site Chrome / Site settings / Layouts): multiple named **navigation sets** (menus) in `sf_nav_menus`, each with items (CMS page, URL, or module view; reorder; copy/paste; CSS class; browser/page title; multi-select access tags). Site Settings only **assigns** which set is the site primary header menu — not nested under Site Chrome.
+**Nav** is a **top-level** Core admin item (`/admin/nav`, sibling of Users / Site Chrome / Site settings / Layouts): multiple named **navigation sets** (menus) in `sf_nav_menus`, each with items (CMS page, URL, or module view; reorder; copy/paste; CSS class; browser/page title; multi-select access tags). Site Settings only **assigns** which set is the site primary header menu — not nested under Site Chrome.
 
-**Forms** (`/app/admin/forms`, gated by Modules → **Forms** / `product:forms`) is the modular Form engine: visual builder (dnd-kit → JSON Schema / Zod), definitions in `sf_forms`, submissions in `sf_form_submissions`. Place the **Form** particle on the layout canvas and bind a definition. Typed presets: contact, survey, event-registration, voting, ticket (create-from-preset in Forms admin). Other modules reuse presets via `@/modules/forms/api` (`registerFormPreset` + optional `onSubmitted`) — no second builder. Optional Site Chrome captcha (Turnstile) when the form opts into the site default. Email-on-submit uses the platform **Mailer** (Site Chrome enable / provider / From); when **Email Manager** (`product:email-manager`, `/app/admin/email`) has matching rules, Forms prefer those over legacy per-form notify. Run `npm run db:migrate` after pull so `sf_forms` / `sf_email_*` columns exist.
+**Forms** (`/admin/forms`, gated by Modules → **Forms** / `product:forms`) is the modular Form engine: visual builder (dnd-kit → JSON Schema / Zod), definitions in `sf_forms`, submissions in `sf_form_submissions`. Place the **Form** particle on the layout canvas and bind a definition. Typed presets: contact, survey, event-registration, voting, ticket (create-from-preset in Forms admin). Other modules reuse presets via `@/modules/forms/api` (`registerFormPreset` + optional `onSubmitted`) — no second builder. Optional Site Chrome captcha (Turnstile) when the form opts into the site default. Email-on-submit uses the platform **Mailer** (Site Chrome enable / provider / From); when **Email Manager** (`product:email-manager`, `/admin/email`) has matching rules, Forms prefer those over legacy per-form notify. Run `npm run db:migrate` after pull so `sf_forms` / `sf_email_*` columns exist.
 
-**Email Manager** (`/app/admin/email`, Modules → **Email Manager**) — automatic/conditional rules + templates filtered by module category. Modules emit triggers (`emitEmailTrigger` from `@/modules/email-manager/api.server`); Core Mailer sends. No per-module SMTP.
+**Email Manager** (`/admin/email`, Modules → **Email Manager**) — automatic/conditional rules + templates filtered by module category. Modules emit triggers (`emitEmailTrigger` from `@/modules/email-manager/api.server`); Core Mailer sends. No per-module SMTP.
 
-**Redirects** (`/app/admin/redirects`, gated by Modules → **Redirects** / `product:redirects`) stores `from` / `to` / status (301·302·307·308) in `sf_redirects`. Middleware looks up enabled rules before offline / page render. **Sitemap** (`/sitemap.xml`) lists published Payload pages (home slug `home` → `/`) and is always available — not gated by the Redirects toggle. Run `npm run db:migrate` after pull so `sf_redirects` exists.
+**Redirects** (`/admin/redirects`, gated by Modules → **Redirects** / `product:redirects`) stores `from` / `to` / status (301·302·307·308) in `sf_redirects`. Middleware looks up enabled rules before offline / page render. **Sitemap** (`/sitemap.xml`) lists published Payload pages (home slug `home` → `/`) and is always available — not gated by the Redirects toggle. Run `npm run db:migrate` after pull so `sf_redirects` exists.
 
-One Payload global (`site-settings`) holds synced site name, `primaryNavMenuId`, capability flags, and module toggles. Core admins edit Modules at **`/app/admin/settings`**. CMS editors can edit the same document under Payload **Globals → Site settings** (legacy `primaryNav` array is a fallback only).
+One Payload global (`site-settings`) holds synced site name, `primaryNavMenuId`, capability flags, and module toggles. Core admins edit Modules at **`/admin/settings`**. CMS editors can edit the same document under Payload **Globals → Site settings** (legacy `primaryNav` array is a fallback only).
 
 | Field | Default | What it does |
 | --- | --- | --- |
@@ -228,7 +228,7 @@ Required always: `platform:better-auth`, `page-content`. See `src/generated/READ
 
 ### Extension modules + Gantry-like layout manager
 
-Public chrome is driven by a **layout document**: **sections → rows → slots** (`moduleId` + **`width` as %**). Storage is **JSON** in `sf_layouts` (fallback `default-layout.json`). Admin at **`/app/admin/layouts`** is **full width** and follows Gantry Layout Manager: create section → edit section **name** / **CSS classes** → add row → **drag** particles into the row (side-by-side; editable instance **display name**) → resize by **1%** steps (**5%–95%**, pair sums to 100%; Starforge flex math — **not Bootstrap**).
+Public chrome is driven by a **layout document**: **sections → rows → slots** (`moduleId` + **`width` as %**). Storage is **JSON** in `sf_layouts` (fallback `default-layout.json`). Admin at **`/admin/layouts`** is **full width** and follows Gantry Layout Manager: create section → edit section **name** / **CSS classes** → add row → **drag** particles into the row (side-by-side; editable instance **display name**) → resize by **1%** steps (**5%–95%**, pair sums to 100%; Starforge flex math — **not Bootstrap**).
 
 | Piece | Where |
 | --- | --- |
@@ -238,8 +238,8 @@ Public chrome is driven by a **layout document**: **sections → rows → slots*
 | Example extension | `src/modules/notice-bar/` (dynamic-imported only when allowlisted) |
 | Catalog boot | `src/modules/catalog.ts` (+ generated optional loaders) |
 | Layout document | `sf_layouts` rows (id + label + v3 JSON) · fallback `default-layout.json` |
-| Outlines | `/app/admin/outlines` — create / rename / duplicate / select (opens Layout canvas) |
-| Admin UI | `/app/admin/layouts?outline=<id>` |
+| Outlines | `/admin/outlines` — create / rename / duplicate / select (opens Layout canvas) |
+| Admin UI | `/admin/layouts?outline=<id>` |
 | Public render | `PublicLayoutBody` + `SlotRenderer` (Page Settings `layoutId`) |
 
 Default seed: Header → notice-bar (12); Navigation → site-header (12); Main → page-content (12); Footer → custom note (12). Docs: `src/core/modules/README.md`.
@@ -250,7 +250,7 @@ Default seed: Header → notice-bar (12); Navigation → site-header (12); Main 
 
 ### Page Settings (document chrome)
 
-Gantry-style **Page Settings** (Core admin nav: parent **Layouts** reveals a hover submenu — **Layout** default + **Outlines** + **Page settings**; parent click → Layout canvas; route **`/app/admin/page-settings`**): site defaults + per-page overrides (picker: global / home / CMS pages). Storage: JSON in **`sf_page_chrome`** (`global` row + slug/`home` overrides). Public layout merges **page → global**, then emits head meta/icons/CSS, body attrs/hooks, Font Awesome, ordered JS, and **atoms**. Styles / Particle Defaults join the same submenu later.
+Gantry-style **Page Settings** (Core admin nav: parent **Layouts** reveals a hover submenu — **Layout** default + **Outlines** + **Page settings**; parent click → Layout canvas; route **`/admin/page-settings`**): site defaults + per-page overrides (picker: global / home / CMS pages). Storage: JSON in **`sf_page_chrome`** (`global` row + slug/`home` overrides). Public layout merges **page → global**, then emits head meta/icons/CSS, body attrs/hooks, Font Awesome, ordered JS, and **atoms**. Styles / Particle Defaults join the same submenu later.
 
 | Panel | Notes |
 | --- | --- |
@@ -265,20 +265,20 @@ Gantry-style **Page Settings** (Core admin nav: parent **Layouts** reveals a hov
 
 **First admin paths:**
 
-1. `npm run seed` creates bootstrap admin `admin@starforge.local` / `starforge-admin` (role `admin` + `cms_access`) and a Payload stub. Sign in **once** at `/login`, then open `/admin` — already authenticated.
+1. `npm run seed` creates bootstrap admin `admin@starforge.local` / `starforge-admin` (role `admin` + `cms_access`) and a Payload stub. Sign in **once** at `/login`, then open `/cms/admin` — already authenticated.
 2. Or set `STARFORGE_ADMIN_EMAILS=you@example.com` in `.env`, **restart** `npm run dev`, reload while signed in — promoted to admin + CMS access.
 
-Members visiting `/app/admin/users` are redirected home with an **Admins only** notice. Users without CMS access who open `/admin` get **No CMS access**. Disabled users cannot sign in.
+Members visiting `/admin/users` are redirected home with an **Admins only** notice. Users without CMS access who open `/cms/admin` get **No CMS access**. Disabled users cannot sign in.
 
 ### One-login CMS access
 
 | Piece | Behavior |
 | --- | --- |
 | Auth | Custom Payload strategy reads the Better Auth session cookie |
-| Flag | `sf_users.cms_access` — toggle on `/app/admin/users` (On/Off switch) |
+| Flag | `sf_users.cms_access` — toggle on `/admin/users` (On/Off switch) |
 | Enable | Sets flag + creates/links Payload stub (`coreUserId` + email) |
 | Disable | Clears flag + deletes Payload stub |
-| Unauthenticated `/admin` | Redirect → `/login?next=/admin` → return already in CMS |
+| Unauthenticated `/cms/admin` | Redirect → `/login?next=/cms/admin` → return already in CMS |
 | Members | Not provisioned unless an admin turns CMS access on |
 
 ### Seed (`npm run seed`)
@@ -295,11 +295,11 @@ Idempotent local demo data:
 
 ### Edit pages in Payload admin (Lexical + SEO)
 
-1. Sign in at **http://localhost:3000/login** as the seed admin, then open **http://localhost:3000/admin** (no second login).
+1. Sign in at **http://localhost:3000/login** as the seed admin, then open **http://localhost:3000/cms/admin** (no second login).
 2. **Media** → upload if needed (fill **Alt**).
 3. **Pages** → edit a seeded page (Lexical + SEO tab).
 4. **Publish** → open **http://localhost:3000/{slug}**. Drafts stay 404 for anonymous visitors.
-5. **Draft preview (optional):** turn on **Draft preview** at `/app/admin/settings`, leave a page as draft (or edit a published page without publishing), then open **http://localhost:3000/preview/{slug}** while signed in with CMS access. Anonymous users still only see published `/[slug]`.
+5. **Draft preview (optional):** turn on **Draft preview** at `/admin/settings`, leave a page as draft (or edit a published page without publishing), then open **http://localhost:3000/preview/{slug}** while signed in with CMS access. Anonymous users still only see published `/[slug]`.
 
 Public render: `src/app/(frontend)/(public)/[slug]/page.tsx` · `getPublishedPageBySlug` · `buildPageMetadata`.  
 Draft preview: `src/app/(frontend)/(public)/preview/[slug]/page.tsx` · `getDraftPageBySlug` · `requireDraftPreviewAccess`.
@@ -345,8 +345,8 @@ npm run dev
 ```
 
 1. Admin bar must show **Site Chrome | Site Settings | Navigation | Forms | Users | Layouts | CMS | Check site** (Forms gated by Modules → Forms).
-2. **/app/admin/site-chrome** — offline, captcha defaults, metadata, robots, rights, cookies. **/app/admin/settings** — **Primary nav assignment** + Modules (no nav item editor).
-3. **/app/admin/nav** — edit Main menu items (CMS page / URL / **module view**, CSS class, title overrides, Up/Down, Copy/Paste). Module views come from enabled Modules catalog entries that declare `navViews`.
+2. **/admin/site-chrome** — offline, captcha defaults, metadata, robots, rights, cookies. **/admin/settings** — **Primary nav assignment** + Modules (no nav item editor).
+3. **/admin/nav** — edit Main menu items (CMS page / URL / **module view**, CSS class, title overrides, Up/Down, Copy/Paste). Module views come from enabled Modules catalog entries that declare `navViews`.
 4. Modules → Primary nav on/off gates the Nav link + public header. Forms on/off gates Admin → Forms + Form particle.
 5. Public **/about** — matching nav active.
 
@@ -369,7 +369,7 @@ npm run dev
 ```
 
 1. Open **http://localhost:3000/about** (anonymous) — sample published page.
-2. Sign in → `/admin` → Pages → edit **About**, change the title, **Publish**.
+2. Sign in → `/cms/admin` → Pages → edit **About**, change the title, **Publish**.
 3. Hard-refresh **http://localhost:3000/about** — new title should show (cache tag revalidated on publish).
 4. Unpublish (save as draft) → anonymous `/about` must **404**.
 5. `/preview/about` with Draft preview on still works for CMS-access users (uncached path).
@@ -396,7 +396,7 @@ npm run dev
 
 1. Open **http://localhost:3000** (not `127.0.0.1`).
 2. Sign in at `/login` as `admin@starforge.local` / `starforge-admin`.
-3. `/app/admin/settings` → enable **Draft preview** → Save.
+3. `/admin/settings` → enable **Draft preview** → Save.
 4. `/admin` → Pages → create or edit a page, leave it as **Draft** (do not publish), note the slug.
 5. Open `http://localhost:3000/preview/{slug}` — should show the draft with a preview banner.
 6. Open `http://localhost:3000/{slug}` while signed out (or in a private window) — must **404**.
@@ -404,7 +404,7 @@ npm run dev
 
 ### Windows: one-login CMS smoke test
 
-**How it works now:** core `/login` (Better Auth) → `/admin` or `/admin/login` is blocked by `src/proxy.ts` → `/api/cms/exchange` sets a Payload `payload-token` JWT → Payload **Dashboard**. Payload’s stock email/password form is never served.
+**How it works now:** core `/login` (Better Auth) → `/cms/admin` or `/cms/admin/login` is blocked by `src/proxy.ts` → `/api/cms/exchange` sets a Payload `payload-token` JWT → Payload **Dashboard** at `/cms/admin`. Payload’s stock email/password form is never served.
 
 **Required after pull:** `npm run db:core:push` (adds `sf_users.cms_access`), then **fully stop and restart** `npm run dev` (proxy only loads on process start).
 
@@ -428,9 +428,9 @@ npm run dev
 1. Use **http://localhost:3000** only (not `127.0.0.1`).
 2. Open **http://localhost:3000/login** — sign in as `admin@starforge.local` / `starforge-admin` (**only** password prompt in the whole flow).
 3. Open **http://localhost:3000/admin** — briefly `/api/cms/exchange`, then Payload **Dashboard** (no email/password form). Edit a page under Pages.
-4. Also try **http://localhost:3000/admin/login** — must redirect away (never show Payload’s password form). Hard-refresh (Ctrl+F5) if an old login page was cached.
-5. **http://localhost:3000/app/admin/users** — seed admin **CMS access On**; demo member **Off**.
-6. Sign out → `/admin` → core `/login?next=/admin` → after login, CMS again with no second form.
+4. Also try **http://localhost:3000/cms/admin/login** — must redirect away (never show Payload’s password form). Hard-refresh (Ctrl+F5) if an old login page was cached.
+5. **http://localhost:3000/admin/users** — seed admin **CMS access On**; demo member **Off**.
+6. Sign out → `/cms/admin` → core `/login?next=/cms/admin` → after login, CMS again with no second form.
 
 Optional checks: `npm run verify:cms-sso` and `npm run verify:admin-no-login-form`.
 
@@ -537,7 +537,7 @@ npm run dev
 
 1. Open **http://localhost:3000** — notice bar in the header (Modules on from seed).
 2. Sign in as `admin@starforge.local` / `starforge-admin`.
-3. Open **http://localhost:3000/app/admin/layouts** — page is **full width**; left palette + canvas.
+3. Open **http://localhost:3000/admin/layouts** — page is **full width**; left palette + canvas.
 4. Edit a section **name** and **CSS classes** (blur to save); confirm classes appear on the public section wrapper.
 5. Create a section → **Add row** → **drag** Notice bar (or Custom) into the row; edit the particle **display name** (type id unchanged).
 6. Drag a second particle into the same row — both sit **side by side**; drag the divider (1% steps, 5%–95%, sum 100%).
@@ -566,7 +566,7 @@ npm run dev
 7. **Seed fails on demo app user** — ensure `npm run db:migrate` succeeded; pages may still have been created.
 8. **Windows** — use PowerShell or Command Prompt from the repo root; ensure Docker Desktop is **Running** before `docker compose up -d`. Copy env with `copy .env.example .env` if `cp` is unavailable. Always open the app as `http://localhost:3000` (mixing `127.0.0.1` can break sessions).
 9. **Login says invalid email/password after register** — restart `npm run dev`; register a **new** email (or use seed demo); sign in with that **email**. Last resort: volume reset + `npm run db:migrate` + `npm run seed` (Windows sequences above).
-10. **Payload `/admin` asks for a password or denies access** — confirm migrations applied `cms_access`, re-run `npm run seed`, sign in at `/login` first, then open `/admin`. Members need the Users **CMS access** switch On.
+10. **Payload `/cms/admin` asks for a password or denies access** — confirm migrations applied `cms_access`, re-run `npm run seed`, sign in at `/login` first, then open `/cms/admin`. Members need the Users **CMS access** switch On.
 11. **`Failed query` / `relation "payload.pages_rels" does not exist` (home `/` or published pages)** — SF-132 added `pages.tags`; Payload depth queries join `pages_rels`. Run `npm run db:migrate` (taxonomy + media-tags migrations). Push-era DB: volume reset, then migrate + seed.
 12. **`Failed query` / missing `tags_id` on `payload.payload_locked_documents_rels`** — Tags taxonomy requires that column for document locks. `npm run db:migrate` applies it (idempotent). If migrate previously failed mid-chain, pull latest, run `db:migrate` again, or volume-reset then migrate + seed.
 13. **`Failed query` / missing `categories_id` on `payload.payload_locked_documents_rels`** — Nested Media Categories registers the `categories` collection, so lock queries select `categories_id`. `npm run db:migrate` applies phase2 + an idempotent heal migration. Prefer migrate over `STARFORGE_PAYLOAD_PUSH=1`; if still missing after pull, volume-reset then migrate + seed (Windows sequences above).

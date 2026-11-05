@@ -140,7 +140,7 @@ export async function createMediaCategoryAction(
     parentId: parentId && parentId !== 'all' ? parentId : null,
   })
   if (result.error) return { error: result.error }
-  revalidatePath('/app/admin/media')
+  revalidatePath('/admin/media')
   return { ok: true, message: 'Folder created.' }
 }
 
@@ -155,7 +155,7 @@ export async function renameMediaCategoryAction(
   const title = String(formData.get('title') ?? '').trim()
   const result = await renameMediaCategory({ id, title })
   if (result.error) return { error: result.error }
-  revalidatePath('/app/admin/media')
+  revalidatePath('/admin/media')
   return { ok: true, message: 'Folder renamed.' }
 }
 
@@ -169,7 +169,7 @@ export async function deleteMediaCategoryAction(
   const id = String(formData.get('id') ?? '').trim()
   const result = await deleteMediaCategory({ id })
   if (result.error) return { error: result.error }
-  revalidatePath('/app/admin/media')
+  revalidatePath('/admin/media')
   return { ok: true, message: 'Folder deleted.' }
 }
 
@@ -253,7 +253,7 @@ export async function uploadMediaAction(
       overrideAccess: true,
     })
 
-    revalidatePath('/app/admin/media')
+    revalidatePath('/admin/media')
     const media = toResolvedMedia(doc as Parameters<typeof toResolvedMedia>[0], {
       size: 'thumbnail',
       preferWebp: true,
@@ -285,7 +285,7 @@ export async function deleteMediaAction(
       id,
       overrideAccess: true,
     })
-    revalidatePath('/app/admin/media')
+    revalidatePath('/admin/media')
     return { ok: true, message: 'Deleted.' }
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Delete failed.' }
@@ -316,7 +316,7 @@ export async function bulkDeleteMediaAction(
       await payload.delete({ collection: 'media', id, overrideAccess: true })
       affected += 1
     }
-    revalidatePath('/app/admin/media')
+    revalidatePath('/admin/media')
     return {
       ok: true,
       message: affected === 1 ? 'Deleted 1 item.' : `Deleted ${affected} items.`,
@@ -403,7 +403,7 @@ export async function bulkUpdateMediaAction(
       affected += 1
     }
 
-    revalidatePath('/app/admin/media')
+    revalidatePath('/admin/media')
     return {
       ok: true,
       message: affected === 1 ? 'Updated 1 item.' : `Updated ${affected} items.`,
@@ -532,7 +532,7 @@ export async function applyMediaAnalysisSuggestionsAction(
       data,
       overrideAccess: true,
     })
-    revalidatePath('/app/admin/media')
+    revalidatePath('/admin/media')
     const media = toResolvedMedia(doc as Parameters<typeof toResolvedMedia>[0], {
       size: 'thumbnail',
       preferWebp: true,
@@ -577,8 +577,8 @@ export async function saveMediaPipelineSettingsAction(
     return { error: err instanceof Error ? err.message : 'Could not save Media settings.' }
   }
 
-  revalidatePath('/app/admin/media')
-  revalidatePath('/app/admin/media/settings')
+  revalidatePath('/admin/media')
+  revalidatePath('/admin/media/settings')
   return { ok: true, message: 'Saved.' }
 }
 

@@ -1,6 +1,6 @@
 /**
  * Site Chrome offline helpers (public HTML gate).
- * `/api/*`, `/admin`, `/app/admin`, and auth recovery pages stay reachable for ops / admins.
+ * `/api/*`, Core `/admin`, Payload `/cms`, and auth recovery pages stay reachable for ops / admins.
  */
 
 export const SITE_OFFLINE_PATH = '/site-offline'
@@ -30,8 +30,8 @@ export function isOfflineAllowedPath(pathname: string): boolean {
 export function isOfflineExemptPath(pathname: string): boolean {
   if (isOfflineAllowedPath(pathname)) return true
   if (pathname.startsWith('/api/')) return true
+  if (pathname.startsWith('/cms')) return true
   if (pathname.startsWith('/admin')) return true
-  if (pathname.startsWith('/app/')) return true
   if (pathname.startsWith('/_next/')) return true
   // SEO surfaces stay reachable while the HTML site is offline.
   if (pathname === '/robots.txt') return true

@@ -45,10 +45,10 @@ async function requireNavAdmin(): Promise<NavActionState | null> {
 async function revalidateNavPaths(menuId?: string) {
   await invalidateNavMenu(menuId)
   revalidatePath('/', 'layout')
-  revalidatePath('/app/admin/nav')
-  revalidatePath('/app/admin/settings')
+  revalidatePath('/admin/nav')
+  revalidatePath('/admin/settings')
   if (menuId) {
-    revalidatePath(`/app/admin/nav/${encodeURIComponent(menuId)}`)
+    revalidatePath(`/admin/nav/${encodeURIComponent(menuId)}`)
   }
 }
 
@@ -75,7 +75,7 @@ export async function createNavMenuAction(
   await revalidateNavPaths(result.menu.id)
 
   if (openAfter) {
-    redirect(`/app/admin/nav/${encodeURIComponent(result.menu.id)}`)
+    redirect(`/admin/nav/${encodeURIComponent(result.menu.id)}`)
   }
 
   return {

@@ -13,12 +13,12 @@ export default defineStarforgeModule({
     'Modular Form engine — visual builder (JSON Schema/Zod), Form particle, typed presets (contact, survey, event-registration, voting, ticket). Captcha from Chrome; Turnstile keys from env.',
   version: '0.1.0',
   defaultEnabled: true,
-  navViews: [{ key: 'admin', label: 'Forms', href: '/app/admin/forms' }],
+  navViews: [{ key: 'admin', label: 'Forms', href: '/admin/forms' }],
   admin: {
     navGroup: {
       id: 'forms',
       label: 'Forms',
-      href: '/app/admin/forms',
+      href: '/admin/forms',
       expandable: true,
       order: 40,
     },
@@ -26,7 +26,7 @@ export default defineStarforgeModule({
       {
         group: 'forms',
         label: 'Forms',
-        href: '/app/admin/forms',
+        href: '/admin/forms',
         order: 10,
         area: 'forms',
         exact: true,
@@ -34,7 +34,7 @@ export default defineStarforgeModule({
       {
         group: 'forms',
         label: 'Settings',
-        href: '/app/admin/forms/settings',
+        href: '/admin/forms/settings',
         order: 20,
         area: 'forms',
       },

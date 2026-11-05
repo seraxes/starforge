@@ -37,12 +37,12 @@ for (const surface of ['core', 'payload'] as const) {
     console.error(`[${surface}] site-chrome must defaultOpen so Environment is visible`)
     process.exit(1)
   }
-  const chromeLeaf = siteChrome.links.find((l) => l.href === '/app/admin/site-chrome')
+  const chromeLeaf = siteChrome.links.find((l) => l.href === '/admin/site-chrome')
   if (!chromeLeaf || chromeLeaf.label !== 'Chrome') {
     console.error(`[${surface}] Chrome missing Chrome leaf`, siteChrome.links)
     process.exit(1)
   }
-  const env = siteChrome.links.find((l) => l.href === '/app/admin/site-chrome/environment')
+  const env = siteChrome.links.find((l) => l.href === '/admin/site-chrome/environment')
   if (!env || env.label !== 'Environment') {
     console.error(`[${surface}] Chrome missing Environment child`, siteChrome.links)
     process.exit(1)
@@ -63,11 +63,11 @@ for (const surface of ['core', 'payload'] as const) {
     process.exit(1)
   }
   const expectedSettings = [
-    { href: '/app/admin/settings', label: 'Modules' },
-    { href: '/app/admin/settings/admin-ux', label: 'Admin UX' },
-    { href: '/app/admin/settings/auth', label: 'Auth & registration' },
-    { href: '/app/admin/settings/security', label: 'Security' },
-    { href: '/app/admin/settings/performance', label: 'Performance' },
+    { href: '/admin/settings', label: 'Modules' },
+    { href: '/admin/settings/admin-ux', label: 'Admin UX' },
+    { href: '/admin/settings/auth', label: 'Auth & registration' },
+    { href: '/admin/settings/security', label: 'Security' },
+    { href: '/admin/settings/performance', label: 'Performance' },
   ]
   for (const want of expectedSettings) {
     const hit = siteSettings.links.find((l) => l.href === want.href && l.label === want.label)
@@ -83,9 +83,9 @@ for (const surface of ['core', 'payload'] as const) {
     console.error(`[${surface}] Email must be expandable (Rules + Templates)`, email)
     process.exit(1)
   }
-  const emailRules = email.links.find((l) => l.href === '/app/admin/email' && l.label === 'Rules')
+  const emailRules = email.links.find((l) => l.href === '/admin/email' && l.label === 'Rules')
   const emailTemplates = email.links.find(
-    (l) => l.href === '/app/admin/email/templates' && l.label === 'Templates',
+    (l) => l.href === '/admin/email/templates' && l.label === 'Templates',
   )
   if (!emailRules?.exact || !emailTemplates) {
     console.error(`[${surface}] Email missing Rules (exact) + Templates children`, email.links)
@@ -94,7 +94,7 @@ for (const surface of ['core', 'payload'] as const) {
   console.log(`[${surface}] ok — Email accordion → Rules + Templates`)
 
   const redirects = groups.find((g) => g.id === 'redirects')
-  if (!redirects?.links.some((l) => l.href === '/app/admin/redirects' && l.label === 'Redirects')) {
+  if (!redirects?.links.some((l) => l.href === '/admin/redirects' && l.label === 'Redirects')) {
     console.error(`[${surface}] missing Redirects nav leaf`, redirects?.links)
     process.exit(1)
   }
@@ -109,28 +109,28 @@ for (const surface of ['core', 'payload'] as const) {
     console.error(`[${surface}] Media must defaultOpen so Library/Settings stay visible`, media)
     process.exit(1)
   }
-  const mediaLibrary = media.links.find((l) => l.href === '/app/admin/media' && l.label === 'Library')
+  const mediaLibrary = media.links.find((l) => l.href === '/admin/media' && l.label === 'Library')
   const mediaSettings = media.links.find(
-    (l) => l.href === '/app/admin/media/settings' && l.label === 'Settings',
+    (l) => l.href === '/admin/media/settings' && l.label === 'Settings',
   )
   if (!mediaLibrary?.exact || !mediaSettings) {
     console.error(`[${surface}] Media missing Library (exact) + Settings children`, media.links)
     process.exit(1)
   }
-  if (media.links.some((l) => l.label === 'Media' && l.href === '/app/admin/media')) {
+  if (media.links.some((l) => l.label === 'Media' && l.href === '/admin/media')) {
     console.error(`[${surface}] Media must not keep a flat Media leaf label`, media.links)
     process.exit(1)
   }
   console.log(`[${surface}] ok — Media accordion → Library + Settings (defaultOpen)`)
 
   const layouts = groups.find((g) => g.id === 'layouts')
-  if (!layouts?.links.some((l) => l.href === '/app/admin/page-settings' && l.label === 'Page settings')) {
+  if (!layouts?.links.some((l) => l.href === '/admin/page-settings' && l.label === 'Page settings')) {
     console.error(`[${surface}] Layouts missing Page settings child`, layouts?.links)
     process.exit(1)
   }
   const faNav = layouts.links.find(
     (l) =>
-      l.href === '/app/admin/page-settings#font-awesome' ||
+      l.href === '/admin/page-settings#font-awesome' ||
       /^font awesome$/i.test(l.label.trim()),
   )
   if (faNav) {
@@ -160,6 +160,28 @@ for (const surface of ['core', 'payload'] as const) {
     process.exit(1)
   }
   console.log(`[${surface}] ok — Settings top-level only (not under CMS)`)
+
+  if (cms.href !== '/cms/admin') {
+    console.error(`[${surface}] CMS group href must be /cms/admin, got`, cms.href)
+    process.exit(1)
+  }
+  const cmsDash = cms.links.find((l) => l.label === 'Dashboard')
+  if (!cmsDash || cmsDash.href !== '/cms/admin' || !cmsDash.exact) {
+    console.error(`[${surface}] CMS → Dashboard must be exact /cms/admin`, cmsDash)
+    process.exit(1)
+  }
+  if (cms.links.some((l) => l.href === '/admin' || l.href.startsWith('/admin/'))) {
+    console.error(
+      `[${surface}] CMS accordion must not link into Core /admin/*`,
+      cms.links,
+    )
+    process.exit(1)
+  }
+  if (!cms.links.every((l) => l.href === '/cms/admin' || l.href.startsWith('/cms/admin/'))) {
+    console.error(`[${surface}] CMS children must stay under /cms/admin`, cms.links)
+    process.exit(1)
+  }
+  console.log(`[${surface}] ok — CMS → Dashboard /cms/admin (Payload only)`)
 }
 
 console.log('verify-admin-nav-site-chrome: pass')

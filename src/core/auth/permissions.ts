@@ -4,7 +4,7 @@ import { adminAc, defaultStatements, userAc } from 'better-auth/plugins/admin/ac
 /**
  * Starforge app roles (core `sf_users`, not Payload CMS editors).
  *
- * - `admin` — global app admin (core `/app/admin/*`). CMS `/admin` bridge is follow-up.
+ * - `admin` — global app admin (core `/admin/*`). CMS `/admin` bridge is follow-up.
  * - `member` — default product user (Better Auth defaultRole).
  */
 export const APP_ROLES = ['admin', 'member'] as const

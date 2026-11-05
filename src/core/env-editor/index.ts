@@ -3,7 +3,7 @@
  *
  * Do **not** re-export gate/store here — they use `server-only` + `next/headers`.
  * Importing this barrel from a Client Component would pull those in and break the
- * App Router segment (looks like a 404 on `/app/admin/site-chrome/environment`).
+ * App Router segment (looks like a 404 on `/admin/site-chrome/environment`).
  * Server code: `@/core/env-editor/server`. Actions: `@/core/env-editor/actions`.
  */
 

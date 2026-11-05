@@ -10,7 +10,7 @@ export default function CmsPageNotFound() {
       <h1>Page not found</h1>
       <p className="lede">
         No published CMS page matches this URL. Drafts stay private until you Publish them in{' '}
-        <Link href="/admin">/admin</Link>.
+        <Link href="/cms/admin">/cms/admin</Link>.
       </p>
       <div className="links">
         <Link className="secondary" href="/">

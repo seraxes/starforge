@@ -58,4 +58,4 @@ Override allowlist for one run: `SF_MODULES=platform:better-auth,page-content,..
 | Custom | `custom` | Built-in escape hatch |
 | Login / Welcome | `login` | Built-in |
 
-Place particles on the canvas at **`/app/admin/layouts`**. See `src/core/modules/README.md`.
+Place particles on the canvas at **`/admin/layouts`**. See `src/core/modules/README.md`.

@@ -36,8 +36,8 @@ async function requireEmailManagerAdmin(): Promise<EmailAdminActionState | null>
 }
 
 function revalidateEmailAdmin() {
-  revalidatePath('/app/admin/email')
-  revalidatePath('/app/admin/email/templates')
+  revalidatePath('/admin/email')
+  revalidatePath('/admin/email/templates')
 }
 
 function parseConditionsFromForm(formData: FormData) {

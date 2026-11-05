@@ -51,7 +51,7 @@ export async function setAppUserCmsAccessAction(
     return { error: result.error }
   }
 
-  revalidatePath('/app/admin/users')
-  revalidatePath('/app/admin/cms')
+  revalidatePath('/admin/users')
+  revalidatePath('/admin/cms')
   return { ok: true, cmsAccess: result.cmsAccess }
 }

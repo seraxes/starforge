@@ -54,9 +54,9 @@ describe('resolveEnabledAdminNavModuleIds + Email contribution', () => {
     assert.ok(ids.indexOf('email') < ids.indexOf('redirects'))
     const email = groups.find((g) => g.id === 'email')
     assert.equal(email?.label, 'Email')
-    assert.ok(email?.links.some((l) => l.href === '/app/admin/email' && l.label === 'Rules'))
+    assert.ok(email?.links.some((l) => l.href === '/admin/email' && l.label === 'Rules'))
     assert.ok(
-      email?.links.some((l) => l.href === '/app/admin/email/templates' && l.label === 'Templates'),
+      email?.links.some((l) => l.href === '/admin/email/templates' && l.label === 'Templates'),
     )
   })
 

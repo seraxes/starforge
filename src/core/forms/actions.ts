@@ -340,8 +340,8 @@ export async function submitFormAction(
     }
   }
 
-  revalidatePath('/app/admin/forms')
-  revalidatePath('/app/admin/forms/submissions')
+  revalidatePath('/admin/forms')
+  revalidatePath('/admin/forms/submissions')
   return {
     ok: true,
     message: successMessage,
@@ -374,10 +374,10 @@ export async function listFormDefinitionsForAdmin() {
 }
 
 function revalidateFormsAdmin(formId?: string) {
-  revalidatePath('/app/admin/forms')
-  revalidatePath('/app/admin/forms/submissions')
-  revalidatePath('/app/admin/forms/settings')
-  if (formId) revalidatePath(`/app/admin/forms/${formId}`)
+  revalidatePath('/admin/forms')
+  revalidatePath('/admin/forms/submissions')
+  revalidatePath('/admin/forms/settings')
+  if (formId) revalidatePath(`/admin/forms/${formId}`)
 }
 
 export async function saveFormsModuleSettingsAction(
@@ -440,7 +440,7 @@ export async function createFormDefinitionAction(
 
   revalidateFormsAdmin(createdId)
   if (openAfter) {
-    redirect(`/app/admin/forms/${createdId}`)
+    redirect(`/admin/forms/${createdId}`)
   }
   return { ok: true, message: 'Form created.', formId: createdId }
 }

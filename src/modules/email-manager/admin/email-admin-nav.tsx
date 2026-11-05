@@ -9,13 +9,13 @@ const TABS: { id: EmailAdminTab; label: string; href: string; title: string }[] 
   {
     id: 'rules',
     label: 'Rules',
-    href: '/app/admin/email',
+    href: '/admin/email',
     title: 'Automatic and conditional email rules',
   },
   {
     id: 'templates',
     label: 'Templates',
-    href: '/app/admin/email/templates',
+    href: '/admin/email/templates',
     title: 'Subject and body templates with merge fields',
   },
 ]

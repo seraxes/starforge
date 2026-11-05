@@ -9,13 +9,13 @@ const TABS: { id: MediaAdminTab; label: string; href: string; title: string }[] 
   {
     id: 'library',
     label: 'Library',
-    href: '/app/admin/media',
+    href: '/admin/media',
     title: 'Upload, filter, and manage media files',
   },
   {
     id: 'settings',
     label: 'Settings',
-    href: '/app/admin/media/settings',
+    href: '/admin/media/settings',
     title: 'Resize, WebP/JPEG quality, PNG for logos',
   },
 ]

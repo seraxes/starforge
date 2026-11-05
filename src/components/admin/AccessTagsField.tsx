@@ -36,7 +36,7 @@ export function AccessTagsField({
       <p className="settings-hint">
         Multi-select groups (plus Public / Registered). Visible if the viewer matches{' '}
         <strong>any</strong> tag. Empty = public.{' '}
-        <Link href="/app/admin/users/groups">Manage groups</Link>.
+        <Link href="/admin/users/groups">Manage groups</Link>.
       </p>
       <div className="nav-access-tag-list">
         <label className="outlines-check">

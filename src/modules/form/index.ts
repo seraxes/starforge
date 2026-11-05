@@ -19,7 +19,7 @@ export const formModule: StarforgeModule = {
   description:
     'Modular Form engine particle — pick a Form definition or paste custom JSON. Optional Settings → Security captcha (Turnstile).',
   defaultWidth: 50,
-  navViews: [{ key: 'admin', label: 'Forms', href: '/app/admin/forms' }],
+  navViews: [{ key: 'admin', label: 'Forms', href: '/admin/forms' }],
   render: async ({ slot, settings }) => {
     // Graceful no-op when Forms product module is off (palette also hides this particle).
     if (!isCatalogModuleEnabled(settings, MODULE_IDS.forms)) {

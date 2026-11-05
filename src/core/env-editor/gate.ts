@@ -93,8 +93,8 @@ export async function setEnvEditorGateCookie(
   const jar = await cookies()
   jar.set(ENV_EDITOR_GATE_COOKIE, token, {
     httpOnly: true,
-    // Broad enough for Server Actions under /app/admin; still admin-only routes.
-    path: '/app/admin',
+    // Broad enough for Server Actions under /admin; still admin-only routes.
+    path: '/admin',
     sameSite: 'lax',
     secure: shouldUseSecureCookies(),
     maxAge: ENV_EDITOR_GATE_TTL_SEC,
@@ -107,7 +107,7 @@ export async function clearEnvEditorGateCookie(): Promise<void> {
   // Must match path used in setEnvEditorGateCookie or the browser keeps the token.
   jar.set(ENV_EDITOR_GATE_COOKIE, '', {
     httpOnly: true,
-    path: '/app/admin',
+    path: '/admin',
     sameSite: 'lax',
     secure: shouldUseSecureCookies(),
     maxAge: 0,

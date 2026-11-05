@@ -63,7 +63,7 @@ export default async function HomePage({ searchParams }: Props) {
         {showAdminsOnly ? (
           <div className="notice-banner" role="status">
             <p>
-              <strong>Admins only.</strong> Starforge admin (<code>/app/admin</code>) is for role{' '}
+              <strong>Admins only.</strong> Starforge admin (<code>/admin</code>) is for role{' '}
               <code>admin</code>. Sign in as a seed admin or set <code>STARFORGE_ADMIN_EMAILS</code>.
             </p>
           </div>
@@ -73,7 +73,7 @@ export default async function HomePage({ searchParams }: Props) {
             <p>
               <strong>No CMS access.</strong> Content CMS (<code>/admin</code>) needs{' '}
               <code>cms_access</code>. Ask a Starforge admin under{' '}
-              <Link href="/app/admin/users">Users</Link>, or sign in as the seed admin.
+              <Link href="/admin/users">Users</Link>, or sign in as the seed admin.
             </p>
           </div>
         ) : null}

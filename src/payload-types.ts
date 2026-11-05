@@ -574,7 +574,7 @@ export interface SiteSetting {
    */
   primaryNavMenuId?: string | null;
   /**
-   * Core /app/admin text-field autosave delay in milliseconds (300–2000). Blur still saves immediately.
+   * Core /admin text-field autosave delay in milliseconds (300–2000). Blur still saves immediately.
    */
   adminAutosaveDebounceMs?: number | null;
   /**

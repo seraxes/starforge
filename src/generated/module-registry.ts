@@ -45,21 +45,21 @@ export const ALLOWLISTED_PRODUCT_PLATFORM_IDS: readonly string[] = ["platform:be
  */
 export const ALLOWLISTED_PRODUCT_PLATFORM_META: ModuleCatalogItem[] = [
   { id: "platform:better-auth", kind: "platform", label: "Better Auth", description: "Core app login, sessions, users, password reset, passwordless, and TOTP 2FA. Required — sole sign-in for Starforge.", required: true, defaultEnabled: true, installed: true as const, navViews: [{"key":"login","label":"Sign in","href":"/login"},{"key":"forgot-password","label":"Forgot password","href":"/forgot-password"},{"key":"forgot-username","label":"Forgot login email","href":"/forgot-username"},{"key":"account-security","label":"Account security","href":"/account/security"}] },
-  { id: "platform:payload-cms", kind: "platform", label: "Payload CMS", description: "Content CMS (/admin) for pages and media. Off hides CMS nav and blocks Payload admin entry when safe.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Content CMS","href":"/admin"}] },
-  { id: "product:layout-manager", kind: "product", label: "Layout manager / Outlines", description: "Gantry-like layout canvas and named outlines. Off hides Layout/Outlines admin and uses a minimal public shell.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"layout","label":"Layout canvas","href":"/app/admin/layouts"},{"key":"outlines","label":"Outlines","href":"/app/admin/outlines"}] },
-  { id: "product:page-settings", kind: "product", label: "Page Settings", description: "Document chrome (Head, Assets, Body, FA, Atoms) and layout assignment. Off hides Page settings admin and skips public chrome emit.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"page-settings","label":"Page settings","href":"/app/admin/page-settings"}] },
-  { id: "product:primary-nav", kind: "product", label: "Primary nav", description: "Navigation manager + public header menu. Off hides Core admin → Navigation and public header links. Settings picks which menu set is the site default.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"nav-manager","label":"Navigation manager","href":"/app/admin/nav"}] },
+  { id: "platform:payload-cms", kind: "platform", label: "Payload CMS", description: "Content CMS (/cms/admin) for pages and media. Off hides CMS nav and blocks Payload admin entry when safe.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Content CMS","href":"/cms/admin"}] },
+  { id: "product:layout-manager", kind: "product", label: "Layout manager / Outlines", description: "Gantry-like layout canvas and named outlines. Off hides Layout/Outlines admin and uses a minimal public shell.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"layout","label":"Layout canvas","href":"/admin/layouts"},{"key":"outlines","label":"Outlines","href":"/admin/outlines"}] },
+  { id: "product:page-settings", kind: "product", label: "Page Settings", description: "Document chrome (Head, Assets, Body, FA, Atoms) and layout assignment. Off hides Page settings admin and skips public chrome emit.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"page-settings","label":"Page settings","href":"/admin/page-settings"}] },
+  { id: "product:primary-nav", kind: "product", label: "Primary nav", description: "Navigation manager + public header menu. Off hides Core admin → Navigation and public header links. Settings picks which menu set is the site default.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"nav-manager","label":"Navigation manager","href":"/admin/nav"}] },
   { id: "product:font-awesome", kind: "product", label: "Font Awesome", description: "Optional Font Awesome CDN from Layouts → Page settings / Font Awesome. Off skips FA assets on the public site.", required: false, defaultEnabled: true, installed: true as const },
   { id: "product:registration", kind: "product", label: "Registration", description: "Allow /register for new app accounts. Also edited under Settings → Auth & registration.", required: false, defaultEnabled: true, installed: true as const, featureFlag: "registration", navViews: [{"key":"register","label":"Register","href":"/register"}] },
   { id: "product:rich-editor", kind: "product", label: "Rich editor", description: "Lexical rich editing flag (Pages stay Lexical for now; off reserved for a simpler mode).", required: false, defaultEnabled: true, installed: true as const, featureFlag: "richEditor" },
   { id: "product:posts", kind: "product", label: "Posts", description: "Posts collection placeholder — keep off until that slice ships.", required: false, defaultEnabled: false, installed: true as const, featureFlag: "posts" },
   { id: "product:draft-preview", kind: "product", label: "Draft preview", description: "CMS-access users can open /preview/{slug} for unpublished drafts.", required: false, defaultEnabled: false, installed: true as const, featureFlag: "draftPreview" },
-  { id: "product:forms", kind: "product", label: "Forms", description: "Modular Form engine — visual builder (JSON Schema/Zod), Form particle, typed presets (contact, survey, event-registration, voting, ticket). Captcha from Chrome; Turnstile keys from env.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Forms","href":"/app/admin/forms"}] },
-  { id: "product:email-manager", kind: "product", label: "Email Manager", description: "Automatic and conditional email rules with templates, filtered by module. Modules emit triggers; Core Mailer sends. No per-module SMTP — secrets stay in env / Chrome.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Email rules","href":"/app/admin/email"},{"key":"templates","label":"Email templates","href":"/app/admin/email/templates"}] },
-  { id: "product:redirects", kind: "product", label: "Redirects", description: "URL redirects (from → to + status) with Node proxy lookup. Sitemap of published pages stays at /sitemap.xml.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Redirects","href":"/app/admin/redirects"}] },
+  { id: "product:forms", kind: "product", label: "Forms", description: "Modular Form engine — visual builder (JSON Schema/Zod), Form particle, typed presets (contact, survey, event-registration, voting, ticket). Captcha from Chrome; Turnstile keys from env.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Forms","href":"/admin/forms"}] },
+  { id: "product:email-manager", kind: "product", label: "Email Manager", description: "Automatic and conditional email rules with templates, filtered by module. Modules emit triggers; Core Mailer sends. No per-module SMTP — secrets stay in env / Chrome.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Email rules","href":"/admin/email"},{"key":"templates","label":"Email templates","href":"/admin/email/templates"}] },
+  { id: "product:redirects", kind: "product", label: "Redirects", description: "URL redirects (from → to + status) with Node proxy lookup. Sitemap of published pages stays at /sitemap.xml.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Redirects","href":"/admin/redirects"}] },
   { id: "product:consent", kind: "product", label: "Consent", description: "Cookie consent banner + preference cookie (sf-consent). Policy copy under Chrome; gates atom:analytics until analytics is accepted.", required: false, defaultEnabled: true, installed: true as const },
   { id: "product:search", kind: "product", label: "Search", description: "Public /search over published Payload pages (title / slug / meta). Search particle for layouts. No Algolia — Payload/Postgres contains.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"search","label":"Search","href":"/search"}] },
-  { id: "product:media", kind: "product", label: "Media library", description: "Single Payload Media library with sharp WebP/PNG pipeline, Spaces/S3 storage port, tags filter, and MediaAnalysisPort hooks. Required — Logo/Styles/Forms bind by mediaId.", required: true, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Media library","href":"/app/admin/media"},{"key":"settings","label":"Media settings","href":"/app/admin/media/settings"}] }
+  { id: "product:media", kind: "product", label: "Media library", description: "Single Payload Media library with sharp WebP/PNG pipeline, Spaces/S3 storage port, tags filter, and MediaAnalysisPort hooks. Required — Logo/Styles/Forms bind by mediaId.", required: true, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Media library","href":"/admin/media"},{"key":"settings","label":"Media settings","href":"/admin/media/settings"}] }
 ]
 
 export type AllowlistedParticleMeta = {
@@ -84,14 +84,14 @@ export const ALLOWLISTED_PARTICLE_META: AllowlistedParticleMeta[] = [
   { id: "custom", name: "Custom", description: "Built-in HTML/CSS (+ JS stub); free-form escape hatch.", required: false, defaultEnabled: true, builtin: true },
   { id: "login", name: "Login / Welcome", description: "Welcome note + sign-in panel (password / magic link / email OTP / stay signed in). Signed-in: Account security 2FA. Place in Main — not branded heroes.", required: false, defaultEnabled: true, builtin: true, navViews: [{"key":"login","label":"Sign in","href":"/login"},{"key":"forgot-password","label":"Forgot password","href":"/forgot-password"},{"key":"forgot-username","label":"Forgot login email","href":"/forgot-username"},{"key":"account-security","label":"Account security","href":"/account/security"}] },
   { id: "notice-bar", name: "Notice bar", description: "Dismissible site-wide notice. Seed places it in Header at 100%.", required: false, defaultEnabled: false, builtin: false, featureFlag: "modules" },
-  { id: "form", name: "Form", description: "Modular Form engine particle — contact and other presets via Admin → Forms. Optional Settings → Security captcha (Turnstile).", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"admin","label":"Forms","href":"/app/admin/forms"}] },
+  { id: "form", name: "Form", description: "Modular Form engine particle — contact and other presets via Admin → Forms. Optional Settings → Security captcha (Turnstile).", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"admin","label":"Forms","href":"/admin/forms"}] },
   { id: "search", name: "Search", description: "Public search box → /search over published Payload pages (title / slug / meta). Needs product:search.", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"search","label":"Search","href":"/search"}] }
 ]
 
 /** @deprecated Prefer ALLOWLISTED_PARTICLE_META filtered by !builtin — kept for older callers. */
 export const ALLOWLISTED_OPTIONAL_PARTICLE_META: AllowlistedParticleMeta[] = [
   { id: "notice-bar", name: "Notice bar", description: "Dismissible site-wide notice. Seed places it in Header at 100%.", required: false, defaultEnabled: false, builtin: false, featureFlag: "modules" },
-  { id: "form", name: "Form", description: "Modular Form engine particle — contact and other presets via Admin → Forms. Optional Settings → Security captcha (Turnstile).", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"admin","label":"Forms","href":"/app/admin/forms"}] },
+  { id: "form", name: "Form", description: "Modular Form engine particle — contact and other presets via Admin → Forms. Optional Settings → Security captcha (Turnstile).", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"admin","label":"Forms","href":"/admin/forms"}] },
   { id: "search", name: "Search", description: "Public search box → /search over published Payload pages (title / slug / meta). Needs product:search.", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"search","label":"Search","href":"/search"}] }
 ]
 
@@ -153,27 +153,27 @@ export type ParticleEditorLoader = {
 export const particleEditorLoaders: ParticleEditorLoader[] = [
   {
     id: "logo",
-    load: async () => (await import("@/app/(frontend)/app/admin/layouts/typed-particle-editors")).LogoParticleEditor,
+    load: async () => (await import("@/app/(frontend)/admin/layouts/typed-particle-editors")).LogoParticleEditor,
   },
   {
     id: "menu",
-    load: async () => (await import("@/app/(frontend)/app/admin/layouts/typed-particle-editors")).MenuParticleEditor,
+    load: async () => (await import("@/app/(frontend)/admin/layouts/typed-particle-editors")).MenuParticleEditor,
   },
   {
     id: "copyright",
-    load: async () => (await import("@/app/(frontend)/app/admin/layouts/typed-particle-editors")).CopyrightParticleEditor,
+    load: async () => (await import("@/app/(frontend)/admin/layouts/typed-particle-editors")).CopyrightParticleEditor,
   },
   {
     id: "social",
-    load: async () => (await import("@/app/(frontend)/app/admin/layouts/typed-particle-editors")).SocialParticleEditor,
+    load: async () => (await import("@/app/(frontend)/admin/layouts/typed-particle-editors")).SocialParticleEditor,
   },
   {
     id: "custom",
-    load: async () => (await import("@/app/(frontend)/app/admin/layouts/custom-particle-editor")).CustomParticleEditor,
+    load: async () => (await import("@/app/(frontend)/admin/layouts/custom-particle-editor")).CustomParticleEditor,
   },
   {
     id: "form",
-    load: async () => (await import("@/app/(frontend)/app/admin/layouts/typed-particle-editors")).FormParticleEditor,
+    load: async () => (await import("@/app/(frontend)/admin/layouts/typed-particle-editors")).FormParticleEditor,
   }
 ]
 
@@ -232,15 +232,15 @@ export type AdminNavContribution = {
 
 /** Admin left-nav groups contributed by allowlisted module manifests (M2). */
 export const adminNavContributions: AdminNavContribution[] = [
-  { moduleId: "product:forms", id: "forms", label: "Forms", order: 40, href: "/app/admin/forms", expandable: true, links: [{ label: "Forms", href: "/app/admin/forms", order: 10, exact: true, area: "forms", group: "forms" }, { label: "Settings", href: "/app/admin/forms/settings", order: 20, area: "forms", group: "forms" }] },
-  { moduleId: "product:email-manager", id: "email", label: "Email", order: 45, href: "/app/admin/email", expandable: true, links: [{ label: "Rules", href: "/app/admin/email", order: 10, exact: true, area: "email-manager", group: "email" }, { label: "Templates", href: "/app/admin/email/templates", order: 20, area: "email-manager", group: "email" }] },
-  { moduleId: "product:redirects", id: "redirects", label: "Redirects", order: 50, links: [{ label: "Redirects", href: "/app/admin/redirects", order: 10, area: "redirects", group: "redirects" }] },
-  { moduleId: "product:media", id: "media", label: "Media", order: 60, href: "/app/admin/media", expandable: true, defaultOpen: true, links: [{ label: "Library", href: "/app/admin/media", order: 10, exact: true, area: "media", group: "media" }, { label: "Settings", href: "/app/admin/media/settings", order: 20, area: "media", group: "media" }] }
+  { moduleId: "product:forms", id: "forms", label: "Forms", order: 40, href: "/admin/forms", expandable: true, links: [{ label: "Forms", href: "/admin/forms", order: 10, exact: true, area: "forms", group: "forms" }, { label: "Settings", href: "/admin/forms/settings", order: 20, area: "forms", group: "forms" }] },
+  { moduleId: "product:email-manager", id: "email", label: "Email", order: 45, href: "/admin/email", expandable: true, links: [{ label: "Rules", href: "/admin/email", order: 10, exact: true, area: "email-manager", group: "email" }, { label: "Templates", href: "/admin/email/templates", order: 20, area: "email-manager", group: "email" }] },
+  { moduleId: "product:redirects", id: "redirects", label: "Redirects", order: 50, links: [{ label: "Redirects", href: "/admin/redirects", order: 10, area: "redirects", group: "redirects" }] },
+  { moduleId: "product:media", id: "media", label: "Media", order: 60, href: "/admin/media", expandable: true, defaultOpen: true, links: [{ label: "Library", href: "/admin/media", order: 10, exact: true, area: "media", group: "media" }, { label: "Settings", href: "/admin/media/settings", order: 20, area: "media", group: "media" }] }
 ]
 
 export type AdminRouteLoader = {
   moduleId: string
-  /** Path under /app/admin/ (no leading slash), e.g. media/settings. */
+  /** Path under /admin/ (no leading slash), e.g. media/settings. */
   path: string
   /** Module page import path — loaded by generated App Router shims, not here. */
   pageImportPath: string

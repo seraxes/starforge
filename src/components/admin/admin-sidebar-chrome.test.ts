@@ -5,6 +5,7 @@ import {
   ADMIN_ACCOUNT_HREF,
   ADMIN_DASHBOARD_HREF,
   ADMIN_SHELL_LOGO_TOOLTIP,
+  PAYLOAD_DASHBOARD_HREF,
   adminUserInitials,
 } from './admin-sidebar-chrome'
 
@@ -38,7 +39,11 @@ describe('admin sidebar chrome constants', () => {
     assert.equal(ADMIN_ACCOUNT_HREF, '/account/security')
   })
 
-  it('points STARFORGE logo at Core Dashboard /app/admin', () => {
-    assert.equal(ADMIN_DASHBOARD_HREF, '/app/admin')
+  it('points STARFORGE logo at Core Dashboard /admin', () => {
+    assert.equal(ADMIN_DASHBOARD_HREF, '/admin')
+  })
+
+  it('points Payload logo at /cms/admin', () => {
+    assert.equal(PAYLOAD_DASHBOARD_HREF, '/cms/admin')
   })
 })

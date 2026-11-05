@@ -25,7 +25,7 @@ export default async function EmailTemplatesPage({
 }) {
   const settings = await getSiteSettings()
   if (!isCatalogModuleEnabled(settings, MODULE_IDS.emailManager)) {
-    redirect('/app/admin/settings')
+    redirect('/admin/settings')
   }
 
   const params = await searchParams
@@ -49,7 +49,7 @@ export default async function EmailTemplatesPage({
       <p className="lede admin-lede">
         Subject and body with <code>{'{{merge.fields}}'}</code>. Rules pick a template; Mailer
         sends ({transportLabel}). Rules list:{' '}
-        <Link href="/app/admin/email">Email → Rules</Link>.
+        <Link href="/admin/email">Email → Rules</Link>.
       </p>
 
       <EmailTemplatesManager

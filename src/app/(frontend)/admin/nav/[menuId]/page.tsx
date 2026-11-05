@@ -1,0 +1,87 @@
+import React from 'react'
+import Link from 'next/link'
+import { notFound, redirect } from 'next/navigation'
+
+import { ensureDefaultUserGroupsSeeded, listUserGroupOptions } from '@/core/acl'
+import {
+  flattenNavItemsInOrder,
+  listEnabledModuleNavOptions,
+  listNavPageOptions,
+  loadNavMenu,
+} from '@/core/nav'
+import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
+import { ensureModulesRegistered } from '@/core/modules/boot'
+
+import { NavItemsEditor } from './nav-items-editor'
+
+export const dynamic = 'force-dynamic'
+
+type Args = {
+  params: Promise<{ menuId: string }>
+}
+
+export async function generateMetadata({ params }: Args) {
+  const { menuId } = await params
+  const loaded = await loadNavMenu(decodeURIComponent(menuId))
+  return {
+    title: `${loaded.label} — Navigation — Starforge`,
+    description: `Edit items for navigation set ${loaded.id}.`,
+  }
+}
+
+export default async function AdminNavMenuItemsPage({ params }: Args) {
+  const settings = await getSiteSettings()
+  if (!isCatalogModuleEnabled(settings, MODULE_IDS.primaryNav)) {
+    redirect('/admin/settings')
+  }
+
+  await ensureModulesRegistered()
+
+  const { menuId: rawId } = await params
+  const menuId = decodeURIComponent(rawId)
+  const loaded = await loadNavMenu(menuId)
+
+  if (loaded.isFallback && loaded.source === 'empty') {
+    notFound()
+  }
+
+  await ensureDefaultUserGroupsSeeded()
+  const [pages, modules, groups] = await Promise.all([
+    listNavPageOptions(),
+    Promise.resolve(listEnabledModuleNavOptions(settings)),
+    listUserGroupOptions(),
+  ])
+  const items = flattenNavItemsInOrder(loaded.document.items)
+
+  return (
+    <section className="admin-section admin-layouts-full">
+      <h2>Navigation items — {loaded.label}</h2>
+      <p className="lede admin-lede">
+        Bind each item to a CMS page, URL, or an <strong>enabled module view</strong> (Modules
+        catalog / registry <code>navViews</code>). Drag bars to reorder; cog opens item settings;
+        Copy/Paste to duplicate. <strong>Who can see</strong> — multi-select tags (Public,
+        Registered, or <Link href="/admin/users/groups">groups</Link>). Visible if the viewer
+        matches any tag. Admin rights live under{' '}
+        <Link href="/admin/users/acl">Users → ACL</Link>.{' '}
+        <Link href="/admin/nav">Back to menus</Link>
+        {settings.primaryNavMenuId === loaded.id ? (
+          <>
+            {' '}
+            · This set is the site primary (
+            <Link href="/admin/settings">Settings</Link>).
+          </>
+        ) : null}
+      </p>
+      <NavItemsEditor
+        key={loaded.id}
+        menuId={loaded.id}
+        menuLabel={loaded.label}
+        items={items}
+        pages={pages}
+        modules={modules}
+        groups={groups}
+        isSitePrimary={settings.primaryNavMenuId === loaded.id}
+      />
+    </section>
+  )
+}

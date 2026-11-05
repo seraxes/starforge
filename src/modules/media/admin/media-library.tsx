@@ -4,7 +4,7 @@ import React, { useActionState, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-import { useAdminToast } from '@/app/(frontend)/app/admin/admin-toast'
+import { useAdminToast } from '@/app/(frontend)/admin/admin-toast'
 import {
   analyzeMediaAction,
   applyMediaAnalysisSuggestionsAction,
@@ -80,7 +80,7 @@ function libraryHref(next: {
   if (query.trim()) params.set('q', query.trim())
   if (view && view !== 'mosaic') params.set('view', view)
   const qs = params.toString()
-  return qs ? `/app/admin/media?${qs}` : '/app/admin/media'
+  return qs ? `/admin/media?${qs}` : '/admin/media'
 }
 
 export function MediaLibraryClient({
@@ -409,7 +409,7 @@ export function MediaLibraryClient({
         {!storage.ready ? (
           <p className="layout-muted" role="status">
             Configure <code>STARFORGE_MEDIA_STORAGE</code> / <code>S3_*</code> in{' '}
-            <Link href="/app/admin/site-chrome/environment">Chrome → Environment</Link> (or{' '}
+            <Link href="/admin/site-chrome/environment">Chrome → Environment</Link> (or{' '}
             <code>.env</code>). Incomplete <code>s3</code> never falls back to local disk.
           </p>
         ) : null}
@@ -417,8 +417,8 @@ export function MediaLibraryClient({
           Analysis port: {analysisAdapters.length ? analysisAdapters.join(', ') : 'none'} (Analyze
           in lightbox runs adapters explicitly — never auto). {totalDocs} item
           {totalDocs === 1 ? '' : 's'} in <strong>{activeFolderLabel}</strong>. Pipeline rules:{' '}
-          <Link href="/app/admin/media/settings">Media → Settings</Link>. Payload CMS Media remains
-          the store — <Link href="/admin/collections/media">open in CMS</Link>.
+          <Link href="/admin/media/settings">Media → Settings</Link>. Payload CMS Media remains
+          the store — <Link href="/cms/admin/collections/media">open in CMS</Link>.
         </p>
       </div>
 
@@ -626,7 +626,7 @@ export function MediaLibraryClient({
               {tagOptions.length === 0 ? (
                 <p className="layout-muted">
                   No shared tags yet — create some in{' '}
-                  <Link href="/admin/collections/tags">CMS → Tags</Link> to filter and tag uploads.
+                  <Link href="/cms/admin/collections/tags">CMS → Tags</Link> to filter and tag uploads.
                 </p>
               ) : null}
             </form>

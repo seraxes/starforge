@@ -22,7 +22,7 @@ type Search = Promise<{ category?: string }>
 export default async function EmailRulesPage({ searchParams }: { searchParams: Search }) {
   const settings = await getSiteSettings()
   if (!isCatalogModuleEnabled(settings, MODULE_IDS.emailManager)) {
-    redirect('/app/admin/settings')
+    redirect('/admin/settings')
   }
 
   const params = await searchParams
@@ -49,9 +49,9 @@ export default async function EmailRulesPage({ searchParams }: { searchParams: S
         Bind automatic or conditional sends to module triggers. Transport is the platform{' '}
         <strong>Mailer</strong> ({transportLabel}
         {mailer.detail ? ` — ${mailer.detail}` : ''}). Configure enable / provider / From under{' '}
-        <Link href="/app/admin/site-chrome">Chrome</Link>; secrets stay in env. Module on/off:{' '}
-        <Link href="/app/admin/settings">Settings → Modules</Link>. Templates:{' '}
-        <Link href="/app/admin/email/templates">Email → Templates</Link>.
+        <Link href="/admin/site-chrome">Chrome</Link>; secrets stay in env. Module on/off:{' '}
+        <Link href="/admin/settings">Settings → Modules</Link>. Templates:{' '}
+        <Link href="/admin/email/templates">Email → Templates</Link>.
       </p>
 
       <EmailRulesManager

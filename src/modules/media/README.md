@@ -4,7 +4,7 @@ Required Media library pack (design-module-boundary **M5**).
 
 | Layer | Home |
 | --- | --- |
-| Library + Settings admin UI | `admin/` (App Router shims under `/app/admin/media`) |
+| Library + Settings admin UI | `admin/` (App Router shims under `/admin/media`) |
 | Shared bind contract | `api.ts` (picker + pure helpers) · `api.server.ts` (`resolveMediaById`) |
 | Ports (storage, pipeline, analysis, actions) | `src/core/media` — Core hosts |
 

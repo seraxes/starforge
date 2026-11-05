@@ -23,7 +23,7 @@ function mustNotInclude(haystack: string, label: string, needle: string) {
 }
 
 const layout = readFileSync(
-  join(root, 'src/app/(frontend)/app/admin/layout.tsx'),
+  join(root, 'src/app/(frontend)/admin/layout.tsx'),
   'utf8',
 )
 const payloadNav = readFileSync(
@@ -69,14 +69,18 @@ mustInclude(brand, 'Admin kicker label', 'Admin')
 mustInclude(brand, 'logo tooltip const', 'ADMIN_SHELL_LOGO_TOOLTIP')
 mustInclude(brand, 'logo title attr', 'title={ADMIN_SHELL_LOGO_TOOLTIP}')
 mustInclude(brand, 'logo dashboard href const', 'ADMIN_DASHBOARD_HREF')
-mustInclude(brand, 'logo href attr', 'href={ADMIN_DASHBOARD_HREF}')
+mustInclude(brand, 'payload dashboard href const', 'PAYLOAD_DASHBOARD_HREF')
+mustInclude(brand, 'logo href attr', 'href={href}')
+mustInclude(brand, 'surface prop', 'surface?:')
 mustNotInclude(brand, 'logo public-site href', 'href="/"')
 
 mustInclude(account, 'account settings href', 'ADMIN_ACCOUNT_HREF')
 mustInclude(account, 'avatar class', 'admin-sidebar-avatar')
-mustInclude(chrome, 'dashboard route', "ADMIN_DASHBOARD_HREF = '/app/admin'")
+mustInclude(chrome, 'dashboard route', "ADMIN_DASHBOARD_HREF = '/admin'")
+mustInclude(chrome, 'payload dashboard route', "PAYLOAD_DASHBOARD_HREF = '/cms/admin'")
 mustInclude(chrome, 'account route', "/account/security")
 mustInclude(chrome, 'tooltip starts with Starforge admin', "'Starforge admin —")
+mustInclude(payloadNav, 'Payload brand surface', 'surface="payload"')
 
 mustInclude(styles, 'kicker style', '.admin-sidebar-kicker')
 mustInclude(styles, 'account style', '.admin-sidebar-account')
@@ -87,5 +91,5 @@ mustInclude(payloadChrome, 'payload kicker', '.nav .admin-sidebar-kicker')
 mustInclude(payloadChrome, 'payload avatar', '.nav .admin-sidebar-avatar')
 
 console.log(
-  'ok — admin sidebar compact STARFORGE → /app/admin + Admin + avatar → /account/security',
+  'ok — admin sidebar compact STARFORGE → /admin (Core) / /cms/admin (Payload) + avatar → /account/security',
 )

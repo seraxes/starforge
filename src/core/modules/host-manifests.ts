@@ -27,10 +27,10 @@ export const hostModuleManifests: StarforgeModuleManifest[] = [
     kind: 'platform',
     label: 'Payload CMS',
     description:
-      'Content CMS (/admin) for pages and media. Off hides CMS nav and blocks Payload admin entry when safe.',
+      'Content CMS (/cms/admin) for pages and media. Off hides CMS nav and blocks Payload admin entry when safe.',
     version: '0.1.0',
     defaultEnabled: true,
-    navViews: [{ key: 'admin', label: 'Content CMS', href: '/admin' }],
+    navViews: [{ key: 'admin', label: 'Content CMS', href: '/cms/admin' }],
   }),
   defineStarforgeModule({
     id: 'product:layout-manager',
@@ -41,8 +41,8 @@ export const hostModuleManifests: StarforgeModuleManifest[] = [
     version: '0.1.0',
     defaultEnabled: true,
     navViews: [
-      { key: 'layout', label: 'Layout canvas', href: '/app/admin/layouts' },
-      { key: 'outlines', label: 'Outlines', href: '/app/admin/outlines' },
+      { key: 'layout', label: 'Layout canvas', href: '/admin/layouts' },
+      { key: 'outlines', label: 'Outlines', href: '/admin/outlines' },
     ],
   }),
   defineStarforgeModule({
@@ -53,7 +53,7 @@ export const hostModuleManifests: StarforgeModuleManifest[] = [
       'Document chrome (Head, Assets, Body, FA, Atoms) and layout assignment. Off hides Page settings admin and skips public chrome emit.',
     version: '0.1.0',
     defaultEnabled: true,
-    navViews: [{ key: 'page-settings', label: 'Page settings', href: '/app/admin/page-settings' }],
+    navViews: [{ key: 'page-settings', label: 'Page settings', href: '/admin/page-settings' }],
   }),
   defineStarforgeModule({
     id: 'product:primary-nav',
@@ -63,7 +63,7 @@ export const hostModuleManifests: StarforgeModuleManifest[] = [
       'Navigation manager + public header menu. Off hides Core admin → Navigation and public header links. Settings picks which menu set is the site default.',
     version: '0.1.0',
     defaultEnabled: true,
-    navViews: [{ key: 'nav-manager', label: 'Navigation manager', href: '/app/admin/nav' }],
+    navViews: [{ key: 'nav-manager', label: 'Navigation manager', href: '/admin/nav' }],
   }),
   defineStarforgeModule({
     id: 'product:font-awesome',
@@ -144,7 +144,7 @@ export const hostModuleManifests: StarforgeModuleManifest[] = [
     configSchemaExportName: 'logoParticleConfigSchema',
     defaultsImportPath: '@/core/modules/particles/schemas/logo',
     defaultsExportName: 'logoParticleDefaults',
-    editorImportPath: '@/app/(frontend)/app/admin/layouts/typed-particle-editors',
+    editorImportPath: '@/app/(frontend)/admin/layouts/typed-particle-editors',
     editorExportName: 'LogoParticleEditor',
   }),
   defineStarforgeModule({
@@ -159,7 +159,7 @@ export const hostModuleManifests: StarforgeModuleManifest[] = [
     configSchemaExportName: 'menuParticleConfigSchema',
     defaultsImportPath: '@/core/modules/particles/schemas/menu',
     defaultsExportName: 'menuParticleDefaults',
-    editorImportPath: '@/app/(frontend)/app/admin/layouts/typed-particle-editors',
+    editorImportPath: '@/app/(frontend)/admin/layouts/typed-particle-editors',
     editorExportName: 'MenuParticleEditor',
   }),
   defineStarforgeModule({
@@ -174,7 +174,7 @@ export const hostModuleManifests: StarforgeModuleManifest[] = [
     configSchemaExportName: 'copyrightParticleConfigSchema',
     defaultsImportPath: '@/core/modules/particles/schemas/copyright',
     defaultsExportName: 'copyrightParticleDefaults',
-    editorImportPath: '@/app/(frontend)/app/admin/layouts/typed-particle-editors',
+    editorImportPath: '@/app/(frontend)/admin/layouts/typed-particle-editors',
     editorExportName: 'CopyrightParticleEditor',
   }),
   defineStarforgeModule({
@@ -189,7 +189,7 @@ export const hostModuleManifests: StarforgeModuleManifest[] = [
     configSchemaExportName: 'socialParticleConfigSchema',
     defaultsImportPath: '@/core/modules/particles/schemas/social',
     defaultsExportName: 'socialParticleDefaults',
-    editorImportPath: '@/app/(frontend)/app/admin/layouts/typed-particle-editors',
+    editorImportPath: '@/app/(frontend)/admin/layouts/typed-particle-editors',
     editorExportName: 'SocialParticleEditor',
   }),
   defineStarforgeModule({
@@ -204,7 +204,7 @@ export const hostModuleManifests: StarforgeModuleManifest[] = [
     configSchemaExportName: 'customParticleConfigSchema',
     defaultsImportPath: '@/core/modules/particles/schemas/custom',
     defaultsExportName: 'customParticleDefaults',
-    editorImportPath: '@/app/(frontend)/app/admin/layouts/custom-particle-editor',
+    editorImportPath: '@/app/(frontend)/admin/layouts/custom-particle-editor',
     editorExportName: 'CustomParticleEditor',
   }),
   defineStarforgeModule({

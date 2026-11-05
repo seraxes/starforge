@@ -22,7 +22,7 @@ export default defineStarforgeModule({
     navGroup: {
       id: 'media',
       label: 'Media',
-      href: '/app/admin/media',
+      href: '/admin/media',
       expandable: true,
       defaultOpen: true,
       order: 60,
@@ -31,7 +31,7 @@ export default defineStarforgeModule({
       {
         group: 'media',
         label: 'Library',
-        href: '/app/admin/media',
+        href: '/admin/media',
         order: 10,
         area: 'media',
         exact: true,
@@ -39,7 +39,7 @@ export default defineStarforgeModule({
       {
         group: 'media',
         label: 'Settings',
-        href: '/app/admin/media/settings',
+        href: '/admin/media/settings',
         order: 20,
         area: 'media',
       },
@@ -60,7 +60,7 @@ export default defineStarforgeModule({
     ],
   },
   navViews: [
-    { key: 'admin', label: 'Media library', href: '/app/admin/media' },
-    { key: 'settings', label: 'Media settings', href: '/app/admin/media/settings' },
+    { key: 'admin', label: 'Media library', href: '/admin/media' },
+    { key: 'settings', label: 'Media settings', href: '/admin/media/settings' },
   ],
 })

@@ -26,13 +26,13 @@ export type AclActionState = {
 }
 
 function revalidateUsersPaths(groupId?: string) {
-  revalidatePath('/app/admin/users')
-  revalidatePath('/app/admin/users/groups')
+  revalidatePath('/admin/users')
+  revalidatePath('/admin/users/groups')
   if (groupId) {
-    revalidatePath(`/app/admin/users/groups/${encodeURIComponent(groupId)}`)
+    revalidatePath(`/admin/users/groups/${encodeURIComponent(groupId)}`)
   }
   // Nav editor group picker + public header may change after membership edits.
-  revalidatePath('/app/admin/nav')
+  revalidatePath('/admin/nav')
   revalidatePath('/')
 }
 
@@ -207,6 +207,6 @@ export async function saveAllGroupsAclMatrixAction(
   }
 
   revalidateUsersPaths()
-  revalidatePath('/app/admin/users/acl')
+  revalidatePath('/admin/users/acl')
   return { ok: true, message: 'ACL matrix saved.' }
 }

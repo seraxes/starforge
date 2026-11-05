@@ -78,8 +78,8 @@ export async function setAppUserRoleAction(
     await setUserRole(userId, role)
   }
 
-  revalidatePath('/app/admin/users')
-  revalidatePath('/app/admin/cms')
+  revalidatePath('/admin/users')
+  revalidatePath('/admin/cms')
   return { ok: true, role }
 }
 
@@ -146,6 +146,6 @@ export async function setAppUserDisabledAction(
     }
   }
 
-  revalidatePath('/app/admin/users')
+  revalidatePath('/admin/users')
   return { ok: true }
 }

@@ -38,11 +38,11 @@ assert.match(allowlist, /product:email-manager/)
 const registry = read('src/generated/module-registry.ts')
 assert.match(registry, /product:email-manager/)
 
-const rulesShim = read('src/app/(frontend)/app/admin/(modules)/email/page.tsx')
+const rulesShim = read('src/app/(frontend)/admin/(modules)/email/page.tsx')
 assert.match(rulesShim, /@\/modules\/email-manager\/admin\/EmailRulesPage/)
 
 const templatesShim = read(
-  'src/app/(frontend)/app/admin/(modules)/email/templates/page.tsx',
+  'src/app/(frontend)/admin/(modules)/email/templates/page.tsx',
 )
 assert.match(templatesShim, /@\/modules\/email-manager\/admin\/EmailTemplatesPage/)
 
@@ -75,10 +75,10 @@ const acl = read('src/core/acl/types.ts')
 assert.match(acl, /admin\.email-manager/)
 
 const decide = read('src/core/acl/decide.ts')
-assert.match(decide, /\/app\/admin\/email/)
+assert.match(decide, /\/admin\/email/)
 
 // Runtime shells must derive contrib module ids (incl. Email) — not a hand list.
-const coreAdminLayout = read('src/app/(frontend)/app/admin/layout.tsx')
+const coreAdminLayout = read('src/app/(frontend)/admin/layout.tsx')
 assert.match(coreAdminLayout, /resolveEnabledAdminNavModuleIds/)
 assert.match(coreAdminLayout, /ensureSiteSettingsDefaults/)
 

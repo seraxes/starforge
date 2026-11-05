@@ -49,54 +49,54 @@ function normalizeAdminPath(pathname: string): string {
 export function adminAreaGateForPath(pathname: string): AdminAreaGate {
   const path = normalizeAdminPath(pathname)
 
-  if (path === '/app/admin') return { type: 'shell' }
+  if (path === '/admin') return { type: 'shell' }
 
-  if (path === '/app/admin/site-chrome/environment') {
+  if (path === '/admin/site-chrome/environment') {
     return { type: 'resource', key: 'admin.environment' }
   }
-  if (path === '/app/admin/site-chrome' || path.startsWith('/app/admin/site-chrome/')) {
+  if (path === '/admin/site-chrome' || path.startsWith('/admin/site-chrome/')) {
     return { type: 'resource', key: 'admin.site-chrome' }
   }
-  if (path === '/app/admin/settings' || path.startsWith('/app/admin/settings/')) {
+  if (path === '/admin/settings' || path.startsWith('/admin/settings/')) {
     return { type: 'resource', key: 'admin.settings' }
   }
-  if (path === '/app/admin/nav' || path.startsWith('/app/admin/nav/')) {
+  if (path === '/admin/nav' || path.startsWith('/admin/nav/')) {
     return { type: 'resource', key: 'admin.nav' }
   }
-  if (path === '/app/admin/forms' || path.startsWith('/app/admin/forms/')) {
+  if (path === '/admin/forms' || path.startsWith('/admin/forms/')) {
     return { type: 'resource', key: 'admin.forms' }
   }
-  if (path === '/app/admin/email' || path.startsWith('/app/admin/email/')) {
+  if (path === '/admin/email' || path.startsWith('/admin/email/')) {
     return { type: 'resource', key: 'admin.email-manager' }
   }
-  if (path === '/app/admin/redirects' || path.startsWith('/app/admin/redirects/')) {
+  if (path === '/admin/redirects' || path.startsWith('/admin/redirects/')) {
     return { type: 'resource', key: 'admin.redirects' }
   }
-  if (path === '/app/admin/users/groups' || path.startsWith('/app/admin/users/groups/')) {
+  if (path === '/admin/users/groups' || path.startsWith('/admin/users/groups/')) {
     return { type: 'resource', key: 'admin.groups' }
   }
-  if (path === '/app/admin/users' || path.startsWith('/app/admin/users/')) {
+  if (path === '/admin/users' || path.startsWith('/admin/users/')) {
     return { type: 'resource', key: 'admin.users' }
   }
-  if (path === '/app/admin/page-settings' || path.startsWith('/app/admin/page-settings/')) {
+  if (path === '/admin/page-settings' || path.startsWith('/admin/page-settings/')) {
     return { type: 'resource', key: 'admin.page-settings' }
   }
   if (
-    path === '/app/admin/layouts' ||
-    path.startsWith('/app/admin/layouts/') ||
-    path === '/app/admin/breakpoints' ||
-    path.startsWith('/app/admin/breakpoints/') ||
-    path === '/app/admin/outlines' ||
-    path.startsWith('/app/admin/outlines/') ||
-    path === '/app/admin/particle-defaults' ||
-    path.startsWith('/app/admin/particle-defaults/')
+    path === '/admin/layouts' ||
+    path.startsWith('/admin/layouts/') ||
+    path === '/admin/breakpoints' ||
+    path.startsWith('/admin/breakpoints/') ||
+    path === '/admin/outlines' ||
+    path.startsWith('/admin/outlines/') ||
+    path === '/admin/particle-defaults' ||
+    path.startsWith('/admin/particle-defaults/')
   ) {
     return { type: 'resource', key: 'admin.layouts' }
   }
-  if (path === '/app/admin/cms' || path.startsWith('/app/admin/cms/')) {
+  if (path === '/admin/cms' || path.startsWith('/admin/cms/')) {
     return { type: 'resource', key: 'admin.cms' }
   }
-  if (path === '/app/admin/media' || path.startsWith('/app/admin/media/')) {
+  if (path === '/admin/media' || path.startsWith('/admin/media/')) {
     return { type: 'app-admin' }
   }
 
@@ -123,18 +123,18 @@ export function adminHrefAllowed(
 }
 
 const LANDING_ORDER: { key: AclAdminResourceKey; href: string }[] = [
-  { key: 'admin.users', href: '/app/admin/users' },
-  { key: 'admin.nav', href: '/app/admin/nav' },
-  { key: 'admin.layouts', href: '/app/admin/layouts' },
-  { key: 'admin.forms', href: '/app/admin/forms' },
-  { key: 'admin.email-manager', href: '/app/admin/email' },
-  { key: 'admin.page-settings', href: '/app/admin/page-settings' },
-  { key: 'admin.settings', href: '/app/admin/settings' },
-  { key: 'admin.site-chrome', href: '/app/admin/site-chrome' },
-  { key: 'admin.redirects', href: '/app/admin/redirects' },
-  { key: 'admin.groups', href: '/app/admin/users/groups' },
-  { key: 'admin.cms', href: '/app/admin/cms' },
-  { key: 'admin.environment', href: '/app/admin/site-chrome/environment' },
+  { key: 'admin.users', href: '/admin/users' },
+  { key: 'admin.nav', href: '/admin/nav' },
+  { key: 'admin.layouts', href: '/admin/layouts' },
+  { key: 'admin.forms', href: '/admin/forms' },
+  { key: 'admin.email-manager', href: '/admin/email' },
+  { key: 'admin.page-settings', href: '/admin/page-settings' },
+  { key: 'admin.settings', href: '/admin/settings' },
+  { key: 'admin.site-chrome', href: '/admin/site-chrome' },
+  { key: 'admin.redirects', href: '/admin/redirects' },
+  { key: 'admin.groups', href: '/admin/users/groups' },
+  { key: 'admin.cms', href: '/admin/cms' },
+  { key: 'admin.environment', href: '/admin/site-chrome/environment' },
 ]
 
 /** First Core admin landing path for this viewer (app admins → Users). */
@@ -142,11 +142,11 @@ export function firstAdminLandingPath(input: {
   isAppAdmin: boolean
   allowed: ReadonlySet<AclAdminResourceKey>
 }): string {
-  if (input.isAppAdmin) return '/app/admin/users'
+  if (input.isAppAdmin) return '/admin/users'
   for (const entry of LANDING_ORDER) {
     if (input.allowed.has(entry.key)) return entry.href
   }
-  return '/app/admin/nav'
+  return '/admin/nav'
 }
 
 export function viewerAllowsGate(

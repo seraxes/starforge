@@ -1,3 +1,4 @@
+import { CORE_ADMIN_BASE, PAYLOAD_ADMIN_BASE } from '@/core/admin-paths'
 import { adminNavContributions } from '@/generated/module-registry'
 
 import { CMS_NAV_LINKS, filterCmsNavLinks, type CmsVisibility } from './cms'
@@ -7,6 +8,9 @@ import type {
   AdminNavGroup,
   AdminNavSurface,
 } from './types'
+
+const CORE = CORE_ADMIN_BASE
+const CMS = PAYLOAD_ADMIN_BASE
 
 export type BuildAdminNavOptions = {
   flags: AdminNavFeatureFlags
@@ -77,28 +81,28 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
     {
       id: 'site-chrome',
       label: 'Chrome',
-      href: '/app/admin/site-chrome',
+      href: `${CORE}/site-chrome`,
       // Always accordion — Environment must stay a visible child (Core + Payload).
       expandable: true,
       // Keep Environment visible without hunting the caret on other admin pages.
       defaultOpen: true,
       links: [
-        { href: '/app/admin/site-chrome', label: 'Chrome', exact: true },
+        { href: `${CORE}/site-chrome`, label: 'Chrome', exact: true },
         // #55 gated Environment editor (must stay in shared nav — Core + Payload)
-        { href: '/app/admin/site-chrome/environment', label: 'Environment' },
+        { href: `${CORE}/site-chrome/environment`, label: 'Environment' },
       ],
     },
     {
       id: 'site-settings',
       label: 'Settings',
-      href: '/app/admin/settings',
+      href: `${CORE}/settings`,
       expandable: true,
       links: [
-        { href: '/app/admin/settings', label: 'Modules', exact: true },
-        { href: '/app/admin/settings/admin-ux', label: 'Admin UX' },
-        { href: '/app/admin/settings/auth', label: 'Auth & registration' },
-        { href: '/app/admin/settings/security', label: 'Security' },
-        { href: '/app/admin/settings/performance', label: 'Performance' },
+        { href: `${CORE}/settings`, label: 'Modules', exact: true },
+        { href: `${CORE}/settings/admin-ux`, label: 'Admin UX' },
+        { href: `${CORE}/settings/auth`, label: 'Auth & registration' },
+        { href: `${CORE}/settings/security`, label: 'Security' },
+        { href: `${CORE}/settings/performance`, label: 'Performance' },
       ],
     },
   ]
@@ -107,7 +111,7 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
     groups.push({
       id: 'navigation',
       label: 'Navigation',
-      links: [{ href: '/app/admin/nav', label: 'Navigation' }],
+      links: [{ href: `${CORE}/nav`, label: 'Navigation' }],
     })
   }
 
@@ -125,12 +129,12 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
   groups.push({
     id: 'users',
     label: 'Users',
-    href: '/app/admin/users',
+    href: `${CORE}/users`,
     expandable: true,
     links: [
-      { href: '/app/admin/users', label: 'Accounts', exact: true },
-      { href: '/app/admin/users/groups', label: 'Groups' },
-      { href: '/app/admin/users/acl', label: 'ACL' },
+      { href: `${CORE}/users`, label: 'Accounts', exact: true },
+      { href: `${CORE}/users/groups`, label: 'Groups' },
+      { href: `${CORE}/users/acl`, label: 'ACL' },
     ],
   })
 
@@ -141,20 +145,20 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
     const layoutLinks: AdminNavGroup['links'] = []
     if (flags.layout) {
       layoutLinks.push(
-        { href: '/app/admin/layouts', label: 'Layout' },
-        { href: '/app/admin/breakpoints', label: 'Styles' },
-        { href: '/app/admin/particle-defaults', label: 'Particle Defaults' },
-        { href: '/app/admin/outlines', label: 'Outlines' },
+        { href: `${CORE}/layouts`, label: 'Layout' },
+        { href: `${CORE}/breakpoints`, label: 'Styles' },
+        { href: `${CORE}/particle-defaults`, label: 'Particle Defaults' },
+        { href: `${CORE}/outlines`, label: 'Outlines' },
       )
     }
     if (flags.pageSettings) {
       // FA config is a Page settings panel (id=font-awesome), not its own left-nav leaf.
-      layoutLinks.push({ href: '/app/admin/page-settings', label: 'Page settings' })
+      layoutLinks.push({ href: `${CORE}/page-settings`, label: 'Page settings' })
     }
     groups.push({
       id: 'layouts',
       label: 'Layouts',
-      href: flags.layout ? '/app/admin/layouts' : '/app/admin/page-settings',
+      href: flags.layout ? `${CORE}/layouts` : `${CORE}/page-settings`,
       expandable: true,
       links: layoutLinks,
     })
@@ -164,14 +168,15 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
     groups.push({
       id: 'cms',
       label: 'CMS',
-      href: '/admin',
+      href: CMS,
       expandable: true,
       links: cmsLinks.map((link) => ({
         href: link.href,
         label: link.label,
         exact: link.exact,
         // From Core, CMS destinations leave the Core shell; from Payload they are local.
-        external: surface === 'core' ? true : link.external && !link.href.startsWith('/admin'),
+        external:
+          surface === 'core' ? true : link.external && !link.href.startsWith(CMS),
       })),
     })
   }
