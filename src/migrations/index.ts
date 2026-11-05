@@ -3,6 +3,7 @@ import * as migration_20261103_181356_pages_tags_taxonomy from './20261103_18135
 import * as migration_20261103_media_tags_sf148 from './20261103_media_tags_sf148';
 import * as migration_20261103_media_categories_phase2 from './20261103_media_categories_phase2';
 import * as migration_20261103_locked_docs_categories_heal from './20261103_locked_docs_categories_heal';
+import * as migration_20261105_site_settings_performance_heal from './20261105_site_settings_performance_heal';
 
 export const migrations = [
   {
@@ -29,5 +30,10 @@ export const migrations = [
     up: migration_20261103_locked_docs_categories_heal.up,
     down: migration_20261103_locked_docs_categories_heal.down,
     name: '20261103_locked_docs_categories_heal',
+  },
+  {
+    up: migration_20261105_site_settings_performance_heal.up,
+    down: migration_20261105_site_settings_performance_heal.down,
+    name: '20261105_site_settings_performance_heal',
   },
 ];
