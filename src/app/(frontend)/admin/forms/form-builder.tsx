@@ -902,12 +902,101 @@ type FieldBarProps = FieldSettingsProps & {
   setNodeRef?: (node: HTMLElement | null) => void
   style?: React.CSSProperties
   isDragging?: boolean
-  /** Drag handle props from useDraggable; omitted until client DnD mounts. */
-  dragHandleProps?: React.HTMLAttributes<HTMLButtonElement>
+  /**
+   * Whole-bar drag props from useDraggable (listeners + a11y attributes).
+   * Omitted until client DnD mounts to avoid hydration aria-describedby drift.
+   */
+  dragActivatorProps?: React.HTMLAttributes<HTMLElement>
+}
+
+/** Non-interactive mid-blue field chrome for DragOverlay (portaled outside .admin-shell). */
+function FieldDragPreview({
+  field,
+  widthPercent,
+  width,
+  height,
+}: {
+  field: FormFieldDef
+  widthPercent: number
+  width: number
+  height: number
+}) {
+  const displayName = field.label || field.name
+  return (
+    <div
+      className="sf-form-drag-overlay"
+      style={{
+        width,
+        minWidth: width,
+        maxWidth: width,
+        height,
+        boxSizing: 'border-box',
+        opacity: 0.5,
+        pointerEvents: 'none',
+        cursor: 'grabbing',
+        zIndex: 10000,
+      }}
+    >
+      <article
+        className="gantry-slot sf-form-slot sf-form-drag-preview-slot"
+        data-sf-width={widthPercent}
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          width: '100%',
+          height: '100%',
+          boxSizing: 'border-box',
+          margin: 0,
+          padding: '0.32rem 0.45rem',
+          background: '#3498db',
+          border: '4px solid #0f3d63',
+          borderRadius: 3,
+          color: '#fff',
+          minHeight: '3.25rem',
+          boxShadow: '0 10px 28px rgba(11, 28, 44, 0.45)',
+        }}
+      >
+        <header
+          className="gantry-slot-head"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '0.4rem',
+            margin: 0,
+          }}
+        >
+          <div
+            className="gantry-slot-title"
+            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', minWidth: 0, flex: '1 1 auto' }}
+          >
+            <span className="gantry-slot-handle" aria-hidden="true" style={{ color: '#fff' }}>
+              ▣
+            </span>
+            <span className="gantry-slot-pct" style={{ color: '#fff', fontWeight: 700, fontSize: '0.78rem' }}>
+              {widthToPercentLabel(widthPercent)}
+            </span>
+            <div className="gantry-slot-labels" style={{ minWidth: 0 }}>
+              <strong className="sf-form-slot-name" style={{ color: '#fff' }}>
+                {displayName}
+              </strong>
+              <span className="gantry-slot-sub" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                {field.type}
+                {field.required ? ' · required' : ''}
+                {' · '}
+                <code style={{ color: '#fff' }}>{field.name}</code>
+              </span>
+            </div>
+          </div>
+        </header>
+      </article>
+    </div>
+  )
 }
 
 /**
- * Presentational field bar. Drag handle props are optional so SSR / pre-hydration
+ * Presentational field bar. Drag activator props are optional so SSR / pre-hydration
  * can render the same markup without dnd-kit's generated aria-describedby ids
  * (DndDescribedBy-N), which drift vs the client counter and cause hydration mismatches.
  */
@@ -928,7 +1017,7 @@ function FieldBar({
   setNodeRef,
   style,
   isDragging = false,
-  dragHandleProps,
+  dragActivatorProps,
 }: FieldBarProps) {
   const displayName = field.label || field.name
   const captchaWarn = field.type === 'captcha' ? captchaSiteStatusMessage(siteCaptcha) : null
@@ -936,6 +1025,7 @@ function FieldBar({
   const classNames = [
     'gantry-slot',
     'sf-form-slot',
+    dragActivatorProps ? 'is-slot-grab' : '',
     isDragging ? 'is-slot-dragging' : '',
     captchaWarn ? 'sf-form-slot-captcha-warn' : '',
     dropEdge === 'before' ? 'is-slot-drop-before' : '',
@@ -945,17 +1035,19 @@ function FieldBar({
     .join(' ')
 
   return (
-    <article ref={setNodeRef} style={style} className={classNames} data-sf-width={pct}>
+    <article
+      ref={setNodeRef}
+      style={style}
+      className={classNames}
+      data-sf-width={pct}
+      data-sf-field-id={fieldKey(field)}
+      {...(dragActivatorProps ?? {})}
+    >
       <header className="gantry-slot-head">
         <div className="gantry-slot-title">
-          <button
-            type="button"
-            className="gantry-slot-handle"
-            aria-label="Drag to reorder"
-            {...(dragHandleProps ?? {})}
-          >
+          <span className="gantry-slot-handle" aria-hidden="true" title="Drag field">
             ▣
-          </button>
+          </span>
           <span className="gantry-slot-pct" title="Column width">
             {widthToPercentLabel(pct)}
           </span>
@@ -977,7 +1069,12 @@ function FieldBar({
             ) : null}
           </div>
         </div>
-        <div className="gantry-slot-end">
+        {/* Stop DnD activation so cog / remove still click. */}
+        <div
+          className="gantry-slot-end"
+          onPointerDown={(event) => event.stopPropagation()}
+          onKeyDown={(event) => event.stopPropagation()}
+        >
           <div className="gantry-slot-actions">
             <ParticleSettingsPopover
               title={`${displayName} settings`}
@@ -1101,8 +1198,8 @@ function parseRowDroppableId(id: string | number): string | null {
 }
 
 /**
- * Draggable field — stays in its row during drag (opacity only).
- * Avoids useSortable live-reorder, which emptied / hid the drop-target row.
+ * Draggable field — grab anywhere on the bar (actions excluded via stopPropagation).
+ * Stays in its row during drag (opacity only). Avoids useSortable live-reorder.
  * While dragging, lock to the measured pixel width so the slot does not shrink.
  */
 function DraggableFieldBar(
@@ -1127,6 +1224,7 @@ function DraggableFieldBar(
         maxWidth: lock.width,
         height: lock.height,
         boxSizing: 'border-box',
+        cursor: 'grabbing',
       }
     : {
         opacity: 1,
@@ -1134,6 +1232,7 @@ function DraggableFieldBar(
         minWidth: 0,
         maxWidth: '100%',
         boxSizing: 'border-box',
+        cursor: 'grab',
       }
 
   return (
@@ -1143,7 +1242,7 @@ function DraggableFieldBar(
       style={style}
       isDragging={isDragging}
       dropEdge={edge}
-      dragHandleProps={{ ...attributes, ...listeners }}
+      dragActivatorProps={{ ...attributes, ...listeners }}
     />
   )
 }
@@ -1469,20 +1568,32 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
     const id = String(event.active.id)
     setDraggingFieldId(id)
     setDropHint(null)
-    const rect = event.active.rect.current.initial
     const section = sections.find((s) => s.id === sectionId)
     const placement = section ? findFieldPlacement(section, id) : null
     const widthPercent =
       placement?.row.columns[placement.colIndex]?.width ?? LAYOUT_WIDTH_FULL
-    if (rect && rect.width > 0) {
-      setDragLockSize({
-        width: Math.round(rect.width),
-        height: Math.round(rect.height),
-        widthPercent,
-      })
-    } else {
-      setDragLockSize(null)
+    // Prefer measured node rect; fall back to DOM query / defaults so overlay always paints.
+    const initial = event.active.rect.current.initial
+    let width = initial && initial.width > 0 ? Math.round(initial.width) : 0
+    let height = initial && initial.height > 0 ? Math.round(initial.height) : 0
+    if (width < 8 || height < 8) {
+      const node =
+        typeof document !== 'undefined'
+          ? (document.querySelector(
+              `[data-sf-field-id="${CSS.escape(id)}"]`,
+            ) as HTMLElement | null)
+          : null
+      const dom = node?.getBoundingClientRect()
+      if (dom && dom.width > 0) {
+        width = Math.round(dom.width)
+        height = Math.round(dom.height)
+      }
     }
+    setDragLockSize({
+      width: Math.max(width, 160),
+      height: Math.max(height, 48),
+      widthPercent,
+    })
   }
 
   function onFieldDragOver(event: DragOverEvent, sectionId: string) {
@@ -1956,42 +2067,17 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                               </React.Fragment>
                             )
                           })}
-                          <DragOverlay dropAnimation={null} style={{ cursor: 'grabbing' }}>
-                            {overlayField && dragLockSize ? (
-                              /* Portaled outside .admin-shell — styles.css paints the mid-blue bar. */
-                              <div
-                                className="sf-form-drag-overlay"
-                                style={{
-                                  width: dragLockSize.width,
-                                  minWidth: dragLockSize.width,
-                                  maxWidth: dragLockSize.width,
-                                  height: dragLockSize.height,
-                                  boxSizing: 'border-box',
-                                }}
-                              >
-                                <FieldBar
-                                  field={overlayField}
-                                  fields={fields}
-                                  widthPercent={dragLockSize.widthPercent}
-                                  onPatch={() => {}}
-                                  onRename={() => {}}
-                                  onPatchConstraints={() => {}}
-                                  onUpdateOptions={() => {}}
-                                  onPatchLogic={() => {}}
-                                  onRemove={() => {}}
-                                  saveNow={() => {}}
-                                  flushOnBlur={() => {}}
-                                  siteCaptcha={siteCaptcha}
-                                  style={{
-                                    width: '100%',
-                                    minWidth: '100%',
-                                    maxWidth: '100%',
-                                    height: '100%',
-                                    boxSizing: 'border-box',
-                                    margin: 0,
-                                  }}
-                                />
-                              </div>
+                          <DragOverlay
+                            dropAnimation={null}
+                            style={{ cursor: 'grabbing', zIndex: 10000 }}
+                          >
+                            {overlayField ? (
+                              <FieldDragPreview
+                                field={overlayField}
+                                widthPercent={dragLockSize?.widthPercent ?? LAYOUT_WIDTH_FULL}
+                                width={dragLockSize?.width ?? 240}
+                                height={dragLockSize?.height ?? 52}
+                              />
                             ) : null}
                           </DragOverlay>
                         </DndContext>

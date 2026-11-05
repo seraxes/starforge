@@ -2510,11 +2510,18 @@ button:disabled {
   min-height: 3.5rem;
 }
 
-/* Grabbed field preview — DragOverlay portals outside .admin-shell, so
-   re-apply the mid-blue particle bar chrome the in-canvas field uses. */
+/* Whole field/particle bar is the grab target (actions exclude themselves). */
+.gantry-slot.is-slot-grab {
+  cursor: grab;
+}
+
+.gantry-slot.is-slot-grab.is-slot-dragging {
+  cursor: grabbing;
+}
+
+/* Portaled Form DragOverlay preview — inline styles also set chrome; this is backup. */
 .sf-form-drag-overlay {
   pointer-events: none;
-  opacity: 0.5;
   cursor: grabbing;
   display: block;
   margin: 0;
@@ -2522,13 +2529,12 @@ button:disabled {
   background: transparent;
 }
 
+.sf-form-drag-overlay .sf-form-drag-preview-slot,
 .sf-form-drag-overlay .gantry-slot.sf-form-slot {
   display: flex;
   flex-direction: column;
   justify-content: center;
   width: 100%;
-  max-width: 100%;
-  min-width: 100%;
   height: 100%;
   box-sizing: border-box;
   background: #3498db;
@@ -2537,54 +2543,12 @@ button:disabled {
   color: #fff;
   padding: 0.32rem 0.45rem;
   min-height: 3.25rem;
-  box-shadow: 0 10px 28px rgba(11, 28, 44, 0.4);
+  box-shadow: 0 10px 28px rgba(11, 28, 44, 0.45);
 }
 
-.sf-form-drag-overlay .gantry-slot.sf-form-slot,
+.sf-form-drag-overlay .sf-form-drag-preview-slot *,
 .sf-form-drag-overlay .gantry-slot.sf-form-slot * {
-  color: #fff;
-}
-
-.sf-form-drag-overlay .gantry-slot.sf-form-slot code,
-.sf-form-drag-overlay .gantry-slot.sf-form-slot span,
-.sf-form-drag-overlay .gantry-slot.sf-form-slot strong,
-.sf-form-drag-overlay .gantry-slot.sf-form-slot .gantry-slot-sub {
   color: #fff !important;
-}
-
-.sf-form-drag-overlay .gantry-slot-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.4rem;
-  margin: 0;
-}
-
-.sf-form-drag-overlay .gantry-slot-title {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  min-width: 0;
-  flex: 1 1 auto;
-}
-
-.sf-form-drag-overlay .gantry-slot-handle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.75rem;
-  min-height: 1.75rem;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: #fff;
-  cursor: grabbing;
-}
-
-.sf-form-drag-overlay .gantry-slot-pct {
-  color: #fff;
-  font-weight: 700;
-  font-size: 0.78rem;
 }
 
 .sf-form-row-meta {

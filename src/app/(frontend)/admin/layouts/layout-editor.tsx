@@ -87,6 +87,46 @@ function encodeSlotDragPayload(payload: SlotDragPayload): string {
   return JSON.stringify(payload)
 }
 
+/** Interactive chrome that must not start a particle-bar drag. */
+function isLayoutSlotDragIgnoredTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return false
+  return Boolean(
+    target.closest(
+      'input, textarea, select, a, label, .gantry-slot-actions, .gantry-settings-trigger, .gantry-bar-remove, .gantry-settings-layer',
+    ),
+  )
+}
+
+/**
+ * HTML5 drag image: clone of the real mid-blue particle bar at ~50% opacity.
+ * Removed after the browser snapshots it.
+ */
+function setHalfOpacityDragImage(event: React.DragEvent<HTMLElement>) {
+  const src = event.currentTarget
+  const rect = src.getBoundingClientRect()
+  const ghost = src.cloneNode(true) as HTMLElement
+  ghost.setAttribute('aria-hidden', 'true')
+  ghost.style.position = 'fixed'
+  ghost.style.top = '-10000px'
+  ghost.style.left = '-10000px'
+  ghost.style.width = `${Math.max(rect.width, 1)}px`
+  ghost.style.height = `${Math.max(rect.height, 1)}px`
+  ghost.style.opacity = '0.5'
+  ghost.style.pointerEvents = 'none'
+  ghost.style.margin = '0'
+  ghost.style.zIndex = '10000'
+  ghost.removeAttribute('draggable')
+  document.body.appendChild(ghost)
+  event.dataTransfer.setDragImage(
+    ghost,
+    Math.max(0, event.clientX - rect.left),
+    Math.max(0, event.clientY - rect.top),
+  )
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => ghost.remove())
+  })
+}
+
 function parseSlotDragPayload(raw: string): SlotDragPayload | null {
   const trimmed = raw.trim()
   if (!trimmed) return null
@@ -426,6 +466,7 @@ function ParticleBlock({
 
   const classNames = [
     'gantry-slot',
+    'is-slot-grab',
     isDragging ? 'is-slot-dragging' : '',
     dropEdge === 'before' ? 'is-slot-drop-before' : '',
     dropEdge === 'after' ? 'is-slot-drop-after' : '',
@@ -439,12 +480,40 @@ function ParticleBlock({
       data-enabled={enabled ? 'true' : 'false'}
       data-sf-width={slot.width}
       data-sf-slot={slot.id}
+      draggable
+      title={`Drag ${displayName} to reorder or move to another row`}
       style={{
         /* Grow by % share so resize handles don't force wrap/overflow. */
         flex: `${percent} 1 0`,
         minWidth: 0,
         maxWidth: '100%',
         boxSizing: 'border-box',
+        cursor: isDragging ? 'grabbing' : 'grab',
+      }}
+      onMouseDown={(event) => {
+        // Name field / cog / remove must not start an HTML5 drag.
+        ;(event.currentTarget as HTMLElement).draggable = !isLayoutSlotDragIgnoredTarget(
+          event.target,
+        )
+      }}
+      onDragStart={(event) => {
+        if (isLayoutSlotDragIgnoredTarget(event.target)) {
+          event.preventDefault()
+          return
+        }
+        const payload: SlotDragPayload = {
+          sectionId,
+          rowId,
+          slotId: slot.id,
+        }
+        event.dataTransfer.setData(DND_SLOT, encodeSlotDragPayload(payload))
+        event.dataTransfer.setData('text/plain', slot.id)
+        event.dataTransfer.effectAllowed = 'move'
+        setHalfOpacityDragImage(event)
+        onSlotDragStart(payload)
+      }}
+      onDragEnd={() => {
+        onSlotDragEnd()
       }}
       onDragOver={(event) => {
         if (!dataTransferHasType(event.dataTransfer, DND_SLOT)) return
@@ -468,31 +537,13 @@ function ParticleBlock({
     >
       <header className="gantry-slot-head">
         <div className="gantry-slot-title">
-          <button
-            type="button"
+          <span
             className="gantry-slot-handle"
-            draggable
-            title="Drag to reorder in this row or move to another section"
-            aria-label={`Drag to move ${displayName}`}
-            onDragStart={(event) => {
-              event.stopPropagation()
-              const payload: SlotDragPayload = {
-                sectionId,
-                rowId,
-                slotId: slot.id,
-              }
-              event.dataTransfer.setData(DND_SLOT, encodeSlotDragPayload(payload))
-              event.dataTransfer.setData('text/plain', slot.id)
-              event.dataTransfer.effectAllowed = 'move'
-              onSlotDragStart(payload)
-            }}
-            onDragEnd={(event) => {
-              event.stopPropagation()
-              onSlotDragEnd()
-            }}
+            aria-hidden="true"
+            title="Drag particle"
           >
             ▣
-          </button>
+          </span>
           <div className="gantry-slot-labels">
             <label className="gantry-inline-label gantry-slot-name-label">
               <span className="sr-only">Particle display name</span>
@@ -503,6 +554,7 @@ function ParticleBlock({
                 defaultValue={slot.name ?? ''}
                 placeholder={catalogName}
                 disabled={pending}
+                draggable={false}
                 title="Instance display name (does not change particle type)"
                 aria-label={`Display name for ${catalogName}`}
                 onBlur={(event) => persistName(event.target.value)}
@@ -521,7 +573,11 @@ function ParticleBlock({
             </span>
           </div>
         </div>
-        <div className="gantry-slot-end">
+        <div
+          className="gantry-slot-end"
+          onMouseDown={(event) => event.stopPropagation()}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
           <span className="gantry-slot-pct" title={`Width ${pctLabel} (min ${LAYOUT_WIDTH_MIN}%)`}>
             {pctLabel}
           </span>
