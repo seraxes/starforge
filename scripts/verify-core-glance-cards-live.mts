@@ -1,6 +1,6 @@
 /**
- * Smoke: wire real data for Forms / Security / Performance Dashboard cards.
- * Events + Marketplace stay soft stubs. Soft-fail OK.
+ * Smoke: wire real data for Forms / Security / Performance / Events Dashboard cards.
+ * Marketplace stays a soft stub. Soft-fail OK.
  * Run: npm run verify:core-glance-cards-live
  */
 import assert from 'node:assert/strict'
@@ -64,11 +64,21 @@ const performanceWidget = read('src/core/dashboard/widgets/PerformanceGlanceWidg
 assert.doesNotMatch(performanceWidget, /Coming soon|coming-soon/)
 assert.match(performanceWidget, /soft-fail|unavailable/)
 
-// Events + Marketplace remain soft stubs (no schema yet)
+// Events — real sf_events upcoming aggregates (PR1)
+mustExist('src/modules/events/dashboard/events-stats.ts')
+mustExist('src/modules/events/dashboard/EventsUpcomingWidget.tsx')
 const eventsStats = read('src/modules/events/dashboard/events-stats.ts')
-assert.match(eventsStats, /ok:\s*false/)
-assert.match(eventsStats, /unavailable|not shipped/i)
+assert.match(eventsStats, /countUpcomingEvents/)
+assert.match(eventsStats, /status:\s*'error'/)
+assert.doesNotMatch(eventsStats, /Events module is not shipped yet/)
+assert.doesNotMatch(eventsStats, /unavailable|not shipped/i)
 
+const eventsWidget = read('src/modules/events/dashboard/EventsUpcomingWidget.tsx')
+assert.match(eventsWidget, /loadEventsUpcomingStats/)
+assert.doesNotMatch(eventsWidget, /Coming soon|coming-soon/)
+assert.match(eventsWidget, /soft-fail|unavailable/)
+
+// Marketplace remains a soft stub (no schema yet)
 const marketplaceStats = read('src/modules/marketplace/dashboard/marketplace-stats.ts')
 assert.match(marketplaceStats, /ok:\s*false/)
 assert.match(marketplaceStats, /unavailable|not shipped/i)
