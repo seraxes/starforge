@@ -376,7 +376,7 @@ body:has(.admin-shell) > main {
 
 .admin-shell .brand,
 .admin-shell .brand a {
-  color: var(--sf-primary-strong);
+  color: #fff;
 }
 
 /* Joomla-style left sidebar — a few shades darker than content canvas */
@@ -387,8 +387,29 @@ body:has(.admin-shell) > main {
   box-shadow: none;
 }
 
+.admin-shell .admin-sidebar-kicker {
+  color: #9eb1c7;
+}
+
 .admin-shell .admin-sidebar-title {
   color: #fff;
+}
+
+.admin-shell .admin-sidebar-avatar {
+  border-color: #314257;
+  background: #1a2433;
+  color: #e8eef8;
+}
+
+.admin-shell .admin-sidebar-account:hover .admin-sidebar-avatar,
+.admin-shell .admin-sidebar-account:focus-visible .admin-sidebar-avatar {
+  border-color: var(--sf-admin-blue-border, #4aa3df);
+  background: var(--sf-admin-nav-active, #3498db);
+  color: #fff;
+}
+
+.admin-shell .admin-sidebar-account-name {
+  color: #9eb1c7;
 }
 
 .admin-shell .admin-sidebar-menu-toggle {

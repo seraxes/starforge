@@ -1,7 +1,8 @@
 import React from 'react'
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
+import { AdminSidebarAccount } from '@/components/admin/AdminSidebarAccount'
+import { AdminSidebarBrand } from '@/components/admin/AdminSidebarBrand'
 import { AdminSidebarNav } from '@/components/admin/AdminSidebarNav'
 import {
   buildAdminNavGroups,
@@ -116,42 +117,21 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
         >
           <AdminSidebarNav
             groups={groups}
-            brand={
-              <>
-                <p className="brand">
-                  <Link href="/">Starforge</Link>
-                </p>
-                <p className="admin-sidebar-title">Starforge admin</p>
-              </>
-            }
+            brand={<AdminSidebarBrand />}
             who={
-              <p className="admin-who">
-                Signed in as <strong>{session.user.email}</strong> ({role})
-              </p>
+              <AdminSidebarAccount
+                email={session.user.email}
+                name={session.user.name}
+                image={
+                  'image' in session.user && typeof session.user.image === 'string'
+                    ? session.user.image
+                    : null
+                }
+                role={role}
+              />
             }
           />
           <div className="admin-body">
-            <header className="admin-header">
-              <div>
-                <h1>Starforge admin</h1>
-                <p className="lede admin-lede">
-                  Top-level areas: Chrome, Settings (Modules · Admin UX · Auth ·
-                  Security · Performance), Navigation, Forms, Email, Redirects, Users (Accounts ·
-                  Groups · ACL), Media (Library · Settings), Layouts, CMS (Payload). Pages live
-                  under CMS → Pages
-                  {showPayloadCms ? (
-                    <>
-                      {' '}
-                      (<Link href="/admin/collections/pages">open</Link>)
-                    </>
-                  ) : null}
-                  ; media library is under <Link href="/app/admin/media">Media → Library</Link>{' '}
-                  (same Payload store); pipeline rules under{' '}
-                  <Link href="/app/admin/media/settings">Media → Settings</Link> — same login when
-                  CMS access is on.
-                </p>
-              </div>
-            </header>
             <div className="admin-main">{props.children}</div>
           </div>
         </div>

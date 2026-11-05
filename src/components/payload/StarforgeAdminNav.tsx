@@ -1,9 +1,10 @@
 import React from 'react'
-import Link from 'next/link'
 import { Logout } from '@payloadcms/ui'
 import { NavHamburger, NavWrapper } from '@payloadcms/next/client'
 import type { ServerProps } from 'payload'
 
+import { AdminSidebarAccount } from '@/components/admin/AdminSidebarAccount'
+import { AdminSidebarBrand } from '@/components/admin/AdminSidebarBrand'
 import { AdminSidebarNav } from '@/components/admin/AdminSidebarNav'
 import {
   buildAdminNavGroups,
@@ -51,6 +52,14 @@ export default async function StarforgeAdminNav(props: ServerProps) {
     user && typeof user === 'object' && 'email' in user && typeof user.email === 'string'
       ? user.email
       : null
+  const name =
+    user && typeof user === 'object' && 'name' in user && typeof user.name === 'string'
+      ? user.name
+      : null
+  const image =
+    user && typeof user === 'object' && 'image' in user && typeof user.image === 'string'
+      ? user.image
+      : null
 
   return (
     <NavWrapper baseClass={baseClass}>
@@ -61,19 +70,10 @@ export default async function StarforgeAdminNav(props: ServerProps) {
         <AdminSidebarNav
           variant="embedded"
           groups={groups}
-          brand={
-            <>
-              <p className="brand">
-                <Link href="/">Starforge</Link>
-              </p>
-              <p className="admin-sidebar-title">Starforge admin</p>
-            </>
-          }
+          brand={<AdminSidebarBrand />}
           who={
             email ? (
-              <p className="admin-who">
-                Signed in as <strong>{email}</strong>
-              </p>
+              <AdminSidebarAccount email={email} name={name} image={image} />
             ) : null
           }
         />

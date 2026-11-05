@@ -823,8 +823,26 @@ button:disabled {
 .admin-sidebar-brand .brand {
   margin: 0;
   font-size: 0.92rem;
+  letter-spacing: 0.12em;
+  font-weight: 800;
 }
 
+.admin-sidebar-brand .brand a.admin-sidebar-logo {
+  color: inherit;
+  text-decoration: none;
+}
+
+.admin-sidebar-kicker {
+  margin: 0.15rem 0 0;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  color: var(--sf-muted);
+}
+
+/* Legacy title class — compact brand uses `.admin-sidebar-kicker` instead. */
 .admin-sidebar-title {
   margin: 0.2rem 0 0;
   font-family: var(--font-display);
@@ -856,6 +874,65 @@ button:disabled {
   margin: 0;
   font-size: 0.8rem;
   line-height: 1.35;
+}
+
+.admin-sidebar-account {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  max-width: 100%;
+  text-decoration: none;
+  color: inherit;
+}
+
+.admin-sidebar-account:hover .admin-sidebar-account-name,
+.admin-sidebar-account:focus-visible .admin-sidebar-account-name {
+  color: #fff;
+}
+
+.admin-sidebar-avatar {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--sf-secondary) 45%, var(--sf-line));
+  background: color-mix(in srgb, var(--sf-secondary) 18%, transparent);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.admin-sidebar-avatar-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.admin-sidebar-avatar-initials {
+  display: block;
+}
+
+.admin-sidebar-account-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.admin-sidebar-account-name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1.25;
+  color: var(--sf-muted);
 }
 
 .admin-sidebar-nav {
