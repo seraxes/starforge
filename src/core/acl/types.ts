@@ -17,6 +17,7 @@ export const ACL_ADMIN_RESOURCES = [
   { key: 'admin.nav', label: 'Navigation manager' },
   { key: 'admin.forms', label: 'Forms' },
   { key: 'admin.email-manager', label: 'Email Manager' },
+  { key: 'admin.events', label: 'Events' },
   { key: 'admin.redirects', label: 'Redirects' },
   { key: 'admin.layouts', label: 'Layouts' },
   { key: 'admin.page-settings', label: 'Page settings' },

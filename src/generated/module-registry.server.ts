@@ -255,6 +255,19 @@ export const moduleMessageLoaders: ModuleMessageLoader[] = [
     },
   },
   {
+    moduleId: "product:events",
+    namespaces: ["product:events"] as const,
+    load: async (locale: string): Promise<Record<string, unknown>> => {
+      switch (locale) {
+      case "hu":
+        return (await import("@/modules/events/messages/hu.json")).default
+      case 'en':
+      default:
+        return (await import("@/modules/events/messages/en.json")).default
+      }
+    },
+  },
+  {
     moduleId: "product:forms",
     namespaces: ["product:forms"] as const,
     load: async (locale: string): Promise<Record<string, unknown>> => {

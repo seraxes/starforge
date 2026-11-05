@@ -80,6 +80,9 @@ export function adminAreaGateForPath(pathname: string): AdminAreaGate {
   if (path === `${CORE_ADMIN_BASE}/email` || path.startsWith(`${CORE_ADMIN_BASE}/email/`)) {
     return { type: 'resource', key: 'admin.email-manager' }
   }
+  if (path === `${CORE_ADMIN_BASE}/events` || path.startsWith(`${CORE_ADMIN_BASE}/events/`)) {
+    return { type: 'resource', key: 'admin.events' }
+  }
   if (path === `${CORE_ADMIN_BASE}/redirects` || path.startsWith(`${CORE_ADMIN_BASE}/redirects/`)) {
     return { type: 'resource', key: 'admin.redirects' }
   }
@@ -146,6 +149,7 @@ const LANDING_ORDER: { key: AclAdminResourceKey; href: string }[] = [
   { key: 'admin.layouts', href: `${CORE_ADMIN_BASE}/layouts` },
   { key: 'admin.forms', href: `${CORE_ADMIN_BASE}/forms` },
   { key: 'admin.email-manager', href: `${CORE_ADMIN_BASE}/email` },
+  { key: 'admin.events', href: `${CORE_ADMIN_BASE}/events` },
   { key: 'admin.page-settings', href: `${CORE_ADMIN_BASE}/page-settings` },
   { key: 'admin.settings', href: `${CORE_ADMIN_BASE}/settings` },
   { key: 'admin.site-chrome', href: `${CORE_ADMIN_BASE}/site-chrome` },

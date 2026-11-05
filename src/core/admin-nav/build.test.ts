@@ -42,6 +42,7 @@ describe('resolveEnabledAdminNavModuleIds + Email contribution', () => {
     assert.ok(enabled.has(MODULE_IDS.forms))
     assert.ok(enabled.has(MODULE_IDS.media))
     assert.ok(enabled.has(MODULE_IDS.redirects))
+    assert.ok(enabled.has(MODULE_IDS.events))
 
     const groups = buildAdminNavGroups({
       surface: 'core',
@@ -56,13 +57,24 @@ describe('resolveEnabledAdminNavModuleIds + Email contribution', () => {
       '/admin',
     )
     assert.ok(ids.includes('email'), `expected Email in ${ids.join(',')}`)
+    assert.ok(ids.includes('events'), `expected Events in ${ids.join(',')}`)
     assert.ok(ids.indexOf('forms') < ids.indexOf('email'))
-    assert.ok(ids.indexOf('email') < ids.indexOf('redirects'))
+    assert.ok(ids.indexOf('email') < ids.indexOf('events'))
+    assert.ok(ids.indexOf('events') < ids.indexOf('redirects'))
     const email = groups.find((g) => g.id === 'email')
     assert.equal(email?.label, 'Email')
     assert.ok(email?.links.some((l) => l.href === '/admin/email' && l.label === 'Rules'))
     assert.ok(
       email?.links.some((l) => l.href === '/admin/email/templates' && l.label === 'Templates'),
+    )
+    const events = groups.find((g) => g.id === 'events')
+    assert.equal(events?.label, 'Events')
+    assert.ok(events?.links.some((l) => l.href === '/admin/events' && l.label === 'Events'))
+    assert.ok(
+      events?.links.some((l) => l.href === '/admin/events/venues' && l.label === 'Venues'),
+    )
+    assert.ok(
+      events?.links.some((l) => l.href === '/admin/events/settings' && l.label === 'Settings'),
     )
   })
 

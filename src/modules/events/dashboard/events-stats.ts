@@ -16,15 +16,35 @@ export type EventsUpcomingStats = {
 }
 
 /**
- * Soft stub — Events pack has no schema yet.
- * Unavailable → “—” / Coming soon (upcoming framing), not fake zeros.
+ * Real `sf_events` aggregates for `events.upcoming`.
+ * Upcoming / this week = published with starts_at ≥ now (week = next 7 days).
+ * Registrations stay 0 until PR3 wires Forms registration.
+ * Soft-fails when the DB / table is unreachable.
  */
 export async function loadEventsUpcomingStats(): Promise<
   DashboardStatsResult<EventsUpcomingStats>
 > {
-  return {
-    ok: false,
-    error: 'Events module is not shipped yet',
-    status: 'unavailable',
+  try {
+    const { countUpcomingEvents } = await import('../store')
+    const { upcoming, thisWeek } = await countUpcomingEvents()
+    return {
+      ok: true,
+      data: {
+        byKey: {
+          upcoming,
+          thisWeek,
+          registrations: 0,
+        },
+      },
+    }
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'Events dashboard query failed'
+    console.error('[dashboard] events.upcoming stats failed', error)
+    return {
+      ok: false,
+      error: message,
+      status: 'error',
+    }
   }
 }

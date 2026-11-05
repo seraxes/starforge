@@ -1,0 +1,13 @@
+{
+  "openManager": "Open Events",
+  "upcomingAriaLabel": "Upcoming events",
+  "upcomingHint": "Upcoming event counts appear here when the Events tables are reachable.",
+  "addEvent": "Add event",
+  "addVenue": "Add venue",
+  "saveEvent": "Save",
+  "saveVenue": "Save",
+  "deleteEvent": "Delete",
+  "deleteVenue": "Delete",
+  "whoCanSee": "Who can see",
+  "coverLabel": "Cover"
+}
