@@ -1891,8 +1891,8 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                           aria-label="Section label"
                         />
                       </div>
-                      <div className="gantry-section-actions">
-                        {sections.length > 1 ? (
+                      {sections.length > 1 ? (
+                        <div className="gantry-section-actions">
                           <button
                             type="button"
                             className="gantry-toolbar-btn danger"
@@ -1910,8 +1910,8 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                           >
                             Remove section
                           </button>
-                        ) : null}
-                      </div>
+                        </div>
+                      ) : null}
                     </header>
                     <div className="sf-form-section-rows">
                       {section.rows.length === 0 && !dndReady ? (
@@ -1965,13 +1965,11 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                                     addFieldOntoRow(type, section.id, row.id)
                                   }}
                                 >
-                                  <div className="gantry-row-meta sf-form-row-meta">
-                                    <span>
-                                      {empty
-                                        ? 'Empty row · drop fields here'
-                                        : `Row · ${row.columns.length} column${row.columns.length === 1 ? '' : 's'}`}
-                                    </span>
-                                    {empty ? (
+                                  {/* Meta / − row only on empty drop rows — no leftover
+                                      “Row · N columns” actions strip on filled rows. */}
+                                  {empty ? (
+                                    <div className="gantry-row-meta sf-form-row-meta">
+                                      <span>Empty row · drop fields here</span>
                                       <div className="gantry-row-actions">
                                         <button
                                           type="button"
@@ -1982,8 +1980,8 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                                           − row
                                         </button>
                                       </div>
-                                    ) : null}
-                                  </div>
+                                    </div>
+                                  ) : null}
                                   <div className="gantry-row-slots sf-form-row-slots">
                                     {empty ? (
                                       <div className="gantry-row-empty">Drop fields here…</div>
