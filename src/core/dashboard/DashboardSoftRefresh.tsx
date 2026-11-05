@@ -27,11 +27,9 @@ export function DashboardSoftRefresh({ intervalSec, initialRefreshedAt }: Props)
   const router = useRouter()
   const clampedSec = clampDashboardRefreshIntervalSec(intervalSec)
   const [refreshedAt, setRefreshedAt] = useState(() => new Date(initialRefreshedAt))
-  const lastRefreshAtMs = useRef(
-    Number.isFinite(Date.parse(initialRefreshedAt))
-      ? Date.parse(initialRefreshedAt)
-      : Date.now(),
-  )
+  // Prefer the SSR ISO; fall back to 0 so become-visible treats the first show as overdue.
+  const parsedInitialMs = Date.parse(initialRefreshedAt)
+  const lastRefreshAtMs = useRef(Number.isFinite(parsedInitialMs) ? parsedInitialMs : 0)
 
   useEffect(() => {
     const intervalMs = dashboardRefreshIntervalMs(clampedSec)
