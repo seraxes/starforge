@@ -138,6 +138,13 @@ assert.doesNotMatch(
 const templatesUi = read('src/modules/email-manager/admin/email-templates-manager.tsx')
 assert.match(templatesUi, /admin-settings-mosaic/)
 assert.match(templatesUi, /outlines-create/)
+assert.match(
+  templatesUi,
+  /outlines-create admin-settings-panel-wide[\s\S]*Filter by module/,
+  'Filter section must span full mosaic width',
+)
+assert.match(templatesUi, /sf-email-templates-card/)
+assert.match(templatesUi, /sf-email-templates-card-form/)
 assert.match(templatesUi, /outlines-table-wrap admin-settings-panel-wide/)
 assert.match(templatesUi, /outlines-table/)
 assert.match(templatesUi, /admin-empty/)
@@ -150,6 +157,18 @@ assert.doesNotMatch(
   templatesUi,
   /admin-table-wrap/,
   'templates list must not nest admin-table-wrap inside outlines-table-wrap',
+)
+
+const styles = read('src/app/(frontend)/styles.css')
+assert.match(
+  styles,
+  /\.admin-settings-mosaic\.sf-email-templates-manager > \.outlines-create\.sf-email-templates-card/,
+  'templates mosaic must let Test send / Add template share a 2-col row',
+)
+assert.match(
+  styles,
+  /sf-email-templates-card-form[\s\S]*grid-template-columns: minmax\(0, 1fr\)/,
+  'Test send / Add template forms must be single-column inside their cards',
 )
 
 const rulesPage = read('src/modules/email-manager/admin/EmailRulesPage.tsx')
