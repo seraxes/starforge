@@ -1,0 +1,9 @@
+{
+  "sending": "Sending…",
+  "redirecting": "Redirecting…",
+  "selectPlaceholder": "Select…",
+  "requiredAbbr": "required",
+  "fileFallback": "File",
+  "honeypotWebsite": "Website",
+  "captchaNotConfigured": "Captcha is enabled but not configured. Submissions are blocked."
+}

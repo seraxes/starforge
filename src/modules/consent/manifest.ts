@@ -12,6 +12,9 @@ export default defineStarforgeModule({
     'Cookie consent banner + preference cookie (sf-consent). Policy copy under Chrome; gates atom:analytics until analytics is accepted.',
   version: '0.1.0',
   defaultEnabled: true,
+  i18n: {
+    namespaces: ['product:consent'],
+  },
   publicShell: [
     {
       slot: 'bodyEnd',

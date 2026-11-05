@@ -1,6 +1,7 @@
 /**
  * Core i18n port — thin host around next-intl for public `[locale]` routing.
  * Modules should import locale helpers from here, not configure next-intl directly.
+ * Message namespaces: Core chrome + enabled module packs (see `src/modules/MESSAGES.md`).
  */
 
 export {

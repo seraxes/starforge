@@ -13,6 +13,14 @@ export default defineStarforgeModule({
     'Events + venues manager (upcoming). Soft Dashboard stub until the Events pack ships schema and admin.',
   version: '0.0.1',
   defaultEnabled: true,
+  /**
+   * Events packs ship `messages/<locale>.json` from day one (i18n P3).
+   * No catalog yet — add `src/modules/events/messages/{en,hu}.json` when
+   * public/admin UI strings land. See `src/modules/MESSAGES.md`.
+   */
+  i18n: {
+    namespaces: ['product:events'],
+  },
   navViews: [{ key: 'admin', label: 'Events (upcoming)', href: '/admin/settings' }],
   admin: {
     areas: [{ key: 'events', label: 'Events' }],

@@ -1,0 +1,9 @@
+{
+  "sending": "Küldés…",
+  "redirecting": "Átirányítás…",
+  "selectPlaceholder": "Válassz…",
+  "requiredAbbr": "kötelező",
+  "fileFallback": "Fájl",
+  "honeypotWebsite": "Weboldal",
+  "captchaNotConfigured": "A captcha be van kapcsolva, de nincs konfigurálva. A beküldés blokkolva."
+}

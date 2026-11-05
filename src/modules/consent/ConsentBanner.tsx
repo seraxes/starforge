@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useSyncExternalStore } from 'react'
+import { useTranslations } from 'next-intl'
 
 import {
   CONSENT_EVENT,
@@ -39,14 +40,16 @@ function consentIsUndecided(): boolean {
 /**
  * Fixed sitewide consent bar. Shown until the visitor chooses.
  * Preference cookie is client-readable so atom:analytics can honor it.
+ * Button / aria chrome uses `product:consent` messages (i18n P3).
  */
 export function ConsentBanner({
   message,
   privacyUrl = '',
-  privacyLinkLabel = 'Privacy policy',
+  privacyLinkLabel = '',
   cookieDomain = '',
   cookiePath = '/',
 }: ConsentBannerProps) {
+  const t = useTranslations('product:consent')
   // SSR + hydration: hide; after hydrate, show only when no sf-consent cookie.
   const undecided = useSyncExternalStore(
     subscribeConsent,
@@ -63,10 +66,10 @@ export function ConsentBanner({
   }
 
   const trimmedPrivacy = privacyUrl.trim()
-  const linkLabel = privacyLinkLabel.trim() || 'Privacy policy'
+  const linkLabel = privacyLinkLabel.trim() || t('privacyPolicy')
 
   return (
-    <div className="sf-consent-banner" role="dialog" aria-label="Cookie consent">
+    <div className="sf-consent-banner" role="dialog" aria-label={t('dialogLabel')}>
       <div className="sf-consent-banner-inner">
         <div className="sf-consent-banner-copy">
           <p className="sf-consent-banner-text">{message}</p>
@@ -82,14 +85,14 @@ export function ConsentBanner({
             className="sf-consent-banner-btn sf-consent-banner-btn-secondary"
             onClick={() => persist(false)}
           >
-            Essential only
+            {t('essentialOnly')}
           </button>
           <button
             type="button"
             className="sf-consent-banner-btn sf-consent-banner-btn-primary"
             onClick={() => persist(true)}
           >
-            Accept all
+            {t('acceptAll')}
           </button>
         </div>
       </div>

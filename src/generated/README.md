@@ -22,12 +22,14 @@ Required: `platform:better-auth`, `page-content` (always forced into the allowli
 - `ALLOWLISTED_PRODUCT_PLATFORM_META` — **one** Settings catalog for platform/product (replaces hand-maintained `PRODUCT_MODULE_CATALOG`)
 - `ALLOWLISTED_PARTICLE_META` / optional particle + atom loaders
 - `publicShellLoaders` — Consent (and later packs) contribute public layout slots without Core importing `@/modules/**`
+- `moduleMessageLoaders` (server registry) — allowlisted `messages/<locale>.json` packs for next-intl merge (i18n P3)
 
 ## Adding a pack
 
 1. Add `src/modules/<id>/manifest.ts` with `defineStarforgeModule({...})`
 2. Register it in `src/modules/manifest-index.ts`
 3. Add the id to `starforge.modules.json`
-4. Run `npm run modules:generate`
+4. Optional UI chrome: `messages/en.json` (+ locales) and `i18n: { namespaces: ['product:…'] }` — see [`../modules/MESSAGES.md`](../modules/MESSAGES.md)
+5. Run `npm run modules:generate`
 
 P2 (later): `@starforge/module-*` packages + `modules:sync` from GitHub Packages.

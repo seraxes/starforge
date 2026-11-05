@@ -10,8 +10,13 @@ writes `src/generated/module-registry.ts` — Core may import `@/generated/*` on
 ```
 src/modules/<id>/
   manifest.ts     # defineStarforgeModule({...}) — codegen reads this eagerly
+  messages/       # optional <locale>.json UI chrome (i18n P3) — see MESSAGES.md
   …               # public/, admin/, server/, api.ts as the pack grows
 ```
+
+**i18n:** Module UI strings register via `i18n.namespaces` + `messages/<locale>.json`.
+Core merges enabled packs at request time. Contract for Events and later packs:
+[`MESSAGES.md`](./MESSAGES.md).
 
 Core-owned platform / builtin particle / atom rows live in
 `src/core/modules/host-manifests.ts`. Packs are aggregated in `manifest-index.ts`.

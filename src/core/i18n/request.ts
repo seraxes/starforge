@@ -1,20 +1,13 @@
 import { getRequestConfig } from 'next-intl/server'
 
+import { loadMergedMessages } from './load-messages'
 import { DEFAULT_LOCALE, isValidLocaleCode } from './locales'
 
-async function loadMessages(locale: string): Promise<Record<string, unknown>> {
-  try {
-    return (await import(`./messages/${locale}.json`)).default
-  } catch {
-    // Admin-added locales reuse English UI chrome until a message pack exists.
-    return (await import(`./messages/${DEFAULT_LOCALE}.json`)).default
-  }
-}
-
 /**
- * next-intl request config — message catalogs live under Core i18n.
+ * next-intl request config — Core catalogs + enabled module namespaces (P3).
  * Plugin path: `./src/core/i18n/request.ts` (see next.config.ts).
- * Unknown / admin-added locales fall back to the default message pack.
+ * Unknown / admin-added locales fall back to the default message pack for Core;
+ * modules fall back per-loader inside `loadMergedMessages`.
  */
 export default getRequestConfig(async ({ requestLocale }) => {
   const requested = await requestLocale
@@ -25,6 +18,6 @@ export default getRequestConfig(async ({ requestLocale }) => {
 
   return {
     locale,
-    messages: await loadMessages(locale),
+    messages: await loadMergedMessages(locale),
   }
 })

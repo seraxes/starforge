@@ -12,6 +12,9 @@ export default defineStarforgeModule({
     'Automatic and conditional email rules with templates, filtered by module. Modules emit triggers; Core Mailer sends. No per-module SMTP — secrets stay in env / Chrome.',
   version: '0.1.0',
   defaultEnabled: true,
+  i18n: {
+    namespaces: ['product:email-manager'],
+  },
   navViews: [
     { key: 'admin', label: 'Email rules', href: '/admin/email' },
     { key: 'templates', label: 'Email templates', href: '/admin/email/templates' },
