@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useActionState, useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import {
   DndContext,
@@ -2067,19 +2068,27 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                               </React.Fragment>
                             )
                           })}
-                          <DragOverlay
-                            dropAnimation={null}
-                            style={{ cursor: 'grabbing', zIndex: 10000 }}
-                          >
-                            {overlayField ? (
-                              <FieldDragPreview
-                                field={overlayField}
-                                widthPercent={dragLockSize?.widthPercent ?? LAYOUT_WIDTH_FULL}
-                                width={dragLockSize?.width ?? 240}
-                                height={dragLockSize?.height ?? 52}
-                              />
-                            ) : null}
-                          </DragOverlay>
+                          {/* Portal to body — admin chrome uses overflow/transform that clips
+                              in-tree DragOverlay (looks like “no grab feedback”). */}
+                          {createPortal(
+                            <DragOverlay
+                              dropAnimation={null}
+                              zIndex={10000}
+                              style={{ cursor: 'grabbing' }}
+                            >
+                              {overlayField ? (
+                                <FieldDragPreview
+                                  field={overlayField}
+                                  widthPercent={
+                                    dragLockSize?.widthPercent ?? LAYOUT_WIDTH_FULL
+                                  }
+                                  width={dragLockSize?.width ?? 240}
+                                  height={dragLockSize?.height ?? 52}
+                                />
+                              ) : null}
+                            </DragOverlay>,
+                            document.body,
+                          )}
                         </DndContext>
                       ) : (
                         section.rows.map((row) => (
