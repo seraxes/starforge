@@ -23,6 +23,8 @@ export const MODULE_IDS = {
   draftPreview: 'product:draft-preview',
   forms: 'product:forms',
   emailManager: 'product:email-manager',
+  events: 'product:events',
+  marketplace: 'product:marketplace',
   redirects: 'product:redirects',
   consent: 'product:consent',
   search: 'product:search',

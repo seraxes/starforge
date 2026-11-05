@@ -1,5 +1,6 @@
 /**
- * Smoke: Dashboard soft placeholders — Media + Email contrib shells.
+ * Smoke: Dashboard soft placeholders — per-module cards (no Stats pack).
+ * Card set: Users, Security, Performance, Media, Forms, Email, Events, Marketplace.
  * Run: npm run verify:dashboard-placeholders
  */
 import assert from 'node:assert/strict'
@@ -18,32 +19,91 @@ function mustExist(rel: string) {
 }
 
 mustExist('src/core/dashboard/widgets/DashboardSoftPlaceholder.tsx')
+mustExist('src/core/dashboard/widgets/SecurityPostureWidget.tsx')
+mustExist('src/core/dashboard/widgets/security-stats.ts')
+mustExist('src/core/dashboard/widgets/PerformanceGlanceWidget.tsx')
+mustExist('src/core/dashboard/widgets/performance-stats.ts')
 mustExist('src/modules/media/dashboard/MediaCountsWidget.tsx')
 mustExist('src/modules/media/dashboard/media-stats.ts')
 mustExist('src/modules/email-manager/dashboard/EmailSentWidget.tsx')
 mustExist('src/modules/email-manager/dashboard/email-stats.ts')
+mustExist('src/modules/forms/dashboard/FormsSubmissionsWidget.tsx')
+mustExist('src/modules/forms/dashboard/forms-stats.ts')
+mustExist('src/modules/events/dashboard/EventsUpcomingWidget.tsx')
+mustExist('src/modules/events/dashboard/events-stats.ts')
+mustExist('src/modules/marketplace/dashboard/MarketplaceListingsWidget.tsx')
+mustExist('src/modules/marketplace/dashboard/marketplace-stats.ts')
+
+assert.equal(existsSync(path.join(ROOT, 'src/modules/stats')), false, 'no product:stats pack')
+
+const hostManifest = read('src/core/modules/host-manifests.ts')
+assert.match(hostManifest, /id: 'users\.strip'/)
+assert.match(hostManifest, /id: 'users\.latest'/)
+assert.match(hostManifest, /id: 'security\.posture'/)
+assert.match(hostManifest, /id: 'performance\.glance'/)
+assert.doesNotMatch(hostManifest, /product:stats/)
 
 const mediaManifest = read('src/modules/media/manifest.ts')
-assert.match(mediaManifest, /dashboard:\s*\[/)
 assert.match(mediaManifest, /id: 'media\.counts'/)
-assert.match(mediaManifest, /MediaCountsWidget/)
 
 const emailManifest = read('src/modules/email-manager/manifest.ts')
-assert.match(emailManifest, /dashboard:\s*\[/)
 assert.match(emailManifest, /id: 'email\.sent'/)
-assert.match(emailManifest, /EmailSentWidget/)
+
+const formsManifest = read('src/modules/forms/manifest.ts')
+assert.match(formsManifest, /id: 'forms\.submissions'/)
+
+const eventsManifest = read('src/modules/events/manifest.ts')
+assert.match(eventsManifest, /id: 'product:events'/)
+assert.match(eventsManifest, /id: 'events\.upcoming'/)
+
+const marketplaceManifest = read('src/modules/marketplace/manifest.ts')
+assert.match(marketplaceManifest, /id: 'product:marketplace'/)
+assert.match(marketplaceManifest, /id: 'marketplace\.listings'/)
+
+const allowlist = read('starforge.modules.json')
+assert.match(allowlist, /"product:events"/)
+assert.match(allowlist, /"product:marketplace"/)
+assert.doesNotMatch(allowlist, /product:stats/)
 
 const registry = read('src/generated/module-registry.ts')
-assert.match(registry, /media\.counts/)
-assert.match(registry, /email\.sent/)
-assert.match(registry, /product:media/)
-assert.match(registry, /product:email-manager/)
+for (const id of [
+  'users.strip',
+  'users.latest',
+  'security.posture',
+  'performance.glance',
+  'media.counts',
+  'forms.submissions',
+  'email.sent',
+  'events.upcoming',
+  'marketplace.listings',
+  'product:events',
+  'product:marketplace',
+  'product:forms',
+  'product:media',
+  'product:email-manager',
+]) {
+  assert.match(registry, new RegExp(id.replace(/\./g, '\\.')), `registry missing ${id}`)
+}
+assert.doesNotMatch(registry, /product:stats/)
 
 const registryServer = read('src/generated/module-registry.server.ts')
-assert.match(registryServer, /MediaCountsWidget/)
-assert.match(registryServer, /EmailSentWidget/)
-assert.match(registryServer, /loadMediaCountsStats/)
-assert.match(registryServer, /loadEmailSentStats/)
+for (const name of [
+  'UsersStripWidget',
+  'SecurityPostureWidget',
+  'PerformanceGlanceWidget',
+  'MediaCountsWidget',
+  'FormsSubmissionsWidget',
+  'EmailSentWidget',
+  'EventsUpcomingWidget',
+  'MarketplaceListingsWidget',
+  'loadSecurityPostureStats',
+  'loadPerformanceGlanceStats',
+  'loadFormsSubmissionsStats',
+  'loadEventsUpcomingStats',
+  'loadMarketplaceListingsStats',
+]) {
+  assert.match(registryServer, new RegExp(name), `server registry missing ${name}`)
+}
 
 const host = read('src/core/dashboard/host.tsx')
 assert.match(host, /page-settings-panel/)
@@ -62,7 +122,7 @@ const placeholder = read('src/core/dashboard/widgets/DashboardSoftPlaceholder.ts
 assert.match(placeholder, /Coming soon/)
 assert.match(placeholder, /Module disabled/)
 
-// Core must not import media/email dashboard widgets directly (registry loaders only)
+// Core must not import product-pack dashboard widgets directly (registry loaders only)
 const { readdirSync, statSync } = await import('node:fs')
 const coreHits: string[] = []
 function walk(dir: string) {
@@ -75,7 +135,9 @@ function walk(dir: string) {
     }
     if (!/\.(ts|tsx)$/.test(name)) continue
     const src = readFileSync(full, 'utf8')
-    if (/from ['"]@\/modules\/(?:media|email-manager)\/dashboard/.test(src)) {
+    if (
+      /from ['"]@\/modules\/(?:media|email-manager|forms|events|marketplace)\/dashboard/.test(src)
+    ) {
       coreHits.push(path.relative(ROOT, full))
     }
   }

@@ -40,5 +40,18 @@ export default defineStarforgeModule({
       },
     ],
     areas: [{ key: 'forms', label: 'Forms' }],
+    dashboard: [
+      {
+        id: 'forms.submissions',
+        title: 'Forms',
+        order: 55,
+        size: 'md',
+        // Dashboard ACL only — soft overview; full inbox stays under Forms admin.
+        widgetImportPath: '@/modules/forms/dashboard/FormsSubmissionsWidget',
+        widgetExportName: 'FormsSubmissionsWidget',
+        statsImportPath: '@/modules/forms/dashboard/forms-stats',
+        statsExportName: 'loadFormsSubmissionsStats',
+      },
+    ],
   },
 })
