@@ -2145,6 +2145,17 @@ button:disabled {
   padding: 0.35rem 1.5rem;
 }
 
+.sf-spacer {
+  display: block;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
 .sf-copyright {
   margin: 0.65rem 1.5rem;
   font-size: 0.92rem;

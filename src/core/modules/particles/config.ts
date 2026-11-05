@@ -77,6 +77,14 @@ export type LocaleSwitcherParticleConfig = {
   display?: 'labels' | 'codes'
 }
 
+/** Spacer particle — empty gap (px). Width omitted → fill the column. */
+export type SpacerParticleConfig = {
+  /** Vertical size in CSS pixels. */
+  height: number
+  /** Optional horizontal size in CSS pixels; omit to span the column. */
+  width?: number
+}
+
 export function defaultLogoConfig(): LogoParticleConfig {
   return {
     mode: 'image',
@@ -139,6 +147,12 @@ export function defaultLocaleSwitcherConfig(): LocaleSwitcherParticleConfig {
   }
 }
 
+export function defaultSpacerConfig(): SpacerParticleConfig {
+  return {
+    height: 24,
+  }
+}
+
 export function defaultConfigForModule(moduleId: string): LayoutSlotConfig | undefined {
   switch (moduleId) {
     case 'custom':
@@ -162,6 +176,8 @@ export function defaultConfigForModule(moduleId: string): LayoutSlotConfig | und
       return { ...defaultLoginConfig() }
     case 'locale-switcher':
       return { ...defaultLocaleSwitcherConfig() }
+    case 'spacer':
+      return { ...defaultSpacerConfig() }
     default:
       return undefined
   }
@@ -254,4 +270,18 @@ export function readLocaleSwitcherConfig(
     ariaLabel: typeof c.ariaLabel === 'string' ? c.ariaLabel.trim() : '',
     display: c.display === 'codes' ? 'codes' : 'labels',
   }
+}
+
+export function readSpacerConfig(config: LayoutSlotConfig | undefined): SpacerParticleConfig {
+  const c = config ?? {}
+  const defaults = defaultSpacerConfig()
+  const heightRaw = Number(c.height)
+  const height =
+    Number.isFinite(heightRaw) && heightRaw > 0
+      ? Math.min(2400, Math.round(heightRaw))
+      : defaults.height
+  const widthRaw = Number(c.width)
+  const width =
+    Number.isFinite(widthRaw) && widthRaw > 0 ? Math.min(2400, Math.round(widthRaw)) : undefined
+  return width != null ? { height, width } : { height }
 }

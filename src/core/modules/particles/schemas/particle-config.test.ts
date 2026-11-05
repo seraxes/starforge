@@ -7,6 +7,7 @@ import { localeSwitcherParticleConfigSchema } from './locale-switcher'
 import { logoParticleConfigSchema } from './logo'
 import { menuParticleConfigSchema } from './menu'
 import { socialParticleConfigSchema } from './social'
+import { spacerParticleConfigSchema } from './spacer'
 
 describe('particle config schemas (M1)', () => {
   it('normalizes logo mode and color', () => {
@@ -53,6 +54,23 @@ describe('particle config schemas (M1)', () => {
     if (!parsed.success) return
     assert.equal(parsed.data.yearMode, 'manual')
     assert.equal(parsed.data.year, 2025)
+  })
+
+  it('normalizes spacer height and optional width', () => {
+    const parsed = spacerParticleConfigSchema.safeParse({
+      height: '48.2',
+      width: '',
+    })
+    assert.equal(parsed.success, true)
+    if (!parsed.success) return
+    assert.equal(parsed.data.height, 48)
+    assert.equal(parsed.data.width, undefined)
+
+    const withWidth = spacerParticleConfigSchema.safeParse({ height: 16, width: 120 })
+    assert.equal(withWidth.success, true)
+    if (!withWidth.success) return
+    assert.equal(withWidth.data.height, 16)
+    assert.equal(withWidth.data.width, 120)
   })
 
   it('filters social items', () => {
