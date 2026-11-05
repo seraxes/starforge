@@ -29,6 +29,9 @@ export default async function StarforgeAdminNav(props: ServerProps) {
   if (isCatalogModuleEnabled(settings, MODULE_IDS.forms)) {
     enabledModuleIds.add(MODULE_IDS.forms)
   }
+  if (isCatalogModuleEnabled(settings, MODULE_IDS.emailManager)) {
+    enabledModuleIds.add(MODULE_IDS.emailManager)
+  }
   if (isCatalogModuleEnabled(settings, MODULE_IDS.redirects)) {
     enabledModuleIds.add(MODULE_IDS.redirects)
   }

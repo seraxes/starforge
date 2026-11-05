@@ -77,4 +77,25 @@ assert.match(acl, /admin\.email-manager/)
 const decide = read('src/core/acl/decide.ts')
 assert.match(decide, /\/app\/admin\/email/)
 
+// Runtime shells must gate Email into enabledModuleIds (codegen alone is not enough).
+const coreAdminLayout = read('src/app/(frontend)/app/admin/layout.tsx')
+assert.match(coreAdminLayout, /MODULE_IDS\.emailManager/)
+assert.match(
+  coreAdminLayout,
+  /enabledModuleIds\.add\(\s*MODULE_IDS\.emailManager\s*\)/,
+)
+
+const payloadAdminNav = read('src/components/payload/StarforgeAdminNav.tsx')
+assert.match(payloadAdminNav, /MODULE_IDS\.emailManager/)
+assert.match(
+  payloadAdminNav,
+  /enabledModuleIds\.add\(\s*MODULE_IDS\.emailManager\s*\)/,
+)
+
+const registryNav = read('src/generated/module-registry.ts')
+assert.match(
+  registryNav,
+  /moduleId:\s*"product:email-manager"[\s\S]*?id:\s*"email"[\s\S]*?label:\s*"Email"/,
+)
+
 console.log('verify:email-manager OK')

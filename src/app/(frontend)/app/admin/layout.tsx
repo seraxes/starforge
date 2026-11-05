@@ -83,6 +83,7 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
   const pageSettingsOn = isCatalogModuleEnabled(settings, MODULE_IDS.pageSettings)
   const navOn = isCatalogModuleEnabled(settings, MODULE_IDS.primaryNav)
   const formsOn = isCatalogModuleEnabled(settings, MODULE_IDS.forms)
+  const emailManagerOn = isCatalogModuleEnabled(settings, MODULE_IDS.emailManager)
   const redirectsOn = isCatalogModuleEnabled(settings, MODULE_IDS.redirects)
   const mediaOn = isCatalogModuleEnabled(settings, MODULE_IDS.media)
   const showPayloadCms = payloadOn && userHasCmsAccess(access)
@@ -90,6 +91,7 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
 
   const enabledModuleIds = new Set<string>()
   if (formsOn) enabledModuleIds.add(MODULE_IDS.forms)
+  if (emailManagerOn) enabledModuleIds.add(MODULE_IDS.emailManager)
   if (redirectsOn) enabledModuleIds.add(MODULE_IDS.redirects)
   if (mediaOn) enabledModuleIds.add(MODULE_IDS.media)
 
@@ -137,7 +139,7 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
                 <h1>Starforge admin</h1>
                 <p className="lede admin-lede">
                   Top-level areas: Chrome, Settings (Modules · Admin UX · Auth ·
-                  Security · Performance), Navigation, Forms, Redirects, Users (Accounts ·
+                  Security · Performance), Navigation, Forms, Email, Redirects, Users (Accounts ·
                   Groups · ACL), Media (Library · Settings), Layouts, CMS (Payload). Pages live
                   under CMS → Pages
                   {showPayloadCms ? (
