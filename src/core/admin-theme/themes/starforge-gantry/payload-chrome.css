@@ -204,20 +204,25 @@ html[data-theme='dark'] .btn.btn--size-small {
 
 .nav .admin-sidebar-brand .brand {
   margin: 0;
-  font-size: 0.92em;
+  /* ~50% larger than prior 0.92em compact wordmark */
+  font-size: 1.38em;
   letter-spacing: 0.12em;
   font-weight: 800;
 }
 
-.nav .admin-sidebar-brand .brand a {
-  color: #fff;
+.nav .admin-sidebar-brand .brand,
+.nav .admin-sidebar-brand .brand a,
+.nav .admin-sidebar-brand .brand a.admin-sidebar-logo {
+  color: #f2a66a !important;
+  -webkit-text-fill-color: #f2a66a;
   text-decoration: none;
 }
 
 .nav .admin-sidebar-kicker {
-  margin: 0.15em 0 0;
-  color: #9eb1c7;
-  font-size: 0.72em;
+  margin: 0.2em 0 0;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff;
+  font-size: 1.05em;
   font-weight: 650;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -288,7 +293,8 @@ html[data-theme='dark'] .btn.btn--size-small {
   font-size: 0.78em;
   font-weight: 650;
   line-height: 1.25;
-  color: #9eb1c7;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff;
 }
 
 .nav .admin-sidebar-account:hover .admin-sidebar-account-name,
@@ -317,7 +323,8 @@ html[data-theme='dark'] .btn.btn--size-small {
   text-align: left;
   border: 0;
   background: transparent;
-  color: #e8eef8;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff;
   font-family: inherit;
   font-size: 1em;
   font-weight: 650;
@@ -351,7 +358,7 @@ html[data-theme='dark'] .btn.btn--size-small {
   padding: 0;
   border: 0;
   background-color: transparent;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M5.75 3.5L10.25 8L5.75 12.5' stroke='%23c5d2e0' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M5.75 3.5L10.25 8L5.75 12.5' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: center;
   background-size: var(--sf-admin-icon-secondary) var(--sf-admin-icon-secondary);
@@ -362,7 +369,7 @@ html[data-theme='dark'] .btn.btn--size-small {
 }
 
 .nav .admin-sidebar-group-toggle.is-open {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 5.75L8 10.25L12.5 5.75' stroke='%23c5d2e0' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 5.75L8 10.25L12.5 5.75' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 .nav .admin-sidebar-sub {
@@ -376,28 +383,35 @@ html[data-theme='dark'] .btn.btn--size-small {
   border-radius: 3px;
   font-weight: 600;
   font-size: 0.9em;
-  color: #9eb1c7;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff;
 }
 
+/* Hover blue only — no stuck current/active fill */
 .nav .admin-sidebar-link:hover,
 .nav .admin-sidebar-group-head:hover,
-.nav .admin-sidebar-sublink:hover,
+.nav .admin-sidebar-sublink:hover {
+  background: var(--sf-admin-blue-mid) !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff;
+  box-shadow: none;
+}
+
 .nav .admin-sidebar-link.is-current,
 .nav .admin-sidebar-sublink.is-current,
 .nav .admin-sidebar-item.is-active > .admin-sidebar-link,
 .nav .admin-sidebar-item.is-active > .admin-sidebar-group-head {
-  background: var(--sf-admin-blue-mid);
-  color: #fff;
+  background: transparent !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff;
   box-shadow: none;
 }
 
-.nav .admin-sidebar-group-head:hover .admin-sidebar-group-toggle,
-.nav .admin-sidebar-item.is-active > .admin-sidebar-group-head .admin-sidebar-group-toggle {
+.nav .admin-sidebar-group-head:hover .admin-sidebar-group-toggle {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M5.75 3.5L10.25 8L5.75 12.5' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
-.nav .admin-sidebar-group-head:hover .admin-sidebar-group-toggle.is-open,
-.nav .admin-sidebar-item.is-active > .admin-sidebar-group-head .admin-sidebar-group-toggle.is-open {
+.nav .admin-sidebar-group-head:hover .admin-sidebar-group-toggle.is-open {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 5.75L8 10.25L12.5 5.75' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 

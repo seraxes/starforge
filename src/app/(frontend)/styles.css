@@ -822,24 +822,26 @@ button:disabled {
 
 .admin-sidebar-brand .brand {
   margin: 0;
-  font-size: 0.92rem;
+  /* ~50% larger than prior 0.92rem compact wordmark */
+  font-size: 1.38rem;
   letter-spacing: 0.12em;
   font-weight: 800;
 }
 
 .admin-sidebar-brand .brand a.admin-sidebar-logo {
-  color: inherit;
+  /* Literal brand orange — theme sheet re-forces after content-link tint */
+  color: #f2a66a;
   text-decoration: none;
 }
 
 .admin-sidebar-kicker {
-  margin: 0.15rem 0 0;
-  font-size: 0.72rem;
+  margin: 0.2rem 0 0;
+  font-size: 1.05rem;
   font-weight: 650;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   line-height: 1.2;
-  color: var(--sf-muted);
+  color: #fff;
 }
 
 /* Legacy title class — compact brand uses `.admin-sidebar-kicker` instead. */
@@ -932,7 +934,7 @@ button:disabled {
   font-size: 0.78rem;
   font-weight: 650;
   line-height: 1.25;
-  color: var(--sf-muted);
+  color: #fff;
 }
 
 .admin-sidebar-nav {
@@ -960,7 +962,7 @@ button:disabled {
   text-align: left;
   border: 0;
   background: transparent;
-  color: var(--sf-ink);
+  color: #fff;
   font: inherit;
   font-weight: 650;
   cursor: pointer;
@@ -991,7 +993,7 @@ button:disabled {
   /* Fallback caret so Site Chrome/Forms/… read as expandable even if theme CSS lags.
    * Theme core-chrome.css overrides stroke/color to match Gantry chrome. */
   background-color: transparent;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M5.75 3.5L10.25 8L5.75 12.5' stroke='%239eb1c7' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M5.75 3.5L10.25 8L5.75 12.5' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: center;
   background-size: var(--sf-admin-icon-secondary, 1.6rem) var(--sf-admin-icon-secondary, 1.6rem);
@@ -1002,7 +1004,7 @@ button:disabled {
 }
 
 .admin-sidebar-group-toggle.is-open {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 5.75L8 10.25L12.5 5.75' stroke='%239eb1c7' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 5.75L8 10.25L12.5 5.75' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 .admin-sidebar-menu-toggle-icon {
@@ -1020,10 +1022,10 @@ button:disabled {
   border-radius: 3px;
   font-weight: 600;
   font-size: 0.9rem;
-  color: var(--sf-muted);
+  color: #fff;
 }
 
-/* Joomla/Gantry accent — bright mid-blue row hover/active */
+/* Joomla/Gantry accent — bright mid-blue hover only (no stuck active fill) */
 .admin-sidebar-link:hover,
 .admin-sidebar-group-head:hover,
 .admin-sidebar-sublink:hover {
@@ -1038,11 +1040,12 @@ button:disabled {
   color: #fff;
 }
 
+/* Current/active: white text, transparent rail — no blue fill (Dashboard etc.) */
 .admin-sidebar-link.is-current,
 .admin-sidebar-sublink.is-current,
 .admin-sidebar-item.is-active > .admin-sidebar-link,
 .admin-sidebar-item.is-active > .admin-sidebar-group-head {
-  background: #3498db;
+  background: transparent;
   color: #fff;
 }
 

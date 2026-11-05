@@ -387,8 +387,13 @@ body:has(.admin-shell) > main {
   box-shadow: none;
 }
 
+/* STARFORGE wordmark — ~50% larger (color forced below after content-link tint) */
+.admin-shell .admin-sidebar-brand .brand {
+  font-size: 1.38rem;
+}
+
 .admin-shell .admin-sidebar-kicker {
-  color: #9eb1c7;
+  font-size: 1.05rem;
 }
 
 .admin-shell .admin-sidebar-title {
@@ -398,7 +403,7 @@ body:has(.admin-shell) > main {
 .admin-shell .admin-sidebar-avatar {
   border-color: #314257;
   background: #1a2433;
-  color: #e8eef8;
+  color: #fff;
 }
 
 .admin-shell .admin-sidebar-account:hover .admin-sidebar-avatar,
@@ -409,7 +414,7 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .admin-sidebar-account-name {
-  color: #9eb1c7;
+  color: #fff;
 }
 
 .admin-shell .admin-sidebar-menu-toggle {
@@ -423,17 +428,8 @@ body:has(.admin-shell) > main {
   border-color: var(--sf-admin-blue-border);
 }
 
-.admin-shell .admin-sidebar-link,
-.admin-shell .admin-sidebar-group-head {
-  color: #e8eef8;
-}
-
 .admin-shell .admin-sidebar-sub {
   border-left-color: #314257;
-}
-
-.admin-shell .admin-sidebar-sublink {
-  color: #9eb1c7;
 }
 
 /*
@@ -449,7 +445,7 @@ body:has(.admin-shell) > main {
   padding: 0;
   border: 0;
   background-color: transparent;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M5.75 3.5L10.25 8L5.75 12.5' stroke='%23c5d2e0' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M5.75 3.5L10.25 8L5.75 12.5' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: center;
   background-size: var(--sf-admin-icon-secondary) var(--sf-admin-icon-secondary);
@@ -460,7 +456,7 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .admin-sidebar-group-toggle.is-open {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 5.75L8 10.25L12.5 5.75' stroke='%23c5d2e0' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 5.75L8 10.25L12.5 5.75' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 .admin-shell .admin-sidebar-menu-toggle-icon {
@@ -482,26 +478,29 @@ body:has(.admin-shell) > main {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 10.25L8 5.75L12.5 10.25' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
-/* Bright mid-blue hover/active rows (Gantry/Joomla ~#3498db) */
+/* Bright mid-blue hover only — current/active keep transparent rail (no stuck fill) */
 .admin-shell .admin-sidebar-link:hover,
 .admin-shell .admin-sidebar-group-head:hover,
-.admin-shell .admin-sidebar-sublink:hover,
-.admin-shell .admin-sidebar-link.is-current,
-.admin-shell .admin-sidebar-sublink.is-current,
-.admin-shell .admin-sidebar-item.is-active > .admin-sidebar-link,
-.admin-shell .admin-sidebar-item.is-active > .admin-sidebar-group-head {
+.admin-shell .admin-sidebar-sublink:hover {
   background: var(--sf-admin-blue-mid); /* #3498db */
   color: #fff;
   box-shadow: none;
 }
 
-.admin-shell .admin-sidebar-group-head:hover .admin-sidebar-group-toggle,
-.admin-shell .admin-sidebar-item.is-active > .admin-sidebar-group-head .admin-sidebar-group-toggle {
+.admin-shell .admin-sidebar-link.is-current,
+.admin-shell .admin-sidebar-sublink.is-current,
+.admin-shell .admin-sidebar-item.is-active > .admin-sidebar-link,
+.admin-shell .admin-sidebar-item.is-active > .admin-sidebar-group-head {
+  background: transparent;
+  color: #fff;
+  box-shadow: none;
+}
+
+.admin-shell .admin-sidebar-group-head:hover .admin-sidebar-group-toggle {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M5.75 3.5L10.25 8L5.75 12.5' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
-.admin-shell .admin-sidebar-group-head:hover .admin-sidebar-group-toggle.is-open,
-.admin-shell .admin-sidebar-item.is-active > .admin-sidebar-group-head .admin-sidebar-group-toggle.is-open {
+.admin-shell .admin-sidebar-group-head:hover .admin-sidebar-group-toggle.is-open {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 5.75L8 10.25L12.5 5.75' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
@@ -2054,13 +2053,59 @@ body:has(.admin-shell) > main {
   color: #8fa0b5;
 }
 
-/* Text links only — exclude Gantry action buttons (Edit items, Forms Edit, …). */
-.admin-shell a:not(.admin-nav > a):not(.admin-nav-dropdown-trigger):not(.button-link):not(.gantry-toolbar-btn):not(.links a) {
+/*
+ * Content links only — exclude Gantry action buttons AND left-rail sidebar
+ * anchors. :not(.class) adds class specificity, so this rule previously beat
+ * `.admin-sidebar-*` color declarations (sizes still applied; colors did not).
+ */
+.admin-shell a:not(.admin-nav > a):not(.admin-nav-dropdown-trigger):not(.button-link):not(.gantry-toolbar-btn):not(.links a):not(.admin-sidebar-logo):not(.admin-sidebar-link):not(.admin-sidebar-sublink):not(.admin-sidebar-account) {
   color: var(--sf-secondary-strong);
 }
 
-.admin-shell a:not(.admin-nav > a):not(.admin-nav-dropdown-trigger):not(.button-link):not(.gantry-toolbar-btn):hover {
+.admin-shell a:not(.admin-nav > a):not(.admin-nav-dropdown-trigger):not(.button-link):not(.gantry-toolbar-btn):not(.admin-sidebar-logo):not(.admin-sidebar-link):not(.admin-sidebar-sublink):not(.admin-sidebar-account):hover {
   color: var(--sf-primary-strong);
+}
+
+/*
+ * Force left-rail chrome colors AFTER the content-link tint above.
+ * Literal hex + !important so token remaps / future :not() stacks cannot mute
+ * STARFORGE orange or white Admin/nav again.
+ */
+.admin-shell .admin-sidebar .admin-sidebar-brand .brand,
+.admin-shell .admin-sidebar .admin-sidebar-brand .brand a.admin-sidebar-logo,
+.admin-shell .admin-sidebar a.admin-sidebar-logo {
+  color: #f2a66a !important;
+  -webkit-text-fill-color: #f2a66a;
+}
+
+.admin-shell .admin-sidebar .admin-sidebar-kicker,
+.admin-shell .admin-sidebar .admin-sidebar-title,
+.admin-shell .admin-sidebar .admin-sidebar-link,
+.admin-shell .admin-sidebar .admin-sidebar-group-head,
+.admin-shell .admin-sidebar .admin-sidebar-group-title,
+.admin-shell .admin-sidebar .admin-sidebar-sublink,
+.admin-shell .admin-sidebar .admin-sidebar-account-name,
+.admin-shell .admin-sidebar .admin-sidebar-account {
+  color: #fff !important;
+  -webkit-text-fill-color: #fff;
+}
+
+.admin-shell .admin-sidebar .admin-sidebar-link.is-current,
+.admin-shell .admin-sidebar .admin-sidebar-sublink.is-current,
+.admin-shell .admin-sidebar .admin-sidebar-item.is-active > .admin-sidebar-link,
+.admin-shell .admin-sidebar .admin-sidebar-item.is-active > .admin-sidebar-group-head {
+  background: transparent !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff;
+  box-shadow: none !important;
+}
+
+.admin-shell .admin-sidebar .admin-sidebar-link:hover,
+.admin-shell .admin-sidebar .admin-sidebar-group-head:hover,
+.admin-shell .admin-sidebar .admin-sidebar-sublink:hover {
+  background: var(--sf-admin-blue-mid, #3498db) !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff;
 }
 
 .admin-shell .form-ok,
