@@ -38,10 +38,11 @@ import {
 import { FORM_CONDITION_OP_LABELS } from '@/core/forms/logic'
 import { listFormPresetMetas } from '@/core/forms/presets'
 import {
+  appendEmptyRowToSection,
   appendFieldRow,
   ensureFormSectionsEmptyRows,
-  insertEmptyRowAfter,
   moveFieldInSections,
+  removeEmptyRowFromSection,
   removeFieldFromSections,
   renameFieldInSections,
   resizeRowColumns,
@@ -1295,7 +1296,7 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
       updateFields(next)
       return
     }
-    // Palette → first empty drop row (Layout-like), else new row + trailing empty.
+    // Palette → fill open trailing empty drop row, else append a filled row.
     updateFields(next, appendFieldRow(sections, targetSec, draft.name))
   }
 
@@ -1387,8 +1388,12 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
     saveDebounced()
   }
 
-  function insertRowBelow(sectionId: string, afterRowId: string) {
-    commitSections(insertEmptyRowAfter(sections, sectionId, afterRowId))
+  function openEmptyRow(sectionId: string) {
+    commitSections(appendEmptyRowToSection(sections, sectionId))
+  }
+
+  function closeEmptyRow(sectionId: string, rowId: string) {
+    commitSections(removeEmptyRowFromSection(sections, sectionId, rowId))
   }
 
   function clearFieldDragUi() {
@@ -1582,8 +1587,8 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
         <Link href="/admin/forms">← Forms</Link>
         {' · '}
         Layout-aligned builder: palette → section rows (side-by-side % columns) → field cog. Drag a
-        field onto a row or empty drop row to join columns; insert empty rows under any row; resize
-        with the divider. Meta, success, and email live under Form settings.
+        field onto a row to join columns; + row / − row for empty drop rows at the end; resize with
+        the divider. Meta, success, and email live under Form settings.
       </p>
 
       <nav className="gantry-layouts-nav sf-form-edit-nav" aria-label="Form edit">
@@ -1647,8 +1652,8 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                 ))}
               </ul>
               <p className="layout-muted">
-                Click a field type to fill the empty drop row (Layout cascade). Drag a placed field
-                onto a row or slot to sit side-by-side; resize with the divider.
+                Click a field type to add a row. Use <strong>+ row</strong> for an empty drop zone,
+                then drag fields onto a row to sit side-by-side; resize with the divider.
               </p>
             </aside>
 
@@ -1659,7 +1664,7 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                   className="gantry-toolbar-btn secondary"
                   onClick={() => {
                     const sec = createSectionDraft(`Section ${sections.length + 1}`)
-                    setSections(ensureFormSectionsEmptyRows([...sections, sec]))
+                    setSections([...sections, sec])
                     saveDebounced()
                   }}
                 >
@@ -1713,11 +1718,10 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                       </div>
                     </header>
                     <div className="sf-form-section-rows">
-                      {section.rows.length === 0 ? (
-                        <p className="gantry-drop-empty admin-empty">
-                          Drop fields here — add from the palette.
-                        </p>
-                      ) : dndReady ? (
+                      {section.rows.length === 0 && !dndReady ? (
+                        <p className="layout-muted">Add a field from the palette, or open + row.</p>
+                      ) : null}
+                      {dndReady ? (
                         <DndContext
                           id={`form-section-${section.id}`}
                           sensors={sensors}
@@ -1744,18 +1748,20 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                                     <span>
                                       {empty
                                         ? 'Empty row · drop fields here'
-                                        : `Row · drop fields here · ${row.columns.length} column${row.columns.length === 1 ? '' : 's'}`}
+                                        : `Row · ${row.columns.length} column${row.columns.length === 1 ? '' : 's'}`}
                                     </span>
-                                    <div className="gantry-row-actions">
-                                      <button
-                                        type="button"
-                                        className="gantry-toolbar-btn secondary"
-                                        title="Insert an empty drop row under this row"
-                                        onClick={() => insertRowBelow(section.id, row.id)}
-                                      >
-                                        Insert row below
-                                      </button>
-                                    </div>
+                                    {empty ? (
+                                      <div className="gantry-row-actions">
+                                        <button
+                                          type="button"
+                                          className="gantry-toolbar-btn secondary"
+                                          title="Close empty drop row"
+                                          onClick={() => closeEmptyRow(section.id, row.id)}
+                                        >
+                                          − row
+                                        </button>
+                                      </div>
+                                    ) : null}
                                   </div>
                                   <div className="gantry-row-slots sf-form-row-slots">
                                     {empty ? (
@@ -1922,6 +1928,23 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                           </div>
                         ))
                       )}
+                      {(() => {
+                        const last = section.rows[section.rows.length - 1]
+                        const trailingEmpty = Boolean(last && rowIsEmpty(last))
+                        if (trailingEmpty) return null
+                        return (
+                          <div className="sf-form-row-end-actions">
+                            <button
+                              type="button"
+                              className="gantry-toolbar-btn secondary"
+                              title="Open an empty drop row at the end"
+                              onClick={() => openEmptyRow(section.id)}
+                            >
+                              + row
+                            </button>
+                          </div>
+                        )
+                      })()}
                     </div>
                   </section>
                 )

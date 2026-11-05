@@ -1,12 +1,13 @@
 /**
- * Smoke-check Form builder row layout: legacy migrate + multi-col normalize + public helpers.
+ * Smoke-check Form builder row layout: legacy migrate + multi-col + opt-in empty rows.
  */
 import assert from 'node:assert/strict'
 
 import { normalizeFormDefinitionDocument, normalizeFormSections } from '../src/core/forms/definition.ts'
 import {
-  insertEmptyRowAfter,
+  appendEmptyRowToSection,
   moveFieldInSections,
+  removeEmptyRowFromSection,
   resizeRowColumns,
   rowIsEmpty,
   sectionFieldNames,
@@ -23,10 +24,13 @@ const legacy = normalizeFormSections(
   [{ id: 'sec_main', label: 'Fields', fieldNames: ['first', 'last', 'email'] }],
   fields,
 )
-const filledLegacy = legacy[0]!.rows.filter((r) => !rowIsEmpty(r))
-assert.equal(filledLegacy.length, 3, 'legacy fieldNames → 3 full-width rows')
-assert.ok(filledLegacy.every((r) => r.columns.length === 1 && r.columns[0]!.width === 100))
-assert.ok(rowIsEmpty(legacy[0]!.rows[legacy[0]!.rows.length - 1]!), 'trailing empty row')
+assert.equal(legacy[0]!.rows.length, 3, 'legacy fieldNames → 3 full-width rows (no auto empty)')
+assert.ok(legacy[0]!.rows.every((r) => r.columns.length === 1 && r.columns[0]!.width === 100))
+
+const opened = appendEmptyRowToSection(legacy, 'sec_main')
+assert.ok(rowIsEmpty(opened[0]!.rows[3]!), '+ row opens trailing empty')
+const closed = removeEmptyRowFromSection(opened, 'sec_main', opened[0]!.rows[3]!.id)
+assert.equal(closed[0]!.rows.length, 3, '− row closes empty')
 
 const joined = moveFieldInSections(legacy, 'last', {
   sectionId: 'sec_main',
@@ -41,9 +45,6 @@ const resized = resizeRowColumns(joined, 'sec_main', joined[0]!.rows[0]!.id, 0, 
 assert.equal(resized[0]!.rows[0]!.columns[0]!.width, 66)
 assert.equal(resized[0]!.rows[0]!.columns[1]!.width, 34)
 
-const withInsert = insertEmptyRowAfter(resized, 'sec_main', resized[0]!.rows[0]!.id)
-assert.ok(rowIsEmpty(withInsert[0]!.rows[1]!), 'insert empty under first row')
-
 const doc = normalizeFormDefinitionDocument({
   version: 1,
   preset: 'blank',
@@ -56,9 +57,5 @@ const doc = normalizeFormDefinitionDocument({
 })
 assert.deepEqual(sectionFieldNames(doc.sections![0]!), ['first', 'last', 'email'])
 assert.equal(doc.sections![0]!.fieldNames, undefined, 'legacy fieldNames stripped on normalize')
-assert.ok(
-  rowIsEmpty(doc.sections![0]!.rows[doc.sections![0]!.rows.length - 1]!),
-  'normalized doc keeps trailing empty',
-)
 
 console.log('verify-form-row-layout: pass')

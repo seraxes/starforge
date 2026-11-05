@@ -36,7 +36,15 @@ export {
   serializeLayoutDocument,
   slugifyLayoutId,
 } from './document'
-export { ensureDocumentEmptyRows, ensureSectionEmptyRows } from './empty-rows'
+export {
+  appendEmptyLayoutRow,
+  ensureDocumentEmptyRows,
+  ensureSectionEmptyRows,
+  layoutRowIsEmpty,
+  removeEmptyLayoutRow,
+  stripDocumentEmptyRows,
+  stripEmptyLayoutRows,
+} from './empty-rows'
 export {
   compareLayoutSectionsByOrder,
   isFooterLayoutSection,

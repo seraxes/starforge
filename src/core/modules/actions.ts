@@ -18,7 +18,11 @@ import {
   sanitizeHtmlId,
   slugifyLayoutId,
 } from './document'
-import { ensureDocumentEmptyRows } from './empty-rows'
+import {
+  appendEmptyLayoutRow,
+  ensureDocumentEmptyRows,
+  removeEmptyLayoutRow,
+} from './empty-rows'
 import { clampGridWidth, evenColumnWidths, LAYOUT_WIDTH_FULL, resizeAdjacentPair } from './grid'
 import { loadLayoutDocument, saveLayoutDocument } from './layout-store'
 import { defaultConfigForModule } from './particles/config'
@@ -109,7 +113,7 @@ async function mutateLayout(
   const result = mutator(working)
   if ('error' in result) return { error: result.error }
 
-  // SF-87: always one trailing empty row after modules; collapse empty pairs.
+  // Opt-in empty drop rows: collapse consecutive empties only (no auto-trailing).
   ensureDocumentEmptyRows(result)
 
   try {
@@ -748,6 +752,7 @@ export async function moveSlotToRowAction(
   return state
 }
 
+/** UI + row: open one empty drop row at the end of a section (no-op if already trailing empty). */
 export async function addLayoutRowAction(
   _prev: LayoutActionState,
   formData: FormData,
@@ -758,20 +763,15 @@ export async function addLayoutRowAction(
   const state = await mutateLayout(formData, (doc) => {
     const section = findSection(doc, sectionId)
     if (!section) return { error: `Section “${sectionId}” not found.` }
-    const maxOrder = section.rows.reduce((m, r) => Math.max(m, r.order ?? 0), -1)
-    const row: LayoutRow = {
-      id: newLayoutEntityId(`${sectionId}-row`),
-      order: maxOrder + 1,
-      slots: [],
-    }
-    section.rows.push(row)
+    appendEmptyLayoutRow(section)
     return doc
   })
 
-  if (state.ok) state.message = 'Row added.'
+  if (state.ok) state.message = 'Empty row opened.'
   return state
 }
 
+/** UI − row: remove an empty drop row only (filled rows keep particles / use slot remove). */
 export async function removeLayoutRowAction(
   _prev: LayoutActionState,
   formData: FormData,
@@ -783,13 +783,13 @@ export async function removeLayoutRowAction(
   const state = await mutateLayout(formData, (doc) => {
     const section = findSection(doc, sectionId)
     if (!section) return { error: `Section “${sectionId}” not found.` }
-    const next = section.rows.filter((r) => r.id !== rowId)
-    if (next.length === section.rows.length) return { error: 'Row not found.' }
-    section.rows = next
+    if (!removeEmptyLayoutRow(section, rowId)) {
+      return { error: 'Only empty drop rows can be removed with − row.' }
+    }
     return doc
   })
 
-  if (state.ok) state.message = 'Row removed.'
+  if (state.ok) state.message = 'Empty row closed.'
   return state
 }
 

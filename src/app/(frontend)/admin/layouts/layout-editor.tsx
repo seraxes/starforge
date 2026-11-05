@@ -9,9 +9,11 @@ import { GantryBarRemoveButton } from '@/components/admin/GantryBarRemoveButton'
 import { resolveAccessTags } from '@/core/acl/nav-access'
 import type { UserGroupOption } from '@/core/acl/types'
 import {
+  addLayoutRowAction,
   addLayoutSectionAction,
   dropParticleIntoRowAction,
   moveSlotToRowAction,
+  removeLayoutRowAction,
   removeSlotAction,
   renameLayoutSlotAction,
   reorderLayoutSectionsAction,
@@ -23,6 +25,7 @@ import {
   updateLayoutSectionMetaAction,
   type LayoutActionState,
 } from '@/core/modules/actions'
+import { layoutRowIsEmpty } from '@/core/modules/empty-rows'
 import { LayoutIdField, useLayoutOutlineId } from './layout-outline-context'
 import {
   gridWidthPercent,
@@ -645,6 +648,18 @@ function DropRow({
 
   const slots = sortSlots(localSlots)
   const widthSum = sumRowWidths(slots.map((s) => s.width))
+  const isEmptyRow = slots.length === 0
+
+  const persistRemoveEmptyRow = useCallback(() => {
+    const fd = withOutlineId(new FormData(), layoutId)
+    fd.set('sectionId', sectionId)
+    fd.set('rowId', row.id)
+    startTransition(async () => {
+      const result = await removeLayoutRowAction({}, fd)
+      setFlash(result)
+      router.refresh()
+    })
+  }, [layoutId, row.id, router, sectionId])
 
   const persistDrop = useCallback(
     (moduleId: string, index?: number) => {
@@ -818,7 +833,7 @@ function DropRow({
     >
       <div className="gantry-row-meta">
         <span>
-          Row · drop particles here
+          {isEmptyRow ? 'Empty row · drop particles here' : 'Row'}
           {slots.length > 0 ? <> · {widthSum}% total</> : null}
           {widthSum > LAYOUT_WIDTH_FULL ? (
             <span className="admin-badge admin-badge-warn"> overflows 100%</span>
@@ -831,6 +846,19 @@ function DropRow({
           ) : null}
           {pending ? <span className="layout-muted"> · saving…</span> : null}
         </span>
+        {isEmptyRow ? (
+          <div className="gantry-row-actions">
+            <button
+              type="button"
+              className="gantry-toolbar-btn secondary"
+              title="Close empty drop row"
+              disabled={pending}
+              onClick={persistRemoveEmptyRow}
+            >
+              − row
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <div className="gantry-row-slots">
@@ -975,6 +1003,17 @@ function SectionCanvas({
       return map
     })
   }
+
+  const [rowPending, startRowTransition] = useTransition()
+
+  const persistAddEmptyRow = useCallback(() => {
+    const fd = withOutlineId(new FormData(), layoutId)
+    fd.set('sectionId', section.id)
+    startRowTransition(async () => {
+      await addLayoutRowAction({}, fd)
+      router.refresh()
+    })
+  }, [layoutId, router, section.id])
 
   const persistSectionMeta = useCallback(
     (fields: {
@@ -1260,7 +1299,7 @@ function SectionCanvas({
       <ActionFeedback state={metaFlash} />
 
       {rows.length === 0 ? (
-        <p className="layout-muted">Drag particles into the empty row.</p>
+        <p className="layout-muted">Open + row to drop particles, or drag onto a new empty row.</p>
       ) : (
         rows.map((row) => (
           <DropRow
@@ -1278,15 +1317,33 @@ function SectionCanvas({
           />
         ))
       )}
+      {(() => {
+        const last = rows[rows.length - 1]
+        const trailingEmpty = Boolean(last && layoutRowIsEmpty(last))
+        if (trailingEmpty) return null
+        return (
+          <div className="sf-form-row-end-actions gantry-row-end-actions">
+            <button
+              type="button"
+              className="gantry-toolbar-btn secondary"
+              title="Open an empty drop row at the end"
+              disabled={rowPending}
+              onClick={persistAddEmptyRow}
+            >
+              + row
+            </button>
+          </div>
+        )
+      })()}
     </li>
   )
 }
 
 /**
  * Gantry Layout Manager–style canvas:
- * 1) Create section → 2) Drag particle into the trailing empty row (auto-cascades) →
+ * 1) Create section → 2) + row opens an empty drop zone → drag particles in →
  * 3) Drop another beside it and resize by % → drag ⋮⋮ on particles to reorder in-row →
- * sections reorder via drag handle. Empty trailing rows are automatic (SF-87).
+ * sections reorder via drag handle. Empty rows are opt-in (+ row / − row), not always-on.
  */
 export function LayoutEditor({
   document,

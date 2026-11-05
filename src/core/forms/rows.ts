@@ -44,23 +44,23 @@ export function rowIsEmpty(row: FormRowDef): boolean {
 
 /** Stable empty-row ids so normalize does not remount the canvas every refresh. */
 function nextEmptyRowId(sectionId: string, usedIds: Set<string>): string {
-  const base = `${sectionId}__trailing-empty`
+  const base = `${sectionId}__empty-row`
   if (!usedIds.has(base)) return base
   let n = 2
   while (usedIds.has(`${base}-${n}`)) n += 1
   return `${base}-${n}`
 }
 
-/** Empty drop row (Layout SF-87 analogue). */
+/** Empty drop row (opt-in via + row). */
 export function createEmptyRowDraft(sectionId = 'sec'): FormRowDef {
   return { id: nextEmptyRowId(sectionId, new Set()), columns: [] }
 }
 
 /**
- * Auto empty-row rules (match Layout SF-87):
- * - One open empty row per section by default.
- * - After any filled row, keep one trailing empty (cascade as rows fill).
- * - Consecutive empties collapse.
+ * Normalize empty rows (opt-in drop rows, match Layout):
+ * - Collapse consecutive empties only.
+ * - Do **not** auto-add a trailing empty (UI + row opens one).
+ * - Empty section stays empty.
  */
 export function ensureFormSectionEmptyRows(section: FormSectionDef): FormSectionDef {
   const collapsed: FormRowDef[] = []
@@ -70,17 +70,6 @@ export function ensureFormSectionEmptyRows(section: FormSectionDef): FormSection
     }
     collapsed.push(row)
   }
-  const usedIds = new Set(collapsed.map((r) => r.id))
-  if (collapsed.length === 0) {
-    return {
-      ...section,
-      rows: [{ id: nextEmptyRowId(section.id, usedIds), columns: [] }],
-    }
-  }
-  const last = collapsed[collapsed.length - 1]!
-  if (!rowIsEmpty(last)) {
-    collapsed.push({ id: nextEmptyRowId(section.id, usedIds), columns: [] })
-  }
   return { ...section, rows: collapsed }
 }
 
@@ -88,32 +77,49 @@ export function ensureFormSectionsEmptyRows(sections: FormSectionDef[]): FormSec
   return sections.map(ensureFormSectionEmptyRows)
 }
 
-/** Insert an empty drop row immediately after `afterRowId` (or at start when null). */
-export function insertEmptyRowAfter(
+/** Append one empty drop row at the end of a section (UI + row). No-op if trailing already empty. */
+export function appendEmptyRowToSection(
   sections: FormSectionDef[],
   sectionId: string,
-  afterRowId: string | null,
 ): FormSectionDef[] {
   return ensureFormSectionsEmptyRows(
     sections.map((section) => {
       if (section.id !== sectionId) return section
+      const last = section.rows[section.rows.length - 1]
+      if (last && rowIsEmpty(last)) return section
       const empty: FormRowDef = {
         id: nextEmptyRowId(section.id, new Set(section.rows.map((r) => r.id))),
         columns: [],
       }
-      if (!afterRowId) {
-        return { ...section, rows: [empty, ...section.rows] }
-      }
-      const idx = section.rows.findIndex((r) => r.id === afterRowId)
-      if (idx < 0) return { ...section, rows: [...section.rows, empty] }
-      const rows = [
-        ...section.rows.slice(0, idx + 1),
-        empty,
-        ...section.rows.slice(idx + 1),
-      ]
-      return { ...section, rows }
+      return { ...section, rows: [...section.rows, empty] }
     }),
   )
+}
+
+/** Remove an empty drop row (− row). No-op if missing or not empty. */
+export function removeEmptyRowFromSection(
+  sections: FormSectionDef[],
+  sectionId: string,
+  rowId: string,
+): FormSectionDef[] {
+  return ensureFormSectionsEmptyRows(
+    sections.map((section) => {
+      if (section.id !== sectionId) return section
+      const row = section.rows.find((r) => r.id === rowId)
+      if (!row || !rowIsEmpty(row)) return section
+      return { ...section, rows: section.rows.filter((r) => r.id !== rowId) }
+    }),
+  )
+}
+
+/** @deprecated Prefer appendEmptyRowToSection — kept for older imports. */
+export function insertEmptyRowAfter(
+  sections: FormSectionDef[],
+  sectionId: string,
+  _afterRowId: string | null,
+): FormSectionDef[] {
+  void _afterRowId
+  return appendEmptyRowToSection(sections, sectionId)
 }
 
 /** Evenly redistribute column widths so they sum to 100%. */
@@ -279,7 +285,7 @@ export function reconcileSectionRowsWithFields(
   return ensureFormSectionsEmptyRows(appendOrphanFieldRows(next, orphan))
 }
 
-/** Remove a field from all rows; leave empties then ensure trailing empty row. */
+/** Remove a field from all rows; leave empties then collapse consecutive empties. */
 export function removeFieldFromSections(
   sections: FormSectionDef[],
   fieldName: string,
@@ -315,8 +321,8 @@ export function renameFieldInSections(
 }
 
 /**
- * Place a new field into the first trailing empty row of the section,
- * or append a full-width row then ensure trailing empty (Layout palette drop).
+ * Place a new field into the trailing empty drop row when open,
+ * otherwise append a new full-width filled row (no auto-empty after).
  */
 export function appendFieldRow(
   sections: FormSectionDef[],
@@ -326,12 +332,10 @@ export function appendFieldRow(
   return ensureFormSectionsEmptyRows(
     sections.map((s) => {
       if (s.id !== sectionId) return s
-      const emptyIdx = s.rows.findIndex((r) => rowIsEmpty(r))
-      if (emptyIdx >= 0) {
+      const last = s.rows[s.rows.length - 1]
+      if (last && rowIsEmpty(last)) {
         const rows = [...s.rows]
-        rows[emptyIdx] = createRowDraft(fieldName)
-        // Keep a stable id when filling an empty drop row.
-        rows[emptyIdx] = { ...rows[emptyIdx]!, id: s.rows[emptyIdx]!.id }
+        rows[rows.length - 1] = { id: last.id, columns: createRowDraft(fieldName).columns }
         return { ...s, rows }
       }
       return { ...s, rows: [...s.rows, createRowDraft(fieldName)] }

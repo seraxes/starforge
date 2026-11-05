@@ -2489,6 +2489,13 @@ button:disabled {
   min-height: 3.25rem;
 }
 
+.sf-form-row-end-actions,
+.gantry-row-end-actions {
+  display: flex;
+  justify-content: flex-start;
+  padding: 0.35rem 0.15rem 0.15rem;
+}
+
 .sf-form-row-slots {
   display: flex;
   flex-direction: row;

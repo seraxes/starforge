@@ -62,6 +62,7 @@ export {
 } from './definition'
 export {
   addFieldToRow,
+  appendEmptyRowToSection,
   appendFieldRow,
   createEmptyRowDraft,
   createRowDraft,
@@ -71,6 +72,7 @@ export {
   mergeRows,
   moveFieldInSections,
   redistributeRowWidths,
+  removeEmptyRowFromSection,
   removeFieldFromSections,
   renameFieldInSections,
   resizeRowColumns,
