@@ -3,6 +3,8 @@ import { type MigrateUpArgs, type MigrateDownArgs, sql } from '@payloadcms/db-po
 /**
  * Site Settings → Performance: Dashboard refresh interval + online window (D0).
  * Idempotent ADD COLUMN IF NOT EXISTS.
+ * Also covered by `20261105_site_settings_select_heal` + `db:migrate` post-heal
+ * for journal-stuck / push-era DBs.
  */
 export async function up({ db }: MigrateUpArgs): Promise<void> {
   await db.execute(sql`

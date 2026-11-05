@@ -13,6 +13,8 @@ import { type MigrateUpArgs, type MigrateDownArgs, sql } from '@payloadcms/db-po
  * site_settings_module_toggles child table exist (push-era / partial DBs).
  *
  * Idempotent: safe to re-run; no-op when objects already exist.
+ * Superseded for full coverage by `20261105_site_settings_select_heal`
+ * (adds Dashboard D0 columns + same Performance/feature set).
  */
 export async function up({ db }: MigrateUpArgs): Promise<void> {
   await db.execute(sql`
