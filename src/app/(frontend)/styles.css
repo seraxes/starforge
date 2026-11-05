@@ -2145,6 +2145,17 @@ button:disabled {
   padding: 0.35rem 1.5rem;
 }
 
+.sf-spacer {
+  display: block;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
 .sf-copyright {
   margin: 0.65rem 1.5rem;
   font-size: 0.92rem;
@@ -2466,17 +2477,162 @@ button:disabled {
   min-width: 0;
 }
 
-.sf-form-section-fields {
+.sf-form-section-rows {
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 0.55rem;
   width: 100%;
 }
 
-.sf-form-slot {
+.sf-form-builder-row {
+  margin-bottom: 0;
+  /* Keep drop target visible while dragging (do not collapse when source opacity drops). */
+  min-height: 4.5rem;
+}
+
+.sf-form-builder-row.is-drop-target {
+  border-color: color-mix(in srgb, var(--sf-primary-strong) 55%, var(--sf-line));
+  background: color-mix(in srgb, var(--sf-primary) 18%, transparent);
+}
+
+.sf-form-builder-row-empty {
+  min-height: 5.5rem;
+}
+
+.sf-form-builder-row-empty .gantry-row-empty {
+  flex: 1 1 auto;
+  min-height: 4.25rem;
+}
+
+.sf-form-row-end-actions,
+.gantry-row-end-actions {
+  display: flex;
+  justify-content: flex-start;
+  padding: 0.35rem 0.15rem 0.15rem;
+}
+
+.sf-form-row-slots {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 0;
   width: 100%;
+  min-height: 3.5rem;
+}
+
+/* Whole field/particle bar is the grab target (actions exclude themselves). */
+.gantry-slot.is-slot-grab {
+  cursor: grab;
+}
+
+.gantry-slot.is-slot-grab.is-slot-dragging {
+  cursor: grabbing;
+}
+
+/* Portaled Form DragOverlay preview — inline styles also set chrome; this is backup. */
+.sf-form-drag-overlay {
+  pointer-events: none;
+  cursor: grabbing;
+  display: block;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.sf-form-drag-overlay .sf-form-drag-preview-slot,
+.sf-form-drag-overlay .gantry-slot.sf-form-slot {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  background: #3498db;
+  border: 4px solid #0f3d63;
+  border-radius: 3px;
+  color: #fff;
+  padding: 0.32rem 0.45rem;
+  min-height: 3.25rem;
+  box-shadow: 0 10px 28px rgba(11, 28, 44, 0.45);
+}
+
+.sf-form-drag-overlay .sf-form-drag-preview-slot *,
+.sf-form-drag-overlay .gantry-slot.sf-form-slot * {
+  color: #fff !important;
+}
+
+.sf-form-row-meta {
+  margin-bottom: 0.35rem;
+}
+
+.sf-form-slot-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.sf-form-row-action {
+  font-size: 0.78rem;
+  padding: 0.2rem 0.45rem;
+}
+
+.sf-form-target-row {
+  margin: 0.65rem 0 0;
+  font-size: 0.85rem;
+  color: var(--sf-muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+/* Public form row layout (side-by-side % columns; stacks on small screens). */
+.sf-form-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.sf-form-row + .sf-form-row {
+  margin-top: 0.15rem;
+}
+
+.sf-form-col {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.sf-form-col-hidden {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
   flex: none !important;
-  max-width: none !important;
+  max-width: 0 !important;
+}
+
+.sf-form-slot {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 640px) {
+  .sf-form-row.sf-form-row-multi {
+    flex-direction: column;
+    flex-wrap: nowrap;
+  }
+
+  .sf-form-row.sf-form-row-multi > .sf-form-col {
+    flex: 1 1 auto !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
 }
 
 .sf-form-slot .gantry-slot-labels {

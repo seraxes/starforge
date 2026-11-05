@@ -248,14 +248,36 @@ export type FormJsonSchema = {
 }
 
 /**
- * Visual grouping in the Form builder (section-like, not layout rows/%).
- * Fields stay canonical/flat; sections only order + label groups for admin + public.
+ * One column inside a form layout row (Gantry-like % width).
+ * Fields stay canonical/flat on `FormDefinitionDocument.fields`; rows only place them.
+ */
+export type FormRowColumn = {
+  /** Field `name` rendered in this column. */
+  fieldName: string
+  /** Width percent (5–100). Same model as Layout slots. */
+  width: number
+}
+
+/** Side-by-side field group within a section (stacks on mobile). */
+export type FormRowDef = {
+  id: string
+  columns: FormRowColumn[]
+}
+
+/**
+ * Visual grouping in the Form builder (section → rows → %-width columns).
+ * Fields stay canonical/flat; sections own order + labels + row layout for admin + public.
  */
 export type FormSectionDef = {
   id: string
   label: string
-  /** Ordered field `name`s belonging to this section. */
-  fieldNames: string[]
+  /** Layout rows (one or more fields side-by-side). */
+  rows: FormRowDef[]
+  /**
+   * Legacy single-column order (pre-row-layout). Accepted on normalize;
+   * migrated into `rows` (one field per row at 100%) and omitted on save.
+   */
+  fieldNames?: string[]
 }
 
 export type FormDefinitionDocument = {

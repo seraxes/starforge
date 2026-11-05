@@ -9,9 +9,11 @@ import { GantryBarRemoveButton } from '@/components/admin/GantryBarRemoveButton'
 import { resolveAccessTags } from '@/core/acl/nav-access'
 import type { UserGroupOption } from '@/core/acl/types'
 import {
+  addLayoutRowAction,
   addLayoutSectionAction,
   dropParticleIntoRowAction,
   moveSlotToRowAction,
+  removeLayoutRowAction,
   removeSlotAction,
   renameLayoutSlotAction,
   reorderLayoutSectionsAction,
@@ -23,6 +25,7 @@ import {
   updateLayoutSectionMetaAction,
   type LayoutActionState,
 } from '@/core/modules/actions'
+import { layoutRowIsEmpty } from '@/core/modules/empty-rows'
 import { LayoutIdField, useLayoutOutlineId } from './layout-outline-context'
 import {
   gridWidthPercent,
@@ -82,6 +85,46 @@ type SlotDragPayload = {
 
 function encodeSlotDragPayload(payload: SlotDragPayload): string {
   return JSON.stringify(payload)
+}
+
+/** Interactive chrome that must not start a particle-bar drag. */
+function isLayoutSlotDragIgnoredTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return false
+  return Boolean(
+    target.closest(
+      'input, textarea, select, a, label, .gantry-slot-actions, .gantry-settings-trigger, .gantry-bar-remove, .gantry-settings-layer',
+    ),
+  )
+}
+
+/**
+ * HTML5 drag image: clone of the real mid-blue particle bar at ~50% opacity.
+ * Removed after the browser snapshots it.
+ */
+function setHalfOpacityDragImage(event: React.DragEvent<HTMLElement>) {
+  const src = event.currentTarget
+  const rect = src.getBoundingClientRect()
+  const ghost = src.cloneNode(true) as HTMLElement
+  ghost.setAttribute('aria-hidden', 'true')
+  ghost.style.position = 'fixed'
+  ghost.style.top = '-10000px'
+  ghost.style.left = '-10000px'
+  ghost.style.width = `${Math.max(rect.width, 1)}px`
+  ghost.style.height = `${Math.max(rect.height, 1)}px`
+  ghost.style.opacity = '0.5'
+  ghost.style.pointerEvents = 'none'
+  ghost.style.margin = '0'
+  ghost.style.zIndex = '10000'
+  ghost.removeAttribute('draggable')
+  document.body.appendChild(ghost)
+  event.dataTransfer.setDragImage(
+    ghost,
+    Math.max(0, event.clientX - rect.left),
+    Math.max(0, event.clientY - rect.top),
+  )
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => ghost.remove())
+  })
 }
 
 function parseSlotDragPayload(raw: string): SlotDragPayload | null {
@@ -423,6 +466,7 @@ function ParticleBlock({
 
   const classNames = [
     'gantry-slot',
+    'is-slot-grab',
     isDragging ? 'is-slot-dragging' : '',
     dropEdge === 'before' ? 'is-slot-drop-before' : '',
     dropEdge === 'after' ? 'is-slot-drop-after' : '',
@@ -436,12 +480,40 @@ function ParticleBlock({
       data-enabled={enabled ? 'true' : 'false'}
       data-sf-width={slot.width}
       data-sf-slot={slot.id}
+      draggable
+      title={`Drag ${displayName} to reorder or move to another row`}
       style={{
         /* Grow by % share so resize handles don't force wrap/overflow. */
         flex: `${percent} 1 0`,
         minWidth: 0,
         maxWidth: '100%',
         boxSizing: 'border-box',
+        cursor: isDragging ? 'grabbing' : 'grab',
+      }}
+      onMouseDown={(event) => {
+        // Name field / cog / remove must not start an HTML5 drag.
+        ;(event.currentTarget as HTMLElement).draggable = !isLayoutSlotDragIgnoredTarget(
+          event.target,
+        )
+      }}
+      onDragStart={(event) => {
+        if (isLayoutSlotDragIgnoredTarget(event.target)) {
+          event.preventDefault()
+          return
+        }
+        const payload: SlotDragPayload = {
+          sectionId,
+          rowId,
+          slotId: slot.id,
+        }
+        event.dataTransfer.setData(DND_SLOT, encodeSlotDragPayload(payload))
+        event.dataTransfer.setData('text/plain', slot.id)
+        event.dataTransfer.effectAllowed = 'move'
+        setHalfOpacityDragImage(event)
+        onSlotDragStart(payload)
+      }}
+      onDragEnd={() => {
+        onSlotDragEnd()
       }}
       onDragOver={(event) => {
         if (!dataTransferHasType(event.dataTransfer, DND_SLOT)) return
@@ -465,31 +537,13 @@ function ParticleBlock({
     >
       <header className="gantry-slot-head">
         <div className="gantry-slot-title">
-          <button
-            type="button"
+          <span
             className="gantry-slot-handle"
-            draggable
-            title="Drag to reorder in this row or move to another section"
-            aria-label={`Drag to move ${displayName}`}
-            onDragStart={(event) => {
-              event.stopPropagation()
-              const payload: SlotDragPayload = {
-                sectionId,
-                rowId,
-                slotId: slot.id,
-              }
-              event.dataTransfer.setData(DND_SLOT, encodeSlotDragPayload(payload))
-              event.dataTransfer.setData('text/plain', slot.id)
-              event.dataTransfer.effectAllowed = 'move'
-              onSlotDragStart(payload)
-            }}
-            onDragEnd={(event) => {
-              event.stopPropagation()
-              onSlotDragEnd()
-            }}
+            aria-hidden="true"
+            title="Drag particle"
           >
             ▣
-          </button>
+          </span>
           <div className="gantry-slot-labels">
             <label className="gantry-inline-label gantry-slot-name-label">
               <span className="sr-only">Particle display name</span>
@@ -500,6 +554,7 @@ function ParticleBlock({
                 defaultValue={slot.name ?? ''}
                 placeholder={catalogName}
                 disabled={pending}
+                draggable={false}
                 title="Instance display name (does not change particle type)"
                 aria-label={`Display name for ${catalogName}`}
                 onBlur={(event) => persistName(event.target.value)}
@@ -518,7 +573,11 @@ function ParticleBlock({
             </span>
           </div>
         </div>
-        <div className="gantry-slot-end">
+        <div
+          className="gantry-slot-end"
+          onMouseDown={(event) => event.stopPropagation()}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
           <span className="gantry-slot-pct" title={`Width ${pctLabel} (min ${LAYOUT_WIDTH_MIN}%)`}>
             {pctLabel}
           </span>
@@ -645,6 +704,18 @@ function DropRow({
 
   const slots = sortSlots(localSlots)
   const widthSum = sumRowWidths(slots.map((s) => s.width))
+  const isEmptyRow = slots.length === 0
+
+  const persistRemoveEmptyRow = useCallback(() => {
+    const fd = withOutlineId(new FormData(), layoutId)
+    fd.set('sectionId', sectionId)
+    fd.set('rowId', row.id)
+    startTransition(async () => {
+      const result = await removeLayoutRowAction({}, fd)
+      setFlash(result)
+      router.refresh()
+    })
+  }, [layoutId, row.id, router, sectionId])
 
   const persistDrop = useCallback(
     (moduleId: string, index?: number) => {
@@ -818,7 +889,7 @@ function DropRow({
     >
       <div className="gantry-row-meta">
         <span>
-          Row · drop particles here
+          {isEmptyRow ? 'Empty row · drop particles here' : 'Row'}
           {slots.length > 0 ? <> · {widthSum}% total</> : null}
           {widthSum > LAYOUT_WIDTH_FULL ? (
             <span className="admin-badge admin-badge-warn"> overflows 100%</span>
@@ -831,6 +902,19 @@ function DropRow({
           ) : null}
           {pending ? <span className="layout-muted"> · saving…</span> : null}
         </span>
+        {isEmptyRow ? (
+          <div className="gantry-row-actions">
+            <button
+              type="button"
+              className="gantry-toolbar-btn secondary"
+              title="Close empty drop row"
+              disabled={pending}
+              onClick={persistRemoveEmptyRow}
+            >
+              − row
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <div className="gantry-row-slots">
@@ -975,6 +1059,17 @@ function SectionCanvas({
       return map
     })
   }
+
+  const [rowPending, startRowTransition] = useTransition()
+
+  const persistAddEmptyRow = useCallback(() => {
+    const fd = withOutlineId(new FormData(), layoutId)
+    fd.set('sectionId', section.id)
+    startRowTransition(async () => {
+      await addLayoutRowAction({}, fd)
+      router.refresh()
+    })
+  }, [layoutId, router, section.id])
 
   const persistSectionMeta = useCallback(
     (fields: {
@@ -1260,7 +1355,7 @@ function SectionCanvas({
       <ActionFeedback state={metaFlash} />
 
       {rows.length === 0 ? (
-        <p className="layout-muted">Drag particles into the empty row.</p>
+        <p className="layout-muted">Open + row to drop particles, or drag onto a new empty row.</p>
       ) : (
         rows.map((row) => (
           <DropRow
@@ -1278,15 +1373,33 @@ function SectionCanvas({
           />
         ))
       )}
+      {(() => {
+        const last = rows[rows.length - 1]
+        const trailingEmpty = Boolean(last && layoutRowIsEmpty(last))
+        if (trailingEmpty) return null
+        return (
+          <div className="sf-form-row-end-actions gantry-row-end-actions">
+            <button
+              type="button"
+              className="gantry-toolbar-btn secondary"
+              title="Open an empty drop row at the end"
+              disabled={rowPending}
+              onClick={persistAddEmptyRow}
+            >
+              + row
+            </button>
+          </div>
+        )
+      })()}
     </li>
   )
 }
 
 /**
  * Gantry Layout Manager–style canvas:
- * 1) Create section → 2) Drag particle into the trailing empty row (auto-cascades) →
+ * 1) Create section → 2) + row opens an empty drop zone → drag particles in →
  * 3) Drop another beside it and resize by % → drag ⋮⋮ on particles to reorder in-row →
- * sections reorder via drag handle. Empty trailing rows are automatic (SF-87).
+ * sections reorder via drag handle. Empty rows are opt-in (+ row / − row), not always-on.
  */
 export function LayoutEditor({
   document,

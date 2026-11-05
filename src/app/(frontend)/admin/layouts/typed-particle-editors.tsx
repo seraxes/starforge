@@ -19,11 +19,13 @@ import {
   readLogoConfig,
   readMenuConfig,
   readSocialConfig,
+  readSpacerConfig,
   type CopyrightParticleConfig,
   type LocaleSwitcherParticleConfig,
   type LogoParticleConfig,
   type MenuParticleConfig,
   type SocialLinkItem,
+  type SpacerParticleConfig,
 } from '@/core/modules/particles/config'
 import { cssColorToColorInputValue, parseCssColorInput } from '@/core/modules/styles'
 import type { LayoutSlot, LayoutSlotConfig } from '@/core/modules/types'
@@ -502,6 +504,102 @@ export function LocaleSwitcherParticleEditor({
         <p className="layout-muted">
           Enabled locales come from <code>/admin/localization</code>. Hidden when fewer than two
           languages are enabled.
+        </p>
+        {pending ? <p className="layout-muted">Saving…</p> : null}
+        <ActionFeedback state={state} />
+      </form>
+    </SettingsShell>
+  )
+}
+
+export function SpacerParticleEditor({
+  sectionId,
+  rowId,
+  slot,
+  embedded = false,
+  onConfigSaved,
+}: {
+  sectionId: string
+  rowId: string
+  slot: LayoutSlot
+  embedded?: boolean
+  onConfigSaved?: (config: LayoutSlotConfig) => void
+}) {
+  const [state, formAction, pending] = useActionState(updateSlotConfigAction, initialState)
+  useParticleAutosaveResult(state, onConfigSaved)
+  const { formRef, saveNow, saveDebounced } = useAutosaveForm()
+
+  const [draft, setDraft] = useState<SpacerParticleConfig>(() => readSpacerConfig(slot.config))
+
+  useEffect(() => {
+    setDraft(readSpacerConfig(slot.config))
+  }, [slot.id])
+
+  const configJson = JSON.stringify({
+    height: draft.height,
+    ...(draft.width != null && draft.width > 0 ? { width: draft.width } : {}),
+  })
+
+  return (
+    <SettingsShell title="Spacer settings" embedded={embedded}>
+      <form
+        ref={formRef}
+        action={formAction}
+        className="gantry-typed-form"
+        {...particleFormAutosaveProps(saveDebounced, saveNow)}
+      >
+        <LayoutIdField />
+        <input type="hidden" name="sectionId" value={sectionId} />
+        <input type="hidden" name="rowId" value={rowId} />
+        <input type="hidden" name="slotId" value={slot.id} />
+        <input type="hidden" name="configJson" value={configJson} />
+        <label>
+          <span>Height (px)</span>
+          <input
+            type="number"
+            name="height"
+            min={1}
+            max={2400}
+            value={draft.height}
+            onChange={(e) => {
+              const n = Number(e.target.value)
+              setDraft((prev) => ({
+                ...prev,
+                height: Number.isFinite(n) && n > 0 ? Math.round(n) : 24,
+              }))
+            }}
+          />
+        </label>
+        <label>
+          <span>Width (px, optional)</span>
+          <input
+            type="number"
+            name="width"
+            min={1}
+            max={2400}
+            value={draft.width ?? ''}
+            placeholder="Fill column"
+            onChange={(e) => {
+              const raw = e.target.value.trim()
+              if (!raw) {
+                setDraft((prev) => {
+                  const next: SpacerParticleConfig = { height: prev.height }
+                  return next
+                })
+                return
+              }
+              const n = Number(raw)
+              setDraft((prev) =>
+                Number.isFinite(n) && n > 0
+                  ? { ...prev, width: Math.round(n) }
+                  : { height: prev.height },
+              )
+            }}
+          />
+        </label>
+        <p className="layout-muted">
+          Plain empty gap — no content. Use height for vertical space; leave width empty to span the
+          column (slot % still controls row share).
         </p>
         {pending ? <p className="layout-muted">Saving…</p> : null}
         <ActionFeedback state={state} />

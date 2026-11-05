@@ -9,6 +9,7 @@ import { menuModule } from './menu'
 import { pageContentModule } from './page-content'
 import { siteHeaderModule } from './site-header'
 import { socialModule } from './social'
+import { spacerModule } from './spacer'
 
 /** Core particles always registered before extension modules. */
 export const builtinParticles: StarforgeModule[] = [
@@ -19,6 +20,7 @@ export const builtinParticles: StarforgeModule[] = [
   localeSwitcherModule,
   copyrightModule,
   socialModule,
+  spacerModule,
   customModule,
   loginModule,
 ]
@@ -33,6 +35,7 @@ export {
   pageContentModule,
   siteHeaderModule,
   socialModule,
+  spacerModule,
 }
 
 export {
@@ -43,12 +46,14 @@ export {
   defaultLogoConfig,
   defaultMenuConfig,
   defaultSocialConfig,
+  defaultSpacerConfig,
   readCopyrightConfig,
   readLocaleSwitcherConfig,
   readLoginConfig,
   readLogoConfig,
   readMenuConfig,
   readSocialConfig,
+  readSpacerConfig,
 } from './config'
 export type {
   CopyrightParticleConfig,
@@ -59,4 +64,5 @@ export type {
   MenuParticleConfig,
   SocialLinkItem,
   SocialParticleConfig,
+  SpacerParticleConfig,
 } from './config'

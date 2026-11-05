@@ -1,7 +1,7 @@
 import { accessTagsForStorage } from '@/core/acl/nav-access'
 
 import defaultLayoutJson from './default-layout.json'
-import { ensureSectionEmptyRows } from './empty-rows'
+import { ensureSectionEmptyRows, stripEmptyLayoutRows } from './empty-rows'
 import { clampGridWidth, LAYOUT_WIDTH_FULL, normalizeRowWidthsToPercent } from './grid'
 import { sortLayoutSectionsByOrder } from './section-order'
 import {
@@ -156,7 +156,7 @@ function normalizeSection(entry: LayoutSection | null | undefined, index: number
     order: typeof entry.order === 'number' && Number.isFinite(entry.order) ? entry.order : index,
     rows,
   }
-  // SF-87: one open empty row; trailing empty after modules (stable ids).
+  // Opt-in empty drop rows: collapse consecutive empties only (UI + row / − row).
   ensureSectionEmptyRows(section)
   return section
 }
@@ -423,8 +423,11 @@ export function normalizeLayoutDocument(raw: unknown): LayoutDocument | null {
 
 export function cloneDefaultLayoutDocument(): LayoutDocument {
   const normalized = normalizeLayoutDocument(defaultLayoutJson)
-  if (normalized) return structuredClone(normalized)
-  return { version: 3, sections: [] }
+  if (!normalized) return { version: 3, sections: [] }
+  const clone = structuredClone(normalized)
+  // Default outline: no always-on empty Drop rows (+ row opens one in the editor).
+  for (const section of clone.sections) stripEmptyLayoutRows(section)
+  return clone
 }
 
 export function parseLayoutDocumentJson(json: string): LayoutDocument | null {

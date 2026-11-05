@@ -1189,6 +1189,14 @@ body:has(.admin-shell) > main {
   box-shadow: inset -3px 0 0 #fff;
 }
 
+.admin-shell .gantry-slot.is-slot-grab {
+  cursor: grab;
+}
+
+.admin-shell .gantry-slot.is-slot-grab.is-slot-dragging {
+  cursor: grabbing;
+}
+
 .admin-shell .gantry-slot-handle {
   display: inline-flex;
   align-items: center;
