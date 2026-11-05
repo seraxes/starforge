@@ -5,7 +5,7 @@ import {
   ADMIN_ACCOUNT_HREF,
   ADMIN_SHELL_LOGO_TOOLTIP,
   adminUserInitials,
-} from './admin-sidebar-chrome.ts'
+} from './admin-sidebar-chrome'
 
 describe('adminUserInitials', () => {
   it('uses first letters of two name parts', () => {
