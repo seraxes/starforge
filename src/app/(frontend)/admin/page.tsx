@@ -7,6 +7,7 @@ import {
   resolveDashboardWidgets,
   resolveEnabledDashboardModuleIds,
 } from '@/core/dashboard'
+import { DashboardSoftRefresh } from '@/core/dashboard/DashboardSoftRefresh'
 import {
   getAccessViewer,
   listViewerAllowedAdminResources,
@@ -62,16 +63,10 @@ export default async function CoreAdminDashboardPage() {
             <Link href={`${CORE_ADMIN_ROOT}/settings`}>Settings → Modules</Link>. Payload CMS:{' '}
             <Link href={PAYLOAD_ADMIN_ROOT}>{PAYLOAD_ADMIN_ROOT}</Link>.
           </p>
-          <p className="sf-dashboard-refreshed">
-            Last refreshed{' '}
-            <time dateTime={refreshedAt.toISOString()}>
-              {refreshedAt.toISOString().replace('T', ' ').slice(0, 19)} UTC
-            </time>
-            <span className="sf-dashboard-stat-hint">
-              {' '}
-              · refresh interval {refreshSec}s (Settings → Performance)
-            </span>
-          </p>
+          <DashboardSoftRefresh
+            intervalSec={refreshSec}
+            initialRefreshedAt={refreshedAt.toISOString()}
+          />
         </div>
       </header>
 

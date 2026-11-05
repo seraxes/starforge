@@ -156,10 +156,10 @@ export function PerformanceSettingsForm({
         <fieldset className="settings-fieldset settings-fieldset-wide">
           <legend>Dashboard</legend>
           <p className="settings-hint">
-            Soft-refresh interval for the admin Dashboard at <code>/admin</code>. Client poll / RSC
-            refresh wiring lands in a follow-up (D4); the host already reads these knobs. Online-now
-            counts sessions touched within the window (Better Auth <code>sf_sessions.updated_at</code>
-            ).
+            Soft-refresh interval for the admin Dashboard at <code>/admin</code>. The Dashboard
+            client polls with <code>router.refresh</code> on this interval and pauses while the tab
+            is hidden. Online-now counts sessions touched within the window (Better Auth{' '}
+            <code>sf_sessions.updated_at</code>).
           </p>
           <label className="settings-field">
             <span>Refresh interval (seconds)</span>

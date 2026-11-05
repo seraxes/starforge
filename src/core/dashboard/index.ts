@@ -13,6 +13,11 @@ export {
 } from './resolve'
 export type { ResolveDashboardWidgetsOptions } from './resolve'
 export { DashboardWidgetCard, DashboardWidgetGrid } from './host'
+export {
+  dashboardRefreshIntervalMs,
+  formatDashboardRefreshedAt,
+  shouldRefreshOnBecomeVisible,
+} from './soft-refresh'
 export type {
   DashboardStatsResult,
   DashboardWidgetSize,
