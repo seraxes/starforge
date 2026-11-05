@@ -54,7 +54,19 @@ mustInclude(styles, 'odd last fieldset full width', ':last-child:nth-child(odd)'
 mustInclude(chrome, 'create submit bottom-right', 'grid-column: 1 / -1')
 mustInclude(chrome, 'create submit justify end', 'justify-self: end')
 mustInclude(chrome, 'nav add item align', '.admin-shell .nav-items-add .outlines-create-form')
-mustInclude(groups, 'Members gantry button', 'gantry-toolbar-btn secondary')
+mustInclude(groups, 'Rename gantry button', 'gantry-toolbar-btn secondary')
+mustInclude(groups, 'no redundant Members action link', 'Name already opens members')
+mustInclude(styles, 'no Actions nested expand-below margin', '.outlines-actions > .outlines-inline-form')
+const formsManager = readFileSync(
+  join(root, 'src/app/(frontend)/admin/forms/forms-manager.tsx'),
+  'utf8',
+)
+mustInclude(formsManager, 'forms Dup uses admin-inline-form', 'form action={dupAction} className="admin-inline-form"')
+mustInclude(formsManager, 'forms Delete uses admin-inline-form', 'form action={deleteAction} className="admin-inline-form"')
+if (formsManager.includes('>Edit</') || formsManager.includes('>Edit\n')) {
+  console.error('forms list still has redundant Edit action button')
+  process.exit(1)
+}
 mustInclude(authForm, 'magic link toggle', 'authMagicLinkEnabled')
 mustInclude(authForm, '2FA toggle', 'authTwoFactorEnabled')
 mustInclude(siteChromeTypes, 'auth magic chrome field', 'authMagicLinkEnabled')

@@ -148,7 +148,7 @@ export function GroupsManager({ groups }: Props) {
                     {renamingId === group.id ? (
                       <form
                         action={renameAction}
-                        className="admin-inline-form outlines-inline-form"
+                        className="admin-inline-form"
                         onSubmit={() => setTimeout(() => setRenamingId(null), 50)}
                       >
                         <input type="hidden" name="groupId" value={group.id} />
@@ -193,12 +193,7 @@ export function GroupsManager({ groups }: Props) {
                         >
                           Rename
                         </button>
-                        <Link
-                          className="gantry-toolbar-btn secondary"
-                          href={`/admin/users/groups/${encodeURIComponent(group.id)}`}
-                        >
-                          Members
-                        </Link>
+                        {/* Name already opens members — no redundant Members band. */}
                         <form action={deleteAction} className="admin-inline-form">
                           <input type="hidden" name="groupId" value={group.id} />
                           <button
