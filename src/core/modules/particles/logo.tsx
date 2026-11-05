@@ -1,11 +1,35 @@
 import React from 'react'
-import Link from 'next/link'
 
+import { Link } from '@/core/i18n/navigation'
 import { resolveMediaBind } from '@/core/media/resolve'
+import { isExternalHref } from '@/core/settings/nav'
 
 import { parseCssColorInput } from '../styles'
 import type { StarforgeModule } from '../types'
 import { readLogoConfig } from './config'
+
+function LogoLink({
+  href,
+  className,
+  children,
+}: {
+  href: string
+  className?: string
+  children: React.ReactNode
+}) {
+  if (isExternalHref(href)) {
+    return (
+      <a href={href} className={className} target="_blank" rel="noopener noreferrer">
+        {children}
+      </a>
+    )
+  }
+  return (
+    <Link href={href || '/'} className={className}>
+      {children}
+    </Link>
+  )
+}
 
 async function resolveLogoSrc(mediaId: string, mediaUrl: string, alt: string) {
   const resolved = await resolveMediaBind({
@@ -64,9 +88,9 @@ export const logoModule: StarforgeModule = {
       return (
         <div className="sf-logo sf-logo-mode-text" data-sf-particle="logo" data-sf-slot={slot.id}>
           {href ? (
-            <Link href={href} className="sf-logo-link">
+            <LogoLink href={href} className="sf-logo-link">
               {textEl}
-            </Link>
+            </LogoLink>
           ) : (
             textEl
           )}
@@ -96,9 +120,9 @@ export const logoModule: StarforgeModule = {
     return (
       <div className="sf-logo sf-logo-mode-image" data-sf-particle="logo" data-sf-slot={slot.id}>
         {href ? (
-          <Link href={href} className="sf-logo-link">
+          <LogoLink href={href} className="sf-logo-link">
             {image}
-          </Link>
+          </LogoLink>
         ) : (
           image
         )}

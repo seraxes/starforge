@@ -65,8 +65,11 @@ export default buildConfig({
   collections: [Users, Media, Pages, Tags, Categories],
   globals: [SiteSettings],
   /**
-   * Content locales (i18n P1) — same codes as Core next-intl public routes.
-   * Editors switch locale in `/cms`; public loaders pass route `locale` into find.
+   * Content locales (i18n P1) — code-bootstrapped from Core bootstrap catalog
+   * (`en`/`hu`). Admin-added locales under `/admin/localization` honor public
+   * routing immediately but do **not** hot-reload into Payload — add codes here
+   * and restart for CMS field locales. Public loaders map unknown route locales
+   * via `toPayloadLocale` until this config catches up.
    */
   localization: {
     locales: LOCALES.map((code) => ({

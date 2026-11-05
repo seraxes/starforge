@@ -222,6 +222,22 @@ export const hostModuleManifests: StarforgeModuleManifest[] = [
     editorExportName: 'MenuParticleEditor',
   }),
   defineStarforgeModule({
+    id: 'locale-switcher',
+    kind: 'particle',
+    label: 'Locale Switcher',
+    description:
+      'Built-in — language links for enabled public locales (Localization settings). Switches /en/… ↔ /hu/….',
+    version: '0.1.0',
+    defaultEnabled: true,
+    builtin: true,
+    configSchemaImportPath: '@/core/modules/particles/schemas/locale-switcher',
+    configSchemaExportName: 'localeSwitcherParticleConfigSchema',
+    defaultsImportPath: '@/core/modules/particles/schemas/locale-switcher',
+    defaultsExportName: 'localeSwitcherParticleDefaults',
+    editorImportPath: '@/app/(frontend)/admin/layouts/typed-particle-editors',
+    editorExportName: 'LocaleSwitcherParticleEditor',
+  }),
+  defineStarforgeModule({
     id: 'copyright',
     kind: 'particle',
     label: 'Copyright',

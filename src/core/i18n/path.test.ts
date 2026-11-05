@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
+import { buildLanguageAlternates } from './alternates'
+import { isLocaleAwareNavItemActive, navHref } from './nav'
 import {
   hasLocalePrefix,
   pathnameWithoutLocale,
@@ -49,5 +51,29 @@ describe('pathnameWithoutLocale + withLocalePrefix', () => {
   it('detects locale prefixes', () => {
     assert.equal(hasLocalePrefix('/en/x'), true)
     assert.equal(hasLocalePrefix('/admin'), false)
+  })
+})
+
+describe('navHref + isLocaleAwareNavItemActive', () => {
+  it('prefixes internal nav hrefs', () => {
+    assert.equal(navHref('/about', 'hu'), '/hu/about')
+    assert.equal(navHref('/', 'en'), '/en')
+    assert.equal(navHref('https://example.com', 'en'), 'https://example.com')
+  })
+
+  it('matches active state with or without locale prefix on pathname', () => {
+    assert.equal(isLocaleAwareNavItemActive('/en/about', '/about'), true)
+    assert.equal(isLocaleAwareNavItemActive('/about', '/about'), true)
+    assert.equal(isLocaleAwareNavItemActive('/hu/about', '/contact'), false)
+    assert.equal(isLocaleAwareNavItemActive('/en', '/'), true)
+  })
+})
+
+describe('buildLanguageAlternates', () => {
+  it('emits enabled locales + x-default', () => {
+    const alts = buildLanguageAlternates('/about', ['en', 'hu'], 'https://example.com')
+    assert.equal(alts.en, 'https://example.com/en/about')
+    assert.equal(alts.hu, 'https://example.com/hu/about')
+    assert.equal(alts['x-default'], 'https://example.com/en/about')
   })
 })

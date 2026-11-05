@@ -11,7 +11,7 @@ import {
 } from './normalize'
 
 describe('normalizeSiteChrome locale fields', () => {
-  it('fills localesEnabled + defaultLocale + localeFallback when missing', () => {
+  it('fills localeCatalog + localesEnabled + defaultLocale + localeFallback when missing', () => {
     const chrome = normalizeSiteChrome({
       siteName: 'Test',
       offlineEnabled: false,
@@ -19,17 +19,24 @@ describe('normalizeSiteChrome locale fields', () => {
     assert.deepEqual(chrome.localesEnabled, [...LOCALES])
     assert.equal(chrome.defaultLocale, DEFAULT_LOCALE)
     assert.equal(chrome.localeFallback, true)
+    assert.ok(chrome.localeCatalog.some((e) => e.code === 'en'))
   })
 
   it('keeps valid localesEnabled arrays and coerces default into enabled', () => {
     const chrome = normalizeSiteChrome({
-      localesEnabled: ['hu'],
+      localeCatalog: [
+        { code: 'en', label: 'English' },
+        { code: 'hu', label: 'Magyar' },
+        { code: 'de', label: 'Deutsch' },
+      ],
+      localesEnabled: ['hu', 'de'],
       defaultLocale: 'en',
       localeFallback: false,
     })
-    assert.deepEqual(chrome.localesEnabled, ['hu'])
+    assert.deepEqual(chrome.localesEnabled, ['hu', 'de'])
     assert.equal(chrome.defaultLocale, 'hu')
     assert.equal(chrome.localeFallback, false)
+    assert.ok(chrome.localeCatalog.some((e) => e.code === 'de'))
   })
 
   it('parseSiteChromeJson soft-heals pre-i18n JSON', () => {
@@ -62,6 +69,7 @@ describe('normalizeSiteChrome locale fields', () => {
     assert.deepEqual(parsed.localesEnabled, [...DEFAULT_SITE_CHROME.localesEnabled])
     assert.equal(parsed.defaultLocale, DEFAULT_SITE_CHROME.defaultLocale)
     assert.equal(parsed.localeFallback, DEFAULT_SITE_CHROME.localeFallback)
+    assert.ok(parsed.localeCatalog.length >= 2)
     assert.equal(siteChromeDocumentNeedsLocaleHeal(JSON.stringify(parsed)), false)
   })
 
@@ -74,10 +82,27 @@ describe('normalizeSiteChrome locale fields', () => {
     )
   })
 
+  it('siteChromeDocumentNeedsLocaleHeal detects missing localeCatalog', () => {
+    assert.equal(
+      siteChromeDocumentNeedsLocaleHeal(
+        JSON.stringify({
+          localesEnabled: ['en'],
+          defaultLocale: 'en',
+          localeFallback: true,
+        }),
+      ),
+      true,
+    )
+  })
+
   it('siteChromeDocumentNeedsLocaleHeal detects missing localeFallback', () => {
     assert.equal(
       siteChromeDocumentNeedsLocaleHeal(
-        JSON.stringify({ localesEnabled: ['en'], defaultLocale: 'en' }),
+        JSON.stringify({
+          localesEnabled: ['en'],
+          localeCatalog: [{ code: 'en', label: 'English' }],
+          defaultLocale: 'en',
+        }),
       ),
       true,
     )

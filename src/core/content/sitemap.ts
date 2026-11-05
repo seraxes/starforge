@@ -4,7 +4,8 @@ import { getPayload } from 'payload'
 
 import config from '@payload-config'
 
-import { DEFAULT_LOCALE, LOCALES, type AppLocale } from '@/core/i18n/locales'
+import { getEnabledPublicLocales } from '@/core/i18n/enabled'
+import { DEFAULT_LOCALE, type AppLocale } from '@/core/i18n/locales'
 import { withLocalePrefix } from '@/core/i18n/path'
 import { HOME_PAGE_KEY } from '@/core/page-settings/defaults'
 
@@ -20,11 +21,14 @@ export type SitemapPageEntry = {
 }
 
 /**
- * List published Payload pages for sitemap.xml — one entry per locale × page.
+ * List published Payload pages for sitemap.xml — one entry per enabled locale × page.
  * Home slug `home` maps to `/{locale}`; other slugs → `/{locale}/{slug}`.
  * Shared slug across locales (P1); hreflang alternates built in the route.
+ * Enabled locales come from Localization admin (P2).
  */
 export async function listPublishedPagesForSitemap(): Promise<SitemapPageEntry[]> {
+  const locales = await getEnabledPublicLocales()
+
   try {
     const payload = await getPayload({ config })
     const result = await payload.find({
@@ -80,7 +84,7 @@ export async function listPublishedPagesForSitemap(): Promise<SitemapPageEntry[]
 
     const entries: SitemapPageEntry[] = []
     for (const bare of bareEntries) {
-      for (const locale of LOCALES) {
+      for (const locale of locales) {
         entries.push({
           path: withLocalePrefix(bare.barePath, locale),
           barePath: bare.barePath,
@@ -94,7 +98,7 @@ export async function listPublishedPagesForSitemap(): Promise<SitemapPageEntry[]
     return entries
   } catch {
     const now = new Date()
-    return LOCALES.map((locale) => ({
+    return locales.map((locale) => ({
       path: withLocalePrefix('/', locale),
       barePath: '/',
       slug: HOME_PAGE_KEY,

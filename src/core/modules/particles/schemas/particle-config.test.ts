@@ -3,6 +3,7 @@ import { describe, it } from 'node:test'
 
 import { copyrightParticleConfigSchema } from './copyright'
 import { customParticleConfigSchema } from './custom'
+import { localeSwitcherParticleConfigSchema } from './locale-switcher'
 import { logoParticleConfigSchema } from './logo'
 import { menuParticleConfigSchema } from './menu'
 import { socialParticleConfigSchema } from './social'
@@ -76,5 +77,16 @@ describe('particle config schemas (M1)', () => {
     if (!parsed.success) return
     assert.equal(parsed.data.title, 'Box')
     assert.equal(parsed.data.html, '<p>Hi</p>')
+  })
+
+  it('normalizes locale switcher display', () => {
+    const parsed = localeSwitcherParticleConfigSchema.safeParse({
+      ariaLabel: '  Language  ',
+      display: 'codes',
+    })
+    assert.equal(parsed.success, true)
+    if (!parsed.success) return
+    assert.equal(parsed.data.ariaLabel, 'Language')
+    assert.equal(parsed.data.display, 'codes')
   })
 })

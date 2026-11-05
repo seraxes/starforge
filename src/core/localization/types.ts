@@ -1,11 +1,20 @@
 /**
- * Localization settings (SF-239) — public locales + default + fallback.
+ * Localization settings (SF-239 + P2 catalog) — public locales + default + fallback.
  * Edited under `/admin/localization`. Persisted on Site Chrome JSON for
  * continuity with the i18n P0 stub (same storage; UI no longer on Chrome).
  */
 
+import type { LocaleCatalogEntry } from '@/core/i18n/locales'
+
+export type { LocaleCatalogEntry }
+
 export type LocalizationSettings = {
-  /** Enabled public locale codes (subset of Core i18n catalog). */
+  /**
+   * Full locale catalog (code + label). Bootstrap seeds `en`/`hu`;
+   * admins may add more BCP-47-ish codes.
+   */
+  localeCatalog: LocaleCatalogEntry[]
+  /** Enabled public locale codes (subset of `localeCatalog`). */
   localesEnabled: string[]
   /** Default public locale; must be one of `localesEnabled`. */
   defaultLocale: string

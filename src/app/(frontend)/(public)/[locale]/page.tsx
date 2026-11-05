@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { hasLocale } from 'next-intl'
 import { getTranslations, setRequestLocale } from 'next-intl/server'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -10,7 +9,7 @@ import { RichText } from '@/components/RichText'
 import { getAppSession } from '@/core/auth/session'
 import { buildPageMetadata } from '@/core/content/metadata'
 import { getPublishedPageBySlug, requireContentLocale } from '@/core/content/pages'
-import { routing } from '@/core/i18n'
+import { isValidLocaleCode } from '@/core/i18n'
 import { findNavOverridesForPath } from '@/core/nav'
 import { HOME_PAGE_KEY } from '@/core/page-settings'
 import { getSiteSettings } from '@/core/settings'
@@ -30,7 +29,7 @@ type Props = {
  */
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale: localeParam } = await params
-  if (!hasLocale(routing.locales, localeParam)) {
+  if (!isValidLocaleCode(localeParam)) {
     return { title: 'Starforge' }
   }
   const locale = requireContentLocale(localeParam)
@@ -51,7 +50,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function HomePage({ params, searchParams }: Props) {
   const { locale: localeParam } = await params
-  if (!hasLocale(routing.locales, localeParam)) {
+  if (!isValidLocaleCode(localeParam)) {
     notFound()
   }
   const locale = requireContentLocale(localeParam)

@@ -100,7 +100,7 @@ export function RedirectsManager({ redirects }: Props) {
             <input
               type="text"
               name="fromPath"
-              placeholder="/old-page"
+              placeholder="/old-page (no /en or /hu)"
               required
               maxLength={512}
               autoComplete="off"
@@ -111,7 +111,7 @@ export function RedirectsManager({ redirects }: Props) {
             <input
               type="text"
               name="toPath"
-              placeholder="/new-page"
+              placeholder="/new-page or https://…"
               required
               maxLength={2048}
               autoComplete="off"

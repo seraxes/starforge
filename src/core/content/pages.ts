@@ -4,30 +4,38 @@ import { cache } from 'react'
 import config from '@payload-config'
 import type { Page } from '@/payload-types'
 
-import { DEFAULT_LOCALE, type AppLocale, isAppLocale } from '@/core/i18n/locales'
+import {
+  DEFAULT_LOCALE,
+  type AppLocale,
+  isValidLocaleCode,
+  toPayloadLocale,
+} from '@/core/i18n/locales'
 
 import { contentCacheTags, getPublishedContentCache } from './cache'
 
-/** Require a known AppLocale — no silent default on public content paths. */
+/** Require a valid locale code — no silent default on public content paths. */
 export function requireContentLocale(locale: string): AppLocale {
-  if (!isAppLocale(locale)) {
+  if (!isValidLocaleCode(locale)) {
     throw new Error(`Invalid content locale: ${locale}`)
   }
   return locale
 }
+
+export { toPayloadLocale }
 
 async function loadPublishedPageUncached(
   slug: string,
   locale: AppLocale,
 ): Promise<Page | null> {
   const payload = await getPayload({ config })
+  const payloadLocale = toPayloadLocale(locale)
 
   const result = await payload.find({
     collection: 'pages',
     depth: 2,
     draft: false,
     limit: 1,
-    locale,
+    locale: payloadLocale,
     fallbackLocale: DEFAULT_LOCALE,
     overrideAccess: false,
     pagination: false,
@@ -81,13 +89,14 @@ export const getPublishedPageBySlug = cache(
 export const getDraftPageBySlug = cache(
   async (slug: string, locale: AppLocale): Promise<Page | null> => {
     const payload = await getPayload({ config })
+    const payloadLocale = toPayloadLocale(locale)
 
     const result = await payload.find({
       collection: 'pages',
       depth: 2,
       draft: true,
       limit: 1,
-      locale,
+      locale: payloadLocale,
       fallbackLocale: DEFAULT_LOCALE,
       overrideAccess: true,
       pagination: false,

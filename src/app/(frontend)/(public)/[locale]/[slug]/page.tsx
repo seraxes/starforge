@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { hasLocale } from 'next-intl'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import React from 'react'
@@ -7,7 +6,7 @@ import React from 'react'
 import { RichText } from '@/components/RichText'
 import { buildPageMetadata } from '@/core/content/metadata'
 import { getPublishedPageBySlug, requireContentLocale } from '@/core/content/pages'
-import { routing } from '@/core/i18n'
+import { isValidLocaleCode } from '@/core/i18n'
 import { findNavOverridesForPath } from '@/core/nav'
 import { getSiteSettings } from '@/core/settings'
 import { getSiteChrome } from '@/core/site-chrome'
@@ -26,7 +25,7 @@ type Args = {
  */
 export async function generateMetadata({ params }: Args): Promise<Metadata> {
   const { locale: localeParam, slug } = await params
-  if (!hasLocale(routing.locales, localeParam)) {
+  if (!isValidLocaleCode(localeParam)) {
     return { title: 'Not found' }
   }
   const locale = requireContentLocale(localeParam)
@@ -52,7 +51,7 @@ export async function generateMetadata({ params }: Args): Promise<Metadata> {
 
 export default async function PublicCmsPage({ params }: Args) {
   const { locale: localeParam, slug } = await params
-  if (!hasLocale(routing.locales, localeParam)) {
+  if (!isValidLocaleCode(localeParam)) {
     notFound()
   }
   const locale = requireContentLocale(localeParam)

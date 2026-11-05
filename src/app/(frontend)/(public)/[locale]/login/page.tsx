@@ -1,12 +1,11 @@
 import React from 'react'
-import { hasLocale } from 'next-intl'
 import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { notFound, redirect as nextRedirect } from 'next/navigation'
 
 import { AuthWelcomePanel } from '@/components/AuthWelcomePanel'
 import { getAppSession } from '@/core/auth/session'
 import { safeNextPath } from '@/core/auth/safe-next-path'
-import { redirect as i18nRedirect, routing } from '@/core/i18n'
+import { isValidLocaleCode, redirect as i18nRedirect } from '@/core/i18n'
 import { getSiteSettings } from '@/core/settings'
 import { parseLoginMode } from './login-mode'
 
@@ -39,7 +38,7 @@ export async function generateMetadata({ params }: Props) {
 
 export default async function LoginPage({ params, searchParams }: Props) {
   const { locale } = await params
-  if (!hasLocale(routing.locales, locale)) {
+  if (!isValidLocaleCode(locale)) {
     notFound()
   }
   setRequestLocale(locale)

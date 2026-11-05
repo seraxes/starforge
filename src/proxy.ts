@@ -7,14 +7,15 @@ import { auth } from '@/core/auth'
 import { userIsAppAdmin } from '@/core/auth/admin'
 import {
   DEFAULT_LOCALE,
+  LOCALES,
   pathnameWithoutLocale,
-  routing,
   stripLocalePrefix,
-  withLocalePrefix,
 } from '@/core/i18n'
+import { getLocalizationSettings } from '@/core/localization/store'
 import {
   lookupEnabledRedirect,
   normalizeRedirectFromPath,
+  resolveLocaleAwareRedirectPath,
 } from '@/core/redirects'
 import type { CspSources } from '@/core/security/csp'
 import { getCachedFeatureCspSources } from '@/core/security/feature-sources-cached'
@@ -30,7 +31,42 @@ import {
   isOfflineExemptPath,
 } from '@/core/site-chrome'
 
-const handleI18nRouting = createMiddleware(routing)
+/**
+ * next-intl middleware using Localization admin enabled locales (P2).
+ * Falls open to bootstrap `en`/`hu` when settings are unavailable.
+ */
+async function loadPublicLocales(): Promise<{
+  locales: string[]
+  defaultLocale: string
+}> {
+  let locales: string[] = [...LOCALES]
+  let defaultLocale: string = DEFAULT_LOCALE
+  try {
+    const { registerPublicLocaleCodes } = await import('@/core/i18n/locales')
+    const settings = await getLocalizationSettings()
+    registerPublicLocaleCodes(settings.localeCatalog.map((e) => e.code))
+    if (settings.localesEnabled.length > 0) {
+      locales = [...settings.localesEnabled]
+    }
+    if (settings.defaultLocale) {
+      defaultLocale = settings.defaultLocale
+    }
+  } catch {
+    // fail open to bootstrap
+  }
+  return { locales, defaultLocale }
+}
+
+async function handleI18nRouting(request: NextRequest): Promise<NextResponse> {
+  const { locales, defaultLocale } = await loadPublicLocales()
+
+  // Dynamic locale list from Localization admin (wider than bootstrap routing types).
+  return createMiddleware({
+    locales,
+    defaultLocale,
+    localePrefix: 'always',
+  } as never)(request)
+}
 
 function finalize(response: NextResponse, cspSources?: CspSources | null): NextResponse {
   applySecurityHeaders(response.headers, { cspSources })
@@ -118,6 +154,8 @@ async function maybeRedirect(request: NextRequest): Promise<NextResponse | null>
     const settings = await getSiteSettings()
     if (!isCatalogModuleEnabled(settings, MODULE_IDS.redirects)) return null
 
+    // Ensure admin-added locale prefixes strip correctly for bare-path lookup.
+    await loadPublicLocales()
     const { locale, pathname: barePath } = stripLocalePrefix(pathname)
     const fromPath = normalizeRedirectFromPath(barePath)
     if (!fromPath) return null
@@ -134,9 +172,11 @@ async function maybeRedirect(request: NextRequest): Promise<NextResponse | null>
       destination = new URL(hit.to)
     } else {
       destination = request.nextUrl.clone()
-      const targetPath = hit.to.startsWith('/') ? hit.to : `/${hit.to}`
-      const localeForDest = locale ?? DEFAULT_LOCALE
-      destination.pathname = withLocalePrefix(targetPath, localeForDest)
+      // Path-relative policy: re-prefix with the current request locale (P2).
+      destination.pathname = resolveLocaleAwareRedirectPath(
+        hit.to,
+        locale ?? DEFAULT_LOCALE,
+      )
       destination.search = ''
       destination.hash = ''
     }
@@ -257,7 +297,8 @@ export async function proxy(request: NextRequest) {
   }
 
   // Locale negotiation early (prefix always: `/` → `/en`, etc.).
-  const i18nResponse = handleI18nRouting(request)
+  // Enabled locales come from Localization admin (catalog + enable list).
+  const i18nResponse = await handleI18nRouting(request)
   if (i18nResponse.headers.get('location')) {
     // Redirect/rewrite from next-intl — apply security headers and return.
     return finalize(i18nResponse)

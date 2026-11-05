@@ -1,8 +1,19 @@
 import type { Metadata } from 'next'
 
+import { languageAlternateMetadata } from '@/core/i18n/alternates'
+import { getEnabledPublicLocales } from '@/core/i18n/enabled'
+import { HOME_PAGE_KEY } from '@/core/page-settings/defaults'
 import type { Media, Page } from '@/payload-types'
 
 const DEFAULT_SITE_NAME = 'Starforge'
+
+export type BuildPageMetadataOptions = {
+  /**
+   * Bare public path for hreflang (`/` or `/about`).
+   * Defaults from page slug (`home` → `/`).
+   */
+  barePath?: string
+}
 
 /** Public site origin (no trailing slash) for absolute asset / OG URLs. */
 export function appOrigin(): string {
@@ -64,11 +75,25 @@ async function loadChromeSeoDefaults(): Promise<SiteChromeSeoDefaults> {
   }
 }
 
+function barePathFromPage(page: Page, override?: string): string {
+  if (typeof override === 'string' && override.trim()) {
+    const p = override.trim()
+    return p.startsWith('/') ? p : `/${p}`
+  }
+  const slug = typeof page.slug === 'string' ? page.slug.trim() : ''
+  if (!slug || slug === HOME_PAGE_KEY) return '/'
+  return `/${slug.replace(/^\/+/, '')}`
+}
+
 /**
  * Next.js Metadata for a CMS page (title, description, Open Graph, Twitter).
  * Empty page SEO fields fall back to Site Chrome defaults.
+ * P2: emits `alternates.languages` (hreflang) from Localization enabled locales.
  */
-export async function buildPageMetadata(page: Page): Promise<Metadata> {
+export async function buildPageMetadata(
+  page: Page,
+  options?: BuildPageMetadataOptions,
+): Promise<Metadata> {
   const chrome = await loadChromeSeoDefaults()
   const siteName = chrome.siteName?.trim() || DEFAULT_SITE_NAME
 
@@ -83,9 +108,14 @@ export async function buildPageMetadata(page: Page): Promise<Metadata> {
   const ogImageUrl = pageOg || chromeOg
   const ogAlt = resolveOgImage(page)?.alt || page.title
 
+  const barePath = barePathFromPage(page, options?.barePath)
+  const locales = await getEnabledPublicLocales()
+  const languageAlts = languageAlternateMetadata(barePath, locales, appOrigin())
+
   return {
     title,
     description,
+    ...languageAlts,
     openGraph: {
       title,
       description,

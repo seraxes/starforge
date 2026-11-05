@@ -1,11 +1,12 @@
 'use client'
 
 import React from 'react'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { useLocale } from 'next-intl'
 
+import { Link, usePathname } from '@/core/i18n/navigation'
+import { coerceAppLocale, isLocaleAwareNavItemActive, navHref } from '@/core/i18n/nav'
 import type { NavItem } from '@/core/settings/defaults'
-import { isExternalHref, isNavItemActive } from '@/core/settings/nav'
+import { isExternalHref, normalizeHref } from '@/core/settings/nav'
 
 type Props = {
   items: NavItem[]
@@ -22,17 +23,19 @@ function linkClassName(item: NavItem, active: boolean): string | undefined {
 
 /**
  * Primary header links with active state for the current path.
- * Optional per-item CSS class comes from Nav manager.
+ * Nav manager stores bare paths; next-intl `Link` keeps the current locale prefix (P2).
+ * Imports navigation/nav directly — not the i18n barrel (avoids server-only `enabled`).
  */
 export function SiteNav({ items, ariaLabel = 'Primary' }: Props) {
   const pathname = usePathname() || '/'
+  const locale = coerceAppLocale(useLocale())
 
   if (items.length === 0) return null
 
   return (
     <nav className="site-nav" aria-label={ariaLabel || 'Primary'}>
       {items.map((item) => {
-        const active = isNavItemActive(pathname, item.href)
+        const active = isLocaleAwareNavItemActive(pathname, item.href)
         const className = linkClassName(item, active)
         const key = `${item.href}-${item.label}-${item.cssClass ?? ''}`
 
@@ -50,12 +53,16 @@ export function SiteNav({ items, ariaLabel = 'Primary' }: Props) {
           )
         }
 
+        // Bare path for next-intl Link (auto-prefixes). `data-sf-nav-href` exposes
+        // the locale-prefixed URL for tests / debugging via Core `navHref`.
+        const bare = normalizeHref(item.href) || '/'
         return (
           <Link
             key={key}
-            href={item.href}
+            href={bare}
             className={className}
             aria-current={active ? 'page' : undefined}
+            data-sf-nav-href={navHref(bare, locale)}
           >
             {item.label}
           </Link>

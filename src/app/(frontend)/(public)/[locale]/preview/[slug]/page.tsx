@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { hasLocale } from 'next-intl'
 import { setRequestLocale } from 'next-intl/server'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -12,7 +11,7 @@ import {
   requireDraftPreviewAccess,
   resolveDraftPreviewAccess,
 } from '@/core/content/preview'
-import { routing } from '@/core/i18n'
+import { isValidLocaleCode } from '@/core/i18n'
 import { withLocalePrefix } from '@/core/i18n/path'
 import { getSiteSettings } from '@/core/settings'
 import { getSiteChrome } from '@/core/site-chrome'
@@ -32,7 +31,7 @@ export async function generateMetadata({ params }: Args): Promise<Metadata> {
   const siteName = chrome.siteName || settings.siteName
   const robots = { index: false, follow: false } as const
 
-  if (!hasLocale(routing.locales, localeParam)) {
+  if (!isValidLocaleCode(localeParam)) {
     return { title: `Preview — ${siteName}`, robots }
   }
   const locale = requireContentLocale(localeParam)
@@ -63,7 +62,7 @@ export async function generateMetadata({ params }: Args): Promise<Metadata> {
  */
 export default async function DraftPreviewPage({ params }: Args) {
   const { locale: localeParam, slug } = await params
-  if (!hasLocale(routing.locales, localeParam)) {
+  if (!isValidLocaleCode(localeParam)) {
     notFound()
   }
   const locale = requireContentLocale(localeParam)
