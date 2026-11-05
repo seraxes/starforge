@@ -99,8 +99,11 @@ export function EmailTemplatesManager({
 
   return (
     <div className="sf-email-templates-manager admin-settings-mosaic">
-      <section className="page-settings-panel" aria-label="Filter templates">
+      <section className="outlines-create" aria-label="Filter templates">
         <h3>Filter by module</h3>
+        <p className="field-hint">
+          Module tags keep Forms / Auth / Events templates findable as packs grow.
+        </p>
         <div className="admin-inline-actions" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
           <Link
             href="/app/admin/email/templates"
@@ -208,126 +211,127 @@ export function EmailTemplatesManager({
         <Feedback state={createState} />
       </section>
 
-      <section className="outlines-table-wrap" aria-label="Templates list">
-        <h3>
-          Templates{category !== 'all' ? ` — ${category}` : ''} ({templates.length})
-        </h3>
-        <Feedback state={updateState} />
-        <Feedback state={deleteState} />
-        {templates.length === 0 ? (
-          <p className="field-hint">
-            No templates yet. Add one above, or seed Forms starters from{' '}
-            <Link href="/app/admin/email">Rules</Link>.
-          </p>
-        ) : (
-          <div className="admin-table-wrap">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Label</th>
-                  <th>Module</th>
-                  <th>Subject</th>
-                  <th>Updated</th>
-                  <th>Actions</th>
+      <Feedback state={updateState} />
+      <Feedback state={deleteState} />
+
+      <div
+        className="outlines-table-wrap admin-settings-panel-wide"
+        aria-label={`Templates list${category !== 'all' ? ` — ${category}` : ''}`}
+      >
+        <table className="outlines-table">
+          <thead>
+            <tr>
+              <th scope="col">Label</th>
+              <th scope="col">Module</th>
+              <th scope="col">Subject</th>
+              <th scope="col">Updated</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {templates.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="admin-empty">
+                  No templates yet. Add one above, or seed Forms starters from{' '}
+                  <Link href="/app/admin/email">Rules</Link>.
+                </td>
+              </tr>
+            ) : (
+              templates.map((tpl) => (
+                <tr key={tpl.id}>
+                  <td>
+                    <strong>{tpl.label}</strong>
+                  </td>
+                  <td>{tpl.moduleCategory}</td>
+                  <td>{tpl.subject}</td>
+                  <td>{formatUpdated(tpl.updatedAt)}</td>
+                  <td>
+                    <details>
+                      <summary>Edit</summary>
+                      <form action={updateAction} className="admin-create-form">
+                        <input type="hidden" name="id" value={tpl.id} />
+                        <label className="settings-field">
+                          <span>Label</span>
+                          <input
+                            type="text"
+                            name="label"
+                            defaultValue={tpl.label}
+                            required
+                            maxLength={200}
+                          />
+                        </label>
+                        <label className="settings-field">
+                          <span>Module category</span>
+                          <select
+                            name="moduleCategory"
+                            defaultValue={tpl.moduleCategory}
+                          >
+                            {categories.map((cat) => (
+                              <option key={cat} value={cat}>
+                                {cat}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="settings-field">
+                          <span>Subject</span>
+                          <input
+                            type="text"
+                            name="subject"
+                            defaultValue={tpl.subject}
+                            required
+                            maxLength={500}
+                          />
+                        </label>
+                        <label className="settings-field">
+                          <span>Body (text)</span>
+                          <textarea
+                            name="bodyText"
+                            rows={5}
+                            defaultValue={tpl.bodyText}
+                            required
+                          />
+                        </label>
+                        <label className="settings-field">
+                          <span>Body (HTML)</span>
+                          <textarea
+                            name="bodyHtml"
+                            rows={4}
+                            defaultValue={tpl.bodyHtml}
+                            className="settings-field-mono"
+                          />
+                        </label>
+                        <button
+                          type="submit"
+                          className="gantry-btn gantry-btn-primary"
+                          disabled={busy}
+                        >
+                          Save
+                        </button>
+                      </form>
+                      <form action={deleteAction} style={{ marginTop: '0.5rem' }}>
+                        <input type="hidden" name="id" value={tpl.id} />
+                        <button
+                          type="submit"
+                          className="gantry-btn gantry-btn-danger"
+                          disabled={busy}
+                          onClick={(e) => {
+                            if (!confirm(`Delete template “${tpl.label}”?`)) {
+                              e.preventDefault()
+                            }
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </form>
+                    </details>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {templates.map((tpl) => (
-                  <tr key={tpl.id}>
-                    <td>
-                      <strong>{tpl.label}</strong>
-                    </td>
-                    <td>{tpl.moduleCategory}</td>
-                    <td>{tpl.subject}</td>
-                    <td>{formatUpdated(tpl.updatedAt)}</td>
-                    <td>
-                      <details>
-                        <summary>Edit</summary>
-                        <form action={updateAction} className="admin-create-form">
-                          <input type="hidden" name="id" value={tpl.id} />
-                          <label className="settings-field">
-                            <span>Label</span>
-                            <input
-                              type="text"
-                              name="label"
-                              defaultValue={tpl.label}
-                              required
-                              maxLength={200}
-                            />
-                          </label>
-                          <label className="settings-field">
-                            <span>Module category</span>
-                            <select
-                              name="moduleCategory"
-                              defaultValue={tpl.moduleCategory}
-                            >
-                              {categories.map((cat) => (
-                                <option key={cat} value={cat}>
-                                  {cat}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                          <label className="settings-field">
-                            <span>Subject</span>
-                            <input
-                              type="text"
-                              name="subject"
-                              defaultValue={tpl.subject}
-                              required
-                              maxLength={500}
-                            />
-                          </label>
-                          <label className="settings-field">
-                            <span>Body (text)</span>
-                            <textarea
-                              name="bodyText"
-                              rows={5}
-                              defaultValue={tpl.bodyText}
-                              required
-                            />
-                          </label>
-                          <label className="settings-field">
-                            <span>Body (HTML)</span>
-                            <textarea
-                              name="bodyHtml"
-                              rows={4}
-                              defaultValue={tpl.bodyHtml}
-                              className="settings-field-mono"
-                            />
-                          </label>
-                          <button
-                            type="submit"
-                            className="gantry-btn gantry-btn-primary"
-                            disabled={busy}
-                          >
-                            Save
-                          </button>
-                        </form>
-                        <form action={deleteAction} style={{ marginTop: '0.5rem' }}>
-                          <input type="hidden" name="id" value={tpl.id} />
-                          <button
-                            type="submit"
-                            className="gantry-btn gantry-btn-danger"
-                            disabled={busy}
-                            onClick={(e) => {
-                              if (!confirm(`Delete template “${tpl.label}”?`)) {
-                                e.preventDefault()
-                              }
-                            }}
-                          >
-                            Delete
-                          </button>
-                        </form>
-                      </details>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

@@ -98,4 +98,45 @@ assert.match(
   /moduleId:\s*"product:email-manager"[\s\S]*?id:\s*"email"[\s\S]*?label:\s*"Email"/,
 )
 
+// Admin UI: Page Settings / Forms mosaic language (not Layout canvas cards).
+const rulesUi = read('src/modules/email-manager/admin/email-rules-manager.tsx')
+assert.match(rulesUi, /admin-settings-mosaic/)
+assert.match(rulesUi, /outlines-create/)
+assert.match(rulesUi, /outlines-table-wrap admin-settings-panel-wide/)
+assert.match(rulesUi, /outlines-table/)
+assert.match(rulesUi, /admin-empty/)
+assert.doesNotMatch(
+  rulesUi,
+  /page-settings-panel(?!-)/,
+  'rules UI must use outlines-create head strip, not bare page-settings-panel',
+)
+assert.doesNotMatch(
+  rulesUi,
+  /admin-table-wrap/,
+  'rules list must not nest admin-table-wrap inside outlines-table-wrap (double card chrome)',
+)
+
+const templatesUi = read('src/modules/email-manager/admin/email-templates-manager.tsx')
+assert.match(templatesUi, /admin-settings-mosaic/)
+assert.match(templatesUi, /outlines-create/)
+assert.match(templatesUi, /outlines-table-wrap admin-settings-panel-wide/)
+assert.match(templatesUi, /outlines-table/)
+assert.match(templatesUi, /admin-empty/)
+assert.doesNotMatch(
+  templatesUi,
+  /page-settings-panel(?!-)/,
+  'templates UI must use outlines-create head strip, not bare page-settings-panel',
+)
+assert.doesNotMatch(
+  templatesUi,
+  /admin-table-wrap/,
+  'templates list must not nest admin-table-wrap inside outlines-table-wrap',
+)
+
+const rulesPage = read('src/modules/email-manager/admin/EmailRulesPage.tsx')
+assert.match(rulesPage, /admin-section admin-layouts-full/)
+
+const templatesPage = read('src/modules/email-manager/admin/EmailTemplatesPage.tsx')
+assert.match(templatesPage, /admin-section admin-layouts-full/)
+
 console.log('verify:email-manager OK')

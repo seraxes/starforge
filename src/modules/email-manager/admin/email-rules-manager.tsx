@@ -125,7 +125,7 @@ export function EmailRulesManager({
 
   return (
     <div className="sf-email-rules-manager admin-settings-mosaic">
-      <section className="page-settings-panel" aria-label="Filter rules">
+      <section className="outlines-create" aria-label="Filter rules">
         <h3>Filter by module</h3>
         <p className="field-hint">
           Category tags help find Forms / Auth / Events rules as more packs emit triggers.
@@ -278,197 +278,200 @@ export function EmailRulesManager({
         <Feedback state={createState} />
       </section>
 
-      <section className="outlines-table-wrap" aria-label="Rules list">
-        <h3>
-          Rules{category !== 'all' ? ` — ${category}` : ''} ({rules.length})
-        </h3>
-        <Feedback state={updateState} />
-        <Feedback state={toggleState} />
-        <Feedback state={deleteState} />
-        {rules.length === 0 ? (
-          <p className="field-hint">No rules yet. Seed Forms starters or add a rule above.</p>
-        ) : (
-          <div className="admin-table-wrap">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Label</th>
-                  <th>Module</th>
-                  <th>Trigger</th>
-                  <th>Mode</th>
-                  <th>Template</th>
-                  <th>Updated</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rules.map((rule) => (
-                  <tr key={rule.id}>
-                    <td>
-                      <strong>{rule.label}</strong>
-                      {!rule.enabled ? (
-                        <span className="field-hint"> (off)</span>
-                      ) : null}
-                    </td>
-                    <td>{rule.moduleCategory}</td>
-                    <td>
-                      <code>{rule.triggerKey}</code>
-                    </td>
-                    <td>{rule.mode}</td>
-                    <td>
-                      <code>{rule.templateId}</code>
-                    </td>
-                    <td>{formatUpdated(rule.updatedAt)}</td>
-                    <td>
-                      <details>
-                        <summary>Edit</summary>
-                        <form action={updateAction} className="admin-create-form">
-                          <input type="hidden" name="id" value={rule.id} />
-                          <label className="settings-field">
-                            <span>Label</span>
-                            <input
-                              type="text"
-                              name="label"
-                              defaultValue={rule.label}
-                              required
-                              maxLength={200}
-                            />
-                          </label>
-                          <label className="settings-field">
-                            <span>Module category</span>
-                            <select
-                              name="moduleCategory"
-                              defaultValue={rule.moduleCategory}
-                            >
-                              {categories.map((cat) => (
-                                <option key={cat} value={cat}>
-                                  {cat}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                          <label className="settings-field">
-                            <span>Trigger</span>
-                            <select name="triggerKey" defaultValue={rule.triggerKey}>
-                              {triggers.map((t) => (
-                                <option key={t.key} value={t.key}>
-                                  {t.label} ({t.key})
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                          <label className="settings-field">
-                            <span>Mode</span>
-                            <select name="mode" defaultValue={rule.mode}>
-                              <option value="automatic">Automatic</option>
-                              <option value="conditional">Conditional</option>
-                            </select>
-                          </label>
-                          <label className="settings-field">
-                            <span>Conditions JSON</span>
-                            <textarea
-                              name="conditionsJson"
-                              rows={3}
-                              defaultValue={rule.conditionsJson}
-                              className="settings-field-mono"
-                            />
-                          </label>
-                          <label className="settings-field">
-                            <span>To</span>
-                            <input
-                              type="text"
-                              name="audienceTo"
-                              defaultValue={rule.audienceTo}
-                            />
-                          </label>
-                          <label className="settings-field">
-                            <span>To from payload</span>
-                            <input
-                              type="text"
-                              name="audienceToFromPayload"
-                              defaultValue={rule.audienceToFromPayload}
-                            />
-                          </label>
-                          <label className="settings-field">
-                            <span>Reply-To</span>
-                            <input
-                              type="text"
-                              name="audienceReplyTo"
-                              defaultValue={rule.audienceReplyTo}
-                            />
-                          </label>
-                          <label className="settings-field">
-                            <span>Template</span>
-                            <select name="templateId" defaultValue={rule.templateId}>
-                              {templates.map((t) => (
-                                <option key={t.id} value={t.id}>
-                                  {t.label}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                          <label className="settings-field">
-                            <span>From override</span>
-                            <input
-                              type="text"
-                              name="fromOverride"
-                              defaultValue={rule.fromOverride}
-                            />
-                          </label>
-                          <label className="settings-field settings-field-check">
-                            <span>
-                              <input
-                                type="checkbox"
-                                name="enabled"
-                                value="1"
-                                defaultChecked={rule.enabled}
-                              />{' '}
-                              Enabled
-                            </span>
-                          </label>
-                          <button
-                            type="submit"
-                            className="gantry-btn gantry-btn-primary"
-                            disabled={busy}
-                          >
-                            Save
-                          </button>
-                        </form>
-                        <form action={toggleAction} style={{ marginTop: '0.5rem' }}>
-                          <input type="hidden" name="id" value={rule.id} />
+      <Feedback state={updateState} />
+      <Feedback state={toggleState} />
+      <Feedback state={deleteState} />
+
+      <div
+        className="outlines-table-wrap admin-settings-panel-wide"
+        aria-label={`Rules list${category !== 'all' ? ` — ${category}` : ''}`}
+      >
+        <table className="outlines-table">
+          <thead>
+            <tr>
+              <th scope="col">Label</th>
+              <th scope="col">Module</th>
+              <th scope="col">Trigger</th>
+              <th scope="col">Mode</th>
+              <th scope="col">Template</th>
+              <th scope="col">Updated</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rules.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="admin-empty">
+                  No rules yet. Seed Forms starters or add a rule above.
+                </td>
+              </tr>
+            ) : (
+              rules.map((rule) => (
+                <tr key={rule.id}>
+                  <td>
+                    <strong>{rule.label}</strong>
+                    {!rule.enabled ? (
+                      <span className="field-hint"> (off)</span>
+                    ) : null}
+                  </td>
+                  <td>{rule.moduleCategory}</td>
+                  <td>
+                    <code>{rule.triggerKey}</code>
+                  </td>
+                  <td>{rule.mode}</td>
+                  <td>
+                    <code>{rule.templateId}</code>
+                  </td>
+                  <td>{formatUpdated(rule.updatedAt)}</td>
+                  <td>
+                    <details>
+                      <summary>Edit</summary>
+                      <form action={updateAction} className="admin-create-form">
+                        <input type="hidden" name="id" value={rule.id} />
+                        <label className="settings-field">
+                          <span>Label</span>
                           <input
-                            type="hidden"
-                            name="enabled"
-                            value={rule.enabled ? '0' : '1'}
+                            type="text"
+                            name="label"
+                            defaultValue={rule.label}
+                            required
+                            maxLength={200}
                           />
-                          <button type="submit" className="gantry-btn" disabled={busy}>
-                            {rule.enabled ? 'Disable' : 'Enable'}
-                          </button>
-                        </form>
-                        <form action={deleteAction} style={{ marginTop: '0.5rem' }}>
-                          <input type="hidden" name="id" value={rule.id} />
-                          <button
-                            type="submit"
-                            className="gantry-btn gantry-btn-danger"
-                            disabled={busy}
-                            onClick={(e) => {
-                              if (!confirm(`Delete rule “${rule.label}”?`)) {
-                                e.preventDefault()
-                              }
-                            }}
+                        </label>
+                        <label className="settings-field">
+                          <span>Module category</span>
+                          <select
+                            name="moduleCategory"
+                            defaultValue={rule.moduleCategory}
                           >
-                            Delete
-                          </button>
-                        </form>
-                      </details>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+                            {categories.map((cat) => (
+                              <option key={cat} value={cat}>
+                                {cat}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="settings-field">
+                          <span>Trigger</span>
+                          <select name="triggerKey" defaultValue={rule.triggerKey}>
+                            {triggers.map((t) => (
+                              <option key={t.key} value={t.key}>
+                                {t.label} ({t.key})
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="settings-field">
+                          <span>Mode</span>
+                          <select name="mode" defaultValue={rule.mode}>
+                            <option value="automatic">Automatic</option>
+                            <option value="conditional">Conditional</option>
+                          </select>
+                        </label>
+                        <label className="settings-field">
+                          <span>Conditions JSON</span>
+                          <textarea
+                            name="conditionsJson"
+                            rows={3}
+                            defaultValue={rule.conditionsJson}
+                            className="settings-field-mono"
+                          />
+                        </label>
+                        <label className="settings-field">
+                          <span>To</span>
+                          <input
+                            type="text"
+                            name="audienceTo"
+                            defaultValue={rule.audienceTo}
+                          />
+                        </label>
+                        <label className="settings-field">
+                          <span>To from payload</span>
+                          <input
+                            type="text"
+                            name="audienceToFromPayload"
+                            defaultValue={rule.audienceToFromPayload}
+                          />
+                        </label>
+                        <label className="settings-field">
+                          <span>Reply-To</span>
+                          <input
+                            type="text"
+                            name="audienceReplyTo"
+                            defaultValue={rule.audienceReplyTo}
+                          />
+                        </label>
+                        <label className="settings-field">
+                          <span>Template</span>
+                          <select name="templateId" defaultValue={rule.templateId}>
+                            {templates.map((t) => (
+                              <option key={t.id} value={t.id}>
+                                {t.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="settings-field">
+                          <span>From override</span>
+                          <input
+                            type="text"
+                            name="fromOverride"
+                            defaultValue={rule.fromOverride}
+                          />
+                        </label>
+                        <label className="settings-field settings-field-check">
+                          <span>
+                            <input
+                              type="checkbox"
+                              name="enabled"
+                              value="1"
+                              defaultChecked={rule.enabled}
+                            />{' '}
+                            Enabled
+                          </span>
+                        </label>
+                        <button
+                          type="submit"
+                          className="gantry-btn gantry-btn-primary"
+                          disabled={busy}
+                        >
+                          Save
+                        </button>
+                      </form>
+                      <form action={toggleAction} style={{ marginTop: '0.5rem' }}>
+                        <input type="hidden" name="id" value={rule.id} />
+                        <input
+                          type="hidden"
+                          name="enabled"
+                          value={rule.enabled ? '0' : '1'}
+                        />
+                        <button type="submit" className="gantry-btn" disabled={busy}>
+                          {rule.enabled ? 'Disable' : 'Enable'}
+                        </button>
+                      </form>
+                      <form action={deleteAction} style={{ marginTop: '0.5rem' }}>
+                        <input type="hidden" name="id" value={rule.id} />
+                        <button
+                          type="submit"
+                          className="gantry-btn gantry-btn-danger"
+                          disabled={busy}
+                          onClick={(e) => {
+                            if (!confirm(`Delete rule “${rule.label}”?`)) {
+                              e.preventDefault()
+                            }
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </form>
+                    </details>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
