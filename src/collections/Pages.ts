@@ -27,7 +27,7 @@ export const Pages: CollectionConfig = {
     useAsTitle: 'title',
     defaultColumns: ['title', 'slug', '_status', 'updatedAt'],
     description:
-      'Marketing / brochure pages for the public site. Edit content here in Payload (/admin). App accounts use /login — not this collection. Publish so `/[slug]` can show the page; slug `home` is the public `/` route. With Draft preview on, CMS-access users can open `/preview/{slug}` before publishing. Saving/publishing refreshes the public cached page.',
+      'Marketing / brochure pages for the public site. Edit content here in Payload (/cms). Title, body, and SEO meta are localized (EN/HU); slug is shared. Publish so `/{locale}/[slug]` can show the page; slug `home` is `/{locale}`. With Draft preview on, CMS-access users can open `/{locale}/preview/{slug}` before publishing. Saving/publishing refreshes the public cached page for all locales.',
   },
   versions: {
     drafts: true,
@@ -55,6 +55,8 @@ export const Pages: CollectionConfig = {
       name: 'title',
       type: 'text',
       required: true,
+      // Localized (P1) — one slug shared across locales.
+      localized: true,
     },
     {
       name: 'slug',
@@ -64,7 +66,8 @@ export const Pages: CollectionConfig = {
       index: true,
       admin: {
         position: 'sidebar',
-        description: 'Public URL path, e.g. about → /about; home → / (site root)',
+        description:
+          'Shared across locales (v1). Public path under /{locale}/…, e.g. about → /en/about; home → /en (site root).',
       },
     },
     {
@@ -87,10 +90,11 @@ export const Pages: CollectionConfig = {
             {
               name: 'body',
               type: 'richText',
+              localized: true,
               editor: pagesLexicalEditor,
               admin: {
                 description:
-                  'Use the toolbar or “/” slash menu for headings, lists, links, and images from Media.',
+                  'Use the toolbar or “/” slash menu for headings, lists, links, and images from Media. Switch CMS locale to edit each language.',
               },
             },
           ],
@@ -107,6 +111,7 @@ export const Pages: CollectionConfig = {
                 {
                   name: 'title',
                   type: 'text',
+                  localized: true,
                   label: 'Meta title',
                   admin: {
                     description:
@@ -116,6 +121,7 @@ export const Pages: CollectionConfig = {
                 {
                   name: 'description',
                   type: 'textarea',
+                  localized: true,
                   label: 'Meta description',
                   admin: {
                     description: 'Short summary for search results and link previews.',
@@ -127,7 +133,7 @@ export const Pages: CollectionConfig = {
                   relationTo: 'media',
                   label: 'OG image',
                   admin: {
-                    description: 'Optional share image (Open Graph / social preview).',
+                    description: 'Optional share image (Open Graph / social preview). Shared across locales.',
                   },
                 },
               ],

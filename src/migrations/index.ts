@@ -6,6 +6,7 @@ import * as migration_20261103_locked_docs_categories_heal from './20261103_lock
 import * as migration_20261105_site_settings_performance_heal from './20261105_site_settings_performance_heal';
 import * as migration_20261105_site_settings_dashboard_knobs from './20261105_site_settings_dashboard_knobs';
 import * as migration_20261105_site_settings_select_heal from './20261105_site_settings_select_heal';
+import * as migration_20261105_195344_pages_localization_i18n_p1 from './20261105_195344_pages_localization_i18n_p1';
 
 export const migrations = [
   {
@@ -48,4 +49,9 @@ export const migrations = [
     down: migration_20261105_site_settings_select_heal.down,
     name: '20261105_site_settings_select_heal',
   },
-];
+  {
+    up: migration_20261105_195344_pages_localization_i18n_p1.up,
+    down: migration_20261105_195344_pages_localization_i18n_p1.down,
+    name: '20261105_195344_pages_localization_i18n_p1',
+  },
+]

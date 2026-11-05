@@ -9,7 +9,7 @@ import { AuthWelcomePanel } from '@/components/AuthWelcomePanel'
 import { RichText } from '@/components/RichText'
 import { getAppSession } from '@/core/auth/session'
 import { buildPageMetadata } from '@/core/content/metadata'
-import { getPublishedPageBySlug } from '@/core/content/pages'
+import { getPublishedPageBySlug, requireContentLocale } from '@/core/content/pages'
 import { routing } from '@/core/i18n'
 import { findNavOverridesForPath } from '@/core/nav'
 import { HOME_PAGE_KEY } from '@/core/page-settings'
@@ -29,8 +29,12 @@ type Props = {
  * No hard-coded scaffold; edit content in CMS `/cms`.
  */
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { locale } = await params
-  const page = await getPublishedPageBySlug(HOME_SLUG)
+  const { locale: localeParam } = await params
+  if (!hasLocale(routing.locales, localeParam)) {
+    return { title: 'Starforge' }
+  }
+  const locale = requireContentLocale(localeParam)
+  const page = await getPublishedPageBySlug(HOME_SLUG, locale)
   if (!page) {
     const [settings, chrome] = await Promise.all([getSiteSettings(), getSiteChrome()])
     const siteName = chrome.siteName || settings.siteName
@@ -42,20 +46,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (overrides?.browserTitle) {
     return { ...meta, title: overrides.browserTitle }
   }
-  // Silence unused locale until P1 content locales.
-  void locale
   return meta
 }
 
 export default async function HomePage({ params, searchParams }: Props) {
-  const { locale } = await params
-  if (!hasLocale(routing.locales, locale)) {
+  const { locale: localeParam } = await params
+  if (!hasLocale(routing.locales, localeParam)) {
     notFound()
   }
+  const locale = requireContentLocale(localeParam)
   setRequestLocale(locale)
 
   const query = await searchParams
-  const page = await getPublishedPageBySlug(HOME_SLUG)
+  const page = await getPublishedPageBySlug(HOME_SLUG, locale)
 
   if (!page) {
     notFound()

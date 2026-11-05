@@ -6,6 +6,7 @@ async function invalidate(tags: readonly string[]): Promise<void> {
 
 /**
  * Drop cached published page data after Payload publish / unpublish / delete / slug change.
+ * Invalidates every locale variant for the slug (editors save one locale at a time).
  * Also bumps site-settings when a slug changes (nav page links resolve from slug).
  */
 export async function invalidatePublishedPage(options: {
@@ -16,10 +17,14 @@ export async function invalidatePublishedPage(options: {
   const tags = new Set<string>([contentCacheTags.pages])
 
   if (options.slug) {
-    tags.add(contentCacheTags.page(options.slug))
+    for (const tag of contentCacheTags.pageAllLocales(options.slug)) {
+      tags.add(tag)
+    }
   }
   if (options.previousSlug && options.previousSlug !== options.slug) {
-    tags.add(contentCacheTags.page(options.previousSlug))
+    for (const tag of contentCacheTags.pageAllLocales(options.previousSlug)) {
+      tags.add(tag)
+    }
   }
   if (options.slugChanged || (options.previousSlug && options.previousSlug !== options.slug)) {
     tags.add(contentCacheTags.siteSettings)

@@ -25,9 +25,10 @@ assert(
   'cap length',
 )
 
-assert(publishedPagePath('home') === '/', 'home → /')
-assert(publishedPagePath('/about') === '/about', 'strip leading slash')
-assert(publishedPagePath('docs') === '/docs', 'slug path')
-assert(publishedPagePath('') === '/', 'empty → /')
+assert(publishedPagePath('home', 'en') === '/en', 'home → /en')
+assert(publishedPagePath('home', 'hu') === '/hu', 'home → /hu')
+assert(publishedPagePath('/about', 'en') === '/en/about', 'strip leading slash + locale')
+assert(publishedPagePath('docs', 'hu') === '/hu/docs', 'slug path + locale')
+assert(publishedPagePath('', 'en') === '/en', 'empty → /en')
 
 console.log('verify-search-query: pass')

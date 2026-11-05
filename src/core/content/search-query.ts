@@ -1,3 +1,5 @@
+import type { AppLocale } from '@/core/i18n/locales'
+import { withLocalePrefix } from '@/core/i18n/path'
 import { HOME_PAGE_KEY } from '@/core/page-settings/defaults'
 
 /** Cap query length so ILIKE stays cheap. */
@@ -15,10 +17,10 @@ export function normalizeSearchQuery(raw: unknown): string {
 }
 
 /**
- * Public path for a published page slug (`home` → `/`).
+ * Locale-prefixed public path for a published page slug (`home` → `/{locale}`).
  */
-export function publishedPagePath(slug: string): string {
+export function publishedPagePath(slug: string, locale: AppLocale): string {
   const trimmed = slug.trim().replace(/^\/+/, '')
-  if (!trimmed || trimmed === HOME_PAGE_KEY) return '/'
-  return `/${trimmed}`
+  if (!trimmed || trimmed === HOME_PAGE_KEY) return withLocalePrefix('/', locale)
+  return withLocalePrefix(`/${trimmed}`, locale)
 }

@@ -92,14 +92,14 @@ export interface Config {
   db: {
     defaultIDType: number;
   };
-  fallbackLocale: null;
+  fallbackLocale: ('false' | 'none' | 'null') | false | null | ('en' | 'hu') | ('en' | 'hu')[];
   globals: {
     'site-settings': SiteSetting;
   };
   globalsSelect: {
     'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
   };
-  locale: null;
+  locale: 'en' | 'hu';
   widgets: {
     collections: CollectionsWidget;
   };
@@ -128,7 +128,7 @@ export interface UserAuthOperations {
   };
 }
 /**
- * CMS editor stubs linked to core app users (cms_access). Sign-in is Better Auth only — Payload password form is disabled. Manage CMS access under Core admin → Users.
+ * CMS editor stubs linked to core app users (cms_access). Sign-in is Better Auth only — Payload password form is disabled. Manage CMS access under Starforge admin → Users.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
@@ -153,6 +153,8 @@ export interface User {
   collection: 'users';
 }
 /**
+ * Starforge media library. Prefer Core admin → Media for upload/picker; Payload edit for alt/category/tags. Form attachments (private) stay admin-only.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "media".
  */
@@ -167,6 +169,9 @@ export interface Media {
    * Legacy flat bucket — kept for Form privacy (forms) and migration. Prefer category.
    */
   folder?: ('general' | 'logos' | 'backgrounds' | 'pages' | 'forms') | null;
+  /**
+   * Logo keeps PNG originals in public binds; photos prefer WebP derivatives.
+   */
   purpose?: ('photo' | 'logo' | 'other') | null;
   /**
    * Shared content tags (SF-132 taxonomy). Same Tags as Pages — filter in Core Media library.
@@ -215,7 +220,55 @@ export interface Media {
   };
 }
 /**
- * Marketing / brochure pages for the public site. Edit content here in Payload (/admin). App accounts use /login — not this collection. Publish so `/[slug]` can show the page.
+ * Nested media folders (shared taxonomy). Browse in Core Media library — not a second blob store.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "categories".
+ */
+export interface Category {
+  id: number;
+  title: string;
+  /**
+   * Stable key (legacy flat folders seed as general, logos, …).
+   */
+  slug: string;
+  /**
+   * Leave empty for a root folder. Max nested depth 6.
+   */
+  parent?: (number | null) | Category;
+  /**
+   * Derived breadcrumb (root → leaf).
+   */
+  path?: string | null;
+  /**
+   * 0 = root. Enforced max 6.
+   */
+  depth?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Shared content tags for pages and media. Distinct from viewing ACL group tags.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tags".
+ */
+export interface Tag {
+  id: number;
+  title: string;
+  /**
+   * Stable key for filters (e.g. news, docs).
+   */
+  slug: string;
+  /**
+   * Optional editor note — not required for public search.
+   */
+  description?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Marketing / brochure pages for the public site. Edit content here in Payload (/cms). Title, body, and SEO meta are localized (EN/HU); slug is shared. Publish so `/{locale}/[slug]` can show the page; slug `home` is `/{locale}`. With Draft preview on, CMS-access users can open `/{locale}/preview/{slug}` before publishing. Saving/publishing refreshes the public cached page for all locales.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "pages".
@@ -224,7 +277,7 @@ export interface Page {
   id: number;
   title: string;
   /**
-   * Public URL path, e.g. about → http://localhost:3000/about
+   * Shared across locales (v1). Public path under /{locale}/…, e.g. about → /en/about; home → /en (site root).
    */
   slug: string;
   /**
@@ -232,7 +285,7 @@ export interface Page {
    */
   tags?: (number | Tag)[] | null;
   /**
-   * Use the toolbar or “/” slash menu for headings, lists, links, and images from Media.
+   * Use the toolbar or “/” slash menu for headings, lists, links, and images from Media. Switch CMS locale to edit each language.
    */
   body?: {
     root: {
@@ -259,59 +312,13 @@ export interface Page {
      */
     description?: string | null;
     /**
-     * Optional share image (Open Graph / social preview).
+     * Optional share image (Open Graph / social preview). Shared across locales.
      */
     image?: (number | null) | Media;
   };
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
-}
-/**
- * Shared content tags for pages (and later posts/media). Distinct from viewing ACL group tags.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "tags".
- */
-export interface Tag {
-  id: number;
-  title: string;
-  /**
-   * Stable key for filters (e.g. news, docs).
-   */
-  slug: string;
-  /**
-   * Optional editor note — not required for public search.
-   */
-  description?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * Nested media folders (shared taxonomy). This interface was referenced by
- * `Config`'s JSON-Schema via the definition "categories".
- */
-export interface Category {
-  id: number;
-  title: string;
-  /**
-   * Stable key (legacy flat folders seed as general, logos, …).
-   */
-  slug: string;
-  /**
-   * Leave empty for a root folder. Max nested depth 6.
-   */
-  parent?: (number | null) | Category;
-  /**
-   * Derived breadcrumb (root → leaf).
-   */
-  path?: string | null;
-  /**
-   * 0 = root. Enforced max 6.
-   */
-  depth?: number | null;
-  updatedAt: string;
-  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -558,7 +565,7 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   createdAt?: T;
 }
 /**
- * Site name, default primary nav menu, and feature toggles. Edit menu items under Starforge admin → Nav.
+ * Primary nav assignment + module/feature toggles. Topics: /admin/settings (Modules, Admin UX, Auth, Security, Performance). Chrome (offline/metadata/robots/email): /admin/site-chrome. Menus: Navigation.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "site-settings".
@@ -566,15 +573,15 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
 export interface SiteSetting {
   id: number;
   /**
-   * Shown in the public site header / brand.
+   * Synced from Starforge admin → Chrome. Prefer editing site name there.
    */
   siteName: string;
   /**
-   * Id of the Nav manager menu set (`sf_nav_menus`) used for the public primary header.
+   * Assignment only: which Navigation menu set (`sf_nav_menus`) powers the public header. Edit sets under Starforge admin → Navigation (top-level). Default: main.
    */
   primaryNavMenuId?: string | null;
   /**
-   * Core /admin text-field autosave delay in milliseconds (300–2000). Blur still saves immediately.
+   * Core /admin text-field autosave delay in milliseconds (300–2000). Blur still saves immediately. Prefer Starforge admin → Settings → Admin UX.
    */
   adminAutosaveDebounceMs?: number | null;
   /**
@@ -606,7 +613,7 @@ export interface SiteSetting {
    */
   dashboardOnlineWindowMin?: number | null;
   /**
-   * Legacy fallback only — prefer Nav manager + primaryNavMenuId.
+   * Legacy storage only — migrated into Navigation manager Main. Do not edit; use /admin/nav.
    */
   primaryNav?:
     | {
@@ -623,7 +630,13 @@ export interface SiteSetting {
          * Path (/about) or absolute URL (https://…).
          */
         url?: string | null;
+        /**
+         * Legacy stub — use Navigation manager item CSS class instead.
+         */
         cssClass?: string | null;
+        /**
+         * Legacy stub — use Navigation manager browser title instead.
+         */
         browserTitle?: string | null;
         id?: string | null;
       }[]
@@ -641,7 +654,7 @@ export interface SiteSetting {
    */
   featurePosts?: boolean | null;
   /**
-   * Legacy master flag. Prefer the Modules list (per particle/atom).
+   * Legacy master flag. Prefer the Modules list below (per particle/atom). Kept in sync when any extension particle is on.
    */
   featureModules?: boolean | null;
   /**
@@ -649,10 +662,13 @@ export interface SiteSetting {
    */
   featureDraftPreview?: boolean | null;
   /**
-   * Per installed module / atom on/off (P0).
+   * Per installed particle / atom on/off (P0). Core admins edit the same list at /admin/settings → Modules. Disabled = hidden from layout palette and skipped on public/atoms.
    */
   moduleToggles?:
     | {
+        /**
+         * Registry id (e.g. notice-bar) or atom:analytics.
+         */
         moduleId: string;
         enabled?: boolean | null;
         id?: string | null;
