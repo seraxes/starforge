@@ -35,7 +35,7 @@ Override allowlist for one run: `SF_MODULES=platform:better-auth,page-content,..
 
 | Id | Path | Notes |
 | --- | --- | --- |
-| `product:forms` | `forms/manifest.ts` | Catalog + admin nav meta + Dashboard `forms.submissions` stub; engine still in `src/core/forms` (M4) |
+| `product:forms` | `forms/manifest.ts` | Catalog + admin nav meta + Dashboard `forms.submissions` (live aggregates); engine still in `src/core/forms` (M4) |
 | `form` | `form/` | Form particle (dynamic import when allowlisted) |
 | `product:email-manager` | `email-manager/` | Rules/templates + Dashboard `email.sent` stub |
 | `product:events` | `events/` | Thin Dashboard `events.upcoming` stub (no schema yet) |

@@ -58,6 +58,19 @@ assert.match(emailManifest, /id: 'email\.sent'/)
 const formsManifest = read('src/modules/forms/manifest.ts')
 assert.match(formsManifest, /id: 'forms\.submissions'/)
 
+// Core glance cards live: Forms / Security / Performance (not hard unavailable stubs)
+const formsStats = read('src/modules/forms/dashboard/forms-stats.ts')
+assert.match(formsStats, /sfFormSubmissions|sf_form_submissions/)
+assert.doesNotMatch(formsStats, /Forms submissions dashboard counts are not wired yet/)
+
+const securityStats = read('src/core/dashboard/widgets/security-stats.ts')
+assert.match(securityStats, /getSiteChrome/)
+assert.doesNotMatch(securityStats, /Security posture glance is not wired yet/)
+
+const performanceStats = read('src/core/dashboard/widgets/performance-stats.ts')
+assert.match(performanceStats, /getSiteSettings/)
+assert.doesNotMatch(performanceStats, /Performance glance is not wired yet/)
+
 const eventsManifest = read('src/modules/events/manifest.ts')
 assert.match(eventsManifest, /id: 'product:events'/)
 assert.match(eventsManifest, /id: 'events\.upcoming'/)
