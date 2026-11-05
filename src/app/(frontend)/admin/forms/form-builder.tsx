@@ -38,15 +38,15 @@ import {
 import { FORM_CONDITION_OP_LABELS } from '@/core/forms/logic'
 import { listFormPresetMetas } from '@/core/forms/presets'
 import {
-  addFieldToRow,
   appendFieldRow,
-  mergeRows,
+  ensureFormSectionsEmptyRows,
+  insertEmptyRowAfter,
   moveFieldInSections,
   removeFieldFromSections,
   renameFieldInSections,
   resizeRowColumns,
+  rowIsEmpty,
   sectionFieldNames,
-  splitFieldToOwnRow,
   LAYOUT_WIDTH_FULL,
 } from '@/core/forms/rows'
 import { fieldsToJsonSchema, stringifyFormJsonSchema } from '@/core/forms/schema-json'
@@ -145,12 +145,6 @@ type FieldSettingsProps = {
   siteCaptcha?: FormBuilderSiteCaptcha
   /** Column width percent when sitting in a multi-column row. */
   widthPercent?: number
-  /** Split this column out to its own full-width row. */
-  onSplitToOwnRow?: () => void
-  /** Merge this field's row with the next row (side-by-side). */
-  onJoinNextRow?: () => void
-  canSplit?: boolean
-  canJoinNext?: boolean
   /** Layout-like slot drop edge while dragging another field over this one. */
   dropEdge?: 'before' | 'after' | null
 }
@@ -916,10 +910,6 @@ function FieldBar({
   flushOnBlur,
   siteCaptcha,
   widthPercent,
-  onSplitToOwnRow,
-  onJoinNextRow,
-  canSplit,
-  canJoinNext,
   dropEdge = null,
   setNodeRef,
   style,
@@ -974,27 +964,7 @@ function FieldBar({
           </div>
         </div>
         <div className="gantry-slot-end">
-          <div className="gantry-slot-actions sf-form-slot-row-actions">
-            {canJoinNext && onJoinNextRow ? (
-              <button
-                type="button"
-                className="gantry-toolbar-btn secondary sf-form-row-action"
-                title="Join with next row (side-by-side)"
-                onClick={onJoinNextRow}
-              >
-                Join →
-              </button>
-            ) : null}
-            {canSplit && onSplitToOwnRow ? (
-              <button
-                type="button"
-                className="gantry-toolbar-btn secondary sf-form-row-action"
-                title="Move this field to its own row"
-                onClick={onSplitToOwnRow}
-              >
-                Own row
-              </button>
-            ) : null}
+          <div className="gantry-slot-actions">
             <ParticleSettingsPopover
               title={`${displayName} settings`}
               tabs={[
@@ -1162,12 +1132,12 @@ function DraggableFieldBar(
 function DroppableFormRow({
   rowId,
   isDropTarget,
-  isColumnTarget,
+  isEmpty,
   children,
 }: {
   rowId: string
   isDropTarget: boolean
-  isColumnTarget: boolean
+  isEmpty?: boolean
   children: React.ReactNode
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: rowDroppableId(rowId) })
@@ -1178,12 +1148,13 @@ function DroppableFormRow({
       className={[
         'gantry-row',
         'sf-form-builder-row',
+        isEmpty ? 'sf-form-builder-row-empty' : '',
         active ? 'is-drop-target' : '',
-        isColumnTarget ? 'is-column-target' : '',
       ]
         .filter(Boolean)
         .join(' ')}
       data-sf-form-row={rowId}
+      data-sf-empty={isEmpty ? 'true' : undefined}
     >
       {children}
     </div>
@@ -1242,8 +1213,6 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
     ),
   )
   const [schemaError, setSchemaError] = useState<string | null>(null)
-  /** When set, the next palette click adds a column into this row (even widths). */
-  const [targetRow, setTargetRow] = useState<{ sectionId: string; rowId: string } | null>(null)
 
   // dnd-kit Accessibility assigns module-counter ids (DndDescribedBy-N). SSR vs client
   // counters diverge when multiple DndContexts mount — defer sortable until after hydrate
@@ -1321,17 +1290,13 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
     }
     draft.name = name
     const next = [...fields, draft]
-    const targetSec = sectionId || targetRow?.sectionId || sections[0]?.id
+    const targetSec = sectionId || sections[0]?.id
     if (!targetSec) {
       updateFields(next)
       return
     }
-    const nextSections =
-      targetRow && targetRow.sectionId === targetSec
-        ? addFieldToRow(sections, targetSec, targetRow.rowId, draft.name)
-        : appendFieldRow(sections, targetSec, draft.name)
-    setTargetRow(null)
-    updateFields(next, nextSections)
+    // Palette → first empty drop row (Layout-like), else new row + trailing empty.
+    updateFields(next, appendFieldRow(sections, targetSec, draft.name))
   }
 
   function patchField(id: string, patch: Partial<FormFieldDef>) {
@@ -1411,7 +1376,7 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
   }
 
   function commitSections(nextSections: FormSectionDef[]) {
-    const synced = normalizeFormSections(nextSections, fields)
+    const synced = ensureFormSectionsEmptyRows(normalizeFormSections(nextSections, fields))
     if (JSON.stringify(synced) === JSON.stringify(sections)) return
     setSections(synced)
     const nextFields = reorderFieldsFromSections(synced)
@@ -1420,6 +1385,10 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
       regenerateSchema(nextFields)
     }
     saveDebounced()
+  }
+
+  function insertRowBelow(sectionId: string, afterRowId: string) {
+    commitSections(insertEmptyRowAfter(sections, sectionId, afterRowId))
   }
 
   function clearFieldDragUi() {
@@ -1561,19 +1530,6 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
     )
   }
 
-  function joinWithNextRow(sectionId: string, rowId: string) {
-    const section = sections.find((s) => s.id === sectionId)
-    if (!section) return
-    const idx = section.rows.findIndex((r) => r.id === rowId)
-    const next = section.rows[idx + 1]
-    if (!next) return
-    commitSections(mergeRows(sections, sectionId, rowId, next.id))
-  }
-
-  function splitToOwnRow(sectionId: string, fieldName: string) {
-    commitSections(splitFieldToOwnRow(sections, sectionId, fieldName))
-  }
-
   function onResizeColumns(
     sectionId: string,
     rowId: string,
@@ -1626,8 +1582,8 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
         <Link href="/admin/forms">← Forms</Link>
         {' · '}
         Layout-aligned builder: palette → section rows (side-by-side % columns) → field cog. Drag a
-        field onto a row or slot (Layout-like drop zones); resize handles between columns; mobile
-        stacks. Meta, success, and email live under Form settings.
+        field onto a row or empty drop row to join columns; insert empty rows under any row; resize
+        with the divider. Meta, success, and email live under Form settings.
       </p>
 
       <nav className="gantry-layouts-nav sf-form-edit-nav" aria-label="Form edit">
@@ -1691,18 +1647,9 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                 ))}
               </ul>
               <p className="layout-muted">
-                Click a field type to add a new row. Select <strong>+ column</strong> on a row first
-                to place the next field side-by-side. Drag a placed field onto a row or slot to join;
-                the drop target stays highlighted (Layout-style). Resize with the divider.
+                Click a field type to fill the empty drop row (Layout cascade). Drag a placed field
+                onto a row or slot to sit side-by-side; resize with the divider.
               </p>
-              {targetRow ? (
-                <p className="sf-form-target-row" role="status">
-                  Next field → selected row.{' '}
-                  <button type="button" className="gantry-toolbar-btn secondary" onClick={() => setTargetRow(null)}>
-                    Clear
-                  </button>
-                </p>
-              ) : null}
             </aside>
 
             <div className="gantry-sections sf-form-sections" aria-label="Form canvas">
@@ -1712,7 +1659,7 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                   className="gantry-toolbar-btn secondary"
                   onClick={() => {
                     const sec = createSectionDraft(`Section ${sections.length + 1}`)
-                    setSections([...sections, sec])
+                    setSections(ensureFormSectionsEmptyRows([...sections, sec]))
                     saveDebounced()
                   }}
                 >
@@ -1780,150 +1727,118 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                           onDragCancel={clearFieldDragUi}
                           onDragEnd={(e) => onDragEnd(e, section.id)}
                         >
-                          {section.rows.map((row, rowIndex) => {
-                            const isColumnTarget =
-                              targetRow?.sectionId === section.id && targetRow.rowId === row.id
+                          {section.rows.map((row) => {
+                            const empty = rowIsEmpty(row)
                             const isDropTarget =
                               Boolean(draggingFieldId) &&
                               dropHint?.sectionId === section.id &&
                               dropHint.rowId === row.id
                             return (
-                              <DroppableFormRow
-                                key={row.id}
-                                rowId={row.id}
-                                isDropTarget={isDropTarget}
-                                isColumnTarget={isColumnTarget}
-                              >
-                                <div className="gantry-row-meta sf-form-row-meta">
-                                  <span>
-                                    Row · drop fields here
-                                    {row.columns.length
-                                      ? ` · ${row.columns.length} column${row.columns.length === 1 ? '' : 's'}`
-                                      : ''}
-                                  </span>
-                                  <div className="gantry-row-actions">
-                                    <button
-                                      type="button"
-                                      className={
-                                        isColumnTarget
-                                          ? 'gantry-toolbar-btn primary'
-                                          : 'gantry-toolbar-btn secondary'
-                                      }
-                                      title="Next palette click adds a field into this row"
-                                      onClick={() =>
-                                        setTargetRow(
-                                          isColumnTarget
-                                            ? null
-                                            : { sectionId: section.id, rowId: row.id },
-                                        )
-                                      }
-                                    >
-                                      {isColumnTarget ? 'Column target ✓' : '+ column'}
-                                    </button>
-                                    {rowIndex < section.rows.length - 1 ? (
+                              <React.Fragment key={row.id}>
+                                <DroppableFormRow
+                                  rowId={row.id}
+                                  isDropTarget={isDropTarget}
+                                  isEmpty={empty}
+                                >
+                                  <div className="gantry-row-meta sf-form-row-meta">
+                                    <span>
+                                      {empty
+                                        ? 'Empty row · drop fields here'
+                                        : `Row · drop fields here · ${row.columns.length} column${row.columns.length === 1 ? '' : 's'}`}
+                                    </span>
+                                    <div className="gantry-row-actions">
                                       <button
                                         type="button"
                                         className="gantry-toolbar-btn secondary"
-                                        title="Merge this row with the next"
-                                        onClick={() => joinWithNextRow(section.id, row.id)}
+                                        title="Insert an empty drop row under this row"
+                                        onClick={() => insertRowBelow(section.id, row.id)}
                                       >
-                                        Join next
+                                        Insert row below
                                       </button>
-                                    ) : null}
+                                    </div>
                                   </div>
-                                </div>
-                                <div className="gantry-row-slots sf-form-row-slots">
-                                  {row.columns.length === 0 ? (
-                                    <div className="gantry-row-empty">Drop fields here…</div>
-                                  ) : null}
-                                  {row.columns.map((col, colIndex) => {
-                                    const field = fields.find((f) => f.name === col.fieldName)
-                                    if (!field) return null
-                                    const id = fieldKey(field)
-                                    const edge =
-                                      dropHint?.sectionId === section.id &&
-                                      dropHint.kind === 'field' &&
-                                      dropHint.fieldId === id &&
-                                      draggingFieldId !== id
-                                        ? dropHint.edge ?? null
-                                        : null
-                                    const bar = (
-                                      <DraggableFieldBar
-                                        key={id}
-                                        field={field}
-                                        fields={fields}
-                                        widthPercent={col.width}
-                                        dropEdge={edge}
-                                        dragLockSize={
-                                          draggingFieldId === id && dragLockSize
-                                            ? {
-                                                width: dragLockSize.width,
-                                                height: dragLockSize.height,
-                                              }
-                                            : null
-                                        }
-                                        canSplit={row.columns.length > 1}
-                                        canJoinNext={
-                                          row.columns.length === 1 &&
-                                          rowIndex < section.rows.length - 1
-                                        }
-                                        onSplitToOwnRow={() =>
-                                          splitToOwnRow(section.id, field.name)
-                                        }
-                                        onJoinNextRow={() =>
-                                          joinWithNextRow(section.id, row.id)
-                                        }
-                                        onPatch={(patch) => patchField(id, patch)}
-                                        onRename={(nextName) => renameField(id, nextName)}
-                                        onPatchConstraints={(patch) =>
-                                          patchFieldConstraints(id, patch)
-                                        }
-                                        onUpdateOptions={(options) =>
-                                          patchField(id, { options })
-                                        }
-                                        onPatchLogic={(key, group) =>
-                                          patchFieldLogic(id, key, group)
-                                        }
-                                        onRemove={() => removeField(id, field.name)}
-                                        saveNow={saveNow}
-                                        flushOnBlur={flushOnBlur}
-                                        siteCaptcha={siteCaptcha}
-                                      />
-                                    )
-                                    if (colIndex >= row.columns.length - 1) return bar
-                                    const right = row.columns[colIndex + 1]!
-                                    return (
-                                      <React.Fragment key={id}>
-                                        {bar}
-                                        <FormColumnResizeHandle
-                                          leftWidth={col.width}
-                                          rightWidth={right.width}
-                                          onLocalResize={(left) =>
-                                            onResizeColumns(
-                                              section.id,
-                                              row.id,
-                                              colIndex,
-                                              left,
-                                              0,
-                                              false,
-                                            )
+                                  <div className="gantry-row-slots sf-form-row-slots">
+                                    {empty ? (
+                                      <div className="gantry-row-empty">Drop fields here…</div>
+                                    ) : null}
+                                    {row.columns.map((col, colIndex) => {
+                                      const field = fields.find((f) => f.name === col.fieldName)
+                                      if (!field) return null
+                                      const id = fieldKey(field)
+                                      const edge =
+                                        dropHint?.sectionId === section.id &&
+                                        dropHint.kind === 'field' &&
+                                        dropHint.fieldId === id &&
+                                        draggingFieldId !== id
+                                          ? dropHint.edge ?? null
+                                          : null
+                                      const bar = (
+                                        <DraggableFieldBar
+                                          key={id}
+                                          field={field}
+                                          fields={fields}
+                                          widthPercent={col.width}
+                                          dropEdge={edge}
+                                          dragLockSize={
+                                            draggingFieldId === id && dragLockSize
+                                              ? {
+                                                  width: dragLockSize.width,
+                                                  height: dragLockSize.height,
+                                                }
+                                              : null
                                           }
-                                          onCommit={(left) =>
-                                            onResizeColumns(
-                                              section.id,
-                                              row.id,
-                                              colIndex,
-                                              left,
-                                              0,
-                                              true,
-                                            )
+                                          onPatch={(patch) => patchField(id, patch)}
+                                          onRename={(nextName) => renameField(id, nextName)}
+                                          onPatchConstraints={(patch) =>
+                                            patchFieldConstraints(id, patch)
                                           }
+                                          onUpdateOptions={(options) =>
+                                            patchField(id, { options })
+                                          }
+                                          onPatchLogic={(key, group) =>
+                                            patchFieldLogic(id, key, group)
+                                          }
+                                          onRemove={() => removeField(id, field.name)}
+                                          saveNow={saveNow}
+                                          flushOnBlur={flushOnBlur}
+                                          siteCaptcha={siteCaptcha}
                                         />
-                                      </React.Fragment>
-                                    )
-                                  })}
-                                </div>
-                              </DroppableFormRow>
+                                      )
+                                      if (colIndex >= row.columns.length - 1) return bar
+                                      const right = row.columns[colIndex + 1]!
+                                      return (
+                                        <React.Fragment key={id}>
+                                          {bar}
+                                          <FormColumnResizeHandle
+                                            leftWidth={col.width}
+                                            rightWidth={right.width}
+                                            onLocalResize={(left) =>
+                                              onResizeColumns(
+                                                section.id,
+                                                row.id,
+                                                colIndex,
+                                                left,
+                                                0,
+                                                false,
+                                              )
+                                            }
+                                            onCommit={(left) =>
+                                              onResizeColumns(
+                                                section.id,
+                                                row.id,
+                                                colIndex,
+                                                left,
+                                                0,
+                                                true,
+                                              )
+                                            }
+                                          />
+                                        </React.Fragment>
+                                      )
+                                    })}
+                                  </div>
+                                </DroppableFormRow>
+                              </React.Fragment>
                             )
                           })}
                           <DragOverlay dropAnimation={null}>

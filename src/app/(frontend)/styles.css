@@ -2479,14 +2479,14 @@ button:disabled {
   min-height: 4.5rem;
 }
 
-.sf-form-builder-row.is-column-target {
-  border-color: color-mix(in srgb, var(--sf-primary-strong) 55%, var(--sf-line));
-  background: color-mix(in srgb, var(--sf-primary) 14%, transparent);
-}
-
 .sf-form-builder-row.is-drop-target {
   border-color: color-mix(in srgb, var(--sf-primary-strong) 55%, var(--sf-line));
   background: color-mix(in srgb, var(--sf-primary) 18%, transparent);
+}
+
+.sf-form-builder-row-empty .gantry-row-empty {
+  flex: 1 1 auto;
+  min-height: 3.25rem;
 }
 
 .sf-form-row-slots {

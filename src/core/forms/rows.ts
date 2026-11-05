@@ -38,6 +38,84 @@ export function createRowDraft(fieldName: string, width: number = LAYOUT_WIDTH_F
   }
 }
 
+export function rowIsEmpty(row: FormRowDef): boolean {
+  return !Array.isArray(row.columns) || row.columns.length === 0
+}
+
+/** Stable empty-row ids so normalize does not remount the canvas every refresh. */
+function nextEmptyRowId(sectionId: string, usedIds: Set<string>): string {
+  const base = `${sectionId}__trailing-empty`
+  if (!usedIds.has(base)) return base
+  let n = 2
+  while (usedIds.has(`${base}-${n}`)) n += 1
+  return `${base}-${n}`
+}
+
+/** Empty drop row (Layout SF-87 analogue). */
+export function createEmptyRowDraft(sectionId = 'sec'): FormRowDef {
+  return { id: nextEmptyRowId(sectionId, new Set()), columns: [] }
+}
+
+/**
+ * Auto empty-row rules (match Layout SF-87):
+ * - One open empty row per section by default.
+ * - After any filled row, keep one trailing empty (cascade as rows fill).
+ * - Consecutive empties collapse.
+ */
+export function ensureFormSectionEmptyRows(section: FormSectionDef): FormSectionDef {
+  const collapsed: FormRowDef[] = []
+  for (const row of section.rows) {
+    if (rowIsEmpty(row) && collapsed.length > 0 && rowIsEmpty(collapsed[collapsed.length - 1]!)) {
+      continue
+    }
+    collapsed.push(row)
+  }
+  const usedIds = new Set(collapsed.map((r) => r.id))
+  if (collapsed.length === 0) {
+    return {
+      ...section,
+      rows: [{ id: nextEmptyRowId(section.id, usedIds), columns: [] }],
+    }
+  }
+  const last = collapsed[collapsed.length - 1]!
+  if (!rowIsEmpty(last)) {
+    collapsed.push({ id: nextEmptyRowId(section.id, usedIds), columns: [] })
+  }
+  return { ...section, rows: collapsed }
+}
+
+export function ensureFormSectionsEmptyRows(sections: FormSectionDef[]): FormSectionDef[] {
+  return sections.map(ensureFormSectionEmptyRows)
+}
+
+/** Insert an empty drop row immediately after `afterRowId` (or at start when null). */
+export function insertEmptyRowAfter(
+  sections: FormSectionDef[],
+  sectionId: string,
+  afterRowId: string | null,
+): FormSectionDef[] {
+  return ensureFormSectionsEmptyRows(
+    sections.map((section) => {
+      if (section.id !== sectionId) return section
+      const empty: FormRowDef = {
+        id: nextEmptyRowId(section.id, new Set(section.rows.map((r) => r.id))),
+        columns: [],
+      }
+      if (!afterRowId) {
+        return { ...section, rows: [empty, ...section.rows] }
+      }
+      const idx = section.rows.findIndex((r) => r.id === afterRowId)
+      if (idx < 0) return { ...section, rows: [...section.rows, empty] }
+      const rows = [
+        ...section.rows.slice(0, idx + 1),
+        empty,
+        ...section.rows.slice(idx + 1),
+      ]
+      return { ...section, rows }
+    }),
+  )
+}
+
 /** Evenly redistribute column widths so they sum to 100%. */
 export function redistributeRowWidths(row: FormRowDef): FormRowDef {
   const widths = evenColumnWidths(row.columns.length)
@@ -92,7 +170,13 @@ export function normalizeSectionRows(
         )
       }
 
-      if (pendingNames.length === 0) continue
+      if (pendingNames.length === 0) {
+        // Preserve intentional empty drop rows (Layout-like trailing / insert rows).
+        if (Array.isArray(row.columns) && row.columns.length === 0) {
+          rows.push({ id, columns: [] })
+        }
+        continue
+      }
 
       const widths =
         pendingNames.length === 1
@@ -168,7 +252,11 @@ export function reconcileSectionRowsWithFields(
           width: clampGridWidth(col.width),
         })
       }
-      if (columns.length === 0) continue
+      if (columns.length === 0) {
+        // Keep empty drop rows; ensureFormSectionEmptyRows collapses pairs later.
+        if (row.columns.length === 0) rows.push({ id: row.id, columns: [] })
+        continue
+      }
       rows.push(
         columns.length === row.columns.length
           ? { id: row.id, columns }
@@ -180,33 +268,33 @@ export function reconcileSectionRowsWithFields(
 
   const orphan = fields.map((f) => f.name).filter((n) => !assigned.has(n))
   if (next.length === 0) {
-    return [
+    return ensureFormSectionsEmptyRows([
       {
         id: 'sec_main',
         label: 'Fields',
         rows: orphan.map((n) => createRowDraft(n)),
       },
-    ]
+    ])
   }
-  return appendOrphanFieldRows(next, orphan)
+  return ensureFormSectionsEmptyRows(appendOrphanFieldRows(next, orphan))
 }
 
-/** Remove a field from all rows; drop empty rows; redistribute remaining widths. */
+/** Remove a field from all rows; leave empties then ensure trailing empty row. */
 export function removeFieldFromSections(
   sections: FormSectionDef[],
   fieldName: string,
 ): FormSectionDef[] {
-  return sections.map((section) => ({
-    ...section,
-    rows: section.rows
-      .map((row) => {
+  return ensureFormSectionsEmptyRows(
+    sections.map((section) => ({
+      ...section,
+      rows: section.rows.map((row) => {
         const columns = row.columns.filter((c) => c.fieldName !== fieldName)
-        if (columns.length === 0) return null
+        if (columns.length === 0) return { ...row, columns: [] }
         if (columns.length === row.columns.length) return row
         return redistributeRowWidths({ ...row, columns })
-      })
-      .filter((r): r is FormRowDef => Boolean(r)),
-  }))
+      }),
+    })),
+  )
 }
 
 /** Rename a field across all section rows. */
@@ -226,16 +314,28 @@ export function renameFieldInSections(
   }))
 }
 
-/** Append a new full-width row with one field into a section. */
+/**
+ * Place a new field into the first trailing empty row of the section,
+ * or append a full-width row then ensure trailing empty (Layout palette drop).
+ */
 export function appendFieldRow(
   sections: FormSectionDef[],
   sectionId: string,
   fieldName: string,
 ): FormSectionDef[] {
-  return sections.map((s) =>
-    s.id === sectionId
-      ? { ...s, rows: [...s.rows, createRowDraft(fieldName)] }
-      : s,
+  return ensureFormSectionsEmptyRows(
+    sections.map((s) => {
+      if (s.id !== sectionId) return s
+      const emptyIdx = s.rows.findIndex((r) => rowIsEmpty(r))
+      if (emptyIdx >= 0) {
+        const rows = [...s.rows]
+        rows[emptyIdx] = createRowDraft(fieldName)
+        // Keep a stable id when filling an empty drop row.
+        rows[emptyIdx] = { ...rows[emptyIdx]!, id: s.rows[emptyIdx]!.id }
+        return { ...s, rows }
+      }
+      return { ...s, rows: [...s.rows, createRowDraft(fieldName)] }
+    }),
   )
 }
 
@@ -250,24 +350,26 @@ export function addFieldToRow(
   fieldName: string,
   index?: number,
 ): FormSectionDef[] {
-  return sections.map((s) => {
-    if (s.id !== sectionId) return s
-    const rowIndex = s.rows.findIndex((r) => r.id === rowId)
-    if (rowIndex < 0) {
-      return { ...s, rows: [...s.rows, createRowDraft(fieldName)] }
-    }
-    const row = s.rows[rowIndex]!
-    const insertAt =
-      index == null ? row.columns.length : Math.max(0, Math.min(row.columns.length, index))
-    const columns = [
-      ...row.columns.slice(0, insertAt),
-      { fieldName, width: LAYOUT_WIDTH_MIN },
-      ...row.columns.slice(insertAt),
-    ]
-    const nextRows = [...s.rows]
-    nextRows[rowIndex] = redistributeRowWidths({ ...row, columns })
-    return { ...s, rows: nextRows }
-  })
+  return ensureFormSectionsEmptyRows(
+    sections.map((s) => {
+      if (s.id !== sectionId) return s
+      const rowIndex = s.rows.findIndex((r) => r.id === rowId)
+      if (rowIndex < 0) {
+        return { ...s, rows: [...s.rows, createRowDraft(fieldName)] }
+      }
+      const row = s.rows[rowIndex]!
+      const insertAt =
+        index == null ? row.columns.length : Math.max(0, Math.min(row.columns.length, index))
+      const columns = [
+        ...row.columns.slice(0, insertAt),
+        { fieldName, width: LAYOUT_WIDTH_MIN },
+        ...row.columns.slice(insertAt),
+      ]
+      const nextRows = [...s.rows]
+      nextRows[rowIndex] = redistributeRowWidths({ ...row, columns })
+      return { ...s, rows: nextRows }
+    }),
+  )
 }
 
 /** Move a field into another row (or new solo row). Redistributes widths. */
@@ -296,32 +398,40 @@ export function moveFieldInSections(
   if (!movedCol) return sections
   const col: FormRowColumn = { fieldName: movedCol.fieldName, width: movedCol.width }
 
-  return stripped.map((section) => {
-    if (section.id !== target.sectionId) return section
+  return ensureFormSectionsEmptyRows(
+    stripped.map((section) => {
+      if (section.id !== target.sectionId) return section
 
-    // null rowId → insert as a new solo row at `index` among rows
-    if (target.rowId == null) {
-      const solo = createRowDraft(col.fieldName)
-      const at = Math.max(0, Math.min(section.rows.length, target.index))
-      const rows = [...section.rows.slice(0, at), solo, ...section.rows.slice(at)]
+      // null rowId → insert as a new solo row at `index` among rows
+      if (target.rowId == null) {
+        const solo = createRowDraft(col.fieldName)
+        const at = Math.max(0, Math.min(section.rows.length, target.index))
+        const rows = [...section.rows.slice(0, at), solo, ...section.rows.slice(at)]
+        return { ...section, rows }
+      }
+
+      const rowIndex = section.rows.findIndex((r) => r.id === target.rowId)
+      if (rowIndex < 0) {
+        return { ...section, rows: [...section.rows, createRowDraft(col.fieldName)] }
+      }
+      const row = section.rows[rowIndex]!
+      const insertAt = Math.max(0, Math.min(row.columns.length, target.index))
+      // Empty drop row → fill as solo 100% column (keep row id).
+      if (rowIsEmpty(row)) {
+        const rows = [...section.rows]
+        rows[rowIndex] = { id: row.id, columns: [{ fieldName: col.fieldName, width: LAYOUT_WIDTH_FULL }] }
+        return { ...section, rows }
+      }
+      const columns = [
+        ...row.columns.slice(0, insertAt),
+        { fieldName: col.fieldName, width: LAYOUT_WIDTH_MIN },
+        ...row.columns.slice(insertAt),
+      ]
+      const rows = [...section.rows]
+      rows[rowIndex] = redistributeRowWidths({ ...row, columns })
       return { ...section, rows }
-    }
-
-    const rowIndex = section.rows.findIndex((r) => r.id === target.rowId)
-    if (rowIndex < 0) {
-      return { ...section, rows: [...section.rows, createRowDraft(col.fieldName)] }
-    }
-    const row = section.rows[rowIndex]!
-    const insertAt = Math.max(0, Math.min(row.columns.length, target.index))
-    const columns = [
-      ...row.columns.slice(0, insertAt),
-      { fieldName: col.fieldName, width: LAYOUT_WIDTH_MIN },
-      ...row.columns.slice(insertAt),
-    ]
-    const rows = [...section.rows]
-    rows[rowIndex] = redistributeRowWidths({ ...row, columns })
-    return { ...section, rows }
-  })
+    }),
+  )
 }
 
 /** Split a column out of a multi-column row into its own full-width row (after the source). */
@@ -330,21 +440,23 @@ export function splitFieldToOwnRow(
   sectionId: string,
   fieldName: string,
 ): FormSectionDef[] {
-  return sections.map((section) => {
-    if (section.id !== sectionId) return section
-    const rows: FormRowDef[] = []
-    for (const row of section.rows) {
-      const idx = row.columns.findIndex((c) => c.fieldName === fieldName)
-      if (idx < 0 || row.columns.length <= 1) {
-        rows.push(row)
-        continue
+  return ensureFormSectionsEmptyRows(
+    sections.map((section) => {
+      if (section.id !== sectionId) return section
+      const rows: FormRowDef[] = []
+      for (const row of section.rows) {
+        const idx = row.columns.findIndex((c) => c.fieldName === fieldName)
+        if (idx < 0 || row.columns.length <= 1) {
+          rows.push(row)
+          continue
+        }
+        const remaining = row.columns.filter((c) => c.fieldName !== fieldName)
+        rows.push(redistributeRowWidths({ ...row, columns: remaining }))
+        rows.push(createRowDraft(fieldName))
       }
-      const remaining = row.columns.filter((c) => c.fieldName !== fieldName)
-      rows.push(redistributeRowWidths({ ...row, columns: remaining }))
-      rows.push(createRowDraft(fieldName))
-    }
-    return { ...section, rows }
-  })
+      return { ...section, rows }
+    }),
+  )
 }
 
 /** Merge `sourceRowId` into `targetRowId` (append columns, even widths). */
@@ -355,20 +467,30 @@ export function mergeRows(
   sourceRowId: string,
 ): FormSectionDef[] {
   if (targetRowId === sourceRowId) return sections
-  return sections.map((section) => {
-    if (section.id !== sectionId) return section
-    const target = section.rows.find((r) => r.id === targetRowId)
-    const source = section.rows.find((r) => r.id === sourceRowId)
-    if (!target || !source) return section
-    const columns = [...target.columns, ...source.columns]
-    const merged = redistributeRowWidths({ ...target, columns })
-    return {
-      ...section,
-      rows: section.rows
-        .filter((r) => r.id !== sourceRowId)
-        .map((r) => (r.id === targetRowId ? merged : r)),
-    }
-  })
+  return ensureFormSectionsEmptyRows(
+    sections.map((section) => {
+      if (section.id !== sectionId) return section
+      const target = section.rows.find((r) => r.id === targetRowId)
+      const source = section.rows.find((r) => r.id === sourceRowId)
+      if (!target || !source) return section
+      if (rowIsEmpty(source)) {
+        return {
+          ...section,
+          rows: section.rows.filter((r) => r.id !== sourceRowId),
+        }
+      }
+      const columns = rowIsEmpty(target)
+        ? [...source.columns]
+        : [...target.columns, ...source.columns]
+      const merged = redistributeRowWidths({ ...target, columns })
+      return {
+        ...section,
+        rows: section.rows
+          .filter((r) => r.id !== sourceRowId)
+          .map((r) => (r.id === targetRowId ? merged : r)),
+      }
+    }),
+  )
 }
 
 /** Resize two adjacent columns in a row (1% steps, ≥5% each). */

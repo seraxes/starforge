@@ -14,6 +14,7 @@ import {
 import {
   appendOrphanFieldRows,
   createRowDraft,
+  ensureFormSectionsEmptyRows,
   normalizeSectionRows,
   sectionFieldNames,
 } from './rows'
@@ -273,23 +274,23 @@ export function normalizeFormSections(
     }
     const orphan = names.filter((n) => !assigned.has(n))
     if (sections.length === 0) {
-      return [
+      return ensureFormSectionsEmptyRows([
         {
           id: 'sec_main',
           label: 'Fields',
           rows: names.map((n) => createRowDraft(n)),
         },
-      ]
+      ])
     }
-    return appendOrphanFieldRows(sections, orphan)
+    return ensureFormSectionsEmptyRows(appendOrphanFieldRows(sections, orphan))
   }
-  return [
+  return ensureFormSectionsEmptyRows([
     {
       id: 'sec_main',
       label: 'Fields',
       rows: names.map((n) => createRowDraft(n)),
     },
-  ]
+  ])
 }
 
 export function normalizeFormFields(raw: unknown): FormFieldDef[] {

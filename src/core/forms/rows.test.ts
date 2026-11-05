@@ -4,10 +4,13 @@ import { describe, it } from 'node:test'
 import { normalizeFormSections } from './definition'
 import {
   addFieldToRow,
+  ensureFormSectionEmptyRows,
+  insertEmptyRowAfter,
   mergeRows,
   moveFieldInSections,
   removeFieldFromSections,
   resizeRowColumns,
+  rowIsEmpty,
   sectionFieldNames,
   splitFieldToOwnRow,
 } from './rows'
@@ -20,15 +23,16 @@ const fields: FormFieldDef[] = [
 ]
 
 describe('form row layout normalize', () => {
-  it('migrates legacy fieldNames to one full-width row per field', () => {
+  it('migrates legacy fieldNames to one full-width row per field + trailing empty', () => {
     const sections = normalizeFormSections(
       [{ id: 'sec_main', label: 'Fields', fieldNames: ['name', 'email', 'message'] }],
       fields,
     )
     assert.equal(sections.length, 1)
-    assert.equal(sections[0]!.rows.length, 3)
+    assert.equal(sections[0]!.rows.length, 4) // 3 fields + trailing empty
+    assert.ok(rowIsEmpty(sections[0]!.rows[3]!))
     assert.deepEqual(
-      sections[0]!.rows.map((r) => r.columns.map((c) => [c.fieldName, c.width])),
+      sections[0]!.rows.slice(0, 3).map((r) => r.columns.map((c) => [c.fieldName, c.width])),
       [
         [['name', 100]],
         [['email', 100]],
@@ -62,7 +66,7 @@ describe('form row layout normalize', () => {
       ],
       fields,
     )
-    assert.equal(sections[0]!.rows.length, 2)
+    assert.equal(sections[0]!.rows.length, 3) // multi + message + trailing empty
     assert.deepEqual(
       sections[0]!.rows[0]!.columns.map((c) => [c.fieldName, c.width]),
       [
@@ -70,6 +74,7 @@ describe('form row layout normalize', () => {
         ['email', 50],
       ],
     )
+    assert.ok(rowIsEmpty(sections[0]!.rows[2]!))
   })
 
   it('converts legacy 12-col widths to percent', () => {
@@ -133,9 +138,10 @@ describe('form row layout mutations', () => {
       rowId: targetRow,
       index: 1,
     })
-    assert.equal(next[0]!.rows.length, 2) // name+email row, message row
+    const filled = next[0]!.rows.filter((r) => !rowIsEmpty(r))
+    assert.equal(filled.length, 2) // name+email row, message row (+ trailing empty)
     assert.deepEqual(
-      next[0]!.rows[0]!.columns.map((c) => c.fieldName),
+      filled[0]!.columns.map((c) => c.fieldName),
       ['name', 'email'],
     )
   })
@@ -147,11 +153,12 @@ describe('form row layout mutations', () => {
       index: 1,
     })
     const split = splitFieldToOwnRow(joined, 'sec_main', 'email')
-    assert.ok(split[0]!.rows.every((r) => r.columns.length === 1))
-    const a = split[0]!.rows[0]!.id
-    const b = split[0]!.rows[1]!.id
+    const filled = split[0]!.rows.filter((r) => !rowIsEmpty(r))
+    assert.ok(filled.every((r) => r.columns.length === 1))
+    const a = filled[0]!.id
+    const b = filled[1]!.id
     const merged = mergeRows(split, 'sec_main', a, b)
-    assert.equal(merged[0]!.rows[0]!.columns.length, 2)
+    assert.equal(merged[0]!.rows.find((r) => r.id === a)!.columns.length, 2)
   })
 
   it('resizeRowColumns keeps pair sum', () => {
@@ -165,5 +172,27 @@ describe('form row layout mutations', () => {
     const cols = resized[0]!.rows[0]!.columns
     assert.equal(cols[0]!.width, 70)
     assert.equal(cols[1]!.width, 30)
+  })
+
+  it('ensureFormSectionEmptyRows keeps one trailing empty and collapses pairs', () => {
+    const ensured = ensureFormSectionEmptyRows({
+      id: 'sec_main',
+      label: 'Fields',
+      rows: [
+        { id: 'r1', columns: [{ fieldName: 'name', width: 100 }] },
+        { id: 'e1', columns: [] },
+        { id: 'e2', columns: [] },
+      ],
+    })
+    assert.equal(ensured.rows.length, 2)
+    assert.equal(ensured.rows[0]!.id, 'r1')
+    assert.ok(rowIsEmpty(ensured.rows[1]!))
+  })
+
+  it('insertEmptyRowAfter places an empty row under the target', () => {
+    const next = insertEmptyRowAfter(base, 'sec_main', base[0]!.rows[0]!.id)
+    const rows = next[0]!.rows
+    assert.ok(rowIsEmpty(rows[1]!))
+    assert.equal(rows[0]!.columns[0]!.fieldName, 'name')
   })
 })

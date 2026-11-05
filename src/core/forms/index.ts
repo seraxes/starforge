@@ -63,13 +63,18 @@ export {
 export {
   addFieldToRow,
   appendFieldRow,
+  createEmptyRowDraft,
   createRowDraft,
+  ensureFormSectionEmptyRows,
+  ensureFormSectionsEmptyRows,
+  insertEmptyRowAfter,
   mergeRows,
   moveFieldInSections,
   redistributeRowWidths,
   removeFieldFromSections,
   renameFieldInSections,
   resizeRowColumns,
+  rowIsEmpty,
   sectionsFieldNames,
   splitFieldToOwnRow,
 } from './rows'
