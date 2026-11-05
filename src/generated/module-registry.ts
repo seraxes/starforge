@@ -20,7 +20,7 @@ export const MODULE_ALLOWLIST_FLAVOR = "core" as const
 export const FIXED_REQUIRED_MODULE_IDS = ["platform:dashboard","platform:better-auth","page-content","product:media"] as const
 
 /** Allowlisted module ids for this install/build (platform + product + particles + atoms). */
-export const ALLOWLISTED_MODULE_IDS = ["atom:analytics","atom:custom-css-js","copyright","custom","form","login","logo","menu","notice-bar","page-content","platform:better-auth","platform:dashboard","platform:payload-cms","product:consent","product:draft-preview","product:email-manager","product:events","product:font-awesome","product:forms","product:layout-manager","product:marketplace","product:media","product:page-settings","product:posts","product:primary-nav","product:redirects","product:registration","product:rich-editor","product:search","search","site-header","social"] as const
+export const ALLOWLISTED_MODULE_IDS = ["atom:analytics","atom:custom-css-js","copyright","custom","form","locale-switcher","login","logo","menu","notice-bar","page-content","platform:better-auth","platform:dashboard","platform:payload-cms","product:consent","product:draft-preview","product:email-manager","product:events","product:font-awesome","product:forms","product:layout-manager","product:marketplace","product:media","product:page-settings","product:posts","product:primary-nav","product:redirects","product:registration","product:rich-editor","product:search","search","site-header","social"] as const
 
 export type AllowlistedModuleId = (typeof ALLOWLISTED_MODULE_IDS)[number]
 
@@ -34,7 +34,7 @@ export function isModuleAllowlisted(id: string): boolean {
 }
 
 /** Builtin core particle ids included in this build (static register from particles/). */
-export const ALLOWLISTED_BUILTIN_PARTICLE_IDS: readonly string[] = ["page-content","site-header","logo","menu","copyright","social","custom","login"]
+export const ALLOWLISTED_BUILTIN_PARTICLE_IDS: readonly string[] = ["page-content","site-header","logo","menu","locale-switcher","copyright","social","custom","login"]
 
 /** Platform + product catalog ids installed in this build. */
 export const ALLOWLISTED_PRODUCT_PLATFORM_IDS: readonly string[] = ["platform:dashboard","platform:better-auth","platform:payload-cms","product:layout-manager","product:page-settings","product:primary-nav","product:font-awesome","product:registration","product:rich-editor","product:posts","product:draft-preview","product:forms","product:email-manager","product:events","product:marketplace","product:redirects","product:consent","product:search","product:media"]
@@ -82,6 +82,7 @@ export const ALLOWLISTED_PARTICLE_META: AllowlistedParticleMeta[] = [
   { id: "site-header", name: "Site header", description: "Built-in layout particle — site name + optional primary nav links.", required: false, defaultEnabled: true, builtin: true },
   { id: "logo", name: "Logo / Image", description: "Built-in — image (Media/URL) or text logo (font/size/weight/color).", required: false, defaultEnabled: true, builtin: true },
   { id: "menu", name: "Menu", description: "Built-in — Navigation manager menu set (default = site primary).", required: false, defaultEnabled: true, builtin: true },
+  { id: "locale-switcher", name: "Locale Switcher", description: "Built-in — language links for enabled public locales (Localization settings). Switches /en/… ↔ /hu/….", required: false, defaultEnabled: true, builtin: true },
   { id: "copyright", name: "Copyright", description: "Built-in — text + auto/manual year + link.", required: false, defaultEnabled: true, builtin: true },
   { id: "social", name: "Social", description: "Built-in — platform/url/label/icon list.", required: false, defaultEnabled: true, builtin: true },
   { id: "custom", name: "Custom", description: "Built-in HTML/CSS (+ JS stub); free-form escape hatch.", required: false, defaultEnabled: true, builtin: true },
@@ -129,6 +130,10 @@ export const particleConfigSchemaLoaders: ParticleConfigSchemaLoader[] = [
     load: async () => (await import("@/core/modules/particles/schemas/menu")).menuParticleConfigSchema,
   },
   {
+    id: "locale-switcher",
+    load: async () => (await import("@/core/modules/particles/schemas/locale-switcher")).localeSwitcherParticleConfigSchema,
+  },
+  {
     id: "copyright",
     load: async () => (await import("@/core/modules/particles/schemas/copyright")).copyrightParticleConfigSchema,
   },
@@ -163,6 +168,10 @@ export const particleEditorLoaders: ParticleEditorLoader[] = [
     load: async () => (await import("@/app/(frontend)/admin/layouts/typed-particle-editors")).MenuParticleEditor,
   },
   {
+    id: "locale-switcher",
+    load: async () => (await import("@/app/(frontend)/admin/layouts/typed-particle-editors")).LocaleSwitcherParticleEditor,
+  },
+  {
     id: "copyright",
     load: async () => (await import("@/app/(frontend)/admin/layouts/typed-particle-editors")).CopyrightParticleEditor,
   },
@@ -194,6 +203,10 @@ export const particleDefaultsLoaders: ParticleDefaultsLoader[] = [
   {
     id: "menu",
     load: async () => (await import("@/core/modules/particles/schemas/menu")).menuParticleDefaults(),
+  },
+  {
+    id: "locale-switcher",
+    load: async () => (await import("@/core/modules/particles/schemas/locale-switcher")).localeSwitcherParticleDefaults(),
   },
   {
     id: "copyright",

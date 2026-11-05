@@ -297,17 +297,33 @@ export {
 } from './localization'
 export type { LocalizationSettings } from './localization'
 export {
+  BOOTSTRAP_LOCALES,
   DEFAULT_LOCALE,
+  DEFAULT_LOCALE_CATALOG,
   LOCALES,
   LOCALE_LABELS,
   isAppLocale,
+  isBootstrapLocale,
+  isValidLocaleCode,
+  labelForLocale,
+  normalizeLocaleCode,
+  toPayloadLocale,
   routing,
   hasLocalePrefix,
   pathnameWithoutLocale,
   stripLocalePrefix,
   withLocalePrefix,
+  buildLanguageAlternates,
+  languageAlternateMetadata,
+  coerceAppLocale,
+  isLocaleAwareNavItemActive,
+  navHref,
+  getEnabledPublicLocales,
+  getEnabledPublicLocaleEntries,
+  getPublicDefaultLocale,
+  getPublicLocaleCatalog,
 } from './i18n'
-export type { AppLocale, PathWithoutLocale } from './i18n'
+export type { AppLocale, BootstrapLocale, LocaleCatalogEntry, PathWithoutLocale } from './i18n'
 export {
   ENV_EDITOR_FIELDS,
   ENV_EDITOR_GROUPS,

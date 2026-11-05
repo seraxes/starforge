@@ -176,6 +176,8 @@ export async function PublicLayoutBody({
 
   if (!layoutManagerEnabled) {
     const { SiteHeader } = await import('@/components/SiteHeader')
+    const { getEnabledPublicLocaleEntries } = await import('@/core/i18n/enabled')
+    const localesEnabled = await getEnabledPublicLocaleEntries()
     const fallbackMode = resolveSectionContainerMode(undefined, sectionsLayout)
     return (
       <div
@@ -185,7 +187,11 @@ export async function PublicLayoutBody({
         data-sf-mobile-menu="collapse"
       >
         <LayoutOutlineStyles layoutId="minimal" breakpoints={DEFAULT_LAYOUT_BREAKPOINTS} />
-        <SiteHeader siteName={siteName} primaryNav={primaryNav} />
+        <SiteHeader
+          siteName={siteName}
+          primaryNav={primaryNav}
+          localesEnabled={localesEnabled}
+        />
         <section
           className="sf-layout-section"
           data-sf-section="fallback-main"

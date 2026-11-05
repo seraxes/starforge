@@ -15,10 +15,12 @@ import {
 } from '@/core/modules/actions'
 import {
   readCopyrightConfig,
+  readLocaleSwitcherConfig,
   readLogoConfig,
   readMenuConfig,
   readSocialConfig,
   type CopyrightParticleConfig,
+  type LocaleSwitcherParticleConfig,
   type LogoParticleConfig,
   type MenuParticleConfig,
   type SocialLinkItem,
@@ -422,6 +424,85 @@ export function MenuParticleEditor({
             onChange={(e) => setDraft((prev) => ({ ...prev, ariaLabel: e.target.value }))}
           />
         </label>
+        {pending ? <p className="layout-muted">Saving…</p> : null}
+        <ActionFeedback state={state} />
+      </form>
+    </SettingsShell>
+  )
+}
+
+export function LocaleSwitcherParticleEditor({
+  sectionId,
+  rowId,
+  slot,
+  embedded = false,
+  onConfigSaved,
+}: {
+  sectionId: string
+  rowId: string
+  slot: LayoutSlot
+  embedded?: boolean
+  onConfigSaved?: (config: LayoutSlotConfig) => void
+}) {
+  const [state, formAction, pending] = useActionState(updateSlotConfigAction, initialState)
+  useParticleAutosaveResult(state, onConfigSaved)
+  const { formRef, saveNow, saveDebounced } = useAutosaveForm()
+
+  const [draft, setDraft] = useState<LocaleSwitcherParticleConfig>(() =>
+    readLocaleSwitcherConfig(slot.config),
+  )
+
+  useEffect(() => {
+    setDraft(readLocaleSwitcherConfig(slot.config))
+  }, [slot.id])
+
+  const configJson = JSON.stringify({
+    ariaLabel: draft.ariaLabel ?? '',
+    display: draft.display === 'codes' ? 'codes' : 'labels',
+  })
+
+  return (
+    <SettingsShell title="Locale Switcher settings" embedded={embedded}>
+      <form
+        ref={formRef}
+        action={formAction}
+        className="gantry-typed-form"
+        {...particleFormAutosaveProps(saveDebounced, saveNow)}
+      >
+        <LayoutIdField />
+        <input type="hidden" name="sectionId" value={sectionId} />
+        <input type="hidden" name="rowId" value={rowId} />
+        <input type="hidden" name="slotId" value={slot.id} />
+        <input type="hidden" name="configJson" value={configJson} />
+        <label>
+          <span>Display</span>
+          <select
+            value={draft.display === 'codes' ? 'codes' : 'labels'}
+            onChange={(e) => {
+              setDraft((prev) => ({
+                ...prev,
+                display: e.target.value === 'codes' ? 'codes' : 'labels',
+              }))
+              queueMicrotask(saveNow)
+            }}
+          >
+            <option value="labels">Labels (English / Magyar)</option>
+            <option value="codes">Codes (EN / HU)</option>
+          </select>
+        </label>
+        <label>
+          <span>Aria label</span>
+          <input
+            type="text"
+            value={draft.ariaLabel ?? ''}
+            placeholder="Language"
+            onChange={(e) => setDraft((prev) => ({ ...prev, ariaLabel: e.target.value }))}
+          />
+        </label>
+        <p className="layout-muted">
+          Enabled locales come from <code>/admin/localization</code>. Hidden when fewer than two
+          languages are enabled.
+        </p>
         {pending ? <p className="layout-muted">Saving…</p> : null}
         <ActionFeedback state={state} />
       </form>

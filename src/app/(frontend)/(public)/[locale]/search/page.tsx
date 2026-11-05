@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { hasLocale } from 'next-intl'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import React from 'react'
@@ -9,7 +8,7 @@ import {
   normalizeSearchQuery,
   searchPublishedPages,
 } from '@/core/content/search'
-import { routing } from '@/core/i18n'
+import { isValidLocaleCode } from '@/core/i18n'
 import { withLocalePrefix } from '@/core/i18n/path'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { getSiteChrome } from '@/core/site-chrome'
@@ -32,7 +31,7 @@ export async function generateMetadata({ params, searchParams }: Args): Promise<
     Array.isArray(search.q) ? search.q[0] : search.q,
   )
 
-  if (!hasLocale(routing.locales, localeParam)) {
+  if (!isValidLocaleCode(localeParam)) {
     return { title: `Not found — ${siteName}` }
   }
 
@@ -55,7 +54,7 @@ export async function generateMetadata({ params, searchParams }: Args): Promise<
  */
 export default async function PublicSearchPage({ params, searchParams }: Args) {
   const { locale: localeParam } = await params
-  if (!hasLocale(routing.locales, localeParam)) {
+  if (!isValidLocaleCode(localeParam)) {
     notFound()
   }
   const locale = requireContentLocale(localeParam)

@@ -5,7 +5,7 @@ import type { Where } from 'payload'
 
 import config from '@payload-config'
 
-import { DEFAULT_LOCALE, type AppLocale } from '@/core/i18n/locales'
+import { DEFAULT_LOCALE, type AppLocale, toPayloadLocale } from '@/core/i18n/locales'
 
 import {
   SEARCH_RESULT_LIMIT,
@@ -73,12 +73,13 @@ export async function searchPublishedPages(
       ],
     }
 
+    const payloadLocale = toPayloadLocale(locale)
     const result = await payload.find({
       collection: 'pages',
       depth: 0,
       draft: false,
       limit,
-      locale,
+      locale: payloadLocale,
       fallbackLocale: DEFAULT_LOCALE,
       pagination: true,
       overrideAccess: false,

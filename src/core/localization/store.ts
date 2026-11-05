@@ -9,6 +9,7 @@ import type { LocalizationSettings } from './types'
 export async function getLocalizationSettings(): Promise<LocalizationSettings> {
   const chrome = await getSiteChrome()
   return normalizeLocalizationSettings({
+    localeCatalog: chrome.localeCatalog,
     localesEnabled: chrome.localesEnabled,
     defaultLocale: chrome.defaultLocale,
     localeFallback: chrome.localeFallback,
@@ -25,11 +26,13 @@ export async function saveLocalizationSettings(
   const current = await getLocalizationSettings()
   const next = normalizeLocalizationSettings({ ...current, ...input })
   const chrome = await saveSiteChrome({
+    localeCatalog: next.localeCatalog,
     localesEnabled: next.localesEnabled,
     defaultLocale: next.defaultLocale,
     localeFallback: next.localeFallback,
   })
   return normalizeLocalizationSettings({
+    localeCatalog: chrome.localeCatalog,
     localesEnabled: chrome.localesEnabled,
     defaultLocale: chrome.defaultLocale,
     localeFallback: chrome.localeFallback,

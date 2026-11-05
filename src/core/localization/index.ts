@@ -1,6 +1,12 @@
-export { updateLocalizationAction } from './actions'
+export {
+  removeLocaleFromCatalogAction,
+  updateLocalizationAction,
+} from './actions'
 export type { LocalizationActionState } from './actions'
 export { DEFAULT_LOCALIZATION } from './defaults'
-export { normalizeLocalizationSettings } from './normalize'
+export {
+  normalizeLocaleCatalog,
+  normalizeLocalizationSettings,
+} from './normalize'
 export { getLocalizationSettings, saveLocalizationSettings } from './store'
-export type { LocalizationSettings } from './types'
+export type { LocaleCatalogEntry, LocalizationSettings } from './types'

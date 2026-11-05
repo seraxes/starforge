@@ -26,11 +26,13 @@ export default async function AdminRedirectsPage() {
     <section className="admin-section admin-layouts-full">
       <h2>Redirects</h2>
       <p className="lede admin-lede">
-        Map old public paths to new ones (301 / 302 / 307 / 308). Middleware applies enabled rules
-        before the page renders. Sitemap of published pages is always at{' '}
+        Map old public paths to new ones (301 / 302 / 307 / 308). Store paths{' '}
+        <strong>without</strong> locale prefixes (<code>/old</code> → <code>/new</code>) — one rule
+        covers <code>/en/…</code> and <code>/hu/…</code>; the proxy re-prefixes the destination with
+        the visitor&apos;s current locale. Absolute http(s) destinations pass through unchanged.
+        Middleware applies enabled rules before the page renders. Sitemap:{' '}
         <Link href="/sitemap.xml">/sitemap.xml</Link>. Module on/off under{' '}
-        <Link href="/admin/settings">Settings → Modules</Link>. Run{' '}
-        <code>npm run db:core:push</code> after pull so <code>sf_redirects</code> exists.
+        <Link href="/admin/settings">Settings → Modules</Link>.
       </p>
 
       <RedirectsManager

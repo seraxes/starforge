@@ -69,6 +69,14 @@ export type LoginParticleConfig = {
   showForm?: boolean
 }
 
+/** Locale Switcher particle — public language links (P2). */
+export type LocaleSwitcherParticleConfig = {
+  /** Optional aria-label for the nav landmark. */
+  ariaLabel?: string
+  /** `labels` = English/Magyar; `codes` = EN/HU. */
+  display?: 'labels' | 'codes'
+}
+
 export function defaultLogoConfig(): LogoParticleConfig {
   return {
     mode: 'image',
@@ -124,6 +132,13 @@ export function defaultLoginConfig(): LoginParticleConfig {
   }
 }
 
+export function defaultLocaleSwitcherConfig(): LocaleSwitcherParticleConfig {
+  return {
+    ariaLabel: '',
+    display: 'labels',
+  }
+}
+
 export function defaultConfigForModule(moduleId: string): LayoutSlotConfig | undefined {
   switch (moduleId) {
     case 'custom':
@@ -145,6 +160,8 @@ export function defaultConfigForModule(moduleId: string): LayoutSlotConfig | und
       return { ...defaultFormConfig() }
     case 'login':
       return { ...defaultLoginConfig() }
+    case 'locale-switcher':
+      return { ...defaultLocaleSwitcherConfig() }
     default:
       return undefined
   }
@@ -227,4 +244,14 @@ export function readSocialConfig(config: LayoutSlotConfig | undefined): SocialPa
     })
   }
   return { items }
+}
+
+export function readLocaleSwitcherConfig(
+  config: LayoutSlotConfig | undefined,
+): LocaleSwitcherParticleConfig {
+  const c = config ?? {}
+  return {
+    ariaLabel: typeof c.ariaLabel === 'string' ? c.ariaLabel.trim() : '',
+    display: c.display === 'codes' ? 'codes' : 'labels',
+  }
 }

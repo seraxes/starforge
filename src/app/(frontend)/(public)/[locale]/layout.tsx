@@ -1,6 +1,6 @@
 import React from 'react'
 import type { Metadata } from 'next'
-import { hasLocale, NextIntlClientProvider } from 'next-intl'
+import { NextIntlClientProvider } from 'next-intl'
 import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -11,7 +11,8 @@ import { filterNavItemsForViewer, getAccessViewer } from '@/core/acl'
 import { userIsAppAdmin } from '@/core/auth/admin'
 import { getAppSession } from '@/core/auth/session'
 import { absoluteAssetUrl, appOrigin } from '@/core/content/metadata'
-import { routing } from '@/core/i18n'
+import { getEnabledPublicLocales } from '@/core/i18n/enabled'
+import { isValidLocaleCode, routing } from '@/core/i18n'
 import { PublicLayoutBody, PublicShellSlots } from '@/core/modules'
 import {
   BodyAttributesApplier,
@@ -71,7 +72,11 @@ export async function generateMetadata(): Promise<Metadata> {
  */
 export default async function PublicLocaleLayout({ children, params }: Props) {
   const { locale } = await params
-  if (!hasLocale(routing.locales, locale)) {
+  if (!isValidLocaleCode(locale)) {
+    notFound()
+  }
+  const enabled = await getEnabledPublicLocales()
+  if (!enabled.includes(locale)) {
     notFound()
   }
   setRequestLocale(locale)

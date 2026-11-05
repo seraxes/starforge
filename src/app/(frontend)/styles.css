@@ -145,6 +145,49 @@ body > main {
   text-decoration-thickness: 2px;
 }
 
+.site-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+}
+
+.sf-locale-switcher {
+  margin-left: auto;
+}
+
+.sf-locale-switcher-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sf-locale-switcher-link {
+  color: var(--sf-secondary-strong);
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.sf-locale-switcher-link:hover {
+  color: var(--sf-primary-strong);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.sf-locale-switcher-current {
+  color: var(--sf-primary-strong);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.sf-locale-switcher-empty {
+  font-size: 0.85rem;
+}
+
 /*
  * Public layout shell = page-surround role (Gantry #g-page-surround).
  * Fills body>main via flex (viewport floor is on html/body/main — avoid a
@@ -4602,4 +4645,59 @@ button.danger,
 .sf-dashboard-empty-inline {
   margin: 0.75rem 0 0;
   opacity: 0.85;
+}
+
+/* Localization admin — catalog + add locale */
+.sf-locale-catalog-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.sf-locale-catalog-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+}
+
+.sf-locale-catalog-label {
+  flex: 1 1 12rem;
+  min-width: 10rem;
+  margin: 0;
+}
+
+.sf-locale-add-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 1rem;
+}
+
+.sf-locale-remove-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sf-locale-remove-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }

@@ -65,10 +65,12 @@ export type SiteChromeDocument = {
   /**
    * Localization settings — edited under `/admin/localization` (not this form).
    * Storage stays on Chrome JSON for continuity with the P0 stub; UI ownership
-   * moved off Chrome. Routing still uses Core i18n catalog (`src/core/i18n`);
-   * enable-list limiting of prefixes lands later. Payload `localization` in
-   * `payload.config.ts` stays code/env for now (document sync, not runtime).
+   * moved off Chrome. Public routing / switcher / hreflang honor this catalog
+   * at request time. Payload `localization` in `payload.config.ts` stays
+   * code-bootstrapped from Core bootstrap locales (`en`/`hu`) — admin-added
+   * codes need a config change + restart for CMS field locales.
    */
+  localeCatalog: Array<{ code: string; label: string }>
   localesEnabled: string[]
   defaultLocale: string
   /** When true, missing locale content falls back to defaultLocale (Payload + UI). */

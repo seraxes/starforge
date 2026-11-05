@@ -1,4 +1,5 @@
-import { DEFAULT_LOCALE, isAppLocale } from '@/core/i18n/locales'
+import { DEFAULT_LOCALE, isValidLocaleCode, normalizeLocaleCode } from '@/core/i18n/locales'
+import { normalizeLocaleCatalog } from '@/core/localization/normalize'
 
 import {
   DEFAULT_CONSENT_MESSAGE,
@@ -13,14 +14,18 @@ import {
 } from './defaults'
 import type { SiteChromeDocument } from './types'
 
-function normalizeLocalesEnabled(value: unknown): string[] {
+function normalizeLocalesEnabled(
+  value: unknown,
+  catalogCodes: ReadonlySet<string>,
+): string[] {
   if (!Array.isArray(value)) return [...DEFAULT_SITE_CHROME.localesEnabled]
   const seen = new Set<string>()
   const out: string[] = []
   for (const entry of value) {
-    if (!isAppLocale(entry) || seen.has(entry)) continue
-    seen.add(entry)
-    out.push(entry)
+    const code = normalizeLocaleCode(typeof entry === 'string' ? entry : '')
+    if (!catalogCodes.has(code) || seen.has(code)) continue
+    seen.add(code)
+    out.push(code)
   }
   return out.length > 0 ? out : [...DEFAULT_SITE_CHROME.localesEnabled]
 }
@@ -52,14 +57,14 @@ export function normalizeSiteChrome(raw: unknown): SiteChromeDocument {
     ? src.emailProvider
     : DEFAULT_SITE_CHROME.emailProvider
 
-  const localesEnabled = normalizeLocalesEnabled(src.localesEnabled)
-  let defaultLocale = isAppLocale(src.defaultLocale)
-    ? src.defaultLocale
+  const localeCatalog = normalizeLocaleCatalog(src.localeCatalog)
+  const catalogCodes = new Set(localeCatalog.map((e) => e.code))
+  const localesEnabled = normalizeLocalesEnabled(src.localesEnabled, catalogCodes)
+  let defaultLocale = isValidLocaleCode(src.defaultLocale)
+    ? normalizeLocaleCode(src.defaultLocale)
     : DEFAULT_LOCALE
   if (!localesEnabled.includes(defaultLocale)) {
-    defaultLocale = isAppLocale(localesEnabled[0])
-      ? localesEnabled[0]
-      : DEFAULT_LOCALE
+    defaultLocale = localesEnabled[0] || DEFAULT_LOCALE
   }
 
   return {
@@ -88,6 +93,7 @@ export function normalizeSiteChrome(raw: unknown): SiteChromeDocument {
     consentPrivacyLinkLabel:
       asString(src.consentPrivacyLinkLabel).trim() ||
       DEFAULT_CONSENT_PRIVACY_LINK_LABEL,
+    localeCatalog,
     localesEnabled,
     defaultLocale,
     localeFallback: asBool(src.localeFallback, DEFAULT_SITE_CHROME.localeFallback),
@@ -108,8 +114,8 @@ export function serializeSiteChrome(chrome: SiteChromeDocument): string {
 
 /**
  * True when stored Chrome JSON is missing localization fields (pre-i18n P0 rows,
- * pre-Localization-page rows lacking `localeFallback`, or stale cache payloads).
- * Soft-heal callers rewrite defaults via normalize.
+ * pre-Localization-page rows lacking `localeFallback` / `localeCatalog`, or
+ * stale cache payloads). Soft-heal callers rewrite defaults via normalize.
  */
 export function siteChromeDocumentNeedsLocaleHeal(json: string): boolean {
   try {
@@ -117,6 +123,7 @@ export function siteChromeDocumentNeedsLocaleHeal(json: string): boolean {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return true
     const src = raw as Record<string, unknown>
     if (!Array.isArray(src.localesEnabled)) return true
+    if (!Array.isArray(src.localeCatalog)) return true
     if (typeof src.defaultLocale !== 'string' || !src.defaultLocale.trim()) return true
     if (typeof src.localeFallback !== 'boolean') return true
     return false

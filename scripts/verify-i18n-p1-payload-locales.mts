@@ -45,7 +45,7 @@ console.log('cache tags include locale: ok')
 
 const sitemap = read('src/core/content/sitemap.ts')
 assert.match(sitemap, /withLocalePrefix/)
-assert.match(sitemap, /LOCALES/)
+assert.match(sitemap, /getEnabledPublicLocales|LOCALES/)
 assert.match(sitemap, /barePath/)
 const sitemapRoute = read('src/app/(frontend)/sitemap.ts')
 assert.match(sitemapRoute, /alternates/)

@@ -62,6 +62,18 @@ must(
   localizationForm.includes('name="localeFallback"'),
   'localization form must edit localeFallback',
 )
+must(
+  localizationForm.includes('name="addLocaleCode"'),
+  'localization form must support adding a locale code',
+)
+must(
+  localizationForm.includes('name="catalogCode"'),
+  'localization form must persist locale catalog codes',
+)
+must(
+  /payload\.config\.ts/.test(localizationForm),
+  'localization form must document Payload bootstrap limit',
+)
 
 const store = readFileSync(join(root, 'src/core/site-chrome/store.ts'), 'utf8')
 must(
