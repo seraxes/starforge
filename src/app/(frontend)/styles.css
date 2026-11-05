@@ -1025,7 +1025,7 @@ button:disabled {
   color: #fff;
 }
 
-/* Joomla/Gantry accent — bright mid-blue hover only (no stuck active fill) */
+/* Hover = bright mid-blue; active leaf = same blue a few shades darker */
 .admin-sidebar-link:hover,
 .admin-sidebar-group-head:hover,
 .admin-sidebar-sublink:hover {
@@ -1040,16 +1040,13 @@ button:disabled {
   color: #fff;
 }
 
-/* Current/active: white text, transparent rail — no blue fill (Dashboard etc.) */
+/*
+ * Active = darker mid-blue on the current leaf only (Dashboard included).
+ * Do not paint accordion group-heads via .is-active — that stuck the parent.
+ */
 .admin-sidebar-link.is-current,
-.admin-sidebar-sublink.is-current,
-.admin-sidebar-item.is-active > .admin-sidebar-link,
-.admin-sidebar-item.is-active > .admin-sidebar-group-head {
-  background: transparent;
-  color: #fff;
-}
-
-.admin-sidebar-item.is-active > .admin-sidebar-group-head .admin-sidebar-group-toggle {
+.admin-sidebar-sublink.is-current {
+  background: #2471a3;
   color: #fff;
 }
 

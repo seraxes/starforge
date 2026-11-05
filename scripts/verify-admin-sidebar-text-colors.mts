@@ -1,6 +1,6 @@
 /**
  * Smoke check: Core + Payload admin sidebar chrome —
- * white nav text, no stuck blue current/active fill, orange STARFORGE wordmark.
+ * white nav text, hover mid-blue / active darker blue, orange STARFORGE wordmark.
  * Guards the content-link tint specificity trap in core-chrome.css.
  * Run: npx tsx scripts/verify-admin-sidebar-text-colors.mts
  */
@@ -71,38 +71,47 @@ mustInclude(
   ':not(.admin-sidebar-account)',
 )
 
-/* —— No stuck blue on current/active (hover may still use mid-blue) —— */
+/* —— Hover mid-blue; active leaf darker blue (not #3498db, not transparent) —— */
+mustInclude(styles, 'styles hover blue', 'background: #3498db')
+mustInclude(styles, 'styles active darker blue', 'background: #2471a3')
+mustInclude(coreChrome, 'core blue-active token', '--sf-admin-blue-active: #2471a3')
+mustInclude(coreChrome, 'core hover mid', 'background: var(--sf-admin-blue-mid')
+mustInclude(coreChrome, 'core active darker', 'background: var(--sf-admin-blue-active')
+mustInclude(payloadChrome, 'payload blue-active token', '--sf-admin-blue-active: #2471a3')
+mustInclude(payloadChrome, 'payload hover mid', 'background: var(--sf-admin-blue-mid)')
+mustInclude(payloadChrome, 'payload active darker', 'background: var(--sf-admin-blue-active)')
+
 for (const [label, css] of [
   ['styles', styles],
   ['core-chrome', coreChrome],
   ['payload-chrome', payloadChrome],
 ] as const) {
+  /* Active must not reuse the hover mid-blue fill */
   mustNotMatch(
     css,
-    `${label} combined hover+current blue fill`,
+    `${label} active leaf same as hover mid-blue`,
     /\.admin-sidebar-link\.is-current[\s\S]{0,220}background:\s*(?:#3498db|var\(--sf-admin-blue-mid\))(?!\s*,)/,
   )
-  mustInclude(css, `${label} current transparent`, 'background: transparent')
+  /* No sticky fill on accordion group-heads via .is-active */
+  mustNotMatch(
+    css,
+    `${label} group-head sticky is-active fill`,
+    /\.admin-sidebar-item\.is-active\s*>\s*\.admin-sidebar-group-head[\s\S]{0,120}background:\s*(?!transparent)/,
+  )
 }
 
-mustInclude(coreChrome, 'core current transparent important', 'background: transparent !important')
-mustInclude(
-  payloadChrome,
-  'payload current transparent important',
-  'background: transparent !important',
-)
-mustInclude(styles, 'styles hover blue retained', 'background: #3498db')
-mustInclude(
+/* Current leaf rules must not paint transparent again */
+mustNotMatch(
   coreChrome,
-  'core hover blue retained',
-  'background: var(--sf-admin-blue-mid',
+  'core current transparent !important',
+  /\.admin-sidebar-link\.is-current[\s\S]{0,200}background:\s*transparent\s*!important/,
 )
-mustInclude(
+mustNotMatch(
   payloadChrome,
-  'payload hover blue retained',
-  'background: var(--sf-admin-blue-mid)',
+  'payload current transparent !important',
+  /\.admin-sidebar-link\.is-current[\s\S]{0,200}background:\s*transparent\s*!important/,
 )
 
 console.log(
-  'ok — sidebar chrome: forced #f2a66a STARFORGE, #fff Admin/nav, content-link tint excludes rail, no stuck blue',
+  'ok — sidebar chrome: forced #f2a66a STARFORGE, #fff Admin/nav, hover #3498db, active #2471a3 leaf-only',
 )

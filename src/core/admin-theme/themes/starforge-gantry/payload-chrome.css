@@ -12,6 +12,7 @@
   --sf-admin-input: #152033;
   --sf-admin-blue-border: #1e4d72;
   --sf-admin-blue-mid: #3498db;
+  --sf-admin-blue-active: #2471a3;
   --sf-admin-blue-action: #2f80b9;
   --sf-admin-toolbar-muted: #405475;
   --sf-admin-nav-bar: #1b2431;
@@ -387,7 +388,7 @@ html[data-theme='dark'] .btn.btn--size-small {
   -webkit-text-fill-color: #fff;
 }
 
-/* Hover blue only — no stuck current/active fill */
+/* Hover = mid-blue; current leaf = darker blue (no accordion group-head sticky) */
 .nav .admin-sidebar-link:hover,
 .nav .admin-sidebar-group-head:hover,
 .nav .admin-sidebar-sublink:hover {
@@ -398,10 +399,8 @@ html[data-theme='dark'] .btn.btn--size-small {
 }
 
 .nav .admin-sidebar-link.is-current,
-.nav .admin-sidebar-sublink.is-current,
-.nav .admin-sidebar-item.is-active > .admin-sidebar-link,
-.nav .admin-sidebar-item.is-active > .admin-sidebar-group-head {
-  background: transparent !important;
+.nav .admin-sidebar-sublink.is-current {
+  background: var(--sf-admin-blue-active) !important;
   color: #fff !important;
   -webkit-text-fill-color: #fff;
   box-shadow: none;
