@@ -49,4 +49,4 @@ const t = await getTranslations('product:events')
 | Forms | `product:forms` | Sending… / Select… / captcha chrome |
 | Email Manager | `product:email-manager` | Dashboard footer + soft-fail hint |
 
-Events declares `i18n.namespaces: ['product:events']` so the pack is ready; add `messages/*.json` when UI strings land — no Core edits required.
+Events ships `messages/{en,hu}.json` (`product:events`) for dashboard chrome; expand as public/admin UI strings land — no Core edits required.

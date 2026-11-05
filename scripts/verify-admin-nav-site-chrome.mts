@@ -14,6 +14,7 @@ const flags = {
 const enabledModuleIds = new Set([
   'product:forms',
   'product:email-manager',
+  'product:events',
   'product:redirects',
   'product:media',
 ])
@@ -120,6 +121,27 @@ for (const surface of ['core', 'payload'] as const) {
     process.exit(1)
   }
   console.log(`[${surface}] ok — Email accordion → Rules + Templates`)
+
+  const events = groups.find((g) => g.id === 'events')
+  if (!events?.expandable) {
+    console.error(`[${surface}] Events must be expandable (Events + Venues + Settings)`, events)
+    process.exit(1)
+  }
+  const eventsList = events.links.find((l) => l.href === '/admin/events' && l.label === 'Events')
+  const eventsVenues = events.links.find(
+    (l) => l.href === '/admin/events/venues' && l.label === 'Venues',
+  )
+  const eventsSettings = events.links.find(
+    (l) => l.href === '/admin/events/settings' && l.label === 'Settings',
+  )
+  if (!eventsList?.exact || !eventsVenues || !eventsSettings) {
+    console.error(
+      `[${surface}] Events missing Events (exact) + Venues + Settings children`,
+      events.links,
+    )
+    process.exit(1)
+  }
+  console.log(`[${surface}] ok — Events accordion → Events + Venues + Settings`)
 
   const redirects = groups.find((g) => g.id === 'redirects')
   if (!redirects?.links.some((l) => l.href === '/admin/redirects' && l.label === 'Redirects')) {

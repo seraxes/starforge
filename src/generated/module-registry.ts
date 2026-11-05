@@ -57,7 +57,7 @@ export const ALLOWLISTED_PRODUCT_PLATFORM_META: ModuleCatalogItem[] = [
   { id: "product:draft-preview", kind: "product", label: "Draft preview", description: "CMS-access users can open /preview/{slug} for unpublished drafts.", required: false, defaultEnabled: false, installed: true as const, featureFlag: "draftPreview" },
   { id: "product:forms", kind: "product", label: "Forms", description: "Modular Form engine — visual builder (JSON Schema/Zod), Form particle, typed presets (contact, survey, event-registration, voting, ticket). Captcha from Chrome; Turnstile keys from env.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Forms","href":"/admin/forms"}] },
   { id: "product:email-manager", kind: "product", label: "Email Manager", description: "Automatic and conditional email rules with templates, filtered by module. Modules emit triggers; Core Mailer sends. No per-module SMTP — secrets stay in env / Chrome.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Email rules","href":"/admin/email"},{"key":"templates","label":"Email templates","href":"/admin/email/templates"},{"key":"sends","label":"Email sends","href":"/admin/email/sends"}] },
-  { id: "product:events", kind: "product", label: "Events", description: "Events + venues manager (upcoming). Soft Dashboard stub until the Events pack ships schema and admin.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Events (upcoming)","href":"/admin/settings"}] },
+  { id: "product:events", kind: "product", label: "Events", description: "Events + venues manager — schedule, Media cover, ACL tags, and admin CRUD. Registration and public particles land in later packs.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Events","href":"/admin/events"},{"key":"venues","label":"Venues","href":"/admin/events/venues"},{"key":"settings","label":"Events settings","href":"/admin/events/settings"}] },
   { id: "product:marketplace", kind: "product", label: "Marketplace", description: "Classifieds / marketplace listings (upcoming). Soft Dashboard stub until the Marketplace pack ships.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Marketplace (upcoming)","href":"/admin/settings"}] },
   { id: "product:redirects", kind: "product", label: "Redirects", description: "URL redirects (from → to + status) with Node proxy lookup. Sitemap of published pages stays at /sitemap.xml.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Redirects","href":"/admin/redirects"}] },
   { id: "product:consent", kind: "product", label: "Consent", description: "Cookie consent banner + preference cookie (sf-consent). Policy copy under Chrome; gates atom:analytics until analytics is accepted.", required: false, defaultEnabled: true, installed: true as const },
@@ -250,6 +250,7 @@ export type AdminNavContribution = {
 export const adminNavContributions: AdminNavContribution[] = [
   { moduleId: "product:forms", id: "forms", label: "Forms", order: 40, href: "/admin/forms", expandable: true, links: [{ label: "Forms", href: "/admin/forms", order: 10, exact: true, area: "forms", group: "forms" }, { label: "Settings", href: "/admin/forms/settings", order: 20, area: "forms", group: "forms" }] },
   { moduleId: "product:email-manager", id: "email", label: "Email", order: 45, href: "/admin/email", expandable: true, links: [{ label: "Rules", href: "/admin/email", order: 10, exact: true, area: "email-manager", group: "email" }, { label: "Templates", href: "/admin/email/templates", order: 20, area: "email-manager", group: "email" }, { label: "Sends", href: "/admin/email/sends", order: 30, area: "email-manager", group: "email" }] },
+  { moduleId: "product:events", id: "events", label: "Events", order: 48, href: "/admin/events", expandable: true, links: [{ label: "Events", href: "/admin/events", order: 10, exact: true, area: "events", group: "events" }, { label: "Venues", href: "/admin/events/venues", order: 20, area: "events", group: "events" }, { label: "Settings", href: "/admin/events/settings", order: 30, area: "events", group: "events" }] },
   { moduleId: "product:redirects", id: "redirects", label: "Redirects", order: 50, links: [{ label: "Redirects", href: "/admin/redirects", order: 10, area: "redirects", group: "redirects" }] },
   { moduleId: "product:media", id: "media", label: "Media", order: 60, href: "/admin/media", expandable: true, defaultOpen: true, links: [{ label: "Library", href: "/admin/media", order: 10, exact: true, area: "media", group: "media" }, { label: "Settings", href: "/admin/media/settings", order: 20, area: "media", group: "media" }] }
 ]
@@ -277,7 +278,7 @@ export const adminDashboardContributions: AdminDashboardContribution[] = [
   { moduleId: "product:media", id: "media.counts", title: "Media", order: 50, size: "md", widgetImportPath: "@/modules/media/dashboard/MediaCountsWidget", widgetExportName: "MediaCountsWidget", statsImportPath: "@/modules/media/dashboard/media-stats", statsExportName: "loadMediaCountsStats" },
   { moduleId: "product:forms", id: "forms.submissions", title: "Forms", order: 55, size: "md", widgetImportPath: "@/modules/forms/dashboard/FormsSubmissionsWidget", widgetExportName: "FormsSubmissionsWidget", statsImportPath: "@/modules/forms/dashboard/forms-stats", statsExportName: "loadFormsSubmissionsStats" },
   { moduleId: "product:email-manager", id: "email.sent", title: "Email", order: 60, size: "md", widgetImportPath: "@/modules/email-manager/dashboard/EmailSentWidget", widgetExportName: "EmailSentWidget", statsImportPath: "@/modules/email-manager/dashboard/email-stats", statsExportName: "loadEmailSentStats" },
-  { moduleId: "product:events", id: "events.upcoming", title: "Events", order: 70, size: "md", widgetImportPath: "@/modules/events/dashboard/EventsUpcomingWidget", widgetExportName: "EventsUpcomingWidget", statsImportPath: "@/modules/events/dashboard/events-stats", statsExportName: "loadEventsUpcomingStats" },
+  { moduleId: "product:events", id: "events.upcoming", title: "Events", order: 70, size: "md", area: "events", widgetImportPath: "@/modules/events/dashboard/EventsUpcomingWidget", widgetExportName: "EventsUpcomingWidget", statsImportPath: "@/modules/events/dashboard/events-stats", statsExportName: "loadEventsUpcomingStats" },
   { moduleId: "product:marketplace", id: "marketplace.listings", title: "Marketplace", order: 80, size: "md", widgetImportPath: "@/modules/marketplace/dashboard/MarketplaceListingsWidget", widgetExportName: "MarketplaceListingsWidget", statsImportPath: "@/modules/marketplace/dashboard/marketplace-stats", statsExportName: "loadMarketplaceListingsStats" }
 ]
 
@@ -311,6 +312,24 @@ export const adminRouteLoaders: AdminRouteLoader[] = [
     moduleId: "product:email-manager",
     path: "email/sends",
     pageImportPath: "@/modules/email-manager/admin/EmailSendsPage",
+    pageExportName: "default",
+  },
+  {
+    moduleId: "product:events",
+    path: "events",
+    pageImportPath: "@/modules/events/admin/EventsListPage",
+    pageExportName: "default",
+  },
+  {
+    moduleId: "product:events",
+    path: "events/venues",
+    pageImportPath: "@/modules/events/admin/EventsVenuesPage",
+    pageExportName: "default",
+  },
+  {
+    moduleId: "product:events",
+    path: "events/settings",
+    pageImportPath: "@/modules/events/admin/EventsSettingsPage",
     pageExportName: "default",
   },
   {

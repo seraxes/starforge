@@ -50,13 +50,14 @@ for (const pack of [
   'consent',
   'forms',
   'email-manager',
+  'events',
 ] as const) {
   for (const locale of ['en', 'hu'] as const) {
     const rel = `src/modules/${pack}/messages/${locale}.json`
     assert.equal(existsSync(join(root, rel)), true, `${rel} required`)
   }
 }
-console.log('consent/forms/email-manager message packs: ok')
+console.log('consent/forms/email-manager/events message packs: ok')
 
 const consentManifest = read('src/modules/consent/manifest.ts')
 assert.match(consentManifest, /namespaces:\s*\[['"]product:consent['"]\]/)
@@ -79,6 +80,9 @@ assert.doesNotMatch(formWidget, /Sending…/)
 const emailWidget = read('src/modules/email-manager/dashboard/EmailSentWidget.tsx')
 assert.match(emailWidget, /getTranslations\(['"]product:email-manager['"]\)/)
 assert.match(emailWidget, /t\(['"]openManager['"]\)/)
+const eventsWidget = read('src/modules/events/dashboard/EventsUpcomingWidget.tsx')
+assert.match(eventsWidget, /getTranslations\(['"]product:events['"]\)/)
+assert.match(eventsWidget, /t\(['"]openManager['"]\)/)
 console.log('thin UI migrations: ok')
 
 const serverRegistry = read('src/generated/module-registry.server.ts')
@@ -89,10 +93,10 @@ const messageLoadersBlock = serverRegistry.slice(
 assert.match(messageLoadersBlock, /product:consent/)
 assert.match(messageLoadersBlock, /product:forms/)
 assert.match(messageLoadersBlock, /product:email-manager/)
-assert.doesNotMatch(
+assert.match(
   messageLoadersBlock,
   /moduleId:\s*['"]product:events['"]/,
-  'events has no messages yet — no loader',
+  'events message loader required',
 )
 console.log('generated moduleMessageLoaders: ok')
 

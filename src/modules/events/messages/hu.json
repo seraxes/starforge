@@ -1,0 +1,13 @@
+{
+  "openManager": "Események megnyitása",
+  "upcomingAriaLabel": "Közelgő események",
+  "upcomingHint": "A közelgő események száma itt jelenik meg, ha az Events táblák elérhetők.",
+  "addEvent": "Esemény hozzáadása",
+  "addVenue": "Helyszín hozzáadása",
+  "saveEvent": "Mentés",
+  "saveVenue": "Mentés",
+  "deleteEvent": "Törlés",
+  "deleteVenue": "Törlés",
+  "whoCanSee": "Ki láthatja",
+  "coverLabel": "Borítókép"
+}

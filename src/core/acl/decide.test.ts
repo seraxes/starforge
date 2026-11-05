@@ -108,6 +108,21 @@ describe('adminAreaGateForPath', () => {
     })
   })
 
+  it('maps Events admin paths to admin.events', () => {
+    assert.deepEqual(adminAreaGateForPath('/admin/events'), {
+      type: 'resource',
+      key: 'admin.events',
+    })
+    assert.deepEqual(adminAreaGateForPath('/admin/events/venues'), {
+      type: 'resource',
+      key: 'admin.events',
+    })
+    assert.deepEqual(adminAreaGateForPath('/admin/events/settings'), {
+      type: 'resource',
+      key: 'admin.events',
+    })
+  })
+
   it('maps Localization to admin.localization', () => {
     assert.deepEqual(adminAreaGateForPath('/admin/localization'), {
       type: 'resource',

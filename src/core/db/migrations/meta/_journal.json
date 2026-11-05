@@ -29,6 +29,13 @@
       "when": 1793903690190,
       "tag": "0003_email_send_log",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793911984870,
+      "tag": "0004_events_venues",
+      "breakpoints": true
     }
   ]
 }
