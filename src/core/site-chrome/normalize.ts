@@ -96,3 +96,20 @@ export function parseSiteChromeJson(json: string): SiteChromeDocument | null {
 export function serializeSiteChrome(chrome: SiteChromeDocument): string {
   return JSON.stringify(normalizeSiteChrome(chrome))
 }
+
+/**
+ * True when stored Chrome JSON is missing locale stub fields (pre-i18n P0 rows
+ * or stale cache payloads). Soft-heal callers rewrite defaults via normalize.
+ */
+export function siteChromeDocumentNeedsLocaleHeal(json: string): boolean {
+  try {
+    const raw = JSON.parse(json) as unknown
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return true
+    const src = raw as Record<string, unknown>
+    if (!Array.isArray(src.localesEnabled)) return true
+    if (typeof src.defaultLocale !== 'string' || !src.defaultLocale.trim()) return true
+    return false
+  } catch {
+    return true
+  }
+}
