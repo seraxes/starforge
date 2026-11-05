@@ -77,4 +77,23 @@ assert.match(acl, /admin\.email-manager/)
 const decide = read('src/core/acl/decide.ts')
 assert.match(decide, /\/app\/admin\/email/)
 
+// Runtime shells must derive contrib module ids (incl. Email) — not a hand list.
+const coreAdminLayout = read('src/app/(frontend)/app/admin/layout.tsx')
+assert.match(coreAdminLayout, /resolveEnabledAdminNavModuleIds/)
+assert.match(coreAdminLayout, /ensureSiteSettingsDefaults/)
+
+const payloadAdminNav = read('src/components/payload/StarforgeAdminNav.tsx')
+assert.match(payloadAdminNav, /resolveEnabledAdminNavModuleIds/)
+assert.match(payloadAdminNav, /ensureSiteSettingsDefaults/)
+
+const enabledHelper = read('src/core/admin-nav/enabled-modules.ts')
+assert.match(enabledHelper, /adminNavContributions/)
+assert.match(enabledHelper, /isCatalogModuleEnabled/)
+
+const registryNav = read('src/generated/module-registry.ts')
+assert.match(
+  registryNav,
+  /moduleId:\s*"product:email-manager"[\s\S]*?id:\s*"email"[\s\S]*?label:\s*"Email"/,
+)
+
 console.log('verify:email-manager OK')

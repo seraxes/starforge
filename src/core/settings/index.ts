@@ -96,11 +96,18 @@ export {
   parseAtomToggleId,
 } from './module-toggles'
 export type { ModuleCatalogItem, ModuleToggleEntry, ModuleToggleKind } from './module-toggles'
+import {
+  mergeMissingCatalogModuleDefaults,
+  repairCatalogModuleDefaultsOnce,
+} from './module-catalog'
 export {
   PRODUCT_MODULE_CATALOG,
   featureFlagsFromModuleToggles,
   isCatalogModuleEnabled,
   listInstalledModuleCatalog,
+  mergeMissingCatalogModuleDefaults,
+  repairCatalogModuleDefaultsOnce,
+  CATALOG_DEFAULTS_REPAIR_MARKER,
 } from './module-catalog'
 export {
   ALLOWLISTED_MODULE_IDS,
@@ -427,27 +434,50 @@ export async function ensureSiteSettingsDefaults(): Promise<SiteSettingsData> {
       // Table may not exist yet (before db:core:push).
     }
 
+    const existingToggles = normalizeModuleToggles(existing.moduleToggles)
+    const missing = mergeMissingCatalogModuleDefaults(existingToggles)
+    const repaired = repairCatalogModuleDefaultsOnce(missing.toggles)
+    const mergedToggles = repaired.toggles
+    const togglesChanged = missing.changed || repaired.changed
+
     if (hasName && hasMenuId) {
+      if (togglesChanged) {
+        const { invalidateSiteSettings } = await import('@/core/content/revalidate')
+        const updated = await updateSiteSettings({
+          siteName: String(existing.siteName).trim(),
+          primaryNavMenuId: String(existing.primaryNavMenuId).trim(),
+          keepLegacyPrimaryNav: true,
+          features: normalizeFlags(existing),
+          moduleToggles: mergedToggles,
+        })
+        await invalidateSiteSettings()
+        return updated
+      }
       const primaryNav = await resolvePrimaryNavForDoc(existing)
       return normalizeSiteSettings(existing, primaryNav)
     }
 
-    return updateSiteSettings({
+    const { invalidateSiteSettings } = await import('@/core/content/revalidate')
+    const updated = await updateSiteSettings({
       siteName: hasName ? String(existing.siteName).trim() : DEFAULT_SITE_NAME,
       primaryNavMenuId: hasMenuId
         ? String(existing.primaryNavMenuId).trim()
         : DEFAULT_PRIMARY_NAV_MENU_ID,
       keepLegacyPrimaryNav: true,
       features: normalizeFlags(existing),
-      moduleToggles: normalizeModuleToggles(existing.moduleToggles),
+      moduleToggles: mergedToggles,
     })
+    await invalidateSiteSettings()
+    return updated
   } catch {
+    const missing = mergeMissingCatalogModuleDefaults({})
+    const repaired = repairCatalogModuleDefaultsOnce(missing.toggles)
     return updateSiteSettings({
       siteName: DEFAULT_SITE_NAME,
       primaryNavMenuId: DEFAULT_PRIMARY_NAV_MENU_ID,
       keepLegacyPrimaryNav: true,
       features: { ...DEFAULT_FEATURE_FLAGS },
-      moduleToggles: {},
+      moduleToggles: repaired.toggles,
     })
   }
 }

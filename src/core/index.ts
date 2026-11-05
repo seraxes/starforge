@@ -195,7 +195,11 @@ export {
   listAdminThemes,
 } from './admin-theme'
 export type { AdminTheme, AdminThemeId, AdminThemeTokens } from './admin-theme'
-export { buildAdminNavGroups, CMS_NAV_LINKS } from './admin-nav'
+export {
+  buildAdminNavGroups,
+  resolveEnabledAdminNavModuleIds,
+  CMS_NAV_LINKS,
+} from './admin-nav'
 export type {
   AdminNavFeatureFlags,
   AdminNavGroup,

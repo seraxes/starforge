@@ -41,22 +41,32 @@ function parseBool(formData: FormData, key: string): boolean {
   return raw === 'on' || raw === 'true' || raw === '1'
 }
 
-/** Read Site Settings → Modules toggles; required ids forced on. */
-function parseModuleToggles(formData: FormData): ModuleToggleMap {
+/**
+ * Read Site Settings → Modules toggles; required ids forced on.
+ * Empty module fieldset → preserve `current` (never wipe every pack to false).
+ */
+function parseModuleToggles(
+  formData: FormData,
+  current: ModuleToggleMap,
+): ModuleToggleMap {
   const catalog = listInstalledModuleCatalog()
   const ids = formData.getAll('moduleToggleId').map((v) => String(v ?? '').trim()).filter(Boolean)
   const enabledRaw = new Set(
     formData.getAll('moduleToggleEnabled').map((v) => String(v ?? '').trim()).filter(Boolean),
   )
 
-  const map: ModuleToggleMap = {}
+  // No module rows in this submit — keep stored toggles (avoid all-false wipe).
+  if (ids.length === 0) {
+    return { ...current }
+  }
+
+  const map: ModuleToggleMap = { ...current }
   for (const item of catalog) {
     if (item.required) {
       map[item.id] = true
       continue
     }
-    const present = ids.length === 0 || ids.includes(item.id)
-    if (!present) continue
+    if (!ids.includes(item.id)) continue
     map[item.id] = enabledRaw.has(item.id)
   }
   return map
@@ -74,6 +84,8 @@ async function revalidateSettingsPaths() {
   revalidatePath('/app/admin/settings/performance')
   revalidatePath('/app/admin/nav')
   revalidatePath('/app/admin/forms')
+  revalidatePath('/app/admin/email')
+  revalidatePath('/app/admin/email/templates')
   revalidatePath('/app/admin/layouts')
   revalidatePath('/app/admin/outlines')
   revalidatePath('/app/admin/page-settings')
@@ -98,7 +110,7 @@ export async function updateSiteSettingsAction(
   const primaryNavMenuId =
     String(formData.get('primaryNavMenuId') ?? '').trim() || current.primaryNavMenuId
   const catalog = listInstalledModuleCatalog()
-  const moduleToggles = parseModuleToggles(formData)
+  const moduleToggles = parseModuleToggles(formData, current.moduleToggles)
   const features = featureFlagsFromModuleToggles(moduleToggles, catalog)
 
   try {
