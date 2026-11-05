@@ -10,6 +10,7 @@ import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/sett
 
 import { resolveEmailAudience } from './audience'
 import { matchEmailRulesForTrigger } from './rule-match'
+import { emailTypeFromModuleCategory } from './send-type'
 import { findEmailTemplateById, listEmailRules } from './store'
 import { renderEmailTemplate } from './template-render'
 import type { EmailTriggerEmitInput, EmailTriggerEmitResult } from './types'
@@ -142,6 +143,14 @@ export async function emitEmailTrigger(
           text: rendered.text,
           html: rendered.html,
           replyTo,
+          meta: {
+            emailType: emailTypeFromModuleCategory(full.moduleCategory),
+            title: template.label || full.label,
+            source: 'email-manager',
+            ruleId: full.id,
+            templateId: template.id,
+            moduleCategory: full.moduleCategory,
+          },
         })
 
         results.push({
@@ -212,6 +221,12 @@ export async function sendEmailManagerTest(options: {
       subject,
       text,
       html: options.html?.trim() || undefined,
+      meta: {
+        emailType: 'system',
+        title: 'Email Manager test',
+        source: 'email-manager-test',
+        moduleCategory: 'system',
+      },
     })
     return {
       ok: result.ok,

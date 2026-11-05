@@ -282,6 +282,12 @@ export async function dispatchFormEmailNotify(
       from,
       subject: intent.subject,
       text: intent.body,
+      meta: {
+        emailType: 'transactional',
+        title: intent.kind,
+        source: 'forms',
+        moduleCategory: 'forms',
+      },
     })
     results.push(result)
     if (!result.ok && process.env.NODE_ENV !== 'production') {

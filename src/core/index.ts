@@ -221,12 +221,15 @@ export {
   getMailer,
   getMailerInfo,
   sendMail,
+  withEmailSendLog,
 } from './mail'
 export type {
+  MailEmailType,
   Mailer,
   MailerInfo,
   MailMessage,
   MailProvider,
+  MailSendMeta,
   MailSendResult,
 } from './mail'
 export {

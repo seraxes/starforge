@@ -1,33 +1,48 @@
 import React from 'react'
+import Link from 'next/link'
 
 import { coreAdminPath } from '@/core/admin-paths'
 import { DashboardSoftPlaceholder } from '@/core/dashboard/widgets/DashboardSoftPlaceholder'
 
 import { EMAIL_DASHBOARD_TYPES, loadEmailSentStats } from './email-stats'
 
+function dash(n: number | null | undefined): string {
+  return n == null ? '—' : String(n)
+}
+
 /**
- * product:email-manager Dashboard stub — count + type summary.
- * Thin placeholder until send-log metrics land (D3).
+ * product:email-manager Dashboard card — count + type from `sf_email_sends`.
+ * Same row chrome as the soft stub; no visual redesign.
  */
 export async function EmailSentWidget() {
   const result = await loadEmailSentStats()
 
-  const rows = EMAIL_DASHBOARD_TYPES.map((entry) => ({
-    label: entry.label,
-    value:
-      result.ok && result.data.byType[entry.key] != null
-        ? String(result.data.byType[entry.key])
-        : '—',
-  }))
+  if (!result.ok) {
+    return (
+      <DashboardSoftPlaceholder
+        status={result.status === 'unavailable' ? 'unavailable' : 'soft-fail'}
+        hint="Email volume by type will appear here when the send log is reachable."
+        rows={EMAIL_DASHBOARD_TYPES.map((entry) => ({ label: entry.label, value: '—' }))}
+        footerHref={coreAdminPath('/email')}
+        footerLabel="Open Email Manager"
+      />
+    )
+  }
 
   return (
-    <DashboardSoftPlaceholder
-      status="coming-soon"
-      hint="Email volume by type will appear when the send log is available."
-      rows={rows}
-      footerHref={coreAdminPath('/email')}
-      footerLabel="Open Email Manager"
-    />
+    <div className="sf-dashboard-email" aria-label="Email sent">
+      <dl className="sf-dashboard-placeholder-rows">
+        {EMAIL_DASHBOARD_TYPES.map((entry) => (
+          <div key={entry.key} className="sf-dashboard-placeholder-row">
+            <dt>{entry.label}</dt>
+            <dd>{dash(result.data.byType[entry.key])}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="sf-dashboard-card-foot">
+        <Link href={coreAdminPath('/email')}>Open Email Manager</Link>
+      </p>
+    </div>
   )
 }
 

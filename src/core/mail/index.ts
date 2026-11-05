@@ -14,6 +14,7 @@ import type {
   MailMessage,
   MailSendResult,
 } from './types'
+import { withEmailSendLog } from './with-send-log'
 
 export {
   MAIL_PROVIDERS,
@@ -21,32 +22,42 @@ export {
 } from './types'
 export type {
   MailAddress,
+  MailEmailType,
   Mailer,
   MailerFactoryOptions,
   MailerInfo,
   MailMessage,
   MailProvider,
+  MailSendMeta,
   MailSendResult,
 } from './types'
 export { resolveFrom } from './resolve-from'
+export { withEmailSendLog } from './with-send-log'
 
 /**
  * Build a Mailer from explicit options (tests / callers that already loaded Chrome).
+ * Every send is soft-logged to `sf_email_sends` when the Email Manager pack is present.
  */
 export function createMailer(options: MailerFactoryOptions): Mailer {
   const from = resolveFrom(options.from)
+  let mailer: Mailer
   if (!options.enabled) {
-    return createDisabledMailer(from)
+    mailer = createDisabledMailer(from)
+  } else {
+    switch (options.provider) {
+      case 'smtp':
+        mailer = createSmtpMailer(from)
+        break
+      case 'resend':
+        mailer = createResendMailer(from)
+        break
+      case 'console':
+      default:
+        mailer = createConsoleMailer(from)
+        break
+    }
   }
-  switch (options.provider) {
-    case 'smtp':
-      return createSmtpMailer(from)
-    case 'resend':
-      return createResendMailer(from)
-    case 'console':
-    default:
-      return createConsoleMailer(from)
-  }
+  return withEmailSendLog(mailer)
 }
 
 /**

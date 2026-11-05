@@ -66,3 +66,37 @@ export const sfEmailRules = pgTable(
     index('sf_email_rules_template_id_idx').on(table.templateId),
   ],
 )
+
+/**
+ * Thin durable send log — written on Mailer success / fail (and skipped).
+ * Dashboard `email.sent` aggregates by email_type; not a full drill-down UI.
+ */
+export const sfEmailSends = pgTable(
+  'sf_email_sends',
+  {
+    id: text('id').primaryKey(),
+    /** sent | failed | skipped */
+    status: text('status').notNull().default('failed'),
+    /** transactional | marketing | system */
+    emailType: text('email_type').notNull().default('transactional'),
+    provider: text('provider').notNull().default('console'),
+    /** Comma-joined recipients (audit; not a mailing list). */
+    toAddress: text('to_address').notNull().default(''),
+    subject: text('subject').notNull().default(''),
+    /** Optional template / rule label for glance (+ title). */
+    title: text('title'),
+    error: text('error'),
+    source: text('source'),
+    ruleId: text('rule_id'),
+    templateId: text('template_id'),
+    moduleCategory: text('module_category'),
+    providerMessageId: text('provider_message_id'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('sf_email_sends_email_type_idx').on(table.emailType),
+    index('sf_email_sends_status_idx').on(table.status),
+    index('sf_email_sends_created_at_idx').on(table.createdAt),
+    index('sf_email_sends_type_status_idx').on(table.emailType, table.status),
+  ],
+)

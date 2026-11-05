@@ -16,6 +16,10 @@ await emitEmailTrigger({
 
 Soft-fails when the module is off, Chrome email is off, or SMTP/Resend secrets are missing.
 
+## Send log (D3)
+
+Thin `sf_email_sends` rows are written on every Core Mailer send (success / fail / skipped) via a soft wrapper. Dashboard card `email.sent` counts `status = sent` by type (transactional / marketing / system). Log write soft-fails if the table is missing.
+
 ## Admin
 
 - `/admin/email` — rules (filter by module category)
