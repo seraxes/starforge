@@ -3,7 +3,6 @@
 import React, { useActionState } from 'react'
 import Link from 'next/link'
 
-import { LOCALE_LABELS, LOCALES } from '@/core/i18n/locales'
 import {
   updateSiteChromeAction,
   type SiteChromeActionState,
@@ -125,18 +124,10 @@ export function SiteChromeForm({ chrome }: Props) {
       </fieldset>
 
       <fieldset className="settings-fieldset">
-        <legend>Localization (stub)</legend>
+        <legend>Localization</legend>
         <p className="settings-hint">
-          Public URLs use a locale prefix (<code>/en/…</code>, <code>/hu/…</code>). Core admin (
-          <code>/admin</code>) and Payload (<code>/cms</code>) stay unprefixed. Routing comes from
-          the Core i18n port; Payload content locales and Site Chrome enable/disable toggles follow
-          in later phases. Stored stub:{' '}
-          <code>{(chrome.localesEnabled ?? []).join(', ')}</code> (default{' '}
-          <code>{chrome.defaultLocale ?? 'en'}</code>).
-        </p>
-        <p className="settings-flag-desc">
-          Platform catalog:{' '}
-          {LOCALES.map((code) => `${LOCALE_LABELS[code]} (${code})`).join(' · ')}
+          Enabled locales, default locale, and fallback moved to the dedicated{' '}
+          <Link href="/admin/localization">Localization</Link> admin page (not edited here).
         </p>
       </fieldset>
 

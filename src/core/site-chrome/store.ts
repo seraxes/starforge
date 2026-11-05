@@ -21,7 +21,11 @@ function withCookieAttrs(chrome: SiteChromeDocument): SiteChromeDocument {
   return normalizeSiteChrome(chrome)
 }
 
-/** Persist locale-stub defaults when the stored document omitted those keys. */
+/**
+ * Persist localization defaults when the stored document omitted those keys
+ * (pre-i18n P0 rows, or pre-Localization-page rows lacking `localeFallback`).
+ * UI editing lives under `/admin/localization`; storage stays on Chrome JSON.
+ */
 async function softHealLocaleFields(
   documentJson: string,
   chrome: SiteChromeDocument,

@@ -52,6 +52,16 @@ export function normalizeSiteChrome(raw: unknown): SiteChromeDocument {
     ? src.emailProvider
     : DEFAULT_SITE_CHROME.emailProvider
 
+  const localesEnabled = normalizeLocalesEnabled(src.localesEnabled)
+  let defaultLocale = isAppLocale(src.defaultLocale)
+    ? src.defaultLocale
+    : DEFAULT_LOCALE
+  if (!localesEnabled.includes(defaultLocale)) {
+    defaultLocale = isAppLocale(localesEnabled[0])
+      ? localesEnabled[0]
+      : DEFAULT_LOCALE
+  }
+
   return {
     version: 1,
     offlineEnabled: asBool(src.offlineEnabled, false),
@@ -78,10 +88,9 @@ export function normalizeSiteChrome(raw: unknown): SiteChromeDocument {
     consentPrivacyLinkLabel:
       asString(src.consentPrivacyLinkLabel).trim() ||
       DEFAULT_CONSENT_PRIVACY_LINK_LABEL,
-    localesEnabled: normalizeLocalesEnabled(src.localesEnabled),
-    defaultLocale: isAppLocale(src.defaultLocale)
-      ? src.defaultLocale
-      : DEFAULT_LOCALE,
+    localesEnabled,
+    defaultLocale,
+    localeFallback: asBool(src.localeFallback, DEFAULT_SITE_CHROME.localeFallback),
   }
 }
 
@@ -98,8 +107,9 @@ export function serializeSiteChrome(chrome: SiteChromeDocument): string {
 }
 
 /**
- * True when stored Chrome JSON is missing locale stub fields (pre-i18n P0 rows
- * or stale cache payloads). Soft-heal callers rewrite defaults via normalize.
+ * True when stored Chrome JSON is missing localization fields (pre-i18n P0 rows,
+ * pre-Localization-page rows lacking `localeFallback`, or stale cache payloads).
+ * Soft-heal callers rewrite defaults via normalize.
  */
 export function siteChromeDocumentNeedsLocaleHeal(json: string): boolean {
   try {
@@ -108,6 +118,7 @@ export function siteChromeDocumentNeedsLocaleHeal(json: string): boolean {
     const src = raw as Record<string, unknown>
     if (!Array.isArray(src.localesEnabled)) return true
     if (typeof src.defaultLocale !== 'string' || !src.defaultLocale.trim()) return true
+    if (typeof src.localeFallback !== 'boolean') return true
     return false
   } catch {
     return true

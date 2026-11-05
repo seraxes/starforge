@@ -64,6 +64,23 @@ for (const surface of ['core', 'payload'] as const) {
   }
   console.log(`[${surface}] ok — Chrome accordion → Environment (defaultOpen)`)
 
+  const localization = groups.find((g) => g.id === 'localization')
+  if (!localization?.links.some((l) => l.href === '/admin/localization' && l.label === 'Localization')) {
+    console.error(`[${surface}] missing Localization nav leaf`, localization?.links)
+    process.exit(1)
+  }
+  const chromeIdx = groups.findIndex((g) => g.id === 'site-chrome')
+  const locIdx = groups.findIndex((g) => g.id === 'localization')
+  const settingsIdx = groups.findIndex((g) => g.id === 'site-settings')
+  if (!(chromeIdx < locIdx && locIdx < settingsIdx)) {
+    console.error(
+      `[${surface}] Localization must sit between Chrome and Settings`,
+      groups.map((g) => g.id),
+    )
+    process.exit(1)
+  }
+  console.log(`[${surface}] ok — Localization between Chrome and Settings`)
+
   const siteSettings = groups.find((g) => g.id === 'site-settings')
   if (!siteSettings?.expandable) {
     console.error(`[${surface}] Settings must be expandable`, siteSettings)

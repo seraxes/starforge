@@ -108,6 +108,17 @@ describe('adminAreaGateForPath', () => {
     })
   })
 
+  it('maps Localization to admin.localization', () => {
+    assert.deepEqual(adminAreaGateForPath('/admin/localization'), {
+      type: 'resource',
+      key: 'admin.localization',
+    })
+    assert.deepEqual(adminAreaGateForPath('/admin/localization/'), {
+      type: 'resource',
+      key: 'admin.localization',
+    })
+  })
+
   it('maps Dashboard root to admin.dashboard (/admin + legacy /app/admin)', () => {
     assert.deepEqual(adminAreaGateForPath('/admin'), {
       type: 'resource',

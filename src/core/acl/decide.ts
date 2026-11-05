@@ -62,6 +62,12 @@ export function adminAreaGateForPath(pathname: string): AdminAreaGate {
   if (path === `${CORE_ADMIN_BASE}/site-chrome` || path.startsWith(`${CORE_ADMIN_BASE}/site-chrome/`)) {
     return { type: 'resource', key: 'admin.site-chrome' }
   }
+  if (
+    path === `${CORE_ADMIN_BASE}/localization` ||
+    path.startsWith(`${CORE_ADMIN_BASE}/localization/`)
+  ) {
+    return { type: 'resource', key: 'admin.localization' }
+  }
   if (path === `${CORE_ADMIN_BASE}/settings` || path.startsWith(`${CORE_ADMIN_BASE}/settings/`)) {
     return { type: 'resource', key: 'admin.settings' }
   }
@@ -143,6 +149,7 @@ const LANDING_ORDER: { key: AclAdminResourceKey; href: string }[] = [
   { key: 'admin.page-settings', href: `${CORE_ADMIN_BASE}/page-settings` },
   { key: 'admin.settings', href: `${CORE_ADMIN_BASE}/settings` },
   { key: 'admin.site-chrome', href: `${CORE_ADMIN_BASE}/site-chrome` },
+  { key: 'admin.localization', href: `${CORE_ADMIN_BASE}/localization` },
   { key: 'admin.redirects', href: `${CORE_ADMIN_BASE}/redirects` },
   { key: 'admin.groups', href: `${CORE_ADMIN_BASE}/users/groups` },
   { key: 'admin.cms', href: `${CORE_ADMIN_BASE}/cms` },

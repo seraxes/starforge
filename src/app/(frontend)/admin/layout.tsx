@@ -13,6 +13,7 @@ import { getActiveAdminTheme } from '@/core/admin-theme'
 import {
   adminHrefAllowed,
   ensureManagersDashboardAcl,
+  ensureManagersLocalizationAcl,
   getAccessViewer,
   requireAdminAreaForRequest,
   viewerMayEnterAdminShell,
@@ -72,6 +73,8 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
 
   // Heal Managers ACL so /admin (Dashboard) works after upgrades from pre-D0 seeds.
   await ensureManagersDashboardAcl().catch(() => undefined)
+  // Localization left Chrome — Managers with Chrome also get Localization.
+  await ensureManagersLocalizationAcl().catch(() => undefined)
 
   const viewer = await getAccessViewer()
   if (!(await viewerMayEnterAdminShell(viewer))) {

@@ -63,12 +63,16 @@ export type SiteChromeDocument = {
   /** Link label for consentPrivacyUrl. */
   consentPrivacyLinkLabel: string
   /**
-   * Localization stub (P0) — enabled public locale codes + default.
-   * Routing still uses Core i18n catalog (`src/core/i18n`); Site Chrome toggles
-   * that limit prefixes land in a later phase.
+   * Localization settings — edited under `/admin/localization` (not this form).
+   * Storage stays on Chrome JSON for continuity with the P0 stub; UI ownership
+   * moved off Chrome. Routing still uses Core i18n catalog (`src/core/i18n`);
+   * enable-list limiting of prefixes lands later. Payload `localization` in
+   * `payload.config.ts` stays code/env for now (document sync, not runtime).
    */
   localesEnabled: string[]
   defaultLocale: string
+  /** When true, missing locale content falls back to defaultLocale (Payload + UI). */
+  localeFallback: boolean
 }
 
 export type SiteChromeLoadSource = 'database' | 'default'

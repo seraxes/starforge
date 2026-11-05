@@ -60,4 +60,5 @@ export const DEFAULT_SITE_CHROME: SiteChromeDocument = {
   consentPrivacyLinkLabel: DEFAULT_CONSENT_PRIVACY_LINK_LABEL,
   localesEnabled: [...LOCALES],
   defaultLocale: DEFAULT_LOCALE,
+  localeFallback: true,
 }
