@@ -93,6 +93,17 @@ describe('adminAreaGateForPath', () => {
     })
   })
 
+  it('maps Email Manager admin paths to admin.email-manager', () => {
+    assert.deepEqual(adminAreaGateForPath('/app/admin/email'), {
+      type: 'resource',
+      key: 'admin.email-manager',
+    })
+    assert.deepEqual(adminAreaGateForPath('/app/admin/email/templates'), {
+      type: 'resource',
+      key: 'admin.email-manager',
+    })
+  })
+
   it('treats /app/admin as shell entry', () => {
     assert.deepEqual(adminAreaGateForPath('/app/admin'), { type: 'shell' })
     assert.deepEqual(adminAreaGateForPath('/app/admin/'), { type: 'shell' })

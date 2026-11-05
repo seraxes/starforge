@@ -13,6 +13,7 @@
     "product:posts",
     "product:draft-preview",
     "product:forms",
+    "product:email-manager",
     "product:redirects",
     "product:consent",
     "product:search",

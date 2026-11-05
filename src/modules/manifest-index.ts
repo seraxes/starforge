@@ -8,6 +8,7 @@ import { hostModuleManifests } from '@/core/modules/host-manifests'
 import type { StarforgeModuleManifest } from '@/core/modules/define-module'
 
 import consentManifest from './consent/manifest'
+import emailManagerManifest from './email-manager/manifest'
 import formParticleManifest from './form/manifest'
 import formsManifest from './forms/manifest'
 import mediaManifest from './media/manifest'
@@ -20,6 +21,7 @@ import searchParticleManifest from './search/particle-manifest'
 export const ALL_MODULE_MANIFESTS: StarforgeModuleManifest[] = [
   ...hostModuleManifests,
   formsManifest,
+  emailManagerManifest,
   redirectsManifest,
   consentManifest,
   searchManifest,

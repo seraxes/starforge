@@ -22,6 +22,7 @@ export const MODULE_IDS = {
   posts: 'product:posts',
   draftPreview: 'product:draft-preview',
   forms: 'product:forms',
+  emailManager: 'product:email-manager',
   redirects: 'product:redirects',
   consent: 'product:consent',
   search: 'product:search',

@@ -13,6 +13,7 @@ const flags = {
 
 const enabledModuleIds = new Set([
   'product:forms',
+  'product:email-manager',
   'product:redirects',
   'product:media',
 ])
@@ -76,6 +77,21 @@ for (const surface of ['core', 'payload'] as const) {
     }
   }
   console.log(`[${surface}] ok — Settings accordion topics`)
+
+  const email = groups.find((g) => g.id === 'email')
+  if (!email?.expandable) {
+    console.error(`[${surface}] Email must be expandable (Rules + Templates)`, email)
+    process.exit(1)
+  }
+  const emailRules = email.links.find((l) => l.href === '/app/admin/email' && l.label === 'Rules')
+  const emailTemplates = email.links.find(
+    (l) => l.href === '/app/admin/email/templates' && l.label === 'Templates',
+  )
+  if (!emailRules?.exact || !emailTemplates) {
+    console.error(`[${surface}] Email missing Rules (exact) + Templates children`, email.links)
+    process.exit(1)
+  }
+  console.log(`[${surface}] ok — Email accordion → Rules + Templates`)
 
   const redirects = groups.find((g) => g.id === 'redirects')
   if (!redirects?.links.some((l) => l.href === '/app/admin/redirects' && l.label === 'Redirects')) {

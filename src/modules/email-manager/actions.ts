@@ -1,0 +1,381 @@
+'use server'
+
+import { revalidatePath } from 'next/cache'
+
+import { requireAppAdmin } from '@/core/auth/admin'
+import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
+
+import { normalizeEmailAudience } from './audience'
+import { isEmailConditionOp, normalizeEmailConditionGroup } from './conditions'
+import { sendEmailManagerTest } from './engine'
+import {
+  createEmailRule,
+  createEmailTemplate,
+  deleteEmailRule,
+  deleteEmailTemplate,
+  setEmailRuleEnabled,
+  updateEmailRule,
+  updateEmailTemplate,
+} from './store'
+import type { EmailAdminActionState, EmailCondition, EmailConditionOp } from './types'
+
+export type { EmailAdminActionState }
+
+async function requireEmailManagerAdmin(): Promise<EmailAdminActionState | null> {
+  const admin = await requireAppAdmin()
+  if (!admin) {
+    return { error: 'Sign in as a Starforge app admin to manage Email Manager.' }
+  }
+  const settings = await getSiteSettings()
+  if (!isCatalogModuleEnabled(settings, MODULE_IDS.emailManager)) {
+    return {
+      error: 'Email Manager is disabled. Enable it under Settings → Modules.',
+    }
+  }
+  return null
+}
+
+function revalidateEmailAdmin() {
+  revalidatePath('/app/admin/email')
+  revalidatePath('/app/admin/email/templates')
+}
+
+function parseConditionsFromForm(formData: FormData) {
+  const raw = String(formData.get('conditionsJson') ?? '').trim()
+  if (!raw) return normalizeEmailConditionGroup({ all: [] })
+  try {
+    return normalizeEmailConditionGroup(JSON.parse(raw))
+  } catch {
+    // Fallback: single path/op/value fields from the simple editor.
+    const path = String(formData.get('conditionPath') ?? '').trim()
+    const opRaw = String(formData.get('conditionOp') ?? '').trim()
+    const value = String(formData.get('conditionValue') ?? '')
+    if (!path || !isEmailConditionOp(opRaw)) {
+      return normalizeEmailConditionGroup({ all: [] })
+    }
+    const cond: EmailCondition = { path, op: opRaw as EmailConditionOp }
+    if (opRaw === 'eq' || opRaw === 'neq' || opRaw === 'contains') {
+      cond.value = value
+    }
+    return normalizeEmailConditionGroup({ all: [cond] })
+  }
+}
+
+function parseAudienceFromForm(formData: FormData) {
+  const toRaw = String(formData.get('audienceTo') ?? '')
+  const toFromPayloadRaw = String(formData.get('audienceToFromPayload') ?? '')
+  const replyTo = String(formData.get('audienceReplyTo') ?? '').trim()
+  const replyToFromPayload = String(formData.get('audienceReplyToFromPayload') ?? '').trim()
+  return normalizeEmailAudience({
+    to: toRaw
+      .split(/[,;\n]+/)
+      .map((s) => s.trim())
+      .filter(Boolean),
+    toFromPayload: toFromPayloadRaw
+      .split(/[,;\n]+/)
+      .map((s) => s.trim())
+      .filter(Boolean),
+    replyTo: replyTo || undefined,
+    replyToFromPayload: replyToFromPayload || undefined,
+  })
+}
+
+export async function createEmailTemplateAction(
+  _prev: EmailAdminActionState,
+  formData: FormData,
+): Promise<EmailAdminActionState> {
+  const denied = await requireEmailManagerAdmin()
+  if (denied) return denied
+
+  const result = await createEmailTemplate({
+    label: String(formData.get('label') ?? ''),
+    moduleCategory: String(formData.get('moduleCategory') ?? 'other'),
+    subject: String(formData.get('subject') ?? ''),
+    bodyText: String(formData.get('bodyText') ?? ''),
+    bodyHtml: String(formData.get('bodyHtml') ?? ''),
+  })
+  if ('error' in result) return { error: result.error }
+  revalidateEmailAdmin()
+  return {
+    ok: true,
+    message: `Template “${result.template.label}” created.`,
+    id: result.template.id,
+  }
+}
+
+export async function updateEmailTemplateAction(
+  _prev: EmailAdminActionState,
+  formData: FormData,
+): Promise<EmailAdminActionState> {
+  const denied = await requireEmailManagerAdmin()
+  if (denied) return denied
+
+  const id = String(formData.get('id') ?? '').trim()
+  const result = await updateEmailTemplate({
+    id,
+    label: String(formData.get('label') ?? ''),
+    moduleCategory: String(formData.get('moduleCategory') ?? 'other'),
+    subject: String(formData.get('subject') ?? ''),
+    bodyText: String(formData.get('bodyText') ?? ''),
+    bodyHtml: String(formData.get('bodyHtml') ?? ''),
+  })
+  if ('error' in result) return { error: result.error }
+  revalidateEmailAdmin()
+  return {
+    ok: true,
+    message: `Template “${result.template.label}” saved.`,
+    id: result.template.id,
+  }
+}
+
+export async function deleteEmailTemplateAction(
+  _prev: EmailAdminActionState,
+  formData: FormData,
+): Promise<EmailAdminActionState> {
+  const denied = await requireEmailManagerAdmin()
+  if (denied) return denied
+  const id = String(formData.get('id') ?? '').trim()
+  const result = await deleteEmailTemplate(id)
+  if ('error' in result) return { error: result.error }
+  revalidateEmailAdmin()
+  return { ok: true, message: 'Template deleted.', id }
+}
+
+export async function createEmailRuleAction(
+  _prev: EmailAdminActionState,
+  formData: FormData,
+): Promise<EmailAdminActionState> {
+  const denied = await requireEmailManagerAdmin()
+  if (denied) return denied
+
+  const result = await createEmailRule({
+    label: String(formData.get('label') ?? ''),
+    moduleCategory: String(formData.get('moduleCategory') ?? 'other'),
+    enabled: String(formData.get('enabled') ?? '1') !== '0',
+    triggerKey: String(formData.get('triggerKey') ?? ''),
+    mode: String(formData.get('mode') ?? 'automatic'),
+    conditions: parseConditionsFromForm(formData),
+    audience: parseAudienceFromForm(formData),
+    templateId: String(formData.get('templateId') ?? ''),
+    fromOverride: String(formData.get('fromOverride') ?? ''),
+  })
+  if ('error' in result) return { error: result.error }
+  revalidateEmailAdmin()
+  return {
+    ok: true,
+    message: `Rule “${result.rule.label}” created.`,
+    id: result.rule.id,
+  }
+}
+
+export async function updateEmailRuleAction(
+  _prev: EmailAdminActionState,
+  formData: FormData,
+): Promise<EmailAdminActionState> {
+  const denied = await requireEmailManagerAdmin()
+  if (denied) return denied
+
+  const id = String(formData.get('id') ?? '').trim()
+  const result = await updateEmailRule({
+    id,
+    label: String(formData.get('label') ?? ''),
+    moduleCategory: String(formData.get('moduleCategory') ?? 'other'),
+    enabled: String(formData.get('enabled') ?? '1') !== '0',
+    triggerKey: String(formData.get('triggerKey') ?? ''),
+    mode: String(formData.get('mode') ?? 'automatic'),
+    conditions: parseConditionsFromForm(formData),
+    audience: parseAudienceFromForm(formData),
+    templateId: String(formData.get('templateId') ?? ''),
+    fromOverride: String(formData.get('fromOverride') ?? ''),
+  })
+  if ('error' in result) return { error: result.error }
+  revalidateEmailAdmin()
+  return {
+    ok: true,
+    message: `Rule “${result.rule.label}” saved.`,
+    id: result.rule.id,
+  }
+}
+
+export async function toggleEmailRuleAction(
+  _prev: EmailAdminActionState,
+  formData: FormData,
+): Promise<EmailAdminActionState> {
+  const denied = await requireEmailManagerAdmin()
+  if (denied) return denied
+  const id = String(formData.get('id') ?? '').trim()
+  const enabled = String(formData.get('enabled') ?? '1') !== '0'
+  const result = await setEmailRuleEnabled(id, enabled)
+  if ('error' in result) return { error: result.error }
+  revalidateEmailAdmin()
+  return {
+    ok: true,
+    message: enabled ? 'Rule enabled.' : 'Rule disabled.',
+    id: result.rule.id,
+  }
+}
+
+export async function deleteEmailRuleAction(
+  _prev: EmailAdminActionState,
+  formData: FormData,
+): Promise<EmailAdminActionState> {
+  const denied = await requireEmailManagerAdmin()
+  if (denied) return denied
+  const id = String(formData.get('id') ?? '').trim()
+  const result = await deleteEmailRule(id)
+  if ('error' in result) return { error: result.error }
+  revalidateEmailAdmin()
+  return { ok: true, message: 'Rule deleted.', id }
+}
+
+export async function testEmailSendAction(
+  _prev: EmailAdminActionState,
+  formData: FormData,
+): Promise<EmailAdminActionState> {
+  const denied = await requireEmailManagerAdmin()
+  if (denied) return denied
+
+  const result = await sendEmailManagerTest({
+    to: String(formData.get('to') ?? ''),
+    subject: String(formData.get('subject') ?? 'Starforge Email Manager test'),
+    text: String(formData.get('text') ?? 'Test message from Email Manager.'),
+    html: String(formData.get('html') ?? ''),
+    from: String(formData.get('from') ?? ''),
+  })
+
+  if (!result.ok) {
+    return {
+      error:
+        result.error ||
+        (result.skipped
+          ? 'Send skipped (Chrome email off or module disabled).'
+          : 'Test send failed.'),
+    }
+  }
+
+  const provider = result.provider || 'mailer'
+  return {
+    ok: true,
+    message:
+      provider === 'console'
+        ? 'Test logged via console Mailer (check server logs).'
+        : `Test accepted by ${provider}.`,
+  }
+}
+
+/** Seed Forms-oriented starter templates + rules (idempotent-ish via fixed ids). */
+export async function seedFormsEmailStartersAction(
+  _prev: EmailAdminActionState,
+  _formData: FormData,
+): Promise<EmailAdminActionState> {
+  const denied = await requireEmailManagerAdmin()
+  if (denied) return denied
+
+  const adminTpl = await createEmailTemplate({
+    id: 'tpl-forms-admin-default',
+    label: 'Forms — admin notify',
+    moduleCategory: 'forms',
+    subject: '[Starforge Form] {{formTitle}}',
+    bodyText: 'Form: {{formTitle}}\n\n{{payloadText}}',
+  })
+  if ('error' in adminTpl && !/unique|duplicate|already/i.test(adminTpl.error)) {
+    // Continue if exists — recreate path uses fixed id; duplicate is ok to ignore via update
+  }
+
+  if ('error' in adminTpl) {
+    const updated = await updateEmailTemplate({
+      id: 'tpl-forms-admin-default',
+      label: 'Forms — admin notify',
+      moduleCategory: 'forms',
+      subject: '[Starforge Form] {{formTitle}}',
+      bodyText: 'Form: {{formTitle}}\n\n{{payloadText}}',
+    })
+    if ('error' in updated && !updated.error.includes('not found')) {
+      /* keep going for respondent */
+    }
+  }
+
+  const respondentTpl = await createEmailTemplate({
+    id: 'tpl-forms-respondent-default',
+    label: 'Forms — respondent confirm',
+    moduleCategory: 'forms',
+    subject: 'We received your {{formTitle}} submission',
+    bodyText:
+      'Thanks — we received your submission.\n\nForm: {{formTitle}}\n\n{{payloadText}}',
+  })
+  if ('error' in respondentTpl) {
+    await updateEmailTemplate({
+      id: 'tpl-forms-respondent-default',
+      label: 'Forms — respondent confirm',
+      moduleCategory: 'forms',
+      subject: 'We received your {{formTitle}} submission',
+      bodyText:
+        'Thanks — we received your submission.\n\nForm: {{formTitle}}\n\n{{payloadText}}',
+    })
+  }
+
+  const adminRule = await createEmailRule({
+    id: 'rule-forms-admin-default',
+    label: 'Forms — notify admin',
+    moduleCategory: 'forms',
+    enabled: true,
+    triggerKey: 'product:forms/submitted',
+    mode: 'conditional',
+    conditions: {
+      all: [{ path: 'notifyAdmin', op: 'truthy' }],
+    },
+    audience: { toFromPayload: ['adminEmails'] },
+    templateId: 'tpl-forms-admin-default',
+  })
+  if ('error' in adminRule) {
+    await updateEmailRule({
+      id: 'rule-forms-admin-default',
+      label: 'Forms — notify admin',
+      moduleCategory: 'forms',
+      enabled: true,
+      triggerKey: 'product:forms/submitted',
+      mode: 'conditional',
+      conditions: {
+        all: [{ path: 'notifyAdmin', op: 'truthy' }],
+      },
+      audience: { toFromPayload: ['adminEmails'] },
+      templateId: 'tpl-forms-admin-default',
+    })
+  }
+
+  const respondentRule = await createEmailRule({
+    id: 'rule-forms-respondent-default',
+    label: 'Forms — notify respondent',
+    moduleCategory: 'forms',
+    enabled: true,
+    triggerKey: 'product:forms/submitted',
+    mode: 'conditional',
+    conditions: {
+      all: [{ path: 'notifyRespondent', op: 'truthy' }],
+    },
+    audience: { toFromPayload: ['respondentEmail'] },
+    templateId: 'tpl-forms-respondent-default',
+  })
+  if ('error' in respondentRule) {
+    await updateEmailRule({
+      id: 'rule-forms-respondent-default',
+      label: 'Forms — notify respondent',
+      moduleCategory: 'forms',
+      enabled: true,
+      triggerKey: 'product:forms/submitted',
+      mode: 'conditional',
+      conditions: {
+        all: [{ path: 'notifyRespondent', op: 'truthy' }],
+      },
+      audience: { toFromPayload: ['respondentEmail'] },
+      templateId: 'tpl-forms-respondent-default',
+    })
+  }
+
+  revalidateEmailAdmin()
+  return {
+    ok: true,
+    message:
+      'Seeded Forms starter templates + conditional rules (admin + respondent). Legacy per-form notify still runs until you turn it off on forms.',
+  }
+}

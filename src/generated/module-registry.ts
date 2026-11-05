@@ -20,7 +20,7 @@ export const MODULE_ALLOWLIST_FLAVOR = "core" as const
 export const FIXED_REQUIRED_MODULE_IDS = ["platform:better-auth","page-content","product:media"] as const
 
 /** Allowlisted module ids for this install/build (platform + product + particles + atoms). */
-export const ALLOWLISTED_MODULE_IDS = ["atom:analytics","atom:custom-css-js","copyright","custom","form","login","logo","menu","notice-bar","page-content","platform:better-auth","platform:payload-cms","product:consent","product:draft-preview","product:font-awesome","product:forms","product:layout-manager","product:media","product:page-settings","product:posts","product:primary-nav","product:redirects","product:registration","product:rich-editor","product:search","search","site-header","social"] as const
+export const ALLOWLISTED_MODULE_IDS = ["atom:analytics","atom:custom-css-js","copyright","custom","form","login","logo","menu","notice-bar","page-content","platform:better-auth","platform:payload-cms","product:consent","product:draft-preview","product:email-manager","product:font-awesome","product:forms","product:layout-manager","product:media","product:page-settings","product:posts","product:primary-nav","product:redirects","product:registration","product:rich-editor","product:search","search","site-header","social"] as const
 
 export type AllowlistedModuleId = (typeof ALLOWLISTED_MODULE_IDS)[number]
 
@@ -37,7 +37,7 @@ export function isModuleAllowlisted(id: string): boolean {
 export const ALLOWLISTED_BUILTIN_PARTICLE_IDS: readonly string[] = ["page-content","site-header","logo","menu","copyright","social","custom","login"]
 
 /** Platform + product catalog ids installed in this build. */
-export const ALLOWLISTED_PRODUCT_PLATFORM_IDS: readonly string[] = ["platform:better-auth","platform:payload-cms","product:layout-manager","product:page-settings","product:primary-nav","product:font-awesome","product:registration","product:rich-editor","product:posts","product:draft-preview","product:forms","product:redirects","product:consent","product:search","product:media"]
+export const ALLOWLISTED_PRODUCT_PLATFORM_IDS: readonly string[] = ["platform:better-auth","platform:payload-cms","product:layout-manager","product:page-settings","product:primary-nav","product:font-awesome","product:registration","product:rich-editor","product:posts","product:draft-preview","product:forms","product:email-manager","product:redirects","product:consent","product:search","product:media"]
 
 /**
  * Derived Site Settings → Modules rows for platform + product packs.
@@ -55,6 +55,7 @@ export const ALLOWLISTED_PRODUCT_PLATFORM_META: ModuleCatalogItem[] = [
   { id: "product:posts", kind: "product", label: "Posts", description: "Posts collection placeholder — keep off until that slice ships.", required: false, defaultEnabled: false, installed: true as const, featureFlag: "posts" },
   { id: "product:draft-preview", kind: "product", label: "Draft preview", description: "CMS-access users can open /preview/{slug} for unpublished drafts.", required: false, defaultEnabled: false, installed: true as const, featureFlag: "draftPreview" },
   { id: "product:forms", kind: "product", label: "Forms", description: "Modular Form engine — visual builder (JSON Schema/Zod), Form particle, typed presets (contact, survey, event-registration, voting, ticket). Captcha from Chrome; Turnstile keys from env.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Forms","href":"/app/admin/forms"}] },
+  { id: "product:email-manager", kind: "product", label: "Email Manager", description: "Automatic and conditional email rules with templates, filtered by module. Modules emit triggers; Core Mailer sends. No per-module SMTP — secrets stay in env / Chrome.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Email rules","href":"/app/admin/email"},{"key":"templates","label":"Email templates","href":"/app/admin/email/templates"}] },
   { id: "product:redirects", kind: "product", label: "Redirects", description: "URL redirects (from → to + status) with Node proxy lookup. Sitemap of published pages stays at /sitemap.xml.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Redirects","href":"/app/admin/redirects"}] },
   { id: "product:consent", kind: "product", label: "Consent", description: "Cookie consent banner + preference cookie (sf-consent). Policy copy under Chrome; gates atom:analytics until analytics is accepted.", required: false, defaultEnabled: true, installed: true as const },
   { id: "product:search", kind: "product", label: "Search", description: "Public /search over published Payload pages (title / slug / meta). Search particle for layouts. No Algolia — Payload/Postgres contains.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"search","label":"Search","href":"/search"}] },
@@ -232,6 +233,7 @@ export type AdminNavContribution = {
 /** Admin left-nav groups contributed by allowlisted module manifests (M2). */
 export const adminNavContributions: AdminNavContribution[] = [
   { moduleId: "product:forms", id: "forms", label: "Forms", order: 40, href: "/app/admin/forms", expandable: true, links: [{ label: "Forms", href: "/app/admin/forms", order: 10, exact: true, area: "forms", group: "forms" }, { label: "Settings", href: "/app/admin/forms/settings", order: 20, area: "forms", group: "forms" }] },
+  { moduleId: "product:email-manager", id: "email", label: "Email", order: 45, href: "/app/admin/email", expandable: true, links: [{ label: "Rules", href: "/app/admin/email", order: 10, exact: true, area: "email-manager", group: "email" }, { label: "Templates", href: "/app/admin/email/templates", order: 20, area: "email-manager", group: "email" }] },
   { moduleId: "product:redirects", id: "redirects", label: "Redirects", order: 50, links: [{ label: "Redirects", href: "/app/admin/redirects", order: 10, area: "redirects", group: "redirects" }] },
   { moduleId: "product:media", id: "media", label: "Media", order: 60, href: "/app/admin/media", expandable: true, defaultOpen: true, links: [{ label: "Library", href: "/app/admin/media", order: 10, exact: true, area: "media", group: "media" }, { label: "Settings", href: "/app/admin/media/settings", order: 20, area: "media", group: "media" }] }
 ]
@@ -250,6 +252,18 @@ export type AdminRouteLoader = {
  * Runtime loads via `admin/(modules)/…` shims — no import() in this client-shared file.
  */
 export const adminRouteLoaders: AdminRouteLoader[] = [
+  {
+    moduleId: "product:email-manager",
+    path: "email",
+    pageImportPath: "@/modules/email-manager/admin/EmailRulesPage",
+    pageExportName: "default",
+  },
+  {
+    moduleId: "product:email-manager",
+    path: "email/templates",
+    pageImportPath: "@/modules/email-manager/admin/EmailTemplatesPage",
+    pageExportName: "default",
+  },
   {
     moduleId: "product:media",
     path: "media",
