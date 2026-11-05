@@ -19,6 +19,8 @@ function redirectAfterLogin(next: string, locale: string): never {
     nextRedirect(next)
   }
   i18nRedirect({ href: next, locale })
+  // next-intl redirect throws; keep a never-return for TypeScript.
+  nextRedirect(next)
 }
 
 type Props = {
