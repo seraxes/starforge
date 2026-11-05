@@ -69,7 +69,7 @@ export const sfEmailRules = pgTable(
 
 /**
  * Thin durable send log — written on Mailer success / fail (and skipped).
- * Dashboard `email.sent` aggregates by email_type; not a full drill-down UI.
+ * Dashboard `email.sent` aggregates by email_type; Email → Sends lists recent rows.
  */
 export const sfEmailSends = pgTable(
   'sf_email_sends',

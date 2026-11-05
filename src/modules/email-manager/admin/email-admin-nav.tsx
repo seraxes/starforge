@@ -3,7 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 
-export type EmailAdminTab = 'rules' | 'templates'
+export type EmailAdminTab = 'rules' | 'templates' | 'sends'
 
 const TABS: { id: EmailAdminTab; label: string; href: string; title: string }[] = [
   {
@@ -18,9 +18,15 @@ const TABS: { id: EmailAdminTab; label: string; href: string; title: string }[] 
     href: '/admin/email/templates',
     title: 'Subject and body templates with merge fields',
   },
+  {
+    id: 'sends',
+    label: 'Sends',
+    href: '/admin/email/sends',
+    title: 'Recent outbound send log',
+  },
 ]
 
-/** Horizontal Email Manager chrome — Rules + Templates. */
+/** Horizontal Email Manager chrome — Rules + Templates + Sends. */
 export function EmailAdminNav({ active }: { active: EmailAdminTab }) {
   return (
     <nav className="gantry-layouts-nav sf-email-admin-nav" aria-label="Email Manager">

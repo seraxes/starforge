@@ -102,6 +102,10 @@ describe('adminAreaGateForPath', () => {
       type: 'resource',
       key: 'admin.email-manager',
     })
+    assert.deepEqual(adminAreaGateForPath('/admin/email/sends'), {
+      type: 'resource',
+      key: 'admin.email-manager',
+    })
   })
 
   it('maps Dashboard root to admin.dashboard (/admin + legacy /app/admin)', () => {
