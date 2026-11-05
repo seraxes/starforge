@@ -76,6 +76,30 @@ export function normalizeSiteChrome(raw: unknown): SiteChromeDocument {
     captchaProvider,
     captchaOnRegister: asBool(src.captchaOnRegister, false),
     captchaOnAuthRecovery: asBool(src.captchaOnAuthRecovery, false),
+    authForgotPasswordEnabled: asBool(
+      src.authForgotPasswordEnabled,
+      DEFAULT_SITE_CHROME.authForgotPasswordEnabled,
+    ),
+    authForgotUsernameEnabled: asBool(
+      src.authForgotUsernameEnabled,
+      DEFAULT_SITE_CHROME.authForgotUsernameEnabled,
+    ),
+    authMagicLinkEnabled: asBool(
+      src.authMagicLinkEnabled,
+      DEFAULT_SITE_CHROME.authMagicLinkEnabled,
+    ),
+    authEmailOtpEnabled: asBool(
+      src.authEmailOtpEnabled,
+      DEFAULT_SITE_CHROME.authEmailOtpEnabled,
+    ),
+    authRememberMeEnabled: asBool(
+      src.authRememberMeEnabled,
+      DEFAULT_SITE_CHROME.authRememberMeEnabled,
+    ),
+    authTwoFactorEnabled: asBool(
+      src.authTwoFactorEnabled,
+      DEFAULT_SITE_CHROME.authTwoFactorEnabled,
+    ),
     emailEnabled: asBool(src.emailEnabled, false),
     emailProvider,
     emailFrom: asString(src.emailFrom).trim(),

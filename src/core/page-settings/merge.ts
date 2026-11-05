@@ -40,21 +40,48 @@ function normalizeMetaTags(value: unknown): MetaTag[] | undefined {
     .filter((row): row is MetaTag => Boolean(row))
 }
 
+function clampAssetPriority(raw: unknown): number {
+  const n = typeof raw === 'number' ? raw : Number(raw)
+  if (!Number.isFinite(n)) return 0
+  return Math.min(10, Math.max(-10, Math.round(n)))
+}
+
 function normalizeAssets(value: unknown): AssetRef[] | undefined {
   if (!Array.isArray(value)) return undefined
-  return value
-    .map((row, index) => {
-      if (!isPlainObject(row)) return null
-      const url = asString(row.url).trim()
-      const name = asString(row.name).trim() || url || `asset-${index + 1}`
-      if (!url && !name) return null
-      return {
-        id: asString(row.id) || `asset-${index}`,
-        name,
-        url,
-      }
+  const out: AssetRef[] = []
+  for (let index = 0; index < value.length; index++) {
+    const row = value[index]
+    if (!isPlainObject(row)) continue
+    const url = asString(row.url).trim()
+    const content = asString(row.content)
+    const name =
+      asString(row.name).trim() ||
+      url ||
+      (content.trim() ? `file-${index + 1}` : '') ||
+      `asset-${index + 1}`
+    if (!url && !content.trim() && !asString(row.name).trim()) continue
+    out.push({
+      id: asString(row.id) || `asset-${index}`,
+      name,
+      url,
+      content,
+      priority: clampAssetPriority(row.priority),
     })
-    .filter((row): row is AssetRef => Boolean(row))
+  }
+  return out
+}
+
+/** Sort assets by priority ascending (−10 first), then stable by original order. */
+export function sortAssetsByPriority(assets: AssetRef[]): AssetRef[] {
+  return assets
+    .map((asset, index) => ({ asset, index }))
+    .sort((a, b) => {
+      const pa = a.asset.priority ?? 0
+      const pb = b.asset.priority ?? 0
+      if (pa !== pb) return pa - pb
+      return a.index - b.index
+    })
+    .map((row) => row.asset)
 }
 
 function normalizeAtoms(value: unknown): PageAtomInstance[] | undefined {

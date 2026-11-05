@@ -5,6 +5,7 @@ import { ensureAtomsRegistered, getRegisteredAtom } from './atoms'
 import { BodyAttributesClientImpl } from './body-attributes-client'
 import { resolveFontAwesomeEmit } from './font-awesome'
 import { HtmlInjectorClient } from './html-injector-client'
+import { sortAssetsByPriority } from './merge'
 import type { AtomInjectResult, ResolvedPageChrome } from './types'
 
 export { parseBodyTagAttributes } from './parse-body-attrs'
@@ -60,16 +61,30 @@ export async function DocumentHeadChrome({ chrome }: { chrome: ResolvedPageChrom
       {chrome.faviconUrl ? <link rel="icon" href={chrome.faviconUrl} /> : null}
       {chrome.touchIconUrl ? <link rel="apple-touch-icon" href={chrome.touchIconUrl} /> : null}
 
-      {chrome.css
-        .filter((asset) => asset.url.trim())
-        .map((asset) => (
+      {sortAssetsByPriority(chrome.css).map((asset) => {
+        const content = asset.content?.trim() ?? ''
+        const url = asset.url.trim()
+        if (content) {
+          return (
+            <HtmlInjectorClient
+              key={asset.id}
+              html={`<style data-sf-css="${asset.name || asset.id}" data-sf-priority="${asset.priority ?? 0}">${content}</style>`}
+              target="head"
+              marker={`css-${asset.id}`}
+            />
+          )
+        }
+        if (!url) return null
+        return (
           <link
             key={asset.id}
             rel="stylesheet"
-            href={asset.url}
+            href={url}
             data-sf-css={asset.name || asset.id}
+            data-sf-priority={String(asset.priority ?? 0)}
           />
-        ))}
+        )
+      })}
 
       {fa?.linkHrefs.map((href) => (
         <link key={href} rel="stylesheet" href={href} data-sf-font-awesome="" />
@@ -149,11 +164,22 @@ export async function DocumentBodyChrome({
         <HtmlInjectorClient html={fa.jsScriptHtml} target="body" marker="fa-js" />
       ) : null}
 
-      {chrome.javascript
-        .filter((asset) => asset.url.trim())
-        .map((asset) => (
-          <Script key={asset.id} src={asset.url} strategy="afterInteractive" />
-        ))}
+      {sortAssetsByPriority(chrome.javascript).map((asset) => {
+        const content = asset.content?.trim() ?? ''
+        const url = asset.url.trim()
+        if (content) {
+          return (
+            <HtmlInjectorClient
+              key={asset.id}
+              html={`<script data-sf-js="${asset.name || asset.id}" data-sf-priority="${asset.priority ?? 0}">${content}</script>`}
+              target="body"
+              marker={`js-${asset.id}`}
+            />
+          )
+        }
+        if (!url) return null
+        return <Script key={asset.id} src={url} strategy="afterInteractive" />
+      })}
 
       {chrome.beforeBodyCloseHtml.trim() ? (
         <HtmlInjectorClient

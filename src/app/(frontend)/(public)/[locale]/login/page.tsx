@@ -7,6 +7,7 @@ import { getAppSession } from '@/core/auth/session'
 import { safeNextPath } from '@/core/auth/safe-next-path'
 import { isValidLocaleCode, redirect as i18nRedirect } from '@/core/i18n'
 import { getSiteSettings } from '@/core/settings'
+import { getSiteChrome } from '@/core/site-chrome'
 import { parseLoginMode } from './login-mode'
 
 function redirectAfterLogin(next: string, locale: string): never {
@@ -45,9 +46,10 @@ export default async function LoginPage({ params, searchParams }: Props) {
 
   const query = await searchParams
   const next = safeNextPath(query.next, '/')
-  const [session, settings, t] = await Promise.all([
+  const [session, settings, chrome, t] = await Promise.all([
     getAppSession(),
     getSiteSettings(),
+    getSiteChrome(),
     getTranslations('Auth'),
   ])
   if (session) {
@@ -67,6 +69,14 @@ export default async function LoginPage({ params, searchParams }: Props) {
         magicError={query.error === 'magic_link'}
         initialMode={parseLoginMode(query.mode)}
         showForm
+        authOptions={{
+          forgotPassword: chrome.authForgotPasswordEnabled,
+          forgotUsername: chrome.authForgotUsernameEnabled,
+          magicLink: chrome.authMagicLinkEnabled,
+          emailOtp: chrome.authEmailOtpEnabled,
+          rememberMe: chrome.authRememberMeEnabled,
+          twoFactor: chrome.authTwoFactorEnabled,
+        }}
       />
     </div>
   )

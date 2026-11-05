@@ -6,6 +6,7 @@ import {
   getSiteSettings,
   isCatalogModuleEnabled,
 } from '@/core/settings'
+import { getSiteChrome } from '@/core/site-chrome'
 import { AuthSettingsForm } from './auth-settings-form'
 
 export const dynamic = 'force-dynamic'
@@ -16,20 +17,30 @@ export const metadata = {
 }
 
 export default async function AdminSettingsAuthPage() {
-  const settings = await getSiteSettings()
+  const [settings, chrome] = await Promise.all([getSiteSettings(), getSiteChrome()])
   const registrationEnabled = isCatalogModuleEnabled(settings, MODULE_IDS.registration)
 
   return (
     <section className="admin-section">
       <h2>Settings — Auth & registration</h2>
       <p className="lede admin-lede">
-        Public registration and related auth policy. Forgot password, magic link, email OTP, and
+        Public registration and auth option policy. Forgot password, magic link, email OTP, and
         2FA use Better Auth + Mailer (outbound email under{' '}
         <Link href="/admin/site-chrome">Chrome</Link>). The same registration gate appears
         as <code>product:registration</code> under{' '}
         <Link href="/admin/settings">Modules</Link>.
       </p>
-      <AuthSettingsForm registrationEnabled={registrationEnabled} />
+      <AuthSettingsForm
+        registrationEnabled={registrationEnabled}
+        authOptions={{
+          forgotPasswordEnabled: chrome.authForgotPasswordEnabled,
+          forgotUsernameEnabled: chrome.authForgotUsernameEnabled,
+          magicLinkEnabled: chrome.authMagicLinkEnabled,
+          emailOtpEnabled: chrome.authEmailOtpEnabled,
+          rememberMeEnabled: chrome.authRememberMeEnabled,
+          twoFactorEnabled: chrome.authTwoFactorEnabled,
+        }}
+      />
     </section>
   )
 }

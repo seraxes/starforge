@@ -51,12 +51,12 @@ export function LocalizationForm({ settings }: Props) {
   const busy = pending || removePending
 
   return (
-    <div className="admin-settings-mosaic">
-      <form
-        ref={formRef}
-        action={formAction}
-        className="settings-form settings-form-wide"
-      >
+    <form
+      ref={formRef}
+      action={formAction}
+      className="settings-form settings-form-wide"
+    >
+      <div className="admin-settings-mosaic">
         <fieldset className="settings-fieldset">
           <legend>Locale catalog</legend>
           <p className="settings-hint">
@@ -209,39 +209,24 @@ export function LocalizationForm({ settings }: Props) {
           </label>
         </fieldset>
 
-        {state.error ? (
-          <p className="admin-inline-error" role="alert">
-            {state.error}
-          </p>
-        ) : null}
-        {state.ok && state.message ? (
-          <p className="admin-inline-ok" role="status">
-            {state.message}
-          </p>
-        ) : null}
-        {pending ? <p className="field-hint">Saving…</p> : null}
-      </form>
-
-      {catalog.some((e) => !isBootstrapLocale(e.code)) ? (
-        <fieldset className="settings-fieldset">
-          <legend>Remove custom locale</legend>
-          <p className="settings-hint">
-            Bootstrap <code>en</code>/<code>hu</code> cannot be removed. You cannot remove
-            the last enabled locale — enable another first. Removing a locale drops it from
-            the public catalog (routing / switcher / hreflang).
-          </p>
-          <ul className="sf-locale-remove-list">
-            {catalog
-              .filter((e) => !isBootstrapLocale(e.code))
-              .map((entry) => (
-                <li key={entry.code}>
-                  <form action={removeAction} className="sf-locale-remove-row">
-                    <input type="hidden" name="removeLocaleCode" value={entry.code} />
-                    <span>
-                      <strong>{entry.label}</strong> (<code>{entry.code}</code>)
-                    </span>
+        {catalog.some((e) => !isBootstrapLocale(e.code)) ? (
+          <fieldset className="settings-fieldset">
+            <legend>Remove custom locale</legend>
+            <p className="settings-hint">
+              Bootstrap <code>en</code>/<code>hu</code> cannot be removed. You cannot remove
+              the last enabled locale — enable another first. Removing a locale drops it from
+              the public catalog (routing / switcher / hreflang).
+            </p>
+            <ul className="sf-locale-remove-list">
+              {catalog
+                .filter((e) => !isBootstrapLocale(e.code))
+                .map((entry) => (
+                  <li key={entry.code}>
                     <button
                       type="submit"
+                      formAction={removeAction}
+                      name="removeLocaleCode"
+                      value={entry.code}
                       className="btn btn-danger"
                       disabled={busy}
                       onClick={(e) => {
@@ -254,24 +239,36 @@ export function LocalizationForm({ settings }: Props) {
                         }
                       }}
                     >
-                      Remove
+                      Remove {entry.label} (<code>{entry.code}</code>)
                     </button>
-                  </form>
-                </li>
-              ))}
-          </ul>
-          {removeState.error ? (
-            <p className="admin-inline-error" role="alert">
-              {removeState.error}
-            </p>
-          ) : null}
-          {removeState.ok && removeState.message ? (
-            <p className="admin-inline-ok" role="status">
-              {removeState.message}
-            </p>
-          ) : null}
-        </fieldset>
-      ) : null}
-    </div>
+                  </li>
+                ))}
+            </ul>
+            {removeState.error ? (
+              <p className="admin-inline-error" role="alert">
+                {removeState.error}
+              </p>
+            ) : null}
+            {removeState.ok && removeState.message ? (
+              <p className="admin-inline-ok" role="status">
+                {removeState.message}
+              </p>
+            ) : null}
+          </fieldset>
+        ) : null}
+
+        {state.error ? (
+          <p className="admin-inline-error" role="alert">
+            {state.error}
+          </p>
+        ) : null}
+        {state.ok && state.message ? (
+          <p className="admin-inline-ok" role="status">
+            {state.message}
+          </p>
+        ) : null}
+        {pending ? <p className="field-hint">Saving…</p> : null}
+      </div>
+    </form>
   )
 }

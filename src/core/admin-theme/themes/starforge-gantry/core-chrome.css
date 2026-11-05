@@ -2344,10 +2344,42 @@ body:has(.admin-shell) > main {
   align-items: end;
 }
 
+/* Create/Add submit sits bottom-right of the create form row */
 .admin-shell .admin-create-form > button[type='submit'],
 .admin-shell .outlines-create-form > button[type='submit'],
-.admin-shell .nav-items-add button[type='submit'],
-.admin-shell .group-detail-manager .outlines-create-form > button[type='submit'],
+.admin-shell .nav-items-add .outlines-create-form > button[type='submit'],
+.admin-shell .group-detail-manager .outlines-create-form > button[type='submit'] {
+  grid-column: 1 / -1;
+  justify-self: end;
+  align-self: end;
+  width: auto;
+  max-width: max-content;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin: 0;
+  padding: var(--sf-admin-btn-pad-y) var(--sf-admin-btn-pad-x);
+  border-radius: var(--sf-admin-btn-radius);
+  font: inherit;
+  font-size: var(--sf-admin-btn-font);
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-decoration: none;
+  box-sizing: border-box;
+  min-height: var(--sf-admin-btn-min-height);
+}
+
+/* Nav Add item: align button with input fields (same end baseline as labels+inputs) */
+.admin-shell .nav-items-add .outlines-create-form {
+  align-items: end;
+}
+
+.admin-shell .nav-items-add .outlines-create-form > .settings-field {
+  margin: 0;
+}
+
 .admin-shell .admin-action-row > button,
 .admin-shell .outlines-inline-form > button[type='submit'],
 .admin-shell .outlines-inline-form > button[type='button'],

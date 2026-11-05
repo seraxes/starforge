@@ -1,10 +1,23 @@
 import type { CspSources } from '@/core/security/csp'
 
-/** Ordered stylesheet / script reference (Assets panel). */
+/** Inclusive load-priority bounds for Page Settings CSS/JS assets. */
+export const ASSET_PRIORITY_MIN = -10
+export const ASSET_PRIORITY_MAX = 10
+
+/**
+ * Ordered stylesheet / script asset (Assets panel).
+ * Prefer an editable inline `content` “file”; optional external `url` still supported.
+ * Lower `priority` loads earlier in head / body inject order (−10 … +10).
+ */
 export type AssetRef = {
   id: string
   name: string
+  /** External stylesheet / script URL (optional when `content` is set). */
   url: string
+  /** Editable inline CSS or JS “file” body. */
+  content?: string
+  /** Load order weight (−10 earliest … +10 latest). Default 0. */
+  priority?: number
 }
 
 /** Repeatable meta name/property + content (Head Properties). */

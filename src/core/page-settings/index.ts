@@ -37,6 +37,7 @@ export {
   normalizePageChrome,
   parsePageChromeJson,
   serializePageChrome,
+  sortAssetsByPriority,
 } from './merge'
 export {
   getGlobalPageChrome,
@@ -67,3 +68,4 @@ export type {
   SectionsLayoutMode,
   StarforgeAtomDefinition,
 } from './types'
+export { ASSET_PRIORITY_MAX, ASSET_PRIORITY_MIN } from './types'
