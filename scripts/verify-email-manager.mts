@@ -75,7 +75,9 @@ const acl = read('src/core/acl/types.ts')
 assert.match(acl, /admin\.email-manager/)
 
 const decide = read('src/core/acl/decide.ts')
-assert.match(decide, /\/admin\/email/)
+assert.match(decide, /admin\.email-manager/)
+// Path may be literal `/admin/email` or `${CORE_ADMIN_BASE}/email` after remount/D0.
+assert.match(decide, /(?:\$\{CORE_ADMIN_BASE\}\/email|\/admin\/email)/)
 
 // Runtime shells must derive contrib module ids (incl. Email) — not a hand list.
 const coreAdminLayout = read('src/app/(frontend)/admin/layout.tsx')
