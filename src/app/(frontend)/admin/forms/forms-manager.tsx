@@ -173,12 +173,7 @@ export function FormsManager({ forms }: Props) {
                   <td>{f.fieldCount}</td>
                   <td>{formatUpdated(f.updatedAt)}</td>
                   <td className="outlines-actions">
-                    <Link
-                      href={`/admin/forms/${f.id}`}
-                      className="gantry-toolbar-btn secondary"
-                    >
-                      Edit
-                    </Link>
+                    {/* Name already opens the builder — no redundant Edit band. */}
                     <a
                       href={`/api/admin/forms/export?definitionId=${encodeURIComponent(f.id)}`}
                       className="gantry-toolbar-btn secondary"
@@ -191,7 +186,7 @@ export function FormsManager({ forms }: Props) {
                     >
                       Submissions
                     </Link>
-                    <form action={dupAction} className="outlines-inline-form">
+                    <form action={dupAction} className="admin-inline-form">
                       <input type="hidden" name="formId" value={f.id} />
                       <button
                         type="submit"
@@ -202,7 +197,7 @@ export function FormsManager({ forms }: Props) {
                       </button>
                     </form>
                     {f.id !== 'contact' ? (
-                      <form action={deleteAction} className="outlines-inline-form">
+                      <form action={deleteAction} className="admin-inline-form">
                         <input type="hidden" name="formId" value={f.id} />
                         <button
                           type="submit"

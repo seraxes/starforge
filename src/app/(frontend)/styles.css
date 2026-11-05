@@ -4489,6 +4489,14 @@ button:disabled {
   align-items: center;
 }
 
+/*
+ * Expand-below margin is for siblings under .outlines-actions (Outlines/Nav).
+ * Nested inside the Actions cell it paints a leftover second button band — kill it.
+ */
+.outlines-actions > .outlines-inline-form {
+  margin-top: 0;
+}
+
 .outlines-inline-form input[type='text'] {
   min-width: 12rem;
   padding: 0.4rem 0.55rem;
