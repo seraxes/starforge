@@ -6,6 +6,8 @@ import { css } from '@codemirror/lang-css'
 import { html } from '@codemirror/lang-html'
 import { javascript } from '@codemirror/lang-javascript'
 
+import { starforgeAdminCmTheme } from './starforge-admin-cm-theme'
+
 export type CodeEditorLanguage = 'html' | 'css' | 'javascript'
 
 type Props = {
@@ -37,8 +39,8 @@ function languageExtension(language: CodeEditorLanguage) {
 
 /**
  * Syntax-highlighted code field for layout Custom / Page Settings / atoms.
- * CodeMirror 6 via `@uiw/react-codemirror` — dark navy + line numbers (not a plain textarea).
- * Admin chrome CSS (`.sf-code-field-panel-dark`) paints dark-blue bg + white text over the dark theme.
+ * CodeMirror 6 via `@uiw/react-codemirror` — Starforge admin Gantry navy theme
+ * (works in `.admin-shell` and portaled `.gantry-settings-theme-dark` popups).
  */
 export function CodeEditorField({
   name,
@@ -54,7 +56,10 @@ export function CodeEditorField({
   const [value, setValue] = useState(initialValue)
   const [height, setHeight] = useState(initialHeight)
   const labelId = useId()
-  const extensions = useMemo(() => [languageExtension(language)], [language])
+  const extensions = useMemo(
+    () => [languageExtension(language), ...starforgeAdminCmTheme],
+    [language],
+  )
 
   return (
     <div className="sf-code-field">
@@ -74,7 +79,7 @@ export function CodeEditorField({
         <CodeMirror
           value={value}
           height="100%"
-          theme="dark"
+          theme="none"
           placeholder={placeholder}
           extensions={extensions}
           onChange={(next) => {

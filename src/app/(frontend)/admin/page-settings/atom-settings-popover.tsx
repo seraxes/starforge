@@ -7,18 +7,22 @@ import { useFloatingSettingsPanel } from '@/components/admin/useFloatingSettings
 type Props = {
   title: string
   triggerLabel?: string
+  /** Dialog width (Assets CodeMirror editors prefer ~560–640). */
+  preferredWidth?: number
   children: React.ReactNode
 }
 
-const PANEL_WIDTH = 440
+const DEFAULT_PANEL_WIDTH = 440
 
 /**
- * Atom settings as a floating overlay — same pattern as layout particle editors.
+ * Atom / Assets settings as a floating overlay — same pattern as layout particle editors.
  * Opens centered; title chrome is draggable. Closes on Escape and outside click.
+ * Portals with `gantry-settings-theme-dark` so CodeMirror matches Core admin chrome.
  */
 export function AtomSettingsPopover({
   title,
   triggerLabel = 'Settings',
+  preferredWidth = DEFAULT_PANEL_WIDTH,
   children,
 }: Props) {
   const [open, setOpen] = useState(false)
@@ -27,7 +31,7 @@ export function AtomSettingsPopover({
   const titleId = useId()
   const { panelRef, panelStyle, panelClassName, onDragHandlePointerDown } = useFloatingSettingsPanel({
     open,
-    preferredWidth: PANEL_WIDTH,
+    preferredWidth,
   })
 
   useEffect(() => {
@@ -71,7 +75,10 @@ export function AtomSettingsPopover({
       </button>
       {mounted && open
         ? createPortal(
-            <div className="gantry-settings-layer" data-sf-settings-overlay="">
+            <div
+              className="gantry-settings-layer gantry-settings-theme-dark"
+              data-sf-settings-overlay=""
+            >
               <div
                 className="gantry-settings-backdrop"
                 aria-hidden="true"
@@ -92,7 +99,8 @@ export function AtomSettingsPopover({
                   <h3 id={titleId}>{title}</h3>
                   <button
                     type="button"
-                    className="secondary"
+                    className="gantry-settings-cancel"
+                    data-sf-settings-close=""
                     aria-label="Close settings"
                     onClick={() => setOpen(false)}
                   >
