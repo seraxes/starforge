@@ -55,9 +55,17 @@ import {
   resolveNavItems,
   type RawNavRow,
 } from './nav'
+import { ensureSiteSettingsSchemaHealed } from './heal-site-settings-schema'
 
 export type { FeatureFlags, ModuleToggleMap, NavItem, NavItemInput, SiteSettingsData }
 export type { RawNavRow }
+export {
+  ensureSiteSettingsSchemaHealed,
+  healSiteSettingsSchema,
+  SITE_SETTINGS_HEAL_VERIFY_COLUMNS,
+  SITE_SETTINGS_SCHEMA_HEAL_SQL,
+} from './heal-site-settings-schema'
+export type { SiteSettingsSchemaHealResult } from './heal-site-settings-schema'
 export {
   ADMIN_AUTOSAVE_DEBOUNCE_MAX_MS,
   ADMIN_AUTOSAVE_DEBOUNCE_MIN_MS,
@@ -266,6 +274,9 @@ async function resolvePrimaryNavForDoc(doc: SiteSettingsDoc): Promise<NavItem[]>
 
 async function loadSiteSettingsUncached(): Promise<SiteSettingsData> {
   try {
+    // Boot heal: ADD missing select columns before Payload findGlobal
+    // (npm run dev alone — no db:migrate required for dashboard_* / feature_*).
+    await ensureSiteSettingsSchemaHealed()
     const payload = await getPayload({ config })
     const doc = (await payload.findGlobal({
       slug: 'site-settings',
@@ -388,6 +399,7 @@ export async function updateSiteSettings(input: UpdateSiteSettingsInput): Promis
   )
   const moduleToggles = input.moduleToggles ?? {}
 
+  await ensureSiteSettingsSchemaHealed()
   const payload = await getPayload({ config })
 
   const data: Record<string, unknown> = {
@@ -449,6 +461,8 @@ export async function updateSiteSettings(input: UpdateSiteSettingsInput): Promis
 /** Ensure the global exists with sensible defaults (idempotent). */
 export async function ensureSiteSettingsDefaults(): Promise<SiteSettingsData> {
   try {
+    // Before findGlobal/updateGlobal — heal missing dashboard_* / Performance columns.
+    await ensureSiteSettingsSchemaHealed()
     const payload = await getPayload({ config })
     const existing = (await payload.findGlobal({
       slug: 'site-settings',

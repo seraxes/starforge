@@ -175,6 +175,7 @@ export {
   MODULE_ALLOWLIST_FLAVOR,
   MODULE_IDS,
   ensureSiteSettingsDefaults,
+  ensureSiteSettingsSchemaHealed,
   getFeatureFlags,
   getSiteSettings,
   isAtomModuleEnabled,

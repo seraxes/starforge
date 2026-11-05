@@ -3,10 +3,19 @@
  * After Payload migrate, idempotently heal site_settings select columns
  * (Performance, Dashboard D0, feature_* — covers journal-stuck / push-era DBs),
  * then verify expected tables/columns.
+ *
+ * Boot-time heal (ensureSiteSettingsSchemaHealed) uses the same SQL so
+ * `npm run dev` alone recovers without this script — migrate remains the
+ * authoritative path for CI / fresh installs.
  */
 import { spawnSync } from 'node:child_process'
 import { Client } from 'pg'
 import 'dotenv/config'
+
+import {
+  healSiteSettingsSchema,
+  SITE_SETTINGS_HEAL_VERIFY_COLUMNS,
+} from '../src/core/settings/heal-site-settings-schema.ts'
 
 function run(label: string, args: string[]): void {
   console.log(`\n→ ${label}`)
@@ -54,86 +63,6 @@ async function tableExists(
   return Boolean(result.rows[0]?.exists)
 }
 
-/**
- * Belt-and-suspenders: Payload select-heal migration covers these too, but
- * push-era / partially-journaled local DBs can leave site_settings without
- * columns the Site Settings SELECT expects (Performance, Dashboard D0,
- * feature_*) even after `payload migrate` reports success. Always apply
- * IF NOT EXISTS for every scalar column + module_toggles child table.
- */
-async function healSiteSettingsSchema(client: Client): Promise<void> {
-  const hasTable = await tableExists(client, 'payload', 'site_settings')
-  if (!hasTable) {
-    console.log(
-      '  (skip site_settings heal — payload.site_settings missing; Payload baseline did not apply)',
-    )
-    return
-  }
-
-  console.log(
-    '\n→ Heal payload.site_settings select columns (Performance / Dashboard / feature; idempotent)',
-  )
-  await client.query(`
-    ALTER TABLE "payload"."site_settings"
-      ADD COLUMN IF NOT EXISTS "site_name" varchar DEFAULT 'Starforge';
-    ALTER TABLE "payload"."site_settings"
-      ADD COLUMN IF NOT EXISTS "primary_nav_menu_id" varchar DEFAULT 'main';
-    ALTER TABLE "payload"."site_settings"
-      ADD COLUMN IF NOT EXISTS "admin_autosave_debounce_ms" numeric DEFAULT 800;
-    ALTER TABLE "payload"."site_settings"
-      ADD COLUMN IF NOT EXISTS "form_rate_limit_max" numeric DEFAULT 8;
-    ALTER TABLE "payload"."site_settings"
-      ADD COLUMN IF NOT EXISTS "form_rate_limit_window_sec" numeric DEFAULT 60;
-    ALTER TABLE "payload"."site_settings"
-      ADD COLUMN IF NOT EXISTS "published_cache_enabled" boolean DEFAULT true;
-    ALTER TABLE "payload"."site_settings"
-      ADD COLUMN IF NOT EXISTS "published_cache_ttl_sec" numeric DEFAULT 0;
-    ALTER TABLE "payload"."site_settings"
-      ADD COLUMN IF NOT EXISTS "null_miss_ttl_sec" numeric DEFAULT 60;
-    ALTER TABLE "payload"."site_settings"
-      ADD COLUMN IF NOT EXISTS "dashboard_refresh_interval_sec" numeric DEFAULT 60;
-    ALTER TABLE "payload"."site_settings"
-      ADD COLUMN IF NOT EXISTS "dashboard_online_window_min" numeric DEFAULT 15;
-    ALTER TABLE "payload"."site_settings"
-      ADD COLUMN IF NOT EXISTS "feature_registration" boolean DEFAULT true;
-    ALTER TABLE "payload"."site_settings"
-      ADD COLUMN IF NOT EXISTS "feature_rich_editor" boolean DEFAULT true;
-    ALTER TABLE "payload"."site_settings"
-      ADD COLUMN IF NOT EXISTS "feature_posts" boolean DEFAULT false;
-    ALTER TABLE "payload"."site_settings"
-      ADD COLUMN IF NOT EXISTS "feature_modules" boolean DEFAULT false;
-    ALTER TABLE "payload"."site_settings"
-      ADD COLUMN IF NOT EXISTS "feature_draft_preview" boolean DEFAULT false;
-    ALTER TABLE "payload"."site_settings"
-      ADD COLUMN IF NOT EXISTS "updated_at" timestamp(3) with time zone;
-    ALTER TABLE "payload"."site_settings"
-      ADD COLUMN IF NOT EXISTS "created_at" timestamp(3) with time zone;
-
-    CREATE TABLE IF NOT EXISTS "payload"."site_settings_module_toggles" (
-      "_order" integer NOT NULL,
-      "_parent_id" integer NOT NULL,
-      "id" varchar PRIMARY KEY NOT NULL,
-      "module_id" varchar NOT NULL,
-      "enabled" boolean DEFAULT true
-    );
-
-    DO $$ BEGIN
-      ALTER TABLE "payload"."site_settings_module_toggles"
-        ADD CONSTRAINT "site_settings_module_toggles_parent_id_fk"
-        FOREIGN KEY ("_parent_id") REFERENCES "payload"."site_settings"("id")
-        ON DELETE cascade ON UPDATE no action;
-    EXCEPTION
-      WHEN undefined_table THEN NULL;
-      WHEN duplicate_object THEN NULL;
-    END $$;
-
-    CREATE INDEX IF NOT EXISTS "site_settings_module_toggles_order_idx"
-      ON "payload"."site_settings_module_toggles" USING btree ("_order");
-    CREATE INDEX IF NOT EXISTS "site_settings_module_toggles_parent_id_idx"
-      ON "payload"."site_settings_module_toggles" USING btree ("_parent_id");
-  `)
-}
-
 async function verifyAndHeal(): Promise<void> {
   const url =
     process.env.DATABASE_URL ||
@@ -177,20 +106,17 @@ async function verifyAndHeal(): Promise<void> {
       )
     }
 
-    await healSiteSettingsSchema(client)
+    console.log(
+      '\n→ Heal payload.site_settings select columns (Performance / Dashboard / feature; idempotent)',
+    )
+    const heal = await healSiteSettingsSchema(client)
+    if (heal.skipped) {
+      console.log(
+        '  (skip site_settings heal — payload.site_settings missing; Payload baseline did not apply)',
+      )
+    }
 
-    const siteSettingsCols = [
-      'form_rate_limit_max',
-      'form_rate_limit_window_sec',
-      'published_cache_enabled',
-      'published_cache_ttl_sec',
-      'null_miss_ttl_sec',
-      'dashboard_refresh_interval_sec',
-      'dashboard_online_window_min',
-      'feature_registration',
-      'feature_modules',
-    ] as const
-    for (const col of siteSettingsCols) {
+    for (const col of SITE_SETTINGS_HEAL_VERIFY_COLUMNS) {
       const ok = await columnExists(client, 'payload', 'site_settings', col)
       if (!ok) {
         throw new Error(
