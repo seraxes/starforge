@@ -96,6 +96,10 @@ export {
   parseAtomToggleId,
 } from './module-toggles'
 export type { ModuleCatalogItem, ModuleToggleEntry, ModuleToggleKind } from './module-toggles'
+import {
+  mergeMissingCatalogModuleDefaults,
+  repairCatalogModuleDefaultsOnce,
+} from './module-catalog'
 export {
   PRODUCT_MODULE_CATALOG,
   featureFlagsFromModuleToggles,
