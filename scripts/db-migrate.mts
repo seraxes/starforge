@@ -1,7 +1,8 @@
 /**
  * Apply Core (Drizzle / public.sf_*) then Payload (payload.*) migrations.
- * After Payload migrate, idempotently heal site_settings Performance columns
- * (covers journal-stuck / push-era DBs), then verify expected tables/columns.
+ * After Payload migrate, idempotently heal site_settings select columns
+ * (Performance, Dashboard D0, feature_* — covers journal-stuck / push-era DBs),
+ * then verify expected tables/columns.
  */
 import { spawnSync } from 'node:child_process'
 import { Client } from 'pg'
@@ -54,9 +55,11 @@ async function tableExists(
 }
 
 /**
- * Belt-and-suspenders: Payload migration heals these too, but push-era /
- * partially-journaled local DBs can leave site_settings without Performance
- * columns even after `payload migrate` reports success. Always apply IF NOT EXISTS.
+ * Belt-and-suspenders: Payload select-heal migration covers these too, but
+ * push-era / partially-journaled local DBs can leave site_settings without
+ * columns the Site Settings SELECT expects (Performance, Dashboard D0,
+ * feature_*) even after `payload migrate` reports success. Always apply
+ * IF NOT EXISTS for every scalar column + module_toggles child table.
  */
 async function healSiteSettingsSchema(client: Client): Promise<void> {
   const hasTable = await tableExists(client, 'payload', 'site_settings')
@@ -67,7 +70,9 @@ async function healSiteSettingsSchema(client: Client): Promise<void> {
     return
   }
 
-  console.log('\n→ Heal payload.site_settings Performance / feature columns (idempotent)')
+  console.log(
+    '\n→ Heal payload.site_settings select columns (Performance / Dashboard / feature; idempotent)',
+  )
   await client.query(`
     ALTER TABLE "payload"."site_settings"
       ADD COLUMN IF NOT EXISTS "site_name" varchar DEFAULT 'Starforge';
@@ -85,6 +90,10 @@ async function healSiteSettingsSchema(client: Client): Promise<void> {
       ADD COLUMN IF NOT EXISTS "published_cache_ttl_sec" numeric DEFAULT 0;
     ALTER TABLE "payload"."site_settings"
       ADD COLUMN IF NOT EXISTS "null_miss_ttl_sec" numeric DEFAULT 60;
+    ALTER TABLE "payload"."site_settings"
+      ADD COLUMN IF NOT EXISTS "dashboard_refresh_interval_sec" numeric DEFAULT 60;
+    ALTER TABLE "payload"."site_settings"
+      ADD COLUMN IF NOT EXISTS "dashboard_online_window_min" numeric DEFAULT 15;
     ALTER TABLE "payload"."site_settings"
       ADD COLUMN IF NOT EXISTS "feature_registration" boolean DEFAULT true;
     ALTER TABLE "payload"."site_settings"
@@ -176,6 +185,8 @@ async function verifyAndHeal(): Promise<void> {
       'published_cache_enabled',
       'published_cache_ttl_sec',
       'null_miss_ttl_sec',
+      'dashboard_refresh_interval_sec',
+      'dashboard_online_window_min',
       'feature_registration',
       'feature_modules',
     ] as const
@@ -200,7 +211,7 @@ async function verifyAndHeal(): Promise<void> {
     }
 
     console.log(
-      '\n✓ Verified public.sf_sessions + locked-docs tags_id/categories_id + site_settings Performance/feature columns + module_toggles',
+      '\n✓ Verified public.sf_sessions + locked-docs tags_id/categories_id + site_settings Performance/Dashboard/feature columns + module_toggles',
     )
   } finally {
     await client.end()

@@ -94,7 +94,7 @@ npm run dev
 | `db:core:migrate` | Apply Core migrations (CI / deploy) |
 | `db:core:push` | **Local scratch only** — never prod |
 | `payload:migrate` / `payload:migrate:create` | Payload `payload` schema |
-| `db:migrate` | Core Drizzle (`sf_*`) **then** Payload (`payload.*`), then verifies `sf_sessions` + `payload_locked_documents_rels.tags_id` + `categories_id` + `site_settings` Performance columns |
+| `db:migrate` | Core Drizzle (`sf_*`) **then** Payload (`payload.*`), then verifies `sf_sessions` + `payload_locked_documents_rels.tags_id` + `categories_id` + `site_settings` Performance / Dashboard / feature columns |
 
 **Always use `npm run db:migrate`** after pull / volume reset — it applies **both** Core and Payload. Running only `payload:migrate` leaves Better Auth tables (`sf_sessions`, …) missing.
 
@@ -130,7 +130,7 @@ npm run seed
 npm run dev
 ```
 
-`db:migrate` must print Core then Payload steps and end with a verification line for `sf_sessions` + `tags_id` + `categories_id` + `site_settings` Performance columns. If any are missing, fix migrate before `seed` / `dev`.
+`db:migrate` must print Core then Payload steps and end with a verification line for `sf_sessions` + `tags_id` + `categories_id` + `site_settings` Performance / Dashboard / feature columns. If any are missing, fix migrate before `seed` / `dev`.
 
 Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so cookies and CSRF stay consistent):
 
@@ -571,17 +571,19 @@ npm run dev
 11. **`Failed query` / `relation "payload.pages_rels" does not exist` (home `/` or published pages)** — SF-132 added `pages.tags`; Payload depth queries join `pages_rels`. Run `npm run db:migrate` (taxonomy + media-tags migrations). Push-era DB: volume reset, then migrate + seed.
 12. **`Failed query` / missing `tags_id` on `payload.payload_locked_documents_rels`** — Tags taxonomy requires that column for document locks. `npm run db:migrate` applies it (idempotent). If migrate previously failed mid-chain, pull latest, run `db:migrate` again, or volume-reset then migrate + seed.
 13. **`Failed query` / missing `categories_id` on `payload.payload_locked_documents_rels`** — Nested Media Categories registers the `categories` collection, so lock queries select `categories_id`. `npm run db:migrate` applies phase2 + an idempotent heal migration. Prefer migrate over `STARFORGE_PAYLOAD_PUSH=1`; if still missing after pull, volume-reset then migrate + seed (Windows sequences above).
-14. **`Failed query` selecting `form_rate_limit_*` / `published_cache_*` / `null_miss_ttl_sec` / `feature_*` on `payload.site_settings` (CoreAdminLayout / `updateSiteSettings`)** — Site Settings → Performance fields landed without a migration; baseline creates the table without them. `npm run db:migrate` applies a Payload heal **and** a post-migrate SQL `ADD COLUMN IF NOT EXISTS` (covers journal-stuck DBs). Existing DB (no volume reset) — from repo root, Docker Postgres up:
+14. **`Failed query` selecting `form_rate_limit_*` / `published_cache_*` / `null_miss_ttl_sec` / `dashboard_*` / `feature_*` on `payload.site_settings` (CoreAdminLayout / `updateSiteSettings` / `ensureSiteSettingsDefaults`)** — Site Settings → Performance and Dashboard D0 knobs (`dashboard_refresh_interval_sec`, `dashboard_online_window_min`) must exist for Payload’s SELECT; older / journal-stuck DBs may be missing them. `npm run db:migrate` applies a Payload select-heal **and** a post-migrate SQL `ADD COLUMN IF NOT EXISTS` for every column the select expects. Existing DB (no volume reset) — from repo root, Docker Postgres up:
     - **CMD:**
       ```bat
+      cd /d C:\Users\Sera\Documents\GitHub\starforge
       git pull
       npm run db:migrate
       npm run dev
       ```
     - **PowerShell:**
       ```powershell
+      cd C:\Users\Sera\Documents\GitHub\starforge
       git pull
       npm run db:migrate
       npm run dev
       ```
-    Migrate must print the site_settings heal step and end with a verification line that includes Performance/feature columns. If it still fails, volume-reset then migrate + seed (Windows sequences above).
+    Migrate must print the site_settings heal step and end with a verification line that includes Performance/Dashboard/feature columns. If it still fails, volume-reset then migrate + seed (Windows sequences above).
