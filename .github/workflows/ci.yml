@@ -145,10 +145,13 @@ jobs:
           test "$code_sitemap" = "200"
           code_robots=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/robots.txt)
           test "$code_robots" = "200"
-          # /admin must bounce unauthenticated users to /login
+          # Core /admin and Payload /cms/admin must bounce unauthenticated users to /login
           loc=$(curl -s -o /dev/null -w '%{redirect_url}' http://127.0.0.1:3000/admin)
-          echo "admin redirect -> $loc"
+          echo "core admin redirect -> $loc"
           echo "$loc" | grep -q '/login'
+          loc_cms=$(curl -s -o /dev/null -w '%{redirect_url}' http://127.0.0.1:3000/cms/admin)
+          echo "cms admin redirect -> $loc_cms"
+          echo "$loc_cms" | grep -q '/login'
           headers=$(curl -sI http://127.0.0.1:3000/)
           echo "$headers" | grep -qi 'content-security-policy'
           echo "$headers" | grep -qi 'x-frame-options'
