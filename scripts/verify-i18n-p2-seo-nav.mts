@@ -36,8 +36,19 @@ console.log('sitemap hreflang from Localization: ok')
 
 const siteNav = read('src/components/SiteNav.tsx')
 assert.match(siteNav, /navHref|isLocaleAwareNavItemActive/)
-assert.match(siteNav, /from '@\/core\/i18n'/)
-console.log('SiteNav locale-aware: ok')
+assert.match(siteNav, /from '@\/core\/i18n\/(navigation|nav)'/)
+assert.equal(
+  /from '@\/core\/i18n'/.test(siteNav),
+  false,
+  'SiteNav must not import the i18n barrel (server-only enabled leak)',
+)
+const i18nBarrel = read('src/core/i18n/index.ts')
+assert.equal(
+  /from '\.\/enabled'/.test(i18nBarrel),
+  false,
+  'i18n barrel must not re-export server-only ./enabled',
+)
+console.log('SiteNav locale-aware (client-safe): ok')
 
 const switcher = read('src/components/LocaleSwitcher.tsx')
 assert.match(switcher, /withLocalePrefix/)

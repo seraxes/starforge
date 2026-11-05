@@ -3,8 +3,8 @@
 import React from 'react'
 import { useLocale } from 'next-intl'
 
-import { Link, isLocaleAwareNavItemActive, usePathname } from '@/core/i18n'
-import { coerceAppLocale, navHref } from '@/core/i18n/nav'
+import { Link, usePathname } from '@/core/i18n/navigation'
+import { coerceAppLocale, isLocaleAwareNavItemActive, navHref } from '@/core/i18n/nav'
 import type { NavItem } from '@/core/settings/defaults'
 import { isExternalHref, normalizeHref } from '@/core/settings/nav'
 
@@ -24,6 +24,7 @@ function linkClassName(item: NavItem, active: boolean): string | undefined {
 /**
  * Primary header links with active state for the current path.
  * Nav manager stores bare paths; next-intl `Link` keeps the current locale prefix (P2).
+ * Imports navigation/nav directly — not the i18n barrel (avoids server-only `enabled`).
  */
 export function SiteNav({ items, ariaLabel = 'Primary' }: Props) {
   const pathname = usePathname() || '/'

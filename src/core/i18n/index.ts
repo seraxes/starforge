@@ -50,9 +50,9 @@ export {
   navHref,
 } from './nav'
 
-export {
-  getEnabledPublicLocales,
-  getEnabledPublicLocaleEntries,
-  getPublicDefaultLocale,
-  getPublicLocaleCatalog,
-} from './enabled'
+/**
+ * Server-only enabled-locale loaders live in `./enabled` — do **not** re-export
+ * them from this barrel. Client components (SiteNav, LocaleSwitcher) import
+ * from here; pulling `enabled.ts` leaks Payload/`next/headers` into the client
+ * graph (flavor/minimal build). Import `@/core/i18n/enabled` on the server.
+ */

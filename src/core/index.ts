@@ -318,11 +318,13 @@ export {
   coerceAppLocale,
   isLocaleAwareNavItemActive,
   navHref,
+} from './i18n'
+export {
   getEnabledPublicLocales,
   getEnabledPublicLocaleEntries,
   getPublicDefaultLocale,
   getPublicLocaleCatalog,
-} from './i18n'
+} from './i18n/enabled'
 export type { AppLocale, BootstrapLocale, LocaleCatalogEntry, PathWithoutLocale } from './i18n'
 export {
   ENV_EDITOR_FIELDS,

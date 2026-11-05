@@ -165,7 +165,7 @@ export async function removeLocaleFromCatalogAction(
     return { error: 'Cannot remove the last locale from the catalog.' }
   }
 
-  let nextEnabled = current.localesEnabled.filter((c) => c !== code)
+  const nextEnabled = current.localesEnabled.filter((c) => c !== code)
   if (nextEnabled.length === 0) {
     return { error: 'Cannot remove the last enabled locale. Enable another locale first.' }
   }

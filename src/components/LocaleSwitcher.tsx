@@ -4,7 +4,7 @@ import React from 'react'
 import Link from 'next/link'
 import { useLocale, useTranslations } from 'next-intl'
 
-import { usePathname } from '@/core/i18n'
+import { usePathname } from '@/core/i18n/navigation'
 import { labelForLocale, type LocaleCatalogEntry } from '@/core/i18n/locales'
 import { withLocalePrefix } from '@/core/i18n/path'
 
@@ -32,6 +32,7 @@ function toEntries(
  * Hidden when fewer than two enabled locales.
  * Uses plain prefixed hrefs so admin-added codes work outside next-intl's
  * static bootstrap routing list.
+ * Client-safe imports only (no i18n barrel / server `enabled`).
  */
 export function LocaleSwitcher({
   locales,

@@ -2,7 +2,7 @@ import React from 'react'
 
 import { LocaleSwitcher } from '@/components/LocaleSwitcher'
 import { SiteNav } from '@/components/SiteNav'
-import { Link } from '@/core/i18n'
+import { Link } from '@/core/i18n/navigation'
 import type { LocaleCatalogEntry } from '@/core/i18n/locales'
 import type { NavItem } from '@/core/settings/defaults'
 

@@ -1,6 +1,6 @@
 import React from 'react'
 
-import { Link } from '@/core/i18n'
+import { Link } from '@/core/i18n/navigation'
 import { resolveMediaBind } from '@/core/media/resolve'
 import { isExternalHref } from '@/core/settings/nav'
 
