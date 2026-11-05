@@ -2475,11 +2475,18 @@ button:disabled {
 
 .sf-form-builder-row {
   margin-bottom: 0;
+  /* Keep drop target visible while dragging (do not collapse when source opacity drops). */
+  min-height: 4.5rem;
 }
 
 .sf-form-builder-row.is-column-target {
   border-color: color-mix(in srgb, var(--sf-primary-strong) 55%, var(--sf-line));
   background: color-mix(in srgb, var(--sf-primary) 14%, transparent);
+}
+
+.sf-form-builder-row.is-drop-target {
+  border-color: color-mix(in srgb, var(--sf-primary-strong) 55%, var(--sf-line));
+  background: color-mix(in srgb, var(--sf-primary) 18%, transparent);
 }
 
 .sf-form-row-slots {
@@ -2490,6 +2497,12 @@ button:disabled {
   gap: 0;
   width: 100%;
   min-height: 3.5rem;
+}
+
+.sf-form-drag-overlay {
+  pointer-events: none;
+  opacity: 0.95;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--sf-ink, #0b1c2c) 28%, transparent);
 }
 
 .sf-form-row-meta {
