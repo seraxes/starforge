@@ -387,18 +387,12 @@ body:has(.admin-shell) > main {
   box-shadow: none;
 }
 
-/* STARFORGE wordmark — ~50% larger + brand orange accent */
+/* STARFORGE wordmark — ~50% larger (color forced below after content-link tint) */
 .admin-shell .admin-sidebar-brand .brand {
   font-size: 1.38rem;
 }
 
-.admin-shell .admin-sidebar-brand .brand,
-.admin-shell .admin-sidebar-brand .brand a.admin-sidebar-logo {
-  color: var(--sf-primary); /* #f2a66a */
-}
-
 .admin-shell .admin-sidebar-kicker {
-  color: #fff;
   font-size: 1.05rem;
 }
 
@@ -432,12 +426,6 @@ body:has(.admin-shell) > main {
 .admin-shell .admin-sidebar-menu-toggle:hover {
   background: var(--sf-admin-nav-active);
   border-color: var(--sf-admin-blue-border);
-}
-
-.admin-shell .admin-sidebar-link,
-.admin-shell .admin-sidebar-group-head,
-.admin-shell .admin-sidebar-sublink {
-  color: #fff;
 }
 
 .admin-shell .admin-sidebar-sub {
@@ -2065,13 +2053,59 @@ body:has(.admin-shell) > main {
   color: #8fa0b5;
 }
 
-/* Text links only — exclude Gantry action buttons (Edit items, Forms Edit, …). */
-.admin-shell a:not(.admin-nav > a):not(.admin-nav-dropdown-trigger):not(.button-link):not(.gantry-toolbar-btn):not(.links a) {
+/*
+ * Content links only — exclude Gantry action buttons AND left-rail sidebar
+ * anchors. :not(.class) adds class specificity, so this rule previously beat
+ * `.admin-sidebar-*` color declarations (sizes still applied; colors did not).
+ */
+.admin-shell a:not(.admin-nav > a):not(.admin-nav-dropdown-trigger):not(.button-link):not(.gantry-toolbar-btn):not(.links a):not(.admin-sidebar-logo):not(.admin-sidebar-link):not(.admin-sidebar-sublink):not(.admin-sidebar-account) {
   color: var(--sf-secondary-strong);
 }
 
-.admin-shell a:not(.admin-nav > a):not(.admin-nav-dropdown-trigger):not(.button-link):not(.gantry-toolbar-btn):hover {
+.admin-shell a:not(.admin-nav > a):not(.admin-nav-dropdown-trigger):not(.button-link):not(.gantry-toolbar-btn):not(.admin-sidebar-logo):not(.admin-sidebar-link):not(.admin-sidebar-sublink):not(.admin-sidebar-account):hover {
   color: var(--sf-primary-strong);
+}
+
+/*
+ * Force left-rail chrome colors AFTER the content-link tint above.
+ * Literal hex + !important so token remaps / future :not() stacks cannot mute
+ * STARFORGE orange or white Admin/nav again.
+ */
+.admin-shell .admin-sidebar .admin-sidebar-brand .brand,
+.admin-shell .admin-sidebar .admin-sidebar-brand .brand a.admin-sidebar-logo,
+.admin-shell .admin-sidebar a.admin-sidebar-logo {
+  color: #f2a66a !important;
+  -webkit-text-fill-color: #f2a66a;
+}
+
+.admin-shell .admin-sidebar .admin-sidebar-kicker,
+.admin-shell .admin-sidebar .admin-sidebar-title,
+.admin-shell .admin-sidebar .admin-sidebar-link,
+.admin-shell .admin-sidebar .admin-sidebar-group-head,
+.admin-shell .admin-sidebar .admin-sidebar-group-title,
+.admin-shell .admin-sidebar .admin-sidebar-sublink,
+.admin-shell .admin-sidebar .admin-sidebar-account-name,
+.admin-shell .admin-sidebar .admin-sidebar-account {
+  color: #fff !important;
+  -webkit-text-fill-color: #fff;
+}
+
+.admin-shell .admin-sidebar .admin-sidebar-link.is-current,
+.admin-shell .admin-sidebar .admin-sidebar-sublink.is-current,
+.admin-shell .admin-sidebar .admin-sidebar-item.is-active > .admin-sidebar-link,
+.admin-shell .admin-sidebar .admin-sidebar-item.is-active > .admin-sidebar-group-head {
+  background: transparent !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff;
+  box-shadow: none !important;
+}
+
+.admin-shell .admin-sidebar .admin-sidebar-link:hover,
+.admin-shell .admin-sidebar .admin-sidebar-group-head:hover,
+.admin-shell .admin-sidebar .admin-sidebar-sublink:hover {
+  background: var(--sf-admin-blue-mid, #3498db) !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff;
 }
 
 .admin-shell .form-ok,

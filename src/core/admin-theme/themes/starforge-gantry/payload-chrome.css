@@ -213,13 +213,15 @@ html[data-theme='dark'] .btn.btn--size-small {
 .nav .admin-sidebar-brand .brand,
 .nav .admin-sidebar-brand .brand a,
 .nav .admin-sidebar-brand .brand a.admin-sidebar-logo {
-  color: var(--sf-primary, #f2a66a);
+  color: #f2a66a !important;
+  -webkit-text-fill-color: #f2a66a;
   text-decoration: none;
 }
 
 .nav .admin-sidebar-kicker {
   margin: 0.2em 0 0;
-  color: #fff;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff;
   font-size: 1.05em;
   font-weight: 650;
   letter-spacing: 0.14em;
@@ -291,7 +293,8 @@ html[data-theme='dark'] .btn.btn--size-small {
   font-size: 0.78em;
   font-weight: 650;
   line-height: 1.25;
-  color: #fff;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff;
 }
 
 .nav .admin-sidebar-account:hover .admin-sidebar-account-name,
@@ -320,7 +323,8 @@ html[data-theme='dark'] .btn.btn--size-small {
   text-align: left;
   border: 0;
   background: transparent;
-  color: #fff;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff;
   font-family: inherit;
   font-size: 1em;
   font-weight: 650;
@@ -379,15 +383,17 @@ html[data-theme='dark'] .btn.btn--size-small {
   border-radius: 3px;
   font-weight: 600;
   font-size: 0.9em;
-  color: #fff;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff;
 }
 
 /* Hover blue only — no stuck current/active fill */
 .nav .admin-sidebar-link:hover,
 .nav .admin-sidebar-group-head:hover,
 .nav .admin-sidebar-sublink:hover {
-  background: var(--sf-admin-blue-mid);
-  color: #fff;
+  background: var(--sf-admin-blue-mid) !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff;
   box-shadow: none;
 }
 
@@ -395,8 +401,9 @@ html[data-theme='dark'] .btn.btn--size-small {
 .nav .admin-sidebar-sublink.is-current,
 .nav .admin-sidebar-item.is-active > .admin-sidebar-link,
 .nav .admin-sidebar-item.is-active > .admin-sidebar-group-head {
-  background: transparent;
-  color: #fff;
+  background: transparent !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff;
   box-shadow: none;
 }
 

@@ -829,7 +829,8 @@ button:disabled {
 }
 
 .admin-sidebar-brand .brand a.admin-sidebar-logo {
-  color: var(--sf-primary);
+  /* Literal brand orange — theme sheet re-forces after content-link tint */
+  color: #f2a66a;
   text-decoration: none;
 }
 
