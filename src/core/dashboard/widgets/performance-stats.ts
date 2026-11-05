@@ -2,6 +2,13 @@ import 'server-only'
 
 import type { DashboardStatsResult } from '@/core/dashboard'
 
+import {
+  formatContentCacheGlance,
+  formatDashboardRefreshGlance,
+  formatFormRateMaxGlance,
+  formatFormRateWindowGlance,
+} from './performance-glance'
+
 /** Soft Performance glance rows (Site Settings → Performance knobs). */
 export const PERFORMANCE_DASHBOARD_ROWS = [
   { key: 'dashboardRefresh', label: 'Dashboard refresh' },
@@ -16,16 +23,44 @@ export type PerformanceGlanceStats = {
   byKey: Record<PerformanceGlanceKey, string | null>
 }
 
+export {
+  formatContentCacheGlance,
+  formatDashboardRefreshGlance,
+  formatFormRateMaxGlance,
+  formatFormRateWindowGlance,
+} from './performance-glance'
+
 /**
- * Soft stub — later: surface non-secret Performance settings (refresh interval,
- * form rate-limit window/max). Secrets/infra stay in Environment.
+ * Real Performance glance for `performance.glance`.
+ * Mirrors non-secret Site Settings → Performance knobs + env cache backend label.
+ * Soft-fails if settings cannot load.
  */
 export async function loadPerformanceGlanceStats(): Promise<
   DashboardStatsResult<PerformanceGlanceStats>
 > {
-  return {
-    ok: false,
-    error: 'Performance glance is not wired yet',
-    status: 'unavailable',
+  try {
+    const { getSiteSettings } = await import('@/core/settings')
+    const settings = await getSiteSettings()
+
+    return {
+      ok: true,
+      data: {
+        byKey: {
+          dashboardRefresh: formatDashboardRefreshGlance(settings.dashboardRefreshIntervalSec),
+          formRateWindow: formatFormRateWindowGlance(settings.formRateLimitWindowSec),
+          formRateMax: formatFormRateMaxGlance(settings.formRateLimitMax),
+          contentCache: formatContentCacheGlance(settings.publishedCacheEnabled),
+        },
+      },
+    }
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'Performance glance failed'
+    console.error('[dashboard] performance.glance stats failed', error)
+    return {
+      ok: false,
+      error: message,
+      status: 'error',
+    }
   }
 }
