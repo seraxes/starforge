@@ -11,8 +11,7 @@ function dash(n: number | null | undefined): string {
 }
 
 /**
- * product:media Dashboard card — kinds + new windows.
- * Soft placeholder until D2 wires Payload aggregates.
+ * product:media Dashboard card — kinds + new windows (D2 Payload aggregates).
  */
 export async function MediaCountsWidget() {
   const result = await loadMediaCountsStats()
@@ -20,8 +19,8 @@ export async function MediaCountsWidget() {
   if (!result.ok) {
     return (
       <DashboardSoftPlaceholder
-        status="coming-soon"
-        hint="Media counts by kind and recent uploads will appear here."
+        status={result.status === 'unavailable' ? 'unavailable' : 'soft-fail'}
+        hint="Media counts by kind and recent uploads will appear here when the library is reachable."
         rows={[
           ...MEDIA_DASHBOARD_KINDS.map((kind) => ({ label: kind.label, value: '—' })),
           { label: 'New (24h)', value: '—' },
