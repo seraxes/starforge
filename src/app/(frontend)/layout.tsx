@@ -4,6 +4,8 @@ import './styles.css'
 /* Active admin theme (port): import the theme sheet directly — nested CSS @import
  * via active-core.css was unreliable in Next/Turbopack and left Core admin unstyled. */
 import '@/core/admin-theme/themes/starforge-gantry/core-chrome.css'
+/* Rich Editor portals (Callout / Link) — shared with Payload CMS layout. */
+import '@/core/rich-editor/rich-editor-chrome.css'
 
 export const metadata = {
   description:

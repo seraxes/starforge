@@ -145,16 +145,6 @@ export const hostModuleManifests: StarforgeModuleManifest[] = [
     navViews: [{ key: 'register', label: 'Register', href: '/register' }],
   }),
   defineStarforgeModule({
-    id: 'product:rich-editor',
-    kind: 'product',
-    label: 'Rich editor',
-    description:
-      'Lexical rich editing flag (Pages stay Lexical for now; off reserved for a simpler mode).',
-    version: '0.1.0',
-    defaultEnabled: true,
-    featureFlag: 'richEditor',
-  }),
-  defineStarforgeModule({
     id: 'product:posts',
     kind: 'product',
     label: 'Posts',

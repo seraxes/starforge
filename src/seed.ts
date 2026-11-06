@@ -14,7 +14,6 @@
 import 'dotenv/config'
 
 import { getPayload } from 'payload'
-import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical'
 
 import config from '@payload-config'
 import { ensureDefaultUserGroupsSeeded } from './core/acl'
@@ -45,85 +44,20 @@ const DEMO_APP_NAME = 'Demo Member'
 const BOOTSTRAP_ADMIN_PASSWORD = 'starforge-admin'
 const BOOTSTRAP_ADMIN_NAME = 'Demo Admin'
 
-type TextChild = {
-  type: string
-  version: number
-  [key: string]: unknown
+function htmlBody(parts: string[]): string {
+  return parts.join('\n')
 }
 
-function textNode(text: string, format = 0): TextChild {
-  return {
-    type: 'text',
-    detail: 0,
-    format,
-    mode: 'normal',
-    style: '',
-    text,
-    version: 1,
-  }
+function h2(text: string): string {
+  return `<h2>${text}</h2>`
 }
 
-function paragraph(...children: TextChild[]): TextChild {
-  return {
-    type: 'paragraph',
-    format: '',
-    indent: 0,
-    version: 1,
-    direction: 'ltr',
-    textFormat: 0,
-    children,
-  }
+function p(text: string): string {
+  return `<p>${text}</p>`
 }
 
-function heading(tag: 'h2' | 'h3', text: string): TextChild {
-  return {
-    type: 'heading',
-    tag,
-    format: '',
-    indent: 0,
-    version: 1,
-    direction: 'ltr',
-    children: [textNode(text)],
-  }
-}
-
-function listItem(text: string): TextChild {
-  return {
-    type: 'listitem',
-    value: 1,
-    format: '',
-    indent: 0,
-    version: 1,
-    direction: 'ltr',
-    children: [textNode(text)],
-  }
-}
-
-function bulletList(...items: string[]): TextChild {
-  return {
-    type: 'list',
-    listType: 'bullet',
-    start: 1,
-    tag: 'ul',
-    format: '',
-    indent: 0,
-    version: 1,
-    direction: 'ltr',
-    children: items.map((item) => listItem(item)),
-  }
-}
-
-function lexicalBody(...blocks: TextChild[]): SerializedEditorState {
-  return {
-    root: {
-      type: 'root',
-      format: '',
-      indent: 0,
-      version: 1,
-      direction: 'ltr',
-      children: blocks,
-    },
-  } as SerializedEditorState
+function ul(items: string[]): string {
+  return `<ul>${items.map((item) => `<li>${item}</li>`).join('')}</ul>`
 }
 
 const SAMPLE_PAGES = [
@@ -135,22 +69,20 @@ const SAMPLE_PAGES = [
       description:
         'Reusable product core with Payload as the content module. Edit this home page in CMS.',
     },
-    body: lexicalBody(
-      heading('h2', 'Core + content'),
-      paragraph(
-        textNode(
-          'Product APIs and auth live in Starforge core. Payload CMS handles editorial pages and media. This home page is a published Payload document (slug: home) — edit it under /cms/admin.',
-        ),
+    body: htmlBody([
+      h2('Core + content'),
+      p(
+        'Product APIs and auth live in Starforge core. Payload CMS handles editorial pages and media. This home page is a published Payload document (slug: home) — edit it under /cms/admin.',
       ),
-      bulletList(
+      ul([
         'Starforge admin: /admin (users, Site Chrome, layouts, modules)',
         'Content CMS: /cms/admin — same Better Auth login when cms_access is on',
         'Sign-in options (home panel + /login): password, magic link, email code, stay signed in',
         'Recovery: /forgot-password · /forgot-username · 2FA at /account/security after sign-in',
         'Other sample pages: /about, /getting-started, /welcome',
         'Seed credentials: admin@starforge.local / starforge-admin',
-      ),
-    ),
+      ]),
+    ]),
   },
   {
     title: 'About',
@@ -159,19 +91,17 @@ const SAMPLE_PAGES = [
       title: 'About Starforge',
       description: 'What Starforge is: a reusable product core with Payload as the content module.',
     },
-    body: lexicalBody(
-      heading('h2', 'A reusable core, not a CMS lock-in'),
-      paragraph(
-        textNode(
-          'Starforge owns product auth, app users, and APIs. Payload CMS handles editorial pages and media only.',
-        ),
+    body: htmlBody([
+      h2('A reusable core, not a CMS lock-in'),
+      p(
+        'Starforge owns product auth, app users, and APIs. Payload CMS handles editorial pages and media only.',
       ),
-      bulletList(
+      ul([
         'Core app accounts: /register and /login',
         'CMS: Payload /cms/admin via the same Better Auth login (cms_access)',
         'Published pages render at /{slug}; home is slug home at /',
-      ),
-    ),
+      ]),
+    ]),
   },
   {
     title: 'Getting started',
@@ -180,22 +110,20 @@ const SAMPLE_PAGES = [
       title: 'Getting started with Starforge',
       description: 'Local Compose, seed, edit in /cms/admin, and open a published page by slug.',
     },
-    body: lexicalBody(
-      heading('h2', 'Local loop'),
-      paragraph(textNode('With Postgres running and npm run dev:')),
-      bulletList(
+    body: htmlBody([
+      h2('Local loop'),
+      p('With Postgres running and npm run dev:'),
+      ul([
         'npm run seed — sample published pages (+ optional demo app user)',
         'Open /about and /getting-started on the public site',
         'Edit pages in /cms/admin after one core login (no second password)',
         'Register an app account at /register if you did not use the demo user',
+      ]),
+      h2('Two kinds of users'),
+      p(
+        'Core /login owns every session. Payload /cms/admin opens for users with cms_access (admins by default). Ordinary members are never synced into Payload.',
       ),
-      heading('h3', 'Two kinds of users'),
-      paragraph(
-        textNode(
-          'Core /login owns every session. Payload /cms/admin opens for users with cms_access (admins by default). Ordinary members are never synced into Payload.',
-        ),
-      ),
-    ),
+    ]),
   },
   {
     title: 'Welcome',
@@ -205,26 +133,22 @@ const SAMPLE_PAGES = [
       description:
         'Welcome sample with auth recovery, passwordless, and 2FA entry points after seed.',
     },
-    body: lexicalBody(
-      heading('h2', 'Welcome — sign-in options'),
-      paragraph(
-        textNode(
-          'Home keeps CMS branding in the main column and puts a login panel beside it (not in the hero). The same panel powers /login.',
-        ),
+    body: htmlBody([
+      h2('Welcome — sign-in options'),
+      p(
+        'Home keeps CMS branding in the main column and puts a login panel beside it (not in the hero). The same panel powers /login.',
       ),
-      bulletList(
+      ul([
         '/login — password, magic link, or email code (stay signed in on password / OTP)',
         '/forgot-password — reset link via Mailer',
         '/forgot-username — sign-in email reminder',
         '/account/security — authenticator 2FA + recovery codes (after you sign in)',
         'Layout particle “Login / Welcome” — place in Main for other outlines',
+      ]),
+      p(
+        'This page was created by npm run seed. Open the SEO tab in Payload admin to change meta title, description, and OG image.',
       ),
-      paragraph(
-        textNode(
-          'This page was created by npm run seed. Open the SEO tab in Payload admin to change meta title, description, and OG image.',
-        ),
-      ),
-    ),
+    ]),
   },
 ] as const
 

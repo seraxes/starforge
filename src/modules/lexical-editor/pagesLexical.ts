@@ -8,8 +8,8 @@ import {
 } from '@payloadcms/richtext-lexical'
 
 /**
- * Lexical editor for Pages body — headings, lists, links, Media uploads,
- * plus a fixed toolbar so editors get a modern writing surface in /admin.
+ * Optional Lexical editor config (product:lexical-editor).
+ * TipTap HTML is the default Pages body; keep this for legacy / opt-in Lexical fields.
  */
 export const pagesLexicalEditor = lexicalEditor({
   features: ({ defaultFeatures }) => {

@@ -1,0 +1,60 @@
+import React from 'react'
+
+import { resolveFormCaptcha } from '@/core/security/captcha'
+import { formHasCaptchaField } from '@/core/forms/definition'
+import { FormWidget } from '@/modules/form/FormWidget'
+
+import { loadEventRegistrationFields } from '../registration-form'
+import { countRegisteredGuests } from '../registrations'
+import type { EventRecord } from '../types'
+
+type Props = {
+  event: Pick<EventRecord, 'id' | 'title' | 'capacity' | 'status'>
+}
+
+/**
+ * Public event signup — shared Forms engine + event-registration preset.
+ */
+export async function EventRegistrationForm({ event }: Props) {
+  if (event.status !== 'published') return null
+
+  const { definitionId, document } = await loadEventRegistrationFields(event.id)
+  const occupied = await countRegisteredGuests(event.id)
+  const remaining =
+    typeof event.capacity === 'number' ? Math.max(0, event.capacity - occupied) : null
+  const hasCaptchaField = formHasCaptchaField(document.fields)
+  const captcha = await resolveFormCaptcha({
+    useSiteCaptchaDefault: document.useSiteCaptchaDefault !== false,
+    hasCaptchaField,
+  })
+
+  return (
+    <section className="sf-event-registration" aria-label="Event registration">
+      <h2 className="sf-event-registration-heading">Register</h2>
+      {remaining != null ? (
+        <p className="sf-event-registration-meta settings-hint">
+          {remaining === 0
+            ? 'Event is full — you can join the waitlist.'
+            : `${remaining} seat${remaining === 1 ? '' : 's'} left.`}
+        </p>
+      ) : null}
+      <FormWidget
+        formKey={`event-reg-${event.id}`}
+        slotId={`event-reg-${event.id}`}
+        definitionId={definitionId}
+        heading=""
+        fields={document.fields}
+        sections={document.sections}
+        successMessage={document.successMessage || 'You are registered.'}
+        submitLabel={document.submitLabel || 'Register'}
+        useSiteCaptchaDefault={document.useSiteCaptchaDefault !== false}
+        captcha={{
+          required: captcha.required,
+          provider: captcha.provider,
+          siteKey: captcha.siteKey,
+          misconfiguredReason: captcha.misconfiguredReason,
+        }}
+      />
+    </section>
+  )
+}

@@ -20,7 +20,7 @@ export const MODULE_ALLOWLIST_FLAVOR = "core" as const
 export const FIXED_REQUIRED_MODULE_IDS = ["platform:dashboard","platform:better-auth","page-content","product:media"] as const
 
 /** Allowlisted module ids for this install/build (platform + product + particles + atoms). */
-export const ALLOWLISTED_MODULE_IDS = ["atom:analytics","atom:custom-css-js","copyright","custom","form","locale-switcher","login","logo","menu","notice-bar","page-content","platform:better-auth","platform:dashboard","platform:payload-cms","product:consent","product:draft-preview","product:email-manager","product:events","product:font-awesome","product:forms","product:layout-manager","product:marketplace","product:media","product:page-settings","product:posts","product:primary-nav","product:redirects","product:registration","product:rich-editor","product:search","search","site-header","social","spacer"] as const
+export const ALLOWLISTED_MODULE_IDS = ["atom:analytics","atom:custom-css-js","copyright","custom","form","locale-switcher","login","logo","menu","notice-bar","page-content","platform:better-auth","platform:dashboard","platform:payload-cms","product:consent","product:draft-preview","product:email-manager","product:events","product:font-awesome","product:forms","product:layout-manager","product:lexical-editor","product:marketplace","product:media","product:page-settings","product:posts","product:primary-nav","product:redirects","product:registration","product:rich-editor","product:search","search","site-header","social","spacer"] as const
 
 export type AllowlistedModuleId = (typeof ALLOWLISTED_MODULE_IDS)[number]
 
@@ -37,7 +37,7 @@ export function isModuleAllowlisted(id: string): boolean {
 export const ALLOWLISTED_BUILTIN_PARTICLE_IDS: readonly string[] = ["page-content","site-header","logo","menu","locale-switcher","copyright","spacer","social","custom","login"]
 
 /** Platform + product catalog ids installed in this build. */
-export const ALLOWLISTED_PRODUCT_PLATFORM_IDS: readonly string[] = ["platform:dashboard","platform:better-auth","platform:payload-cms","product:layout-manager","product:page-settings","product:primary-nav","product:font-awesome","product:registration","product:rich-editor","product:posts","product:draft-preview","product:forms","product:email-manager","product:events","product:marketplace","product:redirects","product:consent","product:search","product:media"]
+export const ALLOWLISTED_PRODUCT_PLATFORM_IDS: readonly string[] = ["platform:dashboard","platform:better-auth","platform:payload-cms","product:layout-manager","product:page-settings","product:primary-nav","product:font-awesome","product:registration","product:posts","product:draft-preview","product:forms","product:rich-editor","product:lexical-editor","product:email-manager","product:events","product:marketplace","product:redirects","product:consent","product:search","product:media"]
 
 /**
  * Derived Site Settings → Modules rows for platform + product packs.
@@ -52,12 +52,13 @@ export const ALLOWLISTED_PRODUCT_PLATFORM_META: ModuleCatalogItem[] = [
   { id: "product:primary-nav", kind: "product", label: "Primary nav", description: "Navigation manager + public header menu. Off hides Core admin → Navigation and public header links. Settings picks which menu set is the site default.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"nav-manager","label":"Navigation manager","href":"/admin/nav"}] },
   { id: "product:font-awesome", kind: "product", label: "Font Awesome", description: "Optional Font Awesome CDN from Layouts → Page settings / Font Awesome. Off skips FA assets on the public site.", required: false, defaultEnabled: true, installed: true as const },
   { id: "product:registration", kind: "product", label: "Registration", description: "Allow /register for new app accounts. Also edited under Settings → Auth & registration.", required: false, defaultEnabled: true, installed: true as const, featureFlag: "registration", navViews: [{"key":"register","label":"Register","href":"/register"}] },
-  { id: "product:rich-editor", kind: "product", label: "Rich editor", description: "Lexical rich editing flag (Pages stay Lexical for now; off reserved for a simpler mode).", required: false, defaultEnabled: true, installed: true as const, featureFlag: "richEditor" },
   { id: "product:posts", kind: "product", label: "Posts", description: "Posts collection placeholder — keep off until that slice ships.", required: false, defaultEnabled: false, installed: true as const, featureFlag: "posts" },
   { id: "product:draft-preview", kind: "product", label: "Draft preview", description: "CMS-access users can open /preview/{slug} for unpublished drafts.", required: false, defaultEnabled: false, installed: true as const, featureFlag: "draftPreview" },
   { id: "product:forms", kind: "product", label: "Forms", description: "Modular Form engine — visual builder (JSON Schema/Zod), Form particle, typed presets (contact, survey, event-registration, voting, ticket). Captcha from Chrome; Turnstile keys from env.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Forms","href":"/admin/forms"}] },
+  { id: "product:rich-editor", kind: "product", label: "Rich editor", description: "Shared TipTap rich editor (sanitized HTML). Toggle in Site Settings → Modules. Bind into Events, Pages, Email, and other content fields. Optional Lexical: product:lexical-editor.", required: false, defaultEnabled: true, installed: true as const, featureFlag: "richEditor", navViews: [{"key":"settings","label":"Rich editor","href":"/admin/rich-editor/settings"}] },
+  { id: "product:lexical-editor", kind: "product", label: "Lexical editor", description: "Optional Lexical rich-text stack (@payloadcms/richtext-lexical). TipTap is the default editor. Enable for legacy Lexical page bodies and pagesLexicalEditor config; does not delete stored JSON when off.", required: false, defaultEnabled: false, installed: true as const, navViews: [{"key":"settings","label":"Lexical editor","href":"/admin/lexical-editor/settings"}] },
   { id: "product:email-manager", kind: "product", label: "Email Manager", description: "Automatic and conditional email rules with templates, filtered by module. Modules emit triggers; Core Mailer sends. No per-module SMTP — secrets stay in env / Chrome.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Email rules","href":"/admin/email"},{"key":"templates","label":"Email templates","href":"/admin/email/templates"},{"key":"sends","label":"Email sends","href":"/admin/email/sends"}] },
-  { id: "product:events", kind: "product", label: "Events", description: "Events + venues manager — schedule, Media cover, ACL tags, and admin CRUD. Registration and public particles land in later packs.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Events","href":"/admin/events"},{"key":"venues","label":"Venues","href":"/admin/events/venues"},{"key":"settings","label":"Events settings","href":"/admin/events/settings"}] },
+  { id: "product:events", kind: "product", label: "Events", description: "Events + venues — admin CRUD, public list/detail, registration with ticket tiers, event particles.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"public","label":"Events","href":"/events"},{"key":"admin","label":"Events admin","href":"/admin/events"},{"key":"venues","label":"Venues","href":"/admin/events/venues"},{"key":"tiers","label":"Ticket tiers","href":"/admin/events/tiers"},{"key":"registrants","label":"Registrants","href":"/admin/events/registrants"},{"key":"settings","label":"Events settings","href":"/admin/events/settings"}] },
   { id: "product:marketplace", kind: "product", label: "Marketplace", description: "Classifieds / marketplace listings (upcoming). Soft Dashboard stub until the Marketplace pack ships.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Marketplace (upcoming)","href":"/admin/settings"}] },
   { id: "product:redirects", kind: "product", label: "Redirects", description: "URL redirects (from → to + status) with Node proxy lookup. Sitemap of published pages stays at /sitemap.xml.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Redirects","href":"/admin/redirects"}] },
   { id: "product:consent", kind: "product", label: "Consent", description: "Cookie consent banner + preference cookie (sf-consent). Policy copy under Chrome; gates atom:analytics until analytics is accepted.", required: false, defaultEnabled: true, installed: true as const },
@@ -262,8 +263,10 @@ export type AdminNavContribution = {
 /** Admin left-nav groups contributed by allowlisted module manifests (M2). */
 export const adminNavContributions: AdminNavContribution[] = [
   { moduleId: "product:forms", id: "forms", label: "Forms", order: 40, href: "/admin/forms", expandable: true, links: [{ label: "Forms", href: "/admin/forms", order: 10, exact: true, area: "forms", group: "forms" }, { label: "Settings", href: "/admin/forms/settings", order: 20, area: "forms", group: "forms" }] },
+  { moduleId: "product:rich-editor", id: "rich-editor", label: "Rich editor", order: 45, href: "/admin/rich-editor/settings", links: [{ label: "Settings", href: "/admin/rich-editor/settings", order: 10, area: "rich-editor", group: "rich-editor" }] },
+  { moduleId: "product:lexical-editor", id: "lexical-editor", label: "Lexical editor", order: 46, href: "/admin/lexical-editor/settings", links: [{ label: "Settings", href: "/admin/lexical-editor/settings", order: 10, area: "lexical-editor", group: "lexical-editor" }] },
   { moduleId: "product:email-manager", id: "email", label: "Email", order: 45, href: "/admin/email", expandable: true, links: [{ label: "Rules", href: "/admin/email", order: 10, exact: true, area: "email-manager", group: "email" }, { label: "Templates", href: "/admin/email/templates", order: 20, area: "email-manager", group: "email" }, { label: "Sends", href: "/admin/email/sends", order: 30, area: "email-manager", group: "email" }] },
-  { moduleId: "product:events", id: "events", label: "Events", order: 48, href: "/admin/events", expandable: true, links: [{ label: "Events", href: "/admin/events", order: 10, exact: true, area: "events", group: "events" }, { label: "Venues", href: "/admin/events/venues", order: 20, area: "events", group: "events" }, { label: "Settings", href: "/admin/events/settings", order: 30, area: "events", group: "events" }] },
+  { moduleId: "product:events", id: "events", label: "Events", order: 48, href: "/admin/events", expandable: true, links: [{ label: "Events", href: "/admin/events", order: 10, exact: true, area: "events", group: "events" }, { label: "Venues", href: "/admin/events/venues", order: 20, area: "events", group: "events" }, { label: "Tiers", href: "/admin/events/tiers", order: 25, area: "events", group: "events" }, { label: "Registrants", href: "/admin/events/registrants", order: 28, area: "events", group: "events" }, { label: "Settings", href: "/admin/events/settings", order: 30, area: "events", group: "events" }] },
   { moduleId: "product:redirects", id: "redirects", label: "Redirects", order: 50, links: [{ label: "Redirects", href: "/admin/redirects", order: 10, area: "redirects", group: "redirects" }] },
   { moduleId: "product:media", id: "media", label: "Media", order: 60, href: "/admin/media", expandable: true, defaultOpen: true, links: [{ label: "Library", href: "/admin/media", order: 10, exact: true, area: "media", group: "media" }, { label: "Settings", href: "/admin/media/settings", order: 20, area: "media", group: "media" }] }
 ]
@@ -310,6 +313,18 @@ export type AdminRouteLoader = {
  */
 export const adminRouteLoaders: AdminRouteLoader[] = [
   {
+    moduleId: "product:rich-editor",
+    path: "rich-editor/settings",
+    pageImportPath: "@/modules/rich-editor/admin/RichEditorSettingsPage",
+    pageExportName: "default",
+  },
+  {
+    moduleId: "product:lexical-editor",
+    path: "lexical-editor/settings",
+    pageImportPath: "@/modules/lexical-editor/admin/LexicalEditorSettingsPage",
+    pageExportName: "default",
+  },
+  {
     moduleId: "product:email-manager",
     path: "email",
     pageImportPath: "@/modules/email-manager/admin/EmailRulesPage",
@@ -337,6 +352,18 @@ export const adminRouteLoaders: AdminRouteLoader[] = [
     moduleId: "product:events",
     path: "events/venues",
     pageImportPath: "@/modules/events/admin/EventsVenuesPage",
+    pageExportName: "default",
+  },
+  {
+    moduleId: "product:events",
+    path: "events/tiers",
+    pageImportPath: "@/modules/events/admin/EventsTiersPage",
+    pageExportName: "default",
+  },
+  {
+    moduleId: "product:events",
+    path: "events/registrants",
+    pageImportPath: "@/modules/events/admin/EventsRegistrantsPage",
     pageExportName: "default",
   },
   {

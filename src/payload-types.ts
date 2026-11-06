@@ -287,21 +287,7 @@ export interface Page {
   /**
    * Use the toolbar or “/” slash menu for headings, lists, links, and images from Media. Switch CMS locale to edit each language.
    */
-  body?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
+  body?: string | null | null;
   meta?: {
     /**
      * Browser tab / search title. Falls back to the page title + “— Starforge” when empty.

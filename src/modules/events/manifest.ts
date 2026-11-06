@@ -1,24 +1,26 @@
 import { defineStarforgeModule } from '@/core/modules/define-module'
 
 /**
- * product:events — Events + venues manager (PR1: schema + admin CRUD).
- * Public particles / registration / Email confirm = later PRs.
+ * product:events — Events + venues + registration + ticket tiers.
  */
 export default defineStarforgeModule({
   id: 'product:events',
   kind: 'product',
   label: 'Events',
   description:
-    'Events + venues manager — schedule, Media cover, ACL tags, and admin CRUD. Registration and public particles land in later packs.',
-  version: '0.1.0',
+    'Events + venues — admin CRUD, public list/detail, registration with ticket tiers, event particles.',
+  version: '0.4.0',
   defaultEnabled: true,
   requires: ['product:media'],
   i18n: {
     namespaces: ['product:events'],
   },
   navViews: [
-    { key: 'admin', label: 'Events', href: '/admin/events' },
+    { key: 'public', label: 'Events', href: '/events' },
+    { key: 'admin', label: 'Events admin', href: '/admin/events' },
     { key: 'venues', label: 'Venues', href: '/admin/events/venues' },
+    { key: 'tiers', label: 'Ticket tiers', href: '/admin/events/tiers' },
+    { key: 'registrants', label: 'Registrants', href: '/admin/events/registrants' },
     { key: 'settings', label: 'Events settings', href: '/admin/events/settings' },
   ],
   admin: {
@@ -47,6 +49,20 @@ export default defineStarforgeModule({
       },
       {
         group: 'events',
+        label: 'Tiers',
+        href: '/admin/events/tiers',
+        order: 25,
+        area: 'events',
+      },
+      {
+        group: 'events',
+        label: 'Registrants',
+        href: '/admin/events/registrants',
+        order: 28,
+        area: 'events',
+      },
+      {
+        group: 'events',
         label: 'Settings',
         href: '/admin/events/settings',
         order: 30,
@@ -63,6 +79,16 @@ export default defineStarforgeModule({
       {
         path: 'events/venues',
         pageImportPath: '@/modules/events/admin/EventsVenuesPage',
+        pageExportName: 'default',
+      },
+      {
+        path: 'events/tiers',
+        pageImportPath: '@/modules/events/admin/EventsTiersPage',
+        pageExportName: 'default',
+      },
+      {
+        path: 'events/registrants',
+        pageImportPath: '@/modules/events/admin/EventsRegistrantsPage',
         pageExportName: 'default',
       },
       {

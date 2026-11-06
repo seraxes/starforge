@@ -238,11 +238,11 @@ export const SiteSettings: GlobalConfig = {
         {
           name: 'featureRichEditor',
           type: 'checkbox',
-          label: 'Rich editor (Lexical)',
+          label: 'Rich editor (TipTap)',
           defaultValue: true,
           admin: {
             description:
-              'Product flag for richer page editing. Lexical stays wired in Pages for now; off is reserved for a future simpler mode.',
+              'Product flag for TipTap rich editing (synced from product:rich-editor). Optional Lexical is product:lexical-editor.',
           },
         },
         {
