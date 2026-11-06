@@ -218,14 +218,15 @@ One Payload global (`site-settings`) holds synced site name, `primaryNavMenuId`,
 
 `npm run seed` ensures the global exists, seeds Nav manager **Main** with About / Getting started / Welcome page binds, sets `primaryNavMenuId=main`, and enables the **notice-bar** module toggle. Flags are **product capabilities**, not npm libraries.
 
-### Module Manager — allowlist vs runtime toggle
+### Module Manager — install vs generate vs runtime
 
 | Layer | File / UI | Effect |
 | --- | --- | --- |
-| **Install / build allowlist** | `starforge.modules.json` (or env `SF_MODULES`) → `npm run modules:generate` | Only listed packs appear in `src/generated/module-registry.ts` with `import()` loaders. Omit Form/Notice (etc.) for a lean build — no deadweight eager imports. |
+| **Install / sync** | `starforge.modules.json` → `npm run modules:sync` (or `modules:wizard`) | Adds/removes `@starforge/module-*` deps from GitHub Packages (or local `packages/`). Unused packs stay off disk. |
+| **Build allowlist / codegen** | same JSON (or env `SF_MODULES`) → `npm run modules:generate` | Only listed packs appear in `src/generated/module-registry.ts` with `import()` loaders. |
 | **Runtime toggle** | Site Settings → **Modules** | On/off for *installed* modules — admin nav, palette, public render. Does not remove code from disk. |
 
-Required always: `platform:better-auth`, `page-content`. See `src/generated/README.md`. P2 will add `@starforge/module-*` packages + `modules:sync` from GitHub Packages.
+Required always: `platform:better-auth`, `page-content`. Flavors: `flavor: "core"` (default) or `"lean"` (presets in the JSON). See `src/generated/README.md` and [module-install-packages](docs/project-context/docs/module-install-packages.md).
 
 ### Extension modules + Gantry-like layout manager
 

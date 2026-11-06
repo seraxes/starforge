@@ -59,6 +59,7 @@ Snapshot of the Cursor **Project Context** store, synced into the git repo so pl
 - `maps-location-plan.md`
 - `media-manager-spec.md`
 - `media-pipeline-plan.md`
+- `module-install-packages.md`
 - `module-toggle-architecture.md`
 - `modules-wave-kickoff.md`
 - `page-settings-plan.md`

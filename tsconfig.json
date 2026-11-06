@@ -15,7 +15,11 @@
     "plugins": [{ "name": "next" }],
     "paths": {
       "@/*": ["./src/*"],
-      "@payload-config": ["./src/payload.config.ts"]
+      "@payload-config": ["./src/payload.config.ts"],
+      "@starforge/module-notice-bar": ["./packages/module-notice-bar/src/index.ts"],
+      "@starforge/module-notice-bar/*": ["./packages/module-notice-bar/src/*"],
+      "@starforge/module-consent": ["./packages/module-consent/src/index.ts"],
+      "@starforge/module-consent/*": ["./packages/module-consent/src/*"]
     },
     "target": "ES2022"
   },
