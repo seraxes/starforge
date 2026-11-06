@@ -21,12 +21,13 @@
   --sf-admin-module-border-color: #0f3d63;
   --sf-admin-icon-primary: 2rem;
   --sf-admin-icon-secondary: 1.75rem;
-  --sf-admin-btn-pad-y: 0.5rem;
-  --sf-admin-btn-pad-x: 1rem;
-  --sf-admin-btn-font: 0.9rem;
-  --sf-admin-btn-min-height: 2.35rem;
+  /* Absolute px — Payload root font is ~13px; rem would shrink below Layouts. */
+  --sf-admin-btn-pad-y: 8px;
+  --sf-admin-btn-pad-x: 16px;
+  --sf-admin-btn-font: 14px;
+  --sf-admin-btn-min-height: 38px;
   --sf-admin-btn-radius: 3px;
-  --sf-admin-btn-gap: 0.55rem;
+  --sf-admin-btn-gap: 9px;
   --sf-admin-panel: #1b2432;
   --sf-admin-panel-head: #121a24;
   --sf-admin-panel-border: #2f3d50;
@@ -685,4 +686,343 @@ html[data-theme='dark'] .nav .log-out:hover {
   color: #fff;
   background: var(--sf-admin-blue-mid);
   border-radius: 3px;
+}
+
+/* ============================================================================
+ * Layouts chrome parity (SF principles)
+ * Reference: Core Layouts — orange primary Save/Create, muted secondary,
+ * dark #0c121c toolbars, mid-blue active tabs, comfortable --sf-admin-btn-*.
+ * ============================================================================ */
+
+/* Doc sticky bar = Layouts gantry-layouts-nav darkness */
+html[data-theme='dark'] .doc-controls {
+  background: #0c121c !important;
+  border: 1px solid #1a2433 !important;
+  border-radius: 3px;
+  box-shadow: none !important;
+  padding: 0.45rem 0.65rem;
+  gap: var(--sf-admin-btn-gap);
+}
+
+html[data-theme='dark'] .doc-header {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='dark'] .doc-header__title.render-title,
+html[data-theme='dark'] .doc-header .render-title,
+html[data-theme='dark'] .collection-list .list-header__title {
+  color: #fff;
+  font-weight: 700;
+}
+
+/* Edit / Versions / API — Layouts tab language */
+html[data-theme='dark'] .doc-tabs,
+html[data-theme='dark'] .tabs-field__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.15rem 0.35rem;
+  margin: 0 0 0.85rem;
+  padding: 0.35rem 0.5rem;
+  background: #0c121c;
+  border: 1px solid #1a2433;
+  border-radius: 3px;
+  box-shadow: none;
+}
+
+html[data-theme='dark'] .doc-tab,
+html[data-theme='dark'] .btn.btn--style-tab,
+html[data-theme='dark'] .tabs-field__tab-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1rem !important;
+  min-height: var(--sf-admin-btn-min-height);
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #fff !important;
+  font-weight: 650;
+  font-size: 0.88rem;
+  box-shadow: none !important;
+  text-decoration: none;
+}
+
+html[data-theme='dark'] .doc-tab:hover,
+html[data-theme='dark'] .btn.btn--style-tab:hover,
+html[data-theme='dark'] .tabs-field__tab-button:hover {
+  background: color-mix(in srgb, #5ba3d0 42%, transparent) !important;
+  color: #fff !important;
+}
+
+html[data-theme='dark'] .doc-tab--active,
+html[data-theme='dark'] .btn.btn--style-tab.btn--disabled.doc-tab--active,
+html[data-theme='dark'] .tabs-field__tab-button--active {
+  background: #4a8fc4 !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+
+/* Primary CTA = Layouts Save orange (Publish / Create New / form-submit) */
+html[data-theme='dark'] #action-save,
+html[data-theme='dark'] .form-submit .btn:not(.btn--style-secondary):not(.btn--style-subtle):not(.btn--style-tab):not(.btn--style-error):not(.save-draft),
+html[data-theme='dark'] .list-create-new-doc__create-new-button,
+html[data-theme='dark'] .btn.btn--style-primary,
+html[data-theme='dark'] .btn.btn--style-pill.list-create-new-doc__create-new-button {
+  --color: var(--sf-primary-ink) !important;
+  --bg-color: var(--sf-primary) !important;
+  --hover-bg: var(--sf-primary-strong) !important;
+  --hover-color: var(--sf-primary-ink) !important;
+  background: var(--sf-primary) !important;
+  color: var(--sf-primary-ink) !important;
+  border: 0 !important;
+  border-radius: var(--sf-admin-btn-radius) !important;
+  font-size: var(--sf-admin-btn-font) !important;
+  font-weight: 650 !important;
+  min-height: var(--sf-admin-btn-min-height) !important;
+  padding: var(--sf-admin-btn-pad-y) var(--sf-admin-btn-pad-x) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='dark'] #action-save:hover,
+html[data-theme='dark'] .form-submit .btn:not(.btn--style-secondary):not(.btn--style-subtle):not(.btn--style-tab):not(.btn--style-error):not(.save-draft):hover,
+html[data-theme='dark'] .list-create-new-doc__create-new-button:hover,
+html[data-theme='dark'] .btn.btn--style-primary:hover {
+  background: var(--sf-primary-strong) !important;
+  color: var(--sf-primary-ink) !important;
+}
+
+/* Secondary = Layouts muted toolbar (Save Draft / secondary) */
+html[data-theme='dark'] .save-draft,
+html[data-theme='dark'] .btn.btn--style-secondary {
+  --color: #fff !important;
+  --bg-color: var(--sf-admin-toolbar-muted) !important;
+  --hover-bg: #4a6085 !important;
+  --hover-color: #fff !important;
+  --btn-border: 0 !important;
+  --hover-btn-border: 0 !important;
+  background: var(--sf-admin-toolbar-muted) !important;
+  color: #fff !important;
+  border: 0 !important;
+  border-radius: var(--sf-admin-btn-radius) !important;
+  font-size: var(--sf-admin-btn-font) !important;
+  font-weight: 650 !important;
+  min-height: var(--sf-admin-btn-min-height) !important;
+  padding: var(--sf-admin-btn-pad-y) var(--sf-admin-btn-pad-x) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='dark'] .save-draft:hover,
+html[data-theme='dark'] .btn.btn--style-secondary:hover {
+  background: #4a6085 !important;
+  color: #fff !important;
+}
+
+/* Field labels — settings-field weight */
+html[data-theme='dark'] .field-label,
+html[data-theme='dark'] .field-type > label,
+html[data-theme='dark'] .render-fields .field-label {
+  color: #fff !important;
+  font-weight: 650;
+  font-size: 0.92rem;
+}
+
+/* Group / collapsible heads — Page Settings panel-head */
+html[data-theme='dark'] .group-field__wrap,
+html[data-theme='dark'] .collapsible--style-default {
+  background: var(--sf-admin-panel);
+  border: 1px solid var(--sf-admin-panel-border);
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow: none;
+}
+
+html[data-theme='dark'] .group-field__header,
+html[data-theme='dark'] .collapsible__toggle-wrap {
+  background: var(--sf-admin-panel-head) !important;
+  border-bottom: 1px solid var(--sf-admin-panel-border);
+}
+
+/* —— Shared SF controls on Payload (TipTap / Media picker live outside .admin-shell) —— */
+html[data-theme='dark'] .gantry-toolbar-btn,
+html[data-theme='dark'] a.gantry-toolbar-btn,
+html[data-theme='dark'] button.gantry-toolbar-btn,
+html[data-theme='dark'] .gantry-btn,
+html[data-theme='dark'] a.gantry-btn,
+html[data-theme='dark'] button.gantry-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin: 0;
+  padding: var(--sf-admin-btn-pad-y) var(--sf-admin-btn-pad-x);
+  border: 0;
+  border-radius: var(--sf-admin-btn-radius);
+  font: inherit;
+  font-size: var(--sf-admin-btn-font);
+  font-weight: 650;
+  line-height: 1.2;
+  min-height: var(--sf-admin-btn-min-height);
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  box-sizing: border-box;
+  background: var(--sf-admin-blue-action);
+  color: #fff;
+  box-shadow: none;
+}
+
+html[data-theme='dark'] .gantry-toolbar-btn:disabled,
+html[data-theme='dark'] .gantry-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+html[data-theme='dark'] .gantry-toolbar-btn-muted,
+html[data-theme='dark'] button.gantry-toolbar-btn-muted,
+html[data-theme='dark'] .gantry-btn:not(.gantry-btn-primary) {
+  background: var(--sf-admin-toolbar-muted);
+  border: 0;
+  color: #fff;
+}
+
+html[data-theme='dark'] .gantry-toolbar-btn-muted:hover:not(:disabled),
+html[data-theme='dark'] button.gantry-toolbar-btn-muted:hover:not(:disabled),
+html[data-theme='dark'] .gantry-btn:not(.gantry-btn-primary):hover:not(:disabled) {
+  background: #4a6085;
+  color: #fff;
+}
+
+html[data-theme='dark'] button.gantry-toolbar-btn-muted.is-active {
+  background: var(--sf-admin-blue-mid);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #fff 22%, transparent);
+}
+
+html[data-theme='dark'] .gantry-toolbar-btn-save,
+html[data-theme='dark'] button.gantry-toolbar-btn-save,
+html[data-theme='dark'] .gantry-btn-primary,
+html[data-theme='dark'] a.gantry-btn-primary,
+html[data-theme='dark'] button.gantry-btn-primary {
+  background: var(--sf-primary);
+  border: 0;
+  color: var(--sf-primary-ink);
+}
+
+html[data-theme='dark'] .gantry-toolbar-btn-save:hover:not(:disabled),
+html[data-theme='dark'] .gantry-btn-primary:hover:not(:disabled) {
+  background: var(--sf-primary-strong);
+  color: var(--sf-primary-ink);
+}
+
+/* TipTap rich editor — same surface language as Layouts / Core admin */
+html[data-theme='dark'] .sf-rich-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  width: 100%;
+}
+
+html[data-theme='dark'] .sf-rich-editor-label {
+  font-size: 0.92rem;
+  font-weight: 650;
+  color: #fff;
+}
+
+html[data-theme='dark'] .sf-rich-editor-toolbar,
+html[data-theme='dark'] .sf-rich-editor-mode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sf-admin-btn-gap);
+}
+
+html[data-theme='dark'] .sf-rich-editor-media {
+  border: 1px solid var(--sf-admin-panel-border);
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--sf-admin-btn-radius);
+  background: color-mix(in srgb, var(--sf-secondary) 6%, var(--sf-admin-surface));
+}
+
+html[data-theme='dark'] .sf-rich-editor-surface {
+  border: var(--sf-admin-module-border-width) solid var(--sf-admin-module-border-color);
+  border-radius: var(--sf-admin-btn-radius);
+  background: color-mix(in srgb, var(--sf-secondary) 4%, var(--sf-admin-surface));
+  min-height: 10rem;
+}
+
+html[data-theme='dark'] .sf-rich-editor-prose {
+  min-height: 9rem;
+  padding: 0.75rem 0.9rem;
+  outline: none;
+  color: #e8eef8;
+  line-height: 1.55;
+}
+
+html[data-theme='dark'] .sf-rich-editor-prose p.is-editor-empty:first-child::before {
+  color: color-mix(in srgb, #e8eef8 45%, transparent);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+html[data-theme='dark'] .sf-rich-editor-color {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sf-admin-btn-gap);
+  font-size: var(--sf-admin-btn-font);
+  color: #e8eef8;
+}
+
+html[data-theme='dark'] .sf-rich-editor-color select {
+  min-height: var(--sf-admin-btn-min-height);
+  padding: var(--sf-admin-btn-pad-y) var(--sf-admin-btn-pad-x);
+  border: 1px solid var(--sf-admin-blue-border);
+  background: var(--sf-admin-input);
+  color: #fff;
+  border-radius: var(--sf-admin-btn-radius);
+  font-size: var(--sf-admin-btn-font);
+  font-weight: 650;
+  box-sizing: border-box;
+}
+
+html[data-theme='dark'] .settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0 0 0.75rem;
+}
+
+html[data-theme='dark'] .settings-field > span {
+  color: #fff;
+  font-weight: 650;
+  font-size: 0.92rem;
+}
+
+html[data-theme='dark'] .settings-field input:not([type='checkbox']):not([type='radio']),
+html[data-theme='dark'] .settings-field select,
+html[data-theme='dark'] .settings-field textarea {
+  background: var(--sf-admin-input) !important;
+  color: var(--sf-ink) !important;
+  border: 1px solid var(--sf-admin-blue-border) !important;
+  border-radius: 3px;
+  min-height: var(--sf-admin-btn-min-height);
+  padding: var(--sf-admin-btn-pad-y) var(--sf-admin-btn-pad-x);
+  box-shadow: none !important;
+}
+
+html[data-theme='dark'] .admin-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sf-admin-btn-gap);
+}
+
+/* Status meta row under doc title */
+html[data-theme='dark'] .doc-controls__meta,
+html[data-theme='dark'] .status-meta,
+html[data-theme='dark'] .render-fields + .doc-controls {
+  color: var(--sf-muted);
 }

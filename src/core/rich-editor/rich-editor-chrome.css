@@ -1,0 +1,210 @@
+/*
+ * Shared Rich Editor chrome — Callout / Link (portal) + inline media panel helpers.
+ * Loaded by Core admin (frontend layout) and Payload CMS layout so portals work
+ * outside .admin-shell. Keep in sync with SF Gantry tokens.
+ */
+
+/* —— Portal insert dialogs (Callout / Link) —— */
+.sf-rich-video-modal {
+  position: fixed;
+  inset: 0;
+  /* Above Payload drawers / doc chrome (Core 80 was too low on /cms/admin). */
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: color-mix(in srgb, #0a1220 72%, transparent);
+  box-sizing: border-box;
+}
+
+.sf-rich-video-dialog {
+  width: min(36rem, 100%);
+  max-height: min(90vh, 40rem);
+  overflow: auto;
+  border: 1px solid var(--sf-admin-blue-border, #3d5a80);
+  border-radius: var(--sf-admin-btn-radius, 3px);
+  background: var(--sf-admin-elevated, #162033);
+  color: #e8eef7;
+  box-shadow: 0 1rem 2.5rem color-mix(in srgb, #000 45%, transparent);
+  box-sizing: border-box;
+}
+
+.sf-rich-video-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid color-mix(in srgb, #3d5a80 70%, transparent);
+}
+
+.sf-rich-video-dialog-head h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 650;
+  color: #fff;
+}
+
+.sf-rich-video-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem 1rem;
+}
+
+.sf-rich-video-dialog .settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.sf-rich-video-dialog .settings-field > span {
+  color: #fff;
+  font-weight: 650;
+  font-size: 0.92rem;
+}
+
+.sf-rich-video-dialog .settings-field input {
+  min-height: var(--sf-admin-btn-min-height, 2.35rem);
+  padding: var(--sf-admin-btn-pad-y, 0.5rem) var(--sf-admin-btn-pad-x, 1rem);
+  border: 1px solid var(--sf-admin-blue-border, #3d5a80);
+  border-radius: var(--sf-admin-btn-radius, 3px);
+  background: color-mix(in srgb, #0f1728 80%, #1a2740);
+  color: #e8eef7;
+  font: inherit;
+  box-sizing: border-box;
+}
+
+.sf-rich-video-hint {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #9eb1c7;
+}
+
+.sf-rich-video-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--sf-admin-btn-gap, 0.55rem);
+}
+
+.sf-rich-video-modal .gantry-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin: 0;
+  padding: var(--sf-admin-btn-pad-y, 0.5rem) var(--sf-admin-btn-pad-x, 1rem);
+  border: 0;
+  border-radius: var(--sf-admin-btn-radius, 3px);
+  font: inherit;
+  font-size: var(--sf-admin-btn-font, 0.9rem);
+  font-weight: 650;
+  line-height: 1.2;
+  min-height: var(--sf-admin-btn-min-height, 2.35rem);
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.sf-rich-video-modal .gantry-toolbar-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sf-rich-video-modal .gantry-toolbar-btn-muted {
+  background: var(--sf-admin-toolbar-muted, #3a4d6b);
+  border: 0;
+  color: #fff;
+}
+
+.sf-rich-video-modal .gantry-toolbar-btn-muted:hover:not(:disabled) {
+  background: #4a6085;
+  color: #fff;
+}
+
+.sf-rich-video-modal .gantry-toolbar-btn-muted.is-active {
+  background: var(--sf-admin-blue-mid, #3d5a80);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #fff 22%, transparent);
+}
+
+.sf-rich-video-modal .gantry-toolbar-btn-save {
+  background: var(--sf-primary, #f2a66a);
+  border: 0;
+  color: var(--sf-primary-ink, #1c2834);
+}
+
+.sf-rich-video-modal .gantry-toolbar-btn-save:hover:not(:disabled) {
+  background: var(--sf-primary-strong, #f5b888);
+  color: var(--sf-primary-ink, #1c2834);
+}
+
+.sf-rich-callout-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.sf-rich-callout-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  text-align: left;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--sf-admin-btn-radius, 3px);
+  border: 1px solid var(--sf-admin-blue-border, #3d5a80);
+  background: color-mix(in srgb, #0f1728 80%, #1a2740);
+  color: #e8eef7;
+  cursor: pointer;
+  border-left-width: 4px;
+  font: inherit;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.sf-rich-callout-choice strong {
+  font-size: 0.95rem;
+}
+
+.sf-rich-callout-choice span {
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+
+.sf-rich-callout-choice-info {
+  border-left-color: var(--sf-secondary, #8ebad4);
+}
+
+.sf-rich-callout-choice-warning {
+  border-left-color: #e0a03d;
+}
+
+.sf-rich-callout-choice-success {
+  border-left-color: #2f9e64;
+}
+
+.sf-rich-callout-choice.is-selected {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #fff 22%, transparent);
+  background: color-mix(in srgb, #3d5a80 35%, #0f1728);
+}
+
+/* Callout / media blocks in editor surface (Payload has no .admin-shell) */
+.sf-rich-editor-prose .sf-rich-callout {
+  margin: 0.75rem 0;
+  padding: 0.65rem 0.85rem;
+  border-left: 4px solid var(--sf-secondary, #8ebad4);
+  background: color-mix(in srgb, var(--sf-secondary, #8ebad4) 12%, #1b2531);
+  color: #e8eef8;
+}
+
+.sf-rich-editor-prose .sf-rich-callout-warning {
+  border-left-color: #e0a03d;
+}
+
+.sf-rich-editor-prose .sf-rich-callout-success {
+  border-left-color: #2f9e64;
+}

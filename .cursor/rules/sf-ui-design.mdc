@@ -1,0 +1,40 @@
+---
+description: Unified modular UI — reuse shared SF chrome, pickers, and patterns across Core and Modules; no one-off dialogs or control skins.
+globs: "**/*.{tsx,css}"
+alwaysApply: true
+---
+
+# Starforge UI — unified & modular
+
+Buttons, inputs, panels, and insert flows must **match existing Starforge chrome** and **reuse shared modules** (Media picker, Forms, Email Manager, etc.). Same job → same UI pattern everywhere.
+
+## Source of truth
+
+| Surface | Tokens / CSS | Prefer these classes |
+| --- | --- | --- |
+| **Admin** (`/admin`) | `src/core/admin-theme/themes/starforge-gantry/core-chrome.css` (`--sf-admin-*`, `--sf-*`) | `gantry-btn`, `gantry-btn-primary`, `gantry-toolbar-btn`, `gantry-toolbar-btn-save`, `settings-field`, `settings-fieldset`, `admin-settings-mosaic`, `outlines-create`, `admin-inline-actions` |
+| **Payload CMS** (`/cms/admin`) | `…/starforge-gantry/payload-chrome.css` — same tokens; Layouts chrome is the visual reference | Payload widgets themed to SF; shared TipTap/`gantry-*`/`settings-field` when embedded |
+| **Public** | `src/app/(frontend)/styles.css` (`:root` `--sf-*`) | Existing `sf-*` / `cms-*` patterns; extend tokens, don’t hard-code hex |
+
+Prefs (admin): blue-dominated Gantry chrome; orange only on primary Save / rare CTAs; comfortable button size (`--sf-admin-btn-*`); no thin full-width action bars. Payload Publish / Create New = orange; Save Draft = muted toolbar blue — match Layouts.
+
+## Do
+
+- Wrap fields in `settings-field` (label `span` + control) so theme input styles apply.
+- Use shared buttons for Create / Save / secondary — same classes as Events, Forms, Email, Page Settings.
+- **One shared control per concern:** Media → `MediaPicker` / Media library modal; Forms → Form engine; mail → Email Manager. Do not fork a second picker or dialog skin.
+- **Same insert UX family:** Rich Editor Image / Gallery / Video all use the inline `sf-rich-editor-media` panel under the toolbar (Video may add Media vs YouTube/Vimeo tabs inside that panel — no separate portal popup).
+- Module layout = scoped class (e.g. `.sf-events-manager`) **on top of** shared primitives; override grid/spacing only.
+- Match the nearest existing admin page before inventing a new card/dialog language.
+
+## Don’t
+
+- Parallel modals/popups for a flow that already has an inline or shared pattern (e.g. video ≠ special dialog when Image/Gallery are inline).
+- Raw `<button>` / `<input>` without SF classes next to Gantry/settings chrome.
+- One-off colors, radii, paddings that fight `--sf-admin-btn-*` / `--sf-line` / `--sf-primary`.
+- New UI-kit skins for admin until the project’s polish wave (prefs).
+- Per-module media libraries, field builders, or SMTP UIs.
+
+## Quick check
+
+If two features do the same kind of thing (pick media, edit a field, save, filter), they must share the same component and chrome. If a new control sits next to an existing one and doesn’t match — fix the classes, don’t restyle from scratch.
