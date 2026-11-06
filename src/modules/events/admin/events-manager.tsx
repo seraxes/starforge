@@ -254,97 +254,90 @@ export function EventsManager({
         </div>
       </section>
 
-      <section className="outlines-create page-settings-panel" aria-label="Create event">
-        <header className="page-settings-panel-head">
-          <h3>Add event</h3>
-        </header>
-        <div className="page-settings-panel-body">
-          {venues.length === 0 ? (
-            <p className="settings-hint">
-              Tip: create a <Link href="/admin/events/venues">venue</Link> first if you want
-              a place binding.
-            </p>
-          ) : null}
-          <form action={createAction} className="outlines-create-form admin-create-form">
-            <EventFields
-              venues={venues}
-              groups={groups}
-              defaultTimezone={defaultTimezone}
-              busy={busy}
-            />
-            <button
-              type="submit"
-              className="gantry-toolbar-btn gantry-toolbar-btn-save"
-              disabled={createPending}
-            >
-              {createPending ? 'Adding…' : 'Add event'}
-            </button>
-          </form>
-          <Feedback state={createState} />
-        </div>
+      <section className="outlines-create" aria-label="Create event">
+        <h3>Add event</h3>
+        {venues.length === 0 ? (
+          <p className="settings-hint">
+            Tip: create a <Link href="/admin/events/venues">venue</Link> first if you want a place
+            binding.
+          </p>
+        ) : null}
+        <form action={createAction} className="outlines-create-form admin-create-form">
+          <EventFields
+            venues={venues}
+            groups={groups}
+            defaultTimezone={defaultTimezone}
+            busy={busy}
+          />
+          <button
+            type="submit"
+            className="gantry-toolbar-btn gantry-toolbar-btn-save"
+            disabled={createPending}
+          >
+            {createPending ? 'Adding…' : 'Add event'}
+          </button>
+        </form>
+        <Feedback state={createState} />
       </section>
 
       <Feedback state={updateState} />
       <Feedback state={deleteState} />
 
-      <div className="outlines-table-wrap admin-settings-panel-wide">
-        {events.length === 0 ? (
-          <p className="admin-empty">No events yet. Add one above.</p>
-        ) : (
-          events.map((row) => (
-            <section
-              key={row.id}
-              className="page-settings-panel"
-              aria-label={`Edit event ${row.title}`}
-            >
-              <header className="page-settings-panel-head">
-                <h3>
-                  {row.title}{' '}
-                  <span className="settings-hint">({row.status})</span>
-                </h3>
-                <span className="settings-hint">Updated {formatUpdated(row.updatedAt)}</span>
-              </header>
-              <div className="page-settings-panel-body">
-                <form action={updateAction} className="outlines-create-form admin-create-form">
-                  <input type="hidden" name="id" value={row.id} />
-                  <EventFields
-                    key={`${row.id}-${row.updatedAt}`}
-                    row={row}
-                    venues={venues}
-                    groups={groups}
-                    defaultTimezone={defaultTimezone}
-                    busy={busy}
-                  />
-                  <div className="admin-inline-actions">
-                    <button
-                      type="submit"
-                      className="gantry-toolbar-btn gantry-toolbar-btn-save"
-                      disabled={busy}
-                    >
-                      {updatePending ? 'Saving…' : 'Save'}
-                    </button>
-                  </div>
-                </form>
-                <form action={deleteAction} className="admin-inline-actions">
-                  <input type="hidden" name="id" value={row.id} />
-                  <button
-                    type="submit"
-                    className="gantry-btn"
-                    disabled={busy}
-                    onClick={(e) => {
-                      if (!window.confirm(`Delete event “${row.title}”?`)) {
-                        e.preventDefault()
-                      }
-                    }}
-                  >
-                    {deletePending ? 'Deleting…' : 'Delete'}
-                  </button>
-                </form>
+      {events.length === 0 ? (
+        <section className="outlines-create" aria-label="Events list">
+          <h3>No events yet</h3>
+          <p className="admin-empty">Add one above to start scheduling.</p>
+        </section>
+      ) : (
+        events.map((row) => (
+          <section
+            key={row.id}
+            className="outlines-create"
+            aria-label={`Edit event ${row.title}`}
+          >
+            <h3>
+              {row.title}{' '}
+              <span className="settings-hint">({row.status})</span>
+            </h3>
+            <p className="settings-hint">Updated {formatUpdated(row.updatedAt)}</p>
+            <form action={updateAction} className="outlines-create-form admin-create-form">
+              <input type="hidden" name="id" value={row.id} />
+              <EventFields
+                key={`${row.id}-${row.updatedAt}`}
+                row={row}
+                venues={venues}
+                groups={groups}
+                defaultTimezone={defaultTimezone}
+                busy={busy}
+              />
+              <div className="admin-inline-actions">
+                <button
+                  type="submit"
+                  className="gantry-toolbar-btn gantry-toolbar-btn-save"
+                  disabled={busy}
+                >
+                  {updatePending ? 'Saving…' : 'Save'}
+                </button>
               </div>
-            </section>
-          ))
-        )}
-      </div>
+            </form>
+            <form action={deleteAction} className="admin-inline-actions">
+              <input type="hidden" name="id" value={row.id} />
+              <button
+                type="submit"
+                className="gantry-btn"
+                disabled={busy}
+                onClick={(e) => {
+                  if (!window.confirm(`Delete event “${row.title}”?`)) {
+                    e.preventDefault()
+                  }
+                }}
+              >
+                {deletePending ? 'Deleting…' : 'Delete'}
+              </button>
+            </form>
+          </section>
+        ))
+      )}
     </div>
   )
 }
