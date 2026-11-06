@@ -6,16 +6,14 @@ Snapshot of the Cursor **Project Context** store, synced into the git repo so pl
 
 | What | Where |
 |------|--------|
-| **Live Context** (authoritative for ongoing work) | Cursor Project Agent Store |
-| **Live task board** (`notes.md`) | **Not** synced here — remains Context-only |
-| **This tree** | Offline / git copy for reference |
-
-When live Context and this snapshot disagree, **Context wins** for the tracker and latest decisions. Re-sync this folder when you want an updated offline copy.
+| **This tree** (local / GitHub) | Authoritative offline copy for ongoing local work |
+| **Cursor Project Agent Store** | Optional; can be deleted after sync |
 
 ## What was synced
 
 | Path in repo | From Context store |
 |--------------|--------------------|
+| [`notes.md`](./notes.md) | Live SF task board |
 | [`preferences.md`](./preferences.md) | `preferences.md` |
 | [`docs/`](./docs/) | Entire `docs/` (plans, audits, specs, kickoffs) |
 | [`principles/`](./principles/) | Entire `principles/` |
@@ -23,13 +21,13 @@ When live Context and this snapshot disagree, **Context wins** for the tracker a
 
 ## Explicitly excluded
 
-- `notes.md` — live task board; not copied
 - `internal/` — agent scratch / PR churn; not copied
-- `media/` — large reference screenshots/binaries; not copied
+- `media/` / `artifacts/` — reference screenshots/binaries; not needed locally
 - `inbox/` — subscription event payloads; not copied
 
 ## Top-level contents
 
+- **notes.md** — SF task board (For Review / Queued / Done)
 - **preferences.md** — durable product / process preferences
 - **docs/** — 38 markdown plans, audits, and specs
 - **principles/** — `modular-core.md`, `on-demand-one-worker.md`
