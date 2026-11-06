@@ -72,6 +72,20 @@ npm install
 
 Edit `.env` only if you changed Compose ports or credentials.
 
+### Optional — choose modules (Module Manager)
+
+Default `starforge.modules.json` flavor is **`core`** (full local catalog). For a lean site:
+
+```bash
+# Interactive: pick packs, then sync + generate
+npm run modules:wizard
+
+# Or set "flavor": "lean" in starforge.modules.json, then:
+npm run modules:sync
+```
+
+Three layers: **sync** (which `@starforge/module-*` packages are installed) → **generate** (registry codegen) → **Site Settings → Modules** (runtime on/off). Details: [module-install-packages](./module-install-packages.md).
+
 ## Phase E — Run Starforge locally
 
 ```bash

@@ -13,13 +13,15 @@
 
 import { mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 
 import type { StarforgeModuleManifest } from '../src/core/modules/define-module.ts'
 import { ALL_MODULE_MANIFESTS } from '../src/modules/manifest-index.ts'
+import {
+  ROOT,
+  resolveRequestedModuleIds,
+  uniqSorted,
+} from './lib/module-allowlist.mts'
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const ALLOWLIST_PATH = path.join(ROOT, 'starforge.modules.json')
 const OUT_PATH = path.join(ROOT, 'src/generated/module-registry.ts')
 const OUT_SERVER_PATH = path.join(ROOT, 'src/generated/module-registry.server.ts')
 const MODULES_ROOT = path.join(ROOT, 'src/modules')
@@ -168,33 +170,7 @@ ${switchBody}
   }`
 }
 
-type AllowlistFile = {
-  flavor?: string
-  modules?: unknown
-}
-
 const FIXED_REQUIRED = ALL_MODULE_MANIFESTS.filter((e) => e.required).map((e) => e.id)
-
-function parseSfModulesEnv(raw: string | undefined): string[] | null {
-  if (raw == null || !raw.trim()) return null
-  return raw
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean)
-}
-
-function asIdList(raw: unknown): string[] {
-  if (!Array.isArray(raw)) return []
-  const out: string[] = []
-  for (const row of raw) {
-    if (typeof row === 'string' && row.trim()) out.push(row.trim())
-  }
-  return out
-}
-
-function uniqSorted(ids: string[]): string[] {
-  return [...new Set(ids)].sort((a, b) => a.localeCompare(b))
-}
 
 function jsonString(value: unknown): string {
   return JSON.stringify(value)
@@ -243,25 +219,26 @@ function atomMetaLiteral(entry: StarforgeModuleManifest): string {
 }
 
 async function main(): Promise<void> {
-  const envList = parseSfModulesEnv(process.env.SF_MODULES)
-  let flavor = 'core'
-  let requested: string[]
-
-  if (envList) {
-    requested = envList
+  const resolved = await resolveRequestedModuleIds()
+  const { flavor, requested, source } = resolved
+  if (source === 'env') {
     console.log(`[modules:generate] Using SF_MODULES (${requested.length} ids)`)
+  } else if (source === 'preset') {
+    console.log(
+      `[modules:generate] Using starforge.modules.json presets.${flavor} (${requested.length} ids)`,
+    )
   } else {
-    const raw = await readFile(ALLOWLIST_PATH, 'utf8')
-    const parsed = JSON.parse(raw) as AllowlistFile
-    flavor = typeof parsed.flavor === 'string' && parsed.flavor.trim() ? parsed.flavor.trim() : 'core'
-    requested = asIdList(parsed.modules)
-    console.log(`[modules:generate] Using ${path.relative(ROOT, ALLOWLIST_PATH)} flavor=${flavor}`)
+    console.log(
+      `[modules:generate] Using starforge.modules.json modules[] flavor=${flavor} (${requested.length} ids)`,
+    )
   }
 
   const known = new Map(ALL_MODULE_MANIFESTS.map((e) => [e.id, e]))
   const unknown = requested.filter((id) => !known.has(id))
   if (unknown.length) {
-    console.warn(`[modules:generate] Ignoring unknown ids: ${unknown.join(', ')}`)
+    throw new Error(
+      `[modules:generate] Unknown module ids in allowlist: ${unknown.join(', ')}`,
+    )
   }
 
   const dupes = ALL_MODULE_MANIFESTS.map((e) => e.id).filter(
@@ -271,26 +248,24 @@ async function main(): Promise<void> {
     throw new Error(`[modules:generate] Duplicate manifest ids: ${[...new Set(dupes)].join(', ')}`)
   }
 
-  let allowlisted = uniqSorted([
-    ...FIXED_REQUIRED,
-    ...requested.filter((id) => known.has(id)),
-  ])
+  let allowlisted = uniqSorted([...FIXED_REQUIRED, ...requested])
 
-  // Drop optional entries whose requires[] are not allowlisted.
-  allowlisted = allowlisted.filter((id) => {
+  const requireFailures: string[] = []
+  for (const id of allowlisted) {
     const entry = known.get(id)
-    if (!entry?.requires?.length) return true
+    if (!entry?.requires?.length) continue
     const missing = entry.requires.filter((req) => !allowlisted.includes(req))
     if (missing.length) {
-      console.warn(
-        `[modules:generate] Dropping ${id} — missing requires: ${missing.join(', ')}`,
-      )
-      return false
+      requireFailures.push(`${id} needs ${missing.join(', ')}`)
     }
-    return true
-  })
+  }
+  if (requireFailures.length) {
+    throw new Error(
+      `[modules:generate] Missing requires[] — add deps to the allowlist or remove the pack:\n  - ${requireFailures.join('\n  - ')}`,
+    )
+  }
 
-  // Re-add fixed required after filter.
+  // Re-add fixed required (already included; keep stable sort).
   allowlisted = uniqSorted([...FIXED_REQUIRED, ...allowlisted])
 
   const allowSet = new Set(allowlisted)

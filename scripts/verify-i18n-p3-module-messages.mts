@@ -69,7 +69,7 @@ const eventsManifest = read('src/modules/events/manifest.ts')
 assert.match(eventsManifest, /namespaces:\s*\[['"]product:events['"]\]/)
 console.log('manifest namespaces declared: ok')
 
-const consentBanner = read('src/modules/consent/ConsentBanner.tsx')
+const consentBanner = read('packages/module-consent/src/ConsentBanner.tsx')
 assert.match(consentBanner, /useTranslations\(['"]product:consent['"]\)/)
 assert.match(consentBanner, /t\(['"]acceptAll['"]\)/)
 assert.doesNotMatch(consentBanner, /Accept all/)

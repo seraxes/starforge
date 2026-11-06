@@ -12,6 +12,8 @@ const __filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(__filename)
 
 const nextConfig: NextConfig = {
+  // Local / GitHub Packages module packs (TypeScript source consumed via transpile).
+  transpilePackages: ['@starforge/module-notice-bar', '@starforge/module-consent'],
   // Avoid auto-writing AGENTS.md into the repo on every `next dev`.
   agentRules: false,
   // Allow opening the app as 127.0.0.1 during local Windows/macOS testing.

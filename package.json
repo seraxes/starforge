@@ -69,7 +69,10 @@
     "verify:events-pr1": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-events-pr1.mts",
     "verify:admin-ui-bugfixes": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-admin-ui-bugfixes.mts",
     "verify:codemirror-admin-theme": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-codemirror-admin-theme.mts",
-    "verify:all": "npm run verify:security-headers-cookies && npm run verify:redirects-paths && npm run verify:form-upload-security && npm run verify:captcha-security-port && npm run verify:auth-trusted-origins-redis && npm run verify:redis-cache-await-proxy && npm run verify:form-should-slice && npm run verify:form-row-layout && npm run verify:form-particle-binding && npm run verify:consent-cookie && npm run verify:csp-sources && npm run verify:admin-nav-site-chrome && npm run verify:admin-theme-chrome && npm run verify:admin-sidebar-header && npm run verify:admin-sidebar-text-colors && npm run verify:admin-root-dashboard && npm run verify:forms-nav-no-submissions && npm run verify:search-query && npm run verify:media-pipeline && npm run verify:media-phase3 && npm run verify:media-module-m5 && npm run verify:module-boundary-m2 && npm run verify:email-manager && npm run verify:email-sends-admin && npm run verify:email-send-log-card && npm run verify:dashboard-placeholders && npm run verify:media-dashboard-aggregates && npm run verify:dashboard-soft-refresh && npm run verify:core-glance-cards-live && npm run verify:site-settings-boot-heal && npm run verify:modules-info-settings && npm run verify:i18n-p0-routing && npm run verify:i18n-p1-payload-locales && npm run verify:localization-admin && npm run verify:i18n-p2-seo-nav && npm run verify:i18n-p3-module-messages && npm run verify:events-pr1 && npm run verify:admin-ui-bugfixes && npm run verify:codemirror-admin-theme"
+    "verify:all": "npm run verify:security-headers-cookies && npm run verify:redirects-paths && npm run verify:form-upload-security && npm run verify:captcha-security-port && npm run verify:auth-trusted-origins-redis && npm run verify:redis-cache-await-proxy && npm run verify:form-should-slice && npm run verify:form-row-layout && npm run verify:form-particle-binding && npm run verify:consent-cookie && npm run verify:csp-sources && npm run verify:admin-nav-site-chrome && npm run verify:admin-theme-chrome && npm run verify:admin-sidebar-header && npm run verify:admin-sidebar-text-colors && npm run verify:admin-root-dashboard && npm run verify:forms-nav-no-submissions && npm run verify:search-query && npm run verify:media-pipeline && npm run verify:media-phase3 && npm run verify:media-module-m5 && npm run verify:module-boundary-m2 && npm run verify:modules-sync && npm run verify:email-manager && npm run verify:email-sends-admin && npm run verify:email-send-log-card && npm run verify:dashboard-placeholders && npm run verify:media-dashboard-aggregates && npm run verify:dashboard-soft-refresh && npm run verify:core-glance-cards-live && npm run verify:site-settings-boot-heal && npm run verify:modules-info-settings && npm run verify:i18n-p0-routing && npm run verify:i18n-p1-payload-locales && npm run verify:localization-admin && npm run verify:i18n-p2-seo-nav && npm run verify:i18n-p3-module-messages && npm run verify:events-pr1 && npm run verify:admin-ui-bugfixes && npm run verify:codemirror-admin-theme",
+    "modules:sync": "tsx scripts/sync-module-packages.mts",
+    "modules:wizard": "tsx scripts/module-wizard.mts",
+    "verify:modules-sync": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-modules-sync.mts"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.7.14",
@@ -84,6 +87,8 @@
     "@payloadcms/richtext-lexical": "3.92.1",
     "@payloadcms/storage-s3": "3.92.1",
     "@payloadcms/ui": "3.92.1",
+    "@starforge/module-consent": "file:packages/module-consent",
+    "@starforge/module-notice-bar": "file:packages/module-notice-bar",
     "@tailwindcss/postcss": "^4.3.3",
     "@uiw/react-codemirror": "^4.25.12",
     "better-auth": "^1.7.14",

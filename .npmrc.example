@@ -1,0 +1,8 @@
+# Copy relevant lines into a local/.CI .npmrc (do not commit tokens).
+# Root .npmrc may already set legacy-peer-deps=true — keep that.
+
+legacy-peer-deps=true
+
+# GitHub Packages for @starforge/* (modules:sync with STARFORGE_MODULE_SOURCE=registry)
+# @starforge:registry=https://npm.pkg.github.com
+# //npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}

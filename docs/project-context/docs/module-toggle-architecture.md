@@ -57,9 +57,10 @@ Disabled at install time → not in `node_modules` / not in bundle → no deadwe
 
 ## Phased delivery
 
-- **P0:** Site Settings Modules UI lists the full installed product catalog (above) with on/off; gate nav/palette/public; required modules marked non-disableable.
-- **P1:** Generated registry + dynamic import boundaries per module entry.
-- **P2:** Split `@starforge/module-*` packages + `modules:sync` allowlist so unused packages are not installed in lean images.
+- **P0:** Site Settings Modules UI lists the full installed product catalog (above) with on/off; gate nav/palette/public; required modules marked non-disableable. **Done.**
+- **P1:** Generated registry + dynamic import boundaries per module entry. **Done** (`modules:generate` + presets / lean flavor).
+- **P2:** Split `@starforge/module-*` packages + `modules:sync` allowlist so unused packages are not installed in lean images. **In progress** — see [module-install-packages](./module-install-packages.md); first packs: `@starforge/module-notice-bar`, `@starforge/module-consent`.
+- **P3:** `npm run modules:wizard` interactive allowlist → sync. **Done** (script shipped).
 
 ## Private module registry (own server)
 

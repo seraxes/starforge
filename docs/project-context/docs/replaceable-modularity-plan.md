@@ -45,8 +45,9 @@ Runtime toggles ≠ no deadweight. Complements [module-toggle-architecture](./mo
 | Phase | Deliverable |
 | --- | --- |
 | **Now** | Catalog + Site Settings list for *installed* modules |
-| **P1** | `starforge.modules.json` (or `SF_MODULES`) → generated `module-registry.ts`; dynamic import boundaries so disabled packs are not eager-imported |
-| **P2** | Optional `@starforge/module-*` packages + `modules:sync` from GitHub Packages; lean vs ASN image flavors |
+| **P1** | `starforge.modules.json` presets (`core` / `lean`) → generated `module-registry.ts`; unknown ids / missing `requires[]` fail codegen |
+| **P2** | `@starforge/module-*` + `modules:sync` (file: monorepo or GitHub Packages via `STARFORGE_MODULE_SOURCE=registry`); see [module-install-packages](./module-install-packages.md) |
+| **P3** | `npm run modules:wizard` writes allowlist then syncs |
 
 Required platform entries (`platform:better-auth`, and Payload when CMS is in the flavor) stay non-disableable or flavor-fixed. Particles/atoms register only via the generated registry.
 

@@ -23,18 +23,25 @@ Core-owned platform / builtin particle / atom rows live in
 
 ## Allowlist (install / build)
 
-Edit [`starforge.modules.json`](../../starforge.modules.json), then:
+Edit [`starforge.modules.json`](../../starforge.modules.json), or pick interactively:
 
 ```bash
-npm run modules:generate
+npm run modules:wizard   # writes allowlist + syncs packages + generate
+# or
+npm run modules:sync     # align @starforge/module-* deps, then generate
+npm run modules:generate # codegen only
 ```
 
 | Layer | Role |
 | --- | --- |
-| Allowlist | Which packs are installed in this build (no deadweight) |
+| Install / sync | `modules:sync` installs only allowlisted `@starforge/module-*` (GitHub Packages or `file:packages/…`) |
+| Allowlist / generate | Which packs appear in the generated registry |
 | Site Settings → Modules | On/off for installed packs (derived catalog) |
 
 Override allowlist for one run: `SF_MODULES=platform:better-auth,page-content,... npm run modules:generate`.
+
+Lean flavor: set `"flavor": "lean"` in `starforge.modules.json` (uses `presets.lean`). Full docs: [module-install-packages](../../docs/project-context/docs/module-install-packages.md).
+
 
 ## Packs in this tree
 

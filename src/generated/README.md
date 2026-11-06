@@ -32,4 +32,4 @@ Required: `platform:better-auth`, `page-content` (always forced into the allowli
 4. Optional UI chrome: `messages/en.json` (+ locales) and `i18n: { namespaces: ['product:…'] }` — see [`../modules/MESSAGES.md`](../modules/MESSAGES.md)
 5. Run `npm run modules:generate`
 
-P2 (later): `@starforge/module-*` packages + `modules:sync` from GitHub Packages.
+Packages: `npm run modules:sync` / `modules:wizard` align `@starforge/module-*` deps (see [module-install-packages](../../docs/project-context/docs/module-install-packages.md)).
