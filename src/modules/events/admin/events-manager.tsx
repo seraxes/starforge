@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 
 import { useNotifySavedOnOk } from '@/app/(frontend)/admin/admin-toast'
 import type { UserGroupOption } from '@/core/acl/types'
+import { RichEditor } from '@/modules/rich-editor/api'
 
 import {
   createEventAction,
@@ -40,6 +41,8 @@ type Props = {
   groups: UserGroupOption[]
   defaultTimezone: string
   statusFilter: string
+  /** Site Settings → Modules → Rich editor gate. */
+  richEditorEnabled?: boolean
 }
 
 const initial: EventsAdminActionState = {}
@@ -78,12 +81,14 @@ function EventFields({
   groups,
   defaultTimezone,
   busy,
+  richEditorEnabled,
 }: {
   row?: EventRow
   venues: VenueOpt[]
   groups: UserGroupOption[]
   defaultTimezone: string
   busy: boolean
+  richEditorEnabled: boolean
 }) {
   return (
     <>
@@ -174,15 +179,17 @@ function EventFields({
           placeholder="Unlimited"
         />
       </label>
-      <label className="settings-field settings-field-wide">
-        <span>Description</span>
-        <textarea
+      <div className="settings-field settings-field-wide">
+        <RichEditor
           name="description"
-          rows={4}
+          label="Description"
           defaultValue={row?.description ?? ''}
           disabled={busy}
+          enabled={richEditorEnabled}
+          preset="full"
+          placeholder="Game / event description…"
         />
-      </label>
+      </div>
       <input type="hidden" name="galleryMediaIdsJson" value="[]" />
       <CoverAndAccessFields
         coverMediaId={row?.coverMediaId ?? ''}
@@ -200,6 +207,7 @@ export function EventsManager({
   groups,
   defaultTimezone,
   statusFilter,
+  richEditorEnabled = true,
 }: Props) {
   const router = useRouter()
   const [createState, createAction, createPending] = useActionState(
@@ -268,6 +276,7 @@ export function EventsManager({
             groups={groups}
             defaultTimezone={defaultTimezone}
             busy={busy}
+            richEditorEnabled={richEditorEnabled}
           />
           <button
             type="submit"
@@ -309,6 +318,7 @@ export function EventsManager({
                 groups={groups}
                 defaultTimezone={defaultTimezone}
                 busy={busy}
+                richEditorEnabled={richEditorEnabled}
               />
               <div className="admin-inline-actions">
                 <button

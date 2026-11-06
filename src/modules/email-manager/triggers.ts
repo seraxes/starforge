@@ -60,6 +60,29 @@ export const BUILTIN_EMAIL_TRIGGERS: readonly EmailTriggerDef[] = [
     description: 'Admin test send from Email Manager (does not require a rule).',
     payloadFields: ['to', 'subject', 'body', 'note'],
   },
+  {
+    key: 'product:events/registered',
+    label: 'Event registered',
+    moduleCategory: 'events',
+    moduleId: 'product:events',
+    description:
+      'Fired after Forms event-registration onSubmitted creates an attendee row (registered or waitlisted).',
+    payloadFields: [
+      'eventId',
+      'eventTitle',
+      'eventSlug',
+      'registrationId',
+      'registrationStatus',
+      'ticketTierId',
+      'ticketTierTitle',
+      'name',
+      'email',
+      'guests',
+      'attendance',
+      'submissionId',
+      'respondentEmail',
+    ],
+  },
 ] as const
 
 const BY_KEY = new Map(BUILTIN_EMAIL_TRIGGERS.map((t) => [t.key, t]))

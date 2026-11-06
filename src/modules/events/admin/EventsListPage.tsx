@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 
 import { ensureDefaultUserGroupsSeeded, listUserGroupOptions } from '@/core/acl'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
+import { isRichEditorEnabled } from '@/modules/rich-editor/api.server'
 
 import { loadEventsModuleSettings } from '../settings'
 import { listEvents, listVenues } from '../store'
@@ -52,6 +53,7 @@ export default async function EventsListPage({ searchParams }: { searchParams: S
       <EventsManager
         statusFilter={status}
         defaultTimezone={moduleSettings.settings.defaultTimezone}
+        richEditorEnabled={isRichEditorEnabled(settings)}
         groups={groups}
         venues={venues.map((v) => ({ id: v.id, name: v.name }))}
         events={events.map((e) => ({

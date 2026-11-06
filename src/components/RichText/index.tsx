@@ -12,6 +12,7 @@ import {
 } from '@payloadcms/richtext-lexical/react'
 import React from 'react'
 
+import { RichContent } from '@/core/rich-editor/RichContent'
 import type { Page } from '@/payload-types'
 
 type NodeTypes = DefaultNodeTypes
@@ -67,16 +68,34 @@ const jsxConverters: JSXConvertersFunction<NodeTypes> = ({ defaultConverters }) 
   }
 }
 
-export function RichText({ data }: { data: SerializedEditorState | Page['body'] }) {
+function isLexicalState(data: unknown): data is SerializedEditorState {
+  if (!data || typeof data !== 'object') return false
+  const root = (data as { root?: unknown }).root
+  return Boolean(root && typeof root === 'object')
+}
+
+/**
+ * Public page body — TipTap HTML (canonical) or legacy Lexical JSON
+ * (`product:lexical-editor`; still rendered when that module is off so old pages do not blank).
+ */
+export function RichText({
+  data,
+}: {
+  data: SerializedEditorState | Page['body'] | string | null | undefined
+}) {
   if (!data) {
     return null
   }
 
-  return (
-    <PayloadRichText
-      className="cms-richtext"
-      converters={jsxConverters}
-      data={data as SerializedEditorState}
-    />
-  )
+  if (typeof data === 'string') {
+    return <RichContent html={data} className="cms-richtext" />
+  }
+
+  if (isLexicalState(data)) {
+    return (
+      <PayloadRichText className="cms-richtext" converters={jsxConverters} data={data} />
+    )
+  }
+
+  return null
 }

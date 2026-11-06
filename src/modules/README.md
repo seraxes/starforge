@@ -48,6 +48,8 @@ Lean flavor: set `"flavor": "lean"` in `starforge.modules.json` (uses `presets.l
 | Id | Path | Notes |
 | --- | --- | --- |
 | `product:forms` | `forms/manifest.ts` | Catalog + admin nav meta + Dashboard `forms.submissions` (live aggregates); engine still in `src/core/forms` (M4) |
+| `product:rich-editor` | `rich-editor/` | Shared TipTap + sanitized HTML editor; engine in `src/core/rich-editor` |
+| `product:lexical-editor` | `lexical-editor/` | Optional Lexical pack (legacy JSON / opt-in fields) |
 | `form` | `form/` | Form particle (dynamic import when allowlisted) |
 | `product:email-manager` | `email-manager/` | Rules/templates + send log + Dashboard `email.sent` |
 | `product:events` | `events/` | Thin Dashboard `events.upcoming` stub (no schema yet) |

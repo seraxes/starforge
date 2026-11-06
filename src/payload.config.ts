@@ -12,7 +12,6 @@ import { Media } from './collections/Media'
 import { Pages } from './collections/Pages'
 import { Tags } from './collections/Tags'
 import { Users } from './collections/Users'
-import { pagesLexicalEditor } from './fields/pagesLexical'
 import { SiteSettings } from './globals/SiteSettings'
 
 const filename = fileURLToPath(import.meta.url)
@@ -79,8 +78,7 @@ export default buildConfig({
     defaultLocale: DEFAULT_LOCALE,
     fallback: true,
   },
-  // Default rich text = Pages Lexical (headings, lists, links, Media uploads + fixed toolbar).
-  editor: pagesLexicalEditor,
+  // No root Lexical editor — Pages body is TipTap HTML (product:rich-editor).
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),

@@ -8,6 +8,7 @@ import { and, asc, count, eq, gte, lt } from 'drizzle-orm'
 
 import { db } from '@/core/db'
 import { normalizeAccessTags } from '@/core/acl/nav-access'
+import { sanitizeRichHtml } from '@/core/rich-editor/sanitize'
 
 import { sfEvents, sfVenues } from './schema'
 import {
@@ -22,11 +23,26 @@ function mapVenue(row: typeof sfVenues.$inferSelect): VenueRecord {
     id: row.id,
     name: row.name?.trim() || 'Untitled venue',
     address: row.address ?? '',
+    latitude:
+      typeof row.latitude === 'number' && Number.isFinite(row.latitude)
+        ? row.latitude
+        : null,
+    longitude:
+      typeof row.longitude === 'number' && Number.isFinite(row.longitude)
+        ? row.longitude
+        : null,
     coverMediaId: (row.coverMediaId || '').trim(),
     accessTags: normalizeAccessTags({ accessTags: row.accessTags }),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   }
+}
+
+function parseOptionalCoord(raw: unknown, min: number, max: number): number | null {
+  if (raw == null || raw === '') return null
+  const n = typeof raw === 'number' ? raw : Number(String(raw).trim())
+  if (!Number.isFinite(n) || n < min || n > max) return null
+  return n
 }
 
 function mapEvent(row: typeof sfEvents.$inferSelect): EventRecord {
@@ -153,6 +169,8 @@ export type UpsertVenueInput = {
   id?: string
   name: string
   address?: string
+  latitude?: unknown
+  longitude?: unknown
   coverMediaId?: string
   accessTags?: unknown
 }
@@ -162,6 +180,8 @@ export async function createVenue(
 ): Promise<{ venue: VenueRecord } | { error: string }> {
   const name = input.name.trim().slice(0, 200) || 'Untitled venue'
   const address = (input.address || '').trim().slice(0, 2000)
+  const latitude = parseOptionalCoord(input.latitude, -90, 90)
+  const longitude = parseOptionalCoord(input.longitude, -180, 180)
   const coverMediaId = (input.coverMediaId || '').trim() || null
   const accessTags = normalizeAccessTagsForDb(input.accessTags)
   const id = (input.id || '').trim() || crypto.randomUUID()
@@ -171,6 +191,8 @@ export async function createVenue(
       id,
       name,
       address,
+      latitude,
+      longitude,
       coverMediaId,
       accessTags,
     })
@@ -196,6 +218,14 @@ export async function updateVenue(
 
   const name = input.name.trim().slice(0, 200) || current.name
   const address = (input.address ?? current.address).trim().slice(0, 2000)
+  const latitude =
+    input.latitude !== undefined
+      ? parseOptionalCoord(input.latitude, -90, 90)
+      : current.latitude
+  const longitude =
+    input.longitude !== undefined
+      ? parseOptionalCoord(input.longitude, -180, 180)
+      : current.longitude
   const coverMediaId =
     input.coverMediaId !== undefined
       ? input.coverMediaId.trim() || null
@@ -211,6 +241,8 @@ export async function updateVenue(
       .set({
         name,
         address,
+        latitude,
+        longitude,
         coverMediaId,
         accessTags,
       })
@@ -302,7 +334,7 @@ export async function createEvent(
   const status: EventStatus = isEventStatus(input.status) ? input.status : 'draft'
   const timezone = (input.timezone || 'UTC').trim().slice(0, 80) || 'UTC'
   const venueId = (input.venueId || '').trim() || null
-  const description = (input.description || '').slice(0, 50_000)
+  const description = sanitizeRichHtml(input.description || '').slice(0, 50_000)
   const coverMediaId = (input.coverMediaId || '').trim() || null
   const galleryMediaIds = normalizeGalleryIds(input.galleryMediaIds)
   const capacity = parseOptionalCapacity(input.capacity)
@@ -365,7 +397,9 @@ export async function updateEvent(
       ? input.venueId.trim() || null
       : current.venueId || null
   const description =
-    input.description !== undefined ? input.description.slice(0, 50_000) : current.description
+    input.description !== undefined
+      ? sanitizeRichHtml(input.description).slice(0, 50_000)
+      : current.description
   const coverMediaId =
     input.coverMediaId !== undefined
       ? input.coverMediaId.trim() || null

@@ -1,7 +1,7 @@
 import type { CollectionAfterChangeHook, CollectionAfterDeleteHook, CollectionConfig } from 'payload'
 
-import { pagesLexicalEditor } from '../fields/pagesLexical'
 import { invalidatePublishedPage } from '../core/content/revalidate'
+import { sfHtmlBodyField } from '../modules/rich-editor/payload/sfHtmlBodyField'
 
 const revalidatePageAfterChange: CollectionAfterChangeHook = async ({ doc, previousDoc }) => {
   const slug = typeof doc?.slug === 'string' ? doc.slug : null
@@ -17,7 +17,7 @@ const revalidatePageAfterDelete: CollectionAfterDeleteHook = async ({ doc }) => 
 }
 
 /**
- * Editorial pages — drafts/publish + Lexical rich text body + SEO meta.
+ * Editorial pages — drafts/publish + TipTap HTML body + SEO meta.
  * Anonymous visitors may only read published docs (used by `/[slug]`).
  * Publish / unpublish / delete invalidates the published-content cache tags.
  */
@@ -87,16 +87,7 @@ export const Pages: CollectionConfig = {
         {
           label: 'Content',
           fields: [
-            {
-              name: 'body',
-              type: 'richText',
-              localized: true,
-              editor: pagesLexicalEditor,
-              admin: {
-                description:
-                  'Use the toolbar or “/” slash menu for headings, lists, links, and images from Media. Switch CMS locale to edit each language.',
-              },
-            },
+            sfHtmlBodyField(),
           ],
         },
         {

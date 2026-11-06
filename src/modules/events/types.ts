@@ -13,10 +13,22 @@ export function isEventStatus(value: unknown): value is EventStatus {
   )
 }
 
+/** Ticket / faction slot kinds (densify). */
+export const TICKET_TIER_KINDS = ['general', 'faction'] as const
+
+export type TicketTierKind = (typeof TICKET_TIER_KINDS)[number]
+
+export function isTicketTierKind(value: unknown): value is TicketTierKind {
+  return value === 'general' || value === 'faction'
+}
+
 export type VenueRecord = {
   id: string
   name: string
   address: string
+  /** WGS84 — null until set / geocoded. */
+  latitude: number | null
+  longitude: number | null
   coverMediaId: string
   accessTags: string[]
   createdAt: Date
