@@ -87,129 +87,122 @@ export function VenuesManager({ venues, groups }: Props) {
 
   return (
     <div className="sf-events-venues-manager admin-settings-mosaic">
-      <section className="outlines-create page-settings-panel" aria-label="Create venue">
-        <header className="page-settings-panel-head">
-          <h3>Add venue</h3>
-        </header>
-        <div className="page-settings-panel-body">
-          <form action={createAction} className="outlines-create-form admin-create-form">
-            <label className="settings-field">
-              <span>Name</span>
-              <input
-                type="text"
-                name="name"
-                required
-                maxLength={200}
-                autoComplete="off"
-                placeholder="Venue name"
-              />
-            </label>
-            <label className="settings-field">
-              <span>Address</span>
-              <input
-                type="text"
-                name="address"
-                maxLength={2000}
-                autoComplete="off"
-                placeholder="Street, city, country"
-              />
-            </label>
-            <CoverAndAccessFields
-              coverMediaId=""
-              accessTags={['public']}
-              groups={groups}
-              disabled={busy}
+      <section className="outlines-create" aria-label="Create venue">
+        <h3>Add venue</h3>
+        <form action={createAction} className="outlines-create-form admin-create-form">
+          <label className="settings-field">
+            <span>Name</span>
+            <input
+              type="text"
+              name="name"
+              required
+              maxLength={200}
+              autoComplete="off"
+              placeholder="Venue name"
             />
-            <button
-              type="submit"
-              className="gantry-toolbar-btn gantry-toolbar-btn-save"
-              disabled={createPending}
-            >
-              {createPending ? 'Adding…' : 'Add venue'}
-            </button>
-          </form>
-          <Feedback state={createState} />
-        </div>
+          </label>
+          <label className="settings-field">
+            <span>Address</span>
+            <input
+              type="text"
+              name="address"
+              maxLength={2000}
+              autoComplete="off"
+              placeholder="Street, city, country"
+            />
+          </label>
+          <CoverAndAccessFields
+            coverMediaId=""
+            accessTags={['public']}
+            groups={groups}
+            disabled={busy}
+          />
+          <button
+            type="submit"
+            className="gantry-toolbar-btn gantry-toolbar-btn-save"
+            disabled={createPending}
+          >
+            {createPending ? 'Adding…' : 'Add venue'}
+          </button>
+        </form>
+        <Feedback state={createState} />
       </section>
 
       <Feedback state={updateState} />
       <Feedback state={deleteState} />
 
-      <div className="outlines-table-wrap admin-settings-panel-wide">
-        {venues.length === 0 ? (
-          <p className="admin-empty">No venues yet. Add one above.</p>
-        ) : (
-          venues.map((row) => (
-            <section
-              key={row.id}
-              className="page-settings-panel"
-              aria-label={`Edit venue ${row.name}`}
-            >
-              <header className="page-settings-panel-head">
-                <h3>{row.name}</h3>
-                <span className="settings-hint">Updated {formatUpdated(row.updatedAt)}</span>
-              </header>
-              <div className="page-settings-panel-body">
-                <form action={updateAction} className="outlines-create-form admin-create-form">
-                  <input type="hidden" name="id" value={row.id} />
-                  <label className="settings-field">
-                    <span>Name</span>
-                    <input
-                      type="text"
-                      name="name"
-                      required
-                      maxLength={200}
-                      defaultValue={row.name}
-                      disabled={busy}
-                    />
-                  </label>
-                  <label className="settings-field">
-                    <span>Address</span>
-                    <input
-                      type="text"
-                      name="address"
-                      maxLength={2000}
-                      defaultValue={row.address}
-                      disabled={busy}
-                    />
-                  </label>
-                  <CoverAndAccessFields
-                    key={`${row.id}-${row.updatedAt}`}
-                    coverMediaId={row.coverMediaId}
-                    accessTags={row.accessTags}
-                    groups={groups}
-                    disabled={busy}
-                  />
-                  <div className="admin-inline-actions">
-                    <button
-                      type="submit"
-                      className="gantry-toolbar-btn gantry-toolbar-btn-save"
-                      disabled={busy}
-                    >
-                      {updatePending ? 'Saving…' : 'Save'}
-                    </button>
-                  </div>
-                </form>
-                <form action={deleteAction} className="admin-inline-actions">
-                  <input type="hidden" name="id" value={row.id} />
-                  <button
-                    type="submit"
-                    className="gantry-btn"
-                    disabled={busy}
-                    onClick={(e) => {
-                      if (!window.confirm(`Delete venue “${row.name}”?`)) {
-                        e.preventDefault()
-                      }
-                    }}
-                  >
-                    {deletePending ? 'Deleting…' : 'Delete'}
-                  </button>
-                </form>
+      {venues.length === 0 ? (
+        <section className="outlines-create" aria-label="Venues list">
+          <h3>No venues yet</h3>
+          <p className="admin-empty">Add one above to bind places to events.</p>
+        </section>
+      ) : (
+        venues.map((row) => (
+          <section
+            key={row.id}
+            className="outlines-create"
+            aria-label={`Edit venue ${row.name}`}
+          >
+            <h3>{row.name}</h3>
+            <p className="settings-hint">Updated {formatUpdated(row.updatedAt)}</p>
+            <form action={updateAction} className="outlines-create-form admin-create-form">
+              <input type="hidden" name="id" value={row.id} />
+              <label className="settings-field">
+                <span>Name</span>
+                <input
+                  type="text"
+                  name="name"
+                  required
+                  maxLength={200}
+                  defaultValue={row.name}
+                  disabled={busy}
+                />
+              </label>
+              <label className="settings-field">
+                <span>Address</span>
+                <input
+                  type="text"
+                  name="address"
+                  maxLength={2000}
+                  defaultValue={row.address}
+                  disabled={busy}
+                />
+              </label>
+              <CoverAndAccessFields
+                key={`${row.id}-${row.updatedAt}`}
+                coverMediaId={row.coverMediaId}
+                accessTags={row.accessTags}
+                groups={groups}
+                disabled={busy}
+              />
+              <div className="admin-inline-actions">
+                <button
+                  type="submit"
+                  className="gantry-toolbar-btn gantry-toolbar-btn-save"
+                  disabled={busy}
+                >
+                  {updatePending ? 'Saving…' : 'Save'}
+                </button>
               </div>
-            </section>
-          ))
-        )}
-      </div>
+            </form>
+            <form action={deleteAction} className="admin-inline-actions">
+              <input type="hidden" name="id" value={row.id} />
+              <button
+                type="submit"
+                className="gantry-btn"
+                disabled={busy}
+                onClick={(e) => {
+                  if (!window.confirm(`Delete venue “${row.name}”?`)) {
+                    e.preventDefault()
+                  }
+                }}
+              >
+                {deletePending ? 'Deleting…' : 'Delete'}
+              </button>
+            </form>
+          </section>
+        ))
+      )}
     </div>
   )
 }
