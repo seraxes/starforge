@@ -1672,6 +1672,13 @@ button:disabled {
 
 .settings-field input[type='text'],
 .settings-field input[type='url'],
+.settings-field input[type='email'],
+.settings-field input[type='password'],
+.settings-field input[type='number'],
+.settings-field input[type='search'],
+.settings-field input[type='date'],
+.settings-field input[type='time'],
+.settings-field input[type='datetime-local'],
 .settings-field select,
 .settings-field textarea {
   font: inherit;
@@ -3748,6 +3755,9 @@ button:disabled {
 .gantry-typed-form input[type='url'],
 .gantry-typed-form input[type='number'],
 .gantry-typed-form input[type='email'],
+.gantry-typed-form input[type='date'],
+.gantry-typed-form input[type='time'],
+.gantry-typed-form input[type='datetime-local'],
 .gantry-typed-form textarea,
 .gantry-typed-form select {
   font: inherit;
@@ -4476,9 +4486,35 @@ button:disabled {
   align-items: center;
 }
 
+/*
+ * Flex on a <td> breaks table row height (cell shorter than siblings) and paints a
+ * leftover strip / line under Forms/Groups Actions buttons. Keep table-cell layout.
+ */
+td.outlines-actions {
+  display: table-cell;
+  vertical-align: middle;
+}
+
+td.outlines-actions > a,
+td.outlines-actions > button,
+td.outlines-actions > form {
+  display: inline-flex;
+  vertical-align: middle;
+  margin: 0 0.4rem 0 0;
+}
+
+td.outlines-actions > :last-child {
+  margin-right: 0;
+}
+
 .outlines-actions form {
   display: inline;
   margin: 0;
+}
+
+td.outlines-actions > form {
+  display: inline-flex;
+  margin: 0 0.4rem 0 0;
 }
 
 .outlines-inline-form {
