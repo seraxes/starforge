@@ -15,11 +15,17 @@ type CoverAndAccessProps = {
   groups: UserGroupOption[]
   disabled?: boolean
   coverLabel?: string
+  /** When set, show listed + password controls (events only). */
+  visibility?: {
+    listed: boolean
+    hasAccessPassword: boolean
+  }
 }
 
 /**
  * Shared Media cover + ACL tags for venue/event forms.
  * Writes hidden inputs `coverMediaId` + `accessTagsJson` for FormData actions.
+ * Events may also write `listed`, `accessPassword`, `clearAccessPassword`.
  */
 export function CoverAndAccessFields({
   coverMediaId: initialCover,
@@ -27,11 +33,13 @@ export function CoverAndAccessFields({
   groups,
   disabled,
   coverLabel = 'Cover',
+  visibility,
 }: CoverAndAccessProps) {
   const [coverMediaId, setCoverMediaId] = useState(initialCover)
   const [accessTags, setAccessTags] = useState(
     initialTags.length > 0 ? initialTags : ['public'],
   )
+  const [listed, setListed] = useState(visibility?.listed !== false)
 
   return (
     <>
@@ -49,6 +57,46 @@ export function CoverAndAccessFields({
         />
         <input type="hidden" name="coverMediaId" value={coverMediaId} />
       </div>
+      {visibility ? (
+        <fieldset className="settings-fieldset">
+          <legend>Visibility</legend>
+          <p className="settings-hint">
+            Group ACL gates who may open the page. Unlisted hides the event from public
+            lists (URL still works). Password is an optional extra gate after ACL.
+          </p>
+          <label className="settings-field settings-field-checkbox">
+            <input
+              type="checkbox"
+              checked={listed}
+              disabled={disabled}
+              onChange={(e) => setListed(e.target.checked)}
+            />
+            <span>Listed in public calendars / event lists</span>
+          </label>
+          <input type="hidden" name="listed" value={listed ? '1' : '0'} />
+          <label className="settings-field">
+            <span>
+              Access password
+              {visibility.hasAccessPassword ? ' (set — leave blank to keep)' : ''}
+            </span>
+            <input
+              type="password"
+              name="accessPassword"
+              autoComplete="new-password"
+              disabled={disabled}
+              placeholder={
+                visibility.hasAccessPassword ? '••••••••' : 'Optional shared password'
+              }
+            />
+          </label>
+          {visibility.hasAccessPassword ? (
+            <label className="settings-field settings-field-checkbox">
+              <input type="checkbox" name="clearAccessPassword" value="1" disabled={disabled} />
+              <span>Clear access password</span>
+            </label>
+          ) : null}
+        </fieldset>
+      ) : null}
       <AccessTagsField
         value={accessTags}
         groups={groups}
@@ -93,6 +141,8 @@ export type EventFormRow = {
   relatedEventIds?: string[]
   signupNote?: string
   termsUrl?: string
+  listed?: boolean
+  hasAccessPassword?: boolean
   accessTags?: string[]
 }
 
@@ -417,6 +467,10 @@ export function EventFormFields({
         accessTags={row?.accessTags ?? ['public']}
         groups={groups}
         disabled={busy}
+        visibility={{
+          listed: row?.listed !== false,
+          hasAccessPassword: Boolean(row?.hasAccessPassword),
+        }}
       />
     </>
   )

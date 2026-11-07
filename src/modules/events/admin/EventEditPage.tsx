@@ -118,6 +118,8 @@ export default async function EventEditPage({ params }: { params: Params }) {
           relatedEventIds: event.relatedEventIds,
           signupNote: event.signupNote,
           termsUrl: event.termsUrl,
+          listed: event.listed,
+          hasAccessPassword: event.hasAccessPassword,
           accessTags: event.accessTags,
           updatedAt: event.updatedAt.toISOString(),
         }}

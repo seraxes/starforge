@@ -2,7 +2,6 @@ import React from 'react'
 import { getLocale } from 'next-intl/server'
 
 import { getAccessViewer } from '@/core/acl/access'
-import { canSeeNavAccessTags } from '@/core/acl/nav-access'
 import { isAppLocale } from '@/core/i18n/locales'
 import { withLocalePrefix } from '@/core/i18n/path'
 import type { StarforgeModule } from '@/core/modules/types'
@@ -10,9 +9,14 @@ import { MODULE_IDS, isCatalogModuleEnabled } from '@/core/settings'
 
 import { listEventPartiesByIds } from '../parties'
 import {
+  viewerPassesEventAcl,
+  viewerPassesEventPassword,
+} from '../public-access'
+import {
   EventDetail,
   relatedEventLinksFromRecords,
 } from '../public/EventDetail'
+import { EventPasswordGate } from '../public/EventPasswordGate'
 import { eventPublicPathKey } from '../public/path'
 import {
   findEventById,
@@ -55,8 +59,14 @@ export const eventDetailModule: StarforgeModule = {
     }
 
     const viewer = await getAccessViewer()
-    if (!canSeeNavAccessTags(event.accessTags, viewer)) {
+    if (!viewerPassesEventAcl(event, viewer)) {
       return null
+    }
+    if (!(await viewerPassesEventPassword(event, viewer))) {
+      return React.createElement(EventPasswordGate, {
+        eventId: event.id,
+        title: event.title,
+      })
     }
 
     const venue = event.venueId ? await findVenueById(event.venueId) : null
@@ -70,9 +80,12 @@ export const eventDetailModule: StarforgeModule = {
     const locale = isAppLocale(localeRaw) ? localeRaw : undefined
     const relatedById = new Map(
       relatedRows
-        .filter((r): r is NonNullable<typeof r> => Boolean(r) && r.status === 'published')
-        .filter((r) => canSeeNavAccessTags(r.accessTags, viewer))
-        .map((r) => [r.id, r]),
+        .flatMap((r) =>
+          r && r.status === 'published' && r.listed && viewerPassesEventAcl(r, viewer)
+            ? [r]
+            : [],
+        )
+        .map((r) => [r.id, r] as const),
     )
     const relatedEvents = relatedEventLinksFromRecords(
       event.relatedEventIds,

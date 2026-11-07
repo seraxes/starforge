@@ -3653,3 +3653,42 @@ body:has(.admin-shell) > main {
 .admin-shell .sf-rich-editor-prose .sf-rich-callout-success {
   border-left-color: #2f9e64;
 }
+
+/* Events list filters — muted blue chips; orange reserved for Save / rare CTAs */
+.admin-shell .sf-events-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem 0.75rem;
+}
+
+.admin-shell .sf-events-filter-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.admin-shell .sf-events-filter-group + .sf-events-filter-group {
+  padding-left: 0.75rem;
+  border-left: 1px solid var(--sf-admin-panel-border);
+}
+
+.admin-shell .sf-events-filters a.gantry-toolbar-btn,
+.admin-shell .sf-events-filters .gantry-toolbar-btn {
+  color: #fff;
+}
+
+.admin-shell .sf-events-filters a.gantry-toolbar-btn.is-active,
+.admin-shell .sf-events-filters .gantry-toolbar-btn.is-active,
+.admin-shell .sf-events-filters a.gantry-toolbar-btn[aria-current='true'] {
+  background: color-mix(in srgb, var(--sf-admin-blue-mid) 55%, #121a24);
+  border: 1px solid var(--sf-admin-blue-border);
+  color: #fff;
+}
+
+.admin-shell .sf-events-filters a.gantry-toolbar-btn:hover:not(.is-active),
+.admin-shell .sf-events-filters a.gantry-toolbar-btn:hover:not([aria-current='true']) {
+  background: #4a6085;
+  color: #fff;
+}

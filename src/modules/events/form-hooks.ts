@@ -8,6 +8,12 @@ import 'server-only'
 import { registerFormPreset } from '@/modules/forms/api'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
+import { getAccessViewer } from '@/core/acl/access'
+
+import {
+  viewerPassesEventAcl,
+  viewerPassesEventPassword,
+} from './public-access'
 import { createEventRegistration } from './registrations'
 import { findEventById } from './store'
 
@@ -50,6 +56,10 @@ export function ensureEventsFormHooks(): void {
 
         const event = await findEventById(eventId)
         if (!event || event.status !== 'published') return
+
+        const viewer = await getAccessViewer()
+        if (!viewerPassesEventAcl(event, viewer)) return
+        if (!(await viewerPassesEventPassword(event, viewer))) return
 
         const ticketTierId =
           payloadString(ctx.payload, 'ticket_tier_id') ||

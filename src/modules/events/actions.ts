@@ -98,6 +98,9 @@ function eventFieldsFromForm(formData: FormData) {
     relatedEventIds: parseIdListJson(formData, 'relatedEventIdsJson'),
     signupNote: String(formData.get('signupNote') ?? ''),
     termsUrl: String(formData.get('termsUrl') ?? ''),
+    listed: formData.get('listed') === '0' ? '0' : '1',
+    accessPassword: String(formData.get('accessPassword') ?? ''),
+    clearAccessPassword: formData.get('clearAccessPassword') === '1' ? '1' : '',
     accessTags: parseAccessTagsFromForm(formData),
   }
 }
@@ -304,6 +307,52 @@ export async function duplicateEventAction(
     message: `Duplicated as “${result.event.title}”.`,
     id: result.event.id,
   }
+}
+
+export type EventUnlockActionState = {
+  error?: string
+  ok?: boolean
+}
+
+/**
+ * Public: unlock a password-gated published event (sets httpOnly cookie).
+ */
+export async function unlockEventPasswordAction(
+  _prev: EventUnlockActionState,
+  formData: FormData,
+): Promise<EventUnlockActionState> {
+  const moduleOff = await requireEventsModuleOn()
+  if (moduleOff) return { error: moduleOff.error }
+
+  const eventId = String(formData.get('eventId') ?? '').trim()
+  const password = String(formData.get('password') ?? '')
+  if (!eventId) return { error: 'Missing event.' }
+  if (!password.trim()) return { error: 'Enter the event password.' }
+
+  const { findEventById, getEventAccessPasswordHash } = await import('./store')
+  const { verifyEventPassword, setEventPasswordUnlockCookie } = await import(
+    './access-password'
+  )
+
+  const event = await findEventById(eventId)
+  if (!event || event.status !== 'published') {
+    return { error: 'Event not found.' }
+  }
+  const hash = await getEventAccessPasswordHash(eventId)
+  if (!hash) {
+    return { error: 'This event is not password protected.' }
+  }
+  if (!verifyEventPassword(password, hash)) {
+    return { error: 'Incorrect password.' }
+  }
+
+  const set = await setEventPasswordUnlockCookie(eventId)
+  if (!set.ok) return { error: set.error }
+
+  const pathKey = event.slug || event.id
+  revalidatePath('/events')
+  revalidatePath(`/events/${encodeURIComponent(pathKey)}`)
+  return { ok: true }
 }
 
 /* ─── Parties ────────────────────────────────────────────────────────────── */

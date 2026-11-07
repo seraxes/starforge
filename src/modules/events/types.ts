@@ -84,6 +84,10 @@ export type EventRecord = {
   relatedEventIds: string[]
   signupNote: string
   termsUrl: string
+  /** When false, omit from public discovery lists (URL still works). */
+  listed: boolean
+  /** True when a shared access password is set (hash never exposed). */
+  hasAccessPassword: boolean
   accessTags: string[]
   createdAt: Date
   updatedAt: Date

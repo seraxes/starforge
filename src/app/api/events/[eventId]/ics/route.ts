@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server'
 
+import { getAccessViewer } from '@/core/acl/access'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
+import {
+  viewerPassesEventAcl,
+  viewerPassesEventPassword,
+} from '@/modules/events/public-access'
 import { buildEventIcs } from '@/modules/events/public/ics'
 import { findEventById, findPublishedEventByPublicKey, findVenueById } from '@/modules/events/store'
 
@@ -8,7 +13,7 @@ type Params = Promise<{ eventId: string }>
 
 /**
  * GET /api/events/:eventId/ics — download calendar for a published event.
- * `eventId` may be id or public slug.
+ * `eventId` may be id or public slug. Honors ACL + password unlock.
  */
 export async function GET(_req: Request, { params }: { params: Params }) {
   const settings = await getSiteSettings()
@@ -24,6 +29,14 @@ export async function GET(_req: Request, { params }: { params: Params }) {
     (await findPublishedEventByPublicKey(key)) ||
     (await findEventById(key).then((e) => (e?.status === 'published' ? e : null)))
   if (!event) return new NextResponse('Not found', { status: 404 })
+
+  const viewer = await getAccessViewer()
+  if (!viewerPassesEventAcl(event, viewer)) {
+    return new NextResponse('Not found', { status: 404 })
+  }
+  if (!(await viewerPassesEventPassword(event, viewer))) {
+    return new NextResponse('Password required', { status: 401 })
+  }
 
   const venue = event.venueId ? await findVenueById(event.venueId) : null
   const venueLine = venue
@@ -41,7 +54,7 @@ export async function GET(_req: Request, { params }: { params: Params }) {
     headers: {
       'Content-Type': 'text/calendar; charset=utf-8',
       'Content-Disposition': `attachment; filename="${filename}"`,
-      'Cache-Control': 'public, max-age=60',
+      'Cache-Control': 'private, max-age=60',
     },
   })
 }

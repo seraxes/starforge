@@ -4,6 +4,7 @@
  */
 
 import {
+  boolean as pgBoolean,
   doublePrecision,
   index,
   integer,
@@ -89,6 +90,13 @@ export const sfEvents = pgTable(
     signupNote: text('signup_note').notNull().default(''),
     /** Terms / conditions page URL (CMS or external). */
     termsUrl: text('terms_url').notNull().default(''),
+    /**
+     * When false, published event is omitted from public lists/particles
+     * (direct URL still works subject to ACL + optional password).
+     */
+    listed: pgBoolean('listed').notNull().default(true),
+    /** scrypt hash for optional shared access password; never expose to client. */
+    accessPasswordHash: text('access_password_hash'),
     accessTags: jsonb('access_tags').$type<string[]>().notNull().default([]),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true })
@@ -101,6 +109,7 @@ export const sfEvents = pgTable(
     index('sf_events_starts_at_idx').on(table.startsAt),
     index('sf_events_venue_id_idx').on(table.venueId),
     index('sf_events_slug_idx').on(table.slug),
+    index('sf_events_listed_idx').on(table.listed),
   ],
 )
 

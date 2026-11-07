@@ -1,10 +1,13 @@
 import React from 'react'
 
 import { getAccessViewer } from '@/core/acl/access'
-import { canSeeNavAccessTags } from '@/core/acl/nav-access'
 import type { StarforgeModule } from '@/core/modules/types'
 import { MODULE_IDS, isCatalogModuleEnabled } from '@/core/settings'
 
+import {
+  viewerPassesEventAcl,
+  viewerPassesEventPassword,
+} from '../public-access'
 import { EventCountdown } from '../public/EventCountdown'
 import { findPublishedEventByPublicKey } from '../store'
 import { readEventCountdownConfig } from './event-countdown-config'
@@ -42,7 +45,10 @@ export const eventCountdownModule: StarforgeModule = {
     }
 
     const viewer = await getAccessViewer()
-    if (!canSeeNavAccessTags(event.accessTags, viewer)) {
+    if (!viewerPassesEventAcl(event, viewer)) {
+      return null
+    }
+    if (!(await viewerPassesEventPassword(event, viewer))) {
       return null
     }
 

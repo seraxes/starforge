@@ -152,77 +152,77 @@ export function EventsManager({
     <div className="sf-events-manager admin-settings-mosaic">
       <section className="outlines-create" aria-label="Filter events">
         <h3>Filter</h3>
-        <div className="admin-inline-actions" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
-          <Link
-            href={href({ status: 'all' })}
-            className={
-              statusFilter === 'all' ? 'gantry-btn gantry-btn-primary' : 'gantry-btn'
-            }
-          >
-            All statuses
-          </Link>
-          {EVENT_STATUSES.map((s) => (
+        <div className="sf-events-filters">
+          <div className="sf-events-filter-group" role="group" aria-label="Status">
             <Link
-              key={s}
-              href={href({ status: s })}
-              className={
-                statusFilter === s ? 'gantry-btn gantry-btn-primary' : 'gantry-btn'
-              }
+              href={href({ status: 'all' })}
+              className={`gantry-toolbar-btn gantry-toolbar-btn-muted${
+                statusFilter === 'all' ? ' is-active' : ''
+              }`}
+              aria-current={statusFilter === 'all' ? 'true' : undefined}
             >
-              {s}
+              All statuses
             </Link>
-          ))}
-        </div>
-        <div
-          className="admin-inline-actions"
-          style={{ flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}
-        >
-          <Link
-            href={href({ scope: 'all' })}
-            className={
-              scopeFilter === 'all' ? 'gantry-btn gantry-btn-primary' : 'gantry-btn'
-            }
-          >
-            All events
-          </Link>
-          <Link
-            href={href({ scope: 'mine' })}
-            className={
-              scopeFilter === 'mine' ? 'gantry-btn gantry-btn-primary' : 'gantry-btn'
-            }
-            title="Events where your user or groups are managers/helpers"
-          >
-            Managed by me
-          </Link>
-        </div>
-        {organizerOptions.length > 0 ? (
-          <div
-            className="admin-inline-actions"
-            style={{ flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}
-          >
-            <Link
-              href={href({ organizer: null })}
-              className={
-                !organizerFilter ? 'gantry-btn gantry-btn-primary' : 'gantry-btn'
-              }
-            >
-              All organizers
-            </Link>
-            {organizerOptions.map((org) => (
+            {EVENT_STATUSES.map((s) => (
               <Link
-                key={org.id}
-                href={href({ organizer: org.id })}
-                className={
-                  organizerFilter === org.id
-                    ? 'gantry-btn gantry-btn-primary'
-                    : 'gantry-btn'
-                }
+                key={s}
+                href={href({ status: s })}
+                className={`gantry-toolbar-btn gantry-toolbar-btn-muted${
+                  statusFilter === s ? ' is-active' : ''
+                }`}
+                aria-current={statusFilter === s ? 'true' : undefined}
               >
-                {org.label}
+                {s}
               </Link>
             ))}
           </div>
-        ) : null}
+          <div className="sf-events-filter-group" role="group" aria-label="Scope">
+            <Link
+              href={href({ scope: 'all' })}
+              className={`gantry-toolbar-btn gantry-toolbar-btn-muted${
+                scopeFilter === 'all' ? ' is-active' : ''
+              }`}
+              aria-current={scopeFilter === 'all' ? 'true' : undefined}
+            >
+              All events
+            </Link>
+            <Link
+              href={href({ scope: 'mine' })}
+              className={`gantry-toolbar-btn gantry-toolbar-btn-muted${
+                scopeFilter === 'mine' ? ' is-active' : ''
+              }`}
+              aria-current={scopeFilter === 'mine' ? 'true' : undefined}
+              title="Events where your user or groups are managers/helpers"
+            >
+              Managed by me
+            </Link>
+          </div>
+          {organizerOptions.length > 0 ? (
+            <div className="sf-events-filter-group" role="group" aria-label="Organizer">
+              <Link
+                href={href({ organizer: null })}
+                className={`gantry-toolbar-btn gantry-toolbar-btn-muted${
+                  !organizerFilter ? ' is-active' : ''
+                }`}
+                aria-current={!organizerFilter ? 'true' : undefined}
+              >
+                All organizers
+              </Link>
+              {organizerOptions.map((org) => (
+                <Link
+                  key={org.id}
+                  href={href({ organizer: org.id })}
+                  className={`gantry-toolbar-btn gantry-toolbar-btn-muted${
+                    organizerFilter === org.id ? ' is-active' : ''
+                  }`}
+                  aria-current={organizerFilter === org.id ? 'true' : undefined}
+                >
+                  {org.label}
+                </Link>
+              ))}
+            </div>
+          ) : null}
+        </div>
       </section>
 
       <section className="outlines-create" aria-label="Create event">

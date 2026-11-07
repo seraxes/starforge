@@ -14,6 +14,7 @@ import {
 import type { AccessViewer } from '@/core/acl/types'
 import { sanitizeRichHtml } from '@/core/rich-editor/sanitize'
 
+import { hashEventPassword } from './access-password'
 import { sfEvents, sfVenues } from './schema'
 import {
   isEventStatus,
@@ -95,10 +96,40 @@ function mapEvent(row: typeof sfEvents.$inferSelect): EventRecord {
     relatedEventIds: normalizeIdList(row.relatedEventIds),
     signupNote: (row.signupNote || '').trim().slice(0, 4000),
     termsUrl: (row.termsUrl || '').trim().slice(0, 2000),
+    listed: row.listed !== false,
+    hasAccessPassword: Boolean((row.accessPasswordHash || '').trim()),
     accessTags: normalizeAccessTags({ accessTags: row.accessTags }),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   }
+}
+
+/** Server-only: raw password hash for unlock verify (never send to client). */
+export async function getEventAccessPasswordHash(
+  eventId: string,
+): Promise<string | null> {
+  const trimmed = eventId.trim()
+  if (!trimmed) return null
+  try {
+    const [row] = await db
+      .select({ accessPasswordHash: sfEvents.accessPasswordHash })
+      .from(sfEvents)
+      .where(eq(sfEvents.id, trimmed))
+      .limit(1)
+    const hash = (row?.accessPasswordHash || '').trim()
+    return hash || null
+  } catch {
+    return null
+  }
+}
+
+function parseListedFlag(raw: unknown, fallback = true): boolean {
+  if (raw === undefined || raw === null || raw === '') return fallback
+  if (typeof raw === 'boolean') return raw
+  const s = String(raw).trim().toLowerCase()
+  if (s === '0' || s === 'false' || s === 'off' || s === 'no') return false
+  if (s === '1' || s === 'true' || s === 'on' || s === 'yes') return true
+  return fallback
 }
 
 function tableMissingMessage(error: unknown, table: string): string | null {
@@ -366,6 +397,10 @@ export type UpsertEventInput = {
   relatedEventIds?: unknown
   signupNote?: unknown
   termsUrl?: unknown
+  listed?: unknown
+  /** Plaintext from admin form — hashed before persist; empty = leave unchanged on update. */
+  accessPassword?: unknown
+  clearAccessPassword?: unknown
   accessTags?: unknown
 }
 
@@ -409,6 +444,10 @@ export async function createEvent(
   )
   const signupNote = String(input.signupNote ?? '').trim().slice(0, 4000)
   const termsUrl = String(input.termsUrl ?? '').trim().slice(0, 2000)
+  const listed = parseListedFlag(input.listed, true)
+  const plainPassword = String(input.accessPassword ?? '')
+  const accessPasswordHash =
+    plainPassword.trim().length > 0 ? hashEventPassword(plainPassword.trim()) : null
   const slug = normalizeSlug(input.slug)
   const accessTags = normalizeAccessTagsForDb(input.accessTags)
   const id = (input.id || '').trim() || crypto.randomUUID()
@@ -454,6 +493,8 @@ export async function createEvent(
       relatedEventIds,
       signupNote,
       termsUrl,
+      listed,
+      accessPasswordHash,
       accessTags,
     })
     const created = await findEventById(id)
@@ -553,6 +594,22 @@ export async function updateEvent(
     input.termsUrl !== undefined
       ? String(input.termsUrl ?? '').trim().slice(0, 2000)
       : current.termsUrl
+  const listed =
+    input.listed !== undefined ? parseListedFlag(input.listed, current.listed) : current.listed
+  const clearPassword =
+    input.clearAccessPassword === true ||
+    input.clearAccessPassword === '1' ||
+    input.clearAccessPassword === 'on' ||
+    input.clearAccessPassword === 'true'
+  const plainPassword = String(input.accessPassword ?? '').trim()
+  let accessPasswordHash: string | null | undefined
+  if (clearPassword) {
+    accessPasswordHash = null
+  } else if (plainPassword.length > 0) {
+    accessPasswordHash = hashEventPassword(plainPassword)
+  } else {
+    accessPasswordHash = undefined
+  }
   const slug =
     input.slug !== undefined ? normalizeSlug(input.slug) : current.slug || null
   const accessTags =
@@ -602,6 +659,8 @@ export async function updateEvent(
         relatedEventIds,
         signupNote,
         termsUrl,
+        listed,
+        ...(accessPasswordHash !== undefined ? { accessPasswordHash } : {}),
         accessTags,
       })
       .where(eq(sfEvents.id, id))
@@ -691,9 +750,25 @@ export async function duplicateEvent(
     relatedEventIds: source.relatedEventIds,
     signupNote: source.signupNote,
     termsUrl: source.termsUrl,
+    listed: source.listed,
     accessTags: source.accessTags,
   })
   if ('error' in created) return created
+
+  // Copy password gate without re-prompting (hash clone).
+  if (source.hasAccessPassword) {
+    const hash = await getEventAccessPasswordHash(source.id)
+    if (hash) {
+      try {
+        await db
+          .update(sfEvents)
+          .set({ accessPasswordHash: hash })
+          .where(eq(sfEvents.id, created.event.id))
+      } catch {
+        /* best-effort */
+      }
+    }
+  }
 
   if (options?.copyTiers !== false) {
     try {
@@ -736,18 +811,23 @@ export async function deleteEvent(
 /** Published events for public list / particles (ACL applied by caller). */
 export async function listPublishedEvents(options?: {
   includePast?: boolean
+  /** When true (default), omit unlisted events from discovery. */
+  listedOnly?: boolean
   limit?: number
   now?: Date
 }): Promise<EventRecord[]> {
   const now = options?.now ?? new Date()
   const limit = Math.min(Math.max(options?.limit ?? 50, 1), 200)
+  const listedOnly = options?.listedOnly !== false
   try {
     const published = eq(sfEvents.status, 'published')
     const upcoming = or(isNull(sfEvents.startsAt), gte(sfEvents.startsAt, now))
+    const listed = eq(sfEvents.listed, true)
+    const base = listedOnly ? and(published, listed) : published
     const rows = await db
       .select()
       .from(sfEvents)
-      .where(options?.includePast ? published : and(published, upcoming))
+      .where(options?.includePast ? base : and(base, upcoming))
       .orderBy(asc(sfEvents.startsAt), asc(sfEvents.title), asc(sfEvents.id))
       .limit(limit)
     return rows.map(mapEvent)

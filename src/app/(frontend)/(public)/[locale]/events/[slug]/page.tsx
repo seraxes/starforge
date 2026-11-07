@@ -4,7 +4,6 @@ import { notFound } from 'next/navigation'
 import React from 'react'
 
 import { getAccessViewer } from '@/core/acl/access'
-import { canSeeNavAccessTags } from '@/core/acl/nav-access'
 import { requireContentLocale } from '@/core/content/pages'
 import { isValidLocaleCode } from '@/core/i18n'
 import { withLocalePrefix } from '@/core/i18n/path'
@@ -13,9 +12,14 @@ import { getSiteChrome } from '@/core/site-chrome'
 import { ensureEventsFormHooks } from '@/modules/events/form-hooks'
 import { listEventPartiesByIds } from '@/modules/events/parties'
 import {
+  viewerPassesEventAcl,
+  viewerPassesEventPassword,
+} from '@/modules/events/public-access'
+import {
   EventDetail,
   relatedEventLinksFromRecords,
 } from '@/modules/events/public/EventDetail'
+import { EventPasswordGate } from '@/modules/events/public/EventPasswordGate'
 import { eventPublicPathKey } from '@/modules/events/public/path'
 import { EventRegistrationForm } from '@/modules/events/public/EventRegistrationForm'
 import { EventVenueMap } from '@/modules/events/public/EventVenueMap'
@@ -49,6 +53,7 @@ export async function generateMetadata({ params }: Args): Promise<Metadata> {
   return {
     title: event.title,
     description: `${event.title} — ${siteName}`,
+    robots: event.listed ? undefined : { index: false, follow: false },
   }
 }
 
@@ -77,8 +82,17 @@ export default async function PublicEventDetailPage({ params }: Args) {
   }
 
   const viewer = await getAccessViewer()
-  if (!canSeeNavAccessTags(event.accessTags, viewer)) {
+  if (!viewerPassesEventAcl(event, viewer)) {
     notFound()
+  }
+
+  const unlocked = await viewerPassesEventPassword(event, viewer)
+  if (!unlocked) {
+    return (
+      <div className="cms-page sf-events-page">
+        <EventPasswordGate eventId={event.id} title={event.title} />
+      </div>
+    )
   }
 
   const venue = event.venueId ? await findVenueById(event.venueId) : null
@@ -87,15 +101,16 @@ export default async function PublicEventDetailPage({ params }: Args) {
     listEventPartiesByIds(event.organizerPartyIds),
     listEventPartiesByIds(event.speakerPartyIds),
     listEventPartiesByIds(event.sponsorPartyIds),
-    Promise.all(
-      event.relatedEventIds.map((rid) => findEventById(rid)),
-    ),
+    Promise.all(event.relatedEventIds.map((rid) => findEventById(rid))),
   ])
   const relatedById = new Map(
     relatedRows
-      .filter((r): r is NonNullable<typeof r> => Boolean(r) && r.status === 'published')
-      .filter((r) => canSeeNavAccessTags(r.accessTags, viewer))
-      .map((r) => [r.id, r]),
+      .flatMap((r) =>
+        r && r.status === 'published' && r.listed && viewerPassesEventAcl(r, viewer)
+          ? [r]
+          : [],
+      )
+      .map((r) => [r.id, r] as const),
   )
   const relatedEvents = relatedEventLinksFromRecords(
     event.relatedEventIds,
