@@ -175,6 +175,7 @@ export function MediaLibraryClient({
 
   React.useEffect(() => {
     if (uploadState.ok) {
+      setUploadHint(null)
       notifySaved(uploadState.message || 'Uploaded.')
       startTransition(() => router.refresh())
     }
