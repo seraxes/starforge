@@ -111,12 +111,13 @@ export function EventEditor({
   return (
     <div className="sf-events-editor admin-settings-mosaic">
       <section className="outlines-create" aria-label="Event details">
-        <h3>Basics & schedule</h3>
+        <h3>Event</h3>
         <p className="settings-hint">
           Updated{' '}
           {Number.isNaN(new Date(event.updatedAt).getTime())
             ? '—'
             : `${new Date(event.updatedAt).toISOString().replace('T', ' ').slice(0, 16)} UTC`}
+          . Sections: Basics → Gallery → Schedule → Registration → People → Visibility.
         </p>
         <form
           id={formId}
@@ -164,7 +165,7 @@ export function EventEditor({
         <div className="admin-inline-actions">
           <Link
             href={`/admin/events/registrants?eventId=${encodeURIComponent(event.id)}`}
-            className="gantry-btn gantry-btn-primary"
+            className="gantry-toolbar-btn gantry-toolbar-btn-muted"
           >
             Open registrants
           </Link>

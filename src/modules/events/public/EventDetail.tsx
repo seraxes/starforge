@@ -22,6 +22,7 @@ export type EventDetailProps = {
     | 'timezone'
     | 'description'
     | 'coverMediaId'
+    | 'galleryMediaIds'
     | 'capacity'
     | 'slug'
   >
@@ -131,6 +132,16 @@ export function EventDetail({
           width={960}
           height={540}
         />
+      ) : null}
+      {(event.galleryMediaIds ?? []).length > 0 ? (
+        <ul className="sf-event-detail-gallery" aria-label="Gallery">
+          {(event.galleryMediaIds ?? []).map((id) => (
+            <li key={id}>
+              {/* eslint-disable-next-line @next/next/no-img-element -- Media library redirect */}
+              <img src={`/api/media/${id}`} alt="" width={480} height={320} />
+            </li>
+          ))}
+        </ul>
       ) : null}
       <PartyList label="Organizers" parties={organizers} />
       <PartyList label="Speakers" parties={speakers} />

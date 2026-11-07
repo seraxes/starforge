@@ -101,6 +101,7 @@ export default async function EventEditPage({ params }: { params: Params }) {
           venueId: event.venueId,
           description: event.description,
           coverMediaId: event.coverMediaId,
+          galleryMediaIds: event.galleryMediaIds,
           capacity: event.capacity,
           registrationOpensAt: event.registrationOpensAt
             ? event.registrationOpensAt.toISOString()

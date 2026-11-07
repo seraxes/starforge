@@ -55,10 +55,14 @@ function eventsListHref(opts: {
   return parts.length ? `/admin/events?${parts.join('&')}` : '/admin/events'
 }
 
+type IdOpt = { id: string; label: string }
+
 type Props = {
   events: EventRow[]
   venues: VenueOpt[]
   groups: UserGroupOption[]
+  users?: IdOpt[]
+  parties?: IdOpt[]
   defaultTimezone: string
   statusFilter: string
   scopeFilter?: 'all' | 'mine'
@@ -103,6 +107,8 @@ export function EventsManager({
   events,
   venues,
   groups,
+  users = [],
+  parties = [],
   defaultTimezone,
   statusFilter,
   scopeFilter = 'all',
@@ -227,17 +233,23 @@ export function EventsManager({
 
       <section className="outlines-create" aria-label="Create event">
         <h3>Add event</h3>
-        {venues.length === 0 ? (
-          <p className="settings-hint">
-            Tip: create a <Link href="/admin/events/venues">venue</Link> first if you want a place
-            binding.
-          </p>
-        ) : null}
+        <p className="settings-hint">
+          Same sections as the editor (basics, gallery, schedule, registration, people,
+          visibility). After save you land on the event page for tiers and registrants.
+          {venues.length === 0 ? (
+            <>
+              {' '}
+              Tip: create a <Link href="/admin/events/venues">venue</Link> first if you want a
+              place binding.
+            </>
+          ) : null}
+        </p>
         <form action={createAction} className="outlines-create-form admin-create-form">
           <EventFormFields
-            compact
             venues={venues}
             groups={groups}
+            users={users}
+            parties={parties}
             defaultTimezone={defaultTimezone}
             busy={busy}
             richEditorEnabled={richEditorEnabled}

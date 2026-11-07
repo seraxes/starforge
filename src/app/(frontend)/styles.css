@@ -1950,6 +1950,24 @@ button:disabled {
   object-fit: cover;
 }
 
+.sf-event-detail-gallery {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  gap: 0.55rem;
+  max-width: 48rem;
+}
+
+.sf-event-detail-gallery img {
+  display: block;
+  width: 100%;
+  height: 8rem;
+  object-fit: cover;
+  border: 1px solid var(--sf-line);
+}
+
 .sf-event-detail-description {
   margin: 1rem 0 0;
   max-width: 48rem;
@@ -2035,6 +2053,33 @@ button:disabled {
 .sf-events-list-item > .admin-action-row > form {
   display: inline-flex;
   margin: 0;
+}
+
+.sf-events-manager .sf-events-form-section,
+.sf-events-editor .sf-events-form-section {
+  margin: 0 0 1rem;
+}
+
+.sf-events-gallery-list {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.sf-events-gallery-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.sf-events-gallery-item code {
+  font-size: 0.8rem;
+  word-break: break-all;
 }
 
 .sf-events-list {

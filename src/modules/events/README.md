@@ -24,9 +24,7 @@ Events + venues + registration + ticket tiers + parties (`sf_venues` / `sf_event
 
 ### UX
 
-- Create vs edit parity (compact create hides people / signup / terms)
-- Sectioned editor IA (Basics → Schedule → People → Registration → Visibility)
-- Real gallery picker (`galleryMediaIds` currently always saved as `[]`)
+- Shorter create path / progressive disclosure if the full form feels heavy on the list page
 
 ### Organizer ops
 

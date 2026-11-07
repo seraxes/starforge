@@ -1,10 +1,10 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 
 import { AccessTagsField } from '@/components/admin/AccessTagsField'
 import type { UserGroupOption } from '@/core/acl/types'
-import { MediaPicker } from '@/modules/media/api'
+import { MediaPicker, type MediaPickerValue } from '@/modules/media/api'
 import { RichEditor } from '@/modules/rich-editor/api'
 
 import { EVENT_STATUSES } from '../types'
@@ -15,17 +15,11 @@ type CoverAndAccessProps = {
   groups: UserGroupOption[]
   disabled?: boolean
   coverLabel?: string
-  /** When set, show listed + password controls (events only). */
-  visibility?: {
-    listed: boolean
-    hasAccessPassword: boolean
-  }
 }
 
 /**
- * Shared Media cover + ACL tags for venue/event forms.
+ * Shared Media cover + ACL tags for venue forms.
  * Writes hidden inputs `coverMediaId` + `accessTagsJson` for FormData actions.
- * Events may also write `listed`, `accessPassword`, `clearAccessPassword`.
  */
 export function CoverAndAccessFields({
   coverMediaId: initialCover,
@@ -33,13 +27,11 @@ export function CoverAndAccessFields({
   groups,
   disabled,
   coverLabel = 'Cover',
-  visibility,
 }: CoverAndAccessProps) {
   const [coverMediaId, setCoverMediaId] = useState(initialCover)
   const [accessTags, setAccessTags] = useState(
     initialTags.length > 0 ? initialTags : ['public'],
   )
-  const [listed, setListed] = useState(visibility?.listed !== false)
 
   return (
     <>
@@ -57,46 +49,6 @@ export function CoverAndAccessFields({
         />
         <input type="hidden" name="coverMediaId" value={coverMediaId} />
       </div>
-      {visibility ? (
-        <fieldset className="settings-fieldset">
-          <legend>Visibility</legend>
-          <p className="settings-hint">
-            Group ACL gates who may open the page. Unlisted hides the event from public
-            lists (URL still works). Password is an optional extra gate after ACL.
-          </p>
-          <label className="settings-field settings-field-checkbox">
-            <input
-              type="checkbox"
-              checked={listed}
-              disabled={disabled}
-              onChange={(e) => setListed(e.target.checked)}
-            />
-            <span>Listed in public calendars / event lists</span>
-          </label>
-          <input type="hidden" name="listed" value={listed ? '1' : '0'} />
-          <label className="settings-field">
-            <span>
-              Access password
-              {visibility.hasAccessPassword ? ' (set — leave blank to keep)' : ''}
-            </span>
-            <input
-              type="password"
-              name="accessPassword"
-              autoComplete="new-password"
-              disabled={disabled}
-              placeholder={
-                visibility.hasAccessPassword ? '••••••••' : 'Optional shared password'
-              }
-            />
-          </label>
-          {visibility.hasAccessPassword ? (
-            <label className="settings-field settings-field-checkbox">
-              <input type="checkbox" name="clearAccessPassword" value="1" disabled={disabled} />
-              <span>Clear access password</span>
-            </label>
-          ) : null}
-        </fieldset>
-      ) : null}
       <AccessTagsField
         value={accessTags}
         groups={groups}
@@ -106,6 +58,159 @@ export function CoverAndAccessFields({
       />
       <input type="hidden" name="accessTagsJson" value={JSON.stringify(accessTags)} />
     </>
+  )
+}
+
+function CoverField({
+  coverMediaId: initialCover,
+  disabled,
+}: {
+  coverMediaId: string
+  disabled?: boolean
+}) {
+  const [coverMediaId, setCoverMediaId] = useState(initialCover)
+  return (
+    <div className="settings-field">
+      <MediaPicker
+        label="Cover"
+        value={{ mediaId: coverMediaId, url: '', alt: '' }}
+        defaultFolder="general"
+        defaultPurpose="photo"
+        disabled={disabled}
+        includeHiddenInputs={false}
+        allowUrlFallback={false}
+        hint="Shared Media Manager — not a per-module library."
+        onChange={(next) => setCoverMediaId(next.mediaId)}
+      />
+      <input type="hidden" name="coverMediaId" value={coverMediaId} />
+    </div>
+  )
+}
+
+function VisibilityFields({
+  listed: initialListed,
+  hasAccessPassword,
+  accessTags: initialTags,
+  groups,
+  disabled,
+}: {
+  listed: boolean
+  hasAccessPassword: boolean
+  accessTags: string[]
+  groups: UserGroupOption[]
+  disabled?: boolean
+}) {
+  const [listed, setListed] = useState(initialListed !== false)
+  const [accessTags, setAccessTags] = useState(
+    initialTags.length > 0 ? initialTags : ['public'],
+  )
+
+  return (
+    <fieldset className="settings-fieldset sf-events-form-section">
+      <legend>Visibility</legend>
+      <p className="settings-hint">
+        Group ACL gates who may open the page. Unlisted hides the event from public lists
+        (URL still works). Password is an optional extra gate after ACL.
+      </p>
+      <label className="settings-field settings-field-checkbox">
+        <input
+          type="checkbox"
+          checked={listed}
+          disabled={disabled}
+          onChange={(e) => setListed(e.target.checked)}
+        />
+        <span>Listed in public calendars / event lists</span>
+      </label>
+      <input type="hidden" name="listed" value={listed ? '1' : '0'} />
+      <label className="settings-field">
+        <span>
+          Access password
+          {hasAccessPassword ? ' (set — leave blank to keep)' : ''}
+        </span>
+        <input
+          type="password"
+          name="accessPassword"
+          autoComplete="new-password"
+          disabled={disabled}
+          placeholder={hasAccessPassword ? '••••••••' : 'Optional shared password'}
+        />
+      </label>
+      {hasAccessPassword ? (
+        <label className="settings-field settings-field-checkbox">
+          <input type="checkbox" name="clearAccessPassword" value="1" disabled={disabled} />
+          <span>Clear access password</span>
+        </label>
+      ) : null}
+      <AccessTagsField
+        value={accessTags}
+        groups={groups}
+        disabled={disabled}
+        legend="Who can see"
+        onChange={setAccessTags}
+      />
+      <input type="hidden" name="accessTagsJson" value={JSON.stringify(accessTags)} />
+    </fieldset>
+  )
+}
+
+/** Multi-id gallery via shared MediaPicker (append one at a time). */
+function GalleryFields({
+  galleryMediaIds: initialIds,
+  disabled,
+}: {
+  galleryMediaIds: string[]
+  disabled?: boolean
+}) {
+  const [ids, setIds] = useState(() => [...initialIds])
+  const [draft, setDraft] = useState<MediaPickerValue>({ mediaId: '', url: '', alt: '' })
+
+  useEffect(() => {
+    const id = (draft.mediaId || '').trim()
+    if (!id) return
+    setIds((prev) => (prev.includes(id) ? prev : [...prev, id]))
+    setDraft({ mediaId: '', url: '', alt: '' })
+  }, [draft.mediaId])
+
+  return (
+    <fieldset className="settings-fieldset sf-events-form-section">
+      <legend>Gallery</legend>
+      <p className="settings-hint">
+        Extra images from the shared Media library. Cover stays separate above.
+      </p>
+      {ids.length > 0 ? (
+        <ul className="sf-events-gallery-list">
+          {ids.map((id) => (
+            <li key={id} className="sf-events-gallery-item">
+              <code>{id}</code>
+              <button
+                type="button"
+                className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+                disabled={disabled}
+                onClick={() => setIds((prev) => prev.filter((x) => x !== id))}
+              >
+                Remove
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="settings-hint">No gallery images yet.</p>
+      )}
+      <div className="settings-field">
+        <MediaPicker
+          key={ids.join(',') || 'empty'}
+          label="Add image"
+          value={draft}
+          defaultFolder="general"
+          defaultPurpose="photo"
+          disabled={disabled}
+          includeHiddenInputs={false}
+          allowUrlFallback={false}
+          onChange={setDraft}
+        />
+      </div>
+      <input type="hidden" name="galleryMediaIdsJson" value={JSON.stringify(ids)} />
+    </fieldset>
   )
 }
 
@@ -128,6 +233,7 @@ export type EventFormRow = {
   venueId?: string
   description?: string
   coverMediaId?: string
+  galleryMediaIds?: string[]
   capacity?: number | null
   registrationOpensAt?: string | null
   registrationClosesAt?: string | null
@@ -162,8 +268,6 @@ type EventFormFieldsProps = {
   defaultTimezone: string
   busy: boolean
   richEditorEnabled: boolean
-  /** Hide people/related/signup when creating from the list. */
-  compact?: boolean
 }
 
 /** Checkbox multi-select writing a hidden JSON id list. */
@@ -219,7 +323,7 @@ export function IdChecklistField({
   )
 }
 
-/** Shared create/edit fields for an event. */
+/** Shared create/edit fields for an event — sectioned for scanability. */
 export function EventFormFields({
   row,
   venues,
@@ -230,247 +334,245 @@ export function EventFormFields({
   defaultTimezone,
   busy,
   richEditorEnabled,
-  compact = false,
 }: EventFormFieldsProps) {
   return (
     <>
-      <label className="settings-field">
-        <span>Title</span>
-        <input
-          type="text"
-          name="title"
-          required
-          maxLength={200}
-          defaultValue={row?.title ?? ''}
-          disabled={busy}
-          autoComplete="off"
-        />
-      </label>
-      <label className="settings-field">
-        <span>Slug (optional)</span>
-        <input
-          type="text"
-          name="slug"
-          maxLength={120}
-          defaultValue={row?.slug ?? ''}
-          disabled={busy}
-          autoComplete="off"
-          placeholder="summer-meetup"
-        />
-      </label>
-      <label className="settings-field">
-        <span>Status</span>
-        <select name="status" defaultValue={row?.status ?? 'draft'} disabled={busy}>
-          {EVENT_STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="settings-field">
-        <span>Starts</span>
-        <input
-          type="datetime-local"
-          name="startsAt"
-          defaultValue={toDatetimeLocalValue(row?.startsAt)}
-          disabled={busy}
-        />
-      </label>
-      <label className="settings-field">
-        <span>Ends</span>
-        <input
-          type="datetime-local"
-          name="endsAt"
-          defaultValue={toDatetimeLocalValue(row?.endsAt)}
-          disabled={busy}
-        />
-      </label>
-      <label className="settings-field">
-        <span>Timezone</span>
-        <input
-          type="text"
-          name="timezone"
-          maxLength={80}
-          defaultValue={row?.timezone ?? defaultTimezone}
-          disabled={busy}
-          autoComplete="off"
-          placeholder="Europe/Budapest"
-        />
-      </label>
-      <label className="settings-field">
-        <span>Registration opens</span>
-        <input
-          type="datetime-local"
-          name="registrationOpensAt"
-          defaultValue={toDatetimeLocalValue(row?.registrationOpensAt)}
-          disabled={busy}
-        />
-        <span className="settings-hint">Empty = open as soon as published.</span>
-      </label>
-      <label className="settings-field">
-        <span>Registration closes</span>
-        <input
-          type="datetime-local"
-          name="registrationClosesAt"
-          defaultValue={toDatetimeLocalValue(row?.registrationClosesAt)}
-          disabled={busy}
-        />
-        <span className="settings-hint">Empty = no hard close.</span>
-      </label>
-      <label className="settings-field">
-        <span>Venue</span>
-        <select name="venueId" defaultValue={row?.venueId ?? ''} disabled={busy}>
-          <option value="">— none —</option>
-          {venues.map((v) => (
-            <option key={v.id} value={v.id}>
-              {v.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="settings-field">
-        <span>Capacity (optional)</span>
-        <input
-          type="number"
-          name="capacity"
-          min={0}
-          step={1}
-          defaultValue={row?.capacity ?? ''}
-          disabled={busy}
-          placeholder="Unlimited"
-        />
-      </label>
-      <div className="settings-field settings-field-wide">
-        <RichEditor
-          name="description"
-          label="Description"
-          defaultValue={row?.description ?? ''}
-          disabled={busy}
-          enabled={richEditorEnabled}
-          preset="full"
-          placeholder="Game / event description…"
-        />
-      </div>
-      {!compact ? (
-        <>
-          <label className="settings-field settings-field-wide">
-            <span>Signup note</span>
-            <textarea
-              name="signupNote"
-              rows={3}
-              maxLength={4000}
-              defaultValue={row?.signupNote ?? ''}
-              disabled={busy}
-              placeholder="Shown above the public registration form…"
-            />
-          </label>
-          <label className="settings-field">
-            <span>Terms URL</span>
-            <input
-              type="url"
-              name="termsUrl"
-              maxLength={2000}
-              defaultValue={row?.termsUrl ?? ''}
-              disabled={busy}
-              autoComplete="off"
-              placeholder="https://… or /page-slug"
-            />
-            <span className="settings-hint">
-              Linked next to the form — prefer a CMS page, not a giant per-event legal editor.
-            </span>
-          </label>
-          <IdChecklistField
-            name="managerUserIdsJson"
-            legend="Manager users"
-            hint="Individual accounts who can manage this event. Grant their group ACL → Events so they can open /admin."
-            options={users}
-            value={row?.managerUserIds ?? []}
+      <fieldset className="settings-fieldset sf-events-form-section">
+        <legend>Basics</legend>
+        <label className="settings-field">
+          <span>Title</span>
+          <input
+            type="text"
+            name="title"
+            required
+            maxLength={200}
+            defaultValue={row?.title ?? ''}
+            disabled={busy}
+            autoComplete="off"
+          />
+        </label>
+        <label className="settings-field">
+          <span>Slug (optional)</span>
+          <input
+            type="text"
+            name="slug"
+            maxLength={120}
+            defaultValue={row?.slug ?? ''}
+            disabled={busy}
+            autoComplete="off"
+            placeholder="summer-meetup"
+          />
+        </label>
+        <label className="settings-field">
+          <span>Status</span>
+          <select name="status" defaultValue={row?.status ?? 'draft'} disabled={busy}>
+            {EVENT_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="settings-field">
+          <span>Venue</span>
+          <select name="venueId" defaultValue={row?.venueId ?? ''} disabled={busy}>
+            <option value="">— none —</option>
+            {venues.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="settings-field">
+          <span>Capacity (optional)</span>
+          <input
+            type="number"
+            name="capacity"
+            min={0}
+            step={1}
+            defaultValue={row?.capacity ?? ''}
+            disabled={busy}
+            placeholder="Unlimited"
+          />
+        </label>
+        <div className="settings-field settings-field-wide">
+          <RichEditor
+            name="description"
+            label="Description"
+            defaultValue={row?.description ?? ''}
+            disabled={busy}
+            enabled={richEditorEnabled}
+            preset="full"
+            placeholder="Game / event description…"
+          />
+        </div>
+        <CoverField coverMediaId={row?.coverMediaId ?? ''} disabled={busy} />
+      </fieldset>
+
+      <GalleryFields galleryMediaIds={row?.galleryMediaIds ?? []} disabled={busy} />
+
+      <fieldset className="settings-fieldset sf-events-form-section">
+        <legend>Schedule</legend>
+        <label className="settings-field">
+          <span>Starts</span>
+          <input
+            type="datetime-local"
+            name="startsAt"
+            defaultValue={toDatetimeLocalValue(row?.startsAt)}
             disabled={busy}
           />
-          <IdChecklistField
-            name="helperUserIdsJson"
-            legend="Helper users"
-            hint="Helpers share edit rights with managers for now."
-            options={users}
-            value={row?.helperUserIds ?? []}
+        </label>
+        <label className="settings-field">
+          <span>Ends</span>
+          <input
+            type="datetime-local"
+            name="endsAt"
+            defaultValue={toDatetimeLocalValue(row?.endsAt)}
             disabled={busy}
           />
-          <IdChecklistField
-            name="managerGroupIdsJson"
-            legend="Manager groups"
-            hint="Members of these groups can manage this event (beyond app admins)."
-            options={groups.map((g) => ({ id: g.id, label: g.label || g.id }))}
-            value={row?.managerGroupIds ?? []}
+        </label>
+        <label className="settings-field">
+          <span>Timezone</span>
+          <input
+            type="text"
+            name="timezone"
+            maxLength={80}
+            defaultValue={row?.timezone ?? defaultTimezone}
+            disabled={busy}
+            autoComplete="off"
+            placeholder="Europe/Budapest"
+          />
+        </label>
+        <label className="settings-field">
+          <span>Registration opens</span>
+          <input
+            type="datetime-local"
+            name="registrationOpensAt"
+            defaultValue={toDatetimeLocalValue(row?.registrationOpensAt)}
             disabled={busy}
           />
-          <IdChecklistField
-            name="helperGroupIdsJson"
-            legend="Helper groups"
-            hint="Helpers share edit rights with managers for now."
-            options={groups.map((g) => ({ id: g.id, label: g.label || g.id }))}
-            value={row?.helperGroupIds ?? []}
+          <span className="settings-hint">Empty = open as soon as published.</span>
+        </label>
+        <label className="settings-field">
+          <span>Registration closes</span>
+          <input
+            type="datetime-local"
+            name="registrationClosesAt"
+            defaultValue={toDatetimeLocalValue(row?.registrationClosesAt)}
             disabled={busy}
           />
-          <IdChecklistField
-            name="organizerPartyIdsJson"
-            legend="Organizers"
-            hint={
-              parties.length === 0
-                ? 'Create parties under Events → Parties first.'
-                : 'Associations / teams / clubs linked to this event.'
-            }
-            options={parties}
-            value={row?.organizerPartyIds ?? []}
+          <span className="settings-hint">Empty = no hard close.</span>
+        </label>
+      </fieldset>
+
+      <fieldset className="settings-fieldset sf-events-form-section">
+        <legend>Registration copy</legend>
+        <label className="settings-field settings-field-wide">
+          <span>Signup note</span>
+          <textarea
+            name="signupNote"
+            rows={3}
+            maxLength={4000}
+            defaultValue={row?.signupNote ?? ''}
             disabled={busy}
+            placeholder="Shown above the public registration form…"
           />
-          <IdChecklistField
-            name="speakerPartyIdsJson"
-            legend="Speakers"
-            options={parties}
-            value={row?.speakerPartyIds ?? []}
+        </label>
+        <label className="settings-field">
+          <span>Terms URL</span>
+          <input
+            type="url"
+            name="termsUrl"
+            maxLength={2000}
+            defaultValue={row?.termsUrl ?? ''}
             disabled={busy}
+            autoComplete="off"
+            placeholder="https://… or /page-slug"
           />
-          <IdChecklistField
-            name="sponsorPartyIdsJson"
-            legend="Sponsors"
-            options={parties}
-            value={row?.sponsorPartyIds ?? []}
-            disabled={busy}
-          />
-          <IdChecklistField
-            name="relatedEventIdsJson"
-            legend="Related events"
-            hint="Series / see-also links (ids only for now)."
-            options={relatedEventOptions}
-            value={row?.relatedEventIds ?? []}
-            disabled={busy}
-          />
-        </>
-      ) : (
-        <>
-          <input type="hidden" name="managerUserIdsJson" value="[]" />
-          <input type="hidden" name="helperUserIdsJson" value="[]" />
-          <input type="hidden" name="managerGroupIdsJson" value="[]" />
-          <input type="hidden" name="helperGroupIdsJson" value="[]" />
-          <input type="hidden" name="organizerPartyIdsJson" value="[]" />
-          <input type="hidden" name="speakerPartyIdsJson" value="[]" />
-          <input type="hidden" name="sponsorPartyIdsJson" value="[]" />
-          <input type="hidden" name="relatedEventIdsJson" value="[]" />
-          <input type="hidden" name="signupNote" value="" />
-          <input type="hidden" name="termsUrl" value="" />
-        </>
-      )}
-      <input type="hidden" name="galleryMediaIdsJson" value="[]" />
-      <CoverAndAccessFields
-        coverMediaId={row?.coverMediaId ?? ''}
+          <span className="settings-hint">
+            Linked next to the form — prefer a CMS page, not a giant per-event legal editor.
+          </span>
+        </label>
+      </fieldset>
+
+      <fieldset className="settings-fieldset sf-events-form-section">
+        <legend>People</legend>
+        <p className="settings-hint">
+          Managers/helpers need Events ACL to open /admin. Parties are public-facing profiles
+          (Events → Parties).
+        </p>
+        <IdChecklistField
+          name="managerUserIdsJson"
+          legend="Manager users"
+          options={users}
+          value={row?.managerUserIds ?? []}
+          disabled={busy}
+        />
+        <IdChecklistField
+          name="helperUserIdsJson"
+          legend="Helper users"
+          hint="Helpers share edit rights with managers for now."
+          options={users}
+          value={row?.helperUserIds ?? []}
+          disabled={busy}
+        />
+        <IdChecklistField
+          name="managerGroupIdsJson"
+          legend="Manager groups"
+          options={groups.map((g) => ({ id: g.id, label: g.label || g.id }))}
+          value={row?.managerGroupIds ?? []}
+          disabled={busy}
+        />
+        <IdChecklistField
+          name="helperGroupIdsJson"
+          legend="Helper groups"
+          options={groups.map((g) => ({ id: g.id, label: g.label || g.id }))}
+          value={row?.helperGroupIds ?? []}
+          disabled={busy}
+        />
+        <IdChecklistField
+          name="organizerPartyIdsJson"
+          legend="Organizers"
+          hint={
+            parties.length === 0
+              ? 'Create parties under Events → Parties first.'
+              : 'Associations / teams / clubs linked to this event.'
+          }
+          options={parties}
+          value={row?.organizerPartyIds ?? []}
+          disabled={busy}
+        />
+        <IdChecklistField
+          name="speakerPartyIdsJson"
+          legend="Speakers"
+          options={parties}
+          value={row?.speakerPartyIds ?? []}
+          disabled={busy}
+        />
+        <IdChecklistField
+          name="sponsorPartyIdsJson"
+          legend="Sponsors"
+          options={parties}
+          value={row?.sponsorPartyIds ?? []}
+          disabled={busy}
+        />
+        <IdChecklistField
+          name="relatedEventIdsJson"
+          legend="Related events"
+          hint="Series / see-also links."
+          options={relatedEventOptions}
+          value={row?.relatedEventIds ?? []}
+          disabled={busy}
+        />
+      </fieldset>
+
+      <VisibilityFields
+        listed={row?.listed !== false}
+        hasAccessPassword={Boolean(row?.hasAccessPassword)}
         accessTags={row?.accessTags ?? ['public']}
         groups={groups}
         disabled={busy}
-        visibility={{
-          listed: row?.listed !== false,
-          hasAccessPassword: Boolean(row?.hasAccessPassword),
-        }}
       />
     </>
   )

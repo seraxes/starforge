@@ -11,6 +11,7 @@ import { listEventParties } from '../parties'
 import { loadEventsModuleSettings } from '../settings'
 import { listEvents, listVenues, viewerIsAssignedToEvent } from '../store'
 import { isEventStatus } from '../types'
+import { listEventsUserOptions } from '../user-options'
 import { EventsAdminNav } from './events-admin-nav'
 import { EventsManager } from './events-manager'
 
@@ -37,12 +38,13 @@ export default async function EventsListPage({ searchParams }: { searchParams: S
 
   await ensureDefaultUserGroupsSeeded()
   const viewer = await getAccessViewer()
-  const [eventsRaw, venues, groups, moduleSettings, parties] = await Promise.all([
+  const [eventsRaw, venues, groups, moduleSettings, parties, users] = await Promise.all([
     listEvents({ status: status === 'all' ? undefined : status }),
     listVenues(),
     listUserGroupOptions(),
     loadEventsModuleSettings(),
     listEventParties(),
+    listEventsUserOptions(),
   ])
 
   let events = eventsRaw
@@ -58,8 +60,8 @@ export default async function EventsListPage({ searchParams }: { searchParams: S
       <EventsAdminNav active="events" />
       <h2>Events</h2>
       <p className="lede admin-lede">
-        Create an event, then edit it on its own page (schedule, registration window, people,
-        tiers). Module on/off: <Link href="/admin/settings">Settings → Modules</Link>. Venues:{' '}
+        Create with the full form below, or open an event for tiers and registrants. Module
+        on/off: <Link href="/admin/settings">Settings → Modules</Link>. Venues:{' '}
         <Link href="/admin/events/venues">Events → Venues</Link>. Parties:{' '}
         <Link href="/admin/events/parties">Events → Parties</Link>.
       </p>
@@ -72,6 +74,8 @@ export default async function EventsListPage({ searchParams }: { searchParams: S
         defaultTimezone={moduleSettings.settings.defaultTimezone}
         richEditorEnabled={isRichEditorEnabled(settings)}
         groups={groups}
+        users={users}
+        parties={parties.map((p) => ({ id: p.id, label: p.name }))}
         venues={venues.map((v) => ({ id: v.id, name: v.name }))}
         events={events.map((e) => ({
           id: e.id,
