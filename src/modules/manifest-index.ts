@@ -20,6 +20,7 @@ import mapParticleManifest from './maps/particle-manifest'
 import marketplaceManifest from './marketplace/manifest'
 import mediaManifest from './media/manifest'
 import noticeBarManifest from './notice-bar/manifest'
+import pwaManifest from './pwa/manifest'
 import redirectsManifest from './redirects/manifest'
 import lexicalEditorManifest from './lexical-editor/manifest'
 import richEditorManifest from './rich-editor/manifest'
@@ -42,6 +43,7 @@ export const ALL_MODULE_MANIFESTS: StarforgeModuleManifest[] = [
   marketplaceManifest,
   redirectsManifest,
   consentManifest,
+  pwaManifest,
   searchManifest,
   mediaManifest,
   noticeBarManifest,

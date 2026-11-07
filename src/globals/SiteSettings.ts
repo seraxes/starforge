@@ -152,6 +152,16 @@ export const SiteSettings: GlobalConfig = {
       },
     },
     {
+      name: 'realtimeEnabled',
+      type: 'checkbox',
+      defaultValue: true,
+      label: 'RealtimePort (SSE)',
+      admin: {
+        description:
+          'When off, RealtimePort publish does not fan out and /api/realtime refuses connections. Used by upcoming Notifications / Chat / live Maps. Prefer Starforge admin → Settings → Performance.',
+      },
+    },
+    {
       name: 'primaryNav',
       type: 'array',
       labels: {

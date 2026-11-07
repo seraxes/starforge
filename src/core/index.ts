@@ -237,6 +237,19 @@ export type {
   MailSendResult,
 } from './mail'
 export {
+  canSubscribe,
+  filterSubscribableChannels,
+  getRealtimePort,
+  parseRealtimeChannels,
+  userChannel,
+} from './realtime'
+export type {
+  RealtimeEvent,
+  RealtimeInfo,
+  RealtimePayload,
+  RealtimePort,
+} from './realtime'
+export {
   applySecurityHeaders,
   buildCspHeaders,
   buildSecurityHeaders,

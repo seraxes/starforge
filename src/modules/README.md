@@ -56,6 +56,7 @@ Lean flavor: set `"flavor": "lean"` in `starforge.modules.json` (uses `presets.l
 | `product:marketplace` | `marketplace/` | Thin Dashboard `marketplace.listings` stub (no schema yet) |
 | `product:media` | `media/` | Library + Dashboard `media.counts` stub |
 | `product:consent` | `consent/` | Banner + `publicShell` bodyEnd via generated loaders |
+| `product:pwa` | `pwa/` | Web App Manifest + Serwist SW (`publicShell` head/bodyEnd); opt-in |
 | `product:redirects` | `redirects/manifest.ts` | Catalog + admin meta; engine still in `src/core/redirects` (M3) |
 | `notice-bar` | `notice-bar/` | Example extension particle |
 | `product:search` / `search` | `search/` | Public `/search` + layout particle |

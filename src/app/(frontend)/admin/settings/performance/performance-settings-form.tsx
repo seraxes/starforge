@@ -25,6 +25,15 @@ import {
 import { useNotifySavedOnOk } from '../../admin-toast'
 import { useAutosaveForm } from '../../use-autosave-form'
 
+export type PerformancePortGlance = {
+  id: string
+  label: string
+  status: string
+  detail?: string
+  href?: string
+  hrefLabel?: string
+}
+
 type Props = {
   formRateLimitMax: number
   formRateLimitWindowSec: number
@@ -33,6 +42,9 @@ type Props = {
   nullMissTtlSec: number
   dashboardRefreshIntervalSec: number
   dashboardOnlineWindowMin: number
+  realtimeEnabled: boolean
+  realtimeAdapterLabel: string
+  ports: PerformancePortGlance[]
 }
 
 const initialState: SettingsActionState = {}
@@ -45,6 +57,9 @@ export function PerformanceSettingsForm({
   nullMissTtlSec,
   dashboardRefreshIntervalSec,
   dashboardOnlineWindowMin,
+  realtimeEnabled,
+  realtimeAdapterLabel,
+  ports,
 }: Props) {
   const [state, formAction, pending] = useActionState(
     updatePerformanceSettingsAction,
@@ -56,6 +71,57 @@ export function PerformanceSettingsForm({
   return (
     <form ref={formRef} action={formAction} className="settings-form settings-form-wide">
       <div className="admin-settings-mosaic">
+        <fieldset className="settings-fieldset settings-fieldset-wide">
+          <legend>Core ports</legend>
+          <p className="settings-hint">
+            Shared infrastructure under Core — Modules (Notifications, Chat, Maps, Forms…) call
+            these interfaces instead of owning Redis / SSE / SMTP / map SDKs. Secrets and backend
+            enums stay in{' '}
+            <Link href="/admin/site-chrome/environment">Chrome → Environment</Link>.
+          </p>
+          <ul className="settings-hint">
+            {ports.map((port) => (
+              <li key={port.id}>
+                <strong>{port.label}</strong> — {port.status}
+                {port.detail ? ` (${port.detail})` : null}
+                {port.href ? (
+                  <>
+                    {' '}
+                    ·{' '}
+                    <Link href={port.href}>{port.hrefLabel ?? 'Open'}</Link>
+                  </>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </fieldset>
+
+        <fieldset className="settings-fieldset settings-fieldset-wide">
+          <legend>RealtimePort</legend>
+          <p className="settings-hint">
+            Live push over SSE (<code>/api/realtime</code>). Adapter: {realtimeAdapterLabel}.
+            Upcoming consumers: in-app Notifications, Chat, live Maps. Redis fanout later for
+            multi-instance — not a per-module WebSocket stack. Voice/video (RTC) is a separate
+            future port.
+          </p>
+          <label className="settings-flag">
+            <input
+              type="checkbox"
+              name="realtimeEnabled"
+              defaultChecked={realtimeEnabled}
+              disabled={pending}
+              {...discreteAutosaveProps}
+            />
+            <span>
+              Enable RealtimePort
+              <span className="settings-flag-desc">
+                Off: publish does not fan out to subscribers; new SSE connections return 503.
+                Useful while debugging or before Chat/Notifications ship.
+              </span>
+            </span>
+          </label>
+        </fieldset>
+
         <fieldset className="settings-fieldset settings-fieldset-wide">
           <legend>Form submission rate limit</legend>
           <p className="settings-hint">

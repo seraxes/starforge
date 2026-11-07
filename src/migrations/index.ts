@@ -7,6 +7,7 @@ import * as migration_20261105_site_settings_performance_heal from './20261105_s
 import * as migration_20261105_site_settings_dashboard_knobs from './20261105_site_settings_dashboard_knobs';
 import * as migration_20261105_site_settings_select_heal from './20261105_site_settings_select_heal';
 import * as migration_20261105_195344_pages_localization_i18n_p1 from './20261105_195344_pages_localization_i18n_p1';
+import * as migration_20261107_site_settings_realtime_enabled from './20261107_site_settings_realtime_enabled';
 
 export const migrations = [
   {
@@ -53,5 +54,10 @@ export const migrations = [
     up: migration_20261105_195344_pages_localization_i18n_p1.up,
     down: migration_20261105_195344_pages_localization_i18n_p1.down,
     name: '20261105_195344_pages_localization_i18n_p1',
+  },
+  {
+    up: migration_20261107_site_settings_realtime_enabled.up,
+    down: migration_20261107_site_settings_realtime_enabled.down,
+    name: '20261107_site_settings_realtime_enabled',
   },
 ]

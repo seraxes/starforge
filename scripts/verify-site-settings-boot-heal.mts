@@ -29,6 +29,10 @@ must(
   'heal SQL must include dashboard_online_window_min',
 )
 must(
+  SITE_SETTINGS_SCHEMA_HEAL_SQL.includes('realtime_enabled'),
+  'heal SQL must include realtime_enabled',
+)
+must(
   SITE_SETTINGS_HEAL_VERIFY_COLUMNS.includes('dashboard_refresh_interval_sec'),
   'verify columns must include dashboard_refresh_interval_sec',
 )

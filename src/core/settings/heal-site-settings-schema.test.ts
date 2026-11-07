@@ -17,6 +17,7 @@ describe('site_settings schema heal SQL', () => {
       'published_cache_enabled',
       'published_cache_ttl_sec',
       'null_miss_ttl_sec',
+      'realtime_enabled',
       'feature_registration',
       'feature_modules',
       'feature_draft_preview',

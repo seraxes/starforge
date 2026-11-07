@@ -31,6 +31,7 @@ export const MODULE_IDS = {
   consent: 'product:consent',
   search: 'product:search',
   media: 'product:media',
+  pwa: 'product:pwa',
 } as const
 
 /** Core pieces that cannot be turned off. */

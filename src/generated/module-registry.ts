@@ -20,7 +20,7 @@ export const MODULE_ALLOWLIST_FLAVOR = "core" as const
 export const FIXED_REQUIRED_MODULE_IDS = ["platform:dashboard","platform:better-auth","page-content","product:media"] as const
 
 /** Allowlisted module ids for this install/build (platform + product + particles + atoms). */
-export const ALLOWLISTED_MODULE_IDS = ["atom:analytics","atom:custom-css-js","copyright","custom","event-countdown","event-detail","event-list","form","locale-switcher","login","logo","map","menu","notice-bar","page-content","platform:better-auth","platform:dashboard","platform:payload-cms","product:consent","product:draft-preview","product:email-manager","product:events","product:font-awesome","product:forms","product:layout-manager","product:lexical-editor","product:maps","product:marketplace","product:media","product:page-settings","product:posts","product:primary-nav","product:redirects","product:registration","product:rich-editor","product:search","search","site-header","social","spacer"] as const
+export const ALLOWLISTED_MODULE_IDS = ["atom:analytics","atom:custom-css-js","copyright","custom","event-countdown","event-detail","event-list","form","locale-switcher","login","logo","map","menu","notice-bar","page-content","platform:better-auth","platform:dashboard","platform:payload-cms","product:consent","product:draft-preview","product:email-manager","product:events","product:font-awesome","product:forms","product:layout-manager","product:lexical-editor","product:maps","product:marketplace","product:media","product:page-settings","product:posts","product:primary-nav","product:pwa","product:redirects","product:registration","product:rich-editor","product:search","search","site-header","social","spacer"] as const
 
 export type AllowlistedModuleId = (typeof ALLOWLISTED_MODULE_IDS)[number]
 
@@ -37,7 +37,7 @@ export function isModuleAllowlisted(id: string): boolean {
 export const ALLOWLISTED_BUILTIN_PARTICLE_IDS: readonly string[] = ["page-content","site-header","logo","menu","locale-switcher","copyright","spacer","social","custom","login"]
 
 /** Platform + product catalog ids installed in this build. */
-export const ALLOWLISTED_PRODUCT_PLATFORM_IDS: readonly string[] = ["platform:dashboard","platform:better-auth","platform:payload-cms","product:layout-manager","product:page-settings","product:primary-nav","product:font-awesome","product:registration","product:posts","product:draft-preview","product:forms","product:rich-editor","product:lexical-editor","product:email-manager","product:events","product:maps","product:marketplace","product:redirects","product:consent","product:search","product:media"]
+export const ALLOWLISTED_PRODUCT_PLATFORM_IDS: readonly string[] = ["platform:dashboard","platform:better-auth","platform:payload-cms","product:layout-manager","product:page-settings","product:primary-nav","product:font-awesome","product:registration","product:posts","product:draft-preview","product:forms","product:rich-editor","product:lexical-editor","product:email-manager","product:events","product:maps","product:marketplace","product:redirects","product:consent","product:pwa","product:search","product:media"]
 
 /**
  * Derived Site Settings → Modules rows for platform + product packs.
@@ -63,6 +63,7 @@ export const ALLOWLISTED_PRODUCT_PLATFORM_META: ModuleCatalogItem[] = [
   { id: "product:marketplace", kind: "product", label: "Marketplace", description: "Classifieds / marketplace listings (upcoming). Soft Dashboard stub until the Marketplace pack ships.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Marketplace (upcoming)","href":"/admin/settings"}] },
   { id: "product:redirects", kind: "product", label: "Redirects", description: "URL redirects (from → to + status) with Node proxy lookup. Sitemap of published pages stays at /sitemap.xml.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Redirects","href":"/admin/redirects"}] },
   { id: "product:consent", kind: "product", label: "Consent", description: "Cookie consent banner + preference cookie (sf-consent). Policy copy under Chrome; gates atom:analytics until analytics is accepted.", required: false, defaultEnabled: true, installed: true as const },
+  { id: "product:pwa", kind: "product", label: "PWA", description: "Progressive Web App — Web App Manifest + service worker (Serwist). Opt-in installability; reuses Site Chrome name and Page Settings icons.", required: false, defaultEnabled: false, installed: true as const, navViews: [{"key":"settings","label":"PWA settings","href":"/admin/pwa"},{"key":"admin","label":"PWA","href":"/admin/pwa"}] },
   { id: "product:search", kind: "product", label: "Search", description: "Public /search over published Payload pages (title / slug / meta). Search particle for layouts. No Algolia — Payload/Postgres contains.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"search","label":"Search","href":"/search"}] },
   { id: "product:media", kind: "product", label: "Media library", description: "Single Payload Media library with sharp WebP/PNG pipeline, Spaces/S3 storage port, tags filter, and MediaAnalysisPort hooks. Required — Logo/Styles/Forms bind by mediaId.", required: true, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Media library","href":"/admin/media"},{"key":"settings","label":"Media settings","href":"/admin/media/settings"}] }
 ]
@@ -277,6 +278,7 @@ export const adminNavContributions: AdminNavContribution[] = [
   { moduleId: "product:email-manager", id: "email", label: "Email", order: 45, href: "/admin/email", expandable: true, links: [{ label: "Rules", href: "/admin/email", order: 10, exact: true, area: "email-manager", group: "email" }, { label: "Templates", href: "/admin/email/templates", order: 20, area: "email-manager", group: "email" }, { label: "Sends", href: "/admin/email/sends", order: 30, area: "email-manager", group: "email" }] },
   { moduleId: "product:events", id: "events", label: "Events", order: 48, href: "/admin/events", expandable: true, links: [{ label: "Events", href: "/admin/events", order: 10, exact: true, area: "events", group: "events" }, { label: "Venues", href: "/admin/events/venues", order: 20, area: "events", group: "events" }, { label: "Parties", href: "/admin/events/parties", order: 22, area: "events", group: "events" }, { label: "Tiers", href: "/admin/events/tiers", order: 25, area: "events", group: "events" }, { label: "Registrants", href: "/admin/events/registrants", order: 28, area: "events", group: "events" }, { label: "Settings", href: "/admin/events/settings", order: 30, area: "events", group: "events" }] },
   { moduleId: "product:redirects", id: "redirects", label: "Redirects", order: 50, links: [{ label: "Redirects", href: "/admin/redirects", order: 10, area: "redirects", group: "redirects" }] },
+  { moduleId: "product:pwa", id: "pwa", label: "PWA", order: 72, href: "/admin/pwa", links: [{ label: "Settings", href: "/admin/pwa", order: 10, area: "pwa", group: "pwa" }] },
   { moduleId: "product:media", id: "media", label: "Media", order: 60, href: "/admin/media", expandable: true, defaultOpen: true, links: [{ label: "Library", href: "/admin/media", order: 10, exact: true, area: "media", group: "media" }, { label: "Settings", href: "/admin/media/settings", order: 20, area: "media", group: "media" }] }
 ]
 
@@ -391,6 +393,12 @@ export const adminRouteLoaders: AdminRouteLoader[] = [
     moduleId: "product:events",
     path: "events/[eventId]",
     pageImportPath: "@/modules/events/admin/EventEditPage",
+    pageExportName: "default",
+  },
+  {
+    moduleId: "product:pwa",
+    path: "pwa",
+    pageImportPath: "@/modules/pwa/admin/PwaSettingsPage",
     pageExportName: "default",
   },
   {

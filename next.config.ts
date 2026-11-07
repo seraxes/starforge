@@ -1,4 +1,5 @@
 import { withPayload } from '@payloadcms/next/withPayload'
+import withSerwistInit from '@serwist/next'
 import type { NextConfig } from 'next'
 import createNextIntlPlugin from 'next-intl/plugin'
 import path from 'path'
@@ -10,6 +11,14 @@ const withNextIntl = createNextIntlPlugin('./src/core/i18n/request.ts')
 
 const __filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(__filename)
+
+/** product:pwa — Serwist builds `public/sw.js`; registration is owned by PwaRegister. */
+const withSerwist = withSerwistInit({
+  swSrc: 'src/sw.ts',
+  swDest: 'public/sw.js',
+  disable: process.env.NODE_ENV === 'development',
+  register: false,
+})
 
 const nextConfig: NextConfig = {
   // Local / GitHub Packages module packs (TypeScript source consumed via transpile).
@@ -99,4 +108,6 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default withPayload(withNextIntl(nextConfig), { devBundleServerPackages: false })
+export default withSerwist(
+  withPayload(withNextIntl(nextConfig), { devBundleServerPackages: false }),
+)

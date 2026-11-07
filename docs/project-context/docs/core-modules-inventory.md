@@ -133,10 +133,20 @@ Durable map of **feature modules** (Site Settings / allowlist toggleable) vs **i
 
 | | |
 | --- | --- |
-| **Kind** | module (future); email path uses Mailer |
-| **Status** | **none** as product surface (**partial** = Form/auth email only) |
-| **Recommended** | Transactional email stays on Mailer. In-app bell/center only when a module needs it — store in `sf_*`, deliver via same Mailer optional digests. Do not add a third-party notification SaaS early. |
-| **Next slice** | None until a Core feature needs user-facing alerts; then thin `sf_notifications` + admin/user list, optional email via Mailer. |
+| **Kind** | module (future); email path uses Mailer; live push via **RealtimePort** |
+| **Status** | **none** as product surface (**partial** = Form/auth email only). Core **RealtimePort** (memory + SSE) shipped as foundation. |
+| **Recommended** | Transactional email stays on Mailer. In-app bell/center: store in `sf_*`, `publish` to `user:{id}` on create, optional digests via Mailer. Do not add a third-party notification SaaS early. Do not fork SSE inside the module. |
+| **Next slice** | Thin `sf_notifications` + bell UI on RealtimePort; then Chat on the same port. |
+
+### RealtimePort
+
+| | |
+| --- | --- |
+| **Kind** | Core infrastructure port |
+| **Status** | **shipped (foundation)** — in-process memory bus + auth SSE `/api/realtime` (`user:{self}` ACL); Redis fanout deferred |
+| **In tree** | `src/core/realtime/`; client `useRealtimeChannel` / `connectRealtime`; smoke `POST /api/realtime/smoke` (dev or app admin); Site Settings → **Performance** enable + Core ports glance |
+| **Recommended** | Modules call `getRealtimePort().publish` only. Extend `canSubscribe` when Chat/Maps open room channels. RTC (voice/video) = separate port later. Toggle via `realtimeEnabled` (Performance), not a Modules pack. |
+| **Next slice** | Notifications consumer; Redis pub/sub adapter when multi-instance. |
 
 ### i18n
 

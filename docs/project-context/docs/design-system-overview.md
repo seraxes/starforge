@@ -54,8 +54,9 @@ One active adapter per port, selected by env/factory, with secrets in env only (
 | Admin theme | registry `{ tokens, css }` | `starforge-gantry` | `STARFORGE_ADMIN_THEME` | Shipped (CSS import still static) |
 | Public theme | registry `{ tokens, css }` | `starforge-pastel` | env / Site Settings | **Planned (before Hero)** |
 | `LlmProvider`, `MapProvider`, `MediaAnalysisPort` | see plans | — | — | **Paper only** until a consumer module ships |
+| `RealtimePort` | `publish` / `subscribe` / `info()` | memory bus + SSE `/api/realtime`; Redis fanout later | memory (default) | **Shipped (foundation)** — first product consumers: Notifications, then Chat; RTC (calls) is a separate future port |
 
-Rule: no stub code for ports without a consumer. Earlier stubs (a Redis cache that threw, S3 `info()`) were footguns.
+Rule: no stub code for ports without a consumer. Earlier stubs (a Redis cache that threw, S3 `info()`) were footguns. RealtimePort ships with SSE + unit proof ahead of Notifications/Chat so those modules do not each invent transport.
 
 ## 4. Module Manager direction
 

@@ -87,6 +87,16 @@ export const publicShellLoaders: PublicShellLoader[] = [
     moduleId: "product:consent",
     slot: "bodyEnd",
     load: async () => (await import("@/modules/consent/public/ConsentShell")).default,
+  },
+  {
+    moduleId: "product:pwa",
+    slot: "head",
+    load: async () => (await import("@/modules/pwa/public/PwaHead")).default,
+  },
+  {
+    moduleId: "product:pwa",
+    slot: "bodyEnd",
+    load: async () => (await import("@/modules/pwa/public/PwaRegister")).default,
   }
 ]
 

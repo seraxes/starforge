@@ -8,6 +8,7 @@ import {
   getPublishedContentCache,
   setPublishedCacheRuntimeConfig,
 } from '@/core/content/cache'
+import { setRealtimeRuntimeConfig } from '@/core/realtime/runtime-config'
 import { isModuleAllowlisted } from '@/generated/module-registry'
 
 import { resolveNavMenuItems } from '@/core/nav/resolve'
@@ -25,6 +26,7 @@ import {
   DEFAULT_PRIMARY_NAV_MENU_ID,
   DEFAULT_PUBLISHED_CACHE_ENABLED,
   DEFAULT_PUBLISHED_CACHE_TTL_SEC,
+  DEFAULT_REALTIME_ENABLED,
   DEFAULT_SITE_NAME,
   DEFAULT_SITE_SETTINGS,
   clampAdminAutosaveDebounceMs,
@@ -35,6 +37,7 @@ import {
   clampNullMissTtlSec,
   clampPublishedCacheTtlSec,
   coercePublishedCacheEnabled,
+  coerceRealtimeEnabled,
   type FeatureFlags,
   type ModuleToggleMap,
   type NavItem,
@@ -63,6 +66,7 @@ export {
   ensureSiteSettingsSchemaHealed,
   healSiteSettingsSchema,
   SITE_SETTINGS_HEAL_VERIFY_COLUMNS,
+  SITE_SETTINGS_SCHEMA_HEAL_REVISION,
   SITE_SETTINGS_SCHEMA_HEAL_SQL,
 } from './heal-site-settings-schema'
 export type { SiteSettingsSchemaHealResult } from './heal-site-settings-schema'
@@ -78,6 +82,7 @@ export {
   DEFAULT_PRIMARY_NAV_MENU_ID,
   DEFAULT_PUBLISHED_CACHE_ENABLED,
   DEFAULT_PUBLISHED_CACHE_TTL_SEC,
+  DEFAULT_REALTIME_ENABLED,
   DEFAULT_SITE_NAME,
   DEFAULT_SITE_SETTINGS,
   FORM_RATE_LIMIT_MAX_MAX,
@@ -96,6 +101,7 @@ export {
   clampNullMissTtlSec,
   clampPublishedCacheTtlSec,
   coercePublishedCacheEnabled,
+  coerceRealtimeEnabled,
   DEFAULT_DASHBOARD_ONLINE_WINDOW_MIN,
   DEFAULT_DASHBOARD_REFRESH_INTERVAL_SEC,
   DASHBOARD_ONLINE_WINDOW_MIN_MAX,
@@ -163,6 +169,7 @@ type SiteSettingsDoc = {
   nullMissTtlSec?: number | null
   dashboardRefreshIntervalSec?: number | null
   dashboardOnlineWindowMin?: number | null
+  realtimeEnabled?: boolean | null
   primaryNav?: RawNavRow[] | null
   featureRegistration?: boolean | null
   featureRichEditor?: boolean | null
@@ -179,6 +186,11 @@ function syncPublishedCacheRuntime(settings: SiteSettingsData): void {
     ttlSec: settings.publishedCacheTtlSec,
     nullMissTtlSec: settings.nullMissTtlSec,
   })
+}
+
+/** Push RealtimePort enable into the sync snapshot used by publish / SSE. */
+function syncRealtimeRuntime(settings: SiteSettingsData): void {
+  setRealtimeRuntimeConfig({ enabled: settings.realtimeEnabled })
 }
 
 function normalizePrimaryNavMenuId(raw: string | null | undefined): string {
@@ -215,9 +227,11 @@ export function normalizeSiteSettings(
       nullMissTtlSec: DEFAULT_NULL_MISS_TTL_SEC,
       dashboardRefreshIntervalSec: DEFAULT_DASHBOARD_REFRESH_INTERVAL_SEC,
       dashboardOnlineWindowMin: DEFAULT_DASHBOARD_ONLINE_WINDOW_MIN,
+      realtimeEnabled: DEFAULT_REALTIME_ENABLED,
       moduleToggles: {},
     }
     syncPublishedCacheRuntime(defaults)
+    syncRealtimeRuntime(defaults)
     return defaults
   }
 
@@ -239,11 +253,13 @@ export function normalizeSiteSettings(
       doc.dashboardRefreshIntervalSec,
     ),
     dashboardOnlineWindowMin: clampDashboardOnlineWindowMin(doc.dashboardOnlineWindowMin),
+    realtimeEnabled: coerceRealtimeEnabled(doc.realtimeEnabled),
     primaryNav: resolvedNav ?? resolveNavItems(doc.primaryNav),
     features: normalizeFlags(doc),
     moduleToggles: normalizeModuleToggles(doc.moduleToggles),
   }
   syncPublishedCacheRuntime(normalized)
+  syncRealtimeRuntime(normalized)
   return normalized
 }
 
@@ -375,6 +391,8 @@ export type UpdateSiteSettingsInput = {
   dashboardRefreshIntervalSec?: number
   /** Online-now session window (minutes). */
   dashboardOnlineWindowMin?: number
+  /** RealtimePort SSE / publish on/off; Site Settings → Performance. */
+  realtimeEnabled?: boolean
   /**
    * Legacy: resolved public nav (label + href) — written as custom-URL rows.
    * Prefer Nav manager (`sf_nav_menus`) + `primaryNavMenuId`.
@@ -448,6 +466,9 @@ export async function updateSiteSettings(input: UpdateSiteSettingsInput): Promis
     data.dashboardOnlineWindowMin = clampDashboardOnlineWindowMin(
       input.dashboardOnlineWindowMin,
     )
+  }
+  if (input.realtimeEnabled !== undefined) {
+    data.realtimeEnabled = coerceRealtimeEnabled(input.realtimeEnabled)
   }
 
   if (!input.keepLegacyPrimaryNav) {

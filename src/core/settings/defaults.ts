@@ -160,6 +160,14 @@ export function coercePublishedCacheEnabled(raw: unknown): boolean {
   return coerceBool(raw, DEFAULT_PUBLISHED_CACHE_ENABLED)
 }
 
+/** Default: RealtimePort SSE / publish on (Site Settings → Performance). */
+export const DEFAULT_REALTIME_ENABLED = true
+
+/** Coerce Site Settings RealtimePort enable flag. */
+export function coerceRealtimeEnabled(raw: unknown): boolean {
+  return coerceBool(raw, DEFAULT_REALTIME_ENABLED)
+}
+
 /** Clamp / coerce Site Settings published-content TTL (seconds). */
 export function clampPublishedCacheTtlSec(raw: unknown): number {
   const n = coerceFiniteNumber(raw)
@@ -260,6 +268,11 @@ export type SiteSettingsData = {
    * “Online now” session activity window (minutes). Site Settings → Performance.
    */
   dashboardOnlineWindowMin: number
+  /**
+   * When false, RealtimePort publish is a no-op fan-out and SSE refuses connections.
+   * Site Settings → Performance. Redis fanout (later) stays env-selected.
+   */
+  realtimeEnabled: boolean
   features: FeatureFlags
   /** Runtime gates for registered particles + atoms (`atom:` prefix). */
   moduleToggles: ModuleToggleMap
@@ -296,6 +309,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettingsData = {
   nullMissTtlSec: DEFAULT_NULL_MISS_TTL_SEC,
   dashboardRefreshIntervalSec: DEFAULT_DASHBOARD_REFRESH_INTERVAL_SEC,
   dashboardOnlineWindowMin: DEFAULT_DASHBOARD_ONLINE_WINDOW_MIN,
+  realtimeEnabled: DEFAULT_REALTIME_ENABLED,
   features: { ...DEFAULT_FEATURE_FLAGS },
   moduleToggles: {},
 }

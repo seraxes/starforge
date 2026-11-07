@@ -14,6 +14,7 @@ import {
   clampNullMissTtlSec,
   clampPublishedCacheTtlSec,
   coercePublishedCacheEnabled,
+  coerceRealtimeEnabled,
   featureFlagsFromModuleToggles,
   getSiteSettings,
   listInstalledModuleCatalog,
@@ -33,6 +34,7 @@ function performanceFieldsFrom(current: SiteSettingsData) {
     nullMissTtlSec: current.nullMissTtlSec,
     dashboardRefreshIntervalSec: current.dashboardRefreshIntervalSec,
     dashboardOnlineWindowMin: current.dashboardOnlineWindowMin,
+    realtimeEnabled: current.realtimeEnabled,
   }
 }
 
@@ -205,6 +207,9 @@ export async function updatePerformanceSettingsAction(
   const dashboardOnlineWindowMin = clampDashboardOnlineWindowMin(
     formData.get('dashboardOnlineWindowMin'),
   )
+  const realtimeEnabled = coerceRealtimeEnabled(
+    formData.get('realtimeEnabled') ?? false,
+  )
 
   try {
     await updateSiteSettings({
@@ -218,6 +223,7 @@ export async function updatePerformanceSettingsAction(
       nullMissTtlSec,
       dashboardRefreshIntervalSec,
       dashboardOnlineWindowMin,
+      realtimeEnabled,
       keepLegacyPrimaryNav: true,
       features: current.features,
       moduleToggles: current.moduleToggles,

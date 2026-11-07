@@ -599,6 +599,10 @@ export interface SiteSetting {
    */
   dashboardOnlineWindowMin?: number | null;
   /**
+   * When off, RealtimePort publish does not fan out and /api/realtime refuses connections. Prefer Starforge admin → Settings → Performance.
+   */
+  realtimeEnabled?: boolean | null;
+  /**
    * Legacy storage only — migrated into Navigation manager Main. Do not edit; use /admin/nav.
    */
   primaryNav?:
@@ -678,6 +682,7 @@ export interface SiteSettingsSelect<T extends boolean = true> {
   nullMissTtlSec?: T;
   dashboardRefreshIntervalSec?: T;
   dashboardOnlineWindowMin?: T;
+  realtimeEnabled?: T;
   primaryNav?:
     | T
     | {

@@ -124,6 +124,8 @@ function isRedirectLookupExemptPath(pathname: string): boolean {
   if (pathname.startsWith('/_next/')) return true
   if (pathname === '/sitemap.xml' || pathname.startsWith('/sitemap')) return true
   if (pathname === '/robots.txt') return true
+  if (pathname === '/manifest.webmanifest') return true
+  if (pathname === '/sw.js' || pathname.startsWith('/sw.js')) return true
   return false
 }
 
@@ -138,6 +140,8 @@ function isNonLocalizedPath(pathname: string): boolean {
   }
   if (pathname === '/robots.txt') return true
   if (pathname === '/sitemap.xml' || pathname.startsWith('/sitemap')) return true
+  if (pathname === '/manifest.webmanifest') return true
+  if (pathname === '/sw.js' || pathname.startsWith('/sw.js')) return true
   return false
 }
 
@@ -309,6 +313,7 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // Skip static assets + Serwist SW (product:pwa) so workers register without locale rewrite.
+    '/((?!_next/static|_next/image|favicon.ico|sw\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

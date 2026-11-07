@@ -151,6 +151,7 @@ Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so coo
 | http://localhost:3000/admin/users/acl | Starforge admin — **ACL** groups matrix (admin-area grants) |
 | http://localhost:3000/admin/site-chrome | Starforge admin — **Site Chrome** (offline, metadata, robots, cookies) |
 | http://localhost:3000/admin/settings | Starforge admin — Modules on/off + primary nav menu assignment |
+| http://localhost:3000/admin/pwa | Starforge admin — PWA settings (opt-in module) |
 | http://localhost:3000/admin/nav | Starforge admin — **Nav** manager (navigation sets + items) |
 | http://localhost:3000/admin/forms | Starforge admin — **Forms** definitions + builder + settings |
 | http://localhost:3000/admin/redirects | Starforge admin — **Redirects** (from → to + status; module `product:redirects`) |
@@ -203,6 +204,8 @@ Global app admins open all Core admin. Members in a group with matrix grants (e.
 **Email Manager** (`/admin/email`, Modules → **Email Manager**) — automatic/conditional rules + templates filtered by module category. Modules emit triggers (`emitEmailTrigger` from `@/modules/email-manager/api.server`); Core Mailer sends. No per-module SMTP.
 
 **Redirects** (`/admin/redirects`, gated by Modules → **Redirects** / `product:redirects`) stores `from` / `to` / status (301·302·307·308) in `sf_redirects`. Middleware looks up enabled rules before offline / page render. **Sitemap** (`/sitemap.xml`) lists published Payload pages (home slug `home` → `/`) and is always available — not gated by the Redirects toggle. Run `npm run db:migrate` after pull so `sf_redirects` exists.
+
+**PWA** (`/admin/pwa`, gated by Modules → **PWA** / `product:pwa`, opt-in) serves `/manifest.webmanifest` and registers a Serwist service worker (`public/sw.js`, production). Reuses Site Chrome name and Page Settings icons; knobs live in `sf_module_settings`.
 
 One Payload global (`site-settings`) holds synced site name, `primaryNavMenuId`, capability flags, and module toggles. Core admins edit Modules at **`/admin/settings`**. CMS editors can edit the same document under Payload **Globals → Site settings** (legacy `primaryNav` array is a fallback only).
 

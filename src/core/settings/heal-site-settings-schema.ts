@@ -17,6 +17,7 @@ export const SITE_SETTINGS_HEAL_VERIFY_COLUMNS = [
   'null_miss_ttl_sec',
   'dashboard_refresh_interval_sec',
   'dashboard_online_window_min',
+  'realtime_enabled',
   'feature_registration',
   'feature_modules',
 ] as const
@@ -46,6 +47,8 @@ export const SITE_SETTINGS_SCHEMA_HEAL_SQL = `
     ADD COLUMN IF NOT EXISTS "dashboard_refresh_interval_sec" numeric DEFAULT 60;
   ALTER TABLE "payload"."site_settings"
     ADD COLUMN IF NOT EXISTS "dashboard_online_window_min" numeric DEFAULT 15;
+  ALTER TABLE "payload"."site_settings"
+    ADD COLUMN IF NOT EXISTS "realtime_enabled" boolean DEFAULT true;
   ALTER TABLE "payload"."site_settings"
     ADD COLUMN IF NOT EXISTS "feature_registration" boolean DEFAULT true;
   ALTER TABLE "payload"."site_settings"
@@ -117,34 +120,50 @@ export async function healSiteSettingsSchema(
   return { healed: true, skipped: false }
 }
 
+/**
+ * Bump when SITE_SETTINGS_SCHEMA_HEAL_SQL gains columns so HMR / long-lived
+ * `next dev` re-runs IF NOT EXISTS ALTERs instead of reusing a stale memo.
+ */
+export const SITE_SETTINGS_SCHEMA_HEAL_REVISION = 2
+
 const globalForHeal = globalThis as unknown as {
   starforgeSiteSettingsSchemaHeal?: Promise<SiteSettingsSchemaHealResult>
+  starforgeSiteSettingsSchemaHealRevision?: number
 }
 
 /**
  * Once-per-process boot heal before Payload site-settings SELECT/UPDATE.
  * Retries on failure (clears memo so the next request can recover).
+ * Re-runs when {@link SITE_SETTINGS_SCHEMA_HEAL_REVISION} changes (new columns).
  */
 export async function ensureSiteSettingsSchemaHealed(): Promise<SiteSettingsSchemaHealResult> {
-  if (!globalForHeal.starforgeSiteSettingsSchemaHeal) {
-    globalForHeal.starforgeSiteSettingsSchemaHeal = (async () => {
-      // Dynamic import keeps this module pool-free for `db:migrate` / unit tests.
-      const { pool } = await import('@/core/db')
-      const client = await pool.connect()
-      try {
-        return await healSiteSettingsSchema(client)
-      } finally {
-        client.release()
-      }
-    })().catch((err) => {
-      globalForHeal.starforgeSiteSettingsSchemaHeal = undefined
-      throw err
-    })
+  if (
+    globalForHeal.starforgeSiteSettingsSchemaHeal &&
+    globalForHeal.starforgeSiteSettingsSchemaHealRevision === SITE_SETTINGS_SCHEMA_HEAL_REVISION
+  ) {
+    return globalForHeal.starforgeSiteSettingsSchemaHeal
   }
+
+  globalForHeal.starforgeSiteSettingsSchemaHealRevision = SITE_SETTINGS_SCHEMA_HEAL_REVISION
+  globalForHeal.starforgeSiteSettingsSchemaHeal = (async () => {
+    // Dynamic import keeps this module pool-free for `db:migrate` / unit tests.
+    const { pool } = await import('@/core/db')
+    const client = await pool.connect()
+    try {
+      return await healSiteSettingsSchema(client)
+    } finally {
+      client.release()
+    }
+  })().catch((err) => {
+    globalForHeal.starforgeSiteSettingsSchemaHeal = undefined
+    globalForHeal.starforgeSiteSettingsSchemaHealRevision = undefined
+    throw err
+  })
   return globalForHeal.starforgeSiteSettingsSchemaHeal
 }
 
 /** Test / migrate helper — clear process memo after intentional schema drops. */
 export function resetSiteSettingsSchemaHealMemoForTests(): void {
   globalForHeal.starforgeSiteSettingsSchemaHeal = undefined
+  globalForHeal.starforgeSiteSettingsSchemaHealRevision = undefined
 }

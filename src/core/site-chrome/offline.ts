@@ -41,5 +41,8 @@ export function isOfflineExemptPath(pathname: string): boolean {
   // SEO surfaces stay reachable while the HTML site is offline.
   if (pathname === '/robots.txt') return true
   if (pathname === '/sitemap.xml' || pathname.startsWith('/sitemap')) return true
+  // product:pwa — manifest + Serwist worker stay outside offline HTML rewrite.
+  if (pathname === '/manifest.webmanifest') return true
+  if (pathname === '/sw.js' || pathname.startsWith('/sw.js')) return true
   return false
 }

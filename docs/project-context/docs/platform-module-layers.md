@@ -39,7 +39,8 @@
 | **Posts / Search / taxonomy** | **Modules** | Content + findability; shared tags with Media |
 | **Profiles** | **Modules** | Generic profile/avatar/privacy; Hero adds vertical fields |
 | **Social / feed skins** | **Modules** | Follow/friend/feed; FB-like vs short-video = layout/particle options on **one** Social Module — Hero only brands |
-| **Chat** | **Modules** | DM/group/media; RTC port later on Core when calls ship |
+| **Chat** | **Modules** | DM/group/media; uses **RealtimePort** for live messages; RTC port later on Core when calls ship |
+| **RealtimePort** (SSE → Redis fanout) | **Core (port)** | Shared push bus; Notifications / Chat / live Maps consume — not per-module WebSocket stacks |
 | **Stream** | **Modules** | Ingest/playback + ACL |
 | **Marketplace / Shop** | **Modules** | Listings/cart; **Payments port** on Core |
 | **Ads** | **Modules** | Placements + campaign CRUD |
@@ -47,7 +48,7 @@
 | **Maps / location sharing** | **Modules** | Privacy scopes + particle; uses **MapProvider** port; mobile client later |
 | **Consent** | **Modules** | Cookie/privacy banner particle |
 | **Redirects / sitemap** | **Modules** (or thin Core SEO helpers) | Redirects CRUD + middleware; sitemap over published pages |
-| **Notifications** (in-app) | **Modules** | Bell/center when needed; transactional email stays Mailer port |
+| **Notifications** (in-app) | **Modules** | Bell/center when needed; persist + `RealtimePort.publish` on create; transactional email stays Mailer port |
 | **Starforge public theme** (pastel orange/blue) | **Hero** (default brand) *or* default tokens | Public site — pastel orange + blue |
 | **Starforge admin / backend** | **Core** chrome (theme port) | Blue-dominated high-tech minimalist; orange = accent only |
 | **ASN theme** (dark tactical / gaming / military) | **Hero** | Visual only — not pastel Starforge; consumes Layout + admin-theme port |
