@@ -9,7 +9,7 @@ export default defineStarforgeModule({
   label: 'Events',
   description:
     'Events + venues — admin CRUD, public list/detail, registration with ticket tiers, event particles.',
-  version: '0.4.0',
+  version: '0.5.0',
   defaultEnabled: true,
   requires: ['product:media'],
   i18n: {
@@ -94,6 +94,11 @@ export default defineStarforgeModule({
       {
         path: 'events/settings',
         pageImportPath: '@/modules/events/admin/EventsSettingsPage',
+        pageExportName: 'default',
+      },
+      {
+        path: 'events/[eventId]',
+        pageImportPath: '@/modules/events/admin/EventEditPage',
         pageExportName: 'default',
       },
     ],

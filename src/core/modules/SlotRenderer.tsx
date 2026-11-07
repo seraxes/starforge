@@ -49,6 +49,11 @@ export async function SlotRenderer({ sectionId, slot, pageContent }: Props) {
     const { MODULE_IDS, isCatalogModuleEnabled } = await import('@/core/settings')
     if (!isCatalogModuleEnabled(settings, MODULE_IDS.search)) return null
   }
+  // event-list / event-detail particles require product:events.
+  if (mod.id === 'event-list' || mod.id === 'event-detail') {
+    const { MODULE_IDS, isCatalogModuleEnabled } = await import('@/core/settings')
+    if (!isCatalogModuleEnabled(settings, MODULE_IDS.events)) return null
+  }
 
   const accessTags = resolveAccessTags({
     accessTags: slot.accessTags,

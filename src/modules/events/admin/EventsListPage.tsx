@@ -44,9 +44,8 @@ export default async function EventsListPage({ searchParams }: { searchParams: S
       <EventsAdminNav active="events" />
       <h2>Events</h2>
       <p className="lede admin-lede">
-        Schedule events with venue, cover media, capacity, and ACL group tags. Registration and
-        public particles land in later PRs. Module on/off:{' '}
-        <Link href="/admin/settings">Settings → Modules</Link>. Venues:{' '}
+        Create an event, then edit it on its own page (schedule, registration window, tiers).
+        Module on/off: <Link href="/admin/settings">Settings → Modules</Link>. Venues:{' '}
         <Link href="/admin/events/venues">Events → Venues</Link>.
       </p>
 
@@ -68,6 +67,12 @@ export default async function EventsListPage({ searchParams }: { searchParams: S
           description: e.description,
           coverMediaId: e.coverMediaId,
           capacity: e.capacity,
+          registrationOpensAt: e.registrationOpensAt
+            ? e.registrationOpensAt.toISOString()
+            : null,
+          registrationClosesAt: e.registrationClosesAt
+            ? e.registrationClosesAt.toISOString()
+            : null,
           accessTags: e.accessTags,
           updatedAt: e.updatedAt.toISOString(),
         }))}

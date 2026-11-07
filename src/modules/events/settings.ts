@@ -15,6 +15,12 @@ import {
   type EventsModuleSettings,
 } from './types'
 
+function parsePreventDuplicate(raw: unknown): boolean {
+  if (raw === false || raw === 0 || raw === '0' || raw === 'false') return false
+  if (raw === true || raw === 1 || raw === '1' || raw === 'true') return true
+  return DEFAULT_EVENTS_MODULE_SETTINGS.preventDuplicate
+}
+
 export function normalizeEventsModuleSettings(
   raw: unknown,
 ): EventsModuleSettings {
@@ -25,6 +31,7 @@ export function normalizeEventsModuleSettings(
   const tz = String(obj.defaultTimezone ?? '').trim().slice(0, 80)
   return {
     defaultTimezone: tz || DEFAULT_EVENTS_MODULE_SETTINGS.defaultTimezone,
+    preventDuplicate: parsePreventDuplicate(obj.preventDuplicate),
   }
 }
 

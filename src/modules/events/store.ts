@@ -4,10 +4,14 @@
 
 import 'server-only'
 
-import { and, asc, count, eq, gte, lt } from 'drizzle-orm'
+import { and, asc, count, eq, gte, isNull, lt, or } from 'drizzle-orm'
 
 import { db } from '@/core/db'
-import { normalizeAccessTags } from '@/core/acl/nav-access'
+import {
+  canSeeNavAccessTags,
+  normalizeAccessTags,
+} from '@/core/acl/nav-access'
+import type { AccessViewer } from '@/core/acl/types'
 import { sanitizeRichHtml } from '@/core/rich-editor/sanitize'
 
 import { sfEvents, sfVenues } from './schema'
@@ -65,6 +69,8 @@ function mapEvent(row: typeof sfEvents.$inferSelect): EventRecord {
       typeof row.capacity === 'number' && Number.isFinite(row.capacity) && row.capacity >= 0
         ? Math.floor(row.capacity)
         : null,
+    registrationOpensAt: row.registrationOpensAt ?? null,
+    registrationClosesAt: row.registrationClosesAt ?? null,
     accessTags: normalizeAccessTags({ accessTags: row.accessTags }),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -324,6 +330,8 @@ export type UpsertEventInput = {
   coverMediaId?: string
   galleryMediaIds?: unknown
   capacity?: unknown
+  registrationOpensAt?: unknown
+  registrationClosesAt?: unknown
   accessTags?: unknown
 }
 
@@ -340,12 +348,21 @@ export async function createEvent(
   const capacity = parseOptionalCapacity(input.capacity)
   const startsAt = parseOptionalDate(input.startsAt)
   const endsAt = parseOptionalDate(input.endsAt)
+  const registrationOpensAt = parseOptionalDate(input.registrationOpensAt)
+  const registrationClosesAt = parseOptionalDate(input.registrationClosesAt)
   const slug = normalizeSlug(input.slug)
   const accessTags = normalizeAccessTagsForDb(input.accessTags)
   const id = (input.id || '').trim() || crypto.randomUUID()
 
   if (startsAt && endsAt && endsAt.getTime() < startsAt.getTime()) {
     return { error: 'End time must be on or after start time.' }
+  }
+  if (
+    registrationOpensAt &&
+    registrationClosesAt &&
+    registrationClosesAt.getTime() < registrationOpensAt.getTime()
+  ) {
+    return { error: 'Registration close must be on or after open.' }
   }
   if (venueId) {
     const venue = await findVenueById(venueId)
@@ -366,6 +383,8 @@ export async function createEvent(
       coverMediaId,
       galleryMediaIds,
       capacity,
+      registrationOpensAt,
+      registrationClosesAt,
       accessTags,
     })
     const created = await findEventById(id)
@@ -416,6 +435,14 @@ export async function updateEvent(
     input.startsAt !== undefined ? parseOptionalDate(input.startsAt) : current.startsAt
   const endsAt =
     input.endsAt !== undefined ? parseOptionalDate(input.endsAt) : current.endsAt
+  const registrationOpensAt =
+    input.registrationOpensAt !== undefined
+      ? parseOptionalDate(input.registrationOpensAt)
+      : current.registrationOpensAt
+  const registrationClosesAt =
+    input.registrationClosesAt !== undefined
+      ? parseOptionalDate(input.registrationClosesAt)
+      : current.registrationClosesAt
   const slug =
     input.slug !== undefined ? normalizeSlug(input.slug) : current.slug || null
   const accessTags =
@@ -425,6 +452,13 @@ export async function updateEvent(
 
   if (startsAt && endsAt && endsAt.getTime() < startsAt.getTime()) {
     return { error: 'End time must be on or after start time.' }
+  }
+  if (
+    registrationOpensAt &&
+    registrationClosesAt &&
+    registrationClosesAt.getTime() < registrationOpensAt.getTime()
+  ) {
+    return { error: 'Registration close must be on or after open.' }
   }
   if (venueId) {
     const venue = await findVenueById(venueId)
@@ -446,6 +480,8 @@ export async function updateEvent(
         coverMediaId,
         galleryMediaIds,
         capacity,
+        registrationOpensAt,
+        registrationClosesAt,
         accessTags,
       })
       .where(eq(sfEvents.id, id))
@@ -472,6 +508,61 @@ export async function deleteEvent(
       error: error instanceof Error ? error.message : 'Could not delete event.',
     }
   }
+}
+
+/** Published events for public list / particles (ACL applied by caller). */
+export async function listPublishedEvents(options?: {
+  includePast?: boolean
+  limit?: number
+  now?: Date
+}): Promise<EventRecord[]> {
+  const now = options?.now ?? new Date()
+  const limit = Math.min(Math.max(options?.limit ?? 50, 1), 200)
+  try {
+    const published = eq(sfEvents.status, 'published')
+    const upcoming = or(isNull(sfEvents.startsAt), gte(sfEvents.startsAt, now))
+    const rows = await db
+      .select()
+      .from(sfEvents)
+      .where(options?.includePast ? published : and(published, upcoming))
+      .orderBy(asc(sfEvents.startsAt), asc(sfEvents.title), asc(sfEvents.id))
+      .limit(limit)
+    return rows.map(mapEvent)
+  } catch {
+    return []
+  }
+}
+
+/** Resolve a public event by slug or id (published only). */
+export async function findPublishedEventByPublicKey(
+  key: string,
+): Promise<EventRecord | null> {
+  const trimmed = key.trim()
+  if (!trimmed) return null
+  try {
+    const [bySlug] = await db
+      .select()
+      .from(sfEvents)
+      .where(and(eq(sfEvents.status, 'published'), eq(sfEvents.slug, trimmed)))
+      .limit(1)
+    if (bySlug) return mapEvent(bySlug)
+    const [byId] = await db
+      .select()
+      .from(sfEvents)
+      .where(and(eq(sfEvents.status, 'published'), eq(sfEvents.id, trimmed)))
+      .limit(1)
+    return byId ? mapEvent(byId) : null
+  } catch {
+    return null
+  }
+}
+
+/** Drop events the viewer cannot see (multi-tag OR). */
+export function filterEventsForViewer(
+  events: EventRecord[],
+  viewer: AccessViewer,
+): EventRecord[] {
+  return events.filter((event) => canSeeNavAccessTags(event.accessTags, viewer))
 }
 
 /** Published upcoming counts for the Dashboard card. */

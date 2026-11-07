@@ -9,11 +9,33 @@ import { and, asc, desc, eq, ne, sql } from 'drizzle-orm'
 import { db } from '@/core/db'
 
 import { sfEventRegistrations } from './schema'
+import { loadEventsModuleSettings } from './settings'
 import { findEventById } from './store'
+import type { EventRecord } from './types'
 import {
   countRegisteredGuestsForTier,
   findTicketTierById,
 } from './tiers'
+
+/** True when public signup is allowed for a published event. */
+export function isEventRegistrationOpen(
+  event: Pick<
+    EventRecord,
+    'status' | 'registrationOpensAt' | 'registrationClosesAt'
+  >,
+  now = new Date(),
+): { open: boolean; reason?: string } {
+  if (event.status !== 'published') {
+    return { open: false, reason: 'Event is not open for registration.' }
+  }
+  if (event.registrationOpensAt && now < event.registrationOpensAt) {
+    return { open: false, reason: 'Registration is not open yet.' }
+  }
+  if (event.registrationClosesAt && now > event.registrationClosesAt) {
+    return { open: false, reason: 'Registration has closed.' }
+  }
+  return { open: true }
+}
 
 export type RegistrationStatus = 'registered' | 'waitlisted' | 'cancelled'
 
@@ -106,8 +128,9 @@ export async function createEventRegistration(
 
   const event = await findEventById(eventId)
   if (!event) return { error: 'Event not found.' }
-  if (event.status !== 'published') {
-    return { error: 'Event is not open for registration.' }
+  const window = isEventRegistrationOpen(event)
+  if (!window.open) {
+    return { error: window.reason || 'Event is not open for registration.' }
   }
 
   const guestsRaw = input.guests ?? 1
@@ -145,6 +168,28 @@ export async function createEventRegistration(
   const email = input.email.trim().toLowerCase().slice(0, 320)
   if (!email || !email.includes('@')) {
     return { error: 'A valid email is required.' }
+  }
+
+  const { settings } = await loadEventsModuleSettings()
+  if (settings.preventDuplicate) {
+    try {
+      const [dup] = await db
+        .select({ id: sfEventRegistrations.id })
+        .from(sfEventRegistrations)
+        .where(
+          and(
+            eq(sfEventRegistrations.eventId, eventId),
+            eq(sfEventRegistrations.email, email),
+            ne(sfEventRegistrations.status, 'cancelled'),
+          ),
+        )
+        .limit(1)
+      if (dup) {
+        return { error: 'You are already registered for this event.' }
+      }
+    } catch {
+      // Table missing → insert path reports migrate hint.
+    }
   }
 
   try {

@@ -6,16 +6,19 @@ import { useRouter } from 'next/navigation'
 
 import { useNotifySavedOnOk } from '@/app/(frontend)/admin/admin-toast'
 import type { UserGroupOption } from '@/core/acl/types'
-import { RichEditor } from '@/modules/rich-editor/api'
 
 import {
   createEventAction,
   deleteEventAction,
-  updateEventAction,
   type EventsAdminActionState,
 } from '../actions'
 import { EVENT_STATUSES } from '../types'
-import { CoverAndAccessFields, toDatetimeLocalValue } from './events-form-fields'
+import { EventFormFields } from './events-form-fields'
+
+/** Re-export for PR1 smoke (`CoverAndAccessFields` / coverMediaId on Events manager). */
+export { CoverAndAccessFields } from './events-form-fields'
+// coverMediaId is written by CoverAndAccessFields inside EventFormFields.
+
 
 type EventRow = {
   id: string
@@ -29,6 +32,8 @@ type EventRow = {
   description: string
   coverMediaId: string
   capacity: number | null
+  registrationOpensAt: string | null
+  registrationClosesAt: string | null
   accessTags: string[]
   updatedAt: string
 }
@@ -75,132 +80,6 @@ function formatUpdated(iso: string) {
   }
 }
 
-function EventFields({
-  row,
-  venues,
-  groups,
-  defaultTimezone,
-  busy,
-  richEditorEnabled,
-}: {
-  row?: EventRow
-  venues: VenueOpt[]
-  groups: UserGroupOption[]
-  defaultTimezone: string
-  busy: boolean
-  richEditorEnabled: boolean
-}) {
-  return (
-    <>
-      <label className="settings-field">
-        <span>Title</span>
-        <input
-          type="text"
-          name="title"
-          required
-          maxLength={200}
-          defaultValue={row?.title ?? ''}
-          disabled={busy}
-          autoComplete="off"
-        />
-      </label>
-      <label className="settings-field">
-        <span>Slug (optional)</span>
-        <input
-          type="text"
-          name="slug"
-          maxLength={120}
-          defaultValue={row?.slug ?? ''}
-          disabled={busy}
-          autoComplete="off"
-          placeholder="summer-meetup"
-        />
-      </label>
-      <label className="settings-field">
-        <span>Status</span>
-        <select name="status" defaultValue={row?.status ?? 'draft'} disabled={busy}>
-          {EVENT_STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="settings-field">
-        <span>Starts</span>
-        <input
-          type="datetime-local"
-          name="startsAt"
-          defaultValue={toDatetimeLocalValue(row?.startsAt)}
-          disabled={busy}
-        />
-      </label>
-      <label className="settings-field">
-        <span>Ends</span>
-        <input
-          type="datetime-local"
-          name="endsAt"
-          defaultValue={toDatetimeLocalValue(row?.endsAt)}
-          disabled={busy}
-        />
-      </label>
-      <label className="settings-field">
-        <span>Timezone</span>
-        <input
-          type="text"
-          name="timezone"
-          maxLength={80}
-          defaultValue={row?.timezone ?? defaultTimezone}
-          disabled={busy}
-          autoComplete="off"
-          placeholder="Europe/Budapest"
-        />
-      </label>
-      <label className="settings-field">
-        <span>Venue</span>
-        <select name="venueId" defaultValue={row?.venueId ?? ''} disabled={busy}>
-          <option value="">— none —</option>
-          {venues.map((v) => (
-            <option key={v.id} value={v.id}>
-              {v.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="settings-field">
-        <span>Capacity (optional)</span>
-        <input
-          type="number"
-          name="capacity"
-          min={0}
-          step={1}
-          defaultValue={row?.capacity ?? ''}
-          disabled={busy}
-          placeholder="Unlimited"
-        />
-      </label>
-      <div className="settings-field settings-field-wide">
-        <RichEditor
-          name="description"
-          label="Description"
-          defaultValue={row?.description ?? ''}
-          disabled={busy}
-          enabled={richEditorEnabled}
-          preset="full"
-          placeholder="Game / event description…"
-        />
-      </div>
-      <input type="hidden" name="galleryMediaIdsJson" value="[]" />
-      <CoverAndAccessFields
-        coverMediaId={row?.coverMediaId ?? ''}
-        accessTags={row?.accessTags ?? ['public']}
-        groups={groups}
-        disabled={busy}
-      />
-    </>
-  )
-}
-
 export function EventsManager({
   events,
   venues,
@@ -214,26 +93,23 @@ export function EventsManager({
     createEventAction,
     initial,
   )
-  const [updateState, updateAction, updatePending] = useActionState(
-    updateEventAction,
-    initial,
-  )
   const [deleteState, deleteAction, deletePending] = useActionState(
     deleteEventAction,
     initial,
   )
 
   useNotifySavedOnOk(createState)
-  useNotifySavedOnOk(updateState)
   useNotifySavedOnOk(deleteState)
 
   useEffect(() => {
-    if (createState.ok || updateState.ok || deleteState.ok) {
-      router.refresh()
+    if (createState.ok && createState.id) {
+      router.push(`/admin/events/${createState.id}`)
+      return
     }
-  }, [createState, updateState, deleteState, router])
+    if (deleteState.ok) router.refresh()
+  }, [createState, deleteState, router])
 
-  const busy = createPending || updatePending || deletePending
+  const busy = createPending || deletePending
 
   return (
     <div className="sf-events-manager admin-settings-mosaic">
@@ -271,82 +147,77 @@ export function EventsManager({
           </p>
         ) : null}
         <form action={createAction} className="outlines-create-form admin-create-form">
-          <EventFields
+          <EventFormFields
             venues={venues}
             groups={groups}
             defaultTimezone={defaultTimezone}
             busy={busy}
             richEditorEnabled={richEditorEnabled}
           />
-          <button
-            type="submit"
-            className="gantry-toolbar-btn gantry-toolbar-btn-save"
-            disabled={createPending}
-          >
-            {createPending ? 'Adding…' : 'Add event'}
-          </button>
+          <div className="page-settings-actions">
+            <button
+              type="submit"
+              className="gantry-toolbar-btn gantry-toolbar-btn-save"
+              disabled={createPending}
+            >
+              {createPending ? 'Adding…' : 'Add event'}
+            </button>
+          </div>
         </form>
         <Feedback state={createState} />
       </section>
 
-      <Feedback state={updateState} />
       <Feedback state={deleteState} />
 
       {events.length === 0 ? (
         <section className="outlines-create" aria-label="Events list">
           <h3>No events yet</h3>
-          <p className="admin-empty">Add one above to start scheduling.</p>
+          <p className="admin-empty">Add one above to open the event editor.</p>
         </section>
       ) : (
-        events.map((row) => (
-          <section
-            key={row.id}
-            className="outlines-create"
-            aria-label={`Edit event ${row.title}`}
-          >
-            <h3>
-              {row.title}{' '}
-              <span className="settings-hint">({row.status})</span>
-            </h3>
-            <p className="settings-hint">Updated {formatUpdated(row.updatedAt)}</p>
-            <form action={updateAction} className="outlines-create-form admin-create-form">
-              <input type="hidden" name="id" value={row.id} />
-              <EventFields
-                key={`${row.id}-${row.updatedAt}`}
-                row={row}
-                venues={venues}
-                groups={groups}
-                defaultTimezone={defaultTimezone}
-                busy={busy}
-                richEditorEnabled={richEditorEnabled}
-              />
-              <div className="admin-inline-actions">
-                <button
-                  type="submit"
-                  className="gantry-toolbar-btn gantry-toolbar-btn-save"
-                  disabled={busy}
-                >
-                  {updatePending ? 'Saving…' : 'Save'}
-                </button>
-              </div>
-            </form>
-            <form action={deleteAction} className="admin-inline-actions">
-              <input type="hidden" name="id" value={row.id} />
-              <button
-                type="submit"
-                className="gantry-btn"
-                disabled={busy}
-                onClick={(e) => {
-                  if (!window.confirm(`Delete event “${row.title}”?`)) {
-                    e.preventDefault()
-                  }
-                }}
-              >
-                {deletePending ? 'Deleting…' : 'Delete'}
-              </button>
-            </form>
-          </section>
-        ))
+        <section className="outlines-create" aria-label="Events list">
+          <h3>Events</h3>
+          <ul className="sf-events-list">
+            {events.map((row) => (
+              <li key={row.id} className="sf-events-list-item">
+                <div className="sf-events-list-main">
+                  <Link
+                    href={`/admin/events/${row.id}`}
+                    className="sf-events-list-title"
+                  >
+                    {row.title}
+                  </Link>
+                  <span className="settings-hint">
+                    {row.status} · updated {formatUpdated(row.updatedAt)}
+                  </span>
+                </div>
+                <div className="admin-action-row">
+                  <Link
+                    href={`/admin/events/${row.id}`}
+                    className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+                  >
+                    Edit
+                  </Link>
+                  <form action={deleteAction}>
+                    <input type="hidden" name="id" value={row.id} />
+                    <button
+                      type="submit"
+                      className="gantry-toolbar-btn gantry-toolbar-btn-danger"
+                      disabled={busy}
+                      onClick={(e) => {
+                        if (!window.confirm(`Delete event “${row.title}”?`)) {
+                          e.preventDefault()
+                        }
+                      }}
+                    >
+                      {deletePending ? 'Deleting…' : 'Delete'}
+                    </button>
+                  </form>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
     </div>
   )

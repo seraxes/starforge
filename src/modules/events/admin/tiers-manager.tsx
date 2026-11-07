@@ -33,6 +33,8 @@ type Props = {
   events: EventOpt[]
   eventId: string
   tiers: TierRow[]
+  /** Hide event picker when embedded on the event editor. */
+  embedded?: boolean
 }
 
 const initial: EventsAdminActionState = {}
@@ -55,7 +57,7 @@ function Feedback({ state }: { state: EventsAdminActionState }) {
   return null
 }
 
-export function TiersManager({ events, eventId, tiers }: Props) {
+export function TiersManager({ events, eventId, tiers, embedded = false }: Props) {
   const router = useRouter()
   const [createState, createAction, createPending] = useActionState(
     createTicketTierAction,
@@ -84,28 +86,30 @@ export function TiersManager({ events, eventId, tiers }: Props) {
 
   return (
     <div className="sf-events-tiers-manager admin-settings-mosaic">
-      <section className="outlines-create" aria-label="Select event">
-        <h3>Event</h3>
-        <div className="admin-inline-actions" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
-          {events.length === 0 ? (
-            <p className="admin-empty">
-              Create an <Link href="/admin/events">event</Link> first.
-            </p>
-          ) : (
-            events.map((ev) => (
-              <Link
-                key={ev.id}
-                href={`/admin/events/tiers?eventId=${encodeURIComponent(ev.id)}`}
-                className={
-                  eventId === ev.id ? 'gantry-btn gantry-btn-primary' : 'gantry-btn'
-                }
-              >
-                {ev.title}
-              </Link>
-            ))
-          )}
-        </div>
-      </section>
+      {embedded ? null : (
+        <section className="outlines-create" aria-label="Select event">
+          <h3>Event</h3>
+          <div className="admin-inline-actions" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
+            {events.length === 0 ? (
+              <p className="admin-empty">
+                Create an <Link href="/admin/events">event</Link> first.
+              </p>
+            ) : (
+              events.map((ev) => (
+                <Link
+                  key={ev.id}
+                  href={`/admin/events/tiers?eventId=${encodeURIComponent(ev.id)}`}
+                  className={
+                    eventId === ev.id ? 'gantry-btn gantry-btn-primary' : 'gantry-btn'
+                  }
+                >
+                  {ev.title}
+                </Link>
+              ))
+            )}
+          </div>
+        </section>
+      )}
 
       {!eventId || events.length === 0 ? null : (
         <>

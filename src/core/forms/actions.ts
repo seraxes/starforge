@@ -324,8 +324,14 @@ export async function submitFormAction(
       // Mailer failures must not fail the submission.
     }
 
-    // Preset onSubmitted hook (Events capacity / confirm later) — soft-fail.
+    // Preset onSubmitted hook (Events capacity / confirm) — soft-fail.
     try {
+      try {
+        const { ensureEventsFormHooks } = await import('@/modules/events/form-hooks')
+        ensureEventsFormHooks()
+      } catch {
+        // Events pack may be off the allowlist — skip registration.
+      }
       const { runFormPresetOnSubmitted } = await import('./preset-registry')
       await runFormPresetOnSubmitted({
         presetId: definitionDocument.preset,

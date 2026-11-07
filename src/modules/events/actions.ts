@@ -32,13 +32,40 @@ async function requireEventsAdmin(): Promise<EventsAdminActionState | null> {
   return null
 }
 
-function revalidateEventsAdmin() {
+function revalidateEventsAdmin(eventId?: string) {
   revalidatePath('/admin/events')
   revalidatePath('/admin/events/venues')
   revalidatePath('/admin/events/settings')
   revalidatePath('/admin/events/tiers')
   revalidatePath('/admin/events/registrants')
   revalidatePath('/admin')
+  revalidatePath('/events')
+  if (eventId) {
+    revalidatePath(`/admin/events/${eventId}`)
+  }
+}
+
+function eventFieldsFromForm(formData: FormData) {
+  return {
+    title: String(formData.get('title') ?? ''),
+    slug: String(formData.get('slug') ?? ''),
+    status: String(formData.get('status') ?? 'draft'),
+    startsAt: datetimeLocalToIso(String(formData.get('startsAt') ?? '')),
+    endsAt: datetimeLocalToIso(String(formData.get('endsAt') ?? '')),
+    timezone: String(formData.get('timezone') ?? 'UTC'),
+    venueId: String(formData.get('venueId') ?? ''),
+    description: String(formData.get('description') ?? ''),
+    coverMediaId: String(formData.get('coverMediaId') ?? ''),
+    galleryMediaIds: String(formData.get('galleryMediaIdsJson') ?? '[]'),
+    capacity: String(formData.get('capacity') ?? ''),
+    registrationOpensAt: datetimeLocalToIso(
+      String(formData.get('registrationOpensAt') ?? ''),
+    ),
+    registrationClosesAt: datetimeLocalToIso(
+      String(formData.get('registrationClosesAt') ?? ''),
+    ),
+    accessTags: parseAccessTagsFromForm(formData),
+  }
 }
 
 function parseAccessTagsFromForm(formData: FormData): unknown {
@@ -183,22 +210,9 @@ export async function createEventAction(
   const denied = await requireEventsAdmin()
   if (denied) return denied
 
-  const result = await createEvent({
-    title: String(formData.get('title') ?? ''),
-    slug: String(formData.get('slug') ?? ''),
-    status: String(formData.get('status') ?? 'draft'),
-    startsAt: datetimeLocalToIso(String(formData.get('startsAt') ?? '')),
-    endsAt: datetimeLocalToIso(String(formData.get('endsAt') ?? '')),
-    timezone: String(formData.get('timezone') ?? 'UTC'),
-    venueId: String(formData.get('venueId') ?? ''),
-    description: String(formData.get('description') ?? ''),
-    coverMediaId: String(formData.get('coverMediaId') ?? ''),
-    galleryMediaIds: String(formData.get('galleryMediaIdsJson') ?? '[]'),
-    capacity: String(formData.get('capacity') ?? ''),
-    accessTags: parseAccessTagsFromForm(formData),
-  })
+  const result = await createEvent(eventFieldsFromForm(formData))
   if ('error' in result) return { error: result.error }
-  revalidateEventsAdmin()
+  revalidateEventsAdmin(result.event.id)
   return {
     ok: true,
     message: `Event “${result.event.title}” created.`,
@@ -216,21 +230,10 @@ export async function updateEventAction(
   const id = String(formData.get('id') ?? '').trim()
   const result = await updateEvent({
     id,
-    title: String(formData.get('title') ?? ''),
-    slug: String(formData.get('slug') ?? ''),
-    status: String(formData.get('status') ?? 'draft'),
-    startsAt: datetimeLocalToIso(String(formData.get('startsAt') ?? '')),
-    endsAt: datetimeLocalToIso(String(formData.get('endsAt') ?? '')),
-    timezone: String(formData.get('timezone') ?? 'UTC'),
-    venueId: String(formData.get('venueId') ?? ''),
-    description: String(formData.get('description') ?? ''),
-    coverMediaId: String(formData.get('coverMediaId') ?? ''),
-    galleryMediaIds: String(formData.get('galleryMediaIdsJson') ?? '[]'),
-    capacity: String(formData.get('capacity') ?? ''),
-    accessTags: parseAccessTagsFromForm(formData),
+    ...eventFieldsFromForm(formData),
   })
   if ('error' in result) return { error: result.error }
-  revalidateEventsAdmin()
+  revalidateEventsAdmin(result.event.id)
   return {
     ok: true,
     message: `Event “${result.event.title}” saved.`,
@@ -263,6 +266,7 @@ export async function saveEventsSettingsAction(
   try {
     const settings = await saveEventsModuleSettings({
       defaultTimezone: String(formData.get('defaultTimezone') ?? 'UTC'),
+      preventDuplicate: formData.get('preventDuplicate') === '1',
     })
     revalidateEventsAdmin()
     return {

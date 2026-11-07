@@ -65,6 +65,10 @@ export const sfEvents = pgTable(
     galleryMediaIds: jsonb('gallery_media_ids').$type<string[]>().notNull().default([]),
     /** Null = unlimited. */
     capacity: integer('capacity'),
+    /** Null = open when published. */
+    registrationOpensAt: timestamp('registration_opens_at', { withTimezone: true }),
+    /** Null = no hard close (beyond event status). */
+    registrationClosesAt: timestamp('registration_closes_at', { withTimezone: true }),
     accessTags: jsonb('access_tags').$type<string[]>().notNull().default([]),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true })

@@ -20,7 +20,7 @@ export const MODULE_ALLOWLIST_FLAVOR = "core" as const
 export const FIXED_REQUIRED_MODULE_IDS = ["platform:dashboard","platform:better-auth","page-content","product:media"] as const
 
 /** Allowlisted module ids for this install/build (platform + product + particles + atoms). */
-export const ALLOWLISTED_MODULE_IDS = ["atom:analytics","atom:custom-css-js","copyright","custom","form","locale-switcher","login","logo","menu","notice-bar","page-content","platform:better-auth","platform:dashboard","platform:payload-cms","product:consent","product:draft-preview","product:email-manager","product:events","product:font-awesome","product:forms","product:layout-manager","product:lexical-editor","product:maps","product:marketplace","product:media","product:page-settings","product:posts","product:primary-nav","product:redirects","product:registration","product:rich-editor","product:search","search","site-header","social","spacer"] as const
+export const ALLOWLISTED_MODULE_IDS = ["atom:analytics","atom:custom-css-js","copyright","custom","event-detail","event-list","form","locale-switcher","login","logo","map","menu","notice-bar","page-content","platform:better-auth","platform:dashboard","platform:payload-cms","product:consent","product:draft-preview","product:email-manager","product:events","product:font-awesome","product:forms","product:layout-manager","product:lexical-editor","product:maps","product:marketplace","product:media","product:page-settings","product:posts","product:primary-nav","product:redirects","product:registration","product:rich-editor","product:search","search","site-header","social","spacer"] as const
 
 export type AllowlistedModuleId = (typeof ALLOWLISTED_MODULE_IDS)[number]
 
@@ -90,6 +90,9 @@ export const ALLOWLISTED_PARTICLE_META: AllowlistedParticleMeta[] = [
   { id: "social", name: "Social", description: "Built-in — platform/url/label/icon list.", required: false, defaultEnabled: true, builtin: true },
   { id: "custom", name: "Custom", description: "Built-in HTML/CSS (+ JS stub); free-form escape hatch.", required: false, defaultEnabled: true, builtin: true },
   { id: "login", name: "Login / Welcome", description: "Welcome note + sign-in panel (password / magic link / email OTP / stay signed in). Signed-in: Account security 2FA. Place in Main — not branded heroes.", required: false, defaultEnabled: true, builtin: true, navViews: [{"key":"login","label":"Sign in","href":"/login"},{"key":"forgot-password","label":"Forgot password","href":"/forgot-password"},{"key":"forgot-username","label":"Forgot login email","href":"/forgot-username"},{"key":"account-security","label":"Account security","href":"/account/security"}] },
+  { id: "event-list", name: "Event list", description: "Upcoming published events list. Needs product:events. Links to /events/[slug].", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"events","label":"Events","href":"/events"}] },
+  { id: "event-detail", name: "Event detail", description: "Single published event (id or slug in particle config). Needs product:events.", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"events","label":"Events","href":"/events"}] },
+  { id: "map", name: "Map", description: "Leaflet map with optional Event venue pins. Needs product:maps (+ product:events for pins).", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"events","label":"Events","href":"/events"}] },
   { id: "notice-bar", name: "Notice bar", description: "Dismissible site-wide notice. Seed places it in Header at 100%.", required: false, defaultEnabled: false, builtin: false, featureFlag: "modules" },
   { id: "form", name: "Form", description: "Modular Form engine particle — contact and other presets via Admin → Forms. Optional Settings → Security captcha (Turnstile).", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"admin","label":"Forms","href":"/admin/forms"}] },
   { id: "search", name: "Search", description: "Public search box → /search over published Payload pages (title / slug / meta). Needs product:search.", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"search","label":"Search","href":"/search"}] }
@@ -97,6 +100,9 @@ export const ALLOWLISTED_PARTICLE_META: AllowlistedParticleMeta[] = [
 
 /** @deprecated Prefer ALLOWLISTED_PARTICLE_META filtered by !builtin — kept for older callers. */
 export const ALLOWLISTED_OPTIONAL_PARTICLE_META: AllowlistedParticleMeta[] = [
+  { id: "event-list", name: "Event list", description: "Upcoming published events list. Needs product:events. Links to /events/[slug].", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"events","label":"Events","href":"/events"}] },
+  { id: "event-detail", name: "Event detail", description: "Single published event (id or slug in particle config). Needs product:events.", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"events","label":"Events","href":"/events"}] },
+  { id: "map", name: "Map", description: "Leaflet map with optional Event venue pins. Needs product:maps (+ product:events for pins).", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"events","label":"Events","href":"/events"}] },
   { id: "notice-bar", name: "Notice bar", description: "Dismissible site-wide notice. Seed places it in Header at 100%.", required: false, defaultEnabled: false, builtin: false, featureFlag: "modules" },
   { id: "form", name: "Form", description: "Modular Form engine particle — contact and other presets via Admin → Forms. Optional Settings → Security captcha (Turnstile).", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"admin","label":"Forms","href":"/admin/forms"}] },
   { id: "search", name: "Search", description: "Public search box → /search over published Payload pages (title / slug / meta). Needs product:search.", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"search","label":"Search","href":"/search"}] }
@@ -371,6 +377,12 @@ export const adminRouteLoaders: AdminRouteLoader[] = [
     moduleId: "product:events",
     path: "events/settings",
     pageImportPath: "@/modules/events/admin/EventsSettingsPage",
+    pageExportName: "default",
+  },
+  {
+    moduleId: "product:events",
+    path: "events/[eventId]",
+    pageImportPath: "@/modules/events/admin/EventEditPage",
     pageExportName: "default",
   },
   {

@@ -48,6 +48,10 @@ export type EventRecord = {
   coverMediaId: string
   galleryMediaIds: string[]
   capacity: number | null
+  /** When public signup opens (null = as soon as published). */
+  registrationOpensAt: Date | null
+  /** When public signup closes (null = until event ends / no hard close). */
+  registrationClosesAt: Date | null
   accessTags: string[]
   createdAt: Date
   updatedAt: Date
@@ -57,10 +61,13 @@ export type EventRecord = {
 export type EventsModuleSettings = {
   /** Default IANA timezone for new events. */
   defaultTimezone: string
+  /** Block second signup with the same email on one event. */
+  preventDuplicate: boolean
 }
 
 export const DEFAULT_EVENTS_MODULE_SETTINGS: EventsModuleSettings = {
   defaultTimezone: 'UTC',
+  preventDuplicate: true,
 }
 
 export type EventsAdminActionState = {

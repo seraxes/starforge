@@ -5,11 +5,22 @@ import { formHasCaptchaField } from '@/core/forms/definition'
 import { FormWidget } from '@/modules/form/FormWidget'
 
 import { loadEventRegistrationFields } from '../registration-form'
-import { countRegisteredGuests } from '../registrations'
+import {
+  countRegisteredGuests,
+  isEventRegistrationOpen,
+} from '../registrations'
 import type { EventRecord } from '../types'
 
 type Props = {
-  event: Pick<EventRecord, 'id' | 'title' | 'capacity' | 'status'>
+  event: Pick<
+    EventRecord,
+    | 'id'
+    | 'title'
+    | 'capacity'
+    | 'status'
+    | 'registrationOpensAt'
+    | 'registrationClosesAt'
+  >
 }
 
 /**
@@ -17,6 +28,18 @@ type Props = {
  */
 export async function EventRegistrationForm({ event }: Props) {
   if (event.status !== 'published') return null
+
+  const window = isEventRegistrationOpen(event)
+  if (!window.open) {
+    return (
+      <section className="sf-event-registration" aria-label="Event registration">
+        <h2 className="sf-event-registration-heading">Register</h2>
+        <p className="sf-event-registration-meta settings-hint">
+          {window.reason || 'Registration is closed.'}
+        </p>
+      </section>
+    )
+  }
 
   const { definitionId, document } = await loadEventRegistrationFields(event.id)
   const occupied = await countRegisteredGuests(event.id)

@@ -27,6 +27,18 @@ export type OptionalParticleLoader = {
  */
 export const optionalParticleLoaders: OptionalParticleLoader[] = [
   {
+    id: "event-list",
+    load: async () => (await import("@/modules/events/particles/event-list-module")).eventListModule,
+  },
+  {
+    id: "event-detail",
+    load: async () => (await import("@/modules/events/particles/event-detail-module")).eventDetailModule,
+  },
+  {
+    id: "map",
+    load: async () => (await import("@/modules/maps")).mapModule,
+  },
+  {
     id: "notice-bar",
     load: async () => (await import("@/modules/notice-bar")).noticeBarModule,
   },
@@ -228,6 +240,32 @@ export type ModuleMessageLoader = {
  * Convention: `src/modules/<folder>/messages/<locale>.json`.
  */
 export const moduleMessageLoaders: ModuleMessageLoader[] = [
+  {
+    moduleId: "event-detail",
+    namespaces: ["event-detail"] as const,
+    load: async (locale: string): Promise<Record<string, unknown>> => {
+      switch (locale) {
+      case "hu":
+        return (await import("@/modules/events/messages/hu.json")).default
+      case 'en':
+      default:
+        return (await import("@/modules/events/messages/en.json")).default
+      }
+    },
+  },
+  {
+    moduleId: "event-list",
+    namespaces: ["event-list"] as const,
+    load: async (locale: string): Promise<Record<string, unknown>> => {
+      switch (locale) {
+      case "hu":
+        return (await import("@/modules/events/messages/hu.json")).default
+      case 'en':
+      default:
+        return (await import("@/modules/events/messages/en.json")).default
+      }
+    },
+  },
   {
     moduleId: "product:consent",
     namespaces: ["product:consent"] as const,
