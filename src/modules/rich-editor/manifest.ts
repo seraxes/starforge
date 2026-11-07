@@ -14,25 +14,9 @@ export default defineStarforgeModule({
   version: '0.2.0',
   defaultEnabled: true,
   featureFlag: 'richEditor',
+  // Settings reachable from Site Settings → Modules only (no sidebar group).
   navViews: [{ key: 'settings', label: 'Rich editor', href: '/admin/rich-editor/settings' }],
   admin: {
-    navGroup: {
-      id: 'rich-editor',
-      label: 'Rich editor',
-      href: '/admin/rich-editor/settings',
-      expandable: false,
-      order: 45,
-    },
-    nav: [
-      {
-        group: 'rich-editor',
-        label: 'Settings',
-        href: '/admin/rich-editor/settings',
-        order: 10,
-        area: 'rich-editor',
-      },
-    ],
-    areas: [{ key: 'rich-editor', label: 'Rich editor' }],
     routes: [
       {
         path: 'rich-editor/settings',
