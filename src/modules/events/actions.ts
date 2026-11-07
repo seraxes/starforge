@@ -645,3 +645,87 @@ export async function updateRegistrationStatusAction(
     id: result.registration.id,
   }
 }
+
+export async function createRegistrationAdminAction(
+  _prev: EventsAdminActionState,
+  formData: FormData,
+): Promise<EventsAdminActionState> {
+  const denied = await requireEventsAdmin()
+  if (denied) return denied
+
+  const { createEventRegistration } = await import('./registrations')
+  const statusRaw = String(formData.get('status') ?? 'registered').trim()
+  const status =
+    statusRaw === 'waitlisted' || statusRaw === 'cancelled' || statusRaw === 'registered'
+      ? statusRaw
+      : 'registered'
+  const guests = Number(String(formData.get('guests') ?? '1'))
+  const result = await createEventRegistration({
+    eventId: String(formData.get('eventId') ?? ''),
+    ticketTierId: String(formData.get('ticketTierId') ?? ''),
+    userId: String(formData.get('userId') ?? ''),
+    name: String(formData.get('name') ?? ''),
+    email: String(formData.get('email') ?? ''),
+    guests: Number.isFinite(guests) ? guests : 1,
+    attendance: String(formData.get('attendance') ?? 'in_person'),
+    notes: String(formData.get('notes') ?? ''),
+    admin: true,
+    status,
+  })
+  if ('error' in result) return { error: result.error }
+  revalidateEventsAdmin(result.registration.eventId)
+  return {
+    ok: true,
+    message: `Registrant “${result.registration.name}” added.`,
+    id: result.registration.id,
+  }
+}
+
+export async function updateRegistrationAdminAction(
+  _prev: EventsAdminActionState,
+  formData: FormData,
+): Promise<EventsAdminActionState> {
+  const denied = await requireEventsAdmin()
+  if (denied) return denied
+
+  const { updateEventRegistration } = await import('./registrations')
+  const statusRaw = String(formData.get('status') ?? 'registered').trim()
+  const status =
+    statusRaw === 'waitlisted' || statusRaw === 'cancelled' || statusRaw === 'registered'
+      ? statusRaw
+      : 'registered'
+  const guests = Number(String(formData.get('guests') ?? '1'))
+  const result = await updateEventRegistration({
+    id: String(formData.get('id') ?? ''),
+    name: String(formData.get('name') ?? ''),
+    email: String(formData.get('email') ?? ''),
+    guests: Number.isFinite(guests) ? guests : 1,
+    attendance: String(formData.get('attendance') ?? 'in_person'),
+    notes: String(formData.get('notes') ?? ''),
+    ticketTierId: String(formData.get('ticketTierId') ?? ''),
+    userId: String(formData.get('userId') ?? ''),
+    status,
+  })
+  if ('error' in result) return { error: result.error }
+  revalidateEventsAdmin(result.registration.eventId)
+  return {
+    ok: true,
+    message: `Registrant “${result.registration.name}” saved.`,
+    id: result.registration.id,
+  }
+}
+
+export async function deleteRegistrationAdminAction(
+  _prev: EventsAdminActionState,
+  formData: FormData,
+): Promise<EventsAdminActionState> {
+  const denied = await requireEventsAdmin()
+  if (denied) return denied
+
+  const { deleteEventRegistration } = await import('./registrations')
+  const id = String(formData.get('id') ?? '').trim()
+  const result = await deleteEventRegistration(id)
+  if ('error' in result) return { error: result.error }
+  revalidateEventsAdmin()
+  return { ok: true, message: 'Registrant deleted.', id }
+}

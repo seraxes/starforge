@@ -157,6 +157,9 @@ export type CreateRegistrationInput = {
   guests?: number
   attendance?: string
   notes?: string
+  /** Admin UI: skip public registration-window gate; status may be set explicitly. */
+  admin?: boolean
+  status?: RegistrationStatus
 }
 
 /**
@@ -173,9 +176,11 @@ export async function createEventRegistration(
 
   const event = await findEventById(eventId)
   if (!event) return { error: 'Event not found.' }
-  const window = isEventRegistrationOpen(event)
-  if (!window.open) {
-    return { error: window.reason || 'Event is not open for registration.' }
+  if (!input.admin) {
+    const window = isEventRegistrationOpen(event)
+    if (!window.open) {
+      return { error: window.reason || 'Event is not open for registration.' }
+    }
   }
 
   const guestsRaw = input.guests ?? 1
@@ -194,17 +199,26 @@ export async function createEventRegistration(
     tierCapacity = tier.capacity
   }
 
-  const occupiedEvent = await countRegisteredGuests(eventId)
   let status: RegistrationStatus = 'registered'
-  if (typeof event.capacity === 'number' && event.capacity >= 0) {
-    if (occupiedEvent >= event.capacity || occupiedEvent + guests > event.capacity) {
-      status = 'waitlisted'
+  if (
+    input.admin &&
+    (input.status === 'registered' ||
+      input.status === 'waitlisted' ||
+      input.status === 'cancelled')
+  ) {
+    status = input.status
+  } else {
+    const occupiedEvent = await countRegisteredGuests(eventId)
+    if (typeof event.capacity === 'number' && event.capacity >= 0) {
+      if (occupiedEvent >= event.capacity || occupiedEvent + guests > event.capacity) {
+        status = 'waitlisted'
+      }
     }
-  }
-  if (status === 'registered' && ticketTierId && typeof tierCapacity === 'number') {
-    const occupiedTier = await countRegisteredGuestsForTier(eventId, ticketTierId)
-    if (occupiedTier >= tierCapacity || occupiedTier + guests > tierCapacity) {
-      status = 'waitlisted'
+    if (status === 'registered' && ticketTierId && typeof tierCapacity === 'number') {
+      const occupiedTier = await countRegisteredGuestsForTier(eventId, ticketTierId)
+      if (occupiedTier >= tierCapacity || occupiedTier + guests > tierCapacity) {
+        status = 'waitlisted'
+      }
     }
   }
 
@@ -329,6 +343,107 @@ export async function updateRegistrationStatus(
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : 'Could not update status.',
+    }
+  }
+}
+
+export type AdminUpdateRegistrationInput = {
+  id: string
+  name: string
+  email: string
+  guests?: number
+  attendance?: string
+  notes?: string
+  ticketTierId?: string | null
+  userId?: string | null
+  status: RegistrationStatus
+}
+
+/** Admin: update registrant fields (not just status). */
+export async function updateEventRegistration(
+  input: AdminUpdateRegistrationInput,
+): Promise<{ registration: EventRegistrationRecord } | { error: string }> {
+  const id = input.id.trim()
+  if (!id) return { error: 'Missing registration id.' }
+
+  const email = input.email.trim().toLowerCase().slice(0, 320)
+  if (!email || !email.includes('@')) {
+    return { error: 'A valid email is required.' }
+  }
+  if (
+    input.status !== 'registered' &&
+    input.status !== 'waitlisted' &&
+    input.status !== 'cancelled'
+  ) {
+    return { error: 'Invalid status.' }
+  }
+
+  const guestsRaw = input.guests ?? 1
+  const guests =
+    typeof guestsRaw === 'number' && Number.isFinite(guestsRaw) && guestsRaw > 0
+      ? Math.min(Math.floor(guestsRaw), 20)
+      : 1
+
+  try {
+    const [current] = await db
+      .select()
+      .from(sfEventRegistrations)
+      .where(eq(sfEventRegistrations.id, id))
+      .limit(1)
+    if (!current) return { error: 'Registration not found.' }
+
+    let ticketTierId = (input.ticketTierId || '').trim() || null
+    if (ticketTierId) {
+      const tier = await findTicketTierById(ticketTierId)
+      if (!tier || tier.eventId !== current.eventId) {
+        return { error: 'Selected ticket tier was not found for this event.' }
+      }
+    }
+
+    const userId =
+      input.userId !== undefined
+        ? (input.userId || '').trim() || null
+        : current.userId
+
+    await db
+      .update(sfEventRegistrations)
+      .set({
+        name: input.name.trim().slice(0, 200) || 'Guest',
+        email,
+        guests,
+        attendance: (input.attendance || 'in_person').trim().slice(0, 40) || 'in_person',
+        notes: (input.notes || '').trim().slice(0, 2000),
+        ticketTierId,
+        userId,
+        status: input.status,
+      })
+      .where(eq(sfEventRegistrations.id, id))
+
+    const [row] = await db
+      .select()
+      .from(sfEventRegistrations)
+      .where(eq(sfEventRegistrations.id, id))
+      .limit(1)
+    if (!row) return { error: 'Registration updated but could not be reloaded.' }
+    return { registration: mapRow(row) }
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : 'Could not update registration.',
+    }
+  }
+}
+
+export async function deleteEventRegistration(
+  id: string,
+): Promise<{ ok: true } | { error: string }> {
+  const trimmed = id.trim()
+  if (!trimmed) return { error: 'Missing registration id.' }
+  try {
+    await db.delete(sfEventRegistrations).where(eq(sfEventRegistrations.id, trimmed))
+    return { ok: true }
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : 'Could not delete registration.',
     }
   }
 }

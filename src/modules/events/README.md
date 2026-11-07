@@ -45,7 +45,7 @@ Events + venues + registration + ticket tiers + parties (`sf_venues` / `sf_event
 
 ## Payments (deferred — system-wide)
 
-Commerce is **not** owned by Events. Gateways, currency, PayPal, numeric prices, coupons, early-bird / late fee wait on a future site-level **`product:payments`** module. Ticket tiers keep display-only `priceLabel` until then. Do not add per-event payment method UI here.
+Commerce is a **shared** site module (**`product:payments`**), not owned by Events. Gateways, currency, PayPal, numeric prices, coupons, early-bird / late fee — any product (Events, future shop, etc.) consumes it. Ticket tiers keep display-only `priceLabel` until then. Do not add per-event or per-module payment UIs.
 
 ## Migrations
 

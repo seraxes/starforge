@@ -11,9 +11,11 @@ import { db, sfUsers } from '@/core/db'
 export type EventsUserOption = {
   id: string
   label: string
+  name: string
+  email: string
 }
 
-/** Up to `limit` users ordered by email — for admin multi-selects. */
+/** Up to `limit` users ordered by email — for admin multi-selects / pickers. */
 export async function listEventsUserOptions(
   limit = 200,
 ): Promise<EventsUserOption[]> {
@@ -32,7 +34,7 @@ export async function listEventsUserOptions(
       const email = (row.email || '').trim()
       const name = (row.name || '').trim()
       const label = name && email ? `${name} <${email}>` : name || email || row.id
-      return { id: row.id, label }
+      return { id: row.id, label, name, email }
     })
   } catch {
     return []

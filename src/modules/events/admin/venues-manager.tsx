@@ -132,7 +132,7 @@ function VenueFormFields({
 
   return (
     <div className="sf-events-form-mosaic sf-venues-form-mosaic">
-      <fieldset className="settings-fieldset sf-events-form-section sf-events-form-section-wide">
+      <fieldset className="settings-fieldset sf-events-form-section">
         <legend>Basics</legend>
         <label className="settings-field">
           <span>Name</span>
@@ -159,20 +159,9 @@ function VenueFormFields({
             placeholder="Street, city, country"
           />
         </label>
-        <div className="settings-field settings-field-wide">
-          <RichEditor
-            name="description"
-            label="Description"
-            defaultValue={row?.description ?? ''}
-            disabled={busy}
-            enabled={richEditorEnabled}
-            preset="full"
-            placeholder="Venue description…"
-          />
-        </div>
       </fieldset>
 
-      <fieldset className="settings-fieldset sf-events-form-section sf-events-form-section-wide">
+      <fieldset className="settings-fieldset sf-events-form-section">
         <legend>Location</legend>
         <div className="sf-venues-location-grid">
           <label className="settings-field">
@@ -220,6 +209,21 @@ function VenueFormFields({
             Lat/lng inputs still work without it.
           </p>
         )}
+      </fieldset>
+
+      <fieldset className="settings-fieldset sf-events-form-section sf-events-form-section-wide">
+        <legend>Description</legend>
+        <div className="settings-field settings-field-wide">
+          <RichEditor
+            name="description"
+            label="Description"
+            defaultValue={row?.description ?? ''}
+            disabled={busy}
+            enabled={richEditorEnabled}
+            preset="full"
+            placeholder="Venue description…"
+          />
+        </div>
       </fieldset>
 
       <fieldset className="settings-fieldset sf-events-form-section">
@@ -478,7 +482,7 @@ export function VenuesManager({
               richEditorEnabled={richEditorEnabled}
             />
           </form>
-          <div className="admin-action-row">
+          <div className="admin-action-row sf-events-form-actions">
             <button
               type="button"
               className="gantry-toolbar-btn gantry-toolbar-btn-muted"

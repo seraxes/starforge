@@ -7,6 +7,7 @@ import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/sett
 import { listRegistrationsForEvent } from '../registrations'
 import { listEvents } from '../store'
 import { listTicketTiersForEvent } from '../tiers'
+import { listEventsUserOptions } from '../user-options'
 import { EventsAdminNav } from './events-admin-nav'
 import { RegistrantsManager } from './registrants-manager'
 
@@ -34,11 +35,12 @@ export default async function EventsRegistrantsPage({
     (params.eventId ?? '').trim() ||
     (events[0]?.id ?? '')
 
-  const [registrations, tiers] = await Promise.all([
+  const [registrations, tiers, users] = await Promise.all([
     eventId
       ? listRegistrationsForEvent(eventId, { includeCancelled: true })
       : Promise.resolve([]),
     eventId ? listTicketTiersForEvent(eventId) : Promise.resolve([]),
+    listEventsUserOptions(),
   ])
 
   const tierTitle = new Map(tiers.map((t) => [t.id, t.title]))
@@ -48,7 +50,8 @@ export default async function EventsRegistrantsPage({
       <EventsAdminNav active="registrants" />
       <h2>Registrants</h2>
       <p className="lede admin-lede">
-        Pick an event, then promote waitlist or cancel. Ticket types:{' '}
+        Search an event, then <strong>Add +</strong> / Edit / Delete registrants. Ticket
+        types:{' '}
         <Link
           href={
             eventId
@@ -62,8 +65,19 @@ export default async function EventsRegistrantsPage({
       </p>
 
       <RegistrantsManager
-        events={events.map((e) => ({ id: e.id, title: e.title }))}
+        events={events.map((e) => ({
+          id: e.id,
+          title: e.title,
+          startsAt: e.startsAt ? e.startsAt.toISOString() : null,
+        }))}
         eventId={eventId}
+        tiers={tiers.map((t) => ({ id: t.id, title: t.title }))}
+        users={users.map((u) => ({
+          id: u.id,
+          label: u.label,
+          name: u.name,
+          email: u.email,
+        }))}
         registrants={registrations.map((r) => ({
           id: r.id,
           name: r.name,
@@ -75,6 +89,7 @@ export default async function EventsRegistrantsPage({
           ticketTierTitle: r.ticketTierId
             ? tierTitle.get(r.ticketTierId) || r.ticketTierId
             : '',
+          userId: r.userId,
           notes: r.notes,
           createdAt: r.createdAt.toISOString(),
         }))}

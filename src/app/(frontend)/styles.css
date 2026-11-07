@@ -2282,8 +2282,20 @@ button:disabled {
   grid-column: 1 / -1;
 }
 
-.sf-venues-form-mosaic {
+.sf-venues-form-mosaic,
+.sf-parties-form-mosaic,
+.sf-registrants-form-mosaic {
   margin: 0 0 0.75rem;
+}
+
+.sf-events-event-search {
+  max-width: 28rem;
+}
+
+.sf-parties-form-mosaic .settings-field-wide textarea {
+  min-height: 8rem;
+  width: 100%;
+  resize: vertical;
 }
 
 .sf-venues-location-grid {
@@ -2449,11 +2461,12 @@ button:disabled {
 
 .sf-events-id-suggest-input-wrap {
   position: relative;
+  z-index: 5;
 }
 
 .sf-events-id-suggest-menu {
   position: absolute;
-  z-index: 20;
+  z-index: 80;
   left: 0;
   right: 0;
   top: calc(100% + 2px);
@@ -2466,6 +2479,20 @@ button:disabled {
   border: 1px solid var(--sf-admin-panel-border, var(--sf-line, rgba(0, 0, 0, 0.14)));
   border-radius: 3px;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+
+/*
+ * Typeahead menus must escape card chrome (`overflow: hidden` on fieldsets).
+ */
+.admin-shell .settings-fieldset:has(.sf-events-id-suggest-input-wrap),
+.admin-shell .settings-fieldset:has(.sf-events-user-pick),
+.admin-shell .settings-fieldset:has(.sf-events-event-search),
+.admin-shell .outlines-create:has(.sf-events-id-suggest-input-wrap),
+.admin-shell .outlines-create:has(.sf-events-event-search),
+.admin-shell .sf-events-add-inline-form:has(.sf-events-id-suggest-input-wrap),
+.admin-shell .sf-events-form-mosaic:has(.sf-events-id-suggest-input-wrap),
+.admin-shell .sf-registrants-form-mosaic:has(.sf-events-id-suggest-input-wrap) {
+  overflow: visible;
 }
 
 .sf-events-id-suggest-option {

@@ -50,65 +50,77 @@ function PartyFields({ row, busy }: { row?: PartyRow; busy: boolean }) {
   const [avatarMediaId, setAvatarMediaId] = React.useState(row?.avatarMediaId ?? '')
 
   return (
-    <>
-      <label className="settings-field">
-        <span>Name</span>
-        <input
-          type="text"
-          name="name"
-          required
-          maxLength={200}
-          defaultValue={row?.name ?? ''}
-          disabled={busy}
-          autoComplete="off"
-        />
-      </label>
-      <label className="settings-field">
-        <span>Kind</span>
-        <select name="kind" defaultValue={row?.kind ?? 'organizer'} disabled={busy}>
-          {EVENT_PARTY_KINDS.map((k) => (
-            <option key={k} value={k}>
-              {k === 'speaker' ? 'organizer (speaker)' : k}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="settings-field">
-        <span>URL</span>
-        <input
-          type="url"
-          name="url"
-          maxLength={2000}
-          defaultValue={row?.url ?? ''}
-          disabled={busy}
-          autoComplete="off"
-          placeholder="https://"
-        />
-      </label>
-      <label className="settings-field settings-field-wide">
-        <span>Blurb</span>
-        <textarea
-          name="blurb"
-          rows={2}
-          maxLength={2000}
-          defaultValue={row?.blurb ?? ''}
-          disabled={busy}
-        />
-      </label>
-      <div className="settings-field">
-        <MediaPicker
-          label="Avatar"
-          value={{ mediaId: avatarMediaId, url: '', alt: '' }}
-          defaultFolder="general"
-          defaultPurpose="photo"
-          disabled={busy}
-          includeHiddenInputs={false}
-          allowUrlFallback={false}
-          onChange={(next) => setAvatarMediaId(next.mediaId)}
-        />
-        <input type="hidden" name="coverMediaId" value={avatarMediaId} />
-      </div>
-    </>
+    <div className="sf-events-form-mosaic sf-parties-form-mosaic">
+      <fieldset className="settings-fieldset sf-events-form-section">
+        <legend>Basics</legend>
+        <label className="settings-field">
+          <span>Name</span>
+          <input
+            type="text"
+            name="name"
+            required
+            maxLength={200}
+            defaultValue={row?.name ?? ''}
+            disabled={busy}
+            autoComplete="off"
+          />
+        </label>
+        <label className="settings-field">
+          <span>Kind</span>
+          <select name="kind" defaultValue={row?.kind ?? 'organizer'} disabled={busy}>
+            {EVENT_PARTY_KINDS.map((k) => (
+              <option key={k} value={k}>
+                {k === 'speaker' ? 'organizer (speaker)' : k}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="settings-field">
+          <span>URL</span>
+          <input
+            type="url"
+            name="url"
+            maxLength={2000}
+            defaultValue={row?.url ?? ''}
+            disabled={busy}
+            autoComplete="off"
+            placeholder="https://"
+          />
+        </label>
+      </fieldset>
+
+      <fieldset className="settings-fieldset sf-events-form-section">
+        <legend>Avatar</legend>
+        <div className="settings-field">
+          <MediaPicker
+            label="Avatar"
+            value={{ mediaId: avatarMediaId, url: '', alt: '' }}
+            defaultFolder="general"
+            defaultPurpose="photo"
+            disabled={busy}
+            includeHiddenInputs={false}
+            allowUrlFallback={false}
+            onChange={(next) => setAvatarMediaId(next.mediaId)}
+          />
+          <input type="hidden" name="coverMediaId" value={avatarMediaId} />
+        </div>
+      </fieldset>
+
+      <fieldset className="settings-fieldset sf-events-form-section sf-events-form-section-wide">
+        <legend>Description</legend>
+        <label className="settings-field settings-field-wide">
+          <span>Description</span>
+          <textarea
+            name="blurb"
+            rows={6}
+            maxLength={2000}
+            defaultValue={row?.blurb ?? ''}
+            disabled={busy}
+            placeholder="Short public bio / description…"
+          />
+        </label>
+      </fieldset>
+    </div>
   )
 }
 
@@ -190,7 +202,7 @@ export function PartiesManager({ parties }: Props) {
             key={formKey}
             id="sf-parties-add-form"
             action={createAction}
-            className="outlines-create-form admin-create-form sf-events-add-inline-form"
+            className="sf-events-add-inline-form"
           >
             <PartyFields busy={busy} />
             <div className="sf-events-form-actions page-settings-actions">
@@ -313,12 +325,11 @@ export function PartiesManager({ parties }: Props) {
             key={`${editing.id}-${editing.updatedAt}`}
             id={`party-edit-${editing.id}`}
             action={updateAction}
-            className="outlines-create-form admin-create-form"
           >
             <input type="hidden" name="id" value={editing.id} />
             <PartyFields row={editing} busy={busy} />
           </form>
-          <div className="admin-action-row">
+          <div className="admin-action-row sf-events-form-actions">
             <button
               type="button"
               className="gantry-toolbar-btn gantry-toolbar-btn-muted"
