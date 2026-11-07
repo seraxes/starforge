@@ -58,7 +58,11 @@ export async function EventRegistrationForm({ event }: Props) {
   const termsUrl = (event.termsUrl || '').trim()
 
   return (
-    <section className="sf-event-registration" aria-label="Event registration">
+    <section
+      id="register"
+      className="sf-event-registration"
+      aria-label="Event registration"
+    >
       <h2 className="sf-event-registration-heading">Register</h2>
       {note ? <p className="sf-event-registration-note">{note}</p> : null}
       {termsUrl ? (

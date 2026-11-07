@@ -12,6 +12,7 @@ import {
   fieldsForPreset,
   FORM_PRESETS,
   getFormPresetMeta,
+  isFormPresetCategoryId,
   isFormPresetId,
   listFormPresetMetas,
   presetSeedFields,
@@ -48,6 +49,14 @@ describe('form presets (non-stub seeds)', () => {
       assert.equal(isFormPresetId(id), true)
     }
     assert.equal(isFormPresetId('not-a-preset'), false)
+  })
+
+  it('isFormPresetCategoryId accepts known categories only', () => {
+    assert.equal(isFormPresetCategoryId('events'), true)
+    assert.equal(isFormPresetCategoryId('general'), true)
+    assert.equal(isFormPresetCategoryId('support'), true)
+    assert.equal(isFormPresetCategoryId('all'), false)
+    assert.equal(isFormPresetCategoryId('unknown'), false)
   })
 
   it('survey seed: rating radio, topics group, feedback textarea', () => {

@@ -32,9 +32,9 @@ const TABS: { id: EventsAdminTab; label: string; href: string; title: string }[]
   },
   {
     id: 'tiers',
-    label: 'Tiers',
+    label: 'Ticket types',
     href: '/admin/events/tiers',
-    title: 'Ticket / faction tiers per event',
+    title: 'Per-event ticket types (same UI as on the event editor)',
   },
   {
     id: 'registrants',

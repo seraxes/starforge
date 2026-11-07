@@ -4,6 +4,7 @@ import Link from 'next/link'
 import type { EventPartyRecord, EventRecord } from '../types'
 import { formatEventWhen } from './format'
 import { eventPublicPathKey } from './path'
+import { EventTicketTypes, type PublicTicketTier } from './EventTicketTypes'
 
 export type RelatedEventLink = {
   id: string
@@ -32,6 +33,8 @@ export type EventDetailProps = {
   speakers?: EventPartyRecord[]
   sponsors?: EventPartyRecord[]
   relatedEvents?: RelatedEventLink[]
+  /** Ticket types for EB-style marketing block above registration. */
+  ticketTiers?: PublicTicketTier[]
   /** Locale-aware list href for back link. */
   listHref?: string
   className?: string
@@ -89,6 +92,7 @@ export function EventDetail({
   speakers = [],
   sponsors = [],
   relatedEvents = [],
+  ticketTiers = [],
   listHref,
   className = '',
 }: EventDetailProps) {
@@ -164,6 +168,7 @@ export function EventDetail({
           dangerouslySetInnerHTML={{ __html: event.description }}
         />
       ) : null}
+      <EventTicketTypes tiers={ticketTiers} />
     </article>
   )
 }

@@ -16,10 +16,7 @@ import { DEFAULT_EVENT_REGISTRATION_FORM_ID } from '@/core/forms/presets'
 import { loadFormDefinition } from '@/core/forms/definitions-store'
 import type { FormFieldDef } from '@/core/forms/types'
 
-import {
-  countRegisteredGuestsForTier,
-  listTicketTiersForEvent,
-} from './tiers'
+import { listPublicTicketTiersForEvent } from './public-tiers'
 
 export { DEFAULT_EVENT_REGISTRATION_FORM_ID }
 
@@ -52,7 +49,7 @@ export async function loadEventRegistrationFields(
 ) {
   await ensureEventRegistrationFormSeeded()
   const loaded = await loadFormDefinition(DEFAULT_EVENT_REGISTRATION_FORM_ID)
-  const tiers = await listTicketTiersForEvent(eventId)
+  const tiers = await listPublicTicketTiersForEvent(eventId)
 
   let fields: FormFieldDef[] = loaded.document.fields.map((field) =>
     field.name === 'event_id'
@@ -66,28 +63,28 @@ export async function loadEventRegistrationFields(
   )
 
   if (tiers.length > 0) {
-    const options = await Promise.all(
-      tiers.map(async (tier) => {
-        let leftLabel = ''
-        if (typeof tier.capacity === 'number') {
-          const used = await countRegisteredGuestsForTier(eventId, tier.id)
-          const left = Math.max(0, tier.capacity - used)
-          leftLabel = ` (${left} left)`
-        }
-        const price = tier.priceLabel.trim() ? ` — ${tier.priceLabel.trim()}` : ''
-        return {
-          value: tier.id,
-          label: `${tier.title}${price}${leftLabel}`,
-        }
-      }),
-    )
+    const options = tiers.map((tier) => {
+      const price = tier.priceLabel.trim() ? ` — ${tier.priceLabel.trim()}` : ''
+      const leftLabel =
+        tier.soldOut
+          ? ' (sold out)'
+          : tier.remaining != null
+            ? ` (${tier.remaining} left)`
+            : ''
+      return {
+        value: tier.id,
+        label: `${tier.title}${price}${leftLabel}`,
+        disabled: tier.soldOut,
+      }
+    })
+    const firstOpen = options.find((o) => !o.disabled)?.value || ''
     const tierField: FormFieldDef = {
       id: 'event_ticket_tier',
       name: 'ticket_tier_id',
       label: 'Ticket type',
       type: 'select',
       required: true,
-      defaultValue: options[0]?.value || '',
+      defaultValue: firstOpen,
       options,
       description: 'Choose a ticket / faction slot for this event.',
     }

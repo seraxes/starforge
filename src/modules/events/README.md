@@ -13,6 +13,8 @@ Events + venues + registration + ticket tiers + parties (`sf_venues` / `sf_event
 - Managers/helpers via **group** refs; organizers/speakers/sponsors via **parties**
 - View ACL via `accessTags` (`public` | `registered` | `group:<id>`) on list + detail
 - Visibility layers: **listed** (URL-only when off), **accessTags** (groups), optional **access password** (unlock cookie on detail / ICS / signup; `noindex` when unlisted)
+- Public ticket types block on `/[locale]/events/[slug]` (price label, seats, sold-out); signup select disables sold-out tiers
+- Ticket types are **per-event** (EB approach): add/manage rows on the event editor; `/admin/events/tiers` is a cross-event shortcut. Reusable tier templates can come later without changing that model.
 
 ## Missing / next
 

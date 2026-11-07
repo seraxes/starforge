@@ -142,10 +142,11 @@ export function EventEditor({
         <Feedback state={dupState} />
       </section>
 
-      <section className="outlines-create" aria-label="Ticket tiers">
-        <h3>Ticket tiers</h3>
+      <section className="outlines-create" aria-label="Ticket types">
+        <h3>Ticket types</h3>
         <p className="settings-hint">
-          Manage tiers for this event. Full list also at{' '}
+          Add and edit this event’s ticket / faction slots here (EB-style, under the event).
+          Cross-event shortcut:{' '}
           <Link href={`/admin/events/tiers?eventId=${encodeURIComponent(event.id)}`}>
             Events → Tiers
           </Link>

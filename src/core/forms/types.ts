@@ -81,6 +81,8 @@ export type FormOptionMedia = {
 export type FormFieldOption = {
   value: string
   label: string
+  /** When true, option is shown but not selectable (e.g. sold-out ticket tier). */
+  disabled?: boolean
   /** Optional media attachment per option (select / radio / checkbox-group). */
   media?: FormOptionMedia
 }

@@ -94,6 +94,7 @@ export {
   defaultMessagesForPreset,
   fieldsForPreset,
   getFormPresetMeta,
+  isFormPresetCategoryId,
   isFormPresetId,
   listFormPresetMetas,
   presetSeedFields,

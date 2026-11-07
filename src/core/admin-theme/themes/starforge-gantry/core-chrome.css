@@ -672,14 +672,14 @@ body:has(.admin-shell) > main {
 .admin-shell .page-settings-actions button[type='submit']:not(.secondary):not(.danger),
 .admin-shell .breakpoints-form button[type='submit'],
 .admin-shell .section-styles-form button[type='submit'],
-.admin-shell .outlines-create button[type='submit']:not(.secondary):not(.danger),
-.admin-shell .outlines-inline-form button[type='submit']:not(.danger),
-.admin-shell .admin-inline-form button[type='submit']:not(.secondary):not(.danger),
-.admin-shell .admin-groups-form button[type='submit']:not(.danger),
-.admin-shell .acl-matrix-form > button[type='submit'],
-.admin-shell .site-chrome-form button[type='submit']:not(.secondary):not(.danger),
-.admin-shell .nav-manager button[type='submit']:not(.secondary):not(.danger),
-.admin-shell .forms-admin button[type='submit']:not(.secondary):not(.danger) {
+.admin-shell .outlines-create button[type='submit']:not(.secondary):not(.danger):not(.gantry-toolbar-btn-muted):not(.gantry-toolbar-btn-danger),
+.admin-shell .outlines-inline-form button[type='submit']:not(.danger):not(.gantry-toolbar-btn-muted):not(.gantry-toolbar-btn-danger),
+.admin-shell .admin-inline-form button[type='submit']:not(.secondary):not(.danger):not(.gantry-toolbar-btn-muted):not(.gantry-toolbar-btn-danger),
+.admin-shell .admin-groups-form button[type='submit']:not(.danger):not(.gantry-toolbar-btn-muted):not(.gantry-toolbar-btn-danger),
+.admin-shell .acl-matrix-form > button[type='submit']:not(.gantry-toolbar-btn-muted):not(.gantry-toolbar-btn-danger),
+.admin-shell .site-chrome-form button[type='submit']:not(.secondary):not(.danger):not(.gantry-toolbar-btn-muted):not(.gantry-toolbar-btn-danger),
+.admin-shell .nav-manager button[type='submit']:not(.secondary):not(.danger):not(.gantry-toolbar-btn-muted):not(.gantry-toolbar-btn-danger),
+.admin-shell .forms-admin button[type='submit']:not(.secondary):not(.danger):not(.gantry-toolbar-btn-muted):not(.gantry-toolbar-btn-danger) {
   background: var(--sf-primary);
   border: 1px solid color-mix(in srgb, var(--sf-primary) 65%, var(--sf-primary-strong));
   color: var(--sf-primary-ink);
@@ -3654,41 +3654,51 @@ body:has(.admin-shell) > main {
   border-left-color: #2f9e64;
 }
 
-/* Events list filters — muted blue chips; orange reserved for Save / rare CTAs */
-.admin-shell .sf-events-filters {
+/* Admin list filters (Events, Forms) — muted blue chips; orange reserved for Save / rare CTAs */
+.admin-shell .sf-events-filters,
+.admin-shell .sf-forms-filters {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.55rem 0.75rem;
 }
 
-.admin-shell .sf-events-filter-group {
+.admin-shell .sf-events-filter-group,
+.admin-shell .sf-forms-filter-group {
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.4rem;
 }
 
-.admin-shell .sf-events-filter-group + .sf-events-filter-group {
+.admin-shell .sf-events-filter-group + .sf-events-filter-group,
+.admin-shell .sf-forms-filter-group + .sf-forms-filter-group {
   padding-left: 0.75rem;
   border-left: 1px solid var(--sf-admin-panel-border);
 }
 
 .admin-shell .sf-events-filters a.gantry-toolbar-btn,
-.admin-shell .sf-events-filters .gantry-toolbar-btn {
+.admin-shell .sf-events-filters .gantry-toolbar-btn,
+.admin-shell .sf-forms-filters a.gantry-toolbar-btn,
+.admin-shell .sf-forms-filters .gantry-toolbar-btn {
   color: #fff;
 }
 
 .admin-shell .sf-events-filters a.gantry-toolbar-btn.is-active,
 .admin-shell .sf-events-filters .gantry-toolbar-btn.is-active,
-.admin-shell .sf-events-filters a.gantry-toolbar-btn[aria-current='true'] {
+.admin-shell .sf-events-filters a.gantry-toolbar-btn[aria-current='true'],
+.admin-shell .sf-forms-filters a.gantry-toolbar-btn.is-active,
+.admin-shell .sf-forms-filters .gantry-toolbar-btn.is-active,
+.admin-shell .sf-forms-filters a.gantry-toolbar-btn[aria-current='true'] {
   background: color-mix(in srgb, var(--sf-admin-blue-mid) 55%, #121a24);
   border: 1px solid var(--sf-admin-blue-border);
   color: #fff;
 }
 
 .admin-shell .sf-events-filters a.gantry-toolbar-btn:hover:not(.is-active),
-.admin-shell .sf-events-filters a.gantry-toolbar-btn:hover:not([aria-current='true']) {
+.admin-shell .sf-events-filters a.gantry-toolbar-btn:hover:not([aria-current='true']),
+.admin-shell .sf-forms-filters a.gantry-toolbar-btn:hover:not(.is-active),
+.admin-shell .sf-forms-filters a.gantry-toolbar-btn:hover:not([aria-current='true']) {
   background: #4a6085;
   color: #fff;
 }

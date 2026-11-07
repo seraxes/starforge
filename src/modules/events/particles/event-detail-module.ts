@@ -12,6 +12,7 @@ import {
   viewerPassesEventAcl,
   viewerPassesEventPassword,
 } from '../public-access'
+import { listPublicTicketTiersForEvent } from '../public-tiers'
 import {
   EventDetail,
   relatedEventLinksFromRecords,
@@ -70,11 +71,12 @@ export const eventDetailModule: StarforgeModule = {
     }
 
     const venue = event.venueId ? await findVenueById(event.venueId) : null
-    const [organizers, speakers, sponsors, relatedRows] = await Promise.all([
+    const [organizers, speakers, sponsors, relatedRows, ticketTiers] = await Promise.all([
       listEventPartiesByIds(event.organizerPartyIds),
       listEventPartiesByIds(event.speakerPartyIds),
       listEventPartiesByIds(event.sponsorPartyIds),
       Promise.all(event.relatedEventIds.map((rid) => findEventById(rid))),
+      listPublicTicketTiersForEvent(event.id),
     ])
     const localeRaw = await getLocale()
     const locale = isAppLocale(localeRaw) ? localeRaw : undefined
@@ -105,6 +107,7 @@ export const eventDetailModule: StarforgeModule = {
       speakers,
       sponsors,
       relatedEvents,
+      ticketTiers,
       listHref: cfg.showBackLink
         ? withLocalePrefix('/events', locale)
         : undefined,

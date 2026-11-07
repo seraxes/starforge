@@ -1758,7 +1758,7 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
   return (
     <div className="sf-form-builder gantry-editor">
       <FormsAdminNav active="forms" />
-      <p className="admin-lede">
+      <p className="admin-lede gantry-layouts-lede">
         <Link href="/admin/forms">← Forms</Link>
         {' · '}
         Layout-aligned builder: palette → section rows (side-by-side % columns) → field cog. Drag a

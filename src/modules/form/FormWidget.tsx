@@ -267,7 +267,7 @@ export function FormWidget(props: FormWidgetProps) {
               {field.placeholder || t('selectPlaceholder')}
             </option>
             {(field.options ?? []).map((opt) => (
-              <option key={opt.value} value={opt.value}>
+              <option key={opt.value} value={opt.value} disabled={Boolean(opt.disabled)}>
                 {opt.label}
               </option>
             ))}
@@ -308,7 +308,7 @@ export function FormWidget(props: FormWidgetProps) {
                     value={opt.value}
                     checked={multi ? picked.has(opt.value) : value === opt.value}
                     required={required && !multi ? !value : undefined}
-                    disabled={pending}
+                    disabled={pending || Boolean(opt.disabled)}
                     onChange={(e) => {
                       if (!multi) {
                         setFieldValue(field.name, e.target.value)

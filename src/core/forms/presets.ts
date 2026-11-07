@@ -17,6 +17,10 @@ export const FORM_CATEGORY_ORDER: FormPresetCategoryId[] = [
   'support',
 ]
 
+export function isFormPresetCategoryId(value: unknown): value is FormPresetCategoryId {
+  return typeof value === 'string' && FORM_CATEGORY_ORDER.includes(value as FormPresetCategoryId)
+}
+
 export type FormPresetMeta = {
   id: FormPresetId
   label: string

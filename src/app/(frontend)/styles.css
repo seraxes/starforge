@@ -1974,6 +1974,148 @@ button:disabled {
   line-height: 1.55;
 }
 
+.sf-event-ticket-types {
+  margin: 1.25rem 0 0;
+  max-width: 48rem;
+}
+
+.sf-event-ticket-types-list {
+  list-style: none;
+  margin: 0.65rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.sf-event-ticket-type {
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--sf-line);
+  background: color-mix(in srgb, var(--sf-bg, #fff) 92%, var(--sf-muted, #9aa));
+}
+
+.sf-event-ticket-type.is-sold-out {
+  opacity: 0.72;
+}
+
+.sf-event-ticket-type-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.35rem 0.75rem;
+}
+
+.sf-event-ticket-type-title {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.sf-event-ticket-type-price {
+  margin: 0;
+  font-weight: 650;
+}
+
+.sf-event-ticket-type-desc,
+.sf-event-ticket-type-kind,
+.sf-event-ticket-type-meta,
+.sf-event-ticket-type-cta {
+  margin: 0.35rem 0 0;
+}
+
+.sf-event-ticket-type-cta a {
+  font-weight: 600;
+}
+
+/* Admin: EB-style per-event ticket type rows */
+.sf-events-tiers-table-wrap {
+  overflow-x: auto;
+}
+
+.sf-events-tiers-row-cell {
+  padding: 0.55rem 0.35rem !important;
+  vertical-align: top;
+}
+
+.sf-events-tiers-row-shell {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.4rem;
+  align-items: start;
+}
+
+.sf-events-tiers-row-form {
+  display: grid;
+  grid-template-columns:
+    minmax(7rem, 1.2fr) minmax(5.5rem, 0.7fr) minmax(5rem, 0.8fr) minmax(4.5rem, 0.55fr)
+    minmax(3.5rem, 0.45fr) minmax(3.5rem, 0.4fr) minmax(8rem, 1.4fr) auto;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.sf-events-tiers-row-form .settings-field,
+.sf-events-tiers-add-grid .settings-field {
+  margin: 0;
+}
+
+.sf-events-tiers-row-form .settings-field > span.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.sf-events-tiers-registered {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.sf-events-tiers-row-actions,
+.sf-events-tiers-delete {
+  display: inline-flex;
+  margin: 0;
+}
+
+.sf-events-tiers-add-form {
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--sf-line, rgba(255, 255, 255, 0.12));
+}
+
+.sf-events-tiers-add-title {
+  margin: 0 0 0.55rem;
+  font-size: 0.95rem;
+}
+
+.sf-events-tiers-add-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: 0.55rem;
+  align-items: end;
+}
+
+.sf-events-tiers-add-grid .sf-events-tiers-desc {
+  grid-column: 1 / -1;
+}
+
+.sf-events-tiers-add-actions {
+  display: flex;
+  align-items: end;
+}
+
+@media (max-width: 70rem) {
+  .sf-events-tiers-row-form {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .sf-events-tiers-row-form .sf-events-tiers-desc {
+    grid-column: 1 / -1;
+  }
+}
+
 .sf-event-venue-map {
   margin: 1.5rem 0 0;
   max-width: 48rem;
@@ -2793,10 +2935,6 @@ button:disabled {
   gap: 1.25rem;
 }
 
-.sf-forms-category-section .admin-settings-panel-title {
-  margin: 0 0 0.65rem;
-}
-
 .sf-redirects-manager {
   display: flex;
   flex-direction: column;
@@ -3069,10 +3207,6 @@ button:disabled {
 
 .sf-form-logic-row input {
   grid-column: 1 / -1;
-}
-
-.sf-forms-admin-nav {
-  margin-bottom: 0.75rem;
 }
 
 /* Form edit: Editor | Form settings (Layout-aligned chrome) */

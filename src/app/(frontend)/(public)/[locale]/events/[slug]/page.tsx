@@ -23,6 +23,7 @@ import { EventPasswordGate } from '@/modules/events/public/EventPasswordGate'
 import { eventPublicPathKey } from '@/modules/events/public/path'
 import { EventRegistrationForm } from '@/modules/events/public/EventRegistrationForm'
 import { EventVenueMap } from '@/modules/events/public/EventVenueMap'
+import { listPublicTicketTiersForEvent } from '@/modules/events/public-tiers'
 import {
   findEventById,
   findPublishedEventByPublicKey,
@@ -97,11 +98,12 @@ export default async function PublicEventDetailPage({ params }: Args) {
 
   const venue = event.venueId ? await findVenueById(event.venueId) : null
   const formsOn = isCatalogModuleEnabled(settings, MODULE_IDS.forms)
-  const [organizers, speakers, sponsors, relatedRows] = await Promise.all([
+  const [organizers, speakers, sponsors, relatedRows, ticketTiers] = await Promise.all([
     listEventPartiesByIds(event.organizerPartyIds),
     listEventPartiesByIds(event.speakerPartyIds),
     listEventPartiesByIds(event.sponsorPartyIds),
     Promise.all(event.relatedEventIds.map((rid) => findEventById(rid))),
+    listPublicTicketTiersForEvent(event.id),
   ])
   const relatedById = new Map(
     relatedRows
@@ -129,6 +131,7 @@ export default async function PublicEventDetailPage({ params }: Args) {
         speakers={speakers}
         sponsors={sponsors}
         relatedEvents={relatedEvents}
+        ticketTiers={ticketTiers}
         listHref={withLocalePrefix('/events', locale)}
       />
       {venue?.latitude != null && venue?.longitude != null ? (

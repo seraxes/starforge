@@ -57,10 +57,11 @@ export default async function EventsTiersPage({
   return (
     <section className="admin-section admin-layouts-full">
       <EventsAdminNav active="tiers" />
-      <h2>Ticket tiers</h2>
+      <h2>Ticket types</h2>
       <p className="lede admin-lede">
-        General or faction slots with optional per-tier capacity. Public registration shows a
-        ticket select when tiers exist. Registrants:{' '}
+        Per-event ticket / faction slots (same UI as on the event editor). Pick an event below,
+        or open an event and manage types there. Public page shows the list; signup select when
+        types exist. Registrants:{' '}
         <Link
           href={
             eventId

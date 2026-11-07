@@ -28,8 +28,8 @@ export default async function AdminFormsSettingsPage() {
   return (
     <section className="admin-section admin-layouts-full">
       <FormsAdminNav active="settings" />
-      <h2>Forms settings</h2>
-      <p className="lede admin-lede">
+      <h2 className="sr-only">Forms settings</h2>
+      <p className="lede admin-lede gantry-layouts-lede">
         Module defaults for success copy and email-on-submit. Transport is the platform{' '}
         <strong>Mailer</strong> (Chrome enable / provider / From; secrets in env). Shared rules
         live under{' '}

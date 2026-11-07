@@ -20,27 +20,30 @@ const TABS: { id: FormsAdminTab; label: string; href: string; title: string }[] 
   },
 ]
 
-/** Horizontal Forms chrome — Forms + Settings (submissions stay as data, not nav). */
+/** Horizontal Forms chrome — same Gantry nav language as Layouts / Events. */
 export function FormsAdminNav({ active }: { active: FormsAdminTab }) {
   return (
-    <nav className="layouts-admin-nav sf-forms-admin-nav" aria-label="Forms">
-      <div className="layouts-admin-tabs" role="tablist">
+    <nav className="gantry-layouts-nav sf-forms-admin-nav" aria-label="Forms">
+      <ul className="gantry-layouts-nav-tabs" role="tablist">
         {TABS.map((tab) => {
           const isActive = tab.id === active
           return (
-            <Link
-              key={tab.id}
-              href={tab.href}
-              role="tab"
-              aria-selected={isActive}
-              title={tab.title}
-              className={`layouts-admin-tab${isActive ? ' is-active' : ''}`}
-            >
-              {tab.label}
-            </Link>
+            <li key={tab.id}>
+              <Link
+                href={tab.href}
+                role="tab"
+                aria-selected={isActive}
+                title={tab.title}
+                className={
+                  isActive ? 'gantry-layouts-nav-tab is-active' : 'gantry-layouts-nav-tab'
+                }
+              >
+                <span className="gantry-layouts-nav-tab-label">{tab.label}</span>
+              </Link>
+            </li>
           )
         })}
-      </div>
+      </ul>
     </nav>
   )
 }

@@ -31,11 +31,20 @@ type FormRow = {
   updatedAt: string
 }
 
+type CategoryFilter = FormPresetCategoryId | 'all'
+
 type Props = {
   forms: FormRow[]
+  categoryFilter: CategoryFilter
 }
 
 const initial: FormAdminActionState = {}
+
+function formsListHref(category: CategoryFilter): string {
+  return category === 'all'
+    ? '/admin/forms'
+    : `/admin/forms?category=${encodeURIComponent(category)}`
+}
 
 function Feedback({ state }: { state: FormAdminActionState }) {
   if (state.error) {
@@ -114,7 +123,7 @@ function FormRowActions({
           <input type="hidden" name="formId" value={form.id} />
           <button
             type="submit"
-            className="gantry-toolbar-btn danger"
+            className="gantry-toolbar-btn gantry-toolbar-btn-danger"
             disabled={deletePending}
             onClick={(e) => {
               if (!confirm(`Delete form “${form.label}”?`)) e.preventDefault()
@@ -128,7 +137,7 @@ function FormRowActions({
   )
 }
 
-export function FormsManager({ forms }: Props) {
+export function FormsManager({ forms, categoryFilter }: Props) {
   const router = useRouter()
   const [createState, createAction, createPending] = useActionState(
     createFormDefinitionAction,
@@ -155,26 +164,72 @@ export function FormsManager({ forms }: Props) {
     if (deleteState.ok) router.refresh()
   }, [createState, dupState, deleteState, router])
 
-  const formsByCategory = useMemo(() => {
-    const buckets = new Map<FormPresetCategoryId, FormRow[]>()
+  const countsByCategory = useMemo(() => {
+    const counts = new Map<FormPresetCategoryId, number>()
     for (const category of FORM_CATEGORY_ORDER) {
-      buckets.set(category, [])
+      counts.set(category, 0)
     }
     for (const form of forms) {
       const category = categoryForPreset(form.preset)
-      const list = buckets.get(category) ?? []
-      list.push(form)
-      buckets.set(category, list)
+      counts.set(category, (counts.get(category) ?? 0) + 1)
     }
-    return FORM_CATEGORY_ORDER.map((category) => ({
-      category,
-      label: FORM_CATEGORY_LABELS[category],
-      forms: buckets.get(category) ?? [],
-    })).filter((group) => group.forms.length > 0)
+    return counts
   }, [forms])
 
+  const categoryTabs = useMemo(() => {
+    const presetsWithCategory = new Set(
+      listFormPresetsByCategory().map((group) => group.category),
+    )
+    return FORM_CATEGORY_ORDER.filter(
+      (category) =>
+        presetsWithCategory.has(category) || (countsByCategory.get(category) ?? 0) > 0,
+    ).map((category) => ({
+      category,
+      label: FORM_CATEGORY_LABELS[category],
+      count: countsByCategory.get(category) ?? 0,
+    }))
+  }, [countsByCategory])
+
+  const visibleForms = useMemo(() => {
+    if (categoryFilter === 'all') return forms
+    return forms.filter((form) => categoryForPreset(form.preset) === categoryFilter)
+  }, [forms, categoryFilter])
+
+  const showCategoryColumn = categoryFilter === 'all'
+  const emptyCategoryLabel =
+    categoryFilter === 'all' ? 'forms' : FORM_CATEGORY_LABELS[categoryFilter]
+
   return (
-    <div className="sf-forms-manager admin-settings-mosaic">
+    <div className="sf-forms-manager outlines-manager">
+      <section className="outlines-create" aria-label="Filter forms">
+        <h3>Category</h3>
+        <div className="sf-forms-filters">
+          <div className="sf-forms-filter-group" role="group" aria-label="Category">
+            <Link
+              href={formsListHref('all')}
+              className={`gantry-toolbar-btn gantry-toolbar-btn-muted${
+                categoryFilter === 'all' ? ' is-active' : ''
+              }`}
+              aria-current={categoryFilter === 'all' ? 'true' : undefined}
+            >
+              All ({forms.length})
+            </Link>
+            {categoryTabs.map((tab) => (
+              <Link
+                key={tab.category}
+                href={formsListHref(tab.category)}
+                className={`gantry-toolbar-btn gantry-toolbar-btn-muted${
+                  categoryFilter === tab.category ? ' is-active' : ''
+                }`}
+                aria-current={categoryFilter === tab.category ? 'true' : undefined}
+              >
+                {tab.label} ({tab.count})
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="outlines-create" aria-label="Create form">
         <h3>Create form</h3>
         <form action={createAction} className="outlines-create-form admin-create-form">
@@ -229,57 +284,55 @@ export function FormsManager({ forms }: Props) {
       <Feedback state={dupState} />
       <Feedback state={deleteState} />
 
-      {forms.length === 0 ? (
-        <div className="outlines-table-wrap admin-settings-panel-wide">
+      <div className="outlines-table-wrap">
+        {visibleForms.length === 0 ? (
           <p className="admin-empty">
-            No form definitions yet. Create one from a preset (Contact ships ready).
+            {forms.length === 0
+              ? 'No form definitions yet. Create one from a preset (Contact ships ready).'
+              : `No forms in ${emptyCategoryLabel}.`}
           </p>
-        </div>
-      ) : (
-        formsByCategory.map((group) => (
-          <div
-            key={group.category}
-            className="sf-forms-category-section outlines-table-wrap admin-settings-panel-wide"
-          >
-            <h3 className="admin-settings-panel-title">{group.label}</h3>
-            <table className="outlines-table">
-              <thead>
-                <tr>
-                  <th scope="col">Name</th>
-                  <th scope="col">Preset</th>
-                  <th scope="col">Fields</th>
-                  <th scope="col">Updated</th>
-                  <th scope="col">Actions</th>
+        ) : (
+          <table className="outlines-table">
+            <thead>
+              <tr>
+                <th scope="col">Name</th>
+                {showCategoryColumn ? <th scope="col">Category</th> : null}
+                <th scope="col">Preset</th>
+                <th scope="col">Fields</th>
+                <th scope="col">Updated</th>
+                <th scope="col">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleForms.map((f) => (
+                <tr key={f.id}>
+                  <td>
+                    <Link href={`/admin/forms/${f.id}`} className="outlines-name-link">
+                      {f.label}
+                    </Link>
+                    <div className="layout-muted">
+                      <code>{f.id}</code>
+                    </div>
+                  </td>
+                  {showCategoryColumn ? (
+                    <td>{FORM_CATEGORY_LABELS[categoryForPreset(f.preset)]}</td>
+                  ) : null}
+                  <td>{presetLabel(f.preset)}</td>
+                  <td>{f.fieldCount}</td>
+                  <td>{formatUpdated(f.updatedAt)}</td>
+                  <FormRowActions
+                    form={f}
+                    dupAction={dupAction}
+                    dupPending={dupPending}
+                    deleteAction={deleteAction}
+                    deletePending={deletePending}
+                  />
                 </tr>
-              </thead>
-              <tbody>
-                {group.forms.map((f) => (
-                  <tr key={f.id}>
-                    <td>
-                      <Link href={`/admin/forms/${f.id}`} className="outlines-name-link">
-                        {f.label}
-                      </Link>
-                      <div className="layout-muted">
-                        <code>{f.id}</code>
-                      </div>
-                    </td>
-                    <td>{presetLabel(f.preset)}</td>
-                    <td>{f.fieldCount}</td>
-                    <td>{formatUpdated(f.updatedAt)}</td>
-                    <FormRowActions
-                      form={f}
-                      dupAction={dupAction}
-                      dupPending={dupPending}
-                      deleteAction={deleteAction}
-                      deletePending={deletePending}
-                    />
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ))
-      )}
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   )
 }

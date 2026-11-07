@@ -57,6 +57,10 @@ function Feedback({ state }: { state: EventsAdminActionState }) {
   return null
 }
 
+/**
+ * Per-event ticket types — EB-style: add/manage rows under the event.
+ * Global `/admin/events/tiers` is only a cross-event shortcut (pick event → same UI).
+ */
 export function TiersManager({ events, eventId, tiers, embedded = false }: Props) {
   const router = useRouter()
   const [createState, createAction, createPending] = useActionState(
@@ -83,44 +87,210 @@ export function TiersManager({ events, eventId, tiers, embedded = false }: Props
   }, [createState, updateState, deleteState, router])
 
   const busy = createPending || updatePending || deletePending
+  const eventTitle = events.find((e) => e.id === eventId)?.title
 
   return (
     <div className="sf-events-tiers-manager admin-settings-mosaic">
       {embedded ? null : (
         <section className="outlines-create" aria-label="Select event">
-          <h3>Event</h3>
-          <div className="admin-inline-actions" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
-            {events.length === 0 ? (
-              <p className="admin-empty">
-                Create an <Link href="/admin/events">event</Link> first.
-              </p>
-            ) : (
-              events.map((ev) => (
-                <Link
-                  key={ev.id}
-                  href={`/admin/events/tiers?eventId=${encodeURIComponent(ev.id)}`}
-                  className={
-                    eventId === ev.id ? 'gantry-btn gantry-btn-primary' : 'gantry-btn'
-                  }
-                >
-                  {ev.title}
-                </Link>
-              ))
-            )}
+          <h3>Choose event</h3>
+          <p className="settings-hint">
+            Ticket types belong to one event (EB approach). Prefer managing them on the event
+            editor; this page is a shortcut across events.
+          </p>
+          <div className="sf-events-filters">
+            <div className="sf-events-filter-group" role="group" aria-label="Events">
+              {events.length === 0 ? (
+                <p className="admin-empty">
+                  Create an <Link href="/admin/events">event</Link> first.
+                </p>
+              ) : (
+                events.map((ev) => (
+                  <Link
+                    key={ev.id}
+                    href={`/admin/events/tiers?eventId=${encodeURIComponent(ev.id)}`}
+                    className={`gantry-toolbar-btn gantry-toolbar-btn-muted${
+                      eventId === ev.id ? ' is-active' : ''
+                    }`}
+                    aria-current={eventId === ev.id ? 'true' : undefined}
+                  >
+                    {ev.title}
+                  </Link>
+                ))
+              )}
+            </div>
           </div>
         </section>
       )}
 
       {!eventId || events.length === 0 ? null : (
-        <>
-          <section className="outlines-create" aria-label="Create ticket tier">
-            <h3>Add ticket tier</h3>
-            <p className="settings-hint">
-              General tickets or faction slots. Capacity is optional (empty = unlimited for
-              this tier; event capacity still applies).
-            </p>
-            <form action={createAction} className="outlines-create-form admin-create-form">
-              <input type="hidden" name="eventId" value={eventId} />
+        <section className="outlines-create" aria-label="Ticket types for event">
+          {!embedded ? (
+            <h3>
+              Ticket types
+              {eventTitle ? (
+                <>
+                  {' '}
+                  —{' '}
+                  <Link href={`/admin/events/${encodeURIComponent(eventId)}`}>{eventTitle}</Link>
+                </>
+              ) : null}
+            </h3>
+          ) : null}
+          <p className="settings-hint">
+            Rows are this event’s ticket / faction slots (price label, capacity, description).
+            Public page lists them; signup select skips sold-out options. Payments stay deferred.
+          </p>
+
+          <Feedback state={createState} />
+          <Feedback state={updateState} />
+          <Feedback state={deleteState} />
+
+          <div className="outlines-table-wrap sf-events-tiers-table-wrap">
+            <table className="outlines-table sf-events-tiers-table">
+              <thead>
+                <tr>
+                  <th scope="col">Title</th>
+                  <th scope="col">Kind</th>
+                  <th scope="col">Price</th>
+                  <th scope="col">Capacity</th>
+                  <th scope="col">Registered</th>
+                  <th scope="col">Sort</th>
+                  <th scope="col">Description</th>
+                  <th scope="col">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tiers.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="admin-empty">
+                      No ticket types yet — add a row below. Without tiers, public signup skips
+                      the ticket select.
+                    </td>
+                  </tr>
+                ) : (
+                  tiers.map((row) => (
+                    <tr key={row.id}>
+                      <td colSpan={8} className="sf-events-tiers-row-cell">
+                        <div className="sf-events-tiers-row-shell">
+                          <form
+                            action={updateAction}
+                            className="sf-events-tiers-row-form"
+                          >
+                            <input type="hidden" name="id" value={row.id} />
+                            <input type="hidden" name="eventId" value={row.eventId} />
+                            <label className="settings-field">
+                              <span className="sr-only">Title</span>
+                              <input
+                                type="text"
+                                name="title"
+                                required
+                                maxLength={200}
+                                defaultValue={row.title}
+                                disabled={busy}
+                              />
+                            </label>
+                            <label className="settings-field">
+                              <span className="sr-only">Kind</span>
+                              <select name="kind" defaultValue={row.kind} disabled={busy}>
+                                {TICKET_TIER_KINDS.map((k) => (
+                                  <option key={k} value={k}>
+                                    {k}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            <label className="settings-field">
+                              <span className="sr-only">Price</span>
+                              <input
+                                type="text"
+                                name="priceLabel"
+                                maxLength={80}
+                                defaultValue={row.priceLabel}
+                                disabled={busy}
+                                placeholder="Free / 5 000 Ft"
+                              />
+                            </label>
+                            <label className="settings-field">
+                              <span className="sr-only">Capacity</span>
+                              <input
+                                type="number"
+                                name="capacity"
+                                min={0}
+                                step={1}
+                                defaultValue={row.capacity ?? ''}
+                                disabled={busy}
+                                placeholder="∞"
+                              />
+                            </label>
+                            <div
+                              className="sf-events-tiers-registered settings-hint"
+                              title="Registered guests on this tier"
+                            >
+                              {typeof row.capacity === 'number'
+                                ? `${row.occupied}/${row.capacity}`
+                                : String(row.occupied)}
+                            </div>
+                            <label className="settings-field">
+                              <span className="sr-only">Sort</span>
+                              <input
+                                type="number"
+                                name="sortOrder"
+                                step={1}
+                                defaultValue={row.sortOrder}
+                                disabled={busy}
+                              />
+                            </label>
+                            <label className="settings-field sf-events-tiers-desc">
+                              <span className="sr-only">Description</span>
+                              <input
+                                type="text"
+                                name="description"
+                                maxLength={2000}
+                                defaultValue={row.description}
+                                disabled={busy}
+                                placeholder="Public description"
+                              />
+                            </label>
+                            <div className="sf-events-tiers-row-actions">
+                              <button
+                                type="submit"
+                                className="gantry-toolbar-btn gantry-toolbar-btn-save"
+                                disabled={busy}
+                              >
+                                {updatePending ? '…' : 'Save'}
+                              </button>
+                            </div>
+                          </form>
+                          <form action={deleteAction} className="sf-events-tiers-delete">
+                            <input type="hidden" name="id" value={row.id} />
+                            <button
+                              type="submit"
+                              className="gantry-toolbar-btn gantry-toolbar-btn-danger"
+                              disabled={busy}
+                              onClick={(e) => {
+                                if (!window.confirm(`Delete tier “${row.title}”?`)) {
+                                  e.preventDefault()
+                                }
+                              }}
+                            >
+                              {deletePending ? '…' : 'Delete'}
+                            </button>
+                          </form>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <form action={createAction} className="sf-events-tiers-add-form">
+            <input type="hidden" name="eventId" value={eventId} />
+            <input type="hidden" name="sortOrder" value={tiers.length} />
+            <h4 className="sf-events-tiers-add-title">Add ticket type</h4>
+            <div className="sf-events-tiers-add-grid">
               <label className="settings-field">
                 <span>Title</span>
                 <input
@@ -144,18 +314,7 @@ export function TiersManager({ events, eventId, tiers, embedded = false }: Props
                 </select>
               </label>
               <label className="settings-field">
-                <span>Capacity (optional)</span>
-                <input
-                  type="number"
-                  name="capacity"
-                  min={0}
-                  step={1}
-                  disabled={busy}
-                  placeholder="Unlimited"
-                />
-              </label>
-              <label className="settings-field">
-                <span>Price label</span>
+                <span>Price</span>
                 <input
                   type="text"
                   name="priceLabel"
@@ -166,164 +325,38 @@ export function TiersManager({ events, eventId, tiers, embedded = false }: Props
                 />
               </label>
               <label className="settings-field">
-                <span>Sort order</span>
+                <span>Capacity</span>
                 <input
                   type="number"
-                  name="sortOrder"
-                  defaultValue={0}
+                  name="capacity"
+                  min={0}
                   step={1}
                   disabled={busy}
+                  placeholder="Unlimited"
                 />
               </label>
-              <label className="settings-field">
+              <label className="settings-field sf-events-tiers-desc">
                 <span>Description</span>
-                <textarea
+                <input
+                  type="text"
                   name="description"
-                  rows={2}
                   maxLength={2000}
                   disabled={busy}
-                  placeholder="Optional notes shown to admins"
+                  placeholder="Shown on the public event page"
                 />
               </label>
-              <button
-                type="submit"
-                className="gantry-toolbar-btn gantry-toolbar-btn-save"
-                disabled={createPending}
-              >
-                {createPending ? 'Adding…' : 'Add tier'}
-              </button>
-            </form>
-            <Feedback state={createState} />
-          </section>
-
-          <Feedback state={updateState} />
-          <Feedback state={deleteState} />
-
-          {tiers.length === 0 ? (
-            <section className="outlines-create" aria-label="Tiers list">
-              <h3>No tiers yet</h3>
-              <p className="admin-empty">
-                Without tiers, public signup skips the ticket select. Add at least one for
-                faction / priced slots.
-              </p>
-            </section>
-          ) : (
-            tiers.map((row) => (
-              <section
-                key={row.id}
-                className="outlines-create"
-                aria-label={`Edit tier ${row.title}`}
-              >
-                <h3>
-                  {row.title}{' '}
-                  <span className="settings-hint">
-                    ({row.kind}
-                    {typeof row.capacity === 'number'
-                      ? ` · ${row.occupied}/${row.capacity}`
-                      : ` · ${row.occupied} registered`}
-                    )
-                  </span>
-                </h3>
-                <form
-                  id={`tier-edit-${row.id}`}
-                  action={updateAction}
-                  className="outlines-create-form admin-create-form"
+              <div className="sf-events-tiers-add-actions">
+                <button
+                  type="submit"
+                  className="gantry-toolbar-btn gantry-toolbar-btn-save"
+                  disabled={createPending}
                 >
-                  <input type="hidden" name="id" value={row.id} />
-                  <input type="hidden" name="eventId" value={row.eventId} />
-                  <label className="settings-field">
-                    <span>Title</span>
-                    <input
-                      type="text"
-                      name="title"
-                      required
-                      maxLength={200}
-                      defaultValue={row.title}
-                      disabled={busy}
-                    />
-                  </label>
-                  <label className="settings-field">
-                    <span>Kind</span>
-                    <select name="kind" defaultValue={row.kind} disabled={busy}>
-                      {TICKET_TIER_KINDS.map((k) => (
-                        <option key={k} value={k}>
-                          {k}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="settings-field">
-                    <span>Capacity (optional)</span>
-                    <input
-                      type="number"
-                      name="capacity"
-                      min={0}
-                      step={1}
-                      defaultValue={row.capacity ?? ''}
-                      disabled={busy}
-                      placeholder="Unlimited"
-                    />
-                  </label>
-                  <label className="settings-field">
-                    <span>Price label</span>
-                    <input
-                      type="text"
-                      name="priceLabel"
-                      maxLength={80}
-                      defaultValue={row.priceLabel}
-                      disabled={busy}
-                    />
-                  </label>
-                  <label className="settings-field">
-                    <span>Sort order</span>
-                    <input
-                      type="number"
-                      name="sortOrder"
-                      step={1}
-                      defaultValue={row.sortOrder}
-                      disabled={busy}
-                    />
-                  </label>
-                  <label className="settings-field">
-                    <span>Description</span>
-                    <textarea
-                      name="description"
-                      rows={2}
-                      maxLength={2000}
-                      defaultValue={row.description}
-                      disabled={busy}
-                    />
-                  </label>
-                </form>
-                <div className="admin-action-row">
-                  <button
-                    type="submit"
-                    form={`tier-edit-${row.id}`}
-                    className="gantry-toolbar-btn gantry-toolbar-btn-save"
-                    disabled={busy}
-                  >
-                    {updatePending ? 'Saving…' : 'Save'}
-                  </button>
-                  <form action={deleteAction}>
-                    <input type="hidden" name="id" value={row.id} />
-                    <button
-                      type="submit"
-                      className="gantry-toolbar-btn gantry-toolbar-btn-danger"
-                      disabled={busy}
-                      onClick={(e) => {
-                        if (!window.confirm(`Delete tier “${row.title}”?`)) {
-                          e.preventDefault()
-                        }
-                      }}
-                    >
-                      {deletePending ? 'Deleting…' : 'Delete'}
-                    </button>
-                  </form>
-                </div>
-              </section>
-            ))
-          )}
-        </>
+                  {createPending ? 'Adding…' : 'Add'}
+                </button>
+              </div>
+            </div>
+          </form>
+        </section>
       )}
     </div>
   )
