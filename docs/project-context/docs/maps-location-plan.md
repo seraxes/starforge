@@ -4,7 +4,9 @@
 
 **Goal:** Platform **map + geolocation sharing** as an optional **Module** — data model, privacy scopes, map particle; map provider port hosted in Core. Mobile Starforge app uses the same APIs later.
 
-**Status:** Plan only. Ship after groups ACL is solid; friends graph can extend scopes when Social Module ships.
+**Status:** **Venue pins + MapProvider + map particle shipped** (`product:maps`). Generic user location **shares** (everyone/friends/selected) remain plan-only.
+
+**Live tactical rooms** (closed event roster / same-team GPS) are a **separate product surface** — see [maps-live-tactical](./maps-live-tactical.md). Do not conflate tactical sessions with social share scopes.
 
 ## Scope (Module)
 

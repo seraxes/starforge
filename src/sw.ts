@@ -56,6 +56,21 @@ const runtimeCaching: RuntimeCaching[] = [
       ],
     }),
   },
+  // Light tile cache for live tactical / venue maps (OSM). Does not enable background GPS.
+  {
+    matcher: ({ url }) =>
+      url.hostname.endsWith('tile.openstreetmap.org') ||
+      url.hostname === 'tile.openstreetmap.org',
+    handler: new CacheFirst({
+      cacheName: 'sf-pwa-map-tiles',
+      plugins: [
+        new ExpirationPlugin({
+          maxEntries: 96,
+          maxAgeSeconds: 60 * 60 * 24 * 7,
+        }),
+      ],
+    }),
+  },
 ]
 
 const serwist = new Serwist({

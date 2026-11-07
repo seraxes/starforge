@@ -2217,6 +2217,11 @@ button:disabled {
   justify-content: flex-end;
   gap: var(--sf-admin-btn-gap, 0.55rem);
   margin-top: 0.55rem;
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+  align-self: stretch;
+  box-sizing: border-box;
 }
 
 .sf-events-manager .outlines-create > .admin-action-row > form,
@@ -2228,13 +2233,16 @@ button:disabled {
   margin: 0;
 }
 
-/* Events list: collapsed Add + disclosure above filters / list */
+/* Events list: collapsed Add + disclosure above filters / list.
+ * Horizontal inset comes from `.outlines-create > :not(h3)` card pad —
+ * do not re-add 0.85rem left/right here (that fought the Starforge card norm). */
 .sf-events-add-panel > .sf-events-add-bar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.65rem 1rem;
-  margin: 0.85rem;
+  margin-top: var(--sf-admin-card-pad-y, 0.75rem);
+  margin-bottom: var(--sf-admin-card-pad-y, 0.75rem);
 }
 
 .sf-events-add-hint {
@@ -2243,13 +2251,13 @@ button:disabled {
 }
 
 .sf-events-add-form.sf-events-form-mosaic {
-  margin: 0 0.85rem 0.85rem;
+  margin: 0 0 var(--sf-admin-card-pad-bottom, 0.85rem);
   width: auto;
   grid-column: auto;
 }
 
 .sf-events-add-inline-form {
-  margin: 0 0.85rem 0.85rem;
+  margin: 0 0 var(--sf-admin-card-pad-bottom, 0.85rem);
 }
 
 .sf-events-list-title-btn {
@@ -5823,3 +5831,192 @@ button.danger,
   white-space: nowrap;
   border: 0;
 }
+
+/* —— product:maps live tactical admin (Events / Layouts chrome) —— */
+
+.sf-maps-admin .sf-maps-admin-nav {
+  margin-bottom: 0.75rem;
+}
+
+.sf-maps-rooms-manager .outlines-create > .admin-action-row,
+.sf-maps-room-editor .outlines-create > .admin-action-row,
+.sf-maps-room-editor .settings-fieldset > .admin-action-row,
+.sf-maps-room-editor .sf-maps-team-card > .admin-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sf-admin-btn-gap, 0.55rem);
+  margin-top: 0.55rem;
+  /* Stay inside card inset margins (see core-chrome card action note) */
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+  align-self: stretch;
+  box-sizing: border-box;
+}
+
+/* Nested team editors — same fieldset chrome; space stacked cards */
+.sf-maps-room-editor .sf-maps-team-card {
+  margin-top: var(--sf-admin-card-pad-x, 0.85rem);
+}
+
+.sf-maps-room-editor .sf-maps-team-card:first-of-type {
+  margin-top: 0.35rem;
+}
+
+/* Color well — keep SF input border language without stretching like text fields */
+.admin-shell .sf-maps-room-editor .settings-field input[type='color'] {
+  width: 2.75rem !important;
+  max-width: 2.75rem !important;
+  min-height: var(--sf-admin-input-min-height, 2.1rem);
+  padding: 0.15rem !important;
+  border: 1px solid var(--sf-admin-blue-border, #1e4d72) !important;
+  border-radius: 3px;
+  background: var(--sf-admin-input, #152033) !important;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+/* —— product:maps public live map (event detail / particle) —— */
+
+.sf-event-live-map {
+  margin: 1.75rem 0 0;
+  padding: 0;
+}
+
+.sf-event-live-map-header {
+  margin: 0 0 0.85rem;
+}
+
+.sf-event-live-map-heading {
+  margin: 0 0 0.35rem;
+  font-size: 1.35rem;
+  font-weight: 650;
+  color: var(--sf-text, inherit);
+}
+
+.sf-event-live-map-lede {
+  margin: 0;
+  max-width: 36rem;
+  color: var(--sf-muted, color-mix(in srgb, var(--sf-text, #111) 65%, transparent));
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.sf-live-map {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.sf-live-map-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+}
+
+.sf-live-map-bar-meta {
+  min-width: 0;
+  flex: 1 1 12rem;
+}
+
+.sf-live-map-room-title {
+  margin: 0;
+  font-weight: 650;
+  font-size: 1.05rem;
+  color: var(--sf-text, inherit);
+}
+
+.sf-live-map-status {
+  margin: 0.2rem 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  font-size: 0.9rem;
+  color: var(--sf-muted, color-mix(in srgb, var(--sf-text, #111) 65%, transparent));
+}
+
+.sf-live-map-status-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--sf-primary, #e87722);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sf-primary, #e87722) 28%, transparent);
+}
+
+.sf-live-map-bar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sf-admin-btn-gap, 0.55rem);
+}
+
+.sf-live-map-btn {
+  appearance: none;
+  border: 1px solid var(--sf-line, color-mix(in srgb, var(--sf-text, #111) 18%, transparent));
+  background: color-mix(in srgb, var(--sf-surface, #fff) 92%, var(--sf-text, #111));
+  color: var(--sf-text, inherit);
+  border-radius: var(--sf-radius, 0.45rem);
+  padding: 0.45rem 0.9rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sf-live-map-btn:hover {
+  border-color: color-mix(in srgb, var(--sf-primary, #e87722) 45%, var(--sf-line, #ccc));
+}
+
+.sf-live-map-btn-primary {
+  border-color: transparent;
+  background: var(--sf-primary, #e87722);
+  color: var(--sf-on-primary, #fff);
+}
+
+.sf-live-map-btn-primary:hover {
+  filter: brightness(1.05);
+}
+
+.sf-live-map-hint,
+.sf-live-map-error,
+.sf-live-map-kml {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.sf-live-map-hint,
+.sf-live-map-kml {
+  color: var(--sf-muted, color-mix(in srgb, var(--sf-text, #111) 65%, transparent));
+}
+
+.sf-live-map-error {
+  color: var(--sf-danger, #b42318);
+}
+
+.sf-live-map-kml {
+  padding-left: 1.1rem;
+}
+
+.sf-live-map-leaflet {
+  border: 1px solid var(--sf-line, color-mix(in srgb, var(--sf-text, #111) 14%, transparent));
+  border-radius: var(--sf-radius, 0.45rem);
+  overflow: hidden;
+  background: var(--sf-surface, #f4f6f8);
+}
+
+.sf-live-map-particle {
+  margin: 0;
+}
+
+.sf-live-map-heading {
+  margin: 0 0 0.65rem;
+  font-size: 1.25rem;
+  font-weight: 650;
+}
+

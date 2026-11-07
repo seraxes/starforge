@@ -97,3 +97,6 @@ export {
   type VenueLocationMapProps,
 } from './VenueLocationMap'
 export { defaultMapConfig, readMapConfig, type MapParticleConfig } from './config'
+export { liveMapModule } from './live-map-module'
+export { EventLiveMap } from './public/EventLiveMap'
+export { LiveMapPanel } from './public/LiveMapPanel'

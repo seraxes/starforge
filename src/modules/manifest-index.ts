@@ -17,6 +17,7 @@ import formParticleManifest from './form/manifest'
 import formsManifest from './forms/manifest'
 import mapsManifest from './maps/manifest'
 import mapParticleManifest from './maps/particle-manifest'
+import liveMapParticleManifest from './maps/live-map-particle-manifest'
 import marketplaceManifest from './marketplace/manifest'
 import mediaManifest from './media/manifest'
 import noticeBarManifest from './notice-bar/manifest'
@@ -40,6 +41,7 @@ export const ALL_MODULE_MANIFESTS: StarforgeModuleManifest[] = [
   eventCountdownParticleManifest,
   mapsManifest,
   mapParticleManifest,
+  liveMapParticleManifest,
   marketplaceManifest,
   redirectsManifest,
   consentManifest,

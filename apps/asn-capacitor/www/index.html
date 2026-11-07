@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Airsoft Nexus</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 2rem;
+        line-height: 1.4;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Airsoft Nexus</h1>
+    <p>
+      Capacitor shell placeholder. Set <code>server.url</code> in
+      <code>capacitor.config.ts</code> (or <code>CAPACITOR_SERVER_URL</code>) to
+      your Starforge origin so the WebView loads the live map.
+    </p>
+    <p>
+      Background GPS is started when the web app calls
+      <code>StarforgeLiveMap.onSession({ active: true })</code> after Join.
+    </p>
+    <script type="module" src="./bridge.js"></script>
+  </body>
+</html>

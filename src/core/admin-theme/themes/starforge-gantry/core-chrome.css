@@ -52,6 +52,14 @@ body:has(.admin-shell) > main {
   --sf-admin-panel: #1b2432;
   --sf-admin-panel-head: #121a24;
   --sf-admin-panel-border: #2f3d50;
+  /* Card body inset = Page Settings panel-body / Layouts settings panel */
+  --sf-admin-card-pad-x: 0.85rem;
+  --sf-admin-card-pad-y: 0.75rem;
+  --sf-admin-card-pad-bottom: 0.85rem;
+  /* Input wells = Layouts gantry-settings-theme-dark density */
+  --sf-admin-input-pad-y: 0.35rem;
+  --sf-admin-input-pad-x: 0.5rem;
+  --sf-admin-input-min-height: 2.1rem;
 
   /* Remap shared brand aliases used by existing admin/gantry CSS */
   --sf-ink: #ffffff;
@@ -317,6 +325,10 @@ body:has(.admin-shell) > main {
 .admin-shell .settings-field input[type='search'],
 .admin-shell .settings-field select,
 .admin-shell .settings-field textarea,
+.admin-shell .page-settings-panel-body input[type='text'],
+.admin-shell .page-settings-panel-body input[type='url'],
+.admin-shell .page-settings-panel-body select,
+.admin-shell .page-settings-panel-body textarea,
 .admin-shell .gantry-typed-form input[type='text'],
 .admin-shell .gantry-typed-form input[type='url'],
 .admin-shell .gantry-typed-form input[type='number'],
@@ -326,7 +338,13 @@ body:has(.admin-shell) > main {
   background: var(--sf-admin-input) !important;
   border: 1px solid var(--sf-admin-blue-border) !important;
   color: var(--sf-ink) !important;
-  min-height: 2.1rem;
+  min-height: var(--sf-admin-input-min-height);
+  /* Beat styles.css light padding (0.55/0.65) — Layouts density */
+  padding: var(--sf-admin-input-pad-y) var(--sf-admin-input-pad-x) !important;
+  border-radius: 3px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
 }
 
 /* Date / time — match text wells (type lists above omit these; native UA chrome differs) */
@@ -339,7 +357,8 @@ body:has(.admin-shell) > main {
   background: var(--sf-admin-input) !important;
   border: 1px solid var(--sf-admin-blue-border) !important;
   color: var(--sf-ink) !important;
-  min-height: 2.1rem;
+  min-height: var(--sf-admin-input-min-height, 2.1rem);
+  padding: var(--sf-admin-input-pad-y, 0.35rem) var(--sf-admin-input-pad-x, 0.5rem) !important;
   font: inherit;
   font-weight: 400;
   font-size: inherit;
@@ -348,6 +367,8 @@ body:has(.admin-shell) > main {
   box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 6%, transparent);
   box-sizing: border-box;
   border-radius: 3px;
+  width: 100%;
+  max-width: 100%;
 }
 
 /* White picker glyphs; stroke ~50% thicker than default 1.5 → 2.25 */
@@ -1972,7 +1993,8 @@ body:has(.admin-shell) > main {
   display: flex;
   flex-direction: column;
   margin: 0;
-  padding: 0 0 0.85rem;
+  /* Kill styles.css light padding (1rem 1.1rem) — body inset via child margins */
+  padding: 0 0 var(--sf-admin-card-pad-bottom) !important;
   min-width: 0;
   width: 100%;
   box-sizing: border-box;
@@ -1991,8 +2013,8 @@ body:has(.admin-shell) > main {
   float: left;
   width: 100%;
   box-sizing: border-box;
-  margin: 0 0 0.75rem;
-  padding: 0.55rem 0.85rem;
+  margin: 0 0 var(--sf-admin-card-pad-y);
+  padding: 0.55rem var(--sf-admin-card-pad-x);
   background: var(--sf-admin-panel-head);
   border-bottom: 1px solid var(--sf-admin-panel-border);
   color: #fff;
@@ -2015,8 +2037,8 @@ body:has(.admin-shell) > main {
 .admin-shell .sf-media-library-upload > :not(h3),
 .admin-shell .sf-forms-settings-panel > :not(h3),
 .admin-shell .sf-media-library-filters > :not(.admin-settings-panel-title) {
-  margin-left: 0.85rem;
-  margin-right: 0.85rem;
+  margin-left: var(--sf-admin-card-pad-x);
+  margin-right: var(--sf-admin-card-pad-x);
 }
 
 /* Styles · Breakpoints — Helium dense field card + wash behind (full width) */
@@ -2029,7 +2051,9 @@ body:has(.admin-shell) > main {
 
 .admin-shell .breakpoints-form .settings-field,
 .admin-shell .section-styles-form .settings-field,
-.admin-shell .settings-fieldset .settings-field {
+.admin-shell .settings-fieldset .settings-field,
+.admin-shell .outlines-create .settings-field,
+.admin-shell .sf-events-add-inline-form .settings-field {
   border-bottom: 1px solid color-mix(in srgb, #2f3d50 65%, transparent);
   padding-bottom: 0.65rem;
   margin-bottom: 0.65rem;
@@ -2037,7 +2061,9 @@ body:has(.admin-shell) > main {
 
 .admin-shell .breakpoints-form .settings-field:last-of-type,
 .admin-shell .section-styles-form .settings-field:last-of-type,
-.admin-shell .settings-fieldset .settings-field:last-of-type {
+.admin-shell .settings-fieldset .settings-field:last-of-type,
+.admin-shell .outlines-create .settings-field:last-of-type,
+.admin-shell .sf-events-add-inline-form .settings-field:last-of-type {
   border-bottom: 0;
   margin-bottom: 0.35rem;
 }
@@ -2370,7 +2396,7 @@ body:has(.admin-shell) > main {
 
 .admin-shell .page-settings-panel-body {
   background: var(--sf-admin-panel);
-  padding: 0.75rem 0.85rem;
+  padding: var(--sf-admin-card-pad-y) var(--sf-admin-card-pad-x) var(--sf-admin-card-pad-bottom);
 }
 
 .admin-shell .page-settings-toolbar {
@@ -2631,6 +2657,12 @@ body:has(.admin-shell) > main {
 /*
  * Card actions — always bottom-right of the panel (Cancel / Save / Apply / Delete…).
  * Not for top Add+/filter toolbars.
+ *
+ * Do not set width:100% here: card body children already get
+ * margin-left/right 0.85rem from `.settings-fieldset > :not(legend)` /
+ * `.outlines-create > :not(h3)`. width:100% + those margins overflowed
+ * Save past the right card edge (Maps Live maps, Events cards, …).
+ * Flex/grid stretch sizes the row inside the margins instead.
  */
 .admin-shell .outlines-create > .admin-action-row,
 .admin-shell .outlines-create > .page-settings-actions,
@@ -2649,7 +2681,10 @@ body:has(.admin-shell) > main {
   justify-content: flex-end;
   gap: var(--sf-admin-btn-gap);
   margin-top: 0.75rem;
-  width: 100%;
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+  align-self: stretch;
   box-sizing: border-box;
 }
 

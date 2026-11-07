@@ -123,6 +123,17 @@ describe('adminAreaGateForPath', () => {
     })
   })
 
+  it('maps Maps admin paths to admin.maps', () => {
+    assert.deepEqual(adminAreaGateForPath('/admin/maps'), {
+      type: 'resource',
+      key: 'admin.maps',
+    })
+    assert.deepEqual(adminAreaGateForPath('/admin/maps/room-1'), {
+      type: 'resource',
+      key: 'admin.maps',
+    })
+  })
+
   it('maps Localization to admin.localization', () => {
     assert.deepEqual(adminAreaGateForPath('/admin/localization'), {
       type: 'resource',

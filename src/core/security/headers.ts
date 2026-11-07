@@ -23,10 +23,10 @@ export function buildSecurityHeaders(options?: {
     { key: 'X-Content-Type-Options', value: 'nosniff' },
     { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
     { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-    // Camera allowed for Media mobile upload; mic/geo off until a module needs them.
+    // Camera: Media mobile upload. Geolocation: live tactical map (product:maps) Join session.
     {
       key: 'Permissions-Policy',
-      value: 'camera=(self), microphone=(), geolocation=(), payment=()',
+      value: 'camera=(self), microphone=(), geolocation=(self), payment=()',
     },
     ...buildCspHeaders({ features: options?.cspSources, mode: options?.cspMode }),
   ]

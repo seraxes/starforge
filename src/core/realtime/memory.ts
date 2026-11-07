@@ -104,15 +104,20 @@ export function createMemoryRealtimePort(): RealtimePort {
 }
 
 /**
- * Active RealtimePort singleton (memory bus for now).
- * Prefer importing via `@/core/realtime` from server product code.
+ * Active RealtimePort singleton (memory bus).
+ * Prefer `@/core/realtime` `getRealtimePort` which may wrap Redis fanout.
  */
-export function getRealtimePort(): RealtimePort {
+export function getMemoryRealtimePort(): RealtimePort {
   const g = globalThis as MemoryBusGlobal
   if (!g.__starforgeRealtimePort) {
     g.__starforgeRealtimePort = createMemoryRealtimePort()
   }
   return g.__starforgeRealtimePort
+}
+
+/** @deprecated Use getMemoryRealtimePort or `@/core/realtime` getRealtimePort. */
+export function getRealtimePort(): RealtimePort {
+  return getMemoryRealtimePort()
 }
 
 /** Test helper — drop the lazy singleton (bus map cleared separately). */

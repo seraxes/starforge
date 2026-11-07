@@ -43,6 +43,10 @@ export const optionalParticleLoaders: OptionalParticleLoader[] = [
     load: async () => (await import("@/modules/maps")).mapModule,
   },
   {
+    id: "live-map",
+    load: async () => (await import("@/modules/maps/live-map-module")).liveMapModule,
+  },
+  {
     id: "notice-bar",
     load: async () => (await import("@/modules/notice-bar")).noticeBarModule,
   },

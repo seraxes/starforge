@@ -26,7 +26,7 @@ export type RealtimeUnsubscribe = () => void
 
 export type RealtimeInfo = {
   /** Active adapter id. */
-  adapter: 'memory'
+  adapter: 'memory' | 'redis-fanout'
   label: string
   /** True when publish/subscribe are usable. */
   ready: boolean

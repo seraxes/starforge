@@ -23,6 +23,7 @@ import { EventPasswordGate } from '@/modules/events/public/EventPasswordGate'
 import { eventPublicPathKey } from '@/modules/events/public/path'
 import { EventRegistrationForm } from '@/modules/events/public/EventRegistrationForm'
 import { EventVenueMap } from '@/modules/events/public/EventVenueMap'
+import { EventLiveMap } from '@/modules/maps/public/EventLiveMap'
 import { listPublicTicketTiersForEvent } from '@/modules/events/public-tiers'
 import {
   findEventById,
@@ -141,6 +142,7 @@ export default async function PublicEventDetailPage({ params }: Args) {
           label={venue.name}
         />
       ) : null}
+      <EventLiveMap eventId={event.id} />
       {formsOn ? <EventRegistrationForm event={event} /> : null}
     </div>
   )

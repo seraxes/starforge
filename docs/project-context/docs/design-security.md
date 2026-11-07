@@ -79,7 +79,7 @@ Keep **one** Payload `media` collection (preference). Privacy is a first-class f
 
 **Mechanics:** move `middleware.ts` → Next 16 `proxy.ts` (Node runtime). The proxy reads one cached `security-policy` document through `PublishedContentCache` in-process: CSP sources, redirects, offline flag. That removes today's two internal HTTP hops. Roll out with `Content-Security-Policy-Report-Only` for one cycle, then enforce. **Later:** nonce-based `script-src` to drop `'unsafe-inline'`.
 
-`Permissions-Policy`: keep `camera=(self)`; open `geolocation=(self)` when the Maps module is enabled (module manifest contribution).
+`Permissions-Policy`: keep `camera=(self)`; `geolocation=(self)` for live tactical map Join sessions ([maps-live-tactical](./maps-live-tactical.md)).
 
 ## 5. ACL target
 

@@ -3,13 +3,14 @@ import { headers } from 'next/headers'
 
 import { auth } from '@/core/auth'
 import {
-  filterSubscribableChannels,
+  filterSubscribableChannelsAsync,
   getRealtimePort,
   getRealtimeRuntimeConfig,
   parseRealtimeChannels,
   userChannel,
   type RealtimeEvent,
 } from '@/core/realtime'
+import { canSubscribeMapChannel } from '@/modules/maps/realtime-acl'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -50,14 +51,18 @@ export async function GET(request: Request) {
   const channels =
     requested.length > 0 ? requested : [userChannel(userId)]
 
-  const { allowed, rejected } = filterSubscribableChannels(userId, channels)
+  const { allowed, rejected } = await filterSubscribableChannelsAsync(
+    userId,
+    channels,
+    [canSubscribeMapChannel],
+  )
 
   if (allowed.length === 0) {
     return NextResponse.json(
       {
         error: 'No allowed channels',
         rejected,
-        hint: `v1 allows only ${userChannel(userId)}`,
+        hint: `Allowed: ${userChannel(userId)} and authorized map:room:…:team:… channels`,
       },
       { status: 403 },
     )
@@ -68,7 +73,7 @@ export async function GET(request: Request) {
       {
         error: 'Forbidden channels',
         rejected,
-        hint: `v1 allows only ${userChannel(userId)}`,
+        hint: `Allowed: ${userChannel(userId)} and authorized map:room:…:team:… channels`,
       },
       { status: 403 },
     )

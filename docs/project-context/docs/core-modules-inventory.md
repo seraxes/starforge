@@ -143,10 +143,10 @@ Durable map of **feature modules** (Site Settings / allowlist toggleable) vs **i
 | | |
 | --- | --- |
 | **Kind** | Core infrastructure port |
-| **Status** | **shipped (foundation)** — in-process memory bus + auth SSE `/api/realtime` (`user:{self}` ACL); Redis fanout deferred |
-| **In tree** | `src/core/realtime/`; client `useRealtimeChannel` / `connectRealtime`; smoke `POST /api/realtime/smoke` (dev or app admin); Site Settings → **Performance** enable + Core ports glance |
-| **Recommended** | Modules call `getRealtimePort().publish` only. Extend `canSubscribe` when Chat/Maps open room channels. RTC (voice/video) = separate port later. Toggle via `realtimeEnabled` (Performance), not a Modules pack. |
-| **Next slice** | Notifications consumer; Redis pub/sub adapter when multi-instance. |
+| **Status** | **shipped (foundation)** — memory bus + SSE; `user:{self}` + Maps `map:room:…:team:…` ACL; optional Redis fanout (`STARFORGE_REALTIME_FANOUT=redis`) |
+| **In tree** | `src/core/realtime/`; client `useRealtimeChannel` / `connectRealtime`; smoke `POST /api/realtime/smoke`; Site Settings → **Performance** |
+| **Recommended** | Modules call `getRealtimePort().publish` only. Chat extends channel ACL similarly. RTC (voice/video) = separate port later. |
+| **Next slice** | Notifications consumer; harden Redis fanout in production. |
 
 ### i18n
 
@@ -220,9 +220,9 @@ Durable map of **feature modules** (Site Settings / allowlist toggleable) vs **i
 | | |
 | --- | --- |
 | **Kind** | **Module** (`product:maps`) + Core **`MapProvider`** port |
-| **Status** | **none** (plan only) |
-| **Recommended** | Share scopes everyone/friends/selected (groups now; friends when Social ships); consent/precision/revoke; Leaflet-OSM first. Hero = branded chrome / vertical filters only. Plan: [maps-location-plan](./maps-location-plan.md). |
-| **Next slice** | Defer until groups ACL solid; first slice = MapProvider stub + venue pin binder for Events. |
+| **Status** | **partial / shipping** — MapProvider + venue pins + map particle; **live tactical rooms** (closed roster) in Maps module. Generic social location shares still plan-only. |
+| **Recommended** | Tactical live + **stations / hold / beacons roadmap** = [maps-live-tactical](./maps-live-tactical.md). ASN brand **TacMap** + beacon SKUs = **Hero** (not a Maps fork). Shares everyone/friends/selected = [maps-location-plan](./maps-location-plan.md) later. |
+| **Next slice** | Capacitor background GPS; stations + GPS hold-to-capture; then BLE beacon presence; ASN shop kits. |
 
 ---
 

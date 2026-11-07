@@ -239,6 +239,7 @@ export type {
 export {
   canSubscribe,
   filterSubscribableChannels,
+  filterSubscribableChannelsAsync,
   getRealtimePort,
   parseRealtimeChannels,
   userChannel,
