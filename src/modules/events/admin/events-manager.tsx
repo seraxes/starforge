@@ -148,6 +148,7 @@ export function EventsManager({
         ) : null}
         <form action={createAction} className="outlines-create-form admin-create-form">
           <EventFormFields
+            compact
             venues={venues}
             groups={groups}
             defaultTimezone={defaultTimezone}

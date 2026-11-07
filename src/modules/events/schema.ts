@@ -69,6 +69,26 @@ export const sfEvents = pgTable(
     registrationOpensAt: timestamp('registration_opens_at', { withTimezone: true }),
     /** Null = no hard close (beyond event status). */
     registrationClosesAt: timestamp('registration_closes_at', { withTimezone: true }),
+    /** User ids who can manage this event (beyond app-admin). */
+    managerUserIds: jsonb('manager_user_ids').$type<string[]>().notNull().default([]),
+    /** User ids who can help edit (same write surface as managers for now). */
+    helperUserIds: jsonb('helper_user_ids').$type<string[]>().notNull().default([]),
+    /** Group ids granted manager rights. */
+    managerGroupIds: jsonb('manager_group_ids').$type<string[]>().notNull().default([]),
+    /** Group ids granted helper rights. */
+    helperGroupIds: jsonb('helper_group_ids').$type<string[]>().notNull().default([]),
+    /** Party ids shown as organizers (order preserved). */
+    organizerPartyIds: jsonb('organizer_party_ids').$type<string[]>().notNull().default([]),
+    /** Party ids shown as speakers. */
+    speakerPartyIds: jsonb('speaker_party_ids').$type<string[]>().notNull().default([]),
+    /** Party ids shown as sponsors. */
+    sponsorPartyIds: jsonb('sponsor_party_ids').$type<string[]>().notNull().default([]),
+    /** Related event ids (series / see-also). */
+    relatedEventIds: jsonb('related_event_ids').$type<string[]>().notNull().default([]),
+    /** Short note above the public registration form. */
+    signupNote: text('signup_note').notNull().default(''),
+    /** Terms / conditions page URL (CMS or external). */
+    termsUrl: text('terms_url').notNull().default(''),
     accessTags: jsonb('access_tags').$type<string[]>().notNull().default([]),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true })
@@ -81,6 +101,32 @@ export const sfEvents = pgTable(
     index('sf_events_starts_at_idx').on(table.startsAt),
     index('sf_events_venue_id_idx').on(table.venueId),
     index('sf_events_slug_idx').on(table.slug),
+  ],
+)
+
+/**
+ * Shared party profiles — organizers / speakers / sponsors (not a mini-CRM).
+ * Linked from events via jsonb id lists.
+ */
+export const sfEventParties = pgTable(
+  'sf_event_parties',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull().default('Untitled'),
+    /** organizer | speaker | sponsor | other — default role hint; events may still attach any party. */
+    kind: text('kind').notNull().default('organizer'),
+    url: text('url').notNull().default(''),
+    blurb: text('blurb').notNull().default(''),
+    avatarMediaId: text('avatar_media_id'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('sf_event_parties_kind_idx').on(table.kind),
+    index('sf_event_parties_name_idx').on(table.name),
   ],
 )
 

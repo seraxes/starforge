@@ -11,6 +11,7 @@ import { withLocalePrefix } from '@/core/i18n/path'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { getSiteChrome } from '@/core/site-chrome'
 import { ensureEventsFormHooks } from '@/modules/events/form-hooks'
+import { listEventPartiesByIds } from '@/modules/events/parties'
 import { EventDetail } from '@/modules/events/public/EventDetail'
 import { EventRegistrationForm } from '@/modules/events/public/EventRegistrationForm'
 import { EventVenueMap } from '@/modules/events/public/EventVenueMap'
@@ -77,6 +78,11 @@ export default async function PublicEventDetailPage({ params }: Args) {
 
   const venue = event.venueId ? await findVenueById(event.venueId) : null
   const formsOn = isCatalogModuleEnabled(settings, MODULE_IDS.forms)
+  const [organizers, speakers, sponsors] = await Promise.all([
+    listEventPartiesByIds(event.organizerPartyIds),
+    listEventPartiesByIds(event.speakerPartyIds),
+    listEventPartiesByIds(event.sponsorPartyIds),
+  ])
 
   return (
     <div className="cms-page sf-events-page">
@@ -84,6 +90,9 @@ export default async function PublicEventDetailPage({ params }: Args) {
         event={event}
         venueName={venue?.name}
         venueAddress={venue?.address}
+        organizers={organizers}
+        speakers={speakers}
+        sponsors={sponsors}
         listHref={withLocalePrefix('/events', locale)}
       />
       {venue?.latitude != null && venue?.longitude != null ? (

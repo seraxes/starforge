@@ -11,6 +11,7 @@ import {
   createVenue,
   deleteEvent,
   deleteVenue,
+  duplicateEvent,
   updateEvent,
   updateVenue,
 } from './store'
@@ -38,11 +39,16 @@ function revalidateEventsAdmin(eventId?: string) {
   revalidatePath('/admin/events/settings')
   revalidatePath('/admin/events/tiers')
   revalidatePath('/admin/events/registrants')
+  revalidatePath('/admin/events/parties')
   revalidatePath('/admin')
   revalidatePath('/events')
   if (eventId) {
     revalidatePath(`/admin/events/${eventId}`)
   }
+}
+
+function parseIdListJson(formData: FormData, key: string): string {
+  return String(formData.get(key) ?? '[]')
 }
 
 function eventFieldsFromForm(formData: FormData) {
@@ -64,6 +70,16 @@ function eventFieldsFromForm(formData: FormData) {
     registrationClosesAt: datetimeLocalToIso(
       String(formData.get('registrationClosesAt') ?? ''),
     ),
+    managerUserIds: parseIdListJson(formData, 'managerUserIdsJson'),
+    helperUserIds: parseIdListJson(formData, 'helperUserIdsJson'),
+    managerGroupIds: parseIdListJson(formData, 'managerGroupIdsJson'),
+    helperGroupIds: parseIdListJson(formData, 'helperGroupIdsJson'),
+    organizerPartyIds: parseIdListJson(formData, 'organizerPartyIdsJson'),
+    speakerPartyIds: parseIdListJson(formData, 'speakerPartyIdsJson'),
+    sponsorPartyIds: parseIdListJson(formData, 'sponsorPartyIdsJson'),
+    relatedEventIds: parseIdListJson(formData, 'relatedEventIdsJson'),
+    signupNote: String(formData.get('signupNote') ?? ''),
+    termsUrl: String(formData.get('termsUrl') ?? ''),
     accessTags: parseAccessTagsFromForm(formData),
   }
 }
@@ -252,6 +268,91 @@ export async function deleteEventAction(
   if ('error' in result) return { error: result.error }
   revalidateEventsAdmin()
   return { ok: true, message: 'Event deleted.', id }
+}
+
+export async function duplicateEventAction(
+  _prev: EventsAdminActionState,
+  formData: FormData,
+): Promise<EventsAdminActionState> {
+  const denied = await requireEventsAdmin()
+  if (denied) return denied
+  const id = String(formData.get('id') ?? '').trim()
+  const copyTiers = formData.get('copyTiers') !== '0'
+  const result = await duplicateEvent(id, { copyTiers })
+  if ('error' in result) return { error: result.error }
+  revalidateEventsAdmin(result.event.id)
+  return {
+    ok: true,
+    message: `Duplicated as “${result.event.title}”.`,
+    id: result.event.id,
+  }
+}
+
+/* ─── Parties ────────────────────────────────────────────────────────────── */
+
+export async function createEventPartyAction(
+  _prev: EventsAdminActionState,
+  formData: FormData,
+): Promise<EventsAdminActionState> {
+  const denied = await requireEventsAdmin()
+  if (denied) return denied
+
+  const { createEventParty } = await import('./parties')
+  const result = await createEventParty({
+    name: String(formData.get('name') ?? ''),
+    kind: String(formData.get('kind') ?? 'organizer'),
+    url: String(formData.get('url') ?? ''),
+    blurb: String(formData.get('blurb') ?? ''),
+    avatarMediaId: String(formData.get('coverMediaId') ?? formData.get('avatarMediaId') ?? ''),
+  })
+  if ('error' in result) return { error: result.error }
+  revalidateEventsAdmin()
+  return {
+    ok: true,
+    message: `Party “${result.party.name}” created.`,
+    id: result.party.id,
+  }
+}
+
+export async function updateEventPartyAction(
+  _prev: EventsAdminActionState,
+  formData: FormData,
+): Promise<EventsAdminActionState> {
+  const denied = await requireEventsAdmin()
+  if (denied) return denied
+
+  const { updateEventParty } = await import('./parties')
+  const id = String(formData.get('id') ?? '').trim()
+  const result = await updateEventParty({
+    id,
+    name: String(formData.get('name') ?? ''),
+    kind: String(formData.get('kind') ?? 'organizer'),
+    url: String(formData.get('url') ?? ''),
+    blurb: String(formData.get('blurb') ?? ''),
+    avatarMediaId: String(formData.get('coverMediaId') ?? formData.get('avatarMediaId') ?? ''),
+  })
+  if ('error' in result) return { error: result.error }
+  revalidateEventsAdmin()
+  return {
+    ok: true,
+    message: `Party “${result.party.name}” saved.`,
+    id: result.party.id,
+  }
+}
+
+export async function deleteEventPartyAction(
+  _prev: EventsAdminActionState,
+  formData: FormData,
+): Promise<EventsAdminActionState> {
+  const denied = await requireEventsAdmin()
+  if (denied) return denied
+
+  const { deleteEventParty } = await import('./parties')
+  const id = String(formData.get('id') ?? '').trim()
+  const result = await deleteEventParty(id)
+  if ('error' in result) return { error: result.error }
+  revalidateEventsAdmin()
+  return { ok: true, message: 'Party deleted.', id }
 }
 
 /* ─── Settings ───────────────────────────────────────────────────────────── */

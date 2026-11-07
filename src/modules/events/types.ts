@@ -1,5 +1,5 @@
 /**
- * product:events shared types — venues + events admin CRUD (PR1).
+ * product:events shared types — venues + events + parties.
  */
 
 export const EVENT_STATUSES = ['draft', 'published', 'cancelled'] as const
@@ -22,6 +22,17 @@ export function isTicketTierKind(value: unknown): value is TicketTierKind {
   return value === 'general' || value === 'faction'
 }
 
+export const EVENT_PARTY_KINDS = ['organizer', 'speaker', 'sponsor', 'other'] as const
+
+export type EventPartyKind = (typeof EVENT_PARTY_KINDS)[number]
+
+export function isEventPartyKind(value: unknown): value is EventPartyKind {
+  return (
+    typeof value === 'string' &&
+    (EVENT_PARTY_KINDS as readonly string[]).includes(value)
+  )
+}
+
 export type VenueRecord = {
   id: string
   name: string
@@ -31,6 +42,17 @@ export type VenueRecord = {
   longitude: number | null
   coverMediaId: string
   accessTags: string[]
+  createdAt: Date
+  updatedAt: Date
+}
+
+export type EventPartyRecord = {
+  id: string
+  name: string
+  kind: EventPartyKind
+  url: string
+  blurb: string
+  avatarMediaId: string
   createdAt: Date
   updatedAt: Date
 }
@@ -52,6 +74,16 @@ export type EventRecord = {
   registrationOpensAt: Date | null
   /** When public signup closes (null = until event ends / no hard close). */
   registrationClosesAt: Date | null
+  managerUserIds: string[]
+  helperUserIds: string[]
+  managerGroupIds: string[]
+  helperGroupIds: string[]
+  organizerPartyIds: string[]
+  speakerPartyIds: string[]
+  sponsorPartyIds: string[]
+  relatedEventIds: string[]
+  signupNote: string
+  termsUrl: string
   accessTags: string[]
   createdAt: Date
   updatedAt: Date

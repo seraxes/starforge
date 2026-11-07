@@ -49,6 +49,20 @@ function parseOptionalCoord(raw: unknown, min: number, max: number): number | nu
   return n
 }
 
+function normalizeIdList(raw: unknown, max = 80): string[] {
+  if (!Array.isArray(raw)) return []
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const entry of raw) {
+    const id = String(entry ?? '').trim()
+    if (!id || seen.has(id)) continue
+    seen.add(id)
+    out.push(id)
+    if (out.length >= max) break
+  }
+  return out
+}
+
 function mapEvent(row: typeof sfEvents.$inferSelect): EventRecord {
   const gallery = Array.isArray(row.galleryMediaIds)
     ? row.galleryMediaIds.filter((id): id is string => typeof id === 'string' && Boolean(id.trim()))
@@ -71,6 +85,16 @@ function mapEvent(row: typeof sfEvents.$inferSelect): EventRecord {
         : null,
     registrationOpensAt: row.registrationOpensAt ?? null,
     registrationClosesAt: row.registrationClosesAt ?? null,
+    managerUserIds: normalizeIdList(row.managerUserIds),
+    helperUserIds: normalizeIdList(row.helperUserIds),
+    managerGroupIds: normalizeIdList(row.managerGroupIds),
+    helperGroupIds: normalizeIdList(row.helperGroupIds),
+    organizerPartyIds: normalizeIdList(row.organizerPartyIds),
+    speakerPartyIds: normalizeIdList(row.speakerPartyIds),
+    sponsorPartyIds: normalizeIdList(row.sponsorPartyIds),
+    relatedEventIds: normalizeIdList(row.relatedEventIds),
+    signupNote: (row.signupNote || '').trim().slice(0, 4000),
+    termsUrl: (row.termsUrl || '').trim().slice(0, 2000),
     accessTags: normalizeAccessTags({ accessTags: row.accessTags }),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -332,7 +356,30 @@ export type UpsertEventInput = {
   capacity?: unknown
   registrationOpensAt?: unknown
   registrationClosesAt?: unknown
+  managerUserIds?: unknown
+  helperUserIds?: unknown
+  managerGroupIds?: unknown
+  helperGroupIds?: unknown
+  organizerPartyIds?: unknown
+  speakerPartyIds?: unknown
+  sponsorPartyIds?: unknown
+  relatedEventIds?: unknown
+  signupNote?: unknown
+  termsUrl?: unknown
   accessTags?: unknown
+}
+
+function parseOptionalIdList(raw: unknown): string[] {
+  if (typeof raw === 'string') {
+    const s = raw.trim()
+    if (!s) return []
+    try {
+      return normalizeIdList(JSON.parse(s) as unknown)
+    } catch {
+      return normalizeIdList(s.split(/[,|\s]+/))
+    }
+  }
+  return normalizeIdList(raw)
 }
 
 export async function createEvent(
@@ -350,6 +397,18 @@ export async function createEvent(
   const endsAt = parseOptionalDate(input.endsAt)
   const registrationOpensAt = parseOptionalDate(input.registrationOpensAt)
   const registrationClosesAt = parseOptionalDate(input.registrationClosesAt)
+  const managerUserIds = parseOptionalIdList(input.managerUserIds)
+  const helperUserIds = parseOptionalIdList(input.helperUserIds)
+  const managerGroupIds = parseOptionalIdList(input.managerGroupIds)
+  const helperGroupIds = parseOptionalIdList(input.helperGroupIds)
+  const organizerPartyIds = parseOptionalIdList(input.organizerPartyIds)
+  const speakerPartyIds = parseOptionalIdList(input.speakerPartyIds)
+  const sponsorPartyIds = parseOptionalIdList(input.sponsorPartyIds)
+  const relatedEventIds = parseOptionalIdList(input.relatedEventIds).filter(
+    (rid) => rid !== ((input.id || '').trim() || ''),
+  )
+  const signupNote = String(input.signupNote ?? '').trim().slice(0, 4000)
+  const termsUrl = String(input.termsUrl ?? '').trim().slice(0, 2000)
   const slug = normalizeSlug(input.slug)
   const accessTags = normalizeAccessTagsForDb(input.accessTags)
   const id = (input.id || '').trim() || crypto.randomUUID()
@@ -385,6 +444,16 @@ export async function createEvent(
       capacity,
       registrationOpensAt,
       registrationClosesAt,
+      managerUserIds,
+      helperUserIds,
+      managerGroupIds,
+      helperGroupIds,
+      organizerPartyIds,
+      speakerPartyIds,
+      sponsorPartyIds,
+      relatedEventIds,
+      signupNote,
+      termsUrl,
       accessTags,
     })
     const created = await findEventById(id)
@@ -443,6 +512,47 @@ export async function updateEvent(
     input.registrationClosesAt !== undefined
       ? parseOptionalDate(input.registrationClosesAt)
       : current.registrationClosesAt
+  const managerUserIds =
+    input.managerUserIds !== undefined
+      ? parseOptionalIdList(input.managerUserIds)
+      : current.managerUserIds
+  const helperUserIds =
+    input.helperUserIds !== undefined
+      ? parseOptionalIdList(input.helperUserIds)
+      : current.helperUserIds
+  const managerGroupIds =
+    input.managerGroupIds !== undefined
+      ? parseOptionalIdList(input.managerGroupIds)
+      : current.managerGroupIds
+  const helperGroupIds =
+    input.helperGroupIds !== undefined
+      ? parseOptionalIdList(input.helperGroupIds)
+      : current.helperGroupIds
+  const organizerPartyIds =
+    input.organizerPartyIds !== undefined
+      ? parseOptionalIdList(input.organizerPartyIds)
+      : current.organizerPartyIds
+  const speakerPartyIds =
+    input.speakerPartyIds !== undefined
+      ? parseOptionalIdList(input.speakerPartyIds)
+      : current.speakerPartyIds
+  const sponsorPartyIds =
+    input.sponsorPartyIds !== undefined
+      ? parseOptionalIdList(input.sponsorPartyIds)
+      : current.sponsorPartyIds
+  const relatedEventIds = (
+    input.relatedEventIds !== undefined
+      ? parseOptionalIdList(input.relatedEventIds)
+      : current.relatedEventIds
+  ).filter((rid) => rid !== id)
+  const signupNote =
+    input.signupNote !== undefined
+      ? String(input.signupNote ?? '').trim().slice(0, 4000)
+      : current.signupNote
+  const termsUrl =
+    input.termsUrl !== undefined
+      ? String(input.termsUrl ?? '').trim().slice(0, 2000)
+      : current.termsUrl
   const slug =
     input.slug !== undefined ? normalizeSlug(input.slug) : current.slug || null
   const accessTags =
@@ -482,6 +592,16 @@ export async function updateEvent(
         capacity,
         registrationOpensAt,
         registrationClosesAt,
+        managerUserIds,
+        helperUserIds,
+        managerGroupIds,
+        helperGroupIds,
+        organizerPartyIds,
+        speakerPartyIds,
+        sponsorPartyIds,
+        relatedEventIds,
+        signupNote,
+        termsUrl,
         accessTags,
       })
       .where(eq(sfEvents.id, id))
@@ -493,6 +613,95 @@ export async function updateEvent(
       error: error instanceof Error ? error.message : 'Could not update event.',
     }
   }
+}
+
+/** True when the viewer is a manager/helper (user or group) for this event. */
+export function viewerCanManageEvent(
+  event: Pick<
+    EventRecord,
+    | 'managerUserIds'
+    | 'helperUserIds'
+    | 'managerGroupIds'
+    | 'helperGroupIds'
+  >,
+  viewer: AccessViewer,
+): boolean {
+  if (viewer.isAppAdmin) return true
+  const uid = (viewer.userId || '').trim()
+  if (uid) {
+    if (event.managerUserIds.includes(uid) || event.helperUserIds.includes(uid)) {
+      return true
+    }
+  }
+  const groups = viewer.groupIds || []
+  if (groups.length === 0) return false
+  return (
+    event.managerGroupIds.some((g) => groups.includes(g)) ||
+    event.helperGroupIds.some((g) => groups.includes(g))
+  )
+}
+
+/** Duplicate an event as a new draft (optional tier copy). */
+export async function duplicateEvent(
+  sourceId: string,
+  options?: { copyTiers?: boolean },
+): Promise<{ event: EventRecord } | { error: string }> {
+  const source = await findEventById(sourceId)
+  if (!source) return { error: 'Event not found.' }
+
+  const baseSlug = source.slug
+    ? `${source.slug}-copy`.slice(0, 120)
+    : normalizeSlug(`${source.title}-copy`)
+
+  const created = await createEvent({
+    title: `${source.title} (copy)`.slice(0, 200),
+    slug: baseSlug || undefined,
+    status: 'draft',
+    startsAt: source.startsAt?.toISOString() ?? '',
+    endsAt: source.endsAt?.toISOString() ?? '',
+    timezone: source.timezone,
+    venueId: source.venueId,
+    description: source.description,
+    coverMediaId: source.coverMediaId,
+    galleryMediaIds: source.galleryMediaIds,
+    capacity: source.capacity ?? '',
+    registrationOpensAt: source.registrationOpensAt?.toISOString() ?? '',
+    registrationClosesAt: source.registrationClosesAt?.toISOString() ?? '',
+    managerUserIds: source.managerUserIds,
+    helperUserIds: source.helperUserIds,
+    managerGroupIds: source.managerGroupIds,
+    helperGroupIds: source.helperGroupIds,
+    organizerPartyIds: source.organizerPartyIds,
+    speakerPartyIds: source.speakerPartyIds,
+    sponsorPartyIds: source.sponsorPartyIds,
+    relatedEventIds: source.relatedEventIds,
+    signupNote: source.signupNote,
+    termsUrl: source.termsUrl,
+    accessTags: source.accessTags,
+  })
+  if ('error' in created) return created
+
+  if (options?.copyTiers !== false) {
+    try {
+      const { listTicketTiersForEvent, createTicketTier } = await import('./tiers')
+      const tiers = await listTicketTiersForEvent(source.id)
+      for (const tier of tiers) {
+        await createTicketTier({
+          eventId: created.event.id,
+          title: tier.title,
+          description: tier.description,
+          kind: tier.kind,
+          capacity: tier.capacity ?? '',
+          priceLabel: tier.priceLabel,
+          sortOrder: tier.sortOrder,
+        })
+      }
+    } catch {
+      // Tier copy is best-effort.
+    }
+  }
+
+  return created
 }
 
 export async function deleteEvent(

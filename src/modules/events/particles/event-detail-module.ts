@@ -8,6 +8,7 @@ import { withLocalePrefix } from '@/core/i18n/path'
 import type { StarforgeModule } from '@/core/modules/types'
 import { MODULE_IDS, isCatalogModuleEnabled } from '@/core/settings'
 
+import { listEventPartiesByIds } from '../parties'
 import { EventDetail } from '../public/EventDetail'
 import { findPublishedEventByPublicKey, findVenueById } from '../store'
 import { readEventDetailConfig } from './event-detail-config'
@@ -51,6 +52,11 @@ export const eventDetailModule: StarforgeModule = {
     }
 
     const venue = event.venueId ? await findVenueById(event.venueId) : null
+    const [organizers, speakers, sponsors] = await Promise.all([
+      listEventPartiesByIds(event.organizerPartyIds),
+      listEventPartiesByIds(event.speakerPartyIds),
+      listEventPartiesByIds(event.sponsorPartyIds),
+    ])
     const localeRaw = await getLocale()
     const locale = isAppLocale(localeRaw) ? localeRaw : undefined
 
@@ -58,6 +64,9 @@ export const eventDetailModule: StarforgeModule = {
       event,
       venueName: venue?.name,
       venueAddress: venue?.address,
+      organizers,
+      speakers,
+      sponsors,
       listHref: cfg.showBackLink
         ? withLocalePrefix('/events', locale)
         : undefined,

@@ -35,6 +35,10 @@ export const optionalParticleLoaders: OptionalParticleLoader[] = [
     load: async () => (await import("@/modules/events/particles/event-detail-module")).eventDetailModule,
   },
   {
+    id: "event-countdown",
+    load: async () => (await import("@/modules/events/particles/event-countdown-module")).eventCountdownModule,
+  },
+  {
     id: "map",
     load: async () => (await import("@/modules/maps")).mapModule,
   },
@@ -240,6 +244,19 @@ export type ModuleMessageLoader = {
  * Convention: `src/modules/<folder>/messages/<locale>.json`.
  */
 export const moduleMessageLoaders: ModuleMessageLoader[] = [
+  {
+    moduleId: "event-countdown",
+    namespaces: ["event-countdown"] as const,
+    load: async (locale: string): Promise<Record<string, unknown>> => {
+      switch (locale) {
+      case "hu":
+        return (await import("@/modules/events/messages/hu.json")).default
+      case 'en':
+      default:
+        return (await import("@/modules/events/messages/en.json")).default
+      }
+    },
+  },
   {
     moduleId: "event-detail",
     namespaces: ["event-detail"] as const,

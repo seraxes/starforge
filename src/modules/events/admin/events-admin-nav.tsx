@@ -6,6 +6,7 @@ import Link from 'next/link'
 export type EventsAdminTab =
   | 'events'
   | 'venues'
+  | 'parties'
   | 'tiers'
   | 'registrants'
   | 'settings'
@@ -22,6 +23,12 @@ const TABS: { id: EventsAdminTab; label: string; href: string; title: string }[]
     label: 'Venues',
     href: '/admin/events/venues',
     title: 'Venue list and edit',
+  },
+  {
+    id: 'parties',
+    label: 'Parties',
+    href: '/admin/events/parties',
+    title: 'Organizer / speaker / sponsor parties',
   },
   {
     id: 'tiers',
@@ -43,7 +50,7 @@ const TABS: { id: EventsAdminTab; label: string; href: string; title: string }[]
   },
 ]
 
-/** Horizontal Events admin chrome — Events + Venues + Tiers + Registrants + Settings. */
+/** Horizontal Events admin chrome. */
 export function EventsAdminNav({ active }: { active: EventsAdminTab }) {
   return (
     <nav className="gantry-layouts-nav sf-events-admin-nav" aria-label="Events">

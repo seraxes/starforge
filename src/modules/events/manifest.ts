@@ -9,7 +9,7 @@ export default defineStarforgeModule({
   label: 'Events',
   description:
     'Events + venues — admin CRUD, public list/detail, registration with ticket tiers, event particles.',
-  version: '0.5.0',
+  version: '0.6.0',
   defaultEnabled: true,
   requires: ['product:media'],
   i18n: {
@@ -19,6 +19,7 @@ export default defineStarforgeModule({
     { key: 'public', label: 'Events', href: '/events' },
     { key: 'admin', label: 'Events admin', href: '/admin/events' },
     { key: 'venues', label: 'Venues', href: '/admin/events/venues' },
+    { key: 'parties', label: 'Parties', href: '/admin/events/parties' },
     { key: 'tiers', label: 'Ticket tiers', href: '/admin/events/tiers' },
     { key: 'registrants', label: 'Registrants', href: '/admin/events/registrants' },
     { key: 'settings', label: 'Events settings', href: '/admin/events/settings' },
@@ -45,6 +46,13 @@ export default defineStarforgeModule({
         label: 'Venues',
         href: '/admin/events/venues',
         order: 20,
+        area: 'events',
+      },
+      {
+        group: 'events',
+        label: 'Parties',
+        href: '/admin/events/parties',
+        order: 22,
         area: 'events',
       },
       {
@@ -79,6 +87,11 @@ export default defineStarforgeModule({
       {
         path: 'events/venues',
         pageImportPath: '@/modules/events/admin/EventsVenuesPage',
+        pageExportName: 'default',
+      },
+      {
+        path: 'events/parties',
+        pageImportPath: '@/modules/events/admin/EventsPartiesPage',
         pageExportName: 'default',
       },
       {

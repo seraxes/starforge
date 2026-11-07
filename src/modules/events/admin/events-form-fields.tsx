@@ -83,18 +83,86 @@ export type EventFormRow = {
   capacity?: number | null
   registrationOpensAt?: string | null
   registrationClosesAt?: string | null
+  managerGroupIds?: string[]
+  helperGroupIds?: string[]
+  organizerPartyIds?: string[]
+  speakerPartyIds?: string[]
+  sponsorPartyIds?: string[]
+  relatedEventIds?: string[]
+  signupNote?: string
+  termsUrl?: string
   accessTags?: string[]
 }
 
 type VenueOpt = { id: string; name: string }
+type IdOpt = { id: string; label: string }
 
 type EventFormFieldsProps = {
   row?: EventFormRow
   venues: VenueOpt[]
   groups: UserGroupOption[]
+  /** Party options for organizer/speaker/sponsor checklists. */
+  parties?: IdOpt[]
+  /** Other events for related checklist (exclude self in page). */
+  relatedEventOptions?: IdOpt[]
   defaultTimezone: string
   busy: boolean
   richEditorEnabled: boolean
+  /** Hide people/related/signup when creating from the list. */
+  compact?: boolean
+}
+
+/** Checkbox multi-select writing a hidden JSON id list. */
+export function IdChecklistField({
+  name,
+  legend,
+  hint,
+  options,
+  value,
+  disabled,
+}: {
+  name: string
+  legend: string
+  hint?: string
+  options: IdOpt[]
+  value: string[]
+  disabled?: boolean
+}) {
+  const [selected, setSelected] = useState(() => [...value])
+
+  return (
+    <fieldset className="settings-field nav-access-tags">
+      <legend>{legend}</legend>
+      {hint ? <p className="settings-hint">{hint}</p> : null}
+      <div className="nav-access-tag-list">
+        {options.length === 0 ? (
+          <span className="settings-hint">No options yet.</span>
+        ) : (
+          options.map((opt) => {
+            const checked = selected.includes(opt.id)
+            return (
+              <label key={opt.id} className="outlines-check">
+                <input
+                  type="checkbox"
+                  disabled={disabled}
+                  checked={checked}
+                  onChange={(e) => {
+                    setSelected((prev) =>
+                      e.target.checked
+                        ? [...prev, opt.id]
+                        : prev.filter((id) => id !== opt.id),
+                    )
+                  }}
+                />
+                <span>{opt.label}</span>
+              </label>
+            )
+          })
+        )}
+      </div>
+      <input type="hidden" name={name} value={JSON.stringify(selected)} />
+    </fieldset>
+  )
 }
 
 /** Shared create/edit fields for an event. */
@@ -102,9 +170,12 @@ export function EventFormFields({
   row,
   venues,
   groups,
+  parties = [],
+  relatedEventOptions = [],
   defaultTimezone,
   busy,
   richEditorEnabled,
+  compact = false,
 }: EventFormFieldsProps) {
   return (
     <>
@@ -226,6 +297,101 @@ export function EventFormFields({
           placeholder="Game / event description…"
         />
       </div>
+      {!compact ? (
+        <>
+          <label className="settings-field settings-field-wide">
+            <span>Signup note</span>
+            <textarea
+              name="signupNote"
+              rows={3}
+              maxLength={4000}
+              defaultValue={row?.signupNote ?? ''}
+              disabled={busy}
+              placeholder="Shown above the public registration form…"
+            />
+          </label>
+          <label className="settings-field">
+            <span>Terms URL</span>
+            <input
+              type="url"
+              name="termsUrl"
+              maxLength={2000}
+              defaultValue={row?.termsUrl ?? ''}
+              disabled={busy}
+              autoComplete="off"
+              placeholder="https://… or /page-slug"
+            />
+            <span className="settings-hint">
+              Linked next to the form — prefer a CMS page, not a giant per-event legal editor.
+            </span>
+          </label>
+          <IdChecklistField
+            name="managerGroupIdsJson"
+            legend="Manager groups"
+            hint="Members of these groups can manage this event (beyond app admins)."
+            options={groups.map((g) => ({ id: g.id, label: g.label || g.id }))}
+            value={row?.managerGroupIds ?? []}
+            disabled={busy}
+          />
+          <IdChecklistField
+            name="helperGroupIdsJson"
+            legend="Helper groups"
+            hint="Helpers share edit rights with managers for now."
+            options={groups.map((g) => ({ id: g.id, label: g.label || g.id }))}
+            value={row?.helperGroupIds ?? []}
+            disabled={busy}
+          />
+          <input type="hidden" name="managerUserIdsJson" value="[]" />
+          <input type="hidden" name="helperUserIdsJson" value="[]" />
+          <IdChecklistField
+            name="organizerPartyIdsJson"
+            legend="Organizers"
+            hint={
+              parties.length === 0
+                ? 'Create parties under Events → Parties first.'
+                : 'Associations / teams / clubs linked to this event.'
+            }
+            options={parties}
+            value={row?.organizerPartyIds ?? []}
+            disabled={busy}
+          />
+          <IdChecklistField
+            name="speakerPartyIdsJson"
+            legend="Speakers"
+            options={parties}
+            value={row?.speakerPartyIds ?? []}
+            disabled={busy}
+          />
+          <IdChecklistField
+            name="sponsorPartyIdsJson"
+            legend="Sponsors"
+            options={parties}
+            value={row?.sponsorPartyIds ?? []}
+            disabled={busy}
+          />
+          <IdChecklistField
+            name="relatedEventIdsJson"
+            legend="Related events"
+            hint="Series / see-also links (ids only for now)."
+            options={relatedEventOptions}
+            value={row?.relatedEventIds ?? []}
+            disabled={busy}
+          />
+        </>
+      ) : (
+        <>
+          <input type="hidden" name="managerUserIdsJson" value="[]" />
+          <input type="hidden" name="helperUserIdsJson" value="[]" />
+          <input type="hidden" name="managerGroupIdsJson" value="[]" />
+          <input type="hidden" name="helperGroupIdsJson" value="[]" />
+          <input type="hidden" name="organizerPartyIdsJson" value="[]" />
+          <input type="hidden" name="speakerPartyIdsJson" value="[]" />
+          <input type="hidden" name="sponsorPartyIdsJson" value="[]" />
+          <input type="hidden" name="relatedEventIdsJson" value="[]" />
+          <input type="hidden" name="signupNote" value="" />
+          <input type="hidden" name="termsUrl" value="" />
+        </>
+      )}
       <input type="hidden" name="galleryMediaIdsJson" value="[]" />
       <CoverAndAccessFields
         coverMediaId={row?.coverMediaId ?? ''}

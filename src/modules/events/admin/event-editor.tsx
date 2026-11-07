@@ -9,6 +9,7 @@ import type { UserGroupOption } from '@/core/acl/types'
 
 import {
   deleteEventAction,
+  duplicateEventAction,
   updateEventAction,
   type EventsAdminActionState,
 } from '../actions'
@@ -16,6 +17,7 @@ import { EventFormFields, type EventFormRow } from './events-form-fields'
 import { TiersManager } from './tiers-manager'
 
 type VenueOpt = { id: string; name: string }
+type IdOpt = { id: string; label: string }
 
 type TierRow = {
   id: string
@@ -34,6 +36,8 @@ type Props = {
   event: EventFormRow & { id: string; updatedAt: string }
   venues: VenueOpt[]
   groups: UserGroupOption[]
+  parties: IdOpt[]
+  relatedEventOptions: IdOpt[]
   defaultTimezone: string
   richEditorEnabled: boolean
   tiers: TierRow[]
@@ -63,6 +67,8 @@ export function EventEditor({
   event,
   venues,
   groups,
+  parties,
+  relatedEventOptions,
   defaultTimezone,
   richEditorEnabled,
   tiers,
@@ -76,19 +82,28 @@ export function EventEditor({
     deleteEventAction,
     initial,
   )
+  const [dupState, dupAction, dupPending] = useActionState(
+    duplicateEventAction,
+    initial,
+  )
 
   useNotifySavedOnOk(updateState)
   useNotifySavedOnOk(deleteState)
+  useNotifySavedOnOk(dupState)
 
   useEffect(() => {
     if (deleteState.ok) {
       router.push('/admin/events')
       return
     }
+    if (dupState.ok && dupState.id) {
+      router.push(`/admin/events/${dupState.id}`)
+      return
+    }
     if (updateState.ok) router.refresh()
-  }, [updateState, deleteState, router])
+  }, [updateState, deleteState, dupState, router])
 
-  const busy = updatePending || deletePending
+  const busy = updatePending || deletePending || dupPending
   const formId = `event-edit-${event.id}`
 
   return (
@@ -107,12 +122,15 @@ export function EventEditor({
             row={event}
             venues={venues}
             groups={groups}
+            parties={parties}
+            relatedEventOptions={relatedEventOptions}
             defaultTimezone={defaultTimezone}
             busy={busy}
             richEditorEnabled={richEditorEnabled}
           />
         </form>
         <Feedback state={updateState} />
+        <Feedback state={dupState} />
       </section>
 
       <section className="outlines-create" aria-label="Ticket tiers">
@@ -134,9 +152,7 @@ export function EventEditor({
 
       <section className="outlines-create" aria-label="Registrants">
         <h3>Registrants</h3>
-        <p className="settings-hint">
-          Review signup rows and waitlist status.
-        </p>
+        <p className="settings-hint">Review signup rows and waitlist status.</p>
         <div className="admin-inline-actions">
           <Link
             href={`/admin/events/registrants?eventId=${encodeURIComponent(event.id)}`}
@@ -156,6 +172,16 @@ export function EventEditor({
         >
           {updatePending ? 'Saving…' : 'Save'}
         </button>
+        <form action={dupAction}>
+          <input type="hidden" name="id" value={event.id} />
+          <button
+            type="submit"
+            className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+            disabled={busy}
+          >
+            {dupPending ? 'Duplicating…' : 'Duplicate'}
+          </button>
+        </form>
         <form action={deleteAction}>
           <input type="hidden" name="id" value={event.id} />
           <button

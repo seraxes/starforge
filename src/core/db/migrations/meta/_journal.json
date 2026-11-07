@@ -64,6 +64,13 @@
       "when": 1794003000000,
       "tag": "0008_event_registration_window",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794004000000,
+      "tag": "0009_event_people_parties",
+      "breakpoints": true
     }
   ]
 }

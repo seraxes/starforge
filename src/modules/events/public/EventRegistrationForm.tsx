@@ -20,6 +20,8 @@ type Props = {
     | 'status'
     | 'registrationOpensAt'
     | 'registrationClosesAt'
+    | 'signupNote'
+    | 'termsUrl'
   >
 }
 
@@ -50,10 +52,22 @@ export async function EventRegistrationForm({ event }: Props) {
     useSiteCaptchaDefault: document.useSiteCaptchaDefault !== false,
     hasCaptchaField,
   })
+  const note = (event.signupNote || '').trim()
+  const termsUrl = (event.termsUrl || '').trim()
 
   return (
     <section className="sf-event-registration" aria-label="Event registration">
       <h2 className="sf-event-registration-heading">Register</h2>
+      {note ? <p className="sf-event-registration-note">{note}</p> : null}
+      {termsUrl ? (
+        <p className="sf-event-registration-terms settings-hint">
+          By registering you agree to the{' '}
+          <a href={termsUrl} rel="noopener noreferrer">
+            terms &amp; conditions
+          </a>
+          .
+        </p>
+      ) : null}
       {remaining != null ? (
         <p className="sf-event-registration-meta settings-hint">
           {remaining === 0

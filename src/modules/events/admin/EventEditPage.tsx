@@ -6,8 +6,9 @@ import { ensureDefaultUserGroupsSeeded, listUserGroupOptions } from '@/core/acl'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { isRichEditorEnabled } from '@/modules/rich-editor/api.server'
 
+import { listEventParties } from '../parties'
 import { loadEventsModuleSettings } from '../settings'
-import { findEventById, listVenues } from '../store'
+import { findEventById, listEvents, listVenues } from '../store'
 import {
   countRegisteredGuestsForTier,
   listTicketTiersForEvent,
@@ -34,12 +35,15 @@ export default async function EventEditPage({ params }: { params: Params }) {
   if (!id) notFound()
 
   await ensureDefaultUserGroupsSeeded()
-  const [event, venues, groups, moduleSettings] = await Promise.all([
-    findEventById(id),
-    listVenues(),
-    listUserGroupOptions(),
-    loadEventsModuleSettings(),
-  ])
+  const [event, venues, groups, moduleSettings, parties, allEvents] =
+    await Promise.all([
+      findEventById(id),
+      listVenues(),
+      listUserGroupOptions(),
+      loadEventsModuleSettings(),
+      listEventParties(),
+      listEvents(),
+    ])
   if (!event) notFound()
 
   const tiers = await listTicketTiersForEvent(event.id)
@@ -66,14 +70,21 @@ export default async function EventEditPage({ params }: { params: Params }) {
       </p>
       <h2>{event.title}</h2>
       <p className="lede admin-lede">
-        Stacked event editor — schedule, registration window, venue, capacity, tiers. Public
-        signup respects the registration open/close window.
+        Stacked event editor — people, parties, related events, signup note, tiers. Duplicate
+        creates a new draft.
       </p>
 
       <EventEditor
         defaultTimezone={moduleSettings.settings.defaultTimezone}
         richEditorEnabled={isRichEditorEnabled(settings)}
         groups={groups}
+        parties={parties.map((p) => ({
+          id: p.id,
+          label: `${p.name} (${p.kind})`,
+        }))}
+        relatedEventOptions={allEvents
+          .filter((e) => e.id !== event.id)
+          .map((e) => ({ id: e.id, label: e.title }))}
         venues={venues.map((v) => ({ id: v.id, name: v.name }))}
         tiers={tiersWithOcc}
         event={{
@@ -94,6 +105,14 @@ export default async function EventEditPage({ params }: { params: Params }) {
           registrationClosesAt: event.registrationClosesAt
             ? event.registrationClosesAt.toISOString()
             : null,
+          managerGroupIds: event.managerGroupIds,
+          helperGroupIds: event.helperGroupIds,
+          organizerPartyIds: event.organizerPartyIds,
+          speakerPartyIds: event.speakerPartyIds,
+          sponsorPartyIds: event.sponsorPartyIds,
+          relatedEventIds: event.relatedEventIds,
+          signupNote: event.signupNote,
+          termsUrl: event.termsUrl,
           accessTags: event.accessTags,
           updatedAt: event.updatedAt.toISOString(),
         }}
