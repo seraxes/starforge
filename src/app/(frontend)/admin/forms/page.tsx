@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 
 import { ensureDefaultContactFormSeeded, listFormDefinitions } from '@/core/forms'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
+import { ensureEventRegistrationFormSeeded } from '@/modules/events/registration-form'
 
 import { FormsAdminNav } from './forms-admin-nav'
 import { FormsManager } from './forms-manager'
@@ -22,6 +23,9 @@ export default async function AdminFormsPage() {
   }
 
   await ensureDefaultContactFormSeeded()
+  if (isCatalogModuleEnabled(settings, MODULE_IDS.events)) {
+    await ensureEventRegistrationFormSeeded()
+  }
   const definitions = await listFormDefinitions()
 
   return (

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useActionState, useEffect } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 import { useNotifySavedOnOk } from '@/app/(frontend)/admin/admin-toast'
@@ -89,6 +90,28 @@ export function EventsSettingsForm({ settings }: Props) {
           ) : null}
         </div>
       </form>
+
+      <section className="page-settings-panel">
+        <header className="page-settings-panel-head">
+          <h3>Registration form</h3>
+        </header>
+        <div className="page-settings-panel-body">
+          <p className="settings-hint">
+            Field definitions live in{' '}
+            <Link href="/admin/forms">Forms</Link> — not here. Events uses the shared{' '}
+            <code>event-registration</code> definition; at render time it injects{' '}
+            <code>event_id</code>, ticket tiers, and terms checkbox when configured.
+          </p>
+          <div className="page-settings-actions">
+            <Link
+              href="/admin/forms/event-registration"
+              className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+            >
+              Edit registration form
+            </Link>
+          </div>
+        </div>
+      </section>
 
       <section className="page-settings-panel">
         <header className="page-settings-panel-head">

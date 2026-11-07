@@ -12,6 +12,7 @@ import {
   emptyFormDefinitionDocument,
   serializeFormDefinitionDocument,
 } from '@/core/forms/definition'
+import { DEFAULT_EVENT_REGISTRATION_FORM_ID } from '@/core/forms/presets'
 import { loadFormDefinition } from '@/core/forms/definitions-store'
 import type { FormFieldDef } from '@/core/forms/types'
 
@@ -20,7 +21,7 @@ import {
   listTicketTiersForEvent,
 } from './tiers'
 
-export const DEFAULT_EVENT_REGISTRATION_FORM_ID = 'event-registration'
+export { DEFAULT_EVENT_REGISTRATION_FORM_ID }
 
 export async function ensureEventRegistrationFormSeeded(): Promise<string> {
   try {

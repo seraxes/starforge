@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useActionState, useEffect } from 'react'
+import React, { useActionState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -10,7 +10,15 @@ import {
   duplicateFormDefinitionAction,
   type FormAdminActionState,
 } from '@/core/forms/actions'
-import { listFormPresetMetas } from '@/core/forms/presets'
+import {
+  FORM_CATEGORY_LABELS,
+  FORM_CATEGORY_ORDER,
+  categoryForPreset,
+  isProtectedFormDefinitionId,
+  listFormPresetMetas,
+  listFormPresetsByCategory,
+} from '@/core/forms/presets'
+import type { FormPresetCategoryId } from '@/core/forms/presets'
 import type { FormPresetId } from '@/core/forms/types'
 
 import { useNotifySavedOnOk } from '../admin-toast'
@@ -61,6 +69,65 @@ function presetLabel(id: FormPresetId): string {
   return listFormPresetMetas().find((p) => p.id === id)?.label ?? id
 }
 
+type RowActionsProps = {
+  form: FormRow
+  dupAction: (payload: FormData) => void
+  dupPending: boolean
+  deleteAction: (payload: FormData) => void
+  deletePending: boolean
+}
+
+function FormRowActions({
+  form,
+  dupAction,
+  dupPending,
+  deleteAction,
+  deletePending,
+}: RowActionsProps) {
+  const protectedForm = isProtectedFormDefinitionId(form.id)
+  return (
+    <td className="outlines-actions">
+      <a
+        href={`/api/admin/forms/export?definitionId=${encodeURIComponent(form.id)}`}
+        className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+      >
+        Export CSV
+      </a>
+      <Link
+        href={`/admin/forms/submissions?definitionId=${encodeURIComponent(form.id)}`}
+        className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+      >
+        Submissions
+      </Link>
+      <form action={dupAction} className="admin-inline-form">
+        <input type="hidden" name="formId" value={form.id} />
+        <button
+          type="submit"
+          className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+          disabled={dupPending}
+        >
+          Duplicate
+        </button>
+      </form>
+      {protectedForm ? null : (
+        <form action={deleteAction} className="admin-inline-form">
+          <input type="hidden" name="formId" value={form.id} />
+          <button
+            type="submit"
+            className="gantry-toolbar-btn danger"
+            disabled={deletePending}
+            onClick={(e) => {
+              if (!confirm(`Delete form “${form.label}”?`)) e.preventDefault()
+            }}
+          >
+            Delete
+          </button>
+        </form>
+      )}
+    </td>
+  )
+}
+
 export function FormsManager({ forms }: Props) {
   const router = useRouter()
   const [createState, createAction, createPending] = useActionState(
@@ -88,6 +155,24 @@ export function FormsManager({ forms }: Props) {
     if (deleteState.ok) router.refresh()
   }, [createState, dupState, deleteState, router])
 
+  const formsByCategory = useMemo(() => {
+    const buckets = new Map<FormPresetCategoryId, FormRow[]>()
+    for (const category of FORM_CATEGORY_ORDER) {
+      buckets.set(category, [])
+    }
+    for (const form of forms) {
+      const category = categoryForPreset(form.preset)
+      const list = buckets.get(category) ?? []
+      list.push(form)
+      buckets.set(category, list)
+    }
+    return FORM_CATEGORY_ORDER.map((category) => ({
+      category,
+      label: FORM_CATEGORY_LABELS[category],
+      forms: buckets.get(category) ?? [],
+    })).filter((group) => group.forms.length > 0)
+  }, [forms])
+
   return (
     <div className="sf-forms-manager admin-settings-mosaic">
       <section className="outlines-create" aria-label="Create form">
@@ -104,10 +189,14 @@ export function FormsManager({ forms }: Props) {
           <label className="settings-field">
             <span>Preset</span>
             <select name="preset" defaultValue="contact">
-              {listFormPresetMetas().map((p) => (
-                <option key={p.id} value={p.id} title={p.description}>
-                  {p.label}
-                </option>
+              {listFormPresetsByCategory().map((group) => (
+                <optgroup key={group.category} label={group.label}>
+                  {group.presets.map((p) => (
+                    <option key={p.id} value={p.id} title={p.description}>
+                      {p.label}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </label>
@@ -140,84 +229,57 @@ export function FormsManager({ forms }: Props) {
       <Feedback state={dupState} />
       <Feedback state={deleteState} />
 
-      <div className="outlines-table-wrap admin-settings-panel-wide">
-        <table className="outlines-table">
-          <thead>
-            <tr>
-              <th scope="col">Name</th>
-              <th scope="col">Preset</th>
-              <th scope="col">Fields</th>
-              <th scope="col">Updated</th>
-              <th scope="col">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {forms.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="admin-empty">
-                  No form definitions yet. Create one from a preset (Contact ships ready).
-                </td>
-              </tr>
-            ) : (
-              forms.map((f) => (
-                <tr key={f.id}>
-                  <td>
-                    <Link href={`/admin/forms/${f.id}`} className="outlines-name-link">
-                      {f.label}
-                    </Link>
-                    <div className="layout-muted">
-                      <code>{f.id}</code>
-                    </div>
-                  </td>
-                  <td>{presetLabel(f.preset)}</td>
-                  <td>{f.fieldCount}</td>
-                  <td>{formatUpdated(f.updatedAt)}</td>
-                  <td className="outlines-actions">
-                    {/* Name already opens the builder — no redundant Edit band. */}
-                    <a
-                      href={`/api/admin/forms/export?definitionId=${encodeURIComponent(f.id)}`}
-                      className="gantry-toolbar-btn secondary"
-                    >
-                      Export CSV
-                    </a>
-                    <Link
-                      href={`/admin/forms/submissions?definitionId=${encodeURIComponent(f.id)}`}
-                      className="gantry-toolbar-btn secondary"
-                    >
-                      Submissions
-                    </Link>
-                    <form action={dupAction} className="admin-inline-form">
-                      <input type="hidden" name="formId" value={f.id} />
-                      <button
-                        type="submit"
-                        className="gantry-toolbar-btn secondary"
-                        disabled={dupPending}
-                      >
-                        Duplicate
-                      </button>
-                    </form>
-                    {f.id !== 'contact' ? (
-                      <form action={deleteAction} className="admin-inline-form">
-                        <input type="hidden" name="formId" value={f.id} />
-                        <button
-                          type="submit"
-                          className="gantry-toolbar-btn danger"
-                          disabled={deletePending}
-                          onClick={(e) => {
-                            if (!confirm(`Delete form “${f.label}”?`)) e.preventDefault()
-                          }}
-                        >
-                          Delete
-                        </button>
-                      </form>
-                    ) : null}
-                  </td>
+      {forms.length === 0 ? (
+        <div className="outlines-table-wrap admin-settings-panel-wide">
+          <p className="admin-empty">
+            No form definitions yet. Create one from a preset (Contact ships ready).
+          </p>
+        </div>
+      ) : (
+        formsByCategory.map((group) => (
+          <div
+            key={group.category}
+            className="sf-forms-category-section outlines-table-wrap admin-settings-panel-wide"
+          >
+            <h3 className="admin-settings-panel-title">{group.label}</h3>
+            <table className="outlines-table">
+              <thead>
+                <tr>
+                  <th scope="col">Name</th>
+                  <th scope="col">Preset</th>
+                  <th scope="col">Fields</th>
+                  <th scope="col">Updated</th>
+                  <th scope="col">Actions</th>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody>
+                {group.forms.map((f) => (
+                  <tr key={f.id}>
+                    <td>
+                      <Link href={`/admin/forms/${f.id}`} className="outlines-name-link">
+                        {f.label}
+                      </Link>
+                      <div className="layout-muted">
+                        <code>{f.id}</code>
+                      </div>
+                    </td>
+                    <td>{presetLabel(f.preset)}</td>
+                    <td>{f.fieldCount}</td>
+                    <td>{formatUpdated(f.updatedAt)}</td>
+                    <FormRowActions
+                      form={f}
+                      dupAction={dupAction}
+                      dupPending={dupPending}
+                      deleteAction={deleteAction}
+                      deletePending={deletePending}
+                    />
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ))
+      )}
     </div>
   )
 }

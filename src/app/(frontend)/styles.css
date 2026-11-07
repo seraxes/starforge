@@ -2793,6 +2793,10 @@ button:disabled {
   gap: 1.25rem;
 }
 
+.sf-forms-category-section .admin-settings-panel-title {
+  margin: 0 0 0.65rem;
+}
+
 .sf-redirects-manager {
   display: flex;
   flex-direction: column;

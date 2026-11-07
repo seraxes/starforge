@@ -12,7 +12,7 @@ import {
   serializeFormDefinitionDocument,
   slugifyFormId,
 } from './definition'
-import { isFormPresetId } from './presets'
+import { isFormPresetId, isProtectedFormDefinitionId } from './presets'
 import { fieldsToJsonSchema } from './schema-json'
 import type {
   FormDefinitionDocument,
@@ -231,8 +231,8 @@ export async function createFormDefinition(input: {
 export async function deleteFormDefinition(formId: string): Promise<void> {
   const id = formId.trim()
   if (!id) throw new Error('Missing form id.')
-  if (id === DEFAULT_CONTACT_FORM_ID) {
-    throw new Error('The default Contact form cannot be deleted.')
+  if (isProtectedFormDefinitionId(id)) {
+    throw new Error('This built-in form cannot be deleted.')
   }
   await db.delete(sfForms).where(eq(sfForms.id, id))
 }

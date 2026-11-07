@@ -1,10 +1,27 @@
 import { getRegisteredFormPreset, listRegisteredFormPresets } from './preset-registry'
 import type { FormDefinitionDocument, FormFieldDef, FormPresetId } from './types'
 
+/** Admin list grouping — module-owned presets land under their product category. */
+export type FormPresetCategoryId = 'general' | 'events' | 'support'
+
+export const FORM_CATEGORY_LABELS: Record<FormPresetCategoryId, string> = {
+  general: 'General',
+  events: 'Events',
+  support: 'Support',
+}
+
+/** Display order for Forms admin category sections. */
+export const FORM_CATEGORY_ORDER: FormPresetCategoryId[] = [
+  'events',
+  'general',
+  'support',
+]
+
 export type FormPresetMeta = {
   id: FormPresetId
   label: string
   description: string
+  category: FormPresetCategoryId
   /**
    * @deprecated Built-in presets are real seeds. Kept optional for older
    * verify scripts / overlays that may still mark experimental packs.
@@ -17,35 +34,62 @@ const BUILTIN_PRESETS: FormPresetMeta[] = [
     id: 'contact',
     label: 'Contact',
     description: 'Name, email, message — default public contact form.',
+    category: 'general',
   },
   {
     id: 'survey',
     label: 'Survey',
     description: 'Satisfaction survey — rating, topics, written feedback.',
+    category: 'general',
   },
   {
     id: 'event-registration',
     label: 'Event registration',
     description:
-      'Attendee signup — contact, guests, attendance mode; bind event via hidden id.',
+      'Shared attendee signup used by product:events — edit fields here; Events injects event id / tiers / terms at render.',
+    category: 'events',
   },
   {
     id: 'voting',
     label: 'Voting',
     description: 'Single-choice poll — radio options + optional comment.',
+    category: 'general',
   },
   {
     id: 'ticket',
     label: 'Ticket / report',
     description:
       'Support ticket / report intake — subject, priority, category, details, optional attachment.',
+    category: 'support',
   },
   {
     id: 'blank',
     label: 'Blank',
     description: 'Empty form — add fields in the visual builder.',
+    category: 'general',
   },
 ]
+
+/** Category for a preset (unknown → general). */
+export function categoryForPreset(preset: FormPresetId | string): FormPresetCategoryId {
+  const meta = BUILTIN_PRESETS.find((p) => p.id === preset)
+  return meta?.category ?? 'general'
+}
+
+/** Stable default Contact definition id (seeded when Forms first open). */
+export const DEFAULT_CONTACT_FORM_ID = 'contact'
+
+/** Stable shared Events registration definition id (seeded with Forms / Events). */
+export const DEFAULT_EVENT_REGISTRATION_FORM_ID = 'event-registration'
+
+/** Built-in definitions that must not be deleted from Forms admin. */
+export function isProtectedFormDefinitionId(id: string): boolean {
+  const trimmed = id.trim()
+  return (
+    trimmed === DEFAULT_CONTACT_FORM_ID ||
+    trimmed === DEFAULT_EVENT_REGISTRATION_FORM_ID
+  )
+}
 
 /**
  * Built-in presets for Forms admin create-from-preset.
@@ -68,6 +112,7 @@ export function getFormPresetMeta(id: FormPresetId): FormPresetMeta {
     ...base,
     label: overlay.label || base.label,
     description: overlay.description ?? base.description,
+    category: base.category,
   }
 }
 
@@ -85,6 +130,20 @@ export function listFormPresetMetas(): FormPresetMeta[] {
       description: overlay.description ?? p.description,
     }
   })
+}
+
+/** Presets grouped for Forms admin create `<optgroup>` and list sections. */
+export function listFormPresetsByCategory(): {
+  category: FormPresetCategoryId
+  label: string
+  presets: FormPresetMeta[]
+}[] {
+  const metas = listFormPresetMetas()
+  return FORM_CATEGORY_ORDER.map((category) => ({
+    category,
+    label: FORM_CATEGORY_LABELS[category],
+    presets: metas.filter((p) => p.category === category),
+  })).filter((group) => group.presets.length > 0)
 }
 
 function contactFields(): FormFieldDef[] {
@@ -465,8 +524,5 @@ export function presetSeedFields(preset: FormPresetId): {
     meta: defaultMessagesForPreset(preset),
   }
 }
-
-/** Stable default Contact definition id (seeded when Forms first open). */
-export const DEFAULT_CONTACT_FORM_ID = 'contact'
 
 export type { FormDefinitionDocument }

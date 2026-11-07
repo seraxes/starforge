@@ -1,0 +1,37 @@
+---
+description: Modular Forms — product modules own presets in categories; field editing only in Forms admin.
+globs: "**/*.{tsx,ts}"
+alwaysApply: true
+---
+
+# Starforge Forms — modular ownership
+
+Any Starforge module that needs user-facing forms **must** use `product:forms` — presets, definitions, visual builder, submissions, and mail hooks. Do not ship a parallel field builder, schema editor, or SMTP form UI inside the module.
+
+## Source of truth
+
+| Concern | Owner |
+| --- | --- |
+| Field schema & labels | **Forms admin** — definition id + preset under the module’s **category** (Events → Events, Support → ticket preset, etc.) |
+| Seed / stable id | Module helper (e.g. `ensureEventRegistrationFormSeeded`) + preset in `src/core/forms/presets.ts` |
+| Render-time context | Owning module — hidden ids, dynamic select options, terms checkbox, capacity labels |
+| Placement on site | Layouts **Form** particle → definition id |
+
+Built-in definition ids (`contact`, `event-registration`, …) are **protected** — not deletable from Forms admin.
+
+## Do
+
+- Register presets with `category` in `presets.ts`; group Forms admin list/create by category.
+- Link from module settings to **Forms → [definition]** (“Edit registration form”) and state that Forms owns fields.
+- Inject only **runtime** fields/values in the module loader (tiers, `event_id`, legal checkbox) — keep the base schema editable in Forms.
+- Reuse `isProtectedFormDefinitionId`, `listFormPresetsByCategory`, and shared form actions/store APIs.
+
+## Don’t
+
+- Duplicate preset field arrays in module admin UIs.
+- Hard-delete or fork built-in definitions modules depend on.
+- Build module-specific “form designer” screens — use `/admin/forms/[id]` builder.
+
+## Quick check
+
+If a module collects structured user input on the public site, the schema should be editable under Forms in the right category; the module only wires context and submission handling.

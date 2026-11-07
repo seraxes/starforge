@@ -7,7 +7,7 @@ Events + venues + registration + ticket tiers + parties (`sf_venues` / `sf_event
 - Admin: list → `/admin/events/[id]` editor (stacked sections, Save / Duplicate / Delete)
 - Venues, parties, ticket tiers, registrants, module settings
 - Registration window (`registrationOpensAt` / `ClosesAt`), prevent-duplicate setting
-- Public list/detail, Forms `event-registration`, Email Manager trigger
+- Public list/detail, shared Forms definition `event-registration` (edit fields under **Forms → Events**), Email Manager trigger
 - ICS download (`/api/events/:idOrSlug/ics`), `event-countdown` particle
 - Signup note + terms URL on the public form
 - Managers/helpers via **group** refs; organizers/speakers/sponsors via **parties**
