@@ -34,6 +34,7 @@ import type { MediaTagOption } from '@/core/media/resolve'
 import type { MediaStorageInfo } from '@/core/media/storage'
 
 import { MediaCategoryTree } from './MediaCategoryTree'
+import { MediaFileField } from './MediaFileField'
 import { MediaLightbox } from './MediaLightbox'
 
 const empty: MediaActionState = {}
@@ -133,6 +134,7 @@ export function MediaLibraryClient({
   const [tagDraft, setTagDraft] = useState(tag === 'all' ? '' : tag)
   const [tagModeDraft, setTagModeDraft] = useState<MediaTagMatchMode>(tagMode)
   const [qDraft, setQDraft] = useState(q)
+  const [uploadHint, setUploadHint] = useState<string | null>(null)
   const [uploadCategory, setUploadCategory] = useState(category !== 'all' ? category : '')
   const [uploadPurpose, setUploadPurpose] = useState('photo')
   const [uploadTag, setUploadTag] = useState(() => {
@@ -631,35 +633,56 @@ export function MediaLibraryClient({
               ) : null}
             </form>
 
-            <form className="sf-media-library-upload" action={uploadAction}>
+            <form
+              className="sf-media-library-upload"
+              action={uploadAction}
+              onSubmit={(e) => {
+                setUploadHint(null)
+                const fd = new FormData(e.currentTarget)
+                const file = fd.get('file')
+                if (!(file instanceof File) || file.size <= 0) {
+                  e.preventDefault()
+                  setUploadHint('Choose an image first (drop zone or Choose image…).')
+                  return
+                }
+                const alt = String(fd.get('alt') ?? '').trim()
+                if (!alt) {
+                  e.preventDefault()
+                  setUploadHint('Add a short alt text describing the image.')
+                }
+              }}
+            >
               <h3>Upload</h3>
-              <p className="layout-muted">
-                Mobile-friendly: use the file control to pick from gallery or camera. Photos convert
-                to WebP; PNG logos stay PNG. Max edge {maxEdge}px (Media → Settings). Active folder
-                is the default upload target. Optional tag uses shared CMS Tags.
-              </p>
+              {!storage.ready ? (
+                <p className="form-error" role="alert">
+                  {storage.detail ||
+                    'Media storage is not ready. Check Media → Settings (local disk or S3).'}
+                </p>
+              ) : (
+                <p className="layout-muted">
+                  Drop an image or choose a file, then fill alt text and click Upload. Photos convert
+                  to WebP; PNG logos stay PNG. Max edge {maxEdge}px (Media → Settings).
+                </p>
+              )}
+              <MediaFileField disabled={busy || !storage.ready} />
               <div className="sf-media-library-upload-row">
-                <label>
-                  <span>File</span>
+                <label className="settings-field">
+                  <span>Alt text</span>
                   <input
-                    type="file"
-                    name="file"
-                    accept="image/*"
-                    capture="environment"
-                    required
-                    disabled={!storage.ready}
+                    type="text"
+                    name="alt"
+                    placeholder="Describe the image"
+                    disabled={busy || !storage.ready}
+                    autoComplete="off"
                   />
                 </label>
-                <label>
-                  <span>Alt text</span>
-                  <input type="text" name="alt" placeholder="Describe the image" required />
-                </label>
-                <label>
+                <label className="settings-field">
                   <span>Folder</span>
                   <select
                     name="category"
                     value={uploadCategory}
                     onChange={(e) => setUploadCategory(e.target.value)}
+                    disabled={busy || !storage.ready}
                   >
                     <option value="">Uncategorized</option>
                     {categoryOptions.map((c) => (
@@ -670,12 +693,13 @@ export function MediaLibraryClient({
                     ))}
                   </select>
                 </label>
-                <label>
+                <label className="settings-field">
                   <span>Purpose</span>
                   <select
                     name="purpose"
                     value={uploadPurpose}
                     onChange={(e) => setUploadPurpose(e.target.value)}
+                    disabled={busy || !storage.ready}
                   >
                     {MEDIA_PURPOSES.map((p) => (
                       <option key={p.value} value={p.value}>
@@ -684,13 +708,13 @@ export function MediaLibraryClient({
                     ))}
                   </select>
                 </label>
-                <label>
+                <label className="settings-field">
                   <span>Tag</span>
                   <select
                     name="tag"
                     value={uploadTag}
                     onChange={(e) => setUploadTag(e.target.value)}
-                    disabled={tagOptions.length === 0}
+                    disabled={tagOptions.length === 0 || busy || !storage.ready}
                   >
                     <option value="">None</option>
                     {tagOptions.map((t) => (
@@ -700,14 +724,21 @@ export function MediaLibraryClient({
                     ))}
                   </select>
                 </label>
-                <button
-                  type="submit"
-                  className="gantry-toolbar-btn gantry-toolbar-btn-save"
-                  disabled={busy || !storage.ready}
-                >
-                  {uploading ? 'Uploading…' : 'Upload'}
-                </button>
+                <div className="page-settings-actions">
+                  <button
+                    type="submit"
+                    className="gantry-toolbar-btn gantry-toolbar-btn-save"
+                    disabled={busy || !storage.ready}
+                  >
+                    {uploading ? 'Uploading…' : 'Upload'}
+                  </button>
+                </div>
               </div>
+              {uploadHint ? (
+                <p className="admin-inline-error" role="alert">
+                  {uploadHint}
+                </p>
+              ) : null}
               {uploadState.error ? (
                 <p className="form-error" role="alert">
                   {uploadState.error}

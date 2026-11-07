@@ -2942,6 +2942,73 @@ body:has(.admin-shell) > main {
   margin-bottom: 0;
 }
 
+.admin-shell .sf-media-picker-upload {
+  flex-direction: column;
+  align-items: stretch;
+  margin-top: 0.65rem;
+  margin-bottom: 0.85rem;
+  padding: 0.75rem;
+  border: 1px solid var(--sf-admin-panel-border);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--sf-admin-panel) 92%, #0d1218);
+}
+
+.admin-shell .sf-media-library-upload .sf-media-file-field {
+  margin: 0 0.85rem 0.75rem;
+}
+
+.admin-shell .sf-media-file-field {
+  position: relative;
+  border: 1px dashed var(--sf-admin-blue-border);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--sf-admin-input) 88%, #0d1218);
+  padding: 1rem 1.1rem;
+  min-height: 6.5rem;
+  box-sizing: border-box;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.admin-shell .sf-media-file-field.is-dragging,
+.admin-shell .sf-media-file-field.has-file {
+  border-style: solid;
+  border-color: var(--sf-admin-accent, var(--sf-primary));
+  background: color-mix(in srgb, var(--sf-admin-input) 70%, #132033);
+}
+
+.admin-shell .sf-media-file-field-input {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  border: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.admin-shell .sf-media-file-field-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
+.admin-shell .sf-media-file-field-title {
+  margin: 0;
+  color: var(--sf-ink);
+  font-size: 0.95rem;
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.admin-shell .sf-media-file-field-hint {
+  margin: 0 0 0.25rem;
+}
+
 .admin-shell .sf-media-library-filters label,
 .admin-shell .sf-media-library-upload-row label,
 .admin-shell .sf-media-picker-upload label {
@@ -2956,7 +3023,7 @@ body:has(.admin-shell) > main {
 .admin-shell .sf-media-library-filters select,
 .admin-shell .sf-media-library-upload-row input,
 .admin-shell .sf-media-library-upload-row select,
-.admin-shell .sf-media-picker-upload input,
+.admin-shell .sf-media-picker-upload input:not([type='file']),
 .admin-shell .sf-media-picker-upload select,
 .admin-shell .sf-media-picker-toolbar input,
 .admin-shell .sf-media-picker-toolbar select {
@@ -2966,6 +3033,11 @@ body:has(.admin-shell) > main {
   min-height: 2.1rem;
   border-radius: 3px;
   padding: 0.35rem 0.55rem;
+}
+
+.admin-shell .sf-media-library-upload-row .page-settings-actions {
+  margin-top: 0;
+  align-self: flex-end;
 }
 
 .admin-shell .sf-media-library-grid,

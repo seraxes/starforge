@@ -17,6 +17,8 @@ import {
 import { MEDIA_PURPOSES } from '@/core/media/pipeline'
 import type { MediaTagOption } from '@/core/media/resolve'
 
+import { MediaFileField } from './MediaFileField'
+
 export type MediaPickerValue = {
   mediaId: string
   url?: string
@@ -74,6 +76,7 @@ export function MediaPicker({
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
   const [uploadState, setUploadState] = useState<MediaActionState>(emptyUploadState)
+  const [uploading, setUploading] = useState(false)
   const [showUrl, setShowUrl] = useState(Boolean(value.url && !value.mediaId))
 
   const categoryOptions = flattenCategoryOptions(categoryTree)
@@ -138,17 +141,27 @@ export function MediaPicker({
 
   async function onUpload(formData: FormData) {
     setUploadState(emptyUploadState)
+    const file = formData.get('file')
+    if (!(file instanceof File) || file.size <= 0) {
+      setUploadState({ error: 'Choose an image first (drop zone or Choose image…).' })
+      return
+    }
     if (!formData.get('category') && defaultCategoryId) {
       formData.set('category', defaultCategoryId)
     }
     if (!formData.get('folder')) {
       formData.set('folder', defaultFolder)
     }
-    const next = await uploadMediaAction(emptyUploadState, formData)
-    setUploadState(next)
-    if (next.ok && next.media) {
-      selectDoc(next.media)
-      refresh()
+    setUploading(true)
+    try {
+      const next = await uploadMediaAction(emptyUploadState, formData)
+      setUploadState(next)
+      if (next.ok && next.media) {
+        selectDoc(next.media)
+        refresh()
+      }
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -308,22 +321,23 @@ export function MediaPicker({
               <input type="hidden" name="folder" value={defaultFolder} />
               <input type="hidden" name="purpose" value={defaultPurpose} />
               {tag !== 'all' ? <input type="hidden" name="tag" value={tag} /> : null}
-              <label>
-                <span>Upload</span>
+              <MediaFileField disabled={disabled || uploading || pending} />
+              <label className="settings-field">
+                <span>Alt</span>
                 <input
-                  type="file"
-                  name="file"
-                  accept="image/*"
-                  capture="environment"
-                  required
+                  type="text"
+                  name="alt"
+                  placeholder="Describe the image"
+                  disabled={disabled || uploading}
+                  autoComplete="off"
                 />
               </label>
-              <label>
-                <span>Alt</span>
-                <input type="text" name="alt" placeholder="Describe the image" />
-              </label>
-              <button type="submit" className="gantry-toolbar-btn gantry-toolbar-btn-save">
-                Upload
+              <button
+                type="submit"
+                className="gantry-toolbar-btn gantry-toolbar-btn-save"
+                disabled={disabled || uploading || pending}
+              >
+                {uploading ? 'Uploading…' : 'Upload'}
               </button>
               {uploadState.error ? (
                 <p className="form-error" role="alert">
