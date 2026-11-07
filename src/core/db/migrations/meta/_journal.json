@@ -78,6 +78,13 @@
       "when": 1794005000000,
       "tag": "0010_event_visibility",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794006000000,
+      "tag": "0011_venue_description_gallery",
+      "breakpoints": true
     }
   ]
 }

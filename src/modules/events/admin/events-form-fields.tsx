@@ -154,7 +154,7 @@ function VisibilityFields({
 }
 
 /** Multi-id gallery via shared MediaPicker (append one at a time). */
-function GalleryFields({
+export function GalleryFields({
   galleryMediaIds: initialIds,
   disabled,
 }: {

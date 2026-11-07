@@ -36,9 +36,11 @@
   --sf-muted: #9eb1c7;
   --sf-paper: var(--sf-admin-bg);
   --sf-line: #3d5270;
-  --sf-primary: #f2a66a;
-  --sf-primary-strong: #f5b888;
-  --sf-primary-ink: #1c2834;
+  --sf-primary: #ef9550;
+  --sf-primary-strong: #f3a862;
+  --sf-primary-ink: #ffffff;
+  /* Match Core admin sidebar (15.5rem + 10%) */
+  --nav-width: 17.05rem;
   --sf-secondary: #8ebad4;
   --sf-secondary-strong: #b7d6ec;
 
@@ -84,12 +86,14 @@
   --color-success-900: #081522;
   --color-success-950: #050e17;
 
-  --color-warning-300: #f2a66a;
-  --color-warning-400: #ef9550;
-  --color-warning-500: #e0843c;
+  --color-warning-300: #ef9550;
+  --color-warning-400: #f0873c;
+  --color-warning-500: #e07830;
 }
 
 html[data-theme='dark'] {
+  /* Beat Payload app.scss --nav-width: 275px so CMS rail matches Core */
+  --nav-width: 17.05rem;
   --theme-bg: var(--sf-admin-bg);
   --theme-input-bg: var(--sf-admin-input);
   --theme-text: #e8eef8;
@@ -171,6 +175,38 @@ html[data-theme='dark'] .btn.btn--size-small {
     linear-gradient(180deg, #0c121c 0%, #0f1622 48%, #0d141e 100%) !important;
   border-right: 1px solid #1a2433 !important;
   box-shadow: none !important;
+  /* Match Core sidebar rail width + overlay scrollbar */
+  width: var(--nav-width, 17.05rem) !important;
+  scrollbar-gutter: auto;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, #ffffff 34%, transparent) transparent;
+}
+
+.nav::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background: transparent;
+}
+
+.nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.nav::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, #ffffff 30%, transparent);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.nav::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+@supports (overflow: overlay) {
+  .nav {
+    overflow-y: overlay;
+  }
 }
 
 .nav__wrap.sf-payload-admin-nav {
@@ -215,8 +251,8 @@ html[data-theme='dark'] .btn.btn--size-small {
 .nav .admin-sidebar-brand .brand,
 .nav .admin-sidebar-brand .brand a,
 .nav .admin-sidebar-brand .brand a.admin-sidebar-logo {
-  color: #f2a66a !important;
-  -webkit-text-fill-color: #f2a66a;
+  color: #ef9550 !important;
+  -webkit-text-fill-color: #ef9550;
   text-decoration: none;
 }
 

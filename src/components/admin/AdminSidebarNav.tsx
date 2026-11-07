@@ -30,7 +30,8 @@ function groupIsExpandable(group: AdminSidebarGroup): boolean {
 export type AdminSidebarNavVariant = 'shell' | 'embedded'
 
 /**
- * Joomla-style admin sidebar: collapsible groups + mobile accordion.
+ * Joomla-style admin sidebar: exclusive collapsible groups + mobile accordion.
+ * Only one expandable main menu is open at a time.
  * Accordion carets are CSS SVG backgrounds on empty spans (theme core-chrome) —
  * keep markup empty so they never double with unicode or inline SVG.
  *
@@ -71,22 +72,21 @@ function AdminSidebarNavInner({
     [groups, pathname],
   )
 
-  const [openIds, setOpenIds] = useState<Set<string>>(() => {
-    const next = new Set(activeIds)
-    for (const group of groups) {
-      if (group.defaultOpen && groupIsExpandable(group)) next.add(group.id)
-    }
-    return next
+  /** Exclusive accordion — at most one expandable main menu open. */
+  const [openId, setOpenId] = useState<string | null>(() => {
+    const activeExpandable = groups.find(
+      (g) => groupIsExpandable(g) && activeIds.has(g.id),
+    )
+    if (activeExpandable) return activeExpandable.id
+    const defaultExpandable = groups.find(
+      (g) => g.defaultOpen && groupIsExpandable(g),
+    )
+    return defaultExpandable?.id ?? null
   })
   const [mobileOpen, setMobileOpen] = useState(false)
 
   function toggleGroup(id: string) {
-    setOpenIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
+    setOpenId((prev) => (prev === id ? null : id))
   }
 
   const Root: 'aside' | 'div' = variant === 'embedded' ? 'div' : 'aside'
@@ -123,9 +123,8 @@ function AdminSidebarNavInner({
           {groups.map((group) => {
             const expandable = groupIsExpandable(group)
             const isActive = activeIds.has(group.id)
-            // Active groups always show children — collapsing the current section
-            // made Media look like a flat highlighted leaf on /admin/media.
-            const isOpen = expandable ? openIds.has(group.id) || isActive : true
+            // Exclusive: only `openId` is expanded (active section seeds openId on mount).
+            const isOpen = expandable ? openId === group.id : true
             const primary = group.links[0]
 
             if (!expandable && primary) {
@@ -163,7 +162,7 @@ function AdminSidebarNavInner({
                   aria-controls={`admin-sidebar-sub-${group.id}`}
                   onClick={() => {
                     // Do not collapse the section that owns the current route.
-                    if (isActive && isOpen) return
+                    if (isActive && openId === group.id) return
                     toggleGroup(group.id)
                   }}
                 >

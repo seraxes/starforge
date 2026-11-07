@@ -24,10 +24,16 @@ import {
 } from './types'
 
 function mapVenue(row: typeof sfVenues.$inferSelect): VenueRecord {
+  const gallery = Array.isArray(row.galleryMediaIds)
+    ? row.galleryMediaIds.filter(
+        (id): id is string => typeof id === 'string' && Boolean(id.trim()),
+      )
+    : []
   return {
     id: row.id,
     name: row.name?.trim() || 'Untitled venue',
     address: row.address ?? '',
+    description: row.description ?? '',
     latitude:
       typeof row.latitude === 'number' && Number.isFinite(row.latitude)
         ? row.latitude
@@ -37,6 +43,7 @@ function mapVenue(row: typeof sfVenues.$inferSelect): VenueRecord {
         ? row.longitude
         : null,
     coverMediaId: (row.coverMediaId || '').trim(),
+    galleryMediaIds: gallery.map((id) => id.trim()).filter(Boolean),
     accessTags: normalizeAccessTags({ accessTags: row.accessTags }),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -230,9 +237,11 @@ export type UpsertVenueInput = {
   id?: string
   name: string
   address?: string
+  description?: string
   latitude?: unknown
   longitude?: unknown
   coverMediaId?: string
+  galleryMediaIds?: unknown
   accessTags?: unknown
 }
 
@@ -241,9 +250,11 @@ export async function createVenue(
 ): Promise<{ venue: VenueRecord } | { error: string }> {
   const name = input.name.trim().slice(0, 200) || 'Untitled venue'
   const address = (input.address || '').trim().slice(0, 2000)
+  const description = (input.description || '').trim()
   const latitude = parseOptionalCoord(input.latitude, -90, 90)
   const longitude = parseOptionalCoord(input.longitude, -180, 180)
   const coverMediaId = (input.coverMediaId || '').trim() || null
+  const galleryMediaIds = normalizeGalleryIds(input.galleryMediaIds)
   const accessTags = normalizeAccessTagsForDb(input.accessTags)
   const id = (input.id || '').trim() || crypto.randomUUID()
 
@@ -252,9 +263,11 @@ export async function createVenue(
       id,
       name,
       address,
+      description,
       latitude,
       longitude,
       coverMediaId,
+      galleryMediaIds,
       accessTags,
     })
     const created = await findVenueById(id)
@@ -279,6 +292,10 @@ export async function updateVenue(
 
   const name = input.name.trim().slice(0, 200) || current.name
   const address = (input.address ?? current.address).trim().slice(0, 2000)
+  const description =
+    input.description !== undefined
+      ? input.description.trim()
+      : current.description
   const latitude =
     input.latitude !== undefined
       ? parseOptionalCoord(input.latitude, -90, 90)
@@ -291,6 +308,10 @@ export async function updateVenue(
     input.coverMediaId !== undefined
       ? input.coverMediaId.trim() || null
       : current.coverMediaId || null
+  const galleryMediaIds =
+    input.galleryMediaIds !== undefined
+      ? normalizeGalleryIds(input.galleryMediaIds)
+      : current.galleryMediaIds
   const accessTags =
     input.accessTags !== undefined
       ? normalizeAccessTagsForDb(input.accessTags)
@@ -302,9 +323,11 @@ export async function updateVenue(
       .set({
         name,
         address,
+        description,
         latitude,
         longitude,
         coverMediaId,
+        galleryMediaIds,
         accessTags,
       })
       .where(eq(sfVenues.id, id))

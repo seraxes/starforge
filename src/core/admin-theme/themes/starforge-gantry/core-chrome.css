@@ -60,14 +60,15 @@ body:has(.admin-shell) > main {
   --sf-line: #3d5270;
 
   /* Orange = primary actions only; blue = chrome / secondary */
-  --sf-primary: #f2a66a;
-  --sf-primary-strong: #f5b888;
-  --sf-primary-ink: #1c2834;
+  --sf-primary: #ef9550;
+  --sf-primary-strong: #f3a862;
+  /* White label on orange Save / primary CTAs (Layouts reference) */
+  --sf-primary-ink: #ffffff;
   --sf-secondary: #8ebad4;
   --sf-secondary-strong: #b7d6ec;
   --sf-secondary-ink: #e8eef8;
   --sf-accent: var(--sf-primary);
-  --sf-accent-ink: #1c2834;
+  --sf-accent-ink: #ffffff;
 
   /* shadcn-compatible CSS variables (admin scope) */
   --background: var(--sf-admin-bg);
@@ -1418,9 +1419,9 @@ body:has(.admin-shell) > main {
   --sf-ink: #ffffff;
   --sf-muted: #9aa8bc;
   --sf-line: #2f3d50;
-  --sf-primary: #f2a66a;
-  --sf-primary-strong: #f5b888;
-  --sf-primary-ink: #1c2834;
+  --sf-primary: #ef9550;
+  --sf-primary-strong: #f3a862;
+  --sf-primary-ink: #ffffff;
   --sf-secondary: #8ebad4;
   --sf-secondary-strong: #b7d6ec;
 }
@@ -1684,9 +1685,9 @@ body:has(.admin-shell) > main {
 
 .gantry-settings-theme-dark .gantry-settings-panel .gantry-typed-form button[type='submit'],
 .gantry-settings-theme-dark .gantry-settings-panel .gantry-custom-form button[type='submit'] {
-  background: #f2a66a;
-  border: 1px solid color-mix(in srgb, #f2a66a 65%, #f5b888);
-  color: #1c2834;
+  background: #ef9550;
+  border: 1px solid color-mix(in srgb, #ef9550 65%, #f3a862);
+  color: #fff;
   font-weight: 700;
 }
 
@@ -2208,8 +2209,8 @@ body:has(.admin-shell) > main {
 .admin-shell .admin-sidebar .admin-sidebar-brand .brand,
 .admin-shell .admin-sidebar .admin-sidebar-brand .brand a.admin-sidebar-logo,
 .admin-shell .admin-sidebar a.admin-sidebar-logo {
-  color: #f2a66a !important;
-  -webkit-text-fill-color: #f2a66a;
+  color: #ef9550 !important;
+  -webkit-text-fill-color: #ef9550;
 }
 
 .admin-shell .admin-sidebar .admin-sidebar-kicker,
@@ -2625,6 +2626,39 @@ body:has(.admin-shell) > main {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--sf-admin-btn-gap);
+}
+
+/*
+ * Card actions — always bottom-right of the panel (Cancel / Save / Apply / Delete…).
+ * Not for top Add+/filter toolbars.
+ */
+.admin-shell .outlines-create > .admin-action-row,
+.admin-shell .outlines-create > .page-settings-actions,
+.admin-shell .outlines-create > .sf-events-form-actions,
+.admin-shell .settings-fieldset > .admin-action-row,
+.admin-shell .settings-fieldset > .page-settings-actions,
+.admin-shell .page-settings-panel > .page-settings-actions,
+.admin-shell .page-settings-panel-body > .page-settings-actions,
+.admin-shell .sf-events-form-actions,
+.admin-shell .sf-events-inline-editor > .admin-action-row,
+.admin-shell .sf-events-add-inline-form > .page-settings-actions,
+.admin-shell .sf-events-add-inline-form > .sf-events-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sf-admin-btn-gap);
+  margin-top: 0.75rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.admin-shell .outlines-create > .admin-action-row > form,
+.admin-shell .sf-events-form-actions > form,
+.admin-shell .sf-events-inline-editor > .admin-action-row > form,
+.admin-shell .page-settings-actions > form {
+  display: inline-flex;
+  margin: 0;
 }
 
 .admin-shell .admin-action-row {

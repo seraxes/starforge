@@ -132,14 +132,14 @@
 }
 
 .sf-rich-video-modal .gantry-toolbar-btn-save {
-  background: var(--sf-primary, #f2a66a);
+  background: var(--sf-primary, #ef9550);
   border: 0;
-  color: var(--sf-primary-ink, #1c2834);
+  color: var(--sf-primary-ink, #ffffff);
 }
 
 .sf-rich-video-modal .gantry-toolbar-btn-save:hover:not(:disabled) {
-  background: var(--sf-primary-strong, #f5b888);
-  color: var(--sf-primary-ink, #1c2834);
+  background: var(--sf-primary-strong, #f3a862);
+  color: var(--sf-primary-ink, #ffffff);
 }
 
 .sf-rich-callout-choices {

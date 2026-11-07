@@ -18,10 +18,13 @@ Buttons, inputs, panels, and insert flows must **match existing Starforge chrome
 
 Prefs (admin): blue-dominated Gantry chrome; orange only on primary Save / rare CTAs; comfortable button size (`--sf-admin-btn-*`); no thin full-width action bars. Payload Publish / Create New = orange; Save Draft = muted toolbar blue — match Layouts.
 
+**Card actions (hard rule):** Cancel / Save / Apply / Delete / Geocode (and siblings) live in the **bottom-right** of the card (`outlines-create`, `settings-fieldset`, page-settings panel). Use `admin-action-row`, `page-settings-actions`, or `sf-events-form-actions` with `justify-content: flex-end`. Do not left-align or stretch a full-width action strip inside a card. Toolbar / filter / Add+ disclosure bars are not “card actions” — those stay top/inline.
+
 ## Do
 
 - Wrap fields in `settings-field` (label `span` + control) so theme input styles apply.
 - Use shared buttons for Create / Save / secondary — same classes as Events, Forms, Email, Page Settings.
+- Put card action buttons in the bottom-right corner (see hard rule above).
 - **One shared control per concern:** Media → `MediaPicker` / Media library modal; Forms → Form engine; mail → Email Manager. Do not fork a second picker or dialog skin.
 - **Same insert UX family:** Rich Editor Image / Gallery / Video all use the inline `sf-rich-editor-media` panel under the toolbar (Video may add Media vs YouTube/Vimeo tabs inside that panel — no separate portal popup).
 - Module layout = scoped class (e.g. `.sf-events-manager`) **on top of** shared primitives; override grid/spacing only.
@@ -29,6 +32,7 @@ Prefs (admin): blue-dominated Gantry chrome; orange only on primary Save / rare 
 
 ## Don’t
 
+- Left-align or full-bleed action rows inside admin cards (always bottom-right).
 - Parallel modals/popups for a flow that already has an inline or shared pattern (e.g. video ≠ special dialog when Image/Gallery are inline).
 - Raw `<button>` / `<input>` without SF classes next to Gantry/settings chrome.
 - One-off colors, radii, paddings that fight `--sf-admin-btn-*` / `--sf-line` / `--sf-primary`.

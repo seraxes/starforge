@@ -37,10 +37,12 @@ export type VenueRecord = {
   id: string
   name: string
   address: string
+  description: string
   /** WGS84 — null until set / geocoded. */
   latitude: number | null
   longitude: number | null
   coverMediaId: string
+  galleryMediaIds: string[]
   accessTags: string[]
   createdAt: Date
   updatedAt: Date

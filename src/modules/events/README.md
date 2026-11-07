@@ -5,7 +5,8 @@ Events + venues + registration + ticket tiers + parties (`sf_venues` / `sf_event
 ## Shipped
 
 - Admin: list (Add+ collapsed → filters → EB-style table) → `/admin/events/[id]` card mosaic (Apply / Save / Cancel)
-- Venues, parties, ticket tiers, registrants, module settings
+- Venues: same Add+/table pattern; description (Rich Editor), gallery, Leaflet pin picker via product:maps
+- Parties, ticket tiers, registrants, module settings
 - Registration window (`registrationOpensAt` / `ClosesAt`), prevent-duplicate setting
 - Public list/detail, shared Forms definition `event-registration` (edit fields under **Forms → Events**), Email Manager trigger
 - ICS download (`/api/events/:idOrSlug/ics`), `event-countdown` particle
@@ -49,5 +50,6 @@ Commerce is **not** owned by Events. Gateways, currency, PayPal, numeric prices,
 ## Migrations
 
 - `0004` venues/events → `0010` listed + access password hash (`0008` reg window, `0009` people/parties)
+- `0011` venue `description` + `gallery_media_ids`
 
 Run: `npm run db:migrate` (or `db:core:push`).

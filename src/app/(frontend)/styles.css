@@ -902,8 +902,9 @@ button:disabled {
 }
 
 .admin-sidebar {
-  flex: 0 0 15.5rem;
-  width: 15.5rem;
+  /* 15.5rem + 10% — shared with Payload --nav-width */
+  flex: 0 0 17.05rem;
+  width: 17.05rem;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -917,7 +918,39 @@ button:disabled {
   align-self: flex-start;
   min-height: 100vh;
   height: 100vh;
+  overflow-x: hidden;
   overflow-y: auto;
+  /* Overlay-ish: transparent track, thinner thumb, no stable gutter (don't inset menu text) */
+  scrollbar-gutter: auto;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, #ffffff 34%, transparent) transparent;
+}
+
+.admin-sidebar::-webkit-scrollbar {
+  width: 8px; /* ~20% thinner than a typical 10px thin bar */
+  height: 8px;
+  background: transparent;
+}
+
+.admin-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.admin-sidebar::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, #ffffff 30%, transparent);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.admin-sidebar::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+@supports (overflow: overlay) {
+  .admin-sidebar {
+    overflow-y: overlay;
+  }
 }
 
 .admin-sidebar-top {
@@ -937,7 +970,7 @@ button:disabled {
 
 .admin-sidebar-brand .brand a.admin-sidebar-logo {
   /* Literal brand orange — theme sheet re-forces after content-link tint */
-  color: #f2a66a;
+  color: #ef9550;
   text-decoration: none;
 }
 
@@ -2247,6 +2280,33 @@ button:disabled {
 
 .sf-events-inline-editor {
   grid-column: 1 / -1;
+}
+
+.sf-venues-form-mosaic {
+  margin: 0 0 0.75rem;
+}
+
+.sf-venues-location-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+@media (max-width: 720px) {
+  .sf-venues-location-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.sf-venue-location-map {
+  margin-top: 0.65rem;
+}
+
+.sf-venue-location-map-canvas {
+  border: 1px solid var(--sf-admin-panel-border, var(--sf-line, rgba(0, 0, 0, 0.14)));
+  border-radius: 3px;
+  overflow: hidden;
+  z-index: 0;
 }
 
 .sf-events-reg-status-form {
@@ -5093,6 +5153,9 @@ button:disabled {
 
 .page-settings-actions {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
   gap: 0.75rem;
   margin-top: 0.25rem;
 }

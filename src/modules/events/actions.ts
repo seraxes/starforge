@@ -135,9 +135,11 @@ export async function createVenueAction(
   const result = await createVenue({
     name: String(formData.get('name') ?? ''),
     address: String(formData.get('address') ?? ''),
+    description: String(formData.get('description') ?? ''),
     latitude: String(formData.get('latitude') ?? ''),
     longitude: String(formData.get('longitude') ?? ''),
     coverMediaId: String(formData.get('coverMediaId') ?? ''),
+    galleryMediaIds: String(formData.get('galleryMediaIdsJson') ?? '[]'),
     accessTags: parseAccessTagsFromForm(formData),
   })
   if ('error' in result) return { error: result.error }
@@ -161,9 +163,11 @@ export async function updateVenueAction(
     id,
     name: String(formData.get('name') ?? ''),
     address: String(formData.get('address') ?? ''),
+    description: String(formData.get('description') ?? ''),
     latitude: String(formData.get('latitude') ?? ''),
     longitude: String(formData.get('longitude') ?? ''),
     coverMediaId: String(formData.get('coverMediaId') ?? ''),
+    galleryMediaIds: String(formData.get('galleryMediaIdsJson') ?? '[]'),
     accessTags: parseAccessTagsFromForm(formData),
   })
   if ('error' in result) return { error: result.error }
@@ -219,9 +223,11 @@ export async function geocodeVenueAction(
       id,
       name: venue.name,
       address: venue.address,
+      description: venue.description,
       latitude: String(point.latitude),
       longitude: String(point.longitude),
       coverMediaId: venue.coverMediaId,
+      galleryMediaIds: venue.galleryMediaIds,
       accessTags: venue.accessTags,
     })
     if ('error' in updated) return { error: updated.error }

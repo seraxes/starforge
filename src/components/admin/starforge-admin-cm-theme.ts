@@ -17,7 +17,7 @@ const BLUE_SOFT = '#8ebad4'
 const BLUE_LIGHT = '#b7d6ec'
 const ACTIVE = 'rgba(52, 152, 219, 0.14)'
 const SELECTION = 'rgba(52, 152, 219, 0.28)'
-const ORANGE = '#f2a66a'
+const ORANGE = '#ef9550'
 
 const starforgeAdminEditorTheme = EditorView.theme(
   {

@@ -14,7 +14,7 @@ import {
   timestamp,
 } from 'drizzle-orm/pg-core'
 
-/** Venue place entity — name, address, optional geo, cover media, ACL tags. */
+/** Venue place entity — name, address, description, geo, cover/gallery, ACL. */
 export const sfVenues = pgTable(
   'sf_venues',
   {
@@ -22,12 +22,16 @@ export const sfVenues = pgTable(
     name: text('name').notNull().default('Untitled venue'),
     /** Free-form address / place text (Maps geo binder). */
     address: text('address').notNull().default(''),
+    /** HTML description (Rich Editor). */
+    description: text('description').notNull().default(''),
     /** WGS84 latitude (nullable until geocoded / set). */
     latitude: doublePrecision('latitude'),
     /** WGS84 longitude (nullable until geocoded / set). */
     longitude: doublePrecision('longitude'),
     /** Shared Media Manager id — cover image. */
     coverMediaId: text('cover_media_id'),
+    /** Extra Media library ids (gallery). */
+    galleryMediaIds: jsonb('gallery_media_ids').$type<string[]>().notNull().default([]),
     /**
      * Viewing ACL tags: `public` | `registered` | `group:<id>`.
      * Empty / omit = public (OR match).

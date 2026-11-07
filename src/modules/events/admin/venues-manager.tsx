@@ -4,7 +4,12 @@ import React, { useActionState, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { useNotifySavedOnOk } from '@/app/(frontend)/admin/admin-toast'
+import { AccessTagsField } from '@/components/admin/AccessTagsField'
 import type { UserGroupOption } from '@/core/acl/types'
+import type { MapClientConfig } from '@/core/maps/types'
+import { MediaPicker } from '@/modules/media/api'
+import { VenueLocationMap } from '@/modules/maps/VenueLocationMap'
+import { RichEditor } from '@/modules/rich-editor/api'
 
 import {
   createVenueAction,
@@ -13,15 +18,17 @@ import {
   updateVenueAction,
   type EventsAdminActionState,
 } from '../actions'
-import { CoverAndAccessFields } from './events-form-fields'
+import { GalleryFields } from './events-form-fields'
 
 type VenueRow = {
   id: string
   name: string
   address: string
+  description: string
   latitude: number | null
   longitude: number | null
   coverMediaId: string
+  galleryMediaIds: string[]
   accessTags: string[]
   updatedAt: string
 }
@@ -29,6 +36,9 @@ type VenueRow = {
 type Props = {
   venues: VenueRow[]
   groups: UserGroupOption[]
+  mapsEnabled?: boolean
+  mapClientConfig?: MapClientConfig | null
+  richEditorEnabled?: boolean
 }
 
 const initial: EventsAdminActionState = {}
@@ -64,78 +74,191 @@ function formatCoords(lat: number | null, lng: number | null): string {
   return `${lat.toFixed(4)}, ${lng.toFixed(4)}`
 }
 
+function VenueCoverField({
+  coverMediaId: initialCover,
+  disabled,
+}: {
+  coverMediaId: string
+  disabled?: boolean
+}) {
+  const [coverMediaId, setCoverMediaId] = useState(initialCover)
+  return (
+    <div className="settings-field">
+      <MediaPicker
+        label="Cover"
+        value={{ mediaId: coverMediaId, url: '', alt: '' }}
+        defaultFolder="general"
+        defaultPurpose="photo"
+        disabled={disabled}
+        includeHiddenInputs={false}
+        allowUrlFallback={false}
+        hint="Shared Media Manager — not a per-module library."
+        onChange={(next) => setCoverMediaId(next.mediaId)}
+      />
+      <input type="hidden" name="coverMediaId" value={coverMediaId} />
+    </div>
+  )
+}
+
 function VenueFormFields({
   row,
   groups,
   busy,
+  mapsEnabled,
+  mapClientConfig,
+  richEditorEnabled,
 }: {
   row?: VenueRow
   groups: UserGroupOption[]
   busy: boolean
+  mapsEnabled: boolean
+  mapClientConfig: MapClientConfig | null
+  richEditorEnabled: boolean
 }) {
+  const [latitude, setLatitude] = useState(
+    typeof row?.latitude === 'number' ? String(row.latitude) : '',
+  )
+  const [longitude, setLongitude] = useState(
+    typeof row?.longitude === 'number' ? String(row.longitude) : '',
+  )
+  const [accessTags, setAccessTags] = useState(
+    row?.accessTags?.length ? [...row.accessTags] : ['public'],
+  )
+
+  const latNum = latitude.trim() === '' ? null : Number(latitude)
+  const lngNum = longitude.trim() === '' ? null : Number(longitude)
+  const latOk = latNum != null && Number.isFinite(latNum) ? latNum : null
+  const lngOk = lngNum != null && Number.isFinite(lngNum) ? lngNum : null
+
   return (
-    <>
-      <label className="settings-field">
-        <span>Name</span>
-        <input
-          type="text"
-          name="name"
-          required
-          maxLength={200}
-          defaultValue={row?.name ?? ''}
+    <div className="sf-events-form-mosaic sf-venues-form-mosaic">
+      <fieldset className="settings-fieldset sf-events-form-section sf-events-form-section-wide">
+        <legend>Basics</legend>
+        <label className="settings-field">
+          <span>Name</span>
+          <input
+            type="text"
+            name="name"
+            required
+            maxLength={200}
+            defaultValue={row?.name ?? ''}
+            disabled={busy}
+            autoComplete="off"
+            placeholder="Venue name"
+          />
+        </label>
+        <label className="settings-field">
+          <span>Address</span>
+          <input
+            type="text"
+            name="address"
+            maxLength={2000}
+            defaultValue={row?.address ?? ''}
+            disabled={busy}
+            autoComplete="off"
+            placeholder="Street, city, country"
+          />
+        </label>
+        <div className="settings-field settings-field-wide">
+          <RichEditor
+            name="description"
+            label="Description"
+            defaultValue={row?.description ?? ''}
+            disabled={busy}
+            enabled={richEditorEnabled}
+            preset="full"
+            placeholder="Venue description…"
+          />
+        </div>
+      </fieldset>
+
+      <fieldset className="settings-fieldset sf-events-form-section sf-events-form-section-wide">
+        <legend>Location</legend>
+        <div className="sf-venues-location-grid">
+          <label className="settings-field">
+            <span>Latitude</span>
+            <input
+              type="number"
+              name="latitude"
+              step="any"
+              min={-90}
+              max={90}
+              value={latitude}
+              disabled={busy}
+              onChange={(e) => setLatitude(e.target.value)}
+            />
+          </label>
+          <label className="settings-field">
+            <span>Longitude</span>
+            <input
+              type="number"
+              name="longitude"
+              step="any"
+              min={-180}
+              max={180}
+              value={longitude}
+              disabled={busy}
+              onChange={(e) => setLongitude(e.target.value)}
+            />
+          </label>
+        </div>
+        {mapsEnabled && mapClientConfig ? (
+          <VenueLocationMap
+            clientConfig={mapClientConfig}
+            latitude={latOk}
+            longitude={lngOk}
+            disabled={busy}
+            height="16rem"
+            onPick={(lat, lng) => {
+              setLatitude(String(Number(lat.toFixed(6))))
+              setLongitude(String(Number(lng.toFixed(6))))
+            }}
+          />
+        ) : (
+          <p className="settings-hint">
+            Enable <strong>Maps</strong> under Settings → Modules to place a pin on the map.
+            Lat/lng inputs still work without it.
+          </p>
+        )}
+      </fieldset>
+
+      <fieldset className="settings-fieldset sf-events-form-section">
+        <legend>Cover</legend>
+        <VenueCoverField
+          key={row ? `${row.id}-cover-${row.updatedAt}` : 'new-cover'}
+          coverMediaId={row?.coverMediaId ?? ''}
           disabled={busy}
-          autoComplete="off"
-          placeholder="Venue name"
         />
-      </label>
-      <label className="settings-field">
-        <span>Address</span>
-        <input
-          type="text"
-          name="address"
-          maxLength={2000}
-          defaultValue={row?.address ?? ''}
-          disabled={busy}
-          autoComplete="off"
-          placeholder="Street, city, country"
-        />
-      </label>
-      <label className="settings-field">
-        <span>Latitude</span>
-        <input
-          type="number"
-          name="latitude"
-          step="any"
-          min={-90}
-          max={90}
-          defaultValue={row?.latitude ?? ''}
-          disabled={busy}
-        />
-      </label>
-      <label className="settings-field">
-        <span>Longitude</span>
-        <input
-          type="number"
-          name="longitude"
-          step="any"
-          min={-180}
-          max={180}
-          defaultValue={row?.longitude ?? ''}
-          disabled={busy}
-        />
-      </label>
-      <CoverAndAccessFields
-        key={row ? `${row.id}-${row.updatedAt}` : 'new'}
-        coverMediaId={row?.coverMediaId ?? ''}
-        accessTags={row?.accessTags ?? ['public']}
-        groups={groups}
+      </fieldset>
+
+      <GalleryFields
+        key={row ? `${row.id}-gallery-${row.updatedAt}` : 'new-gallery'}
+        galleryMediaIds={row?.galleryMediaIds ?? []}
         disabled={busy}
       />
-    </>
+
+      <fieldset className="settings-fieldset sf-events-form-section">
+        <legend>Visibility</legend>
+        <AccessTagsField
+          value={accessTags}
+          groups={groups}
+          disabled={busy}
+          legend="Who can see"
+          onChange={setAccessTags}
+        />
+        <input type="hidden" name="accessTagsJson" value={JSON.stringify(accessTags)} />
+      </fieldset>
+    </div>
   )
 }
 
-export function VenuesManager({ venues, groups }: Props) {
+export function VenuesManager({
+  venues,
+  groups,
+  mapsEnabled = false,
+  mapClientConfig = null,
+  richEditorEnabled = true,
+}: Props) {
   const router = useRouter()
   const [createOpen, setCreateOpen] = useState(false)
   const [formKey, setFormKey] = useState(0)
@@ -208,7 +331,7 @@ export function VenuesManager({ venues, groups }: Props) {
           </button>
           {!createOpen ? (
             <p className="settings-hint sf-events-add-hint">
-              Places for events — address, map coords, cover, ACL.
+              Same card layout as Events — description, gallery, map pin.
             </p>
           ) : null}
         </div>
@@ -218,9 +341,15 @@ export function VenuesManager({ venues, groups }: Props) {
             key={formKey}
             id="sf-venues-add-form"
             action={createAction}
-            className="outlines-create-form admin-create-form sf-events-add-inline-form"
+            className="sf-events-add-inline-form"
           >
-            <VenueFormFields groups={groups} busy={busy} />
+            <VenueFormFields
+              groups={groups}
+              busy={busy}
+              mapsEnabled={mapsEnabled}
+              mapClientConfig={mapClientConfig}
+              richEditorEnabled={richEditorEnabled}
+            />
             <div className="sf-events-form-actions page-settings-actions">
               <button
                 type="button"
@@ -338,10 +467,16 @@ export function VenuesManager({ venues, groups }: Props) {
             key={`${editing.id}-${editing.updatedAt}`}
             id={`venue-edit-${editing.id}`}
             action={updateAction}
-            className="outlines-create-form admin-create-form"
           >
             <input type="hidden" name="id" value={editing.id} />
-            <VenueFormFields row={editing} groups={groups} busy={busy} />
+            <VenueFormFields
+              row={editing}
+              groups={groups}
+              busy={busy}
+              mapsEnabled={mapsEnabled}
+              mapClientConfig={mapClientConfig}
+              richEditorEnabled={richEditorEnabled}
+            />
           </form>
           <div className="admin-action-row">
             <button

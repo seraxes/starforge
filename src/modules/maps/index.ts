@@ -92,4 +92,8 @@ export const mapModule: StarforgeModule = {
 }
 
 export { MapView, type MapViewProps } from './MapView'
+export {
+  VenueLocationMap,
+  type VenueLocationMapProps,
+} from './VenueLocationMap'
 export { defaultMapConfig, readMapConfig, type MapParticleConfig } from './config'

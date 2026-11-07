@@ -7,6 +7,7 @@ Map particle + Core `MapProvider` (leaflet-osm first).
 - Core port: `src/core/maps` (`getMapProvider`, Nominatim geocode)
 - Particle `map` — pins venues that have lat/lng on published upcoming events
 - Events venues: optional `latitude` / `longitude` (+ geocode from address in admin)
+- Admin `VenueLocationMap` — click/drag pin on Venues create/edit (same Leaflet stack)
 
 ## Later
 
