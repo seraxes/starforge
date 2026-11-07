@@ -13,6 +13,7 @@ import {
   countRegisteredGuestsForTier,
   listTicketTiersForEvent,
 } from '../tiers'
+import { listEventsUserOptions } from '../user-options'
 import { EventEditor } from './event-editor'
 import { EventsAdminNav } from './events-admin-nav'
 
@@ -35,11 +36,12 @@ export default async function EventEditPage({ params }: { params: Params }) {
   if (!id) notFound()
 
   await ensureDefaultUserGroupsSeeded()
-  const [event, venues, groups, moduleSettings, parties, allEvents] =
+  const [event, venues, groups, users, moduleSettings, parties, allEvents] =
     await Promise.all([
       findEventById(id),
       listVenues(),
       listUserGroupOptions(),
+      listEventsUserOptions(),
       loadEventsModuleSettings(),
       listEventParties(),
       listEvents(),
@@ -71,13 +73,14 @@ export default async function EventEditPage({ params }: { params: Params }) {
       <h2>{event.title}</h2>
       <p className="lede admin-lede">
         Stacked event editor — people, parties, related events, signup note, tiers. Duplicate
-        creates a new draft.
+        creates a new draft. Manager users need ACL → Events to open admin.
       </p>
 
       <EventEditor
         defaultTimezone={moduleSettings.settings.defaultTimezone}
         richEditorEnabled={isRichEditorEnabled(settings)}
         groups={groups}
+        users={users}
         parties={parties.map((p) => ({
           id: p.id,
           label: `${p.name} (${p.kind})`,
@@ -105,6 +108,8 @@ export default async function EventEditPage({ params }: { params: Params }) {
           registrationClosesAt: event.registrationClosesAt
             ? event.registrationClosesAt.toISOString()
             : null,
+          managerUserIds: event.managerUserIds,
+          helperUserIds: event.helperUserIds,
           managerGroupIds: event.managerGroupIds,
           helperGroupIds: event.helperGroupIds,
           organizerPartyIds: event.organizerPartyIds,

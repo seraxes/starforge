@@ -2,8 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 
-import { getAccessViewer } from '@/core/acl/access'
-import { requireAppAdmin } from '@/core/auth/admin'
+import { requireAdminArea } from '@/core/acl/access'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
 import { saveEventsModuleSettings } from './settings'
@@ -13,10 +12,8 @@ import {
   deleteEvent,
   deleteVenue,
   duplicateEvent,
-  findEventById,
   updateEvent,
   updateVenue,
-  viewerCanManageEvent,
 } from './store'
 import type { EventsAdminActionState } from './types'
 
@@ -32,41 +29,26 @@ async function requireEventsModuleOn(): Promise<EventsAdminActionState | null> {
   return null
 }
 
-/** Global Events admin (venues, parties, settings, create/delete). */
+/**
+ * Events writes — app admin or Users → ACL `admin.events` grant.
+ * Manager/helper assignments drive “Managed by me” filtering; ACL opens /admin.
+ */
 async function requireEventsAdmin(): Promise<EventsAdminActionState | null> {
-  const admin = await requireAppAdmin()
-  if (!admin) {
-    return { error: 'Sign in as a Starforge app admin to manage Events.' }
+  const session = await requireAdminArea('admin.events')
+  if (!session) {
+    return {
+      error:
+        'Sign in with Events admin access (app admin or ACL → Events) to manage Events.',
+    }
   }
   return requireEventsModuleOn()
 }
 
-/**
- * Edit / duplicate one event — app admin or assigned manager/helper.
- * Callers must still reach /admin (ACL); this gates the write.
- */
 async function requireEventEditor(
   eventId: string,
 ): Promise<EventsAdminActionState | null> {
-  const moduleOff = await requireEventsModuleOn()
-  if (moduleOff) return moduleOff
-
-  const id = eventId.trim()
-  if (!id) return { error: 'Missing event id.' }
-
-  const admin = await requireAppAdmin()
-  if (admin) return null
-
-  const viewer = await getAccessViewer()
-  if (!viewer.userId) {
-    return { error: 'Sign in to manage this event.' }
-  }
-  const event = await findEventById(id)
-  if (!event) return { error: 'Event not found.' }
-  if (!viewerCanManageEvent(event, viewer)) {
-    return { error: 'You do not have permission to edit this event.' }
-  }
-  return null
+  if (!eventId.trim()) return { error: 'Missing event id.' }
+  return requireEventsAdmin()
 }
 
 function revalidateEventsAdmin(eventId?: string) {

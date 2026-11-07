@@ -12,10 +12,15 @@ import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/sett
 import { getSiteChrome } from '@/core/site-chrome'
 import { ensureEventsFormHooks } from '@/modules/events/form-hooks'
 import { listEventPartiesByIds } from '@/modules/events/parties'
-import { EventDetail } from '@/modules/events/public/EventDetail'
+import {
+  EventDetail,
+  relatedEventLinksFromRecords,
+} from '@/modules/events/public/EventDetail'
+import { eventPublicPathKey } from '@/modules/events/public/path'
 import { EventRegistrationForm } from '@/modules/events/public/EventRegistrationForm'
 import { EventVenueMap } from '@/modules/events/public/EventVenueMap'
 import {
+  findEventById,
   findPublishedEventByPublicKey,
   findVenueById,
 } from '@/modules/events/store'
@@ -78,11 +83,26 @@ export default async function PublicEventDetailPage({ params }: Args) {
 
   const venue = event.venueId ? await findVenueById(event.venueId) : null
   const formsOn = isCatalogModuleEnabled(settings, MODULE_IDS.forms)
-  const [organizers, speakers, sponsors] = await Promise.all([
+  const [organizers, speakers, sponsors, relatedRows] = await Promise.all([
     listEventPartiesByIds(event.organizerPartyIds),
     listEventPartiesByIds(event.speakerPartyIds),
     listEventPartiesByIds(event.sponsorPartyIds),
+    Promise.all(
+      event.relatedEventIds.map((rid) => findEventById(rid)),
+    ),
   ])
+  const relatedById = new Map(
+    relatedRows
+      .filter((r): r is NonNullable<typeof r> => Boolean(r) && r.status === 'published')
+      .filter((r) => canSeeNavAccessTags(r.accessTags, viewer))
+      .map((r) => [r.id, r]),
+  )
+  const relatedEvents = relatedEventLinksFromRecords(
+    event.relatedEventIds,
+    relatedById,
+    (rel) =>
+      withLocalePrefix(`/events/${encodeURIComponent(eventPublicPathKey(rel))}`, locale),
+  )
 
   return (
     <div className="cms-page sf-events-page">
@@ -93,6 +113,7 @@ export default async function PublicEventDetailPage({ params }: Args) {
         organizers={organizers}
         speakers={speakers}
         sponsors={sponsors}
+        relatedEvents={relatedEvents}
         listHref={withLocalePrefix('/events', locale)}
       />
       {venue?.latitude != null && venue?.longitude != null ? (

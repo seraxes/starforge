@@ -83,6 +83,8 @@ export type EventFormRow = {
   capacity?: number | null
   registrationOpensAt?: string | null
   registrationClosesAt?: string | null
+  managerUserIds?: string[]
+  helperUserIds?: string[]
   managerGroupIds?: string[]
   helperGroupIds?: string[]
   organizerPartyIds?: string[]
@@ -101,6 +103,8 @@ type EventFormFieldsProps = {
   row?: EventFormRow
   venues: VenueOpt[]
   groups: UserGroupOption[]
+  /** Site users for manager/helper checklists. */
+  users?: IdOpt[]
   /** Party options for organizer/speaker/sponsor checklists. */
   parties?: IdOpt[]
   /** Other events for related checklist (exclude self in page). */
@@ -170,6 +174,7 @@ export function EventFormFields({
   row,
   venues,
   groups,
+  users = [],
   parties = [],
   relatedEventOptions = [],
   defaultTimezone,
@@ -326,6 +331,22 @@ export function EventFormFields({
             </span>
           </label>
           <IdChecklistField
+            name="managerUserIdsJson"
+            legend="Manager users"
+            hint="Individual accounts who can manage this event. Grant their group ACL → Events so they can open /admin."
+            options={users}
+            value={row?.managerUserIds ?? []}
+            disabled={busy}
+          />
+          <IdChecklistField
+            name="helperUserIdsJson"
+            legend="Helper users"
+            hint="Helpers share edit rights with managers for now."
+            options={users}
+            value={row?.helperUserIds ?? []}
+            disabled={busy}
+          />
+          <IdChecklistField
             name="managerGroupIdsJson"
             legend="Manager groups"
             hint="Members of these groups can manage this event (beyond app admins)."
@@ -341,8 +362,6 @@ export function EventFormFields({
             value={row?.helperGroupIds ?? []}
             disabled={busy}
           />
-          <input type="hidden" name="managerUserIdsJson" value="[]" />
-          <input type="hidden" name="helperUserIdsJson" value="[]" />
           <IdChecklistField
             name="organizerPartyIdsJson"
             legend="Organizers"

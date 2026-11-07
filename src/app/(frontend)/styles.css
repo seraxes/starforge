@@ -2111,6 +2111,15 @@ button:disabled {
   font-variant-numeric: tabular-nums;
 }
 
+.sf-event-detail-related-list {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
 .sf-events-editor .sf-events-tiers-manager {
   margin: 0;
   padding: 0;

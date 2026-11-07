@@ -9,8 +9,16 @@ import type { StarforgeModule } from '@/core/modules/types'
 import { MODULE_IDS, isCatalogModuleEnabled } from '@/core/settings'
 
 import { listEventPartiesByIds } from '../parties'
-import { EventDetail } from '../public/EventDetail'
-import { findPublishedEventByPublicKey, findVenueById } from '../store'
+import {
+  EventDetail,
+  relatedEventLinksFromRecords,
+} from '../public/EventDetail'
+import { eventPublicPathKey } from '../public/path'
+import {
+  findEventById,
+  findPublishedEventByPublicKey,
+  findVenueById,
+} from '../store'
 import { readEventDetailConfig } from './event-detail-config'
 
 /**
@@ -52,13 +60,29 @@ export const eventDetailModule: StarforgeModule = {
     }
 
     const venue = event.venueId ? await findVenueById(event.venueId) : null
-    const [organizers, speakers, sponsors] = await Promise.all([
+    const [organizers, speakers, sponsors, relatedRows] = await Promise.all([
       listEventPartiesByIds(event.organizerPartyIds),
       listEventPartiesByIds(event.speakerPartyIds),
       listEventPartiesByIds(event.sponsorPartyIds),
+      Promise.all(event.relatedEventIds.map((rid) => findEventById(rid))),
     ])
     const localeRaw = await getLocale()
     const locale = isAppLocale(localeRaw) ? localeRaw : undefined
+    const relatedById = new Map(
+      relatedRows
+        .filter((r): r is NonNullable<typeof r> => Boolean(r) && r.status === 'published')
+        .filter((r) => canSeeNavAccessTags(r.accessTags, viewer))
+        .map((r) => [r.id, r]),
+    )
+    const relatedEvents = relatedEventLinksFromRecords(
+      event.relatedEventIds,
+      relatedById,
+      (rel) =>
+        withLocalePrefix(
+          `/events/${encodeURIComponent(eventPublicPathKey(rel))}`,
+          locale,
+        ),
+    )
 
     return React.createElement(EventDetail, {
       event,
@@ -67,6 +91,7 @@ export const eventDetailModule: StarforgeModule = {
       organizers,
       speakers,
       sponsors,
+      relatedEvents,
       listHref: cfg.showBackLink
         ? withLocalePrefix('/events', locale)
         : undefined,

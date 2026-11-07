@@ -40,10 +40,17 @@ type EventRow = {
 
 type VenueOpt = { id: string; name: string }
 
-function eventsListHref(status: string, scope: 'all' | 'mine'): string {
+function eventsListHref(opts: {
+  status: string
+  scope: 'all' | 'mine'
+  organizer?: string
+}): string {
   const parts = [
-    status && status !== 'all' ? `status=${encodeURIComponent(status)}` : '',
-    scope === 'mine' ? 'scope=mine' : '',
+    opts.status && opts.status !== 'all'
+      ? `status=${encodeURIComponent(opts.status)}`
+      : '',
+    opts.scope === 'mine' ? 'scope=mine' : '',
+    opts.organizer ? `organizer=${encodeURIComponent(opts.organizer)}` : '',
   ].filter(Boolean)
   return parts.length ? `/admin/events?${parts.join('&')}` : '/admin/events'
 }
@@ -55,6 +62,8 @@ type Props = {
   defaultTimezone: string
   statusFilter: string
   scopeFilter?: 'all' | 'mine'
+  organizerFilter?: string
+  organizerOptions?: { id: string; label: string }[]
   /** Site Settings → Modules → Rich editor gate. */
   richEditorEnabled?: boolean
 }
@@ -96,6 +105,8 @@ export function EventsManager({
   defaultTimezone,
   statusFilter,
   scopeFilter = 'all',
+  organizerFilter = '',
+  organizerOptions = [],
   richEditorEnabled = true,
 }: Props) {
   const router = useRouter()
@@ -120,6 +131,21 @@ export function EventsManager({
   }, [createState, deleteState, router])
 
   const busy = createPending || deletePending
+  const href = (next: {
+    status?: string
+    scope?: 'all' | 'mine'
+    organizer?: string | null
+  }) =>
+    eventsListHref({
+      status: next.status ?? statusFilter,
+      scope: next.scope ?? scopeFilter,
+      organizer:
+        next.organizer === null
+          ? undefined
+          : next.organizer !== undefined
+            ? next.organizer
+            : organizerFilter || undefined,
+    })
 
   return (
     <div className="sf-events-manager admin-settings-mosaic">
@@ -127,7 +153,7 @@ export function EventsManager({
         <h3>Filter</h3>
         <div className="admin-inline-actions" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
           <Link
-            href={eventsListHref('all', scopeFilter)}
+            href={href({ status: 'all' })}
             className={
               statusFilter === 'all' ? 'gantry-btn gantry-btn-primary' : 'gantry-btn'
             }
@@ -137,7 +163,7 @@ export function EventsManager({
           {EVENT_STATUSES.map((s) => (
             <Link
               key={s}
-              href={eventsListHref(s, scopeFilter)}
+              href={href({ status: s })}
               className={
                 statusFilter === s ? 'gantry-btn gantry-btn-primary' : 'gantry-btn'
               }
@@ -151,7 +177,7 @@ export function EventsManager({
           style={{ flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}
         >
           <Link
-            href={eventsListHref(statusFilter, 'all')}
+            href={href({ scope: 'all' })}
             className={
               scopeFilter === 'all' ? 'gantry-btn gantry-btn-primary' : 'gantry-btn'
             }
@@ -159,7 +185,7 @@ export function EventsManager({
             All events
           </Link>
           <Link
-            href={eventsListHref(statusFilter, 'mine')}
+            href={href({ scope: 'mine' })}
             className={
               scopeFilter === 'mine' ? 'gantry-btn gantry-btn-primary' : 'gantry-btn'
             }
@@ -168,6 +194,34 @@ export function EventsManager({
             Managed by me
           </Link>
         </div>
+        {organizerOptions.length > 0 ? (
+          <div
+            className="admin-inline-actions"
+            style={{ flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}
+          >
+            <Link
+              href={href({ organizer: null })}
+              className={
+                !organizerFilter ? 'gantry-btn gantry-btn-primary' : 'gantry-btn'
+              }
+            >
+              All organizers
+            </Link>
+            {organizerOptions.map((org) => (
+              <Link
+                key={org.id}
+                href={href({ organizer: org.id })}
+                className={
+                  organizerFilter === org.id
+                    ? 'gantry-btn gantry-btn-primary'
+                    : 'gantry-btn'
+                }
+              >
+                {org.label}
+              </Link>
+            ))}
+          </div>
+        ) : null}
       </section>
 
       <section className="outlines-create" aria-label="Create event">

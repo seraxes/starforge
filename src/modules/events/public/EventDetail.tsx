@@ -3,6 +3,14 @@ import Link from 'next/link'
 
 import type { EventPartyRecord, EventRecord } from '../types'
 import { formatEventWhen } from './format'
+import { eventPublicPathKey } from './path'
+
+export type RelatedEventLink = {
+  id: string
+  title: string
+  slug: string
+  href: string
+}
 
 export type EventDetailProps = {
   event: Pick<
@@ -22,6 +30,7 @@ export type EventDetailProps = {
   organizers?: EventPartyRecord[]
   speakers?: EventPartyRecord[]
   sponsors?: EventPartyRecord[]
+  relatedEvents?: RelatedEventLink[]
   /** Locale-aware list href for back link. */
   listHref?: string
   className?: string
@@ -69,7 +78,7 @@ function PartyList({
 }
 
 /**
- * Public / particle event detail — schedule, venue, parties, ICS, description.
+ * Public / particle event detail — schedule, venue, parties, related, ICS, description.
  */
 export function EventDetail({
   event,
@@ -78,6 +87,7 @@ export function EventDetail({
   organizers = [],
   speakers = [],
   sponsors = [],
+  relatedEvents = [],
   listHref,
   className = '',
 }: EventDetailProps) {
@@ -125,6 +135,18 @@ export function EventDetail({
       <PartyList label="Organizers" parties={organizers} />
       <PartyList label="Speakers" parties={speakers} />
       <PartyList label="Sponsors" parties={sponsors} />
+      {relatedEvents.length > 0 ? (
+        <section className="sf-event-detail-related" aria-label="Related events">
+          <h2 className="sf-event-detail-parties-heading">Related events</h2>
+          <ul className="sf-event-detail-related-list">
+            {relatedEvents.map((rel) => (
+              <li key={rel.id}>
+                <Link href={rel.href}>{rel.title}</Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
       {event.description.trim() ? (
         <div
           className="sf-event-detail-description sf-rich-html"
@@ -133,4 +155,28 @@ export function EventDetail({
       ) : null}
     </article>
   )
+}
+
+/** Build related links preserving order of `relatedEventIds`. */
+export function relatedEventLinksFromRecords(
+  ids: string[],
+  byId: Map<string, Pick<EventRecord, 'id' | 'title' | 'slug'>>,
+  hrefFor: (event: Pick<EventRecord, 'id' | 'slug'>) => string,
+): RelatedEventLink[] {
+  const out: RelatedEventLink[] = []
+  for (const id of ids) {
+    const row = byId.get(id)
+    if (!row) continue
+    out.push({
+      id: row.id,
+      title: row.title,
+      slug: row.slug,
+      href: hrefFor(row),
+    })
+  }
+  return out
+}
+
+export function relatedHrefKey(event: Pick<EventRecord, 'id' | 'slug'>): string {
+  return eventPublicPathKey(event)
 }

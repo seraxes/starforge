@@ -7,6 +7,7 @@ import { ensureDefaultUserGroupsSeeded, listUserGroupOptions } from '@/core/acl'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { isRichEditorEnabled } from '@/modules/rich-editor/api.server'
 
+import { listEventParties } from '../parties'
 import { loadEventsModuleSettings } from '../settings'
 import { listEvents, listVenues, viewerIsAssignedToEvent } from '../store'
 import { isEventStatus } from '../types'
@@ -18,7 +19,7 @@ export const metadata = {
   description: 'Events list and edit (Events module).',
 }
 
-type Search = Promise<{ status?: string; scope?: string }>
+type Search = Promise<{ status?: string; scope?: string; organizer?: string }>
 
 /** product:events events admin. */
 export default async function EventsListPage({ searchParams }: { searchParams: Search }) {
@@ -32,20 +33,25 @@ export default async function EventsListPage({ searchParams }: { searchParams: S
   const status =
     rawStatus === 'all' || isEventStatus(rawStatus) ? rawStatus : 'all'
   const scope = (params.scope ?? '').trim() === 'mine' ? 'mine' : 'all'
+  const organizerId = (params.organizer ?? '').trim()
 
   await ensureDefaultUserGroupsSeeded()
   const viewer = await getAccessViewer()
-  const [eventsRaw, venues, groups, moduleSettings] = await Promise.all([
+  const [eventsRaw, venues, groups, moduleSettings, parties] = await Promise.all([
     listEvents({ status: status === 'all' ? undefined : status }),
     listVenues(),
     listUserGroupOptions(),
     loadEventsModuleSettings(),
+    listEventParties(),
   ])
 
-  const events =
-    scope === 'mine'
-      ? eventsRaw.filter((e) => viewerIsAssignedToEvent(e, viewer))
-      : eventsRaw
+  let events = eventsRaw
+  if (scope === 'mine') {
+    events = events.filter((e) => viewerIsAssignedToEvent(e, viewer))
+  }
+  if (organizerId) {
+    events = events.filter((e) => e.organizerPartyIds.includes(organizerId))
+  }
 
   return (
     <section className="admin-section admin-layouts-full">
@@ -61,6 +67,8 @@ export default async function EventsListPage({ searchParams }: { searchParams: S
       <EventsManager
         statusFilter={status}
         scopeFilter={scope}
+        organizerFilter={organizerId}
+        organizerOptions={parties.map((p) => ({ id: p.id, label: p.name }))}
         defaultTimezone={moduleSettings.settings.defaultTimezone}
         richEditorEnabled={isRichEditorEnabled(settings)}
         groups={groups}

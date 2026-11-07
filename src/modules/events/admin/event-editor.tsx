@@ -36,6 +36,7 @@ type Props = {
   event: EventFormRow & { id: string; updatedAt: string }
   venues: VenueOpt[]
   groups: UserGroupOption[]
+  users: IdOpt[]
   parties: IdOpt[]
   relatedEventOptions: IdOpt[]
   defaultTimezone: string
@@ -67,6 +68,7 @@ export function EventEditor({
   event,
   venues,
   groups,
+  users,
   parties,
   relatedEventOptions,
   defaultTimezone,
@@ -122,6 +124,7 @@ export function EventEditor({
             row={event}
             venues={venues}
             groups={groups}
+            users={users}
             parties={parties}
             relatedEventOptions={relatedEventOptions}
             defaultTimezone={defaultTimezone}
