@@ -148,7 +148,7 @@ export function PartiesManager({ parties }: Props) {
       <section className="outlines-create" aria-label="Create party">
         <h3>Add party</h3>
         <p className="settings-hint">
-          Lightweight profiles for organizers, speakers, and sponsors — link them from each
+          Lightweight profiles for organizers and sponsors — link them from each
           event editor.
         </p>
         <form action={createAction} className="outlines-create-form admin-create-form">

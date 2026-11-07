@@ -99,6 +99,17 @@ export function EventDetail({
   const classes = ['sf-event-detail', className].filter(Boolean).join(' ')
   const when = formatEventWhen(event.startsAt, event.endsAt, event.timezone)
   const icsHref = `/api/events/${encodeURIComponent(event.slug || event.id)}/ics`
+  // Speakers fold into Organizers until role labels are editable.
+  const organizerParties = (() => {
+    const seen = new Set<string>()
+    const out: EventPartyRecord[] = []
+    for (const p of [...organizers, ...speakers]) {
+      if (seen.has(p.id)) continue
+      seen.add(p.id)
+      out.push(p)
+    }
+    return out
+  })()
 
   return (
     <article className={classes}>
@@ -147,8 +158,7 @@ export function EventDetail({
           ))}
         </ul>
       ) : null}
-      <PartyList label="Organizers" parties={organizers} />
-      <PartyList label="Speakers" parties={speakers} />
+      <PartyList label="Organizers" parties={organizerParties} />
       <PartyList label="Sponsors" parties={sponsors} />
       {relatedEvents.length > 0 ? (
         <section className="sf-event-detail-related" aria-label="Related events">

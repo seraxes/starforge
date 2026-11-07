@@ -102,53 +102,58 @@ export function EventEditor({
       router.push(`/admin/events/${dupState.id}`)
       return
     }
-    if (updateState.ok) router.refresh()
+    if (updateState.ok) {
+      if (updateState.after === 'save') {
+        router.push('/admin/events')
+        return
+      }
+      router.refresh()
+    }
   }, [updateState, deleteState, dupState, router])
 
   const busy = updatePending || deletePending || dupPending
   const formId = `event-edit-${event.id}`
 
   return (
-    <div className="sf-events-editor admin-settings-mosaic">
-      <section className="outlines-create" aria-label="Event details">
-        <h3>Event</h3>
-        <p className="settings-hint">
-          Updated{' '}
-          {Number.isNaN(new Date(event.updatedAt).getTime())
-            ? '—'
-            : `${new Date(event.updatedAt).toISOString().replace('T', ' ').slice(0, 16)} UTC`}
-          . Sections: Basics → Gallery → Schedule → Registration → People → Visibility.
-        </p>
-        <form
-          id={formId}
-          action={updateAction}
-          className="outlines-create-form admin-create-form"
-        >
-          <input type="hidden" name="id" value={event.id} />
-          <EventFormFields
-            key={`${event.id}-${event.updatedAt}`}
-            row={event}
-            venues={venues}
-            groups={groups}
-            users={users}
-            parties={parties}
-            relatedEventOptions={relatedEventOptions}
-            defaultTimezone={defaultTimezone}
-            busy={busy}
-            richEditorEnabled={richEditorEnabled}
-          />
-        </form>
-        <Feedback state={updateState} />
-        <Feedback state={dupState} />
-      </section>
+    <div className="sf-events-editor sf-events-form-mosaic">
+      <div className="sf-events-form-mosaic-intro settings-hint">
+        <strong>Apply</strong> saves and stays · <strong>Save</strong> saves and returns to
+        the list · <strong>Cancel</strong> discards. Updated{' '}
+        {Number.isNaN(new Date(event.updatedAt).getTime())
+          ? '—'
+          : `${new Date(event.updatedAt).toISOString().replace('T', ' ').slice(0, 16)} UTC`}
+        .
+      </div>
 
-      <section className="outlines-create" aria-label="Ticket types">
+      <form id={formId} action={updateAction} className="sf-events-form-mosaic-form">
+        <input type="hidden" name="id" value={event.id} />
+        <EventFormFields
+          key={`${event.id}-${event.updatedAt}`}
+          row={event}
+          venues={venues}
+          groups={groups}
+          users={users}
+          parties={parties}
+          relatedEventOptions={relatedEventOptions}
+          defaultTimezone={defaultTimezone}
+          busy={busy}
+          richEditorEnabled={richEditorEnabled}
+        />
+      </form>
+
+      <Feedback state={updateState} />
+      <Feedback state={dupState} />
+
+      <section
+        className="outlines-create sf-events-form-section-wide"
+        aria-label="Ticket types"
+      >
         <h3>Ticket types</h3>
         <p className="settings-hint">
           Add and edit this event’s ticket / faction slots here (EB-style, under the event).
           Cross-event shortcut:{' '}
           <Link href={`/admin/events/tiers?eventId=${encodeURIComponent(event.id)}`}>
-            Events → Tiers
+            Events → Ticket types
           </Link>
           .
         </p>
@@ -173,14 +178,41 @@ export function EventEditor({
         </div>
       </section>
 
-      <div className="admin-action-row">
+      <div className="sf-events-form-actions admin-action-row">
+        <Link
+          href="/admin/events"
+          className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+          onClick={(e) => {
+            if (
+              !window.confirm(
+                'Discard unsaved changes and return to the events list?',
+              )
+            ) {
+              e.preventDefault()
+            }
+          }}
+        >
+          Cancel
+        </Link>
         <button
           type="submit"
           form={formId}
-          className="gantry-toolbar-btn gantry-toolbar-btn-save"
+          name="after"
+          value="save"
+          className="gantry-toolbar-btn gantry-toolbar-btn-muted"
           disabled={busy}
         >
           {updatePending ? 'Saving…' : 'Save'}
+        </button>
+        <button
+          type="submit"
+          form={formId}
+          name="after"
+          value="apply"
+          className="gantry-toolbar-btn gantry-toolbar-btn-save"
+          disabled={busy}
+        >
+          {updatePending ? 'Applying…' : 'Apply'}
         </button>
         <form action={dupAction}>
           <input type="hidden" name="id" value={event.id} />

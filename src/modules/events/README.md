@@ -4,7 +4,7 @@ Events + venues + registration + ticket tiers + parties (`sf_venues` / `sf_event
 
 ## Shipped
 
-- Admin: list → `/admin/events/[id]` editor (stacked sections, Save / Duplicate / Delete)
+- Admin: list (Add+ collapsed → filters → EB-style table) → `/admin/events/[id]` card mosaic (Apply / Save / Cancel)
 - Venues, parties, ticket tiers, registrants, module settings
 - Registration window (`registrationOpensAt` / `ClosesAt`), prevent-duplicate setting
 - Public list/detail, shared Forms definition `event-registration` (edit fields under **Forms → Events**), Email Manager trigger
@@ -23,10 +23,6 @@ Events + venues + registration + ticket tiers + parties (`sf_venues` / `sf_event
 | Gate | Intent |
 | --- | --- |
 | **Association / team / club** | Later — membership source on `AccessViewer` (new tag kind or enriched `groupIds`); no Events-only UI until that source exists |
-
-### UX
-
-- Shorter create path / progressive disclosure if the full form feels heavy on the list page
 
 ### Organizer ops
 

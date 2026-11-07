@@ -4,7 +4,7 @@
 
 import 'server-only'
 
-import { and, asc, desc, eq, ne, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, ne, sql } from 'drizzle-orm'
 
 import { db } from '@/core/db'
 
@@ -100,6 +100,51 @@ export async function countRegisteredGuests(eventId: string): Promise<number> {
   } catch {
     return 0
   }
+}
+
+export type EventRegistrationListStats = {
+  registered: number
+  waitlisted: number
+}
+
+/** Batch guest totals for the admin events table (registered + waitlisted). */
+export async function countRegistrationStatsForEvents(
+  eventIds: string[],
+): Promise<Map<string, EventRegistrationListStats>> {
+  const map = new Map<string, EventRegistrationListStats>()
+  const ids = [...new Set(eventIds.map((id) => id.trim()).filter(Boolean))]
+  for (const id of ids) {
+    map.set(id, { registered: 0, waitlisted: 0 })
+  }
+  if (ids.length === 0) return map
+
+  try {
+    const rows = await db
+      .select({
+        eventId: sfEventRegistrations.eventId,
+        status: sfEventRegistrations.status,
+        n: sql<number>`coalesce(sum(${sfEventRegistrations.guests}), 0)`,
+      })
+      .from(sfEventRegistrations)
+      .where(
+        and(
+          inArray(sfEventRegistrations.eventId, ids),
+          inArray(sfEventRegistrations.status, ['registered', 'waitlisted']),
+        ),
+      )
+      .groupBy(sfEventRegistrations.eventId, sfEventRegistrations.status)
+
+    for (const row of rows) {
+      const cur = map.get(row.eventId) ?? { registered: 0, waitlisted: 0 }
+      const n = Number(row.n) || 0
+      if (row.status === 'waitlisted') cur.waitlisted = n
+      else if (row.status === 'registered') cur.registered = n
+      map.set(row.eventId, cur)
+    }
+  } catch {
+    /* empty stats */
+  }
+  return map
 }
 
 export type CreateRegistrationInput = {

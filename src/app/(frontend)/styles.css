@@ -2177,7 +2177,6 @@ button:disabled {
 .sf-events-venues-manager .outlines-create > .admin-action-row,
 .sf-events-tiers-manager .outlines-create > .admin-action-row,
 .sf-events-parties-manager .outlines-create > .admin-action-row,
-.sf-events-editor > .admin-action-row,
 .sf-events-list-item > .admin-action-row {
   display: flex;
   flex-wrap: wrap;
@@ -2191,15 +2190,188 @@ button:disabled {
 .sf-events-venues-manager .outlines-create > .admin-action-row > form,
 .sf-events-tiers-manager .outlines-create > .admin-action-row > form,
 .sf-events-parties-manager .outlines-create > .admin-action-row > form,
-.sf-events-editor > .admin-action-row > form,
 .sf-events-list-item > .admin-action-row > form {
   display: inline-flex;
   margin: 0;
 }
 
-.sf-events-manager .sf-events-form-section,
-.sf-events-editor .sf-events-form-section {
-  margin: 0 0 1rem;
+/* Events list: collapsed Add + disclosure above filters / list */
+.sf-events-add-panel > .sf-events-add-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1rem;
+  margin: 0.85rem;
+}
+
+.sf-events-add-hint {
+  margin: 0;
+  flex: 1 1 12rem;
+}
+
+.sf-events-add-form.sf-events-form-mosaic {
+  margin: 0 0.85rem 0.85rem;
+  width: auto;
+  grid-column: auto;
+}
+
+/*
+ * Event create + editor: same card mosaic.
+ * Desktop max 2 cards / row; mobile strict single column.
+ */
+.sf-events-form-mosaic {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+  align-items: stretch;
+  grid-column: 1 / -1;
+}
+
+.sf-events-form-mosaic-form {
+  display: contents;
+}
+
+.sf-events-form-mosaic > .settings-fieldset,
+.sf-events-form-mosaic > .outlines-create,
+.sf-events-form-mosaic > .sf-events-form-actions,
+.sf-events-form-mosaic > .sf-events-form-mosaic-intro,
+.sf-events-form-mosaic > .admin-inline-error,
+.sf-events-form-mosaic > .admin-inline-ok {
+  margin: 0;
+  min-width: 0;
+  width: 100%;
+  align-self: stretch;
+}
+
+.sf-events-form-mosaic > .sf-events-form-section-wide,
+.sf-events-form-mosaic > .sf-events-form-actions,
+.sf-events-form-mosaic > .sf-events-form-mosaic-intro,
+.sf-events-form-mosaic > .admin-inline-error,
+.sf-events-form-mosaic > .admin-inline-ok {
+  grid-column: 1 / -1;
+}
+
+.sf-events-form-mosaic > .sf-events-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sf-admin-btn-gap, 0.55rem);
+}
+
+.sf-events-form-mosaic > .sf-events-form-actions > form {
+  display: inline-flex;
+  margin: 0;
+}
+
+.sf-events-form-mosaic-intro {
+  margin: 0;
+}
+
+.sf-events-editor .sf-events-tiers-manager {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+@media (max-width: 720px) {
+  .sf-events-form-mosaic {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sf-events-form-mosaic > .settings-fieldset,
+  .sf-events-form-mosaic > .outlines-create,
+  .sf-events-form-mosaic > .sf-events-form-section-wide {
+    grid-column: 1 / -1;
+  }
+}
+
+/* People / related: chip + typeahead */
+.sf-events-id-chips {
+  list-style: none;
+  margin: 0 0 0.45rem;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.sf-events-id-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: 100%;
+  padding: 0.2rem 0.35rem 0.2rem 0.55rem;
+  border: 1px solid var(--sf-admin-panel-border, var(--sf-line, rgba(0, 0, 0, 0.14)));
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--sf-admin-panel, #fff) 88%, var(--sf-ink, #111));
+  font-size: 0.85rem;
+  line-height: 1.3;
+}
+
+.sf-events-id-chip > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sf-events-id-chip-remove {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0 0.2rem;
+  font-size: 1rem;
+  line-height: 1;
+  opacity: 0.7;
+}
+
+.sf-events-id-chip-remove:hover:not(:disabled) {
+  opacity: 1;
+}
+
+.sf-events-id-suggest-input-wrap {
+  position: relative;
+}
+
+.sf-events-id-suggest-menu {
+  position: absolute;
+  z-index: 20;
+  left: 0;
+  right: 0;
+  top: calc(100% + 2px);
+  margin: 0;
+  padding: 0.25rem 0;
+  list-style: none;
+  max-height: 12rem;
+  overflow: auto;
+  background: var(--sf-admin-panel, #fff);
+  border: 1px solid var(--sf-admin-panel-border, var(--sf-line, rgba(0, 0, 0, 0.14)));
+  border-radius: 3px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+
+.sf-events-id-suggest-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0.4rem 0.65rem;
+  font: inherit;
+}
+
+.sf-events-id-suggest-option:hover {
+  background: color-mix(in srgb, var(--sf-admin-panel-head, #2f3d50) 18%, transparent);
 }
 
 .sf-events-gallery-list {
@@ -2224,30 +2396,38 @@ button:disabled {
   word-break: break-all;
 }
 
-.sf-events-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+.sf-events-list-table-wrap {
+  overflow-x: auto;
+  margin: 0 0 0.35rem;
 }
 
-.sf-events-list-item {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.65rem 0;
-  border-bottom: 1px solid var(--sf-line, rgba(0, 0, 0, 0.12));
+.sf-events-list-table {
+  width: 100%;
+  min-width: 52rem;
 }
 
-.sf-events-list-main {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  min-width: 0;
+.sf-events-list-table th,
+.sf-events-list-table td {
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.sf-events-list-table td:first-child {
+  white-space: normal;
+  min-width: 10rem;
+  font-weight: 600;
+}
+
+.sf-events-list-num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.sf-events-list-table thead .sf-events-list-num,
+.sf-events-list-table th:nth-child(4),
+.sf-events-list-table th:nth-child(5),
+.sf-events-list-table th:nth-child(6) {
+  text-align: right;
 }
 
 .sf-events-list-title {
@@ -2258,6 +2438,41 @@ button:disabled {
 
 .sf-events-list-title:hover {
   text-decoration: underline;
+}
+
+.sf-events-list-row-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sf-admin-btn-gap, 0.45rem);
+  margin: 0;
+}
+
+.sf-events-list-row-actions > form {
+  display: inline-flex;
+  margin: 0;
+}
+
+.sf-events-status-pill {
+  display: inline-block;
+  padding: 0.12rem 0.45rem;
+  border-radius: 3px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: lowercase;
+  border: 1px solid var(--sf-admin-panel-border, var(--sf-line, rgba(0, 0, 0, 0.14)));
+  background: color-mix(in srgb, var(--sf-admin-panel, #fff) 90%, var(--sf-ink, #111));
+}
+
+.sf-events-status-published {
+  border-color: color-mix(in srgb, #2f9e6b 55%, var(--sf-admin-panel-border, #ccc));
+  background: color-mix(in srgb, #2f9e6b 16%, var(--sf-admin-panel, #fff));
+}
+
+.sf-events-status-draft,
+.sf-events-status-cancelled {
+  opacity: 0.85;
 }
 
 .sf-events-editor-back {
@@ -2305,14 +2520,6 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-}
-
-.sf-events-editor .sf-events-tiers-manager {
-  margin: 0;
-  padding: 0;
-  background: transparent;
-  border: 0;
-  box-shadow: none;
 }
 
 .sf-events-manager .page-settings-actions,

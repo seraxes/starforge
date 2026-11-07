@@ -270,60 +270,134 @@ type EventFormFieldsProps = {
   richEditorEnabled: boolean
 }
 
-/** Checkbox multi-select writing a hidden JSON id list. */
-export function IdChecklistField({
+function labelForId(options: IdOpt[], id: string): string {
+  return options.find((o) => o.id === id)?.label ?? id
+}
+
+/**
+ * Chip + typeahead multi-id picker (writes hidden JSON).
+ * Type to filter, Enter / click to add, × to remove.
+ */
+export function IdSuggestField({
   name,
-  legend,
+  label,
   hint,
   options,
   value,
   disabled,
+  placeholder = 'Type to add…',
 }: {
   name: string
-  legend: string
+  label: string
   hint?: string
   options: IdOpt[]
   value: string[]
   disabled?: boolean
+  placeholder?: string
 }) {
   const [selected, setSelected] = useState(() => [...value])
+  const [query, setQuery] = useState('')
+  const [open, setOpen] = useState(false)
+
+  const q = query.trim().toLowerCase()
+  const available = options.filter((o) => !selected.includes(o.id))
+  const matches =
+    q.length === 0
+      ? available.slice(0, 8)
+      : available
+          .filter(
+            (o) =>
+              o.label.toLowerCase().includes(q) || o.id.toLowerCase().includes(q),
+          )
+          .slice(0, 8)
+
+  function add(id: string) {
+    if (!id || selected.includes(id)) return
+    setSelected((prev) => [...prev, id])
+    setQuery('')
+    setOpen(false)
+  }
+
+  function remove(id: string) {
+    setSelected((prev) => prev.filter((x) => x !== id))
+  }
 
   return (
-    <fieldset className="settings-field nav-access-tags">
-      <legend>{legend}</legend>
+    <div className="settings-field sf-events-id-suggest">
+      <span>{label}</span>
       {hint ? <p className="settings-hint">{hint}</p> : null}
-      <div className="nav-access-tag-list">
-        {options.length === 0 ? (
-          <span className="settings-hint">No options yet.</span>
-        ) : (
-          options.map((opt) => {
-            const checked = selected.includes(opt.id)
-            return (
-              <label key={opt.id} className="outlines-check">
-                <input
-                  type="checkbox"
-                  disabled={disabled}
-                  checked={checked}
-                  onChange={(e) => {
-                    setSelected((prev) =>
-                      e.target.checked
-                        ? [...prev, opt.id]
-                        : prev.filter((id) => id !== opt.id),
-                    )
-                  }}
-                />
-                <span>{opt.label}</span>
-              </label>
-            )
-          })
-        )}
+      {selected.length > 0 ? (
+        <ul className="sf-events-id-chips" aria-label={label}>
+          {selected.map((id) => (
+            <li key={id} className="sf-events-id-chip">
+              <span title={id}>{labelForId(options, id)}</span>
+              <button
+                type="button"
+                className="sf-events-id-chip-remove"
+                disabled={disabled}
+                aria-label={`Remove ${labelForId(options, id)}`}
+                onClick={() => remove(id)}
+              >
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <div className="sf-events-id-suggest-input-wrap">
+        <input
+          type="text"
+          value={query}
+          disabled={disabled || available.length === 0}
+          autoComplete="off"
+          placeholder={
+            available.length === 0
+              ? selected.length > 0
+                ? 'All options added'
+                : 'No options yet'
+              : placeholder
+          }
+          onChange={(e) => {
+            setQuery(e.target.value)
+            setOpen(true)
+          }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => {
+            // Allow click on suggestion before closing.
+            window.setTimeout(() => setOpen(false), 120)
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              if (matches[0]) add(matches[0].id)
+            } else if (e.key === 'Escape') {
+              setOpen(false)
+            }
+          }}
+        />
+        {open && matches.length > 0 ? (
+          <ul className="sf-events-id-suggest-menu" role="listbox">
+            {matches.map((opt) => (
+              <li key={opt.id} role="option">
+                <button
+                  type="button"
+                  className="sf-events-id-suggest-option"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => add(opt.id)}
+                >
+                  {opt.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </div>
       <input type="hidden" name={name} value={JSON.stringify(selected)} />
-    </fieldset>
+    </div>
   )
 }
 
-/** Shared create/edit fields for an event — sectioned for scanability. */
+/** Shared create/edit fields — mosaic cards (same layout create + edit). */
 export function EventFormFields({
   row,
   venues,
@@ -337,7 +411,7 @@ export function EventFormFields({
 }: EventFormFieldsProps) {
   return (
     <>
-      <fieldset className="settings-fieldset sf-events-form-section">
+      <fieldset className="settings-fieldset sf-events-form-section sf-events-form-section-wide">
         <legend>Basics</legend>
         <label className="settings-field">
           <span>Title</span>
@@ -499,71 +573,68 @@ export function EventFormFields({
       <fieldset className="settings-fieldset sf-events-form-section">
         <legend>People</legend>
         <p className="settings-hint">
-          Managers/helpers need Events ACL to open /admin. Parties are public-facing profiles
-          (Events → Parties).
+          Type to add. Managers need Events ACL. Organizers / sponsors are party profiles
+          (Events → Parties). Role labels become editable later.
         </p>
-        <IdChecklistField
+        <IdSuggestField
           name="managerUserIdsJson"
-          legend="Manager users"
+          label="Managers"
           options={users}
           value={row?.managerUserIds ?? []}
           disabled={busy}
+          placeholder="Add user…"
         />
-        <IdChecklistField
-          name="helperUserIdsJson"
-          legend="Helper users"
-          hint="Helpers share edit rights with managers for now."
-          options={users}
-          value={row?.helperUserIds ?? []}
-          disabled={busy}
-        />
-        <IdChecklistField
+        <IdSuggestField
           name="managerGroupIdsJson"
-          legend="Manager groups"
+          label="Manager groups"
           options={groups.map((g) => ({ id: g.id, label: g.label || g.id }))}
           value={row?.managerGroupIds ?? []}
           disabled={busy}
+          placeholder="Add group…"
         />
-        <IdChecklistField
+        {/* Helpers kept in schema; UI folded into managers for less noise. */}
+        <input
+          type="hidden"
+          name="helperUserIdsJson"
+          value={JSON.stringify(row?.helperUserIds ?? [])}
+        />
+        <input
+          type="hidden"
           name="helperGroupIdsJson"
-          legend="Helper groups"
-          options={groups.map((g) => ({ id: g.id, label: g.label || g.id }))}
-          value={row?.helperGroupIds ?? []}
-          disabled={busy}
+          value={JSON.stringify(row?.helperGroupIds ?? [])}
         />
-        <IdChecklistField
+        <IdSuggestField
           name="organizerPartyIdsJson"
-          legend="Organizers"
+          label="Organizers"
           hint={
             parties.length === 0
               ? 'Create parties under Events → Parties first.'
-              : 'Associations / teams / clubs linked to this event.'
+              : 'Public-facing organizers (includes former Speakers).'
           }
           options={parties}
-          value={row?.organizerPartyIds ?? []}
+          value={Array.from(
+            new Set([...(row?.organizerPartyIds ?? []), ...(row?.speakerPartyIds ?? [])]),
+          )}
           disabled={busy}
+          placeholder="Add organizer…"
         />
-        <IdChecklistField
-          name="speakerPartyIdsJson"
-          legend="Speakers"
-          options={parties}
-          value={row?.speakerPartyIds ?? []}
-          disabled={busy}
-        />
-        <IdChecklistField
+        {/* Speakers folded into Organizers — column kept for later renameable roles. */}
+        <input type="hidden" name="speakerPartyIdsJson" value="[]" />
+        <IdSuggestField
           name="sponsorPartyIdsJson"
-          legend="Sponsors"
+          label="Sponsors"
           options={parties}
           value={row?.sponsorPartyIds ?? []}
           disabled={busy}
+          placeholder="Add sponsor…"
         />
-        <IdChecklistField
+        <IdSuggestField
           name="relatedEventIdsJson"
-          legend="Related events"
-          hint="Series / see-also links."
+          label="Related events"
           options={relatedEventOptions}
           value={row?.relatedEventIds ?? []}
           disabled={busy}
+          placeholder="Add related event…"
         />
       </fieldset>
 

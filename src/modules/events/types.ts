@@ -111,4 +111,6 @@ export type EventsAdminActionState = {
   ok?: boolean
   message?: string
   id?: string
+  /** Post-save UX: apply → stay/open editor; save → back to list default. */
+  after?: 'apply' | 'save'
 }

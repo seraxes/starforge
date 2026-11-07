@@ -240,6 +240,11 @@ export async function geocodeVenueAction(
 
 /* ─── Events ─────────────────────────────────────────────────────────────── */
 
+function parseAfterIntent(formData: FormData): 'apply' | 'save' {
+  const raw = String(formData.get('after') ?? 'save').trim().toLowerCase()
+  return raw === 'apply' ? 'apply' : 'save'
+}
+
 export async function createEventAction(
   _prev: EventsAdminActionState,
   formData: FormData,
@@ -247,6 +252,7 @@ export async function createEventAction(
   const denied = await requireEventsAdmin()
   if (denied) return denied
 
+  const after = parseAfterIntent(formData)
   const result = await createEvent(eventFieldsFromForm(formData))
   if ('error' in result) return { error: result.error }
   revalidateEventsAdmin(result.event.id)
@@ -254,6 +260,7 @@ export async function createEventAction(
     ok: true,
     message: `Event “${result.event.title}” created.`,
     id: result.event.id,
+    after,
   }
 }
 
@@ -265,6 +272,7 @@ export async function updateEventAction(
   const denied = await requireEventEditor(id)
   if (denied) return denied
 
+  const after = parseAfterIntent(formData)
   const result = await updateEvent({
     id,
     ...eventFieldsFromForm(formData),
@@ -275,6 +283,7 @@ export async function updateEventAction(
     ok: true,
     message: `Event “${result.event.title}” saved.`,
     id: result.event.id,
+    after,
   }
 }
 

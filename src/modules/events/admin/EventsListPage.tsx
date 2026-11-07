@@ -8,6 +8,7 @@ import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/sett
 import { isRichEditorEnabled } from '@/modules/rich-editor/api.server'
 
 import { listEventParties } from '../parties'
+import { countRegistrationStatsForEvents } from '../registrations'
 import { loadEventsModuleSettings } from '../settings'
 import { listEvents, listVenues, viewerIsAssignedToEvent } from '../store'
 import { isEventStatus } from '../types'
@@ -55,15 +56,17 @@ export default async function EventsListPage({ searchParams }: { searchParams: S
     events = events.filter((e) => e.organizerPartyIds.includes(organizerId))
   }
 
+  const venueNameById = new Map(venues.map((v) => [v.id, v.name] as const))
+  const regStats = await countRegistrationStatsForEvents(events.map((e) => e.id))
+
   return (
     <section className="admin-section admin-layouts-full">
       <EventsAdminNav active="events" />
       <h2>Events</h2>
       <p className="lede admin-lede">
-        Create with the full form below, or open an event for tiers and registrants. Module
-        on/off: <Link href="/admin/settings">Settings → Modules</Link>. Venues:{' '}
-        <Link href="/admin/events/venues">Events → Venues</Link>. Parties:{' '}
-        <Link href="/admin/events/parties">Events → Parties</Link>.
+        <strong>Add +</strong> for a new event · filters · EB-style list. Open a row to edit
+        tiers and registrants. Module on/off:{' '}
+        <Link href="/admin/settings">Settings → Modules</Link>.
       </p>
 
       <EventsManager
@@ -77,27 +80,34 @@ export default async function EventsListPage({ searchParams }: { searchParams: S
         users={users}
         parties={parties.map((p) => ({ id: p.id, label: p.name }))}
         venues={venues.map((v) => ({ id: v.id, name: v.name }))}
-        events={events.map((e) => ({
-          id: e.id,
-          title: e.title,
-          slug: e.slug,
-          status: e.status,
-          startsAt: e.startsAt ? e.startsAt.toISOString() : null,
-          endsAt: e.endsAt ? e.endsAt.toISOString() : null,
-          timezone: e.timezone,
-          venueId: e.venueId,
-          description: e.description,
-          coverMediaId: e.coverMediaId,
-          capacity: e.capacity,
-          registrationOpensAt: e.registrationOpensAt
-            ? e.registrationOpensAt.toISOString()
-            : null,
-          registrationClosesAt: e.registrationClosesAt
-            ? e.registrationClosesAt.toISOString()
-            : null,
-          accessTags: e.accessTags,
-          updatedAt: e.updatedAt.toISOString(),
-        }))}
+        events={events.map((e) => {
+          const stats = regStats.get(e.id) ?? { registered: 0, waitlisted: 0 }
+          return {
+            id: e.id,
+            title: e.title,
+            slug: e.slug,
+            status: e.status,
+            startsAt: e.startsAt ? e.startsAt.toISOString() : null,
+            endsAt: e.endsAt ? e.endsAt.toISOString() : null,
+            timezone: e.timezone,
+            venueId: e.venueId,
+            venueName: e.venueId ? venueNameById.get(e.venueId) ?? '' : '',
+            description: e.description,
+            coverMediaId: e.coverMediaId,
+            capacity: e.capacity,
+            registrationOpensAt: e.registrationOpensAt
+              ? e.registrationOpensAt.toISOString()
+              : null,
+            registrationClosesAt: e.registrationClosesAt
+              ? e.registrationClosesAt.toISOString()
+              : null,
+            listed: e.listed !== false,
+            accessTags: e.accessTags,
+            registeredGuests: stats.registered,
+            waitlistedGuests: stats.waitlisted,
+            updatedAt: e.updatedAt.toISOString(),
+          }
+        })}
       />
     </section>
   )
