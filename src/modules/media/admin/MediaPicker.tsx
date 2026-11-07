@@ -1,6 +1,14 @@
 'use client'
 
-import React, { useCallback, useEffect, useId, useState, useTransition } from 'react'
+import React, {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  useTransition,
+} from 'react'
+import { createPortal } from 'react-dom'
 
 import {
   listMediaAction,
@@ -78,6 +86,14 @@ export function MediaPicker({
   const [uploadState, setUploadState] = useState<MediaActionState>(emptyUploadState)
   const [uploading, setUploading] = useState(false)
   const [showUrl, setShowUrl] = useState(Boolean(value.url && !value.mediaId))
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null)
+  const uploadRootRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setPortalTarget(
+      (document.querySelector('.admin-shell') as HTMLElement | null) || document.body,
+    )
+  }, [])
 
   const categoryOptions = flattenCategoryOptions(categoryTree)
   const defaultCategoryId =
@@ -165,6 +181,21 @@ export function MediaPicker({
     }
   }
 
+  function submitUpload() {
+    const root = uploadRootRef.current
+    if (!root) return
+    const formData = new FormData()
+    root.querySelectorAll<HTMLInputElement>('input[name]').forEach((input) => {
+      if (input.type === 'file') {
+        const file = input.files?.[0]
+        if (file) formData.set(input.name, file)
+        return
+      }
+      formData.set(input.name, input.value)
+    })
+    void onUpload(formData)
+  }
+
   const previewSrc = value.url || (value.mediaId ? `/api/media/${value.mediaId}` : '')
   const uploadCategory =
     category !== 'all' ? category : defaultCategoryId
@@ -247,139 +278,162 @@ export function MediaPicker({
         <input type="hidden" name={mediaUrlName} value={value.url ?? ''} />
       ) : null}
 
-      {open ? (
-        <div className="sf-media-picker-modal" role="dialog" aria-modal="true" aria-labelledby={titleId}>
-          <div className="sf-media-picker-dialog">
-            <header className="sf-media-picker-dialog-head">
-              <h3 id={titleId}>Media library</h3>
-              <button type="button" className="gantry-toolbar-btn gantry-toolbar-btn-muted" onClick={() => setOpen(false)}>
-                Close
-              </button>
-            </header>
-
-            <div className="sf-media-picker-toolbar">
-              <label>
-                <span className="sr-only">Folder</span>
-                <select value={category} onChange={(e) => setCategory(e.target.value)}>
-                  <option value="all">All folders</option>
-                  {categoryOptions.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {'\u00A0'.repeat(c.depth * 2)}
-                      {c.title}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                <span className="sr-only">Purpose</span>
-                <select value={purpose} onChange={(e) => setPurpose(e.target.value)}>
-                  <option value="all">All purposes</option>
-                  {MEDIA_PURPOSES.map((p) => (
-                    <option key={p.value} value={p.value}>
-                      {p.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                <span className="sr-only">Tag</span>
-                <select
-                  value={tag}
-                  onChange={(e) => setTag(e.target.value)}
-                  disabled={tagOptions.length === 0}
-                >
-                  <option value="all">All tags</option>
-                  {tagOptions.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.title}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="sf-media-picker-search">
-                <span className="sr-only">Search</span>
-                <input
-                  type="search"
-                  value={q}
-                  placeholder="Search alt / filename"
-                  onChange={(e) => setQ(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      refresh()
-                    }
-                  }}
-                />
-              </label>
-              <button type="button" className="gantry-toolbar-btn gantry-toolbar-btn-muted" onClick={refresh} disabled={pending}>
-                Refresh
-              </button>
-            </div>
-
-            <form className="sf-media-picker-upload" action={onUpload}>
-              <input type="hidden" name="category" value={uploadCategory} />
-              <input type="hidden" name="folder" value={defaultFolder} />
-              <input type="hidden" name="purpose" value={defaultPurpose} />
-              {tag !== 'all' ? <input type="hidden" name="tag" value={tag} /> : null}
-              <MediaFileField disabled={disabled || uploading || pending} />
-              <label className="settings-field">
-                <span>Alt</span>
-                <input
-                  type="text"
-                  name="alt"
-                  placeholder="Describe the image"
-                  disabled={disabled || uploading}
-                  autoComplete="off"
-                />
-              </label>
-              <button
-                type="submit"
-                className="gantry-toolbar-btn gantry-toolbar-btn-save"
-                disabled={disabled || uploading || pending}
-              >
-                {uploading ? 'Uploading…' : 'Upload'}
-              </button>
-              {uploadState.error ? (
-                <p className="form-error" role="alert">
-                  {uploadState.error}
-                </p>
-              ) : null}
-            </form>
-
-            {error ? (
-              <p className="form-error" role="alert">
-                {error}
-              </p>
-            ) : null}
-
-            <div className="sf-media-picker-grid" data-pending={pending ? '1' : '0'}>
-              {docs.length === 0 && !pending ? (
-                <p className="layout-muted">No media yet — upload above or in CMS → Media.</p>
-              ) : null}
-              {docs.map((doc) => {
-                const selected = String(value.mediaId) === doc.id
-                const thumb = doc.sizes?.thumbnail || doc.url
-                return (
+      {open && portalTarget
+        ? createPortal(
+            <div
+              className="sf-media-picker-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby={titleId}
+            >
+              <div className="sf-media-picker-dialog">
+                <header className="sf-media-picker-dialog-head">
+                  <h3 id={titleId}>Media library</h3>
                   <button
-                    key={doc.id}
                     type="button"
-                    className={`sf-media-picker-tile${selected ? ' is-selected' : ''}`}
-                    onClick={() => selectDoc(doc)}
+                    className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+                    onClick={() => setOpen(false)}
                   >
-                    {thumb ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={thumb} alt={doc.alt || doc.filename || 'Media'} />
-                    ) : (
-                      <span className="sf-media-picker-tile-fallback">{doc.filename || doc.id}</span>
-                    )}
-                    <span className="sf-media-picker-tile-cap">{doc.alt || doc.filename || doc.id}</span>
+                    Close
                   </button>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-      ) : null}
+                </header>
+
+                <div className="sf-media-picker-toolbar">
+                  <label>
+                    <span className="sr-only">Folder</span>
+                    <select value={category} onChange={(e) => setCategory(e.target.value)}>
+                      <option value="all">All folders</option>
+                      {categoryOptions.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {'\u00A0'.repeat(c.depth * 2)}
+                          {c.title}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    <span className="sr-only">Purpose</span>
+                    <select value={purpose} onChange={(e) => setPurpose(e.target.value)}>
+                      <option value="all">All purposes</option>
+                      {MEDIA_PURPOSES.map((p) => (
+                        <option key={p.value} value={p.value}>
+                          {p.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    <span className="sr-only">Tag</span>
+                    <select
+                      value={tag}
+                      onChange={(e) => setTag(e.target.value)}
+                      disabled={tagOptions.length === 0}
+                    >
+                      <option value="all">All tags</option>
+                      {tagOptions.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.title}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="sf-media-picker-search">
+                    <span className="sr-only">Search</span>
+                    <input
+                      type="search"
+                      value={q}
+                      placeholder="Search alt / filename"
+                      onChange={(e) => setQ(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          refresh()
+                        }
+                      }}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+                    onClick={refresh}
+                    disabled={pending}
+                  >
+                    Refresh
+                  </button>
+                </div>
+
+                {/* Div (not form) so picker can sit inside admin create forms without nesting. */}
+                <div className="sf-media-picker-upload" ref={uploadRootRef}>
+                  <input type="hidden" name="category" value={uploadCategory} />
+                  <input type="hidden" name="folder" value={defaultFolder} />
+                  <input type="hidden" name="purpose" value={defaultPurpose} />
+                  {tag !== 'all' ? <input type="hidden" name="tag" value={tag} /> : null}
+                  <MediaFileField disabled={disabled || uploading || pending} />
+                  <label className="settings-field">
+                    <span>Alt</span>
+                    <input
+                      type="text"
+                      name="alt"
+                      placeholder="Describe the image"
+                      disabled={disabled || uploading}
+                      autoComplete="off"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className="gantry-toolbar-btn gantry-toolbar-btn-save"
+                    disabled={disabled || uploading || pending}
+                    onClick={submitUpload}
+                  >
+                    {uploading ? 'Uploading…' : 'Upload'}
+                  </button>
+                  {uploadState.error ? (
+                    <p className="form-error" role="alert">
+                      {uploadState.error}
+                    </p>
+                  ) : null}
+                </div>
+
+                {error ? (
+                  <p className="form-error" role="alert">
+                    {error}
+                  </p>
+                ) : null}
+
+                <div className="sf-media-picker-grid" data-pending={pending ? '1' : '0'}>
+                  {docs.length === 0 && !pending ? (
+                    <p className="layout-muted">No media yet — upload above or in CMS → Media.</p>
+                  ) : null}
+                  {docs.map((doc) => {
+                    const selected = String(value.mediaId) === doc.id
+                    const thumb = doc.sizes?.thumbnail || doc.url
+                    return (
+                      <button
+                        key={doc.id}
+                        type="button"
+                        className={`sf-media-picker-tile${selected ? ' is-selected' : ''}`}
+                        onClick={() => selectDoc(doc)}
+                      >
+                        {thumb ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={thumb} alt={doc.alt || doc.filename || 'Media'} />
+                        ) : (
+                          <span className="sf-media-picker-tile-fallback">
+                            {doc.filename || doc.id}
+                          </span>
+                        )}
+                        <span className="sf-media-picker-tile-cap">
+                          {doc.alt || doc.filename || doc.id}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>,
+            portalTarget,
+          )
+        : null}
     </div>
   )
 }

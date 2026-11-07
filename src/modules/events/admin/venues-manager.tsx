@@ -55,7 +55,7 @@ function formatUpdated(iso: string) {
   try {
     const d = new Date(iso)
     if (Number.isNaN(d.getTime()) || d.getTime() === 0) return '—'
-    return d.toLocaleString()
+    return d.toISOString().replace('T', ' ').slice(0, 16) + ' UTC'
   } catch {
     return '—'
   }

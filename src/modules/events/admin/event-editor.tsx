@@ -112,7 +112,12 @@ export function EventEditor({
     <div className="sf-events-editor admin-settings-mosaic">
       <section className="outlines-create" aria-label="Event details">
         <h3>Basics & schedule</h3>
-        <p className="settings-hint">Updated {new Date(event.updatedAt).toLocaleString()}</p>
+        <p className="settings-hint">
+          Updated{' '}
+          {Number.isNaN(new Date(event.updatedAt).getTime())
+            ? '—'
+            : `${new Date(event.updatedAt).toISOString().replace('T', ' ').slice(0, 16)} UTC`}
+        </p>
         <form
           id={formId}
           action={updateAction}
