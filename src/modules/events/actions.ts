@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 
+import { getAccessViewer } from '@/core/acl/access'
 import { requireAppAdmin } from '@/core/auth/admin'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
@@ -12,23 +13,58 @@ import {
   deleteEvent,
   deleteVenue,
   duplicateEvent,
+  findEventById,
   updateEvent,
   updateVenue,
+  viewerCanManageEvent,
 } from './store'
 import type { EventsAdminActionState } from './types'
 
 export type { EventsAdminActionState }
 
-async function requireEventsAdmin(): Promise<EventsAdminActionState | null> {
-  const admin = await requireAppAdmin()
-  if (!admin) {
-    return { error: 'Sign in as a Starforge app admin to manage Events.' }
-  }
+async function requireEventsModuleOn(): Promise<EventsAdminActionState | null> {
   const settings = await getSiteSettings()
   if (!isCatalogModuleEnabled(settings, MODULE_IDS.events)) {
     return {
       error: 'Events is disabled. Enable it under Settings → Modules.',
     }
+  }
+  return null
+}
+
+/** Global Events admin (venues, parties, settings, create/delete). */
+async function requireEventsAdmin(): Promise<EventsAdminActionState | null> {
+  const admin = await requireAppAdmin()
+  if (!admin) {
+    return { error: 'Sign in as a Starforge app admin to manage Events.' }
+  }
+  return requireEventsModuleOn()
+}
+
+/**
+ * Edit / duplicate one event — app admin or assigned manager/helper.
+ * Callers must still reach /admin (ACL); this gates the write.
+ */
+async function requireEventEditor(
+  eventId: string,
+): Promise<EventsAdminActionState | null> {
+  const moduleOff = await requireEventsModuleOn()
+  if (moduleOff) return moduleOff
+
+  const id = eventId.trim()
+  if (!id) return { error: 'Missing event id.' }
+
+  const admin = await requireAppAdmin()
+  if (admin) return null
+
+  const viewer = await getAccessViewer()
+  if (!viewer.userId) {
+    return { error: 'Sign in to manage this event.' }
+  }
+  const event = await findEventById(id)
+  if (!event) return { error: 'Event not found.' }
+  if (!viewerCanManageEvent(event, viewer)) {
+    return { error: 'You do not have permission to edit this event.' }
   }
   return null
 }
@@ -240,10 +276,10 @@ export async function updateEventAction(
   _prev: EventsAdminActionState,
   formData: FormData,
 ): Promise<EventsAdminActionState> {
-  const denied = await requireEventsAdmin()
+  const id = String(formData.get('id') ?? '').trim()
+  const denied = await requireEventEditor(id)
   if (denied) return denied
 
-  const id = String(formData.get('id') ?? '').trim()
   const result = await updateEvent({
     id,
     ...eventFieldsFromForm(formData),
@@ -274,9 +310,9 @@ export async function duplicateEventAction(
   _prev: EventsAdminActionState,
   formData: FormData,
 ): Promise<EventsAdminActionState> {
-  const denied = await requireEventsAdmin()
-  if (denied) return denied
   const id = String(formData.get('id') ?? '').trim()
+  const denied = await requireEventEditor(id)
+  if (denied) return denied
   const copyTiers = formData.get('copyTiers') !== '0'
   const result = await duplicateEvent(id, { copyTiers })
   if ('error' in result) return { error: result.error }

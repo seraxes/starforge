@@ -46,6 +46,10 @@ type Props = {
   groups: UserGroupOption[]
   defaultTimezone: string
   statusFilter: string
+  scopeFilter?: 'all' | 'mine'
+  scopeHrefAll?: string
+  scopeHrefMine?: string
+  statusHref?: (status: string) => string
   /** Site Settings → Modules → Rich editor gate. */
   richEditorEnabled?: boolean
 }
@@ -86,6 +90,10 @@ export function EventsManager({
   groups,
   defaultTimezone,
   statusFilter,
+  scopeFilter = 'all',
+  scopeHrefAll = '/admin/events',
+  scopeHrefMine = '/admin/events?scope=mine',
+  statusHref,
   richEditorEnabled = true,
 }: Props) {
   const router = useRouter()
@@ -110,24 +118,30 @@ export function EventsManager({
   }, [createState, deleteState, router])
 
   const busy = createPending || deletePending
+  const hrefForStatus = (s: string) =>
+    statusHref
+      ? statusHref(s)
+      : s === 'all'
+        ? '/admin/events'
+        : `/admin/events?status=${encodeURIComponent(s)}`
 
   return (
     <div className="sf-events-manager admin-settings-mosaic">
       <section className="outlines-create" aria-label="Filter events">
-        <h3>Filter by status</h3>
+        <h3>Filter</h3>
         <div className="admin-inline-actions" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
           <Link
-            href="/admin/events"
+            href={hrefForStatus('all')}
             className={
               statusFilter === 'all' ? 'gantry-btn gantry-btn-primary' : 'gantry-btn'
             }
           >
-            All
+            All statuses
           </Link>
           {EVENT_STATUSES.map((s) => (
             <Link
               key={s}
-              href={`/admin/events?status=${encodeURIComponent(s)}`}
+              href={hrefForStatus(s)}
               className={
                 statusFilter === s ? 'gantry-btn gantry-btn-primary' : 'gantry-btn'
               }
@@ -135,6 +149,28 @@ export function EventsManager({
               {s}
             </Link>
           ))}
+        </div>
+        <div
+          className="admin-inline-actions"
+          style={{ flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}
+        >
+          <Link
+            href={scopeHrefAll}
+            className={
+              scopeFilter === 'all' ? 'gantry-btn gantry-btn-primary' : 'gantry-btn'
+            }
+          >
+            All events
+          </Link>
+          <Link
+            href={scopeHrefMine}
+            className={
+              scopeFilter === 'mine' ? 'gantry-btn gantry-btn-primary' : 'gantry-btn'
+            }
+            title="Events where your user or groups are managers/helpers"
+          >
+            Managed by me
+          </Link>
         </div>
       </section>
 

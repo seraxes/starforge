@@ -43,7 +43,9 @@ export async function EventRegistrationForm({ event }: Props) {
     )
   }
 
-  const { definitionId, document } = await loadEventRegistrationFields(event.id)
+  const { definitionId, document } = await loadEventRegistrationFields(event.id, {
+    termsUrl: event.termsUrl,
+  })
   const occupied = await countRegisteredGuests(event.id)
   const remaining =
     typeof event.capacity === 'number' ? Math.max(0, event.capacity - occupied) : null

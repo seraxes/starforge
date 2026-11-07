@@ -44,8 +44,11 @@ export async function ensureEventRegistrationFormSeeded(): Promise<string> {
   }
 }
 
-/** Load definition fields with event_id + optional ticket tier select. */
-export async function loadEventRegistrationFields(eventId: string) {
+/** Load definition fields with event_id + optional ticket tier + terms checkbox. */
+export async function loadEventRegistrationFields(
+  eventId: string,
+  options?: { termsUrl?: string },
+) {
   await ensureEventRegistrationFormSeeded()
   const loaded = await loadFormDefinition(DEFAULT_EVENT_REGISTRATION_FORM_ID)
   const tiers = await listTicketTiersForEvent(eventId)
@@ -56,8 +59,10 @@ export async function loadEventRegistrationFields(eventId: string) {
       : field,
   )
 
-  // Drop stale ticket_tier_id if present in DB definition — we inject fresh options.
-  fields = fields.filter((f) => f.name !== 'ticket_tier_id')
+  // Drop stale injected fields — we re-add fresh options each request.
+  fields = fields.filter(
+    (f) => f.name !== 'ticket_tier_id' && f.name !== 'accept_terms',
+  )
 
   if (tiers.length > 0) {
     const options = await Promise.all(
@@ -96,6 +101,20 @@ export async function loadEventRegistrationFields(eventId: string) {
     } else {
       fields = [tierField, ...fields]
     }
+  }
+
+  const termsUrl = (options?.termsUrl || '').trim()
+  if (termsUrl) {
+    const termsField: FormFieldDef = {
+      id: 'event_accept_terms',
+      name: 'accept_terms',
+      label: 'I agree to the terms & conditions',
+      type: 'checkbox',
+      required: true,
+      description: `Open terms: ${termsUrl}`,
+      defaultValue: '',
+    }
+    fields = [...fields, termsField]
   }
 
   return {

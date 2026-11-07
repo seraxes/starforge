@@ -615,8 +615,8 @@ export async function updateEvent(
   }
 }
 
-/** True when the viewer is a manager/helper (user or group) for this event. */
-export function viewerCanManageEvent(
+/** True when the viewer is listed as manager/helper (ignores app-admin bypass). */
+export function viewerIsAssignedToEvent(
   event: Pick<
     EventRecord,
     | 'managerUserIds'
@@ -626,7 +626,6 @@ export function viewerCanManageEvent(
   >,
   viewer: AccessViewer,
 ): boolean {
-  if (viewer.isAppAdmin) return true
   const uid = (viewer.userId || '').trim()
   if (uid) {
     if (event.managerUserIds.includes(uid) || event.helperUserIds.includes(uid)) {
@@ -639,6 +638,21 @@ export function viewerCanManageEvent(
     event.managerGroupIds.some((g) => groups.includes(g)) ||
     event.helperGroupIds.some((g) => groups.includes(g))
   )
+}
+
+/** True when the viewer may edit this event (app admin or assigned manager/helper). */
+export function viewerCanManageEvent(
+  event: Pick<
+    EventRecord,
+    | 'managerUserIds'
+    | 'helperUserIds'
+    | 'managerGroupIds'
+    | 'helperGroupIds'
+  >,
+  viewer: AccessViewer,
+): boolean {
+  if (viewer.isAppAdmin) return true
+  return viewerIsAssignedToEvent(event, viewer)
 }
 
 /** Duplicate an event as a new draft (optional tier copy). */

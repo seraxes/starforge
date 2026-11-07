@@ -2,12 +2,13 @@ import React from 'react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
+import { getAccessViewer } from '@/core/acl/access'
 import { ensureDefaultUserGroupsSeeded, listUserGroupOptions } from '@/core/acl'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { isRichEditorEnabled } from '@/modules/rich-editor/api.server'
 
 import { loadEventsModuleSettings } from '../settings'
-import { listEvents, listVenues } from '../store'
+import { listEvents, listVenues, viewerIsAssignedToEvent } from '../store'
 import { isEventStatus } from '../types'
 import { EventsAdminNav } from './events-admin-nav'
 import { EventsManager } from './events-manager'
@@ -17,7 +18,7 @@ export const metadata = {
   description: 'Events list and edit (Events module).',
 }
 
-type Search = Promise<{ status?: string }>
+type Search = Promise<{ status?: string; scope?: string }>
 
 /** product:events events admin. */
 export default async function EventsListPage({ searchParams }: { searchParams: Search }) {
@@ -30,27 +31,54 @@ export default async function EventsListPage({ searchParams }: { searchParams: S
   const rawStatus = (params.status ?? 'all').trim() || 'all'
   const status =
     rawStatus === 'all' || isEventStatus(rawStatus) ? rawStatus : 'all'
+  const scope = (params.scope ?? '').trim() === 'mine' ? 'mine' : 'all'
 
   await ensureDefaultUserGroupsSeeded()
-  const [events, venues, groups, moduleSettings] = await Promise.all([
+  const viewer = await getAccessViewer()
+  const [eventsRaw, venues, groups, moduleSettings] = await Promise.all([
     listEvents({ status: status === 'all' ? undefined : status }),
     listVenues(),
     listUserGroupOptions(),
     loadEventsModuleSettings(),
   ])
 
+  const events =
+    scope === 'mine'
+      ? eventsRaw.filter((e) => viewerIsAssignedToEvent(e, viewer))
+      : eventsRaw
+
+  const statusQuery = status === 'all' ? '' : `status=${encodeURIComponent(status)}`
+  const withScope = (nextScope: 'all' | 'mine') => {
+    const parts = [
+      statusQuery,
+      nextScope === 'mine' ? 'scope=mine' : '',
+    ].filter(Boolean)
+    return parts.length ? `/admin/events?${parts.join('&')}` : '/admin/events'
+  }
+
   return (
     <section className="admin-section admin-layouts-full">
       <EventsAdminNav active="events" />
       <h2>Events</h2>
       <p className="lede admin-lede">
-        Create an event, then edit it on its own page (schedule, registration window, tiers).
-        Module on/off: <Link href="/admin/settings">Settings → Modules</Link>. Venues:{' '}
-        <Link href="/admin/events/venues">Events → Venues</Link>.
+        Create an event, then edit it on its own page (schedule, registration window, people,
+        tiers). Module on/off: <Link href="/admin/settings">Settings → Modules</Link>. Venues:{' '}
+        <Link href="/admin/events/venues">Events → Venues</Link>. Parties:{' '}
+        <Link href="/admin/events/parties">Events → Parties</Link>.
       </p>
 
       <EventsManager
         statusFilter={status}
+        scopeFilter={scope}
+        scopeHrefAll={withScope('all')}
+        scopeHrefMine={withScope('mine')}
+        statusHref={(s) => {
+          const parts = [
+            s === 'all' ? '' : `status=${encodeURIComponent(s)}`,
+            scope === 'mine' ? 'scope=mine' : '',
+          ].filter(Boolean)
+          return parts.length ? `/admin/events?${parts.join('&')}` : '/admin/events'
+        }}
         defaultTimezone={moduleSettings.settings.defaultTimezone}
         richEditorEnabled={isRichEditorEnabled(settings)}
         groups={groups}
