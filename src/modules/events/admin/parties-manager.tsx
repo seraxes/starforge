@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useActionState, useEffect } from 'react'
+import React, { useActionState, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { useNotifySavedOnOk } from '@/app/(frontend)/admin/admin-toast'
@@ -46,13 +46,7 @@ function Feedback({ state }: { state: EventsAdminActionState }) {
   return null
 }
 
-function PartyFields({
-  row,
-  busy,
-}: {
-  row?: PartyRow
-  busy: boolean
-}) {
+function PartyFields({ row, busy }: { row?: PartyRow; busy: boolean }) {
   const [avatarMediaId, setAvatarMediaId] = React.useState(row?.avatarMediaId ?? '')
 
   return (
@@ -74,7 +68,7 @@ function PartyFields({
         <select name="kind" defaultValue={row?.kind ?? 'organizer'} disabled={busy}>
           {EVENT_PARTY_KINDS.map((k) => (
             <option key={k} value={k}>
-              {k}
+              {k === 'speaker' ? 'organizer (speaker)' : k}
             </option>
           ))}
         </select>
@@ -120,6 +114,9 @@ function PartyFields({
 
 export function PartiesManager({ parties }: Props) {
   const router = useRouter()
+  const [createOpen, setCreateOpen] = useState(false)
+  const [formKey, setFormKey] = useState(0)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [createState, createAction, createPending] = useActionState(
     createEventPartyAction,
     initial,
@@ -138,32 +135,84 @@ export function PartiesManager({ parties }: Props) {
   useNotifySavedOnOk(deleteState)
 
   useEffect(() => {
-    if (createState.ok || updateState.ok || deleteState.ok) router.refresh()
+    if (createState.ok) {
+      setCreateOpen(false)
+      setFormKey((k) => k + 1)
+      router.refresh()
+      return
+    }
+    if (updateState.ok || deleteState.ok) {
+      if (deleteState.ok) setEditingId(null)
+      router.refresh()
+    }
   }, [createState, updateState, deleteState, router])
 
+  useEffect(() => {
+    if (createState.error) setCreateOpen(true)
+  }, [createState.error])
+
   const busy = createPending || updatePending || deletePending
+  const editing = editingId ? parties.find((p) => p.id === editingId) : null
+
+  function resetCreate() {
+    setCreateOpen(false)
+    setFormKey((k) => k + 1)
+  }
 
   return (
     <div className="sf-events-parties-manager admin-settings-mosaic">
-      <section className="outlines-create" aria-label="Create party">
-        <h3>Add party</h3>
-        <p className="settings-hint">
-          Lightweight profiles for organizers and sponsors — link them from each
-          event editor.
-        </p>
-        <form action={createAction} className="outlines-create-form admin-create-form">
-          <PartyFields busy={busy} />
-          <div className="page-settings-actions">
-            <button
-              type="submit"
-              className="gantry-toolbar-btn gantry-toolbar-btn-save"
-              disabled={createPending}
-            >
-              {createPending ? 'Adding…' : 'Add party'}
-            </button>
-          </div>
-        </form>
-        <Feedback state={createState} />
+      <section className="outlines-create sf-events-add-panel" aria-label="Add party">
+        <div className="sf-events-add-bar">
+          <button
+            type="button"
+            className={`gantry-toolbar-btn${createOpen ? ' gantry-toolbar-btn-muted' : ' gantry-toolbar-btn-save'}`}
+            aria-expanded={createOpen}
+            aria-controls="sf-parties-add-form"
+            onClick={() => {
+              if (createOpen) resetCreate()
+              else {
+                setEditingId(null)
+                setCreateOpen(true)
+              }
+            }}
+          >
+            {createOpen ? 'Close' : 'Add +'}
+          </button>
+          {!createOpen ? (
+            <p className="settings-hint sf-events-add-hint">
+              Organizer / sponsor profiles — link them from each event.
+            </p>
+          ) : null}
+        </div>
+
+        {createOpen ? (
+          <form
+            key={formKey}
+            id="sf-parties-add-form"
+            action={createAction}
+            className="outlines-create-form admin-create-form sf-events-add-inline-form"
+          >
+            <PartyFields busy={busy} />
+            <div className="sf-events-form-actions page-settings-actions">
+              <button
+                type="button"
+                className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+                disabled={createPending}
+                onClick={resetCreate}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="gantry-toolbar-btn gantry-toolbar-btn-save"
+                disabled={createPending}
+              >
+                {createPending ? 'Adding…' : 'Save'}
+              </button>
+            </div>
+            <Feedback state={createState} />
+          </form>
+        ) : null}
       </section>
 
       <Feedback state={updateState} />
@@ -172,52 +221,122 @@ export function PartiesManager({ parties }: Props) {
       {parties.length === 0 ? (
         <section className="outlines-create">
           <h3>No parties yet</h3>
-          <p className="admin-empty">Add an organizer team or speaker above.</p>
+          <p className="admin-empty">
+            Use <strong>Add +</strong> for an organizer or sponsor profile.
+          </p>
         </section>
       ) : (
-        parties.map((row) => (
-          <section
-            key={row.id}
-            className="outlines-create"
-            aria-label={`Edit party ${row.name}`}
-          >
-            <h3>
-              {row.name} <span className="settings-hint">({row.kind})</span>
-            </h3>
-            <form
-              id={`party-edit-${row.id}`}
-              action={updateAction}
-              className="outlines-create-form admin-create-form"
-            >
-              <input type="hidden" name="id" value={row.id} />
-              <PartyFields key={`${row.id}-${row.updatedAt}`} row={row} busy={busy} />
-            </form>
-            <div className="admin-action-row">
-              <button
-                type="submit"
-                form={`party-edit-${row.id}`}
-                className="gantry-toolbar-btn gantry-toolbar-btn-save"
-                disabled={busy}
-              >
-                {updatePending ? 'Saving…' : 'Save'}
-              </button>
-              <form action={deleteAction}>
-                <input type="hidden" name="id" value={row.id} />
-                <button
-                  type="submit"
-                  className="gantry-toolbar-btn gantry-toolbar-btn-danger"
-                  disabled={busy}
-                  onClick={(e) => {
-                    if (!window.confirm(`Delete party “${row.name}”?`)) e.preventDefault()
-                  }}
-                >
-                  {deletePending ? 'Deleting…' : 'Delete'}
-                </button>
-              </form>
-            </div>
-          </section>
-        ))
+        <section className="outlines-create" aria-label="Parties list">
+          <h3>Parties</h3>
+          <div className="outlines-table-wrap sf-events-list-table-wrap">
+            <table className="outlines-table sf-events-list-table">
+              <thead>
+                <tr>
+                  <th scope="col">Name</th>
+                  <th scope="col">Kind</th>
+                  <th scope="col">URL</th>
+                  <th scope="col">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {parties.map((row) => (
+                  <tr
+                    key={row.id}
+                    className={editingId === row.id ? 'is-editing' : undefined}
+                  >
+                    <td>
+                      <button
+                        type="button"
+                        className="sf-events-list-title sf-events-list-title-btn"
+                        onClick={() => {
+                          setCreateOpen(false)
+                          setEditingId((id) => (id === row.id ? null : row.id))
+                        }}
+                      >
+                        {row.name}
+                      </button>
+                    </td>
+                    <td>{row.kind === 'speaker' ? 'organizer' : row.kind}</td>
+                    <td className="sf-events-list-wrap">
+                      {row.url ? (
+                        <a href={row.url} rel="noopener noreferrer">
+                          {row.url}
+                        </a>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                    <td>
+                      <div className="admin-action-row sf-events-list-row-actions">
+                        <button
+                          type="button"
+                          className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+                          onClick={() => {
+                            setCreateOpen(false)
+                            setEditingId((id) => (id === row.id ? null : row.id))
+                          }}
+                        >
+                          {editingId === row.id ? 'Close' : 'Edit'}
+                        </button>
+                        <form action={deleteAction}>
+                          <input type="hidden" name="id" value={row.id} />
+                          <button
+                            type="submit"
+                            className="gantry-toolbar-btn gantry-toolbar-btn-danger"
+                            disabled={busy}
+                            onClick={(e) => {
+                              if (!window.confirm(`Delete party “${row.name}”?`)) {
+                                e.preventDefault()
+                              }
+                            }}
+                          >
+                            {deletePending ? '…' : 'Delete'}
+                          </button>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
+
+      {editing ? (
+        <section
+          className="outlines-create sf-events-inline-editor"
+          aria-label={`Edit party ${editing.name}`}
+        >
+          <h3>Edit · {editing.name}</h3>
+          <form
+            key={`${editing.id}-${editing.updatedAt}`}
+            id={`party-edit-${editing.id}`}
+            action={updateAction}
+            className="outlines-create-form admin-create-form"
+          >
+            <input type="hidden" name="id" value={editing.id} />
+            <PartyFields row={editing} busy={busy} />
+          </form>
+          <div className="admin-action-row">
+            <button
+              type="button"
+              className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+              onClick={() => setEditingId(null)}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form={`party-edit-${editing.id}`}
+              className="gantry-toolbar-btn gantry-toolbar-btn-save"
+              disabled={busy}
+            >
+              {updatePending ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        </section>
+      ) : null}
     </div>
   )
 }

@@ -48,8 +48,7 @@ export default async function EventsRegistrantsPage({
       <EventsAdminNav active="registrants" />
       <h2>Registrants</h2>
       <p className="lede admin-lede">
-        Signup rows from the public event form. Promote waitlisted guests or cancel. Ticket
-        tiers:{' '}
+        Pick an event, then promote waitlist or cancel. Ticket types:{' '}
         <Link
           href={
             eventId
@@ -57,7 +56,7 @@ export default async function EventsRegistrantsPage({
               : '/admin/events/tiers'
           }
         >
-          Events → Tiers
+          Events → Ticket types
         </Link>
         .
       </p>

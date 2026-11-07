@@ -27,9 +27,9 @@ export default async function EventsSettingsPage() {
       <EventsAdminNav active="settings" />
       <h2>Events settings</h2>
       <p className="lede admin-lede">
-        Module knobs stored in <code>sf_module_settings</code> (id <code>product:events</code>).
-        Also linked from <Link href="/admin/settings">Settings → Modules</Link> → Info /
-        Settings. Events list: <Link href="/admin/events">Events → Events</Link>.
+        Defaults, registration form link, and email starter. Module on/off:{' '}
+        <Link href="/admin/settings">Settings → Modules</Link>. List:{' '}
+        <Link href="/admin/events">Events</Link>.
       </p>
       {loaded.isFallback ? (
         <p className="layout-muted">

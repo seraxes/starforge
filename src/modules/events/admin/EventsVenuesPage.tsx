@@ -29,10 +29,10 @@ export default async function EventsVenuesPage() {
       <EventsAdminNav active="venues" />
       <h2>Venues</h2>
       <p className="lede admin-lede">
-        Place entities for events — name, address, lat/lng (or Geocode), Media cover, and ACL
-        tags. Public event detail pins use product:maps when coordinates are set. Module on/off:{' '}
+        <strong>Add +</strong> · table · Edit one venue at a time. Geocode fills lat/lng from
+        address. Module:{' '}
         <Link href="/admin/settings">Settings → Modules</Link>. Events:{' '}
-        <Link href="/admin/events">Events → Events</Link>.
+        <Link href="/admin/events">Events</Link>.
       </p>
 
       <VenuesManager

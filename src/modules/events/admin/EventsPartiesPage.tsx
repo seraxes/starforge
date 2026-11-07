@@ -27,8 +27,8 @@ export default async function EventsPartiesPage() {
       <EventsAdminNav active="parties" />
       <h2>Parties</h2>
       <p className="lede admin-lede">
-        Shared organizer / speaker / sponsor profiles. Attach them on each{' '}
-        <Link href="/admin/events">event</Link> editor. Not a full CRM.
+        <strong>Add +</strong> · table · Edit one profile. Attach organizers / sponsors on each{' '}
+        <Link href="/admin/events">event</Link>. Not a CRM.
       </p>
       <PartiesManager
         parties={parties.map((p) => ({

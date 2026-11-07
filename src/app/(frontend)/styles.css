@@ -2215,6 +2215,57 @@ button:disabled {
   grid-column: auto;
 }
 
+.sf-events-add-inline-form {
+  margin: 0 0.85rem 0.85rem;
+}
+
+.sf-events-list-title-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.sf-events-list-title-btn:hover {
+  text-decoration: underline;
+}
+
+.sf-events-list-wrap {
+  white-space: normal !important;
+  max-width: 18rem;
+  overflow-wrap: anywhere;
+}
+
+.sf-events-list-table tr.is-editing td {
+  background: color-mix(in srgb, var(--sf-admin-panel-head, #2f3d50) 10%, transparent);
+}
+
+.sf-events-inline-editor {
+  grid-column: 1 / -1;
+}
+
+.sf-events-reg-status-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.sf-events-status-waitlisted {
+  border-color: color-mix(in srgb, #c9a227 55%, var(--sf-admin-panel-border, #ccc));
+  background: color-mix(in srgb, #c9a227 16%, var(--sf-admin-panel, #fff));
+}
+
+.sf-events-status-cancelled {
+  opacity: 0.75;
+}
+
 /*
  * Event create + editor: same card mosaic.
  * Desktop max 2 cards / row; mobile strict single column.

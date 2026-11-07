@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useActionState, useEffect } from 'react'
+import React, { useActionState, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { useNotifySavedOnOk } from '@/app/(frontend)/admin/admin-toast'
@@ -51,18 +51,95 @@ function Feedback({ state }: { state: EventsAdminActionState }) {
   return null
 }
 
-function formatUpdated(iso: string) {
-  try {
-    const d = new Date(iso)
-    if (Number.isNaN(d.getTime()) || d.getTime() === 0) return '—'
-    return d.toISOString().replace('T', ' ').slice(0, 16) + ' UTC'
-  } catch {
-    return '—'
-  }
+function formatAccess(tags: string[]): string {
+  if (!tags.length || tags.includes('public')) return 'Public'
+  if (tags.includes('registered')) return 'Registered'
+  const groups = tags.filter((t) => t.startsWith('group:')).length
+  if (groups > 0) return groups === 1 ? '1 group' : `${groups} groups`
+  return tags.join(', ')
+}
+
+function formatCoords(lat: number | null, lng: number | null): string {
+  if (typeof lat !== 'number' || typeof lng !== 'number') return '—'
+  return `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+}
+
+function VenueFormFields({
+  row,
+  groups,
+  busy,
+}: {
+  row?: VenueRow
+  groups: UserGroupOption[]
+  busy: boolean
+}) {
+  return (
+    <>
+      <label className="settings-field">
+        <span>Name</span>
+        <input
+          type="text"
+          name="name"
+          required
+          maxLength={200}
+          defaultValue={row?.name ?? ''}
+          disabled={busy}
+          autoComplete="off"
+          placeholder="Venue name"
+        />
+      </label>
+      <label className="settings-field">
+        <span>Address</span>
+        <input
+          type="text"
+          name="address"
+          maxLength={2000}
+          defaultValue={row?.address ?? ''}
+          disabled={busy}
+          autoComplete="off"
+          placeholder="Street, city, country"
+        />
+      </label>
+      <label className="settings-field">
+        <span>Latitude</span>
+        <input
+          type="number"
+          name="latitude"
+          step="any"
+          min={-90}
+          max={90}
+          defaultValue={row?.latitude ?? ''}
+          disabled={busy}
+        />
+      </label>
+      <label className="settings-field">
+        <span>Longitude</span>
+        <input
+          type="number"
+          name="longitude"
+          step="any"
+          min={-180}
+          max={180}
+          defaultValue={row?.longitude ?? ''}
+          disabled={busy}
+        />
+      </label>
+      <CoverAndAccessFields
+        key={row ? `${row.id}-${row.updatedAt}` : 'new'}
+        coverMediaId={row?.coverMediaId ?? ''}
+        accessTags={row?.accessTags ?? ['public']}
+        groups={groups}
+        disabled={busy}
+      />
+    </>
+  )
 }
 
 export function VenuesManager({ venues, groups }: Props) {
   const router = useRouter()
+  const [createOpen, setCreateOpen] = useState(false)
+  const [formKey, setFormKey] = useState(0)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [createState, createAction, createPending] = useActionState(
     createVenueAction,
     initial,
@@ -86,62 +163,84 @@ export function VenuesManager({ venues, groups }: Props) {
   useNotifySavedOnOk(geocodeState)
 
   useEffect(() => {
-    if (createState.ok || updateState.ok || deleteState.ok || geocodeState.ok) {
+    if (createState.ok) {
+      setCreateOpen(false)
+      setFormKey((k) => k + 1)
+      router.refresh()
+      return
+    }
+    if (updateState.ok || deleteState.ok || geocodeState.ok) {
+      if (deleteState.ok) setEditingId(null)
       router.refresh()
     }
   }, [createState, updateState, deleteState, geocodeState, router])
 
+  useEffect(() => {
+    if (createState.error) setCreateOpen(true)
+  }, [createState.error])
+
   const busy = createPending || updatePending || deletePending || geocodePending
+  const editing = editingId ? venues.find((v) => v.id === editingId) : null
+
+  function resetCreate() {
+    setCreateOpen(false)
+    setFormKey((k) => k + 1)
+  }
 
   return (
     <div className="sf-events-venues-manager admin-settings-mosaic">
-      <section className="outlines-create" aria-label="Create venue">
-        <h3>Add venue</h3>
-        <form action={createAction} className="outlines-create-form admin-create-form">
-          <label className="settings-field">
-            <span>Name</span>
-            <input
-              type="text"
-              name="name"
-              required
-              maxLength={200}
-              autoComplete="off"
-              placeholder="Venue name"
-            />
-          </label>
-          <label className="settings-field">
-            <span>Address</span>
-            <input
-              type="text"
-              name="address"
-              maxLength={2000}
-              autoComplete="off"
-              placeholder="Street, city, country"
-            />
-          </label>
-          <label className="settings-field">
-            <span>Latitude</span>
-            <input type="number" name="latitude" step="any" min={-90} max={90} />
-          </label>
-          <label className="settings-field">
-            <span>Longitude</span>
-            <input type="number" name="longitude" step="any" min={-180} max={180} />
-          </label>
-          <CoverAndAccessFields
-            coverMediaId=""
-            accessTags={['public']}
-            groups={groups}
-            disabled={busy}
-          />
+      <section className="outlines-create sf-events-add-panel" aria-label="Add venue">
+        <div className="sf-events-add-bar">
           <button
-            type="submit"
-            className="gantry-toolbar-btn gantry-toolbar-btn-save"
-            disabled={createPending}
+            type="button"
+            className={`gantry-toolbar-btn${createOpen ? ' gantry-toolbar-btn-muted' : ' gantry-toolbar-btn-save'}`}
+            aria-expanded={createOpen}
+            aria-controls="sf-venues-add-form"
+            onClick={() => {
+              if (createOpen) resetCreate()
+              else {
+                setEditingId(null)
+                setCreateOpen(true)
+              }
+            }}
           >
-            {createPending ? 'Adding…' : 'Add venue'}
+            {createOpen ? 'Close' : 'Add +'}
           </button>
-        </form>
-        <Feedback state={createState} />
+          {!createOpen ? (
+            <p className="settings-hint sf-events-add-hint">
+              Places for events — address, map coords, cover, ACL.
+            </p>
+          ) : null}
+        </div>
+
+        {createOpen ? (
+          <form
+            key={formKey}
+            id="sf-venues-add-form"
+            action={createAction}
+            className="outlines-create-form admin-create-form sf-events-add-inline-form"
+          >
+            <VenueFormFields groups={groups} busy={busy} />
+            <div className="sf-events-form-actions page-settings-actions">
+              <button
+                type="button"
+                className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+                disabled={createPending}
+                onClick={resetCreate}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="gantry-toolbar-btn gantry-toolbar-btn-save"
+                disabled={createPending}
+              >
+                {createPending ? 'Adding…' : 'Save'}
+              </button>
+            </div>
+            <Feedback state={createState} />
+          </form>
+        ) : null}
       </section>
 
       <Feedback state={updateState} />
@@ -151,114 +250,128 @@ export function VenuesManager({ venues, groups }: Props) {
       {venues.length === 0 ? (
         <section className="outlines-create" aria-label="Venues list">
           <h3>No venues yet</h3>
-          <p className="admin-empty">Add one above to bind places to events.</p>
+          <p className="admin-empty">
+            Use <strong>Add +</strong> to create a place for events.
+          </p>
         </section>
       ) : (
-        venues.map((row) => (
-          <section
-            key={row.id}
-            className="outlines-create"
-            aria-label={`Edit venue ${row.name}`}
+        <section className="outlines-create" aria-label="Venues list">
+          <h3>Venues</h3>
+          <div className="outlines-table-wrap sf-events-list-table-wrap">
+            <table className="outlines-table sf-events-list-table">
+              <thead>
+                <tr>
+                  <th scope="col">Name</th>
+                  <th scope="col">Address</th>
+                  <th scope="col">Coords</th>
+                  <th scope="col">Access</th>
+                  <th scope="col">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {venues.map((row) => (
+                  <tr
+                    key={row.id}
+                    className={editingId === row.id ? 'is-editing' : undefined}
+                  >
+                    <td>
+                      <button
+                        type="button"
+                        className="sf-events-list-title sf-events-list-title-btn"
+                        onClick={() => {
+                          setCreateOpen(false)
+                          setEditingId((id) => (id === row.id ? null : row.id))
+                        }}
+                      >
+                        {row.name}
+                      </button>
+                    </td>
+                    <td className="sf-events-list-wrap">{row.address || '—'}</td>
+                    <td className="sf-events-list-num">
+                      {formatCoords(row.latitude, row.longitude)}
+                    </td>
+                    <td>{formatAccess(row.accessTags)}</td>
+                    <td>
+                      <div className="admin-action-row sf-events-list-row-actions">
+                        <button
+                          type="button"
+                          className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+                          onClick={() => {
+                            setCreateOpen(false)
+                            setEditingId((id) => (id === row.id ? null : row.id))
+                          }}
+                        >
+                          {editingId === row.id ? 'Close' : 'Edit'}
+                        </button>
+                        <form action={deleteAction}>
+                          <input type="hidden" name="id" value={row.id} />
+                          <button
+                            type="submit"
+                            className="gantry-toolbar-btn gantry-toolbar-btn-danger"
+                            disabled={busy}
+                            onClick={(e) => {
+                              if (!window.confirm(`Delete venue “${row.name}”?`)) {
+                                e.preventDefault()
+                              }
+                            }}
+                          >
+                            {deletePending ? '…' : 'Delete'}
+                          </button>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {editing ? (
+        <section
+          className="outlines-create sf-events-inline-editor"
+          aria-label={`Edit venue ${editing.name}`}
+        >
+          <h3>Edit · {editing.name}</h3>
+          <form
+            key={`${editing.id}-${editing.updatedAt}`}
+            id={`venue-edit-${editing.id}`}
+            action={updateAction}
+            className="outlines-create-form admin-create-form"
           >
-            <h3>{row.name}</h3>
-            <p className="settings-hint">Updated {formatUpdated(row.updatedAt)}</p>
-            <form
-              id={`venue-edit-${row.id}`}
-              action={updateAction}
-              className="outlines-create-form admin-create-form"
+            <input type="hidden" name="id" value={editing.id} />
+            <VenueFormFields row={editing} groups={groups} busy={busy} />
+          </form>
+          <div className="admin-action-row">
+            <button
+              type="button"
+              className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+              onClick={() => setEditingId(null)}
             >
-              <input type="hidden" name="id" value={row.id} />
-              <label className="settings-field">
-                <span>Name</span>
-                <input
-                  type="text"
-                  name="name"
-                  required
-                  maxLength={200}
-                  defaultValue={row.name}
-                  disabled={busy}
-                />
-              </label>
-              <label className="settings-field">
-                <span>Address</span>
-                <input
-                  type="text"
-                  name="address"
-                  maxLength={2000}
-                  defaultValue={row.address}
-                  disabled={busy}
-                />
-              </label>
-              <label className="settings-field">
-                <span>Latitude</span>
-                <input
-                  type="number"
-                  name="latitude"
-                  step="any"
-                  min={-90}
-                  max={90}
-                  defaultValue={row.latitude ?? ''}
-                  disabled={busy}
-                />
-              </label>
-              <label className="settings-field">
-                <span>Longitude</span>
-                <input
-                  type="number"
-                  name="longitude"
-                  step="any"
-                  min={-180}
-                  max={180}
-                  defaultValue={row.longitude ?? ''}
-                  disabled={busy}
-                />
-              </label>
-              <CoverAndAccessFields
-                key={`${row.id}-${row.updatedAt}`}
-                coverMediaId={row.coverMediaId}
-                accessTags={row.accessTags}
-                groups={groups}
-                disabled={busy}
-              />
-            </form>
-            <div className="admin-action-row">
+              Cancel
+            </button>
+            <form action={geocodeAction}>
+              <input type="hidden" name="id" value={editing.id} />
               <button
                 type="submit"
-                form={`venue-edit-${row.id}`}
-                className="gantry-toolbar-btn gantry-toolbar-btn-save"
+                className="gantry-toolbar-btn gantry-toolbar-btn-muted"
                 disabled={busy}
               >
-                {updatePending ? 'Saving…' : 'Save'}
+                {geocodePending ? 'Geocoding…' : 'Geocode'}
               </button>
-              <form action={geocodeAction}>
-                <input type="hidden" name="id" value={row.id} />
-                <button
-                  type="submit"
-                  className="gantry-toolbar-btn gantry-toolbar-btn-muted"
-                  disabled={busy}
-                >
-                  {geocodePending ? 'Geocoding…' : 'Geocode from address'}
-                </button>
-              </form>
-              <form action={deleteAction}>
-                <input type="hidden" name="id" value={row.id} />
-                <button
-                  type="submit"
-                  className="gantry-toolbar-btn gantry-toolbar-btn-danger"
-                  disabled={busy}
-                  onClick={(e) => {
-                    if (!window.confirm(`Delete venue “${row.name}”?`)) {
-                      e.preventDefault()
-                    }
-                  }}
-                >
-                  {deletePending ? 'Deleting…' : 'Delete'}
-                </button>
-              </form>
-            </div>
-          </section>
-        ))
-      )}
+            </form>
+            <button
+              type="submit"
+              form={`venue-edit-${editing.id}`}
+              className="gantry-toolbar-btn gantry-toolbar-btn-save"
+              disabled={busy}
+            >
+              {updatePending ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        </section>
+      ) : null}
     </div>
   )
 }
