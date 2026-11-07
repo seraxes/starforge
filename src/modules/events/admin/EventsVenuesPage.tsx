@@ -29,8 +29,9 @@ export default async function EventsVenuesPage() {
       <EventsAdminNav active="venues" />
       <h2>Venues</h2>
       <p className="lede admin-lede">
-        Place entities for events — name, address, Media cover, and ACL tags. Maps pins bind
-        later. Module on/off: <Link href="/admin/settings">Settings → Modules</Link>. Events:{' '}
+        Place entities for events — name, address, lat/lng (or Geocode), Media cover, and ACL
+        tags. Public event detail pins use product:maps when coordinates are set. Module on/off:{' '}
+        <Link href="/admin/settings">Settings → Modules</Link>. Events:{' '}
         <Link href="/admin/events">Events → Events</Link>.
       </p>
 
@@ -40,6 +41,8 @@ export default async function EventsVenuesPage() {
           id: v.id,
           name: v.name,
           address: v.address,
+          latitude: v.latitude,
+          longitude: v.longitude,
           coverMediaId: v.coverMediaId,
           accessTags: v.accessTags,
           updatedAt: v.updatedAt.toISOString(),

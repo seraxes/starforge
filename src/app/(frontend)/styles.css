@@ -759,20 +759,32 @@ button:disabled {
   margin-top: 0.5rem;
 }
 
-.cms-richtext {
+.cms-richtext,
+.sf-rich-content,
+.sf-rich-html {
   color: var(--sf-ink);
   font-size: 1.05rem;
   line-height: 1.65;
 }
 
-.cms-richtext > *:first-child {
+.cms-richtext > *:first-child,
+.sf-rich-content > *:first-child,
+.sf-rich-html > *:first-child {
   margin-top: 0;
 }
 
 .cms-richtext h1,
 .cms-richtext h2,
 .cms-richtext h3,
-.cms-richtext h4 {
+.cms-richtext h4,
+.sf-rich-content h1,
+.sf-rich-content h2,
+.sf-rich-content h3,
+.sf-rich-content h4,
+.sf-rich-html h1,
+.sf-rich-html h2,
+.sf-rich-html h3,
+.sf-rich-html h4 {
   font-family: var(--font-display);
   line-height: 1.25;
   margin: 1.6rem 0 0.6rem;
@@ -780,17 +792,29 @@ button:disabled {
 
 .cms-richtext p,
 .cms-richtext ul,
-.cms-richtext ol {
+.cms-richtext ol,
+.sf-rich-content p,
+.sf-rich-content ul,
+.sf-rich-content ol,
+.sf-rich-html p,
+.sf-rich-html ul,
+.sf-rich-html ol {
   margin: 0 0 1rem;
 }
 
-.cms-richtext a {
+.cms-richtext a,
+.sf-rich-content a,
+.sf-rich-html a {
   color: var(--sf-secondary-strong);
   font-weight: 600;
 }
 
 .cms-richtext ul,
-.cms-richtext ol {
+.cms-richtext ol,
+.sf-rich-content ul,
+.sf-rich-content ol,
+.sf-rich-html ul,
+.sf-rich-html ol {
   padding-left: 1.35rem;
 }
 
@@ -799,7 +823,11 @@ button:disabled {
 }
 
 .cms-richtext img,
-.cms-figure img {
+.cms-figure img,
+.sf-rich-content img,
+.sf-rich-content .sf-rich-img,
+.sf-rich-html img,
+.sf-rich-html .sf-rich-img {
   display: block;
   max-width: 100%;
   height: auto;
@@ -810,6 +838,42 @@ button:disabled {
   margin-top: 0.5rem;
   color: var(--sf-muted);
   font-size: 0.92rem;
+}
+
+.sf-rich-content .sf-rich-gallery,
+.sf-rich-html .sf-rich-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  gap: 0.65rem;
+  margin: 1.25rem 0;
+}
+
+.sf-rich-content .sf-rich-gallery img,
+.sf-rich-html .sf-rich-gallery img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border: 1px solid var(--sf-line);
+}
+
+.sf-rich-content .sf-rich-video-embed,
+.sf-rich-html .sf-rich-video-embed {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  margin: 1.25rem 0;
+}
+
+.sf-rich-content .sf-rich-video-embed iframe,
+.sf-rich-content .sf-rich-video-embed video,
+.sf-rich-html .sf-rich-video-embed iframe,
+.sf-rich-html .sf-rich-video-embed video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #0a0a0a;
 }
 
 .cms-not-found {
@@ -1798,6 +1862,185 @@ button:disabled {
 
 .sf-search-empty {
   margin: 0.5rem 0 0;
+}
+
+/* product:events — public /events + event-list / event-detail particles (PR2) */
+.sf-event-list-heading {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+  font-weight: 650;
+}
+
+.sf-event-list-empty,
+.sf-event-detail-empty {
+  margin: 0.5rem 0 0;
+  color: color-mix(in srgb, var(--sf-ink) 72%, var(--sf-paper));
+}
+
+.sf-event-list-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.sf-event-list-item {
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--sf-line);
+}
+
+.sf-event-list-item:last-child {
+  border-bottom: none;
+}
+
+.sf-event-list-cover {
+  flex: 0 0 auto;
+  width: 6rem;
+  height: 4rem;
+  object-fit: cover;
+  border: 1px solid var(--sf-line);
+  background: color-mix(in srgb, var(--sf-secondary) 12%, white);
+}
+
+.sf-event-list-body {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.sf-event-list-title {
+  font-weight: 650;
+  color: var(--sf-ink);
+  text-decoration: none;
+}
+
+.sf-event-list-title:hover {
+  text-decoration: underline;
+}
+
+.sf-event-list-when,
+.sf-event-list-venue,
+.sf-event-detail-when,
+.sf-event-detail-venue,
+.sf-event-detail-capacity {
+  margin: 0.25rem 0 0;
+  font-size: 0.92rem;
+  color: color-mix(in srgb, var(--sf-ink) 75%, var(--sf-paper));
+}
+
+.sf-event-detail-back {
+  margin: 0 0 1rem;
+}
+
+.sf-event-detail-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.65rem;
+}
+
+.sf-event-detail-cover {
+  display: block;
+  width: 100%;
+  max-width: 48rem;
+  height: auto;
+  margin: 1rem 0;
+  border: 1px solid var(--sf-line);
+  object-fit: cover;
+}
+
+.sf-event-detail-description {
+  margin: 1rem 0 0;
+  max-width: 48rem;
+  line-height: 1.55;
+}
+
+.sf-event-venue-map {
+  margin: 1.5rem 0 0;
+  max-width: 48rem;
+}
+
+.sf-event-venue-map-heading,
+.sf-map-particle-heading {
+  margin: 0 0 0.65rem;
+  font-size: 1.15rem;
+  font-weight: 650;
+}
+
+.sf-map-view-canvas {
+  width: 100%;
+  border: 1px solid var(--sf-line);
+  border-radius: 2px;
+  z-index: 0;
+}
+
+.sf-map-empty {
+  margin: 0.5rem 0 0;
+}
+
+.sf-event-registration {
+  margin: 2rem 0 0;
+  max-width: 36rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--sf-line);
+}
+
+.sf-event-registration-heading {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 650;
+}
+
+.sf-event-registration-meta {
+  margin: 0 0 0.85rem;
+}
+
+/*
+ * Events cards: one field per row (vertical stack).
+ * Card actions (Save + Delete / Geocode) share one bottom-right admin-action-row.
+ */
+.sf-events-manager .outlines-create-form.admin-create-form,
+.sf-events-venues-manager .outlines-create-form.admin-create-form,
+.sf-events-tiers-manager .outlines-create-form.admin-create-form {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.sf-events-manager .outlines-create-form.admin-create-form > .settings-field,
+.sf-events-venues-manager .outlines-create-form.admin-create-form > .settings-field,
+.sf-events-tiers-manager .outlines-create-form.admin-create-form > .settings-field {
+  margin-bottom: 0;
+}
+
+.sf-events-manager .outlines-create > .admin-action-row,
+.sf-events-venues-manager .outlines-create > .admin-action-row,
+.sf-events-tiers-manager .outlines-create > .admin-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sf-admin-btn-gap, 0.55rem);
+  margin-top: 0.55rem;
+}
+
+.sf-events-manager .outlines-create > .admin-action-row > form,
+.sf-events-venues-manager .outlines-create > .admin-action-row > form,
+.sf-events-tiers-manager .outlines-create > .admin-action-row > form {
+  display: inline-flex;
+  margin: 0;
+}
+
+.sf-events-manager .page-settings-actions,
+.admin-settings-mosaic.sf-events-settings .page-settings-actions,
+.sf-events-settings-form .page-settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sf-admin-btn-gap, 0.55rem);
+  justify-content: flex-end;
+  width: 100%;
+  margin-top: 0.55rem;
 }
 
 .sf-search-results-meta {

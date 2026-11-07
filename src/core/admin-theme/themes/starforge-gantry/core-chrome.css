@@ -3422,3 +3422,162 @@ body:has(.admin-shell) > main {
 .admin-shell .env-editor-expiry {
   margin: 0;
 }
+
+/* product:rich-editor (TipTap) */
+.admin-shell .sf-rich-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  width: 100%;
+}
+
+.admin-shell .sf-rich-editor-label {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--sf-admin-text);
+}
+
+.admin-shell .sf-rich-editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.admin-shell .sf-rich-editor-btn {
+  min-height: 2rem;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--sf-admin-border);
+  background: color-mix(in srgb, var(--sf-secondary) 10%, var(--sf-admin-surface));
+  color: var(--sf-admin-text);
+  border-radius: var(--sf-admin-btn-radius);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.admin-shell .sf-rich-editor-btn:hover:not(:disabled) {
+  border-color: var(--sf-admin-accent, var(--sf-secondary));
+}
+
+.admin-shell .sf-rich-editor-btn.is-active {
+  background: color-mix(in srgb, var(--sf-secondary) 28%, var(--sf-admin-surface));
+  border-color: var(--sf-secondary);
+}
+
+.admin-shell .sf-rich-editor-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.admin-shell .sf-rich-editor-media {
+  border: 1px solid var(--sf-admin-border);
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--sf-admin-btn-radius);
+  background: color-mix(in srgb, var(--sf-secondary) 6%, var(--sf-admin-surface));
+}
+
+.admin-shell .sf-rich-editor-surface {
+  border: var(--sf-admin-module-border-width) solid var(--sf-admin-module-border-color);
+  border-radius: var(--sf-admin-btn-radius);
+  background: color-mix(in srgb, var(--sf-secondary) 4%, var(--sf-admin-surface));
+  min-height: 10rem;
+}
+
+.admin-shell .sf-rich-editor-prose {
+  min-height: 9rem;
+  padding: 0.75rem 0.9rem;
+  outline: none;
+  color: var(--sf-admin-text);
+  line-height: 1.55;
+}
+
+.admin-shell .sf-rich-editor-prose p {
+  margin: 0 0 0.75rem;
+}
+
+.admin-shell .sf-rich-editor-prose h1,
+.admin-shell .sf-rich-editor-prose h2,
+.admin-shell .sf-rich-editor-prose h3,
+.admin-shell .sf-rich-editor-prose h4 {
+  margin: 0.85rem 0 0.45rem;
+  line-height: 1.25;
+}
+
+.admin-shell .sf-rich-editor-prose img,
+.admin-shell .sf-rich-editor-prose .sf-rich-img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0.75rem 0;
+}
+
+.admin-shell .sf-rich-editor-prose p.is-editor-empty:first-child::before {
+  color: color-mix(in srgb, var(--sf-admin-text) 45%, transparent);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+.admin-shell .sf-rich-editor[data-disabled='1'] .sf-rich-editor-surface {
+  opacity: 0.65;
+}
+
+.admin-shell .sf-rich-editor-mode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.admin-shell .sf-rich-editor-color {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.admin-shell .sf-rich-editor-color select {
+  min-height: 2rem;
+  border: 1px solid var(--sf-admin-border);
+  background: color-mix(in srgb, var(--sf-secondary) 10%, var(--sf-admin-surface));
+  color: var(--sf-admin-text);
+  border-radius: var(--sf-admin-btn-radius);
+}
+
+.admin-shell .sf-rich-editor-html-hint {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+}
+
+.admin-shell .sf-rich-editor-cm {
+  min-height: 220px;
+}
+
+.admin-shell .sf-rich-editor-fallback textarea {
+  width: 100%;
+  min-height: 10rem;
+  padding: 0.65rem 0.75rem;
+  border: var(--sf-admin-module-border-width) solid var(--sf-admin-module-border-color);
+  border-radius: var(--sf-admin-btn-radius);
+  background: color-mix(in srgb, var(--sf-secondary) 4%, var(--sf-admin-surface));
+  color: var(--sf-admin-text);
+}
+
+.admin-shell .sf-rich-editor-fallback-hint {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.admin-shell .sf-rich-editor-prose .sf-rich-callout {
+  margin: 0.75rem 0;
+  padding: 0.65rem 0.85rem;
+  border-left: 4px solid var(--sf-secondary);
+  background: color-mix(in srgb, var(--sf-secondary) 12%, var(--sf-admin-surface));
+}
+
+.admin-shell .sf-rich-editor-prose .sf-rich-callout-warning {
+  border-left-color: #e0a03d;
+}
+
+.admin-shell .sf-rich-editor-prose .sf-rich-callout-success {
+  border-left-color: #2f9e64;
+}

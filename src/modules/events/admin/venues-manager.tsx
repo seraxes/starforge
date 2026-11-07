@@ -9,6 +9,7 @@ import type { UserGroupOption } from '@/core/acl/types'
 import {
   createVenueAction,
   deleteVenueAction,
+  geocodeVenueAction,
   updateVenueAction,
   type EventsAdminActionState,
 } from '../actions'
@@ -18,6 +19,8 @@ type VenueRow = {
   id: string
   name: string
   address: string
+  latitude: number | null
+  longitude: number | null
   coverMediaId: string
   accessTags: string[]
   updatedAt: string
@@ -72,18 +75,23 @@ export function VenuesManager({ venues, groups }: Props) {
     deleteVenueAction,
     initial,
   )
+  const [geocodeState, geocodeAction, geocodePending] = useActionState(
+    geocodeVenueAction,
+    initial,
+  )
 
   useNotifySavedOnOk(createState)
   useNotifySavedOnOk(updateState)
   useNotifySavedOnOk(deleteState)
+  useNotifySavedOnOk(geocodeState)
 
   useEffect(() => {
-    if (createState.ok || updateState.ok || deleteState.ok) {
+    if (createState.ok || updateState.ok || deleteState.ok || geocodeState.ok) {
       router.refresh()
     }
-  }, [createState, updateState, deleteState, router])
+  }, [createState, updateState, deleteState, geocodeState, router])
 
-  const busy = createPending || updatePending || deletePending
+  const busy = createPending || updatePending || deletePending || geocodePending
 
   return (
     <div className="sf-events-venues-manager admin-settings-mosaic">
@@ -111,6 +119,14 @@ export function VenuesManager({ venues, groups }: Props) {
               placeholder="Street, city, country"
             />
           </label>
+          <label className="settings-field">
+            <span>Latitude</span>
+            <input type="number" name="latitude" step="any" min={-90} max={90} />
+          </label>
+          <label className="settings-field">
+            <span>Longitude</span>
+            <input type="number" name="longitude" step="any" min={-180} max={180} />
+          </label>
           <CoverAndAccessFields
             coverMediaId=""
             accessTags={['public']}
@@ -130,6 +146,7 @@ export function VenuesManager({ venues, groups }: Props) {
 
       <Feedback state={updateState} />
       <Feedback state={deleteState} />
+      <Feedback state={geocodeState} />
 
       {venues.length === 0 ? (
         <section className="outlines-create" aria-label="Venues list">
@@ -145,7 +162,11 @@ export function VenuesManager({ venues, groups }: Props) {
           >
             <h3>{row.name}</h3>
             <p className="settings-hint">Updated {formatUpdated(row.updatedAt)}</p>
-            <form action={updateAction} className="outlines-create-form admin-create-form">
+            <form
+              id={`venue-edit-${row.id}`}
+              action={updateAction}
+              className="outlines-create-form admin-create-form"
+            >
               <input type="hidden" name="id" value={row.id} />
               <label className="settings-field">
                 <span>Name</span>
@@ -168,6 +189,30 @@ export function VenuesManager({ venues, groups }: Props) {
                   disabled={busy}
                 />
               </label>
+              <label className="settings-field">
+                <span>Latitude</span>
+                <input
+                  type="number"
+                  name="latitude"
+                  step="any"
+                  min={-90}
+                  max={90}
+                  defaultValue={row.latitude ?? ''}
+                  disabled={busy}
+                />
+              </label>
+              <label className="settings-field">
+                <span>Longitude</span>
+                <input
+                  type="number"
+                  name="longitude"
+                  step="any"
+                  min={-180}
+                  max={180}
+                  defaultValue={row.longitude ?? ''}
+                  disabled={busy}
+                />
+              </label>
               <CoverAndAccessFields
                 key={`${row.id}-${row.updatedAt}`}
                 coverMediaId={row.coverMediaId}
@@ -175,31 +220,42 @@ export function VenuesManager({ venues, groups }: Props) {
                 groups={groups}
                 disabled={busy}
               />
-              <div className="admin-inline-actions">
-                <button
-                  type="submit"
-                  className="gantry-toolbar-btn gantry-toolbar-btn-save"
-                  disabled={busy}
-                >
-                  {updatePending ? 'Saving…' : 'Save'}
-                </button>
-              </div>
             </form>
-            <form action={deleteAction} className="admin-inline-actions">
-              <input type="hidden" name="id" value={row.id} />
+            <div className="admin-action-row">
               <button
                 type="submit"
-                className="gantry-btn"
+                form={`venue-edit-${row.id}`}
+                className="gantry-toolbar-btn gantry-toolbar-btn-save"
                 disabled={busy}
-                onClick={(e) => {
-                  if (!window.confirm(`Delete venue “${row.name}”?`)) {
-                    e.preventDefault()
-                  }
-                }}
               >
-                {deletePending ? 'Deleting…' : 'Delete'}
+                {updatePending ? 'Saving…' : 'Save'}
               </button>
-            </form>
+              <form action={geocodeAction}>
+                <input type="hidden" name="id" value={row.id} />
+                <button
+                  type="submit"
+                  className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+                  disabled={busy}
+                >
+                  {geocodePending ? 'Geocoding…' : 'Geocode from address'}
+                </button>
+              </form>
+              <form action={deleteAction}>
+                <input type="hidden" name="id" value={row.id} />
+                <button
+                  type="submit"
+                  className="gantry-toolbar-btn gantry-toolbar-btn-danger"
+                  disabled={busy}
+                  onClick={(e) => {
+                    if (!window.confirm(`Delete venue “${row.name}”?`)) {
+                      e.preventDefault()
+                    }
+                  }}
+                >
+                  {deletePending ? 'Deleting…' : 'Delete'}
+                </button>
+              </form>
+            </div>
           </section>
         ))
       )}
