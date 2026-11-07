@@ -36,11 +36,11 @@ const payloadChrome = readFileSync(
 
 /* —— Wordmark: ~50% larger + forced brand orange —— */
 mustInclude(styles, 'base wordmark size', 'font-size: 1.38rem')
-mustInclude(styles, 'base wordmark orange hex', 'color: #f2a66a')
+mustInclude(styles, 'base wordmark orange hex', 'color: #ef9550')
 mustInclude(coreChrome, 'core wordmark size', 'font-size: 1.38rem')
-mustInclude(coreChrome, 'core wordmark forced orange', 'color: #f2a66a !important')
+mustInclude(coreChrome, 'core wordmark forced orange', 'color: #ef9550 !important')
 mustInclude(payloadChrome, 'payload wordmark size', 'font-size: 1.38em')
-mustInclude(payloadChrome, 'payload wordmark forced orange', 'color: #f2a66a !important')
+mustInclude(payloadChrome, 'payload wordmark forced orange', 'color: #ef9550 !important')
 
 /* —— Admin kicker: larger + white —— */
 mustInclude(styles, 'base kicker size', 'font-size: 1.05rem')
@@ -112,6 +112,18 @@ mustNotMatch(
   /\.admin-sidebar-link\.is-current[\s\S]{0,200}background:\s*transparent\s*!important/,
 )
 
+mustInclude(payloadChrome, 'payload nav width matches Core px', '--nav-width: 273px')
+mustInclude(payloadChrome, 'payload primary orange', '--sf-primary: #ef9550')
+mustInclude(payloadChrome, 'payload primary ink white', '--sf-primary-ink: #ffffff')
+mustInclude(payloadChrome, 'payload thin scrollbar', 'scrollbar-width: thin')
+mustInclude(
+  payloadChrome,
+  'payload nav padding via scroll vars not wrap',
+  '--nav-padding-block-start: 18px',
+)
+mustInclude(payloadChrome, 'payload wrap padding zero', 'padding: 0')
+mustInclude(payloadChrome, 'payload wrap stretch items', 'align-items: stretch')
+
 console.log(
-  'ok — sidebar chrome: forced #f2a66a STARFORGE, #fff Admin/nav, hover #3498db, active #2471a3 leaf-only',
+  'ok — sidebar chrome: forced #ef9550 STARFORGE, #fff Admin/nav, hover #3498db, active #2471a3 leaf-only',
 )

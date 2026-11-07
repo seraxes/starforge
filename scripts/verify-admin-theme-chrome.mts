@@ -137,7 +137,10 @@ mustInclude(
   'payload panel border token',
   '--sf-admin-panel-border: #2f3d50',
 )
-mustInclude(payloadChrome, 'payload btn min height', '--sf-admin-btn-min-height: 2.35rem')
+mustInclude(payloadChrome, 'payload btn min height', '--sf-admin-btn-min-height: 38px')
+mustInclude(payloadChrome, 'payload nav width Core parity', '--nav-width: 273px')
+mustInclude(payloadChrome, 'payload primary orange', '--sf-primary: #ef9550')
+mustInclude(payloadChrome, 'payload primary ink white', '--sf-primary-ink: #ffffff')
 mustInclude(payloadChrome, 'payload nav-bar token', '--sf-admin-nav-bar: #1b2431')
 mustInclude(
   payloadChrome,

@@ -19,9 +19,9 @@
   --sf-admin-nav-active: #263248;
   --sf-admin-module-border-width: 4px;
   --sf-admin-module-border-color: #0f3d63;
-  --sf-admin-icon-primary: 2rem;
-  --sf-admin-icon-secondary: 1.75rem;
   /* Absolute px — Payload root font is ~13px; rem would shrink below Layouts. */
+  --sf-admin-icon-primary: 32px; /* Core 2rem @ 16px */
+  --sf-admin-icon-secondary: 28px; /* Core 1.75rem @ 16px */
   --sf-admin-btn-pad-y: 8px;
   --sf-admin-btn-pad-x: 16px;
   --sf-admin-btn-font: 14px;
@@ -38,9 +38,12 @@
   --sf-line: #3d5270;
   --sf-primary: #ef9550;
   --sf-primary-strong: #f3a862;
+  /* White label on orange Save / Publish (Layouts reference) */
   --sf-primary-ink: #ffffff;
-  /* Match Core admin sidebar (15.5rem + 10%) */
-  --nav-width: 17.05rem;
+  --sf-accent: var(--sf-primary);
+  --sf-accent-ink: #ffffff;
+  /* Core sidebar 17.05rem @ 16px — must be px here (Payload rem base ≈ 13px) */
+  --nav-width: 273px;
   --sf-secondary: #8ebad4;
   --sf-secondary-strong: #b7d6ec;
 
@@ -92,8 +95,11 @@
 }
 
 html[data-theme='dark'] {
-  /* Beat Payload app.scss --nav-width: 275px so CMS rail matches Core */
-  --nav-width: 17.05rem;
+  /* Beat Payload app.scss --nav-width: 275px so CMS rail matches Core Layouts */
+  --nav-width: 273px;
+  --sf-primary: #ef9550;
+  --sf-primary-strong: #f3a862;
+  --sf-primary-ink: #ffffff;
   --theme-bg: var(--sf-admin-bg);
   --theme-input-bg: var(--sf-admin-input);
   --theme-text: #e8eef8;
@@ -136,10 +142,10 @@ html[data-theme='dark'] body {
 }
 
 html[data-theme='dark'] .btn.btn--style-primary {
-  --color: var(--sf-primary-ink);
+  --color: #fff;
   --bg-color: var(--sf-primary);
   --hover-bg: var(--sf-primary-strong);
-  --hover-color: var(--sf-primary-ink);
+  --hover-color: #fff;
 }
 
 html[data-theme='dark'] .btn.btn--style-primary.btn--disabled {
@@ -170,58 +176,77 @@ html[data-theme='dark'] .btn.btn--size-small {
   font-size: 0.85rem;
 }
 
+/*
+ * Payload NavWrapper = aside.nav > .nav__scroll > .nav__wrap.
+ * Stock Payload pads `.nav__scroll` via --nav-padding-* (top = app-header-height).
+ * That + a second wrap padding "szét tolja" the rail vs Core `.admin-sidebar`.
+ * Drive padding only through --nav-padding-* (Core 1.15/0.85/2rem @ 16px → px).
+ */
 .nav {
   background:
     linear-gradient(180deg, #0c121c 0%, #0f1622 48%, #0d141e 100%) !important;
   border-right: 1px solid #1a2433 !important;
   box-shadow: none !important;
-  /* Match Core sidebar rail width + overlay scrollbar */
-  width: var(--nav-width, 17.05rem) !important;
+  /* Let Payload `width: var(--nav-width)` own the rail — do not re-flex it */
+  --nav-padding-block-start: 18px; /* Core 1.15rem */
+  --nav-padding-inline-end: 14px; /* Core 0.85rem */
+  --nav-padding-block-end: 32px; /* Core 2rem */
+  --nav-padding-inline-start: 14px;
+}
+
+.nav__scroll {
+  /* Single scroll surface — match Core overlay scrollbar */
   scrollbar-gutter: auto;
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, #ffffff 34%, transparent) transparent;
 }
 
-.nav::-webkit-scrollbar {
+.nav__scroll::-webkit-scrollbar {
+  display: block; /* undo Payload display:none */
   width: 8px;
   height: 8px;
   background: transparent;
 }
 
-.nav::-webkit-scrollbar-track {
+.nav__scroll::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.nav::-webkit-scrollbar-thumb {
+.nav__scroll::-webkit-scrollbar-thumb {
   background: color-mix(in srgb, #ffffff 30%, transparent);
   border-radius: 999px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
 
-.nav::-webkit-scrollbar-corner {
+.nav__scroll::-webkit-scrollbar-corner {
   background: transparent;
-}
-
-@supports (overflow: overlay) {
-  .nav {
-    overflow-y: overlay;
-  }
 }
 
 .nav__wrap.sf-payload-admin-nav {
   display: flex;
   flex-direction: column;
+  align-items: stretch; /* Payload default is flex-start — shrinks menu rows */
   gap: 0.75rem;
-  padding: 1rem 0.75rem 1.25rem;
+  /* Padding lives on `.nav__scroll` only — no second inset */
+  padding: 0;
   box-sizing: border-box;
-  min-height: 100%;
+  width: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: visible;
 }
 
 .nav__wrap.sf-payload-admin-nav .nav__controls {
   margin-top: auto;
+  margin-bottom: 0;
   padding-top: 0.75rem;
   border-top: 1px solid #1a2433;
+  gap: 0.55rem;
+}
+
+.nav__wrap.sf-payload-admin-nav .nav__controls > :first-child {
+  margin-top: 0; /* undo Payload 20px first-child push */
 }
 
 .nav .admin-sidebar--embedded {
@@ -801,18 +826,18 @@ html[data-theme='dark'] .tabs-field__tab-button--active {
   box-shadow: none !important;
 }
 
-/* Primary CTA = Layouts Save orange (Publish / Create New / form-submit) */
+/* Primary CTA = Layouts Save orange + white label (Publish / Create New / form-submit) */
 html[data-theme='dark'] #action-save,
 html[data-theme='dark'] .form-submit .btn:not(.btn--style-secondary):not(.btn--style-subtle):not(.btn--style-tab):not(.btn--style-error):not(.save-draft),
 html[data-theme='dark'] .list-create-new-doc__create-new-button,
 html[data-theme='dark'] .btn.btn--style-primary,
 html[data-theme='dark'] .btn.btn--style-pill.list-create-new-doc__create-new-button {
-  --color: var(--sf-primary-ink) !important;
+  --color: #fff !important;
   --bg-color: var(--sf-primary) !important;
   --hover-bg: var(--sf-primary-strong) !important;
-  --hover-color: var(--sf-primary-ink) !important;
+  --hover-color: #fff !important;
   background: var(--sf-primary) !important;
-  color: var(--sf-primary-ink) !important;
+  color: #fff !important;
   border: 0 !important;
   border-radius: var(--sf-admin-btn-radius) !important;
   font-size: var(--sf-admin-btn-font) !important;
@@ -827,7 +852,7 @@ html[data-theme='dark'] .form-submit .btn:not(.btn--style-secondary):not(.btn--s
 html[data-theme='dark'] .list-create-new-doc__create-new-button:hover,
 html[data-theme='dark'] .btn.btn--style-primary:hover {
   background: var(--sf-primary-strong) !important;
-  color: var(--sf-primary-ink) !important;
+  color: #fff !important;
 }
 
 /* Secondary = Layouts muted toolbar (Save Draft / secondary) */
@@ -944,13 +969,13 @@ html[data-theme='dark'] a.gantry-btn-primary,
 html[data-theme='dark'] button.gantry-btn-primary {
   background: var(--sf-primary);
   border: 0;
-  color: var(--sf-primary-ink);
+  color: #fff;
 }
 
 html[data-theme='dark'] .gantry-toolbar-btn-save:hover:not(:disabled),
 html[data-theme='dark'] .gantry-btn-primary:hover:not(:disabled) {
   background: var(--sf-primary-strong);
-  color: var(--sf-primary-ink);
+  color: #fff;
 }
 
 /* TipTap rich editor — same surface language as Layouts / Core admin */
