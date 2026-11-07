@@ -47,15 +47,6 @@ export default async function EventsListPage({ searchParams }: { searchParams: S
       ? eventsRaw.filter((e) => viewerIsAssignedToEvent(e, viewer))
       : eventsRaw
 
-  const statusQuery = status === 'all' ? '' : `status=${encodeURIComponent(status)}`
-  const withScope = (nextScope: 'all' | 'mine') => {
-    const parts = [
-      statusQuery,
-      nextScope === 'mine' ? 'scope=mine' : '',
-    ].filter(Boolean)
-    return parts.length ? `/admin/events?${parts.join('&')}` : '/admin/events'
-  }
-
   return (
     <section className="admin-section admin-layouts-full">
       <EventsAdminNav active="events" />
@@ -70,15 +61,6 @@ export default async function EventsListPage({ searchParams }: { searchParams: S
       <EventsManager
         statusFilter={status}
         scopeFilter={scope}
-        scopeHrefAll={withScope('all')}
-        scopeHrefMine={withScope('mine')}
-        statusHref={(s) => {
-          const parts = [
-            s === 'all' ? '' : `status=${encodeURIComponent(s)}`,
-            scope === 'mine' ? 'scope=mine' : '',
-          ].filter(Boolean)
-          return parts.length ? `/admin/events?${parts.join('&')}` : '/admin/events'
-        }}
         defaultTimezone={moduleSettings.settings.defaultTimezone}
         richEditorEnabled={isRichEditorEnabled(settings)}
         groups={groups}

@@ -40,6 +40,14 @@ type EventRow = {
 
 type VenueOpt = { id: string; name: string }
 
+function eventsListHref(status: string, scope: 'all' | 'mine'): string {
+  const parts = [
+    status && status !== 'all' ? `status=${encodeURIComponent(status)}` : '',
+    scope === 'mine' ? 'scope=mine' : '',
+  ].filter(Boolean)
+  return parts.length ? `/admin/events?${parts.join('&')}` : '/admin/events'
+}
+
 type Props = {
   events: EventRow[]
   venues: VenueOpt[]
@@ -47,9 +55,6 @@ type Props = {
   defaultTimezone: string
   statusFilter: string
   scopeFilter?: 'all' | 'mine'
-  scopeHrefAll?: string
-  scopeHrefMine?: string
-  statusHref?: (status: string) => string
   /** Site Settings → Modules → Rich editor gate. */
   richEditorEnabled?: boolean
 }
@@ -91,9 +96,6 @@ export function EventsManager({
   defaultTimezone,
   statusFilter,
   scopeFilter = 'all',
-  scopeHrefAll = '/admin/events',
-  scopeHrefMine = '/admin/events?scope=mine',
-  statusHref,
   richEditorEnabled = true,
 }: Props) {
   const router = useRouter()
@@ -118,12 +120,6 @@ export function EventsManager({
   }, [createState, deleteState, router])
 
   const busy = createPending || deletePending
-  const hrefForStatus = (s: string) =>
-    statusHref
-      ? statusHref(s)
-      : s === 'all'
-        ? '/admin/events'
-        : `/admin/events?status=${encodeURIComponent(s)}`
 
   return (
     <div className="sf-events-manager admin-settings-mosaic">
@@ -131,7 +127,7 @@ export function EventsManager({
         <h3>Filter</h3>
         <div className="admin-inline-actions" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
           <Link
-            href={hrefForStatus('all')}
+            href={eventsListHref('all', scopeFilter)}
             className={
               statusFilter === 'all' ? 'gantry-btn gantry-btn-primary' : 'gantry-btn'
             }
@@ -141,7 +137,7 @@ export function EventsManager({
           {EVENT_STATUSES.map((s) => (
             <Link
               key={s}
-              href={hrefForStatus(s)}
+              href={eventsListHref(s, scopeFilter)}
               className={
                 statusFilter === s ? 'gantry-btn gantry-btn-primary' : 'gantry-btn'
               }
@@ -155,7 +151,7 @@ export function EventsManager({
           style={{ flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}
         >
           <Link
-            href={scopeHrefAll}
+            href={eventsListHref(statusFilter, 'all')}
             className={
               scopeFilter === 'all' ? 'gantry-btn gantry-btn-primary' : 'gantry-btn'
             }
@@ -163,7 +159,7 @@ export function EventsManager({
             All events
           </Link>
           <Link
-            href={scopeHrefMine}
+            href={eventsListHref(statusFilter, 'mine')}
             className={
               scopeFilter === 'mine' ? 'gantry-btn gantry-btn-primary' : 'gantry-btn'
             }
