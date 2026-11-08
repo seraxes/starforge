@@ -12,6 +12,7 @@ import {
   normalizeImageFrame,
   panImageFrame,
   type ImageFrame,
+  type ImageFrameLayout,
   type ImageFrameShape,
 } from '../image-frame'
 
@@ -37,10 +38,14 @@ function btn(chrome: 'public' | 'admin', kind: 'save' | 'muted'): string {
   return kind === 'save' ? 'primary' : 'ghost'
 }
 
+function readNaturalSize(img: HTMLImageElement | null): { w: number; h: number } | null {
+  if (!img || img.naturalWidth <= 0 || img.naturalHeight <= 0) return null
+  return { w: img.naturalWidth, h: img.naturalHeight }
+}
+
 /**
  * Social-style pan + zoom crop dialog.
- * Drag to pan across the full image (top/left reachable at 0); zoom enlarges
- * the cover. Saves `{ x, y, zoom }` — no new Media file.
+ * Drag to pan across the full image; zoom enlarges the cover.
  */
 export function ImageFrameEditor({
   open,
@@ -54,13 +59,10 @@ export function ImageFrameEditor({
 }: ImageFrameEditorProps) {
   const titleId = useId()
   const stageRef = useRef<HTMLDivElement>(null)
-  const [frame, setFrame] = useState<ImageFrame>(() =>
-    normalizeImageFrame(value ?? DEFAULT_IMAGE_FRAME),
-  )
-  const [portal, setPortal] = useState<HTMLElement | null>(null)
-  const [nat, setNat] = useState<{ w: number; h: number } | null>(null)
-  const [box, setBox] = useState<{ w: number; h: number } | null>(null)
-  const drag = useRef<{
+  const imgRef = useRef<HTMLImageElement>(null)
+  const frameRef = useRef<ImageFrame>(normalizeImageFrame(value ?? DEFAULT_IMAGE_FRAME))
+  const layoutRef = useRef<ImageFrameLayout | null>(null)
+  const dragRef = useRef<{
     pointerId: number
     startX: number
     startY: number
@@ -69,11 +71,20 @@ export function ImageFrameEditor({
     overflowY: number
   } | null>(null)
 
+  const [frame, setFrame] = useState<ImageFrame>(() =>
+    normalizeImageFrame(value ?? DEFAULT_IMAGE_FRAME),
+  )
+  const [portal, setPortal] = useState<HTMLElement | null>(null)
+  const [nat, setNat] = useState<{ w: number; h: number } | null>(null)
+  const [box, setBox] = useState<{ w: number; h: number } | null>(null)
+
+  frameRef.current = frame
+
+  // Sync opening value once per open — do not clear natural size on every parent re-render.
   useEffect(() => {
     if (!open) return
     setFrame(normalizeImageFrame(value ?? DEFAULT_IMAGE_FRAME))
-    setNat(null)
-  }, [open, value, src])
+  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps -- intentionally ignore `value` identity churn
 
   useEffect(() => {
     if (!open) return
@@ -94,19 +105,25 @@ export function ImageFrameEditor({
     return () => document.removeEventListener('keydown', onKey)
   }, [open, onCancel])
 
+  // New src → re-read dimensions (cached images often skip onLoad).
+  useLayoutEffect(() => {
+    if (!open) return
+    setNat(readNaturalSize(imgRef.current))
+  }, [open, src])
+
   useLayoutEffect(() => {
     if (!open) return
     const el = stageRef.current
     if (!el) return
     const measure = () => {
       const r = el.getBoundingClientRect()
-      setBox({ w: r.width, h: r.height })
+      if (r.width > 0 && r.height > 0) setBox({ w: r.width, h: r.height })
     }
     measure()
     const ro = new ResizeObserver(measure)
     ro.observe(el)
     return () => ro.disconnect()
-  }, [open, shape])
+  }, [open, shape, portal])
 
   const layout =
     box && nat
@@ -118,39 +135,53 @@ export function ImageFrameEditor({
           frame,
         })
       : null
+  layoutRef.current = layout
 
-  function onPointerDown(e: React.PointerEvent) {
-    if (e.button !== 0 || !layout) return
+  function endDrag(pointerId?: number) {
+    const d = dragRef.current
+    if (!d) return
+    if (pointerId != null && d.pointerId !== pointerId) return
+    dragRef.current = null
+  }
+
+  function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    if (e.button !== 0) return
+    const current = layoutRef.current
+    if (!current) return
+    e.preventDefault()
     const el = stageRef.current
     if (!el) return
     el.setPointerCapture(e.pointerId)
-    drag.current = {
+    dragRef.current = {
       pointerId: e.pointerId,
       startX: e.clientX,
       startY: e.clientY,
-      origin: frame,
-      overflowX: layout.overflowX,
-      overflowY: layout.overflowY,
+      origin: frameRef.current,
+      overflowX: Math.max(current.overflowX, 0),
+      overflowY: Math.max(current.overflowY, 0),
     }
   }
 
-  function onPointerMove(e: React.PointerEvent) {
-    const d = drag.current
+  function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    const d = dragRef.current
     if (!d || d.pointerId !== e.pointerId) return
-    setFrame(
-      panImageFrame(
-        d.origin,
-        { dx: e.clientX - d.startX, dy: e.clientY - d.startY },
-        { overflowX: d.overflowX, overflowY: d.overflowY },
-      ),
+    e.preventDefault()
+    const next = panImageFrame(
+      d.origin,
+      { dx: e.clientX - d.startX, dy: e.clientY - d.startY },
+      { overflowX: d.overflowX, overflowY: d.overflowY },
     )
+    frameRef.current = next
+    setFrame(next)
   }
 
-  function onPointerUp(e: React.PointerEvent) {
-    if (drag.current?.pointerId === e.pointerId) drag.current = null
+  function onPointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    endDrag(e.pointerId)
   }
 
   if (!open || !portal) return null
+
+  const canDrag = Boolean(layout && (layout.overflowX > 0.5 || layout.overflowY > 0.5))
 
   return createPortal(
     <div
@@ -168,29 +199,29 @@ export function ImageFrameEditor({
         </header>
 
         <p className="settings-hint sf-image-frame-hint">
-          Drag to reposition — you can reach every edge of the photo. Zoom to fill
-          more. Only the area inside the
-          {shape === 'circle' ? ' circle' : ' outline'} is shown.
+          Drag the photo to reposition. Zoom in if you need more room to pan. Only the area
+          inside the{shape === 'circle' ? ' circle' : ' outline'} is shown.
         </p>
 
         <div
           ref={stageRef}
-          className={`sf-image-frame-stage sf-image-frame-stage--${shape}`}
+          className={`sf-image-frame-stage sf-image-frame-stage--${shape}${canDrag ? '' : ' is-loading'}`}
+          style={{ touchAction: 'none', cursor: canDrag ? 'grab' : 'default' }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
+          onLostPointerCapture={() => endDrag()}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
+            ref={imgRef}
             src={src}
             alt=""
             draggable={false}
             onLoad={(e) => {
-              const img = e.currentTarget
-              if (img.naturalWidth > 0 && img.naturalHeight > 0) {
-                setNat({ w: img.naturalWidth, h: img.naturalHeight })
-              }
+              const size = readNaturalSize(e.currentTarget)
+              if (size) setNat(size)
             }}
             style={
               layout
@@ -215,11 +246,14 @@ export function ImageFrameEditor({
             max={IMAGE_FRAME_ZOOM_MAX}
             step={0.01}
             value={frame.zoom}
-            onChange={(e) =>
-              setFrame((prev) =>
-                normalizeImageFrame({ ...prev, zoom: Number(e.target.value) }),
-              )
-            }
+            onChange={(e) => {
+              const next = normalizeImageFrame({
+                ...frameRef.current,
+                zoom: Number(e.target.value),
+              })
+              frameRef.current = next
+              setFrame(next)
+            }}
           />
         </label>
 
@@ -230,14 +264,18 @@ export function ImageFrameEditor({
           <button
             type="button"
             className={btn(chrome, 'muted')}
-            onClick={() => setFrame({ ...DEFAULT_IMAGE_FRAME })}
+            onClick={() => {
+              const next = { ...DEFAULT_IMAGE_FRAME }
+              frameRef.current = next
+              setFrame(next)
+            }}
           >
             Reset
           </button>
           <button
             type="button"
             className={btn(chrome, 'save')}
-            onClick={() => onApply(normalizeImageFrame(frame))}
+            onClick={() => onApply(normalizeImageFrame(frameRef.current))}
           >
             Apply
           </button>

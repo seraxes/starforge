@@ -11,6 +11,7 @@ import {
   ImageFrameEditor,
   MediaPicker,
   MemberMediaPicker,
+  mediaFrameSrc,
   normalizeImageFrame,
   type ImageFrame,
 } from '@/modules/media/api'
@@ -197,7 +198,7 @@ export function ProfileEditor({
     const frame = kind === 'avatar' ? avatarFrame : coverFrame
     const setFrame = kind === 'avatar' ? setAvatarFrame : setCoverFrame
     const shape = kind === 'avatar' ? 'circle' : 'wide'
-    const src = value ? `/api/media/${value}` : ''
+    const src = value ? mediaFrameSrc(value) : ''
 
     if (imagePicker === 'library') {
       return (
@@ -659,7 +660,7 @@ export function ProfileEditor({
       {imagePicker === 'library' && frameEditor ? (
         <ImageFrameEditor
           open
-          src={`/api/media/${frameEditor === 'avatar' ? avatar : cover}`}
+          src={mediaFrameSrc(frameEditor === 'avatar' ? avatar : cover)}
           value={frameEditor === 'avatar' ? avatarFrame : coverFrame}
           shape={frameEditor === 'avatar' ? 'circle' : 'wide'}
           title={frameEditor === 'avatar' ? 'Adjust avatar' : 'Adjust cover'}

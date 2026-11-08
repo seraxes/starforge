@@ -38,7 +38,8 @@ const MAX_BATCH = 200
 /** Avatar / cover URL for a Persona media id (public redirect route). */
 export function personaMediaSrc(mediaId: string | null | undefined): string {
   const id = (mediaId ?? '').trim()
-  return id ? `/api/media/${encodeURIComponent(id)}` : ''
+  // Original (not square thumbnail) so FramedImage pan/zoom keeps full standing photos.
+  return id ? `/api/media/${encodeURIComponent(id)}?variant=original` : ''
 }
 
 /** Relationship between the viewer and a profile owner (`friend` arrives with Social). */

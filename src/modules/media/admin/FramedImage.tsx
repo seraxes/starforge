@@ -1,5 +1,9 @@
 'use client'
 
+/**
+ * Display-only framed image — cover-pan layout shared with ImageFrameEditor.
+ */
+
 import React, { useLayoutEffect, useRef, useState } from 'react'
 
 import {
@@ -17,14 +21,9 @@ export type FramedImageProps = {
   frame?: ImageFrame | null
   shape?: ImageFrameShape
   className?: string
-  /** Accessible label for the frame region. */
   label?: string
 }
 
-/**
- * Display-only framed image — same cover-pan layout as `ImageFrameEditor`.
- * Measures the container + natural image size so x/y=0 reaches the real top/left.
- */
 export function FramedImage({
   src,
   alt = '',
@@ -34,6 +33,7 @@ export function FramedImage({
   label,
 }: FramedImageProps) {
   const boxRef = useRef<HTMLDivElement>(null)
+  const imgRef = useRef<HTMLImageElement>(null)
   const f = normalizeImageFrame(frame ?? DEFAULT_IMAGE_FRAME)
   const [nat, setNat] = useState<{ w: number; h: number } | null>(null)
   const [box, setBox] = useState<{ w: number; h: number } | null>(null)
@@ -50,6 +50,14 @@ export function FramedImage({
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
+
+  // Cached images often skip onLoad — read natural size after mount / src change.
+  useLayoutEffect(() => {
+    const img = imgRef.current
+    if (img && img.complete && img.naturalWidth > 0) {
+      setNat({ w: img.naturalWidth, h: img.naturalHeight })
+    }
+  }, [src])
 
   const layout =
     box && nat
@@ -71,6 +79,7 @@ export function FramedImage({
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
+        ref={imgRef}
         src={src}
         alt={alt}
         draggable={false}
@@ -84,7 +93,6 @@ export function FramedImage({
           layout
             ? imageFrameLayoutStyle(layout)
             : {
-                // Pre-measure fallback (center cover) — replaced once sized.
                 position: 'absolute',
                 inset: 0,
                 width: '100%',

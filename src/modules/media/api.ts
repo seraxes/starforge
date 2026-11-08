@@ -30,6 +30,8 @@ export {
   parseImageFrameJson,
   computeImageFrameLayout,
   imageFrameLayoutStyle,
+  imageFrameImgStyle,
+  mediaFrameSrc,
   type ImageFrame,
   type ImageFrameShape,
 } from './image-frame'

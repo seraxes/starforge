@@ -6,6 +6,7 @@ import type { ResolvedMedia } from '@/core/media/resolve'
 
 import {
   DEFAULT_IMAGE_FRAME,
+  mediaFrameSrc,
   normalizeImageFrame,
   type ImageFrame,
   type ImageFrameShape,
@@ -65,7 +66,6 @@ export function MemberMediaPicker({
   maxMb = 5,
 }: MemberMediaPickerProps) {
   const fileRef = useRef<HTMLInputElement>(null)
-  const [previewUrl, setPreviewUrl] = useState<string>('')
   const [error, setError] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [ownOpen, setOwnOpen] = useState(false)
@@ -73,7 +73,8 @@ export function MemberMediaPicker({
   const [loading, startLoading] = useTransition()
   const [editorOpen, setEditorOpen] = useState(false)
 
-  const src = previewUrl || (value ? `/api/media/${value}` : '')
+  // Always the original file for framing — never the square centre-cropped thumbnail.
+  const src = value ? mediaFrameSrc(value) : ''
   const framing = Boolean(onFrameChange)
   const currentFrame = normalizeImageFrame(frame ?? DEFAULT_IMAGE_FRAME)
 
@@ -88,9 +89,8 @@ export function MemberMediaPicker({
     })
   }, [context])
 
-  function selectMedia(mediaId: string, url?: string) {
+  function selectMedia(mediaId: string) {
     onChange(mediaId)
-    setPreviewUrl(url || (mediaId ? `/api/media/${mediaId}` : ''))
     if (framing) {
       onFrameChange?.(DEFAULT_IMAGE_FRAME)
       if (mediaId) setEditorOpen(true)
@@ -111,7 +111,7 @@ export function MemberMediaPicker({
         setError(res.error || 'Upload failed.')
         return
       }
-      selectMedia(res.media.id, res.media.url)
+      selectMedia(res.media.id)
       if (ownOpen) loadOwn()
     } finally {
       setUploading(false)
@@ -183,7 +183,6 @@ export function MemberMediaPicker({
             disabled={busy}
             onClick={() => {
               onChange('')
-              setPreviewUrl('')
               onFrameChange?.(DEFAULT_IMAGE_FRAME)
             }}
           >
@@ -202,7 +201,7 @@ export function MemberMediaPicker({
               type="button"
               className={`sf-member-media-tile${doc.id === value ? ' is-selected' : ''}`}
               disabled={busy}
-              onClick={() => selectMedia(doc.id, doc.sizes?.thumbnail || doc.url)}
+              onClick={() => selectMedia(doc.id)}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={doc.sizes?.thumbnail || doc.url} alt={doc.alt || ''} />

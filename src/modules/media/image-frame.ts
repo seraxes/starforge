@@ -9,6 +9,15 @@
 
 export type ImageFrameShape = 'circle' | 'square' | 'wide'
 
+/**
+ * URL for crop / pan editors — **original** file, never the square thumbnail
+ * (that centre-crops standing photos before you can frame them).
+ */
+export function mediaFrameSrc(mediaId: string): string {
+  const id = mediaId.trim()
+  return id ? `/api/media/${encodeURIComponent(id)}?variant=original` : ''
+}
+
 /** Normalized crop: pan (0–100) + zoom (1–3). */
 export type ImageFrame = {
   x: number
@@ -141,5 +150,24 @@ export function imageFrameLayoutStyle(
     top: layout.top,
     maxWidth: 'none',
     maxHeight: 'none',
+  }
+}
+
+/**
+ * @deprecated Use layout via `computeImageFrameLayout` + `imageFrameLayoutStyle`.
+ * Kept as a no-op-ish cover fallback so stale Turbopack graphs don't explode mid-HMR.
+ */
+export function imageFrameImgStyle(frame: ImageFrame): {
+  objectFit: 'cover'
+  objectPosition: string
+  width: string
+  height: string
+} {
+  const f = normalizeImageFrame(frame)
+  return {
+    objectFit: 'cover',
+    objectPosition: `${f.x}% ${f.y}%`,
+    width: '100%',
+    height: '100%',
   }
 }
