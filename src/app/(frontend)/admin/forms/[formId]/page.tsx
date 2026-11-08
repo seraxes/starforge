@@ -1,6 +1,7 @@
 import React from 'react'
 import { notFound, redirect } from 'next/navigation'
 
+import { ensureDefaultUserGroupsSeeded, listUserGroupOptions } from '@/core/acl'
 import {
   ensureDefaultContactFormSeeded,
   loadFormDefinition,
@@ -58,6 +59,8 @@ export default async function AdminFormBuilderPage({ params }: PageProps) {
   }
 
   const chrome = await getSiteChrome()
+  await ensureDefaultUserGroupsSeeded()
+  const groups = await listUserGroupOptions()
   const turnstileConfigured = Boolean(
     (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? '').trim() &&
       (process.env.TURNSTILE_SECRET_KEY ?? '').trim(),
@@ -72,6 +75,7 @@ export default async function AdminFormBuilderPage({ params }: PageProps) {
         key={loaded.id || id}
         formId={loaded.id || id}
         initialDocument={loaded.document}
+        groups={groups}
         siteCaptcha={{
           enabled: chrome.captchaEnabled,
           provider: chrome.captchaProvider,

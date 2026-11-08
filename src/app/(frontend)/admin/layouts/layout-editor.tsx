@@ -33,6 +33,8 @@ import {
   gridWidthPercent,
   LAYOUT_WIDTH_FULL,
   LAYOUT_WIDTH_MIN,
+  mosaicSectionDropEdge,
+  pairMosaicSectionWidths,
   resizeAdjacentPair,
   sumRowWidths,
   widthToPercentLabel,
@@ -1020,6 +1022,7 @@ function SectionCanvas({
   primaryNavMenuId,
   isDraggingSection,
   dropPosition,
+  placeBesideHint,
   onSectionDragStart,
   onSectionDragEnd,
   onSectionDragOver,
@@ -1034,10 +1037,19 @@ function SectionCanvas({
   primaryNavMenuId: string
   isDraggingSection: boolean
   dropPosition: 'before' | 'after' | null
+  placeBesideHint: boolean
   onSectionDragStart: (sectionId: string) => void
   onSectionDragEnd: () => void
-  onSectionDragOver: (sectionId: string, position: 'before' | 'after') => void
-  onSectionDrop: (targetSectionId: string, position: 'before' | 'after') => void
+  onSectionDragOver: (
+    sectionId: string,
+    position: 'before' | 'after',
+    placeBeside: boolean,
+  ) => void
+  onSectionDrop: (
+    targetSectionId: string,
+    position: 'before' | 'after',
+    placeBeside: boolean,
+  ) => void
 }) {
   const router = useRouter()
   const layoutId = useLayoutOutlineId()
@@ -1176,6 +1188,7 @@ function SectionCanvas({
     isDraggingSection ? 'is-section-dragging' : '',
     dropPosition === 'before' ? 'is-section-drop-before' : '',
     dropPosition === 'after' ? 'is-section-drop-after' : '',
+    placeBesideHint ? 'is-section-drop-inline' : '',
   ]
     .filter(Boolean)
     .join(' ')
@@ -1191,18 +1204,25 @@ function SectionCanvas({
       onDragOver={(event) => {
         if (![...event.dataTransfer.types].includes(DND_SECTION)) return
         event.preventDefault()
+        event.stopPropagation()
         event.dataTransfer.dropEffect = 'move'
-        const rect = event.currentTarget.getBoundingClientRect()
-        const mid = rect.top + rect.height / 2
-        onSectionDragOver(section.id, event.clientY < mid ? 'before' : 'after')
+        const edge = mosaicSectionDropEdge(
+          event.clientX,
+          event.clientY,
+          event.currentTarget.getBoundingClientRect(),
+        )
+        onSectionDragOver(section.id, edge.position, edge.placeBeside)
       }}
       onDrop={(event) => {
         if (![...event.dataTransfer.types].includes(DND_SECTION)) return
         event.preventDefault()
         event.stopPropagation()
-        const rect = event.currentTarget.getBoundingClientRect()
-        const mid = rect.top + rect.height / 2
-        onSectionDrop(section.id, event.clientY < mid ? 'before' : 'after')
+        const edge = mosaicSectionDropEdge(
+          event.clientX,
+          event.clientY,
+          event.currentTarget.getBoundingClientRect(),
+        )
+        onSectionDrop(section.id, edge.position, edge.placeBeside)
       }}
     >
       <header className="gantry-section-head">
@@ -1211,9 +1231,10 @@ function SectionCanvas({
             type="button"
             className="gantry-section-handle"
             draggable
-            title="Drag to reorder section"
-            aria-label={`Drag to reorder section ${section.label}`}
+            title="Drag: drop above/below to reorder, left/right to place beside"
+            aria-label={`Drag to move section ${section.label}`}
             onDragStart={(event) => {
+              event.stopPropagation()
               event.dataTransfer.setData(DND_SECTION, section.id)
               event.dataTransfer.setData('text/plain', section.id)
               event.dataTransfer.effectAllowed = 'move'
@@ -1251,6 +1272,36 @@ function SectionCanvas({
                 }}
               />
             </label>
+            <label
+              className="gantry-inline-label gantry-section-width-label"
+              title="Section mosaic width — two ~50% sections sit side by side"
+            >
+              <span className="sr-only">Section width percent</span>
+              <input
+                key={`section-width-${section.id}-${sectionWidth}`}
+                type="number"
+                className="gantry-inline-input gantry-section-width-input"
+                defaultValue={sectionWidth}
+                min={LAYOUT_WIDTH_MIN}
+                max={LAYOUT_WIDTH_FULL}
+                step={5}
+                disabled={metaPending}
+                aria-label="Section width percent"
+                onBlur={(event) => {
+                  persistSectionMeta({ width: Number(event.target.value) })
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    ;(event.target as HTMLInputElement).blur()
+                  }
+                }}
+                onClick={(event) => event.stopPropagation()}
+              />
+              <span className="gantry-slot-pct" aria-hidden="true">
+                %
+              </span>
+            </label>
           </div>
         </div>
         <div className="gantry-section-head-actions">
@@ -1263,30 +1314,6 @@ function SectionCanvas({
               ⚙
             </summary>
             <div className="gantry-section-toolbar">
-              <label className="gantry-inline-label gantry-section-width-label">
-                <span className="gantry-field-hint">Width %</span>
-                <input
-                  key={`section-width-${section.id}-${sectionWidth}`}
-                  type="number"
-                  className="gantry-inline-input gantry-section-width-input"
-                  defaultValue={sectionWidth}
-                  min={LAYOUT_WIDTH_MIN}
-                  max={LAYOUT_WIDTH_FULL}
-                  step={5}
-                  disabled={metaPending}
-                  title="Percent width — same model as particles (5–100). Partial widths sit side-by-side."
-                  aria-label="Section width percent"
-                  onBlur={(event) => {
-                    persistSectionMeta({ width: Number(event.target.value) })
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault()
-                      ;(event.target as HTMLInputElement).blur()
-                    }
-                  }}
-                />
-              </label>
               <label className="gantry-inline-label gantry-section-container-label">
                 <span className="gantry-field-hint">Container</span>
                 <select
@@ -1479,9 +1506,11 @@ export function LayoutEditor({
   const [reorderFlash, setReorderFlash] = useState<LayoutActionState>({})
   const [draggingParticleId, setDraggingParticleId] = useState<string | null>(null)
   const [draggingSectionId, setDraggingSectionId] = useState<string | null>(null)
+  const draggingSectionIdRef = useRef<string | null>(null)
   const [dropHint, setDropHint] = useState<{
     sectionId: string
     position: 'before' | 'after'
+    placeBeside: boolean
   } | null>(null)
 
   const [sectionList, setSectionList] = useState(() => sortSections(document.sections))
@@ -1493,10 +1522,19 @@ export function LayoutEditor({
     setSectionList((prev) => mergeSectionsFromServer(prev, document.sections))
   }
 
+  const clearSectionDrag = useCallback(() => {
+    draggingSectionIdRef.current = null
+    setDraggingSectionId(null)
+    setDropHint(null)
+  }, [])
+
   const persistSectionOrder = useCallback(
-    (ordered: LayoutSection[]) => {
+    (ordered: LayoutSection[], widthOverrides?: Record<string, number>) => {
       const fd = withOutlineId(new FormData(), outlineId)
       fd.set('orderJson', JSON.stringify(ordered.map((s) => s.id)))
+      if (widthOverrides && Object.keys(widthOverrides).length > 0) {
+        fd.set('widthsJson', JSON.stringify(widthOverrides))
+      }
       startSectionSave(async () => {
         const result = await reorderLayoutSectionsAction({}, fd)
         setReorderFlash(result)
@@ -1507,35 +1545,47 @@ export function LayoutEditor({
   )
 
   const handleSectionDrop = useCallback(
-    (targetSectionId: string, position: 'before' | 'after') => {
-      if (!draggingSectionId || draggingSectionId === targetSectionId) {
-        setDraggingSectionId(null)
-        setDropHint(null)
+    (targetSectionId: string, position: 'before' | 'after', placeBeside: boolean) => {
+      const movingId = draggingSectionIdRef.current ?? draggingSectionId
+      if (!movingId || movingId === targetSectionId) {
+        clearSectionDrag()
         return
       }
-      const without = sectionList.filter((s) => s.id !== draggingSectionId)
-      const moving = sectionList.find((s) => s.id === draggingSectionId)
+      const without = sectionList.filter((s) => s.id !== movingId)
+      const moving = sectionList.find((s) => s.id === movingId)
       if (!moving) {
-        setDraggingSectionId(null)
-        setDropHint(null)
+        clearSectionDrag()
         return
       }
       const targetIndex = without.findIndex((s) => s.id === targetSectionId)
       if (targetIndex < 0) {
-        setDraggingSectionId(null)
-        setDropHint(null)
+        clearSectionDrag()
         return
       }
       const insertAt = position === 'before' ? targetIndex : targetIndex + 1
-      const next = [...without.slice(0, insertAt), moving, ...without.slice(insertAt)].map(
+      let next = [...without.slice(0, insertAt), moving, ...without.slice(insertAt)].map(
         (section, index) => ({ ...section, order: index }),
       )
+      let widthOverrides: Record<string, number> | undefined
+      if (placeBeside) {
+        const target = next.find((s) => s.id === targetSectionId)
+        const mover = next.find((s) => s.id === movingId)
+        const paired = pairMosaicSectionWidths(mover?.width, target?.width)
+        if (paired) {
+          const [moverW, targetW] = paired
+          widthOverrides = { [movingId]: moverW, [targetSectionId]: targetW }
+          next = next.map((section) => {
+            if (section.id === movingId) return { ...section, width: moverW }
+            if (section.id === targetSectionId) return { ...section, width: targetW }
+            return section
+          })
+        }
+      }
       setSectionList(next)
-      setDraggingSectionId(null)
-      setDropHint(null)
-      persistSectionOrder(next)
+      clearSectionDrag()
+      persistSectionOrder(next, widthOverrides)
     },
-    [draggingSectionId, persistSectionOrder, sectionList],
+    [clearSectionDrag, draggingSectionId, persistSectionOrder, sectionList],
   )
 
   return (
@@ -1554,8 +1604,8 @@ export function LayoutEditor({
         >
           Gantry Layout Manager
         </a>
-        : <strong>drag sections</strong> to reorder · section → row → drag particles · resize by %
-        (1% steps, min 5%).
+        : drag <strong>⋮⋮</strong> above/below to reorder, left/right to place beside (50%|50%) ·
+        section → row → drag particles · resize by % (1% steps, min 5%).
       </p>
 
       <div className="gantry-workspace">
@@ -1710,17 +1760,23 @@ export function LayoutEditor({
                       ? dropHint.position
                       : null
                   }
+                  placeBesideHint={Boolean(
+                    dropHint?.sectionId === section.id &&
+                      draggingSectionId !== section.id &&
+                      dropHint?.placeBeside,
+                  )}
                   onSectionDragStart={(id) => {
+                    draggingSectionIdRef.current = id
                     setDraggingSectionId(id)
                     setDropHint(null)
                   }}
                   onSectionDragEnd={() => {
-                    setDraggingSectionId(null)
-                    setDropHint(null)
+                    clearSectionDrag()
                   }}
-                  onSectionDragOver={(id, position) => {
-                    if (!draggingSectionId || draggingSectionId === id) return
-                    setDropHint({ sectionId: id, position })
+                  onSectionDragOver={(id, position, placeBeside) => {
+                    const movingId = draggingSectionIdRef.current ?? draggingSectionId
+                    if (!movingId || movingId === id) return
+                    setDropHint({ sectionId: id, position, placeBeside })
                   }}
                   onSectionDrop={handleSectionDrop}
                 />
@@ -1736,10 +1792,11 @@ export function LayoutEditor({
         <p className="layout-muted">
           Section <code>label</code> / <code>width</code> / <code>containerMode</code> / Section Styles (
           <code>backgroundColor</code> · <code>textColor</code>) / <code>cssClass</code> and slot{' '}
-          <code>name</code> save on blur/change. Section <code>order</code> persists on drag.
-          Widths are integer percents inside the section container. Full Section Styles (image /
-          overlay / gradients) and breakpoints live under Styles (
-          <code>/admin/breakpoints</code>). See <code>src/core/modules/README.md</code>.
+          <code>name</code> save on blur/change. Section <code>order</code> (and paired{' '}
+          <code>width</code> when placing beside) persists on drag. Widths are integer percents
+          inside the section container. Full Section Styles (image / overlay / gradients) and
+          breakpoints live under Styles (<code>/admin/breakpoints</code>). See{' '}
+          <code>src/core/modules/README.md</code>.
         </p>
       </details>
     </div>

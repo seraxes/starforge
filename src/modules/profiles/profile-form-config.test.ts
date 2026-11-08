@@ -85,6 +85,20 @@ describe('profileFormConfigFromFields', () => {
     assert.equal(third?.width, 33)
   })
 
+  it('defaults missing section width to 100 (same as Forms UI)', () => {
+    const fields = fieldsForPreset('profile')
+    const sections: FormSectionDef[] = [
+      {
+        id: 'sec_identity',
+        label: 'Identity',
+        rows: [createRowDraft('display_name'), createRowDraft('handle')],
+      },
+    ]
+    const config = profileFormConfigFromFields(fields, sections)
+    const identity = config.sections.find((s) => s.id === 'sec_identity')
+    assert.equal(identity?.width, 100)
+  })
+
   it('applyProfileFormConfigToSettings derives disabled/required from the form', () => {
     const fields: FormFieldDef[] = [
       { name: 'display_name', label: 'Display name', type: 'text', required: true },

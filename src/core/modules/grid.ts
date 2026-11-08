@@ -33,18 +33,69 @@ export function gridWidthPercent(width: LayoutGridWidth): number {
   return clampGridWidth(width)
 }
 
-/** Inline flex basis / max-width for a public/admin grid column. */
+/**
+ * Inline flex basis / max-width for a public/admin grid column.
+ * Partial widths subtract one `--sf-mosaic-gap` so percent pairs that sum to
+ * 100% (50%|50%) fit on one flex row with CSS `gap` instead of wrapping.
+ */
 export function gridColStyle(width: LayoutGridWidth): {
   flex: string
   maxWidth: string
   width: string
+  minWidth: number | string
+  boxSizing: 'border-box'
 } {
-  const pct = `${gridWidthPercent(width)}%`
-  return {
-    flex: `0 0 ${pct}`,
-    maxWidth: pct,
-    width: pct,
+  const pct = gridWidthPercent(width)
+  if (pct >= LAYOUT_WIDTH_FULL) {
+    return {
+      flex: '0 0 100%',
+      maxWidth: '100%',
+      width: '100%',
+      minWidth: 0,
+      boxSizing: 'border-box',
+    }
   }
+  // One full gap per item is slightly loose for 3+ columns but never wraps a 100% row.
+  const basis = `calc(${pct}% - var(--sf-mosaic-gap, 0.95rem))`
+  return {
+    flex: `0 0 ${basis}`,
+    maxWidth: basis,
+    width: basis,
+    minWidth: 0,
+    boxSizing: 'border-box',
+  }
+}
+
+/**
+ * Section/card mosaic drop edge (Forms + Layout).
+ * Vertical → reorder (stack); horizontal → place beside.
+ */
+export function mosaicSectionDropEdge(
+  clientX: number,
+  clientY: number,
+  rect: DOMRect,
+): { position: 'before' | 'after'; placeBeside: boolean } {
+  const dx = (clientX - rect.left) / Math.max(rect.width, 1) - 0.5
+  const dy = (clientY - rect.top) / Math.max(rect.height, 1) - 0.5
+  const placeBeside = Math.abs(dx) >= Math.abs(dy)
+  return {
+    placeBeside,
+    position: placeBeside ? (dx < 0 ? 'before' : 'after') : dy < 0 ? 'before' : 'after',
+  }
+}
+
+/**
+ * When placing two sections beside each other, force 50|50 if they would not
+ * fit on one mosaic row. Returns null when existing widths already fit.
+ */
+export function pairMosaicSectionWidths(
+  aWidth: unknown,
+  bWidth: unknown,
+): [LayoutGridWidth, LayoutGridWidth] | null {
+  const a = clampGridWidth(aWidth, LAYOUT_WIDTH_FULL)
+  const b = clampGridWidth(bWidth, LAYOUT_WIDTH_FULL)
+  if (a + b <= LAYOUT_WIDTH_FULL) return null
+  return [50, 50]
 }
 
 /** Sum of slot widths in a row. */

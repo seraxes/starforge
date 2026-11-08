@@ -594,6 +594,7 @@ export async function renameLayoutSlotAction(
 /**
  * Persist section order after drag-and-drop reorder on the layout canvas.
  * `orderJson` = JSON array of section ids top→bottom.
+ * Optional `widthsJson` = `{ [sectionId]: percent }` when placing beside (50|50).
  */
 export async function reorderLayoutSectionsAction(
   _prev: LayoutActionState,
@@ -611,6 +612,23 @@ export async function reorderLayoutSectionsAction(
   }
   if (orderedIds.length === 0) return { error: 'Section order is empty.' }
 
+  const widthsRaw = String(formData.get('widthsJson') ?? '').trim()
+  let widthById: Record<string, number> | null = null
+  if (widthsRaw) {
+    try {
+      const parsed = JSON.parse(widthsRaw) as Record<string, unknown>
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        throw new Error('not object')
+      }
+      widthById = {}
+      for (const [id, value] of Object.entries(parsed)) {
+        widthById[id] = clampGridWidth(value, LAYOUT_WIDTH_FULL)
+      }
+    } catch {
+      return { error: 'Invalid section widths payload.' }
+    }
+  }
+
   const state = await mutateLayout(formData, (doc) => {
     const byId = new Map(doc.sections.map((s) => [s.id, s]))
     if (orderedIds.length !== doc.sections.length) {
@@ -622,12 +640,17 @@ export async function reorderLayoutSectionsAction(
     doc.sections = orderedIds.map((id, index) => {
       const section = byId.get(id)!
       section.order = index
+      if (widthById && Object.prototype.hasOwnProperty.call(widthById, id)) {
+        section.width = widthById[id]!
+      }
       return section
     })
     return doc
   })
 
-  if (state.ok) state.message = 'Section order saved.'
+  if (state.ok) {
+    state.message = widthById ? 'Section layout saved.' : 'Section order saved.'
+  }
   return state
 }
 

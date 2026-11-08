@@ -3775,7 +3775,8 @@ button:disabled {
 .sf-layout-section-mosaic {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: var(--sf-mosaic-gap, 1rem);
+  --sf-mosaic-gap: 1rem;
   width: 100%;
   box-sizing: border-box;
 }
@@ -4239,7 +4240,7 @@ button:disabled {
 .sf-form-workspace.gantry-workspace,
 .gantry-workspace.sf-form-workspace {
   display: grid;
-  grid-template-columns: minmax(11rem, 14rem) minmax(0, 1fr);
+  grid-template-columns: minmax(15rem, 17rem) minmax(0, 1fr);
   gap: 1rem;
   align-items: start;
 }
@@ -4250,10 +4251,13 @@ button:disabled {
   }
 }
 
+/* Same mosaic as Layout `.gantry-sections` — partial widths (50%|50%) sit side by side. */
 .sf-form-sections {
   display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--sf-mosaic-gap, 0.85rem);
+  --sf-mosaic-gap: 0.85rem;
   min-width: 0;
 }
 
@@ -4825,6 +4829,23 @@ button:disabled {
   font-size: 1rem;
 }
 
+/* Reuses Forms manager filter chrome (`.sf-forms-filters` / toolbar muted). */
+.sf-form-palette-filters {
+  margin: 0 0 0.65rem;
+}
+
+.sf-form-palette-subhead {
+  margin: 0.35rem 0 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 650;
+  color: var(--sf-muted);
+}
+
+.sf-form-palette-empty {
+  margin: 0 0 0.75rem;
+  font-size: 0.8rem;
+}
+
 .gantry-palette-list {
   list-style: none;
   margin: 0 0 0.85rem;
@@ -4904,7 +4925,8 @@ button:disabled {
   padding: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.85rem;
+  gap: var(--sf-mosaic-gap, 0.85rem);
+  --sf-mosaic-gap: 0.85rem;
 }
 
 .gantry-sections > .gantry-section-actions,
@@ -5020,6 +5042,15 @@ button:disabled {
   box-shadow: inset 0 -3px 0 0 color-mix(in srgb, var(--sf-primary-strong) 75%, white);
 }
 
+/* Mosaic (50%|50%): dominant-axis left/right drop hint */
+.gantry-section.is-section-drop-before.is-section-drop-inline {
+  box-shadow: inset 3px 0 0 0 color-mix(in srgb, var(--sf-primary-strong) 75%, white);
+}
+
+.gantry-section.is-section-drop-after.is-section-drop-inline {
+  box-shadow: inset -3px 0 0 0 color-mix(in srgb, var(--sf-primary-strong) 75%, white);
+}
+
 .gantry-section-head {
   display: flex;
   flex-wrap: wrap;
@@ -5035,6 +5066,21 @@ button:disabled {
   align-items: center;
   min-width: 0;
   flex: 1 1 12rem;
+}
+
+.gantry-section-title .gantry-section-width-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.gantry-section-title .gantry-section-width-input {
+  width: 3.25rem;
+  min-height: var(--sf-admin-icon-secondary, 1.75rem);
+  padding: 0.15rem 0.3rem;
+  text-align: right;
 }
 
 .gantry-section-handle {
@@ -7065,7 +7111,8 @@ button.danger,
 .sf-profile-form-mosaic {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: var(--sf-mosaic-gap, 1rem);
+  --sf-mosaic-gap: 1rem;
   width: 100%;
   margin-bottom: 1rem;
 }

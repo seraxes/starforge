@@ -1,9 +1,14 @@
 import React from 'react'
 
+import { getAccessViewer } from '@/core/acl/access'
 import { resolveFormCaptcha } from '@/core/security/captcha'
 import { mergeParticleWithDefinition, readFormConfig } from '@/core/forms/config'
 import { formHasCaptchaField } from '@/core/forms/definition'
 import { loadFormDefinition } from '@/core/forms/definitions-store'
+import {
+  filterFormFieldsForViewer,
+  filterFormSectionsForFields,
+} from '@/core/forms/field-access'
 import type { StarforgeModule } from '@/core/modules/types'
 import { MODULE_IDS, isCatalogModuleEnabled } from '@/core/settings'
 
@@ -44,7 +49,10 @@ export const formModule: StarforgeModule = {
     }
 
     const resolved = mergeParticleWithDefinition(particle, definition)
-    const hasCaptchaField = formHasCaptchaField(resolved.fields)
+    const viewer = await getAccessViewer()
+    const fields = filterFormFieldsForViewer(resolved.fields, viewer)
+    const sections = filterFormSectionsForFields(resolved.sections, fields)
+    const hasCaptchaField = formHasCaptchaField(fields)
     const captcha = await resolveFormCaptcha({
       useSiteCaptchaDefault: resolved.useSiteCaptchaDefault,
       hasCaptchaField,
@@ -55,8 +63,8 @@ export const formModule: StarforgeModule = {
       slotId: slot.id,
       definitionId: resolved.definitionId,
       heading: resolved.heading,
-      fields: resolved.fields,
-      sections: resolved.sections,
+      fields,
+      sections,
       successMessage: resolved.successMessage,
       submitLabel: resolved.submitLabel,
       useSiteCaptchaDefault: resolved.useSiteCaptchaDefault,

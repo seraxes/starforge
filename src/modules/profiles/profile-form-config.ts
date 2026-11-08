@@ -90,10 +90,6 @@ function defaultFieldConfig(key: ProfileFieldKey): ProfileFormFieldConfig {
   }
 }
 
-function defaultSectionWidth(groupKey: string): number {
-  return groupKey === 'about' ? LAYOUT_WIDTH_FULL : 50
-}
-
 function resolveSectionWidth(
   raw: unknown,
   fallback: number,
@@ -104,6 +100,7 @@ function resolveSectionWidth(
   }
   // Legacy: bio-only sections were full-bleed before Forms owned width.
   if (fields.length === 1 && fields[0] === 'bio') return LAYOUT_WIDTH_FULL
+  // Match Forms UI (`section.width ?? 100`) and Layout particles — missing = full row.
   return clampGridWidth(fallback, LAYOUT_WIDTH_FULL)
 }
 
@@ -121,7 +118,7 @@ function buildGroupedSections(enabledOrder: ProfileFieldKey[]): ProfileFormSecti
       id: `sec_${group.key}`,
       label: group.label,
       fields,
-      width: defaultSectionWidth(group.key),
+      width: LAYOUT_WIDTH_FULL,
     })
   }
   if (remaining.size > 0) {
@@ -129,7 +126,7 @@ function buildGroupedSections(enabledOrder: ProfileFieldKey[]): ProfileFormSecti
       id: 'sec_other',
       label: 'Other',
       fields: enabledOrder.filter((k) => remaining.has(k)),
-      width: 50,
+      width: LAYOUT_WIDTH_FULL,
     })
   }
   return sections
@@ -204,7 +201,7 @@ export function profileFormConfigFromFields(
         id: section.id,
         label: section.label?.trim() || 'Fields',
         fields: keys,
-        width: resolveSectionWidth(section.width, 50, keys),
+        width: resolveSectionWidth(section.width, LAYOUT_WIDTH_FULL, keys),
       })
     }
     const orphan = enabledOrder.filter((k) => !assigned.has(k))
@@ -213,7 +210,7 @@ export function profileFormConfigFromFields(
         id: 'sec_orphan',
         label: 'Fields',
         fields: orphan,
-        width: resolveSectionWidth(undefined, 50, orphan),
+        width: resolveSectionWidth(undefined, LAYOUT_WIDTH_FULL, orphan),
       })
     }
   }

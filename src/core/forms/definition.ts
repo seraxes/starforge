@@ -36,6 +36,8 @@ import type {
   FormValidateExpr,
 } from './types'
 import { isFormFieldType } from './schema-json'
+import { resolveFormFieldUniqueKey } from './unique-fields'
+import { accessTagsForStorage } from '@/core/acl/nav-access'
 
 const RESERVED_NAMES = new Set(['website', 'cf-turnstile-response'])
 
@@ -304,6 +306,7 @@ export function normalizeFormFields(raw: unknown): FormFieldDef[] {
 
   const fields: FormFieldDef[] = []
   const seen = new Set<string>()
+  const seenUnique = new Set<string>()
 
   for (const entry of raw) {
     if (!entry || typeof entry !== 'object') continue
@@ -311,7 +314,15 @@ export function normalizeFormFields(raw: unknown): FormFieldDef[] {
     const name = typeof row.name === 'string' ? slugifyName(row.name) : ''
     if (!name || seen.has(name)) continue
     if (RESERVED_NAMES.has(name) || name.startsWith('_')) continue
+
+    const uniqueKey = resolveFormFieldUniqueKey({
+      name,
+      uniqueKey: typeof row.uniqueKey === 'string' ? row.uniqueKey : undefined,
+    })
+    if (uniqueKey && seenUnique.has(uniqueKey)) continue
+
     seen.add(name)
+    if (uniqueKey) seenUnique.add(uniqueKey)
 
     const type: FormFieldType = isFormFieldType(row.type) ? row.type : 'text'
     const field: FormFieldDef = {
@@ -322,6 +333,9 @@ export function normalizeFormFields(raw: unknown): FormFieldDef[] {
       required: row.required !== false,
       placeholder: typeof row.placeholder === 'string' ? row.placeholder : '',
     }
+    if (uniqueKey) field.uniqueKey = uniqueKey
+    const accessTags = accessTagsForStorage({ accessTags: row.accessTags })
+    if (accessTags) field.accessTags = accessTags
     if (typeof row.description === 'string' && row.description.trim()) {
       field.description = row.description.trim()
     }

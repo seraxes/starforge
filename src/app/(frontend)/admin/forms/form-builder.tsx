@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useActionState, useEffect, useMemo, useState } from 'react'
+import React, { useActionState, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import {
@@ -61,6 +61,8 @@ import {
 } from '@/core/forms/schema-json'
 import {
   gridColStyle,
+  mosaicSectionDropEdge,
+  pairMosaicSectionWidths,
   resizeAdjacentPair,
   widthToPercentLabel,
 } from '@/core/modules/grid'
@@ -80,7 +82,17 @@ import type {
   FormWeekday,
 } from '@/core/forms/types'
 
+import { AccessTagsField } from '@/components/admin/AccessTagsField'
 import { GantryBarRemoveButton } from '@/components/admin/GantryBarRemoveButton'
+import { resolveAccessTags } from '@/core/acl/nav-access'
+import type { UserGroupOption } from '@/core/acl/types'
+import {
+  UNIQUE_FORM_FIELD_CATEGORY_LABELS,
+  availableUniqueFormFieldTemplates,
+  createUniqueFormFieldDraft,
+  isUniqueFormFieldKey,
+  resolveFormFieldUniqueKey,
+} from '@/core/forms/unique-fields'
 import { MediaPicker } from '@/modules/media/api'
 
 import { useNotifySavedOnOk } from '../admin-toast'
@@ -91,9 +103,39 @@ import { FormsAdminNav } from './forms-admin-nav'
 /** Palette → canvas row (HTML5 DnD, same idea as Layout particles). */
 const DND_FORM_FIELD = 'application/x-starforge-form-field'
 
+/** Unique Profile (etc.) catalog field — value is uniqueKey. */
+const DND_FORM_UNIQUE = 'application/x-starforge-form-unique'
+
+/** Section reorder (HTML5 DnD, same idea as Layout sections). */
+const DND_FORM_SECTION = 'application/x-starforge-form-section'
+
 function dataTransferHasFormField(dt: DataTransfer | null): boolean {
   if (!dt) return false
   return Array.from(dt.types).includes(DND_FORM_FIELD) || Array.from(dt.types).includes('text/plain')
+}
+
+function dataTransferHasFormUnique(dt: DataTransfer | null): boolean {
+  if (!dt) return false
+  return Array.from(dt.types).includes(DND_FORM_UNIQUE)
+}
+
+/** After placing beside, make the pair fit on one flex row (default 50|50). */
+function pairSectionWidths(
+  sections: FormSectionDef[],
+  aId: string,
+  bId: string,
+): FormSectionDef[] {
+  const a = sections.find((s) => s.id === aId)
+  const b = sections.find((s) => s.id === bId)
+  if (!a || !b) return sections
+  const paired = pairMosaicSectionWidths(a.width, b.width)
+  if (!paired) return sections
+  const [aW, bW] = paired
+  return sections.map((s) => {
+    if (s.id === aId) return { ...s, width: aW }
+    if (s.id === bId) return { ...s, width: bW }
+    return s
+  })
 }
 
 const FIELD_PALETTE: { type: FormFieldType; label: string; hint: string }[] = [
@@ -141,6 +183,8 @@ type Props = {
   formId: string
   initialDocument: FormDefinitionDocument
   siteCaptcha?: FormBuilderSiteCaptcha
+  /** Users → Groups for field accessTags (Layout-style). */
+  groups?: UserGroupOption[]
 }
 
 function emptyGroup(): FormConditionGroup {
@@ -164,6 +208,7 @@ type FieldSettingsProps = {
   /** Blur flush — no-op unless a real edit marked the form dirty. */
   flushOnBlur: () => void
   siteCaptcha?: FormBuilderSiteCaptcha
+  groups?: UserGroupOption[]
   /** Column width percent when sitting in a multi-column row. */
   widthPercent?: number
   /** Layout-like slot drop edge while dragging another field over this one. */
@@ -196,8 +241,12 @@ function FieldSettingsBody({
   saveNow,
   flushOnBlur,
   siteCaptcha,
+  groups = [],
 }: Omit<FieldSettingsProps, 'onRemove'>) {
   const captchaWarn = field.type === 'captcha' ? captchaSiteStatusMessage(siteCaptcha) : null
+  const uniqueKey = resolveFormFieldUniqueKey(field)
+  const isUnique = Boolean(uniqueKey)
+  const accessTags = resolveAccessTags({ accessTags: field.accessTags })
   return (
     <div className="gantry-typed-form sf-form-field-cog-body">
       {field.type === 'captcha' ? (
@@ -205,6 +254,12 @@ function FieldSettingsBody({
           {captchaWarn
             ? captchaWarn
             : 'Renders Cloudflare Turnstile using Site Settings → Security. Keys stay in Environment.'}
+        </p>
+      ) : null}
+      {isUnique ? (
+        <p className="layout-muted">
+          Unique Profile field — only one per form. Name and type are fixed; remove it to return it
+          to the Profile palette.
         </p>
       ) : null}
       <label>
@@ -221,7 +276,10 @@ function FieldSettingsBody({
         <input
           type="text"
           value={field.name}
+          disabled={isUnique}
+          title={isUnique ? 'Unique field name is fixed' : undefined}
           onChange={(e) => {
+            if (isUnique) return
             const nextName = e.target.value
               .toLowerCase()
               .replace(/\s+/g, '_')
@@ -235,7 +293,10 @@ function FieldSettingsBody({
         <span>Type</span>
         <select
           value={field.type}
+          disabled={isUnique}
+          title={isUnique ? 'Unique field type is fixed' : undefined}
           onChange={(e) => {
+            if (isUnique) return
             const type = e.target.value as FormFieldType
             const next: Partial<FormFieldDef> = {
               type,
@@ -283,6 +344,15 @@ function FieldSettingsBody({
           ))}
         </select>
       </label>
+      <AccessTagsField
+        legend="Who can see"
+        groups={groups}
+        value={accessTags}
+        onChange={(next) => {
+          onPatch({ accessTags: next })
+          queueMicrotask(saveNow)
+        }}
+      />
       {!isDateTimeFieldType(field.type) &&
       field.type !== 'computed' &&
       field.type !== 'hidden' &&
@@ -1019,6 +1089,7 @@ function FieldBar({
   saveNow,
   flushOnBlur,
   siteCaptcha,
+  groups,
   widthPercent,
   dropEdge = null,
   setNodeRef,
@@ -1062,6 +1133,7 @@ function FieldBar({
             <strong className="sf-form-slot-name">{displayName}</strong>
             <span className="gantry-slot-sub">
               {field.type}
+              {resolveFormFieldUniqueKey(field) ? ' · unique' : ''}
               {field.required ? ' · required' : ''}
               {field.logic?.showWhen ? ' · conditional' : ''}
               {field.computed ? ' · expr' : ''}
@@ -1101,6 +1173,7 @@ function FieldBar({
                       saveNow={saveNow}
                       flushOnBlur={flushOnBlur}
                       siteCaptcha={siteCaptcha}
+                      groups={groups ?? []}
                     />
                   ),
                 },
@@ -1262,6 +1335,7 @@ function DroppableFormRow({
   onPaletteDragOver,
   onPaletteDragLeave,
   onPaletteDrop,
+  onUniqueDrop,
   children,
 }: {
   rowId: string
@@ -1270,6 +1344,7 @@ function DroppableFormRow({
   onPaletteDragOver?: () => void
   onPaletteDragLeave?: () => void
   onPaletteDrop?: (fieldType: FormFieldType) => void
+  onUniqueDrop?: (uniqueKey: string) => void
   children: React.ReactNode
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: rowDroppableId(rowId) })
@@ -1289,7 +1364,12 @@ function DroppableFormRow({
       data-sf-form-row={rowId}
       data-sf-empty={isEmpty ? 'true' : undefined}
       onDragOver={(event) => {
-        if (!dataTransferHasFormField(event.dataTransfer)) return
+        if (
+          !dataTransferHasFormField(event.dataTransfer) &&
+          !dataTransferHasFormUnique(event.dataTransfer)
+        ) {
+          return
+        }
         event.preventDefault()
         event.stopPropagation()
         event.dataTransfer.dropEffect = 'copy'
@@ -1302,6 +1382,14 @@ function DroppableFormRow({
         onPaletteDragLeave?.()
       }}
       onDrop={(event) => {
+        const uniqueRaw = event.dataTransfer.getData(DND_FORM_UNIQUE).trim()
+        if (uniqueRaw && dataTransferHasFormUnique(event.dataTransfer)) {
+          event.preventDefault()
+          event.stopPropagation()
+          setPaletteOver(false)
+          if (isUniqueFormFieldKey(uniqueRaw)) onUniqueDrop?.(uniqueRaw)
+          return
+        }
         if (!dataTransferHasFormField(event.dataTransfer)) return
         event.preventDefault()
         event.stopPropagation()
@@ -1329,12 +1417,15 @@ const FORM_EDIT_TABS: { id: FormEditTab; label: string; title: string }[] = [
   },
 ]
 
-export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
+type PaletteKindFilter = 'all' | 'normal' | 'unique'
+
+export function FormBuilder({ formId, initialDocument, siteCaptcha, groups = [] }: Props) {
   const [state, formAction, pending] = useActionState(saveFormDefinitionAction, initial)
   useNotifySavedOnOk(state)
   const { formRef, saveDebounced, saveNow, flushOnBlur } = useAutosaveForm()
 
   const [editTab, setEditTab] = useState<FormEditTab>('editor')
+  const [paletteKind, setPaletteKind] = useState<PaletteKindFilter>('all')
   const [title, setTitle] = useState(initialDocument.title)
   const [description, setDescription] = useState(initialDocument.description ?? '')
   const [preset, setPreset] = useState<FormPresetId>(initialDocument.preset)
@@ -1385,7 +1476,16 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
     useSensor(KeyboardSensor),
   )
   const [draggingFieldId, setDraggingFieldId] = useState<string | null>(null)
+  const [draggingSectionId, setDraggingSectionId] = useState<string | null>(null)
+  /** Sync ref — HTML5 dragover runs before React re-renders state from dragstart. */
+  const draggingSectionIdRef = useRef<string | null>(null)
+  const [sectionDropHint, setSectionDropHint] = useState<{
+    sectionId: string
+    position: 'before' | 'after'
+    placeBeside: boolean
+  } | null>(null)
   const [draggingPaletteType, setDraggingPaletteType] = useState<FormFieldType | null>(null)
+  const [draggingUniqueKey, setDraggingUniqueKey] = useState<string | null>(null)
   /** Pixel size of the field when drag started — keep overlay + source slot from shrinking. */
   const [dragLockSize, setDragLockSize] = useState<{
     width: number
@@ -1405,6 +1505,14 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
     for (const f of fields) map.set(fieldKey(f), f)
     return map
   }, [fields])
+
+  const availableUniqueFields = useMemo(
+    () => availableUniqueFormFieldTemplates(fields, 'profiles'),
+    [fields],
+  )
+
+  const showNormalPalette = paletteKind === 'all' || paletteKind === 'normal'
+  const showUniquePalette = paletteKind === 'all' || paletteKind === 'unique'
 
   function regenerateSchema(nextFields: FormFieldDef[], nextTitle = title, nextDesc = description) {
     if (schemaDirty) return
@@ -1467,6 +1575,28 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
   function addFieldOntoRow(type: FormFieldType, sectionId: string, rowId: string) {
     if (!isFormFieldType(type)) return
     const draft = mintFieldDraft(type)
+    updateFields([...fields, draft], addFieldToRow(sections, sectionId, rowId, draft.name))
+  }
+
+  function addUniqueField(uniqueKey: string, sectionId?: string) {
+    if (!isUniqueFormFieldKey(uniqueKey)) return
+    if (fields.some((f) => resolveFormFieldUniqueKey(f) === uniqueKey)) return
+    const draft = createUniqueFormFieldDraft(uniqueKey)
+    if (!draft) return
+    const next = [...fields, draft]
+    const targetSec = sectionId || sections[0]?.id
+    if (!targetSec) {
+      updateFields(next)
+      return
+    }
+    updateFields(next, appendFieldRow(sections, targetSec, draft.name))
+  }
+
+  function addUniqueFieldOntoRow(uniqueKey: string, sectionId: string, rowId: string) {
+    if (!isUniqueFormFieldKey(uniqueKey)) return
+    if (fields.some((f) => resolveFormFieldUniqueKey(f) === uniqueKey)) return
+    const draft = createUniqueFormFieldDraft(uniqueKey)
+    if (!draft) return
     updateFields([...fields, draft], addFieldToRow(sections, sectionId, rowId, draft.name))
   }
 
@@ -1556,6 +1686,47 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
       regenerateSchema(nextFields)
     }
     saveDebounced()
+  }
+
+  function clearSectionDrag() {
+    draggingSectionIdRef.current = null
+    setDraggingSectionId(null)
+    setSectionDropHint(null)
+  }
+
+  /**
+   * Section card drop:
+   * - placeBeside false → reorder only (above/below)
+   * - placeBeside true → insert adjacent + pair widths so they sit side by side
+   */
+  function applySectionDrop(
+    movingId: string,
+    targetId: string,
+    position: 'before' | 'after',
+    placeBeside: boolean,
+  ) {
+    if (!movingId || movingId === targetId) {
+      clearSectionDrag()
+      return
+    }
+    const without = sections.filter((s) => s.id !== movingId)
+    const moving = sections.find((s) => s.id === movingId)
+    if (!moving) {
+      clearSectionDrag()
+      return
+    }
+    const targetIndex = without.findIndex((s) => s.id === targetId)
+    if (targetIndex < 0) {
+      clearSectionDrag()
+      return
+    }
+    const insertAt = position === 'before' ? targetIndex : targetIndex + 1
+    let next = [...without.slice(0, insertAt), moving, ...without.slice(insertAt)]
+    if (placeBeside) {
+      next = pairSectionWidths(next, movingId, targetId)
+    }
+    clearSectionDrag()
+    commitSections(next)
   }
 
   function openEmptyRow(sectionId: string) {
@@ -1817,46 +1988,123 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
           className="sf-form-edit-panel"
         >
           <div className="gantry-workspace sf-form-workspace">
-            <aside className="gantry-palette" aria-label="Field types">
+            <aside className="gantry-palette sf-form-palette" aria-label="Field types">
               <h3>Fields</h3>
-              <ul className="gantry-palette-list">
-                {FIELD_PALETTE.map((item) => (
-                  <li key={item.type}>
-                    <div
-                      className={
-                        draggingPaletteType === item.type
-                          ? 'gantry-palette-item is-dragging'
-                          : 'gantry-palette-item'
-                      }
-                      draggable
-                      title={`${item.label} — click to append, or drag onto a row`}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => addField(item.type)}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault()
-                          addField(item.type)
-                        }
-                      }}
-                      onDragStart={(event) => {
-                        event.dataTransfer.setData(DND_FORM_FIELD, item.type)
-                        event.dataTransfer.setData('text/plain', item.type)
-                        event.dataTransfer.effectAllowed = 'copy'
-                        setDraggingPaletteType(item.type)
-                      }}
-                      onDragEnd={() => setDraggingPaletteType(null)}
+              <div className="sf-forms-filters sf-form-palette-filters">
+                <div className="sf-forms-filter-group" role="group" aria-label="Field kind">
+                  {(
+                    [
+                      { id: 'all', label: 'All' },
+                      { id: 'normal', label: 'Normal' },
+                      { id: 'unique', label: 'Unique' },
+                    ] as const
+                  ).map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      className={`gantry-toolbar-btn gantry-toolbar-btn-muted${
+                        paletteKind === tab.id ? ' is-active' : ''
+                      }`}
+                      aria-pressed={paletteKind === tab.id}
+                      onClick={() => setPaletteKind(tab.id)}
                     >
-                      <strong>{item.label}</strong>
-                      <span>{item.hint}</span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {showNormalPalette ? (
+                <ul className="gantry-palette-list">
+                  {FIELD_PALETTE.map((item) => (
+                    <li key={item.type}>
+                      <div
+                        className={
+                          draggingPaletteType === item.type
+                            ? 'gantry-palette-item is-dragging'
+                            : 'gantry-palette-item'
+                        }
+                        draggable
+                        title={`${item.label} — click to append, or drag onto a row`}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => addField(item.type)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault()
+                            addField(item.type)
+                          }
+                        }}
+                        onDragStart={(event) => {
+                          event.dataTransfer.setData(DND_FORM_FIELD, item.type)
+                          event.dataTransfer.setData('text/plain', item.type)
+                          event.dataTransfer.effectAllowed = 'copy'
+                          setDraggingPaletteType(item.type)
+                          setDraggingUniqueKey(null)
+                        }}
+                        onDragEnd={() => setDraggingPaletteType(null)}
+                      >
+                        <strong>{item.label}</strong>
+                        <span>{item.hint}</span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {showUniquePalette ? (
+                <>
+                  {paletteKind === 'all' ? (
+                    <h4 className="sf-form-palette-subhead">
+                      {UNIQUE_FORM_FIELD_CATEGORY_LABELS.profiles}
+                    </h4>
+                  ) : null}
+                  {availableUniqueFields.length === 0 ? (
+                    <p className="layout-muted sf-form-palette-empty">
+                      All unique Profile fields are on the canvas — remove one to add it again.
+                    </p>
+                  ) : (
+                    <ul className="gantry-palette-list">
+                      {availableUniqueFields.map((item) => (
+                        <li key={item.uniqueKey}>
+                          <div
+                            className={
+                              draggingUniqueKey === item.uniqueKey
+                                ? 'gantry-palette-item is-dragging'
+                                : 'gantry-palette-item'
+                            }
+                            draggable
+                            title={`${item.label} — unique; only one per form`}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => addUniqueField(item.uniqueKey)}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter' || event.key === ' ') {
+                                event.preventDefault()
+                                addUniqueField(item.uniqueKey)
+                              }
+                            }}
+                            onDragStart={(event) => {
+                              event.dataTransfer.setData(DND_FORM_UNIQUE, item.uniqueKey)
+                              event.dataTransfer.setData('text/plain', item.uniqueKey)
+                              event.dataTransfer.effectAllowed = 'copy'
+                              setDraggingUniqueKey(item.uniqueKey)
+                              setDraggingPaletteType(null)
+                            }}
+                            onDragEnd={() => setDraggingUniqueKey(null)}
+                          >
+                            <strong>{item.label}</strong>
+                            <span>{item.hint}</span>
+                            <em>unique</em>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </>
+              ) : null}
               <p className="layout-muted">
-                Drag a field onto an open or filled row (or click to append). Use{' '}
-                <strong>+ row</strong> for an empty drop zone; resize side-by-side columns with the
-                divider.
+                Filter <strong>All / Normal / Unique</strong>. Unique Profile fields leave the list
+                while on the canvas. Drag <strong>⋮⋮</strong> above/below to reorder, left/right to
+                place beside.
               </p>
             </aside>
 
@@ -1907,15 +2155,84 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                   section.width ?? LAYOUT_WIDTH_FULL,
                   LAYOUT_WIDTH_FULL,
                 )
+                const dropHintForSection =
+                  sectionDropHint?.sectionId === section.id &&
+                  draggingSectionId &&
+                  draggingSectionId !== section.id
+                    ? sectionDropHint
+                    : null
+                const sectionClass = [
+                  'gantry-section',
+                  draggingSectionId === section.id ? 'is-section-dragging' : '',
+                  dropHintForSection?.position === 'before' ? 'is-section-drop-before' : '',
+                  dropHintForSection?.position === 'after' ? 'is-section-drop-after' : '',
+                  dropHintForSection?.placeBeside ? 'is-section-drop-inline' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')
                 return (
                   <section
                     key={section.id}
-                    className="gantry-section"
+                    className={sectionClass}
                     data-sf-width={sectionWidth}
+                    data-sf-section={section.id}
                     style={gridColStyle(sectionWidth)}
+                    onDragOver={(event) => {
+                      const movingId = draggingSectionIdRef.current
+                      if (!movingId || movingId === section.id) return
+                      event.preventDefault()
+                      event.stopPropagation()
+                      event.dataTransfer.dropEffect = 'move'
+                      const edge = mosaicSectionDropEdge(
+                        event.clientX,
+                        event.clientY,
+                        event.currentTarget.getBoundingClientRect(),
+                      )
+                      setSectionDropHint({
+                        sectionId: section.id,
+                        position: edge.position,
+                        placeBeside: edge.placeBeside,
+                      })
+                    }}
+                    onDrop={(event) => {
+                      const movingId =
+                        draggingSectionIdRef.current ||
+                        event.dataTransfer.getData(DND_FORM_SECTION) ||
+                        event.dataTransfer.getData('text/plain')
+                      if (!movingId || movingId === section.id) return
+                      event.preventDefault()
+                      event.stopPropagation()
+                      const edge = mosaicSectionDropEdge(
+                        event.clientX,
+                        event.clientY,
+                        event.currentTarget.getBoundingClientRect(),
+                      )
+                      applySectionDrop(movingId, section.id, edge.position, edge.placeBeside)
+                    }}
                   >
                     <header className="gantry-section-head">
                       <div className="gantry-section-title">
+                        <button
+                          type="button"
+                          className="gantry-section-handle"
+                          draggable
+                          title="Drag: drop above/below to reorder, left/right to place beside"
+                          aria-label={`Drag to move section ${section.label}`}
+                          onDragStart={(event) => {
+                            event.stopPropagation()
+                            event.dataTransfer.setData(DND_FORM_SECTION, section.id)
+                            event.dataTransfer.setData('text/plain', section.id)
+                            event.dataTransfer.effectAllowed = 'move'
+                            draggingSectionIdRef.current = section.id
+                            setDraggingSectionId(section.id)
+                            setSectionDropHint(null)
+                          }}
+                          onDragEnd={() => {
+                            clearSectionDrag()
+                          }}
+                        >
+                          ⋮⋮
+                        </button>
                         <input
                           type="text"
                           className="gantry-section-name-input"
@@ -1931,41 +2248,36 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                           onBlur={flushOnBlur}
                           aria-label="Section label"
                         />
+                        <label
+                          className="gantry-inline-label gantry-section-width-label"
+                          title="Section mosaic width (not field column %). Two ~50% sections sit side by side."
+                        >
+                          <span className="sr-only">Section width percent</span>
+                          <input
+                            type="number"
+                            className="gantry-inline-input gantry-section-width-input"
+                            value={sectionWidth}
+                            min={LAYOUT_WIDTH_MIN}
+                            max={LAYOUT_WIDTH_FULL}
+                            step={5}
+                            aria-label="Section width percent"
+                            onChange={(e) => {
+                              const width = clampGridWidth(e.target.value, LAYOUT_WIDTH_FULL)
+                              setSections(
+                                sections.map((s) =>
+                                  s.id === section.id ? { ...s, width } : s,
+                                ),
+                              )
+                              saveDebounced()
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <span className="gantry-slot-pct" aria-hidden="true">
+                            %
+                          </span>
+                        </label>
                       </div>
                       <div className="gantry-section-head-actions">
-                        <details className="gantry-section-settings">
-                          <summary
-                            className="gantry-section-icon-btn"
-                            title="Section settings"
-                            aria-label="Section settings"
-                          >
-                            ⚙
-                          </summary>
-                          <div className="gantry-section-toolbar">
-                            <label className="gantry-inline-label gantry-section-width-label">
-                              <span className="gantry-field-hint">Width %</span>
-                              <input
-                                type="number"
-                                className="gantry-inline-input gantry-section-width-input"
-                                value={sectionWidth}
-                                min={LAYOUT_WIDTH_MIN}
-                                max={LAYOUT_WIDTH_FULL}
-                                step={5}
-                                aria-label="Section width percent"
-                                title="Percent width — same model as Layout particles (5–100)"
-                                onChange={(e) => {
-                                  const width = clampGridWidth(e.target.value, LAYOUT_WIDTH_FULL)
-                                  setSections(
-                                    sections.map((s) =>
-                                      s.id === section.id ? { ...s, width } : s,
-                                    ),
-                                  )
-                                  saveDebounced()
-                                }}
-                              />
-                            </label>
-                          </div>
-                        </details>
                         {sections.length > 1 ? (
                           <div className="gantry-section-actions">
                             <button
@@ -2009,7 +2321,7 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                               (Boolean(draggingFieldId) &&
                                 dropHint?.sectionId === section.id &&
                                 dropHint.rowId === row.id) ||
-                              (Boolean(draggingPaletteType) &&
+                              ((Boolean(draggingPaletteType) || Boolean(draggingUniqueKey)) &&
                                 dropHint?.sectionId === section.id &&
                                 dropHint.kind === 'row' &&
                                 dropHint.rowId === row.id)
@@ -2038,7 +2350,14 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                                   onPaletteDrop={(type) => {
                                     setDropHint(null)
                                     setDraggingPaletteType(null)
+                                    setDraggingUniqueKey(null)
                                     addFieldOntoRow(type, section.id, row.id)
+                                  }}
+                                  onUniqueDrop={(uniqueKey) => {
+                                    setDropHint(null)
+                                    setDraggingPaletteType(null)
+                                    setDraggingUniqueKey(null)
+                                    addUniqueFieldOntoRow(uniqueKey, section.id, row.id)
                                   }}
                                 >
                                   {/* Meta / − row only on empty drop rows — no leftover
@@ -2103,6 +2422,7 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                                           saveNow={saveNow}
                                           flushOnBlur={flushOnBlur}
                                           siteCaptcha={siteCaptcha}
+                                          groups={groups}
                                         />
                                       )
                                       if (colIndex >= row.columns.length - 1) return bar
@@ -2200,6 +2520,7 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                                     saveNow={saveNow}
                                     flushOnBlur={flushOnBlur}
                                     siteCaptcha={siteCaptcha}
+                                    groups={groups}
                                   />
                                 )
                               })}

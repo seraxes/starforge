@@ -110,6 +110,26 @@ export {
   registerFormPreset,
   runFormPresetOnSubmitted,
 } from './preset-registry'
+export {
+  UNIQUE_FORM_FIELD_CATEGORY_LABELS,
+  availableUniqueFormFieldTemplates,
+  createUniqueFormFieldDraft,
+  getUniqueFormFieldTemplate,
+  isUniqueFormFieldKey,
+  listUniqueFormFieldTemplates,
+  resolveFormFieldUniqueKey,
+  uniqueFormFieldKeyForName,
+  usedUniqueFormFieldKeys,
+} from './unique-fields'
+export type {
+  UniqueFormFieldCategoryId,
+  UniqueFormFieldTemplate,
+} from './unique-fields'
+export {
+  canSeeFormField,
+  filterFormFieldsForViewer,
+  filterFormSectionsForFields,
+} from './field-access'
 export type {
   FormPresetMessages,
   FormPresetOnSubmitted,

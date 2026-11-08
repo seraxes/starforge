@@ -755,6 +755,15 @@ body:has(.admin-shell) > main {
   grid-template-columns: minmax(12rem, 14.5rem) minmax(0, 1fr);
 }
 
+/* Forms Fields palette — slightly wider so All / Normal / Unique stay one line */
+.admin-shell .gantry-workspace.sf-form-workspace {
+  grid-template-columns: minmax(15rem, 17rem) minmax(0, 1fr);
+}
+
+.admin-shell .sf-form-palette-filters .sf-forms-filter-group {
+  flex-wrap: nowrap;
+}
+
 .admin-shell .gantry-palette {
   background: #1b2531;
   border: 1px solid #243246;
@@ -763,11 +772,11 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .gantry-palette h3 {
-  color: #c5d2e0;
-  font-size: 0.8rem;
-  letter-spacing: 0.02em;
-  font-weight: 600;
-  margin: 0 0 0.45rem;
+  color: #fff;
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
+  font-weight: 650;
+  margin: 0 0 0.55rem;
   text-transform: none;
 }
 
@@ -992,6 +1001,14 @@ body:has(.admin-shell) > main {
   box-shadow: inset 0 -3px 0 0 var(--sf-admin-blue-mid);
 }
 
+.admin-shell .gantry-section.is-section-drop-before.is-section-drop-inline {
+  box-shadow: inset 3px 0 0 0 var(--sf-admin-blue-mid);
+}
+
+.admin-shell .gantry-section.is-section-drop-after.is-section-drop-inline {
+  box-shadow: inset -3px 0 0 0 var(--sf-admin-blue-mid);
+}
+
 .admin-shell .gantry-section-head {
   margin: 0 0 0.35rem;
   padding: 0.05rem 0;
@@ -1103,7 +1120,8 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .gantry-sections {
-  gap: 0.95rem;
+  --sf-mosaic-gap: 0.95rem;
+  gap: var(--sf-mosaic-gap, 0.95rem);
 }
 
 .admin-shell .gantry-sections > .gantry-section {

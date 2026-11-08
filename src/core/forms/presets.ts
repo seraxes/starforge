@@ -1,5 +1,6 @@
 import { getRegisteredFormPreset, listRegisteredFormPresets } from './preset-registry'
 import type { FormDefinitionDocument, FormFieldDef, FormPresetId } from './types'
+import { listUniqueFormFieldTemplates } from './unique-fields'
 
 /** Admin list grouping — module-owned presets land under their product category. */
 export type FormPresetCategoryId = 'general' | 'events' | 'support' | 'profiles'
@@ -360,149 +361,11 @@ function votingFields(): FormFieldDef[] {
 
 /**
  * Member profile editor fields (product:profiles).
- * Stable `name`s are snake_case so they survive Forms `slugifyName` (lowercase).
- * Profiles maps them back to registry keys (`display_name` → `displayName`).
+ * Stable `name`s + `uniqueKey`s from the unique-fields catalog so the Forms
+ * Profile palette can add/remove them (one of each per form).
  */
 function profileFields(): FormFieldDef[] {
-  return [
-    {
-      id: 'profile_display_name',
-      name: 'display_name',
-      label: 'Display name',
-      type: 'text',
-      required: true,
-      stringConstraints: { maxLength: 80 },
-    },
-    {
-      id: 'profile_handle',
-      name: 'handle',
-      label: 'Username',
-      type: 'text',
-      required: true,
-      description: 'Public address: /u/username.',
-      stringConstraints: { minLength: 3, maxLength: 30 },
-    },
-    {
-      id: 'profile_headline',
-      name: 'headline',
-      label: 'Headline',
-      type: 'text',
-      required: false,
-      placeholder: 'A short line under your name',
-      stringConstraints: { maxLength: 120 },
-    },
-    {
-      id: 'profile_avatar',
-      name: 'avatar',
-      label: 'Avatar',
-      type: 'text',
-      required: true,
-      description: 'Rendered as the profile image picker + crop (not a plain text input).',
-    },
-    {
-      id: 'profile_cover',
-      name: 'cover',
-      label: 'Cover image',
-      type: 'text',
-      required: false,
-      description: 'Rendered as the cover image picker + crop.',
-    },
-    {
-      id: 'profile_bio',
-      name: 'bio',
-      label: 'Bio',
-      type: 'textarea',
-      required: false,
-      placeholder: 'Tell the community about yourself…',
-      stringConstraints: { maxLength: 2000 },
-    },
-    {
-      id: 'profile_birth_date',
-      name: 'birth_date',
-      label: 'Date of birth (shown as age)',
-      type: 'date',
-      required: false,
-      description: 'Others only ever see age when allowed.',
-    },
-    {
-      id: 'profile_gender',
-      name: 'gender',
-      label: 'Gender',
-      type: 'select',
-      required: false,
-      options: [
-        { value: '', label: 'Prefer not to say' },
-        { value: 'female', label: 'Female' },
-        { value: 'male', label: 'Male' },
-        { value: 'nonbinary', label: 'Non-binary' },
-      ],
-    },
-    {
-      id: 'profile_country',
-      name: 'country',
-      label: 'Country',
-      type: 'text',
-      required: false,
-      description: 'Rendered as a country select in the profile editor.',
-    },
-    {
-      id: 'profile_city',
-      name: 'city',
-      label: 'City',
-      type: 'text',
-      required: false,
-      stringConstraints: { maxLength: 80 },
-    },
-    {
-      id: 'profile_location',
-      name: 'location',
-      label: 'Map location (approximate)',
-      type: 'text',
-      required: false,
-      description: 'Rendered as the map pin picker.',
-    },
-    {
-      id: 'profile_website',
-      name: 'website',
-      label: 'Website',
-      type: 'url',
-      required: false,
-      placeholder: 'https://',
-    },
-    {
-      id: 'profile_phone',
-      name: 'phone',
-      label: 'Phone',
-      type: 'tel',
-      required: false,
-      stringConstraints: { maxLength: 32 },
-    },
-    {
-      id: 'profile_links',
-      name: 'links',
-      label: 'Social links',
-      type: 'text',
-      required: false,
-      description: 'Rendered as the social links repeater.',
-    },
-    {
-      id: 'profile_locale',
-      name: 'locale',
-      label: 'Language',
-      type: 'text',
-      required: false,
-      description: 'Private preference — only the member sees this.',
-    },
-    {
-      id: 'profile_timezone',
-      name: 'timezone',
-      label: 'Time zone',
-      type: 'text',
-      required: false,
-      placeholder: 'Europe/Budapest',
-      description: 'Private preference — only the member sees this.',
-    },
-  ]
+  return listUniqueFormFieldTemplates('profiles').map((t) => t.createDraft())
 }
 
 function builtinFieldsForPreset(preset: FormPresetId): FormFieldDef[] {

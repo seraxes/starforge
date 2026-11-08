@@ -227,6 +227,16 @@ export type FormFieldDef = {
   validateExpr?: FormValidateExpr
   /** Static / expression bounds for number (+ computed display). */
   numberBounds?: FormNumberBounds
+  /**
+   * Unique reusable catalog key (e.g. `profile:display_name`). At most one
+   * field with a given key may exist on a form — palette hides used keys.
+   */
+  uniqueKey?: string
+  /**
+   * Who can see this field on public forms (same tokens as Layout / Nav):
+   * `public` | `registered` | `group:<id>`. Empty / omitted → public.
+   */
+  accessTags?: string[]
 }
 
 /** Typed preset ids — workflow modules reuse these instead of rebuilding fields. */
