@@ -4,7 +4,7 @@
 
 import 'server-only'
 
-import { and, asc, eq, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, sql } from 'drizzle-orm'
 
 import { db } from '@/core/db'
 import { sanitizeCssColor } from '@/core/modules/styles'
@@ -34,6 +34,11 @@ export type TicketTierRecord = {
   capacity: number | null
   /** Max guests on one booking; null → DEFAULT_MAX_TICKETS_PER_BOOKING. */
   maxPerBooking: number | null
+  /** Base price in major units; null = unset. */
+  price: number | null
+  /** Added to price for effective amount (may be negative). */
+  priceModifier: number
+  /** Optional text that overwrites formatted price on public cards. */
   priceLabel: string
   titleColor: string
   borderColor: string
@@ -69,6 +74,14 @@ function mapTier(row: typeof sfEventTicketTiers.$inferSelect): TicketTierRecord 
       row.maxPerBooking >= 1
         ? Math.floor(row.maxPerBooking)
         : null,
+    price:
+      typeof row.price === 'number' && Number.isFinite(row.price)
+        ? Math.floor(row.price)
+        : null,
+    priceModifier:
+      typeof row.priceModifier === 'number' && Number.isFinite(row.priceModifier)
+        ? Math.floor(row.priceModifier)
+        : 0,
     priceLabel: row.priceLabel ?? '',
     titleColor: parseTierColor(row.titleColor),
     borderColor: parseTierColor(row.borderColor),
@@ -95,6 +108,22 @@ function parseMaxPerBooking(raw: unknown): number | null {
   const n = typeof raw === 'number' ? raw : Number(String(raw).trim())
   if (!Number.isFinite(n) || n < 1) return null
   return Math.min(Math.floor(n), 100)
+}
+
+/** Empty → null. Otherwise integer (may be 0). */
+function parsePrice(raw: unknown): number | null {
+  if (raw == null || raw === '') return null
+  const n = typeof raw === 'number' ? raw : Number(String(raw).trim())
+  if (!Number.isFinite(n)) return null
+  return Math.floor(n)
+}
+
+/** Empty → 0. Integer modifier (may be negative). */
+function parsePriceModifier(raw: unknown): number {
+  if (raw == null || raw === '') return 0
+  const n = typeof raw === 'number' ? raw : Number(String(raw).trim())
+  if (!Number.isFinite(n)) return 0
+  return Math.floor(n)
 }
 
 /** Effective max guests for one booking on this tier. */
@@ -159,7 +188,7 @@ export async function countRegisteredGuestsForTier(
         and(
           eq(sfEventRegistrations.eventId, eventId.trim()),
           eq(sfEventRegistrations.ticketTierId, tierId.trim()),
-          eq(sfEventRegistrations.status, 'registered'),
+          inArray(sfEventRegistrations.status, ['registered', 'pending_payment']),
         ),
       )
     return Number(row?.n) || 0
@@ -177,6 +206,8 @@ export type UpsertTicketTierInput = {
   kind?: string
   capacity?: unknown
   maxPerBooking?: unknown
+  price?: unknown
+  priceModifier?: unknown
   priceLabel?: string
   titleColor?: string
   borderColor?: string
@@ -198,6 +229,8 @@ export async function createTicketTier(
   const kind: TicketTierKind = isTicketTierKind(input.kind) ? input.kind : 'general'
   const capacity = parseCapacity(input.capacity)
   const maxPerBooking = parseMaxPerBooking(input.maxPerBooking)
+  const price = parsePrice(input.price)
+  const priceModifier = parsePriceModifier(input.priceModifier)
   const priceLabel = (input.priceLabel || '').trim().slice(0, 80)
   const titleColor = parseTierColor(input.titleColor)
   const borderColor = parseTierColor(input.borderColor)
@@ -221,6 +254,8 @@ export async function createTicketTier(
       kind,
       capacity,
       maxPerBooking,
+      price,
+      priceModifier,
       priceLabel,
       titleColor,
       borderColor,
@@ -269,6 +304,12 @@ export async function updateTicketTier(
     input.maxPerBooking !== undefined
       ? parseMaxPerBooking(input.maxPerBooking)
       : current.maxPerBooking
+  const price =
+    input.price !== undefined ? parsePrice(input.price) : current.price
+  const priceModifier =
+    input.priceModifier !== undefined
+      ? parsePriceModifier(input.priceModifier)
+      : current.priceModifier
   const priceLabel =
     input.priceLabel !== undefined
       ? input.priceLabel.trim().slice(0, 80)
@@ -302,6 +343,8 @@ export async function updateTicketTier(
         kind,
         capacity,
         maxPerBooking,
+        price,
+        priceModifier,
         priceLabel,
         titleColor,
         borderColor,

@@ -91,8 +91,10 @@ function mapEvent(row: typeof sfEvents.$inferSelect): EventRecord {
       typeof row.capacity === 'number' && Number.isFinite(row.capacity) && row.capacity >= 0
         ? Math.floor(row.capacity)
         : null,
+    waitlistEnabled: row.waitlistEnabled !== false,
     registrationOpensAt: row.registrationOpensAt ?? null,
     registrationClosesAt: row.registrationClosesAt ?? null,
+    merchantUserId: (row.merchantUserId || '').trim(),
     managerUserIds: normalizeIdList(row.managerUserIds),
     helperUserIds: normalizeIdList(row.helperUserIds),
     managerGroupIds: normalizeIdList(row.managerGroupIds),
@@ -409,8 +411,11 @@ export type UpsertEventInput = {
   coverMediaId?: string
   galleryMediaIds?: unknown
   capacity?: unknown
+  waitlistEnabled?: unknown
   registrationOpensAt?: unknown
   registrationClosesAt?: unknown
+  /** Premium merchant user collecting ticket payments (empty = site MoR). */
+  merchantUserId?: unknown
   managerUserIds?: unknown
   helperUserIds?: unknown
   managerGroupIds?: unknown
@@ -453,10 +458,12 @@ export async function createEvent(
   const coverMediaId = (input.coverMediaId || '').trim() || null
   const galleryMediaIds = normalizeGalleryIds(input.galleryMediaIds)
   const capacity = parseOptionalCapacity(input.capacity)
+  const waitlistEnabled = parseListedFlag(input.waitlistEnabled, true)
   const startsAt = parseOptionalDate(input.startsAt)
   const endsAt = parseOptionalDate(input.endsAt)
   const registrationOpensAt = parseOptionalDate(input.registrationOpensAt)
   const registrationClosesAt = parseOptionalDate(input.registrationClosesAt)
+  const merchantUserId = String(input.merchantUserId ?? '').trim() || null
   const managerUserIds = parseOptionalIdList(input.managerUserIds)
   const helperUserIds = parseOptionalIdList(input.helperUserIds)
   const managerGroupIds = parseOptionalIdList(input.managerGroupIds)
@@ -507,8 +514,10 @@ export async function createEvent(
       coverMediaId,
       galleryMediaIds,
       capacity,
+      waitlistEnabled,
       registrationOpensAt,
       registrationClosesAt,
+      merchantUserId,
       managerUserIds,
       helperUserIds,
       managerGroupIds,
@@ -568,6 +577,10 @@ export async function updateEvent(
     input.capacity !== undefined
       ? parseOptionalCapacity(input.capacity)
       : current.capacity
+  const waitlistEnabled =
+    input.waitlistEnabled !== undefined
+      ? parseListedFlag(input.waitlistEnabled, current.waitlistEnabled)
+      : current.waitlistEnabled
   const startsAt =
     input.startsAt !== undefined ? parseOptionalDate(input.startsAt) : current.startsAt
   const endsAt =
@@ -580,6 +593,10 @@ export async function updateEvent(
     input.registrationClosesAt !== undefined
       ? parseOptionalDate(input.registrationClosesAt)
       : current.registrationClosesAt
+  const merchantUserId =
+    input.merchantUserId !== undefined
+      ? String(input.merchantUserId ?? '').trim() || null
+      : current.merchantUserId || null
   const managerUserIds =
     input.managerUserIds !== undefined
       ? parseOptionalIdList(input.managerUserIds)
@@ -678,8 +695,10 @@ export async function updateEvent(
         coverMediaId,
         galleryMediaIds,
         capacity,
+        waitlistEnabled,
         registrationOpensAt,
         registrationClosesAt,
+        merchantUserId,
         managerUserIds,
         helperUserIds,
         managerGroupIds,
@@ -770,8 +789,10 @@ export async function duplicateEvent(
     coverMediaId: source.coverMediaId,
     galleryMediaIds: source.galleryMediaIds,
     capacity: source.capacity ?? '',
+    waitlistEnabled: source.waitlistEnabled ? '1' : '0',
     registrationOpensAt: source.registrationOpensAt?.toISOString() ?? '',
     registrationClosesAt: source.registrationClosesAt?.toISOString() ?? '',
+    merchantUserId: source.merchantUserId,
     managerUserIds: source.managerUserIds,
     helperUserIds: source.helperUserIds,
     managerGroupIds: source.managerGroupIds,
@@ -816,6 +837,8 @@ export async function duplicateEvent(
           kind: tier.kind,
           capacity: tier.capacity ?? '',
           maxPerBooking: tier.maxPerBooking ?? '',
+          price: tier.price ?? '',
+          priceModifier: tier.priceModifier,
           priceLabel: tier.priceLabel,
           titleColor: tier.titleColor,
           borderColor: tier.borderColor,

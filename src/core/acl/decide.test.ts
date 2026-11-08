@@ -108,6 +108,21 @@ describe('adminAreaGateForPath', () => {
     })
   })
 
+  it('maps Payments admin paths to admin.payments', () => {
+    assert.deepEqual(adminAreaGateForPath('/admin/payments'), {
+      type: 'resource',
+      key: 'admin.payments',
+    })
+    assert.deepEqual(adminAreaGateForPath('/admin/payments/orders'), {
+      type: 'resource',
+      key: 'admin.payments',
+    })
+    assert.deepEqual(adminAreaGateForPath('/admin/payments/settings'), {
+      type: 'resource',
+      key: 'admin.payments',
+    })
+  })
+
   it('maps Events admin paths to admin.events', () => {
     assert.deepEqual(adminAreaGateForPath('/admin/events'), {
       type: 'resource',

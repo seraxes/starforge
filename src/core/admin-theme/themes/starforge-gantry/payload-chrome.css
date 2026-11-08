@@ -9,7 +9,8 @@
   --sf-admin-bg-deep: #1a222e;
   --sf-admin-surface: #1b2531;
   --sf-admin-elevated: #222e3f;
-  --sf-admin-input: #152033;
+  --sf-admin-input: #ffffff;
+  --sf-admin-input-ink: #1c2834;
   --sf-admin-blue-border: #1e4d72;
   --sf-admin-blue-mid: #3498db;
   --sf-admin-blue-active: #2471a3;
@@ -802,10 +803,11 @@ html[data-theme='dark'] .search-bar input,
 html[data-theme='dark'] .react-select-container .rs__control,
 html[data-theme='dark'] .date-time-picker .react-datepicker__input-container input {
   background: var(--sf-admin-input) !important;
-  color: var(--sf-ink) !important;
+  color: var(--sf-admin-input-ink, #1c2834) !important;
   border: 1px solid var(--sf-admin-blue-border) !important;
   border-radius: 3px;
   box-shadow: none !important;
+  font-size: 0.95rem !important;
 }
 
 html[data-theme='dark'] .field-type input:not([type='checkbox']):not([type='radio']):focus,

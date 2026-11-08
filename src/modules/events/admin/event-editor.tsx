@@ -28,6 +28,8 @@ type TierRow = {
   kind: string
   capacity: number | null
   maxPerBooking: number | null
+  price: number | null
+  priceModifier: number
   priceLabel: string
   titleColor: string
   borderColor: string

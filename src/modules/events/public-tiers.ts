@@ -4,6 +4,8 @@
 
 import 'server-only'
 
+import { formatTierPriceDisplay } from './price-display'
+import { findEventById } from './store'
 import {
   countRegisteredGuestsForTier,
   effectiveMaxTicketsPerBooking,
@@ -24,7 +26,11 @@ function cardBlurb(shortDescription: string, description: string): string {
 export async function listPublicTicketTiersForEvent(
   eventId: string,
 ): Promise<PublicTicketTier[]> {
-  const tiers = await listTicketTiersForEvent(eventId)
+  const [tiers, event] = await Promise.all([
+    listTicketTiersForEvent(eventId),
+    findEventById(eventId),
+  ])
+  const waitlistEnabled = event?.waitlistEnabled !== false
   return Promise.all(
     tiers.map(async (tier) => {
       const occupied =
@@ -42,7 +48,13 @@ export async function listPublicTicketTiersForEvent(
         shortDescription: cardBlurb(tier.shortDescription, tier.description),
         description: tier.description,
         kind: tier.kind,
-        priceLabel: tier.priceLabel,
+        price: tier.price,
+        priceModifier: tier.priceModifier,
+        priceLabel: formatTierPriceDisplay({
+          price: tier.price,
+          priceModifier: tier.priceModifier,
+          priceLabel: tier.priceLabel,
+        }),
         titleColor: tier.titleColor,
         borderColor: tier.borderColor,
         backgroundColor: tier.backgroundColor,
@@ -51,6 +63,7 @@ export async function listPublicTicketTiersForEvent(
         occupied: typeof tier.capacity === 'number' ? occupied : 0,
         remaining,
         soldOut,
+        waitlistEnabled,
       }
     }),
   )

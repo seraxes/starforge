@@ -75,10 +75,14 @@ export type EventRecord = {
   coverMediaId: string
   galleryMediaIds: string[]
   capacity: number | null
+  /** When full, public signup may join waitlist; FIFO promote when seats free. */
+  waitlistEnabled: boolean
   /** When public signup opens (null = as soon as published). */
   registrationOpensAt: Date | null
   /** When public signup closes (null = until event ends / no hard close). */
   registrationClosesAt: Date | null
+  /** Premium merchant user collecting ticket payments (null = site MoR). */
+  merchantUserId: string
   managerUserIds: string[]
   helperUserIds: string[]
   managerGroupIds: string[]

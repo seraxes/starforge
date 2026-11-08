@@ -20,7 +20,7 @@ export const MODULE_ALLOWLIST_FLAVOR = "core" as const
 export const FIXED_REQUIRED_MODULE_IDS = ["platform:dashboard","platform:better-auth","page-content","product:media"] as const
 
 /** Allowlisted module ids for this install/build (platform + product + particles + atoms). */
-export const ALLOWLISTED_MODULE_IDS = ["atom:analytics","atom:custom-css-js","copyright","custom","event-calendar","event-countdown","event-detail","event-featured","event-list","event-mini-calendar","event-upcoming","form","live-map","locale-switcher","login","logo","map","menu","notice-bar","page-content","platform:better-auth","platform:dashboard","platform:payload-cms","product:consent","product:draft-preview","product:email-manager","product:events","product:font-awesome","product:forms","product:layout-manager","product:lexical-editor","product:maps","product:marketplace","product:media","product:page-settings","product:posts","product:primary-nav","product:profiles","product:pwa","product:redirects","product:registration","product:rich-editor","product:search","search","site-header","social","spacer"] as const
+export const ALLOWLISTED_MODULE_IDS = ["atom:analytics","atom:custom-css-js","copyright","custom","event-calendar","event-countdown","event-detail","event-featured","event-list","event-mini-calendar","event-upcoming","form","live-map","locale-switcher","login","logo","map","menu","notice-bar","page-content","platform:better-auth","platform:dashboard","platform:payload-cms","product:consent","product:draft-preview","product:email-manager","product:events","product:font-awesome","product:forms","product:layout-manager","product:lexical-editor","product:maps","product:marketplace","product:media","product:page-settings","product:payments","product:posts","product:primary-nav","product:profiles","product:pwa","product:redirects","product:registration","product:rich-editor","product:search","search","site-header","social","spacer"] as const
 
 export type AllowlistedModuleId = (typeof ALLOWLISTED_MODULE_IDS)[number]
 
@@ -37,7 +37,7 @@ export function isModuleAllowlisted(id: string): boolean {
 export const ALLOWLISTED_BUILTIN_PARTICLE_IDS: readonly string[] = ["page-content","site-header","logo","menu","locale-switcher","copyright","spacer","social","custom","login"]
 
 /** Platform + product catalog ids installed in this build. */
-export const ALLOWLISTED_PRODUCT_PLATFORM_IDS: readonly string[] = ["platform:dashboard","platform:better-auth","platform:payload-cms","product:layout-manager","product:page-settings","product:primary-nav","product:font-awesome","product:registration","product:posts","product:draft-preview","product:forms","product:rich-editor","product:lexical-editor","product:email-manager","product:events","product:profiles","product:maps","product:marketplace","product:redirects","product:consent","product:pwa","product:search","product:media"]
+export const ALLOWLISTED_PRODUCT_PLATFORM_IDS: readonly string[] = ["platform:dashboard","platform:better-auth","platform:payload-cms","product:layout-manager","product:page-settings","product:primary-nav","product:font-awesome","product:registration","product:posts","product:draft-preview","product:forms","product:rich-editor","product:lexical-editor","product:email-manager","product:payments","product:events","product:profiles","product:maps","product:marketplace","product:redirects","product:consent","product:pwa","product:search","product:media"]
 
 /**
  * Derived Site Settings → Modules rows for platform + product packs.
@@ -58,6 +58,7 @@ export const ALLOWLISTED_PRODUCT_PLATFORM_META: ModuleCatalogItem[] = [
   { id: "product:rich-editor", kind: "product", label: "Rich editor", description: "Shared TipTap rich editor (sanitized HTML). Toggle in Site Settings → Modules. Bind into Events, Pages, Email, and other content fields. Optional Lexical: product:lexical-editor.", required: false, defaultEnabled: true, installed: true as const, featureFlag: "richEditor", navViews: [{"key":"settings","label":"Rich editor","href":"/admin/rich-editor/settings"}] },
   { id: "product:lexical-editor", kind: "product", label: "Lexical editor", description: "Optional Lexical rich-text stack (@payloadcms/richtext-lexical). TipTap is the default editor. Enable for legacy Lexical page bodies and pagesLexicalEditor config; does not delete stored JSON when off.", required: false, defaultEnabled: false, installed: true as const, navViews: [{"key":"settings","label":"Lexical editor","href":"/admin/lexical-editor/settings"}] },
   { id: "product:email-manager", kind: "product", label: "Email Manager", description: "Automatic and conditional email rules with templates, filtered by module. Modules emit triggers; Core Mailer sends. No per-module SMTP — secrets stay in env / Chrome.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Email rules","href":"/admin/email"},{"key":"templates","label":"Email templates","href":"/admin/email/templates"},{"key":"sends","label":"Email sends","href":"/admin/email/sends"}] },
+  { id: "product:payments", kind: "product", label: "Payments", description: "Shared commerce — cart, checkout, VAT-proof orders/invoices, offline + Barion/Stripe/PayPal. No per-module payment UIs; receipts via Email Manager.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Payments","href":"/admin/payments"},{"key":"orders","label":"Orders","href":"/admin/payments/orders"},{"key":"invoices","label":"Invoices","href":"/admin/payments/invoices"},{"key":"merchant","label":"My merchant","href":"/admin/payments/merchant"},{"key":"settings","label":"Payments settings","href":"/admin/payments/settings"}] },
   { id: "product:events", kind: "product", label: "Events", description: "Events + venues — admin CRUD, public views (upcoming/calendar/map/list), registration, featured + calendar particles.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"public","label":"Events","href":"/events"},{"key":"admin","label":"Events admin","href":"/admin/events"},{"key":"venues","label":"Venues","href":"/admin/events/venues"},{"key":"parties","label":"Parties","href":"/admin/events/parties"},{"key":"tiers","label":"Ticket tiers","href":"/admin/events/tiers"},{"key":"registrants","label":"Registrants","href":"/admin/events/registrants"},{"key":"settings","label":"Events settings","href":"/admin/events/settings"}] },
   { id: "product:profiles", kind: "product", label: "Profiles", description: "Member identity — username, display name, avatar/cover, bio, location and per-field privacy. The persona every other module (Events, Marketplace, Social…) resolves through getPersonas().", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"account","label":"My profile","href":"/account/profile"},{"key":"settings","label":"Profiles settings","href":"/admin/profiles/settings"}] },
   { id: "product:maps", kind: "product", label: "TacMap", description: "Tactical Maps (TacMap) — venue pins, closed live rooms (roster teams), MapProvider. Leaflet + OSM first.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"events","label":"Events","href":"/events"},{"key":"admin","label":"TacMap","href":"/admin/maps"}] },
@@ -301,6 +302,7 @@ export type AdminNavContribution = {
 export const adminNavContributions: AdminNavContribution[] = [
   { moduleId: "product:forms", id: "forms", label: "Forms", order: 40, href: "/admin/forms", expandable: true, links: [{ label: "Forms", href: "/admin/forms", order: 10, exact: true, area: "forms", group: "forms" }, { label: "Settings", href: "/admin/forms/settings", order: 20, area: "forms", group: "forms" }] },
   { moduleId: "product:email-manager", id: "email", label: "Email", order: 45, href: "/admin/email", expandable: true, links: [{ label: "Rules", href: "/admin/email", order: 10, exact: true, area: "email-manager", group: "email" }, { label: "Templates", href: "/admin/email/templates", order: 20, area: "email-manager", group: "email" }, { label: "Sends", href: "/admin/email/sends", order: 30, area: "email-manager", group: "email" }] },
+  { moduleId: "product:payments", id: "payments", label: "Payments", order: 46, href: "/admin/payments", expandable: true, links: [{ label: "Overview", href: "/admin/payments", order: 10, exact: true, area: "payments", group: "payments" }, { label: "Orders", href: "/admin/payments/orders", order: 20, area: "payments", group: "payments" }, { label: "Invoices", href: "/admin/payments/invoices", order: 30, area: "payments", group: "payments" }, { label: "My merchant", href: "/admin/payments/merchant", order: 35, area: "payments-merchant", group: "payments" }, { label: "Settings", href: "/admin/payments/settings", order: 40, area: "payments", group: "payments" }] },
   { moduleId: "product:events", id: "events", label: "Events", order: 48, href: "/admin/events", expandable: true, links: [{ label: "Events", href: "/admin/events", order: 10, exact: true, area: "events", group: "events" }, { label: "Venues", href: "/admin/events/venues", order: 20, area: "events", group: "events" }, { label: "Parties", href: "/admin/events/parties", order: 22, area: "events", group: "events" }, { label: "Tiers", href: "/admin/events/tiers", order: 25, area: "events", group: "events" }, { label: "Registrants", href: "/admin/events/registrants", order: 28, area: "events", group: "events" }, { label: "Settings", href: "/admin/events/settings", order: 30, area: "events", group: "events" }] },
   { moduleId: "product:profiles", id: "profiles", label: "Profiles", order: 46, href: "/admin/profiles/settings", expandable: true, links: [{ label: "Settings", href: "/admin/profiles/settings", order: 20, area: "profiles", group: "profiles" }] },
   { moduleId: "product:maps", id: "maps", label: "TacMap", order: 49, href: "/admin/maps", expandable: true, links: [{ label: "Rooms", href: "/admin/maps", order: 10, exact: true, area: "maps", group: "maps" }] },
@@ -378,6 +380,42 @@ export const adminRouteLoaders: AdminRouteLoader[] = [
     moduleId: "product:email-manager",
     path: "email/sends",
     pageImportPath: "@/modules/email-manager/admin/EmailSendsPage",
+    pageExportName: "default",
+  },
+  {
+    moduleId: "product:payments",
+    path: "payments",
+    pageImportPath: "@/modules/payments/admin/PaymentsOverviewPage",
+    pageExportName: "default",
+  },
+  {
+    moduleId: "product:payments",
+    path: "payments/orders",
+    pageImportPath: "@/modules/payments/admin/PaymentsOrdersPage",
+    pageExportName: "default",
+  },
+  {
+    moduleId: "product:payments",
+    path: "payments/orders/[orderId]",
+    pageImportPath: "@/modules/payments/admin/PaymentsOrderDetailPage",
+    pageExportName: "default",
+  },
+  {
+    moduleId: "product:payments",
+    path: "payments/invoices",
+    pageImportPath: "@/modules/payments/admin/PaymentsInvoicesPage",
+    pageExportName: "default",
+  },
+  {
+    moduleId: "product:payments",
+    path: "payments/settings",
+    pageImportPath: "@/modules/payments/admin/PaymentsSettingsPage",
+    pageExportName: "default",
+  },
+  {
+    moduleId: "product:payments",
+    path: "payments/merchant",
+    pageImportPath: "@/modules/payments/admin/PaymentsMerchantPage",
     pageExportName: "default",
   },
   {

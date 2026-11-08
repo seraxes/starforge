@@ -59,6 +59,8 @@ export default async function EventEditPage({ params }: { params: Params }) {
       kind: t.kind,
       capacity: t.capacity,
       maxPerBooking: t.maxPerBooking,
+      price: t.price,
+      priceModifier: t.priceModifier,
       priceLabel: t.priceLabel,
       titleColor: t.titleColor,
       borderColor: t.borderColor,
@@ -108,12 +110,14 @@ export default async function EventEditPage({ params }: { params: Params }) {
           coverMediaId: event.coverMediaId,
           galleryMediaIds: event.galleryMediaIds,
           capacity: event.capacity,
+          waitlistEnabled: event.waitlistEnabled,
           registrationOpensAt: event.registrationOpensAt
             ? event.registrationOpensAt.toISOString()
             : null,
           registrationClosesAt: event.registrationClosesAt
             ? event.registrationClosesAt.toISOString()
             : null,
+          merchantUserId: event.merchantUserId,
           managerUserIds: event.managerUserIds,
           helperUserIds: event.helperUserIds,
           managerGroupIds: event.managerGroupIds,
@@ -125,6 +129,7 @@ export default async function EventEditPage({ params }: { params: Params }) {
           signupNote: event.signupNote,
           termsUrl: event.termsUrl,
           listed: event.listed,
+          featured: event.featured,
           hasAccessPassword: event.hasAccessPassword,
           accessTags: event.accessTags,
           updatedAt: event.updatedAt.toISOString(),

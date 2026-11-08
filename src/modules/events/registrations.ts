@@ -39,7 +39,11 @@ export function isEventRegistrationOpen(
   return { open: true }
 }
 
-export type RegistrationStatus = 'registered' | 'waitlisted' | 'cancelled'
+export type RegistrationStatus =
+  | 'registered'
+  | 'waitlisted'
+  | 'cancelled'
+  | 'pending_payment'
 
 export type EventRegistrationRecord = {
   id: string
@@ -74,7 +78,10 @@ function mapRow(row: typeof sfEventRegistrations.$inferSelect): EventRegistratio
     attendance: (row.attendance || 'in_person').trim() || 'in_person',
     notes: row.notes ?? '',
     status:
-      status === 'waitlisted' || status === 'cancelled' || status === 'registered'
+      status === 'waitlisted' ||
+      status === 'cancelled' ||
+      status === 'registered' ||
+      status === 'pending_payment'
         ? status
         : 'registered',
     createdAt: row.createdAt,
@@ -82,7 +89,7 @@ function mapRow(row: typeof sfEventRegistrations.$inferSelect): EventRegistratio
   }
 }
 
-/** Count guest seats that occupy event capacity (registered only). */
+/** Count guest seats that occupy event capacity (registered + pending payment). */
 export async function countRegisteredGuests(eventId: string): Promise<number> {
   const trimmed = eventId.trim()
   if (!trimmed) return 0
@@ -95,7 +102,7 @@ export async function countRegisteredGuests(eventId: string): Promise<number> {
       .where(
         and(
           eq(sfEventRegistrations.eventId, trimmed),
-          eq(sfEventRegistrations.status, 'registered'),
+          inArray(sfEventRegistrations.status, ['registered', 'pending_payment']),
         ),
       )
     return Number(row?.n) || 0
@@ -162,6 +169,7 @@ export type CreateRegistrationInput = {
   /** Admin UI: skip public registration-window gate; status may be set explicitly. */
   admin?: boolean
   status?: RegistrationStatus
+  paymentOrderId?: string | null
 }
 
 /**
@@ -205,24 +213,33 @@ export async function createEventRegistration(
 
   let status: RegistrationStatus = 'registered'
   if (
-    input.admin &&
-    (input.status === 'registered' ||
-      input.status === 'waitlisted' ||
-      input.status === 'cancelled')
+    input.status === 'pending_payment' ||
+    (input.admin &&
+      (input.status === 'registered' ||
+        input.status === 'waitlisted' ||
+        input.status === 'cancelled' ||
+        input.status === 'pending_payment'))
   ) {
-    status = input.status
+    status = input.status === 'pending_payment' ? 'pending_payment' : input.status!
   } else {
+    let needsWaitlist = false
     const occupiedEvent = await countRegisteredGuests(eventId)
     if (typeof event.capacity === 'number' && event.capacity >= 0) {
       if (occupiedEvent >= event.capacity || occupiedEvent + guests > event.capacity) {
-        status = 'waitlisted'
+        needsWaitlist = true
       }
     }
-    if (status === 'registered' && ticketTierId && typeof tierCapacity === 'number') {
+    if (!needsWaitlist && ticketTierId && typeof tierCapacity === 'number') {
       const occupiedTier = await countRegisteredGuestsForTier(eventId, ticketTierId)
       if (occupiedTier >= tierCapacity || occupiedTier + guests > tierCapacity) {
-        status = 'waitlisted'
+        needsWaitlist = true
       }
+    }
+    if (needsWaitlist) {
+      if (!event.waitlistEnabled) {
+        return { error: 'This event is full and the waitlist is closed.' }
+      }
+      status = 'waitlisted'
     }
   }
 
@@ -268,6 +285,7 @@ export async function createEventRegistration(
       attendance: (input.attendance || 'in_person').trim().slice(0, 40) || 'in_person',
       notes: (input.notes || '').trim().slice(0, 2000),
       status,
+      paymentOrderId: (input.paymentOrderId || '').trim() || null,
     })
     const [row] = await db
       .select()
@@ -383,6 +401,13 @@ export async function updateRegistrationStatus(
     return { error: 'Invalid status.' }
   }
   try {
+    const [current] = await db
+      .select()
+      .from(sfEventRegistrations)
+      .where(eq(sfEventRegistrations.id, trimmed))
+      .limit(1)
+    if (!current) return { error: 'Registration not found.' }
+
     await db
       .update(sfEventRegistrations)
       .set({ status })
@@ -393,6 +418,12 @@ export async function updateRegistrationStatus(
       .where(eq(sfEventRegistrations.id, trimmed))
       .limit(1)
     if (!row) return { error: 'Registration not found.' }
+    if (
+      current.status === 'registered' &&
+      (status === 'cancelled' || status === 'waitlisted')
+    ) {
+      await promoteWaitlistForEvent(current.eventId)
+    }
     return { registration: mapRow(row) }
   } catch (error) {
     return {
@@ -461,6 +492,13 @@ export async function updateEventRegistration(
         ? (input.userId || '').trim() || null
         : current.userId
 
+    const wasRegistered = current.status === 'registered'
+    const freedSeat =
+      wasRegistered &&
+      (input.status === 'cancelled' ||
+        input.status === 'waitlisted' ||
+        guests < (Number(current.guests) || 1))
+
     await db
       .update(sfEventRegistrations)
       .set({
@@ -481,6 +519,9 @@ export async function updateEventRegistration(
       .where(eq(sfEventRegistrations.id, id))
       .limit(1)
     if (!row) return { error: 'Registration updated but could not be reloaded.' }
+    if (freedSeat) {
+      await promoteWaitlistForEvent(current.eventId)
+    }
     return { registration: mapRow(row) }
   } catch (error) {
     return {
@@ -495,11 +536,114 @@ export async function deleteEventRegistration(
   const trimmed = id.trim()
   if (!trimmed) return { error: 'Missing registration id.' }
   try {
+    const [current] = await db
+      .select({ eventId: sfEventRegistrations.eventId, status: sfEventRegistrations.status })
+      .from(sfEventRegistrations)
+      .where(eq(sfEventRegistrations.id, trimmed))
+      .limit(1)
     await db.delete(sfEventRegistrations).where(eq(sfEventRegistrations.id, trimmed))
+    if (current && current.status === 'registered') {
+      await promoteWaitlistForEvent(current.eventId)
+    }
     return { ok: true }
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : 'Could not delete registration.',
     }
   }
+}
+
+export const EVENTS_WAITLIST_PROMOTED_TRIGGER =
+  'product:events/waitlist-promoted' as const
+
+/**
+ * FIFO: promote waitlisted rows into registered seats when capacity frees.
+ * Skips entries that still cannot fit; stops after a safe iteration budget.
+ */
+export async function promoteWaitlistForEvent(
+  eventId: string,
+): Promise<{ promoted: number }> {
+  const trimmed = eventId.trim()
+  if (!trimmed) return { promoted: 0 }
+  const event = await findEventById(trimmed)
+  if (!event || !event.waitlistEnabled) return { promoted: 0 }
+
+  let promoted = 0
+  for (let i = 0; i < 40; i++) {
+    const waiting = await db
+      .select()
+      .from(sfEventRegistrations)
+      .where(
+        and(
+          eq(sfEventRegistrations.eventId, trimmed),
+          eq(sfEventRegistrations.status, 'waitlisted'),
+        ),
+      )
+      .orderBy(asc(sfEventRegistrations.createdAt))
+      .limit(1)
+    const row = waiting[0]
+    if (!row) break
+
+    const guests = Math.max(1, Number(row.guests) || 1)
+    const occupiedEvent = await countRegisteredGuests(trimmed)
+    if (
+      typeof event.capacity === 'number' &&
+      event.capacity >= 0 &&
+      occupiedEvent + guests > event.capacity
+    ) {
+      break
+    }
+
+    const tierId = (row.ticketTierId || '').trim()
+    if (tierId) {
+      const tier = await findTicketTierById(tierId)
+      if (tier && typeof tier.capacity === 'number') {
+        const occupiedTier = await countRegisteredGuestsForTier(trimmed, tierId)
+        if (occupiedTier + guests > tier.capacity) {
+          // This head-of-line entry cannot fit — stop to preserve FIFO fairness.
+          break
+        }
+      }
+    }
+
+    await db
+      .update(sfEventRegistrations)
+      .set({ status: 'registered' })
+      .where(eq(sfEventRegistrations.id, row.id))
+    promoted += 1
+
+    try {
+      const { emitEmailTrigger, isEmailManagerEnabled } = await import(
+        '@/modules/email-manager/api.server'
+      )
+      if (await isEmailManagerEnabled()) {
+        let tierTitle = ''
+        if (tierId) {
+          const tier = await findTicketTierById(tierId)
+          tierTitle = tier?.title || ''
+        }
+        await emitEmailTrigger({
+          triggerKey: EVENTS_WAITLIST_PROMOTED_TRIGGER,
+          payload: {
+            eventId: event.id,
+            eventTitle: event.title,
+            eventSlug: event.slug,
+            registrationId: row.id,
+            registrationStatus: 'registered',
+            ticketTierId: tierId,
+            ticketTierTitle: tierTitle,
+            name: row.name,
+            email: row.email,
+            guests,
+            attendance: row.attendance,
+            respondentEmail: row.email,
+          },
+        })
+      }
+    } catch {
+      /* email optional */
+    }
+  }
+
+  return { promoted }
 }

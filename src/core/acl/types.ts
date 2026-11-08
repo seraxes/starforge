@@ -17,6 +17,8 @@ export const ACL_ADMIN_RESOURCES = [
   { key: 'admin.nav', label: 'Navigation manager' },
   { key: 'admin.forms', label: 'Forms' },
   { key: 'admin.email-manager', label: 'Email Manager' },
+  { key: 'admin.payments', label: 'Payments' },
+  { key: 'admin.payments-merchant', label: 'Payments — merchant (organizer/vendor)' },
   { key: 'admin.events', label: 'Events' },
   { key: 'admin.profiles', label: 'Profiles' },
   { key: 'admin.maps', label: 'TacMap' },

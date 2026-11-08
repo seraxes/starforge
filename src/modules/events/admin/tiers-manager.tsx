@@ -44,6 +44,8 @@ type TierRow = {
   kind: string
   capacity: number | null
   maxPerBooking: number | null
+  price: number | null
+  priceModifier: number
   priceLabel: string
   titleColor: string
   borderColor: string
@@ -160,8 +162,32 @@ function TierFields({
             ))}
           </select>
         </label>
-        <label className="settings-field sf-events-tiers-price-field">
+        <label className="settings-field sf-events-tiers-num-field">
           <span>Price</span>
+          <input
+            type="number"
+            name="price"
+            step={1}
+            defaultValue={row?.price ?? ''}
+            disabled={busy}
+            placeholder="—"
+            title="Base price (major units)"
+          />
+        </label>
+        <label className="settings-field sf-events-tiers-num-field">
+          <span>Modifier</span>
+          <input
+            type="number"
+            name="priceModifier"
+            step={1}
+            defaultValue={row?.priceModifier ?? 0}
+            disabled={busy}
+            placeholder="0"
+            title="Added to price (negative = discount)"
+          />
+        </label>
+        <label className="settings-field sf-events-tiers-price-field">
+          <span>Price text</span>
           <input
             type="text"
             name="priceLabel"
@@ -169,7 +195,8 @@ function TierFields({
             defaultValue={row?.priceLabel ?? ''}
             disabled={busy}
             autoComplete="off"
-            placeholder="Free / 5 000 Ft"
+            placeholder="Optional override"
+            title="When set, overwrites the numeric price on public cards"
           />
         </label>
         <label className="settings-field sf-events-tiers-num-field">

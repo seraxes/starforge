@@ -14,7 +14,9 @@ Events + venues + registration + ticket tiers + parties (`sf_venues` / `sf_event
 - Calendar cells: title, seats `occupied/capacity`, venue; optional thumbnails (`?thumbs=1` on hub, or particle cog)
 - Public **detail** sections: header/badges, quick actions, description, details, ticket / faction **area cards** (Register one-click from profile), location (+ map), parties, gallery; Forms `event-registration`
 - Area-card Register: session + complete contact → instant signup for that tier; gaps / terms / captcha → form prefilled (`?tier=`); guests → login with return
-- ICS download; View ACL + listed / access password; ticket types per-event (display `priceLabel`, shortDescription blurb)
+- Tier price: numeric `price` + `priceModifier`; optional `priceLabel` text overrides card display
+- Waitlist: per-event toggle; Join waitlist on sold-out cards; FIFO promote when a registered seat frees
+- ICS download; View ACL + listed / access password; ticket types per-event (shortDescription blurb)
 
 ## Missing / next
 
@@ -32,25 +34,26 @@ Events + venues + registration + ticket tiers + parties (`sf_venues` / `sf_event
 - Check-in
 - Event categories (beyond featured flag)
 - Sports / championship bracket views (later under Events → sport module)
-- Waitlist on/off + promote emails
+- Waitlist email template seed (trigger `product:events/waitlist-promoted` already emitted)
 - Per-event prevent-duplicate override
 - Manager write ACL (assignments filter list today; writes still need `admin.events`)
 - Helper vs manager capability split
 
 ### Deferred by design
 
-- Payments / numeric prices / coupons (`product:payments`)
 - Full RRULE / series
 - AI “Draft description” (`LlmProvider`)
+
+### Payments (consume — system-wide)
+
+Paid tickets consume shared **`product:payments`** via [`payment-bridge.ts`](./payment-bridge.ts) — not an Events checkout UI. Paid tiers create `pending_payment` registrations, then cart/checkout; on paid → `registered`, on fail/expire → `cancelled`. Free tiers keep immediate register. Receipts: Email Manager `product:payments/*`. See [payments-cart-plan](../../../docs/project-context/docs/payments-cart-plan.md) and `sf-payments-module`.
 
 ## Migrations
 
 - `0013` event `featured` boolean (+ index)
-- `0016` ticket tier `short_description` — run `npm run db:migrate`
-
-## Payments (deferred — system-wide)
-
-Commerce is a **shared** site module (**`product:payments`**), not owned by Events. Gateways, currency, PayPal, numeric prices, coupons, early-bird / late fee — any product (Events, future shop, etc.) consumes it. Ticket tiers keep display-only `priceLabel` until then. Do not add per-event or per-module payment UIs.
+- `0016` ticket tier `short_description`
+- `0019` tier `price` + `price_modifier`; event `waitlist_enabled`
+- `0021` registration `payment_order_id` — run `npm run db:migrate`
 
 ## Migrations (history)
 

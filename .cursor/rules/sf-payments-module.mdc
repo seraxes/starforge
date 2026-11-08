@@ -1,0 +1,70 @@
+---
+description: Modular Payments — cart/orders/VAT/gateways live in product:payments; never fork Forms, Email, Media, or Profiles.
+globs: "**/*.{tsx,ts}"
+alwaysApply: true
+---
+
+# Starforge Payments — modular ownership
+
+Any Starforge module that takes money **must** use `product:payments` — cart, checkout, orders, VAT/money math, invoices/fiscal outbox, and gateway orchestration. Do not ship a parallel cart, checkout UI, gateway settings screen, invoice engine, or SMTP/notify stack inside the consumer module.
+
+**Never rebuild an existing module’s job inside Payments** (or any new pack). One engine per concern. See also `sf-module-ownership.mdc`.
+
+## Why Payments is foundational
+
+Commercial MVP (revenue floor): **pay for subscription**, **buy event tickets**, **pay for ads**. Shop can wait; marketplace later reuses the same payments layer (boosts/highlights via subscriptions + checkout). Build Payments so these consumers plug in cleanly — not as an Events-only or Shop-only payment UI.
+
+## Source of truth
+
+| Concern | Owner |
+| --- | --- |
+| Cart / checkout / orders / intents | **`product:payments`** — `@/modules/payments/api` |
+| Money math (minor units, VAT lines on the order) | **`product:payments`** + Core `src/core/payments` helpers |
+| Gateway adapters + webhook verify | **Core port** `src/core/payments` (secrets in env) |
+| Fiscal / HU NAV submit | **Core `FiscalProvider`** — Payments outbox calls it |
+| Forms / billing address fields | **`product:forms`** — definition + preset; Payments links only |
+| Receipt / bank / invoice email | **`product:email-manager`** — register triggers + `emitEmailTrigger` only |
+| Media (seller logo, attachments) | **`product:media`** — MediaPicker |
+| Buyer identity display | **`product:profiles`** — resolve persona; never copy name/avatar tables |
+| Event tier price, capacity, waitlist, seat fulfillment | **`product:events`** — hooks on paid/expire/refund |
+| Subscription plans, periods, entitlements, highlight products | **`product:subscriptions`** — Payments only charges + snapshots |
+| Ad packages, credits, campaign billing rules | **`product:ads`** |
+| SKU catalog, inventory, **shipping rates/zones/quotes** | **`product:shop`** (later) — **not** the cart engine |
+| Marketplace listing fees / boosts | Marketplace / listings pack (+ subscriptions where “highlight” is a plan) |
+
+Payments persists **`sourceModule` + line snapshot** only. Domain price rules stay in the consumer; checkout **re-resolves** server-side.
+
+## Consumer contract (all money packs)
+
+1. Own catalog + pricing rules + fulfillment / entitlement grants.
+2. Add cart lines via `@/modules/payments/api` with `sourceModule` + stable source ids.
+3. On `paid` / `expired` / `refunded`, run domain hooks (seat, entitlement, ad credit) — payments does not know “ticket” vs “plan”.
+4. Never embed gateway secrets, invoice series, or commerce SMTP in the consumer.
+
+## Do
+
+- Call `@/modules/payments/api` for cart lines, checkout, mark-paid, refunds.
+- Re-resolve prices **server-side** at checkout (never trust client amounts).
+- Emit `product:payments/*` email triggers; admin copy lives under `/admin/email`.
+- Put gateway secrets in the Environment editor catalog; enable flags in Payments settings.
+- Deep-link consumers to `/admin/payments` and Email Manager — do not duplicate those UIs.
+- When a new commercial boundary is decided, update this rule + `payments-cart-plan.md` + owner README.
+
+## Premium merchants
+
+Organizers/vendors with subscription `canCollectPayments` + ACL paste **their own** gateway and Billingo/Számlázz keys; settlement goes to **their** bank. No platform % fee for now (flat sub only). Site MoR stays for platform products. Never rebuild Billingo/Számlázz UIs — API bridge only. Merchant admin UI must clone Events/Layouts chrome (`sf-ui-design.mdc`). Merchant POS keys live in encrypted `sf_pay_merchant_credentials`, not Site Chrome env.
+
+## Don’t
+
+- Per-module payment UIs, gateway credential forms, or invoice number series outside `product:payments`.
+- Shipping / delivery math inside Payments — shop quotes a line; cart stores the amount.
+- Subscription or ads business logic inside Payments.
+- `getMailer()` from Payments or consumers for commerce mail (Email Manager only).
+- Second form builder, media library, or profile store inside Payments.
+- Collect card PAN/CVV in Starforge — hosted redirect / Elements / Barion only.
+- Edit paid orders in place — use credit notes / new invoices (NAV-friendly).
+- Store merchant POS keys in Site Chrome env (encrypted merchant credentials only).
+
+## Quick check
+
+If a feature **moves money** or **issues a fiscal document**, it belongs in `product:payments` (+ Core ports). If it is **what** is sold, **how much** the domain charges, **shipping**, **entitlement**, or **capacity** — it belongs in the owning product module.

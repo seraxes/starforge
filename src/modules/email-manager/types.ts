@@ -8,6 +8,7 @@ export const EMAIL_MODULE_CATEGORIES = [
   'forms',
   'auth',
   'events',
+  'payments',
   'social',
   'marketplace',
   'system',
