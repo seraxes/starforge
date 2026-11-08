@@ -28,7 +28,7 @@ export function EventTicketTypes({ tiers, registerHref = '#register' }: Props) {
 
   return (
     <section className="sf-event-ticket-types" aria-label="Ticket types">
-      <h2 className="sf-event-detail-parties-heading">Ticket types</h2>
+      <h2 className="sf-event-detail-section-heading">Ticket types</h2>
       <ul className="sf-event-ticket-types-list">
         {tiers.map((tier) => (
           <li
@@ -52,7 +52,9 @@ export function EventTicketTypes({ tiers, registerHref = '#register' }: Props) {
                 ? 'Sold out'
                 : tier.remaining != null
                   ? `${tier.remaining} seat${tier.remaining === 1 ? '' : 's'} left`
-                  : 'Open'}
+                  : typeof tier.capacity === 'number'
+                    ? `${tier.occupied}/${tier.capacity}`
+                    : 'Open'}
             </p>
             {!tier.soldOut ? (
               <p className="sf-event-ticket-type-cta">

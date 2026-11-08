@@ -104,6 +104,7 @@ function mapEvent(row: typeof sfEvents.$inferSelect): EventRecord {
     signupNote: (row.signupNote || '').trim().slice(0, 4000),
     termsUrl: (row.termsUrl || '').trim().slice(0, 2000),
     listed: row.listed !== false,
+    featured: row.featured === true,
     hasAccessPassword: Boolean((row.accessPasswordHash || '').trim()),
     accessTags: normalizeAccessTags({ accessTags: row.accessTags }),
     createdAt: row.createdAt,
@@ -421,6 +422,7 @@ export type UpsertEventInput = {
   signupNote?: unknown
   termsUrl?: unknown
   listed?: unknown
+  featured?: unknown
   /** Plaintext from admin form — hashed before persist; empty = leave unchanged on update. */
   accessPassword?: unknown
   clearAccessPassword?: unknown
@@ -468,6 +470,7 @@ export async function createEvent(
   const signupNote = String(input.signupNote ?? '').trim().slice(0, 4000)
   const termsUrl = String(input.termsUrl ?? '').trim().slice(0, 2000)
   const listed = parseListedFlag(input.listed, true)
+  const featured = parseListedFlag(input.featured, false)
   const plainPassword = String(input.accessPassword ?? '')
   const accessPasswordHash =
     plainPassword.trim().length > 0 ? hashEventPassword(plainPassword.trim()) : null
@@ -517,6 +520,7 @@ export async function createEvent(
       signupNote,
       termsUrl,
       listed,
+      featured,
       accessPasswordHash,
       accessTags,
     })
@@ -619,6 +623,10 @@ export async function updateEvent(
       : current.termsUrl
   const listed =
     input.listed !== undefined ? parseListedFlag(input.listed, current.listed) : current.listed
+  const featured =
+    input.featured !== undefined
+      ? parseListedFlag(input.featured, current.featured)
+      : current.featured
   const clearPassword =
     input.clearAccessPassword === true ||
     input.clearAccessPassword === '1' ||
@@ -683,6 +691,7 @@ export async function updateEvent(
         signupNote,
         termsUrl,
         listed,
+        featured,
         ...(accessPasswordHash !== undefined ? { accessPasswordHash } : {}),
         accessTags,
       })
@@ -774,6 +783,7 @@ export async function duplicateEvent(
     signupNote: source.signupNote,
     termsUrl: source.termsUrl,
     listed: source.listed,
+    featured: source.featured,
     accessTags: source.accessTags,
   })
   if ('error' in created) return created
@@ -836,17 +846,22 @@ export async function listPublishedEvents(options?: {
   includePast?: boolean
   /** When true (default), omit unlisted events from discovery. */
   listedOnly?: boolean
+  /** When true, only events marked Featured (carousel particle). */
+  featuredOnly?: boolean
   limit?: number
   now?: Date
 }): Promise<EventRecord[]> {
   const now = options?.now ?? new Date()
   const limit = Math.min(Math.max(options?.limit ?? 50, 1), 200)
   const listedOnly = options?.listedOnly !== false
+  const featuredOnly = options?.featuredOnly === true
   try {
     const published = eq(sfEvents.status, 'published')
     const upcoming = or(isNull(sfEvents.startsAt), gte(sfEvents.startsAt, now))
     const listed = eq(sfEvents.listed, true)
-    const base = listedOnly ? and(published, listed) : published
+    const featured = eq(sfEvents.featured, true)
+    let base = listedOnly ? and(published, listed) : published
+    if (featuredOnly) base = and(base, featured)
     const rows = await db
       .select()
       .from(sfEvents)

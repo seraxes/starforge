@@ -10,9 +10,13 @@ import type { StarforgeModuleManifest } from '@/core/modules/define-module'
 import consentManifest from './consent/manifest'
 import emailManagerManifest from './email-manager/manifest'
 import eventsManifest from './events/manifest'
+import eventCalendarParticleManifest from './events/particles/event-calendar-manifest'
 import eventCountdownParticleManifest from './events/particles/event-countdown-manifest'
 import eventDetailParticleManifest from './events/particles/event-detail-manifest'
+import eventFeaturedParticleManifest from './events/particles/event-featured-manifest'
 import eventListParticleManifest from './events/particles/event-list-manifest'
+import eventMiniCalendarParticleManifest from './events/particles/event-mini-calendar-manifest'
+import eventUpcomingParticleManifest from './events/particles/event-upcoming-manifest'
 import formParticleManifest from './form/manifest'
 import formsManifest from './forms/manifest'
 import mapsManifest from './maps/manifest'
@@ -37,6 +41,10 @@ export const ALL_MODULE_MANIFESTS: StarforgeModuleManifest[] = [
   emailManagerManifest,
   eventsManifest,
   eventListParticleManifest,
+  eventUpcomingParticleManifest,
+  eventCalendarParticleManifest,
+  eventFeaturedParticleManifest,
+  eventMiniCalendarParticleManifest,
   eventDetailParticleManifest,
   eventCountdownParticleManifest,
   mapsManifest,

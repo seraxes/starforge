@@ -315,6 +315,56 @@ export async function listRegistrationsForEvent(
   }
 }
 
+/** Active (registered | waitlisted) signups for a logged-in user — affinity / hub status. */
+export async function listActiveRegistrationsForUser(
+  userId: string,
+): Promise<EventRegistrationRecord[]> {
+  const trimmed = userId.trim()
+  if (!trimmed) return []
+  try {
+    const rows = await db
+      .select()
+      .from(sfEventRegistrations)
+      .where(
+        and(
+          eq(sfEventRegistrations.userId, trimmed),
+          inArray(sfEventRegistrations.status, ['registered', 'waitlisted']),
+        ),
+      )
+      .orderBy(desc(sfEventRegistrations.createdAt))
+    return rows.map(mapRow)
+  } catch {
+    return []
+  }
+}
+
+/** Latest active signup for one user on one event (if any). */
+export async function findActiveRegistrationForUserOnEvent(
+  userId: string,
+  eventId: string,
+): Promise<EventRegistrationRecord | null> {
+  const uid = userId.trim()
+  const eid = eventId.trim()
+  if (!uid || !eid) return null
+  try {
+    const [row] = await db
+      .select()
+      .from(sfEventRegistrations)
+      .where(
+        and(
+          eq(sfEventRegistrations.userId, uid),
+          eq(sfEventRegistrations.eventId, eid),
+          inArray(sfEventRegistrations.status, ['registered', 'waitlisted']),
+        ),
+      )
+      .orderBy(desc(sfEventRegistrations.createdAt))
+      .limit(1)
+    return row ? mapRow(row) : null
+  } catch {
+    return null
+  }
+}
+
 export async function updateRegistrationStatus(
   id: string,
   status: RegistrationStatus,

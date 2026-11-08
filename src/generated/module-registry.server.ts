@@ -31,6 +31,22 @@ export const optionalParticleLoaders: OptionalParticleLoader[] = [
     load: async () => (await import("@/modules/events/particles/event-list-module")).eventListModule,
   },
   {
+    id: "event-upcoming",
+    load: async () => (await import("@/modules/events/particles/event-upcoming-module")).eventUpcomingModule,
+  },
+  {
+    id: "event-calendar",
+    load: async () => (await import("@/modules/events/particles/event-calendar-module")).eventCalendarModule,
+  },
+  {
+    id: "event-featured",
+    load: async () => (await import("@/modules/events/particles/event-featured-module")).eventFeaturedModule,
+  },
+  {
+    id: "event-mini-calendar",
+    load: async () => (await import("@/modules/events/particles/event-mini-calendar-module")).eventMiniCalendarModule,
+  },
+  {
     id: "event-detail",
     load: async () => (await import("@/modules/events/particles/event-detail-module")).eventDetailModule,
   },
@@ -259,6 +275,19 @@ export type ModuleMessageLoader = {
  */
 export const moduleMessageLoaders: ModuleMessageLoader[] = [
   {
+    moduleId: "event-calendar",
+    namespaces: ["event-calendar"] as const,
+    load: async (locale: string): Promise<Record<string, unknown>> => {
+      switch (locale) {
+      case "hu":
+        return (await import("@/modules/events/messages/hu.json")).default
+      case 'en':
+      default:
+        return (await import("@/modules/events/messages/en.json")).default
+      }
+    },
+  },
+  {
     moduleId: "event-countdown",
     namespaces: ["event-countdown"] as const,
     load: async (locale: string): Promise<Record<string, unknown>> => {
@@ -285,8 +314,47 @@ export const moduleMessageLoaders: ModuleMessageLoader[] = [
     },
   },
   {
+    moduleId: "event-featured",
+    namespaces: ["event-featured"] as const,
+    load: async (locale: string): Promise<Record<string, unknown>> => {
+      switch (locale) {
+      case "hu":
+        return (await import("@/modules/events/messages/hu.json")).default
+      case 'en':
+      default:
+        return (await import("@/modules/events/messages/en.json")).default
+      }
+    },
+  },
+  {
     moduleId: "event-list",
     namespaces: ["event-list"] as const,
+    load: async (locale: string): Promise<Record<string, unknown>> => {
+      switch (locale) {
+      case "hu":
+        return (await import("@/modules/events/messages/hu.json")).default
+      case 'en':
+      default:
+        return (await import("@/modules/events/messages/en.json")).default
+      }
+    },
+  },
+  {
+    moduleId: "event-mini-calendar",
+    namespaces: ["event-mini-calendar"] as const,
+    load: async (locale: string): Promise<Record<string, unknown>> => {
+      switch (locale) {
+      case "hu":
+        return (await import("@/modules/events/messages/hu.json")).default
+      case 'en':
+      default:
+        return (await import("@/modules/events/messages/en.json")).default
+      }
+    },
+  },
+  {
+    moduleId: "event-upcoming",
+    namespaces: ["event-upcoming"] as const,
     load: async (locale: string): Promise<Record<string, unknown>> => {
       switch (locale) {
       case "hu":

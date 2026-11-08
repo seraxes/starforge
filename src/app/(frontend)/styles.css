@@ -1897,7 +1897,664 @@ button:disabled {
   margin: 0.5rem 0 0;
 }
 
-/* product:events — public /events + event-list / event-detail particles (PR2) */
+/* product:events — public hub + cards + detail + particles */
+.sf-events-page {
+  max-width: 72rem;
+}
+
+.sf-events-section-heading {
+  margin: 0 0 0.75rem;
+  font-size: 1.15rem;
+  font-weight: 650;
+  color: var(--sf-ink);
+}
+
+.sf-events-hub {
+  display: grid;
+  gap: 1.1rem;
+}
+
+.sf-events-hub-main-solo {
+  min-width: 0;
+}
+
+/* Layout particle: featured carousel */
+.sf-event-featured-carousel {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.sf-event-featured-carousel-stage {
+  position: relative;
+  border: 1px solid var(--sf-line);
+  border-radius: var(--radius-sf);
+  overflow: hidden;
+  background: color-mix(in srgb, var(--sf-secondary) 14%, var(--sf-paper));
+}
+
+.sf-event-featured-carousel-slide {
+  display: block;
+  position: relative;
+  aspect-ratio: 21 / 9;
+  min-height: 12rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.sf-event-featured-carousel-slide img,
+.sf-event-featured-carousel-fallback {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sf-event-featured-carousel-fallback {
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--sf-secondary) 40%, var(--sf-paper)),
+      color-mix(in srgb, var(--sf-primary) 28%, var(--sf-paper))
+    );
+}
+
+.sf-event-featured-carousel-caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 1rem 1.1rem 1.25rem;
+  background: linear-gradient(
+    transparent,
+    color-mix(in srgb, var(--sf-ink) 72%, transparent)
+  );
+  color: #fff;
+}
+
+.sf-event-featured-carousel-title {
+  margin: 0;
+  font-size: clamp(1.15rem, 2.2vw, 1.55rem);
+  font-weight: 700;
+}
+
+.sf-event-featured-carousel-meta {
+  margin: 0.2rem 0 0;
+  font-size: 0.9rem;
+  opacity: 0.92;
+}
+
+.sf-event-featured-carousel-dots {
+  position: absolute;
+  right: 0.75rem;
+  top: 0.75rem;
+  display: flex;
+  gap: 0.35rem;
+}
+
+.sf-event-featured-carousel-dot {
+  appearance: none;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  border: 0;
+  background: color-mix(in srgb, #fff 55%, transparent);
+  cursor: pointer;
+  padding: 0;
+}
+
+.sf-event-featured-carousel-dot.is-active {
+  background: #fff;
+}
+
+.sf-event-featured-carousel-strip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(4.5rem, 1fr);
+  gap: 0.4rem;
+  overflow-x: auto;
+}
+
+.sf-event-featured-carousel-thumb {
+  appearance: none;
+  border: 1px solid var(--sf-line);
+  border-radius: var(--radius-sf);
+  padding: 0;
+  overflow: hidden;
+  background: var(--sf-paper);
+  cursor: pointer;
+  min-height: 3rem;
+  font-size: 0.7rem;
+}
+
+.sf-event-featured-carousel-thumb.is-active {
+  border-color: var(--sf-secondary-strong);
+  box-shadow: 0 0 0 1px var(--sf-secondary-strong);
+}
+
+.sf-event-featured-carousel-thumb img {
+  display: block;
+  width: 100%;
+  height: 3.2rem;
+  object-fit: cover;
+}
+
+/* Layout particle: mini calendar */
+.sf-event-mini-calendar {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.85rem;
+  border: 1px solid var(--sf-line);
+  border-radius: var(--radius-sf);
+  background: color-mix(in srgb, var(--sf-paper) 90%, white);
+}
+
+.sf-event-mini-calendar-list {
+  list-style: none;
+  margin: 0.35rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.sf-event-mini-calendar-list a {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr);
+  gap: 0.4rem;
+  text-decoration: none;
+  color: var(--sf-ink);
+  font-size: 0.85rem;
+}
+
+.sf-event-mini-calendar-date {
+  color: var(--sf-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.sf-event-mini-calendar-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.sf-event-mini-calendar-more {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+}
+
+.sf-events-calendar-thumbs-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.65rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.sf-events-view-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  border-bottom: 1px solid var(--sf-line);
+  padding-bottom: 0.55rem;
+}
+
+.sf-events-view-tab {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radius-sf);
+  text-decoration: none;
+  color: var(--sf-muted);
+  font-weight: 600;
+  font-size: 0.92rem;
+  background: transparent;
+}
+
+.sf-events-view-tab:hover {
+  color: var(--sf-ink);
+  background: color-mix(in srgb, var(--sf-secondary) 16%, var(--sf-paper));
+}
+
+.sf-events-view-tab.is-active {
+  color: var(--sf-ink);
+  background: color-mix(in srgb, var(--sf-secondary) 28%, var(--sf-paper));
+}
+
+.sf-events-view-btn {
+  appearance: none;
+  border: 1px solid var(--sf-line);
+  background: var(--sf-paper);
+  color: var(--sf-ink);
+  border-radius: var(--radius-sf);
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+  font-size: 1.15rem;
+  cursor: pointer;
+}
+
+.sf-events-view-btn:hover {
+  background: color-mix(in srgb, var(--sf-secondary) 18%, var(--sf-paper));
+}
+
+.sf-events-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: 1rem;
+}
+
+.sf-event-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--sf-line);
+  border-radius: var(--radius-sf);
+  background: color-mix(in srgb, var(--sf-paper) 88%, white);
+  overflow: hidden;
+  min-width: 0;
+}
+
+.sf-event-card.is-featured .sf-event-card-media {
+  aspect-ratio: 16 / 10;
+}
+
+.sf-event-card-media {
+  display: block;
+  aspect-ratio: 16 / 11;
+  background: color-mix(in srgb, var(--sf-secondary) 18%, var(--sf-paper));
+  overflow: hidden;
+}
+
+.sf-event-card-media img,
+.sf-event-card-media-placeholder {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sf-event-card-media-placeholder {
+  min-height: 100%;
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--sf-secondary) 35%, var(--sf-paper)),
+      color-mix(in srgb, var(--sf-primary) 22%, var(--sf-paper))
+    );
+}
+
+.sf-event-card-body {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.85rem 0.9rem 1rem;
+  flex: 1 1 auto;
+}
+
+.sf-event-card-title {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.sf-event-card-title a {
+  color: var(--sf-ink);
+  text-decoration: none;
+}
+
+.sf-event-card-title a:hover {
+  color: var(--sf-primary-strong);
+}
+
+.sf-event-card-meta {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--sf-muted);
+}
+
+.sf-event-card-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.45rem;
+}
+
+.sf-event-card-price {
+  display: inline-flex;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--sf-secondary) 32%, var(--sf-paper));
+  color: var(--sf-ink);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.sf-event-card-seats,
+.sf-event-card-status {
+  font-size: 0.82rem;
+  color: var(--sf-muted);
+}
+
+.sf-event-card-cta {
+  display: inline-flex;
+  align-items: center;
+  margin-left: auto;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-sf);
+  background: var(--sf-primary-strong);
+  color: var(--sf-accent-ink);
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+
+.sf-event-card-cta:hover {
+  filter: brightness(1.05);
+}
+
+.sf-events-calendar-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.sf-events-calendar-title {
+  margin: 0;
+  text-align: center;
+  flex: 1 1 auto;
+}
+
+.sf-events-calendar-weekdays,
+.sf-events-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.sf-events-calendar-weekdays {
+  margin-bottom: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: var(--sf-muted);
+  text-align: center;
+}
+
+.sf-events-calendar-cell {
+  min-height: 8.5rem;
+  border: 1px solid var(--sf-line);
+  border-radius: var(--radius-sf);
+  padding: 0.35rem;
+  background: color-mix(in srgb, var(--sf-paper) 92%, white);
+}
+
+.sf-events-calendar-cell.is-empty {
+  background: transparent;
+  border-color: transparent;
+}
+
+.sf-events-calendar-day {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: var(--sf-muted);
+  margin-bottom: 0.25rem;
+}
+
+.sf-events-calendar-events {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.sf-events-calendar-event {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+  font-size: 0.72rem;
+  line-height: 1.25;
+  color: var(--sf-ink);
+  text-decoration: none;
+  padding: 0;
+  border-radius: var(--radius-sf);
+  overflow: hidden;
+  background: color-mix(in srgb, var(--sf-secondary) 18%, var(--sf-paper));
+  border: 1px solid var(--sf-line);
+}
+
+.sf-events-calendar-event:not(.has-cover) {
+  padding: 0.3rem 0.35rem 0.35rem;
+}
+
+.sf-events-calendar-event-cover {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  height: auto;
+  object-fit: cover;
+  background: color-mix(in srgb, var(--sf-secondary) 22%, var(--sf-paper));
+}
+
+.sf-events-calendar-event.has-cover .sf-events-calendar-event-title,
+.sf-events-calendar-event.has-cover .sf-events-calendar-event-seats,
+.sf-events-calendar-event.has-cover .sf-events-calendar-event-venue {
+  padding-left: 0.35rem;
+  padding-right: 0.35rem;
+}
+
+.sf-events-calendar-event.has-cover .sf-events-calendar-event-title {
+  padding-top: 0.3rem;
+}
+
+.sf-events-calendar-event.has-cover .sf-events-calendar-event-venue,
+.sf-events-calendar-event.has-cover .sf-events-calendar-event-seats:last-child {
+  padding-bottom: 0.35rem;
+}
+
+.sf-events-calendar-event-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 650;
+  font-size: 0.74rem;
+}
+
+.sf-events-calendar-event-seats,
+.sf-events-calendar-event-venue {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+  color: var(--sf-muted);
+  font-size: 0.68rem;
+}
+
+.sf-events-calendar-event-seats > span:last-child,
+.sf-events-calendar-event-venue > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sf-events-calendar-event-icon {
+  flex: 0 0 auto;
+  opacity: 0.85;
+}
+
+.sf-events-calendar-more {
+  margin: 0.25rem 0 0;
+  font-size: 0.72rem;
+}
+
+.sf-events-map-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.sf-events-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--sf-line);
+  border-radius: var(--radius-sf);
+}
+
+.sf-events-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.sf-events-table th,
+.sf-events-table td {
+  padding: 0.65rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--sf-line);
+  vertical-align: middle;
+}
+
+.sf-events-table th {
+  background: color-mix(in srgb, var(--sf-secondary) 16%, var(--sf-paper));
+  font-weight: 650;
+  color: var(--sf-ink);
+}
+
+.sf-events-table-title {
+  color: var(--sf-ink);
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.sf-events-table-title:hover {
+  color: var(--sf-primary-strong);
+}
+
+.sf-events-table-status {
+  font-size: 0.85rem;
+  color: var(--sf-secondary-strong);
+}
+
+.sf-events-table-status.is-muted {
+  color: var(--sf-muted);
+}
+
+.sf-events-sidebar {
+  display: grid;
+  gap: 1.15rem;
+  padding: 0.85rem;
+  border: 1px solid var(--sf-line);
+  border-radius: var(--radius-sf);
+  background: color-mix(in srgb, var(--sf-paper) 90%, white);
+}
+
+.sf-events-sidebar-heading {
+  margin: 0 0 0.45rem;
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
+.sf-events-sidebar-hint {
+  margin: 0 0 0.55rem;
+}
+
+.sf-events-mini-cal-weekdays,
+.sf-events-mini-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.2rem;
+  text-align: center;
+  font-size: 0.72rem;
+}
+
+.sf-events-mini-cal-weekdays {
+  color: var(--sf-muted);
+  font-weight: 650;
+  margin-bottom: 0.2rem;
+}
+
+.sf-events-mini-cal-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  border-radius: 2px;
+  color: var(--sf-ink);
+  text-decoration: none;
+}
+
+.sf-events-mini-cal-day.is-empty {
+  visibility: hidden;
+}
+
+.sf-events-mini-cal-day.has-event {
+  background: color-mix(in srgb, var(--sf-secondary) 45%, var(--sf-paper));
+  font-weight: 700;
+}
+
+.sf-events-interest-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.sf-events-interest-chip {
+  appearance: none;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--sf-line);
+  border-radius: var(--radius-sf);
+  background: var(--sf-paper);
+  color: var(--sf-ink);
+  font: inherit;
+  font-size: 0.88rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sf-events-interest-chip:hover {
+  border-color: color-mix(in srgb, var(--sf-secondary-strong) 40%, var(--sf-line));
+}
+
+.sf-events-interest-chip.is-active {
+  background: color-mix(in srgb, var(--sf-secondary) 28%, var(--sf-paper));
+  border-color: color-mix(in srgb, var(--sf-secondary-strong) 50%, var(--sf-line));
+  font-weight: 650;
+}
+
+.sf-events-interest-count {
+  color: var(--sf-muted);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 56rem) {
+  .sf-events-calendar-cell {
+    min-height: 4.5rem;
+  }
+
+  .sf-event-featured-carousel-slide {
+    aspect-ratio: 16 / 9;
+  }
+}
+
+@media (max-width: 40rem) {
+  .sf-events-calendar-weekdays,
+  .sf-events-calendar-grid {
+    gap: 0.2rem;
+  }
+
+  .sf-events-calendar-cell {
+    min-height: 5.5rem;
+  }
+}
+
 .sf-event-list-heading {
   margin: 0 0 0.75rem;
   font-size: 1.05rem;
@@ -1958,10 +2615,16 @@ button:disabled {
 .sf-event-list-venue,
 .sf-event-detail-when,
 .sf-event-detail-venue,
+.sf-event-detail-venue-address,
+.sf-event-detail-coords,
 .sf-event-detail-capacity {
   margin: 0.25rem 0 0;
   font-size: 0.92rem;
   color: color-mix(in srgb, var(--sf-ink) 75%, var(--sf-paper));
+}
+
+.sf-event-detail {
+  max-width: 52rem;
 }
 
 .sf-event-detail-back {
@@ -1970,27 +2633,152 @@ button:disabled {
 
 .sf-event-detail-title {
   margin: 0 0 0.35rem;
-  font-size: 1.65rem;
+  font-size: clamp(1.55rem, 2.4vw, 2rem);
+  line-height: 1.2;
+}
+
+.sf-event-detail-meta {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--sf-muted);
+}
+
+.sf-event-detail-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+}
+
+.sf-event-detail-badge {
+  display: inline-flex;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--sf-line);
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: var(--sf-ink);
+  background: color-mix(in srgb, var(--sf-secondary) 14%, var(--sf-paper));
+}
+
+.sf-event-detail-badge.is-open {
+  background: color-mix(in srgb, var(--sf-secondary) 35%, var(--sf-paper));
+}
+
+.sf-event-detail-badge.is-closed {
+  color: var(--sf-muted);
+}
+
+.sf-event-detail-badge.is-signed {
+  background: color-mix(in srgb, var(--sf-primary) 28%, var(--sf-paper));
+}
+
+.sf-event-detail-cover-wrap {
+  margin: 1.1rem 0 0;
+  padding: 0;
+  border: 1px solid var(--sf-line);
+  border-radius: var(--radius-sf);
+  overflow: hidden;
+  background: color-mix(in srgb, var(--sf-secondary) 16%, var(--sf-paper));
+  min-height: 12rem;
 }
 
 .sf-event-detail-cover {
   display: block;
   width: 100%;
-  max-width: 48rem;
+  max-width: none;
   height: auto;
-  margin: 1rem 0;
-  border: 1px solid var(--sf-line);
+  min-height: 12rem;
+  max-height: 28rem;
+  margin: 0;
   object-fit: cover;
+}
+
+.sf-event-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin: 1.1rem 0 0;
+}
+
+.sf-event-detail-action {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.55rem 1rem;
+  border-radius: var(--radius-sf);
+  border: 1px solid var(--sf-line);
+  text-decoration: none;
+  font-weight: 650;
+  font-size: 0.92rem;
+  color: var(--sf-ink);
+  background: var(--sf-paper);
+}
+
+.sf-event-detail-action.is-primary {
+  background: var(--sf-primary-strong);
+  border-color: transparent;
+  color: var(--sf-accent-ink);
+}
+
+.sf-event-detail-action.is-status {
+  border-style: dashed;
+  color: var(--sf-secondary-strong);
+}
+
+.sf-event-detail-action.is-muted {
+  color: var(--sf-muted);
+}
+
+.sf-event-detail-section,
+.sf-event-detail-parties,
+.sf-event-detail-related,
+.sf-event-ticket-types {
+  margin: 1.6rem 0 0;
+}
+
+.sf-event-detail-section-heading,
+.sf-event-detail-parties-heading {
+  margin: 0 0 0.65rem;
+  font-size: 1.15rem;
+  font-weight: 650;
+}
+
+.sf-event-detail-data {
+  margin: 0;
+  display: grid;
+  gap: 0.45rem;
+  border: 1px solid var(--sf-line);
+  border-radius: var(--radius-sf);
+  padding: 0.85rem 1rem;
+  background: color-mix(in srgb, var(--sf-paper) 92%, white);
+}
+
+.sf-event-detail-data-row {
+  display: grid;
+  grid-template-columns: minmax(7rem, 11rem) minmax(0, 1fr);
+  gap: 0.65rem;
+  align-items: baseline;
+}
+
+.sf-event-detail-data-row dt {
+  margin: 0;
+  font-weight: 650;
+  color: var(--sf-muted);
+  font-size: 0.88rem;
+}
+
+.sf-event-detail-data-row dd {
+  margin: 0;
+  color: var(--sf-ink);
 }
 
 .sf-event-detail-gallery {
   list-style: none;
-  margin: 0 0 1rem;
+  margin: 0;
   padding: 0;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
   gap: 0.55rem;
-  max-width: 48rem;
 }
 
 .sf-event-detail-gallery img {
@@ -1999,17 +2787,35 @@ button:disabled {
   height: 8rem;
   object-fit: cover;
   border: 1px solid var(--sf-line);
+  border-radius: var(--radius-sf);
 }
 
 .sf-event-detail-description {
-  margin: 1rem 0 0;
-  max-width: 48rem;
+  margin: 0;
   line-height: 1.55;
 }
 
-.sf-event-ticket-types {
-  margin: 1.25rem 0 0;
-  max-width: 48rem;
+.sf-event-detail-party-list,
+.sf-event-detail-related-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.sf-event-detail-party {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+}
+
+.sf-event-detail-party-avatar {
+  width: 3rem;
+  height: 3rem;
+  object-fit: cover;
+  border-radius: var(--radius-sf);
+  border: 1px solid var(--sf-line);
 }
 
 .sf-event-ticket-types-list {
@@ -2017,13 +2823,15 @@ button:disabled {
   margin: 0.65rem 0 0;
   padding: 0;
   display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
   gap: 0.75rem;
 }
 
 .sf-event-ticket-type {
   padding: 0.85rem 1rem;
   border: 1px solid var(--sf-line);
-  background: color-mix(in srgb, var(--sf-bg, #fff) 92%, var(--sf-muted, #9aa));
+  border-radius: var(--radius-sf);
+  background: color-mix(in srgb, var(--sf-paper) 88%, white);
 }
 
 .sf-event-ticket-type.is-sold-out {
@@ -2046,6 +2854,7 @@ button:disabled {
 .sf-event-ticket-type-price {
   margin: 0;
   font-weight: 650;
+  color: var(--sf-secondary-strong);
 }
 
 .sf-event-ticket-type-desc,

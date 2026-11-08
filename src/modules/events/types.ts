@@ -88,6 +88,8 @@ export type EventRecord = {
   termsUrl: string
   /** When false, omit from public discovery lists (URL still works). */
   listed: boolean
+  /** When true, eligible for the Featured carousel particle. */
+  featured: boolean
   /** True when a shared access password is set (hash never exposed). */
   hasAccessPassword: boolean
   accessTags: string[]

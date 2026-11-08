@@ -99,6 +99,11 @@ export const sfEvents = pgTable(
      * (direct URL still works subject to ACL + optional password).
      */
     listed: pgBoolean('listed').notNull().default(true),
+    /**
+     * When true, event is eligible for the Featured / carousel particle
+     * (layout-placed; not baked into the Events hub views).
+     */
+    featured: pgBoolean('featured').notNull().default(false),
     /** scrypt hash for optional shared access password; never expose to client. */
     accessPasswordHash: text('access_password_hash'),
     accessTags: jsonb('access_tags').$type<string[]>().notNull().default([]),
@@ -114,6 +119,7 @@ export const sfEvents = pgTable(
     index('sf_events_venue_id_idx').on(table.venueId),
     index('sf_events_slug_idx').on(table.slug),
     index('sf_events_listed_idx').on(table.listed),
+    index('sf_events_featured_idx').on(table.featured),
   ],
 )
 

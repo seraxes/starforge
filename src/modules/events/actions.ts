@@ -99,6 +99,7 @@ function eventFieldsFromForm(formData: FormData) {
     signupNote: String(formData.get('signupNote') ?? ''),
     termsUrl: String(formData.get('termsUrl') ?? ''),
     listed: formData.get('listed') === '0' ? '0' : '1',
+    featured: formData.get('featured') === '1' ? '1' : '0',
     accessPassword: String(formData.get('accessPassword') ?? ''),
     clearAccessPassword: formData.get('clearAccessPassword') === '1' ? '1' : '',
     accessTags: parseAccessTagsFromForm(formData),

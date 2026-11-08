@@ -8,10 +8,17 @@ type Props = {
   latitude: number
   longitude: number
   label?: string
+  /** Empty string hides the heading (when nested under EventDetail Location). */
+  heading?: string
 }
 
 /** Event detail venue pin — no-ops when product:maps is off. */
-export async function EventVenueMap({ latitude, longitude, label }: Props) {
+export async function EventVenueMap({
+  latitude,
+  longitude,
+  label,
+  heading = 'Location',
+}: Props) {
   const settings = await getSiteSettings()
   if (!isCatalogModuleEnabled(settings, MODULE_IDS.maps)) {
     return null
@@ -19,15 +26,16 @@ export async function EventVenueMap({ latitude, longitude, label }: Props) {
 
   const provider = await getMapProvider()
   const clientConfig = provider.clientConfig()
+  const title = heading.trim()
 
   return (
-    <section className="sf-event-venue-map" aria-label="Venue map">
-      <h2 className="sf-event-venue-map-heading">Location</h2>
+    <div className="sf-event-venue-map" aria-label={title || 'Venue map'}>
+      {title ? <h2 className="sf-event-venue-map-heading">{title}</h2> : null}
       <MapView
         markers={[{ lat: latitude, lng: longitude, label: label || 'Venue' }]}
         clientConfig={clientConfig}
         height="14rem"
       />
-    </section>
+    </div>
   )
 }

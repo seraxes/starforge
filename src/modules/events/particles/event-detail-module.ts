@@ -20,6 +20,11 @@ import {
 import { EventPasswordGate } from '../public/EventPasswordGate'
 import { eventPublicPathKey } from '../public/path'
 import {
+  countRegisteredGuests,
+  findActiveRegistrationForUserOnEvent,
+} from '../registrations'
+import { resolveEventMediaSrc } from '../public/media-src'
+import {
   findEventById,
   findPublishedEventByPublicKey,
   findVenueById,
@@ -71,13 +76,19 @@ export const eventDetailModule: StarforgeModule = {
     }
 
     const venue = event.venueId ? await findVenueById(event.venueId) : null
-    const [organizers, speakers, sponsors, relatedRows, ticketTiers] = await Promise.all([
-      listEventPartiesByIds(event.organizerPartyIds),
-      listEventPartiesByIds(event.speakerPartyIds),
-      listEventPartiesByIds(event.sponsorPartyIds),
-      Promise.all(event.relatedEventIds.map((rid) => findEventById(rid))),
-      listPublicTicketTiersForEvent(event.id),
-    ])
+    const [organizers, speakers, sponsors, relatedRows, ticketTiers, occupied, myReg, coverSrc] =
+      await Promise.all([
+        listEventPartiesByIds(event.organizerPartyIds),
+        listEventPartiesByIds(event.speakerPartyIds),
+        listEventPartiesByIds(event.sponsorPartyIds),
+        Promise.all(event.relatedEventIds.map((rid) => findEventById(rid))),
+        listPublicTicketTiersForEvent(event.id),
+        countRegisteredGuests(event.id),
+        viewer.userId
+          ? findActiveRegistrationForUserOnEvent(viewer.userId, event.id)
+          : Promise.resolve(null),
+        resolveEventMediaSrc(event.coverMediaId),
+      ])
     const localeRaw = await getLocale()
     const locale = isAppLocale(localeRaw) ? localeRaw : undefined
     const relatedById = new Map(
@@ -98,16 +109,31 @@ export const eventDetailModule: StarforgeModule = {
           locale,
         ),
     )
+    const signupStatus =
+      myReg?.status === 'waitlisted'
+        ? 'waitlisted'
+        : myReg?.status === 'registered'
+          ? 'registered'
+          : 'none'
 
     return React.createElement(EventDetail, {
       event,
       venueName: venue?.name,
       venueAddress: venue?.address,
+      location: {
+        name: venue?.name,
+        address: venue?.address,
+        latitude: venue?.latitude ?? null,
+        longitude: venue?.longitude ?? null,
+      },
       organizers,
       speakers,
       sponsors,
       relatedEvents,
       ticketTiers,
+      occupied,
+      signupStatus,
+      coverSrc,
       listHref: cfg.showBackLink
         ? withLocalePrefix('/events', locale)
         : undefined,

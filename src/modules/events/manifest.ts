@@ -8,7 +8,7 @@ export default defineStarforgeModule({
   kind: 'product',
   label: 'Events',
   description:
-    'Events + venues — admin CRUD, public list/detail, registration with ticket tiers, event particles.',
+    'Events + venues — admin CRUD, public views (upcoming/calendar/map/list), registration, featured + calendar particles.',
   version: '0.6.0',
   defaultEnabled: true,
   requires: ['product:media'],

@@ -24,6 +24,42 @@ export function formatEventWhen(
   }
 }
 
+/** Time-only label in event timezone (e.g. detail “Start” row). */
+export function formatEventTime(
+  value: Date | string | null | undefined,
+  timezone: string,
+): string {
+  const d = toDate(value)
+  if (!d) return ''
+  const tz = timezone.trim() || 'UTC'
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      timeStyle: 'short',
+      timeZone: tz,
+    }).format(d)
+  } catch {
+    return d.toISOString()
+  }
+}
+
+/** Date-only label in event timezone. */
+export function formatEventDate(
+  value: Date | string | null | undefined,
+  timezone: string,
+): string {
+  const d = toDate(value)
+  if (!d) return ''
+  const tz = timezone.trim() || 'UTC'
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      dateStyle: 'medium',
+      timeZone: tz,
+    }).format(d)
+  } catch {
+    return d.toISOString()
+  }
+}
+
 function toDate(value: Date | string | null | undefined): Date | null {
   if (!value) return null
   const d = value instanceof Date ? value : new Date(value)

@@ -89,18 +89,21 @@ function CoverField({
 
 function VisibilityFields({
   listed: initialListed,
+  featured: initialFeatured,
   hasAccessPassword,
   accessTags: initialTags,
   groups,
   disabled,
 }: {
   listed: boolean
+  featured: boolean
   hasAccessPassword: boolean
   accessTags: string[]
   groups: UserGroupOption[]
   disabled?: boolean
 }) {
   const [listed, setListed] = useState(initialListed !== false)
+  const [featured, setFeatured] = useState(initialFeatured === true)
   const [accessTags, setAccessTags] = useState(
     initialTags.length > 0 ? initialTags : ['public'],
   )
@@ -110,7 +113,8 @@ function VisibilityFields({
       <legend>Visibility</legend>
       <p className="settings-hint">
         Group ACL gates who may open the page. Unlisted hides the event from public lists
-        (URL still works). Password is an optional extra gate after ACL.
+        (URL still works). Featured feeds the layout Featured carousel particle. Password is
+        an optional extra gate after ACL.
       </p>
       <label className="settings-field settings-field-checkbox">
         <input
@@ -122,6 +126,16 @@ function VisibilityFields({
         <span>Listed in public calendars / event lists</span>
       </label>
       <input type="hidden" name="listed" value={listed ? '1' : '0'} />
+      <label className="settings-field settings-field-checkbox">
+        <input
+          type="checkbox"
+          checked={featured}
+          disabled={disabled}
+          onChange={(e) => setFeatured(e.target.checked)}
+        />
+        <span>Featured (carousel particle)</span>
+      </label>
+      <input type="hidden" name="featured" value={featured ? '1' : '0'} />
       <label className="settings-field">
         <span>
           Access password
@@ -248,6 +262,7 @@ export type EventFormRow = {
   signupNote?: string
   termsUrl?: string
   listed?: boolean
+  featured?: boolean
   hasAccessPassword?: boolean
   accessTags?: string[]
 }
@@ -640,6 +655,7 @@ export function EventFormFields({
 
       <VisibilityFields
         listed={row?.listed !== false}
+        featured={row?.featured === true}
         hasAccessPassword={Boolean(row?.hasAccessPassword)}
         accessTags={row?.accessTags ?? ['public']}
         groups={groups}

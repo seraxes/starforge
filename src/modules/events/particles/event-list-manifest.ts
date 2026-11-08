@@ -6,7 +6,7 @@ export default defineStarforgeModule({
   kind: 'particle',
   label: 'Event list',
   description:
-    'Upcoming published events list. Needs product:events. Links to /events/[slug].',
+    'Dense table of published events (list view). Needs product:events. Links to /events/[slug].',
   version: '0.1.0',
   defaultEnabled: true,
   importPath: '@/modules/events/particles/event-list-module',

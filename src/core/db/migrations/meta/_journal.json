@@ -92,6 +92,13 @@
       "when": 1794007000000,
       "tag": "0012_map_live_tactical",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1794008000000,
+      "tag": "0013_event_featured",
+      "breakpoints": true
     }
   ]
 }

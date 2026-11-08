@@ -20,7 +20,7 @@ export const MODULE_ALLOWLIST_FLAVOR = "core" as const
 export const FIXED_REQUIRED_MODULE_IDS = ["platform:dashboard","platform:better-auth","page-content","product:media"] as const
 
 /** Allowlisted module ids for this install/build (platform + product + particles + atoms). */
-export const ALLOWLISTED_MODULE_IDS = ["atom:analytics","atom:custom-css-js","copyright","custom","event-countdown","event-detail","event-list","form","live-map","locale-switcher","login","logo","map","menu","notice-bar","page-content","platform:better-auth","platform:dashboard","platform:payload-cms","product:consent","product:draft-preview","product:email-manager","product:events","product:font-awesome","product:forms","product:layout-manager","product:lexical-editor","product:maps","product:marketplace","product:media","product:page-settings","product:posts","product:primary-nav","product:pwa","product:redirects","product:registration","product:rich-editor","product:search","search","site-header","social","spacer"] as const
+export const ALLOWLISTED_MODULE_IDS = ["atom:analytics","atom:custom-css-js","copyright","custom","event-calendar","event-countdown","event-detail","event-featured","event-list","event-mini-calendar","event-upcoming","form","live-map","locale-switcher","login","logo","map","menu","notice-bar","page-content","platform:better-auth","platform:dashboard","platform:payload-cms","product:consent","product:draft-preview","product:email-manager","product:events","product:font-awesome","product:forms","product:layout-manager","product:lexical-editor","product:maps","product:marketplace","product:media","product:page-settings","product:posts","product:primary-nav","product:pwa","product:redirects","product:registration","product:rich-editor","product:search","search","site-header","social","spacer"] as const
 
 export type AllowlistedModuleId = (typeof ALLOWLISTED_MODULE_IDS)[number]
 
@@ -58,7 +58,7 @@ export const ALLOWLISTED_PRODUCT_PLATFORM_META: ModuleCatalogItem[] = [
   { id: "product:rich-editor", kind: "product", label: "Rich editor", description: "Shared TipTap rich editor (sanitized HTML). Toggle in Site Settings → Modules. Bind into Events, Pages, Email, and other content fields. Optional Lexical: product:lexical-editor.", required: false, defaultEnabled: true, installed: true as const, featureFlag: "richEditor", navViews: [{"key":"settings","label":"Rich editor","href":"/admin/rich-editor/settings"}] },
   { id: "product:lexical-editor", kind: "product", label: "Lexical editor", description: "Optional Lexical rich-text stack (@payloadcms/richtext-lexical). TipTap is the default editor. Enable for legacy Lexical page bodies and pagesLexicalEditor config; does not delete stored JSON when off.", required: false, defaultEnabled: false, installed: true as const, navViews: [{"key":"settings","label":"Lexical editor","href":"/admin/lexical-editor/settings"}] },
   { id: "product:email-manager", kind: "product", label: "Email Manager", description: "Automatic and conditional email rules with templates, filtered by module. Modules emit triggers; Core Mailer sends. No per-module SMTP — secrets stay in env / Chrome.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Email rules","href":"/admin/email"},{"key":"templates","label":"Email templates","href":"/admin/email/templates"},{"key":"sends","label":"Email sends","href":"/admin/email/sends"}] },
-  { id: "product:events", kind: "product", label: "Events", description: "Events + venues — admin CRUD, public list/detail, registration with ticket tiers, event particles.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"public","label":"Events","href":"/events"},{"key":"admin","label":"Events admin","href":"/admin/events"},{"key":"venues","label":"Venues","href":"/admin/events/venues"},{"key":"parties","label":"Parties","href":"/admin/events/parties"},{"key":"tiers","label":"Ticket tiers","href":"/admin/events/tiers"},{"key":"registrants","label":"Registrants","href":"/admin/events/registrants"},{"key":"settings","label":"Events settings","href":"/admin/events/settings"}] },
+  { id: "product:events", kind: "product", label: "Events", description: "Events + venues — admin CRUD, public views (upcoming/calendar/map/list), registration, featured + calendar particles.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"public","label":"Events","href":"/events"},{"key":"admin","label":"Events admin","href":"/admin/events"},{"key":"venues","label":"Venues","href":"/admin/events/venues"},{"key":"parties","label":"Parties","href":"/admin/events/parties"},{"key":"tiers","label":"Ticket tiers","href":"/admin/events/tiers"},{"key":"registrants","label":"Registrants","href":"/admin/events/registrants"},{"key":"settings","label":"Events settings","href":"/admin/events/settings"}] },
   { id: "product:maps", kind: "product", label: "Maps", description: "Map particle (Leaflet + OSM), venue pins, and closed live tactical rooms (roster teams). MapProvider Core port.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"events","label":"Events","href":"/events"},{"key":"admin","label":"Live maps","href":"/admin/maps"}] },
   { id: "product:marketplace", kind: "product", label: "Marketplace", description: "Classifieds / marketplace listings (upcoming). Soft Dashboard stub until the Marketplace pack ships.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Marketplace (upcoming)","href":"/admin/settings"}] },
   { id: "product:redirects", kind: "product", label: "Redirects", description: "URL redirects (from → to + status) with Node proxy lookup. Sitemap of published pages stays at /sitemap.xml.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Redirects","href":"/admin/redirects"}] },
@@ -91,7 +91,11 @@ export const ALLOWLISTED_PARTICLE_META: AllowlistedParticleMeta[] = [
   { id: "social", name: "Social", description: "Built-in — platform/url/label/icon list.", required: false, defaultEnabled: true, builtin: true },
   { id: "custom", name: "Custom", description: "Built-in HTML/CSS (+ JS stub); free-form escape hatch.", required: false, defaultEnabled: true, builtin: true },
   { id: "login", name: "Login / Welcome", description: "Welcome note + sign-in panel (password / magic link / email OTP / stay signed in). Signed-in: Account security 2FA. Place in Main — not branded heroes.", required: false, defaultEnabled: true, builtin: true, navViews: [{"key":"login","label":"Sign in","href":"/login"},{"key":"forgot-password","label":"Forgot password","href":"/forgot-password"},{"key":"forgot-username","label":"Forgot login email","href":"/forgot-username"},{"key":"account-security","label":"Account security","href":"/account/security"}] },
-  { id: "event-list", name: "Event list", description: "Upcoming published events list. Needs product:events. Links to /events/[slug].", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"events","label":"Events","href":"/events"}] },
+  { id: "event-list", name: "Event list", description: "Dense table of published events (list view). Needs product:events. Links to /events/[slug].", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"events","label":"Events","href":"/events"}] },
+  { id: "event-upcoming", name: "Event upcoming", description: "Upcoming events as cards (title, when, venue, seats, price). Needs product:events.", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"events","label":"Events","href":"/events"}] },
+  { id: "event-calendar", name: "Event calendar", description: "Month calendar view (title, seats, venue; optional thumbnails). Needs product:events.", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"events","label":"Events","href":"/events"}] },
+  { id: "event-featured", name: "Event featured", description: "Rotating carousel of Featured events. Place in any layout position. Needs product:events.", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"events","label":"Events","href":"/events"}] },
+  { id: "event-mini-calendar", name: "Event mini calendar", description: "Compact month calendar + upcoming list. Place in any layout position. Needs product:events.", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"events","label":"Events","href":"/events"}] },
   { id: "event-detail", name: "Event detail", description: "Single published event (id or slug in particle config). Needs product:events.", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"events","label":"Events","href":"/events"}] },
   { id: "event-countdown", name: "Event countdown", description: "Live countdown to a published event start (id or slug in particle config). Needs product:events.", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"events","label":"Events","href":"/events"}] },
   { id: "map", name: "Map", description: "Leaflet map with optional Event venue pins. Needs product:maps (+ product:events for pins).", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"events","label":"Events","href":"/events"}] },
@@ -103,7 +107,11 @@ export const ALLOWLISTED_PARTICLE_META: AllowlistedParticleMeta[] = [
 
 /** @deprecated Prefer ALLOWLISTED_PARTICLE_META filtered by !builtin — kept for older callers. */
 export const ALLOWLISTED_OPTIONAL_PARTICLE_META: AllowlistedParticleMeta[] = [
-  { id: "event-list", name: "Event list", description: "Upcoming published events list. Needs product:events. Links to /events/[slug].", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"events","label":"Events","href":"/events"}] },
+  { id: "event-list", name: "Event list", description: "Dense table of published events (list view). Needs product:events. Links to /events/[slug].", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"events","label":"Events","href":"/events"}] },
+  { id: "event-upcoming", name: "Event upcoming", description: "Upcoming events as cards (title, when, venue, seats, price). Needs product:events.", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"events","label":"Events","href":"/events"}] },
+  { id: "event-calendar", name: "Event calendar", description: "Month calendar view (title, seats, venue; optional thumbnails). Needs product:events.", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"events","label":"Events","href":"/events"}] },
+  { id: "event-featured", name: "Event featured", description: "Rotating carousel of Featured events. Place in any layout position. Needs product:events.", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"events","label":"Events","href":"/events"}] },
+  { id: "event-mini-calendar", name: "Event mini calendar", description: "Compact month calendar + upcoming list. Place in any layout position. Needs product:events.", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"events","label":"Events","href":"/events"}] },
   { id: "event-detail", name: "Event detail", description: "Single published event (id or slug in particle config). Needs product:events.", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"events","label":"Events","href":"/events"}] },
   { id: "event-countdown", name: "Event countdown", description: "Live countdown to a published event start (id or slug in particle config). Needs product:events.", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"events","label":"Events","href":"/events"}] },
   { id: "map", name: "Map", description: "Leaflet map with optional Event venue pins. Needs product:maps (+ product:events for pins).", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"events","label":"Events","href":"/events"}] },
@@ -204,6 +212,22 @@ export const particleEditorLoaders: ParticleEditorLoader[] = [
   {
     id: "custom",
     load: async () => (await import("@/app/(frontend)/admin/layouts/custom-particle-editor")).CustomParticleEditor,
+  },
+  {
+    id: "event-upcoming",
+    load: async () => (await import("@/app/(frontend)/admin/layouts/events-particle-editors")).EventUpcomingParticleEditor,
+  },
+  {
+    id: "event-calendar",
+    load: async () => (await import("@/app/(frontend)/admin/layouts/events-particle-editors")).EventCalendarParticleEditor,
+  },
+  {
+    id: "event-featured",
+    load: async () => (await import("@/app/(frontend)/admin/layouts/events-particle-editors")).EventFeaturedParticleEditor,
+  },
+  {
+    id: "event-mini-calendar",
+    load: async () => (await import("@/app/(frontend)/admin/layouts/events-particle-editors")).EventMiniCalendarParticleEditor,
   },
   {
     id: "form",
