@@ -28,9 +28,9 @@ Works when Profiles is **off** or a user has no row yet: returns a minimal fallb
 | --- | --- |
 | Member editor | `/[locale]/account/profile` |
 | Public page | `/[locale]/u/[handle]` |
-| Admin directory | `/admin/profiles` |
-| Admin edit | `/admin/profiles/[userId]` |
+| Admin accounts (directory + account + profile pane) | `/admin/users`, `/admin/users/[userId]` |
 | Settings | `/admin/profiles/settings` |
+| Legacy redirects | `/admin/profiles`, `/admin/profiles/[userId]` → Users |
 
 Toggle: **Settings → Modules → Profiles**. Depends on `product:media` (member upload ledger).
 

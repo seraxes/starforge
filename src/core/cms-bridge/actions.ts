@@ -52,6 +52,7 @@ export async function setAppUserCmsAccessAction(
   }
 
   revalidatePath('/admin/users')
+  revalidatePath(`/admin/users/${userId}`)
   revalidatePath('/admin/cms')
   return { ok: true, cmsAccess: result.cmsAccess }
 }

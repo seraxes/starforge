@@ -85,6 +85,25 @@ export function mosaicSectionDropEdge(
 }
 
 /**
+ * Particle / field **bar** drop edge (wide + short chrome).
+ * Top/bottom bands stack above/below the row; the middle band places beside.
+ * Do not use mosaicSectionDropEdge here — on short bars |dx| almost always wins.
+ */
+export function mosaicParticleBarDropEdge(
+  clientX: number,
+  clientY: number,
+  rect: DOMRect,
+  opts?: { stackBand?: number },
+): { position: 'before' | 'after'; placeBeside: boolean } {
+  const band = Math.min(0.45, Math.max(0.25, opts?.stackBand ?? 0.36))
+  const y = (clientY - rect.top) / Math.max(rect.height, 1)
+  const x = (clientX - rect.left) / Math.max(rect.width, 1)
+  if (y < band) return { placeBeside: false, position: 'before' }
+  if (y > 1 - band) return { placeBeside: false, position: 'after' }
+  return { placeBeside: true, position: x < 0.5 ? 'before' : 'after' }
+}
+
+/**
  * When placing two sections beside each other, force 50|50 if they would not
  * fit on one mosaic row. Returns null when existing widths already fit.
  */

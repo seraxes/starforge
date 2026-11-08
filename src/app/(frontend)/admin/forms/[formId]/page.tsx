@@ -1,4 +1,5 @@
 import React from 'react'
+import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 
 import { ensureDefaultUserGroupsSeeded, listUserGroupOptions } from '@/core/acl'
@@ -10,6 +11,7 @@ import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/sett
 import { getSiteChrome } from '@/core/site-chrome'
 
 import { FormBuilder } from '../form-builder'
+import { FormsAdminNav } from '../forms-admin-nav'
 
 export const dynamic = 'force-dynamic'
 
@@ -67,10 +69,19 @@ export default async function AdminFormBuilderPage({ params }: PageProps) {
   )
 
   return (
-    <section className="admin-section admin-layouts-full">
-      <h2>
-        Form builder <span className="layout-muted">({loaded.label})</span>
+    <section className="admin-section layout-admin-section admin-layouts-full">
+      <FormsAdminNav active="forms" />
+      <h2 className="sr-only">
+        Form builder ({loaded.label})
       </h2>
+      <p className="lede admin-lede gantry-layouts-lede">
+        <Link href="/admin/forms">← Forms</Link>
+        {' · '}
+        Editing <strong>{loaded.label}</strong> (<code>{loaded.id || id}</code>). Palette →
+        section rows (side-by-side % columns) → field cog. Drag a field onto a row to join
+        columns; + row / − row for empty drop rows; resize with the divider. Meta, success, and
+        email live under Form settings.
+      </p>
       <FormBuilder
         key={loaded.id || id}
         formId={loaded.id || id}

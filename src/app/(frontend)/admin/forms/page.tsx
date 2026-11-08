@@ -41,7 +41,7 @@ export default async function AdminFormsPage({ searchParams }: { searchParams: S
   const definitions = await listFormDefinitions()
 
   return (
-    <section className="admin-section admin-layouts-full">
+    <section className="admin-section layout-admin-section admin-layouts-full">
       <FormsAdminNav active="forms" />
       <h2 className="sr-only">Forms</h2>
       <p className="lede admin-lede gantry-layouts-lede">

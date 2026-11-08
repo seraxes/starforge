@@ -621,8 +621,9 @@ export function ProfileEditor({
               section.fields.includes('displayName') &&
               section.fields.includes('handle') ? (
                 <p className="settings-hint">
-                  Your sign-in email{model.email ? <> (<strong>{model.email}</strong>)</> : null}{' '}
-                  and password are managed under account security.
+                  Your sign-in email
+                  {model.email ? <> (<strong>{model.email}</strong>)</> : null} and password are
+                  managed under account security.
                 </p>
               ) : null}
               {showPrefsHint &&

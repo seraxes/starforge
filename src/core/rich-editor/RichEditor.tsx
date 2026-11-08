@@ -45,7 +45,7 @@ const TEXT_COLORS = [
   { label: 'Orange', value: '#e07a3d' },
   { label: 'Blue', value: '#3d7ae0' },
   { label: 'Green', value: '#2f9e64' },
-  { label: 'Red', value: '#c0392b' },
+  { label: 'Red', value: '#e22e2e' },
   { label: 'Muted', value: '#8899aa' },
 ]
 

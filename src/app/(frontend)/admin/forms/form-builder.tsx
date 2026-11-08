@@ -2,7 +2,6 @@
 
 import React, { useActionState, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import Link from 'next/link'
 import {
   DndContext,
   DragOverlay,
@@ -16,6 +15,7 @@ import {
   useSensors,
   type CollisionDetection,
   type DragEndEvent,
+  type DragMoveEvent,
   type DragOverEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
@@ -61,6 +61,7 @@ import {
 } from '@/core/forms/schema-json'
 import {
   gridColStyle,
+  mosaicParticleBarDropEdge,
   mosaicSectionDropEdge,
   pairMosaicSectionWidths,
   resizeAdjacentPair,
@@ -98,8 +99,6 @@ import { MediaPicker } from '@/modules/media/api'
 import { useNotifySavedOnOk } from '../admin-toast'
 import { ParticleSettingsPopover } from '../layouts/particle-settings-popover'
 import { useAutosaveForm } from '../use-autosave-form'
-import { FormsAdminNav } from './forms-admin-nav'
-
 /** Palette → canvas row (HTML5 DnD, same idea as Layout particles). */
 const DND_FORM_FIELD = 'application/x-starforge-form-field'
 
@@ -108,6 +107,58 @@ const DND_FORM_UNIQUE = 'application/x-starforge-form-unique'
 
 /** Section reorder (HTML5 DnD, same idea as Layout sections). */
 const DND_FORM_SECTION = 'application/x-starforge-form-section'
+
+/** Row vertical reorder within a section (same idea as Layout rows). */
+const DND_FORM_ROW = 'application/x-starforge-form-row'
+
+type FormRowDragPayload = {
+  sectionId: string
+  rowId: string
+}
+
+function encodeFormRowDragPayload(payload: FormRowDragPayload): string {
+  return JSON.stringify(payload)
+}
+
+function parseFormRowDragPayload(raw: string): FormRowDragPayload | null {
+  try {
+    const parsed = JSON.parse(raw) as FormRowDragPayload
+    if (
+      !parsed ||
+      typeof parsed.sectionId !== 'string' ||
+      typeof parsed.rowId !== 'string' ||
+      !parsed.sectionId.trim() ||
+      !parsed.rowId.trim()
+    ) {
+      return null
+    }
+    return { sectionId: parsed.sectionId.trim(), rowId: parsed.rowId.trim() }
+  } catch {
+    return null
+  }
+}
+
+function dataTransferHasFormRow(dt: DataTransfer | null): boolean {
+  if (!dt) return false
+  return Array.from(dt.types).includes(DND_FORM_ROW)
+}
+
+function moveFormRowInOrder(
+  rows: FormRowDef[],
+  rowId: string,
+  destIndex: number,
+): FormRowDef[] {
+  const from = rows.findIndex((r) => r.id === rowId)
+  if (from < 0) return rows
+  const next = [...rows]
+  const [item] = next.splice(from, 1)
+  if (!item) return rows
+  let insertAt = destIndex
+  if (from < destIndex) insertAt -= 1
+  insertAt = Math.max(0, Math.min(insertAt, next.length))
+  next.splice(insertAt, 0, item)
+  return next
+}
 
 function dataTransferHasFormField(dt: DataTransfer | null): boolean {
   if (!dt) return false
@@ -1123,14 +1174,23 @@ function FieldBar({
     >
       <header className="gantry-slot-head">
         <div className="gantry-slot-title">
-          <span className="gantry-slot-handle" aria-hidden="true" title="Drag field">
+          <span
+            className="gantry-slot-handle"
+            aria-hidden="true"
+            title="Drag this bar to move it"
+          >
             ▣
           </span>
           <span className="gantry-slot-pct" title="Column width">
             {widthToPercentLabel(pct)}
           </span>
           <div className="gantry-slot-labels">
-            <strong className="sf-form-slot-name">{displayName}</strong>
+            <strong
+              className="sf-form-slot-name"
+              title="Drag the whole bar to move — blue line shows where it lands"
+            >
+              {displayName}
+            </strong>
             <span className="gantry-slot-sub">
               {field.type}
               {resolveFormFieldUniqueKey(field) ? ' · unique' : ''}
@@ -1138,7 +1198,7 @@ function FieldBar({
               {field.logic?.showWhen ? ' · conditional' : ''}
               {field.computed ? ' · expr' : ''}
               {captchaWarn ? ' · inactive' : field.type === 'captcha' ? ' · Turnstile' : ''}
-              {' · '}
+              {' · drag bar to move · '}
               <code>{field.name}</code>
             </span>
             {captchaWarn ? (
@@ -1278,9 +1338,9 @@ function parseRowDroppableId(id: string | number): string | null {
 }
 
 /**
- * Draggable field — grab anywhere on the bar (actions excluded via stopPropagation).
- * Stays in its row during drag (opacity only). Avoids useSortable live-reorder.
- * While dragging, lock to the measured pixel width so the slot does not shrink.
+ * Draggable + droppable field — grab anywhere on the bar (actions excluded).
+ * Must be a droppable so collision can target the bar and show the blue insert line
+ * (same idea as Layout particle HTML5 dragover). Avoids useSortable live-reorder.
  */
 function DraggableFieldBar(
   props: FieldSettingsProps & {
@@ -1290,7 +1350,14 @@ function DraggableFieldBar(
   },
 ) {
   const id = fieldKey(props.field)
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id })
+  const { attributes, listeners, setNodeRef: setDragRef, isDragging } = useDraggable({
+    id,
+  })
+  const { setNodeRef: setDropRef } = useDroppable({ id })
+  const setNodeRef = (node: HTMLElement | null) => {
+    setDragRef(node)
+    setDropRef(node)
+  }
   const pct = props.widthPercent ?? LAYOUT_WIDTH_FULL
   const edge = props.dropEdge ?? null
   const lock = isDragging ? props.dragLockSize : null
@@ -1327,24 +1394,32 @@ function DraggableFieldBar(
   )
 }
 
-/** Row drop zone — dnd-kit for placed fields + HTML5 for palette (Layout-like). */
+/** Row drop zone — dnd-kit for placed fields + HTML5 for palette / row reorder (Layout-like). */
 function DroppableFormRow({
   rowId,
   isDropTarget,
   isEmpty,
+  isDraggingRow,
+  rowDropEdge,
   onPaletteDragOver,
   onPaletteDragLeave,
   onPaletteDrop,
   onUniqueDrop,
+  onRowDragOver,
+  onRowDrop,
   children,
 }: {
   rowId: string
   isDropTarget: boolean
   isEmpty?: boolean
+  isDraggingRow?: boolean
+  rowDropEdge?: 'before' | 'after' | null
   onPaletteDragOver?: () => void
   onPaletteDragLeave?: () => void
   onPaletteDrop?: (fieldType: FormFieldType) => void
   onUniqueDrop?: (uniqueKey: string) => void
+  onRowDragOver?: (edge: 'before' | 'after') => void
+  onRowDrop?: (edge: 'before' | 'after', payload: FormRowDragPayload) => void
   children: React.ReactNode
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: rowDroppableId(rowId) })
@@ -1358,12 +1433,24 @@ function DroppableFormRow({
         'sf-form-builder-row',
         isEmpty ? 'sf-form-builder-row-empty' : '',
         active ? 'is-drop-target' : '',
+        isDraggingRow ? 'is-row-dragging' : '',
+        rowDropEdge === 'before' ? 'is-row-drop-before' : '',
+        rowDropEdge === 'after' ? 'is-row-drop-after' : '',
       ]
         .filter(Boolean)
         .join(' ')}
       data-sf-form-row={rowId}
       data-sf-empty={isEmpty ? 'true' : undefined}
       onDragOver={(event) => {
+        if (dataTransferHasFormRow(event.dataTransfer)) {
+          event.preventDefault()
+          event.stopPropagation()
+          event.dataTransfer.dropEffect = 'move'
+          const rect = event.currentTarget.getBoundingClientRect()
+          const mid = rect.top + rect.height / 2
+          onRowDragOver?.(event.clientY < mid ? 'before' : 'after')
+          return
+        }
         if (
           !dataTransferHasFormField(event.dataTransfer) &&
           !dataTransferHasFormUnique(event.dataTransfer)
@@ -1382,6 +1469,15 @@ function DroppableFormRow({
         onPaletteDragLeave?.()
       }}
       onDrop={(event) => {
+        const rowPayload = parseFormRowDragPayload(event.dataTransfer.getData(DND_FORM_ROW))
+        if (rowPayload) {
+          event.preventDefault()
+          event.stopPropagation()
+          const rect = event.currentTarget.getBoundingClientRect()
+          const mid = rect.top + rect.height / 2
+          onRowDrop?.(event.clientY < mid ? 'before' : 'after', rowPayload)
+          return
+        }
         const uniqueRaw = event.dataTransfer.getData(DND_FORM_UNIQUE).trim()
         if (uniqueRaw && dataTransferHasFormUnique(event.dataTransfer)) {
           event.preventDefault()
@@ -1484,6 +1580,12 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha, groups = [] 
     position: 'before' | 'after'
     placeBeside: boolean
   } | null>(null)
+  const [draggingFormRow, setDraggingFormRow] = useState<FormRowDragPayload | null>(null)
+  const [formRowDropHint, setFormRowDropHint] = useState<{
+    sectionId: string
+    rowId: string
+    edge: 'before' | 'after'
+  } | null>(null)
   const [draggingPaletteType, setDraggingPaletteType] = useState<FormFieldType | null>(null)
   const [draggingUniqueKey, setDraggingUniqueKey] = useState<string | null>(null)
   /** Pixel size of the field when drag started — keep overlay + source slot from shrinking. */
@@ -1492,13 +1594,22 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha, groups = [] 
     height: number
     widthPercent: number
   } | null>(null)
-  const [dropHint, setDropHint] = useState<{
+  type FieldDropHint = {
     sectionId: string
-    kind: 'row' | 'field'
+    /** row = empty/append; field = beside bar; stack = new row above/below target row */
+    kind: 'row' | 'field' | 'stack'
     rowId: string
     fieldId?: string
     edge?: 'before' | 'after'
-  } | null>(null)
+  }
+  const [dropHint, setDropHint] = useState<FieldDropHint | null>(null)
+  /** Sync read on drag end — React state from the last move is often still stale. */
+  const dropHintRef = useRef<FieldDropHint | null>(null)
+
+  function setFieldDropHint(next: FieldDropHint | null) {
+    dropHintRef.current = next
+    setDropHint(next)
+  }
 
   const fieldsByKey = useMemo(() => {
     const map = new Map<string, FormFieldDef>()
@@ -1663,9 +1774,25 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha, groups = [] 
         const col = row.columns[colIndex]!
         const f = fields.find((x) => x.name === col.fieldName)
         if ((f?.id || col.fieldName) === activeId) {
-          return { row, rowIndex, colIndex, fieldName: col.fieldName }
+          return { sectionId: section.id, row, rowIndex, colIndex, fieldName: col.fieldName }
         }
       }
+    }
+    return null
+  }
+
+  /** Cross-section lookup — one canvas DndContext owns all section rows. */
+  function findFieldPlacementAnywhere(activeId: string | number) {
+    for (const section of sections) {
+      const hit = findFieldPlacement(section, activeId)
+      if (hit) return hit
+    }
+    return null
+  }
+
+  function findSectionIdForRow(rowId: string): string | null {
+    for (const section of sections) {
+      if (section.rows.some((r) => r.id === rowId)) return section.id
     }
     return null
   }
@@ -1737,18 +1864,59 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha, groups = [] 
     commitSections(removeEmptyRowFromSection(sections, sectionId, rowId))
   }
 
+  function clearFormRowDrag() {
+    setDraggingFormRow(null)
+    setFormRowDropHint(null)
+  }
+
+  /** Vertical row reorder within one section (Layout row DnD). */
+  function applyFormRowDrop(
+    payload: FormRowDragPayload,
+    targetSectionId: string,
+    targetRowId: string,
+    edge: 'before' | 'after',
+  ) {
+    if (payload.sectionId !== targetSectionId) {
+      clearFormRowDrag()
+      return
+    }
+    const section = sections.find((s) => s.id === targetSectionId)
+    if (!section) {
+      clearFormRowDrag()
+      return
+    }
+    const rows = section.rows
+    const fromIndex = rows.findIndex((r) => r.id === payload.rowId)
+    const targetIndex = rows.findIndex((r) => r.id === targetRowId)
+    if (fromIndex < 0 || targetIndex < 0) {
+      clearFormRowDrag()
+      return
+    }
+    const destIndex = edge === 'before' ? targetIndex : targetIndex + 1
+    if (destIndex === fromIndex || destIndex === fromIndex + 1) {
+      clearFormRowDrag()
+      return
+    }
+    const nextRows = moveFormRowInOrder(rows, payload.rowId, destIndex)
+    clearFormRowDrag()
+    commitSections(
+      sections.map((s) => (s.id === targetSectionId ? { ...s, rows: nextRows } : s)),
+    )
+  }
+
   function clearFieldDragUi() {
     setDraggingFieldId(null)
     setDragLockSize(null)
-    setDropHint(null)
+    setFieldDropHint(null)
+    setFormRowDropHint(null)
   }
 
-  function onFieldDragStart(event: DragStartEvent, sectionId: string) {
+  function onFieldDragStart(event: DragStartEvent) {
     const id = String(event.active.id)
     setDraggingFieldId(id)
-    setDropHint(null)
-    const section = sections.find((s) => s.id === sectionId)
-    const placement = section ? findFieldPlacement(section, id) : null
+    setFieldDropHint(null)
+    setFormRowDropHint(null)
+    const placement = findFieldPlacementAnywhere(id)
     const widthPercent =
       placement?.row.columns[placement.colIndex]?.width ?? LAYOUT_WIDTH_FULL
     // Prefer measured node rect; fall back to DOM query / defaults so overlay always paints.
@@ -1775,63 +1943,209 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha, groups = [] 
     })
   }
 
-  function onFieldDragOver(event: DragOverEvent, sectionId: string) {
+  function activeCenter(event: DragOverEvent | DragMoveEvent | DragEndEvent, fallback: {
+    left: number
+    top: number
+    width: number
+    height: number
+  }) {
+    const translated = event.active.rect.current.translated
+    const initial = event.active.rect.current.initial
+    const left = translated?.left ?? initial?.left ?? fallback.left
+    const top = translated?.top ?? initial?.top ?? fallback.top
+    const width = translated?.width ?? initial?.width ?? fallback.width
+    const height = translated?.height ?? initial?.height ?? fallback.height
+    return { x: left + width / 2, y: top + height / 2 }
+  }
+
+  function overRectAsDom(over: { rect: { left: number; top: number; width: number; height: number } }): DOMRect {
+    const { left, top, width, height } = over.rect
+    return {
+      left,
+      top,
+      width,
+      height,
+      right: left + width,
+      bottom: top + height,
+      x: left,
+      y: top,
+      toJSON() {
+        return this
+      },
+    } as DOMRect
+  }
+
+  function applyStackField(
+    from: { sectionId: string; row: FormRowDef; fieldName: string },
+    sectionId: string,
+    rowId: string,
+    edge: 'before' | 'after',
+  ) {
+    const targetSection = sections.find((s) => s.id === sectionId)
+    if (!targetSection) return
+    const targetIndex = targetSection.rows.findIndex((r) => r.id === rowId)
+    if (targetIndex < 0) return
+    let insertAt = edge === 'before' ? targetIndex : targetIndex + 1
+    // moveFieldInSections strips the source first; adjust when that removes an earlier row.
+    if (from.sectionId === sectionId && from.row.columns.length === 1) {
+      const fromRowIndex = targetSection.rows.findIndex((r) => r.id === from.row.id)
+      if (fromRowIndex >= 0 && fromRowIndex < insertAt) insertAt -= 1
+    }
+    commitSections(
+      moveFieldInSections(sections, from.fieldName, {
+        sectionId,
+        rowId: null,
+        index: insertAt,
+      }),
+    )
+  }
+
+  /** Update blue insert line while dragging (onDragOver alone skips same-target edge flips). */
+  function updateFieldDropHint(event: DragOverEvent | DragMoveEvent) {
     const { active, over } = event
     if (!over || active.id === over.id) {
-      setDropHint(null)
+      if (dropHintRef.current) setFieldDropHint(null)
       return
     }
-    const section = sections.find((s) => s.id === sectionId)
-    if (!section) return
     const rowId = parseRowDroppableId(over.id)
     if (rowId) {
-      setDropHint({ sectionId, kind: 'row', rowId })
+      const sectionId = findSectionIdForRow(rowId) ?? dropHintRef.current?.sectionId
+      if (!sectionId) {
+        if (dropHintRef.current) setFieldDropHint(null)
+        return
+      }
+      const section = sections.find((s) => s.id === sectionId)
+      const row = section?.rows.find((r) => r.id === rowId)
+      // Filled row chrome → stack above/below (never join 50/50 via the row droppable).
+      if (row && !rowIsEmpty(row)) {
+        const center = activeCenter(event, over.rect)
+        const edge: 'before' | 'after' =
+          center.y < over.rect.top + over.rect.height / 2 ? 'before' : 'after'
+        setFormRowDropHint({ sectionId, rowId, edge })
+        const next: FieldDropHint = { sectionId, kind: 'stack', rowId, edge }
+        const prev = dropHintRef.current
+        if (
+          prev?.kind === 'stack' &&
+          prev.sectionId === sectionId &&
+          prev.rowId === rowId &&
+          prev.edge === edge
+        ) {
+          return
+        }
+        setFieldDropHint(next)
+        return
+      }
+      // Empty drop row only: append into that row.
+      setFormRowDropHint(null)
+      const prev = dropHintRef.current
+      if (prev?.kind === 'row' && prev.sectionId === sectionId && prev.rowId === rowId) {
+        return
+      }
+      setFieldDropHint({ sectionId, kind: 'row', rowId })
       return
     }
-    const to = findFieldPlacement(section, over.id)
+    const to = findFieldPlacementAnywhere(over.id)
     if (!to) {
-      setDropHint(null)
+      if (dropHintRef.current) setFieldDropHint(null)
       return
     }
-    // Same-row reorder: before/after by column index vs active.
-    const from = findFieldPlacement(section, active.id)
-    let edge: 'before' | 'after' = 'before'
-    if (from && from.row.id === to.row.id) {
-      edge = from.colIndex < to.colIndex ? 'after' : 'before'
+    const rect = overRectAsDom(over)
+    const center = activeCenter(event, over.rect)
+    // Band-based like Layout particle bars: top/bottom stack, middle beside.
+    const mosaic = mosaicParticleBarDropEdge(center.x, center.y, rect, { stackBand: 0.4 })
+    const fieldId = String(over.id)
+    if (!mosaic.placeBeside) {
+      setFormRowDropHint({
+        sectionId: to.sectionId,
+        rowId: to.row.id,
+        edge: mosaic.position,
+      })
+      const next: FieldDropHint = {
+        sectionId: to.sectionId,
+        kind: 'stack',
+        rowId: to.row.id,
+        fieldId,
+        edge: mosaic.position,
+      }
+      const prev = dropHintRef.current
+      if (
+        prev?.kind === 'stack' &&
+        prev.sectionId === next.sectionId &&
+        prev.rowId === next.rowId &&
+        prev.edge === next.edge
+      ) {
+        return
+      }
+      setFieldDropHint(next)
+      return
     }
-    setDropHint({
-      sectionId,
+    setFormRowDropHint(null)
+    const next: FieldDropHint = {
+      sectionId: to.sectionId,
       kind: 'field',
       rowId: to.row.id,
-      fieldId: String(over.id),
-      edge,
-    })
+      fieldId,
+      edge: mosaic.position,
+    }
+    const prev = dropHintRef.current
+    if (
+      prev?.kind === 'field' &&
+      prev.sectionId === next.sectionId &&
+      prev.rowId === next.rowId &&
+      prev.fieldId === next.fieldId &&
+      prev.edge === next.edge
+    ) {
+      return
+    }
+    setFieldDropHint(next)
   }
 
   /**
-   * Layout-like drop:
-   * - Onto a row droppable → append as a new column (even widths).
-   * - Onto a field slot → insert before/after in that field's row.
-   * Source field stays visible in its row until drop (no live sortable collapse).
+   * Drag the field bar to move it (same idea as Layout sections/particles):
+   * - Onto empty row → append.
+   * - Onto a field bar (beside) → insert before/after at the vertical blue line.
+   * - Onto a field bar / filled row (stack) → new solo row above/below.
    */
-  function onDragEnd(event: DragEndEvent, sectionId: string) {
+  function onDragEnd(event: DragEndEvent) {
     const { active, over } = event
-    const hint = dropHint
+    const hint = dropHintRef.current
     clearFieldDragUi()
     if (!over || active.id === over.id) return
-    const section = sections.find((s) => s.id === sectionId)
-    if (!section) return
-    const from = findFieldPlacement(section, active.id)
+    const from = findFieldPlacementAnywhere(active.id)
     if (!from) return
+
+    // Prefer the blue-line hint (ref) — never recompute from flaky end coords.
+    if (hint?.kind === 'stack' && hint.edge) {
+      applyStackField(from, hint.sectionId, hint.rowId, hint.edge)
+      return
+    }
 
     const overRowId = parseRowDroppableId(over.id) ?? (hint?.kind === 'row' ? hint.rowId : null)
     if (overRowId) {
-      if (from.row.id === overRowId) return
-      const target = section.rows.find((r) => r.id === overRowId)
+      const targetSectionId = findSectionIdForRow(overRowId) ?? hint?.sectionId
+      if (!targetSectionId) return
+      const targetSection = sections.find((s) => s.id === targetSectionId)
+      const target = targetSection?.rows.find((r) => r.id === overRowId)
       if (!target) return
+      // Filled row without a stack hint → still stack, do not join columns.
+      if (!rowIsEmpty(target)) {
+        const center = activeCenter(event, {
+          left: 0,
+          top: 0,
+          width: 0,
+          height: 0,
+        })
+        const edge: 'before' | 'after' =
+          event.over && center.y < event.over.rect.top + event.over.rect.height / 2
+            ? 'before'
+            : 'after'
+        applyStackField(from, targetSectionId, overRowId, edge)
+        return
+      }
+      if (from.row.id === overRowId) return
       commitSections(
         moveFieldInSections(sections, from.fieldName, {
-          sectionId,
+          sectionId: targetSectionId,
           rowId: overRowId,
           index: target.columns.length,
         }),
@@ -1839,15 +2153,28 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha, groups = [] 
       return
     }
 
-    const to = findFieldPlacement(section, over.id)
+    const to = findFieldPlacementAnywhere(over.id)
     if (!to) return
+
+    // No stack hint but pointer was on a field — last-resort band check.
+    if (hint?.kind !== 'field' && event.over) {
+      const mosaic = mosaicParticleBarDropEdge(
+        activeCenter(event, event.over.rect).x,
+        activeCenter(event, event.over.rect).y,
+        overRectAsDom(event.over),
+        { stackBand: 0.4 },
+      )
+      if (!mosaic.placeBeside) {
+        applyStackField(from, to.sectionId, to.row.id, mosaic.position)
+        return
+      }
+    }
 
     if (from.row.id === to.row.id) {
       const names = from.row.columns.map((c) => c.fieldName)
       const edge = hint?.fieldId === String(over.id) ? hint.edge : 'before'
       let insertAt = to.colIndex
       if (edge === 'after') insertAt = to.colIndex + 1
-      // Adjust when removing from an earlier index in the same row.
       const without = names.filter((_, i) => i !== from.colIndex)
       if (from.colIndex < insertAt) insertAt -= 1
       insertAt = Math.max(0, Math.min(without.length, insertAt))
@@ -1861,7 +2188,6 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha, groups = [] 
         ...from.row,
         columns: nextNames.map((fieldName, i) => ({
           fieldName,
-          // Keep prior widths by name when possible.
           width:
             from.row.columns.find((c) => c.fieldName === fieldName)?.width ??
             widths[i] ??
@@ -1869,7 +2195,7 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha, groups = [] 
         })),
       }
       const nextSections = sections.map((s) =>
-        s.id === sectionId
+        s.id === from.sectionId
           ? { ...s, rows: s.rows.map((r) => (r.id === nextRow.id ? nextRow : r)) }
           : s,
       )
@@ -1881,7 +2207,7 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha, groups = [] 
     const index = edge === 'after' ? to.colIndex + 1 : to.colIndex
     commitSections(
       moveFieldInSections(sections, from.fieldName, {
-        sectionId,
+        sectionId: to.sectionId,
         rowId: to.row.id,
         index,
       }),
@@ -1935,15 +2261,6 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha, groups = [] 
 
   return (
     <div className="sf-form-builder gantry-editor">
-      <FormsAdminNav active="forms" />
-      <p className="admin-lede gantry-layouts-lede">
-        <Link href="/admin/forms">← Forms</Link>
-        {' · '}
-        Layout-aligned builder: palette → section rows (side-by-side % columns) → field cog. Drag a
-        field onto a row to join columns; + row / − row for empty drop rows at the end; resize with
-        the divider. Meta, success, and email live under Form settings.
-      </p>
-
       <nav className="gantry-layouts-nav sf-form-edit-nav" aria-label="Form edit">
         <ul className="gantry-layouts-nav-tabs" role="tablist">
           {FORM_EDIT_TABS.map((tab) => {
@@ -2103,8 +2420,8 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha, groups = [] 
               ) : null}
               <p className="layout-muted">
                 Filter <strong>All / Normal / Unique</strong>. Unique Profile fields leave the list
-                while on the canvas. Drag <strong>⋮⋮</strong> above/below to reorder, left/right to
-                place beside.
+                while on the canvas. Drag the blue <strong>row bar</strong> to reorder rows;
+                section <strong>⋮⋮</strong> above/below or beside.
               </p>
             </aside>
 
@@ -2147,10 +2464,11 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha, groups = [] 
                   </label>
                 </div>
               </div>
-              {sections.map((section) => {
+              {(() => {
                 const overlayField = draggingFieldId
                   ? fields.find((f) => fieldKey(f) === draggingFieldId)
                   : null
+                const sectionCards = sections.map((section) => {
                 const sectionWidth = clampGridWidth(
                   section.width ?? LAYOUT_WIDTH_FULL,
                   LAYOUT_WIDTH_FULL,
@@ -2306,15 +2624,7 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha, groups = [] 
                         <p className="layout-muted">Add a field from the palette, or open + row.</p>
                       ) : null}
                       {dndReady ? (
-                        <DndContext
-                          id={`form-section-${section.id}`}
-                          sensors={sensors}
-                          collisionDetection={formRowCollision}
-                          onDragStart={(e) => onFieldDragStart(e, section.id)}
-                          onDragOver={(e) => onFieldDragOver(e, section.id)}
-                          onDragCancel={clearFieldDragUi}
-                          onDragEnd={(e) => onDragEnd(e, section.id)}
-                        >
+                        <>
                           {section.rows.map((row) => {
                             const empty = rowIsEmpty(row)
                             const isDropTarget =
@@ -2331,40 +2641,73 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha, groups = [] 
                                   rowId={row.id}
                                   isDropTarget={isDropTarget}
                                   isEmpty={empty}
+                                  isDraggingRow={
+                                    draggingFormRow?.sectionId === section.id &&
+                                    draggingFormRow.rowId === row.id
+                                  }
+                                  rowDropEdge={
+                                    draggingFormRow?.rowId === row.id
+                                      ? null
+                                      : formRowDropHint?.sectionId === section.id &&
+                                          formRowDropHint.rowId === row.id
+                                        ? formRowDropHint.edge
+                                        : dropHint?.kind === 'stack' &&
+                                            dropHint.sectionId === section.id &&
+                                            dropHint.rowId === row.id
+                                          ? dropHint.edge ?? null
+                                          : null
+                                  }
                                   onPaletteDragOver={() =>
-                                    setDropHint({
+                                    setFieldDropHint({
                                       sectionId: section.id,
                                       kind: 'row',
                                       rowId: row.id,
                                     })
                                   }
                                   onPaletteDragLeave={() => {
-                                    setDropHint((prev) =>
+                                    const prev = dropHintRef.current
+                                    if (
                                       prev?.sectionId === section.id &&
                                       prev.kind === 'row' &&
                                       prev.rowId === row.id
-                                        ? null
-                                        : prev,
-                                    )
+                                    ) {
+                                      setFieldDropHint(null)
+                                    }
                                   }}
                                   onPaletteDrop={(type) => {
-                                    setDropHint(null)
+                                    setFieldDropHint(null)
                                     setDraggingPaletteType(null)
                                     setDraggingUniqueKey(null)
                                     addFieldOntoRow(type, section.id, row.id)
                                   }}
                                   onUniqueDrop={(uniqueKey) => {
-                                    setDropHint(null)
+                                    setFieldDropHint(null)
                                     setDraggingPaletteType(null)
                                     setDraggingUniqueKey(null)
                                     addUniqueFieldOntoRow(uniqueKey, section.id, row.id)
                                   }}
+                                  onRowDragOver={(edge) => {
+                                    if (
+                                      draggingFormRow?.sectionId === section.id &&
+                                      draggingFormRow.rowId === row.id
+                                    ) {
+                                      return
+                                    }
+                                    setFormRowDropHint({
+                                      sectionId: section.id,
+                                      rowId: row.id,
+                                      edge,
+                                    })
+                                  }}
+                                  onRowDrop={(edge, payload) =>
+                                    applyFormRowDrop(payload, section.id, row.id, edge)
+                                  }
                                 >
-                                  {/* Meta / − row only on empty drop rows — no leftover
-                                      “Row · N columns” actions strip on filled rows. */}
                                   {empty ? (
-                                    <div className="gantry-row-meta sf-form-row-meta">
-                                      <span>Empty row · drop fields here</span>
+                                    <div className="gantry-row-meta sf-form-empty-row-meta">
+                                      <span className="gantry-row-meta-label">
+                                        Empty row · drop fields here · drag empty zone to reorder
+                                      </span>
                                       <div className="gantry-row-actions">
                                         <button
                                           type="button"
@@ -2379,7 +2722,31 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha, groups = [] 
                                   ) : null}
                                   <div className="gantry-row-slots sf-form-row-slots">
                                     {empty ? (
-                                      <div className="gantry-row-empty">Drop fields here…</div>
+                                      <div
+                                        className="gantry-row-empty"
+                                        draggable
+                                        title="Drag empty row to reorder"
+                                        onDragStart={(event) => {
+                                          event.stopPropagation()
+                                          const payload: FormRowDragPayload = {
+                                            sectionId: section.id,
+                                            rowId: row.id,
+                                          }
+                                          event.dataTransfer.setData(
+                                            DND_FORM_ROW,
+                                            encodeFormRowDragPayload(payload),
+                                          )
+                                          event.dataTransfer.setData('text/plain', row.id)
+                                          event.dataTransfer.effectAllowed = 'move'
+                                          setDraggingFormRow(payload)
+                                          setFormRowDropHint(null)
+                                        }}
+                                        onDragEnd={() => {
+                                          clearFormRowDrag()
+                                        }}
+                                      >
+                                        Drop fields here… · drag to reorder row
+                                      </div>
                                     ) : null}
                                     {row.columns.map((col, colIndex) => {
                                       const field = fields.find((f) => f.name === col.fieldName)
@@ -2462,28 +2829,7 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha, groups = [] 
                               </React.Fragment>
                             )
                           })}
-                          {/* Portal to body — admin chrome uses overflow/transform that clips
-                              in-tree DragOverlay (looks like “no grab feedback”). */}
-                          {createPortal(
-                            <DragOverlay
-                              dropAnimation={null}
-                              zIndex={10000}
-                              style={{ cursor: 'grabbing' }}
-                            >
-                              {overlayField ? (
-                                <FieldDragPreview
-                                  field={overlayField}
-                                  widthPercent={
-                                    dragLockSize?.widthPercent ?? LAYOUT_WIDTH_FULL
-                                  }
-                                  width={dragLockSize?.width ?? 240}
-                                  height={dragLockSize?.height ?? 52}
-                                />
-                              ) : null}
-                            </DragOverlay>,
-                            document.body,
-                          )}
-                        </DndContext>
+                        </>
                       ) : (
                         section.rows.map((row) => (
                           <div
@@ -2548,7 +2894,42 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha, groups = [] 
                     </div>
                   </section>
                 )
-              })}
+              })
+                if (!dndReady) return sectionCards
+                return (
+                  <DndContext
+                    id="form-canvas-fields"
+                    sensors={sensors}
+                    collisionDetection={formRowCollision}
+                    onDragStart={onFieldDragStart}
+                    onDragOver={updateFieldDropHint}
+                    onDragMove={updateFieldDropHint}
+                    onDragCancel={clearFieldDragUi}
+                    onDragEnd={onDragEnd}
+                  >
+                    {sectionCards}
+                    {/* Portal to body — admin chrome uses overflow/transform that clips
+                        in-tree DragOverlay (looks like “no grab feedback”). */}
+                    {createPortal(
+                      <DragOverlay
+                        dropAnimation={null}
+                        zIndex={10000}
+                        style={{ cursor: 'grabbing' }}
+                      >
+                        {overlayField ? (
+                          <FieldDragPreview
+                            field={overlayField}
+                            widthPercent={dragLockSize?.widthPercent ?? LAYOUT_WIDTH_FULL}
+                            width={dragLockSize?.width ?? 240}
+                            height={dragLockSize?.height ?? 52}
+                          />
+                        ) : null}
+                      </DragOverlay>,
+                      document.body,
+                    )}
+                  </DndContext>
+                )
+              })()}
             </div>
           </div>
 

@@ -6,6 +6,7 @@ import { APIError } from 'better-auth/api'
 import { eq } from 'drizzle-orm'
 
 import { db, sfSessions, sfUsers } from '@/core/db'
+import { updateAccountEmail, updateAccountName } from './account-identity'
 import { auth } from './index'
 import { requireAppAdmin, setUserDisabled, setUserRole, userIsAppAdmin } from './admin'
 import { isAppRole, type AppRole } from './permissions'
@@ -79,6 +80,7 @@ export async function setAppUserRoleAction(
   }
 
   revalidatePath('/admin/users')
+  revalidatePath(`/admin/users/${userId}`)
   revalidatePath('/admin/cms')
   return { ok: true, role }
 }
@@ -147,5 +149,32 @@ export async function setAppUserDisabledAction(
   }
 
   revalidatePath('/admin/users')
+  revalidatePath(`/admin/users/${userId}`)
+  return { ok: true }
+}
+
+/** Admin edits Core account email + real name (`sf_users`). */
+export async function updateAppUserIdentityAction(
+  _prev: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  const adminSession = await requireAppAdmin()
+  if (!adminSession) {
+    return { error: 'Sign in as a Starforge app admin to manage users.' }
+  }
+
+  const userId = String(formData.get('userId') ?? '').trim()
+  if (!userId) return { error: 'Missing user id.' }
+
+  const nameResult = await updateAccountName(userId, formData.get('name'))
+  if (!nameResult.ok) return { error: nameResult.error }
+
+  const emailResult = await updateAccountEmail(userId, formData.get('email'), {
+    required: true,
+  })
+  if (!emailResult.ok) return { error: emailResult.error }
+
+  revalidatePath('/admin/users')
+  revalidatePath(`/admin/users/${userId}`)
   return { ok: true }
 }

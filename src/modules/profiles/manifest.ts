@@ -19,26 +19,17 @@ export default defineStarforgeModule({
   requires: ['product:media'],
   navViews: [
     { key: 'account', label: 'My profile', href: '/account/profile' },
-    { key: 'admin', label: 'Profiles admin', href: '/admin/profiles' },
     { key: 'settings', label: 'Profiles settings', href: '/admin/profiles/settings' },
   ],
   admin: {
     navGroup: {
       id: 'profiles',
       label: 'Profiles',
-      href: '/admin/profiles',
+      href: '/admin/profiles/settings',
       expandable: true,
       order: 46,
     },
     nav: [
-      {
-        group: 'profiles',
-        label: 'Members',
-        href: '/admin/profiles',
-        order: 10,
-        area: 'profiles',
-        exact: true,
-      },
       {
         group: 'profiles',
         label: 'Settings',

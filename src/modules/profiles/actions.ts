@@ -52,9 +52,12 @@ async function requireProfilesAdmin(): Promise<ProfilesActionState | null> {
 }
 
 function revalidateProfiles(userId?: string) {
-  revalidatePath('/admin/profiles')
+  revalidatePath('/admin/users')
   revalidatePath('/admin/profiles/settings')
-  if (userId) revalidatePath(`/admin/profiles/${userId}`)
+  if (userId) {
+    revalidatePath(`/admin/users/${userId}`)
+    revalidatePath(`/admin/profiles/${userId}`)
+  }
 }
 
 /**
@@ -172,6 +175,7 @@ export async function saveProfileAdminAction(
   if (!result.ok) return { error: result.error }
 
   revalidateProfiles(userId)
+  revalidatePath(`/admin/users/${userId}`)
   return { ok: true, message: 'Profile saved.', handle: result.profile.handle }
 }
 

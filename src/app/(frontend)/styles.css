@@ -51,6 +51,14 @@
   --sf-accent: var(--sf-primary-strong);
   --sf-accent-ink: #fff8f2;
 
+  /* Danger — midpoint between former muted rose (#c45c5c) and #ff0000 */
+  --sf-danger: #e22e2e;
+  --sf-danger-strong: #e01d16;
+  --sf-danger-border: #f3261e;
+  --sf-danger-soft: #f45450;
+  --sf-danger-hover: #ff2b2b;
+  --sf-danger-ink: #ffffff;
+
   --font-display: 'Segoe UI', 'Helvetica Neue', sans-serif;
   --font-body: 'Segoe UI', 'Helvetica Neue', sans-serif;
 
@@ -1277,12 +1285,11 @@ button:disabled {
 }
 
 /*
- * Layouts family:
- * - `.admin-layouts-full` / `.gantry-editor` — denser Layout canvas padding
- * - `.admin-layouts-padded` — Styles / Page settings / Particle Defaults / Outlines
- * Both share the same full-bleed content width as other Core admin pages.
+ * Layouts family (Layout editor + Styles / Page settings / Outlines / …):
+ * denser body padding than default Core admin — same inset everywhere.
  */
 .admin-shell:has(.admin-layouts-full) .admin-body,
+.admin-shell:has(.admin-layouts-padded) .admin-body,
 .admin-shell:has(.gantry-editor) .admin-body {
   padding: 1.25rem 1.25rem 2.5rem;
 }
@@ -1335,6 +1342,7 @@ button:disabled {
   }
 
   .admin-shell:has(.admin-layouts-full) .admin-body,
+  .admin-shell:has(.admin-layouts-padded) .admin-body,
   .admin-shell:has(.gantry-editor) .admin-body {
     padding: 1.15rem 1rem 2rem;
   }
@@ -1700,8 +1708,8 @@ button:disabled {
 }
 
 .gantry-toolbar-btn-disable {
-  background: color-mix(in srgb, #c45c5c 18%, white);
-  border: 1px solid color-mix(in srgb, #c45c5c 35%, var(--sf-line));
+  background: color-mix(in srgb, var(--sf-danger) 18%, white);
+  border: 1px solid color-mix(in srgb, var(--sf-danger) 35%, var(--sf-line));
   color: #a94442;
 }
 
@@ -4229,11 +4237,11 @@ button:disabled {
   }
 }
 
-/* Modular Form builder (SF-65) */
+/* Modular Form builder (SF-65) — gaps match Layouts `.gantry-editor` / workspace */
 .sf-form-builder {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 /* Layout-aligned Form workspace: palette | sections canvas (field cog = Layout module cog) */
@@ -4241,7 +4249,7 @@ button:disabled {
 .gantry-workspace.sf-form-workspace {
   display: grid;
   grid-template-columns: minmax(15rem, 17rem) minmax(0, 1fr);
-  gap: 1rem;
+  gap: 0.75rem;
   align-items: start;
 }
 
@@ -4296,13 +4304,16 @@ button:disabled {
 }
 
 .sf-form-row-slots {
+  position: relative;
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
   align-items: stretch;
-  gap: 0;
+  gap: 0.35rem;
   width: 100%;
   min-height: 3.5rem;
+  /* Leave room for the blue insert line between bars. */
+  overflow: visible;
 }
 
 /* Whole field/particle bar is the grab target (actions exclude themselves). */
@@ -4402,8 +4413,35 @@ button:disabled {
 }
 
 .sf-form-slot {
+  position: relative;
   min-width: 0;
   max-width: 100%;
+  overflow: visible;
+}
+
+/* Forms admin: make insert lines obvious on blue field bars. */
+.admin-shell .sf-form-slot.is-slot-drop-before::before,
+.admin-shell .sf-form-slot.is-slot-drop-after::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 4px;
+  border-radius: 2px;
+  background: #9fd4f5;
+  box-shadow:
+    0 0 0 1px var(--sf-admin-blue-border, #1e4d72),
+    0 0 12px 3px color-mix(in srgb, var(--sf-admin-blue-mid, #3498db) 85%, transparent);
+  z-index: 8;
+  pointer-events: none;
+}
+
+.admin-shell .sf-form-slot.is-slot-drop-before::before {
+  left: -6px;
+}
+
+.admin-shell .sf-form-slot.is-slot-drop-after::after {
+  right: -6px;
 }
 
 @media (max-width: 640px) {
@@ -4461,7 +4499,7 @@ button:disabled {
 
 /* Form edit: Editor | Form settings (Layout-aligned chrome) */
 .sf-form-edit-nav {
-  margin-bottom: 0.85rem;
+  margin: 0;
 }
 
 .sf-form-edit-nav .gantry-layouts-nav-tab {
@@ -4475,7 +4513,7 @@ button:disabled {
 .sf-form-edit-panel {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .sf-form-edit-panel[hidden] {
@@ -4690,8 +4728,8 @@ button:disabled {
 .gantry-editor {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  margin-top: 1rem;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
   max-width: none;
   width: 100%;
 }
@@ -4754,16 +4792,18 @@ button:disabled {
 .gantry-row-meta button.danger,
 .gantry-slot-actions button.danger,
 .gantry-typed-form button.danger {
-  background: color-mix(in srgb, #c45c5c 18%, white);
-  color: #7a2e2e;
-  border-color: color-mix(in srgb, #c45c5c 35%, var(--sf-line));
+  background: color-mix(in srgb, var(--sf-danger) 18%, white);
+  color: var(--sf-danger-ink, #ffffff);
+  border-color: color-mix(in srgb, var(--sf-danger) 35%, var(--sf-line));
 }
 
 .gantry-row-actions button.danger:hover,
 .gantry-row-meta button.danger:hover,
 .gantry-slot-actions button.danger:hover,
 .gantry-typed-form button.danger:hover {
-  background: color-mix(in srgb, #c45c5c 28%, white);
+  background: var(--sf-danger-hover, #ff2b2b);
+  color: var(--sf-danger-ink, #ffffff);
+  border-color: color-mix(in srgb, var(--sf-danger-hover, #ff2b2b) 80%, #ff0000);
 }
 
 .gantry-row-actions button:disabled,
@@ -5286,6 +5326,7 @@ button:disabled {
 }
 
 .gantry-row {
+  position: relative;
   margin-bottom: 0.65rem;
   padding: 0.55rem;
   border: 1px dashed var(--sf-line);
@@ -5296,6 +5337,34 @@ button:disabled {
 .gantry-row.is-drop-target {
   border-color: color-mix(in srgb, var(--sf-primary-strong) 55%, var(--sf-line));
   background: color-mix(in srgb, var(--sf-primary) 18%, white);
+}
+
+.gantry-row.is-row-dragging {
+  opacity: 0.55;
+}
+
+.gantry-row.is-row-drop-before::before,
+.gantry-row.is-row-drop-after::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--sf-primary-strong) 70%, white);
+  box-shadow:
+    0 0 0 1px var(--sf-primary-strong),
+    0 0 10px 2px color-mix(in srgb, var(--sf-primary) 55%, transparent);
+  z-index: 6;
+  pointer-events: none;
+}
+
+.gantry-row.is-row-drop-before::before {
+  top: -5px;
+}
+
+.gantry-row.is-row-drop-after::after {
+  bottom: -5px;
 }
 
 .gantry-row-meta {
@@ -5309,7 +5378,16 @@ button:disabled {
   color: var(--sf-muted);
 }
 
+.gantry-row-empty[draggable='true'] {
+  cursor: grab;
+}
+
+.gantry-row-empty[draggable='true']:active {
+  cursor: grabbing;
+}
+
 .gantry-row-slots {
+  position: relative;
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
@@ -5317,8 +5395,9 @@ button:disabled {
   gap: 0;
   width: 100%;
   min-height: 4.5rem;
-  /* Same-row particles stay horizontal; settings expand inside the cell. */
-  overflow-x: auto;
+  /* Same-row particles stay horizontal; settings expand inside the cell.
+     overflow-x would clip the blue insert lines between bars. */
+  overflow: visible;
 }
 
 .gantry-row-empty {
@@ -5352,12 +5431,28 @@ button:disabled {
   opacity: 0.55;
 }
 
-.gantry-slot.is-slot-drop-before {
-  box-shadow: inset 3px 0 0 var(--sf-primary-strong);
+.gantry-slot.is-slot-drop-before::before,
+.gantry-slot.is-slot-drop-after::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 3px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--sf-primary-strong) 70%, white);
+  box-shadow:
+    0 0 0 1px var(--sf-primary-strong),
+    0 0 10px 2px color-mix(in srgb, var(--sf-primary) 55%, transparent);
+  z-index: 6;
+  pointer-events: none;
 }
 
-.gantry-slot.is-slot-drop-after {
-  box-shadow: inset -3px 0 0 var(--sf-primary-strong);
+.gantry-slot.is-slot-drop-before::before {
+  left: -5px;
+}
+
+.gantry-slot.is-slot-drop-after::after {
+  right: -5px;
 }
 
 .gantry-slot-head {
@@ -5476,7 +5571,7 @@ button:disabled {
   border-radius: 2px;
   background: transparent;
   box-shadow: none;
-  color: color-mix(in srgb, #c45c5c 72%, #5a6674);
+  color: color-mix(in srgb, var(--sf-danger) 72%, #5a6674);
   font-size: var(--sf-admin-icon-secondary);
   line-height: 1;
   cursor: pointer;
@@ -5491,10 +5586,10 @@ button:disabled {
 
 .gantry-bar-remove:hover,
 .gantry-bar-remove:focus-visible {
-  background: color-mix(in srgb, #c45c5c 14%, white);
+  background: color-mix(in srgb, var(--sf-danger) 14%, white);
   border: 0;
   box-shadow: none;
-  color: #c45c5c;
+  color: var(--sf-danger);
   outline: none;
 }
 
@@ -5614,9 +5709,16 @@ button:disabled {
 
 .gantry-settings-panel .gantry-typed-form button.danger,
 .gantry-settings-panel .gantry-custom-form button.danger {
-  background: color-mix(in srgb, #c45c5c 18%, white);
-  color: #7a2e2e;
-  border-color: color-mix(in srgb, #c45c5c 35%, var(--sf-line));
+  background: color-mix(in srgb, var(--sf-danger) 18%, white);
+  color: var(--sf-danger-ink, #ffffff);
+  border-color: color-mix(in srgb, var(--sf-danger) 35%, var(--sf-line));
+}
+
+.gantry-settings-panel .gantry-typed-form button.danger:hover,
+.gantry-settings-panel .gantry-custom-form button.danger:hover {
+  background: var(--sf-danger-hover, #ff2b2b);
+  color: var(--sf-danger-ink, #ffffff);
+  border-color: color-mix(in srgb, var(--sf-danger-hover, #ff2b2b) 80%, #ff0000);
 }
 
 .gantry-settings-panel-body {
@@ -6474,8 +6576,15 @@ td.outlines-actions > form {
 
 button.danger,
 .outlines-actions .danger {
-  color: #9b1c1c;
-  border-color: color-mix(in srgb, #9b1c1c 35%, var(--sf-line));
+  color: var(--sf-danger-ink, #ffffff);
+  border-color: color-mix(in srgb, var(--sf-danger) 35%, var(--sf-line));
+}
+
+button.danger:hover,
+.outlines-actions .danger:hover {
+  background: var(--sf-danger-hover, #ff2b2b);
+  color: var(--sf-danger-ink, #ffffff);
+  border-color: color-mix(in srgb, var(--sf-danger-hover, #ff2b2b) 80%, #ff0000);
 }
 
 @media (max-width: 720px) {
@@ -7049,7 +7158,7 @@ button.danger,
 }
 
 .sf-live-map-error {
-  color: var(--sf-danger, #b42318);
+  color: var(--sf-danger);
 }
 
 .sf-live-map-kml {

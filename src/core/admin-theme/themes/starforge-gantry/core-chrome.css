@@ -78,6 +78,14 @@ body:has(.admin-shell) > main {
   --sf-accent: var(--sf-primary);
   --sf-accent-ink: #ffffff;
 
+  /* Danger — midpoint between former muted rose (#c45c5c) and #ff0000 */
+  --sf-danger: #e22e2e;
+  --sf-danger-strong: #e01d16;
+  --sf-danger-border: #f3261e;
+  --sf-danger-soft: #f45450;
+  --sf-danger-hover: #ff2b2b;
+  --sf-danger-ink: #ffffff;
+
   /* shadcn-compatible CSS variables (admin scope) */
   --background: var(--sf-admin-bg);
   --foreground: var(--sf-ink);
@@ -93,8 +101,8 @@ body:has(.admin-shell) > main {
   --muted-foreground: var(--sf-muted);
   --accent: color-mix(in srgb, var(--sf-secondary) 22%, var(--sf-admin-surface));
   --accent-foreground: var(--sf-secondary-strong);
-  --destructive: #c45c5c;
-  --destructive-foreground: #f5d0d0;
+  --destructive: var(--sf-danger);
+  --destructive-foreground: #fbe8e8;
   --border: var(--sf-line);
   --input: var(--sf-admin-input);
   --ring: var(--sf-secondary-strong);
@@ -724,9 +732,9 @@ body:has(.admin-shell) > main {
 .admin-shell .gantry-typed-form button.danger,
 .admin-shell button.danger,
 .admin-shell .outlines-actions .danger {
-  background: color-mix(in srgb, #c0392b 38%, var(--sf-admin-surface));
-  color: #ffb0a8;
-  border-color: color-mix(in srgb, #e74c3c 55%, var(--sf-line));
+  background: color-mix(in srgb, var(--sf-danger-strong) 38%, var(--sf-admin-surface));
+  color: var(--sf-danger-ink);
+  border-color: color-mix(in srgb, var(--sf-danger-border) 55%, var(--sf-line));
 }
 
 .admin-shell .gantry-row-actions button.danger:hover,
@@ -734,14 +742,15 @@ body:has(.admin-shell) > main {
 .admin-shell .gantry-slot-actions button.danger:hover,
 .admin-shell button.danger:hover,
 .admin-shell .outlines-actions .danger:hover {
-  background: color-mix(in srgb, #c0392b 52%, var(--sf-admin-surface));
-  color: #ffc9c2;
-  border-color: color-mix(in srgb, #e74c3c 70%, var(--sf-line));
+  background: var(--sf-danger-hover);
+  color: var(--sf-danger-ink);
+  border-color: color-mix(in srgb, var(--sf-danger-hover) 80%, #ff0000);
 }
 
 /* —— Layout editor: steal Gantry Helium —— */
 .admin-shell .gantry-editor {
   gap: 0.75rem;
+  margin-top: 0.75rem;
 }
 
 .admin-shell .gantry-editor > .layout-source {
@@ -758,6 +767,16 @@ body:has(.admin-shell) > main {
 /* Forms Fields palette — slightly wider so All / Normal / Unique stay one line */
 .admin-shell .gantry-workspace.sf-form-workspace {
   grid-template-columns: minmax(15rem, 17rem) minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.admin-shell .sf-form-builder,
+.admin-shell .sf-form-edit-panel {
+  gap: 0.75rem;
+}
+
+.admin-shell .sf-form-edit-nav {
+  margin: 0;
 }
 
 .admin-shell .sf-form-palette-filters .sf-forms-filter-group {
@@ -1132,6 +1151,7 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .gantry-row {
+  position: relative;
   margin: 0;
   padding: 0;
   border: 0;
@@ -1140,9 +1160,18 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .gantry-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
   margin-bottom: 0.25rem;
-  opacity: 0.75;
+  opacity: 0.85;
   font-size: 0.78rem;
+}
+
+.admin-shell .gantry-row-meta-label {
+  color: var(--sf-admin-muted, #8a97a8);
 }
 
 .admin-shell .gantry-row.is-drop-target {
@@ -1151,9 +1180,53 @@ body:has(.admin-shell) > main {
   background: color-mix(in srgb, var(--sf-admin-blue-mid) 10%, transparent);
 }
 
+.admin-shell .gantry-row.is-row-dragging {
+  opacity: 0.55;
+}
+
+/* Vertical insert line between rows (row reorder). */
+.admin-shell .gantry-row.is-row-drop-before::before,
+.admin-shell .gantry-row.is-row-drop-after::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 2px;
+  background: #7ec8f0;
+  box-shadow:
+    0 0 0 1px var(--sf-admin-blue-border),
+    0 0 10px 2px color-mix(in srgb, var(--sf-admin-blue-mid) 75%, transparent);
+  z-index: 6;
+  pointer-events: none;
+}
+
+.admin-shell .gantry-row.is-row-drop-before::before {
+  top: -5px;
+}
+
+.admin-shell .gantry-row.is-row-drop-after::after {
+  bottom: -5px;
+}
+
+.admin-shell .gantry-row-empty[draggable='true'] {
+  cursor: grab;
+}
+
+.admin-shell .gantry-row-empty[draggable='true']:active {
+  cursor: grabbing;
+}
+
 .admin-shell .gantry-row-slots {
-  gap: 0.28rem;
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 0.35rem;
   min-height: 4.25rem;
+  /* Keep insert lines between bars visible (do not clip ::before/::after). */
+  overflow: visible;
 }
 
 .admin-shell .gantry-row-empty {
@@ -1202,6 +1275,7 @@ body:has(.admin-shell) > main {
 
 /* Particle / module / nav-item bars — flat mid-blue + shared dark-blue edge */
 .admin-shell .gantry-slot {
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -1214,6 +1288,7 @@ body:has(.admin-shell) > main {
   padding: 0.32rem 0.45rem;
   min-height: 3.25rem;
   box-shadow: none;
+  overflow: visible;
 }
 
 .admin-shell .gantry-slot,
@@ -1302,12 +1377,71 @@ body:has(.admin-shell) > main {
   flex: 0 0 auto;
 }
 
-.admin-shell .gantry-slot.is-slot-drop-before {
-  box-shadow: inset 3px 0 0 #fff;
+/* Left/right insert line between particle bars (side-by-side placement). */
+.admin-shell .gantry-slot.is-slot-drop-before::before,
+.admin-shell .gantry-slot.is-slot-drop-after::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 4px;
+  border-radius: 2px;
+  background: #9fd4f5;
+  box-shadow:
+    0 0 0 1px var(--sf-admin-blue-border),
+    0 0 12px 3px color-mix(in srgb, var(--sf-admin-blue-mid) 85%, transparent);
+  z-index: 8;
+  pointer-events: none;
 }
 
-.admin-shell .gantry-slot.is-slot-drop-after {
-  box-shadow: inset -3px 0 0 #fff;
+.admin-shell .gantry-slot.is-slot-drop-before::before {
+  left: -6px;
+}
+
+.admin-shell .gantry-slot.is-slot-drop-after::after {
+  right: -6px;
+}
+
+/* Side hit strips — active only while a particle is being dragged. */
+.admin-shell .gantry-slot-side-hit {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  /* Narrower so top/bottom stack hits can light the horizontal between-row line. */
+  width: 28%;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.admin-shell .gantry-row.is-slot-dnd-active .gantry-slot-side-hit,
+.admin-shell .gantry-row.is-slot-dnd-active .gantry-slot-stack-hit {
+  pointer-events: auto;
+}
+
+.admin-shell .gantry-slot-side-hit-before {
+  left: 0;
+}
+
+.admin-shell .gantry-slot-side-hit-after {
+  right: 0;
+}
+
+/* Top/bottom hit strips → horizontal blue line between stacked particle bars. */
+.admin-shell .gantry-slot-stack-hit {
+  position: absolute;
+  left: 28%;
+  right: 28%;
+  height: 38%;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.admin-shell .gantry-slot-stack-hit-before {
+  top: 0;
+}
+
+.admin-shell .gantry-slot-stack-hit-after {
+  bottom: 0;
 }
 
 .admin-shell .gantry-slot.is-slot-grab {
@@ -1380,7 +1514,7 @@ body:has(.admin-shell) > main {
   background: transparent;
   box-shadow: none;
   outline: none;
-  color: color-mix(in srgb, #e8a8a0 55%, #c5d2e0);
+  color: color-mix(in srgb, var(--sf-danger-soft) 55%, #c5d2e0);
   font-size: var(--sf-admin-icon-secondary);
   line-height: 1;
   cursor: pointer;
@@ -1396,7 +1530,7 @@ body:has(.admin-shell) > main {
 .admin-shell .gantry-slot-actions .gantry-bar-remove:focus-visible,
 .admin-shell .gantry-bar-remove:hover,
 .admin-shell .gantry-bar-remove:focus-visible {
-  background: color-mix(in srgb, #c45c5c 16%, var(--sf-admin-surface));
+  background: color-mix(in srgb, var(--sf-danger) 16%, var(--sf-admin-surface));
   border: 0;
   box-shadow: none;
   outline: none;
@@ -1733,9 +1867,17 @@ body:has(.admin-shell) > main {
 .gantry-settings-theme-dark .gantry-settings-panel .gantry-typed-form button.danger,
 .gantry-settings-theme-dark .gantry-settings-panel .gantry-custom-form button.danger,
 .gantry-settings-theme-dark .gantry-slot-extra-actions button.danger {
-  background: color-mix(in srgb, #c45c5c 28%, #1d2531);
-  border-color: color-mix(in srgb, #c45c5c 45%, #2f3d50);
-  color: #f0b4b4;
+  background: color-mix(in srgb, var(--sf-danger) 28%, #1d2531);
+  border-color: color-mix(in srgb, var(--sf-danger) 45%, #2f3d50);
+  color: var(--sf-danger-ink);
+}
+
+.gantry-settings-theme-dark .gantry-settings-panel .gantry-typed-form button.danger:hover,
+.gantry-settings-theme-dark .gantry-settings-panel .gantry-custom-form button.danger:hover,
+.gantry-settings-theme-dark .gantry-slot-extra-actions button.danger:hover {
+  background: var(--sf-danger-hover);
+  border-color: color-mix(in srgb, var(--sf-danger-hover) 80%, #ff0000);
+  color: var(--sf-danger-ink);
 }
 
 .gantry-settings-theme-dark .gantry-particle-attrs {
@@ -1755,7 +1897,7 @@ body:has(.admin-shell) > main {
 }
 
 .gantry-settings-theme-dark .admin-inline-error {
-  color: #f0a0a0;
+  color: #f85050;
 }
 
 .gantry-settings-theme-dark .nav-access-tag-list label,
@@ -1953,9 +2095,9 @@ body:has(.admin-shell) > main {
 /* Accounts table: Disable = red, Enable = green (semantic action colors). */
 .admin-shell .gantry-toolbar-btn-disable,
 .admin-shell button.gantry-toolbar-btn-disable {
-  background: color-mix(in srgb, #c45c5c 42%, #1d2531);
+  background: color-mix(in srgb, var(--sf-danger) 42%, #1d2531);
   border: 0;
-  color: #f5c0c0;
+  color: var(--sf-danger-ink);
   padding: var(--sf-admin-btn-pad-y) var(--sf-admin-btn-pad-x);
   border-radius: var(--sf-admin-btn-radius);
   font-size: var(--sf-admin-btn-font);
@@ -1965,8 +2107,8 @@ body:has(.admin-shell) > main {
 
 .admin-shell .gantry-toolbar-btn-disable:hover:not(:disabled),
 .admin-shell button.gantry-toolbar-btn-disable:hover:not(:disabled) {
-  background: color-mix(in srgb, #c45c5c 58%, #1d2531);
-  color: #ffe0e0;
+  background: var(--sf-danger-hover);
+  color: var(--sf-danger-ink);
 }
 
 .admin-shell .gantry-toolbar-btn-enable,
@@ -2304,7 +2446,7 @@ body:has(.admin-shell) > main {
 .admin-shell .page-settings-form .form-error,
 .admin-shell .page-settings .form-error,
 .admin-shell .admin-inline-error {
-  color: #f0a0a0;
+  color: #f85050;
 }
 
 .admin-shell .session-bar,
@@ -2536,9 +2678,9 @@ body:has(.admin-shell) > main {
 }
 
 .admin-toast-error {
-  background: #8b2e2e;
+  background: #c51717;
   color: #fff;
-  border: 1px solid color-mix(in srgb, #e07474 45%, #8b2e2e);
+  border: 1px solid color-mix(in srgb, #f03a3a 45%, #c51717);
 }
 
 @keyframes admin-toast-in {
@@ -2729,14 +2871,21 @@ body:has(.admin-shell) > main {
 .admin-shell .gantry-toolbar-btn-danger,
 .admin-shell button.gantry-toolbar-btn.danger,
 .admin-shell button.gantry-toolbar-btn-danger {
-  background: color-mix(in srgb, #c45c5c 28%, #1d2531);
+  background: color-mix(in srgb, var(--sf-danger) 28%, #1d2531);
   border: 0;
-  color: #f0b4b4;
+  color: var(--sf-danger-ink);
   padding: var(--sf-admin-btn-pad-y) var(--sf-admin-btn-pad-x);
   border-radius: var(--sf-admin-btn-radius);
   font-size: var(--sf-admin-btn-font);
   font-weight: 650;
   min-height: var(--sf-admin-btn-min-height);
+}
+
+.admin-shell .gantry-toolbar-btn-danger:hover:not(:disabled),
+.admin-shell button.gantry-toolbar-btn.danger:hover:not(:disabled),
+.admin-shell button.gantry-toolbar-btn-danger:hover:not(:disabled) {
+  background: var(--sf-danger-hover);
+  color: var(--sf-danger-ink);
 }
 
 .admin-shell .page-settings-saving {
@@ -3502,6 +3651,57 @@ body:has(.admin-shell) > main {
   align-items: center;
   justify-content: center;
   padding: 1rem;
+}
+
+/* In-app confirm (replaces window.confirm) — SF admin chrome */
+.admin-shell .sf-admin-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: color-mix(in srgb, #06090e 72%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.admin-shell .sf-admin-confirm-dialog {
+  width: min(26rem, 100%);
+  background: var(--sf-admin-panel);
+  border: 1px solid var(--sf-admin-panel-border);
+  border-radius: 3px;
+  box-shadow: none;
+  padding: 0 0 0.85rem;
+}
+
+.admin-shell .sf-admin-confirm-head {
+  margin: 0 0 0.75rem;
+  padding: 0.55rem 0.85rem;
+  background: var(--sf-admin-panel-head);
+  border-bottom: 1px solid var(--sf-admin-panel-border);
+}
+
+.admin-shell .sf-admin-confirm-head h3 {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.admin-shell .sf-admin-confirm-message {
+  margin: 0 0.85rem 1rem;
+  white-space: pre-line;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--sf-admin-muted, #b7c5d6);
+}
+
+.admin-shell .sf-admin-confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  margin: 0 0.85rem;
 }
 
 .admin-shell .sf-media-picker-dialog {

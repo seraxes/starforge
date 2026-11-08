@@ -39,10 +39,10 @@ export default async function AdminFormSubmissionsPage({ searchParams }: PagePro
   ])
 
   return (
-    <section className="admin-section admin-layouts-full">
+    <section className="admin-section layout-admin-section admin-layouts-full">
       <FormsAdminNav active="forms" />
-      <h2>Submissions</h2>
-      <p className="lede admin-lede">
+      <h2 className="sr-only">Submissions</h2>
+      <p className="lede admin-lede gantry-layouts-lede">
         Deep-link inbox only (Submissions is not in Core/Payload nav or Forms tabs). Reach here from{' '}
         <Link href="/admin/forms/settings">Forms → Settings</Link> or a form’s Submissions /
         Export CSV actions under <Link href="/admin/forms">Forms</Link>. File fields store

@@ -20,7 +20,7 @@ const buttonVariants = cva(
           'border border-[var(--sf-line)] bg-transparent text-[var(--sf-ink)] hover:bg-[color-mix(in_srgb,var(--sf-secondary)_14%,transparent)]',
         ghost: 'bg-transparent text-[var(--sf-ink)] hover:bg-[color-mix(in_srgb,var(--sf-secondary)_14%,transparent)]',
         danger:
-          'bg-[color-mix(in_srgb,#c45c5c_22%,transparent)] text-[#f0b4b4] border border-[color-mix(in_srgb,#c45c5c_40%,var(--sf-line))]',
+          'bg-[color-mix(in_srgb,var(--sf-danger)_22%,transparent)] text-[var(--sf-danger-ink,#ffffff)] border border-[color-mix(in_srgb,var(--sf-danger)_40%,var(--sf-line))] hover:bg-[var(--sf-danger-hover,#ff2b2b)] hover:text-[var(--sf-danger-ink,#ffffff)]',
       },
       size: {
         default: 'h-9 px-3.5 py-2',

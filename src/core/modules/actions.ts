@@ -21,6 +21,7 @@ import {
 import {
   appendEmptyLayoutRow,
   ensureDocumentEmptyRows,
+  ensureSectionEmptyRows,
   removeEmptyLayoutRow,
 } from './empty-rows'
 import { clampGridWidth, evenColumnWidths, LAYOUT_WIDTH_FULL, resizeAdjacentPair } from './grid'
@@ -186,6 +187,38 @@ export async function renameLayoutSectionAction(
   })
 
   if (state.ok) state.message = `Section renamed to “${label}”.`
+  return state
+}
+
+/**
+ * Permanently remove a section and everything inside it (rows + particles).
+ * Refuses when it would leave the outline with zero sections.
+ */
+export async function removeLayoutSectionAction(
+  _prev: LayoutActionState,
+  formData: FormData,
+): Promise<LayoutActionState> {
+  const sectionId = String(formData.get('sectionId') ?? '').trim()
+  if (!sectionId) return { error: 'Missing section id.' }
+
+  let removedLabel = sectionId
+  const state = await mutateLayout(formData, (doc) => {
+    if (doc.sections.length <= 1) {
+      return { error: 'Cannot remove the last section — add another first.' }
+    }
+    const section = findSection(doc, sectionId)
+    if (!section) return { error: `Section “${sectionId}” not found.` }
+    removedLabel = section.label || sectionId
+    doc.sections = doc.sections
+      .filter((s) => s.id !== sectionId)
+      .map((s, index) => {
+        s.order = index
+        return s
+      })
+    return doc
+  })
+
+  if (state.ok) state.message = `Section “${removedLabel}” removed.`
   return state
 }
 
@@ -655,6 +688,53 @@ export async function reorderLayoutSectionsAction(
 }
 
 /**
+ * Persist row order within one section after drag-and-drop reorder.
+ * `orderJson` = JSON array of row ids top→bottom (vertical particle stack order).
+ */
+export async function reorderLayoutRowsAction(
+  _prev: LayoutActionState,
+  formData: FormData,
+): Promise<LayoutActionState> {
+  const sectionId = String(formData.get('sectionId') ?? '').trim()
+  const raw = String(formData.get('orderJson') ?? '').trim()
+  if (!sectionId) return { error: 'Missing section id.' }
+
+  let orderedIds: string[]
+  try {
+    orderedIds = JSON.parse(raw) as string[]
+    if (!Array.isArray(orderedIds) || orderedIds.some((id) => typeof id !== 'string')) {
+      throw new Error('not string array')
+    }
+  } catch {
+    return { error: 'Invalid row order payload.' }
+  }
+  if (orderedIds.length === 0) return { error: 'Row order is empty.' }
+
+  const state = await mutateLayout(formData, (doc) => {
+    const section = findSection(doc, sectionId)
+    if (!section) return { error: `Section “${sectionId}” not found.` }
+
+    const byId = new Map(section.rows.map((r) => [r.id, r]))
+    if (orderedIds.length !== section.rows.length) {
+      return { error: 'Row order length does not match the section.' }
+    }
+    for (const id of orderedIds) {
+      if (!byId.has(id)) return { error: `Unknown row “${id}”.` }
+    }
+
+    section.rows = orderedIds.map((id, index) => {
+      const row = byId.get(id)!
+      row.order = index
+      return row
+    })
+    return doc
+  })
+
+  if (state.ok) state.message = undefined
+  return state
+}
+
+/**
  * Persist slot order within one row after drag-and-drop reorder.
  * `orderJson` = JSON array of slot ids left→right. Widths are kept as-is.
  */
@@ -698,7 +778,7 @@ export async function reorderRowSlotsAction(
     return doc
   })
 
-  if (state.ok) state.message = 'Particle order saved.'
+  if (state.ok) state.message = undefined
   return state
 }
 
@@ -778,11 +858,113 @@ export async function moveSlotToRowAction(
     return doc
   })
 
-  if (state.ok) {
-    state.message = sameRow
-      ? 'Particle order saved.'
-      : `Moved particle into ${targetSectionId}.`
+  // Silent ok — canvas already moved; avoid noisy “into main” flashes.
+  if (state.ok) state.message = undefined
+  return state
+}
+
+/**
+ * Stack a particle into its own full-width row, inserted before/after a target row
+ * (vertical blue line — same idea as section mosaic above/below).
+ * Solo-row → solo-row in the same section reorders rows instead of cloning.
+ */
+export async function stackSlotAsRowAction(
+  _prev: LayoutActionState,
+  formData: FormData,
+): Promise<LayoutActionState> {
+  const sourceSectionId = String(formData.get('sourceSectionId') ?? '').trim()
+  const sourceRowId = String(formData.get('sourceRowId') ?? '').trim()
+  const slotId = String(formData.get('slotId') ?? '').trim()
+  const targetSectionId = String(formData.get('targetSectionId') ?? '').trim()
+  const targetRowId = String(formData.get('targetRowId') ?? '').trim()
+  const positionRaw = String(formData.get('position') ?? '').trim()
+  const position: 'before' | 'after' = positionRaw === 'after' ? 'after' : 'before'
+
+  if (!sourceSectionId || !sourceRowId || !slotId) {
+    return { error: 'Missing source particle reference.' }
   }
+  if (!targetSectionId || !targetRowId) {
+    return { error: 'Drop onto a row inside a section.' }
+  }
+
+  const state = await mutateLayout(formData, (doc) => {
+    const source = findSlot(doc, sourceSectionId, sourceRowId, slotId)
+    if (!source) return { error: 'Source particle not found.' }
+
+    const targetSection = findSection(doc, targetSectionId)
+    if (!targetSection) return { error: 'Destination section not found.' }
+
+    const sortedTarget = [...targetSection.rows].sort(
+      (a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id),
+    )
+    const targetIndex = sortedTarget.findIndex((r) => r.id === targetRowId)
+    if (targetIndex < 0) return { error: 'Destination row not found.' }
+
+    const sameSection = sourceSectionId === targetSectionId
+    const soloSource = source.row.slots.length === 1
+
+    // Solo particle in the same section → reorder its row (no clone).
+    if (sameSection && soloSource) {
+      const fromIndex = sortedTarget.findIndex((r) => r.id === sourceRowId)
+      if (fromIndex < 0) return { error: 'Source row not found.' }
+      const destIndex = position === 'before' ? targetIndex : targetIndex + 1
+      if (destIndex === fromIndex || destIndex === fromIndex + 1) {
+        return doc
+      }
+      const next = [...sortedTarget]
+      const [movedRow] = next.splice(fromIndex, 1)
+      let insertAt = destIndex
+      if (fromIndex < destIndex) insertAt = destIndex - 1
+      insertAt = Math.max(0, Math.min(insertAt, next.length))
+      next.splice(insertAt, 0, movedRow!)
+      next.forEach((row, i) => {
+        row.order = i
+      })
+      targetSection.rows = next
+      ensureSectionEmptyRows(targetSection)
+      return doc
+    }
+
+    const moved: LayoutSlot = structuredClone(source.slot)
+    moved.width = LAYOUT_WIDTH_FULL
+    moved.order = 0
+
+    source.row.slots = source.row.slots.filter((s) => s.id !== slotId)
+    source.row.slots.forEach((s, i) => {
+      s.order = i
+    })
+    if (source.row.slots.length > 0) {
+      rebalanceRowSlots(source.row)
+    } else {
+      const srcSection = findSection(doc, sourceSectionId)
+      if (srcSection) {
+        srcSection.rows = srcSection.rows.filter((r) => r.id !== sourceRowId)
+        ensureSectionEmptyRows(srcSection)
+      }
+    }
+
+    // Re-resolve target index after a same-section source-row removal.
+    const rowsNow = [...targetSection.rows].sort(
+      (a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id),
+    )
+    const targetNow = rowsNow.findIndex((r) => r.id === targetRowId)
+    if (targetNow < 0) return { error: 'Destination row not found.' }
+    const insertAt = position === 'before' ? targetNow : targetNow + 1
+    const newRow: LayoutRow = {
+      id: newLayoutEntityId('row'),
+      order: insertAt,
+      slots: [moved],
+    }
+    rowsNow.splice(insertAt, 0, newRow)
+    rowsNow.forEach((row, i) => {
+      row.order = i
+    })
+    targetSection.rows = rowsNow
+    ensureSectionEmptyRows(targetSection)
+    return doc
+  })
+
+  if (state.ok) state.message = undefined
   return state
 }
 

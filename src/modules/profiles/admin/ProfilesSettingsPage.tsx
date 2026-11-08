@@ -31,9 +31,9 @@ export default async function ProfilesSettingsPage() {
       <p className="lede admin-lede">
         Profile inputs are managed in{' '}
         <Link href="/admin/forms/profile">Forms → Profile</Link>. Privacy defaults and account
-        options live here. Module on/off:{' '}
-        <Link href="/admin/settings">Settings → Modules</Link>. Members:{' '}
-        <Link href="/admin/profiles">Profiles</Link>.
+        options live here. Members are listed under{' '}
+        <Link href="/admin/users">Users → Accounts</Link> (Profile pane on each account). Module
+        on/off: <Link href="/admin/settings">Settings → Modules</Link>.
       </p>
       {loaded.isFallback ? (
         <p className="layout-muted">

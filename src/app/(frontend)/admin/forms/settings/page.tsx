@@ -26,7 +26,7 @@ export default async function AdminFormsSettingsPage() {
   const mailer = await getMailerInfo()
 
   return (
-    <section className="admin-section admin-layouts-full">
+    <section className="admin-section layout-admin-section admin-layouts-full">
       <FormsAdminNav active="settings" />
       <h2 className="sr-only">Forms settings</h2>
       <p className="lede admin-lede gantry-layouts-lede">
