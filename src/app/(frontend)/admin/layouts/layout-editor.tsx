@@ -28,6 +28,8 @@ import {
 import { layoutRowIsEmpty } from '@/core/modules/empty-rows'
 import { LayoutIdField, useLayoutOutlineId } from './layout-outline-context'
 import {
+  clampGridWidth,
+  gridColStyle,
   gridWidthPercent,
   LAYOUT_WIDTH_FULL,
   LAYOUT_WIDTH_MIN,
@@ -1088,6 +1090,7 @@ function SectionCanvas({
       label?: string
       cssClass?: string
       containerMode?: 'full' | 'boxed'
+      width?: number
       backgroundColor?: string
       textColor?: string
     }) => {
@@ -1117,6 +1120,14 @@ function SectionCanvas({
         const prev = section.containerMode ?? 'full'
         if (fields.containerMode !== prev) {
           fd.set('containerMode', fields.containerMode)
+          changed = true
+        }
+      }
+      if (fields.width !== undefined) {
+        const next = clampGridWidth(fields.width, LAYOUT_WIDTH_FULL)
+        const prev = clampGridWidth(section.width ?? LAYOUT_WIDTH_FULL, LAYOUT_WIDTH_FULL)
+        if (next !== prev) {
+          fd.set('width', String(next))
           changed = true
         }
       }
@@ -1154,6 +1165,7 @@ function SectionCanvas({
       section.cssClass,
       section.id,
       section.label,
+      section.width,
       section.styles?.backgroundColor,
       section.styles?.textColor,
     ],
@@ -1168,10 +1180,14 @@ function SectionCanvas({
     .filter(Boolean)
     .join(' ')
 
+  const sectionWidth = clampGridWidth(section.width ?? LAYOUT_WIDTH_FULL, LAYOUT_WIDTH_FULL)
+
   return (
     <li
       className={classNames}
       data-sf-section={section.id}
+      data-sf-width={sectionWidth}
+      style={gridColStyle(sectionWidth)}
       onDragOver={(event) => {
         if (![...event.dataTransfer.types].includes(DND_SECTION)) return
         event.preventDefault()
@@ -1247,8 +1263,32 @@ function SectionCanvas({
               ⚙
             </summary>
             <div className="gantry-section-toolbar">
+              <label className="gantry-inline-label gantry-section-width-label">
+                <span className="gantry-field-hint">Width %</span>
+                <input
+                  key={`section-width-${section.id}-${sectionWidth}`}
+                  type="number"
+                  className="gantry-inline-input gantry-section-width-input"
+                  defaultValue={sectionWidth}
+                  min={LAYOUT_WIDTH_MIN}
+                  max={LAYOUT_WIDTH_FULL}
+                  step={5}
+                  disabled={metaPending}
+                  title="Percent width — same model as particles (5–100). Partial widths sit side-by-side."
+                  aria-label="Section width percent"
+                  onBlur={(event) => {
+                    persistSectionMeta({ width: Number(event.target.value) })
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault()
+                      ;(event.target as HTMLInputElement).blur()
+                    }
+                  }}
+                />
+              </label>
               <label className="gantry-inline-label gantry-section-container-label">
-                <span className="gantry-field-hint">Width</span>
+                <span className="gantry-field-hint">Container</span>
                 <select
                   key={`section-container-${section.id}-${section.containerMode ?? 'full'}`}
                   className="gantry-inline-input gantry-section-container-select"
@@ -1558,9 +1598,39 @@ export function LayoutEditor({
             <form action={sectionAction} className="layout-inline-form gantry-toolbar-create">
               <LayoutIdField />
               <input type="text" name="label" placeholder="New section name" required />
-              <button type="submit" className="gantry-toolbar-btn gantry-toolbar-btn-muted" disabled={sectionPending}>
-                {sectionPending ? 'Adding…' : '+ Section'}
-              </button>
+              <div className="gantry-section-create" role="group" aria-label="Add section">
+                <button
+                  type="submit"
+                  className="gantry-section-create-submit"
+                  disabled={sectionPending}
+                >
+                  {sectionPending ? (
+                    'Adding…'
+                  ) : (
+                    <>
+                      <span className="gantry-section-create-plus" aria-hidden="true">
+                        +
+                      </span>
+                      <span>Section</span>
+                    </>
+                  )}
+                </button>
+                <label className="gantry-section-create-width">
+                  <span className="sr-only">Width %</span>
+                  <input
+                    type="number"
+                    name="width"
+                    defaultValue={LAYOUT_WIDTH_FULL}
+                    min={LAYOUT_WIDTH_MIN}
+                    max={LAYOUT_WIDTH_FULL}
+                    step={5}
+                    aria-label="New section width percent"
+                    title="Percent width for the new section (5–100)"
+                    disabled={sectionPending}
+                  />
+                  <span aria-hidden="true">%</span>
+                </label>
+              </div>
             </form>
             <div className="gantry-canvas-toolbar-end">
               <div className="gantry-canvas-toolbar-primary">
@@ -1664,7 +1734,7 @@ export function LayoutEditor({
         <summary>Layout document (JSON storage)</summary>
         <pre>{JSON.stringify({ ...document, sections: sectionList }, null, 2)}</pre>
         <p className="layout-muted">
-          Section <code>label</code> / <code>containerMode</code> / Section Styles (
+          Section <code>label</code> / <code>width</code> / <code>containerMode</code> / Section Styles (
           <code>backgroundColor</code> · <code>textColor</code>) / <code>cssClass</code> and slot{' '}
           <code>name</code> save on blur/change. Section <code>order</code> persists on drag.
           Widths are integer percents inside the section container. Full Section Styles (image /

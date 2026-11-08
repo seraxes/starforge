@@ -160,6 +160,17 @@ describe('adminAreaGateForPath', () => {
     })
   })
 
+  it('maps Skins under Layouts to admin.layouts', () => {
+    assert.deepEqual(adminAreaGateForPath('/admin/skins'), {
+      type: 'resource',
+      key: 'admin.layouts',
+    })
+    assert.deepEqual(adminAreaGateForPath('/admin/skins/'), {
+      type: 'resource',
+      key: 'admin.layouts',
+    })
+  })
+
   it('maps Dashboard root to admin.dashboard (/admin + legacy /app/admin)', () => {
     assert.deepEqual(adminAreaGateForPath('/admin'), {
       type: 'resource',

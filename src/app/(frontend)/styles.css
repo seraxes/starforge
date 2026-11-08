@@ -1,11 +1,12 @@
 /*
  * CSS layers (keep separate — do not mix Page Settings / Custom into admin chrome):
- * 1) Design tokens — `:root` / Tailwind `@theme` below (SF-33 Core Styles later)
+ * 1) Design tokens — `:root` / Tailwind `@theme` below; active Skin overrides via
+ *    SkinRootStyles + src/core/skin (STARFORGE_SKIN / admin Skins default)
  * 2) Outline Layout Styles — public `.sf-layout-section` width + section bg/text + breakpoints
  * 3) Custom CSS — Page Settings document chrome / Custom particle only
  *
  * Tailwind v4 (theme + utilities only — no preflight) so existing CSS keeps working.
- * Core admin dark chrome: src/core/admin-theme (active-core.css → starforge-gantry).
+ * Core admin dark chrome: src/core/admin-theme (imported from admin layout only).
  */
 @layer theme, base, components, utilities;
 @import 'tailwindcss/theme.css' layer(theme);
@@ -3771,6 +3772,25 @@ button:disabled {
 }
 
 /* —— Layer 2: outline Layout Styles (public sections) —— */
+.sf-layout-section-mosaic {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+.sf-layout-section-mosaic > .sf-layout-section {
+  box-sizing: border-box;
+  min-width: 0;
+}
+@media (max-width: 720px) {
+  .sf-layout-section-mosaic > .sf-layout-section {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+}
+
 .sf-layout-section {
   width: 100%;
   box-sizing: border-box;
@@ -4883,8 +4903,91 @@ button:disabled {
   margin: 0;
   padding: 0;
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: 0.85rem;
+}
+
+.gantry-sections > .gantry-section-actions,
+.gantry-sections > .gantry-canvas-toolbar,
+.gantry-sections > .gantry-toolbar-create {
+  flex: 0 0 100%;
+  max-width: 100%;
+  width: 100%;
+}
+
+/* Combined + Section control with embedded width % (Layouts + Forms). */
+.gantry-section-create {
+  display: inline-flex;
+  align-items: stretch;
+  min-height: var(--sf-admin-btn-min-height, 2.35rem);
+  border: 1px solid var(--sf-admin-blue-active, #2471a3);
+  border-radius: var(--sf-admin-btn-radius, 3px);
+  background: var(--sf-admin-blue-mid, #3498db);
+  overflow: hidden;
+}
+.gantry-section-create-submit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.35rem 0.75rem 0.35rem 0.55rem;
+  border: 0;
+  background: var(--sf-admin-blue-mid, #3498db);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.gantry-section-create-submit:hover:not(:disabled) {
+  background: var(--sf-admin-blue-action, #2f80b9);
+}
+.gantry-section-create-submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+.gantry-section-create-plus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2em;
+  line-height: 0.85;
+  font-weight: 700;
+  color: #fff;
+}
+.gantry-section-create-width {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0 0.55rem 0 0.45rem;
+  border-left: 1px solid color-mix(in srgb, #fff 22%, var(--sf-admin-input, #152033));
+  background: var(--sf-admin-input, #152033);
+  color: #fff;
+  font-size: 0.9em;
+  font-weight: 600;
+}
+.gantry-section-create-width input[type='number'] {
+  width: 3.1rem;
+  min-height: calc(var(--sf-admin-btn-min-height, 2.35rem) - 2px);
+  margin: 0;
+  padding: 0.15rem 0.2rem;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  text-align: right;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.gantry-section-create-width input[type='number']::-webkit-outer-spin-button,
+.gantry-section-create-width input[type='number']::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+.gantry-section-create-width input[type='number']:focus {
+  outline: none;
 }
 
 .gantry-section {
@@ -4893,6 +4996,16 @@ button:disabled {
   border: 1px solid var(--sf-line);
   background: color-mix(in srgb, white 58%, transparent);
   position: relative;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+@media (max-width: 720px) {
+  .gantry-section {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
 }
 
 .gantry-section.is-section-dragging {
@@ -6226,6 +6339,27 @@ button:disabled {
   vertical-align: middle;
 }
 
+.sf-skins-outline-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.sf-skins-outline-list .outlines-badge {
+  margin-left: 0.35rem;
+}
+
+.sf-skins-manager.outlines-manager {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Skin picker reuses outline picker chrome (gantry-layouts-nav-outline). */
+
 .outlines-muted {
   color: var(--sf-muted);
   white-space: nowrap;
@@ -6929,8 +7063,8 @@ button.danger,
 }
 
 .sf-profile-form-mosaic {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 1rem;
   width: 100%;
   margin-bottom: 1rem;
@@ -6938,13 +7072,13 @@ button.danger,
 .sf-profile-form-mosaic > .settings-fieldset {
   margin: 0;
   min-width: 0;
-}
-.sf-profile-form-mosaic > .sf-profile-section-wide {
-  grid-column: 1 / -1;
+  box-sizing: border-box;
 }
 @media (max-width: 720px) {
-  .sf-profile-form-mosaic {
-    grid-template-columns: minmax(0, 1fr);
+  .sf-profile-form-mosaic > .settings-fieldset {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+    width: 100% !important;
   }
 }
 

@@ -52,7 +52,7 @@ One active adapter per port, selected by env/factory, with secrets in env only (
 | `RateLimiter` | `consume(key, limit, window)` | memory, Redis | auto when Redis on | **Planned (now)**: design-security §6 |
 | `Captcha` | `resolve()` / `verify()` | Turnstile | Settings → Security | Partial (lives in `core/forms`; move to `core/security`) |
 | Admin theme | registry `{ tokens, css }` | `starforge-gantry` | `STARFORGE_ADMIN_THEME` | Shipped (CSS import still static) |
-| Public theme | registry `{ tokens, css }` | `starforge-pastel` | env / Site Settings | **Planned (before Hero)** |
+| Skin | registry `{ tokens, css }` | `starforge-pastel` | `STARFORGE_SKIN` / admin **Skins** | **Shipped (v1)** — Core port `src/core/skin`; SF-33 dark skin later |
 | `LlmProvider`, `MapProvider`, `MediaAnalysisPort` | see plans | — | — | **Paper only** until a consumer module ships |
 | `RealtimePort` | `publish` / `subscribe` / `info()` | memory bus + SSE `/api/realtime`; Redis fanout later | memory (default) | **Shipped (foundation)** — first product consumers: Notifications, then Chat; RTC (calls) is a separate future port |
 
@@ -77,7 +77,7 @@ Locked order: **Core → Modules → Hero**. Core is agile: thin, solid ports, i
 | Module manifest M0–M2 | Alongside hardening; small, mostly codegen |
 | Search/taxonomy (SF-132), Form Should (SF-133) | After hardening; SF-133 needs the submission data changes first |
 | Heavy Modules (Events, Maps, Chat, Shop…) | Only on the manifest contract and real ports |
-| Hero / ASN (SF-8) | After the public theme port and the manifest extension seam |
+| Hero / ASN (SF-8) | After Skin port (shipped) + dark skin (SF-33) + the manifest extension seam |
 
 Focus guard: stay on this queue; no Hero/ASN or heavy packs until the Core ports for that step are real ([preferences](../preferences.md)).
 

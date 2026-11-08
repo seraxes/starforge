@@ -115,7 +115,9 @@ export function adminAreaGateForPath(pathname: string): AdminAreaGate {
     path === `${CORE_ADMIN_BASE}/outlines` ||
     path.startsWith(`${CORE_ADMIN_BASE}/outlines/`) ||
     path === `${CORE_ADMIN_BASE}/particle-defaults` ||
-    path.startsWith(`${CORE_ADMIN_BASE}/particle-defaults/`)
+    path.startsWith(`${CORE_ADMIN_BASE}/particle-defaults/`) ||
+    path === `${CORE_ADMIN_BASE}/skins` ||
+    path.startsWith(`${CORE_ADMIN_BASE}/skins/`)
   ) {
     return { type: 'resource', key: 'admin.layouts' }
   }

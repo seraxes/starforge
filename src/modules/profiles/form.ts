@@ -12,6 +12,7 @@ import {
   type VisibilityScope,
 } from './fields'
 import { effectiveVisibility, isFieldEnabled, sanitizeVisibility } from './privacy'
+import type { ProfileFormConfig, ProfileFormSection } from './profile-form-config'
 import type { ProfileInput, ProfileRecord, ProfilesModuleSettings } from './types'
 
 /** Read the shared editor form into a `ProfileInput` (unvalidated — store validates). */
@@ -50,6 +51,10 @@ export function parseProfileFormData(formData: FormData): ProfileInput {
 export type ProfileEditorFieldState = {
   enabled: boolean
   required: boolean
+  label: string
+  placeholder: string
+  description: string
+  options?: Array<{ value: string; label: string }>
   /** Scope currently in effect (member choice → site default → registry default). */
   visibility: VisibilityScope
   /** Whether a scope picker should render next to the field. */
@@ -62,6 +67,8 @@ export type ProfileEditorModel = {
   email: string
   values: Omit<ProfileInput, 'visibility'>
   fields: Record<ProfileFieldKey, ProfileEditorFieldState>
+  /** Forms sections (enabled fields only) — drives editor layout. */
+  sections: ProfileFormSection[]
   scopes: VisibilityScope[]
   /** ISO date until which a self-service handle change is blocked, else null. */
   handleLockedUntil: string | null
@@ -73,27 +80,42 @@ export function buildEditorModel(input: {
   record: ProfileRecord
   email: string
   settings: ProfilesModuleSettings
+  formConfig: ProfileFormConfig
   locales: Array<{ code: string; label: string }>
   /** `self` sees the cooldown lock; `admin` never does. */
   actor: 'self' | 'admin'
   now?: Date
 }): ProfileEditorModel {
-  const { record, settings } = input
+  const { record, settings, formConfig } = input
   const now = input.now ?? new Date()
 
   const fields = {} as Record<ProfileFieldKey, ProfileEditorFieldState>
   for (const def of PROFILE_FIELDS) {
+    const cfg = formConfig.fields[def.key]
+    const enabled = isFieldEnabled(def.key, settings) && cfg.enabled
     fields[def.key] = {
-      enabled: isFieldEnabled(def.key, settings),
+      enabled,
       required: Boolean(
         def.locked
           ? def.key === 'displayName' || def.key === 'handle'
-          : settings.requiredFields.includes(def.key),
+          : enabled && (cfg.required || settings.requiredFields.includes(def.key)),
       ),
+      label: cfg.label || def.label,
+      placeholder: cfg.placeholder || '',
+      description: cfg.description || '',
+      options: cfg.options,
       visibility: effectiveVisibility(def.key, record.visibility, settings),
       configurable: isVisibilityConfigurable(def.key),
     }
   }
+
+  const sections = formConfig.sections
+    .map((section) => ({
+      ...section,
+      fields: section.fields.filter((key) => fields[key]?.enabled),
+      width: section.width,
+    }))
+    .filter((section) => section.fields.length > 0)
 
   let handleLockedUntil: string | null = null
   if (
@@ -134,6 +156,7 @@ export function buildEditorModel(input: {
       timezone: record.timezone,
     },
     fields,
+    sections,
     scopes,
     handleLockedUntil,
     locales: input.locales,

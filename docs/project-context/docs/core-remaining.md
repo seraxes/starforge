@@ -51,7 +51,7 @@ Ordered for Core densification (skip Events/Marketplace *data* — those packs a
 | 11 | **Mailer transactional templates** | S–M | Shared templates beyond Email Manager rules |
 | 12 | **Dynamic admin theme CSS import** | S | Env registry works; layouts still static gantry import |
 | 13 | **Doc hygiene — refresh gaps eval** | S | Queued **SF-199** (this doc + Done stack supersede Nov 4 P0 list) |
-| 14 | **Public theme port** | M | Pref before Hero skins; Queued **SF-33** (not admin chrome) |
+| 14 | **Skin port** | M | **Shipped v1** (`src/core/skin`, admin `/admin/skins`); SF-33 dark skin still queued |
 
 Also intentional thin: Events/Marketplace **dashboard stubs only** (SF-221) — no schema/UI until those Modules.
 
@@ -65,7 +65,7 @@ Do **not** treat as Core leftovers (focus guard + prefs):
 | --- | --- |
 | Events / Maps / Chat / Social / Stream / Shop / Marketplace / Ads | Heavy Modules on real ports |
 | **SF-8** ASN Hero | Theme + domain rules on Core+Modules |
-| **SF-33** Public dark pastel toggle | After public theme port; not admin |
+| **SF-33** Public dark pastel Skin | Second registry entry + Skins admin select; not admin chrome |
 | **SF-6** DO two-droplet hosting | After local-first + deploy checklist |
 | **SF-222** WordPress migration | After Core + Modules + Hero |
 | LLM / Map / MediaAnalysis vendor ports | Paper until a consumer Module |

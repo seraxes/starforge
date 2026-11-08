@@ -1,6 +1,11 @@
 import React from 'react'
 import { redirect } from 'next/navigation'
 
+/* Active admin theme (port): import here — not on the public root layout — so
+ * visitors do not download Gantry chrome CSS. Nested @import via active-core.css
+ * was unreliable in Next/Turbopack. */
+import '@/core/admin-theme/themes/starforge-gantry/core-chrome.css'
+
 import { AdminSidebarAccount } from '@/components/admin/AdminSidebarAccount'
 import { AdminSidebarBrand } from '@/components/admin/AdminSidebarBrand'
 import { AdminSidebarNav } from '@/components/admin/AdminSidebarNav'

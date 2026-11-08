@@ -161,7 +161,12 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
         { href: `${CORE}/breakpoints`, label: 'Styles' },
         { href: `${CORE}/particle-defaults`, label: 'Particle Defaults' },
         { href: `${CORE}/outlines`, label: 'Outlines' },
+        // Skin port — brand + outline packs (Gantry theme); lives under Layouts.
+        { href: `${CORE}/skins`, label: 'Skins' },
       )
+    } else {
+      // Page Settings only — still expose Skins (independent of layout canvas).
+      layoutLinks.push({ href: `${CORE}/skins`, label: 'Skins' })
     }
     if (flags.pageSettings) {
       // FA config is a Page settings panel (id=font-awesome), not its own left-nav leaf.

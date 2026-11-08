@@ -2,17 +2,19 @@ import { getRegisteredFormPreset, listRegisteredFormPresets } from './preset-reg
 import type { FormDefinitionDocument, FormFieldDef, FormPresetId } from './types'
 
 /** Admin list grouping — module-owned presets land under their product category. */
-export type FormPresetCategoryId = 'general' | 'events' | 'support'
+export type FormPresetCategoryId = 'general' | 'events' | 'support' | 'profiles'
 
 export const FORM_CATEGORY_LABELS: Record<FormPresetCategoryId, string> = {
   general: 'General',
   events: 'Events',
   support: 'Support',
+  profiles: 'Profiles',
 }
 
 /** Display order for Forms admin category sections. */
 export const FORM_CATEGORY_ORDER: FormPresetCategoryId[] = [
   'events',
+  'profiles',
   'general',
   'support',
 ]
@@ -67,6 +69,13 @@ const BUILTIN_PRESETS: FormPresetMeta[] = [
     category: 'support',
   },
   {
+    id: 'profile',
+    label: 'Profile',
+    description:
+      'Member profile editor fields used by product:profiles — edit labels / order / required here; removing a field hides it (stored data is kept).',
+    category: 'profiles',
+  },
+  {
     id: 'blank',
     label: 'Blank',
     description: 'Empty form — add fields in the visual builder.',
@@ -86,12 +95,16 @@ export const DEFAULT_CONTACT_FORM_ID = 'contact'
 /** Stable shared Events registration definition id (seeded with Forms / Events). */
 export const DEFAULT_EVENT_REGISTRATION_FORM_ID = 'event-registration'
 
+/** Stable Profiles editor definition id (seeded with Forms / Profiles). */
+export const DEFAULT_PROFILE_FORM_ID = 'profile'
+
 /** Built-in definitions that must not be deleted from Forms admin. */
 export function isProtectedFormDefinitionId(id: string): boolean {
   const trimmed = id.trim()
   return (
     trimmed === DEFAULT_CONTACT_FORM_ID ||
-    trimmed === DEFAULT_EVENT_REGISTRATION_FORM_ID
+    trimmed === DEFAULT_EVENT_REGISTRATION_FORM_ID ||
+    trimmed === DEFAULT_PROFILE_FORM_ID
   )
 }
 
@@ -345,6 +358,153 @@ function votingFields(): FormFieldDef[] {
   ]
 }
 
+/**
+ * Member profile editor fields (product:profiles).
+ * Stable `name`s are snake_case so they survive Forms `slugifyName` (lowercase).
+ * Profiles maps them back to registry keys (`display_name` → `displayName`).
+ */
+function profileFields(): FormFieldDef[] {
+  return [
+    {
+      id: 'profile_display_name',
+      name: 'display_name',
+      label: 'Display name',
+      type: 'text',
+      required: true,
+      stringConstraints: { maxLength: 80 },
+    },
+    {
+      id: 'profile_handle',
+      name: 'handle',
+      label: 'Username',
+      type: 'text',
+      required: true,
+      description: 'Public address: /u/username.',
+      stringConstraints: { minLength: 3, maxLength: 30 },
+    },
+    {
+      id: 'profile_headline',
+      name: 'headline',
+      label: 'Headline',
+      type: 'text',
+      required: false,
+      placeholder: 'A short line under your name',
+      stringConstraints: { maxLength: 120 },
+    },
+    {
+      id: 'profile_avatar',
+      name: 'avatar',
+      label: 'Avatar',
+      type: 'text',
+      required: true,
+      description: 'Rendered as the profile image picker + crop (not a plain text input).',
+    },
+    {
+      id: 'profile_cover',
+      name: 'cover',
+      label: 'Cover image',
+      type: 'text',
+      required: false,
+      description: 'Rendered as the cover image picker + crop.',
+    },
+    {
+      id: 'profile_bio',
+      name: 'bio',
+      label: 'Bio',
+      type: 'textarea',
+      required: false,
+      placeholder: 'Tell the community about yourself…',
+      stringConstraints: { maxLength: 2000 },
+    },
+    {
+      id: 'profile_birth_date',
+      name: 'birth_date',
+      label: 'Date of birth (shown as age)',
+      type: 'date',
+      required: false,
+      description: 'Others only ever see age when allowed.',
+    },
+    {
+      id: 'profile_gender',
+      name: 'gender',
+      label: 'Gender',
+      type: 'select',
+      required: false,
+      options: [
+        { value: '', label: 'Prefer not to say' },
+        { value: 'female', label: 'Female' },
+        { value: 'male', label: 'Male' },
+        { value: 'nonbinary', label: 'Non-binary' },
+      ],
+    },
+    {
+      id: 'profile_country',
+      name: 'country',
+      label: 'Country',
+      type: 'text',
+      required: false,
+      description: 'Rendered as a country select in the profile editor.',
+    },
+    {
+      id: 'profile_city',
+      name: 'city',
+      label: 'City',
+      type: 'text',
+      required: false,
+      stringConstraints: { maxLength: 80 },
+    },
+    {
+      id: 'profile_location',
+      name: 'location',
+      label: 'Map location (approximate)',
+      type: 'text',
+      required: false,
+      description: 'Rendered as the map pin picker.',
+    },
+    {
+      id: 'profile_website',
+      name: 'website',
+      label: 'Website',
+      type: 'url',
+      required: false,
+      placeholder: 'https://',
+    },
+    {
+      id: 'profile_phone',
+      name: 'phone',
+      label: 'Phone',
+      type: 'tel',
+      required: false,
+      stringConstraints: { maxLength: 32 },
+    },
+    {
+      id: 'profile_links',
+      name: 'links',
+      label: 'Social links',
+      type: 'text',
+      required: false,
+      description: 'Rendered as the social links repeater.',
+    },
+    {
+      id: 'profile_locale',
+      name: 'locale',
+      label: 'Language',
+      type: 'text',
+      required: false,
+      description: 'Private preference — only the member sees this.',
+    },
+    {
+      id: 'profile_timezone',
+      name: 'timezone',
+      label: 'Time zone',
+      type: 'text',
+      required: false,
+      placeholder: 'Europe/Budapest',
+      description: 'Private preference — only the member sees this.',
+    },
+  ]
+}
+
 function builtinFieldsForPreset(preset: FormPresetId): FormFieldDef[] {
   switch (preset) {
     case 'contact':
@@ -355,6 +515,8 @@ function builtinFieldsForPreset(preset: FormPresetId): FormFieldDef[] {
       return eventRegistrationFields()
     case 'voting':
       return votingFields()
+    case 'profile':
+      return profileFields()
     case 'ticket':
       return [
         {
@@ -493,6 +655,15 @@ export function defaultMessagesForPreset(preset: FormPresetId): {
         successMessage: 'Ticket received — we will follow up by email.',
         submitLabel: 'Submit ticket',
         description: 'Support ticket / report intake.',
+      }
+      break
+    case 'profile':
+      base = {
+        title: 'Profile',
+        successMessage: 'Profile saved.',
+        submitLabel: 'Save',
+        description:
+          'Member profile fields. Managed in Forms; product:profiles renders the editor and stores values on sf_profiles.',
       }
       break
     case 'blank':

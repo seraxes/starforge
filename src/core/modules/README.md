@@ -79,7 +79,8 @@ Reference: [docs.gantry.org](https://docs.gantry.org/).
 ```
 
 - `section.label` — editable canvas display name (id stays stable).
-- `section.containerMode` — `full` | `boxed` (section owns width; row % inside). Omitted → Page Settings sections-layout default.
+- `section.containerMode` — `full` | `boxed` (edge-to-edge vs max-width container; row % inside). Omitted → Page Settings sections-layout default.
+- `section.width` — percent `5`–`100` (same model as particle/slot widths; consecutive partial widths sit side-by-side). Omitted → `100`.
 - `section.styles` — Gantry-like Section Styles: `backgroundColor` / `textColor` (hex); `backgroundImage` / `backgroundOverlay` reserved. Applied on the public section wrapper only.
 - `section.cssClass` — space-separated classes on the public section/`footer` wrapper (plus `sf-layout-section`).
 - `styles.breakpoints` — outline-scoped rem/px presets (`/admin/breakpoints`). Default outline = site global. No separate Styles mega-page.

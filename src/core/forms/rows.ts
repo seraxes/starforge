@@ -269,7 +269,16 @@ export function reconcileSectionRowsWithFields(
           : redistributeRowWidths({ id: row.id, columns }),
       )
     }
-    next.push({ id: section.id, label: section.label, rows })
+    next.push(
+      section.width != null
+        ? {
+            id: section.id,
+            label: section.label,
+            rows,
+            width: clampGridWidth(section.width, LAYOUT_WIDTH_FULL),
+          }
+        : { id: section.id, label: section.label, rows },
+    )
   }
 
   const orphan = fields.map((f) => f.name).filter((n) => !assigned.has(n))

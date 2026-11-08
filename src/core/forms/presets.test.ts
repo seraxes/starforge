@@ -14,6 +14,7 @@ import {
   getFormPresetMeta,
   isFormPresetCategoryId,
   isFormPresetId,
+  isProtectedFormDefinitionId,
   listFormPresetMetas,
   presetSeedFields,
 } from './presets'
@@ -31,6 +32,7 @@ const REAL_PRESETS: FormPresetId[] = [
   'event-registration',
   'voting',
   'ticket',
+  'profile',
 ]
 
 describe('form presets (non-stub seeds)', () => {
@@ -53,10 +55,31 @@ describe('form presets (non-stub seeds)', () => {
 
   it('isFormPresetCategoryId accepts known categories only', () => {
     assert.equal(isFormPresetCategoryId('events'), true)
+    assert.equal(isFormPresetCategoryId('profiles'), true)
     assert.equal(isFormPresetCategoryId('general'), true)
     assert.equal(isFormPresetCategoryId('support'), true)
     assert.equal(isFormPresetCategoryId('all'), false)
     assert.equal(isFormPresetCategoryId('unknown'), false)
+  })
+
+  it('protects contact, event-registration, and profile definition ids', () => {
+    assert.equal(isProtectedFormDefinitionId('contact'), true)
+    assert.equal(isProtectedFormDefinitionId('event-registration'), true)
+    assert.equal(isProtectedFormDefinitionId('profile'), true)
+    assert.equal(isProtectedFormDefinitionId('survey'), false)
+  })
+
+  it('profile seed: snake_case names matching Profiles registry', () => {
+    const fields = fieldsForPreset('profile')
+    const byName = Object.fromEntries(fields.map((f) => [f.name, f]))
+    assert.equal(byName.display_name?.required, true)
+    assert.equal(byName.handle?.required, true)
+    assert.equal(byName.avatar?.required, true)
+    assert.equal(byName.bio?.type, 'textarea')
+    assert.equal(byName.birth_date?.type, 'date')
+    assert.equal(byName.gender?.type, 'select')
+    assert.equal(byName.bio?.required, false)
+    assert.equal(getFormPresetMeta('profile').category, 'profiles')
   })
 
   it('survey seed: rating radio, topics group, feedback textarea', () => {

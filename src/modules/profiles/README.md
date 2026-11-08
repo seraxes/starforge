@@ -36,7 +36,9 @@ Toggle: **Settings → Modules → Profiles**. Depends on `product:media` (membe
 
 ## Field model
 
-Registry in `fields.ts` drives editor + settings + privacy. Locked (always on/public): display name, handle, avatar. Optional fields can be disabled / required / given site-wide default visibility under Settings. Hero packs add vertical data in `extensions` jsonb (`{ "hero:asn": { teamName } }`) — do not fork the registry.
+Registry in `fields.ts` is the typed contract for privacy, Persona projection, and special widgets (avatar/cover crop, map pin, links). **Labels, order, required, section width % (same 5–100 model as Layout particles), and which inputs appear** are owned by the protected Forms definition `profile` (`/admin/forms/profile`) — same pattern as Events → `event-registration`. Removing a field from that form hides it on the editor; stored values are kept.
+
+Locked (always on/public): display name, handle, avatar — forced on even if stripped from the Forms canvas. Site-wide **default visibility** stays under Profiles Settings. Hero packs add vertical data in `extensions` jsonb (`{ "hero:asn": { teamName } }`) — do not fork the registry.
 
 Privacy scopes: `public` · `registered` · `friends` (off until Social) · `private`. Non-owners see rounded map coords (~1 km). Age is shown instead of birth date.
 

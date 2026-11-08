@@ -1,0 +1,9 @@
+/**
+ * Starforge Pastel — skin-scoped extras beyond token injection.
+ * Tokens are applied via SkinRootStyles (`:root` CSS vars) from tokens.ts.
+ * Use [data-sf-skin="starforge-pastel"] for rules that must not leak to other skins.
+ */
+
+[data-sf-skin='starforge-pastel'] {
+  /* Reserved for pastel-only public chrome overrides. */
+}

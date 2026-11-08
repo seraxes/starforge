@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
+import { ensureProfileFormSeeded } from '../profile-form'
 import { loadProfilesModuleSettings } from '../settings.server'
 import { ProfilesAdminNav } from './profiles-admin-nav'
 import { ProfilesSettingsForm } from './profiles-settings-form'
@@ -20,6 +21,7 @@ export default async function ProfilesSettingsPage() {
     redirect('/admin/settings')
   }
 
+  await ensureProfileFormSeeded()
   const loaded = await loadProfilesModuleSettings()
 
   return (
@@ -27,8 +29,10 @@ export default async function ProfilesSettingsPage() {
       <ProfilesAdminNav active="settings" />
       <h2>Profiles settings</h2>
       <p className="lede admin-lede">
-        Which profile fields exist, which are required, and who sees what by default. Module
-        on/off: <Link href="/admin/settings">Settings → Modules</Link>. Members:{' '}
+        Profile inputs are managed in{' '}
+        <Link href="/admin/forms/profile">Forms → Profile</Link>. Privacy defaults and account
+        options live here. Module on/off:{' '}
+        <Link href="/admin/settings">Settings → Modules</Link>. Members:{' '}
         <Link href="/admin/profiles">Profiles</Link>.
       </p>
       {loaded.isFallback ? (

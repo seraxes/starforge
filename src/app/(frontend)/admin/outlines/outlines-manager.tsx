@@ -17,6 +17,10 @@ type OutlineRow = {
   label: string
   updatedAt: string
   isDefault: boolean
+  /** Owning Skin id when this outline came from a skin package seed. */
+  skinId?: string | null
+  /** True when owned by the currently active Skin. */
+  skinOwned?: boolean
 }
 
 type Props = {
@@ -120,6 +124,15 @@ export function OutlinesManager({ outlines }: Props) {
                 <td>
                   <strong>{outline.label}</strong>
                   {outline.isDefault ? <span className="outlines-badge">Base</span> : null}
+                  {outline.skinOwned ? (
+                    <span className="outlines-badge" title={outline.skinId || undefined}>
+                      Skin
+                    </span>
+                  ) : outline.skinId ? (
+                    <span className="outlines-badge" title={`From skin ${outline.skinId}`}>
+                      Skin pack
+                    </span>
+                  ) : null}
                 </td>
                 <td>
                   <code>{outline.id}</code>

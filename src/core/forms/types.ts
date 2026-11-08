@@ -236,6 +236,7 @@ export type FormPresetId =
   | 'event-registration'
   | 'voting'
   | 'ticket'
+  | 'profile'
   | 'blank'
 
 /** Loose JSON Schema object (draft-07 shaped) we store + edit. */
@@ -275,6 +276,12 @@ export type FormSectionDef = {
   label: string
   /** Layout rows (one or more fields side-by-side). */
   rows: FormRowDef[]
+  /**
+   * Section span as percent in multi-column mosaics (same model as Layout
+   * particle/slot widths): 5–100. Row column `%` widths are separate (fields
+   * within a section). Omitted → full (`100`).
+   */
+  width?: number
   /**
    * Legacy single-column order (pre-row-layout). Accepted on normalize;
    * migrated into `rows` (one field per row at 100%) and omitted on save.

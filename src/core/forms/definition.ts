@@ -5,6 +5,8 @@ import {
 import { normalizeFieldLogic } from './logic'
 import { fieldsToJsonSchema, normalizeFormJsonSchema, syncSchemaFromFields } from './schema-json'
 import { normalizeSuccessRedirectUrl } from './csv'
+import { clampGridWidth, LAYOUT_WIDTH_FULL } from '@/core/modules/grid'
+
 import {
   DEFAULT_CONTACT_FORM_ID,
   defaultMessagesForPreset,
@@ -270,7 +272,11 @@ export function normalizeFormSections(
       const label =
         typeof row.label === 'string' && row.label.trim() ? row.label.trim() : 'Section'
       const rows = normalizeSectionRows(row.rows, row.fieldNames, nameSet, assigned)
-      sections.push({ id, label, rows })
+      const width =
+        row.width != null && Number.isFinite(Number(row.width))
+          ? clampGridWidth(row.width, LAYOUT_WIDTH_FULL)
+          : undefined
+      sections.push(width != null ? { id, label, rows, width } : { id, label, rows })
     }
     const orphan = names.filter((n) => !assigned.has(n))
     if (sections.length === 0) {
@@ -543,8 +549,16 @@ export function createFieldDraft(type: FormFieldType = 'text'): FormFieldDef {
   return draft
 }
 
-export function createSectionDraft(label = 'Section'): FormSectionDef {
-  return { id: newSectionId(), label, rows: [] }
+export function createSectionDraft(
+  label = 'Section',
+  width: number = LAYOUT_WIDTH_FULL,
+): FormSectionDef {
+  return {
+    id: newSectionId(),
+    label,
+    rows: [],
+    width: clampGridWidth(width, LAYOUT_WIDTH_FULL),
+  }
 }
 
 export { sectionFieldNames }

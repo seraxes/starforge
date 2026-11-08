@@ -27,6 +27,7 @@ import { BOOTSTRAP_ADMIN_EMAIL, setCoreUserCmsAccess } from './core/cms-bridge'
 import { db } from './core/db'
 import { sfUsers } from './core/db/schema'
 import { ensureDefaultLayoutSeeded } from './core/modules'
+import { ensureSkinOutlineSeeds, getActiveSkinId } from './core/skin'
 import { ensureGlobalPageChromeSeeded } from './core/page-settings'
 import { ensureSiteChromeSeeded } from './core/site-chrome'
 import {
@@ -343,6 +344,23 @@ async function main() {
   } catch (error) {
     console.warn('Could not seed layout document (sf_layouts).')
     console.warn('Run: npm run db:migrate')
+    console.warn(error instanceof Error ? error.message : error)
+  }
+
+  try {
+    const skinId = await getActiveSkinId()
+    const skinOutlines = await ensureSkinOutlineSeeds(skinId, {
+      applyPreferredOutline: false,
+    })
+    if (skinOutlines.created.length > 0) {
+      console.log(
+        `Skin outlines: installed ${skinOutlines.created.join(', ')} for ${skinId}`,
+      )
+    } else {
+      console.log(`Skin outlines: ${skinId} seeds already present (or none declared)`)
+    }
+  } catch (error) {
+    console.warn('Could not seed Skin outline packages into sf_layouts.')
     console.warn(error instanceof Error ? error.message : error)
   }
 

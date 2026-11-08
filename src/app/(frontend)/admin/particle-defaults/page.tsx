@@ -5,6 +5,8 @@ import { redirect } from 'next/navigation'
 import { DEFAULT_LAYOUT_ID } from '@/core/db'
 import { listLayoutOutlines } from '@/core/modules'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
+import { isSkinPinnedByEnv, listSkins } from '@/core/skin'
+import { getActiveSkin } from '@/core/skin/resolve-active'
 
 import { LayoutsAdminNav } from '../layouts/layouts-admin-nav'
 
@@ -39,6 +41,7 @@ export default async function AdminParticleDefaultsPage(props: {
   const known = outlines.some((o) => o.id === requestedId)
   const layoutId = known ? requestedId : DEFAULT_LAYOUT_ID
   const pageSettingsOn = isCatalogModuleEnabled(settings, MODULE_IDS.pageSettings)
+  const activeSkin = await getActiveSkin()
 
   return (
     <section className="admin-section admin-layouts-padded">
@@ -47,6 +50,9 @@ export default async function AdminParticleDefaultsPage(props: {
         outlines={outlines.map((o) => ({ id: o.id, label: o.label }))}
         currentOutlineId={layoutId}
         showPageSettingsTab={pageSettingsOn}
+        skins={listSkins().map((s) => ({ id: s.id, label: s.label }))}
+        activeSkinId={activeSkin.id}
+        skinPinnedByEnv={isSkinPinnedByEnv()}
       />
       <h2>Particle Defaults</h2>
       <p className="lede admin-lede">

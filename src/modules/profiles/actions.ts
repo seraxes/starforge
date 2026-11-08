@@ -14,7 +14,6 @@ import {
   PROFILE_FIELDS,
   isVisibilityConfigurable,
   isVisibilityScope,
-  type ProfileFieldKey,
 } from './fields'
 import { parseProfileFormData } from './form'
 import { loadProfilesModuleSettings, saveProfilesModuleSettings } from './settings.server'
@@ -221,13 +220,10 @@ export async function saveProfilesSettingsAction(
   const denied = await requireProfilesAdmin()
   if (denied) return denied
 
-  const disabledFields: ProfileFieldKey[] = []
-  const requiredFields: ProfileFieldKey[] = []
+  // Enable / required come from Forms (`profile` definition) at read time — not saved here.
   const defaultVisibility: ProfileVisibilityMap = {}
   for (const def of PROFILE_FIELDS) {
     if (def.locked) continue
-    if (!checked(formData, `enabled:${def.key}`)) disabledFields.push(def.key)
-    if (checked(formData, `required:${def.key}`)) requiredFields.push(def.key)
     if (isVisibilityConfigurable(def.key)) {
       const scope = String(formData.get(`vis:${def.key}`) ?? '')
       if (isVisibilityScope(scope)) defaultVisibility[def.key] = scope
@@ -240,8 +236,8 @@ export async function saveProfilesSettingsAction(
       formData.get('profilePagesVisibility') === 'registered' ? 'registered' : 'public',
     memberUploadsEnabled: checked(formData, 'memberUploadsEnabled'),
     allowFriendsScope: checked(formData, 'allowFriendsScope'),
-    disabledFields,
-    requiredFields,
+    disabledFields: [],
+    requiredFields: [],
     defaultVisibility,
   }
   await saveProfilesModuleSettings(input)

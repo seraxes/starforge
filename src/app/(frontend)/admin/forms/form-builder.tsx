@@ -51,13 +51,19 @@ import {
   rowIsEmpty,
   sectionFieldNames,
   LAYOUT_WIDTH_FULL,
+  LAYOUT_WIDTH_MIN,
+  clampGridWidth,
 } from '@/core/forms/rows'
 import {
   fieldsToJsonSchema,
   isFormFieldType,
   stringifyFormJsonSchema,
 } from '@/core/forms/schema-json'
-import { resizeAdjacentPair, widthToPercentLabel } from '@/core/modules/grid'
+import {
+  gridColStyle,
+  resizeAdjacentPair,
+  widthToPercentLabel,
+} from '@/core/modules/grid'
 import type {
   FormCondition,
   FormConditionGroup,
@@ -1352,6 +1358,7 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
   const [sections, setSections] = useState<FormSectionDef[]>(() =>
     normalizeFormSections(initialDocument.sections, initialDocument.fields),
   )
+  const [newSectionWidth, setNewSectionWidth] = useState(LAYOUT_WIDTH_FULL)
   const [schemaDirty, setSchemaDirty] = useState(Boolean(initialDocument.schemaDirty))
   const [schemaJson, setSchemaJson] = useState(() =>
     stringifyFormJsonSchema(
@@ -1854,25 +1861,59 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
             </aside>
 
             <div className="gantry-sections sf-form-sections" aria-label="Form canvas">
-              <div className="gantry-section-actions">
-                <button
-                  type="button"
-                  className="gantry-toolbar-btn secondary"
-                  onClick={() => {
-                    const sec = createSectionDraft(`Section ${sections.length + 1}`)
-                    setSections([...sections, sec])
-                    saveDebounced()
-                  }}
-                >
-                  Add section
-                </button>
+              <div className="gantry-section-actions gantry-toolbar-create">
+                <div className="gantry-section-create" role="group" aria-label="Add section">
+                  <button
+                    type="button"
+                    className="gantry-section-create-submit"
+                    onClick={() => {
+                      const sec = createSectionDraft(
+                        `Section ${sections.length + 1}`,
+                        newSectionWidth,
+                      )
+                      setSections([...sections, sec])
+                      saveDebounced()
+                    }}
+                  >
+                    <span className="gantry-section-create-plus" aria-hidden="true">
+                      +
+                    </span>
+                    <span>Section</span>
+                  </button>
+                  <label className="gantry-section-create-width">
+                    <span className="sr-only">Width %</span>
+                    <input
+                      type="number"
+                      value={newSectionWidth}
+                      min={LAYOUT_WIDTH_MIN}
+                      max={LAYOUT_WIDTH_FULL}
+                      step={5}
+                      aria-label="New section width percent"
+                      title="Percent width for the new section (5–100)"
+                      onChange={(e) => {
+                        setNewSectionWidth(clampGridWidth(e.target.value, LAYOUT_WIDTH_FULL))
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <span aria-hidden="true">%</span>
+                  </label>
+                </div>
               </div>
               {sections.map((section) => {
                 const overlayField = draggingFieldId
                   ? fields.find((f) => fieldKey(f) === draggingFieldId)
                   : null
+                const sectionWidth = clampGridWidth(
+                  section.width ?? LAYOUT_WIDTH_FULL,
+                  LAYOUT_WIDTH_FULL,
+                )
                 return (
-                  <section key={section.id} className="gantry-section">
+                  <section
+                    key={section.id}
+                    className="gantry-section"
+                    data-sf-width={sectionWidth}
+                    style={gridColStyle(sectionWidth)}
+                  >
                     <header className="gantry-section-head">
                       <div className="gantry-section-title">
                         <input
@@ -1891,27 +1932,62 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha }: Props) {
                           aria-label="Section label"
                         />
                       </div>
-                      {sections.length > 1 ? (
-                        <div className="gantry-section-actions">
-                          <button
-                            type="button"
-                            className="gantry-toolbar-btn danger"
-                            onClick={() => {
-                              const orphanRows = section.rows
-                              const remaining = sections.filter((s) => s.id !== section.id)
-                              if (!remaining[0]) return
-                              remaining[0] = {
-                                ...remaining[0],
-                                rows: [...remaining[0].rows, ...orphanRows],
-                              }
-                              setSections(remaining)
-                              saveDebounced()
-                            }}
+                      <div className="gantry-section-head-actions">
+                        <details className="gantry-section-settings">
+                          <summary
+                            className="gantry-section-icon-btn"
+                            title="Section settings"
+                            aria-label="Section settings"
                           >
-                            Remove section
-                          </button>
-                        </div>
-                      ) : null}
+                            ⚙
+                          </summary>
+                          <div className="gantry-section-toolbar">
+                            <label className="gantry-inline-label gantry-section-width-label">
+                              <span className="gantry-field-hint">Width %</span>
+                              <input
+                                type="number"
+                                className="gantry-inline-input gantry-section-width-input"
+                                value={sectionWidth}
+                                min={LAYOUT_WIDTH_MIN}
+                                max={LAYOUT_WIDTH_FULL}
+                                step={5}
+                                aria-label="Section width percent"
+                                title="Percent width — same model as Layout particles (5–100)"
+                                onChange={(e) => {
+                                  const width = clampGridWidth(e.target.value, LAYOUT_WIDTH_FULL)
+                                  setSections(
+                                    sections.map((s) =>
+                                      s.id === section.id ? { ...s, width } : s,
+                                    ),
+                                  )
+                                  saveDebounced()
+                                }}
+                              />
+                            </label>
+                          </div>
+                        </details>
+                        {sections.length > 1 ? (
+                          <div className="gantry-section-actions">
+                            <button
+                              type="button"
+                              className="gantry-toolbar-btn danger"
+                              onClick={() => {
+                                const orphanRows = section.rows
+                                const remaining = sections.filter((s) => s.id !== section.id)
+                                if (!remaining[0]) return
+                                remaining[0] = {
+                                  ...remaining[0],
+                                  rows: [...remaining[0].rows, ...orphanRows],
+                                }
+                                setSections(remaining)
+                                saveDebounced()
+                              }}
+                            >
+                              Remove section
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
                     </header>
                     <div className="sf-form-section-rows">
                       {section.rows.length === 0 && !dndReady ? (

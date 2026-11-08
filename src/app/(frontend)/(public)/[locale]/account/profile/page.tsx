@@ -51,6 +51,7 @@ export default async function AccountProfilePage({ params }: Args) {
     record,
     email: user.email,
     settings: loaded.settings,
+    formConfig: loaded.formConfig,
     locales,
     actor: 'self',
   })

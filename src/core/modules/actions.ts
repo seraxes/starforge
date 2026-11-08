@@ -139,6 +139,9 @@ export async function addLayoutSectionAction(
 
   const requestedId = String(formData.get('id') ?? '').trim()
   const id = slugifyLayoutId(requestedId || label)
+  const width = formData.has('width')
+    ? clampGridWidth(formData.get('width'), LAYOUT_WIDTH_FULL)
+    : LAYOUT_WIDTH_FULL
 
   const state = await mutateLayout(formData, (doc) => {
     if (doc.sections.some((s) => s.id === id)) {
@@ -149,6 +152,7 @@ export async function addLayoutSectionAction(
       id,
       label,
       order: maxOrder + 1,
+      width,
       rows: [
         {
           id: newLayoutEntityId(`${id}-row`),
@@ -238,6 +242,7 @@ export async function updateLayoutSectionMetaAction(
   const hasLabel = formData.has('label')
   const hasCssClass = formData.has('cssClass')
   const hasContainerMode = formData.has('containerMode')
+  const hasWidth = formData.has('width')
   const hasBackgroundColor = formData.has('backgroundColor')
   const hasTextColor = formData.has('textColor')
   const hasBackgroundImage = formData.has('backgroundImage')
@@ -256,7 +261,7 @@ export async function updateLayoutSectionMetaAction(
     hasOverlayColor ||
     hasAllowGradientBackground ||
     hasAllowGradientOverlay
-  if (!hasLabel && !hasCssClass && !hasContainerMode && !stylesTouched) {
+  if (!hasLabel && !hasCssClass && !hasContainerMode && !hasWidth && !stylesTouched) {
     return { error: 'Nothing to update on this section.' }
   }
 
@@ -274,6 +279,8 @@ export async function updateLayoutSectionMetaAction(
     }
     containerMode = raw
   }
+
+  const width = hasWidth ? clampGridWidth(formData.get('width'), LAYOUT_WIDTH_FULL) : undefined
 
   const truthyFormFlag = (name: string): boolean => {
     const values = formData.getAll(name).map((v) => String(v).trim().toLowerCase())
@@ -333,6 +340,9 @@ export async function updateLayoutSectionMetaAction(
     }
     if (hasContainerMode && containerMode) {
       section.containerMode = containerMode
+    }
+    if (hasWidth && width != null) {
+      section.width = width
     }
     if (stylesTouched) {
       const nextAllowBg = hasAllowGradientBackground
@@ -484,6 +494,7 @@ export async function updateLayoutSectionMetaAction(
     if (hasLabel && label) bits.push(`name “${label}”`)
     if (hasCssClass) bits.push(cssClass ? `classes “${cssClass}”` : 'classes cleared')
     if (hasContainerMode && containerMode) bits.push(`container ${containerMode}`)
+    if (hasWidth && width != null) bits.push(`column ${width}%`)
     if (hasBackgroundColor) {
       bits.push(backgroundColorRaw ? 'background updated' : 'background cleared')
     }

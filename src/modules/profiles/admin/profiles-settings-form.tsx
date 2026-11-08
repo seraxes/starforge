@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useActionState, useEffect } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 import { useNotifySavedOnOk } from '@/app/(frontend)/admin/admin-toast'
@@ -82,23 +83,42 @@ export function ProfilesSettingsForm({ settings }: { settings: ProfilesModuleSet
         </div>
       </section>
 
-      <section className="page-settings-panel sf-profiles-fields-panel">
+      <section className="page-settings-panel">
         <header className="page-settings-panel-head">
-          <h3>Fields &amp; privacy defaults</h3>
+          <h3>Profile form</h3>
         </header>
         <div className="page-settings-panel-body">
           <p className="settings-hint">
-            Display name, username and avatar are always on and always public. For the rest:
-            switch a field off for the whole site, make it required, and choose who sees it by
-            default — members can still tighten (or loosen) their own.
+            Field labels, order, required flags, and which inputs appear live in{' '}
+            <Link href="/admin/forms">Forms</Link> — not here. Profiles uses the protected{' '}
+            <code>profile</code> definition. Removing a field hides it on the profile editor;
+            existing values stay in the database until overwritten.
+          </p>
+          <div className="page-settings-actions">
+            <Link
+              href="/admin/forms/profile"
+              className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+            >
+              Edit profile form
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="page-settings-panel sf-profiles-fields-panel">
+        <header className="page-settings-panel-head">
+          <h3>Privacy defaults</h3>
+        </header>
+        <div className="page-settings-panel-body">
+          <p className="settings-hint">
+            Display name, username and avatar are always public. For the rest, choose who sees
+            each field by default — members can still tighten (or loosen) their own.
           </p>
           <div className="outlines-table-wrap">
             <table className="outlines-table sf-profiles-fields-table">
               <thead>
                 <tr>
                   <th scope="col">Field</th>
-                  <th scope="col">On</th>
-                  <th scope="col">Required</th>
                   <th scope="col">Default visibility</th>
                 </tr>
               </thead>
@@ -109,33 +129,13 @@ export function ProfilesSettingsForm({ settings }: { settings: ProfilesModuleSet
                   return (
                     <React.Fragment key={group.key}>
                       <tr className="sf-profiles-fields-group">
-                        <th colSpan={4} scope="colgroup">
+                        <th colSpan={2} scope="colgroup">
                           {group.label}
                         </th>
                       </tr>
                       {defs.map((def) => (
                         <tr key={def.key}>
                           <td>{def.label}</td>
-                          <td>
-                            <input
-                              type="checkbox"
-                              name={`enabled:${def.key}`}
-                              value="1"
-                              defaultChecked={!settings.disabledFields.includes(def.key)}
-                              disabled={pending}
-                              aria-label={`${def.label} enabled`}
-                            />
-                          </td>
-                          <td>
-                            <input
-                              type="checkbox"
-                              name={`required:${def.key}`}
-                              value="1"
-                              defaultChecked={settings.requiredFields.includes(def.key)}
-                              disabled={pending || Boolean(def.selfOnly)}
-                              aria-label={`${def.label} required`}
-                            />
-                          </td>
                           <td>
                             {isVisibilityConfigurable(def.key) ? (
                               <select

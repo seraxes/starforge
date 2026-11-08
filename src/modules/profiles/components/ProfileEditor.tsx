@@ -17,6 +17,8 @@ import {
 } from '@/modules/media/api'
 import { VenueLocationMap } from '@/modules/maps/VenueLocationMap'
 
+import { clampGridWidth, gridColStyle, LAYOUT_WIDTH_FULL } from '@/core/modules/grid'
+
 import { countryOptions } from '../countries'
 import {
   GENDER_OPTIONS,
@@ -106,8 +108,8 @@ function FieldHead({
 /**
  * The one profile editor — member self-service (`/account/profile`) and admin
  * (`/admin/profiles/[userId]`) render this same component; only chrome, image
- * picker and action differ. Fields, labels, privacy scopes and limits all come
- * from the shared field registry via `model`.
+ * picker and action differ. Field list / labels / order come from the Forms
+ * `profile` definition via `model.sections`.
  */
 export function ProfileEditor({
   model,
@@ -147,12 +149,10 @@ export function ProfileEditor({
     return out
   })
 
-  // Pull the saved values back in (React resets uncontrolled inputs after an action).
   useEffect(() => {
     if (state.ok) router.refresh()
   }, [state, router])
 
-  // Names + zones are client-only (ICU differs between server and browser).
   const [countries, setCountries] = useState<Array<{ code: string; name: string }>>([])
   const [zones, setZones] = useState<string[]>([])
   useEffect(() => {
@@ -180,7 +180,10 @@ export function ProfileEditor({
 
   const canUpload = imagePicker === 'library' || model.memberUploadsEnabled
   const head = (
-    props: Omit<React.ComponentProps<typeof FieldHead>, 'model' | 'visibility' | 'onVisibility' | 'disabled'>,
+    props: Omit<
+      React.ComponentProps<typeof FieldHead>,
+      'model' | 'visibility' | 'onVisibility' | 'disabled'
+    >,
   ) => (
     <FieldHead
       {...props}
@@ -192,7 +195,7 @@ export function ProfileEditor({
   )
 
   function renderImage(kind: 'avatar' | 'cover') {
-    const label = kind === 'avatar' ? 'Avatar' : 'Cover image'
+    const label = f[kind].label
     const value = kind === 'avatar' ? avatar : cover
     const setValue = kind === 'avatar' ? setAvatar : setCover
     const frame = kind === 'avatar' ? avatarFrame : coverFrame
@@ -253,21 +256,19 @@ export function ProfileEditor({
     )
   }
 
-  return (
-    <form action={formAction} className="sf-profile-editor">
-      {includeUserId ? <input type="hidden" name="userId" value={model.userId} /> : null}
-      <input type="hidden" name="avatarMediaId" value={avatar} />
-      <input type="hidden" name="coverMediaId" value={cover} />
-      <input type="hidden" name="avatarFrameJson" value={JSON.stringify(avatarFrame)} />
-      <input type="hidden" name="coverFrameJson" value={JSON.stringify(coverFrame)} />
-      <input type="hidden" name="linksJson" value={JSON.stringify(links)} />
-      <input type="hidden" name="visibilityJson" value={visibilityJson} />
+  function renderField(key: ProfileFieldKey): React.ReactNode {
+    const field = f[key]
+    if (!field?.enabled) return null
+    const label = field.label
+    const required = field.required
+    const placeholder = field.placeholder
+    const hint = field.description
 
-      <div className="sf-profile-form-mosaic">
-        <fieldset className="settings-fieldset">
-          <legend>Identity</legend>
-          <div className="settings-field">
-            {head({ htmlFor: 'pf-displayName', label: 'Display name', required: true })}
+    switch (key) {
+      case 'displayName':
+        return (
+          <div key={key} className="settings-field">
+            {head({ htmlFor: 'pf-displayName', label, required: true })}
             <input
               id="pf-displayName"
               type="text"
@@ -277,10 +278,14 @@ export function ProfileEditor({
               defaultValue={v.displayName}
               disabled={pending}
               autoComplete="name"
+              placeholder={placeholder || undefined}
             />
           </div>
-          <div className="settings-field">
-            {head({ htmlFor: 'pf-handle', label: 'Username', required: true })}
+        )
+      case 'handle':
+        return (
+          <div key={key} className="settings-field">
+            {head({ htmlFor: 'pf-handle', label, required: true })}
             <input
               id="pf-handle"
               type="text"
@@ -293,339 +298,340 @@ export function ProfileEditor({
               autoComplete="username"
               spellCheck={false}
               autoCapitalize="none"
+              placeholder={placeholder || undefined}
             />
             <span className="settings-hint">
               {handleLocked
                 ? `You can change your username again on ${handleLockedDate}.`
-                : 'Your public address: /u/username. Lowercase letters, numbers, dot, dash, underscore.'}
+                : hint ||
+                  'Your public address: /u/username. Lowercase letters, numbers, dot, dash, underscore.'}
             </span>
             {handleLocked ? <input type="hidden" name="handle" value={v.handle} /> : null}
           </div>
-          {f.headline.enabled ? (
-            <div className="settings-field">
-              {head({
-                htmlFor: 'pf-headline',
-                label: 'Headline',
-                field: 'headline',
-                required: f.headline.required,
-              })}
-              <input
-                id="pf-headline"
-                type="text"
-                name="headline"
-                maxLength={120}
-                defaultValue={v.headline}
+        )
+      case 'headline':
+        return (
+          <div key={key} className="settings-field">
+            {head({ htmlFor: 'pf-headline', label, field: 'headline', required })}
+            <input
+              id="pf-headline"
+              type="text"
+              name="headline"
+              maxLength={120}
+              defaultValue={v.headline}
+              disabled={pending}
+              placeholder={placeholder || 'A short line under your name'}
+            />
+          </div>
+        )
+      case 'avatar':
+        return (
+          <div key={key} className="settings-field">
+            {renderImage('avatar')}
+          </div>
+        )
+      case 'cover':
+        return (
+          <div key={key} className="settings-field">
+            {head({ label: `${label} visibility`, field: 'cover', required })}
+            {renderImage('cover')}
+          </div>
+        )
+      case 'bio':
+        return (
+          <div key={key} className="settings-field">
+            {head({ htmlFor: 'pf-bio', label, field: 'bio', required })}
+            <textarea
+              id="pf-bio"
+              name="bio"
+              rows={6}
+              maxLength={2000}
+              defaultValue={v.bio}
+              disabled={pending}
+              placeholder={placeholder || 'Tell the community about yourself…'}
+            />
+          </div>
+        )
+      case 'birthDate':
+        return (
+          <div key={key} className="settings-field">
+            {head({ htmlFor: 'pf-birthDate', label, field: 'birthDate', required })}
+            <input
+              id="pf-birthDate"
+              type="date"
+              name="birthDate"
+              defaultValue={v.birthDate}
+              disabled={pending}
+              min="1900-01-01"
+            />
+            <span className="settings-hint">
+              {hint ||
+                'Others only ever see your age — and only if you allow it. Events can use it for age limits.'}
+            </span>
+          </div>
+        )
+      case 'gender': {
+        const options =
+          field.options && field.options.length > 0
+            ? field.options
+            : GENDER_OPTIONS.map((o) => ({ value: o.value, label: o.label }))
+        return (
+          <div key={key} className="settings-field">
+            {head({ htmlFor: 'pf-gender', label, field: 'gender', required })}
+            <select id="pf-gender" name="gender" defaultValue={v.gender} disabled={pending}>
+              {options.map((o) => (
+                <option key={o.value || '_empty'} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )
+      }
+      case 'country':
+        return (
+          <div key={key} className="settings-field">
+            {head({ htmlFor: 'pf-country', label, field: 'country', required })}
+            <select id="pf-country" name="country" defaultValue={v.country} disabled={pending}>
+              <option value="">—</option>
+              {countries.length === 0 && v.country ? (
+                <option value={v.country}>{v.country}</option>
+              ) : null}
+              {countries.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )
+      case 'city':
+        return (
+          <div key={key} className="settings-field">
+            {head({ htmlFor: 'pf-city', label, field: 'city', required })}
+            <input
+              id="pf-city"
+              type="text"
+              name="city"
+              maxLength={80}
+              defaultValue={v.city}
+              disabled={pending}
+              autoComplete="address-level2"
+              placeholder={placeholder || undefined}
+            />
+          </div>
+        )
+      case 'location':
+        return (
+          <div key={key} className="settings-field">
+            {head({ label, field: 'location', required })}
+            <input type="hidden" name="latitude" value={latitude} />
+            <input type="hidden" name="longitude" value={longitude} />
+            {mapClientConfig ? (
+              <VenueLocationMap
+                clientConfig={mapClientConfig}
+                latitude={lat}
+                longitude={lng}
                 disabled={pending}
-                placeholder="A short line under your name"
+                height="14rem"
+                onPick={(a, b) => {
+                  setLatitude(String(Number(a.toFixed(5))))
+                  setLongitude(String(Number(b.toFixed(5))))
+                }}
               />
-            </div>
-          ) : null}
-          <p className="settings-hint">
-            Your sign-in email{model.email ? <> (<strong>{model.email}</strong>)</> : null} and
-            password are managed under account security.
-          </p>
-        </fieldset>
-
-        <fieldset className="settings-fieldset">
-          <legend>Images</legend>
-          <div className="settings-field">{renderImage('avatar')}</div>
-          {f.cover.enabled ? (
-            <div className="settings-field">
-              {head({ label: 'Cover image visibility', field: 'cover', required: f.cover.required })}
-              {renderImage('cover')}
-            </div>
-          ) : null}
-        </fieldset>
-
-        {f.bio.enabled ? (
-          <fieldset className="settings-fieldset sf-profile-section-wide">
-            <legend>About</legend>
-            <div className="settings-field">
-              {head({ htmlFor: 'pf-bio', label: 'Bio', field: 'bio', required: f.bio.required })}
-              <textarea
-                id="pf-bio"
-                name="bio"
-                rows={6}
-                maxLength={2000}
-                defaultValue={v.bio}
+            ) : (
+              <span className="settings-hint">Map is not enabled on this site.</span>
+            )}
+            {lat != null && lng != null ? (
+              <button
+                type="button"
+                className={btn(chrome, 'muted')}
                 disabled={pending}
-                placeholder="Tell the community about yourself…"
-              />
-            </div>
-          </fieldset>
-        ) : null}
-
-        {f.birthDate.enabled || f.gender.enabled ? (
-          <fieldset className="settings-fieldset">
-            <legend>Personal</legend>
-            {f.birthDate.enabled ? (
-              <div className="settings-field">
-                {head({
-                  htmlFor: 'pf-birthDate',
-                  label: 'Date of birth',
-                  field: 'birthDate',
-                  required: f.birthDate.required,
-                })}
-                <input
-                  id="pf-birthDate"
-                  type="date"
-                  name="birthDate"
-                  defaultValue={v.birthDate}
-                  disabled={pending}
-                  min="1900-01-01"
-                />
-                <span className="settings-hint">
-                  Others only ever see your age — and only if you allow it. Events can use it
-                  for age limits.
-                </span>
-              </div>
+                onClick={() => {
+                  setLatitude('')
+                  setLongitude('')
+                }}
+              >
+                Clear pin
+              </button>
             ) : null}
-            {f.gender.enabled ? (
-              <div className="settings-field">
-                {head({
-                  htmlFor: 'pf-gender',
-                  label: 'Gender',
-                  field: 'gender',
-                  required: f.gender.required,
-                })}
-                <select id="pf-gender" name="gender" defaultValue={v.gender} disabled={pending}>
-                  {GENDER_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ) : null}
-          </fieldset>
-        ) : null}
-
-        {f.country.enabled || f.city.enabled || f.location.enabled ? (
-          <fieldset className="settings-fieldset">
-            <legend>Location</legend>
-            {f.country.enabled ? (
-              <div className="settings-field">
-                {head({
-                  htmlFor: 'pf-country',
-                  label: 'Country',
-                  field: 'country',
-                  required: f.country.required,
-                })}
-                <select id="pf-country" name="country" defaultValue={v.country} disabled={pending}>
-                  <option value="">—</option>
-                  {countries.length === 0 && v.country ? (
-                    <option value={v.country}>{v.country}</option>
-                  ) : null}
-                  {countries.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ) : null}
-            {f.city.enabled ? (
-              <div className="settings-field">
-                {head({
-                  htmlFor: 'pf-city',
-                  label: 'City',
-                  field: 'city',
-                  required: f.city.required,
-                })}
-                <input
-                  id="pf-city"
-                  type="text"
-                  name="city"
-                  maxLength={80}
-                  defaultValue={v.city}
-                  disabled={pending}
-                  autoComplete="address-level2"
-                />
-              </div>
-            ) : null}
-            {f.location.enabled ? (
-              <div className="settings-field">
-                {head({
-                  label: 'Map location (approximate)',
-                  field: 'location',
-                  required: f.location.required,
-                })}
-                <input type="hidden" name="latitude" value={latitude} />
-                <input type="hidden" name="longitude" value={longitude} />
-                {mapClientConfig ? (
-                  <VenueLocationMap
-                    clientConfig={mapClientConfig}
-                    latitude={lat}
-                    longitude={lng}
+            <span className="settings-hint">
+              {hint || 'Other members only ever see the area (about 1 km), never the exact pin.'}
+            </span>
+          </div>
+        )
+      case 'website':
+        return (
+          <div key={key} className="settings-field">
+            {head({ htmlFor: 'pf-website', label, field: 'website', required })}
+            <input
+              id="pf-website"
+              type="url"
+              name="website"
+              maxLength={500}
+              defaultValue={v.website}
+              disabled={pending}
+              placeholder={placeholder || 'https://'}
+            />
+          </div>
+        )
+      case 'phone':
+        return (
+          <div key={key} className="settings-field">
+            {head({ htmlFor: 'pf-phone', label, field: 'phone', required })}
+            <input
+              id="pf-phone"
+              type="text"
+              name="phone"
+              maxLength={32}
+              defaultValue={v.phone}
+              disabled={pending}
+              autoComplete="tel"
+              placeholder={placeholder || undefined}
+            />
+          </div>
+        )
+      case 'links':
+        return (
+          <div key={key} className="settings-field">
+            {head({ label, field: 'links', required })}
+            <ul className="sf-profile-links">
+              {links.map((link, i) => (
+                <li key={i}>
+                  <input
+                    type="text"
+                    aria-label={`Link ${i + 1} label`}
+                    placeholder="Label (Instagram…)"
+                    maxLength={40}
+                    value={link.label}
                     disabled={pending}
-                    height="14rem"
-                    onPick={(a, b) => {
-                      setLatitude(String(Number(a.toFixed(5))))
-                      setLongitude(String(Number(b.toFixed(5))))
-                    }}
+                    onChange={(e) =>
+                      setLinks((prev) =>
+                        prev.map((l, j) => (j === i ? { ...l, label: e.target.value } : l)),
+                      )
+                    }
                   />
-                ) : (
-                  <span className="settings-hint">Map is not enabled on this site.</span>
-                )}
-                {lat != null && lng != null ? (
+                  <input
+                    type="url"
+                    aria-label={`Link ${i + 1} address`}
+                    placeholder="https://"
+                    maxLength={500}
+                    value={link.url}
+                    disabled={pending}
+                    onChange={(e) =>
+                      setLinks((prev) =>
+                        prev.map((l, j) => (j === i ? { ...l, url: e.target.value } : l)),
+                      )
+                    }
+                  />
                   <button
                     type="button"
                     className={btn(chrome, 'muted')}
                     disabled={pending}
-                    onClick={() => {
-                      setLatitude('')
-                      setLongitude('')
-                    }}
+                    onClick={() => setLinks((prev) => prev.filter((_, j) => j !== i))}
                   >
-                    Clear pin
+                    Remove
                   </button>
-                ) : null}
-                <span className="settings-hint">
-                  Other members only ever see the area (about 1 km), never the exact pin.
-                </span>
-              </div>
+                </li>
+              ))}
+            </ul>
+            {links.length < PROFILE_LINKS_MAX ? (
+              <button
+                type="button"
+                className={btn(chrome, 'muted')}
+                disabled={pending}
+                onClick={() => setLinks((prev) => [...prev, { label: '', url: '' }])}
+              >
+                Add link
+              </button>
             ) : null}
-          </fieldset>
-        ) : null}
+          </div>
+        )
+      case 'locale':
+        if (model.locales.length === 0) return null
+        return (
+          <div key={key} className="settings-field">
+            {head({ htmlFor: 'pf-locale', label })}
+            <select id="pf-locale" name="locale" defaultValue={v.locale} disabled={pending}>
+              <option value="">Site default</option>
+              {model.locales.map((l) => (
+                <option key={l.code} value={l.code}>
+                  {l.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )
+      case 'timezone':
+        return (
+          <div key={key} className="settings-field">
+            {head({ htmlFor: 'pf-timezone', label })}
+            <input
+              id="pf-timezone"
+              type="text"
+              name="timezone"
+              list="pf-timezones"
+              defaultValue={v.timezone}
+              disabled={pending}
+              placeholder={placeholder || 'Europe/Budapest'}
+              autoComplete="off"
+            />
+            <datalist id="pf-timezones">
+              {zones.map((z) => (
+                <option key={z} value={z} />
+              ))}
+            </datalist>
+          </div>
+        )
+      default:
+        return null
+    }
+  }
 
-        {f.website.enabled || f.phone.enabled || f.links.enabled ? (
-          <fieldset className="settings-fieldset">
-            <legend>Contact &amp; links</legend>
-            {f.website.enabled ? (
-              <div className="settings-field">
-                {head({
-                  htmlFor: 'pf-website',
-                  label: 'Website',
-                  field: 'website',
-                  required: f.website.required,
-                })}
-                <input
-                  id="pf-website"
-                  type="url"
-                  name="website"
-                  maxLength={500}
-                  defaultValue={v.website}
-                  disabled={pending}
-                  placeholder="https://"
-                />
-              </div>
-            ) : null}
-            {f.phone.enabled ? (
-              <div className="settings-field">
-                {head({
-                  htmlFor: 'pf-phone',
-                  label: 'Phone',
-                  field: 'phone',
-                  required: f.phone.required,
-                })}
-                <input
-                  id="pf-phone"
-                  type="text"
-                  name="phone"
-                  maxLength={32}
-                  defaultValue={v.phone}
-                  disabled={pending}
-                  autoComplete="tel"
-                />
-              </div>
-            ) : null}
-            {f.links.enabled ? (
-              <div className="settings-field">
-                {head({ label: 'Social links', field: 'links', required: f.links.required })}
-                <ul className="sf-profile-links">
-                  {links.map((link, i) => (
-                    <li key={i}>
-                      <input
-                        type="text"
-                        aria-label={`Link ${i + 1} label`}
-                        placeholder="Label (Instagram…)"
-                        maxLength={40}
-                        value={link.label}
-                        disabled={pending}
-                        onChange={(e) =>
-                          setLinks((prev) =>
-                            prev.map((l, j) => (j === i ? { ...l, label: e.target.value } : l)),
-                          )
-                        }
-                      />
-                      <input
-                        type="url"
-                        aria-label={`Link ${i + 1} address`}
-                        placeholder="https://"
-                        maxLength={500}
-                        value={link.url}
-                        disabled={pending}
-                        onChange={(e) =>
-                          setLinks((prev) =>
-                            prev.map((l, j) => (j === i ? { ...l, url: e.target.value } : l)),
-                          )
-                        }
-                      />
-                      <button
-                        type="button"
-                        className={btn(chrome, 'muted')}
-                        disabled={pending}
-                        onClick={() => setLinks((prev) => prev.filter((_, j) => j !== i))}
-                      >
-                        Remove
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-                {links.length < PROFILE_LINKS_MAX ? (
-                  <button
-                    type="button"
-                    className={btn(chrome, 'muted')}
-                    disabled={pending}
-                    onClick={() => setLinks((prev) => [...prev, { label: '', url: '' }])}
-                  >
-                    Add link
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
-          </fieldset>
-        ) : null}
+  const showIdentityEmailHint = model.sections.some((s) =>
+    s.fields.some((k) => k === 'displayName' || k === 'handle'),
+  )
+  const showPrefsHint = model.sections.some((s) =>
+    s.fields.some((k) => k === 'locale' || k === 'timezone'),
+  )
 
-        {f.locale.enabled || f.timezone.enabled ? (
-          <fieldset className="settings-fieldset">
-            <legend>Preferences</legend>
-            {f.locale.enabled && model.locales.length > 0 ? (
-              <div className="settings-field">
-                {head({ htmlFor: 'pf-locale', label: 'Language' })}
-                <select id="pf-locale" name="locale" defaultValue={v.locale} disabled={pending}>
-                  <option value="">Site default</option>
-                  {model.locales.map((l) => (
-                    <option key={l.code} value={l.code}>
-                      {l.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ) : null}
-            {f.timezone.enabled ? (
-              <div className="settings-field">
-                {head({ htmlFor: 'pf-timezone', label: 'Time zone' })}
-                <input
-                  id="pf-timezone"
-                  type="text"
-                  name="timezone"
-                  list="pf-timezones"
-                  defaultValue={v.timezone}
-                  disabled={pending}
-                  placeholder="Europe/Budapest"
-                  autoComplete="off"
-                />
-                <datalist id="pf-timezones">
-                  {zones.map((z) => (
-                    <option key={z} value={z} />
-                  ))}
-                </datalist>
-              </div>
-            ) : null}
-            <p className="settings-hint">Preferences are private — only you see them.</p>
-          </fieldset>
-        ) : null}
+  return (
+    <form action={formAction} className="sf-profile-editor">
+      {includeUserId ? <input type="hidden" name="userId" value={model.userId} /> : null}
+      <input type="hidden" name="avatarMediaId" value={avatar} />
+      <input type="hidden" name="coverMediaId" value={cover} />
+      <input type="hidden" name="avatarFrameJson" value={JSON.stringify(avatarFrame)} />
+      <input type="hidden" name="coverFrameJson" value={JSON.stringify(coverFrame)} />
+      <input type="hidden" name="linksJson" value={JSON.stringify(links)} />
+      <input type="hidden" name="visibilityJson" value={visibilityJson} />
+
+      <div className="sf-profile-form-mosaic">
+        {model.sections.map((section) => {
+          const width = clampGridWidth(section.width, LAYOUT_WIDTH_FULL)
+          return (
+            <fieldset
+              key={section.id}
+              className="settings-fieldset"
+              data-sf-width={width}
+              style={gridColStyle(width)}
+            >
+              <legend>{section.label}</legend>
+              {section.fields.map((key) => renderField(key))}
+              {showIdentityEmailHint &&
+              section.fields.includes('displayName') &&
+              section.fields.includes('handle') ? (
+                <p className="settings-hint">
+                  Your sign-in email{model.email ? <> (<strong>{model.email}</strong>)</> : null}{' '}
+                  and password are managed under account security.
+                </p>
+              ) : null}
+              {showPrefsHint &&
+              (section.fields.includes('locale') || section.fields.includes('timezone')) ? (
+                <p className="settings-hint">Preferences are private — only you see them.</p>
+              ) : null}
+            </fieldset>
+          )
+        })}
       </div>
 
       {state.error ? (

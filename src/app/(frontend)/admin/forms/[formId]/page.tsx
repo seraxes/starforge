@@ -35,15 +35,24 @@ export default async function AdminFormBuilderPage({ params }: PageProps) {
   if (!id) notFound()
 
   await ensureDefaultContactFormSeeded()
+  if (id === 'profile') {
+    const { ensureProfileFormSeeded } = await import('@/modules/profiles/profile-form')
+    await ensureProfileFormSeeded()
+  }
   const loaded = await loadFormDefinition(id)
 
-  // Unknown id with empty fallback (not contact) → 404
-  if (loaded.isFallback && loaded.source !== 'database' && id !== 'contact') {
+  // Unknown id with empty fallback (not contact/profile) → 404
+  if (
+    loaded.isFallback &&
+    loaded.source !== 'database' &&
+    id !== 'contact' &&
+    id !== 'profile'
+  ) {
     notFound()
   }
 
-  // Persist contact seed if first open
-  if (loaded.isFallback && id === 'contact') {
+  // Persist seed if first open
+  if (loaded.isFallback && (id === 'contact' || id === 'profile')) {
     const { saveFormDefinitionDocument } = await import('@/core/forms/definitions-store')
     await saveFormDefinitionDocument(id, loaded.document, loaded.document.title)
   }

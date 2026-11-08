@@ -12,7 +12,11 @@ import {
   serializeFormDefinitionDocument,
   slugifyFormId,
 } from './definition'
-import { isFormPresetId, isProtectedFormDefinitionId } from './presets'
+import {
+  DEFAULT_PROFILE_FORM_ID,
+  isFormPresetId,
+  isProtectedFormDefinitionId,
+} from './presets'
 import { fieldsToJsonSchema } from './schema-json'
 import type {
   FormDefinitionDocument,
@@ -33,6 +37,7 @@ function displayLabel(id: string, label: string | null | undefined, title?: stri
   if (trimmed) return trimmed
   if (title?.trim()) return title.trim()
   if (id === DEFAULT_CONTACT_FORM_ID) return 'Contact'
+  if (id === DEFAULT_PROFILE_FORM_ID) return 'Profile'
   return id
 }
 
@@ -109,6 +114,16 @@ export async function loadFormDefinition(formId: string): Promise<FormDefinition
       id,
       label: 'Contact',
       document: emptyFormDefinitionDocument('contact'),
+      source: 'empty',
+      isFallback: true,
+    }
+  }
+
+  if (id === DEFAULT_PROFILE_FORM_ID) {
+    return {
+      id,
+      label: 'Profile',
+      document: emptyFormDefinitionDocument('profile'),
       source: 'empty',
       isFallback: true,
     }

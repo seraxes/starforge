@@ -55,10 +55,10 @@ Durable map of **feature modules** (Site Settings / allowlist toggleable) vs **i
 | | |
 | --- | --- |
 | **Kind** | modules (`product:layout-manager`, `product:page-settings`, `product:primary-nav`) + Site Chrome admin surface |
-| **Status** | **shipped** (public theme toggle later) |
+| **Status** | **shipped** (Skin dark variant SF-33 later) |
 | **In tree** | Gantry-like outlines/sections/rows/particles, Styles + breakpoints, Page Settings, Nav manager (multi-menu, ACL tags), Site Chrome (offline, captcha policy, meta, robots, cookies), page-surround. Particles: Logo, Menu, Copyright, Social, Custom, page-content, notice-bar, … |
-| **Recommended** | Keep layout in Core (not Payload-only). Nav features grow Joomla-like on the same Nav manager. Site Chrome = sitewide policy only. |
-| **Next slice** | Particle Defaults panel if still thin; public light→dark theme toggle (SF-33) as Site Settings module, not admin chrome. |
+| **Recommended** | Keep layout in Core (not Payload-only). Nav features grow Joomla-like on the same Nav manager. Site Chrome = sitewide policy only. Public brand = **Skin port** (not Layout Styles). |
+| **Next slice** | Particle Defaults panel if still thin; SF-33 dark pastel Skin row in admin Skins. |
 
 ### Email / Mailer
 
@@ -89,6 +89,16 @@ Durable map of **feature modules** (Site Settings / allowlist toggleable) vs **i
 | **In tree** | `starforge-gantry` dark theme; Core + Payload synced left sidebar; CMS accordion = Payload entities only; Site Settings top-level. |
 | **Recommended** | Swap look via theme registry CSS entrypoints. Nav structure stays one `buildAdminNavGroups()` — themes must not fork IA. UI kit (Tailwind + shadcn) later for polish, not a second chrome system. |
 | **Next slice** | Theme picker / `STARFORGE_ADMIN_THEME` docs when a second theme appears; denser admin width revisit after visual check. |
+
+### Skin (public brand + outline packs)
+
+| | |
+| --- | --- |
+| **Kind** | port (`skin`) — parallel to `admin-theme`, public only |
+| **Status** | **shipped (v1.1)** — `starforge-pastel` + outline seeds; admin `/admin/skins` |
+| **In tree** | `src/core/skin` registry + tokens + `SkinRootStyles`; outline seeds → `sf_layouts` (Gantry YAML equivalent as JSON); setting default Skin installs seeds + sets global Page Settings `layoutId`; Layouts chrome shows active Skin. |
+| **Recommended** | Skin = brand + outline package (like a Gantry theme). Layout Styles editing stays on Layouts → Styles. Call them Skins, not themes/templates. |
+| **Next slice** | SF-33 dark pastel second registry entry; optional YAML outline import; optional per-page skin override. |
 
 ### Media
 

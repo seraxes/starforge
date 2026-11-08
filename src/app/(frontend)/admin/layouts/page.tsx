@@ -16,6 +16,8 @@ import {
 } from '@/core/forms'
 import { listNavMenus } from '@/core/nav'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
+import { isSkinPinnedByEnv, listSkins } from '@/core/skin'
+import { getActiveSkin } from '@/core/skin/resolve-active'
 
 import { LayoutEditor } from './layout-editor'
 import { LayoutOutlineProvider } from './layout-outline-context'
@@ -66,6 +68,7 @@ export default async function AdminLayoutsPage(props: { searchParams?: SearchPar
   ])
 
   const pageSettingsOn = isCatalogModuleEnabled(settings, MODULE_IDS.pageSettings)
+  const activeSkin = await getActiveSkin()
 
   return (
     <section className="admin-section layout-admin-section admin-layouts-full">
@@ -74,6 +77,9 @@ export default async function AdminLayoutsPage(props: { searchParams?: SearchPar
         outlines={outlines.map((o) => ({ id: o.id, label: o.label }))}
         currentOutlineId={layoutId}
         showPageSettingsTab={pageSettingsOn}
+        skins={listSkins().map((s) => ({ id: s.id, label: s.label }))}
+        activeSkinId={activeSkin.id}
+        skinPinnedByEnv={isSkinPinnedByEnv()}
       />
       <h2 className="sr-only">Layout manager</h2>
       <p className="lede admin-lede gantry-layouts-lede">

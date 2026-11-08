@@ -54,6 +54,7 @@ export default async function ProfileEditPage({ params }: { params: Params }) {
     record,
     email: user.email,
     settings: loaded.settings,
+    formConfig: loaded.formConfig,
     locales,
     actor: 'admin',
   })

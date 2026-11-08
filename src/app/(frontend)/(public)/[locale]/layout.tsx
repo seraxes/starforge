@@ -23,6 +23,7 @@ import {
   pageKeyFromPathname,
 } from '@/core/page-settings'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
+import { SkinRootStyles } from '@/core/skin/SkinRootStyles'
 import { getSiteChrome, isOfflineAllowedPath } from '@/core/site-chrome'
 
 type Props = {
@@ -135,6 +136,7 @@ export default async function PublicLocaleLayout({ children, params }: Props) {
           <Link href="/admin/site-chrome">{t('offlineAdminChromeLink')}</Link>
         </p>
       ) : null}
+      <SkinRootStyles />
       {pageSettingsOn ? <DocumentHeadChrome chrome={chrome} /> : null}
       <PublicShellSlots slot="head" />
       {pageSettingsOn ? (

@@ -90,13 +90,17 @@ export {
 } from './definitions-store'
 export {
   DEFAULT_CONTACT_FORM_ID as CONTACT_FORM_ID,
+  DEFAULT_EVENT_REGISTRATION_FORM_ID,
+  DEFAULT_PROFILE_FORM_ID,
   FORM_PRESETS,
   defaultMessagesForPreset,
   fieldsForPreset,
   getFormPresetMeta,
   isFormPresetCategoryId,
   isFormPresetId,
+  isProtectedFormDefinitionId,
   listFormPresetMetas,
+  listFormPresetsByCategory,
   presetSeedFields,
 } from './presets'
 export {

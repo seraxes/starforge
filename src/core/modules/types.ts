@@ -96,6 +96,12 @@ export type LayoutSection = {
    */
   containerMode?: LayoutContainerMode
   /**
+   * Mosaic column span as percent (same model as particle/slot widths and Forms
+   * sections): 5–100. Consecutive partial-width sections sit side-by-side in a
+   * flex row. Omitted → full (`100`).
+   */
+  width?: LayoutGridWidth
+  /**
    * Gantry-like Section Styles on this instance (bg + text; image/overlay later).
    * Outline-scoped via the layout document — not a fixed Navigation/Header name list.
    */

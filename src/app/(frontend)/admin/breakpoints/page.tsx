@@ -10,6 +10,8 @@ import {
   normalizeLayoutBreakpoints,
 } from '@/core/modules'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
+import { isSkinPinnedByEnv, listSkins } from '@/core/skin'
+import { getActiveSkin } from '@/core/skin/resolve-active'
 
 import { LayoutOutlineProvider } from '../layouts/layout-outline-context'
 import { LayoutsAdminNav } from '../layouts/layouts-admin-nav'
@@ -67,6 +69,7 @@ export default async function AdminStylesPage(props: { searchParams?: SearchPara
     }))
 
   const pageSettingsOn = isCatalogModuleEnabled(settings, MODULE_IDS.pageSettings)
+  const activeSkin = await getActiveSkin()
 
   return (
     <section className="admin-section layout-admin-section admin-layouts-padded">
@@ -75,6 +78,9 @@ export default async function AdminStylesPage(props: { searchParams?: SearchPara
         outlines={outlines.map((o) => ({ id: o.id, label: o.label }))}
         currentOutlineId={layoutId}
         showPageSettingsTab={pageSettingsOn}
+        skins={listSkins().map((s) => ({ id: s.id, label: s.label }))}
+        activeSkinId={activeSkin.id}
+        skinPinnedByEnv={isSkinPinnedByEnv()}
       />
       <h2>Styles</h2>
       <p className="lede admin-lede gantry-layouts-lede">

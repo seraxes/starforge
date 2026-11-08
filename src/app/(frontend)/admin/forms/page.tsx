@@ -6,6 +6,7 @@ import { ensureDefaultContactFormSeeded, listFormDefinitions } from '@/core/form
 import { isFormPresetCategoryId } from '@/core/forms/presets'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { ensureEventRegistrationFormSeeded } from '@/modules/events/registration-form'
+import { ensureProfileFormSeeded } from '@/modules/profiles/profile-form'
 
 import { FormsAdminNav } from './forms-admin-nav'
 import { FormsManager } from './forms-manager'
@@ -33,6 +34,9 @@ export default async function AdminFormsPage({ searchParams }: { searchParams: S
   await ensureDefaultContactFormSeeded()
   if (isCatalogModuleEnabled(settings, MODULE_IDS.events)) {
     await ensureEventRegistrationFormSeeded()
+  }
+  if (isCatalogModuleEnabled(settings, MODULE_IDS.profiles)) {
+    await ensureProfileFormSeeded()
   }
   const definitions = await listFormDefinitions()
 
