@@ -811,10 +811,15 @@ export async function duplicateEvent(
         await createTicketTier({
           eventId: created.event.id,
           title: tier.title,
+          shortDescription: tier.shortDescription,
           description: tier.description,
           kind: tier.kind,
           capacity: tier.capacity ?? '',
+          maxPerBooking: tier.maxPerBooking ?? '',
           priceLabel: tier.priceLabel,
+          titleColor: tier.titleColor,
+          borderColor: tier.borderColor,
+          backgroundColor: tier.backgroundColor,
           sortOrder: tier.sortOrder,
         })
       }

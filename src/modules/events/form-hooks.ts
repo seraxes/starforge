@@ -65,13 +65,17 @@ export function ensureEventsFormHooks(): void {
           payloadString(ctx.payload, 'ticket_tier_id') ||
           payloadString(ctx.payload, 'ticketTierId')
 
+        const name = payloadString(ctx.payload, 'name')
+        const email = payloadString(ctx.payload, 'email')
+        const phone = payloadString(ctx.payload, 'phone')
+
         const result = await createEventRegistration({
           eventId,
           ticketTierId: ticketTierId || null,
           submissionId: ctx.submissionId,
           userId: ctx.userId,
-          name: payloadString(ctx.payload, 'name'),
-          email: payloadString(ctx.payload, 'email'),
+          name,
+          email,
           guests: payloadGuests(ctx.payload),
           attendance: payloadString(ctx.payload, 'attendance') || 'in_person',
           notes: payloadString(ctx.payload, 'notes'),
@@ -79,6 +83,20 @@ export function ensureEventsFormHooks(): void {
         if ('error' in result) {
           console.error('[events] registration hook failed', result.error)
           return
+        }
+
+        if (ctx.userId) {
+          try {
+            const { fillMissingProfileContact } = await import(
+              '@/modules/profiles/api.server'
+            )
+            await fillMissingProfileContact(ctx.userId, {
+              phone,
+              displayName: name,
+            })
+          } catch {
+            /* profile sync is best-effort */
+          }
         }
 
         const { registration } = result

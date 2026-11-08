@@ -14,8 +14,10 @@ import { findEventById } from './store'
 import type { EventRecord } from './types'
 import {
   countRegisteredGuestsForTier,
+  effectiveMaxTicketsPerBooking,
   findTicketTierById,
 } from './tiers'
+import { DEFAULT_MAX_TICKETS_PER_BOOKING } from './types'
 
 /** True when public signup is allowed for a published event. */
 export function isEventRegistrationOpen(
@@ -183,21 +185,23 @@ export async function createEventRegistration(
     }
   }
 
-  const guestsRaw = input.guests ?? 1
-  const guests =
-    typeof guestsRaw === 'number' && Number.isFinite(guestsRaw) && guestsRaw > 0
-      ? Math.min(Math.floor(guestsRaw), 20)
-      : 1
-
   let ticketTierId = (input.ticketTierId || '').trim() || null
   let tierCapacity: number | null = null
+  let bookingCap = DEFAULT_MAX_TICKETS_PER_BOOKING
   if (ticketTierId) {
     const tier = await findTicketTierById(ticketTierId)
     if (!tier || tier.eventId !== eventId) {
       return { error: 'Selected ticket tier was not found for this event.' }
     }
     tierCapacity = tier.capacity
+    bookingCap = effectiveMaxTicketsPerBooking(tier.maxPerBooking)
   }
+
+  const guestsRaw = input.guests ?? 1
+  const guests =
+    typeof guestsRaw === 'number' && Number.isFinite(guestsRaw) && guestsRaw > 0
+      ? Math.min(Math.floor(guestsRaw), bookingCap)
+      : 1
 
   let status: RegistrationStatus = 'registered'
   if (
@@ -428,12 +432,6 @@ export async function updateEventRegistration(
     return { error: 'Invalid status.' }
   }
 
-  const guestsRaw = input.guests ?? 1
-  const guests =
-    typeof guestsRaw === 'number' && Number.isFinite(guestsRaw) && guestsRaw > 0
-      ? Math.min(Math.floor(guestsRaw), 20)
-      : 1
-
   try {
     const [current] = await db
       .select()
@@ -443,12 +441,20 @@ export async function updateEventRegistration(
     if (!current) return { error: 'Registration not found.' }
 
     let ticketTierId = (input.ticketTierId || '').trim() || null
+    let bookingCap = DEFAULT_MAX_TICKETS_PER_BOOKING
     if (ticketTierId) {
       const tier = await findTicketTierById(ticketTierId)
       if (!tier || tier.eventId !== current.eventId) {
         return { error: 'Selected ticket tier was not found for this event.' }
       }
+      bookingCap = effectiveMaxTicketsPerBooking(tier.maxPerBooking)
     }
+
+    const guestsRaw = input.guests ?? 1
+    const guests =
+      typeof guestsRaw === 'number' && Number.isFinite(guestsRaw) && guestsRaw > 0
+        ? Math.min(Math.floor(guestsRaw), bookingCap)
+        : 1
 
     const userId =
       input.userId !== undefined

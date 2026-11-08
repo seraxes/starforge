@@ -2,11 +2,11 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import {
-  ADMIN_ACCOUNT_HREF,
   ADMIN_CHECK_SITE_HREF,
   ADMIN_DASHBOARD_HREF,
   ADMIN_SHELL_LOGO_TOOLTIP,
   PAYLOAD_DASHBOARD_HREF,
+  adminAccountHref,
   adminUserInitials,
 } from './admin-sidebar-chrome'
 
@@ -37,8 +37,8 @@ describe('admin sidebar chrome constants', () => {
     assert.match(ADMIN_SHELL_LOGO_TOOLTIP, /CMS/)
   })
 
-  it('points account avatar at existing /account/security', () => {
-    assert.equal(ADMIN_ACCOUNT_HREF, '/account/security')
+  it('points account avatar at the signed-in Core admin account', () => {
+    assert.equal(adminAccountHref('user-abc'), '/admin/users/user-abc')
   })
 
   it('points STARFORGE logo at Core Dashboard /admin', () => {

@@ -7,25 +7,48 @@ import 'server-only'
 import { and, asc, eq, sql } from 'drizzle-orm'
 
 import { db } from '@/core/db'
+import { sanitizeCssColor } from '@/core/modules/styles'
 
 import { sfEventRegistrations, sfEventTicketTiers } from './schema'
 import { findEventById } from './store'
-import { isTicketTierKind, type TicketTierKind } from './types'
+import {
+  DEFAULT_MAX_TICKETS_PER_BOOKING,
+  isTicketTierKind,
+  type TicketTierKind,
+} from './types'
 
 export type { TicketTierKind }
-export { TICKET_TIER_KINDS, isTicketTierKind } from './types'
+export {
+  DEFAULT_MAX_TICKETS_PER_BOOKING,
+  TICKET_TIER_KINDS,
+  isTicketTierKind,
+} from './types'
 
 export type TicketTierRecord = {
   id: string
   eventId: string
   title: string
+  shortDescription: string
   description: string
   kind: TicketTierKind
   capacity: number | null
+  /** Max guests on one booking; null → DEFAULT_MAX_TICKETS_PER_BOOKING. */
+  maxPerBooking: number | null
   priceLabel: string
+  titleColor: string
+  borderColor: string
+  backgroundColor: string
   sortOrder: number
   createdAt: Date
   updatedAt: Date
+}
+
+/** Normalize admin color input — empty clears; invalid → empty (theme default). */
+function parseTierColor(raw: unknown): string {
+  if (raw == null) return ''
+  const trimmed = String(raw).trim()
+  if (!trimmed) return ''
+  return sanitizeCssColor(trimmed) ?? ''
 }
 
 function mapTier(row: typeof sfEventTicketTiers.$inferSelect): TicketTierRecord {
@@ -33,13 +56,23 @@ function mapTier(row: typeof sfEventTicketTiers.$inferSelect): TicketTierRecord 
     id: row.id,
     eventId: row.eventId,
     title: row.title?.trim() || 'Ticket',
+    shortDescription: row.shortDescription ?? '',
     description: row.description ?? '',
     kind: isTicketTierKind(row.kind) ? row.kind : 'general',
     capacity:
       typeof row.capacity === 'number' && Number.isFinite(row.capacity) && row.capacity >= 0
         ? Math.floor(row.capacity)
         : null,
+    maxPerBooking:
+      typeof row.maxPerBooking === 'number' &&
+      Number.isFinite(row.maxPerBooking) &&
+      row.maxPerBooking >= 1
+        ? Math.floor(row.maxPerBooking)
+        : null,
     priceLabel: row.priceLabel ?? '',
+    titleColor: parseTierColor(row.titleColor),
+    borderColor: parseTierColor(row.borderColor),
+    backgroundColor: parseTierColor(row.backgroundColor),
     sortOrder:
       typeof row.sortOrder === 'number' && Number.isFinite(row.sortOrder)
         ? Math.floor(row.sortOrder)
@@ -54,6 +87,28 @@ function parseCapacity(raw: unknown): number | null {
   const n = typeof raw === 'number' ? raw : Number(String(raw).trim())
   if (!Number.isFinite(n) || n < 0) return null
   return Math.floor(n)
+}
+
+/** Empty → null (default booking cap). Otherwise 1…100. */
+function parseMaxPerBooking(raw: unknown): number | null {
+  if (raw == null || raw === '') return null
+  const n = typeof raw === 'number' ? raw : Number(String(raw).trim())
+  if (!Number.isFinite(n) || n < 1) return null
+  return Math.min(Math.floor(n), 100)
+}
+
+/** Effective max guests for one booking on this tier. */
+export function effectiveMaxTicketsPerBooking(
+  maxPerBooking: number | null | undefined,
+): number {
+  if (
+    typeof maxPerBooking === 'number' &&
+    Number.isFinite(maxPerBooking) &&
+    maxPerBooking >= 1
+  ) {
+    return Math.min(Math.floor(maxPerBooking), 100)
+  }
+  return DEFAULT_MAX_TICKETS_PER_BOOKING
 }
 
 export async function listTicketTiersForEvent(
@@ -117,10 +172,15 @@ export type UpsertTicketTierInput = {
   id?: string
   eventId: string
   title: string
+  shortDescription?: string
   description?: string
   kind?: string
   capacity?: unknown
+  maxPerBooking?: unknown
   priceLabel?: string
+  titleColor?: string
+  borderColor?: string
+  backgroundColor?: string
   sortOrder?: unknown
 }
 
@@ -133,10 +193,15 @@ export async function createTicketTier(
   if (!event) return { error: 'Event not found.' }
 
   const title = input.title.trim().slice(0, 200) || 'Ticket'
+  const shortDescription = (input.shortDescription || '').trim().slice(0, 280)
   const description = (input.description || '').trim().slice(0, 2000)
   const kind: TicketTierKind = isTicketTierKind(input.kind) ? input.kind : 'general'
   const capacity = parseCapacity(input.capacity)
+  const maxPerBooking = parseMaxPerBooking(input.maxPerBooking)
   const priceLabel = (input.priceLabel || '').trim().slice(0, 80)
+  const titleColor = parseTierColor(input.titleColor)
+  const borderColor = parseTierColor(input.borderColor)
+  const backgroundColor = parseTierColor(input.backgroundColor)
   const sortRaw = input.sortOrder
   const sortOrder =
     typeof sortRaw === 'number' && Number.isFinite(sortRaw)
@@ -151,10 +216,15 @@ export async function createTicketTier(
       id,
       eventId,
       title,
+      shortDescription,
       description,
       kind,
       capacity,
+      maxPerBooking,
       priceLabel,
+      titleColor,
+      borderColor,
+      backgroundColor,
       sortOrder,
     })
     const created = await findTicketTierById(id)
@@ -182,6 +252,10 @@ export async function updateTicketTier(
   if (!current) return { error: 'Tier not found.' }
 
   const title = input.title.trim().slice(0, 200) || current.title
+  const shortDescription =
+    input.shortDescription !== undefined
+      ? input.shortDescription.trim().slice(0, 280)
+      : current.shortDescription
   const description =
     input.description !== undefined
       ? input.description.trim().slice(0, 2000)
@@ -191,10 +265,26 @@ export async function updateTicketTier(
     : current.kind
   const capacity =
     input.capacity !== undefined ? parseCapacity(input.capacity) : current.capacity
+  const maxPerBooking =
+    input.maxPerBooking !== undefined
+      ? parseMaxPerBooking(input.maxPerBooking)
+      : current.maxPerBooking
   const priceLabel =
     input.priceLabel !== undefined
       ? input.priceLabel.trim().slice(0, 80)
       : current.priceLabel
+  const titleColor =
+    input.titleColor !== undefined
+      ? parseTierColor(input.titleColor)
+      : current.titleColor
+  const borderColor =
+    input.borderColor !== undefined
+      ? parseTierColor(input.borderColor)
+      : current.borderColor
+  const backgroundColor =
+    input.backgroundColor !== undefined
+      ? parseTierColor(input.backgroundColor)
+      : current.backgroundColor
   const sortOrder =
     input.sortOrder !== undefined
       ? Number.isFinite(Number(input.sortOrder))
@@ -207,10 +297,15 @@ export async function updateTicketTier(
       .update(sfEventTicketTiers)
       .set({
         title,
+        shortDescription,
         description,
         kind,
         capacity,
+        maxPerBooking,
         priceLabel,
+        titleColor,
+        borderColor,
+        backgroundColor,
         sortOrder,
       })
       .where(eq(sfEventTicketTiers.id, id))
@@ -235,6 +330,39 @@ export async function deleteTicketTier(
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : 'Could not delete tier.',
+    }
+  }
+}
+
+/** Persist drag-and-drop order for an event’s ticket types. */
+export async function reorderTicketTiers(
+  eventId: string,
+  orderedIds: string[],
+): Promise<{ ok: true } | { error: string }> {
+  const trimmedEvent = eventId.trim()
+  if (!trimmedEvent) return { error: 'Missing event id.' }
+  const ids = orderedIds.map((id) => id.trim()).filter(Boolean)
+  if (ids.length === 0) return { error: 'Missing tier order.' }
+
+  try {
+    const existing = await listTicketTiersForEvent(trimmedEvent)
+    const existingIds = new Set(existing.map((t) => t.id))
+    if (ids.length !== existing.length || ids.some((id) => !existingIds.has(id))) {
+      return { error: 'Ticket type order is out of date — refresh and try again.' }
+    }
+
+    await Promise.all(
+      ids.map((id, index) =>
+        db
+          .update(sfEventTicketTiers)
+          .set({ sortOrder: index })
+          .where(and(eq(sfEventTicketTiers.id, id), eq(sfEventTicketTiers.eventId, trimmedEvent))),
+      ),
+    )
+    return { ok: true }
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : 'Could not reorder ticket types.',
     }
   }
 }

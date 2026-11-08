@@ -2,19 +2,21 @@ import React from 'react'
 import Link from 'next/link'
 
 import {
-  ADMIN_ACCOUNT_HREF,
+  adminAccountHref,
   adminUserInitials,
 } from './admin-sidebar-chrome'
 
 export type AdminSidebarAccountProps = {
+  userId: string
   email: string
   name?: string | null
   image?: string | null
   role?: string | null
 }
 
-/** Avatar link to the signed-in user’s account settings (replaces “Signed in as …”). */
+/** Avatar link to the signed-in user’s Core admin account (`/admin/users/:id`). */
 export function AdminSidebarAccount({
+  userId,
   email,
   name,
   image,
@@ -22,14 +24,16 @@ export function AdminSidebarAccount({
 }: AdminSidebarAccountProps) {
   const initials = adminUserInitials(name, email)
   const label = name?.trim() || email
+  const meta = role?.trim() || 'Account'
   const tipParts = [label, role ? `(${role})` : null].filter(Boolean).join(' ')
+  const href = adminAccountHref(userId)
 
   return (
     <Link
-      href={ADMIN_ACCOUNT_HREF}
+      href={href}
       className="admin-sidebar-account"
-      title={`Account settings — ${tipParts}`}
-      aria-label={`Account settings for ${email}`}
+      title={`Admin account — ${tipParts}`}
+      aria-label={`Open admin account for ${email}`}
     >
       <span className="admin-sidebar-avatar" aria-hidden="true">
         {image ? (
@@ -41,6 +45,7 @@ export function AdminSidebarAccount({
       </span>
       <span className="admin-sidebar-account-text">
         <span className="admin-sidebar-account-name">{label}</span>
+        <span className="admin-sidebar-account-meta">{meta}</span>
       </span>
     </Link>
   )

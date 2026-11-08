@@ -132,6 +132,7 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
             brand={<AdminSidebarBrand surface="core" />}
             who={
               <AdminSidebarAccount
+                userId={session.user.id}
                 email={session.user.email}
                 name={session.user.name}
                 image={

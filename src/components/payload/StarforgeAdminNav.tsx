@@ -60,6 +60,15 @@ export default async function StarforgeAdminNav(props: ServerProps) {
     user && typeof user === 'object' && 'image' in user && typeof user.image === 'string'
       ? user.image
       : null
+  // Prefer Core user id (Better Auth) — Payload `users.id` is a separate CMS row.
+  const coreUserId =
+    user &&
+    typeof user === 'object' &&
+    'coreUserId' in user &&
+    typeof user.coreUserId === 'string' &&
+    user.coreUserId.trim()
+      ? user.coreUserId.trim()
+      : null
 
   return (
     <NavWrapper baseClass={baseClass}>
@@ -72,8 +81,13 @@ export default async function StarforgeAdminNav(props: ServerProps) {
           groups={groups}
           brand={<AdminSidebarBrand surface="payload" />}
           who={
-            email ? (
-              <AdminSidebarAccount email={email} name={name} image={image} />
+            email && coreUserId ? (
+              <AdminSidebarAccount
+                userId={coreUserId}
+                email={email}
+                name={name}
+                image={image}
+              />
             ) : null
           }
         />

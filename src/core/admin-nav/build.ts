@@ -12,6 +12,15 @@ import type {
 const CORE = CORE_ADMIN_BASE
 const CMS = PAYLOAD_ADMIN_BASE
 
+/** Content-band contribution — placed after Layouts/CMS, not with product packs. */
+const CONTENT_BAND_IDS = new Set(['media'])
+
+/**
+ * Contributions merged into the Core Users accordion (not top-level product packs).
+ * Profiles settings belong with Accounts / Groups / ACL.
+ */
+const USERS_ATTACHED_IDS = new Set(['profiles'])
+
 export type BuildAdminNavOptions = {
   flags: AdminNavFeatureFlags
   /** Which admin surface is rendering — same tree; marks cross-links. */
@@ -67,8 +76,62 @@ export function buildContributedAdminNavGroups(
   })
 }
 
+function buildLayoutsGroup(flags: AdminNavFeatureFlags): AdminNavGroup | null {
+  const showLayouts = flags.layout || flags.pageSettings
+  if (!showLayouts) return null
+
+  const layoutLinks: AdminNavGroup['links'] = []
+  if (flags.layout) {
+    layoutLinks.push(
+      { href: `${CORE}/layouts`, label: 'Layout' },
+      { href: `${CORE}/breakpoints`, label: 'Styles' },
+      { href: `${CORE}/particle-defaults`, label: 'Particle Defaults' },
+      { href: `${CORE}/outlines`, label: 'Outlines' },
+      // Skin port — brand + outline packs (Gantry theme); lives under Layouts.
+      { href: `${CORE}/skins`, label: 'Skins' },
+    )
+  } else {
+    // Page Settings only — still expose Skins (independent of layout canvas).
+    layoutLinks.push({ href: `${CORE}/skins`, label: 'Skins' })
+  }
+  if (flags.pageSettings) {
+    // FA config is a Page settings panel (id=font-awesome), not its own left-nav leaf.
+    layoutLinks.push({ href: `${CORE}/page-settings`, label: 'Page settings' })
+  }
+
+  return {
+    id: 'layouts',
+    label: 'Layouts',
+    href: flags.layout ? `${CORE}/layouts` : `${CORE}/page-settings`,
+    expandable: true,
+    links: layoutLinks,
+  }
+}
+
+function buildCmsGroup(
+  surface: AdminNavSurface,
+  cmsLinks: AdminCmsNavLink[],
+): AdminNavGroup | null {
+  if (cmsLinks.length === 0) return null
+  return {
+    id: 'cms',
+    label: 'CMS',
+    href: CMS,
+    expandable: true,
+    links: cmsLinks.map((link) => ({
+      href: link.href,
+      label: link.label,
+      exact: link.exact,
+      // From Core, CMS destinations leave the Core shell; from Payload they are local.
+      external:
+        surface === 'core' ? true : link.external && !link.href.startsWith(CMS),
+    })),
+  }
+}
+
 /**
  * One seamless admin tree for Core + Payload.
+ * Bands: home → site shell → structure/content → product modules → access/platform.
  * CMS accordion children are Payload destinations; other leaves stay on Core routes.
  * Product packs (Forms / Redirects / Media / …) contribute via manifest admin.nav (M2).
  */
@@ -77,7 +140,16 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
   const cmsLinks =
     options.cmsLinks ?? filterCmsNavLinks(CMS_NAV_LINKS, cmsVisibility ?? null)
 
+  const contributed = buildContributedAdminNavGroups(options.enabledModuleIds)
+  const mediaGroup = contributed.find((g) => CONTENT_BAND_IDS.has(g.id)) ?? null
+  const profilesGroup =
+    contributed.find((g) => USERS_ATTACHED_IDS.has(g.id)) ?? null
+  const productGroups = contributed.filter(
+    (g) => !CONTENT_BAND_IDS.has(g.id) && !USERS_ATTACHED_IDS.has(g.id),
+  )
+
   const groups: AdminNavGroup[] = [
+    // —— Home ——
     {
       id: 'dashboard',
       label: 'Dashboard',
@@ -85,6 +157,7 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
       href: CORE,
       links: [{ href: CORE, label: 'Dashboard', exact: true }],
     },
+    // —— Site shell ——
     {
       id: 'site-chrome',
       label: 'Chrome',
@@ -104,19 +177,6 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
       label: 'Localization',
       links: [{ href: `${CORE}/localization`, label: 'Localization' }],
     },
-    {
-      id: 'site-settings',
-      label: 'Settings',
-      href: `${CORE}/settings`,
-      expandable: true,
-      links: [
-        { href: `${CORE}/settings`, label: 'Modules', exact: true },
-        { href: `${CORE}/settings/admin-ux`, label: 'Admin UX' },
-        { href: `${CORE}/settings/auth`, label: 'Auth & registration' },
-        { href: `${CORE}/settings/security`, label: 'Security' },
-        { href: `${CORE}/settings/performance`, label: 'Performance' },
-      ],
-    },
   ]
 
   if (flags.nav) {
@@ -127,76 +187,57 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
     })
   }
 
-  // Manifest-contributed packs (Forms, Email, Events, Redirects, Media, …).
-  // Keep historical order: Forms → Email → Events → Redirects → Users → Media → Layouts.
-  const contributed = buildContributedAdminNavGroups(options.enabledModuleIds)
-  const earlyIds = new Set(['forms', 'email', 'events', 'redirects'])
-  const earlyRank: Record<string, number> = { forms: 0, email: 1, events: 2, redirects: 3 }
-  const early = contributed
-    .filter((g) => earlyIds.has(g.id))
-    .sort((a, b) => (earlyRank[a.id] ?? 99) - (earlyRank[b.id] ?? 99))
-  const late = contributed.filter((g) => !earlyIds.has(g.id))
-  groups.push(...early)
+  // —— Structure & content ——
+  const layouts = buildLayoutsGroup(flags)
+  if (layouts) groups.push(layouts)
 
+  if (flags.cms) {
+    const cms = buildCmsGroup(surface, cmsLinks)
+    if (cms) groups.push(cms)
+  }
+
+  if (mediaGroup) groups.push(mediaGroup)
+
+  // —— Product modules (manifest order) ——
+  groups.push(...productGroups)
+
+  // —— Access & platform ——
+  const userLinks: AdminNavGroup['links'] = [
+    { href: `${CORE}/users`, label: 'Accounts', exact: true },
+    { href: `${CORE}/users/groups`, label: 'Groups' },
+    { href: `${CORE}/users/acl`, label: 'ACL' },
+  ]
+  if (profilesGroup) {
+    for (const link of profilesGroup.links) {
+      userLinks.push({
+        href: link.href,
+        label: link.label === 'Settings' ? 'Profile settings' : link.label,
+        ...(link.exact ? { exact: true as const } : {}),
+        ...(link.external ? { external: true as const } : {}),
+      })
+    }
+  }
   groups.push({
     id: 'users',
     label: 'Users',
     href: `${CORE}/users`,
     expandable: true,
-    links: [
-      { href: `${CORE}/users`, label: 'Accounts', exact: true },
-      { href: `${CORE}/users/groups`, label: 'Groups' },
-      { href: `${CORE}/users/acl`, label: 'ACL' },
-    ],
+    links: userLinks,
   })
 
-  groups.push(...late)
-
-  const showLayouts = flags.layout || flags.pageSettings
-  if (showLayouts) {
-    const layoutLinks: AdminNavGroup['links'] = []
-    if (flags.layout) {
-      layoutLinks.push(
-        { href: `${CORE}/layouts`, label: 'Layout' },
-        { href: `${CORE}/breakpoints`, label: 'Styles' },
-        { href: `${CORE}/particle-defaults`, label: 'Particle Defaults' },
-        { href: `${CORE}/outlines`, label: 'Outlines' },
-        // Skin port — brand + outline packs (Gantry theme); lives under Layouts.
-        { href: `${CORE}/skins`, label: 'Skins' },
-      )
-    } else {
-      // Page Settings only — still expose Skins (independent of layout canvas).
-      layoutLinks.push({ href: `${CORE}/skins`, label: 'Skins' })
-    }
-    if (flags.pageSettings) {
-      // FA config is a Page settings panel (id=font-awesome), not its own left-nav leaf.
-      layoutLinks.push({ href: `${CORE}/page-settings`, label: 'Page settings' })
-    }
-    groups.push({
-      id: 'layouts',
-      label: 'Layouts',
-      href: flags.layout ? `${CORE}/layouts` : `${CORE}/page-settings`,
-      expandable: true,
-      links: layoutLinks,
-    })
-  }
-
-  if (flags.cms && cmsLinks.length > 0) {
-    groups.push({
-      id: 'cms',
-      label: 'CMS',
-      href: CMS,
-      expandable: true,
-      links: cmsLinks.map((link) => ({
-        href: link.href,
-        label: link.label,
-        exact: link.exact,
-        // From Core, CMS destinations leave the Core shell; from Payload they are local.
-        external:
-          surface === 'core' ? true : link.external && !link.href.startsWith(CMS),
-      })),
-    })
-  }
+  groups.push({
+    id: 'site-settings',
+    label: 'Settings',
+    href: `${CORE}/settings`,
+    expandable: true,
+    links: [
+      { href: `${CORE}/settings`, label: 'Modules', exact: true },
+      { href: `${CORE}/settings/admin-ux`, label: 'Admin UX' },
+      { href: `${CORE}/settings/auth`, label: 'Auth & registration' },
+      { href: `${CORE}/settings/security`, label: 'Security' },
+      { href: `${CORE}/settings/performance`, label: 'Performance' },
+    ],
+  })
 
   // Check site lives beside the STARFORGE logo (AdminSidebarBrand), not in the nav list.
 

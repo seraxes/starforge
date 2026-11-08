@@ -24,6 +24,7 @@ import {
   findActiveRegistrationForUserOnEvent,
 } from '../registrations'
 import { resolveEventMediaSrc } from '../public/media-src'
+import { loadEventsModuleSettings } from '../settings'
 import {
   findEventById,
   findPublishedEventByPublicKey,
@@ -76,21 +77,35 @@ export const eventDetailModule: StarforgeModule = {
     }
 
     const venue = event.venueId ? await findVenueById(event.venueId) : null
-    const [organizers, speakers, sponsors, relatedRows, ticketTiers, occupied, myReg, coverSrc] =
-      await Promise.all([
-        listEventPartiesByIds(event.organizerPartyIds),
-        listEventPartiesByIds(event.speakerPartyIds),
-        listEventPartiesByIds(event.sponsorPartyIds),
-        Promise.all(event.relatedEventIds.map((rid) => findEventById(rid))),
-        listPublicTicketTiersForEvent(event.id),
-        countRegisteredGuests(event.id),
-        viewer.userId
-          ? findActiveRegistrationForUserOnEvent(viewer.userId, event.id)
-          : Promise.resolve(null),
-        resolveEventMediaSrc(event.coverMediaId),
-      ])
+    const [
+      organizers,
+      speakers,
+      sponsors,
+      relatedRows,
+      ticketTiers,
+      occupied,
+      myReg,
+      coverSrc,
+      moduleSettings,
+    ] = await Promise.all([
+      listEventPartiesByIds(event.organizerPartyIds),
+      listEventPartiesByIds(event.speakerPartyIds),
+      listEventPartiesByIds(event.sponsorPartyIds),
+      Promise.all(event.relatedEventIds.map((rid) => findEventById(rid))),
+      listPublicTicketTiersForEvent(event.id),
+      countRegisteredGuests(event.id),
+      viewer.userId
+        ? findActiveRegistrationForUserOnEvent(viewer.userId, event.id)
+        : Promise.resolve(null),
+      resolveEventMediaSrc(event.coverMediaId),
+      loadEventsModuleSettings(),
+    ])
     const localeRaw = await getLocale()
     const locale = isAppLocale(localeRaw) ? localeRaw : undefined
+    const eventPath = withLocalePrefix(
+      `/events/${encodeURIComponent(eventPublicPathKey(event))}`,
+      locale,
+    )
     const relatedById = new Map(
       relatedRows
         .flatMap((r) =>
@@ -134,6 +149,9 @@ export const eventDetailModule: StarforgeModule = {
       occupied,
       signupStatus,
       coverSrc,
+      tierCapacityDisplay: moduleSettings.settings.tierCapacityDisplay,
+      eventPath,
+      loginPath: withLocalePrefix('/login', locale),
       listHref: cfg.showBackLink
         ? withLocalePrefix('/events', locale)
         : undefined,

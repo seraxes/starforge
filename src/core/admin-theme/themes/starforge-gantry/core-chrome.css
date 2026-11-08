@@ -488,6 +488,18 @@ body:has(.admin-shell) > main {
   color: #fff;
 }
 
+.admin-shell .admin-sidebar-account {
+  border-color: #314257;
+  background: color-mix(in srgb, #1a2433 88%, transparent);
+}
+
+.admin-shell .admin-sidebar-account:hover,
+.admin-shell .admin-sidebar-account:focus-visible {
+  border-color: var(--sf-admin-blue-border, #4aa3df);
+  background: color-mix(in srgb, var(--sf-admin-nav-active, #3498db) 32%, #1a2433);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--sf-admin-blue-border, #4aa3df) 50%, transparent);
+}
+
 .admin-shell .admin-sidebar-avatar {
   border-color: #314257;
   background: #1a2433;
@@ -503,6 +515,10 @@ body:has(.admin-shell) > main {
 
 .admin-shell .admin-sidebar-account-name {
   color: #fff;
+}
+
+.admin-shell .admin-sidebar-account-meta {
+  color: color-mix(in srgb, #fff 62%, transparent);
 }
 
 .admin-shell .admin-sidebar-menu-toggle {
@@ -657,7 +673,7 @@ body:has(.admin-shell) > main {
 .admin-shell .gantry-section-actions button:not(.gantry-section-icon-btn),
 .admin-shell .gantry-row-actions button,
 .admin-shell .gantry-row-meta button,
-.admin-shell .gantry-slot-actions button:not(.gantry-bar-remove):not(.gantry-settings-trigger),
+.admin-shell .gantry-slot-actions button:not(.gantry-bar-remove):not(.gantry-settings-trigger):not(.sf-events-tiers-icon-btn),
 .admin-shell .gantry-width-form button,
 .admin-shell .gantry-custom-form button,
 .admin-shell .gantry-typed-form button,
@@ -681,7 +697,7 @@ body:has(.admin-shell) > main {
 .admin-shell .layout-inline-form button:hover,
 .admin-shell .gantry-section-actions button:not(.gantry-section-icon-btn):hover,
 .admin-shell .gantry-row-actions button:hover,
-.admin-shell .gantry-slot-actions button:not(.gantry-bar-remove):not(.gantry-settings-trigger):hover,
+.admin-shell .gantry-slot-actions button:not(.gantry-bar-remove):not(.gantry-settings-trigger):not(.sf-events-tiers-icon-btn):hover,
 .admin-shell .gantry-canvas-toolbar button:hover,
 .admin-shell button.secondary:hover {
   background: var(--sf-admin-blue-mid);
@@ -702,9 +718,9 @@ body:has(.admin-shell) > main {
 .admin-shell .page-settings-actions button[type='submit']:not(.secondary):not(.danger),
 .admin-shell .breakpoints-form button[type='submit'],
 .admin-shell .section-styles-form button[type='submit'],
-.admin-shell .outlines-create button[type='submit']:not(.secondary):not(.danger):not(.gantry-toolbar-btn-muted):not(.gantry-toolbar-btn-danger),
-.admin-shell .outlines-inline-form button[type='submit']:not(.danger):not(.gantry-toolbar-btn-muted):not(.gantry-toolbar-btn-danger),
-.admin-shell .admin-inline-form button[type='submit']:not(.secondary):not(.danger):not(.gantry-toolbar-btn-muted):not(.gantry-toolbar-btn-danger),
+.admin-shell .outlines-create button[type='submit']:not(.secondary):not(.danger):not(.gantry-toolbar-btn-muted):not(.gantry-toolbar-btn-danger):not(.gantry-bar-remove):not(.sf-events-tiers-icon-btn),
+.admin-shell .outlines-inline-form button[type='submit']:not(.danger):not(.gantry-toolbar-btn-muted):not(.gantry-toolbar-btn-danger):not(.gantry-bar-remove):not(.sf-events-tiers-icon-btn),
+.admin-shell .admin-inline-form button[type='submit']:not(.secondary):not(.danger):not(.gantry-toolbar-btn-muted):not(.gantry-toolbar-btn-danger):not(.gantry-bar-remove):not(.sf-events-tiers-icon-btn),
 .admin-shell .admin-groups-form button[type='submit']:not(.danger):not(.gantry-toolbar-btn-muted):not(.gantry-toolbar-btn-danger),
 .admin-shell .acl-matrix-form > button[type='submit']:not(.gantry-toolbar-btn-muted):not(.gantry-toolbar-btn-danger),
 .admin-shell .site-chrome-form button[type='submit']:not(.secondary):not(.danger):not(.gantry-toolbar-btn-muted):not(.gantry-toolbar-btn-danger),
@@ -722,7 +738,7 @@ body:has(.admin-shell) > main {
 .admin-shell .page-settings-actions button[type='submit']:not(.secondary):not(.danger):hover,
 .admin-shell .breakpoints-form button[type='submit']:hover,
 .admin-shell .section-styles-form button[type='submit']:hover,
-.admin-shell .outlines-create button[type='submit']:not(.secondary):not(.danger):hover {
+.admin-shell .outlines-create button[type='submit']:not(.secondary):not(.danger):not(.gantry-bar-remove):not(.sf-events-tiers-icon-btn):hover {
   background: color-mix(in srgb, var(--sf-primary) 82%, var(--sf-primary-strong));
 }
 
@@ -1029,18 +1045,48 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .gantry-section-head {
-  margin: 0 0 0.35rem;
-  padding: 0.05rem 0;
+  margin: 0 0 0.1rem;
+  padding: 0;
   background: transparent;
   border: 0;
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.55rem;
+  gap: 0.4rem;
 }
 
 .admin-shell .gantry-section-title {
-  gap: 0.35rem;
+  gap: 0.3rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Compact width control — admin input !important padding/width would crush % into digits. */
+.admin-shell .gantry-inline-label.gantry-section-width-label {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.2rem;
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.admin-shell .gantry-section-width-input {
+  width: 2.75rem !important;
+  max-width: 2.75rem !important;
+  min-height: 1.4rem !important;
+  padding: 0.05rem 0.25rem !important;
+  text-align: right;
+}
+
+.admin-shell .gantry-inline-label.gantry-section-width-label .gantry-slot-pct {
+  color: #9eb1c7;
+  background: transparent;
+  padding: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .admin-shell .gantry-section-handle {
@@ -1146,8 +1192,8 @@ body:has(.admin-shell) > main {
 .admin-shell .gantry-sections > .gantry-section {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
-  padding-bottom: 0.1rem;
+  gap: 0.1rem;
+  padding-bottom: 0;
 }
 
 .admin-shell .gantry-row {
@@ -2411,6 +2457,11 @@ body:has(.admin-shell) > main {
 .admin-shell .admin-sidebar .admin-sidebar-check-site-label {
   color: #fff !important;
   -webkit-text-fill-color: #fff;
+}
+
+.admin-shell .admin-sidebar .admin-sidebar-account-meta {
+  color: color-mix(in srgb, #fff 62%, transparent) !important;
+  -webkit-text-fill-color: color-mix(in srgb, #fff 62%, transparent);
 }
 
 .admin-shell .admin-sidebar .admin-sidebar-check-site:hover,

@@ -17,6 +17,7 @@ import { loadFormDefinition } from '@/core/forms/definitions-store'
 import type { FormFieldDef } from '@/core/forms/types'
 
 import { listPublicTicketTiersForEvent } from './public-tiers'
+import { DEFAULT_MAX_TICKETS_PER_BOOKING } from './types'
 
 export { DEFAULT_EVENT_REGISTRATION_FORM_ID }
 
@@ -42,20 +43,39 @@ export async function ensureEventRegistrationFormSeeded(): Promise<string> {
   }
 }
 
+export type EventRegistrationPrefill = {
+  name?: string
+  email?: string
+  phone?: string
+}
+
 /** Load definition fields with event_id + optional ticket tier + terms checkbox. */
 export async function loadEventRegistrationFields(
   eventId: string,
-  options?: { termsUrl?: string },
+  options?: {
+    termsUrl?: string
+    preferredTierId?: string
+    prefill?: EventRegistrationPrefill
+  },
 ) {
   await ensureEventRegistrationFormSeeded()
   const loaded = await loadFormDefinition(DEFAULT_EVENT_REGISTRATION_FORM_ID)
   const tiers = await listPublicTicketTiersForEvent(eventId)
+  const prefill = options?.prefill
 
-  let fields: FormFieldDef[] = loaded.document.fields.map((field) =>
-    field.name === 'event_id'
-      ? { ...field, defaultValue: eventId }
-      : field,
-  )
+  let fields: FormFieldDef[] = loaded.document.fields.map((field) => {
+    if (field.name === 'event_id') return { ...field, defaultValue: eventId }
+    if (field.name === 'name' && prefill?.name) {
+      return { ...field, defaultValue: prefill.name }
+    }
+    if (field.name === 'email' && prefill?.email) {
+      return { ...field, defaultValue: prefill.email }
+    }
+    if (field.name === 'phone' && prefill?.phone) {
+      return { ...field, defaultValue: prefill.phone }
+    }
+    return field
+  })
 
   // Drop stale injected fields — we re-add fresh options each request.
   fields = fields.filter(
@@ -63,7 +83,7 @@ export async function loadEventRegistrationFields(
   )
 
   if (tiers.length > 0) {
-    const options = tiers.map((tier) => {
+    const tierOptions = tiers.map((tier) => {
       const price = tier.priceLabel.trim() ? ` — ${tier.priceLabel.trim()}` : ''
       const leftLabel =
         tier.soldOut
@@ -77,7 +97,12 @@ export async function loadEventRegistrationFields(
         disabled: tier.soldOut,
       }
     })
-    const firstOpen = options.find((o) => !o.disabled)?.value || ''
+    const preferred = (options?.preferredTierId || '').trim()
+    const preferredOpen =
+      preferred && tierOptions.some((o) => o.value === preferred && !o.disabled)
+        ? preferred
+        : ''
+    const firstOpen = preferredOpen || tierOptions.find((o) => !o.disabled)?.value || ''
     const tierField: FormFieldDef = {
       id: 'event_ticket_tier',
       name: 'ticket_tier_id',
@@ -85,7 +110,7 @@ export async function loadEventRegistrationFields(
       type: 'select',
       required: true,
       defaultValue: firstOpen,
-      options,
+      options: tierOptions,
       description: 'Choose a ticket / faction slot for this event.',
     }
     // Insert after email (or at start of visible fields).
@@ -99,6 +124,30 @@ export async function loadEventRegistrationFields(
     } else {
       fields = [tierField, ...fields]
     }
+
+    const preferredTier = firstOpen
+      ? tiers.find((t) => t.id === firstOpen)
+      : undefined
+    const openMaxes = tiers.filter((t) => !t.soldOut).map((t) => t.maxPerBooking)
+    const guestsMax = preferredTier
+      ? preferredTier.maxPerBooking
+      : openMaxes.length > 0
+        ? Math.max(...openMaxes)
+        : DEFAULT_MAX_TICKETS_PER_BOOKING
+    fields = fields.map((field) => {
+      if (field.name !== 'guests' || field.type !== 'number') return field
+      return {
+        ...field,
+        numberBounds: {
+          min: 1,
+          max: guestsMax,
+        },
+        description:
+          guestsMax === 1
+            ? 'One ticket per booking for this ticket type.'
+            : `Up to ${guestsMax} tickets per booking for this ticket type.`,
+      }
+    })
   }
 
   const termsUrl = (options?.termsUrl || '').trim()

@@ -12,8 +12,9 @@ Events + venues + registration + ticket tiers + parties (`sf_venues` / `sf_event
 - Layout **particles** (place anywhere): `event-featured` (rotating carousel of `featured` events), `event-mini-calendar`, `event-calendar`, `event-upcoming`, `event-list` (table), `event-detail`, `event-countdown`
 - Event flag **Featured** (admin Visibility) feeds the featured particle — like a category for carousel placement
 - Calendar cells: title, seats `occupied/capacity`, venue; optional thumbnails (`?thumbs=1` on hub, or particle cog)
-- Public **detail** sections: header/badges, quick actions, description, details, ticket types, location (+ map), parties, gallery; Forms `event-registration`
-- ICS download; View ACL + listed / access password; ticket types per-event (display `priceLabel`)
+- Public **detail** sections: header/badges, quick actions, description, details, ticket / faction **area cards** (Register one-click from profile), location (+ map), parties, gallery; Forms `event-registration`
+- Area-card Register: session + complete contact → instant signup for that tier; gaps / terms / captcha → form prefilled (`?tier=`); guests → login with return
+- ICS download; View ACL + listed / access password; ticket types per-event (display `priceLabel`, shortDescription blurb)
 
 ## Missing / next
 
@@ -44,7 +45,8 @@ Events + venues + registration + ticket tiers + parties (`sf_venues` / `sf_event
 
 ## Migrations
 
-- `0013` event `featured` boolean (+ index) — run `npm run db:migrate`
+- `0013` event `featured` boolean (+ index)
+- `0016` ticket tier `short_description` — run `npm run db:migrate`
 
 ## Payments (deferred — system-wide)
 
@@ -55,5 +57,6 @@ Commerce is a **shared** site module (**`product:payments`**), not owned by Even
 - `0004` venues/events → `0010` listed + access password hash (`0008` reg window, `0009` people/parties)
 - `0011` venue `description` + `gallery_media_ids`
 - `0013` event `featured`
+- `0016` ticket tier `short_description`
 
 Run: `npm run db:migrate` (or `db:core:push`).

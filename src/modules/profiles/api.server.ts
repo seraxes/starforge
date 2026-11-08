@@ -22,7 +22,13 @@ import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/sett
 
 import { ageYears } from './fields'
 import { fallbackPersona, projectPersona } from './privacy'
-import { ensureProfile, getProfileByHandle, getProfilesByUserIds } from './store'
+import {
+  ensureProfile,
+  fillMissingProfileContact,
+  getProfileByHandle,
+  getProfileByUserId,
+  getProfilesByUserIds,
+} from './store'
 import { loadProfilesModuleSettings } from './settings.server'
 import type { Persona, ProfileRecord, ViewerRelation } from './types'
 
@@ -176,3 +182,24 @@ export async function getAgeYearsForEligibility(userId: string): Promise<number 
   const birth = profiles.get(id)?.birthDate
   return birth ? ageYears(birth) : null
 }
+
+/** Owner contact for autofill / one-click (never for other viewers). */
+export async function getOwnProfileContact(userId: string): Promise<{
+  displayName: string
+  phone: string
+} | null> {
+  const id = userId.trim()
+  if (!id) return null
+  if (!(await isProfilesModuleEnabled())) {
+    return { displayName: '', phone: '' }
+  }
+  const profile = (await getProfileByUserId(id)) ?? (await ensureProfile(id))
+  if (!profile) return null
+  return {
+    displayName: profile.displayName.trim(),
+    phone: profile.phone.trim(),
+  }
+}
+
+/** Events / Forms: write phone / displayName only when the profile field is still empty. */
+export { fillMissingProfileContact }

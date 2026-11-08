@@ -56,11 +56,30 @@ describe('resolveEnabledAdminNavModuleIds + Email contribution', () => {
       groups.find((g) => g.id === 'dashboard')?.links[0]?.href,
       '/admin',
     )
+    // Bands: home → shell → structure/content → products → access/platform
+    assert.ok(ids.indexOf('site-chrome') < ids.indexOf('localization'))
+    assert.ok(ids.indexOf('localization') < ids.indexOf('navigation'))
+    assert.ok(ids.indexOf('navigation') < ids.indexOf('layouts'))
+    assert.ok(ids.indexOf('layouts') < ids.indexOf('cms'))
+    assert.ok(ids.indexOf('cms') < ids.indexOf('media'))
     assert.ok(ids.includes('email'), `expected Email in ${ids.join(',')}`)
     assert.ok(ids.includes('events'), `expected Events in ${ids.join(',')}`)
+    assert.ok(ids.indexOf('media') < ids.indexOf('forms'))
     assert.ok(ids.indexOf('forms') < ids.indexOf('email'))
     assert.ok(ids.indexOf('email') < ids.indexOf('events'))
     assert.ok(ids.indexOf('events') < ids.indexOf('redirects'))
+    assert.ok(ids.indexOf('redirects') < ids.indexOf('users'))
+    assert.ok(ids.indexOf('users') < ids.indexOf('site-settings'))
+    assert.equal(ids[ids.length - 1], 'site-settings')
+    // Profiles is not top-level — Settings lives under Users.
+    assert.equal(ids.includes('profiles'), false)
+    const users = groups.find((g) => g.id === 'users')
+    assert.ok(
+      users?.links.some(
+        (l) => l.href === '/admin/profiles/settings' && l.label === 'Profile settings',
+      ),
+      `expected Profile settings under Users, got ${users?.links.map((l) => l.label).join(',')}`,
+    )
     const email = groups.find((g) => g.id === 'email')
     assert.equal(email?.label, 'Email')
     assert.ok(email?.links.some((l) => l.href === '/admin/email' && l.label === 'Rules'))

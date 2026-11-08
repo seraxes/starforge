@@ -12,6 +12,7 @@ import { MODULE_IDS } from '@/core/settings'
 
 import {
   DEFAULT_EVENTS_MODULE_SETTINGS,
+  isTierCapacityDisplayMode,
   type EventsModuleSettings,
 } from './types'
 
@@ -29,9 +30,13 @@ export function normalizeEventsModuleSettings(
       ? (raw as Record<string, unknown>)
       : {}
   const tz = String(obj.defaultTimezone ?? '').trim().slice(0, 80)
+  const capacityRaw = String(obj.tierCapacityDisplay ?? '').trim()
   return {
     defaultTimezone: tz || DEFAULT_EVENTS_MODULE_SETTINGS.defaultTimezone,
     preventDuplicate: parsePreventDuplicate(obj.preventDuplicate),
+    tierCapacityDisplay: isTierCapacityDisplayMode(capacityRaw)
+      ? capacityRaw
+      : DEFAULT_EVENTS_MODULE_SETTINGS.tierCapacityDisplay,
   }
 }
 

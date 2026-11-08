@@ -7,7 +7,6 @@
     "welcome": "Welcome",
     "welcomeBack": "Welcome back",
     "welcomeNoteGuest": "Welcome — password, magic link, or email code. Stay signed in when you trust this device. After sign-in, set up authenticator 2FA under Account security.",
-    "welcomeNoteHome": "Welcome — use the panel for password, magic link, or email code. Helpers cover forgot password, forgot login email, stay signed in, and 2FA after you sign in.",
     "fullSignInPage": "Full sign-in page",
     "alreadyHaveAccount": "Already have an account?",
     "backToSignIn": "Back to sign in",

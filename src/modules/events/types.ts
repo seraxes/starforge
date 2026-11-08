@@ -18,6 +18,9 @@ export const TICKET_TIER_KINDS = ['general', 'faction'] as const
 
 export type TicketTierKind = (typeof TICKET_TIER_KINDS)[number]
 
+/** Absolute ceiling for guests on one registration when a tier has no maxPerBooking. */
+export const DEFAULT_MAX_TICKETS_PER_BOOKING = 20
+
 export function isTicketTierKind(value: unknown): value is TicketTierKind {
   return value === 'general' || value === 'faction'
 }
@@ -97,17 +100,31 @@ export type EventRecord = {
   updatedAt: Date
 }
 
+/** How ticket/faction area cards show capacity on the public event page. */
+export const TIER_CAPACITY_DISPLAY_MODES = ['both', 'free', 'occupied_max'] as const
+export type TierCapacityDisplayMode = (typeof TIER_CAPACITY_DISPLAY_MODES)[number]
+
+export function isTierCapacityDisplayMode(value: unknown): value is TierCapacityDisplayMode {
+  return (
+    typeof value === 'string' &&
+    (TIER_CAPACITY_DISPLAY_MODES as readonly string[]).includes(value)
+  )
+}
+
 /** Module settings document in `sf_module_settings` (id = product:events). */
 export type EventsModuleSettings = {
   /** Default IANA timezone for new events. */
   defaultTimezone: string
   /** Block second signup with the same email on one event. */
   preventDuplicate: boolean
+  /** Public area-card capacity lines: occupied/max, free left, or both. */
+  tierCapacityDisplay: TierCapacityDisplayMode
 }
 
 export const DEFAULT_EVENTS_MODULE_SETTINGS: EventsModuleSettings = {
   defaultTimezone: 'UTC',
   preventDuplicate: true,
+  tierCapacityDisplay: 'both',
 }
 
 export type EventsAdminActionState = {

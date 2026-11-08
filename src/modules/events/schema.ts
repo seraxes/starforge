@@ -161,10 +161,20 @@ export const sfEventTicketTiers = pgTable(
       .notNull()
       .references(() => sfEvents.id, { onDelete: 'cascade' }),
     title: text('title').notNull().default('Ticket'),
+    /** Card blurb on the public event page (falls back to description). */
+    shortDescription: text('short_description').notNull().default(''),
     description: text('description').notNull().default(''),
     kind: text('kind').notNull().default('general'),
     capacity: integer('capacity'),
+    /** Max tickets (guests) allowed on a single booking for this tier; null = default cap. */
+    maxPerBooking: integer('max_per_booking'),
     priceLabel: text('price_label').notNull().default(''),
+    /** Public card title (h3) color — hex or empty for theme default. */
+    titleColor: text('title_color').notNull().default(''),
+    /** Public card border color — hex or empty for theme default. */
+    borderColor: text('border_color').notNull().default(''),
+    /** Public card background color — hex or empty for theme default. */
+    backgroundColor: text('background_color').notNull().default(''),
     sortOrder: integer('sort_order').notNull().default(0),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true })

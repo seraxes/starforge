@@ -10,7 +10,9 @@ import {
   formatEventWhen,
 } from './format'
 import { eventPublicPathKey } from './path'
-import { EventTicketTypes, type PublicTicketTier } from './EventTicketTypes'
+import type { TierCapacityDisplayMode } from '../types'
+import { EventTicketTypes } from './EventTicketTypes'
+import type { PublicTicketTier } from './ticket-tier-model'
 
 export type RelatedEventLink = {
   id: string
@@ -61,6 +63,12 @@ export type EventDetailProps = {
   /** Pre-resolved cover URL (preferred over `/api/media/:id`). */
   coverSrc?: string
   className?: string
+  /** How area cards show capacity (module setting). */
+  tierCapacityDisplay?: TierCapacityDisplayMode
+  /** Locale-prefixed public event path for area-card Register redirects. */
+  eventPath?: string
+  /** Locale-prefixed login path (`/en/login`). */
+  loginPath?: string
 }
 
 function PartyList({
@@ -132,6 +140,9 @@ export function EventDetail({
   signupStatus = 'none',
   coverSrc,
   className = '',
+  tierCapacityDisplay = 'both',
+  eventPath = '',
+  loginPath = '',
 }: EventDetailProps) {
   const classes = ['sf-event-detail', className].filter(Boolean).join(' ')
   const when = formatEventWhen(event.startsAt, event.endsAt, event.timezone)
@@ -279,7 +290,17 @@ export function EventDetail({
         </dl>
       </section>
 
-      <EventTicketTypes tiers={ticketTiers} />
+      {ticketTiers.length > 0 && eventPath && loginPath ? (
+        <EventTicketTypes
+          tiers={ticketTiers}
+          eventId={event.id}
+          eventPath={eventPath}
+          loginPath={loginPath}
+          capacityDisplay={tierCapacityDisplay}
+          registrationOpen={regWindow.open}
+          signupStatus={signupStatus}
+        />
+      ) : null}
 
       {placeName || placeAddress || location?.map ? (
         <section className="sf-event-detail-section" aria-label="Location">

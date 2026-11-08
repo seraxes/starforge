@@ -113,6 +113,27 @@
       "when": 1794010000000,
       "tag": "0015_profile_image_frames",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1794011000000,
+      "tag": "0016_ticket_tier_short_description",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1794012000000,
+      "tag": "0017_ticket_tier_card_colors",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1794013000000,
+      "tag": "0018_ticket_tier_max_per_booking",
+      "breakpoints": true
     }
   ]
 }

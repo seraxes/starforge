@@ -451,6 +451,9 @@ export async function saveEventsSettingsAction(
     const settings = await saveEventsModuleSettings({
       defaultTimezone: String(formData.get('defaultTimezone') ?? 'UTC'),
       preventDuplicate: formData.get('preventDuplicate') === '1',
+      tierCapacityDisplay: String(
+        formData.get('tierCapacityDisplay') ?? 'both',
+      ) as import('./types').TierCapacityDisplayMode,
     })
     revalidateEventsAdmin()
     return {
@@ -558,10 +561,15 @@ export async function createTicketTierAction(
   const result = await createTicketTier({
     eventId: String(formData.get('eventId') ?? ''),
     title: String(formData.get('title') ?? ''),
+    shortDescription: String(formData.get('shortDescription') ?? ''),
     description: String(formData.get('description') ?? ''),
     kind: String(formData.get('kind') ?? 'general'),
     capacity: String(formData.get('capacity') ?? ''),
+    maxPerBooking: String(formData.get('maxPerBooking') ?? ''),
     priceLabel: String(formData.get('priceLabel') ?? ''),
+    titleColor: String(formData.get('titleColor') ?? ''),
+    borderColor: String(formData.get('borderColor') ?? ''),
+    backgroundColor: String(formData.get('backgroundColor') ?? ''),
     sortOrder: String(formData.get('sortOrder') ?? '0'),
   })
   if ('error' in result) return { error: result.error }
@@ -587,10 +595,15 @@ export async function updateTicketTierAction(
     id,
     eventId: String(formData.get('eventId') ?? ''),
     title: String(formData.get('title') ?? ''),
+    shortDescription: String(formData.get('shortDescription') ?? ''),
     description: String(formData.get('description') ?? ''),
     kind: String(formData.get('kind') ?? 'general'),
     capacity: String(formData.get('capacity') ?? ''),
+    maxPerBooking: String(formData.get('maxPerBooking') ?? ''),
     priceLabel: String(formData.get('priceLabel') ?? ''),
+    titleColor: String(formData.get('titleColor') ?? ''),
+    borderColor: String(formData.get('borderColor') ?? ''),
+    backgroundColor: String(formData.get('backgroundColor') ?? ''),
     sortOrder: String(formData.get('sortOrder') ?? '0'),
   })
   if ('error' in result) return { error: result.error }
@@ -616,6 +629,27 @@ export async function deleteTicketTierAction(
   if ('error' in result) return { error: result.error }
   revalidateEventsAdmin()
   return { ok: true, message: 'Tier deleted.', id }
+}
+
+export async function reorderTicketTiersAction(
+  _prev: EventsAdminActionState,
+  formData: FormData,
+): Promise<EventsAdminActionState> {
+  const denied = await requireEventsAdmin()
+  if (denied) return denied
+
+  const eventId = String(formData.get('eventId') ?? '').trim()
+  const orderedIds = String(formData.get('orderedIds') ?? '')
+    .split(',')
+    .map((id) => id.trim())
+    .filter(Boolean)
+
+  const { reorderTicketTiers } = await import('./tiers')
+  const result = await reorderTicketTiers(eventId, orderedIds)
+  if ('error' in result) return { error: result.error }
+  revalidateEventsAdmin()
+  revalidatePath('/events')
+  return { ok: true, message: 'Ticket type order saved.' }
 }
 
 /* ─── Registrants ────────────────────────────────────────────────────────── */
@@ -729,4 +763,37 @@ export async function deleteRegistrationAdminAction(
   if ('error' in result) return { error: result.error }
   revalidateEventsAdmin()
   return { ok: true, message: 'Registrant deleted.', id }
+}
+
+/* ─── Public one-click register (area cards) ─────────────────────────────── */
+
+export type QuickRegisterActionResult = {
+  ok?: boolean
+  needsAuth?: boolean
+  needsForm?: boolean
+  reason?: string
+  message?: string
+  error?: string
+  status?: string
+}
+
+export async function quickRegisterAction(
+  eventId: string,
+  tierId: string,
+): Promise<QuickRegisterActionResult> {
+  const { quickRegisterForTier } = await import('./quick-register')
+  const result = await quickRegisterForTier(eventId, tierId)
+  if ('needsAuth' in result) return { needsAuth: true }
+  if ('needsForm' in result) return { needsForm: true, reason: result.reason }
+  if ('error' in result) return { error: result.error }
+  revalidatePath('/events')
+  revalidatePath(`/events`)
+  if (result.ok) {
+    revalidateEventsAdmin(eventId)
+  }
+  return {
+    ok: true,
+    status: result.status,
+    message: result.message,
+  }
 }

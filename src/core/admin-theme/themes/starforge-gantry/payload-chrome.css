@@ -360,6 +360,10 @@ html[data-theme='dark'] .btn.btn--size-small {
   line-height: 1.25;
 }
 
+.nav .admin-sidebar-who {
+  padding: 0;
+}
+
 .nav .admin-sidebar-who .admin-who {
   margin: 0;
   font-size: 0.8em;
@@ -368,12 +372,31 @@ html[data-theme='dark'] .btn.btn--size-small {
 }
 
 .nav .admin-sidebar-account {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 0.55em;
+  gap: 0.65em;
+  width: 100%;
   max-width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0.55em 0.65em;
+  border: 1px solid #314257;
+  border-radius: 6px;
+  background: color-mix(in srgb, #1a2433 88%, transparent);
   text-decoration: none;
   color: inherit;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.nav .admin-sidebar-account:hover,
+.nav .admin-sidebar-account:focus-visible {
+  border-color: #4aa3df;
+  background: color-mix(in srgb, #3498db 32%, #1a2433);
+  box-shadow: 0 0 0 1px color-mix(in srgb, #4aa3df 50%, transparent);
+  outline: none;
 }
 
 .nav .admin-sidebar-avatar {
@@ -381,8 +404,8 @@ html[data-theme='dark'] .btn.btn--size-small {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2em;
-  height: 2em;
+  width: 2.15em;
+  height: 2.15em;
   border-radius: 50%;
   overflow: hidden;
   border: 1px solid #314257;
@@ -392,6 +415,9 @@ html[data-theme='dark'] .btn.btn--size-small {
   font-weight: 700;
   letter-spacing: 0.04em;
   line-height: 1;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .nav .admin-sidebar-account:hover .admin-sidebar-avatar,
@@ -408,16 +434,38 @@ html[data-theme='dark'] .btn.btn--size-small {
   object-fit: cover;
 }
 
+.nav .admin-sidebar-account-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1em;
+}
+
 .nav .admin-sidebar-account-name {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.78em;
+  font-size: 0.82em;
   font-weight: 650;
   line-height: 1.25;
   color: #fff !important;
   -webkit-text-fill-color: #fff;
+}
+
+.nav .admin-sidebar-account-meta {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.68em;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  color: color-mix(in srgb, #fff 62%, transparent) !important;
+  -webkit-text-fill-color: color-mix(in srgb, #fff 62%, transparent);
 }
 
 .nav .admin-sidebar-account:hover .admin-sidebar-account-name,

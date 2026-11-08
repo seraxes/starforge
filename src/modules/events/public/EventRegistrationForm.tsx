@@ -1,8 +1,13 @@
 import React from 'react'
 
+import { getAppSession } from '@/core/auth/session'
+import { eq } from 'drizzle-orm'
+
+import { db, sfUsers } from '@/core/db'
 import { resolveFormCaptcha } from '@/core/security/captcha'
 import { formHasCaptchaField } from '@/core/forms/definition'
 import { FormWidget } from '@/modules/form/FormWidget'
+import { getOwnProfileContact } from '@/modules/profiles/api.server'
 
 import { loadEventRegistrationFields } from '../registration-form'
 import {
@@ -23,12 +28,14 @@ type Props = {
     | 'signupNote'
     | 'termsUrl'
   >
+  /** Prefill ticket select from area-card Register → needs form. */
+  preferredTierId?: string
 }
 
 /**
  * Public event signup — shared Forms engine + event-registration preset.
  */
-export async function EventRegistrationForm({ event }: Props) {
+export async function EventRegistrationForm({ event, preferredTierId }: Props) {
   if (event.status !== 'published') return null
 
   const window = isEventRegistrationOpen(event)
@@ -43,8 +50,27 @@ export async function EventRegistrationForm({ event }: Props) {
     )
   }
 
+  const session = await getAppSession()
+  const userId = session?.user?.id?.trim() || ''
+  let prefill: { name?: string; email?: string; phone?: string } | undefined
+  if (userId) {
+    const [userRow] = await db
+      .select({ email: sfUsers.email, name: sfUsers.name })
+      .from(sfUsers)
+      .where(eq(sfUsers.id, userId))
+      .limit(1)
+    const contact = await getOwnProfileContact(userId)
+    prefill = {
+      name: contact?.displayName || userRow?.name || session?.user?.name || '',
+      email: userRow?.email || session?.user?.email || '',
+      phone: contact?.phone || '',
+    }
+  }
+
   const { definitionId, document } = await loadEventRegistrationFields(event.id, {
     termsUrl: event.termsUrl,
+    preferredTierId,
+    prefill,
   })
   const occupied = await countRegisteredGuests(event.id)
   const remaining =
@@ -82,7 +108,7 @@ export async function EventRegistrationForm({ event }: Props) {
         </p>
       ) : null}
       <FormWidget
-        formKey={`event-reg-${event.id}`}
+        formKey={`event-reg-${event.id}-${preferredTierId || 'any'}`}
         slotId={`event-reg-${event.id}`}
         definitionId={definitionId}
         heading=""

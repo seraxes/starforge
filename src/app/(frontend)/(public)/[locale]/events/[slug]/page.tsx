@@ -30,6 +30,7 @@ import {
   findActiveRegistrationForUserOnEvent,
 } from '@/modules/events/registrations'
 import { resolveEventMediaSrc } from '@/modules/events/public/media-src'
+import { loadEventsModuleSettings } from '@/modules/events/settings'
 import {
   findEventById,
   findPublishedEventByPublicKey,
@@ -38,6 +39,7 @@ import {
 
 type Args = {
   params: Promise<{ locale: string; slug: string }>
+  searchParams: Promise<{ tier?: string }>
 }
 
 export async function generateMetadata({ params }: Args): Promise<Metadata> {
@@ -68,7 +70,7 @@ export async function generateMetadata({ params }: Args): Promise<Metadata> {
  * Public event detail (product:events) — sectioned layout + registration.
  * Path: `/[locale]/events/[slug|id]`.
  */
-export default async function PublicEventDetailPage({ params }: Args) {
+export default async function PublicEventDetailPage({ params, searchParams }: Args) {
   const { locale: localeParam, slug } = await params
   if (!isValidLocaleCode(localeParam)) {
     notFound()
@@ -102,21 +104,38 @@ export default async function PublicEventDetailPage({ params }: Args) {
     )
   }
 
+  const query = await searchParams
+  const preferredTierId = String(query.tier ?? '').trim()
+
   const venue = event.venueId ? await findVenueById(event.venueId) : null
   const formsOn = isCatalogModuleEnabled(settings, MODULE_IDS.forms)
-  const [organizers, speakers, sponsors, relatedRows, ticketTiers, occupied, myReg, coverSrc] =
-    await Promise.all([
-      listEventPartiesByIds(event.organizerPartyIds),
-      listEventPartiesByIds(event.speakerPartyIds),
-      listEventPartiesByIds(event.sponsorPartyIds),
-      Promise.all(event.relatedEventIds.map((rid) => findEventById(rid))),
-      listPublicTicketTiersForEvent(event.id),
-      countRegisteredGuests(event.id),
-      viewer.userId
-        ? findActiveRegistrationForUserOnEvent(viewer.userId, event.id)
-        : Promise.resolve(null),
-      resolveEventMediaSrc(event.coverMediaId),
-    ])
+  const eventPath = withLocalePrefix(
+    `/events/${encodeURIComponent(eventPublicPathKey(event))}`,
+    locale,
+  )
+  const [
+    organizers,
+    speakers,
+    sponsors,
+    relatedRows,
+    ticketTiers,
+    occupied,
+    myReg,
+    coverSrc,
+    moduleSettings,
+  ] = await Promise.all([
+    listEventPartiesByIds(event.organizerPartyIds),
+    listEventPartiesByIds(event.speakerPartyIds),
+    listEventPartiesByIds(event.sponsorPartyIds),
+    Promise.all(event.relatedEventIds.map((rid) => findEventById(rid))),
+    listPublicTicketTiersForEvent(event.id),
+    countRegisteredGuests(event.id),
+    viewer.userId
+      ? findActiveRegistrationForUserOnEvent(viewer.userId, event.id)
+      : Promise.resolve(null),
+    resolveEventMediaSrc(event.coverMediaId),
+    loadEventsModuleSettings(),
+  ])
   const relatedById = new Map(
     relatedRows
       .flatMap((r) =>
@@ -172,9 +191,14 @@ export default async function PublicEventDetailPage({ params }: Args) {
         occupied={occupied}
         signupStatus={signupStatus}
         coverSrc={coverSrc}
+        tierCapacityDisplay={moduleSettings.settings.tierCapacityDisplay}
+        eventPath={eventPath}
+        loginPath={withLocalePrefix('/login', locale)}
       />
       <EventLiveMap eventId={event.id} />
-      {formsOn ? <EventRegistrationForm event={event} /> : null}
+      {formsOn ? (
+        <EventRegistrationForm event={event} preferredTierId={preferredTierId} />
+      ) : null}
     </div>
   )
 }

@@ -23,10 +23,15 @@ type TierRow = {
   id: string
   eventId: string
   title: string
+  shortDescription: string
   description: string
   kind: string
   capacity: number | null
+  maxPerBooking: number | null
   priceLabel: string
+  titleColor: string
+  borderColor: string
+  backgroundColor: string
   sortOrder: number
   occupied: number
   updatedAt: string

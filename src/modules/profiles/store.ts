@@ -453,3 +453,26 @@ export async function countProfiles(): Promise<{ users: number; profiles: number
   ])
   return { users: users[0]?.n ?? 0, profiles: profiles[0]?.n ?? 0 }
 }
+
+/**
+ * Fill empty contact fields only (Events one-click / form sync).
+ * Never overwrites a value the member already set.
+ */
+export async function fillMissingProfileContact(
+  userId: string,
+  input: { phone?: string; displayName?: string },
+): Promise<void> {
+  const id = userId.trim()
+  if (!id) return
+  const current = await ensureProfile(id)
+  if (!current) return
+
+  const phone = normalizePhone(input.phone)
+  const displayName = normalizeText(input.displayName, 80)
+  const patch: Partial<typeof sfProfiles.$inferInsert> = {}
+  if (phone && !current.phone.trim()) patch.phone = phone
+  if (displayName && !current.displayName.trim()) patch.displayName = displayName
+  if (Object.keys(patch).length === 0) return
+
+  await db.update(sfProfiles).set(patch).where(eq(sfProfiles.userId, id))
+}

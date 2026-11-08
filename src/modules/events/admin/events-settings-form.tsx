@@ -11,7 +11,7 @@ import {
   seedEventsEmailStartersAction,
   type EventsAdminActionState,
 } from '../actions'
-import type { EventsModuleSettings } from '../types'
+import { TIER_CAPACITY_DISPLAY_MODES, type EventsModuleSettings } from '../types'
 
 type Props = {
   settings: EventsModuleSettings
@@ -68,6 +68,27 @@ export function EventsSettingsForm({ settings }: Props) {
               disabled={busy}
             />
             <span>Prevent duplicate registration (same email per event)</span>
+          </label>
+          <label className="settings-field">
+            <span>Ticket card capacity display</span>
+            <select
+              name="tierCapacityDisplay"
+              defaultValue={settings.tierCapacityDisplay || 'both'}
+              disabled={busy}
+            >
+              {TIER_CAPACITY_DISPLAY_MODES.map((mode) => (
+                <option key={mode} value={mode}>
+                  {mode === 'both'
+                    ? 'Occupied / max and free slots'
+                    : mode === 'free'
+                      ? 'Free slots only'
+                      : 'Occupied / max only'}
+                </option>
+              ))}
+            </select>
+            <span className="settings-hint">
+              How public ticket / faction area cards show seat counts.
+            </span>
           </label>
           <div className="page-settings-actions">
             <button
