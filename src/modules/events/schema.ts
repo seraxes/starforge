@@ -70,10 +70,17 @@ export const sfEvents = pgTable(
     galleryMediaIds: jsonb('gallery_media_ids').$type<string[]>().notNull().default([]),
     /** Null = unlimited. */
     capacity: integer('capacity'),
+    /** When full, public signup may join the waitlist (FIFO promote when seats free). */
+    waitlistEnabled: pgBoolean('waitlist_enabled').notNull().default(true),
     /** Null = open when published. */
     registrationOpensAt: timestamp('registration_opens_at', { withTimezone: true }),
     /** Null = no hard close (beyond event status). */
     registrationClosesAt: timestamp('registration_closes_at', { withTimezone: true }),
+    /**
+     * Premium merchant user who collects ticket money (own Barion / invoice keys).
+     * Null = site MoR checkout via product:payments settings.
+     */
+    merchantUserId: text('merchant_user_id'),
     /** User ids who can manage this event (beyond app-admin). */
     managerUserIds: jsonb('manager_user_ids').$type<string[]>().notNull().default([]),
     /** User ids who can help edit (same write surface as managers for now). */
@@ -120,6 +127,7 @@ export const sfEvents = pgTable(
     index('sf_events_slug_idx').on(table.slug),
     index('sf_events_listed_idx').on(table.listed),
     index('sf_events_featured_idx').on(table.featured),
+    index('sf_events_merchant_user_id_idx').on(table.merchantUserId),
   ],
 )
 
@@ -168,6 +176,11 @@ export const sfEventTicketTiers = pgTable(
     capacity: integer('capacity'),
     /** Max tickets (guests) allowed on a single booking for this tier; null = default cap. */
     maxPerBooking: integer('max_per_booking'),
+    /** Numeric base price (major units). Null = no amount; display may still use priceLabel. */
+    price: integer('price'),
+    /** Added to `price` for the effective amount when priceLabel override is empty. */
+    priceModifier: integer('price_modifier').notNull().default(0),
+    /** Optional display text that overwrites the formatted price on public cards. */
     priceLabel: text('price_label').notNull().default(''),
     /** Public card title (h3) color — hex or empty for theme default. */
     titleColor: text('title_color').notNull().default(''),
@@ -210,6 +223,8 @@ export const sfEventRegistrations = pgTable(
     attendance: text('attendance').notNull().default('in_person'),
     notes: text('notes').notNull().default(''),
     status: text('status').notNull().default('registered'),
+    /** product:payments order id when tier requires payment. */
+    paymentOrderId: text('payment_order_id'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true })
       .defaultNow()
@@ -221,5 +236,6 @@ export const sfEventRegistrations = pgTable(
     index('sf_event_registrations_tier_id_idx').on(table.ticketTierId),
     index('sf_event_registrations_email_idx').on(table.email),
     index('sf_event_registrations_status_idx').on(table.status),
+    index('sf_event_registrations_payment_order_id_idx').on(table.paymentOrderId),
   ],
 )

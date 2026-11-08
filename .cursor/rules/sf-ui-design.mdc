@@ -1,5 +1,5 @@
 ---
-description: Unified modular UI — reuse shared SF chrome, pickers, and patterns across Core and Modules; no one-off dialogs or control skins.
+description: Unified modular UI — copy Layouts/Events shell first; same-type controls same size/shape/color; no one-off skins.
 globs: "**/*.{tsx,css}"
 alwaysApply: true
 ---
@@ -8,17 +8,43 @@ alwaysApply: true
 
 Buttons, inputs, panels, and insert flows must **match existing Starforge chrome** and **reuse shared modules** (Media picker, Forms, Email Manager, etc.). Same job → same UI pattern everywhere.
 
+**Uniformity (hard rule):** Same-type controls must share the **same size, shape, typography, spacing, and color tokens**. All new admin/member UI follows **Layouts / Page Settings / Events** — Starforge colors, Gantry buttons, field shapes. Do not invent tiny inputs, micro labels, or condensed one-off forms.
+
+## Copy shell first (mandatory)
+
+Before writing a new admin settings/list screen:
+
+1. Open the nearest finished page (prefer Events settings or Page Settings).
+2. **Copy** structure and classes — do not “approximate”:
+   - Nav: `gantry-layouts-nav` + `gantry-layouts-nav-tabs` + `gantry-layouts-nav-tab`
+   - Page: `admin-section admin-layouts-full` + `h2` + `lede admin-lede`
+   - Settings mosaic: `admin-settings-mosaic` → `page-settings-panel` → `page-settings-panel-head` / `page-settings-panel-body`
+   - Fields: `settings-field` (+ `settings-hint`); flags: `settings-field settings-flag`
+   - Card actions: `page-settings-actions` bottom-right + `gantry-toolbar-btn` / `gantry-toolbar-btn-save`
+   - Save feedback: `useNotifySavedOnOk` + `admin-inline-error` / `admin-inline-ok`
+3. If a control does not exist in theme, **extend `core-chrome.css` tokens** — never add module-scoped input sizing CSS.
+
 ## Source of truth
 
 | Surface | Tokens / CSS | Prefer these classes |
 | --- | --- | --- |
-| **Admin** (`/admin`) | `src/core/admin-theme/themes/starforge-gantry/core-chrome.css` (`--sf-admin-*`, `--sf-*`) | `gantry-btn`, `gantry-btn-primary`, `gantry-toolbar-btn`, `gantry-toolbar-btn-save`, `settings-field`, `settings-fieldset`, `admin-settings-mosaic`, `outlines-create`, `admin-inline-actions` |
+| **Admin** (`/admin`) | `src/core/admin-theme/themes/starforge-gantry/core-chrome.css` (`--sf-admin-*`, `--sf-*`) | `gantry-btn`, `gantry-btn-primary`, `gantry-toolbar-btn`, `gantry-toolbar-btn-save`, `settings-field`, `page-settings-panel`, `admin-settings-mosaic`, `outlines-create`, `admin-inline-actions` |
 | **Payload CMS** (`/cms/admin`) | `…/starforge-gantry/payload-chrome.css` — same tokens; Layouts chrome is the visual reference | Payload widgets themed to SF; shared TipTap/`gantry-*`/`settings-field` when embedded |
-| **Public** | `src/app/(frontend)/styles.css` (`:root` `--sf-*`) | Existing `sf-*` / `cms-*` patterns; extend tokens, don’t hard-code hex |
+| **Public / member account** | `src/app/(frontend)/styles.css` (`:root` `--sf-*`) | Account editors still use `settings-field` + `gantry-btn*` / panel shell when editing |
 
 Prefs (admin): blue-dominated Gantry chrome; orange only on primary Save / rare CTAs; comfortable button size (`--sf-admin-btn-*`); no thin full-width action bars. Payload Publish / Create New = orange; Save Draft = muted toolbar blue — match Layouts.
 
-**Card actions (hard rule):** Cancel / Save / Apply / Delete / Geocode (and siblings) live in the **bottom-right** of the card (`outlines-create`, `settings-fieldset`, page-settings panel). Use `admin-action-row`, `page-settings-actions`, or `sf-events-form-actions` with `justify-content: flex-end`. Do not left-align or stretch a full-width action strip inside a card. Toolbar / filter / Add+ disclosure bars are not “card actions” — those stay top/inline.
+**Card actions (hard rule):** Cancel / Save / Apply / Delete / Geocode (and siblings) live in the **bottom-right** of the card (`page-settings-actions`, `outlines-create`, `settings-fieldset`, page-settings panel). Use `admin-action-row`, `page-settings-actions`, or `sf-events-form-actions` with `justify-content: flex-end`. Do not left-align or stretch a full-width action strip inside a card. Toolbar / filter / Add+ disclosure bars are not “card actions” — those stay top/inline.
+
+## Same-type = same design
+
+| Control type | Must match |
+| --- | --- |
+| Text inputs / selects / textareas | `settings-field` height, padding, font-size, border/radius from admin theme — **no** smaller sibling inputs |
+| Primary / secondary / toolbar buttons | `gantry-btn` / `gantry-toolbar-btn*` — same min-height as Layouts |
+| Labels / helper text | Theme label + `settings-hint` — no tiny uppercase microcopy |
+| Fieldsets / cards | `page-settings-panel` / mosaic rhythm |
+| Tables / list rows | Existing admin table density |
 
 ## Do
 
@@ -36,9 +62,11 @@ Prefs (admin): blue-dominated Gantry chrome; orange only on primary Save / rare 
 - Parallel modals/popups for a flow that already has an inline or shared pattern (e.g. video ≠ special dialog when Image/Gallery are inline).
 - Raw `<button>` / `<input>` without SF classes next to Gantry/settings chrome.
 - One-off colors, radii, paddings that fight `--sf-admin-btn-*` / `--sf-line` / `--sf-primary`.
+- Tiny/compact custom inputs, micro labels, or undersized buttons next to normal `settings-field` / `gantry-btn` controls.
+- Module-scoped CSS that re-sizes inputs/buttons (fix theme instead).
 - New UI-kit skins for admin until the project’s polish wave (prefs).
 - Per-module media libraries, field builders, or SMTP UIs.
 
 ## Quick check
 
-If two features do the same kind of thing (pick media, edit a field, save, filter), they must share the same component and chrome. If a new control sits next to an existing one and doesn’t match — fix the classes, don’t restyle from scratch.
+If two features do the same kind of thing (pick media, edit a field, save, filter), they must share the same component and chrome. If a new control sits next to an existing one and doesn’t match **size, shape, or color** — fix the classes, don’t restyle from scratch. If the page doesn’t look like Events/Layouts settings after a skim — rewrite the shell before shipping.

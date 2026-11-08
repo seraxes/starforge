@@ -29,7 +29,7 @@
 | **Module Manager / allowlist** | **Core** | Host that loads Modules |
 | **Redis / cache** | **Core (port)** | `PublishedContentCache` (+ later rate-limit/queues); not a product Module |
 | **Mailer** | **Core (port)** | console / SMTP / Resend adapters; Modules call `send()` |
-| **Payments** | **Core (port)** | Checkout adapters for Marketplace/Shop Modules; secrets in env |
+| **Payments** | **Core (port)** + **`product:payments` module** | Core: gateway/fiscal adapters + secrets (Mailer-like). Module: cart, orders, VAT invoices, admin — Events/Shop/Subscriptions/Ads consume `@/modules/payments/api` only |
 | **LlmProvider** | **Core (port)** | Optional complete() for Events AI draft (and later others); Mailer-like adapters |
 | **MapProvider** | **Core (port)** | Tiles/geocode adapters; Maps Module consumes |
 | **MediaStorage** (local → Spaces/S3) | **Core (port)** | Storage swap only — not a second media DB |
@@ -42,7 +42,8 @@
 | **Chat** | **Modules** | DM/group/media; uses **RealtimePort** for live messages; RTC port later on Core when calls ship |
 | **RealtimePort** (SSE → Redis fanout) | **Core (port)** | Shared push bus; Notifications / Chat / live Maps consume — not per-module WebSocket stacks |
 | **Stream** | **Modules** | Ingest/playback + ACL |
-| **Marketplace / Shop** | **Modules** | Listings/cart; **Payments port** on Core |
+| **Marketplace / Shop** | **Modules** | Listings/SKUs; checkout via **`product:payments`** (Core Payments port for gateways) |
+| **Payments (commerce)** | **Modules** | `product:payments` — shared cart/orders/VAT; never fork Forms/Email/Media |
 | **Ads** | **Modules** | Placements + campaign CRUD |
 | **Events / venues / booking** (+ AI description assist) | **Modules** | Generic venue/event + Form registration; AI assist calls **LlmProvider** port — not Hero-only |
 | **Maps / location sharing** | **Modules** | Privacy scopes + particle; uses **MapProvider** port; mobile client later |
@@ -68,6 +69,10 @@ Form engine stays the shared intake path — other Modules do not rebuild fields
 1. **Core** — make it excellent, but **agile**: thin solid ports and host, iterate; no big-bang perfection.
 2. **Modules** — think through behavior, then build toggleable packs on Core ports.
 3. **Hero** — unique business logic / features / theme **only on** Core + Modules; no Hero shortcuts that bypass unfinished ports.
+
+### Commercial priority (within Modules)
+
+Revenue floor — build **`product:payments`**, then wire consumers on the same API: **subscriptions**, **Events tickets**, **Ads**. **Shop** (incl. shipping quotes) later. **Marketplace** reuses payments + domain packs (e.g. highlight via subscriptions); never a second cart. Ownership map: [sf-module-ownership](../../../.cursor/rules/sf-module-ownership.mdc), [payments-cart-plan](./payments-cart-plan.md).
 
 ## What this does *not* change now
 

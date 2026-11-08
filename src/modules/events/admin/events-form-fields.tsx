@@ -249,8 +249,11 @@ export type EventFormRow = {
   coverMediaId?: string
   galleryMediaIds?: string[]
   capacity?: number | null
+  waitlistEnabled?: boolean
   registrationOpensAt?: string | null
   registrationClosesAt?: string | null
+  /** Premium merchant user id for ticket collect (empty = site MoR). */
+  merchantUserId?: string
   managerUserIds?: string[]
   helperUserIds?: string[]
   managerGroupIds?: string[]
@@ -485,6 +488,16 @@ export function EventFormFields({
             placeholder="Unlimited"
           />
         </label>
+        <label className="settings-field settings-flag">
+          <input
+            type="checkbox"
+            name="waitlistEnabled"
+            value="1"
+            defaultChecked={row?.waitlistEnabled !== false}
+            disabled={busy}
+          />
+          <span>Enable waitlist when full</span>
+        </label>
         <div className="settings-field settings-field-wide">
           <RichEditor
             name="description"
@@ -581,6 +594,28 @@ export function EventFormFields({
           />
           <span className="settings-hint">
             Linked next to the form — prefer a CMS page, not a giant per-event legal editor.
+          </span>
+        </label>
+      </fieldset>
+
+      <fieldset className="settings-fieldset sf-events-form-section">
+        <legend>Payments</legend>
+        <label className="settings-field">
+          <span>Collect as merchant</span>
+          <select
+            name="merchantUserId"
+            defaultValue={row?.merchantUserId ?? ''}
+            disabled={busy}
+          >
+            <option value="">Site MoR (platform keys)</option>
+            {users.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.label}
+              </option>
+            ))}
+          </select>
+          <span className="settings-hint">
+            Premium organizer with My merchant keys + ACL. Empty uses site payments settings.
           </span>
         </label>
       </fieldset>

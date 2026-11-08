@@ -134,6 +134,41 @@
       "when": 1794013000000,
       "tag": "0018_ticket_tier_max_per_booking",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1794014000000,
+      "tag": "0019_tier_price_waitlist",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1794015000000,
+      "tag": "0020_payments",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1794016000000,
+      "tag": "0021_event_registration_payment",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1794017000000,
+      "tag": "0022_pay_merchants",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1794018000000,
+      "tag": "0023_event_merchant_user",
+      "breakpoints": true
     }
   ]
 }

@@ -68,6 +68,15 @@ export function ensureEventsFormHooks(): void {
         const name = payloadString(ctx.payload, 'name')
         const email = payloadString(ctx.payload, 'email')
         const phone = payloadString(ctx.payload, 'phone')
+        const guests = payloadGuests(ctx.payload)
+
+        const {
+          ensureEventsPaymentHook,
+          isPaymentsModuleOn,
+          tierRequiresPayment,
+          startEventTicketCheckout,
+        } = await import('./payment-bridge')
+        ensureEventsPaymentHook()
 
         const result = await createEventRegistration({
           eventId,
@@ -76,13 +85,59 @@ export function ensureEventsFormHooks(): void {
           userId: ctx.userId,
           name,
           email,
-          guests: payloadGuests(ctx.payload),
+          guests,
           attendance: payloadString(ctx.payload, 'attendance') || 'in_person',
           notes: payloadString(ctx.payload, 'notes'),
         })
         if ('error' in result) {
           console.error('[events] registration hook failed', result.error)
           return
+        }
+
+        // Paid tier + payments on: hold seat as pending_payment and start shared checkout.
+        // Waitlisted / free tiers skip payments (capacity rules already applied).
+        if (
+          result.registration.status === 'registered' &&
+          ticketTierId &&
+          (await isPaymentsModuleOn())
+        ) {
+          const priced = await tierRequiresPayment(ticketTierId)
+          if (priced.requires) {
+            const { eq } = await import('drizzle-orm')
+            const { db } = await import('@/core/db')
+            const { sfEventRegistrations } = await import('./schema')
+            await db
+              .update(sfEventRegistrations)
+              .set({ status: 'pending_payment', updatedAt: new Date() })
+              .where(eq(sfEventRegistrations.id, result.registration.id))
+
+            const appUrl = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '')
+            const checkout = await startEventTicketCheckout({
+              registrationId: result.registration.id,
+              eventId: event.id,
+              eventTitle: event.title,
+              ticketTierId,
+              buyerEmail: email,
+              buyerName: name,
+              userId: ctx.userId,
+              guests,
+              merchantUserId: event.merchantUserId || null,
+              method:
+                (payloadString(ctx.payload, 'payment_method') as
+                  | 'bank_transfer'
+                  | 'pay_at_entrance'
+                  | 'cash'
+                  | 'barion'
+                  | 'stripe'
+                  | 'paypal'
+                  | '') || undefined,
+              returnUrl: `${appUrl}/events/${event.slug}?paid=1`,
+              cancelUrl: `${appUrl}/events/${event.slug}?paid=0`,
+            })
+            if (!checkout.ok) {
+              console.error('[events] checkout failed', checkout.error)
+            }
+          }
         }
 
         if (ctx.userId) {

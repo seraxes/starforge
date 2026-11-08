@@ -104,7 +104,7 @@ export async function quickRegisterForTier(
   if (typeof tier.capacity === 'number') {
     const { countRegisteredGuestsForTier } = await import('./tiers')
     const occupied = await countRegisteredGuestsForTier(eventId, tierId)
-    if (occupied >= tier.capacity) {
+    if (occupied >= tier.capacity && !event.waitlistEnabled) {
       return { error: 'This ticket type is sold out.' }
     }
   }

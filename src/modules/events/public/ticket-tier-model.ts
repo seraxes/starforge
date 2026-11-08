@@ -7,7 +7,10 @@ export type PublicTicketTier = {
   shortDescription: string
   description: string
   kind: TicketTierKind
+  /** Resolved display string (override text, or base+modifier, or ''). */
   priceLabel: string
+  price: number | null
+  priceModifier: number
   titleColor: string
   borderColor: string
   backgroundColor: string
@@ -17,4 +20,6 @@ export type PublicTicketTier = {
   occupied: number
   remaining: number | null
   soldOut: boolean
+  /** Event allows joining waitlist when this tier/event is full. */
+  waitlistEnabled: boolean
 }

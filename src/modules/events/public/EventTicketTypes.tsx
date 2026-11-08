@@ -33,42 +33,19 @@ type Props = {
   signupStatus?: EventSignupStatus
 }
 
-function CapacityMeta({
-  tier,
-  mode,
-}: {
-  tier: PublicTicketTier
-  mode: TierCapacityDisplayMode
-}) {
-  if (tier.soldOut) {
-    return <p className="sf-event-ticket-type-meta settings-hint">Sold out</p>
-  }
-  if (typeof tier.capacity !== 'number') {
-    return <p className="sf-event-ticket-type-meta settings-hint">Open</p>
-  }
-
-  const occupiedLine = `${tier.occupied} / ${tier.capacity}`
-  const free =
-    tier.remaining != null
-      ? `${tier.remaining} free slot${tier.remaining === 1 ? '' : 's'}`
-      : null
-
-  if (mode === 'occupied_max') {
-    return <p className="sf-event-ticket-type-meta settings-hint">{occupiedLine}</p>
-  }
-  if (mode === 'free') {
-    return (
-      <p className="sf-event-ticket-type-meta settings-hint">{free ?? occupiedLine}</p>
-    )
-  }
-
+/** Top-right booked / max (∞ when unlimited). */
+function BookedMax({ tier }: { tier: PublicTicketTier }) {
+  const max =
+    typeof tier.capacity === 'number' ? String(tier.capacity) : '∞'
+  const label = `${tier.occupied}/${max}`
   return (
-    <div className="sf-event-ticket-type-capacity">
-      <p className="sf-event-ticket-type-meta settings-hint">{occupiedLine}</p>
-      {free ? (
-        <p className="sf-event-ticket-type-meta is-free settings-hint">{free}</p>
-      ) : null}
-    </div>
+    <p
+      className="sf-event-ticket-type-booked"
+      title="Booked / max"
+      aria-label={`${tier.occupied} booked of ${max === '∞' ? 'unlimited' : max}`}
+    >
+      {label}
+    </p>
   )
 }
 
@@ -150,15 +127,18 @@ export function EventTicketTypes({
       <ul className="sf-event-ticket-types-list">
         {tiers.map((tier) => {
           const busy = isPending && pendingTier === tier.id
+          const canWaitlist = tier.soldOut && tier.waitlistEnabled
           const disabled =
             !registrationOpen ||
-            tier.soldOut ||
+            (tier.soldOut && !tier.waitlistEnabled) ||
             alreadyIn ||
             (isPending && pendingTier !== null)
           return (
             <li
               key={tier.id}
-              className={`sf-event-ticket-type${tier.soldOut ? ' is-sold-out' : ''}${
+              className={`sf-event-ticket-type${
+                tier.kind === 'faction' ? ' is-faction' : ''
+              }${tier.soldOut ? ' is-sold-out' : ''}${
                 alreadyIn ? ' is-registered' : ''
               }`}
               style={tierCardStyle(tier)}
@@ -167,9 +147,7 @@ export function EventTicketTypes({
                 <h3 className="sf-event-ticket-type-title" style={tierTitleStyle(tier)}>
                   {tier.title}
                 </h3>
-                {tier.priceLabel.trim() ? (
-                  <p className="sf-event-ticket-type-price">{tier.priceLabel.trim()}</p>
-                ) : null}
+                <BookedMax tier={tier} />
               </div>
               {tier.kind === 'faction' ? (
                 <p className="sf-event-ticket-type-kind settings-hint">Faction</p>
@@ -177,7 +155,17 @@ export function EventTicketTypes({
               {tier.shortDescription.trim() ? (
                 <p className="sf-event-ticket-type-desc">{tier.shortDescription.trim()}</p>
               ) : null}
-              <CapacityMeta tier={tier} mode={capacityDisplay} />
+              {tier.priceLabel.trim() ? (
+                <p className="sf-event-ticket-type-price">{tier.priceLabel.trim()}</p>
+              ) : null}
+              {capacityDisplay === 'free' &&
+              !tier.soldOut &&
+              typeof tier.capacity === 'number' &&
+              tier.remaining != null ? (
+                <p className="sf-event-ticket-type-meta is-free settings-hint">
+                  {tier.remaining} free slot{tier.remaining === 1 ? '' : 's'}
+                </p>
+              ) : null}
               <div className="sf-event-ticket-type-cta">
                 {alreadyIn ? (
                   <span className="settings-hint">
@@ -185,16 +173,24 @@ export function EventTicketTypes({
                   </span>
                 ) : !registrationOpen ? (
                   <span className="settings-hint">Registration closed</span>
-                ) : tier.soldOut ? (
+                ) : tier.soldOut && !tier.waitlistEnabled ? (
                   <span className="settings-hint">Sold out</span>
                 ) : (
                   <button
                     type="button"
-                    className="sf-event-ticket-type-register"
+                    className={`sf-event-ticket-type-register${
+                      canWaitlist ? ' is-waitlist' : ''
+                    }`}
                     disabled={disabled}
                     onClick={() => onRegister(tier.id)}
                   >
-                    {busy ? 'Registering…' : 'Register'}
+                    {busy
+                      ? canWaitlist
+                        ? 'Joining…'
+                        : 'Registering…'
+                      : canWaitlist
+                        ? 'Join waitlist'
+                        : 'Register'}
                   </button>
                 )}
               </div>

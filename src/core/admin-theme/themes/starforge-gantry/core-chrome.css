@@ -25,7 +25,9 @@ body:has(.admin-shell) > main {
   --sf-admin-section: transparent;
   --sf-admin-card: #3498db; /* solid mid-blue particle bars */
   --sf-admin-card-light: #4691d1;
-  --sf-admin-input: #152033;
+  /* Light wells on dark chrome — readable SF form fields (not navy-on-navy) */
+  --sf-admin-input: #ffffff;
+  --sf-admin-input-ink: #1c2834;
   --sf-admin-blue-border: #1e4d72;
   --sf-admin-blue-mid: #3498db;
   /* Sidebar current leaf — same family as mid, a few shades darker */
@@ -56,10 +58,11 @@ body:has(.admin-shell) > main {
   --sf-admin-card-pad-x: 0.85rem;
   --sf-admin-card-pad-y: 0.75rem;
   --sf-admin-card-pad-bottom: 0.85rem;
-  /* Input wells = Layouts gantry-settings-theme-dark density */
-  --sf-admin-input-pad-y: 0.35rem;
-  --sf-admin-input-pad-x: 0.5rem;
-  --sf-admin-input-min-height: 2.1rem;
+  /* Input wells — match comfortable Gantry text size (not micro) */
+  --sf-admin-input-pad-y: 0.45rem;
+  --sf-admin-input-pad-x: 0.65rem;
+  --sf-admin-input-min-height: 2.35rem;
+  --sf-admin-input-font: 0.95rem;
 
   /* Remap shared brand aliases used by existing admin/gantry CSS */
   --sf-ink: #ffffff;
@@ -313,9 +316,9 @@ body:has(.admin-shell) > main {
 .admin-shell .admin-groups-form input,
 .admin-shell .admin-groups-form select {
   background: var(--sf-admin-input);
-  color: var(--sf-ink);
+  color: var(--sf-admin-input-ink, #1c2834);
   border: 1px solid var(--sf-admin-blue-border);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 6%, transparent);
+  box-shadow: none;
 }
 
 .admin-shell .admin-inline-form select,
@@ -345,9 +348,10 @@ body:has(.admin-shell) > main {
 .admin-shell .gantry-typed-form select {
   background: var(--sf-admin-input) !important;
   border: 1px solid var(--sf-admin-blue-border) !important;
-  color: var(--sf-ink) !important;
+  color: var(--sf-admin-input-ink, #1c2834) !important;
+  font-size: var(--sf-admin-input-font, 0.95rem) !important;
+  font-weight: 400 !important;
   min-height: var(--sf-admin-input-min-height);
-  /* Beat styles.css light padding (0.55/0.65) — Layouts density */
   padding: var(--sf-admin-input-pad-y) var(--sf-admin-input-pad-x) !important;
   border-radius: 3px;
   box-sizing: border-box;
@@ -364,22 +368,22 @@ body:has(.admin-shell) > main {
 .gantry-settings-theme-dark input[type='datetime-local'] {
   background: var(--sf-admin-input) !important;
   border: 1px solid var(--sf-admin-blue-border) !important;
-  color: var(--sf-ink) !important;
-  min-height: var(--sf-admin-input-min-height, 2.1rem);
-  padding: var(--sf-admin-input-pad-y, 0.35rem) var(--sf-admin-input-pad-x, 0.5rem) !important;
+  color: var(--sf-admin-input-ink, #1c2834) !important;
+  min-height: var(--sf-admin-input-min-height, 2.35rem);
+  padding: var(--sf-admin-input-pad-y, 0.45rem) var(--sf-admin-input-pad-x, 0.65rem) !important;
   font: inherit;
   font-weight: 400;
-  font-size: inherit;
+  font-size: var(--sf-admin-input-font, 0.95rem) !important;
   line-height: inherit;
-  color-scheme: dark;
-  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 6%, transparent);
+  color-scheme: light;
+  box-shadow: none;
   box-sizing: border-box;
   border-radius: 3px;
   width: 100%;
   max-width: 100%;
 }
 
-/* White picker glyphs; stroke ~50% thicker than default 1.5 → 2.25 */
+/* Dark picker glyphs on white wells; stroke ~50% thicker than default 1.5 → 2.25 */
 .admin-shell input[type='date']::-webkit-calendar-picker-indicator,
 .admin-shell input[type='datetime-local']::-webkit-calendar-picker-indicator,
 .gantry-settings-theme-dark input[type='date']::-webkit-calendar-picker-indicator,
@@ -392,7 +396,7 @@ body:has(.admin-shell) > main {
   cursor: pointer;
   filter: none;
   background-color: transparent;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Crect x='2' y='3.25' width='12' height='10.5' rx='1.25' stroke='%23ffffff' stroke-width='2.25'/%3E%3Cpath d='M2 6.5H14' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round'/%3E%3Cpath d='M5.25 2V4.5M10.75 2V4.5' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Crect x='2' y='3.25' width='12' height='10.5' rx='1.25' stroke='%231c2834' stroke-width='2.25'/%3E%3Cpath d='M2 6.5H14' stroke='%231c2834' stroke-width='2.25' stroke-linecap='round'/%3E%3Cpath d='M5.25 2V4.5M10.75 2V4.5' stroke='%231c2834' stroke-width='2.25' stroke-linecap='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: center;
   background-size: 1.05rem 1.05rem;
@@ -408,7 +412,7 @@ body:has(.admin-shell) > main {
   cursor: pointer;
   filter: none;
   background-color: transparent;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Ccircle cx='8' cy='8' r='5.75' stroke='%23ffffff' stroke-width='2.25'/%3E%3Cpath d='M8 5V8.25L10.25 9.5' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Ccircle cx='8' cy='8' r='5.75' stroke='%231c2834' stroke-width='2.25'/%3E%3Cpath d='M8 5V8.25L10.25 9.5' stroke='%231c2834' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: center;
   background-size: 1.05rem 1.05rem;
@@ -432,7 +436,7 @@ body:has(.admin-shell) > main {
   -moz-appearance: none;
   appearance: none;
   padding-right: 2.25rem !important;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 5.75L8 10.25L12.5 5.75' stroke='%23c5d2e0' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 5.75L8 10.25L12.5 5.75' stroke='%231c2834' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
   background-repeat: no-repeat !important;
   background-position: right 0.6rem center !important;
   background-size: 0.95rem 0.95rem !important;
@@ -1620,7 +1624,8 @@ body:has(.admin-shell) > main {
   --sf-admin-bg-deep: #161e27;
   --sf-admin-surface: #1d2531;
   --sf-admin-elevated: #2d3a4b;
-  --sf-admin-input: #161e27;
+  --sf-admin-input: #ffffff;
+  --sf-admin-input-ink: #1c2834;
   --sf-admin-blue-border: #2f3d50;
   --sf-admin-blue-mid: #3498db;
   --sf-admin-blue-active: #2471a3;
@@ -1792,13 +1797,15 @@ body:has(.admin-shell) > main {
 .gantry-settings-theme-dark input[type='datetime-local'],
 .gantry-settings-theme-dark textarea,
 .gantry-settings-theme-dark select {
-  background: #161e27 !important;
+  background: var(--sf-admin-input, #ffffff) !important;
   border: 1px solid #2f3d50 !important;
   border-radius: 3px;
-  color: #fff !important;
+  color: var(--sf-admin-input-ink, #1c2834) !important;
+  font-size: var(--sf-admin-input-font, 0.95rem) !important;
+  font-weight: 400 !important;
   box-shadow: none !important;
-  min-height: 2rem;
-  padding: 0.35rem 0.5rem !important;
+  min-height: var(--sf-admin-input-min-height, 2.35rem);
+  padding: var(--sf-admin-input-pad-y, 0.45rem) var(--sf-admin-input-pad-x, 0.65rem) !important;
 }
 
 .gantry-settings-theme-dark .sf-code-field-panel,
@@ -3153,10 +3160,11 @@ body:has(.admin-shell) > main {
 .admin-shell .sf-media-bulk-bar select {
   background: var(--sf-admin-input) !important;
   border: 1px solid var(--sf-admin-blue-border) !important;
-  color: var(--sf-ink) !important;
-  min-height: 2.1rem;
+  color: var(--sf-admin-input-ink, #1c2834) !important;
+  font-size: var(--sf-admin-input-font, 0.95rem) !important;
+  min-height: var(--sf-admin-input-min-height, 2.35rem);
   border-radius: 3px;
-  padding: 0.35rem 0.55rem;
+  padding: var(--sf-admin-input-pad-y, 0.45rem) var(--sf-admin-input-pad-x, 0.65rem);
 }
 
 .admin-shell .sf-media-bulk-select-all {
@@ -3324,10 +3332,11 @@ body:has(.admin-shell) > main {
 .admin-shell .sf-media-picker-toolbar select {
   background: var(--sf-admin-input) !important;
   border: 1px solid var(--sf-admin-blue-border) !important;
-  color: var(--sf-ink) !important;
-  min-height: 2.1rem;
+  color: var(--sf-admin-input-ink, #1c2834) !important;
+  font-size: var(--sf-admin-input-font, 0.95rem) !important;
+  min-height: var(--sf-admin-input-min-height, 2.35rem);
   border-radius: 3px;
-  padding: 0.35rem 0.55rem;
+  padding: var(--sf-admin-input-pad-y, 0.45rem) var(--sf-admin-input-pad-x, 0.65rem);
 }
 
 .admin-shell .sf-media-library-upload-row .page-settings-actions {

@@ -1,0 +1,67 @@
+---
+description: One module owns each concern — document ownership continuously; never rebuild another pack’s job.
+globs: "**/*.{tsx,ts,md,mdc}"
+alwaysApply: true
+---
+
+# Starforge — module ownership
+
+**One engine per concern.** Every product capability has a single owning module (or Core port). New work **calls** that owner; it does not fork a second cart, form builder, media library, SMTP stack, profile store, or payment UI.
+
+## Continuously document
+
+When a boundary is decided or sharpened (who owns price, fulfillment, shipping, entitlements, chrome):
+
+1. Update the owner’s **README** (Shipped / Owns / Consumes).
+2. Update or add the matching **`.cursor/rules/sf-*-module.mdc`** when the concern is cross-cutting (Forms, Payments, UI).
+3. Reflect it in **`docs/project-context/docs/`** (platform layers, pack plans) so agents and humans share one map.
+
+Do not leave ownership only in chat. If it is clear in your head, it must be clear in the repo.
+
+## Revenue spine (why Payments is foundational)
+
+The platform’s commercial base is **modular checkout**, not a shop monolith. MVP money flows that must work end-to-end:
+
+| Flow | Domain owner (catalog / rules / fulfillment) | Checkout / money movement |
+| --- | --- | --- |
+| **Subscriptions** (plans, highlight, entitlements) | **`product:subscriptions`** (when shipped) | **`product:payments`** |
+| **Events tickets** | **`product:events`** | **`product:payments`** |
+| **Ads** (packages, credits, campaigns) | **`product:ads`** | **`product:payments`** |
+| **Shop** (SKUs, shipping) | **`product:shop`** — **later** | **`product:payments`** |
+| **Marketplace** fees / boosts | Owning marketplace / listings pack | **`product:payments`** (same cart/orders) |
+
+Shop is deferred; subscriptions, event tickets, and ads are the **revenue strategy floor**. Marketplace later reuses the same payments + domain layers (e.g. highlight via subscriptions).
+
+## Ownership test
+
+Ask: *which module would you delete to remove this concept?* That module owns it.
+
+| Example | Owner | Not owner |
+| --- | --- | --- |
+| Cart, order, VAT line, gateway, invoice series | **payments** | Events / Ads / Shop |
+| Tier capacity, waitlist, ticket fulfillment | **events** | payments |
+| Plan period, entitlement grant, “highlight” product | **subscriptions** | payments |
+| Ad package, placement, campaign credit balance | **ads** | payments |
+| Shipping rate / zone / delivery quote | **shop** | payments cart |
+| Registration field schema | **forms** | events / payments |
+| Receipt email copy / transport | **email-manager** (+ Core Mailer) | payments SMTP |
+
+Payments stores **`sourceModule` + price snapshot** on lines; consumers **re-resolve** domain prices server-side at checkout and run **fulfillment hooks** on paid / expire / refund.
+
+## Do
+
+- Prefer extending the owning pack’s API over adding parallel tables in a consumer.
+- Deep-link admin to the owner (`/admin/payments`, `/admin/forms`, …) instead of duplicating settings.
+- When adding a new pack that touches money, forms, media, or identity — wire to existing owners first; document the consume edge.
+
+## Don’t
+
+- Put shipping math in the cart engine — shop owns delivery; payments only accepts quoted line amounts from the owner.
+- Put subscription billing rules or ad auction logic inside payments.
+- Rebuild Forms / Media / Email / Profiles inside any commercial pack.
+
+## Related rules
+
+- `sf-payments-module.mdc` — commerce engine boundaries
+- `sf-forms-module.mdc` — intake / field schema
+- `sf-ui-design.mdc` — shared admin chrome

@@ -80,6 +80,15 @@ export function adminAreaGateForPath(pathname: string): AdminAreaGate {
   if (path === `${CORE_ADMIN_BASE}/email` || path.startsWith(`${CORE_ADMIN_BASE}/email/`)) {
     return { type: 'resource', key: 'admin.email-manager' }
   }
+  if (
+    path === `${CORE_ADMIN_BASE}/payments/merchant` ||
+    path.startsWith(`${CORE_ADMIN_BASE}/payments/merchant/`)
+  ) {
+    return { type: 'resource', key: 'admin.payments-merchant' }
+  }
+  if (path === `${CORE_ADMIN_BASE}/payments` || path.startsWith(`${CORE_ADMIN_BASE}/payments/`)) {
+    return { type: 'resource', key: 'admin.payments' }
+  }
   if (path === `${CORE_ADMIN_BASE}/events` || path.startsWith(`${CORE_ADMIN_BASE}/events/`)) {
     return { type: 'resource', key: 'admin.events' }
   }
