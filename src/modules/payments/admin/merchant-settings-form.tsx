@@ -45,9 +45,11 @@ export function MerchantSettingsForm({
             <label className="settings-field">
               <span>Display name</span>
               <input
+                type="text"
                 name="displayName"
                 defaultValue={merchant.displayName}
                 disabled={pending}
+                autoComplete="organization"
               />
             </label>
             <label className="settings-field">
@@ -60,7 +62,13 @@ export function MerchantSettingsForm({
             </label>
             <label className="settings-field">
               <span>Seller legal name</span>
-              <input name="sellerName" defaultValue={merchant.sellerName} disabled={pending} />
+              <input
+                type="text"
+                name="sellerName"
+                defaultValue={merchant.sellerName}
+                disabled={pending}
+                autoComplete="organization"
+              />
             </label>
             <label className="settings-field">
               <span>Seller address</span>
@@ -73,7 +81,13 @@ export function MerchantSettingsForm({
             </label>
             <label className="settings-field">
               <span>Seller VAT ID</span>
-              <input name="sellerVatId" defaultValue={merchant.sellerVatId} disabled={pending} />
+              <input
+                type="text"
+                name="sellerVatId"
+                defaultValue={merchant.sellerVatId}
+                disabled={pending}
+                autoComplete="off"
+              />
             </label>
           </div>
         </section>
@@ -86,18 +100,33 @@ export function MerchantSettingsForm({
             <label className="settings-field">
               <span>Bank account name</span>
               <input
+                type="text"
                 name="bankAccountName"
                 defaultValue={merchant.bankAccountName}
                 disabled={pending}
+                autoComplete="off"
               />
             </label>
             <label className="settings-field">
               <span>Bank name</span>
-              <input name="bankName" defaultValue={merchant.bankName} disabled={pending} />
+              <input
+                type="text"
+                name="bankName"
+                defaultValue={merchant.bankName}
+                disabled={pending}
+                autoComplete="off"
+              />
             </label>
             <label className="settings-field">
               <span>IBAN</span>
-              <input name="bankIban" defaultValue={merchant.bankIban} disabled={pending} />
+              <input
+                type="text"
+                name="bankIban"
+                defaultValue={merchant.bankIban}
+                disabled={pending}
+                autoComplete="off"
+                spellCheck={false}
+              />
             </label>
             <label className="settings-field">
               <span>Pay at entrance instructions</span>
@@ -143,9 +172,11 @@ export function MerchantSettingsForm({
             <label className="settings-field">
               <span>Payee email</span>
               <input
+                type="email"
                 name="barionPayeeEmail"
                 defaultValue={String(barion?.meta?.payeeEmail || '')}
                 disabled={pending}
+                autoComplete="email"
               />
             </label>
           </div>
@@ -186,9 +217,11 @@ export function MerchantSettingsForm({
             <label className="settings-field">
               <span>Billingo block id (optional)</span>
               <input
+                type="text"
                 name="billingBlockId"
                 defaultValue={String(billing?.meta?.blockId || '')}
                 disabled={pending}
+                autoComplete="off"
               />
             </label>
 

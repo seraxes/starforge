@@ -49,7 +49,14 @@ export function PaymentsSettingsForm({ settings }: { settings: PaymentsSettings 
           <div className="page-settings-panel-body">
             <label className="settings-field">
               <span>Currency (ISO)</span>
-              <input name="currency" defaultValue={settings.currency} required disabled={pending} />
+              <input
+                type="text"
+                name="currency"
+                defaultValue={settings.currency}
+                required
+                disabled={pending}
+                autoComplete="off"
+              />
             </label>
             <label className="settings-field">
               <span>Price entry mode</span>
@@ -75,14 +82,22 @@ export function PaymentsSettingsForm({ settings }: { settings: PaymentsSettings 
             </label>
             <label className="settings-field">
               <span>Tax country</span>
-              <input name="taxCountry" defaultValue={settings.taxCountry} disabled={pending} />
+              <input
+                type="text"
+                name="taxCountry"
+                defaultValue={settings.taxCountry}
+                disabled={pending}
+                autoComplete="country"
+              />
             </label>
             <label className="settings-field">
               <span>Invoice series prefix</span>
               <input
+                type="text"
                 name="invoiceSeriesPrefix"
                 defaultValue={settings.invoiceSeriesPrefix}
                 disabled={pending}
+                autoComplete="off"
               />
             </label>
             <label className="settings-field">
@@ -124,7 +139,13 @@ export function PaymentsSettingsForm({ settings }: { settings: PaymentsSettings 
           <div className="page-settings-panel-body">
             <label className="settings-field">
               <span>Seller name</span>
-              <input name="sellerName" defaultValue={settings.sellerName} disabled={pending} />
+              <input
+                type="text"
+                name="sellerName"
+                defaultValue={settings.sellerName}
+                disabled={pending}
+                autoComplete="organization"
+              />
             </label>
             <label className="settings-field">
               <span>Seller address</span>
@@ -137,23 +158,44 @@ export function PaymentsSettingsForm({ settings }: { settings: PaymentsSettings 
             </label>
             <label className="settings-field">
               <span>Seller VAT ID</span>
-              <input name="sellerVatId" defaultValue={settings.sellerVatId} disabled={pending} />
+              <input
+                type="text"
+                name="sellerVatId"
+                defaultValue={settings.sellerVatId}
+                disabled={pending}
+                autoComplete="off"
+              />
             </label>
             <label className="settings-field">
               <span>Bank account name</span>
               <input
+                type="text"
                 name="bankAccountName"
                 defaultValue={settings.bankAccountName}
                 disabled={pending}
+                autoComplete="off"
               />
             </label>
             <label className="settings-field">
               <span>Bank name</span>
-              <input name="bankName" defaultValue={settings.bankName} disabled={pending} />
+              <input
+                type="text"
+                name="bankName"
+                defaultValue={settings.bankName}
+                disabled={pending}
+                autoComplete="off"
+              />
             </label>
             <label className="settings-field">
               <span>IBAN</span>
-              <input name="bankIban" defaultValue={settings.bankIban} disabled={pending} />
+              <input
+                type="text"
+                name="bankIban"
+                defaultValue={settings.bankIban}
+                disabled={pending}
+                autoComplete="off"
+                spellCheck={false}
+              />
             </label>
             <label className="settings-field">
               <span>Pay at entrance instructions</span>

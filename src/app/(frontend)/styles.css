@@ -1861,6 +1861,7 @@ button:disabled {
   font-size: 0.92rem;
 }
 
+.settings-field input:not([type]),
 .settings-field input[type='text'],
 .settings-field input[type='url'],
 .settings-field input[type='email'],
@@ -1873,10 +1874,11 @@ button:disabled {
 .settings-field select,
 .settings-field textarea {
   font: inherit;
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 400;
-  min-height: 2.35rem;
-  padding: 0.45rem 0.65rem;
+  line-height: 1.35;
+  min-height: 2.5rem;
+  padding: 0.5rem 0.75rem;
   border: 1px solid var(--sf-line);
   border-radius: 3px;
   background: #fff;
@@ -6690,14 +6692,48 @@ button:disabled {
 .page-settings-asset-list input[type='url'],
 .page-settings-panel-body textarea,
 .page-settings-panel-body select,
+.page-settings-panel-body input:not([type]),
 .page-settings-panel-body input[type='text'],
-.page-settings-panel-body input[type='url'] {
+.page-settings-panel-body input[type='url'],
+.page-settings-panel-body input[type='email'],
+.page-settings-panel-body input[type='password'],
+.page-settings-panel-body input[type='number'] {
   width: 100%;
-  padding: 0.45rem 0.55rem;
+  min-height: 2.5rem;
+  padding: 0.5rem 0.75rem;
   border: 1px solid var(--sf-line);
-  border-radius: 6px;
+  border-radius: 3px;
   font: inherit;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.35;
   background: #fff;
+  color: #1c2834;
+  box-sizing: border-box;
+}
+
+/* Admin shell overrides the light defaults above (dark SF wells). */
+.admin-shell .page-settings-panel-body textarea,
+.admin-shell .page-settings-panel-body select,
+.admin-shell .page-settings-panel-body input:not([type]),
+.admin-shell .page-settings-panel-body input[type='text'],
+.admin-shell .page-settings-panel-body input[type='url'],
+.admin-shell .page-settings-panel-body input[type='email'],
+.admin-shell .page-settings-panel-body input[type='password'],
+.admin-shell .page-settings-panel-body input[type='number'],
+.admin-shell .settings-field select,
+.admin-shell .settings-field input:not([type]),
+.admin-shell .settings-field input[type='text'],
+.admin-shell .settings-field input[type='url'],
+.admin-shell .settings-field input[type='email'],
+.admin-shell .settings-field input[type='password'],
+.admin-shell .settings-field input[type='number'],
+.admin-shell .settings-field textarea {
+  background: #152033;
+  background-color: #152033;
+  color: #ffffff;
+  -webkit-text-fill-color: #ffffff;
+  border-color: var(--sf-admin-blue-border, #1e4d72);
 }
 
 .page-settings-row-actions {
@@ -7700,16 +7736,30 @@ button.danger:hover,
 }
 .sf-profile-vis {
   font: inherit;
-  font-size: var(--sf-admin-input-font, 0.95rem);
+  font-size: var(--sf-admin-input-font, 1rem);
   font-weight: 400;
-  min-height: var(--sf-admin-input-min-height, 2.35rem);
-  padding: var(--sf-admin-input-pad-y, 0.45rem) var(--sf-admin-input-pad-x, 0.65rem);
+  min-height: var(--sf-admin-input-min-height, 2.5rem);
+  padding: var(--sf-admin-input-pad-y, 0.5rem) 2.25rem var(--sf-admin-input-pad-y, 0.5rem)
+    var(--sf-admin-input-pad-x, 0.75rem);
   border: 1px solid var(--sf-line);
   background: #fff;
-  color: var(--sf-admin-input-ink, #1c2834);
+  color: #1c2834;
   max-width: 12rem;
   border-radius: 3px;
   box-sizing: border-box;
+}
+.admin-shell .sf-profile-vis {
+  background: #152033 !important;
+  background-color: #152033 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  border-color: var(--sf-admin-blue-border, #1e4d72) !important;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 5.75L8 10.25L12.5 5.75' stroke='%23c5d2e0' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.5rem center !important;
+  background-size: 0.9rem 0.9rem !important;
 }
 
 .sf-profile-links {
