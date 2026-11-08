@@ -31,7 +31,7 @@ export function MapsRoomsManager({
   const [pending, startTransition] = useTransition()
   const [createOpen, setCreateOpen] = useState(false)
   const [eventId, setEventId] = useState(eventOptions[0]?.id || '')
-  const [title, setTitle] = useState('Live map')
+  const [title, setTitle] = useState('TacMap')
   const [seed, setSeed] = useState(true)
   const [error, setError] = useState('')
   const [okMessage, setOkMessage] = useState('')
@@ -39,7 +39,7 @@ export function MapsRoomsManager({
   function resetCreate() {
     setCreateOpen(false)
     setError('')
-    setTitle('Live map')
+    setTitle('TacMap')
     setSeed(true)
     setEventId(eventOptions[0]?.id || '')
   }
@@ -65,7 +65,7 @@ export function MapsRoomsManager({
 
   return (
     <div className="sf-maps-rooms-manager admin-settings-mosaic">
-      <section className="outlines-create sf-events-add-panel" aria-label="Add live map room">
+      <section className="outlines-create sf-events-add-panel" aria-label="Add TacMap room">
         <div className="sf-events-add-bar">
           <button
             type="button"
@@ -82,7 +82,7 @@ export function MapsRoomsManager({
           </button>
           {!createOpen ? (
             <p className="settings-hint sf-events-add-hint">
-              Bind a closed tactical room to an event — teams and roster next.
+              Bind a TacMap room to an event — teams and roster next.
             </p>
           ) : null}
         </div>
@@ -161,14 +161,14 @@ export function MapsRoomsManager({
       ) : null}
 
       {rooms.length === 0 ? (
-        <section className="outlines-create" aria-label="Live maps list">
-          <h3>No live map rooms yet</h3>
+        <section className="outlines-create" aria-label="TacMap rooms">
+          <h3>No TacMap rooms yet</h3>
           <p className="admin-empty">
             Use <strong>Add +</strong> to bind a room to an event.
           </p>
         </section>
       ) : (
-        <section className="outlines-create" aria-label="Live maps list">
+        <section className="outlines-create" aria-label="TacMap rooms">
           <h3>Rooms</h3>
           <div className="outlines-table-wrap sf-events-list-table-wrap">
             <table className="outlines-table sf-events-list-table">

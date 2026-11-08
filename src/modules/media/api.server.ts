@@ -19,3 +19,10 @@ export {
   toResolvedMedia,
 } from '@/core/media/resolve'
 export type { MediaSizeName, MediaTagOption, ResolvedMedia } from '@/core/media/resolve'
+
+/** Member upload ledger — check ownership before storing a member-supplied `mediaId`. */
+export {
+  MEMBER_UPLOAD_MAX_BYTES,
+  listMemberMedia,
+  memberOwnsMedia,
+} from './member'

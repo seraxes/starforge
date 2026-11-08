@@ -2219,11 +2219,11 @@ body:has(.admin-shell) > main {
  * anchors. :not(.class) adds class specificity, so this rule previously beat
  * `.admin-sidebar-*` color declarations (sizes still applied; colors did not).
  */
-.admin-shell a:not(.admin-nav > a):not(.admin-nav-dropdown-trigger):not(.button-link):not(.gantry-toolbar-btn):not(.links a):not(.admin-sidebar-logo):not(.admin-sidebar-link):not(.admin-sidebar-sublink):not(.admin-sidebar-account) {
+.admin-shell a:not(.admin-nav > a):not(.admin-nav-dropdown-trigger):not(.button-link):not(.gantry-toolbar-btn):not(.links a):not(.admin-sidebar-logo):not(.admin-sidebar-link):not(.admin-sidebar-sublink):not(.admin-sidebar-account):not(.admin-sidebar-check-site) {
   color: var(--sf-secondary-strong);
 }
 
-.admin-shell a:not(.admin-nav > a):not(.admin-nav-dropdown-trigger):not(.button-link):not(.gantry-toolbar-btn):not(.admin-sidebar-logo):not(.admin-sidebar-link):not(.admin-sidebar-sublink):not(.admin-sidebar-account):hover {
+.admin-shell a:not(.admin-nav > a):not(.admin-nav-dropdown-trigger):not(.button-link):not(.gantry-toolbar-btn):not(.admin-sidebar-logo):not(.admin-sidebar-link):not(.admin-sidebar-sublink):not(.admin-sidebar-account):not(.admin-sidebar-check-site):hover {
   color: var(--sf-primary-strong);
 }
 
@@ -2246,9 +2246,17 @@ body:has(.admin-shell) > main {
 .admin-shell .admin-sidebar .admin-sidebar-group-title,
 .admin-shell .admin-sidebar .admin-sidebar-sublink,
 .admin-shell .admin-sidebar .admin-sidebar-account-name,
-.admin-shell .admin-sidebar .admin-sidebar-account {
+.admin-shell .admin-sidebar .admin-sidebar-account,
+.admin-shell .admin-sidebar .admin-sidebar-check-site,
+.admin-shell .admin-sidebar .admin-sidebar-check-site-label {
   color: #fff !important;
   -webkit-text-fill-color: #fff;
+}
+
+.admin-shell .admin-sidebar .admin-sidebar-check-site:hover,
+.admin-shell .admin-sidebar .admin-sidebar-check-site:focus-visible {
+  background: var(--sf-admin-blue-mid, #3498db) !important;
+  color: #fff !important;
 }
 
 .admin-shell .admin-sidebar .admin-sidebar-link:hover,

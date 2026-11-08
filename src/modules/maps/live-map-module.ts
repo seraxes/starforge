@@ -17,14 +17,14 @@ import {
 } from './store'
 
 /**
- * live-map particle — closed tactical session for a configured room.
+ * live-map particle — TacMap session for a configured room.
  */
 export const liveMapModule: StarforgeModule = {
   id: 'live-map',
-  name: 'Live map',
-  description: 'Closed event tactical map (same-team GPS).',
+  name: 'TacMap',
+  description: 'Tactical Maps live session (same-team GPS).',
   defaultWidth: 100,
-  navViews: [{ key: 'admin', label: 'Live maps', href: '/admin/maps' }],
+  navViews: [{ key: 'admin', label: 'TacMap', href: '/admin/maps' }],
   render: async ({ slot, settings }) => {
     if (!isCatalogModuleEnabled(settings, MODULE_IDS.maps)) {
       return null
@@ -35,7 +35,7 @@ export const liveMapModule: StarforgeModule = {
       return React.createElement(
         'p',
         { className: 'settings-hint' },
-        'Configure a live map room id on this particle (Admin → Live maps).',
+        'Configure a TacMap room id on this particle (Admin → TacMap).',
       )
     }
 
@@ -44,7 +44,7 @@ export const liveMapModule: StarforgeModule = {
       return React.createElement(
         'p',
         { className: 'settings-hint' },
-        'Live map room is missing or inactive.',
+        'TacMap room is missing or inactive.',
       )
     }
 

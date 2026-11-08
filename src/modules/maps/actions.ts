@@ -29,7 +29,7 @@ import { isMapPointKind } from './types'
 async function requireMapsAdmin() {
   const settings = await getSiteSettings()
   if (!isCatalogModuleEnabled(settings, MODULE_IDS.maps)) {
-    throw new Error('Maps module is disabled')
+    throw new Error('TacMap (product:maps) is disabled')
   }
   const session = await requireAdminArea('admin.maps')
   if (!session?.user?.id) throw new Error('Unauthorized')
@@ -50,7 +50,7 @@ export async function createMapRoomAction(input: {
     const session = await requireMapsAdmin()
     const existing = await findMapRoomByEventId(input.eventId)
     if (existing) {
-      return { ok: false, error: 'A live map room already exists for this event.' }
+      return { ok: false, error: 'A TacMap room already exists for this event.' }
     }
     const room = await createMapRoom({
       eventId: input.eventId,

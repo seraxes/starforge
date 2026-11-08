@@ -8,13 +8,13 @@ export type MapsAdminTab = 'rooms' | 'edit'
 const TABS: { id: MapsAdminTab; label: string; href: string; title: string }[] = [
   {
     id: 'rooms',
-    label: 'Live maps',
+    label: 'Rooms',
     href: '/admin/maps',
-    title: 'Live map rooms',
+    title: 'TacMap rooms',
   },
 ]
 
-/** Horizontal Maps admin chrome — same Gantry tab pattern as Layouts / Events. */
+/** Horizontal TacMap admin chrome — same Gantry tab pattern as Layouts / Events. */
 export function MapsAdminNav({
   active,
   editHref,
@@ -30,12 +30,12 @@ export function MapsAdminNav({
       id: 'edit',
       label: editLabel || 'Room',
       href: editHref,
-      title: 'Edit live map room',
+      title: 'Edit TacMap room',
     })
   }
 
   return (
-    <nav className="gantry-layouts-nav sf-maps-admin-nav" aria-label="Maps">
+    <nav className="gantry-layouts-nav sf-maps-admin-nav" aria-label="TacMap">
       <ul className="gantry-layouts-nav-tabs" role="tablist">
         {tabs.map((tab) => {
           const isActive = tab.id === active

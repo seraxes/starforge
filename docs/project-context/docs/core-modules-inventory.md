@@ -221,7 +221,7 @@ Durable map of **feature modules** (Site Settings / allowlist toggleable) vs **i
 | --- | --- |
 | **Kind** | **Module** (`product:maps`) + Core **`MapProvider`** port |
 | **Status** | **partial / shipping** — MapProvider + venue pins + map particle; **live tactical rooms** (closed roster) in Maps module. Generic social location shares still plan-only. |
-| **Recommended** | Tactical live + **stations / hold / beacons roadmap** = [maps-live-tactical](./maps-live-tactical.md). ASN brand **TacMap** + beacon SKUs = **Hero** (not a Maps fork). Shares everyone/friends/selected = [maps-location-plan](./maps-location-plan.md) later. |
+| **Recommended** | **TacMap** (short) / **Tactical Maps** (long) — [maps-live-tactical](./maps-live-tactical.md). Stations / hold / beacons roadmap; ASN beacon SKUs = **Hero**. Shares everyone/friends/selected = [maps-location-plan](./maps-location-plan.md) later. |
 | **Next slice** | Capacitor background GPS; stations + GPS hold-to-capture; then BLE beacon presence; ASN shop kits. |
 
 ---

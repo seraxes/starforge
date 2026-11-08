@@ -14,8 +14,8 @@ export default defineStarforgeModule({
   kind: 'product',
   label: 'Media library',
   description:
-    'Single Payload Media library with sharp WebP/PNG pipeline, Spaces/S3 storage port, tags filter, and MediaAnalysisPort hooks. Required — Logo/Styles/Forms bind by mediaId.',
-  version: '0.2.0',
+    'Single Payload Media library with sharp WebP/PNG pipeline, Spaces/S3 storage port, tags filter, member upload ledger, and MediaAnalysisPort hooks. Required — Logo/Styles/Forms bind by mediaId.',
+  version: '0.3.0',
   required: true,
   defaultEnabled: true,
   admin: {
@@ -76,4 +76,6 @@ export default defineStarforgeModule({
     { key: 'admin', label: 'Media library', href: '/admin/media' },
     { key: 'settings', label: 'Media settings', href: '/admin/media/settings' },
   ],
+  /** `sf_media_owners` — member upload ownership ledger. */
+  db: { schema: 'src/modules/media/schema.ts' },
 })

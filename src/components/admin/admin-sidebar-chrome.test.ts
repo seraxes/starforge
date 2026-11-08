@@ -3,6 +3,7 @@ import { describe, it } from 'node:test'
 
 import {
   ADMIN_ACCOUNT_HREF,
+  ADMIN_CHECK_SITE_HREF,
   ADMIN_DASHBOARD_HREF,
   ADMIN_SHELL_LOGO_TOOLTIP,
   PAYLOAD_DASHBOARD_HREF,
@@ -46,5 +47,9 @@ describe('admin sidebar chrome constants', () => {
 
   it('points Payload logo at /cms/admin', () => {
     assert.equal(PAYLOAD_DASHBOARD_HREF, '/cms/admin')
+  })
+
+  it('points Check site at the public home', () => {
+    assert.equal(ADMIN_CHECK_SITE_HREF, '/')
   })
 })

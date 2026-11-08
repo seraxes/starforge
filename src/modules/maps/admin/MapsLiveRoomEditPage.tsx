@@ -17,7 +17,7 @@ import { MapsAdminNav } from './maps-admin-nav'
 import { MapsRoomEditor } from './maps-room-editor'
 
 export const metadata = {
-  title: 'Edit live map — Starforge',
+  title: 'Edit TacMap room — Starforge',
 }
 
 type Params = Promise<{ roomId: string }>
@@ -67,8 +67,8 @@ export default async function MapsLiveRoomEditPage({
         ) : (
           room.eventId
         )}
-        . Teams + roster — same-team only on the live map. List:{' '}
-        <Link href="/admin/maps">Live maps</Link>.
+        . Teams + roster — same-team only on TacMap. List:{' '}
+        <Link href="/admin/maps">TacMap</Link>.
       </p>
       <MapsRoomEditor
         room={{

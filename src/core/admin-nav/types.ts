@@ -3,7 +3,7 @@
 export type AdminNavLink = {
   href: string
   label: string
-  /** Exact match only (e.g. Check site → `/`, CMS Dashboard → `/cms/admin`). */
+  /** Exact match only (e.g. CMS Dashboard → `/cms/admin`). */
   exact?: boolean
   /** Cross-surface link (Core ↔ Payload); still same-tab navigation. */
   external?: boolean

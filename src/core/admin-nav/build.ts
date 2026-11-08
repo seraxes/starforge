@@ -193,11 +193,7 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
     })
   }
 
-  groups.push({
-    id: 'check-site',
-    label: 'Check site',
-    links: [{ href: '/', label: 'Check site', exact: true }],
-  })
+  // Check site lives beside the STARFORGE logo (AdminSidebarBrand), not in the nav list.
 
   return groups
 }

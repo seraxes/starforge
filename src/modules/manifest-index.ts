@@ -26,6 +26,7 @@ import marketplaceManifest from './marketplace/manifest'
 import mediaManifest from './media/manifest'
 import noticeBarManifest from './notice-bar/manifest'
 import pwaManifest from './pwa/manifest'
+import profilesManifest from './profiles/manifest'
 import redirectsManifest from './redirects/manifest'
 import lexicalEditorManifest from './lexical-editor/manifest'
 import richEditorManifest from './rich-editor/manifest'
@@ -47,6 +48,7 @@ export const ALL_MODULE_MANIFESTS: StarforgeModuleManifest[] = [
   eventMiniCalendarParticleManifest,
   eventDetailParticleManifest,
   eventCountdownParticleManifest,
+  profilesManifest,
   mapsManifest,
   mapParticleManifest,
   liveMapParticleManifest,

@@ -1,6 +1,6 @@
 # ASN Capacitor shell (background live map)
 
-Field client for Airsoft Nexus / Starforge **live tactical maps**.
+Field client for Airsoft Nexus / Starforge **TacMap** (Tactical Maps).
 
 Browser PWA cannot reliably keep GPS running in the background (especially iOS). This shell wraps the Starforge web app and uses Capacitor Geolocation (with background mode) while a live map **session** is active — Join until Leave.
 

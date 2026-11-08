@@ -14,7 +14,7 @@ import {
 } from '../store'
 import { LiveMapPanel } from './LiveMapPanel'
 
-/** Embed live tactical map on event detail when a room exists. */
+/** Embed TacMap on event detail when a room exists. */
 export async function EventLiveMap({ eventId }: { eventId: string }) {
   const settings = await getSiteSettings()
   if (!isCatalogModuleEnabled(settings, MODULE_IDS.maps)) return null
@@ -59,11 +59,12 @@ export async function EventLiveMap({ eventId }: { eventId: string }) {
   )
 
   return (
-    <section className="sf-event-live-map cms-block" aria-label="Live tactical map">
+    <section className="sf-event-live-map cms-block" aria-label="TacMap">
       <header className="sf-event-live-map-header">
-        <h2 className="sf-event-live-map-heading">Live map</h2>
+        <h2 className="sf-event-live-map-heading">TacMap</h2>
         <p className="sf-event-live-map-lede">
-          Same-team positions only. Join to share your location until you Leave.
+          Tactical Maps — same-team positions only. Join to share your location until you
+          Leave.
         </p>
       </header>
       <LiveMapPanel

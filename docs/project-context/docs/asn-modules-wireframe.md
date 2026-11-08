@@ -94,7 +94,7 @@ Core is not in this queue. Ship **one Module (or port) at a time** on the M1/M2 
 | --- | --- | --- | --- |
 | **0** | Keep Core frozen; only thin ports when a consumer lands | — | M1/M2 host, ACL, RateLimiter, Forms presets, Media M5, **Mailer** |
 | **0.5** | **Email Manager** (shared automatic/conditional emails; one admin; filter by module) | Rule/trigger contract modules will call; template storage; **no** second SMTP stack | Core **Mailer** port + Chrome email policy; Forms notify migrate onto rules |
-| **1** | **Profiles** (generic avatar/cover/bio/privacy) — *thin / optional ahead of Events* | Hero `extends` shape decision *documented* (implement when ASN fields land) | Media picker; Auth user; groups ACL for visibility |
+| **1** | **Profiles** (generic avatar/cover/bio/privacy) — *shipped v1* (`product:profiles`, `getPersonas`) | Hero `extensions` jsonb seam ready; ASN team/logo fields = Hero later | Media picker + member upload ledger; Auth user; per-field privacy |
 | **2** | **Events + venues** (CRUD, list/calendar particles, capacity) | Data-home: venues/events editorial vs `sf_events_*` registrations; `registerFormPreset` + `onSubmitted` capacity hook | Forms **event-registration**; Media cover/gallery; **Email Manager** confirms; ACL organizer group |
 | **3** | **Maps** (venue pins + event map particle first) | **`MapProvider`** Core port (leaflet-osm first); open Permissions-Policy `geolocation` when shares ship | Events `locationId`; Consent for share opt-in |
 | **4** | **Events** ticket tiers + organizer registrant admin | Optional **`LlmProvider`** only if “Draft description” ships in same wave | Forms; ACL; Media; Email Manager |

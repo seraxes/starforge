@@ -279,12 +279,12 @@ export function LiveMapPanel({
         <div className="sf-live-map-bar-actions">
           {canJoin && !session ? (
             <button type="button" className="sf-live-map-btn sf-live-map-btn-primary" onClick={join}>
-              Join map
+              Join TacMap
             </button>
           ) : null}
           {session ? (
             <button type="button" className="sf-live-map-btn" onClick={leave}>
-              Leave map
+              Leave TacMap
             </button>
           ) : null}
         </div>

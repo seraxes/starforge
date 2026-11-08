@@ -15,6 +15,25 @@
 export { MediaPicker } from './admin/MediaPicker'
 export type { MediaPickerValue } from './admin/MediaPicker'
 
+/** Members (non-admins): upload / re-use *own* images — never the admin library. */
+export { MemberMediaPicker } from './admin/MemberMediaPicker'
+export type { MemberMediaPickerProps } from './admin/MemberMediaPicker'
+
+/** Social-style pan/zoom crop — editor (client) + display frame. */
+export { ImageFrameEditor } from './admin/ImageFrameEditor'
+export type { ImageFrameEditorProps } from './admin/ImageFrameEditor'
+export { FramedImage } from './admin/FramedImage'
+export type { FramedImageProps } from './admin/FramedImage'
+export {
+  DEFAULT_IMAGE_FRAME,
+  normalizeImageFrame,
+  parseImageFrameJson,
+  computeImageFrameLayout,
+  imageFrameLayoutStyle,
+  type ImageFrame,
+  type ImageFrameShape,
+} from './image-frame'
+
 export { MediaLightbox, mediaLightboxSrc } from './admin/MediaLightbox'
 export { MediaCategoryTree } from './admin/MediaCategoryTree'
 

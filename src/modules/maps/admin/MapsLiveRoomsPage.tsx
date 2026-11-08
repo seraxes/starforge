@@ -10,11 +10,11 @@ import { MapsAdminNav } from './maps-admin-nav'
 import { MapsRoomsManager } from './maps-rooms-manager'
 
 export const metadata = {
-  title: 'Live maps — Starforge',
-  description: 'Closed event tactical map rooms.',
+  title: 'TacMap — Starforge',
+  description: 'Tactical Maps — closed event rooms.',
 }
 
-/** product:maps live rooms list. */
+/** product:maps TacMap rooms list. */
 export default async function MapsLiveRoomsPage() {
   const settings = await getSiteSettings()
   if (!isCatalogModuleEnabled(settings, MODULE_IDS.maps)) {
@@ -34,10 +34,10 @@ export default async function MapsLiveRoomsPage() {
   return (
     <section className="admin-section admin-layouts-full sf-maps-admin">
       <MapsAdminNav active="rooms" />
-      <h2>Live maps</h2>
+      <h2>TacMap</h2>
       <p className="lede admin-lede">
-        <strong>Add +</strong> · table · Edit room — teams, roster, overlays. Closed
-        tactical tool (same-team only). Module:{' '}
+        <strong>Tactical Maps</strong> — <strong>Add +</strong> · table · Edit room — teams,
+        roster, overlays. Closed same-team tool. Module:{' '}
         <Link href="/admin/settings">Settings → Modules</Link>. Events:{' '}
         <Link href="/admin/events">Events</Link>.
       </p>

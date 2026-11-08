@@ -25,6 +25,7 @@ export const MODULE_IDS = {
   forms: 'product:forms',
   emailManager: 'product:email-manager',
   events: 'product:events',
+  profiles: 'product:profiles',
   maps: 'product:maps',
   marketplace: 'product:marketplace',
   redirects: 'product:redirects',

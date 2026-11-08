@@ -21,7 +21,7 @@ export const sfMapRooms = pgTable(
   {
     id: text('id').primaryKey(),
     eventId: text('event_id').notNull(),
-    title: text('title').notNull().default('Live map'),
+    title: text('title').notNull().default('TacMap'),
     ownerUserId: text('owner_user_id').notNull(),
     /** When false, join/ingest rejected. */
     active: pgBoolean('active').notNull().default(true),

@@ -40,7 +40,7 @@ function mapRoom(row: typeof sfMapRooms.$inferSelect): MapRoomRecord {
   return {
     id: row.id,
     eventId: row.eventId,
-    title: row.title?.trim() || 'Live map',
+    title: row.title?.trim() || 'TacMap',
     ownerUserId: row.ownerUserId,
     active: Boolean(row.active),
     startsAt: row.startsAt ?? null,
@@ -178,7 +178,7 @@ export async function createMapRoom(input: {
   await db.insert(sfMapRooms).values({
     id,
     eventId,
-    title: (input.title || 'Live map').trim() || 'Live map',
+    title: (input.title || 'TacMap').trim() || 'TacMap',
     ownerUserId,
     active: input.active !== false,
   })
@@ -202,7 +202,7 @@ export async function updateMapRoom(
   await db
     .update(sfMapRooms)
     .set({
-      ...(patch.title != null ? { title: patch.title.trim() || 'Live map' } : {}),
+      ...(patch.title != null ? { title: patch.title.trim() || 'TacMap' } : {}),
       ...(patch.active != null ? { active: patch.active } : {}),
       ...(patch.startsAt !== undefined ? { startsAt: patch.startsAt } : {}),
       ...(patch.endsAt !== undefined ? { endsAt: patch.endsAt } : {}),

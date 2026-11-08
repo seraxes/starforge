@@ -1,10 +1,17 @@
 # Live tactical map (closed event tool)
 
-**Layer:** **Modules** (`product:maps`) for rooms / teams / roster / overlays / live ingest / **stations**. **RealtimePort** + **MapProvider** = Core. ASN **TacMap** branding + hardware catalog = **Hero**.
+**Layer:** **Modules** (`product:maps`) for rooms / teams / roster / overlays / live ingest / **stations**. **RealtimePort** + **MapProvider** = Core. ASN field chrome + hardware catalog = **Hero**.
 
 **Status:** Domain + live player session (foreground) shipping; Capacitor background shell, stations/hold/beacons = planned follow-ons.
 
-**Product names (ASN Hero):** **ASN Tactical Map** / **TacMap** — site-facing brand for organizers and players. Engine stays `product:maps` (no Maps fork).
+**Product names**
+
+| | |
+| --- | --- |
+| **Short** | **TacMap** |
+| **Long** | **Tactical Maps** |
+| **Module id** | `product:maps` (engine — do not fork) |
+| **ASN Hero** | Same names + milsim chrome; beacon SKUs in shop |
 
 ## What this is
 

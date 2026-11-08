@@ -1,7 +1,7 @@
 CREATE TABLE "sf_map_rooms" (
 	"id" text PRIMARY KEY NOT NULL,
 	"event_id" text NOT NULL,
-	"title" text DEFAULT 'Live map' NOT NULL,
+	"title" text DEFAULT 'TacMap' NOT NULL,
 	"owner_user_id" text NOT NULL,
 	"active" boolean DEFAULT true NOT NULL,
 	"starts_at" timestamp with time zone,

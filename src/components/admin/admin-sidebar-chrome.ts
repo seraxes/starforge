@@ -12,6 +12,9 @@ export const ADMIN_DASHBOARD_HREF = '/admin'
 /** Payload CMS dashboard home. */
 export const PAYLOAD_DASHBOARD_HREF = '/cms/admin'
 
+/** Public site home — Check site control beside the STARFORGE logo. */
+export const ADMIN_CHECK_SITE_HREF = '/'
+
 /** Logged-in account settings (Better Auth session — not Payload password). */
 export const ADMIN_ACCOUNT_HREF = '/account/security'
 

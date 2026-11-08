@@ -8,10 +8,6 @@ import { requireAppAdmin } from '@/core/auth/admin'
 
 import { getMediaAnalysisPort } from './analysis'
 import type { MediaAnalysisResult } from './analysis/types'
-import {
-  STARFORGE_PIPELINE_APPLIED,
-  applyMediaPipelineRules,
-} from './apply-pipeline'
 import type { MediaCategoryNode } from './categories'
 import {
   createMediaCategory,
@@ -21,6 +17,7 @@ import {
   renameMediaCategory,
   resolveFolderForCategory,
 } from './category-store'
+import { ingestImageUpload } from './ingest'
 import {
   mediaSuggestionPatchIsEmpty,
   mergeMediaAnalysisSuggestions,
@@ -28,7 +25,6 @@ import {
   type MediaSuggestionPatch,
 } from './library-query'
 import {
-  normalizeMediaFolder,
   normalizeMediaPipelineRules,
   normalizeMediaPurpose,
   type MediaFolder,
@@ -188,76 +184,18 @@ export async function uploadMediaAction(
     return { error: 'Only image uploads are supported in this library.' }
   }
 
-  const alt = String(formData.get('alt') ?? '').trim() || file.name.replace(/\.[^.]+$/, '') || 'Image'
-  const categoryRaw = String(formData.get('category') ?? '').trim()
-  const folderRaw = String(formData.get('folder') ?? '').trim()
-  const purpose = normalizeMediaPurpose(String(formData.get('purpose') ?? 'photo'))
-  const tagRaw = String(formData.get('tag') ?? '').trim()
-
   try {
-    const payload = await getPayload({ config })
-    await ensureLegacyCategoryRoots()
-
-    let categoryId: number | null = null
-    if (categoryRaw && categoryRaw !== 'all') {
-      const n = Number(categoryRaw)
-      if (Number.isFinite(n)) categoryId = n
-    }
-
-    const folder = categoryId
-      ? await resolveFolderForCategory(String(categoryId))
-      : normalizeMediaFolder(folderRaw || 'general')
-
-    // If only legacy folder was posted (picker defaultFolder), map onto category when possible.
-    if (!categoryId && folderRaw) {
-      const bySlug = await payload.find({
-        collection: 'categories',
-        where: { slug: { equals: normalizeMediaFolder(folderRaw) } },
-        limit: 1,
-        depth: 0,
-        overrideAccess: true,
-      })
-      if (bySlug.docs[0]) categoryId = Number(bySlug.docs[0].id)
-    }
-
-    const raw = Buffer.from(await file.arrayBuffer())
-    const rules = await getMediaPipelineRules()
-    const processed = await applyMediaPipelineRules({
-      buffer: raw,
-      mimeType: file.type,
-      purpose,
-      rules,
-    })
-    let name = file.name || `upload-${Date.now()}.jpg`
-    if (processed.extHint) {
-      name = name.replace(/\.[^.]+$/, '') + `.${processed.extHint}`
-    }
-
-    const tagId = tagRaw ? Number(tagRaw) : NaN
-    const doc = await payload.create({
-      collection: 'media',
-      data: {
-        alt,
-        folder,
-        purpose,
-        ...(categoryId != null && Number.isFinite(categoryId) ? { category: categoryId } : {}),
-        ...(Number.isFinite(tagId) ? { tags: [tagId] } : {}),
-      },
-      file: {
-        data: processed.data,
-        mimetype: processed.mimetype,
-        name,
-        size: processed.data.length,
-      },
-      context: { [STARFORGE_PIPELINE_APPLIED]: true },
-      overrideAccess: true,
+    // Shared pipeline + Payload write — also used by member uploads (ingest.ts).
+    const { media } = await ingestImageUpload({
+      file,
+      alt: String(formData.get('alt') ?? ''),
+      categoryRaw: String(formData.get('category') ?? ''),
+      folderRaw: String(formData.get('folder') ?? ''),
+      purpose: String(formData.get('purpose') ?? 'photo'),
+      tagRaw: String(formData.get('tag') ?? ''),
     })
 
     revalidatePath('/admin/media')
-    const media = toResolvedMedia(doc as Parameters<typeof toResolvedMedia>[0], {
-      size: 'thumbnail',
-      preferWebp: true,
-    })
     return {
       ok: true,
       message: 'Uploaded.',

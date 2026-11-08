@@ -52,7 +52,8 @@ Lean flavor: set `"flavor": "lean"` in `starforge.modules.json` (uses `presets.l
 | `product:lexical-editor` | `lexical-editor/` | Optional Lexical pack (legacy JSON / opt-in fields) |
 | `form` | `form/` | Form particle (dynamic import when allowlisted) |
 | `product:email-manager` | `email-manager/` | Rules/templates + send log + Dashboard `email.sent` |
-| `product:events` | `events/` | Thin Dashboard `events.upcoming` stub (no schema yet) |
+| `product:events` | `events/` | Events + venues + registration + particles |
+| `product:profiles` | `profiles/` | Member persona — `/u/[handle]`, account editor, `getPersonas()` contract |
 | `product:marketplace` | `marketplace/` | Thin Dashboard `marketplace.listings` stub (no schema yet) |
 | `product:media` | `media/` | Library + Dashboard `media.counts` stub |
 | `product:consent` | `consent/` | Banner + `publicShell` bodyEnd via generated loaders |

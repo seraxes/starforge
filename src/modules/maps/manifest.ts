@@ -1,25 +1,25 @@
 import { defineStarforgeModule } from '@/core/modules/define-module'
 
 /**
- * product:maps — map particle + live tactical rooms + MapProvider consumer.
+ * product:maps — TacMap (Tactical Maps): venue pins + closed live rooms + MapProvider.
  */
 export default defineStarforgeModule({
   id: 'product:maps',
   kind: 'product',
-  label: 'Maps',
+  label: 'TacMap',
   description:
-    'Map particle (Leaflet + OSM), venue pins, and closed live tactical rooms (roster teams). MapProvider Core port.',
-  version: '0.2.0',
+    'Tactical Maps (TacMap) — venue pins, closed live rooms (roster teams), MapProvider. Leaflet + OSM first.',
+  version: '0.2.1',
   defaultEnabled: true,
   requires: [],
   navViews: [
     { key: 'events', label: 'Events', href: '/events' },
-    { key: 'admin', label: 'Live maps', href: '/admin/maps' },
+    { key: 'admin', label: 'TacMap', href: '/admin/maps' },
   ],
   admin: {
     navGroup: {
       id: 'maps',
-      label: 'Maps',
+      label: 'TacMap',
       href: '/admin/maps',
       expandable: true,
       order: 49,
@@ -27,14 +27,14 @@ export default defineStarforgeModule({
     nav: [
       {
         group: 'maps',
-        label: 'Live maps',
+        label: 'Rooms',
         href: '/admin/maps',
         order: 10,
         area: 'maps',
         exact: true,
       },
     ],
-    areas: [{ key: 'maps', label: 'Maps' }],
+    areas: [{ key: 'maps', label: 'TacMap' }],
     routes: [
       {
         path: 'maps',

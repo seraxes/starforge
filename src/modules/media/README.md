@@ -15,7 +15,9 @@ import { MediaPicker } from '@/modules/media/api'
 import { resolveMediaById } from '@/modules/media/api.server'
 ```
 
-Client code must not import `api.server` (keeps Payload out of the client graph). Forms, Layout Styles/Logo, and future Events/Ads/Marketplace bind **`mediaId`** only — no forked library UI.
+Client code must not import `api.server` (keeps Payload out of the client graph). Forms, Layout Styles/Logo, Events, Profiles, and Marketplace bind **`mediaId`** only — no forked library UI.
+
+**Member uploads** (`MemberMediaPicker` + `sf_media_owners`): signed-in members upload through the same Media pipeline without admin rights; consumers call `memberOwnsMedia` before storing a member-supplied id.
 
 ## Site Settings → Modules
 

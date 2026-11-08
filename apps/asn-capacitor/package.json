@@ -2,7 +2,7 @@
   "name": "@starforge/asn-capacitor",
   "version": "0.1.0",
   "private": true,
-  "description": "ASN Capacitor shell — background geolocation for Starforge live tactical maps",
+  "description": "ASN Capacitor shell — background geolocation for Starforge TacMap (Tactical Maps)",
   "scripts": {
     "build:web": "node ./scripts/echo-web.mjs",
     "cap:sync": "npx cap sync",
