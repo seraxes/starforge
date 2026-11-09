@@ -6,11 +6,12 @@ import { getPreferredLayoutId } from '@/core/skin/preferred-outline'
 
 import { HOME_PAGE_KEY } from './defaults'
 import { mergePageChrome } from './merge'
-import { loadGlobalPageChrome, loadPageChromeOverride } from './store'
+import { isOutlineChromeRowId } from './outline-chrome'
+import { loadGlobalPageChrome, loadOutlinePageChrome, loadPageChromeOverride } from './store'
 import type { PageChrome, ResolvedPageChrome } from './types'
 
 /**
- * Map a public pathname to a pageKey for chrome overrides.
+ * Map a public pathname to a pageKey for nav outline lookup (`sf_page_chrome` layoutId).
  * `/` or `/en` → `home`; `/en/about` → `about`; auth/admin paths → null.
  * Locale prefixes from Core i18n are stripped before matching.
  */
@@ -42,8 +43,9 @@ export function pageKeyFromPathname(pathname: string | null | undefined): string
 }
 
 /**
- * Resolve merged chrome for a pageKey (`null` = global only / unknown route).
- * Empty layoutId falls back to the active skin’s preferred Default shell.
+ * Resolve chrome for a pageKey (`null` = global only / unknown route).
+ * Document chrome: Base outline = `global`; other outlines merge sparse `outline:<id>` over Base.
+ * Nav pageKey rows only supply `layoutId` (which outline applies).
  */
 export async function resolvePageChrome(pageKey: string | null): Promise<ResolvedPageChrome> {
   const [globalResult, preferredLayoutId] = await Promise.all([
@@ -51,14 +53,34 @@ export async function resolvePageChrome(pageKey: string | null): Promise<Resolve
     getPreferredLayoutId(),
   ])
   const mergeOpts = { fallbackLayoutId: preferredLayoutId }
+  const baseChrome = globalResult.chrome
+
   if (!pageKey) {
-    return mergePageChrome(globalResult.chrome, null, null, mergeOpts)
+    return mergePageChrome(baseChrome, null, null, mergeOpts)
   }
+
   const pageResult = await loadPageChromeOverride(pageKey)
-  if (pageResult.isFallback) {
-    return mergePageChrome(globalResult.chrome, null, pageKey, mergeOpts)
+  const navLayoutId =
+    !pageResult.isFallback && typeof pageResult.chrome.layoutId === 'string'
+      ? pageResult.chrome.layoutId.trim()
+      : ''
+  const layoutId = navLayoutId || preferredLayoutId
+
+  let outlineOverride: PageChrome | null = null
+  if (layoutId && layoutId !== preferredLayoutId) {
+    const outlineRow = await loadOutlinePageChrome(layoutId)
+    if (!outlineRow.isFallback) {
+      const { layoutId: _dropLayout, pageKey: _dropKey, ...rest } = outlineRow.chrome
+      outlineOverride = rest
+    }
   }
-  return mergePageChrome(globalResult.chrome, pageResult.chrome, pageKey, mergeOpts)
+
+  return mergePageChrome(
+    baseChrome,
+    { ...(outlineOverride ?? {}), layoutId },
+    pageKey,
+    mergeOpts,
+  )
 }
 
 /** Per-request dedupe for the same pageKey. */
@@ -72,6 +94,7 @@ export async function getGlobalPageChrome(): Promise<PageChrome> {
 }
 
 export async function getPageChromeOverride(pageKey: string): Promise<PageChrome | null> {
+  if (isOutlineChromeRowId(pageKey)) return null
   const result = await loadPageChromeOverride(pageKey)
   if (result.isFallback) return null
   return result.chrome

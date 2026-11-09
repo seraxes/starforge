@@ -37,7 +37,7 @@ type Props = {
   children: React.ReactNode
   siteName: string
   primaryNav: NavItem[]
-  /** Page Settings layout assignment (`sf_layouts` id). */
+  /** Resolved outline id from page chrome (`sf_layouts` id; nav writes layoutId). */
   layoutId?: string
   /**
    * Page-level default when a section omits `containerMode`.

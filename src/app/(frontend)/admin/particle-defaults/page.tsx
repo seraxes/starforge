@@ -7,9 +7,12 @@ import { listLayoutOutlines } from '@/core/modules'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import {
   ensureSkinOutlineSeeds,
+  filterOutlinesForSkin,
   getActiveSkin,
   isSkinPinnedByEnv,
   listSkins,
+  pickOutlineSearchParam,
+  resolveAdminWorkingOutlineId,
 } from '@/core/skin'
 
 import { LayoutsAdminNav } from '../layouts/layouts-admin-nav'
@@ -23,11 +26,6 @@ export const metadata = {
 
 type SearchParams = Promise<{ outline?: string | string[] }> | { outline?: string | string[] }
 
-function pickOutlineParam(raw: string | string[] | undefined): string {
-  const value = Array.isArray(raw) ? raw[0] : raw
-  return typeof value === 'string' && value.trim() ? value.trim() : DEFAULT_LAYOUT_ID
-}
-
 /**
  * Stub for Gantry “Particle Defaults” tab — wire typed defaults later.
  */
@@ -40,19 +38,25 @@ export default async function AdminParticleDefaultsPage(props: {
   }
 
   const search = props.searchParams ? await props.searchParams : {}
-  const requestedId = pickOutlineParam(search.outline)
+  const requestedId = pickOutlineSearchParam(search.outline)
   const activeSkin = await getActiveSkin()
   await ensureSkinOutlineSeeds(activeSkin.id)
   const outlines = await listLayoutOutlines()
-  const known = outlines.some((o) => o.id === requestedId)
-  const layoutId = known ? requestedId : DEFAULT_LAYOUT_ID
+  const skinOutlines = filterOutlinesForSkin(outlines, activeSkin.id)
+  const layoutId = await resolveAdminWorkingOutlineId({
+    requestedId,
+    skinId: activeSkin.id,
+    preferredOutlineId: activeSkin.preferredDefaultOutlineId,
+    outlines,
+    fallbackId: DEFAULT_LAYOUT_ID,
+  })
   const pageSettingsOn = isCatalogModuleEnabled(settings, MODULE_IDS.pageSettings)
 
   return (
     <section className="admin-section admin-layouts-padded">
       <LayoutsAdminNav
         active="particle-defaults"
-        outlines={outlines.map((o) => ({ id: o.id, label: o.label }))}
+        outlines={skinOutlines.map((o) => ({ id: o.id, label: o.label }))}
         currentOutlineId={layoutId}
         showPageSettingsTab={pageSettingsOn}
         skins={listSkins().map((s) => ({ id: s.id, label: s.label }))}

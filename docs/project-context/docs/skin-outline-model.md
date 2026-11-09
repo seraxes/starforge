@@ -1,6 +1,21 @@
 # Skin + outline model (Base shell)
 
-**Status:** Skin owns outlines. Each skin has one **Base** shell; every new outline is a **child** of that Base by default and carries `skin_id`.
+**Status:** Skin owns outlines. Each skin is a **YAML + files pack** on disk. Each skin has one **Base** shell; every new outline is a **child** of that Base by default and carries `skin_id`.
+
+## Pack on disk
+
+```text
+<skin-id>/
+  skin.yaml          # id, label, colorScheme, tokens, preferredDefaultOutlineId
+  skin.css           # optional extras ([data-sf-skin="<id>"])
+  outlines/
+    <outline-id>.yaml
+```
+
+- Bundled: `src/core/skin/skins/<id>/`
+- Installed: `data/skins/<id>/` (upload)
+- Download zip re-exports live `sf_layouts` rows for that `skin_id` as YAML
+- Runtime working copy of layouts stays JSONB in `sf_layouts`; site default skin id in `sf_module_settings` (`core:skin`)
 
 ## Concepts
 
@@ -10,7 +25,7 @@
 | **Skin Base** | Inheritance root (`preferredDefaultOutlineId`, e.g. `starforge-pastel-default`). Label: **Pastel — Base**. |
 | **Child outlines** | Created/duplicated under the active skin → `skin_id` set, `inheritFrom` = Base, empty local sections (live shell). |
 | **Core `default`** | Bootstrap fallback only — not a skin Base. Badge: **Core**. |
-| **Page assignment** | Page Settings `pageKey` → `layoutId` |
+| **Page assignment** | Nav menu item `layoutId` → layoutId-only pageKey row. Page Settings chrome is outline-gated (Base = `global`; children = `outline:<id>`). |
 | **Offline** | Site Chrome `offlineLayoutId`; Pastel Offline inherits Base |
 
 ## Ownership
@@ -20,16 +35,39 @@
 - Soft-heal backfills orphans by id prefix or `inheritFrom` → Base.
 - Outlines **Skin** badge = `skin_id === activeSkin.id` (not id-prefix alone).
 
-## Inheritance (Layouts + Styles)
+## Inheritance — two separate axes
 
-| Surface | Unit | Behavior |
-| --- | --- | --- |
-| **Layouts → section cog** | Section | Inherit / Copy vs Base (parent) |
-| **Layouts → particle** | Slot | Inheritance tab when parent has matching id |
-| **Styles** | Section card | Inherit whole styles bag |
-| **Page Settings** | Field | Inherit site global ← page (different axis) |
+**Toolbar:** Skin picker (which outline pack) + Outline picker (which outline in that pack).
 
-Admin edits **raw** docs; public + admin preview merge via `resolveLayoutInheritance` / `getLayoutDocumentForAdmin`.
+### Axis A — Layout & Styles (outline-gated, not skin)
+
+| Outline | Inherit / Copy |
+| --- | --- |
+| **Base** (`preferredDefaultOutlineId`) | **Hidden** |
+| **Any other outline** | **Shown** (live link / snapshot vs parent, usually Base) |
+
+Switching skins only changes which outlines are listed. The rule is always Base vs other outline.
+
+### Axis B — Page Settings (outline-gated chrome)
+
+Same Inherit/Copy gate as Layout & Styles (Axis A):
+
+| Outline | Page Settings Inherit / Copy |
+| --- | --- |
+| **Base** | **Hidden** — edits `sf_page_chrome.global` (source) |
+| **Any other outline** | **Shown** — sparse `outline:<id>` row; inherit/copy from Base |
+
+Toolbar Skin + Outline pickers scope which chrome you edit. There is no page picker.
+
+Nav menu items still assign which outline a page uses (`layoutId` → layoutId-only pageKey row). Runtime merges Base chrome + that outline’s sparse overrides.
+
+Admin edits **raw** layout docs; public + admin preview merge via `resolveLayoutInheritance` / `getLayoutDocumentForAdmin`.
+
+## Admin IA
+
+- **Skins** (`/admin/skins`) — list installed packs, set default, upload/download (no outline column).
+- **Outlines** (`/admin/outlines`) — list/create/rename/duplicate/delete per active skin; Create with **Inherit** or **Copy**.
+- **Layouts chrome** — outline switcher + manage link.
 
 ## Create / duplicate
 
@@ -41,6 +79,7 @@ Admin edits **raw** docs; public + admin preview merge via `resolveLayoutInherit
 
 ## Related
 
+- `src/core/skin/pack-io.ts` — YAML pack load/write
 - `src/core/modules/layout-store.ts` — `skinId` on save/list/create/duplicate
 - `src/core/skin/outline-seeds.ts` — seed + soft-heal
 - Inventory: [core-modules-inventory.md](./core-modules-inventory.md)

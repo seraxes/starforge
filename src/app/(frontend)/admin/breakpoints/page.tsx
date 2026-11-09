@@ -12,9 +12,13 @@ import {
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import {
   ensureSkinOutlineSeeds,
+  filterOutlinesForSkin,
   getActiveSkin,
+  isSkinBaseOutlineId,
   isSkinPinnedByEnv,
   listSkins,
+  pickOutlineSearchParam,
+  resolveAdminWorkingOutlineId,
 } from '@/core/skin'
 import type { LayoutDocument, LayoutSection } from '@/core/modules/types'
 
@@ -32,11 +36,6 @@ export const metadata = {
 }
 
 type SearchParams = Promise<{ outline?: string | string[] }> | { outline?: string | string[] }
-
-function pickOutlineParam(raw: string | string[] | undefined): string {
-  const value = Array.isArray(raw) ? raw[0] : raw
-  return typeof value === 'string' && value.trim() ? value.trim() : DEFAULT_LAYOUT_ID
-}
 
 /** Whether Styles card inherits from parent for this section id. */
 function sectionStylesInherited(raw: LayoutDocument, canInherit: boolean, sectionId: string): boolean {
@@ -60,14 +59,20 @@ export default async function AdminStylesPage(props: { searchParams?: SearchPara
   }
 
   const search = props.searchParams ? await props.searchParams : {}
-  const requestedId = pickOutlineParam(search.outline)
+  const requestedId = pickOutlineSearchParam(search.outline)
 
   const activeSkin = await getActiveSkin()
   await ensureSkinOutlineSeeds(activeSkin.id)
 
   const outlines = await listLayoutOutlines()
-  const known = outlines.some((o) => o.id === requestedId)
-  const layoutId = known ? requestedId : DEFAULT_LAYOUT_ID
+  const skinOutlines = filterOutlinesForSkin(outlines, activeSkin.id)
+  const layoutId = await resolveAdminWorkingOutlineId({
+    requestedId,
+    skinId: activeSkin.id,
+    preferredOutlineId: activeSkin.preferredDefaultOutlineId,
+    outlines,
+    fallbackId: DEFAULT_LAYOUT_ID,
+  })
 
   const { raw, resolved, parentLayoutId, label } = await getLayoutDocumentForAdmin(layoutId)
   const outlineMeta = (await getLayoutOutline(layoutId)) ?? {
@@ -80,7 +85,9 @@ export default async function AdminStylesPage(props: { searchParams?: SearchPara
       DEFAULT_LAYOUT_BREAKPOINTS,
   )
 
-  const canInherit = Boolean(
+  // Outline-gated (not skin): Base = no Inherit/Copy; any other outline = show.
+  const canInherit = !isSkinBaseOutlineId(layoutId, activeSkin.preferredDefaultOutlineId)
+  const hasParentLink = Boolean(
     raw.inheritFrom &&
       String(raw.inheritFrom).trim() &&
       String(raw.inheritFrom).trim() !== layoutId,
@@ -94,7 +101,7 @@ export default async function AdminStylesPage(props: { searchParams?: SearchPara
       id: section.id,
       label: section.label || section.id,
       styles: section.styles,
-      stylesInherited: sectionStylesInherited(raw, canInherit, section.id),
+      stylesInherited: sectionStylesInherited(raw, hasParentLink, section.id),
     }))
 
   const pageSettingsOn = isCatalogModuleEnabled(settings, MODULE_IDS.pageSettings)
@@ -103,7 +110,7 @@ export default async function AdminStylesPage(props: { searchParams?: SearchPara
     <section className="admin-section layout-admin-section admin-layouts-padded">
       <LayoutsAdminNav
         active="styles"
-        outlines={outlines.map((o) => ({ id: o.id, label: o.label }))}
+        outlines={skinOutlines.map((o) => ({ id: o.id, label: o.label }))}
         currentOutlineId={layoutId}
         showPageSettingsTab={pageSettingsOn}
         skins={listSkins().map((s) => ({ id: s.id, label: s.label }))}
@@ -113,9 +120,9 @@ export default async function AdminStylesPage(props: { searchParams?: SearchPara
       <h2>Styles</h2>
       <p className="lede admin-lede gantry-layouts-lede">
         Live sections on outline <strong>{outlineMeta.label}</strong> — text/background colors,
-        background image, and overlay. When this outline inherits from another, each Styles card can
-        inherit the parent section styles as a whole. Breakpoints below stay outline-scoped (
-        <code>--sf-bp-*</code>).
+        background image, and overlay. On non-Base outlines, each Styles card can{' '}
+        <strong>Inherit</strong> or <strong>Copy</strong> from the parent. Breakpoints below stay
+        outline-scoped (<code>--sf-bp-*</code>).
       </p>
 
       <LayoutOutlineProvider layoutId={layoutId}>

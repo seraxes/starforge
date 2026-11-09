@@ -18,9 +18,13 @@ import { listNavMenus } from '@/core/nav'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import {
   ensureSkinOutlineSeeds,
+  filterOutlinesForSkin,
   getActiveSkin,
+  isSkinBaseOutlineId,
   isSkinPinnedByEnv,
   listSkins,
+  pickOutlineSearchParam,
+  resolveAdminWorkingOutlineId,
 } from '@/core/skin'
 
 import { LayoutEditor } from './layout-editor'
@@ -36,11 +40,6 @@ export const metadata = {
 
 type SearchParams = Promise<{ outline?: string | string[] }> | { outline?: string | string[] }
 
-function pickOutlineParam(raw: string | string[] | undefined): string {
-  const value = Array.isArray(raw) ? raw[0] : raw
-  return typeof value === 'string' && value.trim() ? value.trim() : DEFAULT_LAYOUT_ID
-}
-
 export default async function AdminLayoutsPage(props: { searchParams?: SearchParams }) {
   const settings = await getSiteSettings()
   if (!isCatalogModuleEnabled(settings, MODULE_IDS.layoutManager)) {
@@ -48,15 +47,21 @@ export default async function AdminLayoutsPage(props: { searchParams?: SearchPar
   }
 
   const search = props.searchParams ? await props.searchParams : {}
-  const requestedId = pickOutlineParam(search.outline)
+  const requestedId = pickOutlineSearchParam(search.outline)
 
   // Install any missing skin outline seeds (e.g. Pastel offline) before listing.
   const activeSkin = await getActiveSkin()
   await ensureSkinOutlineSeeds(activeSkin.id)
 
   const outlines = await listLayoutOutlines()
-  const known = outlines.some((o) => o.id === requestedId)
-  const layoutId = known ? requestedId : DEFAULT_LAYOUT_ID
+  const skinOutlines = filterOutlinesForSkin(outlines, activeSkin.id)
+  const layoutId = await resolveAdminWorkingOutlineId({
+    requestedId,
+    skinId: activeSkin.id,
+    preferredOutlineId: activeSkin.preferredDefaultOutlineId,
+    outlines,
+    fallbackId: DEFAULT_LAYOUT_ID,
+  })
 
   const adminBundle = await getLayoutDocumentForAdmin(layoutId)
   const { raw, resolved, parent, parentLayoutId, label } = adminBundle
@@ -83,7 +88,7 @@ export default async function AdminLayoutsPage(props: { searchParams?: SearchPar
     <section className="admin-section layout-admin-section admin-layouts-full">
       <LayoutsAdminNav
         active="layout"
-        outlines={outlines.map((o) => ({ id: o.id, label: o.label }))}
+        outlines={skinOutlines.map((o) => ({ id: o.id, label: o.label }))}
         currentOutlineId={layoutId}
         showPageSettingsTab={pageSettingsOn}
         skins={listSkins().map((s) => ({ id: s.id, label: s.label }))}
@@ -121,6 +126,7 @@ export default async function AdminLayoutsPage(props: { searchParams?: SearchPar
           primaryNavMenuId={settings.primaryNavMenuId}
           layoutId={layoutId}
           layoutLabel={outlineMeta.label}
+          canInheritOutline={!isSkinBaseOutlineId(layoutId, activeSkin.preferredDefaultOutlineId)}
         />
       </LayoutOutlineProvider>
     </section>

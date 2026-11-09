@@ -4,7 +4,7 @@ Reusable **product core** for ordinary web apps (auth, users, app shell, extensi
 
 **Two admin surfaces, one login:** **Starforge admin** (`/admin` — Dashboard, users, groups, site settings, nav, layouts) ↔ **Payload Content CMS** (`/cms/admin` — pages, media); each sidebar links to the other.
 
-This is an early scaffold plus **core app auth** (Better Auth), **roles + user groups + ACL matrix**, **one-login Payload CMS access** (`cms_access` toggle), **site settings + feature toggles**, **Nav manager**, **Page Settings** (Gantry-style Head / Assets / Body / Font Awesome / Atoms + layout assignment in `sf_page_chrome`), **Lexical** page editing, **public `/[slug]`** rendering, **draft preview** (`/preview/[slug]`), **published content cache** (Next.js tags; Redis later), **page SEO fields**, **extension modules + Gantry-like layout manager** (sections/rows/slots + % widths in `sf_layouts`, palette UI at `/admin/layouts`, typed Logo/Copyright/Social + page-content + Custom particles), and **`npm run seed`**. It is intentionally small and runnable locally — not Airsoftnexus 2.0 feature parity, and not a DigitalOcean deploy.
+This is an early scaffold plus **core app auth** (Better Auth), **roles + user groups + ACL matrix**, **one-login Payload CMS access** (`cms_access` toggle), **site settings + feature toggles**, **Nav manager**, **Page Settings** (Gantry-style Head / Assets / Body / Font Awesome / Atoms in `sf_page_chrome`; outline assignment via nav), **Lexical** page editing, **public `/[slug]`** rendering, **draft preview** (`/preview/[slug]`), **published content cache** (Next.js tags; Redis later), **page SEO fields**, **extension modules + Gantry-like layout manager** (sections/rows/slots + % widths in `sf_layouts`, palette UI at `/admin/layouts`, typed Logo/Copyright/Social + page-content + Custom particles), and **`npm run seed`**. It is intentionally small and runnable locally — not Airsoftnexus 2.0 feature parity, and not a DigitalOcean deploy.
 
 ## Architecture
 
@@ -245,7 +245,7 @@ Public chrome is driven by a **layout document**: **sections → rows → slots*
 | Layout document | `sf_layouts` rows (id + label + v3 JSON) · fallback `default-layout.json` |
 | Outlines | `/admin/outlines` — create / rename / duplicate / select (opens Layout canvas) |
 | Admin UI | `/admin/layouts?outline=<id>` |
-| Public render | `PublicLayoutBody` + `SlotRenderer` (Page Settings `layoutId`) |
+| Public render | `PublicLayoutBody` + `SlotRenderer` (chrome `layoutId` from nav sync) |
 
 Default seed: Header → notice-bar (12); Navigation → site-header (12); Main → page-content (12); Footer → custom note (12). Docs: `src/core/modules/README.md`.
 
@@ -255,11 +255,11 @@ Default seed: Header → notice-bar (12); Navigation → site-header (12); Main 
 
 ### Page Settings (document chrome)
 
-Gantry-style **Page Settings** (Core admin nav: parent **Layouts** reveals a hover submenu — **Layout** default + **Outlines** + **Page settings**; parent click → Layout canvas; route **`/admin/page-settings`**): site defaults + per-page overrides (picker: global / home / CMS pages). Storage: JSON in **`sf_page_chrome`** (`global` row + slug/`home` overrides). Public layout merges **page → global**, then emits head meta/icons/CSS, body attrs/hooks, Font Awesome, ordered JS, and **atoms**. Styles / Particle Defaults join the same submenu later.
+Gantry-style **Page Settings** (Core admin nav: parent **Layouts** reveals a hover submenu — **Layout** default + **Outlines** + **Page settings**; parent click → Layout canvas; route **`/admin/page-settings`**): outline-gated document chrome (Base = `global` source; other outlines Inherit/Copy into `outline:<id>`). Nav writes layoutId-only pageKey rows. Public resolve merges Base + page outline chrome, then emits head meta/icons/CSS, body attrs/hooks, Font Awesome, ordered JS, and **atoms**.
 
 | Panel | Notes |
 | --- | --- |
-| Layout assignment | `layoutId` → any outline in `sf_layouts` + sections mode (fullwidth / boxed) + **Who can see** page viewing tags |
+| Page access & sections | Sections mode (fullwidth / boxed) + **Who can see** page viewing tags. Outline/`layoutId` is assigned on nav menu items (syncs into chrome for runtime). |
 | Head Properties | Repeatable meta tags + custom head HTML |
 | Assets | Favicon, touch icon, ordered CSS / JS lists |
 | Body Attributes | Id, classes, tag attrs, after `<body>` / before `</body>` |

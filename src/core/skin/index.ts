@@ -3,6 +3,7 @@ export type {
   SkinColorScheme,
   SkinId,
   SkinOutlineSeed,
+  SkinPackSource,
   SkinRegistry,
   SkinSettingsDocument,
   SkinTokens,
@@ -11,17 +12,37 @@ export {
   getDefaultSkin,
   getDefaultSkinId,
   getSkin,
+  getSkinPack,
+  invalidateSkinRegistry,
   isRegisteredSkinId,
+  listSkinPacksCached,
   listSkins,
+  STARFORGE_PASTEL_DEFAULT_OUTLINE_ID,
+  STARFORGE_PASTEL_OFFLINE_OUTLINE_ID,
+  STARFORGE_PASTEL_SKIN_ID,
 } from './registry'
 export { getActiveSkin, getActiveSkinId, isSkinPinnedByEnv } from './resolve-active'
 export { getPreferredLayoutId } from './preferred-outline'
 export { getStoredDefaultSkinId, saveDefaultSkinId, SKIN_SETTINGS_ID } from './settings-store'
 export {
+  filterOutlinesForSkin,
   findSkinIdForOutline,
   isOutlineOwnedBySkin,
+  isSkinBaseOutlineId,
   listSkinOutlineSeeds,
+  outlineBelongsToSkin,
+  resolveOutlineIdForSkin,
 } from './outline-meta'
+export {
+  ADMIN_WORKING_OUTLINE_COOKIE_MAX_AGE,
+  adminWorkingOutlineCookieName,
+  pickOutlineSearchParam,
+  rememberAdminWorkingOutline,
+} from './admin-working-outline'
+export {
+  readAdminWorkingOutlineId,
+  resolveAdminWorkingOutlineId,
+} from './admin-working-outline.server'
 export {
   ensureSkinOutlineSeeds,
   type SkinOutlineSeedResult,
@@ -31,12 +52,8 @@ export { SkinRootStyles } from './SkinRootStyles'
 export {
   setDefaultSkinAction,
   switchSkinFromLayoutsAction,
+  uploadSkinPackAction,
   type SkinActionState,
+  type SkinUploadActionState,
 } from './actions'
-export {
-  STARFORGE_PASTEL_DEFAULT_OUTLINE_ID,
-  STARFORGE_PASTEL_OFFLINE_OUTLINE_ID,
-  STARFORGE_PASTEL_SKIN_ID,
-  starforgePastelSkin,
-} from './skins/starforge-pastel'
 export { starforgePastelTokens } from './skins/starforge-pastel/tokens'

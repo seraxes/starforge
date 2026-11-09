@@ -10,6 +10,8 @@ Buttons, inputs, panels, and insert flows must **match existing Starforge chrome
 
 **Uniformity (hard rule):** Same-type controls must share the **same size, shape, typography, spacing, and color tokens**. All new admin/member UI follows **Layouts / Page Settings / Events** — Starforge colors, Gantry buttons, field shapes. Do not invent tiny inputs, micro labels, or condensed one-off forms.
 
+**Compact controls & actions (hard rule):** Keep controls and actions **compact always** — single row when possible, tight gaps, no stacked hints or full-height primary chrome in headers / toolbars / field heads. Inherit/Copy, filters, icon clusters, and card action buttons stay dense (`gantry-toolbar-btn`, `gantry-inherit-copy-row-inline`). Compact = action density, not shrinking `settings-field` inputs or inventing a second smaller button scale.
+
 ## Copy shell first (mandatory)
 
 Before writing a new admin settings/list screen:
@@ -32,7 +34,7 @@ Before writing a new admin settings/list screen:
 | **Payload CMS** (`/cms/admin`) | `…/starforge-gantry/payload-chrome.css` — same tokens; Layouts chrome is the visual reference | Payload widgets themed to SF; shared TipTap/`gantry-*`/`settings-field` when embedded |
 | **Public / member account** | `src/app/(frontend)/styles.css` (`:root` `--sf-*`) | Account editors still use `settings-field` + `gantry-btn*` / panel shell when editing |
 
-Prefs (admin): blue-dominated Gantry chrome; orange only on primary Save / rare CTAs; comfortable button size (`--sf-admin-btn-*`); no thin full-width action bars. Payload Publish / Create New = orange; Save Draft = muted toolbar blue — match Layouts.
+Prefs (admin): blue-dominated Gantry chrome; orange only on primary Save / rare CTAs; shared button tokens (`--sf-admin-btn-*`) with **compact action clusters** (no sprawling header chrome); no thin full-width action bars. Payload Publish / Create New = orange; Save Draft = muted toolbar blue — match Layouts.
 
 **Card actions (hard rule):** Cancel / Save / Apply / Delete / Geocode (and siblings) live in the **bottom-right** of the card (`page-settings-actions`, `outlines-create`, `settings-fieldset`, page-settings panel). Use `admin-action-row`, `page-settings-actions`, or `sf-events-form-actions` with `justify-content: flex-end`. Do not left-align or stretch a full-width action strip inside a card. Toolbar / filter / Add+ disclosure bars are not “card actions” — those stay top/inline.
 
@@ -55,6 +57,7 @@ Prefs (admin): blue-dominated Gantry chrome; orange only on primary Save / rare 
 - **Same insert UX family:** Rich Editor Image / Gallery / Video all use the inline `sf-rich-editor-media` panel under the toolbar (Video may add Media vs YouTube/Vimeo tabs inside that panel — no separate portal popup).
 - Module layout = scoped class (e.g. `.sf-events-manager`) **on top of** shared primitives; override grid/spacing only.
 - Match the nearest existing admin page before inventing a new card/dialog language.
+- Keep header / toolbar / field-head actions on one compact line (Inherit/Copy, Copy, filters) — put long hints in `title` or below the field, not between controls.
 
 ## Don’t
 
@@ -62,11 +65,12 @@ Prefs (admin): blue-dominated Gantry chrome; orange only on primary Save / rare 
 - Parallel modals/popups for a flow that already has an inline or shared pattern (e.g. video ≠ special dialog when Image/Gallery are inline).
 - Raw `<button>` / `<input>` without SF classes next to Gantry/settings chrome.
 - One-off colors, radii, paddings that fight `--sf-admin-btn-*` / `--sf-line` / `--sf-primary`.
-- Tiny/compact custom inputs, micro labels, or undersized buttons next to normal `settings-field` / `gantry-btn` controls.
+- Tall stacked action chrome (switch + button + hint column) in headers or next to field labels.
+- A second micro button/input scale beside normal `settings-field` / `gantry-btn` wells — compact via layout density, not a new size token.
 - Module-scoped CSS that re-sizes inputs/buttons (fix theme instead).
 - New UI-kit skins for admin until the project’s polish wave (prefs).
 - Per-module media libraries, field builders, or SMTP UIs.
 
 ## Quick check
 
-If two features do the same kind of thing (pick media, edit a field, save, filter), they must share the same component and chrome. If a new control sits next to an existing one and doesn’t match **size, shape, or color** — fix the classes, don’t restyle from scratch. If the page doesn’t look like Events/Layouts settings after a skim — rewrite the shell before shipping.
+If two features do the same kind of thing (pick media, edit a field, save, filter), they must share the same component and chrome. If a new control sits next to an existing one and doesn’t match **size, shape, or color** — fix the classes, don’t restyle from scratch. If header actions look tall or stacked — compress to one row. If the page doesn’t look like Events/Layouts settings after a skim — rewrite the shell before shipping.

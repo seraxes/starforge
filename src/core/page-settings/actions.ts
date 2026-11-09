@@ -9,10 +9,8 @@ import {
 import type { UserGroupOption } from '@/core/acl/types'
 import { requireAppAdmin, userIsDeveloperAdmin } from '@/core/auth/admin'
 import { GLOBAL_PAGE_CHROME_ID } from '@/core/db'
-import { listLayoutOutlines } from '@/core/modules/layout-store'
 import { getSiteSettings, isAtomModuleEnabled } from '@/core/settings'
-import { getPayload } from 'payload'
-import config from '@payload-config'
+import { getActiveSkin, isSkinBaseOutlineId } from '@/core/skin'
 
 import { ensureAtomsRegistered, getRegisteredAtom, listRegisteredAtoms } from './atoms'
 import { DEFAULT_GLOBAL_PAGE_CHROME, newPageSettingsEntityId } from './defaults'
@@ -21,11 +19,11 @@ import {
   parseInheritKeysJson,
 } from './inherit-fields'
 import { applyDeveloperAdminGate, normalizePageChrome } from './merge'
+import { outlineChromeRowId } from './outline-chrome'
 import {
-  deletePageChromeOverride,
-  listPageChromeOverrideKeys,
+  deleteOutlinePageChrome,
   loadGlobalPageChrome,
-  loadPageChromeOverride,
+  loadOutlinePageChrome,
   savePageChrome,
 } from './store'
 import type { PageAtomInstance, PageChrome } from './types'
@@ -52,13 +50,16 @@ function parseCheckbox(formData: FormData, key: string): boolean {
   return String(raw) === 'true' || String(raw) === 'on' || String(raw) === '1'
 }
 
-function chromeFromFormData(formData: FormData, pageKey: string | null): PageChrome {
+/**
+ * Build chrome from the Page Settings form.
+ * `layoutId` is owned by nav menu assignment — never read from this form.
+ */
+function chromeFromFormData(formData: FormData): PageChrome {
   const atoms = parseJsonField<PageAtomInstance[]>(formData, 'atomsJson', [])
   const accessTags = parseJsonField<string[]>(formData, 'accessTagsJson', ['public'])
   return normalizePageChrome(
     {
-      pageKey,
-      layoutId: String(formData.get('layoutId') ?? '').trim() || undefined,
+      pageKey: null,
       sectionsLayout: String(formData.get('sectionsLayout') ?? '').trim() || undefined,
       accessTags,
       metaTags: parseJsonField(formData, 'metaTagsJson', []),
@@ -82,22 +83,20 @@ function chromeFromFormData(formData: FormData, pageKey: string | null): PageChr
       },
       atoms,
     },
-    pageKey,
+    null,
   )
 }
 
-function revalidatePageSettingsPaths(pageKey: string | null) {
+function revalidatePageSettingsPaths(outlineId?: string) {
   revalidatePath('/', 'layout')
   revalidatePath('/admin/page-settings')
-  if (pageKey && pageKey !== 'home') {
-    revalidatePath(`/${pageKey}`)
-  }
-  if (pageKey === 'home') {
-    revalidatePath('/')
+  if (outlineId?.trim()) {
+    revalidatePath(`/admin/page-settings?outline=${encodeURIComponent(outlineId.trim())}`)
   }
 }
 
-export async function saveGlobalPageSettingsAction(
+/** Save Page Settings for the toolbar outline (Base → global; else → outline:<id>). */
+export async function savePageSettingsAction(
   _prev: PageSettingsActionState,
   formData: FormData,
 ): Promise<PageSettingsActionState> {
@@ -106,95 +105,93 @@ export async function saveGlobalPageSettingsAction(
     return { error: 'Sign in as a Starforge app admin to edit Page Settings.' }
   }
 
+  const outlineId = String(formData.get('outlineId') ?? '').trim()
+  if (!outlineId) {
+    return { error: 'Outline id is required.' }
+  }
+
+  const activeSkin = await getActiveSkin()
+  const isBase = isSkinBaseOutlineId(outlineId, activeSkin.preferredDefaultOutlineId)
   const isDev = userIsDeveloperAdmin(session.user)
-  const prior = (await loadGlobalPageChrome()).chrome
-  const incoming = chromeFromFormData(formData, null)
+
+  if (isBase) {
+    const prior = (await loadGlobalPageChrome()).chrome
+    const incoming = chromeFromFormData(formData)
+    const gated = applyDeveloperAdminGate(incoming, prior, isDev)
+    const { layoutId: _ignored, ...gatedWithoutLayout } = gated
+
+    try {
+      await savePageChrome(GLOBAL_PAGE_CHROME_ID, {
+        ...DEFAULT_GLOBAL_PAGE_CHROME,
+        ...gatedWithoutLayout,
+        pageKey: null,
+        layoutId: undefined,
+      })
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : 'Could not save Page Settings.'
+      return { error: message }
+    }
+
+    revalidatePageSettingsPaths(outlineId)
+    return {
+      ok: true,
+      message: isDev
+        ? 'Base Page Settings saved.'
+        : 'Base Page Settings saved (script fields unchanged — developer-admin only).',
+    }
+  }
+
+  const priorResult = await loadOutlinePageChrome(outlineId)
+  const prior = priorResult.isFallback ? null : priorResult.chrome
+  const incoming = chromeFromFormData(formData)
   const gated = applyDeveloperAdminGate(incoming, prior, isDev)
+  const inheritKeys = parseInheritKeysJson(formData.get('inheritKeysJson'))
+  const sparse = omitInheritedPageChromeKeys(
+    { ...gated, pageKey: null, layoutId: undefined },
+    inheritKeys,
+  )
+  const { layoutId: _drop, ...toSave } = sparse
 
   try {
-    await savePageChrome(GLOBAL_PAGE_CHROME_ID, {
-      ...DEFAULT_GLOBAL_PAGE_CHROME,
-      ...gated,
-      pageKey: null,
-    })
+    const hasLocal = Object.keys(toSave).some((k) => k !== 'pageKey' && toSave[k as keyof PageChrome] !== undefined)
+    if (!hasLocal) {
+      await deleteOutlinePageChrome(outlineId)
+    } else {
+      await savePageChrome(outlineChromeRowId(outlineId), toSave)
+    }
   } catch (error) {
     const message =
       error instanceof Error && error.message
         ? error.message
-        : 'Could not save global Page Settings.'
+        : 'Could not save outline Page Settings.'
     return { error: message }
   }
 
-  revalidatePageSettingsPaths(null)
+  revalidatePageSettingsPaths(outlineId)
   return {
     ok: true,
     message: isDev
-      ? 'Site Page Settings saved.'
-      : 'Site Page Settings saved (script fields unchanged — developer-admin only).',
+      ? `Page Settings saved for outline “${outlineId}”.`
+      : `Page Settings saved for outline “${outlineId}” (script fields unchanged — developer-admin only).`,
   }
 }
 
-export async function savePageOverrideAction(
-  _prev: PageSettingsActionState,
-  formData: FormData,
-): Promise<PageSettingsActionState> {
-  const session = await requireAppAdmin()
-  if (!session?.user) {
-    return { error: 'Sign in as a Starforge app admin to edit Page Settings.' }
-  }
-
-  const pageKey = String(formData.get('pageKey') ?? '').trim()
-  if (!pageKey || pageKey === GLOBAL_PAGE_CHROME_ID) {
-    return { error: 'Choose a page (slug or home) for the override.' }
-  }
-
-  const isDev = userIsDeveloperAdmin(session.user)
-  const priorResult = await loadPageChromeOverride(pageKey)
-  const prior = priorResult.isFallback ? null : priorResult.chrome
-  const incoming = chromeFromFormData(formData, pageKey)
-  const gated = applyDeveloperAdminGate(incoming, prior, isDev)
-  const inheritKeys = parseInheritKeysJson(formData.get('inheritKeysJson'))
-  const sparse = omitInheritedPageChromeKeys({ ...gated, pageKey }, inheritKeys)
-
-  try {
-    await savePageChrome(pageKey, sparse)
-  } catch (error) {
-    const message =
-      error instanceof Error && error.message
-        ? error.message
-        : 'Could not save page override.'
-    return { error: message }
-  }
-
-  revalidatePageSettingsPaths(pageKey)
-  return { ok: true, message: `Override saved for “${pageKey}”.` }
-}
-
-export async function clearPageOverrideAction(
-  _prev: PageSettingsActionState,
-  formData: FormData,
-): Promise<PageSettingsActionState> {
-  const session = await requireAppAdmin()
-  if (!session?.user) {
-    return { error: 'Sign in as a Starforge app admin to edit Page Settings.' }
-  }
-
-  const pageKey = String(formData.get('pageKey') ?? '').trim()
-  if (!pageKey) return { error: 'Missing pageKey.' }
-
-  await deletePageChromeOverride(pageKey)
-  revalidatePageSettingsPaths(pageKey)
-  return { ok: true, message: `Cleared override for “${pageKey}” (inherits site defaults).` }
-}
+/** @deprecated Prefer savePageSettingsAction — kept for older imports. */
+export const saveGlobalPageSettingsAction = savePageSettingsAction
 
 export type PageSettingsAdminBootstrap = {
-  globalChrome: PageChrome
-  overrideKeys: string[]
-  pages: Array<{ slug: string; title: string }>
-  /** All layout outlines (`sf_layouts`) for Layout assignment. */
-  layouts: Array<{ id: string; label: string }>
-  /** @deprecated Prefer `layouts` — kept for older form code paths. */
-  layoutIds: string[]
+  outlineId: string
+  /** Active skin Base shell — Inherit/Copy hidden. */
+  isBaseOutline: boolean
+  /** Show field Inherit/Copy (non-Base outlines). */
+  canInherit: boolean
+  /** Base chrome source (`global`). */
+  baseChrome: PageChrome
+  /** Editing chrome (Base = full global; child = sparse outline row). */
+  editingChrome: PageChrome
   /** Users → Groups for page viewing tags. */
   groups: UserGroupOption[]
   atoms: Array<{
@@ -205,75 +202,47 @@ export type PageSettingsAdminBootstrap = {
     defaultConfig: Record<string, unknown>
   }>
   isDeveloperAdmin: boolean
-  editingPageKey: string | null
-  editingChrome: PageChrome
-  hasOverride: boolean
 }
 
-/** Admin page data loader. */
-export async function loadPageSettingsAdmin(editingPageKey: string | null): Promise<PageSettingsAdminBootstrap> {
+/** Admin page data loader — scoped to toolbar outline. */
+export async function loadPageSettingsAdmin(
+  outlineId: string,
+): Promise<PageSettingsAdminBootstrap> {
   const session = await requireAppAdmin()
   const isDev = userIsDeveloperAdmin(session?.user)
+  const outline = outlineId.trim()
+  if (!outline) {
+    throw new Error('Outline id is required for Page Settings.')
+  }
 
   await ensureAtomsRegistered()
   await ensureDefaultUserGroupsSeeded()
-  const [globalResult, overrideKeys, groups] = await Promise.all([
+
+  const activeSkin = await getActiveSkin()
+  const isBase = isSkinBaseOutlineId(outline, activeSkin.preferredDefaultOutlineId)
+
+  const [globalResult, groups] = await Promise.all([
     loadGlobalPageChrome(),
-    listPageChromeOverrideKeys(),
     listUserGroupOptions(),
   ])
-  const globalChrome = globalResult.chrome
+  const baseChrome = globalResult.chrome
 
-  let pages: Array<{ slug: string; title: string }> = []
-  try {
-    const payload = await getPayload({ config })
-    const result = await payload.find({
-      collection: 'pages',
-      limit: 100,
-      depth: 0,
-      overrideAccess: true,
-      sort: 'title',
-    })
-    const seenSlugs = new Set<string>()
-    pages = result.docs
-      .map((doc) => ({
-        slug: typeof doc.slug === 'string' ? doc.slug.trim() : '',
-        title: typeof doc.title === 'string' ? doc.title : '',
-      }))
-      .filter((p) => {
-        if (!p.slug || seenSlugs.has(p.slug)) return false
-        seenSlugs.add(p.slug)
-        return true
-      })
-  } catch {
-    pages = []
-  }
-
-  const outlines = await listLayoutOutlines()
-  const layouts = outlines.map((o) => ({ id: o.id, label: o.label }))
-  const layoutIds = layouts.map((l) => l.id)
-
-  let editingChrome: PageChrome = { ...globalChrome, pageKey: null }
-  let hasOverride = false
-  if (editingPageKey) {
-    const override = await loadPageChromeOverride(editingPageKey)
-    hasOverride = !override.isFallback
-    if (hasOverride) {
-      editingChrome = override.chrome
-    } else {
-      // Sparse empty override — every field inherits site global until toggled local.
-      editingChrome = { pageKey: editingPageKey }
-    }
+  let editingChrome: PageChrome = { ...baseChrome, pageKey: null }
+  if (!isBase) {
+    const outlineRow = await loadOutlinePageChrome(outline)
+    editingChrome = outlineRow.isFallback
+      ? { pageKey: null }
+      : { ...outlineRow.chrome, pageKey: null, layoutId: undefined }
   }
 
   const settingsSite = await getSiteSettings()
 
   return {
-    globalChrome,
-    overrideKeys,
-    pages,
-    layouts,
-    layoutIds,
+    outlineId: outline,
+    isBaseOutline: isBase,
+    canInherit: !isBase,
+    baseChrome,
+    editingChrome,
     groups,
     atoms: listRegisteredAtoms()
       .filter((a) => isAtomModuleEnabled(settingsSite, a.type))
@@ -285,9 +254,6 @@ export async function loadPageSettingsAdmin(editingPageKey: string | null): Prom
         defaultConfig: a.defaultConfig(),
       })),
     isDeveloperAdmin: isDev,
-    editingPageKey,
-    editingChrome,
-    hasOverride,
   }
 }
 

@@ -102,6 +102,7 @@ export const hostModuleManifests: StarforgeModuleManifest[] = [
     navViews: [
       { key: 'layout', label: 'Layout canvas', href: '/admin/layouts' },
       { key: 'outlines', label: 'Outlines', href: '/admin/outlines' },
+      { key: 'skins', label: 'Skins', href: '/admin/skins' },
     ],
   }),
   defineStarforgeModule({
@@ -109,7 +110,7 @@ export const hostModuleManifests: StarforgeModuleManifest[] = [
     kind: 'product',
     label: 'Page Settings',
     description:
-      'Document chrome (Head, Assets, Body, FA, Atoms) and layout assignment. Off hides Page settings admin and skips public chrome emit.',
+      'Document chrome (Head, Assets, Body, FA, Atoms). Outline assignment is on nav menu items. Off hides Page settings admin and skips public chrome emit.',
     version: '0.1.0',
     defaultEnabled: true,
     navViews: [{ key: 'page-settings', label: 'Page settings', href: '/admin/page-settings' }],

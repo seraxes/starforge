@@ -1,16 +1,16 @@
 import React from 'react'
-import Link from 'next/link'
 
 import { DEFAULT_LAYOUT_ID } from '@/core/db'
 import { listLayoutOutlines } from '@/core/modules'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import {
   ensureSkinOutlineSeeds,
+  filterOutlinesForSkin,
   getActiveSkin,
   getStoredDefaultSkinId,
   isSkinPinnedByEnv,
-  listSkinOutlineSeeds,
   listSkins,
+  resolveAdminWorkingOutlineId,
 } from '@/core/skin'
 
 import { LayoutsAdminNav } from '../layouts/layouts-admin-nav'
@@ -20,7 +20,7 @@ export const dynamic = 'force-dynamic'
 
 export const metadata = {
   title: 'Skins — Layouts — Starforge',
-  description: 'Public skins — brand tokens, CSS, and layout outline seeds.',
+  description: 'Installed public skins — upload / download YAML packs, set site default.',
 }
 
 export default async function AdminSkinsPage() {
@@ -42,21 +42,22 @@ export default async function AdminSkinsPage() {
     await ensureSkinOutlineSeeds(activeSkin.id)
   }
   const outlines = layoutOn ? await listLayoutOutlines() : []
-  const preferredOutline =
-    activeSkin.preferredDefaultOutlineId ||
-    listSkinOutlineSeeds(activeSkin)[0]?.id ||
-    DEFAULT_LAYOUT_ID
-  const currentOutlineId = outlines.some((o) => o.id === preferredOutline)
-    ? preferredOutline
-    : outlines[0]?.id || DEFAULT_LAYOUT_ID
+  const skinOutlines = filterOutlinesForSkin(outlines, activeSkin.id)
+  const currentOutlineId = await resolveAdminWorkingOutlineId({
+    requestedId: '',
+    skinId: activeSkin.id,
+    preferredOutlineId: activeSkin.preferredDefaultOutlineId,
+    outlines,
+    fallbackId: DEFAULT_LAYOUT_ID,
+  })
 
   return (
     <section className="admin-section layout-admin-section admin-layouts-padded">
       <LayoutsAdminNav
         active="skins"
         outlines={
-          outlines.length
-            ? outlines.map((o) => ({ id: o.id, label: o.label }))
+          skinOutlines.length
+            ? skinOutlines.map((o) => ({ id: o.id, label: o.label }))
             : [{ id: DEFAULT_LAYOUT_ID, label: 'Default' }]
         }
         currentOutlineId={currentOutlineId}
@@ -69,11 +70,10 @@ export default async function AdminSkinsPage() {
       />
       <h2>Skins</h2>
       <p className="lede admin-lede gantry-layouts-lede">
-        Active skin <strong>{activeSkin.label}</strong> (<code>{activeSkin.id}</code>). A Skin is
-        the Gantry-like theme package: brand tokens/CSS plus outline seeds. Set the site default
-        below — seeds install into{' '}
-        {layoutOn ? <Link href="/admin/outlines">Outlines</Link> : 'Outlines'} and Page Settings
-        layout assignment follows the preferred outline.
+        Installed skins for the public site. Active:{' '}
+        <strong>{activeSkin.label}</strong> (<code>{activeSkin.id}</code>). Upload a YAML skin
+        pack to install, or download a pack (tokens + live outlines) to move work to another
+        Starforge site.
       </p>
       <SkinsManager
         activeSkinId={activeSkin.id}
@@ -85,12 +85,7 @@ export default async function AdminSkinsPage() {
           colorScheme: skin.colorScheme,
           isDefault: skin.id === defaultSkinId,
           isActive: skin.id === activeSkin.id,
-          preferredOutlineId: skin.preferredDefaultOutlineId,
-          outlines: listSkinOutlineSeeds(skin).map((seed) => ({
-            id: seed.id,
-            label: seed.label,
-            defaultForSite: seed.defaultForSite,
-          })),
+          source: skin.source,
         }))}
       />
     </section>

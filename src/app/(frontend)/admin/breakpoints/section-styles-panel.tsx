@@ -4,6 +4,7 @@ import React, { useCallback, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
 import {
+  copySectionStylesFromParentAction,
   setSectionStylesInheritModeAction,
   updateLayoutSectionMetaAction,
   type LayoutActionState,
@@ -15,7 +16,7 @@ import {
 import { MediaPicker } from '@/modules/media/api'
 
 import { useAdminToast } from '../admin-toast'
-import { InheritSwitch } from '../layouts/layout-inherit-controls'
+import { InheritCopyRow } from '../layouts/layout-inherit-controls'
 import { useDebouncedPersist } from '../use-debounced-persist'
 import { useLayoutOutlineId } from '../layouts/layout-outline-context'
 
@@ -290,46 +291,56 @@ function SectionStylesCard({
     forceOpen === null ? { open: true as const } : forceOpen ? { open: true as const } : {}
 
   return (
-    <details className="section-styles-card" {...openProps}>
+    <details
+      className={stylesInherited ? 'section-styles-card sf-inherited-muted' : 'section-styles-card'}
+      {...openProps}
+    >
       <summary className="section-styles-card-summary">
-        <span className="section-styles-card-title">{section.label} Styles</span>
-        <code className="section-styles-card-id">{section.id}</code>
-        {stylesInherited ? (
-          <span className="gantry-inherit-badge" title="Styles inherited from parent outline">
-            Inherited
-          </span>
+        <span className="section-styles-card-summary-main">
+          <span className="section-styles-card-title">{section.label} Styles</span>
+          <code className="section-styles-card-id">{section.id}</code>
+          {stylesInherited ? (
+            <span className="gantry-inherit-badge" title="Styles inherited from parent outline">
+              Inherited
+            </span>
+          ) : null}
+        </span>
+        {canInherit ? (
+          <InheritCopyRow
+            inline
+            inherited={stylesInherited}
+            disabled={metaPending}
+            copyLabel="Copy"
+            onInheritChange={(next) => {
+              const fd = new FormData()
+              fd.set('layoutId', layoutId)
+              fd.set('sectionId', section.id)
+              fd.set('stylesInheritMode', next ? 'inherit' : 'local')
+              startMetaSave(async () => {
+                const result = await setSectionStylesInheritModeAction({}, fd)
+                setMetaFlash(result)
+                if (result.ok) notifySaved('Saved')
+                else if (result.error) notifyError(result.error)
+                router.refresh()
+              })
+            }}
+            onCopy={() => {
+              const fd = new FormData()
+              fd.set('layoutId', layoutId)
+              fd.set('sectionId', section.id)
+              startMetaSave(async () => {
+                const result = await copySectionStylesFromParentAction({}, fd)
+                setMetaFlash(result)
+                if (result.ok) notifySaved('Copied')
+                else if (result.error) notifyError(result.error)
+                router.refresh()
+              })
+            }}
+          />
         ) : null}
       </summary>
 
       <div className="settings-form section-styles-form">
-        {canInherit ? (
-          <div className="section-styles-card-inherit">
-            <InheritSwitch
-              inherited={stylesInherited}
-              disabled={metaPending}
-              label="Inherit styles"
-              onChange={(next) => {
-                const fd = new FormData()
-                fd.set('layoutId', layoutId)
-                fd.set('sectionId', section.id)
-                fd.set('stylesInheritMode', next ? 'inherit' : 'local')
-                startMetaSave(async () => {
-                  const result = await setSectionStylesInheritModeAction({}, fd)
-                  setMetaFlash(result)
-                  if (result.ok) notifySaved('Saved')
-                  else if (result.error) notifyError(result.error)
-                  router.refresh()
-                })
-              }}
-            />
-            <p className="settings-hint">
-              {stylesInherited
-                ? `Using parent outline styles${parentLayoutId ? ` (${parentLayoutId})` : ''}. Turn off to edit locally.`
-                : 'Local styles for this outline section card.'}
-            </p>
-          </div>
-        ) : null}
-
         <ColorField
           label="Background"
           fieldKey="backgroundColor"

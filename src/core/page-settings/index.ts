@@ -1,9 +1,8 @@
 export {
-  clearPageOverrideAction,
   createAtomInstanceAction,
   loadPageSettingsAdmin,
   saveGlobalPageSettingsAction,
-  savePageOverrideAction,
+  savePageSettingsAction,
 } from './actions'
 export type { PageSettingsActionState, PageSettingsAdminBootstrap } from './actions'
 export {
@@ -48,6 +47,13 @@ export {
   sortAssetsByPriority,
 } from './merge'
 export {
+  OUTLINE_CHROME_ID_PREFIX,
+  isDocumentChromeRowId,
+  isOutlineChromeRowId,
+  outlineChromeRowId,
+  outlineIdFromChromeRowId,
+} from './outline-chrome'
+export {
   getGlobalPageChrome,
   getPageChromeOverride,
   getResolvedPageChrome,
@@ -56,10 +62,12 @@ export {
 } from './resolve'
 export { viewerCanSeePageChrome } from './view-access'
 export {
+  deleteOutlinePageChrome,
   deletePageChromeOverride,
   ensureGlobalPageChromeSeeded,
   listPageChromeOverrideKeys,
   loadGlobalPageChrome,
+  loadOutlinePageChrome,
   loadPageChromeOverride,
   loadPageChromeRow,
   savePageChrome,

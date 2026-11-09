@@ -1,11 +1,10 @@
 import type { PageChrome } from './types'
 
 /**
- * Page Settings fields that support per-input inherit (global ← page).
- * Omitted key on the page override row = inherit from site global.
+ * Page Settings fields that support Inherit/Copy from Base outline → child outline.
+ * Omitted key on the outline chrome row = inherit from Base (`global`).
  */
 export const PAGE_CHROME_INHERIT_KEYS = [
-  'layoutId',
   'sectionsLayout',
   'accessTags',
   'metaTags',
@@ -28,13 +27,15 @@ export function isPageChromeInheritKey(value: string): value is PageChromeInheri
   return (PAGE_CHROME_INHERIT_KEYS as readonly string[]).includes(value)
 }
 
-/** Keys present on a sparse override are local; missing inherit-capable keys inherit. */
-export function inheritedKeysFromOverride(chrome: PageChrome | null | undefined): PageChromeInheritKey[] {
+/** Keys present on a sparse outline row are local; missing inherit-capable keys inherit. */
+export function inheritedKeysFromOverride(
+  chrome: PageChrome | null | undefined,
+): PageChromeInheritKey[] {
   if (!chrome) return [...PAGE_CHROME_INHERIT_KEYS]
   return PAGE_CHROME_INHERIT_KEYS.filter((key) => chrome[key] === undefined)
 }
 
-/** Drop inherit keys from a page chrome blob before persist. */
+/** Drop inherit keys from an outline chrome blob before persist. */
 export function omitInheritedPageChromeKeys(
   chrome: PageChrome,
   inheritKeys: readonly string[],

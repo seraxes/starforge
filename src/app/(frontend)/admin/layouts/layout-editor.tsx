@@ -65,6 +65,9 @@ function rawSectionStructureInherited(
   sectionId: string,
 ): boolean {
   if (!canInherit || !raw) return false
+  // Live inherit only when this outline has a parent link (usually Base).
+  const parent = typeof raw.inheritFrom === 'string' ? raw.inheritFrom.trim() : ''
+  if (!parent) return false
   const child = raw.sections.find((s) => s.id === sectionId)
   if (!child) return true
   return child.inheritMode === 'inherit'
@@ -121,6 +124,11 @@ type Props = {
   primaryNavMenuId?: string
   layoutId: string
   layoutLabel: string
+  /**
+   * Outline-gated Inherit/Copy: false on skin Base, true on any other outline.
+   * Not skin-gated — Base vs other outline only.
+   */
+  canInheritOutline?: boolean
 }
 
 const initialState: LayoutActionState = {}
@@ -577,6 +585,7 @@ function ParticleBlock({
   const classNames = [
     'gantry-slot',
     'is-slot-grab',
+    particleInherited || sectionStructureInherited ? 'sf-inherited-muted' : '',
     isDragging ? 'is-slot-dragging' : '',
     dropEdge === 'before' ? 'is-slot-drop-before' : '',
     dropEdge === 'after' ? 'is-slot-drop-after' : '',
@@ -1633,6 +1642,7 @@ function SectionCanvas({
 
   const classNames = [
     'gantry-section',
+    structureInherited ? 'sf-inherited-muted' : '',
     isDraggingSection ? 'is-section-dragging' : '',
     dropPosition === 'before' ? 'is-section-drop-before' : '',
     dropPosition === 'after' ? 'is-section-drop-after' : '',
@@ -1758,6 +1768,45 @@ function SectionCanvas({
           </div>
         </div>
         <div className="gantry-section-head-actions">
+          {canInherit ? (
+            parentHasSection ? (
+              <InheritCopyRow
+                inline
+                inherited={structureInherited}
+                disabled={metaPending}
+                onInheritChange={(next) => {
+                  const fd = withOutlineId(new FormData(), layoutId)
+                  fd.set('sectionId', section.id)
+                  fd.set('inheritMode', next ? 'inherit' : 'local')
+                  startMetaSave(async () => {
+                    const result = await setSectionInheritModeAction({}, fd)
+                    setMetaFlash(result)
+                    if (result.ok) notifySaved('Saved')
+                    else if (result.error) notifyError(result.error)
+                    router.refresh()
+                  })
+                }}
+                onCopy={() => {
+                  const fd = withOutlineId(new FormData(), layoutId)
+                  fd.set('sectionId', section.id)
+                  startMetaSave(async () => {
+                    const result = await copySectionFromParentAction({}, fd)
+                    setMetaFlash(result)
+                    if (result.ok) notifySaved('Copied')
+                    else if (result.error) notifyError(result.error)
+                    router.refresh()
+                  })
+                }}
+              />
+            ) : (
+              <span
+                className="settings-hint gantry-section-inherit-missing"
+                title={`Parent outline has no section with id ${section.id}`}
+              >
+                No parent section
+              </span>
+            )
+          ) : null}
           {canRemoveSection ? (
             <div className="gantry-section-actions">
               <button
@@ -1804,49 +1853,6 @@ function SectionCanvas({
               ⚙
             </summary>
             <div className="gantry-section-toolbar">
-              {canInherit ? (
-                <div className="gantry-section-inherit-block">
-                  <span className="gantry-field-hint">Inheritance</span>
-                  {parentHasSection ? (
-                    <InheritCopyRow
-                      inherited={structureInherited}
-                      disabled={metaPending}
-                      onInheritChange={(next) => {
-                        const fd = withOutlineId(new FormData(), layoutId)
-                        fd.set('sectionId', section.id)
-                        fd.set('inheritMode', next ? 'inherit' : 'local')
-                        startMetaSave(async () => {
-                          const result = await setSectionInheritModeAction({}, fd)
-                          setMetaFlash(result)
-                          if (result.ok) notifySaved('Saved')
-                          else if (result.error) notifyError(result.error)
-                          router.refresh()
-                        })
-                      }}
-                      onCopy={() => {
-                        const fd = withOutlineId(new FormData(), layoutId)
-                        fd.set('sectionId', section.id)
-                        startMetaSave(async () => {
-                          const result = await copySectionFromParentAction({}, fd)
-                          setMetaFlash(result)
-                          if (result.ok) notifySaved('Copied')
-                          else if (result.error) notifyError(result.error)
-                          router.refresh()
-                        })
-                      }}
-                      hint={
-                        parentLayoutId
-                          ? `Parent outline: ${parentLayoutId}. Inherit shows parent particles live; Copy snapshots them here.`
-                          : undefined
-                      }
-                    />
-                  ) : (
-                    <p className="settings-hint">
-                      Parent outline has no section with id <code>{section.id}</code>.
-                    </p>
-                  )}
-                </div>
-              ) : null}
               <label className="gantry-inline-label gantry-section-container-label">
                 <span className="gantry-field-hint">Container</span>
                 <select
@@ -2085,14 +2091,19 @@ export function LayoutEditor({
   primaryNavMenuId = 'main',
   layoutId,
   layoutLabel,
+  canInheritOutline,
 }: Props) {
   const router = useRouter()
   const outlineId = layoutId
-  const canInherit = Boolean(
-    rawDocument?.inheritFrom &&
-      String(rawDocument.inheritFrom).trim() &&
-      String(rawDocument.inheritFrom).trim() !== layoutId,
-  )
+  // Prefer explicit Base vs other outline gate from the server; fall back to inheritFrom.
+  const canInherit =
+    typeof canInheritOutline === 'boolean'
+      ? canInheritOutline
+      : Boolean(
+          rawDocument?.inheritFrom &&
+            String(rawDocument.inheritFrom).trim() &&
+            String(rawDocument.inheritFrom).trim() !== layoutId,
+        )
   const [sectionPendingSave, startSectionSave] = useTransition()
   const [sectionState, sectionAction, sectionPending] = useActionState(
     addLayoutSectionAction,

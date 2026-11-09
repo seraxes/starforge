@@ -79,7 +79,7 @@ export function buildContributedAdminNavGroups(
 /**
  * Structure band — single Skins accordion:
  *   Skins (title → /admin/skins)
- *   - Outline (→ /admin/outlines)
+ *   - Outline (→ /admin/outlines) — list/create outlines for the active skin
  *     -- Layout / Styles / Page settings / Assigned Menu
  *   - Particle Defaults
  */

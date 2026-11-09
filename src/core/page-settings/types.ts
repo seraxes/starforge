@@ -49,12 +49,13 @@ export type PageAtomInstance = {
 }
 
 /**
- * Document chrome + layout assignment (site global or per-page override).
- * Omitted / undefined fields inherit from global on merge.
+ * Document chrome. Site-global row holds full chrome; page rows are layoutId-only
+ * (written by nav outline assignment — not Page Settings UI).
  */
 export type PageChrome = {
   /** null/omitted on global; slug or `home` on overrides. */
   pageKey?: string | null
+  /** Outline id — nav-owned; runtime slot synced from menu item assignment. */
   layoutId?: string
   sectionsLayout?: SectionsLayoutMode
   /**

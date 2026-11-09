@@ -1,19 +1,16 @@
 'use client'
 
-import React, { useActionState, useMemo, useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
+import React, { useActionState, useState } from 'react'
 
 import { AccessTagsField } from '@/components/admin/AccessTagsField'
 import { CodeEditorField } from '@/components/admin/CodeEditorField'
 import { resolveAccessTags } from '@/core/acl/nav-access'
 import {
-  clearPageOverrideAction,
-  saveGlobalPageSettingsAction,
-  savePageOverrideAction,
+  savePageSettingsAction,
   type PageSettingsActionState,
   type PageSettingsAdminBootstrap,
 } from '@/core/page-settings/actions'
-import { HOME_PAGE_KEY, newPageSettingsEntityId } from '@/core/page-settings/defaults'
+import { newPageSettingsEntityId } from '@/core/page-settings/defaults'
 import {
   inheritedKeysFromOverride,
   type PageChromeInheritKey,
@@ -25,7 +22,7 @@ import {
 } from '@/core/page-settings/types'
 
 import { useNotifySavedOnOk } from '../admin-toast'
-import { InheritSwitch } from '../layouts/layout-inherit-controls'
+import { InheritCopyRow } from '../layouts/layout-inherit-controls'
 import { useAutosaveForm } from '../use-autosave-form'
 import { AtomSettingsPopover } from './atom-settings-popover'
 
@@ -34,24 +31,38 @@ function FieldInheritRow({
   fieldKey,
   inherited,
   onChange,
+  onCopy,
   children,
 }: {
+  /** Non-Base outline — Inherit/Copy from Base. */
   show: boolean
   fieldKey: PageChromeInheritKey
   inherited: boolean
   onChange: (key: PageChromeInheritKey, next: boolean) => void
+  onCopy: (key: PageChromeInheritKey) => void
   children: React.ReactNode
 }) {
+  if (!show) return <>{children}</>
   return (
-    <div className={inherited && show ? 'page-settings-field-inherited' : undefined}>
-      {children}
-      {show ? (
-        <InheritSwitch
+    <div
+      className={[
+        'page-settings-field-with-inherit',
+        'page-settings-field-with-inherit-active',
+        inherited ? 'page-settings-field-inherited' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
+      <div className="page-settings-field-body">{children}</div>
+      <div className="page-settings-field-inherit-aside">
+        <InheritCopyRow
+          inline
           inherited={inherited}
-          label="Inherit"
-          onChange={(next) => onChange(fieldKey, next)}
+          onInheritChange={(next) => onChange(fieldKey, next)}
+          onCopy={() => onCopy(fieldKey)}
+          copyLabel="Copy"
         />
-      ) : null}
+      </div>
     </div>
   )
 }
@@ -210,7 +221,7 @@ function OrderedAssetList({
                     initialHeight={280}
                     hint={
                       language === 'css'
-                        ? 'Inline CSS applied on the public site as a <style> block (site / page chrome — not per outline).'
+                        ? 'Inline CSS applied on the public site as a <style> block (outline chrome).'
                         : 'Inline JS injected before </body>.'
                     }
                     onValueChange={(nextContent) => {
@@ -260,89 +271,81 @@ function OrderedAssetList({
 }
 
 export function PageSettingsForm({ bootstrap }: Props) {
-  const router = useRouter()
-  const isPage = Boolean(bootstrap.editingPageKey)
-  const saveAction = isPage ? savePageOverrideAction : saveGlobalPageSettingsAction
-  const [state, formAction, pending] = useActionState(saveAction, INITIAL)
-  const [clearState, clearAction, clearPending] = useActionState(clearPageOverrideAction, INITIAL)
+  const canInherit = bootstrap.canInherit
+  const [state, formAction, pending] = useActionState(savePageSettingsAction, INITIAL)
   useNotifySavedOnOk(state, { toastErrors: true })
-  useNotifySavedOnOk(clearState, { successMessage: 'Saved', toastErrors: true })
-  const [, startTransition] = useTransition()
   const { formRef, saveNow, saveDebounced } = useAutosaveForm()
 
-  const globalChrome = bootstrap.globalChrome
+  const baseChrome = bootstrap.baseChrome
   const initial = bootstrap.editingChrome
   const pickInitial = <T,>(local: T | undefined, fallback: T): T =>
     local !== undefined ? local : fallback
 
   const [inheritedKeys, setInheritedKeys] = useState<Set<PageChromeInheritKey>>(() =>
-    isPage ? new Set(inheritedKeysFromOverride(initial)) : new Set(),
+    canInherit ? new Set(inheritedKeysFromOverride(initial)) : new Set(),
   )
-  const inherits = (key: PageChromeInheritKey) => isPage && inheritedKeys.has(key)
+  const inherits = (key: PageChromeInheritKey) => canInherit && inheritedKeys.has(key)
 
-  const [layoutId, setLayoutId] = useState(
-    pickInitial(initial.layoutId, globalChrome.layoutId ?? 'default'),
-  )
   const [sectionsLayout, setSectionsLayout] = useState(
-    pickInitial(initial.sectionsLayout, globalChrome.sectionsLayout ?? 'fullwidth'),
+    pickInitial(initial.sectionsLayout, baseChrome.sectionsLayout ?? 'fullwidth'),
   )
   const [accessTags, setAccessTags] = useState<string[]>(() =>
     resolveAccessTags({
-      accessTags: pickInitial(initial.accessTags, globalChrome.accessTags),
+      accessTags: pickInitial(initial.accessTags, baseChrome.accessTags),
     }),
   )
   const [metaTags, setMetaTags] = useState<MetaTag[]>(
-    pickInitial(initial.metaTags, globalChrome.metaTags ?? []),
+    pickInitial(initial.metaTags, baseChrome.metaTags ?? []),
   )
   const [customHeadHtml, setCustomHeadHtml] = useState(
-    pickInitial(initial.customHeadHtml, globalChrome.customHeadHtml ?? ''),
+    pickInitial(initial.customHeadHtml, baseChrome.customHeadHtml ?? ''),
   )
   const [faviconUrl, setFaviconUrl] = useState(
-    pickInitial(initial.faviconUrl, globalChrome.faviconUrl ?? ''),
+    pickInitial(initial.faviconUrl, baseChrome.faviconUrl ?? ''),
   )
   const [touchIconUrl, setTouchIconUrl] = useState(
-    pickInitial(initial.touchIconUrl, globalChrome.touchIconUrl ?? ''),
+    pickInitial(initial.touchIconUrl, baseChrome.touchIconUrl ?? ''),
   )
-  const [css, setCss] = useState<AssetRef[]>(pickInitial(initial.css, globalChrome.css ?? []))
+  const [css, setCss] = useState<AssetRef[]>(pickInitial(initial.css, baseChrome.css ?? []))
   const [javascript, setJavascript] = useState<AssetRef[]>(
-    pickInitial(initial.javascript, globalChrome.javascript ?? []),
+    pickInitial(initial.javascript, baseChrome.javascript ?? []),
   )
-  const [bodyId, setBodyId] = useState(pickInitial(initial.bodyId, globalChrome.bodyId ?? ''))
+  const [bodyId, setBodyId] = useState(pickInitial(initial.bodyId, baseChrome.bodyId ?? ''))
   const [bodyClasses, setBodyClasses] = useState(
-    pickInitial(initial.bodyClasses, globalChrome.bodyClasses ?? ''),
+    pickInitial(initial.bodyClasses, baseChrome.bodyClasses ?? ''),
   )
   const [bodyTagAttributes, setBodyTagAttributes] = useState(
-    pickInitial(initial.bodyTagAttributes, globalChrome.bodyTagAttributes ?? ''),
+    pickInitial(initial.bodyTagAttributes, baseChrome.bodyTagAttributes ?? ''),
   )
   const [afterBodyHtml, setAfterBodyHtml] = useState(
-    pickInitial(initial.afterBodyHtml, globalChrome.afterBodyHtml ?? ''),
+    pickInitial(initial.afterBodyHtml, baseChrome.afterBodyHtml ?? ''),
   )
   const [beforeBodyCloseHtml, setBeforeBodyCloseHtml] = useState(
-    pickInitial(initial.beforeBodyCloseHtml, globalChrome.beforeBodyCloseHtml ?? ''),
+    pickInitial(initial.beforeBodyCloseHtml, baseChrome.beforeBodyCloseHtml ?? ''),
   )
   const [faEnabled, setFaEnabled] = useState(
-    pickInitial(initial.fontAwesome?.enabled, globalChrome.fontAwesome?.enabled ?? false),
+    pickInitial(initial.fontAwesome?.enabled, baseChrome.fontAwesome?.enabled ?? false),
   )
   const [faV4Compat, setFaV4Compat] = useState(
-    pickInitial(initial.fontAwesome?.v4Compat, globalChrome.fontAwesome?.v4Compat ?? false),
+    pickInitial(initial.fontAwesome?.v4Compat, baseChrome.fontAwesome?.v4Compat ?? false),
   )
   const [faContentCompat, setFaContentCompat] = useState(
     pickInitial(
       initial.fontAwesome?.contentCompat,
-      globalChrome.fontAwesome?.contentCompat ?? false,
+      baseChrome.fontAwesome?.contentCompat ?? false,
     ),
   )
   const [faVersion, setFaVersion] = useState(
-    pickInitial(initial.fontAwesome?.version, globalChrome.fontAwesome?.version ?? '6-free'),
+    pickInitial(initial.fontAwesome?.version, baseChrome.fontAwesome?.version ?? '6-free'),
   )
   const [faCssLinkHtml, setFaCssLinkHtml] = useState(
-    pickInitial(initial.fontAwesome?.cssLinkHtml, globalChrome.fontAwesome?.cssLinkHtml ?? ''),
+    pickInitial(initial.fontAwesome?.cssLinkHtml, baseChrome.fontAwesome?.cssLinkHtml ?? ''),
   )
   const [faJsScriptHtml, setFaJsScriptHtml] = useState(
-    pickInitial(initial.fontAwesome?.jsScriptHtml, globalChrome.fontAwesome?.jsScriptHtml ?? ''),
+    pickInitial(initial.fontAwesome?.jsScriptHtml, baseChrome.fontAwesome?.jsScriptHtml ?? ''),
   )
   const [atoms, setAtoms] = useState<PageAtomInstance[]>(
-    pickInitial(initial.atoms, globalChrome.atoms ?? []),
+    pickInitial(initial.atoms, baseChrome.atoms ?? []),
   )
 
   const lockedScripts = !bootstrap.isDeveloperAdmin
@@ -354,40 +357,68 @@ export function PageSettingsForm({ bootstrap }: Props) {
       else copy.delete(key)
       return copy
     })
-    // Let the hidden inheritKeysJson re-render before autosave posts.
     window.setTimeout(() => saveNow(), 0)
   }
 
-  // Explicit onChange/blur autosave only — no effect watching draft state (Strict Mode was
-  // firing a false "Saved" on open via skipAutosave flip + second effect pass).
-
-  // One Global + one Home (/) + unique CMS pages/overrides.
-  // Seed creates Payload slug `home` for `/` — do not add it again after HOME_PAGE_KEY.
-  const pageOptions = useMemo(() => {
-    const opts: Array<{ value: string; label: string }> = []
-    const seen = new Set<string>()
-    const push = (value: string, label: string) => {
-      if (seen.has(value)) return
-      seen.add(value)
-      opts.push({ value, label })
+  const copyFieldFromBase = (key: PageChromeInheritKey) => {
+    switch (key) {
+      case 'sectionsLayout':
+        setSectionsLayout(baseChrome.sectionsLayout ?? 'fullwidth')
+        break
+      case 'accessTags':
+        setAccessTags(resolveAccessTags({ accessTags: baseChrome.accessTags }))
+        break
+      case 'metaTags':
+        setMetaTags(structuredClone(baseChrome.metaTags ?? []))
+        break
+      case 'customHeadHtml':
+        setCustomHeadHtml(baseChrome.customHeadHtml ?? '')
+        break
+      case 'faviconUrl':
+        setFaviconUrl(baseChrome.faviconUrl ?? '')
+        break
+      case 'touchIconUrl':
+        setTouchIconUrl(baseChrome.touchIconUrl ?? '')
+        break
+      case 'css':
+        setCss(structuredClone(baseChrome.css ?? []))
+        break
+      case 'javascript':
+        setJavascript(structuredClone(baseChrome.javascript ?? []))
+        break
+      case 'bodyId':
+        setBodyId(baseChrome.bodyId ?? '')
+        break
+      case 'bodyClasses':
+        setBodyClasses(baseChrome.bodyClasses ?? '')
+        break
+      case 'bodyTagAttributes':
+        setBodyTagAttributes(baseChrome.bodyTagAttributes ?? '')
+        break
+      case 'afterBodyHtml':
+        setAfterBodyHtml(baseChrome.afterBodyHtml ?? '')
+        break
+      case 'beforeBodyCloseHtml':
+        setBeforeBodyCloseHtml(baseChrome.beforeBodyCloseHtml ?? '')
+        break
+      case 'fontAwesome':
+        setFaEnabled(baseChrome.fontAwesome?.enabled ?? false)
+        setFaV4Compat(baseChrome.fontAwesome?.v4Compat ?? false)
+        setFaContentCompat(baseChrome.fontAwesome?.contentCompat ?? false)
+        setFaVersion(baseChrome.fontAwesome?.version ?? '6-free')
+        setFaCssLinkHtml(baseChrome.fontAwesome?.cssLinkHtml ?? '')
+        setFaJsScriptHtml(baseChrome.fontAwesome?.jsScriptHtml ?? '')
+        break
+      default:
+        break
     }
-
-    push('', 'Site default (global)')
-
-    const homePage = bootstrap.pages.find((p) => p.slug === HOME_PAGE_KEY)
-    push(HOME_PAGE_KEY, homePage?.title ? `${homePage.title} (/)` : 'Home (/)')
-
-    for (const page of bootstrap.pages) {
-      if (page.slug === HOME_PAGE_KEY) continue
-      push(page.slug, `${page.title} (/${page.slug})`)
-    }
-    for (const key of bootstrap.overrideKeys) {
-      if (key === HOME_PAGE_KEY) continue
-      if (bootstrap.pages.some((p) => p.slug === key)) continue
-      push(key, `${key} (override only)`)
-    }
-    return opts
-  }, [bootstrap.pages, bootstrap.overrideKeys])
+    setInheritedKeys((prev) => {
+      const next = new Set(prev)
+      next.delete(key)
+      return next
+    })
+    window.setTimeout(() => saveNow(), 0)
+  }
 
   const addAtom = (type: string) => {
     const def = bootstrap.atoms.find((a) => a.type === type)
@@ -413,39 +444,12 @@ export function PageSettingsForm({ bootstrap }: Props) {
 
   return (
     <div className="page-settings">
-      <div className="page-settings-toolbar">
-        <label className="page-settings-picker">
-          <span>Edit</span>
-          <select
-            value={bootstrap.editingPageKey ?? ''}
-            onChange={(event) => {
-              const value = event.target.value
-              startTransition(() => {
-                router.push(
-                  value
-                    ? `/admin/page-settings?page=${encodeURIComponent(value)}`
-                    : '/admin/page-settings',
-                )
-              })
-            }}
-          >
-            {pageOptions.map((opt) => (
-              <option key={opt.value || 'global'} value={opt.value}>
-                {opt.label}
-                {opt.value && bootstrap.overrideKeys.includes(opt.value) ? ' · override' : ''}
-              </option>
-            ))}
-          </select>
-        </label>
-        {isPage ? (
-          <p className="settings-hint">
-            Per-page override{bootstrap.hasOverride ? '' : ' (no row yet — all fields inherit site defaults)'}.
-            Use the Inherit slide after each field: On = site global, Off = local override for this page.
-          </p>
-        ) : (
-          <p className="settings-hint">Site-wide defaults. Pages can override individually.</p>
-        )}
-      </div>
+      <p className="settings-hint page-settings-toolbar-hint">
+        {bootstrap.isBaseOutline
+          ? 'Editing Base outline chrome (source). Other outlines can Inherit / Copy from this.'
+          : 'Editing a non-Base outline. Inherit / Copy beside each field uses Base chrome.'}{' '}
+        Assign outlines on nav menu items.
+      </p>
 
       {!bootstrap.isDeveloperAdmin ? (
         <p className="notice-banner page-settings-acl-banner" role="status">
@@ -455,20 +459,20 @@ export function PageSettingsForm({ bootstrap }: Props) {
         </p>
       ) : null}
 
-      {(state.error || clearState.error) && (
+      {state.error ? (
         <p className="form-error" role="alert">
-          {state.error || clearState.error}
+          {state.error}
         </p>
-      )}
-      {(state.ok || clearState.ok) && (
+      ) : null}
+      {state.ok ? (
         <p className="form-ok" role="status">
-          {state.message || clearState.message || 'Saved.'}
+          {state.message || 'Saved.'}
         </p>
-      )}
+      ) : null}
 
       <form ref={formRef} action={formAction} className="page-settings-form settings-form">
-        {isPage ? <input type="hidden" name="pageKey" value={bootstrap.editingPageKey ?? ''} /> : null}
-        {isPage ? (
+        <input type="hidden" name="outlineId" value={bootstrap.outlineId} />
+        {canInherit ? (
           <input
             type="hidden"
             name="inheritKeysJson"
@@ -511,38 +515,11 @@ export function PageSettingsForm({ bootstrap }: Props) {
         ) : null}
 
         <div className="page-settings-mosaic admin-settings-mosaic">
-        <Panel title="Layout assignment">
+        <Panel title="Page access & sections">
           <FieldInheritRow
-            show={isPage}
-            fieldKey="layoutId"
-            inherited={inherits('layoutId')}
-            onChange={setFieldInherit}
-          >
-            <label className="settings-field">
-              <span>Layout</span>
-              <select
-                name="layoutId"
-                value={layoutId}
-                disabled={inherits('layoutId')}
-                onChange={(e) => {
-                  setLayoutId(e.target.value)
-                  saveNow()
-                }}
-              >
-                {(bootstrap.layouts?.length
-                  ? bootstrap.layouts
-                  : bootstrap.layoutIds.map((id) => ({ id, label: id }))
-                ).map((layout) => (
-                  <option key={layout.id} value={layout.id}>
-                    {layout.label} ({layout.id})
-                  </option>
-                ))}
-              </select>
-            </label>
-          </FieldInheritRow>
-          <FieldInheritRow
-            show={isPage}
+            show={canInherit}
             fieldKey="sectionsLayout"
+            onCopy={copyFieldFromBase}
             inherited={inherits('sectionsLayout')}
             onChange={setFieldInherit}
           >
@@ -567,28 +544,30 @@ export function PageSettingsForm({ bootstrap }: Props) {
             </label>
           </FieldInheritRow>
           <FieldInheritRow
-            show={isPage}
+            show={canInherit}
             fieldKey="accessTags"
+            onCopy={copyFieldFromBase}
             inherited={inherits('accessTags')}
             onChange={setFieldInherit}
           >
             <AccessTagsField
               value={accessTags}
               groups={bootstrap.groups}
-              disabled={pending || clearPending || inherits('accessTags')}
+              disabled={pending || inherits('accessTags')}
               onChange={(next) => {
                 setAccessTags(next)
                 saveNow()
               }}
-              legend="Who can see this page"
+              legend="Who can see pages"
             />
           </FieldInheritRow>
         </Panel>
 
         <Panel title="Head Properties">
           <FieldInheritRow
-            show={isPage}
+            show={canInherit}
             fieldKey="metaTags"
+            onCopy={copyFieldFromBase}
             inherited={inherits('metaTags')}
             onChange={setFieldInherit}
           >
@@ -657,8 +636,9 @@ export function PageSettingsForm({ bootstrap }: Props) {
           </FieldInheritRow>
 
           <FieldInheritRow
-            show={isPage}
+            show={canInherit}
             fieldKey="customHeadHtml"
+            onCopy={copyFieldFromBase}
             inherited={inherits('customHeadHtml')}
             onChange={setFieldInherit}
           >
@@ -671,7 +651,7 @@ export function PageSettingsForm({ bootstrap }: Props) {
                 <p className="settings-hint">Locked — existing custom head HTML is preserved on save.</p>
               ) : (
                 <CodeEditorField
-                  key={`pageHead-${bootstrap.editingPageKey ?? 'global'}-${inherits('customHeadHtml')}`}
+                  key={`pageHead-${inherits('customHeadHtml')}`}
                   name={inherits('customHeadHtml') ? undefined : 'customHeadHtml'}
                   label="Page Head (custom HTML)"
                   language="html"
@@ -691,8 +671,9 @@ export function PageSettingsForm({ bootstrap }: Props) {
 
         <Panel title="Assets">
           <FieldInheritRow
-            show={isPage}
+            show={canInherit}
             fieldKey="faviconUrl"
+            onCopy={copyFieldFromBase}
             inherited={inherits('faviconUrl')}
             onChange={setFieldInherit}
           >
@@ -713,8 +694,9 @@ export function PageSettingsForm({ bootstrap }: Props) {
             </label>
           </FieldInheritRow>
           <FieldInheritRow
-            show={isPage}
+            show={canInherit}
             fieldKey="touchIconUrl"
+            onCopy={copyFieldFromBase}
             inherited={inherits('touchIconUrl')}
             onChange={setFieldInherit}
           >
@@ -735,8 +717,9 @@ export function PageSettingsForm({ bootstrap }: Props) {
             </label>
           </FieldInheritRow>
           <FieldInheritRow
-            show={isPage}
+            show={canInherit}
             fieldKey="css"
+            onCopy={copyFieldFromBase}
             inherited={inherits('css')}
             onChange={setFieldInherit}
           >
@@ -751,8 +734,9 @@ export function PageSettingsForm({ bootstrap }: Props) {
             />
           </FieldInheritRow>
           <FieldInheritRow
-            show={isPage}
+            show={canInherit}
             fieldKey="javascript"
+            onCopy={copyFieldFromBase}
             inherited={inherits('javascript')}
             onChange={setFieldInherit}
           >
@@ -771,8 +755,9 @@ export function PageSettingsForm({ bootstrap }: Props) {
 
         <Panel title="Body Attributes">
           <FieldInheritRow
-            show={isPage}
+            show={canInherit}
             fieldKey="bodyId"
+            onCopy={copyFieldFromBase}
             inherited={inherits('bodyId')}
             onChange={setFieldInherit}
           >
@@ -792,8 +777,9 @@ export function PageSettingsForm({ bootstrap }: Props) {
             </label>
           </FieldInheritRow>
           <FieldInheritRow
-            show={isPage}
+            show={canInherit}
             fieldKey="bodyClasses"
+            onCopy={copyFieldFromBase}
             inherited={inherits('bodyClasses')}
             onChange={setFieldInherit}
           >
@@ -814,8 +800,9 @@ export function PageSettingsForm({ bootstrap }: Props) {
             </label>
           </FieldInheritRow>
           <FieldInheritRow
-            show={isPage}
+            show={canInherit}
             fieldKey="bodyTagAttributes"
+            onCopy={copyFieldFromBase}
             inherited={inherits('bodyTagAttributes')}
             onChange={setFieldInherit}
           >
@@ -836,8 +823,9 @@ export function PageSettingsForm({ bootstrap }: Props) {
             </label>
           </FieldInheritRow>
           <FieldInheritRow
-            show={isPage}
+            show={canInherit}
             fieldKey="afterBodyHtml"
+            onCopy={copyFieldFromBase}
             inherited={inherits('afterBodyHtml')}
             onChange={setFieldInherit}
           >
@@ -850,7 +838,7 @@ export function PageSettingsForm({ bootstrap }: Props) {
                 <p className="settings-hint">Locked — preserved on save.</p>
               ) : (
                 <CodeEditorField
-                  key={`afterBody-${bootstrap.editingPageKey ?? 'global'}-${inherits('afterBodyHtml')}`}
+                  key={`afterBody-${inherits('afterBodyHtml')}`}
                   name={inherits('afterBodyHtml') ? undefined : 'afterBodyHtml'}
                   label="After <body>"
                   language="html"
@@ -867,8 +855,9 @@ export function PageSettingsForm({ bootstrap }: Props) {
             </div>
           </FieldInheritRow>
           <FieldInheritRow
-            show={isPage}
+            show={canInherit}
             fieldKey="beforeBodyCloseHtml"
+            onCopy={copyFieldFromBase}
             inherited={inherits('beforeBodyCloseHtml')}
             onChange={setFieldInherit}
           >
@@ -881,7 +870,7 @@ export function PageSettingsForm({ bootstrap }: Props) {
                 <p className="settings-hint">Locked — preserved on save.</p>
               ) : (
                 <CodeEditorField
-                  key={`beforeBody-${bootstrap.editingPageKey ?? 'global'}-${inherits('beforeBodyCloseHtml')}`}
+                  key={`beforeBody-${inherits('beforeBodyCloseHtml')}`}
                   name={inherits('beforeBodyCloseHtml') ? undefined : 'beforeBodyCloseHtml'}
                   label="Before </body>"
                   language="html"
@@ -901,121 +890,123 @@ export function PageSettingsForm({ bootstrap }: Props) {
 
         <Panel id="font-awesome" title="Font Awesome Settings">
           <FieldInheritRow
-            show={isPage}
+            show={canInherit}
             fieldKey="fontAwesome"
+            onCopy={copyFieldFromBase}
             inherited={inherits('fontAwesome')}
             onChange={setFieldInherit}
           >
-          <p className="settings-hint">
-            Layouts area — not Settings. Product gate <code>product:font-awesome</code> still
-            lives under Settings → Modules (off skips public FA assets).
-          </p>
-          <label className="settings-flag">
-            <input
-              type="checkbox"
-              name="faEnabled"
-              value="true"
-              checked={faEnabled}
-              disabled={inherits('fontAwesome')}
-              onChange={(e) => {
-                setFaEnabled(e.target.checked)
-                saveNow()
-              }}
-            />
-            <span>
-              <strong>Enable Font Awesome</strong>
-              <span className="settings-flag-desc">Site CDN CSS when on (not a hard dependency).</span>
-            </span>
-          </label>
-          <label className="settings-flag">
-            <input
-              type="checkbox"
-              name="faV4Compat"
-              value="true"
-              checked={faV4Compat}
-              disabled={inherits('fontAwesome')}
-              onChange={(e) => {
-                setFaV4Compat(e.target.checked)
-                saveNow()
-              }}
-            />
-            <span>
-              <strong>V4 Compatibility</strong>
-            </span>
-          </label>
-          <label className="settings-flag">
-            <input
-              type="checkbox"
-              name="faContentCompat"
-              value="true"
-              checked={faContentCompat}
-              disabled={inherits('fontAwesome')}
-              onChange={(e) => {
-                setFaContentCompat(e.target.checked)
-                saveNow()
-              }}
-            />
-            <span>
-              <strong>Content Compatibility</strong>
-              <span className="settings-flag-desc">Reserved flag for content-side FA helpers.</span>
-            </span>
-          </label>
-          <label className="settings-field">
-            <span>Version</span>
-            <select
-              name="faVersion"
-              value={faVersion}
-              disabled={inherits('fontAwesome')}
-              onChange={(e) => {
-                setFaVersion(e.target.value)
-                saveNow()
-              }}
-            >
-              <option value="6-free">Font Awesome 6 Free</option>
-              <option value="7-free">Font Awesome 7 Free</option>
-            </select>
-          </label>
-          <div className={lockedScripts ? 'page-settings-locked' : undefined}>
-            {lockedScripts ? (
-              <>
-                <input type="hidden" name="faCssLinkHtml" value={faCssLinkHtml} />
-                <input type="hidden" name="faJsScriptHtml" value={faJsScriptHtml} />
-                <p className="settings-hint">FA HTML overrides locked — preserved on save.</p>
-              </>
-            ) : (
-              <>
-                <CodeEditorField
-                  key={`faCss-${bootstrap.editingPageKey ?? 'global'}`}
-                  name="faCssLinkHtml"
-                  label="CSS Link HTML"
-                  language="html"
-                  initialValue={faCssLinkHtml}
-                  initialHeight={96}
-                  minHeight={72}
-                  placeholder="Optional raw <link> override"
-                  onValueChange={(next) => {
-                    setFaCssLinkHtml(next)
-                    saveDebounced()
-                  }}
-                />
-                <CodeEditorField
-                  key={`faJs-${bootstrap.editingPageKey ?? 'global'}`}
-                  name={inherits('fontAwesome') ? undefined : 'faJsScriptHtml'}
-                  label="JS Script HTML"
-                  language="html"
-                  initialValue={faJsScriptHtml}
-                  initialHeight={96}
-                  minHeight={72}
-                  placeholder="Optional raw <script> override"
-                  onValueChange={(next) => {
-                    if (inherits('fontAwesome')) return
-                    setFaJsScriptHtml(next)
-                    saveDebounced()
-                  }}
-                />
-              </>
-            )}
-          </div>
+            <p className="settings-hint">
+              Layouts area — not Settings. Product gate <code>product:font-awesome</code> still
+              lives under Settings → Modules (off skips public FA assets).
+            </p>
+            <label className="settings-flag">
+              <input
+                type="checkbox"
+                name="faEnabled"
+                value="true"
+                checked={faEnabled}
+                disabled={inherits('fontAwesome')}
+                onChange={(e) => {
+                  setFaEnabled(e.target.checked)
+                  saveNow()
+                }}
+              />
+              <span>
+                <strong>Enable Font Awesome</strong>
+                <span className="settings-flag-desc">Site CDN CSS when on (not a hard dependency).</span>
+              </span>
+            </label>
+            <label className="settings-flag">
+              <input
+                type="checkbox"
+                name="faV4Compat"
+                value="true"
+                checked={faV4Compat}
+                disabled={inherits('fontAwesome')}
+                onChange={(e) => {
+                  setFaV4Compat(e.target.checked)
+                  saveNow()
+                }}
+              />
+              <span>
+                <strong>V4 Compatibility</strong>
+              </span>
+            </label>
+            <label className="settings-flag">
+              <input
+                type="checkbox"
+                name="faContentCompat"
+                value="true"
+                checked={faContentCompat}
+                disabled={inherits('fontAwesome')}
+                onChange={(e) => {
+                  setFaContentCompat(e.target.checked)
+                  saveNow()
+                }}
+              />
+              <span>
+                <strong>Content Compatibility</strong>
+                <span className="settings-flag-desc">Reserved flag for content-side FA helpers.</span>
+              </span>
+            </label>
+            <label className="settings-field">
+              <span>Version</span>
+              <select
+                name="faVersion"
+                value={faVersion}
+                disabled={inherits('fontAwesome')}
+                onChange={(e) => {
+                  setFaVersion(e.target.value)
+                  saveNow()
+                }}
+              >
+                <option value="6-free">Font Awesome 6 Free</option>
+                <option value="7-free">Font Awesome 7 Free</option>
+              </select>
+            </label>
+            <div className={lockedScripts ? 'page-settings-locked' : undefined}>
+              {lockedScripts ? (
+                <>
+                  <input type="hidden" name="faCssLinkHtml" value={faCssLinkHtml} />
+                  <input type="hidden" name="faJsScriptHtml" value={faJsScriptHtml} />
+                  <p className="settings-hint">FA HTML overrides locked — preserved on save.</p>
+                </>
+              ) : (
+                <>
+                  <CodeEditorField
+                    key={`faCss-${inherits('fontAwesome')}`}
+                    name={inherits('fontAwesome') ? undefined : 'faCssLinkHtml'}
+                    label="CSS Link HTML"
+                    language="html"
+                    initialValue={faCssLinkHtml}
+                    initialHeight={96}
+                    minHeight={72}
+                    placeholder="Optional raw <link> override"
+                    onValueChange={(next) => {
+                      if (inherits('fontAwesome')) return
+                      setFaCssLinkHtml(next)
+                      saveDebounced()
+                    }}
+                  />
+                  <CodeEditorField
+                    key={`faJs-${inherits('fontAwesome')}`}
+                    name={inherits('fontAwesome') ? undefined : 'faJsScriptHtml'}
+                    label="JS Script HTML"
+                    language="html"
+                    initialValue={faJsScriptHtml}
+                    initialHeight={96}
+                    minHeight={72}
+                    placeholder="Optional raw <script> override"
+                    onValueChange={(next) => {
+                      if (inherits('fontAwesome')) return
+                      setFaJsScriptHtml(next)
+                      saveDebounced()
+                    }}
+                  />
+                </>
+              )}
+            </div>
           </FieldInheritRow>
         </Panel>
 
@@ -1157,18 +1148,6 @@ export function PageSettingsForm({ bootstrap }: Props) {
         {pending ? <p className="field-hint page-settings-saving">Saving…</p> : null}
       </form>
 
-      {isPage && bootstrap.hasOverride ? (
-        <form action={clearAction} className="page-settings-clear admin-action-row">
-          <input type="hidden" name="pageKey" value={bootstrap.editingPageKey ?? ''} />
-          <button
-            type="submit"
-            className="gantry-toolbar-btn gantry-toolbar-btn-danger danger"
-            disabled={clearPending}
-          >
-            {clearPending ? 'Clearing…' : 'Clear override'}
-          </button>
-        </form>
-      ) : null}
     </div>
   )
 }

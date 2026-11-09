@@ -6,7 +6,13 @@ import { db, GLOBAL_PAGE_CHROME_ID, sfPageChrome } from '@/core/db'
 
 import { DEFAULT_GLOBAL_PAGE_CHROME } from './defaults'
 import { normalizePageChrome, parsePageChromeJson, serializePageChrome } from './merge'
+import { isDocumentChromeRowId, outlineChromeRowId } from './outline-chrome'
 import type { PageChrome } from './types'
+
+/** pageKey for normalize — null for global / outline chrome rows. */
+function pageKeyForChromeRowId(id: string): string | null {
+  return isDocumentChromeRowId(id) ? null : id
+}
 
 export type PageChromeLoadSource = 'database' | 'default'
 
@@ -17,11 +23,11 @@ export type PageChromeLoadResult = {
 }
 
 /**
- * Load one chrome row by id (`global` or pageKey) — uncached DB/default path.
+ * Load one chrome row by id (`global`, `outline:<id>`, or pageKey) — uncached DB/default path.
  * Missing/unreadable → empty chrome (caller merges with defaults).
  */
 async function loadPageChromeRowUncached(id: string): Promise<PageChromeLoadResult> {
-  const pageKey = id === GLOBAL_PAGE_CHROME_ID ? null : id
+  const pageKey = pageKeyForChromeRowId(id)
   try {
     const [row] = await db
       .select({ document: sfPageChrome.document })
@@ -78,9 +84,14 @@ export async function loadPageChromeOverride(pageKey: string): Promise<PageChrom
   return loadPageChromeRow(pageKey)
 }
 
-/** Upsert chrome JSON for global or a pageKey. */
+/** Load sparse chrome overrides for a non-Base outline (`outline:<id>`). */
+export async function loadOutlinePageChrome(outlineId: string): Promise<PageChromeLoadResult> {
+  return loadPageChromeRow(outlineChromeRowId(outlineId))
+}
+
+/** Upsert chrome JSON for global, outline, or pageKey. */
 export async function savePageChrome(id: string, chrome: PageChrome): Promise<PageChrome> {
-  const pageKey = id === GLOBAL_PAGE_CHROME_ID ? null : id
+  const pageKey = pageKeyForChromeRowId(id)
   const normalized = normalizePageChrome(
     {
       ...chrome,
@@ -115,17 +126,17 @@ export async function savePageChrome(id: string, chrome: PageChrome): Promise<Pa
   return normalized
 }
 
-/** List pageKeys that have an override row (excludes global). */
+/** List nav pageKey chrome rows (excludes `global` and `outline:*`). */
 export async function listPageChromeOverrideKeys(): Promise<string[]> {
   try {
     const rows = await db.select({ id: sfPageChrome.id }).from(sfPageChrome)
-    return rows.map((r) => r.id).filter((id) => id !== GLOBAL_PAGE_CHROME_ID)
+    return rows.map((r) => r.id).filter((id) => !isDocumentChromeRowId(id))
   } catch {
     return []
   }
 }
 
-/** Delete a per-page override (no-op for global). */
+/** Delete a pageKey or outline chrome row (no-op for global). */
 export async function deletePageChromeOverride(pageKey: string): Promise<boolean> {
   if (!pageKey || pageKey === GLOBAL_PAGE_CHROME_ID) return false
   try {
@@ -135,6 +146,13 @@ export async function deletePageChromeOverride(pageKey: string): Promise<boolean
   } catch {
     return false
   }
+}
+
+/** Delete outline-scoped chrome when an outline is removed. */
+export async function deleteOutlinePageChrome(outlineId: string): Promise<boolean> {
+  const id = outlineId.trim()
+  if (!id) return false
+  return deletePageChromeOverride(outlineChromeRowId(id))
 }
 
 /**

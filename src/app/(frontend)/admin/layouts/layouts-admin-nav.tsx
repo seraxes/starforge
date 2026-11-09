@@ -1,10 +1,12 @@
 'use client'
 
-import React, { useTransition } from 'react'
+import React, { useEffect, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 import { switchSkinFromLayoutsAction } from '@/core/skin/actions'
+import { rememberAdminWorkingOutline } from '@/core/skin/admin-working-outline'
+import { STARFORGE_PASTEL_SKIN_ID } from '@/core/skin/skins/starforge-pastel'
 
 export type LayoutsAdminTab =
   | 'layout'
@@ -14,14 +16,20 @@ export type LayoutsAdminTab =
   /** Still accepted from pages; not shown in the top tab strip. */
   | 'particle-defaults'
   | 'skins'
+  | 'outlines'
 
 type OutlineOption = { id: string; label: string }
 type SkinOption = { id: string; label: string }
 
 function withOutline(path: string, outlineId: string): string {
-  if (!outlineId || outlineId === 'default') return path
+  const id = outlineId.trim()
+  if (!id) return path
   const join = path.includes('?') ? '&' : '?'
-  return `${path}${join}outline=${encodeURIComponent(outlineId)}`
+  // Always carry outline so left-nav hops / tab switches keep the working selection.
+  if (path.includes('outline=')) {
+    return path.replace(/([?&])outline=[^&]*/, `$1outline=${encodeURIComponent(id)}`)
+  }
+  return `${path}${join}outline=${encodeURIComponent(id)}`
 }
 
 /** Top strip: Layout / Styles / Page Settings / Assigned Menu — Particle Defaults + Skins in left nav. */
@@ -91,6 +99,11 @@ export function LayoutsAdminNav({
   const outlineId = currentOutlineId || 'default'
   const skinId = activeSkinId || skins[0]?.id || ''
 
+  // Keep working outline sticky across left-nav / menu changes (cookie per skin).
+  useEffect(() => {
+    if (skinId && outlineId) rememberAdminWorkingOutline(skinId, outlineId)
+  }, [skinId, outlineId])
+
   const tabs = TABS.filter((tab) => {
     if (tab.id === 'layout' || tab.id === 'styles' || tab.id === 'assigned-menu') {
       return showLayoutTabs
@@ -123,8 +136,18 @@ export function LayoutsAdminNav({
                   }
                   const tab = TABS.find((t) => t.id === active) ?? TABS[0]!
                   const targetOutline = result.preferredOutlineId || outlineId
-                  // Skins / Particle Defaults are left-nav only — stay put and refresh chrome.
-                  if (active === 'skins' || active === 'particle-defaults') {
+                  if (next && targetOutline) {
+                    rememberAdminWorkingOutline(next, targetOutline)
+                  }
+                  // Left-nav-only surfaces — stay put; Outlines list reloads for the new skin.
+                  if (
+                    active === 'skins' ||
+                    active === 'particle-defaults' ||
+                    active === 'outlines'
+                  ) {
+                    if (active === 'outlines') {
+                      router.push('/admin/outlines')
+                    }
                     router.refresh()
                     return
                   }
@@ -135,7 +158,9 @@ export function LayoutsAdminNav({
             >
               {skins.map((skin) => (
                 <option key={skin.id} value={skin.id}>
-                  {skin.label}
+                  {skin.id === STARFORGE_PASTEL_SKIN_ID
+                    ? `${skin.label} (default)`
+                    : skin.label}
                 </option>
               ))}
             </select>
@@ -161,6 +186,7 @@ export function LayoutsAdminNav({
               aria-label="Switch layout outline"
               onChange={(event) => {
                 const next = event.target.value
+                if (skinId && next) rememberAdminWorkingOutline(skinId, next)
                 const tab = TABS.find((t) => t.id === active)
                 const path =
                   active === 'assigned-menu'

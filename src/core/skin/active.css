@@ -1,5 +1,5 @@
 /*
- * Active Skin CSS entry — static import (Next/Turbopack-safe), same pattern as admin-theme.
- * Add further `skins/<id>/skin.css` imports here when shipping additional skins.
+ * Active Skin CSS entry — kept for Next CSS graph compatibility.
+ * Pack skins inject tokens + skin.css at runtime via SkinRootStyles.
+ * Do not add per-skin @imports here; uploadable packs cannot use static imports.
  */
-@import './skins/starforge-pastel/skin.css';

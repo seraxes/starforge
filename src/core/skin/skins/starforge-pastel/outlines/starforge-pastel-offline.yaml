@@ -1,0 +1,38 @@
+id: starforge-pastel-offline
+label: Pastel — Offline
+document:
+  version: 3
+  inheritFrom: starforge-pastel-default
+  omitSectionIds:
+    - navigation
+  sections:
+    - id: header
+      label: Header
+      order: 0
+      rows:
+        - id: header-row-1
+          order: 0
+          slots:
+            - id: header-logo
+              moduleId: logo
+              width: 100
+              enabled: true
+              order: 0
+        - id: header__trailing-empty
+          order: 1
+          slots: []
+    - id: main
+      label: Main
+      order: 1
+      rows:
+        - id: main-row-1
+          order: 0
+          slots:
+            - id: main-page-content
+              moduleId: page-content
+              width: 100
+              enabled: true
+              order: 0
+        - id: main__trailing-empty
+          order: 1
+          slots: []

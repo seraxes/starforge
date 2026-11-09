@@ -52,7 +52,7 @@ Ordered for Core densification (skip Events/Marketplace *data* — those packs a
 | 12 | **Dynamic admin theme CSS import** | S | Env registry works; layouts still static gantry import |
 | 13 | **Doc hygiene — refresh gaps eval** | S | Queued **SF-199** (this doc + Done stack supersede Nov 4 P0 list) |
 | 14 | **Skin port** | M | **Shipped v1** (`src/core/skin`, admin `/admin/skins`); SF-33 dark skin still queued |
-| 14b | **Skin install packages** | M | **Open** — package format + admin Install/export so Pastel (and later skins) can be shipped and copied to other Starforge instances (tokens + outline seeds + assets), not only in-tree registry seeds |
+| 14b | **Skin install packages** | M | **Shipped** — YAML+files packs (`skin.yaml` + `outlines/*.yaml` + `skin.css`); admin Skins upload/download; installed under `data/skins/`; Outlines admin lists create/inherit/copy per skin |
 | 14c | **Outline Default-as-shell** | M | **Shipped** — inheritFrom/omitSectionIds merge on public load; nav outline → Page Settings; preferred shell soft-heal; model [skin-outline-model.md](./skin-outline-model.md) |
 
 Also intentional thin: Events/Marketplace **dashboard stubs only** (SF-221) — no schema/UI until those Modules.

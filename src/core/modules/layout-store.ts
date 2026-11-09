@@ -227,7 +227,7 @@ export async function patchLayoutOutlineMeta(
   }
 }
 
-/** List all layout outlines (named layouts) for Outlines manager + Page Settings. */
+/** List all layout outlines (named layouts) for Outlines manager + Layouts chrome. */
 export async function listLayoutOutlines(): Promise<LayoutOutlineMeta[]> {
   try {
     await ensureLayoutSkinIdColumn()
@@ -591,6 +591,12 @@ export async function deleteLayoutOutline(
   }
 
   await invalidateLayout(id)
+  try {
+    const { deleteOutlinePageChrome } = await import('@/core/page-settings/store')
+    await deleteOutlinePageChrome(id)
+  } catch {
+    // Page Settings table may be unavailable — outline delete still succeeded.
+  }
   return { ok: true }
 }
 

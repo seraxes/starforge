@@ -30,19 +30,21 @@ export type SkinTokens = {
 }
 
 /**
- * One outline shipped with a Skin (Gantry `outlines/*.yaml` equivalent).
+ * One outline shipped with a Skin (`outlines/*.yaml`).
  * Prefer ids prefixed with the skin id (`starforge-pastel-default`).
  */
 export type SkinOutlineSeed = {
   id: string
   label: string
-  /** v3 layout document (JSON today; YAML import later). */
+  /** v3 layout document (YAML on disk; JSONB in `sf_layouts` at runtime). */
   document: LayoutDocument
   /** When true, overwrite an existing `sf_layouts` row on seed. Default false. */
   forceUpdate?: boolean
   /** Prefer this outline as the site default layout assignment when the skin is set. */
   defaultForSite?: boolean
 }
+
+export type SkinPackSource = 'bundled' | 'installed'
 
 export type Skin = {
   id: SkinId
@@ -58,6 +60,12 @@ export type Skin = {
   outlineSeeds?: SkinOutlineSeed[]
   /** Outline id to assign on global Page Settings when this skin becomes default. */
   preferredDefaultOutlineId?: string
+  /** Optional `skin.css` contents (injected at runtime). */
+  cssSource?: string
+  /** Absolute pack directory when loaded from disk. */
+  packDir?: string
+  /** Bundled (repo) vs uploaded under `data/skins`. */
+  source?: SkinPackSource
 }
 
 export type SkinRegistry = Record<SkinId, Skin>

@@ -44,3 +44,7 @@ AGENTS.md
 # Serwist (product:pwa) — built service worker
 /public/sw*
 /public/swe-worker*
+
+# Uploaded / site-installed skin packs
+/data/skins/
+

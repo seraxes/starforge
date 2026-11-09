@@ -1,19 +1,14 @@
 'use client'
 
-import React, { useActionState } from 'react'
-import Link from 'next/link'
+import React, { useActionState, useId, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 import {
   setDefaultSkinAction,
+  uploadSkinPackAction,
   type SkinActionState,
+  type SkinUploadActionState,
 } from '@/core/skin/actions'
-
-export type SkinOutlineRow = {
-  id: string
-  label: string
-  defaultForSite?: boolean
-}
 
 export type SkinRow = {
   id: string
@@ -21,8 +16,7 @@ export type SkinRow = {
   colorScheme: 'light' | 'dark'
   isDefault: boolean
   isActive: boolean
-  outlines: SkinOutlineRow[]
-  preferredOutlineId?: string
+  source?: 'bundled' | 'installed'
 }
 
 type Props = {
@@ -33,8 +27,13 @@ type Props = {
 }
 
 const initial: SkinActionState = {}
+const uploadInitial: SkinUploadActionState = {}
 
-function Feedback({ state }: { state: SkinActionState }) {
+function Feedback({
+  state,
+}: {
+  state: SkinActionState | SkinUploadActionState
+}) {
   if (state.error) {
     return (
       <p className="admin-inline-error" role="alert">
@@ -52,9 +51,96 @@ function Feedback({ state }: { state: SkinActionState }) {
   return null
 }
 
+/** Same chrome as Media upload: hidden native input + gantry Choose button. */
+function SkinPackFileField({ disabled }: { disabled?: boolean }) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const inputId = useId()
+  const [fileName, setFileName] = useState('')
+  const [dragging, setDragging] = useState(false)
+
+  function applyFiles(files: FileList | null) {
+    const input = inputRef.current
+    if (!input || !files?.length) {
+      setFileName('')
+      return
+    }
+    const dt = new DataTransfer()
+    dt.items.add(files[0]!)
+    input.files = dt.files
+    setFileName(files[0]!.name)
+  }
+
+  return (
+    <div
+      className={[
+        'sf-media-file-field',
+        dragging ? 'is-dragging' : '',
+        fileName ? 'has-file' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      onDragEnter={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        if (!disabled) setDragging(true)
+      }}
+      onDragOver={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        if (!disabled) setDragging(true)
+      }}
+      onDragLeave={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setDragging(false)
+      }}
+      onDrop={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setDragging(false)
+        if (disabled) return
+        applyFiles(e.dataTransfer.files)
+      }}
+    >
+      <input
+        ref={inputRef}
+        id={inputId}
+        type="file"
+        name="pack"
+        accept=".zip,application/zip"
+        required
+        disabled={disabled}
+        className="sf-media-file-field-input"
+        onChange={(e) => applyFiles(e.target.files)}
+      />
+      <div className="sf-media-file-field-body">
+        <p className="sf-media-file-field-title">
+          {fileName ? fileName : 'Drop a skin pack here, or choose a file'}
+        </p>
+        <p className="sf-media-file-field-hint settings-hint">
+          Zip with <code>skin.yaml</code>, <code>outlines/*.yaml</code>, optional{' '}
+          <code>skin.css</code>.
+        </p>
+        <button
+          type="button"
+          className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+          disabled={disabled}
+          onClick={() => inputRef.current?.click()}
+        >
+          {fileName ? 'Change pack…' : 'Choose pack…'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export function SkinsManager({ skins, activeSkinId, envPinned, previewHref }: Props) {
   const router = useRouter()
   const [state, action, pending] = useActionState(setDefaultSkinAction, initial)
+  const [uploadState, uploadAction, uploadPending] = useActionState(
+    uploadSkinPackAction,
+    uploadInitial,
+  )
 
   return (
     <div className="sf-skins-manager outlines-manager">
@@ -66,6 +152,34 @@ export function SkinsManager({ skins, activeSkinId, envPinned, previewHref }: Pr
       ) : null}
 
       <Feedback state={state} />
+      <Feedback state={uploadState} />
+
+      <section className="outlines-create" aria-label="Upload skin pack">
+        <h3>Install skin pack</h3>
+        <form
+          action={uploadAction}
+          className="outlines-create-form admin-create-form"
+          encType="multipart/form-data"
+          onSubmit={() => setTimeout(() => router.refresh(), 80)}
+        >
+          <div className="settings-field">
+            <span>Pack zip</span>
+            <SkinPackFileField disabled={uploadPending} />
+          </div>
+          <p className="settings-hint">
+            Installed under <code>data/skins/</code>.
+          </p>
+          <div className="page-settings-actions">
+            <button
+              type="submit"
+              className="gantry-toolbar-btn gantry-toolbar-btn-save"
+              disabled={uploadPending}
+            >
+              {uploadPending ? 'Installing…' : 'Upload & install'}
+            </button>
+          </div>
+        </form>
+      </section>
 
       <section className="outlines-create" aria-label="Set default skin">
         <h3>Site default</h3>
@@ -89,15 +203,17 @@ export function SkinsManager({ skins, activeSkinId, envPinned, previewHref }: Pr
               ))}
             </select>
           </label>
-          <button
-            type="submit"
-            className="gantry-toolbar-btn gantry-toolbar-btn-save"
-            disabled={envPinned || pending}
-          >
-            {pending ? 'Saving…' : 'Set as default'}
-          </button>
+          <div className="page-settings-actions">
+            <button
+              type="submit"
+              className="gantry-toolbar-btn gantry-toolbar-btn-save"
+              disabled={envPinned || pending}
+            >
+              {pending ? 'Saving…' : 'Set as default'}
+            </button>
+          </div>
         </form>
-        <p className="admin-lede" style={{ marginTop: '0.75rem' }}>
+        <p className="settings-hint" style={{ marginTop: '0.75rem' }}>
           Sets brand tokens/CSS and installs this skin&apos;s outline seeds into Layouts. Existing
           outline edits are kept.
         </p>
@@ -110,7 +226,7 @@ export function SkinsManager({ skins, activeSkinId, envPinned, previewHref }: Pr
               <th scope="col">Name</th>
               <th scope="col">Id</th>
               <th scope="col">Scheme</th>
-              <th scope="col">Outlines</th>
+              <th scope="col">Source</th>
               <th scope="col">Actions</th>
             </tr>
           </thead>
@@ -128,27 +244,8 @@ export function SkinsManager({ skins, activeSkinId, envPinned, previewHref }: Pr
                   <code>{skin.id}</code>
                 </td>
                 <td className="outlines-muted">{skin.colorScheme}</td>
-                <td>
-                  {skin.outlines.length === 0 ? (
-                    <span className="outlines-muted">—</span>
-                  ) : (
-                    <ul className="sf-skins-outline-list">
-                      {skin.outlines.map((outline) => (
-                        <li key={outline.id}>
-                          <Link
-                            className="button-link"
-                            href={`/admin/layouts?outline=${encodeURIComponent(outline.id)}`}
-                          >
-                            {outline.label}
-                          </Link>
-                          {outline.defaultForSite ||
-                          outline.id === skin.preferredOutlineId ? (
-                            <span className="outlines-badge">Site</span>
-                          ) : null}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                <td className="outlines-muted">
+                  {skin.source === 'installed' ? 'Installed' : 'Bundled'}
                 </td>
                 <td className="outlines-actions">
                   <div className="outlines-actions">
@@ -167,16 +264,12 @@ export function SkinsManager({ skins, activeSkinId, envPinned, previewHref }: Pr
                         </button>
                       </form>
                     )}
-                    {skin.preferredOutlineId || skin.outlines[0]?.id ? (
-                      <Link
-                        className="gantry-toolbar-btn"
-                        href={`/admin/layouts?outline=${encodeURIComponent(
-                          skin.preferredOutlineId || skin.outlines[0]!.id,
-                        )}`}
-                      >
-                        Open layout
-                      </Link>
-                    ) : null}
+                    <a
+                      className="gantry-toolbar-btn"
+                      href={`/api/admin/skins/download?id=${encodeURIComponent(skin.id)}`}
+                    >
+                      Download
+                    </a>
                     <a
                       className="gantry-toolbar-btn"
                       href={previewHref}

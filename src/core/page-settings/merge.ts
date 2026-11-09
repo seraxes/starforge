@@ -182,8 +182,8 @@ function defined<T>(value: T | undefined): value is T {
 }
 
 /**
- * Merge site global chrome with an optional per-page override.
- * Page fields win when present (including empty string / empty array).
+ * Merge site global chrome with an optional page row.
+ * Runtime only passes `layoutId` from page rows (nav assignment); other chrome is global.
  */
 export function mergePageChrome(
   globalChrome: PageChrome | null | undefined,

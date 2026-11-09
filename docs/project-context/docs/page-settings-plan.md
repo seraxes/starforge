@@ -1,10 +1,10 @@
 # Page Settings submenu plan
 
-Gantry Helium–style **Page Settings** for Starforge Core (see user screenshot: Head Properties, Assets, Body Attributes, Font Awesome, Atoms). Core owns chrome + layout assignment; Payload keeps page body / base SEO.
+Gantry Helium–style **Page Settings** for Starforge Core (see user screenshot: Head Properties, Assets, Body Attributes, Font Awesome, Atoms). Core owns document chrome; nav menu items own outline assignment; Payload keeps page body / base SEO.
 
 ## Goal
 
-Admin UI mirroring Gantry’s Page Settings tabs/panels: global (site) defaults + per-page overrides; optional **Atoms** (non-visual injectors) as a registry like particles.
+Admin UI mirroring Gantry’s Page Settings tabs/panels: **outline-gated** document chrome (toolbar outline; Base = source, other outlines Inherit/Copy from Base). No page picker. Optional **Atoms** as a registry like particles.
 
 ## UI map (from Gantry)
 
@@ -27,7 +27,7 @@ Admin UI mirroring Gantry’s Page Settings tabs/panels: global (site) defaults 
 - Enable, V4 Compatibility, Content Compatibility toggles.
 - Version select (e.g. FA 6/7 Free).
 - Optional override: CSS Link HTML / JS Script HTML (advanced).
-- Site-level integration; page can inherit/on/off later.
+- Site-level integration (global Page Settings only).
 
 ### Atoms (non-visual)
 Gantry atoms = headroom, analytics, custom CSS/JS, JS frameworks, lightcase, etc.
@@ -36,20 +36,20 @@ Gantry atoms = headroom, analytics, custom CSS/JS, JS frameworks, lightcase, etc
 - Later: Headroom, Lightcase, JS frameworks — add as modules when needed.
 - Admin: pill buttons to add atom; list with settings gear → **popup overlay** (same as layout particle editors).
 
-Also keep: **layout outline assignment** (page → `sf_layouts`) — Gantry ties this to outlines; we expose it on Page Settings or adjacent submenu.
+**Outline assignment** is **not** edited in Page Settings. Nav menu items carry `layoutId` (Menus editor + Layouts → Assigned Menu) and sync into `sf_page_chrome.layoutId` for runtime resolve.
 
 ## Scope split
 
 ### v1 (SF-37)
-1. Site default chrome + per-page override merge.
+1. Outline-gated chrome: Base → `global`; other outlines → sparse `outline:<id>` with field Inherit/Copy from Base.
 2. Head: meta tags list + custom head HTML.
 3. Assets: favicon, touch icon, ordered CSS/JS lists (name + URL).
 4. Body: id, classes, tag attributes, after/before body HTML.
 5. Sections layout mode enum (fullwidth | boxed).
-6. Layout assignment field.
-7. Font Awesome site panel (enable + version + optional CSS/JS override HTML).
+6. ~~Layout assignment field / page picker~~ — removed; nav menu items own outline assignment (sync → chrome `layoutId` only).
+7. Font Awesome panel (enable + version + optional CSS/JS override HTML).
 8. Atoms: registry + Custom CSS/JS atom + Analytics atom; popup settings.
-9. Admin: **Layouts → Page settings** nested submenu (not top-level); route `/app/admin/page-settings` + page picker / per-page edit; collapse/expand panels like Gantry optional.
+9. Admin: **Layouts → Page settings**; toolbar outline switcher scopes edits.
 
 ### Later
 - Richer meta (OG presets), Media picker for every asset, more atoms, menu-item chrome, Layout Styles (SF-34), dark theme (SF-33).
@@ -92,14 +92,14 @@ type PageChrome = {
 - Custom head, body hooks, JS lists, inline/atom scripts: developer-admin.
 
 ## Success criteria (v1)
-- Global Page Settings UI covers Head / Assets / Body / FA / Atoms like the screenshot structure.
-- Per-page override merges over global.
+- Page Settings UI covers Head / Assets / Body / FA / Atoms; Inherit/Copy gated by Base vs other outline.
+- No page picker — which outline a page uses comes from nav → layoutId-only pageKey rows.
 - Public HTML emits meta, icons, CSS/JS order, body attrs, hooks, FA when enabled, atom injectors.
 - Atom settings open as overlay popup (not expanding the row).
 
 ## Implementation order
 1. Schema + merge resolver.
 2. Document shell emitter in public layout.
-3. Admin panels (global then per-page).
+3. Admin panels (site-global).
 4. FA + two atoms.
 5. Seed global defaults.

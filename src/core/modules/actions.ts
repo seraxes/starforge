@@ -776,6 +776,53 @@ export async function setSectionStylesInheritModeAction(
 }
 
 /**
+ * Snapshot parent section styles into this outline as local (Layouts → Styles Copy).
+ */
+export async function copySectionStylesFromParentAction(
+  _prev: LayoutActionState,
+  formData: FormData,
+): Promise<LayoutActionState> {
+  const sectionId = String(formData.get('sectionId') ?? '').trim()
+  if (!sectionId) return { error: 'Missing section id.' }
+
+  const layoutId = layoutIdFromForm(formData)
+  const { document } = await loadLayoutDocument(layoutId)
+  if (!document.inheritFrom) {
+    return { error: 'This outline has no parent (Base) to copy styles from.' }
+  }
+  const parent = await loadParentResolved(document, layoutId)
+  const parentSection = parent?.sections.find((s) => s.id === sectionId)
+  if (!parentSection) {
+    return { error: `Parent outline has no section “${sectionId}”.` }
+  }
+
+  const state = await mutateLayout(formData, (doc) => {
+    let section = findSection(doc, sectionId)
+    if (!section) {
+      section = {
+        id: sectionId,
+        label: parentSection.label || sectionId,
+        inheritMode: 'inherit',
+        order: parentSection.order ?? doc.sections.length,
+        rows: [],
+      }
+      doc.sections.push(section)
+    }
+    section.stylesInheritMode = 'local'
+    section.styles = parentSection.styles
+      ? structuredClone(parentSection.styles)
+      : undefined
+    if (!section.styles) delete section.styles
+    return doc
+  })
+
+  if (state.ok) {
+    state.message = `“${sectionId}” styles copied from Base (local).`
+  }
+  return state
+}
+
+/**
  * Particle inherit vs local against parent outline slot (same id).
  */
 export async function setSlotInheritModeAction(

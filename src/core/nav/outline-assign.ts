@@ -1,12 +1,17 @@
 /**
  * Nav → Page Settings outline assignment.
- * Runtime still resolves layoutId from Page Settings; nav is the UX that writes it.
+ * Runtime resolves layoutId from Page Settings chrome; nav (Menus / Assigned Menu)
+ * is the only admin UX that writes it — Page Settings does not edit layoutId.
  */
 import 'server-only'
 
 import { pageKeyFromPathname } from '@/core/page-settings/resolve'
 import { HOME_PAGE_KEY } from '@/core/page-settings/defaults'
-import { loadPageChromeOverride, savePageChrome } from '@/core/page-settings/store'
+import {
+  deletePageChromeOverride,
+  loadPageChromeOverride,
+  savePageChrome,
+} from '@/core/page-settings/store'
 import { invalidatePageChrome } from '@/core/content/revalidate'
 
 import { flattenNavItemsInOrder } from './document'
@@ -49,7 +54,7 @@ export function pageKeyForNavItem(
   return null
 }
 
-/** Write nav item outline onto the matching Page Settings override (when resolvable). */
+/** Write nav item outline onto a layoutId-only page chrome row (when resolvable). */
 export async function syncNavItemOutlineToPageChrome(
   item: NavMenuItem,
   pages: NavPageOption[],
@@ -60,11 +65,8 @@ export async function syncNavItemOutlineToPageChrome(
   const pageKey = pageKeyForNavItem(item, pages, modules)
   if (!pageKey) return
 
-  const existing = await loadPageChromeOverride(pageKey)
-  const chrome = existing.isFallback
-    ? { pageKey, layoutId }
-    : { ...existing.chrome, pageKey, layoutId }
-  await savePageChrome(pageKey, chrome)
+  // Document chrome is site-global only — page rows store outline assignment alone.
+  await savePageChrome(pageKey, { pageKey, layoutId })
   await invalidatePageChrome(pageKey)
 }
 
@@ -81,9 +83,7 @@ export async function clearNavItemOutlineFromPageChrome(
   if (existing.isFallback) return
   const current = (existing.chrome.layoutId ?? '').trim()
   if (!current || current !== outlineId.trim()) return
-  const { layoutId: _removed, ...rest } = existing.chrome
-  await savePageChrome(pageKey, { ...rest, pageKey })
-  await invalidatePageChrome(pageKey)
+  await deletePageChromeOverride(pageKey)
 }
 
 export async function syncNavMenuOutlinesToPageChrome(

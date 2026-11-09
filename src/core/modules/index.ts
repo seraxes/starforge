@@ -3,6 +3,7 @@ export {
   addLayoutSectionAction,
   addParticleToSectionAction,
   copySectionFromParentAction,
+  copySectionStylesFromParentAction,
   copySlotFromParentAction,
   dropParticleIntoRowAction,
   listModulesForLayoutAdmin,

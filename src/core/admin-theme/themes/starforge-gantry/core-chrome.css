@@ -1261,7 +1261,9 @@ body:has(.admin-shell) > main {
 .admin-shell .gantry-section-head-actions {
   display: flex;
   align-items: center;
-  gap: 0.2rem;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.55rem;
+  justify-content: flex-end;
 }
 
 .admin-shell .gantry-section-icon-btn,
@@ -1337,11 +1339,111 @@ body:has(.admin-shell) > main {
 .admin-shell .gantry-inherit-copy-row {
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 0.35rem;
 }
 
 .admin-shell .gantry-inherit-copy-row .gantry-toolbar-btn {
   align-self: flex-end;
+}
+
+/* Compact action cluster — Inherit label above toggle; disk Copy. */
+.admin-shell .gantry-inherit-copy-row-inline {
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: flex-end;
+  gap: 0.3rem 0.45rem;
+  white-space: nowrap;
+}
+
+.admin-shell .gantry-inherit-copy-row-inline .gantry-inherit-switch {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-height: 0;
+  gap: 0.2rem;
+  background: transparent;
+}
+
+.admin-shell .gantry-inherit-copy-row-inline .gantry-inherit-switch-label {
+  font-size: 0.86rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+}
+
+.admin-shell .gantry-inherit-copy-row-inline .gantry-inherit-switch-controls {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.28rem;
+}
+
+.admin-shell .gantry-inherit-copy-row-inline .cms-switch-track {
+  width: 2.22rem;
+  height: 1.2rem;
+  min-width: 2.22rem;
+}
+
+.admin-shell .gantry-inherit-copy-row-inline .cms-switch-thumb {
+  top: 2px;
+  left: 2px;
+  width: 0.86rem;
+  height: 0.86rem;
+}
+
+.admin-shell .gantry-inherit-copy-row-inline .cms-switch-track.is-on .cms-switch-thumb {
+  transform: translateX(calc(2.22rem - 0.86rem - 4px));
+}
+
+.admin-shell .gantry-inherit-copy-row-inline .cms-switch-label {
+  font-size: 0.82rem;
+  min-width: 1.35rem;
+}
+
+.admin-shell .gantry-inherit-copy-row-inline .gantry-inherit-copy-disk {
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  min-width: 1.85rem;
+  min-height: 1.85rem;
+  padding: 0.2rem;
+  line-height: 1;
+}
+
+.admin-shell .gantry-inherit-copy-row-inline .gantry-inherit-copy-disk-icon {
+  display: block;
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+/* Non-inline (stacked panel) — same label-above + disk. */
+.admin-shell .gantry-inherit-copy-row:not(.gantry-inherit-copy-row-inline) .gantry-inherit-switch {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.admin-shell .gantry-inherit-copy-row:not(.gantry-inherit-copy-row-inline) .gantry-inherit-switch-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.admin-shell .gantry-inherit-copy-row:not(.gantry-inherit-copy-row-inline) .gantry-inherit-copy-disk {
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  min-width: 2.1rem;
+  min-height: 2.1rem;
+  padding: 0.25rem;
 }
 
 .admin-shell .gantry-inherit-badge {
@@ -1368,22 +1470,122 @@ body:has(.admin-shell) > main {
   gap: 0.55rem;
 }
 
-.admin-shell .section-styles-card-inherit {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-  margin-bottom: 0.65rem;
-  padding-bottom: 0.55rem;
-  border-bottom: 1px solid var(--sf-admin-blue-border);
+/* Inherited values — grey out inputs; Inherit/Copy stay crisp. */
+.admin-shell .page-settings-field-inherited input:not([type='hidden']),
+.admin-shell .page-settings-field-inherited select,
+.admin-shell .page-settings-field-inherited textarea,
+.admin-shell .section-styles-card.sf-inherited-muted .section-styles-form input:not([type='hidden']),
+.admin-shell .section-styles-card.sf-inherited-muted .section-styles-form select,
+.admin-shell .section-styles-card.sf-inherited-muted .section-styles-form textarea,
+.admin-shell .gantry-section.sf-inherited-muted > *:not(.gantry-section-head) input:not([type='hidden']),
+.admin-shell .gantry-section.sf-inherited-muted > *:not(.gantry-section-head) select,
+.admin-shell .gantry-section.sf-inherited-muted > *:not(.gantry-section-head) textarea,
+.admin-shell .gantry-slot.sf-inherited-muted input:not([type='hidden']),
+.admin-shell .gantry-slot.sf-inherited-muted select,
+.admin-shell .gantry-slot.sf-inherited-muted textarea {
+  color: #8b97a8 !important;
+  background: color-mix(in srgb, #1b2432 72%, #5a6578) !important;
+  border-color: #3d4654 !important;
+  box-shadow: none !important;
+  cursor: not-allowed;
+  opacity: 0.72;
 }
 
-.admin-shell .page-settings-field-inherited {
-  opacity: 0.92;
+.admin-shell .page-settings-field-inherited .gantry-color-swatch,
+.admin-shell .page-settings-field-inherited .gantry-color-field,
+.admin-shell .page-settings-field-inherited .sf-media-picker,
+.admin-shell .page-settings-field-inherited .sf-media-picker-trigger,
+.admin-shell .page-settings-field-inherited .sf-rich-editor,
+.admin-shell .page-settings-field-inherited .ProseMirror,
+.admin-shell .page-settings-field-inherited .page-settings-list,
+.admin-shell .page-settings-field-inherited .settings-fieldset,
+.admin-shell .page-settings-field-inherited .nav-access-tags,
+.admin-shell .section-styles-card.sf-inherited-muted .section-styles-form .gantry-color-swatch,
+.admin-shell .section-styles-card.sf-inherited-muted .section-styles-form .gantry-color-field,
+.admin-shell .section-styles-card.sf-inherited-muted .section-styles-form .sf-media-picker,
+.admin-shell .gantry-slot.sf-inherited-muted .gantry-slot-access-tags,
+.admin-shell .gantry-slot.sf-inherited-muted .gantry-typed-form,
+.admin-shell .gantry-slot.sf-inherited-muted .gantry-slot-extra-actions {
+  opacity: 0.55;
+  filter: grayscale(0.35);
+  pointer-events: none;
+}
+
+.admin-shell .page-settings-field-inherited > .page-settings-field-inherit-aside,
+.admin-shell .page-settings-field-inherited > .page-settings-field-inherit-aside * {
+  opacity: 1 !important;
+  filter: none !important;
+  pointer-events: auto !important;
+  cursor: auto;
+}
+
+.admin-shell .gantry-section.sf-inherited-muted > *:not(.gantry-section-head) {
+  opacity: 0.55;
+  filter: grayscale(0.3);
+  pointer-events: none;
+}
+
+.admin-shell .gantry-slot.sf-inherited-muted {
+  opacity: 0.62;
+  filter: grayscale(0.25);
+}
+
+.admin-shell .page-settings-field-with-inherit {
+  margin-bottom: 0.85rem;
+}
+
+/* Inherit / Copy sit to the right of each input (below the label). */
+.admin-shell .page-settings-field-with-inherit-active {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 0.55rem;
+  align-items: start;
+}
+
+.admin-shell .page-settings-field-body {
+  min-width: 0;
+}
+
+.admin-shell .page-settings-field-inherit-aside {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  margin-top: 0.85rem;
+  max-width: 9.5rem;
+}
+
+.admin-shell .page-settings-field-inherit-locked > .page-settings-field-inherit-aside {
+  opacity: 0.55;
+}
+
+.admin-shell
+  .page-settings-field-with-inherit-active:has(.page-settings-list)
+  > .page-settings-field-inherit-aside,
+.admin-shell
+  .page-settings-field-with-inherit-active:has(.nav-access-tags)
+  > .page-settings-field-inherit-aside,
+.admin-shell
+  .page-settings-field-with-inherit-active:has(.settings-fieldset)
+  > .page-settings-field-inherit-aside {
+  margin-top: 0.2rem;
+}
+
+.admin-shell
+  .page-settings-field-with-inherit-active:has(.sf-code-field)
+  > .page-settings-field-inherit-aside {
+  margin-top: 1.55rem;
 }
 
 .admin-shell .page-settings-field-inherited .cms-switch,
 .admin-shell .page-settings-panel-body > .page-settings-field-inherited {
   margin-bottom: 0.75rem;
+}
+
+.admin-shell .gantry-section-inherit-missing {
+  margin: 0;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  color: #8fa0b5;
 }
 
 .admin-shell .gantry-sections {
@@ -2595,8 +2797,9 @@ body:has(.admin-shell) > main {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.7rem 0.9rem;
+  gap: 0.45rem 0.65rem;
+  flex-wrap: nowrap;
+  padding: 0.4rem 0.75rem;
   cursor: pointer;
   list-style: none;
   color: #e8eef6;
@@ -2608,6 +2811,14 @@ body:has(.admin-shell) > main {
   display: none;
 }
 
+.admin-shell .section-styles-card-summary-main {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.65rem;
+  min-width: 0;
+}
+
 .admin-shell .section-styles-card-title {
   font-weight: 600;
 }
@@ -2615,6 +2826,16 @@ body:has(.admin-shell) > main {
 .admin-shell .section-styles-card-id {
   font-size: 0.75rem;
   color: #8fa0b5;
+}
+
+.admin-shell .section-styles-card-inherit-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #8fa0b5;
+}
+
+.admin-shell .section-styles-card-summary .gantry-inherit-copy-row-inline {
+  margin-left: auto;
 }
 
 .admin-shell .section-styles-form {

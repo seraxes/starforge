@@ -7,7 +7,7 @@ Site-wide chrome & policy (not per-page Page Settings, not feature Modules).
 - **Site Chrome** (new Core admin area) — fields below.
 - **Modules** — on/off list (SF-42).
 - **Nav** — leaves Site Settings → own **Nav manager** menu (SF-40).
-- **Layouts → Page settings** — stays document chrome + layout assignment per page/global outline.
+- **Layouts → Page settings** — stays document chrome per page/global; outline assignment is on nav menu items.
 
 ## Site Chrome v1 fields
 

@@ -95,10 +95,10 @@ Durable map of **feature modules** (Site Settings / allowlist toggleable) vs **i
 | | |
 | --- | --- |
 | **Kind** | port (`skin`) — parallel to `admin-theme`, public only |
-| **Status** | **shipped (v1.2)** — `starforge-pastel` + Default shell / Offline child; outline inheritance + nav→Page Settings assignment |
-| **In tree** | `src/core/skin` registry + tokens + `SkinRootStyles`; outline seeds → `sf_layouts`; Default = shell + inherit root (`preferredDefaultOutlineId`); children use `inheritFrom` / `omitSectionIds` (merged on public `getLayoutDocument`); Page Settings `layoutId`; Nav item outline writes page chrome; Core `default` = no-skin fallback only. Model: [skin-outline-model.md](./skin-outline-model.md). |
-| **Recommended** | Skin = brand + outline package. No separate Gantry “Base” until Default stops being a usable shell. Layout Styles stay on Layouts → Styles. Call them Skins, not themes/templates. |
-| **Next slice** | **Skin install packages** (still open): package format + admin **Install**/export so packs copy to other sites. Also: SF-33 dark pastel; optional YAML import; optional per-page skin override. |
+| **Status** | **shipped (v1.3)** — YAML pack format + admin install/export; `starforge-pastel` Base / Offline; outline inheritance + nav→Page Settings |
+| **In tree** | Pack folders (`skin.yaml` + `outlines/*.yaml` + `skin.css`) under `src/core/skin/skins/` (bundled) and `data/skins/` (uploaded); registry loads both; `SkinRootStyles` injects tokens + CSS; seeds → `sf_layouts`; download re-exports live outlines. Model: [skin-outline-model.md](./skin-outline-model.md). |
+| **Recommended** | Skin = brand + outline package on disk (YAML + files). Layout Styles stay on Layouts → Styles. Call them Skins, not themes/templates. |
+| **Next slice** | SF-33 dark pastel; optional assets/ folder in packs; restore create/duplicate outline UI if needed. (No per-page skin override — outline comes from nav menu items.) |
 
 ### Media
 

@@ -15,7 +15,7 @@
 | **Site Chrome** | Site-wide policy & defaults: offline, captcha default, brand/SEO defaults, robots, rights, cookie scope |
 | **Site Settings / Modules** | Feature & module on/off, primary nav *assignment* |
 | **Nav manager** | Menu sets & items |
-| **Layouts → Page settings** | Per-page/global *document* chrome (head/body/assets/layout id) — not site policy |
+| **Layouts → Page settings** | Site-global *document* chrome (head/body/assets); outline via nav — not site policy |
 | **CMS page SEO** | Per-page meta title/description/image |
 | **Env / deploy** | Secrets (captcha keys), production `Secure` cookies, absolute site URL |
 
