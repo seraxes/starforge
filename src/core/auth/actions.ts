@@ -10,7 +10,11 @@ import { enforceCaptchaFromFormData } from '@/core/security/captcha'
 import { isRegistrationEnabled } from '@/core/settings'
 import { sendAccountReminderMail } from './mail'
 import { auth } from './index'
-import { safeNextPath } from './safe-next-path'
+import {
+  resolvePostLoginUrl,
+  resolvePostLogoutUrl,
+  resolvePostRegisterUrl,
+} from './success-urls'
 import {
   emailOtpRequestSchema,
   emailOtpVerifySchema,
@@ -205,7 +209,7 @@ export async function registerAction(
     }
   }
 
-  redirect('/')
+  redirect(await resolvePostRegisterUrl())
 }
 
 export async function loginAction(
@@ -241,7 +245,7 @@ export async function loginAction(
     }
   }
 
-  const next = safeNextPath(formData.get('next'), '/')
+  const next = await resolvePostLoginUrl(formData.get('next'))
 
   try {
     const result = await auth.api.signInEmail({
@@ -431,7 +435,7 @@ export async function magicLinkAction(
     }
   }
 
-  const next = safeNextPath(formData.get('next'), '/')
+  const next = await resolvePostLoginUrl(formData.get('next'))
 
   try {
     await auth.api.signInMagicLink({
@@ -495,7 +499,7 @@ export async function requestEmailOtpAction(
     success: GENERIC_OTP_SENT,
     email: parsed.data.email,
     otpSent: true,
-    next: safeNextPath(formData.get('next'), '/'),
+    next: await resolvePostLoginUrl(formData.get('next')),
   }
 }
 
@@ -516,7 +520,7 @@ export async function verifyEmailOtpAction(
     }
   }
 
-  const next = safeNextPath(formData.get('next'), '/')
+  const next = await resolvePostLoginUrl(formData.get('next'))
 
   try {
     await auth.api.signInEmailOTP({
@@ -555,7 +559,7 @@ export async function verifyTwoFactorAction(
     }
   }
 
-  const next = safeNextPath(formData.get('next'), '/')
+  const next = await resolvePostLoginUrl(formData.get('next'))
 
   try {
     if (parsed.data.mode === 'backup') {
@@ -601,5 +605,5 @@ export async function logoutAction(): Promise<void> {
   } catch {
     // ignore
   }
-  redirect('/')
+  redirect(await resolvePostLogoutUrl())
 }

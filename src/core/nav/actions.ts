@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
-import { requireAdminArea } from '@/core/acl'
+import { requireAdminArea, type AclAdminResourceKey } from '@/core/acl'
 import { invalidateNavMenu } from '@/core/content/revalidate'
 import { DEFAULT_NAV_MENU_ID } from '@/core/db'
 
@@ -13,15 +13,25 @@ import {
   normalizeNavMenuDocument,
   normalizeNavMenuItem,
 } from './document'
+import { listEnabledModuleNavOptions } from './module-views'
+import {
+  listNavOutlineAssignmentTree,
+  setNavItemOutlineAssignment,
+  syncNavMenuOutlinesToPageChrome,
+} from './outline-assign'
+import type { NavOutlineAssignmentMenu } from './types'
 import {
   createNavMenu,
   deleteNavMenu,
   duplicateNavMenu,
+  listNavPageOptions,
   loadNavMenu,
   renameNavMenu,
   reorderNavMenuItem,
   replaceNavMenuItems,
 } from './store'
+import { getPreferredLayoutId } from '@/core/skin/preferred-outline'
+import { getSiteSettings } from '@/core/settings'
 import type { NavMenuItem } from './types'
 
 export type NavActionState = {
@@ -40,6 +50,19 @@ async function requireNavAdmin(): Promise<NavActionState | null> {
     }
   }
   return null
+}
+
+/** Layouts chrome may edit outline↔menu assignment with layouts or nav ACL. */
+async function requireOutlineAssignAdmin(): Promise<NavActionState | null> {
+  const keys: AclAdminResourceKey[] = ['admin.layouts', 'admin.nav']
+  for (const key of keys) {
+    const session = await requireAdminArea(key)
+    if (session) return null
+  }
+  return {
+    error:
+      'Sign in with Layouts or Navigation ACL (Users → ACL) or as a Starforge app admin.',
+  }
 }
 
 async function revalidateNavPaths(menuId?: string) {
@@ -159,6 +182,7 @@ function parseItemsFromForm(formData: FormData): NavMenuItem[] {
   const cssClasses = formData.getAll('itemCssClass').map((v) => String(v ?? ''))
   const browserTitles = formData.getAll('itemBrowserTitle').map((v) => String(v ?? ''))
   const pageHeadings = formData.getAll('itemPageHeading').map((v) => String(v ?? ''))
+  const layoutIds = formData.getAll('itemLayoutId').map((v) => String(v ?? ''))
   // One JSON array string per item (multi-select access tags).
   const accessTagsRaw = formData.getAll('itemAccessTags').map((v) => String(v ?? ''))
 
@@ -196,6 +220,7 @@ function parseItemsFromForm(formData: FormData): NavMenuItem[] {
         cssClass: cssClasses[i] || null,
         browserTitle: browserTitles[i] || null,
         pageHeading: pageHeadings[i] || null,
+        layoutId: (layoutIds[i] ?? '').trim() || null,
         accessTags,
         sortOrder: i,
       },
@@ -205,6 +230,19 @@ function parseItemsFromForm(formData: FormData): NavMenuItem[] {
   }
 
   return normalizeNavMenuDocument({ version: 1, items }).items
+}
+
+async function syncOutlinesAfterSave(items: NavMenuItem[]): Promise<void> {
+  try {
+    const settings = await getSiteSettings()
+    const [pages, modules] = await Promise.all([
+      listNavPageOptions(),
+      Promise.resolve(listEnabledModuleNavOptions(settings)),
+    ])
+    await syncNavMenuOutlinesToPageChrome(items, pages, modules)
+  } catch {
+    // Page Settings / Payload may be unavailable — nav save still succeeds.
+  }
 }
 
 export async function saveNavMenuItemsAction(
@@ -221,7 +259,9 @@ export async function saveNavMenuItemsAction(
   const result = await replaceNavMenuItems(menuId, items)
   if ('error' in result) return { error: result.error }
 
+  await syncOutlinesAfterSave(result.document.items)
   await revalidateNavPaths(menuId)
+  revalidatePath('/admin/page-settings')
   return {
     ok: true,
     message: `Saved ${result.document.items.length} item${result.document.items.length === 1 ? '' : 's'}.`,
@@ -287,6 +327,8 @@ export async function addNavMenuItemAction(
   const url = String(formData.get('newUrl') ?? '').trim() || '/'
   const moduleId = String(formData.get('newModuleId') ?? '').trim()
   const moduleViewKey = String(formData.get('newModuleViewKey') ?? '').trim()
+  const layoutIdRaw = String(formData.get('newLayoutId') ?? '').trim()
+  const preferredLayoutId = await getPreferredLayoutId()
 
   items.push(
     createNavMenuItem(
@@ -297,6 +339,7 @@ export async function addNavMenuItemAction(
         url: linkType === 'url' ? url : null,
         moduleId: linkType === 'module' ? moduleId || null : null,
         moduleViewKey: linkType === 'module' ? moduleViewKey || null : null,
+        layoutId: layoutIdRaw || preferredLayoutId,
         accessTags: ['public'],
       },
       items.length,
@@ -306,7 +349,9 @@ export async function addNavMenuItemAction(
   const result = await replaceNavMenuItems(menuId, items)
   if ('error' in result) return { error: result.error }
 
+  await syncOutlinesAfterSave(result.document.items)
   await revalidateNavPaths(menuId)
+  revalidatePath('/admin/page-settings')
   return { ok: true, message: 'Item added.', menuId }
 }
 
@@ -352,6 +397,59 @@ export async function pasteNavMenuItemAction(
   const result = await replaceNavMenuItems(menuId, items)
   if ('error' in result) return { error: result.error }
 
+  await syncOutlinesAfterSave(result.document.items)
   await revalidateNavPaths(menuId)
+  revalidatePath('/admin/page-settings')
   return { ok: true, message: 'Item pasted.', menuId }
+}
+
+/** Layouts chrome — load Menu → item assignment tree for the active outline. */
+export async function listNavOutlineAssignmentsAction(
+  outlineId: string,
+): Promise<{ menus: NavOutlineAssignmentMenu[] } | { error: string }> {
+  const denied = await requireOutlineAssignAdmin()
+  if (denied) return { error: denied.error || 'Not allowed.' }
+
+  const outline = outlineId.trim()
+  if (!outline) return { error: 'Outline id is required.' }
+
+  try {
+    const menus = await listNavOutlineAssignmentTree(outline)
+    return { menus }
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : 'Could not load menu assignments.',
+    }
+  }
+}
+
+/** Layouts chrome — toggle outline assignment on one nav item. */
+export async function toggleNavItemOutlineAssignmentAction(input: {
+  menuId: string
+  itemId: string
+  outlineId: string
+  assigned: boolean
+}): Promise<NavActionState> {
+  const denied = await requireOutlineAssignAdmin()
+  if (denied) return denied
+
+  const result = await setNavItemOutlineAssignment(input)
+  if ('error' in result) return { error: result.error }
+
+  await revalidateNavPaths(input.menuId.trim())
+  revalidatePath('/admin/layouts')
+  revalidatePath('/admin/breakpoints')
+  revalidatePath('/admin/page-settings')
+  revalidatePath('/admin/assigned-menu')
+  revalidatePath('/admin/outlines')
+  if (input.outlineId.trim()) {
+    revalidatePath(`/admin/layouts?outline=${encodeURIComponent(input.outlineId.trim())}`)
+    revalidatePath(`/admin/assigned-menu?outline=${encodeURIComponent(input.outlineId.trim())}`)
+  }
+
+  return {
+    ok: true,
+    message: input.assigned ? 'Outline assigned to menu item.' : 'Outline removed from menu item.',
+    menuId: input.menuId.trim(),
+  }
 }

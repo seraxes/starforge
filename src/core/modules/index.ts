@@ -2,6 +2,8 @@ export {
   addLayoutRowAction,
   addLayoutSectionAction,
   addParticleToSectionAction,
+  copySectionFromParentAction,
+  copySlotFromParentAction,
   dropParticleIntoRowAction,
   listModulesForLayoutAdmin,
   moveSlotToRowAction,
@@ -17,8 +19,11 @@ export {
   resetLayoutToDefaultAction,
   resizeAdjacentSlotsAction,
   setRowSlotWidthsAction,
+  setSectionInheritModeAction,
+  setSectionStylesInheritModeAction,
   setSlotAccessLevelAction,
   setSlotAccessTagsAction,
+  setSlotInheritModeAction,
   setSlotWidthAction,
   toggleSlotAction,
   updateLayoutBreakpointsAction,
@@ -71,6 +76,17 @@ export {
   sumRowWidths,
   widthToPercentLabel,
 } from './grid'
+export {
+  copySectionFromParent,
+  copySlotFromParent,
+  mergeLayoutDocuments,
+  mergeSectionAgainstParent,
+} from './inherit-merge'
+export { resolveLayoutInheritance } from './inherit'
+export {
+  getLayoutDocumentForAdmin,
+  type LayoutAdminBundle,
+} from './admin-layout'
 export { getAssignmentsForPosition, getLayoutDocument } from './layout'
 export {
   createLayoutOutline,
@@ -81,8 +97,10 @@ export {
   isDefaultLayoutOutline,
   listLayoutOutlines,
   loadLayoutDocument,
+  patchLayoutOutlineMeta,
   renameLayoutOutline,
   saveLayoutDocument,
+  setLayoutInheritFrom,
 } from './layout-store'
 export type { LayoutLoadResult, LayoutLoadSource, LayoutOutlineMeta } from './layout-store'
 export {
@@ -90,6 +108,7 @@ export {
   deleteOutlineAction,
   duplicateOutlineAction,
   renameOutlineAction,
+  setOutlineInheritFromAction,
 } from './outline-actions'
 export type { OutlineActionState } from './outline-actions'
 export { ModuleSlot } from './ModuleSlot'
@@ -174,6 +193,7 @@ export { LAYOUT_GRID_COLUMNS, LAYOUT_POSITIONS } from './types'
 export type {
   LayoutAssignment,
   LayoutDocument,
+  LayoutInheritMode,
   LayoutModuleAssignment,
   LayoutPosition,
   LayoutPositionId,

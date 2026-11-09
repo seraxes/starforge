@@ -31,6 +31,14 @@ export {
 } from './document-shell'
 export { resolveFontAwesomeEmit } from './font-awesome'
 export {
+  PAGE_CHROME_INHERIT_KEYS,
+  inheritedKeysFromOverride,
+  isPageChromeInheritKey,
+  omitInheritedPageChromeKeys,
+  parseInheritKeysJson,
+} from './inherit-fields'
+export type { PageChromeInheritKey } from './inherit-fields'
+export {
   DEVELOPER_ADMIN_CHROME_KEYS,
   applyDeveloperAdminGate,
   mergePageChrome,

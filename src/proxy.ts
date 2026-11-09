@@ -27,6 +27,7 @@ import {
 } from '@/core/settings'
 import {
   SITE_OFFLINE_PATH,
+  SITE_OFFLINE_RETRY_AFTER_SECONDS,
   getSiteChrome,
   isOfflineExemptPath,
 } from '@/core/site-chrome'
@@ -216,7 +217,10 @@ async function maybeRewriteOffline(request: NextRequest): Promise<NextResponse |
     const rewriteUrl = request.nextUrl.clone()
     rewriteUrl.pathname = SITE_OFFLINE_PATH
     rewriteUrl.search = ''
-    return NextResponse.rewrite(rewriteUrl)
+    const response = NextResponse.rewrite(rewriteUrl, { status: 503 })
+    response.headers.set('Retry-After', String(SITE_OFFLINE_RETRY_AFTER_SECONDS))
+    response.headers.set('Cache-Control', 'no-store')
+    return response
   } catch {
     return null
   }

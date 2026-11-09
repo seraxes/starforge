@@ -44,6 +44,7 @@ export async function updateSiteChromeAction(
     await saveSiteChrome({
       offlineEnabled: parseBool(formData, 'offlineEnabled'),
       offlineMessage: String(formData.get('offlineMessage') ?? ''),
+      offlineLayoutId: String(formData.get('offlineLayoutId') ?? '').trim(),
       emailEnabled: parseBool(formData, 'emailEnabled'),
       emailProvider,
       emailFrom: String(formData.get('emailFrom') ?? ''),

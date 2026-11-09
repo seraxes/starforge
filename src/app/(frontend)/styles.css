@@ -1187,7 +1187,7 @@ button:disabled {
 }
 
 .admin-sidebar-link,
-.admin-sidebar-group-head,
+.admin-sidebar-group-title,
 .admin-sidebar-sublink {
   display: block;
   width: 100%;
@@ -1203,7 +1203,8 @@ button:disabled {
 }
 
 .admin-sidebar-link,
-.admin-sidebar-group-head {
+.admin-sidebar-group-title,
+.admin-sidebar-sublink {
   padding: 0.45rem 0.6rem;
   border-radius: 3px;
 }
@@ -1211,11 +1212,15 @@ button:disabled {
 .admin-sidebar-group-head {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.2rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .admin-sidebar-group-title {
   flex: 1 1 auto;
+  width: auto;
   min-width: 0;
 }
 
@@ -1252,25 +1257,35 @@ button:disabled {
 }
 
 .admin-sidebar-sublink {
-  padding: 0.35rem 0.55rem;
-  border-radius: 3px;
-  font-weight: 600;
-  font-size: 0.9rem;
+  /* Nearly same hit area / type as main leaves — only a touch lighter weight. */
+  padding: 0.42rem 0.6rem;
+  font-weight: 620;
+  font-size: inherit;
   color: #fff;
+}
+
+.admin-sidebar-subitem.has-nest {
+  margin: 0 0 0.15rem;
+}
+
+.admin-sidebar-subnest {
+  list-style: none;
+  margin: 0.1rem 0 0.2rem;
+  padding: 0.1rem 0 0.1rem 0.55rem;
+  border-left: 2px solid color-mix(in srgb, var(--sf-secondary) 35%, var(--sf-line));
+}
+
+.admin-sidebar-nestlink {
+  padding: 0.4rem 0.55rem;
+  font-size: inherit;
+  font-weight: 600;
 }
 
 /* Hover = bright mid-blue; active leaf = same blue a few shades darker */
 .admin-sidebar-link:hover,
-.admin-sidebar-group-head:hover,
+.admin-sidebar-group-title:hover,
 .admin-sidebar-sublink:hover {
   background: #3498db;
-  color: #fff;
-}
-
-.admin-sidebar-link:hover,
-.admin-sidebar-group-head:hover .admin-sidebar-group-title,
-.admin-sidebar-group-head:hover .admin-sidebar-group-toggle,
-.admin-sidebar-sublink:hover {
   color: #fff;
 }
 
@@ -1279,6 +1294,7 @@ button:disabled {
  * Do not paint accordion group-heads via .is-active — that stuck the parent.
  */
 .admin-sidebar-link.is-current,
+.admin-sidebar-group-title.is-current,
 .admin-sidebar-sublink.is-current {
   background: #2471a3;
   color: #fff;
@@ -4355,6 +4371,24 @@ button:disabled {
   align-items: center;
 }
 
+/*
+ * Common particle CSS classes (Layouts → CSS class) for Menu.
+ * `.site-nav` is flex — text-align / justify-content on the slot alone will not
+ * move links; target the nav (or use these helpers when class is left|center|right).
+ */
+.sf-grid-col.left > .sf-menu .site-nav,
+.sf-menu.left .site-nav {
+  justify-content: flex-start;
+}
+.sf-grid-col.center > .sf-menu .site-nav,
+.sf-menu.center .site-nav {
+  justify-content: center;
+}
+.sf-grid-col.right > .sf-menu .site-nav,
+.sf-menu.right .site-nav {
+  justify-content: flex-end;
+}
+
 .sf-menu-empty {
   padding: 0.35rem 1.5rem;
 }
@@ -7079,6 +7113,10 @@ button.danger:hover,
 
   .outlines-create-form {
     grid-template-columns: 1fr;
+  }
+
+  .outlines-manager > .outlines-create .outlines-create-form.admin-create-form > .settings-field {
+    max-width: none;
   }
 }
 

@@ -25,6 +25,14 @@ Sitemap: /sitemap.xml
 export const DEFAULT_OFFLINE_MESSAGE =
   'This site is temporarily offline. Please check back soon.'
 
+/** Pastel skin offline outline seed — Site Chrome offlineLayoutId default. */
+export const DEFAULT_OFFLINE_LAYOUT_ID = 'starforge-pastel-offline'
+
+export const DEFAULT_AUTH_POST_LOGIN_URL = '/'
+export const DEFAULT_AUTH_POST_REGISTER_URL = '/'
+/** Offline-allowed default — avoids gated `/` after sign-out while the site is offline. */
+export const DEFAULT_AUTH_POST_LOGOUT_URL = '/login'
+
 export const DEFAULT_CONSENT_MESSAGE =
   'We use cookies for essential site functions and optional analytics. You can accept all cookies or continue with essential cookies only.'
 
@@ -40,6 +48,7 @@ export const DEFAULT_SITE_CHROME: SiteChromeDocument = {
   version: 1,
   offlineEnabled: false,
   offlineMessage: DEFAULT_OFFLINE_MESSAGE,
+  offlineLayoutId: DEFAULT_OFFLINE_LAYOUT_ID,
   captchaEnabled: false,
   captchaProvider: 'none',
   captchaOnRegister: false,
@@ -50,6 +59,9 @@ export const DEFAULT_SITE_CHROME: SiteChromeDocument = {
   authEmailOtpEnabled: true,
   authRememberMeEnabled: true,
   authTwoFactorEnabled: true,
+  authPostLoginUrl: DEFAULT_AUTH_POST_LOGIN_URL,
+  authPostRegisterUrl: DEFAULT_AUTH_POST_REGISTER_URL,
+  authPostLogoutUrl: DEFAULT_AUTH_POST_LOGOUT_URL,
   emailEnabled: false,
   emailProvider: 'console',
   emailFrom: '',

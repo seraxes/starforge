@@ -4,7 +4,7 @@ import { notFound, redirect as nextRedirect } from 'next/navigation'
 
 import { AuthWelcomePanel } from '@/components/AuthWelcomePanel'
 import { getAppSession } from '@/core/auth/session'
-import { safeNextPath } from '@/core/auth/safe-next-path'
+import { resolvePostLoginUrl } from '@/core/auth/success-urls'
 import { isValidLocaleCode, redirect as i18nRedirect } from '@/core/i18n'
 import { getSiteSettings } from '@/core/settings'
 import { getSiteChrome } from '@/core/site-chrome'
@@ -45,17 +45,18 @@ export default async function LoginPage({ params, searchParams }: Props) {
   setRequestLocale(locale)
 
   const query = await searchParams
-  const next = safeNextPath(query.next, '/')
-  const [session, settings, chrome, t] = await Promise.all([
+  const [session, settings, chrome, t, next] = await Promise.all([
     getAppSession(),
     getSiteSettings(),
     getSiteChrome(),
     getTranslations('Auth'),
+    resolvePostLoginUrl(query.next),
   ])
   if (session) {
     redirectAfterLogin(next, locale)
   }
 
+  const defaultLogin = chrome.authPostLoginUrl || '/'
   return (
     <div className="auth-page">
       <AuthWelcomePanel
@@ -64,7 +65,7 @@ export default async function LoginPage({ params, searchParams }: Props) {
         title={t('signIn')}
         registrationEnabled={settings.features.registration}
         welcomeNote={t('welcomeNoteGuest')}
-        next={next === '/' ? undefined : next}
+        next={next === defaultLogin ? undefined : next}
         resetSuccess={query.reset === '1'}
         magicError={query.error === 'magic_link'}
         initialMode={parseLoginMode(query.mode)}

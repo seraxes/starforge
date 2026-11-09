@@ -5,10 +5,10 @@ import { redirect } from 'next/navigation'
 import { ensureDefaultUserGroupsSeeded, listUserGroupOptions } from '@/core/acl'
 import { DEFAULT_LAYOUT_ID } from '@/core/db'
 import {
+  getLayoutDocumentForAdmin,
   getLayoutOutline,
   listLayoutOutlines,
   listModulesForLayoutAdmin,
-  loadLayoutDocument,
 } from '@/core/modules'
 import {
   ensureDefaultContactFormSeeded,
@@ -16,8 +16,12 @@ import {
 } from '@/core/forms'
 import { listNavMenus } from '@/core/nav'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
-import { isSkinPinnedByEnv, listSkins } from '@/core/skin'
-import { getActiveSkin } from '@/core/skin/resolve-active'
+import {
+  ensureSkinOutlineSeeds,
+  getActiveSkin,
+  isSkinPinnedByEnv,
+  listSkins,
+} from '@/core/skin'
 
 import { LayoutEditor } from './layout-editor'
 import { LayoutOutlineProvider } from './layout-outline-context'
@@ -46,11 +50,17 @@ export default async function AdminLayoutsPage(props: { searchParams?: SearchPar
   const search = props.searchParams ? await props.searchParams : {}
   const requestedId = pickOutlineParam(search.outline)
 
+  // Install any missing skin outline seeds (e.g. Pastel offline) before listing.
+  const activeSkin = await getActiveSkin()
+  await ensureSkinOutlineSeeds(activeSkin.id)
+
   const outlines = await listLayoutOutlines()
   const known = outlines.some((o) => o.id === requestedId)
   const layoutId = known ? requestedId : DEFAULT_LAYOUT_ID
 
-  const { document, source, isFallback, label } = await loadLayoutDocument(layoutId)
+  const adminBundle = await getLayoutDocumentForAdmin(layoutId)
+  const { raw, resolved, parent, parentLayoutId, label } = adminBundle
+  const isFallback = raw.sections.length === 0
   const outlineMeta = (await getLayoutOutline(layoutId)) ?? {
     id: layoutId,
     label: label || layoutId,
@@ -68,7 +78,6 @@ export default async function AdminLayoutsPage(props: { searchParams?: SearchPar
   ])
 
   const pageSettingsOn = isCatalogModuleEnabled(settings, MODULE_IDS.pageSettings)
-  const activeSkin = await getActiveSkin()
 
   return (
     <section className="admin-section layout-admin-section admin-layouts-full">
@@ -99,8 +108,11 @@ export default async function AdminLayoutsPage(props: { searchParams?: SearchPar
         {/* Remount on outline switch so soft-merge / cog drafts cannot target the wrong layoutId. */}
         <LayoutEditor
           key={layoutId}
-          document={document}
-          source={source}
+          document={resolved}
+          rawDocument={raw}
+          parentDocument={parent}
+          parentLayoutId={parentLayoutId}
+          source={isFallback ? 'default-json' : 'database'}
           modules={modules}
           groups={groups}
           navMenus={navMenus.map((m) => ({ id: m.id, label: m.label }))}

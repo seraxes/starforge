@@ -7,6 +7,8 @@ export type AdminNavLink = {
   exact?: boolean
   /** Cross-surface link (Core ↔ Payload); still same-tab navigation. */
   external?: boolean
+  /** Nested leaves under this link (e.g. Outline → Layout / Styles / Page settings). */
+  children?: AdminNavLink[]
 }
 
 export type AdminNavGroup = {

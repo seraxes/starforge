@@ -284,6 +284,9 @@ export async function updateAuthSettingsAction(
       authEmailOtpEnabled: parseBool(formData, 'authEmailOtpEnabled'),
       authRememberMeEnabled: parseBool(formData, 'authRememberMeEnabled'),
       authTwoFactorEnabled: parseBool(formData, 'authTwoFactorEnabled'),
+      authPostLoginUrl: String(formData.get('authPostLoginUrl') ?? '').trim(),
+      authPostRegisterUrl: String(formData.get('authPostRegisterUrl') ?? '').trim(),
+      authPostLogoutUrl: String(formData.get('authPostLogoutUrl') ?? '').trim(),
     })
   } catch (error) {
     const message =

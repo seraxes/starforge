@@ -82,10 +82,23 @@ Reference: [docs.gantry.org](https://docs.gantry.org/).
 - `section.containerMode` — `full` | `boxed` (edge-to-edge vs max-width container; row % inside). Omitted → Page Settings sections-layout default.
 - `section.width` — percent `5`–`100` (same model as particle/slot widths; consecutive partial widths sit side-by-side). Omitted → `100`.
 - `section.styles` — Gantry-like Section Styles: `backgroundColor` / `textColor` (hex); `backgroundImage` / `backgroundOverlay` reserved. Applied on the public section wrapper only.
+- `section.inheritMode` / `stylesInheritMode` — outline inherit vs local (`inheritFrom` parent). Absent section = inherit-by-absence. Styles inherit is **per card**, not per input.
 - `section.cssClass` — space-separated classes on the public section/`footer` wrapper (plus `sf-layout-section`).
 - `styles.breakpoints` — outline-scoped rem/px presets (`/admin/breakpoints`). Default outline = site global. No separate Styles mega-page.
 - `slot.name` — optional instance display name on the canvas; does **not** change `moduleId`.
+- `slot.inheritMode` — particle inherit vs local against parent slot id (Inheritance tab).
 - `slot.accessLevel` — who can see (`public` / `registered` / `group:<id>`); same groups as Nav tags; `SlotRenderer` filters by session.
+
+### Outline inherit / copy
+
+| Surface | Control |
+| --- | --- |
+| Section cog | Inherit slide + Copy from parent |
+| Particle settings | Inheritance tab (when outline has `inheritFrom`) |
+| Styles cards | Inherit styles slide (whole card) |
+| Page Settings | Separate axis: per-field inherit from **site global** (not outline) |
+
+See [skin-outline-model.md](../../../docs/project-context/docs/skin-outline-model.md).
 
 Legacy v1 / v2 upgrade on read.
 
@@ -130,7 +143,7 @@ Custom stays available for free-form HTML — do **not** generate Logo/Copyright
 | **Styles** | Styles admin with CodeMirror or **Monaco** |
 | **Outlines** | ✅ Multiple named layout docs (`/admin/outlines`) — create / rename / duplicate / select; Page Settings assigns any outline |
 | **Menu editor** | After nav/menu depth grows |
-| **Particle defaults** + inheritance | Defaults store + overrides |
+| **Particle defaults** | Defaults store + overrides (outline section/particle inherit already ships) |
 | **Custom JS execution** | Developer-admin ACL only |
 | **YAML export / edit mode** | Dev-admin optional; JSON remains storage |
 

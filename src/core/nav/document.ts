@@ -76,6 +76,10 @@ export function normalizeNavMenuItem(
       typeof row.browserTitle === 'string' ? row.browserTitle.trim() || null : null,
     pageHeading:
       typeof row.pageHeading === 'string' ? row.pageHeading.trim() || null : null,
+    layoutId:
+      typeof row.layoutId === 'string' && row.layoutId.trim()
+        ? row.layoutId.trim()
+        : null,
     accessTags: normalizeAccessTags({
       accessTags: row.accessTags,
       accessLevel: row.accessLevel,
@@ -142,6 +146,7 @@ export function createNavMenuItem(
         cssClass: partial.cssClass ?? null,
         browserTitle: partial.browserTitle ?? null,
         pageHeading: partial.pageHeading ?? null,
+        layoutId: partial.layoutId ?? null,
         accessTags: partial.accessTags,
         accessLevel: partial.accessLevel,
       },

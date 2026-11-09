@@ -59,9 +59,23 @@ describe('resolveEnabledAdminNavModuleIds + Email contribution', () => {
     // Bands: home → shell → structure/content → products → access/platform
     assert.ok(ids.indexOf('site-chrome') < ids.indexOf('localization'))
     assert.ok(ids.indexOf('localization') < ids.indexOf('navigation'))
-    assert.ok(ids.indexOf('navigation') < ids.indexOf('layouts'))
-    assert.ok(ids.indexOf('layouts') < ids.indexOf('cms'))
+    assert.ok(ids.indexOf('navigation') < ids.indexOf('skins'))
+    assert.ok(ids.indexOf('skins') < ids.indexOf('cms'))
     assert.ok(ids.indexOf('cms') < ids.indexOf('media'))
+    const skins = groups.find((g) => g.id === 'skins')
+    assert.equal(skins?.label, 'Skins')
+    assert.equal(skins?.href, '/admin/skins')
+    assert.equal(skins?.expandable, true)
+    assert.deepEqual(
+      skins?.links.map((l) => l.label),
+      ['Outline', 'Particle Defaults'],
+    )
+    const outline = skins?.links.find((l) => l.label === 'Outline')
+    assert.equal(outline?.href, '/admin/outlines')
+    assert.deepEqual(
+      outline?.children?.map((l) => l.label),
+      ['Layout', 'Styles', 'Page settings', 'Assigned Menu'],
+    )
     assert.ok(ids.includes('email'), `expected Email in ${ids.join(',')}`)
     assert.ok(ids.includes('events'), `expected Events in ${ids.join(',')}`)
     assert.ok(ids.indexOf('media') < ids.indexOf('forms'))

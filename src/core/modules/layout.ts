@@ -1,14 +1,15 @@
 import { DEFAULT_LAYOUT_ID } from '@/core/db'
 import { contentCacheTags, getPublishedContentCache } from '@/core/content/cache'
 
+import { resolveLayoutInheritance } from './inherit'
 import { loadLayoutDocument } from './layout-store'
 import type { LayoutDocument, LayoutSlot, LayoutPositionId } from './types'
 
 /**
- * Load a layout document by id (DB first, then default-layout.json).
- * Shape: sections → rows → slots (`moduleId` + `width` 1–12).
- * Page Settings `layoutId` selects which row; missing ids fall back to default JSON.
- * Cross-request cache via published-content cache (admin mutators use uncached `loadLayoutDocument`).
+ * Load a layout document by id (DB first, then default-layout.json),
+ * with outline inheritance resolved for public paint.
+ * Admin mutators use uncached `loadLayoutDocument` (raw / unmerged).
+ * Cross-request cache via published-content cache.
  */
 export async function getLayoutDocument(
   layoutId?: string,
@@ -22,8 +23,8 @@ export async function getLayoutDocument(
       revalidate: false,
     },
     async () => {
-      const { document } = await loadLayoutDocument(id)
-      return document
+      const { document, layoutId: resolvedId } = await loadLayoutDocument(id)
+      return resolveLayoutInheritance(resolvedId, document)
     },
   )
 }

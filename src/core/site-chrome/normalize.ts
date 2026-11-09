@@ -2,8 +2,12 @@ import { DEFAULT_LOCALE, isValidLocaleCode, normalizeLocaleCode } from '@/core/i
 import { normalizeLocaleCatalog } from '@/core/localization/normalize'
 
 import {
+  DEFAULT_AUTH_POST_LOGIN_URL,
+  DEFAULT_AUTH_POST_LOGOUT_URL,
+  DEFAULT_AUTH_POST_REGISTER_URL,
   DEFAULT_CONSENT_MESSAGE,
   DEFAULT_CONSENT_PRIVACY_LINK_LABEL,
+  DEFAULT_OFFLINE_LAYOUT_ID,
   DEFAULT_OFFLINE_MESSAGE,
   DEFAULT_ROBOTS_META,
   DEFAULT_ROBOTS_TXT,
@@ -36,6 +40,15 @@ function asString(value: unknown, fallback = ''): string {
 
 function asBool(value: unknown, fallback: boolean): boolean {
   return typeof value === 'boolean' ? value : fallback
+}
+
+/** Same-origin relative path only (blocks open redirects). */
+function asSafeRelativePath(value: unknown, fallback: string): string {
+  const raw = asString(value).trim()
+  if (!raw.startsWith('/') || raw.startsWith('//') || raw.includes('\\')) {
+    return fallback
+  }
+  return raw
 }
 
 /** Normalize unknown JSON into a SiteChromeDocument. */
@@ -72,6 +85,8 @@ export function normalizeSiteChrome(raw: unknown): SiteChromeDocument {
     offlineEnabled: asBool(src.offlineEnabled, false),
     offlineMessage:
       asString(src.offlineMessage).trim() || DEFAULT_OFFLINE_MESSAGE,
+    offlineLayoutId:
+      asString(src.offlineLayoutId).trim() || DEFAULT_OFFLINE_LAYOUT_ID,
     captchaEnabled: asBool(src.captchaEnabled, false),
     captchaProvider,
     captchaOnRegister: asBool(src.captchaOnRegister, false),
@@ -99,6 +114,18 @@ export function normalizeSiteChrome(raw: unknown): SiteChromeDocument {
     authTwoFactorEnabled: asBool(
       src.authTwoFactorEnabled,
       DEFAULT_SITE_CHROME.authTwoFactorEnabled,
+    ),
+    authPostLoginUrl: asSafeRelativePath(
+      src.authPostLoginUrl,
+      DEFAULT_AUTH_POST_LOGIN_URL,
+    ),
+    authPostRegisterUrl: asSafeRelativePath(
+      src.authPostRegisterUrl,
+      DEFAULT_AUTH_POST_REGISTER_URL,
+    ),
+    authPostLogoutUrl: asSafeRelativePath(
+      src.authPostLogoutUrl,
+      DEFAULT_AUTH_POST_LOGOUT_URL,
     ),
     emailEnabled: asBool(src.emailEnabled, false),
     emailProvider,

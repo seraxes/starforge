@@ -10,6 +10,8 @@ export type LayoutsAdminTab =
   | 'layout'
   | 'styles'
   | 'page-settings'
+  | 'assigned-menu'
+  /** Still accepted from pages; not shown in the top tab strip. */
   | 'particle-defaults'
   | 'skins'
 
@@ -22,14 +24,13 @@ function withOutline(path: string, outlineId: string): string {
   return `${path}${join}outline=${encodeURIComponent(outlineId)}`
 }
 
+/** Top strip: Layout / Styles / Page Settings / Assigned Menu — Particle Defaults + Skins in left nav. */
 const TABS: {
   id: LayoutsAdminTab
   label: string
   href: string
   icon: string
   title: string
-  /** When true, tab stays visible even if layout canvas tabs are hidden. */
-  always?: boolean
 }[] = [
   {
     id: 'layout',
@@ -53,19 +54,11 @@ const TABS: {
     title: 'Page Settings',
   },
   {
-    id: 'particle-defaults',
-    label: 'Particle Defaults',
-    href: '/admin/particle-defaults',
-    icon: '🔧',
-    title: 'Particle Defaults (stub)',
-  },
-  {
-    id: 'skins',
-    label: 'Skins',
-    href: '/admin/skins',
-    icon: '◈',
-    title: 'Skins — brand + outline packs',
-    always: true,
+    id: 'assigned-menu',
+    label: 'Assigned Menu',
+    href: '/admin/assigned-menu',
+    icon: '⧉',
+    title: 'Assign this outline to navigation menu items',
   },
 ]
 
@@ -99,12 +92,11 @@ export function LayoutsAdminNav({
   const skinId = activeSkinId || skins[0]?.id || ''
 
   const tabs = TABS.filter((tab) => {
-    if (tab.always) return true
-    if (tab.id === 'layout' || tab.id === 'styles' || tab.id === 'particle-defaults') {
+    if (tab.id === 'layout' || tab.id === 'styles' || tab.id === 'assigned-menu') {
       return showLayoutTabs
     }
     if (tab.id === 'page-settings') return showPageSettingsTab
-    return true
+    return false
   })
 
   return (
@@ -131,7 +123,8 @@ export function LayoutsAdminNav({
                   }
                   const tab = TABS.find((t) => t.id === active) ?? TABS[0]!
                   const targetOutline = result.preferredOutlineId || outlineId
-                  if (tab.id === 'skins') {
+                  // Skins / Particle Defaults are left-nav only — stay put and refresh chrome.
+                  if (active === 'skins' || active === 'particle-defaults') {
                     router.refresh()
                     return
                   }
@@ -168,7 +161,14 @@ export function LayoutsAdminNav({
               aria-label="Switch layout outline"
               onChange={(event) => {
                 const next = event.target.value
-                router.push(withOutline('/admin/layouts', next))
+                const tab = TABS.find((t) => t.id === active)
+                const path =
+                  active === 'assigned-menu'
+                    ? '/admin/assigned-menu'
+                    : tab && tab.id !== 'layout'
+                      ? tab.href
+                      : '/admin/layouts'
+                router.push(withOutline(path, next))
               }}
             >
               {outlines.map((o) => (
@@ -192,7 +192,7 @@ export function LayoutsAdminNav({
       <ul className="gantry-layouts-nav-tabs">
         {tabs.map((tab) => {
           const activeTab = tab.id === active
-          const href = tab.id === 'skins' ? tab.href : withOutline(tab.href, outlineId)
+          const href = withOutline(tab.href, outlineId)
           return (
             <li key={tab.id}>
               <Link

@@ -76,36 +76,51 @@ export function buildContributedAdminNavGroups(
   })
 }
 
-function buildLayoutsGroup(flags: AdminNavFeatureFlags): AdminNavGroup | null {
-  const showLayouts = flags.layout || flags.pageSettings
-  if (!showLayouts) return null
+/**
+ * Structure band — single Skins accordion:
+ *   Skins (title → /admin/skins)
+ *   - Outline (→ /admin/outlines)
+ *     -- Layout / Styles / Page settings / Assigned Menu
+ *   - Particle Defaults
+ */
+function buildLayoutsBand(flags: AdminNavFeatureFlags): AdminNavGroup[] {
+  const showBand = flags.layout || flags.pageSettings
+  if (!showBand) return []
 
-  const layoutLinks: AdminNavGroup['links'] = []
+  const links: AdminNavGroup['links'] = []
+
   if (flags.layout) {
-    layoutLinks.push(
+    const outlineChildren: AdminNavGroup['links'] = [
       { href: `${CORE}/layouts`, label: 'Layout' },
       { href: `${CORE}/breakpoints`, label: 'Styles' },
-      { href: `${CORE}/particle-defaults`, label: 'Particle Defaults' },
-      { href: `${CORE}/outlines`, label: 'Outlines' },
-      // Skin port — brand + outline packs (Gantry theme); lives under Layouts.
-      { href: `${CORE}/skins`, label: 'Skins' },
-    )
-  } else {
-    // Page Settings only — still expose Skins (independent of layout canvas).
-    layoutLinks.push({ href: `${CORE}/skins`, label: 'Skins' })
-  }
-  if (flags.pageSettings) {
-    // FA config is a Page settings panel (id=font-awesome), not its own left-nav leaf.
-    layoutLinks.push({ href: `${CORE}/page-settings`, label: 'Page settings' })
+    ]
+    if (flags.pageSettings) {
+      // FA config is a Page settings panel (id=font-awesome), not its own left-nav leaf.
+      outlineChildren.push({ href: `${CORE}/page-settings`, label: 'Page settings' })
+    }
+    outlineChildren.push({ href: `${CORE}/assigned-menu`, label: 'Assigned Menu' })
+    links.push({
+      href: `${CORE}/outlines`,
+      label: 'Outline',
+      children: outlineChildren,
+    })
+    links.push({
+      href: `${CORE}/particle-defaults`,
+      label: 'Particle Defaults',
+    })
+  } else if (flags.pageSettings) {
+    links.push({ href: `${CORE}/page-settings`, label: 'Page settings' })
   }
 
-  return {
-    id: 'layouts',
-    label: 'Layouts',
-    href: flags.layout ? `${CORE}/layouts` : `${CORE}/page-settings`,
-    expandable: true,
-    links: layoutLinks,
-  }
+  return [
+    {
+      id: 'skins',
+      label: 'Skins',
+      href: `${CORE}/skins`,
+      expandable: true,
+      links,
+    },
+  ]
 }
 
 function buildCmsGroup(
@@ -131,7 +146,7 @@ function buildCmsGroup(
 
 /**
  * One seamless admin tree for Core + Payload.
- * Bands: home → site shell → structure/content → product modules → access/platform.
+ * Bands: home → site shell → Skins (Outline nest) → product modules → access/platform.
  * CMS accordion children are Payload destinations; other leaves stay on Core routes.
  * Product packs (Forms / Redirects / Media / …) contribute via manifest admin.nav (M2).
  */
@@ -188,8 +203,7 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
   }
 
   // —— Structure & content ——
-  const layouts = buildLayoutsGroup(flags)
-  if (layouts) groups.push(layouts)
+  groups.push(...buildLayoutsBand(flags))
 
   if (flags.cms) {
     const cms = buildCmsGroup(surface, cmsLinks)

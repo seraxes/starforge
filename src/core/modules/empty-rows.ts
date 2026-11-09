@@ -38,6 +38,11 @@ function reindexRowOrders(rows: LayoutRow[]): void {
  * Mutates `section.rows` in place and reindexes `order`.
  */
 export function ensureSectionEmptyRows(section: LayoutSection): void {
+  // Inherit stubs must stay row-less so merge pulls parent structure.
+  if (section.inheritMode === 'inherit') {
+    section.rows = []
+    return
+  }
   const sorted = [...section.rows].sort(
     (a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id),
   )

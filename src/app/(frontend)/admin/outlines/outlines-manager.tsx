@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useActionState, useState } from 'react'
+import React, { useActionState, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -9,6 +9,7 @@ import {
   deleteOutlineAction,
   duplicateOutlineAction,
   renameOutlineAction,
+  setOutlineInheritFromAction,
   type OutlineActionState,
 } from '@/core/modules/outline-actions'
 
@@ -16,15 +17,20 @@ type OutlineRow = {
   id: string
   label: string
   updatedAt: string
-  isDefault: boolean
-  /** Owning Skin id when this outline came from a skin package seed. */
+  /** Core bootstrap row `default` (not a skin Base). */
+  isCoreDefault: boolean
+  /** Active skin’s Base shell (`preferredDefaultOutlineId`). */
+  isSkinBase: boolean
+  inheritFrom?: string | null
   skinId?: string | null
-  /** True when owned by the currently active Skin. */
   skinOwned?: boolean
 }
 
 type Props = {
   outlines: OutlineRow[]
+  activeSkinId: string
+  activeSkinLabel: string
+  baseOutlineId: string | null
 }
 
 const initial: OutlineActionState = {}
@@ -57,40 +63,89 @@ function formatUpdated(iso: string) {
   }
 }
 
-export function OutlinesManager({ outlines }: Props) {
+export function OutlinesManager({
+  outlines,
+  activeSkinId,
+  baseOutlineId,
+}: Props) {
   const router = useRouter()
   const [createState, createAction, createPending] = useActionState(createOutlineAction, initial)
-  const [renameState, renameAction, renamePending] = useActionState(renameOutlineAction, initial)
+  const [renameState, renameAction] = useActionState(renameOutlineAction, initial)
   const [dupState, dupAction, dupPending] = useActionState(duplicateOutlineAction, initial)
   const [deleteState, deleteAction, deletePending] = useActionState(deleteOutlineAction, initial)
+  const [inheritState, inheritAction, inheritPending] = useActionState(
+    setOutlineInheritFromAction,
+    initial,
+  )
 
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null)
+  const [createSourceId, setCreateSourceId] = useState(baseOutlineId ?? '')
+  const [createMode, setCreateMode] = useState<'inherit' | 'copy'>('inherit')
+
+  useEffect(() => {
+    if (baseOutlineId && !createSourceId) setCreateSourceId(baseOutlineId)
+  }, [baseOutlineId, createSourceId])
 
   const refresh = () => router.refresh()
+  const parentOptions = outlines.filter((o) => !o.isCoreDefault || o.isSkinBase)
+  const sourceOptions = outlines.filter((o) => !o.isCoreDefault || o.isSkinBase)
 
   return (
     <div className="outlines-manager">
       <section className="outlines-create" aria-label="Create outline">
         <h3>Create outline</h3>
-        <form action={createAction} className="outlines-create-form admin-create-form" onSubmit={() => setTimeout(refresh, 50)}>
+        <form
+          action={createAction}
+          className="outlines-create-form admin-create-form"
+          onSubmit={() => setTimeout(refresh, 50)}
+        >
           <label className="settings-field">
             <span>Name</span>
-            <input type="text" name="label" placeholder="e.g. Home" required maxLength={80} />
+            <input type="text" name="label" placeholder="e.g. Landing" required maxLength={80} />
           </label>
           <label className="settings-field">
             <span>Id (optional)</span>
-            <input type="text" name="id" placeholder="auto from name" maxLength={64} />
+            <input
+              type="text"
+              name="id"
+              placeholder={`auto: ${activeSkinId}-…`}
+              maxLength={64}
+            />
           </label>
           <label className="settings-field">
-            <span>Copy from</span>
-            <select name="copyFromId" defaultValue="">
-              <option value="">Default layout seed</option>
-              {outlines.map((o) => (
+            <span>From outline</span>
+            <select
+              name="sourceId"
+              value={createSourceId}
+              onChange={(e) => setCreateSourceId(e.target.value)}
+              required
+            >
+              {sourceOptions.map((o) => (
                 <option key={o.id} value={o.id}>
-                  {o.label} ({o.id})
+                  {o.label}
+                  {o.isSkinBase ? ' (Base)' : ''}
+                  {o.inheritFrom ? ' · child' : ''}
                 </option>
               ))}
+            </select>
+          </label>
+          <label
+            className="settings-field"
+            title={
+              createMode === 'inherit'
+                ? 'Live child — source sections/styles stay shared'
+                : 'Standalone snapshot of the source’s resolved layout'
+            }
+          >
+            <span>Source</span>
+            <select
+              name="createMode"
+              value={createMode}
+              onChange={(e) => setCreateMode(e.target.value === 'copy' ? 'copy' : 'inherit')}
+            >
+              <option value="inherit">Inherit</option>
+              <option value="copy">Copy</option>
             </select>
           </label>
           <label className="outlines-check">
@@ -107,6 +162,7 @@ export function OutlinesManager({ outlines }: Props) {
       <Feedback state={renameState} />
       <Feedback state={dupState} />
       <Feedback state={deleteState} />
+      <Feedback state={inheritState} />
 
       <div className="outlines-table-wrap">
         <table className="outlines-table">
@@ -114,6 +170,7 @@ export function OutlinesManager({ outlines }: Props) {
             <tr>
               <th scope="col">Name</th>
               <th scope="col">Id</th>
+              <th scope="col">Parent</th>
               <th scope="col">Updated</th>
               <th scope="col">Actions</th>
             </tr>
@@ -123,19 +180,66 @@ export function OutlinesManager({ outlines }: Props) {
               <tr key={outline.id}>
                 <td>
                   <strong>{outline.label}</strong>
-                  {outline.isDefault ? <span className="outlines-badge">Base</span> : null}
+                  {outline.isSkinBase ? (
+                    <span className="outlines-badge" title="Skin Base shell — children inherit this">
+                      Base
+                    </span>
+                  ) : null}
+                  {outline.isCoreDefault && !outline.isSkinBase ? (
+                    <span className="outlines-badge" title="Core bootstrap fallback">
+                      Core
+                    </span>
+                  ) : null}
+                  {outline.inheritFrom && !outline.isSkinBase ? (
+                    <span className="outlines-badge" title={`inheritFrom ${outline.inheritFrom}`}>
+                      Child
+                    </span>
+                  ) : null}
                   {outline.skinOwned ? (
-                    <span className="outlines-badge" title={outline.skinId || undefined}>
+                    <span className="outlines-badge" title={outline.skinId || activeSkinId}>
                       Skin
                     </span>
                   ) : outline.skinId ? (
-                    <span className="outlines-badge" title={`From skin ${outline.skinId}`}>
+                    <span className="outlines-badge" title={`Skin ${outline.skinId}`}>
                       Skin pack
                     </span>
                   ) : null}
                 </td>
                 <td>
                   <code>{outline.id}</code>
+                </td>
+                <td>
+                  {outline.isSkinBase || outline.isCoreDefault ? (
+                    <span className="outlines-muted">—</span>
+                  ) : (
+                    <form
+                      action={inheritAction}
+                      className="outlines-inherit-form"
+                      onSubmit={() => setTimeout(refresh, 50)}
+                    >
+                      <input type="hidden" name="layoutId" value={outline.id} />
+                      <select
+                        name="inheritFromId"
+                        className="gantry-inline-input"
+                        defaultValue={outline.inheritFrom ?? baseOutlineId ?? ''}
+                        disabled={inheritPending}
+                        aria-label={`Parent outline for ${outline.label}`}
+                        onChange={(e) => {
+                          e.currentTarget.form?.requestSubmit()
+                        }}
+                      >
+                        <option value="">None (standalone)</option>
+                        {parentOptions
+                          .filter((o) => o.id !== outline.id)
+                          .map((o) => (
+                            <option key={o.id} value={o.id}>
+                              {o.label}
+                              {o.isSkinBase ? ' (Base)' : ''}
+                            </option>
+                          ))}
+                      </select>
+                    </form>
+                  )}
                 </td>
                 <td className="outlines-muted">{formatUpdated(outline.updatedAt)}</td>
                 <td>
@@ -166,13 +270,13 @@ export function OutlinesManager({ outlines }: Props) {
                     >
                       Duplicate
                     </button>
-                    {outline.isDefault ? null : (
+                    {outline.isCoreDefault || outline.isSkinBase ? null : (
                       <form
                         action={deleteAction}
                         onSubmit={(e) => {
                           if (
                             !window.confirm(
-                              `Delete outline “${outline.label}” (${outline.id})? Pages still assigned to it will fall back to Default.`,
+                              `Delete outline “${outline.label}” (${outline.id})? Pages still assigned to it will fall back to Base.`,
                             )
                           ) {
                             e.preventDefault()
@@ -247,13 +351,20 @@ export function OutlinesManager({ outlines }: Props) {
                       <input
                         type="text"
                         name="label"
-                        defaultValue={`${outline.label} copy`}
+                        defaultValue={`${outline.label.replace(/\s*—\s*Base$/i, '').trim()} child`}
                         required
                         maxLength={80}
                         aria-label="Duplicate outline name"
                       />
+                      <label className="settings-field">
+                        <span>Source</span>
+                        <select name="asInheritingChild" defaultValue="1" title="Inherit = live child; Copy = resolved snapshot">
+                          <option value="1">Inherit</option>
+                          <option value="0">Copy</option>
+                        </select>
+                      </label>
                       <button type="submit" className="gantry-toolbar-btn gantry-toolbar-btn-save" disabled={dupPending}>
-                        {dupPending ? 'Copying…' : 'Create copy'}
+                        {dupPending ? 'Creating…' : 'Create'}
                       </button>
                       <button
                         type="button"

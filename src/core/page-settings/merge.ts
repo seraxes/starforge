@@ -189,6 +189,7 @@ export function mergePageChrome(
   globalChrome: PageChrome | null | undefined,
   pageChrome?: PageChrome | null,
   pageKey: string | null = null,
+  options?: { fallbackLayoutId?: string },
 ): ResolvedPageChrome {
   const base = emptyResolvedChrome(pageKey)
   const g = globalChrome ?? {}
@@ -200,7 +201,11 @@ export function mergePageChrome(
     return undefined
   }
 
-  const layoutId = asString(pick('layoutId')).trim() || DEFAULT_PAGE_LAYOUT_ID
+  const fallbackLayout =
+    typeof options?.fallbackLayoutId === 'string' && options.fallbackLayoutId.trim()
+      ? options.fallbackLayoutId.trim()
+      : DEFAULT_PAGE_LAYOUT_ID
+  const layoutId = asString(pick('layoutId')).trim() || fallbackLayout
   const sectionsLayout = asSectionsLayout(pick('sectionsLayout')) ?? base.sectionsLayout
 
   const faG = g.fontAwesome ?? {}

@@ -2,6 +2,8 @@ import { cache } from 'react'
 
 import { pathnameWithoutLocale } from '@/core/i18n/path'
 
+import { getPreferredLayoutId } from '@/core/skin/preferred-outline'
+
 import { HOME_PAGE_KEY } from './defaults'
 import { mergePageChrome } from './merge'
 import { loadGlobalPageChrome, loadPageChromeOverride } from './store'
@@ -41,17 +43,22 @@ export function pageKeyFromPathname(pathname: string | null | undefined): string
 
 /**
  * Resolve merged chrome for a pageKey (`null` = global only / unknown route).
+ * Empty layoutId falls back to the active skin’s preferred Default shell.
  */
 export async function resolvePageChrome(pageKey: string | null): Promise<ResolvedPageChrome> {
-  const globalResult = await loadGlobalPageChrome()
+  const [globalResult, preferredLayoutId] = await Promise.all([
+    loadGlobalPageChrome(),
+    getPreferredLayoutId(),
+  ])
+  const mergeOpts = { fallbackLayoutId: preferredLayoutId }
   if (!pageKey) {
-    return mergePageChrome(globalResult.chrome, null, null)
+    return mergePageChrome(globalResult.chrome, null, null, mergeOpts)
   }
   const pageResult = await loadPageChromeOverride(pageKey)
   if (pageResult.isFallback) {
-    return mergePageChrome(globalResult.chrome, null, pageKey)
+    return mergePageChrome(globalResult.chrome, null, pageKey, mergeOpts)
   }
-  return mergePageChrome(globalResult.chrome, pageResult.chrome, pageKey)
+  return mergePageChrome(globalResult.chrome, pageResult.chrome, pageKey, mergeOpts)
 }
 
 /** Per-request dedupe for the same pageKey. */

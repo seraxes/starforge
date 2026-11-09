@@ -85,6 +85,11 @@ function normalizeConfig(raw: unknown): LayoutSlotConfig | undefined {
   return Object.keys(out).length > 0 ? out : undefined
 }
 
+function asInheritMode(raw: unknown): 'inherit' | 'local' | undefined {
+  if (raw === 'inherit' || raw === 'local') return raw
+  return undefined
+}
+
 function normalizeSlot(entry: LayoutSlot | null | undefined, index: number): LayoutSlot | null {
   if (!entry || typeof entry.moduleId !== 'string' || !entry.moduleId.trim()) return null
   const id =
@@ -99,6 +104,11 @@ function normalizeSlot(entry: LayoutSlot | null | undefined, index: number): Lay
     accessTags: entry.accessTags,
     accessLevel: entry.accessLevel,
   })
+  const inheritMode = asInheritMode(entry.inheritMode)
+  const inheritFromSlotId =
+    typeof entry.inheritFromSlotId === 'string' && entry.inheritFromSlotId.trim()
+      ? entry.inheritFromSlotId.trim()
+      : undefined
   return {
     id,
     moduleId: entry.moduleId.trim(),
@@ -111,6 +121,8 @@ function normalizeSlot(entry: LayoutSlot | null | undefined, index: number): Lay
     ...(htmlId ? { htmlId } : {}),
     ...(cssClass ? { cssClass } : {}),
     ...(config ? { config } : {}),
+    ...(inheritMode ? { inheritMode } : {}),
+    ...(inheritFromSlotId ? { inheritFromSlotId } : {}),
   }
 }
 
@@ -147,6 +159,8 @@ function normalizeSection(entry: LayoutSection | null | undefined, index: number
       ? clampGridWidth(entry.width, LAYOUT_WIDTH_FULL)
       : undefined
   const styles = normalizeLayoutSectionStyles(entry.styles)
+  const inheritMode = asInheritMode(entry.inheritMode)
+  const stylesInheritMode = asInheritMode(entry.stylesInheritMode)
   const rows = Array.isArray(entry.rows)
     ? (entry.rows.map((r, i) => normalizeRow(r, i)).filter(Boolean) as LayoutRow[])
     : []
@@ -158,11 +172,15 @@ function normalizeSection(entry: LayoutSection | null | undefined, index: number
     ...(containerMode ? { containerMode } : {}),
     ...(width != null ? { width } : {}),
     ...(styles ? { styles } : {}),
+    ...(inheritMode ? { inheritMode } : {}),
+    ...(stylesInheritMode ? { stylesInheritMode } : {}),
     order: typeof entry.order === 'number' && Number.isFinite(entry.order) ? entry.order : index,
     rows,
   }
-  // Opt-in empty drop rows: collapse consecutive empties only (UI + row / − row).
-  ensureSectionEmptyRows(section)
+  // Inherit stubs ignore rows at merge — skip empty-row padding so JSON stays thin.
+  if (inheritMode !== 'inherit') {
+    ensureSectionEmptyRows(section)
+  }
   return section
 }
 
@@ -170,7 +188,25 @@ function withNormalizedStyles(doc: LayoutDocument, raw: unknown): LayoutDocument
   const styles = normalizeLayoutOutlineStyles(
     raw && typeof raw === 'object' ? (raw as { styles?: unknown }).styles : undefined,
   )
-  return styles ? { ...doc, styles } : doc
+  const src =
+    raw && typeof raw === 'object' && !Array.isArray(raw)
+      ? (raw as Record<string, unknown>)
+      : {}
+  const inheritRaw = typeof src.inheritFrom === 'string' ? src.inheritFrom.trim() : ''
+  const omitRaw = Array.isArray(src.omitSectionIds) ? src.omitSectionIds : []
+  const omitSectionIds = [
+    ...new Set(
+      omitRaw
+        .map((id) => (typeof id === 'string' ? id.trim() : ''))
+        .filter(Boolean),
+    ),
+  ]
+  return {
+    ...doc,
+    ...(inheritRaw ? { inheritFrom: inheritRaw } : {}),
+    ...(omitSectionIds.length > 0 ? { omitSectionIds } : {}),
+    ...(styles ? { styles } : {}),
+  }
 }
 
 function slotsFromModules(

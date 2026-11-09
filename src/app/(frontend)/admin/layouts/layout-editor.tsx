@@ -12,6 +12,8 @@ import type { UserGroupOption } from '@/core/acl/types'
 import {
   addLayoutRowAction,
   addLayoutSectionAction,
+  copySectionFromParentAction,
+  copySlotFromParentAction,
   dropParticleIntoRowAction,
   moveSlotToRowAction,
   removeLayoutRowAction,
@@ -24,7 +26,9 @@ import {
   reorderRowSlotsAction,
   resetLayoutToDefaultAction,
   resizeAdjacentSlotsAction,
+  setSectionInheritModeAction,
   setSlotAccessTagsAction,
+  setSlotInheritModeAction,
   toggleSlotAction,
   updateLayoutSectionMetaAction,
   type LayoutActionState,
@@ -48,10 +52,45 @@ import { cssColorToColorInputValue } from '@/core/modules/styles'
 import type { LayoutDocument, LayoutRow, LayoutSection, LayoutSlot } from '@/core/modules/types'
 
 import { useAdminToast } from '../admin-toast'
+import { InheritCopyRow } from './layout-inherit-controls'
 import { ParticleAttributesEditor } from './particle-attributes-editor'
 import { ParticleEditorHost } from './particle-editor-host'
 import { ParticleSettingsPopover } from './particle-settings-popover'
 import type { FormDefinitionOption, NavMenuOption } from './typed-particle-editors'
+
+/** Structure inherit for a section id against the raw (editable) child doc. */
+function rawSectionStructureInherited(
+  raw: LayoutDocument | undefined,
+  canInherit: boolean,
+  sectionId: string,
+): boolean {
+  if (!canInherit || !raw) return false
+  const child = raw.sections.find((s) => s.id === sectionId)
+  if (!child) return true
+  return child.inheritMode === 'inherit'
+}
+
+function parentHasSlot(
+  parent: LayoutDocument | null | undefined,
+  sectionId: string,
+  slotId: string,
+): boolean {
+  const section = parent?.sections.find((s) => s.id === sectionId)
+  if (!section) return false
+  return section.rows.some((row) => row.slots.some((slot) => slot.id === slotId))
+}
+
+function rawSlotInherited(
+  raw: LayoutDocument | undefined,
+  sectionId: string,
+  rowId: string,
+  slotId: string,
+): boolean {
+  const section = raw?.sections.find((s) => s.id === sectionId)
+  const row = section?.rows.find((r) => r.id === rowId)
+  const slot = row?.slots.find((s) => s.id === slotId)
+  return slot?.inheritMode === 'inherit'
+}
 
 type ModuleOption = {
   id: string
@@ -62,7 +101,13 @@ type ModuleOption = {
 }
 
 type Props = {
+  /** Resolved (merged) document for canvas display. */
   document: LayoutDocument
+  /** Raw child document — inherit mode source of truth for edits. */
+  rawDocument?: LayoutDocument
+  /** Resolved parent outline when inheritFrom is set. */
+  parentDocument?: LayoutDocument | null
+  parentLayoutId?: string | null
   source: 'database' | 'default-json'
   modules: ModuleOption[]
   /** Users → Groups options for slot accessTags multi-select. */
@@ -442,6 +487,10 @@ function ParticleBlock({
   onSlotDragOver,
   onSlotDrop,
   onSlotPatched,
+  canInherit,
+  particleInherited,
+  parentHasMatchingSlot,
+  sectionStructureInherited,
 }: {
   sectionId: string
   rowId: string
@@ -466,9 +515,14 @@ function ParticleBlock({
   /** Drop uses the last drag-over hint (coords on drop are unreliable). */
   onSlotDrop: (targetSlotId: string, payload: SlotDragPayload) => void
   onSlotPatched?: (patch: Partial<LayoutSlot>) => void
+  canInherit: boolean
+  particleInherited: boolean
+  parentHasMatchingSlot: boolean
+  sectionStructureInherited: boolean
 }) {
   const router = useRouter()
   const layoutId = useLayoutOutlineId()
+  const { notifySaved, notifyError } = useAdminToast()
   const [pending, startTransition] = useTransition()
   const [flash, setFlash] = useState<LayoutActionState>({})
   const meta = modules.find((m) => m.id === slot.moduleId)
@@ -674,11 +728,67 @@ function ParticleBlock({
                       className="gantry-slot-access-tags"
                       value={accessTags}
                       groups={groups}
-                      disabled={pending}
+                      disabled={pending || sectionStructureInherited || particleInherited}
                       onChange={persistAccessTags}
                     />
                   ),
                 },
+                ...(canInherit
+                  ? [
+                      {
+                        id: 'inheritance',
+                        label: 'Inheritance',
+                        content: (
+                          <div className="gantry-slot-inherit-panel">
+                            {sectionStructureInherited ? (
+                              <p className="settings-hint">
+                                Section inherits structure from the parent outline. Copy or turn off
+                                section inherit first to manage particle inherit.
+                              </p>
+                            ) : parentHasMatchingSlot ? (
+                              <InheritCopyRow
+                                inherited={particleInherited}
+                                disabled={pending}
+                                onInheritChange={(next) => {
+                                  const fd = withOutlineId(new FormData(), layoutId)
+                                  fd.set('sectionId', sectionId)
+                                  fd.set('rowId', rowId)
+                                  fd.set('slotId', slot.id)
+                                  fd.set('inheritMode', next ? 'inherit' : 'local')
+                                  startTransition(async () => {
+                                    const result = await setSlotInheritModeAction({}, fd)
+                                    setFlash(result)
+                                    if (result.ok) notifySaved('Saved')
+                                    else if (result.error) notifyError(result.error)
+                                    router.refresh()
+                                  })
+                                }}
+                                onCopy={() => {
+                                  const fd = withOutlineId(new FormData(), layoutId)
+                                  fd.set('sectionId', sectionId)
+                                  fd.set('rowId', rowId)
+                                  fd.set('slotId', slot.id)
+                                  startTransition(async () => {
+                                    const result = await copySlotFromParentAction({}, fd)
+                                    setFlash(result)
+                                    if (result.ok) notifySaved('Copied')
+                                    else if (result.error) notifyError(result.error)
+                                    router.refresh()
+                                  })
+                                }}
+                                hint="Inherit keeps a live link to the parent particle. Copy snapshots it locally."
+                              />
+                            ) : (
+                              <p className="settings-hint">
+                                Parent outline has no matching particle id in this section.
+                              </p>
+                            )}
+                            <ActionFeedback state={flash} />
+                          </div>
+                        ),
+                      },
+                    ]
+                  : []),
                 {
                   id: 'particle',
                   label: 'Particle',
@@ -687,7 +797,7 @@ function ParticleBlock({
                       <button
                         type="button"
                         className="secondary"
-                        disabled={pending}
+                        disabled={pending || sectionStructureInherited}
                         onClick={() => {
                           const fd = withOutlineId(new FormData(), layoutId)
                           fd.set('sectionId', sectionId)
@@ -754,6 +864,10 @@ function DropRow({
   onRowDragOver,
   onRowDrop,
   onParticleStack,
+  canInherit,
+  rawDocument,
+  parentDocument,
+  sectionStructureInherited,
 }: {
   sectionId: string
   row: LayoutRow
@@ -787,6 +901,10 @@ function DropRow({
     payload: SlotDragPayload,
     position: 'before' | 'after',
   ) => void
+  canInherit: boolean
+  rawDocument?: LayoutDocument
+  parentDocument?: LayoutDocument | null
+  sectionStructureInherited: boolean
 }) {
   const router = useRouter()
   const layoutId = useLayoutOutlineId()
@@ -1126,6 +1244,19 @@ function DropRow({
                       }),
                     )
                   }}
+                  canInherit={canInherit}
+                  particleInherited={rawSlotInherited(
+                    rawDocument,
+                    sectionId,
+                    row.id,
+                    slot.id,
+                  )}
+                  parentHasMatchingSlot={parentHasSlot(
+                    parentDocument,
+                    sectionId,
+                    slot.id,
+                  )}
+                  sectionStructureInherited={sectionStructureInherited}
                 />
                 {next ? (
                   <ResizeHandle
@@ -1172,6 +1303,10 @@ function SectionCanvas({
   onSectionDragOver,
   onSectionDrop,
   onSectionRemoved,
+  canInherit,
+  rawDocument,
+  parentDocument,
+  parentLayoutId,
 }: {
   section: LayoutSection
   modules: ModuleOption[]
@@ -1197,6 +1332,10 @@ function SectionCanvas({
     placeBeside: boolean,
   ) => void
   onSectionRemoved: (sectionId: string) => void
+  canInherit: boolean
+  rawDocument?: LayoutDocument
+  parentDocument?: LayoutDocument | null
+  parentLayoutId?: string | null
 }) {
   const router = useRouter()
   const layoutId = useLayoutOutlineId()
@@ -1204,6 +1343,14 @@ function SectionCanvas({
   const [metaFlash, setMetaFlash] = useState<LayoutActionState>({})
   const [removeConfirmOpen, setRemoveConfirmOpen] = useState(false)
   const { notifySaved, notifyError } = useAdminToast()
+  const structureInherited = rawSectionStructureInherited(
+    rawDocument,
+    canInherit,
+    section.id,
+  )
+  const parentHasSection = Boolean(
+    parentDocument?.sections.some((s) => s.id === section.id),
+  )
   const [localRows, setLocalRows] = useState<LayoutRow[]>(() => sortRows(section.rows))
   const [rowOrderSource, setRowOrderSource] = useState(section)
   const [slotMap, setSlotMap] = useState<Record<string, LayoutSlot[]>>(() => {
@@ -1546,6 +1693,11 @@ function SectionCanvas({
             ⋮⋮
           </button>
           <div className="gantry-section-identity">
+            {structureInherited ? (
+              <span className="gantry-inherit-badge" title="Structure inherited from parent outline">
+                Inherited
+              </span>
+            ) : null}
             <label className="gantry-inline-label gantry-section-name-label">
               <span className="sr-only">Section name</span>
               <input
@@ -1652,13 +1804,56 @@ function SectionCanvas({
               ⚙
             </summary>
             <div className="gantry-section-toolbar">
+              {canInherit ? (
+                <div className="gantry-section-inherit-block">
+                  <span className="gantry-field-hint">Inheritance</span>
+                  {parentHasSection ? (
+                    <InheritCopyRow
+                      inherited={structureInherited}
+                      disabled={metaPending}
+                      onInheritChange={(next) => {
+                        const fd = withOutlineId(new FormData(), layoutId)
+                        fd.set('sectionId', section.id)
+                        fd.set('inheritMode', next ? 'inherit' : 'local')
+                        startMetaSave(async () => {
+                          const result = await setSectionInheritModeAction({}, fd)
+                          setMetaFlash(result)
+                          if (result.ok) notifySaved('Saved')
+                          else if (result.error) notifyError(result.error)
+                          router.refresh()
+                        })
+                      }}
+                      onCopy={() => {
+                        const fd = withOutlineId(new FormData(), layoutId)
+                        fd.set('sectionId', section.id)
+                        startMetaSave(async () => {
+                          const result = await copySectionFromParentAction({}, fd)
+                          setMetaFlash(result)
+                          if (result.ok) notifySaved('Copied')
+                          else if (result.error) notifyError(result.error)
+                          router.refresh()
+                        })
+                      }}
+                      hint={
+                        parentLayoutId
+                          ? `Parent outline: ${parentLayoutId}. Inherit shows parent particles live; Copy snapshots them here.`
+                          : undefined
+                      }
+                    />
+                  ) : (
+                    <p className="settings-hint">
+                      Parent outline has no section with id <code>{section.id}</code>.
+                    </p>
+                  )}
+                </div>
+              ) : null}
               <label className="gantry-inline-label gantry-section-container-label">
                 <span className="gantry-field-hint">Container</span>
                 <select
                   key={`section-container-${section.id}-${section.containerMode ?? 'full'}`}
                   className="gantry-inline-input gantry-section-container-select"
                   defaultValue={section.containerMode ?? 'full'}
-                  disabled={metaPending}
+                  disabled={metaPending || structureInherited}
                   title="Section owns container width — row % is share inside"
                   aria-label="Section container width"
                   onChange={(event) => {
@@ -1832,10 +2027,22 @@ function SectionCanvas({
             onParticleStack={(payload, position) =>
               handleParticleStack(payload, row.id, position)
             }
+            canInherit={canInherit}
+            rawDocument={rawDocument}
+            parentDocument={parentDocument}
+            sectionStructureInherited={structureInherited}
           />
         ))
       )}
       {(() => {
+        if (structureInherited) {
+          return (
+            <p className="settings-hint gantry-section-inherit-hint">
+              Structure inherited from parent — particles are read-only here. Turn inherit off or
+              Copy from parent in section settings to edit.
+            </p>
+          )
+        }
         const last = rows[rows.length - 1]
         const trailingEmpty = Boolean(last && layoutRowIsEmpty(last))
         if (trailingEmpty) return null
@@ -1866,6 +2073,9 @@ function SectionCanvas({
  */
 export function LayoutEditor({
   document,
+  rawDocument,
+  parentDocument = null,
+  parentLayoutId = null,
   source,
   modules,
   groups,
@@ -1878,6 +2088,11 @@ export function LayoutEditor({
 }: Props) {
   const router = useRouter()
   const outlineId = layoutId
+  const canInherit = Boolean(
+    rawDocument?.inheritFrom &&
+      String(rawDocument.inheritFrom).trim() &&
+      String(rawDocument.inheritFrom).trim() !== layoutId,
+  )
   const [sectionPendingSave, startSectionSave] = useTransition()
   const [sectionState, sectionAction, sectionPending] = useActionState(
     addLayoutSectionAction,
@@ -2069,6 +2284,17 @@ export function LayoutEditor({
             <div className="gantry-canvas-toolbar-end">
               <div className="gantry-canvas-toolbar-primary">
                 <Link
+                  href={
+                    outlineId && outlineId !== 'default'
+                      ? `/admin/assigned-menu?outline=${encodeURIComponent(outlineId)}`
+                      : '/admin/assigned-menu'
+                  }
+                  className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+                  title="Assigned Menu — toggle which menu items use this outline"
+                >
+                  <span aria-hidden="true">⧉</span> Assigned Menu
+                </Link>
+                <Link
                   href="/admin/outlines"
                   className="gantry-toolbar-btn gantry-toolbar-btn-muted"
                   title="Load / manage outlines"
@@ -2171,6 +2397,10 @@ export function LayoutEditor({
                         .map((s, index) => ({ ...s, order: index })),
                     )
                   }}
+                  canInherit={canInherit}
+                  rawDocument={rawDocument}
+                  parentDocument={parentDocument}
+                  parentLayoutId={parentLayoutId}
                 />
               ))}
             </ol>

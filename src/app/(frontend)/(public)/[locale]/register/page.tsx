@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { getAppSession } from '@/core/auth/session'
+import { resolvePostRegisterUrl } from '@/core/auth/success-urls'
 import { resolveCaptchaForSurface } from '@/core/security/captcha'
 import { getSiteSettings } from '@/core/settings'
 import { RegisterForm } from './register-form'
@@ -15,7 +16,7 @@ export const metadata = {
 export default async function RegisterPage() {
   const [session, settings] = await Promise.all([getAppSession(), getSiteSettings()])
   if (session) {
-    redirect('/')
+    redirect(await resolvePostRegisterUrl())
   }
 
   if (!settings.features.registration) {

@@ -18,6 +18,11 @@ export type SiteChromeDocument = {
   offlineEnabled: boolean
   offlineMessage: string
   /**
+   * Outline (`sf_layouts` id) used for the public offline screen.
+   * Empty → Pastel offline seed id. Edited under Site Chrome.
+   */
+  offlineLayoutId: string
+  /**
    * Forms surface default (enable + provider; keys in env).
    * Edited under Site Settings → Security; kept here for storage continuity.
    */
@@ -43,6 +48,13 @@ export type SiteChromeDocument = {
   authRememberMeEnabled: boolean
   /** Show Account security / 2FA CTAs and allow enrollment links. */
   authTwoFactorEnabled: boolean
+  /**
+   * Default success paths after auth (Site Settings → Auth).
+   * Site-relative only; `?next=` / form `next` still overrides login deep links.
+   */
+  authPostLoginUrl: string
+  authPostRegisterUrl: string
+  authPostLogoutUrl: string
   /**
    * Outbound email (SF-96). Enable + provider + From only;
    * SMTP / Resend secrets stay in env.

@@ -5,8 +5,12 @@ import { DEFAULT_LAYOUT_ID } from '@/core/db'
 import { listLayoutOutlines } from '@/core/modules'
 import { loadPageSettingsAdmin } from '@/core/page-settings/actions'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
-import { isSkinPinnedByEnv, listSkins } from '@/core/skin'
-import { getActiveSkin } from '@/core/skin/resolve-active'
+import {
+  ensureSkinOutlineSeeds,
+  getActiveSkin,
+  isSkinPinnedByEnv,
+  listSkins,
+} from '@/core/skin'
 
 import { LayoutsAdminNav } from '../layouts/layouts-admin-nav'
 import { PageSettingsForm } from './page-settings-form'
@@ -33,12 +37,15 @@ export default async function AdminPageSettingsPage({ searchParams }: Props) {
   const bootstrap = await loadPageSettingsAdmin(editingPageKey)
   const layoutOn = isCatalogModuleEnabled(settings, MODULE_IDS.layoutManager)
 
+  const activeSkin = await getActiveSkin()
+  if (layoutOn) {
+    await ensureSkinOutlineSeeds(activeSkin.id)
+  }
   const outlines = layoutOn ? await listLayoutOutlines() : []
   const requestedOutline = params.outline?.trim() || DEFAULT_LAYOUT_ID
   const layoutId = outlines.some((o) => o.id === requestedOutline)
     ? requestedOutline
     : DEFAULT_LAYOUT_ID
-  const activeSkin = await getActiveSkin()
 
   return (
     <section className="admin-section admin-layouts-padded">
@@ -60,7 +67,9 @@ export default async function AdminPageSettingsPage({ searchParams }: Props) {
       <h2 className="sr-only">Page Settings</h2>
       <p className="lede admin-lede gantry-layouts-lede">
         Site defaults and per-page overrides for document chrome, layout assignment, and{' '}
-        <strong>Who can see</strong> tags (match ANY; empty = public).
+        <strong>Who can see</strong> tags (match ANY; empty = public). The outline switcher above
+        only picks which outline Layouts edits next — Assets CSS/JS here are{' '}
+        <strong>site / page</strong> chrome, not per-outline.
       </p>
       <PageSettingsForm
         key={editingPageKey ?? 'global'}

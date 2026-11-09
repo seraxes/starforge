@@ -42,6 +42,11 @@ export type NavMenuItem = {
   /** On-page H1 override when this item is the active page. */
   pageHeading?: string | null
   /**
+   * Layout outline id (`sf_layouts`). Empty = do not write Page Settings.
+   * When set, save syncs `layoutId` onto the target page’s Page Settings chrome.
+   */
+  layoutId?: string | null
+  /**
    * Multi-select access tags (`public` / `registered` / `group:<id>`).
    * Visible if viewer matches any tag. Default `['public']`.
    */
@@ -82,4 +87,22 @@ export type NavModuleOption = {
   moduleId: string
   moduleLabel: string
   views: NavModuleViewOption[]
+}
+
+/** One nav item row in Layouts → Assigned Menu. */
+export type NavOutlineAssignmentItem = {
+  itemId: string
+  label: string
+  depth: number
+  /** True when this item’s layoutId equals the queried outline. */
+  assigned: boolean
+  /** Other outline id when assigned elsewhere (for UI hint). */
+  otherOutlineId: string | null
+}
+
+/** Menu group in Layouts → Assigned Menu. */
+export type NavOutlineAssignmentMenu = {
+  menuId: string
+  menuLabel: string
+  items: NavOutlineAssignmentItem[]
 }

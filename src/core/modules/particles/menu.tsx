@@ -35,9 +35,17 @@ export const menuModule: StarforgeModule = {
     const resolved = await resolveNavMenuItems(menuId, settings)
     const viewer = await getAccessViewer()
     const items = filterNavItemsForViewer(resolved, viewer)
+    // Particle CSS class also lands on `.sf-grid-col` (SlotRenderer); mirror on the
+    // menu root so selectors like `.right .site-nav` / `.sf-menu.right` both work.
+    const extraClass = typeof slot.cssClass === 'string' ? slot.cssClass.trim() : ''
+    const rootClass = ['sf-menu', extraClass].filter(Boolean).join(' ')
     if (items.length === 0) {
       return (
-        <div className="sf-menu sf-menu-empty" data-sf-particle="menu" data-sf-slot={slot.id}>
+        <div
+          className={`${rootClass} sf-menu-empty`}
+          data-sf-particle="menu"
+          data-sf-slot={slot.id}
+        >
           <p className="layout-muted">No visible links in this menu.</p>
         </div>
       )
@@ -45,7 +53,7 @@ export const menuModule: StarforgeModule = {
 
     return (
       <div
-        className="sf-menu"
+        className={rootClass}
         data-sf-particle="menu"
         data-sf-slot={slot.id}
         data-sf-menu-id={menuId}

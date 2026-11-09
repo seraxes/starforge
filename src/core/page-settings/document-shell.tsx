@@ -19,6 +19,11 @@ function metaAttrName(nameOrProperty: string): { name?: string; property?: strin
   return { name: key }
 }
 
+/** Prevent `</style>` in author CSS from breaking out of the style element. */
+function escapeStyleText(css: string): string {
+  return css.replace(/<\/style/gi, '<\\/style')
+}
+
 async function collectAtomInjects(chrome: ResolvedPageChrome): Promise<AtomInjectResult[]> {
   await ensureAtomsRegistered()
   const { MODULE_IDS, getSiteSettings, isAtomModuleEnabled, isCatalogModuleEnabled } =
@@ -65,12 +70,13 @@ export async function DocumentHeadChrome({ chrome }: { chrome: ResolvedPageChrom
         const content = asset.content?.trim() ?? ''
         const url = asset.url.trim()
         if (content) {
+          // Native <style> (SSR + body-safe) — do not rely on client head injection.
           return (
-            <HtmlInjectorClient
+            <style
               key={asset.id}
-              html={`<style data-sf-css="${asset.name || asset.id}" data-sf-priority="${asset.priority ?? 0}">${content}</style>`}
-              target="head"
-              marker={`css-${asset.id}`}
+              data-sf-css={asset.name || asset.id}
+              data-sf-priority={asset.priority ?? 0}
+              dangerouslySetInnerHTML={{ __html: escapeStyleText(content) }}
             />
           )
         }
@@ -100,7 +106,21 @@ export async function DocumentHeadChrome({ chrome }: { chrome: ResolvedPageChrom
             <link key={href} rel="stylesheet" href={href} />
           ))}
           {inject.html ? (
-            <HtmlInjectorClient html={inject.html} target="head" marker={`atom-head-${index}`} />
+            // Prefer native <style> for atom CSS (same SSR path as Assets CSS).
+            // Scripts / mixed HTML still use the client injector.
+            /^\s*<style[\s>]/i.test(inject.html) &&
+            /<\/style>\s*$/i.test(inject.html) ? (
+              <style
+                data-sf-atom-css=""
+                dangerouslySetInnerHTML={{
+                  __html: escapeStyleText(
+                    inject.html.replace(/^\s*<style[^>]*>/i, '').replace(/<\/style>\s*$/i, ''),
+                  ),
+                }}
+              />
+            ) : (
+              <HtmlInjectorClient html={inject.html} target="head" marker={`atom-head-${index}`} />
+            )
           ) : null}
         </React.Fragment>
       ))}

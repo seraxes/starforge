@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { headers } from 'next/headers'
 
-import { SiteOffline } from '@/components/SiteOffline'
+import { SiteOfflineView } from '@/components/SiteOfflineView'
 import { filterNavItemsForViewer, getAccessViewer } from '@/core/acl'
 import { userIsAppAdmin } from '@/core/auth/admin'
 import { getAppSession } from '@/core/auth/session'
@@ -102,9 +102,10 @@ export default async function PublicLocaleLayout({ children, params }: Props) {
     // Prefer HTTP 503 via proxy → /site-offline.
     return (
       <NextIntlClientProvider locale={locale} messages={messages}>
-        <SiteOffline
+        <SiteOfflineView
           siteName={siteChrome.siteName || settings.siteName}
           message={siteChrome.offlineMessage}
+          layoutId={siteChrome.offlineLayoutId}
         />
       </NextIntlClientProvider>
     )

@@ -40,6 +40,11 @@ export default async function AdminSettingsAuthPage() {
           rememberMeEnabled: chrome.authRememberMeEnabled,
           twoFactorEnabled: chrome.authTwoFactorEnabled,
         }}
+        successUrls={{
+          postLoginUrl: chrome.authPostLoginUrl,
+          postRegisterUrl: chrome.authPostRegisterUrl,
+          postLogoutUrl: chrome.authPostLogoutUrl,
+        }}
       />
     </section>
   )

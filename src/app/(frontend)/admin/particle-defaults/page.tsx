@@ -5,8 +5,12 @@ import { redirect } from 'next/navigation'
 import { DEFAULT_LAYOUT_ID } from '@/core/db'
 import { listLayoutOutlines } from '@/core/modules'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
-import { isSkinPinnedByEnv, listSkins } from '@/core/skin'
-import { getActiveSkin } from '@/core/skin/resolve-active'
+import {
+  ensureSkinOutlineSeeds,
+  getActiveSkin,
+  isSkinPinnedByEnv,
+  listSkins,
+} from '@/core/skin'
 
 import { LayoutsAdminNav } from '../layouts/layouts-admin-nav'
 
@@ -37,11 +41,12 @@ export default async function AdminParticleDefaultsPage(props: {
 
   const search = props.searchParams ? await props.searchParams : {}
   const requestedId = pickOutlineParam(search.outline)
+  const activeSkin = await getActiveSkin()
+  await ensureSkinOutlineSeeds(activeSkin.id)
   const outlines = await listLayoutOutlines()
   const known = outlines.some((o) => o.id === requestedId)
   const layoutId = known ? requestedId : DEFAULT_LAYOUT_ID
   const pageSettingsOn = isCatalogModuleEnabled(settings, MODULE_IDS.pageSettings)
-  const activeSkin = await getActiveSkin()
 
   return (
     <section className="admin-section admin-layouts-padded">

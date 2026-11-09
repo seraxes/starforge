@@ -2,6 +2,7 @@ import { asc, eq } from 'drizzle-orm'
 
 import { invalidateLayout } from '@/core/content/revalidate'
 import { db, DEFAULT_LAYOUT_ID, sfLayouts } from '@/core/db'
+import { ensureLayoutSkinIdColumn } from '@/core/db/ensure-layout-skin-id'
 
 import {
   cloneDefaultLayoutDocument,
@@ -31,11 +32,13 @@ export type LayoutLoadResult = {
 export type LayoutOutlineMeta = {
   id: string
   label: string
+  /** Owning skin id (`sf_layouts.skin_id`), null = Core / unassigned. */
+  skinId: string | null
   createdAt: Date
   updatedAt: Date
 }
 
-const DEFAULT_OUTLINE_LABEL = 'Default'
+const DEFAULT_OUTLINE_LABEL = 'Core default'
 
 function displayLabelForId(id: string, label: string | null | undefined): string {
   const trimmed = typeof label === 'string' ? label.trim() : ''
@@ -109,19 +112,20 @@ export async function loadLayoutDocument(
   }
 }
 
-/** Persist a layout document (upsert by outline id). Preserves existing label. */
+/** Persist a layout document (upsert by outline id). Preserves existing label / skinId. */
 export async function saveLayoutDocument(
   doc: LayoutDocument,
   layoutId: string = DEFAULT_LAYOUT_ID,
-  options?: { label?: string },
+  options?: { label?: string; skinId?: string | null },
 ): Promise<LayoutDocument> {
+  await ensureLayoutSkinIdColumn()
   const id = resolveLayoutId(layoutId)
   const normalized = normalizeLayoutDocument(doc) ?? { version: 3 as const, sections: [] }
   const json = serializeLayoutDocument(normalized)
   const now = new Date()
 
   const [existing] = await db
-    .select({ id: sfLayouts.id, label: sfLayouts.label })
+    .select({ id: sfLayouts.id, label: sfLayouts.label, skinId: sfLayouts.skinId })
     .from(sfLayouts)
     .where(eq(sfLayouts.id, id))
     .limit(1)
@@ -131,12 +135,20 @@ export async function saveLayoutDocument(
     existing?.label ||
     displayLabelForId(id, null)
 
+  const skinId =
+    options?.skinId !== undefined
+      ? options.skinId && String(options.skinId).trim()
+        ? String(options.skinId).trim()
+        : null
+      : existing?.skinId ?? null
+
   if (existing) {
     await db
       .update(sfLayouts)
       .set({
         document: json,
         ...(options?.label !== undefined ? { label } : {}),
+        ...(options?.skinId !== undefined ? { skinId } : {}),
         updatedAt: now,
       })
       .where(eq(sfLayouts.id, id))
@@ -145,6 +157,7 @@ export async function saveLayoutDocument(
       id,
       label,
       document: json,
+      skinId,
       createdAt: now,
       updatedAt: now,
     })
@@ -154,13 +167,75 @@ export async function saveLayoutDocument(
   return normalized
 }
 
+/** Patch outline metadata without rewriting the document JSON. */
+export async function patchLayoutOutlineMeta(
+  layoutId: string,
+  patch: { label?: string; skinId?: string | null },
+): Promise<{ outline: LayoutOutlineMeta } | { error: string }> {
+  const id = resolveLayoutId(layoutId)
+  try {
+    await ensureLayoutSkinIdColumn()
+    const [existing] = await db
+      .select({
+        id: sfLayouts.id,
+        label: sfLayouts.label,
+        skinId: sfLayouts.skinId,
+        createdAt: sfLayouts.createdAt,
+        updatedAt: sfLayouts.updatedAt,
+      })
+      .from(sfLayouts)
+      .where(eq(sfLayouts.id, id))
+      .limit(1)
+    if (!existing) return { error: `Outline “${id}” was not found.` }
+
+    const nextLabel =
+      typeof patch.label === 'string' && patch.label.trim()
+        ? patch.label.trim()
+        : existing.label
+    const nextSkinId =
+      patch.skinId !== undefined
+        ? patch.skinId && String(patch.skinId).trim()
+          ? String(patch.skinId).trim()
+          : null
+        : existing.skinId
+
+    await db
+      .update(sfLayouts)
+      .set({
+        label: nextLabel,
+        skinId: nextSkinId,
+        updatedAt: new Date(),
+      })
+      .where(eq(sfLayouts.id, id))
+
+    return {
+      outline: {
+        id: existing.id,
+        label: displayLabelForId(existing.id, nextLabel),
+        skinId: nextSkinId,
+        createdAt: existing.createdAt,
+        updatedAt: new Date(),
+      },
+    }
+  } catch (error) {
+    return {
+      error:
+        error instanceof Error && error.message
+          ? error.message
+          : 'Could not update outline metadata.',
+    }
+  }
+}
+
 /** List all layout outlines (named layouts) for Outlines manager + Page Settings. */
 export async function listLayoutOutlines(): Promise<LayoutOutlineMeta[]> {
   try {
+    await ensureLayoutSkinIdColumn()
     const rows = await db
       .select({
         id: sfLayouts.id,
         label: sfLayouts.label,
+        skinId: sfLayouts.skinId,
         createdAt: sfLayouts.createdAt,
         updatedAt: sfLayouts.updatedAt,
       })
@@ -172,6 +247,7 @@ export async function listLayoutOutlines(): Promise<LayoutOutlineMeta[]> {
         {
           id: DEFAULT_LAYOUT_ID,
           label: DEFAULT_OUTLINE_LABEL,
+          skinId: null,
           createdAt: new Date(0),
           updatedAt: new Date(0),
         },
@@ -181,6 +257,7 @@ export async function listLayoutOutlines(): Promise<LayoutOutlineMeta[]> {
     return rows.map((row) => ({
       id: row.id,
       label: displayLabelForId(row.id, row.label),
+      skinId: row.skinId?.trim() || null,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     }))
@@ -189,6 +266,7 @@ export async function listLayoutOutlines(): Promise<LayoutOutlineMeta[]> {
       {
         id: DEFAULT_LAYOUT_ID,
         label: DEFAULT_OUTLINE_LABEL,
+        skinId: null,
         createdAt: new Date(0),
         updatedAt: new Date(0),
       },
@@ -201,10 +279,12 @@ export async function getLayoutOutline(
 ): Promise<LayoutOutlineMeta | null> {
   const id = resolveLayoutId(layoutId)
   try {
+    await ensureLayoutSkinIdColumn()
     const [row] = await db
       .select({
         id: sfLayouts.id,
         label: sfLayouts.label,
+        skinId: sfLayouts.skinId,
         createdAt: sfLayouts.createdAt,
         updatedAt: sfLayouts.updatedAt,
       })
@@ -215,6 +295,7 @@ export async function getLayoutOutline(
     return {
       id: row.id,
       label: displayLabelForId(row.id, row.label),
+      skinId: row.skinId?.trim() || null,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     }
@@ -232,36 +313,79 @@ function uniqueOutlineId(base: string, existing: Set<string>): string {
 }
 
 /**
- * Create a new outline. Optionally copy document from another outline
- * (default: clone the checked-in default layout JSON).
+ * Create a new outline under a skin.
+ *
+ * - **Inherit** (`asInheritingChild` + `inheritFromId`): thin child stub; live link to parent.
+ * - **Copy** (`copyFromId`, not inheriting): full snapshot of the source’s **resolved**
+ *   layout (parent merge applied), no further inherit link.
  */
 export async function createLayoutOutline(input: {
   label: string
   id?: string
+  /** Source outline to snapshot when not inheriting. */
   copyFromId?: string
+  /** Parent outline id for live inherit. */
+  inheritFromId?: string
+  /** True = inherit stub; false = standalone copy (default true when inheritFrom set). */
+  asInheritingChild?: boolean
+  /** Owning skin — required for skin-pack children (Outlines Skin badge). */
+  skinId?: string | null
 }): Promise<{ outline: LayoutOutlineMeta } | { error: string }> {
   const label = input.label.trim()
   if (!label) return { error: 'Outline name is required.' }
 
   const existing = await listLayoutOutlines()
   const ids = new Set(existing.map((o) => o.id))
-  const id = uniqueOutlineId(input.id?.trim() || label, ids)
+  const skinId =
+    typeof input.skinId === 'string' && input.skinId.trim() ? input.skinId.trim() : null
+  // Prefer skin-prefixed ids so children stay clearly under the pack.
+  const idBase =
+    input.id?.trim() ||
+    (skinId ? `${skinId}-${slugifyLayoutId(label)}` : slugifyLayoutId(label))
+  const id = uniqueOutlineId(idBase, ids)
 
-  let document = cloneDefaultLayoutDocument()
-  const copyFrom = input.copyFromId?.trim()
-  if (copyFrom) {
+  const inheritFrom = input.inheritFromId?.trim() || ''
+  const copyFrom = input.copyFromId?.trim() || ''
+  const asChild = Boolean(inheritFrom) && input.asInheritingChild !== false
+
+  // Dynamic import avoids circular deps (inherit.ts → layout-store).
+  const { resolveLayoutInheritance } = await import('./inherit')
+
+  let document: LayoutDocument
+
+  if (asChild) {
+    if (inheritFrom === id) {
+      return { error: 'An outline cannot inherit from itself.' }
+    }
+    const parent = await loadLayoutDocument(inheritFrom)
+    if (parent.layoutId !== inheritFrom && inheritFrom !== DEFAULT_LAYOUT_ID) {
+      return { error: `Parent outline “${inheritFrom}” was not found.` }
+    }
+    const parentResolved = await resolveLayoutInheritance(parent.layoutId, parent.document)
+    document = {
+      version: 3,
+      inheritFrom,
+      sections: [],
+      ...(parentResolved.styles ? { styles: structuredClone(parentResolved.styles) } : {}),
+    }
+  } else if (copyFrom) {
     const source = await loadLayoutDocument(copyFrom)
-    if (source.source === 'database' && !source.isFallback) {
-      document = structuredClone(source.document)
-    } else if (copyFrom === DEFAULT_LAYOUT_ID) {
-      document = cloneDefaultLayoutDocument()
-    } else {
+    if (source.layoutId !== copyFrom && copyFrom !== DEFAULT_LAYOUT_ID) {
       return { error: `Source outline “${copyFrom}” was not found.` }
     }
+    // Snapshot the painted layout so copying a child still gets parent sections.
+    const resolved = await resolveLayoutInheritance(source.layoutId, source.document)
+    document = structuredClone(resolved)
+    delete document.inheritFrom
+    delete document.omitSectionIds
+  } else {
+    document = cloneDefaultLayoutDocument()
+    delete document.inheritFrom
+    delete document.omitSectionIds
   }
 
   try {
-    await saveLayoutDocument(document, id, { label })
+    await saveLayoutDocument(document, id, { label, skinId })
   } catch (error) {
     return {
       error:
@@ -311,11 +435,23 @@ export async function renameLayoutOutline(
   return { outline }
 }
 
-/** Duplicate an outline into a new id + label. */
+/**
+ * Duplicate an outline into a new id + label.
+ * Default: inheriting child of the skin Base (or source when source is Base),
+ * same `skinId` as the source / active skin.
+ */
 export async function duplicateLayoutOutline(
   sourceId: string,
   label: string,
   requestedId?: string,
+  options?: {
+    asInheritingChild?: boolean
+    /** Parent for inheritFrom — defaults to skin Base when duplicating Base itself. */
+    inheritFromId?: string
+    skinId?: string | null
+    /** Skin Base outline id — used when duplicating the Base so children inherit Base. */
+    skinBaseOutlineId?: string | null
+  },
 ): Promise<{ outline: LayoutOutlineMeta } | { error: string }> {
   const source = resolveLayoutId(sourceId)
   const nextLabel = label.trim()
@@ -329,12 +465,48 @@ export async function duplicateLayoutOutline(
     }
   }
 
+  const sourceMeta = await getLayoutOutline(source)
+  const skinId =
+    (typeof options?.skinId === 'string' && options.skinId.trim()
+      ? options.skinId.trim()
+      : null) ||
+    sourceMeta?.skinId ||
+    null
+
   const existing = await listLayoutOutlines()
   const ids = new Set(existing.map((o) => o.id))
-  const id = uniqueOutlineId(requestedId?.trim() || nextLabel, ids)
+  const idBase =
+    requestedId?.trim() ||
+    (skinId ? `${skinId}-${slugifyLayoutId(nextLabel)}` : slugifyLayoutId(nextLabel))
+  const id = uniqueOutlineId(idBase, ids)
+
+  const asChild = options?.asInheritingChild !== false
+  // Inherit = live child of the source itself. Copy = resolved snapshot, no link.
+  const inheritFrom =
+    (typeof options?.inheritFromId === 'string' && options.inheritFromId.trim()
+      ? options.inheritFromId.trim()
+      : '') || (asChild ? source : '')
+
+  const { resolveLayoutInheritance } = await import('./inherit')
+
+  let document: LayoutDocument
+  if (asChild && inheritFrom) {
+    const parentResolved = await resolveLayoutInheritance(loaded.layoutId, loaded.document)
+    document = {
+      version: 3,
+      inheritFrom,
+      sections: [],
+      ...(parentResolved.styles ? { styles: structuredClone(parentResolved.styles) } : {}),
+    }
+  } else {
+    const resolved = await resolveLayoutInheritance(loaded.layoutId, loaded.document)
+    document = structuredClone(resolved)
+    delete document.inheritFrom
+    delete document.omitSectionIds
+  }
 
   try {
-    await saveLayoutDocument(structuredClone(loaded.document), id, { label: nextLabel })
+    await saveLayoutDocument(document, id, { label: nextLabel, skinId })
   } catch (error) {
     return {
       error:
@@ -349,13 +521,59 @@ export async function duplicateLayoutOutline(
   return { outline }
 }
 
-/** Delete an outline. The `default` Base Outline cannot be deleted. */
+/**
+ * Set or clear document-level `inheritFrom` on an outline (unlocks Layout/Styles inherit UI).
+ * Does not wipe local sections — only the parent pointer.
+ */
+export async function setLayoutInheritFrom(
+  layoutId: string,
+  inheritFromId: string | null,
+): Promise<{ outline: LayoutOutlineMeta } | { error: string }> {
+  const id = resolveLayoutId(layoutId)
+  const parentId = typeof inheritFromId === 'string' ? inheritFromId.trim() : ''
+
+  if (parentId === id) {
+    return { error: 'An outline cannot inherit from itself.' }
+  }
+  if (parentId) {
+    const parent = await loadLayoutDocument(parentId)
+    if (parent.layoutId !== parentId && parentId !== DEFAULT_LAYOUT_ID) {
+      return { error: `Parent outline “${parentId}” was not found.` }
+    }
+  }
+
+  const loaded = await loadLayoutDocument(id)
+  if (loaded.layoutId !== id && id !== DEFAULT_LAYOUT_ID) {
+    return { error: `Outline “${id}” was not found.` }
+  }
+
+  const document = structuredClone(loaded.document)
+  if (parentId) document.inheritFrom = parentId
+  else delete document.inheritFrom
+
+  try {
+    await saveLayoutDocument(document, id, { label: loaded.label })
+  } catch (error) {
+    return {
+      error:
+        error instanceof Error && error.message
+          ? error.message
+          : 'Could not update outline inheritance.',
+    }
+  }
+
+  const outline = await getLayoutOutline(id)
+  if (!outline) return { error: 'Outline updated but could not be reloaded.' }
+  return { outline }
+}
+
+/** Delete an outline. Core `default` cannot be deleted. */
 export async function deleteLayoutOutline(
   layoutId: string,
 ): Promise<{ ok: true } | { error: string }> {
   const id = resolveLayoutId(layoutId)
   if (id === DEFAULT_LAYOUT_ID) {
-    return { error: 'The Default (Base) outline cannot be deleted.' }
+    return { error: 'The Core default outline cannot be deleted.' }
   }
 
   try {

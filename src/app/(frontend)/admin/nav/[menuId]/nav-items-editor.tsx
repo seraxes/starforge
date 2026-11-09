@@ -35,6 +35,8 @@ import type { NavLinkType, NavMenuItem, NavModuleOption, NavPageOption } from '@
 import { useNotifySavedOnOk } from '../../admin-toast'
 import { useAutosaveForm } from '../../use-autosave-form'
 
+type OutlineOption = { id: string; label: string }
+
 type EditableItem = {
   id: string
   parentId: string
@@ -47,6 +49,8 @@ type EditableItem = {
   cssClass: string
   browserTitle: string
   pageHeading: string
+  /** Layout outline id — synced to Page Settings on save. */
+  layoutId: string
   /** Multi-select tags: public | registered | group:<id> (OR match). */
   accessTags: string[]
 }
@@ -58,6 +62,8 @@ type Props = {
   pages: NavPageOption[]
   modules: NavModuleOption[]
   groups: UserGroupOption[]
+  outlines: OutlineOption[]
+  preferredLayoutId: string
   isSitePrimary: boolean
 }
 
@@ -86,6 +92,7 @@ function toEditable(item: NavMenuItem): EditableItem {
     cssClass: item.cssClass ?? '',
     browserTitle: item.browserTitle ?? '',
     pageHeading: item.pageHeading ?? '',
+    layoutId: item.layoutId ?? '',
     accessTags: tags,
   }
 }
@@ -134,6 +141,7 @@ function appendItemFields(form: HTMLFormElement, rows: EditableItem[]) {
     add('itemCssClass', row.cssClass)
     add('itemBrowserTitle', row.browserTitle)
     add('itemPageHeading', row.pageHeading)
+    add('itemLayoutId', row.layoutId)
     add('itemAccessTags', JSON.stringify(row.accessTags.length ? row.accessTags : ['public']))
   }
 }
@@ -163,6 +171,7 @@ type SortableNavItemProps = {
   pages: NavPageOption[]
   modules: NavModuleOption[]
   groups: UserGroupOption[]
+  outlines: OutlineOption[]
   parentOptions: { id: string; label: string }[]
   onToggle: () => void
   onPatch: (patch: Partial<EditableItem>) => void
@@ -179,6 +188,7 @@ function SortableNavItem({
   pages,
   modules,
   groups,
+  outlines,
   parentOptions,
   onToggle,
   onPatch,
@@ -258,6 +268,7 @@ function SortableNavItem({
       <input type="hidden" name="itemCssClass" value={row.cssClass} />
       <input type="hidden" name="itemBrowserTitle" value={row.browserTitle} />
       <input type="hidden" name="itemPageHeading" value={row.pageHeading} />
+      <input type="hidden" name="itemLayoutId" value={row.layoutId} />
       <input
         type="hidden"
         name="itemAccessTags"
@@ -408,6 +419,27 @@ function SortableNavItem({
             </select>
           </label>
           <label className="settings-field">
+            <span>Layout outline</span>
+            <select
+              value={row.layoutId}
+              onChange={(e) => {
+                onPatch({ layoutId: e.target.value })
+                queueMicrotask(saveNow)
+              }}
+            >
+              <option value="">Site default (no page override)</option>
+              {outlines.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.label} ({o.id})
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="settings-hint">
+            Assigns this outline on the linked page via{' '}
+            <Link href="/admin/page-settings">Page settings</Link> when the target can be resolved.
+          </p>
+          <label className="settings-field">
             <span>CSS class</span>
             <input
               type="text"
@@ -465,6 +497,8 @@ export function NavItemsEditor({
   pages,
   modules,
   groups,
+  outlines,
+  preferredLayoutId,
   isSitePrimary,
 }: Props) {
   const router = useRouter()
@@ -473,6 +507,7 @@ export function NavItemsEditor({
   const [expandedId, setExpandedId] = useState<string | null>(items[0]?.id ?? null)
   const [newLinkType, setNewLinkType] = useState<NavLinkType>('page')
   const [newModuleId, setNewModuleId] = useState(modules[0]?.moduleId ?? '')
+  const [newLayoutId, setNewLayoutId] = useState(preferredLayoutId)
 
   const [saveState, saveAction, savePending] = useActionState(saveNavMenuItemsAction, initial)
   const [addState, addAction, addPending] = useActionState(addNavMenuItemAction, initial)
@@ -556,6 +591,7 @@ export function NavItemsEditor({
       cssClass: row.cssClass || null,
       browserTitle: row.browserTitle || null,
       pageHeading: row.pageHeading || null,
+      layoutId: row.layoutId || null,
       accessTags: row.accessTags.length ? row.accessTags : ['public'],
     }
     const json = JSON.stringify(payload)
@@ -612,6 +648,7 @@ export function NavItemsEditor({
                     pages={pages}
                     modules={modules}
                     groups={groups}
+                    outlines={outlines}
                     parentOptions={parentOptions}
                     onToggle={() => setExpandedId(expandedId === row.id ? null : row.id)}
                     onPatch={(patch) => updateRow(row.id, patch)}
@@ -738,6 +775,20 @@ export function NavItemsEditor({
               </label>
             </>
           ) : null}
+          <label className="settings-field">
+            <span>Layout outline</span>
+            <select
+              name="newLayoutId"
+              value={newLayoutId}
+              onChange={(e) => setNewLayoutId(e.target.value)}
+            >
+              {outlines.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.label} ({o.id})
+                </option>
+              ))}
+            </select>
+          </label>
           <button
             type="submit"
             className="gantry-toolbar-btn gantry-toolbar-btn-save"

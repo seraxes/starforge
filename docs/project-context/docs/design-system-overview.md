@@ -52,7 +52,7 @@ One active adapter per port, selected by env/factory, with secrets in env only (
 | `RateLimiter` | `consume(key, limit, window)` | memory, Redis | auto when Redis on | **Planned (now)**: design-security §6 |
 | `Captcha` | `resolve()` / `verify()` | Turnstile | Settings → Security | Partial (lives in `core/forms`; move to `core/security`) |
 | Admin theme | registry `{ tokens, css }` | `starforge-gantry` | `STARFORGE_ADMIN_THEME` | Shipped (CSS import still static) |
-| Skin | registry `{ tokens, css }` | `starforge-pastel` | `STARFORGE_SKIN` / admin **Skins** | **Shipped (v1)** — Core port `src/core/skin`; SF-33 dark skin later |
+| Skin | registry `{ tokens, css }` + outline seeds | `starforge-pastel` | `STARFORGE_SKIN` / admin **Skins** | **Shipped (v1)** — Core port `src/core/skin`; **open:** installable skin packages (Install + copy/export to other sites); SF-33 dark skin later |
 | `LlmProvider`, `MapProvider`, `MediaAnalysisPort` | see plans | — | — | **Paper only** until a consumer module ships |
 | `RealtimePort` | `publish` / `subscribe` / `info()` | memory bus + SSE `/api/realtime`; Redis fanout later | memory (default) | **Shipped (foundation)** — first product consumers: Notifications, then Chat; RTC (calls) is a separate future port |
 

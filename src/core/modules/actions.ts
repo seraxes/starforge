@@ -25,6 +25,8 @@ import {
   removeEmptyLayoutRow,
 } from './empty-rows'
 import { clampGridWidth, evenColumnWidths, LAYOUT_WIDTH_FULL, resizeAdjacentPair } from './grid'
+import { copySectionFromParent, copySlotFromParent } from './inherit-merge'
+import { resolveLayoutInheritance } from './inherit'
 import { loadLayoutDocument, saveLayoutDocument } from './layout-store'
 import { defaultConfigForModule } from './particles/config'
 import { getRegisteredModule, listRegisteredModules } from './registry'
@@ -41,7 +43,43 @@ import {
   type LayoutSectionStyles,
 } from './styles'
 import { resolveMediaById } from '@/core/media/resolve'
-import type { LayoutDocument, LayoutRow, LayoutSection, LayoutSlot, LayoutSlotConfig } from './types'
+import type {
+  LayoutDocument,
+  LayoutInheritMode,
+  LayoutRow,
+  LayoutSection,
+  LayoutSlot,
+  LayoutSlotConfig,
+} from './types'
+
+function asInheritModeForm(raw: unknown): LayoutInheritMode | null {
+  const value = String(raw ?? '').trim().toLowerCase()
+  if (value === 'inherit' || value === 'local') return value
+  return null
+}
+
+async function loadParentResolved(
+  doc: LayoutDocument,
+  layoutId: string,
+): Promise<LayoutDocument | null> {
+  const inheritFrom =
+    typeof doc.inheritFrom === 'string' ? doc.inheritFrom.trim() : ''
+  if (!inheritFrom || inheritFrom === layoutId) return null
+  const { document: parentRaw, layoutId: parentId } = await loadLayoutDocument(inheritFrom)
+  return resolveLayoutInheritance(parentId, parentRaw)
+}
+
+function findSlotInSection(
+  section: LayoutSection | undefined,
+  slotId: string,
+): LayoutSlot | null {
+  if (!section) return null
+  for (const row of section.rows) {
+    const slot = row.slots.find((s) => s.id === slotId)
+    if (slot) return slot
+  }
+  return null
+}
 
 /** Resolve outline id from form (`layoutId`) — defaults to Base Outline. */
 function layoutIdFromForm(formData: FormData | null | undefined): string {
@@ -554,6 +592,291 @@ export async function updateLayoutSectionMetaAction(
     }
     state.message = `Section ${bits.join(' · ')} saved.`
   }
+  return state
+}
+
+/**
+ * Set section structure inherit mode relative to outline `inheritFrom`.
+ * `inherit` writes a thin stub (parent rows at merge). `local` without prior rows
+ * auto-copies the parent section when available.
+ */
+export async function setSectionInheritModeAction(
+  _prev: LayoutActionState,
+  formData: FormData,
+): Promise<LayoutActionState> {
+  const sectionId = String(formData.get('sectionId') ?? '').trim()
+  const mode = asInheritModeForm(formData.get('inheritMode'))
+  if (!sectionId) return { error: 'Missing section id.' }
+  if (!mode) return { error: 'Inherit mode must be inherit or local.' }
+
+  const layoutId = layoutIdFromForm(formData)
+  const { document } = await loadLayoutDocument(layoutId)
+  if (!document.inheritFrom) {
+    return { error: 'This outline has no parent to inherit from.' }
+  }
+  const parent = await loadParentResolved(document, layoutId)
+  const parentSection = parent?.sections.find((s) => s.id === sectionId)
+
+  const state = await mutateLayout(formData, (doc) => {
+    const omit = new Set(doc.omitSectionIds ?? [])
+    omit.delete(sectionId)
+    if (omit.size > 0) doc.omitSectionIds = [...omit]
+    else delete doc.omitSectionIds
+
+    const existing = findSection(doc, sectionId)
+    if (mode === 'inherit') {
+      const stub: LayoutSection = {
+        id: sectionId,
+        label: existing?.label || parentSection?.label || sectionId,
+        inheritMode: 'inherit',
+        stylesInheritMode: existing?.stylesInheritMode ?? 'inherit',
+        order: existing?.order ?? parentSection?.order ?? doc.sections.length,
+        rows: [],
+        ...(existing?.cssClass ? { cssClass: existing.cssClass } : {}),
+        ...(existing?.containerMode ? { containerMode: existing.containerMode } : {}),
+        ...(existing?.width != null ? { width: existing.width } : {}),
+        ...(existing?.stylesInheritMode === 'local' && existing.styles
+          ? { styles: existing.styles }
+          : {}),
+      }
+      if (existing) {
+        Object.assign(existing, stub)
+        existing.rows = []
+      } else {
+        doc.sections.push(stub)
+      }
+      return doc
+    }
+
+    // local
+    if (existing && existing.inheritMode !== 'inherit' && (existing.rows?.length ?? 0) > 0) {
+      existing.inheritMode = 'local'
+      return doc
+    }
+    if (!parentSection) {
+      return { error: `Parent outline has no section “${sectionId}” to copy.` }
+    }
+    const copied = copySectionFromParent(parentSection)
+    copied.order = existing?.order ?? parentSection.order ?? doc.sections.length
+    if (existing?.label) copied.label = existing.label
+    if (existing) {
+      const idx = doc.sections.findIndex((s) => s.id === sectionId)
+      if (idx >= 0) doc.sections[idx] = copied
+    } else {
+      doc.sections.push(copied)
+    }
+    return doc
+  })
+
+  if (state.ok) {
+    state.message =
+      mode === 'inherit'
+        ? `Section “${sectionId}” inherits from parent.`
+        : `Section “${sectionId}” is local.`
+  }
+  return state
+}
+
+/**
+ * Snapshot parent section into this outline as a local (non-inheriting) copy.
+ */
+export async function copySectionFromParentAction(
+  _prev: LayoutActionState,
+  formData: FormData,
+): Promise<LayoutActionState> {
+  const sectionId = String(formData.get('sectionId') ?? '').trim()
+  if (!sectionId) return { error: 'Missing section id.' }
+
+  const layoutId = layoutIdFromForm(formData)
+  const { document } = await loadLayoutDocument(layoutId)
+  if (!document.inheritFrom) {
+    return { error: 'This outline has no parent to copy from.' }
+  }
+  const parent = await loadParentResolved(document, layoutId)
+  const parentSection = parent?.sections.find((s) => s.id === sectionId)
+  if (!parentSection) {
+    return { error: `Parent outline has no section “${sectionId}”.` }
+  }
+
+  const state = await mutateLayout(formData, (doc) => {
+    const omit = new Set(doc.omitSectionIds ?? [])
+    omit.delete(sectionId)
+    if (omit.size > 0) doc.omitSectionIds = [...omit]
+    else delete doc.omitSectionIds
+    const existing = findSection(doc, sectionId)
+    const copied = copySectionFromParent(parentSection)
+    copied.order = existing?.order ?? parentSection.order ?? doc.sections.length
+    if (existing?.label) copied.label = existing.label
+    if (existing) {
+      const idx = doc.sections.findIndex((s) => s.id === sectionId)
+      if (idx >= 0) doc.sections[idx] = copied
+    } else {
+      doc.sections.push(copied)
+    }
+    return doc
+  })
+
+  if (state.ok) state.message = `Section “${sectionId}” copied from parent (local).`
+  return state
+}
+
+/**
+ * Styles card inherit vs local (Layouts → Styles). Whole section.styles bag.
+ */
+export async function setSectionStylesInheritModeAction(
+  _prev: LayoutActionState,
+  formData: FormData,
+): Promise<LayoutActionState> {
+  const sectionId = String(formData.get('sectionId') ?? '').trim()
+  const mode = asInheritModeForm(formData.get('stylesInheritMode'))
+  if (!sectionId) return { error: 'Missing section id.' }
+  if (!mode) return { error: 'Styles inherit mode must be inherit or local.' }
+
+  const layoutId = layoutIdFromForm(formData)
+  const { document } = await loadLayoutDocument(layoutId)
+  if (!document.inheritFrom) {
+    return { error: 'This outline has no parent to inherit styles from.' }
+  }
+  const parent = await loadParentResolved(document, layoutId)
+  const parentSection = parent?.sections.find((s) => s.id === sectionId)
+
+  const state = await mutateLayout(formData, (doc) => {
+    let section = findSection(doc, sectionId)
+    if (!section) {
+      // Materialize thin stub so styles mode can be stored.
+      section = {
+        id: sectionId,
+        label: parentSection?.label || sectionId,
+        inheritMode: 'inherit',
+        order: parentSection?.order ?? doc.sections.length,
+        rows: [],
+      }
+      doc.sections.push(section)
+    }
+    section.stylesInheritMode = mode
+    if (mode === 'local') {
+      if (!section.styles && parentSection?.styles) {
+        section.styles = structuredClone(parentSection.styles)
+      }
+    } else {
+      // Inherit styles: drop local bag unless structure is fully local and user
+      // still wants parent paint — clearing keeps merge on parent.
+      delete section.styles
+    }
+    return doc
+  })
+
+  if (state.ok) {
+    state.message =
+      mode === 'inherit'
+        ? `“${sectionId}” styles inherit from parent.`
+        : `“${sectionId}” styles are local.`
+  }
+  return state
+}
+
+/**
+ * Particle inherit vs local against parent outline slot (same id).
+ */
+export async function setSlotInheritModeAction(
+  _prev: LayoutActionState,
+  formData: FormData,
+): Promise<LayoutActionState> {
+  const sectionId = String(formData.get('sectionId') ?? '').trim()
+  const rowId = String(formData.get('rowId') ?? '').trim()
+  const slotId = String(formData.get('slotId') ?? '').trim()
+  const mode = asInheritModeForm(formData.get('inheritMode'))
+  if (!sectionId || !rowId || !slotId) return { error: 'Missing slot path.' }
+  if (!mode) return { error: 'Inherit mode must be inherit or local.' }
+
+  const layoutId = layoutIdFromForm(formData)
+  const { document } = await loadLayoutDocument(layoutId)
+  if (!document.inheritFrom) {
+    return { error: 'This outline has no parent to inherit particles from.' }
+  }
+  const parent = await loadParentResolved(document, layoutId)
+  const parentSection = parent?.sections.find((s) => s.id === sectionId)
+  const parentSlot = findSlotInSection(parentSection, slotId)
+
+  const state = await mutateLayout(formData, (doc) => {
+    const section = findSection(doc, sectionId)
+    if (!section) return { error: `Section “${sectionId}” not found (must be local to edit particles).` }
+    if (section.inheritMode === 'inherit') {
+      return { error: 'Section is inheriting structure — copy/localize the section first.' }
+    }
+    const found = findSlot(doc, sectionId, rowId, slotId)
+    if (!found) return { error: `Slot “${slotId}” not found.` }
+    const { slot } = found
+
+    if (mode === 'inherit') {
+      if (!parentSlot) {
+        return { error: `Parent has no particle “${slotId}” in section “${sectionId}”.` }
+      }
+      slot.inheritMode = 'inherit'
+      delete slot.inheritFromSlotId
+      return doc
+    }
+
+    // local — if currently inheriting, snapshot parent first
+    if (slot.inheritMode === 'inherit' && parentSlot) {
+      const copied = copySlotFromParent(parentSlot, slotId)
+      Object.assign(slot, copied)
+      return doc
+    }
+    slot.inheritMode = 'local'
+    delete slot.inheritFromSlotId
+    return doc
+  })
+
+  if (state.ok) {
+    state.message =
+      mode === 'inherit'
+        ? `Particle inherits from parent.`
+        : `Particle is local.`
+  }
+  return state
+}
+
+/**
+ * Snapshot parent particle into this slot as local.
+ */
+export async function copySlotFromParentAction(
+  _prev: LayoutActionState,
+  formData: FormData,
+): Promise<LayoutActionState> {
+  const sectionId = String(formData.get('sectionId') ?? '').trim()
+  const rowId = String(formData.get('rowId') ?? '').trim()
+  const slotId = String(formData.get('slotId') ?? '').trim()
+  if (!sectionId || !rowId || !slotId) return { error: 'Missing slot path.' }
+
+  const layoutId = layoutIdFromForm(formData)
+  const { document } = await loadLayoutDocument(layoutId)
+  if (!document.inheritFrom) {
+    return { error: 'This outline has no parent to copy from.' }
+  }
+  const parent = await loadParentResolved(document, layoutId)
+  const parentSlot = findSlotInSection(
+    parent?.sections.find((s) => s.id === sectionId),
+    slotId,
+  )
+  if (!parentSlot) {
+    return { error: `Parent has no particle “${slotId}” in section “${sectionId}”.` }
+  }
+
+  const state = await mutateLayout(formData, (doc) => {
+    const section = findSection(doc, sectionId)
+    if (!section) return { error: `Section “${sectionId}” not found.` }
+    if (section.inheritMode === 'inherit') {
+      return { error: 'Section is inheriting structure — copy/localize the section first.' }
+    }
+    const found = findSlot(doc, sectionId, rowId, slotId)
+    if (!found) return { error: `Slot “${slotId}” not found.` }
+    const copied = copySlotFromParent(parentSlot, slotId)
+    Object.assign(found.slot, copied)
+    return doc
+  })
+
+  if (state.ok) state.message = `Particle copied from parent (local).`
   return state
 }
 

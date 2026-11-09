@@ -20,7 +20,6 @@ export function isOfflineAllowedPath(pathname: string): boolean {
   if (path === '/forgot-username' || path.startsWith('/forgot-username/')) return true
   if (path === '/reset-password' || path.startsWith('/reset-password/')) return true
   if (path === '/two-factor' || path.startsWith('/two-factor/')) return true
-  if (path === '/sign-out' || path.startsWith('/sign-out/')) return true
   // Offline HTML route itself is never locale-prefixed.
   if (pathname === SITE_OFFLINE_PATH || pathname.startsWith(`${SITE_OFFLINE_PATH}/`)) {
     return true

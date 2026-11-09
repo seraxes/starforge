@@ -100,7 +100,8 @@ export function ParticleAttributesEditor({
   return (
     <div className="gantry-typed-form gantry-particle-attrs">
       <p className="gantry-field-hint" style={{ margin: '0 0 0.35rem' }}>
-        Block attributes
+        Block attributes (public slot wrapper). Menu: use class left / center / right, or target
+        .your-class .site-nav with justify-content — flex nav ignores text-align alone.
       </p>
       <div className="gantry-typed-row">
         <label>

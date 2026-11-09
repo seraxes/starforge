@@ -95,10 +95,10 @@ Durable map of **feature modules** (Site Settings / allowlist toggleable) vs **i
 | | |
 | --- | --- |
 | **Kind** | port (`skin`) — parallel to `admin-theme`, public only |
-| **Status** | **shipped (v1.1)** — `starforge-pastel` + outline seeds; admin `/admin/skins` |
-| **In tree** | `src/core/skin` registry + tokens + `SkinRootStyles`; outline seeds → `sf_layouts` (Gantry YAML equivalent as JSON); setting default Skin installs seeds + sets global Page Settings `layoutId`; Layouts chrome shows active Skin. |
-| **Recommended** | Skin = brand + outline package (like a Gantry theme). Layout Styles editing stays on Layouts → Styles. Call them Skins, not themes/templates. |
-| **Next slice** | SF-33 dark pastel second registry entry; optional YAML outline import; optional per-page skin override. |
+| **Status** | **shipped (v1.2)** — `starforge-pastel` + Default shell / Offline child; outline inheritance + nav→Page Settings assignment |
+| **In tree** | `src/core/skin` registry + tokens + `SkinRootStyles`; outline seeds → `sf_layouts`; Default = shell + inherit root (`preferredDefaultOutlineId`); children use `inheritFrom` / `omitSectionIds` (merged on public `getLayoutDocument`); Page Settings `layoutId`; Nav item outline writes page chrome; Core `default` = no-skin fallback only. Model: [skin-outline-model.md](./skin-outline-model.md). |
+| **Recommended** | Skin = brand + outline package. No separate Gantry “Base” until Default stops being a usable shell. Layout Styles stay on Layouts → Styles. Call them Skins, not themes/templates. |
+| **Next slice** | **Skin install packages** (still open): package format + admin **Install**/export so packs copy to other sites. Also: SF-33 dark pastel; optional YAML import; optional per-page skin override. |
 
 ### Media
 

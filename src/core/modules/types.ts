@@ -41,6 +41,14 @@ export type LayoutSlotConfig = {
 }
 
 /**
+ * Outline inheritance mode for a section or particle relative to `document.inheritFrom`.
+ * - `inherit` — live link to parent (same id); structure/config comes from parent at merge
+ * - `local` — child owns the blob (no live link); also the result after **Copy**
+ * Absent section on child = inherit-by-absence. Present without mode = `local` (compat).
+ */
+export type LayoutInheritMode = 'inherit' | 'local'
+
+/**
  * One particle instance in a row (Gantry “particle” / module assignment).
  * `width` is percent of the row (1% steps; min 5% when shared).
  */
@@ -69,6 +77,13 @@ export type LayoutSlot = {
   /** Optional public CSS classes on the particle column wrapper. */
   cssClass?: string
   config?: LayoutSlotConfig
+  /**
+   * Particle inherit vs local vs parent outline slot (same id, or `inheritFromSlotId`).
+   * Only meaningful when the outline has `inheritFrom` and the parent section has a match.
+   */
+  inheritMode?: LayoutInheritMode
+  /** Parent slot id to inherit from when different from this slot’s id. */
+  inheritFromSlotId?: string
 }
 
 /** Horizontal row of slots inside a section (widths should sum to ~100%). */
@@ -106,6 +121,18 @@ export type LayoutSection = {
    * Outline-scoped via the layout document — not a fixed Navigation/Header name list.
    */
   styles?: LayoutSectionStyles
+  /**
+   * Structure inherit vs local relative to parent outline section (same id).
+   * `inherit` = thin stub (rows ignored); merge pulls parent rows/particles.
+   * Absent from child doc = inherit-by-absence. Present without mode = `local`.
+   */
+  inheritMode?: LayoutInheritMode
+  /**
+   * Section Styles card inherit vs local (Layouts → Styles).
+   * `inherit` / omitted when structure is inherited → use parent `styles`.
+   * `local` → use this section’s `styles` bag.
+   */
+  stylesInheritMode?: LayoutInheritMode
   order?: number
   rows: LayoutRow[]
 }
@@ -114,9 +141,20 @@ export type LayoutSection = {
  * Canonical layout document (version 3).
  * Storage: JSON in `sf_layouts`. Seed / fallback: `default-layout.json`.
  * `styles.breakpoints` are outline-scoped (default outline = site global).
+ *
+ * Inheritance (skin Default shell → children):
+ * - `inheritFrom` — parent outline id; merged on public load (and admin preview)
+ * - `omitSectionIds` — parent section ids to drop (e.g. Offline omits navigation)
+ * - Missing child section id = inherit structure from parent
+ * - Child section `inheritMode: 'inherit'` = stub; `'local'` / omitted = own rows
+ * - `stylesInheritMode` / slot `inheritMode` — Styles card + particle inherit
  */
 export type LayoutDocument = {
   version: 3
+  /** Parent outline id (usually the skin Default shell). */
+  inheritFrom?: string | null
+  /** Section ids from the parent to exclude after inherit. */
+  omitSectionIds?: string[]
   sections: LayoutSection[]
   /** Outline-scoped styles (breakpoints now; accents later with theme SF-33). */
   styles?: LayoutDocumentStyles

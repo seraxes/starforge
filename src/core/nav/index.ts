@@ -7,6 +7,8 @@ export {
   moveNavMenuItemAction,
   addNavMenuItemAction,
   pasteNavMenuItemAction,
+  listNavOutlineAssignmentsAction,
+  toggleNavItemOutlineAssignmentAction,
 } from './actions'
 export type { NavActionState } from './actions'
 
@@ -34,7 +36,14 @@ export {
   resolveNavMenuItems,
 } from './resolve'
 export type { ResolvedNavItem } from './resolve'
-
+export {
+  pageKeyForNavItem,
+  syncNavItemOutlineToPageChrome,
+  syncNavMenuOutlinesToPageChrome,
+  clearNavItemOutlineFromPageChrome,
+  listNavOutlineAssignmentTree,
+  setNavItemOutlineAssignment,
+} from './outline-assign'
 export {
   createNavMenu,
   deleteNavMenu,
@@ -60,6 +69,8 @@ export type {
   NavMenuMeta,
   NavModuleOption,
   NavModuleViewOption,
+  NavOutlineAssignmentItem,
+  NavOutlineAssignmentMenu,
   NavPageOption,
 } from './types'
 

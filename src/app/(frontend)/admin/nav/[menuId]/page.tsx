@@ -9,8 +9,14 @@ import {
   listNavPageOptions,
   loadNavMenu,
 } from '@/core/nav'
+import { listLayoutOutlines } from '@/core/modules/layout-store'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { ensureModulesRegistered } from '@/core/modules/boot'
+import {
+  ensureSkinOutlineSeeds,
+  getActiveSkin,
+  getPreferredLayoutId,
+} from '@/core/skin'
 
 import { NavItemsEditor } from './nav-items-editor'
 
@@ -46,23 +52,35 @@ export default async function AdminNavMenuItemsPage({ params }: Args) {
   }
 
   await ensureDefaultUserGroupsSeeded()
-  const [pages, modules, groups] = await Promise.all([
+  const activeSkin = await getActiveSkin()
+  await ensureSkinOutlineSeeds(activeSkin.id)
+  const [pages, modules, groups, outlines, preferredLayoutId] = await Promise.all([
     listNavPageOptions(),
     Promise.resolve(listEnabledModuleNavOptions(settings)),
     listUserGroupOptions(),
+    listLayoutOutlines(),
+    getPreferredLayoutId(),
   ])
   const items = flattenNavItemsInOrder(loaded.document.items)
+  const outlineOptions = outlines.map((o) => ({ id: o.id, label: o.label }))
+  if (
+    preferredLayoutId &&
+    !outlineOptions.some((o) => o.id === preferredLayoutId)
+  ) {
+    outlineOptions.unshift({ id: preferredLayoutId, label: preferredLayoutId })
+  }
 
   return (
     <section className="admin-section admin-layouts-full">
       <h2>Navigation items — {loaded.label}</h2>
       <p className="lede admin-lede">
         Bind each item to a CMS page, URL, or an <strong>enabled module view</strong> (Modules
-        catalog / registry <code>navViews</code>). Drag bars to reorder; cog opens item settings;
-        Copy/Paste to duplicate. <strong>Who can see</strong> — multi-select tags (Public,
-        Registered, or <Link href="/admin/users/groups">groups</Link>). Visible if the viewer
-        matches any tag. Admin rights live under{' '}
-        <Link href="/admin/users/acl">Users → ACL</Link>.{' '}
+        catalog / registry <code>navViews</code>). Assign a <strong>layout outline</strong> per
+        item (writes Page settings for that page). New items default to the active skin’s Default
+        shell. Drag bars to reorder; cog opens item settings; Copy/Paste to duplicate.{' '}
+        <strong>Who can see</strong> — multi-select tags (Public, Registered, or{' '}
+        <Link href="/admin/users/groups">groups</Link>). Visible if the viewer matches any tag.
+        Admin rights live under <Link href="/admin/users/acl">Users → ACL</Link>.{' '}
         <Link href="/admin/nav">Back to menus</Link>
         {settings.primaryNavMenuId === loaded.id ? (
           <>
@@ -80,6 +98,8 @@ export default async function AdminNavMenuItemsPage({ params }: Args) {
         pages={pages}
         modules={modules}
         groups={groups}
+        outlines={outlineOptions}
+        preferredLayoutId={preferredLayoutId}
         isSitePrimary={settings.primaryNavMenuId === loaded.id}
       />
     </section>

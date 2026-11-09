@@ -5,6 +5,7 @@ import { DEFAULT_LAYOUT_ID } from '@/core/db'
 import { listLayoutOutlines } from '@/core/modules'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import {
+  ensureSkinOutlineSeeds,
   getActiveSkin,
   getStoredDefaultSkinId,
   isSkinPinnedByEnv,
@@ -37,6 +38,9 @@ export default async function AdminSkinsPage() {
     // sf_module_settings may be missing until migrate
   }
 
+  if (layoutOn) {
+    await ensureSkinOutlineSeeds(activeSkin.id)
+  }
   const outlines = layoutOn ? await listLayoutOutlines() : []
   const preferredOutline =
     activeSkin.preferredDefaultOutlineId ||

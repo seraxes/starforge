@@ -15,6 +15,7 @@ export {
   listSkins,
 } from './registry'
 export { getActiveSkin, getActiveSkinId, isSkinPinnedByEnv } from './resolve-active'
+export { getPreferredLayoutId } from './preferred-outline'
 export { getStoredDefaultSkinId, saveDefaultSkinId, SKIN_SETTINGS_ID } from './settings-store'
 export {
   findSkinIdForOutline,
@@ -34,6 +35,7 @@ export {
 } from './actions'
 export {
   STARFORGE_PASTEL_DEFAULT_OUTLINE_ID,
+  STARFORGE_PASTEL_OFFLINE_OUTLINE_ID,
   STARFORGE_PASTEL_SKIN_ID,
   starforgePastelSkin,
 } from './skins/starforge-pastel'

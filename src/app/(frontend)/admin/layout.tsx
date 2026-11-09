@@ -45,6 +45,23 @@ export const metadata = {
     'Starforge admin — Dashboard home at /admin; users, site settings, nav, layouts (Payload CMS at /cms/admin).',
 }
 
+function filterNavLinkByAcl(
+  link: AdminNavGroup['links'][number],
+  allowed: ReadonlySet<AclAdminResourceKey>,
+): AdminNavGroup['links'][number][] {
+  const children = (link.children ?? []).flatMap((child) =>
+    filterNavLinkByAcl(child, allowed),
+  )
+  const selfAllowed = adminHrefAllowed(link.href, false, allowed)
+  if (selfAllowed) {
+    return [
+      children.length > 0 ? { ...link, children } : { ...link, children: undefined },
+    ]
+  }
+  // Parent blocked — promote any allowed nested leaves.
+  return children
+}
+
 function filterNavByAcl(
   groups: AdminNavGroup[],
   isAppAdmin: boolean,
@@ -53,9 +70,7 @@ function filterNavByAcl(
   if (isAppAdmin) return groups
   return groups
     .map((group) => {
-      const links = group.links.filter((link) =>
-        adminHrefAllowed(link.href, false, allowed),
-      )
+      const links = group.links.flatMap((link) => filterNavLinkByAcl(link, allowed))
       if (links.length === 0) return null
       if (group.href && !adminHrefAllowed(group.href, false, allowed)) {
         const { href: _unused, ...rest } = group

@@ -16,9 +16,14 @@ function pathMatches(pathname: string, href: string, exact?: boolean): boolean {
   return false
 }
 
+function linkTreeIsActive(pathname: string, link: AdminNavLink): boolean {
+  if (pathMatches(pathname, link.href, link.exact)) return true
+  return (link.children ?? []).some((child) => linkTreeIsActive(pathname, child))
+}
+
 function groupIsActive(pathname: string, group: AdminSidebarGroup): boolean {
   if (group.href && pathMatches(pathname, group.href)) return true
-  return group.links.some((link) => pathMatches(pathname, link.href, link.exact))
+  return group.links.some((link) => linkTreeIsActive(pathname, link))
 }
 
 /** Accordion when flagged expandable or when there is more than one leaf. */
@@ -50,6 +55,27 @@ export function AdminSidebarNav(props: {
 }) {
   const pathname = usePathname() || '/'
   return <AdminSidebarNavInner key={pathname} pathname={pathname} {...props} />
+}
+
+function NavLeafLink({
+  pathname,
+  link,
+  className,
+}: {
+  pathname: string
+  link: AdminNavLink
+  className: string
+}) {
+  const current = pathMatches(pathname, link.href, link.exact)
+  return (
+    <Link
+      href={link.href}
+      className={`${className}${current ? ' is-current' : ''}`}
+      {...(link.external ? { target: '_self' } : {})}
+    >
+      {link.label}
+    </Link>
+  )
 }
 
 function AdminSidebarNavInner({
@@ -133,18 +159,17 @@ function AdminSidebarNavInner({
                   key={group.id}
                   className={`admin-sidebar-item${isActive ? ' is-active' : ''}`}
                 >
-                  <Link
-                    href={primary.href}
-                    className={`admin-sidebar-link${
-                      pathMatches(pathname, primary.href, primary.exact) ? ' is-current' : ''
-                    }`}
-                    {...(primary.external ? { target: '_self' } : {})}
-                  >
-                    {group.label}
-                  </Link>
+                  <NavLeafLink
+                    pathname={pathname}
+                    link={{ ...primary, label: group.label }}
+                    className="admin-sidebar-link"
+                  />
                 </li>
               )
             }
+
+            const titleCurrent =
+              Boolean(group.href) && pathMatches(pathname, group.href!, false)
 
             return (
               <li
@@ -155,23 +180,41 @@ function AdminSidebarNavInner({
                 data-nav-group={group.id}
                 data-nav-children={group.links.length}
               >
-                <button
-                  type="button"
-                  className="admin-sidebar-group-head"
-                  aria-expanded={isOpen}
-                  aria-controls={`admin-sidebar-sub-${group.id}`}
-                  onClick={() => {
-                    // Do not collapse the section that owns the current route.
-                    if (isActive && openId === group.id) return
-                    toggleGroup(group.id)
-                  }}
-                >
-                  <span className="admin-sidebar-group-title">{group.label}</span>
-                  <span
+                <div className="admin-sidebar-group-head">
+                  {group.href ? (
+                    <Link
+                      href={group.href}
+                      className={`admin-sidebar-group-title${titleCurrent ? ' is-current' : ''}`}
+                    >
+                      {group.label}
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      className="admin-sidebar-group-title"
+                      aria-expanded={isOpen}
+                      aria-controls={`admin-sidebar-sub-${group.id}`}
+                      onClick={() => {
+                        if (isActive && openId === group.id) return
+                        toggleGroup(group.id)
+                      }}
+                    >
+                      {group.label}
+                    </button>
+                  )}
+                  <button
+                    type="button"
                     className={`admin-sidebar-group-toggle${isOpen ? ' is-open' : ''}`}
-                    aria-hidden="true"
+                    aria-expanded={isOpen}
+                    aria-controls={`admin-sidebar-sub-${group.id}`}
+                    aria-label={`${isOpen ? 'Collapse' : 'Expand'} ${group.label}`}
+                    onClick={() => {
+                      // Do not collapse the section that owns the current route.
+                      if (isActive && openId === group.id) return
+                      toggleGroup(group.id)
+                    }}
                   />
-                </button>
+                </div>
                 {isOpen ? (
                   <ul
                     id={`admin-sidebar-sub-${group.id}`}
@@ -179,16 +222,42 @@ function AdminSidebarNavInner({
                     aria-label={`${group.label} submenu`}
                   >
                     {group.links.map((link) => {
-                      const current = pathMatches(pathname, link.href, link.exact)
+                      const nested = link.children ?? []
+                      if (nested.length === 0) {
+                        return (
+                          <li key={`${group.id}:${link.href}`}>
+                            <NavLeafLink
+                              pathname={pathname}
+                              link={link}
+                              className="admin-sidebar-sublink"
+                            />
+                          </li>
+                        )
+                      }
                       return (
-                        <li key={`${group.id}:${link.href}`}>
-                          <Link
-                            href={link.href}
-                            className={`admin-sidebar-sublink${current ? ' is-current' : ''}`}
-                            {...(link.external ? { target: '_self' } : {})}
+                        <li
+                          key={`${group.id}:${link.href}`}
+                          className="admin-sidebar-subitem has-nest"
+                        >
+                          <NavLeafLink
+                            pathname={pathname}
+                            link={link}
+                            className="admin-sidebar-sublink"
+                          />
+                          <ul
+                            className="admin-sidebar-subnest"
+                            aria-label={`${link.label} submenu`}
                           >
-                            {link.label}
-                          </Link>
+                            {nested.map((child) => (
+                              <li key={`${group.id}:${link.href}:${child.href}`}>
+                                <NavLeafLink
+                                  pathname={pathname}
+                                  link={child}
+                                  className="admin-sidebar-sublink admin-sidebar-nestlink"
+                                />
+                              </li>
+                            ))}
+                          </ul>
                         </li>
                       )
                     })}

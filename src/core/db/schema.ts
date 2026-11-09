@@ -141,8 +141,11 @@ export const sfVerifications = pgTable(
 /**
  * Layout outlines (Gantry-style named layouts).
  * Multiple rows: `id` is the stable slug (Page Settings `layoutId`);
- * `label` is the admin display name. Seed row `default` is the Base Outline.
+ * `label` is the admin display name. Seed row `default` is Core bootstrap only.
+ * Skin packs own rows via `skin_id` (nullable). Each skin has one Base shell
+ * (`preferredDefaultOutlineId`); children inherit that Base by default.
  * Empty/missing document → fall back to `src/core/modules/default-layout.json`.
+ * Apply `skin_id` with `npm run db:core:push` after pull.
  */
 export const sfLayouts = pgTable('sf_layouts', {
   id: text('id').primaryKey(),
@@ -150,6 +153,11 @@ export const sfLayouts = pgTable('sf_layouts', {
   label: text('label').notNull().default('Untitled'),
   /** Canonical layout document JSON (version 3). */
   document: text('document').notNull(),
+  /**
+   * Owning skin package id (e.g. `starforge-pastel`). Null = Core / unassigned.
+   * Set on skin seed install and on create/duplicate under an active skin.
+   */
+  skinId: text('skin_id'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true })
     .defaultNow()

@@ -198,6 +198,81 @@ body:has(.admin-shell) > main {
   color: #fff;
 }
 
+/* Assigned Menu — one mosaic card per nav menu (~50% width) */
+.admin-shell .gantry-assigned-menu--page {
+  width: 100%;
+  max-width: none;
+}
+
+.admin-shell .gantry-assigned-menu-mosaic.admin-settings-mosaic {
+  width: 100%;
+}
+
+/* Always one grid cell (50%) — never stretch a trailing odd card to full row. */
+@media (min-width: 721px) {
+  .admin-shell .gantry-assigned-menu-mosaic.admin-settings-mosaic > .gantry-assigned-menu-card,
+  .admin-shell
+    .gantry-assigned-menu-mosaic.admin-settings-mosaic
+    > .page-settings-panel.gantry-assigned-menu-card:last-child:nth-child(odd) {
+    grid-column: span 1;
+  }
+}
+
+.admin-shell .gantry-assigned-menu-card .page-settings-panel-head h3 {
+  margin: 0;
+  font: inherit;
+}
+
+.admin-shell .gantry-assigned-menu-card .page-settings-panel-head a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.admin-shell .gantry-assigned-menu-card .page-settings-panel-head a:hover {
+  color: var(--sf-admin-nav-active, #4a9eff);
+}
+
+.admin-shell .gantry-assigned-menu-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.admin-shell .gantry-assigned-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: var(--sf-admin-btn-min-height);
+}
+
+.admin-shell .gantry-assigned-menu-item-label {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.95rem;
+}
+
+.admin-shell .gantry-assigned-menu-other {
+  margin-left: 0.25rem;
+  color: var(--sf-muted, #6b7c90);
+  font-size: 0.8rem;
+}
+
+.admin-shell .gantry-assigned-menu-switch {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: inline-flex;
+  align-items: center;
+}
+
 .admin-shell .gantry-layouts-nav-tabs {
   list-style: none;
   display: flex;
@@ -595,7 +670,8 @@ body:has(.admin-shell) > main {
   border-color: var(--sf-admin-blue-border);
 }
 
-.admin-shell .admin-sidebar-sub {
+.admin-shell .admin-sidebar-sub,
+.admin-shell .admin-sidebar-subnest {
   border-left-color: #314257;
 }
 
@@ -647,7 +723,7 @@ body:has(.admin-shell) > main {
 
 /* Hover = mid-blue; current leaf = darker blue (no accordion group-head sticky) */
 .admin-shell .admin-sidebar-link:hover,
-.admin-shell .admin-sidebar-group-head:hover,
+.admin-shell .admin-sidebar-group-title:hover,
 .admin-shell .admin-sidebar-sublink:hover {
   background: var(--sf-admin-blue-mid); /* #3498db */
   color: #fff;
@@ -655,17 +731,20 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .admin-sidebar-link.is-current,
+.admin-shell .admin-sidebar-group-title.is-current,
 .admin-shell .admin-sidebar-sublink.is-current {
   background: var(--sf-admin-blue-active); /* #2471a3 */
   color: #fff;
   box-shadow: none;
 }
 
-.admin-shell .admin-sidebar-group-head:hover .admin-sidebar-group-toggle {
+.admin-shell .admin-sidebar-group-title:hover + .admin-sidebar-group-toggle,
+.admin-shell .admin-sidebar-group-toggle:hover {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M5.75 3.5L10.25 8L5.75 12.5' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
-.admin-shell .admin-sidebar-group-head:hover .admin-sidebar-group-toggle.is-open {
+.admin-shell .admin-sidebar-group-title:hover + .admin-sidebar-group-toggle.is-open,
+.admin-shell .admin-sidebar-group-toggle.is-open:hover {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 5.75L8 10.25L12.5 5.75' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
@@ -1245,6 +1324,66 @@ body:has(.admin-shell) > main {
 
 .admin-shell .gantry-section-settings:not([open]) > .gantry-section-toolbar {
   display: none;
+}
+
+.admin-shell .gantry-section-inherit-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--sf-admin-blue-border);
+}
+
+.admin-shell .gantry-inherit-copy-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.admin-shell .gantry-inherit-copy-row .gantry-toolbar-btn {
+  align-self: flex-end;
+}
+
+.admin-shell .gantry-inherit-badge {
+  display: inline-block;
+  margin-bottom: 0.2rem;
+  padding: 0.12rem 0.45rem;
+  border-radius: 3px;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #d6e8f7;
+  background: color-mix(in srgb, #3498db 35%, #1b2531);
+  border: 1px solid color-mix(in srgb, #5eb0e8 40%, var(--sf-admin-blue-border));
+}
+
+.admin-shell .gantry-section-inherit-hint {
+  margin: 0.35rem 0 0;
+}
+
+.admin-shell .gantry-slot-inherit-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.admin-shell .section-styles-card-inherit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-bottom: 0.65rem;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--sf-admin-blue-border);
+}
+
+.admin-shell .page-settings-field-inherited {
+  opacity: 0.92;
+}
+
+.admin-shell .page-settings-field-inherited .cms-switch,
+.admin-shell .page-settings-panel-body > .page-settings-field-inherited {
+  margin-bottom: 0.75rem;
 }
 
 .admin-shell .gantry-sections {
@@ -2353,6 +2492,39 @@ body:has(.admin-shell) > main {
   margin-bottom: 0.35rem;
 }
 
+/* Outlines Create: single row, no field underlines, Create pinned end */
+.admin-shell .outlines-manager > .outlines-create .settings-field {
+  border-bottom: 0;
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+
+.admin-shell .outlines-manager > .outlines-create .outlines-create-form.admin-create-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.75rem 1rem;
+}
+
+.admin-shell .outlines-manager > .outlines-create .outlines-create-form > .settings-field {
+  flex: 1 1 9rem;
+  min-width: 8rem;
+  max-width: 16rem;
+}
+
+.admin-shell .outlines-manager > .outlines-create .outlines-create-form > .outlines-check {
+  flex: 0 0 auto;
+  align-self: end;
+  min-height: var(--sf-admin-btn-min-height);
+}
+
+.admin-shell .outlines-manager > .outlines-create .outlines-create-form > button[type='submit'] {
+  grid-column: auto;
+  flex: 0 0 auto;
+  margin-left: auto;
+  justify-self: end;
+}
+
 @media (max-width: 640px) {
   .admin-shell .breakpoints-form,
   .admin-shell .section-styles-form {
@@ -2530,6 +2702,7 @@ body:has(.admin-shell) > main {
 .admin-shell .admin-sidebar .admin-sidebar-group-head,
 .admin-shell .admin-sidebar .admin-sidebar-group-title,
 .admin-shell .admin-sidebar .admin-sidebar-sublink,
+.admin-shell .admin-sidebar .admin-sidebar-nestlink,
 .admin-shell .admin-sidebar .admin-sidebar-account-name,
 .admin-shell .admin-sidebar .admin-sidebar-account,
 .admin-shell .admin-sidebar .admin-sidebar-check-site,
@@ -2550,7 +2723,7 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .admin-sidebar .admin-sidebar-link:hover,
-.admin-shell .admin-sidebar .admin-sidebar-group-head:hover,
+.admin-shell .admin-sidebar .admin-sidebar-group-title:hover,
 .admin-shell .admin-sidebar .admin-sidebar-sublink:hover {
   background: var(--sf-admin-blue-mid, #3498db) !important;
   color: #fff !important;
@@ -2559,6 +2732,7 @@ body:has(.admin-shell) > main {
 
 /* Current after hover so the active leaf stays the darker shade */
 .admin-shell .admin-sidebar .admin-sidebar-link.is-current,
+.admin-shell .admin-sidebar .admin-sidebar-group-title.is-current,
 .admin-shell .admin-sidebar .admin-sidebar-sublink.is-current {
   background: var(--sf-admin-blue-active, #2471a3) !important;
   color: #fff !important;

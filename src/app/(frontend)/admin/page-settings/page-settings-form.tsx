@@ -14,6 +14,10 @@ import {
   type PageSettingsAdminBootstrap,
 } from '@/core/page-settings/actions'
 import { HOME_PAGE_KEY, newPageSettingsEntityId } from '@/core/page-settings/defaults'
+import {
+  inheritedKeysFromOverride,
+  type PageChromeInheritKey,
+} from '@/core/page-settings/inherit-fields'
 import type { AssetRef, MetaTag, PageAtomInstance, PageChrome } from '@/core/page-settings/types'
 import {
   ASSET_PRIORITY_MAX,
@@ -21,8 +25,36 @@ import {
 } from '@/core/page-settings/types'
 
 import { useNotifySavedOnOk } from '../admin-toast'
+import { InheritSwitch } from '../layouts/layout-inherit-controls'
 import { useAutosaveForm } from '../use-autosave-form'
 import { AtomSettingsPopover } from './atom-settings-popover'
+
+function FieldInheritRow({
+  show,
+  fieldKey,
+  inherited,
+  onChange,
+  children,
+}: {
+  show: boolean
+  fieldKey: PageChromeInheritKey
+  inherited: boolean
+  onChange: (key: PageChromeInheritKey, next: boolean) => void
+  children: React.ReactNode
+}) {
+  return (
+    <div className={inherited && show ? 'page-settings-field-inherited' : undefined}>
+      {children}
+      {show ? (
+        <InheritSwitch
+          inherited={inherited}
+          label="Inherit"
+          onChange={(next) => onChange(fieldKey, next)}
+        />
+      ) : null}
+    </div>
+  )
+}
 
 type Props = {
   bootstrap: PageSettingsAdminBootstrap
@@ -168,6 +200,7 @@ function OrderedAssetList({
                   title={`Edit ${item.name || fileLabel}`}
                   triggerLabel="Edit"
                   preferredWidth={600}
+                  onClose={() => onDiscreteChange?.()}
                 >
                   <CodeEditorField
                     key={`${item.id}-editor`}
@@ -177,7 +210,7 @@ function OrderedAssetList({
                     initialHeight={280}
                     hint={
                       language === 'css'
-                        ? 'Inline CSS injected as <style> in <head>.'
+                        ? 'Inline CSS applied on the public site as a <style> block (site / page chrome — not per outline).'
                         : 'Inline JS injected before </body>.'
                     }
                     onValueChange={(nextContent) => {
@@ -237,32 +270,93 @@ export function PageSettingsForm({ bootstrap }: Props) {
   const [, startTransition] = useTransition()
   const { formRef, saveNow, saveDebounced } = useAutosaveForm()
 
+  const globalChrome = bootstrap.globalChrome
   const initial = bootstrap.editingChrome
-  const [layoutId, setLayoutId] = useState(initial.layoutId ?? 'default')
-  const [sectionsLayout, setSectionsLayout] = useState(initial.sectionsLayout ?? 'fullwidth')
-  const [accessTags, setAccessTags] = useState<string[]>(() =>
-    resolveAccessTags({ accessTags: initial.accessTags }),
+  const pickInitial = <T,>(local: T | undefined, fallback: T): T =>
+    local !== undefined ? local : fallback
+
+  const [inheritedKeys, setInheritedKeys] = useState<Set<PageChromeInheritKey>>(() =>
+    isPage ? new Set(inheritedKeysFromOverride(initial)) : new Set(),
   )
-  const [metaTags, setMetaTags] = useState<MetaTag[]>(initial.metaTags ?? [])
-  const [customHeadHtml, setCustomHeadHtml] = useState(initial.customHeadHtml ?? '')
-  const [faviconUrl, setFaviconUrl] = useState(initial.faviconUrl ?? '')
-  const [touchIconUrl, setTouchIconUrl] = useState(initial.touchIconUrl ?? '')
-  const [css, setCss] = useState<AssetRef[]>(initial.css ?? [])
-  const [javascript, setJavascript] = useState<AssetRef[]>(initial.javascript ?? [])
-  const [bodyId, setBodyId] = useState(initial.bodyId ?? '')
-  const [bodyClasses, setBodyClasses] = useState(initial.bodyClasses ?? '')
-  const [bodyTagAttributes, setBodyTagAttributes] = useState(initial.bodyTagAttributes ?? '')
-  const [afterBodyHtml, setAfterBodyHtml] = useState(initial.afterBodyHtml ?? '')
-  const [beforeBodyCloseHtml, setBeforeBodyCloseHtml] = useState(initial.beforeBodyCloseHtml ?? '')
-  const [faEnabled, setFaEnabled] = useState(initial.fontAwesome?.enabled ?? false)
-  const [faV4Compat, setFaV4Compat] = useState(initial.fontAwesome?.v4Compat ?? false)
-  const [faContentCompat, setFaContentCompat] = useState(initial.fontAwesome?.contentCompat ?? false)
-  const [faVersion, setFaVersion] = useState(initial.fontAwesome?.version ?? '6-free')
-  const [faCssLinkHtml, setFaCssLinkHtml] = useState(initial.fontAwesome?.cssLinkHtml ?? '')
-  const [faJsScriptHtml, setFaJsScriptHtml] = useState(initial.fontAwesome?.jsScriptHtml ?? '')
-  const [atoms, setAtoms] = useState<PageAtomInstance[]>(initial.atoms ?? [])
+  const inherits = (key: PageChromeInheritKey) => isPage && inheritedKeys.has(key)
+
+  const [layoutId, setLayoutId] = useState(
+    pickInitial(initial.layoutId, globalChrome.layoutId ?? 'default'),
+  )
+  const [sectionsLayout, setSectionsLayout] = useState(
+    pickInitial(initial.sectionsLayout, globalChrome.sectionsLayout ?? 'fullwidth'),
+  )
+  const [accessTags, setAccessTags] = useState<string[]>(() =>
+    resolveAccessTags({
+      accessTags: pickInitial(initial.accessTags, globalChrome.accessTags),
+    }),
+  )
+  const [metaTags, setMetaTags] = useState<MetaTag[]>(
+    pickInitial(initial.metaTags, globalChrome.metaTags ?? []),
+  )
+  const [customHeadHtml, setCustomHeadHtml] = useState(
+    pickInitial(initial.customHeadHtml, globalChrome.customHeadHtml ?? ''),
+  )
+  const [faviconUrl, setFaviconUrl] = useState(
+    pickInitial(initial.faviconUrl, globalChrome.faviconUrl ?? ''),
+  )
+  const [touchIconUrl, setTouchIconUrl] = useState(
+    pickInitial(initial.touchIconUrl, globalChrome.touchIconUrl ?? ''),
+  )
+  const [css, setCss] = useState<AssetRef[]>(pickInitial(initial.css, globalChrome.css ?? []))
+  const [javascript, setJavascript] = useState<AssetRef[]>(
+    pickInitial(initial.javascript, globalChrome.javascript ?? []),
+  )
+  const [bodyId, setBodyId] = useState(pickInitial(initial.bodyId, globalChrome.bodyId ?? ''))
+  const [bodyClasses, setBodyClasses] = useState(
+    pickInitial(initial.bodyClasses, globalChrome.bodyClasses ?? ''),
+  )
+  const [bodyTagAttributes, setBodyTagAttributes] = useState(
+    pickInitial(initial.bodyTagAttributes, globalChrome.bodyTagAttributes ?? ''),
+  )
+  const [afterBodyHtml, setAfterBodyHtml] = useState(
+    pickInitial(initial.afterBodyHtml, globalChrome.afterBodyHtml ?? ''),
+  )
+  const [beforeBodyCloseHtml, setBeforeBodyCloseHtml] = useState(
+    pickInitial(initial.beforeBodyCloseHtml, globalChrome.beforeBodyCloseHtml ?? ''),
+  )
+  const [faEnabled, setFaEnabled] = useState(
+    pickInitial(initial.fontAwesome?.enabled, globalChrome.fontAwesome?.enabled ?? false),
+  )
+  const [faV4Compat, setFaV4Compat] = useState(
+    pickInitial(initial.fontAwesome?.v4Compat, globalChrome.fontAwesome?.v4Compat ?? false),
+  )
+  const [faContentCompat, setFaContentCompat] = useState(
+    pickInitial(
+      initial.fontAwesome?.contentCompat,
+      globalChrome.fontAwesome?.contentCompat ?? false,
+    ),
+  )
+  const [faVersion, setFaVersion] = useState(
+    pickInitial(initial.fontAwesome?.version, globalChrome.fontAwesome?.version ?? '6-free'),
+  )
+  const [faCssLinkHtml, setFaCssLinkHtml] = useState(
+    pickInitial(initial.fontAwesome?.cssLinkHtml, globalChrome.fontAwesome?.cssLinkHtml ?? ''),
+  )
+  const [faJsScriptHtml, setFaJsScriptHtml] = useState(
+    pickInitial(initial.fontAwesome?.jsScriptHtml, globalChrome.fontAwesome?.jsScriptHtml ?? ''),
+  )
+  const [atoms, setAtoms] = useState<PageAtomInstance[]>(
+    pickInitial(initial.atoms, globalChrome.atoms ?? []),
+  )
 
   const lockedScripts = !bootstrap.isDeveloperAdmin
+
+  const setFieldInherit = (key: PageChromeInheritKey, nextInherited: boolean) => {
+    setInheritedKeys((prev) => {
+      const copy = new Set(prev)
+      if (nextInherited) copy.add(key)
+      else copy.delete(key)
+      return copy
+    })
+    // Let the hidden inheritKeysJson re-render before autosave posts.
+    window.setTimeout(() => saveNow(), 0)
+  }
 
   // Explicit onChange/blur autosave only — no effect watching draft state (Strict Mode was
   // firing a false "Saved" on open via skipAutosave flip + second effect pass).
@@ -345,8 +439,8 @@ export function PageSettingsForm({ bootstrap }: Props) {
         </label>
         {isPage ? (
           <p className="settings-hint">
-            Per-page override{bootstrap.hasOverride ? '' : ' (empty — inherits site defaults until saved)'}.
-            Unset fields fall back to global on the public site.
+            Per-page override{bootstrap.hasOverride ? '' : ' (no row yet — all fields inherit site defaults)'}.
+            Use the Inherit slide after each field: On = site global, Off = local override for this page.
           </p>
         ) : (
           <p className="settings-hint">Site-wide defaults. Pages can override individually.</p>
@@ -374,14 +468,37 @@ export function PageSettingsForm({ bootstrap }: Props) {
 
       <form ref={formRef} action={formAction} className="page-settings-form settings-form">
         {isPage ? <input type="hidden" name="pageKey" value={bootstrap.editingPageKey ?? ''} /> : null}
+        {isPage ? (
+          <input
+            type="hidden"
+            name="inheritKeysJson"
+            value={JSON.stringify([...inheritedKeys])}
+          />
+        ) : null}
         <input
           type="hidden"
           name="accessTagsJson"
           value={JSON.stringify(accessTags.length ? accessTags : ['public'])}
+          disabled={inherits('accessTags')}
         />
-        <input type="hidden" name="metaTagsJson" value={JSON.stringify(metaTags)} />
-        <input type="hidden" name="cssJson" value={JSON.stringify(css)} />
-        <input type="hidden" name="javascriptJson" value={JSON.stringify(javascript)} />
+        <input
+          type="hidden"
+          name="metaTagsJson"
+          value={JSON.stringify(metaTags)}
+          disabled={inherits('metaTags')}
+        />
+        <input
+          type="hidden"
+          name="cssJson"
+          value={JSON.stringify(css)}
+          disabled={inherits('css')}
+        />
+        <input
+          type="hidden"
+          name="javascriptJson"
+          value={JSON.stringify(javascript)}
+          disabled={inherits('javascript')}
+        />
         <input type="hidden" name="atomsJson" value={JSON.stringify(atoms)} />
         {lockedScripts ? (
           <>
@@ -395,281 +512,400 @@ export function PageSettingsForm({ bootstrap }: Props) {
 
         <div className="page-settings-mosaic admin-settings-mosaic">
         <Panel title="Layout assignment">
-          <label className="settings-field">
-            <span>Layout</span>
-            <select
-              name="layoutId"
-              value={layoutId}
-              onChange={(e) => {
-                setLayoutId(e.target.value)
-                saveNow()
-              }}
-            >
-              {(bootstrap.layouts?.length
-                ? bootstrap.layouts
-                : bootstrap.layoutIds.map((id) => ({ id, label: id }))
-              ).map((layout) => (
-                <option key={layout.id} value={layout.id}>
-                  {layout.label} ({layout.id})
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="settings-field">
-            <span>Sections layout (default)</span>
-            <select
-              name="sectionsLayout"
-              value={sectionsLayout}
-              onChange={(e) => {
-                setSectionsLayout(e.target.value as PageChrome['sectionsLayout'] & string)
-                saveNow()
-              }}
-            >
-              <option value="fullwidth">Fullwidth</option>
-              <option value="boxed">Boxed content</option>
-            </select>
-            <small className="field-hint">
-              Default only when a section has no Width setting. Prefer Layout canvas section Width
-              (full / boxed) — section owns container width.
-            </small>
-          </label>
-          <AccessTagsField
-            value={accessTags}
-            groups={bootstrap.groups}
-            disabled={pending || clearPending}
-            onChange={(next) => {
-              setAccessTags(next)
-              saveNow()
-            }}
-            legend="Who can see this page"
-          />
-        </Panel>
-
-        <Panel title="Head Properties">
-          <div className="page-settings-list">
-            <div className="page-settings-list-head">
-              <strong>Meta Tags</strong>
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => {
-                  setMetaTags((prev) => [
-                    ...prev,
-                    { id: newPageSettingsEntityId('meta'), nameOrProperty: '', content: '' },
-                  ])
+          <FieldInheritRow
+            show={isPage}
+            fieldKey="layoutId"
+            inherited={inherits('layoutId')}
+            onChange={setFieldInherit}
+          >
+            <label className="settings-field">
+              <span>Layout</span>
+              <select
+                name="layoutId"
+                value={layoutId}
+                disabled={inherits('layoutId')}
+                onChange={(e) => {
+                  setLayoutId(e.target.value)
                   saveNow()
                 }}
               >
-                Add
-              </button>
-            </div>
-            <ul className="page-settings-asset-list">
-              {metaTags.map((tag, index) => (
-                <li key={tag.id}>
-                  <input
-                    type="text"
-                    placeholder="name or property"
-                    value={tag.nameOrProperty}
-                    onChange={(e) => {
-                      const next = [...metaTags]
-                      next[index] = { ...tag, nameOrProperty: e.target.value }
-                      setMetaTags(next)
-                      saveDebounced()
-                    }}
-                    onBlur={() => saveNow()}
-                  />
-                  <input
-                    type="text"
-                    placeholder="content"
-                    value={tag.content}
-                    onChange={(e) => {
-                      const next = [...metaTags]
-                      next[index] = { ...tag, content: e.target.value }
-                      setMetaTags(next)
-                      saveDebounced()
-                    }}
-                    onBlur={() => saveNow()}
-                  />
-                  <button
-                    type="button"
-                    className="danger"
-                    onClick={() => {
-                      setMetaTags(metaTags.filter((_, i) => i !== index))
-                      saveNow()
-                    }}
-                  >
-                    Remove
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className={lockedScripts ? 'page-settings-locked' : undefined}>
-            <div className="page-settings-list-head">
-              <strong>Custom Content</strong>
-              <span className="page-settings-acl">Developer-admin</span>
-            </div>
-            {lockedScripts ? (
-              <p className="settings-hint">Locked — existing custom head HTML is preserved on save.</p>
-            ) : (
-              <CodeEditorField
-                key={`pageHead-${bootstrap.editingPageKey ?? 'global'}`}
-                name="customHeadHtml"
-                label="Page Head (custom HTML)"
-                language="html"
-                initialValue={customHeadHtml}
-                initialHeight={200}
-                hint="Injected into <head> (manifest links, scripts, …)."
-                onValueChange={(next) => {
-                  setCustomHeadHtml(next)
-                  saveDebounced()
+                {(bootstrap.layouts?.length
+                  ? bootstrap.layouts
+                  : bootstrap.layoutIds.map((id) => ({ id, label: id }))
+                ).map((layout) => (
+                  <option key={layout.id} value={layout.id}>
+                    {layout.label} ({layout.id})
+                  </option>
+                ))}
+              </select>
+            </label>
+          </FieldInheritRow>
+          <FieldInheritRow
+            show={isPage}
+            fieldKey="sectionsLayout"
+            inherited={inherits('sectionsLayout')}
+            onChange={setFieldInherit}
+          >
+            <label className="settings-field">
+              <span>Sections layout (default)</span>
+              <select
+                name="sectionsLayout"
+                value={sectionsLayout}
+                disabled={inherits('sectionsLayout')}
+                onChange={(e) => {
+                  setSectionsLayout(e.target.value as PageChrome['sectionsLayout'] & string)
+                  saveNow()
                 }}
-              />
-            )}
-          </div>
+              >
+                <option value="fullwidth">Fullwidth</option>
+                <option value="boxed">Boxed content</option>
+              </select>
+              <small className="field-hint">
+                Default only when a section has no Width setting. Prefer Layout canvas section Width
+                (full / boxed) — section owns container width.
+              </small>
+            </label>
+          </FieldInheritRow>
+          <FieldInheritRow
+            show={isPage}
+            fieldKey="accessTags"
+            inherited={inherits('accessTags')}
+            onChange={setFieldInherit}
+          >
+            <AccessTagsField
+              value={accessTags}
+              groups={bootstrap.groups}
+              disabled={pending || clearPending || inherits('accessTags')}
+              onChange={(next) => {
+                setAccessTags(next)
+                saveNow()
+              }}
+              legend="Who can see this page"
+            />
+          </FieldInheritRow>
+        </Panel>
+
+        <Panel title="Head Properties">
+          <FieldInheritRow
+            show={isPage}
+            fieldKey="metaTags"
+            inherited={inherits('metaTags')}
+            onChange={setFieldInherit}
+          >
+            <div className="page-settings-list">
+              <div className="page-settings-list-head">
+                <strong>Meta Tags</strong>
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={inherits('metaTags')}
+                  onClick={() => {
+                    setMetaTags((prev) => [
+                      ...prev,
+                      { id: newPageSettingsEntityId('meta'), nameOrProperty: '', content: '' },
+                    ])
+                    saveNow()
+                  }}
+                >
+                  Add
+                </button>
+              </div>
+              <ul className="page-settings-asset-list">
+                {metaTags.map((tag, index) => (
+                  <li key={tag.id}>
+                    <input
+                      type="text"
+                      placeholder="name or property"
+                      value={tag.nameOrProperty}
+                      disabled={inherits('metaTags')}
+                      onChange={(e) => {
+                        const next = [...metaTags]
+                        next[index] = { ...tag, nameOrProperty: e.target.value }
+                        setMetaTags(next)
+                        saveDebounced()
+                      }}
+                      onBlur={() => saveNow()}
+                    />
+                    <input
+                      type="text"
+                      placeholder="content"
+                      value={tag.content}
+                      disabled={inherits('metaTags')}
+                      onChange={(e) => {
+                        const next = [...metaTags]
+                        next[index] = { ...tag, content: e.target.value }
+                        setMetaTags(next)
+                        saveDebounced()
+                      }}
+                      onBlur={() => saveNow()}
+                    />
+                    <button
+                      type="button"
+                      className="danger"
+                      disabled={inherits('metaTags')}
+                      onClick={() => {
+                        setMetaTags(metaTags.filter((_, i) => i !== index))
+                        saveNow()
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </FieldInheritRow>
+
+          <FieldInheritRow
+            show={isPage}
+            fieldKey="customHeadHtml"
+            inherited={inherits('customHeadHtml')}
+            onChange={setFieldInherit}
+          >
+            <div className={lockedScripts ? 'page-settings-locked' : undefined}>
+              <div className="page-settings-list-head">
+                <strong>Custom Content</strong>
+                <span className="page-settings-acl">Developer-admin</span>
+              </div>
+              {lockedScripts ? (
+                <p className="settings-hint">Locked — existing custom head HTML is preserved on save.</p>
+              ) : (
+                <CodeEditorField
+                  key={`pageHead-${bootstrap.editingPageKey ?? 'global'}-${inherits('customHeadHtml')}`}
+                  name={inherits('customHeadHtml') ? undefined : 'customHeadHtml'}
+                  label="Page Head (custom HTML)"
+                  language="html"
+                  initialValue={customHeadHtml}
+                  initialHeight={200}
+                  hint="Injected into <head> (manifest links, scripts, …)."
+                  onValueChange={(next) => {
+                    if (inherits('customHeadHtml')) return
+                    setCustomHeadHtml(next)
+                    saveDebounced()
+                  }}
+                />
+              )}
+            </div>
+          </FieldInheritRow>
         </Panel>
 
         <Panel title="Assets">
-          <label className="settings-field">
-            <span>Favicon URL</span>
-            <input
-              type="url"
-              name="faviconUrl"
-              value={faviconUrl}
-              onChange={(e) => {
-                setFaviconUrl(e.target.value)
-                saveDebounced()
-              }}
-              onBlur={() => saveNow()}
-              placeholder="https://…/favicon.ico"
+          <FieldInheritRow
+            show={isPage}
+            fieldKey="faviconUrl"
+            inherited={inherits('faviconUrl')}
+            onChange={setFieldInherit}
+          >
+            <label className="settings-field">
+              <span>Favicon URL</span>
+              <input
+                type="url"
+                name="faviconUrl"
+                value={faviconUrl}
+                disabled={inherits('faviconUrl')}
+                onChange={(e) => {
+                  setFaviconUrl(e.target.value)
+                  saveDebounced()
+                }}
+                onBlur={() => saveNow()}
+                placeholder="https://…/favicon.ico"
+              />
+            </label>
+          </FieldInheritRow>
+          <FieldInheritRow
+            show={isPage}
+            fieldKey="touchIconUrl"
+            inherited={inherits('touchIconUrl')}
+            onChange={setFieldInherit}
+          >
+            <label className="settings-field">
+              <span>Touch Icon URL</span>
+              <input
+                type="url"
+                name="touchIconUrl"
+                value={touchIconUrl}
+                disabled={inherits('touchIconUrl')}
+                onChange={(e) => {
+                  setTouchIconUrl(e.target.value)
+                  saveDebounced()
+                }}
+                onBlur={() => saveNow()}
+                placeholder="https://…/apple-touch-icon.png"
+              />
+            </label>
+          </FieldInheritRow>
+          <FieldInheritRow
+            show={isPage}
+            fieldKey="css"
+            inherited={inherits('css')}
+            onChange={setFieldInherit}
+          >
+            <OrderedAssetList
+              label="CSS"
+              language="css"
+              items={css}
+              onChange={setCss}
+              onTextChange={saveDebounced}
+              onDiscreteChange={saveNow}
+              disabled={inherits('css')}
             />
-          </label>
-          <label className="settings-field">
-            <span>Touch Icon URL</span>
-            <input
-              type="url"
-              name="touchIconUrl"
-              value={touchIconUrl}
-              onChange={(e) => {
-                setTouchIconUrl(e.target.value)
-                saveDebounced()
-              }}
-              onBlur={() => saveNow()}
-              placeholder="https://…/apple-touch-icon.png"
+          </FieldInheritRow>
+          <FieldInheritRow
+            show={isPage}
+            fieldKey="javascript"
+            inherited={inherits('javascript')}
+            onChange={setFieldInherit}
+          >
+            <OrderedAssetList
+              label="JavaScript"
+              language="javascript"
+              items={javascript}
+              onChange={setJavascript}
+              onTextChange={saveDebounced}
+              onDiscreteChange={saveNow}
+              disabled={lockedScripts || inherits('javascript')}
+              developerOnly
             />
-          </label>
-          <OrderedAssetList
-            label="CSS"
-            language="css"
-            items={css}
-            onChange={setCss}
-            onTextChange={saveDebounced}
-            onDiscreteChange={saveNow}
-          />
-          <OrderedAssetList
-            label="JavaScript"
-            language="javascript"
-            items={javascript}
-            onChange={setJavascript}
-            onTextChange={saveDebounced}
-            onDiscreteChange={saveNow}
-            disabled={lockedScripts}
-            developerOnly
-          />
+          </FieldInheritRow>
         </Panel>
 
         <Panel title="Body Attributes">
-          <label className="settings-field">
-            <span>Body Id</span>
-            <input
-              type="text"
-              name="bodyId"
-              value={bodyId}
-              onChange={(e) => {
-                setBodyId(e.target.value)
-                saveDebounced()
-              }}
-              onBlur={() => saveNow()}
-            />
-          </label>
-          <label className="settings-field">
-            <span>Body Classes</span>
-            <input
-              type="text"
-              name="bodyClasses"
-              value={bodyClasses}
-              onChange={(e) => {
-                setBodyClasses(e.target.value)
-                saveDebounced()
-              }}
-              onBlur={() => saveNow()}
-              placeholder="class-a class-b"
-            />
-          </label>
-          <label className="settings-field">
-            <span>Tag Attributes</span>
-            <input
-              type="text"
-              name="bodyTagAttributes"
-              value={bodyTagAttributes}
-              onChange={(e) => {
-                setBodyTagAttributes(e.target.value)
-                saveDebounced()
-              }}
-              onBlur={() => saveNow()}
-              placeholder={'data-theme="light"'}
-            />
-          </label>
-          <div className={lockedScripts ? 'page-settings-locked' : undefined}>
-            <div className="page-settings-list-head">
-              <strong>After {'<body>'}</strong>
-              <span className="page-settings-acl">Developer-admin</span>
-            </div>
-            {lockedScripts ? (
-              <p className="settings-hint">Locked — preserved on save.</p>
-            ) : (
-              <CodeEditorField
-                key={`afterBody-${bootstrap.editingPageKey ?? 'global'}`}
-                name="afterBodyHtml"
-                label="After <body>"
-                language="html"
-                initialValue={afterBodyHtml}
-                initialHeight={140}
-                placeholder="HTML after opening body tag"
-                onValueChange={(next) => {
-                  setAfterBodyHtml(next)
+          <FieldInheritRow
+            show={isPage}
+            fieldKey="bodyId"
+            inherited={inherits('bodyId')}
+            onChange={setFieldInherit}
+          >
+            <label className="settings-field">
+              <span>Body Id</span>
+              <input
+                type="text"
+                name="bodyId"
+                value={bodyId}
+                disabled={inherits('bodyId')}
+                onChange={(e) => {
+                  setBodyId(e.target.value)
                   saveDebounced()
                 }}
+                onBlur={() => saveNow()}
               />
-            )}
-          </div>
-          <div className={lockedScripts ? 'page-settings-locked' : undefined}>
-            <div className="page-settings-list-head">
-              <strong>Before {'</body>'}</strong>
-              <span className="page-settings-acl">Developer-admin</span>
-            </div>
-            {lockedScripts ? (
-              <p className="settings-hint">Locked — preserved on save.</p>
-            ) : (
-              <CodeEditorField
-                key={`beforeBody-${bootstrap.editingPageKey ?? 'global'}`}
-                name="beforeBodyCloseHtml"
-                label="Before </body>"
-                language="html"
-                initialValue={beforeBodyCloseHtml}
-                initialHeight={140}
-                placeholder="HTML before closing body tag"
-                onValueChange={(next) => {
-                  setBeforeBodyCloseHtml(next)
+            </label>
+          </FieldInheritRow>
+          <FieldInheritRow
+            show={isPage}
+            fieldKey="bodyClasses"
+            inherited={inherits('bodyClasses')}
+            onChange={setFieldInherit}
+          >
+            <label className="settings-field">
+              <span>Body Classes</span>
+              <input
+                type="text"
+                name="bodyClasses"
+                value={bodyClasses}
+                disabled={inherits('bodyClasses')}
+                onChange={(e) => {
+                  setBodyClasses(e.target.value)
                   saveDebounced()
                 }}
+                onBlur={() => saveNow()}
+                placeholder="class-a class-b"
               />
-            )}
-          </div>
+            </label>
+          </FieldInheritRow>
+          <FieldInheritRow
+            show={isPage}
+            fieldKey="bodyTagAttributes"
+            inherited={inherits('bodyTagAttributes')}
+            onChange={setFieldInherit}
+          >
+            <label className="settings-field">
+              <span>Tag Attributes</span>
+              <input
+                type="text"
+                name="bodyTagAttributes"
+                value={bodyTagAttributes}
+                disabled={inherits('bodyTagAttributes')}
+                onChange={(e) => {
+                  setBodyTagAttributes(e.target.value)
+                  saveDebounced()
+                }}
+                onBlur={() => saveNow()}
+                placeholder={'data-theme="light"'}
+              />
+            </label>
+          </FieldInheritRow>
+          <FieldInheritRow
+            show={isPage}
+            fieldKey="afterBodyHtml"
+            inherited={inherits('afterBodyHtml')}
+            onChange={setFieldInherit}
+          >
+            <div className={lockedScripts ? 'page-settings-locked' : undefined}>
+              <div className="page-settings-list-head">
+                <strong>After {'<body>'}</strong>
+                <span className="page-settings-acl">Developer-admin</span>
+              </div>
+              {lockedScripts ? (
+                <p className="settings-hint">Locked — preserved on save.</p>
+              ) : (
+                <CodeEditorField
+                  key={`afterBody-${bootstrap.editingPageKey ?? 'global'}-${inherits('afterBodyHtml')}`}
+                  name={inherits('afterBodyHtml') ? undefined : 'afterBodyHtml'}
+                  label="After <body>"
+                  language="html"
+                  initialValue={afterBodyHtml}
+                  initialHeight={140}
+                  placeholder="HTML after opening body tag"
+                  onValueChange={(next) => {
+                    if (inherits('afterBodyHtml')) return
+                    setAfterBodyHtml(next)
+                    saveDebounced()
+                  }}
+                />
+              )}
+            </div>
+          </FieldInheritRow>
+          <FieldInheritRow
+            show={isPage}
+            fieldKey="beforeBodyCloseHtml"
+            inherited={inherits('beforeBodyCloseHtml')}
+            onChange={setFieldInherit}
+          >
+            <div className={lockedScripts ? 'page-settings-locked' : undefined}>
+              <div className="page-settings-list-head">
+                <strong>Before {'</body>'}</strong>
+                <span className="page-settings-acl">Developer-admin</span>
+              </div>
+              {lockedScripts ? (
+                <p className="settings-hint">Locked — preserved on save.</p>
+              ) : (
+                <CodeEditorField
+                  key={`beforeBody-${bootstrap.editingPageKey ?? 'global'}-${inherits('beforeBodyCloseHtml')}`}
+                  name={inherits('beforeBodyCloseHtml') ? undefined : 'beforeBodyCloseHtml'}
+                  label="Before </body>"
+                  language="html"
+                  initialValue={beforeBodyCloseHtml}
+                  initialHeight={140}
+                  placeholder="HTML before closing body tag"
+                  onValueChange={(next) => {
+                    if (inherits('beforeBodyCloseHtml')) return
+                    setBeforeBodyCloseHtml(next)
+                    saveDebounced()
+                  }}
+                />
+              )}
+            </div>
+          </FieldInheritRow>
         </Panel>
 
         <Panel id="font-awesome" title="Font Awesome Settings">
+          <FieldInheritRow
+            show={isPage}
+            fieldKey="fontAwesome"
+            inherited={inherits('fontAwesome')}
+            onChange={setFieldInherit}
+          >
           <p className="settings-hint">
             Layouts area — not Settings. Product gate <code>product:font-awesome</code> still
             lives under Settings → Modules (off skips public FA assets).
@@ -680,6 +916,7 @@ export function PageSettingsForm({ bootstrap }: Props) {
               name="faEnabled"
               value="true"
               checked={faEnabled}
+              disabled={inherits('fontAwesome')}
               onChange={(e) => {
                 setFaEnabled(e.target.checked)
                 saveNow()
@@ -696,6 +933,7 @@ export function PageSettingsForm({ bootstrap }: Props) {
               name="faV4Compat"
               value="true"
               checked={faV4Compat}
+              disabled={inherits('fontAwesome')}
               onChange={(e) => {
                 setFaV4Compat(e.target.checked)
                 saveNow()
@@ -711,6 +949,7 @@ export function PageSettingsForm({ bootstrap }: Props) {
               name="faContentCompat"
               value="true"
               checked={faContentCompat}
+              disabled={inherits('fontAwesome')}
               onChange={(e) => {
                 setFaContentCompat(e.target.checked)
                 saveNow()
@@ -726,6 +965,7 @@ export function PageSettingsForm({ bootstrap }: Props) {
             <select
               name="faVersion"
               value={faVersion}
+              disabled={inherits('fontAwesome')}
               onChange={(e) => {
                 setFaVersion(e.target.value)
                 saveNow()
@@ -760,7 +1000,7 @@ export function PageSettingsForm({ bootstrap }: Props) {
                 />
                 <CodeEditorField
                   key={`faJs-${bootstrap.editingPageKey ?? 'global'}`}
-                  name="faJsScriptHtml"
+                  name={inherits('fontAwesome') ? undefined : 'faJsScriptHtml'}
                   label="JS Script HTML"
                   language="html"
                   initialValue={faJsScriptHtml}
@@ -768,6 +1008,7 @@ export function PageSettingsForm({ bootstrap }: Props) {
                   minHeight={72}
                   placeholder="Optional raw <script> override"
                   onValueChange={(next) => {
+                    if (inherits('fontAwesome')) return
                     setFaJsScriptHtml(next)
                     saveDebounced()
                   }}
@@ -775,6 +1016,7 @@ export function PageSettingsForm({ bootstrap }: Props) {
               </>
             )}
           </div>
+          </FieldInheritRow>
         </Panel>
 
         <Panel title="Atoms" wide>

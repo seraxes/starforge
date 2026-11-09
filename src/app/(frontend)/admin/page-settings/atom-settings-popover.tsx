@@ -9,6 +9,8 @@ type Props = {
   triggerLabel?: string
   /** Dialog width (Assets CodeMirror editors prefer ~560–640). */
   preferredWidth?: number
+  /** Called when the panel closes (Escape / outside / Close) — flush autosave. */
+  onClose?: () => void
   children: React.ReactNode
 }
 
@@ -23,6 +25,7 @@ export function AtomSettingsPopover({
   title,
   triggerLabel = 'Settings',
   preferredWidth = DEFAULT_PANEL_WIDTH,
+  onClose,
   children,
 }: Props) {
   const [open, setOpen] = useState(false)
@@ -34,6 +37,14 @@ export function AtomSettingsPopover({
     preferredWidth,
   })
 
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
+
+  const closePanel = () => {
+    setOpen(false)
+    onCloseRef.current?.()
+  }
+
   useEffect(() => {
     // Portal needs document.body — mark mounted after hydration.
     // eslint-disable-next-line react-hooks/set-state-in-effect -- client portal gate
@@ -44,13 +55,17 @@ export function AtomSettingsPopover({
     if (!open) return
 
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false)
+      if (event.key === 'Escape') {
+        setOpen(false)
+        onCloseRef.current?.()
+      }
     }
     const onPointer = (event: MouseEvent) => {
       const target = event.target as Node
       if (panelRef.current?.contains(target) || triggerRef.current?.contains(target)) return
       if (target instanceof Element && target.closest('.admin-toast-host')) return
       setOpen(false)
+      onCloseRef.current?.()
     }
 
     document.addEventListener('keydown', onKey)
@@ -69,7 +84,10 @@ export function AtomSettingsPopover({
         className="secondary gantry-settings-trigger"
         aria-expanded={open}
         aria-haspopup="dialog"
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => {
+          if (open) closePanel()
+          else setOpen(true)
+        }}
       >
         {open ? 'Close' : triggerLabel}
       </button>
@@ -82,7 +100,7 @@ export function AtomSettingsPopover({
               <div
                 className="gantry-settings-backdrop"
                 aria-hidden="true"
-                onMouseDown={() => setOpen(false)}
+                onMouseDown={closePanel}
               />
               <div
                 ref={panelRef}
@@ -102,7 +120,7 @@ export function AtomSettingsPopover({
                     className="gantry-settings-cancel"
                     data-sf-settings-close=""
                     aria-label="Close settings"
-                    onClick={() => setOpen(false)}
+                    onClick={closePanel}
                   >
                     Close
                   </button>

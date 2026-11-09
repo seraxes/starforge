@@ -13,13 +13,19 @@ import type { SiteChromeDocument } from '@/core/site-chrome/types'
 import { useNotifySavedOnOk } from '../admin-toast'
 import { useAutosaveForm } from '../use-autosave-form'
 
+type OutlineOption = {
+  id: string
+  label: string
+}
+
 type Props = {
   chrome: SiteChromeDocument
+  outlines: OutlineOption[]
 }
 
 const initialState: SiteChromeActionState = {}
 
-export function SiteChromeForm({ chrome }: Props) {
+export function SiteChromeForm({ chrome, outlines }: Props) {
   const [state, formAction, pending] = useActionState(updateSiteChromeAction, initialState)
   useNotifySavedOnOk(state, { toastErrors: true })
   const { formRef, textAutosaveProps, discreteAutosaveProps } = useAutosaveForm()
@@ -34,9 +40,10 @@ export function SiteChromeForm({ chrome }: Props) {
       <fieldset className="settings-fieldset">
         <legend>Site offline</legend>
         <p className="settings-hint">
-          When offline, visitors see the message below. App admins can still open the public site
-          and <Link href="/admin">Starforge admin</Link>. Login stays available so admins can
-          sign in.
+          When offline, visitors see the message below inside the selected outline (active skin).
+          App admins can still open the public site and <Link href="/admin">Starforge admin</Link>.
+          Login stays available so admins can sign in. Edit the outline under{' '}
+          <Link href="/admin/layouts">Layouts</Link>.
         </p>
         <label className="settings-flag">
           <input
@@ -52,6 +59,21 @@ export function SiteChromeForm({ chrome }: Props) {
               Public pages show the offline screen until this is turned off.
             </span>
           </span>
+        </label>
+        <label className="settings-field">
+          <span>Offline outline</span>
+          <select
+            name="offlineLayoutId"
+            defaultValue={chrome.offlineLayoutId}
+            disabled={pending}
+            {...discreteAutosaveProps}
+          >
+            {outlines.map((outline) => (
+              <option key={outline.id} value={outline.id}>
+                {outline.label} ({outline.id})
+              </option>
+            ))}
+          </select>
         </label>
         <label className="settings-field">
           <span>Offline message</span>

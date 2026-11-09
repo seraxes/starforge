@@ -16,6 +16,10 @@ import config from '@payload-config'
 
 import { ensureAtomsRegistered, getRegisteredAtom, listRegisteredAtoms } from './atoms'
 import { DEFAULT_GLOBAL_PAGE_CHROME, newPageSettingsEntityId } from './defaults'
+import {
+  omitInheritedPageChromeKeys,
+  parseInheritKeysJson,
+} from './inherit-fields'
 import { applyDeveloperAdminGate, normalizePageChrome } from './merge'
 import {
   deletePageChromeOverride,
@@ -149,9 +153,11 @@ export async function savePageOverrideAction(
   const prior = priorResult.isFallback ? null : priorResult.chrome
   const incoming = chromeFromFormData(formData, pageKey)
   const gated = applyDeveloperAdminGate(incoming, prior, isDev)
+  const inheritKeys = parseInheritKeysJson(formData.get('inheritKeysJson'))
+  const sparse = omitInheritedPageChromeKeys({ ...gated, pageKey }, inheritKeys)
 
   try {
-    await savePageChrome(pageKey, { ...gated, pageKey })
+    await savePageChrome(pageKey, sparse)
   } catch (error) {
     const message =
       error instanceof Error && error.message
@@ -252,9 +258,12 @@ export async function loadPageSettingsAdmin(editingPageKey: string | null): Prom
   if (editingPageKey) {
     const override = await loadPageChromeOverride(editingPageKey)
     hasOverride = !override.isFallback
-    editingChrome = hasOverride
-      ? override.chrome
-      : { pageKey: editingPageKey }
+    if (hasOverride) {
+      editingChrome = override.chrome
+    } else {
+      // Sparse empty override — every field inherits site global until toggled local.
+      editingChrome = { pageKey: editingPageKey }
+    }
   }
 
   const settingsSite = await getSiteSettings()

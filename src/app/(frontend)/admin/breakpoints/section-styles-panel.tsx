@@ -4,6 +4,7 @@ import React, { useCallback, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
 import {
+  setSectionStylesInheritModeAction,
   updateLayoutSectionMetaAction,
   type LayoutActionState,
 } from '@/core/modules/actions'
@@ -14,17 +15,24 @@ import {
 import { MediaPicker } from '@/modules/media/api'
 
 import { useAdminToast } from '../admin-toast'
+import { InheritSwitch } from '../layouts/layout-inherit-controls'
 import { useDebouncedPersist } from '../use-debounced-persist'
 import { useLayoutOutlineId } from '../layouts/layout-outline-context'
 
 export type SectionStylesListItem = {
   id: string
   label: string
+  /** Resolved styles for display / local edit values. */
   styles?: LayoutSectionStyles
+  /** True when this outline inherits styles from parent for this section card. */
+  stylesInherited?: boolean
 }
 
 type Props = {
   sections: SectionStylesListItem[]
+  /** Outline has inheritFrom — show per-card inherit control. */
+  canInherit?: boolean
+  parentLayoutId?: string | null
 }
 
 type StylePatch = {
@@ -154,18 +162,25 @@ function ColorField({
  * Per-section Styles card — no Save button.
  * Text/color/URL: Site Settings debounce onChange + flush on blur.
  * Select/checkbox: immediate onChange (discrete).
+ * Card-level inherit when outline has inheritFrom.
  */
 function SectionStylesCard({
   section,
   forceOpen,
+  canInherit,
+  parentLayoutId,
 }: {
   section: SectionStylesListItem
   forceOpen: boolean | null
+  canInherit: boolean
+  parentLayoutId?: string | null
 }) {
   const router = useRouter()
   const layoutId = useLayoutOutlineId()
   const { notifySaved, notifyError } = useAdminToast()
+  const stylesInherited = Boolean(canInherit && section.stylesInherited)
   const styles = section.styles
+  const fieldsDisabled = stylesInherited
   const [metaPending, startMetaSave] = useTransition()
   const [metaFlash, setMetaFlash] = useState<LayoutActionState>({})
   const [allowGradientBackground, setAllowGradientBackground] = useState(
@@ -180,6 +195,7 @@ function SectionStylesCard({
 
   const persistStyles = useCallback(
     (patch: StylePatch) => {
+      if (stylesInherited) return
       const fd = new FormData()
       fd.set('layoutId', layoutId)
       fd.set('sectionId', section.id)
@@ -257,7 +273,15 @@ function SectionStylesCard({
         }
       })
     },
-    [layoutId, notifyError, notifySaved, router, section.id, section.styles],
+    [
+      layoutId,
+      notifyError,
+      notifySaved,
+      router,
+      section.id,
+      section.styles,
+      stylesInherited,
+    ],
   )
 
   const { schedule, flush } = useDebouncedPersist(persistStyles)
@@ -270,9 +294,42 @@ function SectionStylesCard({
       <summary className="section-styles-card-summary">
         <span className="section-styles-card-title">{section.label} Styles</span>
         <code className="section-styles-card-id">{section.id}</code>
+        {stylesInherited ? (
+          <span className="gantry-inherit-badge" title="Styles inherited from parent outline">
+            Inherited
+          </span>
+        ) : null}
       </summary>
 
       <div className="settings-form section-styles-form">
+        {canInherit ? (
+          <div className="section-styles-card-inherit">
+            <InheritSwitch
+              inherited={stylesInherited}
+              disabled={metaPending}
+              label="Inherit styles"
+              onChange={(next) => {
+                const fd = new FormData()
+                fd.set('layoutId', layoutId)
+                fd.set('sectionId', section.id)
+                fd.set('stylesInheritMode', next ? 'inherit' : 'local')
+                startMetaSave(async () => {
+                  const result = await setSectionStylesInheritModeAction({}, fd)
+                  setMetaFlash(result)
+                  if (result.ok) notifySaved('Saved')
+                  else if (result.error) notifyError(result.error)
+                  router.refresh()
+                })
+              }}
+            />
+            <p className="settings-hint">
+              {stylesInherited
+                ? `Using parent outline styles${parentLayoutId ? ` (${parentLayoutId})` : ''}. Turn off to edit locally.`
+                : 'Local styles for this outline section card.'}
+            </p>
+          </div>
+        ) : null}
+
         <ColorField
           label="Background"
           fieldKey="backgroundColor"
@@ -285,7 +342,7 @@ function SectionStylesCard({
           }}
           onColorChange={(next) => schedule('backgroundColor', { backgroundColor: next })}
           onColorBlur={(next) => flush('backgroundColor', { backgroundColor: next })}
-          disabled={metaPending}
+          disabled={metaPending || fieldsDisabled}
         />
 
         <ColorField
@@ -295,7 +352,7 @@ function SectionStylesCard({
           placeholder="#ffffff"
           onColorChange={(next) => schedule('textColor', { textColor: next })}
           onColorBlur={(next) => flush('textColor', { textColor: next })}
-          disabled={metaPending}
+          disabled={metaPending || fieldsDisabled}
         />
 
         <div className="settings-field">
@@ -307,7 +364,7 @@ function SectionStylesCard({
             }}
             defaultFolder="backgrounds"
             defaultPurpose="photo"
-            disabled={metaPending}
+            disabled={metaPending || fieldsDisabled}
             includeHiddenInputs={false}
             hint="Library Media id is primary; URL is advanced fallback."
             onChange={(next) => {
@@ -324,7 +381,7 @@ function SectionStylesCard({
           <select
             key={`overlay-${section.id}-${styles?.backgroundOverlay ?? 'disabled'}`}
             defaultValue={styles?.backgroundOverlay ?? 'disabled'}
-            disabled={metaPending}
+            disabled={metaPending || fieldsDisabled}
             onChange={(event) => {
               const next = event.target.value === 'enabled' ? 'enabled' : 'disabled'
               setOverlayEnabled(next === 'enabled')
@@ -348,7 +405,7 @@ function SectionStylesCard({
           }}
           onColorChange={(next) => schedule('overlayColor', { overlayColor: next })}
           onColorBlur={(next) => flush('overlayColor', { overlayColor: next })}
-          disabled={metaPending || !overlayEnabled}
+          disabled={metaPending || fieldsDisabled || !overlayEnabled}
         />
 
         <ActionFeedback state={metaFlash} />
@@ -359,10 +416,14 @@ function SectionStylesCard({
 }
 
 /**
- * Layouts → Styles: one panel per live outline section.
+ * Layouts → Styles: one panel per live outline section (resolved list).
  * Deleting a section on the Layout canvas removes its Styles entry with it.
  */
-export function SectionStylesPanel({ sections }: Props) {
+export function SectionStylesPanel({
+  sections,
+  canInherit = false,
+  parentLayoutId = null,
+}: Props) {
   const [filter, setFilter] = useState('')
   const [expandToken, setExpandToken] = useState(0)
   const [forceOpen, setForceOpen] = useState<boolean | null>(null)
@@ -425,6 +486,8 @@ export function SectionStylesPanel({ sections }: Props) {
               key={`${section.id}-${expandToken}`}
               section={section}
               forceOpen={forceOpen}
+              canInherit={canInherit}
+              parentLayoutId={parentLayoutId}
             />
           ))}
         </div>

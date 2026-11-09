@@ -3,12 +3,39 @@ import { describe, it } from 'node:test'
 
 import { DEFAULT_LOCALE, LOCALES } from '@/core/i18n/locales'
 
-import { DEFAULT_SITE_CHROME } from './defaults'
+import {
+  DEFAULT_AUTH_POST_LOGIN_URL,
+  DEFAULT_AUTH_POST_LOGOUT_URL,
+  DEFAULT_AUTH_POST_REGISTER_URL,
+  DEFAULT_OFFLINE_LAYOUT_ID,
+  DEFAULT_SITE_CHROME,
+} from './defaults'
 import {
   normalizeSiteChrome,
   parseSiteChromeJson,
   siteChromeDocumentNeedsLocaleHeal,
 } from './normalize'
+
+describe('normalizeSiteChrome offline + auth success URLs', () => {
+  it('fills offlineLayoutId and auth success URL defaults when missing', () => {
+    const chrome = normalizeSiteChrome({ siteName: 'Test' })
+    assert.equal(chrome.offlineLayoutId, DEFAULT_OFFLINE_LAYOUT_ID)
+    assert.equal(chrome.authPostLoginUrl, DEFAULT_AUTH_POST_LOGIN_URL)
+    assert.equal(chrome.authPostRegisterUrl, DEFAULT_AUTH_POST_REGISTER_URL)
+    assert.equal(chrome.authPostLogoutUrl, DEFAULT_AUTH_POST_LOGOUT_URL)
+  })
+
+  it('rejects open-redirect style auth success URLs', () => {
+    const chrome = normalizeSiteChrome({
+      authPostLoginUrl: 'https://evil.example/',
+      authPostRegisterUrl: '//evil.example',
+      authPostLogoutUrl: '/account',
+    })
+    assert.equal(chrome.authPostLoginUrl, DEFAULT_AUTH_POST_LOGIN_URL)
+    assert.equal(chrome.authPostRegisterUrl, DEFAULT_AUTH_POST_REGISTER_URL)
+    assert.equal(chrome.authPostLogoutUrl, '/account')
+  })
+})
 
 describe('normalizeSiteChrome locale fields', () => {
   it('fills localeCatalog + localesEnabled + defaultLocale + localeFallback when missing', () => {

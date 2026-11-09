@@ -20,17 +20,24 @@ export type AuthOptionToggles = {
   twoFactorEnabled: boolean
 }
 
+export type AuthSuccessUrls = {
+  postLoginUrl: string
+  postRegisterUrl: string
+  postLogoutUrl: string
+}
+
 type Props = {
   registrationEnabled: boolean
   authOptions: AuthOptionToggles
+  successUrls: AuthSuccessUrls
 }
 
 const initialState: SettingsActionState = {}
 
-export function AuthSettingsForm({ registrationEnabled, authOptions }: Props) {
+export function AuthSettingsForm({ registrationEnabled, authOptions, successUrls }: Props) {
   const [state, formAction, pending] = useActionState(updateAuthSettingsAction, initialState)
   useNotifySavedOnOk(state, { toastErrors: true })
-  const { formRef, discreteAutosaveProps } = useAutosaveForm()
+  const { formRef, textAutosaveProps, discreteAutosaveProps } = useAutosaveForm()
 
   return (
     <form ref={formRef} action={formAction} className="settings-form settings-form-wide">
@@ -166,6 +173,51 @@ export function AuthSettingsForm({ registrationEnabled, authOptions }: Props) {
                 Account security / authenticator CTAs on login and welcome.
               </span>
             </span>
+          </label>
+        </fieldset>
+
+        <fieldset className="settings-fieldset">
+          <legend>After sign-in / sign-out</legend>
+          <p className="settings-hint">
+            Site-relative paths only (start with <code>/</code>). Login deep links via{' '}
+            <code>?next=</code> still override the post-login default. When the site is offline,
+            a gated logout target falls back to <code>/login</code>.
+          </p>
+          <label className="settings-field">
+            <span>After login</span>
+            <input
+              type="text"
+              name="authPostLoginUrl"
+              defaultValue={successUrls.postLoginUrl}
+              placeholder="/"
+              autoComplete="off"
+              disabled={pending}
+              {...textAutosaveProps}
+            />
+          </label>
+          <label className="settings-field">
+            <span>After register</span>
+            <input
+              type="text"
+              name="authPostRegisterUrl"
+              defaultValue={successUrls.postRegisterUrl}
+              placeholder="/"
+              autoComplete="off"
+              disabled={pending}
+              {...textAutosaveProps}
+            />
+          </label>
+          <label className="settings-field">
+            <span>After logout</span>
+            <input
+              type="text"
+              name="authPostLogoutUrl"
+              defaultValue={successUrls.postLogoutUrl}
+              placeholder="/login"
+              autoComplete="off"
+              disabled={pending}
+              {...textAutosaveProps}
+            />
           </label>
         </fieldset>
       </div>
