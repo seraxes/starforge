@@ -45,9 +45,9 @@ The second row is the exception to “secrets never in the database.” Do not �
 
 One implementation for a behavior. The layout canvas is that implementation for arranging sections, rows, and percent-width slots.
 
-The Form builder is that same canvas with a field palette instead of a particle palette. Leave out what a form does not use: outlines, skin, inherit/copy, full-vs-boxed section width, particle config, custom HTML/JS. Keep the layout drag, the percent resize, the empty-row control, and drag-from-anywhere. Field schema, conditions, and validation stay form data. They open from the slot cog. They are not a second canvas.
+The Form builder is that same canvas (`src/app/(frontend)/admin/canvas/section-row-canvas.tsx`) with a field palette instead of a particle palette. It leaves out outlines, skin, inherit/copy, full-vs-boxed section width, particle config, and custom HTML/JS. It keeps the layout drag, the percent resize, the empty-row control, and drag-from-anywhere. Field schema, conditions, and validation stay form data. They open from the slot cog.
 
-This is not what the code does. `layout-editor.tsx` drags with native HTML5. `form-builder.tsx` drags with dnd-kit, and empty-row ids are copied in `src/core/forms/rows.ts`. Width math in `src/core/modules/grid.ts` is already shared. The gesture is not. Do not add another drag stack. Rebuild the form canvas on the layout one.
+Empty-row ids come from `nextEmptyRowId` in `src/core/modules/empty-row-id.ts`. Width math stays in `src/core/modules/grid.ts`. Do not add another drag stack. Nav item order and event tier order may still use dnd-kit; those are lists, not this canvas.
 
 ## Installer (decided 2026-11-10)
 
@@ -67,13 +67,12 @@ The content manager owns editorial pages (body, drafts, versions, the editor UI)
 
 Core → Modules → Hero still holds. **The active job is to finish and polish Core.** Do not open another product pack, and do not extend Events, Maps, or Payments, until that pass is done. “Done enough” is not the bar.
 
-Do not re-open work that already shipped: RateLimiter, captcha-in-security, the manifest host (M0–M2), Redis cache, the Skin port, dashboard D2–D4, the email send log, or module info pages.
+Do not re-open work that already shipped: RateLimiter, captcha-in-security, the manifest host (M0–M2), Redis cache, the Skin port, dashboard D2–D4, the email send log, module info pages, or the dashboard core glance and needs-attention rail (`system.health`, `chrome.posture`, `modules.summary`, `attention.rail`).
 
 **Now (Core finish), in order:**
 
-1. **Dashboard core glance and needs-attention.** `system.health`, chrome / robots / captcha posture, `modules.summary`, and a rail for offline, Mailer off, health, and env warnings. These cards do not exist yet.
-2. **Small host leftovers.** Consent category UI, redirect CSV import, and a dynamic admin-theme CSS import (the registry works; layouts still import Gantry statically). Fold Forms success mail onto Email Manager only — `src/core/forms/email-notify.ts` still calls `getMailer()` as well as `emitEmailTrigger`.
-3. **Structural finish, its own pass.** Move the Forms and Redirects engines out of `src/core` (manifest plan M3–M4). Not a side effect of a feature PR. The TipTap engine can follow the same way; do not start that extract just to fix the `MediaPicker` import.
+1. **Small host leftovers.** Consent category UI, redirect CSV import, and a dynamic admin-theme CSS import (the registry works; layouts still import Gantry statically). Fold Forms success mail onto Email Manager only — `src/core/forms/email-notify.ts` still calls `getMailer()` as well as `emitEmailTrigger`.
+2. **Structural finish, its own pass.** Move the Forms and Redirects engines out of `src/core` (manifest plan M3–M4). Not a side effect of a feature PR. The TipTap engine can follow the same way; do not start that extract just to fix the `MediaPicker` import.
 
 **Particle defaults are not a Core admin page.** They are demo content inside a skin pack: the particles that ship with that skin already have default text and parameters, so an installed skin is not empty. Build that when Starforge is ready to hand to other people as a demo. Do not add `/admin/particle-defaults` back.
 

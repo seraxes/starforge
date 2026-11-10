@@ -33,19 +33,26 @@ import {
   updateLayoutSectionMetaAction,
   type LayoutActionState,
 } from '@/core/modules/actions'
-import { layoutRowIsEmpty } from '@/core/modules/empty-rows'
 import { LayoutIdField, useLayoutOutlineId } from './layout-outline-context'
 import {
   clampGridWidth,
-  gridWidthPercent,
   LAYOUT_WIDTH_FULL,
   LAYOUT_WIDTH_MIN,
-  mosaicParticleBarDropEdge,
-  mosaicSectionDropEdge,
   pairMosaicSectionWidths,
-  resizeAdjacentPair,
   widthToPercentLabel,
 } from '@/core/modules/grid'
+import {
+  CanvasRows,
+  CanvasSectionFrame,
+  useCanvasSectionListDrag,
+  type CanvasRowModel,
+  type SectionDragBind,
+} from '../canvas/section-row-canvas'
+import {
+  DND_LAYOUT_PARTICLE,
+  moveIdInOrder,
+  type CanvasItemDrag,
+} from '../canvas/section-row-drag'
 import { sortLayoutSectionsByOrder } from '@/core/modules/section-order'
 import { cssColorToColorInputValue } from '@/core/modules/styles'
 import type { LayoutDocument, LayoutRow, LayoutSection, LayoutSlot } from '@/core/modules/types'
@@ -132,157 +139,11 @@ type Props = {
 
 const initialState: LayoutActionState = {}
 
-const DND_PARTICLE = 'application/x-starforge-particle'
-const DND_SECTION = 'application/x-starforge-section'
-/** Existing placed particle — JSON `{ sectionId, rowId, slotId }` (any section → any row). */
-const DND_SLOT = 'application/x-starforge-slot'
-/** Row within a section — JSON `{ sectionId, rowId }` (vertical particle stack order). */
-const DND_ROW = 'application/x-starforge-row'
-
-type RowDragPayload = {
-  sectionId: string
-  rowId: string
-}
-
-function encodeRowDragPayload(payload: RowDragPayload): string {
-  return JSON.stringify(payload)
-}
-
-function parseRowDragPayload(raw: string): RowDragPayload | null {
-  try {
-    const parsed = JSON.parse(raw) as RowDragPayload
-    if (
-      !parsed ||
-      typeof parsed.sectionId !== 'string' ||
-      typeof parsed.rowId !== 'string' ||
-      !parsed.sectionId.trim() ||
-      !parsed.rowId.trim()
-    ) {
-      return null
-    }
-    return { sectionId: parsed.sectionId.trim(), rowId: parsed.rowId.trim() }
-  } catch {
-    return null
-  }
-}
-
-function moveRowInOrder(rows: LayoutRow[], rowId: string, destIndex: number): LayoutRow[] {
-  const from = rows.findIndex((r) => r.id === rowId)
-  if (from < 0) return rows
-  const next = [...rows]
-  const [item] = next.splice(from, 1)
-  if (!item) return rows
-  let insertAt = destIndex
-  if (from < destIndex) insertAt -= 1
-  insertAt = Math.max(0, Math.min(insertAt, next.length))
-  next.splice(insertAt, 0, item)
-  return next.map((row, index) => ({ ...row, order: index }))
-}
-
-type SlotDragPayload = {
-  sectionId: string
-  rowId: string
-  slotId: string
-}
-
-function encodeSlotDragPayload(payload: SlotDragPayload): string {
-  return JSON.stringify(payload)
-}
-
-/** Interactive chrome that must not start a particle-bar drag. */
-function isLayoutSlotDragIgnoredTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof Element)) return false
-  return Boolean(
-    target.closest(
-      'input, textarea, select, a, label, .gantry-slot-actions, .gantry-settings-trigger, .gantry-bar-remove, .gantry-settings-layer',
-    ),
-  )
-}
-
-/**
- * HTML5 drag image: clone of the real mid-blue particle bar at ~50% opacity.
- * Removed after the browser snapshots it. Never throws — drag must still work.
- */
-function setHalfOpacityDragImage(event: React.DragEvent<HTMLElement>) {
-  try {
-    const src = event.currentTarget
-    const rect = src.getBoundingClientRect()
-    const ghost = src.cloneNode(true) as HTMLElement
-    ghost.setAttribute('aria-hidden', 'true')
-    ghost.style.position = 'fixed'
-    ghost.style.top = '-10000px'
-    ghost.style.left = '-10000px'
-    ghost.style.width = `${Math.max(rect.width, 1)}px`
-    ghost.style.height = `${Math.max(rect.height, 1)}px`
-    ghost.style.opacity = '0.5'
-    ghost.style.pointerEvents = 'none'
-    ghost.style.margin = '0'
-    ghost.style.zIndex = '10000'
-    ghost.removeAttribute('draggable')
-    document.body.appendChild(ghost)
-    event.dataTransfer.setDragImage(
-      ghost,
-      Math.max(0, event.clientX - rect.left),
-      Math.max(0, event.clientY - rect.top),
-    )
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => ghost.remove())
-    })
-  } catch {
-    // Browser may reject custom drag images; native drag continues.
-  }
-}
-
-function parseSlotDragPayload(raw: string): SlotDragPayload | null {
-  const trimmed = raw.trim()
-  if (!trimmed) return null
-  try {
-    const parsed = JSON.parse(trimmed) as Partial<SlotDragPayload>
-    if (
-      typeof parsed.sectionId === 'string' &&
-      parsed.sectionId &&
-      typeof parsed.rowId === 'string' &&
-      parsed.rowId &&
-      typeof parsed.slotId === 'string' &&
-      parsed.slotId
-    ) {
-      return {
-        sectionId: parsed.sectionId,
-        rowId: parsed.rowId,
-        slotId: parsed.slotId,
-      }
-    }
-  } catch {
-    // Legacy: plain slot id only — cannot move across sections without path.
-  }
-  return null
-}
-
 function withOutlineId(fd: FormData, layoutId: string): FormData {
   fd.set('layoutId', layoutId)
   return fd
 }
 
-function dataTransferHasType(dt: DataTransfer, type: string): boolean {
-  return [...dt.types].includes(type)
-}
-
-function moveSlotInOrder(
-  slots: LayoutSlot[],
-  slotId: string,
-  destIndex: number,
-): LayoutSlot[] {
-  const sorted = sortSlots(slots)
-  const fromIndex = sorted.findIndex((s) => s.id === slotId)
-  if (fromIndex < 0) return sorted
-  const next = [...sorted]
-  const [moved] = next.splice(fromIndex, 1)
-  let dest = destIndex
-  if (fromIndex < destIndex) dest = destIndex - 1
-  dest = Math.max(0, Math.min(dest, next.length))
-  next.splice(dest, 0, moved)
-  return next.map((slot, index) => ({ ...slot, order: index }))
-}
 
 function ActionFeedback({ state }: { state: LayoutActionState }) {
   if (state.error) {
@@ -407,75 +268,6 @@ function mergeSectionsFromServer(prev: LayoutSection[], next: LayoutSection[]): 
   })
 }
 
-function ResizeHandle({
-  sectionId,
-  rowId,
-  left,
-  right,
-  onLocalResize,
-  onCommit,
-}: {
-  sectionId: string
-  rowId: string
-  left: LayoutSlot
-  right: LayoutSlot
-  onLocalResize: (leftId: string, leftWidth: number, rightId: string, rightWidth: number) => void
-  onCommit: (leftId: string, leftWidth: number, rightId: string, rightWidth: number) => void
-}) {
-  const dragging = useRef(false)
-
-  return (
-    <div
-      className="gantry-resize-handle"
-      role="separator"
-      aria-orientation="vertical"
-      aria-label="Resize particles"
-      tabIndex={0}
-      onPointerDown={(event) => {
-        event.preventDefault()
-        event.stopPropagation()
-        const handle = event.currentTarget
-        const rowEl = handle.closest('.gantry-row-slots') as HTMLElement | null
-        const leftEl = handle.previousElementSibling as HTMLElement | null
-        if (!rowEl || !leftEl) return
-        dragging.current = true
-        handle.setPointerCapture(event.pointerId)
-        const pairSum = left.width + right.width
-        const rowRect = rowEl.getBoundingClientRect()
-        const pairLeft = leftEl.getBoundingClientRect().left - rowRect.left
-        let lastLeft = left.width
-        let lastRight = right.width
-
-        const onMove = (moveEvent: PointerEvent) => {
-          if (!dragging.current) return
-          const x = moveEvent.clientX - rowRect.left
-          // Widths are already percents; map pointer X → left % in 1% steps (5–95 when pair=100).
-          const pairWidthPx = Math.max(1, (pairSum / LAYOUT_WIDTH_FULL) * rowRect.width)
-          const localX = x - pairLeft
-          const newLeftPercent = (localX / pairWidthPx) * pairSum
-          const [lw, rw] = resizeAdjacentPair(left.width, right.width, newLeftPercent)
-          lastLeft = lw
-          lastRight = rw
-          onLocalResize(left.id, lw, right.id, rw)
-        }
-
-        const onUp = (upEvent: PointerEvent) => {
-          dragging.current = false
-          handle.releasePointerCapture(upEvent.pointerId)
-          window.removeEventListener('pointermove', onMove)
-          window.removeEventListener('pointerup', onUp)
-          onCommit(left.id, lastLeft, right.id, lastRight)
-          void sectionId
-          void rowId
-        }
-
-        window.addEventListener('pointermove', onMove)
-        window.addEventListener('pointerup', onUp)
-      }}
-    />
-  )
-}
-
 function ParticleBlock({
   sectionId,
   rowId,
@@ -486,13 +278,6 @@ function ParticleBlock({
   formDefinitions,
   formsModuleEnabled,
   primaryNavMenuId,
-  percent,
-  isDragging,
-  dropEdge,
-  onSlotDragStart,
-  onSlotDragEnd,
-  onSlotDragOver,
-  onSlotDrop,
   onSlotPatched,
   canInherit,
   particleInherited,
@@ -508,19 +293,6 @@ function ParticleBlock({
   formDefinitions: FormDefinitionOption[]
   formsModuleEnabled: boolean
   primaryNavMenuId: string
-  percent: number
-  isDragging: boolean
-  dropEdge: 'before' | 'after' | null
-  onSlotDragStart: (payload: SlotDragPayload) => void
-  onSlotDragEnd: () => void
-  /** placeBeside true → left/right line; false → stack above/below the row. */
-  onSlotDragOver: (
-    slotId: string,
-    edge: 'before' | 'after',
-    placeBeside: boolean,
-  ) => void
-  /** Drop uses the last drag-over hint (coords on drop are unreliable). */
-  onSlotDrop: (targetSlotId: string, payload: SlotDragPayload) => void
   onSlotPatched?: (patch: Partial<LayoutSlot>) => void
   canInherit: boolean
   particleInherited: boolean
@@ -581,87 +353,8 @@ function ParticleBlock({
     [layoutId, rowId, router, sectionId, slot.id, slot.name],
   )
 
-  const classNames = [
-    'gantry-slot',
-    'is-slot-grab',
-    particleInherited || sectionStructureInherited ? 'sf-inherited-muted' : '',
-    isDragging ? 'is-slot-dragging' : '',
-    dropEdge === 'before' ? 'is-slot-drop-before' : '',
-    dropEdge === 'after' ? 'is-slot-drop-after' : '',
-  ]
-    .filter(Boolean)
-    .join(' ')
-
   return (
-    <article
-      className={classNames}
-      data-enabled={enabled ? 'true' : 'false'}
-      data-sf-width={slot.width}
-      data-sf-slot={slot.id}
-      draggable
-      title={`Drag ${displayName} to move — blue line shows where it will land`}
-      style={{
-        /* Grow by % share so resize handles don't force wrap/overflow. */
-        flex: `${percent} 1 0`,
-        minWidth: 0,
-        maxWidth: '100%',
-        boxSizing: 'border-box',
-        cursor: isDragging ? 'grabbing' : 'grab',
-      }}
-      onMouseDown={(event) => {
-        // Name field / cog / remove must not start an HTML5 drag.
-        const el = event.currentTarget as HTMLElement
-        el.draggable = !isLayoutSlotDragIgnoredTarget(event.target)
-      }}
-      onMouseUp={(event) => {
-        ;(event.currentTarget as HTMLElement).draggable = true
-      }}
-      onMouseLeave={(event) => {
-        // Restore after clicking into name/cog without a following drag.
-        if (!isDragging) (event.currentTarget as HTMLElement).draggable = true
-      }}
-      onDragStart={(event) => {
-        if (isLayoutSlotDragIgnoredTarget(event.target)) {
-          event.preventDefault()
-          ;(event.currentTarget as HTMLElement).draggable = true
-          return
-        }
-        const payload: SlotDragPayload = {
-          sectionId,
-          rowId,
-          slotId: slot.id,
-        }
-        event.dataTransfer.setData(DND_SLOT, encodeSlotDragPayload(payload))
-        event.dataTransfer.setData('text/plain', slot.id)
-        event.dataTransfer.effectAllowed = 'move'
-        setHalfOpacityDragImage(event)
-        onSlotDragStart(payload)
-      }}
-      onDragEnd={(event) => {
-        ;(event.currentTarget as HTMLElement).draggable = true
-        onSlotDragEnd()
-      }}
-      onDragOver={(event) => {
-        if (!dataTransferHasType(event.dataTransfer, DND_SLOT)) return
-        event.preventDefault()
-        event.stopPropagation()
-        event.dataTransfer.dropEffect = 'move'
-        const rect = event.currentTarget.getBoundingClientRect()
-        // Band-based: top/bottom → stack row; middle → beside (wide bars ≠ section mosaic).
-        const edge = mosaicParticleBarDropEdge(event.clientX, event.clientY, rect)
-        onSlotDragOver(slot.id, edge.position, edge.placeBeside)
-      }}
-      onDrop={(event) => {
-        if (!dataTransferHasType(event.dataTransfer, DND_SLOT)) return
-        event.preventDefault()
-        event.stopPropagation()
-        const payload = parseSlotDragPayload(event.dataTransfer.getData(DND_SLOT))
-        if (!payload) return
-        // Honor the blue-line hint from dragover — do not recompute from drop coords.
-        onSlotDrop(slot.id, payload)
-      }}
-    >
-      <header className="gantry-slot-head">
+    <header className="gantry-slot-head">
         <div className="gantry-slot-title">
           <span
             className="gantry-slot-handle"
@@ -845,452 +538,6 @@ function ParticleBlock({
           </div>
         </div>
       </header>
-    </article>
-  )
-}
-
-function DropRow({
-  sectionId,
-  row,
-  modules,
-  groups,
-  navMenus,
-  formDefinitions,
-  formsModuleEnabled,
-  primaryNavMenuId,
-  localSlots,
-  setLocalSlots,
-  isDraggingRow,
-  rowDropEdge,
-  draggingSlotId,
-  slotDropHint,
-  onSlotDragStart,
-  onSlotDragEnd,
-  onSlotDragOver,
-  onRowDragStart,
-  onRowDragEnd,
-  onRowDragOver,
-  onRowDrop,
-  onParticleStack,
-  canInherit,
-  rawDocument,
-  parentDocument,
-  sectionStructureInherited,
-}: {
-  sectionId: string
-  row: LayoutRow
-  modules: ModuleOption[]
-  groups: UserGroupOption[]
-  navMenus: NavMenuOption[]
-  formDefinitions: FormDefinitionOption[]
-  formsModuleEnabled: boolean
-  primaryNavMenuId: string
-  localSlots: LayoutSlot[]
-  setLocalSlots: (slots: LayoutSlot[]) => void
-  isDraggingRow: boolean
-  rowDropEdge: 'before' | 'after' | null
-  /** Section-level: which particle is being dragged (any row). */
-  draggingSlotId: string | null
-  /** Section-level insert hint for a particle in this row (beside). */
-  slotDropHint: { slotId: string; edge: 'before' | 'after' } | null
-  onSlotDragStart: (payload: SlotDragPayload) => void
-  onSlotDragEnd: () => void
-  onSlotDragOver: (
-    slotId: string,
-    edge: 'before' | 'after',
-    placeBeside: boolean,
-  ) => void
-  onRowDragStart: (payload: RowDragPayload) => void
-  onRowDragEnd: () => void
-  onRowDragOver: (rowId: string, edge: 'before' | 'after') => void
-  onRowDrop: (targetRowId: string, edge: 'before' | 'after', payload: RowDragPayload) => void
-  /** Section-level stack (above/below) — optimistic when possible. */
-  onParticleStack: (
-    payload: SlotDragPayload,
-    position: 'before' | 'after',
-  ) => void
-  canInherit: boolean
-  rawDocument?: LayoutDocument
-  parentDocument?: LayoutDocument | null
-  sectionStructureInherited: boolean
-}) {
-  const router = useRouter()
-  const layoutId = useLayoutOutlineId()
-  const [pending, startTransition] = useTransition()
-  const [dropActive, setDropActive] = useState(false)
-  const [flash, setFlash] = useState<LayoutActionState>({})
-  const [acceptingForeignSlot, setAcceptingForeignSlot] = useState(false)
-  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const slots = sortSlots(localSlots)
-  const isEmptyRow = slots.length === 0
-
-  const scheduleRefresh = useCallback(() => {
-    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current)
-    // Give the canvas a beat after the local move before RSC refresh.
-    refreshTimerRef.current = setTimeout(() => {
-      refreshTimerRef.current = null
-      router.refresh()
-    }, 500)
-  }, [router])
-
-  const persistRemoveEmptyRow = useCallback(() => {
-    const fd = withOutlineId(new FormData(), layoutId)
-    fd.set('sectionId', sectionId)
-    fd.set('rowId', row.id)
-    startTransition(async () => {
-      const result = await removeLayoutRowAction({}, fd)
-      setFlash(result)
-      router.refresh()
-    })
-  }, [layoutId, row.id, router, sectionId])
-
-  const persistDrop = useCallback(
-    (moduleId: string, index?: number) => {
-      const fd = withOutlineId(new FormData(), layoutId)
-      fd.set('sectionId', sectionId)
-      fd.set('rowId', row.id)
-      fd.set('moduleId', moduleId)
-      if (index != null) fd.set('index', String(index))
-      startTransition(async () => {
-        const result = await dropParticleIntoRowAction({}, fd)
-        setFlash(result)
-        router.refresh()
-      })
-    },
-    [layoutId, row.id, router, sectionId],
-  )
-
-  const persistSlotOrder = useCallback(
-    (ordered: LayoutSlot[]) => {
-      const fd = withOutlineId(new FormData(), layoutId)
-      fd.set('sectionId', sectionId)
-      fd.set('rowId', row.id)
-      fd.set('orderJson', JSON.stringify(ordered.map((s) => s.id)))
-      startTransition(async () => {
-        await reorderRowSlotsAction({}, fd)
-        scheduleRefresh()
-      })
-    },
-    [layoutId, row.id, scheduleRefresh, sectionId],
-  )
-
-  const persistMoveSlot = useCallback(
-    (payload: SlotDragPayload, index?: number) => {
-      const fd = withOutlineId(new FormData(), layoutId)
-      fd.set('sourceSectionId', payload.sectionId)
-      fd.set('sourceRowId', payload.rowId)
-      fd.set('slotId', payload.slotId)
-      fd.set('targetSectionId', sectionId)
-      fd.set('targetRowId', row.id)
-      if (index != null) fd.set('index', String(index))
-      startTransition(async () => {
-        const result = await moveSlotToRowAction({}, fd)
-        if (result.error) setFlash(result)
-        scheduleRefresh()
-      })
-    },
-    [layoutId, row.id, scheduleRefresh, sectionId],
-  )
-
-  const clearLocalDropUi = useCallback(() => {
-    setAcceptingForeignSlot(false)
-    setDropActive(false)
-  }, [])
-
-  const finishSlotDrag = useCallback(() => {
-    clearLocalDropUi()
-    onSlotDragEnd()
-  }, [clearLocalDropUi, onSlotDragEnd])
-
-  const handleSlotDrop = useCallback(
-    (targetSlotId: string, payload: SlotDragPayload) => {
-      // Trust the blue-line hint from dragover (not drop-event coords).
-      const stackEdge = rowDropEdge
-      if (stackEdge) {
-        finishSlotDrag()
-        onParticleStack(payload, stackEdge)
-        return
-      }
-
-      const edge =
-        slotDropHint?.slotId === targetSlotId ? slotDropHint.edge : 'after'
-      const sorted = sortSlots(localSlots)
-      const targetIndex = sorted.findIndex((s) => s.id === targetSlotId)
-      if (targetIndex < 0) {
-        finishSlotDrag()
-        return
-      }
-      const destIndex = edge === 'before' ? targetIndex : targetIndex + 1
-      const sameRow = payload.sectionId === sectionId && payload.rowId === row.id
-
-      if (sameRow) {
-        const fromIndex = sorted.findIndex((s) => s.id === payload.slotId)
-        // No-op when dropping onto own edges that keep the same position.
-        if (
-          fromIndex < 0 ||
-          destIndex === fromIndex ||
-          destIndex === fromIndex + 1
-        ) {
-          finishSlotDrag()
-          return
-        }
-        const next = moveSlotInOrder(localSlots, payload.slotId, destIndex)
-        setLocalSlots(next)
-        finishSlotDrag()
-        persistSlotOrder(next)
-        return
-      }
-
-      // Other row / section: move this particle beside the target (left/right blue line).
-      finishSlotDrag()
-      persistMoveSlot(payload, destIndex)
-    },
-    [
-      finishSlotDrag,
-      localSlots,
-      onParticleStack,
-      persistMoveSlot,
-      persistSlotOrder,
-      row.id,
-      rowDropEdge,
-      sectionId,
-      setLocalSlots,
-      slotDropHint,
-    ],
-  )
-
-  const commitResize = useCallback(
-    (leftId: string, leftWidth: number, rightId: string, rightWidth: number) => {
-      const fd = withOutlineId(new FormData(), layoutId)
-      fd.set('sectionId', sectionId)
-      fd.set('rowId', row.id)
-      fd.set('leftSlotId', leftId)
-      fd.set('rightSlotId', rightId)
-      fd.set('leftWidth', String(leftWidth))
-      startTransition(async () => {
-        const result = await resizeAdjacentSlotsAction({}, fd)
-        setFlash(result)
-        // Keep local in sync even before refresh
-        setLocalSlots(
-          localSlots.map((s) => {
-            if (s.id === leftId) return { ...s, width: leftWidth }
-            if (s.id === rightId) return { ...s, width: rightWidth }
-            return s
-          }),
-        )
-        router.refresh()
-        void rightWidth
-      })
-    },
-    [layoutId, localSlots, row.id, router, sectionId, setLocalSlots],
-  )
-
-  const rowClassNames = [
-    'gantry-row',
-    dropActive || acceptingForeignSlot ? 'is-drop-target' : '',
-    isDraggingRow ? 'is-row-dragging' : '',
-    draggingSlotId ? 'is-slot-dnd-active' : '',
-    // Top/bottom line: empty-row reorder OR particle stack (between bars).
-    rowDropEdge === 'before' ? 'is-row-drop-before' : '',
-    rowDropEdge === 'after' ? 'is-row-drop-after' : '',
-  ]
-    .filter(Boolean)
-    .join(' ')
-
-  return (
-    <div
-      className={rowClassNames}
-      data-sf-row={row.id}
-      onDragOver={(event) => {
-        // Pure row drag (empty-row handle) — never while a particle is mid-drag.
-        if (
-          !draggingSlotId &&
-          dataTransferHasType(event.dataTransfer, DND_ROW) &&
-          !dataTransferHasType(event.dataTransfer, DND_SLOT)
-        ) {
-          event.preventDefault()
-          event.stopPropagation()
-          event.dataTransfer.dropEffect = 'move'
-          const rect = event.currentTarget.getBoundingClientRect()
-          const mid = rect.top + rect.height / 2
-          onRowDragOver(row.id, event.clientY < mid ? 'before' : 'after')
-          return
-        }
-        if (dataTransferHasType(event.dataTransfer, DND_PARTICLE)) {
-          event.preventDefault()
-          event.dataTransfer.dropEffect = 'copy'
-          setDropActive(true)
-          return
-        }
-        if (dataTransferHasType(event.dataTransfer, DND_SLOT)) {
-          event.preventDefault()
-          event.dataTransfer.dropEffect = 'move'
-          setAcceptingForeignSlot(true)
-          setDropActive(true)
-        }
-      }}
-      onDragLeave={(event) => {
-        if (event.currentTarget.contains(event.relatedTarget as Node)) return
-        clearLocalDropUi()
-      }}
-      onDrop={(event) => {
-        event.preventDefault()
-        const slotPayload = parseSlotDragPayload(event.dataTransfer.getData(DND_SLOT))
-        // Particle onto row chrome — honor stack hint, else merge into this row.
-        if (slotPayload) {
-          const sameRow =
-            slotPayload.sectionId === sectionId && slotPayload.rowId === row.id
-          const stackEdge = rowDropEdge
-          finishSlotDrag()
-          if (stackEdge) {
-            onParticleStack(slotPayload, stackEdge)
-            return
-          }
-          if (sameRow) return
-          persistMoveSlot(slotPayload)
-          return
-        }
-        const rowPayload = parseRowDragPayload(event.dataTransfer.getData(DND_ROW))
-        if (rowPayload && rowPayload.sectionId === sectionId) {
-          event.stopPropagation()
-          const rect = event.currentTarget.getBoundingClientRect()
-          const mid = rect.top + rect.height / 2
-          onRowDrop(row.id, event.clientY < mid ? 'before' : 'after', rowPayload)
-          return
-        }
-        // Palette particle into row.
-        const moduleId = event.dataTransfer.getData(DND_PARTICLE)
-        clearLocalDropUi()
-        if (!moduleId) return
-        persistDrop(moduleId)
-      }}
-    >
-      {isEmptyRow ? (
-        <div className="gantry-row-meta sf-layout-empty-row-meta">
-          <span className="gantry-row-meta-label">
-            Empty row · drop particles here · drag empty zone to reorder
-          </span>
-          <div className="gantry-row-actions">
-            <button
-              type="button"
-              className="gantry-toolbar-btn secondary"
-              title="Close empty drop row"
-              disabled={pending}
-              onClick={persistRemoveEmptyRow}
-            >
-              − row
-            </button>
-          </div>
-        </div>
-      ) : null}
-
-      <div className="gantry-row-slots">
-        {slots.length === 0 ? (
-          <div
-            className="gantry-row-empty"
-            draggable
-            title="Drag empty row to reorder"
-            onDragStart={(event) => {
-              event.stopPropagation()
-              const payload: RowDragPayload = { sectionId, rowId: row.id }
-              event.dataTransfer.setData(DND_ROW, encodeRowDragPayload(payload))
-              event.dataTransfer.setData('text/plain', row.id)
-              event.dataTransfer.effectAllowed = 'move'
-              setHalfOpacityDragImage(event)
-              onRowDragStart(payload)
-            }}
-            onDragEnd={(event) => {
-              event.stopPropagation()
-              onRowDragEnd()
-            }}
-          >
-            Drop particles here… · drag to reorder row
-          </div>
-        ) : (
-          slots.map((slot, index) => {
-            const percent = gridWidthPercent(slot.width)
-            const next = slots[index + 1]
-            return (
-              <React.Fragment key={slot.id}>
-                <ParticleBlock
-                  sectionId={sectionId}
-                  rowId={row.id}
-                  slot={slot}
-                  modules={modules}
-                  groups={groups}
-                  navMenus={navMenus}
-                  formDefinitions={formDefinitions}
-                  formsModuleEnabled={formsModuleEnabled}
-                  primaryNavMenuId={primaryNavMenuId}
-                  percent={percent}
-                  isDragging={draggingSlotId === slot.id}
-                  dropEdge={
-                    slotDropHint?.slotId === slot.id && draggingSlotId !== slot.id
-                      ? slotDropHint.edge
-                      : null
-                  }
-                  onSlotDragStart={(payload) => {
-                    setAcceptingForeignSlot(false)
-                    onSlotDragStart(payload)
-                  }}
-                  onSlotDragEnd={finishSlotDrag}
-                  onSlotDragOver={(id, edge, placeBeside) => {
-                    if (draggingSlotId === id) return
-                    setAcceptingForeignSlot(placeBeside)
-                    onSlotDragOver(id, edge, placeBeside)
-                  }}
-                  onSlotDrop={(id, payload) => handleSlotDrop(id, payload)}
-                  onSlotPatched={(patch) => {
-                    setLocalSlots(
-                      localSlots.map((s) => {
-                        if (s.id !== slot.id) return s
-                        const next: LayoutSlot = { ...s, ...patch }
-                        if ('htmlId' in patch && !patch.htmlId) delete next.htmlId
-                        if ('cssClass' in patch && !patch.cssClass) delete next.cssClass
-                        return next
-                      }),
-                    )
-                  }}
-                  canInherit={canInherit}
-                  particleInherited={rawSlotInherited(
-                    rawDocument,
-                    sectionId,
-                    row.id,
-                    slot.id,
-                  )}
-                  parentHasMatchingSlot={parentHasSlot(
-                    parentDocument,
-                    sectionId,
-                    slot.id,
-                  )}
-                  sectionStructureInherited={sectionStructureInherited}
-                />
-                {next ? (
-                  <ResizeHandle
-                    sectionId={sectionId}
-                    rowId={row.id}
-                    left={slot}
-                    right={next}
-                    onLocalResize={(leftId, lw, rightId, rw) => {
-                      setLocalSlots(
-                        localSlots.map((s) => {
-                          if (s.id === leftId) return { ...s, width: lw }
-                          if (s.id === rightId) return { ...s, width: rw }
-                          return s
-                        }),
-                      )
-                    }}
-                    onCommit={commitResize}
-                  />
-                ) : null}
-              </React.Fragment>
-            )
-          })
-        )}
-      </div>
-      <ActionFeedback state={flash} />
-    </div>
   )
 }
 
@@ -1303,18 +550,11 @@ function SectionCanvas({
   formsModuleEnabled,
   primaryNavMenuId,
   canRemoveSection,
-  isDraggingSection,
-  dropPosition,
-  placeBesideHint,
-  onSectionDragStart,
-  onSectionDragEnd,
-  onSectionDragOver,
-  onSectionDrop,
+  drag,
   onSectionRemoved,
   canInherit,
   rawDocument,
   parentDocument,
-  parentLayoutId,
 }: {
   section: LayoutSection
   modules: ModuleOption[]
@@ -1324,26 +564,11 @@ function SectionCanvas({
   formsModuleEnabled: boolean
   primaryNavMenuId: string
   canRemoveSection: boolean
-  isDraggingSection: boolean
-  dropPosition: 'before' | 'after' | null
-  placeBesideHint: boolean
-  onSectionDragStart: (sectionId: string) => void
-  onSectionDragEnd: () => void
-  onSectionDragOver: (
-    sectionId: string,
-    position: 'before' | 'after',
-    placeBeside: boolean,
-  ) => void
-  onSectionDrop: (
-    targetSectionId: string,
-    position: 'before' | 'after',
-    placeBeside: boolean,
-  ) => void
+  drag: SectionDragBind
   onSectionRemoved: (sectionId: string) => void
   canInherit: boolean
   rawDocument?: LayoutDocument
   parentDocument?: LayoutDocument | null
-  parentLayoutId?: string | null
 }) {
   const router = useRouter()
   const layoutId = useLayoutOutlineId()
@@ -1367,18 +592,172 @@ function SectionCanvas({
     return map
   })
   const [slotMapSource, setSlotMapSource] = useState(section)
-  const [draggingRowId, setDraggingRowId] = useState<string | null>(null)
-  const [rowDropHint, setRowDropHint] = useState<{
-    rowId: string
-    edge: 'before' | 'after'
-  } | null>(null)
-  /** Particle drag UI lives at section level so left/right lines work across rows. */
-  const [draggingSlotId, setDraggingSlotId] = useState<string | null>(null)
-  const [slotDropHint, setSlotDropHint] = useState<{
-    rowId: string
-    slotId: string
-    edge: 'before' | 'after'
-  } | null>(null)
+  const [rowNotices, setRowNotices] = useState<Record<string, LayoutActionState>>({})
+
+  const rows = localRows
+  const [rowPending, startRowTransition] = useTransition()
+
+  const persistAddEmptyRow = useCallback(() => {
+    const fd = withOutlineId(new FormData(), layoutId)
+    fd.set('sectionId', section.id)
+    startRowTransition(async () => {
+      await addLayoutRowAction({}, fd)
+      router.refresh()
+    })
+  }, [layoutId, router, section.id])
+
+  const rowRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const scheduleRowRefresh = useCallback(() => {
+    if (rowRefreshTimerRef.current) clearTimeout(rowRefreshTimerRef.current)
+    rowRefreshTimerRef.current = setTimeout(() => {
+      rowRefreshTimerRef.current = null
+      router.refresh()
+    }, 500)
+  }, [router])
+
+  const persistRowOrder = useCallback(
+    (ordered: LayoutRow[]) => {
+      const fd = withOutlineId(new FormData(), layoutId)
+      fd.set('sectionId', section.id)
+      fd.set('orderJson', JSON.stringify(ordered.map((r) => r.id)))
+      startRowTransition(async () => {
+        const result = await reorderLayoutRowsAction({}, fd)
+        if (result.error) notifyError(result.error)
+        scheduleRowRefresh()
+      })
+    },
+    [layoutId, notifyError, scheduleRowRefresh, section.id],
+  )
+
+  const persistRemoveEmptyRow = useCallback(
+    (rowId: string) => {
+      const fd = withOutlineId(new FormData(), layoutId)
+      fd.set('sectionId', section.id)
+      fd.set('rowId', rowId)
+      startRowTransition(async () => {
+        const result = await removeLayoutRowAction({}, fd)
+        setRowNotices((prev) => ({ ...prev, [rowId]: result }))
+        router.refresh()
+      })
+    },
+    [layoutId, router, section.id],
+  )
+
+  const persistDrop = useCallback(
+    (rowId: string, moduleId: string) => {
+      const fd = withOutlineId(new FormData(), layoutId)
+      fd.set('sectionId', section.id)
+      fd.set('rowId', rowId)
+      fd.set('moduleId', moduleId)
+      startRowTransition(async () => {
+        const result = await dropParticleIntoRowAction({}, fd)
+        setRowNotices((prev) => ({ ...prev, [rowId]: result }))
+        router.refresh()
+      })
+    },
+    [layoutId, router, section.id],
+  )
+
+  const persistSlotOrder = useCallback(
+    (rowId: string, ordered: LayoutSlot[]) => {
+      const fd = withOutlineId(new FormData(), layoutId)
+      fd.set('sectionId', section.id)
+      fd.set('rowId', rowId)
+      fd.set('orderJson', JSON.stringify(ordered.map((s) => s.id)))
+      startRowTransition(async () => {
+        await reorderRowSlotsAction({}, fd)
+        scheduleRowRefresh()
+      })
+    },
+    [layoutId, scheduleRowRefresh, section.id],
+  )
+
+  const persistMoveSlot = useCallback(
+    (rowId: string, payload: CanvasItemDrag, index?: number) => {
+      const fd = withOutlineId(new FormData(), layoutId)
+      fd.set('sourceSectionId', payload.sectionId)
+      fd.set('sourceRowId', payload.rowId)
+      fd.set('slotId', payload.itemId)
+      fd.set('targetSectionId', section.id)
+      fd.set('targetRowId', rowId)
+      if (index != null) fd.set('index', String(index))
+      startRowTransition(async () => {
+        const result = await moveSlotToRowAction({}, fd)
+        if (result.error) setRowNotices((prev) => ({ ...prev, [rowId]: result }))
+        scheduleRowRefresh()
+      })
+    },
+    [layoutId, scheduleRowRefresh, section.id],
+  )
+
+  const persistResize = useCallback(
+    (rowId: string, leftId: string, rightId: string, leftWidth: number, rightWidth: number) => {
+      const fd = withOutlineId(new FormData(), layoutId)
+      fd.set('sectionId', section.id)
+      fd.set('rowId', rowId)
+      fd.set('leftSlotId', leftId)
+      fd.set('rightSlotId', rightId)
+      fd.set('leftWidth', String(leftWidth))
+      startRowTransition(async () => {
+        const result = await resizeAdjacentSlotsAction({}, fd)
+        setRowNotices((prev) => ({ ...prev, [rowId]: result }))
+        setSlotMap((prev) => ({
+          ...prev,
+          [rowId]: (prev[rowId] ?? []).map((slot) => {
+            if (slot.id === leftId) return { ...slot, width: leftWidth }
+            if (slot.id === rightId) return { ...slot, width: rightWidth }
+            return slot
+          }),
+        }))
+        router.refresh()
+      })
+    },
+    [layoutId, router, section.id],
+  )
+
+  /**
+   * Particle stack (horizontal blue line): prefer instant local row reorder when
+   * the dragged particle is alone in its row; otherwise persist via server action.
+   */
+  const handleParticleStack = useCallback(
+    (payload: CanvasItemDrag, targetRowId: string, position: 'before' | 'after') => {
+      const sameSection = payload.sectionId === section.id
+      const sourceSlots = sameSection
+        ? slotMap[payload.rowId] ??
+          localRows.find((r) => r.id === payload.rowId)?.slots ??
+          []
+        : []
+      const soloInSection = sameSection && sortSlots(sourceSlots).length === 1
+
+      if (soloInSection) {
+        const sorted = sortRows(localRows)
+        const targetIndex = sorted.findIndex((r) => r.id === targetRowId)
+        const fromIndex = sorted.findIndex((r) => r.id === payload.rowId)
+        if (targetIndex < 0 || fromIndex < 0) return
+        const destIndex = position === 'before' ? targetIndex : targetIndex + 1
+        if (destIndex === fromIndex || destIndex === fromIndex + 1) return
+        const moved = moveIdInOrder(sorted, payload.rowId, destIndex, (row) => row.id)
+        const next = moved.map((row, index) => ({ ...row, order: index }))
+        setLocalRows(next)
+        persistRowOrder(next)
+        return
+      }
+
+      const fd = withOutlineId(new FormData(), layoutId)
+      fd.set('sourceSectionId', payload.sectionId)
+      fd.set('sourceRowId', payload.rowId)
+      fd.set('slotId', payload.itemId)
+      fd.set('targetSectionId', section.id)
+      fd.set('targetRowId', targetRowId)
+      fd.set('position', position)
+      startRowTransition(async () => {
+        const result = await stackSlotAsRowAction({}, fd)
+        if (result.error) notifyError(result.error)
+        scheduleRowRefresh()
+      })
+    },
+    [layoutId, localRows, notifyError, persistRowOrder, scheduleRowRefresh, section.id, slotMap],
+  )
 
   // Soft-merge slot rows when the server section refreshes (autosave) — keep topology stable.
   if (section !== slotMapSource) {
@@ -1428,130 +807,6 @@ function SectionCanvas({
     })
   }
 
-  const rows = localRows
-  const [rowPending, startRowTransition] = useTransition()
-
-  const persistAddEmptyRow = useCallback(() => {
-    const fd = withOutlineId(new FormData(), layoutId)
-    fd.set('sectionId', section.id)
-    startRowTransition(async () => {
-      await addLayoutRowAction({}, fd)
-      router.refresh()
-    })
-  }, [layoutId, router, section.id])
-
-  const rowRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const scheduleRowRefresh = useCallback(() => {
-    if (rowRefreshTimerRef.current) clearTimeout(rowRefreshTimerRef.current)
-    rowRefreshTimerRef.current = setTimeout(() => {
-      rowRefreshTimerRef.current = null
-      router.refresh()
-    }, 500)
-  }, [router])
-
-  const persistRowOrder = useCallback(
-    (ordered: LayoutRow[]) => {
-      const fd = withOutlineId(new FormData(), layoutId)
-      fd.set('sectionId', section.id)
-      fd.set('orderJson', JSON.stringify(ordered.map((r) => r.id)))
-      startRowTransition(async () => {
-        const result = await reorderLayoutRowsAction({}, fd)
-        if (result.error) notifyError(result.error)
-        scheduleRowRefresh()
-      })
-    },
-    [layoutId, notifyError, scheduleRowRefresh, section.id],
-  )
-
-  const clearRowDragUi = useCallback(() => {
-    setDraggingRowId(null)
-    setRowDropHint(null)
-  }, [])
-
-  const clearSlotDragUi = useCallback(() => {
-    setDraggingSlotId(null)
-    setSlotDropHint(null)
-    setRowDropHint(null)
-  }, [])
-
-  const handleRowDrop = useCallback(
-    (targetRowId: string, edge: 'before' | 'after', payload: RowDragPayload) => {
-      if (payload.sectionId !== section.id) {
-        clearRowDragUi()
-        return
-      }
-      const sorted = sortRows(localRows)
-      const targetIndex = sorted.findIndex((r) => r.id === targetRowId)
-      const fromIndex = sorted.findIndex((r) => r.id === payload.rowId)
-      if (targetIndex < 0 || fromIndex < 0) {
-        clearRowDragUi()
-        return
-      }
-      const destIndex = edge === 'before' ? targetIndex : targetIndex + 1
-      if (destIndex === fromIndex || destIndex === fromIndex + 1) {
-        clearRowDragUi()
-        return
-      }
-      const next = moveRowInOrder(sorted, payload.rowId, destIndex)
-      setLocalRows(next)
-      clearRowDragUi()
-      persistRowOrder(next)
-    },
-    [clearRowDragUi, localRows, persistRowOrder, section.id],
-  )
-
-  /**
-   * Particle stack (horizontal blue line): prefer instant local row reorder when
-   * the dragged particle is alone in its row; otherwise persist via server action.
-   */
-  const handleParticleStack = useCallback(
-    (payload: SlotDragPayload, targetRowId: string, position: 'before' | 'after') => {
-      clearSlotDragUi()
-      const sameSection = payload.sectionId === section.id
-      const sourceSlots = sameSection
-        ? slotMap[payload.rowId] ??
-          localRows.find((r) => r.id === payload.rowId)?.slots ??
-          []
-        : []
-      const soloInSection = sameSection && sortSlots(sourceSlots).length === 1
-
-      if (soloInSection) {
-        const sorted = sortRows(localRows)
-        const targetIndex = sorted.findIndex((r) => r.id === targetRowId)
-        const fromIndex = sorted.findIndex((r) => r.id === payload.rowId)
-        if (targetIndex < 0 || fromIndex < 0) return
-        const destIndex = position === 'before' ? targetIndex : targetIndex + 1
-        if (destIndex === fromIndex || destIndex === fromIndex + 1) return
-        const next = moveRowInOrder(sorted, payload.rowId, destIndex)
-        setLocalRows(next)
-        persistRowOrder(next)
-        return
-      }
-
-      const fd = withOutlineId(new FormData(), layoutId)
-      fd.set('sourceSectionId', payload.sectionId)
-      fd.set('sourceRowId', payload.rowId)
-      fd.set('slotId', payload.slotId)
-      fd.set('targetSectionId', section.id)
-      fd.set('targetRowId', targetRowId)
-      fd.set('position', position)
-      startRowTransition(async () => {
-        const result = await stackSlotAsRowAction({}, fd)
-        if (result.error) notifyError(result.error)
-        scheduleRowRefresh()
-      })
-    },
-    [
-      clearSlotDragUi,
-      layoutId,
-      localRows,
-      notifyError,
-      persistRowOrder,
-      scheduleRowRefresh,
-      section.id,
-      slotMap,
-    ],
-  )
 
   const persistSectionMeta = useCallback(
     (fields: {
@@ -1639,133 +894,35 @@ function SectionCanvas({
     ],
   )
 
-  const classNames = [
-    'gantry-section',
-    structureInherited ? 'sf-inherited-muted' : '',
-    isDraggingSection ? 'is-section-dragging' : '',
-    dropPosition === 'before' ? 'is-section-drop-before' : '',
-    dropPosition === 'after' ? 'is-section-drop-after' : '',
-    placeBesideHint ? 'is-section-drop-inline' : '',
-  ]
-    .filter(Boolean)
-    .join(' ')
-
   const sectionWidth = clampGridWidth(section.width ?? LAYOUT_WIDTH_FULL, LAYOUT_WIDTH_FULL)
+  const canvasRows: CanvasRowModel[] = rows.map((row) => ({
+    id: row.id,
+    items: sortSlots(slotMap[row.id] ?? row.slots).map((slot) => ({
+      id: slot.id,
+      width: slot.width,
+    })),
+  }))
 
   return (
-    <li
-      className={classNames}
-      data-sf-section={section.id}
-      data-sf-width={sectionWidth}
-      onDragOver={(event) => {
-        if (![...event.dataTransfer.types].includes(DND_SECTION)) return
-        event.preventDefault()
-        event.stopPropagation()
-        event.dataTransfer.dropEffect = 'move'
-        const edge = mosaicSectionDropEdge(
-          event.clientX,
-          event.clientY,
-          event.currentTarget.getBoundingClientRect(),
-        )
-        onSectionDragOver(section.id, edge.position, edge.placeBeside)
-      }}
-      onDrop={(event) => {
-        if (![...event.dataTransfer.types].includes(DND_SECTION)) return
-        event.preventDefault()
-        event.stopPropagation()
-        const edge = mosaicSectionDropEdge(
-          event.clientX,
-          event.clientY,
-          event.currentTarget.getBoundingClientRect(),
-        )
-        onSectionDrop(section.id, edge.position, edge.placeBeside)
-      }}
-    >
-      <header className="gantry-section-head">
-        <div className="gantry-section-title">
-          <button
-            type="button"
-            className="gantry-section-handle"
-            draggable
-            title="Drag: drop above/below to reorder, left/right to place beside"
-            aria-label={`Drag to move section ${section.label}`}
-            onDragStart={(event) => {
-              event.stopPropagation()
-              event.dataTransfer.setData(DND_SECTION, section.id)
-              event.dataTransfer.setData('text/plain', section.id)
-              event.dataTransfer.effectAllowed = 'move'
-              onSectionDragStart(section.id)
-            }}
-            onDragEnd={onSectionDragEnd}
-          >
-            ⋮⋮
-          </button>
-          <div className="gantry-section-identity">
-            {structureInherited ? (
-              <span className="gantry-inherit-badge" title="Structure inherited from parent outline">
-                Inherited
-              </span>
-            ) : null}
-            <label className="gantry-inline-label gantry-section-name-label">
-              <span className="sr-only">Section name</span>
-              <input
-                key={`section-label-${section.id}-${section.label}`}
-                type="text"
-                className="gantry-inline-input gantry-section-name-input"
-                defaultValue={section.label}
-                disabled={metaPending}
-                required
-                title="Section display name"
-                aria-label="Section name"
-                onBlur={(event) => {
-                  const next = event.target.value.trim()
-                  if (!next) {
-                    event.target.value = section.label
-                    return
-                  }
-                  persistSectionMeta({ label: next })
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault()
-                    ;(event.target as HTMLInputElement).blur()
-                  }
-                }}
-              />
-            </label>
-            <label
-              className="gantry-inline-label gantry-section-width-label"
-              title="Section mosaic width — two ~50% sections sit side by side"
-            >
-              <span className="sr-only">Section width percent</span>
-              <input
-                key={`section-width-${section.id}-${sectionWidth}`}
-                type="number"
-                className="gantry-inline-input gantry-section-width-input"
-                defaultValue={sectionWidth}
-                min={LAYOUT_WIDTH_MIN}
-                max={LAYOUT_WIDTH_FULL}
-                step={5}
-                disabled={metaPending}
-                aria-label="Section width percent"
-                onBlur={(event) => {
-                  persistSectionMeta({ width: Number(event.target.value) })
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault()
-                    ;(event.target as HTMLInputElement).blur()
-                  }
-                }}
-                onClick={(event) => event.stopPropagation()}
-              />
-              <span className="gantry-slot-pct" aria-hidden="true">
-                %
-              </span>
-            </label>
-          </div>
-        </div>
-        <div className="gantry-section-head-actions">
+    <CanvasSectionFrame
+      sectionId={section.id}
+      label={section.label}
+      width={sectionWidth}
+      className={structureInherited ? 'sf-inherited-muted' : ''}
+      drag={drag}
+      labelDisabled={metaPending}
+      labelRequired
+      onLabelBlur={(next) => persistSectionMeta({ label: next })}
+      onWidthBlur={(next) => persistSectionMeta({ width: next })}
+      identityStart={
+        structureInherited ? (
+          <span className="gantry-inherit-badge" title="Structure inherited from parent outline">
+            Inherited
+          </span>
+        ) : null
+      }
+      headEnd={
+        <>
           {canInherit ? (
             parentHasSection ? (
               <InheritCopyRow
@@ -1971,105 +1128,115 @@ function SectionCanvas({
               <code className="layout-id">{section.id}</code>
             </div>
           </details>
-        </div>
-      </header>
-      <ActionFeedback state={metaFlash} />
-
-      {rows.length === 0 ? (
-        <p className="layout-muted">Open + row to drop particles, or drag onto a new empty row.</p>
-      ) : (
-        rows.map((row) => (
-          <DropRow
-            key={row.id}
-            sectionId={section.id}
-            row={row}
-            modules={modules}
-            groups={groups}
-            navMenus={navMenus}
-            formDefinitions={formDefinitions}
-            formsModuleEnabled={formsModuleEnabled}
-            primaryNavMenuId={primaryNavMenuId}
-            localSlots={slotMap[row.id] ?? sortSlots(row.slots)}
-            setLocalSlots={(slots) => setSlotMap((prev) => ({ ...prev, [row.id]: slots }))}
-            isDraggingRow={draggingRowId === row.id}
-            rowDropEdge={
-              rowDropHint?.rowId === row.id && draggingRowId !== row.id
-                ? rowDropHint.edge
-                : null
-            }
-            draggingSlotId={draggingSlotId}
-            slotDropHint={
-              slotDropHint?.rowId === row.id
-                ? { slotId: slotDropHint.slotId, edge: slotDropHint.edge }
-                : null
-            }
-            onSlotDragStart={(payload) => {
-              setDraggingSlotId(payload.slotId)
-              setSlotDropHint(null)
-              setRowDropHint(null)
-              setDraggingRowId(null)
-            }}
-            onSlotDragEnd={clearSlotDragUi}
-            onSlotDragOver={(slotId, edge, placeBeside) => {
-              if (placeBeside) {
-                setRowDropHint(null)
-                setSlotDropHint({ rowId: row.id, slotId, edge })
-                return
-              }
-              // Vertical intent → horizontal blue line above/below this row.
-              setSlotDropHint(null)
-              setRowDropHint({ rowId: row.id, edge })
-            }}
-            onRowDragStart={(payload) => {
-              setDraggingRowId(payload.rowId)
-              setRowDropHint(null)
-              setDraggingSlotId(null)
-              setSlotDropHint(null)
-            }}
-            onRowDragEnd={clearRowDragUi}
-            onRowDragOver={(id, edge) => {
-              if (draggingRowId === id) return
-              setSlotDropHint(null)
-              setRowDropHint({ rowId: id, edge })
-            }}
-            onRowDrop={handleRowDrop}
-            onParticleStack={(payload, position) =>
-              handleParticleStack(payload, row.id, position)
-            }
-            canInherit={canInherit}
-            rawDocument={rawDocument}
-            parentDocument={parentDocument}
-            sectionStructureInherited={structureInherited}
-          />
-        ))
-      )}
-      {(() => {
-        if (structureInherited) {
-          return (
-            <p className="settings-hint gantry-section-inherit-hint">
-              Structure inherited from parent — particles are read-only here. Turn inherit off or
-              Copy from parent in section settings to edit.
-            </p>
-          )
+        </>
+      }
+      afterHead={<ActionFeedback state={metaFlash} />}
+    >
+      <CanvasRows
+        sectionId={section.id}
+        rows={canvasRows}
+        paletteMimes={[DND_LAYOUT_PARTICLE]}
+        rowsLocked={structureInherited}
+        addRowDisabled={rowPending}
+        emptyMetaLabel="Empty row · drop particles here · drag empty zone to reorder"
+        emptyZoneLabel="Drop particles here… · drag to reorder row"
+        resizeLabel="Resize particles"
+        emptyMessage={
+          <p className="layout-muted">Open + row to drop particles, or drag onto a new empty row.</p>
         }
-        const last = rows[rows.length - 1]
-        const trailingEmpty = Boolean(last && layoutRowIsEmpty(last))
-        if (trailingEmpty) return null
-        return (
-          <div className="sf-form-row-end-actions gantry-row-end-actions">
-            <button
-              type="button"
-              className="gantry-toolbar-btn secondary"
-              title="Open an empty drop row at the end"
-              disabled={rowPending}
-              onClick={persistAddEmptyRow}
-            >
-              + row
-            </button>
-          </div>
-        )
-      })()}
-    </li>
+        rowsLockedNotice={
+          <p className="settings-hint gantry-section-inherit-hint">
+            Structure inherited from parent — particles are read-only here. Turn inherit off or Copy
+            from parent in section settings to edit.
+          </p>
+        }
+        renderAfterRow={(rowId) => <ActionFeedback state={rowNotices[rowId] ?? {}} />}
+        renderItem={(item, ctx) => {
+          const slot = sortSlots(slotMap[ctx.rowId] ?? []).find((s) => s.id === item.id)
+          if (!slot) return null
+          return (
+            <ParticleBlock
+              sectionId={section.id}
+              rowId={ctx.rowId}
+              slot={slot}
+              modules={modules}
+              groups={groups}
+              navMenus={navMenus}
+              formDefinitions={formDefinitions}
+              formsModuleEnabled={formsModuleEnabled}
+              primaryNavMenuId={primaryNavMenuId}
+              onSlotPatched={(patch) => {
+                setSlotMap((prev) => ({
+                  ...prev,
+                  [ctx.rowId]: (prev[ctx.rowId] ?? []).map((s) => {
+                    if (s.id !== slot.id) return s
+                    const next = { ...s, ...patch }
+                    if ('htmlId' in patch && !patch.htmlId) delete next.htmlId
+                    if ('cssClass' in patch && !patch.cssClass) delete next.cssClass
+                    return next
+                  }),
+                }))
+              }}
+              canInherit={canInherit}
+              particleInherited={rawSlotInherited(rawDocument, section.id, ctx.rowId, slot.id)}
+              parentHasMatchingSlot={parentHasSlot(parentDocument, section.id, slot.id)}
+              sectionStructureInherited={structureInherited}
+            />
+          )
+        }}
+        itemClassName={(_item, ctx) =>
+          rawSlotInherited(rawDocument, section.id, ctx.rowId, _item.id) || structureInherited
+            ? 'sf-inherited-muted'
+            : ''
+        }
+        itemDataAttrs={(item, ctx) => {
+          const slot = (slotMap[ctx.rowId] ?? []).find((s) => s.id === item.id)
+          return { 'data-enabled': slot?.enabled !== false ? 'true' : 'false' }
+        }}
+        itemTitle={(item, ctx) => {
+          const slot = (slotMap[ctx.rowId] ?? []).find((s) => s.id === item.id)
+          const catalog =
+            modules.find((m) => m.id === slot?.moduleId)?.name ?? slot?.moduleId ?? 'particle'
+          const name = slot?.name?.trim() || catalog
+          return `Drag ${name} to move — blue line shows where it will land`
+        }}
+        onPaletteDrop={(_mime, value, rowId) => persistDrop(rowId, value)}
+        onReorderItems={(rowId, orderedIds) => {
+          const current = sortSlots(slotMap[rowId] ?? [])
+          const byId = new Map(current.map((slot) => [slot.id, slot]))
+          const next = orderedIds.flatMap((id, index) => {
+            const slot = byId.get(id)
+            return slot ? [{ ...slot, order: index }] : []
+          })
+          setSlotMap((prev) => ({ ...prev, [rowId]: next }))
+          persistSlotOrder(rowId, next)
+        }}
+        onMoveItem={(source, rowId, index) => persistMoveSlot(rowId, source, index)}
+        onStackItem={(source, rowId, position) => handleParticleStack(source, rowId, position)}
+        onReorderRows={(orderedIds) => {
+          const byId = new Map(rows.map((row) => [row.id, row]))
+          const next = orderedIds.flatMap((id, index) => {
+            const row = byId.get(id)
+            return row ? [{ ...row, order: index }] : []
+          })
+          setLocalRows(next)
+          persistRowOrder(next)
+        }}
+        onResize={(rowId, leftId, rightId, leftWidth, rightWidth, commit) => {
+          setSlotMap((prev) => ({
+            ...prev,
+            [rowId]: (prev[rowId] ?? []).map((slot) => {
+              if (slot.id === leftId) return { ...slot, width: leftWidth }
+              if (slot.id === rightId) return { ...slot, width: rightWidth }
+              return slot
+            }),
+          }))
+          if (commit) persistResize(rowId, leftId, rightId, leftWidth, rightWidth)
+        }}
+        onAddEmptyRow={persistAddEmptyRow}
+        onRemoveEmptyRow={persistRemoveEmptyRow}
+      />
+    </CanvasSectionFrame>
   )
 }
 
@@ -2084,7 +1251,7 @@ export function LayoutEditor({
   document,
   rawDocument,
   parentDocument = null,
-  parentLayoutId = null,
+  parentLayoutId: _parentLayoutId = null,
   source,
   modules,
   groups,
@@ -2118,13 +1285,6 @@ export function LayoutEditor({
   )
   const [reorderFlash, setReorderFlash] = useState<LayoutActionState>({})
   const [draggingParticleId, setDraggingParticleId] = useState<string | null>(null)
-  const [draggingSectionId, setDraggingSectionId] = useState<string | null>(null)
-  const draggingSectionIdRef = useRef<string | null>(null)
-  const [dropHint, setDropHint] = useState<{
-    sectionId: string
-    position: 'before' | 'after'
-    placeBeside: boolean
-  } | null>(null)
 
   const [sectionList, setSectionList] = useState(() => sortSections(document.sections))
   const [sectionListSource, setSectionListSource] = useState(document.sections)
@@ -2134,12 +1294,6 @@ export function LayoutEditor({
     setSectionListSource(document.sections)
     setSectionList((prev) => mergeSectionsFromServer(prev, document.sections))
   }
-
-  const clearSectionDrag = useCallback(() => {
-    draggingSectionIdRef.current = null
-    setDraggingSectionId(null)
-    setDropHint(null)
-  }, [])
 
   const persistSectionOrder = useCallback(
     (ordered: LayoutSection[], widthOverrides?: Record<string, number>) => {
@@ -2158,23 +1312,18 @@ export function LayoutEditor({
   )
 
   const handleSectionDrop = useCallback(
-    (targetSectionId: string, position: 'before' | 'after', placeBeside: boolean) => {
-      const movingId = draggingSectionIdRef.current ?? draggingSectionId
-      if (!movingId || movingId === targetSectionId) {
-        clearSectionDrag()
-        return
-      }
+    (
+      movingId: string,
+      targetSectionId: string,
+      position: 'before' | 'after',
+      placeBeside: boolean,
+    ) => {
+      if (!movingId || movingId === targetSectionId) return
       const without = sectionList.filter((s) => s.id !== movingId)
       const moving = sectionList.find((s) => s.id === movingId)
-      if (!moving) {
-        clearSectionDrag()
-        return
-      }
+      if (!moving) return
       const targetIndex = without.findIndex((s) => s.id === targetSectionId)
-      if (targetIndex < 0) {
-        clearSectionDrag()
-        return
-      }
+      if (targetIndex < 0) return
       const insertAt = position === 'before' ? targetIndex : targetIndex + 1
       let next = [...without.slice(0, insertAt), moving, ...without.slice(insertAt)].map(
         (section, index) => ({ ...section, order: index }),
@@ -2195,11 +1344,12 @@ export function LayoutEditor({
         }
       }
       setSectionList(next)
-      clearSectionDrag()
       persistSectionOrder(next, widthOverrides)
     },
-    [clearSectionDrag, draggingSectionId, persistSectionOrder, sectionList],
+    [persistSectionOrder, sectionList],
   )
+
+  const sectionDrag = useCanvasSectionListDrag(handleSectionDrop)
 
   return (
     <div className="gantry-editor">
@@ -2236,7 +1386,7 @@ export function LayoutEditor({
                   draggable
                   title={mod.description || mod.id}
                   onDragStart={(event) => {
-                    event.dataTransfer.setData(DND_PARTICLE, mod.id)
+                    event.dataTransfer.setData(DND_LAYOUT_PARTICLE, mod.id)
                     event.dataTransfer.setData('text/plain', mod.id)
                     event.dataTransfer.effectAllowed = 'copy'
                     setDraggingParticleId(mod.id)
@@ -2379,31 +1529,7 @@ export function LayoutEditor({
                   formsModuleEnabled={formsModuleEnabled}
                   primaryNavMenuId={primaryNavMenuId}
                   canRemoveSection={sectionList.length > 1}
-                  isDraggingSection={draggingSectionId === section.id}
-                  dropPosition={
-                    dropHint?.sectionId === section.id && draggingSectionId !== section.id
-                      ? dropHint.position
-                      : null
-                  }
-                  placeBesideHint={Boolean(
-                    dropHint?.sectionId === section.id &&
-                      draggingSectionId !== section.id &&
-                      dropHint?.placeBeside,
-                  )}
-                  onSectionDragStart={(id) => {
-                    draggingSectionIdRef.current = id
-                    setDraggingSectionId(id)
-                    setDropHint(null)
-                  }}
-                  onSectionDragEnd={() => {
-                    clearSectionDrag()
-                  }}
-                  onSectionDragOver={(id, position, placeBeside) => {
-                    const movingId = draggingSectionIdRef.current ?? draggingSectionId
-                    if (!movingId || movingId === id) return
-                    setDropHint({ sectionId: id, position, placeBeside })
-                  }}
-                  onSectionDrop={handleSectionDrop}
+                  drag={sectionDrag.bind(section.id)}
                   onSectionRemoved={(sectionId) => {
                     setSectionList((prev) =>
                       prev
@@ -2414,7 +1540,6 @@ export function LayoutEditor({
                   canInherit={canInherit}
                   rawDocument={rawDocument}
                   parentDocument={parentDocument}
-                  parentLayoutId={parentLayoutId}
                 />
               ))}
             </ol>

@@ -1,11 +1,11 @@
 # Starforge Core — what remains
 
-**Not the live queue.** Dashboard D2–D4, the email send log, Forms/Security/Performance cards, and module info pages shipped after the lists below (SF-226–SF-230). Events, Maps, Profiles, and Payments are real packs, not stubs. What is still open in Core, and the decision to finish that before the next pack: [architecture-current](./architecture-current.md).
+**Not the live queue.** Dashboard D2–D4, the email send log, Forms/Security/Performance cards, module info pages, and the core glance / needs-attention rail shipped after the lists below (SF-226–SF-230). Events, Maps, Profiles, and Payments are real packs, not stubs. What is still open in Core, and the decision to finish that before the next pack: [architecture-current](./architecture-current.md).
 
 **Scope:** Core only (not heavy Modules / Hero).  
 **Sources:** [core-gaps-evaluation](./core-gaps-evaluation.md) (Nov 4 — **stale on P0–M5**), [admin-dashboard-gap](./admin-dashboard-gap.md), [preferences](../preferences.md), [notes](../notes.md) Done vs Queued (through SF-223 / #135).  
 
-**Verdict at the time:** Opus called the Core spine “done enough” to start modules. That bar is withdrawn (2026-11-10). Finish the remaining Core host work before the next pack. Do not treat the shipped security slices as permission to skip the core glance or the engine extract. Particle Defaults are not a Core page. They are deferred skin-pack demo content.
+**Verdict at the time:** Opus called the Core spine “done enough” to start modules. That bar is withdrawn (2026-11-10). Finish the remaining Core host work before the next pack. Do not treat the shipped security slices or the dashboard glance as permission to skip the engine extract. Particle Defaults are not a Core page. They are deferred skin-pack demo content.
 
 ---
 
@@ -43,8 +43,8 @@ Ordered for Core densification (skip Events/Marketplace *data* — those packs a
 | 2 | **Dashboard D4 — soft refresh** | S | Poll/`router.refresh` from `dashboardRefreshIntervalSec` |
 | 3 | **Dashboard D3 — Email send log + `email.sent`** | M then S | Needs durable sends table on Mailer success |
 | 4 | **Wire stub Core/module cards** | S–M | Real `forms.submissions`, `security.posture`, `performance.glance` (data mostly exists) |
-| 5 | **Core glance pack** | M | `system.health`, chrome/robots/captcha posture, `modules.summary` |
-| 6 | **Needs-attention rail** | M | Offline / Mailer off / health / env warnings |
+| 5 | ~~**Core glance pack**~~ | ~~M~~ | **Shipped** — `system.health`, `chrome.posture` (offline / robots / captcha), `modules.summary` |
+| 6 | ~~**Needs-attention rail**~~ | ~~M~~ | **Shipped** — `attention.rail`: offline, Mailer off, health, env warnings (developer-admin only) |
 | 7 | ~~**Modules list → info/settings**~~ | ~~M series~~ | **Shipped SF-230** — Core host `/admin/settings/modules/<id>`; Modules rows link Info/Settings (reuse Media/Forms Settings; soft stubs otherwise) |
 | 8 | **Particle defaults** | — | **Not a Core page.** Deferred: demo text and parameters shipped inside a skin pack, when Starforge is handed out. |
 | 9 | **Form dual-schema / M3–M4 extract** | M | Engines still partly Core-hosted; not blocking pack consumers |
@@ -81,9 +81,9 @@ Do **not** treat as Core leftovers (focus guard + prefs):
 
 ## Top 5 next Core items
 
-**Shipped after this list was written.** Do not pick these up again: D2 media aggregates (SF-226), D4 soft refresh (SF-227), Forms/Security/Performance cards (SF-228), email send log (SF-229), module info/settings (SF-230). Still open, and now the active Core pass: items 5, 6, 10, 11, and 12 below, then the Forms/Redirects extract (item 9) as its own pass. Item 8 is deferred skin-pack demo content, not this pass. Detail: [architecture-current](./architecture-current.md).
+**Shipped after this list was written.** Do not pick these up again: D2 media aggregates (SF-226), D4 soft refresh (SF-227), Forms/Security/Performance cards (SF-228), email send log (SF-229), module info/settings (SF-230), the core glance pack (item 5), and the needs-attention rail (item 6). Still open, and now the active Core pass: items 10, 11, and 12 below, then the Forms/Redirects extract (item 9) as its own pass. Item 8 is deferred skin-pack demo content, not this pass. Detail: [architecture-current](./architecture-current.md).
 
-The public Skin port already shipped. Core glance and needs-attention are part of the finish, not optional leftovers.
+The public Skin port already shipped. The dashboard core glance and needs-attention rail shipped with it as host widgets on `/admin`.
 
 ---
 

@@ -11,6 +11,7 @@ import {
   normalizeRowWidthsToPercent,
   resizeAdjacentPair,
 } from '@/core/modules/grid'
+import { nextEmptyRowId } from '@/core/modules/empty-row-id'
 
 import type { FormFieldDef, FormRowColumn, FormRowDef, FormSectionDef } from './types'
 
@@ -40,15 +41,6 @@ export function createRowDraft(fieldName: string, width: number = LAYOUT_WIDTH_F
 
 export function rowIsEmpty(row: FormRowDef): boolean {
   return !Array.isArray(row.columns) || row.columns.length === 0
-}
-
-/** Stable empty-row ids so normalize does not remount the canvas every refresh. */
-function nextEmptyRowId(sectionId: string, usedIds: Set<string>): string {
-  const base = `${sectionId}__empty-row`
-  if (!usedIds.has(base)) return base
-  let n = 2
-  while (usedIds.has(`${base}-${n}`)) n += 1
-  return `${base}-${n}`
 }
 
 /** Empty drop row (opt-in via + row). */

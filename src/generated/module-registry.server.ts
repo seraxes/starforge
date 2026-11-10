@@ -141,6 +141,11 @@ export type AdminDashboardWidgetLoader = {
 export const adminDashboardWidgetLoaders: AdminDashboardWidgetLoader[] = [
   {
     moduleId: "platform:dashboard",
+    id: "attention.rail",
+    load: async () => (await import("@/core/dashboard/widgets/AttentionRailWidget")).AttentionRailWidget,
+  },
+  {
+    moduleId: "platform:dashboard",
     id: "users.strip",
     load: async () => (await import("@/core/dashboard/widgets/UsersStripWidget")).UsersStripWidget,
   },
@@ -148,6 +153,26 @@ export const adminDashboardWidgetLoaders: AdminDashboardWidgetLoader[] = [
     moduleId: "platform:dashboard",
     id: "users.latest",
     load: async () => (await import("@/core/dashboard/widgets/LatestUsersWidget")).LatestUsersWidget,
+  },
+  {
+    moduleId: "platform:dashboard",
+    id: "host.pulse",
+    load: async () => (await import("@/core/dashboard/widgets/HostPulseWidget")).HostPulseWidget,
+  },
+  {
+    moduleId: "platform:dashboard",
+    id: "system.health",
+    load: async () => (await import("@/core/dashboard/widgets/SystemHealthWidget")).SystemHealthWidget,
+  },
+  {
+    moduleId: "platform:dashboard",
+    id: "chrome.posture",
+    load: async () => (await import("@/core/dashboard/widgets/ChromePostureWidget")).ChromePostureWidget,
+  },
+  {
+    moduleId: "platform:dashboard",
+    id: "modules.summary",
+    load: async () => (await import("@/core/dashboard/widgets/ModulesSummaryWidget")).ModulesSummaryWidget,
   },
   {
     moduleId: "platform:dashboard",
@@ -196,6 +221,11 @@ export type AdminDashboardStatsLoader = {
 export const adminDashboardStatsLoaders: AdminDashboardStatsLoader[] = [
   {
     moduleId: "platform:dashboard",
+    id: "attention.rail",
+    load: async () => (await import("@/core/dashboard/widgets/attention-stats")).loadAttentionRailStats,
+  },
+  {
+    moduleId: "platform:dashboard",
     id: "users.strip",
     load: async () => (await import("@/core/dashboard/widgets/users-stats")).loadUsersStripStats,
   },
@@ -203,6 +233,26 @@ export const adminDashboardStatsLoaders: AdminDashboardStatsLoader[] = [
     moduleId: "platform:dashboard",
     id: "users.latest",
     load: async () => (await import("@/core/dashboard/widgets/users-stats")).loadLatestUsersStats,
+  },
+  {
+    moduleId: "platform:dashboard",
+    id: "host.pulse",
+    load: async () => (await import("@/core/dashboard/widgets/host-pulse-stats")).loadHostPulseStats,
+  },
+  {
+    moduleId: "platform:dashboard",
+    id: "system.health",
+    load: async () => (await import("@/core/dashboard/widgets/system-health-stats")).loadSystemHealthStats,
+  },
+  {
+    moduleId: "platform:dashboard",
+    id: "chrome.posture",
+    load: async () => (await import("@/core/dashboard/widgets/chrome-posture-stats")).loadChromePostureStats,
+  },
+  {
+    moduleId: "platform:dashboard",
+    id: "modules.summary",
+    load: async () => (await import("@/core/dashboard/widgets/modules-summary-stats")).loadModulesSummaryStats,
   },
   {
     moduleId: "platform:dashboard",

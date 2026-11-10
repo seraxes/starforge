@@ -48,8 +48,8 @@ Durable map of **feature modules** (Site Settings / allowlist toggleable) vs **i
 | --- | --- |
 | **Kind** | module (`product:forms` + particle `form`) |
 | **Status** | **partial** (engine shipped; presets beyond contact = stubs) |
-| **In tree** | Visual builder (dnd-kit, Layout-like chrome), JSON Schema/Zod, conditional + math, submissions, email notify, Turnstile hook, contact + blank presets. |
-| **Recommended** | One Core Form engine; typed presets only. Prefer dnd-kit + Zod (already in). Never SurveyJS / parallel field UIs. |
+| **In tree** | Visual builder on the layout canvas (field palette, HTML5 drag), JSON Schema/Zod, conditional + math, submissions, email notify, Turnstile hook, contact + blank presets. |
+| **Recommended** | One Core Form engine; typed presets only. The form canvas is the layout canvas. Never SurveyJS / parallel field UIs. |
 | **Next slice** | First non-contact preset that a real product needs (survey or ticket) as thin preset JSON — no new builder. Wire option media pickers fully via Media (mostly done SF-66). |
 
 ### Layout / Nav / Chrome

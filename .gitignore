@@ -48,3 +48,6 @@ AGENTS.md
 # Uploaded / site-installed skin packs
 /data/skins/
 
+# Machine-local Compose overrides (for example a host port when Windows excludes 5432)
+docker-compose.override.yml
+

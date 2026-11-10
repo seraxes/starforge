@@ -38,8 +38,13 @@ mustExist('src/modules/marketplace/dashboard/marketplace-stats.ts')
 assert.equal(existsSync(path.join(ROOT, 'src/modules/stats')), false, 'no product:stats pack')
 
 const hostManifest = read('src/core/modules/host-manifests.ts')
+assert.match(hostManifest, /id: 'attention\.rail'/)
 assert.match(hostManifest, /id: 'users\.strip'/)
 assert.match(hostManifest, /id: 'users\.latest'/)
+assert.match(hostManifest, /id: 'host\.pulse'/)
+assert.match(hostManifest, /id: 'system\.health'/)
+assert.match(hostManifest, /id: 'chrome\.posture'/)
+assert.match(hostManifest, /id: 'modules\.summary'/)
 assert.match(hostManifest, /id: 'security\.posture'/)
 assert.match(hostManifest, /id: 'performance\.glance'/)
 assert.doesNotMatch(hostManifest, /product:stats/)
@@ -91,8 +96,13 @@ assert.doesNotMatch(allowlist, /product:stats/)
 
 const registry = read('src/generated/module-registry.ts')
 for (const id of [
+  'attention.rail',
   'users.strip',
   'users.latest',
+  'host.pulse',
+  'system.health',
+  'chrome.posture',
+  'modules.summary',
   'security.posture',
   'performance.glance',
   'media.counts',
@@ -112,7 +122,12 @@ assert.doesNotMatch(registry, /product:stats/)
 
 const registryServer = read('src/generated/module-registry.server.ts')
 for (const name of [
+  'AttentionRailWidget',
   'UsersStripWidget',
+  'HostPulseWidget',
+  'SystemHealthWidget',
+  'ChromePostureWidget',
+  'ModulesSummaryWidget',
   'SecurityPostureWidget',
   'PerformanceGlanceWidget',
   'MediaCountsWidget',

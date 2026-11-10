@@ -1,16 +1,8 @@
+import { nextEmptyRowId } from './empty-row-id'
 import type { LayoutDocument, LayoutRow, LayoutSection } from './types'
 
 export function layoutRowIsEmpty(row: LayoutRow): boolean {
   return !Array.isArray(row.slots) || row.slots.length === 0
-}
-
-/** Stable empty-row ids so normalize-on-load does not remount the canvas every refresh. */
-function nextEmptyRowId(sectionId: string, usedIds: Set<string>): string {
-  const base = `${sectionId}__empty-row`
-  if (!usedIds.has(base)) return base
-  let n = 2
-  while (usedIds.has(`${base}-${n}`)) n += 1
-  return `${base}-${n}`
 }
 
 function makeEmptyRow(sectionId: string, order: number, usedIds: Set<string>): LayoutRow {
