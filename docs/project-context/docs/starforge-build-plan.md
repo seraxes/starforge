@@ -1,5 +1,7 @@
 # Starforge — core CMS build plan
 
+**Historical roadmap (refreshed 2026-11-02).** Do not use it as the queue or as the Payload/media split. Live map: [architecture-current](./architecture-current.md).
+
 Practical roadmap for Starforge as a reusable CMS / starter platform. Aimed at someone new to React, Node, and PostgreSQL. Ship small, testable slices locally.
 
 **ASN 2.0 (Airsoftnexus 2.0)** is a later product on Starforge. This plan is **core platform first** — not an ASN feature dump.

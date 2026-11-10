@@ -60,7 +60,8 @@
 
 - Reusable admin + data model without saying “airsoft”? → **Module** (or Core port if every boot needs it).
 - Theme, fee table, milsim sheet, custom approval process? → **Hero**.
-- Vendor SDK / API key / Redis client? → **Core port** + env; Module only calls the interface.
+- Vendor SDK / site-wide API key / Redis client? → **Core port** + env; Module only calls the interface.
+- Per-merchant payment keys? → encrypted table in `product:payments`, not the env file and not a second gateway UI. See [architecture-current](./architecture-current.md).
 
 Form engine stays the shared intake path — other Modules do not rebuild fields ([preferences](../preferences.md)).
 
@@ -74,12 +75,13 @@ Form engine stays the shared intake path — other Modules do not rebuild fields
 
 Revenue floor — build **`product:payments`**, then wire consumers on the same API: **subscriptions**, **Events tickets**, **Ads**. **Shop** (incl. shipping quotes) later. **Marketplace** reuses payments + domain packs (e.g. highlight via subscriptions); never a second cart. Ownership map: [sf-module-ownership](../../../.cursor/rules/sf-module-ownership.mdc), [payments-cart-plan](./payments-cart-plan.md).
 
-## What this does *not* change now
+## What to build next
 
-- **Immediate build target** remains Core spine + Forms/Media/Redis/SEO gaps ([core-modules-inventory](./core-modules-inventory.md)).
-- Do **not** start Chat/Stream/Shop packs until Core ports are real (Redis, Spaces, security headers).
-- Feed layout variants = Social **Module** + Layout options; Hero **theme** brands them — still one Social Module.
+The Core spine this section used to protect is in place, and it is **not** the signal to start the next pack. Live queue: [architecture-current](./architecture-current.md) — finish and polish Core first. After that, paid event tickets, then subscriptions, then ads. Chat, Stream, Shop, Social, and Marketplace schema stay parked.
+
+- Feed layout variants = Social **Module** + Layout options; Hero **theme** brands them — still one Social Module, when Social is actually started.
 - Voice/video calling = later optional RTC **port** on Chat — decide when Chat ships.
+- TacMap rooms/teams/GPS stay in `product:maps`. Stations, beacons, and `apps/asn-capacitor` wait until Core is finished, and they are not ahead of the commercial packs.
 
 ## Related
 

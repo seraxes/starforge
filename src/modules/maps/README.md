@@ -22,7 +22,7 @@ Not a social location-share product. Spec: [maps-live-tactical](../../../docs/pr
 
 ## Later
 
-- **Stations / hold-to-capture / BLE beacons** (ASN TacMap sellable kits) — see maps-live-tactical
+- **Stations / hold-to-capture / BLE beacons** (ASN TacMap sellable kits) wait until Core is finished ([architecture-current](../../../docs/project-context/docs/architecture-current.md)), and they are not ahead of the commercial packs. The room engine stays in this module. ASN chrome, beacon SKUs, and `apps/asn-capacitor` are Hero clients of it. See maps-live-tactical
 - Cross-team visibility + finer admin roles
 - Trails / freehand overlays
 - Mapbox / Google adapters behind the same port

@@ -1,5 +1,7 @@
 # Starforge project context
 
+**Live map:** [architecture-current](./architecture-current.md). Where this file still says Payload owns media, or that Core is the whole CMS, the live map wins. Payload is the first optional content-manager pack. The media library and site settings stay Starforge’s.
+
 ## Purpose
 
 Starforge is a reusable **product core / starter platform** for Zoltan’s ordinary web projects: marketing sites, brochure apps, and typical web apps that are not highly specialized (not games, not exotic one-offs).
@@ -24,7 +26,7 @@ Inspiration: the breadth of systems like Joomla (flexible CMS + extensions), but
 
 ## Constraints (locked)
 
-- **Architectural freedom:** core owns product APIs, auth, users, and extension points; Payload must remain swappable as a content/media module.
+- **Architectural freedom:** core owns product APIs, auth, users, and extension points. Payload is the first optional content-manager pack (pages, drafts, versions). The media library is a Starforge module. Another content manager can replace Payload later behind the same page read API. Do not build that second pack until one is chosen.
 - **Performance / scale:** target ordinary web apps at roughly **tens of thousands of users** — “lightning fast” on hot paths. Do not put high-QPS user traffic through Payload admin or Local API as the app’s primary runtime.
 - **Extendability:** new project features hang off Starforge core hooks/modules, not Payload plugin sprawl.
 

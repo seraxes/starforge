@@ -1,5 +1,7 @@
 # Module install: Core + GitHub Packages
 
+**Target (2026-11-10):** the installer is this flow. A site download contains the host plus the packs that were chosen. Unchosen modules are not on disk. See [architecture-current](./architecture-current.md). Today `modules:sync` only adds or removes `@starforge/module-*` dependencies, and only notice-bar and consent are real packages. Engines that still live in `src/core` (Forms, media, redirects, editors, search, payments, maps) are downloaded with every install.
+
 How Starforge stays modular at **install time** without conflating that with runtime toggles.
 
 ## Three layers (do not mix)

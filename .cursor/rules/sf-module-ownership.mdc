@@ -32,6 +32,8 @@ The platform’s commercial base is **modular checkout**, not a shop monolith. M
 
 Shop is deferred; subscriptions, event tickets, and ads are the **revenue strategy floor**. Marketplace later reuses the same payments + domain layers (e.g. highlight via subscriptions).
 
+**Live queue** when an older plan disagrees: [architecture-current](../../docs/project-context/docs/architecture-current.md). Finish and polish Core before the next pack. The commercial order after that is still paid tickets, then subscriptions, then ads. Shop, marketplace schema, Social, and Chat stay parked. The 5 Nov ASN wireframe order does not override this.
+
 ## Ownership test
 
 Ask: *which module would you delete to remove this concept?* That module owns it.

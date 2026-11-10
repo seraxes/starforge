@@ -1,5 +1,7 @@
 # Replaceable modularity (ports vs modules)
 
+**Status table below is a Nov 2026 early snapshot.** Redis cache, Mailer, the module allowlist, and the Form engine have since shipped. Do not treat “Redis adapter throws” or “Form in flight” as current. Live map: [architecture-current](./architecture-current.md). The ports-vs-modules distinction in this file still holds.
+
 How Starforge keeps base systems replaceable without inventing a second platform. Aligns with [modular-core](../principles/modular-core.md), Site Settings toggles, and [module-toggle-architecture](./module-toggle-architecture.md).
 
 ## Two kinds of “modular” (do not conflate)

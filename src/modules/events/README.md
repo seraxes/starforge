@@ -39,6 +39,10 @@ Events + venues + registration + ticket tiers + parties (`sf_venues` / `sf_event
 - Manager write ACL (assignments filter list today; writes still need `admin.events`)
 - Helper vs manager capability split
 
+### Boundary
+
+Slot kinds are choosable: **Ticket type**, **Booking type**, **Faction**, plus names an admin adds. That chooser is decided and not built. Code today is only `general | faction`. Milsim sheets, association membership, and TEÁOR stay Hero data. Do not add those columns to `sf_events_*`. Do not build the chooser until Core polish in [architecture-current](../../../docs/project-context/docs/architecture-current.md) is done.
+
 ### Deferred by design
 
 - Full RRULE / series

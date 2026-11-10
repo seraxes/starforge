@@ -5,7 +5,9 @@ cursor:
 
 # Starforge design — module boundary (manifest contract)
 
-**Status:** target design. Goal: the next packs (Consent → Search → Events → Maps …) are added **without editing `src/core`**. This complements [module-toggle-architecture](./module-toggle-architecture.md) (allowlist/packages) and [replaceable-modularity-plan](./replaceable-modularity-plan.md) (ports vs modules). Overview: [design-system-overview](./design-system-overview.md).
+**Status:** the manifest **shape** is still the contract. The 3 Nov queue and the “a pack PR never touches Core” acceptance test are not. Live map: [architecture-current](./architecture-current.md). M0–M2 and the Media UI move (M5) shipped. Forms, redirects, and the TipTap engine stay in `src/core` until a dedicated extract.
+
+**Status (original):** target design. Goal: the next packs are added without product behavior landing in `src/core`. A new **port** or host extension may still edit Core. This complements [module-toggle-architecture](./module-toggle-architecture.md) (allowlist/packages) and [replaceable-modularity-plan](./replaceable-modularity-plan.md) (ports vs modules). Overview: [design-system-overview](./design-system-overview.md).
 
 ## 1. Why (evidence)
 
@@ -93,7 +95,7 @@ export const defineStarforgeModule = (m: StarforgeModuleManifest) => m
 | Particle config save | One generic `updateSlotConfigAction(layoutId, slotId, json)` that validates with the module's `configSchema` | `updateLogo/Menu/Copyright/Social/FormSlotAction` |
 | Particle editor | Cog popover loads `editor()` by `moduleId` | `typed-particle-editors.tsx` switch |
 | Admin nav | `buildAdminNavGroups` merges `admin.nav` (filtered by toggle + area) | Hardcoded `if (flags.forms)` blocks |
-| Admin routes | Codegen writes `src/app/(frontend)/app/admin/(modules)/<id>/[[...slug]]/page.tsx` shims → `admin.routes` | Hand-written route folders per pack |
+| Admin routes | Codegen writes `src/app/(frontend)/admin/(modules)/<id>/…/page.tsx` shims → `admin.routes` | Hand-written route folders per pack |
 | Module settings | Generic `sf_module_settings (id text pk, document jsonb, updated_at)` + Settings topic host renders `panel()` | New fields on Site Chrome / per-module tables |
 | Public shell | Public layout renders `publicShell` components by slot | Public layout importing Consent directly |
 | Proxy chain | `proxy.ts` runs `proxy` handlers by `order` (in-process, cached) | Middleware `fetch` to `/api/redirects/lookup` |
@@ -104,7 +106,7 @@ export const defineStarforgeModule = (m: StarforgeModuleManifest) => m
 
 ## 5. Dependency rules (enforced by ESLint `no-restricted-imports`)
 
-1. `src/core/**` must not import `@/modules/**`. It may import `@/generated/*` only.
+1. `src/core/**` must not import `@/modules/**`. It may import `@/generated/*` only. Known break, fix when touched: `src/core/rich-editor/RichEditor.tsx` imports `MediaPicker`. Do not start an engine extraction to clear it.
 2. Modules import Core through public surfaces (`@/core`, `@/core/<port>`), not deep internals of other Core areas.
 3. Module → module only via `@/modules/<other>/api` and only when listed in `requires`.
 4. Hero → modules via `api.ts` + declared extension points; never deep imports.
@@ -113,8 +115,8 @@ export const defineStarforgeModule = (m: StarforgeModuleManifest) => m
 
 - **Form presets:** `forms/api.ts` exports `registerFormPreset({ id, label, seedFields, onSubmitted? })`. Events registration = preset + `onSubmitted` (capacity check, confirmation mail). Never a second builder.
 - **Media binds:** `media/api.ts` exports `resolveMediaById`, `MediaPicker`, and tag/category filters. One library.
-- **Entity extensions (Hero, later):** modules may declare `extends: { 'events.event': ZodType }`, stored in a namespaced `extensions jsonb` column. Hero manifests fill them. Decide shape when Events ships.
-- **Typed hooks** only where two real consumers exist; no generic event bus up front.
+- **Entity extensions (Hero):** Profiles already stores vertical data in `extensions` jsonb. Events shipped without that column. Airsoft-only fields go there (or an equivalent namespaced jsonb) when Hero starts. Event slot kinds are a different seam: choosable Ticket type, Booking type, Faction, plus admin-added names, owned by Events. Code today is only `general | faction`. Build that chooser after Core is finished.
+- **Payment fulfillment** is the one hook map that exists: `registerPaymentConsumerHook` in `product:payments`, one string key per consumer (`events.confirmRegistration`). No second event bus. Do not add a generic bus for other modules.
 
 ## 7. Data-home rule for modules
 
@@ -123,7 +125,7 @@ export const defineStarforgeModule = (m: StarforgeModuleManifest) => m
 | Editorial (rich text, drafts/versions, media galleries; editors use Payload) | Payload collection contributed by the module (Payload config plugin) |
 | Transactional / high-write / queried (submissions, registrations, votes, location shares, redirects) | Drizzle `sf_<id>_*`, `jsonb` for queried JSON |
 | Module settings | `sf_module_settings` |
-| Secrets | env only |
+| Secrets | Site-wide: env / gitignored overlay only. Per-merchant gateway and billing keys: encrypted `sf_pay_merchant_credentials` (Payments). Never plaintext, never logs, never Site Chrome. |
 
 ## 8. Migration plan (incremental, no big-bang)
 
@@ -136,7 +138,7 @@ export const defineStarforgeModule = (m: StarforgeModuleManifest) => m
 | **M4** | Forms: admin + particle + settings + schema → `src/modules/forms`; engine (`types/expr/logic/evaluate`) exported from `forms/api.ts` | `src/core/forms` gone; Events can use `registerFormPreset` |
 | **M5** | Media library UI → `src/modules/media` (`required: true`); `MediaStorage` port stays Core | Media appears in Modules list as locked |
 
-**Acceptance test for every new pack (Search, Events, Maps…):** the PR diff touches only `src/modules/<id>/**`, `starforge.modules.json`, `src/generated/**`, and migrations. CI's minimal-flavor build (see [design-data-deploy](./design-data-deploy.md) §6) proves Core compiles without it.
+**Acceptance test for a new pack:** product behavior lands in `src/modules/<id>/**`, plus `starforge.modules.json`, `src/generated/**`, and migrations. A Core diff is allowed only for a new port or a host extension point. CI's minimal-flavor build (see [design-data-deploy](./design-data-deploy.md) §6) still proves Core compiles without the pack's product code. Do not treat “move `src/core/forms` out” as part of an unrelated PR.
 
 ## 9. Non-goals
 

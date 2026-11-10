@@ -1,5 +1,7 @@
 # Starforge track audit (for Zoltan)
 
+**Point-in-time audit (2026-11-02).** Payload-owns-media and “form builder uses dnd-kit” below are out of date. Live map: [architecture-current](./architecture-current.md).
+
 **Scope:** `origin/main` @ `506f42c`  
 **Lens:** preferences + [modular-core](/cursor/stores/self/principles/modular-core.md)  
 **Date:** 2026-11-02

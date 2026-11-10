@@ -6,6 +6,7 @@ Snapshot of the Cursor **Project Context** store, synced into the git repo so pl
 
 | What | Where |
 |------|--------|
+| **Live architecture map** | [`docs/architecture-current.md`](./docs/architecture-current.md) — wins over older plans and status tables |
 | **This tree** (local / GitHub) | Authoritative offline copy for ongoing local work |
 | **Cursor Project Agent Store** | Optional; can be deleted after sync |
 
@@ -34,6 +35,7 @@ Snapshot of the Cursor **Project Context** store, synced into the git repo so pl
 
 ### Docs index (filenames)
 
+- `architecture-current.md` — **read first** (queue, routes, secrets, hero line)
 - `admin-dashboard-benchmarks.md`
 - `admin-dashboard-gap.md`
 - `admin-dashboard-plan.md`

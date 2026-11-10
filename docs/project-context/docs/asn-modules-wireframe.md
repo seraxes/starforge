@@ -5,6 +5,8 @@ cursor:
 
 # ASN → Starforge Modules wireframe (preliminary)
 
+**Queue superseded (2026-11-10).** Use this file for the ASN surface → layer inventory. Do **not** use §3 as the build order. Payments is not optional, and Ads does not wait behind Social and Chat. Live queue: [architecture-current](./architecture-current.md). i18n P0–P3 has shipped; the “i18n later” row is historical.
+
 **Purpose:** Map live [airsoftnexus.com](https://airsoftnexus.com) product surfaces onto Starforge **Modules** vs **Hero**, with dependency graph and build order.  
 **Stance:** Core spine is **done** (security, Forms presets, Media M5+Phase3, module boundary M1/M2, CI [#120](https://github.com/seraxes/starforge/pull/120)). **Do not rebuild Core.** This is the Modules-phase plan; ASN 2.0 Hero comes after Modules + public theme port.  
 **Sources:** Live ASN (timeline, calendar, event map, marketplace URLs, EasySocial/Event Booking surfaces) + ASN ÁSZF §3; [platform-module-layers](./platform-module-layers.md), [email-manager-plan](./email-manager-plan.md), [events-manager-plan](./events-manager-plan.md), [maps-location-plan](./maps-location-plan.md), [media-manager-spec](./media-manager-spec.md), [design-module-boundary](./design-module-boundary.md). Cloudflare blocked some raw fetches; inventory triangulated via indexed pages + ÁSZF.
@@ -88,7 +90,9 @@ Hero: ASN theme + extensions jsonb on Profiles/Events/Marketplace/Social
 
 ## 3. Recommended build order + “must take ahead”
 
-Core is not in this queue. Ship **one Module (or port) at a time** on the M1/M2 contract (diff ≈ `src/modules/<id>/**` + generated + migrations).
+**Historical (5 Nov).** The active job is to finish Core. After that, the commercial order is paid tickets → subscriptions → ads. See [architecture-current](./architecture-current.md). The table is kept so the dependency notes stay readable. “Payments only if checkout” on the Marketplace row is withdrawn: marketplace fees use `product:payments` when that pack is built, and it is not next.
+
+Core is not in this queue. A pack may add a Core port. Product behavior stays in `src/modules`. The old “diff touches only `src/modules`” line is withdrawn.
 
 | # | Build | Must take ahead (ports / contracts) | Reuses already |
 | --- | --- | --- | --- |

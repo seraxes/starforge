@@ -1,5 +1,7 @@
 # Starforge core — modular inventory
 
+**Inventory as of early November 2026.** Status columns are stale. For what is host, what is an install pack, and what to build next, read [architecture-current](./architecture-current.md).
+
 Durable map of **feature modules** (Site Settings / allowlist toggleable) vs **infrastructure ports** (env/factory swap). Aligns with [modular-core](../principles/modular-core.md), [replaceable-modularity-plan](./replaceable-modularity-plan.md), and [module-toggle-architecture](./module-toggle-architecture.md).
 
 **Lens:** prefer packages already in stack (Better Auth, Payload 3, Next 16, nodemailer, dnd-kit, Zod, sharp). Invent only when the stack has no first-party path.  

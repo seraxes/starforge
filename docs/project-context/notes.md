@@ -4,6 +4,8 @@ description: Build Starforge first as a core CMS platform (auth, users, content,
 taskPrefix: SF
 ---
 
+The lists below are the old task board. They are not the queue. Live decisions and what to build next: [architecture-current](docs/architecture-current.md).
+
 ## Tasks
 
 ### For Review

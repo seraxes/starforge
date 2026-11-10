@@ -1,10 +1,11 @@
 # Starforge Core — what remains
 
+**Not the live queue.** Dashboard D2–D4, the email send log, Forms/Security/Performance cards, and module info pages shipped after the lists below (SF-226–SF-230). Events, Maps, Profiles, and Payments are real packs, not stubs. What is still open in Core, and the decision to finish that before the next pack: [architecture-current](./architecture-current.md).
+
 **Scope:** Core only (not heavy Modules / Hero).  
 **Sources:** [core-gaps-evaluation](./core-gaps-evaluation.md) (Nov 4 — **stale on P0–M5**), [admin-dashboard-gap](./admin-dashboard-gap.md), [preferences](../preferences.md), [notes](../notes.md) Done vs Queued (through SF-223 / #135).  
-**Spot-check:** `main` loaders still soft-unavailable for Media/Email; Dashboard cards from SF-221 are stub shells except Users.
 
-**Verdict:** Opus “blocking next Modules” Core spine is **done enough**. Leftovers are **thin densification / polish**. Heavy Modules + Hero stay deferred.
+**Verdict at the time:** Opus called the Core spine “done enough” to start modules. That bar is withdrawn (2026-11-10). Finish the remaining Core host work before the next pack. Do not treat the shipped security slices as permission to skip Particle Defaults, the core glance, or the engine extract.
 
 ---
 
@@ -65,13 +66,13 @@ Do **not** treat as Core leftovers (focus guard + prefs):
 
 | Item | Queue / notes |
 | --- | --- |
-| Events / Maps / Chat / Social / Stream / Shop / Marketplace / Ads | Heavy Modules on real ports |
+| Chat / Social / Stream / Shop / Marketplace schema | Parked. See [architecture-current](./architecture-current.md). Events, Maps, and Payments already exist. Subscriptions and Ads are the revenue-floor packs, not this deferred bucket. |
 | **SF-8** ASN Hero | Theme + domain rules on Core+Modules |
 | **SF-33** Public dark pastel Skin | Second registry entry + Skins admin select; not admin chrome |
 | **SF-6** DO two-droplet hosting | After local-first + deploy checklist |
 | **SF-222** WordPress migration | After Core + Modules + Hero |
-| LLM / Map / MediaAnalysis vendor ports | Paper until a consumer Module |
-| Queues (BullMQ), webhooks, i18n, in-app notifications | On demand |
+| LLM / MediaAnalysis vendor ports | Paper until a consumer Module. MapProvider already shipped with `product:maps`. |
+| Queues (BullMQ), webhooks, in-app notifications | On demand. i18n P0–P3 already shipped. |
 | Video / ffmpeg; rich Media ACL / HEIC | Media pipeline “later” |
 | Module Packages P2 (`@starforge/module-*`) | Nice-to-have |
 | Tailwind + shadcn polish | Explicitly deferred |
@@ -80,13 +81,9 @@ Do **not** treat as Core leftovers (focus guard + prefs):
 
 ## Top 5 next Core items
 
-1. **D2 Media aggregates** — densest `/admin` win; loader is the only fake piece  
-2. **D4 soft refresh** — settings knob already exists  
-3. **Real Forms (+ Security/Performance) cards** — stubs present; submissions/settings data exists  
-4. **D3 Email send log → `email.sent`** — unlocks Email card; thin Mailer audit  
-5. ~~**Modules info/settings from catalog**~~ — **done SF-230** (Core host + Modules list links)
+**Shipped after this list was written.** Do not pick these up again: D2 media aggregates (SF-226), D4 soft refresh (SF-227), Forms/Security/Performance cards (SF-228), email send log (SF-229), module info/settings (SF-230). Still open, and now the active Core pass: items 5, 6, 8, 10, 11, and 12 below, then the Forms/Redirects extract (item 9) as its own pass. Detail: [architecture-current](./architecture-current.md).
 
-Follow with Core glance / needs-attention if `/admin` still feels thin; then public theme port only when preparing Hero.
+The public Skin port already shipped. Core glance and needs-attention are part of the finish, not optional leftovers.
 
 ---
 

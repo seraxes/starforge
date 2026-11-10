@@ -52,13 +52,13 @@ Payments persists **`sourceModule` + line snapshot** only. Domain price rules st
 
 ## Premium merchants
 
-Organizers/vendors with subscription `canCollectPayments` + ACL paste **their own** gateway and Billingo/Számlázz keys; settlement goes to **their** bank. No platform % fee for now (flat sub only). Site MoR stays for platform products. Never rebuild Billingo/Számlázz UIs — API bridge only. Merchant admin UI must clone Events/Layouts chrome (`sf-ui-design.mdc`). Merchant POS keys live in encrypted `sf_pay_merchant_credentials`, not Site Chrome env.
+Organizers/vendors with subscription `canCollectPayments` + ACL paste **their own** gateway and Billingo/Számlázz keys; settlement goes to **their** bank. No platform % fee for now (flat sub only). Site MoR stays for platform products. Never rebuild Billingo/Számlázz UIs — API bridge only. Merchant admin UI must clone Events/Layouts chrome (`sf-ui-design.mdc`). Merchant POS keys live in encrypted `sf_pay_merchant_credentials`, not Site Chrome env. That table is the exception to “secrets never in the database”: site-wide secrets stay in the env overlay; these per-merchant keys stay ciphertext here. `sf_pay_collect_entitlements` is a frozen stub — do not add plans, periods, or highlight products to it. `product:subscriptions` will own `canCollectPayments`.
 
 ## Don’t
 
 - Per-module payment UIs, gateway credential forms, or invoice number series outside `product:payments`.
 - Shipping / delivery math inside Payments — shop quotes a line; cart stores the amount.
-- Subscription or ads business logic inside Payments.
+- Subscription or ads business logic inside Payments. Do not grow `sf_pay_collect_entitlements` past the frozen boolean stub.
 - `getMailer()` from Payments or consumers for commerce mail (Email Manager only).
 - Second form builder, media library, or profile store inside Payments.
 - Collect card PAN/CVV in Starforge — hosted redirect / Elements / Barion only.

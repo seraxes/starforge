@@ -38,6 +38,10 @@ Prefs (admin): blue-dominated Gantry chrome; orange only on primary Save / rare 
 
 **Card actions (hard rule):** Cancel / Save / Apply / Delete / Geocode (and siblings) live in the **bottom-right** of the card (`page-settings-actions`, `outlines-create`, `settings-fieldset`, page-settings panel). Use `admin-action-row`, `page-settings-actions`, or `sf-events-form-actions` with `justify-content: flex-end`. Do not left-align or stretch a full-width action strip inside a card. Toolbar / filter / Add+ disclosure bars are not “card actions” — those stay top/inline.
 
+**Save model:** Layout and Form **canvas** builders autosave when the value changes (not on focus alone). **Entity cards** (Events, Venues, Payments, module settings) keep bottom-right Apply / Save / Cancel. Do not strip those card buttons to match canvas autosave.
+
+**One canvas (hard rule):** The layout editor is the only section/row/percent drag implementation. The Form builder uses that canvas with a field palette and without layout-only chrome (outlines, inherit, skin, full-vs-boxed, particle config). Do not ship a second drag stack (`dnd-kit` beside the layout HTML5 drag, or a copied empty-row helper). Field logic stays in the field cog.
+
 ## Same-type = same design
 
 | Control type | Must match |

@@ -5,8 +5,10 @@ cursor:
 
 # Modules wave kickoff (post–Email Manager)
 
+**This kickoff already ran.** Events, Profiles, Maps, and Payments exist. Do not use it to pick the next pack. The active job is to finish Core: [architecture-current](./architecture-current.md).
+
 **Purpose:** Lock the ASN surface → Starforge Module map, the post-Email build order, and the **first Module to build** with opening PRs.  
-**Stance:** Core spine is done enough ([core-remaining](./core-remaining.md)). **Email Manager largely shipped** (SF-204–207 / #121–123; send log + `email.sent` densified SF-229 / #139). Do **not** rebuild Core. Do **not** start Hero/ASN theme.  
+**Stance (historical, 5 Nov):** this kickoff treated the Core spine as done enough to start Events. That bar is withdrawn. Finish Core first. Email Manager had largely shipped (SF-204–207). Do not start Hero/ASN theme from this file.  
 **Sources:** Live ASN inventory in [asn-modules-wireframe](./asn-modules-wireframe.md); [email-manager-plan](./email-manager-plan.md); [events-manager-plan](./events-manager-plan.md); [maps-location-plan](./maps-location-plan.md); [platform-module-layers](./platform-module-layers.md); [preferences](../preferences.md).
 
 **Decision (this kickoff):** First substantive Modules-wave pack = **`product:events` (Events + venues)**. Thin **Profiles** stays optional glue — do **not** block Events on a full Profiles pack.

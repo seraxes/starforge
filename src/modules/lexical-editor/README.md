@@ -1,6 +1,6 @@
 # product:lexical-editor
 
-Optional **Payload Lexical** pack. Default Starforge editing is TipTap (`product:rich-editor`).
+Optional **Payload Lexical** pack. Default Starforge editing is TipTap (`product:rich-editor`). Lexical stays available after pages are converted, for installs that prefer it. It is off unless the installer chooses it.
 
 ## Why it exists
 

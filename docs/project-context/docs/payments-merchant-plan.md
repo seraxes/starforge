@@ -13,7 +13,7 @@
 
 ## Entitlement
 
-`canCollectPayments` (subscriptions stub table + later `product:subscriptions`) **and** ACL `admin.payments-merchant`.
+`canCollectPayments` (frozen `sf_pay_collect_entitlements` stub, later replaced by `product:subscriptions`) **and** ACL `admin.payments-merchant`. Do not grow the stub into plans or periods. Merchant keys stay in the encrypted credentials table — that is the secrets exception, not a reason to put site-wide secrets in the database.
 
 ## Bridges
 
