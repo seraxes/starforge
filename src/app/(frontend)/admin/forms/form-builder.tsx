@@ -60,7 +60,6 @@ import {
   stringifyFormJsonSchema,
 } from '@/core/forms/schema-json'
 import {
-  gridColStyle,
   mosaicParticleBarDropEdge,
   mosaicSectionDropEdge,
   pairMosaicSectionWidths,
@@ -2494,7 +2493,6 @@ export function FormBuilder({ formId, initialDocument, siteCaptcha, groups = [] 
                     className={sectionClass}
                     data-sf-width={sectionWidth}
                     data-sf-section={section.id}
-                    style={gridColStyle(sectionWidth)}
                     onDragOver={(event) => {
                       const movingId = draggingSectionIdRef.current
                       if (!movingId || movingId === section.id) return

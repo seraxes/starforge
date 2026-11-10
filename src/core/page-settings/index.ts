@@ -58,6 +58,7 @@ export {
   getPageChromeOverride,
   getResolvedPageChrome,
   pageKeyFromPathname,
+  publicPathnameFromHeaders,
   resolvePageChrome,
 } from './resolve'
 export { viewerCanSeePageChrome } from './view-access'

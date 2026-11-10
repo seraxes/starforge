@@ -85,19 +85,42 @@ function hasPayloadToken(request: NextRequest): boolean {
   return request.cookies.has('payload-token')
 }
 
+/**
+ * Stamp public pathname for Server Components (outline / pageKey resolve).
+ *
+ * Important: when composing over next-intl’s `next()`, do **not** copy its
+ * `x-middleware-override-headers` / `x-middleware-request-*` onto our response —
+ * that wiped our pathname overrides and every page fell back to `/{locale}`
+ * → preferred Default outline → Main `data-sf-container="full"`.
+ */
 function withPathnameHeader(
   request: NextRequest,
   pathname: string,
   base?: NextResponse,
 ): NextResponse {
   const requestHeaders = new Headers(request.headers)
+
+  // Keep next-intl request header mutations (locale, etc.), then add pathname.
+  if (base) {
+    const override = base.headers.get('x-middleware-override-headers')
+    if (override) {
+      for (const rawName of override.split(',')) {
+        const name = rawName.trim()
+        if (!name) continue
+        const value = base.headers.get(`x-middleware-request-${name}`)
+        if (value !== null) requestHeaders.set(name, value)
+      }
+    }
+  }
+
   requestHeaders.set('x-sf-pathname', pathname)
   requestHeaders.set('x-sf-pathname-bare', pathnameWithoutLocale(pathname))
+
   const response = NextResponse.next({
     request: { headers: requestHeaders },
   })
 
-  // Preserve next-intl cookies / link headers when composing over its `next()`.
+  // Preserve next-intl cookies / link / rewrite — never clobber our request overrides.
   if (base) {
     base.cookies.getAll().forEach((cookie) => {
       response.cookies.set(cookie)
@@ -105,11 +128,9 @@ function withPathnameHeader(
     base.headers.forEach((value, key) => {
       const lower = key.toLowerCase()
       if (lower === 'set-cookie') return
-      if (lower.startsWith('x-middleware-')) {
-        response.headers.set(key, value)
-        return
-      }
-      if (lower === 'link') {
+      if (lower === 'x-middleware-override-headers') return
+      if (lower.startsWith('x-middleware-request-')) return
+      if (lower.startsWith('x-middleware-') || lower === 'link') {
         response.headers.set(key, value)
       }
     })

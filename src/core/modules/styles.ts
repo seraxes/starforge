@@ -2,9 +2,9 @@
  * Outline-scoped layout styles (SF-34 / SF-64).
  *
  * CSS ownership (keep layers separate — do not mix into admin chrome):
- * 1) Design tokens — `:root` (later Tailwind theme)
- * 2) Outline Layout Styles — section full/boxed + section bg/text/image/overlay
- *    + outline breakpoints
+ * 1) Design tokens — platform `:root` + Skin `body.sf-skin-{id}`
+ * 2) Outline Layout Styles — `body.sf-skin-*.sf-outline-*` breakpoints +
+ *    section full/boxed + section bg/text/image/overlay
  * 3) Custom CSS — Page Settings / Custom particle (not admin chrome)
  *
  * Section Styles live on each live section instance (`section.styles`) — listing
@@ -13,6 +13,12 @@
  */
 
 import type { CSSProperties } from 'react'
+
+import {
+  outlineBodyClass,
+  sanitizeCssScopeId,
+  skinOutlineBodySelector,
+} from '@/core/skin/css-scope'
 
 export type LayoutContainerMode = 'full' | 'boxed'
 
@@ -335,16 +341,21 @@ export function cssColorToColorInputValue(raw: string | undefined | null): strin
 }
 
 /**
- * CSS custom properties + mobile-menu media query for one outline shell.
+ * Outline breakpoints on the body compound selector (outline beats skin).
+ * `body.sf-skin-{skin}.sf-outline-{outline}` — boxed sections read `--sf-container-max`.
  * Media queries cannot use custom properties, so the mobile-menu rule is inlined.
  */
 export function buildOutlineBreakpointCss(
   layoutId: string,
   breakpoints: LayoutBreakpoints = DEFAULT_LAYOUT_BREAKPOINTS,
+  skinId?: string | null,
 ): string {
-  const id = layoutId.replace(/[^a-zA-Z0-9_-]/g, '') || 'default'
+  const outlineId = sanitizeCssScopeId(layoutId, 'default')
+  const resolvedSkin =
+    typeof skinId === 'string' && skinId.trim() ? skinId.trim() : 'default'
+  const sel = skinOutlineBodySelector(resolvedSkin, outlineId)
   const bp = normalizeLayoutBreakpoints(breakpoints)
-  const sel = `.public-shell[data-sf-layout-id="${id}"]`
+  const outlineClass = outlineBodyClass(outlineId)
   return [
     `${sel}{`,
     `--sf-bp-large-desktop:${bp.largeDesktop};`,
@@ -352,11 +363,13 @@ export function buildOutlineBreakpointCss(
     `--sf-bp-tablet:${bp.tablet};`,
     `--sf-bp-mobile:${bp.mobile};`,
     `--sf-bp-mobile-menu:${bp.mobileMenu};`,
+    /* Boxed sections use this (large-desktop breakpoint). */
     `--sf-container-max:${bp.largeDesktop};`,
     `}`,
     `@media (max-width:${bp.mobileMenu}){`,
-    `${sel}[data-sf-mobile-menu="collapse"] .site-nav,`,
-    `${sel} .sf-menu[data-sf-mobile-menu="collapse"] .site-nav{`,
+    `body.${outlineClass}[data-sf-mobile-menu="collapse"] .site-nav,`,
+    `body.${outlineClass} .public-shell[data-sf-mobile-menu="collapse"] .site-nav,`,
+    `body.${outlineClass} .sf-menu[data-sf-mobile-menu="collapse"] .site-nav{`,
     `flex-direction:column;`,
     `align-items:stretch;`,
     `gap:0.35rem;`,

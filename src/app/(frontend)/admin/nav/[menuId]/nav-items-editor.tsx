@@ -436,8 +436,17 @@ function SortableNavItem({
             </select>
           </label>
           <p className="settings-hint">
-            Assigns this outline on the linked page via{' '}
-            <Link href="/admin/page-settings">Page settings</Link> when the target can be resolved.
+            Same assignment as Layouts →{' '}
+            <Link
+              href={
+                row.layoutId
+                  ? `/admin/assigned-menu?outline=${encodeURIComponent(row.layoutId)}`
+                  : '/admin/assigned-menu'
+              }
+            >
+              Assigned Menu
+            </Link>
+            .
           </p>
           <label className="settings-field">
             <span>CSS class</span>

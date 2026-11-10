@@ -53,15 +53,44 @@ function resolveLayoutId(layoutId?: string | null): string {
 }
 
 /**
+ * Stale nav/chrome ids like `pastel-test` → live `starforge-pastel-test`.
+ * Exact id wins; otherwise unique suffix / endswith match among outlines.
+ */
+export async function resolveExistingLayoutId(
+  layoutId?: string | null,
+): Promise<string | null> {
+  const raw = typeof layoutId === 'string' ? layoutId.trim() : ''
+  if (!raw) return null
+  try {
+    const rows = await db
+      .select({ id: sfLayouts.id })
+      .from(sfLayouts)
+    const ids = rows.map((r) => r.id).filter(Boolean)
+    if (ids.includes(raw)) return raw
+    const suffix = ids.filter(
+      (id) => id.endsWith(`-${raw}`) || id.endsWith(raw),
+    )
+    if (suffix.length === 1) return suffix[0]!
+    const loose = ids.filter((id) => id.includes(raw))
+    if (loose.length === 1) return loose[0]!
+  } catch {
+    // Table may not exist yet.
+  }
+  return null
+}
+
+/**
  * Read a layout document by outline id (default: site `default`).
  * Prefers `sf_layouts`; falls back to `default-layout.json` when empty
  * or when the table is missing (before `db:core:push`).
- * Unknown ids fall back to the `default` row, then the JSON seed.
+ * Unknown ids try alias match, then the `default` row, then the JSON seed.
  */
 export async function loadLayoutDocument(
   layoutId: string = DEFAULT_LAYOUT_ID,
 ): Promise<LayoutLoadResult> {
-  const id = resolveLayoutId(layoutId)
+  const requested = resolveLayoutId(layoutId)
+  const aliased = (await resolveExistingLayoutId(requested)) || requested
+  const id = aliased
 
   const tryRow = async (rowId: string): Promise<LayoutLoadResult | null> => {
     try {
@@ -81,7 +110,7 @@ export async function loadLayoutDocument(
           return {
             document: parsed,
             source: 'database',
-            isFallback: rowId !== id,
+            isFallback: row.id !== requested && row.id !== aliased,
             layoutId: row.id,
             label: displayLabelForId(row.id, row.label),
           }

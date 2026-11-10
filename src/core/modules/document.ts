@@ -471,6 +471,21 @@ export function cloneDefaultLayoutDocument(): LayoutDocument {
   return clone
 }
 
+/**
+ * Working copy for layout mutators.
+ * Empty inheriting children (`inheritFrom` + `sections: []`) must stay empty stubs —
+ * never substitute the core default (that drops inheritFrom and Pastel child settings).
+ */
+export function cloneWorkingLayoutDocument(document: LayoutDocument): LayoutDocument {
+  const hasIdentity =
+    Boolean(document.inheritFrom) ||
+    document.sections.length > 0 ||
+    Boolean(document.styles) ||
+    (document.omitSectionIds?.length ?? 0) > 0
+  if (hasIdentity) return structuredClone(document)
+  return cloneDefaultLayoutDocument()
+}
+
 export function parseLayoutDocumentJson(json: string): LayoutDocument | null {
   try {
     return normalizeLayoutDocument(JSON.parse(json) as unknown)

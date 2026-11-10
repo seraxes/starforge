@@ -17,7 +17,7 @@ import {
 } from '@/modules/media/api'
 import { VenueLocationMap } from '@/modules/maps/VenueLocationMap'
 
-import { clampGridWidth, gridColStyle, LAYOUT_WIDTH_FULL } from '@/core/modules/grid'
+import { clampGridWidth, LAYOUT_WIDTH_FULL } from '@/core/modules/grid'
 
 import { countryOptions } from '../countries'
 import {
@@ -613,7 +613,6 @@ export function ProfileEditor({
               key={section.id}
               className="settings-fieldset"
               data-sf-width={width}
-              style={gridColStyle(width)}
             >
               <legend>{section.label}</legend>
               {section.fields.map((key) => renderField(key))}

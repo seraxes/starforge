@@ -67,9 +67,9 @@ export default async function AdminAssignedMenuPage(props: { searchParams?: Sear
       />
       <h2>Assigned Menu</h2>
       <p className="lede admin-lede gantry-layouts-lede">
-        Menu items that should use outline <strong>{outlineMeta.label}</strong> (
-        <code>{layoutId}</code>). Toggle each item on or off — same assignment as Navigation → Layout
-        outline.
+        Bind navigation items to outline <strong>{outlineMeta.label}</strong> (
+        <code>{layoutId}</code>). The site primary menu is listed first — same{' '}
+        <code>layoutId</code> field as Navigation → item → Layout outline.
       </p>
       <AssignedMenuPanel outlineId={layoutId} outlineLabel={outlineMeta.label} />
     </section>

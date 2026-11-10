@@ -76,9 +76,10 @@ export default async function AdminNavMenuItemsPage({ params }: Args) {
       <p className="lede admin-lede">
         Bind each item to a CMS page, URL, or an <strong>enabled module view</strong> (Modules
         catalog / registry <code>navViews</code>). Assign a <strong>layout outline</strong> per
-        item (writes Page settings for that page). New items default to the active skin’s Default
-        shell. Drag bars to reorder; cog opens item settings; Copy/Paste to duplicate.{' '}
-        <strong>Who can see</strong> — multi-select tags (Public, Registered, or{' '}
+        item (same field as Layouts →{' '}
+        <Link href="/admin/assigned-menu">Assigned Menu</Link>). New items default to the active
+        skin’s Default shell. Drag bars to reorder; cog opens item settings; Copy/Paste to
+        duplicate. <strong>Who can see</strong> — multi-select tags (Public, Registered, or{' '}
         <Link href="/admin/users/groups">groups</Link>). Visible if the viewer matches any tag.
         Admin rights live under <Link href="/admin/users/acl">Users → ACL</Link>.{' '}
         <Link href="/admin/nav">Back to menus</Link>

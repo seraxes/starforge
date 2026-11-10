@@ -50,8 +50,8 @@ export type Skin = {
   id: SkinId
   label: string
   /**
-   * Value for `data-sf-skin` on `.public-shell`.
-   * CSS and optional client hooks key off this.
+   * Legacy data-attr mirror (`data-sf-skin` on `.public-shell`).
+   * Public CSS engine keys off `body.sf-skin-{id}` / `body.sf-outline-{id}`.
    */
   dataAttr: string
   colorScheme: SkinColorScheme

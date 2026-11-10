@@ -7,7 +7,7 @@
 ```text
 <skin-id>/
   skin.yaml          # id, label, colorScheme, tokens, preferredDefaultOutlineId
-  skin.css           # optional extras ([data-sf-skin="<id>"])
+  skin.css           # optional extras (body.sf-skin-<id>)
   outlines/
     <outline-id>.yaml
 ```
@@ -27,6 +27,16 @@
 | **Core `default`** | Bootstrap fallback only — not a skin Base. Badge: **Core**. |
 | **Page assignment** | Nav menu item `layoutId` → layoutId-only pageKey row. Page Settings chrome is outline-gated (Base = `global`; children = `outline:<id>`). |
 | **Offline** | Site Chrome `offlineLayoutId`; Pastel Offline inherits Base |
+| **Public body CSS** | `body.sf-skin-{skinId}` + `body.sf-outline-{outlineId}` — unique classes; compound `body.sf-skin-*.sf-outline-*` always wins for outline vars |
+
+## Public CSS hierarchy (Skin module)
+
+1. Platform defaults — `styles.css` `:root`
+2. Skin — `body.sf-skin-{id}` tokens (+ pack `skin.css`)
+3. Outline — `body.sf-skin-{id}.sf-outline-{id}` breakpoints / `--sf-container-max`
+4. Sections — `[data-sf-container=boxed]` consumes `--sf-container-max`; `full` ignores it
+
+Helpers: `src/core/skin/css-scope.ts`. Injectors: `SkinRootStyles`, `LayoutOutlineStyles`. Body stamp: `BodyAttributesApplier`.
 
 ## Ownership
 
@@ -59,7 +69,7 @@ Same Inherit/Copy gate as Layout & Styles (Axis A):
 
 Toolbar Skin + Outline pickers scope which chrome you edit. There is no page picker.
 
-Nav menu items still assign which outline a page uses (`layoutId` → layoutId-only pageKey row). Runtime merges Base chrome + that outline’s sparse overrides.
+Nav menu items still assign which outline a page uses (`layoutId` → layoutId-only pageKey row). Runtime merges Base chrome + that outline’s sparse overrides. If the page chrome row is missing, public resolve falls back to the nav item’s `layoutId` (e.g. Events → Pastel-Test). Empty inheriting children must keep `inheritFrom` + `sections: []` on save — never seed the core default in place of the stub.
 
 Admin edits **raw** layout docs; public + admin preview merge via `resolveLayoutInheritance` / `getLayoutDocumentForAdmin`.
 

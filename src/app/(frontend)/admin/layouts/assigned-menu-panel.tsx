@@ -17,6 +17,7 @@ type Props = {
 
 /**
  * Assigned Menu — one card per navigation menu (mosaic 50%), toggles for the active outline.
+ * Primary nav (Main) is listed first; assignments match Navigation → Layout outline.
  */
 export function AssignedMenuPanel({ outlineId, outlineLabel }: Props) {
   const [menus, setMenus] = useState<NavOutlineAssignmentMenu[] | null>(null)
@@ -63,6 +64,7 @@ export function AssignedMenuPanel({ outlineId, outlineLabel }: Props) {
                             ...item,
                             assigned,
                             otherOutlineId: assigned ? null : item.otherOutlineId,
+                            otherOutlineLabel: assigned ? null : item.otherOutlineLabel,
                           },
                     ),
                   },
@@ -88,8 +90,9 @@ export function AssignedMenuPanel({ outlineId, outlineLabel }: Props) {
   return (
     <div className="gantry-assigned-menu gantry-assigned-menu--page">
       <p className="settings-hint">
-        Toggle which navigation items use outline <strong>{label}</strong>. On writes the outline to
-        the item and syncs Page Settings when the target page can be resolved.
+        Same assignment as <Link href="/admin/nav">Navigation</Link> → Layout outline. Primary menu
+        items first. Toggle on to bind this outline; off clears the item (site default outline
+        applies).
       </p>
 
       {error ? (
@@ -111,14 +114,21 @@ export function AssignedMenuPanel({ outlineId, outlineLabel }: Props) {
           {menus.map((menu) => (
             <section
               key={menu.menuId}
-              className="page-settings-panel gantry-assigned-menu-card"
-              aria-label={menu.menuLabel}
+              className={
+                menu.isPrimary
+                  ? 'page-settings-panel gantry-assigned-menu-card gantry-assigned-menu-card--primary'
+                  : 'page-settings-panel gantry-assigned-menu-card'
+              }
+              aria-label={menu.isPrimary ? `${menu.menuLabel} (primary)` : menu.menuLabel}
             >
               <header className="page-settings-panel-head">
                 <h3>
                   <Link href={`/admin/nav/${encodeURIComponent(menu.menuId)}`}>
                     {menu.menuLabel}
                   </Link>
+                  {menu.isPrimary ? (
+                    <span className="gantry-assigned-menu-primary-badge">Primary</span>
+                  ) : null}
                 </h3>
               </header>
               <div className="page-settings-panel-body">
@@ -129,20 +139,26 @@ export function AssignedMenuPanel({ outlineId, outlineLabel }: Props) {
                     {menu.items.map((item) => {
                       const key = `${menu.menuId}:${item.itemId}`
                       const busy = toggling && pendingKey === key
+                      const otherHint = item.otherOutlineLabel || item.otherOutlineId
                       return (
                         <li
                           key={item.itemId}
                           className="gantry-assigned-menu-item"
+                          data-depth={item.depth}
                           style={{ paddingLeft: `${0.35 + item.depth * 0.85}rem` }}
                         >
                           <span className="gantry-assigned-menu-item-label" title={item.label}>
                             {item.label}
-                            {item.otherOutlineId ? (
+                            {otherHint ? (
                               <span
                                 className="gantry-assigned-menu-other"
-                                title={`Currently on outline ${item.otherOutlineId}`}
+                                title={
+                                  item.otherOutlineId
+                                    ? `Currently on outline ${item.otherOutlineId}`
+                                    : undefined
+                                }
                               >
-                                · {item.otherOutlineId}
+                                · {otherHint}
                               </span>
                             ) : null}
                           </span>

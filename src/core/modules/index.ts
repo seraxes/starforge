@@ -35,6 +35,7 @@ export {
 export type { LayoutActionState } from './actions'
 export {
   cloneDefaultLayoutDocument,
+  cloneWorkingLayoutDocument,
   findRow,
   findSection,
   findSlot,
@@ -88,7 +89,12 @@ export {
   getLayoutDocumentForAdmin,
   type LayoutAdminBundle,
 } from './admin-layout'
-export { getAssignmentsForPosition, getLayoutDocument } from './layout'
+export {
+  getAssignmentsForPosition,
+  getLayoutDocument,
+  getPublicLayoutBundle,
+} from './layout'
+export type { PublicLayoutBundle } from './layout'
 export {
   createLayoutOutline,
   deleteLayoutOutline,

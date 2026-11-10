@@ -43,9 +43,44 @@ export function pageKeyFromPathname(pathname: string | null | undefined): string
 }
 
 /**
+ * Public request pathname for outline resolve (proxy stamps `x-sf-pathname`).
+ * Falls back to bare path + locale, then `next-url`, then `/{locale}`.
+ */
+export function publicPathnameFromHeaders(
+  headerList: Headers,
+  locale: string,
+): string {
+  const full = (headerList.get('x-sf-pathname') || '').trim()
+  if (full) return full.split('?')[0]?.split('#')[0] || full
+
+  const bare = (headerList.get('x-sf-pathname-bare') || '').trim()
+  if (bare) {
+    const path = bare.startsWith('/') ? bare : `/${bare}`
+    if (path === '/') return `/${locale}`
+    return `/${locale}${path}`
+  }
+
+  const nextUrl = (headerList.get('next-url') || headerList.get('x-url') || '').trim()
+  if (nextUrl) {
+    try {
+      const path = nextUrl.startsWith('http')
+        ? new URL(nextUrl).pathname
+        : nextUrl.split('?')[0]?.split('#')[0] || ''
+      if (path) return path
+    } catch {
+      // ignore malformed
+    }
+  }
+
+  return `/${locale}`
+}
+
+/**
  * Resolve chrome for a pageKey (`null` = global only / unknown route).
  * Document chrome: Base outline = `global`; other outlines merge sparse `outline:<id>` over Base.
- * Nav pageKey rows only supply `layoutId` (which outline applies).
+ *
+ * Outline assignment (`layoutId`): **Navigation / Assigned Menu owns it**.
+ * Always prefer live nav lookup over `sf_page_chrome` (chrome is a sync mirror and may be stale).
  */
 export async function resolvePageChrome(pageKey: string | null): Promise<ResolvedPageChrome> {
   const [globalResult, preferredLayoutId] = await Promise.all([
@@ -59,11 +94,24 @@ export async function resolvePageChrome(pageKey: string | null): Promise<Resolve
     return mergePageChrome(baseChrome, null, null, mergeOpts)
   }
 
-  const pageResult = await loadPageChromeOverride(pageKey)
-  const navLayoutId =
-    !pageResult.isFallback && typeof pageResult.chrome.layoutId === 'string'
-      ? pageResult.chrome.layoutId.trim()
-      : ''
+  const { lookupNavAssignedLayoutId } = await import('@/core/nav/outline-assign')
+  const { resolveExistingLayoutId } = await import('@/core/modules/layout-store')
+
+  // Nav is source of truth (Assigned Menu / item Layout outline).
+  let navLayoutId = (await lookupNavAssignedLayoutId(pageKey)) || ''
+
+  // Fall back to page chrome mirror only when nav has no assignment for this pageKey.
+  if (!navLayoutId) {
+    const pageResult = await loadPageChromeOverride(pageKey)
+    if (!pageResult.isFallback && typeof pageResult.chrome.layoutId === 'string') {
+      navLayoutId = pageResult.chrome.layoutId.trim()
+    }
+  }
+
+  // Heal stale short ids (`pastel-test` → `starforge-pastel-test`).
+  if (navLayoutId) {
+    navLayoutId = (await resolveExistingLayoutId(navLayoutId)) || navLayoutId
+  }
   const layoutId = navLayoutId || preferredLayoutId
 
   let outlineOverride: PageChrome | null = null

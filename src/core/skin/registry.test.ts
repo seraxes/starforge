@@ -49,9 +49,9 @@ describe('skin registry', () => {
     assert.ok(Array.isArray(base?.document.sections))
   })
 
-  it('builds :root CSS vars from tokens', () => {
-    const css = buildSkinRootCss(starforgePastelTokens)
-    assert.match(css, /:root\s*\{/)
+  it('builds body.sf-skin-* CSS vars from tokens', () => {
+    const css = buildSkinRootCss(STARFORGE_PASTEL_SKIN_ID, starforgePastelTokens)
+    assert.match(css, /body\.sf-skin-starforge-pastel\s*\{/)
     assert.match(css, /--sf-primary:\s*#f2a66a;/)
     assert.match(css, /--sf-paper:\s*#f5f8fc;/)
   })

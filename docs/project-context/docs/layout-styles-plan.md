@@ -4,8 +4,8 @@ Gantry Helium Styles reference (`media/gantry-core-section-styles.png`).
 
 ## CSS layers (keep separate)
 
-1. **Design tokens** — `:root` (brand/surfaces; later Tailwind / SF-33 Core Styles accents & fonts).
-2. **Outline Layout Styles** — section full/boxed + **section background/text/image/overlay** + outline breakpoints (`--sf-bp-*`, `--sf-container-max`). Lives in the layout document for the active outline.
+1. **Design tokens** — platform `:root` defaults in `styles.css`; **active skin** on `body.sf-skin-{id}` (Skin module).
+2. **Outline Layout Styles** — section full/boxed + **section background/text/image/overlay** + outline breakpoints on `body.sf-skin-{id}.sf-outline-{id}` (`--sf-bp-*`, `--sf-container-max` — outline always beats skin). Lives in the layout document for the active outline.
 3. **Custom CSS** — Page Settings document chrome / Custom particle only. **Not** mixed into admin chrome.
 
 ## Principles
@@ -28,7 +28,10 @@ Gantry Helium Styles reference (`media/gantry-core-section-styles.png`).
 
 ## Public render
 
-- Inline `--sf-section-bg` / `--sf-section-text` / background-image; `data-sf-overlay="enabled"` paints overlay via `::before` + `--sf-section-overlay`.
+- Body classes: `sf-skin-{skinId}` + `sf-outline-{outlineId}` (unique; Skin CSS engine).
+- Section width: `data-sf-width` + `grid-widths.css` (no inline flex/width). `full` = edge-to-edge (`max-width: none`). `boxed` = `max-width: var(--sf-container-max)` from the body outline layer (large-desktop breakpoint).
+- Container mode is editable on inherit stubs (structure inherit does not lock Container).
+- Section Styles: inline `--sf-section-bg` / `--sf-section-text` / background-image; `data-sf-overlay="enabled"` paints overlay via `::before` + `--sf-section-overlay`.
 
 ## Out of this slice / later
 

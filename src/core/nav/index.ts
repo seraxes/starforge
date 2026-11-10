@@ -42,6 +42,7 @@ export {
   syncNavMenuOutlinesToPageChrome,
   clearNavItemOutlineFromPageChrome,
   listNavOutlineAssignmentTree,
+  lookupNavAssignedLayoutId,
   setNavItemOutlineAssignment,
 } from './outline-assign'
 export {

@@ -7,8 +7,8 @@ import { getActiveSkin } from '@/core/skin/resolve-active'
 import { resolveMediaById } from '@/core/media/resolve'
 
 import { LayoutOutlineStyles } from './LayoutOutlineStyles'
-import { clampGridWidth, gridColStyle, LAYOUT_WIDTH_FULL } from './grid'
-import { getLayoutDocument } from './layout'
+import { clampGridWidth, LAYOUT_WIDTH_FULL } from './grid'
+import { getPublicLayoutBundle } from './layout'
 import { isFooterLayoutSection, partitionSectionsForPublicPaint } from './section-order'
 
 import {
@@ -88,8 +88,7 @@ async function SectionBlock({
   )
 
   const width = clampGridWidth(section.width ?? LAYOUT_WIDTH_FULL, LAYOUT_WIDTH_FULL)
-  const widthStyle = gridColStyle(width)
-  const mergedStyle = sectionStyle ? { ...sectionStyle, ...widthStyle } : widthStyle
+  // Width from data-sf-width + grid-widths.css; boxed max from --sf-container-max.
 
   if (isFooter) {
     return (
@@ -100,7 +99,7 @@ async function SectionBlock({
         data-sf-width={width}
         data-sf-section-styled={sectionStyle ? 'true' : undefined}
         data-sf-overlay={overlayOn ? 'enabled' : undefined}
-        style={mergedStyle}
+        style={sectionStyle}
       >
         {inner}
       </footer>
@@ -115,7 +114,7 @@ async function SectionBlock({
       data-sf-width={width}
       data-sf-section-styled={sectionStyle ? 'true' : undefined}
       data-sf-overlay={overlayOn ? 'enabled' : undefined}
-      style={mergedStyle}
+      style={sectionStyle}
     >
       {inner}
     </section>
@@ -198,8 +197,8 @@ function documentHasPageContent(sections: LayoutSection[]): boolean {
  * footer-named sections to the end so Main particles stay above `<footer>` —
  * stored orders are not rewritten.
  *
- * Section `containerMode` owns full vs boxed width; row % is share inside.
- * Section `width` (5–100%) spans the page mosaic — consecutive partial widths sit side-by-side.
+ * Section `containerMode` owns full vs boxed width (boxed → outline `--sf-container-max`).
+ * Section `width` (5–100%) via `data-sf-width` + CSS — consecutive partials sit side-by-side.
  */
 export async function PublicLayoutBody({
   children,
@@ -211,7 +210,6 @@ export async function PublicLayoutBody({
 }: Props) {
   await ensureModulesRegistered()
   const skin = await getActiveSkin()
-  const resolvedLayoutId = layoutId || 'default'
   const shellClass = [
     'public-shell',
     sectionsLayout === 'boxed' ? 'sf-sections-boxed' : 'sf-sections-fullwidth',
@@ -230,7 +228,11 @@ export async function PublicLayoutBody({
         data-sf-sections-layout={sectionsLayout}
         data-sf-mobile-menu="collapse"
       >
-        <LayoutOutlineStyles layoutId="minimal" breakpoints={DEFAULT_LAYOUT_BREAKPOINTS} />
+        <LayoutOutlineStyles
+          layoutId="minimal"
+          skinId={skin.id}
+          breakpoints={DEFAULT_LAYOUT_BREAKPOINTS}
+        />
         <SiteHeader
           siteName={siteName}
           primaryNav={primaryNav}
@@ -242,11 +244,7 @@ export async function PublicLayoutBody({
           data-sf-container={fallbackMode}
         >
           <div className="sf-grid-row">
-            <div
-              className="sf-grid-col"
-              data-sf-width={12}
-              style={{ flex: '0 0 100%', maxWidth: '100%', width: '100%' }}
-            >
+            <div className="sf-grid-col" data-sf-width={100}>
               <div className="sf-page-content public-main">{children}</div>
             </div>
           </div>
@@ -262,7 +260,7 @@ export async function PublicLayoutBody({
     )
   }
 
-  const document = await getLayoutDocument(layoutId)
+  const { document, layoutId: resolvedLayoutId } = await getPublicLayoutBundle(layoutId)
   const { flow, footers } = partitionSectionsForPublicPaint(document.sections)
   const hasPageContent = documentHasPageContent([...flow, ...footers])
   const breakpoints = document.styles?.breakpoints ?? DEFAULT_LAYOUT_BREAKPOINTS
@@ -302,10 +300,15 @@ export async function PublicLayoutBody({
       data-sf-skin={skin.dataAttr}
       data-sf-layout-version={document.version}
       data-sf-layout-id={resolvedLayoutId}
+      data-sf-layout-requested={layoutId || ''}
       data-sf-sections-layout={sectionsLayout}
       data-sf-mobile-menu="collapse"
     >
-      <LayoutOutlineStyles layoutId={resolvedLayoutId} breakpoints={breakpoints} />
+      <LayoutOutlineStyles
+        layoutId={resolvedLayoutId}
+        skinId={skin.id}
+        breakpoints={breakpoints}
+      />
       {paintChunks(flowChunks)}
 
       {!hasPageContent ? (
@@ -316,7 +319,7 @@ export async function PublicLayoutBody({
           data-sf-width={100}
         >
           <div className="sf-grid-row">
-            <div className="sf-grid-col" data-sf-width={12} style={{ flex: '0 0 100%', maxWidth: '100%', width: '100%' }}>
+            <div className="sf-grid-col" data-sf-width={100}>
               <div className="sf-page-content public-main">{children}</div>
             </div>
           </div>

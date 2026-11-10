@@ -1,7 +1,7 @@
 /**
- * Nav → Page Settings outline assignment.
- * Runtime resolves layoutId from Page Settings chrome; nav (Menus / Assigned Menu)
- * is the only admin UX that writes it — Page Settings does not edit layoutId.
+ * Nav outline assignment (Menus / Assigned Menu).
+ * Nav owns `layoutId` on items; Page Settings chrome is a sync mirror only
+ * (Page Settings UI does not edit layoutId).
  */
 import 'server-only'
 
@@ -13,6 +13,7 @@ import {
   savePageChrome,
 } from '@/core/page-settings/store'
 import { invalidatePageChrome } from '@/core/content/revalidate'
+import { listLayoutOutlines, resolveExistingLayoutId } from '@/core/modules/layout-store'
 
 import { flattenNavItemsInOrder } from './document'
 import { listEnabledModuleNavOptions } from './module-views'
@@ -70,6 +71,44 @@ export async function syncNavItemOutlineToPageChrome(
   await invalidatePageChrome(pageKey)
 }
 
+/**
+ * Find a nav item’s layoutId for a pageKey (Assigned Menu / Navigation source of truth).
+ * Prefers the site primary menu, then other menus.
+ */
+export async function lookupNavAssignedLayoutId(pageKey: string): Promise<string | null> {
+  const key = pageKey.trim()
+  if (!key) return null
+
+  try {
+    const settings = await getSiteSettings()
+    const primaryId = (settings.primaryNavMenuId ?? '').trim()
+    const [pages, modules, menus] = await Promise.all([
+      listNavPageOptions(),
+      Promise.resolve(listEnabledModuleNavOptions(settings)),
+      listNavMenus(),
+    ])
+    const ordered = [...menus].sort((a, b) => {
+      if (a.id === primaryId) return -1
+      if (b.id === primaryId) return 1
+      return 0
+    })
+    for (const menu of ordered) {
+      const loaded = await loadNavMenu(menu.id)
+      for (const item of flattenNavItemsInOrder(loaded.document.items)) {
+        if (pageKeyForNavItem(item, pages, modules) !== key) continue
+        const layoutId =
+          typeof item.layoutId === 'string' && item.layoutId.trim() ? item.layoutId.trim() : ''
+        if (layoutId) {
+          return (await resolveExistingLayoutId(layoutId)) || layoutId
+        }
+      }
+    }
+  } catch {
+    return null
+  }
+  return null
+}
+
 /** Clear page chrome layoutId when it still matches the outline being unassigned. */
 export async function clearNavItemOutlineFromPageChrome(
   item: NavMenuItem,
@@ -82,7 +121,11 @@ export async function clearNavItemOutlineFromPageChrome(
   const existing = await loadPageChromeOverride(pageKey)
   if (existing.isFallback) return
   const current = (existing.chrome.layoutId ?? '').trim()
-  if (!current || current !== outlineId.trim()) return
+  if (!current) return
+  const target = outlineId.trim()
+  const currentResolved = (await resolveExistingLayoutId(current)) || current
+  const targetResolved = (await resolveExistingLayoutId(target)) || target
+  if (current !== target && currentResolved !== targetResolved) return
   await deletePageChromeOverride(pageKey)
 }
 
@@ -98,20 +141,50 @@ export async function syncNavMenuOutlinesToPageChrome(
 
 /**
  * All nav menus + items with assignment state for one outline
- * (for Layouts → Assigned Menu toggles).
+ * (for Layouts → Assigned Menu toggles). Primary nav is listed first;
+ * stale outline ids are healed so Assigned Menu matches Navigation.
  */
 export async function listNavOutlineAssignmentTree(
   outlineId: string,
 ): Promise<NavOutlineAssignmentMenu[]> {
-  const outline = outlineId.trim()
-  if (!outline) return []
+  const requested = outlineId.trim()
+  if (!requested) return []
 
-  const menus = await listNavMenus()
+  const outline = (await resolveExistingLayoutId(requested)) || requested
+  const [menus, settings, outlines] = await Promise.all([
+    listNavMenus(),
+    getSiteSettings(),
+    listLayoutOutlines(),
+  ])
+  const primaryId = (settings.primaryNavMenuId ?? '').trim()
+  const labelById = new Map(outlines.map((o) => [o.id, o.label] as const))
+
   const tree: NavOutlineAssignmentMenu[] = []
 
   for (const menu of menus) {
     const loaded = await loadNavMenu(menu.id)
-    const ordered = flattenNavItemsInOrder(loaded.document.items)
+    let healed = false
+    const healedItems: NavMenuItem[] = []
+    for (const item of loaded.document.items) {
+      const raw =
+        typeof item.layoutId === 'string' && item.layoutId.trim() ? item.layoutId.trim() : ''
+      if (!raw) {
+        healedItems.push(item)
+        continue
+      }
+      const resolved = (await resolveExistingLayoutId(raw)) || raw
+      if (resolved !== raw) {
+        healed = true
+        healedItems.push({ ...item, layoutId: resolved })
+      } else {
+        healedItems.push(item)
+      }
+    }
+    if (healed) {
+      await replaceNavMenuItems(menu.id, healedItems)
+    }
+    const ordered = flattenNavItemsInOrder(healed ? healedItems : loaded.document.items)
+
     const depthById = new Map<string, number>()
     for (const item of ordered) {
       const parentDepth =
@@ -124,26 +197,35 @@ export async function listNavOutlineAssignmentTree(
     tree.push({
       menuId: menu.id,
       menuLabel: menu.label,
+      isPrimary: Boolean(primaryId) && menu.id === primaryId,
       items: ordered.map((item) => {
         const assignedId =
           typeof item.layoutId === 'string' && item.layoutId.trim() ? item.layoutId.trim() : ''
+        const isAssigned = Boolean(assignedId) && assignedId === outline
+        const otherId = assignedId && !isAssigned ? assignedId : null
         return {
           itemId: item.id,
           label: item.label,
           depth: depthById.get(item.id) ?? 0,
-          assigned: assignedId === outline,
-          otherOutlineId: assignedId && assignedId !== outline ? assignedId : null,
+          assigned: isAssigned,
+          otherOutlineId: otherId,
+          otherOutlineLabel: otherId ? (labelById.get(otherId) ?? otherId) : null,
         }
       }),
     })
   }
+
+  tree.sort((a, b) => {
+    if (a.isPrimary === b.isPrimary) return a.menuLabel.localeCompare(b.menuLabel)
+    return a.isPrimary ? -1 : 1
+  })
 
   return tree
 }
 
 /**
  * Toggle whether a nav item uses `outlineId` as its layout assignment.
- * On → set layoutId + sync Page Settings. Off → clear layoutId + clear matching chrome.
+ * On → set layoutId + sync page chrome. Off → clear layoutId + clear matching chrome.
  */
 export async function setNavItemOutlineAssignment(input: {
   menuId: string
@@ -153,10 +235,16 @@ export async function setNavItemOutlineAssignment(input: {
 }): Promise<{ ok: true } | { error: string }> {
   const menuId = input.menuId.trim()
   const itemId = input.itemId.trim()
-  const outlineId = input.outlineId.trim()
+  let outlineId = input.outlineId.trim()
   if (!menuId || !itemId || !outlineId) {
     return { error: 'Menu, item, and outline are required.' }
   }
+
+  const existing = await resolveExistingLayoutId(outlineId)
+  if (input.assigned && !existing) {
+    return { error: `Outline “${outlineId}” was not found.` }
+  }
+  if (existing) outlineId = existing
 
   const loaded = await loadNavMenu(menuId)
   if (loaded.isFallback && loaded.source === 'empty') {

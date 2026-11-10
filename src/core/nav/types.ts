@@ -94,15 +94,19 @@ export type NavOutlineAssignmentItem = {
   itemId: string
   label: string
   depth: number
-  /** True when this item’s layoutId equals the queried outline. */
+  /** True when this item’s layoutId resolves to the queried outline. */
   assigned: boolean
-  /** Other outline id when assigned elsewhere (for UI hint). */
+  /** Other outline id when assigned elsewhere (canonical id when healable). */
   otherOutlineId: string | null
+  /** Display label for otherOutlineId (falls back to id in UI). */
+  otherOutlineLabel: string | null
 }
 
 /** Menu group in Layouts → Assigned Menu. */
 export type NavOutlineAssignmentMenu = {
   menuId: string
   menuLabel: string
+  /** Site primary nav menu (`settings.primaryNavMenuId`). */
+  isPrimary: boolean
   items: NavOutlineAssignmentItem[]
 }

@@ -5,6 +5,8 @@
  * Public site stays light in styles.css. Active import: admin-theme/active-core.css.
  */
 
+@import '../../../modules/grid-widths.css';
+
 /* Prevent the public light body wash from peeking around admin chrome. */
 body:has(.admin-shell) {
   background: #152033;
@@ -221,6 +223,10 @@ body:has(.admin-shell) > main {
 .admin-shell .gantry-assigned-menu-card .page-settings-panel-head h3 {
   margin: 0;
   font: inherit;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.55rem;
 }
 
 .admin-shell .gantry-assigned-menu-card .page-settings-panel-head a {
@@ -230,6 +236,25 @@ body:has(.admin-shell) > main {
 
 .admin-shell .gantry-assigned-menu-card .page-settings-panel-head a:hover {
   color: var(--sf-admin-nav-active, #4a9eff);
+}
+
+.admin-shell .gantry-assigned-menu-primary-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--sf-admin-nav-active, #4a9eff) 45%, transparent);
+  background: color-mix(in srgb, var(--sf-admin-nav-active, #4a9eff) 14%, transparent);
+  color: var(--sf-admin-nav-active, #4a9eff);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.admin-shell .gantry-assigned-menu-card--primary {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sf-admin-nav-active, #4a9eff) 28%, transparent);
 }
 
 .admin-shell .gantry-assigned-menu-items {

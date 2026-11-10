@@ -2,6 +2,7 @@ import React from 'react'
 import Link from 'next/link'
 
 import { PublicLayoutBody } from '@/core/modules/PublicLayoutBody'
+import { BodyAttributesApplier } from '@/core/page-settings'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import {
   DEFAULT_OFFLINE_LAYOUT_ID,
@@ -46,6 +47,14 @@ export async function SiteOfflineView(props: Props = {}) {
   return (
     <>
       <SkinRootStyles />
+      <BodyAttributesApplier
+        bodyId=""
+        bodyClasses=""
+        bodyTagAttributes=""
+        sectionsLayout="fullwidth"
+        skinId={activeSkin.id}
+        outlineId={layoutId}
+      />
       <PublicLayoutBody
         siteName={siteName}
         primaryNav={[]}

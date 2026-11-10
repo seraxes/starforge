@@ -5,6 +5,12 @@ import { resolveLayoutInheritance } from './inherit'
 import { loadLayoutDocument } from './layout-store'
 import type { LayoutDocument, LayoutSlot, LayoutPositionId } from './types'
 
+export type PublicLayoutBundle = {
+  document: LayoutDocument
+  /** Actual outline id after alias / DB resolve (may differ from the request). */
+  layoutId: string
+}
+
 /**
  * Load a layout document by id (DB first, then default-layout.json),
  * with outline inheritance resolved for public paint.
@@ -14,17 +20,26 @@ import type { LayoutDocument, LayoutSlot, LayoutPositionId } from './types'
 export async function getLayoutDocument(
   layoutId?: string,
 ): Promise<LayoutDocument> {
+  const bundle = await getPublicLayoutBundle(layoutId)
+  return bundle.document
+}
+
+/** Public paint: resolved document + the outline id that actually loaded. */
+export async function getPublicLayoutBundle(
+  layoutId?: string,
+): Promise<PublicLayoutBundle> {
   const id =
     typeof layoutId === 'string' && layoutId.trim() ? layoutId.trim() : DEFAULT_LAYOUT_ID
   return getPublishedContentCache().getCached(
     {
-      key: ['sf', 'layout', id],
+      key: ['sf', 'layout-bundle', id],
       tags: [contentCacheTags.layouts, contentCacheTags.layout(id)],
       revalidate: false,
     },
     async () => {
-      const { document, layoutId: resolvedId } = await loadLayoutDocument(id)
-      return resolveLayoutInheritance(resolvedId, document)
+      const loaded = await loadLayoutDocument(id)
+      const document = await resolveLayoutInheritance(loaded.layoutId, loaded.document)
+      return { document, layoutId: loaded.layoutId }
     },
   )
 }

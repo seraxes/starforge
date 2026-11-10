@@ -1,7 +1,8 @@
+import { skinBodySelector } from './css-scope'
 import type { SkinTokens } from './types'
 
-/** Emit `:root { … }` custom properties for the active skin. */
-export function buildSkinRootCss(tokens: SkinTokens): string {
+/** Emit `body.sf-skin-{id} { … }` custom properties for the active skin. */
+export function buildSkinRootCss(skinId: string, tokens: SkinTokens): string {
   const lines = [
     `--sf-primary: ${tokens.primary};`,
     `--sf-primary-strong: ${tokens.primaryStrong};`,
@@ -18,5 +19,6 @@ export function buildSkinRootCss(tokens: SkinTokens): string {
     `--font-display: ${tokens.fontDisplay};`,
     `--font-body: ${tokens.fontBody};`,
   ]
-  return `:root {\n  ${lines.join('\n  ')}\n}`
+  const sel = skinBodySelector(skinId)
+  return `${sel} {\n  ${lines.join('\n  ')}\n}`
 }

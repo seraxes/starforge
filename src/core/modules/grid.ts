@@ -34,9 +34,9 @@ export function gridWidthPercent(width: LayoutGridWidth): number {
 }
 
 /**
- * Inline flex basis / max-width for a public/admin grid column.
- * Partial widths subtract one `--sf-mosaic-gap` so percent pairs that sum to
- * 100% (50%|50%) fit on one flex row with CSS `gap` instead of wrapping.
+ * @deprecated Prefer `data-sf-width` + `grid-widths.css` (and section
+ * `data-sf-container` + outline `--sf-container-max` for boxed). Kept for
+ * rare callers that still need a computed style object.
  */
 export function gridColStyle(width: LayoutGridWidth): {
   flex: string
@@ -55,7 +55,6 @@ export function gridColStyle(width: LayoutGridWidth): {
       boxSizing: 'border-box',
     }
   }
-  // One full gap per item is slightly loose for 3+ columns but never wraps a 100% row.
   const basis = `calc(${pct}% - var(--sf-mosaic-gap, 0.95rem))`
   return {
     flex: `0 0 ${basis}`,

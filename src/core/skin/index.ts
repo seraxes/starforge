@@ -48,6 +48,13 @@ export {
   type SkinOutlineSeedResult,
 } from './outline-seeds'
 export { buildSkinRootCss } from './css-vars'
+export {
+  outlineBodyClass,
+  sanitizeCssScopeId,
+  skinBodyClass,
+  skinBodySelector,
+  skinOutlineBodySelector,
+} from './css-scope'
 export { SkinRootStyles } from './SkinRootStyles'
 export {
   setDefaultSkinAction,

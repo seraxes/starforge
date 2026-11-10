@@ -1,8 +1,9 @@
 /*
  * CSS layers (keep separate — do not mix Page Settings / Custom into admin chrome):
- * 1) Design tokens — `:root` / Tailwind `@theme` below; active Skin overrides via
- *    SkinRootStyles + src/core/skin (STARFORGE_SKIN / admin Skins default)
- * 2) Outline Layout Styles — public `.sf-layout-section` width + section bg/text + breakpoints
+ * 1) Design tokens — `:root` / Tailwind `@theme` below; active Skin on
+ *    `body.sf-skin-{id}` via SkinRootStyles (STARFORGE_SKIN / admin Skins default)
+ * 2) Outline Layout Styles — `body.sf-skin-*.sf-outline-{id}` breakpoints +
+ *    public `.sf-layout-section` full/boxed (outline always wins)
  * 3) Custom CSS — Page Settings document chrome / Custom particle only
  *
  * Tailwind v4 (theme + utilities only — no preflight) so existing CSS keeps working.
@@ -11,6 +12,8 @@
 @layer theme, base, components, utilities;
 @import 'tailwindcss/theme.css' layer(theme);
 @import 'tailwindcss/utilities.css' layer(utilities);
+/* Mosaic / column widths via data-sf-width (no inline flex/width). */
+@import '../../core/modules/grid-widths.css';
 
 @source '../../**/*.{ts,tsx,js,jsx}';
 
@@ -4248,8 +4251,9 @@ button:disabled {
 
 /*
  * Section owns container width (SF-34).
- * Boxed uses outline --sf-container-max (large desktop breakpoint).
- * Row % is share inside this wrapper — do not re-box .cms-page.
+ * Boxed: outline breakpoints decide the cap via --sf-container-max
+ * (set from large-desktop in LayoutOutlineStyles). No inline max-width.
+ * Row % (data-sf-width) is share inside this wrapper — do not re-box .cms-page.
  */
 .sf-layout-section[data-sf-container='boxed'] {
   max-width: var(--sf-container-max, 75rem);
@@ -6877,6 +6881,10 @@ button:disabled {
   padding-right: 1.25rem;
 }
 
+/*
+ * Full = edge-to-edge (ignore --sf-container-max). Boxed uses the breakpoint
+ * token instead — see .sf-layout-section[data-sf-container='boxed'] above.
+ */
 .public-shell.sf-sections-fullwidth .sf-layout-section[data-sf-container='full'] {
   width: 100%;
   max-width: none;

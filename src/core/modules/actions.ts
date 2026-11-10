@@ -9,6 +9,7 @@ import { ensureModulesRegistered } from '@/core/modules/boot'
 
 import {
   cloneDefaultLayoutDocument,
+  cloneWorkingLayoutDocument,
   findRow,
   findSection,
   findSlot,
@@ -146,8 +147,7 @@ async function mutateLayout(
 
   const layoutId = layoutIdFromForm(formData)
   const { document } = await loadLayoutDocument(layoutId)
-  const working =
-    document.sections.length > 0 ? structuredClone(document) : cloneDefaultLayoutDocument()
+  const working = cloneWorkingLayoutDocument(document)
 
   const result = mutator(working)
   if ('error' in result) return { error: result.error }
@@ -402,7 +402,20 @@ export async function updateLayoutSectionMetaAction(
   }
 
   const state = await mutateLayout(formData, (doc) => {
-    const section = findSection(doc, sectionId)
+    let section = findSection(doc, sectionId)
+    // Inheriting children often omit sections (inherit-by-absence). Materialize a
+    // thin stub so containerMode / width / styles overlay the parent on merge.
+    if (!section && doc.inheritFrom) {
+      section = {
+        id: sectionId,
+        label: label || sectionId,
+        inheritMode: 'inherit',
+        stylesInheritMode: 'inherit',
+        order: doc.sections.length,
+        rows: [],
+      }
+      doc.sections.push(section)
+    }
     if (!section) return { error: `Section “${sectionId}” not found.` }
     if (hasLabel && label) section.label = label
     if (hasCssClass) {
@@ -1626,8 +1639,7 @@ export async function updateSlotConfigAction(
 
   const layoutId = layoutIdFromForm(formData)
   const { document } = await loadLayoutDocument(layoutId)
-  const working =
-    document.sections.length > 0 ? structuredClone(document) : cloneDefaultLayoutDocument()
+  const working = cloneWorkingLayoutDocument(document)
   const found = findSlot(working, sectionId, rowId, slotId)
   if (!found) return { error: 'Slot not found.' }
 

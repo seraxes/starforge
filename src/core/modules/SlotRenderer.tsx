@@ -5,7 +5,6 @@ import { canSeeNavAccessTags, resolveAccessTags } from '@/core/acl/nav-access'
 import { getSiteSettings, isParticleModuleEnabled } from '@/core/settings'
 import { ensureModulesRegistered } from '@/core/modules/boot'
 
-import { gridColStyle } from './grid'
 import { getRegisteredModule } from './registry'
 import type { LayoutPositionId, LayoutSlot } from './types'
 
@@ -77,7 +76,6 @@ export async function SlotRenderer({ sectionId, slot, pageContent }: Props) {
   })
   if (rendered == null || rendered === false) return null
 
-  const style = gridColStyle(slot.width)
   const extraClass = typeof slot.cssClass === 'string' ? slot.cssClass.trim() : ''
   const className = ['sf-grid-col', extraClass].filter(Boolean).join(' ')
   const htmlId = typeof slot.htmlId === 'string' ? slot.htmlId.trim() : ''
@@ -90,7 +88,6 @@ export async function SlotRenderer({ sectionId, slot, pageContent }: Props) {
       data-sf-module={slot.moduleId}
       data-sf-width={slot.width}
       data-sf-access={accessTags.join('|')}
-      style={style}
     >
       {rendered}
     </div>

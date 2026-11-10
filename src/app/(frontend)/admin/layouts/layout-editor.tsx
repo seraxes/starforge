@@ -37,7 +37,6 @@ import { layoutRowIsEmpty } from '@/core/modules/empty-rows'
 import { LayoutIdField, useLayoutOutlineId } from './layout-outline-context'
 import {
   clampGridWidth,
-  gridColStyle,
   gridWidthPercent,
   LAYOUT_WIDTH_FULL,
   LAYOUT_WIDTH_MIN,
@@ -1658,7 +1657,6 @@ function SectionCanvas({
       className={classNames}
       data-sf-section={section.id}
       data-sf-width={sectionWidth}
-      style={gridColStyle(sectionWidth)}
       onDragOver={(event) => {
         if (![...event.dataTransfer.types].includes(DND_SECTION)) return
         event.preventDefault()
@@ -1856,17 +1854,22 @@ function SectionCanvas({
               <label className="gantry-inline-label gantry-section-container-label">
                 <span className="gantry-field-hint">Container</span>
                 <select
-                  key={`section-container-${section.id}-${section.containerMode ?? 'full'}`}
+                  key={`section-container-${section.id}-${section.containerMode ?? 'unset'}`}
                   className="gantry-inline-input gantry-section-container-select"
-                  defaultValue={section.containerMode ?? 'full'}
-                  disabled={metaPending || structureInherited}
-                  title="Section owns container width — row % is share inside"
+                  defaultValue={section.containerMode ?? ''}
+                  disabled={metaPending}
+                  title="Section owns container width (boxed uses outline --sf-container-max). Editable on inherit stubs."
                   aria-label="Section container width"
                   onChange={(event) => {
-                    const next = event.target.value === 'boxed' ? 'boxed' : 'full'
+                    const raw = event.target.value
+                    const next = raw === 'boxed' ? 'boxed' : raw === 'full' ? 'full' : undefined
+                    if (!next) return
                     persistSectionMeta({ containerMode: next })
                   }}
                 >
+                  <option value="" disabled>
+                    {section.containerMode ? '—' : 'Page default'}
+                  </option>
                   <option value="full">Full width</option>
                   <option value="boxed">Boxed width</option>
                 </select>
