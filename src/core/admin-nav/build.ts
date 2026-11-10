@@ -81,7 +81,6 @@ export function buildContributedAdminNavGroups(
  *   Skins (title → /admin/skins)
  *   - Outline (→ /admin/outlines) — list/create outlines for the active skin
  *     -- Layout / Styles / Page settings / Assigned Menu
- *   - Particle Defaults
  */
 function buildLayoutsBand(flags: AdminNavFeatureFlags): AdminNavGroup[] {
   const showBand = flags.layout || flags.pageSettings
@@ -103,10 +102,6 @@ function buildLayoutsBand(flags: AdminNavFeatureFlags): AdminNavGroup[] {
       href: `${CORE}/outlines`,
       label: 'Outline',
       children: outlineChildren,
-    })
-    links.push({
-      href: `${CORE}/particle-defaults`,
-      label: 'Particle Defaults',
     })
   } else if (flags.pageSettings) {
     links.push({ href: `${CORE}/page-settings`, label: 'Page settings' })

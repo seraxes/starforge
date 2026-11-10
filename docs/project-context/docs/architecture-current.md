@@ -71,10 +71,11 @@ Do not re-open work that already shipped: RateLimiter, captcha-in-security, the 
 
 **Now (Core finish), in order:**
 
-1. **Particle Defaults.** `/admin/particle-defaults` is still a stub. Wire typed particle defaults.
-2. **Dashboard core glance and needs-attention.** `system.health`, chrome / robots / captcha posture, `modules.summary`, and a rail for offline, Mailer off, health, and env warnings. These cards do not exist yet.
-3. **Small host leftovers.** Consent category UI, redirect CSV import, and a dynamic admin-theme CSS import (the registry works; layouts still import Gantry statically). Fold Forms success mail onto Email Manager only — `src/core/forms/email-notify.ts` still calls `getMailer()` as well as `emitEmailTrigger`.
-4. **Structural finish, its own pass.** Move the Forms and Redirects engines out of `src/core` (manifest plan M3–M4). Not a side effect of a feature PR. The TipTap engine can follow the same way; do not start that extract just to fix the `MediaPicker` import.
+1. **Dashboard core glance and needs-attention.** `system.health`, chrome / robots / captcha posture, `modules.summary`, and a rail for offline, Mailer off, health, and env warnings. These cards do not exist yet.
+2. **Small host leftovers.** Consent category UI, redirect CSV import, and a dynamic admin-theme CSS import (the registry works; layouts still import Gantry statically). Fold Forms success mail onto Email Manager only — `src/core/forms/email-notify.ts` still calls `getMailer()` as well as `emitEmailTrigger`.
+3. **Structural finish, its own pass.** Move the Forms and Redirects engines out of `src/core` (manifest plan M3–M4). Not a side effect of a feature PR. The TipTap engine can follow the same way; do not start that extract just to fix the `MediaPicker` import.
+
+**Particle defaults are not a Core admin page.** They are demo content inside a skin pack: the particles that ship with that skin already have default text and parameters, so an installed skin is not empty. Build that when Starforge is ready to hand to other people as a demo. Do not add `/admin/particle-defaults` back.
 
 **After Core is finished, commercial order** (ownership unchanged; this is not the active queue): close paid event tickets on `product:payments`, then `product:subscriptions`, then `product:ads`. `sf_pay_collect_entitlements` stays frozen until subscriptions owns it.
 

@@ -5,7 +5,7 @@
 **Scope:** Core only (not heavy Modules / Hero).  
 **Sources:** [core-gaps-evaluation](./core-gaps-evaluation.md) (Nov 4 — **stale on P0–M5**), [admin-dashboard-gap](./admin-dashboard-gap.md), [preferences](../preferences.md), [notes](../notes.md) Done vs Queued (through SF-223 / #135).  
 
-**Verdict at the time:** Opus called the Core spine “done enough” to start modules. That bar is withdrawn (2026-11-10). Finish the remaining Core host work before the next pack. Do not treat the shipped security slices as permission to skip Particle Defaults, the core glance, or the engine extract.
+**Verdict at the time:** Opus called the Core spine “done enough” to start modules. That bar is withdrawn (2026-11-10). Finish the remaining Core host work before the next pack. Do not treat the shipped security slices as permission to skip the core glance or the engine extract. Particle Defaults are not a Core page. They are deferred skin-pack demo content.
 
 ---
 
@@ -46,7 +46,7 @@ Ordered for Core densification (skip Events/Marketplace *data* — those packs a
 | 5 | **Core glance pack** | M | `system.health`, chrome/robots/captcha posture, `modules.summary` |
 | 6 | **Needs-attention rail** | M | Offline / Mailer off / health / env warnings |
 | 7 | ~~**Modules list → info/settings**~~ | ~~M series~~ | **Shipped SF-230** — Core host `/admin/settings/modules/<id>`; Modules rows link Info/Settings (reuse Media/Forms Settings; soft stubs otherwise) |
-| 8 | **Particle Defaults depth** | S–M | Layouts tab still stub |
+| 8 | **Particle defaults** | — | **Not a Core page.** Deferred: demo text and parameters shipped inside a skin pack, when Starforge is handed out. |
 | 9 | **Form dual-schema / M3–M4 extract** | M | Engines still partly Core-hosted; not blocking pack consumers |
 | 10 | **Consent category UI; redirect CSV** | S | Nice-to-have from eval |
 | 11 | **Mailer transactional templates** | S–M | Shared templates beyond Email Manager rules |
@@ -81,7 +81,7 @@ Do **not** treat as Core leftovers (focus guard + prefs):
 
 ## Top 5 next Core items
 
-**Shipped after this list was written.** Do not pick these up again: D2 media aggregates (SF-226), D4 soft refresh (SF-227), Forms/Security/Performance cards (SF-228), email send log (SF-229), module info/settings (SF-230). Still open, and now the active Core pass: items 5, 6, 8, 10, 11, and 12 below, then the Forms/Redirects extract (item 9) as its own pass. Detail: [architecture-current](./architecture-current.md).
+**Shipped after this list was written.** Do not pick these up again: D2 media aggregates (SF-226), D4 soft refresh (SF-227), Forms/Security/Performance cards (SF-228), email send log (SF-229), module info/settings (SF-230). Still open, and now the active Core pass: items 5, 6, 10, 11, and 12 below, then the Forms/Redirects extract (item 9) as its own pass. Item 8 is deferred skin-pack demo content, not this pass. Detail: [architecture-current](./architecture-current.md).
 
 The public Skin port already shipped. Core glance and needs-attention are part of the finish, not optional leftovers.
 

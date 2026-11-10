@@ -13,8 +13,6 @@ export type LayoutsAdminTab =
   | 'styles'
   | 'page-settings'
   | 'assigned-menu'
-  /** Still accepted from pages; not shown in the top tab strip. */
-  | 'particle-defaults'
   | 'skins'
   | 'outlines'
 
@@ -32,7 +30,7 @@ function withOutline(path: string, outlineId: string): string {
   return `${path}${join}outline=${encodeURIComponent(id)}`
 }
 
-/** Top strip: Layout / Styles / Page Settings / Assigned Menu — Particle Defaults + Skins in left nav. */
+/** Top strip: Layout / Styles / Page Settings / Assigned Menu. Skins live in the left nav. */
 const TABS: {
   id: LayoutsAdminTab
   label: string
@@ -140,11 +138,7 @@ export function LayoutsAdminNav({
                     rememberAdminWorkingOutline(next, targetOutline)
                   }
                   // Left-nav-only surfaces — stay put; Outlines list reloads for the new skin.
-                  if (
-                    active === 'skins' ||
-                    active === 'particle-defaults' ||
-                    active === 'outlines'
-                  ) {
+                  if (active === 'skins' || active === 'outlines') {
                     if (active === 'outlines') {
                       router.push('/admin/outlines')
                     }

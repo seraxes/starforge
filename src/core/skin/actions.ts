@@ -55,7 +55,6 @@ async function applyDefaultSkin(skinId: string): Promise<SkinActionState> {
     revalidatePath('/admin/skins')
     revalidatePath('/admin/layouts')
     revalidatePath('/admin/breakpoints')
-    revalidatePath('/admin/particle-defaults')
     revalidatePath('/admin/page-settings')
     revalidatePath('/admin/assigned-menu')
     revalidatePath('/', 'layout')

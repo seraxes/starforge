@@ -68,7 +68,7 @@ describe('resolveEnabledAdminNavModuleIds + Email contribution', () => {
     assert.equal(skins?.expandable, true)
     assert.deepEqual(
       skins?.links.map((l) => l.label),
-      ['Outline', 'Particle Defaults'],
+      ['Outline'],
     )
     const outline = skins?.links.find((l) => l.label === 'Outline')
     assert.equal(outline?.href, '/admin/outlines')
