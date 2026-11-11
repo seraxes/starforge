@@ -24,3 +24,8 @@ export {
   updateEmailRule,
   updateEmailTemplate,
 } from './store'
+
+export {
+  ensureFormsEmailStartersSeeded,
+  seedFormsEmailStarters,
+} from './forms-starters'

@@ -5,6 +5,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import {
+  buildChromeConsentKey,
   buildLayoutSlotKey,
   buildNavItemKey,
   contentLocaleFileRefForKey,
@@ -54,8 +55,28 @@ describe('content locale keys', () => {
     assert.deepEqual(contentLocaleFileRefForKey(key), { scope: 'nav', ownerId: 'main' })
   })
 
+  it('builds chrome consent keys', () => {
+    const message = buildChromeConsentKey('message')
+    const url = buildChromeConsentKey('privacyUrl')
+    const label = buildChromeConsentKey('privacyLinkLabel')
+    assert.equal(message, 'chrome.consent.message')
+    assert.equal(url, 'chrome.consent.privacyUrl')
+    assert.equal(label, 'chrome.consent.privacyLinkLabel')
+    assert.deepEqual(parseContentLocaleKey(message), {
+      kind: 'chrome',
+      ownerId: 'consent',
+      field: 'message',
+    })
+    assert.deepEqual(contentLocaleFileRefForKey(url), {
+      scope: 'chrome',
+      ownerId: 'consent',
+    })
+    assert.equal(isValidContentLocaleKey('chrome.consent.marketing'), false)
+  })
+
   it('rejects invalid keys', () => {
     assert.equal(isValidContentLocaleKey('not-a-key'), false)
     assert.equal(isValidContentLocaleKey('layout.default.slot.x.bogus'), false)
   })
 })
+

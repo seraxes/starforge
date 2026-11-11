@@ -1,6 +1,16 @@
 {
   "acceptAll": "Accept all",
   "essentialOnly": "Essential only",
+  "customize": "Customize",
+  "cookieSettings": "Cookie settings",
   "dialogLabel": "Cookie consent",
+  "choicesDialogLabel": "Cookie settings",
+  "choicesIntro": "Choose which cookies this site may use. Necessary cookies stay on.",
+  "necessary": "Necessary",
+  "necessaryHint": "Session and consent preference. Always on.",
+  "analytics": "Analytics",
+  "analyticsHint": "Measures visits (for example Google Analytics).",
+  "saveChoices": "Save",
+  "cancel": "Cancel",
   "privacyPolicy": "Privacy policy"
 }

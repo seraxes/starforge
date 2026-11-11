@@ -175,7 +175,7 @@ Durable map of **feature modules** (Site Settings / allowlist toggleable) vs **i
 | --- | --- |
 | **Kind** | module (`product:redirects`) + Core SEO helpers (sitemap) |
 | **Status** | **shipped** (SF-130) |
-| **In tree** | Site Chrome site name/description/robots meta + robots.txt (`Sitemap:` injected when module on); Page Settings / Payload page SEO fields; offline; metadata helpers. **`product:redirects`**: `sf_redirects` CRUD at `/app/admin/redirects` + middleware lookup via `/api/redirects/lookup`; **`/sitemap.xml`** via `app/(frontend)/sitemap.ts` over published Payload pages (`home` → `/`). Admin + middleware + sitemap share the same Module Manager toggle. |
+| **In tree** | Site Chrome site name/description/robots meta + robots.txt (`Sitemap:` injected when module on); Page Settings / Payload page SEO fields; offline; metadata helpers. **`product:redirects`**: `sf_redirects` CRUD + CSV import (`from,to,status,enabled,note` upsert by `fromPath`) at `/admin/redirects` + middleware lookup via `/api/redirects/lookup`; **`/sitemap.xml`** via `app/(frontend)/sitemap.ts` over published Payload pages (`home` → `/`). Admin + middleware + sitemap share the same Module Manager toggle. |
 | **Recommended** | SEO defaults stay Chrome + page fields. Keep redirects on Core table + middleware (not a second Payload collection). |
 | **Next slice** | Optional redirect import/CSV; cache lookup if volume grows. |
 
@@ -214,9 +214,9 @@ Durable map of **feature modules** (Site Settings / allowlist toggleable) vs **i
 | --- | --- |
 | **Kind** | module (`product:consent`) |
 | **Status** | **shipped** (SF-131) |
-| **In tree** | Toggleable banner on public layout; prefs in first-party `sf-consent` cookie (no DB table). Site Chrome: banner message + privacy URL/label (reuses cookie domain/path). `atom:analytics` loads gtag only after analytics accepted when Consent is on. |
+| **In tree** | Toggleable banner on public layout; prefs in first-party `sf-consent` cookie (no DB table). Essential / Customize / Accept all + choices panel (Necessary locked, Analytics) + Cookie settings reopen. Site Chrome: banner message + privacy URL/label via LocaleInput → `data/content-locales/{locale}/chrome/consent.json` (scalars on Chrome; reuses cookie domain/path). `atom:analytics` loads gtag only after analytics accepted when Consent is on. |
 | **Recommended** | Stay lightweight — Chrome policy + preference cookie before a full CMP vendor. |
-| **Next slice** | Optional category UI (manage prefs) / per-category particles; keep cookie-only unless an audit trail is required. |
+| **Next slice** | No marketing/functional categories until something gates on them; keep cookie-only unless an audit trail is required. |
 
 ### Events / venues
 

@@ -2,7 +2,7 @@
  * Starforge Gantry theme — Core `/admin` chrome (Gantry 5–like).
  * Scoped to `.admin-shell`. Dark navy + mid/light blue panels/borders
  * (Helium), orange only for primary actions. No green accents.
- * Public site stays light in styles.css. Active import: admin-theme/active-core.css.
+ * Public site stays light in styles.css. Live import: ADMIN_THEME_CSS_SHEETS → import-active-core-chrome.ts.
  */
 
 @import '../../../modules/grid-widths.css';
@@ -4783,6 +4783,24 @@ body:has(.admin-shell) > main {
   height: var(--sf-admin-input-min-height, 2.5rem) !important;
   min-height: var(--sf-admin-input-min-height, 2.5rem) !important;
   max-height: var(--sf-admin-input-min-height, 2.5rem) !important;
+}
+
+.admin-shell .settings-field .sf-locale-input-multiline {
+  align-items: flex-start;
+}
+
+.admin-shell .settings-field .sf-locale-input-multiline > textarea {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+  height: auto !important;
+  min-height: calc(var(--sf-admin-input-min-height, 2.5rem) * 2.2) !important;
+  max-height: none !important;
+  resize: vertical;
+}
+
+.admin-shell .settings-field .sf-locale-input-multiline > .sf-locale-input-tools {
+  align-self: flex-start;
 }
 
 .admin-shell .settings-field .sf-locale-input > .sf-locale-input-tools,

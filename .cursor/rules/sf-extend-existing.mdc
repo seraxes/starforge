@@ -1,0 +1,37 @@
+---
+description: New features must reuse the existing method in their area — no parallel stacks or resolve paths.
+alwaysApply: true
+---
+
+# Starforge — extend existing methods
+
+**Before building in an area, find and reuse that area’s current method.** Do not invent a parallel stack, storage shape, admin control, or resolve path for a job the repo already owns.
+
+Cross-check ownership rules (`sf-module-ownership`, Forms, Payments, UI) and the live map in `docs/project-context/docs/architecture-current.md`. If a plan only approximates an existing path, rewrite the plan before coding.
+
+## Area methods (examples)
+
+| Area | Reuse | Do not |
+| --- | --- | --- |
+| Editor-typed multilang | `LocaleInput` + `data/content-locales/{locale}/…` + `pickContentLocaleText` | Maps-only on a new DB document; a second resolve helper that skips content-locale files |
+| Money | `product:payments` | Per-module cart / gateway / invoice UI |
+| Forms / intake schema | `product:forms` | Module-local field builders |
+| Media pick | `product:media` / `MediaPicker` | Per-module libraries |
+| Commerce / system mail | `product:email-manager` | `getMailer()` from new packs |
+| Admin settings chrome | Events / Layouts / Page Settings classes | One-off cards, micro inputs, left-aligned card actions |
+
+## Do
+
+- Open the nearest finished implementation in that area and copy its contract (keys, sync/hydrate, classes, API).
+- Extend shared helpers (`content-locale-keys`, sync/hydrate, module APIs) when a new owner joins an existing pattern.
+- Keep UI chrome (button labels) in module/Core message packs; keep editor-typed copy on the content-locale path when Localization already owns that control.
+
+## Don’t
+
+- Ship a “simpler” sidecar that bypasses the area’s source of truth.
+- Persist long-term `*Locales` maps on entity documents when the area strips them to content-locale files.
+- Add a second CMP, form builder, media picker, or admin skin for the same concern.
+
+## Quick check
+
+If two features do the same kind of job, they must share the same method. If your change would not show up in Localization’s editable files (or the owning module’s admin) when that is how siblings work — stop and align.

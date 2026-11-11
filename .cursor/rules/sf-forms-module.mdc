@@ -32,7 +32,7 @@ Built-in definition ids (`contact`, `event-registration`, …) are **protected**
 - Hard-delete or fork built-in definitions modules depend on.
 - Build module-specific “form designer” screens — use `/admin/forms/[id]` builder.
 - Build a second canvas for form rows. The Form builder is the layout canvas with a field palette and layout-only chrome removed (`sf-ui-design.mdc`).
-- Call `getMailer()` from a new module. New success mail uses Email Manager `emitEmailTrigger`. `src/core/forms/email-notify.ts` still has a legacy `getMailer()` path; do not copy it.
+- Call `getMailer()` from a new module. Forms success mail is Email Manager `emitEmailTrigger` only — never fall back to the Mailer.
 - Move `src/core/forms` out of Core as part of an unrelated change. The engine stays there until a dedicated extract. Presets and the admin stay this module’s job.
 
 ## Quick check

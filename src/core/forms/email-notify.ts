@@ -1,15 +1,10 @@
 /**
- * Form email-on-submit — plan intents + dispatch via platform Mailer (SF-96).
- * When Email Manager is enabled and matching rules fire for
- * `product:forms/submitted`, prefer those rules and skip legacy intents
- * (avoids double-send after seeding Forms starters).
+ * Form email-on-submit — Email Manager only (`product:forms/submitted`).
+ * Soft-skips when Email Manager is off or no rule matches. Never calls getMailer().
  * Server-only: call from submitFormAction after a successful save.
  */
 
 import 'server-only'
-
-import { getMailer } from '@/core/mail'
-import type { MailSendResult } from '@/core/mail/types'
 
 import { getFormsModuleSettings } from './settings-store'
 import type {
@@ -31,17 +26,26 @@ export type FormEmailNotifyIntent = {
   body: string
 }
 
+export type FormEmailNotifySendResult = {
+  ok: boolean
+  provider?: string
+  skipped?: boolean
+  error?: string
+  ruleId?: string
+}
+
 export type FormEmailNotifyResult = {
   attempted: boolean
-  /** Active Mailer provider (or disabled / none when no intents). */
+  /** `email-manager` when rules ran; `skipped` / `none` otherwise. */
   transport: string
   intents: FormEmailNotifyIntent[]
-  /** Per-intent send outcomes when dispatch ran. */
-  results?: MailSendResult[]
-  /** True when nothing was handed to the network (disabled, empty, or console-only log). */
+  results?: FormEmailNotifySendResult[]
+  /** True when nothing was handed to the network (disabled, no match, or Chrome mail off). */
   stubbed?: boolean
-  /** True when Email Manager rules handled the send (legacy intents skipped). */
+  /** True when Email Manager rules handled the emit. */
   viaEmailManager?: boolean
+  /** Why send was skipped (module off, no rules, etc.). */
+  skippedReason?: string
 }
 
 export type FormEmailNotifyDispatchContext = {
@@ -76,7 +80,8 @@ function formatPayloadBody(
 }
 
 /**
- * Build notify intents from per-form config + module defaults.
+ * Build notify intents from per-form config + module defaults (diagnostics / resend UX).
+ * Does not send mail.
  */
 export async function planFormEmailNotify(options: {
   document: FormDefinitionDocument
@@ -122,12 +127,9 @@ export async function planFormEmailNotify(options: {
     }
   }
 
-  const mailer = await getMailer()
-  const info = mailer.info()
-
   return {
     attempted: intents.length > 0,
-    transport: info.provider,
+    transport: 'none',
     intents,
   }
 }
@@ -170,23 +172,43 @@ function buildEmailManagerPayload(
 }
 
 /**
- * Prefer Email Manager rules when the module is on and at least one rule matches.
- * Soft-fails — never throws.
+ * Dispatch via Email Manager only. Soft-fails — never throws; never falls back to Mailer.
  */
-async function tryDispatchViaEmailManager(
-  context: FormEmailNotifyDispatchContext,
-): Promise<{
-  handled: boolean
-  result?: FormEmailNotifyResult
-}> {
+export async function dispatchFormEmailNotify(
+  plan: FormEmailNotifyResult,
+  context?: FormEmailNotifyDispatchContext,
+): Promise<FormEmailNotifyResult> {
+  if (!context) {
+    return {
+      ...plan,
+      attempted: false,
+      transport: 'skipped',
+      stubbed: true,
+      skippedReason: 'Missing dispatch context.',
+    }
+  }
+
   try {
     const { emitEmailTrigger, isEmailManagerEnabled } = await import(
       '@/modules/email-manager/api.server'
     )
     const { FORM_SUBMITTED_TRIGGER } = await import('@/modules/email-manager/api')
+    const { ensureFormsEmailStartersSeeded } = await import(
+      '@/modules/email-manager/forms-starters'
+    )
+
     if (!(await isEmailManagerEnabled())) {
-      return { handled: false }
+      return {
+        ...plan,
+        attempted: false,
+        transport: 'skipped',
+        stubbed: true,
+        viaEmailManager: false,
+        skippedReason: 'Email Manager module is disabled.',
+      }
     }
+
+    await ensureFormsEmailStartersSeeded()
 
     const settings = await getFormsModuleSettings()
     const payload = buildEmailManagerPayload(context, settings.defaultAdminEmails)
@@ -198,110 +220,40 @@ async function tryDispatchViaEmailManager(
     })
 
     if (!emit.matchedRuleIds.length) {
-      return { handled: false }
+      return {
+        ...plan,
+        attempted: false,
+        transport: 'skipped',
+        stubbed: true,
+        viaEmailManager: false,
+        skippedReason: emit.reason || 'No matching enabled rules.',
+      }
     }
 
-    const mailer = await getMailer()
-    const info = mailer.info()
-    const results: MailSendResult[] = emit.results.map((r) => ({
+    const results: FormEmailNotifySendResult[] = emit.results.map((r) => ({
       ok: r.ok,
-      provider: (r.provider as MailSendResult['provider']) || info.provider,
+      provider: r.provider,
       skipped: r.skipped,
       error: r.error,
+      ruleId: r.ruleId,
     }))
 
     return {
-      handled: true,
-      result: {
-        attempted: true,
-        transport: info.enabled ? info.provider : 'disabled',
-        intents: [],
-        results,
-        stubbed: !info.enabled || info.provider === 'console' || Boolean(emit.skipped),
-        viaEmailManager: true,
-      },
+      ...plan,
+      attempted: true,
+      transport: 'email-manager',
+      results,
+      stubbed: Boolean(emit.skipped),
+      viaEmailManager: true,
     }
   } catch {
-    return { handled: false }
-  }
-}
-
-/**
- * Dispatch planned intents through the platform Mailer.
- * Soft-fails per message — never throws for transport errors.
- * Pass `context` so Email Manager rules can take over when configured.
- */
-export async function dispatchFormEmailNotify(
-  plan: FormEmailNotifyResult,
-  context?: FormEmailNotifyDispatchContext,
-): Promise<FormEmailNotifyResult> {
-  if (context) {
-    const viaEm = await tryDispatchViaEmailManager(context)
-    if (viaEm.handled && viaEm.result) {
-      return viaEm.result
-    }
-  }
-
-  if (!plan.intents.length) {
-    return plan
-  }
-
-  const mailer = await getMailer()
-  const info = mailer.info()
-  const settings = await getFormsModuleSettings()
-  const from = settings.fromAddress.trim() || undefined
-
-  if (!info.enabled) {
-    if (process.env.NODE_ENV !== 'production') {
-      console.info(
-        '[forms:email-skip]',
-        JSON.stringify({
-          reason: 'email disabled',
-          count: plan.intents.length,
-          to: plan.intents.map((i) => ({ kind: i.kind, to: i.to, subject: i.subject })),
-        }),
-      )
-    }
     return {
       ...plan,
-      transport: 'disabled',
+      attempted: false,
+      transport: 'skipped',
       stubbed: true,
-      results: plan.intents.map(() => ({
-        ok: false,
-        provider: 'disabled' as const,
-        skipped: true,
-        error: 'Outbound email is disabled in Chrome.',
-      })),
+      viaEmailManager: false,
+      skippedReason: 'Email Manager unavailable.',
     }
-  }
-
-  const results: MailSendResult[] = []
-  for (const intent of plan.intents) {
-    const result = await mailer.send({
-      to: intent.to,
-      from,
-      subject: intent.subject,
-      text: intent.body,
-      meta: {
-        emailType: 'transactional',
-        title: intent.kind,
-        source: 'forms',
-        moduleCategory: 'forms',
-      },
-    })
-    results.push(result)
-    if (!result.ok && process.env.NODE_ENV !== 'production') {
-      console.warn('[forms:email-send]', result.error || 'send failed', {
-        kind: intent.kind,
-        to: intent.to,
-      })
-    }
-  }
-
-  return {
-    ...plan,
-    transport: info.provider,
-    results,
-    stubbed: info.provider === 'console',
   }
 }

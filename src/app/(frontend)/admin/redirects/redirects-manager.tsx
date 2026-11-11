@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import {
   createRedirectAction,
   deleteRedirectAction,
+  importRedirectsCsvAction,
   toggleRedirectEnabledAction,
   updateRedirectAction,
   type RedirectAdminActionState,
@@ -76,19 +77,31 @@ export function RedirectsManager({ redirects }: Props) {
     deleteRedirectAction,
     initial,
   )
+  const [importState, importAction, importPending] = useActionState(
+    importRedirectsCsvAction,
+    initial,
+  )
 
   useNotifySavedOnOk(createState)
   useNotifySavedOnOk(updateState)
   useNotifySavedOnOk(toggleState)
   useNotifySavedOnOk(deleteState)
+  useNotifySavedOnOk(importState)
 
   useEffect(() => {
-    if (createState.ok || updateState.ok || toggleState.ok || deleteState.ok) {
+    if (
+      createState.ok ||
+      updateState.ok ||
+      toggleState.ok ||
+      deleteState.ok ||
+      importState.ok
+    ) {
       router.refresh()
     }
-  }, [createState, updateState, toggleState, deleteState, router])
+  }, [createState, updateState, toggleState, deleteState, importState, router])
 
-  const busy = createPending || updatePending || togglePending || deletePending
+  const busy =
+    createPending || updatePending || togglePending || deletePending || importPending
 
   return (
     <div className="sf-redirects-manager admin-settings-mosaic">
@@ -142,6 +155,40 @@ export function RedirectsManager({ redirects }: Props) {
           </button>
         </form>
         <Feedback state={createState} />
+      </section>
+
+      <section className="outlines-create" aria-label="Import redirects CSV">
+        <h3>Import CSV</h3>
+        <form
+          action={importAction}
+          className="outlines-create-form admin-create-form sf-redirects-import-form"
+          encType="multipart/form-data"
+        >
+          <label className="settings-field">
+            <span>CSV file</span>
+            <input
+              type="file"
+              name="file"
+              accept=".csv,text/csv,text/plain"
+              required
+              disabled={importPending}
+            />
+          </label>
+          <p className="settings-hint">
+            Header row: <code>from,to,status,enabled,note</code>. Invalid rows are skipped.
+            Matching from paths update to, status, enabled, and note.
+          </p>
+          <div className="page-settings-actions">
+            <button
+              type="submit"
+              className="gantry-toolbar-btn gantry-toolbar-btn-save"
+              disabled={importPending}
+            >
+              {importPending ? 'Importing…' : 'Import'}
+            </button>
+          </div>
+        </form>
+        <Feedback state={importState} />
       </section>
 
       <Feedback state={updateState} />

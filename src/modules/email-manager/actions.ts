@@ -263,7 +263,7 @@ export async function testEmailSendAction(
   }
 }
 
-/** Seed Forms-oriented starter templates + rules (idempotent-ish via fixed ids). */
+/** Seed / refresh Forms starter templates + rules (fixed ids; overwrites content). */
 export async function seedFormsEmailStartersAction(
   _prev: EmailAdminActionState,
   _formData: FormData,
@@ -271,111 +271,15 @@ export async function seedFormsEmailStartersAction(
   const denied = await requireEmailManagerAdmin()
   if (denied) return denied
 
-  const adminTpl = await createEmailTemplate({
-    id: 'tpl-forms-admin-default',
-    label: 'Forms — admin notify',
-    moduleCategory: 'forms',
-    subject: '[Starforge Form] {{formTitle}}',
-    bodyText: 'Form: {{formTitle}}\n\n{{payloadText}}',
-  })
-  if ('error' in adminTpl && !/unique|duplicate|already/i.test(adminTpl.error)) {
-    // Continue if exists — recreate path uses fixed id; duplicate is ok to ignore via update
-  }
-
-  if ('error' in adminTpl) {
-    const updated = await updateEmailTemplate({
-      id: 'tpl-forms-admin-default',
-      label: 'Forms — admin notify',
-      moduleCategory: 'forms',
-      subject: '[Starforge Form] {{formTitle}}',
-      bodyText: 'Form: {{formTitle}}\n\n{{payloadText}}',
-    })
-    if ('error' in updated && !updated.error.includes('not found')) {
-      /* keep going for respondent */
-    }
-  }
-
-  const respondentTpl = await createEmailTemplate({
-    id: 'tpl-forms-respondent-default',
-    label: 'Forms — respondent confirm',
-    moduleCategory: 'forms',
-    subject: 'We received your {{formTitle}} submission',
-    bodyText:
-      'Thanks — we received your submission.\n\nForm: {{formTitle}}\n\n{{payloadText}}',
-  })
-  if ('error' in respondentTpl) {
-    await updateEmailTemplate({
-      id: 'tpl-forms-respondent-default',
-      label: 'Forms — respondent confirm',
-      moduleCategory: 'forms',
-      subject: 'We received your {{formTitle}} submission',
-      bodyText:
-        'Thanks — we received your submission.\n\nForm: {{formTitle}}\n\n{{payloadText}}',
-    })
-  }
-
-  const adminRule = await createEmailRule({
-    id: 'rule-forms-admin-default',
-    label: 'Forms — notify admin',
-    moduleCategory: 'forms',
-    enabled: true,
-    triggerKey: 'product:forms/submitted',
-    mode: 'conditional',
-    conditions: {
-      all: [{ path: 'notifyAdmin', op: 'truthy' }],
-    },
-    audience: { toFromPayload: ['adminEmails'] },
-    templateId: 'tpl-forms-admin-default',
-  })
-  if ('error' in adminRule) {
-    await updateEmailRule({
-      id: 'rule-forms-admin-default',
-      label: 'Forms — notify admin',
-      moduleCategory: 'forms',
-      enabled: true,
-      triggerKey: 'product:forms/submitted',
-      mode: 'conditional',
-      conditions: {
-        all: [{ path: 'notifyAdmin', op: 'truthy' }],
-      },
-      audience: { toFromPayload: ['adminEmails'] },
-      templateId: 'tpl-forms-admin-default',
-    })
-  }
-
-  const respondentRule = await createEmailRule({
-    id: 'rule-forms-respondent-default',
-    label: 'Forms — notify respondent',
-    moduleCategory: 'forms',
-    enabled: true,
-    triggerKey: 'product:forms/submitted',
-    mode: 'conditional',
-    conditions: {
-      all: [{ path: 'notifyRespondent', op: 'truthy' }],
-    },
-    audience: { toFromPayload: ['respondentEmail'] },
-    templateId: 'tpl-forms-respondent-default',
-  })
-  if ('error' in respondentRule) {
-    await updateEmailRule({
-      id: 'rule-forms-respondent-default',
-      label: 'Forms — notify respondent',
-      moduleCategory: 'forms',
-      enabled: true,
-      triggerKey: 'product:forms/submitted',
-      mode: 'conditional',
-      conditions: {
-        all: [{ path: 'notifyRespondent', op: 'truthy' }],
-      },
-      audience: { toFromPayload: ['respondentEmail'] },
-      templateId: 'tpl-forms-respondent-default',
-    })
+  const { seedFormsEmailStarters } = await import('./forms-starters')
+  const result = await seedFormsEmailStarters()
+  if (!result.ok) {
+    return { error: result.error || 'Could not seed Forms starters.' }
   }
 
   revalidateEmailAdmin()
   return {
     ok: true,
-    message:
-      'Seeded Forms starter templates + conditional rules (admin + respondent). Legacy per-form notify still runs until you turn it off on forms.',
+    message: result.message,
   }
 }

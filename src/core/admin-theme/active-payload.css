@@ -1,9 +1,10 @@
 /*
- * Active admin theme → Payload chrome (documentation entry).
+ * Active admin theme → Payload chrome (documentation entry / human pointer).
  *
- * Live import (JS, not CSS @import):
+ * Live import (JS switch, not CSS @import):
  *   src/app/(payload)/layout.tsx
- *     → @/core/admin-theme/themes/starforge-gantry/payload-chrome.css
+ *     → import-active-payload-chrome.ts (ADMIN_THEME_CSS_SHEETS)
+ *     → load-payload-chrome.ts → payload-chrome.css  (starforge-gantry arm)
  *
  * Nested CSS @import (this file or custom.css) was unreliable under Next/Turbopack
  * and left /admin looking like stock Payload.

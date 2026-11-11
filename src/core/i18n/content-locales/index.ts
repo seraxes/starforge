@@ -1,14 +1,17 @@
 export {
+  buildChromeConsentKey,
   buildLayoutSlotKey,
   buildNavItemKey,
   contentLocaleFileRefForKey,
   isValidContentLocaleKey,
   parseContentLocaleKey,
   sanitizeContentLocaleId,
+  type ChromeConsentField,
   type ContentLocaleField,
   type ParsedContentLocaleKey,
 } from '../content-locale-keys'
 export {
+  CONTENT_LOCALE_SCOPES,
   getContentLocaleDir,
   getContentLocaleFilePath,
   getContentLocalesRoot,
@@ -31,8 +34,15 @@ export {
   hydrateLocaleMapForKey,
   syncLayoutSlotLocalesToFiles,
   syncNavItemLocalesToFiles,
+  syncSiteChromeConsentLocalesToFiles,
+  type SiteChromeConsentLocaleInput,
 } from './sync'
-export { hydrateLayoutDocumentLocales, hydrateNavDocumentLocales } from './hydrate'
+export {
+  hydrateLayoutDocumentLocales,
+  hydrateNavDocumentLocales,
+  hydrateSiteChromeConsentLocales,
+  type SiteChromeConsentLocaleMaps,
+} from './hydrate'
 export {
   migrateEmbeddedContentLocalesToFiles,
   type ContentLocaleMigrationResult,

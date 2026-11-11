@@ -30,6 +30,9 @@ export default async function EmailRulesPage({ searchParams }: { searchParams: S
   const category =
     rawCat === 'all' || isEmailModuleCategory(rawCat) ? rawCat : 'all'
 
+  const { ensureFormsEmailStartersSeeded } = await import('../forms-starters')
+  await ensureFormsEmailStartersSeeded()
+
   const [rules, templates, mailer] = await Promise.all([
     listEmailRules({ moduleCategory: category === 'all' ? undefined : category }),
     listEmailTemplates(),

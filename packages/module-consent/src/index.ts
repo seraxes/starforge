@@ -1,5 +1,9 @@
 export { ConsentBanner, type ConsentBannerProps } from './ConsentBanner'
 export {
+  ConsentChoicesPanel,
+  type ConsentChoicesPanelProps,
+} from './ConsentChoicesPanel'
+export {
   buildConsentPreferences,
   hasAnalyticsConsent,
   parseConsentPreferences,

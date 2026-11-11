@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache'
 
 import { requireAppAdmin } from '@/core/auth/admin'
 import { invalidateSiteChrome, invalidateSiteSettings } from '@/core/content/revalidate'
+import { syncSiteChromeConsentLocalesToFiles } from '@/core/i18n/content-locales'
+import { normalizeLocaleTextMap } from '@/core/i18n/locale-text'
 
 import {
   CAPTCHA_PROVIDERS,
@@ -13,6 +15,16 @@ import {
 } from './defaults'
 import { saveSiteChrome } from './store'
 import type { CaptchaProvider, MailProvider } from './types'
+
+function localeMapFromField(raw: FormDataEntryValue | null): ReturnType<typeof normalizeLocaleTextMap> {
+  const trimmed = String(raw ?? '').trim()
+  if (!trimmed) return {}
+  try {
+    return normalizeLocaleTextMap(JSON.parse(trimmed) as unknown)
+  } catch {
+    return {}
+  }
+}
 
 export type SiteChromeActionState = {
   error?: string
@@ -40,6 +52,24 @@ export async function updateSiteChromeAction(
   }
 
   try {
+    const consentMessage = String(formData.get('consentMessage') ?? '')
+    const consentPrivacyUrl = String(formData.get('consentPrivacyUrl') ?? '')
+    const consentPrivacyLinkLabel = String(formData.get('consentPrivacyLinkLabel') ?? '')
+    const consentMessageLocales = localeMapFromField(formData.get('consentMessageLocales'))
+    const consentPrivacyUrlLocales = localeMapFromField(formData.get('consentPrivacyUrlLocales'))
+    const consentPrivacyLinkLabelLocales = localeMapFromField(
+      formData.get('consentPrivacyLinkLabelLocales'),
+    )
+
+    await syncSiteChromeConsentLocalesToFiles({
+      consentMessage,
+      consentPrivacyUrl,
+      consentPrivacyLinkLabel,
+      consentMessageLocales,
+      consentPrivacyUrlLocales,
+      consentPrivacyLinkLabelLocales,
+    })
+
     // Captcha lives under Site Settings → Security (preserve existing values).
     await saveSiteChrome({
       offlineEnabled: parseBool(formData, 'offlineEnabled'),
@@ -56,9 +86,9 @@ export async function updateSiteChromeAction(
       contentRights: String(formData.get('contentRights') ?? ''),
       cookieDomain: String(formData.get('cookieDomain') ?? ''),
       cookiePath: String(formData.get('cookiePath') ?? '/'),
-      consentMessage: String(formData.get('consentMessage') ?? ''),
-      consentPrivacyUrl: String(formData.get('consentPrivacyUrl') ?? ''),
-      consentPrivacyLinkLabel: String(formData.get('consentPrivacyLinkLabel') ?? ''),
+      consentMessage,
+      consentPrivacyUrl,
+      consentPrivacyLinkLabel,
     })
   } catch (error) {
     const message =

@@ -12,6 +12,10 @@ type Props = {
   values: Record<string, string>
   label: string
   requiredDefault?: boolean
+  /** When set, render a textarea instead of a single-line input. */
+  multiline?: boolean
+  rows?: number
+  placeholder?: string
   onChange: (code: string, value: string) => void
   onBlur?: () => void
 }
@@ -45,6 +49,9 @@ export function LocaleInput({
   values,
   label,
   requiredDefault = false,
+  multiline = false,
+  rows = 3,
+  placeholder,
   onChange,
   onBlur,
 }: Props) {
@@ -59,18 +66,25 @@ export function LocaleInput({
 
   if (!fallback) return null
   const code = multilang ? active || fallback.code : fallback.code
+  const controlProps = {
+    value: values[code] ?? '',
+    required: requiredDefault && code === fallback.code,
+    placeholder,
+    onChange: (
+      event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    ) => onChange(code, event.target.value),
+    onBlur,
+  }
 
   return (
     <label className="settings-field">
       <span>{label}</span>
-      <span className="sf-locale-input">
-        <input
-          type="text"
-          value={values[code] ?? ''}
-          required={requiredDefault && code === fallback.code}
-          onChange={(event) => onChange(code, event.target.value)}
-          onBlur={onBlur}
-        />
+      <span className={`sf-locale-input${multiline ? ' sf-locale-input-multiline' : ''}`}>
+        {multiline ? (
+          <textarea rows={rows} {...controlProps} />
+        ) : (
+          <input type="text" {...controlProps} />
+        )}
         {multilang ? (
           <LocaleLanguageControl
             locales={locales}

@@ -1,8 +1,8 @@
 /*
  * Payload admin custom styles entry (Payload-conventional hook).
  *
- * Live Starforge chrome is imported from layout.tsx:
- *   import '@/core/admin-theme/themes/starforge-gantry/payload-chrome.css'
+ * Live Starforge chrome is loaded from layout.tsx via
+ * import-active-payload-chrome.ts (ADMIN_THEME_CSS_SHEETS).
  * Do not reintroduce theme rules via CSS @import here — Next/Turbopack often
  * drops nested @import and /admin stays stock Payload.
  *

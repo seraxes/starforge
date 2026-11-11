@@ -30,11 +30,9 @@ export default async function AdminFormsSettingsPage() {
       <FormsAdminNav active="settings" />
       <h2 className="sr-only">Forms settings</h2>
       <p className="lede admin-lede gantry-layouts-lede">
-        Module defaults for success copy and email-on-submit. Transport is the platform{' '}
-        <strong>Mailer</strong> (Chrome enable / provider / From; secrets in env). Shared rules
-        live under{' '}
-        <Link href="/admin/email">Email Manager</Link> when that module is on. Per-form
-        overrides live in the builder.
+        Module defaults for success copy and email-on-submit. Success mail goes through{' '}
+        <Link href="/admin/email">Email Manager</Link> only (Chrome Mailer is the transport).
+        Per-form notify flags and recipients live in the builder.
       </p>
       {loaded.isFallback ? (
         <p className="layout-muted">

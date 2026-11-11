@@ -1,6 +1,8 @@
 import React from 'react'
 import Link from 'next/link'
 
+import { hydrateSiteChromeConsentLocales } from '@/core/i18n/content-locales'
+import { getContentLocaleOptions } from '@/core/i18n/locale-text.server'
 import { listLayoutOutlines } from '@/core/modules/layout-store'
 import {
   DEFAULT_OFFLINE_LAYOUT_ID,
@@ -18,7 +20,12 @@ export const metadata = {
 }
 
 export default async function AdminSiteChromePage() {
-  const [chrome, activeSkin] = await Promise.all([getSiteChrome(), getActiveSkin()])
+  const [chromeRaw, activeSkin, locales] = await Promise.all([
+    getSiteChrome(),
+    getActiveSkin(),
+    getContentLocaleOptions(),
+  ])
+  const chrome = await hydrateSiteChromeConsentLocales(chromeRaw)
   // Ensure Pastel (or active skin) offline outline seed exists for the picker.
   await ensureSkinOutlineSeeds(activeSkin.id)
   const outlines = await listLayoutOutlines()
@@ -47,7 +54,7 @@ export default async function AdminSiteChromePage() {
         env — gated <Link href="/admin/site-chrome/environment">Environment</Link> writes{' '}
         <code>.env.local</code>, not this form or the database.
       </p>
-      <SiteChromeForm chrome={chrome} outlines={outlineOptions} />
+      <SiteChromeForm chrome={chrome} outlines={outlineOptions} locales={locales} />
     </section>
   )
 }

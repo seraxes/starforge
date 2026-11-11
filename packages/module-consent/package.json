@@ -11,6 +11,7 @@
     "./cookie": "./src/cookie.ts",
     "./types": "./src/types.ts",
     "./banner": "./src/ConsentBanner.tsx",
+    "./choices": "./src/ConsentChoicesPanel.tsx",
     "./package.json": "./package.json"
   },
   "files": [

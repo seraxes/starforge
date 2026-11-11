@@ -1,11 +1,23 @@
 import 'server-only'
 
-import { buildLayoutSlotKey, buildNavItemKey } from '../content-locale-keys'
+import {
+  buildChromeConsentKey,
+  buildLayoutSlotKey,
+  buildNavItemKey,
+} from '../content-locale-keys'
+import type { LocaleTextMap } from '../locale-text'
 import { getLocalizationSettings } from '@/core/localization/store'
 import type { LayoutDocument } from '@/core/modules/types'
 import type { NavMenuDocument } from '@/core/nav/types'
+import type { SiteChromeDocument } from '@/core/site-chrome/types'
 
 import { loadContentLocaleCatalog, pickFromContentCatalog } from './store'
+
+export type SiteChromeConsentLocaleMaps = {
+  consentMessageLocales: LocaleTextMap
+  consentPrivacyUrlLocales: LocaleTextMap
+  consentPrivacyLinkLabelLocales: LocaleTextMap
+}
 
 async function enabledLocales(): Promise<string[]> {
   const settings = await getLocalizationSettings()
@@ -111,4 +123,43 @@ export async function hydrateNavDocumentLocales(
     return next
   })
   return document
+}
+
+/** Fill consent *Locales maps from language files for the Chrome admin form. */
+export async function hydrateSiteChromeConsentLocales(
+  chrome: SiteChromeDocument,
+): Promise<SiteChromeDocument & SiteChromeConsentLocaleMaps> {
+  const locales = await enabledLocales()
+  const catalogs = new Map<string, Record<string, string>>()
+  for (const locale of locales) {
+    catalogs.set(locale, await loadContentLocaleCatalog(locale))
+  }
+
+  const messageMap = mapForKey(catalogs, buildChromeConsentKey('message'), locales)
+  const urlMap = mapForKey(catalogs, buildChromeConsentKey('privacyUrl'), locales)
+  const labelMap = mapForKey(
+    catalogs,
+    buildChromeConsentKey('privacyLinkLabel'),
+    locales,
+  )
+
+  // Seed default-locale map entries from scalars when files are empty.
+  const settings = await getLocalizationSettings()
+  const defaultLocale = settings.defaultLocale
+  if (chrome.consentMessage.trim() && !messageMap[defaultLocale]) {
+    messageMap[defaultLocale] = chrome.consentMessage.trim()
+  }
+  if (chrome.consentPrivacyUrl.trim() && !urlMap[defaultLocale]) {
+    urlMap[defaultLocale] = chrome.consentPrivacyUrl.trim()
+  }
+  if (chrome.consentPrivacyLinkLabel.trim() && !labelMap[defaultLocale]) {
+    labelMap[defaultLocale] = chrome.consentPrivacyLinkLabel.trim()
+  }
+
+  return {
+    ...chrome,
+    consentMessageLocales: messageMap,
+    consentPrivacyUrlLocales: urlMap,
+    consentPrivacyLinkLabelLocales: labelMap,
+  }
 }

@@ -27,7 +27,7 @@ export type ContentLocaleFilesActionState = {
 }
 
 function parseScope(raw: string): ContentLocaleScope | null {
-  return raw === 'layouts' || raw === 'nav' ? raw : null
+  return raw === 'layouts' || raw === 'nav' || raw === 'chrome' ? raw : null
 }
 
 async function requireAdmin() {
@@ -95,6 +95,7 @@ export async function migrateContentLocalesAction(): Promise<ContentLocaleFilesA
   revalidatePath('/admin/localization')
   revalidatePath('/admin/layouts')
   revalidatePath('/admin/nav')
+  revalidatePath('/admin/site-chrome')
   return {
     ok: true,
     message: `Migrated ${result.slotsTouched} slots across ${result.layouts} layouts and ${result.navMenus} nav menus.`,
@@ -205,7 +206,7 @@ export async function uploadContentLocaleZipAction(
   let written = 0
   for (const [name, bytes] of Object.entries(entries)) {
     const normalized = name.replace(/\\/g, '/')
-    const match = /(?:^|\/)(layouts|nav)\/([^/]+)\.json$/i.exec(normalized)
+    const match = /(?:^|\/)(layouts|nav|chrome)\/([^/]+)\.json$/i.exec(normalized)
     if (!match) continue
     const scope = parseScope(match[1]!.toLowerCase())
     const ownerId = match[2]!
@@ -227,7 +228,7 @@ export async function uploadContentLocaleZipAction(
   }
 
   if (written === 0) {
-    return { error: 'Zip had no layouts/*.json or nav/*.json files.' }
+    return { error: 'Zip had no layouts/*.json, nav/*.json, or chrome/*.json files.' }
   }
   invalidateContentLocaleCatalog(locale)
   revalidatePath('/admin/localization')

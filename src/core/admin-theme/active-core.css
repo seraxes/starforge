@@ -1,12 +1,13 @@
 /*
- * Active admin theme → Core chrome (documentation entry).
+ * Active admin theme → Core chrome (documentation entry / human pointer).
  *
  * Next/Turbopack does not reliably resolve nested CSS @import from this file when
- * loaded via JS `import`. The live Core import is therefore the theme sheet itself:
- *   src/app/(frontend)/layout.tsx
- *     → @/core/admin-theme/themes/starforge-gantry/core-chrome.css
+ * loaded via JS `import`. Live Core import is therefore the theme map switch:
+ *   src/app/(frontend)/admin/layout.tsx
+ *     → import-active-core-chrome.ts (ADMIN_THEME_CSS_SHEETS)
+ *     → load-core-chrome.ts → core-chrome.css  (starforge-gantry arm)
  *
- * When adding a second theme, change that layout import (and Payload custom.css).
+ * When adding a second theme, extend ADMIN_THEME_CSS_SHEETS and the switch arms.
  * Keep this file as the registry pointer for humans / future bundler switch.
  */
 @import './themes/starforge-gantry/core-chrome.css';
