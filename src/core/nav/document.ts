@@ -1,4 +1,5 @@
 import { normalizeAccessTags } from '@/core/acl/nav-access'
+import { normalizeLocaleTextMap } from '@/core/i18n/locale-text'
 
 import type { NavMenuDocument, NavMenuItem, NavLinkType } from './types'
 
@@ -61,11 +62,16 @@ export function normalizeNavMenuItem(
       ? row.moduleViewKey.trim()
       : null
 
+  const labels = normalizeLocaleTextMap(row.labels)
+  const browserTitles = normalizeLocaleTextMap(row.browserTitles)
+  const pageHeadings = normalizeLocaleTextMap(row.pageHeadings)
+
   return {
     id,
     parentId,
     sortOrder,
     label,
+    ...(Object.keys(labels).length > 0 ? { labels } : {}),
     linkType,
     pageId: linkType === 'page' ? pageId : null,
     url: linkType === 'url' ? url : null,
@@ -74,8 +80,10 @@ export function normalizeNavMenuItem(
     cssClass: typeof row.cssClass === 'string' ? row.cssClass.trim() || null : null,
     browserTitle:
       typeof row.browserTitle === 'string' ? row.browserTitle.trim() || null : null,
+    ...(Object.keys(browserTitles).length > 0 ? { browserTitles } : {}),
     pageHeading:
       typeof row.pageHeading === 'string' ? row.pageHeading.trim() || null : null,
+    ...(Object.keys(pageHeadings).length > 0 ? { pageHeadings } : {}),
     layoutId:
       typeof row.layoutId === 'string' && row.layoutId.trim()
         ? row.layoutId.trim()
@@ -145,7 +153,10 @@ export function createNavMenuItem(
         moduleViewKey: partial.moduleViewKey ?? null,
         cssClass: partial.cssClass ?? null,
         browserTitle: partial.browserTitle ?? null,
+        browserTitles: partial.browserTitles,
         pageHeading: partial.pageHeading ?? null,
+        pageHeadings: partial.pageHeadings,
+        labels: partial.labels,
         layoutId: partial.layoutId ?? null,
         accessTags: partial.accessTags,
         accessLevel: partial.accessLevel,

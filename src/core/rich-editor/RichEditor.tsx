@@ -12,7 +12,11 @@ import { CalloutInsertDialog } from './CalloutInsertDialog'
 import { createRichEditorExtensions, type RichEditorPreset } from './extensions'
 import { LinkInsertDialog } from './LinkInsertDialog'
 import { parseVideoInput } from './nodes/video'
-import { sanitizeRichHtml } from './sanitize'
+import { sanitizeEmailHtml, sanitizeRichHtml } from './sanitize'
+
+function sanitizeEditorHtml(preset: RichEditorPreset, raw: string | null | undefined): string {
+  return preset === 'email' ? sanitizeEmailHtml(raw) : sanitizeRichHtml(raw)
+}
 
 export type RichEditorProps = {
   /** When set, writes sanitized HTML into a hidden input for FormData actions. */
@@ -31,7 +35,7 @@ export type RichEditorProps = {
   placeholder?: string
   className?: string
   label?: string
-  /** Show Media picker for image insert (default true on full preset). */
+  /** Show Media picker for image insert (default true on full + email presets). */
   allowImages?: boolean
 }
 
@@ -91,8 +95,10 @@ export function RichEditor({
   allowImages,
 }: RichEditorProps) {
   const labelId = useId()
-  const imagesEnabled = allowImages ?? preset === 'full'
-  const [htmlValue, setHtmlValue] = useState(() => sanitizeRichHtml(value ?? defaultValue))
+  const imagesEnabled = allowImages ?? (preset === 'full' || preset === 'email')
+  const [htmlValue, setHtmlValue] = useState(() =>
+    sanitizeEditorHtml(preset, value ?? defaultValue),
+  )
   const [mode, setMode] = useState<EditorMode>('visual')
   const [pickerMode, setPickerMode] = useState<InsertPanelMode>(null)
   const [videoSource, setVideoSource] = useState<VideoSource>('media')
@@ -104,18 +110,18 @@ export function RichEditor({
 
   const emit = useCallback(
     (next: string) => {
-      const safe = sanitizeRichHtml(next)
+      const safe = sanitizeEditorHtml(preset, next)
       setHtmlValue(safe)
       onChange?.(safe)
     },
-    [onChange],
+    [onChange, preset],
   )
 
   const editor = useEditor({
     immediatelyRender: false,
     editable: !disabled && enabled && mode === 'visual',
     extensions: createRichEditorExtensions({ preset, placeholder }),
-    content: sanitizeRichHtml(value ?? defaultValue) || '',
+    content: sanitizeEditorHtml(preset, value ?? defaultValue) || '',
     editorProps: {
       attributes: {
         class: 'sf-rich-editor-prose',
@@ -134,15 +140,15 @@ export function RichEditor({
 
   useEffect(() => {
     if (value === undefined || !editor) return
-    const safe = sanitizeRichHtml(value)
+    const safe = sanitizeEditorHtml(preset, value)
     if (safe === editor.getHTML()) return
     editor.commands.setContent(safe || '', { emitUpdate: false })
     setHtmlValue(safe)
-  }, [value, editor])
+  }, [value, editor, preset])
 
   const switchToHtml = () => {
     if (editor) {
-      const current = sanitizeRichHtml(editor.getHTML())
+      const current = sanitizeEditorHtml(preset, editor.getHTML())
       setHtmlValue(current)
     }
     setMode('html')
@@ -153,7 +159,7 @@ export function RichEditor({
   }
 
   const switchToVisual = () => {
-    const safe = sanitizeRichHtml(htmlValue)
+    const safe = sanitizeEditorHtml(preset, htmlValue)
     setHtmlValue(safe)
     onChange?.(safe)
     if (editor) {
@@ -573,8 +579,9 @@ export function RichEditor({
       ) : (
         <div className="sf-rich-editor-html">
           <p className="sf-rich-editor-html-hint layout-muted">
-            Edit sanitized HTML. Switch back to Visual to parse into the editor. Scripts are stripped on
-            save.
+            {preset === 'email'
+              ? 'Edit email-safe HTML only (no scripts, embeds, or web-only blocks). Switch back to Visual to parse.'
+              : 'Edit sanitized HTML. Switch back to Visual to parse into the editor. Scripts are stripped on save.'}
           </p>
           <div className="sf-code-field-panel sf-code-field-panel-dark sf-rich-editor-cm">
             <CodeMirror
@@ -585,7 +592,7 @@ export function RichEditor({
               editable={!disabled}
               onChange={(next) => {
                 setHtmlValue(next)
-                onChange?.(sanitizeRichHtml(next))
+                onChange?.(sanitizeEditorHtml(preset, next))
               }}
               basicSetup={{
                 lineNumbers: true,
@@ -599,7 +606,9 @@ export function RichEditor({
         </div>
       )}
 
-      {name ? <input type="hidden" name={name} value={sanitizeRichHtml(htmlValue)} readOnly /> : null}
+      {name ? (
+        <input type="hidden" name={name} value={sanitizeEditorHtml(preset, htmlValue)} readOnly />
+      ) : null}
 
       <CalloutInsertDialog
         open={calloutDialogOpen}

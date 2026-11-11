@@ -157,6 +157,86 @@ body > main {
   text-decoration-thickness: 2px;
 }
 
+.sf-account-menu {
+  --sf-account-avatar-size: 2.25rem;
+  position: relative;
+  display: inline-flex;
+}
+
+.sf-account-menu-button {
+  width: var(--sf-account-avatar-size);
+  height: var(--sf-account-avatar-size);
+  padding: 0;
+  border-radius: 999px;
+  border: 2px solid var(--sf-line);
+  background: var(--sf-paper);
+  color: var(--sf-primary-strong);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.sf-account-menu-button[data-avatar-shape='square'] {
+  border-radius: calc(var(--sf-account-avatar-size) * 0.14);
+}
+
+.sf-account-menu-button[data-avatar-shape='hexagon'] {
+  border-radius: 0;
+  border-width: 0;
+  clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
+  background: color-mix(in srgb, var(--sf-line) 55%, var(--sf-paper));
+  box-shadow: inset 0 0 0 2px var(--sf-line);
+}
+
+.sf-account-menu-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sf-account-menu-letter {
+  font-weight: 700;
+  font-size: calc(var(--sf-account-avatar-size) * 0.42);
+  line-height: 1;
+}
+
+.sf-account-menu-list {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  z-index: 20;
+  min-width: 11rem;
+  margin: 0;
+  padding: 0.35rem;
+  list-style: none;
+  background: var(--sf-paper);
+  border: 1px solid var(--sf-line);
+  border-radius: 0.5rem;
+}
+
+.sf-account-menu-list a,
+.sf-account-menu-list button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  color: var(--sf-ink);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 0.4rem 0.55rem;
+  border-radius: 0.35rem;
+  cursor: pointer;
+}
+
+.sf-account-menu-list a:hover,
+.sf-account-menu-list button:hover {
+  background: color-mix(in srgb, var(--sf-primary) 12%, transparent);
+}
+
 .site-header {
   display: flex;
   flex-wrap: wrap;
@@ -592,6 +672,82 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
+}
+
+.auth-google {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.auth-divider {
+  margin: 0;
+  color: var(--sf-muted);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.auth-account-data {
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--sf-line);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.auth-account-data-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 650;
+  color: var(--sf-ink);
+}
+
+.auth-account-data-actions {
+  margin-top: 0.15rem;
+  width: 100%;
+}
+
+/* Public member chrome — same compact control rhythm as admin gantry-btn (not orange primary). */
+.auth-login .gantry-btn,
+.auth-login a.gantry-btn,
+.auth-security .gantry-btn,
+.auth-security a.gantry-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0.65rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--sf-secondary) 55%, var(--sf-secondary-strong));
+  border-radius: 0.375rem;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 650;
+  line-height: 1.2;
+  min-height: 2.5rem;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  box-sizing: border-box;
+  background: color-mix(in srgb, var(--sf-secondary) 18%, transparent);
+  color: var(--sf-secondary-strong);
+}
+
+.auth-login .gantry-btn:hover:not(:disabled),
+.auth-login a.gantry-btn:hover,
+.auth-security .gantry-btn:hover:not(:disabled),
+.auth-security a.gantry-btn:hover {
+  background: color-mix(in srgb, var(--sf-secondary) 32%, transparent);
+  color: var(--sf-secondary-strong);
+}
+
+.auth-login .gantry-btn:disabled,
+.auth-security .gantry-btn:disabled {
+  opacity: 0.65;
+  cursor: wait;
 }
 
 .auth-card--wide {
@@ -1916,15 +2072,26 @@ button:disabled {
   font-size: 0.88rem;
 }
 
-/* Site Chrome — public offline screen + admin preview banner */
-.sf-offline {
+/* System pages nested under the locale template — cover parent outline chrome */
+.sf-system-page-breakout {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  overflow: auto;
+  background: var(--sf-paper, #f5f8fc);
+}
+
+/* Site Chrome — public offline / 404 system screens + admin preview banner */
+.sf-offline,
+.sf-not-found {
   min-height: 70vh;
   display: grid;
   place-items: center;
   padding: 2rem 1.25rem;
 }
 
-.sf-offline-inner {
+.sf-offline-inner,
+.sf-not-found-inner {
   max-width: 32rem;
   text-align: center;
 }
@@ -1935,7 +2102,8 @@ button:disabled {
   letter-spacing: 0.02em;
 }
 
-.sf-offline-login {
+.sf-offline-login,
+.sf-not-found-home {
   margin-top: 1.5rem;
 }
 
@@ -5759,6 +5927,16 @@ button:disabled {
   white-space: nowrap;
 }
 
+/* Long helper copy inside floating panels must wrap (not force a horizontal scroller). */
+.gantry-settings-panel-body .gantry-field-hint,
+.gantry-settings-panel-body .settings-hint,
+.gantry-settings-panel-body p {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: 100%;
+}
+
 .gantry-inline-input {
   box-sizing: border-box;
   width: 100%;
@@ -6107,6 +6285,50 @@ button:disabled {
   box-shadow:
     0 12px 32px color-mix(in srgb, var(--sf-ink, #1a1a1a) 18%, transparent),
     0 2px 8px color-mix(in srgb, var(--sf-ink, #1a1a1a) 8%, transparent);
+  min-width: 0;
+}
+
+.gantry-settings-panel.is-resizing {
+  user-select: none;
+}
+
+.gantry-settings-resize-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0 0 3px 0;
+  background:
+    linear-gradient(
+      135deg,
+      transparent 0 46%,
+      color-mix(in srgb, var(--sf-secondary, #8ebad4) 55%, transparent) 46% 54%,
+      transparent 54% 68%,
+      color-mix(in srgb, var(--sf-secondary, #8ebad4) 70%, transparent) 68% 76%,
+      transparent 76%
+    );
+  cursor: nwse-resize;
+  touch-action: none;
+  appearance: none;
+  z-index: 2;
+}
+
+.gantry-settings-resize-handle:hover,
+.gantry-settings-resize-handle:focus-visible {
+  background:
+    linear-gradient(
+      135deg,
+      transparent 0 46%,
+      color-mix(in srgb, var(--sf-primary, #ef9550) 65%, transparent) 46% 54%,
+      transparent 54% 68%,
+      color-mix(in srgb, var(--sf-primary, #ef9550) 80%, transparent) 68% 76%,
+      transparent 76%
+    );
+  outline: none;
 }
 
 .gantry-settings-tabs {
@@ -6204,9 +6426,37 @@ button:disabled {
 
 .gantry-settings-panel-body {
   padding: 0.85rem;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   min-height: 0;
+  min-width: 0;
+  flex: 1 1 auto;
   font-size: 0.88rem;
+  /* Match admin sidebar: thin thumb, transparent track (no white gutter). */
+  scrollbar-gutter: auto;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, #ffffff 34%, transparent) transparent;
+}
+
+.gantry-settings-panel-body::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background: transparent;
+}
+
+.gantry-settings-panel-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.gantry-settings-panel-body::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, #ffffff 30%, transparent);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.gantry-settings-panel-body::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 .gantry-custom-form,
@@ -7548,6 +7798,25 @@ button.danger:hover,
   flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem 1rem;
+}
+
+/* Localization — content locale file editor toolbar / actions */
+.admin-shell .sf-content-locale-files-toolbar,
+.admin-shell .sf-content-locale-files-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.65rem 0.75rem;
+  margin: 0.85rem 0;
+}
+
+.admin-shell .sf-content-locale-files-actions .gantry-toolbar-btn,
+.admin-shell .sf-content-locale-files-actions label.gantry-toolbar-btn {
+  margin: 0;
+}
+
+.admin-shell .sf-content-locale-files .page-settings-actions {
+  margin-top: 0.85rem;
 }
 
 .visually-hidden {

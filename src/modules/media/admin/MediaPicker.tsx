@@ -10,6 +10,7 @@ import React, {
 } from 'react'
 import { createPortal } from 'react-dom'
 
+import { getAdminOverlayPortalTarget } from '@/components/admin/useFloatingSettingsPanel'
 import {
   listMediaAction,
   listMediaCategoryTreeAction,
@@ -26,6 +27,15 @@ import { MEDIA_PURPOSES } from '@/core/media/pipeline'
 import type { MediaTagOption } from '@/core/media/resolve'
 
 import { MediaFileField } from './MediaFileField'
+
+const MEDIA_DIALOG_MIN_W = 420
+const MEDIA_DIALOG_MIN_H = 320
+const MEDIA_DIALOG_DEFAULT_W = 896
+const MEDIA_DIALOG_DEFAULT_H = 720
+
+function clamp(n: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, n))
+}
 
 export type MediaPickerValue = {
   mediaId: string
@@ -87,13 +97,56 @@ export function MediaPicker({
   const [uploading, setUploading] = useState(false)
   const [showUrl, setShowUrl] = useState(Boolean(value.url && !value.mediaId))
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null)
+  const [dialogSize, setDialogSize] = useState({
+    width: MEDIA_DIALOG_DEFAULT_W,
+    height: MEDIA_DIALOG_DEFAULT_H,
+  })
+  const [resizing, setResizing] = useState(false)
   const uploadRootRef = useRef<HTMLDivElement>(null)
+  const resizeOriginRef = useRef<{
+    x: number
+    y: number
+    width: number
+    height: number
+  } | null>(null)
 
   useEffect(() => {
-    setPortalTarget(
-      (document.querySelector('.admin-shell') as HTMLElement | null) || document.body,
-    )
+    setPortalTarget(getAdminOverlayPortalTarget())
   }, [])
+
+  useEffect(() => {
+    if (!open) {
+      setDialogSize({ width: MEDIA_DIALOG_DEFAULT_W, height: MEDIA_DIALOG_DEFAULT_H })
+      setResizing(false)
+      resizeOriginRef.current = null
+    }
+  }, [open])
+
+  useEffect(() => {
+    if (!resizing) return
+    const onMove = (event: PointerEvent) => {
+      const origin = resizeOriginRef.current
+      if (!origin) return
+      const maxW = Math.max(MEDIA_DIALOG_MIN_W, window.innerWidth - 24)
+      const maxH = Math.max(MEDIA_DIALOG_MIN_H, window.innerHeight - 24)
+      setDialogSize({
+        width: clamp(origin.width + (event.clientX - origin.x), MEDIA_DIALOG_MIN_W, maxW),
+        height: clamp(origin.height + (event.clientY - origin.y), MEDIA_DIALOG_MIN_H, maxH),
+      })
+    }
+    const onUp = () => {
+      resizeOriginRef.current = null
+      setResizing(false)
+    }
+    document.addEventListener('pointermove', onMove)
+    document.addEventListener('pointerup', onUp)
+    document.addEventListener('pointercancel', onUp)
+    return () => {
+      document.removeEventListener('pointermove', onMove)
+      document.removeEventListener('pointerup', onUp)
+      document.removeEventListener('pointercancel', onUp)
+    }
+  }, [resizing])
 
   const categoryOptions = flattenCategoryOptions(categoryTree)
   const defaultCategoryId =
@@ -286,7 +339,18 @@ export function MediaPicker({
               aria-modal="true"
               aria-labelledby={titleId}
             >
-              <div className="sf-media-picker-dialog">
+              <div
+                className={
+                  resizing
+                    ? 'sf-media-picker-dialog is-resizing'
+                    : 'sf-media-picker-dialog'
+                }
+                style={{
+                  width: dialogSize.width,
+                  height: dialogSize.height,
+                  maxHeight: 'none',
+                }}
+              >
                 <header className="sf-media-picker-dialog-head">
                   <h3 id={titleId}>Media library</h3>
                   <button
@@ -414,14 +478,16 @@ export function MediaPicker({
                         className={`sf-media-picker-tile${selected ? ' is-selected' : ''}`}
                         onClick={() => selectDoc(doc)}
                       >
-                        {thumb ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={thumb} alt={doc.alt || doc.filename || 'Media'} />
-                        ) : (
-                          <span className="sf-media-picker-tile-fallback">
-                            {doc.filename || doc.id}
-                          </span>
-                        )}
+                        <span className="sf-media-picker-tile-thumb">
+                          {thumb ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={thumb} alt={doc.alt || doc.filename || 'Media'} />
+                          ) : (
+                            <span className="sf-media-picker-tile-fallback">
+                              {doc.filename || doc.id}
+                            </span>
+                          )}
+                        </span>
                         <span className="sf-media-picker-tile-cap">
                           {doc.alt || doc.filename || doc.id}
                         </span>
@@ -429,6 +495,24 @@ export function MediaPicker({
                     )
                   })}
                 </div>
+                <button
+                  type="button"
+                  className="gantry-settings-resize-handle"
+                  aria-label="Resize media library"
+                  title="Resize"
+                  onPointerDown={(event) => {
+                    if (event.button !== 0) return
+                    resizeOriginRef.current = {
+                      x: event.clientX,
+                      y: event.clientY,
+                      width: dialogSize.width,
+                      height: dialogSize.height,
+                    }
+                    setResizing(true)
+                    event.preventDefault()
+                    event.stopPropagation()
+                  }}
+                />
               </div>
             </div>,
             portalTarget,

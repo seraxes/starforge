@@ -13,6 +13,7 @@ import {
   isRegisteredSkinId,
   listSkins,
   STARFORGE_PASTEL_DEFAULT_OUTLINE_ID,
+  STARFORGE_PASTEL_NOT_FOUND_OUTLINE_ID,
   STARFORGE_PASTEL_OFFLINE_OUTLINE_ID,
   STARFORGE_PASTEL_SKIN_ID,
 } from './registry'
@@ -39,14 +40,17 @@ describe('skin registry', () => {
     const skin = getSkin(STARFORGE_PASTEL_SKIN_ID)
     assert.ok(skin)
     const seeds = listSkinOutlineSeeds(skin!)
-    assert.equal(seeds.length, 2)
+    assert.equal(seeds.length, 3)
     assert.ok(seeds.some((s) => s.id === STARFORGE_PASTEL_DEFAULT_OUTLINE_ID))
     assert.ok(seeds.some((s) => s.id === STARFORGE_PASTEL_OFFLINE_OUTLINE_ID))
+    assert.ok(seeds.some((s) => s.id === STARFORGE_PASTEL_NOT_FOUND_OUTLINE_ID))
     assert.equal(skin!.preferredDefaultOutlineId, STARFORGE_PASTEL_DEFAULT_OUTLINE_ID)
     assert.ok(isOutlineOwnedBySkin(STARFORGE_PASTEL_SKIN_ID, STARFORGE_PASTEL_DEFAULT_OUTLINE_ID))
     const base = seeds.find((s) => s.id === STARFORGE_PASTEL_DEFAULT_OUTLINE_ID)
     assert.equal(base?.document.version, 3)
     assert.ok(Array.isArray(base?.document.sections))
+    const notFound = seeds.find((s) => s.id === STARFORGE_PASTEL_NOT_FOUND_OUTLINE_ID)
+    assert.equal(notFound?.document.inheritFrom, STARFORGE_PASTEL_DEFAULT_OUTLINE_ID)
   })
 
   it('builds body.sf-skin-* CSS vars from tokens', () => {

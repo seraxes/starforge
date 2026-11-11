@@ -22,8 +22,11 @@ import { shouldUseSecureCookies } from '@/core/security/secure-cookies'
 import { appTrustedOrigins } from '@/core/security/trusted-origins'
 import { siteChromeCookieAttributes } from '@/core/site-chrome/cookie-attrs'
 import { emailIsBootstrapAdmin } from './bootstrap-admins'
+import { emailAndPasswordOptions } from './email-verification-policy'
+import { readGoogleOAuthCredentials } from './google-sign-in'
 import {
   sendEmailOtpMail,
+  sendEmailVerificationMail,
   sendMagicLinkMail,
   sendPasswordResetMail,
   sendTwoFactorOtpMail,
@@ -32,6 +35,8 @@ import { ac, appRoles, DEFAULT_APP_ROLE } from './permissions'
 
 const appUrl =
   process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+
+const googleOAuth = readGoogleOAuthCredentials()
 
 function redisUrlConfigured(): boolean {
   // Inline env read so the no-Redis path stays free of ioredis / server-only.
@@ -92,20 +97,32 @@ export const auth = betterAuth({
       twoFactor: sfTwoFactors,
     },
   }),
-  emailAndPassword: {
-    enabled: true,
-    minPasswordLength: 8,
-    // Keep explicit so register creates a session cookie immediately.
-    autoSignIn: true,
-    // requireEmailVerification stays false for local-first P0.
-    revokeSessionsOnPasswordReset: true,
-    sendResetPassword: async ({ user, url }) => {
+  // Shared-by-ref with Site Chrome — do not spread; flag flips live on save.
+  emailAndPassword: Object.assign(emailAndPasswordOptions, {
+    sendResetPassword: async ({ user, url }: { user: { email: string; name: string }; url: string }) => {
       // Do not await — Better Auth docs recommend avoiding timing leaks.
       void sendPasswordResetMail({
         to: user.email,
         name: user.name,
         url,
       })
+    },
+  }),
+  emailVerification: {
+    sendOnSignIn: true,
+    autoSignInAfterVerification: true,
+    async sendVerificationEmail({ user, url }: { user: { email: string; name: string }; url: string }) {
+      void sendEmailVerificationMail({
+        to: user.email,
+        name: user.name,
+        url,
+      })
+    },
+  },
+  user: {
+    // Member self-service on /account/security — password required; no email confirm step.
+    deleteUser: {
+      enabled: true,
     },
   },
   session: {
@@ -120,6 +137,17 @@ export const auth = betterAuth({
     },
   },
   ...redisAuthOptions(),
+  // Optional Google OAuth — only when both GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET are set.
+  ...(googleOAuth
+    ? {
+        socialProviders: {
+          google: {
+            clientId: googleOAuth.clientId,
+            clientSecret: googleOAuth.clientSecret,
+          },
+        },
+      }
+    : {}),
 
   databaseHooks: {
     user: {

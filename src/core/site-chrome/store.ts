@@ -5,6 +5,8 @@ import { contentCacheTags, getPublishedContentCache } from '@/core/content/cache
 import { db, SITE_CHROME_ID, sfSiteChrome } from '@/core/db'
 import { DEFAULT_SITE_NAME } from '@/core/settings/defaults'
 
+import { applyAuthEmailVerificationPolicy } from '@/core/auth/email-verification-policy'
+
 import { applySiteChromeCookieAttributes } from './cookie-attrs'
 import { DEFAULT_SITE_CHROME } from './defaults'
 import {
@@ -18,7 +20,9 @@ import type { SiteChromeDocument, SiteChromeLoadResult } from './types'
 function withCookieAttrs(chrome: SiteChromeDocument): SiteChromeDocument {
   applySiteChromeCookieAttributes(chrome)
   // Always re-normalize so stale cache / pre-i18n JSON never leaks missing keys.
-  return normalizeSiteChrome(chrome)
+  const normalized = normalizeSiteChrome(chrome)
+  applyAuthEmailVerificationPolicy(normalized.authRequireEmailVerification)
+  return normalized
 }
 
 /**

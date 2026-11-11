@@ -2088,6 +2088,57 @@ body:has(.admin-shell) > main {
   box-shadow: none;
 }
 
+.gantry-settings-theme-dark .gantry-settings-panel-body {
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: auto;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, #ffffff 34%, transparent) transparent;
+}
+
+.gantry-settings-theme-dark .gantry-settings-panel-body::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background: transparent;
+}
+
+.gantry-settings-theme-dark .gantry-settings-panel-body::-webkit-scrollbar-track,
+.gantry-settings-theme-dark .gantry-settings-panel-body::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.gantry-settings-theme-dark .gantry-settings-panel-body::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, #ffffff 30%, transparent);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.gantry-settings-theme-dark .gantry-settings-resize-handle {
+  background:
+    linear-gradient(
+      135deg,
+      transparent 0 46%,
+      color-mix(in srgb, #8ebad4 55%, transparent) 46% 54%,
+      transparent 54% 68%,
+      color-mix(in srgb, #8ebad4 70%, transparent) 68% 76%,
+      transparent 76%
+    );
+}
+
+.gantry-settings-theme-dark .gantry-settings-resize-handle:hover,
+.gantry-settings-theme-dark .gantry-settings-resize-handle:focus-visible {
+  background:
+    linear-gradient(
+      135deg,
+      transparent 0 46%,
+      color-mix(in srgb, #ef9550 65%, transparent) 46% 54%,
+      transparent 54% 68%,
+      color-mix(in srgb, #ef9550 80%, transparent) 68% 76%,
+      transparent 76%
+    );
+}
+
 /* Top chrome strip holding Particle / Block / Inheritance–style tabs */
 .gantry-settings-theme-dark .gantry-settings-panel-tabs {
   background: #161e27;
@@ -2162,6 +2213,8 @@ body:has(.admin-shell) > main {
   color: #fff;
   background: #1d2531;
   padding: 0.75rem 0.85rem 0.9rem;
+  /* Padding room so the SE resize grip does not cover the last control. */
+  padding-bottom: 1.15rem;
 }
 
 .gantry-settings-theme-dark .gantry-settings-tabpanel {
@@ -3840,8 +3893,12 @@ body:has(.admin-shell) > main {
 .admin-shell .sf-media-picker-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  column-gap: 0.85rem;
+  row-gap: 0.85rem;
   gap: 0.85rem;
   margin-top: 1rem;
+  align-content: start;
+  align-items: start;
 }
 
 .admin-shell .sf-media-library-grid.is-list {
@@ -3921,7 +3978,6 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .sf-media-library-thumb img,
-.admin-shell .sf-media-picker-tile img,
 .admin-shell .sf-media-picker-preview img {
   display: block;
   width: 100%;
@@ -3930,6 +3986,75 @@ body:has(.admin-shell) > main {
   object-fit: cover;
   object-position: center;
   background: #0d1218;
+}
+
+/*
+ * Picker tiles: always-square thumbs (including while the dialog is resized).
+ * In-flow ::before spacer sets 1:1 from width; img is absolute so intrinsic
+ * height can never stretch the cell.
+ */
+.admin-shell .sf-media-picker-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  align-self: start;
+  justify-self: stretch;
+  width: 100%;
+  height: auto !important;
+  max-height: none !important;
+  min-height: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.admin-shell .sf-media-picker-tile-thumb {
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  height: auto !important;
+  overflow: hidden;
+  background: #0d1218;
+  flex: 0 0 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+.admin-shell .sf-media-picker-tile-thumb::before {
+  content: '';
+  display: block;
+  width: 100%;
+  padding-top: 100%; /* width-based 1:1 — stable while the dialog resizes */
+}
+
+.admin-shell .sf-media-picker-tile-thumb img,
+.admin-shell .sf-media-picker-tile-fallback {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  object-fit: cover;
+  object-position: center;
+  background: #0d1218;
+  pointer-events: none;
+}
+
+.admin-shell .sf-media-picker-tile-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--sf-muted, #9eb1c7);
+  word-break: break-word;
+  pointer-events: none;
 }
 
 .admin-shell .sf-media-library-thumb:hover:not(:disabled) img,
@@ -4012,7 +4137,7 @@ body:has(.admin-shell) > main {
 .admin-shell .sf-media-lightbox {
   position: fixed;
   inset: 0;
-  z-index: 90;
+  z-index: 110;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4030,13 +4155,35 @@ body:has(.admin-shell) > main {
   z-index: 1;
   width: min(64rem, 100%);
   max-height: min(92vh, 56rem);
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   background: var(--sf-admin-panel);
   border: 1px solid var(--sf-admin-panel-border);
   border-radius: 3px;
   box-shadow: none;
   display: flex;
   flex-direction: column;
+  scrollbar-gutter: auto;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, #ffffff 34%, transparent) transparent;
+}
+
+.admin-shell .sf-media-lightbox-dialog::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background: transparent;
+}
+
+.admin-shell .sf-media-lightbox-dialog::-webkit-scrollbar-track,
+.admin-shell .sf-media-lightbox-dialog::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.admin-shell .sf-media-lightbox-dialog::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, #ffffff 30%, transparent);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
 }
 
 .admin-shell .sf-media-lightbox-head {
@@ -4194,10 +4341,11 @@ body:has(.admin-shell) > main {
   font-size: 0.82rem;
 }
 
+/* Above particle/atom settings (z 80/81); below confirm / lightbox (z 110). */
 .admin-shell .sf-media-picker-modal {
   position: fixed;
   inset: 0;
-  z-index: 80;
+  z-index: 100;
   background: color-mix(in srgb, #06090e 72%, transparent);
   display: flex;
   align-items: center;
@@ -4209,7 +4357,7 @@ body:has(.admin-shell) > main {
 .admin-shell .sf-admin-confirm-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 90;
+  z-index: 110;
   background: color-mix(in srgb, #06090e 72%, transparent);
   display: flex;
   align-items: center;
@@ -4257,14 +4405,68 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .sf-media-picker-dialog {
+  position: relative;
   width: min(56rem, 100%);
   max-height: min(90vh, 52rem);
-  overflow: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   background: var(--sf-admin-panel);
   border: 1px solid var(--sf-admin-panel-border);
   padding: 0 0 1rem;
   border-radius: 3px;
   box-shadow: none;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.admin-shell .sf-media-picker-dialog.is-resizing {
+  user-select: none;
+}
+
+.admin-shell .sf-media-picker-dialog > .sf-media-picker-grid {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  /* Rows sized by square thumbs + caption — never stretch to dialog height. */
+  grid-auto-rows: max-content;
+  column-gap: 0.85rem;
+  row-gap: 0.85rem;
+  gap: 0.85rem 0.85rem;
+  align-content: start;
+  align-items: start;
+  justify-items: stretch;
+  padding-bottom: 0.85rem;
+  scrollbar-gutter: auto;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, #ffffff 34%, transparent) transparent;
+}
+
+.admin-shell .sf-media-picker-dialog.is-resizing .sf-media-picker-tile,
+.admin-shell .sf-media-picker-dialog.is-resizing .sf-media-picker-tile-thumb {
+  height: auto !important;
+  max-height: none !important;
+}
+
+.admin-shell .sf-media-picker-dialog > .sf-media-picker-grid::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background: transparent;
+}
+
+.admin-shell .sf-media-picker-dialog > .sf-media-picker-grid::-webkit-scrollbar-track,
+.admin-shell .sf-media-picker-dialog > .sf-media-picker-grid::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.admin-shell .sf-media-picker-dialog > .sf-media-picker-grid::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, #ffffff 30%, transparent);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
 }
 
 .admin-shell .sf-media-picker-dialog-head {
@@ -4276,6 +4478,13 @@ body:has(.admin-shell) > main {
   padding: 0.55rem 0.85rem;
   background: var(--sf-admin-panel-head);
   border-bottom: 1px solid var(--sf-admin-panel-border);
+  flex-shrink: 0;
+}
+
+.admin-shell .sf-media-picker-dialog > .sf-media-picker-toolbar,
+.admin-shell .sf-media-picker-dialog > .sf-media-picker-upload,
+.admin-shell .sf-media-picker-dialog > .form-error {
+  flex-shrink: 0;
 }
 
 .admin-shell .sf-media-picker-dialog-head h3 {
@@ -4300,10 +4509,19 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .sf-media-picker-tile-cap {
+  position: relative;
+  z-index: 1;
   display: block;
+  flex: 0 0 auto;
+  margin: 0;
   padding: 0.4rem 0.5rem 0.55rem;
   font-size: 0.75rem;
   line-height: 1.25;
+  min-width: 0;
+  background: var(--sf-admin-panel);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .admin-shell .sf-media-picker-grid[data-pending='1'] {
@@ -4548,4 +4766,150 @@ body:has(.admin-shell) > main {
 .admin-shell .sf-forms-filters a.gantry-toolbar-btn:hover:not([aria-current='true']) {
   background: #4a6085;
   color: #fff;
+}
+
+.admin-shell .settings-field .sf-locale-input {
+  display: flex;
+  align-items: stretch;
+  gap: 0.35rem;
+  /* “Copy from” caption hangs above the disk well. */
+  overflow: visible;
+}
+
+.admin-shell .settings-field .sf-locale-input > input {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+  height: var(--sf-admin-input-min-height, 2.5rem) !important;
+  min-height: var(--sf-admin-input-min-height, 2.5rem) !important;
+  max-height: var(--sf-admin-input-min-height, 2.5rem) !important;
+}
+
+.admin-shell .settings-field .sf-locale-input > .sf-locale-input-tools,
+.sf-code-field-label-row .sf-locale-input-tools {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+  align-self: center;
+  height: var(--sf-admin-input-min-height, 2.5rem);
+  min-height: var(--sf-admin-input-min-height, 2.5rem);
+  max-height: var(--sf-admin-input-min-height, 2.5rem);
+  /* Allow “Copy from” caption to sit above the well. */
+  overflow: visible;
+}
+
+.admin-shell .settings-field .sf-locale-input-locale,
+.gantry-settings-theme-dark .sf-locale-input-locale,
+.sf-code-field-label-row .sf-locale-input-locale {
+  /* Same well as sibling text input — beat settings-field `width: 100% !important`. */
+  width: var(--sf-locale-select-w, calc(2ch + 3.25rem)) !important;
+  max-width: none !important;
+  min-width: var(--sf-locale-select-w, calc(2ch + 3.25rem)) !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  max-height: 100% !important;
+  flex: 0 0 auto;
+  font-size: var(--sf-admin-input-font, 1rem) !important;
+  font-weight: 400 !important;
+  line-height: 1.35 !important;
+  /* Keep code clear of the custom chevron. */
+  padding: 0 2.35rem 0 var(--sf-admin-input-pad-x, 0.75rem) !important;
+  background-position: right 0.45rem center !important;
+  box-sizing: border-box !important;
+}
+
+.admin-shell .settings-field .sf-locale-input-copy-wrap,
+.sf-code-field-label-row .sf-locale-input-copy-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: var(--sf-admin-input-min-height, 2.5rem);
+  min-width: var(--sf-admin-input-min-height, 2.5rem);
+  height: 100%;
+  min-height: 100%;
+  max-height: 100%;
+  padding: 0;
+  border: 1px solid var(--sf-admin-blue-border, #1e4d72);
+  border-radius: 3px;
+  background: var(--sf-admin-input, #152033);
+  color: #c5d2e0;
+  box-sizing: border-box;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 6%, transparent);
+  overflow: visible;
+}
+
+.admin-shell .settings-field .sf-locale-input-copy-label,
+.sf-code-field-label-row .sf-locale-input-copy-label {
+  /* Outside, directly above the disk well. */
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 0.15rem);
+  transform: translateX(-50%);
+  font-size: 0.58rem;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  color: color-mix(in srgb, var(--sf-admin-muted, #9aafc4) 92%, #fff);
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+  z-index: 2;
+}
+
+.admin-shell .settings-field .sf-locale-input-copy-face,
+.sf-code-field-label-row .sf-locale-input-copy-face {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  line-height: 0;
+  pointer-events: none;
+}
+
+.admin-shell .settings-field .sf-locale-input-copy-disk-icon,
+.sf-code-field-label-row .sf-locale-input-copy-disk-icon {
+  display: block;
+  width: 1.45rem;
+  height: 1.45rem;
+}
+
+.admin-shell .settings-field .sf-locale-input-copy,
+.gantry-settings-theme-dark .sf-locale-input-copy,
+.sf-code-field-label-row .sf-locale-input-copy {
+  /* Invisible hit target over the disk; opens the language list. */
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  opacity: 0 !important;
+  cursor: pointer;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  flex: none;
+  z-index: 1;
+}
+
+.admin-shell .settings-field .sf-locale-input-copy-wrap:hover,
+.sf-code-field-label-row .sf-locale-input-copy-wrap:hover {
+  background: #4a6085;
+  color: #fff;
+}
+
+.admin-shell .settings-field .sf-locale-input-copy-wrap:focus-within,
+.sf-code-field-label-row .sf-locale-input-copy-wrap:focus-within {
+  outline: 2px solid color-mix(in srgb, var(--sf-primary, #3b82f6) 70%, transparent);
+  outline-offset: 1px;
 }

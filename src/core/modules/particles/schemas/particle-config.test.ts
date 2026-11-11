@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
+import { accountMenuParticleConfigSchema } from './account-menu'
 import { copyrightParticleConfigSchema } from './copyright'
 import { customParticleConfigSchema } from './custom'
 import { localeSwitcherParticleConfigSchema } from './locale-switcher'
@@ -106,5 +107,25 @@ describe('particle config schemas (M1)', () => {
     if (!parsed.success) return
     assert.equal(parsed.data.ariaLabel, 'Language')
     assert.equal(parsed.data.display, 'codes')
+  })
+
+  it('normalizes account menu avatar shape and size', () => {
+    const parsed = accountMenuParticleConfigSchema.safeParse({
+      avatarShape: 'hexagon',
+      avatarSize: '48.2',
+    })
+    assert.equal(parsed.success, true)
+    if (!parsed.success) return
+    assert.equal(parsed.data.avatarShape, 'hexagon')
+    assert.equal(parsed.data.avatarSize, 48)
+
+    const fallback = accountMenuParticleConfigSchema.safeParse({
+      avatarShape: 'triangle',
+      avatarSize: 4,
+    })
+    assert.equal(fallback.success, true)
+    if (!fallback.success) return
+    assert.equal(fallback.data.avatarShape, 'circle')
+    assert.equal(fallback.data.avatarSize, 20)
   })
 })

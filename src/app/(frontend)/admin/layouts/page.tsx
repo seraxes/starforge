@@ -14,6 +14,8 @@ import {
   ensureDefaultContactFormSeeded,
   listFormDefinitions,
 } from '@/core/forms'
+import { hydrateLayoutDocumentLocales } from '@/core/i18n/content-locales/hydrate'
+import { getContentLocaleOptions } from '@/core/i18n/locale-text.server'
 import { listNavMenus } from '@/core/nav'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import {
@@ -64,7 +66,9 @@ export default async function AdminLayoutsPage(props: { searchParams?: SearchPar
   })
 
   const adminBundle = await getLayoutDocumentForAdmin(layoutId)
-  const { raw, resolved, parent, parentLayoutId, label } = adminBundle
+  const raw = await hydrateLayoutDocumentLocales(layoutId, adminBundle.raw)
+  const resolved = await hydrateLayoutDocumentLocales(layoutId, adminBundle.resolved)
+  const { parent, parentLayoutId, label } = adminBundle
   const isFallback = raw.sections.length === 0
   const outlineMeta = (await getLayoutOutline(layoutId)) ?? {
     id: layoutId,
@@ -75,11 +79,12 @@ export default async function AdminLayoutsPage(props: { searchParams?: SearchPar
   if (formsModuleEnabled) {
     await ensureDefaultContactFormSeeded()
   }
-  const [modules, groups, navMenus, formDefinitions] = await Promise.all([
+  const [modules, groups, navMenus, formDefinitions, contentLocales] = await Promise.all([
     listModulesForLayoutAdmin(),
     listUserGroupOptions(),
     listNavMenus(),
     formsModuleEnabled ? listFormDefinitions() : Promise.resolve([]),
+    getContentLocaleOptions(),
   ])
 
   const pageSettingsOn = isCatalogModuleEnabled(settings, MODULE_IDS.pageSettings)
@@ -124,6 +129,7 @@ export default async function AdminLayoutsPage(props: { searchParams?: SearchPar
           formDefinitions={formDefinitions.map((f) => ({ id: f.id, label: f.label }))}
           formsModuleEnabled={formsModuleEnabled}
           primaryNavMenuId={settings.primaryNavMenuId}
+          contentLocales={contentLocales}
           layoutId={layoutId}
           layoutLabel={outlineMeta.label}
           canInheritOutline={!isSkinBaseOutlineId(layoutId, activeSkin.preferredDefaultOutlineId)}

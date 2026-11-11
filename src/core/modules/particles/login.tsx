@@ -1,10 +1,13 @@
 import React from 'react'
 
 import { AuthWelcomePanel } from '@/components/AuthWelcomePanel'
+import { isGoogleSignInConfigured } from '@/core/auth/google-sign-in'
 import { getAppSession } from '@/core/auth/session'
 
 import type { StarforgeModule } from '../types'
 import { readLoginConfig } from './config'
+import { buildLayoutSlotKey } from '@/core/i18n/content-locale-keys'
+import { pickContentLocaleText } from '@/core/i18n/locale-text.server'
 
 /**
  * Built-in Login / welcome particle — short welcome note + auth panel.
@@ -24,8 +27,17 @@ export const loginModule: StarforgeModule = {
     { key: 'forgot-username', label: 'Forgot login email', href: '/forgot-username' },
     { key: 'account-security', label: 'Account security', href: '/account/security' },
   ],
-  render: async ({ settings, slot }) => {
+  render: async ({ settings, slot, layoutId }) => {
     const cfg = readLoginConfig(slot.config)
+    const welcomeNote = await pickContentLocaleText(
+      buildLayoutSlotKey({
+        layoutId: layoutId || 'default',
+        slotId: slot.id,
+        field: 'welcomeNote',
+      }),
+      cfg.welcomeNote ?? '',
+      cfg.welcomeNoteLocales,
+    )
     const session = await getAppSession()
     const user = session?.user as
       | { email?: string | null; name?: string | null }
@@ -39,6 +51,7 @@ export const loginModule: StarforgeModule = {
           emailOtp: boolean
           rememberMe: boolean
           twoFactor: boolean
+          requireEmailVerification: boolean
         }
       | undefined
     try {
@@ -52,6 +65,7 @@ export const loginModule: StarforgeModule = {
         emailOtp: chrome.authEmailOtpEnabled,
         rememberMe: chrome.authRememberMeEnabled,
         twoFactor: chrome.authTwoFactorEnabled,
+        requireEmailVerification: chrome.authRequireEmailVerification,
       }
     } catch {
       // Site Chrome table may be missing before db:core:push.
@@ -61,13 +75,14 @@ export const loginModule: StarforgeModule = {
         <AuthWelcomePanel
           siteName={siteName}
           variant="embed"
-          welcomeNote={cfg.welcomeNote}
+          welcomeNote={welcomeNote}
           registrationEnabled={settings.features.registration}
           signedIn={Boolean(session?.user)}
           userEmail={user?.email}
           userName={user?.name}
           showForm={cfg.showForm && !session?.user}
           authOptions={authOptions}
+          googleSignInEnabled={isGoogleSignInConfigured()}
         />
       </div>
     )

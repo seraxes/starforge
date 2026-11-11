@@ -73,7 +73,9 @@ function applyBodyScope(opts: {
  * Root layout owns `<body>`; public chrome cannot set those props directly.
  * Skin CSS engine: `body.sf-skin-*` → `body.sf-skin-*.sf-outline-*` (outline wins).
  *
- * Inline script stamps classes before paint; useLayoutEffect keeps them in sync on navigation.
+ * Inline script stamps classes before paint on hard loads; useLayoutEffect syncs soft nav.
+ * `type` flips to text/plain on the client so React 19 does not warn about inert `<script>`s
+ * (https://nextjs.org/docs/app/guides/preventing-flash-before-hydration).
  */
 export function BodyAttributesClientImpl({
   bodyId,
@@ -83,6 +85,18 @@ export function BodyAttributesClientImpl({
   skinId,
   outlineId,
 }: Props) {
+  const layoutClass =
+    sectionsLayout === 'boxed' ? 'sf-sections-boxed' : 'sf-sections-fullwidth'
+  const skinClass = skinBodyClass(skinId)
+  const outlineClass = outlineBodyClass(outlineId)
+  const classTokens = bodyClasses
+    .split(/\s+/)
+    .map((c) => c.trim())
+    .filter(Boolean)
+  const syncScript = `(function(){var b=document.body;if(!b)return;Array.prototype.slice.call(b.classList).forEach(function(n){if(/^sf-skin-/.test(n)||/^sf-outline-/.test(n)||/^sf-sections-/.test(n))b.classList.remove(n);});var add=${JSON.stringify([skinClass, outlineClass, layoutClass, ...classTokens])};for(var i=0;i<add.length;i++){if(add[i])b.classList.add(add[i]);}${
+    bodyId ? `b.id=${JSON.stringify(bodyId)};` : ''
+  }})();`
+
   useLayoutEffect(() => {
     return applyBodyScope({
       bodyId,
@@ -94,5 +108,11 @@ export function BodyAttributesClientImpl({
     })
   }, [bodyId, bodyClasses, bodyTagAttributes, sectionsLayout, skinId, outlineId])
 
-  return null
+  return (
+    <script
+      type={typeof window === 'undefined' ? 'text/javascript' : 'text/plain'}
+      suppressHydrationWarning
+      dangerouslySetInnerHTML={{ __html: syncScript }}
+    />
+  )
 }

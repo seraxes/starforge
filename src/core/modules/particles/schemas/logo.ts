@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { parseCssColorInput } from '@/core/modules/styles'
+import { normalizeLocaleTextMap } from '@/core/i18n/locale-text'
 
 import { defaultLogoConfig } from '../config'
 
@@ -27,6 +28,7 @@ export const logoParticleConfigSchema = z
     maxHeight: z.number().optional(),
     linkUrl: z.string().optional(),
     text: z.string().optional(),
+    textLocales: z.record(z.string(), z.string()).optional(),
     fontFamily: z.string().optional(),
     fontSize: z.number().optional(),
     fontWeight: z.union([z.number(), z.string()]).optional(),
@@ -54,6 +56,7 @@ export const logoParticleConfigSchema = z
       alt: (typeof raw.alt === 'string' ? raw.alt.trim() : '') || 'Logo',
       linkUrl: typeof raw.linkUrl === 'string' ? raw.linkUrl.trim() : '',
       text: typeof raw.text === 'string' ? raw.text.trim() : '',
+      textLocales: normalizeLocaleTextMap(raw.textLocales),
       fontFamily: typeof raw.fontFamily === 'string' ? raw.fontFamily.trim() : '',
       color,
       ...(Number.isFinite(maxWidth) && maxWidth > 0 ? { maxWidth: Math.round(maxWidth) } : {}),

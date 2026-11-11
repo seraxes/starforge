@@ -251,6 +251,18 @@ export type {
   RealtimePort,
 } from './realtime'
 export {
+  getJobRunner,
+  registerJobHandler,
+} from './jobs'
+export type {
+  JobEnqueueInput,
+  JobEnqueueResult,
+  JobHandler,
+  JobPayload,
+  JobRunner,
+  JobRunnerInfo,
+} from './jobs'
+export {
   applySecurityHeaders,
   buildCspHeaders,
   buildSecurityHeaders,

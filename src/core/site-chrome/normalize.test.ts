@@ -23,6 +23,15 @@ describe('normalizeSiteChrome offline + auth success URLs', () => {
     assert.equal(chrome.authPostLoginUrl, DEFAULT_AUTH_POST_LOGIN_URL)
     assert.equal(chrome.authPostRegisterUrl, DEFAULT_AUTH_POST_REGISTER_URL)
     assert.equal(chrome.authPostLogoutUrl, DEFAULT_AUTH_POST_LOGOUT_URL)
+    assert.equal(chrome.authRequireEmailVerification, false)
+  })
+
+  it('keeps authRequireEmailVerification when set', () => {
+    const chrome = normalizeSiteChrome({
+      siteName: 'Test',
+      authRequireEmailVerification: true,
+    })
+    assert.equal(chrome.authRequireEmailVerification, true)
   })
 
   it('rejects open-redirect style auth success URLs', () => {

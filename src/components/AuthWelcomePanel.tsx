@@ -29,10 +29,13 @@ export type AuthWelcomePanelProps = {
   next?: string
   resetSuccess?: boolean
   magicError?: boolean
+  googleError?: boolean
   /** When false, show option links + Sign in CTA only (no full form). */
   showForm?: boolean
   /** Site Settings → Auth option gates. */
   authOptions?: AuthPublicOptions
+  /** Server flag: Google OAuth env pair is set (button only; no secret). */
+  googleSignInEnabled?: boolean
 }
 
 const DEFAULT_GUEST_NOTE =
@@ -58,8 +61,10 @@ export async function AuthWelcomePanel({
   next,
   resetSuccess,
   magicError,
+  googleError,
   showForm = true,
   authOptions,
+  googleSignInEnabled = false,
 }: AuthWelcomePanelProps) {
   const note =
     welcomeNote?.trim() || (signedIn ? DEFAULT_SIGNED_IN_NOTE : DEFAULT_GUEST_NOTE)
@@ -112,10 +117,12 @@ export async function AuthWelcomePanel({
           next={next}
           resetSuccess={resetSuccess}
           magicError={magicError}
+          googleError={googleError}
           initialMode={initialMode}
           showHelperLinks={false}
           captcha={captcha}
           authOptions={authOptions}
+          googleSignInEnabled={googleSignInEnabled}
         />
       ) : (
         <p className="auth-welcome-actions">

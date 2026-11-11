@@ -26,7 +26,10 @@ export type NavMenuItem = {
   parentId: string | null
   /** Sibling order (ascending). */
   sortOrder: number
+  /** Default-locale label. Kept so existing menus still load. */
   label: string
+  /** Label per enabled locale code. Missing key falls back to `label`. */
+  labels?: Record<string, string>
   linkType: NavLinkType
   /** Payload `pages` document id when linkType is `page`. */
   pageId?: number | null
@@ -37,10 +40,14 @@ export type NavMenuItem = {
   /** View key within that module’s `navViews`. */
   moduleViewKey?: string | null
   cssClass?: string | null
-  /** Browser tab title override when this item is the active page. */
+  /** Browser tab title override for the default locale. */
   browserTitle?: string | null
-  /** On-page H1 override when this item is the active page. */
+  /** Browser title per locale. */
+  browserTitles?: Record<string, string>
+  /** On-page H1 override for the default locale. */
   pageHeading?: string | null
+  /** Page heading per locale. */
+  pageHeadings?: Record<string, string>
   /**
    * Layout outline id (`sf_layouts`). Empty = do not write Page Settings.
    * When set, save syncs `layoutId` onto the target page’s Page Settings chrome.

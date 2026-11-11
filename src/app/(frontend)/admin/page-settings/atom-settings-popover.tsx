@@ -2,7 +2,11 @@
 
 import React, { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useFloatingSettingsPanel } from '@/components/admin/useFloatingSettingsPanel'
+import {
+  getAdminOverlayPortalTarget,
+  SETTINGS_NESTED_OVERLAY_SELECTOR,
+  useFloatingSettingsPanel,
+} from '@/components/admin/useFloatingSettingsPanel'
 
 type Props = {
   title: string
@@ -18,8 +22,8 @@ const DEFAULT_PANEL_WIDTH = 440
 
 /**
  * Atom / Assets settings as a floating overlay — same pattern as layout particle editors.
- * Opens centered; title chrome is draggable. Closes on Escape and outside click.
- * Portals with `gantry-settings-theme-dark` so CodeMirror matches Core admin chrome.
+ * Opens centered; title chrome is draggable; SE corner resizes. Closes on Escape and
+ * outside click. Portals with `gantry-settings-theme-dark` inside `.admin-shell`.
  */
 export function AtomSettingsPopover({
   title,
@@ -30,9 +34,16 @@ export function AtomSettingsPopover({
 }: Props) {
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const titleId = useId()
-  const { panelRef, panelStyle, panelClassName, onDragHandlePointerDown } = useFloatingSettingsPanel({
+  const {
+    panelRef,
+    panelStyle,
+    panelClassName,
+    onDragHandlePointerDown,
+    onResizeHandlePointerDown,
+  } = useFloatingSettingsPanel({
     open,
     preferredWidth,
   })
@@ -46,28 +57,28 @@ export function AtomSettingsPopover({
   }
 
   useEffect(() => {
-    // Portal needs document.body — mark mounted after hydration.
+    // Portal needs admin-shell / body — mark mounted after hydration.
     // eslint-disable-next-line react-hooks/set-state-in-effect -- client portal gate
     setMounted(true)
+    setPortalTarget(getAdminOverlayPortalTarget())
   }, [])
 
   useEffect(() => {
     if (!open) return
 
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setOpen(false)
-        onCloseRef.current?.()
-      }
+      if (event.key !== 'Escape') return
+      if (document.querySelector(SETTINGS_NESTED_OVERLAY_SELECTOR)) return
+      setOpen(false)
+      onCloseRef.current?.()
     }
     const onPointer = (event: MouseEvent) => {
       const target = event.target as Node
       if (panelRef.current?.contains(target) || triggerRef.current?.contains(target)) return
-      if (target instanceof Element && target.closest('.admin-toast-host')) return
+      if (target instanceof Element && target.closest(SETTINGS_NESTED_OVERLAY_SELECTOR)) return
       setOpen(false)
       onCloseRef.current?.()
     }
-
     document.addEventListener('keydown', onKey)
     document.addEventListener('mousedown', onPointer)
     return () => {
@@ -91,7 +102,7 @@ export function AtomSettingsPopover({
       >
         {open ? 'Close' : triggerLabel}
       </button>
-      {mounted && open
+      {mounted && open && portalTarget
         ? createPortal(
             <div
               className="gantry-settings-layer gantry-settings-theme-dark"
@@ -126,9 +137,16 @@ export function AtomSettingsPopover({
                   </button>
                 </header>
                 <div className="gantry-settings-panel-body">{children}</div>
+                <button
+                  type="button"
+                  className="gantry-settings-resize-handle"
+                  aria-label="Resize settings panel"
+                  title="Resize"
+                  onPointerDown={onResizeHandlePointerDown}
+                />
               </div>
             </div>,
-            document.body,
+            portalTarget,
           )
         : null}
     </div>

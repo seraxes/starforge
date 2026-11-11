@@ -69,6 +69,8 @@ Core → Modules → Hero still holds. **The active job is to finish and polish 
 
 Do not re-open work that already shipped: RateLimiter, captcha-in-security, the manifest host (M0–M2), Redis cache, the Skin port, dashboard D2–D4, the email send log, module info pages, or the dashboard core glance and needs-attention rail (`system.health`, `chrome.posture`, `modules.summary`, `attention.rail`).
 
+**Host gaps for Auto** (one slice per chat, instructions in [core-host-gaps-brief](./core-host-gaps-brief.md)): all five slices shipped — public error/404, optional email verification, download-my-data / delete-my-account, job-runner port (`src/core/jobs`), and Google sign-in (`GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET`, button only when both set). These do not replace the list below.
+
 **Now (Core finish), in order:**
 
 1. **Small host leftovers.** Consent category UI, redirect CSV import, and a dynamic admin-theme CSS import (the registry works; layouts still import Gantry statically). Fold Forms success mail onto Email Manager only — `src/core/forms/email-notify.ts` still calls `getMailer()` as well as `emitEmailTrigger`.
@@ -83,6 +85,14 @@ Do not re-open work that already shipped: RateLimiter, captcha-in-security, the 
 **Parked until Core is finished, and not ahead of the commercial order after that:** TacMap stations, BLE beacons, `apps/asn-capacitor`, Shop, Marketplace schema, Social, Chat, Stream, Notifications, ASN Hero theme and domain fields, DigitalOcean, WordPress migration.
 
 The 5 Nov wireframe order does not override this. Email Manager already shipped ahead of the heavy packs. i18n P0–P3 already shipped.
+
+## Languages
+
+One outline for every language. Do not copy a layout per locale. Particle chrome (account menu, sign-in, locale switcher) reads the message catalog for the current `[locale]`. Page body stays in the content manager.
+
+Editor-typed text uses one field. Localization owns that control (`LocaleInput`). It shows a language menu on the end of the field only when more than one public locale is enabled. Custom particle HTML and title use it. Custom CSS and JavaScript do not.
+
+**Content locale files:** non-default (and mirrored default) layout/nav strings persist under `data/content-locales/{locale}/layouts|nav/{id}.json` as flat maps of stable keys → strings. The key *is* belonging (`layout.{layoutId}.slot.{slotId}.{field}`, `nav.{menuId}.item.{itemId}.{field}`). Runtime resolves via `pickContentLocaleText`. `/admin/localization` has a CodeMirror JSON editor plus download/upload. UI chrome packs (`src/core/i18n/messages`, module `messages/`) and Payload CMS locales stay separate.
 
 ## Hero vs module
 

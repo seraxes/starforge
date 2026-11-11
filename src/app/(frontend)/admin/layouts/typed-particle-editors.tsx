@@ -14,15 +14,20 @@ import {
   type LayoutActionState,
 } from '@/core/modules/actions'
 import {
+  readAccountMenuConfig,
   readCopyrightConfig,
   readLocaleSwitcherConfig,
   readLogoConfig,
+  readLoginConfig,
   readMenuConfig,
   readSocialConfig,
   readSpacerConfig,
+  type AccountMenuAvatarShape,
+  type AccountMenuParticleConfig,
   type CopyrightParticleConfig,
   type LocaleSwitcherParticleConfig,
   type LogoParticleConfig,
+  type LoginParticleConfig,
   type MenuParticleConfig,
   type SocialLinkItem,
   type SpacerParticleConfig,
@@ -30,6 +35,9 @@ import {
 import { cssColorToColorInputValue, parseCssColorInput } from '@/core/modules/styles'
 import type { LayoutSlot, LayoutSlotConfig } from '@/core/modules/types'
 import { MediaPicker } from '@/modules/media/api'
+import { LocaleInput } from '@/core/localization/LocaleInput'
+
+import { useContentLocales } from './content-locales-context'
 
 export type NavMenuOption = { id: string; label: string }
 export type FormDefinitionOption = { id: string; label: string }
@@ -128,6 +136,8 @@ export function LogoParticleEditor({
 
   const [draft, setDraft] = useState<LogoParticleConfig>(() => readLogoConfig(slot.config))
   const [colorText, setColorText] = useState(() => readLogoConfig(slot.config).color ?? '')
+  const locales = useContentLocales()
+  const defaultLocale = locales.find((locale) => locale.isDefault)
 
   // Local draft while cog is open — reset only when switching particles (never from save responses).
   useEffect(() => {
@@ -192,16 +202,22 @@ export function LogoParticleEditor({
 
         {mode === 'text' ? (
           <>
-            <label>
-              <span>Text</span>
-              <input
-                type="text"
-                name="text"
-                value={draft.text ?? ''}
-                onChange={(e) => patchDraft({ text: e.target.value })}
-                placeholder="Brand name"
-              />
-            </label>
+            <LocaleInput
+              locales={locales}
+              values={{
+                ...(draft.textLocales ?? {}),
+                ...(defaultLocale ? { [defaultLocale.code]: draft.text ?? '' } : {}),
+              }}
+              label="Text"
+              requiredDefault
+              onChange={(code, value) => {
+                const isDefault = code === defaultLocale?.code
+                patchDraft({
+                  textLocales: { ...(draft.textLocales ?? {}), [code]: value },
+                  ...(isDefault ? { text: value } : {}),
+                })
+              }}
+            />
             <label>
               <span>Font family</span>
               <input
@@ -512,6 +528,98 @@ export function LocaleSwitcherParticleEditor({
   )
 }
 
+export function AccountMenuParticleEditor({
+  sectionId,
+  rowId,
+  slot,
+  embedded = false,
+  onConfigSaved,
+}: {
+  sectionId: string
+  rowId: string
+  slot: LayoutSlot
+  embedded?: boolean
+  onConfigSaved?: (config: LayoutSlotConfig) => void
+}) {
+  const [state, formAction, pending] = useActionState(updateSlotConfigAction, initialState)
+  useParticleAutosaveResult(state, onConfigSaved)
+  const { formRef, saveNow, saveDebounced } = useAutosaveForm()
+
+  const [draft, setDraft] = useState<AccountMenuParticleConfig>(() =>
+    readAccountMenuConfig(slot.config),
+  )
+
+  useEffect(() => {
+    setDraft(readAccountMenuConfig(slot.config))
+  }, [slot.id])
+
+  const configJson = JSON.stringify({
+    avatarShape: draft.avatarShape,
+    avatarSize: draft.avatarSize,
+  })
+
+  return (
+    <SettingsShell title="Account menu settings" embedded={embedded}>
+      <form
+        ref={formRef}
+        action={formAction}
+        className="gantry-typed-form"
+        {...particleFormAutosaveProps(saveDebounced, saveNow)}
+      >
+        <LayoutIdField />
+        <input type="hidden" name="sectionId" value={sectionId} />
+        <input type="hidden" name="rowId" value={rowId} />
+        <input type="hidden" name="slotId" value={slot.id} />
+        <input type="hidden" name="configJson" value={configJson} />
+        <label>
+          <span>Avatar shape</span>
+          <select
+            value={draft.avatarShape}
+            onChange={(e) => {
+              const value = e.target.value as AccountMenuAvatarShape
+              setDraft((prev) => ({
+                ...prev,
+                avatarShape:
+                  value === 'square' || value === 'hexagon' || value === 'circle'
+                    ? value
+                    : 'circle',
+              }))
+              queueMicrotask(saveNow)
+            }}
+          >
+            <option value="circle">Circle</option>
+            <option value="square">Square</option>
+            <option value="hexagon">Hexagon</option>
+          </select>
+        </label>
+        <label>
+          <span>Avatar size (px)</span>
+          <input
+            type="number"
+            name="avatarSize"
+            min={20}
+            max={96}
+            value={draft.avatarSize}
+            onChange={(e) => {
+              const n = Number(e.target.value)
+              setDraft((prev) => ({
+                ...prev,
+                avatarSize: Number.isFinite(n) && n > 0 ? Math.round(n) : 36,
+              }))
+            }}
+          />
+        </label>
+        <p className="layout-muted">
+          Shape and size apply to the header account button (photo, letter, or guest glyph). Menu
+          labels still follow the current language.
+        </p>
+        {pending ? <p className="layout-muted">Saving…</p> : null}
+        <ActionFeedback state={state} />
+      </form>
+    </SettingsShell>
+  )
+}
+
 export function SpacerParticleEditor({
   sectionId,
   rowId,
@@ -628,6 +736,8 @@ export function CopyrightParticleEditor({
   const [draft, setDraft] = useState<CopyrightParticleConfig>(() =>
     readCopyrightConfig(slot.config),
   )
+  const locales = useContentLocales()
+  const defaultLocale = locales.find((locale) => locale.isDefault)
 
   useEffect(() => {
     setDraft(readCopyrightConfig(slot.config))
@@ -652,14 +762,21 @@ export function CopyrightParticleEditor({
         <input type="hidden" name="rowId" value={rowId} />
         <input type="hidden" name="slotId" value={slot.id} />
         <input type="hidden" name="configJson" value={configJson} />
-        <label>
-          <span>Text</span>
-          <input
-            type="text"
-            value={draft.text ?? ''}
-            onChange={(e) => patchDraft({ text: e.target.value })}
-          />
-        </label>
+        <LocaleInput
+          locales={locales}
+          values={{
+            ...(draft.textLocales ?? {}),
+            ...(defaultLocale ? { [defaultLocale.code]: draft.text ?? '' } : {}),
+          }}
+          label="Text"
+          onChange={(code, value) => {
+            const isDefault = code === defaultLocale?.code
+            patchDraft({
+              textLocales: { ...(draft.textLocales ?? {}), [code]: value },
+              ...(isDefault ? { text: value } : {}),
+            })
+          }}
+        />
         <label>
           <span>Year mode</span>
           <select
@@ -735,6 +852,8 @@ export function SocialParticleEditor({
   }
 
   const [items, setItems] = useState<SocialLinkItem[]>(seedItems)
+  const locales = useContentLocales()
+  const defaultLocale = locales.find((locale) => locale.isDefault)
   const skipHydrateSave = React.useRef(true)
 
   useEffect(() => {
@@ -800,19 +919,24 @@ export function SocialParticleEditor({
                   required
                 />
               </label>
-              <label>
-                <span>Label</span>
-                <input
-                  type="text"
-                  value={item.label ?? ''}
-                  onChange={(e) => {
-                    const next = [...items]
-                    next[index] = { ...item, label: e.target.value }
-                    setItems(next)
-                  }}
-                  placeholder="optional"
-                />
-              </label>
+              <LocaleInput
+                locales={locales}
+                values={{
+                  ...(item.labelLocales ?? {}),
+                  ...(defaultLocale ? { [defaultLocale.code]: item.label ?? '' } : {}),
+                }}
+                label="Label"
+                onChange={(code, value) => {
+                  const next = [...items]
+                  const isDefault = code === defaultLocale?.code
+                  next[index] = {
+                    ...item,
+                    labelLocales: { ...(item.labelLocales ?? {}), [code]: value },
+                    ...(isDefault ? { label: value } : {}),
+                  }
+                  setItems(next)
+                }}
+              />
               <label>
                 <span>Icon</span>
                 <input
@@ -1104,6 +1228,79 @@ export function FormParticleEditor({
             }}
           />
           <span>Use site captcha default (Settings → Security)</span>
+        </label>
+        {pending ? <p className="layout-muted">Saving…</p> : null}
+        <ActionFeedback state={state} />
+      </form>
+    </SettingsShell>
+  )
+}
+
+export function LoginParticleEditor({
+  sectionId,
+  rowId,
+  slot,
+  embedded = false,
+  onConfigSaved,
+}: {
+  sectionId: string
+  rowId: string
+  slot: LayoutSlot
+  embedded?: boolean
+  onConfigSaved?: (config: LayoutSlotConfig) => void
+}) {
+  const [state, formAction, pending] = useActionState(updateSlotConfigAction, initialState)
+  useParticleAutosaveResult(state, onConfigSaved)
+  const { formRef, saveNow, saveDebounced } = useAutosaveForm()
+  const [draft, setDraft] = useState<LoginParticleConfig>(() => readLoginConfig(slot.config))
+  const locales = useContentLocales()
+  const defaultLocale = locales.find((locale) => locale.isDefault)
+
+  useEffect(() => {
+    setDraft(readLoginConfig(slot.config))
+  }, [slot.id])
+
+  const configJson = JSON.stringify(draft)
+
+  return (
+    <SettingsShell title="Login / welcome" embedded={embedded}>
+      <form
+        ref={formRef}
+        action={formAction}
+        className="gantry-typed-form"
+        {...particleFormAutosaveProps(saveDebounced, saveNow)}
+      >
+        <LayoutIdField />
+        <input type="hidden" name="sectionId" value={sectionId} />
+        <input type="hidden" name="rowId" value={rowId} />
+        <input type="hidden" name="slotId" value={slot.id} />
+        <input type="hidden" name="configJson" value={configJson} />
+        <LocaleInput
+          locales={locales}
+          values={{
+            ...(draft.welcomeNoteLocales ?? {}),
+            ...(defaultLocale ? { [defaultLocale.code]: draft.welcomeNote ?? '' } : {}),
+          }}
+          label="Welcome note"
+          onChange={(code, value) => {
+            const isDefault = code === defaultLocale?.code
+            setDraft((prev) => ({
+              ...prev,
+              welcomeNoteLocales: { ...(prev.welcomeNoteLocales ?? {}), [code]: value },
+              ...(isDefault ? { welcomeNote: value } : {}),
+            }))
+          }}
+        />
+        <label className="gantry-typed-check">
+          <input
+            type="checkbox"
+            checked={draft.showForm !== false}
+            onChange={(event) => {
+              setDraft((prev) => ({ ...prev, showForm: event.target.checked }))
+              queueMicrotask(saveNow)
+            }}
+          />
+          <span>Show sign-in form</span>
         </label>
         {pending ? <p className="layout-muted">Saving…</p> : null}
         <ActionFeedback state={state} />

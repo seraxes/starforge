@@ -5,6 +5,15 @@ import type { NavItem, SiteSettingsData } from '@/core/settings/defaults'
 import { DEFAULT_PRIMARY_NAV } from '@/core/settings/defaults'
 import { normalizeHref, type RawNavRow, resolveNavItems } from '@/core/settings/nav'
 
+import { buildNavItemKey } from '@/core/i18n/content-locale-keys'
+import {
+  loadContentLocaleCatalog,
+  pickFromContentCatalog,
+  type ContentLocaleCatalog,
+} from '@/core/i18n/content-locales/store'
+import { pickLocaleText } from '@/core/i18n/locale-text'
+import { getLocaleTextContext } from '@/core/i18n/locale-text.server'
+
 import { flattenNavItemsInOrder } from './document'
 import { resolveModuleNavHref } from './module-views'
 import { DEFAULT_NAV_MENU_ID, getCachedNavMenu } from './store'
@@ -49,12 +58,46 @@ async function resolvePageSlugMap(
   return map
 }
 
+function localized(
+  key: string,
+  map: Record<string, string> | undefined,
+  scalar: string | null | undefined,
+  locale: string,
+  defaultLocale: string,
+  fallbackEnabled: boolean,
+  currentCatalog: ContentLocaleCatalog,
+  defaultCatalog: ContentLocaleCatalog,
+): string {
+  const fromFile = pickFromContentCatalog(currentCatalog, key)
+  if (fromFile) return fromFile
+  if (fallbackEnabled && locale !== defaultLocale) {
+    const fromDefault = pickFromContentCatalog(defaultCatalog, key)
+    if (fromDefault) return fromDefault
+  }
+  return pickLocaleText(map, scalar ?? '', locale, defaultLocale, fallbackEnabled)
+}
+
 function itemToResolved(
+  menuId: string,
   item: NavMenuItem,
   slugById: Map<number, string>,
   moduleHref: string | null,
+  locale: string,
+  defaultLocale: string,
+  fallbackEnabled: boolean,
+  currentCatalog: ContentLocaleCatalog,
+  defaultCatalog: ContentLocaleCatalog,
 ): ResolvedNavItem | null {
-  const label = item.label.trim()
+  const label = localized(
+    buildNavItemKey({ menuId, itemId: item.id, field: 'label' }),
+    item.labels,
+    item.label,
+    locale,
+    defaultLocale,
+    fallbackEnabled,
+    currentCatalog,
+    defaultCatalog,
+  )
   if (!label) return null
 
   let href = ''
@@ -75,8 +118,28 @@ function itemToResolved(
 
   const resolved: ResolvedNavItem = { label, href, id: item.id, linkType: item.linkType }
   if (item.cssClass) resolved.cssClass = item.cssClass
-  if (item.browserTitle) resolved.browserTitle = item.browserTitle
-  if (item.pageHeading) resolved.pageHeading = item.pageHeading
+  const browserTitle = localized(
+    buildNavItemKey({ menuId, itemId: item.id, field: 'browserTitle' }),
+    item.browserTitles,
+    item.browserTitle,
+    locale,
+    defaultLocale,
+    fallbackEnabled,
+    currentCatalog,
+    defaultCatalog,
+  )
+  const pageHeading = localized(
+    buildNavItemKey({ menuId, itemId: item.id, field: 'pageHeading' }),
+    item.pageHeadings,
+    item.pageHeading,
+    locale,
+    defaultLocale,
+    fallbackEnabled,
+    currentCatalog,
+    defaultCatalog,
+  )
+  if (browserTitle) resolved.browserTitle = browserTitle
+  if (pageHeading) resolved.pageHeading = pageHeading
   if (item.accessTags?.length) {
     resolved.accessTags = [...item.accessTags]
     // Legacy single field for older consumers / layout slot parity helpers.
@@ -114,7 +177,18 @@ export async function resolveNavMenuItems(
   const pageIds = ordered
     .filter((i) => i.linkType === 'page' && typeof i.pageId === 'number')
     .map((i) => i.pageId as number)
-  const slugById = await resolvePageSlugMap(pageIds)
+  const [slugById, localeCtx] = await Promise.all([
+    resolvePageSlugMap(pageIds),
+    getLocaleTextContext(),
+  ])
+  const [currentCatalog, defaultCatalog] = await Promise.all([
+    loadContentLocaleCatalog(localeCtx.locale),
+    localeCtx.locale === localeCtx.defaultLocale
+      ? Promise.resolve({} as ContentLocaleCatalog)
+      : loadContentLocaleCatalog(localeCtx.defaultLocale),
+  ])
+  const defaultCatalogResolved =
+    localeCtx.locale === localeCtx.defaultLocale ? currentCatalog : defaultCatalog
 
   const out: ResolvedNavItem[] = []
   for (const item of ordered) {
@@ -122,7 +196,17 @@ export async function resolveNavMenuItems(
       item.linkType === 'module' && settings
         ? resolveModuleNavHref(settings, item.moduleId, item.moduleViewKey)
         : null
-    const resolved = itemToResolved(item, slugById, moduleHref)
+    const resolved = itemToResolved(
+      id,
+      item,
+      slugById,
+      moduleHref,
+      localeCtx.locale,
+      localeCtx.defaultLocale,
+      localeCtx.fallbackEnabled,
+      currentCatalog,
+      defaultCatalogResolved,
+    )
     if (resolved) out.push(resolved)
   }
 

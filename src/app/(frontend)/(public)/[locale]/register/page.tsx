@@ -6,6 +6,7 @@ import { getAppSession } from '@/core/auth/session'
 import { resolvePostRegisterUrl } from '@/core/auth/success-urls'
 import { resolveCaptchaForSurface } from '@/core/security/captcha'
 import { getSiteSettings } from '@/core/settings'
+import { getSiteChrome } from '@/core/site-chrome'
 import { RegisterForm } from './register-form'
 
 export const metadata = {
@@ -14,7 +15,11 @@ export const metadata = {
 }
 
 export default async function RegisterPage() {
-  const [session, settings] = await Promise.all([getAppSession(), getSiteSettings()])
+  const [session, settings, chrome] = await Promise.all([
+    getAppSession(),
+    getSiteSettings(),
+    getSiteChrome(),
+  ])
   if (session) {
     redirect(await resolvePostRegisterUrl())
   }
@@ -39,6 +44,7 @@ export default async function RegisterPage() {
   }
 
   const captcha = await resolveCaptchaForSurface('register')
+  const requireEmailVerification = chrome.authRequireEmailVerification
 
   return (
     <div className="auth-page">
@@ -46,13 +52,16 @@ export default async function RegisterPage() {
         <p className="brand">{settings.siteName}</p>
         <h1>Create account</h1>
         <p className="lede">
-          Registers a <strong>core app user</strong>. Your email is the sign-in ID. After
-          registering you can enable authenticator 2FA under{' '}
+          Registers a <strong>core app user</strong>. Your email is the sign-in ID.
+          {requireEmailVerification
+            ? ' We email a verification link — open it before signing in.'
+            : null}{' '}
+          After you are signed in you can enable authenticator 2FA under{' '}
           <Link href="/account/security">Account security</Link>. CMS access is granted
           separately by an admin (one login still — no second password at{' '}
           <Link href="/cms/admin">/cms/admin</Link>).
         </p>
-        <RegisterForm captcha={captcha} />
+        <RegisterForm captcha={captcha} requireEmailVerification={requireEmailVerification} />
         <p className="auth-switch">
           Already have an account? <Link href="/login">Sign in</Link>
           {' · '}

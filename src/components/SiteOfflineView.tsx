@@ -5,31 +5,28 @@ import { PublicLayoutBody } from '@/core/modules/PublicLayoutBody'
 import { BodyAttributesApplier } from '@/core/page-settings'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import {
-  DEFAULT_OFFLINE_LAYOUT_ID,
   DEFAULT_OFFLINE_MESSAGE,
   DEFAULT_SITE_CHROME_NAME,
   getSiteChrome,
 } from '@/core/site-chrome'
-import { SkinRootStyles, ensureSkinOutlineSeeds, getActiveSkin } from '@/core/skin'
+import { SkinRootStyles, resolveActiveSkinSystemOutlineId } from '@/core/skin'
 
 type Props = {
   /** Optional overrides when caller already loaded Chrome. */
   siteName?: string
   message?: string
+  /** Legacy Chrome override — used only when the outline belongs to the active skin. */
   layoutId?: string
 }
 
 /**
- * Public offline screen — active skin tokens + Site Chrome offline outline.
+ * Public offline screen — active skin tokens + that pack’s `*-offline` outline.
  * Used by `/site-offline` (proxy 503 rewrite) and the locale-layout soft fallback.
  */
 export async function SiteOfflineView(props: Props = {}) {
-  const [chrome, settings, activeSkin] = await Promise.all([
-    getSiteChrome(),
-    getSiteSettings(),
-    getActiveSkin(),
-  ])
-  await ensureSkinOutlineSeeds(activeSkin.id)
+  const [chrome, settings] = await Promise.all([getSiteChrome(), getSiteSettings()])
+  const chromeOverride = props.layoutId?.trim() || chrome.offlineLayoutId
+  const resolved = await resolveActiveSkinSystemOutlineId('offline', { chromeOverride })
 
   const siteName =
     props.siteName?.trim() ||
@@ -38,10 +35,7 @@ export async function SiteOfflineView(props: Props = {}) {
     DEFAULT_SITE_CHROME_NAME
   const message =
     props.message?.trim() || chrome.offlineMessage?.trim() || DEFAULT_OFFLINE_MESSAGE
-  const layoutId =
-    props.layoutId?.trim() ||
-    chrome.offlineLayoutId?.trim() ||
-    DEFAULT_OFFLINE_LAYOUT_ID
+  const layoutId = resolved.outlineId
   const layoutOn = isCatalogModuleEnabled(settings, MODULE_IDS.layoutManager)
 
   return (
@@ -52,7 +46,7 @@ export async function SiteOfflineView(props: Props = {}) {
         bodyClasses=""
         bodyTagAttributes=""
         sectionsLayout="fullwidth"
-        skinId={activeSkin.id}
+        skinId={resolved.skinId}
         outlineId={layoutId}
       />
       <PublicLayoutBody

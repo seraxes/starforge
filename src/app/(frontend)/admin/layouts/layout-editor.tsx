@@ -34,6 +34,7 @@ import {
   type LayoutActionState,
 } from '@/core/modules/actions'
 import { LayoutIdField, useLayoutOutlineId } from './layout-outline-context'
+import { ContentLocalesProvider } from './content-locales-context'
 import {
   clampGridWidth,
   LAYOUT_WIDTH_FULL,
@@ -63,6 +64,7 @@ import { ParticleAttributesEditor } from './particle-attributes-editor'
 import { ParticleEditorHost } from './particle-editor-host'
 import { ParticleSettingsPopover } from './particle-settings-popover'
 import type { FormDefinitionOption, NavMenuOption } from './typed-particle-editors'
+import type { ContentLocaleOption } from '@/core/i18n/locale-text'
 
 /** Structure inherit for a section id against the raw (editable) child doc. */
 function rawSectionStructureInherited(
@@ -128,6 +130,7 @@ type Props = {
   /** Site Settings → Modules → Forms product toggle. */
   formsModuleEnabled?: boolean
   primaryNavMenuId?: string
+  contentLocales?: ContentLocaleOption[]
   layoutId: string
   layoutLabel: string
   /**
@@ -1259,6 +1262,7 @@ export function LayoutEditor({
   formDefinitions = [],
   formsModuleEnabled = true,
   primaryNavMenuId = 'main',
+  contentLocales = [],
   layoutId,
   layoutLabel,
   canInheritOutline,
@@ -1352,6 +1356,7 @@ export function LayoutEditor({
   const sectionDrag = useCanvasSectionListDrag(handleSectionDrop)
 
   return (
+    <ContentLocalesProvider locales={contentLocales}>
     <div className="gantry-editor">
       <p className="layout-source">
         Source:{' '}
@@ -1561,5 +1566,6 @@ export function LayoutEditor({
         </p>
       </details>
     </div>
+    </ContentLocalesProvider>
   )
 }

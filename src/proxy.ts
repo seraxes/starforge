@@ -26,6 +26,7 @@ import {
   isCatalogModuleEnabled,
 } from '@/core/settings'
 import {
+  SITE_NOT_FOUND_PATH,
   SITE_OFFLINE_PATH,
   SITE_OFFLINE_RETRY_AFTER_SECONDS,
   getSiteChrome,
@@ -58,15 +59,27 @@ async function loadPublicLocales(): Promise<{
   return { locales, defaultLocale }
 }
 
+/** Reuse next-intl middleware when the enabled locale set has not changed. */
+let cachedI18nHandler: {
+  key: string
+  handle: (request: NextRequest) => NextResponse
+} | null = null
+
 async function handleI18nRouting(request: NextRequest): Promise<NextResponse> {
   const { locales, defaultLocale } = await loadPublicLocales()
-
-  // Dynamic locale list from Localization admin (wider than bootstrap routing types).
-  return createMiddleware({
-    locales,
-    defaultLocale,
-    localePrefix: 'always',
-  } as never)(request)
+  const key = `${defaultLocale}\0${locales.join(',')}`
+  if (!cachedI18nHandler || cachedI18nHandler.key !== key) {
+    cachedI18nHandler = {
+      key,
+      // Dynamic locale list from Localization admin (wider than bootstrap routing types).
+      handle: createMiddleware({
+        locales,
+        defaultLocale,
+        localePrefix: 'always',
+      } as never),
+    }
+  }
+  return cachedI18nHandler.handle(request)
 }
 
 function finalize(response: NextResponse, cspSources?: CspSources | null): NextResponse {
@@ -158,6 +171,9 @@ function isNonLocalizedPath(pathname: string): boolean {
   if (pathname.startsWith('/cms')) return true
   if (pathname.startsWith('/_next')) return true
   if (pathname === SITE_OFFLINE_PATH || pathname.startsWith(`${SITE_OFFLINE_PATH}/`)) {
+    return true
+  }
+  if (pathname === SITE_NOT_FOUND_PATH || pathname.startsWith(`${SITE_NOT_FOUND_PATH}/`)) {
     return true
   }
   if (pathname === '/robots.txt') return true

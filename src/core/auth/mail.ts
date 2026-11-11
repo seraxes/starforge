@@ -11,6 +11,7 @@ export type AuthMailKind =
   | 'password-reset'
   | 'magic-link'
   | 'email-otp'
+  | 'email-verification'
   | 'account-reminder'
   | 'two-factor-otp'
 
@@ -87,6 +88,50 @@ export async function sendMagicLinkMail(options: {
     text,
     kind: 'magic-link',
   })
+}
+
+export async function sendEmailVerificationMail(options: {
+  to: string
+  name: string
+  url: string
+}): Promise<MailSendResult> {
+  const greeting = options.name?.trim() ? `Hi ${options.name.trim()},` : 'Hi,'
+  const text = [
+    greeting,
+    '',
+    'Confirm your Starforge email address by opening this link:',
+    options.url,
+    '',
+    'The link expires in about an hour. After you verify, you can sign in.',
+    'If you did not create an account, ignore this email.',
+    '',
+    `— ${siteLabel()}`,
+  ].join('\n')
+  const safeName = escapeHtml(options.name?.trim() || 'there')
+  const safeUrl = escapeHtml(options.url)
+  const html = [
+    `<p>Hi ${safeName},</p>`,
+    '<p>Confirm your Starforge email address:</p>',
+    `<p><a href="${safeUrl}">Verify email</a></p>`,
+    `<p style="word-break:break-all;font-size:0.9em">${safeUrl}</p>`,
+    '<p>The link expires in about an hour. After you verify, you can sign in.</p>',
+    `<p>— ${escapeHtml(siteLabel())}</p>`,
+  ].join('\n')
+  return sendAuthMail({
+    to: options.to,
+    subject: 'Verify your Starforge email',
+    text,
+    html,
+    kind: 'email-verification',
+  })
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
 }
 
 export async function sendEmailOtpMail(options: {

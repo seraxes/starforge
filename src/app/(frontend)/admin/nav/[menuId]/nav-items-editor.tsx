@@ -22,8 +22,10 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 
 import { AccessTagsField } from '@/components/admin/AccessTagsField'
+import { LocaleInput } from '@/core/localization/LocaleInput'
 import { GantryBarRemoveButton } from '@/components/admin/GantryBarRemoveButton'
 import type { UserGroupOption } from '@/core/acl/types'
+import type { ContentLocaleOption } from '@/core/i18n/locale-text'
 import {
   addNavMenuItemAction,
   pasteNavMenuItemAction,
@@ -41,6 +43,7 @@ type EditableItem = {
   id: string
   parentId: string
   label: string
+  labels: Record<string, string>
   linkType: NavLinkType
   pageId: string
   url: string
@@ -48,7 +51,9 @@ type EditableItem = {
   moduleViewKey: string
   cssClass: string
   browserTitle: string
+  browserTitles: Record<string, string>
   pageHeading: string
+  pageHeadings: Record<string, string>
   /** Layout outline id — synced to Page Settings on save. */
   layoutId: string
   /** Multi-select tags: public | registered | group:<id> (OR match). */
@@ -63,13 +68,14 @@ type Props = {
   modules: NavModuleOption[]
   groups: UserGroupOption[]
   outlines: OutlineOption[]
+  locales: ContentLocaleOption[]
   preferredLayoutId: string
   isSitePrimary: boolean
 }
 
 const initial: NavActionState = {}
 
-function toEditable(item: NavMenuItem): EditableItem {
+function toEditable(item: NavMenuItem, defaultCode: string): EditableItem {
   const tags =
     item.accessTags && item.accessTags.length > 0
       ? [...item.accessTags]
@@ -80,18 +86,34 @@ function toEditable(item: NavMenuItem): EditableItem {
   const linkType: NavLinkType =
     item.linkType === 'module' ? 'module' : item.linkType === 'url' ? 'url' : 'page'
 
+  const labels = { ...(item.labels ?? {}) }
+  if (defaultCode && item.label.trim() && !labels[defaultCode]) {
+    labels[defaultCode] = item.label.trim()
+  }
+  const browserTitles = { ...(item.browserTitles ?? {}) }
+  if (defaultCode && item.browserTitle?.trim() && !browserTitles[defaultCode]) {
+    browserTitles[defaultCode] = item.browserTitle.trim()
+  }
+  const pageHeadings = { ...(item.pageHeadings ?? {}) }
+  if (defaultCode && item.pageHeading?.trim() && !pageHeadings[defaultCode]) {
+    pageHeadings[defaultCode] = item.pageHeading.trim()
+  }
+
   return {
     id: item.id,
     parentId: item.parentId ?? '',
-    label: item.label,
+    label: (defaultCode && labels[defaultCode]) || item.label,
+    labels,
     linkType,
     pageId: item.pageId != null ? String(item.pageId) : '',
     url: item.url ?? '',
     moduleId: item.moduleId ?? '',
     moduleViewKey: item.moduleViewKey ?? '',
     cssClass: item.cssClass ?? '',
-    browserTitle: item.browserTitle ?? '',
-    pageHeading: item.pageHeading ?? '',
+    browserTitle: (defaultCode && browserTitles[defaultCode]) || item.browserTitle || '',
+    browserTitles,
+    pageHeading: (defaultCode && pageHeadings[defaultCode]) || item.pageHeading || '',
+    pageHeadings,
     layoutId: item.layoutId ?? '',
     accessTags: tags,
   }
@@ -132,6 +154,7 @@ function appendItemFields(form: HTMLFormElement, rows: EditableItem[]) {
     }
     add('itemId', row.id)
     add('itemLabel', row.label)
+    add('itemLabels', JSON.stringify(row.labels))
     add('itemLinkType', row.linkType)
     add('itemPageId', row.pageId)
     add('itemUrl', row.url)
@@ -140,7 +163,9 @@ function appendItemFields(form: HTMLFormElement, rows: EditableItem[]) {
     add('itemParentId', row.parentId)
     add('itemCssClass', row.cssClass)
     add('itemBrowserTitle', row.browserTitle)
+    add('itemBrowserTitles', JSON.stringify(row.browserTitles))
     add('itemPageHeading', row.pageHeading)
+    add('itemPageHeadings', JSON.stringify(row.pageHeadings))
     add('itemLayoutId', row.layoutId)
     add('itemAccessTags', JSON.stringify(row.accessTags.length ? row.accessTags : ['public']))
   }
@@ -172,6 +197,7 @@ type SortableNavItemProps = {
   modules: NavModuleOption[]
   groups: UserGroupOption[]
   outlines: OutlineOption[]
+  locales: ContentLocaleOption[]
   parentOptions: { id: string; label: string }[]
   onToggle: () => void
   onPatch: (patch: Partial<EditableItem>) => void
@@ -189,6 +215,7 @@ function SortableNavItem({
   modules,
   groups,
   outlines,
+  locales,
   parentOptions,
   onToggle,
   onPatch,
@@ -259,6 +286,7 @@ function SortableNavItem({
 
       <input type="hidden" name="itemId" value={row.id} />
       <input type="hidden" name="itemLabel" value={row.label} />
+      <input type="hidden" name="itemLabels" value={JSON.stringify(row.labels)} />
       <input type="hidden" name="itemLinkType" value={row.linkType} />
       <input type="hidden" name="itemPageId" value={row.pageId} />
       <input type="hidden" name="itemUrl" value={row.url} />
@@ -267,7 +295,9 @@ function SortableNavItem({
       <input type="hidden" name="itemParentId" value={row.parentId} />
       <input type="hidden" name="itemCssClass" value={row.cssClass} />
       <input type="hidden" name="itemBrowserTitle" value={row.browserTitle} />
+      <input type="hidden" name="itemBrowserTitles" value={JSON.stringify(row.browserTitles)} />
       <input type="hidden" name="itemPageHeading" value={row.pageHeading} />
+      <input type="hidden" name="itemPageHeadings" value={JSON.stringify(row.pageHeadings)} />
       <input type="hidden" name="itemLayoutId" value={row.layoutId} />
       <input
         type="hidden"
@@ -282,19 +312,19 @@ function SortableNavItem({
               Copy item
             </button>
           </div>
-          <label className="settings-field">
-            <span>Label</span>
-            <input
-              type="text"
-              value={row.label}
-              onChange={(e) => {
-                onPatch({ label: e.target.value })
-                saveDebounced()
-              }}
-              onBlur={saveNow}
-              required
-            />
-          </label>
+          <LocaleInput
+            locales={locales}
+            values={row.labels}
+            label="Label"
+            requiredDefault
+            onChange={(code, value) => {
+              const labels = { ...row.labels, [code]: value }
+              const isDefault = locales.find((locale) => locale.code === code)?.isDefault
+              onPatch(isDefault ? { labels, label: value } : { labels })
+              saveDebounced()
+            }}
+            onBlur={saveNow}
+          />
           <label className="settings-field">
             <span>Link type</span>
             <select
@@ -461,30 +491,30 @@ function SortableNavItem({
               onBlur={saveNow}
             />
           </label>
-          <label className="settings-field">
-            <span>Browser title override</span>
-            <input
-              type="text"
-              value={row.browserTitle}
-              onChange={(e) => {
-                onPatch({ browserTitle: e.target.value })
-                saveDebounced()
-              }}
-              onBlur={saveNow}
-            />
-          </label>
-          <label className="settings-field">
-            <span>Page heading override</span>
-            <input
-              type="text"
-              value={row.pageHeading}
-              onChange={(e) => {
-                onPatch({ pageHeading: e.target.value })
-                saveDebounced()
-              }}
-              onBlur={saveNow}
-            />
-          </label>
+          <LocaleInput
+            locales={locales}
+            values={row.browserTitles}
+            label="Browser title override"
+            onChange={(code, value) => {
+              const browserTitles = { ...row.browserTitles, [code]: value }
+              const isDefault = locales.find((locale) => locale.code === code)?.isDefault
+              onPatch(isDefault ? { browserTitles, browserTitle: value } : { browserTitles })
+              saveDebounced()
+            }}
+            onBlur={saveNow}
+          />
+          <LocaleInput
+            locales={locales}
+            values={row.pageHeadings}
+            label="Page heading override"
+            onChange={(code, value) => {
+              const pageHeadings = { ...row.pageHeadings, [code]: value }
+              const isDefault = locales.find((locale) => locale.code === code)?.isDefault
+              onPatch(isDefault ? { pageHeadings, pageHeading: value } : { pageHeadings })
+              saveDebounced()
+            }}
+            onBlur={saveNow}
+          />
           <AccessTagsField
             value={row.accessTags}
             groups={groups}
@@ -507,11 +537,15 @@ export function NavItemsEditor({
   modules,
   groups,
   outlines,
+  locales,
   preferredLayoutId,
   isSitePrimary,
 }: Props) {
   const router = useRouter()
-  const [rows, setRows] = useState<EditableItem[]>(() => items.map(toEditable))
+  const defaultCode = locales.find((locale) => locale.isDefault)?.code ?? locales[0]?.code ?? ''
+  const [rows, setRows] = useState<EditableItem[]>(() =>
+    items.map((item) => toEditable(item, defaultCode)),
+  )
   const [clipboard, setClipboard] = useState<string>('')
   const [expandedId, setExpandedId] = useState<string | null>(items[0]?.id ?? null)
   const [newLinkType, setNewLinkType] = useState<NavLinkType>('page')
@@ -599,7 +633,10 @@ export function NavItemsEditor({
       parentId: null,
       cssClass: row.cssClass || null,
       browserTitle: row.browserTitle || null,
+      browserTitles: row.browserTitles,
       pageHeading: row.pageHeading || null,
+      pageHeadings: row.pageHeadings,
+      labels: row.labels,
       layoutId: row.layoutId || null,
       accessTags: row.accessTags.length ? row.accessTags : ['public'],
     }
@@ -658,6 +695,7 @@ export function NavItemsEditor({
                     modules={modules}
                     groups={groups}
                     outlines={outlines}
+                    locales={locales}
                     parentOptions={parentOptions}
                     onToggle={() => setExpandedId(expandedId === row.id ? null : row.id)}
                     onPatch={(patch) => updateRow(row.id, patch)}

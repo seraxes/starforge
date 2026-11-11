@@ -1,5 +1,6 @@
 import type { StarforgeModule } from '../types'
 
+import { accountMenuModule } from './account-menu'
 import { copyrightModule } from './copyright'
 import { customModule } from './custom'
 import { localeSwitcherModule } from './locale-switcher'
@@ -23,6 +24,7 @@ export const builtinParticles: StarforgeModule[] = [
   spacerModule,
   customModule,
   loginModule,
+  accountMenuModule,
 ]
 
 export {
@@ -30,6 +32,7 @@ export {
   customModule,
   localeSwitcherModule,
   loginModule,
+  accountMenuModule,
   logoModule,
   menuModule,
   pageContentModule,
@@ -39,6 +42,7 @@ export {
 }
 
 export {
+  defaultAccountMenuConfig,
   defaultConfigForModule,
   defaultCopyrightConfig,
   defaultLocaleSwitcherConfig,
@@ -47,6 +51,7 @@ export {
   defaultMenuConfig,
   defaultSocialConfig,
   defaultSpacerConfig,
+  readAccountMenuConfig,
   readCopyrightConfig,
   readLocaleSwitcherConfig,
   readLoginConfig,
@@ -56,6 +61,8 @@ export {
   readSpacerConfig,
 } from './config'
 export type {
+  AccountMenuAvatarShape,
+  AccountMenuParticleConfig,
   CopyrightParticleConfig,
   LocaleSwitcherParticleConfig,
   LoginParticleConfig,

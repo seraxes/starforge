@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 import { useNotifySavedOnOk } from '@/app/(frontend)/admin/admin-toast'
+import { RichEditor } from '@/modules/rich-editor/api'
 
 import {
   createEmailTemplateAction,
@@ -30,6 +31,49 @@ type Props = {
   templates: TemplateRow[]
   mailerEnabled: boolean
   mailerLabel: string
+  /** product:rich-editor gate — Email Manager requires it for HTML bodies. */
+  richEditorEnabled: boolean
+}
+
+function EmailBodyHtmlField({
+  defaultValue = '',
+  disabled,
+  richEditorEnabled,
+}: {
+  defaultValue?: string
+  disabled?: boolean
+  richEditorEnabled: boolean
+}) {
+  if (!richEditorEnabled) {
+    return (
+      <div className="settings-field settings-field-wide">
+        <span>Body (HTML, optional)</span>
+        <p className="admin-inline-error" role="alert">
+          Rich editor is required for HTML email bodies. Enable it under{' '}
+          <Link href="/admin/rich-editor/settings">Site Settings → Modules → Rich editor</Link>.
+        </p>
+        {/* Preserve existing HTML on save until rich-editor is enabled again. */}
+        <input type="hidden" name="bodyHtml" value={defaultValue} readOnly />
+      </div>
+    )
+  }
+
+  return (
+    <div className="settings-field settings-field-wide">
+      <RichEditor
+        name="bodyHtml"
+        label="Body (HTML, optional)"
+        defaultValue={defaultValue}
+        disabled={disabled}
+        enabled
+        preset="email"
+        placeholder="Optional email-safe HTML body…"
+      />
+      <p className="settings-hint">
+        Email-safe TipTap (lists, links, images). No video, gallery, or web-only blocks.
+      </p>
+    </div>
+  )
 }
 
 const initial: EmailAdminActionState = {}
@@ -68,6 +112,7 @@ export function EmailTemplatesManager({
   templates,
   mailerEnabled,
   mailerLabel,
+  richEditorEnabled,
 }: Props) {
   const router = useRouter()
   const [createState, createAction, createPending] = useActionState(
@@ -209,10 +254,7 @@ export function EmailTemplatesManager({
               required
             />
           </label>
-          <label className="settings-field">
-            <span>Body (HTML, optional)</span>
-            <textarea name="bodyHtml" rows={4} className="settings-field-mono" />
-          </label>
+          <EmailBodyHtmlField disabled={busy} richEditorEnabled={richEditorEnabled} />
           <button type="submit" className="gantry-btn gantry-btn-primary" disabled={busy}>
             {createPending ? 'Creating…' : 'Add template'}
           </button>
@@ -301,15 +343,11 @@ export function EmailTemplatesManager({
                             required
                           />
                         </label>
-                        <label className="settings-field">
-                          <span>Body (HTML)</span>
-                          <textarea
-                            name="bodyHtml"
-                            rows={4}
-                            defaultValue={tpl.bodyHtml}
-                            className="settings-field-mono"
-                          />
-                        </label>
+                        <EmailBodyHtmlField
+                          defaultValue={tpl.bodyHtml}
+                          disabled={busy}
+                          richEditorEnabled={richEditorEnabled}
+                        />
                         <button
                           type="submit"
                           className="gantry-btn gantry-btn-primary"

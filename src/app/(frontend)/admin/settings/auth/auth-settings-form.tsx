@@ -18,6 +18,7 @@ export type AuthOptionToggles = {
   emailOtpEnabled: boolean
   rememberMeEnabled: boolean
   twoFactorEnabled: boolean
+  requireEmailVerification: boolean
 }
 
 export type AuthSuccessUrls = {
@@ -60,6 +61,22 @@ export function AuthSettingsForm({ registrationEnabled, authOptions, successUrls
               <strong>Allow new account registration</strong>
               <span className="settings-flag-desc">
                 Product module <code>product:registration</code> — also listed under Modules.
+              </span>
+            </span>
+          </label>
+          <label className="settings-flag">
+            <input
+              type="checkbox"
+              name="authRequireEmailVerification"
+              defaultChecked={authOptions.requireEmailVerification}
+              disabled={pending}
+              {...discreteAutosaveProps}
+            />
+            <span>
+              <strong>Require email verification</strong>
+              <span className="settings-flag-desc">
+                New accounts get a verification link (Mailer). Sign-in waits until the link is used.
+                Off by default.
               </span>
             </span>
           </label>

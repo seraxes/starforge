@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 
 import { getMailerInfo } from '@/core/mail'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
+import { isRichEditorEnabled } from '@/modules/rich-editor/api.server'
 
 import { listEmailTemplates } from '../store'
 import { EMAIL_MODULE_CATEGORIES, isEmailModuleCategory } from '../types'
@@ -57,6 +58,7 @@ export default async function EmailTemplatesPage({
         categories={[...EMAIL_MODULE_CATEGORIES]}
         mailerEnabled={mailer.enabled}
         mailerLabel={mailer.label}
+        richEditorEnabled={isRichEditorEnabled(settings)}
         templates={templates.map((t) => ({
           id: t.id,
           label: t.label,

@@ -2,7 +2,11 @@
 
 import React, { useEffect, useId, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useFloatingSettingsPanel } from '@/components/admin/useFloatingSettingsPanel'
+import {
+  getAdminOverlayPortalTarget,
+  SETTINGS_NESTED_OVERLAY_SELECTOR,
+  useFloatingSettingsPanel,
+} from '@/components/admin/useFloatingSettingsPanel'
 
 export type ParticleSettingsTab = {
   id: string
@@ -25,7 +29,8 @@ const PANEL_WIDTH = 460
 
 /**
  * Particle settings as a floating overlay — does not expand the slot or push the row.
- * Opens centered; title chrome is draggable. Portal is dark Gantry Helium–styled.
+ * Opens centered; title chrome is draggable; SE corner resizes. Portal is dark
+ * Gantry Helium–styled inside `.admin-shell` so Media Library can stack above it.
  */
 export function ParticleSettingsPopover({
   title,
@@ -36,11 +41,18 @@ export function ParticleSettingsPopover({
 }: Props) {
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null)
   const [activeTab, setActiveTab] = useState(() => tabs?.[0]?.id ?? 'main')
   const triggerRef = React.useRef<HTMLButtonElement>(null)
   const titleId = useId()
   const tablistId = useId()
-  const { panelRef, panelStyle, panelClassName, onDragHandlePointerDown } = useFloatingSettingsPanel({
+  const {
+    panelRef,
+    panelStyle,
+    panelClassName,
+    onDragHandlePointerDown,
+    onResizeHandlePointerDown,
+  } = useFloatingSettingsPanel({
     open,
     preferredWidth: PANEL_WIDTH,
     layoutKey: activeTab,
@@ -48,6 +60,7 @@ export function ParticleSettingsPopover({
 
   useEffect(() => {
     setMounted(true)
+    setPortalTarget(getAdminOverlayPortalTarget())
   }, [])
 
   useEffect(() => {
@@ -61,13 +74,14 @@ export function ParticleSettingsPopover({
     if (!open) return
 
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false)
+      if (event.key !== 'Escape') return
+      if (document.querySelector(SETTINGS_NESTED_OVERLAY_SELECTOR)) return
+      setOpen(false)
     }
     const onPointer = (event: MouseEvent) => {
       const target = event.target as Node
       if (panelRef.current?.contains(target) || triggerRef.current?.contains(target)) return
-      // Global Saved toast mounts outside the panel — ignore so autosave toasts do not close the cog.
-      if (target instanceof Element && target.closest('.admin-toast-host')) return
+      if (target instanceof Element && target.closest(SETTINGS_NESTED_OVERLAY_SELECTOR)) return
       setOpen(false)
     }
 
@@ -155,7 +169,7 @@ export function ParticleSettingsPopover({
       >
         {open ? '✕' : triggerLabel}
       </button>
-      {mounted && open
+      {mounted && open && portalTarget
         ? createPortal(
             <div
               className="gantry-settings-layer gantry-settings-theme-dark"
@@ -199,9 +213,16 @@ export function ParticleSettingsPopover({
                   </button>
                 </header>
                 <div className="gantry-settings-panel-body">{panels}</div>
+                <button
+                  type="button"
+                  className="gantry-settings-resize-handle"
+                  aria-label="Resize settings panel"
+                  title="Resize"
+                  onPointerDown={onResizeHandlePointerDown}
+                />
               </div>
             </div>,
-            document.body,
+            portalTarget,
           )
         : null}
     </div>

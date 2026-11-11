@@ -114,6 +114,25 @@ export const ENV_EDITOR_FIELDS: EnvEditorField[] = [
     group: 'auth',
   },
   {
+    key: 'GOOGLE_CLIENT_ID',
+    label: 'GOOGLE_CLIENT_ID',
+    description:
+      'Google OAuth client ID. Continue with Google on /login only when this and GOOGLE_CLIENT_SECRET are both set. Redirect URI: {BETTER_AUTH_URL}/api/auth/callback/google',
+    secret: true,
+    kind: 'password',
+    group: 'auth',
+  },
+  {
+    key: 'GOOGLE_CLIENT_SECRET',
+    label: 'GOOGLE_CLIENT_SECRET',
+    description:
+      'Google OAuth client secret. Pair with GOOGLE_CLIENT_ID; leave both empty to hide Google sign-in.',
+    secret: true,
+    kind: 'password',
+    warning: 'Never expose this to the browser. Restart after changing.',
+    group: 'auth',
+  },
+  {
     key: 'BETTER_AUTH_URL',
     label: 'BETTER_AUTH_URL',
     description: 'Canonical Better Auth base URL.',

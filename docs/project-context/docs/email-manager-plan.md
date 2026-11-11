@@ -21,9 +21,11 @@ Heavy modules all need confirms, digests, and notify rules. One manager + Mailer
 ## Out of scope (v1)
 
 - Per-module SMTP / From secrets in module settings  
-- Full HTML email designer / marketing automation / campaigns  
+- Full HTML email designer / MJML / marketing automation / campaigns  
 - Mandatory queues/retries (optional later; sync soft-fail like today’s Mailer is fine)  
 - Replacing in-app **Notifications** (bell stays separate; digests may call Email Manager)
+
+**In scope (HTML bodies):** shared TipTap via `product:rich-editor` with `preset="email"` + `sanitizeEmailHtml` (email-safe tags only). Email Manager **requires** Rich editor; not a parallel designer.
 
 ## Contracts to lock
 

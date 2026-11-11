@@ -2,6 +2,7 @@
 
 import React, { useEffect, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { getAdminOverlayPortalTarget } from '@/components/admin/useFloatingSettingsPanel'
 
 export type AdminConfirmDialogProps = {
   open: boolean
@@ -37,9 +38,7 @@ export function AdminConfirmDialog({
   const [portalTarget, setPortalTarget] = React.useState<HTMLElement | null>(null)
 
   useEffect(() => {
-    setPortalTarget(
-      (document.querySelector('.admin-shell') as HTMLElement | null) || document.body,
-    )
+    setPortalTarget(getAdminOverlayPortalTarget())
   }, [])
 
   useEffect(() => {

@@ -20,7 +20,7 @@ export const MODULE_ALLOWLIST_FLAVOR = "core" as const
 export const FIXED_REQUIRED_MODULE_IDS = ["platform:dashboard","platform:better-auth","page-content","product:media"] as const
 
 /** Allowlisted module ids for this install/build (platform + product + particles + atoms). */
-export const ALLOWLISTED_MODULE_IDS = ["atom:analytics","atom:custom-css-js","copyright","custom","event-calendar","event-countdown","event-detail","event-featured","event-list","event-mini-calendar","event-upcoming","form","live-map","locale-switcher","login","logo","map","menu","notice-bar","page-content","platform:better-auth","platform:dashboard","platform:payload-cms","product:consent","product:draft-preview","product:email-manager","product:events","product:font-awesome","product:forms","product:layout-manager","product:lexical-editor","product:maps","product:marketplace","product:media","product:page-settings","product:payments","product:posts","product:primary-nav","product:profiles","product:pwa","product:redirects","product:registration","product:rich-editor","product:search","search","site-header","social","spacer"] as const
+export const ALLOWLISTED_MODULE_IDS = ["account-menu","atom:analytics","atom:custom-css-js","copyright","custom","event-calendar","event-countdown","event-detail","event-featured","event-list","event-mini-calendar","event-upcoming","form","live-map","locale-switcher","login","logo","map","menu","notice-bar","page-content","platform:better-auth","platform:dashboard","platform:payload-cms","product:consent","product:draft-preview","product:email-manager","product:events","product:font-awesome","product:forms","product:layout-manager","product:lexical-editor","product:maps","product:marketplace","product:media","product:page-settings","product:payments","product:posts","product:primary-nav","product:profiles","product:pwa","product:redirects","product:registration","product:rich-editor","product:search","search","site-header","social","spacer"] as const
 
 export type AllowlistedModuleId = (typeof ALLOWLISTED_MODULE_IDS)[number]
 
@@ -34,7 +34,7 @@ export function isModuleAllowlisted(id: string): boolean {
 }
 
 /** Builtin core particle ids included in this build (static register from particles/). */
-export const ALLOWLISTED_BUILTIN_PARTICLE_IDS: readonly string[] = ["page-content","site-header","logo","menu","locale-switcher","copyright","spacer","social","custom","login"]
+export const ALLOWLISTED_BUILTIN_PARTICLE_IDS: readonly string[] = ["page-content","site-header","logo","menu","locale-switcher","copyright","spacer","social","custom","account-menu","login"]
 
 /** Platform + product catalog ids installed in this build. */
 export const ALLOWLISTED_PRODUCT_PLATFORM_IDS: readonly string[] = ["platform:dashboard","platform:better-auth","platform:payload-cms","product:layout-manager","product:page-settings","product:primary-nav","product:font-awesome","product:registration","product:posts","product:draft-preview","product:forms","product:rich-editor","product:lexical-editor","product:email-manager","product:payments","product:events","product:profiles","product:maps","product:marketplace","product:redirects","product:consent","product:pwa","product:search","product:media"]
@@ -55,9 +55,9 @@ export const ALLOWLISTED_PRODUCT_PLATFORM_META: ModuleCatalogItem[] = [
   { id: "product:posts", kind: "product", label: "Posts", description: "Posts collection placeholder — keep off until that slice ships.", required: false, defaultEnabled: false, installed: true as const, featureFlag: "posts" },
   { id: "product:draft-preview", kind: "product", label: "Draft preview", description: "CMS-access users can open /preview/{slug} for unpublished drafts.", required: false, defaultEnabled: false, installed: true as const, featureFlag: "draftPreview" },
   { id: "product:forms", kind: "product", label: "Forms", description: "Modular Form engine — visual builder (JSON Schema/Zod), Form particle, typed presets (contact, survey, event-registration, voting, ticket). Captcha from Chrome; Turnstile keys from env.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Forms","href":"/admin/forms"}] },
-  { id: "product:rich-editor", kind: "product", label: "Rich editor", description: "Shared TipTap rich editor (sanitized HTML). Toggle in Site Settings → Modules. Bind into Events, Pages, Email, and other content fields. Optional Lexical: product:lexical-editor.", required: false, defaultEnabled: true, installed: true as const, featureFlag: "richEditor", navViews: [{"key":"settings","label":"Rich editor","href":"/admin/rich-editor/settings"}] },
+  { id: "product:rich-editor", kind: "product", label: "Rich editor", description: "Shared TipTap rich editor (sanitized HTML). Toggle in Site Settings → Modules. Bind into Events, Pages, Email Manager (preset=email), and other content fields. Optional Lexical: product:lexical-editor.", required: false, defaultEnabled: true, installed: true as const, featureFlag: "richEditor", navViews: [{"key":"settings","label":"Rich editor","href":"/admin/rich-editor/settings"}] },
   { id: "product:lexical-editor", kind: "product", label: "Lexical editor", description: "Optional Lexical rich-text stack (@payloadcms/richtext-lexical). TipTap is the default editor. Enable for legacy Lexical page bodies and pagesLexicalEditor config; does not delete stored JSON when off.", required: false, defaultEnabled: false, installed: true as const, navViews: [{"key":"settings","label":"Lexical editor","href":"/admin/lexical-editor/settings"}] },
-  { id: "product:email-manager", kind: "product", label: "Email Manager", description: "Automatic and conditional email rules with templates, filtered by module. Modules emit triggers; Core Mailer sends. No per-module SMTP — secrets stay in env / Chrome.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Email rules","href":"/admin/email"},{"key":"templates","label":"Email templates","href":"/admin/email/templates"},{"key":"sends","label":"Email sends","href":"/admin/email/sends"}] },
+  { id: "product:email-manager", kind: "product", label: "Email Manager", description: "Automatic and conditional email rules with templates, filtered by module. Modules emit triggers; Core Mailer sends. No per-module SMTP — secrets stay in env / Chrome. HTML bodies use product:rich-editor (email preset).", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Email rules","href":"/admin/email"},{"key":"templates","label":"Email templates","href":"/admin/email/templates"},{"key":"sends","label":"Email sends","href":"/admin/email/sends"}] },
   { id: "product:payments", kind: "product", label: "Payments", description: "Shared commerce — cart, checkout, VAT-proof orders/invoices, offline + Barion/Stripe/PayPal. No per-module payment UIs; receipts via Email Manager.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Payments","href":"/admin/payments"},{"key":"orders","label":"Orders","href":"/admin/payments/orders"},{"key":"invoices","label":"Invoices","href":"/admin/payments/invoices"},{"key":"merchant","label":"My merchant","href":"/admin/payments/merchant"},{"key":"settings","label":"Payments settings","href":"/admin/payments/settings"}] },
   { id: "product:events", kind: "product", label: "Events", description: "Events + venues — admin CRUD, public views (upcoming/calendar/map/list), registration, featured + calendar particles.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"public","label":"Events","href":"/events"},{"key":"admin","label":"Events admin","href":"/admin/events"},{"key":"venues","label":"Venues","href":"/admin/events/venues"},{"key":"parties","label":"Parties","href":"/admin/events/parties"},{"key":"tiers","label":"Ticket tiers","href":"/admin/events/tiers"},{"key":"registrants","label":"Registrants","href":"/admin/events/registrants"},{"key":"settings","label":"Events settings","href":"/admin/events/settings"}] },
   { id: "product:profiles", kind: "product", label: "Profiles", description: "Member identity — username, display name, avatar/cover, bio, location and per-field privacy. The persona every other module (Events, Marketplace, Social…) resolves through getPersonas().", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"account","label":"My profile","href":"/account/profile"},{"key":"settings","label":"Profiles settings","href":"/admin/profiles/settings"}] },
@@ -92,6 +92,7 @@ export const ALLOWLISTED_PARTICLE_META: AllowlistedParticleMeta[] = [
   { id: "spacer", name: "Spacer", description: "Built-in — plain empty gap for vertical/horizontal spacing (no content).", required: false, defaultEnabled: true, builtin: true },
   { id: "social", name: "Social", description: "Built-in — platform/url/label/icon list.", required: false, defaultEnabled: true, builtin: true },
   { id: "custom", name: "Custom", description: "Built-in HTML/CSS (+ JS stub); free-form escape hatch.", required: false, defaultEnabled: true, builtin: true },
+  { id: "account-menu", name: "Account menu", description: "Header account button. Profile photo, or the first letter of the name. Labels follow the current language.", required: false, defaultEnabled: true, builtin: true },
   { id: "login", name: "Login / Welcome", description: "Welcome note + sign-in panel (password / magic link / email OTP / stay signed in). Signed-in: Account security 2FA. Place in Main — not branded heroes.", required: false, defaultEnabled: true, builtin: true, navViews: [{"key":"login","label":"Sign in","href":"/login"},{"key":"forgot-password","label":"Forgot password","href":"/forgot-password"},{"key":"forgot-username","label":"Forgot login email","href":"/forgot-username"},{"key":"account-security","label":"Account security","href":"/account/security"}] },
   { id: "event-list", name: "Event list", description: "Dense table of published events (list view). Needs product:events. Links to /events/[slug].", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"events","label":"Events","href":"/events"}] },
   { id: "event-upcoming", name: "Event upcoming", description: "Upcoming events as cards (title, when, venue, seats, price). Needs product:events.", required: false, defaultEnabled: true, builtin: false, navViews: [{"key":"events","label":"Events","href":"/events"}] },
@@ -174,6 +175,14 @@ export const particleConfigSchemaLoaders: ParticleConfigSchemaLoader[] = [
     load: async () => (await import("@/core/modules/particles/schemas/custom")).customParticleConfigSchema,
   },
   {
+    id: "account-menu",
+    load: async () => (await import("@/core/modules/particles/schemas/account-menu")).accountMenuParticleConfigSchema,
+  },
+  {
+    id: "login",
+    load: async () => (await import("@/core/modules/particles/schemas/login")).loginParticleConfigSchema,
+  },
+  {
     id: "form",
     load: async () => (await import("@/modules/form/schema")).formParticleConfigSchema,
   }
@@ -214,6 +223,14 @@ export const particleEditorLoaders: ParticleEditorLoader[] = [
   {
     id: "custom",
     load: async () => (await import("@/app/(frontend)/admin/layouts/custom-particle-editor")).CustomParticleEditor,
+  },
+  {
+    id: "account-menu",
+    load: async () => (await import("@/app/(frontend)/admin/layouts/typed-particle-editors")).AccountMenuParticleEditor,
+  },
+  {
+    id: "login",
+    load: async () => (await import("@/app/(frontend)/admin/layouts/typed-particle-editors")).LoginParticleEditor,
   },
   {
     id: "event-upcoming",
@@ -271,6 +288,14 @@ export const particleDefaultsLoaders: ParticleDefaultsLoader[] = [
   {
     id: "custom",
     load: async () => (await import("@/core/modules/particles/schemas/custom")).customParticleDefaults(),
+  },
+  {
+    id: "account-menu",
+    load: async () => (await import("@/core/modules/particles/schemas/account-menu")).accountMenuParticleDefaults(),
+  },
+  {
+    id: "login",
+    load: async () => (await import("@/core/modules/particles/schemas/login")).loginParticleDefaults(),
   },
   {
     id: "form",

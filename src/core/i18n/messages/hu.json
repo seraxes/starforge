@@ -10,7 +10,11 @@
     "fullSignInPage": "Teljes bejelentkezési oldal",
     "alreadyHaveAccount": "Már van fiókod?",
     "backToSignIn": "Vissza a bejelentkezéshez",
-    "adminSignIn": "Admin bejelentkezés"
+    "adminSignIn": "Admin bejelentkezés",
+    "accountMenu": "Fiók",
+    "profile": "Profil",
+    "accountSecurity": "Fiók biztonsága",
+    "signOut": "Kijelentkezés"
   },
   "Layout": {
     "offlineAdminBanner": "A webhely látogatóknak offline. Te böngészhetsz, mert app admin vagy.",

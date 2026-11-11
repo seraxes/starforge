@@ -33,6 +33,7 @@ export {
   siteChromeDocumentNeedsLocaleHeal,
 } from './normalize'
 export {
+  SITE_NOT_FOUND_PATH,
   SITE_OFFLINE_PATH,
   SITE_OFFLINE_RETRY_AFTER_SECONDS,
   isOfflineAllowedPath,

@@ -59,6 +59,7 @@ export const DEFAULT_SITE_CHROME: SiteChromeDocument = {
   authEmailOtpEnabled: true,
   authRememberMeEnabled: true,
   authTwoFactorEnabled: true,
+  authRequireEmailVerification: false,
   authPostLoginUrl: DEFAULT_AUTH_POST_LOGIN_URL,
   authPostRegisterUrl: DEFAULT_AUTH_POST_REGISTER_URL,
   authPostLogoutUrl: DEFAULT_AUTH_POST_LOGOUT_URL,

@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 
 import { ensureDefaultUserGroupsSeeded, listUserGroupOptions } from '@/core/acl'
+import { hydrateNavDocumentLocales } from '@/core/i18n/content-locales/hydrate'
+import { getContentLocaleOptions } from '@/core/i18n/locale-text.server'
 import {
   flattenNavItemsInOrder,
   listEnabledModuleNavOptions,
@@ -51,17 +53,20 @@ export default async function AdminNavMenuItemsPage({ params }: Args) {
     notFound()
   }
 
+  const document = await hydrateNavDocumentLocales(menuId, loaded.document)
+
   await ensureDefaultUserGroupsSeeded()
   const activeSkin = await getActiveSkin()
   await ensureSkinOutlineSeeds(activeSkin.id)
-  const [pages, modules, groups, outlines, preferredLayoutId] = await Promise.all([
+  const [pages, modules, groups, outlines, preferredLayoutId, locales] = await Promise.all([
     listNavPageOptions(),
     Promise.resolve(listEnabledModuleNavOptions(settings)),
     listUserGroupOptions(),
     listLayoutOutlines(),
     getPreferredLayoutId(),
+    getContentLocaleOptions(),
   ])
-  const items = flattenNavItemsInOrder(loaded.document.items)
+  const items = flattenNavItemsInOrder(document.items)
   const outlineOptions = outlines.map((o) => ({ id: o.id, label: o.label }))
   if (
     preferredLayoutId &&
@@ -100,6 +105,7 @@ export default async function AdminNavMenuItemsPage({ params }: Args) {
         modules={modules}
         groups={groups}
         outlines={outlineOptions}
+        locales={locales}
         preferredLayoutId={preferredLayoutId}
         isSitePrimary={settings.primaryNavMenuId === loaded.id}
       />

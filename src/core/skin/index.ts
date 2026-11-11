@@ -18,9 +18,16 @@ export {
   listSkinPacksCached,
   listSkins,
   STARFORGE_PASTEL_DEFAULT_OUTLINE_ID,
+  STARFORGE_PASTEL_NOT_FOUND_OUTLINE_ID,
   STARFORGE_PASTEL_OFFLINE_OUTLINE_ID,
   STARFORGE_PASTEL_SKIN_ID,
 } from './registry'
+export {
+  pastelSystemOutlineFallback,
+  skinSystemOutlineId,
+  type SkinSystemOutlineKind,
+} from './system-outline-ids'
+export { resolveActiveSkinSystemOutlineId } from './system-outlines'
 export { getActiveSkin, getActiveSkinId, isSkinPinnedByEnv } from './resolve-active'
 export { getPreferredLayoutId } from './preferred-outline'
 export { getStoredDefaultSkinId, saveDefaultSkinId, SKIN_SETTINGS_ID } from './settings-store'

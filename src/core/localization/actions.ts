@@ -1,7 +1,5 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
-
 import { requireAppAdmin } from '@/core/auth/admin'
 import { invalidateSiteChrome } from '@/core/content/revalidate'
 import {
@@ -55,12 +53,18 @@ function parseLocalesEnabled(
   return out
 }
 
-async function revalidateLocalizationPaths() {
+/**
+ * Bust Site Chrome / proxy caches after a locale change.
+ *
+ * Do **not** call `revalidatePath('/', 'layout')` or `revalidatePath` on this
+ * admin route here. Enabling a locale + path revalidation forces Next to rebuild
+ * the public `[locale]` tree in the same action response; combined with
+ * `useActionState` that has hung the process until restart. Tag invalidation +
+ * the form’s `router.refresh()` is enough — proxy reloads enabled locales per
+ * request from Chrome JSON.
+ */
+async function revalidateLocalizationCaches() {
   await invalidateSiteChrome()
-  revalidatePath('/', 'layout')
-  revalidatePath('/admin/localization')
-  revalidatePath('/admin/site-chrome')
-  revalidatePath('/admin')
 }
 
 export async function updateLocalizationAction(
@@ -130,7 +134,7 @@ export async function updateLocalizationAction(
   }
 
   registerPublicLocaleCodes(localeCatalog.map((e) => e.code))
-  await revalidateLocalizationPaths()
+  await revalidateLocalizationCaches()
   return {
     ok: true,
     message: addCode ? `Added locale “${addCode}”.` : undefined,
@@ -191,6 +195,6 @@ export async function removeLocaleFromCatalogAction(
   }
 
   registerPublicLocaleCodes(nextCatalog.map((e) => e.code))
-  await revalidateLocalizationPaths()
+  await revalidateLocalizationCaches()
   return { ok: true, message: `Removed locale “${code}”.` }
 }
