@@ -24,9 +24,17 @@ export type FormSubmittedContext = {
   payload: FormSubmissionPayload
 }
 
+/** Optional same-origin handoff after submit (e.g. paid ticket checkout). */
+export type FormPresetOnSubmittedResult = {
+  redirectUrl?: string
+}
+
 export type FormPresetOnSubmitted = (
   ctx: FormSubmittedContext,
-) => void | Promise<void>
+) =>
+  | void
+  | FormPresetOnSubmittedResult
+  | Promise<void | FormPresetOnSubmittedResult>
 
 export type FormPresetMessages = {
   title: string
@@ -108,8 +116,8 @@ export function listRegisteredFormPresets(): StoredRegistration[] {
  */
 export async function runFormPresetOnSubmitted(
   ctx: FormSubmittedContext,
-): Promise<void> {
+): Promise<FormPresetOnSubmittedResult | void> {
   const hook = registrations.get(ctx.presetId)?.onSubmitted
   if (!hook) return
-  await hook(ctx)
+  return await hook(ctx)
 }

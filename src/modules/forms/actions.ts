@@ -333,7 +333,7 @@ export async function submitFormAction(
         // Events pack may be off the allowlist — skip registration.
       }
       const { runFormPresetOnSubmitted } = await import('./preset-registry')
-      await runFormPresetOnSubmitted({
+      const hookResult = await runFormPresetOnSubmitted({
         presetId: definitionDocument.preset,
         definitionId,
         formKey,
@@ -341,6 +341,19 @@ export async function submitFormAction(
         userId,
         payload: values,
       })
+      const hookRedirect =
+        hookResult && typeof hookResult.redirectUrl === 'string'
+          ? hookResult.redirectUrl.trim()
+          : ''
+      if (hookRedirect.startsWith('/') && !hookRedirect.startsWith('//')) {
+        revalidatePath('/admin/forms')
+        revalidatePath('/admin/forms/submissions')
+        return {
+          ok: true,
+          message: successMessage,
+          redirectUrl: hookRedirect,
+        }
+      }
     } catch {
       // Hook failures must not fail the public success response.
     }

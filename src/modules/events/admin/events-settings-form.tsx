@@ -136,12 +136,13 @@ export function EventsSettingsForm({ settings }: Props) {
 
       <section className="page-settings-panel">
         <header className="page-settings-panel-head">
-          <h3>Registration email</h3>
+          <h3>Registration emails</h3>
         </header>
         <div className="page-settings-panel-body">
           <p className="settings-hint">
-            Seeds Email Manager template + rule for{' '}
-            <code>product:events/registered</code>, and ensures the shared{' '}
+            Seeds Email Manager templates + rules for{' '}
+            <code>product:events/registered</code> and{' '}
+            <code>product:events/waitlist-promoted</code>, and ensures the shared{' '}
             <code>event-registration</code> Form definition exists.
           </p>
           <div className="page-settings-actions">
@@ -151,7 +152,7 @@ export function EventsSettingsForm({ settings }: Props) {
                 className="gantry-toolbar-btn gantry-toolbar-btn-muted"
                 disabled={busy}
               >
-                {seedPending ? 'Seeding…' : 'Seed registration email + form'}
+                {seedPending ? 'Seeding…' : 'Seed registration emails + form'}
               </button>
             </form>
           </div>

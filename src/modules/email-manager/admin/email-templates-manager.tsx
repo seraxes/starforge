@@ -154,7 +154,7 @@ export function EmailTemplatesManager({
         <p className="field-hint">
           Module tags keep Forms / Auth / Events templates findable as packs grow.
         </p>
-        <div className="admin-inline-actions" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
+        <div className="admin-inline-actions">
           <Link
             href="/admin/email/templates"
             className={

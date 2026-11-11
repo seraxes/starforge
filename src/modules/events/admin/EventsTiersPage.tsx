@@ -51,6 +51,7 @@ export default async function EventsTiersPage({
       maxPerBooking: t.maxPerBooking,
       price: t.price,
       priceModifier: t.priceModifier,
+      priceModifierMode: t.priceModifierMode,
       priceLabel: t.priceLabel,
       titleColor: t.titleColor,
       borderColor: t.borderColor,

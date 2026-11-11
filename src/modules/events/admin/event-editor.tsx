@@ -30,6 +30,7 @@ type TierRow = {
   maxPerBooking: number | null
   price: number | null
   priceModifier: number
+  priceModifierMode: 'amount' | 'percent'
   priceLabel: string
   titleColor: string
   borderColor: string

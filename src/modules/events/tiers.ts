@@ -9,6 +9,13 @@ import { and, asc, eq, inArray, sql } from 'drizzle-orm'
 import { db } from '@/core/db'
 import { sanitizeCssColor } from '@/core/modules/styles'
 
+import {
+  EMPTY_TIER_PRICE_RULES,
+  parsePriceModifierInput,
+  parseTierPriceRules,
+  type PriceAdjustMode,
+  type TierPriceRules,
+} from './price-rules'
 import { sfEventRegistrations, sfEventTicketTiers } from './schema'
 import { findEventById } from './store'
 import {
@@ -36,10 +43,13 @@ export type TicketTierRecord = {
   maxPerBooking: number | null
   /** Base price in major units; null = unset. */
   price: number | null
-  /** Added to price for effective amount (may be negative). */
+  /** Modifier value; mode is priceModifierMode (`500` amount vs `10%`). */
   priceModifier: number
+  /** `amount` | `percent` — one admin field, trailing % switches mode. */
+  priceModifierMode: PriceAdjustMode
   /** Optional text that overwrites formatted price on public cards. */
   priceLabel: string
+  priceRules: TierPriceRules
   titleColor: string
   borderColor: string
   backgroundColor: string
@@ -82,7 +92,9 @@ function mapTier(row: typeof sfEventTicketTiers.$inferSelect): TicketTierRecord 
       typeof row.priceModifier === 'number' && Number.isFinite(row.priceModifier)
         ? Math.floor(row.priceModifier)
         : 0,
+    priceModifierMode: row.priceModifierMode === 'percent' ? 'percent' : 'amount',
     priceLabel: row.priceLabel ?? '',
+    priceRules: parseTierPriceRules(row.priceRules),
     titleColor: parseTierColor(row.titleColor),
     borderColor: parseTierColor(row.borderColor),
     backgroundColor: parseTierColor(row.backgroundColor),
@@ -118,13 +130,6 @@ function parsePrice(raw: unknown): number | null {
   return Math.floor(n)
 }
 
-/** Empty → 0. Integer modifier (may be negative). */
-function parsePriceModifier(raw: unknown): number {
-  if (raw == null || raw === '') return 0
-  const n = typeof raw === 'number' ? raw : Number(String(raw).trim())
-  if (!Number.isFinite(n)) return 0
-  return Math.floor(n)
-}
 
 /** Effective max guests for one booking on this tier. */
 export function effectiveMaxTicketsPerBooking(
@@ -209,6 +214,7 @@ export type UpsertTicketTierInput = {
   price?: unknown
   priceModifier?: unknown
   priceLabel?: string
+  priceRules?: TierPriceRules
   titleColor?: string
   borderColor?: string
   backgroundColor?: string
@@ -230,8 +236,9 @@ export async function createTicketTier(
   const capacity = parseCapacity(input.capacity)
   const maxPerBooking = parseMaxPerBooking(input.maxPerBooking)
   const price = parsePrice(input.price)
-  const priceModifier = parsePriceModifier(input.priceModifier)
+  const mod = parsePriceModifierInput(input.priceModifier)
   const priceLabel = (input.priceLabel || '').trim().slice(0, 80)
+  const priceRules = input.priceRules ?? EMPTY_TIER_PRICE_RULES
   const titleColor = parseTierColor(input.titleColor)
   const borderColor = parseTierColor(input.borderColor)
   const backgroundColor = parseTierColor(input.backgroundColor)
@@ -255,8 +262,10 @@ export async function createTicketTier(
       capacity,
       maxPerBooking,
       price,
-      priceModifier,
+      priceModifier: mod.value,
+      priceModifierMode: mod.mode,
       priceLabel,
+      priceRules,
       titleColor,
       borderColor,
       backgroundColor,
@@ -306,14 +315,19 @@ export async function updateTicketTier(
       : current.maxPerBooking
   const price =
     input.price !== undefined ? parsePrice(input.price) : current.price
-  const priceModifier =
+  const mod =
     input.priceModifier !== undefined
-      ? parsePriceModifier(input.priceModifier)
-      : current.priceModifier
+      ? parsePriceModifierInput(input.priceModifier)
+      : {
+          mode: current.priceModifierMode,
+          value: current.priceModifier,
+        }
   const priceLabel =
     input.priceLabel !== undefined
       ? input.priceLabel.trim().slice(0, 80)
       : current.priceLabel
+  const priceRules =
+    input.priceRules !== undefined ? input.priceRules : current.priceRules
   const titleColor =
     input.titleColor !== undefined
       ? parseTierColor(input.titleColor)
@@ -344,8 +358,10 @@ export async function updateTicketTier(
         capacity,
         maxPerBooking,
         price,
-        priceModifier,
+        priceModifier: mod.value,
+        priceModifierMode: mod.mode,
         priceLabel,
+        priceRules,
         titleColor,
         borderColor,
         backgroundColor,

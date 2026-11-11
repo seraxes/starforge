@@ -14,9 +14,11 @@ Events + venues + registration + ticket tiers + parties (`sf_venues` / `sf_event
 - Calendar cells: title, seats `occupied/capacity`, venue; optional thumbnails (`?thumbs=1` on hub, or particle cog)
 - Public **detail** sections: header/badges, quick actions, description, details, ticket / faction **area cards** (Register one-click from profile), location (+ map), parties, gallery; Forms `event-registration`
 - Area-card Register: session + complete contact → instant signup for that tier; gaps / terms / captcha → form prefilled (`?tier=`); guests → login with return
-- Tier price: numeric `price` + `priceModifier`; optional `priceLabel` text overrides card display
-- Waitlist: per-event toggle; Join waitlist on sold-out cards; FIFO promote when a registered seat frees
+- Event **Pricing** card: base price, currency, one time-left rule and one sold-count rule (amount or % of the price in effect). Ticket types: own price (replaces the event base when set) plus a modifier that is always added. Optional `priceLabel` overrides the card text; checkout uses the calculated amount. Registration-form option / checkbox `priceAmount` adds on at checkout. Forms is a required dependency; `event-registration` is seeded when Events admin opens.
+- Waitlist: per-event toggle; Join waitlist on sold-out cards; FIFO promote when a registered seat frees; Email Manager seed for `product:events/waitlist-promoted` (Events settings → Seed registration emails + form)
 - ICS download; View ACL + listed / access password; ticket types per-event (shortDescription blurb)
+- **Paid tickets (closed loop):** priced tiers hold as `pending_payment`, hand off to Payments `/[locale]/checkout/[orderId]` (gateway redirect or offline instructions). Form submit and one-click Register both return that same-origin path. On paid → `registered` + `product:events/registered`; on fail/expire/refund → `cancelled`. Checkout start failure cancels the hold. Free / waitlisted tiers stay immediate. See [`payment-bridge.ts`](./payment-bridge.ts).
+- **Registrant CSV export** (admin): one event via `/api/admin/events/registrants/export?eventId=` — same list/statuses as Registrants (`registered` / `waitlisted` / `pending_payment` / `cancelled`); columns name, email, ticket type, guests, status, paid amount (Payments order gross when `paymentOrderId` is set)
 
 ## Missing / next
 
@@ -29,28 +31,28 @@ Events + venues + registration + ticket tiers + parties (`sf_venues` / `sf_event
 ### Organizer ops
 
 - Calendar subscribe feed (ICS collection)
-- Registrant CSV export
 - Public manage-my-signup (cancel/edit)
-- Check-in
+- Check-in: manual list, plus automatic when the attendee reaches a GPS point (geofence on the venue/event pin) or comes within range of a Bluetooth beacon paired to the event
 - Event categories (beyond featured flag)
 - Sports / championship bracket views (later under Events → sport module)
-- Waitlist email template seed (trigger `product:events/waitlist-promoted` already emitted)
 - Per-event prevent-duplicate override
 - Manager write ACL (assignments filter list today; writes still need `admin.events`)
 - Helper vs manager capability split
+- Abandoned online checkout sweeper (pending_payment until provider webhook today)
 
 ### Boundary
 
-Slot kinds are choosable: **Ticket type**, **Booking type**, **Faction**, plus names an admin adds. That chooser is decided and not built. Code today is only `general | faction`. Milsim sheets, association membership, and TEÁOR stay Hero data. Do not add those columns to `sf_events_*`. Do not build the chooser until Core polish in [architecture-current](../../../docs/project-context/docs/architecture-current.md) is done.
+Slot kinds are choosable: **Ticket type**, **Booking type**, **Faction**, plus names an admin adds. That chooser is decided and not built. Code today is only `general | faction`. Milsim sheets, association membership, and TEÁOR stay Hero data. Do not add those columns to `sf_events_*`. Do not build the chooser ahead of the commercial order in [architecture-current](../../../docs/project-context/docs/architecture-current.md).
 
 ### Deferred by design
 
 - Full RRULE / series
 - AI “Draft description” (`LlmProvider`)
+- Deposit / token pay — **Hero** ASN currency, not an Events price rule. Events keeps real-money ticket prices; Hero may later cover part or all of a selected event.
 
 ### Payments (consume — system-wide)
 
-Paid tickets consume shared **`product:payments`** via [`payment-bridge.ts`](./payment-bridge.ts) — not an Events checkout UI. Paid tiers create `pending_payment` registrations, then cart/checkout; on paid → `registered`, on fail/expire → `cancelled`. Free tiers keep immediate register. Receipts: Email Manager `product:payments/*`. See [payments-cart-plan](../../../docs/project-context/docs/payments-cart-plan.md) and `sf-payments-module`.
+Paid tickets consume shared **`product:payments`** via [`payment-bridge.ts`](./payment-bridge.ts) — not an Events checkout UI. Buyer handoff is Payments public checkout. Receipts: Email Manager `product:payments/*`. Seat confirmation mail: `product:events/registered` after paid (or immediately for free/waitlist). See [payments-cart-plan](../../../docs/project-context/docs/payments-cart-plan.md) and `sf-payments-module`.
 
 ## Migrations
 

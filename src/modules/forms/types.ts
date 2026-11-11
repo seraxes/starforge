@@ -85,6 +85,11 @@ export type FormFieldOption = {
   disabled?: boolean
   /** Optional media attachment per option (select / radio / checkbox-group). */
   media?: FormOptionMedia
+  /**
+   * Major-unit add-on charged when this option is selected.
+   * Events checkout reads it; the amount is in the event currency.
+   */
+  priceAmount?: number
 }
 
 /**
@@ -213,6 +218,11 @@ export type FormFieldDef = {
   defaultValue?: string
   /** Options for select / radio / checkbox-group. */
   options?: FormFieldOption[]
+  /**
+   * Major-unit add-on when a single checkbox is checked.
+   * Events checkout reads it in the event currency.
+   */
+  priceAmount?: number
   /** Constraints for date / time / datetime fields. */
   constraints?: FormDateTimeConstraints
   /** Length / pattern rules for text-like (+ hidden) fields. */

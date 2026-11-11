@@ -528,6 +528,12 @@ export function RegistrantsManager({
             >
               {createOpen ? 'Close' : 'Add +'}
             </button>
+            <a
+              href={`/api/admin/events/registrants/export?eventId=${encodeURIComponent(eventId)}`}
+              className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+            >
+              Export CSV
+            </a>
             {!createOpen ? (
               <p className="settings-hint sf-events-add-hint">
                 Manually add a registrant for {active?.title || 'this event'}.

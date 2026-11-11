@@ -60,6 +60,36 @@ export const sfEvents = pgTable(
     endsAt: timestamp('ends_at', { withTimezone: true }),
     /** IANA timezone id (e.g. Europe/Budapest). */
     timezone: text('timezone').notNull().default('UTC'),
+    /**
+     * ISO 4217 checkout currency for this event.
+     * Empty = Payments site currency.
+     */
+    currency: text('currency').notNull().default(''),
+    /**
+     * Event base price in major units (individual price).
+     * A ticket type with its own price replaces this. Null = no event base.
+     */
+    price: integer('price'),
+    /**
+     * Event-level automatic adjustments. `{ time, sold }`.
+     * Percent is of the price in effect (event base, or the ticket type price).
+     */
+    priceRules: jsonb('price_rules')
+      .$type<{
+        time: {
+          withinMinutes: number
+          mode: 'amount' | 'percent'
+          value: number
+        } | null
+        sold: {
+          threshold: number
+          basis: 'count' | 'percent'
+          mode: 'amount' | 'percent'
+          value: number
+        } | null
+      }>()
+      .notNull()
+      .default({ time: null, sold: null }),
     venueId: text('venue_id').references(() => sfVenues.id, {
       onDelete: 'set null',
     }),
@@ -178,10 +208,35 @@ export const sfEventTicketTiers = pgTable(
     maxPerBooking: integer('max_per_booking'),
     /** Numeric base price (major units). Null = no amount; display may still use priceLabel. */
     price: integer('price'),
-    /** Added to `price` for the effective amount when priceLabel override is empty. */
+    /**
+     * Ticket-type modifier value. Mode is `price_modifier_mode`.
+     * Amount = major units; percent = points of the price in effect.
+     */
     priceModifier: integer('price_modifier').notNull().default(0),
+    /** `amount` | `percent` — typed in one field (`500` vs `10%`). */
+    priceModifierMode: text('price_modifier_mode').notNull().default('amount'),
     /** Optional display text that overwrites the formatted price on public cards. */
     priceLabel: text('price_label').notNull().default(''),
+    /**
+     * Automatic adjustments on top of price + priceModifier.
+     * `{ time, sold }` — one bracket each; see price-rules.ts.
+     */
+    priceRules: jsonb('price_rules')
+      .$type<{
+        time: {
+          withinMinutes: number
+          mode: 'amount' | 'percent'
+          value: number
+        } | null
+        sold: {
+          threshold: number
+          basis: 'count' | 'percent'
+          mode: 'amount' | 'percent'
+          value: number
+        } | null
+      }>()
+      .notNull()
+      .default({ time: null, sold: null }),
     /** Public card title (h3) color — hex or empty for theme default. */
     titleColor: text('title_color').notNull().default(''),
     /** Public card border color — hex or empty for theme default. */

@@ -5,6 +5,8 @@
 import 'server-only'
 
 import { formatTierPriceDisplay } from './price-display'
+import { quoteTierMajor } from './price-rules'
+import { countRegisteredGuests } from './registrations'
 import { findEventById } from './store'
 import {
   countRegisteredGuestsForTier,
@@ -31,6 +33,17 @@ export async function listPublicTicketTiersForEvent(
     findEventById(eventId),
   ])
   const waitlistEnabled = event?.waitlistEnabled !== false
+  const eventSold = event ? await countRegisteredGuests(event.id) : 0
+  let siteCurrency = 'HUF'
+  if (!(event?.currency || '').trim()) {
+    try {
+      const { getPaymentsSettings } = await import('@/modules/payments/api')
+      siteCurrency = (await getPaymentsSettings()).currency || 'HUF'
+    } catch {
+      siteCurrency = 'HUF'
+    }
+  }
+  const currency = (event?.currency || '').trim() || siteCurrency
   return Promise.all(
     tiers.map(async (tier) => {
       const occupied =
@@ -50,11 +63,26 @@ export async function listPublicTicketTiersForEvent(
         kind: tier.kind,
         price: tier.price,
         priceModifier: tier.priceModifier,
-        priceLabel: formatTierPriceDisplay({
-          price: tier.price,
-          priceModifier: tier.priceModifier,
-          priceLabel: tier.priceLabel,
-        }),
+        priceLabel: formatTierPriceDisplay(
+          {
+            price:
+              event?.price == null && tier.price == null
+                ? null
+                : quoteTierMajor({
+                    eventPrice: event?.price ?? null,
+                    price: tier.price,
+                    priceModifier: tier.priceModifier,
+                    priceModifierMode: tier.priceModifierMode,
+                    rules: event?.priceRules,
+                    startsAt: event?.startsAt ?? null,
+                    sold: eventSold,
+                    capacity: event?.capacity ?? null,
+                  }),
+            priceModifier: 0,
+            priceLabel: tier.priceLabel,
+          },
+          currency,
+        ),
         titleColor: tier.titleColor,
         borderColor: tier.borderColor,
         backgroundColor: tier.backgroundColor,

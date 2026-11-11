@@ -10,14 +10,17 @@ import { eq } from 'drizzle-orm'
 import { getAccessViewer } from '@/core/acl/access'
 import { getAppSession } from '@/core/auth/session'
 import { db, sfUsers } from '@/core/db'
+import { DEFAULT_LOCALE, isAppLocale, type AppLocale } from '@/core/i18n/locales'
+import { withLocalePrefix } from '@/core/i18n/path'
 import { formHasCaptchaField } from '@/modules/forms/api'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import {
   fillMissingProfileContact,
   getOwnProfileContact,
 } from '@/modules/profiles/api.server'
+import { getLocale } from 'next-intl/server'
 
-import { ensureEventsFormHooks, EVENTS_REGISTERED_TRIGGER } from './form-hooks'
+import { ensureEventsFormHooks } from './form-hooks'
 import {
   viewerPassesEventAcl,
   viewerPassesEventPassword,
@@ -30,9 +33,10 @@ import {
 } from './registrations'
 import { findEventById } from './store'
 import { findTicketTierById } from './tiers'
+import { EVENTS_REGISTERED_TRIGGER } from './triggers'
 
 export type QuickRegisterResult =
-  | { ok: true; status: string; message: string }
+  | { ok: true; status: string; message: string; redirectUrl?: string }
   | { needsAuth: true }
   | { needsForm: true; reason: string }
   | { error: string }
@@ -53,6 +57,17 @@ async function loadAccountName(userId: string): Promise<string> {
     .where(eq(sfUsers.id, userId))
     .limit(1)
   return (row?.name || '').trim()
+}
+
+async function checkoutPathForOrder(orderId: string): Promise<string> {
+  let locale: AppLocale = DEFAULT_LOCALE
+  try {
+    const requested = await getLocale()
+    if (isAppLocale(requested)) locale = requested
+  } catch {
+    /* default */
+  }
+  return withLocalePrefix(`/checkout/${orderId}`, locale)
 }
 
 /**
@@ -111,11 +126,21 @@ export async function quickRegisterForTier(
 
   const existing = await findActiveRegistrationForUserOnEvent(userId, eventId)
   if (existing) {
+    if (existing.status === 'pending_payment' && existing.paymentOrderId) {
+      return {
+        ok: true,
+        status: 'pending_payment',
+        message: 'Complete payment to finish your registration.',
+        redirectUrl: await checkoutPathForOrder(existing.paymentOrderId),
+      }
+    }
     return {
       error:
         existing.status === 'waitlisted'
           ? 'You are already on the waitlist for this event.'
-          : 'You are already registered for this event.',
+          : existing.status === 'pending_payment'
+            ? 'You already have a pending payment for this event.'
+            : 'You are already registered for this event.',
     }
   }
 
@@ -186,34 +211,76 @@ export async function quickRegisterForTier(
 
   await fillMissingProfileContact(userId, { phone, displayName: name })
 
-  try {
-    const { emitEmailTrigger, isEmailManagerEnabled } = await import(
-      '@/modules/email-manager/api.server'
-    )
-    if (await isEmailManagerEnabled()) {
-      await emitEmailTrigger({
-        triggerKey: EVENTS_REGISTERED_TRIGGER,
-        payload: {
-          eventId: event.id,
-          eventTitle: event.title,
-          eventSlug: event.slug,
-          registrationId: result.registration.id,
-          registrationStatus: result.registration.status,
-          ticketTierId: result.registration.ticketTierId,
-          ticketTierTitle: tier.title,
-          name: result.registration.name,
-          email: result.registration.email,
-          guests: result.registration.guests,
-          attendance: result.registration.attendance,
-          respondentEmail: result.registration.email,
+  const {
+    ensureEventsPaymentHook,
+    isPaymentsModuleOn,
+    tierRequiresPayment,
+    beginPaidTicketCheckout,
+  } = await import('./payment-bridge')
+  ensureEventsPaymentHook()
+
+  if (
+    result.registration.status === 'registered' &&
+    (await isPaymentsModuleOn())
+  ) {
+    const priced = await tierRequiresPayment(tierId)
+    if (priced.requires) {
+      const checkout = await beginPaidTicketCheckout({
+        registrationId: result.registration.id,
+        event: {
+          id: event.id,
+          title: event.title,
+          slug: event.slug,
+          merchantUserId: event.merchantUserId || null,
         },
+        ticketTierId: tierId,
+        buyerEmail: email,
+        buyerName: name,
+        userId,
+        guests: 1,
       })
+      if (!checkout.ok) {
+        return { error: checkout.error || 'Could not start checkout.' }
+      }
+      return {
+        ok: true,
+        status: 'pending_payment',
+        message: 'Continue to payment to finish your registration.',
+        redirectUrl: checkout.checkoutPath,
+      }
     }
-  } catch {
-    /* email optional */
   }
 
   const status = result.registration.status
+  if (status === 'registered' || status === 'waitlisted') {
+    try {
+      const { emitEmailTrigger, isEmailManagerEnabled } = await import(
+        '@/modules/email-manager/api.server'
+      )
+      if (await isEmailManagerEnabled()) {
+        await emitEmailTrigger({
+          triggerKey: EVENTS_REGISTERED_TRIGGER,
+          payload: {
+            eventId: event.id,
+            eventTitle: event.title,
+            eventSlug: event.slug,
+            registrationId: result.registration.id,
+            registrationStatus: status,
+            ticketTierId: result.registration.ticketTierId,
+            ticketTierTitle: tier.title,
+            name: result.registration.name,
+            email: result.registration.email,
+            guests: result.registration.guests,
+            attendance: result.registration.attendance,
+            respondentEmail: result.registration.email,
+          },
+        })
+      }
+    } catch {
+      /* email optional */
+    }
+  }
+
   return {
     ok: true,
     status,

@@ -130,7 +130,7 @@ export function EmailRulesManager({
         <p className="field-hint">
           Category tags help find Forms / Auth / Events rules as more packs emit triggers.
         </p>
-        <div className="admin-inline-actions" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
+        <div className="admin-inline-actions">
           <Link
             href="/admin/email"
             className={

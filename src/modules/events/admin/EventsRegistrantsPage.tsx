@@ -50,8 +50,8 @@ export default async function EventsRegistrantsPage({
       <EventsAdminNav active="registrants" />
       <h2>Registrants</h2>
       <p className="lede admin-lede">
-        Search an event, then <strong>Add +</strong> / Edit / Delete registrants. Ticket
-        types:{' '}
+        Search an event, then <strong>Add +</strong> / Edit / Delete registrants, or{' '}
+        <strong>Export CSV</strong> for the selected event. Ticket types:{' '}
         <Link
           href={
             eventId

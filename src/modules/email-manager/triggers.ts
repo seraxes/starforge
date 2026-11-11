@@ -84,6 +84,28 @@ export const BUILTIN_EMAIL_TRIGGERS: readonly EmailTriggerDef[] = [
     ],
   },
   {
+    key: 'product:events/waitlist-promoted',
+    label: 'Waitlist promoted',
+    moduleCategory: 'events',
+    moduleId: 'product:events',
+    description:
+      'Fired when a waitlisted registration is FIFO-promoted into a registered seat.',
+    payloadFields: [
+      'eventId',
+      'eventTitle',
+      'eventSlug',
+      'registrationId',
+      'registrationStatus',
+      'ticketTierId',
+      'ticketTierTitle',
+      'name',
+      'email',
+      'guests',
+      'attendance',
+      'respondentEmail',
+    ],
+  },
+  {
     key: 'product:payments/checkout_started',
     label: 'Checkout started',
     moduleCategory: 'payments',

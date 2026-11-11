@@ -3313,7 +3313,12 @@ button:disabled {
   padding: 0;
   border: 0;
   border-radius: 0;
-  background: color-mix(in srgb, var(--sf-admin-blue, #3d7eff) 72%, #8eb6ff);
+  /* Default blue rail; `--sf-events-tiers-drag` + `--sf-events-tiers-drag-mix` when border ≠ white. */
+  background: color-mix(
+    in srgb,
+    var(--sf-events-tiers-drag, var(--sf-admin-blue, #3d7eff)) 72%,
+    var(--sf-events-tiers-drag-mix, #8eb6ff)
+  );
   box-shadow: inset -1px 0 0 color-mix(in srgb, #000 22%, transparent);
   cursor: grab;
   appearance: none;
@@ -3321,7 +3326,11 @@ button:disabled {
 
 .sf-events-tiers-drag-rail:hover,
 .sf-events-tiers-drag-rail:focus-visible {
-  background: color-mix(in srgb, var(--sf-admin-blue, #3d7eff) 88%, #fff);
+  background: color-mix(
+    in srgb,
+    var(--sf-events-tiers-drag, var(--sf-admin-blue, #3d7eff)) 88%,
+    #fff
+  );
   outline: none;
 }
 
@@ -3366,6 +3375,27 @@ button:disabled {
   min-width: 0;
   width: 100%;
   box-sizing: border-box;
+}
+
+.sf-events-price-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(8rem, 1fr));
+  gap: 0.55rem 0.75rem;
+  align-items: end;
+  min-width: 0;
+}
+
+.sf-events-price-row .settings-flag {
+  align-self: center;
+}
+
+.sf-events-tier-price-rules {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.4rem 0.55rem;
+  align-items: end;
+  margin: 0;
+  min-width: 0;
 }
 
 .sf-events-tiers-row-meta {
@@ -4836,6 +4866,62 @@ button:disabled {
   font-size: 0.98rem;
 }
 
+.sf-checkout-handoff {
+  max-width: 36rem;
+  margin: 1.5rem auto;
+  padding: 1.25rem 1.35rem;
+  border: 1px solid var(--sf-line);
+  border-radius: var(--sf-radius, 8px);
+  background: var(--sf-panel, var(--sf-surface, #fff));
+}
+
+.sf-checkout-handoff-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.35rem;
+}
+
+.sf-checkout-handoff-lede {
+  margin: 0 0 1rem;
+  line-height: 1.45;
+}
+
+.sf-checkout-handoff-meta {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0 0 1rem;
+}
+
+.sf-checkout-handoff-meta div {
+  display: grid;
+  grid-template-columns: 7rem 1fr;
+  gap: 0.35rem;
+  align-items: baseline;
+}
+
+.sf-checkout-handoff-meta dt {
+  margin: 0;
+  font-weight: 600;
+  color: var(--sf-muted);
+  font-size: 0.88rem;
+}
+
+.sf-checkout-handoff-meta dd {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.sf-checkout-handoff-instructions {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  border-radius: var(--sf-radius, 8px);
+  border: 1px solid var(--sf-line);
+  background: var(--sf-bg-muted, rgba(0, 0, 0, 0.03));
+}
+
 .sf-forms-table .sf-forms-key {
   font-size: 0.82rem;
 }
@@ -4901,7 +4987,7 @@ button:disabled {
 .sf-redirect-row-secondary {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--sf-admin-btn-gap, 0.55rem);
   align-items: center;
 }
 
@@ -6038,7 +6124,7 @@ button:disabled {
 .gantry-slot-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: var(--sf-admin-btn-gap, 0.55rem);
   align-items: center;
 }
 
@@ -7160,7 +7246,7 @@ button:disabled {
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.75rem;
+  gap: var(--sf-admin-btn-gap, 0.55rem);
   margin-top: 0.25rem;
 }
 
@@ -7355,7 +7441,7 @@ button:disabled {
 .outlines-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: var(--sf-admin-btn-gap, 0.55rem);
   align-items: center;
 }
 
@@ -7373,7 +7459,7 @@ td.outlines-actions > button,
 td.outlines-actions > form {
   display: inline-flex;
   vertical-align: middle;
-  margin: 0 0.4rem 0 0;
+  margin: 0 var(--sf-admin-btn-gap, 0.55rem) 0 0;
 }
 
 td.outlines-actions > :last-child {
@@ -7387,7 +7473,7 @@ td.outlines-actions > :last-child {
 
 td.outlines-actions > form {
   display: inline-flex;
-  margin: 0 0.4rem 0 0;
+  margin: 0 var(--sf-admin-btn-gap, 0.55rem) 0 0;
 }
 
 .outlines-inline-form {
@@ -7504,7 +7590,7 @@ button.danger:hover,
 .nav-items-toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--sf-admin-btn-gap, 0.55rem);
   margin-top: 0.75rem;
 }
 
@@ -8377,7 +8463,7 @@ button.danger:hover,
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  gap: 0.65rem 0.75rem;
+  gap: var(--sf-admin-btn-gap, 0.55rem);
   margin: 0.85rem 0;
 }
 

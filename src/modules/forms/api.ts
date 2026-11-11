@@ -29,6 +29,7 @@ export {
 export type {
   FormPresetMessages,
   FormPresetOnSubmitted,
+  FormPresetOnSubmittedResult,
   FormPresetRegistration,
   FormSubmittedContext,
 } from './preset-registry'

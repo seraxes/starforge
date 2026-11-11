@@ -21,6 +21,7 @@ export {
   applyProviderPaymentResult,
   createCart,
   getCartWithLines,
+  getOrderGrossByIds,
   getOrderWithLines,
   getPaymentsSettings,
   listInvoices,
@@ -31,6 +32,7 @@ export {
   startCheckout,
   verifyAndCaptureOrder,
 } from './store'
+export type { OrderGrossSnapshot } from './store'
 
 export {
   assertMayCollect,

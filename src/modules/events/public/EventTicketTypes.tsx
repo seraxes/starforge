@@ -101,6 +101,14 @@ export function EventTicketTypes({
           setError(result.error)
           return
         }
+        if (
+          result.redirectUrl &&
+          result.redirectUrl.startsWith('/') &&
+          !result.redirectUrl.startsWith('//')
+        ) {
+          window.location.assign(result.redirectUrl)
+          return
+        }
         setFeedback(result.message || 'Registered.')
         router.refresh()
       } catch (err) {

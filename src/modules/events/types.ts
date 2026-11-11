@@ -2,6 +2,8 @@
  * product:events shared types — venues + events + parties.
  */
 
+import type { TierPriceRules } from './price-rules'
+
 export const EVENT_STATUSES = ['draft', 'published', 'cancelled'] as const
 
 export type EventStatus = (typeof EVENT_STATUSES)[number]
@@ -70,6 +72,12 @@ export type EventRecord = {
   startsAt: Date | null
   endsAt: Date | null
   timezone: string
+  /** ISO currency for this event. Empty inherits Payments site currency. */
+  currency: string
+  /** Event base price in major units. Null = no event base. */
+  price: number | null
+  /** Time-left and sold-count adjustments. Percent is of the price in effect. */
+  priceRules: TierPriceRules
   venueId: string
   description: string
   coverMediaId: string

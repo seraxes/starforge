@@ -377,6 +377,31 @@ function FieldSettingsBody({
         </label>
       ) : null}
 
+      {field.type === 'checkbox' ? (
+        <label>
+          <span>Price add-on</span>
+          <input
+            type="number"
+            step={1}
+            value={field.priceAmount ?? ''}
+            placeholder="0"
+            title="Added to the event ticket price when this box is checked. Event currency."
+            onChange={(e) => {
+              const raw = e.target.value.trim()
+              if (!raw) {
+                onPatch({ priceAmount: undefined })
+                return
+              }
+              const n = Number(raw)
+              onPatch({
+                priceAmount: Number.isFinite(n) ? Math.trunc(n) : undefined,
+              })
+            }}
+            onBlur={flushOnBlur}
+          />
+        </label>
+      ) : null}
+
       {OPTION_TYPES.has(field.type) ? (
         <fieldset className="sf-form-builder-constraints">
           <legend>Options + media</legend>
@@ -407,6 +432,30 @@ function FieldSettingsBody({
                     onChange={(e) => {
                       const next = [...(field.options ?? [])]
                       next[index] = { ...opt, label: e.target.value }
+                      onUpdateOptions(next)
+                    }}
+                    onBlur={flushOnBlur}
+                  />
+                </label>
+                <label>
+                  <span>Price add-on</span>
+                  <input
+                    type="number"
+                    step={1}
+                    value={opt.priceAmount ?? ''}
+                    placeholder="0"
+                    title="Added to the event ticket price when this option is chosen. Event currency."
+                    onChange={(e) => {
+                      const next = [...(field.options ?? [])]
+                      const raw = e.target.value.trim()
+                      const priceAmount = raw === '' ? undefined : Number(raw)
+                      next[index] = {
+                        ...opt,
+                        priceAmount:
+                          priceAmount != null && Number.isFinite(priceAmount)
+                            ? Math.trunc(priceAmount)
+                            : undefined,
+                      }
                       onUpdateOptions(next)
                     }}
                     onBlur={flushOnBlur}
