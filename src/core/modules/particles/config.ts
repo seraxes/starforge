@@ -1,4 +1,5 @@
 import { defaultFormConfig } from '@/core/forms/config'
+import { normalizeLocaleTextMap } from '@/core/i18n/locale-text'
 
 import type { LayoutSlotConfig } from '../types'
 
@@ -17,8 +18,10 @@ export type LogoParticleConfig = {
   maxHeight?: number
   /** Optional wrap link (e.g. home). */
   linkUrl?: string
-  /** Text-logo fields (when mode === 'text'). */
+  /** Text-logo fields (when mode === 'text'). Default-locale text. */
   text?: string
+  /** Text logo per locale. */
+  textLocales?: Record<string, string>
   fontFamily?: string
   fontSize?: number
   fontWeight?: number | string
@@ -39,6 +42,8 @@ export type MenuParticleConfig = {
 /** Copyright particle settings. */
 export type CopyrightParticleConfig = {
   text?: string
+  /** Copyright line per locale. */
+  textLocales?: Record<string, string>
   /** `auto` = current calendar year; `manual` = `year` field. */
   yearMode?: 'auto' | 'manual'
   year?: number
@@ -52,6 +57,8 @@ export type SocialLinkItem = {
   platform: string
   url: string
   label?: string
+  /** Visible label per locale. */
+  labelLocales?: Record<string, string>
   /** Optional icon hint (emoji, class name, or short key). */
   icon?: string
 }
@@ -63,8 +70,10 @@ export type SocialParticleConfig = {
 
 /** Login / welcome particle — short note + auth panel (not for branded heroes). */
 export type LoginParticleConfig = {
-  /** Optional override for the short welcome sentence. */
+  /** Optional override for the short welcome sentence. Default locale. */
   welcomeNote?: string
+  /** Welcome sentence per locale. */
+  welcomeNoteLocales?: Record<string, string>
   /** When false, show Sign in CTA + option links only (no embedded form). */
   showForm?: boolean
 }
@@ -83,6 +92,34 @@ export type SpacerParticleConfig = {
   height: number
   /** Optional horizontal size in CSS pixels; omit to span the column. */
   width?: number
+}
+
+/** Account menu avatar silhouette. */
+export type AccountMenuAvatarShape = 'circle' | 'square' | 'hexagon'
+
+/** Account menu particle — avatar chrome only (labels stay in Auth i18n). */
+export type AccountMenuParticleConfig = {
+  /** Avatar silhouette. Default `circle`. */
+  avatarShape: AccountMenuAvatarShape
+  /** Avatar edge length in CSS pixels. Default 36. */
+  avatarSize: number
+}
+
+const ACCOUNT_MENU_AVATAR_SIZE_MIN = 20
+const ACCOUNT_MENU_AVATAR_SIZE_MAX = 96
+
+export function clampAccountMenuAvatarSize(raw: unknown, fallback = 36): number {
+  const n = Number(raw)
+  if (!Number.isFinite(n)) return fallback
+  return Math.max(
+    ACCOUNT_MENU_AVATAR_SIZE_MIN,
+    Math.min(ACCOUNT_MENU_AVATAR_SIZE_MAX, Math.round(n)),
+  )
+}
+
+export function normalizeAccountMenuAvatarShape(raw: unknown): AccountMenuAvatarShape {
+  if (raw === 'square' || raw === 'hexagon' || raw === 'circle') return raw
+  return 'circle'
 }
 
 export function defaultLogoConfig(): LogoParticleConfig {
@@ -153,6 +190,13 @@ export function defaultSpacerConfig(): SpacerParticleConfig {
   }
 }
 
+export function defaultAccountMenuConfig(): AccountMenuParticleConfig {
+  return {
+    avatarShape: 'circle',
+    avatarSize: 36,
+  }
+}
+
 export function defaultConfigForModule(moduleId: string): LayoutSlotConfig | undefined {
   switch (moduleId) {
     case 'custom':
@@ -178,6 +222,8 @@ export function defaultConfigForModule(moduleId: string): LayoutSlotConfig | und
       return { ...defaultLocaleSwitcherConfig() }
     case 'spacer':
       return { ...defaultSpacerConfig() }
+    case 'account-menu':
+      return { ...defaultAccountMenuConfig() }
     default:
       return undefined
   }
@@ -187,6 +233,7 @@ export function readLoginConfig(config: LayoutSlotConfig | undefined): LoginPart
   const c = config ?? {}
   return {
     welcomeNote: typeof c.welcomeNote === 'string' ? c.welcomeNote : '',
+    welcomeNoteLocales: normalizeLocaleTextMap(c.welcomeNoteLocales),
     showForm: c.showForm !== false,
   }
 }
@@ -212,6 +259,7 @@ export function readLogoConfig(config: LayoutSlotConfig | undefined): LogoPartic
     maxHeight: Number.isFinite(maxHeight) && maxHeight > 0 ? Math.round(maxHeight) : undefined,
     linkUrl: typeof c.linkUrl === 'string' ? c.linkUrl : '',
     text: typeof c.text === 'string' ? c.text : 'Starforge',
+    textLocales: normalizeLocaleTextMap(c.textLocales),
     fontFamily: typeof c.fontFamily === 'string' ? c.fontFamily : '',
     fontSize: Number.isFinite(fontSize) && fontSize > 0 ? Math.round(fontSize) : 28,
     fontWeight,
@@ -234,6 +282,7 @@ export function readCopyrightConfig(config: LayoutSlotConfig | undefined): Copyr
   const year = Number(c.year)
   return {
     text: typeof c.text === 'string' ? c.text : 'All rights reserved.',
+    textLocales: normalizeLocaleTextMap(c.textLocales),
     yearMode: c.yearMode === 'manual' ? 'manual' : 'auto',
     year: Number.isFinite(year) ? Math.round(year) : new Date().getFullYear(),
     linkUrl: typeof c.linkUrl === 'string' ? c.linkUrl : '',
@@ -256,6 +305,7 @@ export function readSocialConfig(config: LayoutSlotConfig | undefined): SocialPa
       platform: platform || 'Link',
       url: url || '#',
       label: typeof row.label === 'string' ? row.label : '',
+      labelLocales: normalizeLocaleTextMap(row.labelLocales),
       icon: typeof row.icon === 'string' ? row.icon : '',
     })
   }
@@ -284,4 +334,15 @@ export function readSpacerConfig(config: LayoutSlotConfig | undefined): SpacerPa
   const width =
     Number.isFinite(widthRaw) && widthRaw > 0 ? Math.min(2400, Math.round(widthRaw)) : undefined
   return width != null ? { height, width } : { height }
+}
+
+export function readAccountMenuConfig(
+  config: LayoutSlotConfig | undefined,
+): AccountMenuParticleConfig {
+  const c = config ?? {}
+  const defaults = defaultAccountMenuConfig()
+  return {
+    avatarShape: normalizeAccountMenuAvatarShape(c.avatarShape),
+    avatarSize: clampAccountMenuAvatarSize(c.avatarSize, defaults.avatarSize),
+  }
 }

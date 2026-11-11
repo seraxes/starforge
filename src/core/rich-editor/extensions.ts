@@ -30,37 +30,45 @@ export const SfImage = Image.extend({
   },
 })
 
-export type RichEditorPreset = 'full' | 'compact'
+export type RichEditorPreset = 'full' | 'compact' | 'email'
 
 export function createRichEditorExtensions(options?: {
   preset?: RichEditorPreset
   placeholder?: string
 }): Extensions {
   const preset = options?.preset ?? 'full'
-  const headingLevels: (1 | 2 | 3 | 4)[] = preset === 'compact' ? [2, 3] : [1, 2, 3, 4]
+  const headingLevels: (1 | 2 | 3 | 4)[] =
+    preset === 'compact' || preset === 'email' ? [2, 3] : [1, 2, 3, 4]
+  const webExtras = preset === 'full'
 
   return [
     StarterKit.configure({
       heading: { levels: headingLevels },
-      codeBlock: preset === 'full' ? {} : false,
-      blockquote: preset === 'full' ? {} : false,
-      horizontalRule: preset === 'full' ? {} : false,
+      codeBlock: webExtras ? {} : false,
+      blockquote: webExtras ? {} : false,
+      horizontalRule: webExtras ? {} : false,
     }),
     Underline,
-    TextStyle,
-    Color,
+    // Color mark is web-only — email clients are inconsistent; email preset stays semantic.
+    ...(preset === 'email' ? [] : [TextStyle, Color]),
     Link.configure({
       openOnClick: false,
-      HTMLAttributes: {
-        rel: 'noopener noreferrer',
-        target: '_blank',
-      },
+      HTMLAttributes:
+        preset === 'email'
+          ? {}
+          : {
+              rel: 'noopener noreferrer',
+              target: '_blank',
+            },
     }),
     SfImage.configure({
       allowBase64: false,
-      HTMLAttributes: {
-        class: 'sf-rich-img',
-      },
+      HTMLAttributes:
+        preset === 'email'
+          ? {}
+          : {
+              class: 'sf-rich-img',
+            },
     }),
     TextAlign.configure({
       types: ['heading', 'paragraph'],
@@ -68,6 +76,6 @@ export function createRichEditorExtensions(options?: {
     Placeholder.configure({
       placeholder: options?.placeholder ?? 'Write content…',
     }),
-    ...(preset === 'full' ? [SfCallout, SfVideo, SfGallery] : []),
+    ...(webExtras ? [SfCallout, SfVideo, SfGallery] : []),
   ]
 }

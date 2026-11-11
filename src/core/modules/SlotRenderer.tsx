@@ -12,6 +12,8 @@ type Props = {
   sectionId: LayoutPositionId
   slot: LayoutSlot
   pageContent?: React.ReactNode
+  /** Active outline id for content-locale keys. */
+  layoutId?: string
 }
 
 /**
@@ -19,7 +21,7 @@ type Props = {
  * Site Settings → Modules per-id toggles gate public render (required chrome always on).
  * Slot `accessTags` (public / registered / group:<id>) filter viewing like Nav (ANY match).
  */
-export async function SlotRenderer({ sectionId, slot, pageContent }: Props) {
+export async function SlotRenderer({ sectionId, slot, pageContent, layoutId }: Props) {
   if (slot.enabled === false) return null
 
   await ensureModulesRegistered()
@@ -73,6 +75,7 @@ export async function SlotRenderer({ sectionId, slot, pageContent }: Props) {
     settings,
     slot,
     pageContent,
+    layoutId,
   })
   if (rendered == null || rendered === false) return null
 

@@ -8,7 +8,8 @@ import { AccountSecurityPanel } from './account-security-panel'
 
 export const metadata = {
   title: 'Account security — Starforge',
-  description: 'Manage two-factor authentication and recovery codes for your Starforge account.',
+  description:
+    'Manage two-factor authentication, download your data, or delete your Starforge account.',
 }
 
 export default async function AccountSecurityPage() {
@@ -26,9 +27,8 @@ export default async function AccountSecurityPage() {
         <h1>Account security</h1>
         <p className="lede">
           Signed in as <strong>{user.email}</strong>
-          {user.name ? <> ({user.name})</> : null}. Enable authenticator 2FA (Better Auth{' '}
-          <code>twoFactor</code> plugin) and keep recovery codes offline. Password reset and
-          passwordless sign-in use the same Mailer.
+          {user.name ? <> ({user.name})</> : null}. Enable authenticator 2FA and keep recovery
+          codes offline. You can also download your account data or delete your account below.
         </p>
         <AccountSecurityPanel twoFactorEnabled={Boolean(user.twoFactorEnabled)} />
         <p className="auth-switch">

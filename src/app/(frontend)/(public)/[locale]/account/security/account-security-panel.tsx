@@ -4,6 +4,10 @@ import React, { useActionState, useMemo } from 'react'
 import QRCode from 'react-qr-code'
 
 import {
+  deleteAccountAction,
+  type DeleteAccountActionState,
+} from '@/core/auth/account-actions'
+import {
   disableTwoFactorAction,
   enableTwoFactorAction,
   regenerateBackupCodesAction,
@@ -12,6 +16,7 @@ import {
 } from '@/core/auth/two-factor-actions'
 
 const initial: TwoFactorActionState = {}
+const deleteInitial: DeleteAccountActionState = {}
 
 function secretFromTotpUri(uri: string | undefined): string | null {
   if (!uri) return null
@@ -31,6 +36,10 @@ export function AccountSecurityPanel({ twoFactorEnabled }: { twoFactorEnabled: b
     regenerateBackupCodesAction,
     initial,
   )
+  const [deleteState, deleteAction, deletePending] = useActionState(
+    deleteAccountAction,
+    deleteInitial,
+  )
 
   const totpURI = enableState.totpURI
   const enrollBackupCodes = enableState.backupCodes
@@ -44,7 +53,12 @@ export function AccountSecurityPanel({ twoFactorEnabled }: { twoFactorEnabled: b
   if (showEnroll) statusEnabled = false
 
   const alert =
-    enableState.error || verifyState.error || disableState.error || regenState.error || null
+    enableState.error ||
+    verifyState.error ||
+    disableState.error ||
+    regenState.error ||
+    deleteState.error ||
+    null
   const notice =
     verifyState.success ||
     disableState.success ||
@@ -183,6 +197,36 @@ export function AccountSecurityPanel({ twoFactorEnabled }: { twoFactorEnabled: b
           </form>
         </>
       ) : null}
+
+      <section className="auth-account-data" aria-labelledby="auth-account-data-heading">
+        <h2 id="auth-account-data-heading" className="auth-account-data-title">
+          Your data
+        </h2>
+        <p className="auth-hint">
+          Download a JSON copy of your account (and profile when Profiles is on). Deleting your
+          account is permanent and requires your current password.
+        </p>
+        <form className="auth-form" action={deleteAction} noValidate>
+          <label>
+            Current password (required to delete)
+            <input
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              required
+              disabled={deletePending}
+            />
+          </label>
+          <div className="page-settings-actions auth-account-data-actions">
+            <a href="/api/account/download" className="gantry-btn" download>
+              Download my data
+            </a>
+            <button type="submit" className="gantry-btn" disabled={deletePending}>
+              {deletePending ? 'Deleting…' : 'Delete my account'}
+            </button>
+          </div>
+        </form>
+      </section>
     </div>
   )
 }

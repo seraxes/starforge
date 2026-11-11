@@ -49,6 +49,12 @@ export type SiteChromeDocument = {
   /** Show Account security / 2FA CTAs and allow enrollment links. */
   authTwoFactorEnabled: boolean
   /**
+   * When true, Better Auth requires a verified email before password sign-in
+   * and sends a verification link on register (Mailer via sendAuthMail).
+   * Default off — existing sites keep signing in without a verify step.
+   */
+  authRequireEmailVerification: boolean
+  /**
    * Default success paths after auth (Site Settings → Auth).
    * Site-relative only; `?next=` / form `next` still overrides login deep links.
    */

@@ -7,25 +7,35 @@ import 'server-only'
 import { moduleMessageLoaders } from '@/generated/module-registry.server'
 import { getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
-import { DEFAULT_LOCALE } from './locales'
+import { BOOTSTRAP_LOCALES, DEFAULT_LOCALE } from './locales'
 import { mergeMessageTrees, wrapModuleMessages, type MessageTree } from './merge-messages'
 
+/**
+ * Only bootstrap packs ship under `./messages/`. Admin-added codes must not
+ * hit `import(\`./messages/${locale}.json\`)` — Turbopack/webpack can hang the
+ * whole process resolving a missing file until the server is restarted.
+ */
+function coreMessageLocale(locale: string): string {
+  return (BOOTSTRAP_LOCALES as readonly string[]).includes(locale)
+    ? locale
+    : DEFAULT_LOCALE
+}
+
 async function loadCoreCatalog(locale: string): Promise<MessageTree> {
-  try {
-    return (await import(`./messages/${locale}.json`)).default as MessageTree
-  } catch {
-    return (await import(`./messages/${DEFAULT_LOCALE}.json`)).default as MessageTree
-  }
+  const code = coreMessageLocale(locale)
+  return (await import(`./messages/${code}.json`)).default as MessageTree
 }
 
 async function loadModuleLeaf(
   load: (locale: string) => Promise<Record<string, unknown>>,
   locale: string,
 ): Promise<MessageTree> {
+  // Same bootstrap-only rule as Core catalogs — avoid probing missing packs.
+  const code = coreMessageLocale(locale)
   try {
-    return (await load(locale)) as MessageTree
+    return (await load(code)) as MessageTree
   } catch {
-    if (locale === DEFAULT_LOCALE) return {}
+    if (code === DEFAULT_LOCALE) return {}
     try {
       return (await load(DEFAULT_LOCALE)) as MessageTree
     } catch {

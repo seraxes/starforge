@@ -39,6 +39,7 @@ export default async function AdminSettingsAuthPage() {
           emailOtpEnabled: chrome.authEmailOtpEnabled,
           rememberMeEnabled: chrome.authRememberMeEnabled,
           twoFactorEnabled: chrome.authTwoFactorEnabled,
+          requireEmailVerification: chrome.authRequireEmailVerification,
         }}
         successUrls={{
           postLoginUrl: chrome.authPostLoginUrl,

@@ -75,6 +75,10 @@ export const disableTwoFactorSchema = z.object({
   password: z.string().min(1, 'Current password is required').max(128),
 })
 
+export const deleteAccountSchema = z.object({
+  password: z.string().min(1, 'Current password is required').max(128),
+})
+
 export const verifyTotpEnrollSchema = z.object({
   code: z
     .string()

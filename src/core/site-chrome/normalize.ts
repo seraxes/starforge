@@ -115,6 +115,10 @@ export function normalizeSiteChrome(raw: unknown): SiteChromeDocument {
       src.authTwoFactorEnabled,
       DEFAULT_SITE_CHROME.authTwoFactorEnabled,
     ),
+    authRequireEmailVerification: asBool(
+      src.authRequireEmailVerification,
+      DEFAULT_SITE_CHROME.authRequireEmailVerification,
+    ),
     authPostLoginUrl: asSafeRelativePath(
       src.authPostLoginUrl,
       DEFAULT_AUTH_POST_LOGIN_URL,

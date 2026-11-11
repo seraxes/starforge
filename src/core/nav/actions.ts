@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 import { requireAdminArea, type AclAdminResourceKey } from '@/core/acl'
 import { invalidateNavMenu } from '@/core/content/revalidate'
 import { DEFAULT_NAV_MENU_ID } from '@/core/db'
+import { normalizeLocaleTextMap } from '@/core/i18n/locale-text'
 
 import {
   createNavMenuItem,
@@ -170,6 +171,17 @@ export async function deleteNavMenuAction(
   return { ok: true, message: `Menu “${id}” deleted.` }
 }
 
+function localeMapFromField(raw: string): Record<string, string> | undefined {
+  const trimmed = raw.trim()
+  if (!trimmed) return undefined
+  try {
+    const map = normalizeLocaleTextMap(JSON.parse(trimmed) as unknown)
+    return Object.keys(map).length > 0 ? map : undefined
+  } catch {
+    return undefined
+  }
+}
+
 function parseItemsFromForm(formData: FormData): NavMenuItem[] {
   const ids = formData.getAll('itemId').map((v) => String(v ?? ''))
   const labels = formData.getAll('itemLabel').map((v) => String(v ?? ''))
@@ -182,6 +194,9 @@ function parseItemsFromForm(formData: FormData): NavMenuItem[] {
   const cssClasses = formData.getAll('itemCssClass').map((v) => String(v ?? ''))
   const browserTitles = formData.getAll('itemBrowserTitle').map((v) => String(v ?? ''))
   const pageHeadings = formData.getAll('itemPageHeading').map((v) => String(v ?? ''))
+  const labelsJson = formData.getAll('itemLabels').map((v) => String(v ?? ''))
+  const browserTitlesJson = formData.getAll('itemBrowserTitles').map((v) => String(v ?? ''))
+  const pageHeadingsJson = formData.getAll('itemPageHeadings').map((v) => String(v ?? ''))
   const layoutIds = formData.getAll('itemLayoutId').map((v) => String(v ?? ''))
   // One JSON array string per item (multi-select access tags).
   const accessTagsRaw = formData.getAll('itemAccessTags').map((v) => String(v ?? ''))
@@ -219,7 +234,10 @@ function parseItemsFromForm(formData: FormData): NavMenuItem[] {
         parentId: (parentIds[i] ?? '').trim() || null,
         cssClass: cssClasses[i] || null,
         browserTitle: browserTitles[i] || null,
+        browserTitles: localeMapFromField(browserTitlesJson[i] ?? ''),
         pageHeading: pageHeadings[i] || null,
+        pageHeadings: localeMapFromField(pageHeadingsJson[i] ?? ''),
+        labels: localeMapFromField(labelsJson[i] ?? ''),
         layoutId: (layoutIds[i] ?? '').trim() || null,
         accessTags,
         sortOrder: i,

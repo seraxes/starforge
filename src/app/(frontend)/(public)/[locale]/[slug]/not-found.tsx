@@ -1,22 +1,8 @@
-import Link from 'next/link'
 import React from 'react'
 
+import { SiteNotFoundView } from '@/components/SiteNotFoundView'
+
+/** CMS slug 404 — same active-skin 404 outline as the locale not-found. */
 export default function CmsPageNotFound() {
-  return (
-    <div className="cms-not-found">
-      <p className="brand">
-        <Link href="/">Starforge</Link>
-      </p>
-      <h1>Page not found</h1>
-      <p className="lede">
-        No published CMS page matches this URL. Drafts stay private until you Publish them in{' '}
-        <Link href="/cms/admin">/cms/admin</Link>.
-      </p>
-      <div className="links">
-        <Link className="secondary" href="/">
-          Back to home
-        </Link>
-      </div>
-    </div>
-  )
+  return <SiteNotFoundView />
 }

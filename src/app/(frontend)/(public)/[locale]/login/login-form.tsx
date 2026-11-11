@@ -14,6 +14,7 @@ import type { AuthPublicOptions } from '@/components/AuthOptionsLinks'
 import { AuthCaptchaFields } from '@/core/security/captcha/AuthCaptchaFields'
 import type { ResolvedCaptcha } from '@/core/security/captcha/types'
 
+import { GoogleSignInButton } from './google-sign-in-button'
 import { type LoginMode, parseLoginMode } from './login-mode'
 
 export type { LoginMode }
@@ -52,14 +53,17 @@ export function LoginForm({
   next,
   resetSuccess,
   magicError,
+  googleError,
   initialMode = 'password',
   showHelperLinks = true,
   captcha = IDLE_CAPTCHA,
   authOptions,
+  googleSignInEnabled = false,
 }: {
   next?: string
   resetSuccess?: boolean
   magicError?: boolean
+  googleError?: boolean
   /** Deep-link from welcome/home CTAs (`?mode=magic|otp|password`). */
   initialMode?: LoginMode
   /** When false, omit forgot-password helpers (parent panel already lists them). */
@@ -68,12 +72,15 @@ export function LoginForm({
   captcha?: ResolvedCaptcha
   /** Site Settings → Auth option gates (default all on). */
   authOptions?: AuthPublicOptions
+  /** Server-only flag: both Google OAuth env keys are set. Never pass the secret. */
+  googleSignInEnabled?: boolean
 }) {
   const magicLinkOn = authOptions?.magicLink !== false
   const emailOtpOn = authOptions?.emailOtp !== false
   const rememberMeOn = authOptions?.rememberMe !== false
   const forgotPasswordOn = authOptions?.forgotPassword !== false
   const forgotUsernameOn = authOptions?.forgotUsername !== false
+  const requireEmailVerification = authOptions?.requireEmailVerification === true
   const showModeTabs = magicLinkOn || emailOtpOn
 
   const [mode, setMode] = useState<LoginMode>(() =>
@@ -110,6 +117,20 @@ export function LoginForm({
         <p className="auth-error" role="alert">
           That magic link was invalid or expired. Request a new one below.
         </p>
+      ) : null}
+      {googleError ? (
+        <p className="auth-error" role="alert">
+          Google sign-in was cancelled or failed. Try again or use email below.
+        </p>
+      ) : null}
+
+      {googleSignInEnabled ? (
+        <>
+          <GoogleSignInButton callbackURL={next || '/'} />
+          <p className="auth-divider" role="separator">
+            or
+          </p>
+        </>
       ) : null}
 
       {showModeTabs ? (
@@ -152,6 +173,12 @@ export function LoginForm({
         <form className="auth-form" action={passwordAction} noValidate>
           {next || passwordState.next ? (
             <input type="hidden" name="next" value={passwordState.next ?? next} />
+          ) : null}
+          {requireEmailVerification ? (
+            <p className="auth-hint">
+              New accounts must verify email before password sign-in. Signing in again resends the
+              link if needed.
+            </p>
           ) : null}
           <label>
             Email

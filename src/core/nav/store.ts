@@ -293,7 +293,12 @@ export async function replaceNavMenuItems(
   menuId: string,
   items: NavMenuItem[],
 ): Promise<{ ok: true; document: NavMenuDocument } | { error: string }> {
-  const document = normalizeNavMenuDocument({ version: 1, items })
+  const { syncNavItemLocalesToFiles } = await import('@/core/i18n/content-locales/sync')
+  const syncedItems = (await syncNavItemLocalesToFiles({
+    menuId,
+    items: items.map((item) => ({ ...item }) as Record<string, unknown>),
+  })) as NavMenuItem[]
+  const document = normalizeNavMenuDocument({ version: 1, items: syncedItems })
   const saved = await saveNavMenuDocument(menuId, document)
   if ('error' in saved) return saved
   return { ok: true, document }

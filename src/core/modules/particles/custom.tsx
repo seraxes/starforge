@@ -1,5 +1,9 @@
 import React from 'react'
 
+import { buildLayoutSlotKey } from '@/core/i18n/content-locale-keys'
+import { normalizeLocaleTextMap } from '@/core/i18n/locale-text'
+import { pickContentLocaleText } from '@/core/i18n/locale-text.server'
+
 import type { StarforgeModule } from '../types'
 
 /**
@@ -12,11 +16,20 @@ export const customModule: StarforgeModule = {
   description: 'HTML + CSS (+ JS stub for developer-admins later).',
   builtin: true,
   defaultWidth: 100,
-  render: ({ slot }) => {
-    const html = typeof slot.config?.html === 'string' ? slot.config.html : ''
+  render: async ({ slot, layoutId }) => {
+    const outlineId = layoutId || 'default'
+    const html = await pickContentLocaleText(
+      buildLayoutSlotKey({ layoutId: outlineId, slotId: slot.id, field: 'html' }),
+      typeof slot.config?.html === 'string' ? slot.config.html : '',
+      normalizeLocaleTextMap(slot.config?.htmlLocales),
+    )
     const css = typeof slot.config?.css === 'string' ? slot.config.css : ''
     const js = typeof slot.config?.js === 'string' ? slot.config.js.trim() : ''
-    const title = typeof slot.config?.title === 'string' ? slot.config.title : ''
+    const title = await pickContentLocaleText(
+      buildLayoutSlotKey({ layoutId: outlineId, slotId: slot.id, field: 'title' }),
+      typeof slot.config?.title === 'string' ? slot.config.title : '',
+      normalizeLocaleTextMap(slot.config?.titleLocales),
+    )
     const scope = `sf-custom-${slot.id}`
 
     if (!html.trim() && !css.trim()) {

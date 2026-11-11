@@ -2,6 +2,10 @@
 
 Shared automatic / conditional email pack. **Transport = Core Mailer** (Site Chrome enable / provider / From; secrets in env). Modules emit named triggers; this pack matches rules + templates and calls `Mailer.send`.
 
+## Requires
+
+- **`product:rich-editor`** — HTML template bodies use `RichEditor` with `preset="email"` + `sanitizeEmailHtml` (absolute image/link URLs on save). TipTap is not imported here; bind only via `@/modules/rich-editor/api`. Not a marketing/MJML designer.
+
 ## Public API
 
 ```ts
@@ -23,7 +27,7 @@ Thin `sf_email_sends` rows are written on every Core Mailer send (success / fail
 ## Admin
 
 - `/admin/email` — rules (filter by module category)
-- `/admin/email/templates` — templates + test send
+- `/admin/email/templates` — templates + test send (plain text + optional email-safe HTML via Rich editor)
 - `/admin/email/sends` — recent send log (when / to / type / status / title)
 
-Toggle under **Settings → Modules**. Auth recovery Mailer paths stay direct in v1 (triggers are registered for later).
+Toggle under **Settings → Modules**. Email Manager’s manifest `requires: ['product:rich-editor']`. Auth recovery Mailer paths stay direct in v1 (triggers are registered for later).

@@ -1,8 +1,6 @@
 import React from 'react'
 import Script from 'next/script'
 
-import { outlineBodyClass, skinBodyClass } from '@/core/skin/css-scope'
-
 import { ensureAtomsRegistered, getRegisteredAtom } from './atoms'
 import { BodyAttributesClientImpl } from './body-attributes-client'
 import { resolveFontAwesomeEmit } from './font-awesome'
@@ -246,32 +244,14 @@ export function BodyAttributesApplier({
   skinId: string
   outlineId: string
 }) {
-  const layoutClass =
-    sectionsLayout === 'boxed' ? 'sf-sections-boxed' : 'sf-sections-fullwidth'
-  const skinClass = skinBodyClass(skinId)
-  const outlineClass = outlineBodyClass(outlineId)
-  const classTokens = bodyClasses
-    .split(/\s+/)
-    .map((c) => c.trim())
-    .filter(Boolean)
-  const syncScript = `(function(){var b=document.body;if(!b)return;Array.prototype.slice.call(b.classList).forEach(function(n){if(/^sf-skin-/.test(n)||/^sf-outline-/.test(n)||/^sf-sections-/.test(n))b.classList.remove(n);});var add=${JSON.stringify([skinClass, outlineClass, layoutClass, ...classTokens])};for(var i=0;i<add.length;i++){if(add[i])b.classList.add(add[i]);}${
-    bodyId ? `b.id=${JSON.stringify(bodyId)};` : ''
-  }})();`
-
   return (
-    <>
-      <script
-        // Server-emitted so outline body classes exist before section CSS paints.
-        dangerouslySetInnerHTML={{ __html: syncScript }}
-      />
-      <BodyAttributesClientImpl
-        bodyId={bodyId}
-        bodyClasses={bodyClasses}
-        bodyTagAttributes={bodyTagAttributes}
-        sectionsLayout={sectionsLayout}
-        skinId={skinId}
-        outlineId={outlineId}
-      />
-    </>
+    <BodyAttributesClientImpl
+      bodyId={bodyId}
+      bodyClasses={bodyClasses}
+      bodyTagAttributes={bodyTagAttributes}
+      sectionsLayout={sectionsLayout}
+      skinId={skinId}
+      outlineId={outlineId}
+    />
   )
 }

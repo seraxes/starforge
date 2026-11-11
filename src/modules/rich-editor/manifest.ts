@@ -10,7 +10,7 @@ export default defineStarforgeModule({
   kind: 'product',
   label: 'Rich editor',
   description:
-    'Shared TipTap rich editor (sanitized HTML). Toggle in Site Settings → Modules. Bind into Events, Pages, Email, and other content fields. Optional Lexical: product:lexical-editor.',
+    'Shared TipTap rich editor (sanitized HTML). Toggle in Site Settings → Modules. Bind into Events, Pages, Email Manager (preset=email), and other content fields. Optional Lexical: product:lexical-editor.',
   version: '0.2.0',
   defaultEnabled: true,
   featureFlag: 'richEditor',

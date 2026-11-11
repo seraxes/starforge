@@ -3,6 +3,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { notFound, redirect as nextRedirect } from 'next/navigation'
 
 import { AuthWelcomePanel } from '@/components/AuthWelcomePanel'
+import { isGoogleSignInConfigured } from '@/core/auth/google-sign-in'
 import { getAppSession } from '@/core/auth/session'
 import { resolvePostLoginUrl } from '@/core/auth/success-urls'
 import { isValidLocaleCode, redirect as i18nRedirect } from '@/core/i18n'
@@ -52,6 +53,7 @@ export default async function LoginPage({ params, searchParams }: Props) {
     getTranslations('Auth'),
     resolvePostLoginUrl(query.next),
   ])
+  const googleSignInEnabled = isGoogleSignInConfigured()
   if (session) {
     redirectAfterLogin(next, locale)
   }
@@ -68,8 +70,10 @@ export default async function LoginPage({ params, searchParams }: Props) {
         next={next === defaultLogin ? undefined : next}
         resetSuccess={query.reset === '1'}
         magicError={query.error === 'magic_link'}
+        googleError={query.error === 'google'}
         initialMode={parseLoginMode(query.mode)}
         showForm
+        googleSignInEnabled={googleSignInEnabled}
         authOptions={{
           forgotPassword: chrome.authForgotPasswordEnabled,
           forgotUsername: chrome.authForgotUsernameEnabled,
@@ -77,6 +81,7 @@ export default async function LoginPage({ params, searchParams }: Props) {
           emailOtp: chrome.authEmailOtpEnabled,
           rememberMe: chrome.authRememberMeEnabled,
           twoFactor: chrome.authTwoFactorEnabled,
+          requireEmailVerification: chrome.authRequireEmailVerification,
         }}
       />
     </div>

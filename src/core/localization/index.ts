@@ -9,4 +9,5 @@ export {
   normalizeLocalizationSettings,
 } from './normalize'
 export { getLocalizationSettings, saveLocalizationSettings } from './store'
+export { isMultilangEnabled } from './multilang'
 export type { LocaleCatalogEntry, LocalizationSettings } from './types'

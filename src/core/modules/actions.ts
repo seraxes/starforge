@@ -1668,7 +1668,12 @@ export async function updateSlotConfigAction(
     }
   }
 
-  const config = parsed.data as LayoutSlotConfig
+  const { syncLayoutSlotLocalesToFiles } = await import('@/core/i18n/content-locales/sync')
+  const syncedConfig = (await syncLayoutSlotLocalesToFiles({
+    layoutId,
+    slotId,
+    config: { ...(parsed.data as Record<string, unknown>) },
+  })) as LayoutSlotConfig
 
   const state = await mutateLayout(formData, (doc) => {
     const slotFound = findSlot(doc, sectionId, rowId, slotId)
@@ -1676,13 +1681,14 @@ export async function updateSlotConfigAction(
     if (slotFound.slot.moduleId !== moduleId) {
       return { error: `Particle type mismatch for “${moduleId}”.` }
     }
-    slotFound.slot.config = config
+    slotFound.slot.config = syncedConfig
     return doc
   })
 
   if (state.ok) {
     state.message = `${getRegisteredModule(moduleId)?.name ?? moduleId} saved.`
-    state.config = config
+    // Persist stripped maps to disk/DB; return client config with maps so LocaleInput stays hydrated.
+    state.config = parsed.data as LayoutSlotConfig
   }
   return state
 }

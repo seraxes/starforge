@@ -64,10 +64,12 @@ async function SectionBlock({
   section,
   pageContent,
   pageDefault,
+  layoutId,
 }: {
   section: LayoutSection
   pageContent: React.ReactNode
   pageDefault: 'fullwidth' | 'boxed'
+  layoutId?: string
 }) {
   const rows = sortByOrder(section.rows)
   const isFooter = isFooterLayoutSection(section)
@@ -82,7 +84,13 @@ async function SectionBlock({
   const inner = (
     <>
       {rows.map((row) => (
-        <LayoutRowView key={row.id} sectionId={section.id} row={row} pageContent={pageContent} />
+        <LayoutRowView
+          key={row.id}
+          sectionId={section.id}
+          row={row}
+          pageContent={pageContent}
+          layoutId={layoutId}
+        />
       ))}
     </>
   )
@@ -157,10 +165,12 @@ function LayoutRowView({
   sectionId,
   row,
   pageContent,
+  layoutId,
 }: {
   sectionId: string
   row: LayoutRow
   pageContent: React.ReactNode
+  layoutId?: string
 }) {
   const slots = sortByOrder(row.slots)
   // Skip empty drop rows on the public site (admin opens them with + row).
@@ -173,6 +183,7 @@ function LayoutRowView({
           sectionId={sectionId}
           slot={slot}
           pageContent={pageContent}
+          layoutId={layoutId}
         />
       ))}
     </div>
@@ -276,6 +287,7 @@ export async function PublicLayoutBody({
           section={chunk.section}
           pageContent={children}
           pageDefault={pageDefault}
+          layoutId={resolvedLayoutId}
         />
       ) : (
         <div
@@ -288,6 +300,7 @@ export async function PublicLayoutBody({
               section={section}
               pageContent={children}
               pageDefault={pageDefault}
+              layoutId={resolvedLayoutId}
             />
           ))}
         </div>

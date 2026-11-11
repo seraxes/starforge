@@ -5,7 +5,12 @@ Shared **TipTap** content editor for Starforge module fields. Canonical storage 
 ## Bind from another module
 
 ```tsx
-import { RichEditor, RichContent, sanitizeRichHtml } from '@/modules/rich-editor/api'
+import {
+  RichEditor,
+  RichContent,
+  sanitizeRichHtml,
+  sanitizeEmailHtml,
+} from '@/modules/rich-editor/api'
 import { isRichEditorEnabled } from '@/modules/rich-editor/api.server' // server pages only
 
 // Server page: pass the Site Settings → Modules gate
@@ -17,16 +22,30 @@ const richOn = isRichEditorEnabled(settings)
   defaultValue={row.description}
   label="Description"
   enabled={richOn}
+  preset="full" // or "compact" | "email"
 />
 
-// Persist:
+// Persist (web):
 const description = sanitizeRichHtml(String(formData.get('description') ?? ''))
 
-// Public / preview:
+// Persist (email templates — Email Manager):
+const bodyHtml = sanitizeEmailHtml(raw, { baseUrl: appOrigin() })
+
+// Public / preview (web only — do not use RichContent for Mailer HTML):
 <RichContent html={event.description} />
 ```
 
-Toggle: **Site Settings → Modules → Rich editor** (`product:rich-editor` / `richEditor`). When `enabled={false}`, TipTap falls back to a plain textarea.
+### Presets
+
+| Preset | Use |
+| --- | --- |
+| `full` | Events / Pages — callout, video, gallery, color, images |
+| `compact` | Shorter toolbar (H2–H3, lists, links; no media blocks by default) |
+| `email` | Transactional HTML for **Email Manager** — no video/gallery/callout/color; email allowlist via `sanitizeEmailHtml` |
+
+**Email Manager** declares `requires: ['product:rich-editor']` and binds `preset="email"`.
+
+Toggle: **Site Settings → Modules → Rich editor** (`product:rich-editor` / `richEditor`). When `enabled={false}`, TipTap falls back to a plain textarea (Email templates show a require notice instead).
 
 ## Engine
 

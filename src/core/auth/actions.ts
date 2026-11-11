@@ -8,6 +8,10 @@ import { and, eq } from 'drizzle-orm'
 import { db, sfAccounts, sfUsers } from '@/core/db'
 import { enforceCaptchaFromFormData } from '@/core/security/captcha'
 import { isRegistrationEnabled } from '@/core/settings'
+import {
+  isAuthEmailVerificationRequired,
+  syncAuthEmailVerificationPolicy,
+} from './email-verification-policy'
 import { sendAccountReminderMail } from './mail'
 import { auth } from './index'
 import {
@@ -134,6 +138,7 @@ export async function registerAction(
   _prev: AuthActionState,
   formData: FormData,
 ): Promise<AuthActionState> {
+  await syncAuthEmailVerificationPolicy()
   const registrationOn = await isRegistrationEnabled()
   if (!registrationOn) {
     return {
@@ -187,6 +192,16 @@ export async function registerAction(
     }
   }
 
+  // When verification is required, Better Auth skips the session — tell the user to open mail.
+  if (isAuthEmailVerificationRequired()) {
+    return {
+      success:
+        'Account created. Check your email for a verification link before signing in.',
+      email: parsed.data.email,
+      name: parsed.data.name,
+    }
+  }
+
   // If auto sign-in did not attach a cookie (proxy/host quirks), sign in once.
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session) {
@@ -216,6 +231,7 @@ export async function loginAction(
   _prev: AuthActionState,
   formData: FormData,
 ): Promise<AuthActionState> {
+  await syncAuthEmailVerificationPolicy()
   const parsed = loginSchema.safeParse({
     email: formData.get('email'),
     password: formData.get('password'),
@@ -270,6 +286,13 @@ export async function loginAction(
       (error as { twoFactorRedirect?: boolean }).twoFactorRedirect
     ) {
       redirect(`/two-factor?next=${encodeURIComponent(next)}`)
+    }
+    if (/email not verified/i.test(message)) {
+      return {
+        error:
+          'That email is not verified yet. Open the link we sent (or sign in again to resend it).',
+        email: parsed.data.email,
+      }
     }
     return {
       error:

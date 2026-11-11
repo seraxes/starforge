@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import { sanitizeRichHtml } from './sanitize'
+import { sanitizeEmailHtml, sanitizeRichHtml } from './sanitize'
 
 describe('sanitizeRichHtml', () => {
   it('returns empty for blank input', () => {
@@ -43,5 +43,46 @@ describe('sanitizeRichHtml', () => {
     assert.match(out, /data-provider="media"/)
     assert.match(out, /data-media-id="99"/)
     assert.match(out, /data-src="\/media\/clip\.mp4"/)
+  })
+})
+
+describe('sanitizeEmailHtml', () => {
+  it('returns empty for blank input', () => {
+    assert.equal(sanitizeEmailHtml(''), '')
+    assert.equal(sanitizeEmailHtml('   '), '')
+    assert.equal(sanitizeEmailHtml(null), '')
+  })
+
+  it('keeps email-safe tags and strips web-only blocks', () => {
+    const out = sanitizeEmailHtml(
+      '<h2>Hello</h2><p>Hi <strong>there</strong></p><div data-sf="video" data-provider="youtube" data-id="x"></div><figure data-sf="gallery"><img src="https://cdn.example/a.jpg" alt="a" /></figure><p class="x" style="color:red; text-align: center">C</p>',
+    )
+    assert.match(out, /<h2>/)
+    assert.match(out, /<strong>/)
+    assert.doesNotMatch(out, /data-sf/)
+    assert.doesNotMatch(out, /<div/i)
+    assert.doesNotMatch(out, /<figure/i)
+    assert.doesNotMatch(out, /class=/)
+    assert.doesNotMatch(out, /color:/)
+    assert.match(out, /text-align:\s*center/)
+  })
+
+  it('strips scripts javascript urls and keeps merge tokens', () => {
+    const out = sanitizeEmailHtml(
+      '<p><a href="javascript:alert(1)">bad</a><a href="{{ticketUrl}}">ok</a></p><img src="data:text/html;base64,xx" alt="" /><img src="{{logoUrl}}" alt="logo" />',
+    )
+    assert.doesNotMatch(out, /javascript:/i)
+    assert.doesNotMatch(out, /data:text/i)
+    assert.match(out, /href="\{\{ticketUrl\}\}"/)
+    assert.match(out, /src="\{\{logoUrl\}\}"/)
+  })
+
+  it('rewrites relative urls when baseUrl is set', () => {
+    const out = sanitizeEmailHtml(
+      '<p><a href="/account">Account</a></p><img src="/media/logo.png" alt="Logo" />',
+      { baseUrl: 'https://starforge.example' },
+    )
+    assert.match(out, /href="https:\/\/starforge\.example\/account"/)
+    assert.match(out, /src="https:\/\/starforge\.example\/media\/logo\.png"/)
   })
 })

@@ -10,7 +10,11 @@
     "fullSignInPage": "Full sign-in page",
     "alreadyHaveAccount": "Already have an account?",
     "backToSignIn": "Back to sign in",
-    "adminSignIn": "Admin sign in"
+    "adminSignIn": "Admin sign in",
+    "accountMenu": "Account",
+    "profile": "Profile",
+    "accountSecurity": "Account security",
+    "signOut": "Sign out"
   },
   "Layout": {
     "offlineAdminBanner": "Site is offline for visitors. You can browse because you are an app admin.",

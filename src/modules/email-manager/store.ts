@@ -6,7 +6,9 @@ import 'server-only'
 
 import { and, asc, eq } from 'drizzle-orm'
 
+import { appOrigin } from '@/core/content/metadata'
 import { db } from '@/core/db'
+import { sanitizeEmailHtml } from '@/core/rich-editor/sanitize'
 
 import { normalizeEmailAudience } from './audience'
 import { normalizeEmailConditionGroup } from './conditions'
@@ -121,7 +123,7 @@ export async function createEmailTemplate(
     : 'other'
   const subject = input.subject.trim().slice(0, 500)
   const bodyText = input.bodyText
-  const bodyHtml = (input.bodyHtml || '').trim()
+  const bodyHtml = sanitizeEmailHtml(input.bodyHtml, { baseUrl: appOrigin() })
   if (!subject) return { error: 'Subject is required.' }
   if (!bodyText.trim() && !bodyHtml) {
     return { error: 'Body text or HTML is required.' }
@@ -163,7 +165,7 @@ export async function updateEmailTemplate(
     : current.moduleCategory
   const subject = input.subject.trim().slice(0, 500)
   const bodyText = input.bodyText
-  const bodyHtml = (input.bodyHtml || '').trim()
+  const bodyHtml = sanitizeEmailHtml(input.bodyHtml, { baseUrl: appOrigin() })
   if (!subject) return { error: 'Subject is required.' }
   if (!bodyText.trim() && !bodyHtml) {
     return { error: 'Body text or HTML is required.' }

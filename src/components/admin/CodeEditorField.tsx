@@ -5,10 +5,11 @@ import CodeMirror from '@uiw/react-codemirror'
 import { css } from '@codemirror/lang-css'
 import { html } from '@codemirror/lang-html'
 import { javascript } from '@codemirror/lang-javascript'
+import { json } from '@codemirror/lang-json'
 
 import { starforgeAdminCmTheme } from './starforge-admin-cm-theme'
 
-export type CodeEditorLanguage = 'html' | 'css' | 'javascript'
+export type CodeEditorLanguage = 'html' | 'css' | 'javascript' | 'json'
 
 type Props = {
   /** Form field name (submitted via hidden input). Omit when the parent owns serialization. */
@@ -23,6 +24,8 @@ type Props = {
   hint?: string
   /** Fired on each edit — use for debounced form autosave. */
   onValueChange?: (value: string) => void
+  /** Trailing label-row control. Localization uses this for the language menu. */
+  labelEnd?: React.ReactNode
 }
 
 function languageExtension(language: CodeEditorLanguage) {
@@ -31,6 +34,8 @@ function languageExtension(language: CodeEditorLanguage) {
       return css()
     case 'javascript':
       return javascript()
+    case 'json':
+      return json()
     case 'html':
     default:
       return html()
@@ -52,6 +57,7 @@ export function CodeEditorField({
   minHeight = 96,
   hint,
   onValueChange,
+  labelEnd,
 }: Props) {
   const [value, setValue] = useState(initialValue)
   const [height, setHeight] = useState(initialHeight)
@@ -67,7 +73,7 @@ export function CodeEditorField({
         <label id={labelId} className="sf-code-field-label">
           {label}
         </label>
-        <span className="sf-code-field-lang">{language}</span>
+        {labelEnd ? <span className="sf-code-field-label-end">{labelEnd}</span> : null}
       </div>
       {hint ? <p className="sf-code-field-hint">{hint}</p> : null}
       {name ? <input type="hidden" name={name} value={value} /> : null}

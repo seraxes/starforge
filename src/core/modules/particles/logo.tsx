@@ -1,6 +1,8 @@
 import React from 'react'
 
 import { Link } from '@/core/i18n/navigation'
+import { buildLayoutSlotKey } from '@/core/i18n/content-locale-keys'
+import { pickContentLocaleText } from '@/core/i18n/locale-text.server'
 import { resolveMediaBind } from '@/core/media/resolve'
 import { isExternalHref } from '@/core/settings/nav'
 
@@ -64,12 +66,21 @@ export const logoModule: StarforgeModule = {
     'Image (library Media id, URL fallback) or text logo (font, size, weight, color). Prefer with Menu particle instead of Site Header brand text.',
   builtin: true,
   defaultWidth: 25,
-  render: async ({ slot }) => {
+  render: async ({ slot, layoutId }) => {
     const cfg = readLogoConfig(slot.config)
     const href = (cfg.linkUrl ?? '').trim()
 
     if (cfg.mode === 'text') {
-      let label = (cfg.text ?? '').trim()
+      const picked = await pickContentLocaleText(
+        buildLayoutSlotKey({
+          layoutId: layoutId || 'default',
+          slotId: slot.id,
+          field: 'text',
+        }),
+        cfg.text ?? '',
+        cfg.textLocales,
+      )
+      let label = picked.trim()
       if (!label) label = await resolveTextLogoFallback()
       const colorParsed = parseCssColorInput(cfg.color ?? '')
       const style: React.CSSProperties = {

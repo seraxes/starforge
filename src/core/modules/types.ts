@@ -167,6 +167,8 @@ export type ModuleRenderContext = {
   slot: LayoutSlot
   /** Page body for the built-in `page-content` particle. */
   pageContent?: ReactNode
+  /** Active outline id — used for content-locale keys. */
+  layoutId?: string
 }
 
 /**

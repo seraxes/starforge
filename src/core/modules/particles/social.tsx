@@ -1,7 +1,8 @@
 import React from 'react'
 import Link from 'next/link'
 
-import type { StarforgeModule } from '../types'
+import { buildLayoutSlotKey } from '@/core/i18n/content-locale-keys'
+import { pickContentLocaleText } from '@/core/i18n/locale-text.server'
 import { readSocialConfig } from './config'
 
 /**
@@ -13,7 +14,7 @@ export const socialModule: StarforgeModule = {
   description: 'List of social links (platform, URL, optional icon/label).',
   builtin: true,
   defaultWidth: 50,
-  render: ({ slot }) => {
+  render: async ({ slot, layoutId }) => {
     const { items } = readSocialConfig(slot.config)
     if (!items || items.length === 0) {
       return (
@@ -23,11 +24,23 @@ export const socialModule: StarforgeModule = {
       )
     }
 
+    const outlineId = layoutId || 'default'
     return (
       <nav className="sf-social" data-sf-particle="social" data-sf-slot={slot.id} aria-label="Social links">
         <ul className="sf-social-list">
-          {items.map((item) => {
-            const label = (item.label || item.platform || 'Link').trim()
+          {await Promise.all(items.map(async (item) => {
+            const label = (
+              await pickContentLocaleText(
+                buildLayoutSlotKey({
+                  layoutId: outlineId,
+                  slotId: slot.id,
+                  field: 'label',
+                  itemId: item.id,
+                }),
+                item.label || item.platform || 'Link',
+                item.labelLocales,
+              )
+            ).trim()
             const icon = (item.icon ?? '').trim()
             return (
               <li key={item.id}>
@@ -46,7 +59,7 @@ export const socialModule: StarforgeModule = {
                 </Link>
               </li>
             )
-          })}
+          }))}
         </ul>
       </nav>
     )

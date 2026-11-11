@@ -3,6 +3,8 @@
 import React, { useActionState, useEffect, useState } from 'react'
 
 import { CodeEditorField } from '@/components/admin/CodeEditorField'
+import { normalizeLocaleTextMap } from '@/core/i18n/locale-text'
+import { LocaleInput, LocaleLanguageControl } from '@/core/localization/LocaleInput'
 import {
   updateSlotConfigAction,
   type LayoutActionState,
@@ -11,6 +13,7 @@ import type { LayoutSlot, LayoutSlotConfig } from '@/core/modules/types'
 
 import { useNotifySavedOnOk } from '../admin-toast'
 import { useAutosaveForm } from '../use-autosave-form'
+import { useContentLocales } from './content-locales-context'
 import { LayoutIdField } from './layout-outline-context'
 import { ParticleSettingsPopover } from './particle-settings-popover'
 
@@ -50,8 +53,17 @@ export function CustomParticleEditor({
   const { formRef, saveDebounced, saveNow } = useAutosaveForm()
 
   const cfg = slot.config ?? {}
+  const locales = useContentLocales()
+  const defaultCode = locales.find((locale) => locale.isDefault)?.code ?? locales[0]?.code ?? ''
   const [title, setTitle] = useState(() => String(cfg.title ?? ''))
+  const [titleLocales, setTitleLocales] = useState<Record<string, string>>(() =>
+    normalizeLocaleTextMap(cfg.titleLocales),
+  )
   const [html, setHtml] = useState(() => String(cfg.html ?? ''))
+  const [htmlLocales, setHtmlLocales] = useState<Record<string, string>>(() =>
+    normalizeLocaleTextMap(cfg.htmlLocales),
+  )
+  const [htmlLocale, setHtmlLocale] = useState(defaultCode)
   const [css, setCss] = useState(() => String(cfg.css ?? ''))
   const [js, setJs] = useState(() => String(cfg.js ?? ''))
   // Remount code editors only when switching particles — not after each autosave.
@@ -60,7 +72,10 @@ export function CustomParticleEditor({
   useEffect(() => {
     const next = slot.config ?? {}
     setTitle(String(next.title ?? ''))
+    setTitleLocales(normalizeLocaleTextMap(next.titleLocales))
     setHtml(String(next.html ?? ''))
+    setHtmlLocales(normalizeLocaleTextMap(next.htmlLocales))
+    setHtmlLocale(defaultCode)
     setCss(String(next.css ?? ''))
     setJs(String(next.js ?? ''))
     setEditorEpoch((n) => n + 1)
@@ -72,7 +87,9 @@ export function CustomParticleEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional
   }, [state.ok, state.config, state.message])
 
-  const configJson = JSON.stringify({ title, html, css, js })
+  const activeHtml =
+    !defaultCode || htmlLocale === defaultCode ? html : (htmlLocales[htmlLocale] ?? '')
+  const configJson = JSON.stringify({ title, titleLocales, html, htmlLocales, css, js })
 
   const form = (
     <form
@@ -90,24 +107,48 @@ export function CustomParticleEditor({
       <input type="hidden" name="rowId" value={rowId} />
       <input type="hidden" name="slotId" value={slot.id} />
       <input type="hidden" name="configJson" value={configJson} />
-      <label className="gantry-custom-title">
-        <span>Title</span>
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-      </label>
+      <LocaleInput
+        locales={locales}
+        label="Title"
+        values={{
+          ...titleLocales,
+          ...(defaultCode ? { [defaultCode]: title } : {}),
+        }}
+        onChange={(code, value) => {
+          setTitleLocales((prev) => ({ ...prev, [code]: value }))
+          if (code === defaultCode) setTitle(value)
+        }}
+        onBlur={saveNow}
+      />
 
       <CodeEditorField
-        key={`html-${slot.id}-${editorEpoch}`}
+        key={`html-${slot.id}-${editorEpoch}-${htmlLocale}`}
         label="HTML"
         language="html"
-        initialValue={html}
+        initialValue={activeHtml}
         initialHeight={180}
         placeholder="<p>Custom HTML</p>"
+        labelEnd={
+          <LocaleLanguageControl
+            locales={locales}
+            active={htmlLocale || defaultCode}
+            label="HTML"
+            onActiveChange={setHtmlLocale}
+            onCopyFrom={(fromCode) => {
+              const target = htmlLocale || defaultCode
+              if (!target || fromCode === target) return
+              const source =
+                fromCode === defaultCode ? html : (htmlLocales[fromCode] ?? '')
+              if (target === defaultCode) setHtml(source)
+              else setHtmlLocales((prev) => ({ ...prev, [target]: source }))
+              setEditorEpoch((n) => n + 1)
+              saveDebounced()
+            }}
+          />
+        }
         onValueChange={(value) => {
-          setHtml(value)
+          if (!defaultCode || htmlLocale === defaultCode) setHtml(value)
+          else setHtmlLocales((prev) => ({ ...prev, [htmlLocale]: value }))
           saveDebounced()
         }}
       />

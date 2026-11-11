@@ -1,6 +1,8 @@
 import React from 'react'
 import Link from 'next/link'
 
+import { buildLayoutSlotKey } from '@/core/i18n/content-locale-keys'
+import { pickContentLocaleText } from '@/core/i18n/locale-text.server'
 import { getSiteChrome } from '@/core/site-chrome'
 
 import type { StarforgeModule } from '../types'
@@ -16,13 +18,23 @@ export const copyrightModule: StarforgeModule = {
   description: 'Copyright text with auto or manual year and optional link.',
   builtin: true,
   defaultWidth: 50,
-  render: async ({ slot }) => {
+  render: async ({ slot, layoutId }) => {
     const cfg = readCopyrightConfig(slot.config)
     const year =
       cfg.yearMode === 'manual' && typeof cfg.year === 'number'
         ? cfg.year
         : new Date().getFullYear()
-    let text = (cfg.text ?? '').trim()
+    let text = (
+      await pickContentLocaleText(
+        buildLayoutSlotKey({
+          layoutId: layoutId || 'default',
+          slotId: slot.id,
+          field: 'text',
+        }),
+        cfg.text ?? '',
+        cfg.textLocales,
+      )
+    ).trim()
     if (!text) {
       try {
         const chrome = await getSiteChrome()

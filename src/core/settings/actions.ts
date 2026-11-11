@@ -243,8 +243,8 @@ export async function updatePerformanceSettingsAction(
 /**
  * Site Settings → Auth & registration: registration enable + public auth option toggles.
  * Registration writes the same `product:registration` module toggle + feature flag as Modules.
- * Auth option surfaces (forgot / magic / OTP / remember / 2FA) live on Site Chrome JSON
- * (no Payload migration) — same storage pattern as Security captcha.
+ * Auth option surfaces (forgot / magic / OTP / remember / 2FA / email verification)
+ * live on Site Chrome JSON (no Payload migration) — same storage pattern as Security captcha.
  */
 export async function updateAuthSettingsAction(
   _prev: SettingsActionState,
@@ -284,6 +284,7 @@ export async function updateAuthSettingsAction(
       authEmailOtpEnabled: parseBool(formData, 'authEmailOtpEnabled'),
       authRememberMeEnabled: parseBool(formData, 'authRememberMeEnabled'),
       authTwoFactorEnabled: parseBool(formData, 'authTwoFactorEnabled'),
+      authRequireEmailVerification: parseBool(formData, 'authRequireEmailVerification'),
       authPostLoginUrl: String(formData.get('authPostLoginUrl') ?? '').trim(),
       authPostRegisterUrl: String(formData.get('authPostRegisterUrl') ?? '').trim(),
       authPostLogoutUrl: String(formData.get('authPostLogoutUrl') ?? '').trim(),

@@ -8,6 +8,8 @@ export type AuthPublicOptions = {
   emailOtp?: boolean
   rememberMe?: boolean
   twoFactor?: boolean
+  /** When true, password sign-in waits for the verification email link. */
+  requireEmailVerification?: boolean
 }
 
 export type AuthOptionsLinksProps = {

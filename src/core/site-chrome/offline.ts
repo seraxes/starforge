@@ -8,6 +8,9 @@ import { pathnameWithoutLocale } from '@/core/i18n/path'
 
 export const SITE_OFFLINE_PATH = '/site-offline'
 
+/** Hardcoded 404 / thrown-error recovery URL (not in Navigation). */
+export const SITE_NOT_FOUND_PATH = '/site-not-found'
+
 /** Optional Retry-After seconds on public offline 503 responses. */
 export const SITE_OFFLINE_RETRY_AFTER_SECONDS = 3600
 
@@ -20,8 +23,11 @@ export function isOfflineAllowedPath(pathname: string): boolean {
   if (path === '/forgot-username' || path.startsWith('/forgot-username/')) return true
   if (path === '/reset-password' || path.startsWith('/reset-password/')) return true
   if (path === '/two-factor' || path.startsWith('/two-factor/')) return true
-  // Offline HTML route itself is never locale-prefixed.
+  // System HTML routes are never locale-prefixed.
   if (pathname === SITE_OFFLINE_PATH || pathname.startsWith(`${SITE_OFFLINE_PATH}/`)) {
+    return true
+  }
+  if (pathname === SITE_NOT_FOUND_PATH || pathname.startsWith(`${SITE_NOT_FOUND_PATH}/`)) {
     return true
   }
   return false

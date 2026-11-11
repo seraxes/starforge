@@ -9,8 +9,27 @@ import type { ResolvedCaptcha } from '@/core/security/captcha/types'
 
 const initialState: AuthActionState = {}
 
-export function RegisterForm({ captcha }: { captcha: ResolvedCaptcha }) {
+export function RegisterForm({
+  captcha,
+  requireEmailVerification = false,
+}: {
+  captcha: ResolvedCaptcha
+  requireEmailVerification?: boolean
+}) {
   const [state, formAction, pending] = useActionState(registerAction, initialState)
+
+  if (state.success) {
+    return (
+      <div className="auth-form">
+        <p className="auth-success" role="status">
+          {state.success}
+        </p>
+        <p className="auth-helpers">
+          <Link href="/login">Back to sign in</Link>
+        </p>
+      </div>
+    )
+  }
 
   return (
     <form className="auth-form" action={formAction} noValidate>
@@ -39,8 +58,9 @@ export function RegisterForm({ captcha }: { captcha: ResolvedCaptcha }) {
         />
       </label>
       <p className="auth-hint">
-        This email is your sign-in ID (not the display name). You can add authenticator 2FA later
-        under Account security.
+        {requireEmailVerification
+          ? 'This email is your sign-in ID. After you create the account, open the verification link we send before signing in.'
+          : 'This email is your sign-in ID (not the display name). You can add authenticator 2FA later under Account security.'}
       </p>
       <label>
         Password

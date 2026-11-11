@@ -21,7 +21,6 @@ import {
 
 import { findSkinIdForOutline, listSkinOutlineSeeds } from './outline-meta'
 import { getSkin, listSkins } from './registry'
-import { STARFORGE_PASTEL_OFFLINE_OUTLINE_ID } from './skins/starforge-pastel'
 import type { SkinId } from './types'
 
 export type SkinOutlineSeedResult = {
@@ -41,7 +40,7 @@ export { isOutlineOwnedBySkin, listSkinOutlineSeeds } from './outline-meta'
 
 /**
  * Ensure each seed outline exists in `sf_layouts` with `skin_id` set.
- * Soft-heals Base label, skin ownership, and Offline inheritFrom.
+ * Soft-heals Base label, skin ownership, and system-outline inheritFrom.
  * When `applyPreferredOutline` is true, sets global Page Settings `layoutId`
  * to the skin’s preferred Base outline.
  */
@@ -79,8 +78,8 @@ export async function ensureSkinOutlineSeeds(
     }
     if (existing && !seed.forceUpdate) {
       let didHeal = false
-      // Soft-heal Pastel Offline: older full copies lacked inheritFrom.
-      if (id === STARFORGE_PASTEL_OFFLINE_OUTLINE_ID) {
+      // Soft-heal system children (Offline / 404): older full copies lacked inheritFrom.
+      if (doc.inheritFrom) {
         try {
           const loaded = await loadLayoutDocument(id)
           if (!loaded.document.inheritFrom) {
