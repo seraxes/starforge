@@ -4,16 +4,17 @@
  *   import { RichEditor, RichContent, sanitizeRichHtml, sanitizeEmailHtml } from '@/modules/rich-editor/api'
  *
  * Presets: `full` | `compact` | `email` (Email Manager HTML bodies).
- * Server-only gate (`isRichEditorEnabled`) → `@/modules/rich-editor/api.server`
- * (do not re-export it here — pulls `next/headers` into Client Components).
+ * Pass `MediaPicker` from `@/modules/media/api` for image, gallery, and video-from-media.
+ * Server-only gate (`isRichEditorEnabled`) and server sanitize → `@/modules/rich-editor/api.server`
+ * (do not re-export the gate here — pulls `next/headers` into Client Components).
  */
 
-export { RichContent } from '@/core/rich-editor/RichContent'
-export { RichEditor } from '@/core/rich-editor/RichEditor'
-export type { RichEditorProps } from '@/core/rich-editor/RichEditor'
+export { RichContent } from './RichContent'
+export { RichEditor } from './RichEditor'
+export type { RichEditorMediaPickerProps, RichEditorMediaValue, RichEditorProps } from './RichEditor'
 export {
   sanitizeEmailHtml,
   sanitizeRichHtml,
-} from '@/core/rich-editor/sanitize'
-export type { SanitizeEmailHtmlOptions } from '@/core/rich-editor/sanitize'
-export type { RichEditorPreset } from '@/core/rich-editor/extensions'
+} from './sanitize'
+export type { SanitizeEmailHtmlOptions } from './sanitize'
+export type { RichEditorPreset } from './extensions'

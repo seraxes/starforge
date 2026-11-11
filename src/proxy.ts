@@ -9,29 +9,19 @@ import {
   DEFAULT_LOCALE,
   LOCALES,
   pathnameWithoutLocale,
-  stripLocalePrefix,
 } from '@/core/i18n'
 import { getLocalizationSettings } from '@/core/localization/store'
-import {
-  lookupEnabledRedirect,
-  normalizeRedirectFromPath,
-  resolveLocaleAwareRedirectPath,
-} from '@/core/redirects'
 import type { CspSources } from '@/core/security/csp'
 import { getCachedFeatureCspSources } from '@/core/security/feature-sources-cached'
 import { applySecurityHeaders } from '@/core/security/headers'
 import {
-  MODULE_IDS,
-  getSiteSettings,
-  isCatalogModuleEnabled,
-} from '@/core/settings'
-import {
   SITE_NOT_FOUND_PATH,
   SITE_OFFLINE_PATH,
   SITE_OFFLINE_RETRY_AFTER_SECONDS,
-  getSiteChrome,
+  getSiteChromeForProxy,
   isOfflineExemptPath,
 } from '@/core/site-chrome'
+import { runProxyHooks } from '@/generated/module-registry.server'
 
 /**
  * next-intl middleware using Localization admin enabled locales (P2).
@@ -152,18 +142,6 @@ function withPathnameHeader(
   return response
 }
 
-function isRedirectLookupExemptPath(pathname: string): boolean {
-  if (pathname.startsWith('/api/')) return true
-  if (pathname.startsWith('/cms')) return true
-  if (pathname.startsWith('/admin')) return true
-  if (pathname.startsWith('/_next/')) return true
-  if (pathname === '/sitemap.xml' || pathname.startsWith('/sitemap')) return true
-  if (pathname === '/robots.txt') return true
-  if (pathname === '/manifest.webmanifest') return true
-  if (pathname === '/sw.js' || pathname.startsWith('/sw.js')) return true
-  return false
-}
-
 /** Paths that stay outside `[locale]` (no next-intl negotiation). */
 function isNonLocalizedPath(pathname: string): boolean {
   if (pathname.startsWith('/api')) return true
@@ -184,60 +162,7 @@ function isNonLocalizedPath(pathname: string): boolean {
 }
 
 /**
- * product:redirects — in-process lookup (Node proxy; no internal HTTP hop).
- * Match stored paths without locale; re-prefix destination with the request locale.
- * Fail-open when the module is off or the store errors.
- */
-async function maybeRedirect(request: NextRequest): Promise<NextResponse | null> {
-  const { pathname } = request.nextUrl
-  if (isRedirectLookupExemptPath(pathname)) return null
-
-  try {
-    const settings = await getSiteSettings()
-    if (!isCatalogModuleEnabled(settings, MODULE_IDS.redirects)) return null
-
-    // Ensure admin-added locale prefixes strip correctly for bare-path lookup.
-    await loadPublicLocales()
-    const { locale, pathname: barePath } = stripLocalePrefix(pathname)
-    const fromPath = normalizeRedirectFromPath(barePath)
-    if (!fromPath) return null
-    const hit = await lookupEnabledRedirect(fromPath)
-    if (!hit) return null
-
-    const status =
-      hit.status === 301 || hit.status === 302 || hit.status === 307 || hit.status === 308
-        ? hit.status
-        : 301
-
-    let destination: URL
-    if (/^https?:\/\//i.test(hit.to)) {
-      destination = new URL(hit.to)
-    } else {
-      destination = request.nextUrl.clone()
-      // Path-relative policy: re-prefix with the current request locale (P2).
-      destination.pathname = resolveLocaleAwareRedirectPath(
-        hit.to,
-        locale ?? DEFAULT_LOCALE,
-      )
-      destination.search = ''
-      destination.hash = ''
-    }
-
-    if (
-      destination.origin === request.nextUrl.origin &&
-      destination.pathname === pathname
-    ) {
-      return null
-    }
-
-    return NextResponse.redirect(destination, status)
-  } catch {
-    return null
-  }
-}
-
-/**
- * Site Chrome offline gate — in-process via cached getSiteChrome (no HTTP hop).
+ * Site Chrome offline gate — process snapshot / uncached DB (no published-content cache).
  * Admins bypass using the Better Auth session on the incoming request.
  */
 async function maybeRewriteOffline(request: NextRequest): Promise<NextResponse | null> {
@@ -245,7 +170,7 @@ async function maybeRewriteOffline(request: NextRequest): Promise<NextResponse |
   if (isOfflineExemptPath(pathname)) return null
 
   try {
-    const chrome = await getSiteChrome()
+    const chrome = await getSiteChromeForProxy()
     if (!chrome.offlineEnabled) return null
 
     const session = await auth.api.getSession({ headers: request.headers })
@@ -264,20 +189,25 @@ async function maybeRewriteOffline(request: NextRequest): Promise<NextResponse |
 }
 
 /**
- * Apply public policy (redirects → offline → pathname + CSP) onto a next-intl response
- * or a plain next() for non-localized routes.
+ * Apply public policy (module proxy hooks → offline → pathname + CSP) onto a
+ * next-intl response or a plain next() for non-localized routes.
+ * Redirects run inside `runProxyHooks` (generated). Sitemap stays exempt there.
  */
 async function finalizePublic(
   request: NextRequest,
   base?: NextResponse,
 ): Promise<NextResponse> {
-  const redirected = await maybeRedirect(request)
+  const redirected = await runProxyHooks(request)
   if (redirected) return redirected
 
-  const cspSources = await getCachedFeatureCspSources().catch(() => ({} as CspSources))
+  // Offline before CSP — avoid blocking 503 on a full feature-CSP rebuild after Chrome save.
   const offline = await maybeRewriteOffline(request)
-  if (offline) return finalize(offline, cspSources)
+  if (offline) {
+    const cspSources = await getCachedFeatureCspSources().catch(() => ({} as CspSources))
+    return finalize(offline, cspSources)
+  }
 
+  const cspSources = await getCachedFeatureCspSources().catch(() => ({} as CspSources))
   return finalize(
     withPathnameHeader(request, request.nextUrl.pathname, base),
     cspSources,
@@ -288,7 +218,7 @@ async function finalizePublic(
  * Next.js 16 Node `proxy` (replaces deprecated Edge `middleware`).
  *
  * Order: Payload SSO → skip locale for admin/cms/api → next-intl locale negotiation
- * early on public paths → redirects → offline 503 → pathname header + feature CSP.
+ * early on public paths → module proxy hooks → offline 503 → pathname header + feature CSP.
  */
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl

@@ -2,7 +2,8 @@ import { defineStarforgeModule } from '@/core/modules/define-module'
 
 /**
  * product:rich-editor — shared TipTap + sanitized HTML content editor.
- * Engine lives in `src/core/rich-editor`; other packs bind via `@/modules/rich-editor/api`.
+ * Engine lives in this pack. Other packs bind via `@/modules/rich-editor/api`
+ * and pass `MediaPicker` from `@/modules/media/api` (the editor does not import media).
  * Runtime on/off: Site Settings → Modules (featureFlag richEditor).
  */
 export default defineStarforgeModule({
@@ -14,6 +15,7 @@ export default defineStarforgeModule({
   version: '0.2.0',
   defaultEnabled: true,
   featureFlag: 'richEditor',
+  requires: ['product:media'],
   // Settings reachable from Site Settings → Modules only (no sidebar group).
   navViews: [{ key: 'settings', label: 'Rich editor', href: '/admin/rich-editor/settings' }],
   admin: {

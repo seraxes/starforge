@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { and, count, desc, gte, gt, sql } from 'drizzle-orm'
+import { and, count, desc, gte, gt, lt, sql } from 'drizzle-orm'
 
 import { db, sfSessions, sfUsers } from '@/core/db'
 import { listGroupIdsByUserIds, listUserGroupOptions } from '@/core/acl'
@@ -11,8 +11,24 @@ import {
 } from '@/core/settings/defaults'
 import { getSiteChrome } from '@/core/site-chrome'
 
+import {
+  applyBucketCounts,
+  daySeriesBuckets,
+  monthSeriesBuckets,
+  utcDayStart,
+  utcMonthStart,
+  type SeriesPoint,
+} from '../charts/series'
 import type { LatestUsersStats, UsersStripStats } from '../types'
 import { LATEST_USERS_LIMIT, NEW_USER_WINDOW_DAYS } from './users-metric-windows'
+
+export type UserSignupSeries = {
+  months: SeriesPoint[]
+  /** Last 10 UTC days, oldest → newest. Sparkline only. */
+  recentDays: SeriesPoint[]
+  /** Accounts created in the 10 days before the current 10-day window. */
+  prior10d: number
+}
 
 export { LATEST_USERS_LIMIT, NEW_USER_WINDOW_DAYS } from './users-metric-windows'
 
@@ -69,6 +85,51 @@ export async function loadUsersStripStats(
     newlyRegistered10d: Number(newRow?.n ?? 0),
     onlineWindowMin,
     siteOffline,
+  }
+}
+
+/** Monthly + recent-day signup counts for the Dashboard charts. */
+export async function loadUserSignupSeries(now = new Date()): Promise<UserSignupSeries> {
+  const months = monthSeriesBuckets(now, 12)
+  const recentDays = daySeriesBuckets(now, 10)
+  const monthStart = utcMonthStart(months[0]?.key ?? '1970-01')
+  const dayStart = utcDayStart(recentDays[0]?.key ?? '1970-01-01')
+  const priorUntil = new Date(now.getTime() - NEW_USER_WINDOW_DAYS * 24 * 60 * 60_000)
+  const priorSince = new Date(priorUntil.getTime() - NEW_USER_WINDOW_DAYS * 24 * 60 * 60_000)
+
+  const monthRows = await db
+    .select({
+      key: sql<string>`to_char(${sfUsers.createdAt} AT TIME ZONE 'UTC', 'YYYY-MM')`,
+      n: sql<number>`count(*)::int`,
+    })
+    .from(sfUsers)
+    .where(gte(sfUsers.createdAt, monthStart))
+    .groupBy(sql`to_char(${sfUsers.createdAt} AT TIME ZONE 'UTC', 'YYYY-MM')`)
+
+  const dayRows = await db
+    .select({
+      key: sql<string>`to_char(${sfUsers.createdAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD')`,
+      n: sql<number>`count(*)::int`,
+    })
+    .from(sfUsers)
+    .where(gte(sfUsers.createdAt, dayStart))
+    .groupBy(sql`to_char(${sfUsers.createdAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD')`)
+
+  const [priorRow] = await db
+    .select({ n: count() })
+    .from(sfUsers)
+    .where(and(gte(sfUsers.createdAt, priorSince), lt(sfUsers.createdAt, priorUntil)))
+
+  return {
+    months: applyBucketCounts(
+      months,
+      monthRows.map((row) => ({ key: String(row.key), value: Number(row.n) || 0 })),
+    ),
+    recentDays: applyBucketCounts(
+      recentDays,
+      dayRows.map((row) => ({ key: String(row.key), value: Number(row.n) || 0 })),
+    ),
+    prior10d: Number(priorRow?.n ?? 0),
   }
 }
 

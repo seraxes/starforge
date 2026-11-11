@@ -2,8 +2,8 @@ import React from 'react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
-import { listFormDefinitions } from '@/core/forms/definitions-store'
-import { listFormSubmissions } from '@/core/forms'
+import { listFormDefinitions } from '@/modules/forms/definitions-store'
+import { listFormSubmissions } from '@/modules/forms'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
 import { FormsAdminNav } from '../forms-admin-nav'

@@ -12,7 +12,7 @@ import {
   normalizeAccessTags,
 } from '@/core/acl/nav-access'
 import type { AccessViewer } from '@/core/acl/types'
-import { sanitizeRichHtml } from '@/core/rich-editor/sanitize'
+import { sanitizeRichHtml } from '@/modules/rich-editor/api.server'
 
 import { hashEventPassword } from './access-password'
 import { sfEvents, sfVenues } from './schema'

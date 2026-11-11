@@ -8,7 +8,7 @@ import { and, asc, eq } from 'drizzle-orm'
 
 import { appOrigin } from '@/core/content/metadata'
 import { db } from '@/core/db'
-import { sanitizeEmailHtml } from '@/core/rich-editor/sanitize'
+import { sanitizeEmailHtml } from '@/modules/rich-editor/api.server'
 
 import { normalizeEmailAudience } from './audience'
 import { normalizeEmailConditionGroup } from './conditions'

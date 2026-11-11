@@ -8,6 +8,7 @@
  */
 import 'server-only'
 
+import type { NextRequest, NextResponse } from 'next/server'
 import type { ComponentType, ReactNode } from 'react'
 
 import type { StarforgeModule } from '@/core/modules/types'
@@ -119,6 +120,56 @@ export const publicShellLoaders: PublicShellLoader[] = [
     load: async () => (await import("@/modules/pwa/public/PwaRegister")).default,
   }
 ]
+
+export type ProxyHookHandler = (request: NextRequest) => Promise<NextResponse | null>
+
+export type ProxyHookLoader = {
+  moduleId: string
+  order: number
+  load: () => Promise<ProxyHookHandler>
+}
+
+/**
+ * Node proxy chain from allowlisted manifests (M3).
+ * `src/proxy.ts` calls `runProxyHooks` — it does not import `@/modules/**`.
+ */
+export const proxyHookLoaders: ProxyHookLoader[] = [
+  {
+    moduleId: "product:redirects",
+    order: 10,
+    load: async () => (await import("@/modules/redirects/proxy")).handleRedirectProxy,
+  }
+]
+
+const proxyHookHandlerCache = new Map<string, Promise<ProxyHookHandler>>()
+
+/**
+ * Run allowlisted proxy hooks in order (in-process, handler cached after load).
+ * First non-null response wins. A throwing hook is skipped (fail-open).
+ */
+export async function runProxyHooks(request: NextRequest): Promise<NextResponse | null> {
+  const sorted = [...proxyHookLoaders].sort(
+    (a, b) => a.order - b.order || a.moduleId.localeCompare(b.moduleId),
+  )
+  for (const entry of sorted) {
+    try {
+      let pending = proxyHookHandlerCache.get(entry.moduleId)
+      if (!pending) {
+        pending = entry.load().catch((error: unknown) => {
+          proxyHookHandlerCache.delete(entry.moduleId)
+          throw error
+        })
+        proxyHookHandlerCache.set(entry.moduleId, pending)
+      }
+      const handler = await pending
+      const result = await handler(request)
+      if (result) return result
+    } catch {
+      // Fail-open: one pack must not take the public site down.
+    }
+  }
+  return null
+}
 
 export type ModuleSettingsPanelLoader = {
   moduleId: string

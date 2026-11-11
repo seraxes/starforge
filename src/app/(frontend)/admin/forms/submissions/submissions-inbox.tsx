@@ -8,8 +8,8 @@ import {
   deleteFormSubmissionAction,
   resendFormSubmissionNotifyAction,
   type FormAdminActionState,
-} from '@/core/forms/actions'
-import type { FormPresetId, FormSubmissionPayload } from '@/core/forms/types'
+} from '@/modules/forms/actions'
+import type { FormPresetId, FormSubmissionPayload } from '@/modules/forms/types'
 
 import { useNotifySavedOnOk } from '../../admin-toast'
 

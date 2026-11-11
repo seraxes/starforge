@@ -1,6 +1,6 @@
 /*
  * Shared Rich Editor chrome — Callout / Link (portal) + inline media panel helpers.
- * Loaded by Core admin (frontend layout) and Payload CMS layout so portals work
+ * Loaded by the public layout and the Payload CMS layout so portals work
  * outside .admin-shell. Keep in sync with SF Gantry tokens.
  */
 

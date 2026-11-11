@@ -10,7 +10,7 @@ import {
   parseCustomFormParticleJson,
   readFormConfig,
   resolveFormParticleSource,
-} from '../src/core/forms/config.ts'
+} from '../src/modules/forms/config.ts'
 
 // --- source inference ---
 assert.equal(resolveFormParticleSource({ source: 'custom' }), 'custom')

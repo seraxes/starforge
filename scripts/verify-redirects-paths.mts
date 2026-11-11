@@ -6,7 +6,7 @@ import {
   normalizeRedirectFromPath,
   normalizeRedirectToPath,
   resolveRedirectDestination,
-} from '../src/core/redirects/paths.ts'
+} from '../src/modules/redirects/paths.ts'
 
 function assert(cond: unknown, message: string): asserts cond {
   if (!cond) {

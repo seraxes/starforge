@@ -507,6 +507,7 @@ export function EventFormFields({
             enabled={richEditorEnabled}
             preset="full"
             placeholder="Game / event description…"
+            MediaPicker={MediaPicker}
           />
         </div>
         <CoverField coverMediaId={row?.coverMediaId ?? ''} disabled={busy} />

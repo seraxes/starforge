@@ -2,7 +2,9 @@ import 'server-only'
 
 import { and, asc, eq } from 'drizzle-orm'
 
-import { db, sfRedirects } from '@/core/db'
+import { db } from '@/core/db'
+
+import { sfRedirects } from './schema'
 
 import { parseRedirectCsv, type RedirectCsvRowInput } from './csv'
 import { normalizeRedirectFromPath, normalizeRedirectToPath } from './paths'

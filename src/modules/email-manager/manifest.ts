@@ -12,7 +12,7 @@ export default defineStarforgeModule({
     'Automatic and conditional email rules with templates, filtered by module. Modules emit triggers; Core Mailer sends. No per-module SMTP — secrets stay in env / Chrome. HTML bodies use product:rich-editor (email preset).',
   version: '0.1.0',
   defaultEnabled: true,
-  requires: ['product:rich-editor'],
+  requires: ['product:rich-editor', 'product:media'],
   i18n: {
     namespaces: ['product:email-manager'],
   },

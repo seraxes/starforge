@@ -17,12 +17,31 @@ import {
 } from './normalize'
 import type { SiteChromeDocument, SiteChromeLoadResult } from './types'
 
+/**
+ * Process-local Chrome snapshot for the Node proxy offline gate.
+ * Updated on every successful load/save so toggling offline does not wait on
+ * `unstable_cache` + `revalidateTag({ expire: 0 })` (that path can stall public
+ * requests until process restart).
+ */
+let liveSiteChrome: SiteChromeDocument | null = null
+
 function withCookieAttrs(chrome: SiteChromeDocument): SiteChromeDocument {
   applySiteChromeCookieAttributes(chrome)
   // Always re-normalize so stale cache / pre-i18n JSON never leaks missing keys.
   const normalized = normalizeSiteChrome(chrome)
   applyAuthEmailVerificationPolicy(normalized.authRequireEmailVerification)
+  liveSiteChrome = normalized
   return normalized
+}
+
+/**
+ * Chrome for the proxy offline gate — prefer the live snapshot, else uncached DB.
+ * Do not use `getSiteChrome()` here (published-content cache / expire: 0).
+ */
+export async function getSiteChromeForProxy(): Promise<SiteChromeDocument> {
+  if (liveSiteChrome) return liveSiteChrome
+  const loaded = await loadSiteChromeUncached()
+  return withCookieAttrs(loaded.chrome)
 }
 
 /**
@@ -98,7 +117,7 @@ export const getSiteChrome = cache(async (): Promise<SiteChromeDocument> => {
     },
     async () => {
       const loaded = await loadSiteChromeUncached()
-      return loaded.chrome
+      return withCookieAttrs(loaded.chrome)
     },
   )
   return withCookieAttrs(result)
@@ -137,21 +156,24 @@ export async function saveSiteChrome(input: Partial<SiteChromeDocument>): Promis
 
   withCookieAttrs(normalized)
 
-  // Keep Payload site-settings.siteName in sync for header / legacy consumers.
-  try {
-    const { getSiteSettings, updateSiteSettings } = await import('@/core/settings')
-    const settings = await getSiteSettings()
-    if (settings.siteName !== normalized.siteName) {
-      await updateSiteSettings({
-        siteName: normalized.siteName,
-        primaryNavMenuId: settings.primaryNavMenuId,
-        keepLegacyPrimaryNav: true,
-        features: settings.features,
-        moduleToggles: settings.moduleToggles,
-      })
+  // Keep Payload site-settings.siteName in sync only when the name actually changed.
+  // Offline toggles must not touch getPayload() — that path has wedged autosave.
+  if (normalized.siteName !== current.chrome.siteName) {
+    try {
+      const { getSiteSettings, updateSiteSettings } = await import('@/core/settings')
+      const settings = await getSiteSettings()
+      if (settings.siteName !== normalized.siteName) {
+        await updateSiteSettings({
+          siteName: normalized.siteName,
+          primaryNavMenuId: settings.primaryNavMenuId,
+          keepLegacyPrimaryNav: true,
+          features: settings.features,
+          moduleToggles: settings.moduleToggles,
+        })
+      }
+    } catch {
+      // Payload may be unavailable during early bootstrap.
     }
-  } catch {
-    // Payload may be unavailable during early bootstrap.
   }
 
   return normalized

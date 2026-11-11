@@ -85,6 +85,11 @@ describe('resolveEnabledAdminNavModuleIds + Email contribution', () => {
     assert.ok(ids.indexOf('redirects') < ids.indexOf('users'))
     assert.ok(ids.indexOf('users') < ids.indexOf('site-settings'))
     assert.equal(ids[ids.length - 1], 'site-settings')
+    const settingsLinks = groups.find((g) => g.id === 'site-settings')?.links ?? []
+    assert.equal(
+      settingsLinks.some((link) => link.href === '/admin/audit'),
+      false,
+    )
     // Profiles is not top-level — Settings lives under Users.
     assert.equal(ids.includes('profiles'), false)
     const users = groups.find((g) => g.id === 'users')
@@ -135,5 +140,18 @@ describe('resolveEnabledAdminNavModuleIds + Email contribution', () => {
       false,
     )
     assert.ok(groups.some((g) => g.id === 'media'))
+  })
+
+  it('adds Settings → Audit only for developer-admins', () => {
+    const groups = buildAdminNavGroups({
+      surface: 'core',
+      flags,
+      developerAdmin: true,
+      enabledModuleIds: resolveEnabledAdminNavModuleIds(settingsWithToggles({})),
+    })
+    const settings = groups.find((g) => g.id === 'site-settings')
+    assert.ok(
+      settings?.links.some((link) => link.href === '/admin/audit' && link.label === 'Audit'),
+    )
   })
 })

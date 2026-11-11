@@ -44,7 +44,7 @@ assert.match(actions, /seedEventsEmailStartersAction/)
 const settings = read('src/modules/events/admin/events-settings-form.tsx')
 assert.match(settings, /seedEventsEmailStartersAction/)
 
-const formActions = read('src/core/forms/actions.ts')
+const formActions = read('src/modules/forms/actions.ts')
 assert.match(formActions, /ensureEventsFormHooks/)
 
 const journal = read('src/core/db/migrations/meta/_journal.json')

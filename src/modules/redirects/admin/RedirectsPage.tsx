@@ -2,9 +2,9 @@ import React from 'react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
-import { listRedirects } from '@/core/redirects'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
+import { listRedirects } from '../api'
 import { RedirectsManager } from './redirects-manager'
 
 export const dynamic = 'force-dynamic'

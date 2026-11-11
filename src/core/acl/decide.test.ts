@@ -204,6 +204,17 @@ describe('adminAreaGateForPath', () => {
       key: 'admin.dashboard',
     })
   })
+
+  it('keeps /admin/audit off the member matrix', () => {
+    assert.deepEqual(adminAreaGateForPath('/admin/audit'), { type: 'app-admin' })
+    const member = { isAppAdmin: false, isRegistered: true }
+    const allowed = new Set(['admin.settings', 'admin.users'] as const)
+    assert.equal(
+      viewerAllowsGate(member, adminAreaGateForPath('/admin/audit'), allowed),
+      false,
+    )
+    assert.equal(adminHrefAllowed('/admin/audit', false, allowed), false)
+  })
 })
 
 describe('viewerAllowsGate + landing', () => {

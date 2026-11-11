@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { APIError } from 'better-auth/api'
 import { eq } from 'drizzle-orm'
 
+import { recordAdminAudit, userDisabledAction, userRoleAction } from '@/core/audit'
 import { db, sfSessions, sfUsers } from '@/core/db'
 import { updateAccountEmail, updateAccountName } from './account-identity'
 import { auth } from './index'
@@ -79,6 +80,15 @@ export async function setAppUserRoleAction(
     await setUserRole(userId, role)
   }
 
+  const roleActionKey = userRoleAction(role)
+  if (roleActionKey) {
+    await recordAdminAudit({
+      actorId: adminSession.user.id,
+      action: roleActionKey,
+      target: { type: 'user', id: userId },
+    })
+  }
+
   revalidatePath('/admin/users')
   revalidatePath(`/admin/users/${userId}`)
   revalidatePath('/admin/cms')
@@ -147,6 +157,12 @@ export async function setAppUserDisabledAction(
       await revokeSessionsForUser(userId)
     }
   }
+
+  await recordAdminAudit({
+    actorId: adminSession.user.id,
+    action: userDisabledAction(disabled),
+    target: { type: 'user', id: userId },
+  })
 
   revalidatePath('/admin/users')
   revalidatePath(`/admin/users/${userId}`)

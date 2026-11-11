@@ -16,8 +16,8 @@ import {
   getFormPresetMeta,
   listFormPresetMetas,
   presetSeedFields,
-} from '../src/core/forms/presets.ts'
-import { emptyFormDefinitionDocument } from '../src/core/forms/definition.ts'
+} from '../src/modules/forms/presets.ts'
+import { emptyFormDefinitionDocument } from '../src/modules/forms/definition.ts'
 
 clearFormPresetRegistrations()
 

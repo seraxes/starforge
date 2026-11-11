@@ -23,10 +23,13 @@ async function softLoadWidget(
 }
 
 /** Page Settings mosaic language — wide tiles span both columns. */
-function panelClass(size: ResolvedDashboardWidget['size']): string {
-  if (size === 'lg') return 'page-settings-panel page-settings-panel-wide sf-dashboard-card'
-  if (size === 'sm') return 'page-settings-panel sf-dashboard-card sf-dashboard-card-sm'
-  return 'page-settings-panel sf-dashboard-card'
+function panelClass(widget: ResolvedDashboardWidget): string {
+  const hero = widget.id === 'users.strip' ? ' sf-dashboard-card-hero' : ''
+  if (widget.size === 'lg') {
+    return `page-settings-panel page-settings-panel-wide sf-dashboard-card${hero}`
+  }
+  if (widget.size === 'sm') return `page-settings-panel sf-dashboard-card sf-dashboard-card-sm${hero}`
+  return `page-settings-panel sf-dashboard-card${hero}`
 }
 
 function WidgetShell(props: {
@@ -36,7 +39,7 @@ function WidgetShell(props: {
   const { widget, children } = props
   return (
     <article
-      className={panelClass(widget.size)}
+      className={panelClass(widget)}
       data-widget={`${widget.moduleId}:${widget.id}`}
       data-module-enabled={widget.moduleEnabled ? 'true' : 'false'}
     >

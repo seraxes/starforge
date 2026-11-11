@@ -21,7 +21,7 @@ export default async function AdminFormsSettingsPage() {
     redirect('/admin/settings')
   }
 
-  const { loadFormsModuleSettings } = await import('@/core/forms/settings-store')
+  const { loadFormsModuleSettings } = await import('@/modules/forms/settings-store')
   const loaded = await loadFormsModuleSettings()
   const mailer = await getMailerInfo()
 

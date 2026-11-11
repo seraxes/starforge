@@ -1,12 +1,8 @@
 import 'server-only'
 
-import { getPayload } from 'payload'
-import type { Where } from 'payload'
+import { type AppLocale } from '@/core/i18n/locales'
 
-import config from '@payload-config'
-
-import { DEFAULT_LOCALE, type AppLocale, toPayloadLocale } from '@/core/i18n/locales'
-
+import { getPageReads } from './page-reads'
 import {
   SEARCH_RESULT_LIMIT,
   normalizeSearchQuery,
@@ -37,9 +33,9 @@ export type PublishedSearchResult = {
 }
 
 /**
- * Search **published** Payload pages by title / slug / meta title / meta description
+ * Search **published** pages by title / slug / meta title / meta description
  * for a given route locale (with fallback to default locale fields).
- * Uses Payload `contains` (Postgres ILIKE) — no Algolia/Meilisearch.
+ * Goes through PageReadsPort — no direct `getPayload()` here.
  * Empty query returns no hits (callers show the empty prompt).
  */
 export async function searchPublishedPages(
@@ -58,39 +54,7 @@ export async function searchPublishedPages(
   )
 
   try {
-    const payload = await getPayload({ config })
-    const where: Where = {
-      and: [
-        { _status: { equals: 'published' } },
-        {
-          or: [
-            { title: { contains: query } },
-            { slug: { contains: query } },
-            { 'meta.title': { contains: query } },
-            { 'meta.description': { contains: query } },
-          ],
-        },
-      ],
-    }
-
-    const payloadLocale = toPayloadLocale(locale)
-    const result = await payload.find({
-      collection: 'pages',
-      depth: 0,
-      draft: false,
-      limit,
-      locale: payloadLocale,
-      fallbackLocale: DEFAULT_LOCALE,
-      pagination: true,
-      overrideAccess: false,
-      sort: 'title',
-      where,
-      select: {
-        title: true,
-        slug: true,
-        meta: true,
-      },
-    })
+    const result = await getPageReads().searchPublished(query, locale, { limit })
 
     const hits: PublishedSearchHit[] = []
     for (const doc of result.docs) {

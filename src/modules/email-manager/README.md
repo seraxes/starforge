@@ -4,7 +4,8 @@ Shared automatic / conditional email pack. **Transport = Core Mailer** (Site Chr
 
 ## Requires
 
-- **`product:rich-editor`** — HTML template bodies use `RichEditor` with `preset="email"` + `sanitizeEmailHtml` (absolute image/link URLs on save). TipTap is not imported here; bind only via `@/modules/rich-editor/api`. Not a marketing/MJML designer.
+- **`product:rich-editor`** — HTML template bodies use `RichEditor` with `preset="email"` + `sanitizeEmailHtml` (absolute image/link URLs on save). Pass `MediaPicker` from `@/modules/media/api` for image insert. Bind via `@/modules/rich-editor/api` (server sanitize: `api.server`). Not a marketing/MJML designer.
+- **`product:media`** — the template editor passes that pack’s `MediaPicker` into the rich editor.
 
 ## Public API
 
@@ -32,4 +33,4 @@ Thin `sf_email_sends` rows are written on every Core Mailer send (success / fail
 - `/admin/email/templates` — templates + test send (plain text + optional email-safe HTML via Rich editor)
 - `/admin/email/sends` — recent send log (when / to / type / status / title)
 
-Toggle under **Settings → Modules**. Email Manager’s manifest `requires: ['product:rich-editor']`. Auth recovery Mailer paths stay direct in v1 (triggers are registered for later).
+Toggle under **Settings → Modules**. Email Manager’s manifest `requires: ['product:rich-editor', 'product:media']`. Auth recovery Mailer paths stay direct in v1 (triggers are registered for later).

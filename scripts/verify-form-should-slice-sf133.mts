@@ -8,10 +8,10 @@ import {
   buildFormSubmissionsCsv,
   escapeCsvCell,
   normalizeSuccessRedirectUrl,
-} from '../src/core/forms/csv.ts'
-import { fieldsForPreset, FORM_PRESETS, getFormPresetMeta } from '../src/core/forms/presets.ts'
-import { normalizeFormDefinitionDocument } from '../src/core/forms/definition.ts'
-import type { FormSubmissionRecord } from '../src/core/forms/types.ts'
+} from '../src/modules/forms/csv.ts'
+import { fieldsForPreset, FORM_PRESETS, getFormPresetMeta } from '../src/modules/forms/presets.ts'
+import { normalizeFormDefinitionDocument } from '../src/modules/forms/definition.ts'
+import type { FormSubmissionRecord } from '../src/modules/forms/types.ts'
 
 // --- CSV ---
 assert.equal(escapeCsvCell('plain'), 'plain')

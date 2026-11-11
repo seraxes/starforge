@@ -2,7 +2,7 @@
  * Reads `starforge.modules.json` (or `SF_MODULES`) + module manifests and writes
  * `src/generated/module-registry.ts` — allowlist + client-safe particle editor/schema loaders.
  * `src/generated/module-registry.server.ts` — server-only dynamic import() loaders
- * (optional particles, atoms, publicShell, settings panels, **module i18n messages**)
+ * (optional particles, atoms, publicShell, proxy hooks, settings panels, **module i18n messages**)
  * so client importers of the shared registry (ParticleEditorHost) do not pull
  * Payload/server graphs (SF-95 / SF-141 / i18n P3).
  *
@@ -309,6 +309,26 @@ async function main(): Promise<void> {
     }
   }
 
+  const proxyHookEntries: Array<{
+    moduleId: string
+    order: number
+    importPath: string
+    exportName: string
+  }> = []
+  for (const entry of allowlistedEntries) {
+    const hook = entry.proxy
+    const importPath = hook?.handlerImportPath?.trim() ?? ''
+    if (!importPath) continue
+    const order = typeof hook?.order === 'number' && Number.isFinite(hook.order) ? hook.order : 100
+    proxyHookEntries.push({
+      moduleId: entry.id,
+      order,
+      importPath,
+      exportName: hook?.handlerExportName?.trim() || 'default',
+    })
+  }
+  proxyHookEntries.sort((a, b) => a.order - b.order || a.moduleId.localeCompare(b.moduleId))
+
   const moduleMessagePacks = await discoverModuleMessagePacks(allowlistedEntries)
   const moduleMessageLoaderLiterals = moduleMessagePacks
     .map(moduleMessageLoaderLiteral)
@@ -486,6 +506,20 @@ async function main(): Promise<void> {
       return `  {
     moduleId: ${jsonString(e.moduleId)},
     slot: ${jsonString(e.slot)},
+    load: ${loadExpr},
+  }`
+    })
+    .join(',\n')
+
+  const proxyHookLoaders = proxyHookEntries
+    .map((e) => {
+      const loadExpr =
+        e.exportName === 'default'
+          ? `async () => (await import(${jsonString(e.importPath)})).default`
+          : `async () => (await import(${jsonString(e.importPath)})).${e.exportName}`
+      return `  {
+    moduleId: ${jsonString(e.moduleId)},
+    order: ${e.order},
     load: ${loadExpr},
   }`
     })
@@ -826,6 +860,7 @@ ${adminRouteLoaderLiterals || '  // (none)'}
  */
 import 'server-only'
 
+import type { NextRequest, NextResponse } from 'next/server'
 import type { ComponentType, ReactNode } from 'react'
 
 import type { StarforgeModule } from '@/core/modules/types'
@@ -867,6 +902,52 @@ export type PublicShellLoader = {
 export const publicShellLoaders: PublicShellLoader[] = [
 ${publicShellLoaders || '  // (none allowlisted)'}
 ]
+
+export type ProxyHookHandler = (request: NextRequest) => Promise<NextResponse | null>
+
+export type ProxyHookLoader = {
+  moduleId: string
+  order: number
+  load: () => Promise<ProxyHookHandler>
+}
+
+/**
+ * Node proxy chain from allowlisted manifests (M3).
+ * \`src/proxy.ts\` calls \`runProxyHooks\` — it does not import \`@/modules/**\`.
+ */
+export const proxyHookLoaders: ProxyHookLoader[] = [
+${proxyHookLoaders || '  // (none allowlisted)'}
+]
+
+const proxyHookHandlerCache = new Map<string, Promise<ProxyHookHandler>>()
+
+/**
+ * Run allowlisted proxy hooks in order (in-process, handler cached after load).
+ * First non-null response wins. A throwing hook is skipped (fail-open).
+ */
+export async function runProxyHooks(request: NextRequest): Promise<NextResponse | null> {
+  const sorted = [...proxyHookLoaders].sort(
+    (a, b) => a.order - b.order || a.moduleId.localeCompare(b.moduleId),
+  )
+  for (const entry of sorted) {
+    try {
+      let pending = proxyHookHandlerCache.get(entry.moduleId)
+      if (!pending) {
+        pending = entry.load().catch((error: unknown) => {
+          proxyHookHandlerCache.delete(entry.moduleId)
+          throw error
+        })
+        proxyHookHandlerCache.set(entry.moduleId, pending)
+      }
+      const handler = await pending
+      const result = await handler(request)
+      if (result) return result
+    } catch {
+      // Fail-open: one pack must not take the public site down.
+    }
+  }
+  return null
+}
 
 export type ModuleSettingsPanelLoader = {
   moduleId: string
@@ -945,7 +1026,7 @@ ${moduleMessageLoaderLiterals || '  // (none allowlisted)'}
   await writeAdminRouteShims(adminRouteDecls)
 
   console.log(
-    `[modules:generate] Wrote ${path.relative(ROOT, OUT_PATH)} + ${path.relative(ROOT, OUT_SERVER_PATH)} (${allowlisted.length} ids, ${optionalParticles.length} optional particles, ${optionalAtoms.length} atoms, ${publicShellEntries.length} publicShell, ${schemaDecls.length} schemas, ${editorDecls.length} editors, ${adminNavModules.length} adminNav, ${adminDashboardDecls.length} adminDashboard, ${adminRouteDecls.length} adminRoutes, ${settingsPanelDecls.length} settingsPanels, ${moduleMessagePacks.length} messagePacks)`,
+    `[modules:generate] Wrote ${path.relative(ROOT, OUT_PATH)} + ${path.relative(ROOT, OUT_SERVER_PATH)} (${allowlisted.length} ids, ${optionalParticles.length} optional particles, ${optionalAtoms.length} atoms, ${publicShellEntries.length} publicShell, ${proxyHookEntries.length} proxyHooks, ${schemaDecls.length} schemas, ${editorDecls.length} editors, ${adminNavModules.length} adminNav, ${adminDashboardDecls.length} adminDashboard, ${adminRouteDecls.length} adminRoutes, ${settingsPanelDecls.length} settingsPanels, ${moduleMessagePacks.length} messagePacks)`,
   )
 }
 

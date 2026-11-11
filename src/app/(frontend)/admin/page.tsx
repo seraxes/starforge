@@ -52,23 +52,21 @@ export default async function CoreAdminDashboardPage() {
 
   return (
     <section className="admin-section admin-layouts-full sf-dashboard">
-      <header className="sf-dashboard-page-head page-settings-panel">
-        <div className="page-settings-panel-head">
+      <header className="sf-dashboard-page-head">
+        <div className="sf-dashboard-page-title">
           <h2>Dashboard</h2>
+          <p className="lede admin-lede">Site performance at a glance.</p>
         </div>
-        <div className="page-settings-panel-body">
-          <p className="lede admin-lede">
-            Site performance at a glance. Module cards use soft placeholders (“—” / Coming soon /
-            Module disabled) when data is not wired or the pack is off under{' '}
-            <Link href={`${CORE_ADMIN_ROOT}/settings`}>Settings → Modules</Link>. Payload CMS:{' '}
-            <Link href={PAYLOAD_ADMIN_ROOT}>{PAYLOAD_ADMIN_ROOT}</Link>.
-          </p>
-          <DashboardSoftRefresh
-            intervalSec={refreshSec}
-            initialRefreshedAt={refreshedAt.toISOString()}
-          />
-        </div>
+        <DashboardSoftRefresh
+          intervalSec={refreshSec}
+          initialRefreshedAt={refreshedAt.toISOString()}
+        />
       </header>
+      <p className="sf-dashboard-page-note">
+        Module cards use soft placeholders when a pack is off under{' '}
+        <Link href={`${CORE_ADMIN_ROOT}/settings`}>Settings → Modules</Link>. Payload CMS:{' '}
+        <Link href={PAYLOAD_ADMIN_ROOT}>{PAYLOAD_ADMIN_ROOT}</Link>.
+      </p>
 
       {widgets.length > 0 ? (
         <DashboardWidgetGrid widgets={widgets} />

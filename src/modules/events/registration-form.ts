@@ -9,12 +9,12 @@ import { eq } from 'drizzle-orm'
 import { db } from '@/core/db'
 import { sfForms } from '@/core/db/schema'
 import {
+  DEFAULT_EVENT_REGISTRATION_FORM_ID,
   emptyFormDefinitionDocument,
+  loadFormDefinition,
   serializeFormDefinitionDocument,
-} from '@/core/forms/definition'
-import { DEFAULT_EVENT_REGISTRATION_FORM_ID } from '@/core/forms/presets'
-import { loadFormDefinition } from '@/core/forms/definitions-store'
-import type { FormFieldDef } from '@/core/forms/types'
+  type FormFieldDef,
+} from '@/modules/forms/api'
 
 import { listPublicTicketTiersForEvent } from './public-tiers'
 import { DEFAULT_MAX_TICKETS_PER_BOOKING } from './types'

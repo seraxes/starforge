@@ -58,7 +58,7 @@ assert.match(engine, /meta:\s*\{/)
 const authMail = read('src/core/auth/mail.ts')
 assert.match(authMail, /emailType:\s*'system'/)
 
-const formsNotify = read('src/core/forms/email-notify.ts')
+const formsNotify = read('src/modules/forms/email-notify.ts')
 assert.match(formsNotify, /emailType:\s*'transactional'/)
 
 const stats = read('src/modules/email-manager/dashboard/email-stats.ts')

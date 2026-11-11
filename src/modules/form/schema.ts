@@ -4,7 +4,7 @@ import {
   defaultFormConfig,
   formConfigToSlotConfig,
   parseCustomFormParticleJson,
-} from '@/core/forms/config'
+} from '@/modules/forms/config'
 
 export const formParticleConfigSchema = z
   .object({

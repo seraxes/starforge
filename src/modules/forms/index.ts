@@ -1,10 +1,11 @@
 /**
- * Starforge Form engine public surface (SF-65).
+ * Starforge Form engine surface (SF-65).
  *
+ * Other packs (Events, Profiles, Payments) import `@/modules/forms/api` only.
  * **Client components** must import from leaf modules — not this barrel:
- * - `@/core/forms/actions` (server actions)
- * - `@/core/forms/types` (types)
- * - `@/core/forms/presets` / `definition` / `schema-json` / `config` (pure helpers)
+ * - `@/modules/forms/actions` (server actions)
+ * - `@/modules/forms/types` (types)
+ * - `@/modules/forms/presets` / `definition` / `schema-json` / `config` (pure helpers)
  *
  * Do **not** import this barrel from client components — it re-exports
  * server-only captcha verify, DB stores, and session helpers (`import 'server-only'`).

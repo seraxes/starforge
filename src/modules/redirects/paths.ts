@@ -6,7 +6,7 @@ import { pathnameWithoutLocale, withLocalePrefix } from '@/core/i18n/path'
  * - Store **path-relative** from/to without locale prefixes (`/old` → `/new`).
  * - No per-locale redirect trees — one rule covers `/en/old` and `/hu/old`.
  * - At request time, match the bare path and re-prefix the destination with the
- *   **current request locale** (see `src/proxy.ts` `maybeRedirect`).
+ *   **current request locale** (see `handleRedirectProxy`).
  * - Accidental `/en/…` input is stripped to bare on normalize.
  */
 

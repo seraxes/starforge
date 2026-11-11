@@ -9,7 +9,7 @@ import {
   deleteFormDefinitionAction,
   duplicateFormDefinitionAction,
   type FormAdminActionState,
-} from '@/core/forms/actions'
+} from '@/modules/forms/actions'
 import {
   FORM_CATEGORY_LABELS,
   FORM_CATEGORY_ORDER,
@@ -17,9 +17,9 @@ import {
   isProtectedFormDefinitionId,
   listFormPresetMetas,
   listFormPresetsByCategory,
-} from '@/core/forms/presets'
-import type { FormPresetCategoryId } from '@/core/forms/presets'
-import type { FormPresetId } from '@/core/forms/types'
+} from '@/modules/forms/presets'
+import type { FormPresetCategoryId } from '@/modules/forms/presets'
+import type { FormPresetId } from '@/modules/forms/types'
 
 import { useNotifySavedOnOk } from '../admin-toast'
 

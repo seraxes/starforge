@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useActionState, useState } from 'react'
+import React, { useActionState, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 
 import type { SiteChromeConsentLocaleMaps } from '@/core/i18n/content-locales'
@@ -8,11 +8,13 @@ import type { ContentLocaleOption, LocaleTextMap } from '@/core/i18n/locale-text
 import { LocaleInput } from '@/core/localization/LocaleInput'
 import {
   updateSiteChromeAction,
+  updateSiteOfflineAction,
   type SiteChromeActionState,
 } from '@/core/site-chrome/actions'
 import { MAIL_PROVIDERS } from '@/core/site-chrome/defaults'
 import type { SiteChromeDocument } from '@/core/site-chrome/types'
 
+import { useAdminAutosaveDebounceMs } from '../admin-autosave-context'
 import { useNotifySavedOnOk } from '../admin-toast'
 import { useAutosaveForm } from '../use-autosave-form'
 
@@ -31,10 +33,49 @@ const initialState: SiteChromeActionState = {}
 
 export function SiteChromeForm({ chrome, outlines, locales }: Props) {
   const [state, formAction, pending] = useActionState(updateSiteChromeAction, initialState)
+  const [offlineState, offlineFormAction, offlinePending] = useActionState(
+    updateSiteOfflineAction,
+    initialState,
+  )
   useNotifySavedOnOk(state, { toastErrors: true })
+  useNotifySavedOnOk(offlineState, { toastErrors: true })
   const { formRef, textAutosaveProps, discreteAutosaveProps, saveDebounced, flushOnBlur } =
     useAutosaveForm()
+  const debounceMs = useAdminAutosaveDebounceMs()
   const defaultCode = locales.find((locale) => locale.isDefault)?.code ?? locales[0]?.code ?? ''
+
+  const [offlineEnabled, setOfflineEnabled] = useState(chrome.offlineEnabled)
+  const [offlineLayoutId, setOfflineLayoutId] = useState(chrome.offlineLayoutId)
+  const [offlineMessage, setOfflineMessage] = useState(chrome.offlineMessage)
+  const offlineRef = useRef({
+    enabled: chrome.offlineEnabled,
+    layoutId: chrome.offlineLayoutId,
+    message: chrome.offlineMessage,
+  })
+  const offlineTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (offlineTimer.current) clearTimeout(offlineTimer.current)
+    }
+  }, [])
+
+  /**
+   * Submit offline fields ourselves. requestSubmit + disabled={pending} drops the
+   * checkbox from FormData (disabled controls are omitted), so the server saved off.
+   */
+  function saveOffline(patch: { enabled?: boolean; layoutId?: string; message?: string }) {
+    const next = { ...offlineRef.current, ...patch }
+    offlineRef.current = next
+    setOfflineEnabled(next.enabled)
+    setOfflineLayoutId(next.layoutId)
+    setOfflineMessage(next.message)
+    const fd = new FormData()
+    fd.set('offlineEnabled', next.enabled ? 'on' : '0')
+    fd.set('offlineLayoutId', next.layoutId)
+    fd.set('offlineMessage', next.message)
+    offlineFormAction(fd)
+  }
 
   const [consentMessage, setConsentMessage] = useState(chrome.consentMessage)
   const [consentPrivacyUrl, setConsentPrivacyUrl] = useState(chrome.consentPrivacyUrl)
@@ -51,12 +92,9 @@ export function SiteChromeForm({ chrome, outlines, locales }: Props) {
     useState<LocaleTextMap>(chrome.consentPrivacyLinkLabelLocales)
 
   return (
-    <form
-      ref={formRef}
-      action={formAction}
-      className="settings-form settings-form-wide"
-    >
+    <div className="settings-form settings-form-wide">
       <div className="admin-settings-mosaic">
+      <form style={{ display: 'contents' }} onSubmit={(event) => event.preventDefault()}>
       <fieldset className="settings-fieldset">
         <legend>Site offline</legend>
         <p className="settings-hint">
@@ -69,9 +107,8 @@ export function SiteChromeForm({ chrome, outlines, locales }: Props) {
           <input
             type="checkbox"
             name="offlineEnabled"
-            defaultChecked={chrome.offlineEnabled}
-            disabled={pending}
-            {...discreteAutosaveProps}
+            checked={offlineEnabled}
+            onChange={(event) => saveOffline({ enabled: event.target.checked })}
           />
           <span>
             <strong>Take site offline</strong>
@@ -84,9 +121,8 @@ export function SiteChromeForm({ chrome, outlines, locales }: Props) {
           <span>Offline outline</span>
           <select
             name="offlineLayoutId"
-            defaultValue={chrome.offlineLayoutId}
-            disabled={pending}
-            {...discreteAutosaveProps}
+            value={offlineLayoutId}
+            onChange={(event) => saveOffline({ layoutId: event.target.value })}
           >
             {outlines.map((outline) => (
               <option key={outline.id} value={outline.id}>
@@ -100,14 +136,24 @@ export function SiteChromeForm({ chrome, outlines, locales }: Props) {
           <textarea
             name="offlineMessage"
             rows={3}
-            defaultValue={chrome.offlineMessage}
+            value={offlineMessage}
             autoComplete="off"
-            disabled={pending}
-            {...textAutosaveProps}
+            onChange={(event) => {
+              const message = event.target.value
+              setOfflineMessage(message)
+              offlineRef.current = { ...offlineRef.current, message }
+              if (offlineTimer.current) clearTimeout(offlineTimer.current)
+              offlineTimer.current = setTimeout(() => {
+                offlineTimer.current = null
+                saveOffline({ message })
+              }, debounceMs)
+            }}
           />
         </label>
       </fieldset>
+      </form>
 
+      <form ref={formRef} action={formAction} style={{ display: 'contents' }}>
       <fieldset className="settings-fieldset">
         <legend>Outbound email</legend>
         <p className="settings-hint">
@@ -378,14 +424,20 @@ export function SiteChromeForm({ chrome, outlines, locales }: Props) {
           onBlur={flushOnBlur}
         />
       </fieldset>
+      </form>
       </div>
 
+      {offlineState.error ? (
+        <p className="admin-inline-error" role="alert">
+          {offlineState.error}
+        </p>
+      ) : null}
       {state.error ? (
         <p className="admin-inline-error" role="alert">
           {state.error}
         </p>
       ) : null}
-      {pending ? <p className="field-hint">Saving…</p> : null}
-    </form>
+      {offlinePending || pending ? <p className="field-hint">Saving…</p> : null}
+    </div>
   )
 }

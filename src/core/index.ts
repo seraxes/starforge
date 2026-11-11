@@ -28,6 +28,13 @@ export {
   getPublishedPageBySlug,
   requireContentLocale,
 } from './content/pages'
+export { getPageReads, resetPageReadsForTests } from './content/page-reads'
+export type {
+  PageReadsPort,
+  PageReadsPublishedSummary,
+  PageReadsSearchDoc,
+  PageReadsSearchResult,
+} from './content/page-reads'
 export {
   SEARCH_QUERY_MAX_LENGTH,
   SEARCH_RESULT_LIMIT,
@@ -65,51 +72,11 @@ export {
   sfNavMenus,
   sfForms,
   sfFormSubmissions,
-  sfRedirects,
   sfUserGroups,
   sfUserGroupMembers,
   sfAclPermissions,
+  sfAdminAudit,
 } from './db'
-export {
-  REDIRECT_STATUS_CODES,
-  createRedirect,
-  deleteRedirect,
-  findRedirectById,
-  isRedirectStatusCode,
-  listRedirects,
-  lookupEnabledRedirect,
-  normalizeRedirectFromPath,
-  normalizeRedirectToPath,
-  resolveRedirectDestination,
-  updateRedirect,
-} from './redirects'
-export type {
-  RedirectLookupHit,
-  RedirectRecord,
-  RedirectStatusCode,
-} from './redirects'
-export {
-  DEFAULT_CONTACT_FORM_ID,
-  defaultFormConfig,
-  ensureDefaultContactFormSeeded,
-  listFormDefinitions,
-  listFormSubmissions,
-  loadFormDefinition,
-  parseCustomFormParticleJson,
-  readFormConfig,
-  resolveFormParticleSource,
-  submitFormAction,
-} from './forms'
-export type {
-  FormDefinitionDocument,
-  FormFieldDef,
-  FormParticleConfig,
-  FormParticleSource,
-  FormPresetId,
-  FormSubmissionPayload,
-  FormSubmissionRecord,
-  FormSubmitActionState,
-} from './forms'
 export {
   ensureDefaultNavMenuSeeded,
   findNavOverridesForPath,

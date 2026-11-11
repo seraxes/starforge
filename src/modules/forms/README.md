@@ -1,9 +1,10 @@
 # product:forms
 
-Manifest + public API for the Forms capability (SF-141 M0; presets P2).
+Form engine and public door (M4).
 
 - Catalog / nav views / admin area metadata: `manifest.ts`
-- **Public seam for other modules:** `api.ts` → `registerFormPreset({ id, label, seedFields, onSubmitted? })`
-- Engine, admin UI, and Drizzle tables still live under `src/core/forms` until M4 moves them here
+- **Public door:** `api.ts` — evaluate, presets, `registerFormPreset`, submit. Events, Profiles, and Payments import that file only.
+- Engine (types, expr, logic, evaluate, store, admin actions, presets) lives in this folder
+- Forms admin stays at `/admin/forms`. The form builder is the layout canvas. Field schema stays form data (`sf_forms` / `sf_form_submissions` in the Core Drizzle schema)
 - Companion particle: `src/modules/form/` (`id: form`, requires `product:forms`)
-- Built-in presets: contact, survey, event-registration, voting, ticket, blank — create-from-preset in Forms admin
+- Built-in presets: contact, survey, event-registration, voting, ticket, profile, blank — create-from-preset in Forms admin

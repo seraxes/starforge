@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 import { useNotifySavedOnOk } from '@/app/(frontend)/admin/admin-toast'
+import { MediaPicker } from '@/modules/media/api'
 import { RichEditor } from '@/modules/rich-editor/api'
 
 import {
@@ -68,6 +69,7 @@ function EmailBodyHtmlField({
         enabled
         preset="email"
         placeholder="Optional email-safe HTML body…"
+        MediaPicker={MediaPicker}
       />
       <p className="settings-hint">
         Email-safe TipTap (lists, links, images). No video, gallery, or web-only blocks.

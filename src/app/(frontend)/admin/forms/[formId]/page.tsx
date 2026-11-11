@@ -6,7 +6,7 @@ import { ensureDefaultUserGroupsSeeded, listUserGroupOptions } from '@/core/acl'
 import {
   ensureDefaultContactFormSeeded,
   loadFormDefinition,
-} from '@/core/forms'
+} from '@/modules/forms'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { getSiteChrome } from '@/core/site-chrome'
 
@@ -56,7 +56,7 @@ export default async function AdminFormBuilderPage({ params }: PageProps) {
 
   // Persist seed if first open
   if (loaded.isFallback && (id === 'contact' || id === 'profile')) {
-    const { saveFormDefinitionDocument } = await import('@/core/forms/definitions-store')
+    const { saveFormDefinitionDocument } = await import('@/modules/forms/definitions-store')
     await saveFormDefinitionDocument(id, loaded.document, loaded.document.title)
   }
 

@@ -13,7 +13,7 @@ import {
 import {
   ensureDefaultContactFormSeeded,
   listFormDefinitions,
-} from '@/core/forms'
+} from '@/modules/forms'
 import { hydrateLayoutDocumentLocales } from '@/core/i18n/content-locales/hydrate'
 import { getContentLocaleOptions } from '@/core/i18n/locale-text.server'
 import { listNavMenus } from '@/core/nav'

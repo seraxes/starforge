@@ -6,7 +6,6 @@ import CodeMirror from '@uiw/react-codemirror'
 import React, { useCallback, useEffect, useId, useMemo, useState } from 'react'
 
 import { starforgeAdminCmTheme } from '@/components/admin/starforge-admin-cm-theme'
-import { MediaPicker } from '@/modules/media/api'
 
 import { CalloutInsertDialog } from './CalloutInsertDialog'
 import { createRichEditorExtensions, type RichEditorPreset } from './extensions'
@@ -16,6 +15,26 @@ import { sanitizeEmailHtml, sanitizeRichHtml } from './sanitize'
 
 function sanitizeEditorHtml(preset: RichEditorPreset, raw: string | null | undefined): string {
   return preset === 'email' ? sanitizeEmailHtml(raw) : sanitizeRichHtml(raw)
+}
+
+/** Value returned by the caller-supplied media picker (`@/modules/media/api`). */
+export type RichEditorMediaValue = {
+  mediaId: string
+  url?: string
+  alt?: string
+}
+
+/** Props this editor passes into that picker. */
+export type RichEditorMediaPickerProps = {
+  label?: string
+  value: RichEditorMediaValue
+  onChange: (next: RichEditorMediaValue) => void
+  defaultFolder?: string
+  defaultPurpose?: string
+  disabled?: boolean
+  includeHiddenInputs?: boolean
+  allowUrlFallback?: boolean
+  hint?: string
 }
 
 export type RichEditorProps = {
@@ -37,6 +56,11 @@ export type RichEditorProps = {
   label?: string
   /** Show Media picker for image insert (default true on full + email presets). */
   allowImages?: boolean
+  /**
+   * Shared library picker for image, gallery, and video-from-media.
+   * Pass `MediaPicker` from `@/modules/media/api`. Those inserts stay off when omitted.
+   */
+  MediaPicker?: React.ComponentType<RichEditorMediaPickerProps>
 }
 
 type EditorMode = 'visual' | 'html'
@@ -78,8 +102,9 @@ function ToolbarButton({
 }
 
 /**
- * Shared TipTap rich editor for Core admin module fields.
+ * Shared TipTap rich editor for module content fields.
  * Canonical value = sanitized HTML string. Visual ↔ HTML source modes.
+ * Image insert uses the `MediaPicker` passed by the caller.
  */
 export function RichEditor({
   name,
@@ -93,9 +118,11 @@ export function RichEditor({
   className,
   label,
   allowImages,
+  MediaPicker: MediaPickerComponent,
 }: RichEditorProps) {
   const labelId = useId()
-  const imagesEnabled = allowImages ?? (preset === 'full' || preset === 'email')
+  const imagesEnabled =
+    Boolean(MediaPickerComponent) && (allowImages ?? (preset === 'full' || preset === 'email'))
   const [htmlValue, setHtmlValue] = useState(() =>
     sanitizeEditorHtml(preset, value ?? defaultValue),
   )
@@ -345,7 +372,7 @@ export function RichEditor({
                     setPickerMode((m) => (m === 'video' ? null : 'video'))
                     setVideoError(null)
                     setVideoUrl('')
-                    setVideoSource('media')
+                    setVideoSource(MediaPickerComponent ? 'media' : 'embed')
                   }}
                 />
               </>
@@ -379,24 +406,26 @@ export function RichEditor({
               {pickerMode === 'video' ? (
                 <>
                   <div className="admin-inline-actions" role="tablist" aria-label="Video source">
+                    {MediaPickerComponent ? (
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={videoSource === 'media'}
+                        className={`gantry-toolbar-btn gantry-toolbar-btn-muted${videoSource === 'media' ? ' is-active' : ''}`}
+                        disabled={busy}
+                        onClick={() => {
+                          setVideoSource('media')
+                          setVideoError(null)
+                        }}
+                      >
+                        Media library
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       role="tab"
-                      aria-selected={videoSource === 'media'}
-                      className={`gantry-toolbar-btn gantry-toolbar-btn-muted${videoSource === 'media' ? ' is-active' : ''}`}
-                      disabled={busy}
-                      onClick={() => {
-                        setVideoSource('media')
-                        setVideoError(null)
-                      }}
-                    >
-                      Media library
-                    </button>
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={videoSource === 'embed'}
-                      className={`gantry-toolbar-btn gantry-toolbar-btn-muted${videoSource === 'embed' ? ' is-active' : ''}`}
+                      aria-selected={videoSource === 'embed' || !MediaPickerComponent}
+                      className={`gantry-toolbar-btn gantry-toolbar-btn-muted${videoSource === 'embed' || !MediaPickerComponent ? ' is-active' : ''}`}
                       disabled={busy}
                       onClick={() => {
                         setVideoSource('embed')
@@ -411,8 +440,8 @@ export function RichEditor({
                       {videoError}
                     </p>
                   ) : null}
-                  {videoSource === 'media' ? (
-                    <MediaPicker
+                  {videoSource === 'media' && MediaPickerComponent ? (
+                    <MediaPickerComponent
                       label="Insert video from Media"
                       value={{ mediaId: '', url: '', alt: '' }}
                       defaultFolder="general"
@@ -521,8 +550,8 @@ export function RichEditor({
                     </>
                   )}
                 </>
-              ) : imagesEnabled ? (
-                <MediaPicker
+              ) : imagesEnabled && MediaPickerComponent ? (
+                <MediaPickerComponent
                   label={
                     pickerMode === 'gallery'
                       ? 'Add image to gallery (from Media)'

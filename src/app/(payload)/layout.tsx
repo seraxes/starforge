@@ -11,7 +11,7 @@ import { importMap } from './cms/admin/importMap.js'
  * Keep custom.css as the Payload-conventional hook; live chrome loads here. */
 import '@/core/admin-theme/import-active-payload-chrome'
 /* Same Callout / Link portal chrome as Core admin (RichEditor portals). */
-import '@/core/rich-editor/rich-editor-chrome.css'
+import '@/modules/rich-editor/rich-editor-chrome.css'
 import './custom.css'
 
 type Args = {

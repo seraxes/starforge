@@ -7,8 +7,8 @@ import {
   parseCustomFormParticleJson,
   readFormConfig,
   resolveFormParticleSource,
-} from '@/core/forms/config'
-import type { FormFieldDef, FormParticleSource } from '@/core/forms/types'
+} from '@/modules/forms/config'
+import type { FormFieldDef, FormParticleSource } from '@/modules/forms/types'
 import {
   updateSlotConfigAction,
   type LayoutActionState,

@@ -13,7 +13,7 @@ Any Starforge module that needs user-facing forms **must** use `product:forms` �
 | Concern | Owner |
 | --- | --- |
 | Field schema & labels | **Forms admin** — definition id + preset under the module’s **category** (Events → Events, Support → ticket preset, etc.) |
-| Seed / stable id | Module helper (e.g. `ensureEventRegistrationFormSeeded`) + preset in `src/core/forms/presets.ts` |
+| Seed / stable id | Module helper (e.g. `ensureEventRegistrationFormSeeded`) + preset in `src/modules/forms/presets.ts` |
 | Render-time context | Owning module — hidden ids, dynamic select options, terms checkbox, capacity labels |
 | Placement on site | Layouts **Form** particle → definition id |
 
@@ -33,7 +33,9 @@ Built-in definition ids (`contact`, `event-registration`, …) are **protected**
 - Build module-specific “form designer” screens — use `/admin/forms/[id]` builder.
 - Build a second canvas for form rows. The Form builder is the layout canvas with a field palette and layout-only chrome removed (`sf-ui-design.mdc`).
 - Call `getMailer()` from a new module. Forms success mail is Email Manager `emitEmailTrigger` only — never fall back to the Mailer.
-- Move `src/core/forms` out of Core as part of an unrelated change. The engine stays there until a dedicated extract. Presets and the admin stay this module’s job.
+- Import the engine from anywhere except `@/modules/forms/api` in Events, Profiles, or Payments. Core does not import the engine.
+- Give Events its own form tables. Definitions stay `sf_forms`.
+- Move the engine back into Core, or change conditional logic, math, or the builder in a relocate pass.
 
 ## Quick check
 

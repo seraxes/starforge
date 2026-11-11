@@ -1,4 +1,3 @@
-import { defaultFormConfig } from '@/core/forms/config'
 import { normalizeLocaleTextMap } from '@/core/i18n/locale-text'
 
 import type { LayoutSlotConfig } from '../types'
@@ -215,7 +214,15 @@ export function defaultConfigForModule(moduleId: string): LayoutSlotConfig | und
     case 'social':
       return { ...defaultSocialConfig() }
     case 'form':
-      return { ...defaultFormConfig() }
+      // Matches `defaultFormConfig()` in product:forms. Inline so Core stays off the engine.
+      return {
+        source: 'definition',
+        formId: 'contact',
+        heading: 'Contact',
+        successMessage: 'Thanks — your message was sent.',
+        submitLabel: 'Send',
+        useSiteCaptchaDefault: true,
+      }
     case 'login':
       return { ...defaultLoginConfig() }
     case 'locale-switcher':

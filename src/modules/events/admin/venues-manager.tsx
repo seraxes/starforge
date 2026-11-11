@@ -222,6 +222,7 @@ function VenueFormFields({
             enabled={richEditorEnabled}
             preset="full"
             placeholder="Venue description…"
+            MediaPicker={MediaPicker}
           />
         </div>
       </fieldset>

@@ -3,7 +3,7 @@
  * Server seed/load lives in `profile-form.ts`.
  */
 
-import type { FormFieldDef, FormFieldOption, FormSectionDef } from '@/core/forms/types'
+import type { FormFieldDef, FormFieldOption, FormSectionDef } from '@/modules/forms/api'
 import { clampGridWidth, LAYOUT_WIDTH_FULL } from '@/core/modules/grid'
 
 import {

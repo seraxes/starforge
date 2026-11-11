@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
 
 import { requireAppAdmin } from '@/core/auth/admin'
-import { buildFormSubmissionsCsv } from '@/core/forms/csv'
-import { loadFormDefinition } from '@/core/forms/definitions-store'
-import { listFormSubmissions } from '@/core/forms/store'
+import { buildFormSubmissionsCsv } from '@/modules/forms/csv'
+import { loadFormDefinition } from '@/modules/forms/definitions-store'
+import { listFormSubmissions } from '@/modules/forms/store'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
 export const dynamic = 'force-dynamic'

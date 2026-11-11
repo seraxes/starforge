@@ -19,7 +19,8 @@ assert.equal(existsSync(join(root, 'src/proxy.ts')), true, 'src/proxy.ts must ex
 const proxy = read('src/proxy.ts')
 assert.match(proxy, /export async function proxy/)
 assert.match(proxy, /getCachedFeatureCspSources/)
-assert.match(proxy, /lookupEnabledRedirect/)
+assert.match(proxy, /runProxyHooks/)
+assert.doesNotMatch(proxy, /@\/core\/redirects|@\/modules\/redirects/)
 assert.match(proxy, /getSiteChrome/)
 assert.doesNotMatch(
   proxy,

@@ -22,6 +22,7 @@ Required: `platform:better-auth`, `page-content` (always forced into the allowli
 - `ALLOWLISTED_PRODUCT_PLATFORM_META` — **one** Settings catalog for platform/product (replaces hand-maintained `PRODUCT_MODULE_CATALOG`)
 - `ALLOWLISTED_PARTICLE_META` / optional particle + atom loaders
 - `publicShellLoaders` — Consent (and later packs) contribute public layout slots without Core importing `@/modules/**`
+- `proxyHookLoaders` / `runProxyHooks` (server registry) — Node proxy chain; Redirects is the reference hook
 - `moduleMessageLoaders` (server registry) — allowlisted `messages/<locale>.json` packs for next-intl merge (i18n P3)
 
 ## Adding a pack

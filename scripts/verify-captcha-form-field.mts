@@ -8,9 +8,9 @@ import {
   createFieldDraft,
   formHasCaptchaField,
   normalizeFormFields,
-} from '../src/core/forms/definition.ts'
-import { evaluateAndValidateFields } from '../src/core/forms/evaluate.ts'
-import { isFormFieldType, fieldsToJsonSchema } from '../src/core/forms/schema-json.ts'
+} from '../src/modules/forms/definition.ts'
+import { evaluateAndValidateFields } from '../src/modules/forms/evaluate.ts'
+import { isFormFieldType, fieldsToJsonSchema } from '../src/modules/forms/schema-json.ts'
 
 assert.equal(isFormFieldType('captcha'), true)
 assert.equal(isFormFieldType('turnstile'), false)

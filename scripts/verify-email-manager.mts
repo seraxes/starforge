@@ -82,7 +82,7 @@ assert.match(sendLog, /sfEmailSends/)
 
 assert.match(read('src/core/mail/index.ts'), /withEmailSendLog/)
 
-const emailNotify = read('src/core/forms/email-notify.ts')
+const emailNotify = read('src/modules/forms/email-notify.ts')
 assert.match(emailNotify, /email-manager\/api\.server/)
 assert.match(emailNotify, /viaEmailManager/)
 assert.match(emailNotify, /FORM_SUBMITTED_TRIGGER/)

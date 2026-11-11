@@ -175,8 +175,8 @@ Durable map of **feature modules** (Site Settings / allowlist toggleable) vs **i
 | --- | --- |
 | **Kind** | module (`product:redirects`) + Core SEO helpers (sitemap) |
 | **Status** | **shipped** (SF-130) |
-| **In tree** | Site Chrome site name/description/robots meta + robots.txt (`Sitemap:` injected when module on); Page Settings / Payload page SEO fields; offline; metadata helpers. **`product:redirects`**: `sf_redirects` CRUD + CSV import (`from,to,status,enabled,note` upsert by `fromPath`) at `/admin/redirects` + middleware lookup via `/api/redirects/lookup`; **`/sitemap.xml`** via `app/(frontend)/sitemap.ts` over published Payload pages (`home` → `/`). Admin + middleware + sitemap share the same Module Manager toggle. |
-| **Recommended** | SEO defaults stay Chrome + page fields. Keep redirects on Core table + middleware (not a second Payload collection). |
+| **In tree** | Site Chrome site name/description/robots meta + robots.txt (`Sitemap:` line); Page Settings / Payload page SEO fields; offline; metadata helpers. **`product:redirects`**: engine in `src/modules/redirects` — `sf_redirects` CRUD + CSV import (`from,to,status,enabled,note` upsert by `fromPath`) at `/admin/redirects` + proxy hook `runProxyHooks` + debug `/api/redirects/lookup`; **`/sitemap.xml`** stays Core (`app/(frontend)/sitemap.ts`) over published Payload pages (`home` → `/`). |
+| **Recommended** | SEO defaults stay Chrome + page fields. Redirects stay this pack’s Drizzle table + generated proxy hook (not a Payload collection). |
 | **Next slice** | Optional redirect import/CSV; cache lookup if volume grows. |
 
 ### Jobs / queues / Redis

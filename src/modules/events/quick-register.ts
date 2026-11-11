@@ -10,7 +10,7 @@ import { eq } from 'drizzle-orm'
 import { getAccessViewer } from '@/core/acl/access'
 import { getAppSession } from '@/core/auth/session'
 import { db, sfUsers } from '@/core/db'
-import { formHasCaptchaField } from '@/core/forms/definition'
+import { formHasCaptchaField } from '@/modules/forms/api'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import {
   fillMissingProfileContact,

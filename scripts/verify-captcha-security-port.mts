@@ -31,7 +31,7 @@ assert.equal(stub.required, true)
 assert.equal(stub.siteKey, null)
 console.log('fail-closed stub resolve: ok')
 
-const formsCaptcha = read('src/core/forms/captcha.ts')
+const formsCaptcha = read('src/modules/forms/captcha.ts')
 assert.match(formsCaptcha, /@\/core\/security\/captcha/)
 assert.doesNotMatch(formsCaptcha, /challenges\.cloudflare\.com/)
 console.log('forms/captcha is thin re-export: ok')

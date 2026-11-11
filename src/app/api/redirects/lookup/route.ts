@@ -4,13 +4,13 @@ import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/sett
 import {
   lookupEnabledRedirect,
   normalizeRedirectFromPath,
-} from '@/core/redirects'
+} from '@/modules/redirects/api'
 
 export const dynamic = 'force-dynamic'
 
 /**
- * Debug/compat redirect lookup (proxy calls lookupEnabledRedirect in-process).
- * Fail-open (no hit) when module off, table missing, or errors.
+ * Debug/compat redirect lookup. The Node proxy uses generated `runProxyHooks`.
+ * Fail-open (no hit) when the module is off, the table is missing, or the query errors.
  */
 export async function GET(request: Request) {
   const url = new URL(request.url)

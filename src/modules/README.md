@@ -47,8 +47,8 @@ Lean flavor: set `"flavor": "lean"` in `starforge.modules.json` (uses `presets.l
 
 | Id | Path | Notes |
 | --- | --- | --- |
-| `product:forms` | `forms/manifest.ts` | Catalog + admin nav meta + Dashboard `forms.submissions` (live aggregates); engine still in `src/core/forms` (M4) |
-| `product:rich-editor` | `rich-editor/` | Shared TipTap + sanitized HTML editor; engine in `src/core/rich-editor` |
+| `product:forms` | `forms/` | Engine + `api.ts` door; admin under `/admin/forms`; Dashboard `forms.submissions` |
+| `product:rich-editor` | `rich-editor/` | Shared TipTap + sanitized HTML editor. Callers use `@/modules/rich-editor/api` and pass `MediaPicker` from `@/modules/media/api`. |
 | `product:lexical-editor` | `lexical-editor/` | Optional Lexical pack (legacy JSON / opt-in fields) |
 | `form` | `form/` | Form particle (dynamic import when allowlisted) |
 | `product:email-manager` | `email-manager/` | Rules/templates + send log + Dashboard `email.sent` |
@@ -58,7 +58,7 @@ Lean flavor: set `"flavor": "lean"` in `starforge.modules.json` (uses `presets.l
 | `product:media` | `media/` | Library + Dashboard `media.counts` stub |
 | `product:consent` | `consent/` | Banner + `publicShell` bodyEnd via generated loaders |
 | `product:pwa` | `pwa/` | Web App Manifest + Serwist SW (`publicShell` head/bodyEnd); opt-in |
-| `product:redirects` | `redirects/manifest.ts` | Catalog + admin meta; engine still in `src/core/redirects` (M3) |
+| `product:redirects` | `redirects/` | Engine, `sf_redirects`, admin CRUD + CSV, proxy hook via generated `runProxyHooks` (M3) |
 | `notice-bar` | `notice-bar/` | Example extension particle |
 | `product:search` / `search` | `search/` | Public `/search` + layout particle |
 

@@ -2,6 +2,13 @@
 
 import { revalidatePath } from 'next/cache'
 
+import {
+  REDIRECT_CREATE_ACTION,
+  REDIRECT_DELETE_ACTION,
+  REDIRECT_UPDATE_ACTION,
+  recordAdminAudit,
+  redirectImportAudit,
+} from '@/core/audit'
 import { requireAppAdmin } from '@/core/auth/admin'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
@@ -18,16 +25,17 @@ const CSV_IMPORT_MAX_BYTES = 1_000_000
 
 export type { RedirectAdminActionState }
 
-async function requireRedirectsAdmin(): Promise<RedirectAdminActionState | null> {
+async function requireRedirectsAdmin(): Promise<{ actorId: string } | { error: string }> {
   const admin = await requireAppAdmin()
-  if (!admin) {
+  const actorId = admin?.user?.id?.trim()
+  if (!actorId) {
     return { error: 'Sign in as a Starforge app admin to manage redirects.' }
   }
   const settings = await getSiteSettings()
   if (!isCatalogModuleEnabled(settings, MODULE_IDS.redirects)) {
     return { error: 'Redirects module is disabled. Enable it under Settings → Modules.' }
   }
-  return null
+  return { actorId }
 }
 
 function revalidateRedirectPaths() {
@@ -40,8 +48,8 @@ function parseStatus(raw: FormDataEntryValue | null): number {
 }
 
 export async function listRedirectsForAdmin() {
-  const denied = await requireRedirectsAdmin()
-  if (denied) return []
+  const gate = await requireRedirectsAdmin()
+  if ('error' in gate) return []
   return listRedirects()
 }
 
@@ -49,8 +57,8 @@ export async function createRedirectAction(
   _prev: RedirectAdminActionState,
   formData: FormData,
 ): Promise<RedirectAdminActionState> {
-  const denied = await requireRedirectsAdmin()
-  if (denied) return denied
+  const gate = await requireRedirectsAdmin()
+  if ('error' in gate) return gate
 
   const result = await createRedirect({
     fromPath: String(formData.get('fromPath') ?? ''),
@@ -61,6 +69,12 @@ export async function createRedirectAction(
   })
 
   if ('error' in result) return { error: result.error }
+
+  await recordAdminAudit({
+    actorId: gate.actorId,
+    action: REDIRECT_CREATE_ACTION,
+    target: { type: 'redirect', id: result.redirect.id },
+  })
 
   revalidateRedirectPaths()
   return {
@@ -74,8 +88,8 @@ export async function updateRedirectAction(
   _prev: RedirectAdminActionState,
   formData: FormData,
 ): Promise<RedirectAdminActionState> {
-  const denied = await requireRedirectsAdmin()
-  if (denied) return denied
+  const gate = await requireRedirectsAdmin()
+  if ('error' in gate) return gate
 
   const id = String(formData.get('id') ?? '').trim()
   const statusRaw = String(formData.get('statusCode') ?? '').trim()
@@ -99,6 +113,12 @@ export async function updateRedirectAction(
 
   if ('error' in result) return { error: result.error }
 
+  await recordAdminAudit({
+    actorId: gate.actorId,
+    action: REDIRECT_UPDATE_ACTION,
+    target: { type: 'redirect', id: result.redirect.id },
+  })
+
   revalidateRedirectPaths()
   return {
     ok: true,
@@ -111,14 +131,20 @@ export async function toggleRedirectEnabledAction(
   _prev: RedirectAdminActionState,
   formData: FormData,
 ): Promise<RedirectAdminActionState> {
-  const denied = await requireRedirectsAdmin()
-  if (denied) return denied
+  const gate = await requireRedirectsAdmin()
+  if ('error' in gate) return gate
 
   const id = String(formData.get('id') ?? '').trim()
   const enabled = String(formData.get('enabled') ?? '') === '1'
 
   const result = await updateRedirect({ id, enabled })
   if ('error' in result) return { error: result.error }
+
+  await recordAdminAudit({
+    actorId: gate.actorId,
+    action: REDIRECT_UPDATE_ACTION,
+    target: { type: 'redirect', id: result.redirect.id },
+  })
 
   revalidateRedirectPaths()
   return {
@@ -134,12 +160,18 @@ export async function deleteRedirectAction(
   _prev: RedirectAdminActionState,
   formData: FormData,
 ): Promise<RedirectAdminActionState> {
-  const denied = await requireRedirectsAdmin()
-  if (denied) return denied
+  const gate = await requireRedirectsAdmin()
+  if ('error' in gate) return gate
 
   const id = String(formData.get('id') ?? '').trim()
   const result = await deleteRedirect(id)
   if ('error' in result) return { error: result.error }
+
+  await recordAdminAudit({
+    actorId: gate.actorId,
+    action: REDIRECT_DELETE_ACTION,
+    target: { type: 'redirect', id },
+  })
 
   revalidateRedirectPaths()
   return { ok: true, message: 'Redirect deleted.' }
@@ -149,8 +181,8 @@ export async function importRedirectsCsvAction(
   _prev: RedirectAdminActionState,
   formData: FormData,
 ): Promise<RedirectAdminActionState> {
-  const denied = await requireRedirectsAdmin()
-  if (denied) return denied
+  const gate = await requireRedirectsAdmin()
+  if ('error' in gate) return gate
 
   const file = formData.get('file')
   if (!(file instanceof File) || file.size <= 0) {
@@ -169,6 +201,15 @@ export async function importRedirectsCsvAction(
 
   if (imported === 0) {
     return { error: summary }
+  }
+
+  const importedAudit = redirectImportAudit(imported)
+  if (importedAudit) {
+    await recordAdminAudit({
+      actorId: gate.actorId,
+      action: importedAudit.action,
+      target: importedAudit.target,
+    })
   }
 
   revalidateRedirectPaths()

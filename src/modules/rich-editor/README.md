@@ -5,15 +5,14 @@ Shared **TipTap** content editor for Starforge module fields. Canonical storage 
 ## Bind from another module
 
 ```tsx
+import { MediaPicker } from '@/modules/media/api'
+import { RichEditor, RichContent } from '@/modules/rich-editor/api'
 import {
-  RichEditor,
-  RichContent,
-  sanitizeRichHtml,
+  isRichEditorEnabled,
   sanitizeEmailHtml,
-} from '@/modules/rich-editor/api'
-import { isRichEditorEnabled } from '@/modules/rich-editor/api.server' // server pages only
+  sanitizeRichHtml,
+} from '@/modules/rich-editor/api.server' // server pages and saves
 
-// Server page: pass the Site Settings → Modules gate
 const settings = await getSiteSettings()
 const richOn = isRichEditorEnabled(settings)
 
@@ -23,15 +22,12 @@ const richOn = isRichEditorEnabled(settings)
   label="Description"
   enabled={richOn}
   preset="full" // or "compact" | "email"
+  MediaPicker={MediaPicker}
 />
 
-// Persist (web):
 const description = sanitizeRichHtml(String(formData.get('description') ?? ''))
-
-// Persist (email templates — Email Manager):
 const bodyHtml = sanitizeEmailHtml(raw, { baseUrl: appOrigin() })
 
-// Public / preview (web only — do not use RichContent for Mailer HTML):
 <RichContent html={event.description} />
 ```
 
@@ -43,17 +39,19 @@ const bodyHtml = sanitizeEmailHtml(raw, { baseUrl: appOrigin() })
 | `compact` | Shorter toolbar (H2–H3, lists, links; no media blocks by default) |
 | `email` | Transactional HTML for **Email Manager** — no video/gallery/callout/color; email allowlist via `sanitizeEmailHtml` |
 
-**Email Manager** declares `requires: ['product:rich-editor']` and binds `preset="email"`.
+**Email Manager** declares `requires: ['product:rich-editor', 'product:media']` and binds `preset="email"` with `MediaPicker`.
 
 Toggle: **Site Settings → Modules → Rich editor** (`product:rich-editor` / `richEditor`). When `enabled={false}`, TipTap falls back to a plain textarea (Email templates show a require notice instead).
 
 ## Engine
 
-Implementation: `src/core/rich-editor/`. Pack owns catalog + `@/modules/rich-editor/api` + Settings page at `/admin/rich-editor/settings`.
+The TipTap engine lives in this pack (`RichEditor`, sanitize, nodes). Other packs bind `@/modules/rich-editor/api` and pass `MediaPicker` from `@/modules/media/api`. The editor file does not import the media module. Settings: `/admin/rich-editor/settings`.
+
+Page body save sanitizes in `sfHtmlBodyField` (`beforeValidate` → `sanitizeRichHtml`). That hook imports `../sanitize` directly so the Pages collection config does not load Site Settings.
 
 ## Payload Pages
 
-Pages `body` uses TipTap HTML via `sfHtmlBodyField()` + `SfHtmlField` (Payload admin). Public render: `RichContent` (legacy Lexical JSON still accepted by `RichText` during migration).
+Pages `body` uses TipTap HTML via `sfHtmlBodyField()` + `SfHtmlField` (Payload admin). The locale column is text (`20261111_pages_body_html_text`); unread Lexical documents stay as JSON text. Public render: `RichContent`, or `RichText` when that text is still a Lexical document.
 
 Popups: Link, Callout (portal). Video: inline Media / YouTube–Vimeo panel under the toolbar.
 

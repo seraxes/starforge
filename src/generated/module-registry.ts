@@ -521,6 +521,12 @@ export const adminRouteLoaders: AdminRouteLoader[] = [
     pageExportName: "default",
   },
   {
+    moduleId: "product:redirects",
+    path: "redirects",
+    pageImportPath: "@/modules/redirects/admin/RedirectsPage",
+    pageExportName: "default",
+  },
+  {
     moduleId: "product:pwa",
     path: "pwa",
     pageImportPath: "@/modules/pwa/admin/PwaSettingsPage",

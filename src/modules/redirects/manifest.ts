@@ -2,7 +2,7 @@ import { defineStarforgeModule } from '@/core/modules/define-module'
 
 /**
  * product:redirects — URL redirects admin + Node proxy lookup.
- * Engine still in `src/core/redirects` until M3; manifest owns catalog/nav metadata.
+ * Engine, `sf_redirects`, and the proxy hook live in this pack (M3).
  */
 export default defineStarforgeModule({
   id: 'product:redirects',
@@ -13,6 +13,11 @@ export default defineStarforgeModule({
   version: '0.1.0',
   defaultEnabled: true,
   navViews: [{ key: 'admin', label: 'Redirects', href: '/admin/redirects' }],
+  proxy: {
+    order: 10,
+    handlerImportPath: '@/modules/redirects/proxy',
+    handlerExportName: 'handleRedirectProxy',
+  },
   admin: {
     navGroup: {
       id: 'redirects',
@@ -29,6 +34,13 @@ export default defineStarforgeModule({
       },
     ],
     areas: [{ key: 'redirects', label: 'Redirects' }],
+    routes: [
+      {
+        path: 'redirects',
+        pageImportPath: '@/modules/redirects/admin/RedirectsPage',
+        pageExportName: 'default',
+      },
+    ],
   },
-  db: { schema: 'src/core/db/schema.ts' },
+  db: { schema: 'src/modules/redirects/schema.ts' },
 })

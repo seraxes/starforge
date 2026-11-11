@@ -4,8 +4,8 @@ import type { TextareaFieldClientComponent } from 'payload'
 import { FieldLabel, useField } from '@payloadcms/ui'
 import React from 'react'
 
-import { sanitizeRichHtml } from '@/core/rich-editor/sanitize'
-import { RichEditor } from '@/modules/rich-editor/api'
+import { MediaPicker } from '@/modules/media/api'
+import { RichEditor, sanitizeRichHtml } from '@/modules/rich-editor/api'
 
 /**
  * Payload admin field — TipTap Visual/HTML over a localized textarea (HTML string).
@@ -36,6 +36,7 @@ export const SfHtmlField: TextareaFieldClientComponent = (props) => {
         enabled
         preset="full"
         placeholder="Page body…"
+        MediaPicker={MediaPicker}
       />
     </div>
   )

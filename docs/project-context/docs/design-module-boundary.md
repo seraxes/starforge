@@ -5,7 +5,7 @@ cursor:
 
 # Starforge design — module boundary (manifest contract)
 
-**Status:** the manifest **shape** is still the contract. The 3 Nov queue and the “a pack PR never touches Core” acceptance test are not. Live map: [architecture-current](./architecture-current.md). M0–M2 and the Media UI move (M5) shipped. Forms, redirects, and the TipTap engine stay in `src/core` until a dedicated extract.
+**Status:** the manifest **shape** is still the contract. The 3 Nov queue and the “a pack PR never touches Core” acceptance test are not. Live map: [architecture-current](./architecture-current.md). M0–M2 and the Media UI move (M5) shipped. Redirects engine is `src/modules/redirects` (M3). Forms engine is `src/modules/forms` (M4). TipTap engine is `src/modules/rich-editor`.
 
 **Status (original):** target design. Goal: the next packs are added without product behavior landing in `src/core`. A new **port** or host extension may still edit Core. This complements [module-toggle-architecture](./module-toggle-architecture.md) (allowlist/packages) and [replaceable-modularity-plan](./replaceable-modularity-plan.md) (ports vs modules). Overview: [design-system-overview](./design-system-overview.md).
 
@@ -106,7 +106,7 @@ export const defineStarforgeModule = (m: StarforgeModuleManifest) => m
 
 ## 5. Dependency rules (enforced by ESLint `no-restricted-imports`)
 
-1. `src/core/**` must not import `@/modules/**`. It may import `@/generated/*` only. Known break, fix when touched: `src/core/rich-editor/RichEditor.tsx` imports `MediaPicker`. Do not start an engine extraction to clear it.
+1. `src/core/**` must not import `@/modules/**`. It may import `@/generated/*` only. The TipTap editor lives in `src/modules/rich-editor` and receives `MediaPicker` from the caller.
 2. Modules import Core through public surfaces (`@/core`, `@/core/<port>`), not deep internals of other Core areas.
 3. Module → module only via `@/modules/<other>/api` and only when listed in `requires`.
 4. Hero → modules via `api.ts` + declared extension points; never deep imports.
@@ -135,7 +135,7 @@ export const defineStarforgeModule = (m: StarforgeModuleManifest) => m
 | **M1** | Generic `updateSlotConfigAction` + editor loader; port Logo/Menu/Copyright/Social/Form particle configs to `configSchema` + `editor` | `core/modules/actions.ts` has no per-particle actions |
 | **M2** | Admin nav + route shims + `sf_module_settings` + public-shell slots + proxy chain | Consent and Redirects contribute via manifest |
 | **M3** | Consent ([#81](https://github.com/seraxes/starforge/pull/81), merge as-is) and Redirects (#79) become reference modules under `src/modules/{consent,redirects}` | Their Core files deleted or moved |
-| **M4** | Forms: admin + particle + settings + schema → `src/modules/forms`; engine (`types/expr/logic/evaluate`) exported from `forms/api.ts` | `src/core/forms` gone; Events can use `registerFormPreset` |
+| **M4** | Forms engine → `src/modules/forms`; evaluate, presets, `registerFormPreset`, and submit exported from `forms/api.ts` | `src/core/forms` gone; Events, Profiles, and Payments import `forms/api.ts` only |
 | **M5** | Media library UI → `src/modules/media` (`required: true`); `MediaStorage` port stays Core | Media appears in Modules list as locked |
 
 **Acceptance test for a new pack:** product behavior lands in `src/modules/<id>/**`, plus `starforge.modules.json`, `src/generated/**`, and migrations. A Core diff is allowed only for a new port or a host extension point. CI's minimal-flavor build (see [design-data-deploy](./design-data-deploy.md) §6) still proves Core compiles without the pack's product code. Do not treat “move `src/core/forms` out” as part of an unrelated PR.

@@ -35,6 +35,8 @@ export type BuildAdminNavOptions = {
    * When omitted, all generated contributions are included (tests / legacy).
    */
   enabledModuleIds?: ReadonlySet<string> | readonly string[]
+  /** Settings → Audit. Omitted for members and app admins who are not developer-admins. */
+  developerAdmin?: boolean
 }
 
 function asEnabledSet(
@@ -234,18 +236,23 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
     links: userLinks,
   })
 
+  const settingsLinks: AdminNavGroup['links'] = [
+    { href: `${CORE}/settings`, label: 'Modules', exact: true },
+    { href: `${CORE}/settings/admin-ux`, label: 'Admin UX' },
+    { href: `${CORE}/settings/auth`, label: 'Auth & registration' },
+    { href: `${CORE}/settings/security`, label: 'Security' },
+    { href: `${CORE}/settings/performance`, label: 'Performance' },
+  ]
+  if (options.developerAdmin) {
+    settingsLinks.push({ href: `${CORE}/audit`, label: 'Audit' })
+  }
+
   groups.push({
     id: 'site-settings',
     label: 'Settings',
     href: `${CORE}/settings`,
     expandable: true,
-    links: [
-      { href: `${CORE}/settings`, label: 'Modules', exact: true },
-      { href: `${CORE}/settings/admin-ux`, label: 'Admin UX' },
-      { href: `${CORE}/settings/auth`, label: 'Auth & registration' },
-      { href: `${CORE}/settings/security`, label: 'Security' },
-      { href: `${CORE}/settings/performance`, label: 'Performance' },
-    ],
+    links: settingsLinks,
   })
 
   // Check site lives beside the STARFORGE logo (AdminSidebarBrand), not in the nav list.

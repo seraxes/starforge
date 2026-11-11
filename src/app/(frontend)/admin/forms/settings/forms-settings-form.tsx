@@ -6,8 +6,8 @@ import Link from 'next/link'
 import {
   saveFormsModuleSettingsAction,
   type FormAdminActionState,
-} from '@/core/forms/actions'
-import type { FormsModuleSettings } from '@/core/forms/types'
+} from '@/modules/forms/actions'
+import type { FormsModuleSettings } from '@/modules/forms/types'
 import type { MailerInfo } from '@/core/mail/types'
 
 import { useNotifySavedOnOk } from '../../admin-toast'

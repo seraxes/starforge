@@ -28,6 +28,20 @@ export type StarforgeModuleNavView = {
 
 export type StarforgePublicShellSlot = 'head' | 'bodyStart' | 'bodyEnd'
 
+/**
+ * Node proxy hook (M3). Redirects is the reference pack.
+ * Codegen reads `handlerImportPath` and emits a dynamic `import()` —
+ * it does not execute the handler while generating.
+ */
+export type StarforgeModuleProxyDecl = {
+  /** Lower runs first. Redirects uses 10. */
+  order: number
+  /** Codegen import path for the handler module. */
+  handlerImportPath: string
+  /** Named export; omit or `default` for the default export. */
+  handlerExportName?: string
+}
+
 export type StarforgePublicShellContribution = {
   slot: StarforgePublicShellSlot
   /**
@@ -188,6 +202,12 @@ export type StarforgeModuleManifest = {
   settings?: StarforgeModuleSettingsDecl
   /** Public layout shell slots (M2 host; Consent uses bodyEnd). */
   publicShell?: StarforgePublicShellContribution[]
+  /**
+   * Node proxy chain (M3). Codegen emits `proxyHookLoaders`; `src/proxy.ts`
+   * runs `runProxyHooks` in `order`. Core does not import the pack.
+   * `handlerImportPath` is the codegen-visible pointer (not executed here).
+   */
+  proxy?: StarforgeModuleProxyDecl
   /** Declared particles for particle-pack kind (M1+). */
   particles?: StarforgeModuleParticleDecl[]
   /** Drizzle schema path hint for later glob (M2+). */

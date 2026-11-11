@@ -2,6 +2,7 @@ export {
   updateCaptchaIntegrationAction,
   updateSecurityCaptchaAction,
   updateSiteChromeAction,
+  updateSiteOfflineAction,
 } from './actions'
 export type { SiteChromeActionState } from './actions'
 export {
@@ -42,6 +43,7 @@ export {
 export {
   ensureSiteChromeSeeded,
   getSiteChrome,
+  getSiteChromeForProxy,
   loadSiteChrome,
   saveSiteChrome,
 } from './store'

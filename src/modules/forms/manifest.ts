@@ -2,8 +2,7 @@ import { defineStarforgeModule } from '@/core/modules/define-module'
 
 /**
  * product:forms — Form engine capability (admin + particle gate).
- * Engine code still lives in `src/core/forms` until M4; this manifest is the
- * catalog / allowlist contribution so Core need not hardcode the row.
+ * Engine lives in this folder. Other packs import `@/modules/forms/api` only.
  */
 export default defineStarforgeModule({
   id: 'product:forms',

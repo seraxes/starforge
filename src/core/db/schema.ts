@@ -348,34 +348,6 @@ export const sfFormSubmissions = pgTable(
 )
 
 /**
- * URL redirects (SF-130 / product:redirects).
- * Middleware looks up enabled rows by normalized from_path.
- */
-export const sfRedirects = pgTable(
-  'sf_redirects',
-  {
-    id: text('id').primaryKey(),
-    /** Normalized path (leading slash, no trailing slash except `/`). */
-    fromPath: text('from_path').notNull(),
-    /** Destination path or absolute http(s) URL. */
-    toPath: text('to_path').notNull(),
-    /** HTTP status: 301 | 302 | 307 | 308. */
-    statusCode: integer('status_code').notNull().default(301),
-    enabled: boolean('enabled').default(true).notNull(),
-    note: text('note'),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
-      .defaultNow()
-      .$onUpdate(() => new Date())
-      .notNull(),
-  },
-  (table) => [
-    uniqueIndex('sf_redirects_from_path_uidx').on(table.fromPath),
-    index('sf_redirects_enabled_idx').on(table.enabled),
-  ],
-)
-
-/**
  * Generic per-module settings documents (design-module-boundary M2).
  * Keyed by module id (`product:forms`, …). Packs own the JSON shape via
  * manifest `settings.schema`; Core only hosts load/save.
@@ -416,5 +388,27 @@ export const sfAclPermissions = pgTable(
   (table) => [
     uniqueIndex('sf_acl_permissions_group_resource_uidx').on(table.groupId, table.resource),
     index('sf_acl_permissions_group_id_idx').on(table.groupId),
+  ],
+)
+
+/**
+ * Append-only admin audit trail.
+ * Who changed an account, a module toggle, a redirect, or the environment file.
+ * No request body, no secrets, no update, no delete. Do not backfill.
+ */
+export const sfAdminAudit = pgTable(
+  'sf_admin_audit',
+  {
+    id: text('id').primaryKey(),
+    actorUserId: text('actor_user_id').notNull(),
+    /** Stable action key, e.g. `user.disable`, `module.off`, `environment.save`. */
+    action: text('action').notNull(),
+    targetType: text('target_type').notNull(),
+    targetId: text('target_id').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('sf_admin_audit_created_at_idx').on(table.createdAt),
+    index('sf_admin_audit_actor_user_id_idx').on(table.actorUserId),
   ],
 )

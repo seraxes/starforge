@@ -1,8 +1,8 @@
 # Core finish — instructions
 
-**Status:** active queue as of 2026-11-11. Paste **one slice** into a chat. Do not start the next slice in the same chat.
+**Status:** Core finish complete as of 2026-11-11 (slices 1–9). Archive — do not restart a finished slice. Next work is the commercial order in [architecture-current](./architecture-current.md).
 
-**Resume after sleep (2026-11-11):** start at **slice 5 — Admin audit trail**. Leave slices 1–4 as they stand.
+**Was:** active queue; one slice per chat.
 
 **Read first:** [architecture-current](./architecture-current.md), [sf-ui-design](../../../.cursor/rules/sf-ui-design.mdc), [sf-module-ownership](../../../.cursor/rules/sf-module-ownership.mdc).
 
@@ -29,8 +29,8 @@ The five host slices in [core-host-gaps-brief](./core-host-gaps-brief.md) alread
 | 5 | Admin audit trail | **Resume here** — host gap added 2026-11-11 |
 | 6 | Move the Redirects engine | Structural, own pass |
 | 7 | Move the Forms engine | Structural, own pass |
-| 8 | Move the TipTap engine | Structural, after 7 |
-| 9 | Page reads go through one port | Structural, last |
+| 8 | Move the TipTap engine ✅ | Structural, after 7 |
+| 9 | Page reads go through one port ✅ | Structural, last |
 
 Particle defaults stay demo content inside a skin pack. There is no `/admin/particle-defaults` page.
 
@@ -65,7 +65,7 @@ The banner already stores `necessary: true` and `analytics: boolean` in the `sf-
 
 Rows live in `sf_redirects`: `fromPath`, `toPath`, `statusCode` (301, 302, 307, 308), `enabled`, `note`. Admin is `/admin/redirects`.
 
-**Shipped:** Import card on `/admin/redirects` (`importRedirectsCsvAction` + `parseRedirectCsv` / `importRedirectsFromCsv` in `src/core/redirects`). Header `from,to,status,enabled,note`; invalid rows skipped with imported/skipped counts; matching `fromPath` upserts. Engine stays in Core until slice 6.
+**Shipped:** Import card on `/admin/redirects` (`importRedirectsCsvAction` + `parseRedirectCsv` / `importRedirectsFromCsv`). Header `from,to,status,enabled,note`; invalid rows skipped with imported/skipped counts; matching `fromPath` upserts. Engine lives in `src/modules/redirects` (slice 6).
 
 **Done when**
 
@@ -105,38 +105,21 @@ Nested CSS `@import` through `active-core.css` is unreliable under Turbopack. Ke
 
 ## Slice 4 — Forms success mail through Email Manager only — **shipped**
 
-`src/core/forms/email-notify.ts` is `emitEmailTrigger` only (`product:forms/submitted`). Soft-skips when Email Manager is off or no rule matches. Starter admin + respondent rules live in `src/modules/email-manager/forms-starters.ts` (`ensureFormsEmailStartersSeeded`). Auth stays on `sendAuthMail`; other packs keep their own triggers.
+`src/modules/forms/email-notify.ts` is `emitEmailTrigger` only (`product:forms/submitted`). Soft-skips when Email Manager is off or no rule matches. Starter admin + respondent rules live in `src/modules/email-manager/forms-starters.ts` (`ensureFormsEmailStartersSeeded`). Auth stays on `sendAuthMail`; other packs keep their own triggers.
 
 ---
 
-## Slice 5 — Admin audit trail
+## Slice 5 — Admin audit trail — **shipped**
 
-The host records mail sends and payment reasons. It does not record who changed an account, a module toggle, a redirect, or the environment file.
-
-**Do**
-
-- Add one append-only Core table and a single `recordAdminAudit({ actorId, action, target })` helper. Columns: id, actor user id, action key, target type, target id, created at. No JSON dump of the request.
-- Write a row after a successful change in these four places: user role, group, disable, or CMS access; Site Settings module on/off; redirect create, update, delete, and CSV import (one row per import, with the count in the action key or target id); Environment editor save. The environment row stores that a save happened. It never stores key names or values.
-- Add a read-only `/admin` page for developer-admin, copying the Redirects list density. Newest first. No edit, no delete.
-- Members do not see it. A failed mutation writes nothing.
-
-**Do not**
-
-- Do not backfill history.
-- Do not log passwords, session tokens, two-factor secrets, or merchant payment keys.
-- Do not add a second audit table inside Payments or Events.
-
-**Done when**
-
-- Disabling a user, toggling a module, and saving a redirect each add one row that names the actor.
-- An environment save row contains no secret material.
-- A non-developer-admin cannot open the page.
+Append-only `sf_admin_audit` (id, actor user id, action key, target type, target id, created at). `recordAdminAudit({ actorId, action, target })` in `src/core/audit` runs only after a successful change: user role, group membership, disable, or CMS access; Site Settings module on/off (one row per toggle that changed); redirect create, update, delete, and CSV import (one row, count in the action key and target id); environment save (`environment.save` / target `overlay` — no key names or values). Read-only `/admin/audit` for developer-admin, newest first. Members and other app admins are redirected. No backfill. No second audit table in Payments or Events.
 
 ---
 
-## Slice 6 — Move the Redirects engine
+## Slice 6 — Move the Redirects engine — **shipped**
 
 Own pass. Manifest plan M3. Consent is already `@starforge/module-consent`. This slice is redirects only.
+
+**Shipped:** `src/core/redirects` is gone. Engine, `sf_redirects`, admin page, and CSV import live in `src/modules/redirects`. `src/proxy.ts` calls generated `runProxyHooks`. The lookup route uses `@/modules/redirects/api`. Sitemap stays Core.
 
 **Do**
 
@@ -159,9 +142,11 @@ Own pass. Manifest plan M3. Consent is already `@starforge/module-consent`. This
 
 ---
 
-## Slice 7 — Move the Forms engine
+## Slice 7 — Move the Forms engine — **shipped**
 
 Own pass. Manifest plan M4. Do this after slice 4 so the mail path is already Email Manager only.
+
+**Shipped:** Engine is `src/modules/forms`. `api.ts` is the door (evaluate, presets, `registerFormPreset`, submit). Events, Profiles, and Payments import that file only. `src/core/forms` is gone. Definitions stay `sf_forms` in the Core schema. The form builder is still the layout canvas.
 
 **Do**
 
@@ -184,9 +169,11 @@ Own pass. Manifest plan M4. Do this after slice 4 so the mail path is already Em
 
 ---
 
-## Slice 8 — Move the TipTap engine
+## Slice 8 — Move the TipTap engine — **shipped**
 
 Own pass, after slice 7. Lexical stays an optional pack.
+
+**Shipped:** Engine is `src/modules/rich-editor`. Callers bind `@/modules/rich-editor/api` (server sanitize and the module gate: `api.server`) and pass `MediaPicker` from `@/modules/media/api`. The editor file does not import media. `src/core/rich-editor` is gone. Lexical is unchanged.
 
 **Do**
 
@@ -208,28 +195,13 @@ Own pass, after slice 7. Lexical stays an optional pack.
 
 ---
 
-## Slice 9 — Page reads go through one port
+## Slice 9 — Page reads go through one port ✅
 
 Last structural slice. Payload stays the content manager. This slice makes page reads swappable later. It does not add a second CMS.
 
-**Do**
+**Shipped:** `PageReadsPort` in `src/core/content/page-reads` (Payload adapter). Nav, public page route, draft preview, search, and sitemap call the port. Remaining `getPayload()` callers are listed in the port index header (media, site settings, nav admin/seed, cms-bridge, exchange, seed).
 
-- One Core port for the four reads the layout host needs: published page by slug, draft preview, the list search uses, and the sitemap entries. The Payload adapter is the only place those four call `getPayload()`.
-- Point Nav, the public page route, draft preview, search, and the sitemap at that port.
-
-**Do not**
-
-- Do not move the media library or site settings off `getPayload()` in this slice. List any remaining callers in the port file’s header comment and stop.
-- Do not build another page editor.
-- Do not change the editorial UI under `/cms`.
-
-**Done when**
-
-- Unpublished slugs still 404. Draft preview still requires CMS access.
-- Search and the sitemap still list published pages.
-- Those four features no longer call `getPayload()` outside the adapter.
-
-Core is finished when slice 9 is merged. Next product work is the commercial order in [architecture-current](./architecture-current.md): close paid event tickets, then subscriptions, then ads.
+Core finished when slice 9 merged. Next product work is the commercial order in [architecture-current](./architecture-current.md): close paid event tickets, then subscriptions, then ads.
 
 ---
 

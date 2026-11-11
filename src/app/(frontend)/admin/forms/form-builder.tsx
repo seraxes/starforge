@@ -5,21 +5,21 @@ import React, { useActionState, useMemo, useState } from 'react'
 import {
   saveFormDefinitionAction,
   type FormAdminActionState,
-} from '@/core/forms/actions'
+} from '@/modules/forms/actions'
 import {
   FORM_WEEKDAY_LABELS,
   htmlInputTypeForField,
   isDateTimeFieldType,
   normalizeDateTimeConstraints,
   normalizeDaysOfMonth,
-} from '@/core/forms/date-constraints'
+} from '@/modules/forms/date-constraints'
 import {
   createFieldDraft,
   createSectionDraft,
   normalizeFormSections,
-} from '@/core/forms/definition'
-import { FORM_CONDITION_OP_LABELS } from '@/core/forms/logic'
-import { listFormPresetMetas } from '@/core/forms/presets'
+} from '@/modules/forms/definition'
+import { FORM_CONDITION_OP_LABELS } from '@/modules/forms/logic'
+import { listFormPresetMetas } from '@/modules/forms/presets'
 import {
   addFieldToRow,
   appendEmptyRowToSection,
@@ -34,12 +34,12 @@ import {
   LAYOUT_WIDTH_FULL,
   LAYOUT_WIDTH_MIN,
   clampGridWidth,
-} from '@/core/forms/rows'
+} from '@/modules/forms/rows'
 import {
   fieldsToJsonSchema,
   isFormFieldType,
   stringifyFormJsonSchema,
-} from '@/core/forms/schema-json'
+} from '@/modules/forms/schema-json'
 import {
   pairMosaicSectionWidths,
   widthToPercentLabel,
@@ -57,7 +57,7 @@ import type {
   FormPresetId,
   FormSectionDef,
   FormWeekday,
-} from '@/core/forms/types'
+} from '@/modules/forms/types'
 
 import { AccessTagsField } from '@/components/admin/AccessTagsField'
 import { GantryBarRemoveButton } from '@/components/admin/GantryBarRemoveButton'
@@ -69,7 +69,7 @@ import {
   createUniqueFormFieldDraft,
   isUniqueFormFieldKey,
   resolveFormFieldUniqueKey,
-} from '@/core/forms/unique-fields'
+} from '@/modules/forms/unique-fields'
 import { MediaPicker } from '@/modules/media/api'
 
 import { useNotifySavedOnOk } from '../admin-toast'

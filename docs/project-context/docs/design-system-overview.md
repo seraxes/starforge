@@ -19,7 +19,7 @@ Starforge is a reusable, Joomla-like product core for ordinary web projects. ASN
 
 Quick test: reusable without saying "airsoft" → Module. Vendor SDK or secret → Core port. Theme, fee table, or approval flow → Hero. Full placement table: [platform-module-layers](./platform-module-layers.md).
 
-**Reality gap (2026-11-10):** Media UI, Consent, Events, Maps, Profiles, and Payments live under `src/modules`. Forms, redirects, and the TipTap engine still live in `src/core` on purpose — see [architecture-current](./architecture-current.md). Known break: `src/core/rich-editor/RichEditor.tsx` imports `@/modules/media`. Manifest contract: [design-module-boundary](./design-module-boundary.md).
+**Reality gap (2026-11-11):** Media UI, Consent, Events, Maps, Profiles, Payments, Redirects, Forms, and the TipTap engine live under `src/modules`. The editor receives `MediaPicker` from the caller (`@/modules/media/api`). See [architecture-current](./architecture-current.md). Manifest contract: [design-module-boundary](./design-module-boundary.md).
 
 ## 2. Stack (locked defaults)
 
@@ -64,7 +64,7 @@ Rule: no stub code for ports without a consumer. Earlier stubs (a Redis cache th
 
 1. **Install allowlist (shipped):** `starforge.modules.json` / `SF_MODULES` → `npm run modules:generate` → `src/generated/module-registry.ts` with dynamic `import()` per optional pack.
 2. **Runtime toggles (shipped):** Settings → Modules for installed ids; disabled packs don't render, aren't in the palette, and are hidden from nav.
-3. **Manifest contract (shipped through M2, media UI at M5):** packs declare particles, admin nav, settings, and lazy imports in `manifest.ts`. Forms, redirects, and TipTap **engines** remain in `src/core` on purpose ([architecture-current](./architecture-current.md)). Contract: [design-module-boundary](./design-module-boundary.md).
+3. **Manifest contract (shipped through M2, media UI at M5):** packs declare particles, admin nav, settings, and lazy imports in `manifest.ts`. Forms, redirects, and TipTap engines live in `src/modules` ([architecture-current](./architecture-current.md)). Contract: [design-module-boundary](./design-module-boundary.md).
 4. **Packages (P2):** `@starforge/module-*` from GitHub Packages via deploy-time `modules:sync`; lean and ASN image flavors ([module-toggle-architecture](./module-toggle-architecture.md)).
 
 ## 5. Build order and current queue

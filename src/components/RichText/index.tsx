@@ -12,7 +12,7 @@ import {
 } from '@payloadcms/richtext-lexical/react'
 import React from 'react'
 
-import { RichContent } from '@/core/rich-editor/RichContent'
+import { RichContent } from '@/modules/rich-editor/api'
 import type { Page } from '@/payload-types'
 
 type NodeTypes = DefaultNodeTypes
@@ -74,6 +74,18 @@ function isLexicalState(data: unknown): data is SerializedEditorState {
   return Boolean(root && typeof root === 'object')
 }
 
+/** Legacy Lexical documents stored as text after the body column became HTML. */
+function lexicalFromString(data: string): SerializedEditorState | null {
+  const trimmed = data.trim()
+  if (!trimmed.startsWith('{')) return null
+  try {
+    const parsed: unknown = JSON.parse(trimmed)
+    return isLexicalState(parsed) ? parsed : null
+  } catch {
+    return null
+  }
+}
+
 /**
  * Public page body — TipTap HTML (canonical) or legacy Lexical JSON
  * (`product:lexical-editor`; still rendered when that module is off so old pages do not blank).
@@ -88,6 +100,12 @@ export function RichText({
   }
 
   if (typeof data === 'string') {
+    const legacy = lexicalFromString(data)
+    if (legacy) {
+      return (
+        <PayloadRichText className="cms-richtext" converters={jsxConverters} data={legacy} />
+      )
+    }
     return <RichContent html={data} className="cms-richtext" />
   }
 

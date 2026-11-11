@@ -1,6 +1,8 @@
 import type { Field } from 'payload'
 
-import { sanitizeRichHtml } from '@/core/rich-editor/sanitize'
+import { sanitizeRichHtml } from '../sanitize'
+// Direct import: this file is loaded by the Pages collection config.
+// `api.server` also loads Site Settings, which loads the Payload config.
 
 /**
  * Localized HTML body field for Payload Pages (TipTap via SfHtmlField).

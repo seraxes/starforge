@@ -106,14 +106,27 @@ export async function writeContentLocaleFile(
 ): Promise<void> {
   const normalized = normalizeContentLocaleFileMap(map)
   const filePath = getContentLocaleFilePath(locale, scope, ownerId)
-  await mkdir(path.dirname(filePath), { recursive: true })
   const ordered = Object.keys(normalized)
     .sort((a, b) => a.localeCompare(b))
     .reduce<ContentLocaleCatalog>((acc, key) => {
       acc[key] = normalized[key]!
       return acc
     }, {})
-  await writeFile(filePath, `${JSON.stringify(ordered, null, 2)}\n`, 'utf8')
+  const nextText = `${JSON.stringify(ordered, null, 2)}\n`
+  // Skip no-op writes — Site Chrome autosave syncs consent on every save; rewriting
+  // identical JSON under data/ retriggers Turbopack HMR mid useActionState and wedges
+  // the tab/process until restart.
+  try {
+    const prev = await readFile(filePath, 'utf8')
+    if (prev === nextText) {
+      invalidateContentLocaleCatalog(locale)
+      return
+    }
+  } catch {
+    // Missing file — fall through to create.
+  }
+  await mkdir(path.dirname(filePath), { recursive: true })
+  await writeFile(filePath, nextText, 'utf8')
   invalidateContentLocaleCatalog(locale)
 }
 

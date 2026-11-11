@@ -2,6 +2,12 @@
 
 import { revalidatePath } from 'next/cache'
 
+import {
+  USER_GROUP_ADD_ACTION,
+  USER_GROUP_REMOVE_ACTION,
+  USER_GROUPS_ACTION,
+  recordAdminAudit,
+} from '@/core/audit'
 import { requireAppAdmin } from '@/core/auth/admin'
 // Client components import this module for server actions only — keep free of session/headers.
 
@@ -23,6 +29,12 @@ export type AclActionState = {
   ok?: boolean
   message?: string
   groupId?: string
+}
+
+async function requireActorId(): Promise<string | null> {
+  const admin = await requireAppAdmin()
+  const id = admin?.user?.id?.trim()
+  return id || null
 }
 
 function revalidateUsersPaths(groupId?: string) {
@@ -101,7 +113,8 @@ export async function addGroupMemberAction(
   _prev: AclActionState,
   formData: FormData,
 ): Promise<AclActionState> {
-  if (!(await requireAppAdmin())) {
+  const actorId = await requireActorId()
+  if (!actorId) {
     return { error: 'Sign in as a Starforge app admin to manage groups.' }
   }
 
@@ -109,6 +122,12 @@ export async function addGroupMemberAction(
   const userId = String(formData.get('userId') ?? '').trim()
   const result = await addUserToGroup(groupId, userId)
   if ('error' in result) return { error: result.error }
+
+  await recordAdminAudit({
+    actorId,
+    action: USER_GROUP_ADD_ACTION,
+    target: { type: 'user', id: userId },
+  })
 
   revalidateUsersPaths(groupId)
   return { ok: true, message: 'Member added.', groupId }
@@ -118,7 +137,8 @@ export async function removeGroupMemberAction(
   _prev: AclActionState,
   formData: FormData,
 ): Promise<AclActionState> {
-  if (!(await requireAppAdmin())) {
+  const actorId = await requireActorId()
+  if (!actorId) {
     return { error: 'Sign in as a Starforge app admin to manage groups.' }
   }
 
@@ -126,6 +146,12 @@ export async function removeGroupMemberAction(
   const userId = String(formData.get('userId') ?? '').trim()
   const result = await removeUserFromGroup(groupId, userId)
   if ('error' in result) return { error: result.error }
+
+  await recordAdminAudit({
+    actorId,
+    action: USER_GROUP_REMOVE_ACTION,
+    target: { type: 'user', id: userId },
+  })
 
   revalidateUsersPaths(groupId)
   return { ok: true, message: 'Member removed.', groupId }
@@ -135,7 +161,8 @@ export async function setUserGroupsAction(
   _prev: AclActionState,
   formData: FormData,
 ): Promise<AclActionState> {
-  if (!(await requireAppAdmin())) {
+  const actorId = await requireActorId()
+  if (!actorId) {
     return { error: 'Sign in as a Starforge app admin to manage groups.' }
   }
 
@@ -143,6 +170,12 @@ export async function setUserGroupsAction(
   const groupIds = formData.getAll('groupId').map((v) => String(v ?? ''))
   const result = await setUserGroups(userId, groupIds)
   if ('error' in result) return { error: result.error }
+
+  await recordAdminAudit({
+    actorId,
+    action: USER_GROUPS_ACTION,
+    target: { type: 'user', id: userId },
+  })
 
   revalidateUsersPaths()
   return { ok: true, message: 'Groups updated.' }

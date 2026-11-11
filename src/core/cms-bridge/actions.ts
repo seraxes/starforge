@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 
+import { recordAdminAudit, userCmsAction } from '@/core/audit'
 import { requireAppAdmin } from '@/core/auth/admin'
 import { db, sfUsers } from '@/core/db'
 import { eq } from 'drizzle-orm'
@@ -50,6 +51,12 @@ export async function setAppUserCmsAccessAction(
   if (!result.ok) {
     return { error: result.error }
   }
+
+  await recordAdminAudit({
+    actorId: adminSession.user.id,
+    action: userCmsAction(enabled),
+    target: { type: 'user', id: userId },
+  })
 
   revalidatePath('/admin/users')
   revalidatePath(`/admin/users/${userId}`)

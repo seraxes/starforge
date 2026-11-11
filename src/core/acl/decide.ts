@@ -136,6 +136,10 @@ export function adminAreaGateForPath(pathname: string): AdminAreaGate {
   if (path === `${CORE_ADMIN_BASE}/media` || path.startsWith(`${CORE_ADMIN_BASE}/media/`)) {
     return { type: 'app-admin' }
   }
+  // No matrix key. Members cannot open it. Developer-admin is enforced on the page.
+  if (path === `${CORE_ADMIN_BASE}/audit` || path.startsWith(`${CORE_ADMIN_BASE}/audit/`)) {
+    return { type: 'app-admin' }
+  }
 
   return { type: 'app-admin' }
 }

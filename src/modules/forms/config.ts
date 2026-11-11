@@ -16,6 +16,7 @@ import type {
 export { defaultFormFields, normalizeFormFields }
 
 export function defaultFormConfig(): FormParticleConfig {
+  // `defaultConfigForModule('form')` in the layout host copies this object.
   return {
     source: 'definition',
     formId: DEFAULT_CONTACT_FORM_ID,

@@ -63,17 +63,17 @@ mustNotInclude(
   'Built-in allowlist must not admit image/svg+xml',
 )
 mustInclude(
-  'src/core/forms/actions.ts',
+  'src/modules/forms/actions.ts',
   'fields.filter((f) => f.type !== \'file\')',
   'Legacy fieldsJson strips client file field defs',
 )
 mustInclude(
-  'src/core/forms/actions.ts',
+  'src/modules/forms/actions.ts',
   'assertFormUploadsAllowed',
   'Pre-upload validation runs before storage',
 )
 mustInclude(
-  'src/core/forms/actions.ts',
+  'src/modules/forms/actions.ts',
   'ingestFormUploads',
   'Upload helper still present (after captcha)',
 )
@@ -125,7 +125,7 @@ mustInclude(
 
 // Order smoke: captcha / rate-limit must appear before ingestFormUploads call site
 {
-  const src = read('src/core/forms/actions.ts')
+  const src = read('src/modules/forms/actions.ts')
   const captcha = src.indexOf('verifyCaptchaToken')
   const rate = src.indexOf('checkFormRateLimit')
   const ingestCall = src.indexOf('await ingestFormUploads')

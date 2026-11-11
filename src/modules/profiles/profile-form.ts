@@ -10,16 +10,16 @@ import { eq } from 'drizzle-orm'
 import { db } from '@/core/db'
 import { sfForms } from '@/core/db/schema'
 import {
+  DEFAULT_PROFILE_FORM_ID,
+  createRowDraft,
   emptyFormDefinitionDocument,
-  serializeFormDefinitionDocument,
-} from '@/core/forms/definition'
-import {
+  ensureFormSectionsEmptyRows,
   loadFormDefinition,
   saveFormDefinitionDocument,
-} from '@/core/forms/definitions-store'
-import { DEFAULT_PROFILE_FORM_ID } from '@/core/forms/presets'
-import { createRowDraft, ensureFormSectionsEmptyRows } from '@/core/forms/rows'
-import type { FormFieldDef, FormSectionDef } from '@/core/forms/types'
+  serializeFormDefinitionDocument,
+  type FormFieldDef,
+  type FormSectionDef,
+} from '@/modules/forms/api'
 import { LAYOUT_WIDTH_FULL } from '@/core/modules/grid'
 
 import { PROFILE_FIELD_GROUPS, PROFILE_FIELDS } from './fields'

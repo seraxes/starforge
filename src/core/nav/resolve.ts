@@ -1,10 +1,8 @@
-import { getPayload } from 'payload'
-
-import config from '@payload-config'
 import type { NavItem, SiteSettingsData } from '@/core/settings/defaults'
 import { DEFAULT_PRIMARY_NAV } from '@/core/settings/defaults'
 import { normalizeHref, type RawNavRow, resolveNavItems } from '@/core/settings/nav'
 
+import { getPageReads } from '@/core/content/page-reads'
 import { buildNavItemKey } from '@/core/i18n/content-locale-keys'
 import {
   loadContentLocaleCatalog,
@@ -32,28 +30,25 @@ export type ResolvedNavItem = NavItem & {
   linkType?: NavMenuItem['linkType']
 }
 
+/**
+ * Resolve page binds → slugs via PageReadsPort published summaries.
+ * Unpublished page links stay unresolved (no href) — public nav is published-only.
+ */
 async function resolvePageSlugMap(
   pageIds: number[],
 ): Promise<Map<number, string>> {
   const map = new Map<number, string>()
   if (pageIds.length === 0) return map
+  const wanted = new Set(pageIds)
   try {
-    const payload = await getPayload({ config })
-    const result = await payload.find({
-      collection: 'pages',
-      where: { id: { in: pageIds } },
-      depth: 0,
-      limit: pageIds.length,
-      overrideAccess: true,
-      pagination: false,
-    })
-    for (const doc of result.docs) {
-      if (typeof doc.id === 'number' && typeof doc.slug === 'string' && doc.slug.trim()) {
+    const docs = await getPageReads().listPublishedSummaries()
+    for (const doc of docs) {
+      if (wanted.has(doc.id) && doc.slug.trim()) {
         map.set(doc.id, doc.slug.trim())
       }
     }
   } catch {
-    // Payload unavailable
+    // Content manager unavailable
   }
   return map
 }

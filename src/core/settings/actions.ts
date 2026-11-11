@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 
+import { moduleOnOffAudit, recordAdminAudit } from '@/core/audit'
 import { requireAppAdmin } from '@/core/auth/admin'
 import { invalidateSiteChrome, invalidateSiteSettings } from '@/core/content/revalidate'
 import {
@@ -17,6 +18,7 @@ import {
   coerceRealtimeEnabled,
   featureFlagsFromModuleToggles,
   getSiteSettings,
+  isCatalogModuleEnabled,
   listInstalledModuleCatalog,
   type ModuleToggleMap,
   type SiteSettingsData,
@@ -41,6 +43,27 @@ function performanceFieldsFrom(current: SiteSettingsData) {
 export type SettingsActionState = {
   error?: string
   ok?: boolean
+}
+
+/** One row per module whose effective on/off actually changed. */
+async function auditModuleToggleDiff(
+  actorId: string,
+  before: SiteSettingsData,
+  after: SiteSettingsData,
+) {
+  for (const item of listInstalledModuleCatalog()) {
+    if (item.required) continue
+    const prev = isCatalogModuleEnabled(before, item.id)
+    const next = isCatalogModuleEnabled(after, item.id)
+    if (prev === next) continue
+    const entry = moduleOnOffAudit(item.id, next)
+    if (!entry) continue
+    await recordAdminAudit({
+      actorId,
+      action: entry.action,
+      target: entry.target,
+    })
+  }
 }
 
 function parseBool(formData: FormData, key: string): boolean {
@@ -136,6 +159,15 @@ export async function updateSiteSettingsAction(
         ? error.message
         : 'Could not save site settings.'
     return { error: message }
+  }
+
+  const actorId = admin.user?.id?.trim()
+  if (actorId) {
+    await auditModuleToggleDiff(actorId, current, {
+      ...current,
+      moduleToggles,
+      features,
+    })
   }
 
   await revalidateSettingsPaths()
@@ -295,6 +327,15 @@ export async function updateAuthSettingsAction(
         ? error.message
         : 'Could not save auth settings.'
     return { error: message }
+  }
+
+  const actorId = admin.user?.id?.trim()
+  if (actorId) {
+    await auditModuleToggleDiff(actorId, current, {
+      ...current,
+      moduleToggles,
+      features,
+    })
   }
 
   await invalidateSiteChrome()

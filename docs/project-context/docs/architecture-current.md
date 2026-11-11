@@ -55,9 +55,9 @@ Installing Starforge means choosing which modules come with that site. The mecha
 
 **Always present:** the host Starforge cannot boot without. Auth, users and groups, the admin shell, the module installer itself, the layout document and particle slots, Nav, Site Chrome, Page Settings, the Skin port, the i18n routing host, and the Mailer and cache interfaces.
 
-**Not downloaded unless chosen:** any product engine, including ones that sit in `src/core` today. Forms, the media library, redirects, TipTap, Lexical, search, Email Manager, Payments (gateways, NAV, Billingo, Számlázz), Maps (Leaflet), Events, Profiles, Consent’s banner, and PWA. Adding one later is a new install and a new build, not a checkbox over code that was already on disk.
+**Not downloaded unless chosen:** any product engine. Forms, the media library, redirects, TipTap, Lexical, search, Email Manager, Payments (gateways, NAV, Billingo, Számlázz), Maps (Leaflet), Events, Profiles, Consent’s banner, and PWA. Adding one later is a new install and a new build, not a checkbox over code that was already on disk.
 
-**Content manager:** Payload is the first content-manager pack, chosen so Starforge did not have to build its own page editor. It is optional at install. Another content manager is another pack behind the same read API the layout uses: published page by slug, draft preview, and the list search and the sitemap need. Do not build that second pack until one is actually chosen. Pages, search, the sitemap, the media store, and site settings still call `getPayload()` from Core, so Payload is not optional yet.
+**Content manager:** Payload is the first content-manager pack, chosen so Starforge did not have to build its own page editor. It is optional at install. Another content manager is another pack behind the same read API the layout uses: published page by slug, draft preview, and the list search and the sitemap need (`PageReadsPort` in `src/core/content/page-reads`). Do not build that second pack until one is actually chosen. Those four layout-host reads go through the port (Payload adapter only). The media store and site settings still call `getPayload()` from Core, so Payload is not optional at install yet.
 
 The content manager owns editorial pages (body, drafts, versions, the editor UI). The media library and site settings stay Starforge modules and Core tables. A different page editor must not replace those.
 
@@ -65,29 +65,29 @@ The content manager owns editorial pages (body, drafts, versions, the editor UI)
 
 ## Build queue
 
-Core → Modules → Hero still holds. **The active job is to finish and polish Core.** Do not open another product pack, and do not extend Events, Maps, or Payments, until that pass is done. “Done enough” is not the bar.
+Core → Modules → Hero still holds. **Core finish (slices 1–9) is shipped.** The active job is the commercial order: close paid event tickets on `product:payments`, then `product:subscriptions`, then `product:ads`. Do not open Social, Chat, Shop, or Marketplace schema ahead of that.
 
 Do not re-open work that already shipped: RateLimiter, captcha-in-security, the manifest host (M0–M2), Redis cache, the Skin port, dashboard D2–D4, the email send log, module info pages, or the dashboard core glance and needs-attention rail (`system.health`, `chrome.posture`, `modules.summary`, `attention.rail`).
 
 **Host gaps for Auto** (one slice per chat, instructions in [core-host-gaps-brief](./core-host-gaps-brief.md)): all five slices shipped — public error/404, optional email verification, download-my-data / delete-my-account, job-runner port (`src/core/jobs`), and Google sign-in (`GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET`, button only when both set). These do not replace the list below.
 
-**Resume after sleep (2026-11-11):** next session starts at slice 5, the admin audit trail, in [core-finish-instructions](./core-finish-instructions.md).
+**Resume after sleep (2026-11-11):** Core finish slices 1–9 shipped. Next product work is the commercial order below: close paid event tickets, then subscriptions, then ads. Redirects, Forms, and the TipTap engine are in `src/modules`. Page reads go through `PageReadsPort`.
 
-**Now (Core finish), in order.** One slice per chat. Paste from [core-finish-instructions](./core-finish-instructions.md):
+**Core finish (shipped).** One slice per chat was the rule; paste archive in [core-finish-instructions](./core-finish-instructions.md):
 
 1. **Small host leftovers.** Consent choices (necessary + analytics, reopenable). Redirect CSV import. Admin theme CSS selected from the registry (layouts still import Gantry statically; Turbopack needs a static import per known theme). Forms success mail through Email Manager only — **shipped** (`email-notify.ts` is `emitEmailTrigger` only; no Mailer fallback).
-2. **Admin audit trail** (added 2026-11-11). One append-only host log for account changes, module toggles, redirects, and environment saves. No secret values.
-3. **Structural finish, its own passes.** Move Redirects, then Forms, out of `src/core` (manifest plan M3–M4). TipTap follows. Then page reads (published slug, draft preview, search list, sitemap) go through one port so those four stop calling `getPayload()` directly. Not a side effect of a feature PR. Do not start the TipTap extract just to fix the `MediaPicker` import.
+2. **Admin audit trail** — **shipped.** Append-only `sf_admin_audit` and `recordAdminAudit` in `src/core/audit`. Rows after a successful user role, group, disable, or CMS change; a Site Settings module on/off; a redirect create, update, delete, or CSV import; and an environment save (the fact of the save only — no key names or values). Read-only `/admin/audit` for developer-admin. No backfill.
+3. **Structural finish, its own passes.** Redirects engine is in `src/modules/redirects` (M3). Forms engine is in `src/modules/forms` (M4). TipTap engine is in `src/modules/rich-editor`; callers pass `MediaPicker` from `@/modules/media/api`. Page reads (published slug, draft preview, search list, sitemap) go through `PageReadsPort` (`src/core/content/page-reads`) — **shipped** (slice 9).
 
 **Particle defaults are not a Core admin page.** They are demo content inside a skin pack: the particles that ship with that skin already have default text and parameters, so an installed skin is not empty. Build that when Starforge is ready to hand to other people as a demo. Do not add `/admin/particle-defaults` back.
 
-**After Core is finished, commercial order** (ownership unchanged; this is not the active queue): close paid event tickets on `product:payments`, then `product:subscriptions`, then `product:ads`. `sf_pay_collect_entitlements` stays frozen until subscriptions owns it.
+**Commercial order (active):** close paid event tickets on `product:payments`, then `product:subscriptions`, then `product:ads`. `sf_pay_collect_entitlements` stays frozen until subscriptions owns it.
 
-**Also decided, and also waiting:** event slot kinds are choosable **Ticket type**, **Booking type**, and **Faction**, and an admin can add other names. The code today is only `general | faction`. Do not build that chooser during the Core pass.
+**Also decided, and also waiting:** event slot kinds are choosable **Ticket type**, **Booking type**, and **Faction**, and an admin can add other names. The code today is only `general | faction`. Do not build that chooser ahead of the commercial order.
 
-**Parked until Core is finished, and not ahead of the commercial order after that:** TacMap stations, BLE beacons, `apps/asn-capacitor`, Shop, Marketplace schema, Social, Chat, Stream, Notifications, ASN Hero theme and domain fields, DigitalOcean, WordPress migration.
+**Parked, and not ahead of the commercial order:** TacMap stations, BLE beacons, `apps/asn-capacitor`, Shop, Marketplace schema, Social, Chat, Stream, Notifications, ASN Hero theme and domain fields, DigitalOcean, WordPress migration.
 
-**Named 2026-11-11, still waiting, not this queue:** promotions, organizations, campaigns, comments, reports, outbound webhooks, support. Instructions and the “this is not a new pack” list: [core-finish-instructions](./core-finish-instructions.md). Do not start them during the Core pass.
+**Named 2026-11-11, still waiting, not this queue:** promotions, organizations, campaigns, comments, reports, outbound webhooks, support. Instructions and the “this is not a new pack” list: [core-finish-instructions](./core-finish-instructions.md). Do not start them ahead of the commercial order.
 
 The 5 Nov wireframe order does not override this. Email Manager already shipped ahead of the heavy packs. i18n P0–P3 already shipped.
 
@@ -116,10 +116,10 @@ Do not relocate these in a drive-by:
 
 | Thing | Where it lives | Rule |
 | --- | --- | --- |
-| Forms engine | `src/core/forms` + `product:forms` manifest | Destination is an install pack that is absent when not chosen. Stays here until that extract. |
-| Redirects engine | `src/core/redirects` + `product:redirects` manifest | Same. |
-| TipTap engine | `src/core/rich-editor` + `product:rich-editor` | Same. Lexical too. |
-| `RichEditor.tsx` imports `MediaPicker` from `@/modules/media` | Known Core → module break | Fix by passing the picker in when that file is next touched. Do not start an M4 extraction to “solve” it. |
+| Forms engine | `src/modules/forms` (`api.ts` door) | Events, Profiles, and Payments import `@/modules/forms/api` only. Core does not import the engine. Definitions stay `sf_forms` in the Core schema. |
+| Redirects engine | `src/modules/redirects` (`api.ts`, `schema.ts`, generated `runProxyHooks`) | Core calls the generated hook only. Sitemap list stays Core. |
+| TipTap engine | `src/modules/rich-editor` (`product:rich-editor`) | Lexical stays an optional pack. Callers use `@/modules/rich-editor/api` (server sanitize and the module gate: `api.server`). |
+| Image insert in the editor | Caller passes `MediaPicker` from `@/modules/media/api` | The editor file does not import media. Core does not import the picker. |
 | Forms success mail | `emitEmailTrigger` (`product:forms/submitted`) only | Do not call `getMailer()` from Forms or other packs for product mail. |
 | `sf_pay_collect_entitlements` | Frozen stub inside Payments | Subscriptions replaces it. No plan/period columns on `sf_pay_*`. |
 | Payment fulfillment | `registerPaymentConsumerHook('events.confirmRegistration', …)` | One hook key per consumer, passed into checkout. No second event bus. |

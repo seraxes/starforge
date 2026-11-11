@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 
+import { environmentSaveAudit, recordAdminAudit } from '@/core/audit'
 import { requireDeveloperAdmin } from '@/core/auth/admin'
 
 import { ENV_EDITOR_FIELDS, ENV_EDITOR_KEY_SET } from './catalog'
@@ -91,6 +92,13 @@ export async function saveEnvEditorAction(
   if (!result.ok) {
     return { error: result.error }
   }
+
+  const saved = environmentSaveAudit()
+  await recordAdminAudit({
+    actorId: gate.userId,
+    action: saved.action,
+    target: saved.target,
+  })
 
   revalidatePath('/admin/site-chrome/environment')
   revalidatePath('/admin/site-chrome')

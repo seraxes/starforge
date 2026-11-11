@@ -36,6 +36,37 @@ function parseBool(formData: FormData, key: string): boolean {
   return raw === 'on' || raw === 'true' || raw === '1'
 }
 
+/**
+ * Offline toggle / message / outline only.
+ * No consent file sync, no cache tag bust — proxy reads the process snapshot
+ * updated inside saveSiteChrome. Full Chrome autosave was wedging Turbopack.
+ */
+export async function updateSiteOfflineAction(
+  _prev: SiteChromeActionState,
+  formData: FormData,
+): Promise<SiteChromeActionState> {
+  const admin = await requireAppAdmin()
+  if (!admin) {
+    return { error: 'Sign in as a Starforge app admin to edit Chrome.' }
+  }
+
+  try {
+    await saveSiteChrome({
+      offlineEnabled: parseBool(formData, 'offlineEnabled'),
+      offlineMessage: String(formData.get('offlineMessage') ?? ''),
+      offlineLayoutId: String(formData.get('offlineLayoutId') ?? '').trim(),
+    })
+  } catch (error) {
+    const message =
+      error instanceof Error && error.message
+        ? error.message
+        : 'Could not save offline settings.'
+    return { error: message }
+  }
+
+  return { ok: true }
+}
+
 export async function updateSiteChromeAction(
   _prev: SiteChromeActionState,
   formData: FormData,
@@ -61,20 +92,9 @@ export async function updateSiteChromeAction(
       formData.get('consentPrivacyLinkLabelLocales'),
     )
 
-    await syncSiteChromeConsentLocalesToFiles({
-      consentMessage,
-      consentPrivacyUrl,
-      consentPrivacyLinkLabel,
-      consentMessageLocales,
-      consentPrivacyUrlLocales,
-      consentPrivacyLinkLabelLocales,
-    })
-
     // Captcha lives under Site Settings → Security (preserve existing values).
+    // Offline fields are owned by updateSiteOfflineAction (separate form).
     await saveSiteChrome({
-      offlineEnabled: parseBool(formData, 'offlineEnabled'),
-      offlineMessage: String(formData.get('offlineMessage') ?? ''),
-      offlineLayoutId: String(formData.get('offlineLayoutId') ?? '').trim(),
       emailEnabled: parseBool(formData, 'emailEnabled'),
       emailProvider,
       emailFrom: String(formData.get('emailFrom') ?? ''),
@@ -90,6 +110,15 @@ export async function updateSiteChromeAction(
       consentPrivacyUrl,
       consentPrivacyLinkLabel,
     })
+
+    await syncSiteChromeConsentLocalesToFiles({
+      consentMessage,
+      consentPrivacyUrl,
+      consentPrivacyLinkLabel,
+      consentMessageLocales,
+      consentPrivacyUrlLocales,
+      consentPrivacyLinkLabelLocales,
+    })
   } catch (error) {
     const message =
       error instanceof Error && error.message
@@ -98,13 +127,9 @@ export async function updateSiteChromeAction(
     return { error: message }
   }
 
+  // Tag invalidation only — same rule as Localization. Do not revalidatePath.
   await invalidateSiteChrome()
   await invalidateSiteSettings()
-  revalidatePath('/', 'layout')
-  revalidatePath('/robots.txt')
-  revalidatePath('/admin/site-chrome')
-  revalidatePath('/admin/settings')
-  revalidatePath('/admin')
   return { ok: true }
 }
 
@@ -152,7 +177,7 @@ export async function updateSecurityCaptchaAction(
   }
 
   await invalidateSiteChrome()
-  revalidatePath('/', 'layout')
+  // Same rule as updateSiteChromeAction — no public layout revalidatePath.
   revalidatePath('/admin/settings/security')
   revalidatePath('/admin/forms')
   revalidatePath('/register')

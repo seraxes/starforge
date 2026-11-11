@@ -3,6 +3,8 @@
 import React, { useActionState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
+import { useNotifySavedOnOk } from '@/app/(frontend)/admin/admin-toast'
+
 import {
   createRedirectAction,
   deleteRedirectAction,
@@ -10,10 +12,8 @@ import {
   toggleRedirectEnabledAction,
   updateRedirectAction,
   type RedirectAdminActionState,
-} from '@/core/redirects/actions'
-import { REDIRECT_STATUS_CODES } from '@/core/redirects/types'
-
-import { useNotifySavedOnOk } from '../admin-toast'
+} from '../actions'
+import { REDIRECT_STATUS_CODES } from '../types'
 
 type RedirectRow = {
   id: string

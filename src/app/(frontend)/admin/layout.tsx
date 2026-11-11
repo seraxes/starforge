@@ -27,6 +27,7 @@ import {
 import {
   promoteSessionUserIfBootstrapAdmin,
   roleFromUser,
+  userIsDeveloperAdmin,
 } from '@/core/auth/admin'
 import { getAppSession } from '@/core/auth/session'
 import { loadCoreUserCmsAccess, userHasCmsAccess } from '@/core/cms-bridge'
@@ -130,6 +131,7 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
         cms: showPayloadCms,
       },
       enabledModuleIds,
+      developerAdmin: userIsDeveloperAdmin(session.user),
     }),
     viewer.isAppAdmin,
     gated.allowed,

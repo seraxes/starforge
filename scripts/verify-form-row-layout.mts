@@ -3,7 +3,7 @@
  */
 import assert from 'node:assert/strict'
 
-import { normalizeFormDefinitionDocument, normalizeFormSections } from '../src/core/forms/definition.ts'
+import { normalizeFormDefinitionDocument, normalizeFormSections } from '../src/modules/forms/definition.ts'
 import {
   addFieldToRow,
   appendEmptyRowToSection,
@@ -12,8 +12,8 @@ import {
   resizeRowColumns,
   rowIsEmpty,
   sectionFieldNames,
-} from '../src/core/forms/rows.ts'
-import type { FormFieldDef } from '../src/core/forms/types.ts'
+} from '../src/modules/forms/rows.ts'
+import type { FormFieldDef } from '../src/modules/forms/types.ts'
 
 const fields: FormFieldDef[] = [
   { name: 'first', label: 'First', type: 'text' },

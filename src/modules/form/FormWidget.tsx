@@ -3,16 +3,16 @@
 import React, { useActionState, useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
 
-import { submitFormAction, type FormSubmitActionState } from '@/core/forms/actions'
+import { submitFormAction, type FormSubmitActionState } from '@/modules/forms/actions'
 import {
   describeDateTimeConstraints,
   htmlInputTypeForField,
   isDateTimeFieldType,
-} from '@/core/forms/date-constraints'
-import { computeLiveValues } from '@/core/forms/evaluate'
-import type { FormFieldDef, FormFieldOption, FormSectionDef, ResolvedCaptcha } from '@/core/forms/types'
-import { normalizeFormSections } from '@/core/forms/definition'
-import { LAYOUT_WIDTH_FULL } from '@/core/forms/rows'
+} from '@/modules/forms/date-constraints'
+import { computeLiveValues } from '@/modules/forms/evaluate'
+import type { FormFieldDef, FormFieldOption, FormSectionDef, ResolvedCaptcha } from '@/modules/forms/types'
+import { normalizeFormSections } from '@/modules/forms/definition'
+import { LAYOUT_WIDTH_FULL } from '@/modules/forms/rows'
 
 import { TurnstileWidget } from './TurnstileWidget'
 
@@ -27,7 +27,7 @@ export type FormWidgetProps = {
   successMessage: string
   submitLabel: string
   useSiteCaptchaDefault: boolean
-  /** Pre-resolved on the server — never import `@/core/forms/captcha` here. */
+  /** Pre-resolved on the server — never import `@/modules/forms/captcha` here. */
   captcha: ResolvedCaptcha
 }
 

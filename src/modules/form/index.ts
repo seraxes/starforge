@@ -2,13 +2,13 @@ import React from 'react'
 
 import { getAccessViewer } from '@/core/acl/access'
 import { resolveFormCaptcha } from '@/core/security/captcha'
-import { mergeParticleWithDefinition, readFormConfig } from '@/core/forms/config'
-import { formHasCaptchaField } from '@/core/forms/definition'
-import { loadFormDefinition } from '@/core/forms/definitions-store'
+import { mergeParticleWithDefinition, readFormConfig } from '@/modules/forms/config'
+import { formHasCaptchaField } from '@/modules/forms/definition'
+import { loadFormDefinition } from '@/modules/forms/definitions-store'
 import {
   filterFormFieldsForViewer,
   filterFormSectionsForFields,
-} from '@/core/forms/field-access'
+} from '@/modules/forms/field-access'
 import type { StarforgeModule } from '@/core/modules/types'
 import { MODULE_IDS, isCatalogModuleEnabled } from '@/core/settings'
 

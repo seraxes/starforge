@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import { fieldsForPreset } from '@/core/forms/presets'
-import { createRowDraft } from '@/core/forms/rows'
-import type { FormFieldDef, FormSectionDef } from '@/core/forms/types'
+import {
+  createRowDraft,
+  fieldsForPreset,
+  type FormFieldDef,
+  type FormSectionDef,
+} from '@/modules/forms/api'
 
 import {
   applyProfileFormConfigToSettings,
