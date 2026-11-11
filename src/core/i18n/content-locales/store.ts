@@ -176,7 +176,7 @@ export async function listContentLocaleFiles(
 ): Promise<{ scope: ContentLocaleScope; ownerId: string; relativePath: string }[]> {
   const code = sanitizeContentLocaleId(locale) || 'en'
   const out: { scope: ContentLocaleScope; ownerId: string; relativePath: string }[] = []
-  for (const scope of ['layouts', 'nav'] as const) {
+  for (const scope of ['layouts', 'nav', 'chrome'] as const) {
     const files = await listJsonFiles(path.join(getContentLocaleDir(code), scope))
     for (const filePath of files) {
       const ownerId = path.basename(filePath, '.json')

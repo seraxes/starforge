@@ -52,8 +52,8 @@ export function ContentLocaleFilesPanel({ locales, filesByLocale, defaultLocale 
   )
   const selected = useMemo(() => {
     const [scope, ownerId] = fileKey.split(':')
-    if (scope === 'layouts' || scope === 'nav') {
-      return { scope, ownerId: ownerId || 'default' }
+    if (scope === 'layouts' || scope === 'nav' || scope === 'chrome') {
+      return { scope, ownerId: ownerId || (scope === 'chrome' ? 'consent' : 'default') }
     }
     return { scope: 'layouts' as const, ownerId: 'default' }
   }, [fileKey])
@@ -137,12 +137,12 @@ export function ContentLocaleFilesPanel({ locales, filesByLocale, defaultLocale 
       </div>
       <div className="page-settings-panel-body">
         <p className="settings-hint">
-          Layout and nav strings for translators. Keys encode belonging (do not rename them —
-          only edit values). Files live under{' '}
-          <code>data/content-locales/{'{locale}'}/layouts|nav/{'{id}'}.json</code>. LocaleInput
-          in Layouts/Nav writes the same files; this editor is for bulk/CAT workflows. Missing
-          keys fall back to the default locale when Localization fallback is on, then the entity
-          scalar.
+          Layout, nav, and Chrome consent strings for translators. Keys encode belonging (do not
+          rename them — only edit values). Files live under{' '}
+          <code>data/content-locales/{'{locale}'}/layouts|nav|chrome/{'{id}'}.json</code>.
+          LocaleInput in Layouts/Nav/Chrome writes the same files; this editor is for bulk/CAT
+          workflows. Missing keys fall back to the default locale when Localization fallback is
+          on, then the entity scalar.
         </p>
 
         <div className="admin-inline-actions sf-content-locale-files-toolbar">
@@ -344,7 +344,7 @@ export function ContentLocaleFilesPanel({ locales, filesByLocale, defaultLocale 
       <AdminConfirmDialog
         open={pendingConfirm === 'upload-zip'}
         title="Upload locale zip?"
-        message={`Unpack layouts/*.json and nav/*.json into data/content-locales/${locale}/? Existing matching files will be overwritten.`}
+        message={`Unpack layouts/*.json, nav/*.json, and chrome/*.json into data/content-locales/${locale}/? Existing matching files will be overwritten.`}
         confirmLabel="Upload"
         cancelLabel="Cancel"
         danger

@@ -6,7 +6,7 @@ export const STARFORGE_GANTRY_THEME_ID = 'starforge-gantry' as const
 
 /**
  * First admin theme: Gantry Helium–like dark navy + pastel orange/blue.
- * CSS: `./core-chrome.css` (Core) + `./payload-chrome.css` (Payload).
+ * CSS: `load-core-chrome.ts` / `load-payload-chrome.ts` → sheets in ADMIN_THEME_CSS_SHEETS.
  */
 export const starforgeGantryTheme: AdminTheme = {
   id: STARFORGE_GANTRY_THEME_ID,

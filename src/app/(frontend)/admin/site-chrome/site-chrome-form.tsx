@@ -1,8 +1,11 @@
 'use client'
 
-import React, { useActionState } from 'react'
+import React, { useActionState, useState } from 'react'
 import Link from 'next/link'
 
+import type { SiteChromeConsentLocaleMaps } from '@/core/i18n/content-locales'
+import type { ContentLocaleOption, LocaleTextMap } from '@/core/i18n/locale-text'
+import { LocaleInput } from '@/core/localization/LocaleInput'
 import {
   updateSiteChromeAction,
   type SiteChromeActionState,
@@ -19,16 +22,33 @@ type OutlineOption = {
 }
 
 type Props = {
-  chrome: SiteChromeDocument
+  chrome: SiteChromeDocument & SiteChromeConsentLocaleMaps
   outlines: OutlineOption[]
+  locales: ContentLocaleOption[]
 }
 
 const initialState: SiteChromeActionState = {}
 
-export function SiteChromeForm({ chrome, outlines }: Props) {
+export function SiteChromeForm({ chrome, outlines, locales }: Props) {
   const [state, formAction, pending] = useActionState(updateSiteChromeAction, initialState)
   useNotifySavedOnOk(state, { toastErrors: true })
-  const { formRef, textAutosaveProps, discreteAutosaveProps } = useAutosaveForm()
+  const { formRef, textAutosaveProps, discreteAutosaveProps, saveDebounced, flushOnBlur } =
+    useAutosaveForm()
+  const defaultCode = locales.find((locale) => locale.isDefault)?.code ?? locales[0]?.code ?? ''
+
+  const [consentMessage, setConsentMessage] = useState(chrome.consentMessage)
+  const [consentPrivacyUrl, setConsentPrivacyUrl] = useState(chrome.consentPrivacyUrl)
+  const [consentPrivacyLinkLabel, setConsentPrivacyLinkLabel] = useState(
+    chrome.consentPrivacyLinkLabel,
+  )
+  const [consentMessageLocales, setConsentMessageLocales] = useState<LocaleTextMap>(
+    chrome.consentMessageLocales,
+  )
+  const [consentPrivacyUrlLocales, setConsentPrivacyUrlLocales] = useState<LocaleTextMap>(
+    chrome.consentPrivacyUrlLocales,
+  )
+  const [consentPrivacyLinkLabelLocales, setConsentPrivacyLinkLabelLocales] =
+    useState<LocaleTextMap>(chrome.consentPrivacyLinkLabelLocales)
 
   return (
     <form
@@ -285,45 +305,78 @@ export function SiteChromeForm({ chrome, outlines }: Props) {
       <fieldset className="settings-fieldset">
         <legend>Consent banner</legend>
         <p className="settings-hint">
-          Policy copy for the public cookie banner (<code>product:consent</code>). Turn the module
-          on/off under <Link href="/admin/settings">Settings → Modules</Link>. Visitor choices
-          stay in the <code>sf-consent</code> cookie (no database table). Analytics scripts load only
-          after the visitor accepts analytics.
+          Policy copy for the public cookie banner (<code>product:consent</code>). Per-locale
+          values sync to{' '}
+          <code>data/content-locales/{'{locale}'}/chrome/consent.json</code> (also editable under{' '}
+          <Link href="/admin/localization">Localization</Link>). Turn the module on/off under{' '}
+          <Link href="/admin/settings">Settings → Modules</Link>. Visitor choices stay in the{' '}
+          <code>sf-consent</code> cookie (no database table). Analytics scripts load only after the
+          visitor accepts analytics.
         </p>
-        <label className="settings-field">
-          <span>Banner message</span>
-          <textarea
-            name="consentMessage"
-            defaultValue={chrome.consentMessage}
-            rows={3}
-            disabled={pending}
-            {...textAutosaveProps}
-          />
-        </label>
-        <label className="settings-field">
-          <span>Privacy policy URL</span>
-          <input
-            type="text"
-            name="consentPrivacyUrl"
-            defaultValue={chrome.consentPrivacyUrl}
-            autoComplete="off"
-            placeholder="/privacy or https://…"
-            disabled={pending}
-            {...textAutosaveProps}
-          />
-        </label>
-        <label className="settings-field">
-          <span>Privacy link label</span>
-          <input
-            type="text"
-            name="consentPrivacyLinkLabel"
-            defaultValue={chrome.consentPrivacyLinkLabel}
-            autoComplete="off"
-            placeholder="Privacy policy"
-            disabled={pending}
-            {...textAutosaveProps}
-          />
-        </label>
+        <input type="hidden" name="consentMessage" value={consentMessage} />
+        <input type="hidden" name="consentPrivacyUrl" value={consentPrivacyUrl} />
+        <input type="hidden" name="consentPrivacyLinkLabel" value={consentPrivacyLinkLabel} />
+        <input
+          type="hidden"
+          name="consentMessageLocales"
+          value={JSON.stringify(consentMessageLocales)}
+        />
+        <input
+          type="hidden"
+          name="consentPrivacyUrlLocales"
+          value={JSON.stringify(consentPrivacyUrlLocales)}
+        />
+        <input
+          type="hidden"
+          name="consentPrivacyLinkLabelLocales"
+          value={JSON.stringify(consentPrivacyLinkLabelLocales)}
+        />
+        <LocaleInput
+          locales={locales}
+          label="Banner message"
+          multiline
+          rows={3}
+          values={{
+            ...consentMessageLocales,
+            ...(defaultCode ? { [defaultCode]: consentMessage } : {}),
+          }}
+          onChange={(code, value) => {
+            setConsentMessageLocales((prev) => ({ ...prev, [code]: value }))
+            if (code === defaultCode) setConsentMessage(value)
+            saveDebounced()
+          }}
+          onBlur={flushOnBlur}
+        />
+        <LocaleInput
+          locales={locales}
+          label="Privacy policy URL"
+          placeholder="/privacy or https://…"
+          values={{
+            ...consentPrivacyUrlLocales,
+            ...(defaultCode ? { [defaultCode]: consentPrivacyUrl } : {}),
+          }}
+          onChange={(code, value) => {
+            setConsentPrivacyUrlLocales((prev) => ({ ...prev, [code]: value }))
+            if (code === defaultCode) setConsentPrivacyUrl(value)
+            saveDebounced()
+          }}
+          onBlur={flushOnBlur}
+        />
+        <LocaleInput
+          locales={locales}
+          label="Privacy link label"
+          placeholder="Privacy policy"
+          values={{
+            ...consentPrivacyLinkLabelLocales,
+            ...(defaultCode ? { [defaultCode]: consentPrivacyLinkLabel } : {}),
+          }}
+          onChange={(code, value) => {
+            setConsentPrivacyLinkLabelLocales((prev) => ({ ...prev, [code]: value }))
+            if (code === defaultCode) setConsentPrivacyLinkLabel(value)
+            saveDebounced()
+          }}
+          onBlur={flushOnBlur}
+        />
       </fieldset>
       </div>
 

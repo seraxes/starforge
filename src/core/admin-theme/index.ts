@@ -5,6 +5,8 @@ export type {
   AdminThemeRegistry,
   AdminThemeTokens,
 } from './types'
+export type { AdminThemeCssSheets } from './css-sheets'
+export { ADMIN_THEME_CSS_SHEETS } from './css-sheets'
 export {
   getActiveAdminTheme,
   getActiveAdminThemeId,

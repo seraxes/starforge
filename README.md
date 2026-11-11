@@ -203,7 +203,7 @@ Global app admins open all Core admin. Members in a group with matrix grants (e.
 
 **Email Manager** (`/admin/email`, Modules → **Email Manager**) — automatic/conditional rules + templates filtered by module category. Modules emit triggers (`emitEmailTrigger` from `@/modules/email-manager/api.server`); Core Mailer sends. No per-module SMTP.
 
-**Redirects** (`/admin/redirects`, gated by Modules → **Redirects** / `product:redirects`) stores `from` / `to` / status (301·302·307·308) in `sf_redirects`. Middleware looks up enabled rules before offline / page render. **Sitemap** (`/sitemap.xml`) lists published Payload pages (home slug `home` → `/`) and is always available — not gated by the Redirects toggle. Run `npm run db:migrate` after pull so `sf_redirects` exists.
+**Redirects** (`/admin/redirects`, gated by Modules → **Redirects** / `product:redirects`) stores `from` / `to` / status (301·302·307·308) in `sf_redirects`, with admin CSV import (`from,to,status,enabled,note`; matching `fromPath` updates). Middleware looks up enabled rules before offline / page render. **Sitemap** (`/sitemap.xml`) lists published Payload pages (home slug `home` → `/`) and is always available — not gated by the Redirects toggle. Run `npm run db:migrate` after pull so `sf_redirects` exists.
 
 **PWA** (`/admin/pwa`, gated by Modules → **PWA** / `product:pwa`, opt-in) serves `/manifest.webmanifest` and registers a Serwist service worker (`public/sw.js`, production). Reuses Site Chrome name and Page Settings icons; knobs live in `sf_module_settings`.
 

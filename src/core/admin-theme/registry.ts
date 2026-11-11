@@ -3,7 +3,8 @@ import type { AdminTheme, AdminThemeId, AdminThemeRegistry } from './types'
 
 /**
  * Installed admin themes. Add a second package entry here when shipping another look;
- * wire CSS via `active-core.css` / `active-payload.css` imports (static Next CSS).
+ * register its sheets in `css-sheets.ts` and add a static-import arm there.
+ * `active-core.css` / `active-payload.css` stay human pointers only (Turbopack).
  */
 const registry: AdminThemeRegistry = {
   [STARFORGE_GANTRY_THEME_ID]: starforgeGantryTheme,

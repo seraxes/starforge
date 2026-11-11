@@ -6,10 +6,10 @@ import { handleServerFunctions, RootLayout } from '@payloadcms/next/layouts'
 import React from 'react'
 
 import { importMap } from './cms/admin/importMap.js'
-/* Starforge theme sheet via JS import — CSS @import from custom.css is unreliable
- * under Next/Turbopack (same failure that left Core admin unstyled). Keep custom.css
- * as the Payload-conventional hook; live chrome rules load here. */
-import '@/core/admin-theme/themes/starforge-gantry/payload-chrome.css'
+/* Starforge theme sheet via css-sheets map — CSS @import from custom.css is
+ * unreliable under Next/Turbopack (same failure that left Core admin unstyled).
+ * Keep custom.css as the Payload-conventional hook; live chrome loads here. */
+import '@/core/admin-theme/import-active-payload-chrome'
 /* Same Callout / Link portal chrome as Core admin (RichEditor portals). */
 import '@/core/rich-editor/rich-editor-chrome.css'
 import './custom.css'

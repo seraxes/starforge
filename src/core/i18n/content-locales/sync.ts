@@ -3,12 +3,22 @@ import 'server-only'
 import { getLocalizationSettings } from '@/core/localization/store'
 
 import {
+  buildChromeConsentKey,
   buildLayoutSlotKey,
   buildNavItemKey,
   type ContentLocaleField,
 } from '../content-locale-keys'
 import { normalizeLocaleTextMap, type LocaleTextMap } from '../locale-text'
 import { upsertContentLocaleValues } from './store'
+
+export type SiteChromeConsentLocaleInput = {
+  consentMessage: string
+  consentPrivacyUrl: string
+  consentPrivacyLinkLabel: string
+  consentMessageLocales?: LocaleTextMap
+  consentPrivacyUrlLocales?: LocaleTextMap
+  consentPrivacyLinkLabelLocales?: LocaleTextMap
+}
 
 function collectMapEntries(
   map: LocaleTextMap | undefined,
@@ -127,6 +137,33 @@ export async function syncNavItemLocalesToFiles(input: {
     await upsertContentLocaleValues(locale, entries)
   }
   return next
+}
+
+/**
+ * Persist Site Chrome consent LocaleInput maps into language files.
+ * Scalars stay on sf_site_chrome; *Locales are not stored on the document.
+ */
+export async function syncSiteChromeConsentLocalesToFiles(
+  input: SiteChromeConsentLocaleInput,
+): Promise<void> {
+  const byLocale = new Map<string, Record<string, string>>()
+  const settings = await getLocalizationSettings()
+  const defaultLocale = settings.defaultLocale
+
+  const messageKey = buildChromeConsentKey('message')
+  const urlKey = buildChromeConsentKey('privacyUrl')
+  const labelKey = buildChromeConsentKey('privacyLinkLabel')
+
+  collectScalar(defaultLocale, messageKey, input.consentMessage, byLocale)
+  collectScalar(defaultLocale, urlKey, input.consentPrivacyUrl, byLocale)
+  collectScalar(defaultLocale, labelKey, input.consentPrivacyLinkLabel, byLocale)
+  collectMapEntries(input.consentMessageLocales, () => messageKey, byLocale)
+  collectMapEntries(input.consentPrivacyUrlLocales, () => urlKey, byLocale)
+  collectMapEntries(input.consentPrivacyLinkLabelLocales, () => labelKey, byLocale)
+
+  for (const [locale, entries] of byLocale) {
+    await upsertContentLocaleValues(locale, entries)
+  }
 }
 
 /**

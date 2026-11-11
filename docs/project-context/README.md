@@ -36,6 +36,7 @@ Snapshot of the Cursor **Project Context** store, synced into the git repo so pl
 ### Docs index (filenames)
 
 - `architecture-current.md` — **read first** (queue, routes, secrets, hero line)
+- `core-finish-instructions.md` — one-slice instructions for the Core finish, plus packs named later
 - `admin-dashboard-benchmarks.md`
 - `admin-dashboard-gap.md`
 - `admin-dashboard-plan.md`

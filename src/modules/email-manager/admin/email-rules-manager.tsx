@@ -157,8 +157,8 @@ export function EmailRulesManager({
         <h3>Forms starters</h3>
         <p className="field-hint">
           Creates conditional admin + respondent rules on <code>product:forms/submitted</code>{' '}
-          (payload paths <code>adminEmails</code> / <code>respondentEmail</code>). Safe to
-          re-run.
+          (payload paths <code>adminEmails</code> / <code>respondentEmail</code>). Forms success
+          mail uses these only — safe to re-run to restore defaults.
         </p>
         <form action={seedAction}>
           <button type="submit" className="gantry-btn gantry-btn-primary" disabled={busy}>

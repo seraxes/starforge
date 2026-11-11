@@ -1,8 +1,9 @@
 'use client'
 
-import React, { useSyncExternalStore } from 'react'
+import React, { useState, useSyncExternalStore } from 'react'
 import { useTranslations } from 'next-intl'
 
+import { ConsentChoicesPanel } from './ConsentChoicesPanel'
 import {
   buildConsentPreferences,
   readConsentFromDocumentCookie,
@@ -35,12 +36,14 @@ function subscribeConsent(onStoreChange: () => void): () => void {
   return () => window.removeEventListener(CONSENT_EVENT, onStoreChange)
 }
 
-function consentIsUndecided(): boolean {
-  return readConsentFromDocumentCookie() === null
+type ConsentUiState = 'pending' | 'undecided' | 'decided'
+
+function readConsentUiState(): ConsentUiState {
+  return readConsentFromDocumentCookie() === null ? 'undecided' : 'decided'
 }
 
 /**
- * Fixed sitewide consent bar. Shown until the visitor chooses.
+ * Fixed sitewide consent bar + choices panel + Cookie settings reopen.
  * Preference cookie is client-readable so atom:analytics can honor it.
  * Button / aria chrome uses `product:consent` messages (i18n P3).
  */
@@ -52,23 +55,59 @@ export function ConsentBanner({
   cookiePath = '/',
 }: ConsentBannerProps) {
   const t = useTranslations('product:consent')
-  // SSR + hydration: hide; after hydrate, show only when no sf-consent cookie.
-  const undecided = useSyncExternalStore(
+  // SSR + hydration: hide until client can read sf-consent.
+  const consentState = useSyncExternalStore(
     subscribeConsent,
-    () => consentIsUndecided(),
-    () => false,
+    readConsentUiState,
+    () => 'pending' as ConsentUiState,
   )
-
-  if (!undecided) return null
+  const [panelOpen, setPanelOpen] = useState(false)
+  const [analyticsDraft, setAnalyticsDraft] = useState(false)
 
   function persist(analytics: boolean) {
     const preferences = buildConsentPreferences({ analytics })
     writeConsentCookie(preferences, { path: cookiePath, domain: cookieDomain })
     dispatchConsentChange(preferences)
+    setPanelOpen(false)
+  }
+
+  function openPanel() {
+    const current = readConsentFromDocumentCookie()
+    setAnalyticsDraft(current?.analytics ?? false)
+    setPanelOpen(true)
   }
 
   const trimmedPrivacy = privacyUrl.trim()
   const linkLabel = privacyLinkLabel.trim() || t('privacyPolicy')
+
+  if (panelOpen) {
+    return (
+      <ConsentChoicesPanel
+        analytics={analyticsDraft}
+        onAnalyticsChange={setAnalyticsDraft}
+        onSave={() => persist(analyticsDraft)}
+        onCancel={() => setPanelOpen(false)}
+        privacyUrl={privacyUrl}
+        privacyLinkLabel={privacyLinkLabel}
+      />
+    )
+  }
+
+  if (consentState === 'pending') return null
+
+  if (consentState === 'decided') {
+    return (
+      <div className="sf-consent-settings">
+        <button
+          type="button"
+          className="sf-consent-banner-btn sf-consent-banner-btn-secondary sf-consent-settings-btn"
+          onClick={openPanel}
+        >
+          {t('cookieSettings')}
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className="sf-consent-banner" role="dialog" aria-label={t('dialogLabel')}>
@@ -88,6 +127,13 @@ export function ConsentBanner({
             onClick={() => persist(false)}
           >
             {t('essentialOnly')}
+          </button>
+          <button
+            type="button"
+            className="sf-consent-banner-btn sf-consent-banner-btn-secondary"
+            onClick={openPanel}
+          >
+            {t('customize')}
           </button>
           <button
             type="button"

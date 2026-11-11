@@ -1,6 +1,16 @@
 {
   "acceptAll": "Összes elfogadása",
   "essentialOnly": "Csak szükséges",
+  "customize": "Testreszabás",
+  "cookieSettings": "Cookie beállítások",
   "dialogLabel": "Cookie hozzájárulás",
+  "choicesDialogLabel": "Cookie beállítások",
+  "choicesIntro": "Válaszd ki, milyen cookie-kat használhat a webhely. A szükséges cookie-k mindig be vannak kapcsolva.",
+  "necessary": "Szükséges",
+  "necessaryHint": "Munkamenet és a hozzájárulás beállítása. Mindig bekapcsolva.",
+  "analytics": "Analitika",
+  "analyticsHint": "Látogatottság mérése (például Google Analytics).",
+  "saveChoices": "Mentés",
+  "cancel": "Mégse",
   "privacyPolicy": "Adatvédelmi irányelvek"
 }

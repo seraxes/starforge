@@ -1,5 +1,5 @@
 /**
- * Stable content-string keys — belonging contract for layout/nav LocaleInput values.
+ * Stable content-string keys — belonging contract for LocaleInput values.
  * Keys are opaque to translators; only values should change in locale files.
  */
 
@@ -16,6 +16,12 @@ export const CONTENT_LOCALE_FIELDS = [
 export type ContentLocaleField = (typeof CONTENT_LOCALE_FIELDS)[number]
 
 const FIELD_SET = new Set<string>(CONTENT_LOCALE_FIELDS)
+
+export const CHROME_CONSENT_FIELDS = ['message', 'privacyUrl', 'privacyLinkLabel'] as const
+
+export type ChromeConsentField = (typeof CHROME_CONSENT_FIELDS)[number]
+
+const CHROME_CONSENT_FIELD_SET = new Set<string>(CHROME_CONSENT_FIELDS)
 
 /** Safe id segment for keys / filenames (layout ids, slot ids, menu ids). */
 export function sanitizeContentLocaleId(raw: string): string {
@@ -51,6 +57,11 @@ export function buildNavItemKey(input: {
   return `nav.${menuId}.item.${itemId}.${input.field}`
 }
 
+/** Site Chrome consent policy copy — owner file chrome/consent.json. */
+export function buildChromeConsentKey(field: ChromeConsentField): string {
+  return `chrome.consent.${field}`
+}
+
 export type ParsedContentLocaleKey =
   | {
       kind: 'layout'
@@ -64,6 +75,11 @@ export type ParsedContentLocaleKey =
       menuId: string
       itemId: string
       field: 'label' | 'browserTitle' | 'pageHeading'
+    }
+  | {
+      kind: 'chrome'
+      ownerId: 'consent'
+      field: ChromeConsentField
     }
 
 export function parseContentLocaleKey(raw: string): ParsedContentLocaleKey | null {
@@ -107,6 +123,17 @@ export function parseContentLocaleKey(raw: string): ParsedContentLocaleKey | nul
     }
   }
 
+  const chromeConsent = /^chrome\.consent\.([^.]+)$/.exec(key)
+  if (chromeConsent) {
+    const field = chromeConsent[1]!
+    if (!CHROME_CONSENT_FIELD_SET.has(field)) return null
+    return {
+      kind: 'chrome',
+      ownerId: 'consent',
+      field: field as ChromeConsentField,
+    }
+  }
+
   return null
 }
 
@@ -114,9 +141,9 @@ export function isValidContentLocaleKey(raw: string): boolean {
   return parseContentLocaleKey(raw) != null
 }
 
-/** Owner file under a locale folder: layouts/{id}.json | nav/{id}.json */
+/** Owner file under a locale folder: layouts|nav|chrome/{id}.json */
 export function contentLocaleFileRefForKey(key: string): {
-  scope: 'layouts' | 'nav'
+  scope: 'layouts' | 'nav' | 'chrome'
   ownerId: string
 } | null {
   const parsed = parseContentLocaleKey(key)
@@ -124,5 +151,8 @@ export function contentLocaleFileRefForKey(key: string): {
   if (parsed.kind === 'layout') {
     return { scope: 'layouts', ownerId: parsed.layoutId }
   }
-  return { scope: 'nav', ownerId: parsed.menuId }
+  if (parsed.kind === 'nav') {
+    return { scope: 'nav', ownerId: parsed.menuId }
+  }
+  return { scope: 'chrome', ownerId: parsed.ownerId }
 }

@@ -8,10 +8,13 @@ import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/sett
 import {
   createRedirect,
   deleteRedirect,
+  importRedirectsFromCsv,
   listRedirects,
   updateRedirect,
 } from './store'
 import { isRedirectStatusCode, type RedirectAdminActionState } from './types'
+
+const CSV_IMPORT_MAX_BYTES = 1_000_000
 
 export type { RedirectAdminActionState }
 
@@ -140,4 +143,34 @@ export async function deleteRedirectAction(
 
   revalidateRedirectPaths()
   return { ok: true, message: 'Redirect deleted.' }
+}
+
+export async function importRedirectsCsvAction(
+  _prev: RedirectAdminActionState,
+  formData: FormData,
+): Promise<RedirectAdminActionState> {
+  const denied = await requireRedirectsAdmin()
+  if (denied) return denied
+
+  const file = formData.get('file')
+  if (!(file instanceof File) || file.size <= 0) {
+    return { error: 'Choose a CSV file to import.' }
+  }
+  if (file.size > CSV_IMPORT_MAX_BYTES) {
+    return { error: 'CSV file is too large (max 1 MB).' }
+  }
+
+  const text = await file.text()
+  const result = await importRedirectsFromCsv(text)
+  if ('error' in result) return { error: result.error }
+
+  const { imported, skipped } = result
+  const summary = `Imported ${imported}. Skipped ${skipped}.`
+
+  if (imported === 0) {
+    return { error: summary }
+  }
+
+  revalidateRedirectPaths()
+  return { ok: true, message: summary }
 }

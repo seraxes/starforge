@@ -1,10 +1,10 @@
 import React from 'react'
 import { redirect } from 'next/navigation'
 
-/* Active admin theme (port): import here — not on the public root layout — so
- * visitors do not download Gantry chrome CSS. Nested @import via active-core.css
- * was unreliable in Next/Turbopack. */
-import '@/core/admin-theme/themes/starforge-gantry/core-chrome.css'
+/* Active admin theme (port): load here — not on the public root layout — so
+ * visitors do not download admin chrome CSS. Nested @import via active-core.css
+ * was unreliable in Next/Turbopack; sheets come from ADMIN_THEME_CSS_SHEETS. */
+import '@/core/admin-theme/import-active-core-chrome'
 
 import { AdminSidebarAccount } from '@/components/admin/AdminSidebarAccount'
 import { AdminSidebarBrand } from '@/components/admin/AdminSidebarBrand'

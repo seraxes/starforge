@@ -4,6 +4,7 @@ import { and, asc, eq } from 'drizzle-orm'
 
 import { db, sfRedirects } from '@/core/db'
 
+import { parseRedirectCsv, type RedirectCsvRowInput } from './csv'
 import { normalizeRedirectFromPath, normalizeRedirectToPath } from './paths'
 import {
   isRedirectStatusCode,
@@ -48,6 +49,23 @@ export async function findRedirectById(id: string): Promise<RedirectRecord | nul
       .select()
       .from(sfRedirects)
       .where(eq(sfRedirects.id, trimmed))
+      .limit(1)
+    return row ? mapRow(row) : null
+  } catch {
+    return null
+  }
+}
+
+export async function findRedirectByFromPath(
+  pathname: string,
+): Promise<RedirectRecord | null> {
+  const fromPath = normalizeRedirectFromPath(pathname)
+  if (!fromPath) return null
+  try {
+    const [row] = await db
+      .select()
+      .from(sfRedirects)
+      .where(eq(sfRedirects.fromPath, fromPath))
       .limit(1)
     return row ? mapRow(row) : null
   } catch {
@@ -230,4 +248,58 @@ export async function deleteRedirect(
       error: error instanceof Error ? error.message : 'Could not delete redirect.',
     }
   }
+}
+
+export type ImportRedirectsResult = {
+  imported: number
+  skipped: number
+}
+
+async function upsertRedirectFromCsvRow(
+  row: RedirectCsvRowInput,
+): Promise<{ ok: true } | { error: string }> {
+  const existing = await findRedirectByFromPath(row.fromPath)
+  if (existing) {
+    const result = await updateRedirect({
+      id: existing.id,
+      toPath: row.toPath,
+      statusCode: row.statusCode,
+      enabled: row.enabled,
+      note: row.note,
+    })
+    return 'error' in result ? result : { ok: true }
+  }
+  const result = await createRedirect({
+    fromPath: row.fromPath,
+    toPath: row.toPath,
+    statusCode: row.statusCode,
+    enabled: row.enabled,
+    note: row.note,
+  })
+  return 'error' in result ? result : { ok: true }
+}
+
+/**
+ * Import redirects from CSV text. Invalid rows are skipped.
+ * Matching `fromPath` updates to/status/enabled/note (no duplicate source paths).
+ */
+export async function importRedirectsFromCsv(
+  text: string,
+): Promise<ImportRedirectsResult | { error: string }> {
+  const parsed = parseRedirectCsv(text)
+  if ('error' in parsed) return parsed
+
+  let imported = 0
+  let skipped = parsed.skipped
+
+  for (const row of parsed.rows) {
+    const result = await upsertRedirectFromCsvRow(row)
+    if ('error' in result) {
+      skipped++
+      continue
+    }
+    imported++
+  }
+
+  return { imported, skipped }
 }

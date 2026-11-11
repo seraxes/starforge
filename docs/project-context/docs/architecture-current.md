@@ -71,10 +71,11 @@ Do not re-open work that already shipped: RateLimiter, captcha-in-security, the 
 
 **Host gaps for Auto** (one slice per chat, instructions in [core-host-gaps-brief](./core-host-gaps-brief.md)): all five slices shipped — public error/404, optional email verification, download-my-data / delete-my-account, job-runner port (`src/core/jobs`), and Google sign-in (`GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET`, button only when both set). These do not replace the list below.
 
-**Now (Core finish), in order:**
+**Now (Core finish), in order.** One slice per chat. Paste from [core-finish-instructions](./core-finish-instructions.md):
 
-1. **Small host leftovers.** Consent category UI, redirect CSV import, and a dynamic admin-theme CSS import (the registry works; layouts still import Gantry statically). Fold Forms success mail onto Email Manager only — `src/core/forms/email-notify.ts` still calls `getMailer()` as well as `emitEmailTrigger`.
-2. **Structural finish, its own pass.** Move the Forms and Redirects engines out of `src/core` (manifest plan M3–M4). Not a side effect of a feature PR. The TipTap engine can follow the same way; do not start that extract just to fix the `MediaPicker` import.
+1. **Small host leftovers.** Consent choices (necessary + analytics, reopenable). Redirect CSV import. Admin theme CSS selected from the registry (layouts still import Gantry statically; Turbopack needs a static import per known theme). Forms success mail through Email Manager only — **shipped** (`email-notify.ts` is `emitEmailTrigger` only; no Mailer fallback).
+2. **Admin audit trail** (added 2026-11-11). One append-only host log for account changes, module toggles, redirects, and environment saves. No secret values.
+3. **Structural finish, its own passes.** Move Redirects, then Forms, out of `src/core` (manifest plan M3–M4). TipTap follows. Then page reads (published slug, draft preview, search list, sitemap) go through one port so those four stop calling `getPayload()` directly. Not a side effect of a feature PR. Do not start the TipTap extract just to fix the `MediaPicker` import.
 
 **Particle defaults are not a Core admin page.** They are demo content inside a skin pack: the particles that ship with that skin already have default text and parameters, so an installed skin is not empty. Build that when Starforge is ready to hand to other people as a demo. Do not add `/admin/particle-defaults` back.
 
@@ -84,6 +85,8 @@ Do not re-open work that already shipped: RateLimiter, captcha-in-security, the 
 
 **Parked until Core is finished, and not ahead of the commercial order after that:** TacMap stations, BLE beacons, `apps/asn-capacitor`, Shop, Marketplace schema, Social, Chat, Stream, Notifications, ASN Hero theme and domain fields, DigitalOcean, WordPress migration.
 
+**Named 2026-11-11, still waiting, not this queue:** promotions, organizations, campaigns, comments, reports, outbound webhooks, support. Instructions and the “this is not a new pack” list: [core-finish-instructions](./core-finish-instructions.md). Do not start them during the Core pass.
+
 The 5 Nov wireframe order does not override this. Email Manager already shipped ahead of the heavy packs. i18n P0–P3 already shipped.
 
 ## Languages
@@ -92,7 +95,7 @@ One outline for every language. Do not copy a layout per locale. Particle chrome
 
 Editor-typed text uses one field. Localization owns that control (`LocaleInput`). It shows a language menu on the end of the field only when more than one public locale is enabled. Custom particle HTML and title use it. Custom CSS and JavaScript do not.
 
-**Content locale files:** non-default (and mirrored default) layout/nav strings persist under `data/content-locales/{locale}/layouts|nav/{id}.json` as flat maps of stable keys → strings. The key *is* belonging (`layout.{layoutId}.slot.{slotId}.{field}`, `nav.{menuId}.item.{itemId}.{field}`). Runtime resolves via `pickContentLocaleText`. `/admin/localization` has a CodeMirror JSON editor plus download/upload. UI chrome packs (`src/core/i18n/messages`, module `messages/`) and Payload CMS locales stay separate.
+**Content locale files:** non-default (and mirrored default) layout/nav/Chrome consent strings persist under `data/content-locales/{locale}/layouts|nav|chrome/{id}.json` as flat maps of stable keys → strings. The key *is* belonging (`layout.{layoutId}.slot.{slotId}.{field}`, `nav.{menuId}.item.{itemId}.{field}`, `chrome.consent.{message|privacyUrl|privacyLinkLabel}`). Runtime resolves via `pickContentLocaleText`. `/admin/localization` has a CodeMirror JSON editor plus download/upload. UI chrome packs (`src/core/i18n/messages`, module `messages/`) and Payload CMS locales stay separate.
 
 ## Hero vs module
 
@@ -115,7 +118,7 @@ Do not relocate these in a drive-by:
 | Redirects engine | `src/core/redirects` + `product:redirects` manifest | Same. |
 | TipTap engine | `src/core/rich-editor` + `product:rich-editor` | Same. Lexical too. |
 | `RichEditor.tsx` imports `MediaPicker` from `@/modules/media` | Known Core → module break | Fix by passing the picker in when that file is next touched. Do not start an M4 extraction to “solve” it. |
-| Forms `email-notify.ts` calls `getMailer()` and `emitEmailTrigger` | Legacy dual path | New mail uses Email Manager only. Do not copy `getMailer()` into another pack. |
+| Forms success mail | `emitEmailTrigger` (`product:forms/submitted`) only | Do not call `getMailer()` from Forms or other packs for product mail. |
 | `sf_pay_collect_entitlements` | Frozen stub inside Payments | Subscriptions replaces it. No plan/period columns on `sf_pay_*`. |
 | Payment fulfillment | `registerPaymentConsumerHook('events.confirmRegistration', …)` | One hook key per consumer, passed into checkout. No second event bus. |
 
@@ -132,6 +135,7 @@ Still paper, and only when a consumer is actually being built: `LlmProvider`, `M
 | Use for | Doc |
 | --- | --- |
 | This queue, routes, secrets, hero line | This file |
+| Slice-by-slice Core finish | [core-finish-instructions](./core-finish-instructions.md) |
 | Layer placement | [platform-module-layers](./platform-module-layers.md) |
 | Commerce contract | [payments-cart-plan](./payments-cart-plan.md), [payments-merchant-plan](./payments-merchant-plan.md), `sf-payments-module.mdc` |
 | Manifest shape | [design-module-boundary](./design-module-boundary.md) — contract still valid; 3 Nov status and the “diff touches only `src/modules`” acceptance test are not |

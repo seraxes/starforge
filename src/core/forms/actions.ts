@@ -321,7 +321,7 @@ export async function submitFormAction(
         submissionId,
       })
     } catch {
-      // Mailer failures must not fail the submission.
+      // Email notify failures must not fail the submission.
     }
 
     // Preset onSubmitted hook (Events capacity / confirm) — soft-fail.
@@ -661,39 +661,41 @@ export async function resendFormSubmissionNotifyAction(
       definitionId: submission.definitionId,
       submissionId,
     })
-    if (!result.viaEmailManager && !plan.intents.length) {
+    if (!result.viaEmailManager) {
+      if (result.skippedReason?.includes('disabled')) {
+        return {
+          ok: true,
+          message: 'Notify skipped — Email Manager is disabled. Submission is unchanged.',
+        }
+      }
+      if (!plan.intents.length) {
+        return {
+          error:
+            'No notify recipients resolved (check admin emails / respondent email field).',
+        }
+      }
       return {
         error:
-          'No notify recipients resolved (check admin emails / respondent email field / Email Manager rules).',
+          result.skippedReason ||
+          'No Email Manager rule matched (seed Forms starters under Email → Rules).',
       }
     }
     const failed = (result.results ?? []).filter((r) => !r.ok && !r.skipped)
     if (result.stubbed) {
-      const count = result.viaEmailManager
-        ? (result.results?.length ?? 0)
-        : plan.intents.length
       return {
         ok: true,
-        message: `Notify planned (${count}) but Mailer is disabled or console-only${
-          result.viaEmailManager ? ' (Email Manager).' : '.'
-        }`,
+        message: `Notify matched ${result.results?.length ?? 0} rule(s) but Mailer is disabled or console-only.`,
       }
     }
     if (failed.length) {
-      const total = result.results?.length ?? plan.intents.length
+      const total = result.results?.length ?? 0
       return {
         error: `Notify partially failed (${failed.length}/${total}).`,
       }
     }
-    if (result.viaEmailManager) {
-      return {
-        ok: true,
-        message: `Notify resent via Email Manager (${result.results?.length ?? 0} rule(s)).`,
-      }
-    }
     return {
       ok: true,
-      message: `Notify resent (${plan.intents.map((i) => i.kind).join(', ')}).`,
+      message: `Notify resent via Email Manager (${result.results?.length ?? 0} rule(s)).`,
     }
   } catch (error) {
     return {
