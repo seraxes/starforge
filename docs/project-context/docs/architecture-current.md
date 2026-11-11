@@ -71,6 +71,8 @@ Do not re-open work that already shipped: RateLimiter, captcha-in-security, the 
 
 **Host gaps for Auto** (one slice per chat, instructions in [core-host-gaps-brief](./core-host-gaps-brief.md)): all five slices shipped — public error/404, optional email verification, download-my-data / delete-my-account, job-runner port (`src/core/jobs`), and Google sign-in (`GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET`, button only when both set). These do not replace the list below.
 
+**Resume after sleep (2026-11-11):** next session starts at slice 5, the admin audit trail, in [core-finish-instructions](./core-finish-instructions.md).
+
 **Now (Core finish), in order.** One slice per chat. Paste from [core-finish-instructions](./core-finish-instructions.md):
 
 1. **Small host leftovers.** Consent choices (necessary + analytics, reopenable). Redirect CSV import. Admin theme CSS selected from the registry (layouts still import Gantry statically; Turbopack needs a static import per known theme). Forms success mail through Email Manager only — **shipped** (`email-notify.ts` is `emitEmailTrigger` only; no Mailer fallback).

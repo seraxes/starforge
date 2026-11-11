@@ -2,6 +2,8 @@
 
 **Status:** active queue as of 2026-11-11. Paste **one slice** into a chat. Do not start the next slice in the same chat.
 
+**Resume after sleep (2026-11-11):** start at **slice 5 — Admin audit trail**. Leave slices 1–4 as they stand.
+
 **Read first:** [architecture-current](./architecture-current.md), [sf-ui-design](../../../.cursor/rules/sf-ui-design.mdc), [sf-module-ownership](../../../.cursor/rules/sf-module-ownership.mdc).
 
 The five host slices in [core-host-gaps-brief](./core-host-gaps-brief.md) already shipped. This file is the rest of Core.
@@ -24,7 +26,7 @@ The five host slices in [core-host-gaps-brief](./core-host-gaps-brief.md) alread
 | 2 | Redirect CSV import ✅ | Host leftover |
 | 3 | Admin theme CSS from the registry | Host leftover |
 | 4 | Forms success mail through Email Manager only | Host leftover |
-| 5 | Admin audit trail | Host gap added 2026-11-11 |
+| 5 | Admin audit trail | **Resume here** — host gap added 2026-11-11 |
 | 6 | Move the Redirects engine | Structural, own pass |
 | 7 | Move the Forms engine | Structural, own pass |
 | 8 | Move the TipTap engine | Structural, after 7 |
