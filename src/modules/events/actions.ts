@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { requireAdminArea } from '@/core/acl/access'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
+import { priceRulesFromForm } from './price-rules'
 import { saveEventsModuleSettings } from './settings'
 import {
   createEvent,
@@ -77,6 +78,9 @@ function eventFieldsFromForm(formData: FormData) {
     startsAt: datetimeLocalToIso(String(formData.get('startsAt') ?? '')),
     endsAt: datetimeLocalToIso(String(formData.get('endsAt') ?? '')),
     timezone: String(formData.get('timezone') ?? 'UTC'),
+    currency: String(formData.get('currency') ?? ''),
+    price: String(formData.get('price') ?? ''),
+    priceRules: priceRulesFromForm(formData),
     venueId: String(formData.get('venueId') ?? ''),
     description: String(formData.get('description') ?? ''),
     coverMediaId: String(formData.get('coverMediaId') ?? ''),
@@ -470,7 +474,7 @@ export async function saveEventsSettingsAction(
 }
 
 /**
- * Seed Email Manager template + rule for product:events/registered (idempotent fixed ids).
+ * Seed Email Manager templates + rules for Events triggers (idempotent fixed ids).
  */
 export async function seedEventsEmailStartersAction(
   _prev: EventsAdminActionState,
@@ -482,55 +486,83 @@ export async function seedEventsEmailStartersAction(
   try {
     const { createEmailTemplate, updateEmailTemplate, createEmailRule, updateEmailRule } =
       await import('@/modules/email-manager/store')
-    const { EVENTS_REGISTERED_TRIGGER } = await import('./form-hooks')
+    const { EVENTS_REGISTERED_TRIGGER, EVENTS_WAITLIST_PROMOTED_TRIGGER } = await import(
+      './triggers'
+    )
 
-    const tplId = 'tpl-events-registered-default'
-    const ruleId = 'rule-events-registered-default'
-    const subject = 'Registration: {{eventTitle}}'
-    const bodyText =
-      'Hi {{name}},\n\nYour registration for {{eventTitle}} is {{registrationStatus}}.\nTicket: {{ticketTierTitle}}\nGuests: {{guests}}\n\n— Starforge Events'
-
-    const createdTpl = await createEmailTemplate({
-      id: tplId,
-      label: 'Events — registration confirm',
-      moduleCategory: 'events',
-      subject,
-      bodyText,
-    })
-    if ('error' in createdTpl) {
-      await updateEmailTemplate({
-        id: tplId,
-        label: 'Events — registration confirm',
+    async function upsertStarter(input: {
+      tplId: string
+      ruleId: string
+      tplLabel: string
+      ruleLabel: string
+      triggerKey: string
+      subject: string
+      bodyText: string
+    }) {
+      const createdTpl = await createEmailTemplate({
+        id: input.tplId,
+        label: input.tplLabel,
         moduleCategory: 'events',
-        subject,
-        bodyText,
+        subject: input.subject,
+        bodyText: input.bodyText,
       })
-    }
+      if ('error' in createdTpl) {
+        await updateEmailTemplate({
+          id: input.tplId,
+          label: input.tplLabel,
+          moduleCategory: 'events',
+          subject: input.subject,
+          bodyText: input.bodyText,
+        })
+      }
 
-    const createdRule = await createEmailRule({
-      id: ruleId,
-      label: 'Events — confirm registrant',
-      moduleCategory: 'events',
-      enabled: true,
-      triggerKey: EVENTS_REGISTERED_TRIGGER,
-      mode: 'automatic',
-      conditions: { all: [] },
-      audience: { toFromPayload: ['respondentEmail'] },
-      templateId: tplId,
-    })
-    if ('error' in createdRule) {
-      await updateEmailRule({
-        id: ruleId,
-        label: 'Events — confirm registrant',
+      const createdRule = await createEmailRule({
+        id: input.ruleId,
+        label: input.ruleLabel,
         moduleCategory: 'events',
         enabled: true,
-        triggerKey: EVENTS_REGISTERED_TRIGGER,
+        triggerKey: input.triggerKey,
         mode: 'automatic',
         conditions: { all: [] },
         audience: { toFromPayload: ['respondentEmail'] },
-        templateId: tplId,
+        templateId: input.tplId,
       })
+      if ('error' in createdRule) {
+        await updateEmailRule({
+          id: input.ruleId,
+          label: input.ruleLabel,
+          moduleCategory: 'events',
+          enabled: true,
+          triggerKey: input.triggerKey,
+          mode: 'automatic',
+          conditions: { all: [] },
+          audience: { toFromPayload: ['respondentEmail'] },
+          templateId: input.tplId,
+        })
+      }
     }
+
+    await upsertStarter({
+      tplId: 'tpl-events-registered-default',
+      ruleId: 'rule-events-registered-default',
+      tplLabel: 'Events — registration confirm',
+      ruleLabel: 'Events — confirm registrant',
+      triggerKey: EVENTS_REGISTERED_TRIGGER,
+      subject: 'Registration: {{eventTitle}}',
+      bodyText:
+        'Hi {{name}},\n\nYour registration for {{eventTitle}} is {{registrationStatus}}.\nTicket: {{ticketTierTitle}}\nGuests: {{guests}}\n\n— Starforge Events',
+    })
+
+    await upsertStarter({
+      tplId: 'tpl-events-waitlist-promoted-default',
+      ruleId: 'rule-events-waitlist-promoted-default',
+      tplLabel: 'Events — waitlist promoted',
+      ruleLabel: 'Events — waitlist promoted',
+      triggerKey: EVENTS_WAITLIST_PROMOTED_TRIGGER,
+      subject: 'A seat opened: {{eventTitle}}',
+      bodyText:
+        'Hi {{name}},\n\nA seat opened for {{eventTitle}} and you are now registered.\nTicket: {{ticketTierTitle}}\nGuests: {{guests}}\n\n— Starforge Events',
+    })
 
     const { ensureEventRegistrationFormSeeded } = await import('./registration-form')
     await ensureEventRegistrationFormSeeded()
@@ -540,7 +572,7 @@ export async function seedEventsEmailStartersAction(
     return {
       ok: true,
       message:
-        'Seeded Events registration email (template + rule) and ensured the event-registration Form definition.',
+        'Seeded Events registration + waitlist-promoted emails (templates + rules) and ensured the event-registration Form definition.',
     }
   } catch (error) {
     return {
@@ -781,6 +813,8 @@ export type QuickRegisterActionResult = {
   message?: string
   error?: string
   status?: string
+  /** Same-origin checkout path when a paid tier needs payment. */
+  redirectUrl?: string
 }
 
 export async function quickRegisterAction(
@@ -801,5 +835,6 @@ export async function quickRegisterAction(
     ok: true,
     status: result.status,
     message: result.message,
+    ...(result.redirectUrl ? { redirectUrl: result.redirectUrl } : {}),
   }
 }

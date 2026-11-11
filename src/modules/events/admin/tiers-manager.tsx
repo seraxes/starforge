@@ -31,6 +31,7 @@ import {
   updateTicketTierAction,
   type EventsAdminActionState,
 } from '../actions'
+import { formatPriceModifierInput, type PriceAdjustMode } from '../price-rules'
 import { TICKET_TIER_KINDS } from '../types'
 
 type EventOpt = { id: string; title: string }
@@ -46,6 +47,7 @@ type TierRow = {
   maxPerBooking: number | null
   price: number | null
   priceModifier: number
+  priceModifierMode: PriceAdjustMode
   priceLabel: string
   titleColor: string
   borderColor: string
@@ -64,6 +66,13 @@ type Props = {
 }
 
 const initial: EventsAdminActionState = {}
+
+/** Empty or pure white → keep the default blue drag rail. */
+function isUnsetOrWhiteTierColor(raw: string | undefined | null): boolean {
+  const trimmed = (raw ?? '').trim()
+  if (!trimmed) return true
+  return cssColorToColorInputValue(trimmed).toLowerCase() === '#ffffff'
+}
 
 function Feedback({ state }: { state: EventsAdminActionState }) {
   if (state.error) {
@@ -88,13 +97,20 @@ function TierColorField({
   label,
   defaultValue = '',
   disabled,
+  onValueChange,
 }: {
   name: string
   label: string
   defaultValue?: string
   disabled?: boolean
+  onValueChange?: (value: string) => void
 }) {
   const [text, setText] = useState(defaultValue.trim())
+
+  function setColor(next: string) {
+    setText(next)
+    onValueChange?.(next)
+  }
 
   return (
     <label className="settings-field sf-events-tiers-color-field">
@@ -107,7 +123,7 @@ function TierColorField({
           disabled={disabled}
           title={label}
           aria-label={`${label} picker`}
-          onChange={(event) => setText(event.target.value)}
+          onChange={(event) => setColor(event.target.value)}
         />
         <input
           type="text"
@@ -115,7 +131,7 @@ function TierColorField({
           className="sf-events-tiers-color-hex"
           value={text}
           disabled={disabled}
-          onChange={(event) => setText(event.target.value)}
+          onChange={(event) => setColor(event.target.value)}
           placeholder="#ffffff"
           spellCheck={false}
           autoComplete="off"
@@ -130,11 +146,13 @@ function TierFields({
   busy,
   registeredLabel,
   sortOrder,
+  onBorderColorChange,
 }: {
   row?: TierRow
   busy: boolean
   registeredLabel?: string
   sortOrder?: number
+  onBorderColorChange?: (value: string) => void
 }) {
   return (
     <div className="sf-events-tiers-fields">
@@ -170,20 +188,28 @@ function TierFields({
             step={1}
             defaultValue={row?.price ?? ''}
             disabled={busy}
-            placeholder="—"
-            title="Base price (major units)"
+            placeholder="Event base"
+            title="This ticket type's price. Empty uses the event base price."
           />
         </label>
         <label className="settings-field sf-events-tiers-num-field">
           <span>Modifier</span>
           <input
-            type="number"
+            type="text"
             name="priceModifier"
-            step={1}
-            defaultValue={row?.priceModifier ?? 0}
+            inputMode="decimal"
+            defaultValue={
+              row
+                ? formatPriceModifierInput({
+                    mode: row.priceModifierMode,
+                    value: row.priceModifier,
+                  })
+                : ''
+            }
             disabled={busy}
-            placeholder="0"
-            title="Added to price (negative = discount)"
+            placeholder="0 or 10%"
+            autoComplete="off"
+            title="Number = amount; add % for percent of the price in effect (e.g. 500 or -10%)"
           />
         </label>
         <label className="settings-field sf-events-tiers-price-field">
@@ -196,7 +222,7 @@ function TierFields({
             disabled={busy}
             autoComplete="off"
             placeholder="Optional override"
-            title="When set, overwrites the numeric price on public cards"
+            title="When set, overwrites the numeric price on public cards. Checkout still uses the calculated amount."
           />
         </label>
         <label className="settings-field sf-events-tiers-num-field">
@@ -272,6 +298,7 @@ function TierFields({
           label="Border"
           defaultValue={row?.borderColor}
           disabled={busy}
+          onValueChange={onBorderColorChange}
         />
         <TierColorField
           name="backgroundColor"
@@ -302,10 +329,20 @@ function SortableTierRow({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: row.id,
   })
+  const [borderColor, setBorderColor] = useState(row.borderColor)
+  useEffect(() => {
+    setBorderColor(row.borderColor)
+  }, [row.borderColor])
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
   }
+  const dragRailStyle: React.CSSProperties | undefined = isUnsetOrWhiteTierColor(borderColor)
+    ? undefined
+    : ({
+        '--sf-events-tiers-drag': cssColorToColorInputValue(borderColor),
+        '--sf-events-tiers-drag-mix': '#ffffff',
+      } as React.CSSProperties)
   const registeredLabel =
     typeof row.capacity === 'number'
       ? `${row.occupied}/${row.capacity}`
@@ -324,6 +361,7 @@ function SortableTierRow({
           <button
             type="button"
             className="sf-events-tiers-drag-rail"
+            style={dragRailStyle}
             aria-label={`Drag to reorder ${row.title || 'ticket type'}`}
             title="Drag to reorder"
             disabled={busy}
@@ -336,6 +374,7 @@ function SortableTierRow({
               busy={busy}
               registeredLabel={registeredLabel}
               sortOrder={index}
+              onBorderColorChange={setBorderColor}
             />
             <div className="sf-events-tiers-row-actions">
               <button

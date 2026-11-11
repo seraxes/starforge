@@ -85,7 +85,7 @@ Do not re-open work that already shipped: RateLimiter, captcha-in-security, the 
 
 **Also decided, and also waiting:** event slot kinds are choosable **Ticket type**, **Booking type**, and **Faction**, and an admin can add other names. The code today is only `general | faction`. Do not build that chooser ahead of the commercial order.
 
-**Parked, and not ahead of the commercial order:** TacMap stations, BLE beacons, `apps/asn-capacitor`, Shop, Marketplace schema, Social, Chat, Stream, Notifications, ASN Hero theme and domain fields, DigitalOcean, WordPress migration.
+**Parked, and not ahead of the commercial order:** TacMap stations, BLE beacons, `apps/asn-capacitor`, Shop, Marketplace schema, Social, Chat, Stream, Notifications, ASN Hero theme and domain fields, ASN currency, DigitalOcean, WordPress migration.
 
 **Named 2026-11-11, still waiting, not this queue:** promotions, organizations, campaigns, comments, reports, outbound webhooks, support. Instructions and the “this is not a new pack” list: [core-finish-instructions](./core-finish-instructions.md). Do not start them ahead of the commercial order.
 
@@ -107,6 +107,7 @@ Editor-typed text uses one field. Localization owns that control (`LocaleInput`)
 | Event slot kinds: choosable Ticket type, Booking type, Faction, plus admin-added names | Milsim sheets, association membership, TEÁOR, field-safety policy |
 | Profiles `extensions` jsonb | ASN team / airsoft fields inside that jsonb |
 | Public pastel look | A second skin pack plus domain rules |
+| Real-money checkout (Payments) | **ASN currency** — a Hero token. Buy it, earn it from platform actions, spend it to lower or fully cover Hero services, subscriptions, and selected events. No token ledger on `sf_pay_*` or `sf_events_*`. |
 
 Those kind names live in Events. They are not a license to add airsoft columns to `sf_events_*`. Code today is still the closed pair `general | faction`.
 

@@ -5,20 +5,27 @@
 
 import { formatMoneyMinor, majorToMinor } from '@/core/payments/money'
 
+import type { PriceAdjustMode } from './price-rules'
+
 export type TierPriceFields = {
   price: number | null
   priceModifier: number
+  priceModifierMode?: PriceAdjustMode
   priceLabel: string
 }
 
 /** Effective numeric amount (base + modifier), or null when no base price. */
 export function effectiveTierPrice(fields: TierPriceFields): number | null {
   if (fields.price == null) return null
+  const base = Math.floor(fields.price)
   const mod =
     typeof fields.priceModifier === 'number' && Number.isFinite(fields.priceModifier)
-      ? Math.floor(fields.priceModifier)
+      ? Math.trunc(fields.priceModifier)
       : 0
-  return Math.floor(fields.price) + mod
+  if (fields.priceModifierMode === 'percent') {
+    return base + Math.trunc((base * mod) / 100)
+  }
+  return base + mod
 }
 
 /**

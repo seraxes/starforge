@@ -7,6 +7,7 @@ import type { UserGroupOption } from '@/core/acl/types'
 import { MediaPicker, type MediaPickerValue } from '@/modules/media/api'
 import { RichEditor } from '@/modules/rich-editor/api'
 
+import type { TierPriceRules } from '../price-rules'
 import { EVENT_STATUSES } from '../types'
 
 type CoverAndAccessProps = {
@@ -244,6 +245,9 @@ export type EventFormRow = {
   startsAt?: string | null
   endsAt?: string | null
   timezone?: string
+  currency?: string
+  price?: number | null
+  priceRules?: TierPriceRules
   venueId?: string
   description?: string
   coverMediaId?: string
@@ -567,6 +571,149 @@ export function EventFormFields({
           />
           <span className="settings-hint">Empty = no hard close.</span>
         </label>
+      </fieldset>
+
+      <fieldset className="settings-fieldset sf-events-form-section sf-events-form-section-wide">
+        <legend>Pricing</legend>
+        <p className="settings-hint">
+          Base price for this event. A ticket type with its own price replaces it. A type
+          modifier is always added. Time and sold rules apply to whichever price is in effect.
+        </p>
+        <div className="sf-events-price-row">
+          <label className="settings-field">
+            <span>Base price</span>
+            <input
+              type="number"
+              name="price"
+              step={1}
+              defaultValue={row?.price ?? ''}
+              disabled={busy}
+              placeholder="—"
+              title="Individual price in major units. Empty = free unless a ticket type sets a price."
+            />
+          </label>
+          <label className="settings-field">
+            <span>Currency</span>
+            <input
+              type="text"
+              name="currency"
+              maxLength={3}
+              defaultValue={row?.currency ?? ''}
+              disabled={busy}
+              autoComplete="off"
+              placeholder="Site default"
+              title="ISO code for this event. Empty uses Payments → currency."
+            />
+          </label>
+        </div>
+        <div className="sf-events-price-row">
+          <label className="settings-field settings-flag">
+            <input
+              type="checkbox"
+              name="timeRuleEnabled"
+              value="1"
+              defaultChecked={Boolean(row?.priceRules?.time)}
+              disabled={busy}
+            />
+            <span>Time left</span>
+          </label>
+          <label className="settings-field">
+            <span>Within hours of start</span>
+            <input
+              type="number"
+              name="timeRuleWithinHours"
+              min={1}
+              step={1}
+              defaultValue={
+                row?.priceRules?.time
+                  ? Math.max(1, Math.round(row.priceRules.time.withinMinutes / 60))
+                  : ''
+              }
+              disabled={busy}
+              placeholder="48"
+            />
+          </label>
+          <label className="settings-field">
+            <span>Time change</span>
+            <select
+              name="timeRuleMode"
+              defaultValue={row?.priceRules?.time?.mode ?? 'amount'}
+              disabled={busy}
+            >
+              <option value="amount">Amount</option>
+              <option value="percent">Percent of price</option>
+            </select>
+          </label>
+          <label className="settings-field">
+            <span>Time value</span>
+            <input
+              type="number"
+              name="timeRuleValue"
+              step={1}
+              defaultValue={row?.priceRules?.time?.value ?? ''}
+              disabled={busy}
+              placeholder="0"
+              title="Major units, or percent of the price in effect. Negative discounts."
+            />
+          </label>
+        </div>
+        <div className="sf-events-price-row">
+          <label className="settings-field settings-flag">
+            <input
+              type="checkbox"
+              name="soldRuleEnabled"
+              value="1"
+              defaultChecked={Boolean(row?.priceRules?.sold)}
+              disabled={busy}
+            />
+            <span>Tickets sold</span>
+          </label>
+          <label className="settings-field">
+            <span>From</span>
+            <input
+              type="number"
+              name="soldRuleThreshold"
+              min={0}
+              step={1}
+              defaultValue={row?.priceRules?.sold?.threshold ?? ''}
+              disabled={busy}
+              placeholder="10"
+            />
+          </label>
+          <label className="settings-field">
+            <span>Sold basis</span>
+            <select
+              name="soldRuleBasis"
+              defaultValue={row?.priceRules?.sold?.basis ?? 'count'}
+              disabled={busy}
+            >
+              <option value="count">Tickets on the event</option>
+              <option value="percent">% of event capacity</option>
+            </select>
+          </label>
+          <label className="settings-field">
+            <span>Sold change</span>
+            <select
+              name="soldRuleMode"
+              defaultValue={row?.priceRules?.sold?.mode ?? 'amount'}
+              disabled={busy}
+            >
+              <option value="amount">Amount</option>
+              <option value="percent">Percent of price</option>
+            </select>
+          </label>
+          <label className="settings-field">
+            <span>Sold value</span>
+            <input
+              type="number"
+              name="soldRuleValue"
+              step={1}
+              defaultValue={row?.priceRules?.sold?.value ?? ''}
+              disabled={busy}
+              placeholder="0"
+            />
+          </label>
+        </div>
       </fieldset>
 
       <fieldset className="settings-fieldset sf-events-form-section">

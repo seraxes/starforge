@@ -6,18 +6,69 @@
 import 'server-only'
 
 import { eq } from 'drizzle-orm'
+import { getLocale } from 'next-intl/server'
 
 import { db } from '@/core/db'
+import { DEFAULT_LOCALE, isAppLocale, type AppLocale } from '@/core/i18n/locales'
+import { withLocalePrefix } from '@/core/i18n/path'
 import { majorToMinor } from '@/core/payments'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
-import { effectiveTierPrice } from './price-display'
+import { quoteTierMajor, sumFormPriceAddons } from './price-rules'
+import { EVENTS_REGISTERED_TRIGGER } from './triggers'
+import { eventPublicPathKey } from './public/path'
 import { sfEventRegistrations } from './schema'
+import { findEventById } from './store'
 import { findTicketTierById } from './tiers'
 
 export const EVENTS_PAYMENT_HOOK = 'events.confirmRegistration' as const
 
 let hookRegistered = false
+
+async function emitRegisteredEmailForRegistration(registrationId: string): Promise<void> {
+  const [row] = await db
+    .select()
+    .from(sfEventRegistrations)
+    .where(eq(sfEventRegistrations.id, registrationId))
+    .limit(1)
+  if (!row || row.status !== 'registered') return
+
+  const event = await findEventById(row.eventId)
+  if (!event) return
+
+  let tierTitle = ''
+  if (row.ticketTierId) {
+    const tier = await findTicketTierById(row.ticketTierId)
+    tierTitle = tier?.title || ''
+  }
+
+  try {
+    const { emitEmailTrigger, isEmailManagerEnabled } = await import(
+      '@/modules/email-manager/api.server'
+    )
+    if (!(await isEmailManagerEnabled())) return
+    await emitEmailTrigger({
+      triggerKey: EVENTS_REGISTERED_TRIGGER,
+      payload: {
+        eventId: event.id,
+        eventTitle: event.title,
+        eventSlug: event.slug,
+        registrationId: row.id,
+        registrationStatus: 'registered',
+        ticketTierId: row.ticketTierId,
+        ticketTierTitle: tierTitle,
+        name: row.name,
+        email: row.email,
+        guests: row.guests,
+        attendance: row.attendance,
+        submissionId: row.submissionId,
+        respondentEmail: row.email,
+      },
+    })
+  } catch (error) {
+    console.error('[events] paid confirmation email failed', error)
+  }
+}
 
 /** Register fulfillment hook once (safe to call repeatedly). */
 export function ensureEventsPaymentHook(): void {
@@ -35,10 +86,15 @@ export function ensureEventsPaymentHook(): void {
             .update(sfEventRegistrations)
             .set({ status: 'registered', updatedAt: new Date() })
             .where(eq(sfEventRegistrations.id, registrationId))
+          await emitRegisteredEmailForRegistration(registrationId)
           return
         }
 
-        if (ctx.status === 'expired' || ctx.status === 'failed') {
+        if (
+          ctx.status === 'expired' ||
+          ctx.status === 'failed' ||
+          ctx.status === 'refunded'
+        ) {
           await db
             .update(sfEventRegistrations)
             .set({ status: 'cancelled', updatedAt: new Date() })
@@ -61,24 +117,55 @@ export async function isPaymentsModuleOn(): Promise<boolean> {
 }
 
 /** Effective major-unit price for a tier, or null / 0 = free. */
-export async function tierRequiresPayment(ticketTierId: string | null | undefined): Promise<{
+export async function tierRequiresPayment(
+  ticketTierId: string | null | undefined,
+  extras?: { payload?: Record<string, unknown> },
+): Promise<{
   requires: boolean
   majorPrice: number | null
   title: string
+  currency: string
 }> {
   const id = (ticketTierId || '').trim()
-  if (!id) return { requires: false, majorPrice: null, title: '' }
+  if (!id) return { requires: false, majorPrice: null, title: '', currency: '' }
   const tier = await findTicketTierById(id)
-  if (!tier) return { requires: false, majorPrice: null, title: '' }
-  const major = effectiveTierPrice({
+  if (!tier) return { requires: false, majorPrice: null, title: '', currency: '' }
+  const event = await findEventById(tier.eventId)
+  const { countRegisteredGuests } = await import('./registrations')
+  const sold = await countRegisteredGuests(tier.eventId)
+
+  let formAddonMajor = 0
+  const payload = extras?.payload
+  if (payload) {
+    try {
+      const { loadFormDefinition, DEFAULT_EVENT_REGISTRATION_FORM_ID } = await import(
+        '@/modules/forms/api'
+      )
+      const loaded = await loadFormDefinition(DEFAULT_EVENT_REGISTRATION_FORM_ID)
+      formAddonMajor = sumFormPriceAddons(loaded.document.fields, payload)
+    } catch {
+      formAddonMajor = 0
+    }
+  }
+
+  const major = quoteTierMajor({
+    eventPrice: event?.price ?? null,
     price: tier.price,
     priceModifier: tier.priceModifier,
-    priceLabel: tier.priceLabel,
+    priceModifierMode: tier.priceModifierMode,
+    rules: event?.priceRules,
+    startsAt: event?.startsAt ?? null,
+    sold,
+    capacity: event?.capacity ?? null,
+    formAddonMajor,
   })
-  if (major == null || major <= 0) {
-    return { requires: false, majorPrice: major, title: tier.title }
+  const { getPaymentsSettings } = await import('@/modules/payments/api')
+  const paySettings = await getPaymentsSettings()
+  const currency = (event?.currency || '').trim() || paySettings.currency
+  if (major <= 0) {
+    return { requires: false, majorPrice: major, title: tier.title, currency }
   }
-  return { requires: true, majorPrice: major, title: tier.title }
+  return { requires: true, majorPrice: major, title: tier.title, currency }
 }
 
 export type StartEventTicketCheckoutInput = {
@@ -95,6 +182,8 @@ export type StartEventTicketCheckoutInput = {
   method?: 'bank_transfer' | 'pay_at_entrance' | 'cash' | 'barion' | 'stripe' | 'paypal'
   returnUrl: string
   cancelUrl: string
+  /** Registration form payload — option prices are re-resolved here. */
+  payload?: Record<string, unknown>
 }
 
 /**
@@ -110,7 +199,9 @@ export async function startEventTicketCheckout(
     return { ok: false, error: 'Payments module is disabled' }
   }
 
-  const priced = await tierRequiresPayment(input.ticketTierId)
+  const priced = await tierRequiresPayment(input.ticketTierId, {
+    payload: input.payload,
+  })
   if (!priced.requires || priced.majorPrice == null) {
     return { ok: false, error: 'Tier does not require payment' }
   }
@@ -125,7 +216,8 @@ export async function startEventTicketCheckout(
   } = await import('@/modules/payments/api')
 
   const paySettings = await getPaymentsSettings()
-  const unitAmountMinor = majorToMinor(priced.majorPrice, paySettings.currency)
+  const currency = priced.currency || paySettings.currency
+  const unitAmountMinor = majorToMinor(priced.majorPrice, currency)
   if (unitAmountMinor == null) {
     return { ok: false, error: 'Invalid price' }
   }
@@ -146,7 +238,7 @@ export async function startEventTicketCheckout(
         ? input.method
         : paySettings.enabledMethods[0] || 'bank_transfer'
 
-  const cartId = await createCart({ userId: input.userId })
+  const cartId = await createCart({ userId: input.userId, currency })
   const line = await addCartLine(cartId, {
     sourceModule: PAYMENT_SOURCE_TYPES.eventsTicketTier.sourceModule,
     sourceType: PAYMENT_SOURCE_TYPES.eventsTicketTier.sourceType,
@@ -193,5 +285,103 @@ export async function startEventTicketCheckout(
     orderId: checkout.orderId,
     redirectUrl: checkout.redirectUrl,
     paymentReference: checkout.paymentReference,
+  }
+}
+
+export type BeginPaidTicketCheckoutInput = {
+  registrationId: string
+  event: {
+    id: string
+    title: string
+    slug?: string | null
+    merchantUserId?: string | null
+  }
+  ticketTierId: string
+  buyerEmail: string
+  buyerName: string
+  userId?: string | null
+  guests: number
+  method?: StartEventTicketCheckoutInput['method']
+  payload?: Record<string, unknown>
+}
+
+export type BeginPaidTicketCheckoutResult =
+  | { ok: true; orderId: string; checkoutPath: string }
+  | { ok: false; error: string }
+
+async function resolveRequestLocale(): Promise<AppLocale> {
+  try {
+    const locale = await getLocale()
+    return isAppLocale(locale) ? locale : DEFAULT_LOCALE
+  } catch {
+    return DEFAULT_LOCALE
+  }
+}
+
+/**
+ * Hold the seat as `pending_payment`, start shared checkout, return a same-origin
+ * `/[locale]/checkout/[orderId]` path. Cancels the hold if checkout cannot start.
+ */
+export async function beginPaidTicketCheckout(
+  input: BeginPaidTicketCheckoutInput,
+): Promise<BeginPaidTicketCheckoutResult> {
+  ensureEventsPaymentHook()
+
+  if (!(await isPaymentsModuleOn())) {
+    return { ok: false, error: 'Payments module is disabled' }
+  }
+
+  const priced = await tierRequiresPayment(input.ticketTierId, {
+    payload: input.payload,
+  })
+  if (!priced.requires) {
+    return { ok: false, error: 'Tier does not require payment' }
+  }
+
+  const registrationId = input.registrationId.trim()
+  if (!registrationId) return { ok: false, error: 'Missing registration id' }
+
+  await db
+    .update(sfEventRegistrations)
+    .set({ status: 'pending_payment', updatedAt: new Date() })
+    .where(eq(sfEventRegistrations.id, registrationId))
+
+  const locale = await resolveRequestLocale()
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '')
+  const eventPath = withLocalePrefix(
+    `/events/${eventPublicPathKey({ id: input.event.id, slug: input.event.slug || '' })}`,
+    locale,
+  )
+  const returnUrl = `${appUrl}${eventPath}?paid=1`
+  const cancelUrl = `${appUrl}${eventPath}?paid=0`
+
+  const checkout = await startEventTicketCheckout({
+    registrationId,
+    eventId: input.event.id,
+    eventTitle: input.event.title,
+    ticketTierId: input.ticketTierId,
+    buyerEmail: input.buyerEmail,
+    buyerName: input.buyerName,
+    userId: input.userId,
+    guests: input.guests,
+    merchantUserId: input.event.merchantUserId || null,
+    method: input.method,
+    returnUrl,
+    cancelUrl,
+    payload: input.payload,
+  })
+
+  if (!checkout.ok) {
+    await db
+      .update(sfEventRegistrations)
+      .set({ status: 'cancelled', updatedAt: new Date() })
+      .where(eq(sfEventRegistrations.id, registrationId))
+    return { ok: false, error: checkout.error }
+  }
+
+  return {
+    ok: true,
+    orderId: checkout.orderId,
+    checkoutPath: withLocalePrefix(`/checkout/${checkout.orderId}`, locale),
   }
 }

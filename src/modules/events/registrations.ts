@@ -18,6 +18,9 @@ import {
   findTicketTierById,
 } from './tiers'
 import { DEFAULT_MAX_TICKETS_PER_BOOKING } from './types'
+import { EVENTS_WAITLIST_PROMOTED_TRIGGER } from './triggers'
+
+export { EVENTS_WAITLIST_PROMOTED_TRIGGER }
 
 /** True when public signup is allowed for a published event. */
 export function isEventRegistrationOpen(
@@ -57,6 +60,7 @@ export type EventRegistrationRecord = {
   attendance: string
   notes: string
   status: RegistrationStatus
+  paymentOrderId: string
   createdAt: Date
   updatedAt: Date
 }
@@ -84,6 +88,7 @@ function mapRow(row: typeof sfEventRegistrations.$inferSelect): EventRegistratio
       status === 'pending_payment'
         ? status
         : 'registered',
+    paymentOrderId: (row.paymentOrderId || '').trim(),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   }
@@ -376,7 +381,11 @@ export async function findActiveRegistrationForUserOnEvent(
         and(
           eq(sfEventRegistrations.userId, uid),
           eq(sfEventRegistrations.eventId, eid),
-          inArray(sfEventRegistrations.status, ['registered', 'waitlisted']),
+          inArray(sfEventRegistrations.status, [
+            'registered',
+            'waitlisted',
+            'pending_payment',
+          ]),
         ),
       )
       .orderBy(desc(sfEventRegistrations.createdAt))
@@ -552,9 +561,6 @@ export async function deleteEventRegistration(
     }
   }
 }
-
-export const EVENTS_WAITLIST_PROMOTED_TRIGGER =
-  'product:events/waitlist-promoted' as const
 
 /**
  * FIFO: promote waitlisted rows into registered seats when capacity frees.

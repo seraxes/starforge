@@ -1072,7 +1072,7 @@ body:has(.admin-shell) > main {
 .admin-shell .gantry-canvas-toolbar-history {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.3rem;
+  gap: var(--sf-admin-btn-gap);
   align-items: center;
 }
 
@@ -2020,7 +2020,7 @@ body:has(.admin-shell) > main {
 .admin-shell .gantry-slot-extra-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: var(--sf-admin-btn-gap);
   align-items: center;
 }
 
@@ -3415,10 +3415,30 @@ body:has(.admin-shell) > main {
   background: color-mix(in srgb, var(--sf-admin-blue-mid) 35%, transparent);
 }
 
+/*
+ * Shared text-button clusters — filters, inline actions, toolbars, card actions.
+ * Toolbar buttons use margin:0; without flex gap they sit flush against neighbors.
+ */
+.admin-shell .admin-inline-actions,
 .admin-shell .admin-action-row,
 .admin-shell .outlines-actions,
+.admin-shell .page-settings-actions,
+.admin-shell .sf-events-form-actions,
 .admin-shell .gantry-canvas-toolbar-primary,
-.admin-shell .gantry-canvas-toolbar-history {
+.admin-shell .gantry-canvas-toolbar-history,
+.admin-shell .sf-media-view-toggle,
+.admin-shell .sf-media-picker-actions,
+.admin-shell .sf-admin-confirm-actions,
+.admin-shell .sf-forms-submissions-filter-actions,
+.admin-shell .sf-redirect-row-actions,
+.admin-shell .sf-redirect-row-secondary,
+.admin-shell .gantry-slot-extra-actions,
+.admin-shell .sf-events-filters,
+.admin-shell .sf-forms-filters,
+.admin-shell .sf-events-filter-group,
+.admin-shell .sf-forms-filter-group,
+.admin-shell .sf-media-purpose-chips,
+.admin-shell .sf-media-tag-filter-chips {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -3672,7 +3692,7 @@ body:has(.admin-shell) > main {
 .admin-shell .sf-media-view-toggle {
   display: inline-flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
+  gap: var(--sf-admin-btn-gap);
 }
 
 .admin-shell .sf-media-view-toggle .gantry-toolbar-btn.is-active,
@@ -3686,7 +3706,7 @@ body:has(.admin-shell) > main {
 .admin-shell .sf-media-tag-filter-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: var(--sf-admin-btn-gap);
   margin: 0.55rem 0 0.75rem;
 }
 
@@ -4400,7 +4420,7 @@ body:has(.admin-shell) > main {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 0.45rem;
+  gap: var(--sf-admin-btn-gap);
   margin: 0 0.85rem;
 }
 
@@ -4725,7 +4745,7 @@ body:has(.admin-shell) > main {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.55rem 0.75rem;
+  gap: var(--sf-admin-btn-gap);
 }
 
 .admin-shell .sf-events-filter-group,
@@ -4733,7 +4753,7 @@ body:has(.admin-shell) > main {
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.4rem;
+  gap: var(--sf-admin-btn-gap);
 }
 
 .admin-shell .sf-events-filter-group + .sf-events-filter-group,

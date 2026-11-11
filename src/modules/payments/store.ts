@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { and, desc, eq, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import { randomBytes, randomUUID } from 'node:crypto'
 
 import { db } from '@/core/db'
@@ -163,14 +163,17 @@ export async function savePaymentsSettings(
 export async function createCart(opts?: {
   userId?: string | null
   guestToken?: string | null
+  /** Override site currency (per-event checkout). */
+  currency?: string | null
 }): Promise<string> {
   const settings = await getPaymentsSettings()
+  const currency = (opts?.currency || '').trim().toUpperCase() || settings.currency
   const id = newId('cart')
   await db.insert(sfPayCarts).values({
     id,
     userId: opts?.userId || null,
     guestToken: opts?.guestToken || null,
-    currency: settings.currency,
+    currency,
     status: 'draft',
   })
   return id
@@ -186,7 +189,7 @@ export async function addCartLine(
     return { ok: false, error: 'Cart not found or not editable' }
   }
   const computed = computeMoneyLine({
-    currency: settings.currency,
+    currency: (carts[0].currency || '').trim() || settings.currency,
     qty: input.qty ?? 1,
     unitAmountMinor: input.unitAmountMinor,
     vatRateBps: input.vatRateBps ?? settings.defaultVatRateBps,
@@ -675,6 +678,10 @@ export async function startCheckout(input: StartCheckoutInput): Promise<StartChe
     })
   }
 
+  const offlineInstructionsText = offline
+    ? offlineInstructions(input.method, bankBlock, reference)
+    : null
+
   await db.insert(sfPayOrders).values({
     id: orderId,
     cartId: input.cartId,
@@ -700,7 +707,12 @@ export async function startCheckout(input: StartCheckoutInput): Promise<StartChe
     redirectUrl,
     expiresAt,
     consumerHook: input.consumerHook || null,
-    metadata: input.metadata ?? {},
+    metadata: {
+      ...(input.metadata ?? {}),
+      ...(offlineInstructionsText
+        ? { offlineInstructions: offlineInstructionsText }
+        : {}),
+    },
   })
 
   for (const line of bundle.lines) {
@@ -740,14 +752,13 @@ export async function startCheckout(input: StartCheckoutInput): Promise<StartChe
     paymentReference: reference,
   })
 
-  if (offline) {
-    const instructions = offlineInstructions(input.method, bankBlock, reference)
+  if (offline && offlineInstructionsText) {
     await emitPaymentsEmail('product:payments/awaiting_offline', {
       orderId,
       buyerEmail: input.buyer.email,
       method: input.method,
       paymentReference: reference,
-      instructions,
+      instructions: offlineInstructionsText,
       currency: totals.currency,
       totalGrossMinor: totals.totalGrossMinor,
       totalGrossFormatted: formatMoneyMinor(totals.totalGrossMinor, totals.currency),
@@ -888,6 +899,39 @@ export async function getOrderWithLines(orderId: string) {
     .from(sfPayInvoices)
     .where(eq(sfPayInvoices.orderId, orderId))
   return { order, lines, invoices }
+}
+
+export type OrderGrossSnapshot = {
+  totalGrossMinor: number
+  currency: string
+}
+
+/** Batch order totals for consumer exports (e.g. Events registrant CSV). */
+export async function getOrderGrossByIds(
+  orderIds: string[],
+): Promise<Map<string, OrderGrossSnapshot>> {
+  const map = new Map<string, OrderGrossSnapshot>()
+  const ids = [...new Set(orderIds.map((id) => id.trim()).filter(Boolean))]
+  if (ids.length === 0) return map
+  try {
+    const rows = await db
+      .select({
+        id: sfPayOrders.id,
+        totalGrossMinor: sfPayOrders.totalGrossMinor,
+        currency: sfPayOrders.currency,
+      })
+      .from(sfPayOrders)
+      .where(inArray(sfPayOrders.id, ids))
+    for (const row of rows) {
+      map.set(row.id, {
+        totalGrossMinor: Number(row.totalGrossMinor) || 0,
+        currency: (row.currency || '').trim() || 'HUF',
+      })
+    }
+  } catch {
+    /* missing table → empty */
+  }
+  return map
 }
 
 export async function listInvoices(limit = 50) {

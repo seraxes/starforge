@@ -59,6 +59,7 @@ Organizers/vendors with subscription `canCollectPayments` + ACL paste **their ow
 - Per-module payment UIs, gateway credential forms, or invoice number series outside `product:payments`.
 - Shipping / delivery math inside Payments — shop quotes a line; cart stores the amount.
 - Subscription or ads business logic inside Payments. Do not grow `sf_pay_collect_entitlements` past the frozen boolean stub.
+- ASN currency / platform token ledger inside Payments. That balance is Hero. Payments only charges real money when a user buys the token.
 - `getMailer()` from Payments or consumers for commerce mail (Email Manager only).
 - Second form builder, media library, or profile store inside Payments.
 - Collect card PAN/CVV in Starforge — hosted redirect / Elements / Barion only.

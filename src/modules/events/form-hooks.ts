@@ -16,8 +16,9 @@ import {
 } from './public-access'
 import { createEventRegistration } from './registrations'
 import { findEventById } from './store'
+import { EVENTS_REGISTERED_TRIGGER } from './triggers'
 
-export const EVENTS_REGISTERED_TRIGGER = 'product:events/registered' as const
+export { EVENTS_REGISTERED_TRIGGER }
 
 let registered = false
 
@@ -41,6 +42,12 @@ function payloadGuests(payload: Record<string, unknown>): number {
 export function ensureEventsFormHooks(): void {
   if (registered) return
   registered = true
+
+  void import('./registration-form')
+    .then(({ ensureEventRegistrationFormSeeded }) => ensureEventRegistrationFormSeeded())
+    .catch(() => {
+      /* forms pack may be off */
+    })
 
   registerFormPreset({
     id: 'event-registration',
@@ -74,7 +81,7 @@ export function ensureEventsFormHooks(): void {
           ensureEventsPaymentHook,
           isPaymentsModuleOn,
           tierRequiresPayment,
-          startEventTicketCheckout,
+          beginPaidTicketCheckout,
         } = await import('./payment-bridge')
         ensureEventsPaymentHook()
 
@@ -94,52 +101,6 @@ export function ensureEventsFormHooks(): void {
           return
         }
 
-        // Paid tier + payments on: hold seat as pending_payment and start shared checkout.
-        // Waitlisted / free tiers skip payments (capacity rules already applied).
-        if (
-          result.registration.status === 'registered' &&
-          ticketTierId &&
-          (await isPaymentsModuleOn())
-        ) {
-          const priced = await tierRequiresPayment(ticketTierId)
-          if (priced.requires) {
-            const { eq } = await import('drizzle-orm')
-            const { db } = await import('@/core/db')
-            const { sfEventRegistrations } = await import('./schema')
-            await db
-              .update(sfEventRegistrations)
-              .set({ status: 'pending_payment', updatedAt: new Date() })
-              .where(eq(sfEventRegistrations.id, result.registration.id))
-
-            const appUrl = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '')
-            const checkout = await startEventTicketCheckout({
-              registrationId: result.registration.id,
-              eventId: event.id,
-              eventTitle: event.title,
-              ticketTierId,
-              buyerEmail: email,
-              buyerName: name,
-              userId: ctx.userId,
-              guests,
-              merchantUserId: event.merchantUserId || null,
-              method:
-                (payloadString(ctx.payload, 'payment_method') as
-                  | 'bank_transfer'
-                  | 'pay_at_entrance'
-                  | 'cash'
-                  | 'barion'
-                  | 'stripe'
-                  | 'paypal'
-                  | '') || undefined,
-              returnUrl: `${appUrl}/events/${event.slug}?paid=1`,
-              cancelUrl: `${appUrl}/events/${event.slug}?paid=0`,
-            })
-            if (!checkout.ok) {
-              console.error('[events] checkout failed', checkout.error)
-            }
-          }
-        }
-
         if (ctx.userId) {
           try {
             const { fillMissingProfileContact } = await import(
@@ -154,7 +115,56 @@ export function ensureEventsFormHooks(): void {
           }
         }
 
+        // Paid tier + payments on: hold seat and hand off to shared checkout.
+        // Waitlisted / free tiers skip payments (capacity rules already applied).
+        if (
+          result.registration.status === 'registered' &&
+          ticketTierId &&
+          (await isPaymentsModuleOn())
+        ) {
+          const priced = await tierRequiresPayment(ticketTierId, { payload: ctx.payload })
+          if (priced.requires) {
+            const methodRaw = payloadString(ctx.payload, 'payment_method')
+            const checkout = await beginPaidTicketCheckout({
+              registrationId: result.registration.id,
+              event: {
+                id: event.id,
+                title: event.title,
+                slug: event.slug,
+                merchantUserId: event.merchantUserId || null,
+              },
+              ticketTierId,
+              buyerEmail: email,
+              buyerName: name,
+              userId: ctx.userId,
+              guests,
+              payload: ctx.payload,
+              method:
+                methodRaw === 'bank_transfer' ||
+                methodRaw === 'pay_at_entrance' ||
+                methodRaw === 'cash' ||
+                methodRaw === 'barion' ||
+                methodRaw === 'stripe' ||
+                methodRaw === 'paypal'
+                  ? methodRaw
+                  : undefined,
+            })
+            if (!checkout.ok) {
+              console.error('[events] checkout failed', checkout.error)
+              return
+            }
+            return { redirectUrl: checkout.checkoutPath }
+          }
+        }
+
         const { registration } = result
+        if (
+          registration.status !== 'registered' &&
+          registration.status !== 'waitlisted'
+        ) {
+          return
+        }
+
         let tierTitle = ''
         if (registration.ticketTierId) {
           try {

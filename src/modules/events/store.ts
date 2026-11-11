@@ -13,6 +13,13 @@ import {
 } from '@/core/acl/nav-access'
 import type { AccessViewer } from '@/core/acl/types'
 import { sanitizeRichHtml } from '@/modules/rich-editor/api.server'
+import {
+  EMPTY_TIER_PRICE_RULES,
+  parseEventCurrency,
+  parseOptionalMajor,
+  parseTierPriceRules,
+  type TierPriceRules,
+} from './price-rules'
 
 import { hashEventPassword } from './access-password'
 import { sfEvents, sfVenues } from './schema'
@@ -83,6 +90,12 @@ function mapEvent(row: typeof sfEvents.$inferSelect): EventRecord {
     startsAt: row.startsAt ?? null,
     endsAt: row.endsAt ?? null,
     timezone: (row.timezone || 'UTC').trim() || 'UTC',
+    currency: (row.currency || '').trim().toUpperCase(),
+    price:
+      typeof row.price === 'number' && Number.isFinite(row.price)
+        ? Math.trunc(row.price)
+        : null,
+    priceRules: parseTierPriceRules(row.priceRules),
     venueId: (row.venueId || '').trim(),
     description: row.description ?? '',
     coverMediaId: (row.coverMediaId || '').trim(),
@@ -406,6 +419,11 @@ export type UpsertEventInput = {
   startsAt?: unknown
   endsAt?: unknown
   timezone?: string
+  /** ISO 4217. Empty inherits Payments site currency. */
+  currency?: unknown
+  /** Event base price. Empty clears. */
+  price?: unknown
+  priceRules?: TierPriceRules
   venueId?: string
   description?: string
   coverMediaId?: string
@@ -453,6 +471,9 @@ export async function createEvent(
   const title = input.title.trim().slice(0, 200) || 'Untitled event'
   const status: EventStatus = isEventStatus(input.status) ? input.status : 'draft'
   const timezone = (input.timezone || 'UTC').trim().slice(0, 80) || 'UTC'
+  const currency = parseEventCurrency(input.currency)
+  const price = parseOptionalMajor(input.price)
+  const priceRules = input.priceRules ?? EMPTY_TIER_PRICE_RULES
   const venueId = (input.venueId || '').trim() || null
   const description = sanitizeRichHtml(input.description || '').slice(0, 50_000)
   const coverMediaId = (input.coverMediaId || '').trim() || null
@@ -509,6 +530,9 @@ export async function createEvent(
       startsAt,
       endsAt,
       timezone,
+      currency,
+      price,
+      priceRules,
       venueId,
       description,
       coverMediaId,
@@ -557,6 +581,11 @@ export async function updateEvent(
   const status: EventStatus = isEventStatus(input.status) ? input.status : current.status
   const timezone =
     (input.timezone ?? current.timezone).trim().slice(0, 80) || current.timezone
+  const currency =
+    input.currency !== undefined ? parseEventCurrency(input.currency) : current.currency
+  const price = input.price !== undefined ? parseOptionalMajor(input.price) : current.price
+  const priceRules =
+    input.priceRules !== undefined ? input.priceRules : current.priceRules
   const venueId =
     input.venueId !== undefined
       ? input.venueId.trim() || null
@@ -690,6 +719,9 @@ export async function updateEvent(
         startsAt,
         endsAt,
         timezone,
+        currency,
+        price,
+        priceRules,
         venueId,
         description,
         coverMediaId,
@@ -784,6 +816,9 @@ export async function duplicateEvent(
     startsAt: source.startsAt?.toISOString() ?? '',
     endsAt: source.endsAt?.toISOString() ?? '',
     timezone: source.timezone,
+    currency: source.currency,
+    price: source.price ?? '',
+    priceRules: source.priceRules,
     venueId: source.venueId,
     description: source.description,
     coverMediaId: source.coverMediaId,
@@ -838,8 +873,12 @@ export async function duplicateEvent(
           capacity: tier.capacity ?? '',
           maxPerBooking: tier.maxPerBooking ?? '',
           price: tier.price ?? '',
-          priceModifier: tier.priceModifier,
+          priceModifier:
+            tier.priceModifierMode === 'percent'
+              ? `${tier.priceModifier}%`
+              : tier.priceModifier,
           priceLabel: tier.priceLabel,
+          priceRules: tier.priceRules,
           titleColor: tier.titleColor,
           borderColor: tier.borderColor,
           backgroundColor: tier.backgroundColor,

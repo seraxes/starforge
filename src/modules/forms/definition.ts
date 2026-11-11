@@ -74,6 +74,13 @@ function normalizeOptionMedia(raw: unknown): FormOptionMedia | undefined {
   return media
 }
 
+function parsePriceAmount(raw: unknown): number | undefined {
+  if (raw == null || raw === '') return undefined
+  const n = typeof raw === 'number' ? raw : Number(String(raw).trim())
+  if (!Number.isFinite(n)) return undefined
+  return Math.trunc(n)
+}
+
 function normalizeOptions(raw: unknown): FormFieldOption[] | undefined {
   if (!Array.isArray(raw)) return undefined
   const options: FormFieldOption[] = []
@@ -92,6 +99,8 @@ function normalizeOptions(raw: unknown): FormFieldOption[] | undefined {
     const option: FormFieldOption = { value, label }
     const media = normalizeOptionMedia(row.media)
     if (media) option.media = media
+    const priceAmount = parsePriceAmount(row.priceAmount)
+    if (priceAmount != null) option.priceAmount = priceAmount
     options.push(option)
   }
   return options.length ? options : undefined
@@ -344,6 +353,10 @@ export function normalizeFormFields(raw: unknown): FormFieldDef[] {
     }
     if (OPTION_TYPES.has(type)) {
       field.options = normalizeOptions(row.options) ?? defaultOptions()
+    }
+    if (type === 'checkbox') {
+      const priceAmount = parsePriceAmount(row.priceAmount)
+      if (priceAmount != null) field.priceAmount = priceAmount
     }
     if (type === 'checkbox' || type === 'checkbox-group' || type === 'file') {
       field.required = row.required === true

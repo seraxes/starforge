@@ -38,6 +38,8 @@ export default async function EventsListPage({ searchParams }: { searchParams: S
   const organizerId = (params.organizer ?? '').trim()
 
   await ensureDefaultUserGroupsSeeded()
+  const { ensureEventRegistrationFormSeeded } = await import('../registration-form')
+  await ensureEventRegistrationFormSeeded()
   const viewer = await getAccessViewer()
   const [eventsRaw, venues, groups, moduleSettings, parties, users] = await Promise.all([
     listEvents({ status: status === 'all' ? undefined : status }),
