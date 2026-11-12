@@ -5,6 +5,7 @@
 import 'server-only'
 
 import { sendMail } from '@/core/mail'
+import { renderTransactionalMail } from '@/core/mail/transactional'
 import type { MailSendResult } from '@/core/mail/types'
 
 export type AuthMailKind =
@@ -27,11 +28,14 @@ export async function sendAuthMail(options: {
   html?: string
   kind: AuthMailKind
 }): Promise<MailSendResult> {
+  const rendered = options.html
+    ? { text: options.text, html: options.html }
+    : renderTransactionalMail(options.text.split('\n'))
   const result = await sendMail({
     to: options.to,
     subject: options.subject,
-    text: options.text,
-    html: options.html,
+    text: rendered.text,
+    html: rendered.html,
     meta: {
       emailType: 'system',
       title: options.kind,
@@ -107,31 +111,12 @@ export async function sendEmailVerificationMail(options: {
     '',
     `— ${siteLabel()}`,
   ].join('\n')
-  const safeName = escapeHtml(options.name?.trim() || 'there')
-  const safeUrl = escapeHtml(options.url)
-  const html = [
-    `<p>Hi ${safeName},</p>`,
-    '<p>Confirm your Starforge email address:</p>',
-    `<p><a href="${safeUrl}">Verify email</a></p>`,
-    `<p style="word-break:break-all;font-size:0.9em">${safeUrl}</p>`,
-    '<p>The link expires in about an hour. After you verify, you can sign in.</p>',
-    `<p>— ${escapeHtml(siteLabel())}</p>`,
-  ].join('\n')
   return sendAuthMail({
     to: options.to,
     subject: 'Verify your Starforge email',
     text,
-    html,
     kind: 'email-verification',
   })
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
 }
 
 export async function sendEmailOtpMail(options: {

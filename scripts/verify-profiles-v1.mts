@@ -43,7 +43,7 @@ assert.match(manifest, /id: 'product:profiles'/)
 assert.match(manifest, /path: 'profiles'/)
 assert.match(manifest, /path: 'profiles\/settings'/)
 assert.match(manifest, /path: 'profiles\/\[userId\]'/)
-assert.match(manifest, /requires:\s*\['product:media'\]/)
+assert.match(manifest, /requires:\s*\['product:media', 'product:forms'\]/)
 
 const schema = read('src/modules/profiles/schema.ts')
 assert.match(schema, /sf_profiles|sfProfiles/)

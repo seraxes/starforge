@@ -201,7 +201,7 @@ Last structural slice. Payload stays the content manager. This slice makes page 
 
 **Shipped:** `PageReadsPort` in `src/core/content/page-reads` (Payload adapter). Nav, public page route, draft preview, search, and sitemap call the port. Remaining `getPayload()` callers are listed in the port index header (media, site settings, nav admin/seed, cms-bridge, exchange, seed).
 
-Core finished when slice 9 merged. Next product work is the commercial order in [architecture-current](./architecture-current.md): close paid event tickets, then subscriptions, then ads.
+Core finished when slice 9 merged. Next product work follows [architecture-current](./architecture-current.md): level-1 engines, then ads.
 
 ---
 

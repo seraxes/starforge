@@ -62,6 +62,35 @@ Override for one run: `SF_MODULES=id1,id2,... npm run modules:generate`.
 | `notice-bar` | `@starforge/module-notice-bar` | Self-contained particle UI |
 | `product:consent` | `@starforge/module-consent` | Banner + cookie helpers; app keeps thin `ConsentShell` host adapter |
 
+## Requires (install + runtime)
+
+Each pack's `requires` array in its `manifest.ts` is the only edge list. `modules:generate`, `modules:sync`, and `modules:wizard` close that graph: a chosen id pulls its dependencies into the effective allowlist. The wizard writes the closed set into `starforge.modules.json`. Site Settings → Modules turns those dependencies on when the consumer is on, and refuses to turn a dependency off while a still-enabled pack needs it.
+
+Direct edges (transitive closure is computed, not stored):
+
+<!-- requires-graph:start -->
+- product:forms → product:media
+- product:rich-editor → product:media
+- product:email-manager → product:rich-editor, product:media
+- product:payments → product:email-manager
+- product:profiles → product:media, product:forms
+- product:subscriptions → product:payments, product:email-manager, product:forms, product:profiles
+- product:events → product:forms, product:media, product:rich-editor, product:payments, product:profiles, product:maps
+- form → product:forms
+- map → product:maps
+- live-map → product:maps
+- search → product:search
+- event-list → product:events
+- event-upcoming → product:events
+- event-calendar → product:events
+- event-featured → product:events
+- event-mini-calendar → product:events
+- event-detail → product:events
+- event-countdown → product:events
+<!-- requires-graph:end -->
+
+Not edges: Events does not require Subscriptions (member price falls back). Payments does not require Forms. The marketplace stub requires nothing until that job is built. Core host (Auth, Layout, Nav, Chrome, Skin, i18n, Mailer, cache, jobs) is always present and is not a `requires` id.
+
 ## Related
 
 - [module-toggle-architecture](./module-toggle-architecture.md)

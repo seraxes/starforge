@@ -46,4 +46,22 @@ describe('evaluateAndValidateFields', () => {
     assert.equal(result.values.captcha_1, '')
     assert.equal(result.required.captcha_1, false)
   })
+
+  it('enforces string length and pattern', () => {
+    const fields: FormFieldDef[] = [
+      {
+        name: 'code',
+        label: 'Code',
+        type: 'text',
+        required: true,
+        stringConstraints: { minLength: 3, pattern: '^[A-Z]+$', patternMessage: 'Use letters.' },
+      },
+    ]
+    const short = evaluateAndValidateFields(fields, { code: 'AB' })
+    assert.match(short.error || '', /at least 3/)
+    const bad = evaluateAndValidateFields(fields, { code: 'ab1' })
+    assert.match(bad.error || '', /Use letters/)
+    const ok = evaluateAndValidateFields(fields, { code: 'ABC' })
+    assert.equal(ok.error, undefined)
+  })
 })

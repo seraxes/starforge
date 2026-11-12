@@ -26,6 +26,9 @@ export type AllowlistedModuleId = (typeof ALLOWLISTED_MODULE_IDS)[number]
 
 export const ALLOWLISTED_MODULE_ID_SET: ReadonlySet<string> = new Set(ALLOWLISTED_MODULE_IDS)
 
+/** Direct manifest requires for this install. Transitive closure is computed at runtime. */
+export const MODULE_REQUIRES: Readonly<Record<string, readonly string[]>> = {"platform:dashboard":[],"platform:better-auth":[],"platform:payload-cms":[],"product:layout-manager":[],"product:page-settings":[],"product:primary-nav":[],"product:font-awesome":[],"product:registration":[],"product:posts":[],"product:draft-preview":[],"page-content":[],"site-header":[],"logo":[],"menu":[],"locale-switcher":[],"copyright":[],"spacer":[],"social":[],"custom":[],"account-menu":[],"login":[],"atom:analytics":[],"atom:custom-css-js":[],"product:forms":["product:media"],"product:rich-editor":["product:media"],"product:lexical-editor":[],"product:email-manager":["product:rich-editor","product:media"],"product:payments":["product:email-manager"],"product:subscriptions":["product:payments","product:email-manager","product:forms","product:profiles"],"product:events":["product:forms","product:media","product:rich-editor","product:payments","product:profiles","product:maps"],"event-list":["product:events"],"event-upcoming":["product:events"],"event-calendar":["product:events"],"event-featured":["product:events"],"event-mini-calendar":["product:events"],"event-detail":["product:events"],"event-countdown":["product:events"],"product:profiles":["product:media","product:forms"],"product:maps":[],"map":["product:maps"],"live-map":["product:maps"],"product:marketplace":[],"product:redirects":[],"product:consent":[],"product:pwa":[],"product:search":[],"product:media":[],"notice-bar":[],"form":["product:forms"],"search":["product:search"]}
+
 export function isModuleAllowlisted(id: string): boolean {
   const key = id.trim()
   if (!key) return false

@@ -16,6 +16,7 @@ import path from 'node:path'
 
 import type { StarforgeModuleManifest } from '../src/core/modules/define-module.ts'
 import { ALL_MODULE_MANIFESTS } from '../src/modules/manifest-index.ts'
+import { closeModuleRequires } from '../src/core/modules/requires-graph.ts'
 import {
   ROOT,
   resolveRequestedModuleIds,
@@ -248,25 +249,12 @@ async function main(): Promise<void> {
     throw new Error(`[modules:generate] Duplicate manifest ids: ${[...new Set(dupes)].join(', ')}`)
   }
 
-  let allowlisted = uniqSorted([...FIXED_REQUIRED, ...requested])
-
-  const requireFailures: string[] = []
-  for (const id of allowlisted) {
-    const entry = known.get(id)
-    if (!entry?.requires?.length) continue
-    const missing = entry.requires.filter((req) => !allowlisted.includes(req))
-    if (missing.length) {
-      requireFailures.push(`${id} needs ${missing.join(', ')}`)
-    }
+  const requestedIds = uniqSorted([...FIXED_REQUIRED, ...requested])
+  const closed = closeModuleRequires(requestedIds, ALL_MODULE_MANIFESTS)
+  if (closed.pulled.length) {
+    console.log(`[modules:generate] pulled requires: ${closed.pulled.join(', ')}`)
   }
-  if (requireFailures.length) {
-    throw new Error(
-      `[modules:generate] Missing requires[] — add deps to the allowlist or remove the pack:\n  - ${requireFailures.join('\n  - ')}`,
-    )
-  }
-
-  // Re-add fixed required (already included; keep stable sort).
-  allowlisted = uniqSorted([...FIXED_REQUIRED, ...allowlisted])
+  const allowlisted = uniqSorted(closed.ids)
 
   const allowSet = new Set(allowlisted)
   const allowlistedEntries = ALL_MODULE_MANIFESTS.filter((e) => allowSet.has(e.id))
@@ -671,6 +659,10 @@ async function main(): Promise<void> {
   const atomMeta = optionalAtoms.map(atomMetaLiteral).join(',\n  ')
   const builtinParticleIds = builtinParticles.map((e) => e.id)
   const productPlatformIds = productPlatform.map((e) => e.id)
+  const requiresMap: Record<string, string[]> = {}
+  for (const entry of allowlistedEntries) {
+    requiresMap[entry.id] = [...(entry.requires ?? [])]
+  }
 
   // No Generated timestamp — CI diffs the file and a clock would always drift.
   const body = `/**
@@ -700,6 +692,9 @@ export const ALLOWLISTED_MODULE_IDS = ${jsonString(allowlisted)} as const
 export type AllowlistedModuleId = (typeof ALLOWLISTED_MODULE_IDS)[number]
 
 export const ALLOWLISTED_MODULE_ID_SET: ReadonlySet<string> = new Set(ALLOWLISTED_MODULE_IDS)
+
+/** Direct manifest requires for this install. Transitive closure is computed at runtime. */
+export const MODULE_REQUIRES: Readonly<Record<string, readonly string[]>> = ${jsonString(requiresMap)}
 
 export function isModuleAllowlisted(id: string): boolean {
   const key = id.trim()

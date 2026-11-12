@@ -10,6 +10,7 @@
 import { createInterface } from 'node:readline/promises'
 import { stdin as input, stdout as output } from 'node:process'
 
+import { closeModuleRequires } from '../src/core/modules/requires-graph.ts'
 import { ALL_MODULE_MANIFESTS } from '../src/modules/manifest-index.ts'
 import {
   asIdList,
@@ -121,6 +122,12 @@ async function main(): Promise<void> {
   if (unknown.length) {
     throw new Error(`[modules:wizard] Unknown ids: ${unknown.join(', ')}`)
   }
+
+  const closed = closeModuleRequires(selected, ALL_MODULE_MANIFESTS)
+  if (closed.pulled.length) {
+    console.log(`[modules:wizard] pulled requires: ${closed.pulled.join(', ')}`)
+  }
+  selected = closed.ids
 
   // --yes with no --ids: keep flavor/presets as-is, only refresh modules[] mirror.
   const interactiveOrIds = Boolean(argIds) || !skipPrompt

@@ -357,6 +357,81 @@ async function issueInvoiceForOrder(orderId: string): Promise<string | null> {
   return invoiceId
 }
 
+function negateMinor(amount: number): number {
+  return -Math.abs(Number(amount) || 0)
+}
+
+/** Credit note for a refunded order. Idempotent per order. Amounts are negative. */
+async function issueCreditNoteForOrder(orderId: string): Promise<string | null> {
+  const existing = await db
+    .select()
+    .from(sfPayInvoices)
+    .where(and(eq(sfPayInvoices.orderId, orderId), eq(sfPayInvoices.kind, 'credit_note')))
+    .limit(1)
+  if (existing[0]) return existing[0].id
+
+  const originals = await db
+    .select()
+    .from(sfPayInvoices)
+    .where(and(eq(sfPayInvoices.orderId, orderId), eq(sfPayInvoices.kind, 'invoice')))
+    .limit(1)
+  const original = originals[0]
+  if (!original) return null
+
+  const settings = await getPaymentsSettings()
+  const lines = await db
+    .select()
+    .from(sfPayInvoiceLines)
+    .where(eq(sfPayInvoiceLines.invoiceId, original.id))
+  const orders = await db.select().from(sfPayOrders).where(eq(sfPayOrders.id, orderId)).limit(1)
+  const order = orders[0]
+  const creditId = newId('inv')
+  const invoiceNumber = await allocateInvoiceNumber(`${settings.invoiceSeriesPrefix}-CN`)
+  const issueDate = new Date().toISOString().slice(0, 10)
+  await db.insert(sfPayInvoices).values({
+    id: creditId,
+    orderId,
+    invoiceNumber,
+    kind: 'credit_note',
+    issueDate,
+    currency: original.currency,
+    sellerVatId: original.sellerVatId,
+    buyerVatId: original.buyerVatId,
+    buyerName: original.buyerName,
+    totalNetMinor: negateMinor(original.totalNetMinor),
+    totalVatMinor: negateMinor(original.totalVatMinor),
+    totalGrossMinor: negateMinor(original.totalGrossMinor),
+    navSyncState: 'pending',
+    creditOfInvoiceId: original.id,
+  })
+  for (const line of lines) {
+    await db.insert(sfPayInvoiceLines).values({
+      id: newId('iline'),
+      invoiceId: creditId,
+      title: line.title,
+      qty: line.qty,
+      unitNetMinor: negateMinor(line.unitNetMinor),
+      vatRateBps: line.vatRateBps,
+      vatCategory: line.vatCategory,
+      lineNetMinor: negateMinor(line.lineNetMinor),
+      lineGrossMinor: negateMinor(line.lineGrossMinor),
+    })
+  }
+  await db.insert(sfPayFiscalOutbox).values({
+    id: newId('fout'),
+    invoiceId: creditId,
+    action: 'submit_modifier',
+    status: 'pending',
+    nextAttemptAt: new Date(),
+  })
+
+  if (order?.merchantId) {
+    await submitMerchantBillingInvoice(order.merchantId, creditId)
+  }
+  await processFiscalOutboxItem(creditId)
+  return creditId
+}
+
 async function submitMerchantBillingInvoice(
   merchantId: string,
   invoiceId: string,
@@ -441,7 +516,7 @@ export async function processFiscalOutboxItem(invoiceId: string): Promise<void> 
     .where(eq(sfPayInvoiceLines.invoiceId, invoiceId))
 
   const fiscal = getFiscalProvider()
-  const result = await fiscal.submitInvoice({
+  const payload = {
     invoiceId: invoice.id,
     invoiceNumber: invoice.invoiceNumber,
     issueDate: invoice.issueDate,
@@ -461,7 +536,11 @@ export async function processFiscalOutboxItem(invoiceId: string): Promise<void> 
     totalNetMinor: invoice.totalNetMinor,
     totalVatMinor: invoice.totalVatMinor,
     totalGrossMinor: invoice.totalGrossMinor,
-  })
+  }
+  const result =
+    job.action === 'submit_modifier' && fiscal.submitModifier
+      ? await fiscal.submitModifier(invoice.creditOfInvoiceId || invoice.id, payload)
+      : await fiscal.submitInvoice(payload)
 
   await db
     .update(sfPayFiscalOutbox)
@@ -1162,11 +1241,9 @@ export type RequestOrderRefundResult =
   | { ok: false; error: string; code?: string }
 
 /**
- * Consumer-facing refund request entry point.
- * Gateway refund + mark `refunded` + fiscal credit note are not implemented yet —
- * when they ship, this should run the provider refund, set order status, emit
- * `product:payments/refunded`, and call `runPaymentConsumerHook(..., 'refunded')`
- * so Events (and others) cancel fulfillment.
+ * Full refund: gateway (online methods), order `refunded`, credit note,
+ * `product:payments/refunded`, and the consumer hook with status `refunded`.
+ * Offline methods skip the gateway. Consumers opt in; this does not auto-refund.
  */
 export async function requestOrderRefund(
   input: RequestOrderRefundInput,
@@ -1186,7 +1263,8 @@ export async function requestOrderRefund(
     }
     const status = String(order.status || '')
     if (status === 'refunded') {
-      return { ok: false, error: 'Order is already refunded.', code: 'already_refunded' }
+      await issueCreditNoteForOrder(orderId)
+      return { ok: true }
     }
     if (status !== 'paid' && status !== 'fulfilled') {
       return {
@@ -1195,13 +1273,95 @@ export async function requestOrderRefund(
         code: 'not_refundable',
       }
     }
-    void input.reason
-    void input.requestedByUserId
-    return {
-      ok: false,
-      error: 'Refunds are not implemented yet.',
-      code: 'refunds_not_implemented',
+
+    let refundRef = ''
+    if (!isOfflinePaymentMethod(order.method as PaymentMethodKind)) {
+      if (!order.providerRef) {
+        return {
+          ok: false,
+          error: 'Online order has no provider reference.',
+          code: 'missing_provider_ref',
+        }
+      }
+      const gatewayCreds = order.merchantId
+        ? await loadGatewayCredentials(order.merchantId, order.method)
+        : undefined
+      const provider = getPaymentsProviderForMethod(order.method, gatewayCreds || undefined)
+      if (!provider.refund) {
+        return {
+          ok: false,
+          error: 'This gateway cannot refund from Starforge.',
+          code: 'refund_unsupported',
+        }
+      }
+      const refunded = await provider.refund({
+        providerRef: order.providerRef,
+        amountMinor: order.totalGrossMinor,
+        currency: order.currency,
+        reason: input.reason,
+      })
+      if (!refunded.ok) {
+        return {
+          ok: false,
+          error: refunded.error || 'Gateway refund failed.',
+          code: 'gateway_refund_failed',
+        }
+      }
+      refundRef = refunded.refundRef || ''
     }
+
+    const metadata = {
+      ...((order.metadata || {}) as Record<string, unknown>),
+      refundRef,
+      refundReason: input.reason || '',
+      refundRequestedByUserId: input.requestedByUserId || '',
+      refundedAt: new Date().toISOString(),
+    }
+    const claimed = await db
+      .update(sfPayOrders)
+      .set({ status: 'refunded', metadata, updatedAt: new Date() })
+      .where(and(eq(sfPayOrders.id, orderId), inArray(sfPayOrders.status, ['paid', 'fulfilled'])))
+      .returning({ id: sfPayOrders.id })
+    if (!claimed[0]) {
+      const [again] = await db
+        .select({ status: sfPayOrders.status })
+        .from(sfPayOrders)
+        .where(eq(sfPayOrders.id, orderId))
+        .limit(1)
+      if (again?.status === 'refunded') {
+        await issueCreditNoteForOrder(orderId)
+        return { ok: true }
+      }
+      return { ok: false, error: 'Could not mark the order refunded.', code: 'claim_failed' }
+    }
+
+    const creditNoteId = await issueCreditNoteForOrder(orderId)
+    const lines = await db
+      .select()
+      .from(sfPayOrderLines)
+      .where(eq(sfPayOrderLines.orderId, orderId))
+    await emitPaymentsEmail('product:payments/refunded', {
+      orderId,
+      buyerEmail: order.buyerEmail,
+      refundAmountMinor: order.totalGrossMinor,
+      creditNoteId,
+      currency: order.currency,
+      reason: input.reason || '',
+    })
+    await runPaymentConsumerHook(order.consumerHook, {
+      orderId,
+      status: 'refunded',
+      lines: lines.map((l) => ({
+        sourceModule: l.sourceModule,
+        sourceType: l.sourceType,
+        sourceId: l.sourceId,
+        qty: l.qty,
+        billingPeriod: l.billingPeriod ?? null,
+        metadata: (l.metadata || {}) as Record<string, unknown>,
+      })),
+      metadata,
+    })
+    return { ok: true }
   } catch (error) {
     return {
       ok: false,

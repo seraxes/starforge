@@ -3,6 +3,8 @@
 import { revalidatePath } from 'next/cache'
 
 import { moduleOnOffAudit, recordAdminAudit } from '@/core/audit'
+import { resolveModuleToggleRequires } from '@/core/modules/requires-graph'
+import { MODULE_REQUIRES } from '@/generated/module-registry'
 import { requireAppAdmin } from '@/core/auth/admin'
 import { invalidateSiteChrome, invalidateSiteSettings } from '@/core/content/revalidate'
 import {
@@ -140,7 +142,28 @@ export async function updateSiteSettingsAction(
   const primaryNavMenuId =
     String(formData.get('primaryNavMenuId') ?? '').trim() || current.primaryNavMenuId
   const catalog = listInstalledModuleCatalog()
-  const moduleToggles = parseModuleToggles(formData, current.moduleToggles)
+  const parsedToggles = parseModuleToggles(formData, current.moduleToggles)
+  const previous: Record<string, boolean> = {}
+  const requested: Record<string, boolean> = {}
+  const labels: Record<string, string> = {}
+  for (const item of catalog) {
+    previous[item.id] = isCatalogModuleEnabled(current, item.id)
+    requested[item.id] = isCatalogModuleEnabled(
+      { ...current, moduleToggles: parsedToggles },
+      item.id,
+    )
+    labels[item.id] = item.label
+  }
+  const resolved = resolveModuleToggleRequires({
+    previous,
+    requested,
+    nodes: Object.entries(MODULE_REQUIRES).map(([id, requires]) => ({ id, requires })),
+    labels,
+  })
+  if ('error' in resolved) {
+    return { error: resolved.error }
+  }
+  const moduleToggles = { ...parsedToggles, ...resolved.toggles }
   const features = featureFlagsFromModuleToggles(moduleToggles, catalog)
 
   try {

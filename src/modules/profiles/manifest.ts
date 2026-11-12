@@ -16,7 +16,7 @@ export default defineStarforgeModule({
     'Member identity — username, display name, avatar/cover, bio, location and per-field privacy. The persona every other module (Events, Marketplace, Social…) resolves through getPersonas().',
   version: '0.1.0',
   defaultEnabled: true,
-  requires: ['product:media'],
+  requires: ['product:media', 'product:forms'],
   navViews: [
     { key: 'account', label: 'My profile', href: '/account/profile' },
     { key: 'settings', label: 'Profiles settings', href: '/admin/profiles/settings' },

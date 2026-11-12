@@ -12,6 +12,7 @@ export default defineStarforgeModule({
     'Modular Form engine — visual builder (JSON Schema/Zod), Form particle, typed presets (contact, survey, event-registration, voting, ticket). Captcha from Chrome; Turnstile keys from env.',
   version: '0.1.0',
   defaultEnabled: true,
+  requires: ['product:media'],
   i18n: {
     namespaces: ['product:forms'],
   },

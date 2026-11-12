@@ -65,13 +65,13 @@ The content manager owns editorial pages (body, drafts, versions, the editor UI)
 
 ## Build queue
 
-Core → Modules → Hero still holds. **Core finish (slices 1–9) is shipped.** The active job is the commercial order: close paid event tickets on `product:payments`, then `product:subscriptions`, then `product:ads`. Do not open Social, Chat, Shop, or Marketplace schema ahead of that.
+Core → Modules → Hero still holds. **Core finish (slices 1–9) is shipped.** The active job is the level-1 engine pass: each module's `requires` installs and enables its dependencies, Payments refunds are real, Forms ops (CSV, string rules, success redirect) and the Mailer transactional helper are in place. Next product pack after that pass is `product:ads`. Do not open Social, Chat, Shop, or Marketplace schema ahead of that.
 
 Do not re-open work that already shipped: RateLimiter, captcha-in-security, the manifest host (M0–M2), Redis cache, the Skin port, dashboard D2–D4, the email send log, module info pages, or the dashboard core glance and needs-attention rail (`system.health`, `chrome.posture`, `modules.summary`, `attention.rail`).
 
 **Host gaps for Auto** (one slice per chat, instructions in [core-host-gaps-brief](./core-host-gaps-brief.md)): all five slices shipped — public error/404, optional email verification, download-my-data / delete-my-account, job-runner port (`src/core/jobs`), and Google sign-in (`GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET`, button only when both set). These do not replace the list below.
 
-**Resume after sleep (2026-11-11):** Core finish slices 1–9 shipped. Next product work is the commercial order below: close paid event tickets, then subscriptions, then ads. Redirects, Forms, and the TipTap engine are in `src/modules`. Page reads go through `PageReadsPort`.
+**Resume (2026-11-13):** Core finish slices 1–9 shipped. Level-1 engines (Forms, Media, Email Manager, Rich editor, Profiles, Payments, Subscriptions resolve, Maps v1) plus site utilities are the base. `requires` on each manifest is the dependency map; install and the Modules toggle close it. Paid tickets and the subscriptions lifecycle already shipped. Next product pack is ads. Redirects, Forms, and the TipTap engine are in `src/modules`. Page reads go through `PageReadsPort`.
 
 **Core finish (shipped).** One slice per chat was the rule; paste archive in [core-finish-instructions](./core-finish-instructions.md):
 
@@ -81,7 +81,7 @@ Do not re-open work that already shipped: RateLimiter, captcha-in-security, the 
 
 **Particle defaults are not a Core admin page.** They are demo content inside a skin pack: the particles that ship with that skin already have default text and parameters, so an installed skin is not empty. Build that when Starforge is ready to hand to other people as a demo. Do not add `/admin/particle-defaults` back.
 
-**Commercial order (active):** close paid event tickets on `product:payments`, then `product:subscriptions`, then `product:ads`. `sf_pay_collect_entitlements` stays frozen until subscriptions owns it. Subscriptions pack plan: [subscriptions-pack-plan](./subscriptions-pack-plan.md).
+**Level-1 engines (active):** dependency closure, Payments refunds, Forms ops, Mailer transactional helper, admin theme CSS from the registry. `sf_pay_collect_entitlements` stays a frozen stub; collect reads `payments.collect` when Subscriptions is on. Subscriptions pack plan: [subscriptions-pack-plan](./subscriptions-pack-plan.md). Ads is the next product pack. TacMap live rooms stay out of this pass.
 
 **Also decided, and also waiting:** event slot kinds are choosable **Ticket type**, **Booking type**, and **Faction**, and an admin can add other names. The code today is only `general | faction`. Do not build that chooser ahead of the commercial order.
 

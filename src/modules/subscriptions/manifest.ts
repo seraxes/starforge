@@ -12,7 +12,7 @@ export default defineStarforgeModule({
     'Plans and periods for player premium, organizer premium, and advertisements. Payments charges; this pack grants entitlements.',
   version: '0.1.0',
   defaultEnabled: true,
-  requires: ['product:payments', 'product:email-manager'],
+  requires: ['product:payments', 'product:email-manager', 'product:forms', 'product:profiles'],
   i18n: {
     namespaces: ['product:subscriptions'],
   },

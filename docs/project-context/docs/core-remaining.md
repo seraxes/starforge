@@ -81,7 +81,7 @@ Do **not** treat as Core leftovers (focus guard + prefs):
 
 ## Top 5 next Core items
 
-**Shipped after this list was written.** Do not pick these up again: D2 media aggregates (SF-226), D4 soft refresh (SF-227), Forms/Security/Performance cards (SF-228), email send log (SF-229), module info/settings (SF-230), the core glance pack (item 5), and the needs-attention rail (item 6). Still open, and now the active Core pass: items 10, 11, and 12 below, then the Forms/Redirects extract (item 9) as its own pass. Item 8 is deferred skin-pack demo content, not this pass. Detail: [architecture-current](./architecture-current.md).
+**Shipped after this list was written.** Do not pick these up again: D2 media aggregates (SF-226), D4 soft refresh (SF-227), Forms/Security/Performance cards (SF-228), email send log (SF-229), module info/settings (SF-230), the core glance pack (item 5), the needs-attention rail (item 6), consent categories and redirect CSV (item 10), Mailer transactional templates via `renderTransactionalMail` (item 11), admin theme CSS selected from the registry with a static import per known theme (item 12), and the Forms/Redirects/TipTap extract (item 9). Item 8 is deferred skin-pack demo content. Detail: [architecture-current](./architecture-current.md).
 
 The public Skin port already shipped. The dashboard core glance and needs-attention rail shipped with it as host widgets on `/admin`. Slice instructions, including the admin audit trail and the packs named on 2026-11-11: [core-finish-instructions](./core-finish-instructions.md).
 

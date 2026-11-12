@@ -14,11 +14,14 @@ import { access } from 'node:fs/promises'
 import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
+import { closeModuleRequires } from '../src/core/modules/requires-graph.ts'
+import { ALL_MODULE_MANIFESTS } from '../src/modules/manifest-index.ts'
 import {
   ROOT,
   normalizeRegistryPackages,
   readAllowlistFile,
   resolveRequestedModuleIds,
+  uniqSorted,
   type RegistryPackageSpec,
 } from './lib/module-allowlist.mts'
 
@@ -66,12 +69,16 @@ function runNpm(args: string[]): void {
 async function main(): Promise<void> {
   const source = moduleSource()
   const { flavor, requested, source: allowSource } = await resolveRequestedModuleIds()
+  const closed = closeModuleRequires(uniqSorted(requested), ALL_MODULE_MANIFESTS)
+  if (closed.pulled.length) {
+    console.log(`[modules:sync] pulled requires: ${closed.pulled.join(', ')}`)
+  }
   const file = await readAllowlistFile()
   const registry = normalizeRegistryPackages(file.registryPackages)
-  const allowSet = new Set(requested)
+  const allowSet = new Set(closed.ids)
 
   console.log(
-    `[modules:sync] flavor=${flavor} allowlist=${allowSource} source=${source} ids=${requested.length}`,
+    `[modules:sync] flavor=${flavor} allowlist=${allowSource} source=${source} ids=${closed.ids.length}`,
   )
 
   const pkgRaw = await readFile(PACKAGE_JSON_PATH, 'utf8')

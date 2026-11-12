@@ -81,8 +81,8 @@ Consumers must not build coupon tables. Deep-link admin to `/admin/payments/coup
 
 Online orders (`barion`, `stripe`, `paypal`) in `checkout_pending` or `redirected_provider` expire at `expiresAt` (`checkoutTtlMinutes`, default 60). `expireAbandonedOnlineCheckouts` sets `expired`, sends `product:payments/expired`, and runs the consumer hook — the same path as a provider cancel. A later verified provider `succeeded` result may still revive an `expired` order via `transitionToPaid` (late webhook). Offline methods (`bank_transfer`, `pay_at_entrance`, `cash`) stay `awaiting_offline` until staff mark paid. Events calls this from its checkout-hold sweep.
 
-## Refunds (connector stub)
+## Refunds
 
-`requestOrderRefund(orderId, { reason, requestedByUserId })` is exported for consumers (e.g. Events self-cancel with organizer `selfCancelRefund` + user confirm). It validates the order is `paid`/`fulfilled`, then returns `code: 'refunds_not_implemented'`.
+`requestOrderRefund(orderId, { reason, requestedByUserId })` is the consumer entry (Events self-cancel with organizer `selfCancelRefund` + user confirm). Paid or fulfilled orders only.
 
-**Still TODO in Payments:** gateway refund, mark order `refunded`, fiscal credit note, Email Manager `product:payments/refunded`, and `runPaymentConsumerHook(..., 'refunded')` so Events cancels the seat (hook path already exists). Do not auto-refund from consumers — organizer opt-in + buyer confirm only.
+Online methods (`barion`, `stripe`, `paypal`) call the gateway `refund` with the stored provider ref and the order gross. Offline methods (`bank_transfer`, `pay_at_entrance`, `cash`) skip the gateway. On success the order becomes `refunded`, a `credit_note` invoice is issued (negative amounts, `creditOfInvoiceId`, fiscal outbox `submit_modifier`), Email Manager emits `product:payments/refunded`, and `runPaymentConsumerHook(..., 'refunded')` runs. A repeat call on an already refunded order re-issues the credit note if it is missing and returns ok. Do not auto-refund from consumers — organizer opt-in + buyer confirm only.

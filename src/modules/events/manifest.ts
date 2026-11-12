@@ -11,7 +11,14 @@ export default defineStarforgeModule({
     'Events + venues — admin CRUD, categories, public views (upcoming/calendar/map/list), registration, featured + calendar particles.',
   version: '0.6.3',
   defaultEnabled: true,
-  requires: ['product:forms', 'product:media'],
+  requires: [
+    'product:forms',
+    'product:media',
+    'product:rich-editor',
+    'product:payments',
+    'product:profiles',
+    'product:maps',
+  ],
   i18n: {
     namespaces: ['product:events'],
   },
