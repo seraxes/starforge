@@ -77,6 +77,21 @@ export function buildEventCategoryKey(
   return `events.category.${id}.${field}`
 }
 
+export const SUBSCRIPTION_PLAN_LOCALE_FIELDS = ['title', 'text'] as const
+
+export type SubscriptionPlanLocaleField = (typeof SUBSCRIPTION_PLAN_LOCALE_FIELDS)[number]
+
+const SUBSCRIPTION_PLAN_FIELD_SET = new Set<string>(SUBSCRIPTION_PLAN_LOCALE_FIELDS)
+
+/** Subscription plan title / description — owner file subscriptions/{planId}.json. */
+export function buildSubscriptionPlanKey(
+  planId: string,
+  field: SubscriptionPlanLocaleField,
+): string {
+  const id = sanitizeContentLocaleId(planId) || 'plan'
+  return `subscriptions.plan.${id}.${field}`
+}
+
 export type ParsedContentLocaleKey =
   | {
       kind: 'layout'
@@ -100,6 +115,11 @@ export type ParsedContentLocaleKey =
       kind: 'events-category'
       categoryId: string
       field: EventCategoryLocaleField
+    }
+  | {
+      kind: 'subscriptions-plan'
+      planId: string
+      field: SubscriptionPlanLocaleField
     }
 
 export function parseContentLocaleKey(raw: string): ParsedContentLocaleKey | null {
@@ -165,6 +185,17 @@ export function parseContentLocaleKey(raw: string): ParsedContentLocaleKey | nul
     }
   }
 
+  const subscriptionPlan = /^subscriptions\.plan\.([^.]+)\.([^.]+)$/.exec(key)
+  if (subscriptionPlan) {
+    const field = subscriptionPlan[2]!
+    if (!SUBSCRIPTION_PLAN_FIELD_SET.has(field)) return null
+    return {
+      kind: 'subscriptions-plan',
+      planId: subscriptionPlan[1]!,
+      field: field as SubscriptionPlanLocaleField,
+    }
+  }
+
   return null
 }
 
@@ -172,9 +203,9 @@ export function isValidContentLocaleKey(raw: string): boolean {
   return parseContentLocaleKey(raw) != null
 }
 
-/** Owner file under a locale folder: layouts|nav|chrome|events/{id}.json */
+/** Owner file under a locale folder: layouts|nav|chrome|events|subscriptions/{id}.json */
 export function contentLocaleFileRefForKey(key: string): {
-  scope: 'layouts' | 'nav' | 'chrome' | 'events'
+  scope: 'layouts' | 'nav' | 'chrome' | 'events' | 'subscriptions'
   ownerId: string
 } | null {
   const parsed = parseContentLocaleKey(key)
@@ -187,6 +218,9 @@ export function contentLocaleFileRefForKey(key: string): {
   }
   if (parsed.kind === 'events-category') {
     return { scope: 'events', ownerId: parsed.categoryId }
+  }
+  if (parsed.kind === 'subscriptions-plan') {
+    return { scope: 'subscriptions', ownerId: parsed.planId }
   }
   return { scope: 'chrome', ownerId: parsed.ownerId }
 }

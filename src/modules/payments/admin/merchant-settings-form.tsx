@@ -10,6 +10,18 @@ import type { CredentialPublic, MerchantRecord } from '../merchant-store'
 
 const initial: PaymentsActionState = {}
 
+function SaveButton({ pending }: { pending: boolean }) {
+  return (
+    <button
+      type="submit"
+      className="gantry-toolbar-btn gantry-toolbar-btn-save"
+      disabled={pending}
+    >
+      {pending ? 'Saving…' : 'Save merchant'}
+    </button>
+  )
+}
+
 export function MerchantSettingsForm({
   merchant,
   credentials,
@@ -32,6 +44,10 @@ export function MerchantSettingsForm({
 
   return (
     <form action={action} className="sf-payments-merchant">
+      <div className="page-settings-actions">
+        <SaveButton pending={pending} />
+      </div>
+
       <div className="admin-settings-mosaic">
         <section className="page-settings-panel">
           <header className="page-settings-panel-head">
@@ -224,29 +240,23 @@ export function MerchantSettingsForm({
                 autoComplete="off"
               />
             </label>
-
-            <div className="page-settings-actions">
-              <button
-                type="submit"
-                className="gantry-toolbar-btn gantry-toolbar-btn-save"
-                disabled={pending}
-              >
-                {pending ? 'Saving…' : 'Save merchant'}
-              </button>
-            </div>
-            {state.error ? (
-              <p className="admin-inline-error" role="alert">
-                {state.error}
-              </p>
-            ) : null}
-            {state.ok && state.message ? (
-              <p className="admin-inline-ok" role="status">
-                {state.message}
-              </p>
-            ) : null}
           </div>
         </section>
       </div>
+
+      <div className="page-settings-actions">
+        <SaveButton pending={pending} />
+      </div>
+      {state.error ? (
+        <p className="admin-inline-error" role="alert">
+          {state.error}
+        </p>
+      ) : null}
+      {state.ok && state.message ? (
+        <p className="admin-inline-ok" role="status">
+          {state.message}
+        </p>
+      ) : null}
     </form>
   )
 }

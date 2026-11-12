@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 
 import { AccessTagsField } from '@/components/admin/AccessTagsField'
@@ -10,12 +10,30 @@ import { RichEditor } from '@/modules/rich-editor/api'
 
 import { MAX_TIME_PRICE_BANDS, type TierPriceRules } from '../price-rules'
 import {
+  EVENT_SERIES_FREQUENCIES,
+  MAX_SERIES_OCCURRENCES,
+  expandSeriesStarts,
+  type EventSeriesEndMode,
+  type EventSeriesFrequency,
+  type EventSeriesPattern,
+} from '../series'
+import {
   EVENT_COVER_DISPLAY_MODES,
   EVENT_COVER_MEDIA_MAX,
   EVENT_STATUSES,
   isEventCoverDisplayMode,
   type EventCoverDisplayMode,
 } from '../types'
+
+const WEEKDAY_OPTIONS: { value: number; label: string }[] = [
+  { value: 1, label: 'Mon' },
+  { value: 2, label: 'Tue' },
+  { value: 3, label: 'Wed' },
+  { value: 4, label: 'Thu' },
+  { value: 5, label: 'Fri' },
+  { value: 6, label: 'Sat' },
+  { value: 0, label: 'Sun' },
+]
 
 type CoverAndAccessProps = {
   coverMediaId: string
@@ -399,6 +417,9 @@ export type EventFormRow = {
   speakerPartyIds?: string[]
   sponsorPartyIds?: string[]
   relatedEventIds?: string[]
+  seriesId?: string
+  seriesPattern?: EventSeriesPattern | null
+  seriesDateCount?: number
   signupNote?: string
   termsUrl?: string
   listed?: boolean
@@ -407,6 +428,259 @@ export type EventFormRow = {
   registrationFormId?: string
   hasAccessPassword?: boolean
   accessTags?: string[]
+}
+
+function formatSeriesPatternSummary(pattern: EventSeriesPattern | null | undefined): string {
+  if (!pattern) return 'Linked series dates (pattern not stored on this row).'
+  const every =
+    pattern.interval <= 1
+      ? pattern.frequency
+      : `every ${pattern.interval} ${pattern.frequency === 'daily' ? 'days' : pattern.frequency === 'weekly' ? 'weeks' : 'months'}`
+  const end =
+    pattern.endMode === 'count' && pattern.count
+      ? `${pattern.count} dates`
+      : pattern.until
+        ? `until ${pattern.until}`
+        : 'bounded'
+  return `Repeats ${every}${pattern.frequency === 'weekly' && pattern.weekdays.length ? ` on selected weekdays` : ''} · ${end}.`
+}
+
+/** Create + edit: expand a finite list of concrete event copies. */
+function RecurringFields({
+  busy,
+  seriesId,
+  seriesPattern,
+  seriesDateCount,
+}: {
+  busy?: boolean
+  seriesId?: string
+  seriesPattern?: EventSeriesPattern | null
+  seriesDateCount?: number
+}) {
+  const fieldsetRef = useRef<HTMLFieldSetElement>(null)
+  const inSeries = Boolean((seriesId || '').trim())
+  const [enabled, setEnabled] = useState(false)
+  const [frequency, setFrequency] = useState<EventSeriesFrequency>('weekly')
+  const [interval, setInterval] = useState(1)
+  const [weekdays, setWeekdays] = useState<number[]>([5])
+  const [endMode, setEndMode] = useState<EventSeriesEndMode>('count')
+  const [count, setCount] = useState(8)
+  const [until, setUntil] = useState('')
+  const [startsLocal, setStartsLocal] = useState('')
+
+  useEffect(() => {
+    const form = fieldsetRef.current?.form
+    if (!(form instanceof HTMLFormElement)) return
+    const startInput = form.querySelector<HTMLInputElement>('input[name="startsAt"]')
+    if (!startInput) return
+    const sync = () => setStartsLocal(startInput.value || '')
+    sync()
+    startInput.addEventListener('change', sync)
+    startInput.addEventListener('input', sync)
+    return () => {
+      startInput.removeEventListener('change', sync)
+      startInput.removeEventListener('input', sync)
+    }
+  }, [])
+
+  const previewCount = (() => {
+    if (inSeries || !enabled || !startsLocal.trim()) return 0
+    const first = new Date(startsLocal)
+    if (Number.isNaN(first.getTime())) return 0
+    return expandSeriesStarts(first, {
+      frequency,
+      interval: Math.max(1, interval),
+      weekdays: frequency === 'weekly' ? weekdays : [],
+      endMode,
+      count: endMode === 'count' ? count : null,
+      until: endMode === 'until' ? until || null : null,
+    }).length
+  })()
+
+  return (
+    <fieldset
+      ref={fieldsetRef}
+      className="settings-fieldset sf-events-form-section"
+    >
+      <legend>Recurring</legend>
+      {inSeries ? (
+        <>
+          <p className="settings-hint">
+            Part of a series
+            {typeof seriesDateCount === 'number' && seriesDateCount > 0
+              ? ` · ${seriesDateCount} date${seriesDateCount === 1 ? '' : 's'}`
+              : ''}
+            . Each date keeps its own seats and registrants.
+          </p>
+          <p className="settings-hint">{formatSeriesPatternSummary(seriesPattern)}</p>
+          <p className="settings-hint">
+            Group edit across dates is planned. Use Duplicate for a one-off copy outside
+            the series.
+          </p>
+        </>
+      ) : (
+        <>
+          <label className="settings-field settings-flag">
+            <input
+              type="checkbox"
+              name="recurringEnabled"
+              value="1"
+              checked={enabled}
+              disabled={busy}
+              onChange={(e) => setEnabled(e.target.checked)}
+            />
+            <span>Create multiple dates from this event</span>
+          </label>
+          <p className="settings-hint">
+            Each date becomes its own event (own seats and registrants), linked as a
+            series. Registration windows shift with each start. Ticket types on this
+            event are copied to the extra dates when you expand from edit.
+          </p>
+          {enabled ? (
+            <>
+              <label className="settings-field">
+                <span>Repeats</span>
+                <select
+                  name="recurringFrequency"
+                  value={frequency}
+                  disabled={busy}
+                  onChange={(e) =>
+                    setFrequency(e.target.value as EventSeriesFrequency)
+                  }
+                >
+                  {EVENT_SERIES_FREQUENCIES.map((f) => (
+                    <option key={f} value={f}>
+                      {f}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="settings-field">
+                <span>Every</span>
+                <input
+                  type="number"
+                  name="recurringInterval"
+                  min={1}
+                  max={52}
+                  value={interval}
+                  disabled={busy}
+                  onChange={(e) =>
+                    setInterval(Math.max(1, Number(e.target.value) || 1))
+                  }
+                />
+                <span className="settings-hint">
+                  {frequency === 'daily'
+                    ? 'days'
+                    : frequency === 'weekly'
+                      ? 'weeks'
+                      : 'months'}
+                </span>
+              </label>
+              {frequency === 'weekly' ? (
+                <div className="settings-field">
+                  <span>On</span>
+                  <div
+                    className="admin-inline-actions"
+                    role="group"
+                    aria-label="Weekdays"
+                  >
+                    {WEEKDAY_OPTIONS.map((day) => {
+                      const on = weekdays.includes(day.value)
+                      return (
+                        <button
+                          key={day.value}
+                          type="button"
+                          className={`gantry-toolbar-btn ${
+                            on
+                              ? 'gantry-toolbar-btn-muted'
+                              : 'gantry-toolbar-btn-quiet'
+                          }`}
+                          aria-pressed={on}
+                          disabled={busy}
+                          onClick={() => {
+                            setWeekdays((prev) =>
+                              on
+                                ? prev.filter((d) => d !== day.value)
+                                : [...prev, day.value].sort((a, b) => a - b),
+                            )
+                          }}
+                        >
+                          {day.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {weekdays.map((day) => (
+                    <input
+                      key={`recurring-weekday-${day}`}
+                      type="hidden"
+                      name="recurringWeekday"
+                      value={day}
+                    />
+                  ))}
+                </div>
+              ) : null}
+              <label className="settings-field">
+                <span>Ends</span>
+                <select
+                  name="recurringEndMode"
+                  value={endMode}
+                  disabled={busy}
+                  onChange={(e) =>
+                    setEndMode(e.target.value as EventSeriesEndMode)
+                  }
+                >
+                  <option value="count">After a number of dates</option>
+                  <option value="until">On a date</option>
+                </select>
+              </label>
+              {endMode === 'count' ? (
+                <label className="settings-field">
+                  <span>Number of dates</span>
+                  <input
+                    type="number"
+                    name="recurringCount"
+                    min={2}
+                    max={MAX_SERIES_OCCURRENCES}
+                    value={count}
+                    disabled={busy}
+                    onChange={(e) =>
+                      setCount(
+                        Math.min(
+                          MAX_SERIES_OCCURRENCES,
+                          Math.max(2, Number(e.target.value) || 2),
+                        ),
+                      )
+                    }
+                  />
+                  <span className="settings-hint">
+                    Max {MAX_SERIES_OCCURRENCES}.
+                  </span>
+                </label>
+              ) : (
+                <label className="settings-field">
+                  <span>Until</span>
+                  <input
+                    type="date"
+                    name="recurringUntil"
+                    value={until}
+                    disabled={busy}
+                    onChange={(e) => setUntil(e.target.value)}
+                    required={enabled && endMode === 'until'}
+                  />
+                </label>
+              )}
+              <p className="settings-hint">
+                {previewCount > 0
+                  ? `Will create ${previewCount} event${previewCount === 1 ? '' : 's'}.`
+                  : 'Set a start time above to preview how many dates will be created.'}
+              </p>
+            </>
+          ) : null}
+        </>
+      )}
+    </fieldset>
+  )
 }
 
 type VenueOpt = { id: string; name: string }
@@ -921,7 +1195,14 @@ export function EventFormFields({
         </label>
       </fieldset>
 
-      <fieldset className="settings-fieldset sf-events-form-section sf-events-form-section-wide">
+      <RecurringFields
+        busy={busy}
+        seriesId={row?.seriesId}
+        seriesPattern={row?.seriesPattern}
+        seriesDateCount={row?.seriesDateCount}
+      />
+
+      <fieldset className="settings-fieldset sf-events-form-section">
         <legend>Pricing</legend>
         <p className="settings-hint">
           Base price for this event. A ticket type with its own price replaces it. A type

@@ -159,7 +159,6 @@ export function SkinsManager({ skins, activeSkinId, envPinned, previewHref }: Pr
         <form
           action={uploadAction}
           className="outlines-create-form admin-create-form"
-          encType="multipart/form-data"
           onSubmit={() => setTimeout(() => router.refresh(), 80)}
         >
           <div className="settings-field">

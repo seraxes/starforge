@@ -15,10 +15,21 @@ import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/sett
 import { emitSubscriptionsEmail } from './email'
 import {
   activateOrExtendPeriod,
+  computeUpgradeCreditMajor,
+  countActivePeriodsForPlan,
   endPeriodsForOrder,
   findPlanById,
+  listActivePeriodsForUser,
+  resolveCheckoutPriceMajor,
+  userHasUsedTrial,
 } from './store'
-import { isPlanBillingPeriod, type PlanBillingPeriod } from './types'
+import {
+  isCheckoutMode,
+  isPlanBillingPeriod,
+  type CheckoutMode,
+  type PlanBillingPeriod,
+} from './types'
+import { loadSubscriberEmail } from './user-email'
 
 export const SUBSCRIPTIONS_PAYMENT_HOOK = 'subscriptions.activate' as const
 
@@ -60,11 +71,17 @@ export async function applySubscriptionsPaymentResult(
         ? billingPeriodRaw
         : undefined
 
+      const mode = String(line.metadata.mode ?? metadata.mode ?? 'subscribe').trim()
+      const isTrial = line.metadata.isTrial === true || line.metadata.isTrial === 'true'
+      const exclusiveSubject = mode === 'upgrade'
+      const autoRenew = line.metadata.autoRenew === true || line.metadata.autoRenew === 'true'
+      const paymentsRecurringId = String(line.metadata.paymentsRecurringId ?? '').trim() || null
+
       const result = await activateOrExtendPeriod({
         planId,
         userId,
         orderId: id,
-        source: 'purchase',
+        source: mode === 'upgrade' ? 'upgrade' : isTrial ? 'trial' : 'purchase',
         subject: String(line.metadata.subject ?? '').trim() || undefined,
         audience: String(line.metadata.audience ?? '').trim() || undefined,
         billingPeriod,
@@ -73,18 +90,35 @@ export async function applySubscriptionsPaymentResult(
         sourceModule: String(line.metadata.sourceModule ?? '').trim() || undefined,
         sourceType: String(line.metadata.sourceType ?? '').trim() || undefined,
         sourceId: String(line.metadata.sourceId ?? '').trim() || undefined,
+        isTrial,
+        exclusiveSubject,
+        autoRenew,
+        paymentsRecurringId,
       })
 
       if (result.ok) {
-        await emitSubscriptionsEmail('product:subscriptions/activated', {
-          orderId: id,
-          periodId: result.period.id,
-          planId,
-          userId,
-          subject: result.period.subject,
-          endsAt: result.period.endsAt.toISOString(),
-          entitlementKeys: result.period.entitlementKeys,
-        })
+        const buyerEmail =
+          String(metadata.buyerEmail ?? '').trim() || (await loadSubscriberEmail(userId))
+        const trigger =
+          mode === 'upgrade'
+            ? 'product:subscriptions/upgraded'
+            : mode === 'renew'
+              ? 'product:subscriptions/renewed'
+              : 'product:subscriptions/activated'
+        if (buyerEmail) {
+          await emitSubscriptionsEmail(trigger, {
+            orderId: id,
+            periodId: result.period.id,
+            planId,
+            userId,
+            buyerEmail,
+            subject: result.period.subject,
+            endsAt: result.period.endsAt.toISOString(),
+            entitlementKeys: result.period.entitlementKeys,
+            mode,
+            isTrial: result.period.isTrial,
+          })
+        }
       }
     }
     return
@@ -92,12 +126,19 @@ export async function applySubscriptionsPaymentResult(
 
   if (status === 'expired' || status === 'failed' || status === 'refunded') {
     const endStatus = status === 'refunded' ? 'refunded' : 'expired'
-    const n = await endPeriodsForOrder(id, endStatus)
-    if (n > 0) {
+    const ended = await endPeriodsForOrder(id, endStatus)
+    for (const period of ended) {
+      const buyerEmail = await loadSubscriberEmail(period.userId)
+      if (!buyerEmail) continue
       await emitSubscriptionsEmail('product:subscriptions/expired', {
         orderId: id,
+        periodId: period.id,
+        planId: period.planId,
+        userId: period.userId,
+        buyerEmail,
         status: endStatus,
-        endedCount: n,
+        reason: status,
+        endsAt: period.endsAt.toISOString(),
       })
     }
   }
@@ -126,6 +167,7 @@ export function ensureSubscriptionsPaymentHookReady(): Promise<void> {
 
 export function ensureSubscriptionsPaymentHook(): void {
   void ensureSubscriptionsPaymentHookReady()
+  void import('./email-starters').then((m) => m.ensureSubscriptionsEmailStartersSeeded())
 }
 
 export type StartSubscriptionCheckoutInput = {
@@ -137,11 +179,17 @@ export type StartSubscriptionCheckoutInput = {
   couponCode?: string | null
   returnUrl?: string
   cancelUrl?: string
+  mode?: CheckoutMode
+  /** Required when mode is upgrade. */
+  fromPeriodId?: string | null
+  /** Opt into Payments recurring when plan supports it. */
+  autoRenew?: boolean
 }
 
 export type StartSubscriptionCheckoutResult =
   | { ok: true; orderId: string; redirectPath: string; redirectUrl?: string }
   | { ok: false; error: string }
+  | { ok: true; free: true; periodId: string }
 
 export async function startSubscriptionCheckout(
   input: StartSubscriptionCheckoutInput,
@@ -150,24 +198,116 @@ export async function startSubscriptionCheckout(
   if (!isCatalogModuleEnabled(settings, MODULE_IDS.subscriptions)) {
     return { ok: false, error: 'Subscriptions is disabled.' }
   }
-  if (!isCatalogModuleEnabled(settings, MODULE_IDS.payments)) {
-    return { ok: false, error: 'Payments is disabled.' }
-  }
 
   const plan = await findPlanById(input.planId)
   if (!plan || !plan.active) return { ok: false, error: 'Plan not found or inactive.' }
-  if (plan.price <= 0) return { ok: false, error: 'Plan has no price.' }
 
   const userId = input.userId.trim()
   const email = input.buyerEmail.trim()
   if (!userId || !email) return { ok: false, error: 'Buyer required.' }
+
+  const mode: CheckoutMode = isCheckoutMode(input.mode) ? input.mode : 'subscribe'
+
+  if (plan.maxActive > 0 && mode === 'subscribe') {
+    const n = await countActivePeriodsForPlan(plan.id)
+    if (n >= plan.maxActive) return { ok: false, error: 'Plan is at capacity.' }
+  }
+
+  if (mode === 'renew') {
+    if (plan.lifetime || plan.billingPeriod === 'lifetime' || plan.fixedExpiresAt) {
+      return { ok: false, error: 'Lifetime and fixed-end plans cannot be renewed.' }
+    }
+  }
+
+  if (mode === 'upgrade') {
+    if (!plan.upgradeTargetIds.length && !input.fromPeriodId) {
+      /* target plan is `plan`; fromPeriodId identifies the period being left */
+    }
+    const fromPeriodId = (input.fromPeriodId || '').trim()
+    if (!fromPeriodId) return { ok: false, error: 'Upgrade requires the current period.' }
+    const active = await listActivePeriodsForUser(userId)
+    const from = active.find((p) => p.id === fromPeriodId)
+    if (!from) return { ok: false, error: 'Current subscription not found.' }
+    const fromPlan = await findPlanById(from.planId)
+    if (!fromPlan) return { ok: false, error: 'Current plan not found.' }
+    if (!fromPlan.upgradeTargetIds.includes(plan.id)) {
+      return { ok: false, error: 'This upgrade path is not allowed.' }
+    }
+  }
+
+  const priced = await resolveCheckoutPriceMajor({ plan, userId, mode })
+
+  // Free path — no Payments cart (plan locks this).
+  if (priced.priceMajor <= 0) {
+    if (priced.isTrial && plan.trialOnce && (await userHasUsedTrial(userId, plan.id))) {
+      return { ok: false, error: 'Trial already used.' }
+    }
+    const { activateFreePlan } = await import('./store')
+    const free = await activateFreePlan({ planId: plan.id, userId })
+    if (!free.ok) return { ok: false, error: free.error }
+    await emitSubscriptionsEmail(
+      priced.isTrial ? 'product:subscriptions/activated' : 'product:subscriptions/activated',
+      {
+        periodId: free.period.id,
+        planId: plan.id,
+        userId,
+        buyerEmail: email,
+        subject: free.period.subject,
+        endsAt: free.period.endsAt.toISOString(),
+        entitlementKeys: free.period.entitlementKeys,
+        mode,
+        isTrial: free.period.isTrial,
+        source: free.period.source,
+      },
+    )
+    return { ok: true, free: true, periodId: free.period.id }
+  }
+
+  if (!isCatalogModuleEnabled(settings, MODULE_IDS.payments)) {
+    return { ok: false, error: 'Payments is disabled.' }
+  }
 
   ensureSubscriptionsPaymentHook()
 
   const payments = await import('@/modules/payments/api')
   const paySettings = await payments.getPaymentsSettings()
   const currency = paySettings.currency || 'HUF'
-  const unitAmountMinor = majorToMinor(plan.price, currency)
+
+  let chargeMajor = priced.priceMajor
+  if (mode === 'upgrade' && input.fromPeriodId) {
+    const active = await listActivePeriodsForUser(userId)
+    const from = active.find((p) => p.id === input.fromPeriodId?.trim())
+    if (from) {
+      const fromPlan = await findPlanById(from.planId)
+      if (fromPlan) {
+        const credit = computeUpgradeCreditMajor(from, fromPlan)
+        chargeMajor = Math.max(0, plan.price - credit)
+      }
+    }
+  }
+
+  if (chargeMajor <= 0) {
+    const result = await activateOrExtendPeriod({
+      planId: plan.id,
+      userId,
+      source: 'upgrade',
+      exclusiveSubject: mode === 'upgrade',
+      isTrial: false,
+    })
+    if (!result.ok) return { ok: false, error: result.error }
+    await emitSubscriptionsEmail('product:subscriptions/upgraded', {
+      periodId: result.period.id,
+      planId: plan.id,
+      userId,
+      buyerEmail: email,
+      subject: result.period.subject,
+      endsAt: result.period.endsAt.toISOString(),
+      mode: 'upgrade',
+    })
+    return { ok: true, free: true, periodId: result.period.id }
+  }
+
+  const unitAmountMinor = majorToMinor(chargeMajor, currency)
   if (unitAmountMinor == null || unitAmountMinor <= 0) {
     return { ok: false, error: 'Could not convert plan price.' }
   }
@@ -184,13 +324,31 @@ export async function startSubscriptionCheckout(
   const returnUrl = input.returnUrl?.trim() || withLocalePrefix(locale, '/account/subscriptions')
   const cancelUrl = input.cancelUrl?.trim() || returnUrl
 
+  const wantAutoRenew = Boolean(input.autoRenew && plan.recurringSupported)
+  let paymentsRecurringId: string | null = null
+  if (wantAutoRenew) {
+    try {
+      const recurring = await payments.createRecurring({
+        userId,
+        method: input.method,
+        sourceModule: 'product:subscriptions',
+        sourceType: 'plan',
+        sourceId: plan.id,
+        metadata: { planId: plan.id, billingPeriod: plan.billingPeriod },
+      })
+      if (recurring.ok) paymentsRecurringId = recurring.id
+    } catch {
+      /* recurring optional until Payments adapters mature */
+    }
+  }
+
   const cartId = await payments.createCart({ userId })
   await payments.addCartLine(cartId, {
     ...payments.PAYMENT_SOURCE_TYPES.subscriptionsPlan,
     sourceId: plan.id,
     title: plan.title,
     unitAmountMinor,
-    billingPeriod: plan.billingPeriod,
+    billingPeriod: plan.billingPeriod === 'lifetime' ? 'year' : plan.billingPeriod,
     metadata: {
       userId,
       subject: plan.subject,
@@ -201,10 +359,15 @@ export async function startSubscriptionCheckout(
       sourceModule: plan.sourceModule,
       sourceType: plan.sourceType,
       sourceId: plan.sourceId,
+      mode,
+      isTrial: priced.isTrial,
+      fromPeriodId: input.fromPeriodId ?? '',
+      autoRenew: wantAutoRenew,
+      paymentsRecurringId: paymentsRecurringId ?? '',
     },
   })
 
-  const idempotencyKey = `sub_${plan.id}_${userId}_${Date.now()}`
+  const idempotencyKey = `sub_${plan.id}_${userId}_${mode}_${Date.now()}`
   const started = await payments.startCheckout({
     cartId,
     method: input.method as never,
@@ -218,7 +381,13 @@ export async function startSubscriptionCheckout(
     cancelUrl,
     consumerHook: SUBSCRIPTIONS_PAYMENT_HOOK,
     couponCode: input.couponCode,
-    metadata: { userId, planId: plan.id, subject: plan.subject },
+    metadata: {
+      userId,
+      planId: plan.id,
+      subject: plan.subject,
+      mode,
+      buyerEmail: email,
+    },
   })
 
   if (!started.ok) return { ok: false, error: started.error }

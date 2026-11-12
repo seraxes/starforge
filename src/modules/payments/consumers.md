@@ -28,6 +28,10 @@ registerPaymentConsumerHook('shop.fulfillOrder', async (ctx) => {
 
 Do **not** build cart/checkout/gateway UI inside those packs — call `createCart` / `addCartLine` / `startCheckout` only.
 
+## Recurring (auto-renew)
+
+Payments owns `sf_pay_recurring` (`createRecurring` / `cancelRecurring`). Subscriptions stores `paymentsRecurringId` on the period and grants on each paid hook. Gateway charge adapters attach later; secrets stay in env / merchant credentials — never in Subscriptions.
+
 ## Coupons
 
 Pass optional `couponCode` on `startCheckout`. Payments owns codes, usage limits, and discount math. Domain packs only collect/forward the code (Events does this on registration / quick-register). Do not create per-module coupon tables.

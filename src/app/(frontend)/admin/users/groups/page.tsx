@@ -20,16 +20,18 @@ export default async function AdminUserGroupsPage() {
     <section className="admin-section">
       <h2>User groups</h2>
       <p className="lede admin-lede">
-        Create groups and assign members. The same groups are tagged on{' '}
-        <Link href="/admin/nav">Navigation</Link> / Layout items for viewing, and receive admin
-        permissions under <Link href="/admin/users/acl">ACL</Link> — no separate Access Level
-        entity.
+        Create groups and assign members. Nest a group under a parent — membership expands up the
+        tree for <Link href="/admin/nav">Navigation</Link> / Layout tags and{' '}
+        <Link href="/admin/users/acl">ACL</Link> grants. Direct membership stays what you assign
+        here.
       </p>
       <GroupsManager
         groups={groups.map((g) => ({
           id: g.id,
           label: g.label,
           description: g.description,
+          parentId: g.parentId,
+          depth: g.depth,
           memberCount: g.memberCount,
           updatedAt: g.updatedAt.toISOString(),
         }))}

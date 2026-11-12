@@ -62,11 +62,21 @@ export {
   ensureDefaultUserGroupsSeeded,
   ensureManagersDashboardAcl,
   ensureManagersLocalizationAcl,
+  expandGroupIdsWithAncestors,
   getUserGroup,
+  listGroupParentMap,
   listUserGroupOptions,
   listUserGroups,
+  MAX_GROUP_DEPTH,
   renameUserGroup,
 } from './groups'
+export {
+  depthUnderParent,
+  groupDepth,
+  maxRelativeSubtreeDepth,
+  orderGroupsAsTree,
+  wouldCreateCycle,
+} from './hierarchy'
 export {
   addUserToGroup,
   listGroupIdsByUserIds,

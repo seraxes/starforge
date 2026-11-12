@@ -73,6 +73,8 @@ Consumers must not build coupon tables. Deep-link admin to `/admin/payments/coup
 | product:subscriptions | plan |
 | product:ads | campaign_credit |
 
+**Sales by source** (Payments → Overview, and the same card on `/admin`) lists every installed contract module by id, plus any source module id already stored on a paid or fulfilled order. Gross, orders, and units are the last 30 days against the previous 30. Uninstalled contracts (shop, ads, until those packs are on the site) stay off the card. Shop and ads still sell through this API when they ship — they do not get their own sales screen.
+
 ## Public checkout handoff
 
 `/[locale]/checkout/[orderId]` — consumers return this same-origin path after `startCheckout`. Gateway orders redirect to the stored provider URL; offline orders show the payment reference and instructions snapshotted on the order (`metadata.offlineInstructions`).

@@ -5,6 +5,7 @@ Events + venues + registration + ticket tiers + parties (`sf_venues` / `sf_event
 ## Shipped
 
 - Admin: list (Add+ collapsed → filters → EB-style table) → `/admin/events/[id]` card mosaic (Apply / Save / Cancel)
+- **Recurring (finite series):** Recurring card on **Add +** and **edit** — daily / weekly / monthly with count or until-date. Expands once into concrete `sf_events` rows linked by `seriesId` (own capacity/registrants). Edit expand copies ticket types onto extra dates. Registration windows shift with each start. Pattern stored on the series root. Already-linked dates show series summary (read-only). Not a live RRULE engine; group edit across dates is later. Duplicate on the edit toolbar stays a one-off copy.
 - Venues: same Add+/table pattern; description (Rich Editor), gallery, Leaflet pin picker via product:maps
 - Parties, ticket tiers, registrants, manual door check-in, module settings
 - Registration window (`registrationOpensAt` / `ClosesAt`), prevent-duplicate setting
@@ -50,7 +51,7 @@ Slot kinds are choosable: **Ticket type**, **Booking type**, **Faction**, plus n
 
 ### Deferred by design
 
-- Full RRULE / series
+- Live RRULE evaluation / infinite background generate; per-date price overrides; group edit scopes (this / following / all) on the edit toolbar
 - AI “Draft description” (`LlmProvider`)
 - Deposit / token pay — **Hero** ASN currency, not an Events price rule. Events keeps real-money ticket prices; Hero may later cover part or all of a selected event.
 
@@ -73,6 +74,7 @@ Paid tickets consume shared **`product:payments`** via [`payment-bridge.ts`](./p
 - `0034` event `require_approval` (optional signup approval gate)
 - `0036` Subscriptions `sf_sub_plans` / `sf_sub_periods` (product:subscriptions)
 - `0037` tier `member_price` + `group_prices` (player-premium audience pricing)
+- `0040` event `series_id` + `series_pattern` (finite recurring create)
 
 ## Migrations (history)
 

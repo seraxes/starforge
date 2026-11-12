@@ -395,6 +395,7 @@ body:has(.admin-shell) > main {
 .admin-shell .settings-field input[type='password'],
 .admin-shell .settings-field input[type='number'],
 .admin-shell .settings-field input[type='search'],
+.admin-shell .settings-field input[type='date'],
 .admin-shell .settings-field select,
 .admin-shell .settings-field textarea,
 .admin-shell .settings-nav-row input,
@@ -440,6 +441,7 @@ body:has(.admin-shell) > main {
 .admin-shell .settings-field input[type='password'],
 .admin-shell .settings-field input[type='number'],
 .admin-shell .settings-field input[type='search'],
+.admin-shell .settings-field input[type='date'],
 .admin-shell .settings-field select,
 .admin-shell .settings-field textarea,
 .admin-shell .page-settings-panel-body input:not([type]),
@@ -2763,6 +2765,14 @@ body:has(.admin-shell) > main {
   margin-bottom: 0.65rem;
 }
 
+/* Filter row: same wells, no stacked field gap — chips and selects share one line. */
+.admin-shell .outlines-create .sf-subscriptions-filterbar .settings-field {
+  margin: 0;
+  flex: 1 1 12rem;
+  max-width: 18rem;
+  padding-bottom: 0;
+}
+
 .admin-shell .breakpoints-form .settings-field:last-of-type,
 .admin-shell .section-styles-form .settings-field:last-of-type,
 .admin-shell .settings-fieldset .settings-field:last-of-type,
@@ -4422,6 +4432,23 @@ body:has(.admin-shell) > main {
   justify-content: flex-end;
   gap: var(--sf-admin-btn-gap);
   margin: 0 0.85rem;
+}
+
+/* Same confirm chrome, wide enough for one subscription form. */
+.admin-shell .sf-admin-form-dialog {
+  width: min(36rem, 100%);
+  max-height: min(90vh, 44rem);
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0;
+  overflow: hidden;
+}
+
+.admin-shell .sf-admin-form-dialog-body {
+  overflow: auto;
+  min-height: 0;
+  padding: 0 0.85rem 0.85rem;
+  margin: 0;
 }
 
 .admin-shell .sf-media-picker-dialog {

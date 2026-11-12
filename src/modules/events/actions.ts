@@ -11,6 +11,7 @@ import { normalizeLocaleTextMap, type LocaleTextMap } from '@/core/i18n/locale-t
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
 import { priceRulesFromForm } from './price-rules'
+import { parseSeriesPatternFromForm } from './series'
 import { saveEventsModuleSettings } from './settings'
 import {
   createEventCategory,
@@ -22,7 +23,9 @@ import {
   createVenue,
   deleteEvent,
   deleteVenue,
+  createEventSeries,
   duplicateEvent,
+  expandEventIntoSeries,
   findEventById,
   updateEvent,
   updateVenue,
@@ -362,12 +365,29 @@ export async function createEventAction(
       }
     }
   }
-  const result = await createEvent(fields)
+  const recurringOn = String(formData.get('recurringEnabled') ?? '') === '1'
+  const seriesPattern = parseSeriesPatternFromForm(formData)
+  if (recurringOn && !seriesPattern) {
+    return {
+      error:
+        'Recurring is on but the pattern is incomplete — set an end count or until date.',
+    }
+  }
+  const result = seriesPattern
+    ? await createEventSeries(fields, seriesPattern)
+    : await createEvent(fields)
   if ('error' in result) return { error: result.error }
   revalidateEventsAdmin(result.event.id)
+  const createdCount =
+    'createdCount' in result && typeof result.createdCount === 'number'
+      ? result.createdCount
+      : 1
   return {
     ok: true,
-    message: `Event “${result.event.title}” created.`,
+    message:
+      createdCount > 1
+        ? `Created series “${result.event.title}” — ${createdCount} dates.`
+        : `Event “${result.event.title}” created.`,
     id: result.event.id,
     after,
   }
@@ -382,11 +402,42 @@ export async function updateEventAction(
   if (denied) return denied
 
   const after = parseAfterIntent(formData)
+  const fields = eventFieldsFromForm(formData)
   const result = await updateEvent({
     id,
-    ...eventFieldsFromForm(formData),
+    ...fields,
   })
   if ('error' in result) return { error: result.error }
+
+  const recurringOn = String(formData.get('recurringEnabled') ?? '') === '1'
+  const seriesPattern = parseSeriesPatternFromForm(formData)
+  if (recurringOn) {
+    if (!seriesPattern) {
+      return {
+        error:
+          'Recurring is on but the pattern is incomplete — set an end count or until date.',
+      }
+    }
+    if (result.event.seriesId) {
+      revalidateEventsAdmin(result.event.id)
+      return {
+        ok: true,
+        message: `Event “${result.event.title}” saved. Already in a series — recurrence fields were ignored.`,
+        id: result.event.id,
+        after,
+      }
+    }
+    const expanded = await expandEventIntoSeries(id, fields, seriesPattern)
+    if ('error' in expanded) return { error: expanded.error }
+    revalidateEventsAdmin(expanded.event.id)
+    return {
+      ok: true,
+      message: `Saved and created series — ${expanded.createdCount} dates.`,
+      id: expanded.event.id,
+      after,
+    }
+  }
+
   revalidateEventsAdmin(result.event.id)
   return {
     ok: true,

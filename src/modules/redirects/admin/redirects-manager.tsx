@@ -162,7 +162,6 @@ export function RedirectsManager({ redirects }: Props) {
         <form
           action={importAction}
           className="outlines-create-form admin-create-form sf-redirects-import-form"
-          encType="multipart/form-data"
         >
           <label className="settings-field">
             <span>CSV file</span>

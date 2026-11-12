@@ -80,6 +80,21 @@ export async function draftEventDescription(fields: {
 - Depends on: Core Auth/ACL + ports; Media + Forms Modules; Mailer (confirmations later); optional Maps; optional `LlmProvider`.
 - Hero: theme skins + vertical fields on the same entities — do not fork Events.
 
+## Recurring dates (finite linked copies)
+
+**Decision (shipped create path):** Eventbrite-style — one create expands a bounded pattern into concrete `sf_events` rows. Each date has its own capacity, registrants, and start/end. Copies share `seriesId` (usually the first occurrence’s id). Pattern JSON lives on the series root only. Not a live RRULE engine.
+
+| Concern | Owner |
+| --- | --- |
+| Expand daily / weekly / monthly + interval + end (count or until) | Events create form → `createEventSeries` |
+| Title, description, venue, ACL, parties, price snapshot at create | Copied onto each date |
+| Start / end / slug / registration windows | Per date (windows shift with start) |
+| Capacity occupancy, registrants, check-in, orders | Per date |
+| Manual see-also links | `relatedEventIds` (separate from series) |
+| One-off copy | Edit toolbar **Duplicate** |
+
+**Later:** group save scopes (this / following / all), series badge polish, toolbar “extend series”, per-date price leave-series.
+
 ## Success
 
 Any Starforge site can enable the Events Module, bind Media + Form registration, and optionally draft descriptions via a pluggable LLM port without Hero-specific code inside the module.

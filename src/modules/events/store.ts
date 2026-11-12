@@ -25,6 +25,12 @@ import { hashEventPassword } from './access-password'
 import { assertRegistrationFormId, findEventCategoryById } from './categories'
 import { sfEvents, sfVenues } from './schema'
 import {
+  expandSeriesStarts,
+  occurrenceDateSuffix,
+  parseEventSeriesPattern,
+  type EventSeriesPattern,
+} from './series'
+import {
   EVENT_COVER_MEDIA_MAX,
   isEventCoverDisplayMode,
   isEventStatus,
@@ -136,6 +142,8 @@ function mapEvent(row: typeof sfEvents.$inferSelect): EventRecord {
     speakerPartyIds: normalizeIdList(row.speakerPartyIds),
     sponsorPartyIds: normalizeIdList(row.sponsorPartyIds),
     relatedEventIds: normalizeIdList(row.relatedEventIds),
+    seriesId: (row.seriesId || '').trim(),
+    seriesPattern: parseEventSeriesPattern(row.seriesPattern),
     signupNote: (row.signupNote || '').trim().slice(0, 4000),
     termsUrl: (row.termsUrl || '').trim().slice(0, 2000),
     listed: row.listed !== false,
@@ -506,6 +514,9 @@ export type UpsertEventInput = {
   speakerPartyIds?: unknown
   sponsorPartyIds?: unknown
   relatedEventIds?: unknown
+  /** Series link — usually set by createEventSeries. */
+  seriesId?: unknown
+  seriesPattern?: EventSeriesPattern | null
   signupNote?: unknown
   termsUrl?: unknown
   listed?: unknown
@@ -582,6 +593,11 @@ export async function createEvent(
   const relatedEventIds = parseOptionalIdList(input.relatedEventIds).filter(
     (rid) => rid !== ((input.id || '').trim() || ''),
   )
+  const seriesId = String(input.seriesId ?? '').trim() || null
+  const seriesPattern =
+    input.seriesPattern === undefined
+      ? null
+      : parseEventSeriesPattern(input.seriesPattern)
   const signupNote = String(input.signupNote ?? '').trim().slice(0, 4000)
   const termsUrl = String(input.termsUrl ?? '').trim().slice(0, 2000)
   const listed = parseListedFlag(input.listed, true)
@@ -646,6 +662,8 @@ export async function createEvent(
       speakerPartyIds,
       sponsorPartyIds,
       relatedEventIds,
+      seriesId,
+      seriesPattern,
       signupNote,
       termsUrl,
       listed,
@@ -665,6 +683,329 @@ export async function createEvent(
       error: error instanceof Error ? error.message : 'Could not create event.',
     }
   }
+}
+
+function shiftIso(raw: unknown, deltaMs: number): string {
+  const s = String(raw ?? '').trim()
+  if (!s) return ''
+  const d = new Date(s)
+  if (Number.isNaN(d.getTime())) return ''
+  return new Date(d.getTime() + deltaMs).toISOString()
+}
+
+/**
+ * Create a finite series of concrete events from one form payload + pattern.
+ * First occurrence is the series root (seriesId = its id, pattern stored there).
+ */
+export async function createEventSeries(
+  input: UpsertEventInput,
+  pattern: EventSeriesPattern,
+): Promise<
+  | { event: EventRecord; createdCount: number; seriesId: string }
+  | { error: string }
+> {
+  const firstStart = parseOptionalDate(input.startsAt)
+  if (!firstStart) {
+    return { error: 'Set a start time before creating a recurring series.' }
+  }
+  const starts = expandSeriesStarts(firstStart, pattern)
+  if (starts.length < 2) {
+    return {
+      error:
+        'That recurrence only produces one date — widen the end count/date or pick more weekdays.',
+    }
+  }
+
+  const rootStart = starts[0]!
+  const firstEnd = parseOptionalDate(input.endsAt)
+  const durationMs =
+    firstEnd && firstEnd.getTime() >= firstStart.getTime()
+      ? firstEnd.getTime() - firstStart.getTime()
+      : 0
+
+  const baseSlug =
+    normalizeSlug(input.slug) ||
+    normalizeSlug(input.title) ||
+    'event'
+  const rootId = crypto.randomUUID()
+  const rootDelta = rootStart.getTime() - firstStart.getTime()
+
+  const root = await createEvent({
+    ...input,
+    id: rootId,
+    slug: `${baseSlug}-${occurrenceDateSuffix(rootStart)}`.slice(0, 120),
+    startsAt: rootStart.toISOString(),
+    endsAt:
+      durationMs > 0
+        ? new Date(rootStart.getTime() + durationMs).toISOString()
+        : input.endsAt,
+    registrationOpensAt: shiftIso(input.registrationOpensAt, rootDelta),
+    registrationClosesAt: shiftIso(input.registrationClosesAt, rootDelta),
+    cancellationClosesAt: shiftIso(input.cancellationClosesAt, rootDelta),
+    seriesId: rootId,
+    seriesPattern: pattern,
+  })
+  if ('error' in root) return root
+
+  let createdCount = 1
+  for (let i = 1; i < starts.length; i += 1) {
+    const occStart = starts[i]!
+    const deltaMs = occStart.getTime() - firstStart.getTime()
+    const copy = await createEvent({
+      ...input,
+      id: crypto.randomUUID(),
+      slug: `${baseSlug}-${occurrenceDateSuffix(occStart)}`.slice(0, 120),
+      startsAt: occStart.toISOString(),
+      endsAt:
+        durationMs > 0
+          ? new Date(occStart.getTime() + durationMs).toISOString()
+          : '',
+      registrationOpensAt: shiftIso(input.registrationOpensAt, deltaMs),
+      registrationClosesAt: shiftIso(input.registrationClosesAt, deltaMs),
+      cancellationClosesAt: shiftIso(input.cancellationClosesAt, deltaMs),
+      seriesId: rootId,
+      seriesPattern: null,
+      // Each date starts empty — do not inherit related links from the form.
+      relatedEventIds: [],
+    })
+    if ('error' in copy) {
+      return {
+        error: `Created ${createdCount} of ${starts.length} dates, then failed: ${copy.error}`,
+      }
+    }
+    createdCount += 1
+  }
+
+  return { event: root.event, createdCount, seriesId: rootId }
+}
+
+/** Events that share a seriesId (concrete dates). */
+export async function listEventsInSeries(seriesId: string): Promise<EventRecord[]> {
+  const id = seriesId.trim()
+  if (!id) return []
+  try {
+    const rows = await db
+      .select()
+      .from(sfEvents)
+      .where(eq(sfEvents.seriesId, id))
+      .orderBy(asc(sfEvents.startsAt), asc(sfEvents.title), asc(sfEvents.id))
+    return rows.map(mapEvent)
+  } catch {
+    return []
+  }
+}
+
+/** Pattern from the series root (id === seriesId), if stored. */
+export async function findSeriesPattern(
+  seriesId: string,
+): Promise<EventSeriesPattern | null> {
+  const id = seriesId.trim()
+  if (!id) return null
+  const root = await findEventById(id)
+  return root?.seriesPattern ?? null
+}
+
+async function copyTiersBetweenEvents(sourceId: string, targetId: string): Promise<void> {
+  try {
+    const { listTicketTiersForEvent, createTicketTier } = await import('./tiers')
+    const tiers = await listTicketTiersForEvent(sourceId)
+    for (const tier of tiers) {
+      await createTicketTier({
+        eventId: targetId,
+        title: tier.title,
+        shortDescription: tier.shortDescription,
+        description: tier.description,
+        kind: tier.kind,
+        capacity: tier.capacity ?? '',
+        maxPerBooking: tier.maxPerBooking ?? '',
+        price: tier.price ?? '',
+        priceModifier:
+          tier.priceModifierMode === 'percent'
+            ? `${tier.priceModifier}%`
+            : tier.priceModifier,
+        priceLabel: tier.priceLabel,
+        priceRules: tier.priceRules,
+        titleColor: tier.titleColor,
+        borderColor: tier.borderColor,
+        backgroundColor: tier.backgroundColor,
+        sortOrder: tier.sortOrder,
+        memberPrice: tier.memberPrice ?? '',
+        groupPrices: tier.groupPrices,
+      })
+    }
+  } catch {
+    /* best-effort — series dates still usable without tiers */
+  }
+}
+
+/**
+ * Turn an existing standalone event into a series root and create the other dates.
+ * Saves seriesId = this event’s id and stores the pattern on it.
+ */
+export async function expandEventIntoSeries(
+  eventId: string,
+  input: UpsertEventInput,
+  pattern: EventSeriesPattern,
+): Promise<
+  | { event: EventRecord; createdCount: number; seriesId: string }
+  | { error: string }
+> {
+  const id = eventId.trim()
+  if (!id) return { error: 'Missing event id.' }
+  const current = await findEventById(id)
+  if (!current) return { error: 'Event not found.' }
+  if (current.seriesId) {
+    return { error: 'This event is already part of a series.' }
+  }
+
+  const firstStart = parseOptionalDate(input.startsAt) ?? current.startsAt
+  if (!firstStart) {
+    return { error: 'Set a start time before creating a recurring series.' }
+  }
+  const starts = expandSeriesStarts(firstStart, pattern)
+  if (starts.length < 2) {
+    return {
+      error:
+        'That recurrence only produces one date — widen the end count/date or pick more weekdays.',
+    }
+  }
+
+  const rootStart = starts[0]!
+  const firstEnd = parseOptionalDate(input.endsAt) ?? current.endsAt
+  const durationMs =
+    firstEnd && firstEnd.getTime() >= firstStart.getTime()
+      ? firstEnd.getTime() - firstStart.getTime()
+      : 0
+  const rootDelta = rootStart.getTime() - firstStart.getTime()
+  const baseSlug =
+    normalizeSlug(input.slug) ||
+    normalizeSlug(current.slug) ||
+    normalizeSlug(input.title) ||
+    normalizeSlug(current.title) ||
+    'event'
+
+  try {
+    await db
+      .update(sfEvents)
+      .set({
+        seriesId: id,
+        seriesPattern: pattern,
+        slug: `${baseSlug}-${occurrenceDateSuffix(rootStart)}`.slice(0, 120),
+        startsAt: rootStart,
+        endsAt:
+          durationMs > 0 ? new Date(rootStart.getTime() + durationMs) : firstEnd,
+        registrationOpensAt: (() => {
+          const iso = shiftIso(
+            input.registrationOpensAt ??
+              current.registrationOpensAt?.toISOString() ??
+              '',
+            rootDelta,
+          )
+          return iso ? new Date(iso) : null
+        })(),
+        registrationClosesAt: (() => {
+          const iso = shiftIso(
+            input.registrationClosesAt ??
+              current.registrationClosesAt?.toISOString() ??
+              '',
+            rootDelta,
+          )
+          return iso ? new Date(iso) : null
+        })(),
+        cancellationClosesAt: (() => {
+          const iso = shiftIso(
+            input.cancellationClosesAt ??
+              current.cancellationClosesAt?.toISOString() ??
+              '',
+            rootDelta,
+          )
+          return iso ? new Date(iso) : null
+        })(),
+      })
+      .where(eq(sfEvents.id, id))
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : 'Could not attach series.',
+    }
+  }
+
+  let createdCount = 1
+  for (let i = 1; i < starts.length; i += 1) {
+    const occStart = starts[i]!
+    const deltaMs = occStart.getTime() - firstStart.getTime()
+    const copy = await createEvent({
+      ...input,
+      title: (input.title || current.title).trim().slice(0, 200),
+      id: crypto.randomUUID(),
+      slug: `${baseSlug}-${occurrenceDateSuffix(occStart)}`.slice(0, 120),
+      startsAt: occStart.toISOString(),
+      endsAt:
+        durationMs > 0
+          ? new Date(occStart.getTime() + durationMs).toISOString()
+          : '',
+      registrationOpensAt: shiftIso(
+        input.registrationOpensAt ??
+          current.registrationOpensAt?.toISOString() ??
+          '',
+        deltaMs,
+      ),
+      registrationClosesAt: shiftIso(
+        input.registrationClosesAt ??
+          current.registrationClosesAt?.toISOString() ??
+          '',
+        deltaMs,
+      ),
+      cancellationClosesAt: shiftIso(
+        input.cancellationClosesAt ??
+          current.cancellationClosesAt?.toISOString() ??
+          '',
+        deltaMs,
+      ),
+      timezone: input.timezone || current.timezone,
+      currency: input.currency ?? current.currency,
+      price: input.price ?? current.price ?? '',
+      priceRules: input.priceRules ?? current.priceRules,
+      venueId: input.venueId ?? current.venueId,
+      description: input.description ?? current.description,
+      coverMediaId: input.coverMediaId ?? current.coverMediaId,
+      coverMediaIds: input.coverMediaIds ?? current.coverMediaIds,
+      coverDisplayMode: input.coverDisplayMode ?? current.coverDisplayMode,
+      galleryMediaIds: input.galleryMediaIds ?? current.galleryMediaIds,
+      capacity: input.capacity ?? current.capacity ?? '',
+      waitlistEnabled: input.waitlistEnabled ?? (current.waitlistEnabled ? '1' : '0'),
+      requireApproval: input.requireApproval ?? (current.requireApproval ? '1' : '0'),
+      selfCancelRefund: input.selfCancelRefund ?? (current.selfCancelRefund ? '1' : '0'),
+      merchantUserId: input.merchantUserId ?? current.merchantUserId,
+      managerUserIds: input.managerUserIds ?? current.managerUserIds,
+      helperUserIds: input.helperUserIds ?? current.helperUserIds,
+      managerGroupIds: input.managerGroupIds ?? current.managerGroupIds,
+      helperGroupIds: input.helperGroupIds ?? current.helperGroupIds,
+      organizerPartyIds: input.organizerPartyIds ?? current.organizerPartyIds,
+      speakerPartyIds: input.speakerPartyIds ?? current.speakerPartyIds,
+      sponsorPartyIds: input.sponsorPartyIds ?? current.sponsorPartyIds,
+      signupNote: input.signupNote ?? current.signupNote,
+      termsUrl: input.termsUrl ?? current.termsUrl,
+      listed: input.listed ?? current.listed,
+      featured: input.featured ?? current.featured,
+      categoryId: input.categoryId ?? current.categoryId,
+      registrationFormId: input.registrationFormId ?? current.registrationFormId,
+      accessTags: input.accessTags ?? current.accessTags,
+      seriesId: id,
+      seriesPattern: null,
+      relatedEventIds: [],
+    })
+    if ('error' in copy) {
+      return {
+        error: `Linked this event and created ${createdCount - 1} of ${starts.length - 1} extra dates, then failed: ${copy.error}`,
+      }
+    }
+    await copyTiersBetweenEvents(id, copy.event.id)
+    createdCount += 1
+  }
+
+  const event = await findEventById(id)
+  if (!event) return { error: 'Series created but event could not be reloaded.' }
+  return { event, createdCount, seriesId: id }
 }
 
 export async function updateEvent(

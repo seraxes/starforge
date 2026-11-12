@@ -1,13 +1,15 @@
 import React from 'react'
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
+import { getContentLocaleOptions } from '@/core/i18n/locale-text.server'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
 import { ensureSubscriptionsExpiryJob } from '../expiry'
 import { ensureSubscriptionsPaymentHook } from '../payment-bridge'
+import { loadSubscriptionPlanLocaleMaps } from '../plan-locales'
+import { ensureSubscriptionRegistrationFormSeeded } from '../registration-form'
+import { loadSubscriptionsModuleSettings } from '../settings'
 import { listPlans } from '../store'
-import { PLAN_SUBJECTS } from '../types'
 import { PlansManager } from './plans-manager'
 import { SubscriptionsAdminNav } from './subscriptions-admin-nav'
 
@@ -29,10 +31,25 @@ export default async function SubscriptionsPlansPage({
 
   ensureSubscriptionsPaymentHook()
   ensureSubscriptionsExpiryJob()
+  void ensureSubscriptionRegistrationFormSeeded()
 
   const params = await searchParams
-  const subjectFilter = (params.subject ?? '').trim()
-  const plans = await listPlans()
+  const [plans, packSettings, locales] = await Promise.all([
+    listPlans(),
+    loadSubscriptionsModuleSettings(),
+    getContentLocaleOptions(),
+  ])
+  const localeCodes = locales.map((locale) => locale.code)
+  const planRows = await Promise.all(
+    plans.map(async (plan) => {
+      const maps = await loadSubscriptionPlanLocaleMaps(plan.id, localeCodes)
+      return {
+        ...plan,
+        titleLocales: maps.titleLocales,
+        descriptionLocales: maps.descriptionLocales,
+      }
+    }),
+  )
 
   let currency = 'HUF'
   try {
@@ -42,37 +59,31 @@ export default async function SubscriptionsPlansPage({
     /* payments optional at render if migrate pending */
   }
 
-  const subjects = [
-    { id: '', label: 'All' },
-    { id: PLAN_SUBJECTS.membership, label: 'Player' },
-    { id: PLAN_SUBJECTS.organizer, label: 'Organizer' },
-    { id: PLAN_SUBJECTS.advertisement, label: 'Advertisement' },
-  ]
+  let groupOptions: { id: string; label: string }[] = []
+  try {
+    const { listUserGroupOptions } = await import('@/core/acl')
+    groupOptions = await listUserGroupOptions()
+  } catch {
+    /* ACL migrate pending */
+  }
 
   return (
-    <section className="admin-section admin-layouts-full sf-subscriptions-manager">
+    <section className="admin-section admin-layouts-full">
       <SubscriptionsAdminNav active="plans" />
-      <h2>Subscription plans</h2>
+      <h2>Plans</h2>
       <p className="lede admin-lede">
-        Player premium, organizer premium (event management access), and advertisements.
-        Payments charges the plan; this pack grants periods and entitlements.
+        Catalog of what can be sold. Filter by type and subtype, then edit one plan. Payments
+        charges the price; a period grants entitlements and syncs access groups for ACL.
       </p>
-      <p className="gantry-inherit-copy-row-inline" style={{ marginBottom: '1rem' }}>
-        {subjects.map((s) => (
-          <Link
-            key={s.id || 'all'}
-            href={s.id ? `/admin/subscriptions?subject=${encodeURIComponent(s.id)}` : '/admin/subscriptions'}
-            className={
-              subjectFilter === s.id
-                ? 'gantry-toolbar-btn gantry-toolbar-btn-save'
-                : 'gantry-toolbar-btn'
-            }
-          >
-            {s.label}
-          </Link>
-        ))}
-      </p>
-      <PlansManager plans={plans} currency={currency} subjectFilter={subjectFilter} />
+      <PlansManager
+        plans={planRows}
+        currency={currency}
+        initialType={(params.subject ?? '').trim()}
+        defaultGraceHours={packSettings.settings.defaultGraceHours}
+        defaultFormDefinitionId={packSettings.settings.defaultFormDefinitionId}
+        groupOptions={groupOptions}
+        locales={locales}
+      />
     </section>
   )
 }

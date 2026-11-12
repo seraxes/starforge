@@ -17,7 +17,13 @@ import {
 } from '@/core/i18n/content-locales/actions'
 import type { ContentLocaleScope } from '@/core/i18n/content-locales/paths'
 
-const CONTENT_LOCALE_SCOPE_SET = new Set<string>(['layouts', 'nav', 'chrome', 'events'])
+const CONTENT_LOCALE_SCOPE_SET = new Set<string>([
+  'layouts',
+  'nav',
+  'chrome',
+  'events',
+  'subscriptions',
+])
 
 function isPanelScope(value: string | undefined): value is ContentLocaleScope {
   return Boolean(value && CONTENT_LOCALE_SCOPE_SET.has(value))

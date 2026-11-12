@@ -119,6 +119,19 @@ export default defineStarforgeModule({
         pageExportName: 'default',
       },
     ],
+    dashboard: [
+      {
+        id: 'payments.sales',
+        title: 'Sales by source',
+        order: 12,
+        size: 'lg',
+        area: 'payments',
+        widgetImportPath: '@/modules/payments/dashboard/SalesBySourceWidget',
+        widgetExportName: 'SalesBySourceWidget',
+        statsImportPath: '@/modules/payments/dashboard/sales-stats',
+        statsExportName: 'loadSalesBySourceStats',
+      },
+    ],
   },
   db: { schema: 'src/modules/payments/schema.ts' },
 })

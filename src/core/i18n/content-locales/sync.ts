@@ -7,6 +7,7 @@ import {
   buildEventCategoryKey,
   buildLayoutSlotKey,
   buildNavItemKey,
+  buildSubscriptionPlanKey,
   type ContentLocaleField,
 } from '../content-locale-keys'
 import { normalizeLocaleTextMap, type LocaleTextMap } from '../locale-text'
@@ -183,6 +184,33 @@ export async function syncEventCategoryLocalesToFiles(input: {
   const defaultLocale = settings.defaultLocale
   const titleKey = buildEventCategoryKey(input.categoryId, 'title')
   const textKey = buildEventCategoryKey(input.categoryId, 'text')
+
+  collectScalar(defaultLocale, titleKey, input.title, byLocale)
+  collectScalar(defaultLocale, textKey, input.description, byLocale)
+  collectMapEntries(input.titleLocales, () => titleKey, byLocale)
+  collectMapEntries(input.descriptionLocales, () => textKey, byLocale)
+
+  for (const [locale, entries] of byLocale) {
+    await upsertContentLocaleValues(locale, entries)
+  }
+}
+
+/**
+ * Persist subscription plan title / description into language files.
+ * Default-locale scalars stay on `sf_sub_plans`; locale maps do not.
+ */
+export async function syncSubscriptionPlanLocalesToFiles(input: {
+  planId: string
+  title: string
+  description: string
+  titleLocales?: LocaleTextMap
+  descriptionLocales?: LocaleTextMap
+}): Promise<void> {
+  const byLocale = new Map<string, Record<string, string>>()
+  const settings = await getLocalizationSettings()
+  const defaultLocale = settings.defaultLocale
+  const titleKey = buildSubscriptionPlanKey(input.planId, 'title')
+  const textKey = buildSubscriptionPlanKey(input.planId, 'text')
 
   collectScalar(defaultLocale, titleKey, input.title, byLocale)
   collectScalar(defaultLocale, textKey, input.description, byLocale)

@@ -116,6 +116,7 @@ export default async function EventsListPage({ searchParams }: { searchParams: S
               : null,
             listed: e.listed !== false,
             accessTags: e.accessTags,
+            seriesId: e.seriesId || '',
             registeredGuests: stats.registered,
             pendingGuests: stats.pending,
             waitlistedGuests: stats.waitlisted,

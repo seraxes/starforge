@@ -12,6 +12,7 @@ import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/sett
 
 import { getPaymentsSettings, listOrders } from '../store'
 import { PaymentsAdminNav } from './payments-admin-nav'
+import { SalesBySourceCard } from './SalesBySourceCard'
 
 export const metadata = {
   title: 'Payments — Starforge',
@@ -34,13 +35,20 @@ export default async function PaymentsOverviewPage() {
       <PaymentsAdminNav active="overview" />
       <h2>Payments</h2>
       <p className="lede admin-lede">
-        Shared cart, checkout, and coupons for Events, Shop, Subscriptions, and Ads. Site MoR
-        settings below;
-        premium organizers configure keys under My merchant. Receipts:{' '}
-        <Link href="/admin/email">Email Manager</Link>.
+        Shared cart and checkout. Each module that sells through Payments is listed by id under
+        Sales by source. Receipts: <Link href="/admin/email">Email Manager</Link>.
       </p>
 
       <div className="admin-settings-mosaic">
+        <section className="page-settings-panel page-settings-panel-wide">
+          <header className="page-settings-panel-head">
+            <h3>Sales by source</h3>
+          </header>
+          <div className="page-settings-panel-body">
+            <SalesBySourceCard />
+          </div>
+        </section>
+
         <section className="page-settings-panel">
           <header className="page-settings-panel-head">
             <h3>Site commerce</h3>

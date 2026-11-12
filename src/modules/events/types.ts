@@ -3,6 +3,7 @@
  */
 
 import type { TierPriceRules } from './price-rules'
+import type { EventSeriesPattern } from './series'
 
 export const EVENT_STATUSES = ['draft', 'published', 'cancelled'] as const
 
@@ -140,6 +141,13 @@ export type EventRecord = {
   speakerPartyIds: string[]
   sponsorPartyIds: string[]
   relatedEventIds: string[]
+  /**
+   * Shared series id for recurring copies (usually the first occurrence id).
+   * Empty = standalone. Related events stay a separate see-also list.
+   */
+  seriesId: string
+  /** Pattern stored on the series root only; null on standalone / non-root copies. */
+  seriesPattern: EventSeriesPattern | null
   signupNote: string
   termsUrl: string
   /** When false, omit from public discovery lists (URL still works). */

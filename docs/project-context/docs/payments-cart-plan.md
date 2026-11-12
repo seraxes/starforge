@@ -8,7 +8,7 @@
 
 Starforge must cover commerce **modularly**: one checkout/orders/VAT/gateway engine; domain packs own catalogs and fulfillment. The platform’s revenue strategy floor (must work end-to-end, tested):
 
-1. **Subscriptions** — pay for a plan (incl. highlight / entitlement products later).
+1. **Subscriptions** — pay for a plan (incl. highlight / entitlement products later). Pack plan: [subscriptions-pack-plan](./subscriptions-pack-plan.md).
 2. **Events** — buy tickets / paid registration.
 3. **Ads** — pay for packages / credits / campaigns.
 

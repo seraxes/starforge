@@ -22,7 +22,8 @@ Before writing a new admin settings/list screen:
    - Page: `admin-section admin-layouts-full` + `h2` + `lede admin-lede`
    - Settings mosaic: `admin-settings-mosaic` → `page-settings-panel` → `page-settings-panel-head` / `page-settings-panel-body`
    - Fields: `settings-field` (+ `settings-hint`); flags: `settings-field settings-flag`
-   - Card actions: `page-settings-actions` bottom-right + `gantry-toolbar-btn` / `gantry-toolbar-btn-save`
+   - Card actions: `page-settings-actions` bottom-right + `gantry-toolbar-btn` / `gantry-toolbar-btn-save` (entity card)
+   - Page-level Save (multi-card one form): `page-settings-actions` top-right under lede **and** bottom-right below mosaic
    - Save feedback: `useNotifySavedOnOk` + `admin-inline-error` / `admin-inline-ok`
 3. If a control does not exist in theme, **extend `core-chrome.css` tokens** — never add module-scoped input sizing CSS.
 
@@ -38,7 +39,7 @@ Prefs (admin): blue-dominated Gantry chrome; orange only on primary Save / rare 
 
 **Card actions (hard rule):** Cancel / Save / Apply / Delete / Geocode (and siblings) live in the **bottom-right** of the card (`page-settings-actions`, `outlines-create`, `settings-fieldset`, page-settings panel). Use `admin-action-row`, `page-settings-actions`, or `sf-events-form-actions` with `justify-content: flex-end`. Do not left-align or stretch a full-width action strip inside a card. Toolbar / filter / Add+ disclosure bars are not “card actions” — those stay top/inline.
 
-**Save model:** Layout and Form **canvas** builders autosave when the value changes (not on focus alone). **Entity cards** (Events, Venues, Payments, module settings) keep bottom-right Apply / Save / Cancel. Do not strip those card buttons to match canvas autosave.
+**Save model:** Layout and Form **canvas** builders autosave when the value changes (not on focus alone). **Entity / single-card** forms keep bottom-right Apply / Save / Cancel inside that card. **Whole-page multi-card forms** (one form over a settings mosaic, e.g. Payments settings / My merchant) put Save **top-right under the toolbar/lede and bottom-right below all cards** — never bury page Save inside one mosaic panel. Do not strip entity-card buttons to match canvas autosave.
 
 **One canvas (hard rule):** The layout editor is the only section/row/percent drag implementation. The Form builder uses that canvas with a field palette and without layout-only chrome (outlines, inherit, skin, full-vs-boxed, particle config). Do not ship a second drag stack (`dnd-kit` beside the layout HTML5 drag, or a copied empty-row helper). Field logic stays in the field cog.
 

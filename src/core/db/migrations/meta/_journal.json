@@ -267,6 +267,27 @@
       "when": 1794032000000,
       "tag": "0037_event_tier_member_group_price",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1794033000000,
+      "tag": "0038_subscriptions_lifecycle",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1794034000000,
+      "tag": "0039_user_groups_parent",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1794035000000,
+      "tag": "0040_event_series",
+      "breakpoints": true
     }
   ]
 }

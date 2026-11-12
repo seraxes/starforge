@@ -3,18 +3,25 @@ import type { FormDefinitionDocument, FormFieldDef, FormPresetId } from './types
 import { listUniqueFormFieldTemplates } from './unique-fields'
 
 /** Admin list grouping — module-owned presets land under their product category. */
-export type FormPresetCategoryId = 'general' | 'events' | 'support' | 'profiles'
+export type FormPresetCategoryId =
+  | 'general'
+  | 'events'
+  | 'support'
+  | 'profiles'
+  | 'subscriptions'
 
 export const FORM_CATEGORY_LABELS: Record<FormPresetCategoryId, string> = {
   general: 'General',
   events: 'Events',
   support: 'Support',
   profiles: 'Profiles',
+  subscriptions: 'Subscriptions',
 }
 
 /** Display order for Forms admin category sections. */
 export const FORM_CATEGORY_ORDER: FormPresetCategoryId[] = [
   'events',
+  'subscriptions',
   'profiles',
   'general',
   'support',
@@ -77,6 +84,13 @@ const BUILTIN_PRESETS: FormPresetMeta[] = [
     category: 'profiles',
   },
   {
+    id: 'subscription-registration',
+    label: 'Subscription registration',
+    description:
+      'Optional intake for product:subscriptions plans — edit fields here; Subscriptions links a plan to this definition and injects plan_id at checkout.',
+    category: 'subscriptions',
+  },
+  {
     id: 'blank',
     label: 'Blank',
     description: 'Empty form — add fields in the visual builder.',
@@ -99,13 +113,17 @@ export const DEFAULT_EVENT_REGISTRATION_FORM_ID = 'event-registration'
 /** Stable Profiles editor definition id (seeded with Forms / Profiles). */
 export const DEFAULT_PROFILE_FORM_ID = 'profile'
 
+/** Stable Subscriptions registration definition id (seeded with Forms / Subscriptions). */
+export const DEFAULT_SUBSCRIPTION_REGISTRATION_FORM_ID = 'subscription-registration'
+
 /** Built-in definitions that must not be deleted from Forms admin. */
 export function isProtectedFormDefinitionId(id: string): boolean {
   const trimmed = id.trim()
   return (
     trimmed === DEFAULT_CONTACT_FORM_ID ||
     trimmed === DEFAULT_EVENT_REGISTRATION_FORM_ID ||
-    trimmed === DEFAULT_PROFILE_FORM_ID
+    trimmed === DEFAULT_PROFILE_FORM_ID ||
+    trimmed === DEFAULT_SUBSCRIPTION_REGISTRATION_FORM_ID
   )
 }
 
@@ -368,6 +386,42 @@ function profileFields(): FormFieldDef[] {
   return listUniqueFormFieldTemplates('profiles').map((t) => t.createDraft())
 }
 
+function subscriptionRegistrationFields(): FormFieldDef[] {
+  return [
+    {
+      id: 'sub_name',
+      name: 'name',
+      label: 'Name',
+      type: 'text',
+      required: true,
+      stringConstraints: { maxLength: 120 },
+    },
+    {
+      id: 'sub_email',
+      name: 'email',
+      label: 'Email',
+      type: 'email',
+      required: true,
+    },
+    {
+      id: 'sub_company',
+      name: 'company',
+      label: 'Company / organization',
+      type: 'text',
+      required: false,
+      stringConstraints: { maxLength: 160 },
+    },
+    {
+      id: 'sub_notes',
+      name: 'notes',
+      label: 'Notes',
+      type: 'textarea',
+      required: false,
+      stringConstraints: { maxLength: 2000 },
+    },
+  ]
+}
+
 function builtinFieldsForPreset(preset: FormPresetId): FormFieldDef[] {
   switch (preset) {
     case 'contact':
@@ -380,6 +434,8 @@ function builtinFieldsForPreset(preset: FormPresetId): FormFieldDef[] {
       return votingFields()
     case 'profile':
       return profileFields()
+    case 'subscription-registration':
+      return subscriptionRegistrationFields()
     case 'ticket':
       return [
         {
@@ -527,6 +583,15 @@ export function defaultMessagesForPreset(preset: FormPresetId): {
         submitLabel: 'Save',
         description:
           'Member profile fields. Managed in Forms; product:profiles renders the editor and stores values on sf_profiles.',
+      }
+      break
+    case 'subscription-registration':
+      base = {
+        title: 'Subscription registration',
+        successMessage: 'Thanks — your details were saved.',
+        submitLabel: 'Continue',
+        description:
+          'Optional intake for product:subscriptions. Edit fields in Forms; plans link a definition id.',
       }
       break
     case 'blank':

@@ -3,7 +3,7 @@ import Link from 'next/link'
 
 import { coreAdminPath } from '@/core/admin-paths'
 import { DashboardBars } from '@/core/dashboard/charts/DashboardCharts'
-import { DASH_SERIES } from '@/core/dashboard/charts/series'
+import { DASH_SERIES, formatCount } from '@/core/dashboard/charts/series'
 import { DashboardSoftPlaceholder } from '@/core/dashboard/widgets/DashboardSoftPlaceholder'
 
 import { FORMS_DASHBOARD_ROWS, loadFormsSubmissionsStats } from './forms-stats'
@@ -32,11 +32,15 @@ export async function FormsSubmissionsWidget() {
   }
 
   const byKey = result.data.byKey
-  const barKeys = ['total', 'new24h', 'new7d'] as const
-  const colors = [DASH_SERIES[0], DASH_SERIES[1], DASH_SERIES[2]]
+  const barKeys = ['new24h', 'new7d'] as const
+  const colors = [DASH_SERIES[1], DASH_SERIES[2]]
 
   return (
     <div className="sf-dashboard-forms" aria-label="Forms submissions">
+      <p className="sf-dash-headline">
+        <strong>{formatCount(asCount(byKey.total))}</strong>
+        <span>submissions</span>
+      </p>
       <DashboardBars
         rows={barKeys.map((key, index) => {
           const entry = FORMS_DASHBOARD_ROWS.find((row) => row.key === key)

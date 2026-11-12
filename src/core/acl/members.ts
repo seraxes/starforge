@@ -4,6 +4,8 @@ import { and, asc, eq, inArray } from 'drizzle-orm'
 
 import { db, sfUserGroupMembers, sfUsers } from '@/core/db'
 
+import { expandGroupIdsWithAncestors, listGroupParentMap } from './groups'
+
 export type GroupMemberRow = {
   userId: string
   name: string
@@ -39,10 +41,16 @@ export async function listGroupIdsForUser(userId: string): Promise<string[]> {
     .select({ groupId: sfUserGroupMembers.groupId })
     .from(sfUserGroupMembers)
     .where(eq(sfUserGroupMembers.userId, trimmed))
-  return rows.map((r) => r.groupId)
+  const direct = rows.map((r) => r.groupId)
+  if (direct.length === 0) return []
+  const parentById = await listGroupParentMap()
+  return expandGroupIdsWithAncestors(direct, parentById)
 }
 
-/** Map of userId → group ids (for the Users admin table). */
+/**
+ * Map of userId → **direct** group ids (Users admin assign UI).
+ * Access checks use `listGroupIdsForUser`, which expands ancestors.
+ */
 export async function listGroupIdsByUserIds(
   userIds: string[],
 ): Promise<Map<string, string[]>> {

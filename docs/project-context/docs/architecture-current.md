@@ -81,7 +81,7 @@ Do not re-open work that already shipped: RateLimiter, captcha-in-security, the 
 
 **Particle defaults are not a Core admin page.** They are demo content inside a skin pack: the particles that ship with that skin already have default text and parameters, so an installed skin is not empty. Build that when Starforge is ready to hand to other people as a demo. Do not add `/admin/particle-defaults` back.
 
-**Commercial order (active):** close paid event tickets on `product:payments`, then `product:subscriptions`, then `product:ads`. `sf_pay_collect_entitlements` stays frozen until subscriptions owns it.
+**Commercial order (active):** close paid event tickets on `product:payments`, then `product:subscriptions`, then `product:ads`. `sf_pay_collect_entitlements` stays frozen until subscriptions owns it. Subscriptions pack plan: [subscriptions-pack-plan](./subscriptions-pack-plan.md).
 
 **Also decided, and also waiting:** event slot kinds are choosable **Ticket type**, **Booking type**, and **Faction**, and an admin can add other names. The code today is only `general | faction`. Do not build that chooser ahead of the commercial order.
 

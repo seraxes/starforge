@@ -88,8 +88,8 @@ export default defineStarforgeModule({
       {
         id: 'email.sent',
         title: 'Email',
-        order: 60,
-        size: 'md',
+        order: 39,
+        size: 'sm',
         // Real counts from sf_email_sends (D3); soft-fail when log unreachable.
         widgetImportPath: '@/modules/email-manager/dashboard/EmailSentWidget',
         widgetExportName: 'EmailSentWidget',

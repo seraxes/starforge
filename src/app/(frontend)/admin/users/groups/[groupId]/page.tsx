@@ -54,6 +54,9 @@ export default async function AdminUserGroupDetailPage({ params }: Args) {
 
   return (
     <section className="admin-section">
+      <p className="sf-events-editor-back">
+        <Link href="/admin/users/groups">← Groups</Link>
+      </p>
       <h2>
         {group.label}{' '}
         <code className="admin-code-inline">{group.id}</code>
@@ -61,8 +64,7 @@ export default async function AdminUserGroupDetailPage({ params }: Args) {
       <p className="lede admin-lede">
         Members of this group. Tag this group on{' '}
         <Link href="/admin/nav">Navigation</Link> / Layout items for viewing, and grant admin rights
-        under <Link href="/admin/users/acl">ACL</Link>.{' '}
-        <Link href="/admin/users/groups">Back to groups</Link>
+        under <Link href="/admin/users/acl">ACL</Link>.
       </p>
       {group.description ? <p className="settings-hint">{group.description}</p> : null}
       <GroupDetailManager

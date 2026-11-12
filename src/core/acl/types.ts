@@ -46,6 +46,10 @@ export type UserGroup = {
   id: string
   label: string
   description: string | null
+  /** Parent group id, or null for a root. */
+  parentId: string | null
+  /** Nesting depth in the tree (0 = root). Set by `listUserGroups`. */
+  depth: number
   createdAt: Date
   updatedAt: Date
   memberCount: number

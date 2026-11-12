@@ -123,7 +123,10 @@ export type StarforgeModuleAdminDashboardWidget = {
   title: string
   /** Default 100; Core strip uses reserved order &lt; 50. */
   order?: number
-  /** Grid span hint — `lg` spans full width on desktop mosaic. */
+  /**
+   * Grid span. `sm` joins the compact insight row under user metrics.
+   * `lg` spans the full mosaic width.
+   */
   size?: 'sm' | 'md' | 'lg'
   /** ACL area key; omit = `admin.dashboard` only. */
   area?: string

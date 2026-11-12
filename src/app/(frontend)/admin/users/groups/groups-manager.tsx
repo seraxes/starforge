@@ -15,6 +15,8 @@ type GroupRow = {
   id: string
   label: string
   description: string | null
+  parentId: string | null
+  depth: number
   memberCount: number
   updatedAt: string
 }
@@ -43,14 +45,44 @@ function Feedback({ state }: { state: AclActionState }) {
   return null
 }
 
+/** Stable SSR/CSR stamp (avoid toLocaleString hydration mismatch). */
 function formatUpdated(iso: string) {
   try {
     const d = new Date(iso)
     if (Number.isNaN(d.getTime()) || d.getTime() === 0) return '—'
-    return d.toLocaleString()
+    return d.toISOString().replace('T', ' ').slice(0, 16)
   } catch {
     return '—'
   }
+}
+
+function ParentSelect({
+  groups,
+  excludeId,
+  defaultValue,
+  name = 'parentId',
+}: {
+  groups: GroupRow[]
+  excludeId?: string
+  defaultValue?: string | null
+  name?: string
+}) {
+  const options = excludeId
+    ? groups.filter((g) => g.id !== excludeId)
+    : groups
+  return (
+    <label className="settings-field">
+      <span>Parent</span>
+      <select name={name} defaultValue={defaultValue ?? ''}>
+        <option value="">None (root)</option>
+        {options.map((g) => (
+          <option key={g.id} value={g.id}>
+            {g.depth > 0 ? `${'—'.repeat(g.depth)} ${g.label}` : g.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  )
 }
 
 export function GroupsManager({ groups }: Props) {
@@ -94,6 +126,7 @@ export function GroupsManager({ groups }: Props) {
             <span>Description</span>
             <input type="text" name="description" placeholder="Optional" maxLength={200} />
           </label>
+          <ParentSelect groups={groups} />
           <label className="outlines-check">
             <input type="checkbox" name="openAfter" value="1" defaultChecked />
             <span>Open members after create</span>
@@ -130,9 +163,21 @@ export function GroupsManager({ groups }: Props) {
               groups.map((group) => (
                 <tr key={group.id}>
                   <td>
-                    <Link href={`/admin/users/groups/${encodeURIComponent(group.id)}`}>
-                      {group.label}
-                    </Link>
+                    <span style={group.depth > 0 ? { paddingLeft: `${group.depth * 1.25}rem` } : undefined}>
+                      {group.depth > 0 ? (
+                        <span className="outlines-muted" aria-hidden>
+                          —{' '}
+                        </span>
+                      ) : null}
+                      <Link href={`/admin/users/groups/${encodeURIComponent(group.id)}`}>
+                        {group.label}
+                      </Link>
+                    </span>
+                    {group.parentId ? (
+                      <p className="settings-hint" style={{ margin: '0.25rem 0 0' }}>
+                        Parent: <code>{group.parentId}</code>
+                      </p>
+                    ) : null}
                     {group.description ? (
                       <p className="settings-hint" style={{ margin: '0.25rem 0 0' }}>
                         {group.description}
@@ -169,6 +214,11 @@ export function GroupsManager({ groups }: Props) {
                           maxLength={200}
                           aria-label={`Description for ${group.id}`}
                         />
+                        <ParentSelect
+                          groups={groups}
+                          excludeId={group.id}
+                          defaultValue={group.parentId}
+                        />
                         <button
                           type="submit"
                           className="gantry-toolbar-btn gantry-toolbar-btn-save"
@@ -203,7 +253,7 @@ export function GroupsManager({ groups }: Props) {
                             onClick={(e) => {
                               if (
                                 !window.confirm(
-                                  `Delete group “${group.label}”? Members and ACL rows are removed. Navigation items using group:${group.id} will hide until reassigned.`,
+                                  `Delete group “${group.label}”? Members and ACL rows are removed. Nested child groups must be reparented or deleted first. Navigation items using group:${group.id} will hide until reassigned.`,
                                 )
                               ) {
                                 e.preventDefault()

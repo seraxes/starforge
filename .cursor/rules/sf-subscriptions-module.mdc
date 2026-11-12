@@ -6,26 +6,53 @@ Any Starforge feature that sells **recurring access** (player premium, organizer
 
 | Concern | Owner |
 | --- | --- |
-| Plan catalog, periods, entitlement keys | **`product:subscriptions`** — `@/modules/subscriptions/api` |
-| Charge, VAT, coupons, gateways, invoices | **`product:payments`** |
-| Member / group ticket amounts | **`product:events`** — asks `resolveAudience` |
+| Plan catalog, periods, trial/renew/upgrade rules, entitlement keys, seats | **`product:subscriptions`** — `@/modules/subscriptions/api` |
+| Charge, VAT, coupons, gateways, invoices, refunds, recurring intents | **`product:payments`** |
+| Lifecycle / reminder mail | **`product:email-manager`** — `emitEmailTrigger` / starters |
+| Optional signup field schema | **`product:forms`** — definition + `subscription-registration` preset |
+| User groups + ACL permission matrix | **Core ACL** — Subscriptions may only **add/remove members** for plan `groupIds` |
+| Member / group ticket amounts | **`product:events`** — asks `resolveAudience` / `hasEntitlement` |
 | Ad placement / listing rank | **`product:ads`** / Marketplace (later) — asks `hasEntitlement` |
 | Merchant collect boolean stub | Payments `sf_pay_collect_entitlements` (frozen) → replaced by `payments.collect` when Subscriptions is on |
 
+## Access model (hybrid)
+
+| Surface | Mechanism |
+| --- | --- |
+| Pages, nav, admin areas, later NetSuite chrome | Core **groups** — plan `groupIds` synced to `sf_user_group_members` while period active |
+| Domain logic (ticket price, `payments.collect`, `events.manage`) | **`hasEntitlement` / `resolveAudience`** — period windows + grace |
+
+On activate: `addUserToGroup` for each plan/period group. On expire/refund: remove a group only if no other active period still lists it. Never write `sf_acl_permissions` from this pack. Deep-link group/ACL admin to `/admin/users`.
+
 ## Subjects
 
-- `membership` — player premium (`events.member`)
-- `organizer` — event management access (`events.manage` + `payments.collect`)
-- `advertisement` — shop / organizer promo / marketplace boost (keys such as `marketplace.listing_top`)
+Type is `subject`. Subtype is `audience` (no second column). Blank player / organizer audiences are the original premiums.
 
-Subject is an open string. Do not add a new subscription module for a new kind.
+- `membership` — players. Subtypes: `premium` (blank counts as this), `premium_plus`
+- `organizer` — organizers. Subtypes: `organizer` (blank counts as this), `brand` (a brand that owns a managed page — a site page that operates as their website)
+- `advertisement` — subtypes: `organizer`, `marketplace`, `brand`, `shop`
+- `other` — catch-all. Unknown subject strings filter here
+
+Subject and audience are open strings. Do not add a new subscription module for a new kind.
+
+## Lifecycle (Subscriptions owns rules; Payments owns money)
+
+- **Free plans** — activate locally (no cart).
+- **Paid / charged trial** — Payments checkout; hook `subscriptions.activate`.
+- **Manual renew** — same plan checkout; extends `endsAt`.
+- **Upgrade** — target must be in plan `upgradeTargetIds`; one active period per subject; proration credit calculated here, charged via Payments.
+- **Cancel at period end** — flips flag; cancels Payments recurring id when present.
+- **Auto-renew** — plan `recurringSupported` + Payments `createRecurring`; this pack only stores the foreign key and grants on paid hooks.
+- **Seats** — `sf_sub_seats` on parent period; seat members inherit entitlements via `resolveAudience`.
 
 ## Do
 
 - Call `@/modules/subscriptions/api` for resolve and checkout start.
-- Re-resolve plan price server-side at checkout.
-- Pass organizer access via live `hasEntitlement('events.manage')` on the `admin.events` gate — do not write ACL rows.
-- Emit `product:subscriptions/*` email triggers only.
+- Re-resolve plan price server-side at checkout (`resolveCheckoutPriceMajor`).
+- Pass organizer access via live `hasEntitlement('events.manage')` on the `admin.events` gate — do not write ACL **permission** rows.
+- Sync plan `groupIds` via Core `addUserToGroup` / `removeUserFromGroup` only.
+- Emit `product:subscriptions/*` email triggers only; put `buyerEmail` on the payload; seed starters under Settings.
+- Deep-link coupons → `/admin/payments/coupons`, mail → `/admin/email`, forms → `/admin/forms/[id]`, groups → `/admin/users`.
 
 ## Don’t
 
@@ -33,3 +60,5 @@ Subject is an open string. Do not add a new subscription module for a new kind.
 - Put ASN currency / token ledger here.
 - Build ad inventory or listing ranking inside this pack.
 - Call `getMailer()` from Subscriptions.
+- Host checkout UI, gateway settings, invoice series, or coupon tables here.
+- Invent a second ACL matrix or Users/ACL UI inside Subscriptions.

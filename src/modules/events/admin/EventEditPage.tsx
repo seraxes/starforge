@@ -10,7 +10,13 @@ import { listEventCategories } from '../categories'
 import { listEventParties } from '../parties'
 import { listEventRegistrationFormOptions } from '../registration-form'
 import { loadEventsModuleSettings } from '../settings'
-import { findEventById, listEvents, listVenues } from '../store'
+import {
+  findEventById,
+  findSeriesPattern,
+  listEvents,
+  listEventsInSeries,
+  listVenues,
+} from '../store'
 import {
   countRegisteredGuestsForTier,
   listTicketTiersForEvent,
@@ -51,6 +57,16 @@ export default async function EventEditPage({ params }: { params: Params }) {
       listEventRegistrationFormOptions(),
     ])
   if (!event) notFound()
+
+  const seriesId = (event.seriesId || '').trim()
+  const [seriesSiblings, seriesPattern] = seriesId
+    ? await Promise.all([
+        listEventsInSeries(seriesId),
+        event.seriesPattern
+          ? Promise.resolve(event.seriesPattern)
+          : findSeriesPattern(seriesId),
+      ])
+    : [[], null]
 
   const tiers = await listTicketTiersForEvent(event.id)
   const tiersWithOcc = await Promise.all(
@@ -145,6 +161,9 @@ export default async function EventEditPage({ params }: { params: Params }) {
           speakerPartyIds: event.speakerPartyIds,
           sponsorPartyIds: event.sponsorPartyIds,
           relatedEventIds: event.relatedEventIds,
+          seriesId: event.seriesId,
+          seriesPattern,
+          seriesDateCount: seriesSiblings.length,
           signupNote: event.signupNote,
           termsUrl: event.termsUrl,
           listed: event.listed,

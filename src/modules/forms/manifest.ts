@@ -46,8 +46,8 @@ export default defineStarforgeModule({
       {
         id: 'forms.submissions',
         title: 'Forms',
-        order: 55,
-        size: 'md',
+        order: 42,
+        size: 'sm',
         // Dashboard ACL only — soft overview; full inbox stays under Forms admin.
         widgetImportPath: '@/modules/forms/dashboard/FormsSubmissionsWidget',
         widgetExportName: 'FormsSubmissionsWidget',

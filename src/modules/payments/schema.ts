@@ -403,3 +403,39 @@ export const sfPayCouponRedemptions = pgTable(
     index('sf_pay_coupon_redemptions_coupon_id_idx').on(table.couponId),
   ],
 )
+
+/**
+ * Gateway recurring intents (auto-renew). Secrets stay in env / merchant credentials.
+ * Consumers (Subscriptions) store the id and grant on each paid charge hook.
+ */
+export const sfPayRecurring = pgTable(
+  'sf_pay_recurring',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    method: text('method').notNull().default(''),
+    /** active | canceled */
+    status: text('status').notNull().default('active'),
+    providerRef: text('provider_ref').notNull().default(''),
+    sourceModule: text('source_module').notNull().default(''),
+    sourceType: text('source_type').notNull().default(''),
+    sourceId: text('source_id').notNull().default(''),
+    metadata: jsonb('metadata').$type<Record<string, unknown>>().notNull().default({}),
+    nextChargeAt: timestamp('next_charge_at', { withTimezone: true }),
+    canceledAt: timestamp('canceled_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('sf_pay_recurring_user_id_idx').on(table.userId),
+    index('sf_pay_recurring_status_idx').on(table.status),
+    index('sf_pay_recurring_source_idx').on(
+      table.sourceModule,
+      table.sourceType,
+      table.sourceId,
+    ),
+  ],
+)

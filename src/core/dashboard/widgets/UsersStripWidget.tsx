@@ -4,17 +4,8 @@ import Link from 'next/link'
 import { coreAdminPath } from '@/core/admin-paths'
 import { getSiteSettings } from '@/core/settings'
 
-import {
-  DashboardAreaChart,
-  DashboardMeter,
-  DashboardSparkline,
-} from '../charts/DashboardCharts'
-import {
-  DASH_SERIES,
-  formatCount,
-  formatSignedPercent,
-  percentDelta,
-} from '../charts/series'
+import { DashboardMeter, DashboardSparkline } from '../charts/DashboardCharts'
+import { formatCount, formatSignedPercent, percentDelta } from '../charts/series'
 import { loadUsersStripStats, loadUserSignupSeries, type UserSignupSeries } from './users-stats'
 
 function Delta(props: { pct: number | null; hint: string }) {
@@ -27,7 +18,7 @@ function Delta(props: { pct: number | null; hint: string }) {
   )
 }
 
-/** Core Dashboard — colored user tiles plus a 12-month signup chart. */
+/** Core Dashboard — compact colored user tiles. */
 export async function UsersStripWidget() {
   const settings = await getSiteSettings()
   const stats = await loadUsersStripStats({
@@ -103,32 +94,9 @@ export async function UsersStripWidget() {
           </p>
         </div>
       </dl>
-
-      {series ? (
-        <section className="sf-dash-chart" aria-label="Registrations">
-          <header className="sf-dash-chart-head">
-            <div>
-              <h3>Registrations</h3>
-              <p className="sf-dash-chart-sub">New accounts, last 12 months</p>
-            </div>
-            <div className="sf-dash-chart-tools">
-              <p className="sf-dash-legend">
-                <i style={{ background: DASH_SERIES[0] }} /> Signups
-              </p>
-              <Link href={coreAdminPath('/users')}>Open Users</Link>
-            </div>
-          </header>
-          <DashboardAreaChart
-            points={series.months}
-            color={DASH_SERIES[0]}
-            label={`Monthly signups, latest ${thisMonth}`}
-          />
-        </section>
-      ) : (
-        <p className="sf-dashboard-card-foot">
-          <Link href={coreAdminPath('/users')}>Open Users</Link>
-        </p>
-      )}
+      <p className="sf-dash-hero-link">
+        <Link href={coreAdminPath('/users')}>Open Users</Link>
+      </p>
     </div>
   )
 }

@@ -2,6 +2,7 @@ import React from 'react'
 
 import { adminDashboardWidgetLoaders } from '@/generated/module-registry.server'
 
+import { placeDashboardInsight } from './layout'
 import type { ResolvedDashboardWidget } from './types'
 import { DashboardSoftPlaceholder } from './widgets/DashboardSoftPlaceholder'
 
@@ -101,6 +102,12 @@ export async function DashboardWidgetCard(props: {
   return <WidgetShell widget={widget}>{body}</WidgetShell>
 }
 
+function renderWidgetCards(widgets: readonly ResolvedDashboardWidget[]) {
+  return widgets.map((widget) => (
+    <DashboardWidgetCard key={`${widget.moduleId}:${widget.id}`} widget={widget} />
+  ))
+}
+
 /** Grid of resolved widgets (Page Settings mosaic language). */
 export function DashboardWidgetGrid(props: {
   widgets: ResolvedDashboardWidget[]
@@ -108,12 +115,15 @@ export function DashboardWidgetGrid(props: {
 }) {
   const { widgets, children } = props
   if (widgets.length === 0 && !children) return null
+  const placed = placeDashboardInsight(widgets)
   return (
     <div className="admin-settings-mosaic sf-dashboard-grid">
       {children}
-      {widgets.map((widget) => (
-        <DashboardWidgetCard key={`${widget.moduleId}:${widget.id}`} widget={widget} />
-      ))}
+      {renderWidgetCards(placed.before)}
+      {placed.insight.length > 0 ? (
+        <div className="sf-dash-insights">{renderWidgetCards(placed.insight)}</div>
+      ) : null}
+      {renderWidgetCards(placed.after)}
     </div>
   )
 }

@@ -15,6 +15,7 @@ import {
 } from 'drizzle-orm/pg-core'
 
 import type { TierPriceRules } from './price-rules'
+import type { EventSeriesPattern } from './series'
 
 /** Stored default. `time` is a list of bands; `sold` stays one rule. */
 const EVENT_PRICE_RULES_DEFAULT: TierPriceRules = { time: [], sold: null }
@@ -180,8 +181,18 @@ export const sfEvents = pgTable(
     speakerPartyIds: jsonb('speaker_party_ids').$type<string[]>().notNull().default([]),
     /** Party ids shown as sponsors. */
     sponsorPartyIds: jsonb('sponsor_party_ids').$type<string[]>().notNull().default([]),
-    /** Related event ids (series / see-also). */
+    /** Related event ids (manual see-also). Series copies use seriesId. */
     relatedEventIds: jsonb('related_event_ids').$type<string[]>().notNull().default([]),
+    /**
+     * Shared id for recurring copies created together.
+     * Usually the first occurrence’s id. Null = standalone event.
+     */
+    seriesId: text('series_id'),
+    /**
+     * Create-time recurrence pattern (stored on the series root only).
+     * Not evaluated live — copies are concrete sf_events rows.
+     */
+    seriesPattern: jsonb('series_pattern').$type<EventSeriesPattern | null>(),
     /** Short note above the public registration form. */
     signupNote: text('signup_note').notNull().default(''),
     /** Terms / conditions page URL (CMS or external). */
@@ -223,6 +234,7 @@ export const sfEvents = pgTable(
     index('sf_events_featured_idx').on(table.featured),
     index('sf_events_category_id_idx').on(table.categoryId),
     index('sf_events_merchant_user_id_idx').on(table.merchantUserId),
+    index('sf_events_series_id_idx').on(table.seriesId),
   ],
 )
 

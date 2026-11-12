@@ -97,6 +97,13 @@ export {
 export type { SaveCouponInput } from './coupons'
 
 export {
+  cancelRecurring,
+  createRecurring,
+  findRecurringById,
+} from './recurring'
+export type { RecurringRecord } from './recurring'
+
+export {
   formatMoneyMinor,
   majorToMinor,
   minorToMajor,

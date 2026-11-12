@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
+import { placeDashboardInsight } from './layout'
 import {
   dashboardAreaToAclKey,
   resolveDashboardWidgets,
@@ -78,6 +79,46 @@ describe('resolveDashboardWidgets', () => {
       allowedAreas: new Set(['admin.dashboard'] as const),
     })
     assert.ok(allowed.filter((w) => w.moduleId === 'platform:dashboard').length >= 2)
+  })
+})
+
+describe('placeDashboardInsight', () => {
+  it('parks compact cards in the row under user metrics', () => {
+    const placed = placeDashboardInsight([
+      { id: 'attention.rail', order: 5, size: 'lg' },
+      { id: 'users.strip', order: 10, size: 'lg' },
+      { id: 'payments.sales', order: 12, size: 'lg' },
+      { id: 'users.latest', order: 20, size: 'lg' },
+      { id: 'email.sent', order: 39, size: 'sm' },
+      { id: 'performance.glance', order: 40, size: 'sm' },
+      { id: 'forms.submissions', order: 42, size: 'sm' },
+      { id: 'media.counts', order: 44, size: 'sm' },
+    ])
+    assert.deepEqual(
+      placed.before.map((widget) => widget.id),
+      ['attention.rail', 'users.strip'],
+    )
+    assert.deepEqual(
+      placed.insight.map((widget) => widget.id),
+      ['email.sent', 'performance.glance', 'forms.submissions', 'media.counts'],
+    )
+    assert.deepEqual(
+      placed.after.map((widget) => widget.id),
+      ['payments.sales', 'users.latest'],
+    )
+  })
+
+  it('leaves the grid unchanged when nothing is compact', () => {
+    const placed = placeDashboardInsight([
+      { id: 'users.strip', order: 10, size: 'lg' },
+      { id: 'users.latest', order: 20, size: 'lg' },
+    ])
+    assert.deepEqual(
+      placed.before.map((widget) => widget.id),
+      ['users.strip', 'users.latest'],
+    )
+    assert.equal(placed.insight.length, 0)
+    assert.equal(placed.after.length, 0)
   })
 })
 

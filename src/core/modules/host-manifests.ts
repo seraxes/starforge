@@ -110,7 +110,7 @@ export const hostModuleManifests: StarforgeModuleManifest[] = [
           id: 'performance.glance',
           title: 'Performance',
           order: 40,
-          size: 'md',
+          size: 'sm',
           area: 'dashboard',
           widgetImportPath: '@/core/dashboard/widgets/PerformanceGlanceWidget',
           widgetExportName: 'PerformanceGlanceWidget',

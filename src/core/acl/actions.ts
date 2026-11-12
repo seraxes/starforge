@@ -1,7 +1,5 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
-
 import {
   USER_GROUP_ADD_ACTION,
   USER_GROUP_REMOVE_ACTION,
@@ -10,6 +8,11 @@ import {
 } from '@/core/audit'
 import { requireAppAdmin } from '@/core/auth/admin'
 // Client components import this module for server actions only — keep free of session/headers.
+//
+// Do not call `revalidatePath` from these `useActionState` handlers.
+// Same hang as Localization / Site Chrome offline: path revalidation (especially
+// `/` or layout) rebuilds the public tree in the same action response and can
+// wedge Turbopack until restart. Clients already `router.refresh()` / `push` on ok.
 
 import {
   createUserGroup,
@@ -37,17 +40,6 @@ async function requireActorId(): Promise<string | null> {
   return id || null
 }
 
-function revalidateUsersPaths(groupId?: string) {
-  revalidatePath('/admin/users')
-  revalidatePath('/admin/users/groups')
-  if (groupId) {
-    revalidatePath(`/admin/users/groups/${encodeURIComponent(groupId)}`)
-  }
-  // Nav editor group picker + public header may change after membership edits.
-  revalidatePath('/admin/nav')
-  revalidatePath('/')
-}
-
 export async function createUserGroupAction(
   _prev: AclActionState,
   formData: FormData,
@@ -59,12 +51,12 @@ export async function createUserGroupAction(
   const label = String(formData.get('label') ?? '')
   const id = String(formData.get('id') ?? '')
   const description = String(formData.get('description') ?? '')
+  const parentId = String(formData.get('parentId') ?? '').trim() || null
   const openAfter = String(formData.get('openAfter') ?? '') === '1'
 
-  const result = await createUserGroup({ label, id, description })
+  const result = await createUserGroup({ label, id, description, parentId })
   if ('error' in result) return { error: result.error }
 
-  revalidateUsersPaths(result.group.id)
   return {
     ok: true,
     message: `Group “${result.group.label}” created.`,
@@ -85,11 +77,13 @@ export async function renameUserGroupAction(
   const descriptionRaw = formData.get('description')
   const description =
     descriptionRaw == null ? undefined : String(descriptionRaw)
+  const parentRaw = formData.get('parentId')
+  const parentId =
+    parentRaw == null ? undefined : String(parentRaw).trim() || null
 
-  const result = await renameUserGroup(id, label, description)
+  const result = await renameUserGroup(id, label, description, parentId)
   if ('error' in result) return { error: result.error }
 
-  revalidateUsersPaths(id)
   return { ok: true, message: `Group “${result.group.label}” updated.`, groupId: id }
 }
 
@@ -105,7 +99,6 @@ export async function deleteUserGroupAction(
   const result = await deleteUserGroup(id)
   if ('error' in result) return { error: result.error }
 
-  revalidateUsersPaths()
   return { ok: true, message: `Group “${id}” deleted.` }
 }
 
@@ -129,7 +122,6 @@ export async function addGroupMemberAction(
     target: { type: 'user', id: userId },
   })
 
-  revalidateUsersPaths(groupId)
   return { ok: true, message: 'Member added.', groupId }
 }
 
@@ -153,7 +145,6 @@ export async function removeGroupMemberAction(
     target: { type: 'user', id: userId },
   })
 
-  revalidateUsersPaths(groupId)
   return { ok: true, message: 'Member removed.', groupId }
 }
 
@@ -177,7 +168,6 @@ export async function setUserGroupsAction(
     target: { type: 'user', id: userId },
   })
 
-  revalidateUsersPaths()
   return { ok: true, message: 'Groups updated.' }
 }
 
@@ -198,7 +188,6 @@ export async function saveGroupAclMatrixAction(
   const result = await replaceGroupAclMatrix(groupId, allowed)
   if ('error' in result) return { error: result.error }
 
-  revalidateUsersPaths(groupId)
   return { ok: true, message: 'ACL matrix saved.', groupId }
 }
 
@@ -239,7 +228,5 @@ export async function saveAllGroupsAclMatrixAction(
     if ('error' in result) return { error: result.error }
   }
 
-  revalidateUsersPaths()
-  revalidatePath('/admin/users/acl')
   return { ok: true, message: 'ACL matrix saved.' }
 }

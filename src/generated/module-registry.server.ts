@@ -246,6 +246,11 @@ export const adminDashboardWidgetLoaders: AdminDashboardWidgetLoader[] = [
     load: async () => (await import("@/modules/email-manager/dashboard/EmailSentWidget")).EmailSentWidget,
   },
   {
+    moduleId: "product:payments",
+    id: "payments.sales",
+    load: async () => (await import("@/modules/payments/dashboard/SalesBySourceWidget")).SalesBySourceWidget,
+  },
+  {
     moduleId: "product:events",
     id: "events.upcoming",
     load: async () => (await import("@/modules/events/dashboard/EventsUpcomingWidget")).EventsUpcomingWidget,
@@ -324,6 +329,11 @@ export const adminDashboardStatsLoaders: AdminDashboardStatsLoader[] = [
     moduleId: "product:email-manager",
     id: "email.sent",
     load: async () => (await import("@/modules/email-manager/dashboard/email-stats")).loadEmailSentStats,
+  },
+  {
+    moduleId: "product:payments",
+    id: "payments.sales",
+    load: async () => (await import("@/modules/payments/dashboard/sales-stats")).loadSalesBySourceStats,
   },
   {
     moduleId: "product:events",

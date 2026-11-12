@@ -1,5 +1,6 @@
 import {
   boolean,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -223,19 +224,33 @@ export const sfNavMenus = pgTable('sf_nav_menus', {
 
 /**
  * Named user groups (Users → Groups). Membership is many-to-many via
- * `sf_user_group_members`. Nav item `accessLevel: group:<id>` and ACL
- * permissions key off these ids.
+ * `sf_user_group_members`. Optional `parent_id` nests groups; access checks
+ * expand membership **up** the parent chain (child member also counts as
+ * parent for nav `group:<id>` and ACL grants). Direct membership rows stay
+ * explicit — no phantom ancestor rows.
  */
-export const sfUserGroups = pgTable('sf_user_groups', {
-  id: text('id').primaryKey(),
-  label: text('label').notNull(),
-  description: text('description'),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true })
-    .defaultNow()
-    .$onUpdate(() => new Date())
-    .notNull(),
-})
+export const sfUserGroups = pgTable(
+  'sf_user_groups',
+  {
+    id: text('id').primaryKey(),
+    label: text('label').notNull(),
+    description: text('description'),
+    parentId: text('parent_id'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('sf_user_groups_parent_id_idx').on(table.parentId),
+    foreignKey({
+      columns: [table.parentId],
+      foreignColumns: [table.id],
+      name: 'sf_user_groups_parent_id_sf_user_groups_id_fk',
+    }).onDelete('restrict'),
+  ],
+)
 
 /** User ↔ group membership (a user may belong to many groups). */
 export const sfUserGroupMembers = pgTable(

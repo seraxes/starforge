@@ -21,6 +21,18 @@ const ALL_METHODS: { value: PaymentMethodKind; label: string }[] = [
 
 const initial: PaymentsActionState = {}
 
+function SaveButton({ pending }: { pending: boolean }) {
+  return (
+    <button
+      type="submit"
+      className="gantry-toolbar-btn gantry-toolbar-btn-save"
+      disabled={pending}
+    >
+      {pending ? 'Saving…' : 'Save settings'}
+    </button>
+  )
+}
+
 export function PaymentsSettingsForm({ settings }: { settings: PaymentsSettings }) {
   const router = useRouter()
   const [state, action, pending] = useActionState(savePaymentsSettingsAction, initial)
@@ -41,6 +53,11 @@ export function PaymentsSettingsForm({ settings }: { settings: PaymentsSettings 
   return (
     <form action={action} className="sf-payments-settings">
       <input type="hidden" name="enabledMethods" value={methods.join(',')} />
+
+      <div className="page-settings-actions">
+        <SaveButton pending={pending} />
+      </div>
+
       <div className="admin-settings-mosaic">
         <section className="page-settings-panel">
           <header className="page-settings-panel-head">
@@ -110,14 +127,7 @@ export function PaymentsSettingsForm({ settings }: { settings: PaymentsSettings 
                 disabled={pending}
               />
             </label>
-          </div>
-        </section>
-
-        <section className="page-settings-panel">
-          <header className="page-settings-panel-head">
-            <h3>Enabled methods (site MoR)</h3>
-          </header>
-          <div className="page-settings-panel-body">
+            <p className="settings-hint">Enabled methods (site MoR)</p>
             {ALL_METHODS.map((m) => (
               <label key={m.value} className="settings-field settings-flag">
                 <input
@@ -215,26 +225,6 @@ export function PaymentsSettingsForm({ settings }: { settings: PaymentsSettings 
                 disabled={pending}
               />
             </label>
-
-            <div className="page-settings-actions">
-              <button
-                type="submit"
-                className="gantry-toolbar-btn gantry-toolbar-btn-save"
-                disabled={pending}
-              >
-                {pending ? 'Saving…' : 'Save settings'}
-              </button>
-            </div>
-            {state.error ? (
-              <p className="admin-inline-error" role="alert">
-                {state.error}
-              </p>
-            ) : null}
-            {state.ok && state.message ? (
-              <p className="admin-inline-ok" role="status">
-                {state.message}
-              </p>
-            ) : null}
           </div>
         </section>
 
@@ -261,6 +251,20 @@ export function PaymentsSettingsForm({ settings }: { settings: PaymentsSettings 
           </div>
         </section>
       </div>
+
+      <div className="page-settings-actions">
+        <SaveButton pending={pending} />
+      </div>
+      {state.error ? (
+        <p className="admin-inline-error" role="alert">
+          {state.error}
+        </p>
+      ) : null}
+      {state.ok && state.message ? (
+        <p className="admin-inline-ok" role="status">
+          {state.message}
+        </p>
+      ) : null}
     </form>
   )
 }

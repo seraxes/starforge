@@ -257,6 +257,7 @@ export type FormPresetId =
   | 'voting'
   | 'ticket'
   | 'profile'
+  | 'subscription-registration'
   | 'blank'
 
 /** Loose JSON Schema object (draft-07 shaped) we store + edit. */

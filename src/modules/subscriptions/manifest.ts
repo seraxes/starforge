@@ -20,6 +20,7 @@ export default defineStarforgeModule({
     { key: 'admin', label: 'Subscriptions', href: '/admin/subscriptions' },
     { key: 'plans', label: 'Plans', href: '/admin/subscriptions' },
     { key: 'subscribers', label: 'Subscribers', href: '/admin/subscriptions/subscribers' },
+    { key: 'settings', label: 'Settings', href: '/admin/subscriptions/settings' },
   ],
   admin: {
     navGroup: {
@@ -45,6 +46,13 @@ export default defineStarforgeModule({
         order: 20,
         area: 'subscriptions',
       },
+      {
+        group: 'subscriptions',
+        label: 'Settings',
+        href: '/admin/subscriptions/settings',
+        order: 30,
+        area: 'subscriptions',
+      },
     ],
     areas: [{ key: 'subscriptions', label: 'Subscriptions' }],
     routes: [
@@ -56,6 +64,11 @@ export default defineStarforgeModule({
       {
         path: 'subscriptions/subscribers',
         pageImportPath: '@/modules/subscriptions/admin/SubscriptionsSubscribersPage',
+        pageExportName: 'default',
+      },
+      {
+        path: 'subscriptions/settings',
+        pageImportPath: '@/modules/subscriptions/admin/SubscriptionsSettingsPage',
         pageExportName: 'default',
       },
     ],

@@ -37,6 +37,7 @@ type EventRow = {
   registrationClosesAt: string | null
   listed?: boolean
   accessTags: string[]
+  seriesId?: string
   registeredGuests?: number
   pendingGuests?: number
   waitlistedGuests?: number
@@ -392,6 +393,9 @@ export function EventsManager({
                       >
                         {row.title}
                       </Link>
+                      {row.seriesId ? (
+                        <span className="settings-hint">Series</span>
+                      ) : null}
                       {row.categoryTitle ? (
                         <span className="settings-hint">{row.categoryTitle}</span>
                       ) : null}
