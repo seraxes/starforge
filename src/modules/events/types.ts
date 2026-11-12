@@ -65,6 +65,21 @@ export type VenueRecord = {
   updatedAt: Date
 }
 
+/** Editorial category. Translations live in content-locale files, not on this row. */
+export type EventCategoryRecord = {
+  id: string
+  title: string
+  slug: string
+  description: string
+  /** Empty = shared event-registration form for events in this category. */
+  registrationFormId: string
+  published: boolean
+  sortOrder: number
+  accessTags: string[]
+  createdAt: Date
+  updatedAt: Date
+}
+
 export type EventPartyRecord = {
   id: string
   name: string
@@ -88,7 +103,7 @@ export type EventRecord = {
   currency: string
   /** Event base price in major units. Null = no event base. */
   price: number | null
-  /** Time-left and sold-count adjustments. Percent is of the price in effect. */
+  /** Time-left bands and one sold-count rule. Percent is of the price in effect. */
   priceRules: TierPriceRules
   venueId: string
   description: string
@@ -102,6 +117,11 @@ export type EventRecord = {
   capacity: number | null
   /** When full, public signup may join waitlist; FIFO promote when seats free. */
   waitlistEnabled: boolean
+  /**
+   * When true, a free seat stays pending until an admin sets it registered.
+   * Paid tickets still hold as pending_payment until paid, then pending.
+   */
+  requireApproval: boolean
   /** When public signup opens (null = as soon as published). */
   registrationOpensAt: Date | null
   /** When public signup closes (null = until event ends / no hard close). */
@@ -126,6 +146,13 @@ export type EventRecord = {
   listed: boolean
   /** When true, eligible for the Featured carousel particle. */
   featured: boolean
+  /** Editorial category id. Empty = uncategorized. */
+  categoryId: string
+  /**
+   * Registration form override.
+   * Empty inherits the category form, then the shared event-registration form.
+   */
+  registrationFormId: string
   /** True when a shared access password is set (hash never exposed). */
   hasAccessPassword: boolean
   accessTags: string[]

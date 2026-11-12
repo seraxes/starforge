@@ -2,6 +2,7 @@ import React from 'react'
 import Link from 'next/link'
 
 import type { EventCardModel } from './event-card-model'
+import { signupCtaLabel } from './signup-status'
 
 type Props = {
   events: EventCardModel[]
@@ -15,11 +16,8 @@ function freeSpots(event: EventCardModel): string {
 }
 
 function actionCell(event: EventCardModel) {
-  if (event.signupStatus === 'registered') {
-    return <span className="sf-events-table-status">Already registered</span>
-  }
-  if (event.signupStatus === 'waitlisted') {
-    return <span className="sf-events-table-status">On waitlist</span>
+  if (event.signupStatus !== 'none') {
+    return <span className="sf-events-table-status">{signupCtaLabel(event.signupStatus)}</span>
   }
   if (!event.registrationOpen) {
     return <span className="sf-events-table-status is-muted">Closed</span>
@@ -45,6 +43,7 @@ export function EventTableList({
         <thead>
           <tr>
             <th scope="col">Event</th>
+            <th scope="col">Category</th>
             <th scope="col">When</th>
             <th scope="col">Venue</th>
             <th scope="col">Capacity</th>
@@ -60,6 +59,17 @@ export function EventTableList({
                 <Link className="sf-events-table-title" href={event.href}>
                   {event.title}
                 </Link>
+              </td>
+              <td>
+                {event.categoryTitle ? (
+                  event.categoryHref ? (
+                    <Link href={event.categoryHref}>{event.categoryTitle}</Link>
+                  ) : (
+                    event.categoryTitle
+                  )
+                ) : (
+                  '—'
+                )}
               </td>
               <td>{event.whenLabel || '—'}</td>
               <td>{event.venueName || '—'}</td>

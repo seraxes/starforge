@@ -11,15 +11,29 @@ import { sfForms } from '@/core/db/schema'
 import {
   DEFAULT_EVENT_REGISTRATION_FORM_ID,
   emptyFormDefinitionDocument,
+  listFormDefinitions,
   loadFormDefinition,
   serializeFormDefinitionDocument,
   type FormFieldDef,
 } from '@/modules/forms/api'
 
+import { findEventCategoryById } from './categories'
 import { listPublicTicketTiersForEvent } from './public-tiers'
+import { resolveEventRegistrationFormId } from './registration-form-resolve'
+import { findEventById } from './store'
 import { DEFAULT_MAX_TICKETS_PER_BOOKING } from './types'
 
 export { DEFAULT_EVENT_REGISTRATION_FORM_ID }
+
+export async function listEventRegistrationFormOptions(): Promise<
+  { id: string; label: string }[]
+> {
+  const rows = await listFormDefinitions()
+  return rows.map((row) => ({
+    id: row.id,
+    label: row.label?.trim() || row.id,
+  }))
+}
 
 export async function ensureEventRegistrationFormSeeded(): Promise<string> {
   try {
@@ -43,6 +57,19 @@ export async function ensureEventRegistrationFormSeeded(): Promise<string> {
   }
 }
 
+/** Event override, then category form, then the shared event-registration definition. */
+export async function resolveRegistrationFormIdForEvent(eventId: string): Promise<string> {
+  const event = await findEventById(eventId)
+  if (!event) return DEFAULT_EVENT_REGISTRATION_FORM_ID
+  const category = event.categoryId
+    ? await findEventCategoryById(event.categoryId)
+    : null
+  return resolveEventRegistrationFormId({
+    eventFormId: event.registrationFormId,
+    categoryFormId: category?.registrationFormId,
+  })
+}
+
 export type EventRegistrationPrefill = {
   name?: string
   email?: string
@@ -59,7 +86,11 @@ export async function loadEventRegistrationFields(
   },
 ) {
   await ensureEventRegistrationFormSeeded()
-  const loaded = await loadFormDefinition(DEFAULT_EVENT_REGISTRATION_FORM_ID)
+  const preferredId = await resolveRegistrationFormIdForEvent(eventId)
+  let loaded = await loadFormDefinition(preferredId)
+  if (loaded.source !== 'database') {
+    loaded = await loadFormDefinition(DEFAULT_EVENT_REGISTRATION_FORM_ID)
+  }
   const tiers = await listPublicTicketTiersForEvent(eventId)
   const prefill = options?.prefill
 

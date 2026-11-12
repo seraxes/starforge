@@ -89,6 +89,12 @@ export function adminAreaGateForPath(pathname: string): AdminAreaGate {
   if (path === `${CORE_ADMIN_BASE}/payments` || path.startsWith(`${CORE_ADMIN_BASE}/payments/`)) {
     return { type: 'resource', key: 'admin.payments' }
   }
+  if (
+    path === `${CORE_ADMIN_BASE}/subscriptions` ||
+    path.startsWith(`${CORE_ADMIN_BASE}/subscriptions/`)
+  ) {
+    return { type: 'resource', key: 'admin.subscriptions' }
+  }
   if (path === `${CORE_ADMIN_BASE}/events` || path.startsWith(`${CORE_ADMIN_BASE}/events/`)) {
     return { type: 'resource', key: 'admin.events' }
   }
@@ -170,6 +176,7 @@ const LANDING_ORDER: { key: AclAdminResourceKey; href: string }[] = [
   { key: 'admin.layouts', href: `${CORE_ADMIN_BASE}/layouts` },
   { key: 'admin.forms', href: `${CORE_ADMIN_BASE}/forms` },
   { key: 'admin.email-manager', href: `${CORE_ADMIN_BASE}/email` },
+  { key: 'admin.subscriptions', href: `${CORE_ADMIN_BASE}/subscriptions` },
   { key: 'admin.events', href: `${CORE_ADMIN_BASE}/events` },
   { key: 'admin.profiles', href: `${CORE_ADMIN_BASE}/profiles` },
   { key: 'admin.maps', href: `${CORE_ADMIN_BASE}/maps` },

@@ -9,6 +9,7 @@ export const EMAIL_MODULE_CATEGORIES = [
   'auth',
   'events',
   'payments',
+  'subscriptions',
   'social',
   'marketplace',
   'system',
@@ -139,4 +140,111 @@ export type EmailAdminActionState = {
   ok?: boolean
   message?: string
   id?: string
+}
+
+/** Module settings document in `sf_module_settings` (id = product:email-manager). */
+export type EmailManagerModuleSettings = {
+  /** Recipients sent per drain slice. */
+  broadcastBatchSize: number
+  /** Minutes to wait between slices. */
+  broadcastGapMinutes: number
+}
+
+export const EMAIL_BROADCAST_BATCH_MIN = 1
+export const EMAIL_BROADCAST_BATCH_MAX = 50
+export const EMAIL_BROADCAST_GAP_MIN = 1
+export const EMAIL_BROADCAST_GAP_MAX = 120
+/** Hard cap for one broadcast enqueue. */
+export const EMAIL_BROADCAST_RECIPIENT_CAP = 2000
+
+export const DEFAULT_EMAIL_MANAGER_MODULE_SETTINGS: EmailManagerModuleSettings = {
+  broadcastBatchSize: 20,
+  broadcastGapMinutes: 10,
+}
+
+export const EMAIL_BROADCAST_STATUSES = [
+  'queued',
+  'running',
+  'paused',
+  'done',
+  'cancelled',
+  'failed',
+] as const
+
+export type EmailBroadcastStatus = (typeof EMAIL_BROADCAST_STATUSES)[number]
+
+export function isEmailBroadcastStatus(value: unknown): value is EmailBroadcastStatus {
+  return (
+    typeof value === 'string' &&
+    (EMAIL_BROADCAST_STATUSES as readonly string[]).includes(value)
+  )
+}
+
+export const EMAIL_BROADCAST_RECIPIENT_STATUSES = [
+  'queued',
+  'sending',
+  'sent',
+  'failed',
+  'skipped',
+] as const
+
+export type EmailBroadcastRecipientStatus =
+  (typeof EMAIL_BROADCAST_RECIPIENT_STATUSES)[number]
+
+export function isEmailBroadcastRecipientStatus(
+  value: unknown,
+): value is EmailBroadcastRecipientStatus {
+  return (
+    typeof value === 'string' &&
+    (EMAIL_BROADCAST_RECIPIENT_STATUSES as readonly string[]).includes(value)
+  )
+}
+
+export type EmailBroadcastRecipientInput = {
+  email: string
+  /** Frozen merge fields for this recipient. */
+  payload?: Record<string, unknown>
+}
+
+export type EmailBroadcastRecord = {
+  id: string
+  label: string
+  templateId: string
+  moduleCategory: EmailModuleCategory
+  sourceKey: string
+  status: EmailBroadcastStatus
+  batchSize: number
+  gapMinutes: number
+  totalCount: number
+  sentCount: number
+  failedCount: number
+  skippedCount: number
+  nextRunAt: Date | null
+  lastError: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+export type EmailBroadcastEnqueueInput = {
+  label: string
+  templateId: string
+  moduleCategory?: string
+  /** Caller scope key, e.g. `events:<eventId>`. */
+  sourceKey: string
+  recipients: EmailBroadcastRecipientInput[]
+  /** Optional From override (address only). */
+  from?: string
+}
+
+export type EmailBroadcastEnqueueResult = {
+  ok: boolean
+  skipped?: boolean
+  error?: string
+  broadcastId?: string
+  totalCount?: number
+  batchSize?: number
+  gapMinutes?: number
+  /** True when an in-flight broadcast for the same sourceKey was returned. */
+  alreadyRunning?: boolean
+  message?: string
 }

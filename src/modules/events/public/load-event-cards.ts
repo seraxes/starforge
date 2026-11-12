@@ -8,6 +8,11 @@ import type { AccessViewer } from '@/core/acl/types'
 import type { AppLocale } from '@/core/i18n/locales'
 
 import {
+  categoryAllowsViewer,
+  listEventCategories,
+  publicCategoryLabel,
+} from '../categories'
+import {
   countRegisteredGuests,
   listActiveRegistrationsForUser,
 } from '../registrations'
@@ -30,17 +35,39 @@ export type LoadEventCardsOptions = {
   limit?: number
   includePast?: boolean
   featuredOnly?: boolean
+  /** Hub filter. Featured carousel does not set this. */
+  categoryId?: string
 }
 
 export async function loadPublicEventCards(
   options: LoadEventCardsOptions,
 ): Promise<{ events: EventRecord[]; cards: EventCardModel[] }> {
-  const raw = await listPublishedEvents({
-    limit: options.limit ?? 100,
-    includePast: options.includePast === true,
-    featuredOnly: options.featuredOnly === true,
-  })
-  const events = filterEventsForViewer(raw, options.viewer)
+  const categoryId = (options.categoryId || '').trim()
+  const [raw, categories] = await Promise.all([
+    listPublishedEvents({
+      limit: options.limit ?? 100,
+      includePast: options.includePast === true,
+      featuredOnly: options.featuredOnly === true,
+      categoryId: categoryId || undefined,
+    }),
+    listEventCategories(),
+  ])
+  const categoriesById = new Map(categories.map((category) => [category.id, category]))
+  const events = filterEventsForViewer(raw, options.viewer).filter((event) =>
+    categoryAllowsViewer(
+      event.categoryId,
+      event.categoryId ? (categoriesById.get(event.categoryId) ?? null) : null,
+      options.viewer,
+    ),
+  )
+  const categoryById = new Map<string, { title: string; href: string }>()
+  await Promise.all(
+    categories
+      .filter((category) => category.published)
+      .map(async (category) => {
+        categoryById.set(category.id, await publicCategoryLabel(category, options.locale))
+      }),
+  )
 
   const venuesById = new Map<string, VenueRecord>()
   await Promise.all(
@@ -74,6 +101,7 @@ export async function loadPublicEventCards(
     signupByEventId,
     occupiedByEventId,
     priceByEventId,
+    categoryById,
   })
 
   return { events, cards }

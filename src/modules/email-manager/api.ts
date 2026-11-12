@@ -37,7 +37,17 @@ export {
 } from './audience'
 
 export {
+  DEFAULT_EMAIL_MANAGER_MODULE_SETTINGS,
+  EMAIL_BROADCAST_BATCH_MAX,
+  EMAIL_BROADCAST_BATCH_MIN,
+  EMAIL_BROADCAST_GAP_MAX,
+  EMAIL_BROADCAST_GAP_MIN,
+  EMAIL_BROADCAST_RECIPIENT_CAP,
+  EMAIL_BROADCAST_RECIPIENT_STATUSES,
+  EMAIL_BROADCAST_STATUSES,
   EMAIL_MODULE_CATEGORIES,
+  isEmailBroadcastRecipientStatus,
+  isEmailBroadcastStatus,
   isEmailModuleCategory,
   isEmailRuleMode,
 } from './types'
@@ -45,9 +55,16 @@ export {
 export type {
   EmailAdminActionState,
   EmailAudience,
+  EmailBroadcastEnqueueInput,
+  EmailBroadcastEnqueueResult,
+  EmailBroadcastRecipientInput,
+  EmailBroadcastRecord,
+  EmailBroadcastRecipientStatus,
+  EmailBroadcastStatus,
   EmailCondition,
   EmailConditionGroup,
   EmailConditionOp,
+  EmailManagerModuleSettings,
   EmailModuleCategory,
   EmailRuleMode,
   EmailRuleRecord,
@@ -56,6 +73,16 @@ export type {
   EmailTriggerEmitInput,
   EmailTriggerEmitResult,
 } from './types'
+
+export {
+  EMAIL_BROADCAST_DRAIN_JOB,
+  applyBroadcastRecipientCap,
+  broadcastSliceCount,
+  clampBroadcastBatchSize,
+  clampBroadcastGapMinutes,
+  normalizeBroadcastRecipients,
+  normalizeEmailManagerModuleSettings,
+} from './broadcast'
 
 /** Convenience trigger keys for Forms / system. */
 export const FORM_SUBMITTED_TRIGGER = 'product:forms/submitted' as const

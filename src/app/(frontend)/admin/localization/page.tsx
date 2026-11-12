@@ -2,6 +2,7 @@ import React from 'react'
 import Link from 'next/link'
 
 import { listContentLocaleFiles } from '@/core/i18n/content-locales/store'
+import type { ContentLocaleScope } from '@/core/i18n/content-locales/paths'
 import { getLocalizationSettings } from '@/core/localization'
 
 import { ContentLocaleFilesPanel } from './content-locale-files-panel'
@@ -23,7 +24,7 @@ export default async function AdminLocalizationPage() {
       : [settings.defaultLocale]
   const filesByLocale: Record<
     string,
-    { scope: 'layouts' | 'nav'; ownerId: string; relativePath: string }[]
+    { scope: ContentLocaleScope; ownerId: string; relativePath: string }[]
   > = {}
   for (const locale of locales) {
     filesByLocale[locale] = await listContentLocaleFiles(locale)

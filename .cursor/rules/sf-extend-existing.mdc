@@ -17,7 +17,7 @@ Cross-check ownership rules (`sf-module-ownership`, Forms, Payments, UI) and the
 | Money | `product:payments` | Per-module cart / gateway / invoice UI |
 | Forms / intake schema | `product:forms` | Module-local field builders |
 | Media pick | `product:media` / `MediaPicker` | Per-module libraries |
-| Commerce / system mail | `product:email-manager` | `getMailer()` from new packs |
+| Commerce / system mail | `product:email-manager` (`emitEmailTrigger`; bulk → `enqueueEmailBroadcast`) | `getMailer()` from new packs; consumer-side mass send loops |
 | Admin settings chrome | Events / Layouts / Page Settings classes | One-off cards, micro inputs, left-aligned card actions |
 
 ## Do

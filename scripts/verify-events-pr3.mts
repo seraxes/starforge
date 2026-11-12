@@ -28,8 +28,11 @@ assert.match(schema, /sfEventRegistrations|sf_event_registrations/)
 
 const hooks = read('src/modules/events/form-hooks.ts')
 assert.match(hooks, /event-registration/)
-assert.match(hooks, /product:events\/registered/)
+assert.match(hooks, /EVENTS_REGISTERED_TRIGGER/)
 assert.match(hooks, /ensureEventsFormHooks/)
+
+const eventTriggers = read('src/modules/events/triggers.ts')
+assert.match(eventTriggers, /product:events\/registered/)
 
 const triggers = read('src/modules/email-manager/triggers.ts')
 assert.match(triggers, /product:events\/registered/)

@@ -13,6 +13,7 @@ export type PaymentConsumerHookContext = {
     sourceType: string
     sourceId: string
     qty: number
+    billingPeriod?: string | null
     metadata: Record<string, unknown>
   }>
   metadata: Record<string, unknown>

@@ -10,4 +10,28 @@ export async function register() {
 
   const { assertStarforgeEnvAtBoot } = await import('./core/env/validate')
   assertStarforgeEnvAtBoot()
+
+  const { ensureAbandonedCheckoutSweep } = await import(
+    './modules/events/abandoned-checkout'
+  )
+  ensureAbandonedCheckoutSweep()
+
+  try {
+    const { ensureSubscriptionsPaymentHook, ensureSubscriptionsExpiryJob } =
+      await import('./modules/subscriptions/api')
+    ensureSubscriptionsPaymentHook()
+    ensureSubscriptionsExpiryJob()
+  } catch {
+    /* pack missing / migrate pending */
+  }
+
+  try {
+    const { ensureEmailBroadcastDrainJob, kickDueBroadcasts } = await import(
+      './modules/email-manager/api.server'
+    )
+    ensureEmailBroadcastDrainJob()
+    void kickDueBroadcasts()
+  } catch {
+    /* pack missing / migrate pending */
+  }
 }

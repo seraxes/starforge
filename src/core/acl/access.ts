@@ -15,10 +15,7 @@ import {
   viewerAllowsGate,
 } from './decide'
 import { listGroupIdsForUser } from './members'
-import {
-  anyGroupAllowsResource,
-  listAllowedResourcesForGroups,
-} from './permissions'
+import { listAllowedResourcesForGroups } from './permissions'
 import type { AccessViewer, AclAdminResourceKey } from './types'
 
 /**
@@ -49,19 +46,53 @@ export async function getAccessViewer(): Promise<AccessViewer> {
   }
 }
 
+/**
+ * Admin resources granted by an active subscription period (not ACL rows).
+ * Organizer premium → `events.manage` → `admin.events`.
+ */
+async function subscriptionAdminResources(
+  userId: string | null,
+): Promise<AclAdminResourceKey[]> {
+  if (!userId) return []
+  try {
+    const { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } = await import(
+      '@/core/settings'
+    )
+    const settings = await getSiteSettings()
+    if (!isCatalogModuleEnabled(settings, MODULE_IDS.subscriptions)) return []
+    const { hasEntitlement, ENTITLEMENT_KEYS } = await import(
+      '@/modules/subscriptions/api'
+    )
+    if (await hasEntitlement(userId, ENTITLEMENT_KEYS.eventsManage)) {
+      return ['admin.events']
+    }
+  } catch {
+    /* pack missing / migrate pending */
+  }
+  return []
+}
+
 /** Allowed matrix keys for the viewer (empty for anonymous; unused for app admins). */
 export async function listViewerAllowedAdminResources(
   viewer: AccessViewer,
 ): Promise<Set<AclAdminResourceKey>> {
-  if (!viewer.isRegistered || viewer.groupIds.length === 0) {
+  if (!viewer.isRegistered) {
     return new Set()
   }
-  return listAllowedResourcesForGroups(viewer.groupIds)
+  const allowed =
+    viewer.groupIds.length > 0
+      ? await listAllowedResourcesForGroups(viewer.groupIds)
+      : new Set<AclAdminResourceKey>()
+  for (const key of await subscriptionAdminResources(viewer.userId)) {
+    allowed.add(key)
+  }
+  return allowed
 }
 
 /**
  * Admin-area ACL check.
- * Global app admins always pass. Others need a group grant in `sf_acl_permissions`.
+ * Global app admins always pass. Others need a group grant and/or a live
+ * subscription entitlement (e.g. organizer premium → admin.events).
  */
 export async function viewerMayAccessAdminResource(
   viewer: AccessViewer,
@@ -69,15 +100,15 @@ export async function viewerMayAccessAdminResource(
 ): Promise<boolean> {
   if (viewer.isAppAdmin) return true
   if (!viewer.isRegistered) return false
-  const groupAllows = await anyGroupAllowsResource(viewer.groupIds, resource)
+  const allowed = await listViewerAllowedAdminResources(viewer)
   return decideAdminResourceAccess({
     isAppAdmin: false,
     isRegistered: true,
-    groupAllows,
+    groupAllows: allowed.has(resource),
   })
 }
 
-/** True when the viewer may enter `/admin` (app admin or any matrix grant). */
+/** True when the viewer may enter `/admin` (app admin, ACL grant, or subscription access). */
 export async function viewerMayEnterAdminShell(viewer: AccessViewer): Promise<boolean> {
   if (viewer.isAppAdmin) return true
   if (!viewer.isRegistered) return false

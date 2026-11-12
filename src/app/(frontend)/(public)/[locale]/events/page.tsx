@@ -12,7 +12,11 @@ import { EventsHub } from '@/modules/events/public/EventsHub'
 
 type Args = {
   params: Promise<{ locale: string }>
-  searchParams: Promise<{ view?: string | string[]; thumbs?: string | string[] }>
+  searchParams: Promise<{
+    view?: string | string[]
+    thumbs?: string | string[]
+    category?: string | string[]
+  }>
 }
 
 export async function generateMetadata({ params }: Args): Promise<Metadata> {
@@ -50,7 +54,7 @@ export default async function PublicEventsPage({ params, searchParams }: Args) {
     notFound()
   }
 
-  const { view, thumbs } = await searchParams
+  const { view, thumbs, category } = await searchParams
   const viewer = await getAccessViewer()
 
   return (
@@ -63,6 +67,7 @@ export default async function PublicEventsPage({ params, searchParams }: Args) {
         viewer={viewer}
         viewRaw={view}
         thumbsRaw={thumbs}
+        categoryRaw={category}
       />
     </article>
   )

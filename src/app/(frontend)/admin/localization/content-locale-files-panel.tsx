@@ -17,6 +17,12 @@ import {
 } from '@/core/i18n/content-locales/actions'
 import type { ContentLocaleScope } from '@/core/i18n/content-locales/paths'
 
+const CONTENT_LOCALE_SCOPE_SET = new Set<string>(['layouts', 'nav', 'chrome', 'events'])
+
+function isPanelScope(value: string | undefined): value is ContentLocaleScope {
+  return Boolean(value && CONTENT_LOCALE_SCOPE_SET.has(value))
+}
+
 import { useNotifySavedOnOk } from '../admin-toast'
 
 type FileOption = {
@@ -50,12 +56,12 @@ export function ContentLocaleFilesPanel({ locales, filesByLocale, defaultLocale 
   const [fileKey, setFileKey] = useState(() =>
     fileOptions[0] ? `${fileOptions[0].scope}:${fileOptions[0].ownerId}` : 'layouts:default',
   )
-  const selected = useMemo(() => {
+  const selected = useMemo((): { scope: ContentLocaleScope; ownerId: string } => {
     const [scope, ownerId] = fileKey.split(':')
-    if (scope === 'layouts' || scope === 'nav' || scope === 'chrome') {
+    if (isPanelScope(scope)) {
       return { scope, ownerId: ownerId || (scope === 'chrome' ? 'consent' : 'default') }
     }
-    return { scope: 'layouts' as const, ownerId: 'default' }
+    return { scope: 'layouts', ownerId: 'default' }
   }, [fileKey])
 
   const [text, setText] = useState('{\n}\n')

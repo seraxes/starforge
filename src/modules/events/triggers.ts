@@ -17,5 +17,11 @@ export const EVENTS_REGISTRANT_CANCELLED_TRIGGER =
 /** JobRunner handler name — fires attendee-reminder before event start. */
 export const EVENTS_ATTENDEE_REMINDER_JOB = 'events.attendee-reminder' as const
 
+/** JobRunner handler — expire abandoned online ticket checkouts. */
+export const EVENTS_ABANDONED_CHECKOUT_JOB = 'events.abandoned-checkout-sweep' as const
+
+/** How often the abandoned-checkout sweep reschedules itself. */
+export const EVENTS_ABANDONED_CHECKOUT_SWEEP_MS = 60_000
+
 /** Default lead time for attendee reminder (hours before startsAt). */
 export const EVENTS_REMINDER_HOURS_BEFORE = 24

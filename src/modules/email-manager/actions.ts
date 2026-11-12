@@ -38,6 +38,8 @@ async function requireEmailManagerAdmin(): Promise<EmailAdminActionState | null>
 function revalidateEmailAdmin() {
   revalidatePath('/admin/email')
   revalidatePath('/admin/email/templates')
+  revalidatePath('/admin/email/sends')
+  revalidatePath('/admin/email/broadcasts')
 }
 
 function parseConditionsFromForm(formData: FormData) {
@@ -282,4 +284,72 @@ export async function seedFormsEmailStartersAction(
     ok: true,
     message: result.message,
   }
+}
+
+/** Save paced-broadcast batch / gap settings. */
+export async function saveEmailManagerSettingsAction(
+  _prev: EmailAdminActionState,
+  formData: FormData,
+): Promise<EmailAdminActionState> {
+  const denied = await requireEmailManagerAdmin()
+  if (denied) return denied
+
+  const { saveEmailManagerModuleSettings } = await import('./settings')
+  try {
+    const saved = await saveEmailManagerModuleSettings({
+      broadcastBatchSize: Number(formData.get('broadcastBatchSize')),
+      broadcastGapMinutes: Number(formData.get('broadcastGapMinutes')),
+    })
+    revalidateEmailAdmin()
+    return {
+      ok: true,
+      message: `Pace rules saved (${saved.broadcastBatchSize} every ${saved.broadcastGapMinutes} minutes).`,
+    }
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : 'Could not save pace rules.',
+    }
+  }
+}
+
+export async function pauseEmailBroadcastAction(
+  _prev: EmailAdminActionState,
+  formData: FormData,
+): Promise<EmailAdminActionState> {
+  const denied = await requireEmailManagerAdmin()
+  if (denied) return denied
+  const id = String(formData.get('id') ?? '').trim()
+  const { pauseEmailBroadcast } = await import('./broadcast-engine')
+  const result = await pauseEmailBroadcast(id)
+  if (!result.ok) return { error: result.error || 'Pause failed.', id }
+  revalidateEmailAdmin()
+  return { ok: true, message: 'Broadcast paused.', id }
+}
+
+export async function resumeEmailBroadcastAction(
+  _prev: EmailAdminActionState,
+  formData: FormData,
+): Promise<EmailAdminActionState> {
+  const denied = await requireEmailManagerAdmin()
+  if (denied) return denied
+  const id = String(formData.get('id') ?? '').trim()
+  const { resumeEmailBroadcast } = await import('./broadcast-engine')
+  const result = await resumeEmailBroadcast(id)
+  if (!result.ok) return { error: result.error || 'Resume failed.', id }
+  revalidateEmailAdmin()
+  return { ok: true, message: 'Broadcast resumed.', id }
+}
+
+export async function cancelEmailBroadcastAction(
+  _prev: EmailAdminActionState,
+  formData: FormData,
+): Promise<EmailAdminActionState> {
+  const denied = await requireEmailManagerAdmin()
+  if (denied) return denied
+  const id = String(formData.get('id') ?? '').trim()
+  const { cancelEmailBroadcast } = await import('./broadcast-engine')
+  const result = await cancelEmailBroadcast(id)
+  if (!result.ok) return { error: result.error || 'Cancel failed.', id }
+  revalidateEmailAdmin()
+  return { ok: true, message: 'Broadcast cancelled.', id }
 }

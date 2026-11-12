@@ -225,6 +225,48 @@
       "when": 1794026000000,
       "tag": "0031_event_cover_slider",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1794027000000,
+      "tag": "0032_event_categories",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1794028000000,
+      "tag": "0033_event_time_price_bands",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1794029000000,
+      "tag": "0034_event_require_approval",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1794030000000,
+      "tag": "0035_email_broadcasts",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1794031000000,
+      "tag": "0036_subscriptions",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1794032000000,
+      "tag": "0037_event_tier_member_group_price",
+      "breakpoints": true
     }
   ]
 }

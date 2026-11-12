@@ -41,7 +41,7 @@ assert.match(regs, /updateRegistrationStatus/)
 
 const form = read('src/modules/events/registration-form.ts')
 assert.match(form, /ticket_tier_id/)
-assert.match(form, /listTicketTiersForEvent/)
+assert.match(form, /listPublicTicketTiersForEvent|listTicketTiersForEvent/)
 
 const hooks = read('src/modules/events/form-hooks.ts')
 assert.match(hooks, /ticket_tier_id|ticketTierId/)

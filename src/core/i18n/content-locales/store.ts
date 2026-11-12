@@ -9,6 +9,7 @@ import {
   sanitizeContentLocaleId,
 } from '../content-locale-keys'
 import {
+  CONTENT_LOCALE_SCOPES,
   getContentLocaleDir,
   getContentLocaleFilePath,
   getContentLocalesRoot,
@@ -69,17 +70,19 @@ async function listJsonFiles(dir: string): Promise<string[]> {
   }
 }
 
-/** Merge all layout/nav JSON files for one language into a flat key → string catalog. */
+/** Merge layout, nav, and events JSON files into a flat key → string catalog. */
 export async function loadContentLocaleCatalog(locale: string): Promise<ContentLocaleCatalog> {
   const code = sanitizeContentLocaleId(locale) || 'en'
   const cached = catalogCache.get(code)
   if (cached) return cached.catalog
 
   const root = getContentLocaleDir(code)
-  const files = [
-    ...(await listJsonFiles(path.join(root, 'layouts'))),
-    ...(await listJsonFiles(path.join(root, 'nav'))),
-  ]
+  const catalogScopes = ['layouts', 'nav', 'events'] as const
+  const files = (
+    await Promise.all(
+      catalogScopes.map((scope) => listJsonFiles(path.join(root, scope))),
+    )
+  ).flat()
   const catalog: ContentLocaleCatalog = {}
   for (const filePath of files) {
     const parsed = await readJsonFile(filePath)
@@ -189,7 +192,7 @@ export async function listContentLocaleFiles(
 ): Promise<{ scope: ContentLocaleScope; ownerId: string; relativePath: string }[]> {
   const code = sanitizeContentLocaleId(locale) || 'en'
   const out: { scope: ContentLocaleScope; ownerId: string; relativePath: string }[] = []
-  for (const scope of ['layouts', 'nav', 'chrome'] as const) {
+  for (const scope of CONTENT_LOCALE_SCOPES) {
     const files = await listJsonFiles(path.join(getContentLocaleDir(code), scope))
     for (const filePath of files) {
       const ownerId = path.basename(filePath, '.json')

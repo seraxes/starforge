@@ -53,7 +53,7 @@ Payments persists **`sourceModule` + line snapshot** only. Domain price rules st
 
 ## Premium merchants
 
-Organizers/vendors with subscription `canCollectPayments` + ACL paste **their own** gateway and Billingo/Számlázz keys; settlement goes to **their** bank. No platform % fee for now (flat sub only). Site MoR stays for platform products. Never rebuild Billingo/Számlázz UIs — API bridge only. Merchant admin UI must clone Events/Layouts chrome (`sf-ui-design.mdc`). Merchant POS keys live in encrypted `sf_pay_merchant_credentials`, not Site Chrome env. That table is the exception to “secrets never in the database”: site-wide secrets stay in the env overlay; these per-merchant keys stay ciphertext here. `sf_pay_collect_entitlements` is a frozen stub — do not add plans, periods, or highlight products to it. `product:subscriptions` will own `canCollectPayments`.
+Organizers/vendors with subscription `canCollectPayments` + ACL paste **their own** gateway and Billingo/Számlázz keys; settlement goes to **their** bank. No platform % fee for now (flat sub only). Site MoR stays for platform products. Never rebuild Billingo/Számlázz UIs — API bridge only. Merchant admin UI must clone Events/Layouts chrome (`sf-ui-design.mdc`). Merchant POS keys live in encrypted `sf_pay_merchant_credentials`, not Site Chrome env. That table is the exception to “secrets never in the database”: site-wide secrets stay in the env overlay; these per-merchant keys stay ciphertext here. `sf_pay_collect_entitlements` is a frozen stub — do not add plans, periods, or highlight products to it. When `product:subscriptions` is on, `hasCollectCapability` reads `payments.collect`; when off, the stub stays.
 
 ## Don’t
 

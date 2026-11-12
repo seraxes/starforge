@@ -5,7 +5,7 @@ import type { StarforgeModule } from '@/core/modules/types'
 import { MODULE_IDS, isCatalogModuleEnabled } from '@/core/settings'
 
 import {
-  viewerPassesEventAcl,
+  viewerPassesEventVisibility,
   viewerPassesEventPassword,
 } from '../public-access'
 import { EventCountdown } from '../public/EventCountdown'
@@ -45,7 +45,7 @@ export const eventCountdownModule: StarforgeModule = {
     }
 
     const viewer = await getAccessViewer()
-    if (!viewerPassesEventAcl(event, viewer)) {
+    if (!(await viewerPassesEventVisibility(event, viewer))) {
       return null
     }
     if (!(await viewerPassesEventPassword(event, viewer))) {

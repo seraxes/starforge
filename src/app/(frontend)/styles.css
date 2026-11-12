@@ -2409,6 +2409,20 @@ button:disabled {
   background: color-mix(in srgb, var(--sf-secondary) 28%, var(--sf-paper));
 }
 
+.sf-events-category-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.sf-events-category-filter-label {
+  margin-right: 0.15rem;
+  font-size: 0.85rem;
+  font-weight: 650;
+  color: var(--sf-muted);
+}
+
 .sf-events-view-btn {
   appearance: none;
   border: 1px solid var(--sf-line);
@@ -3505,6 +3519,36 @@ button:disabled {
   align-self: center;
 }
 
+.sf-events-price-bands {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.sf-events-price-band {
+  grid-template-columns: minmax(8rem, 1.15fr) minmax(8rem, 1fr) minmax(8rem, 0.85fr) auto;
+}
+
+.sf-events-price-band > .gantry-toolbar-btn {
+  justify-self: start;
+  align-self: end;
+}
+
+.sf-events-price-bands-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+@media (max-width: 720px) {
+  .sf-events-price-row,
+  .sf-events-price-band {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .sf-events-tier-price-rules {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -3958,6 +4002,11 @@ button:disabled {
 .sf-events-status-waitlisted {
   border-color: color-mix(in srgb, #c9a227 55%, var(--sf-admin-panel-border, #ccc));
   background: color-mix(in srgb, #c9a227 16%, var(--sf-admin-panel, #fff));
+}
+
+.sf-events-status-pending {
+  border-color: color-mix(in srgb, var(--sf-primary, #1d4f91) 55%, var(--sf-admin-panel-border, #ccc));
+  background: color-mix(in srgb, var(--sf-primary, #1d4f91) 14%, var(--sf-admin-panel, #fff));
 }
 
 .sf-events-status-cancelled {

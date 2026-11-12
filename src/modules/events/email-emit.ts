@@ -23,6 +23,7 @@ import {
   EVENTS_REGISTRANT_CANCELLED_TRIGGER,
   EVENTS_REMINDER_HOURS_BEFORE,
 } from './triggers'
+import { normalizeRegistrationStatus } from './registration-status'
 import { findEventById } from './store'
 import { findTicketTierById } from './tiers'
 import { sfEventRegistrations } from './schema'
@@ -79,7 +80,6 @@ export function mapRegistrationRowForEmail(row: {
   | 'attendance'
   | 'submissionId'
 > {
-  const status = row.status as EventRegistrationRecord['status']
   return {
     id: row.id,
     ticketTierId: (row.ticketTierId || '').trim(),
@@ -91,13 +91,7 @@ export function mapRegistrationRowForEmail(row: {
         ? Math.floor(row.guests)
         : 1,
     attendance: (row.attendance || 'in_person').trim() || 'in_person',
-    status:
-      status === 'waitlisted' ||
-      status === 'cancelled' ||
-      status === 'registered' ||
-      status === 'pending_payment'
-        ? status
-        : 'registered',
+    status: normalizeRegistrationStatus(row.status),
   }
 }
 
@@ -188,8 +182,11 @@ async function emitIfEnabled(
 }
 
 /**
- * After a free / waitlist signup is confirmed: registrant confirm + organizer notify + reminder schedule.
- * Paid seats call {@link emitEventsRegisteredLifecycle} from the payments hook instead.
+ * After a free, waitlist, or approval-pending signup.
+ * Registered and waitlisted rows get the registrant confirm. Pending approval
+ * notifies organizers only — the confirm and reminder wait until an admin
+ * sets the row registered. Paid seats use {@link emitEventsRegisteredLifecycle}
+ * once payment clears and no approval gate remains.
  */
 export async function emitEventsSignupEmails(input: {
   event: Pick<EventRecord, 'id' | 'title' | 'slug' | 'startsAt' | 'managerUserIds'>
@@ -207,11 +204,13 @@ export async function emitEventsSignupEmails(input: {
   ticketTierTitle?: string
 }): Promise<void> {
   const status = input.registration.status
-  if (status !== 'registered' && status !== 'waitlisted') return
+  if (status !== 'registered' && status !== 'waitlisted' && status !== 'pending') return
 
   try {
     const payload = await buildEventsRegistrationEmailPayload(input)
-    await emitIfEnabled(EVENTS_REGISTERED_TRIGGER, payload)
+    if (status === 'registered' || status === 'waitlisted') {
+      await emitIfEnabled(EVENTS_REGISTERED_TRIGGER, payload)
+    }
     if (payload.organizerEmails.length) {
       await emitIfEnabled(EVENTS_ORGANIZER_NOTIFY_TRIGGER, payload)
     }

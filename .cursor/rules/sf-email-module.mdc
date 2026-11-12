@@ -1,0 +1,33 @@
+# Starforge Email Manager — modular ownership
+
+Any Starforge module that sends product email **must** use `product:email-manager`. Do not call `getMailer()` / `sendMail()` from consumer packs (Forms, Events, Payments, …). Auth recovery may stay on Core Mailer until it is moved onto triggers.
+
+## Source of truth
+
+| Concern | Owner |
+| --- | --- |
+| Trigger → rule → template → send | **`product:email-manager`** — `emitEmailTrigger` |
+| Paced bulk send (caller-supplied audience) | **`product:email-manager`** — `enqueueEmailBroadcast` |
+| Transport / From / provider secrets | **Core Mailer** + Site Chrome / env |
+| Template HTML editing | **`product:rich-editor`** (email preset) + Media picker |
+| Newsletter lists / segments | **`product:campaigns`** (later) — not this pack |
+
+Transactional emits stay immediate (one audience per trigger). Hundreds of recipients go through the broadcast queue (batch + gap). Pace rules live under `/admin/email/broadcasts`.
+
+## Do
+
+- Emit named triggers with `emitEmailTrigger` from `@/modules/email-manager/api.server`.
+- Queue bulk audiences with `enqueueEmailBroadcast` (template id + recipient rows + `sourceKey`).
+- Soft-skip when Email Manager is off or no rule matches.
+- Deep-link admins to `/admin/email` for copy and pace — do not rebuild SMTP or template UIs in the consumer.
+
+## Don’t
+
+- Call `getMailer()` from Events, Forms, Payments, or other product packs for product mail.
+- Loop `mailer.send` in a consumer for a registrant / order list.
+- Treat Email Manager as a mailing-list product — that is `product:campaigns`.
+- Seed organizer-notify / reminder / cancellation templates in a pass that only needs paced registrant mail (leave existing seeds alone).
+
+## Quick check
+
+If the message fires because something already happened (registered, paid, form submitted) → trigger. If an admin picks a template and a list of rows → `enqueueEmailBroadcast`.

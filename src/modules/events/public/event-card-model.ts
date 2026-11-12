@@ -16,8 +16,12 @@ import { listPublicTicketTiersForEvent } from '../public-tiers'
 import type { EventPartyRecord, EventRecord, VenueRecord } from '../types'
 import { formatEventWhen } from './format'
 import { eventPublicPathKey } from './path'
+import {
+  signupStatusFromRegistrationStatus,
+  type EventSignupStatus,
+} from './signup-status'
 
-export type EventSignupStatus = 'none' | 'registered' | 'waitlisted'
+export type { EventSignupStatus }
 
 export type EventCardModel = {
   id: string
@@ -43,6 +47,8 @@ export type EventCardModel = {
   signupStatus: EventSignupStatus
   organizerPartyIds: string[]
   organizerNames: string[]
+  categoryTitle: string
+  categoryHref: string
 }
 
 export type BuildEventCardOptions = {
@@ -55,15 +61,14 @@ export type BuildEventCardOptions = {
   occupiedByEventId?: Map<string, number>
   /** Precomputed cheapest price label per event. */
   priceByEventId?: Map<string, string>
+  /** categoryId → public label + hub filter href. */
+  categoryById?: Map<string, { title: string; href: string }>
 }
 
 function signupFromRegistration(
   row: EventRegistrationRecord | null | undefined,
 ): EventSignupStatus {
-  if (!row) return 'none'
-  if (row.status === 'waitlisted') return 'waitlisted'
-  if (row.status === 'registered') return 'registered'
-  return 'none'
+  return signupStatusFromRegistrationStatus(row?.status)
 }
 
 export function signupStatusMapFromRegistrations(
@@ -105,6 +110,9 @@ export async function buildEventCardModel(
     const party = options.partiesById?.get(id)
     if (party?.name) organizerNames.push(party.name)
   }
+  const category = event.categoryId
+    ? options.categoryById?.get(event.categoryId)
+    : undefined
 
   return {
     id: event.id,
@@ -133,6 +141,8 @@ export async function buildEventCardModel(
     signupStatus: options.signupByEventId?.get(event.id) ?? 'none',
     organizerPartyIds: [...event.organizerPartyIds],
     organizerNames,
+    categoryTitle: category?.title || '',
+    categoryHref: category?.href || '',
   }
 }
 

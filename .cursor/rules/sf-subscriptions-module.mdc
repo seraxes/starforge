@@ -1,0 +1,35 @@
+# Starforge Subscriptions — modular ownership
+
+Any Starforge feature that sells **recurring access** (player premium, organizer premium, advertisements) **must** use `product:subscriptions`. Payments only charges and snapshots. Do not ship a second plan catalog, period table, or entitlement store inside Events, Ads, Marketplace, or Payments.
+
+## Source of truth
+
+| Concern | Owner |
+| --- | --- |
+| Plan catalog, periods, entitlement keys | **`product:subscriptions`** — `@/modules/subscriptions/api` |
+| Charge, VAT, coupons, gateways, invoices | **`product:payments`** |
+| Member / group ticket amounts | **`product:events`** — asks `resolveAudience` |
+| Ad placement / listing rank | **`product:ads`** / Marketplace (later) — asks `hasEntitlement` |
+| Merchant collect boolean stub | Payments `sf_pay_collect_entitlements` (frozen) → replaced by `payments.collect` when Subscriptions is on |
+
+## Subjects
+
+- `membership` — player premium (`events.member`)
+- `organizer` — event management access (`events.manage` + `payments.collect`)
+- `advertisement` — shop / organizer promo / marketplace boost (keys such as `marketplace.listing_top`)
+
+Subject is an open string. Do not add a new subscription module for a new kind.
+
+## Do
+
+- Call `@/modules/subscriptions/api` for resolve and checkout start.
+- Re-resolve plan price server-side at checkout.
+- Pass organizer access via live `hasEntitlement('events.manage')` on the `admin.events` gate — do not write ACL rows.
+- Emit `product:subscriptions/*` email triggers only.
+
+## Don’t
+
+- Grow `sf_pay_collect_entitlements` into plans or periods.
+- Put ASN currency / token ledger here.
+- Build ad inventory or listing ranking inside this pack.
+- Call `getMailer()` from Subscriptions.

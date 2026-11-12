@@ -11,12 +11,13 @@ import { withLocalePrefix } from '@/core/i18n/path'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { getSiteChrome } from '@/core/site-chrome'
 import {
-  viewerPassesEventAcl,
   viewerPassesEventPassword,
+  viewerPassesEventVisibility,
 } from '@/modules/events/public-access'
 import { formatEventWhen } from '@/modules/events/public/format'
 import { MyRegistrationManage } from '@/modules/events/public/MyRegistrationManage'
 import { eventPublicPathKey } from '@/modules/events/public/path'
+import { registrationStatusLabel } from '@/modules/events/registration-status'
 import { buildDoorCheckInAbsoluteUrl } from '@/modules/events/check-in-ticket'
 import {
   findActiveRegistrationForUserOnEvent,
@@ -81,7 +82,7 @@ export default async function EventMyRegistrationPage({ params }: Args) {
   }
 
   const viewer = await getAccessViewer()
-  if (!viewerPassesEventAcl(event, viewer)) notFound()
+  if (!(await viewerPassesEventVisibility(event, viewer))) notFound()
   if (!(await viewerPassesEventPassword(event, viewer))) {
     redirect(eventPath)
   }
@@ -100,14 +101,9 @@ export default async function EventMyRegistrationPage({ params }: Args) {
   const canRequestRefund =
     paid &&
     event.selfCancelRefund &&
-    registration.status === 'registered'
+    (registration.status === 'registered' || registration.status === 'pending')
 
-  const statusLabel =
-    registration.status === 'waitlisted'
-      ? 'On waitlist'
-      : registration.status === 'pending_payment'
-        ? 'Pending payment'
-        : 'Registered'
+  const statusLabel = registrationStatusLabel(registration.status)
 
   return (
     <div className="cms-page sf-events-page">

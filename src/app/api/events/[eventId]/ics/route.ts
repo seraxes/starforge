@@ -3,8 +3,8 @@ import { NextResponse } from 'next/server'
 import { getAccessViewer } from '@/core/acl/access'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import {
-  viewerPassesEventAcl,
   viewerPassesEventPassword,
+  viewerPassesEventVisibility,
 } from '@/modules/events/public-access'
 import { buildEventIcs } from '@/modules/events/public/ics'
 import { findEventById, findPublishedEventByPublicKey, findVenueById } from '@/modules/events/store'
@@ -31,7 +31,7 @@ export async function GET(_req: Request, { params }: { params: Params }) {
   if (!event) return new NextResponse('Not found', { status: 404 })
 
   const viewer = await getAccessViewer()
-  if (!viewerPassesEventAcl(event, viewer)) {
+  if (!(await viewerPassesEventVisibility(event, viewer))) {
     return new NextResponse('Not found', { status: 404 })
   }
   if (!(await viewerPassesEventPassword(event, viewer))) {

@@ -345,13 +345,27 @@ export async function submitFormAction(
         hookResult && typeof hookResult.redirectUrl === 'string'
           ? hookResult.redirectUrl.trim()
           : ''
+      const hookMessage =
+        hookResult && typeof hookResult.message === 'string'
+          ? hookResult.message.trim()
+          : ''
+      const message = hookMessage || successMessage
       if (hookRedirect.startsWith('/') && !hookRedirect.startsWith('//')) {
         revalidatePath('/admin/forms')
         revalidatePath('/admin/forms/submissions')
         return {
           ok: true,
-          message: successMessage,
+          message,
           redirectUrl: hookRedirect,
+        }
+      }
+      if (hookMessage) {
+        revalidatePath('/admin/forms')
+        revalidatePath('/admin/forms/submissions')
+        return {
+          ok: true,
+          message: hookMessage,
+          ...(successRedirectUrl ? { redirectUrl: successRedirectUrl } : {}),
         }
       }
     } catch {

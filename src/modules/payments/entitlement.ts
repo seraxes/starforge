@@ -5,17 +5,40 @@ import { eq } from 'drizzle-orm'
 import { requireAdminArea } from '@/core/acl/access'
 import { userIsAppAdmin } from '@/core/auth/admin'
 import { db } from '@/core/db'
+import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
 import { sfPayCollectEntitlements } from './schema'
 
 /**
- * Subscription stub + ACL for premium collect.
- * Later: product:subscriptions replaces sf_pay_collect_entitlements.
+ * Collect capability — stub table while Subscriptions is off;
+ * `payments.collect` entitlement when product:subscriptions is enabled.
+ * Do not grow sf_pay_collect_entitlements into plans/periods.
  */
+
+async function subscriptionsOwnsCollect(): Promise<boolean> {
+  try {
+    const settings = await getSiteSettings()
+    return isCatalogModuleEnabled(settings, MODULE_IDS.subscriptions)
+  } catch {
+    return false
+  }
+}
 
 export async function hasCollectCapability(userId: string): Promise<boolean> {
   const id = userId.trim()
   if (!id) return false
+
+  if (await subscriptionsOwnsCollect()) {
+    try {
+      const { hasEntitlement, ENTITLEMENT_KEYS } = await import(
+        '@/modules/subscriptions/api'
+      )
+      return await hasEntitlement(id, ENTITLEMENT_KEYS.paymentsCollect)
+    } catch {
+      return false
+    }
+  }
+
   try {
     const rows = await db
       .select()
@@ -32,6 +55,10 @@ export async function grantCollectCapability(
   userId: string,
   source = 'stub',
 ): Promise<void> {
+  if (await subscriptionsOwnsCollect()) {
+    // Live entitlement comes from subscription periods — do not write the stub.
+    return
+  }
   const id = userId.trim()
   if (!id) return
   await db
@@ -47,7 +74,7 @@ export async function grantCollectCapability(
  * User may manage merchant collect for `userId` when:
  * - signed in with ACL `admin.payments-merchant` (app admins always pass), and
  * - target is self (or actor is app admin), and
- * - collect entitlement is on (auto-grant stub after ACL for self until subscriptions ship).
+ * - collect entitlement is on (auto-grant stub after ACL for self when Subscriptions is off).
  */
 export async function assertMayCollect(
   userId: string,
@@ -68,8 +95,8 @@ export async function assertMayCollect(
 
   const target = userId.trim() || actorId
   let capable = await hasCollectCapability(target)
-  if (!capable) {
-    // Stub until product:subscriptions: ACL grant implies collect for self.
+  if (!capable && !(await subscriptionsOwnsCollect())) {
+    // Stub when Subscriptions is off: ACL grant implies collect for self.
     if (target === actorId || appAdmin) {
       await grantCollectCapability(target, appAdmin ? 'admin-stub' : 'acl-stub')
       capable = true

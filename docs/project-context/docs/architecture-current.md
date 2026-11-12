@@ -122,7 +122,7 @@ Do not relocate these in a drive-by:
 | TipTap engine | `src/modules/rich-editor` (`product:rich-editor`) | Lexical stays an optional pack. Callers use `@/modules/rich-editor/api` (server sanitize and the module gate: `api.server`). |
 | Image insert in the editor | Caller passes `MediaPicker` from `@/modules/media/api` | The editor file does not import media. Core does not import the picker. |
 | Forms success mail | `emitEmailTrigger` (`product:forms/submitted`) only | Do not call `getMailer()` from Forms or other packs for product mail. |
-| `sf_pay_collect_entitlements` | Frozen stub inside Payments | Subscriptions replaces it. No plan/period columns on `sf_pay_*`. |
+| `sf_pay_collect_entitlements` | Frozen stub inside Payments | When Subscriptions is on, collect reads `payments.collect`. No plan/period columns on `sf_pay_*`. |
 | Payment fulfillment | `registerPaymentConsumerHook('events.confirmRegistration', …)` | One hook key per consumer, passed into checkout. No second event bus. |
 
 New packs follow Payments: a **port** in `src/core/<port>`, **product behavior** in `src/modules/<id>`. A PR may touch Core when it adds a port or a host extension. It does not put product screens, catalogs, or fulfillment in Core.

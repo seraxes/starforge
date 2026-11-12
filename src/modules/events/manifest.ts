@@ -8,8 +8,8 @@ export default defineStarforgeModule({
   kind: 'product',
   label: 'Events',
   description:
-    'Events + venues — admin CRUD, public views (upcoming/calendar/map/list), registration, featured + calendar particles.',
-  version: '0.6.2',
+    'Events + venues — admin CRUD, categories, public views (upcoming/calendar/map/list), registration, featured + calendar particles.',
+  version: '0.6.3',
   defaultEnabled: true,
   requires: ['product:forms', 'product:media'],
   i18n: {
@@ -18,6 +18,7 @@ export default defineStarforgeModule({
   navViews: [
     { key: 'public', label: 'Events', href: '/events' },
     { key: 'admin', label: 'Events admin', href: '/admin/events' },
+    { key: 'categories', label: 'Categories', href: '/admin/events/categories' },
     { key: 'venues', label: 'Venues', href: '/admin/events/venues' },
     { key: 'parties', label: 'Parties', href: '/admin/events/parties' },
     { key: 'tiers', label: 'Ticket tiers', href: '/admin/events/tiers' },
@@ -41,6 +42,13 @@ export default defineStarforgeModule({
         order: 10,
         area: 'events',
         exact: true,
+      },
+      {
+        group: 'events',
+        label: 'Categories',
+        href: '/admin/events/categories',
+        order: 15,
+        area: 'events',
       },
       {
         group: 'events',
@@ -90,6 +98,11 @@ export default defineStarforgeModule({
       {
         path: 'events',
         pageImportPath: '@/modules/events/admin/EventsListPage',
+        pageExportName: 'default',
+      },
+      {
+        path: 'events/categories',
+        pageImportPath: '@/modules/events/admin/EventsCategoriesPage',
         pageExportName: 'default',
       },
       {

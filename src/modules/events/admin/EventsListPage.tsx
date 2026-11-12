@@ -7,7 +7,12 @@ import { ensureDefaultUserGroupsSeeded, listUserGroupOptions } from '@/core/acl'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { isRichEditorEnabled } from '@/modules/rich-editor/api.server'
 
+import { listEventCategories } from '../categories'
 import { listEventParties } from '../parties'
+import {
+  ensureEventRegistrationFormSeeded,
+  listEventRegistrationFormOptions,
+} from '../registration-form'
 import { countRegistrationStatsForEvents } from '../registrations'
 import { loadEventsModuleSettings } from '../settings'
 import { listEvents, listVenues, viewerIsAssignedToEvent } from '../store'
@@ -38,17 +43,19 @@ export default async function EventsListPage({ searchParams }: { searchParams: S
   const organizerId = (params.organizer ?? '').trim()
 
   await ensureDefaultUserGroupsSeeded()
-  const { ensureEventRegistrationFormSeeded } = await import('../registration-form')
   await ensureEventRegistrationFormSeeded()
   const viewer = await getAccessViewer()
-  const [eventsRaw, venues, groups, moduleSettings, parties, users] = await Promise.all([
-    listEvents({ status: status === 'all' ? undefined : status }),
-    listVenues(),
-    listUserGroupOptions(),
-    loadEventsModuleSettings(),
-    listEventParties(),
-    listEventsUserOptions(),
-  ])
+  const [eventsRaw, venues, groups, moduleSettings, parties, users, categories, forms] =
+    await Promise.all([
+      listEvents({ status: status === 'all' ? undefined : status }),
+      listVenues(),
+      listUserGroupOptions(),
+      loadEventsModuleSettings(),
+      listEventParties(),
+      listEventsUserOptions(),
+      listEventCategories(),
+      listEventRegistrationFormOptions(),
+    ])
 
   let events = eventsRaw
   if (scope === 'mine') {
@@ -59,6 +66,7 @@ export default async function EventsListPage({ searchParams }: { searchParams: S
   }
 
   const venueNameById = new Map(venues.map((v) => [v.id, v.name] as const))
+  const categoryTitleById = new Map(categories.map((c) => [c.id, c.title] as const))
   const regStats = await countRegistrationStatsForEvents(events.map((e) => e.id))
 
   return (
@@ -82,8 +90,10 @@ export default async function EventsListPage({ searchParams }: { searchParams: S
         users={users}
         parties={parties.map((p) => ({ id: p.id, label: p.name }))}
         venues={venues.map((v) => ({ id: v.id, name: v.name }))}
+        categories={categories.map((c) => ({ id: c.id, label: c.title }))}
+        forms={forms}
         events={events.map((e) => {
-          const stats = regStats.get(e.id) ?? { registered: 0, waitlisted: 0 }
+          const stats = regStats.get(e.id) ?? { registered: 0, pending: 0, waitlisted: 0 }
           return {
             id: e.id,
             title: e.title,
@@ -94,6 +104,7 @@ export default async function EventsListPage({ searchParams }: { searchParams: S
             timezone: e.timezone,
             venueId: e.venueId,
             venueName: e.venueId ? venueNameById.get(e.venueId) ?? '' : '',
+            categoryTitle: e.categoryId ? categoryTitleById.get(e.categoryId) ?? '' : '',
             description: e.description,
             coverMediaId: e.coverMediaId,
             capacity: e.capacity,
@@ -106,6 +117,7 @@ export default async function EventsListPage({ searchParams }: { searchParams: S
             listed: e.listed !== false,
             accessTags: e.accessTags,
             registeredGuests: stats.registered,
+            pendingGuests: stats.pending,
             waitlistedGuests: stats.waitlisted,
             updatedAt: e.updatedAt.toISOString(),
           }

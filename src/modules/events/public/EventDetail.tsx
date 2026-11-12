@@ -2,6 +2,10 @@ import React from 'react'
 import Link from 'next/link'
 
 import { isEventRegistrationOpen } from '../registrations'
+import {
+  registrationStatusLabel,
+  registrationStatusSentence,
+} from '../registration-status'
 import type { EventPartyRecord, EventRecord } from '../types'
 import type { EventSignupStatus } from './event-card-model'
 import {
@@ -49,6 +53,8 @@ export type EventDetailProps = {
   >
   venueName?: string
   venueAddress?: string
+  categoryTitle?: string
+  categoryHref?: string
   location?: EventDetailLocation
   organizers?: EventPartyRecord[]
   speakers?: EventPartyRecord[]
@@ -139,6 +145,8 @@ export function EventDetail({
   event,
   venueName,
   venueAddress,
+  categoryTitle,
+  categoryHref,
   location,
   organizers = [],
   speakers = [],
@@ -203,6 +211,15 @@ export function EventDetail({
 
       <header className="sf-event-detail-header">
         <h1 className="sf-event-detail-title">{event.title}</h1>
+        {categoryTitle ? (
+          <p className="sf-event-detail-meta">
+            {categoryHref ? (
+              <Link href={categoryHref}>{categoryTitle}</Link>
+            ) : (
+              categoryTitle
+            )}
+          </p>
+        ) : null}
         <p className="sf-event-detail-meta">
           {[
             organizerLabel ? `Organizer: ${organizerLabel}` : '',
@@ -225,7 +242,7 @@ export function EventDetail({
           )}
           {signedUp ? (
             <span className="sf-event-detail-badge is-signed">
-              {signupStatus === 'waitlisted' ? 'On waitlist' : 'Registered'}
+              {registrationStatusLabel(signupStatus)}
             </span>
           ) : null}
         </div>
@@ -251,9 +268,7 @@ export function EventDetail({
           </a>
         ) : signedUp ? (
           <span className="sf-event-detail-action is-status">
-            {signupStatus === 'waitlisted'
-              ? 'You are on the waitlist'
-              : 'You are already registered'}
+            {registrationStatusSentence(signupStatus)}
           </span>
         ) : regWindow.open ? (
           <a className="sf-event-detail-action is-primary" href="#register">

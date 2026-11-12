@@ -6,7 +6,9 @@ import { ensureDefaultUserGroupsSeeded, listUserGroupOptions } from '@/core/acl'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { isRichEditorEnabled } from '@/modules/rich-editor/api.server'
 
+import { listEventCategories } from '../categories'
 import { listEventParties } from '../parties'
+import { listEventRegistrationFormOptions } from '../registration-form'
 import { loadEventsModuleSettings } from '../settings'
 import { findEventById, listEvents, listVenues } from '../store'
 import {
@@ -36,7 +38,7 @@ export default async function EventEditPage({ params }: { params: Params }) {
   if (!id) notFound()
 
   await ensureDefaultUserGroupsSeeded()
-  const [event, venues, groups, users, moduleSettings, parties, allEvents] =
+  const [event, venues, groups, users, moduleSettings, parties, allEvents, categories, forms] =
     await Promise.all([
       findEventById(id),
       listVenues(),
@@ -45,6 +47,8 @@ export default async function EventEditPage({ params }: { params: Params }) {
       loadEventsModuleSettings(),
       listEventParties(),
       listEvents(),
+      listEventCategories(),
+      listEventRegistrationFormOptions(),
     ])
   if (!event) notFound()
 
@@ -60,6 +64,8 @@ export default async function EventEditPage({ params }: { params: Params }) {
       capacity: t.capacity,
       maxPerBooking: t.maxPerBooking,
       price: t.price,
+      memberPrice: t.memberPrice,
+      groupPrices: t.groupPrices,
       priceModifier: t.priceModifier,
       priceModifierMode: t.priceModifierMode,
       priceLabel: t.priceLabel,
@@ -97,6 +103,8 @@ export default async function EventEditPage({ params }: { params: Params }) {
           .filter((e) => e.id !== event.id)
           .map((e) => ({ id: e.id, label: e.title }))}
         venues={venues.map((v) => ({ id: v.id, name: v.name }))}
+        categories={categories.map((c) => ({ id: c.id, label: c.title }))}
+        forms={forms}
         tiers={tiersWithOcc}
         event={{
           id: event.id,
@@ -117,6 +125,7 @@ export default async function EventEditPage({ params }: { params: Params }) {
           galleryMediaIds: event.galleryMediaIds,
           capacity: event.capacity,
           waitlistEnabled: event.waitlistEnabled,
+          requireApproval: event.requireApproval,
           registrationOpensAt: event.registrationOpensAt
             ? event.registrationOpensAt.toISOString()
             : null,
@@ -140,6 +149,8 @@ export default async function EventEditPage({ params }: { params: Params }) {
           termsUrl: event.termsUrl,
           listed: event.listed,
           featured: event.featured,
+          categoryId: event.categoryId,
+          registrationFormId: event.registrationFormId,
           hasAccessPassword: event.hasAccessPassword,
           accessTags: event.accessTags,
           updatedAt: event.updatedAt.toISOString(),

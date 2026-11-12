@@ -2,6 +2,7 @@ import React from 'react'
 import Link from 'next/link'
 
 import type { EventCardModel } from './event-card-model'
+import { signupCtaLabel } from './signup-status'
 
 export type EventCardProps = {
   event: EventCardModel
@@ -16,8 +17,7 @@ function capacityLabel(event: EventCardModel): string | null {
 }
 
 function ctaLabel(event: EventCardModel): string {
-  if (event.signupStatus === 'registered') return 'Already registered'
-  if (event.signupStatus === 'waitlisted') return 'On waitlist'
+  if (event.signupStatus !== 'none') return signupCtaLabel(event.signupStatus)
   if (!event.registrationOpen) return 'Registration closed'
   if (event.remaining === 0) return 'Join waitlist'
   return 'Register'
@@ -56,6 +56,15 @@ export function EventCard({ event, featured = false, className = '' }: EventCard
         <h3 className="sf-event-card-title">
           <Link href={event.href}>{event.title}</Link>
         </h3>
+        {event.categoryTitle ? (
+          <p className="sf-event-card-meta">
+            {event.categoryHref ? (
+              <Link href={event.categoryHref}>{event.categoryTitle}</Link>
+            ) : (
+              event.categoryTitle
+            )}
+          </p>
+        ) : null}
         {event.whenLabel ? (
           <p className="sf-event-card-meta">{event.whenLabel}</p>
         ) : null}

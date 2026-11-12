@@ -62,6 +62,21 @@ export function buildChromeConsentKey(field: ChromeConsentField): string {
   return `chrome.consent.${field}`
 }
 
+export const EVENT_CATEGORY_LOCALE_FIELDS = ['title', 'text'] as const
+
+export type EventCategoryLocaleField = (typeof EVENT_CATEGORY_LOCALE_FIELDS)[number]
+
+const EVENT_CATEGORY_FIELD_SET = new Set<string>(EVENT_CATEGORY_LOCALE_FIELDS)
+
+/** Event category title / description — owner file events/{categoryId}.json. */
+export function buildEventCategoryKey(
+  categoryId: string,
+  field: EventCategoryLocaleField,
+): string {
+  const id = sanitizeContentLocaleId(categoryId) || 'category'
+  return `events.category.${id}.${field}`
+}
+
 export type ParsedContentLocaleKey =
   | {
       kind: 'layout'
@@ -80,6 +95,11 @@ export type ParsedContentLocaleKey =
       kind: 'chrome'
       ownerId: 'consent'
       field: ChromeConsentField
+    }
+  | {
+      kind: 'events-category'
+      categoryId: string
+      field: EventCategoryLocaleField
     }
 
 export function parseContentLocaleKey(raw: string): ParsedContentLocaleKey | null {
@@ -134,6 +154,17 @@ export function parseContentLocaleKey(raw: string): ParsedContentLocaleKey | nul
     }
   }
 
+  const eventCategory = /^events\.category\.([^.]+)\.([^.]+)$/.exec(key)
+  if (eventCategory) {
+    const field = eventCategory[2]!
+    if (!EVENT_CATEGORY_FIELD_SET.has(field)) return null
+    return {
+      kind: 'events-category',
+      categoryId: eventCategory[1]!,
+      field: field as EventCategoryLocaleField,
+    }
+  }
+
   return null
 }
 
@@ -141,9 +172,9 @@ export function isValidContentLocaleKey(raw: string): boolean {
   return parseContentLocaleKey(raw) != null
 }
 
-/** Owner file under a locale folder: layouts|nav|chrome/{id}.json */
+/** Owner file under a locale folder: layouts|nav|chrome|events/{id}.json */
 export function contentLocaleFileRefForKey(key: string): {
-  scope: 'layouts' | 'nav' | 'chrome'
+  scope: 'layouts' | 'nav' | 'chrome' | 'events'
   ownerId: string
 } | null {
   const parsed = parseContentLocaleKey(key)
@@ -153,6 +184,9 @@ export function contentLocaleFileRefForKey(key: string): {
   }
   if (parsed.kind === 'nav') {
     return { scope: 'nav', ownerId: parsed.menuId }
+  }
+  if (parsed.kind === 'events-category') {
+    return { scope: 'events', ownerId: parsed.categoryId }
   }
   return { scope: 'chrome', ownerId: parsed.ownerId }
 }

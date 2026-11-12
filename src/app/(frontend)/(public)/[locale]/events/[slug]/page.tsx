@@ -9,11 +9,13 @@ import { isValidLocaleCode } from '@/core/i18n'
 import { withLocalePrefix } from '@/core/i18n/path'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { getSiteChrome } from '@/core/site-chrome'
+import { findEventCategoryById, publicCategoryLabel } from '@/modules/events/categories'
 import { ensureEventsFormHooks } from '@/modules/events/form-hooks'
 import { listEventPartiesByIds } from '@/modules/events/parties'
 import {
-  viewerPassesEventAcl,
+  filterDiscoverableEvents,
   viewerPassesEventPassword,
+  viewerPassesEventVisibility,
 } from '@/modules/events/public-access'
 import {
   EventDetail,
@@ -21,6 +23,7 @@ import {
 } from '@/modules/events/public/EventDetail'
 import { EventPasswordGate } from '@/modules/events/public/EventPasswordGate'
 import { eventPublicPathKey } from '@/modules/events/public/path'
+import { signupStatusFromRegistrationStatus } from '@/modules/events/public/signup-status'
 import { EventRegistrationForm } from '@/modules/events/public/EventRegistrationForm'
 import { EventVenueMap } from '@/modules/events/public/EventVenueMap'
 import { EventLiveMap } from '@/modules/maps/public/EventLiveMap'
@@ -92,7 +95,7 @@ export default async function PublicEventDetailPage({ params, searchParams }: Ar
   }
 
   const viewer = await getAccessViewer()
-  if (!viewerPassesEventAcl(event, viewer)) {
+  if (!(await viewerPassesEventVisibility(event, viewer))) {
     notFound()
   }
 
@@ -110,6 +113,13 @@ export default async function PublicEventDetailPage({ params, searchParams }: Ar
   const justCancelled = String(query.cancelled ?? '').trim() === '1'
 
   const venue = event.venueId ? await findVenueById(event.venueId) : null
+  const category = event.categoryId
+    ? await findEventCategoryById(event.categoryId)
+    : null
+  const categoryLink =
+    category && category.published
+      ? await publicCategoryLabel(category, locale)
+      : null
   const formsOn = isCatalogModuleEnabled(settings, MODULE_IDS.forms)
   const eventPath = withLocalePrefix(
     `/events/${encodeURIComponent(eventPublicPathKey(event))}`,
@@ -139,15 +149,8 @@ export default async function PublicEventDetailPage({ params, searchParams }: Ar
     resolveEventMediaSrc(event.coverMediaId),
     loadEventsModuleSettings(),
   ])
-  const relatedById = new Map(
-    relatedRows
-      .flatMap((r) =>
-        r && r.status === 'published' && r.listed && viewerPassesEventAcl(r, viewer)
-          ? [r]
-          : [],
-      )
-      .map((r) => [r.id, r] as const),
-  )
+  const relatedVisible = await filterDiscoverableEvents(relatedRows, viewer)
+  const relatedById = new Map(relatedVisible.map((r) => [r.id, r] as const))
   const relatedEvents = relatedEventLinksFromRecords(
     event.relatedEventIds,
     relatedById,
@@ -155,12 +158,7 @@ export default async function PublicEventDetailPage({ params, searchParams }: Ar
       withLocalePrefix(`/events/${encodeURIComponent(eventPublicPathKey(rel))}`, locale),
   )
 
-  const signupStatus =
-    myReg?.status === 'waitlisted'
-      ? 'waitlisted'
-      : myReg?.status === 'registered'
-        ? 'registered'
-        : 'none'
+  const signupStatus = signupStatusFromRegistrationStatus(myReg?.status)
   const selfCancelOpen = isEventSelfCancelOpen(event).open
   const canSwitchTier = Boolean(myReg && !myReg.paymentOrderId.trim())
 
@@ -185,6 +183,8 @@ export default async function PublicEventDetailPage({ params, searchParams }: Ar
         event={event}
         venueName={venue?.name}
         venueAddress={venue?.address}
+        categoryTitle={categoryLink?.title}
+        categoryHref={categoryLink?.href}
         location={{
           name: venue?.name,
           address: venue?.address,

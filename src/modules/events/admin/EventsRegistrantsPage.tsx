@@ -11,6 +11,20 @@ import { listEventsUserOptions } from '../user-options'
 import { EventsAdminNav } from './events-admin-nav'
 import { RegistrantsManager } from './registrants-manager'
 
+async function loadEventsEmailTemplates(): Promise<Array<{ id: string; label: string }>> {
+  try {
+    const { isEmailManagerEnabled, listEmailTemplates } = await import(
+      '@/modules/email-manager/api.server'
+    )
+    if (!(await isEmailManagerEnabled())) return []
+    const all = await listEmailTemplates({ moduleCategory: 'events' })
+    const fallback = all.length ? all : await listEmailTemplates()
+    return fallback.map((t) => ({ id: t.id, label: t.label }))
+  } catch {
+    return []
+  }
+}
+
 export const metadata = {
   title: 'Registrants — Events — Starforge',
   description: 'Event registration list and status (Events module).',
@@ -35,12 +49,13 @@ export default async function EventsRegistrantsPage({
     (params.eventId ?? '').trim() ||
     (events[0]?.id ?? '')
 
-  const [registrations, tiers, users] = await Promise.all([
+  const [registrations, tiers, users, emailTemplates] = await Promise.all([
     eventId
       ? listRegistrationsForEvent(eventId, { includeCancelled: true })
       : Promise.resolve([]),
     eventId ? listTicketTiersForEvent(eventId) : Promise.resolve([]),
     listEventsUserOptions(),
+    loadEventsEmailTemplates(),
   ])
 
   const tierTitle = new Map(tiers.map((t) => [t.id, t.title]))
@@ -50,8 +65,9 @@ export default async function EventsRegistrantsPage({
       <EventsAdminNav active="registrants" />
       <h2>Registrants</h2>
       <p className="lede admin-lede">
-        Search an event, then <strong>Add +</strong> / Edit / Delete registrants, or{' '}
-        <strong>Export CSV</strong> for the selected event. Door check-in:{' '}
+        Search an event, then <strong>Add +</strong> / Edit / Delete registrants,{' '}
+        <strong>Export CSV</strong>, or <strong>Email registrants</strong> (paced via{' '}
+        <Link href="/admin/email/broadcasts">Email → Broadcasts</Link>). Door check-in:{' '}
         <Link
           href={
             eventId
@@ -104,6 +120,7 @@ export default async function EventsRegistrantsPage({
           createdAt: r.createdAt.toISOString(),
           checkedInAt: r.checkedInAt ? r.checkedInAt.toISOString() : null,
         }))}
+        emailTemplates={emailTemplates}
       />
     </section>
   )

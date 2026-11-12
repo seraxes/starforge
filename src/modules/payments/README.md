@@ -10,7 +10,7 @@ Shared Starforge commerce: cart, checkout, VAT-proof orders/invoices, offline + 
 - **Email Manager:** `product:payments/*` triggers — never `getMailer()` here
 - **Consumers:** Events / Shop / Subscriptions / Ads — line sources + fulfillment hooks only; pass optional `couponCode` into `startCheckout`
 - **Premium merchants:** own gateway + billing keys (`/admin/payments/merchant`); settle to their bank; flat sub unlock; no % fee for now
-- **Collect stub:** `sf_pay_collect_entitlements` is frozen. `product:subscriptions` will own plans, periods, and `canCollectPayments`. Do not add plan tables under `sf_pay_*`.
+- **Collect stub:** `sf_pay_collect_entitlements` is frozen. When `product:subscriptions` is enabled, `hasCollectCapability` reads entitlement `payments.collect`. When off, the stub / ACL auto-grant stays. Do not add plan tables under `sf_pay_*`.
 - **ASN currency:** Hero. Payments charges real money when someone buys that token. The balance, earn actions, and spend (services, subscriptions, selected events) stay out of `sf_pay_*`.
 
 See [.cursor/rules/sf-payments-module.mdc](../../../.cursor/rules/sf-payments-module.mdc), [payments-cart-plan.md](../../../docs/project-context/docs/payments-cart-plan.md), [payments-merchant-plan.md](../../../docs/project-context/docs/payments-merchant-plan.md).
@@ -76,6 +76,8 @@ Consumers must not build coupon tables. Deep-link admin to `/admin/payments/coup
 ## Public checkout handoff
 
 `/[locale]/checkout/[orderId]` — consumers return this same-origin path after `startCheckout`. Gateway orders redirect to the stored provider URL; offline orders show the payment reference and instructions snapshotted on the order (`metadata.offlineInstructions`).
+
+Online orders (`barion`, `stripe`, `paypal`) in `checkout_pending` or `redirected_provider` expire at `expiresAt` (`checkoutTtlMinutes`, default 60). `expireAbandonedOnlineCheckouts` sets `expired`, sends `product:payments/expired`, and runs the consumer hook — the same path as a provider cancel. A later verified provider `succeeded` result may still revive an `expired` order via `transitionToPaid` (late webhook). Offline methods (`bank_transfer`, `pay_at_entrance`, `cash`) stay `awaiting_offline` until staff mark paid. Events calls this from its checkout-hold sweep.
 
 ## Refunds (connector stub)
 

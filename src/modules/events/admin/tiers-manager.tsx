@@ -46,6 +46,8 @@ type TierRow = {
   capacity: number | null
   maxPerBooking: number | null
   price: number | null
+  memberPrice: number | null
+  groupPrices: Array<{ groupId: string; price: number }>
   priceModifier: number
   priceModifierMode: PriceAdjustMode
   priceLabel: string
@@ -190,6 +192,34 @@ function TierFields({
             disabled={busy}
             placeholder="Event base"
             title="This ticket type's price. Empty uses the event base price."
+          />
+        </label>
+        <label className="settings-field sf-events-tiers-num-field">
+          <span>Member price</span>
+          <input
+            type="number"
+            name="memberPrice"
+            step={1}
+            defaultValue={row?.memberPrice ?? ''}
+            disabled={busy}
+            placeholder="Optional"
+            title="When the buyer has player premium (events.member). Empty = no member override."
+          />
+        </label>
+        <label className="settings-field sf-events-tiers-price-field">
+          <span>Group prices</span>
+          <input
+            type="text"
+            name="groupPrices"
+            defaultValue={
+              row?.groupPrices?.length
+                ? row.groupPrices.map((g) => `${g.groupId}=${g.price}`).join(', ')
+                : ''
+            }
+            disabled={busy}
+            autoComplete="off"
+            placeholder="groupId=price, …"
+            title="First matching subscription audience group wins. Format: groupId=price"
           />
         </label>
         <label className="settings-field sf-events-tiers-num-field">

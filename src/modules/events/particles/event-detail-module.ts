@@ -7,9 +7,11 @@ import { withLocalePrefix } from '@/core/i18n/path'
 import type { StarforgeModule } from '@/core/modules/types'
 import { MODULE_IDS, isCatalogModuleEnabled } from '@/core/settings'
 
+import { findEventCategoryById, publicCategoryLabel } from '../categories'
 import { listEventPartiesByIds } from '../parties'
 import {
-  viewerPassesEventAcl,
+  filterDiscoverableEvents,
+  viewerPassesEventVisibility,
   viewerPassesEventPassword,
 } from '../public-access'
 import { listPublicTicketTiersForEvent } from '../public-tiers'
@@ -19,6 +21,7 @@ import {
 } from '../public/EventDetail'
 import { EventPasswordGate } from '../public/EventPasswordGate'
 import { eventPublicPathKey } from '../public/path'
+import { signupStatusFromRegistrationStatus } from '../public/signup-status'
 import {
   countRegisteredGuests,
   findActiveRegistrationForUserOnEvent,
@@ -67,7 +70,7 @@ export const eventDetailModule: StarforgeModule = {
     }
 
     const viewer = await getAccessViewer()
-    if (!viewerPassesEventAcl(event, viewer)) {
+    if (!(await viewerPassesEventVisibility(event, viewer))) {
       return null
     }
     if (!(await viewerPassesEventPassword(event, viewer))) {
@@ -107,15 +110,8 @@ export const eventDetailModule: StarforgeModule = {
       `/events/${encodeURIComponent(eventPublicPathKey(event))}`,
       locale,
     )
-    const relatedById = new Map(
-      relatedRows
-        .flatMap((r) =>
-          r && r.status === 'published' && r.listed && viewerPassesEventAcl(r, viewer)
-            ? [r]
-            : [],
-        )
-        .map((r) => [r.id, r] as const),
-    )
+    const relatedVisible = await filterDiscoverableEvents(relatedRows, viewer)
+    const relatedById = new Map(relatedVisible.map((r) => [r.id, r] as const))
     const relatedEvents = relatedEventLinksFromRecords(
       event.relatedEventIds,
       relatedById,
@@ -125,18 +121,23 @@ export const eventDetailModule: StarforgeModule = {
           locale,
         ),
     )
-    const signupStatus =
-      myReg?.status === 'waitlisted'
-        ? 'waitlisted'
-        : myReg?.status === 'registered'
-          ? 'registered'
-          : 'none'
+    const signupStatus = signupStatusFromRegistrationStatus(myReg?.status)
     const manageHref = myReg ? `${eventPath}/registration` : ''
+
+    const category = event.categoryId
+      ? await findEventCategoryById(event.categoryId)
+      : null
+    const categoryLink =
+      category && category.published
+        ? await publicCategoryLabel(category, locale)
+        : null
 
     return React.createElement(EventDetail, {
       event,
       venueName: venue?.name,
       venueAddress: venue?.address,
+      categoryTitle: categoryLink?.title,
+      categoryHref: categoryLink?.href,
       location: {
         name: venue?.name,
         address: venue?.address,

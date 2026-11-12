@@ -1,7 +1,10 @@
 /**
  * Ticket price quote. Major units, integer.
- * Percent adjustments are of the base price only (they do not compound).
- * Checkout must call this server-side — never trust a client total.
+ * Percent is of the price in effect (event base, or the ticket-type price that
+ * replaced it). Adjustments do not compound on each other.
+ * One time-left band applies: the shortest window that still contains the time left.
+ * Sold-count stays a single rule.
+ * Checkout must call quoteTierMajor server-side — never trust a client total.
  */
 
 export type PriceAdjustMode = 'amount' | 'percent'
@@ -21,12 +24,17 @@ export type TierSoldPriceRule = {
   value: number
 }
 
+/** Add-button cap on the Pricing card. Stored lists are not truncated. */
+export const MAX_TIME_PRICE_BANDS = 24
+
 export type TierPriceRules = {
-  time: TierTimePriceRule | null
+  /** Time-left bands. Shortest matching window wins; wider windows do not stack. */
+  time: TierTimePriceRule[]
+  /** Single sold-count rule. */
   sold: TierSoldPriceRule | null
 }
 
-export const EMPTY_TIER_PRICE_RULES: TierPriceRules = { time: null, sold: null }
+export const EMPTY_TIER_PRICE_RULES: TierPriceRules = { time: [], sold: null }
 
 export type PriceModifier = {
   mode: PriceAdjustMode
@@ -58,6 +66,8 @@ export function formatPriceModifierInput(mod: PriceModifier | null | undefined):
   return mod.mode === 'percent' ? `${mod.value}%` : String(mod.value)
 }
 
+export type TierGroupPrice = { groupId: string; price: number }
+
 export type QuoteTierPriceInput = {
   /** Event base (individual price). Used when the ticket type has no price. */
   eventPrice?: number | null
@@ -66,13 +76,24 @@ export type QuoteTierPriceInput = {
    * (Event Booking: the type price is what that slot costs).
    */
   price: number | null
+  /** Optional member price when the buyer has player-premium (`events.member`). */
+  memberPrice?: number | null
+  /** Optional group prices — first matching audience groupId wins. */
+  groupPrices?: TierGroupPrice[] | null
+  /** Active subscription audience group ids for the buyer (from resolveAudience). */
+  audienceGroupIds?: string[] | null
+  /** True when the buyer has `events.member`. */
+  hasMemberEntitlement?: boolean
   /**
    * Ticket-type modifier. Amount is added; percent is of the price in effect
    * (event base or the type price that replaced it).
    */
   priceModifier?: number | PriceModifier
   priceModifierMode?: PriceAdjustMode
-  /** Event-level time and sold rules. Percent is of the price in effect. */
+  /**
+   * Event-level time bands and the single sold rule.
+   * Percent is of the price in effect.
+   */
   rules?: TierPriceRules | null
   startsAt?: Date | null
   now?: Date
@@ -82,6 +103,44 @@ export type QuoteTierPriceInput = {
   capacity?: number | null
   /** Extra major units from the registration form (options / checkbox). */
   formAddonMajor?: number
+}
+
+/**
+ * Pick the tier base before modifiers: first matching group price, else member,
+ * else the public type/event price. Returns null when no public base exists and
+ * no audience override applies.
+ */
+export function resolveAudienceTierBase(input: {
+  price: number | null
+  eventPrice?: number | null
+  memberPrice?: number | null
+  groupPrices?: TierGroupPrice[] | null
+  audienceGroupIds?: string[] | null
+  hasMemberEntitlement?: boolean
+}): number | null {
+  const audience = new Set(
+    (input.audienceGroupIds || []).map((g) => g.trim()).filter(Boolean),
+  )
+  const groups = Array.isArray(input.groupPrices) ? input.groupPrices : []
+  for (const row of groups) {
+    const gid = String(row.groupId ?? '').trim()
+    if (!gid || !audience.has(gid)) continue
+    if (typeof row.price === 'number' && Number.isFinite(row.price)) {
+      return Math.trunc(row.price)
+    }
+  }
+  if (
+    input.hasMemberEntitlement &&
+    typeof input.memberPrice === 'number' &&
+    Number.isFinite(input.memberPrice)
+  ) {
+    return Math.trunc(input.memberPrice)
+  }
+  if (input.price != null && Number.isFinite(input.price)) return Math.trunc(input.price)
+  if (input.eventPrice != null && Number.isFinite(input.eventPrice)) {
+    return Math.trunc(input.eventPrice)
+  }
+  return null
 }
 
 function resolvePriceModifier(input: QuoteTierPriceInput): PriceModifier {
@@ -115,17 +174,20 @@ export function quoteTierMajor(input: QuoteTierPriceInput): number {
     typeof input.formAddonMajor === 'number' && Number.isFinite(input.formAddonMajor)
       ? asInt(input.formAddonMajor)
       : 0
-  const typePrice = input.price == null ? null : asInt(input.price)
-  const eventPrice =
-    input.eventPrice == null || !Number.isFinite(input.eventPrice)
-      ? null
-      : asInt(input.eventPrice)
+  const audienceBase = resolveAudienceTierBase({
+    price: input.price,
+    eventPrice: input.eventPrice,
+    memberPrice: input.memberPrice,
+    groupPrices: input.groupPrices,
+    audienceGroupIds: input.audienceGroupIds,
+    hasMemberEntitlement: input.hasMemberEntitlement,
+  })
   const mod = resolvePriceModifier(input)
-  if (typePrice == null && eventPrice == null) {
+  if (audienceBase == null) {
     return form + (mod.mode === 'amount' ? mod.value : 0)
   }
 
-  const base = typePrice ?? eventPrice ?? 0
+  const base = audienceBase
   const fixed = adjust(base, mod.mode, mod.value)
   const rules = input.rules ?? EMPTY_TIER_PRICE_RULES
   let timeAdj = 0
@@ -133,11 +195,11 @@ export function quoteTierMajor(input: QuoteTierPriceInput): number {
 
   const startsAt = input.startsAt ?? null
   const now = input.now ?? new Date()
-  if (rules.time && startsAt && !Number.isNaN(startsAt.getTime())) {
+  const bands = normalizeTimeBands(rules.time)
+  if (bands.length > 0 && startsAt && !Number.isNaN(startsAt.getTime())) {
     const remainingMin = (startsAt.getTime() - now.getTime()) / 60_000
-    if (remainingMin <= rules.time.withinMinutes) {
-      timeAdj = adjust(base, rules.time.mode, rules.time.value)
-    }
+    const band = activeTimeBand(bands, remainingMin)
+    if (band) timeAdj = adjust(base, band.mode, band.value)
   }
 
   if (rules.sold) {
@@ -173,9 +235,37 @@ export function parseTierPriceRules(raw: unknown): TierPriceRules {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return EMPTY_TIER_PRICE_RULES
   const row = raw as Record<string, unknown>
   return {
-    time: parseTimeRule(row.time),
+    time: normalizeTimeBands(row.time),
     sold: parseSoldRule(row.sold),
   }
+}
+
+/**
+ * Accept a stored list, or the legacy single `{ time: rule | null }` object.
+ * Invalid entries are dropped. Order is kept (equal windows: last one wins at quote).
+ */
+function normalizeTimeBands(raw: unknown): TierTimePriceRule[] {
+  if (raw == null) return []
+  const items = Array.isArray(raw) ? raw : [raw]
+  const bands: TierTimePriceRule[] = []
+  for (const item of items) {
+    const band = parseTimeRule(item)
+    if (band) bands.push(band)
+  }
+  return bands
+}
+
+/** Shortest window that still contains `remainingMin`. Equal windows: last in list. */
+function activeTimeBand(
+  bands: TierTimePriceRule[],
+  remainingMin: number,
+): TierTimePriceRule | null {
+  let best: TierTimePriceRule | null = null
+  for (const band of bands) {
+    if (remainingMin > band.withinMinutes) continue
+    if (!best || band.withinMinutes <= best.withinMinutes) best = band
+  }
+  return best
 }
 
 function parseTimeRule(raw: unknown): TierTimePriceRule | null {
@@ -204,28 +294,49 @@ function parseSoldRule(raw: unknown): TierSoldPriceRule | null {
   }
 }
 
-/** Admin form → stored rules. Unchecked axes are cleared. */
+function formList(
+  formData: {
+    get(name: string): FormDataEntryValue | null
+    getAll?(name: string): FormDataEntryValue[]
+  },
+  name: string,
+): string[] {
+  if (typeof formData.getAll === 'function') {
+    return formData.getAll(name).map((value) => String(value ?? ''))
+  }
+  const one = formData.get(name)
+  return one == null ? [] : [String(one)]
+}
+
+/** Admin form → stored rules. Blank time rows are dropped. Sold stays one rule. */
 export function priceRulesFromForm(formData: {
   get(name: string): FormDataEntryValue | null
+  getAll?(name: string): FormDataEntryValue[]
 }): TierPriceRules {
-  const timeOn = formData.get('timeRuleEnabled') === '1'
+  const hoursList = formList(formData, 'timeRuleWithinHours')
+  const modeList = formList(formData, 'timeRuleMode')
+  const valueList = formList(formData, 'timeRuleValue')
+  const count = Math.max(hoursList.length, modeList.length, valueList.length)
+  const time: TierTimePriceRule[] = []
+  for (let i = 0; i < count; i++) {
+    const mode = parseMode(modeList[i])
+    const withinHours = parseNumber(hoursList[i])
+    const timeValue = parseNumber(valueList[i])
+    if (!mode || withinHours == null || withinHours <= 0 || timeValue == null) continue
+    const withinMinutes = Math.round(withinHours * 60)
+    if (withinMinutes <= 0) continue
+    time.push({
+      withinMinutes,
+      mode,
+      value: Math.trunc(timeValue),
+    })
+  }
+
   const soldOn = formData.get('soldRuleEnabled') === '1'
-  const timeMode = parseMode(formData.get('timeRuleMode'))
   const soldMode = parseMode(formData.get('soldRuleMode'))
-  const withinHours = parseNumber(formData.get('timeRuleWithinHours'))
-  const timeValue = parseNumber(formData.get('timeRuleValue'))
   const soldThreshold = parseNumber(formData.get('soldRuleThreshold'))
   const soldValue = parseNumber(formData.get('soldRuleValue'))
   const soldBasis = formData.get('soldRuleBasis') === 'percent' ? 'percent' : 'count'
-
-  const time: TierTimePriceRule | null =
-    timeOn && timeMode && withinHours != null && withinHours > 0 && timeValue != null
-      ? {
-          withinMinutes: Math.round(withinHours * 60),
-          mode: timeMode,
-          value: Math.trunc(timeValue),
-        }
-      : null
 
   const sold: TierSoldPriceRule | null =
     soldOn && soldMode && soldThreshold != null && soldThreshold >= 0 && soldValue != null

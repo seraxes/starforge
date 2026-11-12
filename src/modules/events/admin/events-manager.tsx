@@ -29,6 +29,7 @@ type EventRow = {
   timezone: string
   venueId: string
   venueName?: string
+  categoryTitle?: string
   description: string
   coverMediaId: string
   capacity: number | null
@@ -37,6 +38,7 @@ type EventRow = {
   listed?: boolean
   accessTags: string[]
   registeredGuests?: number
+  pendingGuests?: number
   waitlistedGuests?: number
   updatedAt: string
 }
@@ -63,6 +65,8 @@ type IdOpt = { id: string; label: string }
 type Props = {
   events: EventRow[]
   venues: VenueOpt[]
+  categories?: IdOpt[]
+  forms?: IdOpt[]
   groups: UserGroupOption[]
   users?: IdOpt[]
   parties?: IdOpt[]
@@ -118,6 +122,8 @@ function formatAccess(tags: string[]): string {
 export function EventsManager({
   events,
   venues,
+  categories = [],
+  forms = [],
   groups,
   users = [],
   parties = [],
@@ -226,6 +232,8 @@ export function EventsManager({
             </div>
             <EventFormFields
               venues={venues}
+              categories={categories}
+              forms={forms}
               groups={groups}
               users={users}
               parties={parties}
@@ -366,6 +374,7 @@ export function EventsManager({
                   <th scope="col">Venue</th>
                   <th scope="col">Capacity</th>
                   <th scope="col">Registrants</th>
+                  <th scope="col">Pending</th>
                   <th scope="col">Waitlist</th>
                   <th scope="col">Access</th>
                   <th scope="col">Listed</th>
@@ -383,6 +392,9 @@ export function EventsManager({
                       >
                         {row.title}
                       </Link>
+                      {row.categoryTitle ? (
+                        <span className="settings-hint">{row.categoryTitle}</span>
+                      ) : null}
                     </td>
                     <td className="sf-events-list-num">{formatWhen(row.startsAt)}</td>
                     <td>{row.venueName?.trim() || '—'}</td>
@@ -394,6 +406,13 @@ export function EventsManager({
                         href={`/admin/events/registrants?eventId=${encodeURIComponent(row.id)}`}
                       >
                         {row.registeredGuests ?? 0}
+                      </Link>
+                    </td>
+                    <td className="sf-events-list-num">
+                      <Link
+                        href={`/admin/events/registrants?eventId=${encodeURIComponent(row.id)}`}
+                      >
+                        {row.pendingGuests ?? 0}
                       </Link>
                     </td>
                     <td className="sf-events-list-num">

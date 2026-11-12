@@ -21,6 +21,8 @@ export {
   applyProviderPaymentResult,
   createCart,
   getCartWithLines,
+  expireAbandonedOnlineCheckouts,
+  getOrderCheckoutStates,
   getOrderGrossByIds,
   getOrderWithLines,
   getPaymentsSettings,
@@ -34,6 +36,7 @@ export {
   verifyAndCaptureOrder,
 } from './store'
 export type {
+  OrderCheckoutState,
   OrderGrossSnapshot,
   RequestOrderRefundInput,
   RequestOrderRefundResult,

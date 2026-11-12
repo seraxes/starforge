@@ -70,6 +70,11 @@ export type {
   FormSubmitActionState,
 } from './types'
 
+export async function listFormDefinitions() {
+  const { listFormDefinitions: list } = await import('./definitions-store')
+  return list()
+}
+
 export async function loadFormDefinition(formId: string): Promise<FormDefinitionLoadResult> {
   const { loadFormDefinition: load } = await import('./definitions-store')
   return load(formId)

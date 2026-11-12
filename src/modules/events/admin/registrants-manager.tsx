@@ -9,7 +9,9 @@ import { useNotifySavedOnOk } from '@/app/(frontend)/admin/admin-toast'
 import {
   createRegistrationAdminAction,
   deleteRegistrationAdminAction,
+  emailEventRegistrantsAction,
   updateRegistrationAdminAction,
+  updateRegistrationStatusAction,
   type EventsAdminActionState,
 } from '../actions'
 
@@ -43,15 +45,18 @@ type RegistrantRow = {
   checkedInAt: string | null
 }
 
+type EmailTemplateOpt = { id: string; label: string }
+
 type Props = {
   events: EventOpt[]
   eventId: string
   registrants: RegistrantRow[]
   tiers: TierOpt[]
   users: UserOpt[]
+  emailTemplates?: EmailTemplateOpt[]
 }
 
-const STATUSES = ['registered', 'waitlisted', 'cancelled'] as const
+const STATUSES = ['registered', 'pending', 'waitlisted', 'cancelled'] as const
 const ATTENDANCES = ['in_person', 'online', 'hybrid'] as const
 
 const initial: EventsAdminActionState = {}
@@ -446,6 +451,7 @@ export function RegistrantsManager({
   registrants,
   tiers,
   users,
+  emailTemplates = [],
 }: Props) {
   const router = useRouter()
   const [createOpen, setCreateOpen] = useState(false)
@@ -464,10 +470,20 @@ export function RegistrantsManager({
     deleteRegistrationAdminAction,
     initial,
   )
+  const [statusState, statusAction, statusPending] = useActionState(
+    updateRegistrationStatusAction,
+    initial,
+  )
+  const [emailState, emailAction, emailPending] = useActionState(
+    emailEventRegistrantsAction,
+    initial,
+  )
 
   useNotifySavedOnOk(createState)
   useNotifySavedOnOk(updateState)
   useNotifySavedOnOk(deleteState)
+  useNotifySavedOnOk(statusState)
+  useNotifySavedOnOk(emailState)
 
   useEffect(() => {
     if (createState.ok) {
@@ -476,17 +492,22 @@ export function RegistrantsManager({
       router.refresh()
       return
     }
-    if (updateState.ok || deleteState.ok) {
+    if (updateState.ok || deleteState.ok || statusState.ok || emailState.ok) {
       if (deleteState.ok) setEditingId(null)
       router.refresh()
     }
-  }, [createState, updateState, deleteState, router])
+  }, [createState, updateState, deleteState, statusState, emailState, router])
 
   useEffect(() => {
     if (createState.error) setCreateOpen(true)
   }, [createState.error])
 
-  const busy = createPending || updatePending || deletePending
+  const busy =
+    createPending || updatePending || deletePending || statusPending || emailPending
+  const registeredCount = useMemo(
+    () => registrants.filter((r) => r.status === 'registered' && r.email.includes('@')).length,
+    [registrants],
+  )
   const active = events.find((e) => e.id === eventId)
   const editing = editingId
     ? registrants.find((r) => r.id === editingId)
@@ -541,12 +562,44 @@ export function RegistrantsManager({
             >
               Door check-in
             </Link>
+            <form action={emailAction} className="sf-events-email-registrants-row gantry-inherit-copy-row-inline">
+              <input type="hidden" name="eventId" value={eventId} />
+              <label className="settings-field">
+                <span className="visually-hidden">Email template</span>
+                <select
+                  name="templateId"
+                  defaultValue={emailTemplates[0]?.id || ''}
+                  disabled={busy || emailTemplates.length === 0 || registeredCount === 0}
+                  aria-label="Email template for registrants"
+                  title="Email template"
+                >
+                  {emailTemplates.length === 0 ? (
+                    <option value="">No Email Manager templates</option>
+                  ) : (
+                    emailTemplates.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.label}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </label>
+              <button
+                type="submit"
+                className="gantry-toolbar-btn"
+                disabled={busy || emailTemplates.length === 0 || registeredCount === 0}
+                title={`Email ${registeredCount} registered attendees (paced via Email Manager)`}
+              >
+                {emailPending ? 'Queuing…' : `Email registrants (${registeredCount})`}
+              </button>
+            </form>
             {!createOpen ? (
               <p className="settings-hint sf-events-add-hint">
                 Manually add a registrant for {active?.title || 'this event'}.
               </p>
             ) : null}
           </div>
+          <Feedback state={emailState} />
 
           {createOpen ? (
             <form
@@ -586,6 +639,7 @@ export function RegistrantsManager({
 
       <Feedback state={updateState} />
       <Feedback state={deleteState} />
+      <Feedback state={statusState} />
 
       {!eventId || events.length === 0 ? null : registrants.length === 0 ? (
         <section className="outlines-create" aria-label="Registrants list">
@@ -668,6 +722,19 @@ export function RegistrantsManager({
                       </td>
                       <td>
                         <div className="admin-action-row sf-events-list-row-actions">
+                          {row.status === 'pending' ? (
+                            <form action={statusAction}>
+                              <input type="hidden" name="id" value={row.id} />
+                              <input type="hidden" name="status" value="registered" />
+                              <button
+                                type="submit"
+                                className="gantry-toolbar-btn gantry-toolbar-btn-save"
+                                disabled={busy}
+                              >
+                                {statusPending ? '…' : 'Approve'}
+                              </button>
+                            </form>
+                          ) : null}
                           <button
                             type="button"
                             className="gantry-toolbar-btn gantry-toolbar-btn-muted"

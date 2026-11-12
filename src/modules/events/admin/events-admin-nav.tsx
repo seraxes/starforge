@@ -5,6 +5,7 @@ import Link from 'next/link'
 
 export type EventsAdminTab =
   | 'events'
+  | 'categories'
   | 'venues'
   | 'parties'
   | 'tiers'
@@ -18,6 +19,12 @@ const TABS: { id: EventsAdminTab; label: string; href: string; title: string }[]
     label: 'Events',
     href: '/admin/events',
     title: 'Event list and edit',
+  },
+  {
+    id: 'categories',
+    label: 'Categories',
+    href: '/admin/events/categories',
+    title: 'Event categories, ACL, and registration forms',
   },
   {
     id: 'venues',

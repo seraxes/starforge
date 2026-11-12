@@ -280,6 +280,30 @@ export const BUILTIN_EMAIL_TRIGGERS: readonly EmailTriggerDef[] = [
     description: 'TTL expiry or buyer cancelled provider checkout.',
     payloadFields: ['orderId', 'buyerEmail', 'reason'],
   },
+  {
+    key: 'product:subscriptions/activated',
+    label: 'Subscription activated',
+    moduleCategory: 'subscriptions',
+    moduleId: 'product:subscriptions',
+    description: 'Fired when a subscription period opens or extends after paid checkout or admin comp.',
+    payloadFields: [
+      'orderId',
+      'periodId',
+      'planId',
+      'userId',
+      'subject',
+      'endsAt',
+      'entitlementKeys',
+    ],
+  },
+  {
+    key: 'product:subscriptions/expired',
+    label: 'Subscription expired / refunded',
+    moduleCategory: 'subscriptions',
+    moduleId: 'product:subscriptions',
+    description: 'Fired when a period ends (TTL, order expire/refund, or expiry sweep).',
+    payloadFields: ['orderId', 'status', 'endedCount', 'reason', 'at'],
+  },
 ] as const
 
 const BY_KEY = new Map(BUILTIN_EMAIL_TRIGGERS.map((t) => [t.key, t]))

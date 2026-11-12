@@ -11,6 +11,7 @@ import { withLocalePrefix } from '@/core/i18n/path'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { formatEventWhen } from '@/modules/events/public/format'
 import { eventPublicPathKey } from '@/modules/events/public/path'
+import { registrationStatusLabel } from '@/modules/events/registration-status'
 import { listActiveRegistrationsForUser } from '@/modules/events/registrations'
 import { findEventById } from '@/modules/events/store'
 import { findTicketTierById } from '@/modules/events/tiers'
@@ -39,6 +40,7 @@ export default async function AccountEventsPage({ params }: Args) {
 
   const userId = String(session.user.id).trim()
   const profilesOn = isCatalogModuleEnabled(settings, MODULE_IDS.profiles)
+  const subscriptionsOn = isCatalogModuleEnabled(settings, MODULE_IDS.subscriptions)
   const [regs, profile] = await Promise.all([
     listActiveRegistrationsForUser(userId),
     profilesOn ? ensureProfile(userId) : Promise.resolve(null),
@@ -63,12 +65,7 @@ export default async function AccountEventsPage({ params }: Args) {
         when: event.startsAt
           ? formatEventWhen(event.startsAt, event.endsAt, event.timezone)
           : '',
-        status:
-          reg.status === 'waitlisted'
-            ? 'On waitlist'
-            : reg.status === 'pending_payment'
-              ? 'Pending payment'
-              : 'Registered',
+        status: registrationStatusLabel(reg.status),
         tierTitle: tier?.title || '',
         eventHref,
         manageHref,
@@ -87,6 +84,7 @@ export default async function AccountEventsPage({ params }: Args) {
           active="events"
           locale={locale}
           handle={profile?.handle}
+          showSubscriptions={subscriptionsOn}
         />
       ) : null}
       <p className="lede">

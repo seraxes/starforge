@@ -50,6 +50,8 @@ export default async function EventsTiersPage({
       capacity: t.capacity,
       maxPerBooking: t.maxPerBooking,
       price: t.price,
+      memberPrice: t.memberPrice,
+      groupPrices: t.groupPrices,
       priceModifier: t.priceModifier,
       priceModifierMode: t.priceModifierMode,
       priceLabel: t.priceLabel,

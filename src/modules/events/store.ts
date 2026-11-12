@@ -22,6 +22,7 @@ import {
 } from './price-rules'
 
 import { hashEventPassword } from './access-password'
+import { assertRegistrationFormId, findEventCategoryById } from './categories'
 import { sfEvents, sfVenues } from './schema'
 import {
   EVENT_COVER_MEDIA_MAX,
@@ -121,6 +122,7 @@ function mapEvent(row: typeof sfEvents.$inferSelect): EventRecord {
         ? Math.floor(row.capacity)
         : null,
     waitlistEnabled: row.waitlistEnabled !== false,
+    requireApproval: row.requireApproval === true,
     registrationOpensAt: row.registrationOpensAt ?? null,
     registrationClosesAt: row.registrationClosesAt ?? null,
     cancellationClosesAt: row.cancellationClosesAt ?? null,
@@ -138,6 +140,8 @@ function mapEvent(row: typeof sfEvents.$inferSelect): EventRecord {
     termsUrl: (row.termsUrl || '').trim().slice(0, 2000),
     listed: row.listed !== false,
     featured: row.featured === true,
+    categoryId: (row.categoryId || '').trim(),
+    registrationFormId: (row.registrationFormId || '').trim(),
     hasAccessPassword: Boolean((row.accessPasswordHash || '').trim()),
     accessTags: normalizeAccessTags({ accessTags: row.accessTags }),
     createdAt: row.createdAt,
@@ -487,6 +491,7 @@ export type UpsertEventInput = {
   galleryMediaIds?: unknown
   capacity?: unknown
   waitlistEnabled?: unknown
+  requireApproval?: unknown
   registrationOpensAt?: unknown
   registrationClosesAt?: unknown
   cancellationClosesAt?: unknown
@@ -505,6 +510,8 @@ export type UpsertEventInput = {
   termsUrl?: unknown
   listed?: unknown
   featured?: unknown
+  categoryId?: unknown
+  registrationFormId?: unknown
   /** Plaintext from admin form — hashed before persist; empty = leave unchanged on update. */
   accessPassword?: unknown
   clearAccessPassword?: unknown
@@ -522,6 +529,16 @@ function parseOptionalIdList(raw: unknown): string[] {
     }
   }
   return normalizeIdList(raw)
+}
+
+async function resolveCategoryId(
+  raw: unknown,
+): Promise<{ id: string | null } | { error: string }> {
+  const id = String(raw ?? '').trim()
+  if (!id) return { id: null }
+  const category = await findEventCategoryById(id)
+  if (!category) return { error: 'Selected category was not found.' }
+  return { id }
 }
 
 export async function createEvent(
@@ -547,6 +564,7 @@ export async function createEvent(
   const galleryMediaIds = normalizeGalleryIds(input.galleryMediaIds)
   const capacity = parseOptionalCapacity(input.capacity)
   const waitlistEnabled = parseListedFlag(input.waitlistEnabled, true)
+  const requireApproval = parseListedFlag(input.requireApproval, false)
   const startsAt = parseOptionalDate(input.startsAt)
   const endsAt = parseOptionalDate(input.endsAt)
   const registrationOpensAt = parseOptionalDate(input.registrationOpensAt)
@@ -568,6 +586,10 @@ export async function createEvent(
   const termsUrl = String(input.termsUrl ?? '').trim().slice(0, 2000)
   const listed = parseListedFlag(input.listed, true)
   const featured = parseListedFlag(input.featured, false)
+  const category = await resolveCategoryId(input.categoryId)
+  if ('error' in category) return category
+  const registrationForm = await assertRegistrationFormId(input.registrationFormId)
+  if ('error' in registrationForm) return registrationForm
   const plainPassword = String(input.accessPassword ?? '')
   const accessPasswordHash =
     plainPassword.trim().length > 0 ? hashEventPassword(plainPassword.trim()) : null
@@ -610,6 +632,7 @@ export async function createEvent(
       galleryMediaIds,
       capacity,
       waitlistEnabled,
+      requireApproval,
       registrationOpensAt,
       registrationClosesAt,
       cancellationClosesAt,
@@ -627,6 +650,8 @@ export async function createEvent(
       termsUrl,
       listed,
       featured,
+      categoryId: category.id,
+      registrationFormId: registrationForm.id,
       accessPasswordHash,
       accessTags,
     })
@@ -703,6 +728,10 @@ export async function updateEvent(
     input.waitlistEnabled !== undefined
       ? parseListedFlag(input.waitlistEnabled, current.waitlistEnabled)
       : current.waitlistEnabled
+  const requireApproval =
+    input.requireApproval !== undefined
+      ? parseListedFlag(input.requireApproval, current.requireApproval)
+      : current.requireApproval
   const startsAt =
     input.startsAt !== undefined ? parseOptionalDate(input.startsAt) : current.startsAt
   const endsAt =
@@ -774,6 +803,17 @@ export async function updateEvent(
     input.featured !== undefined
       ? parseListedFlag(input.featured, current.featured)
       : current.featured
+  const category =
+    input.categoryId !== undefined
+      ? await resolveCategoryId(input.categoryId)
+      : { id: current.categoryId || null }
+  if ('error' in category) return category
+  const registrationForm = await assertRegistrationFormId(
+    input.registrationFormId !== undefined
+      ? input.registrationFormId
+      : current.registrationFormId,
+  )
+  if ('error' in registrationForm) return registrationForm
   const clearPassword =
     input.clearAccessPassword === true ||
     input.clearAccessPassword === '1' ||
@@ -831,6 +871,7 @@ export async function updateEvent(
         galleryMediaIds,
         capacity,
         waitlistEnabled,
+        requireApproval,
         registrationOpensAt,
         registrationClosesAt,
         cancellationClosesAt,
@@ -848,6 +889,8 @@ export async function updateEvent(
         termsUrl,
         listed,
         featured,
+        categoryId: category.id,
+        registrationFormId: registrationForm.id,
         ...(accessPasswordHash !== undefined ? { accessPasswordHash } : {}),
         accessTags,
       })
@@ -932,6 +975,7 @@ export async function duplicateEvent(
     galleryMediaIds: source.galleryMediaIds,
     capacity: source.capacity ?? '',
     waitlistEnabled: source.waitlistEnabled ? '1' : '0',
+    requireApproval: source.requireApproval ? '1' : '0',
     registrationOpensAt: source.registrationOpensAt?.toISOString() ?? '',
     registrationClosesAt: source.registrationClosesAt?.toISOString() ?? '',
     cancellationClosesAt: source.cancellationClosesAt?.toISOString() ?? '',
@@ -949,6 +993,8 @@ export async function duplicateEvent(
     termsUrl: source.termsUrl,
     listed: source.listed,
     featured: source.featured,
+    categoryId: source.categoryId,
+    registrationFormId: source.registrationFormId,
     accessTags: source.accessTags,
   })
   if ('error' in created) return created
@@ -1024,6 +1070,8 @@ export async function listPublishedEvents(options?: {
   listedOnly?: boolean
   /** When true, only events marked Featured (carousel particle). */
   featuredOnly?: boolean
+  /** Limit to one editorial category. Does not replace the featured flag. */
+  categoryId?: string
   limit?: number
   now?: Date
 }): Promise<EventRecord[]> {
@@ -1036,8 +1084,10 @@ export async function listPublishedEvents(options?: {
     const upcoming = or(isNull(sfEvents.startsAt), gte(sfEvents.startsAt, now))
     const listed = eq(sfEvents.listed, true)
     const featured = eq(sfEvents.featured, true)
+    const categoryId = (options?.categoryId || '').trim()
     let base = listedOnly ? and(published, listed) : published
     if (featuredOnly) base = and(base, featured)
+    if (categoryId) base = and(base, eq(sfEvents.categoryId, categoryId))
     const rows = await db
       .select()
       .from(sfEvents)

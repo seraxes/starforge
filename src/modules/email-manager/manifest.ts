@@ -20,6 +20,7 @@ export default defineStarforgeModule({
     { key: 'admin', label: 'Email rules', href: '/admin/email' },
     { key: 'templates', label: 'Email templates', href: '/admin/email/templates' },
     { key: 'sends', label: 'Email sends', href: '/admin/email/sends' },
+    { key: 'broadcasts', label: 'Email broadcasts', href: '/admin/email/broadcasts' },
   ],
   admin: {
     navGroup: {
@@ -52,6 +53,13 @@ export default defineStarforgeModule({
         order: 30,
         area: 'email-manager',
       },
+      {
+        group: 'email',
+        label: 'Broadcasts',
+        href: '/admin/email/broadcasts',
+        order: 40,
+        area: 'email-manager',
+      },
     ],
     areas: [{ key: 'email-manager', label: 'Email Manager' }],
     routes: [
@@ -68,6 +76,11 @@ export default defineStarforgeModule({
       {
         path: 'email/sends',
         pageImportPath: '@/modules/email-manager/admin/EmailSendsPage',
+        pageExportName: 'default',
+      },
+      {
+        path: 'email/broadcasts',
+        pageImportPath: '@/modules/email-manager/admin/EmailBroadcastsPage',
         pageExportName: 'default',
       },
     ],

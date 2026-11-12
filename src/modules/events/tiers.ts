@@ -17,6 +17,7 @@ import {
   type TierPriceRules,
 } from './price-rules'
 import { sfEventRegistrations, sfEventTicketTiers } from './schema'
+import { SEAT_HOLDING_STATUSES } from './registration-status'
 import { findEventById } from './store'
 import {
   DEFAULT_MAX_TICKETS_PER_BOOKING,
@@ -43,6 +44,10 @@ export type TicketTierRecord = {
   maxPerBooking: number | null
   /** Base price in major units; null = unset. */
   price: number | null
+  /** Member price when buyer has `events.member`; null = no override. */
+  memberPrice: number | null
+  /** Group prices `{ groupId, price }` — first matching audience group wins. */
+  groupPrices: Array<{ groupId: string; price: number }>
   /** Modifier value; mode is priceModifierMode (`500` amount vs `10%`). */
   priceModifier: number
   /** `amount` | `percent` — one admin field, trailing % switches mode. */
@@ -88,6 +93,11 @@ function mapTier(row: typeof sfEventTicketTiers.$inferSelect): TicketTierRecord 
       typeof row.price === 'number' && Number.isFinite(row.price)
         ? Math.floor(row.price)
         : null,
+    memberPrice:
+      typeof row.memberPrice === 'number' && Number.isFinite(row.memberPrice)
+        ? Math.floor(row.memberPrice)
+        : null,
+    groupPrices: parseGroupPrices(row.groupPrices),
     priceModifier:
       typeof row.priceModifier === 'number' && Number.isFinite(row.priceModifier)
         ? Math.floor(row.priceModifier)
@@ -128,6 +138,46 @@ function parsePrice(raw: unknown): number | null {
   const n = typeof raw === 'number' ? raw : Number(String(raw).trim())
   if (!Number.isFinite(n)) return null
   return Math.floor(n)
+}
+
+function parseGroupPrices(raw: unknown): Array<{ groupId: string; price: number }> {
+  if (!Array.isArray(raw)) return []
+  const out: Array<{ groupId: string; price: number }> = []
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue
+    const rec = item as { groupId?: unknown; price?: unknown }
+    const groupId = String(rec.groupId ?? '').trim()
+    const price = parsePrice(rec.price)
+    if (!groupId || price == null) continue
+    out.push({ groupId, price })
+  }
+  return out
+}
+
+/** Admin form: lines `groupId=price` or JSON array. */
+export function parseGroupPricesInput(raw: unknown): Array<{ groupId: string; price: number }> {
+  if (Array.isArray(raw)) return parseGroupPrices(raw)
+  const s = String(raw ?? '').trim()
+  if (!s) return []
+  if (s.startsWith('[')) {
+    try {
+      return parseGroupPrices(JSON.parse(s))
+    } catch {
+      return []
+    }
+  }
+  const out: Array<{ groupId: string; price: number }> = []
+  for (const line of s.split(/[\n,]+/)) {
+    const part = line.trim()
+    if (!part) continue
+    const eq = part.indexOf('=')
+    if (eq <= 0) continue
+    const groupId = part.slice(0, eq).trim()
+    const price = parsePrice(part.slice(eq + 1))
+    if (!groupId || price == null) continue
+    out.push({ groupId, price })
+  }
+  return out
 }
 
 
@@ -193,7 +243,7 @@ export async function countRegisteredGuestsForTier(
         and(
           eq(sfEventRegistrations.eventId, eventId.trim()),
           eq(sfEventRegistrations.ticketTierId, tierId.trim()),
-          inArray(sfEventRegistrations.status, ['registered', 'pending_payment']),
+          inArray(sfEventRegistrations.status, [...SEAT_HOLDING_STATUSES]),
         ),
       )
     return Number(row?.n) || 0
@@ -212,6 +262,8 @@ export type UpsertTicketTierInput = {
   capacity?: unknown
   maxPerBooking?: unknown
   price?: unknown
+  memberPrice?: unknown
+  groupPrices?: unknown
   priceModifier?: unknown
   priceLabel?: string
   priceRules?: TierPriceRules
@@ -236,6 +288,8 @@ export async function createTicketTier(
   const capacity = parseCapacity(input.capacity)
   const maxPerBooking = parseMaxPerBooking(input.maxPerBooking)
   const price = parsePrice(input.price)
+  const memberPrice = parsePrice(input.memberPrice)
+  const groupPrices = parseGroupPricesInput(input.groupPrices)
   const mod = parsePriceModifierInput(input.priceModifier)
   const priceLabel = (input.priceLabel || '').trim().slice(0, 80)
   const priceRules = input.priceRules ?? EMPTY_TIER_PRICE_RULES
@@ -262,6 +316,8 @@ export async function createTicketTier(
       capacity,
       maxPerBooking,
       price,
+      memberPrice,
+      groupPrices,
       priceModifier: mod.value,
       priceModifierMode: mod.mode,
       priceLabel,
@@ -315,6 +371,14 @@ export async function updateTicketTier(
       : current.maxPerBooking
   const price =
     input.price !== undefined ? parsePrice(input.price) : current.price
+  const memberPrice =
+    input.memberPrice !== undefined
+      ? parsePrice(input.memberPrice)
+      : current.memberPrice
+  const groupPrices =
+    input.groupPrices !== undefined
+      ? parseGroupPricesInput(input.groupPrices)
+      : current.groupPrices
   const mod =
     input.priceModifier !== undefined
       ? parsePriceModifierInput(input.priceModifier)
@@ -358,6 +422,8 @@ export async function updateTicketTier(
         capacity,
         maxPerBooking,
         price,
+        memberPrice,
+        groupPrices,
         priceModifier: mod.value,
         priceModifierMode: mod.mode,
         priceLabel,

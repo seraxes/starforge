@@ -1,5 +1,6 @@
 export {
   buildChromeConsentKey,
+  buildEventCategoryKey,
   buildLayoutSlotKey,
   buildNavItemKey,
   contentLocaleFileRefForKey,
@@ -8,6 +9,7 @@ export {
   sanitizeContentLocaleId,
   type ChromeConsentField,
   type ContentLocaleField,
+  type EventCategoryLocaleField,
   type ParsedContentLocaleKey,
 } from '../content-locale-keys'
 export {
@@ -32,6 +34,7 @@ export {
 } from './store'
 export {
   hydrateLocaleMapForKey,
+  syncEventCategoryLocalesToFiles,
   syncLayoutSlotLocalesToFiles,
   syncNavItemLocalesToFiles,
   syncSiteChromeConsentLocalesToFiles,

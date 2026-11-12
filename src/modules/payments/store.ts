@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { and, desc, eq, inArray, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, lte, sql } from 'drizzle-orm'
 import { randomBytes, randomUUID } from 'node:crypto'
 
 import { db } from '@/core/db'
@@ -15,6 +15,11 @@ import {
   type PaymentMethodKind,
 } from '@/core/payments'
 
+import {
+  ABANDONED_ONLINE_CHECKOUT_METHODS,
+  ABANDONED_ONLINE_CHECKOUT_STATUSES,
+  shouldExpireAbandonedOnlineCheckout,
+} from './checkout-expiry'
 import { runPaymentConsumerHook } from './consumer-hooks'
 import {
   recordCouponRedemption,
@@ -499,12 +504,18 @@ async function transitionToPaid(orderId: string, opts?: {
   } else if (
     order.status !== 'awaiting_offline' &&
     order.status !== 'redirected_provider' &&
-    order.status !== 'checkout_pending'
+    order.status !== 'checkout_pending' &&
+    // Late provider webhook after checkout TTL sweep — still honor verified money.
+    order.status !== 'expired'
   ) {
     return { ok: false, error: `Cannot mark paid from status ${order.status}` }
   }
 
   // Atomic claim — only one concurrent transition wins.
+  // Include `expired` so a late verified gateway success can revive a TTL-swept order.
+  const claimStatuses = opts?.offlineOnly
+    ? (['awaiting_offline'] as const)
+    : (['awaiting_offline', 'redirected_provider', 'checkout_pending', 'expired'] as const)
   const claimed = await db
     .update(sfPayOrders)
     .set({
@@ -517,9 +528,8 @@ async function transitionToPaid(orderId: string, opts?: {
     .where(
       and(
         eq(sfPayOrders.id, orderId),
-        // Still in a payable state at write time
-        // drizzle inArray for statuses
-        sql`${sfPayOrders.status} in ('awaiting_offline', 'redirected_provider', 'checkout_pending')`,
+        // Still in a payable (or reviveable) state at write time
+        inArray(sfPayOrders.status, [...claimStatuses]),
       ),
     )
     .returning({ id: sfPayOrders.id })
@@ -560,6 +570,7 @@ async function transitionToPaid(orderId: string, opts?: {
       sourceType: l.sourceType,
       sourceId: l.sourceId,
       qty: l.qty,
+      billingPeriod: l.billingPeriod ?? null,
       metadata: (l.metadata || {}) as Record<string, unknown>,
     })),
     metadata: (order.metadata || {}) as Record<string, unknown>,
@@ -874,33 +885,142 @@ export async function applyProviderPaymentResult(opts: {
     return r.ok ? { ok: true, orderId: order.id } : { ok: false, error: r.error, orderId: order.id }
   }
 
-  if (opts.status === 'failed' || opts.status === 'cancelled') {
+  if (opts.status === 'cancelled') {
+    if (order.status === 'paid' || order.status === 'fulfilled') {
+      return { ok: true, orderId: order.id }
+    }
+    const claimed = await claimOpenCheckoutExpired(order.id)
+    if (!claimed) return { ok: true, orderId: order.id }
+    await notifyCheckoutExpired(claimed, 'cancelled')
+    return { ok: true, orderId: order.id }
+  }
+
+  if (opts.status === 'failed') {
     if (order.status === 'paid' || order.status === 'fulfilled') {
       return { ok: true, orderId: order.id }
     }
     await db
       .update(sfPayOrders)
       .set({
-        status: opts.status === 'cancelled' ? 'expired' : 'failed',
+        status: 'failed',
         updatedAt: new Date(),
       })
       .where(eq(sfPayOrders.id, order.id))
-    await emitPaymentsEmail(
-      opts.status === 'cancelled' ? 'product:payments/expired' : 'product:payments/failed',
-      {
-        orderId: order.id,
-        buyerEmail: order.buyerEmail,
-        reason: opts.status,
-      },
-    )
+    await emitPaymentsEmail('product:payments/failed', {
+      orderId: order.id,
+      buyerEmail: order.buyerEmail,
+      reason: opts.status,
+    })
     await runPaymentConsumerHook(order.consumerHook, {
       orderId: order.id,
-      status: opts.status === 'cancelled' ? 'expired' : 'failed',
+      status: 'failed',
       lines: [],
       metadata: (order.metadata || {}) as Record<string, unknown>,
     })
   }
   return { ok: true, orderId: order.id }
+}
+
+/**
+ * Expire online gateway checkouts past `expiresAt` that never received a webhook.
+ * Pay-at-entrance, cash, and bank transfer stay `awaiting_offline`.
+ * Runs the same consumer hook as a provider cancel (`status: 'expired'`).
+ */
+export async function expireAbandonedOnlineCheckouts(
+  now = new Date(),
+): Promise<{ expired: number }> {
+  let rows: Array<{
+    id: string
+    status: string
+    method: string
+    expiresAt: Date | null
+  }>
+  try {
+    rows = await db
+      .select({
+        id: sfPayOrders.id,
+        status: sfPayOrders.status,
+        method: sfPayOrders.method,
+        expiresAt: sfPayOrders.expiresAt,
+      })
+      .from(sfPayOrders)
+      .where(
+        and(
+          inArray(sfPayOrders.status, [...ABANDONED_ONLINE_CHECKOUT_STATUSES]),
+          inArray(sfPayOrders.method, [...ABANDONED_ONLINE_CHECKOUT_METHODS]),
+          lte(sfPayOrders.expiresAt, now),
+        ),
+      )
+      .limit(200)
+  } catch {
+    return { expired: 0 }
+  }
+
+  let expired = 0
+  for (const row of rows) {
+    if (!shouldExpireAbandonedOnlineCheckout(row, now)) continue
+    const claimed = await claimOpenCheckoutExpired(row.id, ABANDONED_ONLINE_CHECKOUT_METHODS)
+    if (!claimed) continue
+    expired += 1
+    try {
+      await notifyCheckoutExpired(claimed, 'checkout_ttl')
+    } catch (error) {
+      console.error('[payments] checkout expiry hook failed', claimed.id, error)
+    }
+  }
+  return { expired }
+}
+
+async function claimOpenCheckoutExpired(
+  orderId: string,
+  methods?: readonly string[],
+) {
+  const filters = [
+    eq(sfPayOrders.id, orderId),
+    inArray(sfPayOrders.status, [...ABANDONED_ONLINE_CHECKOUT_STATUSES]),
+  ]
+  if (methods && methods.length > 0) {
+    filters.push(inArray(sfPayOrders.method, [...methods]))
+  }
+  const claimed = await db
+    .update(sfPayOrders)
+    .set({ status: 'expired', updatedAt: new Date() })
+    .where(and(...filters))
+    .returning()
+  return claimed[0] ?? null
+}
+
+async function notifyCheckoutExpired(
+  order: {
+    id: string
+    buyerEmail: string
+    consumerHook: string | null
+    metadata: unknown
+  },
+  reason: string,
+): Promise<void> {
+  const lines = await db
+    .select()
+    .from(sfPayOrderLines)
+    .where(eq(sfPayOrderLines.orderId, order.id))
+  await emitPaymentsEmail('product:payments/expired', {
+    orderId: order.id,
+    buyerEmail: order.buyerEmail,
+    reason,
+  })
+  await runPaymentConsumerHook(order.consumerHook, {
+    orderId: order.id,
+    status: 'expired',
+    lines: lines.map((l) => ({
+      sourceModule: l.sourceModule,
+      sourceType: l.sourceType,
+      sourceId: l.sourceId,
+      qty: l.qty,
+      billingPeriod: l.billingPeriod ?? null,
+      metadata: (l.metadata || {}) as Record<string, unknown>,
+    })),
+    metadata: (order.metadata || {}) as Record<string, unknown>,
+  })
 }
 
 export async function verifyAndCaptureOrder(orderId: string) {
@@ -987,6 +1107,38 @@ export async function getOrderGrossByIds(
     }
   } catch {
     /* missing table → empty */
+  }
+  return map
+}
+
+export type OrderCheckoutState = {
+  status: string
+  method: string
+  expiresAt: Date | null
+}
+
+/** Batch checkout state for consumers releasing unpaid holds. */
+export async function getOrderCheckoutStates(
+  orderIds: string[],
+): Promise<Map<string, OrderCheckoutState>> {
+  const map = new Map<string, OrderCheckoutState>()
+  const ids = [...new Set(orderIds.map((id) => id.trim()).filter(Boolean))]
+  if (ids.length === 0) return map
+  const rows = await db
+    .select({
+      id: sfPayOrders.id,
+      status: sfPayOrders.status,
+      method: sfPayOrders.method,
+      expiresAt: sfPayOrders.expiresAt,
+    })
+    .from(sfPayOrders)
+    .where(inArray(sfPayOrders.id, ids))
+  for (const row of rows) {
+    map.set(row.id, {
+      status: row.status,
+      method: row.method,
+      expiresAt: row.expiresAt,
+    })
   }
   return map
 }

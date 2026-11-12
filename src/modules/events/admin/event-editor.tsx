@@ -29,6 +29,8 @@ type TierRow = {
   capacity: number | null
   maxPerBooking: number | null
   price: number | null
+  memberPrice: number | null
+  groupPrices: Array<{ groupId: string; price: number }>
   priceModifier: number
   priceModifierMode: 'amount' | 'percent'
   priceLabel: string
@@ -43,6 +45,8 @@ type TierRow = {
 type Props = {
   event: EventFormRow & { id: string; updatedAt: string }
   venues: VenueOpt[]
+  categories: IdOpt[]
+  forms: IdOpt[]
   groups: UserGroupOption[]
   users: IdOpt[]
   parties: IdOpt[]
@@ -75,6 +79,8 @@ function Feedback({ state }: { state: EventsAdminActionState }) {
 export function EventEditor({
   event,
   venues,
+  categories,
+  forms,
   groups,
   users,
   parties,
@@ -139,6 +145,8 @@ export function EventEditor({
           key={`${event.id}-${event.updatedAt}`}
           row={event}
           venues={venues}
+          categories={categories}
+          forms={forms}
           groups={groups}
           users={users}
           parties={parties}
@@ -175,7 +183,7 @@ export function EventEditor({
 
       <section className="outlines-create" aria-label="Registrants">
         <h3>Registrants</h3>
-        <p className="settings-hint">Review signup rows and waitlist status.</p>
+        <p className="settings-hint">Review signup rows, approval, and waitlist status.</p>
         <div className="admin-inline-actions">
           <Link
             href={`/admin/events/registrants?eventId=${encodeURIComponent(event.id)}`}

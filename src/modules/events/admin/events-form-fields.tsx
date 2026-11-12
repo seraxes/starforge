@@ -1,13 +1,14 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import Link from 'next/link'
 
 import { AccessTagsField } from '@/components/admin/AccessTagsField'
 import type { UserGroupOption } from '@/core/acl/types'
 import { MediaPicker, type MediaPickerValue } from '@/modules/media/api'
 import { RichEditor } from '@/modules/rich-editor/api'
 
-import type { TierPriceRules } from '../price-rules'
+import { MAX_TIME_PRICE_BANDS, type TierPriceRules } from '../price-rules'
 import {
   EVENT_COVER_DISPLAY_MODES,
   EVENT_COVER_MEDIA_MAX,
@@ -241,8 +242,8 @@ function VisibilityFields({
       <legend>Visibility</legend>
       <p className="settings-hint">
         Group ACL gates who may open the page. Unlisted hides the event from public lists
-        (URL still works). Featured feeds the layout Featured carousel particle. Password is
-        an optional extra gate after ACL.
+        (URL still works). Featured feeds the layout Featured carousel only — it is not a
+        category. Password is an optional extra gate after ACL.
       </p>
       <label className="settings-field settings-field-checkbox">
         <input
@@ -383,6 +384,7 @@ export type EventFormRow = {
   galleryMediaIds?: string[]
   capacity?: number | null
   waitlistEnabled?: boolean
+  requireApproval?: boolean
   registrationOpensAt?: string | null
   registrationClosesAt?: string | null
   cancellationClosesAt?: string | null
@@ -401,6 +403,8 @@ export type EventFormRow = {
   termsUrl?: string
   listed?: boolean
   featured?: boolean
+  categoryId?: string
+  registrationFormId?: string
   hasAccessPassword?: boolean
   accessTags?: string[]
 }
@@ -411,6 +415,8 @@ type IdOpt = { id: string; label: string }
 type EventFormFieldsProps = {
   row?: EventFormRow
   venues: VenueOpt[]
+  categories?: IdOpt[]
+  forms?: IdOpt[]
   groups: UserGroupOption[]
   /** Site users for manager/helper checklists. */
   users?: IdOpt[]
@@ -550,10 +556,148 @@ export function IdSuggestField({
   )
 }
 
+type TimeBandDraft = {
+  key: string
+  withinHours: string
+  mode: 'amount' | 'percent'
+  value: string
+}
+
+function formatWithinHours(withinMinutes: number): string {
+  return String(Math.max(1, Math.round(withinMinutes / 60)))
+}
+
+function draftsFromRules(rules: TierPriceRules | undefined): TimeBandDraft[] {
+  return (rules?.time ?? []).map((band, index) => ({
+    key: `saved-${index}-${band.withinMinutes}-${band.mode}-${band.value}`,
+    withinHours: formatWithinHours(band.withinMinutes),
+    mode: band.mode === 'percent' ? 'percent' : 'amount',
+    value: String(band.value),
+  }))
+}
+
+/** Repeatable time-left bands. Sold-count stays a separate single row. */
+function TimePriceBandsFields({
+  rules,
+  busy,
+}: {
+  rules?: TierPriceRules
+  busy: boolean
+}) {
+  const [bands, setBands] = useState<TimeBandDraft[]>(() => draftsFromRules(rules))
+  const atMax = bands.length >= MAX_TIME_PRICE_BANDS
+
+  return (
+    <div className="sf-events-price-bands">
+      {bands.map((band) => (
+        <div className="sf-events-price-row sf-events-price-band" key={band.key}>
+          <label className="settings-field">
+            <span>Within hours of start</span>
+            <input
+              type="number"
+              name="timeRuleWithinHours"
+              min={1}
+              step={1}
+              required
+              value={band.withinHours}
+              disabled={busy}
+              placeholder="48"
+              title="Apply when the event starts within this many hours."
+              onChange={(event) =>
+                setBands((prev) =>
+                  prev.map((item) =>
+                    item.key === band.key ? { ...item, withinHours: event.target.value } : item,
+                  ),
+                )
+              }
+            />
+          </label>
+          <label className="settings-field">
+            <span>Time change</span>
+            <select
+              name="timeRuleMode"
+              value={band.mode}
+              disabled={busy}
+              onChange={(event) => {
+                const mode = event.target.value === 'percent' ? 'percent' : 'amount'
+                setBands((prev) =>
+                  prev.map((item) => (item.key === band.key ? { ...item, mode } : item)),
+                )
+              }}
+            >
+              <option value="amount">Amount</option>
+              <option value="percent">Percent of price</option>
+            </select>
+          </label>
+          <label className="settings-field">
+            <span>Time value</span>
+            <input
+              type="number"
+              name="timeRuleValue"
+              step={1}
+              required
+              value={band.value}
+              disabled={busy}
+              placeholder="0"
+              title="Major units, or percent of the price in effect. Negative discounts."
+              onChange={(event) =>
+                setBands((prev) =>
+                  prev.map((item) =>
+                    item.key === band.key ? { ...item, value: event.target.value } : item,
+                  ),
+                )
+              }
+            />
+          </label>
+          <button
+            type="button"
+            className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+            disabled={busy}
+            aria-label={
+              band.withinHours
+                ? `Remove ${band.withinHours} hour time band`
+                : 'Remove time band'
+            }
+            onClick={() => setBands((prev) => prev.filter((item) => item.key !== band.key))}
+          >
+            Remove
+          </button>
+        </div>
+      ))}
+      <div className="sf-events-price-bands-actions">
+        <button
+          type="button"
+          className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+          disabled={busy || atMax}
+          title="Add another window. The shortest one that still contains the time left is used."
+          onClick={() =>
+            setBands((prev) => {
+              if (prev.length >= MAX_TIME_PRICE_BANDS) return prev
+              return [
+                ...prev,
+                {
+                  key: `new-${Date.now()}-${prev.length}`,
+                  withinHours: '',
+                  mode: 'amount',
+                  value: '',
+                },
+              ]
+            })
+          }
+        >
+          Add time band
+        </button>
+      </div>
+    </div>
+  )
+}
+
 /** Shared create/edit fields — mosaic cards (same layout create + edit). */
 export function EventFormFields({
   row,
   venues,
+  categories = [],
+  forms = [],
   groups,
   users = [],
   parties = [],
@@ -611,6 +755,40 @@ export function EventFormFields({
           </select>
         </label>
         <label className="settings-field">
+          <span>Category</span>
+          <select name="categoryId" defaultValue={row?.categoryId ?? ''} disabled={busy}>
+            <option value="">— none —</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.label}
+              </option>
+            ))}
+          </select>
+          <span className="settings-hint">
+            Editorial label for the public hub filter. Featured stays the carousel flag.{' '}
+            <Link href="/admin/events/categories">Manage categories</Link>.
+          </span>
+        </label>
+        <label className="settings-field">
+          <span>Registration form</span>
+          <select
+            name="registrationFormId"
+            defaultValue={row?.registrationFormId ?? ''}
+            disabled={busy}
+          >
+            <option value="">Use category form</option>
+            {forms.map((form) => (
+              <option key={form.id} value={form.id}>
+                {form.label}
+              </option>
+            ))}
+          </select>
+          <span className="settings-hint">
+            Empty uses the category’s form, then the shared event registration form. Field
+            schema stays in <Link href="/admin/forms">Forms</Link>.
+          </span>
+        </label>
+        <label className="settings-field">
           <span>Venue</span>
           <select name="venueId" defaultValue={row?.venueId ?? ''} disabled={busy}>
             <option value="">— none —</option>
@@ -643,6 +821,20 @@ export function EventFormFields({
           />
           <span>Enable waitlist when full</span>
         </label>
+        <label className="settings-field settings-flag">
+          <input
+            type="checkbox"
+            name="requireApproval"
+            value="1"
+            defaultChecked={row?.requireApproval === true}
+            disabled={busy}
+          />
+          <span>Require approval</span>
+        </label>
+        <p className="settings-hint">
+          New signups stay pending until an admin sets them registered. Paid tickets stay
+          pending payment until paid, then wait for approval. Waitlist is unchanged.
+        </p>
       </fieldset>
 
       <fieldset className="settings-fieldset sf-events-form-section">
@@ -733,7 +925,8 @@ export function EventFormFields({
         <legend>Pricing</legend>
         <p className="settings-hint">
           Base price for this event. A ticket type with its own price replaces it. A type
-          modifier is always added. Time and sold rules apply to whichever price is in effect.
+          modifier is always added. When several time bands match, the shortest window wins.
+          That band and the sold rule use the price in effect.
         </p>
         <div className="sf-events-price-row">
           <label className="settings-field">
@@ -762,57 +955,7 @@ export function EventFormFields({
             />
           </label>
         </div>
-        <div className="sf-events-price-row">
-          <label className="settings-field settings-flag">
-            <input
-              type="checkbox"
-              name="timeRuleEnabled"
-              value="1"
-              defaultChecked={Boolean(row?.priceRules?.time)}
-              disabled={busy}
-            />
-            <span>Time left</span>
-          </label>
-          <label className="settings-field">
-            <span>Within hours of start</span>
-            <input
-              type="number"
-              name="timeRuleWithinHours"
-              min={1}
-              step={1}
-              defaultValue={
-                row?.priceRules?.time
-                  ? Math.max(1, Math.round(row.priceRules.time.withinMinutes / 60))
-                  : ''
-              }
-              disabled={busy}
-              placeholder="48"
-            />
-          </label>
-          <label className="settings-field">
-            <span>Time change</span>
-            <select
-              name="timeRuleMode"
-              defaultValue={row?.priceRules?.time?.mode ?? 'amount'}
-              disabled={busy}
-            >
-              <option value="amount">Amount</option>
-              <option value="percent">Percent of price</option>
-            </select>
-          </label>
-          <label className="settings-field">
-            <span>Time value</span>
-            <input
-              type="number"
-              name="timeRuleValue"
-              step={1}
-              defaultValue={row?.priceRules?.time?.value ?? ''}
-              disabled={busy}
-              placeholder="0"
-              title="Major units, or percent of the price in effect. Negative discounts."
-            />
-          </label>
-        </div>
+        <TimePriceBandsFields rules={row?.priceRules} busy={busy} />
         <div className="sf-events-price-row">
           <label className="settings-field settings-flag">
             <input

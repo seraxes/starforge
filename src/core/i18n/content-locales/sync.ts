@@ -4,6 +4,7 @@ import { getLocalizationSettings } from '@/core/localization/store'
 
 import {
   buildChromeConsentKey,
+  buildEventCategoryKey,
   buildLayoutSlotKey,
   buildNavItemKey,
   type ContentLocaleField,
@@ -160,6 +161,33 @@ export async function syncSiteChromeConsentLocalesToFiles(
   collectMapEntries(input.consentMessageLocales, () => messageKey, byLocale)
   collectMapEntries(input.consentPrivacyUrlLocales, () => urlKey, byLocale)
   collectMapEntries(input.consentPrivacyLinkLabelLocales, () => labelKey, byLocale)
+
+  for (const [locale, entries] of byLocale) {
+    await upsertContentLocaleValues(locale, entries)
+  }
+}
+
+/**
+ * Persist event category title / description into language files.
+ * The default-locale scalars stay on `sf_event_categories`; locale maps do not.
+ */
+export async function syncEventCategoryLocalesToFiles(input: {
+  categoryId: string
+  title: string
+  description: string
+  titleLocales?: LocaleTextMap
+  descriptionLocales?: LocaleTextMap
+}): Promise<void> {
+  const byLocale = new Map<string, Record<string, string>>()
+  const settings = await getLocalizationSettings()
+  const defaultLocale = settings.defaultLocale
+  const titleKey = buildEventCategoryKey(input.categoryId, 'title')
+  const textKey = buildEventCategoryKey(input.categoryId, 'text')
+
+  collectScalar(defaultLocale, titleKey, input.title, byLocale)
+  collectScalar(defaultLocale, textKey, input.description, byLocale)
+  collectMapEntries(input.titleLocales, () => titleKey, byLocale)
+  collectMapEntries(input.descriptionLocales, () => textKey, byLocale)
 
   for (const [locale, entries] of byLocale) {
     await upsertContentLocaleValues(locale, entries)

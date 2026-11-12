@@ -16,7 +16,7 @@ import {
   readContentLocaleFile,
   writeContentLocaleFile,
 } from './store'
-import type { ContentLocaleScope } from './paths'
+import { isContentLocaleScope, type ContentLocaleScope } from './paths'
 
 export type ContentLocaleFilesActionState = {
   ok?: boolean
@@ -27,7 +27,7 @@ export type ContentLocaleFilesActionState = {
 }
 
 function parseScope(raw: string): ContentLocaleScope | null {
-  return raw === 'layouts' || raw === 'nav' || raw === 'chrome' ? raw : null
+  return isContentLocaleScope(raw) ? raw : null
 }
 
 async function requireAdmin() {
@@ -206,7 +206,7 @@ export async function uploadContentLocaleZipAction(
   let written = 0
   for (const [name, bytes] of Object.entries(entries)) {
     const normalized = name.replace(/\\/g, '/')
-    const match = /(?:^|\/)(layouts|nav|chrome)\/([^/]+)\.json$/i.exec(normalized)
+    const match = /(?:^|\/)(layouts|nav|chrome|events)\/([^/]+)\.json$/i.exec(normalized)
     if (!match) continue
     const scope = parseScope(match[1]!.toLowerCase())
     const ownerId = match[2]!

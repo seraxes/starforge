@@ -6,6 +6,7 @@ import { describe, it } from 'node:test'
 
 import {
   buildChromeConsentKey,
+  buildEventCategoryKey,
   buildLayoutSlotKey,
   buildNavItemKey,
   contentLocaleFileRefForKey,
@@ -72,6 +73,21 @@ describe('content locale keys', () => {
       ownerId: 'consent',
     })
     assert.equal(isValidContentLocaleKey('chrome.consent.marketing'), false)
+  })
+
+  it('builds event category keys', () => {
+    const key = buildEventCategoryKey('cat-1', 'title')
+    assert.equal(key, 'events.category.cat-1.title')
+    assert.deepEqual(parseContentLocaleKey(key), {
+      kind: 'events-category',
+      categoryId: 'cat-1',
+      field: 'title',
+    })
+    assert.deepEqual(contentLocaleFileRefForKey(buildEventCategoryKey('cat-1', 'text')), {
+      scope: 'events',
+      ownerId: 'cat-1',
+    })
+    assert.equal(isValidContentLocaleKey('events.category.cat-1.milsim'), false)
   })
 
   it('rejects invalid keys', () => {

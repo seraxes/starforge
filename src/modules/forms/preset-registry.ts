@@ -27,6 +27,8 @@ export type FormSubmittedContext = {
 /** Optional same-origin handoff after submit (e.g. paid ticket checkout). */
 export type FormPresetOnSubmittedResult = {
   redirectUrl?: string
+  /** When set, replaces the definition success message for this submit. */
+  message?: string
 }
 
 export type FormPresetOnSubmitted = (

@@ -66,6 +66,7 @@ export default async function AccountProfilePage({ params }: Args) {
         locale={locale}
         handle={record.handle}
         showEvents={isCatalogModuleEnabled(settings, MODULE_IDS.events)}
+        showSubscriptions={isCatalogModuleEnabled(settings, MODULE_IDS.subscriptions)}
       />
       <p className="lede">
         This is how you appear across the whole community — events, marketplace, posts and

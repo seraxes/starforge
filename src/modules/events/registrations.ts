@@ -8,6 +8,16 @@ import { and, asc, desc, eq, inArray, ne, sql } from 'drizzle-orm'
 
 import { db } from '@/core/db'
 
+import {
+  ACTIVE_SIGNUP_STATUSES,
+  isAdminRegistrationStatus,
+  normalizeRegistrationStatus,
+  registrationHoldsSeat,
+  registrationSeatFreed,
+  resolveInitialRegistrationStatus,
+  SEAT_HOLDING_STATUSES,
+  type RegistrationStatus,
+} from './registration-status'
 import { sfEventRegistrations } from './schema'
 import { loadEventsModuleSettings } from './settings'
 import { findEventById } from './store'
@@ -20,6 +30,7 @@ import {
 import { DEFAULT_MAX_TICKETS_PER_BOOKING } from './types'
 import { EVENTS_WAITLIST_PROMOTED_TRIGGER } from './triggers'
 
+export type { RegistrationStatus }
 export { EVENTS_WAITLIST_PROMOTED_TRIGGER }
 
 /** True when public signup is allowed for a published event. */
@@ -65,12 +76,6 @@ export function isEventSelfCancelOpen(
   return { open: true }
 }
 
-export type RegistrationStatus =
-  | 'registered'
-  | 'waitlisted'
-  | 'cancelled'
-  | 'pending_payment'
-
 export type EventRegistrationRecord = {
   id: string
   eventId: string
@@ -91,7 +96,6 @@ export type EventRegistrationRecord = {
 }
 
 function mapRow(row: typeof sfEventRegistrations.$inferSelect): EventRegistrationRecord {
-  const status = row.status as RegistrationStatus
   return {
     id: row.id,
     eventId: row.eventId,
@@ -106,13 +110,7 @@ function mapRow(row: typeof sfEventRegistrations.$inferSelect): EventRegistratio
         : 1,
     attendance: (row.attendance || 'in_person').trim() || 'in_person',
     notes: row.notes ?? '',
-    status:
-      status === 'waitlisted' ||
-      status === 'cancelled' ||
-      status === 'registered' ||
-      status === 'pending_payment'
-        ? status
-        : 'registered',
+    status: normalizeRegistrationStatus(row.status),
     paymentOrderId: (row.paymentOrderId || '').trim(),
     checkedInAt: row.checkedInAt ?? null,
     createdAt: row.createdAt,
@@ -120,7 +118,7 @@ function mapRow(row: typeof sfEventRegistrations.$inferSelect): EventRegistratio
   }
 }
 
-/** Count guest seats that occupy event capacity (registered + pending payment). */
+/** Count guest seats that occupy event capacity (registered, pending approval, pending payment). */
 export async function countRegisteredGuests(eventId: string): Promise<number> {
   const trimmed = eventId.trim()
   if (!trimmed) return 0
@@ -133,7 +131,7 @@ export async function countRegisteredGuests(eventId: string): Promise<number> {
       .where(
         and(
           eq(sfEventRegistrations.eventId, trimmed),
-          inArray(sfEventRegistrations.status, ['registered', 'pending_payment']),
+          inArray(sfEventRegistrations.status, [...SEAT_HOLDING_STATUSES]),
         ),
       )
     return Number(row?.n) || 0
@@ -144,17 +142,18 @@ export async function countRegisteredGuests(eventId: string): Promise<number> {
 
 export type EventRegistrationListStats = {
   registered: number
+  pending: number
   waitlisted: number
 }
 
-/** Batch guest totals for the admin events table (registered + waitlisted). */
+/** Batch guest totals for the admin events table (registered, pending approval, waitlisted). */
 export async function countRegistrationStatsForEvents(
   eventIds: string[],
 ): Promise<Map<string, EventRegistrationListStats>> {
   const map = new Map<string, EventRegistrationListStats>()
   const ids = [...new Set(eventIds.map((id) => id.trim()).filter(Boolean))]
   for (const id of ids) {
-    map.set(id, { registered: 0, waitlisted: 0 })
+    map.set(id, { registered: 0, pending: 0, waitlisted: 0 })
   }
   if (ids.length === 0) return map
 
@@ -169,15 +168,16 @@ export async function countRegistrationStatsForEvents(
       .where(
         and(
           inArray(sfEventRegistrations.eventId, ids),
-          inArray(sfEventRegistrations.status, ['registered', 'waitlisted']),
+          inArray(sfEventRegistrations.status, ['registered', 'pending', 'waitlisted']),
         ),
       )
       .groupBy(sfEventRegistrations.eventId, sfEventRegistrations.status)
 
     for (const row of rows) {
-      const cur = map.get(row.eventId) ?? { registered: 0, waitlisted: 0 }
+      const cur = map.get(row.eventId) ?? { registered: 0, pending: 0, waitlisted: 0 }
       const n = Number(row.n) || 0
       if (row.status === 'waitlisted') cur.waitlisted = n
+      else if (row.status === 'pending') cur.pending = n
       else if (row.status === 'registered') cur.registered = n
       map.set(row.eventId, cur)
     }
@@ -245,13 +245,9 @@ export async function createEventRegistration(
   let status: RegistrationStatus = 'registered'
   if (
     input.status === 'pending_payment' ||
-    (input.admin &&
-      (input.status === 'registered' ||
-        input.status === 'waitlisted' ||
-        input.status === 'cancelled' ||
-        input.status === 'pending_payment'))
+    (input.admin && isAdminRegistrationStatus(input.status))
   ) {
-    status = input.status === 'pending_payment' ? 'pending_payment' : input.status!
+    status = input.status
   } else {
     let needsWaitlist = false
     const occupiedEvent = await countRegisteredGuests(eventId)
@@ -266,12 +262,13 @@ export async function createEventRegistration(
         needsWaitlist = true
       }
     }
-    if (needsWaitlist) {
-      if (!event.waitlistEnabled) {
-        return { error: 'This event is full and the waitlist is closed.' }
-      }
-      status = 'waitlisted'
+    if (needsWaitlist && !event.waitlistEnabled) {
+      return { error: 'This event is full and the waitlist is closed.' }
     }
+    status = resolveInitialRegistrationStatus({
+      needsWaitlist,
+      requireApproval: !input.admin && event.requireApproval,
+    })
   }
 
   const id = crypto.randomUUID()
@@ -368,7 +365,7 @@ export async function listRegistrationsForEvent(
   }
 }
 
-/** Active (registered | waitlisted) signups for a logged-in user — affinity / hub status. */
+/** Active signups for a logged-in user — hub status and the account list. */
 export async function listActiveRegistrationsForUser(
   userId: string,
 ): Promise<EventRegistrationRecord[]> {
@@ -381,7 +378,7 @@ export async function listActiveRegistrationsForUser(
       .where(
         and(
           eq(sfEventRegistrations.userId, trimmed),
-          inArray(sfEventRegistrations.status, ['registered', 'waitlisted']),
+          inArray(sfEventRegistrations.status, [...ACTIVE_SIGNUP_STATUSES]),
         ),
       )
       .orderBy(desc(sfEventRegistrations.createdAt))
@@ -425,11 +422,7 @@ export async function findActiveRegistrationForUserOnEvent(
         and(
           eq(sfEventRegistrations.userId, uid),
           eq(sfEventRegistrations.eventId, eid),
-          inArray(sfEventRegistrations.status, [
-            'registered',
-            'waitlisted',
-            'pending_payment',
-          ]),
+          inArray(sfEventRegistrations.status, [...ACTIVE_SIGNUP_STATUSES]),
         ),
       )
       .orderBy(desc(sfEventRegistrations.createdAt))
@@ -440,17 +433,31 @@ export async function findActiveRegistrationForUserOnEvent(
   }
 }
 
+/** Attendee confirmation when an admin sets a pending signup to registered. */
+async function notifyRegistrationApproved(
+  registration: EventRegistrationRecord,
+): Promise<void> {
+  try {
+    const event = await findEventById(registration.eventId)
+    if (!event) return
+    const { emitEventsRegisteredLifecycle } = await import('./email-emit')
+    await emitEventsRegisteredLifecycle({
+      event,
+      registration,
+      skipOrganizerNotify: true,
+    })
+  } catch {
+    /* email optional */
+  }
+}
+
 export async function updateRegistrationStatus(
   id: string,
   status: RegistrationStatus,
 ): Promise<{ registration: EventRegistrationRecord } | { error: string }> {
   const trimmed = id.trim()
   if (!trimmed) return { error: 'Missing registration id.' }
-  if (
-    status !== 'registered' &&
-    status !== 'waitlisted' &&
-    status !== 'cancelled'
-  ) {
+  if (!isAdminRegistrationStatus(status)) {
     return { error: 'Invalid status.' }
   }
   try {
@@ -479,9 +486,16 @@ export async function updateRegistrationStatus(
         await emitEventsRegistrantCancelled({ event, registration })
       }
     }
+    if (current.status === 'pending' && status === 'registered') {
+      await notifyRegistrationApproved(registration)
+    }
     if (
-      (current.status === 'registered' || current.status === 'pending_payment') &&
-      (status === 'cancelled' || status === 'waitlisted')
+      registrationSeatFreed({
+        previousStatus: current.status,
+        nextStatus: status,
+        previousGuests: Number(current.guests) || 1,
+        nextGuests: Number(current.guests) || 1,
+      })
     ) {
       await promoteWaitlistForEvent(current.eventId)
     }
@@ -516,11 +530,7 @@ export async function updateEventRegistration(
   if (!email || !email.includes('@')) {
     return { error: 'A valid email is required.' }
   }
-  if (
-    input.status !== 'registered' &&
-    input.status !== 'waitlisted' &&
-    input.status !== 'cancelled'
-  ) {
+  if (!isAdminRegistrationStatus(input.status)) {
     return { error: 'Invalid status.' }
   }
 
@@ -553,12 +563,13 @@ export async function updateEventRegistration(
         ? (input.userId || '').trim() || null
         : current.userId
 
-    const wasRegistered = current.status === 'registered'
-    const freedSeat =
-      wasRegistered &&
-      (input.status === 'cancelled' ||
-        input.status === 'waitlisted' ||
-        guests < (Number(current.guests) || 1))
+    const previousGuests = Number(current.guests) || 1
+    const freedSeat = registrationSeatFreed({
+      previousStatus: current.status,
+      nextStatus: input.status,
+      previousGuests,
+      nextGuests: guests,
+    })
 
     await db
       .update(sfEventRegistrations)
@@ -588,6 +599,9 @@ export async function updateEventRegistration(
         await emitEventsRegistrantCancelled({ event, registration })
       }
     }
+    if (current.status === 'pending' && input.status === 'registered') {
+      await notifyRegistrationApproved(registration)
+    }
     if (freedSeat) {
       await promoteWaitlistForEvent(current.eventId)
     }
@@ -611,7 +625,7 @@ export async function deleteEventRegistration(
       .where(eq(sfEventRegistrations.id, trimmed))
       .limit(1)
     await db.delete(sfEventRegistrations).where(eq(sfEventRegistrations.id, trimmed))
-    if (current && current.status === 'registered') {
+    if (current && registrationHoldsSeat(current.status)) {
       await promoteWaitlistForEvent(current.eventId)
     }
     return { ok: true }
@@ -728,11 +742,7 @@ export async function cancelOwnRegistration(
     if ((current.userId || '').trim() !== uid) {
       return { error: 'You can only cancel your own registration.' }
     }
-    if (
-      current.status !== 'registered' &&
-      current.status !== 'waitlisted' &&
-      current.status !== 'pending_payment'
-    ) {
+    if (!(ACTIVE_SIGNUP_STATUSES as readonly string[]).includes(current.status)) {
       return { error: 'This registration is already cancelled.' }
     }
 
@@ -823,6 +833,7 @@ export async function switchOwnRegistrationTier(
     }
     if (
       current.status !== 'registered' &&
+      current.status !== 'pending' &&
       current.status !== 'waitlisted'
     ) {
       return { error: 'Only active registrations can switch ticket types.' }
@@ -861,7 +872,8 @@ export async function switchOwnRegistrationTier(
     if (typeof event.capacity === 'number' && event.capacity >= 0) {
       const occupiedEvent = await countRegisteredGuests(current.eventId)
       // Waitlisted rows do not occupy seats yet — switching into a seat counts.
-      const alreadyOccupying = current.status === 'registered'
+      // Pending approval already holds the seat.
+      const alreadyOccupying = registrationHoldsSeat(current.status)
       const nextOccupied = alreadyOccupying ? occupiedEvent : occupiedEvent + guests
       if (nextOccupied > event.capacity) {
         return { error: 'The event has no open slots for that switch.' }
@@ -869,7 +881,11 @@ export async function switchOwnRegistrationTier(
     }
 
     const nextStatus: RegistrationStatus =
-      current.status === 'waitlisted' ? 'registered' : current.status
+      current.status === 'waitlisted'
+        ? 'registered'
+        : current.status === 'pending'
+          ? 'pending'
+          : 'registered'
 
     await db
       .update(sfEventRegistrations)

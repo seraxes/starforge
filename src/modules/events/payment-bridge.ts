@@ -17,18 +17,112 @@ import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/sett
 import {
   emitEventsRegisteredLifecycle,
   emitEventsRegistrantCancelled,
+  emitEventsSignupEmails,
   ensureEventsReminderJob,
   mapRegistrationRowForEmail,
 } from './email-emit'
 import { quoteTierMajor, sumFormPriceAddons } from './price-rules'
 import { eventPublicPathKey } from './public/path'
+import {
+  registrationHoldsSeat,
+  resolveStatusAfterPayment,
+} from './registration-status'
 import { sfEventRegistrations } from './schema'
 import { findEventById } from './store'
 import { findTicketTierById } from './tiers'
 
 export const EVENTS_PAYMENT_HOOK = 'events.confirmRegistration' as const
 
-let hookRegistered = false
+let hookReady: Promise<void> | null = null
+
+/**
+ * Apply a Payments result to the registration.
+ * `paid` confirms the seat, or leaves it `pending` when the event requires
+ * approval. `expired` / `failed` / `refunded` cancel it and promote the
+ * waitlist when the row held a seat. Already-cancelled rows are left alone.
+ */
+export async function applyEventsPaymentResult(
+  registrationId: string,
+  status: 'paid' | 'expired' | 'failed' | 'refunded',
+): Promise<void> {
+  const id = registrationId.trim()
+  if (!id) return
+
+  if (status === 'paid') {
+    const [before] = await db
+      .select({
+        eventId: sfEventRegistrations.eventId,
+        status: sfEventRegistrations.status,
+      })
+      .from(sfEventRegistrations)
+      .where(eq(sfEventRegistrations.id, id))
+      .limit(1)
+    // pending_payment = normal path; cancelled = late webhook after TTL expiry sweep.
+    if (
+      !before ||
+      (before.status !== 'pending_payment' && before.status !== 'cancelled')
+    ) {
+      return
+    }
+
+    const event = await findEventById(before.eventId)
+    const next = resolveStatusAfterPayment(event?.requireApproval === true)
+    await db
+      .update(sfEventRegistrations)
+      .set({ status: next, updatedAt: new Date() })
+      .where(eq(sfEventRegistrations.id, id))
+    if (next === 'registered') {
+      await emitRegisteredEmailForRegistration(id)
+    } else {
+      await emitPendingApprovalEmail(id)
+    }
+    return
+  }
+
+  const [before] = await db
+    .select({
+      eventId: sfEventRegistrations.eventId,
+      status: sfEventRegistrations.status,
+    })
+    .from(sfEventRegistrations)
+    .where(eq(sfEventRegistrations.id, id))
+    .limit(1)
+  if (!before || before.status === 'cancelled') return
+
+  await db
+    .update(sfEventRegistrations)
+    .set({ status: 'cancelled', updatedAt: new Date() })
+    .where(eq(sfEventRegistrations.id, id))
+  await emitCancelledEmailForRegistration(id)
+  if (registrationHoldsSeat(before.status)) {
+    const { promoteWaitlistForEvent } = await import('./registrations')
+    await promoteWaitlistForEvent(before.eventId)
+  }
+}
+
+async function emitPendingApprovalEmail(registrationId: string): Promise<void> {
+  const [row] = await db
+    .select()
+    .from(sfEventRegistrations)
+    .where(eq(sfEventRegistrations.id, registrationId))
+    .limit(1)
+  if (!row || row.status !== 'pending') return
+
+  const event = await findEventById(row.eventId)
+  if (!event) return
+
+  let tierTitle = ''
+  if (row.ticketTierId) {
+    const tier = await findTicketTierById(row.ticketTierId)
+    tierTitle = tier?.title || ''
+  }
+
+  await emitEventsSignupEmails({
+    event,
+    registration: mapRegistrationRowForEmail(row),
+    ticketTierTitle: tierTitle,
+  })
+}
 
 async function emitRegisteredEmailForRegistration(registrationId: string): Promise<void> {
   const [row] = await db
@@ -78,57 +172,31 @@ async function emitCancelledEmailForRegistration(registrationId: string): Promis
   })
 }
 
-/** Register fulfillment hook once (safe to call repeatedly). */
-export function ensureEventsPaymentHook(): void {
-  if (hookRegistered) return
-  hookRegistered = true
+/** Resolves once the Payments fulfillment hook is registered. */
+export function ensureEventsPaymentHookReady(): Promise<void> {
+  if (hookReady) return hookReady
   ensureEventsReminderJob()
-
-  void import('@/modules/payments/api')
+  hookReady = import('@/modules/payments/api')
     .then(({ registerPaymentConsumerHook }) => {
       registerPaymentConsumerHook(EVENTS_PAYMENT_HOOK, async (ctx) => {
         const registrationId = String(ctx.metadata.registrationId || '').trim()
         if (!registrationId) return
-
-        if (ctx.status === 'paid') {
-          await db
-            .update(sfEventRegistrations)
-            .set({ status: 'registered', updatedAt: new Date() })
-            .where(eq(sfEventRegistrations.id, registrationId))
-          await emitRegisteredEmailForRegistration(registrationId)
-          return
-        }
-
-        if (
-          ctx.status === 'expired' ||
-          ctx.status === 'failed' ||
-          ctx.status === 'refunded'
-        ) {
-          const [before] = await db
-            .select({
-              eventId: sfEventRegistrations.eventId,
-              status: sfEventRegistrations.status,
-            })
-            .from(sfEventRegistrations)
-            .where(eq(sfEventRegistrations.id, registrationId))
-            .limit(1)
-          await db
-            .update(sfEventRegistrations)
-            .set({ status: 'cancelled', updatedAt: new Date() })
-            .where(eq(sfEventRegistrations.id, registrationId))
-          await emitCancelledEmailForRegistration(registrationId)
-          if (
-            before &&
-            (before.status === 'registered' || before.status === 'pending_payment')
-          ) {
-            const { promoteWaitlistForEvent } = await import('./registrations')
-            await promoteWaitlistForEvent(before.eventId)
-          }
-        }
+        await applyEventsPaymentResult(registrationId, ctx.status)
       })
     })
     .catch(() => {
-      /* payments pack may be off */
+      hookReady = null
+    })
+  return hookReady
+}
+
+/** Register fulfillment hook once (safe to call repeatedly). */
+export function ensureEventsPaymentHook(): void {
+  void ensureEventsPaymentHookReady()
+  void import('./abandoned-checkout')
+    .then((mod) => mod.ensureAbandonedCheckoutSweep())
+    .catch(() => {
+      /* sweep is best-effort when the process is up */
     })
 }
 
@@ -144,7 +212,7 @@ export async function isPaymentsModuleOn(): Promise<boolean> {
 /** Effective major-unit price for a tier, or null / 0 = free. */
 export async function tierRequiresPayment(
   ticketTierId: string | null | undefined,
-  extras?: { payload?: Record<string, unknown> },
+  extras?: { payload?: Record<string, unknown>; userId?: string | null },
 ): Promise<{
   requires: boolean
   majorPrice: number | null
@@ -163,19 +231,46 @@ export async function tierRequiresPayment(
   const payload = extras?.payload
   if (payload) {
     try {
+      const { resolveRegistrationFormIdForEvent } = await import('./registration-form')
       const { loadFormDefinition, DEFAULT_EVENT_REGISTRATION_FORM_ID } = await import(
         '@/modules/forms/api'
       )
-      const loaded = await loadFormDefinition(DEFAULT_EVENT_REGISTRATION_FORM_ID)
+      const preferredId = await resolveRegistrationFormIdForEvent(tier.eventId)
+      let loaded = await loadFormDefinition(preferredId)
+      if (loaded.source !== 'database') {
+        loaded = await loadFormDefinition(DEFAULT_EVENT_REGISTRATION_FORM_ID)
+      }
       formAddonMajor = sumFormPriceAddons(loaded.document.fields, payload)
     } catch {
       formAddonMajor = 0
     }
   }
 
+  let hasMemberEntitlement = false
+  let audienceGroupIds: string[] = []
+  const userId = (extras?.userId || '').trim()
+  if (userId) {
+    try {
+      const { resolveAudience, ENTITLEMENT_KEYS } = await import(
+        '@/modules/subscriptions/api'
+      )
+      const audience = await resolveAudience(userId)
+      hasMemberEntitlement = audience.entitlementKeys.includes(
+        ENTITLEMENT_KEYS.eventsMember,
+      )
+      audienceGroupIds = audience.groupIds
+    } catch {
+      /* subscriptions off / missing */
+    }
+  }
+
   const major = quoteTierMajor({
     eventPrice: event?.price ?? null,
     price: tier.price,
+    memberPrice: tier.memberPrice,
+    groupPrices: tier.groupPrices,
+    hasMemberEntitlement,
+    audienceGroupIds,
     priceModifier: tier.priceModifier,
     priceModifierMode: tier.priceModifierMode,
     rules: event?.priceRules,
@@ -228,6 +323,7 @@ export async function startEventTicketCheckout(
 
   const priced = await tierRequiresPayment(input.ticketTierId, {
     payload: input.payload,
+    userId: input.userId,
   })
   if (!priced.requires || priced.majorPrice == null) {
     return { ok: false, error: 'Tier does not require payment' }
@@ -351,6 +447,7 @@ async function resolveRequestLocale(): Promise<AppLocale> {
 /**
  * Hold the seat as `pending_payment`, start shared checkout, return a same-origin
  * `/[locale]/checkout/[orderId]` path. Cancels the hold if checkout cannot start.
+ * When the event requires approval, that gate runs after payment, not here.
  */
 export async function beginPaidTicketCheckout(
   input: BeginPaidTicketCheckoutInput,
@@ -363,6 +460,7 @@ export async function beginPaidTicketCheckout(
 
   const priced = await tierRequiresPayment(input.ticketTierId, {
     payload: input.payload,
+    userId: input.userId,
   })
   if (!priced.requires) {
     return { ok: false, error: 'Tier does not require payment' }

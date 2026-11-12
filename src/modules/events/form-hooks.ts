@@ -11,10 +11,11 @@ import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/sett
 import { getAccessViewer } from '@/core/acl/access'
 
 import {
-  viewerPassesEventAcl,
+  viewerPassesEventVisibility,
   viewerPassesEventPassword,
 } from './public-access'
 import { createEventRegistration } from './registrations'
+import { publicSignupAck } from './registration-status'
 import { findEventById } from './store'
 import { EVENTS_REGISTERED_TRIGGER } from './triggers'
 
@@ -71,7 +72,7 @@ export function ensureEventsFormHooks(): void {
         if (!event || event.status !== 'published') return
 
         const viewer = await getAccessViewer()
-        if (!viewerPassesEventAcl(event, viewer)) return
+        if (!(await viewerPassesEventVisibility(event, viewer))) return
         if (!(await viewerPassesEventPassword(event, viewer))) return
 
         const ticketTierId =
@@ -122,13 +123,17 @@ export function ensureEventsFormHooks(): void {
         }
 
         // Paid tier + payments on: hold seat and hand off to shared checkout.
-        // Waitlisted / free tiers skip payments (capacity rules already applied).
+        // Approval, when required, runs after payment. Waitlisted rows skip payments.
         if (
-          result.registration.status === 'registered' &&
+          (result.registration.status === 'registered' ||
+            result.registration.status === 'pending') &&
           ticketTierId &&
           (await isPaymentsModuleOn())
         ) {
-          const priced = await tierRequiresPayment(ticketTierId, { payload: ctx.payload })
+          const priced = await tierRequiresPayment(ticketTierId, {
+            payload: ctx.payload,
+            userId: ctx.userId,
+          })
           if (priced.requires) {
             const methodRaw = payloadString(ctx.payload, 'payment_method')
             const couponCode =
@@ -170,7 +175,8 @@ export function ensureEventsFormHooks(): void {
         const { registration } = result
         if (
           registration.status !== 'registered' &&
-          registration.status !== 'waitlisted'
+          registration.status !== 'waitlisted' &&
+          registration.status !== 'pending'
         ) {
           return
         }
@@ -191,6 +197,8 @@ export function ensureEventsFormHooks(): void {
           registration,
           ticketTierTitle: tierTitle,
         })
+        const ack = publicSignupAck(registration.status)
+        if (ack) return { message: ack }
       } catch (error) {
         console.error('[events] onSubmitted failed', error)
       }

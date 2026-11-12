@@ -14,6 +14,11 @@ import {
   timestamp,
 } from 'drizzle-orm/pg-core'
 
+import type { TierPriceRules } from './price-rules'
+
+/** Stored default. `time` is a list of bands; `sold` stays one rule. */
+const EVENT_PRICE_RULES_DEFAULT: TierPriceRules = { time: [], sold: null }
+
 /** Venue place entity — name, address, description, geo, cover/gallery, ACL. */
 export const sfVenues = pgTable(
   'sf_venues',
@@ -46,6 +51,45 @@ export const sfVenues = pgTable(
   (table) => [index('sf_venues_name_idx').on(table.name)],
 )
 
+/**
+ * Editorial event category — label, viewing ACL, and the registration form
+ * events in the category use unless an event picks another.
+ * Not a featured flag, and not a milsim / association field.
+ */
+export const sfEventCategories = pgTable(
+  'sf_event_categories',
+  {
+    id: text('id').primaryKey(),
+    /** Default-locale title. Other locales live in content-locale files. */
+    title: text('title').notNull().default('Untitled category'),
+    /** Public hub filter key (`?category=`). */
+    slug: text('slug'),
+    /** Default-locale description. Other locales live in content-locale files. */
+    description: text('description').notNull().default(''),
+    /**
+     * Forms definition used by events in this category.
+     * Empty = shared `event-registration` form.
+     */
+    registrationFormId: text('registration_form_id').notNull().default(''),
+    published: pgBoolean('published').notNull().default(true),
+    sortOrder: integer('sort_order').notNull().default(0),
+    /**
+     * Viewing ACL tags: `public` | `registered` | `group:<id>`.
+     * Empty = public. Events in the category also require this gate.
+     */
+    accessTags: jsonb('access_tags').$type<string[]>().notNull().default([]),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('sf_event_categories_slug_idx').on(table.slug),
+    index('sf_event_categories_sort_idx').on(table.sortOrder),
+  ],
+)
+
 /** Event entity — schedule, venue ref, status, Media cover, capacity, ACL. */
 export const sfEvents = pgTable(
   'sf_events',
@@ -71,25 +115,14 @@ export const sfEvents = pgTable(
      */
     price: integer('price'),
     /**
-     * Event-level automatic adjustments. `{ time, sold }`.
+     * Event-level automatic adjustments. `{ time: bands[], sold }`.
+     * Several time-left bands; one sold-count rule.
      * Percent is of the price in effect (event base, or the ticket type price).
      */
     priceRules: jsonb('price_rules')
-      .$type<{
-        time: {
-          withinMinutes: number
-          mode: 'amount' | 'percent'
-          value: number
-        } | null
-        sold: {
-          threshold: number
-          basis: 'count' | 'percent'
-          mode: 'amount' | 'percent'
-          value: number
-        } | null
-      }>()
+      .$type<TierPriceRules>()
       .notNull()
-      .default({ time: null, sold: null }),
+      .default(EVENT_PRICE_RULES_DEFAULT),
     venueId: text('venue_id').references(() => sfVenues.id, {
       onDelete: 'set null',
     }),
@@ -109,6 +142,11 @@ export const sfEvents = pgTable(
     capacity: integer('capacity'),
     /** When full, public signup may join the waitlist (FIFO promote when seats free). */
     waitlistEnabled: pgBoolean('waitlist_enabled').notNull().default(true),
+    /**
+     * When true, a seat that would be registered stays `pending` until an admin
+     * sets it registered. Paid holds stay `pending_payment` until paid first.
+     */
+    requireApproval: pgBoolean('require_approval').notNull().default(false),
     /** Null = open when published. */
     registrationOpensAt: timestamp('registration_opens_at', { withTimezone: true }),
     /** Null = no hard close (beyond event status). */
@@ -158,6 +196,15 @@ export const sfEvents = pgTable(
      * (layout-placed; not baked into the Events hub views).
      */
     featured: pgBoolean('featured').notNull().default(false),
+    /** Editorial category. Null = uncategorized. Featured stays a separate flag. */
+    categoryId: text('category_id').references(() => sfEventCategories.id, {
+      onDelete: 'set null',
+    }),
+    /**
+     * Forms definition override for this event.
+     * Empty = category form, then the shared event-registration form.
+     */
+    registrationFormId: text('registration_form_id').notNull().default(''),
     /** scrypt hash for optional shared access password; never expose to client. */
     accessPasswordHash: text('access_password_hash'),
     accessTags: jsonb('access_tags').$type<string[]>().notNull().default([]),
@@ -174,6 +221,7 @@ export const sfEvents = pgTable(
     index('sf_events_slug_idx').on(table.slug),
     index('sf_events_listed_idx').on(table.listed),
     index('sf_events_featured_idx').on(table.featured),
+    index('sf_events_category_id_idx').on(table.categoryId),
     index('sf_events_merchant_user_id_idx').on(table.merchantUserId),
   ],
 )
@@ -226,6 +274,19 @@ export const sfEventTicketTiers = pgTable(
     /** Numeric base price (major units). Null = no amount; display may still use priceLabel. */
     price: integer('price'),
     /**
+     * Optional member price (major units) when the buyer has `events.member`.
+     * Null = no member override (public price path).
+     */
+    memberPrice: integer('member_price'),
+    /**
+     * Optional group prices: `{ groupId, price }` — first matching active
+     * subscription audience group wins (then member, then public).
+     */
+    groupPrices: jsonb('group_prices')
+      .$type<Array<{ groupId: string; price: number }>>()
+      .notNull()
+      .default([]),
+    /**
      * Ticket-type modifier value. Mode is `price_modifier_mode`.
      * Amount = major units; percent = points of the price in effect.
      */
@@ -235,25 +296,13 @@ export const sfEventTicketTiers = pgTable(
     /** Optional display text that overwrites the formatted price on public cards. */
     priceLabel: text('price_label').notNull().default(''),
     /**
-     * Automatic adjustments on top of price + priceModifier.
-     * `{ time, sold }` — one bracket each; see price-rules.ts.
+     * Same JSON shape as the event rules. Checkout quotes the event bands.
+     * `{ time: bands[], sold }` — sold stays one rule.
      */
     priceRules: jsonb('price_rules')
-      .$type<{
-        time: {
-          withinMinutes: number
-          mode: 'amount' | 'percent'
-          value: number
-        } | null
-        sold: {
-          threshold: number
-          basis: 'count' | 'percent'
-          mode: 'amount' | 'percent'
-          value: number
-        } | null
-      }>()
+      .$type<TierPriceRules>()
       .notNull()
-      .default({ time: null, sold: null }),
+      .default(EVENT_PRICE_RULES_DEFAULT),
     /** Public card title (h3) color — hex or empty for theme default. */
     titleColor: text('title_color').notNull().default(''),
     /** Public card border color — hex or empty for theme default. */
@@ -275,7 +324,7 @@ export const sfEventTicketTiers = pgTable(
 
 /**
  * Event registration rows (Forms event-registration → onSubmitted).
- * Status: registered | waitlisted | cancelled.
+ * Status: registered | pending | waitlisted | pending_payment | cancelled.
  */
 export const sfEventRegistrations = pgTable(
   'sf_event_registrations',

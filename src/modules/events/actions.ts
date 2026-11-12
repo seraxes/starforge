@@ -2,19 +2,31 @@
 
 import { revalidatePath } from 'next/cache'
 
-import { requireAdminArea } from '@/core/acl/access'
+import {
+  getAccessViewer,
+  requireAdminArea,
+} from '@/core/acl/access'
+import { listAllowedResourcesForGroups } from '@/core/acl/permissions'
+import { normalizeLocaleTextMap, type LocaleTextMap } from '@/core/i18n/locale-text'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
 import { priceRulesFromForm } from './price-rules'
 import { saveEventsModuleSettings } from './settings'
+import {
+  createEventCategory,
+  deleteEventCategory,
+  updateEventCategory,
+} from './categories'
 import {
   createEvent,
   createVenue,
   deleteEvent,
   deleteVenue,
   duplicateEvent,
+  findEventById,
   updateEvent,
   updateVenue,
+  viewerCanManageEvent,
 } from './store'
 import type { EventsAdminActionState } from './types'
 
@@ -33,6 +45,7 @@ async function requireEventsModuleOn(): Promise<EventsAdminActionState | null> {
 /**
  * Events writes — app admin or Users → ACL `admin.events` grant.
  * Manager/helper assignments drive “Managed by me” filtering; ACL opens /admin.
+ * Subscription `events.manage` also opens /admin but is scoped per event below.
  */
 async function requireEventsAdmin(): Promise<EventsAdminActionState | null> {
   const session = await requireAdminArea('admin.events')
@@ -45,11 +58,50 @@ async function requireEventsAdmin(): Promise<EventsAdminActionState | null> {
   return requireEventsModuleOn()
 }
 
+/** True when the viewer has a group ACL row for Events (staff), not only a paid entitlement. */
+async function viewerHasEventsAclGrant(): Promise<boolean> {
+  const viewer = await getAccessViewer()
+  if (!viewer.isRegistered || !viewer.userId) return false
+  if (viewer.isAppAdmin) return true
+  if (viewer.groupIds.length === 0) return false
+  const allowed = await listAllowedResourcesForGroups(viewer.groupIds)
+  return allowed.has('admin.events')
+}
+
+/** Global Events settings/venues/categories — ACL staff or app admin only. */
+async function requireEventsStaffAdmin(): Promise<EventsAdminActionState | null> {
+  const denied = await requireEventsAdmin()
+  if (denied) return denied
+  if (await viewerHasEventsAclGrant()) return null
+  return {
+    error: 'Organizer subscriptions can manage assigned events only — not global Events settings.',
+  }
+}
+
+/**
+ * Per-event write gate: app admin / ACL staff may edit any event;
+ * subscription organizers may only edit events they are assigned to (or merchant of).
+ */
 async function requireEventEditor(
   eventId: string,
 ): Promise<EventsAdminActionState | null> {
-  if (!eventId.trim()) return { error: 'Missing event id.' }
-  return requireEventsAdmin()
+  const id = eventId.trim()
+  if (!id) return { error: 'Missing event id.' }
+  const denied = await requireEventsAdmin()
+  if (denied) return denied
+
+  if (await viewerHasEventsAclGrant()) return null
+
+  const event = await findEventById(id)
+  if (!event) return { error: 'Event not found.' }
+  const viewer = await getAccessViewer()
+  const merchantOk =
+    Boolean(viewer.userId) &&
+    (event.merchantUserId || '').trim() === viewer.userId
+  if (viewerCanManageEvent(event, viewer) || merchantOk) return null
+  return {
+    error: 'You can only manage events you are assigned to as manager or helper.',
+  }
 }
 
 function revalidateEventsAdmin(eventId?: string) {
@@ -60,6 +112,7 @@ function revalidateEventsAdmin(eventId?: string) {
   revalidatePath('/admin/events/registrants')
   revalidatePath('/admin/events/check-in')
   revalidatePath('/admin/events/parties')
+  revalidatePath('/admin/events/categories')
   revalidatePath('/admin')
   revalidatePath('/events')
   if (eventId) {
@@ -90,6 +143,7 @@ function eventFieldsFromForm(formData: FormData) {
     galleryMediaIds: String(formData.get('galleryMediaIdsJson') ?? '[]'),
     capacity: String(formData.get('capacity') ?? ''),
     waitlistEnabled: formData.get('waitlistEnabled') === '1' ? '1' : '0',
+    requireApproval: formData.get('requireApproval') === '1' ? '1' : '0',
     registrationOpensAt: datetimeLocalToIso(
       String(formData.get('registrationOpensAt') ?? ''),
     ),
@@ -113,9 +167,21 @@ function eventFieldsFromForm(formData: FormData) {
     termsUrl: String(formData.get('termsUrl') ?? ''),
     listed: formData.get('listed') === '0' ? '0' : '1',
     featured: formData.get('featured') === '1' ? '1' : '0',
+    categoryId: String(formData.get('categoryId') ?? ''),
+    registrationFormId: String(formData.get('registrationFormId') ?? ''),
     accessPassword: String(formData.get('accessPassword') ?? ''),
     clearAccessPassword: formData.get('clearAccessPassword') === '1' ? '1' : '',
     accessTags: parseAccessTagsFromForm(formData),
+  }
+}
+
+function parseLocaleMap(formData: FormData, key: string): LocaleTextMap {
+  const raw = String(formData.get(key) ?? '').trim()
+  if (!raw) return {}
+  try {
+    return normalizeLocaleTextMap(JSON.parse(raw) as unknown)
+  } catch {
+    return {}
   }
 }
 
@@ -143,7 +209,7 @@ export async function createVenueAction(
   _prev: EventsAdminActionState,
   formData: FormData,
 ): Promise<EventsAdminActionState> {
-  const denied = await requireEventsAdmin()
+  const denied = await requireEventsStaffAdmin()
   if (denied) return denied
 
   const result = await createVenue({
@@ -169,7 +235,7 @@ export async function updateVenueAction(
   _prev: EventsAdminActionState,
   formData: FormData,
 ): Promise<EventsAdminActionState> {
-  const denied = await requireEventsAdmin()
+  const denied = await requireEventsStaffAdmin()
   if (denied) return denied
 
   const id = String(formData.get('id') ?? '').trim()
@@ -197,7 +263,7 @@ export async function deleteVenueAction(
   _prev: EventsAdminActionState,
   formData: FormData,
 ): Promise<EventsAdminActionState> {
-  const denied = await requireEventsAdmin()
+  const denied = await requireEventsStaffAdmin()
   if (denied) return denied
   const id = String(formData.get('id') ?? '').trim()
   const result = await deleteVenue(id)
@@ -211,7 +277,7 @@ export async function geocodeVenueAction(
   _prev: EventsAdminActionState,
   formData: FormData,
 ): Promise<EventsAdminActionState> {
-  const denied = await requireEventsAdmin()
+  const denied = await requireEventsStaffAdmin()
   if (denied) return denied
 
   const id = String(formData.get('id') ?? '').trim()
@@ -273,7 +339,30 @@ export async function createEventAction(
   if (denied) return denied
 
   const after = parseAfterIntent(formData)
-  const result = await createEvent(eventFieldsFromForm(formData))
+  const fields = eventFieldsFromForm(formData)
+  // Subscription organizers (no ACL staff grant) must own what they create.
+  if (!(await viewerHasEventsAclGrant())) {
+    const viewer = await getAccessViewer()
+    const uid = (viewer.userId || '').trim()
+    if (uid) {
+      const managers = (() => {
+        try {
+          const parsed = JSON.parse(String(fields.managerUserIds || '[]'))
+          return Array.isArray(parsed)
+            ? parsed.map((v) => String(v).trim()).filter(Boolean)
+            : []
+        } catch {
+          return [] as string[]
+        }
+      })()
+      if (!managers.includes(uid)) managers.push(uid)
+      fields.managerUserIds = JSON.stringify(managers)
+      if (!(fields.merchantUserId || '').trim()) {
+        fields.merchantUserId = uid
+      }
+    }
+  }
+  const result = await createEvent(fields)
   if ('error' in result) return { error: result.error }
   revalidateEventsAdmin(result.event.id)
   return {
@@ -311,9 +400,9 @@ export async function deleteEventAction(
   _prev: EventsAdminActionState,
   formData: FormData,
 ): Promise<EventsAdminActionState> {
-  const denied = await requireEventsAdmin()
-  if (denied) return denied
   const id = String(formData.get('id') ?? '').trim()
+  const denied = await requireEventEditor(id)
+  if (denied) return denied
   const result = await deleteEvent(id)
   if ('error' in result) return { error: result.error }
   revalidateEventsAdmin()
@@ -390,7 +479,7 @@ export async function createEventPartyAction(
   _prev: EventsAdminActionState,
   formData: FormData,
 ): Promise<EventsAdminActionState> {
-  const denied = await requireEventsAdmin()
+  const denied = await requireEventsStaffAdmin()
   if (denied) return denied
 
   const { createEventParty } = await import('./parties')
@@ -414,7 +503,7 @@ export async function updateEventPartyAction(
   _prev: EventsAdminActionState,
   formData: FormData,
 ): Promise<EventsAdminActionState> {
-  const denied = await requireEventsAdmin()
+  const denied = await requireEventsStaffAdmin()
   if (denied) return denied
 
   const { updateEventParty } = await import('./parties')
@@ -440,7 +529,7 @@ export async function deleteEventPartyAction(
   _prev: EventsAdminActionState,
   formData: FormData,
 ): Promise<EventsAdminActionState> {
-  const denied = await requireEventsAdmin()
+  const denied = await requireEventsStaffAdmin()
   if (denied) return denied
 
   const { deleteEventParty } = await import('./parties')
@@ -457,7 +546,7 @@ export async function saveEventsSettingsAction(
   _prev: EventsAdminActionState,
   formData: FormData,
 ): Promise<EventsAdminActionState> {
-  const denied = await requireEventsAdmin()
+  const denied = await requireEventsStaffAdmin()
   if (denied) return denied
 
   try {
@@ -487,7 +576,7 @@ export async function seedEventsEmailStartersAction(
   _prev: EventsAdminActionState,
   _formData: FormData,
 ): Promise<EventsAdminActionState> {
-  const denied = await requireEventsAdmin()
+  const denied = await requireEventsStaffAdmin()
   if (denied) return denied
 
   try {
@@ -635,12 +724,13 @@ export async function createTicketTierAction(
   _prev: EventsAdminActionState,
   formData: FormData,
 ): Promise<EventsAdminActionState> {
-  const denied = await requireEventsAdmin()
+  const eventId = String(formData.get('eventId') ?? '')
+  const denied = await requireEventEditor(eventId)
   if (denied) return denied
 
   const { createTicketTier } = await import('./tiers')
   const result = await createTicketTier({
-    eventId: String(formData.get('eventId') ?? ''),
+    eventId,
     title: String(formData.get('title') ?? ''),
     shortDescription: String(formData.get('shortDescription') ?? ''),
     description: String(formData.get('description') ?? ''),
@@ -648,6 +738,8 @@ export async function createTicketTierAction(
     capacity: String(formData.get('capacity') ?? ''),
     maxPerBooking: String(formData.get('maxPerBooking') ?? ''),
     price: String(formData.get('price') ?? ''),
+    memberPrice: String(formData.get('memberPrice') ?? ''),
+    groupPrices: String(formData.get('groupPrices') ?? ''),
     priceModifier: String(formData.get('priceModifier') ?? ''),
     priceLabel: String(formData.get('priceLabel') ?? ''),
     titleColor: String(formData.get('titleColor') ?? ''),
@@ -669,14 +761,15 @@ export async function updateTicketTierAction(
   _prev: EventsAdminActionState,
   formData: FormData,
 ): Promise<EventsAdminActionState> {
-  const denied = await requireEventsAdmin()
+  const eventId = String(formData.get('eventId') ?? '')
+  const denied = await requireEventEditor(eventId)
   if (denied) return denied
 
   const { updateTicketTier } = await import('./tiers')
   const id = String(formData.get('id') ?? '').trim()
   const result = await updateTicketTier({
     id,
-    eventId: String(formData.get('eventId') ?? ''),
+    eventId,
     title: String(formData.get('title') ?? ''),
     shortDescription: String(formData.get('shortDescription') ?? ''),
     description: String(formData.get('description') ?? ''),
@@ -684,6 +777,8 @@ export async function updateTicketTierAction(
     capacity: String(formData.get('capacity') ?? ''),
     maxPerBooking: String(formData.get('maxPerBooking') ?? ''),
     price: String(formData.get('price') ?? ''),
+    memberPrice: String(formData.get('memberPrice') ?? ''),
+    groupPrices: String(formData.get('groupPrices') ?? ''),
     priceModifier: String(formData.get('priceModifier') ?? ''),
     priceLabel: String(formData.get('priceLabel') ?? ''),
     titleColor: String(formData.get('titleColor') ?? ''),
@@ -705,11 +800,12 @@ export async function deleteTicketTierAction(
   _prev: EventsAdminActionState,
   formData: FormData,
 ): Promise<EventsAdminActionState> {
-  const denied = await requireEventsAdmin()
+  const id = String(formData.get('id') ?? '').trim()
+  const { findTicketTierById, deleteTicketTier } = await import('./tiers')
+  const tier = id ? await findTicketTierById(id) : null
+  const denied = await requireEventEditor(tier?.eventId || '')
   if (denied) return denied
 
-  const { deleteTicketTier } = await import('./tiers')
-  const id = String(formData.get('id') ?? '').trim()
   const result = await deleteTicketTier(id)
   if ('error' in result) return { error: result.error }
   revalidateEventsAdmin()
@@ -720,10 +816,10 @@ export async function reorderTicketTiersAction(
   _prev: EventsAdminActionState,
   formData: FormData,
 ): Promise<EventsAdminActionState> {
-  const denied = await requireEventsAdmin()
+  const eventId = String(formData.get('eventId') ?? '').trim()
+  const denied = await requireEventEditor(eventId)
   if (denied) return denied
 
-  const eventId = String(formData.get('eventId') ?? '').trim()
   const orderedIds = String(formData.get('orderedIds') ?? '')
     .split(',')
     .map((id) => id.trim())
@@ -743,17 +839,16 @@ export async function updateRegistrationStatusAction(
   _prev: EventsAdminActionState,
   formData: FormData,
 ): Promise<EventsAdminActionState> {
-  const denied = await requireEventsAdmin()
-  if (denied) return denied
-
-  const { updateRegistrationStatus } = await import('./registrations')
+  const { findRegistrationById, updateRegistrationStatus } = await import(
+    './registrations'
+  )
+  const { isAdminRegistrationStatus } = await import('./registration-status')
   const id = String(formData.get('id') ?? '').trim()
+  const existing = id ? await findRegistrationById(id) : null
+  const denied = await requireEventEditor(existing?.eventId || '')
+  if (denied) return denied
   const status = String(formData.get('status') ?? '').trim()
-  if (
-    status !== 'registered' &&
-    status !== 'waitlisted' &&
-    status !== 'cancelled'
-  ) {
+  if (!isAdminRegistrationStatus(status)) {
     return { error: 'Invalid status.' }
   }
   const result = await updateRegistrationStatus(id, status)
@@ -770,18 +865,17 @@ export async function createRegistrationAdminAction(
   _prev: EventsAdminActionState,
   formData: FormData,
 ): Promise<EventsAdminActionState> {
-  const denied = await requireEventsAdmin()
+  const eventId = String(formData.get('eventId') ?? '')
+  const denied = await requireEventEditor(eventId)
   if (denied) return denied
 
   const { createEventRegistration } = await import('./registrations')
+  const { isAdminRegistrationStatus } = await import('./registration-status')
   const statusRaw = String(formData.get('status') ?? 'registered').trim()
-  const status =
-    statusRaw === 'waitlisted' || statusRaw === 'cancelled' || statusRaw === 'registered'
-      ? statusRaw
-      : 'registered'
+  const status = isAdminRegistrationStatus(statusRaw) ? statusRaw : 'registered'
   const guests = Number(String(formData.get('guests') ?? '1'))
   const result = await createEventRegistration({
-    eventId: String(formData.get('eventId') ?? ''),
+    eventId,
     ticketTierId: String(formData.get('ticketTierId') ?? ''),
     userId: String(formData.get('userId') ?? ''),
     name: String(formData.get('name') ?? ''),
@@ -805,18 +899,19 @@ export async function updateRegistrationAdminAction(
   _prev: EventsAdminActionState,
   formData: FormData,
 ): Promise<EventsAdminActionState> {
-  const denied = await requireEventsAdmin()
+  const { findRegistrationById, updateEventRegistration } = await import(
+    './registrations'
+  )
+  const { isAdminRegistrationStatus } = await import('./registration-status')
+  const id = String(formData.get('id') ?? '').trim()
+  const existing = id ? await findRegistrationById(id) : null
+  const denied = await requireEventEditor(existing?.eventId || '')
   if (denied) return denied
-
-  const { updateEventRegistration } = await import('./registrations')
   const statusRaw = String(formData.get('status') ?? 'registered').trim()
-  const status =
-    statusRaw === 'waitlisted' || statusRaw === 'cancelled' || statusRaw === 'registered'
-      ? statusRaw
-      : 'registered'
+  const status = isAdminRegistrationStatus(statusRaw) ? statusRaw : 'registered'
   const guests = Number(String(formData.get('guests') ?? '1'))
   const result = await updateEventRegistration({
-    id: String(formData.get('id') ?? ''),
+    id,
     name: String(formData.get('name') ?? ''),
     email: String(formData.get('email') ?? ''),
     guests: Number.isFinite(guests) ? guests : 1,
@@ -839,26 +934,115 @@ export async function deleteRegistrationAdminAction(
   _prev: EventsAdminActionState,
   formData: FormData,
 ): Promise<EventsAdminActionState> {
-  const denied = await requireEventsAdmin()
-  if (denied) return denied
-
-  const { deleteEventRegistration } = await import('./registrations')
+  const { findRegistrationById, deleteEventRegistration } = await import(
+    './registrations'
+  )
   const id = String(formData.get('id') ?? '').trim()
+  const existing = id ? await findRegistrationById(id) : null
+  const denied = await requireEventEditor(existing?.eventId || '')
+  if (denied) return denied
   const result = await deleteEventRegistration(id)
   if ('error' in result) return { error: result.error }
   revalidateEventsAdmin()
   return { ok: true, message: 'Registrant deleted.', id }
 }
 
+/**
+ * Queue a paced Email Manager broadcast to registered seats for one event.
+ * Uses enqueueEmailBroadcast only — never getMailer().
+ */
+export async function emailEventRegistrantsAction(
+  _prev: EventsAdminActionState,
+  formData: FormData,
+): Promise<EventsAdminActionState> {
+  const eventId = String(formData.get('eventId') ?? '').trim()
+  const templateId = String(formData.get('templateId') ?? '').trim()
+  if (!eventId) return { error: 'Select an event first.' }
+  if (!templateId) return { error: 'Select an email template.' }
+
+  const denied = await requireEventEditor(eventId)
+  if (denied) return denied
+
+  const event = await findEventById(eventId)
+  if (!event) return { error: 'Event not found.' }
+
+  const { listRegistrationsForEvent } = await import('./registrations')
+  const rows = await listRegistrationsForEvent(eventId, { includeCancelled: true })
+  const registered = rows.filter((r) => r.status === 'registered' && r.email.includes('@'))
+  if (!registered.length) {
+    return { error: 'No registered attendees with email addresses for this event.' }
+  }
+
+  const { buildEventsRegistrationEmailPayload } = await import('./email-emit')
+  const { findTicketTierById } = await import('./tiers')
+  const tierTitleCache = new Map<string, string>()
+  const recipients: Array<{ email: string; payload: Record<string, unknown> }> = []
+  for (const reg of registered) {
+    let tierTitle = ''
+    const tierId = (reg.ticketTierId || '').trim()
+    if (tierId) {
+      if (tierTitleCache.has(tierId)) {
+        tierTitle = tierTitleCache.get(tierId) || ''
+      } else {
+        try {
+          const tier = await findTicketTierById(tierId)
+          tierTitle = tier?.title || ''
+        } catch {
+          tierTitle = ''
+        }
+        tierTitleCache.set(tierId, tierTitle)
+      }
+    }
+    const payload = await buildEventsRegistrationEmailPayload({
+      event,
+      registration: reg,
+      ticketTierTitle: tierTitle,
+    })
+    recipients.push({
+      email: reg.email,
+      payload: { ...payload },
+    })
+  }
+
+  const { enqueueEmailBroadcast, isEmailManagerEnabled } = await import(
+    '@/modules/email-manager/api.server'
+  )
+  if (!(await isEmailManagerEnabled())) {
+    return {
+      error: 'Email Manager is disabled. Enable it under Settings → Modules.',
+    }
+  }
+
+  const result = await enqueueEmailBroadcast({
+    label: `Event registrants — ${event.title}`,
+    templateId,
+    moduleCategory: 'events',
+    sourceKey: `events:${eventId}`,
+    recipients,
+  })
+
+  if (!result.ok) {
+    return { error: result.error || 'Could not queue registrant email.' }
+  }
+
+  revalidateEventsAdmin(eventId)
+  revalidatePath('/admin/email/broadcasts')
+  return {
+    ok: true,
+    message: result.message || 'Registrant email queued.',
+    id: result.broadcastId,
+  }
+}
+
 export async function checkInRegistrationAdminAction(
   _prev: EventsAdminActionState,
   formData: FormData,
 ): Promise<EventsAdminActionState> {
-  const denied = await requireEventsAdmin()
-  if (denied) return denied
-
-  const { checkInRegistration } = await import('./registrations')
+  const { findRegistrationById, checkInRegistration } = await import('./registrations')
   const id = String(formData.get('id') ?? '').trim()
+  const existing = id ? await findRegistrationById(id) : null
+  const denied = await requireEventEditor(existing?.eventId || '')
+  if (denied) return denied
   const result = await checkInRegistration(id)
   if ('error' in result) return { error: result.error }
   revalidateEventsAdmin(result.registration.eventId)
@@ -874,11 +1058,13 @@ export async function clearCheckInRegistrationAdminAction(
   _prev: EventsAdminActionState,
   formData: FormData,
 ): Promise<EventsAdminActionState> {
-  const denied = await requireEventsAdmin()
-  if (denied) return denied
-
-  const { clearRegistrationCheckIn } = await import('./registrations')
+  const { findRegistrationById, clearRegistrationCheckIn } = await import(
+    './registrations'
+  )
   const id = String(formData.get('id') ?? '').trim()
+  const existing = id ? await findRegistrationById(id) : null
+  const denied = await requireEventEditor(existing?.eventId || '')
+  if (denied) return denied
   const result = await clearRegistrationCheckIn(id)
   if ('error' in result) return { error: result.error }
   revalidateEventsAdmin(result.registration.eventId)
@@ -1004,4 +1190,67 @@ export async function switchOwnRegistrationTierAction(
   revalidatePath('/account/events')
   revalidateEventsAdmin(result.registration.eventId)
   return { ok: true, message: 'Switched ticket type.' }
+}
+
+function categoryFieldsFromForm(formData: FormData) {
+  return {
+    title: String(formData.get('title') ?? ''),
+    slug: String(formData.get('slug') ?? ''),
+    description: String(formData.get('description') ?? ''),
+    registrationFormId: String(formData.get('registrationFormId') ?? ''),
+    published: formData.get('published') === '0' ? '0' : '1',
+    sortOrder: String(formData.get('sortOrder') ?? '0'),
+    accessTags: parseAccessTagsFromForm(formData),
+    titleLocales: parseLocaleMap(formData, 'titleLocales'),
+    descriptionLocales: parseLocaleMap(formData, 'descriptionLocales'),
+  }
+}
+
+export async function createEventCategoryAction(
+  _prev: EventsAdminActionState,
+  formData: FormData,
+): Promise<EventsAdminActionState> {
+  const denied = await requireEventsStaffAdmin()
+  if (denied) return denied
+  const result = await createEventCategory(categoryFieldsFromForm(formData))
+  if ('error' in result) return { error: result.error }
+  revalidateEventsAdmin()
+  return {
+    ok: true,
+    message: `Category “${result.category.title}” created.`,
+    id: result.category.id,
+  }
+}
+
+export async function updateEventCategoryAction(
+  _prev: EventsAdminActionState,
+  formData: FormData,
+): Promise<EventsAdminActionState> {
+  const denied = await requireEventsStaffAdmin()
+  if (denied) return denied
+  const id = String(formData.get('id') ?? '').trim()
+  const result = await updateEventCategory({
+    id,
+    ...categoryFieldsFromForm(formData),
+  })
+  if ('error' in result) return { error: result.error }
+  revalidateEventsAdmin()
+  return {
+    ok: true,
+    message: `Category “${result.category.title}” saved.`,
+    id: result.category.id,
+  }
+}
+
+export async function deleteEventCategoryAction(
+  _prev: EventsAdminActionState,
+  formData: FormData,
+): Promise<EventsAdminActionState> {
+  const denied = await requireEventsStaffAdmin()
+  if (denied) return denied
+  const id = String(formData.get('id') ?? '').trim()
+  const result = await deleteEventCategory(id)
+  if ('error' in result) return { error: result.error }
+  revalidateEventsAdmin()
+  return { ok: true, message: 'Category deleted.', id }
 }

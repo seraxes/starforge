@@ -22,7 +22,7 @@ import { getLocale } from 'next-intl/server'
 
 import { ensureEventsFormHooks } from './form-hooks'
 import {
-  viewerPassesEventAcl,
+  viewerPassesEventVisibility,
   viewerPassesEventPassword,
 } from './public-access'
 import { loadEventRegistrationFields } from './registration-form'
@@ -106,7 +106,7 @@ export async function quickRegisterForTier(
   }
 
   const viewer = await getAccessViewer()
-  if (!viewerPassesEventAcl(event, viewer)) {
+  if (!(await viewerPassesEventVisibility(event, viewer))) {
     return { error: 'You cannot register for this event.' }
   }
   if (!(await viewerPassesEventPassword(event, viewer))) {
@@ -139,9 +139,11 @@ export async function quickRegisterForTier(
       error:
         existing.status === 'waitlisted'
           ? 'You are already on the waitlist for this event.'
-          : existing.status === 'pending_payment'
-            ? 'You already have a pending payment for this event.'
-            : 'You are already registered for this event.',
+          : existing.status === 'pending'
+            ? 'Your registration is awaiting approval.'
+            : existing.status === 'pending_payment'
+              ? 'You already have a pending payment for this event.'
+              : 'You are already registered for this event.',
     }
   }
 
@@ -221,10 +223,11 @@ export async function quickRegisterForTier(
   ensureEventsPaymentHook()
 
   if (
-    result.registration.status === 'registered' &&
+    (result.registration.status === 'registered' ||
+      result.registration.status === 'pending') &&
     (await isPaymentsModuleOn())
   ) {
-    const priced = await tierRequiresPayment(tierId)
+    const priced = await tierRequiresPayment(tierId, { userId })
     if (priced.requires) {
       const checkout = await beginPaidTicketCheckout({
         registrationId: result.registration.id,
@@ -254,7 +257,7 @@ export async function quickRegisterForTier(
   }
 
   const status = result.registration.status
-  if (status === 'registered' || status === 'waitlisted') {
+  if (status === 'registered' || status === 'waitlisted' || status === 'pending') {
     const { emitEventsSignupEmails } = await import('./email-emit')
     await emitEventsSignupEmails({
       event,
@@ -269,6 +272,8 @@ export async function quickRegisterForTier(
     message:
       status === 'waitlisted'
         ? `You are waitlisted for ${tier.title}.`
-        : `Registered for ${tier.title}.`,
+        : status === 'pending'
+          ? `Your signup for ${tier.title} is awaiting approval.`
+          : `Registered for ${tier.title}.`,
   }
 }

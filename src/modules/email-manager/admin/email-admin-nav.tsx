@@ -3,7 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 
-export type EmailAdminTab = 'rules' | 'templates' | 'sends'
+export type EmailAdminTab = 'rules' | 'templates' | 'sends' | 'broadcasts'
 
 const TABS: { id: EmailAdminTab; label: string; href: string; title: string }[] = [
   {
@@ -23,6 +23,12 @@ const TABS: { id: EmailAdminTab; label: string; href: string; title: string }[] 
     label: 'Sends',
     href: '/admin/email/sends',
     title: 'Recent outbound send log',
+  },
+  {
+    id: 'broadcasts',
+    label: 'Broadcasts',
+    href: '/admin/email/broadcasts',
+    title: 'Paced bulk send queue and pace rules',
   },
 ]
 

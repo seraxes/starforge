@@ -9,6 +9,7 @@ import {
 } from '../actions'
 import type { TierCapacityDisplayMode } from '../types'
 import type { EventSignupStatus } from './event-card-model'
+import { signupBlockedLabel, signupTicketHint } from './signup-status'
 import type { PublicTicketTier } from './ticket-tier-model'
 
 export type { PublicTicketTier }
@@ -95,7 +96,7 @@ export function EventTicketTypes({
 
   if (tiers.length === 0) return null
 
-  const alreadyIn = signupStatus === 'registered' || signupStatus === 'waitlisted'
+  const alreadyIn = signupStatus !== 'none'
   const showCoupon =
     !alreadyIn && registrationOpen && tiers.some((t) => Boolean(t.priceLabel?.trim()))
 
@@ -257,7 +258,7 @@ export function EventTicketTypes({
                   </a>
                 ) : isCurrent ? (
                   <span className="settings-hint">
-                    {signupStatus === 'waitlisted' ? 'Waitlisted' : 'Your registration'}
+                    {signupTicketHint(signupStatus)}
                   </span>
                 ) : showSwitch ? (
                   <button
@@ -278,9 +279,7 @@ export function EventTicketTypes({
                       ? 'No open slots'
                       : !selfCancelOpen
                         ? 'Switching closed'
-                        : signupStatus === 'waitlisted'
-                          ? 'Waitlisted'
-                          : 'Already registered'}
+                        : signupBlockedLabel(signupStatus)}
                   </span>
                 ) : !registrationOpen ? (
                   <span className="settings-hint">Registration closed</span>
