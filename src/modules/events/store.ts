@@ -24,7 +24,10 @@ import {
 import { hashEventPassword } from './access-password'
 import { sfEvents, sfVenues } from './schema'
 import {
+  EVENT_COVER_MEDIA_MAX,
+  isEventCoverDisplayMode,
   isEventStatus,
+  type EventCoverDisplayMode,
   type EventRecord,
   type EventStatus,
   type VenueRecord,
@@ -98,7 +101,20 @@ function mapEvent(row: typeof sfEvents.$inferSelect): EventRecord {
     priceRules: parseTierPriceRules(row.priceRules),
     venueId: (row.venueId || '').trim(),
     description: row.description ?? '',
-    coverMediaId: (row.coverMediaId || '').trim(),
+    coverMediaId: (() => {
+      const ids = normalizeCoverMediaIds(
+        row.coverMediaIds,
+        (row.coverMediaId || '').trim(),
+      )
+      return ids[0] || ''
+    })(),
+    coverMediaIds: normalizeCoverMediaIds(
+      row.coverMediaIds,
+      (row.coverMediaId || '').trim(),
+    ),
+    coverDisplayMode: isEventCoverDisplayMode(row.coverDisplayMode)
+      ? row.coverDisplayMode
+      : 'static',
     galleryMediaIds: gallery.map((id) => id.trim()).filter(Boolean),
     capacity:
       typeof row.capacity === 'number' && Number.isFinite(row.capacity) && row.capacity >= 0
@@ -107,6 +123,8 @@ function mapEvent(row: typeof sfEvents.$inferSelect): EventRecord {
     waitlistEnabled: row.waitlistEnabled !== false,
     registrationOpensAt: row.registrationOpensAt ?? null,
     registrationClosesAt: row.registrationClosesAt ?? null,
+    cancellationClosesAt: row.cancellationClosesAt ?? null,
+    selfCancelRefund: row.selfCancelRefund === true,
     merchantUserId: (row.merchantUserId || '').trim(),
     managerUserIds: normalizeIdList(row.managerUserIds),
     helperUserIds: normalizeIdList(row.helperUserIds),
@@ -218,6 +236,43 @@ function normalizeGalleryIds(raw: unknown): string[] {
       .slice(0, 40)
   }
   return []
+}
+
+function normalizeCoverMediaIds(raw: unknown, fallbackPrimary = ''): string[] {
+  let source: unknown = raw
+  if (typeof raw === 'string' && raw.trim()) {
+    try {
+      source = JSON.parse(raw) as unknown
+    } catch {
+      source = raw.split(/[,;\n]+/)
+    }
+  }
+  const fromList = normalizeIdList(source, EVENT_COVER_MEDIA_MAX)
+  if (fromList.length > 0) return fromList
+  const primary = fallbackPrimary.trim()
+  return primary ? [primary] : []
+}
+
+function resolveCoverFields(input: {
+  coverMediaId?: string
+  coverMediaIds?: unknown
+  coverDisplayMode?: unknown
+}): {
+  coverMediaId: string | null
+  coverMediaIds: string[]
+  coverDisplayMode: EventCoverDisplayMode
+} {
+  const coverMediaIds = normalizeCoverMediaIds(
+    input.coverMediaIds,
+    String(input.coverMediaId ?? ''),
+  )
+  const coverMediaId = coverMediaIds[0] || null
+  const coverDisplayMode: EventCoverDisplayMode = isEventCoverDisplayMode(
+    input.coverDisplayMode,
+  )
+    ? input.coverDisplayMode
+    : 'static'
+  return { coverMediaId, coverMediaIds, coverDisplayMode }
 }
 
 /* ─── Venues ─────────────────────────────────────────────────────────────── */
@@ -427,11 +482,15 @@ export type UpsertEventInput = {
   venueId?: string
   description?: string
   coverMediaId?: string
+  coverMediaIds?: unknown
+  coverDisplayMode?: unknown
   galleryMediaIds?: unknown
   capacity?: unknown
   waitlistEnabled?: unknown
   registrationOpensAt?: unknown
   registrationClosesAt?: unknown
+  cancellationClosesAt?: unknown
+  selfCancelRefund?: unknown
   /** Premium merchant user collecting ticket payments (empty = site MoR). */
   merchantUserId?: unknown
   managerUserIds?: unknown
@@ -476,7 +535,15 @@ export async function createEvent(
   const priceRules = input.priceRules ?? EMPTY_TIER_PRICE_RULES
   const venueId = (input.venueId || '').trim() || null
   const description = sanitizeRichHtml(input.description || '').slice(0, 50_000)
-  const coverMediaId = (input.coverMediaId || '').trim() || null
+  const {
+    coverMediaId,
+    coverMediaIds,
+    coverDisplayMode,
+  } = resolveCoverFields({
+    coverMediaId: input.coverMediaId,
+    coverMediaIds: input.coverMediaIds,
+    coverDisplayMode: input.coverDisplayMode,
+  })
   const galleryMediaIds = normalizeGalleryIds(input.galleryMediaIds)
   const capacity = parseOptionalCapacity(input.capacity)
   const waitlistEnabled = parseListedFlag(input.waitlistEnabled, true)
@@ -484,6 +551,8 @@ export async function createEvent(
   const endsAt = parseOptionalDate(input.endsAt)
   const registrationOpensAt = parseOptionalDate(input.registrationOpensAt)
   const registrationClosesAt = parseOptionalDate(input.registrationClosesAt)
+  const cancellationClosesAt = parseOptionalDate(input.cancellationClosesAt)
+  const selfCancelRefund = parseListedFlag(input.selfCancelRefund, false)
   const merchantUserId = String(input.merchantUserId ?? '').trim() || null
   const managerUserIds = parseOptionalIdList(input.managerUserIds)
   const helperUserIds = parseOptionalIdList(input.helperUserIds)
@@ -536,11 +605,15 @@ export async function createEvent(
       venueId,
       description,
       coverMediaId,
+      coverMediaIds,
+      coverDisplayMode,
       galleryMediaIds,
       capacity,
       waitlistEnabled,
       registrationOpensAt,
       registrationClosesAt,
+      cancellationClosesAt,
+      selfCancelRefund,
       merchantUserId,
       managerUserIds,
       helperUserIds,
@@ -594,10 +667,30 @@ export async function updateEvent(
     input.description !== undefined
       ? sanitizeRichHtml(input.description).slice(0, 50_000)
       : current.description
-  const coverMediaId =
-    input.coverMediaId !== undefined
-      ? input.coverMediaId.trim() || null
-      : current.coverMediaId || null
+  const coverResolved =
+    input.coverMediaIds !== undefined ||
+    input.coverMediaId !== undefined ||
+    input.coverDisplayMode !== undefined
+      ? resolveCoverFields({
+          coverMediaId:
+            input.coverMediaId !== undefined
+              ? input.coverMediaId
+              : current.coverMediaId,
+          coverMediaIds:
+            input.coverMediaIds !== undefined
+              ? input.coverMediaIds
+              : current.coverMediaIds,
+          coverDisplayMode:
+            input.coverDisplayMode !== undefined
+              ? input.coverDisplayMode
+              : current.coverDisplayMode,
+        })
+      : {
+          coverMediaId: current.coverMediaId || null,
+          coverMediaIds: current.coverMediaIds,
+          coverDisplayMode: current.coverDisplayMode,
+        }
+  const { coverMediaId, coverMediaIds, coverDisplayMode } = coverResolved
   const galleryMediaIds =
     input.galleryMediaIds !== undefined
       ? normalizeGalleryIds(input.galleryMediaIds)
@@ -622,6 +715,14 @@ export async function updateEvent(
     input.registrationClosesAt !== undefined
       ? parseOptionalDate(input.registrationClosesAt)
       : current.registrationClosesAt
+  const cancellationClosesAt =
+    input.cancellationClosesAt !== undefined
+      ? parseOptionalDate(input.cancellationClosesAt)
+      : current.cancellationClosesAt
+  const selfCancelRefund =
+    input.selfCancelRefund !== undefined
+      ? parseListedFlag(input.selfCancelRefund, current.selfCancelRefund)
+      : current.selfCancelRefund
   const merchantUserId =
     input.merchantUserId !== undefined
       ? String(input.merchantUserId ?? '').trim() || null
@@ -725,11 +826,15 @@ export async function updateEvent(
         venueId,
         description,
         coverMediaId,
+        coverMediaIds,
+        coverDisplayMode,
         galleryMediaIds,
         capacity,
         waitlistEnabled,
         registrationOpensAt,
         registrationClosesAt,
+        cancellationClosesAt,
+        selfCancelRefund,
         merchantUserId,
         managerUserIds,
         helperUserIds,
@@ -822,11 +927,15 @@ export async function duplicateEvent(
     venueId: source.venueId,
     description: source.description,
     coverMediaId: source.coverMediaId,
+    coverMediaIds: source.coverMediaIds,
+    coverDisplayMode: source.coverDisplayMode,
     galleryMediaIds: source.galleryMediaIds,
     capacity: source.capacity ?? '',
     waitlistEnabled: source.waitlistEnabled ? '1' : '0',
     registrationOpensAt: source.registrationOpensAt?.toISOString() ?? '',
     registrationClosesAt: source.registrationClosesAt?.toISOString() ?? '',
+    cancellationClosesAt: source.cancellationClosesAt?.toISOString() ?? '',
+    selfCancelRefund: source.selfCancelRefund ? '1' : '0',
     merchantUserId: source.merchantUserId,
     managerUserIds: source.managerUserIds,
     helperUserIds: source.helperUserIds,

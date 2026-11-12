@@ -114,8 +114,8 @@ function TierColorField({
 
   return (
     <label className="settings-field sf-events-tiers-color-field">
+      <span>{label}</span>
       <span className="sf-events-tiers-color-row">
-        <span className="sf-events-tiers-color-label">{label}</span>
         <input
           type="color"
           className="gantry-color-swatch sf-events-tiers-color-swatch"

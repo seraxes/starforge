@@ -61,7 +61,12 @@ export default async function AccountProfilePage({ params }: Args) {
       <header className="cms-page-header">
         <h1>Your profile</h1>
       </header>
-      <AccountNav active="profile" locale={locale} handle={record.handle} />
+      <AccountNav
+        active="profile"
+        locale={locale}
+        handle={record.handle}
+        showEvents={isCatalogModuleEnabled(settings, MODULE_IDS.events)}
+      />
       <p className="lede">
         This is how you appear across the whole community — events, marketplace, posts and
         messages. Choose who can see each detail with the selector next to it.

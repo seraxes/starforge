@@ -58,6 +58,7 @@ function revalidateEventsAdmin(eventId?: string) {
   revalidatePath('/admin/events/settings')
   revalidatePath('/admin/events/tiers')
   revalidatePath('/admin/events/registrants')
+  revalidatePath('/admin/events/check-in')
   revalidatePath('/admin/events/parties')
   revalidatePath('/admin')
   revalidatePath('/events')
@@ -84,6 +85,8 @@ function eventFieldsFromForm(formData: FormData) {
     venueId: String(formData.get('venueId') ?? ''),
     description: String(formData.get('description') ?? ''),
     coverMediaId: String(formData.get('coverMediaId') ?? ''),
+    coverMediaIds: String(formData.get('coverMediaIdsJson') ?? '[]'),
+    coverDisplayMode: String(formData.get('coverDisplayMode') ?? 'static'),
     galleryMediaIds: String(formData.get('galleryMediaIdsJson') ?? '[]'),
     capacity: String(formData.get('capacity') ?? ''),
     waitlistEnabled: formData.get('waitlistEnabled') === '1' ? '1' : '0',
@@ -93,6 +96,10 @@ function eventFieldsFromForm(formData: FormData) {
     registrationClosesAt: datetimeLocalToIso(
       String(formData.get('registrationClosesAt') ?? ''),
     ),
+    cancellationClosesAt: datetimeLocalToIso(
+      String(formData.get('cancellationClosesAt') ?? ''),
+    ),
+    selfCancelRefund: formData.get('selfCancelRefund') === '1' ? '1' : '0',
     merchantUserId: String(formData.get('merchantUserId') ?? '').trim(),
     managerUserIds: parseIdListJson(formData, 'managerUserIdsJson'),
     helperUserIds: parseIdListJson(formData, 'helperUserIdsJson'),
@@ -486,9 +493,13 @@ export async function seedEventsEmailStartersAction(
   try {
     const { createEmailTemplate, updateEmailTemplate, createEmailRule, updateEmailRule } =
       await import('@/modules/email-manager/store')
-    const { EVENTS_REGISTERED_TRIGGER, EVENTS_WAITLIST_PROMOTED_TRIGGER } = await import(
-      './triggers'
-    )
+    const {
+      EVENTS_REGISTERED_TRIGGER,
+      EVENTS_WAITLIST_PROMOTED_TRIGGER,
+      EVENTS_ORGANIZER_NOTIFY_TRIGGER,
+      EVENTS_ATTENDEE_REMINDER_TRIGGER,
+      EVENTS_REGISTRANT_CANCELLED_TRIGGER,
+    } = await import('./triggers')
 
     async function upsertStarter(input: {
       tplId: string
@@ -498,7 +509,9 @@ export async function seedEventsEmailStartersAction(
       triggerKey: string
       subject: string
       bodyText: string
+      audience?: { toFromPayload: string[] }
     }) {
+      const audience = input.audience ?? { toFromPayload: ['respondentEmail'] }
       const createdTpl = await createEmailTemplate({
         id: input.tplId,
         label: input.tplLabel,
@@ -524,7 +537,7 @@ export async function seedEventsEmailStartersAction(
         triggerKey: input.triggerKey,
         mode: 'automatic',
         conditions: { all: [] },
-        audience: { toFromPayload: ['respondentEmail'] },
+        audience,
         templateId: input.tplId,
       })
       if ('error' in createdRule) {
@@ -536,7 +549,7 @@ export async function seedEventsEmailStartersAction(
           triggerKey: input.triggerKey,
           mode: 'automatic',
           conditions: { all: [] },
-          audience: { toFromPayload: ['respondentEmail'] },
+          audience,
           templateId: input.tplId,
         })
       }
@@ -550,7 +563,7 @@ export async function seedEventsEmailStartersAction(
       triggerKey: EVENTS_REGISTERED_TRIGGER,
       subject: 'Registration: {{eventTitle}}',
       bodyText:
-        'Hi {{name}},\n\nYour registration for {{eventTitle}} is {{registrationStatus}}.\nTicket: {{ticketTierTitle}}\nGuests: {{guests}}\n\n— Starforge Events',
+        'Hi {{name}},\n\nYour registration for {{eventTitle}} is {{registrationStatus}}.\nTicket: {{ticketTierTitle}}\nGuests: {{guests}}\n\nShow your door ticket (QR): {{ticketUrl}}\n\n— Starforge Events',
     })
 
     await upsertStarter({
@@ -561,7 +574,41 @@ export async function seedEventsEmailStartersAction(
       triggerKey: EVENTS_WAITLIST_PROMOTED_TRIGGER,
       subject: 'A seat opened: {{eventTitle}}',
       bodyText:
-        'Hi {{name}},\n\nA seat opened for {{eventTitle}} and you are now registered.\nTicket: {{ticketTierTitle}}\nGuests: {{guests}}\n\n— Starforge Events',
+        'Hi {{name}},\n\nA seat opened for {{eventTitle}} and you are now registered.\nTicket: {{ticketTierTitle}}\nGuests: {{guests}}\n\nShow your door ticket (QR): {{ticketUrl}}\n\n— Starforge Events',
+    })
+
+    await upsertStarter({
+      tplId: 'tpl-events-organizer-notify-default',
+      ruleId: 'rule-events-organizer-notify-default',
+      tplLabel: 'Events — organizer notify',
+      ruleLabel: 'Events — notify organizers',
+      triggerKey: EVENTS_ORGANIZER_NOTIFY_TRIGGER,
+      audience: { toFromPayload: ['organizerEmails'] },
+      subject: 'New registration: {{eventTitle}}',
+      bodyText:
+        'New registration for {{eventTitle}}.\n\nName: {{name}}\nEmail: {{email}}\nStatus: {{registrationStatus}}\nTicket: {{ticketTierTitle}}\nGuests: {{guests}}\n\n— Starforge Events',
+    })
+
+    await upsertStarter({
+      tplId: 'tpl-events-attendee-reminder-default',
+      ruleId: 'rule-events-attendee-reminder-default',
+      tplLabel: 'Events — attendee reminder',
+      ruleLabel: 'Events — remind attendee',
+      triggerKey: EVENTS_ATTENDEE_REMINDER_TRIGGER,
+      subject: 'Reminder: {{eventTitle}}',
+      bodyText:
+        'Hi {{name}},\n\nThis is a reminder that {{eventTitle}} starts soon ({{eventStartsAt}}).\nTicket: {{ticketTierTitle}}\nGuests: {{guests}}\n\nShow your door ticket (QR): {{ticketUrl}}\n\n— Starforge Events',
+    })
+
+    await upsertStarter({
+      tplId: 'tpl-events-registrant-cancelled-default',
+      ruleId: 'rule-events-registrant-cancelled-default',
+      tplLabel: 'Events — registrant cancelled',
+      ruleLabel: 'Events — registrant cancelled',
+      triggerKey: EVENTS_REGISTRANT_CANCELLED_TRIGGER,
+      subject: 'Registration cancelled: {{eventTitle}}',
+      bodyText:
+        'Hi {{name}},\n\nYour registration for {{eventTitle}} has been cancelled.\nTicket: {{ticketTierTitle}}\n\n— Starforge Events',
     })
 
     const { ensureEventRegistrationFormSeeded } = await import('./registration-form')
@@ -572,7 +619,7 @@ export async function seedEventsEmailStartersAction(
     return {
       ok: true,
       message:
-        'Seeded Events registration + waitlist-promoted emails (templates + rules) and ensured the event-registration Form definition.',
+        'Seeded Events email starters (registered, waitlist-promoted, organizer-notify, attendee-reminder, registrant-cancelled) and ensured the event-registration Form definition.',
     }
   } catch (error) {
     return {
@@ -803,6 +850,46 @@ export async function deleteRegistrationAdminAction(
   return { ok: true, message: 'Registrant deleted.', id }
 }
 
+export async function checkInRegistrationAdminAction(
+  _prev: EventsAdminActionState,
+  formData: FormData,
+): Promise<EventsAdminActionState> {
+  const denied = await requireEventsAdmin()
+  if (denied) return denied
+
+  const { checkInRegistration } = await import('./registrations')
+  const id = String(formData.get('id') ?? '').trim()
+  const result = await checkInRegistration(id)
+  if ('error' in result) return { error: result.error }
+  revalidateEventsAdmin(result.registration.eventId)
+  revalidatePath('/admin/events/check-in')
+  return {
+    ok: true,
+    message: `Checked in “${result.registration.name}”.`,
+    id: result.registration.id,
+  }
+}
+
+export async function clearCheckInRegistrationAdminAction(
+  _prev: EventsAdminActionState,
+  formData: FormData,
+): Promise<EventsAdminActionState> {
+  const denied = await requireEventsAdmin()
+  if (denied) return denied
+
+  const { clearRegistrationCheckIn } = await import('./registrations')
+  const id = String(formData.get('id') ?? '').trim()
+  const result = await clearRegistrationCheckIn(id)
+  if ('error' in result) return { error: result.error }
+  revalidateEventsAdmin(result.registration.eventId)
+  revalidatePath('/admin/events/check-in')
+  return {
+    ok: true,
+    message: `Cleared check-in for “${result.registration.name}”.`,
+    id: result.registration.id,
+  }
+}
+
 /* ─── Public one-click register (area cards) ─────────────────────────────── */
 
 export type QuickRegisterActionResult = {
@@ -820,9 +907,10 @@ export type QuickRegisterActionResult = {
 export async function quickRegisterAction(
   eventId: string,
   tierId: string,
+  couponCode?: string | null,
 ): Promise<QuickRegisterActionResult> {
   const { quickRegisterForTier } = await import('./quick-register')
-  const result = await quickRegisterForTier(eventId, tierId)
+  const result = await quickRegisterForTier(eventId, tierId, couponCode)
   if ('needsAuth' in result) return { needsAuth: true }
   if ('needsForm' in result) return { needsForm: true, reason: result.reason }
   if ('error' in result) return { error: result.error }
@@ -837,4 +925,83 @@ export async function quickRegisterAction(
     message: result.message,
     ...(result.redirectUrl ? { redirectUrl: result.redirectUrl } : {}),
   }
+}
+
+export type CancelOwnRegistrationActionResult =
+  | {
+      ok: true
+      message: string
+      refundMessage?: string
+    }
+  | { needsAuth: true }
+  | { error: string }
+
+export async function cancelOwnRegistrationAction(
+  registrationId: string,
+  options?: { requestRefund?: boolean },
+): Promise<CancelOwnRegistrationActionResult> {
+  const { getAppSession } = await import('@/core/auth/session')
+  const session = await getAppSession()
+  const userId = (session?.user?.id || '').trim()
+  if (!userId) return { needsAuth: true }
+
+  const off = await requireEventsModuleOn()
+  if (off) return { error: off.error || 'Events is disabled.' }
+
+  const { cancelOwnRegistration } = await import('./registrations')
+  const result = await cancelOwnRegistration(userId, registrationId, {
+    requestRefund: options?.requestRefund === true,
+  })
+  if ('error' in result) return { error: result.error }
+
+  revalidatePath('/events')
+  revalidatePath('/account/events')
+  revalidateEventsAdmin(result.registration.eventId)
+
+  let message = 'Registration cancelled.'
+  let refundMessage: string | undefined
+  if (result.refund) {
+    if (result.refund.ok) {
+      refundMessage = result.refund.message || 'Refund requested.'
+    } else if (result.refund.code === 'refunds_not_implemented') {
+      refundMessage =
+        'Your seat was cancelled. Refund processing is not available yet — the organizer may refund manually.'
+    } else {
+      refundMessage =
+        result.refund.message ||
+        'Your seat was cancelled. A refund could not be requested.'
+    }
+  }
+  return { ok: true, message, ...(refundMessage ? { refundMessage } : {}) }
+}
+
+export type SwitchOwnRegistrationActionResult =
+  | { ok: true; message: string }
+  | { needsAuth: true }
+  | { error: string }
+
+export async function switchOwnRegistrationTierAction(
+  registrationId: string,
+  targetTierId: string,
+): Promise<SwitchOwnRegistrationActionResult> {
+  const { getAppSession } = await import('@/core/auth/session')
+  const session = await getAppSession()
+  const userId = (session?.user?.id || '').trim()
+  if (!userId) return { needsAuth: true }
+
+  const off = await requireEventsModuleOn()
+  if (off) return { error: off.error || 'Events is disabled.' }
+
+  const { switchOwnRegistrationTier } = await import('./registrations')
+  const result = await switchOwnRegistrationTier(
+    userId,
+    registrationId,
+    targetTierId,
+  )
+  if ('error' in result) return { error: result.error }
+
+  revalidatePath('/events')
+  revalidatePath('/account/events')
+  revalidateEventsAdmin(result.registration.eventId)
+  return { ok: true, message: 'Switched ticket type.' }
 }

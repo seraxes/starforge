@@ -14,8 +14,13 @@ import { withLocalePrefix } from '@/core/i18n/path'
 import { majorToMinor } from '@/core/payments'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
+import {
+  emitEventsRegisteredLifecycle,
+  emitEventsRegistrantCancelled,
+  ensureEventsReminderJob,
+  mapRegistrationRowForEmail,
+} from './email-emit'
 import { quoteTierMajor, sumFormPriceAddons } from './price-rules'
-import { EVENTS_REGISTERED_TRIGGER } from './triggers'
 import { eventPublicPathKey } from './public/path'
 import { sfEventRegistrations } from './schema'
 import { findEventById } from './store'
@@ -42,38 +47,42 @@ async function emitRegisteredEmailForRegistration(registrationId: string): Promi
     tierTitle = tier?.title || ''
   }
 
-  try {
-    const { emitEmailTrigger, isEmailManagerEnabled } = await import(
-      '@/modules/email-manager/api.server'
-    )
-    if (!(await isEmailManagerEnabled())) return
-    await emitEmailTrigger({
-      triggerKey: EVENTS_REGISTERED_TRIGGER,
-      payload: {
-        eventId: event.id,
-        eventTitle: event.title,
-        eventSlug: event.slug,
-        registrationId: row.id,
-        registrationStatus: 'registered',
-        ticketTierId: row.ticketTierId,
-        ticketTierTitle: tierTitle,
-        name: row.name,
-        email: row.email,
-        guests: row.guests,
-        attendance: row.attendance,
-        submissionId: row.submissionId,
-        respondentEmail: row.email,
-      },
-    })
-  } catch (error) {
-    console.error('[events] paid confirmation email failed', error)
+  await emitEventsRegisteredLifecycle({
+    event,
+    registration: mapRegistrationRowForEmail(row),
+    ticketTierTitle: tierTitle,
+  })
+}
+
+async function emitCancelledEmailForRegistration(registrationId: string): Promise<void> {
+  const [row] = await db
+    .select()
+    .from(sfEventRegistrations)
+    .where(eq(sfEventRegistrations.id, registrationId))
+    .limit(1)
+  if (!row || row.status !== 'cancelled') return
+
+  const event = await findEventById(row.eventId)
+  if (!event) return
+
+  let tierTitle = ''
+  if (row.ticketTierId) {
+    const tier = await findTicketTierById(row.ticketTierId)
+    tierTitle = tier?.title || ''
   }
+
+  await emitEventsRegistrantCancelled({
+    event,
+    registration: mapRegistrationRowForEmail(row),
+    ticketTierTitle: tierTitle,
+  })
 }
 
 /** Register fulfillment hook once (safe to call repeatedly). */
 export function ensureEventsPaymentHook(): void {
   if (hookRegistered) return
   hookRegistered = true
+  ensureEventsReminderJob()
 
   void import('@/modules/payments/api')
     .then(({ registerPaymentConsumerHook }) => {
@@ -95,10 +104,26 @@ export function ensureEventsPaymentHook(): void {
           ctx.status === 'failed' ||
           ctx.status === 'refunded'
         ) {
+          const [before] = await db
+            .select({
+              eventId: sfEventRegistrations.eventId,
+              status: sfEventRegistrations.status,
+            })
+            .from(sfEventRegistrations)
+            .where(eq(sfEventRegistrations.id, registrationId))
+            .limit(1)
           await db
             .update(sfEventRegistrations)
             .set({ status: 'cancelled', updatedAt: new Date() })
             .where(eq(sfEventRegistrations.id, registrationId))
+          await emitCancelledEmailForRegistration(registrationId)
+          if (
+            before &&
+            (before.status === 'registered' || before.status === 'pending_payment')
+          ) {
+            const { promoteWaitlistForEvent } = await import('./registrations')
+            await promoteWaitlistForEvent(before.eventId)
+          }
         }
       })
     })
@@ -184,6 +209,8 @@ export type StartEventTicketCheckoutInput = {
   cancelUrl: string
   /** Registration form payload — option prices are re-resolved here. */
   payload?: Record<string, unknown>
+  /** Payments coupon code — forwarded to startCheckout; not applied in quoteTierMajor. */
+  couponCode?: string | null
 }
 
 /**
@@ -267,6 +294,7 @@ export async function startEventTicketCheckout(
     returnUrl: input.returnUrl,
     cancelUrl: input.cancelUrl,
     consumerHook: EVENTS_PAYMENT_HOOK,
+    couponCode: input.couponCode || undefined,
     metadata: {
       registrationId: input.registrationId,
       eventId: input.eventId,
@@ -303,6 +331,8 @@ export type BeginPaidTicketCheckoutInput = {
   guests: number
   method?: StartEventTicketCheckoutInput['method']
   payload?: Record<string, unknown>
+  /** Payments coupon — forwarded only; Payments owns resolve/apply. */
+  couponCode?: string | null
 }
 
 export type BeginPaidTicketCheckoutResult =
@@ -369,6 +399,7 @@ export async function beginPaidTicketCheckout(
     returnUrl,
     cancelUrl,
     payload: input.payload,
+    couponCode: input.couponCode,
   })
 
   if (!checkout.ok) {

@@ -33,7 +33,6 @@ import {
 } from './registrations'
 import { findEventById } from './store'
 import { findTicketTierById } from './tiers'
-import { EVENTS_REGISTERED_TRIGGER } from './triggers'
 
 export type QuickRegisterResult =
   | { ok: true; status: string; message: string; redirectUrl?: string }
@@ -77,9 +76,11 @@ async function checkoutPathForOrder(orderId: string): Promise<string> {
 export async function quickRegisterForTier(
   eventIdRaw: string,
   tierIdRaw: string,
+  couponCodeRaw?: string | null,
 ): Promise<QuickRegisterResult> {
   const eventId = eventIdRaw.trim()
   const tierId = tierIdRaw.trim()
+  const couponCode = (couponCodeRaw || '').trim()
   if (!eventId || !tierId) return { error: 'Missing event or ticket type.' }
 
   const settings = await getSiteSettings()
@@ -238,6 +239,7 @@ export async function quickRegisterForTier(
         buyerName: name,
         userId,
         guests: 1,
+        couponCode: couponCode || undefined,
       })
       if (!checkout.ok) {
         return { error: checkout.error || 'Could not start checkout.' }
@@ -253,32 +255,12 @@ export async function quickRegisterForTier(
 
   const status = result.registration.status
   if (status === 'registered' || status === 'waitlisted') {
-    try {
-      const { emitEmailTrigger, isEmailManagerEnabled } = await import(
-        '@/modules/email-manager/api.server'
-      )
-      if (await isEmailManagerEnabled()) {
-        await emitEmailTrigger({
-          triggerKey: EVENTS_REGISTERED_TRIGGER,
-          payload: {
-            eventId: event.id,
-            eventTitle: event.title,
-            eventSlug: event.slug,
-            registrationId: result.registration.id,
-            registrationStatus: status,
-            ticketTierId: result.registration.ticketTierId,
-            ticketTierTitle: tier.title,
-            name: result.registration.name,
-            email: result.registration.email,
-            guests: result.registration.guests,
-            attendance: result.registration.attendance,
-            respondentEmail: result.registration.email,
-          },
-        })
-      }
-    } catch {
-      /* email optional */
-    }
+    const { emitEventsSignupEmails } = await import('./email-emit')
+    await emitEventsSignupEmails({
+      event,
+      registration: result.registration,
+      ticketTierTitle: tier.title,
+    })
   }
 
   return {

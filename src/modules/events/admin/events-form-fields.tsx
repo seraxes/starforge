@@ -8,7 +8,13 @@ import { MediaPicker, type MediaPickerValue } from '@/modules/media/api'
 import { RichEditor } from '@/modules/rich-editor/api'
 
 import type { TierPriceRules } from '../price-rules'
-import { EVENT_STATUSES } from '../types'
+import {
+  EVENT_COVER_DISPLAY_MODES,
+  EVENT_COVER_MEDIA_MAX,
+  EVENT_STATUSES,
+  isEventCoverDisplayMode,
+  type EventCoverDisplayMode,
+} from '../types'
 
 type CoverAndAccessProps = {
   coverMediaId: string
@@ -62,28 +68,149 @@ export function CoverAndAccessFields({
   )
 }
 
-function CoverField({
+/** Primary + optional Premium multi-cover set (max 10). Playback later. */
+function CoverFields({
   coverMediaId: initialCover,
+  coverMediaIds: initialIds,
+  coverDisplayMode: initialMode,
   disabled,
 }: {
   coverMediaId: string
+  coverMediaIds?: string[]
+  coverDisplayMode?: EventCoverDisplayMode
   disabled?: boolean
 }) {
-  const [coverMediaId, setCoverMediaId] = useState(initialCover)
+  const seedIds =
+    initialIds && initialIds.length > 0
+      ? initialIds.slice(0, EVENT_COVER_MEDIA_MAX)
+      : initialCover.trim()
+        ? [initialCover.trim()]
+        : []
+  const [ids, setIds] = useState(() => [...seedIds])
+  const [mode, setMode] = useState<EventCoverDisplayMode>(
+    isEventCoverDisplayMode(initialMode) ? initialMode : 'static',
+  )
+  const [draft, setDraft] = useState<MediaPickerValue>({
+    mediaId: '',
+    url: '',
+    alt: '',
+  })
+  const primary = ids[0] || ''
+  const atMax = ids.length >= EVENT_COVER_MEDIA_MAX
+
+  useEffect(() => {
+    const id = (draft.mediaId || '').trim()
+    if (!id) return
+    setIds((prev) => {
+      if (prev.includes(id) || prev.length >= EVENT_COVER_MEDIA_MAX) return prev
+      return [...prev, id]
+    })
+    setDraft({ mediaId: '', url: '', alt: '' })
+  }, [draft.mediaId])
+
   return (
-    <div className="settings-field">
-      <MediaPicker
-        label="Cover"
-        value={{ mediaId: coverMediaId, url: '', alt: '' }}
-        defaultFolder="general"
-        defaultPurpose="photo"
-        disabled={disabled}
-        includeHiddenInputs={false}
-        allowUrlFallback={false}
-        hint="Shared Media Manager — not a per-module library."
-        onChange={(next) => setCoverMediaId(next.mediaId)}
-      />
-      <input type="hidden" name="coverMediaId" value={coverMediaId} />
+    <div className="sf-events-cover-fields settings-field settings-field-wide">
+      <span>Cover</span>
+      {primary ? (
+        <figure className="sf-events-cover-hero">
+          {/* eslint-disable-next-line @next/next/no-img-element -- Media library redirect */}
+          <img src={`/api/media/${encodeURIComponent(primary)}`} alt="" />
+        </figure>
+      ) : (
+        <p className="settings-hint">No cover yet — add an image below.</p>
+      )}
+      {ids.length > 0 ? (
+        <ul className="sf-events-gallery-list sf-events-cover-list">
+          {ids.map((id, index) => (
+            <li key={id} className="sf-events-gallery-item">
+              <span className="sf-events-cover-list-label">
+                {index === 0 ? (
+                  <span className="outlines-badge" title="Used on cards and as static hero">
+                    Primary
+                  </span>
+                ) : null}
+                <code>{id}</code>
+              </span>
+              <span className="admin-inline-actions">
+                {index > 0 ? (
+                  <button
+                    type="button"
+                    className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+                    disabled={disabled}
+                    onClick={() =>
+                      setIds((prev) => {
+                        const next = prev.filter((x) => x !== id)
+                        return [id, ...next]
+                      })
+                    }
+                  >
+                    Make primary
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+                  disabled={disabled}
+                  onClick={() => setIds((prev) => prev.filter((x) => x !== id))}
+                >
+                  Remove
+                </button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {!atMax ? (
+        <div className="settings-field">
+          <MediaPicker
+            key={ids.join(',') || 'empty-cover'}
+            label={ids.length === 0 ? 'Add cover' : 'Add cover image'}
+            value={draft}
+            defaultFolder="general"
+            defaultPurpose="photo"
+            disabled={disabled}
+            includeHiddenInputs={false}
+            allowUrlFallback={false}
+            hint={`Up to ${EVENT_COVER_MEDIA_MAX} images. First is primary for lists and cards.`}
+            onChange={setDraft}
+          />
+        </div>
+      ) : (
+        <p className="settings-hint">Maximum {EVENT_COVER_MEDIA_MAX} cover images.</p>
+      )}
+      <label className="settings-field">
+        <span>
+          Cover display{' '}
+          <span className="outlines-badge" title="Random and rotate need a Premium plan later">
+            Premium
+          </span>
+        </span>
+        <select
+          name="coverDisplayMode"
+          value={mode}
+          disabled={disabled}
+          onChange={(e) => {
+            const next = e.target.value
+            setMode(isEventCoverDisplayMode(next) ? next : 'static')
+          }}
+        >
+          {EVENT_COVER_DISPLAY_MODES.map((m) => (
+            <option key={m} value={m}>
+              {m === 'static'
+                ? 'Static (first image)'
+                : m === 'random'
+                  ? 'Random — Premium (soon)'
+                  : 'Rotate / slider — Premium (soon)'}
+            </option>
+          ))}
+        </select>
+        <span className="settings-hint">
+          Values save now. Public random/rotate playback ships with Premium later; static
+          always uses the primary image.
+        </span>
+      </label>
+      <input type="hidden" name="coverMediaId" value={primary} />
+      <input type="hidden" name="coverMediaIdsJson" value={JSON.stringify(ids)} />
     </div>
   )
 }
@@ -190,7 +317,7 @@ export function GalleryFields({
     <fieldset className="settings-fieldset sf-events-form-section">
       <legend>Gallery</legend>
       <p className="settings-hint">
-        Extra images from the shared Media library. Cover stays separate above.
+        Extra images from the shared Media library. Cover lives under Title in Basics.
       </p>
       {ids.length > 0 ? (
         <ul className="sf-events-gallery-list">
@@ -251,11 +378,15 @@ export type EventFormRow = {
   venueId?: string
   description?: string
   coverMediaId?: string
+  coverMediaIds?: string[]
+  coverDisplayMode?: EventCoverDisplayMode
   galleryMediaIds?: string[]
   capacity?: number | null
   waitlistEnabled?: boolean
   registrationOpensAt?: string | null
   registrationClosesAt?: string | null
+  cancellationClosesAt?: string | null
+  selfCancelRefund?: boolean
   /** Premium merchant user id for ticket collect (empty = site MoR). */
   merchantUserId?: string
   managerUserIds?: string[]
@@ -459,6 +590,16 @@ export function EventFormFields({
             placeholder="summer-meetup"
           />
         </label>
+        <CoverFields
+          coverMediaId={row?.coverMediaId ?? ''}
+          coverMediaIds={row?.coverMediaIds}
+          coverDisplayMode={row?.coverDisplayMode}
+          disabled={busy}
+        />
+      </fieldset>
+
+      <fieldset className="settings-fieldset sf-events-form-section">
+        <legend>Listing</legend>
         <label className="settings-field">
           <span>Status</span>
           <select name="status" defaultValue={row?.status ?? 'draft'} disabled={busy}>
@@ -502,6 +643,10 @@ export function EventFormFields({
           />
           <span>Enable waitlist when full</span>
         </label>
+      </fieldset>
+
+      <fieldset className="settings-fieldset sf-events-form-section">
+        <legend>Description</legend>
         <div className="settings-field settings-field-wide">
           <RichEditor
             name="description"
@@ -514,7 +659,6 @@ export function EventFormFields({
             MediaPicker={MediaPicker}
           />
         </div>
-        <CoverField coverMediaId={row?.coverMediaId ?? ''} disabled={busy} />
       </fieldset>
 
       <GalleryFields galleryMediaIds={row?.galleryMediaIds ?? []} disabled={busy} />
@@ -570,6 +714,18 @@ export function EventFormFields({
             disabled={busy}
           />
           <span className="settings-hint">Empty = no hard close.</span>
+        </label>
+        <label className="settings-field">
+          <span>Cancellation closes</span>
+          <input
+            type="datetime-local"
+            name="cancellationClosesAt"
+            defaultValue={toDatetimeLocalValue(row?.cancellationClosesAt)}
+            disabled={busy}
+          />
+          <span className="settings-hint">
+            Empty = attendees cannot cancel or switch ticket types themselves.
+          </span>
         </label>
       </fieldset>
 
@@ -764,6 +920,20 @@ export function EventFormFields({
           </select>
           <span className="settings-hint">
             Premium organizer with My merchant keys + ACL. Empty uses site payments settings.
+          </span>
+        </label>
+        <label className="settings-field settings-flag">
+          <span>Offer refund on self-cancel</span>
+          <input
+            type="checkbox"
+            name="selfCancelRefund"
+            value="1"
+            defaultChecked={row?.selfCancelRefund === true}
+            disabled={busy}
+          />
+          <span className="settings-hint">
+            When enabled, paid attendees may confirm a refund request on cancel.
+            Refunds are not automatic — Payments must process them.
           </span>
         </label>
       </fieldset>

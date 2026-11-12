@@ -44,6 +44,8 @@ export type StartCheckoutInput = {
   consumerHook?: string
   /** Premium merchant collect — null/omit = site MoR */
   merchantId?: string | null
+  /** Optional Payments coupon code — re-resolved server-side at checkout. */
+  couponCode?: string | null
   metadata?: Record<string, unknown>
 }
 

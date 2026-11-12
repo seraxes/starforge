@@ -70,6 +70,10 @@ Offline: bank transfer, pay at entrance, cash (staff mark-paid audited).
 
 Emit only via `emitEmailTrigger` — keys `product:payments/checkout_started`, `awaiting_offline`, `paid`, `invoice_issued`, `refunded`, `failed`, `expired`. No commerce SMTP inside Payments.
 
+## Refunds (TODO)
+
+`requestOrderRefund` is a consumer connector stub (`code: 'refunds_not_implemented'`). Still needed: gateway refund, mark order `refunded`, credit notes, email, and `runPaymentConsumerHook(..., 'refunded')`. Consumers (Events) may offer opt-in + confirmed refund requests only — never auto-refund.
+
 ## Related
 
 - [platform-module-layers](./platform-module-layers.md)

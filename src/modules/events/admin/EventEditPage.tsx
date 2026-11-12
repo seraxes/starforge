@@ -112,6 +112,8 @@ export default async function EventEditPage({ params }: { params: Params }) {
           venueId: event.venueId,
           description: event.description,
           coverMediaId: event.coverMediaId,
+          coverMediaIds: event.coverMediaIds,
+          coverDisplayMode: event.coverDisplayMode,
           galleryMediaIds: event.galleryMediaIds,
           capacity: event.capacity,
           waitlistEnabled: event.waitlistEnabled,
@@ -121,6 +123,10 @@ export default async function EventEditPage({ params }: { params: Params }) {
           registrationClosesAt: event.registrationClosesAt
             ? event.registrationClosesAt.toISOString()
             : null,
+          cancellationClosesAt: event.cancellationClosesAt
+            ? event.cancellationClosesAt.toISOString()
+            : null,
+          selfCancelRefund: event.selfCancelRefund,
           merchantUserId: event.merchantUserId,
           managerUserIds: event.managerUserIds,
           helperUserIds: event.helperUserIds,

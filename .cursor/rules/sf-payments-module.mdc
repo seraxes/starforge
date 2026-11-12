@@ -20,6 +20,7 @@ Commercial MVP (revenue floor): **pay for subscription**, **buy event tickets**,
 | --- | --- |
 | Cart / checkout / orders / intents | **`product:payments`** — `@/modules/payments/api` |
 | Money math (minor units, VAT lines on the order) | **`product:payments`** + Core `src/core/payments` helpers |
+| **Coupons / discount codes** (code, amount or %, usage limit, optional source scope) | **`product:payments`** — admin `/admin/payments/coupons`; apply in `startCheckout` |
 | Gateway adapters + webhook verify | **Core port** `src/core/payments` (secrets in env) |
 | Fiscal / HU NAV submit | **Core `FiscalProvider`** — Payments outbox calls it |
 | Forms / billing address fields | **`product:forms`** — definition + preset; Payments links only |
@@ -57,6 +58,8 @@ Organizers/vendors with subscription `canCollectPayments` + ACL paste **their ow
 ## Don’t
 
 - Per-module payment UIs, gateway credential forms, or invoice number series outside `product:payments`.
+- Per-module coupon tables or discount engines (Events / Shop / Subscriptions forward `couponCode` only).
+- A separate `product:promotions` pack for checkout coupons — Payments owns codes and apply-at-checkout.
 - Shipping / delivery math inside Payments — shop quotes a line; cart stores the amount.
 - Subscription or ads business logic inside Payments. Do not grow `sf_pay_collect_entitlements` past the frozen boolean stub.
 - ASN currency / platform token ledger inside Payments. That balance is Hero. Payments only charges real money when a user buys the token.

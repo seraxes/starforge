@@ -349,3 +349,57 @@ export const sfPayInvoiceSequences = pgTable(
   },
   (table) => [uniqueIndex('sf_pay_invoice_sequences_year_prefix_uidx').on(table.year, table.prefix)],
 )
+
+/**
+ * Shared checkout coupons (site-wide or scoped to sourceModule + sourceId).
+ * Amount / percent one-field rule: `500` vs `10%`. Not Events-local.
+ */
+export const sfPayCoupons = pgTable(
+  'sf_pay_coupons',
+  {
+    id: text('id').primaryKey(),
+    /** Normalized uppercase code. */
+    code: text('code').notNull(),
+    /** Major units (amount) or percent points (10 = 10% off). Always a discount. */
+    discountValue: integer('discount_value').notNull().default(0),
+    /** `amount` | `percent` */
+    discountMode: text('discount_mode').notNull().default('amount'),
+    /** Null = unlimited. */
+    usageLimit: integer('usage_limit'),
+    usedCount: integer('used_count').notNull().default(0),
+    /** Null + null sourceId = site-wide. Event-scoped = product:events + event id. */
+    sourceModule: text('source_module'),
+    sourceId: text('source_id'),
+    currency: text('currency').notNull().default('HUF'),
+    active: boolean('active').notNull().default(true),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex('sf_pay_coupons_code_uidx').on(table.code),
+    index('sf_pay_coupons_active_idx').on(table.active),
+    index('sf_pay_coupons_source_idx').on(table.sourceModule, table.sourceId),
+  ],
+)
+
+export const sfPayCouponRedemptions = pgTable(
+  'sf_pay_coupon_redemptions',
+  {
+    id: text('id').primaryKey(),
+    couponId: text('coupon_id')
+      .notNull()
+      .references(() => sfPayCoupons.id, { onDelete: 'cascade' }),
+    orderId: text('order_id')
+      .notNull()
+      .references(() => sfPayOrders.id, { onDelete: 'cascade' }),
+    discountMinor: integer('discount_minor').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('sf_pay_coupon_redemptions_order_uidx').on(table.orderId),
+    index('sf_pay_coupon_redemptions_coupon_id_idx').on(table.couponId),
+  ],
+)

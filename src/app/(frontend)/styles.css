@@ -3000,6 +3000,8 @@ button:disabled {
   font-size: 0.92rem;
   color: var(--sf-ink);
   background: var(--sf-paper);
+  cursor: pointer;
+  font-family: inherit;
 }
 
 .sf-event-detail-action.is-primary {
@@ -3236,6 +3238,101 @@ button:disabled {
   font-weight: 600;
 }
 
+.sf-event-ticket-type-register.is-switch {
+  border-color: color-mix(in srgb, var(--sf-primary-strong) 35%, var(--sf-line));
+}
+
+.sf-event-my-registration {
+  margin: 1.25rem 0 0;
+}
+
+.sf-event-my-registration-facts {
+  display: grid;
+  gap: 0.75rem 1.25rem;
+  margin: 0 0 1.1rem;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+}
+
+.sf-event-my-registration-facts dt {
+  font-size: 0.82rem;
+  color: var(--sf-muted);
+  margin: 0 0 0.15rem;
+}
+
+.sf-event-my-registration-facts dd {
+  margin: 0;
+  font-weight: 650;
+}
+
+.sf-event-my-registration-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.sf-event-ticket-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0 0 1.1rem;
+}
+
+.sf-event-ticket-qr-code {
+  padding: 0.75rem;
+  background: #fff;
+  border: 1px solid var(--sf-line);
+}
+
+.sf-event-ticket-qr-name {
+  margin: 0;
+  font-weight: 650;
+}
+
+.sf-event-ticket-qr-hint {
+  margin: 0;
+  max-width: 18rem;
+}
+
+.sf-events-list-table tr.is-scanned-ticket td {
+  background: color-mix(in srgb, var(--sf-primary) 10%, transparent);
+}
+
+.sf-event-detail-action:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.sf-account-events-list {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sf-account-events-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--sf-line);
+}
+
+.sf-account-events-title {
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--sf-ink);
+}
+
+.sf-account-events-item-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
 /* Admin: compact full-width ticket / faction list */
 .sf-events-tiers-manager.admin-settings-mosaic > .sf-events-tiers-wide,
 .sf-events-tiers-manager.admin-settings-mosaic > .sf-events-tiers-embedded {
@@ -3363,18 +3460,37 @@ button:disabled {
 }
 
 /*
- * Line 1: title · kind · price · capacity · max · reg
+ * Line 1: title · kind · price · modifier · price text · capacity · max[/reg]
  * Line 2: short · description · title color · border · background
- * Color cells are first-class tracks with a hard 7.5rem floor.
+ * Every field is label-row + control-row so columns share one baseline.
  */
 .sf-events-tiers-row-main {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 0.4rem 0.55rem;
-  align-items: start;
+  grid-template-columns:
+    minmax(0, 1.45fr)
+    minmax(0, 0.85fr)
+    minmax(0, 0.7fr)
+    minmax(0, 0.7fr)
+    minmax(0, 1.05fr)
+    minmax(0, 0.65fr)
+    minmax(0, 0.65fr);
+  gap: 0.4rem 0.5rem;
+  align-items: stretch;
   min-width: 0;
   width: 100%;
   box-sizing: border-box;
+}
+
+.sf-events-tiers-row-main:has(.sf-events-tiers-registered-field) {
+  grid-template-columns:
+    minmax(0, 1.35fr)
+    minmax(0, 0.8fr)
+    minmax(0, 0.65fr)
+    minmax(0, 0.65fr)
+    minmax(0, 1fr)
+    minmax(0, 0.6fr)
+    minmax(0, 0.6fr)
+    minmax(0, 0.5fr);
 }
 
 .sf-events-price-row {
@@ -3401,49 +3517,57 @@ button:disabled {
 .sf-events-tiers-row-meta {
   display: grid;
   grid-template-columns:
-    minmax(0, 1.15fr)
+    minmax(0, 1.2fr)
     minmax(0, 1.35fr)
-    repeat(3, minmax(9.5rem, 0.85fr));
-  gap: 0.4rem 0.55rem;
-  align-items: end;
+    repeat(3, minmax(0, 0.9fr));
+  gap: 0.4rem 0.5rem;
+  align-items: stretch;
   min-width: 0;
   width: 100%;
   box-sizing: border-box;
 }
 
 .sf-events-tiers-add-form .sf-events-tiers-row-main {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns:
+    minmax(0, 1.45fr)
+    minmax(0, 0.85fr)
+    minmax(0, 0.7fr)
+    minmax(0, 0.7fr)
+    minmax(0, 1.05fr)
+    minmax(0, 0.65fr)
+    minmax(0, 0.65fr);
 }
 
 .sf-events-tiers-add-form .sf-events-tiers-row-meta {
   grid-template-columns:
-    minmax(0, 1.15fr)
+    minmax(0, 1.2fr)
     minmax(0, 1.35fr)
-    repeat(3, minmax(9.5rem, 0.85fr));
+    repeat(3, minmax(0, 0.9fr));
 }
 
 .admin-shell .sf-events-tiers-fields .settings-field,
 .admin-shell .sf-events-tiers-fields .sf-events-tiers-registered-field,
 .admin-shell .outlines-create .sf-events-tiers-fields .settings-field,
 .admin-shell .sf-events-add-inline-form .sf-events-tiers-fields .settings-field {
-  display: flex;
-  flex-direction: column;
+  --sf-events-tiers-control-h: var(--sf-admin-input-min-height, 2.5rem);
+  display: grid;
+  grid-template-rows: 1rem var(--sf-events-tiers-control-h);
+  align-items: stretch;
   gap: 0.3rem;
   margin: 0;
   border-bottom: 0;
   padding-bottom: 0;
   min-width: 0;
-}
-
-.admin-shell .sf-events-tiers-fields .sf-events-tiers-color-field,
-.admin-shell .outlines-create .sf-events-tiers-fields .sf-events-tiers-color-field {
-  min-width: 9.5rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .sf-events-tiers-fields .settings-field > span:not(.sf-events-tiers-color-row),
 .sf-events-tiers-fields .sf-events-tiers-registered-field > span {
   display: block;
+  height: 1rem;
   min-height: 1rem;
+  max-height: 1rem;
   font-size: 0.72rem;
   line-height: 1rem;
   letter-spacing: 0.02em;
@@ -3454,103 +3578,74 @@ button:disabled {
   text-overflow: ellipsis;
 }
 
-.admin-shell .sf-events-tiers-fields .settings-field input[type='text']:not(.sf-events-tiers-color-hex),
+.admin-shell .sf-events-tiers-fields .settings-field input[type='text'],
 .admin-shell .sf-events-tiers-fields .settings-field input[type='number'],
 .admin-shell .sf-events-tiers-fields .settings-field select,
-.admin-shell .sf-events-tiers-fields .sf-events-tiers-registered {
-  width: 100%;
-  min-width: 0;
-  height: 2.15rem;
-  min-height: 2.15rem;
-  max-height: 2.15rem;
-  box-sizing: border-box;
-  margin: 0;
-  padding-top: 0;
-  padding-bottom: 0;
+.admin-shell .sf-events-tiers-fields .sf-events-tiers-registered,
+.admin-shell .sf-events-tiers-fields .sf-events-tiers-color-hex {
+  display: block;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  height: var(--sf-events-tiers-control-h) !important;
+  min-height: var(--sf-events-tiers-control-h) !important;
+  max-height: var(--sf-events-tiers-control-h) !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  padding: 0 0.55rem !important;
+  font-size: 0.92rem !important;
+  line-height: var(--sf-events-tiers-control-h) !important;
+}
+
+.admin-shell .sf-events-tiers-fields .settings-field select {
+  padding-right: 1.75rem !important;
 }
 
 .sf-events-tiers-registered {
-  display: flex;
+  display: flex !important;
   align-items: center;
   font-variant-numeric: tabular-nums;
-  padding-left: 0.55rem;
-  padding-right: 0.55rem;
   border: 1px solid var(--sf-admin-blue-border, var(--sf-line));
   background: var(--sf-admin-input, transparent);
   border-radius: var(--sf-admin-btn-radius, 2px);
   color: var(--sf-muted, #9aabbd);
 }
 
-/*
- * One line per color: label · square · hex
- * Columns are direct meta-row tracks with a hard floor.
- */
-.admin-shell .sf-events-tiers-color-field {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  gap: 0;
-  width: 100%;
-  margin: 0;
-  border-bottom: 0;
-  padding-bottom: 0;
-}
-
+/* Control row only: swatch + hex (label sits above, same as other fields). */
 .admin-shell .sf-events-tiers-color-row {
   display: grid;
-  grid-template-columns: auto 2.15rem minmax(5.5rem, 1fr);
+  grid-template-columns: var(--sf-events-tiers-control-h, 2.5rem) minmax(0, 1fr);
   gap: 0.4rem;
-  align-items: center;
+  align-items: stretch;
   width: 100%;
   min-width: 0;
-}
-
-.admin-shell .sf-events-tiers-color-label {
-  display: block;
-  min-height: 1rem;
-  font-size: 0.72rem;
-  line-height: 1rem;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  opacity: 0.82;
-  white-space: nowrap;
+  height: var(--sf-events-tiers-control-h, 2.5rem);
 }
 
 .admin-shell .sf-events-tiers-color-swatch {
   display: block;
-  width: 2.15rem;
-  height: 2.15rem;
-  min-width: 2.15rem;
-  min-height: 2.15rem;
-  padding: 0;
-  border: 1px solid var(--sf-admin-blue-border, #314257);
+  width: var(--sf-events-tiers-control-h, 2.5rem) !important;
+  height: var(--sf-events-tiers-control-h, 2.5rem) !important;
+  min-width: var(--sf-events-tiers-control-h, 2.5rem) !important;
+  min-height: var(--sf-events-tiers-control-h, 2.5rem) !important;
+  max-height: var(--sf-events-tiers-control-h, 2.5rem) !important;
+  padding: 0 !important;
+  border: 1px solid var(--sf-admin-blue-border, #314257) !important;
   border-radius: 2px;
   background: transparent;
-  box-sizing: border-box;
+  box-sizing: border-box !important;
   cursor: pointer;
 }
 
 .admin-shell .sf-events-tiers-color-hex,
 .admin-shell .sf-events-tiers-fields .sf-events-tiers-color-field input[type='text'].sf-events-tiers-color-hex {
-  display: block;
-  width: 100%;
-  min-width: 5.5rem;
-  max-width: none;
-  height: 2.15rem;
-  min-height: 2.15rem;
-  max-height: 2.15rem;
-  margin: 0;
-  padding: 0 0.55rem;
-  box-sizing: border-box;
-  font-size: 0.95rem;
-  line-height: 2.15rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
   color: #ffffff !important;
   -webkit-text-fill-color: #ffffff !important;
   caret-color: #ffffff;
-  background: var(--sf-admin-input, #ffffff) !important;
+  background: var(--sf-admin-input, #152033) !important;
   border: 1px solid var(--sf-admin-blue-border, #314257) !important;
-  overflow: visible !important;
+  overflow: hidden !important;
   text-overflow: clip !important;
 }
 
@@ -3623,7 +3718,13 @@ button:disabled {
   cursor: not-allowed;
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 900px) {
+  .sf-events-tiers-row-main,
+  .sf-events-tiers-add-form .sf-events-tiers-row-main,
+  .sf-events-tiers-row-main:has(.sf-events-tiers-registered-field) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
   .sf-events-tiers-row-meta,
   .sf-events-tiers-add-form .sf-events-tiers-row-meta {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3632,13 +3733,6 @@ button:disabled {
   .sf-events-tiers-row-meta > .sf-events-tiers-desc,
   .sf-events-tiers-row-meta > .sf-events-tiers-color-field {
     grid-column: auto;
-  }
-}
-
-@media (max-width: 900px) {
-  .sf-events-tiers-row-main,
-  .sf-events-tiers-add-form .sf-events-tiers-row-main {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -4042,6 +4136,51 @@ button:disabled {
 
 .sf-events-id-suggest-option:hover {
   background: color-mix(in srgb, var(--sf-admin-panel-head, #2f3d50) 18%, transparent);
+}
+
+/* Do not set width:100% here — fieldset children already get side margins;
+   100% + margins overflows the Basics card on the right. */
+.sf-events-cover-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+  align-self: stretch;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.sf-events-cover-hero {
+  margin: 0;
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+  align-self: stretch;
+  box-sizing: border-box;
+  border: 1px solid var(--sf-line, #2a3a4e);
+  border-radius: var(--sf-radius, 0.35rem);
+  overflow: hidden;
+  background: color-mix(in srgb, var(--sf-admin-panel-head, #2f3d50) 35%, transparent);
+}
+
+.sf-events-cover-hero img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  max-height: 14rem;
+  aspect-ratio: 1200 / 540;
+  object-fit: cover;
+}
+
+.sf-events-cover-list-label {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
 }
 
 .sf-events-gallery-list {

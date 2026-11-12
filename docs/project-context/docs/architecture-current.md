@@ -87,7 +87,7 @@ Do not re-open work that already shipped: RateLimiter, captcha-in-security, the 
 
 **Parked, and not ahead of the commercial order:** TacMap stations, BLE beacons, `apps/asn-capacitor`, Shop, Marketplace schema, Social, Chat, Stream, Notifications, ASN Hero theme and domain fields, ASN currency, DigitalOcean, WordPress migration.
 
-**Named 2026-11-11, still waiting, not this queue:** promotions, organizations, campaigns, comments, reports, outbound webhooks, support. Instructions and the “this is not a new pack” list: [core-finish-instructions](./core-finish-instructions.md). Do not start them ahead of the commercial order.
+**Named 2026-11-11, still waiting, not this queue:** organizations, campaigns, comments, reports, outbound webhooks, support. Checkout **coupons** live in `product:payments` (not a promotions pack). Instructions and the “this is not a new pack” list: [core-finish-instructions](./core-finish-instructions.md). Do not start them ahead of the commercial order.
 
 The 5 Nov wireframe order does not override this. Email Manager already shipped ahead of the heavy packs. i18n P0–P3 already shipped.
 

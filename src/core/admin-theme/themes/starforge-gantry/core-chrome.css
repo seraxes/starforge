@@ -2758,7 +2758,7 @@ body:has(.admin-shell) > main {
 .admin-shell .settings-fieldset .settings-field,
 .admin-shell .outlines-create .settings-field,
 .admin-shell .sf-events-add-inline-form .settings-field {
-  border-bottom: 1px solid color-mix(in srgb, #2f3d50 65%, transparent);
+  border-bottom: 0;
   padding-bottom: 0.65rem;
   margin-bottom: 0.65rem;
 }

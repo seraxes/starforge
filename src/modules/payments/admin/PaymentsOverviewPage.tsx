@@ -34,7 +34,8 @@ export default async function PaymentsOverviewPage() {
       <PaymentsAdminNav active="overview" />
       <h2>Payments</h2>
       <p className="lede admin-lede">
-        Shared cart and checkout for Events, Shop, Subscriptions, and Ads. Site MoR settings below;
+        Shared cart, checkout, and coupons for Events, Shop, Subscriptions, and Ads. Site MoR
+        settings below;
         premium organizers configure keys under My merchant. Receipts:{' '}
         <Link href="/admin/email">Email Manager</Link>.
       </p>

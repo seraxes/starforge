@@ -16,6 +16,12 @@ import {
 } from '@/core/payments'
 
 import { runPaymentConsumerHook } from './consumer-hooks'
+import {
+  recordCouponRedemption,
+  resolveCouponForCheckout,
+  type AppliedCoupon,
+  type CouponLineInput,
+} from './coupons'
 import { emitPaymentsEmail } from './email'
 import {
   getMerchantById,
@@ -602,7 +608,43 @@ export async function startCheckout(input: StartCheckoutInput): Promise<StartChe
     return { ok: false, error: 'Cart is empty' }
   }
 
-  const moneyLines = bundle.lines.map((l) => ({
+  const cartLines: CouponLineInput[] = bundle.lines.map((l) => ({
+    id: l.id,
+    sourceModule: l.sourceModule,
+    sourceType: l.sourceType,
+    sourceId: l.sourceId,
+    title: l.title,
+    qty: l.qty,
+    currency: l.currency,
+    unitNetMinor: l.unitNetMinor,
+    unitGrossMinor: l.unitGrossMinor,
+    vatRateBps: l.vatRateBps,
+    vatCategory: l.vatCategory,
+    vatAmountMinor: l.vatAmountMinor,
+    lineNetMinor: l.lineNetMinor,
+    lineGrossMinor: l.lineGrossMinor,
+    billingPeriod: l.billingPeriod,
+    metadata: (l.metadata || {}) as Record<string, unknown>,
+  }))
+
+  let chargedLines = cartLines
+  let appliedCoupon: AppliedCoupon | null = null
+  const couponCode = (input.couponCode || '').trim()
+  if (couponCode) {
+    const applied = await resolveCouponForCheckout({
+      code: couponCode,
+      cartCurrency: bundle.cart.currency || settings.currency,
+      lines: cartLines,
+      amountIsGross: settings.amountEntryMode === 'gross',
+    })
+    if ('error' in applied) {
+      return { ok: false, error: applied.error }
+    }
+    appliedCoupon = applied
+    chargedLines = applied.lines
+  }
+
+  const moneyLines = chargedLines.map((l) => ({
     currency: l.currency,
     qty: l.qty,
     vatRateBps: l.vatRateBps,
@@ -650,7 +692,7 @@ export async function startCheckout(input: StartCheckoutInput): Promise<StartChe
       idempotencyKey: input.idempotencyKey,
       currency: totals.currency,
       amountMinor: totals.totalGrossMinor,
-      description: bundle.lines.map((l) => l.title).join(', ').slice(0, 200) || 'Order',
+      description: chargedLines.map((l) => l.title).join(', ').slice(0, 200) || 'Order',
       buyerEmail: input.buyer.email,
       returnUrl: input.returnUrl,
       cancelUrl: input.cancelUrl,
@@ -712,10 +754,17 @@ export async function startCheckout(input: StartCheckoutInput): Promise<StartChe
       ...(offlineInstructionsText
         ? { offlineInstructions: offlineInstructionsText }
         : {}),
+      ...(appliedCoupon
+        ? {
+            couponCode: appliedCoupon.code,
+            couponId: appliedCoupon.couponId,
+            discountMinor: appliedCoupon.discountMinor,
+          }
+        : {}),
     },
   })
 
-  for (const line of bundle.lines) {
+  for (const line of chargedLines) {
     await db.insert(sfPayOrderLines).values({
       id: newId('oline'),
       orderId,
@@ -732,8 +781,16 @@ export async function startCheckout(input: StartCheckoutInput): Promise<StartChe
       vatAmountMinor: line.vatAmountMinor,
       lineNetMinor: line.lineNetMinor,
       lineGrossMinor: line.lineGrossMinor,
-      billingPeriod: line.billingPeriod,
+      billingPeriod: line.billingPeriod ?? null,
       metadata: line.metadata || {},
+    })
+  }
+
+  if (appliedCoupon) {
+    await recordCouponRedemption({
+      couponId: appliedCoupon.couponId,
+      orderId,
+      discountMinor: appliedCoupon.discountMinor,
     })
   }
 
@@ -939,6 +996,66 @@ export async function listInvoices(limit = 50) {
     return await db.select().from(sfPayInvoices).orderBy(desc(sfPayInvoices.createdAt)).limit(limit)
   } catch {
     return []
+  }
+}
+
+export type RequestOrderRefundInput = {
+  orderId: string
+  reason?: string
+  requestedByUserId?: string
+}
+
+export type RequestOrderRefundResult =
+  | { ok: true }
+  | { ok: false; error: string; code?: string }
+
+/**
+ * Consumer-facing refund request entry point.
+ * Gateway refund + mark `refunded` + fiscal credit note are not implemented yet —
+ * when they ship, this should run the provider refund, set order status, emit
+ * `product:payments/refunded`, and call `runPaymentConsumerHook(..., 'refunded')`
+ * so Events (and others) cancel fulfillment.
+ */
+export async function requestOrderRefund(
+  input: RequestOrderRefundInput,
+): Promise<RequestOrderRefundResult> {
+  const orderId = (input.orderId || '').trim()
+  if (!orderId) {
+    return { ok: false, error: 'Missing order id.', code: 'missing_order' }
+  }
+  try {
+    const [order] = await db
+      .select()
+      .from(sfPayOrders)
+      .where(eq(sfPayOrders.id, orderId))
+      .limit(1)
+    if (!order) {
+      return { ok: false, error: 'Order not found.', code: 'not_found' }
+    }
+    const status = String(order.status || '')
+    if (status === 'refunded') {
+      return { ok: false, error: 'Order is already refunded.', code: 'already_refunded' }
+    }
+    if (status !== 'paid' && status !== 'fulfilled') {
+      return {
+        ok: false,
+        error: 'Only paid orders can be refunded.',
+        code: 'not_refundable',
+      }
+    }
+    void input.reason
+    void input.requestedByUserId
+    return {
+      ok: false,
+      error: 'Refunds are not implemented yet.',
+      code: 'refunds_not_implemented',
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : 'Could not request refund.',
+      code: 'error',
+    }
   }
 }
 

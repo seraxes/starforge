@@ -6,6 +6,13 @@ import { requireAdminArea } from '@/core/acl/access'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import type { PaymentMethodKind } from '@/core/payments'
 
+import { parseCouponDiscountInput } from './coupon-rules'
+import {
+  createCoupon,
+  deleteCoupon,
+  setCouponActive,
+  updateCoupon,
+} from './coupons'
 import {
   ensureMerchantForUser,
   updateMerchantProfile,
@@ -168,5 +175,83 @@ export async function saveMerchantProfileAction(
   }
 
   revalidatePath('/admin/payments/merchant')
+  return { ok: true }
+}
+
+function couponFieldsFromForm(formData: FormData) {
+  const usageRaw = String(formData.get('usageLimit') ?? '').trim()
+  const usageLimit =
+    usageRaw === '' ? null : Math.max(1, Math.floor(Number(usageRaw)) || 0) || null
+  const sourceModule = String(formData.get('sourceModule') ?? '').trim() || null
+  const sourceId = String(formData.get('sourceId') ?? '').trim() || null
+  return {
+    code: String(formData.get('code') ?? ''),
+    discount: parseCouponDiscountInput(formData.get('discount')),
+    usageLimit,
+    sourceModule,
+    sourceId,
+    currency: String(formData.get('currency') ?? 'HUF').trim().toUpperCase() || 'HUF',
+    active: formData.get('active') === '1' || formData.get('active') === 'true',
+  }
+}
+
+export async function createCouponAction(
+  _prev: PaymentsActionState,
+  formData: FormData,
+): Promise<PaymentsActionState> {
+  const denied = await requirePaymentsAdmin()
+  if (denied) return denied
+
+  const result = await createCoupon(couponFieldsFromForm(formData))
+  if (!result.ok) return { error: result.error }
+  revalidatePath('/admin/payments/coupons')
+  return { ok: true }
+}
+
+export async function updateCouponAction(
+  _prev: PaymentsActionState,
+  formData: FormData,
+): Promise<PaymentsActionState> {
+  const denied = await requirePaymentsAdmin()
+  if (denied) return denied
+
+  const id = String(formData.get('id') ?? '').trim()
+  if (!id) return { error: 'Missing coupon id' }
+
+  const result = await updateCoupon(id, couponFieldsFromForm(formData))
+  if (!result.ok) return { error: result.error }
+  revalidatePath('/admin/payments/coupons')
+  return { ok: true }
+}
+
+export async function setCouponActiveAction(
+  _prev: PaymentsActionState,
+  formData: FormData,
+): Promise<PaymentsActionState> {
+  const denied = await requirePaymentsAdmin()
+  if (denied) return denied
+
+  const id = String(formData.get('id') ?? '').trim()
+  if (!id) return { error: 'Missing coupon id' }
+  const raw = formData.get('setActive')
+  const active = raw === '1' || raw === 'true'
+  const result = await setCouponActive(id, active)
+  if (!result.ok) return { error: result.error }
+  revalidatePath('/admin/payments/coupons')
+  return { ok: true }
+}
+
+export async function deleteCouponAction(
+  _prev: PaymentsActionState,
+  formData: FormData,
+): Promise<PaymentsActionState> {
+  const denied = await requirePaymentsAdmin()
+  if (denied) return denied
+
+  const id = String(formData.get('id') ?? '').trim()
+  if (!id) return { error: 'Missing coupon id' }
+  const result = await deleteCoupon(id)
+  if (!result.ok) return { error: result.error }
+  revalidatePath('/admin/payments/coupons')
   return { ok: true }
 }

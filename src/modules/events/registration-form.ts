@@ -79,7 +79,10 @@ export async function loadEventRegistrationFields(
 
   // Drop stale injected fields — we re-add fresh options each request.
   fields = fields.filter(
-    (f) => f.name !== 'ticket_tier_id' && f.name !== 'accept_terms',
+    (f) =>
+      f.name !== 'ticket_tier_id' &&
+      f.name !== 'accept_terms' &&
+      f.name !== 'coupon_code',
   )
 
   if (tiers.length > 0) {
@@ -162,6 +165,28 @@ export async function loadEventRegistrationFields(
       defaultValue: '',
     }
     fields = [...fields, termsField]
+  }
+
+  // Payments owns coupons — inject optional code field when Payments is enabled.
+  try {
+    const { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } = await import(
+      '@/core/settings'
+    )
+    const site = await getSiteSettings()
+    if (isCatalogModuleEnabled(site, MODULE_IDS.payments)) {
+      const couponField: FormFieldDef = {
+        id: 'event_coupon_code',
+        name: 'coupon_code',
+        label: 'Coupon code',
+        type: 'text',
+        required: false,
+        defaultValue: '',
+        description: 'Optional. Discount is applied at checkout by Payments.',
+      }
+      fields = [...fields, couponField]
+    }
+  } catch {
+    /* payments pack may be off */
   }
 
   return {

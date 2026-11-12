@@ -197,6 +197,34 @@
       "when": 1794022000000,
       "tag": "0027_tier_modifier_mode",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1794023000000,
+      "tag": "0028_event_registration_checkin",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1794024000000,
+      "tag": "0029_pay_coupons",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1794025000000,
+      "tag": "0030_event_self_cancel",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1794026000000,
+      "tag": "0031_event_cover_slider",
+      "breakpoints": true
     }
   ]
 }

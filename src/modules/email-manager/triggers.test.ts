@@ -27,4 +27,21 @@ describe('email triggers registry', () => {
     assert.equal(isKnownEmailTriggerKey('nope'), false)
     assert.ok(BUILTIN_EMAIL_TRIGGERS.length >= 4)
   })
+
+  it('includes Events organizer / reminder / cancelled triggers', () => {
+    for (const key of [
+      'product:events/organizer-notify',
+      'product:events/attendee-reminder',
+      'product:events/registrant-cancelled',
+    ]) {
+      const t = getEmailTrigger(key)
+      assert.ok(t, key)
+      assert.equal(t.moduleId, 'product:events')
+    }
+    assert.ok(
+      getEmailTrigger('product:events/organizer-notify')?.payloadFields.includes(
+        'organizerEmails',
+      ),
+    )
+  })
 })

@@ -41,6 +41,7 @@ Ask: *which module would you delete to remove this concept?* That module owns it
 | Example | Owner | Not owner |
 | --- | --- | --- |
 | Cart, order, VAT line, gateway, invoice series | **payments** | Events / Ads / Shop |
+| Checkout coupon codes (amount/%, usage limit, scope) | **payments** | Events / Shop / Subscriptions / a promotions pack |
 | Tier capacity, waitlist, ticket fulfillment | **events** | payments |
 | Plan period, entitlement grant, “highlight” product | **subscriptions** | payments |
 | Ad package, placement, campaign credit balance | **ads** | payments |

@@ -28,6 +28,7 @@ import { listPublicTicketTiersForEvent } from '@/modules/events/public-tiers'
 import {
   countRegisteredGuests,
   findActiveRegistrationForUserOnEvent,
+  isEventSelfCancelOpen,
 } from '@/modules/events/registrations'
 import { resolveEventMediaSrc } from '@/modules/events/public/media-src'
 import { loadEventsModuleSettings } from '@/modules/events/settings'
@@ -39,7 +40,7 @@ import {
 
 type Args = {
   params: Promise<{ locale: string; slug: string }>
-  searchParams: Promise<{ tier?: string }>
+  searchParams: Promise<{ tier?: string; cancelled?: string }>
 }
 
 export async function generateMetadata({ params }: Args): Promise<Metadata> {
@@ -106,6 +107,7 @@ export default async function PublicEventDetailPage({ params, searchParams }: Ar
 
   const query = await searchParams
   const preferredTierId = String(query.tier ?? '').trim()
+  const justCancelled = String(query.cancelled ?? '').trim() === '1'
 
   const venue = event.venueId ? await findVenueById(event.venueId) : null
   const formsOn = isCatalogModuleEnabled(settings, MODULE_IDS.forms)
@@ -113,6 +115,7 @@ export default async function PublicEventDetailPage({ params, searchParams }: Ar
     `/events/${encodeURIComponent(eventPublicPathKey(event))}`,
     locale,
   )
+  const manageHref = `${eventPath}/registration`
   const [
     organizers,
     speakers,
@@ -158,6 +161,8 @@ export default async function PublicEventDetailPage({ params, searchParams }: Ar
       : myReg?.status === 'registered'
         ? 'registered'
         : 'none'
+  const selfCancelOpen = isEventSelfCancelOpen(event).open
+  const canSwitchTier = Boolean(myReg && !myReg.paymentOrderId.trim())
 
   const venueMap =
     venue?.latitude != null && venue?.longitude != null ? (
@@ -171,6 +176,11 @@ export default async function PublicEventDetailPage({ params, searchParams }: Ar
 
   return (
     <div className="cms-page sf-events-page">
+      {justCancelled ? (
+        <p className="sf-event-ticket-types-feedback" role="status">
+          Registration cancelled.
+        </p>
+      ) : null}
       <EventDetail
         event={event}
         venueName={venue?.name}
@@ -194,9 +204,14 @@ export default async function PublicEventDetailPage({ params, searchParams }: Ar
         tierCapacityDisplay={moduleSettings.settings.tierCapacityDisplay}
         eventPath={eventPath}
         loginPath={withLocalePrefix('/login', locale)}
+        activeTierId={myReg?.ticketTierId || ''}
+        selfCancelOpen={selfCancelOpen}
+        canSwitchTier={canSwitchTier}
+        manageHref={myReg ? manageHref : ''}
+        registrationId={myReg?.id || ''}
       />
       <EventLiveMap eventId={event.id} />
-      {formsOn ? (
+      {formsOn && !myReg ? (
         <EventRegistrationForm event={event} preferredTierId={preferredTierId} />
       ) : null}
     </div>

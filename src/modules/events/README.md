@@ -6,8 +6,10 @@ Events + venues + registration + ticket tiers + parties (`sf_venues` / `sf_event
 
 - Admin: list (Add+ collapsed → filters → EB-style table) → `/admin/events/[id]` card mosaic (Apply / Save / Cancel)
 - Venues: same Add+/table pattern; description (Rich Editor), gallery, Leaflet pin picker via product:maps
-- Parties, ticket tiers, registrants, module settings
+- Parties, ticket tiers, registrants, manual door check-in, module settings
 - Registration window (`registrationOpensAt` / `ClosesAt`), prevent-duplicate setting
+- **Self-service my registration:** `/[locale]/events/[slug]/registration` + account list `/[locale]/account/events`. Organizer sets `cancellationClosesAt` (empty = no self-cancel / Switch-to) and optional `selfCancelRefund` (confirmed refund request via Payments stub — not auto). Free cancel frees the seat + waitlist promote. Paid cancel always cancels the seat; refund only when flag + user confirm. Ticket cards: current tier **Edit / Cancel**; other open unpaid tiers **Switch to**.
+- **Door check-in (Premium organizer):** `/admin/events/check-in` — search by name, or scan the attendee QR (deep-links `?eventId=&registrationId=` and focuses Check in). Stores `checkedInAt` on `sf_event_registrations`; shown on Registrants list. Confirmed seats show a QR on **My registration** and signed public ticket `/[locale]/events/ticket/[id]?t=` (email `{{ticketUrl}}`). GPS geofence / Bluetooth beacon later (also Premium). Subscription hard-gate later with `product:subscriptions`.
 - Public **hub** (`/[locale]/events`): four clean views only — Upcoming (cards) / Calendar / Map / List (`?view=`). Not a mega-page with side widgets.
 - Layout **particles** (place anywhere): `event-featured` (rotating carousel of `featured` events), `event-mini-calendar`, `event-calendar`, `event-upcoming`, `event-list` (table), `event-detail`, `event-countdown`
 - Event flag **Featured** (admin Visibility) feeds the featured particle — like a category for carousel placement
@@ -16,6 +18,7 @@ Events + venues + registration + ticket tiers + parties (`sf_venues` / `sf_event
 - Area-card Register: session + complete contact → instant signup for that tier; gaps / terms / captcha → form prefilled (`?tier=`); guests → login with return
 - Event **Pricing** card: base price, currency, one time-left rule and one sold-count rule (amount or % of the price in effect). Ticket types: own price (replaces the event base when set) plus a modifier that is always added. Optional `priceLabel` overrides the card text; checkout uses the calculated amount. Registration-form option / checkbox `priceAmount` adds on at checkout. Forms is a required dependency; `event-registration` is seeded when Events admin opens.
 - Waitlist: per-event toggle; Join waitlist on sold-out cards; FIFO promote when a registered seat frees; Email Manager seed for `product:events/waitlist-promoted` (Events settings → Seed registration emails + form)
+- **Registration emails (Email Manager):** seeds + `emitEmailTrigger` for `product:events/registered`, `waitlist-promoted`, `organizer-notify` (event managers), `attendee-reminder` (JobRunner ~24h before `startsAt`), and `registrant-cancelled`. No mass email.
 - ICS download; View ACL + listed / access password; ticket types per-event (shortDescription blurb)
 - **Paid tickets (closed loop):** priced tiers hold as `pending_payment`, hand off to Payments `/[locale]/checkout/[orderId]` (gateway redirect or offline instructions). Form submit and one-click Register both return that same-origin path. On paid → `registered` + `product:events/registered`; on fail/expire/refund → `cancelled`. Checkout start failure cancels the hold. Free / waitlisted tiers stay immediate. See [`payment-bridge.ts`](./payment-bridge.ts).
 - **Registrant CSV export** (admin): one event via `/api/admin/events/registrants/export?eventId=` — same list/statuses as Registrants (`registered` / `waitlisted` / `pending_payment` / `cancelled`); columns name, email, ticket type, guests, status, paid amount (Payments order gross when `paymentOrderId` is set)
@@ -31,8 +34,7 @@ Events + venues + registration + ticket tiers + parties (`sf_venues` / `sf_event
 ### Organizer ops
 
 - Calendar subscribe feed (ICS collection)
-- Public manage-my-signup (cancel/edit)
-- Check-in: manual list, plus automatic when the attendee reaches a GPS point (geofence on the venue/event pin) or comes within range of a Bluetooth beacon paired to the event
+- Check-in: GPS geofence (venue/event pin) and Bluetooth beacon auto check-in (Premium; name + QR shipped)
 - Event categories (beyond featured flag)
 - Sports / championship bracket views (later under Events → sport module)
 - Per-event prevent-duplicate override
@@ -52,14 +54,18 @@ Slot kinds are choosable: **Ticket type**, **Booking type**, **Faction**, plus n
 
 ### Payments (consume — system-wide)
 
-Paid tickets consume shared **`product:payments`** via [`payment-bridge.ts`](./payment-bridge.ts) — not an Events checkout UI. Buyer handoff is Payments public checkout. Receipts: Email Manager `product:payments/*`. Seat confirmation mail: `product:events/registered` after paid (or immediately for free/waitlist). See [payments-cart-plan](../../../docs/project-context/docs/payments-cart-plan.md) and `sf-payments-module`.
+Paid tickets consume shared **`product:payments`** via [`payment-bridge.ts`](./payment-bridge.ts) — not an Events checkout UI. Buyer handoff is Payments public checkout. Receipts: Email Manager `product:payments/*`. Seat confirmation mail: `product:events/registered` after paid (or immediately for free/waitlist). **Coupons:** Payments owns codes (`/admin/payments/coupons`); Events only collects/forwards `couponCode` on registration / quick-register — never apply discounts in `quoteTierMajor`. See [payments-cart-plan](../../../docs/project-context/docs/payments-cart-plan.md) and `sf-payments-module`.
 
 ## Migrations
 
 - `0013` event `featured` boolean (+ index)
 - `0016` ticket tier `short_description`
 - `0019` tier `price` + `price_modifier`; event `waitlist_enabled`
-- `0021` registration `payment_order_id` — run `npm run db:migrate`
+- `0021` registration `payment_order_id`
+- `0028` registration `checked_in_at`
+- Coupons: Payments migration `0029_pay_coupons` — run `npm run db:migrate`
+- `0030` event `cancellation_closes_at` + `self_cancel_refund` (self-service cancel / Switch-to)
+- `0031` event `cover_media_ids` + `cover_display_mode` (Premium random/rotate UI; public playback later)
 
 ## Migrations (history)
 

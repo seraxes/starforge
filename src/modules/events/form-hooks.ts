@@ -49,6 +49,12 @@ export function ensureEventsFormHooks(): void {
       /* forms pack may be off */
     })
 
+  void import('./email-emit')
+    .then(({ ensureEventsReminderJob }) => ensureEventsReminderJob())
+    .catch(() => {
+      /* optional */
+    })
+
   registerFormPreset({
     id: 'event-registration',
     label: 'Event registration',
@@ -125,6 +131,9 @@ export function ensureEventsFormHooks(): void {
           const priced = await tierRequiresPayment(ticketTierId, { payload: ctx.payload })
           if (priced.requires) {
             const methodRaw = payloadString(ctx.payload, 'payment_method')
+            const couponCode =
+              payloadString(ctx.payload, 'coupon_code') ||
+              payloadString(ctx.payload, 'coupon')
             const checkout = await beginPaidTicketCheckout({
               registrationId: result.registration.id,
               event: {
@@ -139,6 +148,7 @@ export function ensureEventsFormHooks(): void {
               userId: ctx.userId,
               guests,
               payload: ctx.payload,
+              couponCode: couponCode || undefined,
               method:
                 methodRaw === 'bank_transfer' ||
                 methodRaw === 'pay_at_entrance' ||
@@ -175,32 +185,12 @@ export function ensureEventsFormHooks(): void {
             /* ignore */
           }
         }
-        try {
-          const { emitEmailTrigger, isEmailManagerEnabled } = await import(
-            '@/modules/email-manager/api.server'
-          )
-          if (!(await isEmailManagerEnabled())) return
-          await emitEmailTrigger({
-            triggerKey: EVENTS_REGISTERED_TRIGGER,
-            payload: {
-              eventId: event.id,
-              eventTitle: event.title,
-              eventSlug: event.slug,
-              registrationId: registration.id,
-              registrationStatus: registration.status,
-              ticketTierId: registration.ticketTierId,
-              ticketTierTitle: tierTitle,
-              name: registration.name,
-              email: registration.email,
-              guests: registration.guests,
-              attendance: registration.attendance,
-              submissionId: ctx.submissionId,
-              respondentEmail: registration.email,
-            },
-          })
-        } catch (error) {
-          console.error('[events] email emit failed', error)
-        }
+        const { emitEventsSignupEmails } = await import('./email-emit')
+        await emitEventsSignupEmails({
+          event,
+          registration,
+          ticketTierTitle: tierTitle,
+        })
       } catch (error) {
         console.error('[events] onSubmitted failed', error)
       }

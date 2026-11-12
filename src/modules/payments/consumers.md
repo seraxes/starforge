@@ -27,3 +27,7 @@ registerPaymentConsumerHook('shop.fulfillOrder', async (ctx) => {
 | Ads | `product:ads` | `campaign_credit` | `ads.activateCampaign` |
 
 Do **not** build cart/checkout/gateway UI inside those packs — call `createCart` / `addCartLine` / `startCheckout` only.
+
+## Coupons
+
+Pass optional `couponCode` on `startCheckout`. Payments owns codes, usage limits, and discount math. Domain packs only collect/forward the code (Events does this on registration / quick-register). Do not create per-module coupon tables.

@@ -9,6 +9,7 @@ export type EventsAdminTab =
   | 'parties'
   | 'tiers'
   | 'registrants'
+  | 'check-in'
   | 'settings'
 
 const TABS: { id: EventsAdminTab; label: string; href: string; title: string }[] = [
@@ -41,6 +42,12 @@ const TABS: { id: EventsAdminTab; label: string; href: string; title: string }[]
     label: 'Registrants',
     href: '/admin/events/registrants',
     title: 'Registration list and status',
+  },
+  {
+    id: 'check-in',
+    label: 'Check-in',
+    href: '/admin/events/check-in',
+    title: 'Premium door check-in by name or QR',
   },
   {
     id: 'settings',

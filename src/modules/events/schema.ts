@@ -96,6 +96,13 @@ export const sfEvents = pgTable(
     /** Sanitized HTML description (product:rich-editor / TipTap). */
     description: text('description').notNull().default(''),
     coverMediaId: text('cover_media_id'),
+    /**
+     * Cover slider set (max 10). First id mirrors coverMediaId for cards/lists.
+     * random/rotate display is Premium — persist now; public playback later.
+     */
+    coverMediaIds: jsonb('cover_media_ids').$type<string[]>().notNull().default([]),
+    /** static | random | rotate — see EventCoverDisplayMode. */
+    coverDisplayMode: text('cover_display_mode').notNull().default('static'),
     /** Gallery media ids from the shared Media library. */
     galleryMediaIds: jsonb('gallery_media_ids').$type<string[]>().notNull().default([]),
     /** Null = unlimited. */
@@ -106,6 +113,16 @@ export const sfEvents = pgTable(
     registrationOpensAt: timestamp('registration_opens_at', { withTimezone: true }),
     /** Null = no hard close (beyond event status). */
     registrationClosesAt: timestamp('registration_closes_at', { withTimezone: true }),
+    /**
+     * Self-service cancel / Switch-to allowed until this time.
+     * Null = self-cancel and Switch-to disabled.
+     */
+    cancellationClosesAt: timestamp('cancellation_closes_at', { withTimezone: true }),
+    /**
+     * When true, the public cancel form may offer a confirmed refund request
+     * via product:payments (refunds themselves are not auto).
+     */
+    selfCancelRefund: pgBoolean('self_cancel_refund').notNull().default(false),
     /**
      * Premium merchant user who collects ticket money (own Barion / invoice keys).
      * Null = site MoR checkout via product:payments settings.
@@ -280,6 +297,8 @@ export const sfEventRegistrations = pgTable(
     status: text('status').notNull().default('registered'),
     /** product:payments order id when tier requires payment. */
     paymentOrderId: text('payment_order_id'),
+    /** Door check-in timestamp (manual staff mark). Null = not checked in. */
+    checkedInAt: timestamp('checked_in_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true })
       .defaultNow()
@@ -292,5 +311,6 @@ export const sfEventRegistrations = pgTable(
     index('sf_event_registrations_email_idx').on(table.email),
     index('sf_event_registrations_status_idx').on(table.status),
     index('sf_event_registrations_payment_order_id_idx').on(table.paymentOrderId),
+    index('sf_event_registrations_checked_in_at_idx').on(table.checkedInAt),
   ],
 )

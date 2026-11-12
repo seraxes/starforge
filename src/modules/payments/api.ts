@@ -28,11 +28,16 @@ export {
   listOrders,
   markOrderPaid,
   processFiscalOutboxItem,
+  requestOrderRefund,
   savePaymentsSettings,
   startCheckout,
   verifyAndCaptureOrder,
 } from './store'
-export type { OrderGrossSnapshot } from './store'
+export type {
+  OrderGrossSnapshot,
+  RequestOrderRefundInput,
+  RequestOrderRefundResult,
+} from './store'
 
 export {
   assertMayCollect,
@@ -60,6 +65,33 @@ export type {
   StartCheckoutInput,
   StartCheckoutResult,
 } from './types'
+
+export {
+  applyCouponToLines,
+  computeCouponDiscountMinor,
+  formatCouponDiscountInput,
+  lineMatchesCouponScope,
+  normalizeCouponCode,
+  parseCouponDiscountInput,
+} from './coupon-rules'
+export type {
+  AppliedCoupon,
+  CouponDiscount,
+  CouponDiscountMode,
+  CouponLineInput,
+  CouponRecord,
+} from './coupon-rules'
+export {
+  createCoupon,
+  deleteCoupon,
+  findCouponByCode,
+  findCouponById,
+  listCoupons,
+  resolveCouponForCheckout,
+  setCouponActive,
+  updateCoupon,
+} from './coupons'
+export type { SaveCouponInput } from './coupons'
 
 export {
   formatMoneyMinor,

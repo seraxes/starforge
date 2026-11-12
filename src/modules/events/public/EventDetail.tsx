@@ -69,6 +69,16 @@ export type EventDetailProps = {
   eventPath?: string
   /** Locale-prefixed login path (`/en/login`). */
   loginPath?: string
+  /** Active signup ticket tier id when signed up (for Edit/Cancel vs Switch to). */
+  activeTierId?: string
+  /** True when self-cancel / Switch-to window is open. */
+  selfCancelOpen?: boolean
+  /** True when the active signup is unpaid (Switch-to allowed). */
+  canSwitchTier?: boolean
+  /** Locale-prefixed manage-my-signup path. */
+  manageHref?: string
+  /** Active registration id for Switch-to. */
+  registrationId?: string
 }
 
 function PartyList({
@@ -143,6 +153,11 @@ export function EventDetail({
   tierCapacityDisplay = 'both',
   eventPath = '',
   loginPath = '',
+  activeTierId = '',
+  selfCancelOpen = false,
+  canSwitchTier = false,
+  manageHref = '',
+  registrationId = '',
 }: EventDetailProps) {
   const classes = ['sf-event-detail', className].filter(Boolean).join(' ')
   const when = formatEventWhen(event.startsAt, event.endsAt, event.timezone)
@@ -230,7 +245,11 @@ export function EventDetail({
       ) : null}
 
       <section className="sf-event-detail-actions" aria-label="Quick actions">
-        {signedUp ? (
+        {signedUp && manageHref ? (
+          <a className="sf-event-detail-action is-primary" href={manageHref}>
+            Edit / Cancel registration
+          </a>
+        ) : signedUp ? (
           <span className="sf-event-detail-action is-status">
             {signupStatus === 'waitlisted'
               ? 'You are on the waitlist'
@@ -299,6 +318,11 @@ export function EventDetail({
           capacityDisplay={tierCapacityDisplay}
           registrationOpen={regWindow.open}
           signupStatus={signupStatus}
+          activeTierId={activeTierId}
+          selfCancelOpen={selfCancelOpen}
+          canSwitchTier={canSwitchTier}
+          manageHref={manageHref}
+          registrationId={registrationId}
         />
       ) : null}
 

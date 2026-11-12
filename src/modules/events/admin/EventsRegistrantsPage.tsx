@@ -51,7 +51,17 @@ export default async function EventsRegistrantsPage({
       <h2>Registrants</h2>
       <p className="lede admin-lede">
         Search an event, then <strong>Add +</strong> / Edit / Delete registrants, or{' '}
-        <strong>Export CSV</strong> for the selected event. Ticket types:{' '}
+        <strong>Export CSV</strong> for the selected event. Door check-in:{' '}
+        <Link
+          href={
+            eventId
+              ? `/admin/events/check-in?eventId=${encodeURIComponent(eventId)}`
+              : '/admin/events/check-in'
+          }
+        >
+          Events → Check-in
+        </Link>
+        . Ticket types:{' '}
         <Link
           href={
             eventId
@@ -92,6 +102,7 @@ export default async function EventsRegistrantsPage({
           userId: r.userId,
           notes: r.notes,
           createdAt: r.createdAt.toISOString(),
+          checkedInAt: r.checkedInAt ? r.checkedInAt.toISOString() : null,
         }))}
       />
     </section>

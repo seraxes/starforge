@@ -42,6 +42,29 @@ export function isEventRegistrationOpen(
   return { open: true }
 }
 
+/**
+ * True when the signed-in attendee may cancel or Switch-to.
+ * Empty `cancellationClosesAt` = self-service disabled.
+ */
+export function isEventSelfCancelOpen(
+  event: Pick<EventRecord, 'status' | 'cancellationClosesAt'>,
+  now = new Date(),
+): { open: boolean; reason?: string } {
+  if (event.status !== 'published') {
+    return { open: false, reason: 'Event is not open for self-service changes.' }
+  }
+  if (!event.cancellationClosesAt) {
+    return {
+      open: false,
+      reason: 'Self-service cancel is not enabled for this event.',
+    }
+  }
+  if (now > event.cancellationClosesAt) {
+    return { open: false, reason: 'The cancellation deadline has passed.' }
+  }
+  return { open: true }
+}
+
 export type RegistrationStatus =
   | 'registered'
   | 'waitlisted'
@@ -61,6 +84,8 @@ export type EventRegistrationRecord = {
   notes: string
   status: RegistrationStatus
   paymentOrderId: string
+  /** Manual door check-in time; null when not checked in. */
+  checkedInAt: Date | null
   createdAt: Date
   updatedAt: Date
 }
@@ -89,6 +114,7 @@ function mapRow(row: typeof sfEventRegistrations.$inferSelect): EventRegistratio
         ? status
         : 'registered',
     paymentOrderId: (row.paymentOrderId || '').trim(),
+    checkedInAt: row.checkedInAt ?? null,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   }
@@ -365,6 +391,24 @@ export async function listActiveRegistrationsForUser(
   }
 }
 
+/** Single registration by id. */
+export async function findRegistrationById(
+  id: string,
+): Promise<EventRegistrationRecord | null> {
+  const trimmed = id.trim()
+  if (!trimmed) return null
+  try {
+    const [row] = await db
+      .select()
+      .from(sfEventRegistrations)
+      .where(eq(sfEventRegistrations.id, trimmed))
+      .limit(1)
+    return row ? mapRow(row) : null
+  } catch {
+    return null
+  }
+}
+
 /** Latest active signup for one user on one event (if any). */
 export async function findActiveRegistrationForUserOnEvent(
   userId: string,
@@ -427,13 +471,21 @@ export async function updateRegistrationStatus(
       .where(eq(sfEventRegistrations.id, trimmed))
       .limit(1)
     if (!row) return { error: 'Registration not found.' }
+    const registration = mapRow(row)
+    if (current.status !== 'cancelled' && status === 'cancelled') {
+      const event = await findEventById(current.eventId)
+      if (event) {
+        const { emitEventsRegistrantCancelled } = await import('./email-emit')
+        await emitEventsRegistrantCancelled({ event, registration })
+      }
+    }
     if (
-      current.status === 'registered' &&
+      (current.status === 'registered' || current.status === 'pending_payment') &&
       (status === 'cancelled' || status === 'waitlisted')
     ) {
       await promoteWaitlistForEvent(current.eventId)
     }
-    return { registration: mapRow(row) }
+    return { registration }
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : 'Could not update status.',
@@ -528,10 +580,18 @@ export async function updateEventRegistration(
       .where(eq(sfEventRegistrations.id, id))
       .limit(1)
     if (!row) return { error: 'Registration updated but could not be reloaded.' }
+    const registration = mapRow(row)
+    if (current.status !== 'cancelled' && input.status === 'cancelled') {
+      const event = await findEventById(current.eventId)
+      if (event) {
+        const { emitEventsRegistrantCancelled } = await import('./email-emit')
+        await emitEventsRegistrantCancelled({ event, registration })
+      }
+    }
     if (freedSeat) {
       await promoteWaitlistForEvent(current.eventId)
     }
-    return { registration: mapRow(row) }
+    return { registration }
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : 'Could not update registration.',
@@ -558,6 +618,277 @@ export async function deleteEventRegistration(
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : 'Could not delete registration.',
+    }
+  }
+}
+
+/**
+ * Manual door check-in: set checkedInAt now.
+ * Only `registered` rows may check in (not waitlist / pending / cancelled).
+ */
+export async function checkInRegistration(
+  id: string,
+): Promise<{ registration: EventRegistrationRecord } | { error: string }> {
+  const trimmed = id.trim()
+  if (!trimmed) return { error: 'Missing registration id.' }
+  try {
+    const [current] = await db
+      .select()
+      .from(sfEventRegistrations)
+      .where(eq(sfEventRegistrations.id, trimmed))
+      .limit(1)
+    if (!current) return { error: 'Registration not found.' }
+    if (current.status !== 'registered') {
+      return {
+        error: `Cannot check in a ${current.status} registration — only registered guests.`,
+      }
+    }
+    if (current.checkedInAt) {
+      return { registration: mapRow(current) }
+    }
+    const now = new Date()
+    await db
+      .update(sfEventRegistrations)
+      .set({ checkedInAt: now })
+      .where(eq(sfEventRegistrations.id, trimmed))
+    const [row] = await db
+      .select()
+      .from(sfEventRegistrations)
+      .where(eq(sfEventRegistrations.id, trimmed))
+      .limit(1)
+    if (!row) return { error: 'Check-in saved but could not be reloaded.' }
+    return { registration: mapRow(row) }
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : 'Could not check in.',
+    }
+  }
+}
+
+/** Clear manual door check-in (staff undo). */
+export async function clearRegistrationCheckIn(
+  id: string,
+): Promise<{ registration: EventRegistrationRecord } | { error: string }> {
+  const trimmed = id.trim()
+  if (!trimmed) return { error: 'Missing registration id.' }
+  try {
+    const [current] = await db
+      .select()
+      .from(sfEventRegistrations)
+      .where(eq(sfEventRegistrations.id, trimmed))
+      .limit(1)
+    if (!current) return { error: 'Registration not found.' }
+    await db
+      .update(sfEventRegistrations)
+      .set({ checkedInAt: null })
+      .where(eq(sfEventRegistrations.id, trimmed))
+    const [row] = await db
+      .select()
+      .from(sfEventRegistrations)
+      .where(eq(sfEventRegistrations.id, trimmed))
+      .limit(1)
+    if (!row) return { error: 'Check-in cleared but could not be reloaded.' }
+    return { registration: mapRow(row) }
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : 'Could not clear check-in.',
+    }
+  }
+}
+
+export type CancelOwnRegistrationResult =
+  | {
+      registration: EventRegistrationRecord
+      refund?: { ok: boolean; message?: string; code?: string }
+    }
+  | { error: string }
+
+/**
+ * Signed-in attendee cancels their own signup before the event cancel deadline.
+ * Always frees the seat + promotes waitlist. Optional refund request is opt-in
+ * (event.selfCancelRefund + requestRefund) and never blocks cancel when Payments
+ * refunds are still stubbed.
+ */
+export async function cancelOwnRegistration(
+  userId: string,
+  registrationId: string,
+  options?: { requestRefund?: boolean },
+): Promise<CancelOwnRegistrationResult> {
+  const uid = userId.trim()
+  const rid = registrationId.trim()
+  if (!uid || !rid) return { error: 'Missing registration.' }
+
+  try {
+    const [current] = await db
+      .select()
+      .from(sfEventRegistrations)
+      .where(eq(sfEventRegistrations.id, rid))
+      .limit(1)
+    if (!current) return { error: 'Registration not found.' }
+    if ((current.userId || '').trim() !== uid) {
+      return { error: 'You can only cancel your own registration.' }
+    }
+    if (
+      current.status !== 'registered' &&
+      current.status !== 'waitlisted' &&
+      current.status !== 'pending_payment'
+    ) {
+      return { error: 'This registration is already cancelled.' }
+    }
+
+    const event = await findEventById(current.eventId)
+    if (!event) return { error: 'Event not found.' }
+    const window = isEventSelfCancelOpen(event)
+    if (!window.open) {
+      return { error: window.reason || 'Self-service cancel is closed.' }
+    }
+
+    const updated = await updateRegistrationStatus(rid, 'cancelled')
+    if ('error' in updated) return updated
+
+    let refund: { ok: boolean; message?: string; code?: string } | undefined
+    const wantRefund = options?.requestRefund === true
+    const paymentOrderId = (current.paymentOrderId || '').trim()
+    if (wantRefund) {
+      if (!event.selfCancelRefund) {
+        refund = {
+          ok: false,
+          message: 'Refunds are not enabled for this event.',
+          code: 'refunds_not_enabled',
+        }
+      } else if (!paymentOrderId) {
+        refund = {
+          ok: false,
+          message: 'No paid order is linked to this registration.',
+          code: 'no_payment_order',
+        }
+      } else {
+        try {
+          const { requestOrderRefund } = await import('@/modules/payments/api')
+          const result = await requestOrderRefund({
+            orderId: paymentOrderId,
+            reason: 'attendee_self_cancel',
+            requestedByUserId: uid,
+          })
+          if (result.ok) {
+            refund = { ok: true, message: 'Refund requested.' }
+          } else {
+            refund = {
+              ok: false,
+              message: result.error,
+              code: result.code,
+            }
+          }
+        } catch {
+          refund = {
+            ok: false,
+            message: 'Refunds are not available right now.',
+            code: 'payments_unavailable',
+          }
+        }
+      }
+    }
+
+    return { registration: updated.registration, ...(refund ? { refund } : {}) }
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : 'Could not cancel registration.',
+    }
+  }
+}
+
+/**
+ * Switch an unpaid signup to another ticket type with open slots.
+ * Paid seats must cancel first (no silent money moves).
+ */
+export async function switchOwnRegistrationTier(
+  userId: string,
+  registrationId: string,
+  targetTierId: string,
+): Promise<{ registration: EventRegistrationRecord } | { error: string }> {
+  const uid = userId.trim()
+  const rid = registrationId.trim()
+  const tierId = targetTierId.trim()
+  if (!uid || !rid || !tierId) return { error: 'Missing registration or ticket type.' }
+
+  try {
+    const [current] = await db
+      .select()
+      .from(sfEventRegistrations)
+      .where(eq(sfEventRegistrations.id, rid))
+      .limit(1)
+    if (!current) return { error: 'Registration not found.' }
+    if ((current.userId || '').trim() !== uid) {
+      return { error: 'You can only change your own registration.' }
+    }
+    if (
+      current.status !== 'registered' &&
+      current.status !== 'waitlisted'
+    ) {
+      return { error: 'Only active registrations can switch ticket types.' }
+    }
+
+    const paymentOrderId = (current.paymentOrderId || '').trim()
+    if (paymentOrderId) {
+      return {
+        error: 'Cancel your paid seat first before switching ticket types.',
+      }
+    }
+
+    const event = await findEventById(current.eventId)
+    if (!event) return { error: 'Event not found.' }
+    const window = isEventSelfCancelOpen(event)
+    if (!window.open) {
+      return { error: window.reason || 'Self-service changes are closed.' }
+    }
+
+    if ((current.ticketTierId || '').trim() === tierId) {
+      return { error: 'You are already on this ticket type.' }
+    }
+
+    const tier = await findTicketTierById(tierId)
+    if (!tier || tier.eventId !== current.eventId) {
+      return { error: 'Ticket type was not found for this event.' }
+    }
+
+    const guests = Math.max(1, Number(current.guests) || 1)
+    if (typeof tier.capacity === 'number') {
+      const occupied = await countRegisteredGuestsForTier(current.eventId, tierId)
+      if (occupied + guests > tier.capacity) {
+        return { error: 'That ticket type has no open slots.' }
+      }
+    }
+    if (typeof event.capacity === 'number' && event.capacity >= 0) {
+      const occupiedEvent = await countRegisteredGuests(current.eventId)
+      // Waitlisted rows do not occupy seats yet — switching into a seat counts.
+      const alreadyOccupying = current.status === 'registered'
+      const nextOccupied = alreadyOccupying ? occupiedEvent : occupiedEvent + guests
+      if (nextOccupied > event.capacity) {
+        return { error: 'The event has no open slots for that switch.' }
+      }
+    }
+
+    const nextStatus: RegistrationStatus =
+      current.status === 'waitlisted' ? 'registered' : current.status
+
+    await db
+      .update(sfEventRegistrations)
+      .set({
+        ticketTierId: tierId,
+        status: nextStatus,
+      })
+      .where(eq(sfEventRegistrations.id, rid))
+
+    const [row] = await db
+      .select()
+      .from(sfEventRegistrations)
+      .where(eq(sfEventRegistrations.id, rid))
+      .limit(1)
+    if (!row) return { error: 'Switched but could not reload registration.' }
+    return { registration: mapRow(row) }
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : 'Could not switch ticket type.',
     }
   }
 }
@@ -646,6 +977,8 @@ export async function promoteWaitlistForEvent(
           },
         })
       }
+      const { scheduleAttendeeReminder } = await import('./email-emit')
+      await scheduleAttendeeReminder(row.id, event.startsAt)
     } catch {
       /* email optional */
     }

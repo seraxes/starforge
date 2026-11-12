@@ -9,7 +9,7 @@ export default defineStarforgeModule({
   label: 'Events',
   description:
     'Events + venues — admin CRUD, public views (upcoming/calendar/map/list), registration, featured + calendar particles.',
-  version: '0.6.0',
+  version: '0.6.2',
   defaultEnabled: true,
   requires: ['product:forms', 'product:media'],
   i18n: {
@@ -22,6 +22,7 @@ export default defineStarforgeModule({
     { key: 'parties', label: 'Parties', href: '/admin/events/parties' },
     { key: 'tiers', label: 'Ticket tiers', href: '/admin/events/tiers' },
     { key: 'registrants', label: 'Registrants', href: '/admin/events/registrants' },
+    { key: 'check-in', label: 'Check-in', href: '/admin/events/check-in' },
     { key: 'settings', label: 'Events settings', href: '/admin/events/settings' },
   ],
   admin: {
@@ -71,6 +72,13 @@ export default defineStarforgeModule({
       },
       {
         group: 'events',
+        label: 'Check-in',
+        href: '/admin/events/check-in',
+        order: 29,
+        area: 'events',
+      },
+      {
+        group: 'events',
         label: 'Settings',
         href: '/admin/events/settings',
         order: 30,
@@ -102,6 +110,11 @@ export default defineStarforgeModule({
       {
         path: 'events/registrants',
         pageImportPath: '@/modules/events/admin/EventsRegistrantsPage',
+        pageExportName: 'default',
+      },
+      {
+        path: 'events/check-in',
+        pageImportPath: '@/modules/events/admin/EventsCheckInPage',
         pageExportName: 'default',
       },
       {

@@ -22,6 +22,7 @@ import { eventPublicPathKey } from '../public/path'
 import {
   countRegisteredGuests,
   findActiveRegistrationForUserOnEvent,
+  isEventSelfCancelOpen,
 } from '../registrations'
 import { resolveEventMediaSrc } from '../public/media-src'
 import { loadEventsModuleSettings } from '../settings'
@@ -130,6 +131,7 @@ export const eventDetailModule: StarforgeModule = {
         : myReg?.status === 'registered'
           ? 'registered'
           : 'none'
+    const manageHref = myReg ? `${eventPath}/registration` : ''
 
     return React.createElement(EventDetail, {
       event,
@@ -155,6 +157,11 @@ export const eventDetailModule: StarforgeModule = {
       listHref: cfg.showBackLink
         ? withLocalePrefix('/events', locale)
         : undefined,
+      activeTierId: myReg?.ticketTierId || '',
+      selfCancelOpen: isEventSelfCancelOpen(event).open,
+      canSwitchTier: Boolean(myReg && !myReg.paymentOrderId.trim()),
+      manageHref,
+      registrationId: myReg?.id || '',
     })
   },
 }

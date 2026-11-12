@@ -7,6 +7,7 @@ export type PaymentsAdminTab =
   | 'overview'
   | 'orders'
   | 'invoices'
+  | 'coupons'
   | 'settings'
   | 'merchant'
 
@@ -28,6 +29,12 @@ const TABS: { id: PaymentsAdminTab; label: string; href: string; title: string }
     label: 'Invoices',
     href: '/admin/payments/invoices',
     title: 'Invoice list',
+  },
+  {
+    id: 'coupons',
+    label: 'Coupons',
+    href: '/admin/payments/coupons',
+    title: 'Checkout coupon codes',
   },
   {
     id: 'merchant',

@@ -213,7 +213,6 @@ Build them only after Core, and not ahead of paid tickets → subscriptions → 
 
 | Pack | Owns | Build when | Leave it here if you are tempted to put it elsewhere |
 | --- | --- | --- | --- |
-| **`product:promotions`** | Coupon and discount codes. Checkout re-resolves the discount server-side and stores the snapshot on the payment line. | With closing paid tickets if a code is required for a ticket to be “sold”; otherwise immediately after tickets, before Shop. | Not a column family on `sf_pay_*`. Not an Events-only code. Events, Shop, and Subscriptions all call it. |
 | **`product:organizations`** | Durable orgs (club, company, team-as-membership): roster, who belongs, public org page. Events association / team / club visibility reads this. | When that Events gate is actually built. After Core. Not ahead of the commercial order unless a paid ticket needs the org gate. | ACL groups are permissions, not orgs. Profiles are people. TacMap teams are a match roster inside Maps. Hero airsoft fields stay in `extensions`. |
 | **`product:campaigns`** | Broadcast mail: a list, a segment, a send. Transport is the Mailer. Copy and rules UI stay out of it. | When a site needs a newsletter. After Core. Independent of the commercial order. | Email Manager is trigger → template for events that already happened. It is not a mailing list. Campaigns emit nothing of their own SMTP. |
 | **`product:comments`** | A thread on a target (page, event, listing) plus an optional score on that target. | Before Social. After Core and after the commercial order. | Social owns the follow graph and the feed. A page comment must not require Social. Do not also create `product:reviews`. |
@@ -231,7 +230,7 @@ Notifications (in-app bell on RealtimePort), Social, Chat, Stream, Shop, Marketp
 | --- | --- |
 | Booking calendar separate from events | Events slot kind **Booking type**, already decided, waiting |
 | Shipping, inventory, SKUs | `product:shop` |
-| VAT, invoices, gateways, merchant keys | `product:payments` and the Core payments port |
+| VAT, invoices, gateways, merchant keys, **checkout coupons** | `product:payments` and the Core payments port — not a `product:promotions` pack; not Events-only |
 | Plans, periods, `canCollectPayments` | `product:subscriptions` |
 | Cookie categories | `product:consent` (slice 1). No new pack |
 | Protected files | Media ACL, when that media work is scheduled |

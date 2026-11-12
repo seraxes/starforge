@@ -40,6 +40,7 @@ type RegistrantRow = {
   userId?: string
   notes: string
   createdAt: string
+  checkedInAt: string | null
 }
 
 type Props = {
@@ -534,6 +535,12 @@ export function RegistrantsManager({
             >
               Export CSV
             </a>
+            <Link
+              href={`/admin/events/check-in?eventId=${encodeURIComponent(eventId)}`}
+              className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+            >
+              Door check-in
+            </Link>
             {!createOpen ? (
               <p className="settings-hint sf-events-add-hint">
                 Manually add a registrant for {active?.title || 'this event'}.
@@ -610,6 +617,7 @@ export function RegistrantsManager({
                   <th scope="col">Guests</th>
                   <th scope="col">Tickets</th>
                   <th scope="col">Registered</th>
+                  <th scope="col">Checked in</th>
                   <th scope="col">Status</th>
                   <th scope="col">Actions</th>
                 </tr>
@@ -647,6 +655,9 @@ export function RegistrantsManager({
                       <td>{row.ticketTierTitle || '—'}</td>
                       <td className="sf-events-list-num">
                         {formatWhen(row.createdAt)}
+                      </td>
+                      <td className="sf-events-list-num">
+                        {formatWhen(row.checkedInAt)}
                       </td>
                       <td>
                         <span

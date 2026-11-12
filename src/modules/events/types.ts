@@ -38,6 +38,18 @@ export function isEventPartyKind(value: unknown): value is EventPartyKind {
   )
 }
 
+/** How the public cover hero picks among coverMediaIds (random/rotate = Premium later). */
+export const EVENT_COVER_DISPLAY_MODES = ['static', 'random', 'rotate'] as const
+export type EventCoverDisplayMode = (typeof EVENT_COVER_DISPLAY_MODES)[number]
+export const EVENT_COVER_MEDIA_MAX = 10
+
+export function isEventCoverDisplayMode(value: unknown): value is EventCoverDisplayMode {
+  return (
+    typeof value === 'string' &&
+    (EVENT_COVER_DISPLAY_MODES as readonly string[]).includes(value)
+  )
+}
+
 export type VenueRecord = {
   id: string
   name: string
@@ -80,7 +92,12 @@ export type EventRecord = {
   priceRules: TierPriceRules
   venueId: string
   description: string
+  /** Primary cover (first of coverMediaIds; kept for list/cards). */
   coverMediaId: string
+  /** Up to 10 cover images for Premium random/rotate slider (playback later). */
+  coverMediaIds: string[]
+  /** static = first image; random/rotate = Premium (UI saved now, public playback later). */
+  coverDisplayMode: EventCoverDisplayMode
   galleryMediaIds: string[]
   capacity: number | null
   /** When full, public signup may join waitlist; FIFO promote when seats free. */
@@ -89,6 +106,10 @@ export type EventRecord = {
   registrationOpensAt: Date | null
   /** When public signup closes (null = until event ends / no hard close). */
   registrationClosesAt: Date | null
+  /** Self-cancel / Switch-to until this time (null = disabled). */
+  cancellationClosesAt: Date | null
+  /** Offer confirmed refund request on self-cancel when a paid order exists. */
+  selfCancelRefund: boolean
   /** Premium merchant user collecting ticket payments (null = site MoR). */
   merchantUserId: string
   managerUserIds: string[]

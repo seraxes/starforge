@@ -141,9 +141,14 @@ export function EventsSettingsForm({ settings }: Props) {
         <div className="page-settings-panel-body">
           <p className="settings-hint">
             Seeds Email Manager templates + rules for{' '}
-            <code>product:events/registered</code> and{' '}
-            <code>product:events/waitlist-promoted</code>, and ensures the shared{' '}
-            <code>event-registration</code> Form definition exists.
+            <code>product:events/registered</code>,{' '}
+            <code>product:events/waitlist-promoted</code>,{' '}
+            <code>product:events/organizer-notify</code>,{' '}
+            <code>product:events/attendee-reminder</code>, and{' '}
+            <code>product:events/registrant-cancelled</code>, and ensures the shared{' '}
+            <code>event-registration</code> Form definition exists. Organizer notify
+            goes to event manager account emails. Reminder runs ~24h before start via
+            JobRunner (not mass email).
           </p>
           <div className="page-settings-actions">
             <form action={seedAction}>
