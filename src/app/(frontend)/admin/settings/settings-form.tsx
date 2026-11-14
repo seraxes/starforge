@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useActionState } from 'react'
+import React, { useActionState, useEffect, useState } from 'react'
 import Link from 'next/link'
 
 import {
@@ -139,9 +139,24 @@ export function SettingsForm({
   const [state, formAction, pending] = useActionState(updateSiteSettingsAction, initialState)
   useNotifySavedOnOk(state, { toastErrors: true })
   const { formRef, discreteAutosaveProps, saveNow } = useAutosaveForm()
+  // defaultChecked only applies on mount — remount after requires closure pulls deps
+  // on, or after a refused disable, so checkboxes match server toggles again.
+  const togglesSig = Object.keys(moduleToggles)
+    .sort()
+    .map((id) => `${id}:${moduleToggles[id] ? 1 : 0}`)
+    .join(',')
+  const [errorEpoch, setErrorEpoch] = useState(0)
+  useEffect(() => {
+    if (!pending && state.error) setErrorEpoch((n) => n + 1)
+  }, [pending, state.error])
 
   return (
-    <form ref={formRef} action={formAction} className="settings-form settings-form-wide">
+    <form
+      key={`${togglesSig}:${errorEpoch}`}
+      ref={formRef}
+      action={formAction}
+      className="settings-form settings-form-wide"
+    >
       {/* Keep siteName in the form so Modules save does not wipe Payload site name. */}
       <input type="hidden" name="siteName" value={siteName} />
 
