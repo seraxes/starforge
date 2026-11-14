@@ -3,8 +3,10 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 import { isPayloadAdminPath, PAYLOAD_ADMIN_BASE } from '@/core/admin-paths'
-import { auth } from '@/core/auth'
-import { userIsAppAdmin } from '@/core/auth/admin'
+import {
+  adminSessionCookieNames,
+  publicSessionCookieNames,
+} from '@/core/auth/admin-session'
 import {
   DEFAULT_LOCALE,
   LOCALES,
@@ -77,11 +79,14 @@ function finalize(response: NextResponse, cspSources?: CspSources | null): NextR
   return response
 }
 
-function hasBetterAuthSession(request: NextRequest): boolean {
-  return (
-    request.cookies.has('better-auth.session_token') ||
-    request.cookies.has('__Secure-better-auth.session_token')
-  )
+/** Public Better Auth cookie (member site). */
+function hasPublicSession(request: NextRequest): boolean {
+  return publicSessionCookieNames().some((name) => request.cookies.has(name))
+}
+
+/** Staff backend session cookie. */
+function hasAdminSession(request: NextRequest): boolean {
+  return adminSessionCookieNames().some((name) => request.cookies.has(name))
 }
 
 function hasPayloadToken(request: NextRequest): boolean {
@@ -162,8 +167,24 @@ function isNonLocalizedPath(pathname: string): boolean {
 }
 
 /**
+ * App Router data fetches (`rsc: 1`) must stay HTTP 200.
+ * A 503 flight is not a valid RSC payload — Next hard-navigates (`location.assign`)
+ * to the same URL, which 503s again, and the page reloads forever.
+ * Full document loads still get 503 + Retry-After for crawlers.
+ */
+function isAppRouterFlight(request: NextRequest): boolean {
+  const headers = request.headers
+  if (headers.get('rsc') === '1') return true
+  if (headers.get('next-router-prefetch')) return true
+  if (headers.get('next-router-state-tree')) return true
+  if (headers.get('next-hmr-refresh') === '1') return true
+  // Flight fetches use Sec-Fetch-Dest: empty; document navigations use "document".
+  return (headers.get('sec-fetch-dest') || '').toLowerCase() === 'empty'
+}
+
+/**
  * Site Chrome offline gate — process snapshot / uncached DB (no published-content cache).
- * Admins bypass using the Better Auth session on the incoming request.
+ * Same for everyone (no admin bypass). `/admin`, auth, API stay open via exempt paths.
  */
 async function maybeRewriteOffline(request: NextRequest): Promise<NextResponse | null> {
   const { pathname } = request.nextUrl
@@ -173,14 +194,16 @@ async function maybeRewriteOffline(request: NextRequest): Promise<NextResponse |
     const chrome = await getSiteChromeForProxy()
     if (!chrome.offlineEnabled) return null
 
-    const session = await auth.api.getSession({ headers: request.headers })
-    if (userIsAppAdmin(session?.user)) return null
-
     const rewriteUrl = request.nextUrl.clone()
     rewriteUrl.pathname = SITE_OFFLINE_PATH
     rewriteUrl.search = ''
-    const response = NextResponse.rewrite(rewriteUrl, { status: 503 })
-    response.headers.set('Retry-After', String(SITE_OFFLINE_RETRY_AFTER_SECONDS))
+    const flight = isAppRouterFlight(request)
+    const response = flight
+      ? NextResponse.rewrite(rewriteUrl)
+      : NextResponse.rewrite(rewriteUrl, { status: 503 })
+    if (!flight) {
+      response.headers.set('Retry-After', String(SITE_OFFLINE_RETRY_AFTER_SECONDS))
+    }
     response.headers.set('Cache-Control', 'no-store')
     return response
   } catch {
@@ -200,11 +223,11 @@ async function finalizePublic(
   const redirected = await runProxyHooks(request)
   if (redirected) return redirected
 
-  // Offline before CSP — avoid blocking 503 on a full feature-CSP rebuild after Chrome save.
+  // Offline before CSP — never await published-content cache on the 503 path
+  // (`revalidateTag({ expire: 0 })` can stall until process restart).
   const offline = await maybeRewriteOffline(request)
   if (offline) {
-    const cspSources = await getCachedFeatureCspSources().catch(() => ({} as CspSources))
-    return finalize(offline, cspSources)
+    return finalize(offline, {} as CspSources)
   }
 
   const cspSources = await getCachedFeatureCspSources().catch(() => ({} as CspSources))
@@ -225,13 +248,21 @@ export async function proxy(request: NextRequest) {
 
   // Payload CMS admin — SSO exchange gate (not Core `/admin`).
   if (isPayloadAdminPath(pathname)) {
-    const ba = hasBetterAuthSession(request)
+    const admin = hasAdminSession(request)
+    const publicBa = hasPublicSession(request)
     const token = hasPayloadToken(request)
     const nextPath = `${pathname}${search || ''}`
+    const destPath = nextPath.startsWith(`${PAYLOAD_ADMIN_BASE}/login`)
+      ? PAYLOAD_ADMIN_BASE
+      : nextPath
     const loginDest = new URL(
       `/login?next=${encodeURIComponent(
         nextPath.startsWith(`${PAYLOAD_ADMIN_BASE}/login`) ? PAYLOAD_ADMIN_BASE : nextPath,
       )}`,
+      request.url,
+    )
+    const mintDest = new URL(
+      `/api/auth/admin-session?next=${encodeURIComponent(destPath)}`,
       request.url,
     )
     const exchangeDest = new URL(
@@ -244,8 +275,13 @@ export async function proxy(request: NextRequest) {
       request.url,
     )
 
-    if (!ba) {
+    if (!admin && !publicBa) {
       return finalize(NextResponse.redirect(loginDest))
+    }
+
+    // Public staff session alone → mint backend cookie before CMS exchange.
+    if (!admin && publicBa) {
+      return finalize(NextResponse.redirect(mintDest))
     }
 
     if (

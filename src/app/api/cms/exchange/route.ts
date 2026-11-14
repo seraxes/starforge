@@ -4,13 +4,17 @@ import { getFieldsToSign, getPayload, jwtSign } from 'payload'
 import config from '@payload-config'
 import { isPayloadAdminPath, PAYLOAD_ADMIN_BASE } from '@/core/admin-paths'
 import { auth } from '@/core/auth'
+import {
+  hasAdminSessionCookie,
+  headersWithAdminSession,
+} from '@/core/auth/admin-session'
 import { ensurePayloadCmsUser, loadCoreUserCmsAccess } from '@/core/cms-bridge'
 import { PAYLOAD_TOKEN_COOKIE } from '@/core/cms-bridge/payload-session'
 import { safeNextPath } from '@/core/auth/safe-next-path'
 import { shouldUseSecureCookies } from '@/core/security/secure-cookies'
 
 /**
- * Exchange a Better Auth session for a Payload JWT cookie, then redirect to /cms/admin.
+ * Exchange a staff admin session for a Payload JWT cookie, then redirect to /cms/admin.
  * Must be a Route Handler — Next.js only allows Set-Cookie here (not in RSC pages).
  */
 export async function GET(request: NextRequest) {
@@ -18,8 +22,14 @@ export async function GET(request: NextRequest) {
   const loginUrl = new URL('/login', request.url)
   loginUrl.searchParams.set('next', next)
 
+  if (!hasAdminSessionCookie(request.headers.get('cookie'))) {
+    const mint = new URL('/api/auth/admin-session', request.url)
+    mint.searchParams.set('next', `/api/cms/exchange?next=${encodeURIComponent(next)}`)
+    return NextResponse.redirect(mint)
+  }
+
   const session = await auth.api.getSession({
-    headers: request.headers,
+    headers: headersWithAdminSession(request.headers),
     query: { disableRefresh: true },
   })
   if (!session?.user?.id) {

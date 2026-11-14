@@ -8,7 +8,7 @@ import {
   getDeveloperAdminEmails,
   userIsDeveloperAdmin,
 } from './developer-admin'
-import { getAppSession } from './session'
+import { getAdminSession } from './admin-session'
 import { DEFAULT_APP_ROLE, normalizeAppRole, type AppRole } from './permissions'
 
 export { getBootstrapAdminEmails, emailIsBootstrapAdmin }
@@ -70,7 +70,8 @@ export async function promoteSessionUserIfBootstrapAdmin(user: {
 
 /** Current session must be a core app admin; otherwise `null`. */
 export async function requireAppAdmin() {
-  const session = await getAppSession()
+  // Backend cookie only — public sign-out must not clear staff admin rights.
+  const session = await getAdminSession()
   if (!session?.user) return null
   await promoteSessionUserIfBootstrapAdmin(session.user)
   if (!userIsAppAdmin(session.user)) return null

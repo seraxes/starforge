@@ -305,6 +305,10 @@ export async function loginAction(
   }
 
   await mintPayloadSessionIfNeeded()
+  // Staff destinations need the admin session cookie minted (Set-Cookie via route).
+  if (next.startsWith('/admin') || next.startsWith('/cms')) {
+    redirect(`/api/auth/admin-session?next=${encodeURIComponent(next)}`)
+  }
   redirect(next)
 }
 
@@ -563,6 +567,9 @@ export async function verifyEmailOtpAction(
   }
 
   await mintPayloadSessionIfNeeded()
+  if (next.startsWith('/admin') || next.startsWith('/cms')) {
+    redirect(`/api/auth/admin-session?next=${encodeURIComponent(next)}`)
+  }
   redirect(next)
 }
 
@@ -611,16 +618,31 @@ export async function verifyTwoFactorAction(
   }
 
   await mintPayloadSessionIfNeeded()
+  if (next.startsWith('/admin') || next.startsWith('/cms')) {
+    redirect(`/api/auth/admin-session?next=${encodeURIComponent(next)}`)
+  }
   redirect(next)
 }
 
 export async function logoutAction(): Promise<void> {
   try {
+    // Public Better Auth cookie only — leave staff admin session + payload-token.
     await auth.api.signOut({
       headers: await headers(),
     })
   } catch {
     // Still clear the UI even if the session was already gone.
+  }
+  redirect(await resolvePostLogoutUrl())
+}
+
+/** Sign out of the backend only — clears admin session + payload-token. */
+export async function adminLogoutAction(): Promise<void> {
+  try {
+    const { clearAdminSession } = await import('./admin-session')
+    await clearAdminSession()
+  } catch {
+    // ignore
   }
   try {
     const { clearPayloadAdminSession } = await import('@/core/cms-bridge/payload-session')
@@ -628,5 +650,5 @@ export async function logoutAction(): Promise<void> {
   } catch {
     // ignore
   }
-  redirect(await resolvePostLogoutUrl())
+  redirect('/admin')
 }

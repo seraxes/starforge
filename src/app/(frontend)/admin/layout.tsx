@@ -1,4 +1,5 @@
 import React from 'react'
+import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
 /* Active admin theme (port): load here — not on the public root layout — so
@@ -19,16 +20,20 @@ import {
   adminHrefAllowed,
   ensureManagersDashboardAcl,
   ensureManagersLocalizationAcl,
-  getAccessViewer,
+  getAdminAccessViewer,
+  listGroupIdsForUser,
   requireAdminAreaForRequest,
   viewerMayEnterAdminShell,
   type AclAdminResourceKey,
+  type AccessViewer,
 } from '@/core/acl'
 import {
   promoteSessionUserIfBootstrapAdmin,
   roleFromUser,
+  userIsAppAdmin,
   userIsDeveloperAdmin,
 } from '@/core/auth/admin'
+import { getAdminSession } from '@/core/auth/admin-session'
 import { getAppSession } from '@/core/auth/session'
 import { loadCoreUserCmsAccess, userHasCmsAccess } from '@/core/cms-bridge'
 import {
@@ -39,6 +44,10 @@ import {
 
 import { AdminAutosaveProvider } from './admin-autosave-context'
 import { AdminToastProvider } from './admin-toast'
+
+function isAdminLoginPath(pathname: string): boolean {
+  return pathname === '/admin/login' || pathname.startsWith('/admin/login/')
+}
 
 export const metadata = {
   title: 'Starforge admin',
@@ -84,10 +93,35 @@ function filterNavByAcl(
 }
 
 export default async function CoreAdminLayout(props: { children: React.ReactNode }) {
-  const session = await getAppSession()
-  if (!session?.user) {
-    redirect('/login?next=/admin')
+  const headerList = await headers()
+  const pathname = (headerList.get('x-sf-pathname') || '').trim() || '/admin'
+
+  // Standalone admin login — same Better Auth form, admin theme only (no shell gate).
+  if (isAdminLoginPath(pathname)) {
+    return <>{props.children}</>
   }
+
+  const adminSession = await getAdminSession()
+  if (!adminSession?.user) {
+    const publicSession = await getAppSession()
+    if (!publicSession?.user) {
+      const next =
+        pathname.startsWith('/admin') && !isAdminLoginPath(pathname) ? pathname : '/admin'
+      redirect(`/admin/login?next=${encodeURIComponent(next)}`)
+    }
+    await promoteSessionUserIfBootstrapAdmin(publicSession.user)
+    const publicViewer: AccessViewer = {
+      userId: publicSession.user.id,
+      isRegistered: true,
+      isAppAdmin: userIsAppAdmin(publicSession.user),
+      groupIds: await listGroupIdsForUser(publicSession.user.id),
+    }
+    if (!(await viewerMayEnterAdminShell(publicViewer))) {
+      redirect('/?notice=admins-only')
+    }
+    redirect(`/api/auth/admin-session?next=${encodeURIComponent(pathname || '/admin')}`)
+  }
+  const session = adminSession
 
   // STARFORGE_ADMIN_EMAILS: promote matching member → admin on this request.
   await promoteSessionUserIfBootstrapAdmin(session.user)
@@ -97,7 +131,7 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
   // Localization left Chrome — Managers with Chrome also get Localization.
   await ensureManagersLocalizationAcl().catch(() => undefined)
 
-  const viewer = await getAccessViewer()
+  const viewer = await getAdminAccessViewer()
   if (!(await viewerMayEnterAdminShell(viewer))) {
     redirect('/?notice=admins-only')
   }

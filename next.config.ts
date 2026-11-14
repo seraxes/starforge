@@ -64,11 +64,7 @@ const nextConfig: NextConfig = {
         destination: '/cms/admin/globals/:path*',
         permanent: false,
       },
-      {
-        source: '/admin/login',
-        destination: '/cms/admin/login',
-        permanent: false,
-      },
+      // `/admin/login` is Core staff sign-in (do not redirect to Payload).
       {
         source: '/admin/create-first-user',
         destination: '/cms/admin/create-first-user',

@@ -1,16 +1,21 @@
 import type { AuthStrategy, AuthStrategyFunctionArgs, Payload } from 'payload'
 
+import {
+  adminSessionCookieNames,
+  headersWithAdminSession,
+} from '@/core/auth/admin-session'
 import { hasUntrustedOrigin } from '@/core/security/trusted-origins'
 
 /**
- * Authenticate Payload `/admin` from the Starforge Better Auth cookie.
- * No Payload email/password — core session is the only login.
+ * Authenticate Payload `/cms/admin` from the Starforge staff admin session cookie.
+ * No Payload email/password — core login + admin-session mint is the only path.
  *
  * Important:
  * - Use the `payload` arg (do not re-enter getPayload during auth).
  * - Call getSession with `disableRefresh: true` so nextCookies cannot try to
  *   Set-Cookie during RSC/admin init (that path threw and was previously
  *   swallowed, which made Payload fall through to its login UI).
+ * - Read the admin cookie only so public sign-out does not drop CMS.
  */
 function toWebHeaders(headers: AuthStrategyFunctionArgs['headers']): Headers {
   if (headers instanceof Headers) return headers
@@ -67,21 +72,17 @@ export const starforgeCoreSessionStrategy: AuthStrategy = {
         return { user: null }
       }
       const cookie = webHeaders.get('cookie') || ''
-      // Soft presence check only — still call getSession if unsure (cookie names vary).
-      const maybeSessionCookie =
-        cookie.includes('better-auth.session_token') ||
-        cookie.includes('__Secure-better-auth.session_token') ||
-        cookie.includes('better-auth.session_data') ||
-        cookie.includes('session_token')
-
-      if (!cookie || !maybeSessionCookie) {
+      const hasAdminCookie = adminSessionCookieNames().some((name) =>
+        cookie.includes(`${name}=`),
+      )
+      if (!cookie || !hasAdminCookie) {
         return { user: null }
       }
 
       const { auth } = await import('@/core/auth')
       // disableRefresh: avoid Set-Cookie during Payload RSC auth (nextCookies + infinite loops).
       const session = await auth.api.getSession({
-        headers: webHeaders,
+        headers: headersWithAdminSession(webHeaders),
         query: {
           disableRefresh: true,
         },

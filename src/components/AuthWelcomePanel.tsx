@@ -32,6 +32,8 @@ export type AuthWelcomePanelProps = {
   googleError?: boolean
   /** When false, show option links + Sign in CTA only (no full form). */
   showForm?: boolean
+  /** When false, hide recovery / passwordless option list (e.g. `/admin/login`). */
+  showAuthOptions?: boolean
   /** Site Settings → Auth option gates. */
   authOptions?: AuthPublicOptions
   /** Server flag: Google OAuth env pair is set (button only; no secret). */
@@ -63,6 +65,7 @@ export async function AuthWelcomePanel({
   magicError,
   googleError,
   showForm = true,
+  showAuthOptions = true,
   authOptions,
   googleSignInEnabled = false,
 }: AuthWelcomePanelProps) {
@@ -93,7 +96,9 @@ export async function AuthWelcomePanel({
             </Link>
           </p>
         ) : null}
-        <AuthOptionsLinks signedIn variant="panel" options={authOptions} />
+        {showAuthOptions ? (
+          <AuthOptionsLinks signedIn variant="panel" options={authOptions} />
+        ) : null}
         <p className="auth-switch auth-switch-row">
           <Link href="/">Home</Link>
           <SignOutButton />
@@ -119,7 +124,7 @@ export async function AuthWelcomePanel({
           magicError={magicError}
           googleError={googleError}
           initialMode={initialMode}
-          showHelperLinks={false}
+          showHelperLinks={showAuthOptions}
           captcha={captcha}
           authOptions={authOptions}
           googleSignInEnabled={googleSignInEnabled}
@@ -129,25 +134,27 @@ export async function AuthWelcomePanel({
           <Link href="/login" className="button-link auth-welcome-primary">
             Sign in
           </Link>
-          {registrationEnabled ? <Link href="/register">Create account</Link> : null}
+          {registrationEnabled ? <Link href="/register">Create an app account</Link> : null}
         </p>
       )}
-      <AuthOptionsLinks variant="panel" options={authOptions} />
-      <p className="auth-switch">
-        {registrationEnabled ? (
-          <>
-            No account yet? <Link href="/register">Create an app account</Link>
-          </>
-        ) : (
-          <>Registration is currently off.</>
-        )}
-        {variant === 'embed' ? (
-          <>
-            {' · '}
-            <Link href="/login">Full sign-in page</Link>
-          </>
-        ) : null}
-      </p>
+      {showAuthOptions ? <AuthOptionsLinks variant="panel" options={authOptions} /> : null}
+      {showAuthOptions || registrationEnabled ? (
+        <p className="auth-switch">
+          {registrationEnabled ? (
+            <>
+              No account yet? <Link href="/register">Create an app account</Link>
+            </>
+          ) : (
+            <>Registration is currently off.</>
+          )}
+          {variant === 'embed' ? (
+            <>
+              {' · '}
+              <Link href="/login">Full sign-in page</Link>
+            </>
+          ) : null}
+        </p>
+      ) : null}
     </aside>
   )
 }
