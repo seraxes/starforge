@@ -4383,11 +4383,12 @@ body:has(.admin-shell) > main {
   padding: 1rem;
 }
 
-/* In-app confirm (replaces window.confirm) — SF admin chrome */
+/* In-app confirm (replaces window.confirm) — SF admin chrome.
+ * Above media lightbox / picker (110) so delete confirms stack correctly. */
 .admin-shell .sf-admin-confirm-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 110;
+  z-index: 120;
   background: color-mix(in srgb, #06090e 72%, transparent);
   display: flex;
   align-items: center;

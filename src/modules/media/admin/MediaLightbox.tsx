@@ -3,6 +3,7 @@
 import React, { useEffect, useId, useRef, useState } from 'react'
 import Link from 'next/link'
 
+import { AdminConfirmDialog } from '@/components/admin/AdminConfirmDialog'
 import type { MediaSuggestionPatch } from '@/core/media/library-query'
 import type { ResolvedMedia } from '@/core/media/resolve'
 import { MEDIA_FOLDERS, MEDIA_PURPOSES } from '@/core/media/pipeline'
@@ -83,14 +84,17 @@ export function MediaLightbox({
   const titleId = useId()
   const closeRef = useRef<HTMLButtonElement>(null)
   const [copied, setCopied] = useState(false)
+  /** Confirm stays open only while still viewing this id (no effect reset). */
+  const [deleteConfirmForId, setDeleteConfirmForId] = useState<string | null>(null)
 
   const safeIndex = docs.length === 0 ? -1 : Math.min(Math.max(index, 0), docs.length - 1)
   const doc = safeIndex >= 0 ? docs[safeIndex] : null
   const canPrev = safeIndex > 0
   const canNext = safeIndex >= 0 && safeIndex < docs.length - 1
+  const deleteConfirmOpen = Boolean(doc && deleteConfirmForId === doc.id)
 
   useEffect(() => {
-    if (!doc) return
+    if (!doc || deleteConfirmOpen) return
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault()
@@ -109,7 +113,7 @@ export function MediaLightbox({
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [doc, canPrev, canNext, onClose, onIndexChange, safeIndex])
+  }, [doc, canPrev, canNext, onClose, onIndexChange, safeIndex, deleteConfirmOpen])
 
   useEffect(() => {
     if (!doc) return
@@ -138,6 +142,7 @@ export function MediaLightbox({
         className="sf-media-lightbox-backdrop"
         aria-hidden="true"
         onMouseDown={(e) => {
+          if (deleteConfirmOpen) return
           if (e.target === e.currentTarget) onClose()
         }}
       />
@@ -287,10 +292,7 @@ export function MediaLightbox({
                   type="button"
                   className="gantry-toolbar-btn gantry-toolbar-btn-muted"
                   disabled={busy}
-                  onClick={() => {
-                    if (!confirm('Delete this media item?')) return
-                    onDelete(doc.id)
-                  }}
+                  onClick={() => setDeleteConfirmForId(doc.id)}
                 >
                   {deleting ? 'Deleting…' : 'Delete'}
                 </button>
@@ -363,6 +365,20 @@ export function MediaLightbox({
           </aside>
         </div>
       </div>
+
+      <AdminConfirmDialog
+        open={deleteConfirmOpen}
+        title="Delete media?"
+        message="Delete this media item?"
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        danger
+        onCancel={() => setDeleteConfirmForId(null)}
+        onConfirm={() => {
+          setDeleteConfirmForId(null)
+          onDelete?.(doc.id)
+        }}
+      />
     </div>
   )
 }

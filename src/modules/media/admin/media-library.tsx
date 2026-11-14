@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 import { useAdminToast } from '@/app/(frontend)/admin/admin-toast'
+import { AdminConfirmDialog } from '@/components/admin/AdminConfirmDialog'
 import {
   analyzeMediaAction,
   applyMediaAnalysisSuggestionsAction,
@@ -147,6 +148,7 @@ export function MediaLibraryClient({
   const [bulkTag, setBulkTag] = useState('')
   const [suggestions, setSuggestions] = useState<MediaSuggestionPatch | null>(null)
   const [analysisMessage, setAnalysisMessage] = useState<string | null>(null)
+  const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false)
 
   const busy =
     uploading ||
@@ -352,11 +354,14 @@ export function MediaLibraryClient({
     })
   }
 
-  function runBulkDelete() {
+  function requestBulkDelete() {
     if (!selectedIds.length) return
-    if (!confirm(`Delete ${selectedIds.length} selected item${selectedIds.length === 1 ? '' : 's'}?`)) {
-      return
-    }
+    setBulkDeleteConfirmOpen(true)
+  }
+
+  function confirmBulkDelete() {
+    if (!selectedIds.length) return
+    setBulkDeleteConfirmOpen(false)
     const fd = new FormData()
     fd.set('idsCsv', selectedIds.join(','))
     startTransition(() => {
@@ -815,7 +820,7 @@ export function MediaLibraryClient({
                 type="button"
                 className="gantry-toolbar-btn gantry-toolbar-btn-muted"
                 disabled={busy || !selectedIds.length}
-                onClick={runBulkDelete}
+                onClick={requestBulkDelete}
               >
                 {bulkDeleting ? 'Deleting…' : 'Delete'}
               </button>
@@ -985,6 +990,17 @@ export function MediaLibraryClient({
           }}
         />
       ) : null}
+
+      <AdminConfirmDialog
+        open={bulkDeleteConfirmOpen}
+        title="Delete selected media?"
+        message={`Delete ${selectedIds.length} selected item${selectedIds.length === 1 ? '' : 's'}?`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        danger
+        onCancel={() => setBulkDeleteConfirmOpen(false)}
+        onConfirm={confirmBulkDelete}
+      />
     </div>
   )
 }
