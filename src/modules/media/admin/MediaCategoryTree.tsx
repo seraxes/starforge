@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 
+import { AdminConfirmDialog } from '@/components/admin/AdminConfirmDialog'
 import {
   MEDIA_CATEGORY_MAX_DEPTH,
   MEDIA_FORMS_CATEGORY_SLUG,
@@ -28,7 +29,7 @@ function TreeNode({
   onSelect,
   onCreate,
   onRename,
-  onDelete,
+  onRequestDelete,
 }: {
   node: MediaCategoryNode
   activeId: string
@@ -39,7 +40,7 @@ function TreeNode({
   onSelect: (id: string) => void
   onCreate: (input: { title: string; parentId: string | null }) => void
   onRename: (input: { id: string; title: string }) => void
-  onDelete: (id: string) => void
+  onRequestDelete: (node: MediaCategoryNode) => void
 }) {
   const current = activeId === node.id
   const hasChildren = node.children.length > 0
@@ -114,10 +115,7 @@ function TreeNode({
               disabled={busy}
               title="Delete"
               aria-label={`Delete ${node.title}`}
-              onClick={() => {
-                if (!window.confirm(`Delete folder “${node.title}”? It must be empty.`)) return
-                onDelete(node.id)
-              }}
+              onClick={() => onRequestDelete(node)}
             >
               ×
             </button>
@@ -138,7 +136,7 @@ function TreeNode({
               onSelect={onSelect}
               onCreate={onCreate}
               onRename={onRename}
-              onDelete={onDelete}
+              onRequestDelete={onRequestDelete}
             />
           ))}
         </ul>
@@ -173,6 +171,9 @@ export function MediaCategoryTree({
     markAncestors(tree, [])
     return open
   })
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(
+    null,
+  )
 
   function toggle(id: string) {
     setExpanded((prev) => {
@@ -213,7 +214,7 @@ export function MediaCategoryTree({
             onSelect={onSelect}
             onCreate={onCreate}
             onRename={onRename}
-            onDelete={onDelete}
+            onRequestDelete={(n) => setPendingDelete({ id: n.id, title: n.title })}
           />
         ))}
       </ul>
@@ -231,6 +232,26 @@ export function MediaCategoryTree({
           New folder
         </button>
       </div>
+
+      <AdminConfirmDialog
+        open={pendingDelete != null}
+        title="Delete folder?"
+        message={
+          pendingDelete
+            ? `Delete folder “${pendingDelete.title}”? It must be empty.`
+            : ''
+        }
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        danger
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={() => {
+          if (!pendingDelete) return
+          const id = pendingDelete.id
+          setPendingDelete(null)
+          onDelete(id)
+        }}
+      />
     </aside>
   )
 }
