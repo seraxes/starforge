@@ -102,6 +102,28 @@ function Panel({
   )
 }
 
+/** Snapshot Base assets as live-inherited outline entries. */
+function assetsAsInheritedFromBase(baseItems: AssetRef[]): AssetRef[] {
+  return structuredClone(baseItems).map((asset) => ({ ...asset, inherit: true }))
+}
+
+/** True when the outline list is exactly Base, every entry live-inherited. */
+function isWholeAssetFieldInherited(items: AssetRef[], baseItems: AssetRef[]): boolean {
+  if (items.length !== baseItems.length) return false
+  if (baseItems.length === 0) return true
+  const baseIds = new Set(baseItems.map((b) => b.id))
+  if (items.some((item) => !baseIds.has(item.id) || !item.inherit)) return false
+  return baseItems.every((base) => items.some((item) => item.id === base.id))
+}
+
+/** Display row: when inherited, show live Base values. */
+function displayAsset(item: AssetRef, baseById: Map<string, AssetRef>): AssetRef {
+  if (!item.inherit) return item
+  const fromBase = baseById.get(item.id)
+  if (!fromBase) return item
+  return { ...fromBase, inherit: true }
+}
+
 function OrderedAssetList({
   label,
   language,
@@ -111,6 +133,8 @@ function OrderedAssetList({
   onDiscreteChange,
   disabled,
   developerOnly,
+  canInherit,
+  baseItems,
 }: {
   label: string
   language: 'css' | 'javascript'
@@ -122,8 +146,23 @@ function OrderedAssetList({
   onDiscreteChange?: () => void
   disabled?: boolean
   developerOnly?: boolean
+  /** Non-Base outline — Inherit/Copy per file entry. */
+  canInherit?: boolean
+  baseItems?: AssetRef[]
 }) {
   const fileLabel = language === 'css' ? 'CSS file' : 'JS file'
+  const baseList = baseItems ?? []
+  const baseById = new Map(baseList.map((asset) => [asset.id, asset]))
+
+  const patchItem = (index: number, patch: Partial<AssetRef>, persist: 'text' | 'discrete') => {
+    const next = [...items]
+    const cur = next[index]
+    if (!cur) return
+    next[index] = { ...cur, ...patch }
+    onChange(next)
+    if (persist === 'text') onTextChange?.()
+    else onDiscreteChange?.()
+  }
 
   return (
     <div className="page-settings-list">
@@ -137,7 +176,7 @@ function OrderedAssetList({
           onClick={() => {
             const n = items.length + 1
             onChange([
-              ...items,
+              ...items.map((row) => ({ ...row })),
               {
                 id: newPageSettingsEntityId('asset'),
                 name: `${language === 'css' ? 'style' : 'script'}-${n}`,
@@ -157,114 +196,156 @@ function OrderedAssetList({
         <strong>Edit</strong> for CodeMirror. Load priority (−10 … +10) orders inject in head
         / before <code>&lt;/body&gt;</code> (lower first). Optional external URL still works
         when content is empty.
+        {canInherit
+          ? ' Inherit / Copy beside each file links that entry to Base (not the whole list).'
+          : null}
       </p>
       {items.length === 0 ? <p className="settings-hint">No files yet.</p> : null}
       <ul className="page-settings-asset-list page-settings-asset-list--files">
-        {items.map((item, index) => (
-          <li key={item.id}>
-            <input
-              type="text"
-              placeholder="File name"
-              value={item.name}
-              disabled={disabled}
-              aria-label={`${label} file name`}
-              onChange={(e) => {
-                const next = [...items]
-                next[index] = { ...item, name: e.target.value }
-                onChange(next)
-                onTextChange?.()
-              }}
-              onBlur={() => onDiscreteChange?.()}
-            />
-            <label className="page-settings-asset-priority">
-              <span>Priority</span>
-              <input
-                type="number"
-                min={ASSET_PRIORITY_MIN}
-                max={ASSET_PRIORITY_MAX}
-                step={1}
-                value={item.priority ?? 0}
-                disabled={disabled}
-                aria-label={`${label} load priority`}
-                onChange={(e) => {
-                  const raw = Number(e.target.value)
-                  const priority = Number.isFinite(raw)
-                    ? Math.min(
-                        ASSET_PRIORITY_MAX,
-                        Math.max(ASSET_PRIORITY_MIN, Math.round(raw)),
-                      )
-                    : 0
-                  const next = [...items]
-                  next[index] = { ...item, priority }
-                  onChange(next)
-                  onDiscreteChange?.()
-                }}
-              />
-            </label>
-            <div className="page-settings-row-actions">
-              {disabled ? (
-                <button type="button" className="gantry-toolbar-btn secondary" disabled>
-                  Edit
-                </button>
-              ) : (
-                <AtomSettingsPopover
-                  title={`Edit ${item.name || fileLabel}`}
-                  triggerLabel="Edit"
-                  preferredWidth={600}
-                  onClose={() => onDiscreteChange?.()}
-                >
-                  <CodeEditorField
-                    key={`${item.id}-editor`}
-                    label={item.name || fileLabel}
-                    language={language}
-                    initialValue={item.content ?? ''}
-                    initialHeight={280}
-                    hint={
-                      language === 'css'
-                        ? 'Inline CSS applied on the public site as a <style> block (outline chrome).'
-                        : 'Inline JS injected before </body>.'
-                    }
-                    onValueChange={(nextContent) => {
-                      onChange(
-                        items.map((row, i) =>
-                          i === index ? { ...row, content: nextContent } : row,
-                        ),
-                      )
-                      onTextChange?.()
+        {items.map((item, index) => {
+          const shown = displayAsset(item, baseById)
+          const entryInherited = Boolean(canInherit && item.inherit && baseById.has(item.id))
+          const rowDisabled = Boolean(disabled || entryInherited)
+          const showInherit = Boolean(canInherit && baseById.has(item.id))
+
+          return (
+            <li
+              key={item.id}
+              className={
+                showInherit
+                  ? entryInherited
+                    ? 'page-settings-asset-row page-settings-asset-row--inherit page-settings-field-inherited'
+                    : 'page-settings-asset-row page-settings-asset-row--inherit'
+                  : 'page-settings-asset-row'
+              }
+            >
+              <div className="page-settings-asset-row-main">
+                <input
+                  type="text"
+                  placeholder="File name"
+                  value={shown.name}
+                  disabled={rowDisabled}
+                  aria-label={`${label} file name`}
+                  onChange={(e) => patchItem(index, { name: e.target.value, inherit: false }, 'text')}
+                  onBlur={() => onDiscreteChange?.()}
+                />
+                <label className="page-settings-asset-priority">
+                  <span>Priority</span>
+                  <input
+                    type="number"
+                    min={ASSET_PRIORITY_MIN}
+                    max={ASSET_PRIORITY_MAX}
+                    step={1}
+                    value={shown.priority ?? 0}
+                    disabled={rowDisabled}
+                    aria-label={`${label} load priority`}
+                    onChange={(e) => {
+                      const raw = Number(e.target.value)
+                      const priority = Number.isFinite(raw)
+                        ? Math.min(
+                            ASSET_PRIORITY_MAX,
+                            Math.max(ASSET_PRIORITY_MIN, Math.round(raw)),
+                          )
+                        : 0
+                      patchItem(index, { priority, inherit: false }, 'discrete')
                     }}
                   />
-                  <label className="settings-field">
-                    <span>External URL (optional)</span>
-                    <input
-                      type="url"
-                      placeholder="https://… (used when content is empty)"
-                      defaultValue={item.url}
-                      onChange={(e) => {
-                        const url = e.target.value
-                        onChange(
-                          items.map((row, i) => (i === index ? { ...row, url } : row)),
-                        )
-                        onTextChange?.()
-                      }}
-                      onBlur={() => onDiscreteChange?.()}
-                    />
-                  </label>
-                </AtomSettingsPopover>
-              )}
-              <button
-                type="button"
-                className="gantry-toolbar-btn gantry-toolbar-btn-danger danger"
-                disabled={disabled}
-                onClick={() => {
-                  onChange(items.filter((_, i) => i !== index))
-                  onDiscreteChange?.()
-                }}
-              >
-                Remove
-              </button>
-            </div>
-          </li>
-        ))}
+                </label>
+                <div className="page-settings-row-actions">
+                  {rowDisabled ? (
+                    <button type="button" className="gantry-toolbar-btn secondary" disabled>
+                      Edit
+                    </button>
+                  ) : (
+                    <AtomSettingsPopover
+                      title={`Edit ${shown.name || fileLabel}`}
+                      triggerLabel="Edit"
+                      preferredWidth={600}
+                      onClose={() => onDiscreteChange?.()}
+                    >
+                      <CodeEditorField
+                        key={`${item.id}-editor-${entryInherited ? 'in' : 'local'}`}
+                        label={shown.name || fileLabel}
+                        language={language}
+                        initialValue={shown.content ?? ''}
+                        initialHeight={280}
+                        hint={
+                          language === 'css'
+                            ? 'Inline CSS applied on the public site as a <style> block (outline chrome).'
+                            : 'Inline JS injected before </body>.'
+                        }
+                        onValueChange={(nextContent) => {
+                          patchItem(index, { content: nextContent, inherit: false }, 'text')
+                        }}
+                      />
+                      <label className="settings-field">
+                        <span>External URL (optional)</span>
+                        <input
+                          type="url"
+                          placeholder="https://… (used when content is empty)"
+                          defaultValue={shown.url}
+                          onChange={(e) => {
+                            patchItem(index, { url: e.target.value, inherit: false }, 'text')
+                          }}
+                          onBlur={() => onDiscreteChange?.()}
+                        />
+                      </label>
+                    </AtomSettingsPopover>
+                  )}
+                  <button
+                    type="button"
+                    className="gantry-toolbar-btn gantry-toolbar-btn-danger danger"
+                    disabled={disabled}
+                    onClick={() => {
+                      onChange(items.filter((_, i) => i !== index))
+                      onDiscreteChange?.()
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+              {showInherit ? (
+                <div className="page-settings-asset-row-inherit">
+                  <InheritCopyRow
+                    inline
+                    inherited={entryInherited}
+                    disabled={disabled}
+                    onInheritChange={(nextInherited) => {
+                      const fromBase = baseById.get(item.id)
+                      if (!fromBase) return
+                      if (nextInherited) {
+                        const next = [...items]
+                        next[index] = { ...structuredClone(fromBase), inherit: true }
+                        onChange(next)
+                      } else {
+                        const next = [...items]
+                        next[index] = {
+                          ...structuredClone(displayAsset(item, baseById)),
+                          inherit: false,
+                        }
+                        delete next[index].inherit
+                        onChange(next)
+                      }
+                      onDiscreteChange?.()
+                    }}
+                    onCopy={() => {
+                      const fromBase = baseById.get(item.id)
+                      if (!fromBase) return
+                      const next = [...items]
+                      const snap = structuredClone(fromBase)
+                      delete snap.inherit
+                      next[index] = snap
+                      onChange(next)
+                      onDiscreteChange?.()
+                    }}
+                    copyLabel="Copy"
+                  />
+                </div>
+              ) : null}
+            </li>
+          )
+        })}
       </ul>
     </div>
   )
@@ -306,10 +387,18 @@ export function PageSettingsForm({ bootstrap }: Props) {
   const [touchIconUrl, setTouchIconUrl] = useState(
     pickInitial(initial.touchIconUrl, baseChrome.touchIconUrl ?? ''),
   )
-  const [css, setCss] = useState<AssetRef[]>(pickInitial(initial.css, baseChrome.css ?? []))
-  const [javascript, setJavascript] = useState<AssetRef[]>(
-    pickInitial(initial.javascript, baseChrome.javascript ?? []),
-  )
+  const [css, setCss] = useState<AssetRef[]>(() => {
+    if (!canInherit) return structuredClone(initial.css ?? baseChrome.css ?? [])
+    if (initial.css === undefined) return assetsAsInheritedFromBase(baseChrome.css ?? [])
+    return structuredClone(initial.css)
+  })
+  const [javascript, setJavascript] = useState<AssetRef[]>(() => {
+    if (!canInherit) return structuredClone(initial.javascript ?? baseChrome.javascript ?? [])
+    if (initial.javascript === undefined) {
+      return assetsAsInheritedFromBase(baseChrome.javascript ?? [])
+    }
+    return structuredClone(initial.javascript)
+  })
   const [bodyId, setBodyId] = useState(pickInitial(initial.bodyId, baseChrome.bodyId ?? ''))
   const [bodyClasses, setBodyClasses] = useState(
     pickInitial(initial.bodyClasses, baseChrome.bodyClasses ?? ''),
@@ -360,6 +449,31 @@ export function PageSettingsForm({ bootstrap }: Props) {
     window.setTimeout(() => saveNow(), 0)
   }
 
+  /** Keep whole-list `css` / `javascript` inherit keys in sync with per-entry flags. */
+  const syncAssetInheritKey = (
+    key: 'css' | 'javascript',
+    items: AssetRef[],
+    baseItems: AssetRef[],
+  ) => {
+    if (!canInherit) return
+    setInheritedKeys((prev) => {
+      const next = new Set(prev)
+      if (isWholeAssetFieldInherited(items, baseItems)) next.add(key)
+      else next.delete(key)
+      return next
+    })
+  }
+
+  const setCssAndSync = (next: AssetRef[]) => {
+    setCss(next)
+    syncAssetInheritKey('css', next, baseChrome.css ?? [])
+  }
+
+  const setJavascriptAndSync = (next: AssetRef[]) => {
+    setJavascript(next)
+    syncAssetInheritKey('javascript', next, baseChrome.javascript ?? [])
+  }
+
   const copyFieldFromBase = (key: PageChromeInheritKey) => {
     switch (key) {
       case 'sectionsLayout':
@@ -381,10 +495,18 @@ export function PageSettingsForm({ bootstrap }: Props) {
         setTouchIconUrl(baseChrome.touchIconUrl ?? '')
         break
       case 'css':
-        setCss(structuredClone(baseChrome.css ?? []))
+        setCssAndSync(structuredClone(baseChrome.css ?? []).map((a) => {
+          const { inherit: _drop, ...rest } = a
+          return rest
+        }))
         break
       case 'javascript':
-        setJavascript(structuredClone(baseChrome.javascript ?? []))
+        setJavascriptAndSync(
+          structuredClone(baseChrome.javascript ?? []).map((a) => {
+            const { inherit: _drop, ...rest } = a
+            return rest
+          }),
+        )
         break
       case 'bodyId':
         setBodyId(baseChrome.bodyId ?? '')
@@ -412,11 +534,13 @@ export function PageSettingsForm({ bootstrap }: Props) {
       default:
         break
     }
-    setInheritedKeys((prev) => {
-      const next = new Set(prev)
-      next.delete(key)
-      return next
-    })
+    if (key !== 'css' && key !== 'javascript') {
+      setInheritedKeys((prev) => {
+        const next = new Set(prev)
+        next.delete(key)
+        return next
+      })
+    }
     window.setTimeout(() => saveNow(), 0)
   }
 
@@ -447,7 +571,7 @@ export function PageSettingsForm({ bootstrap }: Props) {
       <p className="settings-hint page-settings-toolbar-hint">
         {bootstrap.isBaseOutline
           ? 'Editing Base outline chrome (source). Other outlines can Inherit / Copy from this.'
-          : 'Editing a non-Base outline. Inherit / Copy beside each field uses Base chrome.'}{' '}
+          : 'Editing a non-Base outline. Inherit / Copy beside each field (and each CSS/JS file) uses Base chrome.'}{' '}
         Assign outlines on nav menu items.
       </p>
 
@@ -716,41 +840,33 @@ export function PageSettingsForm({ bootstrap }: Props) {
               />
             </label>
           </FieldInheritRow>
-          <FieldInheritRow
-            show={canInherit}
-            fieldKey="css"
-            onCopy={copyFieldFromBase}
-            inherited={inherits('css')}
-            onChange={setFieldInherit}
-          >
-            <OrderedAssetList
-              label="CSS"
-              language="css"
-              items={css}
-              onChange={setCss}
-              onTextChange={saveDebounced}
-              onDiscreteChange={saveNow}
-              disabled={inherits('css')}
-            />
-          </FieldInheritRow>
-          <FieldInheritRow
-            show={canInherit}
-            fieldKey="javascript"
-            onCopy={copyFieldFromBase}
-            inherited={inherits('javascript')}
-            onChange={setFieldInherit}
-          >
-            <OrderedAssetList
-              label="JavaScript"
-              language="javascript"
-              items={javascript}
-              onChange={setJavascript}
-              onTextChange={saveDebounced}
-              onDiscreteChange={saveNow}
-              disabled={lockedScripts || inherits('javascript')}
-              developerOnly
-            />
-          </FieldInheritRow>
+          <OrderedAssetList
+            label="CSS"
+            language="css"
+            items={css}
+            onChange={setCssAndSync}
+            onTextChange={saveDebounced}
+            onDiscreteChange={() => {
+              // Wait for inheritKeysJson / cssJson hidden inputs to re-render.
+              window.setTimeout(() => saveNow(), 0)
+            }}
+            canInherit={canInherit}
+            baseItems={baseChrome.css ?? []}
+          />
+          <OrderedAssetList
+            label="JavaScript"
+            language="javascript"
+            items={javascript}
+            onChange={setJavascriptAndSync}
+            onTextChange={saveDebounced}
+            onDiscreteChange={() => {
+              window.setTimeout(() => saveNow(), 0)
+            }}
+            disabled={lockedScripts}
+            developerOnly
+            canInherit={canInherit && !lockedScripts}
+            baseItems={baseChrome.javascript ?? []}
+          />
         </Panel>
 
         <Panel title="Body Attributes">

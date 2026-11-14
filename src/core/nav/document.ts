@@ -24,6 +24,7 @@ function newItemId(): string {
 
 /** Accept `custom` as legacy alias for `url`. */
 export function normalizeLinkType(raw: unknown): NavLinkType {
+  if (raw === 'admin') return 'admin'
   if (raw === 'module') return 'module'
   if (raw === 'url' || raw === 'custom') return 'url'
   return 'page'
@@ -100,9 +101,14 @@ export function normalizeNavMenuDocument(raw: unknown): NavMenuDocument {
   const doc = raw as { version?: unknown; items?: unknown }
   const itemsRaw = Array.isArray(doc.items) ? doc.items : []
   const items: NavMenuItem[] = []
+  const seenIds = new Set<string>()
   for (let i = 0; i < itemsRaw.length; i++) {
     const item = normalizeNavMenuItem(itemsRaw[i], i)
-    if (item) items.push(item)
+    if (!item) continue
+    // Drop duplicate ids (Add form used to re-inject rows on retry).
+    if (seenIds.has(item.id)) continue
+    seenIds.add(item.id)
+    items.push(item)
   }
   // Re-index sortOrder among siblings after normalize
   const byParent = new Map<string | null, NavMenuItem[]>()

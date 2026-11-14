@@ -58,6 +58,9 @@ type Props = {
   analysisAdapters: string[]
   /** Max edge from Media → Settings (hint on upload). */
   maxEdge: number
+  /** Viewer may turn off Decode to WebP / Resize on upload. */
+  canChooseDecode?: boolean
+  canChooseResize?: boolean
 }
 
 function libraryHref(next: {
@@ -99,6 +102,8 @@ export function MediaLibraryClient({
   categoryTree,
   analysisAdapters,
   maxEdge,
+  canChooseDecode = false,
+  canChooseResize = false,
 }: Props) {
   const router = useRouter()
   const { notifySaved } = useAdminToast()
@@ -130,6 +135,9 @@ export function MediaLibraryClient({
     empty,
   )
   const [pending, startTransition] = useTransition()
+  // Separate from page `pending` so bulk Apply/Delete stay in a transition
+  // (required by useActionState) without freezing folder/filter chrome.
+  const [bulkPending, startBulkTransition] = useTransition()
 
   const [purposeDraft, setPurposeDraft] = useState(purpose)
   const [tagDraft, setTagDraft] = useState(tag === 'all' ? '' : tag)
@@ -150,6 +158,7 @@ export function MediaLibraryClient({
   const [analysisMessage, setAnalysisMessage] = useState<string | null>(null)
   const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false)
 
+  // Bulk move/tag/delete must not lock folder tree / filters — only the bulk bar.
   const busy =
     uploading ||
     deleting ||
@@ -157,12 +166,16 @@ export function MediaLibraryClient({
     creatingCat ||
     renamingCat ||
     deletingCat ||
-    bulkDeleting ||
-    bulkUpdating ||
     analyzing ||
     applyingSuggest
+  const bulkBusy = busy || bulkUpdating || bulkDeleting || bulkPending
   const categoryOptions = useMemo(() => flattenCategoryOptions(categoryTree), [categoryTree])
   const selectedIds = useMemo(() => [...selected], [selected])
+  const handledBulkOkRef = React.useRef<MediaActionState | null>(null)
+  const handledCatOkRef = React.useRef<MediaActionState | null>(null)
+  const handledUploadOkRef = React.useRef<MediaActionState | null>(null)
+  const handledDeleteOkRef = React.useRef<MediaActionState | null>(null)
+  const handledSuggestOkRef = React.useRef<MediaActionState | null>(null)
 
   // Keep drafts in sync when URL filters change (Clear / chip / folder / back).
   React.useEffect(() => {
@@ -176,19 +189,19 @@ export function MediaLibraryClient({
   }, [category, purpose, tag, tagMode, q])
 
   React.useEffect(() => {
-    if (uploadState.ok) {
-      setUploadHint(null)
-      notifySaved(uploadState.message || 'Uploaded.')
-      startTransition(() => router.refresh())
-    }
+    if (!uploadState.ok || uploadState === handledUploadOkRef.current) return
+    handledUploadOkRef.current = uploadState
+    setUploadHint(null)
+    notifySaved(uploadState.message || 'Uploaded.')
+    router.refresh()
   }, [uploadState, router, notifySaved])
 
   React.useEffect(() => {
-    if (deleteState.ok) {
-      notifySaved(deleteState.message || 'Deleted.')
-      setLightboxIndex(null)
-      startTransition(() => router.refresh())
-    }
+    if (!deleteState.ok || deleteState === handledDeleteOkRef.current) return
+    handledDeleteOkRef.current = deleteState
+    notifySaved(deleteState.message || 'Deleted.')
+    setLightboxIndex(null)
+    router.refresh()
   }, [deleteState, router, notifySaved])
 
   React.useEffect(() => {
@@ -197,10 +210,16 @@ export function MediaLibraryClient({
       : bulkUpdateState.ok
         ? bulkUpdateState
         : null
-    if (!state?.ok) return
+    if (!state?.ok || state === handledBulkOkRef.current) return
+    handledBulkOkRef.current = state
     notifySaved(state.message || 'Saved.')
     setSelected(new Set())
-    startTransition(() => router.refresh())
+    setBulkCategory('')
+    setBulkTag('')
+    // Refresh list without page-wide pending (that freezes the folder tree).
+    startBulkTransition(() => {
+      router.refresh()
+    })
   }, [bulkDeleteState, bulkUpdateState, router, notifySaved])
 
   React.useEffect(() => {
@@ -211,7 +230,8 @@ export function MediaLibraryClient({
         : deleteCatState.ok
           ? deleteCatState
           : null
-    if (!state?.ok) return
+    if (!state?.ok || state === handledCatOkRef.current) return
+    handledCatOkRef.current = state
     notifySaved(state.message || 'Saved.')
     startTransition(() => router.refresh())
   }, [createCatState, renameCatState, deleteCatState, router, notifySaved])
@@ -227,12 +247,12 @@ export function MediaLibraryClient({
   }, [analyzeState])
 
   React.useEffect(() => {
-    if (applySuggestState.ok) {
-      notifySaved(applySuggestState.message || 'Suggestions applied.')
-      setSuggestions(null)
-      setAnalysisMessage(null)
-      startTransition(() => router.refresh())
-    }
+    if (!applySuggestState.ok || applySuggestState === handledSuggestOkRef.current) return
+    handledSuggestOkRef.current = applySuggestState
+    notifySaved(applySuggestState.message || 'Suggestions applied.')
+    setSuggestions(null)
+    setAnalysisMessage(null)
+    router.refresh()
   }, [applySuggestState, router, notifySaved])
 
   // Drop lightbox if the filtered set no longer contains the open index.
@@ -364,7 +384,7 @@ export function MediaLibraryClient({
     setBulkDeleteConfirmOpen(false)
     const fd = new FormData()
     fd.set('idsCsv', selectedIds.join(','))
-    startTransition(() => {
+    startBulkTransition(() => {
       void bulkDeleteAction(fd)
     })
   }
@@ -376,7 +396,7 @@ export function MediaLibraryClient({
     fd.set('idsCsv', selectedIds.join(','))
     if (bulkCategory) fd.set('category', bulkCategory)
     if (bulkTag) fd.set('tag', bulkTag)
-    startTransition(() => {
+    startBulkTransition(() => {
       void bulkUpdateAction(fd)
     })
   }
@@ -667,10 +687,15 @@ export function MediaLibraryClient({
               ) : (
                 <p className="layout-muted">
                   Drop an image or choose a file, then fill alt text and click Upload. Photos convert
-                  to WebP; PNG logos stay PNG. Max edge {maxEdge}px (Media → Settings).
+                  to WebP by default; logo PNG stays PNG when that setting is on. Max edge{' '}
+                  {maxEdge}px (Media → Settings).
                 </p>
               )}
-              <MediaFileField disabled={busy || !storage.ready} />
+              <MediaFileField
+                disabled={busy || !storage.ready}
+                canChooseDecode={canChooseDecode}
+                canChooseResize={canChooseResize}
+              />
               <div className="sf-media-library-upload-row">
                 <label className="settings-field">
                   <span>Alt text</span>
@@ -765,7 +790,7 @@ export function MediaLibraryClient({
                         selectedIds.length > 0 && selectedIds.length < initialDocs.length
                     }
                   }}
-                  disabled={busy}
+                  disabled={bulkBusy}
                   onChange={(e) => {
                     if (e.target.checked) selectAllVisible()
                     else clearSelection()
@@ -781,7 +806,7 @@ export function MediaLibraryClient({
                 <span className="visually-hidden">Move to folder</span>
                 <select
                   value={bulkCategory}
-                  disabled={busy || !selectedIds.length}
+                  disabled={bulkBusy || !selectedIds.length}
                   onChange={(e) => setBulkCategory(e.target.value)}
                 >
                   <option value="">Move to folder…</option>
@@ -797,7 +822,7 @@ export function MediaLibraryClient({
                 <span className="visually-hidden">Add tag</span>
                 <select
                   value={bulkTag}
-                  disabled={busy || !selectedIds.length || tagOptions.length === 0}
+                  disabled={bulkBusy || !selectedIds.length || tagOptions.length === 0}
                   onChange={(e) => setBulkTag(e.target.value)}
                 >
                   <option value="">Add tag…</option>
@@ -811,7 +836,7 @@ export function MediaLibraryClient({
               <button
                 type="button"
                 className="gantry-toolbar-btn gantry-toolbar-btn-muted"
-                disabled={busy || !selectedIds.length || (!bulkCategory && !bulkTag)}
+                disabled={bulkBusy || !selectedIds.length || (!bulkCategory && !bulkTag)}
                 onClick={runBulkUpdate}
               >
                 {bulkUpdating ? 'Updating…' : 'Apply'}
@@ -819,7 +844,7 @@ export function MediaLibraryClient({
               <button
                 type="button"
                 className="gantry-toolbar-btn gantry-toolbar-btn-muted"
-                disabled={busy || !selectedIds.length}
+                disabled={bulkBusy || !selectedIds.length}
                 onClick={requestBulkDelete}
               >
                 {bulkDeleting ? 'Deleting…' : 'Delete'}
@@ -828,7 +853,7 @@ export function MediaLibraryClient({
                 <button
                   type="button"
                   className="gantry-toolbar-btn gantry-toolbar-btn-muted"
-                  disabled={busy}
+                  disabled={bulkBusy}
                   onClick={clearSelection}
                 >
                   Clear selection

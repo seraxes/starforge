@@ -1,7 +1,7 @@
 'use server'
 
 import { headers } from 'next/headers'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath } from '@/core/content/defer-revalidate'
 import { APIError } from 'better-auth/api'
 import { eq } from 'drizzle-orm'
 

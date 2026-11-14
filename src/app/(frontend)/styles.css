@@ -346,39 +346,16 @@ body > main {
 }
 
 /*
- * Sticky footer: push the first trailing chrome block to the bottom of the
- * surround. Prefer the last layout footer; if none, the Built-with meta line.
- * (Do not put margin-top:auto on both — that splits free space between them.)
+ * Sticky footer: the last layout footer section sits at the bottom of the
+ * surround. Copy inside it comes from outline particles only.
  */
-.public-shell > .site-footer:last-of-type,
-.public-shell:not(:has(> .site-footer)) > .sf-layout-chrome-meta {
+.public-shell > .site-footer:last-of-type {
   margin-top: auto;
 }
 
 .site-footer {
   border-top: 1px solid var(--sf-line);
   background: color-mix(in srgb, var(--sf-paper) 70%, white);
-}
-
-.site-footer-meta {
-  max-width: 64rem;
-  margin: 0 auto;
-  padding: 1rem 1.5rem 1.35rem;
-  color: var(--sf-muted);
-  font-size: 0.88rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem 0.5rem;
-  align-items: center;
-}
-
-.site-footer-brand {
-  color: var(--sf-ink);
-  font-weight: 600;
-}
-
-.site-footer-sep {
-  opacity: 0.7;
 }
 
 .session-hint {
@@ -853,8 +830,14 @@ button:disabled {
   font-weight: 400;
 }
 
+/*
+ * Login card fills its column up to the auth-card width — not the full section.
+ * Lets Layouts CSS class `center` / `left` / `right` actually place the card.
+ */
 .sf-login-particle {
   width: 100%;
+  max-width: 26rem;
+  box-sizing: border-box;
 }
 
 /* Public CMS page (`/[slug]`) + draft preview (`/preview/[slug]`)
@@ -1235,17 +1218,17 @@ button:disabled {
 
 .admin-sidebar-account {
   display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.35rem;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
   margin: 0;
-  padding: 0.55rem 0.65rem;
+  padding: 0.55rem 0.5rem 0.55rem 0.65rem;
   border: 1px solid color-mix(in srgb, var(--sf-secondary) 35%, var(--sf-line));
   border-radius: 6px;
   background: color-mix(in srgb, var(--sf-secondary) 16%, transparent);
-  text-decoration: none;
   color: inherit;
   transition:
     background 0.15s ease,
@@ -1254,16 +1237,68 @@ button:disabled {
 }
 
 .admin-sidebar-account:hover,
-.admin-sidebar-account:focus-visible {
+.admin-sidebar-account:focus-within {
   border-color: color-mix(in srgb, var(--sf-admin-blue-border, #4aa3df) 70%, var(--sf-line));
   background: color-mix(in srgb, var(--sf-admin-nav-active, #3498db) 28%, transparent);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--sf-admin-blue-border, #4aa3df) 45%, transparent);
+}
+
+.admin-sidebar-account-link {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+  outline: none;
+}
+
+.admin-sidebar-account-link:focus-visible {
   outline: none;
 }
 
 .admin-sidebar-account:hover .admin-sidebar-account-name,
-.admin-sidebar-account:focus-visible .admin-sidebar-account-name {
+.admin-sidebar-account:focus-within .admin-sidebar-account-name {
   color: #fff;
+}
+
+.admin-sidebar-account-signout {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  margin: 0 0 0 auto;
+}
+
+.admin-sidebar-account-signout-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.55rem;
+  height: 1.55rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: color-mix(in srgb, #fff 72%, transparent);
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.admin-sidebar-account-signout-btn:hover,
+.admin-sidebar-account-signout-btn:focus-visible {
+  background: color-mix(in srgb, var(--sf-admin-nav-active, #3498db) 28%, transparent);
+  color: #fff;
+  outline: none;
+}
+
+.admin-sidebar-account-signout-icon {
+  display: block;
+  width: 1em;
+  height: 1em;
 }
 
 .admin-sidebar-avatar {
@@ -4829,10 +4864,59 @@ button:disabled {
 }
 
 /*
- * Common particle CSS classes (Layouts → CSS class) for Menu.
- * `.site-nav` is flex — text-align / justify-content on the slot alone will not
- * move links; target the nav (or use these helpers when class is left|center|right).
+ * Particle slot alignment (Layouts → CSS class: left | center | right).
+ * Column keeps its data-sf-width share; content aligns inside it.
+ * Page Settings `.center { justify-content }` cannot fight width:100% columns —
+ * use these built-in classes on the particle instead.
  */
+.sf-grid-col.left,
+.sf-grid-col.center,
+.sf-grid-col.right {
+  display: flex;
+  flex-direction: column;
+}
+
+.sf-grid-col.left {
+  align-items: flex-start;
+  text-align: left;
+}
+
+.sf-grid-col.center {
+  align-items: center;
+  text-align: center;
+}
+
+.sf-grid-col.right {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.sf-grid-col.left > *,
+.sf-grid-col.center > *,
+.sf-grid-col.right > * {
+  max-width: 100%;
+}
+
+/*
+ * Card particles default to width:100% of the column — that blocks align-items.
+ * Cap them to the auth card width so left/center/right can place the box.
+ */
+.sf-grid-col.left > .sf-login-particle,
+.sf-grid-col.center > .sf-login-particle,
+.sf-grid-col.right > .sf-login-particle {
+  width: min(100%, 26rem);
+}
+
+/*
+ * Menu nav is flex — also target .site-nav so links move (text-align alone will not).
+ * Menu root stays full column width so justify-content has room.
+ */
+.sf-grid-col.left > .sf-menu,
+.sf-grid-col.center > .sf-menu,
+.sf-grid-col.right > .sf-menu {
+  width: 100%;
+}
+
 .sf-grid-col.left > .sf-menu .site-nav,
 .sf-menu.left .site-nav {
   justify-content: flex-start;
@@ -4844,6 +4928,186 @@ button:disabled {
 .sf-grid-col.right > .sf-menu .site-nav,
 .sf-menu.right .site-nav {
   justify-content: flex-end;
+}
+
+/*
+ * Layouts CSS class presets (Block attributes dropdowns).
+ * Size scale: xs 0.25 / sm 0.5 / md 1 / lg 1.5 / xl 2.5 rem.
+ */
+.sf-grid-col.nomarginpad,
+.sf-layout-section.nomarginpad,
+.sf-grid-col.pad-none,
+.sf-layout-section.pad-none {
+  padding: 0;
+}
+.sf-grid-col.pad-xs,
+.sf-layout-section.pad-xs {
+  padding: 0.25rem;
+}
+.sf-grid-col.pad-sm,
+.sf-layout-section.pad-sm {
+  padding: 0.5rem;
+}
+.sf-grid-col.pad-md,
+.sf-layout-section.pad-md {
+  padding: 1rem;
+}
+.sf-grid-col.pad-lg,
+.sf-layout-section.pad-lg {
+  padding: 1.5rem;
+}
+.sf-grid-col.pad-xl,
+.sf-layout-section.pad-xl {
+  padding: 2.5rem;
+}
+
+.sf-grid-col.pad-y-sm,
+.sf-layout-section.pad-y-sm {
+  padding-block: 0.5rem;
+}
+.sf-grid-col.pad-y-md,
+.sf-layout-section.pad-y-md {
+  padding-block: 1rem;
+}
+.sf-grid-col.pad-y-lg,
+.sf-layout-section.pad-y-lg {
+  padding-block: 1.5rem;
+}
+.sf-grid-col.pad-y-xl,
+.sf-layout-section.pad-y-xl {
+  padding-block: 2.5rem;
+}
+
+.sf-grid-col.pad-x-sm,
+.sf-layout-section.pad-x-sm {
+  padding-inline: 0.5rem;
+}
+.sf-grid-col.pad-x-md,
+.sf-layout-section.pad-x-md {
+  padding-inline: 1rem;
+}
+.sf-grid-col.pad-x-lg,
+.sf-layout-section.pad-x-lg {
+  padding-inline: 1.5rem;
+}
+.sf-grid-col.pad-x-xl,
+.sf-layout-section.pad-x-xl {
+  padding-inline: 2.5rem;
+}
+
+.sf-grid-col.pad-top-sm,
+.sf-layout-section.pad-top-sm {
+  padding-top: 0.5rem;
+}
+.sf-grid-col.pad-top-md,
+.sf-layout-section.pad-top-md {
+  padding-top: 1rem;
+}
+.sf-grid-col.pad-top-lg,
+.sf-layout-section.pad-top-lg {
+  padding-top: 1.5rem;
+}
+.sf-grid-col.pad-top-xl,
+.sf-layout-section.pad-top-xl {
+  padding-top: 2.5rem;
+}
+
+.sf-grid-col.pad-bottom-sm,
+.sf-layout-section.pad-bottom-sm {
+  padding-bottom: 0.5rem;
+}
+.sf-grid-col.pad-bottom-md,
+.sf-layout-section.pad-bottom-md {
+  padding-bottom: 1rem;
+}
+.sf-grid-col.pad-bottom-lg,
+.sf-layout-section.pad-bottom-lg {
+  padding-bottom: 1.5rem;
+}
+.sf-grid-col.pad-bottom-xl,
+.sf-layout-section.pad-bottom-xl {
+  padding-bottom: 2.5rem;
+}
+
+.sf-grid-col.margin-none,
+.sf-layout-section.margin-none {
+  margin: 0;
+}
+.sf-grid-col.margin-xs,
+.sf-layout-section.margin-xs {
+  margin: 0.25rem;
+}
+.sf-grid-col.margin-sm,
+.sf-layout-section.margin-sm {
+  margin: 0.5rem;
+}
+.sf-grid-col.margin-md,
+.sf-layout-section.margin-md {
+  margin: 1rem;
+}
+.sf-grid-col.margin-lg,
+.sf-layout-section.margin-lg {
+  margin: 1.5rem;
+}
+.sf-grid-col.margin-xl,
+.sf-layout-section.margin-xl {
+  margin: 2.5rem;
+}
+
+.sf-grid-col.margin-y-sm,
+.sf-layout-section.margin-y-sm {
+  margin-block: 0.5rem;
+}
+.sf-grid-col.margin-y-md,
+.sf-layout-section.margin-y-md {
+  margin-block: 1rem;
+}
+.sf-grid-col.margin-y-lg,
+.sf-layout-section.margin-y-lg {
+  margin-block: 1.5rem;
+}
+.sf-grid-col.margin-y-xl,
+.sf-layout-section.margin-y-xl {
+  margin-block: 2.5rem;
+}
+
+.sf-grid-col.margin-top-sm,
+.sf-layout-section.margin-top-sm {
+  margin-top: 0.5rem;
+}
+.sf-grid-col.margin-top-md,
+.sf-layout-section.margin-top-md {
+  margin-top: 1rem;
+}
+.sf-grid-col.margin-top-lg,
+.sf-layout-section.margin-top-lg {
+  margin-top: 1.5rem;
+}
+.sf-grid-col.margin-top-xl,
+.sf-layout-section.margin-top-xl {
+  margin-top: 2.5rem;
+}
+
+.sf-grid-col.margin-bottom-sm,
+.sf-layout-section.margin-bottom-sm {
+  margin-bottom: 0.5rem;
+}
+.sf-grid-col.margin-bottom-md,
+.sf-layout-section.margin-bottom-md {
+  margin-bottom: 1rem;
+}
+.sf-grid-col.margin-bottom-lg,
+.sf-layout-section.margin-bottom-lg {
+  margin-bottom: 1.5rem;
+}
+.sf-grid-col.margin-bottom-xl,
+.sf-layout-section.margin-bottom-xl {
+  margin-bottom: 2.5rem;
+}
+
+.sf-grid-col.margin-x-auto,
+.sf-layout-section.margin-x-auto {
+  margin-inline: auto;
 }
 
 .sf-menu-empty {
@@ -6992,20 +7256,23 @@ button:disabled {
   position: absolute;
   right: 0;
   bottom: 0;
-  width: 1.1rem;
-  height: 1.1rem;
+  width: 1.25rem;
+  height: 1.25rem;
   margin: 0;
   padding: 0;
   border: 0;
   border-radius: 0 0 3px 0;
+  /* Three 45° grip lines (classic SE resize affordance). */
   background:
     linear-gradient(
       135deg,
-      transparent 0 46%,
-      color-mix(in srgb, var(--sf-secondary, #8ebad4) 55%, transparent) 46% 54%,
-      transparent 54% 68%,
-      color-mix(in srgb, var(--sf-secondary, #8ebad4) 70%, transparent) 68% 76%,
-      transparent 76%
+      transparent 0 38%,
+      color-mix(in srgb, var(--sf-secondary, #8ebad4) 75%, transparent) 38% 44%,
+      transparent 44% 52%,
+      color-mix(in srgb, var(--sf-secondary, #8ebad4) 85%, transparent) 52% 58%,
+      transparent 58% 66%,
+      color-mix(in srgb, var(--sf-secondary, #8ebad4) 95%, white) 66% 72%,
+      transparent 72%
     );
   cursor: nwse-resize;
   touch-action: none;
@@ -7018,11 +7285,13 @@ button:disabled {
   background:
     linear-gradient(
       135deg,
-      transparent 0 46%,
-      color-mix(in srgb, var(--sf-primary, #ef9550) 65%, transparent) 46% 54%,
-      transparent 54% 68%,
-      color-mix(in srgb, var(--sf-primary, #ef9550) 80%, transparent) 68% 76%,
-      transparent 76%
+      transparent 0 38%,
+      color-mix(in srgb, var(--sf-primary, #ef9550) 75%, transparent) 38% 44%,
+      transparent 44% 52%,
+      color-mix(in srgb, var(--sf-primary, #ef9550) 85%, transparent) 52% 58%,
+      transparent 58% 66%,
+      #ef9550 66% 72%,
+      transparent 72%
     );
   outline: none;
 }
@@ -7291,6 +7560,7 @@ button:disabled {
   border: 1px solid var(--sf-line);
   background: #fbfcfe;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .sf-code-field-panel-dark {
@@ -7313,18 +7583,80 @@ button:disabled {
   font-family: ui-monospace, 'Cascadia Code', 'Segoe UI Mono', Menlo, Consolas, monospace;
 }
 
-.sf-code-field-resize {
-  flex: 0 0 0.55rem;
-  cursor: ns-resize;
-  background:
-    linear-gradient(to bottom, transparent 35%, var(--sf-line) 35%, var(--sf-line) 45%, transparent 45%),
-    color-mix(in srgb, var(--sf-secondary) 12%, white);
-  border-top: 1px solid var(--sf-line);
+/*
+ * Code editor SE grip — classic 45° resize lines (3 strokes), high contrast
+ * on the dark CodeMirror panel so the drag affordance is obvious.
+ */
+.sf-code-field-panel > .sf-code-field-resize.gantry-settings-resize-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  min-width: 0;
+  min-height: 0;
+  width: 1.35rem;
+  height: 1.35rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0 0 3px 0;
+  box-shadow: none;
+  color: transparent;
+  background-color: transparent;
+  background-image: linear-gradient(
+    135deg,
+    transparent 0 38%,
+    rgba(255, 255, 255, 0.55) 38% 44%,
+    transparent 44% 52%,
+    rgba(255, 255, 255, 0.7) 52% 58%,
+    transparent 58% 66%,
+    rgba(255, 255, 255, 0.85) 66% 72%,
+    transparent 72%
+  );
 }
 
-.sf-code-field-resize:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--sf-primary-strong) 55%, white);
-  outline-offset: -2px;
+.sf-code-field-panel > .sf-code-field-resize.gantry-settings-resize-handle:hover,
+.sf-code-field-panel > .sf-code-field-resize.gantry-settings-resize-handle:focus-visible {
+  background-color: transparent;
+  background-image: linear-gradient(
+    135deg,
+    transparent 0 38%,
+    color-mix(in srgb, var(--sf-primary, #ef9550) 85%, white) 38% 44%,
+    transparent 44% 52%,
+    color-mix(in srgb, var(--sf-primary, #ef9550) 90%, white) 52% 58%,
+    transparent 58% 66%,
+    #ef9550 66% 72%,
+    transparent 72%
+  );
+}
+
+.gantry-particle-presets {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem 0.55rem;
+  margin: 0.35rem 0 0.55rem;
+}
+
+.gantry-particle-preset-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--sf-muted);
+}
+
+.gantry-particle-preset-field select {
+  width: 100%;
+  font: inherit;
+  font-weight: 500;
+  color: var(--sf-ink);
+}
+
+@media (max-width: 720px) {
+  .gantry-particle-presets {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 640px) {
@@ -7341,8 +7673,7 @@ button:disabled {
   }
 
   .sf-notice-bar-inner,
-  .sf-consent-banner-inner,
-  .site-footer-meta {
+  .sf-consent-banner-inner {
     padding-left: 1.15rem;
     padding-right: 1.15rem;
   }
@@ -7656,6 +7987,27 @@ button:disabled {
 .page-settings-asset-list--files > li {
   grid-template-columns: minmax(0, 1.4fr) auto auto;
   align-items: end;
+}
+
+.page-settings-asset-list--files > li.page-settings-asset-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  align-items: stretch;
+}
+
+.page-settings-asset-row-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) auto auto;
+  gap: 0.45rem;
+  align-items: end;
+}
+
+.page-settings-asset-row-inherit {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  min-height: 0;
 }
 
 .page-settings-asset-priority {
@@ -9805,6 +10157,17 @@ button.danger:hover,
   flex-wrap: wrap;
   gap: 0.45rem;
   align-items: center;
+}
+.sf-member-media-encode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.85rem;
+  margin: 0.35rem 0 0;
+}
+.sf-member-media-encode .settings-flag {
+  margin: 0;
+  white-space: nowrap;
 }
 .sf-member-media-file {
   position: absolute;

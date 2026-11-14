@@ -3,6 +3,10 @@ import type { PageChrome } from './types'
 /**
  * Page Settings fields that support Inherit/Copy from Base outline → child outline.
  * Omitted key on the outline chrome row = inherit from Base (`global`).
+ *
+ * `css` / `javascript`: whole-list omit still means inherit-all. The admin UI also
+ * supports per-entry `AssetRef.inherit` when the list is stored sparsely (mixed local
+ * + live-linked Base files).
  */
 export const PAGE_CHROME_INHERIT_KEYS = [
   'sectionsLayout',

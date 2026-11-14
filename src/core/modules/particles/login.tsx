@@ -55,8 +55,8 @@ export const loginModule: StarforgeModule = {
         }
       | undefined
     try {
-      const { getSiteChrome } = await import('@/core/site-chrome')
-      const chrome = await getSiteChrome()
+      const { getSiteChromeForProxy } = await import('@/core/site-chrome')
+      const chrome = await getSiteChromeForProxy()
       if (chrome.siteName.trim()) siteName = chrome.siteName.trim()
       authOptions = {
         forgotPassword: chrome.authForgotPasswordEnabled,

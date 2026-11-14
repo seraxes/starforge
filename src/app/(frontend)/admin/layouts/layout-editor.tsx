@@ -138,6 +138,8 @@ type Props = {
    * Not skin-gated — Base vs other outline only.
    */
   canInheritOutline?: boolean
+  /** Developer-admin may edit particle JS on Block attributes. */
+  isDeveloperAdmin?: boolean
 }
 
 const initialState: LayoutActionState = {}
@@ -174,6 +176,7 @@ function ParticleConfigTab({
   formDefinitions,
   formsModuleEnabled,
   primaryNavMenuId,
+  isDeveloperAdmin,
   onSlotPatched,
 }: {
   sectionId: string
@@ -183,6 +186,7 @@ function ParticleConfigTab({
   formDefinitions: FormDefinitionOption[]
   formsModuleEnabled: boolean
   primaryNavMenuId: string
+  isDeveloperAdmin?: boolean
   onSlotPatched?: (patch: Partial<LayoutSlot>) => void
 }) {
   const attrs = (
@@ -190,10 +194,14 @@ function ParticleConfigTab({
       sectionId={sectionId}
       rowId={rowId}
       slot={slot}
+      isDeveloperAdmin={isDeveloperAdmin}
+      showCodeEditors={slot.moduleId !== 'custom'}
       onAttrsSaved={(next) =>
         onSlotPatched?.({
           htmlId: next.htmlId,
           cssClass: next.cssClass,
+          particleCss: next.particleCss,
+          particleJs: next.particleJs,
         } as Partial<LayoutSlot>)
       }
     />
@@ -281,6 +289,7 @@ function ParticleBlock({
   formDefinitions,
   formsModuleEnabled,
   primaryNavMenuId,
+  isDeveloperAdmin,
   onSlotPatched,
   canInherit,
   particleInherited,
@@ -296,6 +305,7 @@ function ParticleBlock({
   formDefinitions: FormDefinitionOption[]
   formsModuleEnabled: boolean
   primaryNavMenuId: string
+  isDeveloperAdmin?: boolean
   onSlotPatched?: (patch: Partial<LayoutSlot>) => void
   canInherit: boolean
   particleInherited: boolean
@@ -420,6 +430,7 @@ function ParticleBlock({
                       formDefinitions={formDefinitions}
                       formsModuleEnabled={formsModuleEnabled}
                       primaryNavMenuId={primaryNavMenuId}
+                      isDeveloperAdmin={isDeveloperAdmin}
                       onSlotPatched={onSlotPatched}
                     />
                   ),
@@ -552,6 +563,7 @@ function SectionCanvas({
   formDefinitions,
   formsModuleEnabled,
   primaryNavMenuId,
+  isDeveloperAdmin,
   canRemoveSection,
   drag,
   onSectionRemoved,
@@ -566,6 +578,7 @@ function SectionCanvas({
   formDefinitions: FormDefinitionOption[]
   formsModuleEnabled: boolean
   primaryNavMenuId: string
+  isDeveloperAdmin?: boolean
   canRemoveSection: boolean
   drag: SectionDragBind
   onSectionRemoved: (sectionId: string) => void
@@ -1168,6 +1181,7 @@ function SectionCanvas({
               formDefinitions={formDefinitions}
               formsModuleEnabled={formsModuleEnabled}
               primaryNavMenuId={primaryNavMenuId}
+              isDeveloperAdmin={isDeveloperAdmin}
               onSlotPatched={(patch) => {
                 setSlotMap((prev) => ({
                   ...prev,
@@ -1176,6 +1190,8 @@ function SectionCanvas({
                     const next = { ...s, ...patch }
                     if ('htmlId' in patch && !patch.htmlId) delete next.htmlId
                     if ('cssClass' in patch && !patch.cssClass) delete next.cssClass
+                    if ('particleCss' in patch && !patch.particleCss) delete next.particleCss
+                    if ('particleJs' in patch && !patch.particleJs) delete next.particleJs
                     return next
                   }),
                 }))
@@ -1266,6 +1282,7 @@ export function LayoutEditor({
   layoutId,
   layoutLabel,
   canInheritOutline,
+  isDeveloperAdmin = false,
 }: Props) {
   const router = useRouter()
   const outlineId = layoutId
@@ -1533,6 +1550,7 @@ export function LayoutEditor({
                   formDefinitions={formDefinitions}
                   formsModuleEnabled={formsModuleEnabled}
                   primaryNavMenuId={primaryNavMenuId}
+                  isDeveloperAdmin={isDeveloperAdmin}
                   canRemoveSection={sectionList.length > 1}
                   drag={sectionDrag.bind(section.id)}
                   onSectionRemoved={(sectionId) => {

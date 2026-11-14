@@ -3,6 +3,7 @@ import Link from 'next/link'
 
 import { getMediaAnalysisPort } from '@/core/media/analysis'
 import { ensureLegacyCategoryRoots, listMediaCategoryTree } from '@/core/media/category-store'
+import { getMediaEncodePolicy } from '@/core/media/encode-policy'
 import {
   normalizeMediaPurposeFilter,
   parseMediaTagFilter,
@@ -53,7 +54,10 @@ export default async function MediaLibraryPage({ searchParams }: { searchParams:
   const analysisAdapters = getMediaAnalysisPort()
     .list()
     .map((a) => a.id)
-  const pipeline = await loadMediaPipelineRules()
+  const [pipeline, encodePolicy] = await Promise.all([
+    loadMediaPipelineRules(),
+    getMediaEncodePolicy(),
+  ])
   const maxEdge = Math.max(pipeline.rules.maxWidth, pipeline.rules.maxHeight)
   let docs: Awaited<ReturnType<typeof listMedia>>['docs'] = []
   let totalDocs = 0
@@ -127,6 +131,8 @@ export default async function MediaLibraryPage({ searchParams }: { searchParams:
         categoryTree={categoryTree}
         analysisAdapters={analysisAdapters}
         maxEdge={maxEdge}
+        canChooseDecode={encodePolicy.canChooseDecode}
+        canChooseResize={encodePolicy.canChooseResize}
       />
     </section>
   )

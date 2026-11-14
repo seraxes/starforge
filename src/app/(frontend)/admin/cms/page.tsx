@@ -19,7 +19,7 @@ export const metadata = {
 export default async function AdminCmsBridgePage() {
   const session = await requireAppAdmin()
   if (!session?.user?.id || !session.user.email) {
-    redirect('/login?next=/admin/cms')
+    redirect('/admin/login?next=/admin/cms')
   }
 
   const access = await loadCoreUserCmsAccess(session.user.id)
@@ -31,11 +31,11 @@ export default async function AdminCmsBridgePage() {
     <section className="admin-section">
       <h2>Payload CMS access</h2>
       <p className="lede admin-lede">
-        <strong>One login only.</strong> Sign in with Better Auth at <Link href="/login">/login</Link>.
-        If CMS access is on, open <Link href={PAYLOAD_ADMIN_BASE}>{PAYLOAD_ADMIN_BASE}</Link> — no
-        second email/password. Toggle CMS access per user under{' '}
-        <Link href="/admin/users">Users</Link>. Global admins get it by default; members stay in
-        core unless you turn CMS access on for them.
+        <strong>One account.</strong> Staff sign in at{' '}
+        <Link href="/admin/login">/admin/login</Link> (same Better Auth credentials as public{' '}
+        <Link href="/login">/login</Link>). If CMS access is on, open{' '}
+        <Link href={PAYLOAD_ADMIN_BASE}>{PAYLOAD_ADMIN_BASE}</Link> — no second email/password.
+        Toggle CMS access per user under <Link href="/admin/users">Users</Link>.
       </p>
 
       <dl className="cms-bridge-meta">

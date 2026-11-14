@@ -8,6 +8,7 @@
  */
 
 import { getAppSession } from '@/core/auth/session'
+import { resolvePostedMediaEncodeFlags } from '@/core/media/encode-policy'
 import { ingestImageUpload } from '@/core/media/ingest'
 import type { ResolvedMedia } from '@/core/media/resolve'
 import { getMediaStorageInfo } from '@/core/media/storage'
@@ -65,11 +66,14 @@ export async function uploadMemberMediaAction(
   const context = normalizeMemberMediaContext(formData.get('context'))
 
   try {
+    const { decodeToWebp, resize } = await resolvePostedMediaEncodeFlags(formData)
     const { id, media } = await ingestImageUpload({
       file,
       alt: String(formData.get('alt') ?? ''),
       folderRaw: 'general',
       purpose: 'photo',
+      decodeToWebp,
+      resize,
     })
     await recordMemberMedia({ userId: user.id, mediaId: id, context })
     return { ok: true, ...(media ? { media } : {}) }

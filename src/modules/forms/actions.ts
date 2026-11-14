@@ -1,7 +1,7 @@
 'use server'
 
 import { headers } from 'next/headers'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath } from '@/core/content/defer-revalidate'
 import { redirect } from 'next/navigation'
 
 import { requireAppAdmin } from '@/core/auth/admin'

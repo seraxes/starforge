@@ -7,18 +7,34 @@ import type { AccessViewer } from './types'
  * Safe to import from shared code; viewer is passed in by the caller.
  */
 
+/** Platform Better Auth role `admin` — not a Users → Groups row. */
+export const ROLE_ADMIN_ACCESS_TAG = 'role:admin' as const
+
 /** Normalize one access tag token. */
 export function normalizeAccessTag(raw: unknown): string | null {
   if (typeof raw !== 'string') return null
   const v = raw.trim()
   if (!v) return null
   if (v === 'public' || v === 'registered') return v
+  // Platform role (Better Auth), not a group id.
+  if (v === ROLE_ADMIN_ACCESS_TAG || v === 'admin' || v === 'role:admin') {
+    return ROLE_ADMIN_ACCESS_TAG
+  }
+  if (v.startsWith('role:')) {
+    const role = v.slice('role:'.length).trim().toLowerCase()
+    return role === 'admin' ? ROLE_ADMIN_ACCESS_TAG : null
+  }
   if (v.startsWith('group:')) {
     const id = v.slice('group:'.length).trim()
     return id ? `group:${id}` : null
   }
   if (/^[a-zA-Z0-9_-]+$/.test(v)) return `group:${v}`
   return null
+}
+
+/** True when a tag is enough for an Admin nav link (role or group). */
+export function isAdminNavRestrictTag(tag: string): boolean {
+  return tag === ROLE_ADMIN_ACCESS_TAG || tag.startsWith('group:')
 }
 
 /**
@@ -70,6 +86,7 @@ export function tagMatchesViewer(tag: string, viewer: AccessViewer): boolean {
   const raw = (tag || 'public').trim() || 'public'
   if (raw === 'public') return true
   if (raw === 'registered') return viewer.isRegistered
+  if (raw === ROLE_ADMIN_ACCESS_TAG) return viewer.isAppAdmin
   if (raw.startsWith('group:')) {
     const groupId = raw.slice('group:'.length).trim()
     if (!groupId) return true

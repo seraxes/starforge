@@ -77,6 +77,13 @@ function clampSize(size: Size): Size {
 export const SETTINGS_NESTED_OVERLAY_SELECTOR =
   '.sf-media-picker-modal, .sf-admin-confirm-backdrop, .sf-media-lightbox, .admin-toast-host'
 
+/**
+ * Nested CodeEditorField SE grips dispatch this on `.gantry-settings-panel`.
+ * Horizontal → widen the popup (all fields stretch with it).
+ * Vertical → grow the popup by the same delta as the dragged field only.
+ */
+export const SF_SETTINGS_PANEL_SET_SIZE = 'sf-settings-panel-set-size'
+
 type Options = {
   open: boolean
   preferredWidth: number
@@ -106,6 +113,7 @@ export function useFloatingSettingsPanel({
   const [dragging, setDragging] = useState(false)
   const [resizing, setResizing] = useState(false)
   const [sizeLocked, setSizeLocked] = useState(false)
+  const sizeLockedRef = useRef(false)
   const panelRef = useRef<HTMLDivElement>(null)
   const userMovedRef = useRef(false)
   const dragOffsetRef = useRef<{ x: number; y: number } | null>(null)
@@ -123,6 +131,7 @@ export function useFloatingSettingsPanel({
       resizeOriginRef.current = null
       setDragging(false)
       setResizing(false)
+      sizeLockedRef.current = false
       setSizeLocked(false)
       setSize({
         width: preferredWidth,
@@ -204,6 +213,7 @@ export function useFloatingSettingsPanel({
       const origin = resizeOriginRef.current
       if (!origin) return
       userMovedRef.current = true
+      sizeLockedRef.current = true
       setSizeLocked(true)
       const next = clampSize({
         width: origin.width + (event.clientX - origin.x),
@@ -226,6 +236,37 @@ export function useFloatingSettingsPanel({
       document.removeEventListener('pointercancel', onUp)
     }
   }, [resizing])
+
+  /** Size sync from nested editor SE grips (window grows both axes; fields own their height). */
+  useEffect(() => {
+    if (!open) return
+    const panel = panelRef.current
+    if (!panel) return
+
+    const onSetSize = (event: Event) => {
+      const detail = (event as CustomEvent<{ width?: number; height?: number }>).detail
+      const measured = panel.getBoundingClientRect()
+      const width =
+        typeof detail?.width === 'number' && Number.isFinite(detail.width)
+          ? detail.width
+          : measured.width
+      const height =
+        typeof detail?.height === 'number' && Number.isFinite(detail.height)
+          ? detail.height
+          : measured.height
+      userMovedRef.current = true
+      sizeLockedRef.current = true
+      setSizeLocked(true)
+      const next = clampSize({ width, height })
+      setSize(next)
+      setCoords((coordsPrev) => clampCoords(coordsPrev, next))
+    }
+
+    panel.addEventListener(SF_SETTINGS_PANEL_SET_SIZE, onSetSize as EventListener)
+    return () => {
+      panel.removeEventListener(SF_SETTINGS_PANEL_SET_SIZE, onSetSize as EventListener)
+    }
+  }, [open])
 
   const onDragHandlePointerDown = useCallback((event: React.PointerEvent<HTMLElement>) => {
     if (event.button !== 0) return
@@ -258,6 +299,7 @@ export function useFloatingSettingsPanel({
         height: next.height,
       }
       setSize(next)
+      sizeLockedRef.current = true
       setSizeLocked(true)
       setResizing(true)
       event.preventDefault()

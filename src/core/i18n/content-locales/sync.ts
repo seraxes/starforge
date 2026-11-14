@@ -64,8 +64,10 @@ export async function syncLayoutSlotLocalesToFiles(input: {
   const scalarFields: ContentLocaleField[] = ['title', 'html', 'text', 'welcomeNote']
   for (const field of scalarFields) {
     const key = buildLayoutSlotKey({ layoutId, slotId, field })
-    collectScalar(defaultLocale, key, config[field], byLocale)
+    // Map first, scalar last — the default-locale field is what the editor just saved.
+    // A stale *Locales[default] (hydrated from the previous language file) must not overwrite it.
     collectMapEntries(config[`${field}Locales`] as LocaleTextMap | undefined, () => key, byLocale)
+    collectScalar(defaultLocale, key, config[field], byLocale)
     delete config[`${field}Locales`]
   }
 
@@ -77,8 +79,8 @@ export async function syncLayoutSlotLocalesToFiles(input: {
       const itemId = typeof item.id === 'string' ? item.id : ''
       if (itemId) {
         const key = buildLayoutSlotKey({ layoutId, slotId, field: 'label', itemId })
-        collectScalar(defaultLocale, key, item.label, byLocale)
         collectMapEntries(item.labelLocales as LocaleTextMap | undefined, () => key, byLocale)
+        collectScalar(defaultLocale, key, item.label, byLocale)
       }
       delete item.labelLocales
       return item

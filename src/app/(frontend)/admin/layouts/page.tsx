@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { ensureDefaultUserGroupsSeeded, listUserGroupOptions } from '@/core/acl'
+import { requireAppAdmin, userIsDeveloperAdmin } from '@/core/auth/admin'
 import { DEFAULT_LAYOUT_ID } from '@/core/db'
 import {
   getLayoutDocumentForAdmin,
@@ -79,13 +80,15 @@ export default async function AdminLayoutsPage(props: { searchParams?: SearchPar
   if (formsModuleEnabled) {
     await ensureDefaultContactFormSeeded()
   }
-  const [modules, groups, navMenus, formDefinitions, contentLocales] = await Promise.all([
+  const [modules, groups, navMenus, formDefinitions, contentLocales, session] = await Promise.all([
     listModulesForLayoutAdmin(),
     listUserGroupOptions(),
     listNavMenus(),
     formsModuleEnabled ? listFormDefinitions() : Promise.resolve([]),
     getContentLocaleOptions(),
+    requireAppAdmin(),
   ])
+  const isDeveloperAdmin = userIsDeveloperAdmin(session?.user)
 
   const pageSettingsOn = isCatalogModuleEnabled(settings, MODULE_IDS.pageSettings)
 
@@ -133,6 +136,7 @@ export default async function AdminLayoutsPage(props: { searchParams?: SearchPar
           layoutId={layoutId}
           layoutLabel={outlineMeta.label}
           canInheritOutline={!isSkinBaseOutlineId(layoutId, activeSkin.preferredDefaultOutlineId)}
+          isDeveloperAdmin={isDeveloperAdmin}
         />
       </LayoutOutlineProvider>
     </section>

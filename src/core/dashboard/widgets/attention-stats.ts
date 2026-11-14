@@ -2,7 +2,7 @@ import 'server-only'
 
 import type { DashboardStatsResult } from '@/core/dashboard'
 import { userIsDeveloperAdmin } from '@/core/auth/developer-admin'
-import { getAppSession } from '@/core/auth/session'
+import { getAdminSession } from '@/core/auth/admin-session'
 import { validateStarforgeEnv } from '@/core/env/validate'
 
 import {
@@ -32,7 +32,7 @@ export async function loadAttentionRailStats(): Promise<DashboardStatsResult<Att
 
   let envWarnings: ReturnType<typeof visibleEnvWarnings> = null
   try {
-    const session = await getAppSession()
+    const session = await getAdminSession()
     const isDev = userIsDeveloperAdmin(session?.user)
     envWarnings = visibleEnvWarnings(isDev, validateStarforgeEnv().warnings)
   } catch (error) {

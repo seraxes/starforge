@@ -351,6 +351,14 @@ export const getSiteSettings = cache(async (): Promise<SiteSettingsData> => {
   )
 })
 
+/**
+ * Uncached site settings for offline / 503 paint.
+ * Avoids `unstable_cache` + `revalidateTag({ expire: 0 })` stalls on the lock path.
+ */
+export async function getSiteSettingsLive(): Promise<SiteSettingsData> {
+  return loadSiteSettingsUncached()
+}
+
 export async function getFeatureFlags(): Promise<FeatureFlags> {
   const settings = await getSiteSettings()
   return settings.features

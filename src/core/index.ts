@@ -93,10 +93,12 @@ export {
   ensureGlobalPageChromeSeeded,
   ensureAtomsRegistered,
   getResolvedPageChrome,
+  getResolvedPageChromeForOutline,
   HOME_PAGE_KEY,
   mergePageChrome,
   pageKeyFromPathname,
   resolvePageChrome,
+  resolvePageChromeForOutline,
 } from './page-settings'
 export type {
   PageChrome,
@@ -352,6 +354,7 @@ export {
   ensureDefaultUserGroupsSeeded,
   filterNavItemsForViewer,
   getAccessViewer,
+  getAdminAccessViewer,
   listUserGroupOptions,
   listUserGroups,
   normalizeAccessTags,

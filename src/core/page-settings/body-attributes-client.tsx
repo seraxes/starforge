@@ -74,7 +74,9 @@ function applyBodyScope(opts: {
  * Skin CSS engine: `body.sf-skin-*` → `body.sf-skin-*.sf-outline-*` (outline wins).
  *
  * Inline script stamps classes before paint on hard loads; useLayoutEffect syncs soft nav.
- * `type` flips to text/plain on the client so React 19 does not warn about inert `<script>`s
+ * Root `<body>` sets `suppressHydrationWarning` because that stamp changes class/id
+ * before React hydrates. `type` flips to text/plain on the client so React 19 does not
+ * warn about inert `<script>`s
  * (https://nextjs.org/docs/app/guides/preventing-flash-before-hydration).
  */
 export function BodyAttributesClientImpl({

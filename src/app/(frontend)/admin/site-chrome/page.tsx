@@ -8,7 +8,11 @@ import {
   DEFAULT_OFFLINE_LAYOUT_ID,
   getSiteChrome,
 } from '@/core/site-chrome'
-import { ensureSkinOutlineSeeds, getActiveSkin } from '@/core/skin'
+import {
+  ensureSkinOutlineSeeds,
+  filterOutlinesForSkin,
+  getActiveSkin,
+} from '@/core/skin'
 import { SiteChromeForm } from './site-chrome-form'
 
 export const dynamic = 'force-dynamic'
@@ -26,9 +30,9 @@ export default async function AdminSiteChromePage() {
     getContentLocaleOptions(),
   ])
   const chrome = await hydrateSiteChromeConsentLocales(chromeRaw)
-  // Ensure Pastel (or active skin) offline outline seed exists for the picker.
+  // Ensure active skin Offline / 404 seeds exist for the picker + public screens.
   await ensureSkinOutlineSeeds(activeSkin.id)
-  const outlines = await listLayoutOutlines()
+  const outlines = filterOutlinesForSkin(await listLayoutOutlines(), activeSkin.id)
   const outlineOptions =
     outlines.length > 0
       ? outlines.map((o) => ({ id: o.id, label: o.label }))

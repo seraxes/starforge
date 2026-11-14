@@ -53,9 +53,24 @@ export function SiteNav({ items, ariaLabel = 'Primary' }: Props) {
           )
         }
 
+        const bare = normalizeHref(item.href) || '/'
+        // Core `/admin` and Payload `/cms` sit outside `[locale]` — plain anchor.
+        if (bare === '/admin' || bare.startsWith('/admin/') || bare === '/cms' || bare.startsWith('/cms/')) {
+          return (
+            <a
+              key={key}
+              href={bare}
+              className={className}
+              aria-current={active ? 'page' : undefined}
+              data-sf-nav-href={bare}
+            >
+              {item.label}
+            </a>
+          )
+        }
+
         // Bare path for next-intl Link (auto-prefixes). `data-sf-nav-href` exposes
         // the locale-prefixed URL for tests / debugging via Core `navHref`.
-        const bare = normalizeHref(item.href) || '/'
         return (
           <Link
             key={key}

@@ -1,6 +1,6 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
+import { revalidatePath } from '@/core/content/defer-revalidate'
 import { getPayload } from 'payload'
 
 import config from '@payload-config'
@@ -8,6 +8,7 @@ import { requireAppAdmin } from '@/core/auth/admin'
 
 import { getMediaAnalysisPort } from './analysis'
 import type { MediaAnalysisResult } from './analysis/types'
+import { STARFORGE_PIPELINE_APPLIED } from './apply-pipeline'
 import type { MediaCategoryNode } from './categories'
 import {
   createMediaCategory,
@@ -17,6 +18,7 @@ import {
   renameMediaCategory,
   resolveFolderForCategory,
 } from './category-store'
+import { resolvePostedMediaEncodeFlags, getMediaEncodePolicy } from './encode-policy'
 import { ingestImageUpload } from './ingest'
 import {
   mediaSuggestionPatchIsEmpty,
@@ -25,8 +27,12 @@ import {
   type MediaSuggestionPatch,
 } from './library-query'
 import {
+  isMediaEncodeGroupMode,
+  normalizeMediaEncodeGroupMap,
   normalizeMediaPipelineRules,
   normalizeMediaPurpose,
+  type MediaEncodeGroupMode,
+  type MediaEncodePolicy,
   type MediaFolder,
   type MediaPipelineRules,
   type MediaPurpose,
@@ -169,6 +175,17 @@ export async function deleteMediaCategoryAction(
   return { ok: true, message: 'Folder deleted.' }
 }
 
+/** Current viewer’s decode / resize choice flags for upload UI. */
+export async function getMediaEncodePolicyAction(): Promise<
+  MediaEncodePolicy | { error: string }
+> {
+  try {
+    return await getMediaEncodePolicy()
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Could not load encode policy.' }
+  }
+}
+
 export async function uploadMediaAction(
   _prev: MediaActionState,
   formData: FormData,
@@ -185,6 +202,7 @@ export async function uploadMediaAction(
   }
 
   try {
+    const { decodeToWebp, resize } = await resolvePostedMediaEncodeFlags(formData)
     // Shared pipeline + Payload write — also used by member uploads (ingest.ts).
     const { media } = await ingestImageUpload({
       file,
@@ -193,6 +211,8 @@ export async function uploadMediaAction(
       folderRaw: String(formData.get('folder') ?? ''),
       purpose: String(formData.get('purpose') ?? 'photo'),
       tagRaw: String(formData.get('tag') ?? ''),
+      decodeToWebp,
+      resize,
     })
 
     revalidatePath('/admin/media')
@@ -204,6 +224,21 @@ export async function uploadMediaAction(
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Upload failed.' }
   }
+}
+
+function parseGroupModeFormMap(
+  formData: FormData,
+  prefix: string,
+): Record<string, MediaEncodeGroupMode> {
+  const out: Record<string, MediaEncodeGroupMode> = {}
+  for (const [key, value] of formData.entries()) {
+    if (!key.startsWith(prefix)) continue
+    const id = key.slice(prefix.length).trim()
+    if (!id) continue
+    const mode = String(value)
+    if (isMediaEncodeGroupMode(mode)) out[id] = mode
+  }
+  return normalizeMediaEncodeGroupMap(out)
 }
 
 export async function deleteMediaAction(
@@ -254,7 +289,7 @@ export async function bulkDeleteMediaAction(
       await payload.delete({ collection: 'media', id, overrideAccess: true })
       affected += 1
     }
-    revalidatePath('/admin/media')
+    // Client router.refresh() after ok — avoid folding a full library RSC into this action.
     return {
       ok: true,
       message: affected === 1 ? 'Deleted 1 item.' : `Deleted ${affected} items.`,
@@ -290,7 +325,6 @@ export async function bulkUpdateMediaAction(
 
   try {
     const payload = await getPayload({ config })
-    await ensureLegacyCategoryRoots()
 
     let categoryId: number | null = null
     let folder: MediaFolder | undefined
@@ -301,6 +335,7 @@ export async function bulkUpdateMediaAction(
       const n = Number(categoryRaw)
       if (!Number.isFinite(n)) return { error: 'Invalid folder.' }
       categoryId = n
+      // Folder options already come from the live category tree — no seed pass here.
       folder = await resolveFolderForCategory(String(categoryId))
     }
 
@@ -309,20 +344,19 @@ export async function bulkUpdateMediaAction(
 
     let affected = 0
     for (const id of ids) {
-      const existing = await payload.findByID({
-        collection: 'media',
-        id,
-        depth: 0,
-        overrideAccess: true,
-      })
-      if (!existing) continue
-
       const data: Record<string, unknown> = {}
       if (hasCategory) {
         data.category = categoryId
         if (folder) data.folder = folder
       }
       if (hasTag) {
+        const existing = await payload.findByID({
+          collection: 'media',
+          id,
+          depth: 0,
+          overrideAccess: true,
+        })
+        if (!existing) continue
         const currentTags = Array.isArray(existing.tags)
           ? existing.tags.map((t) =>
               typeof t === 'object' && t && 'id' in t ? Number(t.id) : Number(t),
@@ -332,16 +366,23 @@ export async function bulkUpdateMediaAction(
         data.tags = nextTags
       }
 
+      // Metadata-only: skip sharp pipeline and keep the returned doc tiny so the
+      // server action can finish without re-rendering a full Media upload cycle.
       await payload.update({
         collection: 'media',
         id,
         data,
+        depth: 0,
         overrideAccess: true,
+        context: { [STARFORGE_PIPELINE_APPLIED]: true },
+        select: { id: true, category: true, folder: true, tags: true },
       })
       affected += 1
     }
 
-    revalidatePath('/admin/media')
+    // Do not revalidatePath here — Next folds the refreshed RSC tree into the
+    // action response, which freezes the library UI until listMedia finishes.
+    // The client calls router.refresh() after ok instead.
     return {
       ok: true,
       message: affected === 1 ? 'Updated 1 item.' : `Updated ${affected} items.`,
@@ -502,6 +543,8 @@ export async function saveMediaPipelineSettingsAction(
     jpegQuality: formData.get('jpegQuality'),
     webpQuality: formData.get('webpQuality'),
     keepPngForLogos: formData.get('keepPngForLogos') === 'on',
+    decodeByGroup: parseGroupModeFormMap(formData, 'decodeByGroup:'),
+    resizeByGroup: parseGroupModeFormMap(formData, 'resizeByGroup:'),
     sizes: {
       thumbnail: formData.get('sizeThumbnail') ?? current.sizes.thumbnail,
       card: formData.get('sizeCard') ?? current.sizes.card,

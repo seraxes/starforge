@@ -40,7 +40,12 @@ async function loadMediaPipelineRulesUncached(): Promise<MediaSettingsLoadResult
     // table missing until db:core:push
   }
   return {
-    rules: { ...DEFAULT_MEDIA_PIPELINE_RULES, sizes: { ...DEFAULT_MEDIA_PIPELINE_RULES.sizes } },
+    rules: {
+      ...DEFAULT_MEDIA_PIPELINE_RULES,
+      decodeByGroup: {},
+      resizeByGroup: {},
+      sizes: { ...DEFAULT_MEDIA_PIPELINE_RULES.sizes },
+    },
     source: 'default',
     isFallback: true,
   }

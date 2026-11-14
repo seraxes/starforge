@@ -76,6 +76,16 @@ export type LayoutSlot = {
   htmlId?: string
   /** Optional public CSS classes on the particle column wrapper. */
   cssClass?: string
+  /**
+   * Optional CSS injected inside this particle’s public wrapper (every particle).
+   * Distinct from Custom particle `config.css` (content stylesheet).
+   */
+  particleCss?: string
+  /**
+   * Optional JS for this particle wrapper. Editable by developer-admins;
+   * execution uses the same injector path as Page Settings assets.
+   */
+  particleJs?: string
   config?: LayoutSlotConfig
   /**
    * Particle inherit vs local vs parent outline slot (same id, or `inheritFromSlotId`).
@@ -140,7 +150,7 @@ export type LayoutSection = {
 /**
  * Canonical layout document (version 3).
  * Storage: JSON in `sf_layouts`. Seed / fallback: `default-layout.json`.
- * `styles.breakpoints` are outline-scoped (default outline = site global).
+ * `styles.breakpoints` and `styles.body` (page background) are outline-scoped.
  *
  * Inheritance (skin Default shell → children):
  * - `inheritFrom` — parent outline id; merged on public load (and admin preview)
@@ -156,7 +166,7 @@ export type LayoutDocument = {
   /** Section ids from the parent to exclude after inherit. */
   omitSectionIds?: string[]
   sections: LayoutSection[]
-  /** Outline-scoped styles (breakpoints now; accents later with theme SF-33). */
+  /** Outline-scoped styles: breakpoints and page (body) background. */
   styles?: LayoutDocumentStyles
 }
 

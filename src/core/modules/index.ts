@@ -27,6 +27,8 @@ export {
   setSlotInheritModeAction,
   setSlotWidthAction,
   toggleSlotAction,
+  copyLayoutBodyBackgroundFromParentAction,
+  updateLayoutBodyBackgroundAction,
   updateLayoutBreakpointsAction,
   updateLayoutSectionMetaAction,
   updateSlotAttributesAction,
@@ -46,6 +48,19 @@ export {
   serializeLayoutDocument,
   slugifyLayoutId,
 } from './document'
+export {
+  LAYOUT_CSS_PRESET_GROUPS,
+  applyPresetToCssClass,
+  customCssClassTokens,
+  mergeCssClassFromParts,
+  readPresetFromCssClass,
+  splitCssClassTokens,
+} from './layout-css-presets'
+export type {
+  LayoutCssPresetGroup,
+  LayoutCssPresetGroupId,
+  LayoutCssPresetOption,
+} from './layout-css-presets'
 export {
   appendEmptyLayoutRow,
   ensureDocumentEmptyRows,
@@ -138,9 +153,13 @@ export {
   DEFAULT_LAYOUT_BREAKPOINTS,
   asBackgroundOverlay,
   asContainerMode,
+  bodyBackgroundFit,
+  buildOutlineBodyBackgroundCss,
   buildOutlineBreakpointCss,
   buildSectionInlineStyle,
   cssColorToColorInputValue,
+  layoutBodyBackgroundFromFit,
+  normalizeLayoutBodyBackground,
   normalizeLayoutBreakpoints,
   normalizeLayoutOutlineStyles,
   normalizeLayoutSectionStyles,
@@ -155,6 +174,8 @@ export {
 } from './styles'
 export type { CssColorParseResult } from './styles'
 export type {
+  LayoutBodyBackground,
+  LayoutBodyBackgroundFit,
   LayoutBreakpoints,
   LayoutContainerMode,
   LayoutDocumentStyles,

@@ -1,9 +1,14 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
+import { revalidatePath } from '@/core/content/defer-revalidate'
 import { redirect } from 'next/navigation'
 
-import { requireAdminArea, type AclAdminResourceKey } from '@/core/acl'
+import {
+  isAdminNavRestrictTag,
+  normalizeAccessTags,
+  requireAdminArea,
+  type AclAdminResourceKey,
+} from '@/core/acl'
 import { invalidateNavMenu } from '@/core/content/revalidate'
 import { DEFAULT_NAV_MENU_ID } from '@/core/db'
 import { normalizeLocaleTextMap } from '@/core/i18n/locale-text'
@@ -220,7 +225,15 @@ function parseItemsFromForm(formData: FormData): NavMenuItem[] {
 
     const rawType = (linkTypes[i] ?? 'page').trim()
     const linkType =
-      rawType === 'module' ? 'module' : rawType === 'url' || rawType === 'custom' ? 'url' : 'page'
+      rawType === 'admin'
+        ? 'admin'
+        : rawType === 'module'
+          ? 'module'
+          : rawType === 'url' || rawType === 'custom'
+            ? 'url'
+            : 'page'
+
+    const tags = normalizeAccessTags({ accessTags })
 
     const normalized = normalizeNavMenuItem(
       {
@@ -238,8 +251,8 @@ function parseItemsFromForm(formData: FormData): NavMenuItem[] {
         pageHeading: pageHeadings[i] || null,
         pageHeadings: localeMapFromField(pageHeadingsJson[i] ?? ''),
         labels: localeMapFromField(labelsJson[i] ?? ''),
-        layoutId: (layoutIds[i] ?? '').trim() || null,
-        accessTags,
+        layoutId: linkType === 'admin' ? null : (layoutIds[i] ?? '').trim() || null,
+        accessTags: tags,
         sortOrder: i,
       },
       i,
@@ -247,7 +260,12 @@ function parseItemsFromForm(formData: FormData): NavMenuItem[] {
     if (normalized) items.push(normalized)
   }
 
-  return normalizeNavMenuDocument({ version: 1, items }).items
+  // Last write wins when the Add form re-injected the same rows (failed submit).
+  const byId = new Map<string, NavMenuItem>()
+  for (const item of items) {
+    byId.set(item.id, item)
+  }
+  return normalizeNavMenuDocument({ version: 1, items: [...byId.values()] }).items
 }
 
 async function syncOutlinesAfterSave(items: NavMenuItem[]): Promise<void> {
@@ -274,6 +292,17 @@ export async function saveNavMenuItemsAction(
   if (!menuId) return { error: 'Menu id is required.' }
 
   const items = parseItemsFromForm(formData)
+  const badAdmin = items.find(
+    (item) =>
+      item.linkType === 'admin' &&
+      !normalizeAccessTags({ accessTags: item.accessTags }).some(isAdminNavRestrictTag),
+  )
+  if (badAdmin) {
+    return {
+      error: `“${badAdmin.label}” is an Admin link — pick Admin role and/or at least one group under Who can see.`,
+      menuId,
+    }
+  }
   const result = await replaceNavMenuItems(menuId, items)
   if ('error' in result) return { error: result.error }
 
@@ -340,13 +369,40 @@ export async function addNavMenuItemAction(
   const label = String(formData.get('newLabel') ?? '').trim() || 'New item'
   const rawType = String(formData.get('newLinkType') ?? 'page').trim()
   const linkType =
-    rawType === 'module' ? 'module' : rawType === 'url' || rawType === 'custom' ? 'url' : 'page'
+    rawType === 'admin'
+      ? 'admin'
+      : rawType === 'module'
+        ? 'module'
+        : rawType === 'url' || rawType === 'custom'
+          ? 'url'
+          : 'page'
   const pageIdRaw = String(formData.get('newPageId') ?? '').trim()
   const url = String(formData.get('newUrl') ?? '').trim() || '/'
   const moduleId = String(formData.get('newModuleId') ?? '').trim()
   const moduleViewKey = String(formData.get('newModuleViewKey') ?? '').trim()
   const layoutIdRaw = String(formData.get('newLayoutId') ?? '').trim()
   const preferredLayoutId = await getPreferredLayoutId()
+
+  let accessTags: string[] = ['public']
+  if (linkType === 'admin') {
+    const rawTags = String(formData.get('newAccessTags') ?? '').trim()
+    let parsed: unknown = []
+    if (rawTags) {
+      try {
+        parsed = JSON.parse(rawTags) as unknown
+      } catch {
+        parsed = rawTags.split(/[,|]/).map((t) => t.trim()).filter(Boolean)
+      }
+    }
+    accessTags = normalizeAccessTags({ accessTags: parsed })
+    if (!accessTags.some(isAdminNavRestrictTag)) {
+      return {
+        error:
+          'Admin links need Admin role and/or at least one group under Who can see (not Public or Registered alone).',
+        menuId,
+      }
+    }
+  }
 
   items.push(
     createNavMenuItem(
@@ -357,8 +413,8 @@ export async function addNavMenuItemAction(
         url: linkType === 'url' ? url : null,
         moduleId: linkType === 'module' ? moduleId || null : null,
         moduleViewKey: linkType === 'module' ? moduleViewKey || null : null,
-        layoutId: layoutIdRaw || preferredLayoutId,
-        accessTags: ['public'],
+        layoutId: linkType === 'admin' ? null : layoutIdRaw || preferredLayoutId,
+        accessTags,
       },
       items.length,
     ),

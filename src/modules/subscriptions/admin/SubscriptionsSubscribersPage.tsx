@@ -1,7 +1,7 @@
 import React from 'react'
 import { redirect } from 'next/navigation'
 
-import { getAccessViewer } from '@/core/acl/access'
+import { getAdminAccessViewer } from '@/core/acl/access'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { getPersonas } from '@/modules/profiles/api.server'
 
@@ -31,7 +31,7 @@ export default async function SubscriptionsSubscribersPage() {
   const [periods, plans, viewer] = await Promise.all([
     listPeriods({ limit: 400 }),
     listPlans(),
-    getAccessViewer(),
+    getAdminAccessViewer(),
   ])
 
   let people: Record<string, SubscriberPerson> = {}

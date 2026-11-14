@@ -27,6 +27,10 @@ export type IngestImageInput = {
   purpose?: string
   /** Shared Tags id. */
   tagRaw?: string
+  /** Convert photo originals to WebP (default true). Callers must clamp via encode policy. */
+  decodeToWebp?: boolean
+  /** Cap longest edge (default true). Callers must clamp via encode policy. */
+  resize?: boolean
 }
 
 export type IngestImageResult = {
@@ -83,6 +87,8 @@ export async function ingestImageUpload(
     mimeType: file.type,
     purpose,
     rules,
+    decodeToWebp: input.decodeToWebp !== false,
+    resize: input.resize !== false,
   })
   let name = file.name || `upload-${Date.now()}.jpg`
   if (processed.extHint) {

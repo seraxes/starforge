@@ -100,6 +100,14 @@ function normalizeSlot(entry: LayoutSlot | null | undefined, index: number): Lay
   const name = sanitizeDisplayName(entry.name)
   const htmlId = sanitizeHtmlId(entry.htmlId)
   const cssClass = sanitizeCssClassList(entry.cssClass)
+  const particleCss =
+    typeof entry.particleCss === 'string' && entry.particleCss.trim()
+      ? entry.particleCss
+      : undefined
+  const particleJs =
+    typeof entry.particleJs === 'string' && entry.particleJs.trim()
+      ? entry.particleJs
+      : undefined
   const accessTags = accessTagsForStorage({
     accessTags: entry.accessTags,
     accessLevel: entry.accessLevel,
@@ -120,6 +128,8 @@ function normalizeSlot(entry: LayoutSlot | null | undefined, index: number): Lay
     ...(accessTags ? { accessTags } : {}),
     ...(htmlId ? { htmlId } : {}),
     ...(cssClass ? { cssClass } : {}),
+    ...(particleCss ? { particleCss } : {}),
+    ...(particleJs ? { particleJs } : {}),
     ...(config ? { config } : {}),
     ...(inheritMode ? { inheritMode } : {}),
     ...(inheritFromSlotId ? { inheritFromSlotId } : {}),

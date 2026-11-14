@@ -395,7 +395,25 @@ export async function migrateLegacyPrimaryNavToMain(legacyRows: unknown): Promis
           ? 'page'
           : row.linkType === 'module'
             ? 'module'
-            : null
+            : row.linkType === 'admin'
+              ? 'admin'
+              : null
+
+    if (linkType === 'admin') {
+      items.push(
+        createNavMenuItem(
+          {
+            label,
+            linkType: 'admin',
+            cssClass,
+            browserTitle,
+            accessTags: ['public'],
+          },
+          order++,
+        ),
+      )
+      continue
+    }
 
     if (linkType === 'page' || (!linkType && pageId != null)) {
       if (pageId == null) continue
@@ -570,7 +588,11 @@ export async function seedMainNavFromPages(
   if (!loaded.isFallback && loaded.document.items.length > 0) {
     // Already customized — leave alone
     const hasOnlyPageOrEmpty = loaded.document.items.every(
-      (item) => item.linkType === 'page' || item.linkType === 'url' || item.linkType === 'module',
+      (item) =>
+        item.linkType === 'page' ||
+        item.linkType === 'url' ||
+        item.linkType === 'module' ||
+        item.linkType === 'admin',
     )
     if (hasOnlyPageOrEmpty && loaded.document.items.some((i) => i.linkType === 'page')) {
       return { updated: false, itemCount: loaded.document.items.length }

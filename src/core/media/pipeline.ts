@@ -1,9 +1,18 @@
 /**
  * Starforge media pipeline defaults (SF-28 / SF-117 / SF-148).
  * Applied around Payload Media upload — one library for all features.
- * Image engine = sharp only; video = ffmpeg later (not here).
+ * Image engine = sharp (libvips) only — no GD / Imagick / Jimp.
  * Editable under Core admin → Media → Settings (`sf_media_settings`).
  */
+
+/** Per-group upload encode mode — missing group id means force (automated). */
+export type MediaEncodeGroupMode = 'force' | 'choose'
+
+/** Viewer-facing encode choice after resolving group maps + app-admin bypass. */
+export type MediaEncodePolicy = {
+  canChooseDecode: boolean
+  canChooseResize: boolean
+}
 
 /** Typed image rules — Core Media Settings; code defaults when unset. */
 export type MediaPipelineRules = {
@@ -16,8 +25,18 @@ export type MediaPipelineRules = {
   webpQuality: number
   /** Photo / other originals: always WebP (default). */
   photoOriginalFormat: 'webp'
-  /** PNG mime always kept; purpose=logo also skips forced WebP. */
+  /** When purpose=logo, keep PNG originals (resize only) and skip forced WebP for JPEG. */
   keepPngForLogos: boolean
+  /**
+   * Per user-group decode policy (`force` = always WebP for photos; `choose` = upload toggle).
+   * Missing id → force. App admins always choose.
+   */
+  decodeByGroup: Record<string, MediaEncodeGroupMode>
+  /**
+   * Per user-group resize policy (`force` = always max W×H; `choose` = upload toggle).
+   * Missing id → force. App admins always choose.
+   */
+  resizeByGroup: Record<string, MediaEncodeGroupMode>
   sizes: {
     thumbnail: number
     card: number
@@ -32,6 +51,8 @@ export const DEFAULT_MEDIA_PIPELINE_RULES: MediaPipelineRules = {
   webpQuality: 80,
   photoOriginalFormat: 'webp',
   keepPngForLogos: true,
+  decodeByGroup: {},
+  resizeByGroup: {},
   sizes: {
     thumbnail: 320,
     card: 768,
@@ -51,11 +72,66 @@ function clampInt(raw: unknown, min: number, max: number, fallback: number): num
   return Math.min(max, Math.max(min, Math.round(n)))
 }
 
+export function isMediaEncodeGroupMode(raw: unknown): raw is MediaEncodeGroupMode {
+  return raw === 'force' || raw === 'choose'
+}
+
+/** Normalize a group-id → force|choose map (invalid keys/values dropped). */
+export function normalizeMediaEncodeGroupMap(raw: unknown): Record<string, MediaEncodeGroupMode> {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
+  const out: Record<string, MediaEncodeGroupMode> = {}
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    const id = key.trim()
+    if (!id || !isMediaEncodeGroupMode(value)) continue
+    out[id] = value
+  }
+  return out
+}
+
+/**
+ * Resolve whether the viewer may turn off decode / resize on upload.
+ * App admin → always choose. Else any listed group with `choose` wins. Else force.
+ */
+export function resolveMediaEncodePolicy(
+  viewer: { isAppAdmin: boolean; groupIds: string[] },
+  rules: Pick<MediaPipelineRules, 'decodeByGroup' | 'resizeByGroup'>,
+): MediaEncodePolicy {
+  if (viewer.isAppAdmin) {
+    return { canChooseDecode: true, canChooseResize: true }
+  }
+  let canChooseDecode = false
+  let canChooseResize = false
+  for (const gid of viewer.groupIds) {
+    if (rules.decodeByGroup[gid] === 'choose') canChooseDecode = true
+    if (rules.resizeByGroup[gid] === 'choose') canChooseResize = true
+  }
+  return { canChooseDecode, canChooseResize }
+}
+
+/**
+ * Clamp client-posted encode flags against policy.
+ * Forced viewers always get true; choosers keep the posted boolean (default on when absent only if forced).
+ */
+export function clampMediaEncodeFlags(
+  policy: MediaEncodePolicy,
+  posted: { decodeToWebp?: boolean | null; resize?: boolean | null },
+): { decodeToWebp: boolean; resize: boolean } {
+  return {
+    decodeToWebp: policy.canChooseDecode ? Boolean(posted.decodeToWebp) : true,
+    resize: policy.canChooseResize ? Boolean(posted.resize) : true,
+  }
+}
+
 /** Merge/clamp partial rules onto defaults (safe for DB JSON + form posts). */
 export function normalizeMediaPipelineRules(raw: unknown): MediaPipelineRules {
   const base = DEFAULT_MEDIA_PIPELINE_RULES
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
-    return { ...base, sizes: { ...base.sizes } }
+    return {
+      ...base,
+      decodeByGroup: {},
+      resizeByGroup: {},
+      sizes: { ...base.sizes },
+    }
   }
   const row = raw as Record<string, unknown>
   const sizesRaw =
@@ -94,6 +170,8 @@ export function normalizeMediaPipelineRules(raw: unknown): MediaPipelineRules {
         : row.keepPngForLogos === 'off' || row.keepPngForLogos === '0' || row.keepPngForLogos === 0
           ? false
           : base.keepPngForLogos,
+    decodeByGroup: normalizeMediaEncodeGroupMap(row.decodeByGroup),
+    resizeByGroup: normalizeMediaEncodeGroupMap(row.resizeByGroup),
     sizes: {
       thumbnail: clampInt(
         sizesRaw.thumbnail,

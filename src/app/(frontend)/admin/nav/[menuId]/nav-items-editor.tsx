@@ -56,7 +56,7 @@ type EditableItem = {
   pageHeadings: Record<string, string>
   /** Layout outline id — synced to Page Settings on save. */
   layoutId: string
-  /** Multi-select tags: public | registered | group:<id> (OR match). */
+  /** Multi-select tags: public | registered | role:admin | group:<id> (OR match). */
   accessTags: string[]
 }
 
@@ -84,7 +84,13 @@ function toEditable(item: NavMenuItem, defaultCode: string): EditableItem {
         : ['public']
 
   const linkType: NavLinkType =
-    item.linkType === 'module' ? 'module' : item.linkType === 'url' ? 'url' : 'page'
+    item.linkType === 'admin'
+      ? 'admin'
+      : item.linkType === 'module'
+        ? 'module'
+        : item.linkType === 'url'
+          ? 'url'
+          : 'page'
 
   const labels = { ...(item.labels ?? {}) }
   if (defaultCode && item.label.trim() && !labels[defaultCode]) {
@@ -143,13 +149,24 @@ function Feedback({ state }: { state: NavActionState }) {
   return null
 }
 
+/** Hidden fields injected so Add/Paste can persist unsaved cog edits. */
+const INJECTED_ITEM_FIELD = 'data-sf-nav-item-field'
+
+function clearInjectedItemFields(form: HTMLFormElement) {
+  form.querySelectorAll(`[${INJECTED_ITEM_FIELD}]`).forEach((el) => el.remove())
+}
+
 function appendItemFields(form: HTMLFormElement, rows: EditableItem[]) {
+  // Drop prior injects first — a failed Admin add (missing group) leaves the
+  // form mounted; a second submit would otherwise double every itemId.
+  clearInjectedItemFields(form)
   for (const row of rows) {
     const add = (name: string, value: string) => {
       const input = document.createElement('input')
       input.type = 'hidden'
       input.name = name
       input.value = value
+      input.setAttribute(INJECTED_ITEM_FIELD, '1')
       form.appendChild(input)
     }
     add('itemId', row.id)
@@ -176,6 +193,7 @@ function summarizeLink(
   pages: NavPageOption[],
   modules: NavModuleOption[],
 ): string {
+  if (row.linkType === 'admin') return '/admin'
   if (row.linkType === 'page') {
     const page = pages.find((p) => String(p.id) === row.pageId)
     return page ? `/${page.slug}` : 'CMS page'
@@ -336,6 +354,13 @@ function SortableNavItem({
                   patch.moduleId = modules[0].moduleId
                   patch.moduleViewKey = modules[0].views[0]?.key ?? ''
                 }
+                if (next === 'admin') {
+                  patch.layoutId = ''
+                  patch.pageId = ''
+                  patch.url = ''
+                  patch.moduleId = ''
+                  patch.moduleViewKey = ''
+                }
                 onPatch(patch)
                 queueMicrotask(saveNow)
               }}
@@ -343,8 +368,15 @@ function SortableNavItem({
               <option value="page">CMS page</option>
               <option value="url">URL</option>
               <option value="module">Module view</option>
+              <option value="admin">Admin</option>
             </select>
           </label>
+          {row.linkType === 'admin' ? (
+            <p className="settings-hint">
+              Links to <code>/admin</code> without a locale prefix. Pick Admin role and/or a group
+              under Who can see.
+            </p>
+          ) : null}
           {row.linkType === 'page' ? (
             <label className="settings-field">
               <span>Page</span>
@@ -448,36 +480,40 @@ function SortableNavItem({
                 ))}
             </select>
           </label>
-          <label className="settings-field">
-            <span>Layout outline</span>
-            <select
-              value={row.layoutId}
-              onChange={(e) => {
-                onPatch({ layoutId: e.target.value })
-                queueMicrotask(saveNow)
-              }}
-            >
-              <option value="">Site default (no page override)</option>
-              {outlines.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.label} ({o.id})
-                </option>
-              ))}
-            </select>
-          </label>
-          <p className="settings-hint">
-            Same assignment as Layouts →{' '}
-            <Link
-              href={
-                row.layoutId
-                  ? `/admin/assigned-menu?outline=${encodeURIComponent(row.layoutId)}`
-                  : '/admin/assigned-menu'
-              }
-            >
-              Assigned Menu
-            </Link>
-            .
-          </p>
+          {row.linkType !== 'admin' ? (
+            <>
+              <label className="settings-field">
+                <span>Layout outline</span>
+                <select
+                  value={row.layoutId}
+                  onChange={(e) => {
+                    onPatch({ layoutId: e.target.value })
+                    queueMicrotask(saveNow)
+                  }}
+                >
+                  <option value="">Site default (no page override)</option>
+                  {outlines.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.label} ({o.id})
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <p className="settings-hint">
+                Same assignment as Layouts →{' '}
+                <Link
+                  href={
+                    row.layoutId
+                      ? `/admin/assigned-menu?outline=${encodeURIComponent(row.layoutId)}`
+                      : '/admin/assigned-menu'
+                  }
+                >
+                  Assigned Menu
+                </Link>
+                .
+              </p>
+            </>
+          ) : null}
           <label className="settings-field">
             <span>CSS class</span>
             <input
@@ -518,6 +554,7 @@ function SortableNavItem({
           <AccessTagsField
             value={row.accessTags}
             groups={groups}
+            allowEmpty={row.linkType === 'admin'}
             onChange={(accessTags) => {
               onPatch({ accessTags })
               queueMicrotask(saveNow)
@@ -551,6 +588,7 @@ export function NavItemsEditor({
   const [newLinkType, setNewLinkType] = useState<NavLinkType>('page')
   const [newModuleId, setNewModuleId] = useState(modules[0]?.moduleId ?? '')
   const [newLayoutId, setNewLayoutId] = useState(preferredLayoutId)
+  const [newAccessTags, setNewAccessTags] = useState<string[]>([])
 
   const [saveState, saveAction, savePending] = useActionState(saveNavMenuItemsAction, initial)
   const [addState, addAction, addPending] = useActionState(addNavMenuItemAction, initial)
@@ -569,15 +607,15 @@ export function NavItemsEditor({
   useEffect(() => {
     if (menuIdRef.current !== menuId) {
       menuIdRef.current = menuId
-      setRows(items.map(toEditable))
+      setRows(items.map((item) => toEditable(item, defaultCode)))
       setExpandedId(items[0]?.id ?? null)
       return
     }
     setRows((prev) => {
       if (sameIdSet(prev, items)) return prev
-      return items.map(toEditable)
+      return items.map((item) => toEditable(item, defaultCode))
     })
-  }, [menuId, items])
+  }, [menuId, items, defaultCode])
 
   // Add/paste create server-side ids — refresh once so membership soft-sync can pick them up.
   const pasteOkRef = useRef(false)
@@ -767,8 +805,14 @@ export function NavItemsEditor({
               <option value="page">CMS page</option>
               <option value="url">URL</option>
               <option value="module">Module view</option>
+              <option value="admin">Admin</option>
             </select>
           </label>
+          {newLinkType === 'admin' ? (
+            <p className="settings-hint">
+              Links to <code>/admin</code> without a locale prefix. Pick Admin role and/or a group below.
+            </p>
+          ) : null}
           {newLinkType === 'page' ? (
             <label className="settings-field">
               <span>Page</span>
@@ -822,20 +866,32 @@ export function NavItemsEditor({
               </label>
             </>
           ) : null}
-          <label className="settings-field">
-            <span>Layout outline</span>
-            <select
-              name="newLayoutId"
-              value={newLayoutId}
-              onChange={(e) => setNewLayoutId(e.target.value)}
-            >
-              {outlines.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.label} ({o.id})
-                </option>
-              ))}
-            </select>
-          </label>
+          {newLinkType !== 'admin' ? (
+            <label className="settings-field">
+              <span>Layout outline</span>
+              <select
+                name="newLayoutId"
+                value={newLayoutId}
+                onChange={(e) => setNewLayoutId(e.target.value)}
+              >
+                {outlines.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.label} ({o.id})
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <>
+              <AccessTagsField
+                value={newAccessTags}
+                groups={groups}
+                onChange={setNewAccessTags}
+                allowEmpty
+              />
+              <input type="hidden" name="newAccessTags" value={JSON.stringify(newAccessTags)} />
+            </>
+          )}
           <button
             type="submit"
             className="gantry-toolbar-btn gantry-toolbar-btn-save"

@@ -8,6 +8,7 @@ import { RootPage, generatePageMetadata } from '@payloadcms/next/views'
 import { importMap } from '../importMap'
 
 import { PAYLOAD_ADMIN_BASE } from '@/core/admin-paths'
+import { getAdminSession } from '@/core/auth/admin-session'
 import { getAppSession } from '@/core/auth/session'
 import { loadCoreUserCmsAccess } from '@/core/cms-bridge'
 import { PAYLOAD_TOKEN_COOKIE } from '@/core/cms-bridge/payload-session'
@@ -32,8 +33,14 @@ const Page = async ({ params, searchParams }: Args) => {
     redirect(`/api/cms/exchange?next=${PAYLOAD_ADMIN_BASE}`)
   }
 
-  const session = await getAppSession()
+  let session = await getAdminSession()
   if (!session?.user?.id) {
+    const publicSession = await getAppSession()
+    if (publicSession?.user?.id) {
+      redirect(
+        `/api/auth/admin-session?next=${encodeURIComponent(`/api/cms/exchange?next=${PAYLOAD_ADMIN_BASE}`)}`,
+      )
+    }
     redirect(`/login?next=${PAYLOAD_ADMIN_BASE}`)
   }
 

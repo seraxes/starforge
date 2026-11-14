@@ -1,7 +1,9 @@
 'use client'
 
-import React, { useCallback, useRef, useState, useTransition } from 'react'
+import React, { useCallback, useEffect, useId, useRef, useState, useTransition } from 'react'
 
+import { getMediaEncodePolicyAction } from '@/core/media/actions'
+import type { MediaEncodePolicy } from '@/core/media/pipeline'
 import type { ResolvedMedia } from '@/core/media/resolve'
 
 import {
@@ -36,6 +38,9 @@ export type MemberMediaPickerProps = {
   chrome?: 'public' | 'admin'
   /** Max MB shown in the hint copy (server enforces the real limit). */
   maxMb?: number
+  /** Override encode policy (otherwise loaded from Media settings for the viewer). */
+  canChooseDecode?: boolean
+  canChooseResize?: boolean
 }
 
 function btnClass(chrome: 'public' | 'admin', variant: 'primary' | 'ghost'): string {
@@ -64,19 +69,45 @@ export function MemberMediaPicker({
   shape = 'square',
   chrome = 'public',
   maxMb = 5,
+  canChooseDecode: canChooseDecodeProp,
+  canChooseResize: canChooseResizeProp,
 }: MemberMediaPickerProps) {
   const fileRef = useRef<HTMLInputElement>(null)
+  const decodeId = useId()
+  const resizeId = useId()
   const [error, setError] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [ownOpen, setOwnOpen] = useState(false)
   const [own, setOwn] = useState<ResolvedMedia[]>([])
   const [loading, startLoading] = useTransition()
   const [editorOpen, setEditorOpen] = useState(false)
+  const [encodePolicy, setEncodePolicy] = useState<MediaEncodePolicy>({
+    canChooseDecode: canChooseDecodeProp ?? false,
+    canChooseResize: canChooseResizeProp ?? false,
+  })
+  const [decodeToWebp, setDecodeToWebp] = useState(true)
+  const [resize, setResize] = useState(true)
+
+  const canChooseDecode = canChooseDecodeProp ?? encodePolicy.canChooseDecode
+  const canChooseResize = canChooseResizeProp ?? encodePolicy.canChooseResize
+  const showEncodeOptions = canChooseDecode || canChooseResize
 
   // Always the original file for framing — never the square centre-cropped thumbnail.
   const src = value ? mediaFrameSrc(value) : ''
   const framing = Boolean(onFrameChange)
   const currentFrame = normalizeImageFrame(frame ?? DEFAULT_IMAGE_FRAME)
+
+  useEffect(() => {
+    if (canChooseDecodeProp != null && canChooseResizeProp != null) return
+    let cancelled = false
+    void getMediaEncodePolicyAction().then((res) => {
+      if (cancelled || 'error' in res) return
+      setEncodePolicy(res)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [canChooseDecodeProp, canChooseResizeProp])
 
   const loadOwn = useCallback(() => {
     startLoading(async () => {
@@ -106,6 +137,8 @@ export function MemberMediaPicker({
       formData.set('file', file)
       formData.set('context', context)
       formData.set('alt', label)
+      if (!canChooseDecode || decodeToWebp) formData.set('decodeToWebp', 'on')
+      if (!canChooseResize || resize) formData.set('resize', 'on')
       const res = await uploadMemberMediaAction({}, formData)
       if (res.error || !res.media) {
         setError(res.error || 'Upload failed.')
@@ -190,6 +223,34 @@ export function MemberMediaPicker({
           </button>
         ) : null}
       </div>
+      {showEncodeOptions ? (
+        <div className="sf-member-media-encode" role="group" aria-label="Encode options">
+          {canChooseDecode ? (
+            <label className="settings-flag" htmlFor={decodeId}>
+              <input
+                id={decodeId}
+                type="checkbox"
+                checked={decodeToWebp}
+                disabled={busy}
+                onChange={(e) => setDecodeToWebp(e.target.checked)}
+              />
+              <span>Decode to WebP</span>
+            </label>
+          ) : null}
+          {canChooseResize ? (
+            <label className="settings-flag" htmlFor={resizeId}>
+              <input
+                id={resizeId}
+                type="checkbox"
+                checked={resize}
+                disabled={busy}
+                onChange={(e) => setResize(e.target.checked)}
+              />
+              <span>Resize</span>
+            </label>
+          ) : null}
+        </div>
+      ) : null}
       {ownOpen ? (
         <div className="sf-member-media-grid" data-pending={loading ? '1' : '0'}>
           {own.length === 0 && !loading ? (

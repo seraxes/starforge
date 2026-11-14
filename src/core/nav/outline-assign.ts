@@ -34,6 +34,9 @@ export function pageKeyForNavItem(
   pages: NavPageOption[],
   modules: NavModuleOption[],
 ): string | null {
+  if (item.linkType === 'admin') {
+    return null
+  }
   if (item.linkType === 'page') {
     const page = pages.find((p) => p.id === item.pageId)
     if (!page?.slug) return null

@@ -196,9 +196,13 @@ export function mergeLayoutDocuments(
 
   const sections = sortSections([...byId.values()])
   const breakpoints = child.styles?.breakpoints ?? parent.styles?.breakpoints
+  const body = child.styles?.body ?? parent.styles?.body
   const out: LayoutDocument = { version: 3, sections }
-  if (breakpoints) {
-    out.styles = { breakpoints }
+  if (breakpoints || body) {
+    out.styles = {
+      ...(breakpoints ? { breakpoints } : {}),
+      ...(body ? { body } : {}),
+    }
   }
   return out
 }

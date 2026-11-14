@@ -1,6 +1,6 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
+import { revalidatePath } from '@/core/content/defer-revalidate'
 
 import { requireAdminArea } from '@/core/acl'
 import { listLayoutOutlines, loadLayoutDocument } from '@/core/modules/layout-store'

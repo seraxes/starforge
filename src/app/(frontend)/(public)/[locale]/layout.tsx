@@ -1,20 +1,17 @@
 import React from 'react'
 import type { Metadata } from 'next'
 import { NextIntlClientProvider } from 'next-intl'
-import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server'
-import Link from 'next/link'
+import { getMessages, setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import { headers } from 'next/headers'
 
 import { SiteOfflineView } from '@/components/SiteOfflineView'
-import { userIsAppAdmin } from '@/core/auth/admin'
-import { getAppSession } from '@/core/auth/session'
 import { absoluteAssetUrl, appOrigin } from '@/core/content/metadata'
 import { getEnabledPublicLocales } from '@/core/i18n/enabled'
 import { isValidLocaleCode, routing } from '@/core/i18n'
 import { publicPathnameFromHeaders } from '@/core/page-settings'
 import { getSiteSettings } from '@/core/settings'
-import { getSiteChrome, isOfflineAllowedPath } from '@/core/site-chrome'
+import { getSiteChrome, getSiteChromeForProxy, isOfflineAllowedPath } from '@/core/site-chrome'
 
 type Props = {
   children: React.ReactNode
@@ -58,6 +55,7 @@ export async function generateMetadata(): Promise<Metadata> {
 /**
  * Public locale providers + offline gate. Page chrome / outline shell lives in
  * `template.tsx` so it remounts on every navigation (Assigned Menu outline wins).
+ * Offline locks everyone the same (no admin bypass); `/admin` stays exempt in proxy.
  */
 export default async function PublicLocaleLayout({ children, params }: Props) {
   const { locale } = await params
@@ -70,25 +68,20 @@ export default async function PublicLocaleLayout({ children, params }: Props) {
   }
   setRequestLocale(locale)
 
-  const [settings, siteChrome, headerList, session, messages, t] = await Promise.all([
-    getSiteSettings(),
-    getSiteChrome(),
+  // Decide offline from live Chrome only — never await published-content cache first.
+  const [siteChrome, headerList, messages] = await Promise.all([
+    getSiteChromeForProxy(),
     headers(),
-    getAppSession(),
     getMessages(),
-    getTranslations('Layout'),
   ])
   const pathname = publicPathnameFromHeaders(headerList, locale)
-  const isAdmin = userIsAppAdmin(session?.user)
-  const offlineLocked =
-    siteChrome.offlineEnabled && !isAdmin && !isOfflineAllowedPath(pathname)
+  const offlineLocked = siteChrome.offlineEnabled && !isOfflineAllowedPath(pathname)
 
   if (offlineLocked) {
     return (
       <NextIntlClientProvider locale={locale} messages={messages}>
         <SiteOfflineView
-          siteName={siteChrome.siteName || settings.siteName}
-          message={siteChrome.offlineMessage}
+          siteName={siteChrome.siteName}
           layoutId={siteChrome.offlineLayoutId}
         />
       </NextIntlClientProvider>
@@ -97,12 +90,6 @@ export default async function PublicLocaleLayout({ children, params }: Props) {
 
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
-      {siteChrome.offlineEnabled && isAdmin ? (
-        <p className="sf-offline-admin-banner" role="status">
-          {t('offlineAdminBanner')}{' '}
-          <Link href="/admin/site-chrome">{t('offlineAdminChromeLink')}</Link>
-        </p>
-      ) : null}
       {children}
     </NextIntlClientProvider>
   )

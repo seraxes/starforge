@@ -15,6 +15,7 @@ import {
   DEFAULT_LAYOUT_BREAKPOINTS,
   buildSectionInlineStyle,
   resolveSectionContainerMode,
+  type LayoutBodyBackground,
   type LayoutContainerMode,
   type LayoutSectionStyles,
 } from './styles'
@@ -33,8 +34,21 @@ async function stylesWithResolvedBackground(
   return { ...styles, backgroundImage: resolved.url }
 }
 
+async function resolveBodyBackground(
+  body: LayoutBodyBackground | undefined,
+): Promise<LayoutBodyBackground | undefined> {
+  if (!body || body.disabled || !body.backgroundMediaId) return body
+  const resolved = await resolveMediaById(body.backgroundMediaId, {
+    size: 'large',
+    preferWebp: true,
+  })
+  if (!resolved?.url) return body
+  return { ...body, backgroundImage: resolved.url }
+}
+
 type Props = {
-  children: React.ReactNode
+  /** Route body for `page-content` slots — omit when the outline is the full page (offline). */
+  children?: React.ReactNode
   siteName: string
   primaryNav: NavItem[]
   /** Resolved outline id from page chrome (`sf_layouts` id; nav writes layoutId). */
@@ -49,6 +63,11 @@ type Props = {
    * layout document and render a minimal page-content shell.
    */
   layoutManagerEnabled?: boolean
+  /**
+   * Skip published-content layout cache (offline / 503 / system screens).
+   * Avoids hangs after `revalidateTag({ expire: 0 })` on layout saves.
+   */
+  bypassLayoutCache?: boolean
 }
 
 function sortByOrder<T extends { order?: number; id: string }>(items: T[]): T[] {
@@ -190,6 +209,10 @@ function LayoutRowView({
   )
 }
 
+function sectionHasEnabledSlots(section: LayoutSection): boolean {
+  return section.rows.some((row) => row.slots.some((slot) => slot.enabled !== false))
+}
+
 function documentHasPageContent(sections: LayoutSection[]): boolean {
   return sections.some((s) =>
     s.rows.some((r) => r.slots.some((slot) => slot.moduleId === 'page-content' && slot.enabled !== false)),
@@ -206,11 +229,19 @@ function documentHasPageContent(sections: LayoutSection[]): boolean {
  *
  * Section canvas order is user `order` (DnD). Public paint only moves
  * footer-named sections to the end so Main particles stay above `<footer>` —
- * stored orders are not rewritten.
+ * stored orders are not rewritten. Sections with no enabled particles are
+ * not painted — the outline owns every visible block.
  *
  * Section `containerMode` owns full vs boxed width (boxed → outline `--sf-container-max`).
  * Section `width` (5–100%) via `data-sf-width` + CSS — consecutive partials sit side-by-side.
  */
+function hasRenderableChildren(children: React.ReactNode): boolean {
+  if (children == null || children === false || children === true) return false
+  if (typeof children === 'string') return children.trim().length > 0
+  if (Array.isArray(children)) return children.some((child) => hasRenderableChildren(child))
+  return true
+}
+
 export async function PublicLayoutBody({
   children,
   siteName,
@@ -218,6 +249,7 @@ export async function PublicLayoutBody({
   layoutId,
   sectionsLayout = 'fullwidth',
   layoutManagerEnabled = true,
+  bypassLayoutCache = false,
 }: Props) {
   await ensureModulesRegistered()
   const skin = await getActiveSkin()
@@ -225,6 +257,8 @@ export async function PublicLayoutBody({
     'public-shell',
     sectionsLayout === 'boxed' ? 'sf-sections-boxed' : 'sf-sections-fullwidth',
   ].join(' ')
+
+  const showPageChildren = hasRenderableChildren(children)
 
   if (!layoutManagerEnabled) {
     const { SiteHeader } = await import('@/components/SiteHeader')
@@ -249,35 +283,35 @@ export async function PublicLayoutBody({
           primaryNav={primaryNav}
           localesEnabled={localesEnabled}
         />
-        <section
-          className="sf-layout-section"
-          data-sf-section="fallback-main"
-          data-sf-container={fallbackMode}
-        >
-          <div className="sf-grid-row">
-            <div className="sf-grid-col" data-sf-width={100}>
-              <div className="sf-page-content public-main">{children}</div>
+        {showPageChildren ? (
+          <section
+            className="sf-layout-section"
+            data-sf-section="fallback-main"
+            data-sf-container={fallbackMode}
+          >
+            <div className="sf-grid-row">
+              <div className="sf-grid-col" data-sf-width={100}>
+                <div className="sf-page-content public-main">{children}</div>
+              </div>
             </div>
-          </div>
-        </section>
-        <p className="site-footer-meta sf-layout-chrome-meta">
-          <span className="site-footer-brand">{siteName}</span>
-          <span className="site-footer-sep" aria-hidden="true">
-            ·
-          </span>
-          <span>Built with Starforge</span>
-        </p>
+          </section>
+        ) : null}
       </div>
     )
   }
 
-  const { document, layoutId: resolvedLayoutId } = await getPublicLayoutBundle(layoutId)
+  const { document, layoutId: resolvedLayoutId } = await getPublicLayoutBundle(layoutId, {
+    bypassCache: bypassLayoutCache,
+  })
   const { flow, footers } = partitionSectionsForPublicPaint(document.sections)
+  const paintableFlow = flow.filter(sectionHasEnabledSlots)
+  const paintableFooters = footers.filter(sectionHasEnabledSlots)
   const hasPageContent = documentHasPageContent([...flow, ...footers])
   const breakpoints = document.styles?.breakpoints ?? DEFAULT_LAYOUT_BREAKPOINTS
+  const bodyBackground = await resolveBodyBackground(document.styles?.body)
   const pageDefault = sectionsLayout
-  const flowChunks = chunkSectionsForMosaic(flow)
-  const footerChunks = chunkSectionsForMosaic(footers)
+  const flowChunks = chunkSectionsForMosaic(paintableFlow)
+  const footerChunks = chunkSectionsForMosaic(paintableFooters)
 
   const paintChunks = (chunks: ReturnType<typeof chunkSectionsForMosaic>) =>
     chunks.map((chunk) =>
@@ -321,10 +355,11 @@ export async function PublicLayoutBody({
         layoutId={resolvedLayoutId}
         skinId={skin.id}
         breakpoints={breakpoints}
+        bodyBackground={bodyBackground}
       />
       {paintChunks(flowChunks)}
 
-      {!hasPageContent ? (
+      {!hasPageContent && showPageChildren ? (
         <section
           className="sf-layout-section"
           data-sf-section="fallback-main"
@@ -340,14 +375,6 @@ export async function PublicLayoutBody({
       ) : null}
 
       {paintChunks(footerChunks)}
-
-      <p className="site-footer-meta sf-layout-chrome-meta">
-        <span className="site-footer-brand">{siteName}</span>
-        <span className="site-footer-sep" aria-hidden="true">
-          ·
-        </span>
-        <span>Built with Starforge</span>
-      </p>
     </div>
   )
 }

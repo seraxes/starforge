@@ -17,7 +17,8 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
 
   return (
     <html lang="en">
-      <body>
+      {/* BodyAttributesClientImpl stamps skin/outline classes before hydration. */}
+      <body suppressHydrationWarning>
         <main>{children}</main>
       </body>
     </html>

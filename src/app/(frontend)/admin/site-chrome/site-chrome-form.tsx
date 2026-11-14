@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useActionState, useEffect, useRef, useState } from 'react'
+import React, { useActionState, useRef, useState } from 'react'
 import Link from 'next/link'
 
 import type { SiteChromeConsentLocaleMaps } from '@/core/i18n/content-locales'
@@ -14,7 +14,6 @@ import {
 import { MAIL_PROVIDERS } from '@/core/site-chrome/defaults'
 import type { SiteChromeDocument } from '@/core/site-chrome/types'
 
-import { useAdminAutosaveDebounceMs } from '../admin-autosave-context'
 import { useNotifySavedOnOk } from '../admin-toast'
 import { useAutosaveForm } from '../use-autosave-form'
 
@@ -25,6 +24,7 @@ type OutlineOption = {
 
 type Props = {
   chrome: SiteChromeDocument & SiteChromeConsentLocaleMaps
+  /** Active skin outlines only — offline pick must belong to that pack. */
   outlines: OutlineOption[]
   locales: ContentLocaleOption[]
 }
@@ -41,39 +41,27 @@ export function SiteChromeForm({ chrome, outlines, locales }: Props) {
   useNotifySavedOnOk(offlineState, { toastErrors: true })
   const { formRef, textAutosaveProps, discreteAutosaveProps, saveDebounced, flushOnBlur } =
     useAutosaveForm()
-  const debounceMs = useAdminAutosaveDebounceMs()
   const defaultCode = locales.find((locale) => locale.isDefault)?.code ?? locales[0]?.code ?? ''
 
   const [offlineEnabled, setOfflineEnabled] = useState(chrome.offlineEnabled)
   const [offlineLayoutId, setOfflineLayoutId] = useState(chrome.offlineLayoutId)
-  const [offlineMessage, setOfflineMessage] = useState(chrome.offlineMessage)
   const offlineRef = useRef({
     enabled: chrome.offlineEnabled,
     layoutId: chrome.offlineLayoutId,
-    message: chrome.offlineMessage,
   })
-  const offlineTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    return () => {
-      if (offlineTimer.current) clearTimeout(offlineTimer.current)
-    }
-  }, [])
 
   /**
    * Submit offline fields ourselves. requestSubmit + disabled={pending} drops the
    * checkbox from FormData (disabled controls are omitted), so the server saved off.
    */
-  function saveOffline(patch: { enabled?: boolean; layoutId?: string; message?: string }) {
+  function saveOffline(patch: { enabled?: boolean; layoutId?: string }) {
     const next = { ...offlineRef.current, ...patch }
     offlineRef.current = next
     setOfflineEnabled(next.enabled)
     setOfflineLayoutId(next.layoutId)
-    setOfflineMessage(next.message)
     const fd = new FormData()
     fd.set('offlineEnabled', next.enabled ? 'on' : '0')
     fd.set('offlineLayoutId', next.layoutId)
-    fd.set('offlineMessage', next.message)
     offlineFormAction(fd)
   }
 
@@ -98,10 +86,10 @@ export function SiteChromeForm({ chrome, outlines, locales }: Props) {
       <fieldset className="settings-fieldset">
         <legend>Site offline</legend>
         <p className="settings-hint">
-          When offline, visitors see the message below inside the selected outline (active skin).
-          App admins can still open the public site and <Link href="/admin">Starforge admin</Link>.
-          Login stays available so admins can sign in. Edit the outline under{' '}
-          <Link href="/admin/layouts">Layouts</Link>.
+          When offline, everyone sees the outline you pick (active skin — that outline is the
+          offline page). Design copy, login, and menu on it under{' '}
+          <Link href="/admin/layouts">Layouts</Link>. Ops entry is{' '}
+          <Link href="/admin/login">/admin/login</Link> (stays open while offline).
         </p>
         <label className="settings-flag">
           <input
@@ -130,25 +118,6 @@ export function SiteChromeForm({ chrome, outlines, locales }: Props) {
               </option>
             ))}
           </select>
-        </label>
-        <label className="settings-field">
-          <span>Offline message</span>
-          <textarea
-            name="offlineMessage"
-            rows={3}
-            value={offlineMessage}
-            autoComplete="off"
-            onChange={(event) => {
-              const message = event.target.value
-              setOfflineMessage(message)
-              offlineRef.current = { ...offlineRef.current, message }
-              if (offlineTimer.current) clearTimeout(offlineTimer.current)
-              offlineTimer.current = setTimeout(() => {
-                offlineTimer.current = null
-                saveOffline({ message })
-              }, debounceMs)
-            }}
-          />
         </label>
       </fieldset>
       </form>

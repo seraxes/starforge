@@ -54,21 +54,54 @@ function normalizeAssets(value: unknown): AssetRef[] | undefined {
     if (!isPlainObject(row)) continue
     const url = asString(row.url).trim()
     const content = asString(row.content)
+    const inherit = row.inherit === true
     const name =
       asString(row.name).trim() ||
       url ||
       (content.trim() ? `file-${index + 1}` : '') ||
+      (inherit ? `asset-${index + 1}` : '') ||
       `asset-${index + 1}`
-    if (!url && !content.trim() && !asString(row.name).trim()) continue
-    out.push({
+    // Inherited stubs may omit content until merge; keep them when flagged.
+    if (!inherit && !url && !content.trim() && !asString(row.name).trim()) continue
+    const asset: AssetRef = {
       id: asString(row.id) || `asset-${index}`,
       name,
       url,
       content,
       priority: clampAssetPriority(row.priority),
-    })
+    }
+    if (inherit) asset.inherit = true
+    out.push(asset)
   }
   return out
+}
+
+/**
+ * Merge Base CSS/JS asset lists with an outline override.
+ * - `override` undefined → inherit the whole Base list (legacy / Inherit-all).
+ * - `override` present → that list is authoritative; entries with `inherit: true`
+ *   pull live content from the matching Base id.
+ */
+export function mergeAssetList(
+  base: AssetRef[] | undefined,
+  override: AssetRef[] | undefined,
+): AssetRef[] {
+  const baseList = base ?? []
+  if (override === undefined) {
+    return baseList.map(({ inherit: _drop, ...rest }) => rest)
+  }
+  const baseById = new Map(baseList.map((asset) => [asset.id, asset]))
+  return override.map((entry) => {
+    if (entry.inherit) {
+      const fromBase = baseById.get(entry.id)
+      if (fromBase) {
+        const { inherit: _drop, ...rest } = fromBase
+        return rest
+      }
+    }
+    const { inherit: _drop, ...rest } = entry
+    return rest
+  })
 }
 
 /** Sort assets by priority ascending (−10 first), then stable by original order. */
@@ -233,8 +266,8 @@ export function mergePageChrome(
     customHeadHtml: asString(pick('customHeadHtml')),
     faviconUrl: asString(pick('faviconUrl')).trim(),
     touchIconUrl: asString(pick('touchIconUrl')).trim(),
-    css: pick('css') ?? base.css,
-    javascript: pick('javascript') ?? base.javascript,
+    css: mergeAssetList(g.css, defined(p.css) ? p.css : undefined),
+    javascript: mergeAssetList(g.javascript, defined(p.javascript) ? p.javascript : undefined),
     bodyId: asString(pick('bodyId')).trim(),
     bodyClasses: asString(pick('bodyClasses')).trim(),
     bodyTagAttributes: asString(pick('bodyTagAttributes')).trim(),

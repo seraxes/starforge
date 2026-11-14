@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useActionState, useEffect, useState } from 'react'
+import React, { useActionState, useCallback, useEffect, useState, useTransition } from 'react'
 
 import {
   defaultFormFields,
@@ -42,9 +42,10 @@ import { useContentLocales } from './content-locales-context'
 export type NavMenuOption = { id: string; label: string }
 export type FormDefinitionOption = { id: string; label: string }
 
-import { useNotifySavedOnOk } from '../admin-toast'
+import { useAdminToast, useNotifySavedOnOk } from '../admin-toast'
 import { useAutosaveForm } from '../use-autosave-form'
-import { LayoutIdField } from './layout-outline-context'
+import { useDebouncedPersist } from '../use-debounced-persist'
+import { LayoutIdField, useLayoutOutlineId } from './layout-outline-context'
 import { ParticleSettingsPopover } from './particle-settings-popover'
 
 function SettingsShell({
@@ -117,6 +118,20 @@ function particleFormAutosaveProps(
   }
 }
 
+function logoConfigPayload(draft: LogoParticleConfig, colorText: string): LogoParticleConfig {
+  const mode = draft.mode ?? 'image'
+  const validHiddenColor =
+    parseCssColorInput(colorText).status === 'ok'
+      ? colorText.trim()
+      : parseCssColorInput(draft.color ?? '').status === 'ok'
+        ? (draft.color ?? '')
+        : ''
+  return {
+    ...draft,
+    color: mode === 'text' ? colorText : validHiddenColor,
+  }
+}
+
 export function LogoParticleEditor({
   sectionId,
   rowId,
@@ -130,59 +145,89 @@ export function LogoParticleEditor({
   embedded?: boolean
   onConfigSaved?: (config: LayoutSlotConfig) => void
 }) {
-  const [state, formAction, pending] = useActionState(updateSlotConfigAction, initialState)
-  useParticleAutosaveResult(state, onConfigSaved)
-  const { formRef, saveNow, saveDebounced } = useAutosaveForm()
+  const layoutId = useLayoutOutlineId()
+  const { notifySaved, notifyError } = useAdminToast()
+  const [pending, startSave] = useTransition()
+  const [error, setError] = useState<string | null>(null)
 
   const [draft, setDraft] = useState<LogoParticleConfig>(() => readLogoConfig(slot.config))
   const [colorText, setColorText] = useState(() => readLogoConfig(slot.config).color ?? '')
   const locales = useContentLocales()
   const defaultLocale = locales.find((locale) => locale.isDefault)
+  /** Sync source of truth — FormData is built from refs, not a controlled hidden input. */
+  const draftRef = React.useRef(draft)
+  const colorTextRef = React.useRef(colorText)
+  const slotIdRef = React.useRef(slot.id)
+  if (slotIdRef.current !== slot.id) {
+    slotIdRef.current = slot.id
+    const next = readLogoConfig(slot.config)
+    draftRef.current = next
+    colorTextRef.current = next.color ?? ''
+  }
 
   // Local draft while cog is open — reset only when switching particles (never from save responses).
   useEffect(() => {
     const next = readLogoConfig(slot.config)
+    draftRef.current = next
+    colorTextRef.current = next.color ?? ''
     setDraft(next)
     setColorText(next.color ?? '')
+    setError(null)
   }, [slot.id])
 
+  const persist = useCallback(
+    (payload: LogoParticleConfig) => {
+      const fd = new FormData()
+      fd.set('layoutId', layoutId)
+      fd.set('sectionId', sectionId)
+      fd.set('rowId', rowId)
+      fd.set('slotId', slot.id)
+      fd.set('configJson', JSON.stringify(payload))
+
+      startSave(async () => {
+        const result = await updateSlotConfigAction({}, fd)
+        if (result.ok) {
+          setError(null)
+          if (result.config) onConfigSaved?.(result.config)
+          notifySaved(result.message || 'Saved')
+        } else if (result.error) {
+          setError(result.error)
+          notifyError(result.error)
+        }
+      })
+    },
+    [layoutId, notifyError, notifySaved, onConfigSaved, rowId, sectionId, slot.id],
+  )
+
+  const { schedule, flush } = useDebouncedPersist(persist)
+
   const mode = draft.mode ?? 'image'
-  const validHiddenColor =
-    parseCssColorInput(colorText).status === 'ok'
-      ? colorText.trim()
-      : parseCssColorInput(draft.color ?? '').status === 'ok'
-        ? (draft.color ?? '')
-        : ''
 
   const patchDraft = (partial: Partial<LogoParticleConfig>) => {
-    setDraft((prev) => ({ ...prev, ...partial }))
+    const next = { ...draftRef.current, ...partial }
+    draftRef.current = next
+    setDraft(next)
+    return next
   }
 
-  const configJson = JSON.stringify({
-    ...draft,
-    color: mode === 'text' ? colorText : validHiddenColor,
-  })
+  const scheduleSave = () => {
+    schedule('logo', logoConfigPayload(draftRef.current, colorTextRef.current))
+  }
+
+  const flushSave = () => {
+    flush('logo', logoConfigPayload(draftRef.current, colorTextRef.current))
+  }
 
   return (
     <SettingsShell title="Logo / Image settings" embedded={embedded}>
-      <form
-        ref={formRef}
-        action={formAction}
-        className="gantry-typed-form"
-        {...particleFormAutosaveProps(saveDebounced, saveNow)}
-      >
-        <LayoutIdField />
-        <input type="hidden" name="sectionId" value={sectionId} />
-        <input type="hidden" name="rowId" value={rowId} />
-        <input type="hidden" name="slotId" value={slot.id} />
-        <input type="hidden" name="configJson" value={configJson} />
+      <div className="gantry-typed-form">
         <label>
           <span>Mode</span>
           <select
             value={mode}
             onChange={(e) => {
               patchDraft({ mode: e.target.value === 'text' ? 'text' : 'image' })
-              queueMicrotask(saveNow)
+              flushSave()
             }}
           >
             <option value="image">Image</option>
@@ -193,9 +238,12 @@ export function LogoParticleEditor({
           <span>Link URL (optional)</span>
           <input
             type="text"
-            name="linkUrl"
             value={draft.linkUrl ?? ''}
-            onChange={(e) => patchDraft({ linkUrl: e.target.value })}
+            onChange={(e) => {
+              patchDraft({ linkUrl: e.target.value })
+              scheduleSave()
+            }}
+            onBlur={flushSave}
             placeholder="/"
           />
         </label>
@@ -213,18 +261,22 @@ export function LogoParticleEditor({
               onChange={(code, value) => {
                 const isDefault = code === defaultLocale?.code
                 patchDraft({
-                  textLocales: { ...(draft.textLocales ?? {}), [code]: value },
+                  textLocales: { ...(draftRef.current.textLocales ?? {}), [code]: value },
                   ...(isDefault ? { text: value } : {}),
                 })
+                scheduleSave()
               }}
             />
             <label>
               <span>Font family</span>
               <input
                 type="text"
-                name="fontFamily"
                 value={draft.fontFamily ?? ''}
-                onChange={(e) => patchDraft({ fontFamily: e.target.value })}
+                onChange={(e) => {
+                  patchDraft({ fontFamily: e.target.value })
+                  scheduleSave()
+                }}
+                onBlur={flushSave}
                 placeholder="e.g. Georgia, serif (empty = site default)"
               />
             </label>
@@ -233,22 +285,28 @@ export function LogoParticleEditor({
                 <span>Size (px)</span>
                 <input
                   type="number"
-                  name="fontSize"
                   min={10}
                   max={120}
                   value={draft.fontSize ?? 28}
-                  onChange={(e) =>
-                    patchDraft({ fontSize: Number(e.target.value) || draft.fontSize || 28 })
-                  }
+                  onChange={(e) => {
+                    patchDraft({
+                      fontSize: Number(e.target.value) || draftRef.current.fontSize || 28,
+                    })
+                    scheduleSave()
+                  }}
+                  onBlur={flushSave}
                 />
               </label>
               <label>
                 <span>Weight</span>
                 <input
                   type="text"
-                  name="fontWeight"
                   value={String(draft.fontWeight ?? 700)}
-                  onChange={(e) => patchDraft({ fontWeight: e.target.value })}
+                  onChange={(e) => {
+                    patchDraft({ fontWeight: e.target.value })
+                    scheduleSave()
+                  }}
+                  onBlur={flushSave}
                   placeholder="700"
                 />
               </label>
@@ -263,19 +321,23 @@ export function LogoParticleEditor({
                   title="Logo text color"
                   aria-label="Logo text color picker"
                   onChange={(event) => {
+                    colorTextRef.current = event.target.value
                     setColorText(event.target.value)
                     patchDraft({ color: event.target.value })
+                    flushSave()
                   }}
                 />
                 <input
                   type="text"
-                  name="color"
                   className="gantry-section-color-input"
                   value={colorText}
                   onChange={(event) => {
+                    colorTextRef.current = event.target.value
                     setColorText(event.target.value)
                     patchDraft({ color: event.target.value })
+                    scheduleSave()
                   }}
+                  onBlur={flushSave}
                   placeholder="#2a3340, rgb(), or named (empty = inherit)"
                   spellCheck={false}
                   autoComplete="off"
@@ -286,9 +348,6 @@ export function LogoParticleEditor({
               Text logo replaces Site Header brand text when you assemble Logo + Menu in the header
               row. Color accepts hex, rgb/rgba, hsl/hsla, or CSS named colors.
             </p>
-            <input type="hidden" name="mediaId" value={draft.mediaId ?? ''} />
-            <input type="hidden" name="mediaUrl" value={draft.mediaUrl ?? ''} />
-            <input type="hidden" name="alt" value={draft.alt ?? 'Logo'} />
           </>
         ) : (
           <>
@@ -301,22 +360,27 @@ export function LogoParticleEditor({
               }}
               defaultFolder="logos"
               defaultPurpose="logo"
+              includeHiddenInputs={false}
               hint="Library Media id is primary; raw URL is advanced fallback."
-              onChange={(next) =>
+              onChange={(next) => {
                 patchDraft({
                   mediaId: next.mediaId,
                   mediaUrl: next.url ?? '',
-                  alt: next.alt || draft.alt || 'Logo',
+                  alt: next.alt || draftRef.current.alt || 'Logo',
                 })
-              }
+                flushSave()
+              }}
             />
             <label>
               <span>Alt text</span>
               <input
                 type="text"
-                name="alt"
                 value={draft.alt ?? ''}
-                onChange={(e) => patchDraft({ alt: e.target.value })}
+                onChange={(e) => {
+                  patchDraft({ alt: e.target.value })
+                  scheduleSave()
+                }}
+                onBlur={flushSave}
                 required
               />
             </label>
@@ -325,13 +389,14 @@ export function LogoParticleEditor({
                 <span>Max width (px)</span>
                 <input
                   type="number"
-                  name="maxWidth"
                   min={1}
                   value={draft.maxWidth ?? ''}
                   onChange={(e) => {
                     const n = Number(e.target.value)
                     patchDraft({ maxWidth: Number.isFinite(n) && n > 0 ? n : undefined })
+                    scheduleSave()
                   }}
+                  onBlur={flushSave}
                   placeholder="e.g. 180"
                 />
               </label>
@@ -339,27 +404,27 @@ export function LogoParticleEditor({
                 <span>Max height (px)</span>
                 <input
                   type="number"
-                  name="maxHeight"
                   min={1}
                   value={draft.maxHeight ?? ''}
                   onChange={(e) => {
                     const n = Number(e.target.value)
                     patchDraft({ maxHeight: Number.isFinite(n) && n > 0 ? n : undefined })
+                    scheduleSave()
                   }}
+                  onBlur={flushSave}
                   placeholder="e.g. 64"
                 />
               </label>
             </div>
-            <input type="hidden" name="text" value={draft.text ?? ''} />
-            <input type="hidden" name="fontFamily" value={draft.fontFamily ?? ''} />
-            <input type="hidden" name="fontSize" value={String(draft.fontSize ?? 28)} />
-            <input type="hidden" name="fontWeight" value={String(draft.fontWeight ?? 700)} />
-            <input type="hidden" name="color" value={validHiddenColor} />
           </>
         )}
         {pending ? <p className="layout-muted">Saving…</p> : null}
-        <ActionFeedback state={state} />
-      </form>
+        {error ? (
+          <p className="admin-inline-error" role="alert">
+            {error}
+          </p>
+        ) : null}
+      </div>
     </SettingsShell>
   )
 }

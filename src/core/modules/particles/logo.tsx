@@ -46,8 +46,8 @@ async function resolveLogoSrc(mediaId: string, mediaUrl: string, alt: string) {
 
 async function resolveTextLogoFallback(): Promise<string> {
   try {
-    const { getSiteChrome } = await import('@/core/site-chrome')
-    const chrome = await getSiteChrome()
+    const { getSiteChromeForProxy } = await import('@/core/site-chrome')
+    const chrome = await getSiteChromeForProxy()
     if (chrome.siteName.trim()) return chrome.siteName.trim()
   } catch {
     // ignore

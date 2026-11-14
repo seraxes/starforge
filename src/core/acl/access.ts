@@ -6,6 +6,7 @@ import {
   promoteSessionUserIfBootstrapAdmin,
   userIsAppAdmin,
 } from '@/core/auth/admin'
+import { getAdminSession } from '@/core/auth/admin-session'
 import { getAppSession } from '@/core/auth/session'
 
 import {
@@ -24,10 +25,9 @@ import type { AccessViewer, AclAdminResourceKey } from './types'
  * them from this file or they inherit `server-only` via the barrel.
  */
 
-/** Build viewer context from the current Better Auth session. */
-export async function getAccessViewer(): Promise<AccessViewer> {
-  const session = await getAppSession()
-  const user = session?.user
+async function viewerFromSessionUser(
+  user: { id: string; role?: string | null; email?: string | null } | null | undefined,
+): Promise<AccessViewer> {
   if (!user?.id) {
     return {
       userId: null,
@@ -36,7 +36,6 @@ export async function getAccessViewer(): Promise<AccessViewer> {
       groupIds: [],
     }
   }
-
   const groupIds = await listGroupIdsForUser(user.id)
   return {
     userId: user.id,
@@ -44,6 +43,18 @@ export async function getAccessViewer(): Promise<AccessViewer> {
     isAppAdmin: userIsAppAdmin(user),
     groupIds,
   }
+}
+
+/** Build viewer context from the public Better Auth session (never the admin cookie). */
+export async function getAccessViewer(): Promise<AccessViewer> {
+  const session = await getAppSession()
+  return viewerFromSessionUser(session?.user)
+}
+
+/** Build viewer context from the staff admin session cookie. */
+export async function getAdminAccessViewer(): Promise<AccessViewer> {
+  const session = await getAdminSession()
+  return viewerFromSessionUser(session?.user)
 }
 
 /**
@@ -125,17 +136,11 @@ export async function viewerMayEnterAdminShell(viewer: AccessViewer): Promise<bo
  * Prefer this over `requireAppAdmin` for areas listed on Users → ACL.
  */
 export async function requireAdminArea(resource: AclAdminResourceKey) {
-  const session = await getAppSession()
+  const session = await getAdminSession()
   if (!session?.user) return null
   await promoteSessionUserIfBootstrapAdmin(session.user)
 
-  const viewer: AccessViewer = {
-    userId: session.user.id,
-    isRegistered: true,
-    isAppAdmin: userIsAppAdmin(session.user),
-    groupIds: await listGroupIdsForUser(session.user.id),
-  }
-
+  const viewer = await viewerFromSessionUser(session.user)
   if (!(await viewerMayAccessAdminResource(viewer, resource))) return null
   return session
 }
@@ -145,16 +150,11 @@ export async function requireAdminArea(resource: AclAdminResourceKey) {
  * Returns the session when allowed; otherwise `null`.
  */
 export async function requireAdminAreaForRequest() {
-  const session = await getAppSession()
+  const session = await getAdminSession()
   if (!session?.user) return null
   await promoteSessionUserIfBootstrapAdmin(session.user)
 
-  const viewer: AccessViewer = {
-    userId: session.user.id,
-    isRegistered: true,
-    isAppAdmin: userIsAppAdmin(session.user),
-    groupIds: await listGroupIdsForUser(session.user.id),
-  }
+  const viewer = await viewerFromSessionUser(session.user)
 
   const headerList = await headers()
   const pathname = headerList.get('x-sf-pathname') || '/admin'

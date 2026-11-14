@@ -12,10 +12,13 @@
 
 /** Pure helpers — safe for shared server/client graphs when imported directly. */
 export {
+  ROLE_ADMIN_ACCESS_TAG,
   accessTagsForStorage,
   canSeeNavAccessLevel,
   canSeeNavAccessTags,
   filterNavItemsForViewer,
+  isAdminNavRestrictTag,
+  normalizeAccessTag,
   normalizeAccessTags,
   resolveAccessTags,
   toggleAccessTag,
@@ -24,6 +27,7 @@ export {
 /** Session-bound checks — server-only (`import 'server-only'`). */
 export {
   getAccessViewer,
+  getAdminAccessViewer,
   listViewerAllowedAdminResources,
   requireAdminArea,
   requireAdminAreaForRequest,

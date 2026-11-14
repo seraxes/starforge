@@ -1,9 +1,9 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
+import { revalidatePath } from '@/core/content/defer-revalidate'
 
 import { accessTagsForStorage, normalizeAccessTags } from '@/core/acl/nav-access'
-import { requireAppAdmin } from '@/core/auth/admin'
+import { requireAppAdmin, userIsDeveloperAdmin } from '@/core/auth/admin'
 import { DEFAULT_LAYOUT_ID } from '@/core/db'
 import { ensureModulesRegistered } from '@/core/modules/boot'
 
@@ -33,14 +33,18 @@ import { defaultConfigForModule } from './particles/config'
 import { getRegisteredModule, listRegisteredModules } from './registry'
 import {
   DEFAULT_LAYOUT_BREAKPOINTS,
+  layoutBodyBackgroundFromFit,
+  normalizeLayoutBodyBackground,
   normalizeLayoutBreakpoints,
   normalizeLayoutSectionStyles,
   sanitizeBackgroundImageUrl,
   sanitizeBackgroundMediaId,
   sanitizeCssColor,
   sanitizeCssColorOrGradient,
+  type LayoutBodyBackgroundFit,
   type LayoutBreakpoints,
   type LayoutContainerMode,
+  type LayoutDocumentStyles,
   type LayoutSectionStyles,
 } from './styles'
 import { resolveMediaById } from '@/core/media/resolve'
@@ -114,8 +118,13 @@ export type LayoutActionState = {
   message?: string
   /** Saved particle config echoed for client hydrate after typed-slot saves. */
   config?: LayoutSlotConfig
-  /** Saved HTML id / CSS class echoed for client hydrate after attribute saves. */
-  slotAttrs?: { htmlId?: string; cssClass?: string }
+  /** Saved HTML id / CSS class / particle CSS+JS echoed for client hydrate. */
+  slotAttrs?: {
+    htmlId?: string
+    cssClass?: string
+    particleCss?: string
+    particleJs?: string
+  }
 }
 
 async function requireLayoutAdmin(): Promise<LayoutActionState | null> {
@@ -127,6 +136,7 @@ async function requireLayoutAdmin(): Promise<LayoutActionState | null> {
 }
 
 function revalidateLayoutPaths(layoutId?: string) {
+  // Includes the public root layout. Deferred so this save does not hard-reload `/`.
   revalidatePath('/', 'layout')
   revalidatePath('/admin/layouts')
   revalidatePath('/admin/breakpoints')
@@ -976,6 +986,101 @@ export async function updateLayoutBreakpointsAction(
   return state
 }
 
+function bodyFitFromForm(raw: unknown): LayoutBodyBackgroundFit {
+  const fit = String(raw ?? '').trim()
+  if (fit === 'cover-scroll' || fit === 'contain' || fit === 'tile') return fit
+  return 'cover-fixed'
+}
+
+function assignOutlineStyles(doc: LayoutDocument, next: LayoutDocumentStyles): void {
+  if (!next.breakpoints && !next.body) {
+    delete doc.styles
+    return
+  }
+  doc.styles = {
+    ...(next.breakpoints ? { breakpoints: next.breakpoints } : {}),
+    ...(next.body ? { body: next.body } : {}),
+  }
+}
+
+/**
+ * Persist the outline page background (Layouts → Styles → Page background).
+ * `mode=inherit` drops the local block so the parent background returns.
+ * `mode=clear` removes it; `blockInherit=1` stores a local opt-out on child outlines.
+ */
+export async function updateLayoutBodyBackgroundAction(
+  _prev: LayoutActionState,
+  formData: FormData,
+): Promise<LayoutActionState> {
+  const denied = await requireLayoutAdmin()
+  if (denied) return denied
+
+  const mode = String(formData.get('mode') ?? 'set').trim()
+  const state = await mutateLayout(formData, (doc) => {
+    const breakpoints = doc.styles?.breakpoints
+    if (mode === 'inherit') {
+      assignOutlineStyles(doc, { breakpoints })
+      return doc
+    }
+    if (mode === 'clear') {
+      assignOutlineStyles(doc, {
+        breakpoints,
+        ...(formData.get('blockInherit') === '1' ? { body: { disabled: true } } : {}),
+      })
+      return doc
+    }
+
+    const body = normalizeLayoutBodyBackground({
+      backgroundColor: String(formData.get('backgroundColor') ?? ''),
+      backgroundMediaId: String(formData.get('backgroundMediaId') ?? ''),
+      backgroundImage: String(formData.get('backgroundImage') ?? ''),
+      ...layoutBodyBackgroundFromFit(bodyFitFromForm(formData.get('fit'))),
+    })
+    if (!body) {
+      assignOutlineStyles(doc, {
+        breakpoints,
+        ...(formData.get('blockInherit') === '1' ? { body: { disabled: true } } : {}),
+      })
+      return doc
+    }
+    assignOutlineStyles(doc, { breakpoints, body })
+    return doc
+  })
+
+  if (state.ok) state.message = 'Page background saved.'
+  return state
+}
+
+/** Snapshot the parent outline page background onto this outline as local. */
+export async function copyLayoutBodyBackgroundFromParentAction(
+  _prev: LayoutActionState,
+  formData: FormData,
+): Promise<LayoutActionState> {
+  const denied = await requireLayoutAdmin()
+  if (denied) return denied
+
+  const layoutId = layoutIdFromForm(formData)
+  const { document } = await loadLayoutDocument(layoutId)
+  const parent = await loadParentResolved(document, layoutId)
+  if (!parent) return { error: 'This outline has no parent to copy from.' }
+
+  const copied = normalizeLayoutBodyBackground(parent.styles?.body)
+  const state = await mutateLayout(formData, (doc) => {
+    const breakpoints = doc.styles?.breakpoints
+    if (!copied || copied.disabled) {
+      assignOutlineStyles(doc, { breakpoints, body: { disabled: true } })
+      return doc
+    }
+    const body = { ...copied }
+    delete body.disabled
+    assignOutlineStyles(doc, { breakpoints, body })
+    return doc
+  })
+
+  if (state.ok) state.message = 'Page background copied from parent.'
+  return state
+}
+
 /**
  * Persist a particle/module instance display name on a layout slot.
  * Does not change `moduleId` (particle type). Empty name clears the override.
@@ -1693,7 +1798,7 @@ export async function updateSlotConfigAction(
   return state
 }
 
-/** Optional HTML id + CSS classes on any particle (public column wrapper). */
+/** Optional HTML id + CSS classes + particle CSS/JS on any particle wrapper. */
 export async function updateSlotAttributesAction(
   _prev: LayoutActionState,
   formData: FormData,
@@ -1702,6 +1807,9 @@ export async function updateSlotAttributesAction(
   const rowId = String(formData.get('rowId') ?? '').trim()
   const slotId = String(formData.get('slotId') ?? '').trim()
   if (!sectionId || !rowId || !slotId) return { error: 'Missing slot reference.' }
+
+  const session = await requireAppAdmin()
+  const isDev = userIsDeveloperAdmin(session?.user)
 
   const htmlIdRaw = String(formData.get('htmlId') ?? '').trim()
   let htmlId: string | undefined
@@ -1725,6 +1833,12 @@ export async function updateSlotAttributesAction(
     }
   }
 
+  const particleCssRaw = String(formData.get('particleCss') ?? '')
+  const particleCss = particleCssRaw.trim() ? particleCssRaw : undefined
+  const particleJsRaw = String(formData.get('particleJs') ?? '')
+  const particleJs = particleJsRaw.trim() ? particleJsRaw : undefined
+
+  let savedParticleJs: string | undefined
   const state = await mutateLayout(formData, (doc) => {
     const found = findSlot(doc, sectionId, rowId, slotId)
     if (!found) return { error: 'Slot not found.' }
@@ -1732,6 +1846,16 @@ export async function updateSlotAttributesAction(
     else delete found.slot.htmlId
     if (cssClass) found.slot.cssClass = cssClass
     else delete found.slot.cssClass
+    if (particleCss) found.slot.particleCss = particleCss
+    else delete found.slot.particleCss
+    // JS is developer-admin only — non-dev saves leave prior JS untouched.
+    if (isDev) {
+      if (particleJs) found.slot.particleJs = particleJs
+      else delete found.slot.particleJs
+      savedParticleJs = found.slot.particleJs
+    } else {
+      savedParticleJs = found.slot.particleJs
+    }
     return doc
   })
 
@@ -1740,6 +1864,8 @@ export async function updateSlotAttributesAction(
     state.slotAttrs = {
       ...(htmlId ? { htmlId } : {}),
       ...(cssClass ? { cssClass } : {}),
+      ...(particleCss ? { particleCss } : {}),
+      ...(savedParticleJs ? { particleJs: savedParticleJs } : {}),
     }
   }
   return state

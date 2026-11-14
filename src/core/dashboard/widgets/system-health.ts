@@ -37,26 +37,31 @@ const LEVEL_LABEL = {
   fail: 'Unhealthy',
 } as const
 
-/** Redis is in play when the content cache selects it, or when `REDIS_URL` is set. */
-export function isRedisSelected(env: {
+type RedisEnv = {
   STARFORGE_CONTENT_CACHE?: string
   REDIS_URL?: string
-} = process.env): boolean {
-  const cache = (env.STARFORGE_CONTENT_CACHE ?? '').trim().toLowerCase()
+}
+
+function redisEnv(env?: RedisEnv): RedisEnv {
+  return env ?? process.env
+}
+
+/** Redis is in play when the content cache selects it, or when `REDIS_URL` is set. */
+export function isRedisSelected(env?: RedisEnv): boolean {
+  const source = redisEnv(env)
+  const cache = (source.STARFORGE_CONTENT_CACHE ?? '').trim().toLowerCase()
   if (cache === 'redis') return true
-  return Boolean((env.REDIS_URL ?? '').trim())
+  return Boolean((source.REDIS_URL ?? '').trim())
 }
 
 /**
  * `configured` means a URL is present and a ping should run.
  * `missing` means Redis is selected (`STARFORGE_CONTENT_CACHE=redis`) without `REDIS_URL`.
  */
-export function classifyRedisSelection(env: {
-  STARFORGE_CONTENT_CACHE?: string
-  REDIS_URL?: string
-} = process.env): 'skip' | 'configured' | 'missing' {
-  if (!isRedisSelected(env)) return 'skip'
-  if (!(env.REDIS_URL ?? '').trim()) return 'missing'
+export function classifyRedisSelection(env?: RedisEnv): 'skip' | 'configured' | 'missing' {
+  const source = redisEnv(env)
+  if (!isRedisSelected(source)) return 'skip'
+  if (!(source.REDIS_URL ?? '').trim()) return 'missing'
   return 'configured'
 }
 

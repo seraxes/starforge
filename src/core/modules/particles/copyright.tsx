@@ -3,7 +3,7 @@ import Link from 'next/link'
 
 import { buildLayoutSlotKey } from '@/core/i18n/content-locale-keys'
 import { pickContentLocaleText } from '@/core/i18n/locale-text.server'
-import { getSiteChrome } from '@/core/site-chrome'
+import { getSiteChromeForProxy } from '@/core/site-chrome'
 
 import type { StarforgeModule } from '../types'
 import { readCopyrightConfig } from './config'
@@ -37,7 +37,7 @@ export const copyrightModule: StarforgeModule = {
     ).trim()
     if (!text) {
       try {
-        const chrome = await getSiteChrome()
+        const chrome = await getSiteChromeForProxy()
         text = chrome.contentRights.trim()
       } catch {
         // ignore

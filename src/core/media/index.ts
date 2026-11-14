@@ -20,13 +20,23 @@ export {
   MEDIA_PURPOSES,
   MEDIA_THUMB_SIZE,
   MEDIA_WEBP_QUALITY,
+  clampMediaEncodeFlags,
+  isMediaEncodeGroupMode,
   isMediaFolder,
   isMediaPurpose,
+  normalizeMediaEncodeGroupMap,
   normalizeMediaFolder,
   normalizeMediaPipelineRules,
   normalizeMediaPurpose,
+  resolveMediaEncodePolicy,
 } from './pipeline'
-export type { MediaFolder, MediaPipelineRules, MediaPurpose } from './pipeline'
+export type {
+  MediaEncodeGroupMode,
+  MediaEncodePolicy,
+  MediaFolder,
+  MediaPipelineRules,
+  MediaPurpose,
+} from './pipeline'
 
 export {
   MEDIA_CATEGORY_MAX_DEPTH,
@@ -82,6 +92,7 @@ export {
   createMediaCategoryAction,
   deleteMediaAction,
   deleteMediaCategoryAction,
+  getMediaEncodePolicyAction,
   listMediaAction,
   listMediaCategoryTreeAction,
   listMediaTagOptionsAction,

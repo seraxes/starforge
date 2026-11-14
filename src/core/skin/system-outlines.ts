@@ -20,7 +20,8 @@ export { skinSystemOutlineId } from './system-outline-ids'
 
 /**
  * Resolve which outline the active theme uses for Offline or 404.
- * Optional Chrome override is honored only when that outline belongs to the active skin.
+ * Chrome may pick an outline; honored only when it belongs to the active skin.
+ * Otherwise the pack’s `{skinId}-offline` / `{skinId}-not-found`.
  */
 export async function resolveActiveSkinSystemOutlineId(
   kind: SkinSystemOutlineKind,

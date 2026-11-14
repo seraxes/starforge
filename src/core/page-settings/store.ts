@@ -25,8 +25,9 @@ export type PageChromeLoadResult = {
 /**
  * Load one chrome row by id (`global`, `outline:<id>`, or pageKey) — uncached DB/default path.
  * Missing/unreadable → empty chrome (caller merges with defaults).
+ * Exported for offline / system screens that must not await published-content cache.
  */
-async function loadPageChromeRowUncached(id: string): Promise<PageChromeLoadResult> {
+export async function loadPageChromeRowUncached(id: string): Promise<PageChromeLoadResult> {
   const pageKey = pageKeyForChromeRowId(id)
   try {
     const [row] = await db

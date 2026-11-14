@@ -2,7 +2,7 @@ import React from 'react'
 import Link from 'next/link'
 
 import { requireDeveloperAdmin, userIsDeveloperAdmin } from '@/core/auth/admin'
-import { getAppSession } from '@/core/auth/session'
+import { getAdminSession } from '@/core/auth/admin-session'
 import { loadEnvEditorSnapshot, readEnvEditorGate } from '@/core/env-editor/server'
 
 import { EnvironmentEditorForm } from './environment-editor-form'
@@ -17,7 +17,7 @@ export const metadata = {
 }
 
 export default async function AdminEnvironmentPage() {
-  const session = await getAppSession()
+  const session = await getAdminSession()
   const isDevAdmin = userIsDeveloperAdmin(session?.user)
 
   if (!isDevAdmin) {

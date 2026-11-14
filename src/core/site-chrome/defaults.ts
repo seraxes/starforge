@@ -25,7 +25,7 @@ Sitemap: /sitemap.xml
 export const DEFAULT_OFFLINE_MESSAGE =
   'This site is temporarily offline. Please check back soon.'
 
-/** Pastel skin offline outline seed — Site Chrome offlineLayoutId default. */
+/** Default Site Chrome offline outline — Pastel pack Offline seed. */
 export const DEFAULT_OFFLINE_LAYOUT_ID = 'starforge-pastel-offline'
 
 export const DEFAULT_AUTH_POST_LOGIN_URL = '/'

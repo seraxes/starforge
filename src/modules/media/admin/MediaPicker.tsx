@@ -12,6 +12,7 @@ import { createPortal } from 'react-dom'
 
 import { getAdminOverlayPortalTarget } from '@/components/admin/useFloatingSettingsPanel'
 import {
+  getMediaEncodePolicyAction,
   listMediaAction,
   listMediaCategoryTreeAction,
   listMediaTagOptionsAction,
@@ -19,6 +20,7 @@ import {
   type MediaActionState,
   type ResolvedMedia,
 } from '@/core/media/actions'
+import type { MediaEncodePolicy } from '@/core/media/pipeline'
 import {
   flattenCategoryOptions,
   type MediaCategoryNode,
@@ -95,6 +97,10 @@ export function MediaPicker({
   const [pending, startTransition] = useTransition()
   const [uploadState, setUploadState] = useState<MediaActionState>(emptyUploadState)
   const [uploading, setUploading] = useState(false)
+  const [encodePolicy, setEncodePolicy] = useState<MediaEncodePolicy>({
+    canChooseDecode: false,
+    canChooseResize: false,
+  })
   const [showUrl, setShowUrl] = useState(Boolean(value.url && !value.mediaId))
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null)
   const [dialogSize, setDialogSize] = useState({
@@ -157,7 +163,7 @@ export function MediaPicker({
   const refresh = useCallback(() => {
     startTransition(async () => {
       setError(null)
-      const [res, tagsRes, catsRes] = await Promise.all([
+      const [res, tagsRes, catsRes, policyRes] = await Promise.all([
         listMediaAction({
           category: category === 'all' ? undefined : category,
           purpose: purpose === 'all' ? undefined : purpose,
@@ -167,9 +173,13 @@ export function MediaPicker({
         }),
         listMediaTagOptionsAction(),
         listMediaCategoryTreeAction(),
+        getMediaEncodePolicyAction(),
       ])
       if (tagsRes.tags) setTagOptions(tagsRes.tags)
       if (catsRes.tree) setCategoryTree(catsRes.tree)
+      if (!('error' in policyRes)) {
+        setEncodePolicy(policyRes)
+      }
       if (res.error) {
         setError(res.error)
         setDocs([])
@@ -242,6 +252,10 @@ export function MediaPicker({
       if (input.type === 'file') {
         const file = input.files?.[0]
         if (file) formData.set(input.name, file)
+        return
+      }
+      if (input.type === 'checkbox') {
+        if (input.checked) formData.set(input.name, input.value || 'on')
         return
       }
       formData.set(input.name, input.value)
@@ -432,7 +446,11 @@ export function MediaPicker({
                   <input type="hidden" name="folder" value={defaultFolder} />
                   <input type="hidden" name="purpose" value={defaultPurpose} />
                   {tag !== 'all' ? <input type="hidden" name="tag" value={tag} /> : null}
-                  <MediaFileField disabled={disabled || uploading || pending} />
+                  <MediaFileField
+                    disabled={disabled || uploading || pending}
+                    canChooseDecode={encodePolicy.canChooseDecode}
+                    canChooseResize={encodePolicy.canChooseResize}
+                  />
                   <label className="settings-field">
                     <span>Alt</span>
                     <input

@@ -11,7 +11,7 @@ import {
   resolveEnabledAdminNavModuleIds,
 } from '@/core/admin-nav'
 import { userIsDeveloperAdmin } from '@/core/auth/admin'
-import { getAppSession } from '@/core/auth/session'
+import { getAdminSession } from '@/core/auth/admin-session'
 import { getActiveAdminTheme } from '@/core/admin-theme'
 import {
   MODULE_IDS,
@@ -31,7 +31,7 @@ export default async function StarforgeAdminNav(props: ServerProps) {
   const settings = await ensureSiteSettingsDefaults()
   const theme = getActiveAdminTheme()
   const enabledModuleIds = resolveEnabledAdminNavModuleIds(settings)
-  const appSession = await getAppSession()
+  const appSession = await getAdminSession()
 
   const groups = buildAdminNavGroups({
     surface: 'payload',

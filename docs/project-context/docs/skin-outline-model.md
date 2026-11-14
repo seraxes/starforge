@@ -26,9 +26,9 @@
 | **Child outlines** | Created/duplicated under the active skin → `skin_id` set, `inheritFrom` = Base, empty local sections (live shell). |
 | **Core `default`** | Bootstrap fallback only — not a skin Base. Badge: **Core**. |
 | **Page assignment** | Nav menu item `layoutId` → layoutId-only pageKey row. Page Settings chrome is outline-gated (Base = `global`; children = `outline:<id>`). |
-| **System children** | Every pack seeds **Offline** (`{skinId}-offline`) + **404** (`{skinId}-not-found`) beside Base. Active skin takes over `/site-offline` and `/site-not-found` (not in Navigation). |
-| **Offline** | Hardcoded `/site-offline`; outline = active pack `*-offline` (Chrome `offlineLayoutId` honored only when that outline belongs to the active skin). |
-| **404** | Hardcoded `/site-not-found`; outline = active pack `*-not-found`. Locale `not-found` + thrown `error.tsx` recovery use this view. |
+| **System children** | Every pack seeds **Offline** (`{skinId}-offline`) + **404** (`{skinId}-not-found`) beside Base. Active skin owns offline + 404 (not in Navigation). |
+| **Offline** | Active skin’s offline page (same for everyone — no admin bypass). Site Chrome picks the outline + message; visitor login/menu live on the outline. Ops entry: `/admin/login` (admin chrome). `/site-offline` = proxy 503 plumbing. |
+| **404** | Active pack `*-not-found` is the 404 page. Locale `not-found` renders it; `/site-not-found` = client `error.tsx` recovery plumbing. |
 | **Public body CSS** | `body.sf-skin-{skinId}` + `body.sf-outline-{outlineId}` — unique classes; compound `body.sf-skin-*.sf-outline-*` always wins for outline vars |
 
 ## Public CSS hierarchy (Skin module)

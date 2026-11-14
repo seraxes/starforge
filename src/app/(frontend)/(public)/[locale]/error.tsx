@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import React, { useEffect } from 'react'
 
-/** Hardcoded system recovery URL — keep in sync with `SITE_NOT_FOUND_PATH`. */
+/** Plumbing URL — keep in sync with `SITE_NOT_FOUND_PATH`; lands on active skin 404 outline. */
 const SITE_NOT_FOUND_PATH = '/site-not-found'
 
 type Props = {
@@ -13,7 +13,7 @@ type Props = {
 
 /**
  * Locale error boundary — never shows stack / framework messages.
- * Recovers on the hardcoded `/site-not-found` system page (active skin 404 outline).
+ * Hard-navigates to `/site-not-found` plumbing so the active skin’s 404 outline can render.
  */
 export default function PublicLocaleError({ reset }: Props) {
   useEffect(() => {

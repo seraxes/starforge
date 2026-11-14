@@ -4,10 +4,20 @@ import { pathnameWithoutLocale } from '@/core/i18n/path'
 
 import { getPreferredLayoutId } from '@/core/skin/preferred-outline'
 
+import { GLOBAL_PAGE_CHROME_ID } from '@/core/db'
+
 import { HOME_PAGE_KEY } from './defaults'
 import { mergePageChrome } from './merge'
-import { isOutlineChromeRowId } from './outline-chrome'
-import { loadGlobalPageChrome, loadOutlinePageChrome, loadPageChromeOverride } from './store'
+import {
+  isOutlineChromeRowId,
+  outlineChromeRowId,
+} from './outline-chrome'
+import {
+  loadGlobalPageChrome,
+  loadOutlinePageChrome,
+  loadPageChromeOverride,
+  loadPageChromeRowUncached,
+} from './store'
 import type { PageChrome, ResolvedPageChrome } from './types'
 
 /**
@@ -131,10 +141,81 @@ export async function resolvePageChrome(pageKey: string | null): Promise<Resolve
   )
 }
 
+async function mergeOutlinePageChrome(
+  outlineId: string | null | undefined,
+  loadGlobal: () => Promise<{ chrome: PageChrome }>,
+  loadOutline: (layoutId: string) => Promise<{ chrome: PageChrome; isFallback: boolean }>,
+): Promise<ResolvedPageChrome> {
+  const [globalResult, preferredLayoutId] = await Promise.all([
+    loadGlobal(),
+    getPreferredLayoutId(),
+  ])
+  const mergeOpts = { fallbackLayoutId: preferredLayoutId }
+  const baseChrome = globalResult.chrome
+
+  const rawId = typeof outlineId === 'string' ? outlineId.trim() : ''
+  const { resolveExistingLayoutId } = await import('@/core/modules/layout-store')
+  const layoutId =
+    (rawId ? (await resolveExistingLayoutId(rawId)) || rawId : '') || preferredLayoutId
+
+  let outlineOverride: PageChrome | null = null
+  if (layoutId && layoutId !== preferredLayoutId) {
+    const outlineRow = await loadOutline(layoutId)
+    if (!outlineRow.isFallback) {
+      const { layoutId: _dropLayout, pageKey: _dropKey, ...rest } = outlineRow.chrome
+      outlineOverride = rest
+    }
+  }
+
+  return mergePageChrome(
+    baseChrome,
+    { ...(outlineOverride ?? {}), layoutId },
+    null,
+    mergeOpts,
+  )
+}
+
+/**
+ * Resolve document chrome for a known outline id (offline / 404 / system screens).
+ * Same Base ← outline sparse merge as public pages, without nav pageKey lookup.
+ */
+export async function resolvePageChromeForOutline(
+  outlineId: string | null | undefined,
+): Promise<ResolvedPageChrome> {
+  return mergeOutlinePageChrome(outlineId, loadGlobalPageChrome, loadOutlinePageChrome)
+}
+
+/**
+ * Uncached outline chrome for offline / 503 — skips published-content cache stalls.
+ */
+export async function resolvePageChromeForOutlineLive(
+  outlineId: string | null | undefined,
+): Promise<ResolvedPageChrome> {
+  return mergeOutlinePageChrome(
+    outlineId,
+    () => loadPageChromeRowUncached(GLOBAL_PAGE_CHROME_ID),
+    (layoutId) => loadPageChromeRowUncached(outlineChromeRowId(layoutId)),
+  )
+}
+
 /** Per-request dedupe for the same pageKey. */
 export const getResolvedPageChrome = cache(async (pageKey: string | null): Promise<ResolvedPageChrome> => {
   return resolvePageChrome(pageKey)
 })
+
+/** Per-request dedupe for system outlines (offline / not-found). */
+export const getResolvedPageChromeForOutline = cache(
+  async (outlineId: string | null | undefined): Promise<ResolvedPageChrome> => {
+    return resolvePageChromeForOutline(outlineId)
+  },
+)
+
+/** Per-request dedupe for live (uncached) system-outline chrome. */
+export const getResolvedPageChromeForOutlineLive = cache(
+  async (outlineId: string | null | undefined): Promise<ResolvedPageChrome> => {
+    return resolvePageChromeForOutlineLive(outlineId)
+  },
+)
 
 export async function getGlobalPageChrome(): Promise<PageChrome> {
   const result = await loadGlobalPageChrome()

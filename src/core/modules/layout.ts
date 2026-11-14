@@ -24,23 +24,29 @@ export async function getLayoutDocument(
   return bundle.document
 }
 
+async function loadPublicLayoutBundleUncached(id: string): Promise<PublicLayoutBundle> {
+  const loaded = await loadLayoutDocument(id)
+  const document = await resolveLayoutInheritance(loaded.layoutId, loaded.document)
+  return { document, layoutId: loaded.layoutId }
+}
+
 /** Public paint: resolved document + the outline id that actually loaded. */
 export async function getPublicLayoutBundle(
   layoutId?: string,
+  options?: { bypassCache?: boolean },
 ): Promise<PublicLayoutBundle> {
   const id =
     typeof layoutId === 'string' && layoutId.trim() ? layoutId.trim() : DEFAULT_LAYOUT_ID
+  if (options?.bypassCache) {
+    return loadPublicLayoutBundleUncached(id)
+  }
   return getPublishedContentCache().getCached(
     {
       key: ['sf', 'layout-bundle', id],
       tags: [contentCacheTags.layouts, contentCacheTags.layout(id)],
       revalidate: false,
     },
-    async () => {
-      const loaded = await loadLayoutDocument(id)
-      const document = await resolveLayoutInheritance(loaded.layoutId, loaded.document)
-      return { document, layoutId: loaded.layoutId }
-    },
+    () => loadPublicLayoutBundleUncached(id),
   )
 }
 

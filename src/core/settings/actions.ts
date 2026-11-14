@@ -1,6 +1,6 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
+import { revalidatePath } from '@/core/content/defer-revalidate'
 
 import { moduleOnOffAudit, recordAdminAudit } from '@/core/audit'
 import { resolveModuleToggleRequires } from '@/core/modules/requires-graph'

@@ -24,6 +24,7 @@ import type { LayoutDocument, LayoutSection } from '@/core/modules/types'
 
 import { LayoutOutlineProvider } from '../layouts/layout-outline-context'
 import { LayoutsAdminNav } from '../layouts/layouts-admin-nav'
+import { BodyBackgroundPanel } from './body-background-panel'
 import { BreakpointsForm } from './breakpoints-form'
 import { SectionStylesPanel } from './section-styles-panel'
 
@@ -32,7 +33,7 @@ export const dynamic = 'force-dynamic'
 export const metadata = {
   title: 'Styles — Layouts — Starforge',
   description:
-    'Outline-scoped section styles (colors, background image, overlay) and breakpoints.',
+    'Outline page background, section styles, and breakpoints.',
 }
 
 type SearchParams = Promise<{ outline?: string | string[] }> | { outline?: string | string[] }
@@ -92,6 +93,7 @@ export default async function AdminStylesPage(props: { searchParams?: SearchPara
       String(raw.inheritFrom).trim() &&
       String(raw.inheritFrom).trim() !== layoutId,
   )
+  const bodyInherited = Boolean(canInherit && hasParentLink && !raw.styles?.body)
 
   const sections = [...resolved.sections]
     .sort((a: LayoutSection, b: LayoutSection) =>
@@ -119,15 +121,24 @@ export default async function AdminStylesPage(props: { searchParams?: SearchPara
       />
       <h2>Styles</h2>
       <p className="lede admin-lede gantry-layouts-lede">
-        Live sections on outline <strong>{outlineMeta.label}</strong> — text/background colors,
-        background image, and overlay. On non-Base outlines, each Styles card can{' '}
-        <strong>Inherit</strong> or <strong>Copy</strong> from the parent. Breakpoints below stay
+        Page background sits behind outline <strong>{outlineMeta.label}</strong>. Section cards
+        below set text, background, and overlay on top of it. On non-Base outlines, each card can{' '}
+        <strong>Inherit</strong> or <strong>Copy</strong> from the parent. Breakpoints stay
         outline-scoped (<code>--sf-bp-*</code>).
       </p>
 
       <LayoutOutlineProvider layoutId={layoutId}>
         {/* Remount Styles/Breakpoints with the outline so autosave cannot bleed across outlines. */}
         <React.Fragment key={layoutId}>
+          <h3 className="section-styles-heading">Page background</h3>
+          <div className="section-styles-grid">
+            <BodyBackgroundPanel
+              body={bodyInherited ? resolved.styles?.body : raw.styles?.body}
+              inherited={bodyInherited}
+              canInherit={canInherit && hasParentLink}
+            />
+          </div>
+
           <h3 className="section-styles-heading">Section Styles</h3>
           <SectionStylesPanel
             sections={sections}

@@ -26,8 +26,8 @@ export const siteHeaderModule: StarforgeModule = {
     const showBrand = slot.config?.showBrand !== false
     let siteName = settings.siteName
     try {
-      const { getSiteChrome } = await import('@/core/site-chrome')
-      const chrome = await getSiteChrome()
+      const { getSiteChromeForProxy } = await import('@/core/site-chrome')
+      const chrome = await getSiteChromeForProxy()
       if (chrome.siteName.trim()) siteName = chrome.siteName.trim()
     } catch {
       // Site Chrome table may be missing before db:core:push.

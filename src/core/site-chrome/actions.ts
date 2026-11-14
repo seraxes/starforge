@@ -1,6 +1,6 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
+import { revalidatePath } from '@/core/content/defer-revalidate'
 
 import { requireAppAdmin } from '@/core/auth/admin'
 import { invalidateSiteChrome, invalidateSiteSettings } from '@/core/content/revalidate'
@@ -37,7 +37,9 @@ function parseBool(formData: FormData, key: string): boolean {
 }
 
 /**
- * Offline toggle / message / outline only.
+ * Offline toggle / outline pick.
+ * Copy lives on the outline in Layouts — not a hardcoded Chrome message body.
+ * Outline must belong to the active skin at render time (else pack `*-offline`).
  * No consent file sync, no cache tag bust — proxy reads the process snapshot
  * updated inside saveSiteChrome. Full Chrome autosave was wedging Turbopack.
  */
@@ -53,7 +55,6 @@ export async function updateSiteOfflineAction(
   try {
     await saveSiteChrome({
       offlineEnabled: parseBool(formData, 'offlineEnabled'),
-      offlineMessage: String(formData.get('offlineMessage') ?? ''),
       offlineLayoutId: String(formData.get('offlineLayoutId') ?? '').trim(),
     })
   } catch (error) {

@@ -2,7 +2,7 @@ import React from 'react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
-import { getAccessViewer } from '@/core/acl/access'
+import { getAdminAccessViewer } from '@/core/acl/access'
 import { ensureDefaultUserGroupsSeeded, listUserGroupOptions } from '@/core/acl'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { isRichEditorEnabled } from '@/modules/rich-editor/api.server'
@@ -44,7 +44,7 @@ export default async function EventsListPage({ searchParams }: { searchParams: S
 
   await ensureDefaultUserGroupsSeeded()
   await ensureEventRegistrationFormSeeded()
-  const viewer = await getAccessViewer()
+  const viewer = await getAdminAccessViewer()
   const [eventsRaw, venues, groups, moduleSettings, parties, users, categories, forms] =
     await Promise.all([
       listEvents({ status: status === 'all' ? undefined : status }),

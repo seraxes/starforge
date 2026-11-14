@@ -8,7 +8,9 @@ import sharp from 'sharp'
 import { applyMediaPipelineRules } from './apply-pipeline'
 import {
   DEFAULT_MEDIA_PIPELINE_RULES,
+  clampMediaEncodeFlags,
   normalizeMediaPipelineRules,
+  resolveMediaEncodePolicy,
 } from './pipeline'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
@@ -53,7 +55,21 @@ describe('applyMediaPipelineRules', () => {
     assert.equal(meta.format, 'webp')
   })
 
-  it('keeps PNG originals', async () => {
+  it('converts photo PNG to WebP', async () => {
+    const input = await tinyPng()
+    const out = await applyMediaPipelineRules({
+      buffer: input,
+      mimeType: 'image/png',
+      purpose: 'photo',
+      rules: DEFAULT_MEDIA_PIPELINE_RULES,
+    })
+    assert.equal(out.mimetype, 'image/webp')
+    assert.equal(out.extHint, 'webp')
+    const meta = await sharp(out.data).metadata()
+    assert.equal(meta.format, 'webp')
+  })
+
+  it('keeps logo PNG when keepPngForLogos is on', async () => {
     const input = await tinyPng()
     const out = await applyMediaPipelineRules({
       buffer: input,
@@ -75,6 +91,39 @@ describe('applyMediaPipelineRules', () => {
     })
     assert.equal(out.mimetype, 'image/jpeg')
     assert.equal(out.extHint, 'jpg')
+  })
+
+  it('keeps JPEG when decodeToWebp is false', async () => {
+    const input = await tinyJpeg()
+    const out = await applyMediaPipelineRules({
+      buffer: input,
+      mimeType: 'image/jpeg',
+      purpose: 'photo',
+      decodeToWebp: false,
+    })
+    assert.equal(out.mimetype, 'image/jpeg')
+    assert.equal(out.extHint, 'jpg')
+    const meta = await sharp(out.data).metadata()
+    assert.equal(meta.format, 'jpeg')
+  })
+
+  it('skips resize when resize is false', async () => {
+    const input = await tinyJpeg(800, 600)
+    const out = await applyMediaPipelineRules({
+      buffer: input,
+      mimeType: 'image/jpeg',
+      purpose: 'photo',
+      resize: false,
+      rules: normalizeMediaPipelineRules({
+        ...DEFAULT_MEDIA_PIPELINE_RULES,
+        maxWidth: 400,
+        maxHeight: 400,
+      }),
+    })
+    assert.equal(out.mimetype, 'image/webp')
+    const meta = await sharp(out.data).metadata()
+    assert.equal(meta.width, 800)
+    assert.equal(meta.height, 600)
   })
 
   it('passes non-images through', async () => {
@@ -168,6 +217,8 @@ describe('normalizeMediaPipelineRules', () => {
       jpegQuality: 0,
       webpQuality: 200,
       keepPngForLogos: false,
+      decodeByGroup: { editors: 'choose', junk: 'maybe' },
+      resizeByGroup: { editors: 'force' },
     })
     assert.equal(rules.maxWidth, 320)
     assert.equal(rules.maxHeight, 8192)
@@ -175,6 +226,56 @@ describe('normalizeMediaPipelineRules', () => {
     assert.equal(rules.webpQuality, 100)
     assert.equal(rules.keepPngForLogos, false)
     assert.equal(rules.photoOriginalFormat, 'webp')
+    assert.deepEqual(rules.decodeByGroup, { editors: 'choose' })
+    assert.deepEqual(rules.resizeByGroup, { editors: 'force' })
+  })
+})
+
+describe('resolveMediaEncodePolicy + clampMediaEncodeFlags', () => {
+  const rules = normalizeMediaPipelineRules({
+    decodeByGroup: { editors: 'choose' },
+    resizeByGroup: { editors: 'choose', managers: 'force' },
+  })
+
+  it('app admin always can choose', () => {
+    const policy = resolveMediaEncodePolicy(
+      { isAppAdmin: true, groupIds: [] },
+      rules,
+    )
+    assert.deepEqual(policy, { canChooseDecode: true, canChooseResize: true })
+  })
+
+  it('union of group choose wins', () => {
+    const policy = resolveMediaEncodePolicy(
+      { isAppAdmin: false, groupIds: ['editors', 'managers'] },
+      rules,
+    )
+    assert.equal(policy.canChooseDecode, true)
+    assert.equal(policy.canChooseResize, true)
+  })
+
+  it('missing group stays forced', () => {
+    const policy = resolveMediaEncodePolicy(
+      { isAppAdmin: false, groupIds: ['members'] },
+      rules,
+    )
+    assert.deepEqual(policy, { canChooseDecode: false, canChooseResize: false })
+  })
+
+  it('forced viewers ignore posted off flags', () => {
+    const flags = clampMediaEncodeFlags(
+      { canChooseDecode: false, canChooseResize: false },
+      { decodeToWebp: false, resize: false },
+    )
+    assert.deepEqual(flags, { decodeToWebp: true, resize: true })
+  })
+
+  it('choosers keep posted off flags', () => {
+    const flags = clampMediaEncodeFlags(
+      { canChooseDecode: true, canChooseResize: true },
+      { decodeToWebp: false, resize: false },
+    )
+    assert.deepEqual(flags, { decodeToWebp: false, resize: false })
   })
 })
 

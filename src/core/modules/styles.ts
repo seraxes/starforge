@@ -4,7 +4,7 @@
  * CSS ownership (keep layers separate — do not mix into admin chrome):
  * 1) Design tokens — platform `:root` + Skin `body.sf-skin-{id}`
  * 2) Outline Layout Styles — `body.sf-skin-*.sf-outline-*` breakpoints +
- *    section full/boxed + section bg/text/image/overlay
+ *    page (body) background + section full/boxed + section bg/text/image/overlay
  * 3) Custom CSS — Page Settings / Custom particle (not admin chrome)
  *
  * Section Styles live on each live section instance (`section.styles`) — listing
@@ -58,9 +58,29 @@ export type LayoutBreakpoints = {
   mobileMenu: string
 }
 
-/** Outline document `styles` bag (breakpoints now; accents later). */
+/** How a page background image is fitted on the body. */
+export type LayoutBodyBackgroundFit = 'cover-fixed' | 'cover-scroll' | 'contain' | 'tile'
+
+/**
+ * Outline page background — paints on `body` behind every section that does
+ * not set its own fill. `disabled` blocks an inherited parent background.
+ */
+export type LayoutBodyBackground = {
+  disabled?: boolean
+  backgroundColor?: string
+  /** Payload Media id (primary). */
+  backgroundMediaId?: string
+  /** URL fallback when no media id, or the resolved public URL at paint time. */
+  backgroundImage?: string
+  backgroundSize?: 'cover' | 'contain'
+  backgroundAttachment?: 'scroll' | 'fixed'
+  backgroundRepeat?: 'no-repeat' | 'repeat'
+}
+
+/** Outline document `styles` bag (breakpoints + page background). */
 export type LayoutDocumentStyles = {
-  breakpoints: LayoutBreakpoints
+  breakpoints?: LayoutBreakpoints
+  body?: LayoutBodyBackground
 }
 
 /** Gantry Helium–style rem presets (16px root). */
@@ -94,11 +114,78 @@ export function normalizeLayoutBreakpoints(raw: unknown): LayoutBreakpoints {
   }
 }
 
+export function bodyBackgroundFit(
+  body: LayoutBodyBackground | null | undefined,
+): LayoutBodyBackgroundFit {
+  if (body?.backgroundRepeat === 'repeat') return 'tile'
+  if (body?.backgroundSize === 'contain') return 'contain'
+  if (body?.backgroundAttachment === 'scroll') return 'cover-scroll'
+  return 'cover-fixed'
+}
+
+export function layoutBodyBackgroundFromFit(
+  fit: LayoutBodyBackgroundFit,
+): Pick<LayoutBodyBackground, 'backgroundSize' | 'backgroundAttachment' | 'backgroundRepeat'> {
+  if (fit === 'tile') {
+    return { backgroundSize: 'cover', backgroundAttachment: 'scroll', backgroundRepeat: 'repeat' }
+  }
+  if (fit === 'contain') {
+    return { backgroundSize: 'contain', backgroundAttachment: 'fixed', backgroundRepeat: 'no-repeat' }
+  }
+  if (fit === 'cover-scroll') {
+    return { backgroundSize: 'cover', backgroundAttachment: 'scroll', backgroundRepeat: 'no-repeat' }
+  }
+  return { backgroundSize: 'cover', backgroundAttachment: 'fixed', backgroundRepeat: 'no-repeat' }
+}
+
+export function normalizeLayoutBodyBackground(raw: unknown): LayoutBodyBackground | undefined {
+  if (!raw || typeof raw !== 'object') return undefined
+  const src = raw as Partial<LayoutBodyBackground>
+  const disabled = asBoolFlag(src.disabled) === true
+  const backgroundColor = sanitizeCssColor(src.backgroundColor)
+  const backgroundMediaId = sanitizeBackgroundMediaId(src.backgroundMediaId)
+  const backgroundImage = sanitizeBackgroundImageUrl(src.backgroundImage)
+  const backgroundSize = src.backgroundSize === 'contain' ? 'contain' : src.backgroundSize === 'cover' ? 'cover' : undefined
+  const backgroundAttachment =
+    src.backgroundAttachment === 'scroll' || src.backgroundAttachment === 'fixed'
+      ? src.backgroundAttachment
+      : undefined
+  const backgroundRepeat =
+    src.backgroundRepeat === 'repeat' || src.backgroundRepeat === 'no-repeat'
+      ? src.backgroundRepeat
+      : undefined
+  if (
+    !disabled &&
+    !backgroundColor &&
+    !backgroundMediaId &&
+    !backgroundImage
+  ) {
+    return undefined
+  }
+  return {
+    ...(disabled ? { disabled: true } : {}),
+    ...(backgroundColor ? { backgroundColor } : {}),
+    ...(backgroundMediaId ? { backgroundMediaId } : {}),
+    ...(backgroundImage ? { backgroundImage } : {}),
+    ...(backgroundSize ? { backgroundSize } : {}),
+    ...(backgroundAttachment ? { backgroundAttachment } : {}),
+    ...(backgroundRepeat ? { backgroundRepeat } : {}),
+  }
+}
+
 export function normalizeLayoutOutlineStyles(raw: unknown): LayoutDocumentStyles | undefined {
   if (!raw || typeof raw !== 'object') return undefined
-  const breakpointsRaw = (raw as { breakpoints?: unknown }).breakpoints
-  if (breakpointsRaw === undefined) return undefined
-  return { breakpoints: normalizeLayoutBreakpoints(breakpointsRaw) }
+  const src = raw as { breakpoints?: unknown; body?: unknown }
+  const breakpoints =
+    src.breakpoints !== undefined && src.breakpoints !== null
+      ? normalizeLayoutBreakpoints(src.breakpoints)
+      : undefined
+  const body = normalizeLayoutBodyBackground(src.body)
+  if (!breakpoints && !body) return undefined
+  return {
+    ...(breakpoints ? { breakpoints } : {}),
+    ...(body ? { body } : {}),
+  }
 }
 
 /** Resolve section container mode; page default fills when section omits the field. */
@@ -376,4 +463,42 @@ export function buildOutlineBreakpointCss(
     `}`,
     `}`,
   ].join('')
+}
+
+/**
+ * Page background on the outline body selector.
+ * An image replaces the default body gradient and lets the footer stay clear
+ * so the picture sits behind the whole page. Section styles still paint on top.
+ */
+export function buildOutlineBodyBackgroundCss(
+  layoutId: string,
+  skinId: string | null | undefined,
+  body: LayoutBodyBackground | null | undefined,
+): string {
+  const normalized = normalizeLayoutBodyBackground(body)
+  if (!normalized || normalized.disabled) return ''
+  const image = normalized.backgroundImage
+  const color = normalized.backgroundColor
+  if (!image && !color) return ''
+
+  const outlineId = sanitizeCssScopeId(layoutId, 'default')
+  const resolvedSkin =
+    typeof skinId === 'string' && skinId.trim() ? skinId.trim() : 'default'
+  const sel = skinOutlineBodySelector(resolvedSkin, outlineId)
+  const fit = bodyBackgroundFit(normalized)
+  const size = fit === 'contain' ? 'contain' : fit === 'tile' ? 'auto' : 'cover'
+  const attachment = fit === 'cover-scroll' || fit === 'tile' ? 'scroll' : 'fixed'
+  const repeat = fit === 'tile' ? 'repeat' : 'no-repeat'
+  const rules: string[] = []
+  if (color) rules.push(`background-color:${color};`)
+  if (image) {
+    rules.push(`background-image:url(${JSON.stringify(image)});`)
+    rules.push(`background-size:${size};`)
+    rules.push('background-position:center center;')
+    rules.push(`background-repeat:${repeat};`)
+    rules.push(`background-attachment:${attachment};`)
+  }
+  const css = `${sel}{${rules.join('')}}`
+  if (!image) return css
+  return `${css}${sel} .site-footer{background-color:transparent;}`
 }

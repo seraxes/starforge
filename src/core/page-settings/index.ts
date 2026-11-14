@@ -40,6 +40,7 @@ export type { PageChromeInheritKey } from './inherit-fields'
 export {
   DEVELOPER_ADMIN_CHROME_KEYS,
   applyDeveloperAdminGate,
+  mergeAssetList,
   mergePageChrome,
   normalizePageChrome,
   parsePageChromeJson,
@@ -57,9 +58,13 @@ export {
   getGlobalPageChrome,
   getPageChromeOverride,
   getResolvedPageChrome,
+  getResolvedPageChromeForOutline,
+  getResolvedPageChromeForOutlineLive,
   pageKeyFromPathname,
   publicPathnameFromHeaders,
   resolvePageChrome,
+  resolvePageChromeForOutline,
+  resolvePageChromeForOutlineLive,
 } from './resolve'
 export { viewerCanSeePageChrome } from './view-access'
 export {
@@ -71,6 +76,7 @@ export {
   loadOutlinePageChrome,
   loadPageChromeOverride,
   loadPageChromeRow,
+  loadPageChromeRowUncached,
   savePageChrome,
 } from './store'
 export type {

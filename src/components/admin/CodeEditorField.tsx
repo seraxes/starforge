@@ -7,6 +7,10 @@ import { html } from '@codemirror/lang-html'
 import { javascript } from '@codemirror/lang-javascript'
 import { json } from '@codemirror/lang-json'
 
+import {
+  SETTINGS_PANEL_MIN_WIDTH,
+  SF_SETTINGS_PANEL_SET_SIZE,
+} from './useFloatingSettingsPanel'
 import { starforgeAdminCmTheme } from './starforge-admin-cm-theme'
 
 export type CodeEditorLanguage = 'html' | 'css' | 'javascript' | 'json'
@@ -18,9 +22,10 @@ type Props = {
   language: CodeEditorLanguage
   initialValue?: string
   placeholder?: string
-  /** Starting editor height in CSS px; panel is vertically resizable. */
+  /** Starting editor height in CSS px; SE corner grows this field only (vertically). */
   initialHeight?: number
   minHeight?: number
+  maxHeight?: number
   hint?: string
   /** Fired on each edit — use for debounced form autosave. */
   onValueChange?: (value: string) => void
@@ -44,8 +49,8 @@ function languageExtension(language: CodeEditorLanguage) {
 
 /**
  * Syntax-highlighted code field for layout Custom / Page Settings / atoms.
- * CodeMirror 6 via `@uiw/react-codemirror` — Starforge admin Gantry navy theme
- * (works in `.admin-shell` and portaled `.gantry-settings-theme-dark` popups).
+ * SE corner: grows the parent settings popup both ways; vertically only this
+ * editor gets taller (siblings stretch horizontally with the window only).
  */
 export function CodeEditorField({
   name,
@@ -55,6 +60,7 @@ export function CodeEditorField({
   placeholder,
   initialHeight = 160,
   minHeight = 96,
+  maxHeight = 640,
   hint,
   onValueChange,
   labelEnd,
@@ -79,7 +85,7 @@ export function CodeEditorField({
       {name ? <input type="hidden" name={name} value={value} /> : null}
       <div
         className="sf-code-field-panel sf-code-field-panel-dark"
-        style={{ height }}
+        style={{ height, width: '100%', maxWidth: '100%' }}
         data-language={language}
       >
         <CodeMirror
@@ -102,28 +108,43 @@ export function CodeEditorField({
           aria-labelledby={labelId}
           className="sf-code-mirror"
         />
-        <div
-          className="sf-code-field-resize"
-          role="separator"
-          aria-orientation="horizontal"
+        <button
+          type="button"
+          className="gantry-settings-resize-handle sf-code-field-resize"
           aria-label={`Resize ${label} editor`}
-          aria-valuemin={minHeight}
-          aria-valuemax={640}
-          aria-valuenow={height}
-          tabIndex={0}
+          title="Drag: grow popup · this editor taller"
           onPointerDown={(event) => {
             event.preventDefault()
+            event.stopPropagation()
+            const startX = event.clientX
             const startY = event.clientY
             const startHeight = height
+            const settingsPanel = event.currentTarget.closest(
+              '.gantry-settings-panel',
+            ) as HTMLElement | null
+            const startRect = settingsPanel?.getBoundingClientRect()
+            const startPanelWidth = startRect?.width ?? SETTINGS_PANEL_MIN_WIDTH
+            const startPanelHeight = startRect?.height ?? startHeight
             const target = event.currentTarget
             target.setPointerCapture(event.pointerId)
 
             const onMove = (moveEvent: PointerEvent) => {
-              const next = Math.min(
-                640,
+              const nextH = Math.min(
+                maxHeight,
                 Math.max(minHeight, startHeight + (moveEvent.clientY - startY)),
               )
-              setHeight(next)
+              const fieldDeltaY = nextH - startHeight
+              setHeight(nextH)
+              if (settingsPanel) {
+                settingsPanel.dispatchEvent(
+                  new CustomEvent(SF_SETTINGS_PANEL_SET_SIZE, {
+                    detail: {
+                      width: startPanelWidth + (moveEvent.clientX - startX),
+                      height: startPanelHeight + fieldDeltaY,
+                    },
+                  }),
+                )
+              }
             }
             const onUp = (upEvent: PointerEvent) => {
               target.releasePointerCapture(upEvent.pointerId)
@@ -134,12 +155,39 @@ export function CodeEditorField({
             window.addEventListener('pointerup', onUp)
           }}
           onKeyDown={(event) => {
-            if (event.key === 'ArrowUp') {
+            const settingsPanel = event.currentTarget.closest(
+              '.gantry-settings-panel',
+            ) as HTMLElement | null
+            if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
               event.preventDefault()
-              setHeight((h) => Math.max(minHeight, h - 16))
-            } else if (event.key === 'ArrowDown') {
+              const delta = event.key === 'ArrowDown' ? 16 : -16
+              const nextH = Math.min(maxHeight, Math.max(minHeight, height + delta))
+              const fieldDeltaY = nextH - height
+              setHeight(nextH)
+              if (settingsPanel) {
+                const rect = settingsPanel.getBoundingClientRect()
+                settingsPanel.dispatchEvent(
+                  new CustomEvent(SF_SETTINGS_PANEL_SET_SIZE, {
+                    detail: {
+                      width: rect.width,
+                      height: rect.height + fieldDeltaY,
+                    },
+                  }),
+                )
+              }
+            } else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
               event.preventDefault()
-              setHeight((h) => Math.min(640, h + 16))
+              if (!settingsPanel) return
+              const rect = settingsPanel.getBoundingClientRect()
+              const delta = event.key === 'ArrowRight' ? 16 : -16
+              settingsPanel.dispatchEvent(
+                new CustomEvent(SF_SETTINGS_PANEL_SET_SIZE, {
+                  detail: {
+                    width: rect.width + delta,
+                    height: rect.height,
+                  },
+                }),
+              )
             }
           }}
         />

@@ -1,6 +1,6 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
+import { revalidatePath } from '@/core/content/defer-revalidate'
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate'
 
 import { requireAppAdmin } from '@/core/auth/admin'

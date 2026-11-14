@@ -1,13 +1,17 @@
 import 'server-only'
 
-import { getSiteChrome, saveSiteChrome } from '@/core/site-chrome/store'
+import { getSiteChromeForProxy, saveSiteChrome } from '@/core/site-chrome/store'
 
 import { normalizeLocalizationSettings } from './normalize'
 import type { LocalizationSettings } from './types'
 
-/** Load localization settings (from Site Chrome JSON storage). */
+/**
+ * Load localization settings (from Site Chrome JSON storage).
+ * Uses the live Chrome snapshot — not published-content `unstable_cache` —
+ * so proxy i18n / offline plumbing cannot stall on `revalidateTag({ expire: 0 })`.
+ */
 export async function getLocalizationSettings(): Promise<LocalizationSettings> {
-  const chrome = await getSiteChrome()
+  const chrome = await getSiteChromeForProxy()
   return normalizeLocalizationSettings({
     localeCatalog: chrome.localeCatalog,
     localesEnabled: chrome.localesEnabled,

@@ -291,7 +291,8 @@ export const sfFormSettings = pgTable('sf_form_settings', {
 export const MEDIA_PIPELINE_SETTINGS_ID = 'global'
 
 /**
- * Media pipeline settings — max W×H, JPEG/WebP quality, PNG-for-logos.
+ * Media pipeline settings — max W×H, JPEG/WebP quality, PNG-for-logos,
+ * derivative sizes, and per-group decode/resize choice maps.
  * Document JSON is MediaPipelineRules (`src/core/media/pipeline.ts`).
  */
 export const sfMediaSettings = pgTable('sf_media_settings', {

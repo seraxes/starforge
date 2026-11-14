@@ -4,12 +4,13 @@
  */
 
 /**
- * Who-can-see tag — `group:<id>` maps to Users → Groups (no separate Access Level entity).
- * Items store multiple tags; visible if the viewer matches **any** (OR).
+ * Who-can-see tag — `group:<id>` maps to Users → Groups; `role:admin` is the
+ * Better Auth platform role. Items store multiple tags; visible if any match (OR).
  */
 export type NavAccessLevel =
   | 'public'
   | 'registered'
+  | 'role:admin'
   | `group:${string}`
 
 /**
@@ -17,8 +18,9 @@ export type NavAccessLevel =
  * - `page` — Payload CMS page
  * - `url` — path or absolute URL (legacy storage may still say `custom`)
  * - `module` — installed/enabled module navigable view
+ * - `admin` — Core admin home (`/admin`), no locale prefix; requires role:admin and/or a group
  */
-export type NavLinkType = 'page' | 'url' | 'module'
+export type NavLinkType = 'page' | 'url' | 'module' | 'admin'
 
 export type NavMenuItem = {
   id: string
@@ -54,7 +56,7 @@ export type NavMenuItem = {
    */
   layoutId?: string | null
   /**
-   * Multi-select access tags (`public` / `registered` / `group:<id>`).
+   * Multi-select access tags (`public` / `registered` / `role:admin` / `group:<id>`).
    * Visible if viewer matches any tag. Default `['public']`.
    */
   accessTags: string[]

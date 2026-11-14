@@ -18,6 +18,44 @@ body:has(.admin-shell) > main {
   background: transparent;
 }
 
+/* `/admin/login` — same auth-page layout as public `/login`, admin tokens. */
+.admin-shell.admin-login-shell {
+  min-height: 100vh;
+  display: block;
+  background: var(--sf-admin-bg, #212933);
+}
+
+.admin-shell .admin-login-page {
+  color: var(--sf-admin-ink, #e8eef8);
+}
+
+.admin-shell .admin-login-page .auth-card .brand,
+.admin-shell .admin-login-page .auth-card h1,
+.admin-shell .admin-login-page .auth-card .lede,
+.admin-shell .admin-login-page .auth-card .auth-hint,
+.admin-shell .admin-login-page .auth-card label {
+  color: var(--sf-admin-ink, #e8eef8);
+}
+
+.admin-shell .admin-login-page .auth-card a {
+  color: var(--sf-admin-blue-mid, #3498db);
+}
+
+.admin-shell .admin-login-page .auth-form input,
+.admin-shell .admin-login-page .auth-form select {
+  background: var(--sf-admin-input, #152033);
+  color: var(--sf-admin-input-ink, #fff);
+  border: 1px solid var(--sf-admin-blue-border, #1e4d72);
+  border-radius: var(--sf-admin-btn-radius, 2px);
+}
+
+.admin-shell .admin-login-page .auth-form button[type='submit'],
+.admin-shell .admin-login-page .gantry-btn-primary {
+  background: var(--sf-admin-primary, #e67e22);
+  border-color: var(--sf-admin-primary, #e67e22);
+  color: #fff;
+}
+
 .admin-shell {
   /* —— Steal Gantry Helium layout chrome —— */
   --sf-admin-bg: #212933; /* denser Gantry navy canvas */
@@ -659,7 +697,7 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .admin-sidebar-account:hover,
-.admin-shell .admin-sidebar-account:focus-visible {
+.admin-shell .admin-sidebar-account:focus-within {
   border-color: var(--sf-admin-blue-border, #4aa3df);
   background: color-mix(in srgb, var(--sf-admin-nav-active, #3498db) 32%, #1a2433);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--sf-admin-blue-border, #4aa3df) 50%, transparent);
@@ -672,9 +710,19 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .admin-sidebar-account:hover .admin-sidebar-avatar,
-.admin-shell .admin-sidebar-account:focus-visible .admin-sidebar-avatar {
+.admin-shell .admin-sidebar-account:focus-within .admin-sidebar-avatar {
   border-color: var(--sf-admin-blue-border, #4aa3df);
   background: var(--sf-admin-nav-active, #3498db);
+  color: #fff;
+}
+
+.admin-shell .admin-sidebar-account-signout-btn {
+  color: color-mix(in srgb, #fff 72%, transparent);
+}
+
+.admin-shell .admin-sidebar-account-signout-btn:hover,
+.admin-shell .admin-sidebar-account-signout-btn:focus-visible {
+  background: color-mix(in srgb, var(--sf-admin-blue-mid, #2c7cb8) 28%, transparent);
   color: #fff;
 }
 
@@ -2120,11 +2168,13 @@ body:has(.admin-shell) > main {
   background:
     linear-gradient(
       135deg,
-      transparent 0 46%,
-      color-mix(in srgb, #8ebad4 55%, transparent) 46% 54%,
-      transparent 54% 68%,
-      color-mix(in srgb, #8ebad4 70%, transparent) 68% 76%,
-      transparent 76%
+      transparent 0 38%,
+      rgba(142, 186, 212, 0.75) 38% 44%,
+      transparent 44% 52%,
+      rgba(142, 186, 212, 0.9) 52% 58%,
+      transparent 58% 66%,
+      #cfe3f7 66% 72%,
+      transparent 72%
     );
 }
 
@@ -2133,11 +2183,13 @@ body:has(.admin-shell) > main {
   background:
     linear-gradient(
       135deg,
-      transparent 0 46%,
-      color-mix(in srgb, #ef9550 65%, transparent) 46% 54%,
-      transparent 54% 68%,
-      color-mix(in srgb, #ef9550 80%, transparent) 68% 76%,
-      transparent 76%
+      transparent 0 38%,
+      #ef9550 38% 44%,
+      transparent 44% 52%,
+      #f0a56a 52% 58%,
+      transparent 58% 66%,
+      #ffc08a 66% 72%,
+      transparent 72%
     );
 }
 
@@ -2341,11 +2393,47 @@ body:has(.admin-shell) > main {
   background: rgba(52, 152, 219, 0.14) !important;
 }
 
-.gantry-settings-theme-dark .sf-code-field-resize {
-  background:
-    linear-gradient(to bottom, transparent 35%, #1e4d72 35%, #1e4d72 45%, transparent 45%),
-    color-mix(in srgb, var(--sf-secondary, #8ebad4) 10%, #0f1a2a);
-  border-top-color: #1e4d72;
+.gantry-settings-theme-dark .sf-code-field-panel > .sf-code-field-resize.gantry-settings-resize-handle {
+  /* Beat form button chrome — transparent pad, only 45° grip lines. */
+  min-width: 0 !important;
+  min-height: 0 !important;
+  width: 1.35rem !important;
+  height: 1.35rem !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 0 3px 0 !important;
+  box-shadow: none !important;
+  color: transparent !important;
+  background-color: transparent !important;
+  background-image: linear-gradient(
+    135deg,
+    transparent 0 38%,
+    rgba(255, 255, 255, 0.55) 38% 44%,
+    transparent 44% 52%,
+    rgba(255, 255, 255, 0.7) 52% 58%,
+    transparent 58% 66%,
+    rgba(255, 255, 255, 0.85) 66% 72%,
+    transparent 72%
+  ) !important;
+}
+
+.gantry-settings-theme-dark
+  .sf-code-field-panel
+  > .sf-code-field-resize.gantry-settings-resize-handle:hover,
+.gantry-settings-theme-dark
+  .sf-code-field-panel
+  > .sf-code-field-resize.gantry-settings-resize-handle:focus-visible {
+  background-color: transparent !important;
+  background-image: linear-gradient(
+    135deg,
+    transparent 0 38%,
+    #ef9550 38% 44%,
+    transparent 44% 52%,
+    #f0a56a 52% 58%,
+    transparent 58% 66%,
+    #ffc08a 66% 72%,
+    transparent 72%
+  ) !important;
 }
 
 .gantry-settings-theme-dark .gantry-color-swatch {
@@ -2376,8 +2464,14 @@ body:has(.admin-shell) > main {
 .gantry-settings-theme-dark .gantry-settings-panel .gantry-typed-form button.secondary,
 .gantry-settings-theme-dark .gantry-settings-panel .gantry-custom-form button.secondary,
 .gantry-settings-theme-dark .gantry-slot-extra-actions button.secondary,
-.gantry-settings-theme-dark .gantry-settings-panel .gantry-typed-form button:not(.secondary):not(.danger):not([type='submit']),
-.gantry-settings-theme-dark .gantry-settings-panel .gantry-custom-form button:not(.secondary):not(.danger):not([type='submit']),
+.gantry-settings-theme-dark
+  .gantry-settings-panel
+  .gantry-typed-form
+  button:not(.secondary):not(.danger):not([type='submit']):not(.gantry-settings-resize-handle):not(.sf-code-field-resize),
+.gantry-settings-theme-dark
+  .gantry-settings-panel
+  .gantry-custom-form
+  button:not(.secondary):not(.danger):not([type='submit']):not(.gantry-settings-resize-handle):not(.sf-code-field-resize),
 .gantry-settings-theme-dark .gantry-settings-panel .gantry-typed-form button[type='submit'],
 .gantry-settings-theme-dark .gantry-settings-panel .gantry-custom-form button[type='submit'] {
   border-radius: var(--sf-admin-btn-radius, 3px);
@@ -2395,8 +2489,14 @@ body:has(.admin-shell) > main {
   color: #fff;
 }
 
-.gantry-settings-theme-dark .gantry-settings-panel .gantry-typed-form button:not(.secondary):not(.danger):not([type='submit']),
-.gantry-settings-theme-dark .gantry-settings-panel .gantry-custom-form button:not(.secondary):not(.danger):not([type='submit']) {
+.gantry-settings-theme-dark
+  .gantry-settings-panel
+  .gantry-typed-form
+  button:not(.secondary):not(.danger):not([type='submit']):not(.gantry-settings-resize-handle):not(.sf-code-field-resize),
+.gantry-settings-theme-dark
+  .gantry-settings-panel
+  .gantry-custom-form
+  button:not(.secondary):not(.danger):not([type='submit']):not(.gantry-settings-resize-handle):not(.sf-code-field-resize) {
   background: #3182ce;
   border: 1px solid #2a6faf;
   color: #fff;
@@ -2514,11 +2614,32 @@ body:has(.admin-shell) > main {
   background: rgba(52, 152, 219, 0.14) !important;
 }
 
-.admin-shell .sf-code-field-resize {
-  background:
-    linear-gradient(to bottom, transparent 35%, #1e4d72 35%, #1e4d72 45%, transparent 45%),
-    color-mix(in srgb, var(--sf-secondary) 10%, #0f1a2a);
-  border-top-color: #1e4d72;
+.admin-shell .sf-code-field-panel > .sf-code-field-resize.gantry-settings-resize-handle {
+  min-width: 0 !important;
+  min-height: 0 !important;
+  width: 1.35rem !important;
+  height: 1.35rem !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background-color: transparent !important;
+  background-image: linear-gradient(
+    135deg,
+    transparent 0 38%,
+    rgba(255, 255, 255, 0.55) 38% 44%,
+    transparent 44% 52%,
+    rgba(255, 255, 255, 0.7) 52% 58%,
+    transparent 58% 66%,
+    rgba(255, 255, 255, 0.85) 66% 72%,
+    transparent 72%
+  ) !important;
+}
+
+.admin-shell .gantry-particle-presets {
+  gap: 0.4rem 0.5rem;
+}
+
+.admin-shell .gantry-particle-preset-field select {
+  min-height: var(--sf-admin-btn-min-height, 2.15rem);
 }
 
 .admin-shell .gantry-social-editor-item {
@@ -2985,11 +3106,11 @@ body:has(.admin-shell) > main {
  * anchors. :not(.class) adds class specificity, so this rule previously beat
  * `.admin-sidebar-*` color declarations (sizes still applied; colors did not).
  */
-.admin-shell a:not(.admin-nav > a):not(.admin-nav-dropdown-trigger):not(.button-link):not(.gantry-toolbar-btn):not(.links a):not(.admin-sidebar-logo):not(.admin-sidebar-link):not(.admin-sidebar-sublink):not(.admin-sidebar-account):not(.admin-sidebar-check-site) {
+.admin-shell a:not(.admin-nav > a):not(.admin-nav-dropdown-trigger):not(.button-link):not(.gantry-toolbar-btn):not(.links a):not(.admin-sidebar-logo):not(.admin-sidebar-link):not(.admin-sidebar-sublink):not(.admin-sidebar-account-link):not(.admin-sidebar-check-site) {
   color: var(--sf-secondary-strong);
 }
 
-.admin-shell a:not(.admin-nav > a):not(.admin-nav-dropdown-trigger):not(.button-link):not(.gantry-toolbar-btn):not(.admin-sidebar-logo):not(.admin-sidebar-link):not(.admin-sidebar-sublink):not(.admin-sidebar-account):not(.admin-sidebar-check-site):hover {
+.admin-shell a:not(.admin-nav > a):not(.admin-nav-dropdown-trigger):not(.button-link):not(.gantry-toolbar-btn):not(.admin-sidebar-logo):not(.admin-sidebar-link):not(.admin-sidebar-sublink):not(.admin-sidebar-account-link):not(.admin-sidebar-check-site):hover {
   color: var(--sf-primary-strong);
 }
 
@@ -3014,6 +3135,7 @@ body:has(.admin-shell) > main {
 .admin-shell .admin-sidebar .admin-sidebar-nestlink,
 .admin-shell .admin-sidebar .admin-sidebar-account-name,
 .admin-shell .admin-sidebar .admin-sidebar-account,
+.admin-shell .admin-sidebar .admin-sidebar-account-link,
 .admin-shell .admin-sidebar .admin-sidebar-check-site,
 .admin-shell .admin-sidebar .admin-sidebar-check-site-label {
   color: #fff !important;
@@ -3472,6 +3594,7 @@ body:has(.admin-shell) > main {
 .admin-shell .settings-fieldset > .page-settings-actions,
 .admin-shell .page-settings-panel > .page-settings-actions,
 .admin-shell .page-settings-panel-body > .page-settings-actions,
+.admin-shell .section-styles-form > .page-settings-actions,
 .admin-shell .sf-events-form-actions,
 .admin-shell .sf-events-inline-editor > .admin-action-row,
 .admin-shell .sf-events-add-inline-form > .page-settings-actions,
@@ -3831,8 +3954,36 @@ body:has(.admin-shell) > main {
   background: color-mix(in srgb, var(--sf-admin-panel) 92%, #0d1218);
 }
 
-.admin-shell .sf-media-library-upload .sf-media-file-field {
+.admin-shell .sf-media-library-upload .sf-media-file-field-row {
   margin: 0 0.85rem 0.75rem;
+}
+
+.admin-shell .sf-media-file-field-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0.65rem 0.85rem;
+}
+
+.admin-shell .sf-media-file-field-row .sf-media-file-field {
+  flex: 1 1 14rem;
+  min-width: 0;
+  margin: 0;
+}
+
+.admin-shell .sf-media-file-field-options {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+  min-width: 9.5rem;
+  padding: 0.15rem 0;
+}
+
+.admin-shell .sf-media-file-field-options .settings-flag {
+  margin: 0;
+  white-space: nowrap;
 }
 
 .admin-shell .sf-media-file-field {
@@ -3846,6 +3997,40 @@ body:has(.admin-shell) > main {
   transition:
     border-color 0.15s ease,
     background 0.15s ease;
+}
+
+.admin-shell .sf-media-encode-policy-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.35rem;
+}
+
+.admin-shell .sf-media-encode-policy-head,
+.admin-shell .sf-media-encode-policy-row {
+  display: grid;
+  grid-template-columns: minmax(8rem, 1.4fr) minmax(7rem, 1fr) minmax(7rem, 1fr);
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+}
+
+.admin-shell .sf-media-encode-policy-head {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--sf-muted);
+}
+
+.admin-shell .sf-media-encode-policy-group {
+  font-size: 0.9rem;
+  color: var(--sf-ink);
+}
+
+.admin-shell .sf-media-encode-policy-row .settings-field {
+  margin: 0;
+}
+
+.admin-shell .sf-media-picker-upload .sf-media-file-field-row {
+  margin: 0 0 0.65rem;
 }
 
 .admin-shell .sf-media-file-field.is-dragging,

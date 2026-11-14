@@ -9,7 +9,7 @@ import {
 } from '@/core/dashboard'
 import { DashboardSoftRefresh } from '@/core/dashboard/DashboardSoftRefresh'
 import {
-  getAccessViewer,
+  getAdminAccessViewer,
   listViewerAllowedAdminResources,
   type AclAdminResourceKey,
 } from '@/core/acl'
@@ -31,7 +31,7 @@ export const metadata = {
  */
 export default async function CoreAdminDashboardPage() {
   const settings = await ensureSiteSettingsDefaults()
-  const viewer = await getAccessViewer()
+  const viewer = await getAdminAccessViewer()
   const allowed: ReadonlySet<AclAdminResourceKey> | null = viewer.isAppAdmin
     ? null
     : await listViewerAllowedAdminResources(viewer)

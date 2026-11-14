@@ -374,17 +374,17 @@ html[data-theme='dark'] .btn.btn--size-small {
 
 .nav .admin-sidebar-account {
   display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 0.65em;
+  gap: 0.35em;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
   margin: 0;
-  padding: 0.55em 0.65em;
+  padding: 0.55em 0.5em 0.55em 0.65em;
   border: 1px solid #314257;
   border-radius: 6px;
   background: color-mix(in srgb, #1a2433 88%, transparent);
-  text-decoration: none;
   color: inherit;
   transition:
     background 0.15s ease,
@@ -393,10 +393,20 @@ html[data-theme='dark'] .btn.btn--size-small {
 }
 
 .nav .admin-sidebar-account:hover,
-.nav .admin-sidebar-account:focus-visible {
+.nav .admin-sidebar-account:focus-within {
   border-color: #4aa3df;
   background: color-mix(in srgb, #3498db 32%, #1a2433);
   box-shadow: 0 0 0 1px color-mix(in srgb, #4aa3df 50%, transparent);
+}
+
+.nav .admin-sidebar-account-link {
+  display: flex;
+  align-items: center;
+  gap: 0.65em;
+  flex: 1 1 auto;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
   outline: none;
 }
 
@@ -422,7 +432,7 @@ html[data-theme='dark'] .btn.btn--size-small {
 }
 
 .nav .admin-sidebar-account:hover .admin-sidebar-avatar,
-.nav .admin-sidebar-account:focus-visible .admin-sidebar-avatar {
+.nav .admin-sidebar-account:focus-within .admin-sidebar-avatar {
   border-color: #4aa3df;
   background: #3498db;
   color: #fff;
@@ -470,8 +480,46 @@ html[data-theme='dark'] .btn.btn--size-small {
 }
 
 .nav .admin-sidebar-account:hover .admin-sidebar-account-name,
-.nav .admin-sidebar-account:focus-visible .admin-sidebar-account-name {
+.nav .admin-sidebar-account:focus-within .admin-sidebar-account-name {
   color: #fff;
+}
+
+.nav .admin-sidebar-account-signout {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  margin: 0 0 0 auto;
+}
+
+.nav .admin-sidebar-account-signout-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.55em;
+  height: 1.55em;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: color-mix(in srgb, #fff 72%, transparent);
+  font-size: 0.95em;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.nav .admin-sidebar-account-signout-btn:hover,
+.nav .admin-sidebar-account-signout-btn:focus-visible {
+  background: color-mix(in srgb, #2c7cb8 28%, transparent);
+  color: #fff;
+  outline: none;
+}
+
+.nav .admin-sidebar-account-signout-icon {
+  display: block;
+  width: 1em;
+  height: 1em;
 }
 
 .nav .admin-sidebar-list,

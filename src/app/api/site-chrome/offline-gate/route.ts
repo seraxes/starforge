@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server'
 
-import { userIsAppAdmin } from '@/core/auth/admin'
-import { getAppSession } from '@/core/auth/session'
 import {
   getSiteChrome,
   isOfflineExemptPath,
@@ -11,7 +9,7 @@ export const dynamic = 'force-dynamic'
 
 /**
  * Debug/compat offline gate (proxy reads Site Chrome in-process).
- * Forwards cookies so app admins bypass. Does not gate /api, /admin, /app, login.
+ * Same lock for everyone — no admin bypass. Does not gate /api, /admin, login.
  */
 export async function GET(request: Request) {
   const url = new URL(request.url)
@@ -24,11 +22,6 @@ export async function GET(request: Request) {
   try {
     const chrome = await getSiteChrome()
     if (!chrome.offlineEnabled) {
-      return NextResponse.json({ locked: false })
-    }
-
-    const session = await getAppSession()
-    if (userIsAppAdmin(session?.user)) {
       return NextResponse.json({ locked: false })
     }
 

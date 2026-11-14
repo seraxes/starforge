@@ -19,7 +19,7 @@ Paste only the slice below into the chat.
 
 ## Slice 1 — Public error / 404 as pack outlines
 
-Each skin pack seeds **Offline** + **404** system outlines beside Base. The **active skin** owns `/site-offline` and `/site-not-found` (hardcoded URLs, not in Navigation).
+Each skin pack seeds **Offline** + **404** system outlines beside Base. Those outlines **are** the offline and 404 pages for the active skin (not in Navigation). `/site-offline` and `/site-not-found` are plumbing only (503 rewrite + error recovery).
 
 **Do**
 
@@ -27,11 +27,11 @@ Each skin pack seeds **Offline** + **404** system outlines beside Base. The **ac
 - Add `/site-not-found` + `SiteNotFoundView` that resolves the active skin’s `*-not-found` outline.
 - Locale `not-found.tsx` renders `SiteNotFoundView` (visitor-safe copy; no seed/CMS developer lede).
 - Add `src/app/(frontend)/(public)/[locale]/error.tsx` (client). It must not show stack / framework messages. Recover with `window.location.replace('/site-not-found')`.
-- Offline view prefers the active skin’s `*-offline` outline (Chrome override only when that outline belongs to the active skin).
+- Offline page is the active skin’s outline (Site Chrome picks which one; default `*-offline`).
 
 **Done when**
 
-- `/site-not-found` and locale 404 show the active pack’s 404 outline.
+- Locale 404 and `/site-not-found` plumbing show the active pack’s 404 outline.
 - A thrown error under `/[locale]/…` ends on `/site-not-found` without exposing internals.
 - `npm run test:unit` still passes.
 

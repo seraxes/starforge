@@ -184,6 +184,31 @@ describe('mergeLayoutDocuments', () => {
     assert.equal(copied.rows[0]?.slots[0]?.inheritMode, 'local')
     assert.equal(copied.rows[0]?.slots[0]?.config?.title, 'Parent Logo')
   })
+
+  it('inherits page background until the child sets its own', () => {
+    const withBody: LayoutDocument = {
+      ...parent,
+      styles: {
+        body: { backgroundMediaId: 'bg1', backgroundImage: '/media/bg.webp' },
+      },
+    }
+    const child: LayoutDocument = {
+      version: 3,
+      inheritFrom: 'base',
+      sections: [],
+    }
+    const merged = mergeLayoutDocuments(withBody, child)
+    assert.equal(merged.styles?.body?.backgroundMediaId, 'bg1')
+
+    const optedOut: LayoutDocument = {
+      version: 3,
+      sections: [],
+      styles: { body: { disabled: true } },
+    }
+    const blocked = mergeLayoutDocuments(withBody, optedOut)
+    assert.equal(blocked.styles?.body?.disabled, true)
+    assert.equal(blocked.styles?.body?.backgroundMediaId, undefined)
+  })
 })
 
 describe('mergeSectionAgainstParent', () => {

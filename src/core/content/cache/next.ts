@@ -1,4 +1,6 @@
-import { revalidateTag, unstable_cache } from 'next/cache'
+import { unstable_cache } from 'next/cache'
+
+import { revalidateTagNow } from '../defer-revalidate'
 
 import type { ContentCacheGetOptions, PublishedContentCache } from './types'
 
@@ -16,13 +18,8 @@ export const nextPublishedContentCache: PublishedContentCache = {
   },
 
   async invalidateTags(tags: readonly string[]): Promise<void> {
-    for (const tag of tags) {
-      try {
-        // expire: 0 — next request blocks for fresh CMS data (editors expect publish → refresh).
-        revalidateTag(tag, { expire: 0 })
-      } catch {
-        // Hooks / seed may run outside a Next request context; ignore quietly.
-      }
-    }
+    // Stale-while-revalidate. Immediate expiry blocks the next read and
+    // leaves /admin/media hung after upload.
+    for (const tag of tags) revalidateTagNow(tag)
   },
 }

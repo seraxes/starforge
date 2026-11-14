@@ -18,6 +18,11 @@ export type AssetRef = {
   content?: string
   /** Load order weight (−10 earliest … +10 latest). Default 0. */
   priority?: number
+  /**
+   * Outline chrome only: live-link this entry to the matching Base asset id.
+   * Resolved chrome strips this flag and substitutes Base content/url/priority.
+   */
+  inherit?: boolean
 }
 
 /** Repeatable meta name/property + content (Head Properties). */

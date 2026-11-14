@@ -96,7 +96,9 @@ function itemToResolved(
   if (!label) return null
 
   let href = ''
-  if (item.linkType === 'page') {
+  if (item.linkType === 'admin') {
+    href = '/admin'
+  } else if (item.linkType === 'page') {
     const pageId = typeof item.pageId === 'number' ? item.pageId : null
     if (pageId == null) return null
     const slug = slugById.get(pageId)

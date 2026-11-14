@@ -46,7 +46,7 @@ export async function migrateEmbeddedContentLocalesToFiles(): Promise<ContentLoc
       }
     }
     if (changed) {
-      await saveLayoutDocument(layoutId, document)
+      await saveLayoutDocument(document, layoutId)
       layouts += 1
     }
   }

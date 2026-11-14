@@ -14,12 +14,13 @@ export type { MailProvider }
 
 export type SiteChromeDocument = {
   version: 1
-  /** When true, public site shows the offline message (admins still pass). */
+  /** When true, public HTML shows the offline screen (same for everyone; `/admin` stays open). */
   offlineEnabled: boolean
   offlineMessage: string
   /**
-   * Outline (`sf_layouts` id) used for the public offline screen.
-   * Empty → Pastel offline seed id. Edited under Site Chrome.
+   * Outline (`sf_layouts` id) for the public offline screen.
+   * Honored when it belongs to the active skin; else pack `*-offline`.
+   * Edited under Site Chrome; default is the active pack’s Offline seed.
    */
   offlineLayoutId: string
   /**
