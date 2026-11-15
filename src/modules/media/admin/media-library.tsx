@@ -12,9 +12,13 @@ import {
   bulkDeleteMediaAction,
   bulkUpdateMediaAction,
   createMediaCategoryAction,
+  createMediaTagAction,
   deleteMediaAction,
   deleteMediaCategoryAction,
   renameMediaCategoryAction,
+  renameMediaTagAction,
+  replaceMediaFileAction,
+  updateMediaDetailsAction,
   uploadMediaAction,
   type MediaActionState,
   type ResolvedMedia,
@@ -25,18 +29,27 @@ import {
   type MediaCategoryNode,
 } from '@/core/media/categories'
 import {
+  ADMIN_LIBRARY_ACCEPT,
+  isAdminLibraryUploadAllowed,
+  mediaAdminFileHref,
+  mediaLibraryPreviewKind,
+} from '@/core/media/library-files'
+import {
   parseMediaTagFilter,
   serializeMediaTagFilter,
   type MediaSuggestionPatch,
   type MediaTagMatchMode,
 } from '@/core/media/library-query'
+import { isPrivateFormMedia } from '@/core/media/privacy'
 import { MEDIA_PURPOSES } from '@/core/media/pipeline'
 import type { MediaTagOption } from '@/core/media/resolve'
 import type { MediaStorageInfo } from '@/core/media/storage'
 
 import { MediaCategoryTree } from './MediaCategoryTree'
 import { MediaFileField } from './MediaFileField'
-import { MediaLightbox } from './MediaLightbox'
+import { MediaLightbox, type MediaDetailsPatch } from './MediaLightbox'
+import { MediaTagAdmin } from './MediaTagAdmin'
+import { fillMediaChrome, type MediaLibraryChrome } from './media-chrome'
 
 const empty: MediaActionState = {}
 
@@ -45,6 +58,10 @@ export type MediaLibraryView = 'mosaic' | 'list'
 type Props = {
   initialDocs: ResolvedMedia[]
   totalDocs: number
+  page: number
+  totalPages: number
+  pageSize: number
+  chrome: MediaLibraryChrome
   storage: MediaStorageInfo
   category: string
   purpose: string
@@ -70,6 +87,7 @@ function libraryHref(next: {
   tagMode?: MediaTagMatchMode
   q?: string
   view?: MediaLibraryView
+  page?: number
 }): string {
   const params = new URLSearchParams()
   const c = next.category ?? 'all'
@@ -84,6 +102,7 @@ function libraryHref(next: {
   if (serialized.tagMode) params.set('tagMode', serialized.tagMode)
   if (query.trim()) params.set('q', query.trim())
   if (view && view !== 'mosaic') params.set('view', view)
+  if (next.page && next.page > 1) params.set('page', String(next.page))
   const qs = params.toString()
   return qs ? `/admin/media?${qs}` : '/admin/media'
 }
@@ -91,6 +110,10 @@ function libraryHref(next: {
 export function MediaLibraryClient({
   initialDocs,
   totalDocs,
+  page,
+  totalPages,
+  pageSize,
+  chrome,
   storage,
   category,
   purpose,
@@ -134,6 +157,22 @@ export function MediaLibraryClient({
     deleteMediaCategoryAction,
     empty,
   )
+  const [detailsState, detailsAction, savingDetails] = useActionState(
+    updateMediaDetailsAction,
+    empty,
+  )
+  const [replaceState, replaceAction, replacingFile] = useActionState(
+    replaceMediaFileAction,
+    empty,
+  )
+  const [createTagState, createTagAction, creatingTag] = useActionState(
+    createMediaTagAction,
+    empty,
+  )
+  const [renameTagState, renameTagAction, renamingTag] = useActionState(
+    renameMediaTagAction,
+    empty,
+  )
   const [pending, startTransition] = useTransition()
   // Separate from page `pending` so bulk Apply/Delete stay in a transition
   // (required by useActionState) without freezing folder/filter chrome.
@@ -166,6 +205,10 @@ export function MediaLibraryClient({
     creatingCat ||
     renamingCat ||
     deletingCat ||
+    creatingTag ||
+    renamingTag ||
+    savingDetails ||
+    replacingFile ||
     analyzing ||
     applyingSuggest
   const bulkBusy = busy || bulkUpdating || bulkDeleting || bulkPending
@@ -176,6 +219,9 @@ export function MediaLibraryClient({
   const handledUploadOkRef = React.useRef<MediaActionState | null>(null)
   const handledDeleteOkRef = React.useRef<MediaActionState | null>(null)
   const handledSuggestOkRef = React.useRef<MediaActionState | null>(null)
+  const handledDetailsOkRef = React.useRef<MediaActionState | null>(null)
+  const handledReplaceOkRef = React.useRef<MediaActionState | null>(null)
+  const handledTagOkRef = React.useRef<MediaActionState | null>(null)
 
   // Keep drafts in sync when URL filters change (Clear / chip / folder / back).
   React.useEffect(() => {
@@ -245,6 +291,32 @@ export function MediaLibraryClient({
     setAnalysisMessage(analyzeState.message || 'Analysis complete.')
     setSuggestions(analyzeState.suggestions ?? null)
   }, [analyzeState])
+
+  React.useEffect(() => {
+    if (!detailsState.ok || detailsState === handledDetailsOkRef.current) return
+    handledDetailsOkRef.current = detailsState
+    notifySaved(detailsState.message || 'Saved.')
+    router.refresh()
+  }, [detailsState, router, notifySaved])
+
+  React.useEffect(() => {
+    if (!replaceState.ok || replaceState === handledReplaceOkRef.current) return
+    handledReplaceOkRef.current = replaceState
+    notifySaved(replaceState.message || 'File replaced.')
+    router.refresh()
+  }, [replaceState, router, notifySaved])
+
+  React.useEffect(() => {
+    const state = createTagState.ok
+      ? createTagState
+      : renameTagState.ok
+        ? renameTagState
+        : null
+    if (!state?.ok || state === handledTagOkRef.current) return
+    handledTagOkRef.current = state
+    notifySaved(state.message || 'Saved.')
+    startTransition(() => router.refresh())
+  }, [createTagState, renameTagState, router, notifySaved])
 
   React.useEffect(() => {
     if (!applySuggestState.ok || applySuggestState === handledSuggestOkRef.current) return
@@ -362,6 +434,34 @@ export function MediaLibraryClient({
     })
   }
 
+  function requestSaveDetails(id: string, patch: MediaDetailsPatch) {
+    const fd = new FormData()
+    fd.set('id', id)
+    fd.set('alt', patch.alt)
+    fd.set('purpose', patch.purpose)
+    if (patch.categoryId) fd.set('category', patch.categoryId)
+    for (const tagId of patch.tagIds) fd.append('tagIds', tagId)
+    if (patch.isPrivate) fd.set('private', '1')
+    startTransition(() => {
+      void detailsAction(fd)
+    })
+  }
+
+  function requestReplaceFile(
+    id: string,
+    file: File,
+    flags: { decodeToWebp: boolean; resize: boolean },
+  ) {
+    const fd = new FormData()
+    fd.set('id', id)
+    fd.set('file', file)
+    if (flags.decodeToWebp) fd.set('decodeToWebp', 'on')
+    if (flags.resize) fd.set('resize', 'on')
+    startTransition(() => {
+      void replaceAction(fd)
+    })
+  }
+
   function requestApplySuggestions(id: string, patch: MediaSuggestionPatch) {
     const fd = new FormData()
     fd.set('id', id)
@@ -424,7 +524,10 @@ export function MediaLibraryClient({
 
   const catError =
     createCatState.error || renameCatState.error || deleteCatState.error || null
+  const tagError = createTagState.error || renameTagState.error || null
   const bulkError = bulkDeleteState.error || bulkUpdateState.error || null
+  const rangeFrom = totalDocs === 0 ? 0 : (page - 1) * pageSize + 1
+  const rangeTo = totalDocs === 0 ? 0 : (page - 1) * pageSize + initialDocs.length
 
   return (
     <div className="sf-media-library">
@@ -444,30 +547,39 @@ export function MediaLibraryClient({
         <p className="layout-muted">
           Analysis port: {analysisAdapters.length ? analysisAdapters.join(', ') : 'none'} (Analyze
           in lightbox runs adapters explicitly — never auto). {totalDocs} item
-          {totalDocs === 1 ? '' : 's'} in <strong>{activeFolderLabel}</strong>. Pipeline rules:{' '}
-          <Link href="/admin/media/settings">Media → Settings</Link>. Payload CMS Media remains
-          the store — <Link href="/cms/admin/collections/media">open in CMS</Link>.
+          {totalDocs === 1 ? '' : 's'} in <strong>{activeFolderLabel}</strong>.{' '}
+          {chrome.storeNote}
         </p>
       </div>
 
       <div className="sf-media-library-layout">
-        <MediaCategoryTree
-          tree={categoryTree}
-          activeId={category}
-          busy={busy}
-          onSelect={selectCategory}
-          onCreate={({ title, parentId }) =>
-            runCategoryAction(createCatAction, {
-              title,
-              parentId: parentId || '',
-            })
-          }
-          onRename={({ id, title }) => runCategoryAction(renameCatAction, { id, title })}
-          onDelete={(id) => {
-            runCategoryAction(deleteCatAction, { id })
-            if (category === id) selectCategory('all')
-          }}
-        />
+        <div className="sf-media-library-side">
+          <MediaCategoryTree
+            tree={categoryTree}
+            activeId={category}
+            busy={busy}
+            onSelect={selectCategory}
+            onCreate={({ title, parentId }) =>
+              runCategoryAction(createCatAction, {
+                title,
+                parentId: parentId || '',
+              })
+            }
+            onRename={({ id, title }) => runCategoryAction(renameCatAction, { id, title })}
+            onDelete={(id) => {
+              runCategoryAction(deleteCatAction, { id })
+              if (category === id) selectCategory('all')
+            }}
+          />
+          <MediaTagAdmin
+            tags={tagOptions}
+            chrome={chrome}
+            busy={busy}
+            error={tagError}
+            onCreate={(title) => runCategoryAction(createTagAction, { title })}
+            onRename={({ id, title }) => runCategoryAction(renameTagAction, { id, title })}
+          />
+        </div>
 
         <div className="sf-media-library-main">
           <div className="admin-settings-mosaic">
@@ -652,10 +764,7 @@ export function MediaLibraryClient({
               ) : null}
 
               {tagOptions.length === 0 ? (
-                <p className="layout-muted">
-                  No shared tags yet — create some in{' '}
-                  <Link href="/cms/admin/collections/tags">CMS → Tags</Link> to filter and tag uploads.
-                </p>
+                <p className="layout-muted">{chrome.tagFilterEmpty}</p>
               ) : null}
             </form>
 
@@ -668,13 +777,18 @@ export function MediaLibraryClient({
                 const file = fd.get('file')
                 if (!(file instanceof File) || file.size <= 0) {
                   e.preventDefault()
-                  setUploadHint('Choose an image first (drop zone or Choose image…).')
+                  setUploadHint(chrome.uploadNeedsFile)
+                  return
+                }
+                if (!isAdminLibraryUploadAllowed(file.type, file.name, { documents: true })) {
+                  e.preventDefault()
+                  setUploadHint(chrome.fileTypeRejected)
                   return
                 }
                 const alt = String(fd.get('alt') ?? '').trim()
                 if (!alt) {
                   e.preventDefault()
-                  setUploadHint('Add a short alt text describing the image.')
+                  setUploadHint(chrome.uploadNeedsLabel)
                 }
               }}
             >
@@ -685,14 +799,16 @@ export function MediaLibraryClient({
                     'Media storage is not ready. Check Media → Settings (local disk or S3).'}
                 </p>
               ) : (
-                <p className="layout-muted">
-                  Drop an image or choose a file, then fill alt text and click Upload. Photos convert
-                  to WebP by default; logo PNG stays PNG when that setting is on. Max edge{' '}
-                  {maxEdge}px (Media → Settings).
-                </p>
+                <p className="layout-muted">{chrome.uploadIntro}</p>
               )}
+              <input type="hidden" name="libraryDocuments" value="1" />
               <MediaFileField
                 disabled={busy || !storage.ready}
+                accept={ADMIN_LIBRARY_ACCEPT}
+                titleIdle={chrome.dropTitle}
+                titleHint={chrome.dropHint}
+                chooseLabel={chrome.chooseFile}
+                changeLabel={chrome.changeFile}
                 canChooseDecode={canChooseDecode}
                 canChooseResize={canChooseResize}
               />
@@ -862,6 +978,16 @@ export function MediaLibraryClient({
             </div>
           ) : null}
 
+          {totalDocs > 0 ? (
+            <p className="layout-muted sf-media-library-range">
+              {fillMediaChrome(chrome.showingRange, {
+                from: rangeFrom,
+                to: rangeTo,
+                total: totalDocs,
+              })}
+            </p>
+          ) : null}
+
           <div
             className={`sf-media-library-grid${view === 'list' ? ' is-list' : ' is-mosaic'}`}
             role="list"
@@ -876,13 +1002,27 @@ export function MediaLibraryClient({
                 </p>
                 <p className="layout-muted">
                   {storage.ready
-                    ? 'Upload above to add images, or pick another folder.'
+                    ? chrome.emptyUpload
                     : 'Configure storage, then upload to start the library.'}
                 </p>
               </div>
             ) : null}
             {initialDocs.map((doc, index) => {
-              const thumb = doc.sizes?.thumbnail || doc.url
+              const kind = mediaLibraryPreviewKind(doc.mimeType, doc.filename)
+              const thumb =
+                kind === 'image'
+                  ? mediaAdminFileHref(doc, { inline: true }) || doc.sizes?.thumbnail || doc.url
+                  : ''
+              const badge =
+                kind === 'pdf'
+                  ? chrome.filePdf
+                  : kind === 'doc'
+                    ? chrome.fileDoc
+                    : kind === 'text'
+                      ? chrome.fileText
+                      : kind === 'file'
+                        ? chrome.fileOther
+                        : null
               const cLabel = doc.categoryLabel
               const pLabel = doc.purpose
                 ? MEDIA_PURPOSES.find((p) => p.value === doc.purpose)?.label || doc.purpose
@@ -914,7 +1054,7 @@ export function MediaLibraryClient({
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={thumb} alt="" />
                     ) : (
-                      <span>No preview</span>
+                      <span className="sf-media-file-badge">{badge || chrome.noPreview}</span>
                     )}
                   </button>
                   <div className="sf-media-library-card-body">
@@ -922,6 +1062,9 @@ export function MediaLibraryClient({
                       {doc.alt || doc.filename || doc.id}
                     </strong>
                     <div className="sf-media-library-chips">
+                      {isPrivateFormMedia(doc) ? (
+                        <span className="sf-media-chip is-active">{chrome.privateBadge}</span>
+                      ) : null}
                       {cLabel && doc.categoryId ? (
                         <button
                           type="button"
@@ -977,6 +1120,58 @@ export function MediaLibraryClient({
               )
             })}
           </div>
+
+          {totalPages > 1 ? (
+            <div className="sf-media-library-pager" role="navigation" aria-label="Pages">
+              <button
+                type="button"
+                className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+                disabled={busy || page <= 1}
+                onClick={() =>
+                  startTransition(() =>
+                    router.push(
+                      libraryHref({
+                        category,
+                        purpose,
+                        tag,
+                        tagMode,
+                        q,
+                        view,
+                        page: page - 1,
+                      }),
+                    ),
+                  )
+                }
+              >
+                {chrome.pagePrev}
+              </button>
+              <span className="layout-muted">
+                {fillMediaChrome(chrome.pageStatus, { page, pages: totalPages })}
+              </span>
+              <button
+                type="button"
+                className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+                disabled={busy || page >= totalPages}
+                onClick={() =>
+                  startTransition(() =>
+                    router.push(
+                      libraryHref({
+                        category,
+                        purpose,
+                        tag,
+                        tagMode,
+                        q,
+                        view,
+                        page: page + 1,
+                      }),
+                    ),
+                  )
+                }
+              >
+                {chrome.pageNext}
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -1013,6 +1208,17 @@ export function MediaLibraryClient({
             setSuggestions(null)
             setAnalysisMessage(null)
           }}
+          chrome={chrome}
+          categoryOptions={categoryOptions}
+          tagOptions={tagOptions}
+          canChooseDecode={canChooseDecode}
+          canChooseResize={canChooseResize}
+          onSaveDetails={requestSaveDetails}
+          savingDetails={savingDetails}
+          detailsError={detailsState.error || null}
+          onReplaceFile={requestReplaceFile}
+          replacingFile={replacingFile}
+          replaceError={replaceState.error || null}
         />
       ) : null}
 

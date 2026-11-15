@@ -1,6 +1,6 @@
 # Payload dependency map
 
-**Status:** phase 1 done (site settings on Core `sf_site_settings`, 2026-11-15). Live map: [architecture-current](./architecture-current.md). Decision: [2026-11-15-payload-peel](./decisions/2026-11-15-payload-peel.md).
+**Status:** phase 1 done (site settings on Core `sf_site_settings`, 2026-11-15). Phase **2a** media UX parity done (2026-11-15): edit panel, pagination, tag admin, non-image files, file replace. Phase **2b** (document store off Payload) is still open — `getPayload()` stays in `src/core/media`. Live map: [architecture-current](./architecture-current.md). Decision: [2026-11-15-payload-peel](./decisions/2026-11-15-payload-peel.md).
 
 Payload 3.92.1 is still the running store for media and pages. Postgres schema name is `payload` (`src/payload.config.ts`). This page names callers and the order they leave. Phase 1's table is `public.sf_site_settings`. Later phases do not get a module scaffold from this page.
 
@@ -11,7 +11,7 @@ Do not vendor or fork Payload source. Peel a bucket, then delete the npm package
 | Bucket | What it is today | Leaves in |
 | --- | --- | --- |
 | **page-reads** | Four layout-host reads. Sole `getPayload()` home: `src/core/content/page-reads/payload.ts` (`pages`). Callers use `getPageReads()` — `src/core/content/page-reads/index.ts`, `sitemap.ts`, `search.ts`. | Phase 3. Swap the adapter to `product:pages`. Do not add a second read API. |
-| **media** | Document store behind the Starforge library. `getPayload()` in `src/core/media/ingest.ts`, `actions.ts`, `resolve.ts`, `category-store.ts`, `form-upload.ts`. Collections: `media`, `categories`. Blob I/O for S3 is the Payload plugin `src/core/media/storage/payload-plugin.ts` (`@payloadcms/storage-s3`), not a `getPayload()` call. Local disk is Payload `staticDir`. | Phase 2, after the media parity bar. Owner: `product:media`. Blobs stay MediaStorage. |
+| **media** | Document store behind the Starforge library. `getPayload()` in `src/core/media/ingest.ts`, `actions.ts`, `resolve.ts`, `category-store.ts`, `tag-store.ts`, `form-upload.ts`. Collections: `media`, `categories`, shared `tags` (media-tags until phase 3 splits page tags). Blob I/O for S3 is the Payload plugin `src/core/media/storage/payload-plugin.ts` (`@payloadcms/storage-s3`), not a `getPayload()` call. Local disk is Payload `staticDir`. | Phase **2b**. **2a is done** (edit panel, pagination, tag admin, non-image upload/browse, in-place replace). Owner: `product:media`. `getPayload()` stays until 2b. Blobs stay MediaStorage. |
 | **settings** | **Done (phase 1).** Core singleton `public.sf_site_settings` (`0043_site_settings`). `getSiteSettings` / `updateSiteSettings` read and write that row and call `invalidateSiteSettings`. `seedEnableModulesDemo` uses the same writer. Legacy `primaryNav` is a jsonb read fallback copied once. The Payload global is not registered. Leftover `payload.site_settings` rows stay until phase 4. | Phase 1. Core `sf_site_settings`. Not a CMS. |
 | **nav** | Menus already live in Core `sf_nav_menus`. Remaining `getPayload()` in `src/core/nav/store.ts` reads the `pages` collection: `listNavPageOptions`, `ensureDefaultNavMenuSeeded`, `seedMainNavFromPages`. | Phase 3, with pages. Nav stays Core. The admin page-bind list is not one of the four port reads. |
 | **cms-bridge** | Links a Better Auth user to a Payload `users` row so `/cms` does not ask for a second password. `getPayload()` in `src/core/cms-bridge/index.ts`, `payload-session.ts`, and `src/app/api/cms/exchange/route.ts`. Access helpers in `payload-access.ts` / `payload-strategy.ts` type Payload but are not `getPayload()` callers. | Phase 4, with the shell. |
@@ -41,21 +41,30 @@ CLI scripts that boot Payload (`payload`, `generate:importmap`, `generate:types`
 
 ## Peel order
 
-Do not start 1–4 from a docs change. Do not combine tracks. Media before pages. `/cms` stays on until both parity bars below are green.
+Do not start 2b–4 from a docs change. Do not combine tracks. Media before pages. `/cms` stays on until the pages parity bar is green. Media UX parity (2a) is done; the document store move is 2b.
 
 | Phase | Job | Stop when |
 | --- | --- | --- |
 | **0** | This map, the decision, the live map, the architecture rule, the media README. | Done when those docs match. No `src/modules/pages`. No package removal. No schema. |
 | **1** | **Done.** Site settings (toggles, performance knobs, `primaryNavMenuId`) are Core `sf_site_settings`. Settings and `seedEnableModulesDemo` do not call `getPayload()`. | Media and pages still read and write Payload. Site Chrome stays put. |
-| **2** | Media parity bar, then `product:media` takes the document store (`media`, `categories`, media-tags). | Pages, nav page binds, and `/cms` still run on Payload. |
+| **2a** | **Done.** Media UX parity on the existing library: edit panel (alt, purpose, tags, private, category), pagination past 60, tag create/rename under `/admin/media`, non-image browse and admin upload (PDF / Word / plain text + images), in-place file replace through the sharp pipeline. | Document store is still Payload `media`. No `sf_media_assets`. |
+| **2b** | `product:media` takes the document store (`media`, `categories`, media-tags). | Pages, nav page binds, and `/cms` still run on Payload. |
 | **3** | `product:pages` parity bar, then version restore and migration off Payload `pages`. Swap the `PageReadsPort` adapter. Nav page finds and `seedPages` stop calling `getPayload()`. Page tags move here. One-pager: [pages-pack-plan](./pages-pack-plan.md). | `/cms` still runs until phase 4. |
 | **4** | cms-bridge, the `(payload)` shell, generated types, Payload migrations. Then delete the npm packages in the table above (Lexical’s package excepted). | No `getPayload()` left. Payload source was never vendored. |
 
 ## Parity bars
 
-Document only. Do not build them in phase 0.
+Phase 0 was docs only. The media UX bar below is implemented. The pages bar is not.
 
-**Media (phase 2), on the existing library, before the store moves:** edit drawer, pagination, tag admin, non-image files, file replace. Then the pack’s own document store. **ImageFrame** stays the display crop (`product:media` picker / frame editor). Do not replace it with Payload focal point.
+**Media UX (phase 2a) — done (2026-11-15),** on the existing library, before the store moves:
+
+- [x] Edit panel (alt, purpose, multi-tags, private, category). Daily path is `/admin/media`. **ImageFrame** stays the display crop. No Payload focal editor.
+- [x] Pagination past the first 60.
+- [x] Tag create/rename under `/admin/media`.
+- [x] Non-image browse and admin upload for the MIME types Forms already allow (PDF, Word, plain text, images). App admins see private and form items in the library.
+- [x] In-place file replace. Derivatives regenerate through the existing sharp path and Payload `imageSizes`.
+
+**Media store (phase 2b) — open.** Then the pack’s own document store. `getPayload()` stays in `src/core/media` until that move. Do not start 2b from this checklist alone.
 
 **Pages (phase 3):** `/admin/pages` with draft and publish, TipTap body, SEO, locales, `PageReadsPort`, and Nav page links. Then version restore and the migration off Payload. **Out:** scheduled publish, a per-locale slug, a collection builder.
 

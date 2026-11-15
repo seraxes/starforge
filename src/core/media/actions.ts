@@ -19,7 +19,8 @@ import {
   resolveFolderForCategory,
 } from './category-store'
 import { resolvePostedMediaEncodeFlags, getMediaEncodePolicy } from './encode-policy'
-import { ingestImageUpload } from './ingest'
+import { ingestImageUpload, replaceMediaFile } from './ingest'
+import { isAdminLibraryUploadAllowed, resolveAdminLibraryMime } from './library-files'
 import {
   mediaSuggestionPatchIsEmpty,
   mergeMediaAnalysisSuggestions,
@@ -46,6 +47,7 @@ import {
 } from './resolve'
 import { getMediaPipelineRules, saveMediaPipelineRules } from './settings-store'
 import { getMediaStorageInfo } from './storage'
+import { createMediaTag, renameMediaTag } from './tag-store'
 
 export type MediaActionState = {
   error?: string
@@ -195,17 +197,27 @@ export async function uploadMediaAction(
 
   const file = formData.get('file')
   if (!(file instanceof File) || file.size <= 0) {
-    return { error: 'Choose an image to upload.' }
+    return { error: 'Choose a file to upload.' }
   }
-  if (!file.type.startsWith('image/')) {
-    return { error: 'Only image uploads are supported in this library.' }
+  const documents = formData.get('libraryDocuments') === '1'
+  if (!isAdminLibraryUploadAllowed(file.type, file.name, { documents })) {
+    return {
+      error: documents
+        ? 'That file type is not allowed. Use an image, PDF, Word document, or plain text file.'
+        : 'Only image uploads are supported in this library.',
+    }
   }
 
   try {
     const { decodeToWebp, resize } = await resolvePostedMediaEncodeFlags(formData)
+    const mimeType = resolveAdminLibraryMime(file.type, file.name)
+    const uploadFile =
+      mimeType === file.type
+        ? file
+        : new File([await file.arrayBuffer()], file.name, { type: mimeType })
     // Shared pipeline + Payload write — also used by member uploads (ingest.ts).
     const { media } = await ingestImageUpload({
-      file,
+      file: uploadFile,
       alt: String(formData.get('alt') ?? ''),
       categoryRaw: String(formData.get('category') ?? ''),
       folderRaw: String(formData.get('folder') ?? ''),
@@ -524,6 +536,138 @@ export async function applyMediaAnalysisSuggestionsAction(
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Could not apply suggestions.' }
   }
+}
+
+/**
+ * Single-item metadata edit (alt, purpose, category, tags, private).
+ * Does not touch the file. Pipeline context skips a second sharp pass.
+ */
+export async function updateMediaDetailsAction(
+  _prev: MediaActionState,
+  formData: FormData,
+): Promise<MediaActionState> {
+  const denied = await requireMediaAdmin()
+  if (denied) return denied
+
+  const id = String(formData.get('id') ?? '').trim()
+  if (!id) return { error: 'Missing media id.' }
+
+  const alt = String(formData.get('alt') ?? '').trim()
+  if (!alt) return { error: 'Add a short label for this file.' }
+
+  const purpose = normalizeMediaPurpose(String(formData.get('purpose') ?? 'photo'))
+  const categoryRaw = String(formData.get('category') ?? '').trim()
+  const tagIds = formData
+    .getAll('tagIds')
+    .map((value) => Number(String(value)))
+    .filter((n) => Number.isFinite(n))
+  const isPrivate = formData.get('private') === '1'
+
+  try {
+    const payload = await getPayload({ config })
+    const data: Record<string, unknown> = {
+      alt,
+      purpose,
+      tags: tagIds,
+      private: isPrivate,
+    }
+    if (categoryRaw) {
+      const n = Number(categoryRaw)
+      if (!Number.isFinite(n)) return { error: 'Invalid folder.' }
+      data.category = n
+      data.folder = await resolveFolderForCategory(String(n))
+    } else {
+      // Clear the folder relation only. Leave legacy `folder` so form
+      // attachments (folder=forms) stay private when the category is unset.
+      data.category = null
+    }
+
+    await payload.update({
+      collection: 'media',
+      id,
+      data,
+      depth: 0,
+      overrideAccess: true,
+      context: { [STARFORGE_PIPELINE_APPLIED]: true },
+    })
+    return { ok: true, message: 'Saved.' }
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Could not save media.' }
+  }
+}
+
+/**
+ * In-place file replace. `replaceMediaFile` runs sharp, then Payload
+ * regenerates imageSizes. Metadata stays on the same document.
+ */
+export async function replaceMediaFileAction(
+  _prev: MediaActionState,
+  formData: FormData,
+): Promise<MediaActionState> {
+  const denied = await requireMediaAdmin()
+  if (denied) return denied
+
+  const id = String(formData.get('id') ?? '').trim()
+  if (!id) return { error: 'Missing media id.' }
+
+  const file = formData.get('file')
+  if (!(file instanceof File) || file.size <= 0) {
+    return { error: 'Choose a file to replace the current one.' }
+  }
+  if (!isAdminLibraryUploadAllowed(file.type, file.name, { documents: true })) {
+    return {
+      error: 'That file type is not allowed. Use an image, PDF, Word document, or plain text file.',
+    }
+  }
+
+  try {
+    const { decodeToWebp, resize } = await resolvePostedMediaEncodeFlags(formData)
+    const mimeType = resolveAdminLibraryMime(file.type, file.name)
+    const uploadFile =
+      mimeType === file.type
+        ? file
+        : new File([await file.arrayBuffer()], file.name, { type: mimeType })
+    const { media } = await replaceMediaFile({
+      id,
+      file: uploadFile,
+      decodeToWebp,
+      resize,
+    })
+    return {
+      ok: true,
+      message: 'File replaced.',
+      ...(media ? { media } : {}),
+    }
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Could not replace file.' }
+  }
+}
+
+export async function createMediaTagAction(
+  _prev: MediaActionState,
+  formData: FormData,
+): Promise<MediaActionState> {
+  const denied = await requireMediaAdmin()
+  if (denied) return denied
+
+  const result = await createMediaTag({ title: String(formData.get('title') ?? '') })
+  if ('error' in result) return { error: result.error }
+  return { ok: true, message: 'Tag created.' }
+}
+
+export async function renameMediaTagAction(
+  _prev: MediaActionState,
+  formData: FormData,
+): Promise<MediaActionState> {
+  const denied = await requireMediaAdmin()
+  if (denied) return denied
+
+  const result = await renameMediaTag({
+    id: String(formData.get('id') ?? ''),
+    title: String(formData.get('title') ?? ''),
+  })
+  if ('error' in result) return { error: result.error }
+  return { ok: true, message: 'Tag renamed.' }
 }
 
 export async function saveMediaPipelineSettingsAction(

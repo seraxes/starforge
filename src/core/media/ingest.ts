@@ -9,6 +9,7 @@ import {
   applyMediaPipelineRules,
 } from './apply-pipeline'
 import { ensureLegacyCategoryRoots, resolveFolderForCategory } from './category-store'
+import { resolveAdminLibraryMime } from './library-files'
 import {
   normalizeMediaFolder,
   normalizeMediaPurpose,
@@ -104,6 +105,77 @@ export async function ingestImageUpload(
       purpose,
       ...(categoryId != null && Number.isFinite(categoryId) ? { category: categoryId } : {}),
       ...(Number.isFinite(tagId) ? { tags: [tagId] } : {}),
+    },
+    file: {
+      data: processed.data,
+      mimetype: processed.mimetype,
+      name,
+      size: processed.data.length,
+    },
+    context: { [STARFORGE_PIPELINE_APPLIED]: true },
+    overrideAccess: true,
+  })
+
+  const media = toResolvedMedia(doc as Parameters<typeof toResolvedMedia>[0], {
+    size: 'thumbnail',
+    preferWebp: true,
+  })
+  return { id: String(doc.id), media }
+}
+
+export type ReplaceMediaFileInput = {
+  id: string
+  file: File
+  /** Convert photo originals to WebP (default true). Ignored for non-images. */
+  decodeToWebp?: boolean
+  /** Cap longest edge (default true). Ignored for non-images. */
+  resize?: boolean
+}
+
+/**
+ * Replace the file on an existing Media doc. Runs the same sharp rules as
+ * ingest, then hands the buffer to Payload so `imageSizes` (thumbnail / card /
+ * large) regenerate. Non-images pass through the pipeline unchanged.
+ * Metadata (alt, tags, category, private) is left as stored.
+ */
+export async function replaceMediaFile(
+  input: ReplaceMediaFileInput,
+): Promise<IngestImageResult> {
+  const id = input.id.trim()
+  if (!id) throw new Error('Missing media id.')
+  const { file } = input
+
+  const payload = await getPayload({ config })
+  const existing = await payload.findByID({
+    collection: 'media',
+    id,
+    depth: 0,
+    overrideAccess: true,
+  })
+  if (!existing) throw new Error('Media not found.')
+
+  const purpose = normalizeMediaPurpose(existing.purpose)
+  const mimeType = resolveAdminLibraryMime(file.type, file.name)
+  const raw = Buffer.from(await file.arrayBuffer())
+  const rules = await getMediaPipelineRules()
+  const processed = await applyMediaPipelineRules({
+    buffer: raw,
+    mimeType,
+    purpose,
+    rules,
+    decodeToWebp: input.decodeToWebp !== false,
+    resize: input.resize !== false,
+  })
+  let name = file.name || existing.filename || `upload-${Date.now()}`
+  if (processed.extHint) {
+    name = name.replace(/\.[^.]+$/, '') + `.${processed.extHint}`
+  }
+
+  const doc = await payload.update({
+    collection: 'media',
+    id,
+    data: {
+      alt: existing.alt,
     },
     file: {
       data: processed.data,

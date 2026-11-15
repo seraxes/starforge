@@ -15,9 +15,9 @@ const mediaStaticDir = path.resolve(
   '../../../../../../media',
 )
 
-function contentDisposition(filename: string): string {
+function contentDisposition(filename: string, inline: boolean): string {
   const safe = filename.replace(/["\r\n]/g, '_') || 'attachment'
-  return `attachment; filename="${safe}"`
+  return `${inline ? 'inline' : 'attachment'}; filename="${safe}"`
 }
 
 /**
@@ -25,7 +25,7 @@ function contentDisposition(filename: string): string {
  * Streams bytes with overrideAccess so Better Auth admins do not need a Payload
  * session (Payload `/api/media/file/*` stays locked for anonymous + private docs).
  */
-export async function GET(_req: Request, ctx: Ctx) {
+export async function GET(req: Request, ctx: Ctx) {
   const admin = await requireAppAdmin()
   if (!admin?.user) {
     return NextResponse.json({ error: 'Admins only.' }, { status: 401 })
@@ -38,10 +38,14 @@ export async function GET(_req: Request, ctx: Ctx) {
   }
 
   const mime = doc.mimeType || 'application/octet-stream'
+  const ext = doc.filename.toLowerCase()
+  const svg = mime === 'image/svg+xml' || ext.endsWith('.svg') || ext.endsWith('.svgz')
+  const inline = new URL(req.url).searchParams.get('inline') === '1' && !svg
   const headers = {
     'Content-Type': mime,
-    'Content-Disposition': contentDisposition(doc.filename),
+    'Content-Disposition': contentDisposition(doc.filename, inline),
     'Cache-Control': 'private, no-store',
+    'X-Content-Type-Options': 'nosniff',
   }
 
   // Local Payload staticDir (default adapter).

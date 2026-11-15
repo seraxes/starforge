@@ -532,6 +532,19 @@ export const moduleMessageLoaders: ModuleMessageLoader[] = [
         return (await import("@/modules/forms/messages/en.json")).default
       }
     },
+  },
+  {
+    moduleId: "product:media",
+    namespaces: ["product:media"] as const,
+    load: async (locale: string): Promise<Record<string, unknown>> => {
+      switch (locale) {
+      case "hu":
+        return (await import("@/modules/media/messages/hu.json")).default
+      case 'en':
+      default:
+        return (await import("@/modules/media/messages/en.json")).default
+      }
+    },
   }
 ]
 

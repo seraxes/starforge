@@ -17,6 +17,9 @@ export default defineStarforgeModule({
   description:
     'Single Payload Media library with sharp WebP/PNG pipeline, Spaces/S3 storage port, tags filter, member upload ledger, and MediaAnalysisPort hooks. Required — Logo/Styles/Forms bind by mediaId.',
   version: '0.3.0',
+  i18n: {
+    namespaces: ['product:media'],
+  },
   required: true,
   defaultEnabled: true,
   admin: {

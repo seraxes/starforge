@@ -81,7 +81,7 @@ export const Media: CollectionConfig = {
   admin: {
     group: 'Content',
     description:
-      'Starforge media library. Prefer Core admin → Media for upload/picker; Payload edit for alt/category/tags. Form attachments (private) stay admin-only.',
+      'Starforge media library. Daily upload, edit, tags, and replace live in Core admin → Media. Form attachments (private) stay admin-only.',
     defaultColumns: ['filename', 'alt', 'category', 'folder', 'purpose', 'tags', 'private', 'updatedAt'],
     listSearchableFields: ['alt', 'filename', 'folder'],
   },

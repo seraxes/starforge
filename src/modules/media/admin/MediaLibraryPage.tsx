@@ -1,5 +1,6 @@
 import React from 'react'
 import Link from 'next/link'
+import { getTranslations } from 'next-intl/server'
 
 import { getMediaAnalysisPort } from '@/core/media/analysis'
 import { ensureLegacyCategoryRoots, listMediaCategoryTree } from '@/core/media/category-store'
@@ -9,11 +10,13 @@ import {
   parseMediaTagFilter,
   serializeMediaTagFilter,
 } from '@/core/media/library-query'
+import { MEDIA_LIBRARY_PAGE_SIZE } from '@/core/media/library-files'
 import { listMedia, listMediaTagOptions } from '@/core/media/resolve'
 import { loadMediaPipelineRules } from '@/core/media/settings-store'
 import { getMediaStorageInfo } from '@/core/media/storage'
 
 import { MediaAdminNav } from './media-admin-nav'
+import { buildMediaLibraryChrome } from './media-chrome'
 import { MediaLibraryClient, type MediaLibraryView } from './media-library'
 
 export const metadata = {
@@ -30,7 +33,14 @@ type Search = Promise<{
   tagMode?: string
   q?: string
   view?: string
+  page?: string
 }>
+
+function parsePage(raw: string | undefined): number {
+  const n = Number(raw)
+  if (!Number.isFinite(n) || n < 1) return 1
+  return Math.min(Math.floor(n), 10000)
+}
 
 function normalizeView(raw: string | undefined): MediaLibraryView {
   return raw === 'list' ? 'list' : 'mosaic'
@@ -49,6 +59,7 @@ export default async function MediaLibraryPage({ searchParams }: { searchParams:
   const tagMode = tagFilter.mode
   const q = (params.q ?? '').trim()
   const view = normalizeView(params.view)
+  let page = parsePage(params.page)
 
   const storage = getMediaStorageInfo()
   const analysisAdapters = getMediaAnalysisPort()
@@ -61,6 +72,7 @@ export default async function MediaLibraryPage({ searchParams }: { searchParams:
   const maxEdge = Math.max(pipeline.rules.maxWidth, pipeline.rules.maxHeight)
   let docs: Awaited<ReturnType<typeof listMedia>>['docs'] = []
   let totalDocs = 0
+  let totalPages = 1
   let listError: string | null = null
   const tagOptions = await listMediaTagOptions()
 
@@ -86,31 +98,40 @@ export default async function MediaLibraryPage({ searchParams }: { searchParams:
   }
 
   try {
-    const result = await listMedia({
+    const query = {
       category: category === 'all' ? undefined : category,
       purpose: purpose === 'all' ? undefined : purpose,
       tag: tag === 'all' ? undefined : tag,
       tagMode,
       q: q || undefined,
-      limit: 60,
-    })
+      limit: MEDIA_LIBRARY_PAGE_SIZE,
+      page,
+    }
+    let result = await listMedia(query)
+    if (result.totalPages > 0 && page > result.totalPages) {
+      page = result.totalPages
+      result = await listMedia({ ...query, page })
+    }
     docs = result.docs
     totalDocs = result.totalDocs
+    totalPages = result.totalPages || 1
+    page = result.page || page
   } catch (err) {
     listError = err instanceof Error ? err.message : 'Failed to load media.'
   }
+
+  const t = await getTranslations('product:media')
+  const chrome = buildMediaLibraryChrome(
+    (key, values) => (values ? t(key, values) : t(key)),
+    { maxEdge },
+  )
 
   return (
     <section className="admin-section admin-layouts-full">
       <MediaAdminNav active="library" />
       <h2>Media library</h2>
       <p className="lede admin-lede">
-        Single Payload media library with nested folders, tags, max size, WebP for photos, and PNG
-        logos. Bind from Logo, Styles, and Forms via the media picker — raw URL is fallback only.
-        Pipeline rules: <Link href="/admin/media/settings">Media → Settings</Link>. Manage tags
-        in <Link href="/cms/admin/collections/tags">CMS → Tags</Link>; categories in{' '}
-        <Link href="/cms/admin/collections/categories">CMS → Categories</Link>; full CMS edit:{' '}
-        <Link href="/cms/admin/collections/media">CMS → Media</Link>.
+        {chrome.libraryLede} <Link href="/admin/media/settings">{chrome.settingsLink}</Link>.
       </p>
       {listError ? (
         <p className="form-error" role="alert">
@@ -120,6 +141,10 @@ export default async function MediaLibraryPage({ searchParams }: { searchParams:
       <MediaLibraryClient
         initialDocs={docs}
         totalDocs={totalDocs}
+        page={page}
+        totalPages={totalPages}
+        pageSize={MEDIA_LIBRARY_PAGE_SIZE}
+        chrome={chrome}
         storage={storage}
         category={category}
         purpose={purpose}

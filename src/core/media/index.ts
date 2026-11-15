@@ -90,6 +90,7 @@ export {
   bulkDeleteMediaAction,
   bulkUpdateMediaAction,
   createMediaCategoryAction,
+  createMediaTagAction,
   deleteMediaAction,
   deleteMediaCategoryAction,
   getMediaEncodePolicyAction,
@@ -97,7 +98,10 @@ export {
   listMediaCategoryTreeAction,
   listMediaTagOptionsAction,
   renameMediaCategoryAction,
+  renameMediaTagAction,
+  replaceMediaFileAction,
   saveMediaPipelineSettingsAction,
+  updateMediaDetailsAction,
   uploadMediaAction,
 } from './actions'
 export type { MediaActionState, MediaSuggestionPatch } from './actions'

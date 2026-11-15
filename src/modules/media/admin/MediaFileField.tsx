@@ -9,6 +9,12 @@ type Props = {
   /** Optional class on the outer drop zone. */
   className?: string
   accept?: string
+  /** Idle drop-zone title. Default is the image copy used by MediaPicker. */
+  titleIdle?: string
+  /** Hint under the title. */
+  titleHint?: string
+  chooseLabel?: string
+  changeLabel?: string
   /**
    * Show Decode to WebP beside the drop zone (default checked).
    * When false, a hidden `decodeToWebp=on` is posted so the server default stays on.
@@ -30,6 +36,10 @@ export function MediaFileField({
   disabled,
   className = '',
   accept = 'image/*',
+  titleIdle = 'Drop an image here, or choose a file',
+  titleHint = 'Images only (JPEG, PNG, WebP, GIF…).',
+  chooseLabel = 'Choose image…',
+  changeLabel = 'Change file',
   canChooseDecode = false,
   canChooseResize = false,
 }: Props) {
@@ -108,18 +118,16 @@ export function MediaFileField({
         />
         <div className="sf-media-file-field-body">
           <p className="sf-media-file-field-title">
-            {fileName ? fileName : 'Drop an image here, or choose a file'}
+            {fileName ? fileName : titleIdle}
           </p>
-          <p className="sf-media-file-field-hint settings-hint">
-            Images only (JPEG, PNG, WebP, GIF…).
-          </p>
+          <p className="sf-media-file-field-hint settings-hint">{titleHint}</p>
           <button
             type="button"
             className="gantry-toolbar-btn gantry-toolbar-btn-muted"
             disabled={disabled}
             onClick={() => inputRef.current?.click()}
           >
-            {fileName ? 'Change file' : 'Choose image…'}
+            {fileName ? changeLabel : chooseLabel}
           </button>
         </div>
       </div>

@@ -32,6 +32,8 @@ export type ResolvedMedia = {
   categoryLabel?: string | null
   purpose?: MediaPurpose | null
   filename?: string | null
+  /** Form / admin private flag. Folder `forms` is also private via `isPrivateFormMedia`. */
+  private?: boolean | null
   /** Shared taxonomy tag ids (SF-132 / SF-148). */
   tagIds?: string[]
   /** Display titles when tags were populated. */
@@ -149,6 +151,7 @@ export function toResolvedMedia(
     categoryLabel: category.categoryLabel,
     purpose: (media.purpose as MediaPurpose | null | undefined) ?? null,
     filename: media.filename,
+    private: media.private === true,
     ...(tags.tagIds.length ? { tagIds: tags.tagIds } : {}),
     ...(tags.tagLabels.length ? { tagLabels: tags.tagLabels } : {}),
     sizes: {
@@ -231,7 +234,7 @@ export async function listMediaTagOptions(): Promise<MediaTagOption[]> {
     const payload = await getPayload({ config })
     const result = await payload.find({
       collection: 'tags',
-      limit: 200,
+      limit: 500,
       sort: 'title',
       depth: 0,
       overrideAccess: true,
@@ -334,6 +337,7 @@ export async function listMedia(opts?: {
         categoryLabel: categoryMeta.categoryLabel,
         purpose: (m.purpose as MediaPurpose | null | undefined) ?? null,
         filename: m.filename,
+        private: m.private === true,
         ...(tags.tagIds.length ? { tagIds: tags.tagIds } : {}),
         ...(tags.tagLabels.length ? { tagLabels: tags.tagLabels } : {}),
       })

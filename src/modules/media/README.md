@@ -12,7 +12,9 @@ Required Media library pack (design-module-boundary **M5**).
 
 Library + Settings admin UI (`admin/`, App Router shims under `/admin/media`). Shared bind contract: bind **`mediaId`** only — **MediaPicker** / **MemberMediaPicker** (`sf_media_owners`); no forked library UI. Pipeline rules in `sf_media_settings` (Media → Settings).
 
-**Document store (accepted 2026-11-15, not moved):** this pack will take meta, categories, and media-tags that still sit in Payload `media` / `categories` / `tags`. Blobs stay on MediaStorage. ImageFrame stays the display crop. Do not start that move in a docs-only change. Order and the parity bar (edit drawer, pagination, tag admin, non-image, file replace — then the store): [payload-dependency-map](../../../docs/project-context/docs/payload-dependency-map.md).
+**UX parity (phase 2a, done):** `/admin/media` is the daily path. The item panel edits alt, purpose, tags, private, and category. The list pages past 60. Tags are created and renamed in the library sidebar. Admins upload and browse images plus the document types Forms already allow (PDF, Word, plain text), including private and form files. Replace file runs the existing sharp pipeline and Payload `imageSizes`. ImageFrame stays the display crop. There is no Payload focal-point editor.
+
+**Document store (phase 2b, not moved):** this pack will take meta, categories, and media-tags that still sit in Payload `media` / `categories` / `tags`. `getPayload()` stays in `src/core/media` until that move. Blobs stay on MediaStorage. Do not start 2b in a UX-only change. Order: [payload-dependency-map](../../../docs/project-context/docs/payload-dependency-map.md).
 
 ## Consumes
 
