@@ -26,6 +26,7 @@ import {
   countRegisteredGuests,
   findActiveRegistrationForUserOnEvent,
   isEventSelfCancelOpen,
+  isEventSwitchOpen,
 } from '../registrations'
 import { resolveEventMediaSrc } from '../public/media-src'
 import { loadEventsModuleSettings } from '../settings'
@@ -160,7 +161,8 @@ export const eventDetailModule: StarforgeModule = {
         : undefined,
       activeTierId: myReg?.ticketTierId || '',
       selfCancelOpen: isEventSelfCancelOpen(event).open,
-      canSwitchTier: Boolean(myReg && !myReg.paymentOrderId.trim()),
+      switchOpen: isEventSwitchOpen(event).open,
+      canSwitchTier: Boolean(myReg),
       manageHref,
       registrationId: myReg?.id || '',
     })

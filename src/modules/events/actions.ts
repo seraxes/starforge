@@ -153,6 +153,8 @@ function eventFieldsFromForm(formData: FormData) {
     registrationClosesAt: datetimeLocalToIso(
       String(formData.get('registrationClosesAt') ?? ''),
     ),
+    selfCancelEnabled: formData.get('selfCancelEnabled') === '1' ? '1' : '0',
+    switchEnabled: formData.get('switchEnabled') === '1' ? '1' : '0',
     cancellationClosesAt: datetimeLocalToIso(
       String(formData.get('cancellationClosesAt') ?? ''),
     ),

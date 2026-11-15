@@ -209,20 +209,18 @@ export async function isPaymentsModuleOn(): Promise<boolean> {
   }
 }
 
-/** Effective major-unit price for a tier, or null / 0 = free. */
-export async function tierRequiresPayment(
+/**
+ * Quoted major-unit price for a tier. Does not touch Payments settings.
+ * Null when the tier id is missing.
+ */
+export async function quotedTierMajor(
   ticketTierId: string | null | undefined,
   extras?: { payload?: Record<string, unknown>; userId?: string | null },
-): Promise<{
-  requires: boolean
-  majorPrice: number | null
-  title: string
-  currency: string
-}> {
+): Promise<{ major: number; title: string; eventCurrency: string } | null> {
   const id = (ticketTierId || '').trim()
-  if (!id) return { requires: false, majorPrice: null, title: '', currency: '' }
+  if (!id) return null
   const tier = await findTicketTierById(id)
-  if (!tier) return { requires: false, majorPrice: null, title: '', currency: '' }
+  if (!tier) return null
   const event = await findEventById(tier.eventId)
   const { countRegisteredGuests } = await import('./registrations')
   const sold = await countRegisteredGuests(tier.eventId)
@@ -277,13 +275,32 @@ export async function tierRequiresPayment(
     capacity: event?.capacity ?? null,
     formAddonMajor,
   })
+  return {
+    major,
+    title: tier.title,
+    eventCurrency: (event?.currency || '').trim(),
+  }
+}
+
+/** Effective major-unit price for a tier, or null / 0 = free. */
+export async function tierRequiresPayment(
+  ticketTierId: string | null | undefined,
+  extras?: { payload?: Record<string, unknown>; userId?: string | null },
+): Promise<{
+  requires: boolean
+  majorPrice: number | null
+  title: string
+  currency: string
+}> {
+  const quoted = await quotedTierMajor(ticketTierId, extras)
+  if (!quoted) return { requires: false, majorPrice: null, title: '', currency: '' }
   const { getPaymentsSettings } = await import('@/modules/payments/api')
   const paySettings = await getPaymentsSettings()
-  const currency = (event?.currency || '').trim() || paySettings.currency
-  if (major <= 0) {
-    return { requires: false, majorPrice: major, title: tier.title, currency }
+  const currency = quoted.eventCurrency || paySettings.currency
+  if (quoted.major <= 0) {
+    return { requires: false, majorPrice: quoted.major, title: quoted.title, currency }
   }
-  return { requires: true, majorPrice: major, title: tier.title, currency }
+  return { requires: true, majorPrice: quoted.major, title: quoted.title, currency }
 }
 
 export type StartEventTicketCheckoutInput = {

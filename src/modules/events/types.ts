@@ -127,7 +127,11 @@ export type EventRecord = {
   registrationOpensAt: Date | null
   /** When public signup closes (null = until event ends / no hard close). */
   registrationClosesAt: Date | null
-  /** Self-cancel / Switch-to until this time (null = disabled). */
+  /** Allow self-cancel without requiring a refund. */
+  selfCancelEnabled: boolean
+  /** Allow one-step Switch-to other open ticket types. Payment stays on the seat. */
+  switchEnabled: boolean
+  /** Optional hard close for self-cancel / Switch-to (null = no hard close). */
   cancellationClosesAt: Date | null
   /** Offer confirmed refund request on self-cancel when a paid order exists. */
   selfCancelRefund: boolean

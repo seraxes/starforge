@@ -131,6 +131,8 @@ function mapEvent(row: typeof sfEvents.$inferSelect): EventRecord {
     requireApproval: row.requireApproval === true,
     registrationOpensAt: row.registrationOpensAt ?? null,
     registrationClosesAt: row.registrationClosesAt ?? null,
+    selfCancelEnabled: row.selfCancelEnabled === true,
+    switchEnabled: row.switchEnabled === true,
     cancellationClosesAt: row.cancellationClosesAt ?? null,
     selfCancelRefund: row.selfCancelRefund === true,
     merchantUserId: (row.merchantUserId || '').trim(),
@@ -502,6 +504,8 @@ export type UpsertEventInput = {
   requireApproval?: unknown
   registrationOpensAt?: unknown
   registrationClosesAt?: unknown
+  selfCancelEnabled?: unknown
+  switchEnabled?: unknown
   cancellationClosesAt?: unknown
   selfCancelRefund?: unknown
   /** Premium merchant user collecting ticket payments (empty = site MoR). */
@@ -580,6 +584,8 @@ export async function createEvent(
   const endsAt = parseOptionalDate(input.endsAt)
   const registrationOpensAt = parseOptionalDate(input.registrationOpensAt)
   const registrationClosesAt = parseOptionalDate(input.registrationClosesAt)
+  const selfCancelEnabled = parseListedFlag(input.selfCancelEnabled, false)
+  const switchEnabled = parseListedFlag(input.switchEnabled, false)
   const cancellationClosesAt = parseOptionalDate(input.cancellationClosesAt)
   const selfCancelRefund = parseListedFlag(input.selfCancelRefund, false)
   const merchantUserId = String(input.merchantUserId ?? '').trim() || null
@@ -651,6 +657,8 @@ export async function createEvent(
       requireApproval,
       registrationOpensAt,
       registrationClosesAt,
+      selfCancelEnabled,
+      switchEnabled,
       cancellationClosesAt,
       selfCancelRefund,
       merchantUserId,
@@ -974,6 +982,9 @@ export async function expandEventIntoSeries(
       capacity: input.capacity ?? current.capacity ?? '',
       waitlistEnabled: input.waitlistEnabled ?? (current.waitlistEnabled ? '1' : '0'),
       requireApproval: input.requireApproval ?? (current.requireApproval ? '1' : '0'),
+      selfCancelEnabled:
+        input.selfCancelEnabled ?? (current.selfCancelEnabled ? '1' : '0'),
+      switchEnabled: input.switchEnabled ?? (current.switchEnabled ? '1' : '0'),
       selfCancelRefund: input.selfCancelRefund ?? (current.selfCancelRefund ? '1' : '0'),
       merchantUserId: input.merchantUserId ?? current.merchantUserId,
       managerUserIds: input.managerUserIds ?? current.managerUserIds,
@@ -1085,6 +1096,14 @@ export async function updateEvent(
     input.registrationClosesAt !== undefined
       ? parseOptionalDate(input.registrationClosesAt)
       : current.registrationClosesAt
+  const selfCancelEnabled =
+    input.selfCancelEnabled !== undefined
+      ? parseListedFlag(input.selfCancelEnabled, current.selfCancelEnabled)
+      : current.selfCancelEnabled
+  const switchEnabled =
+    input.switchEnabled !== undefined
+      ? parseListedFlag(input.switchEnabled, current.switchEnabled)
+      : current.switchEnabled
   const cancellationClosesAt =
     input.cancellationClosesAt !== undefined
       ? parseOptionalDate(input.cancellationClosesAt)
@@ -1215,6 +1234,8 @@ export async function updateEvent(
         requireApproval,
         registrationOpensAt,
         registrationClosesAt,
+        selfCancelEnabled,
+        switchEnabled,
         cancellationClosesAt,
         selfCancelRefund,
         merchantUserId,
@@ -1319,6 +1340,8 @@ export async function duplicateEvent(
     requireApproval: source.requireApproval ? '1' : '0',
     registrationOpensAt: source.registrationOpensAt?.toISOString() ?? '',
     registrationClosesAt: source.registrationClosesAt?.toISOString() ?? '',
+    selfCancelEnabled: source.selfCancelEnabled ? '1' : '0',
+    switchEnabled: source.switchEnabled ? '1' : '0',
     cancellationClosesAt: source.cancellationClosesAt?.toISOString() ?? '',
     selfCancelRefund: source.selfCancelRefund ? '1' : '0',
     merchantUserId: source.merchantUserId,

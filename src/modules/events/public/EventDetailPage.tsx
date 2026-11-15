@@ -32,6 +32,7 @@ import {
   countRegisteredGuests,
   findActiveRegistrationForUserOnEvent,
   isEventSelfCancelOpen,
+  isEventSwitchOpen,
 } from '@/modules/events/registrations'
 import { resolveEventMediaSrc } from '@/modules/events/public/media-src'
 import { loadEventsModuleSettings } from '@/modules/events/settings'
@@ -160,7 +161,8 @@ export default async function PublicEventDetailPage({ params, searchParams }: Ar
 
   const signupStatus = signupStatusFromRegistrationStatus(myReg?.status)
   const selfCancelOpen = isEventSelfCancelOpen(event).open
-  const canSwitchTier = Boolean(myReg && !myReg.paymentOrderId.trim())
+  const switchOpen = isEventSwitchOpen(event).open
+  const canSwitchTier = Boolean(myReg)
 
   const venueMap =
     venue?.latitude != null && venue?.longitude != null ? (
@@ -206,6 +208,7 @@ export default async function PublicEventDetailPage({ params, searchParams }: Ar
         loginPath={withLocalePrefix('/login', locale)}
         activeTierId={myReg?.ticketTierId || ''}
         selfCancelOpen={selfCancelOpen}
+        switchOpen={switchOpen}
         canSwitchTier={canSwitchTier}
         manageHref={myReg ? manageHref : ''}
         registrationId={myReg?.id || ''}

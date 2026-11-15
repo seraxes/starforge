@@ -405,6 +405,8 @@ export type EventFormRow = {
   requireApproval?: boolean
   registrationOpensAt?: string | null
   registrationClosesAt?: string | null
+  selfCancelEnabled?: boolean
+  switchEnabled?: boolean
   cancellationClosesAt?: string | null
   selfCancelRefund?: boolean
   /** Premium merchant user id for ticket collect (empty = site MoR). */
@@ -1181,8 +1183,44 @@ export function EventFormFields({
           />
           <span className="settings-hint">Empty = no hard close.</span>
         </label>
+      </fieldset>
+
+      <fieldset className="settings-fieldset sf-events-form-section">
+        <legend>Self-service cancel &amp; Switch-to</legend>
+        <p className="settings-hint">
+          Separate choices for public cancel and Switch to. Cancel frees the seat without
+          requiring a refund. Refund request is optional and only for paid seats.
+        </p>
+        <label className="settings-field settings-flag">
+          <input
+            type="checkbox"
+            name="selfCancelEnabled"
+            value="1"
+            defaultChecked={row?.selfCancelEnabled === true}
+            disabled={busy}
+          />
+          <span>Allow self-cancel</span>
+          <span className="settings-hint">
+            Attendees may cancel their registration. No refund is required — works for free
+            and unpaid events too.
+          </span>
+        </label>
+        <label className="settings-field settings-flag">
+          <input
+            type="checkbox"
+            name="switchEnabled"
+            value="1"
+            defaultChecked={row?.switchEnabled === true}
+            disabled={busy}
+          />
+          <span>Allow Switch-to</span>
+          <span className="settings-hint">
+            Attendees switch to another open ticket type in one step. The current payment
+            stays on the seat. A higher price is refused.
+          </span>
+        </label>
         <label className="settings-field">
-          <span>Cancellation closes</span>
+          <span>Allow until</span>
           <input
             type="datetime-local"
             name="cancellationClosesAt"
@@ -1190,7 +1228,23 @@ export function EventFormFields({
             disabled={busy}
           />
           <span className="settings-hint">
-            Empty = attendees cannot cancel or switch ticket types themselves.
+            Optional hard close for the enabled options above. Empty = open while the event
+            stays published.
+          </span>
+        </label>
+        <label className="settings-field settings-flag">
+          <input
+            type="checkbox"
+            name="selfCancelRefund"
+            value="1"
+            defaultChecked={row?.selfCancelRefund === true}
+            disabled={busy}
+          />
+          <span>Offer refund request on self-cancel</span>
+          <span className="settings-hint">
+            Optional. Paid attendees may confirm a refund request when cancelling. Refunds
+            are not automatic — Payments must process them. Leave off for free / no-refund
+            events.
           </span>
         </label>
       </fieldset>
@@ -1344,20 +1398,6 @@ export function EventFormFields({
           </select>
           <span className="settings-hint">
             Premium organizer with My merchant keys + ACL. Empty uses site payments settings.
-          </span>
-        </label>
-        <label className="settings-field settings-flag">
-          <span>Offer refund on self-cancel</span>
-          <input
-            type="checkbox"
-            name="selfCancelRefund"
-            value="1"
-            defaultChecked={row?.selfCancelRefund === true}
-            disabled={busy}
-          />
-          <span className="settings-hint">
-            When enabled, paid attendees may confirm a refund request on cancel.
-            Refunds are not automatic — Payments must process them.
           </span>
         </label>
       </fieldset>

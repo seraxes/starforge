@@ -295,6 +295,13 @@
       "when": 1794036000000,
       "tag": "0041_pay_merchant_methods",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1794037000000,
+      "tag": "0042_event_self_cancel_switch_flags",
+      "breakpoints": true
     }
   ]
 }

@@ -53,25 +53,58 @@ export function isEventRegistrationOpen(
   return { open: true }
 }
 
+function isSelfServiceDeadlineOpen(
+  event: Pick<EventRecord, 'cancellationClosesAt'>,
+  now: Date,
+): boolean {
+  return !event.cancellationClosesAt || now <= event.cancellationClosesAt
+}
+
 /**
- * True when the signed-in attendee may cancel or Switch-to.
- * Empty `cancellationClosesAt` = self-service disabled.
+ * True when the signed-in attendee may cancel their own seat.
+ * Cancel does not require a refund offer — `selfCancelRefund` is optional.
  */
 export function isEventSelfCancelOpen(
-  event: Pick<EventRecord, 'status' | 'cancellationClosesAt'>,
+  event: Pick<
+    EventRecord,
+    'status' | 'selfCancelEnabled' | 'cancellationClosesAt'
+  >,
   now = new Date(),
 ): { open: boolean; reason?: string } {
   if (event.status !== 'published') {
     return { open: false, reason: 'Event is not open for self-service changes.' }
   }
-  if (!event.cancellationClosesAt) {
+  if (!event.selfCancelEnabled) {
     return {
       open: false,
       reason: 'Self-service cancel is not enabled for this event.',
     }
   }
-  if (now > event.cancellationClosesAt) {
+  if (!isSelfServiceDeadlineOpen(event, now)) {
     return { open: false, reason: 'The cancellation deadline has passed.' }
+  }
+  return { open: true }
+}
+
+/**
+ * True when attendees may Switch-to another open ticket type.
+ * Paid and unpaid seats both use this window. The payment stays on the seat.
+ */
+export function isEventSwitchOpen(
+  event: Pick<EventRecord, 'status' | 'switchEnabled' | 'cancellationClosesAt'>,
+  now = new Date(),
+): { open: boolean; reason?: string } {
+  if (event.status !== 'published') {
+    return { open: false, reason: 'Event is not open for self-service changes.' }
+  }
+  if (!event.switchEnabled) {
+    return {
+      open: false,
+      reason: 'Switching ticket types is not enabled for this event.',
+    }
+  }
+  if (!isSelfServiceDeadlineOpen(event, now)) {
+    return { open: false, reason: 'The switching deadline has passed.' }
   }
   return { open: true }
 }
@@ -808,8 +841,9 @@ export async function cancelOwnRegistration(
 }
 
 /**
- * Switch an unpaid signup to another ticket type with open slots.
- * Paid seats must cancel first (no silent money moves).
+ * Switch a signup to another ticket type with open slots, in one step.
+ * A linked payment stays on the seat. A higher quoted price is refused so
+ * the switch does not grant a more expensive team.
  */
 export async function switchOwnRegistrationTier(
   userId: string,
@@ -831,26 +865,15 @@ export async function switchOwnRegistrationTier(
     if ((current.userId || '').trim() !== uid) {
       return { error: 'You can only change your own registration.' }
     }
-    if (
-      current.status !== 'registered' &&
-      current.status !== 'pending' &&
-      current.status !== 'waitlisted'
-    ) {
-      return { error: 'Only active registrations can switch ticket types.' }
-    }
-
-    const paymentOrderId = (current.paymentOrderId || '').trim()
-    if (paymentOrderId) {
-      return {
-        error: 'Cancel your paid seat first before switching ticket types.',
-      }
+    if (!(ACTIVE_SIGNUP_STATUSES as readonly string[]).includes(current.status)) {
+      return { error: 'This signup is cancelled, so the team cannot be changed.' }
     }
 
     const event = await findEventById(current.eventId)
     if (!event) return { error: 'Event not found.' }
-    const window = isEventSelfCancelOpen(event)
+    const window = isEventSwitchOpen(event)
     if (!window.open) {
-      return { error: window.reason || 'Self-service changes are closed.' }
+      return { error: window.reason || 'Switching ticket types is closed.' }
     }
 
     if ((current.ticketTierId || '').trim() === tierId) {
@@ -860,6 +883,19 @@ export async function switchOwnRegistrationTier(
     const tier = await findTicketTierById(tierId)
     if (!tier || tier.eventId !== current.eventId) {
       return { error: 'Ticket type was not found for this event.' }
+    }
+
+    const { quotedTierMajor } = await import('./payment-bridge')
+    const [currentPrice, targetPrice] = await Promise.all([
+      quotedTierMajor(current.ticketTierId, { userId: uid }),
+      quotedTierMajor(tierId, { userId: uid }),
+    ])
+    const currentMajor = currentPrice?.major ?? 0
+    const targetMajor = targetPrice?.major ?? 0
+    if (targetMajor > currentMajor) {
+      return {
+        error: 'That team costs more than your current ticket.',
+      }
     }
 
     const guests = Math.max(1, Number(current.guests) || 1)
@@ -885,7 +921,9 @@ export async function switchOwnRegistrationTier(
         ? 'registered'
         : current.status === 'pending'
           ? 'pending'
-          : 'registered'
+          : current.status === 'pending_payment'
+            ? 'pending_payment'
+            : 'registered'
 
     await db
       .update(sfEventRegistrations)

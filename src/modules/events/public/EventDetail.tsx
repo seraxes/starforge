@@ -77,9 +77,11 @@ export type EventDetailProps = {
   loginPath?: string
   /** Active signup ticket tier id when signed up (for Edit/Cancel vs Switch to). */
   activeTierId?: string
-  /** True when self-cancel / Switch-to window is open. */
+  /** True when self-cancel window is open. */
   selfCancelOpen?: boolean
-  /** True when the active signup is unpaid (Switch-to allowed). */
+  /** True when Switch-to window is open on the event. */
+  switchOpen?: boolean
+  /** True when the active signup may Switch-to (paid or unpaid). */
   canSwitchTier?: boolean
   /** Locale-prefixed manage-my-signup path. */
   manageHref?: string
@@ -163,6 +165,7 @@ export function EventDetail({
   loginPath = '',
   activeTierId = '',
   selfCancelOpen = false,
+  switchOpen = false,
   canSwitchTier = false,
   manageHref = '',
   registrationId = '',
@@ -335,6 +338,7 @@ export function EventDetail({
           signupStatus={signupStatus}
           activeTierId={activeTierId}
           selfCancelOpen={selfCancelOpen}
+          switchOpen={switchOpen}
           canSwitchTier={canSwitchTier}
           manageHref={manageHref}
           registrationId={registrationId}

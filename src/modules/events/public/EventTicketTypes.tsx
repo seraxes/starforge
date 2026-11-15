@@ -36,8 +36,11 @@ type Props = {
   registrationOpen?: boolean
   signupStatus?: EventSignupStatus
   activeTierId?: string
+  /** Event allows self-cancel (and deadline still open). */
   selfCancelOpen?: boolean
-  /** Unpaid signup may Switch-to other open tiers. */
+  /** Event allows Switch-to (and deadline still open). */
+  switchOpen?: boolean
+  /** Active signup may Switch-to other open tiers (paid or unpaid). */
   canSwitchTier?: boolean
   manageHref?: string
   registrationId?: string
@@ -83,6 +86,7 @@ export function EventTicketTypes({
   signupStatus = 'none',
   activeTierId = '',
   selfCancelOpen = false,
+  switchOpen = false,
   canSwitchTier = false,
   manageHref = '',
   registrationId = '',
@@ -202,16 +206,9 @@ export function EventTicketTypes({
             alreadyIn &&
             !isCurrent &&
             canSwitchTier &&
-            selfCancelOpen &&
+            switchOpen &&
             hasOpenSlots &&
             Boolean(registrationId)
-          const showPaidSwitchHint =
-            alreadyIn &&
-            !isCurrent &&
-            !canSwitchTier &&
-            selfCancelOpen &&
-            hasOpenSlots &&
-            Boolean(manageHref)
           const disabledRegister =
             !registrationOpen ||
             (tier.soldOut && !tier.waitlistEnabled) ||
@@ -254,7 +251,7 @@ export function EventTicketTypes({
               <div className="sf-event-ticket-type-cta">
                 {isCurrent && manageHref ? (
                   <a className="sf-event-ticket-type-register" href={manageHref}>
-                    Edit / Cancel
+                    {selfCancelOpen ? 'Edit / Cancel' : 'My registration'}
                   </a>
                 ) : isCurrent ? (
                   <span className="settings-hint">
@@ -269,15 +266,11 @@ export function EventTicketTypes({
                   >
                     {busy ? 'Switching…' : 'Switch to'}
                   </button>
-                ) : showPaidSwitchHint ? (
-                  <a className="settings-hint" href={manageHref}>
-                    Cancel first to switch
-                  </a>
                 ) : alreadyIn ? (
                   <span className="settings-hint">
                     {!hasOpenSlots
                       ? 'No open slots'
-                      : !selfCancelOpen
+                      : !switchOpen
                         ? 'Switching closed'
                         : signupBlockedLabel(signupStatus)}
                   </span>

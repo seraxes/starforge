@@ -148,6 +148,8 @@ export default async function EventEditPage({ params }: { params: Params }) {
           registrationClosesAt: event.registrationClosesAt
             ? event.registrationClosesAt.toISOString()
             : null,
+          selfCancelEnabled: event.selfCancelEnabled,
+          switchEnabled: event.switchEnabled,
           cancellationClosesAt: event.cancellationClosesAt
             ? event.cancellationClosesAt.toISOString()
             : null,

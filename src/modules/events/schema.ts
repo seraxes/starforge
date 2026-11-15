@@ -153,13 +153,25 @@ export const sfEvents = pgTable(
     /** Null = no hard close (beyond event status). */
     registrationClosesAt: timestamp('registration_closes_at', { withTimezone: true }),
     /**
-     * Self-service cancel / Switch-to allowed until this time.
-     * Null = self-cancel and Switch-to disabled.
+     * When true, signed-in attendees may cancel their own seat (no refund required).
+     * Optional hard close via cancellationClosesAt.
+     */
+    selfCancelEnabled: pgBoolean('self_cancel_enabled').notNull().default(false),
+    /**
+     * When true, attendees may Switch-to another open ticket type in one step.
+     * A linked payment stays on the seat. A higher quoted price is refused.
+     * Optional hard close via cancellationClosesAt.
+     */
+    switchEnabled: pgBoolean('switch_enabled').notNull().default(false),
+    /**
+     * Optional hard close for self-cancel and/or Switch-to when those flags are on.
+     * Null = no hard close while the matching flag is enabled.
      */
     cancellationClosesAt: timestamp('cancellation_closes_at', { withTimezone: true }),
     /**
      * When true, the public cancel form may offer a confirmed refund request
-     * via product:payments (refunds themselves are not auto).
+     * via product:payments (refunds themselves are not auto). Cancel still works
+     * without this flag.
      */
     selfCancelRefund: pgBoolean('self_cancel_refund').notNull().default(false),
     /**
