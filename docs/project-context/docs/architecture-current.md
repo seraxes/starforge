@@ -143,6 +143,8 @@ Still paper, and only when a consumer is actually being built: `LlmProvider`, `M
 
 **Public door:** do not design a parallel pack API. Cross-module calls extend `@/modules/<id>/api` / `api.server`; private files stay inside the pack (`sf-architecture`, `sf-extend-existing`).
 
+**Atomic gate (decided 2026-11-15):** Do not add rows to `scripts/module-boundary-allowlist.json`. Before closing boundary / schema / public-door work, run `npm run check:atomic` (alias for `verify:module-boundaries`). See [decision](./decisions/2026-11-15-atomic-guardrails.md) and `sf-atomic-guardrails.mdc`.
+
 ## Docs
 
 | Use for | Doc |

@@ -1,0 +1,26 @@
+---
+description: Atomic build and runtime guardrails — public-door imports, client/server isolation, schema ownership, fail-closed authz, money idempotency, check:atomic gate.
+alwaysApply: true
+---
+
+# Starforge — atomic guardrails
+
+The app must protect itself at build and run time. Do not bypass checks with cast hacks or new exemptions.
+
+## Laws
+
+1. **Zero-trust pack boundary:** Do not add rows to `scripts/module-boundary-allowlist.json`. Cross-pack imports go only through `@/modules/<id>/api` or `api.server`, and the target must appear in the importer’s `requires` or `optionalRequires`. Checker-built-in exceptions (form/maps client barrels, app route shims) stay as-is — they are not allowlist entries.
+
+2. **Client / server isolation:** A `'use client'` file or a barrel without `import 'server-only'` must not import a `server-only` file, `pg`, `ioredis`, or `node:fs`. `api.ts` is not always a client barrel — Payments and Subscriptions may expose a server-only `api.ts`. Do not require every pack to have `api.server.ts`.
+
+3. **Schema ownership:** Each pack declares its `sf_<pack>_*` tables in its own `schema.ts`. Do not import another pack’s `schema.ts`; cross-pack FKs are plain text ids. Do not ALTER/DROP another pack’s tables. Owner-module additive ALTER (`ADD COLUMN`) is fine. Do not commit a generate diff that DROP/renames tables by accident.
+
+4. **Fail-closed authz; isolate secondary hooks:** On authz or module-off checks, error or disabled → return `false`. Secondary cross-module listeners must catch and log; they must not take down the primary flow. Do not assume every hook path already does this.
+
+5. **Money / webhook idempotency:** Money movement, webhooks, and fulfillment state flips need an idempotency key and a `db.transaction`. Do not require that for every form submit or every email.
+
+6. **Green gate:** Before closing a task that touches pack boundaries, schema, or public doors, `npm run check:atomic` must pass. That script is `verify:module-boundaries` only — not `verify:all`.
+
+## Quick check
+
+If a new pack tempts you to edit another base pack’s private files or tables — stop. Extend that pack’s public door, then run `npm run check:atomic`.

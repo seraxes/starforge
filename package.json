@@ -54,6 +54,7 @@
     "verify:media-phase3": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-media-phase3.mts",
     "verify:media-module-m5": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-media-module-m5.mts",
     "verify:module-boundary-m2": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-module-boundary-m2.mts",
+    "check:atomic": "npm run verify:module-boundaries",
     "verify:module-boundaries": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-module-boundaries.ts && cross-env NODE_OPTIONS=--no-deprecation tsx --test scripts/verify-module-boundaries.test.ts",
     "verify:stage7-routes": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/verify-stage7-routes.mts",
     "verify:module-boot": "cross-env NODE_OPTIONS=\"--no-deprecation --import ./scripts/stub-server-only-loader.mjs\" tsx scripts/verify-module-boot.mts",
