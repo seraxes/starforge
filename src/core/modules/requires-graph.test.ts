@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import {
+  assertKnownOptional,
   closeModuleRequires,
   resolveModuleToggleRequires,
   type RequiresNode,
@@ -42,6 +43,50 @@ describe('closeModuleRequires', () => {
       /unknown module product:missing/,
     )
   })
+
+  it('does not pull optionalRequires and still pulls hard requires', () => {
+    const withOptional: RequiresNode[] = [
+      { id: 'product:media' },
+      { id: 'product:email-manager' },
+      { id: 'product:maps' },
+      {
+        id: 'product:forms',
+        requires: ['product:media'],
+        optionalRequires: ['product:email-manager'],
+      },
+      {
+        id: 'product:profiles',
+        requires: ['product:media'],
+        optionalRequires: ['product:maps'],
+      },
+    ]
+    assert.doesNotThrow(() => assertKnownOptional(withOptional))
+
+    const forms = closeModuleRequires(['product:forms'], withOptional)
+    assert.deepEqual(forms.pulled, ['product:media'])
+    assert.equal(forms.ids.includes('product:email-manager'), false)
+
+    const profiles = closeModuleRequires(['product:profiles'], withOptional)
+    assert.deepEqual(profiles.pulled, ['product:media'])
+    assert.equal(profiles.ids.includes('product:maps'), false)
+
+    const events = closeModuleRequires(['product:events'], nodes)
+    assert.ok(events.pulled.includes('product:payments'))
+    assert.ok(events.pulled.includes('product:maps'))
+    assert.ok(events.ids.includes('product:email-manager'))
+  })
+})
+
+describe('assertKnownOptional', () => {
+  it('rejects an unknown optional id', () => {
+    assert.throws(
+      () =>
+        assertKnownOptional([
+          { id: 'product:forms', optionalRequires: ['product:missing'] },
+        ]),
+      /product:forms optionalRequires unknown module product:missing/,
+    )
+  })
 })
 
 describe('resolveModuleToggleRequires', () => {
@@ -67,6 +112,53 @@ describe('resolveModuleToggleRequires', () => {
     assert.ok('error' in result)
     if (!('error' in result)) return
     assert.match(result.error, /Media library is required by Events/)
+  })
+
+  it('does not turn an optional dependency on or refuse to turn it off', () => {
+    const optionalNodes: RequiresNode[] = [
+      { id: 'product:media' },
+      { id: 'product:email-manager' },
+      {
+        id: 'product:forms',
+        requires: ['product:media'],
+        optionalRequires: ['product:email-manager'],
+      },
+    ]
+    const enabled = resolveModuleToggleRequires({
+      previous: {
+        'product:forms': false,
+        'product:media': false,
+        'product:email-manager': false,
+      },
+      requested: {
+        'product:forms': true,
+        'product:media': false,
+        'product:email-manager': false,
+      },
+      nodes: optionalNodes,
+    })
+    assert.ok(!('error' in enabled))
+    if ('error' in enabled) return
+    assert.equal(enabled.toggles['product:media'], true)
+    assert.equal(enabled.toggles['product:email-manager'], false)
+
+    const disabled = resolveModuleToggleRequires({
+      previous: {
+        'product:forms': true,
+        'product:media': true,
+        'product:email-manager': true,
+      },
+      requested: {
+        'product:forms': true,
+        'product:media': true,
+        'product:email-manager': false,
+      },
+      nodes: optionalNodes,
+    })
+    assert.ok(!('error' in disabled))
+    if ('error' in disabled) return
+    assert.equal(disabled.toggles['product:forms'], true)
+    assert.equal(disabled.toggles['product:email-manager'], false)
   })
 
   it('allows turning a pack and its dependency off together', () => {

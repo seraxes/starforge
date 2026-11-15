@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { afterEach, describe, it } from 'node:test'
 
 import {
+  addFormPresetListener,
   clearFormPresetRegistrations,
   getRegisteredFormPreset,
   registerFormPreset,
@@ -185,5 +186,85 @@ describe('registerFormPreset + onSubmitted', () => {
       userId: null,
       payload: {},
     })
+  })
+
+  it('runs a listener and keeps the owner redirect (Events checkout)', async () => {
+    const seen: string[] = []
+    registerFormPreset({
+      id: 'event-registration',
+      label: 'Event registration',
+      onSubmitted: async () => ({ redirectUrl: '/en/checkout/order-1', message: 'Pay' }),
+    })
+    addFormPresetListener('event-registration', async () => {
+      seen.push('listener')
+      return { redirectUrl: '/hijack', message: 'nope' }
+    })
+    const result = await runFormPresetOnSubmitted({
+      presetId: 'event-registration',
+      definitionId: 'evt-1',
+      formKey: 'slot',
+      submissionId: 'sub-9',
+      userId: null,
+      payload: { name: 'Ada' },
+    })
+    assert.deepEqual(seen, ['listener'])
+    assert.equal(result?.redirectUrl, '/en/checkout/order-1')
+    assert.equal(result?.message, 'Pay')
+  })
+
+  it('skips listeners when the owner throws and swallows a listener throw', async () => {
+    const seen: string[] = []
+    registerFormPreset({
+      id: 'event-registration',
+      label: 'Event registration',
+      onSubmitted: async () => {
+        throw new Error('owner failed')
+      },
+    })
+    addFormPresetListener('event-registration', async () => {
+      seen.push('listener')
+    })
+    await assert.rejects(
+      () =>
+        runFormPresetOnSubmitted({
+          presetId: 'event-registration',
+          definitionId: null,
+          formKey: 'k',
+          submissionId: 's',
+          userId: null,
+          payload: {},
+        }),
+      /owner failed/,
+    )
+    assert.deepEqual(seen, [])
+
+    clearFormPresetRegistrations()
+    const errors: unknown[] = []
+    const original = console.error
+    console.error = (...args: unknown[]) => {
+      errors.push(args)
+    }
+    try {
+      registerFormPreset({
+        id: 'event-registration',
+        label: 'Event registration',
+        onSubmitted: async () => ({ redirectUrl: '/en/checkout/order-1' }),
+      })
+      addFormPresetListener('event-registration', async () => {
+        throw new Error('listener failed')
+      })
+      const result = await runFormPresetOnSubmitted({
+        presetId: 'event-registration',
+        definitionId: null,
+        formKey: 'k',
+        submissionId: 's',
+        userId: null,
+        payload: {},
+      })
+      assert.equal(result?.redirectUrl, '/en/checkout/order-1')
+      assert.equal(errors.length, 1)
+    } finally {
+      console.error = original
+    }
   })
 })

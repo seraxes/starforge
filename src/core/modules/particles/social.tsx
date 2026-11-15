@@ -3,6 +3,7 @@ import Link from 'next/link'
 
 import { buildLayoutSlotKey } from '@/core/i18n/content-locale-keys'
 import { pickContentLocaleText } from '@/core/i18n/locale-text.server'
+import type { StarforgeModule } from '../types'
 import { readSocialConfig } from './config'
 
 /**

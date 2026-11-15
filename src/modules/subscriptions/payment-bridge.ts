@@ -19,11 +19,13 @@ import {
   countActivePeriodsForPlan,
   endPeriodsForOrder,
   findPlanById,
+  hasEntitlement,
   listActivePeriodsForUser,
   resolveCheckoutPriceMajor,
   userHasUsedTrial,
 } from './store'
 import {
+  ENTITLEMENT_KEYS,
   isCheckoutMode,
   isPlanBillingPeriod,
   type CheckoutMode,
@@ -147,7 +149,7 @@ export async function applySubscriptionsPaymentResult(
 export function ensureSubscriptionsPaymentHookReady(): Promise<void> {
   if (!hookReady) {
     hookReady = import('@/modules/payments/api')
-      .then(({ registerPaymentConsumerHook }) => {
+      .then(({ registerPaymentConsumerHook, registerCollectCapabilityResolver }) => {
         registerPaymentConsumerHook(SUBSCRIPTIONS_PAYMENT_HOOK, async (ctx) => {
           await applySubscriptionsPaymentResult(
             ctx.orderId,
@@ -156,6 +158,10 @@ export function ensureSubscriptionsPaymentHookReady(): Promise<void> {
             ctx.metadata,
           )
         })
+        // Payments never imports Subscriptions — live collect gate is registered here.
+        registerCollectCapabilityResolver((userId) =>
+          hasEntitlement(userId, ENTITLEMENT_KEYS.paymentsCollect),
+        )
       })
       .catch((error) => {
         console.error('[subscriptions] payment hook register failed', error)

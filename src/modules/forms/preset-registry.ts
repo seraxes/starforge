@@ -76,6 +76,12 @@ type StoredRegistration = {
 
 const registrations = new Map<string, StoredRegistration>()
 
+/**
+ * Extra listeners per preset id. They run after the owner's `onSubmitted`
+ * returns. They cannot replace the owner's redirect or message.
+ */
+const listeners = new Map<string, FormPresetOnSubmitted[]>()
+
 /** Register or replace a form preset overlay (idempotent per id). */
 export function registerFormPreset(reg: FormPresetRegistration): void {
   const id = typeof reg.id === 'string' ? reg.id.trim() : ''
@@ -99,9 +105,23 @@ export function registerFormPreset(reg: FormPresetRegistration): void {
   registrations.set(id, next)
 }
 
-/** Test / reset helper — clears module overlays. */
+/**
+ * Append a listener for a preset id. Does not replace `onSubmitted`.
+ * The listener's return value is ignored, including `redirectUrl`.
+ */
+export function addFormPresetListener(id: string, fn: FormPresetOnSubmitted): void {
+  const key = typeof id === 'string' ? id.trim() : ''
+  if (!key) throw new Error('addFormPresetListener: id is required.')
+  if (typeof fn !== 'function') throw new Error('addFormPresetListener: fn is required.')
+  const list = listeners.get(key) ?? []
+  list.push(fn)
+  listeners.set(key, list)
+}
+
+/** Test / reset helper — clears module overlays and listeners. */
 export function clearFormPresetRegistrations(): void {
   registrations.clear()
+  listeners.clear()
 }
 
 export function getRegisteredFormPreset(id: string): StoredRegistration | undefined {
@@ -113,13 +133,25 @@ export function listRegisteredFormPresets(): StoredRegistration[] {
 }
 
 /**
- * Run `onSubmitted` for a preset id when registered.
- * Errors are swallowed by the caller (submit path) — this only invokes.
+ * Run the owner's `onSubmitted`, then any listeners.
+ * The owner's result is the return value. Listener `redirectUrl` and `message`
+ * are ignored, so an Events checkout redirect stays the owner's.
+ * A thrown owner skips the listeners and rejects (the submit path still
+ * soft-fails that error). Listener errors are logged and swallowed.
+ * Listeners also run when the preset has no owner.
  */
 export async function runFormPresetOnSubmitted(
   ctx: FormSubmittedContext,
 ): Promise<FormPresetOnSubmittedResult | void> {
   const hook = registrations.get(ctx.presetId)?.onSubmitted
-  if (!hook) return
-  return await hook(ctx)
+  const ownerResult = hook ? await hook(ctx) : undefined
+  const extra = listeners.get(ctx.presetId) ?? []
+  for (const listener of extra) {
+    try {
+      await listener(ctx)
+    } catch (error) {
+      console.error('[forms] preset listener failed', error)
+    }
+  }
+  return ownerResult
 }

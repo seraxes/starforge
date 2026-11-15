@@ -36,9 +36,9 @@ Toggle: **Settings → Modules → Profiles**. Depends on `product:media` (membe
 
 ## Field model
 
-Registry in `fields.ts` is the typed contract for privacy, Persona projection, and special widgets (avatar/cover crop, map pin, links). **Labels, order, required, section width % (same 5–100 model as Layout particles), and which inputs appear** are owned by the protected Forms definition `profile` (`/admin/forms/profile`) — same pattern as Events → `event-registration`. Removing a field from that form hides it on the editor; stored values are kept.
+Registry in `fields.ts` is the typed contract for privacy, Persona projection, and special widgets (avatar/cover crop, map pin, links). **Labels, order, required, section width % (same 5–100 model as Layout particles), and which inputs appear** are owned by the protected Forms definition `profile` (`/admin/forms/profile`) — same pattern as Events → `event-registration`. Removing a field from that form hides it on the editor; stored values are kept. `ensureProfileFormSeeded` stays in Profiles: Profiles settings load and save, and `bootProfiles` (generated `runModuleBoot`). Forms admin does not seed it. Boot skips the seed when Profiles is toggled off.
 
-Locked (always on/public): display name, handle, avatar — forced on even if stripped from the Forms canvas. Site-wide **default visibility** stays under Profiles Settings. Hero packs add vertical data in `extensions` jsonb (`{ "hero:asn": { teamName } }`) — do not fork the registry.
+Locked (always on/public): display name, handle, avatar — forced on even if stripped from the Forms canvas. Site-wide **default visibility** stays under Profiles Settings. The active hero’s `profileFields` are copied into `ACTIVE_HERO` (`@/generated/module-registry`). The editor renders that list into `extensions[heroId]` with `settings-field`. An empty list adds no section and a save does not rewrite `extensions`. Those keys are not part of `ProfileFieldKey`. Profiles does not import `@/hero`.
 
 Privacy scopes: `public` · `registered` · `friends` (off until Social) · `private`. Non-owners see rounded map coords (~1 km). Age is shown instead of birth date.
 

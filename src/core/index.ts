@@ -70,8 +70,6 @@ export {
   sfPageChrome,
   sfSiteChrome,
   sfNavMenus,
-  sfForms,
-  sfFormSubmissions,
   sfUserGroups,
   sfUserGroupMembers,
   sfAclPermissions,

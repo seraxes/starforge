@@ -6,6 +6,7 @@ import { defineStarforgeModule } from '@/core/modules/define-module'
 export default defineStarforgeModule({
   id: 'product:events',
   kind: 'product',
+  layer: 'advanced',
   label: 'Events',
   description:
     'Events + venues — admin CRUD, categories, public views (upcoming/calendar/map/list), registration, featured + calendar particles.',
@@ -19,6 +20,11 @@ export default defineStarforgeModule({
     'product:profiles',
     'product:maps',
   ],
+  optionalRequires: ['product:email-manager'],
+  boot: {
+    importPath: '@/modules/events/boot',
+    exportName: 'bootEvents',
+  },
   i18n: {
     namespaces: ['product:events'],
   },
@@ -162,5 +168,46 @@ export default defineStarforgeModule({
       },
     ],
   },
+  publicRoutes: [
+    {
+      path: 'events',
+      pageImportPath: '@/modules/events/public/EventsHubPage',
+      reexport: ['generateMetadata'],
+    },
+    {
+      path: 'events/[slug]',
+      pageImportPath: '@/modules/events/public/EventDetailPage',
+      reexport: ['generateMetadata'],
+    },
+    {
+      path: 'events/[slug]/registration',
+      pageImportPath: '@/modules/events/public/EventRegistrationPage',
+      reexport: ['generateMetadata'],
+    },
+    {
+      path: 'events/ticket/[registrationId]',
+      pageImportPath: '@/modules/events/public/EventTicketPage',
+      reexport: ['generateMetadata'],
+    },
+  ],
+  apiRoutes: [
+    {
+      path: 'events/[eventId]/ics',
+      routeImportPath: '@/modules/events/routes/ics-route',
+      handlers: ['GET'],
+    },
+    {
+      path: 'admin/events/registrants/export',
+      routeImportPath: '@/modules/events/routes/registrants-export-route',
+      handlers: ['GET'],
+      dynamic: 'force-dynamic',
+    },
+  ],
+  hostPages: [
+    {
+      id: 'account-events',
+      importPath: '@/modules/events/public/AccountEventsPage',
+    },
+  ],
   db: { schema: 'src/modules/events/schema.ts' },
 })

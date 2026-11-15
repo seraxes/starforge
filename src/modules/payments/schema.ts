@@ -149,7 +149,7 @@ export const sfPayMerchantCredentials = pgTable(
   ],
 )
 
-/** Site-wide stub until product:subscriptions ships — user ids with canCollectPayments. */
+/** Stub collect table when product:subscriptions is off — user ids with canCollectPayments. */
 export const sfPayCollectEntitlements = pgTable(
   'sf_pay_collect_entitlements',
   {

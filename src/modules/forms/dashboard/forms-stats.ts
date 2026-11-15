@@ -34,7 +34,8 @@ export async function loadFormsSubmissionsStats(): Promise<
   try {
     // Dynamic import keeps pure helpers / unit tests free of the pg pool.
     const { count, desc, sql } = await import('drizzle-orm')
-    const { db, sfFormSubmissions } = await import('@/core/db')
+    const { db } = await import('@/core/db')
+    const { sfFormSubmissions } = await import('../schema')
 
     const since24h = new Date(Date.now() - FORMS_NEW_24H_MS)
     const since7d = new Date(Date.now() - FORMS_NEW_7D_MS)

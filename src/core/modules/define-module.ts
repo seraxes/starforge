@@ -20,6 +20,13 @@ export type StarforgeModuleKind =
   | 'particle-pack'
   | 'hero'
 
+/**
+ * Pack direction for the boundary checker.
+ * Base, advanced, and site packs set this. Core platform, builtin particle,
+ * and atom rows omit it — they are not a pack direction.
+ */
+export type StarforgeModuleLayer = 'base' | 'advanced' | 'site'
+
 export type StarforgeModuleNavView = {
   key: string
   label: string
@@ -40,6 +47,16 @@ export type StarforgeModuleProxyDecl = {
   handlerImportPath: string
   /** Named export; omit or `default` for the default export. */
   handlerExportName?: string
+}
+
+/**
+ * Process-start hook. Codegen reads the path and does not call the export.
+ */
+export type StarforgeModuleBootDecl = {
+  /** Codegen import path for the pack boot module. */
+  importPath: string
+  /** Named export on that module. */
+  exportName: string
 }
 
 export type StarforgePublicShellContribution = {
@@ -98,6 +115,80 @@ export type StarforgeModuleAdminRoute = {
   pageExportName?: string
 }
 
+/** Next route segment config copied into the generated shim as literals. */
+export type StarforgeRouteSegmentConfig = {
+  dynamic?: 'auto' | 'force-dynamic' | 'error' | 'force-static'
+  runtime?: 'nodejs' | 'edge'
+}
+
+/**
+ * Public App Router page or route handler owned by a pack (Stage 7).
+ * Codegen writes a shim under a `(modules)` route group so the URL stays
+ * the same. The shim is omitted when the pack is not on the allowlist.
+ */
+export type StarforgeModulePublicRoute = StarforgeRouteSegmentConfig & {
+  /**
+   * Path under the locale public tree (`events`, `account/profile`, `u/[handle]`)
+   * or, when `root` is `frontend`, under `src/app/(frontend)/(modules)/`.
+   */
+  path: string
+  /** `locale` (default) sits under `[locale]`. `frontend` is outside the locale prefix. */
+  root?: 'locale' | 'frontend'
+  /** `page` writes `page.tsx` (default). `route` writes `route.ts`. */
+  file?: 'page' | 'route'
+  pageImportPath: string
+  /** Named export used as the page default. Omit or `default` for the default export. */
+  pageExportName?: string
+  /** Extra named exports to re-export (`metadata`, `generateMetadata`, `GET`, …). */
+  reexport?: string[]
+}
+
+/**
+ * API route handler owned by a pack (Stage 7).
+ * Codegen writes `src/app/api/(modules)/<path>/route.ts`.
+ */
+export type StarforgeModuleApiRoute = StarforgeRouteSegmentConfig & {
+  /** Path under `/api/`, e.g. `events/[eventId]/ics`. */
+  path: string
+  routeImportPath: string
+  /** HTTP handlers to re-export: GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS. */
+  handlers: string[]
+}
+
+/**
+ * Public module namespace the host loads by id from the generated server registry.
+ * The import string lives in the generated file, so Core and host routes do not
+ * name the pack. Omitted when the pack is not allowlisted.
+ */
+export type StarforgeModuleDoor = {
+  id: string
+  importPath: string
+}
+
+/**
+ * Host page body loaded from the generated server registry.
+ * The host file stays in `src/app` and does not import the pack. Codegen emits
+ * the import only when the pack is allowlisted.
+ */
+export type StarforgeModuleHostPage = {
+  /** Stable id the host calls, e.g. `account-events`. */
+  id: string
+  importPath: string
+  exportName?: string
+}
+
+/** Realtime subscribe checker registered when the pack is allowlisted. */
+export type StarforgeModuleRealtimeChannelAcl = {
+  importPath: string
+  exportName: string
+}
+
+/** Layout admin form-definition list, present only when the pack is allowlisted. */
+export type StarforgeModuleLayoutFormCatalog = {
+  importPath: string
+  exportName: string
+}
+
 /**
  * Optional Site Settings topic panel contributed by a module (M2).
  * Document JSON lives in `sf_module_settings` keyed by module id.
@@ -144,6 +235,11 @@ export type StarforgeModuleAdminDashboardWidget = {
 export type StarforgeModuleManifest = {
   id: string
   kind: StarforgeModuleKind
+  /**
+   * Pack layer. Required on base, advanced, and site packs.
+   * Omit on Core platform, builtin particle, and atom rows.
+   */
+  layer?: StarforgeModuleLayer
   label: string
   description: string
   version: string
@@ -152,6 +248,12 @@ export type StarforgeModuleManifest = {
   defaultEnabled?: boolean
   /** Other module ids that should also be present (codegen drops if missing). */
   requires?: string[]
+  /**
+   * Integration the pack uses when that module is already enabled.
+   * Unknown ids fail `modules:generate`. This list does not install or
+   * enable the dependency, and turning the dependency off stays allowed.
+   */
+  optionalRequires?: string[]
   /**
    * Core builtin particle — registered from `@/core/modules/particles`,
    * not via dynamic import. Only meaningful for `kind: 'particle'`.
@@ -211,6 +313,38 @@ export type StarforgeModuleManifest = {
    * `handlerImportPath` is the codegen-visible pointer (not executed here).
    */
   proxy?: StarforgeModuleProxyDecl
+  /**
+   * Process boot (Stage 6). Codegen emits `bootLoaders` and `runModuleBoot`
+   * in `module-registry.server.ts`. `src/instrumentation.ts` calls that runner
+   * and does not import the pack. The export must be idempotent and return
+   * immediately when `isCatalogModuleEnabled` is false for this module id.
+   * Disabled packs stay in the generated list; omitting them at build time
+   * is a later stage.
+   */
+  boot?: StarforgeModuleBootDecl
+  /**
+   * Public pages and frontend route handlers. Codegen writes `(modules)` shims
+   * only when this pack is allowlisted.
+   */
+  publicRoutes?: StarforgeModulePublicRoute[]
+  /** API route handlers. Codegen writes `api/(modules)` shims when allowlisted. */
+  apiRoutes?: StarforgeModuleApiRoute[]
+  /**
+   * Page bodies a host route loads by id. The import lives in the generated
+   * server registry, not in `src/app`.
+   */
+  hostPages?: StarforgeModuleHostPage[]
+  /** Module namespaces loaded by id from the generated server registry. */
+  doors?: StarforgeModuleDoor[]
+  /** Extra SSE channel checker. Omitted from the registry when this pack is not allowlisted. */
+  realtimeChannelAcl?: StarforgeModuleRealtimeChannelAcl
+  /** Layout manager form catalog. Absent from the registry when this pack is not allowlisted. */
+  layoutFormCatalog?: StarforgeModuleLayoutFormCatalog
+  /**
+   * Side-effect CSS imports. Codegen writes them into `@/generated/module-styles`
+   * only when this pack is allowlisted.
+   */
+  styles?: string[]
   /** Declared particles for particle-pack kind (M1+). */
   particles?: StarforgeModuleParticleDecl[]
   /** Drizzle schema path hint for later glob (M2+). */

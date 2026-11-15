@@ -146,7 +146,7 @@ Own pass. Manifest plan M3. Consent is already `@starforge/module-consent`. This
 
 Own pass. Manifest plan M4. Do this after slice 4 so the mail path is already Email Manager only.
 
-**Shipped:** Engine is `src/modules/forms`. `api.ts` is the door (evaluate, presets, `registerFormPreset`, submit). Events, Profiles, and Payments import that file only. `src/core/forms` is gone. Definitions stay `sf_forms` in the Core schema. The form builder is still the layout canvas.
+**Shipped:** Engine is `src/modules/forms`. `api.ts` is the door (evaluate, presets, `registerFormPreset`, submit, `ensureFormDefinitionSeed`). Events, Profiles, and Payments import that file only. `src/core/forms` is gone. Definitions stay the `sf_forms` tables, declared in `src/modules/forms/schema.ts` with `sf_form_submissions` and `sf_form_settings`. The form builder is still the layout canvas.
 
 **Do**
 
@@ -201,7 +201,7 @@ Last structural slice. Payload stays the content manager. This slice makes page 
 
 **Shipped:** `PageReadsPort` in `src/core/content/page-reads` (Payload adapter). Nav, public page route, draft preview, search, and sitemap call the port. Remaining `getPayload()` callers are listed in the port index header (media, site settings, nav admin/seed, cms-bridge, exchange, seed).
 
-Core finished when slice 9 merged. Next product work follows [architecture-current](./architecture-current.md): level-1 engines, then ads.
+Core finished when slice 9 merged. Next product work follows [architecture-current](./architecture-current.md): base modules, then ads.
 
 ---
 

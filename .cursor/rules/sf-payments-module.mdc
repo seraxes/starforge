@@ -8,7 +8,7 @@ alwaysApply: true
 
 Any Starforge module that takes money **must** use `product:payments` — cart, checkout, orders, VAT/money math, invoices/fiscal outbox, and gateway orchestration. Do not ship a parallel cart, checkout UI, gateway settings screen, invoice engine, or SMTP/notify stack inside the consumer module.
 
-**Never rebuild an existing module’s job inside Payments** (or any new pack). One engine per concern. See also `sf-module-ownership.mdc`.
+**Never rebuild an existing module’s job inside Payments** (or any new pack). One engine per concern. Payments is a **base module** (`sf-architecture.mdc`): advanced packs `require` it. See also `sf-module-ownership.mdc`.
 
 ## Why Payments is foundational
 

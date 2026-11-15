@@ -39,31 +39,12 @@ export async function buildAccountDataExport(userId: string): Promise<{
 
   let profile: Record<string, unknown> | null = null
   try {
-    const { isProfilesModuleEnabled } = await import('@/modules/profiles/api.server')
-    if (await isProfilesModuleEnabled()) {
-      const { getProfileByUserId } = await import('@/modules/profiles/store')
-      const record = await getProfileByUserId(id)
-      if (record) {
-        profile = {
-          handle: record.handle,
-          displayName: record.displayName,
-          headline: record.headline,
-          bio: record.bio,
-          birthDate: record.birthDate || null,
-          gender: record.gender || null,
-          country: record.country || null,
-          city: record.city || null,
-          website: record.website || null,
-          phone: record.phone || null,
-          links: record.links,
-          locale: record.locale || null,
-          timezone: record.timezone || null,
-          status: record.status,
-          createdAt: record.createdAt.toISOString(),
-          updatedAt: record.updatedAt.toISOString(),
-        }
-      }
-    }
+    const { loadModuleDoor } = await import('@/generated/module-registry.server')
+    const door = await loadModuleDoor('profiles-api-server')
+    const exportOwnProfileRecord = door?.exportOwnProfileRecord as
+      | ((userId: string) => Promise<Record<string, unknown> | null>)
+      | undefined
+    profile = exportOwnProfileRecord ? await exportOwnProfileRecord(id) : null
   } catch {
     // Profiles pack not on disk / import failed — omit profile block.
     profile = null

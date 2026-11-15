@@ -3,9 +3,13 @@ import { describe, it } from 'node:test'
 
 import {
   ageYears,
+  heroExtensionsFromForm,
+  isProfileFieldKey,
   normalizeHandle,
+  normalizeHeroProfileExtensions,
   normalizeHttpUrl,
   normalizeProfileLinks,
+  readHeroExtensionValues,
   roundCoordinate,
   slugifyHandleBase,
   validateHandle,
@@ -129,7 +133,11 @@ describe('product:profiles privacy', () => {
   })
 
   it('builds a fallback Persona', () => {
-    const p = fallbackPersona({ userId: 'x', name: 'Anon' })
+    const p = fallbackPersona({
+      userId: 'x',
+      name: 'Anon',
+      avatarFrame: { x: 50, y: 50, zoom: 1 },
+    })
     assert.equal(p.handle, '')
     assert.equal(p.displayName, 'Anon')
     assert.equal(p.href, null)
@@ -152,5 +160,34 @@ describe('product:profiles privacy', () => {
       }),
       0,
     )
+  })
+})
+
+describe('hero profile extensions', () => {
+  const fixture = [
+    { key: 'teamName', label: 'Team name', type: 'text' as const },
+    {
+      key: 'side',
+      label: 'Side',
+      type: 'select' as const,
+      options: [{ value: 'red', label: 'Red' }],
+    },
+  ]
+
+  it('stores a fixture field without widening ProfileFieldKey', () => {
+    assert.equal(isProfileFieldKey('teamName'), false)
+    assert.deepEqual(normalizeHeroProfileExtensions(fixture, { teamName: ' Wolves ', side: 'blue', extra: 'no' }), {
+      teamName: 'Wolves',
+      side: '',
+    })
+    assert.deepEqual(
+      readHeroExtensionValues({ asn: { teamName: 'Wolves', side: 'red' } }, 'asn', fixture),
+      { teamName: 'Wolves', side: 'red' },
+    )
+  })
+
+  it('does not accept posted values when the hero lists no fields', () => {
+    assert.equal(heroExtensionsFromForm([], true, { teamName: 'Wolves' }), undefined)
+    assert.deepEqual(readHeroExtensionValues({ default: { teamName: 'Wolves' } }, 'default', []), {})
   })
 })

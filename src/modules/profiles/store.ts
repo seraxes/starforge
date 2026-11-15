@@ -20,11 +20,12 @@ import {
   normalizePhone,
   normalizeProfileLinks,
   normalizeText,
+  isHeroId,
   slugifyHandleBase,
   validateHandle,
   type ProfileFieldKey,
 } from './fields'
-import { normalizeImageFrame } from '@/modules/media/image-frame'
+import { normalizeImageFrame } from '@/modules/media/api.server'
 import { isFieldEnabled, profileCompleteness, sanitizeVisibility } from './privacy'
 import { sfProfiles } from './schema'
 import {
@@ -196,6 +197,25 @@ export type UpdateProfileResult =
   | { ok: true; profile: ProfileRecord }
   | { ok: false; error: string }
 
+/**
+ * Merge one hero namespace. No patch when the form did not include hero fields
+ * (the default hero), so a normal save does not rewrite `extensions`.
+ */
+function heroExtensionPatch(
+  current: ProfileRecord['extensions'],
+  patch: ProfileInput['heroExtensions'],
+): { extensions: ProfileRecord['extensions'] } | Record<string, never> {
+  if (!patch) return {}
+  const heroId = patch.heroId.trim()
+  if (!isHeroId(heroId)) return {}
+  return {
+    extensions: {
+      ...current,
+      [heroId]: patch.values,
+    },
+  }
+}
+
 function isFilled(key: ProfileFieldKey, input: ProfileInput): boolean {
   switch (key) {
     case 'headline':
@@ -361,6 +381,7 @@ export async function updateProfile(
         locale: next.locale,
         timezone: next.timezone,
         visibility: next.visibility as Record<string, string>,
+        ...heroExtensionPatch(current.extensions, raw.heroExtensions),
       })
       .where(eq(sfProfiles.userId, userId))
   } catch (error) {

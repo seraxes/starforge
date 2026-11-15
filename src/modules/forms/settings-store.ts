@@ -3,7 +3,9 @@ import 'server-only'
 import { eq } from 'drizzle-orm'
 import { cache } from 'react'
 
-import { db, FORMS_MODULE_SETTINGS_ID, sfFormSettings } from '@/core/db'
+import { db } from '@/core/db'
+
+import { FORMS_MODULE_SETTINGS_ID, sfFormSettings } from './schema'
 
 import {
   defaultFormsModuleSettings,

@@ -1,0 +1,108 @@
+{
+  "$comment": "Stage 0 known module-boundary violations (ARCHITECTURE_AUDIT_PHASE_2 C1, C2, H1–H10, plus every other illegal edge on this tree). A row matches one source file and one specifier. Later remediation stages delete the rows they fix. Do not add a blanket module-to-module exemption — a new file must fail.",
+  "entries": [
+    {
+      "id": "H9",
+      "from": "src/modules/events/public/EventRegistrationForm.tsx",
+      "specifier": "@/modules/form/FormWidget",
+      "reasons": [
+        "private-internal",
+        "undeclared"
+      ],
+      "note": "advanced pack imports the form particle, which is a separate manifest id. Phase 2 H9."
+    },
+    {
+      "id": "H9",
+      "from": "src/modules/subscriptions/public/SubscriptionIntakeForm.tsx",
+      "specifier": "@/modules/form/FormWidget",
+      "reasons": [
+        "private-internal",
+        "undeclared"
+      ],
+      "note": "advanced pack imports the form particle, which is a separate manifest id. Phase 2 H9."
+    },
+    {
+      "id": "H10",
+      "from": "src/app/(frontend)/admin/breakpoints/body-background-panel.tsx",
+      "specifier": "@/modules/media/api",
+      "reasons": [
+        "forbidden-layer"
+      ],
+      "note": "Core or App imports a module by literal path. Phase 2 H10."
+    },
+    {
+      "id": "H10",
+      "from": "src/app/(frontend)/admin/breakpoints/section-styles-panel.tsx",
+      "specifier": "@/modules/media/api",
+      "reasons": [
+        "forbidden-layer"
+      ],
+      "note": "Core or App imports a module by literal path. Phase 2 H10."
+    },
+    {
+      "id": "H10",
+      "from": "src/app/(frontend)/admin/layouts/typed-particle-editors.tsx",
+      "specifier": "@/modules/media/api",
+      "reasons": [
+        "forbidden-layer"
+      ],
+      "note": "Core or App imports a module by literal path. Phase 2 H10."
+    },
+    {
+      "id": "H10",
+      "from": "src/collections/Pages.ts",
+      "specifier": "../modules/rich-editor/payload/sfHtmlBodyField",
+      "reasons": [
+        "forbidden-layer",
+        "private-internal"
+      ],
+      "note": "Host file imports a module by literal path. Phase 2 §1.2 / H10."
+    },
+    {
+      "id": "H10",
+      "from": "src/components/RichText/index.tsx",
+      "specifier": "@/modules/rich-editor/api",
+      "reasons": [
+        "forbidden-layer"
+      ],
+      "note": "Host file imports a module by literal path. Phase 2 §1.2 / H10."
+    },
+    {
+      "id": "H10",
+      "from": "src/components/admin/MediaCategoryTree.tsx",
+      "specifier": "@/modules/media/api",
+      "reasons": [
+        "forbidden-layer"
+      ],
+      "note": "Host file imports a module by literal path. Phase 2 §1.2 / H10."
+    },
+    {
+      "id": "H10",
+      "from": "src/components/admin/MediaLightbox.tsx",
+      "specifier": "@/modules/media/api",
+      "reasons": [
+        "forbidden-layer"
+      ],
+      "note": "Host file imports a module by literal path. Phase 2 §1.2 / H10."
+    },
+    {
+      "id": "H10",
+      "from": "src/components/admin/MediaPicker.tsx",
+      "specifier": "@/modules/media/api",
+      "reasons": [
+        "forbidden-layer"
+      ],
+      "note": "Host file imports a module by literal path. Phase 2 §1.2 / H10."
+    },
+    {
+      "id": "current",
+      "from": "src/modules/events/payment-bridge.ts",
+      "specifier": "@/modules/subscriptions/api",
+      "reasons": [
+        "forbidden-layer",
+        "undeclared"
+      ],
+      "note": "events → subscriptions (advanced → advanced, not on events requires). Phase 2 import graph did not number this edge."
+    }
+  ]
+}

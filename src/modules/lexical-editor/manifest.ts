@@ -8,6 +8,7 @@ import { defineStarforgeModule } from '@/core/modules/define-module'
 export default defineStarforgeModule({
   id: 'product:lexical-editor',
   kind: 'product',
+  layer: 'site',
   label: 'Lexical editor',
   description:
     'Optional Lexical rich-text stack (@payloadcms/richtext-lexical). TipTap is the default editor. Enable for legacy Lexical page bodies and pagesLexicalEditor config; does not delete stored JSON when off.',

@@ -6,6 +6,7 @@ import { defineStarforgeModule } from '@/core/modules/define-module'
 export default defineStarforgeModule({
   id: 'search',
   kind: 'particle',
+  layer: 'site',
   label: 'Search',
   description:
     'Public search box → /search over published Payload pages (title / slug / meta). Needs product:search.',

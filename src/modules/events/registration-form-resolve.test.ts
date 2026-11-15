@@ -6,7 +6,7 @@ import {
   contentLocaleFileRefForKey,
   parseContentLocaleKey,
 } from '../../core/i18n/content-locale-keys'
-import { DEFAULT_EVENT_REGISTRATION_FORM_ID } from '../forms/presets'
+import { DEFAULT_EVENT_REGISTRATION_FORM_ID } from '@/modules/forms/api'
 
 import { resolveEventRegistrationFormId } from './registration-form-resolve'
 

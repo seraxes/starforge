@@ -7,7 +7,7 @@ alwaysApply: true
 
 **Before building in an area, find and reuse that area’s current method.** Do not invent a parallel stack, storage shape, admin control, or resolve path for a job the repo already owns.
 
-Cross-check ownership rules (`sf-module-ownership`, Forms, Payments, UI) and the live map in `docs/project-context/docs/architecture-current.md`. If a plan only approximates an existing path, rewrite the plan before coding.
+Cross-check placement (`sf-architecture`), ownership (`sf-module-ownership`, Forms, Payments, UI), and the live map in `docs/project-context/docs/architecture-current.md`. If a plan only approximates an existing path, rewrite the plan before coding.
 
 ## Area methods (examples)
 

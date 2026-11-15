@@ -67,8 +67,8 @@ mustInclude(
 )
 mustInclude(
   coreChrome,
-  'content-link tint excludes sidebar account',
-  ':not(.admin-sidebar-account)',
+  'content-link tint excludes sidebar account link',
+  ':not(.admin-sidebar-account-link)',
 )
 
 /* —— Hover mid-blue; active leaf darker blue (not #3498db, not transparent) —— */

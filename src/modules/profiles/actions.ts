@@ -16,6 +16,7 @@ import {
   isVisibilityScope,
 } from './fields'
 import { parseProfileFormData } from './form'
+import { ensureProfileFormSeeded } from './profile-form'
 import { loadProfilesModuleSettings, saveProfilesModuleSettings } from './settings.server'
 import {
   ensureProfile,
@@ -223,6 +224,8 @@ export async function saveProfilesSettingsAction(
 ): Promise<ProfilesActionState> {
   const denied = await requireProfilesAdmin()
   if (denied) return denied
+
+  await ensureProfileFormSeeded()
 
   // Enable / required come from Forms (`profile` definition) at read time — not saved here.
   const defaultVisibility: ProfileVisibilityMap = {}

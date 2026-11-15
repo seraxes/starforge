@@ -20,9 +20,20 @@ export type RegistryPackageSpec = {
 export type AllowlistFile = {
   $comment?: string
   flavor?: string
+  /**
+   * Folder under `src/hero`. One deployment has one hero.
+   * Omit or blank means `default`.
+   */
+  hero?: string
   modules?: unknown
   presets?: Record<string, unknown>
   registryPackages?: Record<string, RegistryPackageSpec>
+}
+
+/** Active hero id. A blank or missing field is the shipped empty hero. */
+export function resolveHeroId(file: AllowlistFile | null | undefined): string {
+  const raw = file && typeof file.hero === 'string' ? file.hero.trim() : ''
+  return raw || 'default'
 }
 
 export function parseSfModulesEnv(raw: string | undefined): string[] | null {

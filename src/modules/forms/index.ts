@@ -105,6 +105,7 @@ export {
   presetSeedFields,
 } from './presets'
 export {
+  addFormPresetListener,
   clearFormPresetRegistrations,
   getRegisteredFormPreset,
   listRegisteredFormPresets,

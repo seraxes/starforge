@@ -11,10 +11,7 @@ import {
   listLayoutOutlines,
   listModulesForLayoutAdmin,
 } from '@/core/modules'
-import {
-  ensureDefaultContactFormSeeded,
-  listFormDefinitions,
-} from '@/modules/forms'
+import { loadAllowlistedLayoutFormCatalog } from '@/generated/module-registry.server'
 import { hydrateLayoutDocumentLocales } from '@/core/i18n/content-locales/hydrate'
 import { getContentLocaleOptions } from '@/core/i18n/locale-text.server'
 import { listNavMenus } from '@/core/nav'
@@ -77,14 +74,11 @@ export default async function AdminLayoutsPage(props: { searchParams?: SearchPar
   }
   await ensureDefaultUserGroupsSeeded()
   const formsModuleEnabled = isCatalogModuleEnabled(settings, MODULE_IDS.forms)
-  if (formsModuleEnabled) {
-    await ensureDefaultContactFormSeeded()
-  }
   const [modules, groups, navMenus, formDefinitions, contentLocales, session] = await Promise.all([
     listModulesForLayoutAdmin(),
     listUserGroupOptions(),
     listNavMenus(),
-    formsModuleEnabled ? listFormDefinitions() : Promise.resolve([]),
+    formsModuleEnabled ? loadAllowlistedLayoutFormCatalog() : Promise.resolve([]),
     getContentLocaleOptions(),
     requireAppAdmin(),
   ])

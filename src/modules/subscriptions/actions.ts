@@ -50,7 +50,7 @@ async function requireSubscriptionsAdmin(): Promise<SubscriptionsActionState | n
   }
   ensureSubscriptionsPaymentHook()
   ensureSubscriptionsExpiryJob()
-  void ensureSubscriptionRegistrationFormSeeded()
+  await ensureSubscriptionRegistrationFormSeeded()
   return null
 }
 

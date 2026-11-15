@@ -7,6 +7,7 @@ import { defineStarforgeModule } from '@/core/modules/define-module'
 export default defineStarforgeModule({
   id: 'product:marketplace',
   kind: 'product',
+  layer: 'advanced',
   label: 'Marketplace',
   description:
     'Classifieds / marketplace listings (upcoming). Soft Dashboard stub until the Marketplace pack ships.',

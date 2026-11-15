@@ -1,7 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { cache } from 'react'
 
-import { contentCacheTags, getPublishedContentCache } from '@/core/content/cache'
 import { db, SITE_CHROME_ID, sfSiteChrome } from '@/core/db'
 import { DEFAULT_SITE_NAME } from '@/core/settings/defaults'
 
@@ -19,29 +18,51 @@ import type { SiteChromeDocument, SiteChromeLoadResult } from './types'
 
 /**
  * Process-local Chrome snapshot for the Node proxy offline gate.
- * Updated on every successful load/save so toggling offline does not wait on
- * `unstable_cache` + `revalidateTag({ expire: 0 })` (that path can stall public
- * requests until process restart).
+ * Saves publish here immediately. Reads must not copy a published-content
+ * cache hit back over this snapshot — that stale document re-checked
+ * "Take site offline" on reload and put the public site offline again.
  */
 let liveSiteChrome: SiteChromeDocument | null = null
+let liveRevision = 0
 
-function withCookieAttrs(chrome: SiteChromeDocument): SiteChromeDocument {
+/**
+ * True when a read that started at `observedRevision` must keep the snapshot
+ * already published by a save that finished while the read was in flight.
+ */
+export function liveSnapshotWasReplaced(
+  observedRevision: number,
+  currentRevision: number,
+): boolean {
+  return observedRevision !== currentRevision
+}
+
+function publishLiveSiteChrome(
+  chrome: SiteChromeDocument,
+  observedRevision?: number,
+): { chrome: SiteChromeDocument; applied: boolean } {
+  if (
+    observedRevision !== undefined &&
+    liveSnapshotWasReplaced(observedRevision, liveRevision) &&
+    liveSiteChrome
+  ) {
+    return { chrome: liveSiteChrome, applied: false }
+  }
   applySiteChromeCookieAttributes(chrome)
-  // Always re-normalize so stale cache / pre-i18n JSON never leaks missing keys.
   const normalized = normalizeSiteChrome(chrome)
   applyAuthEmailVerificationPolicy(normalized.authRequireEmailVerification)
   liveSiteChrome = normalized
-  return normalized
+  liveRevision += 1
+  return { chrome: normalized, applied: true }
 }
 
 /**
- * Chrome for the proxy offline gate — prefer the live snapshot, else uncached DB.
- * Do not use `getSiteChrome()` here (published-content cache / expire: 0).
+ * Chrome for the proxy offline gate — live snapshot, else one uncached DB read.
+ * `getSiteChrome()` is the same data with per-request dedupe.
  */
 export async function getSiteChromeForProxy(): Promise<SiteChromeDocument> {
   if (liveSiteChrome) return liveSiteChrome
   const loaded = await loadSiteChromeUncached()
-  return withCookieAttrs(loaded.chrome)
+  return liveSiteChrome ?? loaded.chrome
 }
 
 /**
@@ -66,6 +87,7 @@ async function softHealLocaleFields(
 }
 
 async function loadSiteChromeUncached(): Promise<SiteChromeLoadResult> {
+  const observedRevision = liveRevision
   try {
     const [row] = await db
       .select({ document: sfSiteChrome.document })
@@ -76,11 +98,12 @@ async function loadSiteChromeUncached(): Promise<SiteChromeLoadResult> {
     if (row?.document?.trim()) {
       const parsed = parseSiteChromeJson(row.document)
       if (parsed) {
-        const chrome = withCookieAttrs(parsed)
-        // Fire-and-forget persist when pre-i18n rows lack localesEnabled/defaultLocale.
-        void softHealLocaleFields(row.document, chrome)
+        const published = publishLiveSiteChrome(parsed, observedRevision)
+        // Only heal the row this read actually published. A save that landed
+        // while the read was in flight already wrote a complete document.
+        if (published.applied) void softHealLocaleFields(row.document, published.chrome)
         return {
-          chrome,
+          chrome: published.chrome,
           source: 'database',
           isFallback: false,
         }
@@ -100,35 +123,41 @@ async function loadSiteChromeUncached(): Promise<SiteChromeLoadResult> {
     siteName = DEFAULT_SITE_NAME
   }
 
-  const chrome = withCookieAttrs({ ...DEFAULT_SITE_CHROME, siteName })
-  return { chrome, source: 'default', isFallback: true }
+  const published = publishLiveSiteChrome(
+    { ...DEFAULT_SITE_CHROME, siteName },
+    observedRevision,
+  )
+  return { chrome: published.chrome, source: 'default', isFallback: true }
 }
 
 /**
- * Load Site Chrome (cached + React request dedupe).
+ * Load Site Chrome (React request dedupe + the process snapshot).
  * Falls back to defaults when `sf_site_chrome` is missing.
+ * Does not read the published-content cache: a stale hit was copied onto the
+ * live snapshot and turned the site offline again on the next reload.
  */
 export const getSiteChrome = cache(async (): Promise<SiteChromeDocument> => {
-  const result = await getPublishedContentCache().getCached(
-    {
-      key: ['sf', 'site-chrome'],
-      tags: [contentCacheTags.siteChrome],
-      revalidate: false,
-    },
-    async () => {
-      const loaded = await loadSiteChromeUncached()
-      return withCookieAttrs(loaded.chrome)
-    },
-  )
-  return withCookieAttrs(result)
+  return getSiteChromeForProxy()
 })
 
 export async function loadSiteChrome(): Promise<SiteChromeLoadResult> {
   return loadSiteChromeUncached()
 }
 
+/** One writer at a time so a field autosave cannot put an older offline flag back. */
+let saveQueue: Promise<void> = Promise.resolve()
+
 /** Upsert Site Chrome JSON (singleton). */
-export async function saveSiteChrome(input: Partial<SiteChromeDocument>): Promise<SiteChromeDocument> {
+export function saveSiteChrome(input: Partial<SiteChromeDocument>): Promise<SiteChromeDocument> {
+  const job = saveQueue.then(() => persistSiteChrome(input))
+  saveQueue = job.then(
+    () => undefined,
+    () => undefined,
+  )
+  return job
+}
+
+async function persistSiteChrome(input: Partial<SiteChromeDocument>): Promise<SiteChromeDocument> {
   const current = await loadSiteChromeUncached()
   const normalized = normalizeSiteChrome({ ...current.chrome, ...input })
   const json = serializeSiteChrome(normalized)
@@ -154,7 +183,7 @@ export async function saveSiteChrome(input: Partial<SiteChromeDocument>): Promis
     })
   }
 
-  withCookieAttrs(normalized)
+  publishLiveSiteChrome(normalized)
 
   // Keep Payload site-settings.siteName in sync only when the name actually changed.
   // Offline toggles must not touch getPayload() — that path has wedged autosave.
@@ -194,9 +223,9 @@ export async function ensureSiteChromeSeeded(): Promise<{
     if (row?.document?.trim()) {
       const parsed = parseSiteChromeJson(row.document)
       if (parsed) {
-        const chrome = withCookieAttrs(parsed)
-        void softHealLocaleFields(row.document, chrome)
-        return { created: false, chrome }
+        const published = publishLiveSiteChrome(parsed)
+        if (published.applied) void softHealLocaleFields(row.document, published.chrome)
+        return { created: false, chrome: published.chrome }
       }
     }
   } catch (error) {

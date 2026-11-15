@@ -25,7 +25,7 @@ export default async function SubscriptionsSettingsPage() {
 
   ensureSubscriptionsPaymentHook()
   ensureSubscriptionsExpiryJob()
-  void ensureSubscriptionRegistrationFormSeeded()
+  await ensureSubscriptionRegistrationFormSeeded()
   void ensureSubscriptionsEmailStartersSeeded()
 
   const loaded = await loadSubscriptionsModuleSettings()

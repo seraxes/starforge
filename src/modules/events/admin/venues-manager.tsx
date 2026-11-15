@@ -8,7 +8,7 @@ import { AccessTagsField } from '@/components/admin/AccessTagsField'
 import type { UserGroupOption } from '@/core/acl/types'
 import type { MapClientConfig } from '@/core/maps/types'
 import { MediaPicker } from '@/modules/media/api'
-import { VenueLocationMap } from '@/modules/maps/VenueLocationMap'
+import { VenueLocationMap } from '@/modules/maps/api'
 import { RichEditor } from '@/modules/rich-editor/api'
 
 import {

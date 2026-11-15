@@ -2,7 +2,7 @@ import React from 'react'
 
 import { getMapProvider } from '@/core/maps'
 import type { MapMarker } from '@/core/maps/types'
-import { MapView } from '@/modules/maps/MapView'
+import { MapView } from '@/modules/maps/api'
 
 import type { EventCardModel } from './event-card-model'
 import { EventTableList } from './EventTableList'

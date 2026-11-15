@@ -6,7 +6,7 @@
  * `projectPersona`, so privacy is never re-implemented per module.
  */
 
-import { DEFAULT_IMAGE_FRAME } from '@/modules/media/image-frame'
+import type { ImageFrame } from '@/modules/media/api'
 
 import {
   PROFILE_FIELDS,
@@ -144,11 +144,16 @@ export function projectPersona(
   }
 }
 
-/** A Persona for a user with no profile row (module off / not provisioned yet). */
+/**
+ * A Persona for a user with no profile row (module off / not provisioned yet).
+ * `avatarFrame` is the Media default (`DEFAULT_IMAGE_FRAME`); callers on the
+ * server door pass that value so this file stays free of the media barrel.
+ */
 export function fallbackPersona(input: {
   userId: string
   name: string
   isSelf?: boolean
+  avatarFrame: ImageFrame
 }): Persona {
   return {
     userId: input.userId,
@@ -156,7 +161,7 @@ export function fallbackPersona(input: {
     displayName: input.name.trim() || 'Member',
     headline: null,
     avatarMediaId: '',
-    avatarFrame: { ...DEFAULT_IMAGE_FRAME },
+    avatarFrame: { ...input.avatarFrame },
     href: null,
     bio: null,
     coverMediaId: null,

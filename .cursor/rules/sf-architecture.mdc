@@ -1,0 +1,56 @@
+---
+description: Four placements — Core host, base modules, advanced modules, Hero. Base modules are dependencies, not Core.
+alwaysApply: true
+---
+
+# Starforge — architecture layers
+
+Place every feature in one spot. **Base modules are not Core.**
+
+| Placement | What it is | Test |
+| --- | --- | --- |
+| **Core** | Host that boots every site. Not a `requires` id. | Auth, users/groups, layout/nav/chrome, module installer, Skin, i18n host, jobs, cache. Thin ports only: Mailer, gateway/fiscal adapters, MediaStorage, MapProvider, PageReadsPort, Realtime, RateLimiter, Captcha. |
+| **Base module** | Shared engine other packs list in `requires`. | Delete it and several packs lose a service. A base pack may `require` another base pack. That does not make it advanced. |
+| **Advanced module** | Domain product that depends on base modules. | Owns a catalog or workflow, and its manifest `requires` names base packs. |
+| **Hero** | One site's brand and vertical rules. | Theme, fee table, milsim sheet, custom approval, ASN currency. Calls `@/modules/<id>/api` and extension points. Does not fork a module. |
+
+Site packs (Consent, Redirects, Search, PWA, Lexical, Notice bar) are optional modules beside those two tiers. They are not Core, and they are not a domain product.
+
+## Base (dependency engines)
+
+`product:media`, `product:forms`, `product:rich-editor`, `product:email-manager`, `product:payments`, `product:profiles`, `product:maps`.
+
+Payload is the content-manager pack behind `PageReadsPort` (editorial pages). The media library stays `product:media`. Site settings stay Core.
+
+Chain today: Forms → Media. Rich editor → Media. Email Manager → Rich editor + Media. Payments → Email Manager. Profiles → Media + Forms. Maps has an empty `requires`; Events still depends on it.
+
+There is no Skills module. A shared capability is a Core port or the base module that already owns it.
+
+## Advanced (consumers)
+
+`product:events` requires Forms, Media, Rich editor, Payments, Profiles, and Maps. `product:subscriptions` requires Payments, Email Manager, Forms, and Profiles.
+
+Ads, Shop, Marketplace, Support, and Stream are this same tier when built: they call base APIs and list those ids in `requires`. Profiles stays base, because Events and Subscriptions require it.
+
+## Install
+
+`requires` is the only edge list. Choosing an advanced module installs and enables its base dependencies. Do not turn a base module off while an enabled pack still requires it. Core stays on disk.
+
+## Do
+
+- Money, intake, mail, media, or persona work extends the base owner. Advanced packs pass `sourceModule` and run their own fulfillment hooks.
+- Hero data goes in `extensions` jsonb or a Hero table. Airsoft columns do not land on `sf_events_*` or `sf_pay_*`.
+- Site-wide vendor secrets stay in the env overlay. Per-merchant gateway keys stay in encrypted `sf_pay_merchant_credentials`.
+
+## Don't
+
+- Move Forms, Email Manager, Payments commerce, Media, or Profiles into `src/core`.
+- Use the old nickname "level-1 engines" to mean Core. That name meant these base modules.
+- Ship a second cart, form builder, media library, SMTP stack, or profile store inside an advanced module or Hero.
+- Put ASN currency, milsim sheets, or a project theme inside a base or advanced module.
+
+## Quick check
+
+If other packs `require` it, it is base. If it runs a domain and lists those packs in `requires`, it is advanced. If the site cannot boot without it, it is Core. If only one brand needs it, it is Hero.
+
+Placement table: `docs/project-context/docs/platform-module-layers.md`. Live queue: `docs/project-context/docs/architecture-current.md`. Ownership: `sf-module-ownership.mdc`.

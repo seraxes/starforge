@@ -3,7 +3,9 @@ import 'server-only'
 import { desc, eq } from 'drizzle-orm'
 import { randomUUID } from 'node:crypto'
 
-import { db, sfFormSubmissions } from '@/core/db'
+import { db } from '@/core/db'
+
+import { sfFormSubmissions } from './schema'
 
 import type { FormSubmissionPayload, FormSubmissionRecord } from './types'
 

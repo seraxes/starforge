@@ -37,7 +37,7 @@ assert.match(eventTriggers, /product:events\/registered/)
 const triggers = read('src/modules/email-manager/triggers.ts')
 assert.match(triggers, /product:events\/registered/)
 
-const detail = read('src/app/(frontend)/(public)/[locale]/events/[slug]/page.tsx')
+const detail = read('src/modules/events/public/EventDetailPage.tsx')
 assert.match(detail, /EventRegistrationForm/)
 assert.match(detail, /ensureEventsFormHooks/)
 
@@ -48,7 +48,13 @@ const settings = read('src/modules/events/admin/events-settings-form.tsx')
 assert.match(settings, /seedEventsEmailStartersAction/)
 
 const formActions = read('src/modules/forms/actions.ts')
-assert.match(formActions, /ensureEventsFormHooks/)
+assert.doesNotMatch(formActions, /ensureEventsFormHooks|modules\/events/)
+
+const instrumentation = read('src/instrumentation.ts')
+assert.match(instrumentation, /runModuleBoot/)
+assert.doesNotMatch(instrumentation, /modules\/events/)
+const eventsBoot = read('src/modules/events/boot.ts')
+assert.match(eventsBoot, /ensureEventsFormHooks/)
 
 const journal = read('src/core/db/migrations/meta/_journal.json')
 assert.match(journal, /0005_event_registrations/)

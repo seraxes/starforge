@@ -2,7 +2,9 @@ import 'server-only'
 
 import { asc, eq } from 'drizzle-orm'
 
-import { db, sfForms } from '@/core/db'
+import { db } from '@/core/db'
+
+import { sfForms } from './schema'
 
 import {
   DEFAULT_CONTACT_FORM_ID,
@@ -269,24 +271,58 @@ export async function duplicateFormDefinition(
   return { id: created.id }
 }
 
-/** Ensure default Contact definition exists (idempotent). */
-export async function ensureDefaultContactFormSeeded(): Promise<void> {
+export type FormDefinitionSeedState = 'exists' | 'inserted' | 'unavailable'
+
+export type FormDefinitionSeedResult = {
+  id: string
+  /**
+   * exists: row already present (callers may repair it).
+   * inserted: this call wrote the row.
+   * unavailable: table or database error. Same soft-fail as the old seeders,
+   * which returned the id and left the next request to try again.
+   */
+  state: FormDefinitionSeedState
+}
+
+/**
+ * Insert a form definition when its id is missing.
+ * Does not update an existing row. Pack seeders call this through `forms/api`.
+ */
+export async function ensureFormDefinitionSeed(input: {
+  id: string
+  document: FormDefinitionDocument
+  /** Stored label. Defaults to `document.title`, matching the pack seeders. */
+  label?: string
+}): Promise<FormDefinitionSeedResult> {
+  const id = input.id.trim()
+  if (!id) return { id: '', state: 'unavailable' }
+
   try {
     const [row] = await db
       .select({ id: sfForms.id })
       .from(sfForms)
-      .where(eq(sfForms.id, DEFAULT_CONTACT_FORM_ID))
+      .where(eq(sfForms.id, id))
       .limit(1)
-    if (row) return
+    if (row) return { id: row.id, state: 'exists' }
 
-    const document = emptyFormDefinitionDocument('contact')
+    const label = input.label !== undefined ? input.label : (input.document.title ?? '')
     await db.insert(sfForms).values({
-      id: DEFAULT_CONTACT_FORM_ID,
-      label: document.title,
-      preset: 'contact',
-      document: serializeFormDefinitionDocument(document),
+      id,
+      label,
+      preset: input.document.preset,
+      document: serializeFormDefinitionDocument(input.document),
     })
+    return { id, state: 'inserted' }
   } catch {
-    // Table may not exist yet — push schema first.
+    return { id, state: 'unavailable' }
   }
+}
+
+/** Ensure default Contact definition exists (idempotent). */
+export async function ensureDefaultContactFormSeeded(): Promise<void> {
+  const document = emptyFormDefinitionDocument('contact')
+  await ensureFormDefinitionSeed({
+    id: DEFAULT_CONTACT_FORM_ID,
+    document,
+  })
 }

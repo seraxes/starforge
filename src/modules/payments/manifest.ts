@@ -8,6 +8,7 @@ import { defineStarforgeModule } from '@/core/modules/define-module'
 export default defineStarforgeModule({
   id: 'product:payments',
   kind: 'product',
+  layer: 'base',
   label: 'Payments',
   description:
     'Shared commerce — cart, checkout, VAT-proof orders/invoices, offline + Barion/Stripe/PayPal. No per-module payment UIs; receipts via Email Manager.',
@@ -133,5 +134,20 @@ export default defineStarforgeModule({
       },
     ],
   },
+  publicRoutes: [
+    {
+      path: 'checkout/[orderId]',
+      pageImportPath: '@/modules/payments/public/CheckoutPage',
+      reexport: ['generateMetadata'],
+    },
+  ],
+  apiRoutes: [
+    {
+      path: 'payments/[provider]/webhook',
+      routeImportPath: '@/modules/payments/routes/webhook-route',
+      handlers: ['GET', 'POST'],
+      runtime: 'nodejs',
+    },
+  ],
   db: { schema: 'src/modules/payments/schema.ts' },
 })

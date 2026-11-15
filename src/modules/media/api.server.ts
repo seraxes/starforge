@@ -26,3 +26,11 @@ export {
   listMemberMedia,
   memberOwnsMedia,
 } from './member'
+
+/** Pure frame helpers. Client UI keeps using `@/modules/media/api`. */
+export {
+  DEFAULT_IMAGE_FRAME,
+  normalizeImageFrame,
+  parseImageFrameJson,
+  type ImageFrame,
+} from './image-frame'

@@ -324,14 +324,9 @@ export async function submitFormAction(
       // Email notify failures must not fail the submission.
     }
 
-    // Preset onSubmitted hook (Events capacity / confirm) — soft-fail.
+    // Preset onSubmitted hook — soft-fail. Events (and other packs) register
+    // via registerFormPreset at boot / page load; Forms never imports them.
     try {
-      try {
-        const { ensureEventsFormHooks } = await import('@/modules/events/form-hooks')
-        ensureEventsFormHooks()
-      } catch {
-        // Events pack may be off the allowlist — skip registration.
-      }
       const { runFormPresetOnSubmitted } = await import('./preset-registry')
       const hookResult = await runFormPresetOnSubmitted({
         presetId: definitionDocument.preset,

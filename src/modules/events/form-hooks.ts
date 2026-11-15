@@ -38,7 +38,7 @@ function payloadGuests(payload: Record<string, unknown>): number {
 }
 
 /**
- * Idempotent — safe to call from instrumentation / public pages / submit path.
+ * Idempotent — safe to call from Events boot, public pages, and the submit path.
  */
 export function ensureEventsFormHooks(): void {
   if (registered) return

@@ -307,8 +307,8 @@ export async function geocodeVenueAction(
       name: venue.name,
       address: venue.address,
       description: venue.description,
-      latitude: String(point.latitude),
-      longitude: String(point.longitude),
+      latitude: String(point.lat),
+      longitude: String(point.lng),
       coverMediaId: venue.coverMediaId,
       galleryMediaIds: venue.galleryMediaIds,
       accessTags: venue.accessTags,
@@ -317,7 +317,7 @@ export async function geocodeVenueAction(
     revalidateEventsAdmin()
     return {
       ok: true,
-      message: `Geocoded “${venue.name}” → ${point.latitude.toFixed(5)}, ${point.longitude.toFixed(5)}.`,
+      message: `Geocoded “${venue.name}” → ${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}.`,
       id,
     }
   } catch (error) {
@@ -601,6 +601,8 @@ export async function saveEventsSettingsAction(
   if (denied) return denied
 
   try {
+    const { ensureEventRegistrationFormSeeded } = await import('./registration-form')
+    await ensureEventRegistrationFormSeeded()
     const settings = await saveEventsModuleSettings({
       defaultTimezone: String(formData.get('defaultTimezone') ?? 'UTC'),
       preventDuplicate: formData.get('preventDuplicate') === '1',
@@ -631,8 +633,7 @@ export async function seedEventsEmailStartersAction(
   if (denied) return denied
 
   try {
-    const { createEmailTemplate, updateEmailTemplate, createEmailRule, updateEmailRule } =
-      await import('@/modules/email-manager/store')
+    const { seedEmailStarter } = await import('@/modules/email-manager/api.server')
     const {
       EVENTS_REGISTERED_TRIGGER,
       EVENTS_WAITLIST_PROMOTED_TRIGGER,
@@ -652,36 +653,15 @@ export async function seedEventsEmailStartersAction(
       audience?: { toFromPayload: string[] }
     }) {
       const audience = input.audience ?? { toFromPayload: ['respondentEmail'] }
-      const createdTpl = await createEmailTemplate({
-        id: input.tplId,
-        label: input.tplLabel,
-        moduleCategory: 'events',
-        subject: input.subject,
-        bodyText: input.bodyText,
-      })
-      if ('error' in createdTpl) {
-        await updateEmailTemplate({
+      await seedEmailStarter({
+        template: {
           id: input.tplId,
           label: input.tplLabel,
           moduleCategory: 'events',
           subject: input.subject,
           bodyText: input.bodyText,
-        })
-      }
-
-      const createdRule = await createEmailRule({
-        id: input.ruleId,
-        label: input.ruleLabel,
-        moduleCategory: 'events',
-        enabled: true,
-        triggerKey: input.triggerKey,
-        mode: 'automatic',
-        conditions: { all: [] },
-        audience,
-        templateId: input.tplId,
-      })
-      if ('error' in createdRule) {
-        await updateEmailRule({
+        },
+        rule: {
           id: input.ruleId,
           label: input.ruleLabel,
           moduleCategory: 'events',
@@ -691,8 +671,8 @@ export async function seedEventsEmailStartersAction(
           conditions: { all: [] },
           audience,
           templateId: input.tplId,
-        })
-      }
+        },
+      })
     }
 
     await upsertStarter({

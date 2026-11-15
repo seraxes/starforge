@@ -3,11 +3,11 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
-import { findEventById } from '@/modules/events/store'
-import { listEventsUserOptions } from '@/modules/events/user-options'
 
+import { listEventCatalog } from '../api.server'
 import {
   findMapRoomById,
+  listMapUserOptions,
   listOverlaysForRoom,
   listRoomAdminUserIds,
   listTeamMemberUserIds,
@@ -38,11 +38,11 @@ export default async function MapsLiveRoomEditPage({
   if (!room) notFound()
 
   const [event, admins, teams, overlays, users] = await Promise.all([
-    findEventById(room.eventId),
+    listEventCatalog().findEventForAdmin(room.eventId),
     listRoomAdminUserIds(room.id),
     listTeamsForRoom(room.id),
     listOverlaysForRoom(room.id),
-    listEventsUserOptions(),
+    listMapUserOptions(),
   ])
 
   const teamsWithMembers = await Promise.all(
@@ -63,7 +63,7 @@ export default async function MapsLiveRoomEditPage({
       <p className="lede admin-lede">
         Event:{' '}
         {event ? (
-          <Link href={`/admin/events/${event.id}`}>{event.title}</Link>
+          <Link href={`/admin/events/${event.id}`}>{event.label}</Link>
         ) : (
           room.eventId
         )}

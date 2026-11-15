@@ -1,6 +1,6 @@
 # Starforge Subscriptions — modular ownership
 
-Any Starforge feature that sells **recurring access** (player premium, organizer premium, advertisements) **must** use `product:subscriptions`. Payments only charges and snapshots. Do not ship a second plan catalog, period table, or entitlement store inside Events, Ads, Marketplace, or Payments.
+Any Starforge feature that sells **recurring access** (player premium, organizer premium, advertisements) **must** use `product:subscriptions`. Payments only charges and snapshots. Do not ship a second plan catalog, period table, or entitlement store inside Events, Ads, Marketplace, or Payments. Subscriptions is an **advanced module**: it `require`s the Payments, Email Manager, Forms, and Profiles base packs (`sf-architecture.mdc`).
 
 ## Source of truth
 

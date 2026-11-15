@@ -7,12 +7,17 @@ import { defineStarforgeModule } from '@/core/modules/define-module'
 export default defineStarforgeModule({
   id: 'product:subscriptions',
   kind: 'product',
+  layer: 'advanced',
   label: 'Subscriptions',
   description:
     'Plans and periods for player premium, organizer premium, and advertisements. Payments charges; this pack grants entitlements.',
   version: '0.1.0',
   defaultEnabled: true,
   requires: ['product:payments', 'product:email-manager', 'product:forms', 'product:profiles'],
+  boot: {
+    importPath: '@/modules/subscriptions/boot',
+    exportName: 'bootSubscriptions',
+  },
   i18n: {
     namespaces: ['product:subscriptions'],
   },
@@ -73,5 +78,13 @@ export default defineStarforgeModule({
       },
     ],
   },
+  doors: [{ id: 'subscriptions-api', importPath: '@/modules/subscriptions/api' }],
+  publicRoutes: [
+    {
+      path: 'account/subscriptions',
+      pageImportPath: '@/modules/subscriptions/public/AccountSubscriptionsPage',
+      reexport: ['metadata'],
+    },
+  ],
   db: { schema: 'src/modules/subscriptions/schema.ts' },
 })

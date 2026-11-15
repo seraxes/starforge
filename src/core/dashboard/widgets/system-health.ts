@@ -43,7 +43,11 @@ type RedisEnv = {
 }
 
 function redisEnv(env?: RedisEnv): RedisEnv {
-  return env ?? process.env
+  if (env) return env
+  return {
+    STARFORGE_CONTENT_CACHE: process.env.STARFORGE_CONTENT_CACHE,
+    REDIS_URL: process.env.REDIS_URL,
+  }
 }
 
 /** Redis is in play when the content cache selects it, or when `REDIS_URL` is set. */

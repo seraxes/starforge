@@ -13,7 +13,7 @@ export type NoticeBarStarforgeModule = {
   id: string
   name: string
   description?: string
-  featureFlag?: string
+  featureFlag?: 'modules'
   defaultWidth?: number
   render: () => ReactNode | Promise<ReactNode>
 }

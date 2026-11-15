@@ -88,19 +88,46 @@ export default async function AdminUserDetailPage({ params }: { params: Params }
 }
 
 async function UserProfileSection({ userId, email }: { userId: string; email: string }) {
-  const [
-    { saveProfileAdminAction },
-    { ProfileEditor },
-    { buildEditorModel },
-    { loadProfilesModuleSettings },
-    { ensureProfile },
-  ] = await Promise.all([
-    import('@/modules/profiles/actions'),
-    import('@/modules/profiles/components/ProfileEditor'),
-    import('@/modules/profiles/form'),
-    import('@/modules/profiles/settings.server'),
-    import('@/modules/profiles/store'),
+  const { loadModuleDoor } = await import('@/generated/module-registry.server')
+  const [client, server] = await Promise.all([
+    loadModuleDoor('profiles-api'),
+    loadModuleDoor('profiles-api-server'),
   ])
+  if (!client || !server) return null
+  const ProfileEditor = client.ProfileEditor as React.ComponentType<{
+    model: unknown
+    action: (prev: unknown, formData: FormData) => Promise<unknown>
+    chrome: 'admin'
+    imagePicker: 'library'
+    cancelHref: string
+    includeUserId: boolean
+    mapClientConfig: unknown
+    viewHrefPrefix: string
+  }>
+  const saveProfileAdminAction = client.saveProfileAdminAction as (
+    prev: unknown,
+    formData: FormData,
+  ) => Promise<unknown>
+  const setProfileStatusAction = client.setProfileStatusAction as (prev: {
+    ok?: boolean
+    error?: string
+  }, formData: FormData) => Promise<{ ok?: boolean; error?: string }>
+  const buildEditorModel = server.buildEditorModel as (input: {
+    record: { handle: string; status: string }
+    email: string
+    settings: unknown
+    formConfig: unknown
+    locales: Awaited<ReturnType<typeof getEnabledPublicLocaleEntries>>
+    actor: 'admin'
+  }) => unknown
+  const ensureProfile = server.ensureProfile as (userId: string) => Promise<{
+    handle: string
+    status: string
+  } | null>
+  const loadProfilesModuleSettings = server.loadProfilesModuleSettings as () => Promise<{
+    settings: unknown
+    formConfig: unknown
+  }>
 
   const site = await getSiteSettings()
   const mapsEnabled = isCatalogModuleEnabled(site, MODULE_IDS.maps)
@@ -145,6 +172,7 @@ async function UserProfileSection({ userId, email }: { userId: string; email: st
         userId={userId}
         status={record.status}
         handle={record.handle}
+        action={setProfileStatusAction}
       />
       <ProfileEditor
         model={model}

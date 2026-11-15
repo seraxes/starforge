@@ -1,7 +1,7 @@
 /**
  * Payments infrastructure port — gateway + fiscal adapters.
  *
- * Product code uses `@/modules/payments/api` for cart/orders.
+ * Product packs call the payments public door for cart and orders.
  * This port only talks to providers; secrets stay in env.
  */
 

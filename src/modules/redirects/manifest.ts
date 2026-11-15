@@ -7,6 +7,7 @@ import { defineStarforgeModule } from '@/core/modules/define-module'
 export default defineStarforgeModule({
   id: 'product:redirects',
   kind: 'product',
+  layer: 'site',
   label: 'Redirects',
   description:
     'URL redirects (from → to + status) with Node proxy lookup. Sitemap of published pages stays at /sitemap.xml.',
@@ -42,5 +43,13 @@ export default defineStarforgeModule({
       },
     ],
   },
+  apiRoutes: [
+    {
+      path: 'redirects/lookup',
+      routeImportPath: '@/modules/redirects/routes/lookup-route',
+      handlers: ['GET'],
+      dynamic: 'force-dynamic',
+    },
+  ],
   db: { schema: 'src/modules/redirects/schema.ts' },
 })

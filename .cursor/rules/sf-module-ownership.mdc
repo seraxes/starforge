@@ -65,6 +65,7 @@ Payments stores **`sourceModule` + price snapshot** on lines; consumers **re-res
 
 ## Related rules
 
+- `sf-architecture.mdc` — Core host, base modules, advanced modules, Hero
 - `sf-payments-module.mdc` — commerce engine boundaries
 - `sf-forms-module.mdc` — intake / field schema
 - `sf-ui-design.mdc` — shared admin chrome

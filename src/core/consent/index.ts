@@ -1,6 +1,7 @@
 /**
- * Cookie consent helpers (SF-131 / product:consent).
- * Policy copy lives on Site Chrome; visitor choice is the sf-consent cookie.
+ * Cookie consent helpers (SF-131).
+ * Host policy lives here. The package banner keeps a separate copy and does
+ * not import Core. Policy copy lives on Site Chrome; the choice is the cookie.
  */
 
 export {

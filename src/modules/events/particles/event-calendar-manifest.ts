@@ -4,6 +4,7 @@ import { defineStarforgeModule } from '@/core/modules/define-module'
 export default defineStarforgeModule({
   id: 'event-calendar',
   kind: 'particle',
+  layer: 'advanced',
   label: 'Event calendar',
   description:
     'Month calendar view (title, seats, venue; optional thumbnails). Needs product:events.',
@@ -13,6 +14,6 @@ export default defineStarforgeModule({
   exportName: 'eventCalendarModule',
   requires: ['product:events'],
   navViews: [{ key: 'events', label: 'Events', href: '/events' }],
-  editorImportPath: '@/app/(frontend)/admin/layouts/events-particle-editors',
+  editorImportPath: '@/modules/events/admin/events-particle-editors',
   editorExportName: 'EventCalendarParticleEditor',
 })

@@ -4,6 +4,7 @@ import { defineStarforgeModule } from '@/core/modules/define-module'
 export default defineStarforgeModule({
   id: 'live-map',
   kind: 'particle',
+  layer: 'base',
   label: 'TacMap',
   description:
     'Tactical Maps live session (roster teams). Needs product:maps. Join shares GPS with same team only.',

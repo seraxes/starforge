@@ -156,7 +156,7 @@ export async function savePageSettingsAction(
   const { layoutId: _drop, ...toSave } = sparse
 
   try {
-    const hasLocal = Object.keys(toSave).some((k) => k !== 'pageKey' && toSave[k as keyof PageChrome] !== undefined)
+    const hasLocal = Object.keys(toSave).some((k) => k !== 'pageKey' && toSave[k as keyof typeof toSave] !== undefined)
     if (!hasLocal) {
       await deleteOutlinePageChrome(outlineId)
     } else {

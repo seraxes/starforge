@@ -7,6 +7,7 @@ import { defineStarforgeModule } from '@/core/modules/define-module'
 export default defineStarforgeModule({
   id: 'product:consent',
   kind: 'product',
+  layer: 'site',
   label: 'Consent',
   description:
     'Cookie consent banner + preference cookie (sf-consent). Policy copy under Chrome; gates atom:analytics until analytics is accepted.',

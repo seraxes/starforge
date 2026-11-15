@@ -1,10 +1,12 @@
 'use client'
 
 import React, { useActionState, useEffect, useMemo, useState } from 'react'
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 import type { MapClientConfig } from '@/core/maps/types'
+import { ACTIVE_HERO } from '@/generated/module-registry'
 import {
   DEFAULT_IMAGE_FRAME,
   FramedImage,
@@ -15,7 +17,9 @@ import {
   normalizeImageFrame,
   type ImageFrame,
 } from '@/modules/media/api'
-import { VenueLocationMap } from '@/modules/maps/VenueLocationMap'
+const VenueLocationMap = dynamic(() =>
+  import('@/modules/maps/api').then((mod) => mod.VenueLocationMap),
+)
 
 import { clampGridWidth, LAYOUT_WIDTH_FULL } from '@/core/modules/grid'
 
@@ -28,6 +32,7 @@ import {
   type ProfileLink,
   type VisibilityScope,
 } from '../fields'
+import { HeroProfileFields } from './HeroProfileFields'
 import type { ProfileEditorModel } from '../form'
 import type { ProfilesActionState } from '../types'
 
@@ -629,9 +634,18 @@ export function ProfileEditor({
               (section.fields.includes('locale') || section.fields.includes('timezone')) ? (
                 <p className="settings-hint">Preferences are private — only you see them.</p>
               ) : null}
-            </fieldset>
-          )
+          </fieldset>
+        )
         })}
+        {ACTIVE_HERO.profileFields.length > 0 ? (
+          <HeroProfileFields
+            heroId={ACTIVE_HERO.id}
+            legend={ACTIVE_HERO.label}
+            fields={ACTIVE_HERO.profileFields}
+            values={model.heroExtensionValues}
+            disabled={pending}
+          />
+        ) : null}
       </div>
 
       {state.error ? (

@@ -1,6 +1,11 @@
 /**
  * Release ticket seats stuck in `pending_payment` after an online checkout
  * never receives a provider webhook. Offline methods stay until staff mark paid.
+ *
+ * Process boot arms this sweep only when Events is enabled (`bootEvents`).
+ * While Events is toggled off, `__sfEventsAbandonedCheckoutSweep` stays unset
+ * and seats already stuck are left untouched until Events is enabled and boot
+ * runs again. The global guard below still blocks a second sweep in one process.
  */
 
 import 'server-only'

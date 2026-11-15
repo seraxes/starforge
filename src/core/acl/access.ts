@@ -71,10 +71,15 @@ async function subscriptionAdminResources(
     )
     const settings = await getSiteSettings()
     if (!isCatalogModuleEnabled(settings, MODULE_IDS.subscriptions)) return []
-    const { hasEntitlement, ENTITLEMENT_KEYS } = await import(
-      '@/modules/subscriptions/api'
-    )
-    if (await hasEntitlement(userId, ENTITLEMENT_KEYS.eventsManage)) {
+    const { loadModuleDoor } = await import('@/generated/module-registry.server')
+    const door = await loadModuleDoor('subscriptions-api')
+    if (!door) return []
+    const hasEntitlement = door.hasEntitlement as (
+      userId: string,
+      key: string,
+    ) => Promise<boolean>
+    const keys = door.ENTITLEMENT_KEYS as { eventsManage: string }
+    if (await hasEntitlement(userId, keys.eventsManage)) {
       return ['admin.events']
     }
   } catch {

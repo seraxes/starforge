@@ -39,7 +39,7 @@ assert.match(schema, /longitude/)
 const actions = read('src/modules/events/actions.ts')
 assert.match(actions, /geocodeVenueAction/)
 
-const detail = read('src/app/(frontend)/(public)/[locale]/events/[slug]/page.tsx')
+const detail = read('src/modules/events/public/EventDetailPage.tsx')
 assert.match(detail, /EventVenueMap/)
 
 const index = read('src/modules/manifest-index.ts')

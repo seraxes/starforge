@@ -1,13 +1,18 @@
 /**
  * Install + runtime closure for manifest `requires`.
- * Direct edges live on each module manifest. This file only walks them.
+ * Direct hard edges live on each module manifest. This file only walks those.
+ * `optionalRequires` is validated, then ignored: it never enables a module
+ * and never blocks turning one off.
  */
 
 export type RequiresNode = {
   id: string
   requires?: readonly string[]
+  /** Declared, but not an install or toggle edge. */
+  optionalRequires?: readonly string[]
 }
 
+/** Hard `requires` only. `optionalRequires` is not an edge. */
 export function requiresEdges(
   nodes: readonly RequiresNode[],
 ): Map<string, readonly string[]> {
@@ -16,6 +21,25 @@ export function requiresEdges(
     edges.set(node.id, node.requires ?? [])
   }
   return edges
+}
+
+/**
+ * Reject `optionalRequires` ids that are not manifest ids.
+ * Does not add those ids to a closure or a toggle set.
+ */
+export function assertKnownOptional(nodes: readonly RequiresNode[]): void {
+  const known = new Set(nodes.map((node) => node.id))
+  const problems: string[] = []
+  for (const node of nodes) {
+    for (const dep of node.optionalRequires ?? []) {
+      if (!known.has(dep)) {
+        problems.push(`${node.id} optionalRequires unknown module ${dep}`)
+      }
+    }
+  }
+  if (problems.length) {
+    throw new Error(problems.join('; '))
+  }
 }
 
 /** Direct + transitive dependency ids. Does not include `id` itself. */
@@ -90,10 +114,12 @@ export type ToggleResolveInput = {
 }
 
 /**
- * Turning a module on turns its transitive requires on.
+ * Turning a module on turns its transitive hard `requires` on.
+ * `optionalRequires` is not consulted: it is not turned on, and turning it
+ * off is allowed while the consumer stays on.
  * Turning a module off fails when another module that stays on still needs it
- * and it was on before this save. Leaving a dependency off while enabling its
- * consumer pulls the dependency on (it was not switched off).
+ * and it was on before this save. Leaving a hard dependency off while enabling
+ * its consumer pulls the dependency on (it was not switched off).
  */
 export function resolveModuleToggleRequires(
   input: ToggleResolveInput,

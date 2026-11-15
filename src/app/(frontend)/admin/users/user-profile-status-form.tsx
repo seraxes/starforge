@@ -5,24 +5,24 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 import { useNotifySavedOnOk } from '../admin-toast'
-import {
-  setProfileStatusAction,
-  type ProfilesActionState,
-} from '@/modules/profiles/actions'
 
-const initial: ProfilesActionState = {}
+type StatusState = { ok?: boolean; error?: string }
+
+const initial: StatusState = {}
 
 export function UserProfileStatusForm({
   userId,
   status,
   handle,
+  action: statusAction,
 }: {
   userId: string
   status: string
   handle: string
+  action: (prev: StatusState, formData: FormData) => Promise<StatusState>
 }) {
   const router = useRouter()
-  const [state, action, pending] = useActionState(setProfileStatusAction, initial)
+  const [state, action, pending] = useActionState(statusAction, initial)
   useNotifySavedOnOk(state)
 
   useEffect(() => {

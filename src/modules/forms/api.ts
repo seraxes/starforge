@@ -20,6 +20,7 @@ import type { FormDefinitionDocument, FormSubmitActionState } from './types'
 export type { FormDefinitionLoadResult }
 
 export {
+  addFormPresetListener,
   clearFormPresetRegistrations,
   getRegisteredFormPreset,
   listRegisteredFormPresets,
@@ -76,9 +77,33 @@ export async function listFormDefinitions() {
   return list()
 }
 
+/** Layout manager catalog. Seeds the contact form, then returns id + label. */
+export async function loadLayoutFormCatalog(): Promise<Array<{ id: string; label: string }>> {
+  const { ensureDefaultContactFormSeeded } = await import('./definitions-store')
+  await ensureDefaultContactFormSeeded()
+  const defs = await listFormDefinitions()
+  return defs.map((form) => ({
+    id: form.id,
+    label: form.label?.trim() || form.id,
+  }))
+}
+
 export async function loadFormDefinition(formId: string): Promise<FormDefinitionLoadResult> {
   const { loadFormDefinition: load } = await import('./definitions-store')
   return load(formId)
+}
+
+/**
+ * Insert-if-missing for a protected definition. Events, Profiles, and
+ * Subscriptions seed through this door. An existing row is left unchanged.
+ */
+export async function ensureFormDefinitionSeed(input: {
+  id: string
+  document: FormDefinitionDocument
+  label?: string
+}) {
+  const { ensureFormDefinitionSeed: seed } = await import('./definitions-store')
+  return seed(input)
 }
 
 export async function saveFormDefinitionDocument(

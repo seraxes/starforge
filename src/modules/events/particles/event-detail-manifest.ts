@@ -4,6 +4,7 @@ import { defineStarforgeModule } from '@/core/modules/define-module'
 export default defineStarforgeModule({
   id: 'event-detail',
   kind: 'particle',
+  layer: 'advanced',
   label: 'Event detail',
   description:
     'Single published event (id or slug in particle config). Needs product:events.',

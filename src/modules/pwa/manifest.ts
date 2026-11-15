@@ -7,11 +7,13 @@ import { defineStarforgeModule } from '@/core/modules/define-module'
 export default defineStarforgeModule({
   id: 'product:pwa',
   kind: 'product',
+  layer: 'site',
   label: 'PWA',
   description:
     'Progressive Web App — Web App Manifest + service worker (Serwist). Opt-in installability; reuses Site Chrome name and Page Settings icons.',
   version: '0.1.0',
   defaultEnabled: false,
+  requires: ['product:media'],
   navViews: [
     { key: 'settings', label: 'PWA settings', href: '/admin/pwa' },
     { key: 'admin', label: 'PWA', href: '/admin/pwa' },
@@ -53,6 +55,16 @@ export default defineStarforgeModule({
       importPath: '@/modules/pwa/public/PwaRegister',
       exportName: 'default',
       component: () => import('./public/PwaRegister'),
+    },
+  ],
+  publicRoutes: [
+    {
+      path: 'manifest.webmanifest',
+      root: 'frontend',
+      file: 'route',
+      pageImportPath: '@/modules/pwa/routes/webmanifest-route',
+      reexport: ['GET'],
+      dynamic: 'force-dynamic',
     },
   ],
 })

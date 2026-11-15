@@ -5,7 +5,7 @@ import { revalidatePath } from '@/core/content/defer-revalidate'
 import { requireAdminArea } from '@/core/acl/access'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
-import { seedRoomFromEventFactions } from './seed-from-event'
+import { seedRoomRosterFromEvent } from './api.server'
 import {
   createMapRoom,
   createOverlay,
@@ -58,7 +58,7 @@ export async function createMapRoomAction(input: {
       ownerUserId: session.user.id,
     })
     if (input.seedFromFactions) {
-      await seedRoomFromEventFactions(room.id, room.eventId)
+      await seedRoomRosterFromEvent(room.id, room.eventId)
     }
     revalidateMapsAdmin(room.id)
     return { ok: true, roomId: room.id }
@@ -196,7 +196,7 @@ export async function seedRoomFromFactionsAction(
     await requireMapsAdmin()
     const room = await findMapRoomById(roomId)
     if (!room) return { ok: false, error: 'Room not found' }
-    const result = await seedRoomFromEventFactions(room.id, room.eventId)
+    const result = await seedRoomRosterFromEvent(room.id, room.eventId)
     revalidateMapsAdmin(room.id)
     return { ok: true, ...result }
   } catch (err) {

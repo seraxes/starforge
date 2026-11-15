@@ -19,6 +19,7 @@ export type { PaymentConsumerHook, PaymentConsumerHookContext } from './consumer
 export {
   addCartLine,
   applyProviderPaymentResult,
+  resolveProviderForProviderRef,
   createCart,
   getCartWithLines,
   expireAbandonedOnlineCheckouts,
@@ -46,7 +47,10 @@ export {
   assertMayCollect,
   grantCollectCapability,
   hasCollectCapability,
+  isCollectCapabilityResolverRegistered,
+  registerCollectCapabilityResolver,
 } from './entitlement'
+export type { CollectCapabilityResolver } from './entitlement'
 
 export {
   ensureMerchantForUser,

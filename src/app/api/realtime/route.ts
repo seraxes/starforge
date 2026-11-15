@@ -10,7 +10,7 @@ import {
   userChannel,
   type RealtimeEvent,
 } from '@/core/realtime'
-import { canSubscribeMapChannel } from '@/modules/maps/realtime-acl'
+import { loadRealtimeChannelAclCheckers } from '@/generated/module-registry.server'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -54,7 +54,7 @@ export async function GET(request: Request) {
   const { allowed, rejected } = await filterSubscribableChannelsAsync(
     userId,
     channels,
-    [canSubscribeMapChannel],
+    await loadRealtimeChannelAclCheckers(),
   )
 
   if (allowed.length === 0) {

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useActionState, useRef, useState } from 'react'
+import React, { startTransition, useActionState, useRef, useState } from 'react'
 import Link from 'next/link'
 
 import type { SiteChromeConsentLocaleMaps } from '@/core/i18n/content-locales'
@@ -62,7 +62,9 @@ export function SiteChromeForm({ chrome, outlines, locales }: Props) {
     const fd = new FormData()
     fd.set('offlineEnabled', next.enabled ? 'on' : '0')
     fd.set('offlineLayoutId', next.layoutId)
-    offlineFormAction(fd)
+    startTransition(() => {
+      offlineFormAction(fd)
+    })
   }
 
   const [consentMessage, setConsentMessage] = useState(chrome.consentMessage)

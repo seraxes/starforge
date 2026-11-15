@@ -6,6 +6,7 @@ import { defineStarforgeModule } from '@/core/modules/define-module'
 export default defineStarforgeModule({
   id: 'form',
   kind: 'particle',
+  layer: 'base',
   label: 'Form',
   description:
     'Modular Form engine particle — contact and other presets via Admin → Forms. Optional Settings → Security captcha (Turnstile).',
@@ -19,6 +20,6 @@ export default defineStarforgeModule({
   configSchemaExportName: 'formParticleConfigSchema',
   defaultsImportPath: '@/modules/form/schema',
   defaultsExportName: 'formParticleDefaults',
-  editorImportPath: '@/app/(frontend)/admin/layouts/typed-particle-editors',
+  editorImportPath: '@/modules/form/FormParticleEditor',
   editorExportName: 'FormParticleEditor',
 })

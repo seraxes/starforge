@@ -46,7 +46,13 @@ assert.match(sendLog, /sfEmailSends/)
 
 const wrap = read('src/core/mail/with-send-log.ts')
 assert.match(wrap, /withEmailSendLog/)
-assert.match(wrap, /email-manager\/send-log/)
+assert.match(wrap, /recordEmailSend/)
+assert.match(wrap, /loadModuleDoor\('email-manager-api-server'\)/)
+assert.doesNotMatch(wrap, /@\/modules\/email-manager/)
+
+const registry = read('src/generated/module-registry.server.ts')
+assert.match(registry, /id: "email-manager-api-server"/)
+assert.match(registry, /import\("@\/modules\/email-manager\/api\.server"\)/)
 
 const mailIndex = read('src/core/mail/index.ts')
 assert.match(mailIndex, /withEmailSendLog/)
@@ -59,7 +65,17 @@ const authMail = read('src/core/auth/mail.ts')
 assert.match(authMail, /emailType:\s*'system'/)
 
 const formsNotify = read('src/modules/forms/email-notify.ts')
-assert.match(formsNotify, /emailType:\s*'transactional'/)
+assert.match(formsNotify, /FORM_SUBMITTED_TRIGGER/)
+assert.match(formsNotify, /emitEmailTrigger/)
+
+const triggers = read('src/modules/email-manager/triggers.ts')
+assert.match(
+  triggers,
+  /key: 'product:forms\/submitted'[\s\S]{0,160}moduleCategory: 'forms'/,
+)
+
+const sendTypeTest = read('src/modules/email-manager/send-type.test.ts')
+assert.match(sendTypeTest, /emailTypeFromModuleCategory\('forms'\), 'transactional'/)
 
 const stats = read('src/modules/email-manager/dashboard/email-stats.ts')
 assert.match(stats, /sfEmailSends|sf_email_sends/)

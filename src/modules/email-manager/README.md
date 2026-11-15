@@ -33,7 +33,7 @@ Soft-fails when the module is off, Chrome email is off, or SMTP/Resend secrets a
 
 Forms success mail uses this pack only (`ensureFormsEmailStartersSeeded` creates admin + respondent conditional rules). Core Forms never falls back to `getMailer()`. Product packs never call `getMailer()` for bulk lists — use `enqueueEmailBroadcast`.
 
-**Broadcast rules:** dedupe addresses; hard cap 2000; refuse a second enqueue while the same `sourceKey` is `queued` / `running`; pace copied onto the broadcast row at enqueue; drain via JobRunner with durable `nextRunAt` (page load / enqueue calls `kickDueBroadcasts` because memory timers die on restart).
+**Broadcast rules:** dedupe addresses; hard cap 2000; refuse a second enqueue while the same `sourceKey` is `queued` / `running`; pace copied onto the broadcast row at enqueue; drain via JobRunner with durable `nextRunAt` (page load / enqueue calls `kickDueBroadcasts` because memory timers die on restart). Process boot calls `bootEmailManager` once: `ensureEmailBroadcastDrainJob` and one `kickDueBroadcasts`, only when the module toggle is on. A missing broadcast table does not fail boot.
 
 ## Send log (D3)
 

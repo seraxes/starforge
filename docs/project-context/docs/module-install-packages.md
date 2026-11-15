@@ -4,7 +4,9 @@
 
 How Starforge stays modular at **install time** without conflating that with runtime toggles.
 
-## Three layers (do not mix)
+## Install mechanism (do not mix with architecture tiers)
+
+Architecture placement (Core host, base modules, advanced modules, Hero) is [sf-architecture](../../../.cursor/rules/sf-architecture.mdc). The three rows below are only how a chosen pack gets onto disk.
 
 | Layer | When | Mechanism | Effect |
 | --- | --- | --- | --- |

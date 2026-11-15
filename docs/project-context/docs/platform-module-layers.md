@@ -1,24 +1,30 @@
-# Platform layers — Core, Modules, Hero
+# Platform layers — Core, base, advanced, Hero
 
-**Decision (2026-11-03):** Starforge has three layers. Shared engines (Forms, Media, Events, Maps, Chat, …) are **Modules**, not “ASN-only code.” ASN (and other sites) live in **Hero**: theme + unique business logic on top of Modules — **not** forks of those modules. Build order: finish **Core** spine first; ship heavy Modules later as optional toggles — not one megamodule monolith.
+**Decision (2026-11-03, tiers sharpened 2026-11-14):** Starforge has a Core host, toggleable modules, and a Hero on top. Modules split by dependency, not by folder: **base** engines are what other packs `require`; **advanced** packs are the domain products that depend on them. ASN (and other sites) live in **Hero**: theme + unique business logic — **not** forks of those modules. Rule: [sf-architecture](../../../.cursor/rules/sf-architecture.mdc).
 
 ## Rule of thumb
 
-| Layer | Put it here when… |
+| Placement | Put it here when… |
 | --- | --- |
-| **Core** | Skeleton / host / **ports** every app needs to **boot** (auth session, layout host, module loader, Mailer/cache/storage/LLM/map/payments *adapters*) |
-| **Modules** | Reusable **product features** any Starforge site can toggle on/off (`starforge.modules.json` + Site Settings) |
-| **Hero** | **Brand theme** + **unique business rules** / custom workflows / processes on top of Modules — never a parallel copy of a Module |
+| **Core** | Skeleton / host / **ports** every app needs to **boot** (auth session, layout host, module loader, Mailer/cache/storage/LLM/map/payments *adapters*). Not a `requires` id. |
+| **Base module** | Shared engine other packs list in `requires` (Forms, Media, Email Manager, Payments, Profiles, Maps, Rich editor). A base pack may require another base pack. |
+| **Advanced module** | Domain product whose manifest `requires` names those base packs (Events, Subscriptions, and later Ads, Shop, Marketplace, Support, Stream). |
+| **Hero** | **Brand theme** + **unique business rules** / custom workflows on top of modules — never a parallel copy of a module. |
 
-**Ports** = thin Core adapters (env secrets, factory pick). **Modules** *use* ports; they do not own vendor SDKs. **Hero** skins and rules Modules — it does not fork them.
+**Ports** = thin Core adapters (env secrets, factory pick). **Modules** use ports; they do not own vendor SDKs. **Hero** skins and rules modules — it does not fork them. The old queue nickname “level-1 engines” means these **base modules**, not Core.
 
-## Three layers (summary)
+## Four placements (summary)
 
-| Layer | Owns | Examples |
+| Placement | Owns | Examples |
 | --- | --- | --- |
-| **1. Core** | App skeleton / *váz* — always-on host + ports | Auth, Users/Groups ACL, Layout/Nav/Chrome host, Payload pages host, Module Manager, env overlay; ports: Mailer, Redis/cache, MediaStorage, MapProvider, LlmProvider, Payments, MediaAnalysis |
-| **2. Modules** | Toggleable reusable packs | Forms, Media (+ tags/pipeline), Posts/Search, Consent, Redirects/sitemap, Profiles, Social, Chat, Stream, Marketplace/Shop, Ads, Events/venues, Maps/location, Notifications |
-| **3. Hero** | Theme + unique rules/workflows — not a Module fork | **Starforge theme:** pastel orange + blue. **ASN theme:** dark, tactical, gaming, military. Plus ASN team/RP/airsoft domain, catalog fees, quality-check **apps** that *call* Media analysis hooks |
+| **Core** | Always-on host + ports | Auth, Users/Groups ACL, Layout/Nav/Chrome, Module Manager, env overlay; ports: Mailer, Redis/cache, MediaStorage, MapProvider, LlmProvider, Payments adapters, PageReadsPort, MediaAnalysis |
+| **Base modules** | Dependency engines | Media, Forms, Rich editor, Email Manager, Payments (cart/orders/VAT), Profiles, Maps. Payload = content-manager pack behind `PageReadsPort` (pages only; media stays `product:media`) |
+| **Advanced modules** | Domain products that `require` base packs | Events, Subscriptions; later Ads, Shop, Marketplace, Support, Stream, Social, Chat |
+| **Hero** | Theme + unique rules — not a module fork | **Starforge theme:** pastel orange + blue. **ASN theme:** dark, tactical, gaming, military. Plus ASN team/RP/airsoft domain, catalog fees, ASN currency, quality-check **apps** that *call* Media analysis hooks |
+
+Site packs (Consent, Redirects, Search, PWA, Lexical, Notice bar) stay optional modules. They are not Core and not a domain product.
+
+Rows in the placement guide below that still say **Modules** mean one of: base, advanced, or site pack. Use the test in `sf-architecture.mdc` when adding a row.
 
 ## Placement guide
 
@@ -29,7 +35,7 @@
 | **Module Manager / allowlist** | **Core** | Host that loads Modules |
 | **Redis / cache** | **Core (port)** | `PublishedContentCache` (+ later rate-limit/queues); not a product Module |
 | **Mailer** | **Core (port)** | console / SMTP / Resend adapters; Modules call `send()` |
-| **Payments** | **Core (port)** + **`product:payments` module** | Core: gateway/fiscal adapters + secrets (Mailer-like). Module: cart, orders, VAT invoices, admin — Events/Shop/Subscriptions/Ads consume `@/modules/payments/api` only |
+| **Payments** | **Core (port)** + **base `product:payments`** | Core: gateway/fiscal adapters + secrets (Mailer-like). Base module: cart, orders, VAT invoices, admin — Events/Shop/Subscriptions/Ads consume `@/modules/payments/api` only |
 | **LlmProvider** | **Core (port)** | Optional complete() for Events AI draft (and later others); Mailer-like adapters |
 | **MapProvider** | **Core (port)** | Tiles/geocode adapters; Maps Module consumes |
 | **MediaStorage** (local → Spaces/S3) | **Core (port)** | Storage swap only — not a second media DB |
@@ -68,8 +74,9 @@ Form engine stays the shared intake path — other Modules do not rebuild fields
 ## Build order (locked)
 
 1. **Core** — make it excellent, but **agile**: thin solid ports and host, iterate; no big-bang perfection.
-2. **Modules** — think through behavior, then build toggleable packs on Core ports.
-3. **Hero** — unique business logic / features / theme **only on** Core + Modules; no Hero shortcuts that bypass unfinished ports.
+2. **Base modules** — shared engines other packs `require`, on those ports.
+3. **Advanced modules** — domain packs that list the base ids in `requires`.
+4. **Hero** — unique business logic / features / theme **only on** Core + modules; no Hero shortcuts that bypass unfinished ports.
 
 ### Commercial priority (within Modules)
 

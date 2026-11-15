@@ -8,7 +8,7 @@ Read this before [design-system-overview](./design-system-overview.md) (3 Nov sn
 
 Starforge is the reusable starter: auth, the layout host, Payload as the content module, and toggleable packs. ASN 2.0 is a later **Hero** (theme + airsoft rules) on top of those packs. It does not fork them.
 
-Three layers, unchanged: **Core** hosts and ports, **Modules** are one engine per product concern, **Hero** is brand and vertical rules. Placement table: [platform-module-layers](./platform-module-layers.md). Ownership test: [sf-module-ownership](../../../.cursor/rules/sf-module-ownership.mdc).
+Four placements: **Core** is the host and the ports. **Base modules** are the dependency engines (Media, Forms, Rich editor, Email Manager, Payments, Profiles, Maps). **Advanced modules** are the domain packs that `require` those engines (Events, Subscriptions, and later Ads, Shop, Marketplace, Support, Stream). **Hero** is brand and vertical rules. Base modules are not Core. The old nickname “level-1 engines” means the base modules. Placement: [platform-module-layers](./platform-module-layers.md). Rule: [sf-architecture](../../../.cursor/rules/sf-architecture.mdc). Ownership: [sf-module-ownership](../../../.cursor/rules/sf-module-ownership.mdc).
 
 ## Routes
 
@@ -65,13 +65,13 @@ The content manager owns editorial pages (body, drafts, versions, the editor UI)
 
 ## Build queue
 
-Core → Modules → Hero still holds. **Core finish (slices 1–9) is shipped.** The active job is the level-1 engine pass: each module's `requires` installs and enables its dependencies, Payments refunds are real, Forms ops (CSV, string rules, success redirect) and the Mailer transactional helper are in place. Next product pack after that pass is `product:ads`. Do not open Social, Chat, Shop, or Marketplace schema ahead of that.
+Core → base modules → advanced modules → Hero still holds. **Core finish (slices 1–9) is shipped.** The active job is the base-module pass: each module's `requires` installs and enables its dependencies, Payments refunds are real, Forms ops (CSV, string rules, success redirect) and the Mailer transactional helper are in place. Next product pack after that pass is `product:ads`. Do not open Social, Chat, Shop, or Marketplace schema ahead of that.
 
 Do not re-open work that already shipped: RateLimiter, captcha-in-security, the manifest host (M0–M2), Redis cache, the Skin port, dashboard D2–D4, the email send log, module info pages, or the dashboard core glance and needs-attention rail (`system.health`, `chrome.posture`, `modules.summary`, `attention.rail`).
 
 **Host gaps for Auto** (one slice per chat, instructions in [core-host-gaps-brief](./core-host-gaps-brief.md)): all five slices shipped — public error/404, optional email verification, download-my-data / delete-my-account, job-runner port (`src/core/jobs`), and Google sign-in (`GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET`, button only when both set). These do not replace the list below.
 
-**Resume (2026-11-13):** Core finish slices 1–9 shipped. Level-1 engines (Forms, Media, Email Manager, Rich editor, Profiles, Payments, Subscriptions resolve, Maps v1) plus site utilities are the base. `requires` on each manifest is the dependency map; install and the Modules toggle close it. Paid tickets and the subscriptions lifecycle already shipped. Next product pack is ads. Redirects, Forms, and the TipTap engine are in `src/modules`. Page reads go through `PageReadsPort`.
+**Resume (2026-11-13):** Core finish slices 1–9 shipped. Base modules (Forms, Media, Email Manager, Rich editor, Profiles, Payments, Maps v1) plus site utilities are in place. Subscriptions resolve is an advanced pack on those engines. `requires` on each manifest is the dependency map; install and the Modules toggle close it. Paid tickets and the subscriptions lifecycle already shipped. Next product pack is ads. Redirects, Forms, and the TipTap engine are in `src/modules`. Page reads go through `PageReadsPort`.
 
 **Core finish (shipped).** One slice per chat was the rule; paste archive in [core-finish-instructions](./core-finish-instructions.md):
 
@@ -81,7 +81,7 @@ Do not re-open work that already shipped: RateLimiter, captcha-in-security, the 
 
 **Particle defaults are not a Core admin page.** They are demo content inside a skin pack: the particles that ship with that skin already have default text and parameters, so an installed skin is not empty. Build that when Starforge is ready to hand to other people as a demo. Do not add `/admin/particle-defaults` back.
 
-**Level-1 engines (active):** dependency closure, Payments refunds, Forms ops, Mailer transactional helper, admin theme CSS from the registry. `sf_pay_collect_entitlements` stays a frozen stub; collect reads `payments.collect` when Subscriptions is on. Subscriptions pack plan: [subscriptions-pack-plan](./subscriptions-pack-plan.md). Ads is the next product pack. TacMap live rooms stay out of this pass.
+**Base modules (active):** dependency closure, Payments refunds, Forms ops, Mailer transactional helper, admin theme CSS from the registry. `sf_pay_collect_entitlements` stays a frozen stub; collect reads `payments.collect` when Subscriptions is on. Subscriptions pack plan: [subscriptions-pack-plan](./subscriptions-pack-plan.md). Ads is the next product pack. TacMap live rooms stay out of this pass.
 
 **Also decided, and also waiting:** event slot kinds are choosable **Ticket type**, **Booking type**, and **Faction**, and an admin can add other names. The code today is only `general | faction`. Do not build that chooser ahead of the commercial order.
 
@@ -117,13 +117,14 @@ Do not relocate these in a drive-by:
 
 | Thing | Where it lives | Rule |
 | --- | --- | --- |
-| Forms engine | `src/modules/forms` (`api.ts` door) | Events, Profiles, and Payments import `@/modules/forms/api` only. Core does not import the engine. Definitions stay `sf_forms` in the Core schema. |
+| Forms engine | `src/modules/forms` (`api.ts` door, `schema.ts` tables) | Events, Profiles, and Payments import `@/modules/forms/api` only. Core does not import the engine. Definitions stay `sf_forms`, `sf_form_submissions`, and `sf_form_settings`, declared in the Forms schema. |
 | Redirects engine | `src/modules/redirects` (`api.ts`, `schema.ts`, generated `runProxyHooks`) | Core calls the generated hook only. Sitemap list stays Core. |
 | TipTap engine | `src/modules/rich-editor` (`product:rich-editor`) | Lexical stays an optional pack. Callers use `@/modules/rich-editor/api` (server sanitize and the module gate: `api.server`). |
 | Image insert in the editor | Caller passes `MediaPicker` from `@/modules/media/api` | The editor file does not import media. Core does not import the picker. |
 | Forms success mail | `emitEmailTrigger` (`product:forms/submitted`) only | Do not call `getMailer()` from Forms or other packs for product mail. |
 | `sf_pay_collect_entitlements` | Frozen stub inside Payments | When Subscriptions is on, collect reads `payments.collect`. No plan/period columns on `sf_pay_*`. |
-| Payment fulfillment | `registerPaymentConsumerHook('events.confirmRegistration', …)` | One hook key per consumer, passed into checkout. No second event bus. |
+| Payment fulfillment | `registerPaymentConsumerHook('events.confirmRegistration', …)` | One hook key per consumer, passed into checkout. Registrations on that key append. The first handler’s throw still fails the request. Later listeners are isolated. The default hero adds none. No second event bus. |
+| Process boot | generated `runModuleBoot`, then `runHeroBoot` | `instrumentation.ts` asserts env, then calls both. No pack paths. Each pack boot returns immediately when its own toggle is off. The default hero loader is null. The Events abandoned-checkout sweep stays unarmed while Events is off; stuck `pending_payment` seats wait until Events is on and boot runs again. |
 
 New packs follow Payments: a **port** in `src/core/<port>`, **product behavior** in `src/modules/<id>`. A PR may touch Core when it adds a port or a host extension. It does not put product screens, catalogs, or fulfillment in Core.
 

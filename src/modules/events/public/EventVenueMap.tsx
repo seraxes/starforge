@@ -2,7 +2,7 @@ import React from 'react'
 
 import { getMapProvider } from '@/core/maps'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
-import { MapView } from '@/modules/maps/MapView'
+import { MapView } from '@/modules/maps/api'
 
 type Props = {
   latitude: number

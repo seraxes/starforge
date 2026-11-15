@@ -4,9 +4,6 @@ import { getMapProvider } from '@/core/maps'
 import type { MapMarker } from '@/core/maps/types'
 import type { StarforgeModule } from '@/core/modules/types'
 import { MODULE_IDS, isCatalogModuleEnabled } from '@/core/settings'
-import { withLocalePrefix } from '@/core/i18n/path'
-import { isAppLocale } from '@/core/i18n/locales'
-import { getLocale } from 'next-intl/server'
 
 import { MapView } from './MapView'
 import { readMapConfig } from './config'
@@ -32,32 +29,10 @@ export const mapModule: StarforgeModule = {
 
     if (cfg.showEventVenues && isCatalogModuleEnabled(settings, MODULE_IDS.events)) {
       try {
-        const { listPublishedEvents, findVenueById } = await import(
-          '@/modules/events/store'
-        )
-        const { eventPublicPathKey } = await import('@/modules/events/public/path')
-        const localeRaw = await getLocale()
-        const locale = isAppLocale(localeRaw) ? localeRaw : undefined
-        const events = await listPublishedEvents({ limit: 40, includePast: false })
-        const seen = new Set<string>()
-        for (const event of events) {
-          if (!event.venueId || seen.has(event.venueId)) continue
-          seen.add(event.venueId)
-          const venue = await findVenueById(event.venueId)
-          if (!venue?.latitude || !venue?.longitude) continue
-          markers.push({
-            id: venue.id,
-            lat: venue.latitude,
-            lng: venue.longitude,
-            label: venue.name,
-            href: withLocalePrefix(
-              `/events/${encodeURIComponent(eventPublicPathKey(event))}`,
-              locale,
-            ),
-          })
-        }
+        const { listEventCatalog } = await import('./api.server')
+        markers.push(...(await listEventCatalog().listPublishedVenues()))
       } catch {
-        // Events pack / geo columns missing — render empty map if center set.
+        // Catalog missing or venue lookup failed — render empty map if center set.
       }
     }
 

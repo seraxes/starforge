@@ -189,13 +189,9 @@ export async function dispatchFormEmailNotify(
   }
 
   try {
-    const { emitEmailTrigger, isEmailManagerEnabled } = await import(
-      '@/modules/email-manager/api.server'
-    )
+    const { emitEmailTrigger, ensureFormsEmailStartersSeeded, isEmailManagerEnabled } =
+      await import('@/modules/email-manager/api.server')
     const { FORM_SUBMITTED_TRIGGER } = await import('@/modules/email-manager/api')
-    const { ensureFormsEmailStartersSeeded } = await import(
-      '@/modules/email-manager/forms-starters'
-    )
 
     if (!(await isEmailManagerEnabled())) {
       return {

@@ -78,11 +78,13 @@ mustInclude(brand, 'check site href const', 'ADMIN_CHECK_SITE_HREF')
 mustInclude(chrome, 'check site route', "ADMIN_CHECK_SITE_HREF = '/'")
 mustNotInclude(brand, 'logo public-site href on dashboard link', 'className="admin-sidebar-logo" href="/"')
 
-mustInclude(account, 'account settings href', 'ADMIN_ACCOUNT_HREF')
+mustInclude(account, 'admin account href helper', 'adminAccountHref')
+mustInclude(account, 'account href attr', 'href={href}')
 mustInclude(account, 'avatar class', 'admin-sidebar-avatar')
 mustInclude(chrome, 'dashboard route', "ADMIN_DASHBOARD_HREF = '/admin'")
 mustInclude(chrome, 'payload dashboard route', "PAYLOAD_DASHBOARD_HREF = '/cms/admin'")
-mustInclude(chrome, 'account route', "/account/security")
+mustInclude(chrome, 'admin account route helper', 'export function adminAccountHref')
+mustInclude(chrome, 'admin user account route', '/admin/users/')
 mustInclude(chrome, 'tooltip starts with Starforge admin', "'Starforge admin —")
 mustInclude(chrome, 'tooltip names Dashboard home', 'Dashboard (/admin)')
 mustInclude(payloadNav, 'Payload brand surface', 'surface="payload"')
@@ -96,5 +98,5 @@ mustInclude(payloadChrome, 'payload kicker', '.nav .admin-sidebar-kicker')
 mustInclude(payloadChrome, 'payload avatar', '.nav .admin-sidebar-avatar')
 
 console.log(
-  'ok — admin sidebar compact STARFORGE → /admin (Core) / /cms/admin (Payload) + avatar → /account/security',
+  'ok — admin sidebar compact STARFORGE → /admin (Core) / /cms/admin (Payload) + avatar → /admin/users/:id',
 )

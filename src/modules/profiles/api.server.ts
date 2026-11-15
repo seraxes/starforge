@@ -19,6 +19,7 @@ import { eq, inArray } from 'drizzle-orm'
 import type { AccessViewer } from '@/core/acl/types'
 import { db, sfUsers } from '@/core/db'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
+import { DEFAULT_IMAGE_FRAME } from '@/modules/media/api.server'
 
 import { ageYears } from './fields'
 import { fallbackPersona, projectPersona } from './privacy'
@@ -28,9 +29,16 @@ import {
   getProfileByHandle,
   getProfileByUserId,
   getProfilesByUserIds,
+  listProfileDirectory,
 } from './store'
 import { loadProfilesModuleSettings } from './settings.server'
 import type { Persona, ProfileRecord, ViewerRelation } from './types'
+
+export { ensureProfile, listProfileDirectory }
+export { ensureProfileFormSeeded } from './profile-form'
+export { buildEditorModel } from './form'
+export { loadProfilesModuleSettings }
+export { saveProfileAdminAction, setProfileStatusAction } from './actions'
 
 export type {
   Persona,
@@ -87,7 +95,12 @@ export async function getPersonas(
       if (!nameById.has(id)) continue
       out.set(
         id,
-        fallbackPersona({ userId: id, name: nameById.get(id) ?? '', isSelf: viewer.userId === id }),
+        fallbackPersona({
+          userId: id,
+          name: nameById.get(id) ?? '',
+          isSelf: viewer.userId === id,
+          avatarFrame: DEFAULT_IMAGE_FRAME,
+        }),
       )
     }
     return out
@@ -111,13 +124,25 @@ export async function getPersonas(
     if (name == null) continue
     const profile = profiles.get(id)
     if (!profile) {
-      out.set(id, fallbackPersona({ userId: id, name, isSelf: viewer.userId === id }))
+      out.set(
+        id,
+        fallbackPersona({
+          userId: id,
+          name,
+          isSelf: viewer.userId === id,
+          avatarFrame: DEFAULT_IMAGE_FRAME,
+        }),
+      )
       continue
     }
     const relation = relationFor(viewer, id)
     if (profile.status === 'hidden' && relation !== 'self' && relation !== 'admin') {
       out.set(id, {
-        ...fallbackPersona({ userId: id, name: profile.displayName || name }),
+        ...fallbackPersona({
+          userId: id,
+          name: profile.displayName || name,
+          avatarFrame: DEFAULT_IMAGE_FRAME,
+        }),
         avatarMediaId: profile.avatarMediaId,
         avatarFrame: profile.avatarFrame,
       })
@@ -198,6 +223,54 @@ export async function getOwnProfileContact(userId: string): Promise<{
   return {
     displayName: profile.displayName.trim(),
     phone: profile.phone.trim(),
+  }
+}
+
+/**
+ * Profile block for the signed-in member's account download.
+ * Same fields `src/core/auth/account-data.ts` writes under `profile`.
+ * Null when Profiles is off, the id is empty, or the member has no row.
+ */
+export async function exportOwnProfileRecord(userId: string): Promise<{
+  handle: string
+  displayName: string
+  headline: string
+  bio: string
+  birthDate: string | null
+  gender: string | null
+  country: string | null
+  city: string | null
+  website: string | null
+  phone: string | null
+  links: ProfileRecord['links']
+  locale: string | null
+  timezone: string | null
+  status: ProfileRecord['status']
+  createdAt: string
+  updatedAt: string
+} | null> {
+  const id = userId.trim()
+  if (!id) return null
+  if (!(await isProfilesModuleEnabled())) return null
+  const record = await getProfileByUserId(id)
+  if (!record) return null
+  return {
+    handle: record.handle,
+    displayName: record.displayName,
+    headline: record.headline,
+    bio: record.bio,
+    birthDate: record.birthDate || null,
+    gender: record.gender || null,
+    country: record.country || null,
+    city: record.city || null,
+    website: record.website || null,
+    phone: record.phone || null,
+    links: record.links,
+    locale: record.locale || null,
+    timezone: record.timezone || null,
+    status: record.status,
+    createdAt: record.createdAt.toISOString(),
+    updatedAt: record.updatedAt.toISOString(),
   }
 }
 

@@ -3,8 +3,8 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
-import { listEvents } from '@/modules/events/store'
 
+import { listEventCatalog } from '../api.server'
 import { listMapRooms } from '../store'
 import { MapsAdminNav } from './maps-admin-nav'
 import { MapsRoomsManager } from './maps-rooms-manager'
@@ -24,12 +24,14 @@ export default async function MapsLiveRoomsPage() {
   const [rooms, events] = await Promise.all([
     listMapRooms(),
     isCatalogModuleEnabled(settings, MODULE_IDS.events)
-      ? listEvents()
+      ? listEventCatalog().listEventsForAdmin()
       : Promise.resolve([]),
   ])
 
-  const eventTitleById = new Map(events.map((e) => [e.id, e.title]))
-  const roomsWithoutMap = events.filter((e) => !rooms.some((r) => r.eventId === e.id))
+  const eventTitleById = new Map(
+    events.map((event) => [event.id, eventTitleFromAdminLabel(event.label)]),
+  )
+  const roomsWithoutMap = events.filter((event) => !rooms.some((room) => room.eventId === event.id))
 
   return (
     <section className="admin-section admin-layouts-full sf-maps-admin">
@@ -50,11 +52,16 @@ export default async function MapsLiveRoomsPage() {
           active: r.active,
           eventTitle: eventTitleById.get(r.eventId) || r.eventId,
         }))}
-        eventOptions={roomsWithoutMap.map((e) => ({
-          id: e.id,
-          label: `${e.title} (${e.status})`,
+        eventOptions={roomsWithoutMap.map((event) => ({
+          id: event.id,
+          label: event.label,
         }))}
       />
     </section>
   )
+}
+
+/** Catalog labels are `Title (status)`. The room table shows the title. */
+function eventTitleFromAdminLabel(label: string): string {
+  return label.replace(/ \((draft|published|cancelled)\)$/, '')
 }

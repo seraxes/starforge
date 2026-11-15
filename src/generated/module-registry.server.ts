@@ -5,17 +5,22 @@
  *
  * Server-only dynamic import() loaders. Client code must import from
  * `module-registry.ts` only — never this file.
+ * Module process boot is `bootLoaders` / `runModuleBoot` (layer, then requires, then id).
  */
 import 'server-only'
 
 import type { NextRequest, NextResponse } from 'next/server'
 import type { ComponentType, ReactNode } from 'react'
 
+import {
+  runModuleBoot as runModuleBootLoaders,
+  type ModuleBootLoader,
+} from '@/core/modules/module-boot'
 import type { StarforgeModule } from '@/core/modules/types'
 import type { StarforgeAtomDefinition } from '@/core/page-settings/types'
 import type { PublicShellSlot } from '@/generated/module-registry'
 
-export type { PublicShellSlot }
+export type { ModuleBootLoader, PublicShellSlot }
 
 export type OptionalParticleLoader = {
   id: string
@@ -529,3 +534,170 @@ export const moduleMessageLoaders: ModuleMessageLoader[] = [
     },
   }
 ]
+
+export type HostPageLoader = {
+  id: string
+  moduleId: string
+  load: () => Promise<unknown>
+}
+
+/**
+ * Page bodies for host routes that compose a pack.
+ * `loadHostPage` returns null when that id is not on this allowlist.
+ */
+export const hostPageLoaders: HostPageLoader[] = [
+  {
+    id: "account-events",
+    moduleId: "product:events",
+    load: async () => (await import("@/modules/events/public/AccountEventsPage")).default,
+  }
+]
+
+export type ModuleDoorLoader = {
+  id: string
+  moduleId: string
+  load: () => Promise<Record<string, unknown>>
+}
+
+/**
+ * Pack namespaces for host code. `loadModuleDoor` returns null when that
+ * id is not on this allowlist, so Core never names a pack path.
+ */
+export const moduleDoorLoaders: ModuleDoorLoader[] = [
+  {
+    id: "email-manager-api-server",
+    moduleId: "product:email-manager",
+    load: async () => import("@/modules/email-manager/api.server"),
+  },
+  {
+    id: "subscriptions-api",
+    moduleId: "product:subscriptions",
+    load: async () => import("@/modules/subscriptions/api"),
+  },
+  {
+    id: "profiles-api",
+    moduleId: "product:profiles",
+    load: async () => import("@/modules/profiles/api"),
+  },
+  {
+    id: "profiles-api-server",
+    moduleId: "product:profiles",
+    load: async () => import("@/modules/profiles/api.server"),
+  }
+]
+
+export async function loadModuleDoor(
+  id: string,
+): Promise<Record<string, unknown> | null> {
+  const entry = moduleDoorLoaders.find((row) => row.id === id)
+  if (!entry) return null
+  return entry.load()
+}
+
+export async function loadHostPage(
+  id: string,
+): Promise<
+  | ((props: {
+      params: Promise<Record<string, string | string[] | undefined>>
+    }) => ReactNode | Promise<ReactNode>)
+  | null
+> {
+  const entry = hostPageLoaders.find((row) => row.id === id)
+  if (!entry) return null
+  const loaded = await entry.load()
+  return loaded as (props: {
+    params: Promise<Record<string, string | string[] | undefined>>
+  }) => ReactNode | Promise<ReactNode>
+}
+
+export type RealtimeChannelAclChecker = (
+  userId: string,
+  channel: string,
+) => boolean | Promise<boolean>
+
+export type RealtimeChannelAclLoader = {
+  moduleId: string
+  load: () => Promise<RealtimeChannelAclChecker>
+}
+
+/** SSE channel checkers from allowlisted packs. Empty when none declare one. */
+export const realtimeChannelAclLoaders: RealtimeChannelAclLoader[] = [
+  {
+    moduleId: "product:maps",
+    load: async () => (await import("@/modules/maps/api.server")).canSubscribeMapChannel,
+  }
+]
+
+export async function loadRealtimeChannelAclCheckers(): Promise<RealtimeChannelAclChecker[]> {
+  return Promise.all(realtimeChannelAclLoaders.map((entry) => entry.load()))
+}
+
+export type LayoutFormCatalogLoader = {
+  moduleId: string
+  load: () => Promise<Array<{ id: string; label: string }>>
+}
+
+/** Layout manager form list. Empty when no allowlisted pack contributes one. */
+export const layoutFormCatalogLoaders: LayoutFormCatalogLoader[] = [
+  {
+    moduleId: "product:forms",
+    load: async () => (await import("@/modules/forms/api")).loadLayoutFormCatalog(),
+  }
+]
+
+export async function loadAllowlistedLayoutFormCatalog(): Promise<
+  Array<{ id: string; label: string }>
+> {
+  if (!layoutFormCatalogLoaders.length) return []
+  const lists = await Promise.all(layoutFormCatalogLoaders.map((entry) => entry.load()))
+  return lists.flat()
+}
+
+/**
+ * Process boot for allowlisted manifests that declare `boot`.
+ * Order: layer base, then site, then advanced; within a layer, hard
+ * `requires` before dependents; otherwise module id.
+ * `src/instrumentation.ts` calls `runModuleBoot` and does not import packs.
+ */
+export const bootLoaders: ModuleBootLoader[] = [
+  {
+    moduleId: "product:email-manager",
+    load: async () => (await import("@/modules/email-manager/boot")).bootEmailManager,
+  },
+  {
+    moduleId: "product:profiles",
+    load: async () => (await import("@/modules/profiles/boot")).bootProfiles,
+  },
+  {
+    moduleId: "product:events",
+    load: async () => (await import("@/modules/events/boot")).bootEvents,
+  },
+  {
+    moduleId: "product:subscriptions",
+    load: async () => (await import("@/modules/subscriptions/boot")).bootSubscriptions,
+  }
+]
+
+/**
+ * Run `bootLoaders` in generated order.
+ * Pass `loaders` only from tests. A failing loader is skipped so later
+ * modules still boot (same isolation as the old per-pack try/catch).
+ */
+export async function runModuleBoot(
+  loaders: readonly ModuleBootLoader[] = bootLoaders,
+): Promise<void> {
+  await runModuleBootLoaders(loaders)
+}
+
+/**
+ * One hero boot for this deployment. Null when that hero declares no `boot`.
+ * `src/instrumentation.ts` calls `runHeroBoot` after `runModuleBoot`.
+ */
+export const heroBootLoader: ModuleBootLoader | null = null
+
+export async function runHeroBoot(
+  loader: ModuleBootLoader | null = heroBootLoader,
+): Promise<void> {
+  if (!loader) return
+  await runModuleBootLoaders([loader])
+}

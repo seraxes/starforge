@@ -10,8 +10,8 @@ import { importMap } from './cms/admin/importMap.js'
  * unreliable under Next/Turbopack (same failure that left Core admin unstyled).
  * Keep custom.css as the Payload-conventional hook; live chrome loads here. */
 import '@/core/admin-theme/import-active-payload-chrome'
-/* Same Callout / Link portal chrome as Core admin (RichEditor portals). */
-import '@/modules/rich-editor/rich-editor-chrome.css'
+/* Same Callout / Link portal chrome as Core admin, when rich-editor is allowlisted. */
+import '@/generated/module-styles'
 import './custom.css'
 
 type Args = {

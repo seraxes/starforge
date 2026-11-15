@@ -16,7 +16,7 @@ assert.match(refund, /product:payments\/refunded/)
 assert.match(refund, /status: 'refunded'/)
 assert.match(refund, /submit_modifier/)
 
-const exportRoute = read('src/app/api/admin/forms/export/route.ts')
+const exportRoute = read('src/modules/forms/routes/export-route.ts')
 assert.match(exportRoute, /definitionId/)
 assert.match(exportRoute, /buildFormSubmissionsCsv/)
 

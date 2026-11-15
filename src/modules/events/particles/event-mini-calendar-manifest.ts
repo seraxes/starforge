@@ -4,6 +4,7 @@ import { defineStarforgeModule } from '@/core/modules/define-module'
 export default defineStarforgeModule({
   id: 'event-mini-calendar',
   kind: 'particle',
+  layer: 'advanced',
   label: 'Event mini calendar',
   description:
     'Compact month calendar + upcoming list. Place in any layout position. Needs product:events.',
@@ -13,6 +14,6 @@ export default defineStarforgeModule({
   exportName: 'eventMiniCalendarModule',
   requires: ['product:events'],
   navViews: [{ key: 'events', label: 'Events', href: '/events' }],
-  editorImportPath: '@/app/(frontend)/admin/layouts/events-particle-editors',
+  editorImportPath: '@/modules/events/admin/events-particle-editors',
   editorExportName: 'EventMiniCalendarParticleEditor',
 })

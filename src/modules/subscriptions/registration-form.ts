@@ -4,39 +4,24 @@
 
 import 'server-only'
 
-import { eq } from 'drizzle-orm'
-
-import { db, sfForms } from '@/core/db'
 import {
   DEFAULT_SUBSCRIPTION_REGISTRATION_FORM_ID,
   emptyFormDefinitionDocument,
+  ensureFormDefinitionSeed,
   loadFormDefinition,
-  serializeFormDefinitionDocument,
   type FormFieldDef,
 } from '@/modules/forms/api'
 
 export { DEFAULT_SUBSCRIPTION_REGISTRATION_FORM_ID }
 
 export async function ensureSubscriptionRegistrationFormSeeded(): Promise<string> {
-  try {
-    const [row] = await db
-      .select({ id: sfForms.id })
-      .from(sfForms)
-      .where(eq(sfForms.id, DEFAULT_SUBSCRIPTION_REGISTRATION_FORM_ID))
-      .limit(1)
-    if (row) return row.id
-
-    const document = emptyFormDefinitionDocument('subscription-registration')
-    await db.insert(sfForms).values({
-      id: DEFAULT_SUBSCRIPTION_REGISTRATION_FORM_ID,
-      label: document.title || 'Subscription registration',
-      preset: 'subscription-registration',
-      document: serializeFormDefinitionDocument(document),
-    })
-    return DEFAULT_SUBSCRIPTION_REGISTRATION_FORM_ID
-  } catch {
-    return DEFAULT_SUBSCRIPTION_REGISTRATION_FORM_ID
-  }
+  const document = emptyFormDefinitionDocument('subscription-registration')
+  const seeded = await ensureFormDefinitionSeed({
+    id: DEFAULT_SUBSCRIPTION_REGISTRATION_FORM_ID,
+    document,
+    label: document.title || 'Subscription registration',
+  })
+  return seeded.id
 }
 
 export type SubscriptionRegistrationPrefill = {

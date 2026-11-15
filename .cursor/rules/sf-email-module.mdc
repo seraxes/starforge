@@ -1,6 +1,6 @@
 # Starforge Email Manager — modular ownership
 
-Any Starforge module that sends product email **must** use `product:email-manager`. Do not call `getMailer()` / `sendMail()` from consumer packs (Forms, Events, Payments, …). Auth recovery may stay on Core Mailer until it is moved onto triggers.
+Any Starforge module that sends product email **must** use `product:email-manager`. Do not call `getMailer()` / `sendMail()` from consumer packs (Forms, Events, Payments, …). Auth recovery may stay on Core Mailer until it is moved onto triggers. Email Manager is a **base module**; the Mailer port stays Core (`sf-architecture.mdc`).
 
 ## Source of truth
 

@@ -1,6 +1,7 @@
 /**
  * Next.js instrumentation — runs once when the Node server starts.
- * Boots Starforge env validation (design-data-deploy §3 / SF-139).
+ * Boots Starforge env validation, then the generated module boot list,
+ * then the hero boot loader (null when the active hero declares no boot).
  *
  * @see https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation
  */
@@ -11,27 +12,7 @@ export async function register() {
   const { assertStarforgeEnvAtBoot } = await import('./core/env/validate')
   assertStarforgeEnvAtBoot()
 
-  const { ensureAbandonedCheckoutSweep } = await import(
-    './modules/events/abandoned-checkout'
-  )
-  ensureAbandonedCheckoutSweep()
-
-  try {
-    const { ensureSubscriptionsPaymentHook, ensureSubscriptionsExpiryJob } =
-      await import('./modules/subscriptions/api')
-    ensureSubscriptionsPaymentHook()
-    ensureSubscriptionsExpiryJob()
-  } catch {
-    /* pack missing / migrate pending */
-  }
-
-  try {
-    const { ensureEmailBroadcastDrainJob, kickDueBroadcasts } = await import(
-      './modules/email-manager/api.server'
-    )
-    ensureEmailBroadcastDrainJob()
-    void kickDueBroadcasts()
-  } catch {
-    /* pack missing / migrate pending */
-  }
+  const { runHeroBoot, runModuleBoot } = await import('@/generated/module-registry.server')
+  await runModuleBoot()
+  await runHeroBoot()
 }

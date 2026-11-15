@@ -4,6 +4,7 @@ import { defineStarforgeModule } from '@/core/modules/define-module'
 export default defineStarforgeModule({
   id: 'event-list',
   kind: 'particle',
+  layer: 'advanced',
   label: 'Event list',
   description:
     'Dense table of published events (list view). Needs product:events. Links to /events/[slug].',

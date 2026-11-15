@@ -9,6 +9,7 @@ import { defineStarforgeModule } from '@/core/modules/define-module'
 export default defineStarforgeModule({
   id: 'product:rich-editor',
   kind: 'product',
+  layer: 'base',
   label: 'Rich editor',
   description:
     'Shared TipTap rich editor (sanitized HTML). Toggle in Site Settings → Modules. Bind into Events, Pages, Email Manager (preset=email), and other content fields. Optional Lexical: product:lexical-editor.',
@@ -16,6 +17,7 @@ export default defineStarforgeModule({
   defaultEnabled: true,
   featureFlag: 'richEditor',
   requires: ['product:media'],
+  styles: ['@/modules/rich-editor/rich-editor-chrome.css'],
   // Settings reachable from Site Settings → Modules only (no sidebar group).
   navViews: [{ key: 'settings', label: 'Rich editor', href: '/admin/rich-editor/settings' }],
   admin: {

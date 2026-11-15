@@ -84,16 +84,10 @@ async function upsertStarter(
   starter: StarterDef,
   mode: 'ensure' | 'seed',
 ): Promise<string[]> {
-  const {
-    createEmailTemplate,
-    updateEmailTemplate,
-    createEmailRule,
-    updateEmailRule,
-    findEmailTemplateById,
-    findEmailRuleById,
-  } = await import('@/modules/email-manager/store')
+  const { findEmailRuleById, findEmailTemplateById, seedEmailStarter } = await import(
+    '@/modules/email-manager/api.server'
+  )
 
-  const created: string[] = []
   const tplPayload = {
     id: starter.tplId,
     label: starter.tplLabel,
@@ -113,26 +107,17 @@ async function upsertStarter(
     templateId: starter.tplId,
   }
 
-  if (mode === 'ensure') {
-    if (!(await findEmailTemplateById(starter.tplId))) {
-      const result = await createEmailTemplate(tplPayload)
-      if (!('error' in result)) created.push(starter.tplId)
-    }
-    if (!(await findEmailRuleById(starter.ruleId))) {
-      const result = await createEmailRule(rulePayload)
-      if (!('error' in result)) created.push(starter.ruleId)
-    }
-    return created
+  if (mode === 'seed') {
+    await seedEmailStarter({ template: tplPayload, rule: rulePayload, mode: 'seed' })
+    return []
   }
 
-  const createdTpl = await createEmailTemplate(tplPayload)
-  if ('error' in createdTpl) {
-    await updateEmailTemplate(tplPayload)
-  }
-  const createdRule = await createEmailRule(rulePayload)
-  if ('error' in createdRule) {
-    await updateEmailRule(rulePayload)
-  }
+  const hadTemplate = Boolean(await findEmailTemplateById(starter.tplId))
+  const hadRule = Boolean(await findEmailRuleById(starter.ruleId))
+  await seedEmailStarter({ template: tplPayload, rule: rulePayload, mode: 'ensure' })
+  const created: string[] = []
+  if (!hadTemplate && (await findEmailTemplateById(starter.tplId))) created.push(starter.tplId)
+  if (!hadRule && (await findEmailRuleById(starter.ruleId))) created.push(starter.ruleId)
   return created
 }
 

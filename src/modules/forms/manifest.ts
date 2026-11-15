@@ -7,12 +7,14 @@ import { defineStarforgeModule } from '@/core/modules/define-module'
 export default defineStarforgeModule({
   id: 'product:forms',
   kind: 'product',
+  layer: 'base',
   label: 'Forms',
   description:
     'Modular Form engine — visual builder (JSON Schema/Zod), Form particle, typed presets (contact, survey, event-registration, voting, ticket). Captcha from Chrome; Turnstile keys from env.',
   version: '0.1.0',
   defaultEnabled: true,
   requires: ['product:media'],
+  optionalRequires: ['product:email-manager'],
   i18n: {
     namespaces: ['product:forms'],
   },
@@ -43,6 +45,29 @@ export default defineStarforgeModule({
       },
     ],
     areas: [{ key: 'forms', label: 'Forms' }],
+    /** Codegen writes App Router shims under admin/(modules)/ — no hand host pages. */
+    routes: [
+      {
+        path: 'forms',
+        pageImportPath: '@/modules/forms/admin/FormsListPage',
+        pageExportName: 'default',
+      },
+      {
+        path: 'forms/settings',
+        pageImportPath: '@/modules/forms/admin/FormsSettingsPage',
+        pageExportName: 'default',
+      },
+      {
+        path: 'forms/[formId]',
+        pageImportPath: '@/modules/forms/admin/FormBuilderPage',
+        pageExportName: 'default',
+      },
+      {
+        path: 'forms/submissions',
+        pageImportPath: '@/modules/forms/admin/FormsSubmissionsPage',
+        pageExportName: 'default',
+      },
+    ],
     dashboard: [
       {
         id: 'forms.submissions',
@@ -56,5 +81,17 @@ export default defineStarforgeModule({
         statsExportName: 'loadFormsSubmissionsStats',
       },
     ],
+  },
+  apiRoutes: [
+    {
+      path: 'admin/forms/export',
+      routeImportPath: '@/modules/forms/routes/export-route',
+      handlers: ['GET'],
+      dynamic: 'force-dynamic',
+    },
+  ],
+  layoutFormCatalog: {
+    importPath: '@/modules/forms/api',
+    exportName: 'loadLayoutFormCatalog',
   },
 })

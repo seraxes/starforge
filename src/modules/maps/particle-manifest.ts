@@ -4,6 +4,7 @@ import { defineStarforgeModule } from '@/core/modules/define-module'
 export default defineStarforgeModule({
   id: 'map',
   kind: 'particle',
+  layer: 'base',
   label: 'Map',
   description:
     'Leaflet map with optional Event venue pins. Needs product:maps (+ product:events for pins).',

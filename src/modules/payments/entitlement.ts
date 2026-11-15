@@ -11,9 +11,24 @@ import { sfPayCollectEntitlements } from './schema'
 
 /**
  * Collect capability — stub table while Subscriptions is off;
- * `payments.collect` entitlement when product:subscriptions is enabled.
+ * registered resolver (`payments.collect`) when product:subscriptions is enabled.
  * Do not grow sf_pay_collect_entitlements into plans/periods.
+ * Payments must not import Subscriptions — advanced packs register the resolver.
  */
+
+export type CollectCapabilityResolver = (userId: string) => Promise<boolean>
+
+let collectCapabilityResolver: CollectCapabilityResolver | null = null
+
+/** Subscriptions (or a test double) registers the live entitlement check. */
+export function registerCollectCapabilityResolver(fn: CollectCapabilityResolver): void {
+  collectCapabilityResolver = fn
+}
+
+/** True after Subscriptions boot has registered the live collect check. */
+export function isCollectCapabilityResolverRegistered(): boolean {
+  return collectCapabilityResolver != null
+}
 
 async function subscriptionsOwnsCollect(): Promise<boolean> {
   try {
@@ -29,11 +44,9 @@ export async function hasCollectCapability(userId: string): Promise<boolean> {
   if (!id) return false
 
   if (await subscriptionsOwnsCollect()) {
+    if (!collectCapabilityResolver) return false
     try {
-      const { hasEntitlement, ENTITLEMENT_KEYS } = await import(
-        '@/modules/subscriptions/api'
-      )
-      return await hasEntitlement(id, ENTITLEMENT_KEYS.paymentsCollect)
+      return await collectCapabilityResolver(id)
     } catch {
       return false
     }

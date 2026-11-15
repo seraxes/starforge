@@ -16,6 +16,7 @@ Reference: [docs.gantry.org](https://docs.gantry.org/).
 | Particle boot | `boot.ts` (`ensureModulesRegistered`) — Core imports `@/generated` only |
 | Public shell host | `PublicShellSlots` — Consent (etc.) via generated `publicShellLoaders` |
 | Proxy chain | `src/proxy.ts` → generated `runProxyHooks` (Redirects hook; Core does not import the pack) |
+| Module process boot | generated `runModuleBoot`, then `runHeroBoot`, in `module-registry.server.ts`. `src/instrumentation.ts` asserts env, then calls both. Pack paths stay on each manifest `boot` declaration. The default hero loader is null. |
 | Built-in particles | `page-content`, `site-header`, `logo` (image/text), `menu`, `copyright`, `social`, `custom` · `particles/` |
 | Example extension | `src/modules/notice-bar/` (dynamic import when allowlisted) |
 | Form particle | `src/modules/form/` + engine `src/modules/forms/` · definitions `sf_forms` · submissions `sf_form_submissions` · Admin `/admin/forms` |

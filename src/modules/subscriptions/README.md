@@ -22,7 +22,7 @@ Plans, periods, and entitlements. Payments charges and snapshots; this pack gran
 
 - **`product:payments`** — `createCart` / `addCartLine` (`plan`) / `startCheckout` with hook `subscriptions.activate`. Coupons forwarded only. Recurring intents via `createRecurring` / `cancelRecurring`. No second cart.
 - **`product:email-manager`** — `emitEmailTrigger` only (payload includes `buyerEmail`). Starters create templates/rules under Email Manager.
-- **`product:forms`** — optional plan `formDefinitionId`; preset `subscription-registration` under Subscriptions category. Account subscribe renders the FormWidget intake; admin deep-links to `/admin/forms/[id]`.
+- **`product:forms`** — optional plan `formDefinitionId`; preset `subscription-registration` under Subscriptions category. Account subscribe renders the FormWidget intake; admin deep-links to `/admin/forms/[id]`. `ensureSubscriptionRegistrationFormSeeded` stays here: Subscriptions settings and admin actions, and `bootSubscriptions` (generated `runModuleBoot`). Forms admin does not seed it. Boot also registers the Payments collect resolver and the expiry job, and skips all of that when Subscriptions is toggled off.
 - **Content locales** — plan title/description via `LocaleInput` → `data/content-locales/{locale}/subscriptions/{planId}.json` (same pattern as Events categories).
 - **`product:profiles`** — subscriber labels via `getPersonas`. Store `userId` only.
 - **`product:media`** — plan `imageMediaId` via MediaPicker when wired in admin.

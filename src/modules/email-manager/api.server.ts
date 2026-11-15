@@ -4,6 +4,18 @@
 
 import 'server-only'
 
+import { runSeedEmailStarter, type SeedEmailStarterInput } from './seed-starter'
+import {
+  createEmailRule,
+  createEmailTemplate,
+  findEmailRuleById,
+  findEmailTemplateById,
+  updateEmailRule,
+  updateEmailTemplate,
+} from './store'
+
+export type { SeedEmailStarterInput }
+
 export {
   EMAIL_MANAGER_MODULE_ID,
   emitEmailTrigger,
@@ -49,3 +61,24 @@ export {
   loadEmailManagerModuleSettings,
   saveEmailManagerModuleSettings,
 } from './settings'
+
+export { recordEmailSend } from './send-log'
+
+/**
+ * Idempotent template + rule pair. Uses the store create / update / find functions.
+ * `seed` updates when create returns `{ error }` and ignores that update result.
+ * `ensure` creates only a missing id and ignores a create `{ error }`.
+ * Template and rule are attempted independently.
+ */
+export async function seedEmailStarter(
+  input: SeedEmailStarterInput,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  return runSeedEmailStarter(input, {
+    findEmailTemplateById,
+    findEmailRuleById,
+    createEmailTemplate,
+    updateEmailTemplate,
+    createEmailRule,
+    updateEmailRule,
+  })
+}

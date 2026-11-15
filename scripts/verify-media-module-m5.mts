@@ -77,7 +77,7 @@ assert.match(read('src/modules/media/dashboard/media-stats.ts'), /payload\.media
 
 // Consumers bind via module api (not Core-hosted picker)
 for (const rel of [
-  'src/app/(frontend)/admin/forms/form-builder.tsx',
+  'src/modules/forms/admin/form-builder.tsx',
   'src/app/(frontend)/admin/layouts/typed-particle-editors.tsx',
   'src/app/(frontend)/admin/breakpoints/section-styles-panel.tsx',
 ]) {

@@ -4,16 +4,12 @@
 
 import 'server-only'
 
-import { eq } from 'drizzle-orm'
-
-import { db } from '@/core/db'
-import { sfForms } from '@/core/db/schema'
 import {
   DEFAULT_EVENT_REGISTRATION_FORM_ID,
   emptyFormDefinitionDocument,
+  ensureFormDefinitionSeed,
   listFormDefinitions,
   loadFormDefinition,
-  serializeFormDefinitionDocument,
   type FormFieldDef,
 } from '@/modules/forms/api'
 
@@ -36,25 +32,12 @@ export async function listEventRegistrationFormOptions(): Promise<
 }
 
 export async function ensureEventRegistrationFormSeeded(): Promise<string> {
-  try {
-    const [row] = await db
-      .select({ id: sfForms.id })
-      .from(sfForms)
-      .where(eq(sfForms.id, DEFAULT_EVENT_REGISTRATION_FORM_ID))
-      .limit(1)
-    if (row) return row.id
-
-    const document = emptyFormDefinitionDocument('event-registration')
-    await db.insert(sfForms).values({
-      id: DEFAULT_EVENT_REGISTRATION_FORM_ID,
-      label: document.title,
-      preset: 'event-registration',
-      document: serializeFormDefinitionDocument(document),
-    })
-    return DEFAULT_EVENT_REGISTRATION_FORM_ID
-  } catch {
-    return DEFAULT_EVENT_REGISTRATION_FORM_ID
-  }
+  const document = emptyFormDefinitionDocument('event-registration')
+  const seeded = await ensureFormDefinitionSeed({
+    id: DEFAULT_EVENT_REGISTRATION_FORM_ID,
+    document,
+  })
+  return seeded.id
 }
 
 /** Event override, then category form, then the shared event-registration definition. */

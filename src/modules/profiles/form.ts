@@ -2,12 +2,15 @@
  * product:profiles — form <-> model glue (pure; shared by member + admin editors).
  */
 
-import { parseImageFrameJson } from '@/modules/media/image-frame'
+import { ACTIVE_HERO } from '@/generated/module-registry'
+import { parseImageFrameJson } from '@/modules/media/api'
 
 import {
   PROFILE_FIELDS,
+  heroExtensionsFromForm,
   isVisibilityConfigurable,
   normalizeProfileLinks,
+  readHeroExtensionValues,
   type ProfileFieldKey,
   type VisibilityScope,
 } from './fields'
@@ -45,6 +48,15 @@ export function parseProfileFormData(formData: FormData): ProfileInput {
     locale: str('locale'),
     timezone: str('timezone'),
     visibility: sanitizeVisibility(str('visibilityJson')),
+    heroExtensions: (() => {
+      const values = heroExtensionsFromForm(
+        ACTIVE_HERO.profileFields,
+        formData.has('heroExtensionsJson'),
+        formData.get('heroExtensionsJson'),
+      )
+      if (!values) return undefined
+      return { heroId: ACTIVE_HERO.id, values }
+    })(),
   }
 }
 
@@ -74,6 +86,8 @@ export type ProfileEditorModel = {
   handleLockedUntil: string | null
   locales: Array<{ code: string; label: string }>
   memberUploadsEnabled: boolean
+  /** Active hero extension values. Empty when that hero lists no fields. */
+  heroExtensionValues: Record<string, string>
 }
 
 export function buildEditorModel(input: {
@@ -161,5 +175,10 @@ export function buildEditorModel(input: {
     handleLockedUntil,
     locales: input.locales,
     memberUploadsEnabled: settings.memberUploadsEnabled,
+    heroExtensionValues: readHeroExtensionValues(
+      record.extensions,
+      ACTIVE_HERO.id,
+      ACTIVE_HERO.profileFields,
+    ),
   }
 }

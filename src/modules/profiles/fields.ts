@@ -94,6 +94,84 @@ export function isProfileFieldKey(value: unknown): value is ProfileFieldKey {
   return typeof value === 'string' && FIELD_BY_KEY.has(value)
 }
 
+// ---------------------------------------------------------------------------
+// Hero extension fields — not part of ProfileFieldKey
+// ---------------------------------------------------------------------------
+
+/** Folder id under `src/hero/<id>`. */
+export const HERO_ID_PATTERN = /^[a-z][a-z0-9-]{0,40}$/
+
+const HERO_EXTENSION_KEY = /^[A-Za-z][A-Za-z0-9_]{0,40}$/
+
+export type HeroProfileFieldSpec = {
+  key: string
+  label?: string
+  type?: 'text' | 'textarea' | 'select'
+  options?: ReadonlyArray<{ value: string; label: string }>
+}
+
+export function isHeroId(value: string): boolean {
+  return HERO_ID_PATTERN.test(value)
+}
+
+function heroExtensionRecord(raw: unknown): Record<string, unknown> {
+  if (typeof raw === 'string') {
+    try {
+      return heroExtensionRecord(JSON.parse(raw) as unknown)
+    } catch {
+      return {}
+    }
+  }
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
+  return raw as Record<string, unknown>
+}
+
+/** Keep only declared hero field keys. Does not widen `ProfileFieldKey`. */
+export function normalizeHeroProfileExtensions(
+  fields: readonly HeroProfileFieldSpec[],
+  raw: unknown,
+): Record<string, string> {
+  const record = heroExtensionRecord(raw)
+  const out: Record<string, string> = {}
+  for (const field of fields) {
+    const key = field.key.trim()
+    if (!HERO_EXTENSION_KEY.test(key)) continue
+    let value = String(record[key] ?? '')
+      .replace(/\r\n/g, '\n')
+      .trim()
+      .slice(0, 2000)
+    if (field.type === 'select') {
+      const allowed = new Set((field.options ?? []).map((option) => option.value))
+      if (!allowed.has(value)) value = ''
+    }
+    out[key] = value
+  }
+  return out
+}
+
+/**
+ * `undefined` when the active hero lists no fields or the form did not post them.
+ * An empty object means the section was posted and every value was blank.
+ */
+export function heroExtensionsFromForm(
+  fields: readonly HeroProfileFieldSpec[],
+  posted: boolean,
+  raw: unknown,
+): Record<string, string> | undefined {
+  if (!fields.length || !posted) return undefined
+  return normalizeHeroProfileExtensions(fields, raw)
+}
+
+/** Values for the editor. Empty field list returns `{}` and adds no section. */
+export function readHeroExtensionValues(
+  extensions: Record<string, Record<string, unknown>> | null | undefined,
+  heroId: string,
+  fields: readonly HeroProfileFieldSpec[],
+): Record<string, string> {
+  if (!fields.length || !isHeroId(heroId)) return {}
+  return normalizeHeroProfileExtensions(fields, extensions?.[heroId] ?? {})
+}
+
 /** Fields whose visibility the member can change (not locked / self-only). */
 export function isVisibilityConfigurable(key: ProfileFieldKey): boolean {
   const def = FIELD_BY_KEY.get(key)

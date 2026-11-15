@@ -12,6 +12,7 @@ import { defineStarforgeModule } from '@/core/modules/define-module'
 export default defineStarforgeModule({
   id: 'product:media',
   kind: 'product',
+  layer: 'base',
   label: 'Media library',
   description:
     'Single Payload Media library with sharp WebP/PNG pipeline, Spaces/S3 storage port, tags filter, member upload ledger, and MediaAnalysisPort hooks. Required — Logo/Styles/Forms bind by mediaId.',

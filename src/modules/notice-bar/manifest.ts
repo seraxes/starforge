@@ -4,6 +4,7 @@ import { defineStarforgeModule } from '@/core/modules/define-module'
 export default defineStarforgeModule({
   id: 'notice-bar',
   kind: 'particle',
+  layer: 'site',
   label: 'Notice bar',
   description: 'Dismissible site-wide notice. Seed places it in Header at 100%.',
   version: '0.1.0',

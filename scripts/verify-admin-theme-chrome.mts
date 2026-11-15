@@ -112,9 +112,22 @@ mustInclude(styles, 'shared settings mosaic', '.admin-settings-mosaic')
 mustInclude(styles, 'mosaic two columns', 'grid-template-columns: repeat(2, minmax(0, 1fr))')
 mustInclude(styles, 'mosaic mobile single column', '@media (max-width: 720px)')
 
-if (styles.includes('grid-template-columns: repeat(3, minmax(0, 1fr))')) {
-  console.error('page-settings mosaic must stay 2-col desktop (no 3-col breakpoint)')
-  process.exit(1)
+{
+  const mosaicAt = styles.indexOf('Admin settings mosaic')
+  const mosaicEnd = styles.indexOf('.page-settings-form .page-settings-actions', mosaicAt)
+  if (mosaicAt < 0 || mosaicEnd < 0) {
+    console.error('page-settings mosaic block missing')
+    process.exit(1)
+  }
+  const mosaic = styles.slice(mosaicAt, mosaicEnd)
+  if (!mosaic.includes('grid-template-columns: repeat(2, minmax(0, 1fr))')) {
+    console.error('page-settings mosaic must stay 2-col desktop')
+    process.exit(1)
+  }
+  if (mosaic.includes('repeat(3,')) {
+    console.error('page-settings mosaic must stay 2-col desktop (no 3-col breakpoint)')
+    process.exit(1)
+  }
 }
 
 const barRemoveBlock = chrome.slice(

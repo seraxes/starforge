@@ -81,7 +81,30 @@ async function loadUsersCore(q: string): Promise<AdminUserRow[]> {
 }
 
 async function loadUsersWithProfiles(q: string): Promise<AdminUserRow[]> {
-  const { listProfileDirectory } = await import('@/modules/profiles/store')
+  const { loadModuleDoor } = await import('@/generated/module-registry.server')
+  const door = await loadModuleDoor('profiles-api-server')
+  const listProfileDirectory = door?.listProfileDirectory as
+    | ((options: {
+        q: string
+        status: 'all'
+        limit: number
+      }) => Promise<
+        Array<{
+          userId: string
+          email: string
+          userName: string
+          role: string
+          banned: boolean
+          hasProfile: boolean
+          handle: string
+          displayName: string
+          status: string
+          completeness: number
+          updatedAt: Date | null
+        }>
+      >)
+    | undefined
+  if (!listProfileDirectory) return loadUsersCore(q)
   const rows = await listProfileDirectory({ q, status: 'all', limit: 500 })
   const ids = rows.map((r) => r.userId)
   const accounts =

@@ -1,6 +1,7 @@
 # Extension modules
 
 Product packs hang off Starforge Core via **`defineStarforgeModule`** manifests (SF-141).
+**Tiers:** base modules are the `requires` targets (Media, Forms, Rich editor, Email Manager, Payments, Profiles, Maps). Advanced modules list those ids (Events, Subscriptions). Hero does not live in this folder. See [sf-architecture](../../.cursor/rules/sf-architecture.mdc).
 Core hosts extension points; packs contribute metadata + lazy import pointers. Codegen
 writes `src/generated/module-registry.ts` — Core may import `@/generated/*` only, not
 `@/modules/**` internals.
@@ -47,7 +48,7 @@ Lean flavor: set `"flavor": "lean"` in `starforge.modules.json` (uses `presets.l
 
 | Id | Path | Notes |
 | --- | --- | --- |
-| `product:forms` | `forms/` | Engine + `api.ts` door; admin under `/admin/forms`; Dashboard `forms.submissions` |
+| `product:forms` | `forms/` | Engine + `api.ts` door; admin UI in `forms/admin/` with generated `/admin/forms` shims; Dashboard `forms.submissions` |
 | `product:rich-editor` | `rich-editor/` | Shared TipTap + sanitized HTML editor. Callers use `@/modules/rich-editor/api` and pass `MediaPicker` from `@/modules/media/api`. |
 | `product:lexical-editor` | `lexical-editor/` | Optional Lexical pack (legacy JSON / opt-in fields) |
 | `form` | `form/` | Form particle (dynamic import when allowlisted) |

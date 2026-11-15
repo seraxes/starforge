@@ -7,7 +7,8 @@ Map particle + Core `MapProvider` (leaflet-osm) + closed live rooms (event tacti
 ## v1 — static
 
 - Core port: `src/core/maps` (`getMapProvider`, Nominatim geocode)
-- Particle `map` — pins venues that have lat/lng on published upcoming events
+- Particle `map` — pins venues from the event catalog when Events has registered one (`listPublishedVenues`). With no catalog, the map stays empty.
+- TacMap admin event labels and “seed roster from event” use that same slot. Seeding calls Events, which calls `replaceRoomRoster`. This pack writes `sf_map_*` only and does not import Events.
 - Events venues: optional `latitude` / `longitude` (+ geocode from address in admin)
 - Admin `VenueLocationMap` — click/drag pin on Venues create/edit
 

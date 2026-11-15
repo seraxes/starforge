@@ -7,12 +7,20 @@ import { defineStarforgeModule } from '@/core/modules/define-module'
 export default defineStarforgeModule({
   id: 'product:email-manager',
   kind: 'product',
+  layer: 'base',
   label: 'Email Manager',
   description:
     'Automatic and conditional email rules with templates, filtered by module. Modules emit triggers; Core Mailer sends. No per-module SMTP — secrets stay in env / Chrome. HTML bodies use product:rich-editor (email preset).',
   version: '0.1.0',
   defaultEnabled: true,
   requires: ['product:rich-editor', 'product:media'],
+  doors: [
+    { id: 'email-manager-api-server', importPath: '@/modules/email-manager/api.server' },
+  ],
+  boot: {
+    importPath: '@/modules/email-manager/boot',
+    exportName: 'bootEmailManager',
+  },
   i18n: {
     namespaces: ['product:email-manager'],
   },

@@ -4,6 +4,7 @@ import { defineStarforgeModule } from '@/core/modules/define-module'
 export default defineStarforgeModule({
   id: 'event-upcoming',
   kind: 'particle',
+  layer: 'advanced',
   label: 'Event upcoming',
   description:
     'Upcoming events as cards (title, when, venue, seats, price). Needs product:events.',
@@ -13,6 +14,6 @@ export default defineStarforgeModule({
   exportName: 'eventUpcomingModule',
   requires: ['product:events'],
   navViews: [{ key: 'events', label: 'Events', href: '/events' }],
-  editorImportPath: '@/app/(frontend)/admin/layouts/events-particle-editors',
+  editorImportPath: '@/modules/events/admin/events-particle-editors',
   editorExportName: 'EventUpcomingParticleEditor',
 })

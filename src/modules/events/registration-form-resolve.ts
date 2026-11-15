@@ -3,7 +3,7 @@
  * Event override, then the category form, then the shared event-registration form.
  */
 
-import { DEFAULT_EVENT_REGISTRATION_FORM_ID } from '@/modules/forms/presets'
+import { DEFAULT_EVENT_REGISTRATION_FORM_ID } from '@/modules/forms/api'
 
 export function resolveEventRegistrationFormId(input: {
   eventFormId?: string | null

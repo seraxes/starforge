@@ -6,12 +6,13 @@ import { defineStarforgeModule } from '@/core/modules/define-module'
 export default defineStarforgeModule({
   id: 'product:maps',
   kind: 'product',
+  layer: 'base',
   label: 'TacMap',
   description:
     'Tactical Maps (TacMap) — venue pins, closed live rooms (roster teams), MapProvider. Leaflet + OSM first.',
   version: '0.2.1',
   defaultEnabled: true,
-  requires: [],
+  requires: ['product:media'],
   navViews: [
     { key: 'events', label: 'Events', href: '/events' },
     { key: 'admin', label: 'TacMap', href: '/admin/maps' },
@@ -47,6 +48,36 @@ export default defineStarforgeModule({
         pageExportName: 'default',
       },
     ],
+  },
+  apiRoutes: [
+    {
+      path: 'maps/live/[roomId]/join',
+      routeImportPath: '@/modules/maps/routes/join-route',
+      handlers: ['POST'],
+      dynamic: 'force-dynamic',
+    },
+    {
+      path: 'maps/live/[roomId]/leave',
+      routeImportPath: '@/modules/maps/routes/leave-route',
+      handlers: ['POST'],
+      dynamic: 'force-dynamic',
+    },
+    {
+      path: 'maps/live/[roomId]/positions',
+      routeImportPath: '@/modules/maps/routes/positions-route',
+      handlers: ['GET'],
+      dynamic: 'force-dynamic',
+    },
+    {
+      path: 'maps/live/[roomId]/ingest',
+      routeImportPath: '@/modules/maps/routes/ingest-route',
+      handlers: ['POST'],
+      dynamic: 'force-dynamic',
+    },
+  ],
+  realtimeChannelAcl: {
+    importPath: '@/modules/maps/api.server',
+    exportName: 'canSubscribeMapChannel',
   },
   db: { schema: 'src/modules/maps/schema.ts' },
 })

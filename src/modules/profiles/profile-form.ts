@@ -5,18 +5,14 @@
 
 import 'server-only'
 
-import { eq } from 'drizzle-orm'
-
-import { db } from '@/core/db'
-import { sfForms } from '@/core/db/schema'
 import {
   DEFAULT_PROFILE_FORM_ID,
   createRowDraft,
   emptyFormDefinitionDocument,
+  ensureFormDefinitionSeed,
   ensureFormSectionsEmptyRows,
   loadFormDefinition,
   saveFormDefinitionDocument,
-  serializeFormDefinitionDocument,
   type FormFieldDef,
   type FormSectionDef,
 } from '@/modules/forms/api'
@@ -95,42 +91,29 @@ function withExplicitSectionWidths(sections: FormSectionDef[]): {
 
 /** Idempotent insert of the protected `profile` Forms definition. */
 export async function ensureProfileFormSeeded(): Promise<string> {
-  try {
-    const [row] = await db
-      .select({ id: sfForms.id })
-      .from(sfForms)
-      .where(eq(sfForms.id, DEFAULT_PROFILE_FORM_ID))
-      .limit(1)
-    if (!row) {
-      const document = emptyFormDefinitionDocument('profile')
-      document.sections = seedDocumentSections(document.fields)
-      await db.insert(sfForms).values({
-        id: DEFAULT_PROFILE_FORM_ID,
-        label: document.title,
-        preset: 'profile',
-        document: serializeFormDefinitionDocument(document),
-      })
-      return DEFAULT_PROFILE_FORM_ID
-    }
+  const document = emptyFormDefinitionDocument('profile')
+  document.sections = seedDocumentSections(document.fields)
+  const seeded = await ensureFormDefinitionSeed({
+    id: DEFAULT_PROFILE_FORM_ID,
+    document,
+  })
+  if (seeded.state !== 'exists') return seeded.id
 
-    // Repair older docs that omitted section.width (Forms UI showed 100, front used 50).
-    try {
-      const loaded = await loadFormDefinition(DEFAULT_PROFILE_FORM_ID)
-      const { sections, changed } = withExplicitSectionWidths(loaded.document.sections)
-      if (changed) {
-        await saveFormDefinitionDocument(
-          DEFAULT_PROFILE_FORM_ID,
-          { ...loaded.document, sections },
-          loaded.document.title,
-        )
-      }
-    } catch {
-      // Insert path already succeeded; leave width repair for the next load.
+  // Repair older docs that omitted section.width (Forms UI showed 100, front used 50).
+  try {
+    const loaded = await loadFormDefinition(DEFAULT_PROFILE_FORM_ID)
+    const { sections, changed } = withExplicitSectionWidths(loaded.document.sections ?? [])
+    if (changed) {
+      await saveFormDefinitionDocument(
+        DEFAULT_PROFILE_FORM_ID,
+        { ...loaded.document, sections },
+        loaded.document.title,
+      )
     }
-    return row.id
   } catch {
-    return DEFAULT_PROFILE_FORM_ID
+    // Insert path already succeeded; leave width repair for the next load.
   }
+  return seeded.id
 }
 
 export async function loadProfileFormConfig(): Promise<ProfileFormConfig> {

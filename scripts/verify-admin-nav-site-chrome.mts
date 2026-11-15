@@ -173,24 +173,29 @@ for (const surface of ['core', 'payload'] as const) {
   }
   console.log(`[${surface}] ok — Media accordion → Library + Settings (defaultOpen)`)
 
-  const layouts = groups.find((g) => g.id === 'layouts')
-  if (!layouts?.links.some((l) => l.href === '/admin/page-settings' && l.label === 'Page settings')) {
-    console.error(`[${surface}] Layouts missing Page settings child`, layouts?.links)
+  const skins = groups.find((g) => g.id === 'skins')
+  const outline = skins?.links.find((l) => l.href === '/admin/outlines' && l.label === 'Outline')
+  const pageSettings = outline?.children?.find(
+    (l) => l.href === '/admin/page-settings' && l.label === 'Page settings',
+  )
+  if (!pageSettings) {
+    console.error(`[${surface}] Skins → Outline missing Page settings child`, skins?.links)
     process.exit(1)
   }
-  const faNav = layouts.links.find(
+  const skinsLeaves = [...(skins?.links ?? []), ...(outline?.children ?? [])]
+  const faNav = skinsLeaves.find(
     (l) =>
       l.href === '/admin/page-settings#font-awesome' ||
       /^font awesome$/i.test(l.label.trim()),
   )
   if (faNav) {
     console.error(
-      `[${surface}] Layouts must not list orphan Font Awesome leaf (Page settings panel only)`,
-      layouts.links,
+      `[${surface}] Skins must not list orphan Font Awesome leaf (Page settings panel only)`,
+      skinsLeaves,
     )
     process.exit(1)
   }
-  console.log(`[${surface}] ok — Layouts → Page settings (no Font Awesome nav leaf)`)
+  console.log(`[${surface}] ok — Skins → Outline → Page settings (no Font Awesome nav leaf)`)
 
   const cms = groups.find((g) => g.id === 'cms')
   if (!cms) {

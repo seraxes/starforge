@@ -4,6 +4,7 @@ import { defineStarforgeModule } from '@/core/modules/define-module'
 export default defineStarforgeModule({
   id: 'event-countdown',
   kind: 'particle',
+  layer: 'advanced',
   label: 'Event countdown',
   description:
     'Live countdown to a published event start (id or slug in particle config). Needs product:events.',

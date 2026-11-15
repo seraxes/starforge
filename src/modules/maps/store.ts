@@ -6,7 +6,7 @@ import 'server-only'
 
 import { and, asc, eq, inArray, isNull } from 'drizzle-orm'
 
-import { db } from '@/core/db'
+import { db, sfUsers } from '@/core/db'
 
 import {
   sfMapOverlays,
@@ -601,6 +601,35 @@ export async function listTeamPositions(
     .from(sfMapPositions)
     .where(eq(sfMapPositions.teamId, teamId.trim()))
   return rows.map(mapPosition)
+}
+
+export type MapUserOption = {
+  id: string
+  label: string
+}
+
+/** Users for TacMap admin pickers. Reads core users, not an Events list. */
+export async function listMapUserOptions(limit = 200): Promise<MapUserOption[]> {
+  const capped = Math.min(Math.max(limit, 1), 500)
+  try {
+    const rows = await db
+      .select({
+        id: sfUsers.id,
+        name: sfUsers.name,
+        email: sfUsers.email,
+      })
+      .from(sfUsers)
+      .orderBy(asc(sfUsers.email))
+      .limit(capped)
+    return rows.map((row) => {
+      const email = (row.email || '').trim()
+      const name = (row.name || '').trim()
+      const label = name && email ? `${name} <${email}>` : name || email || row.id
+      return { id: row.id, label }
+    })
+  } catch {
+    return []
+  }
 }
 
 export function isPositionStale(

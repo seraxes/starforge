@@ -34,8 +34,12 @@ must(page.includes("title: 'Dashboard"), 'admin/page.tsx metadata title must be 
 
 const layout = readFileSync(join(root, 'src/app/(frontend)/admin/layout.tsx'), 'utf8')
 must(
-  layout.includes("redirect('/login?next=/admin')"),
-  'admin layout login next must be /admin (not /admin/users)',
+  layout.includes('`/admin/login?next=${encodeURIComponent(next)}`'),
+  'admin layout must send signed-out users to /admin/login',
+)
+must(
+  layout.includes(": '/admin'"),
+  'admin layout login next must fall back to /admin (not /admin/users)',
 )
 must(
   !layout.includes("next=/admin/users"),

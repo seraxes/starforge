@@ -2,7 +2,7 @@
  * product:profiles shared types.
  */
 
-import type { ImageFrame } from '@/modules/media/image-frame'
+import type { ImageFrame } from '@/modules/media/api'
 
 import type {
   ProfileFieldKey,
@@ -20,7 +20,10 @@ export function isProfileStatus(value: unknown): value is ProfileStatus {
   )
 }
 
-/** Hero packs namespace their vertical fields here (`{ 'hero:asn': { teamName } }`). */
+/**
+ * Hero vertical fields, namespaced by hero id (`{ asn: { teamName } }`).
+ * The core field union does not include these keys.
+ */
 export type ProfileExtensions = Record<string, Record<string, unknown>>
 
 /** Per-field visibility overrides chosen by the member. */
@@ -79,6 +82,14 @@ export type ProfileInput = {
   locale: string
   timezone: string
   visibility: ProfileVisibilityMap
+  /**
+   * Active hero namespace to merge into `extensions`.
+   * `undefined` leaves the stored jsonb untouched.
+   */
+  heroExtensions?: {
+    heroId: string
+    values: Record<string, string>
+  }
 }
 
 /**

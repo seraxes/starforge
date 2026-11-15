@@ -1,3 +1,4 @@
+import { CONSENT_COOKIE_NAME, CONSENT_EVENT } from '@/core/consent'
 import { CSP_GOOGLE_ANALYTICS } from '@/core/security/csp'
 
 import type { StarforgeAtomDefinition } from '../types'
@@ -39,13 +40,13 @@ function googleImmediate(safeId: string): string {
 
 /**
  * Consent-aware Google loader: waits for sf-consent cookie / sf-consent-change.
- * Cookie name stays aligned with CONSENT_COOKIE_NAME / CONSENT_EVENT in core/consent.
+ * Cookie name and change event come from the host consent contract.
  */
 function googleConsentGated(jsId: string): string {
   return `<script data-sf-atom="analytics" data-sf-consent-gate="1">(function(){
 var ID='${jsId}';
-var COOKIE='sf-consent';
-var EVT='sf-consent-change';
+var COOKIE='${CONSENT_COOKIE_NAME}';
+var EVT='${CONSENT_EVENT}';
 function allowed(){
   try{
     var m=document.cookie.match(new RegExp('(?:^|; )'+COOKIE+'=([^;]*)'));

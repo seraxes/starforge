@@ -1,6 +1,7 @@
 import { withPayload } from '@payloadcms/next/withPayload'
 import withSerwistInit from '@serwist/next'
 import type { NextConfig } from 'next'
+import { readFileSync } from 'node:fs'
 import createNextIntlPlugin from 'next-intl/plugin'
 import path from 'path'
 import { fileURLToPath } from 'url'
@@ -104,6 +105,34 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default withSerwist(
-  withPayload(withNextIntl(nextConfig), { devBundleServerPackages: false }),
-)
+/**
+ * product:pwa is compiled in only when the active allowlist names it.
+ * `withPayload` stays unconditional. Dev still disables Serwist inside the init.
+ */
+function pwaOnActiveAllowlist(): boolean {
+  const env = process.env.SF_MODULES
+  if (env != null && env.trim()) {
+    return env
+      .split(',')
+      .map((id) => id.trim())
+      .includes('product:pwa')
+  }
+  const file = JSON.parse(
+    readFileSync(new URL('./starforge.modules.json', import.meta.url), 'utf8'),
+  ) as { flavor?: unknown; presets?: Record<string, unknown>; modules?: unknown }
+  const flavor =
+    typeof file.flavor === 'string' && file.flavor.trim() ? file.flavor.trim() : 'core'
+  const preset = file.presets?.[flavor]
+  const ids = Array.isArray(preset)
+    ? preset
+    : Array.isArray(file.modules)
+      ? file.modules
+      : []
+  return ids.some((id) => id === 'product:pwa')
+}
+
+const withPayloadConfig = withPayload(withNextIntl(nextConfig), {
+  devBundleServerPackages: false,
+})
+
+export default pwaOnActiveAllowlist() ? withSerwist(withPayloadConfig) : withPayloadConfig

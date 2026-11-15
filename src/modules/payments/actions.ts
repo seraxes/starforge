@@ -22,7 +22,7 @@ import { getOrderWithLines, markOrderPaid, savePaymentsSettings } from './store'
 import type { PaymentsSettings } from './types'
 import type { BillingProviderKind } from '@/core/payments'
 
-export type PaymentsActionState = { error?: string; ok?: boolean }
+export type PaymentsActionState = { error?: string; ok?: boolean; message?: string }
 
 async function requirePaymentsAdmin(): Promise<PaymentsActionState | null> {
   const session = await requireAdminArea('admin.payments')

@@ -11,12 +11,18 @@ import { defineStarforgeModule } from '@/core/modules/define-module'
 export default defineStarforgeModule({
   id: 'product:profiles',
   kind: 'product',
+  layer: 'base',
   label: 'Profiles',
   description:
     'Member identity — username, display name, avatar/cover, bio, location and per-field privacy. The persona every other module (Events, Marketplace, Social…) resolves through getPersonas().',
   version: '0.1.0',
   defaultEnabled: true,
   requires: ['product:media', 'product:forms'],
+  optionalRequires: ['product:maps'],
+  boot: {
+    importPath: '@/modules/profiles/boot',
+    exportName: 'bootProfiles',
+  },
   navViews: [
     { key: 'account', label: 'My profile', href: '/account/profile' },
     { key: 'settings', label: 'Profiles settings', href: '/admin/profiles/settings' },
@@ -57,5 +63,21 @@ export default defineStarforgeModule({
       },
     ],
   },
+  doors: [
+    { id: 'profiles-api', importPath: '@/modules/profiles/api' },
+    { id: 'profiles-api-server', importPath: '@/modules/profiles/api.server' },
+  ],
+  publicRoutes: [
+    {
+      path: 'account/profile',
+      pageImportPath: '@/modules/profiles/public/AccountProfilePage',
+      reexport: ['metadata'],
+    },
+    {
+      path: 'u/[handle]',
+      pageImportPath: '@/modules/profiles/public/PublicProfilePage',
+      reexport: ['generateMetadata'],
+    },
+  ],
   db: { schema: 'src/modules/profiles/schema.ts' },
 })

@@ -10,7 +10,7 @@ Shared Starforge commerce: cart, checkout, VAT-proof orders/invoices, offline + 
 - **Email Manager:** `product:payments/*` triggers — never `getMailer()` here
 - **Consumers:** Events / Shop / Subscriptions / Ads — line sources + fulfillment hooks only; pass optional `couponCode` into `startCheckout`
 - **Premium merchants:** own gateway + billing keys (`/admin/payments/merchant`); settle to their bank; flat sub unlock; no % fee for now
-- **Collect stub:** `sf_pay_collect_entitlements` is frozen. When `product:subscriptions` is enabled, `hasCollectCapability` reads entitlement `payments.collect`. When off, the stub / ACL auto-grant stays. Do not add plan tables under `sf_pay_*`.
+- **Collect stub:** `sf_pay_collect_entitlements` is frozen. When `product:subscriptions` is enabled, `hasCollectCapability` uses a resolver registered by Subscriptions (`registerCollectCapabilityResolver` → `payments.collect`). When off, the stub / ACL auto-grant stays. Payments must not import Subscriptions. Do not add plan tables under `sf_pay_*`.
 - **ASN currency:** Hero. Payments charges real money when someone buys that token. The balance, earn actions, and spend (services, subscriptions, selected events) stay out of `sf_pay_*`.
 
 See [.cursor/rules/sf-payments-module.mdc](../../../.cursor/rules/sf-payments-module.mdc), [payments-cart-plan.md](../../../docs/project-context/docs/payments-cart-plan.md), [payments-merchant-plan.md](../../../docs/project-context/docs/payments-merchant-plan.md).
@@ -32,6 +32,9 @@ import {
 } from '@/modules/payments/api'
 
 registerPaymentConsumerHook('events.confirmRegistration', async (ctx) => { /* … */ })
+// A second registration on the same key appends. It does not replace the first.
+// Payments writes the order status before the list runs. The first handler's
+// throw still fails the request. Later listeners are logged and isolated.
 
 const cartId = await createCart({ userId })
 await addCartLine(cartId, {

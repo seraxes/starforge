@@ -3,8 +3,8 @@ import React from 'react'
 import './styles.css'
 /* Public Skin port — brand extras (tokens injected per-request via SkinRootStyles). */
 import '@/core/skin/active.css'
-/* Rich Editor portals (Callout / Link) — shared with Payload CMS layout. */
-import '@/modules/rich-editor/rich-editor-chrome.css'
+/* Pack stylesheets (Rich Editor portals) — present only when that pack is allowlisted. */
+import '@/generated/module-styles'
 
 export const metadata = {
   description:

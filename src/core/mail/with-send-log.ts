@@ -9,7 +9,12 @@ import type { Mailer, MailMessage, MailSendResult } from './types'
 
 async function softRecordSend(message: MailMessage, result: MailSendResult): Promise<void> {
   try {
-    const { recordEmailSend } = await import('@/modules/email-manager/send-log')
+    const { loadModuleDoor } = await import('@/generated/module-registry.server')
+    const door = await loadModuleDoor('email-manager-api-server')
+    const recordEmailSend = door?.recordEmailSend as
+      | ((input: { message: MailMessage; result: MailSendResult }) => Promise<void>)
+      | undefined
+    if (!recordEmailSend) return
     await recordEmailSend({ message, result })
   } catch {
     // Pack missing / import failure — ignore.

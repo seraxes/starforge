@@ -285,9 +285,9 @@ export interface Page {
    */
   tags?: (number | Tag)[] | null;
   /**
-   * Use the toolbar or “/” slash menu for headings, lists, links, and images from Media. Switch CMS locale to edit each language.
+   * TipTap rich editor (Visual + HTML). Media library images/video work with local disk or S3/Spaces. Switch CMS locale to edit each language.
    */
-  body?: string | null | null;
+  body?: string | null;
   meta?: {
     /**
      * Browser tab / search title. Falls back to the page title + “— Starforge” when empty.
@@ -599,7 +599,7 @@ export interface SiteSetting {
    */
   dashboardOnlineWindowMin?: number | null;
   /**
-   * When off, RealtimePort publish does not fan out and /api/realtime refuses connections. Prefer Starforge admin → Settings → Performance.
+   * When off, RealtimePort publish does not fan out and /api/realtime refuses connections. Used by upcoming Notifications / Chat / live Maps. Prefer Starforge admin → Settings → Performance.
    */
   realtimeEnabled?: boolean | null;
   /**
@@ -636,7 +636,7 @@ export interface SiteSetting {
    */
   featureRegistration?: boolean | null;
   /**
-   * Product flag for richer page editing. Lexical stays wired in Pages for now; off is reserved for a future simpler mode.
+   * Product flag for TipTap rich editing (synced from product:rich-editor). Optional Lexical is product:lexical-editor.
    */
   featureRichEditor?: boolean | null;
   /**

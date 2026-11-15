@@ -58,7 +58,7 @@ mustInclude(groups, 'Rename gantry button', 'gantry-toolbar-btn secondary')
 mustInclude(groups, 'no redundant Members action link', 'Name already opens members')
 mustInclude(styles, 'no Actions nested expand-below margin', '.outlines-actions > .outlines-inline-form')
 const formsManager = readFileSync(
-  join(root, 'src/app/(frontend)/admin/forms/forms-manager.tsx'),
+  join(root, 'src/modules/forms/admin/forms-manager.tsx'),
   'utf8',
 )
 mustInclude(formsManager, 'forms Dup uses admin-inline-form', 'form action={dupAction} className="admin-inline-form"')

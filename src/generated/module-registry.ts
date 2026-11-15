@@ -16,6 +16,29 @@ import type { ModuleCatalogItem } from '@/core/settings/module-toggles'
 
 export const MODULE_ALLOWLIST_FLAVOR = "core" as const
 
+export type ActiveHeroProfileField = {
+  key: string
+  label: string
+  type: 'text' | 'textarea' | 'select'
+  options: ReadonlyArray<{ value: string; label: string }>
+}
+
+/**
+ * The one hero for this deployment. Data copied from `src/hero/<id>/manifest.ts`.
+ * Modules read this descriptor. They do not import `@/hero`.
+ */
+export const ACTIVE_HERO: {
+  id: string
+  label: string
+  skinId: string | null
+  profileFields: readonly ActiveHeroProfileField[]
+} = {
+  id: "default",
+  label: "Default",
+  skinId: null,
+  profileFields: [],
+}
+
 /** Fixed required ids — always installed even if omitted from the allowlist file. */
 export const FIXED_REQUIRED_MODULE_IDS = ["platform:dashboard","platform:better-auth","page-content","product:media"] as const
 
@@ -27,7 +50,7 @@ export type AllowlistedModuleId = (typeof ALLOWLISTED_MODULE_IDS)[number]
 export const ALLOWLISTED_MODULE_ID_SET: ReadonlySet<string> = new Set(ALLOWLISTED_MODULE_IDS)
 
 /** Direct manifest requires for this install. Transitive closure is computed at runtime. */
-export const MODULE_REQUIRES: Readonly<Record<string, readonly string[]>> = {"platform:dashboard":[],"platform:better-auth":[],"platform:payload-cms":[],"product:layout-manager":[],"product:page-settings":[],"product:primary-nav":[],"product:font-awesome":[],"product:registration":[],"product:posts":[],"product:draft-preview":[],"page-content":[],"site-header":[],"logo":[],"menu":[],"locale-switcher":[],"copyright":[],"spacer":[],"social":[],"custom":[],"account-menu":[],"login":[],"atom:analytics":[],"atom:custom-css-js":[],"product:forms":["product:media"],"product:rich-editor":["product:media"],"product:lexical-editor":[],"product:email-manager":["product:rich-editor","product:media"],"product:payments":["product:email-manager"],"product:subscriptions":["product:payments","product:email-manager","product:forms","product:profiles"],"product:events":["product:forms","product:media","product:rich-editor","product:payments","product:profiles","product:maps"],"event-list":["product:events"],"event-upcoming":["product:events"],"event-calendar":["product:events"],"event-featured":["product:events"],"event-mini-calendar":["product:events"],"event-detail":["product:events"],"event-countdown":["product:events"],"product:profiles":["product:media","product:forms"],"product:maps":[],"map":["product:maps"],"live-map":["product:maps"],"product:marketplace":[],"product:redirects":[],"product:consent":[],"product:pwa":[],"product:search":[],"product:media":[],"notice-bar":[],"form":["product:forms"],"search":["product:search"]}
+export const MODULE_REQUIRES: Readonly<Record<string, readonly string[]>> = {"platform:dashboard":[],"platform:better-auth":[],"platform:payload-cms":[],"product:layout-manager":[],"product:page-settings":[],"product:primary-nav":[],"product:font-awesome":[],"product:registration":[],"product:posts":[],"product:draft-preview":[],"page-content":[],"site-header":[],"logo":[],"menu":[],"locale-switcher":[],"copyright":[],"spacer":[],"social":[],"custom":[],"account-menu":[],"login":[],"atom:analytics":[],"atom:custom-css-js":[],"product:forms":["product:media"],"product:rich-editor":["product:media"],"product:lexical-editor":[],"product:email-manager":["product:rich-editor","product:media"],"product:payments":["product:email-manager"],"product:subscriptions":["product:payments","product:email-manager","product:forms","product:profiles"],"product:events":["product:forms","product:media","product:rich-editor","product:payments","product:profiles","product:maps"],"event-list":["product:events"],"event-upcoming":["product:events"],"event-calendar":["product:events"],"event-featured":["product:events"],"event-mini-calendar":["product:events"],"event-detail":["product:events"],"event-countdown":["product:events"],"product:profiles":["product:media","product:forms"],"product:maps":["product:media"],"map":["product:maps"],"live-map":["product:maps"],"product:marketplace":[],"product:redirects":[],"product:consent":[],"product:pwa":["product:media"],"product:search":[],"product:media":[],"notice-bar":[],"form":["product:forms"],"search":["product:search"]}
 
 export function isModuleAllowlisted(id: string): boolean {
   const key = id.trim()
@@ -238,23 +261,23 @@ export const particleEditorLoaders: ParticleEditorLoader[] = [
   },
   {
     id: "event-upcoming",
-    load: async () => (await import("@/app/(frontend)/admin/layouts/events-particle-editors")).EventUpcomingParticleEditor,
+    load: async () => (await import("@/modules/events/admin/events-particle-editors")).EventUpcomingParticleEditor,
   },
   {
     id: "event-calendar",
-    load: async () => (await import("@/app/(frontend)/admin/layouts/events-particle-editors")).EventCalendarParticleEditor,
+    load: async () => (await import("@/modules/events/admin/events-particle-editors")).EventCalendarParticleEditor,
   },
   {
     id: "event-featured",
-    load: async () => (await import("@/app/(frontend)/admin/layouts/events-particle-editors")).EventFeaturedParticleEditor,
+    load: async () => (await import("@/modules/events/admin/events-particle-editors")).EventFeaturedParticleEditor,
   },
   {
     id: "event-mini-calendar",
-    load: async () => (await import("@/app/(frontend)/admin/layouts/events-particle-editors")).EventMiniCalendarParticleEditor,
+    load: async () => (await import("@/modules/events/admin/events-particle-editors")).EventMiniCalendarParticleEditor,
   },
   {
     id: "form",
-    load: async () => (await import("@/app/(frontend)/admin/layouts/typed-particle-editors")).FormParticleEditor,
+    load: async () => (await import("@/modules/form/FormParticleEditor")).FormParticleEditor,
   }
 ]
 
@@ -388,6 +411,30 @@ export type AdminRouteLoader = {
  * Runtime loads via `admin/(modules)/…` shims — no import() in this client-shared file.
  */
 export const adminRouteLoaders: AdminRouteLoader[] = [
+  {
+    moduleId: "product:forms",
+    path: "forms",
+    pageImportPath: "@/modules/forms/admin/FormsListPage",
+    pageExportName: "default",
+  },
+  {
+    moduleId: "product:forms",
+    path: "forms/settings",
+    pageImportPath: "@/modules/forms/admin/FormsSettingsPage",
+    pageExportName: "default",
+  },
+  {
+    moduleId: "product:forms",
+    path: "forms/[formId]",
+    pageImportPath: "@/modules/forms/admin/FormBuilderPage",
+    pageExportName: "default",
+  },
+  {
+    moduleId: "product:forms",
+    path: "forms/submissions",
+    pageImportPath: "@/modules/forms/admin/FormsSubmissionsPage",
+    pageExportName: "default",
+  },
   {
     moduleId: "product:rich-editor",
     path: "rich-editor/settings",

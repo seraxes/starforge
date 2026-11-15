@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
+import { ensureEventRegistrationFormSeeded } from '../registration-form'
 import { loadEventsModuleSettings } from '../settings'
 import { EventsAdminNav } from './events-admin-nav'
 import { EventsSettingsForm } from './events-settings-form'
@@ -20,6 +21,7 @@ export default async function EventsSettingsPage() {
     redirect('/admin/settings')
   }
 
+  await ensureEventRegistrationFormSeeded()
   const loaded = await loadEventsModuleSettings()
 
   return (

@@ -42,10 +42,21 @@ export const accountMenuModule: StarforgeModule = {
 
     if (signedIn && user?.id) {
       try {
-        const { isProfilesModuleEnabled, getPersona, personaMediaSrc } = await import(
-          '@/modules/profiles/api.server'
-        )
-        if (await isProfilesModuleEnabled()) {
+        const { loadModuleDoor } = await import('@/generated/module-registry.server')
+        const door = await loadModuleDoor('profiles-api-server')
+        const isProfilesModuleEnabled = door?.isProfilesModuleEnabled as
+          | (() => Promise<boolean>)
+          | undefined
+        const getPersona = door?.getPersona as
+          | ((
+              userId: string,
+              viewer: Awaited<ReturnType<typeof getAccessViewer>>,
+            ) => Promise<{ displayName?: string; avatarMediaId?: string | null } | null>)
+          | undefined
+        const personaMediaSrc = door?.personaMediaSrc as
+          | ((mediaId: string | null | undefined) => string)
+          | undefined
+        if (isProfilesModuleEnabled && getPersona && personaMediaSrc && (await isProfilesModuleEnabled())) {
           const viewer = await getAccessViewer()
           const persona = await getPersona(user.id, viewer)
           if (persona?.displayName?.trim()) displayName = persona.displayName.trim()
