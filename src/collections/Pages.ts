@@ -119,12 +119,12 @@ export const Pages: CollectionConfig = {
                   },
                 },
                 {
-                  name: 'image',
-                  type: 'upload',
-                  relationTo: 'media',
-                  label: 'OG image',
+                  name: 'mediaId',
+                  type: 'text',
+                  label: 'OG image media id',
                   admin: {
-                    description: 'Optional share image (Open Graph / social preview). Shared across locales.',
+                    description:
+                      'Starforge media id (text). Open Graph resolves it with resolveMediaById. Shared across locales.',
                   },
                 },
               ],

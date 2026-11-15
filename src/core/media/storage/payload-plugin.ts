@@ -1,11 +1,9 @@
 /**
- * Loaded from `payload.config.ts` (and Payload CLI). No `server-only` —
- * `payload migrate*` / `generate:*` run outside Next and would throw.
+ * Not registered. Phase 2b writes blobs through MediaStorage (`src/core/media/storage`).
+ * This file stays so phase 4 can delete `@payloadcms/storage-s3` with the rest of the Payload npm set.
+ * Do not add it back to `payload.config.ts`.
  *
- * `@payloadcms/storage-s3` is required only when `STARFORGE_MEDIA_STORAGE=s3`.
- * Local disk (default), migrate, and generate must not hard-import it — Turbopack
- * traces `payload.config` via settings → `proxy.ts`, and a static import fails
- * the whole app build when the optional package is unused / not installed.
+ * `@payloadcms/storage-s3` is required only when this function is called.
  */
 import { createRequire } from 'module'
 import type { Plugin } from 'payload'

@@ -5,10 +5,7 @@ import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
 import { DEFAULT_LOCALE, LOCALES, LOCALE_LABELS } from './core/i18n/locales'
-import { payloadMediaStoragePlugins } from './core/media/storage/payload-plugin'
 import { payloadCsrfOrigins } from './core/security/trusted-origins'
-import { Categories } from './collections/Categories'
-import { Media } from './collections/Media'
 import { Pages } from './collections/Pages'
 import { Tags } from './collections/Tags'
 import { Users } from './collections/Users'
@@ -17,12 +14,10 @@ const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
 /**
- * Payload is Starforge's *content/media module* only.
- * Product auth, app users, and public APIs belong in `src/core/` — not here.
- *
- * Media blobs: local `staticDir` by default; Spaces/S3 when
- * `STARFORGE_MEDIA_STORAGE=s3` + `S3_*` env (see MediaStorage port).
- * Image pipeline stays sharp (resizeOptions / imageSizes) — storage swap only.
+ * Payload is the editorial pages CMS (`/cms`). Product auth and the media
+ * document store live outside Payload: media rows are `sf_media_*`, blobs are
+ * MediaStorage. Media and Categories collections are not registered.
+ * Page OG images store a text media id (`meta.mediaId`).
  */
 export default buildConfig({
   // Payload UI under /cms/admin (Core Starforge admin owns /admin).
@@ -60,7 +55,7 @@ export default buildConfig({
   // Add extra hosts via STARFORGE_TRUSTED_ORIGINS.
   csrf: payloadCsrfOrigins(),
 
-  collections: [Users, Media, Pages, Tags, Categories],
+  collections: [Users, Pages, Tags],
   // Site settings live on Core `sf_site_settings` (`src/core/settings`).
   // The Payload global is not registered, so /cms does not read or write it.
   globals: [],
@@ -96,5 +91,5 @@ export default buildConfig({
     push: process.env.STARFORGE_PAYLOAD_PUSH === '1',
   }),
   sharp,
-  plugins: [...payloadMediaStoragePlugins()],
+  plugins: [],
 })

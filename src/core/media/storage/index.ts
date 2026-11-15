@@ -3,17 +3,15 @@ import { createS3MediaStorage } from './s3'
 import type { MediaStorage, MediaStorageInfo, MediaStorageKind } from './types'
 
 export type { MediaStorage, MediaStorageInfo, MediaStorageKind }
+export type { MediaPutInput, MediaPutResult, MediaReadResult } from './types'
 
 /**
  * Active media storage backend.
  *
- * - Default / local: Payload disk (`staticDir` under `/media`)
- * - `STARFORGE_MEDIA_STORAGE=s3`: DigitalOcean Spaces / S3 (`S3_*` env + Payload plugin)
+ * - Default / local: files under `/media`, served at `/api/media/file/…`
+ * - `STARFORGE_MEDIA_STORAGE=s3`: DigitalOcean Spaces / S3 via `@aws-sdk/client-s3`
  *
- * Payload plugin wiring: import `payloadMediaStoragePlugins` from
- * `@/core/media/storage/payload-plugin` in `payload.config.ts`. That file
- * lazy-requires `@payloadcms/storage-s3` only when `STARFORGE_MEDIA_STORAGE=s3`
- * so local disk / migrate / generate / Turbopack proxy traces do not need it.
+ * Document rows are `sf_media_*`. This port is the only blob write path.
  */
 export function getMediaStorage(): MediaStorage {
   if (process.env.STARFORGE_MEDIA_STORAGE === 's3') {

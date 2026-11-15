@@ -1,6 +1,4 @@
-import { getPayload } from 'payload'
-
-import config from '@payload-config'
+import 'server-only'
 
 import {
   MEDIA_CATEGORY_MAX_DEPTH,
@@ -10,44 +8,45 @@ import {
   slugifyCategoryName,
   type MediaCategoryNode,
 } from './categories'
+import {
+  countAssetsInCategory,
+  countChildCategories,
+  deleteCategoryRow,
+  getCategoryBySlug,
+  getCategoryRow,
+  insertCategoryRow,
+  listCategoryRows,
+  updateCategoryPath,
+  updateCategoryPathOnly,
+  type CategoryRow,
+} from './document-store'
 import { normalizeMediaFolder, type MediaFolder } from './pipeline'
 
-function parentIdOf(raw: unknown): string | null {
-  if (raw == null) return null
-  if (typeof raw === 'object' && raw !== null && 'id' in raw) {
-    return String((raw as { id: number | string }).id)
+export { getCategoryBySlug }
+
+function toFound(row: CategoryRow) {
+  return {
+    id: row.id,
+    title: row.title,
+    slug: row.slug,
+    parentId: row.parentId,
+    path: row.path,
+    depth: row.depth,
   }
-  return String(raw)
 }
 
 /** List nested categories as a forest for the Media sidebar / picker. */
 export async function listMediaCategoryTree(): Promise<MediaCategoryNode[]> {
   try {
-    const payload = await getPayload({ config })
-    const result = await payload.find({
-      collection: 'categories',
-      limit: 500,
-      sort: 'title',
-      depth: 0,
-      overrideAccess: true,
-    })
-    const rows = result.docs.map((doc) => ({
-      id: String(doc.id),
-      title: typeof doc.title === 'string' ? doc.title : String(doc.id),
-      slug: typeof doc.slug === 'string' ? doc.slug : '',
-      parentId: parentIdOf(doc.parent),
-      path: typeof doc.path === 'string' ? doc.path : null,
-      depth: typeof doc.depth === 'number' ? doc.depth : Number(doc.depth) || 0,
-    }))
+    const rows = await listCategoryRows()
     return buildCategoryTree(rows)
   } catch {
     return []
   }
 }
 
-/** Ensure legacy MEDIA_FOLDERS exist as root categories (dev DBs before migrate). */
+/** Ensure legacy MEDIA_FOLDERS exist as root categories. */
 export async function ensureLegacyCategoryRoots(): Promise<void> {
-  const payload = await getPayload({ config })
   const seeds = [
     { title: 'General', slug: 'general' },
     { title: 'Logos', slug: 'logos' },
@@ -56,23 +55,14 @@ export async function ensureLegacyCategoryRoots(): Promise<void> {
     { title: 'Forms', slug: MEDIA_FORMS_CATEGORY_SLUG },
   ]
   for (const seed of seeds) {
-    const existing = await payload.find({
-      collection: 'categories',
-      where: { slug: { equals: seed.slug } },
-      limit: 1,
+    const existing = await getCategoryBySlug(seed.slug)
+    if (existing) continue
+    await insertCategoryRow({
+      title: seed.title,
+      slug: seed.slug,
+      parentId: null,
+      path: seed.title,
       depth: 0,
-      overrideAccess: true,
-    })
-    if (existing.docs.length) continue
-    await payload.create({
-      collection: 'categories',
-      data: {
-        title: seed.title,
-        slug: seed.slug,
-        path: seed.title,
-        depth: 0,
-      },
-      overrideAccess: true,
     })
   }
 }
@@ -85,27 +75,8 @@ export async function findCategoryById(id: string | number): Promise<{
   path: string
   depth: number
 } | null> {
-  const raw = String(id ?? '').trim()
-  if (!raw) return null
-  try {
-    const payload = await getPayload({ config })
-    const doc = await payload.findByID({
-      collection: 'categories',
-      id: raw,
-      depth: 0,
-      overrideAccess: true,
-    })
-    return {
-      id: String(doc.id),
-      title: typeof doc.title === 'string' ? doc.title : String(doc.id),
-      slug: typeof doc.slug === 'string' ? doc.slug : '',
-      parentId: parentIdOf(doc.parent),
-      path: typeof doc.path === 'string' ? doc.path : '',
-      depth: typeof doc.depth === 'number' ? doc.depth : Number(doc.depth) || 0,
-    }
-  } catch {
-    return null
-  }
+  const row = await getCategoryRow(String(id ?? '').trim())
+  return row ? toFound(row) : null
 }
 
 /** Resolve legacy folder enum for uploads given a category id. */
@@ -115,13 +86,11 @@ export async function resolveFolderForCategory(
   if (!categoryId) return 'general'
   const cat = await findCategoryById(categoryId)
   if (!cat) return 'general'
-  // Walk slug first; Forms reserved slug always wins.
   if (cat.slug === MEDIA_FORMS_CATEGORY_SLUG) {
     return normalizeMediaFolder('forms')
   }
   const mapped = folderFromCategorySlug(cat.slug)
   if (mapped !== 'general' || cat.slug === 'general') return mapped
-  // Nested under a legacy root? climb parents via tree list.
   let walk = cat.parentId
   let guard = 0
   while (walk && guard < MEDIA_CATEGORY_MAX_DEPTH + 2) {
@@ -149,38 +118,32 @@ export async function createMediaCategory(input: {
   if (parentId === '' || parentId === 'all') parentId = null
 
   try {
-    const payload = await getPayload({ config })
+    let depth = 0
+    let path = title
     if (parentId) {
       const parent = await findCategoryById(parentId)
       if (!parent) return { error: 'Parent folder not found.' }
       if (parent.depth >= MEDIA_CATEGORY_MAX_DEPTH) {
         return { error: `Cannot nest deeper than ${MEDIA_CATEGORY_MAX_DEPTH} levels.` }
       }
+      depth = parent.depth + 1
+      path = parent.path ? `${parent.path} / ${title}` : title
     }
 
     let slug = slugifyCategoryName(title)
-    const clash = await payload.find({
-      collection: 'categories',
-      where: { slug: { equals: slug } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    if (clash.docs.length) {
+    const clash = await getCategoryBySlug(slug)
+    if (clash) {
       slug = `${slug}-${Date.now().toString(36).slice(-4)}`
     }
 
-    const doc = await payload.create({
-      collection: 'categories',
-      data: {
-        title,
-        slug,
-        ...(parentId ? { parent: Number(parentId) } : { parent: null }),
-      },
-      overrideAccess: true,
+    const row = await insertCategoryRow({
+      title,
+      slug,
+      parentId,
+      path,
+      depth,
     })
-    const category = await findCategoryById(doc.id)
-    return category ? { category } : { error: 'Created folder but failed to reload.' }
+    return { category: toFound(row) }
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Could not create folder.' }
   }
@@ -196,13 +159,21 @@ export async function renameMediaCategory(input: {
   if (!title) return { error: 'Folder name is required.' }
 
   try {
-    const payload = await getPayload({ config })
-    await payload.update({
-      collection: 'categories',
-      id,
-      data: { title },
-      overrideAccess: true,
-    })
+    const cat = await findCategoryById(id)
+    if (!cat) return { error: 'Folder not found.' }
+    const parent = cat.parentId ? await findCategoryById(cat.parentId) : null
+    const nextPath = parent?.path ? `${parent.path} / ${title}` : title
+    const oldPath = cat.path
+    await updateCategoryPath(id, nextPath, title)
+    if (oldPath && oldPath !== nextPath) {
+      const prefix = `${oldPath} / `
+      const all = await listCategoryRows()
+      for (const row of all) {
+        if (row.id === id) continue
+        if (!row.path.startsWith(prefix)) continue
+        await updateCategoryPathOnly(row.id, nextPath + row.path.slice(oldPath.length))
+      }
+    }
     const category = await findCategoryById(id)
     return category ? { category } : { error: 'Renamed but failed to reload.' }
   } catch (err) {
@@ -217,40 +188,18 @@ export async function deleteMediaCategory(input: {
   if (!id) return { error: 'Missing folder id.' }
 
   try {
-    const payload = await getPayload({ config })
     const cat = await findCategoryById(id)
     if (!cat) return { error: 'Folder not found.' }
     if (cat.slug === MEDIA_FORMS_CATEGORY_SLUG) {
       return { error: 'The Forms folder is reserved and cannot be deleted.' }
     }
-
-    const children = await payload.find({
-      collection: 'categories',
-      where: { parent: { equals: Number(id) } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    if (children.docs.length) {
+    if ((await countChildCategories(id)) > 0) {
       return { error: 'Folder has subfolders — move or delete them first.' }
     }
-
-    const media = await payload.find({
-      collection: 'media',
-      where: { category: { equals: Number(id) } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    if (media.docs.length) {
+    if ((await countAssetsInCategory(id)) > 0) {
       return { error: 'Folder is not empty — move or delete media first.' }
     }
-
-    await payload.delete({
-      collection: 'categories',
-      id,
-      overrideAccess: true,
-    })
+    await deleteCategoryRow(id)
     return { ok: true }
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Could not delete folder.' }

@@ -298,9 +298,9 @@ export interface Page {
      */
     description?: string | null;
     /**
-     * Optional share image (Open Graph / social preview). Shared across locales.
+     * Starforge media id (text). Open Graph resolves it with resolveMediaById. Shared across locales.
      */
-    image?: (number | null) | Media;
+    mediaId?: string | null;
   };
   updatedAt: string;
   createdAt: string;
@@ -480,7 +480,7 @@ export interface PagesSelect<T extends boolean = true> {
     | {
         title?: T;
         description?: T;
-        image?: T;
+        mediaId?: T;
       };
   updatedAt?: T;
   createdAt?: T;

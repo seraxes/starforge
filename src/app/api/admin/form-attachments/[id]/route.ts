@@ -1,19 +1,12 @@
-import fs from 'fs/promises'
-import path from 'path'
-import { fileURLToPath } from 'url'
 import { NextResponse } from 'next/server'
 
 import { requireAppAdmin } from '@/core/auth/admin'
 import { findMediaById } from '@/core/media/resolve'
+import { getMediaStorage } from '@/core/media/storage'
 
 export const dynamic = 'force-dynamic'
 
 type Ctx = { params: Promise<{ id: string }> }
-
-const mediaStaticDir = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  '../../../../../../media',
-)
 
 function contentDisposition(filename: string, inline: boolean): string {
   const safe = filename.replace(/["\r\n]/g, '_') || 'attachment'
@@ -22,8 +15,8 @@ function contentDisposition(filename: string, inline: boolean): string {
 
 /**
  * Core-admin gate for Form respondent attachments (private Media).
- * Streams bytes with overrideAccess so Better Auth admins do not need a Payload
- * session (Payload `/api/media/file/*` stays locked for anonymous + private docs).
+ * Streams bytes from MediaStorage so Better Auth admins do not need a Payload session.
+ * The public file route does not serve private or form attachments.
  */
 export async function GET(req: Request, ctx: Ctx) {
   const admin = await requireAppAdmin()
@@ -38,23 +31,28 @@ export async function GET(req: Request, ctx: Ctx) {
   }
 
   const mime = doc.mimeType || 'application/octet-stream'
-  const ext = doc.filename.toLowerCase()
+  const ext = (doc.filename || '').toLowerCase()
   const svg = mime === 'image/svg+xml' || ext.endsWith('.svg') || ext.endsWith('.svgz')
   const inline = new URL(req.url).searchParams.get('inline') === '1' && !svg
   const headers = {
     'Content-Type': mime,
-    'Content-Disposition': contentDisposition(doc.filename, inline),
+    'Content-Disposition': contentDisposition(doc.filename || 'attachment', inline),
     'Cache-Control': 'private, no-store',
     'X-Content-Type-Options': 'nosniff',
   }
 
-  // Local Payload staticDir (default adapter).
-  const localPath = path.join(mediaStaticDir, doc.filename)
-  try {
-    const data = await fs.readFile(localPath)
-    return new NextResponse(data, { status: 200, headers })
-  } catch {
-    // Not on local disk — try URL (S3/Spaces plugin or absolute asset URL).
+  const key = (doc.path || doc.filename || '').trim()
+  if (key) {
+    const stored = await getMediaStorage().read(key)
+    if (stored) {
+      return new NextResponse(new Uint8Array(stored.body), {
+        status: 200,
+        headers: {
+          ...headers,
+          'Content-Type': stored.mimeType || mime,
+        },
+      })
+    }
   }
 
   const url = (doc.url || '').trim()

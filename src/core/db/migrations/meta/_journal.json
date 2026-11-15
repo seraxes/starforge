@@ -309,6 +309,13 @@
       "when": 1794038000000,
       "tag": "0043_site_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1794039000000,
+      "tag": "0044_media_document_store",
+      "breakpoints": true
     }
   ]
 }

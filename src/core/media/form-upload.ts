@@ -1,18 +1,14 @@
 /**
- * Public Form file → Payload Media (single library, private intake).
+ * Public Form file → media document store (single library, private intake).
  * Used by submitFormAction — no admin session required for *create*.
  * Reads stay admin-gated (folder=forms + private flag).
  */
 
 import 'server-only'
 
-import { getPayload } from 'payload'
-
-import config from '@payload-config'
-
-import { normalizeMediaFolder } from './pipeline'
+import { ingestImageUpload } from './ingest'
 import { getMediaStorageInfo } from './storage'
-import { toResolvedMedia, type ResolvedMedia } from './resolve'
+import type { ResolvedMedia } from './resolve'
 
 export { isPrivateFormMedia } from './privacy'
 
@@ -186,7 +182,7 @@ export type FormMediaUploadResult =
   | { ok: false; error: string }
 
 /**
- * Store a respondent file in Payload Media (folder=forms, private=true).
+ * Store a respondent file in the media document store (folder=forms, private=true).
  * Caller must already have passed captcha + field validation.
  */
 export async function uploadFormAttachmentToMedia(options: {
@@ -206,38 +202,21 @@ export async function uploadFormAttachmentToMedia(options: {
   const file = options.file
 
   try {
-    const payload = await getPayload({ config })
-    const data = Buffer.from(await file.arrayBuffer())
     const name = file.name || `form-upload-${Date.now()}`
     const alt =
       options.alt?.trim() ||
       name.replace(/\.[^.]+$/, '') ||
       'Form attachment'
-    const mime = file.type || 'application/octet-stream'
-
-    const doc = await payload.create({
-      collection: 'media',
-      data: {
-        alt,
-        folder: normalizeMediaFolder('forms'),
-        purpose: 'other',
-        private: true,
-      },
-      file: {
-        data,
-        mimetype: mime,
-        name,
-        size: data.length,
-      },
-      overrideAccess: true,
-    })
-
-    const media = toResolvedMedia(doc as Parameters<typeof toResolvedMedia>[0], {
-      preferWebp: false,
+    const { id, media } = await ingestImageUpload({
+      file,
+      alt,
+      formAttachment: true,
+      purpose: 'other',
+      folderRaw: 'forms',
     })
     return {
       ok: true,
-      mediaId: String(doc.id),
+      mediaId: id,
       ...(media ? { media } : {}),
     }
   } catch (err) {

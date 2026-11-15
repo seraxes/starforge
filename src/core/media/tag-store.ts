@@ -1,29 +1,19 @@
-import { getPayload } from 'payload'
-
-import config from '@payload-config'
+import 'server-only'
 
 import { slugifyCategoryName } from './categories'
+import { getTagBySlug, insertTagRow, renameTagRow } from './document-store'
 
 /**
- * Shared Payload `tags` writes for the Media library (phase 2a).
- * Page tags still use this collection until `product:pages` (phase 3).
+ * Media-tag writes on `sf_media_tags` (phase 2b).
+ * Page tags stay on the Payload `tags` collection until `product:pages` (phase 3).
  * Slug stays stable on rename so existing media filters keep working.
  */
 
-async function uniqueTagSlug(
-  payload: Awaited<ReturnType<typeof getPayload>>,
-  base: string,
-): Promise<string> {
+async function uniqueTagSlug(base: string): Promise<string> {
   let slug = base
   for (let n = 2; n < 40; n += 1) {
-    const found = await payload.find({
-      collection: 'tags',
-      where: { slug: { equals: slug } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    if (!found.docs.length) return slug
+    const found = await getTagBySlug(slug)
+    if (!found) return slug
     slug = `${base}-${n}`.slice(0, 64)
   }
   return `${base}-${Date.now().toString(36)}`.slice(0, 64)
@@ -37,14 +27,9 @@ export async function createMediaTag(input: {
   if (title.length > 80) return { error: 'Tag name is too long.' }
 
   try {
-    const payload = await getPayload({ config })
-    const slug = await uniqueTagSlug(payload, slugifyCategoryName(title))
-    const doc = await payload.create({
-      collection: 'tags',
-      data: { title, slug },
-      overrideAccess: true,
-    })
-    return { ok: true, id: String(doc.id) }
+    const slug = await uniqueTagSlug(slugifyCategoryName(title))
+    const row = await insertTagRow({ title, slug })
+    return { ok: true, id: row.id }
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Could not create tag.' }
   }
@@ -61,13 +46,8 @@ export async function renameMediaTag(input: {
   if (title.length > 80) return { error: 'Tag name is too long.' }
 
   try {
-    const payload = await getPayload({ config })
-    await payload.update({
-      collection: 'tags',
-      id,
-      data: { title },
-      overrideAccess: true,
-    })
+    const ok = await renameTagRow(id, title)
+    if (!ok) return { error: 'Tag not found.' }
     return { ok: true }
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Could not rename tag.' }

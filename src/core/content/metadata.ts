@@ -44,17 +44,6 @@ export function absoluteAssetUrl(url: string | null | undefined): string | undef
   return `${appOrigin()}${raw.startsWith('/') ? '' : '/'}${raw}`
 }
 
-function resolveOgImage(page: Page): Media | null {
-  const image = page.meta?.image
-  if (!image) {
-    return null
-  }
-  if (typeof image === 'object') {
-    return image
-  }
-  return null
-}
-
 export type SiteChromeSeoDefaults = {
   siteName?: string | null
   defaultDescription?: string | null
@@ -103,10 +92,19 @@ export async function buildPageMetadata(
   const description =
     page.meta?.description?.trim() || chrome.defaultDescription?.trim() || undefined
 
-  const pageOg = absoluteMediaUrl(resolveOgImage(page))
+  const mediaId = page.meta?.mediaId?.trim() || ''
+  let pageOg: string | undefined
+  let ogAlt = page.title
+  if (mediaId) {
+    const { resolveMediaById } = await import('@/core/media/resolve')
+    const resolved = await resolveMediaById(mediaId, { size: 'large', preferWebp: true })
+    if (resolved?.absoluteUrl) {
+      pageOg = resolved.absoluteUrl
+      ogAlt = resolved.alt || page.title
+    }
+  }
   const chromeOg = absoluteAssetUrl(chrome.defaultOgImage)
   const ogImageUrl = pageOg || chromeOg
-  const ogAlt = resolveOgImage(page)?.alt || page.title
 
   const barePath = barePathFromPage(page, options?.barePath)
   const locales = await getEnabledPublicLocales()

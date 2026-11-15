@@ -1,11 +1,12 @@
 /**
  * Apply Core (Drizzle / public.sf_*) then Payload (payload.*) migrations.
  * Re-runs `0043_site_settings` after Payload so a fresh database can copy
- * `payload.site_settings` once the Payload schema exists (the Core journal
- * step runs first). The SQL is idempotent: a row with `payload_copied_at`
- * set is left alone.
+ * `payload.site_settings` once the Payload schema exists.
+ * Re-runs `0044_media_document_store` the same way for `payload.media`.
+ * Both SQL files are idempotent.
  *
- * Verifies `sf_sessions`, locked-document rel columns, and `sf_site_settings`.
+ * Verifies `sf_sessions`, locked-document rel columns, `sf_site_settings`,
+ * and `sf_media_assets`.
  */
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -20,6 +21,10 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const SITE_SETTINGS_MIGRATION = join(
   root,
   'src/core/db/migrations/0043_site_settings.sql',
+)
+const MEDIA_STORE_MIGRATION = join(
+  root,
+  'src/core/db/migrations/0044_media_document_store.sql',
 )
 
 function run(label: string, args: string[]): void {
@@ -53,8 +58,8 @@ async function columnExists(
   return Boolean(result.rows[0]?.exists)
 }
 
-async function replaySiteSettingsMigration(client: Client): Promise<void> {
-  const sql = readFileSync(SITE_SETTINGS_MIGRATION, 'utf8')
+async function replaySqlFile(client: Client, filePath: string): Promise<void> {
+  const sql = readFileSync(filePath, 'utf8')
   const statements = sql
     .split('--> statement-breakpoint')
     .map((part) => part.trim())
@@ -62,6 +67,14 @@ async function replaySiteSettingsMigration(client: Client): Promise<void> {
   for (const statement of statements) {
     await client.query(statement)
   }
+}
+
+async function replaySiteSettingsMigration(client: Client): Promise<void> {
+  await replaySqlFile(client, SITE_SETTINGS_MIGRATION)
+}
+
+async function replayMediaStoreMigration(client: Client): Promise<void> {
+  await replaySqlFile(client, MEDIA_STORE_MIGRATION)
 }
 
 async function verifyAndHeal(): Promise<void> {
@@ -112,6 +125,11 @@ async function verifyAndHeal(): Promise<void> {
     )
     await replaySiteSettingsMigration(client)
 
+    console.log(
+      '\n→ Copy Payload media into public.sf_media_* (idempotent; skips rows already copied)',
+    )
+    await replayMediaStoreMigration(client)
+
     for (const col of SITE_SETTINGS_CORE_VERIFY_COLUMNS) {
       const ok = await columnExists(client, 'public', 'sf_site_settings', col)
       if (!ok) {
@@ -130,8 +148,18 @@ async function verifyAndHeal(): Promise<void> {
       throw new Error('public.sf_site_settings global row missing after migrate')
     }
 
+    const mediaTable = await client.query<{ exists: boolean }>(
+      `SELECT EXISTS (
+         SELECT 1 FROM information_schema.tables
+         WHERE table_schema = 'public' AND table_name = 'sf_media_assets'
+       ) AS exists`,
+    )
+    if (!mediaTable.rows[0]?.exists) {
+      throw new Error('public.sf_media_assets missing after migrate')
+    }
+
     console.log(
-      '\n✓ Verified public.sf_sessions + locked-docs tags_id/categories_id + public.sf_site_settings',
+      '\n✓ Verified public.sf_sessions + locked-docs tags_id/categories_id + public.sf_site_settings + public.sf_media_assets',
     )
   } finally {
     await client.end()

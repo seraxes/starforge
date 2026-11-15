@@ -39,8 +39,8 @@ export {
 } from './media-kind'
 
 /**
- * Real Payload Media aggregates for `media.counts`.
- * Soft-fails (ok:false) when the DB / `payload.media` is unreachable —
+ * Real media-library aggregates for `media.counts` (`sf_media_assets`).
+ * Soft-fails (ok:false) when the DB is unreachable —
  * host already soft-renders broken widgets; this keeps the card intentional.
  */
 export async function loadMediaCountsStats(): Promise<
@@ -56,7 +56,7 @@ export async function loadMediaCountsStats(): Promise<
 
     const kindResult = await pool.query<{ mime_type: string | null; n: number }>(
       `SELECT COALESCE(mime_type, '') AS mime_type, COUNT(*)::int AS n
-       FROM payload.media
+       FROM sf_media_assets
        GROUP BY 1`,
     )
 
@@ -69,7 +69,7 @@ export async function loadMediaCountsStats(): Promise<
          COUNT(*) FILTER (WHERE created_at >= $1)::int AS new24h,
          COUNT(*) FILTER (WHERE created_at >= $2)::int AS new1w,
          COUNT(*) FILTER (WHERE created_at >= $3)::int AS new1m
-       FROM payload.media`,
+       FROM sf_media_assets`,
       [since24h, since1w, since1m],
     )
 

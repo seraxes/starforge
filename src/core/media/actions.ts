@@ -1,25 +1,29 @@
 'use server'
 
 import { revalidatePath } from '@/core/content/defer-revalidate'
-import { getPayload } from 'payload'
 
-import config from '@payload-config'
 import { requireAppAdmin } from '@/core/auth/admin'
 
 import { getMediaAnalysisPort } from './analysis'
 import type { MediaAnalysisResult } from './analysis/types'
-import { STARFORGE_PIPELINE_APPLIED } from './apply-pipeline'
 import type { MediaCategoryNode } from './categories'
 import {
   createMediaCategory,
   deleteMediaCategory,
   ensureLegacyCategoryRoots,
+  findCategoryById,
   listMediaCategoryTree,
   renameMediaCategory,
   resolveFolderForCategory,
 } from './category-store'
+import {
+  addMediaAssetTag,
+  getMediaAsset,
+  setMediaAssetCategory,
+  updateMediaAssetDetails,
+} from './document-store'
 import { resolvePostedMediaEncodeFlags, getMediaEncodePolicy } from './encode-policy'
-import { ingestImageUpload, replaceMediaFile } from './ingest'
+import { ingestImageUpload, removeMediaAsset, replaceMediaFile } from './ingest'
 import { isAdminLibraryUploadAllowed, resolveAdminLibraryMime } from './library-files'
 import {
   mediaSuggestionPatchIsEmpty,
@@ -215,7 +219,7 @@ export async function uploadMediaAction(
       mimeType === file.type
         ? file
         : new File([await file.arrayBuffer()], file.name, { type: mimeType })
-    // Shared pipeline + Payload write — also used by member uploads (ingest.ts).
+    // Shared pipeline + sf_media_* write — also used by member uploads (ingest.ts).
     const { media } = await ingestImageUpload({
       file: uploadFile,
       alt: String(formData.get('alt') ?? ''),
@@ -264,12 +268,7 @@ export async function deleteMediaAction(
   if (!id) return { error: 'Missing media id.' }
 
   try {
-    const payload = await getPayload({ config })
-    await payload.delete({
-      collection: 'media',
-      id,
-      overrideAccess: true,
-    })
+    await removeMediaAsset(id)
     revalidatePath('/admin/media')
     return { ok: true, message: 'Deleted.' }
   } catch (err) {
@@ -295,10 +294,9 @@ export async function bulkDeleteMediaAction(
   if (!ids.length) return { error: 'Select at least one item.' }
 
   try {
-    const payload = await getPayload({ config })
     let affected = 0
     for (const id of ids) {
-      await payload.delete({ collection: 'media', id, overrideAccess: true })
+      await removeMediaAsset(id)
       affected += 1
     }
     // Client router.refresh() after ok — avoid folding a full library RSC into this action.
@@ -336,59 +334,29 @@ export async function bulkUpdateMediaAction(
   }
 
   try {
-    const payload = await getPayload({ config })
-
-    let categoryId: number | null = null
+    let categoryId: string | null = null
     let folder: MediaFolder | undefined
     if (clearCategory) {
       categoryId = null
       folder = 'general'
     } else if (hasCategory) {
-      const n = Number(categoryRaw)
-      if (!Number.isFinite(n)) return { error: 'Invalid folder.' }
-      categoryId = n
-      // Folder options already come from the live category tree — no seed pass here.
-      folder = await resolveFolderForCategory(String(categoryId))
+      const cat = await findCategoryById(categoryRaw)
+      if (!cat) return { error: 'Invalid folder.' }
+      categoryId = cat.id
+      folder = await resolveFolderForCategory(categoryId)
     }
 
-    const tagId = tagRaw ? Number(tagRaw) : NaN
-    if (hasTag && !Number.isFinite(tagId)) return { error: 'Invalid tag.' }
+    const tagId = tagRaw.trim()
+    if (hasTag && !tagId) return { error: 'Invalid tag.' }
 
     let affected = 0
     for (const id of ids) {
-      const data: Record<string, unknown> = {}
-      if (hasCategory) {
-        data.category = categoryId
-        if (folder) data.folder = folder
+      const existing = await getMediaAsset(id)
+      if (!existing) continue
+      if (hasCategory && folder) {
+        await setMediaAssetCategory({ id, categoryId, folder })
       }
-      if (hasTag) {
-        const existing = await payload.findByID({
-          collection: 'media',
-          id,
-          depth: 0,
-          overrideAccess: true,
-        })
-        if (!existing) continue
-        const currentTags = Array.isArray(existing.tags)
-          ? existing.tags.map((t) =>
-              typeof t === 'object' && t && 'id' in t ? Number(t.id) : Number(t),
-            )
-          : []
-        const nextTags = [...new Set([...currentTags.filter(Number.isFinite), tagId])]
-        data.tags = nextTags
-      }
-
-      // Metadata-only: skip sharp pipeline and keep the returned doc tiny so the
-      // server action can finish without re-rendering a full Media upload cycle.
-      await payload.update({
-        collection: 'media',
-        id,
-        data,
-        depth: 0,
-        overrideAccess: true,
-        context: { [STARFORGE_PIPELINE_APPLIED]: true },
-        select: { id: true, category: true, folder: true, tags: true },
-      })
+      if (hasTag) await addMediaAssetTag(id, tagId)
       affected += 1
     }
 
@@ -420,13 +388,7 @@ export async function analyzeMediaAction(
   if (!id) return { error: 'Missing media id.' }
 
   try {
-    const payload = await getPayload({ config })
-    const doc = await payload.findByID({
-      collection: 'media',
-      id,
-      depth: 0,
-      overrideAccess: true,
-    })
+    const doc = await getMediaAsset(id)
     if (!doc) return { error: 'Media not found.' }
 
     const port = getMediaAnalysisPort()
@@ -438,7 +400,7 @@ export async function analyzeMediaAction(
     const mime = (doc.mimeType || 'application/octet-stream').toLowerCase()
     const url = typeof doc.url === 'string' ? doc.url : undefined
     const analysis = await port.run({
-      mediaId: String(doc.id),
+      mediaId: doc.id,
       mime,
       source: {
         ...(url ? { url } : {}),
@@ -483,51 +445,34 @@ export async function applyMediaAnalysisSuggestionsAction(
   }
 
   try {
-    const payload = await getPayload({ config })
-    const existing = await payload.findByID({
-      collection: 'media',
-      id,
-      depth: 0,
-      overrideAccess: true,
-    })
+    const existing = await getMediaAsset(id)
     if (!existing) return { error: 'Media not found.' }
 
-    const data: Record<string, unknown> = {}
-    if (alt) data.alt = alt
-    if (purposeRaw) data.purpose = normalizeMediaPurpose(purposeRaw)
+    let categoryId = existing.categoryId
+    let folder: string | undefined
     if (categoryRaw) {
-      const n = Number(categoryRaw)
-      if (Number.isFinite(n)) {
-        data.category = n
-        data.folder = await resolveFolderForCategory(String(n))
-      }
+      const cat = await findCategoryById(categoryRaw)
+      if (!cat) return { error: 'Invalid folder.' }
+      categoryId = cat.id
+      folder = await resolveFolderForCategory(cat.id)
     }
-    if (tagIds.length) {
-      const currentTags = Array.isArray(existing.tags)
-        ? existing.tags.map((t) =>
-            typeof t === 'object' && t && 'id' in t ? Number(t.id) : Number(t),
-          )
-        : []
-      const next = [
-        ...new Set([
-          ...currentTags.filter(Number.isFinite),
-          ...tagIds.map(Number).filter(Number.isFinite),
-        ]),
-      ]
-      data.tags = next
-    }
+    const nextTags = tagIds.length
+      ? [...new Set([...existing.tagIds, ...tagIds])]
+      : existing.tagIds
 
-    const doc = await payload.update({
-      collection: 'media',
+    const doc = await updateMediaAssetDetails({
       id,
-      data,
-      overrideAccess: true,
+      alt: alt || existing.alt,
+      purpose: purposeRaw ? normalizeMediaPurpose(purposeRaw) : normalizeMediaPurpose(existing.purpose),
+      categoryId,
+      ...(folder !== undefined ? { folder } : {}),
+      isPrivate: existing.private,
+      tagIds: nextTags,
     })
     revalidatePath('/admin/media')
-    const media = toResolvedMedia(doc as Parameters<typeof toResolvedMedia>[0], {
-      size: 'thumbnail',
-      preferWebp: true,
-    })
+    const media = doc
+      ? toResolvedMedia(doc, { size: 'thumbnail', preferWebp: true })
+      : null
     return {
       ok: true,
       message: 'Suggestions applied.',
@@ -540,7 +485,7 @@ export async function applyMediaAnalysisSuggestionsAction(
 
 /**
  * Single-item metadata edit (alt, purpose, category, tags, private).
- * Does not touch the file. Pipeline context skips a second sharp pass.
+ * Does not touch the file.
  */
 export async function updateMediaDetailsAction(
   _prev: MediaActionState,
@@ -559,36 +504,28 @@ export async function updateMediaDetailsAction(
   const categoryRaw = String(formData.get('category') ?? '').trim()
   const tagIds = formData
     .getAll('tagIds')
-    .map((value) => Number(String(value)))
-    .filter((n) => Number.isFinite(n))
+    .map((value) => String(value).trim())
+    .filter(Boolean)
   const isPrivate = formData.get('private') === '1'
 
   try {
-    const payload = await getPayload({ config })
-    const data: Record<string, unknown> = {
-      alt,
-      purpose,
-      tags: tagIds,
-      private: isPrivate,
-    }
+    let categoryId: string | null = null
+    let folder: string | undefined
     if (categoryRaw) {
-      const n = Number(categoryRaw)
-      if (!Number.isFinite(n)) return { error: 'Invalid folder.' }
-      data.category = n
-      data.folder = await resolveFolderForCategory(String(n))
-    } else {
-      // Clear the folder relation only. Leave legacy `folder` so form
-      // attachments (folder=forms) stay private when the category is unset.
-      data.category = null
+      const cat = await findCategoryById(categoryRaw)
+      if (!cat) return { error: 'Invalid folder.' }
+      categoryId = cat.id
+      folder = await resolveFolderForCategory(cat.id)
     }
 
-    await payload.update({
-      collection: 'media',
+    await updateMediaAssetDetails({
       id,
-      data,
-      depth: 0,
-      overrideAccess: true,
-      context: { [STARFORGE_PIPELINE_APPLIED]: true },
+      alt,
+      purpose,
+      categoryId,
+      ...(folder !== undefined ? { folder } : {}),
+      isPrivate,
+      tagIds,
     })
     return { ok: true, message: 'Saved.' }
   } catch (err) {
@@ -597,8 +534,8 @@ export async function updateMediaDetailsAction(
 }
 
 /**
- * In-place file replace. `replaceMediaFile` runs sharp, then Payload
- * regenerates imageSizes. Metadata stays on the same document.
+ * In-place file replace. `replaceMediaFile` runs sharp and regenerates
+ * thumbnail / card / large. Metadata stays on the same document.
  */
 export async function replaceMediaFileAction(
   _prev: MediaActionState,

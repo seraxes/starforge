@@ -1,3 +1,8 @@
+/**
+ * Unregistered as of phase 2b. Media categories live in `sf_media_categories`.
+ * This file stays on disk until phase 4 removes the Payload shell.
+ * Do not add it back to `payload.config.ts`.
+ */
 import type { CollectionBeforeChangeHook, CollectionConfig } from 'payload'
 
 import { MEDIA_CATEGORY_MAX_DEPTH, slugifyCategoryName } from '@/core/media/categories'

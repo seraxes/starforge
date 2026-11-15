@@ -1,17 +1,11 @@
-import { getPayload, type Where } from 'payload'
+import { absoluteAssetUrl } from '@/core/content/metadata'
 
-import config from '@payload-config'
-import { absoluteAssetUrl, absoluteMediaUrl } from '@/core/content/metadata'
-import type { Media } from '@/payload-types'
-
-import {
-  mediaTagWhereClause,
-  parseMediaTagFilter,
-  type MediaTagMatchMode,
-} from './library-query'
+import { getMediaAsset, listMediaAssets, listTagRows } from './document-store'
+import { parseMediaTagFilter, type MediaTagMatchMode } from './library-query'
+import type { MediaDoc, MediaSizeName, MediaSizesJson } from './media-record'
 import type { MediaPurpose } from './pipeline'
 
-export type MediaSizeName = 'thumbnail' | 'card' | 'large'
+export type { MediaSizeName } from './media-record'
 
 export type ResolvedMedia = {
   id: string
@@ -19,72 +13,38 @@ export type ResolvedMedia = {
   url: string
   /** Best-effort absolute URL for OG / external. */
   absoluteUrl: string
-  /** Raw Payload file URL (pre-derivative) when available — logos / lightbox. */
+  /** Original file URL (pre-derivative) when available — logos / lightbox. */
   originalUrl?: string
   mimeType?: string | null
   width?: number | null
   height?: number | null
-  /** Legacy flat folder (kept for Form privacy / migration). */
+  /** Legacy flat folder (kept for Form privacy). */
   folder?: string | null
-  /** Nested Categories id (Phase 2 primary browse). */
+  /** Nested category id. */
   categoryId?: string | null
-  /** Nested Categories display path / title. */
+  /** Nested category display path / title. */
   categoryLabel?: string | null
   purpose?: MediaPurpose | null
   filename?: string | null
   /** Form / admin private flag. Folder `forms` is also private via `isPrivateFormMedia`. */
   private?: boolean | null
-  /** Shared taxonomy tag ids (SF-132 / SF-148). */
+  /** Media-tag ids. */
   tagIds?: string[]
-  /** Display titles when tags were populated. */
+  /** Display titles when tags were loaded. */
   tagLabels?: string[]
   /** Thumbnail / card / large derivative URLs when present. */
   sizes?: Partial<Record<MediaSizeName, string>>
 }
 
-function mediaCategoryMeta(media: Media): {
-  categoryId: string | null
-  categoryLabel: string | null
-} {
-  const raw = media.category
-  if (raw == null) return { categoryId: null, categoryLabel: null }
-  if (typeof raw === 'object' && 'id' in raw) {
-    const id = String(raw.id)
-    const title =
-      typeof (raw as { title?: unknown }).title === 'string'
-        ? String((raw as { title: string }).title).trim()
-        : ''
-    const path =
-      typeof (raw as { path?: unknown }).path === 'string'
-        ? String((raw as { path: string }).path).trim()
-        : ''
-    return { categoryId: id, categoryLabel: path || title || id }
-  }
-  return { categoryId: String(raw), categoryLabel: null }
+type MediaUrlSource = {
+  url?: string | null
+  mimeType?: string | null
+  filename?: string | null
+  purpose?: string | null
+  sizes?: MediaSizesJson | null
 }
 
-function mediaTagMeta(media: Media): { tagIds: string[]; tagLabels: string[] } {
-  const raw = media.tags
-  if (!Array.isArray(raw) || raw.length === 0) return { tagIds: [], tagLabels: [] }
-  const tagIds: string[] = []
-  const tagLabels: string[] = []
-  for (const entry of raw) {
-    if (entry == null) continue
-    if (typeof entry === 'object' && 'id' in entry) {
-      tagIds.push(String(entry.id))
-      if (typeof entry.title === 'string' && entry.title.trim()) {
-        tagLabels.push(entry.title.trim())
-      }
-    } else {
-      tagIds.push(String(entry))
-    }
-  }
-  return { tagIds, tagLabels }
-}
-
-type MediaSizes = Media['sizes']
-
-function sizeUrl(sizes: MediaSizes | null | undefined, name: MediaSizeName): string | undefined {
+function sizeUrl(sizes: MediaSizesJson | null | undefined, name: MediaSizeName): string | undefined {
   if (!sizes || typeof sizes !== 'object') return undefined
   const entry = sizes[name]
   if (!entry || typeof entry !== 'object') return undefined
@@ -92,7 +52,7 @@ function sizeUrl(sizes: MediaSizes | null | undefined, name: MediaSizeName): str
   return url || undefined
 }
 
-function isPng(media: Media): boolean {
+function isPng(media: MediaUrlSource): boolean {
   const mime = (media.mimeType ?? '').toLowerCase()
   if (mime === 'image/png') return true
   const name = (media.filename ?? '').toLowerCase()
@@ -103,7 +63,7 @@ function isPng(media: Media): boolean {
  * Prefer WebP derivative for photos; keep original URL for logos / PNG.
  */
 export function preferredMediaUrl(
-  media: Media,
+  media: MediaUrlSource,
   opts?: { size?: MediaSizeName; preferWebp?: boolean },
 ): string | undefined {
   const preferWebp = opts?.preferWebp !== false
@@ -128,17 +88,15 @@ export function preferredMediaUrl(
 }
 
 export function toResolvedMedia(
-  media: Media,
+  media: MediaDoc,
   opts?: { size?: MediaSizeName; preferWebp?: boolean },
 ): ResolvedMedia | null {
   const url = preferredMediaUrl(media, opts)
   if (!url) return null
   const absolute = absoluteAssetUrl(url) || url
-  const tags = mediaTagMeta(media)
-  const category = mediaCategoryMeta(media)
   const originalUrl = media.url?.trim() || undefined
   return {
-    id: String(media.id),
+    id: media.id,
     alt: media.alt || '',
     url,
     absoluteUrl: absolute,
@@ -147,13 +105,13 @@ export function toResolvedMedia(
     width: media.width,
     height: media.height,
     folder: media.folder ?? null,
-    categoryId: category.categoryId,
-    categoryLabel: category.categoryLabel,
+    categoryId: media.categoryId,
+    categoryLabel: media.categoryLabel,
     purpose: (media.purpose as MediaPurpose | null | undefined) ?? null,
     filename: media.filename,
     private: media.private === true,
-    ...(tags.tagIds.length ? { tagIds: tags.tagIds } : {}),
-    ...(tags.tagLabels.length ? { tagLabels: tags.tagLabels } : {}),
+    ...(media.tagIds.length ? { tagIds: media.tagIds } : {}),
+    ...(media.tagLabels.length ? { tagLabels: media.tagLabels } : {}),
     sizes: {
       thumbnail: sizeUrl(media.sizes, 'thumbnail'),
       card: sizeUrl(media.sizes, 'card'),
@@ -162,19 +120,34 @@ export function toResolvedMedia(
   }
 }
 
-/** Load a Media doc by id (string or number). */
-export async function findMediaById(id: string | number): Promise<Media | null> {
+function fallbackResolved(media: MediaDoc): ResolvedMedia {
+  const originalUrl = media.url?.trim() || ''
+  return {
+    id: media.id,
+    alt: media.alt || '',
+    url: originalUrl,
+    absoluteUrl: absoluteAssetUrl(originalUrl) || originalUrl,
+    ...(originalUrl ? { originalUrl } : {}),
+    mimeType: media.mimeType,
+    width: media.width,
+    height: media.height,
+    folder: media.folder ?? null,
+    categoryId: media.categoryId,
+    categoryLabel: media.categoryLabel,
+    purpose: (media.purpose as MediaPurpose | null | undefined) ?? null,
+    filename: media.filename,
+    private: media.private === true,
+    ...(media.tagIds.length ? { tagIds: media.tagIds } : {}),
+    ...(media.tagLabels.length ? { tagLabels: media.tagLabels } : {}),
+  }
+}
+
+/** Load an asset by id. */
+export async function findMediaById(id: string | number): Promise<MediaDoc | null> {
   const raw = String(id ?? '').trim()
   if (!raw) return null
   try {
-    const payload = await getPayload({ config })
-    const doc = (await payload.findByID({
-      collection: 'media',
-      id: raw,
-      depth: 0,
-      overrideAccess: true,
-    })) as Media
-    return doc
+    return await getMediaAsset(raw)
   } catch {
     return null
   }
@@ -228,21 +201,14 @@ export type MediaTagOption = {
   slug: string
 }
 
-/** List shared Tags for Media library facets (SF-148). */
+/** List media-tags for library facets. */
 export async function listMediaTagOptions(): Promise<MediaTagOption[]> {
   try {
-    const payload = await getPayload({ config })
-    const result = await payload.find({
-      collection: 'tags',
-      limit: 500,
-      sort: 'title',
-      depth: 0,
-      overrideAccess: true,
-    })
-    return result.docs.map((doc) => ({
-      id: String(doc.id),
-      title: typeof doc.title === 'string' ? doc.title : String(doc.id),
-      slug: typeof doc.slug === 'string' ? doc.slug : '',
+    const rows = await listTagRows()
+    return rows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      slug: row.slug,
     }))
   } catch {
     return []
@@ -251,12 +217,12 @@ export async function listMediaTagOptions(): Promise<MediaTagOption[]> {
 
 /** List media for admin library / picker. */
 export async function listMedia(opts?: {
-  /** Nested Categories id (Phase 2). Prefer over folder when both set. */
+  /** Nested category id. Prefer over folder when both set. */
   category?: string
-  /** Legacy flat folder — used when category unset (Form / migrate). */
+  /** Legacy flat folder — used when category unset. */
   folder?: string
   purpose?: string
-  /** Tag id(s) — single or comma-separated (Phase 3). */
+  /** Tag id(s) — single or comma-separated. */
   tag?: string
   /** Tag match mode when multiple ids (default OR). */
   tagMode?: MediaTagMatchMode | string
@@ -269,85 +235,30 @@ export async function listMedia(opts?: {
   page: number
   totalPages: number
 }> {
-  const payload = await getPayload({ config })
   const limit = Math.min(Math.max(opts?.limit ?? 48, 1), 100)
   const page = Math.max(opts?.page ?? 1, 1)
-  const category = (opts?.category ?? '').trim()
-  const folder = (opts?.folder ?? '').trim()
-  const purpose = (opts?.purpose ?? '').trim()
   const tagFilter = parseMediaTagFilter(opts?.tag, opts?.tagMode)
-  const q = (opts?.q ?? '').trim()
-
-  const and: Where[] = []
-
-  if (category && category !== 'all') {
-    const categoryId = Number(category)
-    and.push({
-      category: { equals: Number.isFinite(categoryId) ? categoryId : category },
-    })
-  } else if (folder && folder !== 'all') {
-    and.push({ folder: { equals: folder } })
-  }
-  if (purpose && purpose !== 'all') {
-    and.push({ purpose: { equals: purpose } })
-  }
-  const tagWhere = mediaTagWhereClause(tagFilter)
-  if (tagWhere) {
-    and.push(tagWhere as Where)
-  }
-  if (q) {
-    and.push({
-      or: [{ alt: { contains: q } }, { filename: { contains: q } }],
-    })
-  }
-
-  const where: Where | undefined =
-    and.length === 0 ? undefined : and.length === 1 ? and[0] : { and }
-
-  const result = await payload.find({
-    collection: 'media',
-    where,
+  const { docs: rows, total } = await listMediaAssets({
+    category: opts?.category,
+    folder: opts?.folder,
+    purpose: opts?.purpose,
+    tagIds: tagFilter.ids,
+    tagMode: tagFilter.mode,
+    q: opts?.q,
     limit,
-    page,
-    sort: '-createdAt',
-    // depth 1 so tag + category titles show on library cards
-    depth: 1,
-    overrideAccess: true,
+    offset: (page - 1) * limit,
   })
 
   const docs: ResolvedMedia[] = []
-  for (const raw of result.docs) {
-    const resolved = toResolvedMedia(raw as Media, { size: 'thumbnail', preferWebp: true })
-    if (resolved) docs.push(resolved)
-    else {
-      const m = raw as Media
-      const tags = mediaTagMeta(m)
-      const categoryMeta = mediaCategoryMeta(m)
-      docs.push({
-        id: String(m.id),
-        alt: m.alt || '',
-        url: m.url || '',
-        absoluteUrl: absoluteMediaUrl(m) || m.url || '',
-        ...(m.url ? { originalUrl: m.url } : {}),
-        mimeType: m.mimeType,
-        width: m.width,
-        height: m.height,
-        folder: m.folder ?? null,
-        categoryId: categoryMeta.categoryId,
-        categoryLabel: categoryMeta.categoryLabel,
-        purpose: (m.purpose as MediaPurpose | null | undefined) ?? null,
-        filename: m.filename,
-        private: m.private === true,
-        ...(tags.tagIds.length ? { tagIds: tags.tagIds } : {}),
-        ...(tags.tagLabels.length ? { tagLabels: tags.tagLabels } : {}),
-      })
-    }
+  for (const row of rows) {
+    const resolved = toResolvedMedia(row, { size: 'thumbnail', preferWebp: true })
+    docs.push(resolved ?? fallbackResolved(row))
   }
 
   return {
     docs,
-    totalDocs: result.totalDocs,
-    page: result.page ?? page,
-    totalPages: result.totalPages ?? 1,
+    totalDocs: total,
+    page,
+    totalPages: Math.max(1, Math.ceil(total / limit)),
   }
 }

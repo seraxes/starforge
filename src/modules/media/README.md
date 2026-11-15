@@ -5,22 +5,25 @@ Required Media library pack (design-module-boundary **M5**).
 | Layer | Home |
 | --- | --- |
 | Library + Settings admin UI | `admin/` (App Router shims under `/admin/media`) |
+| Document store | `schema.ts` — `sf_media_assets`, `sf_media_categories`, `sf_media_tags`, `sf_media_asset_tags`, `sf_media_owners` |
 | Shared bind contract | `api.ts` (picker + pure helpers) · `api.server.ts` (`resolveMediaById`) |
 | Ports (storage, pipeline, analysis, actions) | `src/core/media` — Core hosts |
 
 ## Owns
 
+The media document store: asset meta (mime, alt, purpose, folder, private, urls/paths, sizes JSON), nested categories, and media-tags, in pack Drizzle tables (`sf_media_*`). Blobs go through the MediaStorage port (`src/core/media/storage`), local disk or S3. Derivatives are the sharp pipeline (thumbnail / card / large).
+
 Library + Settings admin UI (`admin/`, App Router shims under `/admin/media`). Shared bind contract: bind **`mediaId`** only — **MediaPicker** / **MemberMediaPicker** (`sf_media_owners`); no forked library UI. Pipeline rules in `sf_media_settings` (Media → Settings).
 
-**UX parity (phase 2a, done):** `/admin/media` is the daily path. The item panel edits alt, purpose, tags, private, and category. The list pages past 60. Tags are created and renamed in the library sidebar. Admins upload and browse images plus the document types Forms already allow (PDF, Word, plain text), including private and form files. Replace file runs the existing sharp pipeline and Payload `imageSizes`. ImageFrame stays the display crop. There is no Payload focal-point editor.
+**UX parity (phase 2a, done):** `/admin/media` is the daily path. The item panel edits alt, purpose, tags, private, and category. The list pages past 60. Tags are created and renamed in the library sidebar. Admins upload and browse images plus the document types Forms already allow (PDF, Word, plain text), including private and form files. Replace file reruns the sharp pipeline and regenerates derivatives. ImageFrame stays the display crop. There is no focal-point editor.
 
-**Document store (phase 2b, not moved):** this pack will take meta, categories, and media-tags that still sit in Payload `media` / `categories` / `tags`. `getPayload()` stays in `src/core/media` until that move. Blobs stay on MediaStorage. Do not start 2b in a UX-only change. Order: [payload-dependency-map](../../../docs/project-context/docs/payload-dependency-map.md).
+**Document store (phase 2b, done):** meta, categories, and media-tags live in `sf_media_*`. `getPayload()` is not used under `src/core/media`. Migrated ids are the Payload numeric id as text, so existing `mediaId` binds and `sf_media_owners` stay valid. New rows use uuid text ids. `payload_legacy_id` is the one-shot copy key. Page tags stay on the Payload `tags` collection until phase 3. `/cms` still edits pages.
 
 ## Consumes
 
 Ports (storage, pipeline, analysis, actions) in `src/core/media` — Core hosts.
 
-Payload (`getPayload()` in `src/core/media/*`, and `@payloadcms/storage-s3` while S3 still goes through the Payload plugin) is the current document backend only. It is not the long-term store. Do not add media features as new Payload collections. Media does not go back into Payload after the peel.
+Payload is not the media document store. Do not add media features as new Payload collections. Media does not go back into Payload.
 
 ## Public door
 
@@ -39,7 +42,7 @@ import { MediaPicker } from '@/modules/media/api'
 import { resolveMediaById } from '@/modules/media/api.server'
 ```
 
-Client code must not import `api.server` (keeps Payload out of the client graph). Forms, Layout Styles/Logo, Events, Profiles, and Marketplace bind **`mediaId`** only — no forked library UI.
+Client code must not import `api.server`. Forms, Layout Styles/Logo, Events, Profiles, and Marketplace bind **`mediaId`** only — no forked library UI.
 
 **Member uploads** (`MemberMediaPicker` + `sf_media_owners`): signed-in members upload through the same Media pipeline without admin rights; consumers call `memberOwnsMedia` before storing a member-supplied id. Encode toggles follow the same Media settings group maps.
 

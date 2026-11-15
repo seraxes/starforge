@@ -2,7 +2,7 @@
  * Spaces / S3 credentials for MediaStorage (SF-128).
  * Secrets stay in process env / `.env.local` — never Site Settings / DB.
  *
- * No `server-only`: Payload CLI loads this via `payload-plugin.ts`. Do not
+ * No `server-only`: MediaStorage env is read from server code. Do not
  * import from Client Components (type-only imports of MediaStorageInfo are fine).
  */
 

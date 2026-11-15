@@ -21,7 +21,7 @@ function asBytes(value: unknown): number | null {
 async function sumLibraryBytes(): Promise<number | null> {
   const { pool } = await import('@/core/db')
   const result = await pool.query<{ bytes: string | number | null }>(
-    `SELECT COALESCE(SUM(filesize), 0)::bigint AS bytes FROM payload.media`,
+    `SELECT COALESCE(SUM(filesize), 0)::bigint AS bytes FROM sf_media_assets`,
   )
   return asBytes(result.rows[0]?.bytes)
 }

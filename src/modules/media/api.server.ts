@@ -1,9 +1,8 @@
 /**
- * product:media server API — Payload resolve helpers.
+ * product:media server API — resolve helpers for the sf_media_* document store.
  *
  * Import from Server Components / route handlers / actions only.
- * Client UI must use `@/modules/media/api` (picker + pure helpers) so the
- * minimal-flavor build does not pull `payload.config` into client graphs.
+ * Client UI must use `@/modules/media/api` (picker + pure helpers).
  *
  *   import { resolveMediaById } from '@/modules/media/api.server'
  */

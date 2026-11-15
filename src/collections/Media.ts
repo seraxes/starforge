@@ -1,3 +1,8 @@
+/**
+ * Unregistered as of phase 2b. Starforge media lives in `sf_media_*`.
+ * This file stays on disk until phase 4 removes the Payload shell.
+ * Do not add it back to `payload.config.ts`.
+ */
 import path from 'path'
 import { fileURLToPath } from 'url'
 import type { CollectionBeforeChangeHook, CollectionConfig, Where } from 'payload'

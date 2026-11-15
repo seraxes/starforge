@@ -1,37 +1,40 @@
 import 'server-only'
 
-import { getPayload } from 'payload'
-
-import config from '@payload-config'
+import { randomUUID } from 'node:crypto'
 
 import {
-  STARFORGE_PIPELINE_APPLIED,
-  applyMediaPipelineRules,
-} from './apply-pipeline'
-import { ensureLegacyCategoryRoots, resolveFolderForCategory } from './category-store'
-import { resolveAdminLibraryMime } from './library-files'
-import {
-  normalizeMediaFolder,
-  normalizeMediaPurpose,
-} from './pipeline'
+  claimMediaKey,
+  deleteMediaAsset,
+  getMediaAsset,
+  insertMediaAsset,
+  replaceMediaAssetFile,
+  type MediaWriteFile,
+} from './document-store'
+import { readImageSize, renderMediaDerivatives, sizesFromStored } from './derivatives'
+import { ensureLegacyCategoryRoots, getCategoryBySlug, resolveFolderForCategory } from './category-store'
+import { applyMediaPipelineRules } from './apply-pipeline'
+import { normalizeMediaFolder, normalizeMediaPurpose } from './pipeline'
 import { toResolvedMedia, type ResolvedMedia } from './resolve'
 import { getMediaPipelineRules } from './settings-store'
+import { getMediaStorage } from './storage'
 
 export type IngestImageInput = {
   file: File
   /** Alt text; falls back to the filename. */
   alt?: string
-  /** Nested Categories id from the picker (`all` / empty = none). */
+  /** Nested category id from the picker (`all` / empty = none). */
   categoryRaw?: string
   /** Legacy flat folder slug. */
   folderRaw?: string
   purpose?: string
-  /** Shared Tags id. */
+  /** Media-tag id. */
   tagRaw?: string
   /** Convert photo originals to WebP (default true). Callers must clamp via encode policy. */
   decodeToWebp?: boolean
   /** Cap longest edge (default true). Callers must clamp via encode policy. */
   resize?: boolean
+  /** Form respondent uploads. Skips the public library and marks the row private. */
+  formAttachment?: boolean
 }
 
 export type IngestImageResult = {
@@ -39,88 +42,149 @@ export type IngestImageResult = {
   media: ResolvedMedia | null
 }
 
+function stemOf(filename: string): string {
+  const base = filename.replace(/\.[^.]+$/, '')
+  return base || 'upload'
+}
+
+async function storeProcessedFile(input: {
+  buffer: Buffer
+  mimeType: string
+  filename: string
+  purpose: string
+  visibility: 'public' | 'private'
+}): Promise<MediaWriteFile> {
+  const rules = await getMediaPipelineRules()
+  const storage = getMediaStorage()
+  const reserved = new Set<string>()
+  const filename = await claimMediaKey(input.filename, reserved)
+  const original = await storage.put({
+    key: filename,
+    body: input.buffer,
+    mimeType: input.mimeType,
+    visibility: input.visibility,
+  })
+  const { width, height } = await readImageSize(input.buffer, input.mimeType)
+  const rendered = await renderMediaDerivatives({
+    buffer: input.buffer,
+    mimeType: input.mimeType,
+    basename: stemOf(filename),
+    rules,
+  })
+  const storedSizes = []
+  for (const derivative of rendered) {
+    const key = await claimMediaKey(derivative.filename, reserved)
+    const put = await storage.put({
+      key,
+      body: derivative.buffer,
+      mimeType: derivative.mimeType,
+      visibility: input.visibility,
+    })
+    storedSizes.push({
+      name: derivative.name,
+      url: put.url,
+      path: put.key,
+      filename: put.key,
+      width: derivative.width,
+      height: derivative.height,
+      mimeType: derivative.mimeType,
+      filesize: derivative.buffer.length,
+    })
+  }
+  return {
+    filename,
+    path: original.key,
+    url: original.url,
+    mimeType: input.mimeType,
+    filesize: input.buffer.length,
+    width,
+    height,
+    sizes: sizesFromStored(storedSizes),
+  }
+}
+
+function storageKeysOf(doc: {
+  path: string | null
+  sizes: { thumbnail?: { path?: string | null }; card?: { path?: string | null }; large?: { path?: string | null } } | null
+}): string[] {
+  const keys: string[] = []
+  if (doc.path) keys.push(doc.path)
+  for (const name of ['thumbnail', 'card', 'large'] as const) {
+    const key = doc.sizes?.[name]?.path
+    if (key) keys.push(key)
+  }
+  return keys
+}
+
 /**
- * Authorization-free image ingest — runs the shared Media pipeline and writes the
- * Payload `media` doc. Callers (admin library, member uploads) own the auth,
- * rate-limit and size checks; this stays one pipeline for every uploader.
- * Throws on pipeline / storage failure.
+ * Authorization-free ingest — runs the shared Media pipeline and writes
+ * `sf_media_assets` plus blobs on MediaStorage. Callers own auth and limits.
  */
-export async function ingestImageUpload(
-  input: IngestImageInput,
-): Promise<IngestImageResult> {
+export async function ingestImageUpload(input: IngestImageInput): Promise<IngestImageResult> {
   const { file } = input
-  const alt =
-    (input.alt ?? '').trim() || file.name.replace(/\.[^.]+$/, '') || 'Image'
+  const alt = (input.alt ?? '').trim() || file.name.replace(/\.[^.]+$/, '') || 'Image'
   const categoryRaw = (input.categoryRaw ?? '').trim()
   const folderRaw = (input.folderRaw ?? '').trim()
-  const purpose = normalizeMediaPurpose(input.purpose ?? 'photo')
+  const purpose = normalizeMediaPurpose(input.purpose ?? (input.formAttachment ? 'other' : 'photo'))
   const tagRaw = (input.tagRaw ?? '').trim()
 
-  const payload = await getPayload({ config })
   await ensureLegacyCategoryRoots()
 
-  let categoryId: number | null = null
-  if (categoryRaw && categoryRaw !== 'all') {
-    const n = Number(categoryRaw)
-    if (Number.isFinite(n)) categoryId = n
+  let categoryId: string | null = null
+  if (categoryRaw && categoryRaw !== 'all') categoryId = categoryRaw
+
+  let folder = categoryId
+    ? await resolveFolderForCategory(categoryId)
+    : normalizeMediaFolder(folderRaw || (input.formAttachment ? 'forms' : 'general'))
+
+  if (!categoryId && folderRaw) {
+    const bySlug = await getCategoryBySlug(normalizeMediaFolder(folderRaw))
+    if (bySlug) {
+      categoryId = bySlug.id
+      folder = await resolveFolderForCategory(categoryId)
+    }
   }
 
-  const folder = categoryId
-    ? await resolveFolderForCategory(String(categoryId))
-    : normalizeMediaFolder(folderRaw || 'general')
-
-  // If only legacy folder was posted (picker defaultFolder), map onto category when possible.
-  if (!categoryId && folderRaw) {
-    const bySlug = await payload.find({
-      collection: 'categories',
-      where: { slug: { equals: normalizeMediaFolder(folderRaw) } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    if (bySlug.docs[0]) categoryId = Number(bySlug.docs[0].id)
+  if (input.formAttachment && !categoryId) {
+    const forms = await getCategoryBySlug('forms')
+    if (forms) categoryId = forms.id
+    folder = normalizeMediaFolder('forms')
   }
 
   const raw = Buffer.from(await file.arrayBuffer())
   const rules = await getMediaPipelineRules()
   const processed = await applyMediaPipelineRules({
     buffer: raw,
-    mimeType: file.type,
+    mimeType: file.type || 'application/octet-stream',
     purpose,
     rules,
     decodeToWebp: input.decodeToWebp !== false,
     resize: input.resize !== false,
   })
-  let name = file.name || `upload-${Date.now()}.jpg`
+  let name = file.name || `upload-${Date.now()}`
   if (processed.extHint) {
     name = name.replace(/\.[^.]+$/, '') + `.${processed.extHint}`
   }
+  name = name.replace(/[^\w.\-]+/g, '-').replace(/-+/g, '-').slice(0, 120) || `upload-${randomUUID()}`
 
-  const tagId = tagRaw ? Number(tagRaw) : NaN
-  const doc = await payload.create({
-    collection: 'media',
-    data: {
-      alt,
-      folder,
-      purpose,
-      ...(categoryId != null && Number.isFinite(categoryId) ? { category: categoryId } : {}),
-      ...(Number.isFinite(tagId) ? { tags: [tagId] } : {}),
-    },
-    file: {
-      data: processed.data,
-      mimetype: processed.mimetype,
-      name,
-      size: processed.data.length,
-    },
-    context: { [STARFORGE_PIPELINE_APPLIED]: true },
-    overrideAccess: true,
+  const stored = await storeProcessedFile({
+    buffer: processed.data,
+    mimeType: processed.mimetype,
+    filename: name,
+    purpose,
+    visibility: input.formAttachment ? 'private' : 'public',
   })
 
-  const media = toResolvedMedia(doc as Parameters<typeof toResolvedMedia>[0], {
-    size: 'thumbnail',
-    preferWebp: true,
+  const doc = await insertMediaAsset({
+    alt,
+    purpose,
+    folder,
+    categoryId,
+    isPrivate: input.formAttachment === true,
+    tagIds: tagRaw ? [tagRaw] : [],
+    file: stored,
   })
-  return { id: String(doc.id), media }
+  return { id: doc.id, media: toResolvedMedia(doc, { size: 'thumbnail', preferWebp: true }) }
 }
 
 export type ReplaceMediaFileInput = {
@@ -133,34 +197,22 @@ export type ReplaceMediaFileInput = {
 }
 
 /**
- * Replace the file on an existing Media doc. Runs the same sharp rules as
- * ingest, then hands the buffer to Payload so `imageSizes` (thumbnail / card /
- * large) regenerate. Non-images pass through the pipeline unchanged.
- * Metadata (alt, tags, category, private) is left as stored.
+ * Replace the file on an existing asset. Runs the same sharp rules as ingest
+ * and regenerates thumbnail / card / large. Metadata stays on the same id.
  */
-export async function replaceMediaFile(
-  input: ReplaceMediaFileInput,
-): Promise<IngestImageResult> {
+export async function replaceMediaFile(input: ReplaceMediaFileInput): Promise<IngestImageResult> {
   const id = input.id.trim()
   if (!id) throw new Error('Missing media id.')
-  const { file } = input
-
-  const payload = await getPayload({ config })
-  const existing = await payload.findByID({
-    collection: 'media',
-    id,
-    depth: 0,
-    overrideAccess: true,
-  })
+  const existing = await getMediaAsset(id)
   if (!existing) throw new Error('Media not found.')
 
+  const { file } = input
   const purpose = normalizeMediaPurpose(existing.purpose)
-  const mimeType = resolveAdminLibraryMime(file.type, file.name)
   const raw = Buffer.from(await file.arrayBuffer())
   const rules = await getMediaPipelineRules()
   const processed = await applyMediaPipelineRules({
     buffer: raw,
-    mimeType,
+    mimeType: file.type || existing.mimeType || 'application/octet-stream',
     purpose,
     rules,
     decodeToWebp: input.decodeToWebp !== false,
@@ -170,26 +222,45 @@ export async function replaceMediaFile(
   if (processed.extHint) {
     name = name.replace(/\.[^.]+$/, '') + `.${processed.extHint}`
   }
+  name = name.replace(/[^\w.\-]+/g, '-').replace(/-+/g, '-').slice(0, 120) || `upload-${randomUUID()}`
 
-  const doc = await payload.update({
-    collection: 'media',
-    id,
-    data: {
-      alt: existing.alt,
-    },
-    file: {
-      data: processed.data,
-      mimetype: processed.mimetype,
-      name,
-      size: processed.data.length,
-    },
-    context: { [STARFORGE_PIPELINE_APPLIED]: true },
-    overrideAccess: true,
+  const stored = await storeProcessedFile({
+    buffer: processed.data,
+    mimeType: processed.mimetype,
+    filename: name,
+    purpose,
+    visibility: existing.private || existing.folder === 'forms' ? 'private' : 'public',
   })
+  const doc = await replaceMediaAssetFile(id, stored)
+  if (!doc) throw new Error('Media not found.')
 
-  const media = toResolvedMedia(doc as Parameters<typeof toResolvedMedia>[0], {
-    size: 'thumbnail',
-    preferWebp: true,
-  })
-  return { id: String(doc.id), media }
+  const storage = getMediaStorage()
+  const nextKeys = new Set(storageKeysOf(doc))
+  for (const key of storageKeysOf(existing)) {
+    if (nextKeys.has(key)) continue
+    try {
+      await storage.delete(key)
+    } catch {
+      // The new file is already the row. A leftover blob is not a failed replace.
+    }
+  }
+
+  return {
+    id: doc.id,
+    media: toResolvedMedia(doc, { size: 'thumbnail', preferWebp: true }),
+  }
+}
+
+/** Delete the document row, member ledger entry, and stored blobs. */
+export async function removeMediaAsset(id: string): Promise<void> {
+  const existing = await deleteMediaAsset(id)
+  if (!existing) return
+  const storage = getMediaStorage()
+  for (const key of storageKeysOf(existing)) {
+    try {
+      await storage.delete(key)
+    } catch {
+      // Row is already gone.
+    }
+  }
 }

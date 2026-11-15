@@ -1,9 +1,9 @@
 /**
  * Media object-storage port (SF-28 / SF-128).
  *
- * Local disk is the default adapter (Payload `staticDir`).
- * Spaces/S3 is selected by `STARFORGE_MEDIA_STORAGE=s3` + S3_* env —
- * same product Media library (no second media DB).
+ * Local disk is the default adapter (files under `/media`).
+ * Spaces/S3 is selected by `STARFORGE_MEDIA_STORAGE=s3` + S3_* env.
+ * Starforge writes go through this port. The Payload S3 plugin is not on the write path.
  */
 
 export type MediaStorageKind = 'local' | 's3'
@@ -18,10 +18,36 @@ export type MediaStorageInfo = {
   detail?: string
 }
 
+export type MediaPutInput = {
+  /** Basename only. The adapter rejects slashes and `..`. */
+  key: string
+  body: Buffer
+  mimeType: string
+  /**
+   * `private` forces a private object ACL on S3 (form attachments).
+   * Public library files use the env ACL (`S3_ACL`, default public-read).
+   */
+  visibility?: 'public' | 'private'
+}
+
+export type MediaPutResult = {
+  key: string
+  /** Site-relative (`/api/media/file/…`) or absolute (public S3/CDN). */
+  url: string
+}
+
+export type MediaReadResult = {
+  body: Buffer
+  mimeType: string | null
+}
+
 /**
- * Thin port — readiness for Core admin / upload gates.
- * Payload owns file I/O via local `staticDir` or `@payloadcms/storage-s3`.
+ * Blob port. Document rows live in `sf_media_*`; this only stores bytes.
  */
 export interface MediaStorage {
   info(): MediaStorageInfo
+  put(input: MediaPutInput): Promise<MediaPutResult>
+  delete(key: string): Promise<void>
+  /** Null when the object is missing. */
+  read(key: string): Promise<MediaReadResult | null>
 }
