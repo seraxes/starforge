@@ -2,6 +2,18 @@
 
 Member **persona / identity** layer. One `sf_profiles` row per account. Every other pack stores `userId` and resolves identity through `@/modules/profiles/api.server` — never copies names or avatars.
 
+## Owns
+
+Member **persona / identity** layer. One `sf_profiles` row per account. Field registry (`fields.ts`) for privacy, Persona projection, and special widgets; site-wide **default visibility** (Profiles Settings); locked display name, handle, avatar; `avatar_frame` / `cover_frame`; `ensureProfileFormSeeded` / `bootProfiles`; member editor, public `/u/[handle]`, and admin profile surfaces.
+
+## Consumes
+
+`product:media` (member upload ledger, `MemberMediaPicker` / `MediaPicker`, `ImageFrameEditor` / `FramedImage`). Protected Forms definition `profile` (`/admin/forms/profile`) for labels, order, required, section width %, and which inputs appear — same pattern as Events → `event-registration`.
+
+## Public door
+
+`@/modules/profiles/api` and `@/modules/profiles/api.server`. Other packs resolve identity through `@/modules/profiles/api.server` (`getPersonas`, `getPersona`, `getPersonaByHandle`, `getAgeYearsForEligibility`, `personaMediaSrc`).
+
 ## Contract for other modules
 
 ```ts

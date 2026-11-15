@@ -6,7 +6,7 @@ import { eq } from 'drizzle-orm'
 import { db, sfUsers } from '@/core/db'
 import { resolveFormCaptcha } from '@/core/security/captcha'
 import { formHasCaptchaField } from '@/modules/forms/api'
-import { FormWidget } from '@/modules/form/FormWidget'
+import { FormWidget } from '@/modules/form/api'
 import { getOwnProfileContact } from '@/modules/profiles/api.server'
 
 import { loadSubscriptionRegistrationFields } from '../registration-form'

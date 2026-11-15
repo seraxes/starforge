@@ -20,7 +20,7 @@ export default defineStarforgeModule({
     'product:profiles',
     'product:maps',
   ],
-  optionalRequires: ['product:email-manager'],
+  optionalRequires: ['product:email-manager', 'form'],
   boot: {
     importPath: '@/modules/events/boot',
     exportName: 'bootEvents',

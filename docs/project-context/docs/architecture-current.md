@@ -134,11 +134,19 @@ Shipped, do not re-plan: Mailer, PublishedContentCache, Redis client, MediaStora
 
 Still paper, and only when a consumer is actually being built: `LlmProvider`, `MediaAnalysisPort`. No stub port without a consumer.
 
+## Manifest edges (decided 2026-11-15)
+
+`requires` and `optionalRequires` both count for a legal public-door import. Hard `requires` still drives install and enable. See [decision](./decisions/2026-11-15-requires-optional.md) and the [glossary](./glossary.md).
+
+**Public door:** do not design a parallel pack API. Cross-module calls extend `@/modules/<id>/api` / `api.server`; private files stay inside the pack (`sf-architecture`, `sf-extend-existing`).
+
 ## Docs
 
 | Use for | Doc |
 | --- | --- |
 | This queue, routes, secrets, hero line | This file |
+| Glossary / agent index | [glossary](./glossary.md), [AGENTS.md](../../../AGENTS.md) |
+| Accepted decisions | [decisions/](./decisions/) |
 | Slice-by-slice Core finish | [core-finish-instructions](./core-finish-instructions.md) |
 | Layer placement | [platform-module-layers](./platform-module-layers.md) |
 | Commerce contract | [payments-cart-plan](./payments-cart-plan.md), [payments-merchant-plan](./payments-merchant-plan.md), `sf-payments-module.mdc` |

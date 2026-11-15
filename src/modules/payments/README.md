@@ -2,16 +2,23 @@
 
 Shared Starforge commerce: cart, checkout, VAT-proof orders/invoices, offline + online gateways.
 
-## Ownership
+## Owns
 
-- **This pack:** cart/orders/intents/invoices/**coupons**/settings admin + `@/modules/payments/api`
-- **Coupons:** `sf_pay_coupons` (+ redemptions). Code, amount or percent (`500` / `10%`), usage limit, optional `sourceModule`/`sourceId` scope. Applied in `startCheckout` — gateway charges the discounted total. Admin: `/admin/payments/coupons`. Not a separate promotions pack; not Events-local.
-- **Core `src/core/payments`:** Barion / Stripe / PayPal / manual / FiscalProvider (NAV) / BillingProvider (Billingo, Számlázz.hu)
-- **Email Manager:** `product:payments/*` triggers — never `getMailer()` here
-- **Consumers:** Events / Shop / Subscriptions / Ads — line sources + fulfillment hooks only; pass optional `couponCode` into `startCheckout`
-- **Premium merchants:** own gateway + billing keys (`/admin/payments/merchant`); settle to their bank; flat sub unlock; no % fee for now
-- **Collect stub:** `sf_pay_collect_entitlements` is frozen. When `product:subscriptions` is enabled, `hasCollectCapability` uses a resolver registered by Subscriptions (`registerCollectCapabilityResolver` → `payments.collect`). When off, the stub / ACL auto-grant stays. Payments must not import Subscriptions. Do not add plan tables under `sf_pay_*`.
-- **ASN currency:** Hero. Payments charges real money when someone buys that token. The balance, earn actions, and spend (services, subscriptions, selected events) stay out of `sf_pay_*`.
+- Cart / orders / intents / invoices / **coupons** / settings admin
+- Coupons: `sf_pay_coupons` (+ redemptions). Code, amount or percent (`500` / `10%`), usage limit, optional `sourceModule`/`sourceId` scope. Applied in `startCheckout` — gateway charges the discounted total. Admin: `/admin/payments/coupons`. Not a separate promotions pack; not Events-local.
+- Consumers: Events / Shop / Subscriptions / Ads — line sources + fulfillment hooks only; pass optional `couponCode` into `startCheckout`
+- Premium merchants: own gateway + billing keys (`/admin/payments/merchant`); settle to their bank; flat sub unlock; no % fee for now
+- Collect stub: `sf_pay_collect_entitlements` is frozen. When `product:subscriptions` is enabled, `hasCollectCapability` uses a resolver registered by Subscriptions (`registerCollectCapabilityResolver` → `payments.collect`). When off, the stub / ACL auto-grant stays. Payments must not import Subscriptions. Do not add plan tables under `sf_pay_*`.
+- ASN currency: Hero. Payments charges real money when someone buys that token. The balance, earn actions, and spend (services, subscriptions, selected events) stay out of `sf_pay_*`.
+
+## Consumes
+
+- Core `src/core/payments`: Barion / Stripe / PayPal / manual / FiscalProvider (NAV) / BillingProvider (Billingo, Számlázz.hu)
+- Email Manager: `product:payments/*` triggers — never `getMailer()` here
+
+## Public door
+
+`@/modules/payments/api`
 
 See [.cursor/rules/sf-payments-module.mdc](../../../.cursor/rules/sf-payments-module.mdc), [payments-cart-plan.md](../../../docs/project-context/docs/payments-cart-plan.md), [payments-merchant-plan.md](../../../docs/project-context/docs/payments-merchant-plan.md).
 

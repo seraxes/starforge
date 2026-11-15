@@ -21,7 +21,13 @@ export async function bootSubscriptions(): Promise<void> {
       ensureSubscriptionsExpiryJob,
       ensureSubscriptionsPaymentHook,
       ensureSubscriptionsPaymentHookReady,
+      resolveAudience,
     } = await import('./api')
+    const { registerMemberAudienceResolver } = await import('@/core/modules/member-audience')
+    registerMemberAudienceResolver(async (userId) => {
+      const audience = await resolveAudience(userId)
+      return { entitlementKeys: audience.entitlementKeys, groupIds: audience.groupIds }
+    })
     ensureSubscriptionsPaymentHook()
     await ensureSubscriptionsPaymentHookReady()
     ensureSubscriptionsExpiryJob()

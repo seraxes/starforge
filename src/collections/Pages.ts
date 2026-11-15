@@ -1,7 +1,7 @@
 import type { CollectionAfterChangeHook, CollectionAfterDeleteHook, CollectionConfig } from 'payload'
 
 import { invalidatePublishedPage } from '../core/content/revalidate'
-import { sfHtmlBodyField } from '../modules/rich-editor/payload/sfHtmlBodyField'
+import { sfHtmlBodyField } from '@/generated/module-payload-host'
 
 const revalidatePageAfterChange: CollectionAfterChangeHook = async ({ doc, previousDoc }) => {
   const slug = typeof doc?.slug === 'string' ? doc.slug : null

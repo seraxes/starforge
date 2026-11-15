@@ -2,6 +2,27 @@
 
 Events + venues + registration + ticket tiers + parties (`sf_venues` / `sf_events` / …).
 
+## Owns
+
+- Events + venues + registration + ticket tiers + parties (`sf_venues` / `sf_events` / …)
+- Categories, waitlist, door check-in, finite recurring series, layout particles
+- Event pricing / `quoteTierMajor`; seat hold and fulfillment on paid / fail / expire / refund (`payment-bridge.ts`)
+- Registration emails (`product:events/*` seeds + `emitEmailTrigger` / `enqueueEmailBroadcast`)
+- `ensureEventRegistrationFormSeeded`, `ensureEventsMapCatalog` (via `bootEvents`)
+
+## Consumes
+
+- **`product:payments`** — paid tickets via `payment-bridge.ts`; forward `couponCode` only (never discount in `quoteTierMajor`)
+- **Forms** — registration form definitions; required dependency; Events seeds `event-registration`
+- **`product:maps`** — venue Leaflet pin / TacMap catalog; Maps does not import Events
+- **Email Manager** — `emitEmailTrigger` / `enqueueEmailBroadcast`; never `getMailer()` from Events
+- **`product:subscriptions`** — `resolveAudience` for member / group tier prices; `events.manage` for organizer premium
+- Rich Editor (venue description), gallery media, one-click Register from profile
+
+## Public door
+
+`@/modules/events/api.server`
+
 ## Shipped
 
 - Admin: list (Add+ collapsed → filters → EB-style table) → `/admin/events/[id]` card mosaic (Apply / Save / Cancel)

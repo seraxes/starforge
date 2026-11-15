@@ -14,7 +14,7 @@ import {
   type LayoutBodyBackground,
   type LayoutBodyBackgroundFit,
 } from '@/core/modules/styles'
-import { MediaPicker } from '@/modules/media/api'
+import { MediaPicker } from '@/generated/module-media-host'
 
 import { useAdminToast } from '../admin-toast'
 import { InheritCopyRow } from '../layouts/layout-inherit-controls'

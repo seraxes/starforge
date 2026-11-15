@@ -14,6 +14,7 @@ export default defineStarforgeModule({
   version: '0.1.0',
   defaultEnabled: true,
   requires: ['product:payments', 'product:email-manager', 'product:forms', 'product:profiles'],
+  optionalRequires: ['form'],
   boot: {
     importPath: '@/modules/subscriptions/boot',
     exportName: 'bootSubscriptions',

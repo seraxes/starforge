@@ -2,6 +2,18 @@
 
 Shared **TipTap** content editor for Starforge module fields. Canonical storage is **sanitized HTML**.
 
+## Owns
+
+TipTap engine in this pack (`RichEditor`, sanitize, nodes). Presets `full` | `compact` | `email`. Settings: `/admin/rich-editor/settings`. Toggle: **Site Settings → Modules → Rich editor** (`product:rich-editor` / `richEditor`).
+
+## Consumes
+
+`MediaPicker` from `@/modules/media/api` — other packs pass it in; the editor file does not import the media module. **Email Manager** binds `preset="email"` with `MediaPicker`.
+
+## Public door
+
+`@/modules/rich-editor/api` · `@/modules/rich-editor/api.server` (server pages and saves: `isRichEditorEnabled`, `sanitizeRichHtml`, `sanitizeEmailHtml`).
+
 ## Bind from another module
 
 ```tsx

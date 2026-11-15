@@ -8,6 +8,18 @@ Required Media library pack (design-module-boundary **M5**).
 | Shared bind contract | `api.ts` (picker + pure helpers) · `api.server.ts` (`resolveMediaById`) |
 | Ports (storage, pipeline, analysis, actions) | `src/core/media` — Core hosts |
 
+## Owns
+
+Library + Settings admin UI (`admin/`, App Router shims under `/admin/media`). Shared bind contract: bind **`mediaId`** only — **MediaPicker** / **MemberMediaPicker** (`sf_media_owners`); no forked library UI. Pipeline rules in `sf_media_settings` (Media → Settings).
+
+## Consumes
+
+Ports (storage, pipeline, analysis, actions) in `src/core/media` — Core hosts.
+
+## Public door
+
+`@/modules/media/api` (picker + pure helpers) · `@/modules/media/api.server` (`resolveMediaById`). Client code must not import `api.server`.
+
 ## Image engine
 
 Decode / resize / WebP re-encode uses **sharp** (bundled libvips). No PHP GD, ImageMagick, or Jimp. `npm install` pulls the matching `@img/sharp-*` binary for the host OS.

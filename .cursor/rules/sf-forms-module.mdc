@@ -1,7 +1,7 @@
 ---
 description: Modular Forms — product modules own presets in categories; field editing only in Forms admin.
-globs: "**/*.{tsx,ts}"
-alwaysApply: true
+globs: "src/modules/{forms,events,profiles,payments,subscriptions}/**"
+alwaysApply: false
 ---
 
 # Starforge Forms — modular ownership

@@ -1,7 +1,7 @@
 ---
 description: Modular Payments — cart/orders/VAT/gateways live in product:payments; never fork Forms, Email, Media, or Profiles.
-globs: "**/*.{tsx,ts}"
-alwaysApply: true
+globs: "src/modules/{payments,events,subscriptions}/**"
+alwaysApply: false
 ---
 
 # Starforge Payments — modular ownership

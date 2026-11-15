@@ -120,29 +120,15 @@ describe('verify-module-boundaries', () => {
     }
   })
 
-  it('allowlist keeps the open Phase 2 findings and drops declared public edges', async () => {
+  it('allowlist is empty after stages 0–9', async () => {
     const raw = JSON.parse(await readFile(path.join(ROOT, 'scripts/module-boundary-allowlist.json'), 'utf8')) as {
       entries: Array<{ id: string; from: string; specifier: string }>
     }
     const ids = new Set(raw.entries.map((entry) => entry.id))
-    for (const id of ['H9', 'H10']) {
-      assert.ok(ids.has(id), `missing allowlist id ${id}`)
+    assert.equal(raw.entries.length, 0, 'stages 0–9 must leave the boundary allowlist empty')
+    for (const id of ['C1', 'C2', 'C3', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'H7', 'H8', 'H9', 'H10']) {
+      assert.equal(ids.has(id), false, `${id} must not remain on the allowlist`)
     }
-    assert.equal(
-      ids.has('C1'),
-      false,
-      'Stage 7 moved the events detail page; maps is imported through the public door',
-    )
-    assert.equal(ids.has('H3'), false, 'Stage 2A removed the Maps → Events rows')
-    assert.equal(ids.has('C2'), false, 'Stage 2B removed the Forms → Events cycle rows')
-    assert.equal(ids.has('H4'), false, 'Stage 2C removed the Payments → Subscriptions row')
-    assert.equal(ids.has('C3'), false, 'Stage 2C cut the payments ↔ subscriptions cycle')
-    assert.equal(ids.has('H6'), false, 'Stage 3 declared maps requires product:media')
-    assert.equal(ids.has('H7'), false, 'Stage 3 declared pwa requires product:media')
-    assert.equal(ids.has('H1'), false, 'Stage 4 moved Forms email starters onto the public door')
-    assert.equal(ids.has('H2'), false, 'Stage 4 moved Events email seed onto the public door')
-    assert.equal(ids.has('H5'), false, 'Stage 4 moved the profile map onto the maps public door')
-    assert.equal(ids.has('H8'), false, 'Stage 4 moved Events form ids onto the forms public door')
     const instrumentationRows = raw.entries.filter((entry) => entry.from === 'src/instrumentation.ts')
     assert.deepEqual(instrumentationRows, [], 'Stage 6 removed instrumentation pack imports')
     const mapsToEvents = raw.entries.filter(

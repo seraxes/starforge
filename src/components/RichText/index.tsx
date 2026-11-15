@@ -12,7 +12,7 @@ import {
 } from '@payloadcms/richtext-lexical/react'
 import React from 'react'
 
-import { RichContent } from '@/modules/rich-editor/api'
+import { RichContent } from '@/generated/module-rich-host'
 import type { Page } from '@/payload-types'
 
 type NodeTypes = DefaultNodeTypes

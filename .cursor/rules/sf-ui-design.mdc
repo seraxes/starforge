@@ -1,7 +1,7 @@
 ---
 description: Unified modular UI — copy Layouts/Events shell first; same-type controls same size/shape/color; no one-off skins.
 globs: "**/*.{tsx,css}"
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Starforge UI — unified & modular

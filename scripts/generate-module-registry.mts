@@ -48,6 +48,9 @@ const FRONTEND_MODULES_DIR = path.join(ROOT, 'src/app/(frontend)/(modules)')
 /** API handlers: URL stays `/api/…`. */
 const API_MODULES_DIR = path.join(ROOT, 'src/app/api/(modules)')
 const MODULE_STYLES_PATH = path.join(ROOT, 'src/generated/module-styles.ts')
+const MODULE_MEDIA_HOST_PATH = path.join(ROOT, 'src/generated/module-media-host.ts')
+const MODULE_RICH_HOST_PATH = path.join(ROOT, 'src/generated/module-rich-host.ts')
+const MODULE_PAYLOAD_HOST_PATH = path.join(ROOT, 'src/generated/module-payload-host.ts')
 const ROUTE_EXPORT_NAME = /^[A-Za-z_$][A-Za-z0-9_$]*$/
 const ROUTE_DYNAMIC = new Set(['auto', 'force-dynamic', 'error', 'force-static'])
 const ROUTE_RUNTIME = new Set(['nodejs', 'edge'])
@@ -1362,6 +1365,7 @@ export async function runHeroBoot(
   await writeAdminRouteShims(adminRouteDecls)
   await writeGeneratedRouteShims(generatedShims)
   await writeModuleStyles(styleImports)
+  await writeHostScaffolds(allowlistedEntries)
 
   console.log(
     `[modules:generate] Wrote ${path.relative(ROOT, OUT_PATH)} + ${path.relative(ROOT, OUT_SERVER_PATH)} (${allowlisted.length} ids, ${optionalParticles.length} optional particles, ${optionalAtoms.length} atoms, ${publicShellEntries.length} publicShell, ${proxyHookEntries.length} proxyHooks, ${orderedBoot.length} bootLoaders, hero=${hero.id}, heroFields=${hero.profileFields.length}, heroBoot=${hero.bootLiteral === 'null' ? 'no' : 'yes'}, ${schemaDecls.length} schemas, ${editorDecls.length} editors, ${adminNavModules.length} adminNav, ${adminDashboardDecls.length} adminDashboard, ${adminRouteDecls.length} adminRoutes, ${generatedShims.length} routeShims, ${hostPageDecls.length} hostPages, ${moduleDoorDecls.length} doors, ${styleImports.length} styles, ${settingsPanelDecls.length} settingsPanels, ${moduleMessagePacks.length} messagePacks)`,
@@ -1741,6 +1745,72 @@ ${segmentConfigLines(shim)}export { ${shim.names.join(', ')} } from ${jsonString
 `
     await writeFile(path.join(shim.appDir, shim.fileName), body, 'utf8')
   }
+}
+
+function hostScaffoldBanner(what: string): string {
+  return `/**
+ * ${ADMIN_SHIM_MARKER} — do not edit.
+ * ${what}
+ * App and host files import this scaffold instead of a pack path.
+ */
+`
+}
+
+async function writeHostScaffolds(entries: StarforgeModuleManifest[]): Promise<void> {
+  const ids = new Set(entries.map((entry) => entry.id))
+  const media = ids.has('product:media')
+    ? `export {
+  MediaPicker,
+  MediaLightbox,
+  mediaLightboxSrc,
+  MediaCategoryTree,
+} from '@/modules/media/api'
+export type { MediaPickerValue } from '@/modules/media/api'
+`
+    : `import type { ComponentType } from 'react'
+
+const missing = (() => null) as ComponentType<Record<string, unknown>>
+
+export const MediaPicker = missing
+export const MediaLightbox = missing
+export const MediaCategoryTree = missing
+export function mediaLightboxSrc(): string {
+  return ''
+}
+export type MediaPickerValue = { mediaId?: string }
+`
+  const rich = ids.has('product:rich-editor')
+    ? `export { RichContent } from '@/modules/rich-editor/api'
+`
+    : `export function RichContent(_props: { html?: string; className?: string }) {
+  return null
+}
+`
+  const payload = ids.has('product:rich-editor')
+    ? `export { sfHtmlBodyField } from '@/modules/rich-editor/payload/sfHtmlBodyField'
+`
+    : `import type { Field } from 'payload'
+
+export function sfHtmlBodyField(): Field {
+  return { name: 'body', type: 'textarea', localized: true }
+}
+`
+  await mkdir(path.dirname(MODULE_MEDIA_HOST_PATH), { recursive: true })
+  await writeFile(
+    MODULE_MEDIA_HOST_PATH,
+    `${hostScaffoldBanner('Media widgets for host admin screens. Present only when product:media is allowlisted.')}${media}`,
+    'utf8',
+  )
+  await writeFile(
+    MODULE_RICH_HOST_PATH,
+    `${hostScaffoldBanner('Public HTML body renderer. Present only when product:rich-editor is allowlisted.')}${rich}`,
+    'utf8',
+  )
+  await writeFile(
+    MODULE_PAYLOAD_HOST_PATH,
+    `${hostScaffoldBanner('Payload page body field. Present only when product:rich-editor is allowlisted.')}${payload}`,
+    'utf8',
+  )
 }
 
 async function writeModuleStyles(specs: string[]): Promise<void> {

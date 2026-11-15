@@ -27,7 +27,7 @@ import {
 } from '@/core/modules/particles/config'
 import { cssColorToColorInputValue, parseCssColorInput } from '@/core/modules/styles'
 import type { LayoutSlot, LayoutSlotConfig } from '@/core/modules/types'
-import { MediaPicker } from '@/modules/media/api'
+import { MediaPicker } from '@/generated/module-media-host'
 import { LocaleInput } from '@/core/localization/LocaleInput'
 
 import { useContentLocales } from './content-locales-context'

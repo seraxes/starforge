@@ -4,6 +4,23 @@
 
 Map particle + Core `MapProvider` (leaflet-osm) + closed live rooms (event tactical tool).
 
+## Owns
+
+- Map particle, TacMap live rooms (closed roster), and the room engine: rooms, admins, teams, roster, point/KML overlays; writes `sf_map_*` only
+- Admin `/admin/maps`; particles `map` and `live-map` (label **TacMap**) + event detail embed; Join / Leave session → GPS ingest
+- `replaceRoomRoster` and roster seeding slot (Events calls in; this pack does not import Events)
+
+## Consumes
+
+- Core `MapProvider` / `src/core/maps` (`getMapProvider`, Nominatim geocode)
+- Event catalog slot when Events has registered one (`listPublishedVenues`); RealtimePort `map:room:…:team:…` (same-team only)
+- Capacitor background shell `apps/asn-capacitor` is a Hero field client of this module
+
+## Public door
+
+- `@/modules/maps/api`
+- `@/modules/maps/api.server`
+
 ## v1 — static
 
 - Core port: `src/core/maps` (`getMapProvider`, Nominatim geocode)

@@ -28,12 +28,16 @@ Plans, periods, and entitlements. Payments charges and snapshots; this pack gran
 - **`product:media`** — plan `imageMediaId` via MediaPicker when wired in admin.
 - **Core ACL** — `addUserToGroup` / `removeUserFromGroup` / `listUserGroupOptions`. Does **not** write ACL permission rows or own the matrix UI.
 
+## Public door
+
+`@/modules/subscriptions/api`
+
 ## Access model (hybrid)
 
 | Surface | Mechanism |
 | --- | --- |
 | Pages, nav, modules, later NetSuite | Plan **access groups** → Core membership → existing ACL |
-| Ticket price, `payments.collect`, `events.manage` | **`hasEntitlement` / `resolveAudience`** |
+| Ticket price, `payments.collect`, `events.manage` | **`hasEntitlement` / `resolveAudience`**. Events does not import this pack. Boot registers the Core member-audience slot; Events reads `events.member` from it. |
 
 ## Built-in entitlement keys
 

@@ -1,0 +1,19 @@
+---
+description: Which Starforge doc wins — the live map over plans, preferences, and chat; how accepted decisions are recorded.
+alwaysApply: true
+---
+
+# Starforge — docs authority
+
+## Laws
+
+1. [architecture-current](../../docs/project-context/docs/architecture-current.md) is the live map. It wins over plans, preferences, and chat.
+2. Copy an accepted decision into the matching rule, the live map, and the owner README in the same change. Use the [decision template](../../docs/project-context/docs/decision-template.md).
+3. Leave open work marked open on the live map. Do not turn it into a rule.
+4. Plans stay history. They do not override the live map or the rules.
+
+## Quick check
+
+If a plan, audit, or chat message disagrees with the live map, follow the live map. If a decision lives only in chat or a plan, it is not accepted yet.
+
+Vocabulary: [glossary](../../docs/project-context/docs/glossary.md).

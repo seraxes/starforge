@@ -4,36 +4,26 @@ Shared automatic / conditional email pack. **Transport = Core Mailer** (Site Chr
 
 Also owns **paced broadcasts**: callers pass a template id + recipient rows; this pack batches (default 20) and waits (default 10 minutes) so a few hundred addresses are not blasted in one request. Future `product:campaigns` still owns newsletter lists/segments — this is the lightweight queue for admin-driven, caller-supplied audiences.
 
-## Requires
+## Owns
 
-- **`product:rich-editor`** — HTML template bodies use `RichEditor` with `preset="email"` + `sanitizeEmailHtml` (absolute image/link URLs on save). Pass `MediaPicker` from `@/modules/media/api` for image insert. Bind via `@/modules/rich-editor/api` (server sanitize: `api.server`). Not a marketing/MJML designer.
+Named triggers → rules + templates → `Mailer.send`. Paced broadcasts (template id + recipient rows; batch default 20, wait default 10 minutes). Thin `sf_email_sends` send log. Not Core Mailer transport; not `product:campaigns` newsletter lists/segments.
+
+## Consumes
+
+- **`product:rich-editor`** — HTML template bodies use `RichEditor` with `preset="email"` + `sanitizeEmailHtml` (absolute image/link URLs on save). Pass `MediaPicker` from `@/modules/media/api` for image insert. Bind via `@/modules/rich-editor/api` (server sanitize: `api.server`).
 - **`product:media`** — the template editor passes that pack’s `MediaPicker` into the rich editor.
+- **Core Mailer** — Site Chrome enable / provider / From; secrets in env.
 
-## Public API
+## Public door
+
+`@/modules/email-manager/api` and `@/modules/email-manager/api.server`:
 
 ```ts
 import { FORM_SUBMITTED_TRIGGER, listEmailTriggers } from '@/modules/email-manager/api'
 import { emitEmailTrigger, enqueueEmailBroadcast } from '@/modules/email-manager/api.server'
-
-await emitEmailTrigger({
-  triggerKey: FORM_SUBMITTED_TRIGGER,
-  payload: { formTitle: 'Contact', notifyAdmin: true, adminEmails: ['a@b.c'], payloadText: '…' },
-})
-
-await enqueueEmailBroadcast({
-  label: 'Event registrants — Demo',
-  templateId: 'tpl-…',
-  moduleCategory: 'events',
-  sourceKey: 'events:<eventId>',
-  recipients: [{ email: 'a@b.c', payload: { name: 'Ada', eventTitle: 'Demo' } }],
-})
 ```
 
-Soft-fails when the module is off, Chrome email is off, or SMTP/Resend secrets are missing.
-
-Forms success mail uses this pack only (`ensureFormsEmailStartersSeeded` creates admin + respondent conditional rules). Core Forms never falls back to `getMailer()`. Product packs never call `getMailer()` for bulk lists — use `enqueueEmailBroadcast`.
-
-**Broadcast rules:** dedupe addresses; hard cap 2000; refuse a second enqueue while the same `sourceKey` is `queued` / `running`; pace copied onto the broadcast row at enqueue; drain via JobRunner with durable `nextRunAt` (page load / enqueue calls `kickDueBroadcasts` because memory timers die on restart). Process boot calls `bootEmailManager` once: `ensureEmailBroadcastDrainJob` and one `kickDueBroadcasts`, only when the module toggle is on. A missing broadcast table does not fail boot.
+Soft-fails when the module is off, Chrome email is off, or SMTP/Resend secrets are missing. Forms success mail uses this pack only (`ensureFormsEmailStartersSeeded`); Core Forms never falls back to `getMailer()`. Product packs never call `getMailer()` for bulk lists — use `enqueueEmailBroadcast`. **Broadcast rules:** dedupe addresses; hard cap 2000; refuse a second enqueue while the same `sourceKey` is `queued` / `running`; pace copied onto the broadcast row at enqueue; drain via JobRunner with durable `nextRunAt` (`kickDueBroadcasts`); process boot calls `bootEmailManager` once (`ensureEmailBroadcastDrainJob` + `kickDueBroadcasts`) when the module toggle is on.
 
 ## Send log (D3)
 

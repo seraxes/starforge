@@ -251,13 +251,11 @@ export async function tierRequiresPayment(
   const userId = (extras?.userId || '').trim()
   if (userId) {
     try {
-      const { resolveAudience, ENTITLEMENT_KEYS } = await import(
-        '@/modules/subscriptions/api'
+      const { EVENTS_MEMBER_ENTITLEMENT, resolveMemberAudience } = await import(
+        '@/core/modules/member-audience'
       )
-      const audience = await resolveAudience(userId)
-      hasMemberEntitlement = audience.entitlementKeys.includes(
-        ENTITLEMENT_KEYS.eventsMember,
-      )
+      const audience = await resolveMemberAudience(userId)
+      hasMemberEntitlement = audience.entitlementKeys.includes(EVENTS_MEMBER_ENTITLEMENT)
       audienceGroupIds = audience.groupIds
     } catch {
       /* subscriptions off / missing */

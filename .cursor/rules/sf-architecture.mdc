@@ -34,11 +34,12 @@ Ads, Shop, Marketplace, Support, and Stream are this same tier when built: they 
 
 ## Install
 
-`requires` is the only edge list. Choosing an advanced module installs and enables its base dependencies. Do not turn a base module off while an enabled pack still requires it. Core stays on disk.
+Manifest edges are `requires` plus `optionalRequires`. Both count for a legal public-door import. Choosing an advanced module installs and enables its hard `requires`. Do not turn a base module off while an enabled pack still hard-requires it. Core stays on disk.
 
 ## Do
 
 - Money, intake, mail, media, or persona work extends the base owner. Advanced packs pass `sourceModule` and run their own fulfillment hooks.
+- Do not design a parallel pack API. New cross-module calls extend that pack’s existing public door (`@/modules/<id>/api`, `api.server`); private files stay inside the pack.
 - Hero data goes in `extensions` jsonb or a Hero table. Airsoft columns do not land on `sf_events_*` or `sf_pay_*`.
 - Site-wide vendor secrets stay in the env overlay. Per-merchant gateway keys stay in encrypted `sf_pay_merchant_credentials`.
 
@@ -47,6 +48,7 @@ Ads, Shop, Marketplace, Support, and Stream are this same tier when built: they 
 - Move Forms, Email Manager, Payments commerce, Media, or Profiles into `src/core`.
 - Use the old nickname "level-1 engines" to mean Core. That name meant these base modules.
 - Ship a second cart, form builder, media library, SMTP stack, or profile store inside an advanced module or Hero.
+- Invent a second module API surface beside the existing public door.
 - Put ASN currency, milsim sheets, or a project theme inside a base or advanced module.
 
 ## Quick check

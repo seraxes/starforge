@@ -19,11 +19,13 @@ Cross-check placement (`sf-architecture`), ownership (`sf-module-ownership`, For
 | Media pick | `product:media` / `MediaPicker` | Per-module libraries |
 | Commerce / system mail | `product:email-manager` (`emitEmailTrigger`; bulk → `enqueueEmailBroadcast`) | `getMailer()` from new packs; consumer-side mass send loops |
 | Admin settings chrome | Events / Layouts / Page Settings classes | One-off cards, micro inputs, left-aligned card actions |
+| Cross-module call | Owning pack’s public door (`@/modules/<id>/api`, `api.server`) | A parallel pack API, or importing `store` / `schema` / `actions` |
 
 ## Do
 
 - Open the nearest finished implementation in that area and copy its contract (keys, sync/hydrate, classes, API).
 - Extend shared helpers (`content-locale-keys`, sync/hydrate, module APIs) when a new owner joins an existing pattern.
+- Do not design a parallel pack API. New cross-module calls extend that pack’s existing public door (`api` / `api.server`); private files stay inside the pack.
 - Keep UI chrome (button labels) in module/Core message packs; keep editor-typed copy on the content-locale path when Localization already owns that control.
 
 ## Don’t
@@ -31,6 +33,7 @@ Cross-check placement (`sf-architecture`), ownership (`sf-module-ownership`, For
 - Ship a “simpler” sidecar that bypasses the area’s source of truth.
 - Persist long-term `*Locales` maps on entity documents when the area strips them to content-locale files.
 - Add a second CMP, form builder, media picker, or admin skin for the same concern.
+- Invent a second module API surface beside the existing public door.
 
 ## Quick check
 
