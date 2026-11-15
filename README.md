@@ -94,7 +94,7 @@ npm run dev
 | `db:core:migrate` | Apply Core migrations (CI / deploy) |
 | `db:core:push` | **Local scratch only** — never prod |
 | `payload:migrate` / `payload:migrate:create` | Payload `payload` schema |
-| `db:migrate` | Core Drizzle (`sf_*`) **then** Payload (`payload.*`), then verifies `sf_sessions` + `payload_locked_documents_rels.tags_id` + `categories_id` + `site_settings` Performance / Dashboard / feature columns |
+| `db:migrate` | Core Drizzle (`sf_*`) **then** Payload (`payload.*`), then verifies `sf_sessions` + `payload_locked_documents_rels.tags_id` + `categories_id` + `public.sf_site_settings` |
 
 **Always use `npm run db:migrate`** after pull / volume reset — it applies **both** Core and Payload. Running only `payload:migrate` leaves Better Auth tables (`sf_sessions`, …) missing.
 
@@ -130,7 +130,7 @@ npm run seed
 npm run dev
 ```
 
-`db:migrate` must print Core then Payload steps and end with a verification line for `sf_sessions` + `tags_id` + `categories_id` + `site_settings` Performance / Dashboard / feature columns. If any are missing, fix migrate before `seed` / `dev`.
+`db:migrate` must print Core then Payload steps and end with a verification line for `sf_sessions` + `tags_id` + `categories_id` + `public.sf_site_settings`. If any are missing, fix migrate before `seed` / `dev`.
 
 Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so cookies and CSRF stay consistent):
 
@@ -207,11 +207,11 @@ Global app admins open all Core admin. Members in a group with matrix grants (e.
 
 **PWA** (`/admin/pwa`, gated by Modules → **PWA** / `product:pwa`, opt-in) serves `/manifest.webmanifest` and registers a Serwist service worker (`public/sw.js`, production). Reuses Site Chrome name and Page Settings icons; knobs live in `sf_module_settings`.
 
-One Payload global (`site-settings`) holds synced site name, `primaryNavMenuId`, capability flags, and module toggles. Core admins edit Modules at **`/admin/settings`**. CMS editors can edit the same document under Payload **Globals → Site settings** (legacy `primaryNav` array is a fallback only).
+Core `sf_site_settings` (singleton `global`) holds synced site name, `primaryNavMenuId`, capability flags, and module toggles. Core admins edit them at **`/admin/settings`**. The Payload site-settings global is not registered. Legacy `primaryNav` is a read fallback copied once by migration `0043_site_settings`.
 
 | Field | Default | What it does |
 | --- | --- | --- |
-| Site name | `Starforge` | Owned by Site Chrome; synced to Payload for header/legacy |
+| Site name | `Starforge` | Owned by Site Chrome; synced into `sf_site_settings.site_name` |
 | Primary nav assignment | `main` | Which Nav menu set powers the public header (assignment only) |
 | Registration | on | Hide `/register` + reject signup when off |
 | Rich editor | on | Flag reserved for a future simpler mode (Lexical stays on Pages today) |
@@ -484,7 +484,7 @@ src/
     api/health/             # core health route
     api/me/                 # current app session
   collections/              # Payload content collections (Pages, Media, Users)
-  globals/SiteSettings.ts   # site name, primaryNavMenuId, feature toggles, modules
+  globals/SiteSettings.ts   # stub — settings moved to core/settings (sf_site_settings)
   components/               # SiteHeader + SiteNav + RichText (Lexical → JSX)
   modules/                  # extension modules (notice-bar) + catalog register
   core/
@@ -575,31 +575,4 @@ npm run dev
 11. **`Failed query` / `relation "payload.pages_rels" does not exist` (home `/` or published pages)** — SF-132 added `pages.tags`; Payload depth queries join `pages_rels`. Run `npm run db:migrate` (taxonomy + media-tags migrations). Push-era DB: volume reset, then migrate + seed.
 12. **`Failed query` / missing `tags_id` on `payload.payload_locked_documents_rels`** — Tags taxonomy requires that column for document locks. `npm run db:migrate` applies it (idempotent). If migrate previously failed mid-chain, pull latest, run `db:migrate` again, or volume-reset then migrate + seed.
 13. **`Failed query` / missing `categories_id` on `payload.payload_locked_documents_rels`** — Nested Media Categories registers the `categories` collection, so lock queries select `categories_id`. `npm run db:migrate` applies phase2 + an idempotent heal migration. Prefer migrate over `STARFORGE_PAYLOAD_PUSH=1`; if still missing after pull, volume-reset then migrate + seed (Windows sequences above).
-14. **`Failed query` selecting `form_rate_limit_*` / `published_cache_*` / `null_miss_ttl_sec` / `dashboard_*` / `feature_*` on `payload.site_settings` (CoreAdminLayout / `updateSiteSettings` / `ensureSiteSettingsDefaults`)** — Site Settings → Performance and Dashboard D0 knobs (`dashboard_refresh_interval_sec`, `dashboard_online_window_min`) must exist for Payload’s SELECT; older / journal-stuck DBs may be missing them. **Boot heal:** opening `/admin` (or any path that loads site settings) runs idempotent `ADD COLUMN IF NOT EXISTS` before Payload selects — so after `git pull`, **`npm run dev` alone** usually recovers. Prefer still running `npm run db:migrate` after pulls (CI / journal). Existing DB (no volume reset) — from repo root, Docker Postgres up:
-    - **CMD (dev-only recover):**
-      ```bat
-      cd /d C:\Users\Sera\Documents\GitHub\starforge
-      git pull
-      npm run dev
-      ```
-    - **PowerShell (dev-only recover):**
-      ```powershell
-      cd C:\Users\Sera\Documents\GitHub\starforge
-      git pull
-      npm run dev
-      ```
-    - **CMD (full migrate + verify):**
-      ```bat
-      cd /d C:\Users\Sera\Documents\GitHub\starforge
-      git pull
-      npm run db:migrate
-      npm run dev
-      ```
-    - **PowerShell (full migrate + verify):**
-      ```powershell
-      cd C:\Users\Sera\Documents\GitHub\starforge
-      git pull
-      npm run db:migrate
-      npm run dev
-      ```
-    Hard-refresh `/admin` after restart. If columns are still missing, run `db:migrate` or volume-reset then migrate + seed (Windows sequences above).
+14. **`sf_site_settings` missing / site settings save fails** — Modules, performance knobs, and `primaryNavMenuId` live on Core `public.sf_site_settings` (migration `0043_site_settings`), not the Payload global. Run `npm run db:migrate` (Core then Payload, then an idempotent copy from `payload.site_settings` when that table still has the old row). Opening `/admin` does not ALTER Payload columns anymore. If the table is still missing, volume-reset then migrate + seed.

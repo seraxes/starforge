@@ -7,13 +7,12 @@
  * Payload stays the content manager. This port makes those reads swappable later.
  * It does not add a second CMS or change `/cms` editorial UI.
  *
- * Remaining `getPayload()` callers (not moved in this slice — stop here):
+ * Remaining `getPayload()` callers (settings already moved to `sf_site_settings`):
  * - `src/core/media/*` — library, resolve, ingest, form-upload, category-store
- * - `src/core/settings/index.ts` — site settings global
  * - `src/core/nav/store.ts` — admin page-bind picker, seed / migrate helpers
  * - `src/core/cms-bridge/*` — session + user bridge (`index`, `payload-session`)
  * - `src/app/api/cms/exchange/route.ts` — CMS exchange
- * - `src/seed.ts` — seed script
+ * - `src/seed.ts` — pages seed
  */
 
 import 'server-only'

@@ -1,8 +1,6 @@
-import { getPayload } from 'payload'
 import { cache } from 'react'
 
-import config from '@payload-config'
-
+import { invalidateSiteSettings } from '@/core/content/revalidate'
 import {
   contentCacheTags,
   getPublishedContentCache,
@@ -54,20 +52,16 @@ import {
 } from './module-toggles'
 import {
   navHasPageLinks,
-  navItemsToCustomInputs,
   resolveNavItems,
   type RawNavRow,
 } from './nav'
-import { ensureSiteSettingsSchemaHealed } from './heal-site-settings-schema'
+import { readSiteSettingsRow, writeSiteSettingsRow, type SiteSettingsRow } from './store'
 
 export type { FeatureFlags, ModuleToggleMap, NavItem, NavItemInput, SiteSettingsData }
 export type { RawNavRow }
 export {
   ensureSiteSettingsSchemaHealed,
   healSiteSettingsSchema,
-  SITE_SETTINGS_HEAL_VERIFY_COLUMNS,
-  SITE_SETTINGS_SCHEMA_HEAL_REVISION,
-  SITE_SETTINGS_SCHEMA_HEAL_SQL,
 } from './heal-site-settings-schema'
 export type { SiteSettingsSchemaHealResult } from './heal-site-settings-schema'
 export {
@@ -179,6 +173,44 @@ type SiteSettingsDoc = {
   moduleToggles?: Array<{ moduleId?: string | null; enabled?: boolean | null }> | null
 }
 
+function asToggleRows(raw: unknown): SiteSettingsDoc['moduleToggles'] {
+  if (Array.isArray(raw)) return raw as SiteSettingsDoc['moduleToggles']
+  if (raw && typeof raw === 'object') {
+    return Object.entries(raw as Record<string, unknown>).map(([moduleId, enabled]) => ({
+      moduleId,
+      enabled: enabled !== false && enabled !== 'false' && enabled !== 0,
+    }))
+  }
+  return []
+}
+
+function asNavRows(raw: unknown): RawNavRow[] {
+  return Array.isArray(raw) ? (raw as RawNavRow[]) : []
+}
+
+function rowToDoc(row: SiteSettingsRow): SiteSettingsDoc {
+  return {
+    siteName: row.siteName,
+    primaryNavMenuId: row.primaryNavMenuId,
+    adminAutosaveDebounceMs: row.adminAutosaveDebounceMs,
+    formRateLimitMax: row.formRateLimitMax,
+    formRateLimitWindowSec: row.formRateLimitWindowSec,
+    publishedCacheEnabled: row.publishedCacheEnabled,
+    publishedCacheTtlSec: row.publishedCacheTtlSec,
+    nullMissTtlSec: row.nullMissTtlSec,
+    dashboardRefreshIntervalSec: row.dashboardRefreshIntervalSec,
+    dashboardOnlineWindowMin: row.dashboardOnlineWindowMin,
+    realtimeEnabled: row.realtimeEnabled,
+    primaryNav: asNavRows(row.legacyPrimaryNav),
+    featureRegistration: row.featureRegistration,
+    featureRichEditor: row.featureRichEditor,
+    featurePosts: row.featurePosts,
+    featureModules: row.featureModules,
+    featureDraftPreview: row.featureDraftPreview,
+    moduleToggles: asToggleRows(row.moduleToggles),
+  }
+}
+
 /** Push Performance cache knobs into the sync snapshot used by cache adapters. */
 function syncPublishedCacheRuntime(settings: SiteSettingsData): void {
   setPublishedCacheRuntimeConfig({
@@ -207,6 +239,19 @@ function normalizeFlags(doc: SiteSettingsDoc | null | undefined): FeatureFlags {
     modules: doc.featureModules ?? DEFAULT_FEATURE_FLAGS.modules,
     draftPreview: doc.featureDraftPreview ?? DEFAULT_FEATURE_FLAGS.draftPreview,
   }
+}
+
+function fallbackSettings(): SiteSettingsData {
+  const defaults: SiteSettingsData = {
+    ...DEFAULT_SITE_SETTINGS,
+    features: { ...DEFAULT_FEATURE_FLAGS },
+    primaryNav: DEFAULT_PRIMARY_NAV.map((item) => ({ ...item })),
+    primaryNavMenuId: DEFAULT_PRIMARY_NAV_MENU_ID,
+    moduleToggles: {},
+  }
+  syncPublishedCacheRuntime(defaults)
+  syncRealtimeRuntime(defaults)
+  return defaults
 }
 
 export function normalizeSiteSettings(
@@ -264,19 +309,16 @@ export function normalizeSiteSettings(
 }
 
 /**
- * Prefer Nav manager menu set; fall back to legacy Payload primaryNav rows.
- * Passes a settings snapshot (without resolved nav) so module link types can
- * honor Modules on/off without re-entering getSiteSettings.
+ * Prefer Nav manager menu set; fall back to legacy primaryNav rows copied once
+ * from Payload. Passes a settings snapshot (without resolved nav) so module
+ * link types can honor Modules on/off without re-entering getSiteSettings.
  */
 async function resolvePrimaryNavForDoc(doc: SiteSettingsDoc): Promise<NavItem[]> {
   const menuId = normalizePrimaryNavMenuId(doc.primaryNavMenuId)
   const settingsForModules = normalizeSiteSettings(doc, [])
   try {
     const fromMenu = await resolveNavMenuItems(menuId, settingsForModules)
-    // Non-default fallbacks from resolveNavMenuItems still count as usable.
     if (fromMenu.length > 0) {
-      // If menu resolve returned only the hard-coded DEFAULT_PRIMARY_NAV and
-      // legacy rows exist with page links, prefer legacy once — then seed owns migration.
       const legacy = resolveNavItems(doc.primaryNav)
       const menuLooksLikeDefaults =
         fromMenu.length === DEFAULT_PRIMARY_NAV.length &&
@@ -298,47 +340,39 @@ async function resolvePrimaryNavForDoc(doc: SiteSettingsDoc): Promise<NavItem[]>
 
 async function loadSiteSettingsUncached(): Promise<SiteSettingsData> {
   try {
-    // Boot heal: ADD missing select columns before Payload findGlobal
-    // (npm run dev alone — no db:migrate required for dashboard_* / feature_*).
-    await ensureSiteSettingsSchemaHealed()
-    const payload = await getPayload({ config })
-    const doc = (await payload.findGlobal({
-      slug: 'site-settings',
-      depth: 1,
-      // Public chrome + flags; global read access is open.
-      overrideAccess: false,
-    })) as SiteSettingsDoc
+    const row = await readSiteSettingsRow()
+    if (!row) {
+      try {
+        const fallback = {
+          ...DEFAULT_SITE_SETTINGS,
+          features: { ...DEFAULT_FEATURE_FLAGS },
+          primaryNav: [] as NavItem[],
+          primaryNavMenuId: DEFAULT_PRIMARY_NAV_MENU_ID,
+          moduleToggles: {},
+        }
+        const fromMenu = await resolveNavMenuItems(DEFAULT_NAV_MENU_ID, fallback)
+        const resolved = { ...fallback, primaryNav: fromMenu }
+        syncPublishedCacheRuntime(resolved)
+        syncRealtimeRuntime(resolved)
+        return resolved
+      } catch {
+        return fallbackSettings()
+      }
+    }
 
+    const doc = rowToDoc(row)
     const primaryNav = await resolvePrimaryNavForDoc(doc)
     return normalizeSiteSettings(doc, primaryNav)
   } catch {
-    try {
-      const fallbackSettings = {
-        ...DEFAULT_SITE_SETTINGS,
-        features: { ...DEFAULT_FEATURE_FLAGS },
-        primaryNav: [] as NavItem[],
-        primaryNavMenuId: DEFAULT_PRIMARY_NAV_MENU_ID,
-        moduleToggles: {},
-      }
-      const fromMenu = await resolveNavMenuItems(DEFAULT_NAV_MENU_ID, fallbackSettings)
-      return { ...fallbackSettings, primaryNav: fromMenu }
-    } catch {
-      return {
-        ...DEFAULT_SITE_SETTINGS,
-        features: { ...DEFAULT_FEATURE_FLAGS },
-        primaryNav: DEFAULT_PRIMARY_NAV.map((i) => ({ ...i })),
-        primaryNavMenuId: DEFAULT_PRIMARY_NAV_MENU_ID,
-        moduleToggles: {},
-      }
-    }
+    return fallbackSettings()
   }
 }
 
 /**
- * Load site settings (Payload global) for public chrome / flags.
+ * Load site settings (`sf_site_settings`) for public chrome / flags.
  * Cross-request cache via published-content cache (Next tags; Redis later);
- * per-request dedupe via React `cache`. Depth 1 resolves page → slug for nav.
- * Falls back to defaults if Payload/global is unavailable.
+ * per-request dedupe via React `cache`.
+ * Falls back to defaults when the Core row is unavailable.
  */
 export const getSiteSettings = cache(async (): Promise<SiteSettingsData> => {
   return getPublishedContentCache().getCached(
@@ -402,168 +436,140 @@ export type UpdateSiteSettingsInput = {
   /** RealtimePort SSE / publish on/off; Site Settings → Performance. */
   realtimeEnabled?: boolean
   /**
-   * Legacy: resolved public nav (label + href) — written as custom-URL rows.
-   * Prefer Nav manager (`sf_nav_menus`) + `primaryNavMenuId`.
+   * Accepted for callers. Legacy primary nav is not written.
+   * The copied Payload array stays a read fallback.
    */
   primaryNav?: NavItem[]
-  /** Legacy: full Payload nav rows (page relationships and/or custom URLs). */
+  /** Accepted for callers. Legacy primary nav is not written. */
   primaryNavInputs?: NavItemInput[]
-  /** When true, leave legacy `primaryNav` array unchanged on the global. */
+  /** Accepted for callers. Legacy primary nav is never rewritten. */
   keepLegacyPrimaryNav?: boolean
   features: FeatureFlags
   /** Per-module / atom runtime toggles (P0). */
   moduleToggles?: ModuleToggleMap
 }
 
-function toPayloadNavData(input: UpdateSiteSettingsInput): NavItemInput[] {
-  if (input.primaryNavInputs && input.primaryNavInputs.length > 0) {
-    return input.primaryNavInputs
-  }
-  return navItemsToCustomInputs(input.primaryNav ?? [])
-}
-
 /**
- * Upsert the Payload `site-settings` global (used by core admin + seed).
- * Requires overrideAccess so core admins do not need a CMS session.
+ * Upsert Core `sf_site_settings` (core admin + seed + Site Chrome siteName sync).
+ * Invalidates the site-settings cache tag after a successful write.
  */
 export async function updateSiteSettings(input: UpdateSiteSettingsInput): Promise<SiteSettingsData> {
+  const existing = await readSiteSettingsRow()
+  const existingDoc = existing ? rowToDoc(existing) : null
   const siteName = input.siteName.trim() || DEFAULT_SITE_NAME
   const primaryNavMenuId = normalizePrimaryNavMenuId(
-    input.primaryNavMenuId ?? DEFAULT_PRIMARY_NAV_MENU_ID,
+    input.primaryNavMenuId ?? existingDoc?.primaryNavMenuId ?? DEFAULT_PRIMARY_NAV_MENU_ID,
   )
-  const moduleToggles = input.moduleToggles ?? {}
+  const moduleToggles =
+    input.moduleToggles ??
+    (existingDoc ? normalizeModuleToggles(existingDoc.moduleToggles) : {})
 
-  await ensureSiteSettingsSchemaHealed()
-  const payload = await getPayload({ config })
-
-  const data: Record<string, unknown> = {
+  const row = await writeSiteSettingsRow({
     siteName,
     primaryNavMenuId,
+    adminAutosaveDebounceMs:
+      input.adminAutosaveDebounceMs !== undefined
+        ? clampAdminAutosaveDebounceMs(input.adminAutosaveDebounceMs)
+        : clampAdminAutosaveDebounceMs(existingDoc?.adminAutosaveDebounceMs),
+    formRateLimitMax:
+      input.formRateLimitMax !== undefined
+        ? clampFormRateLimitMax(input.formRateLimitMax)
+        : clampFormRateLimitMax(existingDoc?.formRateLimitMax),
+    formRateLimitWindowSec:
+      input.formRateLimitWindowSec !== undefined
+        ? clampFormRateLimitWindowSec(input.formRateLimitWindowSec)
+        : clampFormRateLimitWindowSec(existingDoc?.formRateLimitWindowSec),
+    publishedCacheEnabled:
+      input.publishedCacheEnabled !== undefined
+        ? coercePublishedCacheEnabled(input.publishedCacheEnabled)
+        : coercePublishedCacheEnabled(existingDoc?.publishedCacheEnabled),
+    publishedCacheTtlSec:
+      input.publishedCacheTtlSec !== undefined
+        ? clampPublishedCacheTtlSec(input.publishedCacheTtlSec)
+        : clampPublishedCacheTtlSec(existingDoc?.publishedCacheTtlSec),
+    nullMissTtlSec:
+      input.nullMissTtlSec !== undefined
+        ? clampNullMissTtlSec(input.nullMissTtlSec)
+        : clampNullMissTtlSec(existingDoc?.nullMissTtlSec),
+    dashboardRefreshIntervalSec:
+      input.dashboardRefreshIntervalSec !== undefined
+        ? clampDashboardRefreshIntervalSec(input.dashboardRefreshIntervalSec)
+        : clampDashboardRefreshIntervalSec(existingDoc?.dashboardRefreshIntervalSec),
+    dashboardOnlineWindowMin:
+      input.dashboardOnlineWindowMin !== undefined
+        ? clampDashboardOnlineWindowMin(input.dashboardOnlineWindowMin)
+        : clampDashboardOnlineWindowMin(existingDoc?.dashboardOnlineWindowMin),
+    realtimeEnabled:
+      input.realtimeEnabled !== undefined
+        ? coerceRealtimeEnabled(input.realtimeEnabled)
+        : coerceRealtimeEnabled(existingDoc?.realtimeEnabled),
     featureRegistration: input.features.registration,
     featureRichEditor: input.features.richEditor,
     featurePosts: input.features.posts,
     featureModules: input.features.modules,
     featureDraftPreview: input.features.draftPreview,
     moduleToggles: moduleTogglesToPayloadRows(moduleToggles),
-  }
+  })
 
-  if (input.adminAutosaveDebounceMs !== undefined) {
-    data.adminAutosaveDebounceMs = clampAdminAutosaveDebounceMs(input.adminAutosaveDebounceMs)
-  }
-  if (input.formRateLimitMax !== undefined) {
-    data.formRateLimitMax = clampFormRateLimitMax(input.formRateLimitMax)
-  }
-  if (input.formRateLimitWindowSec !== undefined) {
-    data.formRateLimitWindowSec = clampFormRateLimitWindowSec(input.formRateLimitWindowSec)
-  }
-  if (input.publishedCacheEnabled !== undefined) {
-    data.publishedCacheEnabled = coercePublishedCacheEnabled(input.publishedCacheEnabled)
-  }
-  if (input.publishedCacheTtlSec !== undefined) {
-    data.publishedCacheTtlSec = clampPublishedCacheTtlSec(input.publishedCacheTtlSec)
-  }
-  if (input.nullMissTtlSec !== undefined) {
-    data.nullMissTtlSec = clampNullMissTtlSec(input.nullMissTtlSec)
-  }
-  if (input.dashboardRefreshIntervalSec !== undefined) {
-    data.dashboardRefreshIntervalSec = clampDashboardRefreshIntervalSec(
-      input.dashboardRefreshIntervalSec,
-    )
-  }
-  if (input.dashboardOnlineWindowMin !== undefined) {
-    data.dashboardOnlineWindowMin = clampDashboardOnlineWindowMin(
-      input.dashboardOnlineWindowMin,
-    )
-  }
-  if (input.realtimeEnabled !== undefined) {
-    data.realtimeEnabled = coerceRealtimeEnabled(input.realtimeEnabled)
-  }
-
-  if (!input.keepLegacyPrimaryNav) {
-    data.primaryNav = toPayloadNavData(input)
-  }
-
-  // Cast: Payload generated types lag until `payload generate:types` after schema add.
-  const doc = (await payload.updateGlobal({
-    slug: 'site-settings',
-    data,
-    depth: 1,
-    overrideAccess: true,
-  })) as SiteSettingsDoc
-
+  const doc = rowToDoc(row)
   const primaryNav = await resolvePrimaryNavForDoc(doc)
-  return normalizeSiteSettings(doc, primaryNav)
+  const normalized = normalizeSiteSettings(doc, primaryNav)
+  await invalidateSiteSettings()
+  return normalized
 }
 
-/** Ensure the global exists with sensible defaults (idempotent). */
+/** Ensure the Core row exists with sensible defaults (idempotent). */
 export async function ensureSiteSettingsDefaults(): Promise<SiteSettingsData> {
   try {
-    // Before findGlobal/updateGlobal — heal missing dashboard_* / Performance columns.
-    await ensureSiteSettingsSchemaHealed()
-    const payload = await getPayload({ config })
-    const existing = (await payload.findGlobal({
-      slug: 'site-settings',
-      depth: 1,
-      overrideAccess: true,
-    })) as SiteSettingsDoc & { id?: unknown }
+    const existing = await readSiteSettingsRow()
+    const doc = existing ? rowToDoc(existing) : null
 
-    const hasName = typeof existing?.siteName === 'string' && existing.siteName.trim()
-    const hasMenuId =
-      typeof existing?.primaryNavMenuId === 'string' && existing.primaryNavMenuId.trim()
-
-    // Move leftover Payload primaryNav rows into sf_nav_menus Main when empty.
-    try {
-      const { migrateLegacyPrimaryNavToMain } = await import('@/core/nav/store')
-      await migrateLegacyPrimaryNavToMain(existing.primaryNav)
-    } catch {
-      // Table may not exist yet (before db:core:push).
+    if (doc?.primaryNav && doc.primaryNav.length > 0) {
+      try {
+        const { migrateLegacyPrimaryNavToMain } = await import('@/core/nav/store')
+        await migrateLegacyPrimaryNavToMain(doc.primaryNav)
+      } catch {
+        // Table may not exist yet (before db:migrate).
+      }
     }
 
-    const existingToggles = normalizeModuleToggles(existing.moduleToggles)
+    const hasName = typeof doc?.siteName === 'string' && doc.siteName.trim()
+    const hasMenuId =
+      typeof doc?.primaryNavMenuId === 'string' && doc.primaryNavMenuId.trim()
+    const existingToggles = normalizeModuleToggles(doc?.moduleToggles)
     const missing = mergeMissingCatalogModuleDefaults(existingToggles)
     const repaired = repairCatalogModuleDefaultsOnce(missing.toggles)
     const mergedToggles = repaired.toggles
     const togglesChanged = missing.changed || repaired.changed
 
-    if (hasName && hasMenuId) {
-      if (togglesChanged) {
-        const { invalidateSiteSettings } = await import('@/core/content/revalidate')
-        const updated = await updateSiteSettings({
-          siteName: String(existing.siteName).trim(),
-          primaryNavMenuId: String(existing.primaryNavMenuId).trim(),
-          keepLegacyPrimaryNav: true,
-          features: normalizeFlags(existing),
-          moduleToggles: mergedToggles,
-        })
-        await invalidateSiteSettings()
-        return updated
-      }
-      const primaryNav = await resolvePrimaryNavForDoc(existing)
-      return normalizeSiteSettings(existing, primaryNav)
+    if (existing && hasName && hasMenuId && !togglesChanged) {
+      const primaryNav = await resolvePrimaryNavForDoc(doc!)
+      return normalizeSiteSettings(doc, primaryNav)
     }
 
-    const { invalidateSiteSettings } = await import('@/core/content/revalidate')
-    const updated = await updateSiteSettings({
-      siteName: hasName ? String(existing.siteName).trim() : DEFAULT_SITE_NAME,
+    return updateSiteSettings({
+      siteName: hasName ? String(doc?.siteName).trim() : DEFAULT_SITE_NAME,
       primaryNavMenuId: hasMenuId
-        ? String(existing.primaryNavMenuId).trim()
+        ? String(doc?.primaryNavMenuId).trim()
         : DEFAULT_PRIMARY_NAV_MENU_ID,
       keepLegacyPrimaryNav: true,
-      features: normalizeFlags(existing),
+      features: normalizeFlags(doc),
       moduleToggles: mergedToggles,
     })
-    await invalidateSiteSettings()
-    return updated
   } catch {
     const missing = mergeMissingCatalogModuleDefaults({})
     const repaired = repairCatalogModuleDefaultsOnce(missing.toggles)
-    return updateSiteSettings({
-      siteName: DEFAULT_SITE_NAME,
-      primaryNavMenuId: DEFAULT_PRIMARY_NAV_MENU_ID,
-      keepLegacyPrimaryNav: true,
-      features: { ...DEFAULT_FEATURE_FLAGS },
-      moduleToggles: repaired.toggles,
-    })
+    try {
+      return await updateSiteSettings({
+        siteName: DEFAULT_SITE_NAME,
+        primaryNavMenuId: DEFAULT_PRIMARY_NAV_MENU_ID,
+        keepLegacyPrimaryNav: true,
+        features: { ...DEFAULT_FEATURE_FLAGS },
+        moduleToggles: repaired.toggles,
+      })
+    } catch {
+      return fallbackSettings()
+    }
   }
 }
 
@@ -579,13 +585,10 @@ export async function seedPrimaryNavFromPages(
   )
 
   try {
-    const payload = await getPayload({ config })
-    const existing = (await payload.findGlobal({
-      slug: 'site-settings',
-      depth: 1,
-      overrideAccess: true,
-    })) as SiteSettingsDoc
-    await migrateLegacyPrimaryNavToMain(existing.primaryNav)
+    const existing = await readSiteSettingsRow()
+    if (existing) {
+      await migrateLegacyPrimaryNavToMain(rowToDoc(existing).primaryNav)
+    }
   } catch {
     // Ignore — seedMainNavFromPages still runs.
   }
@@ -593,57 +596,30 @@ export async function seedPrimaryNavFromPages(
   const seeded = await seedMainNavFromPages(entries)
 
   try {
-    const payload = await getPayload({ config })
-    const existing = (await payload.findGlobal({
-      slug: 'site-settings',
-      depth: 0,
-      overrideAccess: true,
-    })) as SiteSettingsDoc
-
-    const toggles = normalizeModuleToggles(existing.moduleToggles)
-    // Ensure Primary nav module is on so Core admin shows the Nav link.
+    const existing = await readSiteSettingsRow()
+    const doc = existing ? rowToDoc(existing) : null
+    const toggles = normalizeModuleToggles(doc?.moduleToggles)
     if (typeof toggles[MODULE_IDS.primaryNav] !== 'boolean') {
       toggles[MODULE_IDS.primaryNav] = true
     }
 
     await updateSiteSettings({
       siteName:
-        typeof existing.siteName === 'string' && existing.siteName.trim()
-          ? existing.siteName.trim()
+        typeof doc?.siteName === 'string' && doc.siteName.trim()
+          ? doc.siteName.trim()
           : DEFAULT_SITE_NAME,
       primaryNavMenuId: DEFAULT_PRIMARY_NAV_MENU_ID,
       keepLegacyPrimaryNav: true,
-      features: normalizeFlags(existing),
+      features: normalizeFlags(doc),
       moduleToggles: toggles,
     })
   } catch {
-    // Settings global may be unavailable; menu seed still applied.
+    // Settings row may be unavailable; menu seed still applied.
   }
 
-  const settingsSnap = await getSiteSettingsUncached()
+  const settingsSnap = await loadSiteSettingsUncached()
   const resolved = await resolveNavMenuItems(DEFAULT_NAV_MENU_ID, settingsSnap)
   return { updated: seeded.updated, primaryNav: resolved }
-}
-
-async function getSiteSettingsUncached(): Promise<SiteSettingsData> {
-  try {
-    const payload = await getPayload({ config })
-    const doc = (await payload.findGlobal({
-      slug: 'site-settings',
-      depth: 1,
-      overrideAccess: true,
-    })) as SiteSettingsDoc
-    const primaryNav = await resolvePrimaryNavForDoc(doc)
-    return normalizeSiteSettings(doc, primaryNav)
-  } catch {
-    return {
-      ...DEFAULT_SITE_SETTINGS,
-      features: { ...DEFAULT_FEATURE_FLAGS },
-      primaryNav: DEFAULT_PRIMARY_NAV.map((i) => ({ ...i })),
-      primaryNavMenuId: DEFAULT_PRIMARY_NAV_MENU_ID,
-      moduleToggles: {},
-    }
-  }
 }
 
 /**
@@ -661,7 +637,6 @@ export function isParticleModuleEnabled(
   const id = moduleId.trim()
   if (!id) return false
   if (REQUIRED_MODULE_IDS.has(id)) return true
-  // Install allowlist — packs not in starforge.modules.json stay off.
   if (!isModuleAllowlisted(id)) return false
 
   const usesLegacyModulesFlag = options?.featureFlag === 'modules'
@@ -677,4 +652,3 @@ export function isAtomModuleEnabled(settings: SiteSettingsData, atomType: string
   if (!isModuleAllowlisted(toggleId)) return false
   return isModuleToggleEnabled(settings, toggleId, { defaultEnabled: true })
 }
-

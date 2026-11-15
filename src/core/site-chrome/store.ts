@@ -129,7 +129,7 @@ async function loadSiteChromeUncached(): Promise<SiteChromeLoadResult> {
     // Table may not exist yet — fall through.
   }
 
-  // Prefer Payload site name when chrome row is missing (legacy sync).
+  // Prefer Core site settings name when the chrome row is missing.
   let siteName = DEFAULT_SITE_CHROME.siteName
   try {
     const { getSiteSettings } = await import('@/core/settings')
@@ -201,8 +201,8 @@ async function persistSiteChrome(input: Partial<SiteChromeDocument>): Promise<Si
 
   publishLiveSiteChrome(normalized)
 
-  // Keep Payload site-settings.siteName in sync only when the name actually changed.
-  // Offline toggles must not touch getPayload() — that path has wedged autosave.
+  // Keep sf_site_settings.siteName in sync only when the name actually changed.
+  // Offline toggles stay on this Chrome write and do not touch Payload.
   if (normalized.siteName !== current.chrome.siteName) {
     try {
       const { getSiteSettings, updateSiteSettings } = await import('@/core/settings')

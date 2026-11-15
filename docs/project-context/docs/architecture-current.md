@@ -1,21 +1,21 @@
 # Starforge architecture — current
 
-**Status:** live map as of 2026-11-10. **This page wins** when it disagrees with an older plan, a preference bullet, or a status table.
+**Status:** live map as of 2026-11-15. **This page wins** when it disagrees with an older plan, a preference bullet, or a status table.
 
 Read this before [design-system-overview](./design-system-overview.md) (3 Nov snapshot), [core-remaining](./core-remaining.md), [asn-modules-wireframe](./asn-modules-wireframe.md) §3, or [replaceable-modularity-plan](./replaceable-modularity-plan.md). Those stay as history and as design detail. They are not the queue.
 
 ## What this platform is
 
-Starforge is the reusable starter: auth, the layout host, Payload as the content module, and toggleable packs. ASN 2.0 is a later **Hero** (theme + airsoft rules) on top of those packs. It does not fork them.
+Starforge is the reusable starter: auth, the layout host, a content-manager pack behind PageReadsPort, and toggleable packs. ASN 2.0 is a later **Hero** (theme + airsoft rules) on top of those packs. It does not fork them.
 
-Four placements: **Core** is the host and the ports. **Base modules** are the dependency engines (Media, Forms, Rich editor, Email Manager, Payments, Profiles, Maps). **Advanced modules** are the domain packs that `require` those engines (Events, Subscriptions, and later Ads, Shop, Marketplace, Support, Stream). **Hero** is brand and vertical rules. Base modules are not Core. The old nickname “level-1 engines” means the base modules. Placement: [platform-module-layers](./platform-module-layers.md). Rule: [sf-architecture](../../../.cursor/rules/sf-architecture.mdc). Ownership: [sf-module-ownership](../../../.cursor/rules/sf-module-ownership.mdc).
+Four placements: **Core** is the host and the ports. **Base modules** are the dependency engines (Media, Forms, Rich editor, Email Manager, Payments, Profiles, Maps). The content manager is **`product:pages`** (chosen 2026-11-15, not built). **Advanced modules** are the domain packs that `require` those engines (Events, Subscriptions, and later Ads, Shop, Marketplace, Support, Stream). **Hero** is brand and vertical rules. Base modules are not Core. The old nickname “level-1 engines” means the base modules. Placement: [platform-module-layers](./platform-module-layers.md). Rule: [sf-architecture](../../../.cursor/rules/sf-architecture.mdc). Ownership: [sf-module-ownership](../../../.cursor/rules/sf-module-ownership.mdc). Rows in the placement table that still call Payload the content manager or the one media library are behind this map.
 
 ## Routes
 
 | Surface | Path |
 | --- | --- |
 | Core admin | `/admin` (root = Dashboard) |
-| Payload CMS | `/cms` (editor at `/cms/admin`) |
+| Payload CMS | `/cms` (editor at `/cms/admin`). Stays until the peel parity bars are green |
 | Public site | `/[locale]/…` |
 
 Older sentences that say Core lives at `/app/admin` and Payload lives at `/admin` are obsolete (SF-213).
@@ -57,11 +57,15 @@ Installing Starforge means choosing which modules come with that site. The mecha
 
 **Not downloaded unless chosen:** any product engine. Forms, the media library, redirects, TipTap, Lexical, search, Email Manager, Payments (gateways, NAV, Billingo, Számlázz), Maps (Leaflet), Events, Profiles, Consent’s banner, and PWA. Adding one later is a new install and a new build, not a checkbox over code that was already on disk.
 
-**Content manager:** Payload is the first content-manager pack, chosen so Starforge did not have to build its own page editor. It is optional at install. Another content manager is another pack behind the same read API the layout uses: published page by slug, draft preview, and the list search and the sitemap need (`PageReadsPort` in `src/core/content/page-reads`). Do not build that second pack until one is actually chosen. Those four layout-host reads go through the port (Payload adapter only). The media store and site settings still call `getPayload()` from Core, so Payload is not optional at install yet.
+**Content manager (decided 2026-11-15):** `product:pages` is the chosen content-manager pack. It will live in `src/modules/pages`, not in Core. It owns editorial pages, drafts, page admin, and page tags. Its manifest `requires` `product:rich-editor` and `product:media`. Layout, search, and sitemap keep reading through `PageReadsPort` (`src/core/content/page-reads`): published page by slug, draft preview, search list, sitemap summaries. The Payload adapter is still the only implementation. That port is the swap boundary. Payload is not a second CMS to keep beside `product:pages`.
 
-The content manager owns editorial pages (body, drafts, versions, the editor UI). The media library and site settings stay Starforge modules and Core tables. A different page editor must not replace those.
+`product:media` owns the media library and will take the document store (meta, categories, media-tags) that is still Payload `media`. Blobs stay on the MediaStorage port. ImageFrame stays the display crop. Site settings — module toggles, performance knobs, and `primaryNavMenuId` — live on Core `sf_site_settings` (phase 1, done). They are not CMS content. Site Chrome stays on `sf_site_chrome`. Media and site settings do not go back into Payload.
 
-`modules:sync` does not do this yet. It only adds or removes `@starforge/module-*` packages, and only notice-bar and consent are real packages. Forms, media, payments, maps, and the rest are still inside this repo, so every install downloads them. Moving those engines out so an unchosen pack is absent from disk is the modularity target. Do not treat “the admin toggle is off” as that target.
+Do not vendor or fork Payload source. Peel `getPayload()` callers, then delete the npm packages. Payload is still on the install path: media, nav page binds, the CMS bridge, and the page-read adapter still call `getPayload()`. Site settings do not. `/cms` stays up until the media parity bar and then the pages parity bar are green. Buckets, packages, order, and those bars: [payload-dependency-map](./payload-dependency-map.md). Decision: [2026-11-15-payload-peel](./decisions/2026-11-15-payload-peel.md). Pages one-pager (phase 3, not started): [pages-pack-plan](./pages-pack-plan.md).
+
+**Payload peel:** (1) site settings → Core `sf_site_settings` — **done**. (2) media store after its parity bar, (3) `product:pages` after its parity bar, (4) cms-bridge, the `(payload)` shell, and the npm packages — still open. Do not start 2–4 from a docs change. Media before pages. This does not replace ads as the next product pack.
+
+`modules:sync` does not yet omit an unchosen engine. It only adds or removes `@starforge/module-*` packages, and only notice-bar and consent are real packages. Forms, media, payments, maps, and the rest are still inside this repo, so every install downloads them. Moving those engines out so an unchosen pack is absent from disk is the modularity target. Do not treat “the admin toggle is off” as that target.
 
 ## Build queue
 
@@ -72,6 +76,8 @@ Do not re-open work that already shipped: RateLimiter, captcha-in-security, the 
 **Host gaps for Auto** (one slice per chat, instructions in [core-host-gaps-brief](./core-host-gaps-brief.md)): all five slices shipped — public error/404, optional email verification, download-my-data / delete-my-account, job-runner port (`src/core/jobs`), and Google sign-in (`GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET`, button only when both set). These do not replace the list below.
 
 **Resume (2026-11-13):** Core finish slices 1–9 shipped. Base modules (Forms, Media, Email Manager, Rich editor, Profiles, Payments, Maps v1) plus site utilities are in place. Subscriptions resolve is an advanced pack on those engines. `requires` on each manifest is the dependency map; install and the Modules toggle close it. Paid tickets and the subscriptions lifecycle already shipped. Next product pack is ads. Redirects, Forms, and the TipTap engine are in `src/modules`. Page reads go through `PageReadsPort`.
+
+**Payload peel:** phase 1 (site settings → `sf_site_settings`) is done. Media, then pages, then the shell are still open. It does not replace ads as the next product pack. Detail is under Installer → Content manager, and in [payload-dependency-map](./payload-dependency-map.md).
 
 **Core finish (shipped).** One slice per chat was the rule; paste archive in [core-finish-instructions](./core-finish-instructions.md):
 
@@ -97,7 +103,7 @@ One outline for every language. Do not copy a layout per locale. Particle chrome
 
 Editor-typed text uses one field. Localization owns that control (`LocaleInput`). It shows a language menu on the end of the field only when more than one public locale is enabled. Custom particle HTML and title use it. Custom CSS and JavaScript do not.
 
-**Content locale files:** non-default (and mirrored default) layout/nav/Chrome consent strings persist under `data/content-locales/{locale}/layouts|nav|chrome/{id}.json` as flat maps of stable keys → strings. The key *is* belonging (`layout.{layoutId}.slot.{slotId}.{field}`, `nav.{menuId}.item.{itemId}.{field}`, `chrome.consent.{message|privacyUrl|privacyLinkLabel}`). Runtime resolves via `pickContentLocaleText`. `/admin/localization` has a CodeMirror JSON editor plus download/upload. UI chrome packs (`src/core/i18n/messages`, module `messages/`) and Payload CMS locales stay separate.
+**Content locale files:** non-default (and mirrored default) layout/nav/Chrome consent strings persist under `data/content-locales/{locale}/layouts|nav|chrome/{id}.json` as flat maps of stable keys → strings. The key *is* belonging (`layout.{layoutId}.slot.{slotId}.{field}`, `nav.{menuId}.item.{itemId}.{field}`, `chrome.consent.{message|privacyUrl|privacyLinkLabel}`). Runtime resolves via `pickContentLocaleText`. `/admin/localization` has a CodeMirror JSON editor plus download/upload. UI chrome packs (`src/core/i18n/messages`, module `messages/`) stay separate from page locales. Page locales still live on Payload until `product:pages` takes them.
 
 ## Hero vs module
 
@@ -126,6 +132,7 @@ Do not relocate these in a drive-by:
 | Payment fulfillment | `registerPaymentConsumerHook('events.confirmRegistration', …)` | One hook key per consumer, passed into checkout. Registrations on that key append. The first handler’s throw still fails the request. Later listeners are isolated. The default hero adds none. No second event bus. |
 | Online payment gateway | Core adapter `src/core/payments/<id>.ts` plus an import in `register-online.ts` | A developer ships it in the build. An admin enables it and pastes keys. No upload-a-gateway screen. Offline methods stay the fixed list. |
 | Process boot | generated `runModuleBoot`, then `runHeroBoot` | `instrumentation.ts` asserts env, then calls both. No pack paths. Each pack boot returns immediately when its own toggle is off. The default hero loader is null. The Events abandoned-checkout sweep stays unarmed while Events is off; stuck `pending_payment` seats wait until Events is on and boot runs again. |
+| Page reads | `PageReadsPort` (`src/core/content/page-reads`); Payload adapter until `product:pages` | Layout, search, and sitemap use `getPageReads()`. They do not call `getPayload()`. |
 
 New packs follow Payments: a **port** in `src/core/<port>`, **product behavior** in `src/modules/<id>`. A PR may touch Core when it adds a port or a host extension. It does not put product screens, catalogs, or fulfillment in Core.
 
@@ -152,6 +159,8 @@ Still paper, and only when a consumer is actually being built: `LlmProvider`, `M
 | This queue, routes, secrets, hero line | This file |
 | Glossary / agent index | [glossary](./glossary.md), [AGENTS.md](../../../AGENTS.md) |
 | Accepted decisions | [decisions/](./decisions/) |
+| Payload peel (buckets, packages, order) | [payload-dependency-map](./payload-dependency-map.md), [2026-11-15-payload-peel](./decisions/2026-11-15-payload-peel.md) |
+| Pages pack (phase 3, not started) | [pages-pack-plan](./pages-pack-plan.md) |
 | Slice-by-slice Core finish | [core-finish-instructions](./core-finish-instructions.md) |
 | Layer placement | [platform-module-layers](./platform-module-layers.md) |
 | Commerce contract | [payments-cart-plan](./payments-cart-plan.md), [payments-merchant-plan](./payments-merchant-plan.md), `sf-payments-module.mdc` |

@@ -34,6 +34,7 @@ import {
   ensureSiteSettingsDefaults,
   getSiteSettings,
   seedPrimaryNavFromPages,
+  updateSiteSettings,
 } from './core/settings'
 import { eq } from 'drizzle-orm'
 
@@ -247,8 +248,8 @@ async function seedBootstrapAdmin() {
 
 /**
  * Turn on the Modules capability so the seeded notice-bar module is visible
- * in the header position after a fresh seed. Idempotent. Partial Payload
- * update preserves existing primary-nav page relationships.
+ * in the header position after a fresh seed. Idempotent. Writes Core
+ * `sf_site_settings` and leaves the legacy primary-nav fallback untouched.
  */
 async function seedEnableModulesDemo() {
   const settings = await getSiteSettings()
@@ -257,19 +258,12 @@ async function seedEnableModulesDemo() {
     return { updated: false as const, modules: true as const }
   }
 
-  const payload = await getPayload({ config })
-  const otherToggles = Object.entries(settings.moduleToggles)
-    .filter(([id]) => id !== 'notice-bar')
-    .map(([moduleId, enabled]) => ({ moduleId, enabled }))
-
-  await payload.updateGlobal({
-    slug: 'site-settings',
-    // Cast until Payload types are regenerated for `moduleToggles`.
-    data: {
-      featureModules: true,
-      moduleToggles: [{ moduleId: 'notice-bar', enabled: true }, ...otherToggles],
-    } as Record<string, unknown>,
-    overrideAccess: true,
+  await updateSiteSettings({
+    siteName: settings.siteName,
+    primaryNavMenuId: settings.primaryNavMenuId,
+    keepLegacyPrimaryNav: true,
+    features: { ...settings.features, modules: true },
+    moduleToggles: { ...settings.moduleToggles, 'notice-bar': true },
   })
 
   return { updated: true as const, modules: true as const }
@@ -314,7 +308,7 @@ async function main() {
       `Site settings: "${settings.siteName}" · nav ${settings.primaryNav.length} · registration=${settings.features.registration}`,
     )
   } catch (error) {
-    console.warn('Could not seed site settings (Payload global).')
+    console.warn('Could not seed site settings (sf_site_settings).')
     console.warn(error instanceof Error ? error.message : error)
   }
 

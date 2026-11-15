@@ -1,15 +1,12 @@
 /**
- * Lock: site_settings select heal runs at boot before Payload findGlobal/update.
+ * Lock: site settings read/write stays on Core sf_site_settings.
  * Run: npx tsx scripts/verify-site-settings-boot-heal.mts
  */
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import {
-  SITE_SETTINGS_HEAL_VERIFY_COLUMNS,
-  SITE_SETTINGS_SCHEMA_HEAL_SQL,
-} from '../src/core/settings/heal-site-settings-schema.ts'
+import { SITE_SETTINGS_CORE_VERIFY_COLUMNS } from '../src/core/settings/heal-site-settings-schema.ts'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -20,53 +17,61 @@ function must(cond: unknown, message: string): asserts cond {
   }
 }
 
+function read(rel: string): string {
+  return readFileSync(join(root, rel), 'utf8')
+}
+
 must(
-  SITE_SETTINGS_SCHEMA_HEAL_SQL.includes('dashboard_refresh_interval_sec'),
-  'heal SQL must include dashboard_refresh_interval_sec',
-)
-must(
-  SITE_SETTINGS_SCHEMA_HEAL_SQL.includes('dashboard_online_window_min'),
-  'heal SQL must include dashboard_online_window_min',
-)
-must(
-  SITE_SETTINGS_SCHEMA_HEAL_SQL.includes('realtime_enabled'),
-  'heal SQL must include realtime_enabled',
-)
-must(
-  SITE_SETTINGS_HEAL_VERIFY_COLUMNS.includes('dashboard_refresh_interval_sec'),
+  SITE_SETTINGS_CORE_VERIFY_COLUMNS.includes('dashboard_refresh_interval_sec'),
   'verify columns must include dashboard_refresh_interval_sec',
 )
-
-const settingsIndex = readFileSync(join(root, 'src/core/settings/index.ts'), 'utf8')
 must(
-  settingsIndex.includes('ensureSiteSettingsSchemaHealed'),
-  'settings/index.ts must import/call ensureSiteSettingsSchemaHealed',
+  SITE_SETTINGS_CORE_VERIFY_COLUMNS.includes('realtime_enabled'),
+  'verify columns must include realtime_enabled',
 )
 must(
-  /ensureSiteSettingsDefaults[\s\S]*?await ensureSiteSettingsSchemaHealed\(\)/.test(
-    settingsIndex,
+  SITE_SETTINGS_CORE_VERIFY_COLUMNS.includes('module_toggles'),
+  'verify columns must include module_toggles',
+)
+
+const settingsDir = read('src/core/settings/index.ts') + read('src/core/settings/store.ts') + read('src/core/settings/heal-site-settings-schema.ts')
+must(!/getPayload\s*\(/.test(settingsDir), 'src/core/settings must not call getPayload')
+must(!/findGlobal\s*\(/.test(settingsDir), 'src/core/settings must not call findGlobal')
+must(!/updateGlobal\s*\(/.test(settingsDir), 'src/core/settings must not call updateGlobal')
+must(
+  /export async function updateSiteSettings[\s\S]*?await invalidateSiteSettings\(\)/.test(
+    read('src/core/settings/index.ts'),
   ),
-  'ensureSiteSettingsDefaults must await ensureSiteSettingsSchemaHealed before Payload',
-)
-must(
-  /updateSiteSettings[\s\S]*?await ensureSiteSettingsSchemaHealed\(\)/.test(settingsIndex),
-  'updateSiteSettings must await ensureSiteSettingsSchemaHealed before Payload',
-)
-must(
-  /loadSiteSettingsUncached[\s\S]*?await ensureSiteSettingsSchemaHealed\(\)/.test(
-    settingsIndex,
-  ),
-  'loadSiteSettingsUncached must await ensureSiteSettingsSchemaHealed before Payload',
+  'updateSiteSettings must await invalidateSiteSettings',
 )
 
-const migrate = readFileSync(join(root, 'scripts/db-migrate.mts'), 'utf8')
+const migration = read('src/core/db/migrations/0043_site_settings.sql')
+must(migration.includes('"sf_site_settings"'), '0043 must create sf_site_settings')
 must(
-  migrate.includes('heal-site-settings-schema'),
-  'db-migrate.mts must reuse heal-site-settings-schema',
+  migration.includes('"payload"."site_settings"'),
+  '0043 must copy payload.site_settings',
 )
 must(
-  migrate.includes('healSiteSettingsSchema'),
-  'db-migrate.mts must call healSiteSettingsSchema',
+  migration.includes('site_settings_module_toggles'),
+  '0043 must copy module toggle rows',
 )
 
-console.log('ok: site_settings boot heal wired (ensure/update/load + migrate SQL share)')
+const migrate = read('scripts/db-migrate.mts')
+must(
+  migrate.includes('0043_site_settings.sql'),
+  'db-migrate.mts must replay 0043_site_settings.sql',
+)
+must(
+  migrate.includes('sf_site_settings'),
+  'db-migrate.mts must verify sf_site_settings',
+)
+must(
+  !migrate.includes('healSiteSettingsSchema'),
+  'db-migrate.mts must not heal payload.site_settings',
+)
+
+const payloadConfig = read('src/payload.config.ts')
+must(!payloadConfig.includes('SiteSettings'), 'payload.config must not register SiteSettings')
+must(/globals:\s*\[\s*\]/.test(payloadConfig), 'payload.config globals list must be empty')
+
+console.log('ok: site settings live on sf_site_settings (no Payload global in the settings path)')

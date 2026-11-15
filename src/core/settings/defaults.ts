@@ -1,9 +1,8 @@
 /**
- * Defaults when the Payload `site-settings` global is missing or empty.
- * Keep in sync with `src/globals/SiteSettings.ts` field defaults.
+ * Defaults when the Core `sf_site_settings` row is missing or empty.
  *
- * Public layout consumes resolved `{ label, href }` only. Payload stores
- * page relationships / custom URLs; core resolves them in `getSiteSettings`.
+ * Public layout consumes resolved `{ label, href }` only. Legacy primary-nav
+ * rows (copied once from Payload) still resolve in `getSiteSettings`.
  */
 
 export type NavItem = {
@@ -25,7 +24,7 @@ export type NavItem = {
   accessLevel?: string
 }
 
-/** Shape written back to Payload (core admin + seed). */
+/** Legacy nav input shape. Core no longer writes the primary-nav array. */
 export type NavItemInput =
   | {
       label: string

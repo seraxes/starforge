@@ -12,7 +12,6 @@ import { Media } from './collections/Media'
 import { Pages } from './collections/Pages'
 import { Tags } from './collections/Tags'
 import { Users } from './collections/Users'
-import { SiteSettings } from './globals/SiteSettings'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -62,7 +61,9 @@ export default buildConfig({
   csrf: payloadCsrfOrigins(),
 
   collections: [Users, Media, Pages, Tags, Categories],
-  globals: [SiteSettings],
+  // Site settings live on Core `sf_site_settings` (`src/core/settings`).
+  // The Payload global is not registered, so /cms does not read or write it.
+  globals: [],
   /**
    * Content locales (i18n P1) — code-bootstrapped from Core bootstrap catalog
    * (`en`/`hu`). Admin-added locales under `/admin/localization` honor public

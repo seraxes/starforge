@@ -71,8 +71,8 @@ console.log('page chrome cache + invalidate: ok')
 
 const pages = read('src/collections/Pages.ts')
 assert.match(pages, /await invalidatePublishedPage/)
-const siteSettings = read('src/globals/SiteSettings.ts')
+const siteSettings = read('src/core/settings/index.ts')
 assert.match(siteSettings, /await invalidateSiteSettings/)
-console.log('Payload hooks await invalidate: ok')
+console.log('page + site-settings writes await invalidate: ok')
 
 console.log('verify-redis-cache-await-proxy: all ok')

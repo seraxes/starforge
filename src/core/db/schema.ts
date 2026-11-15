@@ -185,8 +185,8 @@ export const sfPageChrome = pgTable('sf_page_chrome', {
 
 /**
  * Site Chrome (site-wide policy — offline, metadata, robots, cookies, …).
- * Singleton row `global`. Separate from Payload `site-settings` (Modules / nav
- * assignment) and from `sf_page_chrome` (per-page document chrome).
+ * Singleton row `global`. Separate from `sf_site_settings` (Modules / nav
+ * assignment / performance) and from `sf_page_chrome` (per-page document chrome).
  */
 export const SITE_CHROME_ID = 'global'
 
@@ -194,6 +194,48 @@ export const sfSiteChrome = pgTable('sf_site_chrome', {
   id: text('id').primaryKey(),
   /** Canonical SiteChromeDocument JSON. */
   document: text('document').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+})
+
+/**
+ * Site settings (Modules, performance knobs, primary nav assignment).
+ * Singleton row `global`. Not Site Chrome, and not a CMS document.
+ * `legacy_primary_nav` is a one-time read fallback copied from Payload.
+ * `payload_copied_at` is set by migration `0043_site_settings` only.
+ */
+export const SITE_SETTINGS_ID = 'global'
+
+export const sfSiteSettings = pgTable('sf_site_settings', {
+  id: text('id').primaryKey(),
+  siteName: text('site_name').notNull().default('Starforge'),
+  primaryNavMenuId: text('primary_nav_menu_id').notNull().default('main'),
+  adminAutosaveDebounceMs: integer('admin_autosave_debounce_ms').notNull().default(800),
+  formRateLimitMax: integer('form_rate_limit_max').notNull().default(8),
+  formRateLimitWindowSec: integer('form_rate_limit_window_sec').notNull().default(60),
+  publishedCacheEnabled: boolean('published_cache_enabled').notNull().default(true),
+  publishedCacheTtlSec: integer('published_cache_ttl_sec').notNull().default(0),
+  nullMissTtlSec: integer('null_miss_ttl_sec').notNull().default(60),
+  dashboardRefreshIntervalSec: integer('dashboard_refresh_interval_sec').notNull().default(60),
+  dashboardOnlineWindowMin: integer('dashboard_online_window_min').notNull().default(15),
+  realtimeEnabled: boolean('realtime_enabled').notNull().default(true),
+  featureRegistration: boolean('feature_registration').notNull().default(true),
+  featureRichEditor: boolean('feature_rich_editor').notNull().default(true),
+  featurePosts: boolean('feature_posts').notNull().default(false),
+  featureModules: boolean('feature_modules').notNull().default(false),
+  featureDraftPreview: boolean('feature_draft_preview').notNull().default(false),
+  /** `{ moduleId, enabled }[]` — same shape `normalizeModuleToggles` reads. */
+  moduleToggles: jsonb('module_toggles')
+    .$type<Array<{ moduleId: string; enabled: boolean }>>()
+    .notNull()
+    .default([]),
+  /** Legacy Payload `primaryNav` rows. Read fallback only; app writes leave it. */
+  legacyPrimaryNav: jsonb('legacy_primary_nav').$type<unknown[]>().notNull().default([]),
+  /** Set when migration 0043 has copied (or found nothing to copy). App writes leave it. */
+  payloadCopiedAt: timestamp('payload_copied_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true })
     .defaultNow()

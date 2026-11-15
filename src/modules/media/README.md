@@ -12,9 +12,13 @@ Required Media library pack (design-module-boundary **M5**).
 
 Library + Settings admin UI (`admin/`, App Router shims under `/admin/media`). Shared bind contract: bind **`mediaId`** only — **MediaPicker** / **MemberMediaPicker** (`sf_media_owners`); no forked library UI. Pipeline rules in `sf_media_settings` (Media → Settings).
 
+**Document store (accepted 2026-11-15, not moved):** this pack will take meta, categories, and media-tags that still sit in Payload `media` / `categories` / `tags`. Blobs stay on MediaStorage. ImageFrame stays the display crop. Do not start that move in a docs-only change. Order and the parity bar (edit drawer, pagination, tag admin, non-image, file replace — then the store): [payload-dependency-map](../../../docs/project-context/docs/payload-dependency-map.md).
+
 ## Consumes
 
 Ports (storage, pipeline, analysis, actions) in `src/core/media` — Core hosts.
+
+Payload (`getPayload()` in `src/core/media/*`, and `@payloadcms/storage-s3` while S3 still goes through the Payload plugin) is the current document backend only. It is not the long-term store. Do not add media features as new Payload collections. Media does not go back into Payload after the peel.
 
 ## Public door
 

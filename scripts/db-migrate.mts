@@ -1,21 +1,26 @@
 /**
  * Apply Core (Drizzle / public.sf_*) then Payload (payload.*) migrations.
- * After Payload migrate, idempotently heal site_settings select columns
- * (Performance, Dashboard D0, feature_* — covers journal-stuck / push-era DBs),
- * then verify expected tables/columns.
+ * Re-runs `0043_site_settings` after Payload so a fresh database can copy
+ * `payload.site_settings` once the Payload schema exists (the Core journal
+ * step runs first). The SQL is idempotent: a row with `payload_copied_at`
+ * set is left alone.
  *
- * Boot-time heal (ensureSiteSettingsSchemaHealed) uses the same SQL so
- * `npm run dev` alone recovers without this script — migrate remains the
- * authoritative path for CI / fresh installs.
+ * Verifies `sf_sessions`, locked-document rel columns, and `sf_site_settings`.
  */
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
 import { Client } from 'pg'
 import 'dotenv/config'
 
-import {
-  healSiteSettingsSchema,
-  SITE_SETTINGS_HEAL_VERIFY_COLUMNS,
-} from '../src/core/settings/heal-site-settings-schema.ts'
+import { SITE_SETTINGS_CORE_VERIFY_COLUMNS } from '../src/core/settings/heal-site-settings-schema.ts'
+
+const root = join(dirname(fileURLToPath(import.meta.url)), '..')
+const SITE_SETTINGS_MIGRATION = join(
+  root,
+  'src/core/db/migrations/0043_site_settings.sql',
+)
 
 function run(label: string, args: string[]): void {
   console.log(`\n→ ${label}`)
@@ -48,19 +53,15 @@ async function columnExists(
   return Boolean(result.rows[0]?.exists)
 }
 
-async function tableExists(
-  client: Client,
-  schema: string,
-  table: string,
-): Promise<boolean> {
-  const result = await client.query<{ exists: boolean }>(
-    `SELECT EXISTS (
-       SELECT 1 FROM information_schema.tables
-       WHERE table_schema = $1 AND table_name = $2
-     ) AS exists`,
-    [schema, table],
-  )
-  return Boolean(result.rows[0]?.exists)
+async function replaySiteSettingsMigration(client: Client): Promise<void> {
+  const sql = readFileSync(SITE_SETTINGS_MIGRATION, 'utf8')
+  const statements = sql
+    .split('--> statement-breakpoint')
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0)
+  for (const statement of statements) {
+    await client.query(statement)
+  }
 }
 
 async function verifyAndHeal(): Promise<void> {
@@ -107,37 +108,30 @@ async function verifyAndHeal(): Promise<void> {
     }
 
     console.log(
-      '\n→ Heal payload.site_settings select columns (Performance / Dashboard / feature; idempotent)',
+      '\n→ Copy site settings into public.sf_site_settings (idempotent; skips when payload_copied_at is set)',
     )
-    const heal = await healSiteSettingsSchema(client)
-    if (heal.skipped) {
-      console.log(
-        '  (skip site_settings heal — payload.site_settings missing; Payload baseline did not apply)',
-      )
-    }
+    await replaySiteSettingsMigration(client)
 
-    for (const col of SITE_SETTINGS_HEAL_VERIFY_COLUMNS) {
-      const ok = await columnExists(client, 'payload', 'site_settings', col)
+    for (const col of SITE_SETTINGS_CORE_VERIFY_COLUMNS) {
+      const ok = await columnExists(client, 'public', 'sf_site_settings', col)
       if (!ok) {
         throw new Error(
-          `payload.site_settings.${col} missing after migrate + heal`,
+          `public.sf_site_settings.${col} missing after migrate`,
         )
       }
     }
 
-    const togglesOk = await tableExists(
-      client,
-      'payload',
-      'site_settings_module_toggles',
+    const row = await client.query<{ exists: boolean }>(
+      `SELECT EXISTS (
+         SELECT 1 FROM "sf_site_settings" WHERE "id" = 'global'
+       ) AS exists`,
     )
-    if (!togglesOk) {
-      throw new Error(
-        'payload.site_settings_module_toggles missing after migrate + heal',
-      )
+    if (!row.rows[0]?.exists) {
+      throw new Error('public.sf_site_settings global row missing after migrate')
     }
 
     console.log(
-      '\n✓ Verified public.sf_sessions + locked-docs tags_id/categories_id + site_settings Performance/Dashboard/feature columns + module_toggles',
+      '\n✓ Verified public.sf_sessions + locked-docs tags_id/categories_id + public.sf_site_settings',
     )
   } finally {
     await client.end()
