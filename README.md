@@ -548,7 +548,7 @@ npm run dev
 6. Drag a second particle into the same row — both sit **side by side**; drag the divider (1% steps, 5%–95%, sum 100%).
 7. Drag a particle’s **⋮⋮** handle to **reorder** within the row (order persists; widths stay).
 8. Drag **Logo / Image**, **Copyright**, and **Social** from the palette — **Settings** opens a floating overlay (row stays side-by-side). Save and confirm public render.
-9. Edit Custom via its Settings overlay (CodeMirror); Escape / outside click closes. **Reset to default** restores the seeded layout.
+9. Edit Custom via its Settings overlay (CodeMirror); Escape / Close only (outside click does not dismiss). **Reset to default** restores the seeded layout.
 
 ## Not in this scaffold
 

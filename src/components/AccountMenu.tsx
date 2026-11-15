@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 
 import { authClient } from '@/core/auth/client'
 import { Link } from '@/core/i18n/navigation'
@@ -28,6 +28,7 @@ type Props = {
 /**
  * Header account control. One outline for every language: labels arrive
  * already translated for the request locale.
+ * Navigation dropdown — closes on outside click / Escape (not a config panel).
  */
 export function AccountMenu({
   locale,
@@ -42,7 +43,28 @@ export function AccountMenu({
 }: Props) {
   const [open, setOpen] = useState(false)
   const [pending, setPending] = useState(false)
+  const rootRef = useRef<HTMLDivElement>(null)
   const glyphSize = Math.max(12, Math.round(avatarSize * 0.5))
+
+  useEffect(() => {
+    if (!open) return
+
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false)
+    }
+    const onPointer = (event: MouseEvent) => {
+      const target = event.target as Node
+      if (rootRef.current?.contains(target)) return
+      setOpen(false)
+    }
+
+    document.addEventListener('keydown', onKey)
+    document.addEventListener('mousedown', onPointer)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.removeEventListener('mousedown', onPointer)
+    }
+  }, [open])
 
   async function signOut() {
     if (pending) return
@@ -53,6 +75,7 @@ export function AccountMenu({
 
   return (
     <div
+      ref={rootRef}
       className={`sf-account-menu${open ? ' is-open' : ''}`}
       style={{ ['--sf-account-avatar-size' as string]: `${avatarSize}px` }}
       data-avatar-shape={avatarShape}

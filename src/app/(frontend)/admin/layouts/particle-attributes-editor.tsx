@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useEffect, useRef, useState, useTransition } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { CodeEditorField } from '@/components/admin/CodeEditorField'
@@ -44,6 +44,15 @@ type AttrDraft = {
   particleJs: string
 }
 
+function sameAttrs(a: AttrDraft, b: AttrDraft) {
+  return (
+    a.htmlId.trim() === b.htmlId.trim() &&
+    a.cssClass.trim() === b.cssClass.trim() &&
+    a.particleCss === b.particleCss &&
+    a.particleJs === b.particleJs
+  )
+}
+
 /**
  * Block attributes: HTML id, Gantry-style Align/Padding/Margin presets, free CSS
  * class, plus per-particle CSS / JS editors (omitted when the particle already
@@ -60,26 +69,39 @@ export function ParticleAttributesEditor({
   const router = useRouter()
   const layoutId = useLayoutOutlineId()
   const { notifySaved, notifyError } = useAdminToast()
-  const [pending, startSave] = useTransition()
+  const [pending, setPending] = useState(false)
   const draftRef = useRef<AttrDraft>({
     htmlId: slot.htmlId ?? '',
     cssClass: slot.cssClass ?? '',
     particleCss: slot.particleCss ?? '',
     particleJs: slot.particleJs ?? '',
   })
+  const savedRef = useRef<AttrDraft>({ ...draftRef.current })
+  const queuedRef = useRef<AttrDraft | null>(null)
+  const writingRef = useRef(false)
+  const mountedRef = useRef(true)
   const [cssClass, setCssClass] = useState(() => slot.cssClass ?? '')
   const [customClass, setCustomClass] = useState(() => customCssClassTokens(slot.cssClass))
   const [editorEpoch, setEditorEpoch] = useState(0)
 
   useEffect(() => {
-    draftRef.current = {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+    }
+  }, [])
+
+  useEffect(() => {
+    const next = {
       htmlId: slot.htmlId ?? '',
       cssClass: slot.cssClass ?? '',
       particleCss: slot.particleCss ?? '',
       particleJs: slot.particleJs ?? '',
     }
-    setCssClass(slot.cssClass ?? '')
-    setCustomClass(customCssClassTokens(slot.cssClass))
+    draftRef.current = next
+    savedRef.current = { ...next }
+    setCssClass(next.cssClass)
+    setCustomClass(customCssClassTokens(next.cssClass))
     setEditorEpoch((n) => n + 1)
     // Remount editors / presets when switching particles only.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- slot.id
@@ -87,39 +109,69 @@ export function ParticleAttributesEditor({
 
   const persist = useCallback(
     (draft: AttrDraft) => {
-      if (
-        draft.htmlId.trim() === (slot.htmlId ?? '').trim() &&
-        draft.cssClass.trim() === (slot.cssClass ?? '').trim() &&
-        draft.particleCss === (slot.particleCss ?? '') &&
-        draft.particleJs === (slot.particleJs ?? '')
-      ) {
-        return
+      const snapshot: AttrDraft = {
+        htmlId: draft.htmlId ?? '',
+        cssClass: draft.cssClass ?? '',
+        particleCss: draft.particleCss ?? '',
+        particleJs: draft.particleJs ?? '',
       }
-      const fd = new FormData()
-      fd.set('layoutId', layoutId)
-      fd.set('sectionId', sectionId)
-      fd.set('rowId', rowId)
-      fd.set('slotId', slot.id)
-      fd.set('htmlId', draft.htmlId)
-      fd.set('cssClass', draft.cssClass)
-      fd.set('particleCss', draft.particleCss)
-      if (isDeveloperAdmin) fd.set('particleJs', draft.particleJs)
+      // Keep only the newest draft. An older in-flight write must not land last.
+      queuedRef.current = snapshot
+      if (writingRef.current) return
 
-      startSave(async () => {
-        const result = await updateSlotAttributesAction({}, fd)
-        if (result.ok) {
-          onAttrsSaved?.({
-            htmlId: result.slotAttrs?.htmlId,
-            cssClass: result.slotAttrs?.cssClass,
-            particleCss: result.slotAttrs?.particleCss,
-            particleJs: result.slotAttrs?.particleJs,
-          })
+      const drain = async () => {
+        writingRef.current = true
+        if (mountedRef.current) setPending(true)
+        let savedOk = false
+        try {
+          while (queuedRef.current) {
+            const next = queuedRef.current
+            queuedRef.current = null
+            if (sameAttrs(next, savedRef.current)) continue
+            const fd = new FormData()
+            fd.set('layoutId', layoutId)
+            fd.set('sectionId', sectionId)
+            fd.set('rowId', rowId)
+            fd.set('slotId', slot.id)
+            fd.set('htmlId', next.htmlId)
+            fd.set('cssClass', next.cssClass)
+            fd.set('particleCss', next.particleCss)
+            if (isDeveloperAdmin) fd.set('particleJs', next.particleJs)
+            const result = await updateSlotAttributesAction({}, fd)
+            if (!result.ok) {
+              if (result.error) notifyError(result.error)
+              break
+            }
+            savedRef.current = {
+              htmlId: result.slotAttrs?.htmlId ?? '',
+              cssClass: result.slotAttrs?.cssClass ?? '',
+              particleCss: result.slotAttrs?.particleCss ?? '',
+              particleJs: result.slotAttrs?.particleJs ?? next.particleJs,
+            }
+            onAttrsSaved?.({
+              htmlId: result.slotAttrs?.htmlId,
+              cssClass: result.slotAttrs?.cssClass,
+              particleCss: result.slotAttrs?.particleCss,
+              particleJs: result.slotAttrs?.particleJs,
+            })
+            savedOk = true
+          }
+        } finally {
+          writingRef.current = false
+          if (mountedRef.current) setPending(false)
+        }
+        if (queuedRef.current) {
+          void drain()
+          return
+        }
+        if (savedOk) {
           notifySaved('Saved')
           router.refresh()
-        } else if (result.error) {
-          notifyError(result.error)
         }
-      })
+      }
+
+      // Outside startTransition so closing the cog cannot drop the write.
+      void drain()
     },
     [
       isDeveloperAdmin,
@@ -130,11 +182,7 @@ export function ParticleAttributesEditor({
       router,
       rowId,
       sectionId,
-      slot.cssClass,
-      slot.htmlId,
       slot.id,
-      slot.particleCss,
-      slot.particleJs,
     ],
   )
 
@@ -145,27 +193,32 @@ export function ParticleAttributesEditor({
     return draftRef.current
   }
 
-  const setPreset = (groupId: LayoutCssPresetGroupId, value: string) => {
-    const next = mergeCssClassFromParts({
-      align: groupId === 'align' ? value : readPresetFromCssClass(cssClass, 'align'),
-      padding: groupId === 'padding' ? value : readPresetFromCssClass(cssClass, 'padding'),
-      margin: groupId === 'margin' ? value : readPresetFromCssClass(cssClass, 'margin'),
-      custom: customClass,
+  const classesFrom = (groupId: LayoutCssPresetGroupId | null, value: string, custom: string) => {
+    const current = draftRef.current.cssClass
+    return mergeCssClassFromParts({
+      align: groupId === 'align' ? value : readPresetFromCssClass(current, 'align'),
+      padding: groupId === 'padding' ? value : readPresetFromCssClass(current, 'padding'),
+      margin: groupId === 'margin' ? value : readPresetFromCssClass(current, 'margin'),
+      custom,
     })
+  }
+
+  const setPreset = (groupId: LayoutCssPresetGroupId, value: string) => {
+    const next = classesFrom(groupId, value, customCssClassTokens(draftRef.current.cssClass))
     setCssClass(next)
+    setCustomClass(customCssClassTokens(next))
     flush('attrs', updateDraft({ cssClass: next }))
   }
 
   const setCustom = (nextCustom: string) => {
     setCustomClass(nextCustom)
-    const next = mergeCssClassFromParts({
-      align: readPresetFromCssClass(cssClass, 'align'),
-      padding: readPresetFromCssClass(cssClass, 'padding'),
-      margin: readPresetFromCssClass(cssClass, 'margin'),
-      custom: nextCustom,
-    })
+    const next = classesFrom(null, '', nextCustom)
     setCssClass(next)
     return updateDraft({ cssClass: next })
+  }
+
+  const flushDraft = () => {
+    flush('attrs', { ...draftRef.current })
   }
 
   return (
@@ -240,7 +293,13 @@ export function ParticleAttributesEditor({
       </p>
 
       {showCodeEditors ? (
-        <>
+        <div
+          onBlur={(event) => {
+            const next = event.relatedTarget
+            if (next instanceof Node && event.currentTarget.contains(next)) return
+            flushDraft()
+          }}
+        >
           <CodeEditorField
             key={`particle-css-${slot.id}-${editorEpoch}`}
             label="Particle CSS"
@@ -249,10 +308,6 @@ export function ParticleAttributesEditor({
             initialHeight={140}
             hint="Injected as a &lt;style&gt; inside this particle column on the public site."
             onValueChange={(next) => schedule('attrs', updateDraft({ particleCss: next }))}
-          />
-          <div
-            onBlur={() => flush('attrs', draftRef.current)}
-            style={{ display: 'contents' }}
           />
 
           {isDeveloperAdmin ? (
@@ -273,7 +328,7 @@ export function ParticleAttributesEditor({
                 : '.'}
             </p>
           )}
-        </>
+        </div>
       ) : null}
 
       {pending ? <p className="gantry-field-hint">Saving…</p> : null}

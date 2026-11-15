@@ -13,7 +13,7 @@ type Props = {
   triggerLabel?: string
   /** Dialog width (Assets CodeMirror editors prefer ~560–640). */
   preferredWidth?: number
-  /** Called when the panel closes (Escape / outside / Close) — flush autosave. */
+  /** Called when the panel closes (Escape / Close) — flush autosave. */
   onClose?: () => void
   children: React.ReactNode
 }
@@ -22,8 +22,9 @@ const DEFAULT_PANEL_WIDTH = 440
 
 /**
  * Atom / Assets settings as a floating overlay — same pattern as layout particle editors.
- * Opens centered; title chrome is draggable; SE corner resizes. Closes on Escape and
- * outside click. Portals with `gantry-settings-theme-dark` inside `.admin-shell`.
+ * Opens centered; title chrome is draggable; SE corner resizes. Configuration window:
+ * closes on Escape / Close only (not outside click). Portals with
+ * `gantry-settings-theme-dark` inside `.admin-shell`.
  */
 export function AtomSettingsPopover({
   title,
@@ -66,26 +67,18 @@ export function AtomSettingsPopover({
   useEffect(() => {
     if (!open) return
 
+    // Configuration window — Escape / Close only; outside click must not dismiss.
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
       if (document.querySelector(SETTINGS_NESTED_OVERLAY_SELECTOR)) return
       setOpen(false)
       onCloseRef.current?.()
     }
-    const onPointer = (event: MouseEvent) => {
-      const target = event.target as Node
-      if (panelRef.current?.contains(target) || triggerRef.current?.contains(target)) return
-      if (target instanceof Element && target.closest(SETTINGS_NESTED_OVERLAY_SELECTOR)) return
-      setOpen(false)
-      onCloseRef.current?.()
-    }
     document.addEventListener('keydown', onKey)
-    document.addEventListener('mousedown', onPointer)
     return () => {
       document.removeEventListener('keydown', onKey)
-      document.removeEventListener('mousedown', onPointer)
     }
-  }, [open, panelRef])
+  }, [open])
 
   return (
     <div className="gantry-settings-trigger-wrap">
@@ -108,11 +101,7 @@ export function AtomSettingsPopover({
               className="gantry-settings-layer gantry-settings-theme-dark"
               data-sf-settings-overlay=""
             >
-              <div
-                className="gantry-settings-backdrop"
-                aria-hidden="true"
-                onMouseDown={closePanel}
-              />
+              <div className="gantry-settings-backdrop" aria-hidden="true" />
               <div
                 ref={panelRef}
                 className={panelClassName}

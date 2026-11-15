@@ -29,8 +29,9 @@ const PANEL_WIDTH = 460
 
 /**
  * Particle settings as a floating overlay — does not expand the slot or push the row.
- * Opens centered; title chrome is draggable; SE corner resizes. Portal is dark
- * Gantry Helium–styled inside `.admin-shell` so Media Library can stack above it.
+ * Opens centered; title chrome is draggable; SE corner resizes. Configuration window:
+ * Escape / Close only (not outside click). Portal is dark Gantry Helium–styled
+ * inside `.admin-shell` so Media Library can stack above it.
  */
 export function ParticleSettingsPopover({
   title,
@@ -73,25 +74,19 @@ export function ParticleSettingsPopover({
   useEffect(() => {
     if (!open) return
 
+    // Configuration window — Escape / Close only; outside click must not dismiss
+    // (nav dropdowns close on outside click; this panel does not).
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
       if (document.querySelector(SETTINGS_NESTED_OVERLAY_SELECTOR)) return
       setOpen(false)
     }
-    const onPointer = (event: MouseEvent) => {
-      const target = event.target as Node
-      if (panelRef.current?.contains(target) || triggerRef.current?.contains(target)) return
-      if (target instanceof Element && target.closest(SETTINGS_NESTED_OVERLAY_SELECTOR)) return
-      setOpen(false)
-    }
 
     document.addEventListener('keydown', onKey)
-    document.addEventListener('mousedown', onPointer)
     return () => {
       document.removeEventListener('keydown', onKey)
-      document.removeEventListener('mousedown', onPointer)
     }
-  }, [open, panelRef])
+  }, [open])
 
   useEffect(() => {
     if (!open) return
@@ -175,11 +170,7 @@ export function ParticleSettingsPopover({
               className="gantry-settings-layer gantry-settings-theme-dark"
               data-sf-settings-overlay=""
             >
-              <div
-                className="gantry-settings-backdrop"
-                aria-hidden="true"
-                onMouseDown={() => setOpen(false)}
-              />
+              <div className="gantry-settings-backdrop" aria-hidden="true" />
               <div
                 ref={panelRef}
                 className={panelClassName}

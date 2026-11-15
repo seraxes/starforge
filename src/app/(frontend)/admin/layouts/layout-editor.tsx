@@ -63,6 +63,7 @@ import { InheritCopyRow } from './layout-inherit-controls'
 import { ParticleAttributesEditor } from './particle-attributes-editor'
 import { ParticleEditorHost } from './particle-editor-host'
 import { ParticleSettingsPopover } from './particle-settings-popover'
+import { SectionBoxSpacingFields } from './section-box-spacing-fields'
 import type { FormDefinitionOption, NavMenuOption } from './typed-particle-editors'
 import type { ContentLocaleOption } from '@/core/i18n/locale-text'
 
@@ -832,6 +833,8 @@ function SectionCanvas({
       width?: number
       backgroundColor?: string
       textColor?: string
+      padding?: string
+      margin?: string
     }) => {
       const fd = withOutlineId(new FormData(), layoutId)
       fd.set('sectionId', section.id)
@@ -886,6 +889,22 @@ function SectionCanvas({
           changed = true
         }
       }
+      if (fields.padding !== undefined) {
+        const next = fields.padding.trim()
+        const prev = (section.styles?.padding ?? '').trim()
+        if (next !== prev) {
+          fd.set('padding', next)
+          changed = true
+        }
+      }
+      if (fields.margin !== undefined) {
+        const next = fields.margin.trim()
+        const prev = (section.styles?.margin ?? '').trim()
+        if (next !== prev) {
+          fd.set('margin', next)
+          changed = true
+        }
+      }
       if (!changed) return
       startMetaSave(async () => {
         const result = await updateLayoutSectionMetaAction({}, fd)
@@ -907,6 +926,8 @@ function SectionCanvas({
       section.width,
       section.styles?.backgroundColor,
       section.styles?.textColor,
+      section.styles?.padding,
+      section.styles?.margin,
     ],
   )
 
@@ -1120,6 +1141,25 @@ function SectionCanvas({
                     />
                   </span>
                 </label>
+              </div>
+              <div className="gantry-section-box-spacing-group" role="group" aria-label="Section spacing">
+                <SectionBoxSpacingFields
+                  key={`section-padding-${section.id}-${section.styles?.padding ?? ''}`}
+                  fieldKey="padding"
+                  label="Padding"
+                  value={section.styles?.padding}
+                  disabled={metaPending}
+                  onCommit={(css) => persistSectionMeta({ padding: css })}
+                />
+                <SectionBoxSpacingFields
+                  key={`section-margin-${section.id}-${section.styles?.margin ?? ''}`}
+                  fieldKey="margin"
+                  label="Margin"
+                  value={section.styles?.margin}
+                  allowNegative
+                  disabled={metaPending}
+                  onCommit={(css) => persistSectionMeta({ margin: css })}
+                />
               </div>
               <label className="gantry-inline-label gantry-section-class-label">
                 <span className="gantry-field-hint">CSS classes</span>

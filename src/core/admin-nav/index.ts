@@ -3,6 +3,7 @@ export type { BuildAdminNavOptions } from './build'
 export { resolveEnabledAdminNavModuleIds } from './enabled-modules'
 export { CMS_NAV_LINKS, filterCmsNavLinks } from './cms'
 export type { CmsVisibility } from './cms'
+export { filterAdminNavByAcl } from './filter-acl'
 export type {
   AdminCmsNavLink,
   AdminNavFeatureFlags,

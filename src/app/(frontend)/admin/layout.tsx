@@ -12,19 +12,17 @@ import { AdminSidebarBrand } from '@/components/admin/AdminSidebarBrand'
 import { AdminSidebarNav } from '@/components/admin/AdminSidebarNav'
 import {
   buildAdminNavGroups,
+  filterAdminNavByAcl,
   resolveEnabledAdminNavModuleIds,
 } from '@/core/admin-nav'
-import type { AdminNavGroup } from '@/core/admin-nav'
 import { getActiveAdminTheme } from '@/core/admin-theme'
 import {
-  adminHrefAllowed,
   ensureManagersDashboardAcl,
   ensureManagersLocalizationAcl,
   getAdminAccessViewer,
   listGroupIdsForUser,
   requireAdminAreaForRequest,
   viewerMayEnterAdminShell,
-  type AclAdminResourceKey,
   type AccessViewer,
 } from '@/core/acl'
 import {
@@ -53,43 +51,6 @@ export const metadata = {
   title: 'Starforge admin',
   description:
     'Starforge admin — Dashboard home at /admin; users, site settings, nav, layouts (Payload CMS at /cms/admin).',
-}
-
-function filterNavLinkByAcl(
-  link: AdminNavGroup['links'][number],
-  allowed: ReadonlySet<AclAdminResourceKey>,
-): AdminNavGroup['links'][number][] {
-  const children = (link.children ?? []).flatMap((child) =>
-    filterNavLinkByAcl(child, allowed),
-  )
-  const selfAllowed = adminHrefAllowed(link.href, false, allowed)
-  if (selfAllowed) {
-    return [
-      children.length > 0 ? { ...link, children } : { ...link, children: undefined },
-    ]
-  }
-  // Parent blocked — promote any allowed nested leaves.
-  return children
-}
-
-function filterNavByAcl(
-  groups: AdminNavGroup[],
-  isAppAdmin: boolean,
-  allowed: ReadonlySet<AclAdminResourceKey>,
-): AdminNavGroup[] {
-  if (isAppAdmin) return groups
-  return groups
-    .map((group) => {
-      const links = group.links.flatMap((link) => filterNavLinkByAcl(link, allowed))
-      if (links.length === 0) return null
-      if (group.href && !adminHrefAllowed(group.href, false, allowed)) {
-        const { href: _unused, ...rest } = group
-        void _unused
-        return { ...rest, links }
-      }
-      return { ...group, links }
-    })
-    .filter((g): g is AdminNavGroup => g != null)
 }
 
 export default async function CoreAdminLayout(props: { children: React.ReactNode }) {
@@ -155,7 +116,7 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
   // Forms / Email / Redirects / Media — derived from manifest contributions + catalog toggles.
   const enabledModuleIds = resolveEnabledAdminNavModuleIds(settings)
 
-  const groups = filterNavByAcl(
+  const groups = filterAdminNavByAcl(
     buildAdminNavGroups({
       surface: 'core',
       flags: {

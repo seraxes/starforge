@@ -5,6 +5,7 @@
  * 1) Design tokens — platform `:root` + Skin `body.sf-skin-{id}`
  * 2) Outline Layout Styles — `body.sf-skin-*.sf-outline-*` breakpoints +
  *    page (body) background + section full/boxed + section bg/text/image/overlay
+ *    + section padding/margin (cog four-side px|rem → CSS shorthand)
  * 3) Custom CSS — Page Settings / Custom particle (not admin chrome)
  *
  * Section Styles live on each live section instance (`section.styles`) — listing
@@ -26,6 +27,21 @@ export type LayoutContainerMode = 'full' | 'boxed'
  * Gantry-like Section Styles on a layout section instance (not a fixed name list).
  * Live sections only — no Navigation/Header preset name map.
  */
+/** Unit for section padding / margin box inputs (cog). */
+export type LayoutBoxSpacingUnit = 'px' | 'rem'
+
+/**
+ * Four-side spacing draft for admin inputs (top / right / bottom / left).
+ * Empty side strings mean “0” when any side is set; all empty clears the property.
+ */
+export type LayoutBoxSpacingDraft = {
+  top: string
+  right: string
+  bottom: string
+  left: string
+  unit: LayoutBoxSpacingUnit
+}
+
 export type LayoutSectionStyles = {
   /** Hex / transparent fill, or CSS gradient when allowGradientBackground. */
   backgroundColor?: string
@@ -43,6 +59,16 @@ export type LayoutSectionStyles = {
   allowGradientBackground?: boolean
   /** Permit CSS gradient syntax in overlayColor. */
   allowGradientOverlay?: boolean
+  /**
+   * CSS padding shorthand from the section cog (four lengths, px|rem).
+   * Example: `1rem 1.5rem 1rem 1.5rem`.
+   */
+  padding?: string
+  /**
+   * CSS margin shorthand from the section cog (four lengths, px|rem; negatives OK).
+   * Example: `0 0 2rem 0`.
+   */
+  margin?: string
 }
 
 export type LayoutBreakpoints = {
@@ -93,6 +119,10 @@ export const DEFAULT_LAYOUT_BREAKPOINTS: LayoutBreakpoints = {
 }
 
 const LENGTH_RE = /^\d+(\.\d+)?(rem|em|px|%)$/i
+/** Section padding/margin sides — numbers with px or rem only. */
+const BOX_SIDE_LENGTH_RE = /^-?\d+(\.\d+)?(px|rem)$/i
+const BOX_SIDE_NUMBER_RE = /^-?\d+(\.\d+)?$/
+const BOX_SPACING_MAX = 9999
 
 /** Accept rem/em/px/% lengths; reject empty / unsafe strings. */
 export function sanitizeCssLength(raw: unknown, fallback: string): string {
@@ -100,6 +130,120 @@ export function sanitizeCssLength(raw: unknown, fallback: string): string {
   const trimmed = raw.trim().toLowerCase()
   if (!LENGTH_RE.test(trimmed)) return fallback
   return trimmed
+}
+
+export function asBoxSpacingUnit(raw: unknown): LayoutBoxSpacingUnit {
+  return raw === 'px' ? 'px' : 'rem'
+}
+
+function clampBoxSideNumber(n: number, allowNegative: boolean): number | undefined {
+  if (!Number.isFinite(n)) return undefined
+  if (!allowNegative && n < 0) return undefined
+  if (n < -BOX_SPACING_MAX || n > BOX_SPACING_MAX) return undefined
+  // Drop noisy float noise from number inputs.
+  const rounded = Math.round(n * 1000) / 1000
+  return Object.is(rounded, -0) ? 0 : rounded
+}
+
+/**
+ * Build a safe CSS box shorthand from four number inputs + unit.
+ * All-empty → undefined (clear). Missing sides become 0 when any side is set.
+ */
+export function formatLayoutBoxSpacing(
+  draft: LayoutBoxSpacingDraft,
+  options?: { allowNegative?: boolean },
+): string | undefined {
+  const allowNegative = options?.allowNegative === true
+  const unit = asBoxSpacingUnit(draft.unit)
+  const rawSides = [draft.top, draft.right, draft.bottom, draft.left].map((s) =>
+    typeof s === 'string' ? s.trim() : '',
+  )
+  if (rawSides.every((s) => !s)) return undefined
+
+  const lengths: string[] = []
+  for (const side of rawSides) {
+    if (!side) {
+      lengths.push(`0${unit}`)
+      continue
+    }
+    if (!BOX_SIDE_NUMBER_RE.test(side)) return undefined
+    const n = clampBoxSideNumber(Number(side), allowNegative)
+    if (n === undefined) return undefined
+    lengths.push(`${n}${unit}`)
+  }
+  return lengths.join(' ')
+}
+
+/** Parse a stored shorthand back into cog inputs (defaults unit to rem). */
+export function parseLayoutBoxSpacing(
+  raw: string | undefined | null,
+  fallbackUnit: LayoutBoxSpacingUnit = 'rem',
+): LayoutBoxSpacingDraft {
+  const empty: LayoutBoxSpacingDraft = {
+    top: '',
+    right: '',
+    bottom: '',
+    left: '',
+    unit: fallbackUnit,
+  }
+  if (typeof raw !== 'string') return empty
+  const parts = raw.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return empty
+  if (parts.length > 4) return empty
+  if (!parts.every((p) => BOX_SIDE_LENGTH_RE.test(p))) return empty
+
+  const unitMatch = parts[0].match(/(px|rem)$/i)
+  const unit = asBoxSpacingUnit(unitMatch?.[1]?.toLowerCase() ?? fallbackUnit)
+  if (!parts.every((p) => p.toLowerCase().endsWith(unit))) return empty
+
+  const nums = parts.map((p) => p.slice(0, -unit.length))
+  // Expand CSS shorthand: 1 → all; 2 → vertical/horizontal; 3 → top / x / bottom; 4 → TRBL.
+  let top = nums[0]
+  let right = nums[0]
+  let bottom = nums[0]
+  let left = nums[0]
+  if (nums.length === 2) {
+    right = nums[1]
+    left = nums[1]
+  } else if (nums.length === 3) {
+    right = nums[1]
+    left = nums[1]
+    bottom = nums[2]
+  } else if (nums.length === 4) {
+    right = nums[1]
+    bottom = nums[2]
+    left = nums[3]
+  }
+  return { top, right, bottom, left, unit }
+}
+
+/**
+ * Accept a CSS padding/margin shorthand of 1–4 px|rem lengths.
+ * Rejects mixed units, other units, and (for padding) negatives.
+ */
+export function sanitizeCssBoxShorthand(
+  raw: unknown,
+  options?: { allowNegative?: boolean },
+): string | undefined {
+  if (typeof raw !== 'string') return undefined
+  const trimmed = raw.trim().toLowerCase().replace(/\s+/g, ' ')
+  if (!trimmed) return undefined
+  if (trimmed.length > 64) return undefined
+  const parts = trimmed.split(' ')
+  if (parts.length < 1 || parts.length > 4) return undefined
+  if (!parts.every((p) => BOX_SIDE_LENGTH_RE.test(p))) return undefined
+
+  const unit = parts[0].endsWith('px') ? 'px' : 'rem'
+  if (!parts.every((p) => p.endsWith(unit))) return undefined
+
+  const allowNegative = options?.allowNegative === true
+  const normalized: string[] = []
+  for (const part of parts) {
+    const n = clampBoxSideNumber(Number(part.slice(0, -unit.length)), allowNegative)
+    if (n === undefined) return undefined
+    normalized.push(`${n}${unit}`)
+  }
+  return normalized.join(' ')
 }
 
 export function normalizeLayoutBreakpoints(raw: unknown): LayoutBreakpoints {
@@ -336,6 +480,8 @@ export function normalizeLayoutSectionStyles(raw: unknown): LayoutSectionStyles 
   const backgroundImage = sanitizeBackgroundImageUrl(src.backgroundImage)
   const backgroundOverlay = asBackgroundOverlay(src.backgroundOverlay)
   const overlayColor = sanitizeCssColorOrGradient(src.overlayColor, allowGradientOverlay)
+  const padding = sanitizeCssBoxShorthand(src.padding, { allowNegative: false })
+  const margin = sanitizeCssBoxShorthand(src.margin, { allowNegative: true })
 
   const out: LayoutSectionStyles = {
     ...(backgroundColor ? { backgroundColor } : {}),
@@ -346,6 +492,8 @@ export function normalizeLayoutSectionStyles(raw: unknown): LayoutSectionStyles 
     ...(overlayColor ? { overlayColor } : {}),
     ...(allowGradientBackground ? { allowGradientBackground: true } : {}),
     ...(allowGradientOverlay ? { allowGradientOverlay: true } : {}),
+    ...(padding ? { padding } : {}),
+    ...(margin ? { margin } : {}),
   }
   return Object.keys(out).length > 0 ? out : undefined
 }
@@ -400,6 +548,8 @@ export function buildSectionInlineStyle(
   if (normalized.backgroundOverlay === 'enabled') {
     out['--sf-section-overlay'] = normalized.overlayColor || 'rgba(0,0,0,0.35)'
   }
+  if (normalized.padding) out.padding = normalized.padding
+  if (normalized.margin) out.margin = normalized.margin
   return Object.keys(out).length > 0 ? out : undefined
 }
 

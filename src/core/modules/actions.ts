@@ -39,6 +39,7 @@ import {
   normalizeLayoutSectionStyles,
   sanitizeBackgroundImageUrl,
   sanitizeBackgroundMediaId,
+  sanitizeCssBoxShorthand,
   sanitizeCssColor,
   sanitizeCssColorOrGradient,
   type LayoutBodyBackgroundFit,
@@ -281,6 +282,8 @@ function patchSectionStyles(
     clearBackgroundOverlay?: boolean
     clearAllowGradientBackground?: boolean
     clearAllowGradientOverlay?: boolean
+    clearPadding?: boolean
+    clearMargin?: boolean
   },
 ): LayoutSectionStyles | undefined {
   const next: LayoutSectionStyles = { ...(current ?? {}) }
@@ -304,6 +307,10 @@ function patchSectionStyles(
   else if (patch.allowGradientOverlay !== undefined) {
     next.allowGradientOverlay = patch.allowGradientOverlay
   }
+  if (patch.clearPadding) delete next.padding
+  else if (patch.padding !== undefined) next.padding = patch.padding
+  if (patch.clearMargin) delete next.margin
+  else if (patch.margin !== undefined) next.margin = patch.margin
   return normalizeLayoutSectionStyles(next)
 }
 
@@ -333,6 +340,8 @@ export async function updateLayoutSectionMetaAction(
   // Checkbox pair: hidden "0" + checkbox "1" — always present on Styles form saves.
   const hasAllowGradientBackground = formData.has('allowGradientBackground')
   const hasAllowGradientOverlay = formData.has('allowGradientOverlay')
+  const hasPadding = formData.has('padding')
+  const hasMargin = formData.has('margin')
   const stylesTouched =
     hasBackgroundColor ||
     hasTextColor ||
@@ -341,7 +350,9 @@ export async function updateLayoutSectionMetaAction(
     hasBackgroundOverlay ||
     hasOverlayColor ||
     hasAllowGradientBackground ||
-    hasAllowGradientOverlay
+    hasAllowGradientOverlay ||
+    hasPadding ||
+    hasMargin
   if (!hasLabel && !hasCssClass && !hasContainerMode && !hasWidth && !stylesTouched) {
     return { error: 'Nothing to update on this section.' }
   }
@@ -390,6 +401,8 @@ export async function updateLayoutSectionMetaAction(
   const overlayColorRaw = hasOverlayColor
     ? String(formData.get('overlayColor') ?? '').trim()
     : undefined
+  const paddingRaw = hasPadding ? String(formData.get('padding') ?? '').trim() : undefined
+  const marginRaw = hasMargin ? String(formData.get('margin') ?? '').trim() : undefined
 
   if (hasBackgroundOverlay && backgroundOverlayRaw) {
     if (backgroundOverlayRaw !== 'enabled' && backgroundOverlayRaw !== 'disabled') {
@@ -533,6 +546,38 @@ export async function updateLayoutSectionMetaAction(
         }
       }
 
+      let padding: string | undefined
+      let clearPadding = false
+      if (hasPadding) {
+        if (!paddingRaw) {
+          clearPadding = true
+        } else {
+          padding = sanitizeCssBoxShorthand(paddingRaw, { allowNegative: false })
+          if (!padding) {
+            return {
+              error:
+                'Padding must be 1–4 lengths with the same px or rem unit (e.g. 1rem 1.5rem 1rem 1.5rem).',
+            }
+          }
+        }
+      }
+
+      let margin: string | undefined
+      let clearMargin = false
+      if (hasMargin) {
+        if (!marginRaw) {
+          clearMargin = true
+        } else {
+          margin = sanitizeCssBoxShorthand(marginRaw, { allowNegative: true })
+          if (!margin) {
+            return {
+              error:
+                'Margin must be 1–4 lengths with the same px or rem unit (e.g. 0 0 2rem 0).',
+            }
+          }
+        }
+      }
+
       const nextStyles = patchSectionStyles(section.styles, {
         ...(hasBackgroundColor
           ? clearBackgroundColor
@@ -576,6 +621,8 @@ export async function updateLayoutSectionMetaAction(
             ? { allowGradientOverlay: true }
             : { clearAllowGradientOverlay: true }
           : {}),
+        ...(hasPadding ? (clearPadding ? { clearPadding: true } : { padding }) : {}),
+        ...(hasMargin ? (clearMargin ? { clearMargin: true } : { margin }) : {}),
       })
       if (nextStyles) section.styles = nextStyles
       else delete section.styles
@@ -612,6 +659,12 @@ export async function updateLayoutSectionMetaAction(
     }
     if (hasAllowGradientOverlay) {
       bits.push(allowGradientOverlay ? 'gradient overlays on' : 'gradient overlays off')
+    }
+    if (hasPadding) {
+      bits.push(paddingRaw ? 'padding updated' : 'padding cleared')
+    }
+    if (hasMargin) {
+      bits.push(marginRaw ? 'margin updated' : 'margin cleared')
     }
     state.message = `Section ${bits.join(' · ')} saved.`
   }

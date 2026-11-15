@@ -13,6 +13,8 @@ import {
   pageKeyFromPathname,
   publicPathnameFromHeaders,
 } from '@/core/page-settings'
+import { PublicShellSync } from '@/core/page-settings/public-shell-sync'
+import { paintedPublicShellKey } from '@/core/page-settings/shell-key.server'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { getActiveSkin } from '@/core/skin/resolve-active'
 import { SkinRootStyles } from '@/core/skin/SkinRootStyles'
@@ -23,9 +25,10 @@ type Props = {
 }
 
 /**
- * Remounts on every public navigation (unlike layout) so outline assignment
- * for the current path (e.g. Events → Test / boxed Main) always re-resolves.
+ * Public surround for the current path (outline, sections width, head/body chrome).
  * Templates do not receive `params` — locale comes from next-intl (set in layout).
+ * Next.js reuses this segment on client navigations when `[locale]` does not
+ * change; `PublicShellSync` refetches it when the next URL needs a different shell.
  */
 export default async function PublicLocaleTemplate({ children }: Props) {
   const locale = await getLocale()
@@ -44,6 +47,7 @@ export default async function PublicLocaleTemplate({ children }: Props) {
       : `/${bare}`
     : publicPathnameFromHeaders(headerList, locale)
   const pageKey = pageKeyFromPathname(pathname)
+  const clientPath = publicPathnameFromHeaders(headerList, locale)
   const pageSettingsOn = isCatalogModuleEnabled(settings, MODULE_IDS.pageSettings)
   const layoutOn = isCatalogModuleEnabled(settings, MODULE_IDS.layoutManager)
   const [chrome, skin] = await Promise.all([
@@ -61,12 +65,16 @@ export default async function PublicLocaleTemplate({ children }: Props) {
   const primaryNav = filterNavItemsForViewer(rawNav, viewer)
   const brandName = siteChrome.siteName || settings.siteName
 
-  const { resolveExistingLayoutId } = await import('@/core/modules/layout-store')
-  const rawOutlineId = chrome.layoutId || skin.preferredDefaultOutlineId || skin.id
-  const outlineId = (await resolveExistingLayoutId(rawOutlineId)) || rawOutlineId
+  const shellKey = await paintedPublicShellKey({
+    layoutId: chrome.layoutId,
+    sectionsLayout: chrome.sectionsLayout,
+    outlineFallbackId: skin.preferredDefaultOutlineId || skin.id,
+    layoutManagerEnabled: layoutOn,
+  })
 
   return (
     <>
+      <PublicShellSync renderedPath={clientPath} shellKey={shellKey} />
       <SkinRootStyles />
       {pageSettingsOn ? <DocumentHeadChrome chrome={chrome} /> : null}
       <PublicShellSlots slot="head" />
@@ -76,7 +84,7 @@ export default async function PublicLocaleTemplate({ children }: Props) {
         bodyTagAttributes={pageSettingsOn ? chrome.bodyTagAttributes : ''}
         sectionsLayout={chrome.sectionsLayout}
         skinId={skin.id}
-        outlineId={outlineId}
+        outlineId={shellKey.outlineId}
       />
       {pageSettingsOn ? <DocumentBodyChrome chrome={chrome} position="start" /> : null}
       <PublicShellSlots slot="bodyStart" />

@@ -123,7 +123,7 @@ Legacy v1 / v2 upgrade on read.
 5. Layout admin page is **full width** (no narrow max-width column)
 6. **Drag ⋮⋮** on a particle to **reorder** left↔right in the same row (keeps % widths) **or move** into another section’s row (both rows rebalance %)
 7. Custom particle: CodeMirror HTML/CSS/JS (resizable panels — no plain code textareas)
-8. Typed / Custom settings open in a **floating overlay** (does not expand the slot or push the row; Escape / outside click closes)
+8. Typed / Custom settings open in a **floating overlay** (does not expand the slot or push the row; Escape / Close only — outside click does not dismiss a configuration window)
 
 ### Typed Core particles
 

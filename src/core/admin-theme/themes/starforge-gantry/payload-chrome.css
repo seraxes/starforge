@@ -238,16 +238,9 @@ html[data-theme='dark'] .btn.btn--size-small {
   overflow: visible;
 }
 
+/* Sign-out lives on AdminSidebarAccount — keep the strip collapsed. */
 .nav__wrap.sf-payload-admin-nav .nav__controls {
-  margin-top: auto;
-  margin-bottom: 0;
-  padding-top: 0.75rem;
-  border-top: 1px solid #1a2433;
-  gap: 0.55rem;
-}
-
-.nav__wrap.sf-payload-admin-nav .nav__controls > :first-child {
-  margin-top: 0; /* undo Payload 20px first-child push */
+  display: none;
 }
 
 .nav .admin-sidebar--embedded {
@@ -533,8 +526,9 @@ html[data-theme='dark'] .btn.btn--size-small {
   margin: 0 0 0.2em;
 }
 
+/* Match Core styles.css — padding on title/leaves, not the head row. */
 .nav .admin-sidebar-link,
-.nav .admin-sidebar-group-head,
+.nav .admin-sidebar-group-title,
 .nav .admin-sidebar-sublink {
   display: block;
   width: 100%;
@@ -550,10 +544,6 @@ html[data-theme='dark'] .btn.btn--size-small {
   font-weight: 650;
   line-height: normal;
   cursor: pointer;
-}
-
-.nav .admin-sidebar-link,
-.nav .admin-sidebar-group-head {
   padding: 0.45em 0.6em;
   border-radius: 3px;
 }
@@ -561,11 +551,15 @@ html[data-theme='dark'] .btn.btn--size-small {
 .nav .admin-sidebar-group-head {
   display: flex;
   align-items: center;
-  gap: 0.35em;
+  gap: 0.2em;
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .nav .admin-sidebar-group-title {
   flex: 1 1 auto;
+  width: auto;
   min-width: 0;
 }
 
@@ -592,24 +586,36 @@ html[data-theme='dark'] .btn.btn--size-small {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 5.75L8 10.25L12.5 5.75' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
-.nav .admin-sidebar-sub {
+.nav .admin-sidebar-sub,
+.nav .admin-sidebar-subnest {
   margin: 0.1em 0 0.35em;
   padding: 0.15em 0 0.15em 0.55em;
   border-left: 2px solid #314257;
 }
 
 .nav .admin-sidebar-sublink {
-  padding: 0.35em 0.55em;
+  /* Same type size as Core leaves — only a touch lighter weight. */
+  padding: 0.42em 0.6em;
   border-radius: 3px;
-  font-weight: 600;
-  font-size: 0.9em;
+  font-weight: 620;
+  font-size: inherit;
   color: #fff !important;
   -webkit-text-fill-color: #fff;
 }
 
+.nav .admin-sidebar-subitem.has-nest {
+  margin: 0 0 0.15em;
+}
+
+.nav .admin-sidebar-nestlink {
+  padding: 0.4em 0.55em;
+  font-size: inherit;
+  font-weight: 600;
+}
+
 /* Hover = mid-blue; current leaf = darker blue (no accordion group-head sticky) */
 .nav .admin-sidebar-link:hover,
-.nav .admin-sidebar-group-head:hover,
+.nav .admin-sidebar-group-title:hover,
 .nav .admin-sidebar-sublink:hover {
   background: var(--sf-admin-blue-mid) !important;
   color: #fff !important;
@@ -618,6 +624,7 @@ html[data-theme='dark'] .btn.btn--size-small {
 }
 
 .nav .admin-sidebar-link.is-current,
+.nav .admin-sidebar-group-title.is-current,
 .nav .admin-sidebar-sublink.is-current {
   background: var(--sf-admin-blue-active) !important;
   color: #fff !important;
@@ -625,11 +632,13 @@ html[data-theme='dark'] .btn.btn--size-small {
   box-shadow: none;
 }
 
-.nav .admin-sidebar-group-head:hover .admin-sidebar-group-toggle {
+.nav .admin-sidebar-group-title:hover + .admin-sidebar-group-toggle,
+.nav .admin-sidebar-group-toggle:hover {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M5.75 3.5L10.25 8L5.75 12.5' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
-.nav .admin-sidebar-group-head:hover .admin-sidebar-group-toggle.is-open {
+.nav .admin-sidebar-group-title:hover + .admin-sidebar-group-toggle.is-open,
+.nav .admin-sidebar-group-toggle.is-open:hover {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 5.75L8 10.25L12.5 5.75' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 

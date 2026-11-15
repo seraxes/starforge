@@ -119,7 +119,9 @@ body > main {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem 1.25rem;
-  max-width: 64rem;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
   margin: 0 auto;
   padding: 1rem 1.5rem 0.25rem;
 }
@@ -294,6 +296,11 @@ body > main {
   box-sizing: border-box;
 }
 
+/* Soft nav can reuse the previous outline for one frame. Hide it until the shell matches. */
+html[data-sf-shell-stale] .public-shell {
+  visibility: hidden;
+}
+
 /* Page Content particle wrapper — grow only as content needs (not a spacer). */
 .public-main {
   flex: 0 0 auto;
@@ -316,7 +323,9 @@ body > main {
   align-items: center;
   justify-content: space-between;
   gap: 0.65rem 1rem;
-  max-width: 64rem;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
   margin: 0 auto;
   padding: 0.7rem 1.5rem;
 }
@@ -762,9 +771,11 @@ button:disabled {
   gap: 0.75rem;
 }
 
-/* Welcome + login panel (Login particle) — match auth-card, not a hero overlay. */
+/* Welcome + login panel (Login particle) — fills the layout column. */
 .auth-welcome-embed {
-  max-width: 26rem;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
   margin: 0;
   padding: 1.25rem 1.35rem 1.5rem;
   border: 1px solid var(--sf-line);
@@ -830,13 +841,11 @@ button:disabled {
   font-weight: 400;
 }
 
-/*
- * Login card fills its column up to the auth-card width — not the full section.
- * Lets Layouts CSS class `center` / `left` / `right` actually place the card.
- */
+/* Login particle fills its layout column. Section boxed/full owns the cap. */
 .sf-login-particle {
   width: 100%;
-  max-width: 26rem;
+  max-width: none;
+  min-width: 0;
   box-sizing: border-box;
 }
 
@@ -2169,7 +2178,10 @@ button:disabled {
   flex-wrap: wrap;
   align-items: stretch;
   gap: 0.5rem;
-  max-width: 36rem;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .sf-search-form--compact .sf-search-form-row {
@@ -2220,9 +2232,13 @@ button:disabled {
   margin: 0.5rem 0 0;
 }
 
-/* product:events — public hub + cards + detail + particles */
+/* product:events — public hub + cards + detail + particles.
+ * No max-width — layout sections own boxed vs full. */
 .sf-events-page {
-  max-width: 72rem;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .sf-events-section-heading {
@@ -2961,7 +2977,10 @@ button:disabled {
 }
 
 .sf-event-detail {
-  max-width: 52rem;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .sf-event-detail-back {
@@ -3847,7 +3866,10 @@ button:disabled {
 
 .sf-event-venue-map {
   margin: 1.5rem 0 0;
-  max-width: 48rem;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .sf-event-venue-map-heading,
@@ -3870,7 +3892,10 @@ button:disabled {
 
 .sf-event-registration {
   margin: 2rem 0 0;
-  max-width: 36rem;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  box-sizing: border-box;
   padding-top: 1.25rem;
   border-top: 1px solid var(--sf-line);
 }
@@ -3975,7 +4000,8 @@ button:disabled {
 
 .sf-events-list-wrap {
   white-space: normal !important;
-  max-width: 18rem;
+  max-width: none;
+  min-width: 0;
   overflow-wrap: anywhere;
 }
 
@@ -4508,7 +4534,9 @@ button:disabled {
   align-items: flex-end;
   justify-content: space-between;
   gap: 0.85rem 1.25rem;
-  max-width: 64rem;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
   margin: 0 auto;
   padding: 0.9rem 1.5rem 1.1rem;
 }
@@ -4898,9 +4926,34 @@ button:disabled {
 }
 
 /*
- * Card particles default to width:100% of the column — that blocks align-items.
- * Cap them to the auth card width so left/center/right can place the box.
+ * width:100% children ignore align-items. Shrink them so left/center/right
+ * can place the box. Menu stays full width (justify-content on the nav).
  */
+.sf-grid-col.left > :not(.sf-menu),
+.sf-grid-col.center > :not(.sf-menu),
+.sf-grid-col.right > :not(.sf-menu) {
+  width: auto;
+  max-width: 100%;
+}
+
+.sf-grid-col.left > :not(.sf-menu) {
+  align-self: flex-start;
+  margin-left: 0;
+  margin-right: auto;
+}
+
+.sf-grid-col.center > :not(.sf-menu) {
+  align-self: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.sf-grid-col.right > :not(.sf-menu) {
+  align-self: flex-end;
+  margin-left: auto;
+  margin-right: 0;
+}
+
 .sf-grid-col.left > .sf-login-particle,
 .sf-grid-col.center > .sf-login-particle,
 .sf-grid-col.right > .sf-login-particle {
@@ -5328,7 +5381,10 @@ button:disabled {
 }
 
 .sf-checkout-handoff {
-  max-width: 36rem;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  box-sizing: border-box;
   margin: 1.5rem auto;
   padding: 1.25rem 1.35rem;
   border: 1px solid var(--sf-line);
@@ -5603,18 +5659,24 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-  width: 100%;
+  width: auto;
+  max-width: 100%;
   min-width: 0;
 }
 
 .sf-subscriptions-plan-section {
+  display: flex;
+  flex-direction: column;
   margin: 0;
   padding: 0.7rem 0 0.55rem;
   border: 0;
   border-top: 1px solid color-mix(in srgb, var(--sf-admin-panel-border, var(--sf-line)) 75%, transparent);
   min-width: 0;
+  /* Fieldset UA min-content + width:100% paints a scrollbar on the card edge. */
   min-inline-size: 0;
-  width: 100%;
+  width: auto;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .sf-subscriptions-plan-section:first-of-type {
@@ -5665,8 +5727,17 @@ button:disabled {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  max-width: 100%;
   max-height: 70vh;
-  overflow: auto;
+  /* Clip x so a wide field cannot draw a bar along the card border. */
+  overflow-x: clip;
+  overflow-y: auto;
+}
+
+/* Open editor uses the page scroll. A capped list puts the bar on the card border. */
+.sf-subscriptions-plan-list:has(> .sf-subscriptions-plan-item.is-open) {
+  max-height: none;
+  overflow: visible;
 }
 
 .sf-subscriptions-plan-item {
@@ -5721,6 +5792,12 @@ button:disabled {
 
 .sf-subscriptions-plan-edit {
   padding: 0.35rem 0 0.85rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.sf-subscriptions-plan-edit code {
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 900px) {
@@ -6814,6 +6891,80 @@ button:disabled {
   flex-wrap: wrap;
   gap: 0.45rem 0.75rem;
   align-items: center;
+}
+
+.gantry-section-box-spacing-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.gantry-section-box-spacing {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.gantry-section-box-spacing-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.gantry-section-box-side {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.1rem;
+  min-width: 0;
+  flex: 1 1 0;
+}
+
+.gantry-section-box-side-mark {
+  font-size: 0.68rem;
+  line-height: 1;
+  color: var(--sf-muted);
+  text-align: center;
+  font-weight: 600;
+}
+
+.gantry-section-box-side-input {
+  width: 100%;
+  min-width: 0;
+  max-width: 3.6rem;
+  padding-inline: 0.25rem;
+  font-size: 0.82rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  text-align: center;
+}
+
+.gantry-section-box-side-input::-webkit-outer-spin-button,
+.gantry-section-box-side-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.gantry-section-box-side-input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.gantry-section-box-unit {
+  flex: 0 0 auto;
+  align-self: flex-end;
+}
+
+.gantry-section-box-unit-select {
+  width: auto;
+  min-width: 3.4rem;
+  max-width: 4rem;
+  cursor: pointer;
+  font-size: 0.82rem;
 }
 
 .gantry-section-color-label {
@@ -9746,7 +9897,7 @@ button.danger:hover,
 
 .sf-event-live-map-lede {
   margin: 0;
-  max-width: 36rem;
+  max-width: none;
   color: var(--sf-muted, color-mix(in srgb, var(--sf-text, #111) 65%, transparent));
   font-size: 0.95rem;
   line-height: 1.45;
@@ -9899,7 +10050,7 @@ button.danger:hover,
 }
 
 .sf-profile-page .lede {
-  max-width: 42rem;
+  max-width: none;
   margin-bottom: 1.25rem;
 }
 
@@ -10024,9 +10175,12 @@ button.danger:hover,
   color: var(--sf-muted);
 }
 
-/* Public profile page */
+/* Public profile page — section owns boxed vs full. */
 .sf-profile {
-  max-width: 52rem;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  box-sizing: border-box;
   margin: 0 auto 2rem;
 }
 .sf-profile-cover {

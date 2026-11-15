@@ -64,7 +64,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /**
  * Public locale providers + offline gate. Page chrome / outline shell lives in
- * `template.tsx` so it remounts on every navigation (Assigned Menu outline wins).
+ * `template.tsx` (Assigned Menu outline). Client navigations reuse this segment;
+ * `PublicShellSync` refetches the shell when the outline changes.
  * Offline locks everyone the same (no admin bypass); `/admin` stays exempt in proxy.
  */
 export default async function PublicLocaleLayout({ children, params }: Props) {

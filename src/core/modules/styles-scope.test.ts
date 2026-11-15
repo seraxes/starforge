@@ -4,9 +4,14 @@ import { describe, it } from 'node:test'
 import {
   buildOutlineBodyBackgroundCss,
   buildOutlineBreakpointCss,
+  buildSectionInlineStyle,
   DEFAULT_LAYOUT_BREAKPOINTS,
+  formatLayoutBoxSpacing,
   normalizeLayoutOutlineStyles,
+  normalizeLayoutSectionStyles,
+  parseLayoutBoxSpacing,
   resolveSectionContainerMode,
+  sanitizeCssBoxShorthand,
 } from './styles'
 
 describe('buildOutlineBreakpointCss', () => {
@@ -70,5 +75,70 @@ describe('resolveSectionContainerMode', () => {
     assert.equal(resolveSectionContainerMode(undefined, 'boxed'), 'boxed')
     assert.equal(resolveSectionContainerMode(undefined, 'fullwidth'), 'full')
     assert.equal(resolveSectionContainerMode(null, undefined), 'full')
+  })
+})
+
+describe('section padding / margin box spacing', () => {
+  it('formats four numbers + unit into CSS shorthand', () => {
+    assert.equal(
+      formatLayoutBoxSpacing({ top: '1', right: '1.5', bottom: '1', left: '1.5', unit: 'rem' }),
+      '1rem 1.5rem 1rem 1.5rem',
+    )
+    assert.equal(
+      formatLayoutBoxSpacing({ top: '10', right: '', bottom: '0', left: '5', unit: 'px' }),
+      '10px 0px 0px 5px',
+    )
+    assert.equal(
+      formatLayoutBoxSpacing({ top: '', right: '', bottom: '', left: '', unit: 'rem' }),
+      undefined,
+    )
+  })
+
+  it('rejects negative padding but allows negative margin', () => {
+    assert.equal(
+      formatLayoutBoxSpacing({ top: '-1', right: '0', bottom: '0', left: '0', unit: 'rem' }),
+      undefined,
+    )
+    assert.equal(
+      formatLayoutBoxSpacing(
+        { top: '-1', right: '0', bottom: '0', left: '0', unit: 'rem' },
+        { allowNegative: true },
+      ),
+      '-1rem 0rem 0rem 0rem',
+    )
+    assert.equal(sanitizeCssBoxShorthand('-1rem 0rem 0rem 0rem'), undefined)
+    assert.equal(
+      sanitizeCssBoxShorthand('-1rem 0rem 0rem 0rem', { allowNegative: true }),
+      '-1rem 0rem 0rem 0rem',
+    )
+  })
+
+  it('parses shorthand back into cog draft', () => {
+    assert.deepEqual(parseLayoutBoxSpacing('1rem 2rem 1rem 2rem'), {
+      top: '1',
+      right: '2',
+      bottom: '1',
+      left: '2',
+      unit: 'rem',
+    })
+    assert.deepEqual(parseLayoutBoxSpacing('8px'), {
+      top: '8',
+      right: '8',
+      bottom: '8',
+      left: '8',
+      unit: 'px',
+    })
+  })
+
+  it('stores and emits padding/margin on section inline styles', () => {
+    const styles = normalizeLayoutSectionStyles({
+      padding: '1rem 2rem 1rem 2rem',
+      margin: '0px 0px 16px 0px',
+    })
+    assert.equal(styles?.padding, '1rem 2rem 1rem 2rem')
+    assert.equal(styles?.margin, '0px 0px 16px 0px')
+    const inline = buildSectionInlineStyle(styles)
+    assert.equal(inline?.padding, '1rem 2rem 1rem 2rem')
+    assert.equal(inline?.margin, '0px 0px 16px 0px')
   })
 })

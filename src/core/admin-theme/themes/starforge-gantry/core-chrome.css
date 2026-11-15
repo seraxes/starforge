@@ -1390,18 +1390,64 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .gantry-section-settings[open] > .gantry-section-toolbar {
+  --sf-section-cog-label: 5.75rem;
   display: grid;
   position: absolute;
   right: 0;
   top: calc(100% + 0.3rem);
   z-index: 30;
-  min-width: 17.5rem;
+  /* ~20% wider than 19.5rem so padding/margin sides fit comfortably. */
+  min-width: 23.4rem;
   gap: 0.55rem;
   padding: 0.65rem;
   background: #1b2531;
   border: 1px solid var(--sf-admin-blue-border);
   border-radius: 3px;
   box-shadow: none;
+}
+
+/* Container / Background / Text — fixed label column so controls share one start line. */
+.admin-shell .gantry-section-settings[open] .gantry-section-container-label,
+.admin-shell .gantry-section-settings[open] .gantry-section-color-label {
+  display: grid;
+  grid-template-columns: var(--sf-section-cog-label) minmax(0, 1fr);
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  width: 100%;
+  flex: none;
+  max-width: none;
+}
+
+.admin-shell .gantry-section-settings[open] .gantry-section-container-label > .gantry-field-hint,
+.admin-shell .gantry-section-settings[open] .gantry-section-color-label > .gantry-field-hint {
+  text-align: right;
+  line-height: 1.2;
+}
+
+.admin-shell .gantry-section-settings[open] .gantry-section-styles {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.45rem;
+  width: 100%;
+}
+
+.admin-shell .gantry-section-settings[open] .gantry-section-container-select {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+
+.admin-shell .gantry-section-settings[open] .gantry-section-color-input {
+  flex: 1 1 auto;
+  width: auto;
+  max-width: none;
+  min-width: 0;
+}
+
+.admin-shell .gantry-section-box-spacing-group {
+  padding-top: 0.15rem;
+  border-top: 1px solid var(--sf-admin-blue-border);
 }
 
 .admin-shell .gantry-section-settings:not([open]) > .gantry-section-toolbar {
@@ -3139,13 +3185,6 @@ body:has(.admin-shell) > main {
   cursor: pointer;
 }
 
-.admin-shell .section-styles-gradient-inline input[type='checkbox'] {
-  width: 0.95rem;
-  height: 0.95rem;
-  margin: 0;
-  accent-color: var(--sf-admin-blue, #3498db);
-}
-
 .admin-shell .section-styles-empty {
   margin: 0.5rem 0 1rem;
   color: #8fa0b5;
@@ -3332,10 +3371,52 @@ body:has(.admin-shell) > main {
   background: color-mix(in srgb, var(--sf-admin-blue-mid) 8%, transparent);
 }
 
+/* Option checkbox + its label stay one row (settings-field is column). */
 .admin-shell .outlines-check,
-.admin-shell .settings-flag {
+.admin-shell .settings-flag,
+.admin-shell .settings-field-checkbox,
+.admin-shell .settings-field-check,
+.admin-shell .settings-modules-toggle,
+.admin-shell .gantry-typed-check,
+.admin-shell .page-settings-atom-enable,
+.admin-shell label:has(> input[type='checkbox']) {
   display: flex;
-  gap: 0.45rem;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.65rem;
+}
+
+.admin-shell label:has(> input[type='checkbox']) > span:not(.settings-hint):not(.settings-flag-desc),
+.admin-shell .settings-modules-toggle > span,
+.admin-shell .settings-field-check > span {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.admin-shell .settings-field-check > span {
+  display: inline-flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.admin-shell .settings-flag > .settings-hint,
+.admin-shell .settings-flag > .settings-flag-desc,
+.admin-shell label:has(> input[type='checkbox']) > .settings-hint {
+  flex: 1 0 100%;
+  margin-top: 0;
+  padding-left: calc(2.6rem + 0.65rem);
+}
+
+.admin-shell .settings-flag strong,
+.admin-shell .settings-modules-toggle strong {
+  display: inline;
+}
+
+.admin-shell .settings-modules-toggle,
+.admin-shell .settings-flag:has(.settings-flag-desc) {
   align-items: flex-start;
 }
 
@@ -5213,4 +5294,103 @@ body:has(.admin-shell) > main {
 .sf-code-field-label-row .sf-locale-input-copy-wrap:focus-within {
   outline: 2px solid color-mix(in srgb, var(--sf-primary, #3b82f6) 70%, transparent);
   outline-offset: 1px;
+}
+
+/*
+ * Option checkboxes use the same slide as .cms-switch.
+ * Row-select checkboxes (table cells, media multi-select) stay checkboxes.
+ */
+.admin-shell input[type='checkbox'],
+.admin-shell .section-styles-gradient-inline input[type='checkbox'] {
+  -webkit-appearance: none;
+  appearance: none;
+  position: relative;
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 2.6rem;
+  min-width: 2.6rem;
+  max-width: 2.6rem;
+  height: 1.45rem;
+  min-height: 1.45rem;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #5a6578;
+  border-radius: 999px;
+  background: #3a4556;
+  box-shadow: none;
+  cursor: pointer;
+  vertical-align: middle;
+  box-sizing: border-box;
+}
+
+.admin-shell input[type='checkbox']::before,
+.admin-shell .section-styles-gradient-inline input[type='checkbox']::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 999px;
+  background: #f4f7fb;
+  box-shadow: 0 1px 2px rgba(28, 40, 52, 0.18);
+  transition: transform 0.15s ease;
+  pointer-events: none;
+}
+
+.admin-shell input[type='checkbox']:checked,
+.admin-shell .section-styles-gradient-inline input[type='checkbox']:checked {
+  background: #3498db;
+  border-color: #5eb0e8;
+}
+
+.admin-shell input[type='checkbox']:checked::before,
+.admin-shell .section-styles-gradient-inline input[type='checkbox']:checked::before {
+  transform: translateX(1.15rem);
+}
+
+.admin-shell input[type='checkbox']:focus-visible,
+.admin-shell .section-styles-gradient-inline input[type='checkbox']:focus-visible {
+  outline: 2px solid #7ec8f0;
+  outline-offset: 2px;
+}
+
+.admin-shell input[type='checkbox']:disabled,
+.admin-shell .section-styles-gradient-inline input[type='checkbox']:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.admin-shell .settings-modules-toggle > input[type='checkbox'],
+.admin-shell .settings-flag:has(.settings-flag-desc) > input[type='checkbox'] {
+  margin-top: 0.12rem;
+}
+
+.admin-shell td > input[type='checkbox'],
+.admin-shell th > input[type='checkbox'],
+.admin-shell .sf-media-library-select input[type='checkbox'],
+.admin-shell .sf-media-bulk-select-all input[type='checkbox'] {
+  -webkit-appearance: auto;
+  appearance: auto;
+  display: inline-block;
+  width: 1rem;
+  min-width: 1rem;
+  max-width: 1rem;
+  height: 1rem;
+  min-height: 1rem;
+  margin: 0;
+  padding: 0;
+  border-radius: 3px;
+  border: revert;
+  background: transparent;
+  accent-color: var(--sf-admin-blue-mid, #3498db);
+  box-shadow: none;
+  opacity: 1;
+}
+
+.admin-shell td > input[type='checkbox']::before,
+.admin-shell th > input[type='checkbox']::before,
+.admin-shell .sf-media-library-select input[type='checkbox']::before,
+.admin-shell .sf-media-bulk-select-all input[type='checkbox']::before {
+  content: none;
 }
