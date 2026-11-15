@@ -56,13 +56,29 @@ function publishLiveSiteChrome(
 }
 
 /**
- * Chrome for the proxy offline gate — live snapshot, else one uncached DB read.
- * `getSiteChrome()` is the same data with per-request dedupe.
+ * Chrome for hot paths that can tolerate a process snapshot — live snapshot,
+ * else one uncached DB read. `getSiteChrome()` is the same data with per-request
+ * dedupe.
+ *
+ * Do **not** use this for the offline gate. Turbopack can give the Node proxy
+ * and server actions separate copies of this module, so a save that published
+ * `offlineEnabled` in one bundle never updates the other — the public site
+ * stays on a prerendered Base outline while `/site-offline` looks correct.
  */
 export async function getSiteChromeForProxy(): Promise<SiteChromeDocument> {
   if (liveSiteChrome) return liveSiteChrome
   const loaded = await loadSiteChromeUncached()
   return liveSiteChrome ?? loaded.chrome
+}
+
+/**
+ * Chrome for Take-site-offline: always one uncached DB read (then publish into
+ * this bundle’s snapshot). Proxy rewrite + locale soft-lock must share this
+ * path so a Chrome toggle cannot leave public URLs on a stale online document.
+ */
+export async function getSiteChromeForOfflineGate(): Promise<SiteChromeDocument> {
+  const loaded = await loadSiteChromeUncached()
+  return loaded.chrome
 }
 
 /**

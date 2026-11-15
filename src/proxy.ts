@@ -20,7 +20,7 @@ import {
   SITE_NOT_FOUND_PATH,
   SITE_OFFLINE_PATH,
   SITE_OFFLINE_RETRY_AFTER_SECONDS,
-  getSiteChromeForProxy,
+  getSiteChromeForOfflineGate,
   isOfflineExemptPath,
 } from '@/core/site-chrome'
 import { runProxyHooks } from '@/generated/module-registry.server'
@@ -191,7 +191,8 @@ async function maybeRewriteOffline(request: NextRequest): Promise<NextResponse |
   if (isOfflineExemptPath(pathname)) return null
 
   try {
-    const chrome = await getSiteChromeForProxy()
+    // Always DB — never the process snapshot (Turbopack may duplicate the store).
+    const chrome = await getSiteChromeForOfflineGate()
     if (!chrome.offlineEnabled) return null
 
     const rewriteUrl = request.nextUrl.clone()

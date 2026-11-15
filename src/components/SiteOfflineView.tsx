@@ -11,7 +11,7 @@ import {
 import { MODULE_IDS, getSiteSettingsLive, isCatalogModuleEnabled } from '@/core/settings'
 import {
   DEFAULT_SITE_CHROME_NAME,
-  getSiteChromeForProxy,
+  getSiteChromeForOfflineGate,
 } from '@/core/site-chrome'
 import { SkinRootStyles, resolveActiveSkinSystemOutlineId } from '@/core/skin'
 
@@ -34,7 +34,10 @@ type Props = {
  * (`revalidateTag({ expire: 0 })`) cannot hang the lock page until process restart.
  */
 export async function SiteOfflineView(props: Props = {}) {
-  const [chrome, settings] = await Promise.all([getSiteChromeForProxy(), getSiteSettingsLive()])
+  const [chrome, settings] = await Promise.all([
+    getSiteChromeForOfflineGate(),
+    getSiteSettingsLive(),
+  ])
   const chromeOverride = props.layoutId?.trim() || chrome.offlineLayoutId
   const resolved = await resolveActiveSkinSystemOutlineId('offline', { chromeOverride })
 

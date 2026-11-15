@@ -40,10 +40,10 @@ function parseBool(formData: FormData, key: string): boolean {
  * Offline toggle / outline pick.
  * Copy lives on the outline in Layouts — not a hardcoded Chrome message body.
  * Outline must belong to the active skin at render time (else pack `*-offline`).
- * No consent file sync. The proxy reads the process snapshot updated inside
- * saveSiteChrome. Do not bust this through the published-content cache —
- * a stale hit was re-checking offline on reload. Full Chrome autosave was
- * wedging Turbopack.
+ * No consent file sync. Proxy + locale soft-lock re-read Chrome from DB
+ * (`getSiteChromeForOfflineGate`) so a Turbopack-duplicated process snapshot
+ * cannot leave public URLs online. Do not route this through the
+ * published-content cache — that path stalled offline toggles.
  */
 export async function updateSiteOfflineAction(
   _prev: SiteChromeActionState,

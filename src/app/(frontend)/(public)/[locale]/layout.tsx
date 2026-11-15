@@ -11,12 +11,22 @@ import { getEnabledPublicLocales } from '@/core/i18n/enabled'
 import { isValidLocaleCode, routing } from '@/core/i18n'
 import { publicPathnameFromHeaders } from '@/core/page-settings'
 import { getSiteSettings } from '@/core/settings'
-import { getSiteChrome, getSiteChromeForProxy, isOfflineAllowedPath } from '@/core/site-chrome'
+import {
+  getSiteChrome,
+  getSiteChromeForOfflineGate,
+  isOfflineAllowedPath,
+} from '@/core/site-chrome'
 
 type Props = {
   children: React.ReactNode
   params: Promise<{ locale: string }>
 }
+
+/**
+ * Soft-lock must re-read Chrome on every request. A static / prerender HIT of
+ * `/en` was serving Base while Take site offline was already on.
+ */
+export const dynamic = 'force-dynamic'
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }))
@@ -68,9 +78,10 @@ export default async function PublicLocaleLayout({ children, params }: Props) {
   }
   setRequestLocale(locale)
 
-  // Decide offline from live Chrome only — never await published-content cache first.
+  // Offline gate: always DB (same helper as proxy). Never published-content cache
+  // and never a cross-bundle process snapshot that can stay "online".
   const [siteChrome, headerList, messages] = await Promise.all([
-    getSiteChromeForProxy(),
+    getSiteChromeForOfflineGate(),
     headers(),
     getMessages(),
   ])

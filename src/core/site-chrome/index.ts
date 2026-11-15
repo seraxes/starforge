@@ -43,6 +43,7 @@ export {
 export {
   ensureSiteChromeSeeded,
   getSiteChrome,
+  getSiteChromeForOfflineGate,
   getSiteChromeForProxy,
   loadSiteChrome,
   saveSiteChrome,
