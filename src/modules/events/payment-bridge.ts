@@ -297,7 +297,8 @@ export type StartEventTicketCheckoutInput = {
   guests: number
   /** Premium organizer user id — resolves to payments merchantId when active. */
   merchantUserId?: string | null
-  method?: 'bank_transfer' | 'pay_at_entrance' | 'cash' | 'barion' | 'stripe' | 'paypal'
+  /** Checkout method id: fixed offline methods or a registered online adapter. */
+  method?: string
   returnUrl: string
   cancelUrl: string
   /** Registration form payload — option prices are re-resolved here. */
@@ -333,6 +334,7 @@ export async function startEventTicketCheckout(
     startCheckout,
     getPaymentsSettings,
     getMerchantByUserId,
+    listOfferedMerchantMethods,
     PAYMENT_SOURCE_TYPES,
   } = await import('@/modules/payments/api')
 
@@ -352,12 +354,20 @@ export async function startEventTicketCheckout(
     }
   }
 
-  const method =
-    merchantId
-      ? input.method || 'barion'
-      : input.method && paySettings.enabledMethods.includes(input.method)
+  let method: StartEventTicketCheckoutInput['method']
+  if (merchantId) {
+    const offered = await listOfferedMerchantMethods(merchantId)
+    method =
+      input.method && offered.includes(input.method) ? input.method : offered[0]
+    if (!method) {
+      return { ok: false, error: 'This seller has no payment methods turned on' }
+    }
+  } else {
+    method =
+      input.method && paySettings.enabledMethods.includes(input.method)
         ? input.method
         : paySettings.enabledMethods[0] || 'bank_transfer'
+  }
 
   const cartId = await createCart({ userId: input.userId, currency })
   const line = await addCartLine(cartId, {

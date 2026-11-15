@@ -7,14 +7,33 @@ Shared Starforge commerce: cart, checkout, VAT-proof orders/invoices, offline + 
 - Cart / orders / intents / invoices / **coupons** / settings admin
 - Coupons: `sf_pay_coupons` (+ redemptions). Code, amount or percent (`500` / `10%`), usage limit, optional `sourceModule`/`sourceId` scope. Applied in `startCheckout` — gateway charges the discounted total. Admin: `/admin/payments/coupons`. Not a separate promotions pack; not Events-local.
 - Consumers: Events / Shop / Subscriptions / Ads — line sources + fulfillment hooks only; pass optional `couponCode` into `startCheckout`
-- Premium merchants: own gateway + billing keys (`/admin/payments/merchant`); settle to their bank; flat sub unlock; no % fee for now
-- Collect stub: `sf_pay_collect_entitlements` is frozen. When `product:subscriptions` is enabled, `hasCollectCapability` uses a resolver registered by Subscriptions (`registerCollectCapabilityResolver` → `payments.collect`). When off, the stub / ACL auto-grant stays. Payments must not import Subscriptions. Do not add plan tables under `sf_pay_*`.
+- Premium merchants: own gateway + billing keys. Self-service `/admin/payments/merchant`. Payments admin adds a seller at `/admin/payments/merchants` and edits the same blocks. Offline methods are the fixed list (bank transfer, pay at entrance, cash). Online methods are one mosaic panel per registered adapter. Each block has an offer switch (`sf_pay_merchants.enabled_methods`). Checkout offers that method only when the switch is on, the seller is active, and the block is filled (`merchantMethodReady` from the adapter credential schema). Keys in encrypted `sf_pay_merchant_credentials` (Stripe webhook secret is kind `stripe_webhook`). Settle to their bank; flat sub unlock; no % fee for now.
+- Collect stub: `sf_pay_collect_entitlements` is frozen. When `product:subscriptions` is enabled, `hasCollectCapability` uses a resolver registered by Subscriptions (`registerCollectCapabilityResolver` → `payments.collect`). When off, the stub / ACL auto-grant stays. Payments admin (`admin.payments`) may always edit merchant profiles (keys, offer switches); collect gates merchant self-service (`assertMayCollect`), not admin setup. Payments must not import Subscriptions. Do not add plan tables under `sf_pay_*`.
 - ASN currency: Hero. Payments charges real money when someone buys that token. The balance, earn actions, and spend (services, subscriptions, selected events) stay out of `sf_pay_*`.
 
 ## Consumes
 
-- Core `src/core/payments`: Barion / Stripe / PayPal / manual / FiscalProvider (NAV) / BillingProvider (Billingo, Számlázz.hu)
+- Core `src/core/payments`: online gateway adapter registry (Barion / Stripe / PayPal) / manual + noop for site/dev / FiscalProvider (NAV) / BillingProvider (Billingo, Számlázz.hu). Offline methods stay a fixed list.
 - Email Manager: `product:payments/*` triggers — never `getMailer()` here
+
+## Add an online gateway
+
+A developer ships the gateway in the build. An admin then enables the method and pastes keys (Payments settings, the merchant panel, and Environment for site keys). An admin does not add a gateway.
+
+Offline methods (`bank_transfer`, `pay_at_entrance`, `cash`) are a fixed list, not plugins. A new online method does not get a cart, a merchant panel copy, or edits to paid / refund / expire.
+
+1. Add `src/core/payments/<id>.ts` (server-only). Export `create<Id>PaymentsProvider(credentials?)` with the same `PaymentsProvider` methods as Barion (create, verify, refund, optional `parseWebhook`).
+2. Call `registerPaymentMethodAdapter` in that file:
+   - `id`, `label`, `buyerLabel`, `online: true`
+   - `credentialSchema.kinds`: one `primary` row (secret, and meta `publicId` / `payeeEmail` / `apiBase` land on `GatewayCredentials`). Optional `webhookSecret` row maps to `extra.webhookSecret` (see Stripe `stripe_webhook`).
+   - `credentialSchema.fields`: merchant form controls. `requiredForReady` is the offer check. `savedHint: 'panel' | 'inline'` is the masked-secret line.
+   - `webhookMerchantFallback`: try merchant keys when the site env webhook verify fails.
+   - `webhookGetStatusPeek`: GET on `/api/payments/<id>/webhook` peeks status and does not fulfill (Barion).
+3. Import `./<id>` from `src/core/payments/register-online.ts` so boot registers it.
+
+The same steps are on Payments → Settings, under Gateway secrets. Environment → `SF_PAYMENTS_PROVIDER` lists noop, manual, and every registered adapter, so the new id shows up there without editing the env catalog.
+
+Site secrets stay in env. Merchant secrets stay in encrypted `sf_pay_merchant_credentials`. Checkout, refunds, expiry, and the merchant mosaic read the registry. Email stays `emitPaymentsEmail` with the same trigger keys. Do not add the gateway to `store.ts`.
 
 ## Public door
 
@@ -89,10 +108,10 @@ Consumers must not build coupon tables. Deep-link admin to `/admin/payments/coup
 
 `/[locale]/checkout/[orderId]` — consumers return this same-origin path after `startCheckout`. Gateway orders redirect to the stored provider URL; offline orders show the payment reference and instructions snapshotted on the order (`metadata.offlineInstructions`).
 
-Online orders (`barion`, `stripe`, `paypal`) in `checkout_pending` or `redirected_provider` expire at `expiresAt` (`checkoutTtlMinutes`, default 60). `expireAbandonedOnlineCheckouts` sets `expired`, sends `product:payments/expired`, and runs the consumer hook — the same path as a provider cancel. A later verified provider `succeeded` result may still revive an `expired` order via `transitionToPaid` (late webhook). Offline methods (`bank_transfer`, `pay_at_entrance`, `cash`) stay `awaiting_offline` until staff mark paid. Events calls this from its checkout-hold sweep.
+Online orders (registered adapter ids) in `checkout_pending` or `redirected_provider` expire at `expiresAt` (`checkoutTtlMinutes`, default 60). `expireAbandonedOnlineCheckouts` sets `expired`, sends `product:payments/expired`, and runs the consumer hook — the same path as a provider cancel. A later verified provider `succeeded` result may still revive an `expired` order via `transitionToPaid` (late webhook). Offline methods (`bank_transfer`, `pay_at_entrance`, `cash`) stay `awaiting_offline` until staff mark paid. Events calls this from its checkout-hold sweep.
 
 ## Refunds
 
 `requestOrderRefund(orderId, { reason, requestedByUserId })` is the consumer entry (Events self-cancel with organizer `selfCancelRefund` + user confirm). Paid or fulfilled orders only.
 
-Online methods (`barion`, `stripe`, `paypal`) call the gateway `refund` with the stored provider ref and the order gross. Offline methods (`bank_transfer`, `pay_at_entrance`, `cash`) skip the gateway. On success the order becomes `refunded`, a `credit_note` invoice is issued (negative amounts, `creditOfInvoiceId`, fiscal outbox `submit_modifier`), Email Manager emits `product:payments/refunded`, and `runPaymentConsumerHook(..., 'refunded')` runs. A repeat call on an already refunded order re-issues the credit note if it is missing and returns ok. Do not auto-refund from consumers — organizer opt-in + buyer confirm only.
+Online methods (registered adapters) call the gateway `refund` with the stored provider ref and the order gross. Offline methods (`bank_transfer`, `pay_at_entrance`, `cash`) skip the gateway. On success the order becomes `refunded`, a `credit_note` invoice is issued (negative amounts, `creditOfInvoiceId`, fiscal outbox `submit_modifier`), Email Manager emits `product:payments/refunded`, and `runPaymentConsumerHook(..., 'refunded')` runs. A repeat call on an already refunded order re-issues the credit note if it is missing and returns ok. Do not auto-refund from consumers — organizer opt-in + buyer confirm only.

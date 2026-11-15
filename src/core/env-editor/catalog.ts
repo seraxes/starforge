@@ -75,7 +75,7 @@ export const ENV_EDITOR_GROUPS: EnvEditorGroup[] = [
   {
     id: 'payments',
     label: 'Payments & fiscal secrets',
-    hint: 'Gateway + NAV keys only. Enable methods in Payments admin — never store secrets in Postgres.',
+    hint: 'Gateway + NAV keys only. Enable methods in Payments admin — never store secrets in Postgres. SF_PAYMENTS_PROVIDER lists adapters registered in src/core/payments. A new gateway is src/core/payments/<id>.ts plus an import in register-online.ts.',
   },
   {
     id: 'editor',
@@ -403,16 +403,18 @@ export const ENV_EDITOR_FIELDS: EnvEditorField[] = [
   {
     key: 'SF_PAYMENTS_PROVIDER',
     label: 'SF_PAYMENTS_PROVIDER',
-    description: 'Default online provider: noop | manual | barion | stripe | paypal.',
+    description:
+      'Site default gateway. The Environment dropdown is filled from registered adapters (noop, manual, then each gateway). Add one by shipping src/core/payments/<id>.ts and importing it from register-online.ts.',
     secret: false,
     kind: 'enum',
+    /**
+     * Replaced when the Environment snapshot loads (`paymentsProviderEnvOptions`).
+     * Kept here so the field still has choices if that fill-in does not run.
+     */
     options: [
       { value: '', label: '(unset — manual)' },
-      { value: 'noop', label: 'noop' },
-      { value: 'manual', label: 'manual' },
-      { value: 'barion', label: 'barion' },
-      { value: 'stripe', label: 'stripe' },
-      { value: 'paypal', label: 'paypal' },
+      { value: 'noop', label: 'Noop (dev)' },
+      { value: 'manual', label: 'Manual / offline only' },
     ],
     group: 'payments',
   },

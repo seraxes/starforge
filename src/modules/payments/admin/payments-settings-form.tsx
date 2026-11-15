@@ -5,19 +5,9 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 import { useNotifySavedOnOk } from '@/app/(frontend)/admin/admin-toast'
-import type { PaymentMethodKind } from '@/core/payments'
 
 import { savePaymentsSettingsAction, type PaymentsActionState } from '../actions'
 import type { PaymentsSettings } from '../types'
-
-const ALL_METHODS: { value: PaymentMethodKind; label: string }[] = [
-  { value: 'bank_transfer', label: 'Bank transfer' },
-  { value: 'pay_at_entrance', label: 'Pay at entrance' },
-  { value: 'cash', label: 'Cash' },
-  { value: 'barion', label: 'Barion' },
-  { value: 'stripe', label: 'Stripe' },
-  { value: 'paypal', label: 'PayPal' },
-]
 
 const initial: PaymentsActionState = {}
 
@@ -33,7 +23,13 @@ function SaveButton({ pending }: { pending: boolean }) {
   )
 }
 
-export function PaymentsSettingsForm({ settings }: { settings: PaymentsSettings }) {
+export function PaymentsSettingsForm({
+  settings,
+  methodChoices,
+}: {
+  settings: PaymentsSettings
+  methodChoices: Array<{ value: string; label: string }>
+}) {
   const router = useRouter()
   const [state, action, pending] = useActionState(savePaymentsSettingsAction, initial)
   const [methods, setMethods] = React.useState<string[]>(settings.enabledMethods)
@@ -128,7 +124,7 @@ export function PaymentsSettingsForm({ settings }: { settings: PaymentsSettings 
               />
             </label>
             <p className="settings-hint">Enabled methods (site MoR)</p>
-            {ALL_METHODS.map((m) => (
+            {methodChoices.map((m) => (
               <label key={m.value} className="settings-field settings-flag">
                 <input
                   type="checkbox"
@@ -234,12 +230,19 @@ export function PaymentsSettingsForm({ settings }: { settings: PaymentsSettings 
           </header>
           <div className="page-settings-panel-body">
             <p className="settings-hint">
-              Platform gateway keys live in Environment — not here. Receipt templates are owned by
-              Email Manager.
+              Platform gateway keys live in Environment — not here. The site provider dropdown
+              lists every registered adapter. Receipt templates are owned by Email Manager.
+            </p>
+            <p className="settings-hint">
+              Add an online gateway in code: <code>src/core/payments/&lt;id&gt;.ts</code> registers
+              the adapter (id, label, credential fields, optional webhook). Import that file from{' '}
+              <code>src/core/payments/register-online.ts</code>. The merchant panel, offer check,
+              and Environment option follow the registry. Bank transfer, pay at entrance, and cash
+              stay fixed. Do not edit the cart, refunds, or email triggers.
             </p>
             <div className="page-settings-actions">
               <Link
-                href="/admin/environment"
+                href="/admin/site-chrome/environment"
                 className="gantry-toolbar-btn gantry-toolbar-btn-muted"
               >
                 Environment

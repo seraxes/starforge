@@ -8,6 +8,7 @@ export type PaymentsAdminTab =
   | 'orders'
   | 'invoices'
   | 'coupons'
+  | 'merchants'
   | 'settings'
   | 'merchant'
 
@@ -37,10 +38,16 @@ const TABS: { id: PaymentsAdminTab; label: string; href: string; title: string }
     title: 'Checkout coupon codes',
   },
   {
+    id: 'merchants',
+    label: 'Merchants',
+    href: '/admin/payments/merchants',
+    title: 'Premium merchants — add and edit seller payment setup',
+  },
+  {
     id: 'merchant',
     label: 'My merchant',
     href: '/admin/payments/merchant',
-    title: 'Premium merchant profile and keys',
+    title: 'Your premium merchant profile and keys',
   },
   {
     id: 'settings',

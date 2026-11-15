@@ -23,6 +23,7 @@ export default defineStarforgeModule({
     { key: 'orders', label: 'Orders', href: '/admin/payments/orders' },
     { key: 'invoices', label: 'Invoices', href: '/admin/payments/invoices' },
     { key: 'coupons', label: 'Coupons', href: '/admin/payments/coupons' },
+    { key: 'merchants', label: 'Merchants', href: '/admin/payments/merchants' },
     { key: 'merchant', label: 'My merchant', href: '/admin/payments/merchant' },
     { key: 'settings', label: 'Payments settings', href: '/admin/payments/settings' },
   ],
@@ -62,6 +63,13 @@ export default defineStarforgeModule({
         label: 'Coupons',
         href: '/admin/payments/coupons',
         order: 32,
+        area: 'payments',
+      },
+      {
+        group: 'payments',
+        label: 'Merchants',
+        href: '/admin/payments/merchants',
+        order: 34,
         area: 'payments',
       },
       {
@@ -117,6 +125,16 @@ export default defineStarforgeModule({
       {
         path: 'payments/merchant',
         pageImportPath: '@/modules/payments/admin/PaymentsMerchantPage',
+        pageExportName: 'default',
+      },
+      {
+        path: 'payments/merchants',
+        pageImportPath: '@/modules/payments/admin/PaymentsMerchantsPage',
+        pageExportName: 'default',
+      },
+      {
+        path: 'payments/merchants/[merchantId]',
+        pageImportPath: '@/modules/payments/admin/PaymentsMerchantEditPage',
         pageExportName: 'default',
       },
     ],

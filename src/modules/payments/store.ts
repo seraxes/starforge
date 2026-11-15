@@ -11,12 +11,12 @@ import {
   getFiscalProvider,
   getPaymentsProviderForMethod,
   isOfflinePaymentMethod,
+  listOnlinePaymentMethodIds,
   sumMoneyLines,
   type PaymentMethodKind,
 } from '@/core/payments'
 
 import {
-  ABANDONED_ONLINE_CHECKOUT_METHODS,
   ABANDONED_ONLINE_CHECKOUT_STATUSES,
   shouldExpireAbandonedOnlineCheckout,
 } from './checkout-expiry'
@@ -30,6 +30,7 @@ import {
 import { emitPaymentsEmail } from './email'
 import {
   getMerchantById,
+  listOfferedMerchantMethods,
   loadBillingCredentials,
   loadGatewayCredentials,
 } from './merchant-store'
@@ -670,8 +671,15 @@ export async function startCheckout(input: StartCheckoutInput): Promise<StartChe
   if (merchantId && (!merchant || merchant.status === 'suspended')) {
     return { ok: false, error: 'Merchant is not available for checkout' }
   }
-  // Site MoR still gates methods via settings; merchant checkout uses merchant keys.
-  if (!merchantId && !settings.enabledMethods.includes(input.method)) {
+  if (merchant) {
+    const offered = await listOfferedMerchantMethods(merchant.id)
+    if (!offered.includes(input.method)) {
+      return {
+        ok: false,
+        error: `Payment method ${input.method} is not offered by this seller`,
+      }
+    }
+  } else if (!settings.enabledMethods.includes(input.method)) {
     return { ok: false, error: `Payment method ${input.method} is not enabled` }
   }
 
@@ -1008,6 +1016,9 @@ export async function applyProviderPaymentResult(opts: {
 export async function expireAbandonedOnlineCheckouts(
   now = new Date(),
 ): Promise<{ expired: number }> {
+  const onlineMethods = listOnlinePaymentMethodIds()
+  if (onlineMethods.length === 0) return { expired: 0 }
+
   let rows: Array<{
     id: string
     status: string
@@ -1026,7 +1037,7 @@ export async function expireAbandonedOnlineCheckouts(
       .where(
         and(
           inArray(sfPayOrders.status, [...ABANDONED_ONLINE_CHECKOUT_STATUSES]),
-          inArray(sfPayOrders.method, [...ABANDONED_ONLINE_CHECKOUT_METHODS]),
+          inArray(sfPayOrders.method, onlineMethods),
           lte(sfPayOrders.expiresAt, now),
         ),
       )
@@ -1038,7 +1049,7 @@ export async function expireAbandonedOnlineCheckouts(
   let expired = 0
   for (const row of rows) {
     if (!shouldExpireAbandonedOnlineCheckout(row, now)) continue
-    const claimed = await claimOpenCheckoutExpired(row.id, ABANDONED_ONLINE_CHECKOUT_METHODS)
+    const claimed = await claimOpenCheckoutExpired(row.id, onlineMethods)
     if (!claimed) continue
     expired += 1
     try {

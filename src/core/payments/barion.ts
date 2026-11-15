@@ -1,5 +1,6 @@
 import 'server-only'
 
+import { registerPaymentMethodAdapter } from './adapter'
 import type {
   CreatePaymentIntentInput,
   CreatePaymentIntentResult,
@@ -238,3 +239,39 @@ export function createBarionPaymentsProvider(credentials?: {
     },
   }
 }
+
+registerPaymentMethodAdapter({
+  id: 'barion',
+  label: 'Barion',
+  buyerLabel: 'Barion',
+  online: true,
+  missingReady: 'a POS key is saved',
+  webhookMerchantFallback: false,
+  webhookGetStatusPeek: true,
+  credentialSchema: {
+    kinds: [{ kind: 'barion', role: 'primary' }],
+    fields: [
+      {
+        name: 'barionPosKey',
+        label: 'POS key (leave blank to keep)',
+        input: 'secret',
+        kind: 'barion',
+        bind: 'secret',
+        requiredForReady: true,
+        placeholder: '••••',
+        savedHint: 'panel',
+        emptySavedHint: 'No Barion key saved yet.',
+      },
+      {
+        name: 'barionPayeeEmail',
+        label: 'Payee email',
+        input: 'email',
+        kind: 'barion',
+        bind: 'meta',
+        metaKey: 'payeeEmail',
+        requiredForReady: false,
+      },
+    ],
+  },
+  createProvider: (credentials) => createBarionPaymentsProvider(credentials),
+})

@@ -2,6 +2,7 @@ import React from 'react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
+import { listCheckoutPaymentMethods } from '@/core/payments'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
 import { getPaymentsSettings } from '../store'
@@ -28,10 +29,13 @@ export default async function PaymentsSettingsPage() {
       <p className="lede admin-lede">
         Site merchant-of-record defaults. Premium organizers use{' '}
         <Link href="/admin/payments/merchant">My merchant</Link>. Gateway API keys:{' '}
-        <Link href="/admin/environment">Environment</Link>. Receipts:{' '}
+        <Link href="/admin/site-chrome/environment">Environment</Link>. Receipts:{' '}
         <Link href="/admin/email">Email Manager</Link>.
       </p>
-      <PaymentsSettingsForm settings={paySettings} />
+      <PaymentsSettingsForm
+        settings={paySettings}
+        methodChoices={listCheckoutPaymentMethods()}
+      />
     </section>
   )
 }

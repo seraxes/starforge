@@ -1,8 +1,10 @@
 import 'server-only'
 
+import { registerPaymentMethodAdapter } from './adapter'
 import type {
   CreatePaymentIntentInput,
   CreatePaymentIntentResult,
+  GatewayCredentials,
   PaymentIntentStatus,
   PaymentsProvider,
   PaymentsProviderInfo,
@@ -13,16 +15,9 @@ import type {
 
 /**
  * Stripe Checkout Session adapter.
- * Env: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET (for parseWebhook).
+ * Site env: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET.
+ * Merchant checkout passes GatewayCredentials (secret = secret key, extra.webhookSecret).
  */
-
-function secretKey(): string {
-  return process.env.STRIPE_SECRET_KEY?.trim() || ''
-}
-
-function webhookSecret(): string {
-  return process.env.STRIPE_WEBHOOK_SECRET?.trim() || ''
-}
 
 function mapStripeStatus(status: string | undefined): PaymentIntentStatus {
   const s = (status || '').toLowerCase()
@@ -32,8 +27,15 @@ function mapStripeStatus(status: string | undefined): PaymentIntentStatus {
   return 'pending'
 }
 
-export function createStripePaymentsProvider(): PaymentsProvider {
-  const key = secretKey()
+export function createStripePaymentsProvider(credentials?: GatewayCredentials): PaymentsProvider {
+  const key = (
+    credentials ? credentials.secret || '' : process.env.STRIPE_SECRET_KEY || ''
+  ).trim()
+  const whSec = (
+    credentials
+      ? credentials.extra?.webhookSecret || ''
+      : process.env.STRIPE_WEBHOOK_SECRET || ''
+  ).trim()
   const ready = Boolean(key)
 
   return {
@@ -175,7 +177,6 @@ export function createStripePaymentsProvider(): PaymentsProvider {
       headers: Headers,
       rawBody: string,
     ): Promise<{ providerRef: string; status: PaymentIntentStatus } | null> {
-      const whSec = webhookSecret()
       if (!whSec) return null
       // Minimal HMAC check — Stripe-Signature header.
       const sig = headers.get('stripe-signature') || ''
@@ -221,7 +222,7 @@ export function createStripePaymentsProvider(): PaymentsProvider {
         enabled: true,
         ready,
         detail: ready
-          ? webhookSecret()
+          ? whSec
             ? 'Secret key + webhook secret set'
             : 'Secret key set (webhook secret missing)'
           : 'Set STRIPE_SECRET_KEY in Environment',
@@ -229,3 +230,44 @@ export function createStripePaymentsProvider(): PaymentsProvider {
     },
   }
 }
+
+registerPaymentMethodAdapter({
+  id: 'stripe',
+  label: 'Stripe',
+  buyerLabel: 'Card (Stripe)',
+  online: true,
+  missingReady: 'a secret key is saved',
+  webhookMerchantFallback: true,
+  webhookGetStatusPeek: false,
+  credentialSchema: {
+    kinds: [
+      { kind: 'stripe', role: 'primary' },
+      { kind: 'stripe_webhook', role: 'webhookSecret' },
+    ],
+    fields: [
+      {
+        name: 'stripeSecretKey',
+        label: 'Secret key (leave blank to keep)',
+        input: 'secret',
+        kind: 'stripe',
+        bind: 'secret',
+        requiredForReady: true,
+        placeholder: '••••',
+        savedHint: 'panel',
+        emptySavedHint: 'No Stripe secret key saved yet.',
+      },
+      {
+        name: 'stripeWebhookSecret',
+        label: 'Webhook secret (leave blank to keep)',
+        input: 'secret',
+        kind: 'stripe_webhook',
+        bind: 'secret',
+        requiredForReady: false,
+        placeholder: '••••',
+        savedHint: 'inline',
+        emptySavedHint: 'No Stripe webhook secret saved yet.',
+      },
+    ],
+  },
+  createProvider: (credentials) => createStripePaymentsProvider(credentials),
+})

@@ -4,6 +4,7 @@ import { notFound, redirect } from 'next/navigation'
 import React from 'react'
 
 import { requireContentLocale } from '@/core/content/pages'
+import { checkoutPaymentMethodLabel } from '@/core/payments'
 import { isValidLocaleCode } from '@/core/i18n'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { getSiteChrome } from '@/core/site-chrome'
@@ -96,7 +97,7 @@ export default async function PublicCheckoutPage({ params }: Args) {
   return (
     <CheckoutHandoff
       paymentReference={order.paymentReference || order.id}
-      method={order.method}
+      methodLabel={checkoutPaymentMethodLabel(order.method)}
       currency={order.currency}
       totalGrossMinor={order.totalGrossMinor}
       instructions={instructions}

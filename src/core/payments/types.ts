@@ -5,43 +5,26 @@
  * This port only talks to providers; secrets stay in env.
  */
 
-export type PaymentMethodKind =
-  | 'barion'
-  | 'stripe'
-  | 'paypal'
-  | 'bank_transfer'
-  | 'pay_at_entrance'
-  | 'cash'
+/**
+ * Checkout method id.
+ * Offline methods are the fixed list below. Online methods are registered
+ * adapter ids (`barion`, `stripe`, `paypal`, and later gateways).
+ */
+export type PaymentMethodKind = string
 
-export type OnlinePaymentProvider = 'barion' | 'stripe' | 'paypal' | 'manual' | 'noop'
+/** Site/dev provider id, or a registered online adapter id. */
+export type OnlinePaymentProvider = string
 
-export const ONLINE_PAYMENT_PROVIDERS: Array<{
-  value: OnlinePaymentProvider
-  label: string
-}> = [
-  { value: 'noop', label: 'Noop (dev)' },
-  { value: 'manual', label: 'Manual / offline only' },
-  { value: 'barion', label: 'Barion' },
-  { value: 'stripe', label: 'Stripe' },
-  { value: 'paypal', label: 'PayPal' },
-]
-
-const ONLINE_SET = new Set<OnlinePaymentProvider>(
-  ONLINE_PAYMENT_PROVIDERS.map((p) => p.value),
-)
-
-export function isOnlinePaymentProvider(value: unknown): value is OnlinePaymentProvider {
-  return typeof value === 'string' && ONLINE_SET.has(value as OnlinePaymentProvider)
-}
-
-export const OFFLINE_PAYMENT_METHODS: PaymentMethodKind[] = [
+export const OFFLINE_PAYMENT_METHODS = [
   'bank_transfer',
   'pay_at_entrance',
   'cash',
-]
+] as const
 
-export function isOfflinePaymentMethod(method: PaymentMethodKind): boolean {
-  return OFFLINE_PAYMENT_METHODS.includes(method)
+export type OfflinePaymentMethod = (typeof OFFLINE_PAYMENT_METHODS)[number]
+
+export function isOfflinePaymentMethod(method: string): method is OfflinePaymentMethod {
+  return (OFFLINE_PAYMENT_METHODS as readonly string[]).includes(method)
 }
 
 /** Integer minor units (fillér / cents). Never floats. */

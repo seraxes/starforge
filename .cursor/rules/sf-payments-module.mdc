@@ -21,7 +21,7 @@ Commercial MVP (revenue floor): **pay for subscription**, **buy event tickets**,
 | Cart / checkout / orders / intents | **`product:payments`** — `@/modules/payments/api` |
 | Money math (minor units, VAT lines on the order) | **`product:payments`** + Core `src/core/payments` helpers |
 | **Coupons / discount codes** (code, amount or %, usage limit, optional source scope) | **`product:payments`** — admin `/admin/payments/coupons`; apply in `startCheckout` |
-| Gateway adapters + webhook verify | **Core port** `src/core/payments` (secrets in env) |
+| Gateway adapters + webhook verify | **Core port** `src/core/payments` — online methods register on the adapter registry (`register-online.ts`). Offline methods are the fixed list, not plugins. Site secrets in env; merchant secrets in encrypted `sf_pay_merchant_credentials` |
 | Fiscal / HU NAV submit | **Core `FiscalProvider`** — Payments outbox calls it |
 | Forms / billing address fields | **`product:forms`** — definition + preset; Payments links only |
 | Receipt / bank / invoice email | **`product:email-manager`** — register triggers + `emitEmailTrigger` only |
@@ -47,17 +47,20 @@ Payments persists **`sourceModule` + line snapshot** only. Domain price rules st
 - Call `@/modules/payments/api` for cart lines, checkout, mark-paid, refunds.
 - Re-resolve prices **server-side** at checkout (never trust client amounts).
 - Emit `product:payments/*` email triggers; admin copy lives under `/admin/email`.
-- Put gateway secrets in the Environment editor catalog; enable flags in Payments settings.
+- Put site gateway secrets in the Environment editor catalog; enable flags in Payments settings. Per-merchant keys stay encrypted credentials.
+- Add an online gateway as one Core adapter file plus `import './<id>'` in `src/core/payments/register-online.ts`, then ship that build. A developer does this. An admin enables the method and pastes keys. An admin does not add a gateway. The credential schema drives the merchant panel, offer-ready check, and credential save. Payments → Settings states those steps. Environment `SF_PAYMENTS_PROVIDER` lists registered adapters. Do not edit Payments `store.ts` paid / refund / expire for a normal gateway.
 - Deep-link consumers to `/admin/payments` and Email Manager — do not duplicate those UIs.
 - When a new commercial boundary is decided, update this rule + `payments-cart-plan.md` + owner README.
 
 ## Premium merchants
 
-Organizers/vendors with subscription `canCollectPayments` + ACL paste **their own** gateway and Billingo/Számlázz keys; settlement goes to **their** bank. No platform % fee for now (flat sub only). Site MoR stays for platform products. Never rebuild Billingo/Számlázz UIs — API bridge only. Merchant admin UI must clone Events/Layouts chrome (`sf-ui-design.mdc`). Merchant POS keys live in encrypted `sf_pay_merchant_credentials`, not Site Chrome env. That table is the exception to “secrets never in the database”: site-wide secrets stay in the env overlay; these per-merchant keys stay ciphertext here. `sf_pay_collect_entitlements` is a frozen stub — do not add plans, periods, or highlight products to it. When `product:subscriptions` is on, `hasCollectCapability` reads `payments.collect`; when off, the stub stays.
+Organizers/vendors with subscription `canCollectPayments` + ACL paste **their own** gateway and Billingo/Számlázz keys; settlement goes to **their** bank. No platform % fee for now (flat sub only). Site MoR stays for platform products. Never rebuild Billingo/Számlázz UIs — API bridge only. Merchant admin UI must clone Events/Layouts chrome (`sf-ui-design.mdc`). Profile and digital invoices sit above a Payment methods section. Offline methods are a fixed short list (bank transfer, pay at entrance, cash) — not plugins. Each online adapter is one offer panel (switch, grey-off, fields from its credential schema) on both **My merchant** (`/admin/payments/merchant`, self) and **Merchants** (`/admin/payments/merchants`, payments admin creates a profile for an existing user and edits those blocks). Panels stay half-width in the 2-column mosaic. Checkout offers that method for the seller only when the switch is on, the seller is active, and the block is filled (`merchantMethodReady` from the schema). Merchant POS keys live in encrypted `sf_pay_merchant_credentials`, not Site Chrome env. That table is the exception to “secrets never in the database”: site-wide secrets stay in the env overlay; these per-merchant keys stay ciphertext here. `sf_pay_collect_entitlements` is a frozen stub — do not add plans, periods, or highlight products to it. When `product:subscriptions` is on, `hasCollectCapability` reads `payments.collect` (gates merchant self-service); payments admin may always edit merchant profiles. When off, the stub stays (admin edits grant it).
 
 ## Don’t
 
 - Per-module payment UIs, gateway credential forms, or invoice number series outside `product:payments`.
+- A second payments engine, an admin “upload a PSP” screen, or Hero gateways registered as Core adapters.
+- A per-provider switch in checkout, refunds, expiry, or the merchant form. Online methods come from the Core adapter registry.
 - Per-module coupon tables or discount engines (Events / Shop / Subscriptions forward `couponCode` only).
 - A separate `product:promotions` pack for checkout coupons — Payments owns codes and apply-at-checkout.
 - Shipping / delivery math inside Payments — shop quotes a line; cart stores the amount.

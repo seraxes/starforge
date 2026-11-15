@@ -154,15 +154,7 @@ export function ensureEventsFormHooks(): void {
               guests,
               payload: ctx.payload,
               couponCode: couponCode || undefined,
-              method:
-                methodRaw === 'bank_transfer' ||
-                methodRaw === 'pay_at_entrance' ||
-                methodRaw === 'cash' ||
-                methodRaw === 'barion' ||
-                methodRaw === 'stripe' ||
-                methodRaw === 'paypal'
-                  ? methodRaw
-                  : undefined,
+              method: methodRaw || undefined,
             })
             if (!checkout.ok) {
               console.error('[events] checkout failed', checkout.error)

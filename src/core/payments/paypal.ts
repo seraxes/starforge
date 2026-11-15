@@ -1,8 +1,10 @@
 import 'server-only'
 
+import { registerPaymentMethodAdapter } from './adapter'
 import type {
   CreatePaymentIntentInput,
   CreatePaymentIntentResult,
+  GatewayCredentials,
   PaymentIntentStatus,
   PaymentsProvider,
   PaymentsProviderInfo,
@@ -13,30 +15,36 @@ import type {
 
 /**
  * PayPal Orders API v2 adapter.
- * Env: PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_API_BASE (optional).
+ * Site env: PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_API_BASE, PAYPAL_WEBHOOK_ID.
+ * Merchant checkout passes GatewayCredentials (client id = publicId, secret = client secret).
  */
 
-function apiBase(): string {
-  return (
-    process.env.PAYPAL_API_BASE?.trim() ||
-    'https://api-m.sandbox.paypal.com'
-  ).replace(/\/$/, '')
+function resolvePayPal(credentials?: GatewayCredentials) {
+  const fallbackBase = (
+    process.env.PAYPAL_API_BASE || 'https://api-m.sandbox.paypal.com'
+  )
+    .trim()
+    .replace(/\/$/, '')
+  if (credentials) {
+    return {
+      id: (credentials.publicId || '').trim(),
+      secret: (credentials.secret || '').trim(),
+      base: (credentials.apiBase || fallbackBase).trim().replace(/\/$/, ''),
+      webhookId: (credentials.extra?.webhookId || '').trim(),
+    }
+  }
+  return {
+    id: (process.env.PAYPAL_CLIENT_ID || '').trim(),
+    secret: (process.env.PAYPAL_CLIENT_SECRET || '').trim(),
+    base: fallbackBase,
+    webhookId: (process.env.PAYPAL_WEBHOOK_ID || '').trim(),
+  }
 }
 
-function clientId(): string {
-  return process.env.PAYPAL_CLIENT_ID?.trim() || ''
-}
-
-function clientSecret(): string {
-  return process.env.PAYPAL_CLIENT_SECRET?.trim() || ''
-}
-
-async function getAccessToken(): Promise<string | null> {
-  const id = clientId()
-  const secret = clientSecret()
+async function fetchPayPalToken(id: string, secret: string, base: string): Promise<string | null> {
   if (!id || !secret) return null
   const basic = Buffer.from(`${id}:${secret}`).toString('base64')
-  const res = await fetch(`${apiBase()}/v1/oauth2/token`, {
+  const res = await fetch(`${base}/v1/oauth2/token`, {
     method: 'POST',
     headers: {
       Authorization: `Basic ${basic}`,
@@ -57,8 +65,10 @@ function mapPayPalStatus(status: string | undefined): PaymentIntentStatus {
   return 'pending'
 }
 
-export function createPayPalPaymentsProvider(): PaymentsProvider {
-  const ready = Boolean(clientId() && clientSecret())
+export function createPayPalPaymentsProvider(credentials?: GatewayCredentials): PaymentsProvider {
+  const { id, secret, base, webhookId } = resolvePayPal(credentials)
+  const ready = Boolean(id && secret)
+  const getAccessToken = () => fetchPayPalToken(id, secret, base)
 
   return {
     async createIntent(input: CreatePaymentIntentInput): Promise<CreatePaymentIntentResult> {
@@ -72,7 +82,7 @@ export function createPayPalPaymentsProvider(): PaymentsProvider {
       const exp = input.currency.toUpperCase() === 'HUF' ? 0 : 2
       const value = (input.amountMinor / 10 ** exp).toFixed(exp)
       try {
-        const res = await fetch(`${apiBase()}/v2/checkout/orders`, {
+        const res = await fetch(`${base}/v2/checkout/orders`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -140,7 +150,7 @@ export function createPayPalPaymentsProvider(): PaymentsProvider {
         return { ok: false, status: 'failed', providerRef, error: 'PayPal OAuth failed' }
       }
       try {
-        const res = await fetch(`${apiBase()}/v2/checkout/orders/${encodeURIComponent(providerRef)}`, {
+        const res = await fetch(`${base}/v2/checkout/orders/${encodeURIComponent(providerRef)}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         const data = (await res.json()) as {
@@ -160,7 +170,7 @@ export function createPayPalPaymentsProvider(): PaymentsProvider {
         // Capture if approved
         if (data.status === 'APPROVED') {
           const cap = await fetch(
-            `${apiBase()}/v2/checkout/orders/${encodeURIComponent(providerRef)}/capture`,
+            `${base}/v2/checkout/orders/${encodeURIComponent(providerRef)}/capture`,
             {
               method: 'POST',
               headers: {
@@ -202,7 +212,7 @@ export function createPayPalPaymentsProvider(): PaymentsProvider {
       const value = (input.amountMinor / 10 ** exp).toFixed(exp)
       try {
         const res = await fetch(
-          `${apiBase()}/v2/payments/captures/${encodeURIComponent(input.providerRef)}/refund`,
+          `${base}/v2/payments/captures/${encodeURIComponent(input.providerRef)}/refund`,
           {
             method: 'POST',
             headers: {
@@ -227,7 +237,6 @@ export function createPayPalPaymentsProvider(): PaymentsProvider {
       headers: Headers,
       rawBody: string,
     ): Promise<{ providerRef: string; status: PaymentIntentStatus } | null> {
-      const webhookId = process.env.PAYPAL_WEBHOOK_ID?.trim()
       const transmissionId = headers.get('paypal-transmission-id')
       const transmissionTime = headers.get('paypal-transmission-time')
       const certUrl = headers.get('paypal-cert-url')
@@ -242,7 +251,7 @@ export function createPayPalPaymentsProvider(): PaymentsProvider {
       try {
         const token = await getAccessToken()
         if (!token) return null
-        const verifyRes = await fetch(`${apiBase()}/v1/notifications/verify-webhook-signature`, {
+        const verifyRes = await fetch(`${base}/v1/notifications/verify-webhook-signature`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -282,8 +291,66 @@ export function createPayPalPaymentsProvider(): PaymentsProvider {
         label: 'PayPal',
         enabled: true,
         ready,
-        detail: ready ? `API ${apiBase()}` : 'Set PAYPAL_CLIENT_ID + PAYPAL_CLIENT_SECRET',
+        detail: ready ? `API ${base}` : 'Set PAYPAL_CLIENT_ID + PAYPAL_CLIENT_SECRET',
       }
     },
   }
 }
+
+registerPaymentMethodAdapter({
+  id: 'paypal',
+  label: 'PayPal',
+  buyerLabel: 'PayPal',
+  online: true,
+  missingReady: 'a client id and client secret are saved',
+  webhookMerchantFallback: true,
+  webhookGetStatusPeek: false,
+  credentialSchema: {
+    kinds: [{ kind: 'paypal', role: 'primary' }],
+    fields: [
+      {
+        name: 'paypalClientId',
+        label: 'Client id',
+        input: 'text',
+        kind: 'paypal',
+        bind: 'meta',
+        metaKey: 'publicId',
+        requiredForReady: true,
+        spellCheck: false,
+      },
+      {
+        name: 'paypalClientSecret',
+        label: 'Client secret (leave blank to keep)',
+        input: 'secret',
+        kind: 'paypal',
+        bind: 'secret',
+        requiredForReady: true,
+        placeholder: '••••',
+        savedHint: 'panel',
+        emptySavedHint: 'No PayPal client secret saved yet.',
+      },
+      {
+        name: 'paypalApiBase',
+        label: 'API base (optional)',
+        input: 'url',
+        kind: 'paypal',
+        bind: 'meta',
+        metaKey: 'apiBase',
+        requiredForReady: false,
+        placeholder: 'https://api-m.sandbox.paypal.com',
+        spellCheck: false,
+      },
+      {
+        name: 'paypalWebhookId',
+        label: 'Webhook id',
+        input: 'text',
+        kind: 'paypal',
+        bind: 'meta',
+        metaKey: 'webhookId',
+        requiredForReady: false,
+        spellCheck: false,
+      },
+    ],
+  },
+  createProvider: (credentials) => createPayPalPaymentsProvider(credentials),
+})

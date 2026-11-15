@@ -256,6 +256,11 @@ body:has(.admin-shell) > main {
     > .page-settings-panel.gantry-assigned-menu-card:last-child:nth-child(odd) {
     grid-column: span 1;
   }
+
+  /* Merchant payment methods stay half-width when a new gateway makes the last card odd. */
+  .admin-shell .admin-settings-mosaic.sf-payments-method-mosaic > .page-settings-panel:last-child:nth-child(odd) {
+    grid-column: span 1;
+  }
 }
 
 .admin-shell .gantry-assigned-menu-card .page-settings-panel-head h3 {
@@ -2650,6 +2655,10 @@ body:has(.admin-shell) > main {
 /* Page settings / outlines / nav / forms on dark */
 /* Global Page Settings / Styles — Helium panel chrome */
 .admin-shell .page-settings-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
   background: var(--sf-admin-panel-head);
   border-bottom: 1px solid var(--sf-admin-panel-border);
   color: #fff;
@@ -2659,6 +2668,47 @@ body:has(.admin-shell) > main {
   color: #fff;
   font-size: 0.92rem;
   font-weight: 700;
+  min-width: 0;
+}
+
+.admin-shell .page-settings-panel-head-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 0 0 auto;
+}
+
+.admin-shell .admin-settings-mosaic-section {
+  margin: 0.35rem 0 0;
+  padding: 0.85rem 0 0.15rem;
+  border-top: 1px solid var(--sf-admin-panel-border);
+}
+
+.admin-shell .admin-settings-mosaic-section h3 {
+  margin: 0 0 0.25rem;
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: var(--sf-ink);
+}
+
+.admin-shell .admin-settings-mosaic-section .settings-hint {
+  margin: 0;
+  color: var(--sf-muted);
+}
+
+.admin-shell .page-settings-panel.is-off .page-settings-panel-body {
+  opacity: 0.55;
+}
+
+.admin-shell .page-settings-panel.is-off .page-settings-panel-body input:not([type='hidden']),
+.admin-shell .page-settings-panel.is-off .page-settings-panel-body select,
+.admin-shell .page-settings-panel.is-off .page-settings-panel-body textarea {
+  color: #8b97a8 !important;
+  background: color-mix(in srgb, #1b2432 72%, #5a6578) !important;
+  border-color: #3d4654 !important;
+  box-shadow: none !important;
+  cursor: not-allowed;
+  opacity: 0.72;
 }
 
 .admin-shell .page-settings-atom-pill {

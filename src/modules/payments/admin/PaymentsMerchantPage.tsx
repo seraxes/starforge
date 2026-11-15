@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { requireAdminArea } from '@/core/acl/access'
+import { listPaymentMethodDescriptors } from '@/core/payments'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
 import {
@@ -51,10 +52,14 @@ export default async function PaymentsMerchantPage() {
       <PaymentsAdminNav active="merchant" />
       <h2>My merchant</h2>
       <p className="lede admin-lede">
-        Organizer / vendor collect — your Barion POS and Billingo / Számlázz.hu keys. Settlement to
-        your bank; no platform % fee for now.
+      Organizer / vendor collect — bank transfer, pay at entrance, cash, and your online gateway
+      keys. Settlement to your bank; no platform % fee for now.
       </p>
-      <MerchantSettingsForm merchant={ensured.merchant} credentials={credentials} />
+      <MerchantSettingsForm
+        merchant={ensured.merchant}
+        credentials={credentials}
+        onlineMethods={listPaymentMethodDescriptors()}
+      />
     </section>
   )
 }

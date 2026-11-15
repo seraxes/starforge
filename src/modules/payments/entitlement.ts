@@ -123,3 +123,26 @@ export async function assertMayCollect(
   }
   return { ok: true, actorUserId: actorId }
 }
+
+/**
+ * Payments admin (`admin.payments`) may create/edit any merchant profile (keys, offer
+ * switches, status) without the target holding `payments.collect` — backend setup.
+ * When Subscriptions is off, admin edits also grant the collect stub so checkout can
+ * be tested. Merchant self-service still goes through `assertMayCollect`.
+ */
+export async function assertMayManageMerchant(
+  targetUserId: string,
+): Promise<{ ok: true; actorUserId: string } | { ok: false; error: string }> {
+  const target = targetUserId.trim()
+  if (!target) return { ok: false, error: 'Missing user.' }
+
+  const paymentsAdmin = await requireAdminArea('admin.payments')
+  if (paymentsAdmin?.user?.id) {
+    if (!(await subscriptionsOwnsCollect())) {
+      await grantCollectCapability(target, 'admin-stub')
+    }
+    return { ok: true, actorUserId: paymentsAdmin.user.id }
+  }
+
+  return assertMayCollect(target)
+}

@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import {
   getFiscalProvider,
   getPaymentsProvider,
-  ONLINE_PAYMENT_PROVIDERS,
+  listOnlinePaymentProviders,
 } from '@/core/payments'
 import { formatMoneyMinor } from '@/core/payments'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
@@ -89,7 +89,7 @@ export default async function PaymentsOverviewPage() {
               {fiscalInfo.detail ? ` — ${fiscalInfo.detail}` : ''}
             </p>
             <ul className="settings-hint">
-              {ONLINE_PAYMENT_PROVIDERS.map((p) => (
+              {listOnlinePaymentProviders().map((p) => (
                 <li key={p.value}>{p.label}</li>
               ))}
             </ul>

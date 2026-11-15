@@ -124,6 +124,7 @@ Do not relocate these in a drive-by:
 | Forms success mail | `emitEmailTrigger` (`product:forms/submitted`) only | Do not call `getMailer()` from Forms or other packs for product mail. |
 | `sf_pay_collect_entitlements` | Frozen stub inside Payments | When Subscriptions is on, collect reads `payments.collect`. No plan/period columns on `sf_pay_*`. |
 | Payment fulfillment | `registerPaymentConsumerHook('events.confirmRegistration', …)` | One hook key per consumer, passed into checkout. Registrations on that key append. The first handler’s throw still fails the request. Later listeners are isolated. The default hero adds none. No second event bus. |
+| Online payment gateway | Core adapter `src/core/payments/<id>.ts` plus an import in `register-online.ts` | A developer ships it in the build. An admin enables it and pastes keys. No upload-a-gateway screen. Offline methods stay the fixed list. |
 | Process boot | generated `runModuleBoot`, then `runHeroBoot` | `instrumentation.ts` asserts env, then calls both. No pack paths. Each pack boot returns immediately when its own toggle is off. The default hero loader is null. The Events abandoned-checkout sweep stays unarmed while Events is off; stuck `pending_payment` seats wait until Events is on and boot runs again. |
 
 New packs follow Payments: a **port** in `src/core/<port>`, **product behavior** in `src/modules/<id>`. A PR may touch Core when it adds a port or a host extension. It does not put product screens, catalogs, or fulfillment in Core.
@@ -131,6 +132,8 @@ New packs follow Payments: a **port** in `src/core/<port>`, **product behavior**
 ## Ports already real
 
 Shipped, do not re-plan: Mailer, PublishedContentCache, Redis client, MediaStorage, RateLimiter, Captcha (`src/core/security`), admin theme, Skin (`src/core/skin`), RealtimePort (foundation), MapProvider (`src/core/maps`, leaflet-osm), Payments (`src/core/payments`: gateways, FiscalProvider, BillingProvider).
+
+Online gateways (decided 2026-11-15): a developer adds `src/core/payments/<id>.ts` and imports it from `register-online.ts`, then ships the build. An admin enables that method and pastes keys. See [decision](./decisions/2026-11-15-payment-gateway-registry.md).
 
 Still paper, and only when a consumer is actually being built: `LlmProvider`, `MediaAnalysisPort`. No stub port without a consumer.
 

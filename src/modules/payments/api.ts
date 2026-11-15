@@ -45,6 +45,7 @@ export type {
 
 export {
   assertMayCollect,
+  assertMayManageMerchant,
   grantCollectCapability,
   hasCollectCapability,
   isCollectCapabilityResolverRegistered,
@@ -53,14 +54,20 @@ export {
 export type { CollectCapabilityResolver } from './entitlement'
 
 export {
+  createMerchantByEmail,
   ensureMerchantForUser,
+  findUserByEmail,
   getMerchantById,
   getMerchantByUserId,
   listMerchantCredentialsPublic,
+  listMerchantsForAdmin,
+  listOfferedMerchantMethods,
   updateMerchantProfile,
   upsertMerchantCredential,
 } from './merchant-store'
-export type { CredentialPublic, MerchantRecord } from './merchant-store'
+export type { CredentialPublic, MerchantAdminRow, MerchantRecord } from './merchant-store'
+
+export { isCheckoutPaymentMethod, listMerchantPaymentMethods } from './merchant-methods'
 
 export { PAYMENT_SOURCE_TYPES } from './types'
 export type {

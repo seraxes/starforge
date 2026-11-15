@@ -288,6 +288,13 @@
       "when": 1794035000000,
       "tag": "0040_event_series",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1794036000000,
+      "tag": "0041_pay_merchant_methods",
+      "breakpoints": true
     }
   ]
 }

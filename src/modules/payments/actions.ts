@@ -3,8 +3,8 @@
 import { revalidatePath } from '@/core/content/defer-revalidate'
 
 import { requireAdminArea } from '@/core/acl/access'
+import { credentialWritesFromForm, listPaymentMethodDescriptors } from '@/core/payments'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
-import type { PaymentMethodKind } from '@/core/payments'
 
 import { parseCouponDiscountInput } from './coupon-rules'
 import {
@@ -13,7 +13,9 @@ import {
   setCouponActive,
   updateCoupon,
 } from './coupons'
+import { isMerchantPaymentMethod, parseMerchantEnabledMethods } from './merchant-methods'
 import {
+  createMerchantByEmail,
   ensureMerchantForUser,
   updateMerchantProfile,
   upsertMerchantCredential,
@@ -49,7 +51,7 @@ export async function savePaymentsSettingsAction(
   const enabledMethods = methodsRaw
     .split(',')
     .map((m) => m.trim())
-    .filter(Boolean) as PaymentMethodKind[]
+    .filter((method) => isMerchantPaymentMethod(method))
 
   const patch: Partial<PaymentsSettings> = {
     currency: String(formData.get('currency') ?? 'HUF').trim().toUpperCase() || 'HUF',
@@ -118,12 +120,15 @@ export async function saveMerchantProfileAction(
     return { error: 'Payments module is disabled.' }
   }
 
-  const session = await requireAdminArea('admin.payments-merchant')
+  const sessionMerchant = await requireAdminArea('admin.payments-merchant')
+  const sessionPayments = await requireAdminArea('admin.payments')
+  const session = sessionPayments || sessionMerchant
   if (!session?.user?.id) {
     return { error: 'Sign in with Merchant payments access.' }
   }
 
-  const userId = session.user.id
+  const requestedUserId = String(formData.get('userId') ?? '').trim()
+  const userId = requestedUserId || session.user.id
   const billingRaw = String(formData.get('billingProvider') ?? 'noop').trim()
   const billingProvider: BillingProviderKind =
     billingRaw === 'billingo' || billingRaw === 'szamlazz' ? billingRaw : 'noop'
@@ -146,21 +151,16 @@ export async function saveMerchantProfileAction(
     entranceInstructions: String(formData.get('entranceInstructions') ?? ''),
     cashInstructions: String(formData.get('cashInstructions') ?? ''),
     billingProvider,
+    enabledMethods: formData.has('enabledMethods')
+      ? parseMerchantEnabledMethods(
+          String(formData.get('enabledMethods') ?? '')
+            .split(',')
+            .map((m) => m.trim())
+            .filter(Boolean),
+        )
+      : undefined,
   })
   if (!result.ok) return { error: result.error }
-
-  // Optional credential fields — empty keeps existing.
-  const barionKey = String(formData.get('barionPosKey') ?? '').trim()
-  const barionPayee = String(formData.get('barionPayeeEmail') ?? '').trim()
-  if (barionKey || barionPayee) {
-    const cred = await upsertMerchantCredential({
-      userId,
-      kind: 'barion',
-      secretPlain: barionKey || undefined,
-      meta: barionPayee ? { payeeEmail: barionPayee } : undefined,
-    })
-    if (!cred.ok) return { error: cred.error }
-  }
 
   const billingKey = String(formData.get('billingApiKey') ?? '').trim()
   const billingBlockId = String(formData.get('billingBlockId') ?? '').trim()
@@ -174,8 +174,40 @@ export async function saveMerchantProfileAction(
     if (!cred.ok) return { error: cred.error }
   }
 
+  const readField = (name: string) => String(formData.get(name) ?? '')
+  for (const descriptor of listPaymentMethodDescriptors()) {
+    for (const write of credentialWritesFromForm(descriptor, readField)) {
+      const cred = await upsertMerchantCredential({
+        userId,
+        kind: write.kind,
+        secretPlain: write.secretPlain,
+        meta: write.meta,
+      })
+      if (!cred.ok) return { error: cred.error }
+    }
+  }
+
   revalidatePath('/admin/payments/merchant')
+  revalidatePath('/admin/payments/merchants')
+  revalidatePath(`/admin/payments/merchants/${result.merchant.id}`)
   return { ok: true }
+}
+
+export async function createAdminMerchantAction(
+  _prev: PaymentsActionState,
+  formData: FormData,
+): Promise<PaymentsActionState> {
+  const denied = await requirePaymentsAdmin()
+  if (denied) return denied
+
+  const email = String(formData.get('email') ?? '').trim()
+  if (!email) return { error: 'Email is required.' }
+
+  const created = await createMerchantByEmail(email)
+  if (!created.ok) return { error: created.error }
+
+  revalidatePath('/admin/payments/merchants')
+  return { ok: true, message: 'Merchant ready. Open it to add payment setup.' }
 }
 
 function couponFieldsFromForm(formData: FormData) {

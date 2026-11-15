@@ -1,32 +1,50 @@
 import 'server-only'
 
-import { createBarionPaymentsProvider } from './barion'
+import './register-online'
 import { createBillingoBillingProvider } from './billing-billingo'
 import { createNoopBillingProvider } from './billing-noop'
 import { createSzamlazzBillingProvider } from './billing-szamlazz'
 import { createNavFiscalProvider } from './fiscal-nav'
 import { createNoopFiscalProvider } from './fiscal-noop'
-import { createManualPaymentsProvider } from './manual'
-import { createNoopPaymentsProvider } from './noop'
-import { createPayPalPaymentsProvider } from './paypal'
-import { createStripePaymentsProvider } from './stripe'
 import type {
   BillingCredentials,
   BillingProvider,
   BillingProviderKind,
   FiscalProvider,
-  GatewayCredentials,
-  OnlinePaymentProvider,
-  PaymentsFactoryOptions,
-  PaymentsProvider,
 } from './types'
-import { isOnlinePaymentProvider } from './types'
+
+export {
+  checkoutPaymentMethodLabel,
+  createPaymentsProvider,
+  getPaymentMethodAdapter,
+  getPaymentsProvider,
+  getPaymentsProviderForMethod,
+  isOnlinePaymentProvider,
+  listCheckoutPaymentMethods,
+  listOnlinePaymentMethodIds,
+  listOnlinePaymentProviders,
+  listPaymentMethodAdapters,
+  listPaymentMethodDescriptors,
+  paymentMethodCredentialKinds,
+  paymentsProviderEnvOptions,
+  registerPaymentMethodAdapter,
+} from './adapter'
+export type {
+  PaymentCredentialField,
+  PaymentCredentialKind,
+  PaymentMethodAdapter,
+  PaymentMethodDescriptor,
+} from './adapter'
+export {
+  credentialWritesFromForm,
+  offlineMerchantMethodReady,
+  paymentMethodCredentialsReady,
+} from './credential-schema'
+export type { MerchantCredentialWrite } from './credential-schema'
 
 export {
   OFFLINE_PAYMENT_METHODS,
-  ONLINE_PAYMENT_PROVIDERS,
   isOfflinePaymentMethod,
-  isOnlinePaymentProvider,
 } from './types'
 export type {
   BillingCredentials,
@@ -64,48 +82,6 @@ export {
   minorToMajor,
   sumMoneyLines,
 } from './money'
-
-/**
- * Build a PaymentsProvider from explicit options (tests / merchant credentials).
- */
-export function createPaymentsProvider(options: PaymentsFactoryOptions): PaymentsProvider {
-  if (!options.enabled) {
-    return createNoopPaymentsProvider()
-  }
-  const creds = options.credentials
-  switch (options.provider) {
-    case 'barion':
-      return createBarionPaymentsProvider(creds)
-    case 'stripe':
-      return createStripePaymentsProvider()
-    case 'paypal':
-      return createPayPalPaymentsProvider()
-    case 'manual':
-      return createManualPaymentsProvider()
-    case 'noop':
-    default:
-      return createNoopPaymentsProvider()
-  }
-}
-
-export function getPaymentsProvider(
-  override?: OnlinePaymentProvider,
-  credentials?: GatewayCredentials,
-): PaymentsProvider {
-  const raw = override || process.env.SF_PAYMENTS_PROVIDER?.trim() || 'manual'
-  const provider: OnlinePaymentProvider = isOnlinePaymentProvider(raw) ? raw : 'manual'
-  return createPaymentsProvider({ provider, enabled: true, credentials })
-}
-
-export function getPaymentsProviderForMethod(
-  method: string,
-  credentials?: GatewayCredentials,
-): PaymentsProvider {
-  if (method === 'barion' || method === 'stripe' || method === 'paypal') {
-    return getPaymentsProvider(method, credentials)
-  }
-  return createManualPaymentsProvider()
-}
 
 export type FiscalFactoryOptions = {
   provider: 'noop' | 'nav_online_szamla'

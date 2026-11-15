@@ -1,7 +1,4 @@
-import { isOfflinePaymentMethod, type PaymentMethodKind } from '@/core/payments/types'
-
-/** Gateway methods that sit in checkout until a provider webhook. */
-export const ABANDONED_ONLINE_CHECKOUT_METHODS = ['barion', 'stripe', 'paypal'] as const
+import { isOfflinePaymentMethod } from '@/core/payments/types'
 
 /** Statuses an online checkout still occupies before a webhook. */
 export const ABANDONED_ONLINE_CHECKOUT_STATUSES = [
@@ -18,6 +15,7 @@ export type AbandonedOnlineCheckoutCandidate = {
 /**
  * True when an online gateway checkout is past its TTL and still has no webhook.
  * Offline methods (bank transfer, pay at entrance, cash) are never expired here.
+ * The sweep only selects registered adapter ids; this guard keeps offline rows out.
  */
 export function shouldExpireAbandonedOnlineCheckout(
   order: AbandonedOnlineCheckoutCandidate,
@@ -30,14 +28,7 @@ export function shouldExpireAbandonedOnlineCheckout(
   ) {
     return false
   }
-  if (
-    !ABANDONED_ONLINE_CHECKOUT_METHODS.includes(
-      order.method as (typeof ABANDONED_ONLINE_CHECKOUT_METHODS)[number],
-    )
-  ) {
-    return false
-  }
-  if (isOfflinePaymentMethod(order.method as PaymentMethodKind)) return false
+  if (isOfflinePaymentMethod(order.method)) return false
   if (!order.expiresAt || !Number.isFinite(order.expiresAt.getTime())) return false
   return order.expiresAt.getTime() <= now.getTime()
 }

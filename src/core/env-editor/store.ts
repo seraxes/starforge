@@ -3,7 +3,9 @@ import 'server-only'
 import { access, mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
-import { ENV_EDITOR_FIELDS, ENV_EDITOR_KEY_SET } from './catalog'
+import { paymentsProviderEnvOptions } from '@/core/payments'
+
+import { ENV_EDITOR_FIELDS, ENV_EDITOR_KEY_SET, type EnvEditorField } from './catalog'
 import { envEditorIsWritable } from './mode'
 import { parseEnvFile, serializeEnvFile, type EnvMap } from './parse'
 import type { EnvEditorRow, EnvEditorSnapshot } from './types'
@@ -45,10 +47,16 @@ function maskSecret(value: string): string {
   return `•••••••• (${value.length} chars)`
 }
 
+function envEditorField(field: EnvEditorField): EnvEditorField {
+  if (field.key !== 'SF_PAYMENTS_PROVIDER') return field
+  return { ...field, options: paymentsProviderEnvOptions() }
+}
+
 export async function loadEnvEditorSnapshot(): Promise<EnvEditorSnapshot> {
   const { map: overlay, exists, path: overlayPath } = await readEnvOverlayMap()
   const writable = envEditorIsWritable()
   const rows: EnvEditorRow[] = ENV_EDITOR_FIELDS.map((field) => {
+    field = envEditorField(field)
     const effective = process.env[field.key] ?? ''
     const overlayValue = overlay[field.key] ?? ''
     const isSet = Boolean(effective)

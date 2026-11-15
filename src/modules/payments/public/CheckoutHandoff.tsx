@@ -4,30 +4,11 @@ import { formatMoneyMinor } from '@/core/payments'
 
 type Props = {
   paymentReference: string
-  method: string
+  methodLabel: string
   currency: string
   totalGrossMinor: number
   instructions: string
   status: string
-}
-
-function methodLabel(method: string): string {
-  switch (method) {
-    case 'bank_transfer':
-      return 'Bank transfer'
-    case 'pay_at_entrance':
-      return 'Pay at entrance'
-    case 'cash':
-      return 'Cash'
-    case 'barion':
-      return 'Barion'
-    case 'stripe':
-      return 'Card (Stripe)'
-    case 'paypal':
-      return 'PayPal'
-    default:
-      return method
-  }
 }
 
 /**
@@ -35,7 +16,7 @@ function methodLabel(method: string): string {
  */
 export function CheckoutHandoff({
   paymentReference,
-  method,
+  methodLabel,
   currency,
   totalGrossMinor,
   instructions,
@@ -63,7 +44,7 @@ export function CheckoutHandoff({
         </div>
         <div>
           <dt>Method</dt>
-          <dd>{methodLabel(method)}</dd>
+          <dd>{methodLabel}</dd>
         </div>
       </dl>
       {instructions.trim() ? (

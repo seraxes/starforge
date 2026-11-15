@@ -102,6 +102,8 @@ export const sfPayMerchants = pgTable(
     userId: text('user_id').notNull(),
     displayName: text('display_name').notNull().default(''),
     status: text('status').notNull().default('draft'),
+    /** Methods this seller offers. Empty until a switch is turned on. */
+    enabledMethods: jsonb('enabled_methods').$type<string[]>().notNull().default([]),
     sellerName: text('seller_name').notNull().default(''),
     sellerAddress: text('seller_address').notNull().default(''),
     sellerVatId: text('seller_vat_id').notNull().default(''),
@@ -131,7 +133,7 @@ export const sfPayMerchantCredentials = pgTable(
     merchantId: text('merchant_id')
       .notNull()
       .references(() => sfPayMerchants.id, { onDelete: 'cascade' }),
-    /** barion | stripe | paypal | billingo | szamlazz */
+    /** Online adapter credential kind (barion, stripe, stripe_webhook, paypal, …) or billingo | szamlazz. */
     kind: text('kind').notNull(),
     /** AES-GCM ciphertext (base64) — never log. */
     secretCipher: text('secret_cipher').notNull().default(''),

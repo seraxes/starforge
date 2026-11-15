@@ -7824,6 +7824,7 @@ button:disabled {
 .admin-settings-mosaic > .page-settings-panel-wide,
 .admin-settings-mosaic > .settings-fieldset-wide,
 .admin-settings-mosaic > .admin-settings-panel-wide,
+.admin-settings-mosaic > .admin-settings-mosaic-section,
 .admin-settings-mosaic > .admin-inline-error,
 .admin-settings-mosaic > .admin-inline-ok,
 .admin-settings-mosaic > .settings-hint,
@@ -7832,6 +7833,23 @@ button:disabled {
 .admin-settings-mosaic > .field-hint,
 .page-settings-mosaic > .page-settings-panel-wide {
   grid-column: 1 / -1;
+}
+
+.admin-settings-mosaic-section {
+  margin: 0.35rem 0 0;
+  padding: 0.85rem 0 0.15rem;
+  border-top: 1px solid var(--sf-line);
+}
+
+.admin-settings-mosaic-section h3 {
+  margin: 0 0 0.25rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--sf-ink);
+}
+
+.admin-settings-mosaic-section .settings-hint {
+  margin: 0;
 }
 
 /*
@@ -7935,6 +7953,10 @@ button:disabled {
 
 /* Always-visible tile header (not a <details> disclosure) */
 .page-settings-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
   margin: 0;
   padding: 0.85rem 1rem;
   border-bottom: 1px solid var(--sf-line);
@@ -7946,6 +7968,24 @@ button:disabled {
   font-size: 1rem;
   font-weight: 700;
   color: var(--sf-ink);
+  min-width: 0;
+}
+
+.page-settings-panel-head-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 0 0 auto;
+}
+
+.page-settings-panel.is-off .page-settings-panel-body {
+  opacity: 0.55;
+}
+
+.page-settings-panel.is-off .page-settings-panel-body input:not([type='hidden']),
+.page-settings-panel.is-off .page-settings-panel-body select,
+.page-settings-panel.is-off .page-settings-panel-body textarea {
+  cursor: not-allowed;
 }
 
 .page-settings-panel-body {
