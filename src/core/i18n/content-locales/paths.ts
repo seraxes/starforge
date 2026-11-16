@@ -4,7 +4,13 @@ import { projectRoot } from '@/core/skin/pack-paths'
 
 import { sanitizeContentLocaleId } from '../content-locale-keys'
 
-export type ContentLocaleScope = 'layouts' | 'nav' | 'chrome' | 'events' | 'subscriptions'
+export type ContentLocaleScope =
+  | 'layouts'
+  | 'nav'
+  | 'chrome'
+  | 'events'
+  | 'subscriptions'
+  | 'pages'
 
 export const CONTENT_LOCALE_SCOPES: readonly ContentLocaleScope[] = [
   'layouts',
@@ -12,6 +18,7 @@ export const CONTENT_LOCALE_SCOPES: readonly ContentLocaleScope[] = [
   'chrome',
   'events',
   'subscriptions',
+  'pages',
 ] as const
 
 export function isContentLocaleScope(value: string): value is ContentLocaleScope {

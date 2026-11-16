@@ -86,6 +86,8 @@ export default async function DraftPreviewPage({ params }: Args) {
     page.slug === 'home' ? '/' : `/${page.slug}`,
     locale,
   )
+  const rawId = typeof page.id === 'string' ? page.id.trim() : ''
+  const editHref = rawId ? `/admin/pages/${rawId}` : '/admin/pages'
 
   return (
     <article className="cms-page cms-page-preview">
@@ -101,7 +103,7 @@ export default async function DraftPreviewPage({ params }: Args) {
           )}
         </p>
         <p className="preview-banner-actions">
-          <Link href="/cms/admin/collections/pages">Edit in Payload</Link>
+          <Link href={editHref}>Edit page</Link>
           {' · '}
           <Link href="/admin/settings">Feature toggles</Link>
         </p>

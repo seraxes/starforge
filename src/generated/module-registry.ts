@@ -43,14 +43,14 @@ export const ACTIVE_HERO: {
 export const FIXED_REQUIRED_MODULE_IDS = ["platform:dashboard","platform:better-auth","page-content","product:media"] as const
 
 /** Allowlisted module ids for this install/build (platform + product + particles + atoms). */
-export const ALLOWLISTED_MODULE_IDS = ["account-menu","atom:analytics","atom:custom-css-js","copyright","custom","event-calendar","event-countdown","event-detail","event-featured","event-list","event-mini-calendar","event-upcoming","form","live-map","locale-switcher","login","logo","map","menu","notice-bar","page-content","platform:better-auth","platform:dashboard","platform:payload-cms","product:consent","product:draft-preview","product:email-manager","product:events","product:font-awesome","product:forms","product:layout-manager","product:lexical-editor","product:maps","product:marketplace","product:media","product:page-settings","product:payments","product:posts","product:primary-nav","product:profiles","product:pwa","product:redirects","product:registration","product:rich-editor","product:search","product:subscriptions","search","site-header","social","spacer"] as const
+export const ALLOWLISTED_MODULE_IDS = ["account-menu","atom:analytics","atom:custom-css-js","copyright","custom","event-calendar","event-countdown","event-detail","event-featured","event-list","event-mini-calendar","event-upcoming","form","live-map","locale-switcher","login","logo","map","menu","notice-bar","page-content","platform:better-auth","platform:dashboard","platform:payload-cms","product:consent","product:draft-preview","product:email-manager","product:events","product:font-awesome","product:forms","product:layout-manager","product:lexical-editor","product:maps","product:marketplace","product:media","product:page-settings","product:pages","product:payments","product:posts","product:primary-nav","product:profiles","product:pwa","product:redirects","product:registration","product:rich-editor","product:search","product:subscriptions","search","site-header","social","spacer"] as const
 
 export type AllowlistedModuleId = (typeof ALLOWLISTED_MODULE_IDS)[number]
 
 export const ALLOWLISTED_MODULE_ID_SET: ReadonlySet<string> = new Set(ALLOWLISTED_MODULE_IDS)
 
 /** Direct manifest requires for this install. Transitive closure is computed at runtime. */
-export const MODULE_REQUIRES: Readonly<Record<string, readonly string[]>> = {"platform:dashboard":[],"platform:better-auth":[],"platform:payload-cms":[],"product:layout-manager":[],"product:page-settings":[],"product:primary-nav":[],"product:font-awesome":[],"product:registration":[],"product:posts":[],"product:draft-preview":[],"page-content":[],"site-header":[],"logo":[],"menu":[],"locale-switcher":[],"copyright":[],"spacer":[],"social":[],"custom":[],"account-menu":[],"login":[],"atom:analytics":[],"atom:custom-css-js":[],"product:forms":["product:media"],"product:rich-editor":["product:media"],"product:lexical-editor":[],"product:email-manager":["product:rich-editor","product:media"],"product:payments":["product:email-manager"],"product:subscriptions":["product:payments","product:email-manager","product:forms","product:profiles"],"product:events":["product:forms","product:media","product:rich-editor","product:payments","product:profiles","product:maps"],"event-list":["product:events"],"event-upcoming":["product:events"],"event-calendar":["product:events"],"event-featured":["product:events"],"event-mini-calendar":["product:events"],"event-detail":["product:events"],"event-countdown":["product:events"],"product:profiles":["product:media","product:forms"],"product:maps":["product:media"],"map":["product:maps"],"live-map":["product:maps"],"product:marketplace":[],"product:redirects":[],"product:consent":[],"product:pwa":["product:media"],"product:search":[],"product:media":[],"notice-bar":[],"form":["product:forms"],"search":["product:search"]}
+export const MODULE_REQUIRES: Readonly<Record<string, readonly string[]>> = {"platform:dashboard":[],"platform:better-auth":[],"platform:payload-cms":[],"product:layout-manager":[],"product:page-settings":[],"product:primary-nav":[],"product:font-awesome":[],"product:registration":[],"product:posts":[],"product:draft-preview":[],"page-content":[],"site-header":[],"logo":[],"menu":[],"locale-switcher":[],"copyright":[],"spacer":[],"social":[],"custom":[],"account-menu":[],"login":[],"atom:analytics":[],"atom:custom-css-js":[],"product:forms":["product:media"],"product:rich-editor":["product:media"],"product:lexical-editor":[],"product:email-manager":["product:rich-editor","product:media"],"product:payments":["product:email-manager"],"product:subscriptions":["product:payments","product:email-manager","product:forms","product:profiles"],"product:events":["product:forms","product:media","product:rich-editor","product:payments","product:profiles","product:maps"],"event-list":["product:events"],"event-upcoming":["product:events"],"event-calendar":["product:events"],"event-featured":["product:events"],"event-mini-calendar":["product:events"],"event-detail":["product:events"],"event-countdown":["product:events"],"product:profiles":["product:media","product:forms"],"product:maps":["product:media"],"map":["product:maps"],"live-map":["product:maps"],"product:marketplace":[],"product:redirects":[],"product:consent":[],"product:pwa":["product:media"],"product:search":[],"product:media":[],"product:pages":["product:rich-editor","product:media"],"notice-bar":[],"form":["product:forms"],"search":["product:search"]}
 
 export function isModuleAllowlisted(id: string): boolean {
   const key = id.trim()
@@ -63,7 +63,7 @@ export function isModuleAllowlisted(id: string): boolean {
 export const ALLOWLISTED_BUILTIN_PARTICLE_IDS: readonly string[] = ["page-content","site-header","logo","menu","locale-switcher","copyright","spacer","social","custom","account-menu","login"]
 
 /** Platform + product catalog ids installed in this build. */
-export const ALLOWLISTED_PRODUCT_PLATFORM_IDS: readonly string[] = ["platform:dashboard","platform:better-auth","platform:payload-cms","product:layout-manager","product:page-settings","product:primary-nav","product:font-awesome","product:registration","product:posts","product:draft-preview","product:forms","product:rich-editor","product:lexical-editor","product:email-manager","product:payments","product:subscriptions","product:events","product:profiles","product:maps","product:marketplace","product:redirects","product:consent","product:pwa","product:search","product:media"]
+export const ALLOWLISTED_PRODUCT_PLATFORM_IDS: readonly string[] = ["platform:dashboard","platform:better-auth","platform:payload-cms","product:layout-manager","product:page-settings","product:primary-nav","product:font-awesome","product:registration","product:posts","product:draft-preview","product:forms","product:rich-editor","product:lexical-editor","product:email-manager","product:payments","product:subscriptions","product:events","product:profiles","product:maps","product:marketplace","product:redirects","product:consent","product:pwa","product:search","product:media","product:pages"]
 
 /**
  * Derived Site Settings → Modules rows for platform + product packs.
@@ -94,7 +94,8 @@ export const ALLOWLISTED_PRODUCT_PLATFORM_META: ModuleCatalogItem[] = [
   { id: "product:consent", kind: "product", label: "Consent", description: "Cookie consent banner + preference cookie (sf-consent). Policy copy under Chrome; gates atom:analytics until analytics is accepted.", required: false, defaultEnabled: true, installed: true as const },
   { id: "product:pwa", kind: "product", label: "PWA", description: "Progressive Web App — Web App Manifest + service worker (Serwist). Opt-in installability; reuses Site Chrome name and Page Settings icons.", required: false, defaultEnabled: false, installed: true as const, navViews: [{"key":"settings","label":"PWA settings","href":"/admin/pwa"},{"key":"admin","label":"PWA","href":"/admin/pwa"}] },
   { id: "product:search", kind: "product", label: "Search", description: "Public /search over published Payload pages (title / slug / meta). Search particle for layouts. No Algolia — Payload/Postgres contains.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"search","label":"Search","href":"/search"}] },
-  { id: "product:media", kind: "product", label: "Media library", description: "Media library on sf_media_*: sharp WebP pipeline, MediaStorage (local or S3), media-tags, member upload ledger, and MediaAnalysisPort hooks. Required — Logo/Styles/Forms bind by mediaId.", required: true, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Media library","href":"/admin/media"},{"key":"settings","label":"Media settings","href":"/admin/media/settings"}] }
+  { id: "product:media", kind: "product", label: "Media library", description: "Media library on sf_media_*: sharp WebP pipeline, MediaStorage (local or S3), media-tags, member upload ledger, and MediaAnalysisPort hooks. Required — Logo/Styles/Forms bind by mediaId.", required: true, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Media library","href":"/admin/media"},{"key":"settings","label":"Media settings","href":"/admin/media/settings"}] },
+  { id: "product:pages", kind: "product", label: "Pages", description: "Brochure pages with draft and publish, TipTap body, SEO, and page tags. Public reads go through PageReadsPort.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Pages","href":"/admin/pages"}] }
 ]
 
 export type AllowlistedParticleMeta = {
@@ -361,7 +362,8 @@ export const adminNavContributions: AdminNavContribution[] = [
   { moduleId: "product:maps", id: "maps", label: "TacMap", order: 49, href: "/admin/maps", expandable: true, links: [{ label: "Rooms", href: "/admin/maps", order: 10, exact: true, area: "maps", group: "maps" }] },
   { moduleId: "product:redirects", id: "redirects", label: "Redirects", order: 50, links: [{ label: "Redirects", href: "/admin/redirects", order: 10, area: "redirects", group: "redirects" }] },
   { moduleId: "product:pwa", id: "pwa", label: "PWA", order: 72, href: "/admin/pwa", links: [{ label: "Settings", href: "/admin/pwa", order: 10, area: "pwa", group: "pwa" }] },
-  { moduleId: "product:media", id: "media", label: "Media", order: 60, href: "/admin/media", expandable: true, defaultOpen: true, links: [{ label: "Library", href: "/admin/media", order: 10, exact: true, area: "media", group: "media" }, { label: "Settings", href: "/admin/media/settings", order: 20, area: "media", group: "media" }] }
+  { moduleId: "product:media", id: "media", label: "Media", order: 60, href: "/admin/media", expandable: true, defaultOpen: true, links: [{ label: "Library", href: "/admin/media", order: 10, exact: true, area: "media", group: "media" }, { label: "Settings", href: "/admin/media/settings", order: 20, area: "media", group: "media" }] },
+  { moduleId: "product:pages", id: "pages", label: "Pages", order: 44, href: "/admin/pages", links: [{ label: "Pages", href: "/admin/pages", order: 10, exact: true, area: "pages", group: "pages" }] }
 ]
 
 export type AdminDashboardContribution = {
@@ -649,6 +651,24 @@ export const adminRouteLoaders: AdminRouteLoader[] = [
     moduleId: "product:media",
     path: "media/settings",
     pageImportPath: "@/modules/media/admin/MediaSettingsPage",
+    pageExportName: "default",
+  },
+  {
+    moduleId: "product:pages",
+    path: "pages",
+    pageImportPath: "@/modules/pages/admin/PagesListPage",
+    pageExportName: "default",
+  },
+  {
+    moduleId: "product:pages",
+    path: "pages/new",
+    pageImportPath: "@/modules/pages/admin/PagesNewPage",
+    pageExportName: "default",
+  },
+  {
+    moduleId: "product:pages",
+    path: "pages/[pageId]",
+    pageImportPath: "@/modules/pages/admin/PagesEditPage",
     pageExportName: "default",
   }
 ]

@@ -26,6 +26,7 @@ import mapParticleManifest from './maps/particle-manifest'
 import liveMapParticleManifest from './maps/live-map-particle-manifest'
 import marketplaceManifest from './marketplace/manifest'
 import mediaManifest from './media/manifest'
+import pagesManifest from './pages/manifest'
 import noticeBarManifest from './notice-bar/manifest'
 import pwaManifest from './pwa/manifest'
 import profilesManifest from './profiles/manifest'
@@ -62,6 +63,7 @@ export const ALL_MODULE_MANIFESTS: StarforgeModuleManifest[] = [
   pwaManifest,
   searchManifest,
   mediaManifest,
+  pagesManifest,
   noticeBarManifest,
   formParticleManifest,
   searchParticleManifest,

@@ -22,6 +22,20 @@ function newItemId(): string {
   return `ni_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36).slice(-4)}`
 }
 
+/**
+ * Page bind id.
+ * All-digit strings stay numbers so a menu saved before the 3b remap still
+ * round-trips. The remap writes uuid text ids, which stay strings.
+ */
+export function normalizeNavPageId(raw: unknown): string | number | null {
+  if (typeof raw === 'number' && Number.isFinite(raw)) return raw
+  if (typeof raw !== 'string') return null
+  const trimmed = raw.trim()
+  if (!trimmed) return null
+  if (/^\d+$/.test(trimmed)) return Number(trimmed)
+  return trimmed
+}
+
 /** Accept `custom` as legacy alias for `url`. */
 export function normalizeLinkType(raw: unknown): NavLinkType {
   if (raw === 'admin') return 'admin'
@@ -49,12 +63,7 @@ export function normalizeNavMenuItem(
       : index
 
   const linkType = normalizeLinkType(row.linkType)
-  const pageId =
-    typeof row.pageId === 'number' && Number.isFinite(row.pageId)
-      ? row.pageId
-      : typeof row.pageId === 'string' && /^\d+$/.test(row.pageId)
-        ? Number(row.pageId)
-        : null
+  const pageId = normalizeNavPageId(row.pageId)
   const url = typeof row.url === 'string' ? row.url.trim() : null
   const moduleId =
     typeof row.moduleId === 'string' && row.moduleId.trim() ? row.moduleId.trim() : null

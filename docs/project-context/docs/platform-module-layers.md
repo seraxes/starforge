@@ -18,7 +18,7 @@
 | Placement | Owns | Examples |
 | --- | --- | --- |
 | **Core** | Always-on host + ports | Auth, Users/Groups ACL, Layout/Nav/Chrome, Module Manager, env overlay; ports: Mailer, Redis/cache, MediaStorage, MapProvider, LlmProvider, Payments adapters, PageReadsPort, MediaAnalysis |
-| **Base modules** | Dependency engines | Media, Forms, Rich editor, Email Manager, Payments (cart/orders/VAT), Profiles, Maps. Payload = content-manager pack behind `PageReadsPort` (pages only; media stays `product:media`) |
+| **Base modules** | Dependency engines | Media, Forms, Rich editor, Email Manager, Payments (cart/orders/VAT), Profiles, Maps. Content manager is `product:pages` (site pack, phase 3b done) behind `PageReadsPort`. Media stays `product:media` |
 | **Advanced modules** | Domain products that `require` base packs | Events, Subscriptions; later Ads, Shop, Marketplace, Support, Stream, Social, Chat |
 | **Hero** | Theme + unique rules — not a module fork | **Starforge theme:** pastel orange + blue. **ASN theme:** dark, tactical, gaming, military. Plus ASN team/RP/airsoft domain, catalog fees, ASN currency, quality-check **apps** that *call* Media analysis hooks |
 

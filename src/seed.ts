@@ -1,7 +1,7 @@
 /**
  * Local demo seed for Starforge.
  *
- * Creates sample **published** CMS pages (Payload), site settings, core app
+ * Creates sample **published** pages (`product:pages`), site settings, core app
  * users (Better Auth), and grants **cms_access** (+ Payload stub) for the
  * bootstrap global admin. One Better Auth login opens `/cms/admin` — no second
  * password. Product members stay in core unless CMS access is toggled on.
@@ -13,9 +13,6 @@
  */
 import 'dotenv/config'
 
-import { getPayload } from 'payload'
-
-import config from '@payload-config'
 import { ensureDefaultUserGroupsSeeded } from './core/acl'
 import { auth } from './core/auth'
 import {
@@ -69,16 +66,16 @@ const SAMPLE_PAGES = [
     meta: {
       title: 'Starforge',
       description:
-        'Reusable product core with Payload as the content module. Edit this home page in CMS.',
+        'Reusable product core. Edit this home page under /admin/pages.',
     },
     body: htmlBody([
       h2('Core + content'),
       p(
-        'Product APIs and auth live in Starforge core. Payload CMS handles editorial pages and media. This home page is a published Payload document (slug: home) — edit it under /cms/admin.',
+        'Product APIs and auth live in Starforge core. Brochure pages live in product:pages. This home page is a published page (slug: home) — edit it under /admin/pages.',
       ),
       ul([
         'Starforge admin: /admin (users, Site Chrome, layouts, modules)',
-        'Content CMS: /cms/admin — same Better Auth login when cms_access is on',
+        'Pages: /admin/pages — draft, publish, and version restore',
         'Sign-in options (home panel + /login): password, magic link, email code, stay signed in',
         'Recovery: /forgot-password · /forgot-username · 2FA at /account/security after sign-in',
         'Other sample pages: /about, /getting-started, /welcome',
@@ -91,16 +88,16 @@ const SAMPLE_PAGES = [
     slug: 'about',
     meta: {
       title: 'About Starforge',
-      description: 'What Starforge is: a reusable product core with Payload as the content module.',
+      description: 'What Starforge is: a reusable product core with brochure pages in product:pages.',
     },
     body: htmlBody([
       h2('A reusable core, not a CMS lock-in'),
       p(
-        'Starforge owns product auth, app users, and APIs. Payload CMS handles editorial pages and media only.',
+        'Starforge owns product auth, app users, and APIs. product:pages handles editorial pages. product:media handles the library.',
       ),
       ul([
         'Core app accounts: /register and /login',
-        'CMS: Payload /cms/admin via the same Better Auth login (cms_access)',
+        'Pages: /admin/pages (same Better Auth login)',
         'Published pages render at /{slug}; home is slug home at /',
       ]),
     ]),
@@ -110,7 +107,7 @@ const SAMPLE_PAGES = [
     slug: 'getting-started',
     meta: {
       title: 'Getting started with Starforge',
-      description: 'Local Compose, seed, edit in /cms/admin, and open a published page by slug.',
+      description: 'Local Compose, seed, edit in /admin/pages, and open a published page by slug.',
     },
     body: htmlBody([
       h2('Local loop'),
@@ -118,12 +115,12 @@ const SAMPLE_PAGES = [
       ul([
         'npm run seed — sample published pages (+ optional demo app user)',
         'Open /about and /getting-started on the public site',
-        'Edit pages in /cms/admin after one core login (no second password)',
+        'Edit pages in /admin/pages after one core login',
         'Register an app account at /register if you did not use the demo user',
       ]),
       h2('Two kinds of users'),
       p(
-        'Core /login owns every session. Payload /cms/admin opens for users with cms_access (admins by default). Ordinary members are never synced into Payload.',
+        'Core /login owns every session. /admin/pages is the editorial surface for brochure pages.',
       ),
     ]),
   },
@@ -148,44 +145,61 @@ const SAMPLE_PAGES = [
         'Layout particle “Login / Welcome” — place in Main for other outlines',
       ]),
       p(
-        'This page was created by npm run seed. Open the SEO tab in Payload admin to change meta title, description, and OG image.',
+        'This page was created by npm run seed. Open the SEO tab under /admin/pages to change meta title, description, and OG image.',
       ),
     ]),
   },
 ] as const
 
+type PagesSeedDoor = {
+  findPageBySlug: (slug: string) => Promise<{ id: string } | null>
+  savePage: (input: {
+    slug: string
+    status: 'draft' | 'published'
+    title: string
+    body: string
+    metaTitle: string
+    metaDescription: string
+    metaMediaId: string
+    tags: string
+  }) => Promise<{ page: { id: string } } | { error: string }>
+}
+
+/** Pages pack door via the generated registry. Host code does not import the pack. */
+async function loadPagesSeedDoor(): Promise<PagesSeedDoor> {
+  const { loadModuleDoor } = await import('./generated/module-registry.server')
+  const loaded = await loadModuleDoor('pages-api')
+  if (!loaded || typeof loaded.findPageBySlug !== 'function' || typeof loaded.savePage !== 'function') {
+    throw new Error('product:pages door is unavailable. Run npm run db:migrate, then seed again.')
+  }
+  return loaded as PagesSeedDoor
+}
+
 async function seedPages() {
-  const payload = await getPayload({ config })
+  const pages = await loadPagesSeedDoor()
   const created: string[] = []
   const skipped: string[] = []
 
   for (const sample of SAMPLE_PAGES) {
-    const existing = await payload.find({
-      collection: 'pages',
-      where: { slug: { equals: sample.slug } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-
-    if (existing.docs.length > 0) {
+    const existing = await pages.findPageBySlug(sample.slug)
+    if (existing) {
       skipped.push(sample.slug)
       continue
     }
 
-    await payload.create({
-      collection: 'pages',
-      data: {
-        title: sample.title,
-        slug: sample.slug,
-        // Lexical JSON — Payload Page type is generated with a wider index signature.
-        body: sample.body as never,
-        meta: sample.meta,
-        _status: 'published',
-      },
-      draft: false,
-      overrideAccess: true,
+    const saved = await pages.savePage({
+      slug: sample.slug,
+      status: 'published',
+      title: sample.title,
+      body: sample.body,
+      metaTitle: sample.meta.title,
+      metaDescription: sample.meta.description,
+      metaMediaId: '',
+      tags: '',
     })
+    if ('error' in saved) {
+      throw new Error(`Could not seed /${sample.slug}: ${saved.error}`)
+    }
     created.push(sample.slug)
   }
 

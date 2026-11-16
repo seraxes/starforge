@@ -7,6 +7,7 @@ import {
   buildEventCategoryKey,
   buildLayoutSlotKey,
   buildNavItemKey,
+  buildPageKey,
   buildSubscriptionPlanKey,
   type ContentLocaleField,
 } from '../content-locale-keys'
@@ -218,6 +219,56 @@ export async function syncSubscriptionPlanLocalesToFiles(input: {
   collectScalar(defaultLocale, textKey, input.description, byLocale)
   collectMapEntries(input.titleLocales, () => titleKey, byLocale)
   collectMapEntries(input.descriptionLocales, () => textKey, byLocale)
+
+  for (const [locale, entries] of byLocale) {
+    await upsertContentLocaleValues(locale, entries)
+  }
+}
+
+/**
+ * Persist brochure page title / body / SEO into language files.
+ * Default-locale scalars stay on `sf_pages`. The slug is not localized.
+ * Empty strings are written so a cleared field deletes the file key
+ * (the public read prefers the file over the column).
+ */
+export async function syncPageLocalesToFiles(input: {
+  pageId: string
+  title: string
+  body: string
+  metaTitle: string
+  metaDescription: string
+  titleLocales?: LocaleTextMap
+  bodyLocales?: LocaleTextMap
+  metaTitleLocales?: LocaleTextMap
+  metaDescriptionLocales?: LocaleTextMap
+}): Promise<void> {
+  const byLocale = new Map<string, Record<string, string>>()
+  const settings = await getLocalizationSettings()
+  const defaultLocale = settings.defaultLocale
+  const titleKey = buildPageKey(input.pageId, 'title')
+  const bodyKey = buildPageKey(input.pageId, 'html')
+  const metaTitleKey = buildPageKey(input.pageId, 'metaTitle')
+  const metaDescriptionKey = buildPageKey(input.pageId, 'metaDescription')
+
+  const put = (locale: string, key: string, value: string) => {
+    const bucket = byLocale.get(locale) ?? {}
+    bucket[key] = value
+    byLocale.set(locale, bucket)
+  }
+  const putMap = (map: LocaleTextMap | undefined, key: string) => {
+    for (const [locale, value] of Object.entries(normalizeLocaleTextMap(map))) {
+      put(locale, key, value)
+    }
+  }
+
+  putMap(input.titleLocales, titleKey)
+  putMap(input.bodyLocales, bodyKey)
+  putMap(input.metaTitleLocales, metaTitleKey)
+  putMap(input.metaDescriptionLocales, metaDescriptionKey)
+  put(defaultLocale, titleKey, input.title)
+  put(defaultLocale, bodyKey, input.body)
+  put(defaultLocale, metaTitleKey, input.metaTitle)
+  put(defaultLocale, metaDescriptionKey, input.metaDescription)
 
   for (const [locale, entries] of byLocale) {
     await upsertContentLocaleValues(locale, entries)

@@ -1,119 +1,15 @@
-import type {
-  DefaultNodeTypes,
-  SerializedLinkNode,
-  SerializedUploadNode,
-} from '@payloadcms/richtext-lexical'
-import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical'
-import {
-  type JSXConvertersFunction,
-  LinkJSXConverter,
-  RichText as PayloadRichText,
-  UploadJSXConverter,
-} from '@payloadcms/richtext-lexical/react'
 import React from 'react'
 
+import { pageBodyToHtml } from '@/core/content/lexical-to-html'
 import { RichContent } from '@/generated/module-rich-host'
-import type { Page } from '@/payload-types'
-
-type NodeTypes = DefaultNodeTypes
-
-const internalDocToHref = ({ linkNode }: { linkNode: SerializedLinkNode }): string => {
-  const doc = linkNode.fields.doc
-  if (!doc) {
-    return '#'
-  }
-
-  const { relationTo, value } = doc
-  if (typeof value !== 'object' || value === null) {
-    return '#'
-  }
-
-  if (relationTo === 'pages' && 'slug' in value && typeof value.slug === 'string') {
-    return `/${value.slug}`
-  }
-
-  return `/${relationTo}`
-}
-
-const jsxConverters: JSXConvertersFunction<NodeTypes> = ({ defaultConverters }) => {
-  const uploadConverters = UploadJSXConverter as {
-    upload: (args: { node: SerializedUploadNode }) => React.ReactNode
-  }
-
-  return {
-    ...defaultConverters,
-    ...LinkJSXConverter({ internalDocToHref }),
-    upload: ({ node }) => {
-      const image = uploadConverters.upload({ node })
-      const caption =
-        typeof node.fields?.caption === 'string' && node.fields.caption.trim()
-          ? node.fields.caption
-          : null
-
-      if (!image) {
-        return null
-      }
-
-      if (!caption) {
-        return image
-      }
-
-      return (
-        <figure className="cms-figure">
-          {image}
-          <figcaption>{caption}</figcaption>
-        </figure>
-      )
-    },
-  }
-}
-
-function isLexicalState(data: unknown): data is SerializedEditorState {
-  if (!data || typeof data !== 'object') return false
-  const root = (data as { root?: unknown }).root
-  return Boolean(root && typeof root === 'object')
-}
-
-/** Legacy Lexical documents stored as text after the body column became HTML. */
-function lexicalFromString(data: string): SerializedEditorState | null {
-  const trimmed = data.trim()
-  if (!trimmed.startsWith('{')) return null
-  try {
-    const parsed: unknown = JSON.parse(trimmed)
-    return isLexicalState(parsed) ? parsed : null
-  } catch {
-    return null
-  }
-}
 
 /**
- * Public page body — TipTap HTML (canonical) or legacy Lexical JSON
- * (`product:lexical-editor`; still rendered when that module is off so old pages do not blank).
+ * Public page body. TipTap HTML is the stored form.
+ * A leftover Lexical JSON document is converted here so the public page
+ * does not import Payload or `@payloadcms/richtext-lexical`.
  */
-export function RichText({
-  data,
-}: {
-  data: SerializedEditorState | Page['body'] | string | null | undefined
-}) {
-  if (!data) {
-    return null
-  }
-
-  if (typeof data === 'string') {
-    const legacy = lexicalFromString(data)
-    if (legacy) {
-      return (
-        <PayloadRichText className="cms-richtext" converters={jsxConverters} data={legacy} />
-      )
-    }
-    return <RichContent html={data} className="cms-richtext" />
-  }
-
-  if (isLexicalState(data)) {
-    return (
-      <PayloadRichText className="cms-richtext" converters={jsxConverters} data={data} />
-    )
-  }
-
-  return null
+export function RichText({ data }: { data: unknown }) {
+  const html = pageBodyToHtml(data)
+  if (!html) return null
+  return <RichContent html={html} className="cms-richtext" />
 }

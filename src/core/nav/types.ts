@@ -15,7 +15,7 @@ export type NavAccessLevel =
 
 /**
  * Link bind types.
- * - `page` — Payload CMS page
+ * - `page` — brochure page (`product:pages` text id)
  * - `url` — path or absolute URL (legacy storage may still say `custom`)
  * - `module` — installed/enabled module navigable view
  * - `admin` — Core admin home (`/admin`), no locale prefix; requires role:admin and/or a group
@@ -33,8 +33,11 @@ export type NavMenuItem = {
   /** Label per enabled locale code. Missing key falls back to `label`. */
   labels?: Record<string, string>
   linkType: NavLinkType
-  /** Payload `pages` document id when linkType is `page`. */
-  pageId?: number | null
+  /**
+   * Page id when linkType is `page`.
+   * Starforge text id. A number is an unread Payload id until `db:migrate` remaps it.
+   */
+  pageId?: string | number | null
   /** Path or absolute URL when linkType is `url`. */
   url?: string | null
   /** Modules catalog / registry id when linkType is `module`. */
@@ -79,7 +82,8 @@ export type NavMenuMeta = {
 
 /** Admin page picker option. */
 export type NavPageOption = {
-  id: number
+  /** Starforge text id. */
+  id: string | number
   title: string
   slug: string
 }

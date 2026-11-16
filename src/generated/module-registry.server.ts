@@ -545,6 +545,19 @@ export const moduleMessageLoaders: ModuleMessageLoader[] = [
         return (await import("@/modules/media/messages/en.json")).default
       }
     },
+  },
+  {
+    moduleId: "product:pages",
+    namespaces: ["product:pages"] as const,
+    load: async (locale: string): Promise<Record<string, unknown>> => {
+      switch (locale) {
+      case "hu":
+        return (await import("@/modules/pages/messages/hu.json")).default
+      case 'en':
+      default:
+        return (await import("@/modules/pages/messages/en.json")).default
+      }
+    },
   }
 ]
 
@@ -596,6 +609,11 @@ export const moduleDoorLoaders: ModuleDoorLoader[] = [
     id: "profiles-api-server",
     moduleId: "product:profiles",
     load: async () => import("@/modules/profiles/api.server"),
+  },
+  {
+    id: "pages-api",
+    moduleId: "product:pages",
+    load: async () => import("@/modules/pages/api.server"),
   }
 ]
 

@@ -3,6 +3,7 @@ export {
   buildEventCategoryKey,
   buildLayoutSlotKey,
   buildNavItemKey,
+  buildPageKey,
   buildSubscriptionPlanKey,
   contentLocaleFileRefForKey,
   isValidContentLocaleKey,
@@ -11,6 +12,7 @@ export {
   type ChromeConsentField,
   type ContentLocaleField,
   type EventCategoryLocaleField,
+  type PageLocaleField,
   type ParsedContentLocaleKey,
   type SubscriptionPlanLocaleField,
 } from '../content-locale-keys'
@@ -39,6 +41,7 @@ export {
   syncEventCategoryLocalesToFiles,
   syncLayoutSlotLocalesToFiles,
   syncNavItemLocalesToFiles,
+  syncPageLocalesToFiles,
   syncSiteChromeConsentLocalesToFiles,
   syncSubscriptionPlanLocalesToFiles,
   type SiteChromeConsentLocaleInput,

@@ -38,7 +38,7 @@ export function pageKeyForNavItem(
     return null
   }
   if (item.linkType === 'page') {
-    const page = pages.find((p) => p.id === item.pageId)
+    const page = pages.find((p) => String(p.id) === String(item.pageId))
     if (!page?.slug) return null
     const slug = page.slug.trim().replace(/^\/+|\/+$/g, '')
     if (!slug || slug === 'home') return HOME_PAGE_KEY

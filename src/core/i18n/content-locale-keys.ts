@@ -92,6 +92,18 @@ export function buildSubscriptionPlanKey(
   return `subscriptions.plan.${id}.${field}`
 }
 
+export const PAGE_LOCALE_FIELDS = ['title', 'html', 'metaTitle', 'metaDescription'] as const
+
+export type PageLocaleField = (typeof PAGE_LOCALE_FIELDS)[number]
+
+const PAGE_LOCALE_FIELD_SET = new Set<string>(PAGE_LOCALE_FIELDS)
+
+/** Brochure page copy — owner file pages/{pageId}.json. Slug is not localized. */
+export function buildPageKey(pageId: string, field: PageLocaleField): string {
+  const id = sanitizeContentLocaleId(pageId) || 'page'
+  return `pages.${id}.${field}`
+}
+
 export type ParsedContentLocaleKey =
   | {
       kind: 'layout'
@@ -120,6 +132,11 @@ export type ParsedContentLocaleKey =
       kind: 'subscriptions-plan'
       planId: string
       field: SubscriptionPlanLocaleField
+    }
+  | {
+      kind: 'page'
+      pageId: string
+      field: PageLocaleField
     }
 
 export function parseContentLocaleKey(raw: string): ParsedContentLocaleKey | null {
@@ -196,6 +213,17 @@ export function parseContentLocaleKey(raw: string): ParsedContentLocaleKey | nul
     }
   }
 
+  const pageKey = /^pages\.([^.]+)\.([^.]+)$/.exec(key)
+  if (pageKey) {
+    const field = pageKey[2]!
+    if (!PAGE_LOCALE_FIELD_SET.has(field)) return null
+    return {
+      kind: 'page',
+      pageId: pageKey[1]!,
+      field: field as PageLocaleField,
+    }
+  }
+
   return null
 }
 
@@ -203,9 +231,9 @@ export function isValidContentLocaleKey(raw: string): boolean {
   return parseContentLocaleKey(raw) != null
 }
 
-/** Owner file under a locale folder: layouts|nav|chrome|events|subscriptions/{id}.json */
+/** Owner file under a locale folder: layouts|nav|chrome|events|subscriptions|pages/{id}.json */
 export function contentLocaleFileRefForKey(key: string): {
-  scope: 'layouts' | 'nav' | 'chrome' | 'events' | 'subscriptions'
+  scope: 'layouts' | 'nav' | 'chrome' | 'events' | 'subscriptions' | 'pages'
   ownerId: string
 } | null {
   const parsed = parseContentLocaleKey(key)
@@ -221,6 +249,9 @@ export function contentLocaleFileRefForKey(key: string): {
   }
   if (parsed.kind === 'subscriptions-plan') {
     return { scope: 'subscriptions', ownerId: parsed.planId }
+  }
+  if (parsed.kind === 'page') {
+    return { scope: 'pages', ownerId: parsed.pageId }
   }
   return { scope: 'chrome', ownerId: parsed.ownerId }
 }

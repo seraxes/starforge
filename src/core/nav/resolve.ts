@@ -24,31 +24,50 @@ export type ResolvedNavItem = NavItem & {
   pageHeading?: string
   accessTags?: string[]
   accessLevel?: string
-  pageId?: number | null
+  pageId?: string | number | null
   moduleId?: string | null
   moduleViewKey?: string | null
   linkType?: NavMenuItem['linkType']
 }
 
+function pageBindKey(id: string | number): string {
+  return String(id)
+}
+
 /**
  * Resolve page binds → slugs via PageReadsPort published summaries.
  * Unpublished page links stay unresolved (no href) — public nav is published-only.
+ * A numeric id is a Payload id still sitting in the nav cache (or an unread
+ * menu). The pages pack maps it through payload_legacy_id. No getPayload().
  */
 async function resolvePageSlugMap(
-  pageIds: number[],
-): Promise<Map<number, string>> {
-  const map = new Map<number, string>()
+  pageIds: Array<string | number>,
+): Promise<Map<string, string>> {
+  const map = new Map<string, string>()
   if (pageIds.length === 0) return map
-  const wanted = new Set(pageIds)
+  const wanted = new Set(pageIds.map(pageBindKey))
   try {
     const docs = await getPageReads().listPublishedSummaries()
     for (const doc of docs) {
-      if (wanted.has(doc.id) && doc.slug.trim()) {
-        map.set(doc.id, doc.slug.trim())
-      }
+      const key = pageBindKey(doc.id)
+      if (wanted.has(key) && doc.slug.trim()) map.set(key, doc.slug.trim())
     }
   } catch {
     // Content manager unavailable
+  }
+
+  const missingNumeric = [...wanted].filter((id) => !map.has(id) && /^\d+$/.test(id))
+  if (missingNumeric.length === 0) return map
+  try {
+    const { loadPagesPackDoor } = await import('@/core/content/pages-pack-door')
+    const door = await loadPagesPackDoor()
+    if (!door) return map
+    for (const id of missingNumeric) {
+      const found = await door.findNavPageByLegacyId(Number(id))
+      if (found?.slug.trim()) map.set(id, found.slug.trim())
+    }
+  } catch {
+    // Pages pack unavailable
   }
   return map
 }
@@ -75,7 +94,7 @@ function localized(
 function itemToResolved(
   menuId: string,
   item: NavMenuItem,
-  slugById: Map<number, string>,
+  slugById: Map<string, string>,
   moduleHref: string | null,
   locale: string,
   defaultLocale: string,
@@ -99,9 +118,8 @@ function itemToResolved(
   if (item.linkType === 'admin') {
     href = '/admin'
   } else if (item.linkType === 'page') {
-    const pageId = typeof item.pageId === 'number' ? item.pageId : null
-    if (pageId == null) return null
-    const slug = slugById.get(pageId)
+    if (item.pageId == null || item.pageId === '') return null
+    const slug = slugById.get(String(item.pageId))
     if (!slug) return null
     href = normalizeHref(slug)
   } else if (item.linkType === 'module') {
@@ -172,8 +190,8 @@ export async function resolveNavMenuItems(
 
   const ordered = flattenNavItemsInOrder(loaded.document.items)
   const pageIds = ordered
-    .filter((i) => i.linkType === 'page' && typeof i.pageId === 'number')
-    .map((i) => i.pageId as number)
+    .filter((i) => i.linkType === 'page' && i.pageId != null && i.pageId !== '')
+    .map((i) => i.pageId as string | number)
   const [slugById, localeCtx] = await Promise.all([
     resolvePageSlugMap(pageIds),
     getLocaleTextContext(),

@@ -206,7 +206,7 @@ export async function uploadContentLocaleZipAction(
   let written = 0
   for (const [name, bytes] of Object.entries(entries)) {
     const normalized = name.replace(/\\/g, '/')
-    const match = /(?:^|\/)(layouts|nav|chrome|events)\/([^/]+)\.json$/i.exec(normalized)
+    const match = /(?:^|\/)(layouts|nav|chrome|events|subscriptions|pages)\/([^/]+)\.json$/i.exec(normalized)
     if (!match) continue
     const scope = parseScope(match[1]!.toLowerCase())
     const ownerId = match[2]!

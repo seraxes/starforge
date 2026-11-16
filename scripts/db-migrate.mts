@@ -3,6 +3,7 @@
  * Re-runs `0043_site_settings` after Payload so a fresh database can copy
  * `payload.site_settings` once the Payload schema exists.
  * Re-runs `0044_media_document_store` the same way for `payload.media`.
+ * Then copies Payload pages into `sf_pages_*` (idempotent; locale files + Nav remap).
  * Both SQL files are idempotent.
  *
  * Verifies `sf_sessions`, locked-document rel columns, `sf_site_settings`,
@@ -16,6 +17,7 @@ import { Client } from 'pg'
 import 'dotenv/config'
 
 import { SITE_SETTINGS_CORE_VERIFY_COLUMNS } from '../src/core/settings/heal-site-settings-schema.ts'
+import { migratePayloadPages } from '../src/modules/pages/migrate-from-payload.ts'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const SITE_SETTINGS_MIGRATION = join(
@@ -130,6 +132,14 @@ async function verifyAndHeal(): Promise<void> {
     )
     await replayMediaStoreMigration(client)
 
+    console.log(
+      '\n→ Copy Payload pages into public.sf_pages_* (idempotent; skips rows already copied)',
+    )
+    const pagesCopy = await migratePayloadPages(client)
+    console.log(
+      `  pages ${pagesCopy.pagesCopied}, skipped ${pagesCopy.pagesSkipped}, tags ${pagesCopy.tagsCopied}, versions ${pagesCopy.versionsCopied}, locale files ${pagesCopy.localesWritten}, nav binds ${pagesCopy.navItemsRemapped}${pagesCopy.note ? ` (${pagesCopy.note})` : ''}`,
+    )
+
     for (const col of SITE_SETTINGS_CORE_VERIFY_COLUMNS) {
       const ok = await columnExists(client, 'public', 'sf_site_settings', col)
       if (!ok) {
@@ -158,8 +168,18 @@ async function verifyAndHeal(): Promise<void> {
       throw new Error('public.sf_media_assets missing after migrate')
     }
 
+    const pagesVersions = await client.query<{ exists: boolean }>(
+      `SELECT EXISTS (
+         SELECT 1 FROM information_schema.tables
+         WHERE table_schema = 'public' AND table_name = 'sf_pages_versions'
+       ) AS exists`,
+    )
+    if (!pagesVersions.rows[0]?.exists) {
+      throw new Error('public.sf_pages_versions missing after migrate')
+    }
+
     console.log(
-      '\n✓ Verified public.sf_sessions + locked-docs tags_id/categories_id + public.sf_site_settings + public.sf_media_assets',
+      '\n✓ Verified public.sf_sessions + locked-docs tags_id/categories_id + public.sf_site_settings + public.sf_media_assets + public.sf_pages_versions',
     )
   } finally {
     await client.end()

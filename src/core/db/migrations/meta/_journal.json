@@ -316,6 +316,20 @@
       "when": 1794039000000,
       "tag": "0044_media_document_store",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1794040000000,
+      "tag": "0045_pages",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1794041000000,
+      "tag": "0046_pages_payload_cutover",
+      "breakpoints": true
     }
   ]
 }

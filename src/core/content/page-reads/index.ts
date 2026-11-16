@@ -4,20 +4,15 @@
  * Methods: published by slug, draft preview, search list, sitemap summaries
  * (Nav page-link slug resolve shares the sitemap summary list).
  *
- * Payload stays the content manager. This port makes those reads swappable later.
- * It does not add a second CMS or change `/cms` editorial UI.
- *
- * Remaining `getPayload()` callers (settings already moved to `sf_site_settings`):
- * - `src/core/media/*` — library, resolve, ingest, form-upload, category-store
- * - `src/core/nav/store.ts` — admin page-bind picker, seed / migrate helpers
- * - `src/core/cms-bridge/*` — session + user bridge (`index`, `payload-session`)
- * - `src/app/api/cms/exchange/route.ts` — CMS exchange
- * - `src/seed.ts` — pages seed
+ * When `product:pages` is enabled, these four reads use that pack’s public
+ * door. When the pack is off, the reads are empty. Editorial sites enable
+ * the pack. There is no Payload fallback.
  */
 
 import 'server-only'
 
-import { createPayloadPageReads } from './payload'
+import { loadPagesPackDoor } from '@/core/content/pages-pack-door'
+
 import type { PageReadsPort } from './types'
 
 export type {
@@ -26,20 +21,64 @@ export type {
   PageReadsSearchDoc,
   PageReadsSearchResult,
 } from './types'
-export { createPayloadPageReads } from './payload'
+
+/** Bump when the port factory changes so a dev reload drops a stale singleton. */
+const PAGE_READS_VERSION = 3
 
 type PortGlobal = typeof globalThis & {
   __starforgePageReads?: PageReadsPort
+  __starforgePageReadsVersion?: number
+}
+
+const emptyPageReads: PageReadsPort = {
+  async findPublishedBySlug() {
+    return null
+  },
+  async findDraftBySlug() {
+    return null
+  },
+  async searchPublished() {
+    return { docs: [], totalDocs: 0 }
+  },
+  async listPublishedSummaries() {
+    return []
+  },
 }
 
 /**
  * Active PageReadsPort.
- * Payload adapter today — swap when another content-manager pack is chosen.
+ * Each read uses the pages pack when that module is enabled.
  */
+function createSwitchingPageReads(): PageReadsPort {
+  return {
+    async findPublishedBySlug(slug, locale) {
+      const door = await loadPagesPackDoor()
+      if (!door) return null
+      return door.createPagesPageReads().findPublishedBySlug(slug, locale)
+    },
+    async findDraftBySlug(slug, locale) {
+      const door = await loadPagesPackDoor()
+      if (!door) return null
+      return door.createPagesPageReads().findDraftBySlug(slug, locale)
+    },
+    async searchPublished(query, locale, options) {
+      const door = await loadPagesPackDoor()
+      if (!door) return { docs: [], totalDocs: 0 }
+      return door.createPagesPageReads().searchPublished(query, locale, options)
+    },
+    async listPublishedSummaries() {
+      const door = await loadPagesPackDoor()
+      if (!door) return []
+      return door.createPagesPageReads().listPublishedSummaries()
+    },
+  }
+}
+
 export function getPageReads(): PageReadsPort {
   const g = globalThis as PortGlobal
-  if (!g.__starforgePageReads) {
-    g.__starforgePageReads = createPayloadPageReads()
+  if (!g.__starforgePageReads || g.__starforgePageReadsVersion !== PAGE_READS_VERSION) {
+    g.__starforgePageReads = createSwitchingPageReads()
+    g.__starforgePageReadsVersion = PAGE_READS_VERSION
   }
   return g.__starforgePageReads
 }
@@ -48,4 +87,7 @@ export function getPageReads(): PageReadsPort {
 export function resetPageReadsForTests(): void {
   const g = globalThis as PortGlobal
   delete g.__starforgePageReads
+  delete g.__starforgePageReadsVersion
 }
+
+export { emptyPageReads }

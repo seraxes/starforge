@@ -664,7 +664,7 @@ export function NavItemsEditor({
     const payload = {
       label: row.label,
       linkType: row.linkType,
-      pageId: row.pageId ? Number(row.pageId) : null,
+      pageId: row.pageId || null,
       url: row.url,
       moduleId: row.moduleId || null,
       moduleViewKey: row.moduleViewKey || null,

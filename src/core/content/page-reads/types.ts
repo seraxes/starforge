@@ -2,7 +2,7 @@
  * PageReadsPort — layout-host page reads (Core finish slice 9).
  *
  * Four reads only. Callers use `getPageReads()`; they never call `getPayload()`.
- * The Payload adapter is the sole `getPayload()` home for these four.
+ * `product:pages` is the only adapter. Pack off → empty reads.
  */
 
 import type { AppLocale } from '@/core/i18n/locales'
@@ -29,7 +29,8 @@ export type PageReadsSearchResult = {
  * `id` lets Nav map page binds → slugs without a fifth read.
  */
 export type PageReadsPublishedSummary = {
-  id: number
+  /** Starforge text id (`product:pages`). */
+  id: string | number
   slug: string
   updatedAt: string
 }

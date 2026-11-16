@@ -34,6 +34,7 @@ export const MODULE_IDS = {
   consent: 'product:consent',
   search: 'product:search',
   media: 'product:media',
+  pages: 'product:pages',
   pwa: 'product:pwa',
 } as const
 

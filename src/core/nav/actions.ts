@@ -409,7 +409,7 @@ export async function addNavMenuItemAction(
       {
         label,
         linkType,
-        pageId: pageIdRaw ? Number(pageIdRaw) : null,
+        pageId: pageIdRaw || null,
         url: linkType === 'url' ? url : null,
         moduleId: linkType === 'module' ? moduleId || null : null,
         moduleViewKey: linkType === 'module' ? moduleViewKey || null : null,

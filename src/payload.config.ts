@@ -6,18 +6,17 @@ import sharp from 'sharp'
 
 import { DEFAULT_LOCALE, LOCALES, LOCALE_LABELS } from './core/i18n/locales'
 import { payloadCsrfOrigins } from './core/security/trusted-origins'
-import { Pages } from './collections/Pages'
-import { Tags } from './collections/Tags'
 import { Users } from './collections/Users'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
 /**
- * Payload is the editorial pages CMS (`/cms`). Product auth and the media
- * document store live outside Payload: media rows are `sf_media_*`, blobs are
- * MediaStorage. Media and Categories collections are not registered.
- * Page OG images store a text media id (`meta.mediaId`).
+ * Payload stays for the Users bridge (`/cms`) until phase 4.
+ * Editorial pages are `product:pages` (`sf_pages_*`). The media document store
+ * is `product:media` (`sf_media_*`); blobs are MediaStorage.
+ * Pages, Tags, Media, and Categories collections are not registered.
+ * Leftover payload.pages* tables stay until phase 4.
  */
 export default buildConfig({
   // Payload UI under /cms/admin (Core Starforge admin owns /admin).
@@ -55,7 +54,7 @@ export default buildConfig({
   // Add extra hosts via STARFORGE_TRUSTED_ORIGINS.
   csrf: payloadCsrfOrigins(),
 
-  collections: [Users, Pages, Tags],
+  collections: [Users],
   // Site settings live on Core `sf_site_settings` (`src/core/settings`).
   // The Payload global is not registered, so /cms does not read or write it.
   globals: [],

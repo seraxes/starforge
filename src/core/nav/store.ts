@@ -1,8 +1,7 @@
 import { asc, eq } from 'drizzle-orm'
-import { getPayload } from 'payload'
 
-import config from '@payload-config'
 import { contentCacheTags, getPublishedContentCache } from '@/core/content/cache'
+import { loadPagesPackDoor } from '@/core/content/pages-pack-door'
 import { invalidateNavMenu } from '@/core/content/revalidate'
 import { db, DEFAULT_NAV_MENU_ID, sfNavMenus } from '@/core/db'
 import { normalizeHref } from '@/core/settings/nav'
@@ -317,27 +316,27 @@ export async function reorderNavMenuItem(
   return replaceNavMenuItems(menuId, nextItems)
 }
 
-/** List CMS pages for the admin page-bind picker. */
-export async function listNavPageOptions(): Promise<NavPageOption[]> {
+/**
+ * Page row for a nav bind. Text id from the pages pack.
+ * Pack off → no page bind (editorial sites enable the pack).
+ */
+async function findNavSeedPage(slug: string): Promise<{ id: string } | null> {
+  const door = await loadPagesPackDoor()
+  if (!door) return null
   try {
-    const payload = await getPayload({ config })
-    const result = await payload.find({
-      collection: 'pages',
-      depth: 0,
-      limit: 200,
-      sort: 'title',
-      overrideAccess: true,
-      pagination: false,
-    })
-    return result.docs
-      .map((doc) => {
-        if (typeof doc.id !== 'number') return null
-        const title = typeof doc.title === 'string' ? doc.title : String(doc.id)
-        const slug = typeof doc.slug === 'string' ? doc.slug : ''
-        if (!slug) return null
-        return { id: doc.id, title, slug }
-      })
-      .filter((row): row is NavPageOption => row != null)
+    const found = await door.findNavPageBySlug(slug)
+    return found ? { id: found.id } : null
+  } catch {
+    return null
+  }
+}
+
+/** List pages for the admin page-bind picker. */
+export async function listNavPageOptions(): Promise<NavPageOption[]> {
+  const door = await loadPagesPackDoor()
+  if (!door) return []
+  try {
+    return await door.listNavPageOptions()
   } catch {
     return []
   }
@@ -382,10 +381,16 @@ export async function migrateLegacyPrimaryNavToMain(legacyRows: unknown): Promis
     const cssClass = typeof row.cssClass === 'string' ? row.cssClass.trim() : null
     const browserTitle = typeof row.browserTitle === 'string' ? row.browserTitle.trim() : null
 
-    let pageId: number | null = null
-    if (typeof row.page === 'number') pageId = row.page
+    let legacyPageId: number | null = null
+    if (typeof row.page === 'number') legacyPageId = row.page
     else if (row.page && typeof row.page === 'object' && typeof (row.page as { id?: unknown }).id === 'number') {
-      pageId = (row.page as { id: number }).id
+      legacyPageId = (row.page as { id: number }).id
+    }
+    let pageId: string | null = null
+    if (legacyPageId != null) {
+      const door = await loadPagesPackDoor()
+      const mapped = door ? await door.findNavPageByLegacyId(legacyPageId) : null
+      pageId = mapped?.id ?? null
     }
 
     const linkType =
@@ -503,33 +508,21 @@ export async function ensureDefaultNavMenuSeeded(options?: {
   const items: NavMenuItem[] = []
 
   if (options?.pageEntries?.length) {
-    try {
-      const payload = await getPayload({ config })
-      let order = 0
-      for (const entry of options.pageEntries) {
-        const found = await payload.find({
-          collection: 'pages',
-          where: { slug: { equals: entry.slug } },
-          limit: 1,
-          depth: 0,
-          overrideAccess: true,
-        })
-        const doc = found.docs[0]
-        if (!doc || typeof doc.id !== 'number') continue
-        items.push(
-          createNavMenuItem(
-            {
-              label: entry.label,
-              linkType: 'page',
-              pageId: doc.id,
-              accessTags: ['public'],
-            },
-            order++,
-          ),
-        )
-      }
-    } catch {
-      // Payload unavailable — fall through to legacy custom.
+    let order = 0
+    for (const entry of options.pageEntries) {
+      const doc = await findNavSeedPage(entry.slug)
+      if (!doc) continue
+      items.push(
+        createNavMenuItem(
+          {
+            label: entry.label,
+            linkType: 'page',
+            pageId: doc.id,
+            accessTags: ['public'],
+          },
+          order++,
+        ),
+      )
     }
   }
 
@@ -603,33 +596,21 @@ export async function seedMainNavFromPages(
   }
 
   const items: NavMenuItem[] = []
-  try {
-    const payload = await getPayload({ config })
-    let order = 0
-    for (const entry of entries) {
-      const found = await payload.find({
-        collection: 'pages',
-        where: { slug: { equals: entry.slug } },
-        limit: 1,
-        depth: 0,
-        overrideAccess: true,
-      })
-      const doc = found.docs[0]
-      if (!doc || typeof doc.id !== 'number') continue
-      items.push(
-        createNavMenuItem(
-          {
-            label: entry.label,
-            linkType: 'page',
-            pageId: doc.id,
-            accessTags: ['public'],
-          },
-          order++,
-        ),
-      )
-    }
-  } catch {
-    return { updated: false, itemCount: loaded.document.items.length }
+  let order = 0
+  for (const entry of entries) {
+    const doc = await findNavSeedPage(entry.slug)
+    if (!doc) continue
+    items.push(
+      createNavMenuItem(
+        {
+          label: entry.label,
+          linkType: 'page',
+          pageId: doc.id,
+          accessTags: ['public'],
+        },
+        order++,
+      ),
+    )
   }
 
   if (items.length === 0) {

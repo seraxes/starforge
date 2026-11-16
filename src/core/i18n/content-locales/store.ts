@@ -77,7 +77,7 @@ export async function loadContentLocaleCatalog(locale: string): Promise<ContentL
   if (cached) return cached.catalog
 
   const root = getContentLocaleDir(code)
-  const catalogScopes = ['layouts', 'nav', 'events', 'subscriptions'] as const
+  const catalogScopes = ['layouts', 'nav', 'events', 'subscriptions', 'pages'] as const
   const files = (
     await Promise.all(
       catalogScopes.map((scope) => listJsonFiles(path.join(root, scope))),

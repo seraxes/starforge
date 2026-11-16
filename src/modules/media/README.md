@@ -17,7 +17,7 @@ Library + Settings admin UI (`admin/`, App Router shims under `/admin/media`). S
 
 **UX parity (phase 2a, done):** `/admin/media` is the daily path. The item panel edits alt, purpose, tags, private, and category. The list pages past 60. Tags are created and renamed in the library sidebar. Admins upload and browse images plus the document types Forms already allow (PDF, Word, plain text), including private and form files. Replace file reruns the sharp pipeline and regenerates derivatives. ImageFrame stays the display crop. There is no focal-point editor.
 
-**Document store (phase 2b, done):** meta, categories, and media-tags live in `sf_media_*`. `getPayload()` is not used under `src/core/media`. Migrated ids are the Payload numeric id as text, so existing `mediaId` binds and `sf_media_owners` stay valid. New rows use uuid text ids. `payload_legacy_id` is the one-shot copy key. Page tags stay on the Payload `tags` collection until phase 3. `/cms` still edits pages.
+**Document store (phase 2b, done):** meta, categories, and media-tags live in `sf_media_*`. `getPayload()` is not used under `src/core/media`. Migrated ids are the Payload numeric id as text, so existing `mediaId` binds and `sf_media_owners` stay valid. New rows use uuid text ids. `payload_legacy_id` is the one-shot copy key. Page tags are `sf_pages_tags` (phase 3b). The Payload `tags` collection is not registered. Brochure pages are edited at `/admin/pages`.
 
 ## Consumes
 
