@@ -1,10 +1,11 @@
 import type { Metadata } from 'next'
-import { setRequestLocale } from 'next-intl/server'
+import { getTranslations, setRequestLocale } from 'next-intl/server'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import React from 'react'
 
 import { RichText } from '@/components/RichText'
+import { PageByline } from '@/core/content/PageByline'
 import { buildPageMetadata } from '@/core/content/metadata'
 import { getDraftPageBySlug, requireContentLocale } from '@/core/content/pages'
 import {
@@ -81,7 +82,13 @@ export default async function DraftPreviewPage({ params }: Args) {
     notFound()
   }
 
-  const status = page._status === 'published' ? 'published' : 'draft'
+  const status =
+    page._status === 'published'
+      ? 'published'
+      : page._status === 'unpublished'
+        ? 'unpublished'
+        : 'draft'
+  const t = await getTranslations({ locale, namespace: 'Page' })
   const publicHref = withLocalePrefix(
     page.slug === 'home' ? '/' : `/${page.slug}`,
     locale,
@@ -94,13 +101,17 @@ export default async function DraftPreviewPage({ params }: Args) {
       <div className="preview-banner" role="status">
         <p>
           <strong>Draft preview</strong>
-          {status === 'draft' ? (
-            <> — this page is <em>unpublished</em>. Anonymous visitors still get 404 at{' '}
+          {status === 'published' ? null : (
+            <> — this page is <em>{status === 'unpublished' ? 'unpublished' : 'a draft'}</em>. Anonymous visitors still get 404 at{' '}
               <code>{publicHref}</code>.</>
-          ) : (
-            <> — showing the latest version (including unsaved draft changes when present). Public URL:{' '}
-              <Link href={publicHref}>{publicHref}</Link>.</>
           )}
+          {status === 'published' ? (
+            <>
+              {' '}
+              — showing the latest version (including unsaved draft changes when present). Public
+              URL: <Link href={publicHref}>{publicHref}</Link>.
+            </>
+          ) : null}
         </p>
         <p className="preview-banner-actions">
           <Link href={editHref}>Edit page</Link>
@@ -110,6 +121,11 @@ export default async function DraftPreviewPage({ params }: Args) {
       </div>
       <header className="cms-page-header">
         <h1>{page.title}</h1>
+        <PageByline
+          locale={locale}
+          page={page}
+          t={(key, values) => t(key, values)}
+        />
       </header>
       {page.body ? <RichText data={page.body} /> : <p className="lede">This page has no body yet.</p>}
     </article>

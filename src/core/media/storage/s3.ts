@@ -3,21 +3,24 @@ import 'server-only'
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3'
 
+import { encodeStorageKeyPath, mediaPublicFileUrl } from '../storage-key'
 import { isS3MediaStorageSelected, readS3MediaEnv, type S3MediaEnvConfig } from './env'
 import { assertSafeMediaKey } from './local'
 import type { MediaPutInput, MediaPutResult, MediaReadResult, MediaStorage, MediaStorageInfo } from './types'
 
 function objectUrl(config: S3MediaEnvConfig, key: string): string {
-  if (config.publicBaseUrl) return `${config.publicBaseUrl}/${key}`
-  return `${config.endpoint.replace(/\/$/, '')}/${config.bucket}/${key}`
+  const encoded = encodeStorageKeyPath(key)
+  if (config.publicBaseUrl) return `${config.publicBaseUrl.replace(/\/$/, '')}/${encoded}`
+  return `${config.endpoint.replace(/\/$/, '')}/${config.bucket}/${encoded}`
 }
 
 function appFileUrl(key: string): string {
-  return `/api/media/file/${encodeURIComponent(key)}`
+  return mediaPublicFileUrl(key)
 }
 
 /**
@@ -113,6 +116,22 @@ export function createS3MediaStorage(): MediaStorage {
           Key: safe,
         }),
       )
+    },
+
+    async exists(key: string): Promise<boolean> {
+      try {
+        const safe = assertSafeMediaKey(key)
+        const { client: s3client, config } = s3()
+        await s3client.send(
+          new HeadObjectCommand({
+            Bucket: config.bucket,
+            Key: safe,
+          }),
+        )
+        return true
+      } catch {
+        return false
+      }
     },
 
     async read(key: string): Promise<MediaReadResult | null> {

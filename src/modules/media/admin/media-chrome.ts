@@ -2,6 +2,8 @@
 
 export type MediaLibraryChrome = {
   libraryLede: string
+  folderHintLocal: string
+  folderHintS3: string
   settingsLink: string
   storeNote: string
   editHeading: string
@@ -59,6 +61,8 @@ export function buildMediaLibraryChrome(
 ): MediaLibraryChrome {
   return {
     libraryLede: t('libraryLede'),
+    folderHintLocal: t('folderHintLocal'),
+    folderHintS3: t('folderHintS3'),
     settingsLink: t('settingsLink'),
     storeNote: t('storeNote'),
     editHeading: t('editHeading'),

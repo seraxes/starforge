@@ -7,7 +7,7 @@ import 'server-only'
 
 import { and, asc, desc, eq, gte, ilike, inArray, notInArray, or, sql } from 'drizzle-orm'
 
-import { db } from '@/core/db'
+import { db, sfUsers } from '@/core/db'
 import { invalidatePublishedPage } from '@/core/content/revalidate'
 import { buildPageKey } from '@/core/i18n/content-locale-keys'
 import {
@@ -18,13 +18,16 @@ import { syncPageLocalesToFiles } from '@/core/i18n/content-locales/sync'
 import type { LocaleTextMap } from '@/core/i18n/locale-text'
 import { sanitizeRichHtml } from '@/modules/rich-editor/api.server'
 
+import { assertPageCategoryId } from './categories'
 import { sfPages, sfPagesPageTags, sfPagesTags, sfPagesVersions } from './schema'
 import { normalizePageSlug, normalizePageTagSlug } from './slug'
 import {
+  isPageListLimit,
   isPageStatus,
   type NavPageBind,
   PAGE_VERSION_KEEP,
   type PageListFilters,
+  type PageListResult,
   type PageLocaleMaps,
   type PageRecord,
   type PageStatus,
@@ -59,9 +62,33 @@ function mapPage(
     metaTitle: row.metaTitle,
     metaDescription: row.metaDescription,
     metaMediaId: row.metaMediaId,
+    categoryId: (row.categoryId || '').trim(),
     tags,
+    publishedAt: row.publishedAt,
+    createdByUserId: (row.createdByUserId || '').trim(),
+    publishedByUserId: (row.publishedByUserId || '').trim(),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
+  }
+}
+
+/** Account names for creator / publisher ids. Missing users are omitted. */
+export async function listUserDisplayNames(ids: string[]): Promise<Map<string, string>> {
+  const unique = [...new Set(ids.map((id) => id.trim()).filter(Boolean))]
+  if (unique.length === 0) return new Map()
+  try {
+    const rows = await db
+      .select({ id: sfUsers.id, name: sfUsers.name })
+      .from(sfUsers)
+      .where(inArray(sfUsers.id, unique))
+    const entries: Array<[string, string]> = []
+    for (const row of rows) {
+      const name = row.name.trim()
+      if (name) entries.push([row.id, name])
+    }
+    return new Map(entries)
+  } catch {
+    return new Map()
   }
 }
 
@@ -229,7 +256,7 @@ export async function deletePageTag(id: string): Promise<{ ok: true } | { error:
   }
 }
 
-export async function listPages(query: PageListFilters): Promise<PageRecord[]> {
+export async function listPages(query: PageListFilters): Promise<PageListResult> {
   const sort = query.sort ?? 'updated'
   const dir = query.dir === 'asc' ? 'asc' : 'desc'
   const column =
@@ -239,12 +266,20 @@ export async function listPages(query: PageListFilters): Promise<PageRecord[]> {
         ? sfPages.slug
         : sort === 'status'
           ? sfPages.status
-          : sfPages.updatedAt
+          : sort === 'created'
+            ? sfPages.createdAt
+            : sort === 'published'
+              ? sfPages.publishedAt
+              : sfPages.updatedAt
   const order = dir === 'asc' ? asc(column) : desc(column)
   const q = (query.q ?? '').trim()
-  const status = query.status === 'draft' || query.status === 'published' ? query.status : ''
+  const status = isPageStatus(query.status) ? query.status : ''
   const tagId = (query.tagId ?? '').trim()
+  const categoryId = (query.categoryId ?? '').trim()
   const days = query.updatedWithinDays
+  const limit = isPageListLimit(query.limit) ? query.limit : 20
+  const page = Math.max(1, Math.trunc(query.page ?? 1))
+  const empty: PageListResult = { rows: [], total: 0, page: 1, limit, totalPages: 1 }
   const filters = []
   if (q) {
     filters.push(
@@ -257,6 +292,7 @@ export async function listPages(query: PageListFilters): Promise<PageRecord[]> {
     )
   }
   if (status) filters.push(eq(sfPages.status, status))
+  if (categoryId) filters.push(eq(sfPages.categoryId, categoryId))
   if (typeof days === 'number' && days > 0) {
     filters.push(gte(sfPages.updatedAt, new Date(Date.now() - days * 24 * 60 * 60 * 1000)))
   }
@@ -267,16 +303,31 @@ export async function listPages(query: PageListFilters): Promise<PageRecord[]> {
         .from(sfPagesPageTags)
         .where(eq(sfPagesPageTags.tagId, tagId))
       const ids = tagged.map((row) => row.pageId)
-      if (ids.length === 0) return []
+      if (ids.length === 0) return empty
       filters.push(inArray(sfPages.id, ids))
     }
+    const where = filters.length > 0 ? and(...filters) : undefined
+    const [countRow] = await db
+      .select({ total: sql<number>`count(*)::int` })
+      .from(sfPages)
+      .where(where)
+    const total = countRow?.total ?? 0
+    const totalPages = Math.max(1, Math.ceil(total / limit))
+    const safePage = Math.min(page, totalPages)
     const rows = await db
       .select()
       .from(sfPages)
-      .where(filters.length > 0 ? and(...filters) : undefined)
+      .where(where)
       .orderBy(order, asc(sfPages.slug))
-      .limit(500)
-    return rows.map((row) => mapPage(row, []))
+      .limit(limit)
+      .offset((safePage - 1) * limit)
+    return {
+      rows: rows.map((row) => mapPage(row, [])),
+      total,
+      page: safePage,
+      limit,
+      totalPages,
+    }
   } catch (error) {
     const missing = tableMissingMessage(error)
     if (missing) throw new Error(missing)
@@ -365,6 +416,7 @@ async function snapshotPage(page: PageRecord): Promise<void> {
     slug: page.slug,
     status: page.status,
     tags: page.tags.map((tag) => tag.title).join(', '),
+    categoryId: page.categoryId,
     locales,
   })
   const keep = await db
@@ -401,6 +453,7 @@ export async function listPageVersions(pageId: string): Promise<PageVersionRecor
       slug: row.slug,
       status: asStatus(row.status),
       tags: row.tags,
+      categoryId: (row.categoryId || '').trim(),
       locales: row.locales ?? emptyVersionLocales(),
       createdAt: row.createdAt,
     }))
@@ -433,6 +486,10 @@ export async function savePage(
   if (!slug) return { error: 'Enter a slug.' }
   if (!cleaned.title) return { error: 'Enter a title.' }
   const status = cleaned.status
+  const actor = (cleaned.actorUserId ?? '').trim()
+  const category = await assertPageCategoryId(cleaned.categoryId)
+  if ('error' in category) return { error: category.error }
+  const categoryId = category.id
 
   try {
     const clash = await findRowBySlug(slug)
@@ -453,6 +510,10 @@ export async function savePage(
           metaTitle: cleaned.metaTitle,
           metaDescription: cleaned.metaDescription,
           metaMediaId: cleaned.metaMediaId,
+          categoryId,
+          createdByUserId: actor,
+          publishedAt: status === 'published' ? new Date() : null,
+          publishedByUserId: status === 'published' ? actor : '',
         })
       })
       await replacePageTags(id, cleaned.tags)
@@ -482,7 +543,14 @@ export async function savePage(
         metaTitle: cleaned.metaTitle,
         metaDescription: cleaned.metaDescription,
         metaMediaId: cleaned.metaMediaId,
+        categoryId,
         updatedAt: new Date(),
+        ...(status === 'published'
+          ? {
+              publishedAt: new Date(),
+              publishedByUserId: actor || previous.publishedByUserId,
+            }
+          : {}),
       })
       .where(eq(sfPages.id, existingId))
     await replacePageTags(existingId, cleaned.tags)
@@ -521,6 +589,7 @@ export async function deletePage(id: string): Promise<{ ok: true; slug: string }
 export async function restorePageVersion(
   pageId: string,
   versionId: string,
+  actorUserId?: string,
 ): Promise<{ page: PageRecord } | { error: string }> {
   const page = pageId.trim()
   const version = versionId.trim()
@@ -543,10 +612,12 @@ export async function restorePageVersion(
       metaDescription: row.metaDescription,
       metaMediaId: row.metaMediaId,
       tags: row.tags,
+      categoryId: (row.categoryId || '').trim(),
       titleLocales: locales.title,
       bodyLocales: locales.body,
       metaTitleLocales: locales.metaTitle,
       metaDescriptionLocales: locales.metaDescription,
+      actorUserId,
     })
   } catch (error) {
     const missing = tableMissingMessage(error)

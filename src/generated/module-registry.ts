@@ -95,7 +95,7 @@ export const ALLOWLISTED_PRODUCT_PLATFORM_META: ModuleCatalogItem[] = [
   { id: "product:pwa", kind: "product", label: "PWA", description: "Progressive Web App — Web App Manifest + service worker (Serwist). Opt-in installability; reuses Site Chrome name and Page Settings icons.", required: false, defaultEnabled: false, installed: true as const, navViews: [{"key":"settings","label":"PWA settings","href":"/admin/pwa"},{"key":"admin","label":"PWA","href":"/admin/pwa"}] },
   { id: "product:search", kind: "product", label: "Search", description: "Public /search over published Payload pages (title / slug / meta). Search particle for layouts. No Algolia — Payload/Postgres contains.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"search","label":"Search","href":"/search"}] },
   { id: "product:media", kind: "product", label: "Media library", description: "Media library on sf_media_*: sharp WebP pipeline, MediaStorage (local or S3), media-tags, member upload ledger, and MediaAnalysisPort hooks. Required — Logo/Styles/Forms bind by mediaId.", required: true, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Media library","href":"/admin/media"},{"key":"settings","label":"Media settings","href":"/admin/media/settings"}] },
-  { id: "product:pages", kind: "product", label: "Pages", description: "Brochure pages with draft and publish, TipTap body, SEO, and page tags. Public reads go through PageReadsPort.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Pages","href":"/admin/pages"}] }
+  { id: "product:pages", kind: "product", label: "Pages", description: "Brochure pages with draft, published, and unpublished, created and published dates, creator and publisher, TipTap body, SEO, page categories, and page tags. Public reads go through PageReadsPort.", required: false, defaultEnabled: true, installed: true as const, navViews: [{"key":"admin","label":"Pages","href":"/admin/pages"},{"key":"categories","label":"Categories","href":"/admin/pages/categories"}] }
 ]
 
 export type AllowlistedParticleMeta = {
@@ -363,7 +363,7 @@ export const adminNavContributions: AdminNavContribution[] = [
   { moduleId: "product:redirects", id: "redirects", label: "Redirects", order: 50, links: [{ label: "Redirects", href: "/admin/redirects", order: 10, area: "redirects", group: "redirects" }] },
   { moduleId: "product:pwa", id: "pwa", label: "PWA", order: 72, href: "/admin/pwa", links: [{ label: "Settings", href: "/admin/pwa", order: 10, area: "pwa", group: "pwa" }] },
   { moduleId: "product:media", id: "media", label: "Media", order: 60, href: "/admin/media", expandable: true, defaultOpen: true, links: [{ label: "Library", href: "/admin/media", order: 10, exact: true, area: "media", group: "media" }, { label: "Settings", href: "/admin/media/settings", order: 20, area: "media", group: "media" }] },
-  { moduleId: "product:pages", id: "pages", label: "Pages", order: 44, href: "/admin/pages", links: [{ label: "Pages", href: "/admin/pages", order: 10, exact: true, area: "pages", group: "pages" }] }
+  { moduleId: "product:pages", id: "pages", label: "Pages", order: 44, href: "/admin/pages", links: [{ label: "Pages", href: "/admin/pages", order: 10, exact: true, area: "pages", group: "pages" }, { label: "Categories", href: "/admin/pages/categories", order: 20, area: "pages", group: "pages" }] }
 ]
 
 export type AdminDashboardContribution = {
@@ -657,6 +657,12 @@ export const adminRouteLoaders: AdminRouteLoader[] = [
     moduleId: "product:pages",
     path: "pages",
     pageImportPath: "@/modules/pages/admin/PagesListPage",
+    pageExportName: "default",
+  },
+  {
+    moduleId: "product:pages",
+    path: "pages/categories",
+    pageImportPath: "@/modules/pages/admin/PagesCategoriesPage",
     pageExportName: "default",
   },
   {

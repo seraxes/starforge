@@ -40,9 +40,30 @@ function CopyDiskIcon() {
 }
 
 /**
+ * Label row for a multiline localized field (textarea, rich editor, code).
+ * The language menu sits at the top right. Single-line fields keep the menu
+ * on the input row via {@link LocaleInput}.
+ */
+export function LocaleFieldLabel({
+  label,
+  control,
+}: {
+  label: React.ReactNode
+  control?: React.ReactNode
+}) {
+  if (!control) return <span>{label}</span>
+  return (
+    <span className="sf-locale-field-head">
+      <span>{label}</span>
+      {control}
+    </span>
+  )
+}
+
+/**
  * One text field. When Localization has more than one public locale, a language
- * menu sticks to the end of the input and a Copy-from menu fills the current
- * language from another. With a single locale this is an ordinary field.
+ * menu and Copy-from control sit on the input row for a single line, and on the
+ * label’s top right for a textarea. With a single locale this is an ordinary field.
  */
 export function LocaleInput({
   locales,
@@ -76,24 +97,30 @@ export function LocaleInput({
     onBlur,
   }
 
+  const languageControl = multilang ? (
+    <LocaleLanguageControl
+      locales={locales}
+      active={code}
+      label={label}
+      onActiveChange={setActive}
+      onCopyFrom={(fromCode) => onChange(code, values[fromCode] ?? '')}
+    />
+  ) : null
+
   return (
     <label className="settings-field">
-      <span>{label}</span>
+      {multiline ? (
+        <LocaleFieldLabel label={label} control={languageControl} />
+      ) : (
+        <span>{label}</span>
+      )}
       <span className={`sf-locale-input${multiline ? ' sf-locale-input-multiline' : ''}`}>
         {multiline ? (
           <textarea rows={rows} {...controlProps} />
         ) : (
           <input type="text" {...controlProps} />
         )}
-        {multilang ? (
-          <LocaleLanguageControl
-            locales={locales}
-            active={code}
-            label={label}
-            onActiveChange={setActive}
-            onCopyFrom={(fromCode) => onChange(code, values[fromCode] ?? '')}
-          />
-        ) : null}
+        {multiline ? null : languageControl}
       </span>
     </label>
   )

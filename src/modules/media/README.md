@@ -11,7 +11,7 @@ Required Media library pack (design-module-boundary **M5**).
 
 ## Owns
 
-The media document store: asset meta (mime, alt, purpose, folder, private, urls/paths, sizes JSON), nested categories, and media-tags, in pack Drizzle tables (`sf_media_*`). Blobs go through the MediaStorage port (`src/core/media/storage`), local disk or S3. Derivatives are the sharp pipeline (thumbnail / card / large).
+The media document store: asset meta (mime, alt, purpose, folder, private, urls/paths, sizes JSON), nested categories, and media-tags, in pack Drizzle tables (`sf_media_*`). Blobs go through the MediaStorage port (`src/core/media/storage`), local disk or S3. Object keys follow the category slug path on both (`logos/events/photo.webp`). Derivatives are the sharp pipeline (thumbnail / card / large) under `_derivatives` in that prefix. With local storage, files dropped into those folders are imported when an admin opens the library or the picker.
 
 Library + Settings admin UI (`admin/`, App Router shims under `/admin/media`). Shared bind contract: bind **`mediaId`** only — **MediaPicker** / **MemberMediaPicker** (`sf_media_owners`); no forked library UI. Pipeline rules in `sf_media_settings` (Media → Settings).
 

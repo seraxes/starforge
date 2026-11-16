@@ -230,21 +230,23 @@ export async function migratePayloadPages(client: Client): Promise<PayloadPagesM
           continue
         }
         pageId = crypto.randomUUID()
+        const status = asStatus(page.status)
         await client.query(
           `INSERT INTO sf_pages (
              id, slug, status, title, body, meta_title, meta_description, meta_media_id,
-             payload_legacy_id, created_at, updated_at
-           ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+             payload_legacy_id, published_at, created_at, updated_at
+           ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
           [
             pageId,
             slug,
-            asStatus(page.status),
+            status,
             title,
             fallback.body,
             fallback.metaTitle.slice(0, 300),
             fallback.metaDescription.slice(0, 2000),
             asText(page.meta_media_id).trim().slice(0, 120),
             page.id,
+            status === 'published' ? (page.updated_at ?? page.created_at) : null,
             page.created_at,
             page.updated_at,
           ],

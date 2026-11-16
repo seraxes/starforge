@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useActionState } from 'react'
+import React, { useActionState, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { useNotifySavedOnOk } from '@/app/(frontend)/admin/admin-toast'
@@ -25,37 +25,56 @@ type Chrome = {
   tagAdd: string
   tagRename: string
   tagDelete: string
+  tagCancel: string
   tagConfirmDelete: string
   tagEmpty: string
 }
 
 const initial: PagesAdminActionState = {}
 
-function TagRowForm({
+function TagEditForm({
   tag,
   chrome,
+  onClose,
 }: {
   tag: TagRow
   chrome: Chrome
+  onClose: () => void
 }) {
   const router = useRouter()
   const [renameState, renameAction, renamePending] = useActionState(renamePageTagAction, initial)
   const [deleteState, deleteAction, deletePending] = useActionState(deletePageTagAction, initial)
   useNotifySavedOnOk(renameState, { successMessage: renameState.message })
   useNotifySavedOnOk(deleteState, { successMessage: deleteState.message })
-  React.useEffect(() => {
-    if (renameState.ok || deleteState.deleted) router.refresh()
+  const onCloseRef = React.useRef(onClose)
+  onCloseRef.current = onClose
+
+  useEffect(() => {
+    if (!renameState.ok && !deleteState.deleted) return
+    onCloseRef.current()
+    router.refresh()
   }, [renameState.ok, deleteState.deleted, router])
 
+  const busy = renamePending || deletePending
+
   return (
-    <div className="admin-inline-actions">
-      <form action={renameAction} className="admin-inline-actions">
+    <div className="sf-media-tag-create">
+      <form action={renameAction} className="sf-media-tag-create">
         <input type="hidden" name="id" value={tag.id} />
         <label className="settings-field">
           <span>{chrome.tagTitle}</span>
-          <input type="text" name="title" defaultValue={tag.title} maxLength={80} required />
+          <input
+            type="text"
+            name="title"
+            defaultValue={tag.title}
+            maxLength={80}
+            required
+            disabled={busy}
+            autoComplete="off"
+            autoFocus
+          />
         </label>
-        <button className="gantry-toolbar-btn" type="submit" disabled={renamePending}>
+        <button className="gantry-toolbar-btn" type="submit" disabled={busy}>
           {chrome.tagRename}
         </button>
       </form>
@@ -66,11 +85,19 @@ function TagRowForm({
         }}
       >
         <input type="hidden" name="id" value={tag.id} />
-        <button className="gantry-toolbar-btn" type="submit" disabled={deletePending}>
+        <button className="gantry-toolbar-btn" type="submit" disabled={busy}>
           {chrome.tagDelete}
           {tag.pageCount > 0 ? ` (${tag.pageCount})` : ''}
         </button>
       </form>
+      <button
+        type="button"
+        className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+        disabled={busy}
+        onClick={onClose}
+      >
+        {chrome.tagCancel}
+      </button>
       {renameState.error ? (
         <p className="admin-inline-error" role="alert">
           {renameState.error}
@@ -88,10 +115,16 @@ function TagRowForm({
 export function PagesTagsPanel({ tags, chrome }: { tags: TagRow[]; chrome: Chrome }) {
   const router = useRouter()
   const [state, action, pending] = useActionState(createPageTagAction, initial)
+  const [editingId, setEditingId] = useState<string | null>(null)
   useNotifySavedOnOk(state, { successMessage: state.message })
-  React.useEffect(() => {
-    if (state.ok) router.refresh()
+  useEffect(() => {
+    if (state.ok) {
+      setEditingId(null)
+      router.refresh()
+    }
   }, [state.ok, router])
+
+  const editing = editingId ? tags.find((tag) => tag.id === editingId) : null
 
   return (
     <section className="page-settings-panel">
@@ -100,10 +133,10 @@ export function PagesTagsPanel({ tags, chrome }: { tags: TagRow[]; chrome: Chrom
       </div>
       <div className="page-settings-panel-body">
         <p className="settings-hint">{chrome.tagsLede}</p>
-        <form action={action} className="admin-inline-actions">
+        <form action={action} className="sf-media-tag-create">
           <label className="settings-field">
             <span>{chrome.tagTitle}</span>
-            <input type="text" name="title" maxLength={80} required />
+            <input type="text" name="title" maxLength={80} required disabled={pending} />
           </label>
           <button className="gantry-toolbar-btn" type="submit" disabled={pending}>
             {chrome.tagAdd}
@@ -117,14 +150,37 @@ export function PagesTagsPanel({ tags, chrome }: { tags: TagRow[]; chrome: Chrom
         {tags.length === 0 ? (
           <p className="settings-hint">{chrome.tagEmpty}</p>
         ) : (
-          tags.map((tag) => (
-            <TagRowForm
-              key={`${tag.id}-${tag.title}`}
-              tag={tag}
-              chrome={chrome}
-            />
-          ))
+          <div className="sf-media-library-chips" role="list">
+            {tags.map((tag) => {
+              const active = editingId === tag.id
+              return (
+                <button
+                  key={tag.id}
+                  type="button"
+                  role="listitem"
+                  className={`sf-media-chip${active ? ' is-active' : ''}`}
+                  aria-pressed={active}
+                  title={
+                    tag.pageCount > 0
+                      ? `${tag.title} (${tag.pageCount})`
+                      : tag.title
+                  }
+                  onClick={() => setEditingId(active ? null : tag.id)}
+                >
+                  {tag.title}
+                </button>
+              )
+            })}
+          </div>
         )}
+        {editing ? (
+          <TagEditForm
+            key={editing.id}
+            tag={editing}
+            chrome={chrome}
+            onClose={() => setEditingId(null)}
+          />
+        ) : null}
       </div>
     </section>
   )

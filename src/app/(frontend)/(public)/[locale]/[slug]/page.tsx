@@ -1,9 +1,10 @@
 import type { Metadata } from 'next'
-import { setRequestLocale } from 'next-intl/server'
+import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import React from 'react'
 
 import { RichText } from '@/components/RichText'
+import { PageByline } from '@/core/content/PageByline'
 import { buildPageMetadata } from '@/core/content/metadata'
 import { getPublishedPageBySlug, requireContentLocale } from '@/core/content/pages'
 import { isValidLocaleCode } from '@/core/i18n'
@@ -67,11 +68,17 @@ export default async function PublicCmsPage({ params }: Args) {
   const settings = await getSiteSettings()
   const overrides = findNavOverridesForPath(settings.primaryNav, `/${decodedSlug}`)
   const heading = overrides?.pageHeading?.trim() || page.title
+  const t = await getTranslations({ locale, namespace: 'Page' })
 
   return (
     <article className="cms-page">
       <header className="cms-page-header">
         <h1>{heading}</h1>
+        <PageByline
+          locale={locale}
+          page={page}
+          t={(key, values) => t(key, values)}
+        />
       </header>
       {page.body ? <RichText data={page.body} /> : <p className="lede">This page has no body yet.</p>}
     </article>

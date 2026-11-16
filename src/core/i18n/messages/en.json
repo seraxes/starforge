@@ -24,5 +24,11 @@
     "en": "English",
     "hu": "Magyar",
     "switcherLabel": "Language"
+  },
+  "Page": {
+    "createdOn": "Created {date}",
+    "createdBy": "Created {date} by {name}",
+    "publishedOn": "Published {date}",
+    "publishedBy": "Published {date} by {name}"
   }
 }

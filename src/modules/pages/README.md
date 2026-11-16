@@ -4,7 +4,7 @@ Editorial pages for the public site. Not Core. The content manager is this pack.
 
 ## Owns
 
-Brochure pages, drafts, the last 20 version snapshots, `/admin/pages`, and page tags (`sf_pages`, `sf_pages_tags`, `sf_pages_page_tags`, `sf_pages_versions`). Slug is shared across locales, including `home`. Title, body, and SEO copy use LocaleInput and `data/content-locales/{locale}/pages/{id}.json`. The default-locale scalars stay on the row. Body is TipTap HTML.
+Brochure pages, drafts, the last 20 version snapshots, `/admin/pages`, page categories, and page tags (`sf_pages`, `sf_pages_categories`, `sf_pages_tags`, `sf_pages_page_tags`, `sf_pages_versions`). Status is `draft`, `published`, or `unpublished`. Only `published` is public. Each page stores `created_at`, `published_at` (stamped on publish, kept after unpublish), `created_by_user_id`, and `published_by_user_id` (plain `sf_users` ids, no cross-schema FK). Names resolve at read time. One category per page (`category_id`). Tags stay many-to-many. Slug is shared across locales, including `home`. Title, body, and SEO copy use LocaleInput and `data/content-locales/{locale}/pages/{id}.json`. The default-locale scalars stay on the row. Body is TipTap HTML.
 
 ## Consumes
 
@@ -24,4 +24,4 @@ Binds store the text page id (uuid). `npm run db:migrate` rewrites stored numeri
 
 ## Shipped
 
-List (status, tag, updated filters), tag add/rename/delete, create, edit, delete, save draft, publish, and version restore on `/admin/pages`. Preview links to `/{locale}/preview/{slug}` and back to `/admin/pages/{id}`.
+List (status, category, tag, updated filters; 10/20/50 per page; created, published, creator, publisher columns), category column, sticky tags side panel, `/admin/pages/categories` (add / edit / delete), tag add/rename/delete, create, edit, delete, save draft, publish, unpublish, and version restore on `/admin/pages`. Preview links to `/{locale}/preview/{slug}` and back to `/admin/pages/{id}`. Public pages show the created and published dates with creator and publisher names.

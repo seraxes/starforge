@@ -11,12 +11,18 @@ import {
   type MediaWriteFile,
 } from './document-store'
 import { readImageSize, renderMediaDerivatives, sizesFromStored } from './derivatives'
-import { ensureLegacyCategoryRoots, getCategoryBySlug, resolveFolderForCategory } from './category-store'
+import {
+  ensureLegacyCategoryRoots,
+  getCategoryBySlug,
+  resolveFolderForCategory,
+  storagePrefixForCategory,
+} from './category-store'
 import { applyMediaPipelineRules } from './apply-pipeline'
 import { normalizeMediaFolder, normalizeMediaPurpose } from './pipeline'
 import { toResolvedMedia, type ResolvedMedia } from './resolve'
 import { getMediaPipelineRules } from './settings-store'
 import { getMediaStorage } from './storage'
+import { derivativeStorageKey, joinStorageKey } from './storage-key'
 
 export type IngestImageInput = {
   file: File
@@ -39,6 +45,8 @@ export type IngestImageInput = {
 
 export type IngestImageResult = {
   id: string
+  /** Storage key of the original (`logos/photo.webp`). */
+  path: string
   media: ResolvedMedia | null
 }
 
@@ -53,13 +61,15 @@ async function storeProcessedFile(input: {
   filename: string
   purpose: string
   visibility: 'public' | 'private'
+  /** Category slug path (`logos/events`). Derivatives go under `_derivatives`. */
+  keyPrefix: string
 }): Promise<MediaWriteFile> {
   const rules = await getMediaPipelineRules()
   const storage = getMediaStorage()
   const reserved = new Set<string>()
   const filename = await claimMediaKey(input.filename, reserved)
   const original = await storage.put({
-    key: filename,
+    key: joinStorageKey(input.keyPrefix, filename),
     body: input.buffer,
     mimeType: input.mimeType,
     visibility: input.visibility,
@@ -73,9 +83,9 @@ async function storeProcessedFile(input: {
   })
   const storedSizes = []
   for (const derivative of rendered) {
-    const key = await claimMediaKey(derivative.filename, reserved)
+    const derivName = await claimMediaKey(derivative.filename, reserved)
     const put = await storage.put({
-      key,
+      key: derivativeStorageKey(input.keyPrefix, derivName),
       body: derivative.buffer,
       mimeType: derivative.mimeType,
       visibility: input.visibility,
@@ -84,7 +94,7 @@ async function storeProcessedFile(input: {
       name: derivative.name,
       url: put.url,
       path: put.key,
-      filename: put.key,
+      filename: derivName,
       width: derivative.width,
       height: derivative.height,
       mimeType: derivative.mimeType,
@@ -172,6 +182,7 @@ export async function ingestImageUpload(input: IngestImageInput): Promise<Ingest
     mimeType: processed.mimetype,
     filename: name,
     purpose,
+    keyPrefix: await storagePrefixForCategory(categoryId),
     visibility: input.formAttachment ? 'private' : 'public',
   })
 
@@ -184,7 +195,11 @@ export async function ingestImageUpload(input: IngestImageInput): Promise<Ingest
     tagIds: tagRaw ? [tagRaw] : [],
     file: stored,
   })
-  return { id: doc.id, media: toResolvedMedia(doc, { size: 'thumbnail', preferWebp: true }) }
+  return {
+    id: doc.id,
+    path: doc.path || stored.path,
+    media: toResolvedMedia(doc, { size: 'thumbnail', preferWebp: true }),
+  }
 }
 
 export type ReplaceMediaFileInput = {
@@ -229,6 +244,7 @@ export async function replaceMediaFile(input: ReplaceMediaFileInput): Promise<In
     mimeType: processed.mimetype,
     filename: name,
     purpose,
+    keyPrefix: await storagePrefixForCategory(existing.categoryId),
     visibility: existing.private || existing.folder === 'forms' ? 'private' : 'public',
   })
   const doc = await replaceMediaAssetFile(id, stored)
@@ -247,6 +263,7 @@ export async function replaceMediaFile(input: ReplaceMediaFileInput): Promise<In
 
   return {
     id: doc.id,
+    path: doc.path || stored.path,
     media: toResolvedMedia(doc, { size: 'thumbnail', preferWebp: true }),
   }
 }

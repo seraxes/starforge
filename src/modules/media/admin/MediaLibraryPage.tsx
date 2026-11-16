@@ -13,6 +13,7 @@ import {
 import { MEDIA_LIBRARY_PAGE_SIZE } from '@/core/media/library-files'
 import { listMedia, listMediaTagOptions } from '@/core/media/resolve'
 import { loadMediaPipelineRules } from '@/core/media/settings-store'
+import { syncMediaCategoryFolders } from '@/core/media/place-asset'
 import { getMediaStorageInfo } from '@/core/media/storage'
 
 import { MediaAdminNav } from './media-admin-nav'
@@ -76,6 +77,12 @@ export default async function MediaLibraryPage({ searchParams }: { searchParams:
   let listError: string | null = null
   const tagOptions = await listMediaTagOptions()
 
+  try {
+    await syncMediaCategoryFolders()
+  } catch {
+    // The list still loads. A later open files anything this pass missed.
+  }
+
   let categoryTree: Awaited<ReturnType<typeof listMediaCategoryTree>> = []
   try {
     await ensureLegacyCategoryRoots()
@@ -132,6 +139,9 @@ export default async function MediaLibraryPage({ searchParams }: { searchParams:
       <h2>Media library</h2>
       <p className="lede admin-lede">
         {chrome.libraryLede} <Link href="/admin/media/settings">{chrome.settingsLink}</Link>.
+      </p>
+      <p className="layout-muted">
+        {storage.kind === 'local' ? chrome.folderHintLocal : chrome.folderHintS3}
       </p>
       {listError ? (
         <p className="form-error" role="alert">

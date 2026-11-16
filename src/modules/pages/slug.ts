@@ -16,3 +16,8 @@ export function normalizePageSlug(raw: string): string {
 export function normalizePageTagSlug(raw: string): string {
   return normalizePageSlug(raw === 'home' ? 'home-tag' : raw)
 }
+
+/** Category slug from a display title or typed slug. Empty when nothing usable remains. */
+export function normalizePageCategorySlug(raw: string): string {
+  return normalizePageSlug(raw === 'home' ? 'home-category' : raw)
+}

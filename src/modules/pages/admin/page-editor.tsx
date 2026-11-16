@@ -6,7 +6,11 @@ import { useRouter } from 'next/navigation'
 
 import { useNotifySavedOnOk } from '@/app/(frontend)/admin/admin-toast'
 import type { ContentLocaleOption } from '@/core/i18n/locale-text'
-import { LocaleInput, LocaleLanguageControl } from '@/core/localization/LocaleInput'
+import {
+  LocaleFieldLabel,
+  LocaleInput,
+  LocaleLanguageControl,
+} from '@/core/localization/LocaleInput'
 import { MediaPicker } from '@/modules/media/api'
 import { RichEditor } from '@/modules/rich-editor/api'
 
@@ -16,22 +20,30 @@ import {
   savePageAction,
   type PagesAdminActionState,
 } from '../actions'
+import type { PageStatus } from '../types'
 
 type PageShape = {
   id: string
   slug: string
-  status: 'draft' | 'published'
+  status: PageStatus
+  createdAt: string
+  publishedAt: string
+  creatorName: string
+  publisherName: string
   title: string
   body: string
   metaTitle: string
   metaDescription: string
   metaMediaId: string
   tags: string
+  categoryId: string
   titleLocales: Record<string, string>
   bodyLocales: Record<string, string>
   metaTitleLocales: Record<string, string>
   metaDescriptionLocales: Record<string, string>
 }
+
+type CategoryOption = { id: string; title: string }
 
 type Chrome = {
   tabContent: string
@@ -41,6 +53,10 @@ type Chrome = {
   slugHint: string
   fieldBody: string
   bodyHint: string
+  fieldCategory: string
+  categoryHint: string
+  categoryNone: string
+  manageCategories: string
   fieldTags: string
   tagsHint: string
   fieldMetaTitle: string
@@ -50,6 +66,7 @@ type Chrome = {
   fieldOg: string
   ogHint: string
   saveDraft: string
+  unpublish: string
   publish: string
   preview: string
   viewPublic: string
@@ -57,6 +74,18 @@ type Chrome = {
   confirmDelete: string
   savedDraft: string
   savedPublished: string
+  savedUnpublished: string
+  publishingHeading: string
+  fieldStatus: string
+  fieldCreated: string
+  fieldPublished: string
+  fieldCreator: string
+  fieldPublisher: string
+  notPublished: string
+  metaUnknown: string
+  statusDraft: string
+  statusPublished: string
+  statusUnpublished: string
   localeFiles: string
   versionsHeading: string
   versionsHint: string
@@ -72,13 +101,32 @@ function Actions({
   formId,
   pending,
   chrome,
+  previewHref,
+  viewPublicHref,
+  showUnpublish,
+  leading,
 }: {
   formId: string
   pending: boolean
   chrome: Chrome
+  previewHref?: string
+  viewPublicHref?: string
+  showUnpublish?: boolean
+  leading?: React.ReactNode
 }) {
   return (
-    <div className="page-settings-actions">
+    <div className="page-settings-actions sf-page-editor-actions">
+      {leading}
+      {previewHref ? (
+        <Link className="gantry-toolbar-btn" href={previewHref}>
+          {chrome.preview}
+        </Link>
+      ) : null}
+      {viewPublicHref ? (
+        <Link className="gantry-toolbar-btn" href={viewPublicHref}>
+          {chrome.viewPublic}
+        </Link>
+      ) : null}
       <button
         className="gantry-toolbar-btn"
         type="submit"
@@ -89,6 +137,18 @@ function Actions({
       >
         {chrome.saveDraft}
       </button>
+      {showUnpublish ? (
+        <button
+          className="gantry-toolbar-btn"
+          type="submit"
+          form={formId}
+          name="intent"
+          value="unpublish"
+          disabled={pending}
+        >
+          {chrome.unpublish}
+        </button>
+      ) : null}
       <button
         className="gantry-toolbar-btn gantry-toolbar-btn-save"
         type="submit"
@@ -106,8 +166,14 @@ function Actions({
 type VersionRow = {
   id: string
   title: string
-  status: 'draft' | 'published'
+  status: PageStatus
   createdAt: string
+}
+
+function statusLabel(status: PageStatus, chrome: Chrome): string {
+  if (status === 'published') return chrome.statusPublished
+  if (status === 'unpublished') return chrome.statusUnpublished
+  return chrome.statusDraft
 }
 
 function VersionRestore({
@@ -127,28 +193,61 @@ function VersionRestore({
   }, [state.ok, router])
   const when = formatWhen(version.createdAt)
   return (
-    <form
-      action={action}
-      className="admin-inline-actions"
-      onSubmit={(event) => {
-        if (!window.confirm(chrome.versionConfirm)) event.preventDefault()
-      }}
-    >
-      <input type="hidden" name="pageId" value={pageId} />
-      <input type="hidden" name="versionId" value={version.id} />
-      <span>
-        {when} — {version.title || version.id} (
-        {version.status})
-      </span>
-      <button className="gantry-toolbar-btn" type="submit" disabled={pending}>
-        {chrome.versionRestore}
-      </button>
-      {state.error ? (
-        <p className="admin-inline-error" role="alert">
-          {state.error}
-        </p>
-      ) : null}
-    </form>
+    <section className="page-settings-panel">
+      <form
+        action={action}
+        className="page-settings-panel-body sf-page-version-card"
+        onSubmit={(event) => {
+          if (!window.confirm(chrome.versionConfirm)) event.preventDefault()
+        }}
+      >
+        <input type="hidden" name="pageId" value={pageId} />
+        <input type="hidden" name="versionId" value={version.id} />
+        <span suppressHydrationWarning>
+          {when} — {version.title || version.id} ({statusLabel(version.status, chrome)})
+        </span>
+        <button className="gantry-toolbar-btn" type="submit" disabled={pending}>
+          {chrome.versionRestore}
+        </button>
+        {state.error ? (
+          <p className="admin-inline-error" role="alert">
+            {state.error}
+          </p>
+        ) : null}
+      </form>
+    </section>
+  )
+}
+
+function PublishingMeta({ page, chrome }: { page: PageShape; chrome: Chrome }) {
+  return (
+    <div className="sf-page-editor-publishing">
+      <h3>{chrome.publishingHeading}</h3>
+      <label className="settings-field">
+        <span>{chrome.fieldStatus}</span>
+        <input readOnly value={statusLabel(page.status, chrome)} />
+      </label>
+      <label className="settings-field">
+        <span>{chrome.fieldCreated}</span>
+        <input readOnly suppressHydrationWarning value={formatWhen(page.createdAt)} />
+      </label>
+      <label className="settings-field">
+        <span>{chrome.fieldCreator}</span>
+        <input readOnly value={page.creatorName || chrome.metaUnknown} />
+      </label>
+      <label className="settings-field">
+        <span>{chrome.fieldPublished}</span>
+        <input
+          readOnly
+          suppressHydrationWarning
+          value={page.publishedAt ? formatWhen(page.publishedAt) : chrome.notPublished}
+        />
+      </label>
+      <label className="settings-field">
+        <span>{chrome.fieldPublisher}</span>
+        <input readOnly value={page.publisherName || chrome.metaUnknown} />
+      </label>
+    </div>
   )
 }
 
@@ -161,14 +260,20 @@ function formatWhen(iso: string): string {
 export function PageEditor({
   page,
   versions,
+  categories,
   locales,
   previewLocale,
+  heading,
+  lede,
   chrome,
 }: {
   page: PageShape | null
   versions: VersionRow[]
+  categories: CategoryOption[]
   locales: ContentLocaleOption[]
   previewLocale: string
+  heading: string
+  lede: string
   chrome: Chrome
 }) {
   const router = useRouter()
@@ -190,7 +295,12 @@ export function PageEditor({
   const [deleteState, deleteAction, deletePending] = useActionState(deletePageAction, initial)
 
   useNotifySavedOnOk(state, {
-    successMessage: state.message === 'Published.' ? chrome.savedPublished : chrome.savedDraft,
+    successMessage:
+      state.message === 'Published.'
+        ? chrome.savedPublished
+        : state.message === 'Unpublished.'
+          ? chrome.savedUnpublished
+          : chrome.savedDraft,
   })
   useNotifySavedOnOk(deleteState)
 
@@ -212,7 +322,18 @@ export function PageEditor({
 
   return (
     <>
-      <Actions formId={formId} pending={pending} chrome={chrome} />
+      <header className="sf-page-editor-head">
+        <h2>{heading}</h2>
+        <Actions
+          formId={formId}
+          pending={pending}
+          chrome={chrome}
+          previewHref={page ? previewHref : undefined}
+          viewPublicHref={page && page.status === 'published' ? publicHref : undefined}
+          showUnpublish={Boolean(page) && page?.status !== 'unpublished'}
+        />
+      </header>
+      <p className="lede admin-lede">{lede}</p>
       {state.error ? (
         <p className="admin-inline-error" role="alert">
           {state.error}
@@ -249,6 +370,7 @@ export function PageEditor({
         </ul>
       </nav>
 
+      <div className="sf-page-editor-cards">
       <form id={formId} action={action} className="admin-settings-mosaic">
         <input type="hidden" name="id" value={page?.id ?? ''} />
         <input type="hidden" name="title" value={title} />
@@ -297,21 +419,25 @@ export function PageEditor({
               <span className="settings-hint">{chrome.slugHint}</span>
             </label>
             <div className="settings-field">
-              <span>{chrome.fieldBody}</span>
-              {locales.length > 1 ? (
-                <LocaleLanguageControl
-                  locales={locales}
-                  active={bodyLocale || defaultCode}
-                  label={chrome.fieldBody}
-                  onActiveChange={setBodyLocale}
-                  onCopyFrom={(fromCode) => {
-                    const source =
-                      fromCode === defaultCode ? body : (bodyLocales[fromCode] ?? '')
-                    if ((bodyLocale || defaultCode) === defaultCode) setBody(source)
-                    else setBodyLocales((prev) => ({ ...prev, [bodyLocale]: source }))
-                  }}
-                />
-              ) : null}
+              <LocaleFieldLabel
+                label={chrome.fieldBody}
+                control={
+                  locales.length > 1 ? (
+                    <LocaleLanguageControl
+                      locales={locales}
+                      active={bodyLocale || defaultCode}
+                      label={chrome.fieldBody}
+                      onActiveChange={setBodyLocale}
+                      onCopyFrom={(fromCode) => {
+                        const source =
+                          fromCode === defaultCode ? body : (bodyLocales[fromCode] ?? '')
+                        if ((bodyLocale || defaultCode) === defaultCode) setBody(source)
+                        else setBodyLocales((prev) => ({ ...prev, [bodyLocale]: source }))
+                      }}
+                    />
+                  ) : null
+                }
+              />
               <RichEditor
                 value={bodyValue}
                 onChange={(html) => {
@@ -327,6 +453,21 @@ export function PageEditor({
                 <Link href="/admin/localization">{chrome.localeFiles}</Link>.
               </span>
             </div>
+            <label className="settings-field">
+              <span>{chrome.fieldCategory}</span>
+              <select name="categoryId" defaultValue={page?.categoryId ?? ''} disabled={pending}>
+                <option value="">{chrome.categoryNone}</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.title}
+                  </option>
+                ))}
+              </select>
+              <span className="settings-hint">
+                {chrome.categoryHint}{' '}
+                <Link href="/admin/pages/categories">{chrome.manageCategories}</Link>.
+              </span>
+            </label>
             <label className="settings-field">
               <span>{chrome.fieldTags}</span>
               <input
@@ -378,61 +519,70 @@ export function PageEditor({
               includeHiddenInputs={false}
               hint={chrome.ogHint}
             />
+            {page ? <PublishingMeta page={page} chrome={chrome} /> : null}
           </div>
         </section>
       </form>
 
-      <Actions formId={formId} pending={pending} chrome={chrome} />
-
       {page ? (
-        <div className="admin-inline-actions">
-          <Link href={previewHref}>{chrome.preview}</Link>
-          {page.status === 'published' ? <Link href={publicHref}>{chrome.viewPublic}</Link> : null}
-        </div>
-      ) : null}
-
-      {page ? (
-        <section className="page-settings-panel">
-          <div className="page-settings-panel-head">
+        <div className="sf-page-editor-versions-block">
+          <div className="admin-settings-mosaic-section">
             <h3>{chrome.versionsHeading}</h3>
-          </div>
-          <div className="page-settings-panel-body">
             <p className="settings-hint">{chrome.versionsHint}</p>
-            {versions.length === 0 ? (
-              <p className="settings-hint">{chrome.versionEmpty}</p>
-            ) : (
-              versions.map((version) => (
+          </div>
+          {versions.length === 0 ? (
+            <p className="settings-hint">{chrome.versionEmpty}</p>
+          ) : (
+            <div className="admin-settings-mosaic sf-page-editor-versions">
+              {versions.map((version) => (
                 <VersionRestore
                   key={version.id}
                   pageId={page.id}
                   version={version}
                   chrome={chrome}
                 />
-              ))
-            )}
-          </div>
-        </section>
+              ))}
+            </div>
+          )}
+        </div>
       ) : null}
+      </div>
 
       {page ? (
         <form
+          id="sf-page-delete"
           action={deleteAction}
-          className="page-settings-actions"
+          hidden
           onSubmit={(event) => {
             if (!window.confirm(chrome.confirmDelete)) event.preventDefault()
           }}
         >
           <input type="hidden" name="id" value={page.id} />
-          {deleteState.error ? (
-            <p className="admin-inline-error" role="alert">
-              {deleteState.error}
-            </p>
-          ) : null}
-          <button className="gantry-toolbar-btn" type="submit" disabled={deletePending}>
-            {chrome.delete}
-          </button>
         </form>
       ) : null}
+      {deleteState.error ? (
+        <p className="admin-inline-error" role="alert">
+          {deleteState.error}
+        </p>
+      ) : null}
+      <Actions
+        formId={formId}
+        pending={pending}
+        chrome={chrome}
+        showUnpublish={Boolean(page) && page?.status !== 'unpublished'}
+        leading={
+          page ? (
+            <button
+              className="gantry-toolbar-btn gantry-toolbar-btn-danger"
+              type="submit"
+              form="sf-page-delete"
+              disabled={deletePending}
+            >
+              {chrome.delete}
+            </button>
+          ) : null
+        }
+      />
     </>
   )
 }

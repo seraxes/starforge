@@ -1,5 +1,7 @@
 {
   "libraryLede": "Upload and edit files here — alt, purpose, tags, privacy, category, and file replace. Photos become WebP by default. The document store is still Payload until the store move. Pipeline rules:",
+  "folderHintLocal": "Each category is a folder under media/ (slug path, such as media/logos/events). Drop files there and refresh this page. The uploader saves into the same folders. Image sizes go in _derivatives.",
+  "folderHintS3": "Each category is a prefix in the bucket (slug path, such as logos/events/file.webp). Uploads and moves use that layout. Image sizes go in _derivatives.",
   "settingsLink": "Media → Settings",
   "storeNote": "Document store is still Payload. Daily edits stay on this page.",
   "editHeading": "Edit",

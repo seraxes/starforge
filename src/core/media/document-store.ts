@@ -668,6 +668,81 @@ export async function insertTagRow(input: { title: string; slug: string }): Prom
   return { id, title: input.title, slug: input.slug }
 }
 
+export type AssetPlacementRow = {
+  id: string
+  alt: string
+  filename: string | null
+  path: string | null
+  url: string | null
+  mimeType: string | null
+  folder: string | null
+  private: boolean
+  categoryId: string | null
+  sizes: MediaSizesJson | null
+}
+
+const PLACEMENT_PAGE = 500
+
+/** Every asset's storage keys, for filing blobs under category prefixes. */
+export async function listAssetPlacements(): Promise<AssetPlacementRow[]> {
+  const out: AssetPlacementRow[] = []
+  for (let offset = 0; ; offset += PLACEMENT_PAGE) {
+    const rows = await q<{
+      id: string
+      alt: string | null
+      filename: string | null
+      path: string | null
+      url: string | null
+      mime_type: string | null
+      folder: string | null
+      private: boolean | null
+      category_id: string | null
+      sizes: unknown
+    }>(sql`
+      SELECT id, alt, filename, path, url, mime_type, folder, private, category_id, sizes
+      FROM sf_media_assets
+      ORDER BY created_at ASC, id ASC
+      LIMIT ${PLACEMENT_PAGE} OFFSET ${offset}
+    `)
+    for (const row of rows) {
+      out.push({
+        id: String(row.id),
+        alt: row.alt?.trim() || '',
+        filename: row.filename,
+        path: row.path,
+        url: row.url,
+        mimeType: row.mime_type,
+        folder: row.folder,
+        private: row.private === true,
+        categoryId: row.category_id,
+        sizes: asSizes(row.sizes),
+      })
+    }
+    if (rows.length < PLACEMENT_PAGE) break
+  }
+  return out
+}
+
+/** Point an asset at keys after a category move. Does not change alt or tags. */
+export async function updateMediaAssetLocations(input: {
+  id: string
+  path: string
+  url: string
+  filename: string
+  sizes: MediaSizesJson | null
+}): Promise<void> {
+  const sizes = input.sizes ? JSON.stringify(input.sizes) : null
+  await q(sql`
+    UPDATE sf_media_assets
+    SET path = ${input.path},
+        url = ${input.url},
+        filename = ${input.filename},
+        sizes = ${sizes}::jsonb,
+        updated_at = now()
+    WHERE id = ${input.id}
+  `)
+}
+
 export async function renameTagRow(id: string, title: string): Promise<boolean> {
   const rows = await q<{ id: string }>(sql`
     UPDATE sf_media_tags

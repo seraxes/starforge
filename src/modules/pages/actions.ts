@@ -5,6 +5,11 @@ import { recordCurrentAdminActivity } from '@/core/audit'
 
 import { requirePagesEditor } from './access'
 import {
+  createPageCategory,
+  deletePageCategory,
+  updatePageCategory,
+} from './categories'
+import {
   createPageTag,
   deletePage,
   deletePageTag,
@@ -34,33 +39,40 @@ export async function savePageAction(
   if ('error' in gate) return { error: gate.error }
 
   const intent = String(formData.get('intent') ?? 'draft')
-  const status = intent === 'publish' ? 'published' : 'draft'
+  const status =
+    intent === 'publish' ? 'published' : intent === 'unpublish' ? 'unpublished' : 'draft'
   if (!isPageStatus(status)) return { error: 'Unknown save action.' }
 
   const saved = await savePage({
     id: String(formData.get('id') ?? ''),
     slug: String(formData.get('slug') ?? ''),
     status,
+    actorUserId: gate.userId,
     title: String(formData.get('title') ?? ''),
     body: String(formData.get('body') ?? ''),
     metaTitle: String(formData.get('metaTitle') ?? ''),
     metaDescription: String(formData.get('metaDescription') ?? ''),
     metaMediaId: String(formData.get('metaMediaId') ?? ''),
     tags: String(formData.get('tags') ?? ''),
+    categoryId: String(formData.get('categoryId') ?? ''),
     titleLocales: localeMap(formData, 'titleLocales'),
     bodyLocales: localeMap(formData, 'bodyLocales'),
     metaTitleLocales: localeMap(formData, 'metaTitleLocales'),
     metaDescriptionLocales: localeMap(formData, 'metaDescriptionLocales'),
   })
   if ('error' in saved) return { error: saved.error }
-  await recordCurrentAdminActivity(status === 'published' ? 'page.publish' : 'page.save', {
-    type: 'page',
-    id: saved.page.id,
-  })
+  await recordCurrentAdminActivity(
+    status === 'published' ? 'page.publish' : status === 'unpublished' ? 'page.unpublish' : 'page.save',
+    {
+      type: 'page',
+      id: saved.page.id,
+    },
+  )
   return {
     ok: true,
     id: saved.page.id,
-    message: status === 'published' ? 'Published.' : 'Draft saved.',
+    message:
+      status === 'published' ? 'Published.' : status === 'unpublished' ? 'Unpublished.' : 'Draft saved.',
   }
 }
 
@@ -73,6 +85,7 @@ export async function restorePageVersionAction(
   const restored = await restorePageVersion(
     String(formData.get('pageId') ?? ''),
     String(formData.get('versionId') ?? ''),
+    gate.userId,
   )
   if ('error' in restored) return { error: restored.error }
   await recordCurrentAdminActivity('page.restore', {
@@ -116,6 +129,58 @@ export async function deletePageTagAction(
   const deleted = await deletePageTag(String(formData.get('id') ?? ''))
   if ('error' in deleted) return { error: deleted.error }
   return { ok: true, deleted: true, message: 'Tag deleted.' }
+}
+
+export async function createPageCategoryAction(
+  _prev: PagesAdminActionState,
+  formData: FormData,
+): Promise<PagesAdminActionState> {
+  const gate = await requirePagesEditor()
+  if ('error' in gate) return { error: gate.error }
+  const created = await createPageCategory({
+    title: String(formData.get('title') ?? ''),
+    slug: String(formData.get('slug') ?? ''),
+    description: String(formData.get('description') ?? ''),
+    sortOrder: formData.get('sortOrder'),
+  })
+  if ('error' in created) return { error: created.error }
+  return {
+    ok: true,
+    id: created.category.id,
+    message: `Category “${created.category.title}” created.`,
+  }
+}
+
+export async function updatePageCategoryAction(
+  _prev: PagesAdminActionState,
+  formData: FormData,
+): Promise<PagesAdminActionState> {
+  const gate = await requirePagesEditor()
+  if ('error' in gate) return { error: gate.error }
+  const updated = await updatePageCategory({
+    id: String(formData.get('id') ?? ''),
+    title: String(formData.get('title') ?? ''),
+    slug: String(formData.get('slug') ?? ''),
+    description: String(formData.get('description') ?? ''),
+    sortOrder: formData.get('sortOrder'),
+  })
+  if ('error' in updated) return { error: updated.error }
+  return {
+    ok: true,
+    id: updated.category.id,
+    message: `Category “${updated.category.title}” saved.`,
+  }
+}
+
+export async function deletePageCategoryAction(
+  _prev: PagesAdminActionState,
+  formData: FormData,
+): Promise<PagesAdminActionState> {
+  const gate = await requirePagesEditor('manage')
+  if ('error' in gate) return { error: gate.error }
+  const deleted = await deletePageCategory(String(formData.get('id') ?? ''))
+  if ('error' in deleted) return { error: deleted.error }
+  return { ok: true, deleted: true, message: 'Category deleted.' }
 }
 
 export async function deletePageAction(

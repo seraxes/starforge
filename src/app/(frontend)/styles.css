@@ -902,6 +902,12 @@ button:disabled {
   margin-top: 0.5rem;
 }
 
+.cms-page-byline {
+  margin: 0.35rem 0 0;
+  color: var(--sf-muted);
+  font-size: 0.95rem;
+}
+
 .cms-richtext,
 .sf-rich-content,
 .sf-rich-html {

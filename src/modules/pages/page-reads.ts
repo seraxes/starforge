@@ -17,7 +17,7 @@ import {
 } from '@/core/i18n/content-locales/store'
 import { getLocalizationSettings } from '@/core/localization/store'
 
-import { findPageRowBySlug, listPublishedPageRows } from './store'
+import { findPageRowBySlug, listPublishedPageRows, listUserDisplayNames } from './store'
 import type { PageRecord } from './types'
 
 type LocaleFields = {
@@ -95,7 +95,19 @@ async function localizedFields(
   }
 }
 
-function toPage(page: PageRecord, fields: LocaleFields): Page {
+async function peopleFor(page: PageRecord): Promise<{ creatorName: string; publisherName: string }> {
+  const names = await listUserDisplayNames([page.createdByUserId, page.publishedByUserId])
+  return {
+    creatorName: names.get(page.createdByUserId) ?? '',
+    publisherName: names.get(page.publishedByUserId) ?? '',
+  }
+}
+
+function toPage(
+  page: PageRecord,
+  fields: LocaleFields,
+  people: { creatorName: string; publisherName: string },
+): Page {
   return {
     id: page.id,
     title: fields.title || page.slug,
@@ -113,6 +125,9 @@ function toPage(page: PageRecord, fields: LocaleFields): Page {
     },
     updatedAt: page.updatedAt.toISOString(),
     createdAt: page.createdAt.toISOString(),
+    publishedAt: page.publishedAt ? page.publishedAt.toISOString() : null,
+    creatorName: people.creatorName || null,
+    publisherName: people.publisherName || null,
     _status: page.status,
   }
 }
@@ -136,7 +151,7 @@ export function createPagesPageReads(): PageReadsPort {
           settings.localeFallback,
           new Map(),
         )
-        return toPage(page, fields)
+        return toPage(page, fields, await peopleFor(page))
       } catch (error) {
         if (missingPagesTable(error)) return null
         throw error
@@ -155,7 +170,7 @@ export function createPagesPageReads(): PageReadsPort {
           settings.localeFallback,
           new Map(),
         )
-        return toPage(page, fields)
+        return toPage(page, fields, await peopleFor(page))
       } catch (error) {
         if (missingPagesTable(error)) return null
         throw error

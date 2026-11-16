@@ -3,19 +3,24 @@ import { NextResponse } from 'next/server'
 import { isPrivateFormMedia } from '@/core/media/privacy'
 import { findStoredObjectByKey } from '@/core/media/document-store'
 import { getMediaStorage } from '@/core/media/storage'
+import { assertSafeMediaKey } from '@/core/media/storage-key'
 
 export const dynamic = 'force-dynamic'
 
-type Ctx = { params: Promise<{ filename: string }> }
+type Ctx = { params: Promise<{ key: string[] }> }
 
 /**
- * Public bytes for a media storage key (original or derivative filename).
- * Private / form files are not served here.
+ * Public bytes for a media storage key (original or derivative).
+ * Keys follow the category prefix (`logos/events/photo.webp`).
+ * Private / form files are not served here. A bare filename still resolves
+ * so older `/api/media/file/<name>` links keep working.
  */
 export async function GET(_req: Request, ctx: Ctx) {
-  const { filename } = await ctx.params
-  const key = decodeURIComponent(filename || '').trim()
-  if (!key || key.includes('/') || key.includes('\\') || key.includes('..')) {
+  const { key: parts } = await ctx.params
+  let key = ''
+  try {
+    key = assertSafeMediaKey((parts || []).join('/'))
+  } catch {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 

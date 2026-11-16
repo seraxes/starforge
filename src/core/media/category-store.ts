@@ -21,6 +21,8 @@ import {
   type CategoryRow,
 } from './document-store'
 import { normalizeMediaFolder, type MediaFolder } from './pipeline'
+import { ensureLocalMediaDir, removeLocalMediaDirIfEmpty } from './storage/local'
+import { storagePrefixFromChain } from './storage-key'
 
 export { getCategoryBySlug }
 
@@ -56,14 +58,20 @@ export async function ensureLegacyCategoryRoots(): Promise<void> {
   ]
   for (const seed of seeds) {
     const existing = await getCategoryBySlug(seed.slug)
-    if (existing) continue
-    await insertCategoryRow({
-      title: seed.title,
-      slug: seed.slug,
-      parentId: null,
-      path: seed.title,
-      depth: 0,
-    })
+    if (!existing) {
+      await insertCategoryRow({
+        title: seed.title,
+        slug: seed.slug,
+        parentId: null,
+        path: seed.title,
+        depth: 0,
+      })
+    }
+    try {
+      await ensureLocalMediaDir(seed.slug)
+    } catch {
+      // The row is enough. The next upload creates the folder for its own file.
+    }
   }
 }
 
@@ -77,6 +85,31 @@ export async function findCategoryById(id: string | number): Promise<{
 } | null> {
   const row = await getCategoryRow(String(id ?? '').trim())
   return row ? toFound(row) : null
+}
+
+/**
+ * Object-key prefix for a category: parent slugs then this slug (`logos/events`).
+ * Missing ids use `general`.
+ */
+export async function storagePrefixForCategory(
+  categoryId: string | null | undefined,
+): Promise<string> {
+  const id = String(categoryId ?? '').trim()
+  if (!id) return storagePrefixFromChain([])
+  const rows = await listCategoryRows()
+  const byId = new Map(rows.map((row) => [row.id, row]))
+  const slugs: string[] = []
+  let walk: string | null = id
+  const guard = new Set<string>()
+  while (walk && !guard.has(walk)) {
+    guard.add(walk)
+    const row = byId.get(walk)
+    if (!row) break
+    slugs.push(row.slug)
+    walk = row.parentId
+  }
+  slugs.reverse()
+  return storagePrefixFromChain(slugs)
 }
 
 /** Resolve legacy folder enum for uploads given a category id. */
@@ -143,6 +176,11 @@ export async function createMediaCategory(input: {
       path,
       depth,
     })
+    try {
+      await ensureLocalMediaDir(await storagePrefixForCategory(row.id))
+    } catch {
+      // The category row exists. The next library open creates the folder.
+    }
     return { category: toFound(row) }
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Could not create folder.' }
@@ -199,7 +237,13 @@ export async function deleteMediaCategory(input: {
     if ((await countAssetsInCategory(id)) > 0) {
       return { error: 'Folder is not empty — move or delete media first.' }
     }
+    const prefix = await storagePrefixForCategory(id)
     await deleteCategoryRow(id)
+    try {
+      await removeLocalMediaDirIfEmpty(prefix)
+    } catch {
+      // The row is gone. An empty directory can stay.
+    }
     return { ok: true }
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Could not delete folder.' }

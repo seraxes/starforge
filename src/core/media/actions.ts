@@ -26,6 +26,7 @@ import {
 } from './document-store'
 import { resolvePostedMediaEncodeFlags, getMediaEncodePolicy } from './encode-policy'
 import { ingestImageUpload, removeMediaAsset, replaceMediaFile } from './ingest'
+import { placeMediaAssetInCategory, syncMediaCategoryFolders } from './place-asset'
 import { isAdminLibraryUploadAllowed, resolveAdminLibraryMime } from './library-files'
 import {
   mediaSuggestionPatchIsEmpty,
@@ -98,6 +99,7 @@ export async function listMediaAction(input?: {
   if (denied) return { error: denied.error }
 
   try {
+    await syncMediaCategoryFolders()
     const result = await listMedia(input)
     return { result }
   } catch (err) {
@@ -364,6 +366,7 @@ export async function bulkUpdateMediaAction(
       if (!existing) continue
       if (hasCategory && folder) {
         await setMediaAssetCategory({ id, categoryId, folder })
+        await placeMediaAssetInCategory(id)
       }
       if (hasTag) await addMediaAssetTag(id, tagId)
       affected += 1
@@ -478,6 +481,7 @@ export async function applyMediaAnalysisSuggestionsAction(
       isPrivate: existing.private,
       tagIds: nextTags,
     })
+    if (categoryId !== existing.categoryId) await placeMediaAssetInCategory(id)
     revalidatePath('/admin/media')
     const media = doc
       ? toResolvedMedia(doc, { size: 'thumbnail', preferWebp: true })
@@ -494,7 +498,7 @@ export async function applyMediaAnalysisSuggestionsAction(
 
 /**
  * Single-item metadata edit (alt, purpose, category, tags, private).
- * Does not touch the file.
+ * A category change also moves the stored object under that category prefix.
  */
 export async function updateMediaDetailsAction(
   _prev: MediaActionState,
@@ -527,6 +531,7 @@ export async function updateMediaDetailsAction(
       folder = await resolveFolderForCategory(cat.id)
     }
 
+    const existing = await getMediaAsset(id)
     await updateMediaAssetDetails({
       id,
       alt,
@@ -536,6 +541,7 @@ export async function updateMediaDetailsAction(
       isPrivate,
       tagIds,
     })
+    if (!existing || categoryId !== existing.categoryId) await placeMediaAssetInCategory(id)
     return { ok: true, message: 'Saved.' }
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Could not save media.' }

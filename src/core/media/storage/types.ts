@@ -1,8 +1,9 @@
 /**
  * Media object-storage port (SF-28 / SF-128).
  *
- * Local disk is the default adapter (files under `/media`).
+ * Local disk is the default adapter (files under `/media/<category-slug>/`).
  * Spaces/S3 is selected by `STARFORGE_MEDIA_STORAGE=s3` + S3_* env.
+ * Both adapters use the same relative key: category slug path + filename.
  * Starforge writes go through this port. The Payload S3 plugin is not on the write path.
  */
 
@@ -19,7 +20,10 @@ export type MediaStorageInfo = {
 }
 
 export type MediaPutInput = {
-  /** Basename only. The adapter rejects slashes and `..`. */
+  /**
+   * Relative key (`logos/events/photo.webp`). Segments reject `..`.
+   * Derivatives use `logos/events/_derivatives/photo-thumbnail.webp`.
+   */
   key: string
   body: Buffer
   mimeType: string
@@ -50,4 +54,6 @@ export interface MediaStorage {
   delete(key: string): Promise<void>
   /** Null when the object is missing. */
   read(key: string): Promise<MediaReadResult | null>
+  /** True when the object is stored. Does not download the body. */
+  exists(key: string): Promise<boolean>
 }

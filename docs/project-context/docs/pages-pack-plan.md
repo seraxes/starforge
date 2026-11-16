@@ -10,7 +10,7 @@ Media (phase 2) is done. `src/modules/pages` writes `sf_pages_*` only. There is 
 
 ## Owns
 
-Editorial pages, drafts, version snapshots (last 20 per page), `/admin/pages`, page tags. Published slug, draft preview, search list, and sitemap summaries stay on `PageReadsPort` — the pages adapter is the only path when the pack is on. Pack off → empty reads. The admin page list Nav uses is not one of those four reads; Nav calls this pack’s public door.
+Editorial pages, drafts, version snapshots (last 20 per page), `/admin/pages`, page categories (one per page), page tags. Published slug, draft preview, search list, and sitemap summaries stay on `PageReadsPort` — the pages adapter is the only path when the pack is on. Pack off → empty reads. The admin page list Nav uses is not one of those four reads; Nav calls this pack’s public door.
 
 ## Consumes
 

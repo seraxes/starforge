@@ -8,8 +8,9 @@ export type { MediaPutInput, MediaPutResult, MediaReadResult } from './types'
 /**
  * Active media storage backend.
  *
- * - Default / local: files under `/media`, served at `/api/media/file/…`
+ * - Default / local: files under `/media/<category-slug>/`, served at `/api/media/file/…`
  * - `STARFORGE_MEDIA_STORAGE=s3`: DigitalOcean Spaces / S3 via `@aws-sdk/client-s3`
+ *   Object keys use the same category prefix as local disk.
  *
  * Document rows are `sf_media_*`. This port is the only blob write path.
  */

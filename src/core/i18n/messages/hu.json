@@ -24,5 +24,11 @@
     "en": "English",
     "hu": "Magyar",
     "switcherLabel": "Nyelv"
+  },
+  "Page": {
+    "createdOn": "Létrehozva: {date}",
+    "createdBy": "Létrehozva: {date}, {name}",
+    "publishedOn": "Közzétéve: {date}",
+    "publishedBy": "Közzétéve: {date}, {name}"
   }
 }

@@ -24,7 +24,13 @@ export type Page = {
   }
   updatedAt: string
   createdAt: string
-  _status?: 'draft' | 'published' | null
+  /** ISO time of the last publish. Null until the page has been published. */
+  publishedAt?: string | null
+  /** Account name of the creator. Null when the user id is empty or gone. */
+  creatorName?: string | null
+  /** Account name of the last publisher. */
+  publisherName?: string | null
+  _status?: 'draft' | 'published' | 'unpublished' | null
 }
 
 /** Published page fields search needs (title / slug / meta). */

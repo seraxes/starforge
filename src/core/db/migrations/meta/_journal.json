@@ -337,6 +337,20 @@
       "when": 1794042000000,
       "tag": "0047_acl_levels",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1794043000000,
+      "tag": "0049_pages_categories",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1794044000000,
+      "tag": "0050_pages_publish_meta",
+      "breakpoints": true
     }
   ]
 }

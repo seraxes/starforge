@@ -32,7 +32,7 @@ export const getPublishedPageBySlug = cache(
   async (slug: string, locale: AppLocale): Promise<Page | null> => {
     return getPublishedContentCache().getCached(
       {
-        key: ['sf', 'published-page', locale, slug],
+        key: ['sf', 'published-page', 'v2', locale, slug],
         tags: [contentCacheTags.pages, contentCacheTags.page(slug, locale)],
         revalidate: false,
       },

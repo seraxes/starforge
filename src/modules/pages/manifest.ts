@@ -10,14 +10,17 @@ export default defineStarforgeModule({
   layer: 'site',
   label: 'Pages',
   description:
-    'Brochure pages with draft and publish, TipTap body, SEO, and page tags. Public reads go through PageReadsPort.',
+    'Brochure pages with draft, published, and unpublished, created and published dates, creator and publisher, TipTap body, SEO, page categories, and page tags. Public reads go through PageReadsPort.',
   version: '0.1.0',
   defaultEnabled: true,
   requires: ['product:rich-editor', 'product:media'],
   i18n: {
     namespaces: ['product:pages'],
   },
-  navViews: [{ key: 'admin', label: 'Pages', href: '/admin/pages' }],
+  navViews: [
+    { key: 'admin', label: 'Pages', href: '/admin/pages' },
+    { key: 'categories', label: 'Categories', href: '/admin/pages/categories' },
+  ],
   doors: [{ id: 'pages-api', importPath: '@/modules/pages/api.server' }],
   admin: {
     navGroup: {
@@ -35,12 +38,24 @@ export default defineStarforgeModule({
         area: 'pages',
         exact: true,
       },
+      {
+        group: 'pages',
+        label: 'Categories',
+        href: '/admin/pages/categories',
+        order: 20,
+        area: 'pages',
+      },
     ],
     areas: [{ key: 'pages', label: 'Pages' }],
     routes: [
       {
         path: 'pages',
         pageImportPath: '@/modules/pages/admin/PagesListPage',
+        pageExportName: 'default',
+      },
+      {
+        path: 'pages/categories',
+        pageImportPath: '@/modules/pages/admin/PagesCategoriesPage',
         pageExportName: 'default',
       },
       {

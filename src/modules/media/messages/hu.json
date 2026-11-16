@@ -1,5 +1,7 @@
 {
   "libraryLede": "Itt tölthetsz fel és szerkeszthetsz fájlokat: alt, cél, címkék, privát jelölés, kategória és fájlcsere. A fotók alapból WebP-re kerülnek. A dokumentumtár még Payload, amíg a tároló át nem költözik. Pipeline szabályok:",
+  "folderHintLocal": "Minden kategória mappa a media/ alatt (slug útvonal, pl. media/logos/events). Ide teheted a fájlokat, majd frissítsd ezt az oldalt. A feltöltő is ugyanoda ír. A képméretek a _derivatives mappába kerülnek.",
+  "folderHintS3": "Minden kategória előtag a tárolóban (slug útvonal, pl. logos/events/fajl.webp). A feltöltés és az áthelyezés ezt a szerkezetet követi. A képméretek a _derivatives előtag alá kerülnek.",
   "settingsLink": "Média → Beállítások",
   "storeNote": "A dokumentumtár még Payload. A napi szerkesztés ezen az oldalon marad.",
   "editHeading": "Szerkesztés",
