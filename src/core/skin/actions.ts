@@ -82,7 +82,7 @@ async function applyDefaultSkin(skinId: string): Promise<SkinActionState> {
 }
 
 async function requireLayoutsSkinAccess(): Promise<SkinActionState | null> {
-  const session = await requireAdminArea('admin.layouts')
+  const session = await requireAdminArea('admin.layouts', 'edit')
   if (!session?.user) {
     return { error: 'Sign in with Layouts admin access to manage skins.' }
   }

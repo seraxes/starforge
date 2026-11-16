@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 
-import { requireAppAdmin } from '@/core/auth/admin'
+import { requireAdminArea } from '@/core/acl/access'
 import { buildFormSubmissionsCsv } from '@/modules/forms/csv'
 import { loadFormDefinition } from '@/modules/forms/definitions-store'
 import { listFormSubmissions } from '@/modules/forms/store'
@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic'
  * Query: definitionId (required for scoped export), ids (optional comma list), limit (default 500).
  */
 export async function GET(request: Request) {
-  const admin = await requireAppAdmin()
+  const admin = await requireAdminArea('admin.forms', 'edit')
   if (!admin?.user) {
     return NextResponse.json({ error: 'Admins only.' }, { status: 401 })
   }

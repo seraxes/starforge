@@ -32,6 +32,7 @@ import pwaManifest from './pwa/manifest'
 import profilesManifest from './profiles/manifest'
 import redirectsManifest from './redirects/manifest'
 import lexicalEditorManifest from './lexical-editor/manifest'
+import auditManifest from './audit/manifest'
 import richEditorManifest from './rich-editor/manifest'
 import searchManifest from './search/manifest'
 import searchParticleManifest from './search/particle-manifest'
@@ -59,6 +60,7 @@ export const ALL_MODULE_MANIFESTS: StarforgeModuleManifest[] = [
   liveMapParticleManifest,
   marketplaceManifest,
   redirectsManifest,
+  auditManifest,
   consentManifest,
   pwaManifest,
   searchManifest,

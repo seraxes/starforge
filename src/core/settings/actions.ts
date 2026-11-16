@@ -5,7 +5,7 @@ import { revalidatePath } from '@/core/content/defer-revalidate'
 import { moduleOnOffAudit, recordAdminAudit } from '@/core/audit'
 import { resolveModuleToggleRequires } from '@/core/modules/requires-graph'
 import { MODULE_REQUIRES } from '@/generated/module-registry'
-import { requireAppAdmin } from '@/core/auth/admin'
+import { requireAdminArea } from '@/core/acl/access'
 import { invalidateSiteChrome, invalidateSiteSettings } from '@/core/content/revalidate'
 import {
   MODULE_IDS,
@@ -132,9 +132,9 @@ export async function updateSiteSettingsAction(
   _prev: SettingsActionState,
   formData: FormData,
 ): Promise<SettingsActionState> {
-  const admin = await requireAppAdmin()
+  const admin = await requireAdminArea('admin.settings', 'manage')
   if (!admin) {
-    return { error: 'Sign in as a Starforge app admin to edit site settings.' }
+    return { error: 'Sign in with Settings manage access (Users → ACL) or as an app admin.' }
   }
 
   const current = await getSiteSettings()
@@ -202,9 +202,9 @@ export async function updateAdminUxSettingsAction(
   _prev: SettingsActionState,
   formData: FormData,
 ): Promise<SettingsActionState> {
-  const admin = await requireAppAdmin()
+  const admin = await requireAdminArea('admin.settings', 'manage')
   if (!admin) {
-    return { error: 'Sign in as a Starforge app admin to edit Admin UX settings.' }
+    return { error: 'Sign in with Settings manage access (Users → ACL) or as an app admin.' }
   }
 
   const current = await getSiteSettings()
@@ -239,9 +239,9 @@ export async function updatePerformanceSettingsAction(
   _prev: SettingsActionState,
   formData: FormData,
 ): Promise<SettingsActionState> {
-  const admin = await requireAppAdmin()
+  const admin = await requireAdminArea('admin.settings', 'manage')
   if (!admin) {
-    return { error: 'Sign in as a Starforge app admin to edit Performance settings.' }
+    return { error: 'Sign in with Settings manage access (Users → ACL) or as an app admin.' }
   }
 
   const current = await getSiteSettings()
@@ -305,9 +305,9 @@ export async function updateAuthSettingsAction(
   _prev: SettingsActionState,
   formData: FormData,
 ): Promise<SettingsActionState> {
-  const admin = await requireAppAdmin()
+  const admin = await requireAdminArea('admin.settings', 'manage')
   if (!admin) {
-    return { error: 'Sign in as a Starforge app admin to edit auth settings.' }
+    return { error: 'Sign in with Settings manage access (Users → ACL) or as an app admin.' }
   }
 
   const current = await getSiteSettings()

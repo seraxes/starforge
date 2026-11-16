@@ -1,6 +1,6 @@
 'use server'
 
-import { requireAppAdmin } from '@/core/auth/admin'
+import { requireAdminArea } from '@/core/acl/access'
 import { invalidateSiteChrome } from '@/core/content/revalidate'
 import {
   isBootstrapLocale,
@@ -71,9 +71,9 @@ export async function updateLocalizationAction(
   _prev: LocalizationActionState,
   formData: FormData,
 ): Promise<LocalizationActionState> {
-  const admin = await requireAppAdmin()
+  const admin = await requireAdminArea('admin.localization', 'edit')
   if (!admin) {
-    return { error: 'Sign in as a Starforge app admin to edit Localization.' }
+    return { error: 'Sign in with Localization access (Users → ACL) or as an app admin.' }
   }
 
   const localeCatalog = parseCatalogFromForm(formData)
@@ -146,9 +146,9 @@ export async function removeLocaleFromCatalogAction(
   _prev: LocalizationActionState,
   formData: FormData,
 ): Promise<LocalizationActionState> {
-  const admin = await requireAppAdmin()
+  const admin = await requireAdminArea('admin.localization', 'edit')
   if (!admin) {
-    return { error: 'Sign in as a Starforge app admin to edit Localization.' }
+    return { error: 'Sign in with Localization access (Users → ACL) or as an app admin.' }
   }
 
   const code = normalizeLocaleCode(String(formData.get('removeLocaleCode') ?? ''))

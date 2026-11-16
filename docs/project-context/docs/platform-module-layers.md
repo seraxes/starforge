@@ -22,7 +22,7 @@
 | **Advanced modules** | Domain products that `require` base packs | Events, Subscriptions; later Ads, Shop, Marketplace, Support, Stream, Social, Chat |
 | **Hero** | Theme + unique rules — not a module fork | **Starforge theme:** pastel orange + blue. **ASN theme:** dark, tactical, gaming, military. Plus ASN team/RP/airsoft domain, catalog fees, ASN currency, quality-check **apps** that *call* Media analysis hooks |
 
-Site packs (Consent, Redirects, Search, PWA, Lexical, Notice bar) stay optional modules. They are not Core and not a domain product.
+Site packs (Consent, Redirects, Search, PWA, Lexical, Notice bar, Audit) stay optional modules. They are not Core and not a domain product.
 
 Rows in the placement guide below that still say **Modules** mean one of: base, advanced, or site pack. Use the test in `sf-architecture.mdc` when adding a row.
 
@@ -54,6 +54,7 @@ Rows in the placement guide below that still say **Modules** mean one of: base, 
 | **Events / venues / booking** (+ AI description assist) | **Modules** | Generic venue/event + Form registration; AI assist calls **LlmProvider** port — not Hero-only |
 | **Maps / location sharing** | **Modules** | Privacy scopes + particle; uses **MapProvider** port; mobile client later |
 | **Consent** | **Modules** | Cookie/privacy banner particle |
+| **Audit log** | **Site pack** `product:audit` | Optional reader on the Core `sf_admin_audit` trail. Off until a company turns it on. Same table — do not add another. |
 | **Redirects / sitemap** | **Modules** (or thin Core SEO helpers) | Redirects CRUD + middleware; sitemap over published pages |
 | **Notifications** (in-app) | **Modules** | Bell/center when needed; persist + `RealtimePort.publish` on create; transactional email stays Mailer port |
 | **Starforge public theme** (pastel orange/blue) | **Hero** (default brand) *or* default tokens | Public site — pastel orange + blue |

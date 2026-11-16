@@ -1,11 +1,13 @@
 import 'server-only'
 
+import { eq } from 'drizzle-orm'
 import { headers } from 'next/headers'
 
 import {
   promoteSessionUserIfBootstrapAdmin,
   userIsAppAdmin,
 } from '@/core/auth/admin'
+import { db, sfUsers } from '@/core/db'
 import { getAdminSession } from '@/core/auth/admin-session'
 import { getAppSession } from '@/core/auth/session'
 
@@ -16,7 +18,8 @@ import {
   viewerAllowsGate,
 } from './decide'
 import { listGroupIdsForUser } from './members'
-import { listAllowedResourcesForGroups } from './permissions'
+import { listAdminLevelsForGroups } from './permissions'
+import { aclLevelSatisfies, highestAclLevel, type AclGrantLevel } from './levels'
 import type { AccessViewer, AclAdminResourceKey } from './types'
 
 /**
@@ -63,7 +66,7 @@ export async function getAdminAccessViewer(): Promise<AccessViewer> {
  */
 async function subscriptionAdminResources(
   userId: string | null,
-): Promise<AclAdminResourceKey[]> {
+): Promise<Array<{ key: AclAdminResourceKey; level: AclGrantLevel }>> {
   if (!userId) return []
   try {
     const { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } = await import(
@@ -80,7 +83,7 @@ async function subscriptionAdminResources(
     ) => Promise<boolean>
     const keys = door.ENTITLEMENT_KEYS as { eventsManage: string }
     if (await hasEntitlement(userId, keys.eventsManage)) {
-      return ['admin.events']
+      return [{ key: 'admin.events', level: 'manage' }]
     }
   } catch {
     /* pack missing / migrate pending */
@@ -88,21 +91,56 @@ async function subscriptionAdminResources(
   return []
 }
 
-/** Allowed matrix keys for the viewer (empty for anonymous; unused for app admins). */
+function putLevel(
+  levels: Map<AclAdminResourceKey, AclGrantLevel>,
+  key: AclAdminResourceKey,
+  level: AclGrantLevel,
+) {
+  levels.set(key, highestAclLevel([levels.get(key), level]) ?? level)
+}
+
+/** Highest grant per admin resource. Empty for anonymous. App admins do not need this map. */
+export async function listViewerAdminLevels(
+  viewer: AccessViewer,
+): Promise<Map<AclAdminResourceKey, AclGrantLevel>> {
+  if (!viewer.isRegistered) return new Map()
+  const levels =
+    viewer.groupIds.length > 0
+      ? await listAdminLevelsForGroups(viewer.groupIds)
+      : new Map<AclAdminResourceKey, AclGrantLevel>()
+  for (const grant of await subscriptionAdminResources(viewer.userId)) {
+    putLevel(levels, grant.key, grant.level)
+  }
+  if (viewer.userId && (await viewerHasPagesCmsAccess(viewer.userId))) {
+    putLevel(levels, 'admin.pages', 'manage')
+  }
+  return levels
+}
+
+/** Allowed matrix keys the viewer can at least view. */
 export async function listViewerAllowedAdminResources(
   viewer: AccessViewer,
 ): Promise<Set<AclAdminResourceKey>> {
-  if (!viewer.isRegistered) {
-    return new Set()
-  }
-  const allowed =
-    viewer.groupIds.length > 0
-      ? await listAllowedResourcesForGroups(viewer.groupIds)
-      : new Set<AclAdminResourceKey>()
-  for (const key of await subscriptionAdminResources(viewer.userId)) {
-    allowed.add(key)
+  const levels = await listViewerAdminLevels(viewer)
+  const allowed = new Set<AclAdminResourceKey>()
+  for (const [key, level] of levels) {
+    if (aclLevelSatisfies(level, 'view')) allowed.add(key)
   }
   return allowed
+}
+
+/** cms_access may edit brochure pages. Fail closed. Does not import the CMS bridge. */
+async function viewerHasPagesCmsAccess(userId: string): Promise<boolean> {
+  try {
+    const [row] = await db
+      .select({ cmsAccess: sfUsers.cmsAccess, banned: sfUsers.banned })
+      .from(sfUsers)
+      .where(eq(sfUsers.id, userId))
+      .limit(1)
+    return Boolean(row && !row.banned && row.cmsAccess)
+  } catch {
+    return false
+  }
 }
 
 /**
@@ -113,14 +151,16 @@ export async function listViewerAllowedAdminResources(
 export async function viewerMayAccessAdminResource(
   viewer: AccessViewer,
   resource: AclAdminResourceKey,
+  minLevel: AclGrantLevel = 'view',
 ): Promise<boolean> {
   if (viewer.isAppAdmin) return true
   if (!viewer.isRegistered) return false
-  const allowed = await listViewerAllowedAdminResources(viewer)
+  const levels = await listViewerAdminLevels(viewer)
   return decideAdminResourceAccess({
     isAppAdmin: false,
     isRegistered: true,
-    groupAllows: allowed.has(resource),
+    heldLevel: levels.get(resource) ?? null,
+    minLevel,
   })
 }
 
@@ -140,13 +180,16 @@ export async function viewerMayEnterAdminShell(viewer: AccessViewer): Promise<bo
  * Current session must pass the admin-area ACL for `resource`; otherwise `null`.
  * Prefer this over `requireAppAdmin` for areas listed on Users → ACL.
  */
-export async function requireAdminArea(resource: AclAdminResourceKey) {
+export async function requireAdminArea(
+  resource: AclAdminResourceKey,
+  minLevel: AclGrantLevel = 'view',
+) {
   const session = await getAdminSession()
   if (!session?.user) return null
   await promoteSessionUserIfBootstrapAdmin(session.user)
 
   const viewer = await viewerFromSessionUser(session.user)
-  if (!(await viewerMayAccessAdminResource(viewer, resource))) return null
+  if (!(await viewerMayAccessAdminResource(viewer, resource, minLevel))) return null
   return session
 }
 

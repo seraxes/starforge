@@ -5,6 +5,8 @@
  * Custom levels use `group:<groupId>` against `sf_user_groups.id`.
  */
 
+import type { AclGrantLevel } from './levels'
+
 /** Admin-area resources for the Users → ACL permission matrix. */
 export const ACL_ADMIN_RESOURCES = [
   { key: 'admin.dashboard', label: 'Dashboard' },
@@ -23,10 +25,13 @@ export const ACL_ADMIN_RESOURCES = [
   { key: 'admin.events', label: 'Events' },
   { key: 'admin.profiles', label: 'Profiles' },
   { key: 'admin.maps', label: 'TacMap' },
+  { key: 'admin.media', label: 'Media library' },
   { key: 'admin.redirects', label: 'Redirects' },
   { key: 'admin.layouts', label: 'Layouts' },
   { key: 'admin.page-settings', label: 'Page settings' },
   { key: 'admin.cms', label: 'Payload CMS' },
+  { key: 'admin.pages', label: 'Pages' },
+  { key: 'admin.audit', label: 'Audit log' },
 ] as const
 
 export type AclAdminResourceKey = (typeof ACL_ADMIN_RESOURCES)[number]['key']
@@ -75,5 +80,8 @@ export type AccessViewer = {
 export type AclPermissionRow = {
   resource: AclAdminResourceKey
   label: string
+  /** Highest useful grant. Null means the group cannot open the area. */
+  level: AclGrantLevel | null
+  /** True when `level` is view, edit, or manage. */
   allowed: boolean
 }

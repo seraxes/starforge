@@ -3,7 +3,9 @@
 import { revalidatePath } from '@/core/content/defer-revalidate'
 
 import { accessTagsForStorage, normalizeAccessTags } from '@/core/acl/nav-access'
-import { requireAppAdmin, userIsDeveloperAdmin } from '@/core/auth/admin'
+import { requireAdminArea } from '@/core/acl/access'
+import type { AclGrantLevel } from '@/core/acl/levels'
+import { userIsDeveloperAdmin } from '@/core/auth/admin'
 import { DEFAULT_LAYOUT_ID } from '@/core/db'
 import { ensureModulesRegistered } from '@/core/modules/boot'
 
@@ -128,10 +130,12 @@ export type LayoutActionState = {
   }
 }
 
-async function requireLayoutAdmin(): Promise<LayoutActionState | null> {
-  const admin = await requireAppAdmin()
+async function requireLayoutAdmin(
+  min: AclGrantLevel = 'edit',
+): Promise<LayoutActionState | null> {
+  const admin = await requireAdminArea('admin.layouts', min)
   if (!admin) {
-    return { error: 'Sign in as a Starforge app admin to edit the layout.' }
+    return { error: 'Sign in with Layouts access (Users → ACL) or as an app admin.' }
   }
   return null
 }
@@ -1861,7 +1865,7 @@ export async function updateSlotAttributesAction(
   const slotId = String(formData.get('slotId') ?? '').trim()
   if (!sectionId || !rowId || !slotId) return { error: 'Missing slot reference.' }
 
-  const session = await requireAppAdmin()
+  const session = await requireAdminArea('admin.layouts', 'edit')
   const isDev = userIsDeveloperAdmin(session?.user)
 
   const htmlIdRaw = String(formData.get('htmlId') ?? '').trim()
@@ -1928,7 +1932,7 @@ export async function resetLayoutToDefaultAction(
   _prev: LayoutActionState,
   formData: FormData,
 ): Promise<LayoutActionState> {
-  const denied = await requireLayoutAdmin()
+  const denied = await requireLayoutAdmin('manage')
   if (denied) return denied
 
   const layoutId = layoutIdFromForm(formData)

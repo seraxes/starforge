@@ -350,9 +350,9 @@ export const sfModuleSettings = pgTable('sf_module_settings', {
 })
 
 /**
- * Group-keyed ACL stub matrix (admin areas for now).
- * Full frontend/backend enforcement comes after groups exist; this stores the
- * foundation and powers the Groups → Permissions UI.
+ * Group-keyed admin ACL. One row per group and resource.
+ * `level` is `none | view | edit | manage`. `allowed` stays true whenever
+ * the level is not `none`, so older readers still see a grant.
  */
 export const sfAclPermissions = pgTable(
   'sf_acl_permissions',
@@ -363,6 +363,8 @@ export const sfAclPermissions = pgTable(
       .references(() => sfUserGroups.id, { onDelete: 'cascade' }),
     /** Stable resource key, e.g. `admin.users`, `admin.nav`. */
     resource: text('resource').notNull(),
+    /** `none`, `view`, `edit`, or `manage`. Manage includes edit and view. */
+    level: text('level').default('none').notNull(),
     allowed: boolean('allowed').default(false).notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true })
       .defaultNow()

@@ -1,10 +1,13 @@
 export { recordAdminAudit } from './record'
+export { recordCurrentAdminActivity, recordOptionalAudit } from './optional'
+export { requireAuditLogReader } from './gate'
+export type { AuditLogReader } from './gate'
 export {
   ADMIN_AUDIT_LIST_LIMIT,
   AdminAuditUnavailableError,
   listAdminAudit,
 } from './list'
-export type { AdminAuditListRow } from './list'
+export type { AdminAuditListRow, AdminAuditQuery } from './list'
 export {
   REDIRECT_CREATE_ACTION,
   REDIRECT_DELETE_ACTION,

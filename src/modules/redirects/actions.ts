@@ -9,7 +9,8 @@ import {
   recordAdminAudit,
   redirectImportAudit,
 } from '@/core/audit'
-import { requireAppAdmin } from '@/core/auth/admin'
+import { requireAdminArea } from '@/core/acl/access'
+import type { AclGrantLevel } from '@/core/acl/levels'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
 import {
@@ -25,11 +26,13 @@ const CSV_IMPORT_MAX_BYTES = 1_000_000
 
 export type { RedirectAdminActionState }
 
-async function requireRedirectsAdmin(): Promise<{ actorId: string } | { error: string }> {
-  const admin = await requireAppAdmin()
+async function requireRedirectsAdmin(
+  min: AclGrantLevel = 'edit',
+): Promise<{ actorId: string } | { error: string }> {
+  const admin = await requireAdminArea('admin.redirects', min)
   const actorId = admin?.user?.id?.trim()
   if (!actorId) {
-    return { error: 'Sign in as a Starforge app admin to manage redirects.' }
+    return { error: 'Sign in with Redirects access (Users → ACL) or as an app admin.' }
   }
   const settings = await getSiteSettings()
   if (!isCatalogModuleEnabled(settings, MODULE_IDS.redirects)) {
@@ -48,7 +51,7 @@ function parseStatus(raw: FormDataEntryValue | null): number {
 }
 
 export async function listRedirectsForAdmin() {
-  const gate = await requireRedirectsAdmin()
+  const gate = await requireRedirectsAdmin('view')
   if ('error' in gate) return []
   return listRedirects()
 }
@@ -160,7 +163,7 @@ export async function deleteRedirectAction(
   _prev: RedirectAdminActionState,
   formData: FormData,
 ): Promise<RedirectAdminActionState> {
-  const gate = await requireRedirectsAdmin()
+  const gate = await requireRedirectsAdmin('manage')
   if ('error' in gate) return gate
 
   const id = String(formData.get('id') ?? '').trim()
@@ -181,7 +184,7 @@ export async function importRedirectsCsvAction(
   _prev: RedirectAdminActionState,
   formData: FormData,
 ): Promise<RedirectAdminActionState> {
-  const gate = await requireRedirectsAdmin()
+  const gate = await requireRedirectsAdmin('manage')
   if ('error' in gate) return gate
 
   const file = formData.get('file')

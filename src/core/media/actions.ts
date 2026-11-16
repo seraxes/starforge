@@ -2,7 +2,9 @@
 
 import { revalidatePath } from '@/core/content/defer-revalidate'
 
-import { requireAppAdmin } from '@/core/auth/admin'
+import { recordCurrentAdminActivity } from '@/core/audit'
+import { requireAdminArea } from '@/core/acl/access'
+import type { AclGrantLevel } from '@/core/acl/levels'
 
 import { getMediaAnalysisPort } from './analysis'
 import type { MediaAnalysisResult } from './analysis/types'
@@ -66,10 +68,12 @@ export type MediaActionState = {
   affected?: number
 }
 
-async function requireMediaAdmin(): Promise<MediaActionState | null> {
-  const admin = await requireAppAdmin()
+async function requireMediaAdmin(
+  min: AclGrantLevel = 'edit',
+): Promise<MediaActionState | null> {
+  const admin = await requireAdminArea('admin.media', min)
   if (!admin) {
-    return { error: 'Sign in as a Starforge app admin to manage media.' }
+    return { error: 'Sign in with Media access (Users → ACL) or as an app admin.' }
   }
   const storage = getMediaStorageInfo()
   if (!storage.ready) {
@@ -90,7 +94,7 @@ export async function listMediaAction(input?: {
   limit?: number
   page?: number
 }): Promise<{ error?: string; result?: Awaited<ReturnType<typeof listMedia>> }> {
-  const denied = await requireMediaAdmin()
+  const denied = await requireMediaAdmin('view')
   if (denied) return { error: denied.error }
 
   try {
@@ -106,7 +110,7 @@ export async function listMediaTagOptionsAction(): Promise<{
   error?: string
   tags?: MediaTagOption[]
 }> {
-  const denied = await requireMediaAdmin()
+  const denied = await requireMediaAdmin('view')
   if (denied) return { error: denied.error }
 
   try {
@@ -122,7 +126,7 @@ export async function listMediaCategoryTreeAction(): Promise<{
   error?: string
   tree?: MediaCategoryNode[]
 }> {
-  const denied = await requireMediaAdmin()
+  const denied = await requireMediaAdmin('view')
   if (denied) return { error: denied.error }
 
   try {
@@ -171,7 +175,7 @@ export async function deleteMediaCategoryAction(
   _prev: MediaActionState,
   formData: FormData,
 ): Promise<MediaActionState> {
-  const denied = await requireMediaAdmin()
+  const denied = await requireMediaAdmin('manage')
   if (denied) return denied
 
   const id = String(formData.get('id') ?? '').trim()
@@ -261,7 +265,7 @@ export async function deleteMediaAction(
   _prev: MediaActionState,
   formData: FormData,
 ): Promise<MediaActionState> {
-  const denied = await requireMediaAdmin()
+  const denied = await requireMediaAdmin('manage')
   if (denied) return denied
 
   const id = String(formData.get('id') ?? '').trim()
@@ -269,6 +273,7 @@ export async function deleteMediaAction(
 
   try {
     await removeMediaAsset(id)
+    await recordCurrentAdminActivity('media.delete', { type: 'media', id })
     revalidatePath('/admin/media')
     return { ok: true, message: 'Deleted.' }
   } catch (err) {
@@ -287,7 +292,7 @@ export async function bulkDeleteMediaAction(
   _prev: MediaActionState,
   formData: FormData,
 ): Promise<MediaActionState> {
-  const denied = await requireMediaAdmin()
+  const denied = await requireMediaAdmin('manage')
   if (denied) return denied
 
   const ids = collectBulkIds(formData)
@@ -299,6 +304,10 @@ export async function bulkDeleteMediaAction(
       await removeMediaAsset(id)
       affected += 1
     }
+    await recordCurrentAdminActivity('media.bulk-delete', {
+      type: 'media',
+      id: String(affected),
+    })
     // Client router.refresh() after ok — avoid folding a full library RSC into this action.
     return {
       ok: true,
@@ -541,7 +550,7 @@ export async function replaceMediaFileAction(
   _prev: MediaActionState,
   formData: FormData,
 ): Promise<MediaActionState> {
-  const denied = await requireMediaAdmin()
+  const denied = await requireMediaAdmin('manage')
   if (denied) return denied
 
   const id = String(formData.get('id') ?? '').trim()
@@ -611,9 +620,9 @@ export async function saveMediaPipelineSettingsAction(
   _prev: MediaActionState,
   formData: FormData,
 ): Promise<MediaActionState> {
-  const admin = await requireAppAdmin()
+  const admin = await requireAdminArea('admin.media', 'manage')
   if (!admin) {
-    return { error: 'Sign in as a Starforge app admin to edit Media settings.' }
+    return { error: 'Sign in with Media manage access (Users → ACL) or as an app admin.' }
   }
 
   const current = await getMediaPipelineRules()

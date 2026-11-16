@@ -1,5 +1,6 @@
 import { CORE_ADMIN_BASE } from '@/core/admin-paths'
 
+import { aclLevelSatisfies, type AclGrantLevel } from './levels'
 import {
   ACL_ADMIN_RESOURCE_KEYS,
   type AccessViewer,
@@ -11,15 +12,25 @@ import {
  * Session-bound wrappers live in `access.ts`.
  */
 
-/** Whether a viewer may use a single admin-area resource given a resolved group grant. */
+/** Whether a viewer may use a single admin-area resource at `minLevel`. */
 export function decideAdminResourceAccess(input: {
   isAppAdmin: boolean
   isRegistered: boolean
-  groupAllows: boolean
+  /**
+   * Legacy boolean grant. True means `manage` (the level a checked cell used
+   * to store). Ignored when `heldLevel` is passed, including null.
+   */
+  groupAllows?: boolean
+  heldLevel?: AclGrantLevel | null
+  /** Defaults to view — opening the area. */
+  minLevel?: AclGrantLevel
 }): boolean {
   if (input.isAppAdmin) return true
   if (!input.isRegistered) return false
-  return input.groupAllows
+  const need = input.minLevel ?? 'view'
+  if ('heldLevel' in input) return aclLevelSatisfies(input.heldLevel, need)
+  if (input.groupAllows) return aclLevelSatisfies('manage', need)
+  return false
 }
 
 /** Whether a signed-in non-admin may enter the Core admin shell (any matrix grant). */
@@ -104,6 +115,9 @@ export function adminAreaGateForPath(pathname: string): AdminAreaGate {
   if (path === `${CORE_ADMIN_BASE}/maps` || path.startsWith(`${CORE_ADMIN_BASE}/maps/`)) {
     return { type: 'resource', key: 'admin.maps' }
   }
+  if (path === `${CORE_ADMIN_BASE}/media` || path.startsWith(`${CORE_ADMIN_BASE}/media/`)) {
+    return { type: 'resource', key: 'admin.media' }
+  }
   if (path === `${CORE_ADMIN_BASE}/redirects` || path.startsWith(`${CORE_ADMIN_BASE}/redirects/`)) {
     return { type: 'resource', key: 'admin.redirects' }
   }
@@ -139,12 +153,11 @@ export function adminAreaGateForPath(pathname: string): AdminAreaGate {
   if (path === `${CORE_ADMIN_BASE}/cms` || path.startsWith(`${CORE_ADMIN_BASE}/cms/`)) {
     return { type: 'resource', key: 'admin.cms' }
   }
-  if (path === `${CORE_ADMIN_BASE}/media` || path.startsWith(`${CORE_ADMIN_BASE}/media/`)) {
-    return { type: 'app-admin' }
+  if (path === `${CORE_ADMIN_BASE}/pages` || path.startsWith(`${CORE_ADMIN_BASE}/pages/`)) {
+    return { type: 'resource', key: 'admin.pages' }
   }
-  // No matrix key. Members cannot open it. Developer-admin is enforced on the page.
   if (path === `${CORE_ADMIN_BASE}/audit` || path.startsWith(`${CORE_ADMIN_BASE}/audit/`)) {
-    return { type: 'app-admin' }
+    return { type: 'resource', key: 'admin.audit' }
   }
 
   return { type: 'app-admin' }
@@ -180,6 +193,7 @@ const LANDING_ORDER: { key: AclAdminResourceKey; href: string }[] = [
   { key: 'admin.events', href: `${CORE_ADMIN_BASE}/events` },
   { key: 'admin.profiles', href: `${CORE_ADMIN_BASE}/profiles` },
   { key: 'admin.maps', href: `${CORE_ADMIN_BASE}/maps` },
+  { key: 'admin.media', href: `${CORE_ADMIN_BASE}/media` },
   { key: 'admin.page-settings', href: `${CORE_ADMIN_BASE}/page-settings` },
   { key: 'admin.settings', href: `${CORE_ADMIN_BASE}/settings` },
   { key: 'admin.site-chrome', href: `${CORE_ADMIN_BASE}/site-chrome` },
@@ -187,6 +201,8 @@ const LANDING_ORDER: { key: AclAdminResourceKey; href: string }[] = [
   { key: 'admin.redirects', href: `${CORE_ADMIN_BASE}/redirects` },
   { key: 'admin.groups', href: `${CORE_ADMIN_BASE}/users/groups` },
   { key: 'admin.cms', href: `${CORE_ADMIN_BASE}/cms` },
+  { key: 'admin.pages', href: `${CORE_ADMIN_BASE}/pages` },
+  { key: 'admin.audit', href: `${CORE_ADMIN_BASE}/audit` },
   { key: 'admin.environment', href: `${CORE_ADMIN_BASE}/site-chrome/environment` },
 ]
 

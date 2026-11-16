@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic'
  * Query: id (skin id)
  */
 export async function GET(request: Request) {
-  const session = await requireAdminArea('admin.layouts')
+  const session = await requireAdminArea('admin.layouts', 'edit')
   if (!session?.user) {
     return NextResponse.json({ error: 'Layouts admin access required.' }, { status: 401 })
   }

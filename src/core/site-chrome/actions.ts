@@ -2,7 +2,7 @@
 
 import { revalidatePath } from '@/core/content/defer-revalidate'
 
-import { requireAppAdmin } from '@/core/auth/admin'
+import { requireAdminArea } from '@/core/acl/access'
 import { invalidateSiteChrome, invalidateSiteSettings } from '@/core/content/revalidate'
 import { syncSiteChromeConsentLocalesToFiles } from '@/core/i18n/content-locales'
 import { normalizeLocaleTextMap } from '@/core/i18n/locale-text'
@@ -49,9 +49,9 @@ export async function updateSiteOfflineAction(
   _prev: SiteChromeActionState,
   formData: FormData,
 ): Promise<SiteChromeActionState> {
-  const admin = await requireAppAdmin()
+  const admin = await requireAdminArea('admin.site-chrome', 'edit')
   if (!admin) {
-    return { error: 'Sign in as a Starforge app admin to edit Chrome.' }
+    return { error: 'Sign in with Chrome access (Users → ACL) or as an app admin.' }
   }
 
   try {
@@ -74,9 +74,9 @@ export async function updateSiteChromeAction(
   _prev: SiteChromeActionState,
   formData: FormData,
 ): Promise<SiteChromeActionState> {
-  const admin = await requireAppAdmin()
+  const admin = await requireAdminArea('admin.site-chrome', 'edit')
   if (!admin) {
-    return { error: 'Sign in as a Starforge app admin to edit Chrome.' }
+    return { error: 'Sign in with Chrome access (Users → ACL) or as an app admin.' }
   }
 
   const emailRaw = String(formData.get('emailProvider') ?? 'console').trim()
@@ -146,9 +146,9 @@ export async function updateSecurityCaptchaAction(
   _prev: SiteChromeActionState,
   formData: FormData,
 ): Promise<SiteChromeActionState> {
-  const admin = await requireAppAdmin()
+  const admin = await requireAdminArea('admin.settings', 'manage')
   if (!admin) {
-    return { error: 'Sign in as a Starforge app admin to edit captcha settings.' }
+    return { error: 'Sign in with Settings manage access (Users → ACL) or as an app admin.' }
   }
 
   const captchaRaw = String(formData.get('captchaProvider') ?? 'none').trim()

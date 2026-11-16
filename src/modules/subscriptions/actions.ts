@@ -37,7 +37,7 @@ export type SubscriptionsActionState = {
 }
 
 async function requireSubscriptionsAdmin(): Promise<SubscriptionsActionState | null> {
-  const session = await requireAdminArea('admin.subscriptions')
+  const session = await requireAdminArea('admin.subscriptions', 'edit')
   if (!session) {
     return {
       error:

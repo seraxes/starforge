@@ -153,5 +153,31 @@ describe('resolveEnabledAdminNavModuleIds + Email contribution', () => {
     assert.ok(
       settings?.links.some((link) => link.href === '/admin/audit' && link.label === 'Audit'),
     )
+    const users = groups.find((g) => g.id === 'users')
+    assert.equal(
+      users?.links.some((link) => link.href === '/admin/audit'),
+      false,
+    )
+  })
+
+  it('moves Audit next to ACL when product:audit is on', () => {
+    const enabled = resolveEnabledAdminNavModuleIds(settingsWithToggles({}))
+    enabled.add(MODULE_IDS.audit)
+    const groups = buildAdminNavGroups({
+      surface: 'core',
+      flags,
+      developerAdmin: true,
+      enabledModuleIds: enabled,
+    })
+    const users = groups.find((g) => g.id === 'users')
+    const aclIndex = users?.links.findIndex((link) => link.href === '/admin/users/acl') ?? -1
+    const auditIndex = users?.links.findIndex((link) => link.href === '/admin/audit') ?? -1
+    assert.ok(aclIndex >= 0)
+    assert.equal(auditIndex, aclIndex + 1)
+    const settings = groups.find((g) => g.id === 'site-settings')
+    assert.equal(
+      settings?.links.some((link) => link.href === '/admin/audit'),
+      false,
+    )
   })
 })

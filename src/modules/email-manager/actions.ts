@@ -2,7 +2,8 @@
 
 import { revalidatePath } from '@/core/content/defer-revalidate'
 
-import { requireAppAdmin } from '@/core/auth/admin'
+import { requireAdminArea } from '@/core/acl/access'
+import type { AclGrantLevel } from '@/core/acl/levels'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
 import { normalizeEmailAudience } from './audience'
@@ -21,10 +22,12 @@ import type { EmailAdminActionState, EmailCondition, EmailConditionOp } from './
 
 export type { EmailAdminActionState }
 
-async function requireEmailManagerAdmin(): Promise<EmailAdminActionState | null> {
-  const admin = await requireAppAdmin()
+async function requireEmailManagerAdmin(
+  min: AclGrantLevel = 'edit',
+): Promise<EmailAdminActionState | null> {
+  const admin = await requireAdminArea('admin.email-manager', min)
   if (!admin) {
-    return { error: 'Sign in as a Starforge app admin to manage Email Manager.' }
+    return { error: 'Sign in with Email Manager access (Users → ACL) or as an app admin.' }
   }
   const settings = await getSiteSettings()
   if (!isCatalogModuleEnabled(settings, MODULE_IDS.emailManager)) {
@@ -134,7 +137,7 @@ export async function deleteEmailTemplateAction(
   _prev: EmailAdminActionState,
   formData: FormData,
 ): Promise<EmailAdminActionState> {
-  const denied = await requireEmailManagerAdmin()
+  const denied = await requireEmailManagerAdmin('manage')
   if (denied) return denied
   const id = String(formData.get('id') ?? '').trim()
   const result = await deleteEmailTemplate(id)
@@ -221,7 +224,7 @@ export async function deleteEmailRuleAction(
   _prev: EmailAdminActionState,
   formData: FormData,
 ): Promise<EmailAdminActionState> {
-  const denied = await requireEmailManagerAdmin()
+  const denied = await requireEmailManagerAdmin('manage')
   if (denied) return denied
   const id = String(formData.get('id') ?? '').trim()
   const result = await deleteEmailRule(id)
@@ -291,7 +294,7 @@ export async function saveEmailManagerSettingsAction(
   _prev: EmailAdminActionState,
   formData: FormData,
 ): Promise<EmailAdminActionState> {
-  const denied = await requireEmailManagerAdmin()
+  const denied = await requireEmailManagerAdmin('manage')
   if (denied) return denied
 
   const { saveEmailManagerModuleSettings } = await import('./settings')
@@ -344,7 +347,7 @@ export async function cancelEmailBroadcastAction(
   _prev: EmailAdminActionState,
   formData: FormData,
 ): Promise<EmailAdminActionState> {
-  const denied = await requireEmailManagerAdmin()
+  const denied = await requireEmailManagerAdmin('manage')
   if (denied) return denied
   const id = String(formData.get('id') ?? '').trim()
   const { cancelEmailBroadcast } = await import('./broadcast-engine')

@@ -48,7 +48,7 @@ export type NavActionState = {
 }
 
 async function requireNavAdmin(): Promise<NavActionState | null> {
-  const session = await requireAdminArea('admin.nav')
+  const session = await requireAdminArea('admin.nav', 'edit')
   if (!session) {
     return {
       error:
@@ -62,7 +62,7 @@ async function requireNavAdmin(): Promise<NavActionState | null> {
 async function requireOutlineAssignAdmin(): Promise<NavActionState | null> {
   const keys: AclAdminResourceKey[] = ['admin.layouts', 'admin.nav']
   for (const key of keys) {
-    const session = await requireAdminArea(key)
+    const session = await requireAdminArea(key, 'edit')
     if (session) return null
   }
   return {

@@ -82,7 +82,7 @@ Do not re-open work that already shipped: RateLimiter, captcha-in-security, the 
 **Core finish (shipped).** One slice per chat was the rule; paste archive in [core-finish-instructions](./core-finish-instructions.md):
 
 1. **Small host leftovers.** Consent choices (necessary + analytics, reopenable). Redirect CSV import. Admin theme CSS selected from the registry (layouts still import Gantry statically; Turbopack needs a static import per known theme). Forms success mail through Email Manager only — **shipped** (`email-notify.ts` is `emitEmailTrigger` only; no Mailer fallback).
-2. **Admin audit trail** — **shipped.** Append-only `sf_admin_audit` and `recordAdminAudit` in `src/core/audit`. Rows after a successful user role, group, disable, or CMS change; a Site Settings module on/off; a redirect create, update, delete, or CSV import; and an environment save (the fact of the save only — no key names or values). Read-only `/admin/audit` for developer-admin. No backfill.
+2. **Admin audit trail** — **shipped.** Append-only `sf_admin_audit` and `recordAdminAudit` in `src/core/audit`. Rows after a successful user role, group, disable, or CMS change; a Site Settings module on/off; a redirect create, update, delete, or CSV import; an environment save (the fact of the save only — no key names or values); and an ACL level change. Read-only `/admin/audit`. With `product:audit` off, only a developer-admin can open it (Settings → Audit). With that pack on, the link sits under Users next to ACL, and an app admin or a group with `admin.audit` view can filter and export the same table. Day-to-day content and commerce rows record only while the pack is on. No second audit table. No backfill.
 3. **Structural finish, its own passes.** Redirects engine is in `src/modules/redirects` (M3). Forms engine is in `src/modules/forms` (M4). TipTap engine is in `src/modules/rich-editor`; callers pass `MediaPicker` from `@/modules/media/api`. Page reads (published slug, draft preview, search list, sitemap) go through `PageReadsPort` (`src/core/content/page-reads`) — **shipped** (slice 9).
 
 **Particle defaults are not a Core admin page.** They are demo content inside a skin pack: the particles that ship with that skin already have default text and parameters, so an installed skin is not empty. Build that when Starforge is ready to hand to other people as a demo. Do not add `/admin/particle-defaults` back.
@@ -133,6 +133,8 @@ Do not relocate these in a drive-by:
 | Online payment gateway | Core adapter `src/core/payments/<id>.ts` plus an import in `register-online.ts` | A developer ships it in the build. An admin enables it and pastes keys. No upload-a-gateway screen. Offline methods stay the fixed list. |
 | Process boot | generated `runModuleBoot`, then `runHeroBoot` | `instrumentation.ts` asserts env, then calls both. No pack paths. Each pack boot returns immediately when its own toggle is off. The default hero loader is null. The Events abandoned-checkout sweep stays unarmed while Events is off; stuck `pending_payment` seats wait until Events is on and boot runs again. |
 | Page reads | `PageReadsPort` (`src/core/content/page-reads`); pages adapter when `product:pages` is on, else empty | Layout, search, and sitemap use `getPageReads()`. They do not call `getPayload()`. |
+| Admin ACL | Core groups. Each grant is `view`, `edit`, or `manage` (manage includes the lower levels; the highest group wins). App admin bypasses. Role, group membership, the matrix, and the environment file stay app-admin. | Do not add an Access Level entity. Do not flatten the matrix back to a checkbox. |
+| Admin audit | Core `sf_admin_audit` + `recordAdminAudit`. Optional site pack `product:audit` is the company reader and the extra activity rows. | No second audit table. Do not put secrets or free-text notes in a row. |
 
 New packs follow Payments: a **port** in `src/core/<port>`, **product behavior** in `src/modules/<id>`. A PR may touch Core when it adds a port or a host extension. It does not put product screens, catalogs, or fulfillment in Core.
 
@@ -159,6 +161,7 @@ Still paper, and only when a consumer is actually being built: `LlmProvider`, `M
 | This queue, routes, secrets, hero line | This file |
 | Glossary / agent index | [glossary](./glossary.md), [AGENTS.md](../../../AGENTS.md) |
 | Accepted decisions | [decisions/](./decisions/) |
+| ACL levels and optional audit | [2026-11-16-acl-levels-and-audit](./decisions/2026-11-16-acl-levels-and-audit.md) |
 | Payload peel (buckets, packages, order) | [payload-dependency-map](./payload-dependency-map.md), [2026-11-15-payload-peel](./decisions/2026-11-15-payload-peel.md) |
 | Pages pack (phase 3b done; phase 4 shell open) | [pages-pack-plan](./pages-pack-plan.md) |
 | Slice-by-slice Core finish | [core-finish-instructions](./core-finish-instructions.md) |

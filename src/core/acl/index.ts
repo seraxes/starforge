@@ -28,6 +28,7 @@ export {
 export {
   getAccessViewer,
   getAdminAccessViewer,
+  listViewerAdminLevels,
   listViewerAllowedAdminResources,
   requireAdminArea,
   requireAdminAreaForRequest,
@@ -47,6 +48,8 @@ export {
 } from './decide'
 export type { AdminAreaGate } from './decide'
 
+export type { AclGrantLevel } from './levels'
+export { ACL_GRANT_LEVELS, aclLevelSatisfies, highestAclLevel, isAclGrantLevel } from './levels'
 export type { AccessViewer } from './types'
 export {
   ACL_ADMIN_RESOURCES,
@@ -93,7 +96,9 @@ export type { GroupMemberRow } from './members'
 export {
   anyGroupAllowsResource,
   getGroupAclMatrix,
+  listAdminLevelsForGroups,
   listAllowedResourcesForGroups,
+  replaceGroupAclLevels,
   replaceGroupAclMatrix,
   setGroupAclPermission,
 } from './permissions'

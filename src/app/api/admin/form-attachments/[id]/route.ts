@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 
-import { requireAppAdmin } from '@/core/auth/admin'
+import { requireAdminArea } from '@/core/acl/access'
 import { findMediaById } from '@/core/media/resolve'
 import { getMediaStorage } from '@/core/media/storage'
 
@@ -19,7 +19,7 @@ function contentDisposition(filename: string, inline: boolean): string {
  * The public file route does not serve private or form attachments.
  */
 export async function GET(req: Request, ctx: Ctx) {
-  const admin = await requireAppAdmin()
+  const admin = await requireAdminArea('admin.forms', 'edit')
   if (!admin?.user) {
     return NextResponse.json({ error: 'Admins only.' }, { status: 401 })
   }

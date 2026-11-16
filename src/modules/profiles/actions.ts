@@ -43,7 +43,7 @@ async function profilesModuleOff(): Promise<ProfilesActionState | null> {
 }
 
 async function requireProfilesAdmin(): Promise<ProfilesActionState | null> {
-  const session = await requireAdminArea('admin.profiles')
+  const session = await requireAdminArea('admin.profiles', 'edit')
   if (!session) {
     return {
       error: 'Sign in with Profiles admin access (app admin or ACL → Profiles) to manage profiles.',

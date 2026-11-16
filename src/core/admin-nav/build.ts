@@ -1,5 +1,6 @@
 import { CORE_ADMIN_BASE, PAYLOAD_ADMIN_BASE } from '@/core/admin-paths'
 import { adminNavContributions } from '@/generated/module-registry'
+import { MODULE_IDS } from '@/core/settings/module-toggles'
 
 import { CMS_NAV_LINKS, filterCmsNavLinks, type CmsVisibility } from './cms'
 import type {
@@ -153,6 +154,7 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
     options.cmsLinks ?? filterCmsNavLinks(CMS_NAV_LINKS, cmsVisibility ?? null)
 
   const contributed = buildContributedAdminNavGroups(options.enabledModuleIds)
+  const auditOn = Boolean(asEnabledSet(options.enabledModuleIds)?.has(MODULE_IDS.audit))
   const mediaGroup = contributed.find((g) => CONTENT_BAND_IDS.has(g.id)) ?? null
   const profilesGroup =
     contributed.find((g) => USERS_ATTACHED_IDS.has(g.id)) ?? null
@@ -218,6 +220,9 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
     { href: `${CORE}/users/groups`, label: 'Groups' },
     { href: `${CORE}/users/acl`, label: 'ACL' },
   ]
+  if (auditOn) {
+    userLinks.push({ href: `${CORE}/audit`, label: 'Audit' })
+  }
   if (profilesGroup) {
     for (const link of profilesGroup.links) {
       userLinks.push({
@@ -243,7 +248,7 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
     { href: `${CORE}/settings/security`, label: 'Security' },
     { href: `${CORE}/settings/performance`, label: 'Performance' },
   ]
-  if (options.developerAdmin) {
+  if (options.developerAdmin && !auditOn) {
     settingsLinks.push({ href: `${CORE}/audit`, label: 'Audit' })
   }
 

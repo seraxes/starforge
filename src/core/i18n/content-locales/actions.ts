@@ -3,7 +3,7 @@
 import { revalidatePath } from '@/core/content/defer-revalidate'
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate'
 
-import { requireAppAdmin } from '@/core/auth/admin'
+import { requireAdminArea } from '@/core/acl/access'
 import { getLocalizationSettings } from '@/core/localization/store'
 import { isValidLocaleCode, normalizeLocaleCode } from '@/core/i18n/locales'
 
@@ -31,8 +31,8 @@ function parseScope(raw: string): ContentLocaleScope | null {
 }
 
 async function requireAdmin() {
-  const session = await requireAppAdmin()
-  if (!session) return { error: 'Sign in as a Starforge app admin.' as const }
+  const session = await requireAdminArea('admin.localization', 'edit')
+  if (!session) return { error: 'Sign in with Localization access (Users → ACL) or as an app admin.' as const }
   return { session }
 }
 

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from '@/core/content/defer-revalidate'
 
+import { recordCurrentAdminActivity } from '@/core/audit'
 import { requireAdminArea } from '@/core/acl/access'
 import { credentialWritesFromForm, listPaymentMethodDescriptors } from '@/core/payments'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
@@ -26,8 +27,10 @@ import type { BillingProviderKind } from '@/core/payments'
 
 export type PaymentsActionState = { error?: string; ok?: boolean; message?: string }
 
-async function requirePaymentsAdmin(): Promise<PaymentsActionState | null> {
-  const session = await requireAdminArea('admin.payments')
+async function requirePaymentsAdmin(
+  min: 'edit' | 'manage' = 'edit',
+): Promise<PaymentsActionState | null> {
+  const session = await requireAdminArea('admin.payments', min)
   if (!session) {
     return {
       error: 'Sign in with Payments admin access (app admin or ACL → Payments).',
@@ -44,7 +47,7 @@ export async function savePaymentsSettingsAction(
   _prev: PaymentsActionState,
   formData: FormData,
 ): Promise<PaymentsActionState> {
-  const denied = await requirePaymentsAdmin()
+  const denied = await requirePaymentsAdmin('manage')
   if (denied) return denied
 
   const methodsRaw = String(formData.get('enabledMethods') ?? '')
@@ -84,10 +87,10 @@ export async function markOrderPaidAction(
   _prev: PaymentsActionState,
   formData: FormData,
 ): Promise<PaymentsActionState> {
-  const denied = await requirePaymentsAdmin()
+  const denied = await requirePaymentsAdmin('manage')
   if (denied) return denied
 
-  const session = await requireAdminArea('admin.payments')
+  const session = await requireAdminArea('admin.payments', 'manage')
   if (!session?.user?.id) return { error: 'Not signed in' }
 
   const orderId = String(formData.get('orderId') ?? '').trim()
@@ -104,7 +107,7 @@ export async function markOrderPaidAction(
     reason,
   })
   if (!result.ok) return { error: result.error }
-
+  await recordCurrentAdminActivity('order.mark-paid', { type: 'order', id: orderId })
   revalidatePath('/admin/payments/orders')
   revalidatePath(`/admin/payments/orders/${orderId}`)
   revalidatePath('/admin/payments/invoices')
@@ -120,8 +123,8 @@ export async function saveMerchantProfileAction(
     return { error: 'Payments module is disabled.' }
   }
 
-  const sessionMerchant = await requireAdminArea('admin.payments-merchant')
-  const sessionPayments = await requireAdminArea('admin.payments')
+  const sessionMerchant = await requireAdminArea('admin.payments-merchant', 'manage')
+  const sessionPayments = await requireAdminArea('admin.payments', 'manage')
   const session = sessionPayments || sessionMerchant
   if (!session?.user?.id) {
     return { error: 'Sign in with Merchant payments access.' }
@@ -197,7 +200,7 @@ export async function createAdminMerchantAction(
   _prev: PaymentsActionState,
   formData: FormData,
 ): Promise<PaymentsActionState> {
-  const denied = await requirePaymentsAdmin()
+  const denied = await requirePaymentsAdmin('manage')
   if (denied) return denied
 
   const email = String(formData.get('email') ?? '').trim()
@@ -277,7 +280,7 @@ export async function deleteCouponAction(
   _prev: PaymentsActionState,
   formData: FormData,
 ): Promise<PaymentsActionState> {
-  const denied = await requirePaymentsAdmin()
+  const denied = await requirePaymentsAdmin('manage')
   if (denied) return denied
 
   const id = String(formData.get('id') ?? '').trim()

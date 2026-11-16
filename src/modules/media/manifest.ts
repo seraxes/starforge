@@ -68,7 +68,7 @@ export default defineStarforgeModule({
         title: 'Media',
         order: 44,
         size: 'sm',
-        // Dashboard ACL only — Media path is still app-admin gated; soft card is overview.
+        // Dashboard ACL and the Media path both use admin.media.
         widgetImportPath: '@/modules/media/dashboard/MediaCountsWidget',
         widgetExportName: 'MediaCountsWidget',
         statsImportPath: '@/modules/media/dashboard/media-stats',

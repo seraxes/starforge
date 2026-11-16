@@ -17,7 +17,7 @@ type ResourceOpt = { key: string; label: string }
 type GroupCol = {
   id: string
   label: string
-  allowed: string[]
+  levels: Record<string, string>
 }
 
 type Props = {
@@ -26,6 +26,13 @@ type Props = {
 }
 
 const initial: AclActionState = {}
+
+const LEVELS = [
+  { value: '', label: '—' },
+  { value: 'view', label: 'View' },
+  { value: 'edit', label: 'Edit' },
+  { value: 'manage', label: 'Manage' },
+] as const
 
 function Feedback({ state }: { state: AclActionState }) {
   if (state.error) {
@@ -53,10 +60,12 @@ export function AclMatrixManager({ resources, groups }: Props) {
       <section className="outlines-create admin-settings-panel-wide" aria-label="Group permissions matrix">
         <h3>Permissions by group</h3>
         <p className="settings-hint">
-          Check a cell to grant that admin area to the group. Enforced on Core admin routes and
-          matching server actions (Navigation uses <code>admin.nav</code>). Viewing (menus /
-          modules) is tagged on each Nav item or layout particle — not here. Saves automatically
-          into <code>sf_acl_permissions</code>.
+          Each cell is a level. <strong>View</strong> opens the area. <strong>Edit</strong> creates
+          and updates. <strong>Manage</strong> includes edit plus delete, settings, and money
+          changes. A higher level includes the lower ones. If someone is in several groups, the
+          highest level wins, including parent groups. App admins bypass this matrix. Role changes,
+          this matrix, and the environment file stay app-admin. Saves automatically into{' '}
+          <code>sf_acl_permissions</code>.
         </p>
         <Feedback state={state} />
 
@@ -93,23 +102,32 @@ export function AclMatrixManager({ resources, groups }: Props) {
                           <code>{res.key}</code>
                         </div>
                       </th>
-                      {groups.map((g) => (
-                        <td key={`${g.id}-${res.key}`}>
-                          <label className="outlines-check">
-                            <input
-                              type="checkbox"
+                      {groups.map((g) => {
+                        const current = g.levels[res.key] ?? ''
+                        return (
+                          <td key={`${g.id}-${res.key}`}>
+                            <label className="sr-only" htmlFor={`acl-${g.id}-${res.key}`}>
+                              {res.label} for {g.label}
+                            </label>
+                            <select
+                              id={`acl-${g.id}-${res.key}`}
                               name="grant"
-                              value={`${g.id}::${res.key}`}
-                              defaultChecked={g.allowed.includes(res.key)}
+                              defaultValue={current ? `${g.id}::${res.key}::${current}` : ''}
                               disabled={pending}
                               onChange={saveNow}
-                            />
-                            <span className="sr-only">
-                              Allow {res.label} for {g.label}
-                            </span>
-                          </label>
-                        </td>
-                      ))}
+                            >
+                              {LEVELS.map((level) => (
+                                <option
+                                  key={level.value || 'none'}
+                                  value={level.value ? `${g.id}::${res.key}::${level.value}` : ''}
+                                >
+                                  {level.label}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                        )
+                      })}
                     </tr>
                   ))}
                 </tbody>

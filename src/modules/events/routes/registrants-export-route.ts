@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic'
  * Query: eventId (required).
  */
 export async function GET(request: Request) {
-  const session = await requireAdminArea('admin.events')
+  const session = await requireAdminArea('admin.events', 'edit')
   if (!session?.user) {
     return NextResponse.json(
       { error: 'Events admin access required.' },

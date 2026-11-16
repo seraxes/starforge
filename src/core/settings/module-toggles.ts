@@ -36,6 +36,7 @@ export const MODULE_IDS = {
   media: 'product:media',
   pages: 'product:pages',
   pwa: 'product:pwa',
+  audit: 'product:audit',
 } as const
 
 /** Core pieces that cannot be turned off. */

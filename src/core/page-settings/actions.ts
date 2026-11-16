@@ -7,7 +7,8 @@ import {
   listUserGroupOptions,
 } from '@/core/acl/groups'
 import type { UserGroupOption } from '@/core/acl/types'
-import { requireAppAdmin, userIsDeveloperAdmin } from '@/core/auth/admin'
+import { requireAdminArea } from '@/core/acl/access'
+import { userIsDeveloperAdmin } from '@/core/auth/admin'
 import { GLOBAL_PAGE_CHROME_ID } from '@/core/db'
 import { getSiteSettings, isAtomModuleEnabled } from '@/core/settings'
 import { getActiveSkin, isSkinBaseOutlineId } from '@/core/skin'
@@ -100,9 +101,9 @@ export async function savePageSettingsAction(
   _prev: PageSettingsActionState,
   formData: FormData,
 ): Promise<PageSettingsActionState> {
-  const session = await requireAppAdmin()
+  const session = await requireAdminArea('admin.page-settings', 'edit')
   if (!session?.user) {
-    return { error: 'Sign in as a Starforge app admin to edit Page Settings.' }
+    return { error: 'Sign in with Page Settings access (Users → ACL) or as an app admin.' }
   }
 
   const outlineId = String(formData.get('outlineId') ?? '').trim()
@@ -208,7 +209,7 @@ export type PageSettingsAdminBootstrap = {
 export async function loadPageSettingsAdmin(
   outlineId: string,
 ): Promise<PageSettingsAdminBootstrap> {
-  const session = await requireAppAdmin()
+  const session = await requireAdminArea('admin.page-settings', 'edit')
   const isDev = userIsDeveloperAdmin(session?.user)
   const outline = outlineId.trim()
   if (!outline) {
@@ -260,7 +261,7 @@ export async function loadPageSettingsAdmin(
 export async function createAtomInstanceAction(
   type: string,
 ): Promise<{ ok: true; atom: PageAtomInstance } | { ok: false; error: string }> {
-  const session = await requireAppAdmin()
+  const session = await requireAdminArea('admin.page-settings', 'edit')
   if (!session?.user) return { ok: false, error: 'Admins only.' }
 
   await ensureAtomsRegistered()

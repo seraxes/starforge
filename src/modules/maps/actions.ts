@@ -31,7 +31,7 @@ async function requireMapsAdmin() {
   if (!isCatalogModuleEnabled(settings, MODULE_IDS.maps)) {
     throw new Error('TacMap (product:maps) is disabled')
   }
-  const session = await requireAdminArea('admin.maps')
+  const session = await requireAdminArea('admin.maps', 'edit')
   if (!session?.user?.id) throw new Error('Unauthorized')
   return session
 }

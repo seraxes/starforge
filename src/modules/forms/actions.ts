@@ -4,7 +4,9 @@ import { headers } from 'next/headers'
 import { revalidatePath } from '@/core/content/defer-revalidate'
 import { redirect } from 'next/navigation'
 
-import { requireAppAdmin } from '@/core/auth/admin'
+import { recordCurrentAdminActivity } from '@/core/audit'
+import { requireAdminArea } from '@/core/acl/access'
+import type { AclGrantLevel } from '@/core/acl/levels'
 import { clientIp } from '@/core/security/client-ip'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
@@ -377,10 +379,12 @@ export async function submitFormAction(
   }
 }
 
-/** Admin-only gate for Forms area. */
-export async function requireFormsAdmin(): Promise<{ error: string } | null> {
-  const session = await requireAppAdmin()
-  if (!session?.user) return { error: 'Admins only.' }
+/** Forms area gate. Lists use view; writes use edit; deletes use manage. */
+export async function requireFormsAdmin(
+  min: AclGrantLevel = 'edit',
+): Promise<{ error: string } | null> {
+  const session = await requireAdminArea('admin.forms', min)
+  if (!session?.user) return { error: 'Sign in with Forms access (Users → ACL) or as an app admin.' }
   const settings = await getSiteSettings()
   if (!isCatalogModuleEnabled(settings, MODULE_IDS.forms)) {
     return { error: 'Forms module is disabled.' }
@@ -389,13 +393,13 @@ export async function requireFormsAdmin(): Promise<{ error: string } | null> {
 }
 
 export async function listFormSubmissionsForAdmin(limit = 100) {
-  const denied = await requireFormsAdmin()
+  const denied = await requireFormsAdmin('view')
   if (denied) throw new Error(denied.error)
   return listFormSubmissions({ limit })
 }
 
 export async function listFormDefinitionsForAdmin() {
-  const denied = await requireFormsAdmin()
+  const denied = await requireFormsAdmin('view')
   if (denied) throw new Error(denied.error)
   await ensureDefaultContactFormSeeded()
   return listFormDefinitions()
@@ -412,7 +416,7 @@ export async function saveFormsModuleSettingsAction(
   _prev: FormAdminActionState,
   formData: FormData,
 ): Promise<FormAdminActionState> {
-  const denied = await requireFormsAdmin()
+  const denied = await requireFormsAdmin('manage')
   if (denied) return denied
 
   const { normalizeFormsModuleSettings } = await import('./module-settings')
@@ -555,6 +559,7 @@ export async function saveFormDefinitionAction(
   }
 
   revalidateFormsAdmin(formId)
+  await recordCurrentAdminActivity('form.save', { type: 'form', id: formId })
   return { ok: true, message: 'Form saved.' }
 }
 
@@ -562,7 +567,7 @@ export async function deleteFormDefinitionAction(
   _prev: FormAdminActionState,
   formData: FormData,
 ): Promise<FormAdminActionState> {
-  const denied = await requireFormsAdmin()
+  const denied = await requireFormsAdmin('manage')
   if (denied) return denied
 
   const formId = String(formData.get('formId') ?? '').trim()
@@ -577,6 +582,7 @@ export async function deleteFormDefinitionAction(
   }
 
   revalidateFormsAdmin()
+  await recordCurrentAdminActivity('form.delete', { type: 'form', id: formId })
   return { ok: true, message: 'Form deleted.' }
 }
 
@@ -617,7 +623,7 @@ export async function deleteFormSubmissionAction(
   _prev: FormAdminActionState,
   formData: FormData,
 ): Promise<FormAdminActionState> {
-  const denied = await requireFormsAdmin()
+  const denied = await requireFormsAdmin('manage')
   if (denied) return denied
 
   const submissionId = String(formData.get('submissionId') ?? '').trim()
@@ -626,6 +632,10 @@ export async function deleteFormSubmissionAction(
   try {
     const ok = await deleteFormSubmission(submissionId)
     if (!ok) return { error: 'Submission not found.' }
+    await recordCurrentAdminActivity('submission.delete', {
+      type: 'submission',
+      id: submissionId,
+    })
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : 'Could not delete submission.',
@@ -644,7 +654,7 @@ export async function resendFormSubmissionNotifyAction(
   _prev: FormAdminActionState,
   formData: FormData,
 ): Promise<FormAdminActionState> {
-  const denied = await requireFormsAdmin()
+  const denied = await requireFormsAdmin('manage')
   if (denied) return denied
 
   const submissionId = String(formData.get('submissionId') ?? '').trim()

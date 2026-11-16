@@ -5,16 +5,19 @@ import {
   ADMIN_AUDIT_LIST_LIMIT,
   AdminAuditUnavailableError,
   listAdminAudit,
+  requireAuditLogReader,
   type AdminAuditListRow,
 } from '@/core/audit'
-import { requireDeveloperAdmin } from '@/core/auth/admin'
+import { loadModuleDoor } from '@/generated/module-registry.server'
 
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
   title: 'Audit — Starforge',
-  description: 'Read-only admin audit trail for developer-admins.',
+  description: 'Read-only admin audit trail.',
 }
+
+type Search = Record<string, string | string[] | undefined>
 
 function formatWhen(date: Date): string {
   try {
@@ -38,10 +41,25 @@ function actorLabel(row: AdminAuditListRow): string {
   return row.actorUserId
 }
 
-export default async function AdminAuditPage() {
-  const session = await requireDeveloperAdmin()
-  if (!session?.user) {
+export default async function AdminAuditPage({
+  searchParams,
+}: {
+  searchParams: Promise<Search>
+}) {
+  const reader = await requireAuditLogReader()
+  if (!reader) {
     redirect('/admin')
+  }
+
+  const query = await searchParams
+  if (reader.company) {
+    const door = await loadModuleDoor('audit-log')
+    const Panel = door?.AuditLogPanel as
+      | ((props: { searchParams: Search }) => Promise<React.ReactNode> | React.ReactNode)
+      | undefined
+    if (typeof Panel === 'function') {
+      return <Panel searchParams={query} />
+    }
   }
 
   let rows: AdminAuditListRow[] = []
@@ -59,8 +77,8 @@ export default async function AdminAuditPage() {
     <section className="admin-section admin-layouts-full">
       <h2>Audit</h2>
       <p className="lede admin-lede">
-        Append-only record of account changes, module on/off, redirects, and environment
-        saves. {`Newest first. Showing the latest ${ADMIN_AUDIT_LIST_LIMIT}. Read only.`}
+        Append-only record of account changes, module on/off, redirects, ACL changes, and
+        environment saves. {`Newest first. Showing the latest ${ADMIN_AUDIT_LIST_LIMIT}. Read only.`}
       </p>
 
       {loadError ? (

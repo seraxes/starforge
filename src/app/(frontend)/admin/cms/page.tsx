@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { PAYLOAD_ADMIN_BASE } from '@/core/admin-paths'
-import { requireAppAdmin } from '@/core/auth/admin'
+import { requireAdminArea } from '@/core/acl/access'
 import {
   findPayloadCmsUserByCoreUserId,
   loadCoreUserCmsAccess,
@@ -17,7 +17,7 @@ export const metadata = {
 }
 
 export default async function AdminCmsBridgePage() {
-  const session = await requireAppAdmin()
+  const session = await requireAdminArea('admin.cms', 'view')
   if (!session?.user?.id || !session.user.email) {
     redirect('/admin/login?next=/admin/cms')
   }

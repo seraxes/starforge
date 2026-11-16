@@ -3,7 +3,8 @@
 import { revalidatePath } from '@/core/content/defer-revalidate'
 import { redirect } from 'next/navigation'
 
-import { requireAppAdmin } from '@/core/auth/admin'
+import { requireAdminArea } from '@/core/acl/access'
+import type { AclGrantLevel } from '@/core/acl/levels'
 import { DEFAULT_LAYOUT_ID } from '@/core/db'
 import { getActiveSkin } from '@/core/skin'
 
@@ -22,10 +23,12 @@ export type OutlineActionState = {
   outlineId?: string
 }
 
-async function requireOutlineAdmin(): Promise<OutlineActionState | null> {
-  const admin = await requireAppAdmin()
+async function requireOutlineAdmin(
+  min: AclGrantLevel = 'edit',
+): Promise<OutlineActionState | null> {
+  const admin = await requireAdminArea('admin.layouts', min)
   if (!admin) {
-    return { error: 'Sign in as a Starforge app admin to manage outlines.' }
+    return { error: 'Sign in with Layouts access (Users → ACL) or as an app admin.' }
   }
   return null
 }
@@ -193,7 +196,7 @@ export async function deleteOutlineAction(
   _prev: OutlineActionState,
   formData: FormData,
 ): Promise<OutlineActionState> {
-  const denied = await requireOutlineAdmin()
+  const denied = await requireOutlineAdmin('manage')
   if (denied) return denied
 
   const layoutId = String(formData.get('layoutId') ?? '').trim()

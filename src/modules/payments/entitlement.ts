@@ -92,7 +92,7 @@ export async function grantCollectCapability(
 export async function assertMayCollect(
   userId: string,
 ): Promise<{ ok: true; actorUserId: string } | { ok: false; error: string }> {
-  const session = await requireAdminArea('admin.payments-merchant')
+  const session = await requireAdminArea('admin.payments-merchant', 'manage')
   if (!session?.user?.id) {
     return {
       ok: false,
@@ -136,7 +136,7 @@ export async function assertMayManageMerchant(
   const target = targetUserId.trim()
   if (!target) return { ok: false, error: 'Missing user.' }
 
-  const paymentsAdmin = await requireAdminArea('admin.payments')
+  const paymentsAdmin = await requireAdminArea('admin.payments', 'manage')
   if (paymentsAdmin?.user?.id) {
     if (!(await subscriptionsOwnsCollect())) {
       await grantCollectCapability(target, 'admin-stub')
