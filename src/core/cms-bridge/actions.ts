@@ -15,7 +15,7 @@ export type CmsAccessActionState = {
 }
 
 /**
- * Toggle CMS access for a core app user (provisions or revokes Payload stub).
+ * Toggle CMS access for a core app user.
  */
 export async function setAppUserCmsAccessAction(
   _prev: CmsAccessActionState,

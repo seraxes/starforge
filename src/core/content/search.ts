@@ -35,7 +35,7 @@ export type PublishedSearchResult = {
 /**
  * Search **published** pages by title / slug / meta title / meta description
  * for a given route locale (with fallback to default locale fields).
- * Goes through PageReadsPort — no direct `getPayload()` here.
+ * Goes through PageReadsPort.
  * Empty query returns no hits (callers show the empty prompt).
  */
 export async function searchPublishedPages(

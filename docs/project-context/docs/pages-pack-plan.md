@@ -1,8 +1,8 @@
 # product:pages — pack plan
 
-**Status:** phase 3b done (2026-11-16). Daily edit (3a) and the Payload pages cutover (version restore, Lexical/HTML migrate, Payload pages unregistered, stored Nav id remap) are in. Phase 4 (`/cms` shell, Payload npm packages) is still open. The live map wins: [architecture-current](./architecture-current.md). Decision: [2026-11-15-payload-peel](./decisions/2026-11-15-payload-peel.md). Buckets and order: [payload-dependency-map](./payload-dependency-map.md).
+**Status:** shipped. Phase 3b (2026-11-16) and phase 4 (shell and CMS packages, 2026-11-16) are done. The live map wins: [architecture-current](./architecture-current.md). Decision: [2026-11-15-payload-peel](./decisions/2026-11-15-payload-peel.md). Archive: [payload-dependency-map](./payload-dependency-map.md).
 
-Media (phase 2) is done. `src/modules/pages` writes `sf_pages_*` only. Payload `pages` and `tags` are not registered. Leftover `payload.pages*` tables stay until phase 4. There is no dual-write and no `getPayload()` on the page, nav, or seed page path.
+Media (phase 2) is done. `src/modules/pages` writes `sf_pages_*` only. There is no dual-write. `db:migrate` drops a leftover `payload` schema after the copy.
 
 ## Placement
 
@@ -22,8 +22,8 @@ Editorial pages, drafts, version snapshots (last 20 per page), `/admin/pages`, p
 
 ## Out
 
-Scheduled publish. A slug per locale. A collection builder. Live Preview iframe. Phase 4 shell deletion.
+Scheduled publish. A slug per locale. A collection builder. Live Preview iframe.
 
 ## After this track
 
-`/cms` and the Payload npm packages come off in peel phase 4. `product:lexical-editor` stays an optional pack; its `@payloadcms/richtext-lexical` dependency is not removed by this plan. Public page render does not import it.
+The `/cms` shell and the CMS npm packages are off. `product:lexical-editor` stays an optional pack; its `@payloadcms/richtext-lexical` dependency stays while that pack imports it. Public page render does not import it.

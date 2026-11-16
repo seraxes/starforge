@@ -1,7 +1,7 @@
 /**
  * Idempotent copy of Payload `pages` into product:pages.
  * Called from `scripts/db-migrate.mts` after Payload migrate.
- * Does not call getPayload(). Leftover payload.pages* tables stay until phase 4.
+ * `db:migrate` drops the payload schema after this copy.
  *
  * Starforge page ids are uuids. payload_legacy_id is the Payload numeric id
  * so Nav can rewrite stored numbers without coercing them back to numbers.

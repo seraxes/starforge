@@ -1,6 +1,6 @@
 # product:pages
 
-Editorial pages for the public site (phase 3b). Not Core. Payload `pages` is not registered. `/cms` stays for the Users bridge until phase 4.
+Editorial pages for the public site. Not Core. The content manager is this pack. `/cms` redirects to `/admin`.
 
 ## Owns
 
@@ -16,7 +16,7 @@ Brochure pages, drafts, the last 20 version snapshots, `/admin/pages`, and page 
 
 ## Nav ids
 
-Binds store the text page id (uuid). `npm run db:migrate` rewrites stored Payload numbers using `sf_pages.payload_legacy_id`. This pack does not call `getPayload()`.
+Binds store the text page id (uuid). `npm run db:migrate` rewrites stored numeric page ids using `sf_pages.payload_legacy_id`.
 
 ## Migration
 

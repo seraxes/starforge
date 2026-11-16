@@ -66,12 +66,6 @@ export async function deleteAccountAction(
   } catch {
     // ignore
   }
-  try {
-    const { clearPayloadAdminSession } = await import('@/core/cms-bridge/payload-session')
-    await clearPayloadAdminSession()
-  } catch {
-    // ignore
-  }
 
   redirect('/login')
 }

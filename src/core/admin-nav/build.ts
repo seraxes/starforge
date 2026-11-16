@@ -1,17 +1,14 @@
-import { CORE_ADMIN_BASE, PAYLOAD_ADMIN_BASE } from '@/core/admin-paths'
+import { CORE_ADMIN_BASE } from '@/core/admin-paths'
 import { adminNavContributions } from '@/generated/module-registry'
 import { MODULE_IDS } from '@/core/settings/module-toggles'
 
-import { CMS_NAV_LINKS, filterCmsNavLinks, type CmsVisibility } from './cms'
 import type {
-  AdminCmsNavLink,
   AdminNavFeatureFlags,
   AdminNavGroup,
   AdminNavSurface,
 } from './types'
 
 const CORE = CORE_ADMIN_BASE
-const CMS = PAYLOAD_ADMIN_BASE
 
 /** Content-band contribution — placed after Layouts/CMS, not with product packs. */
 const CONTENT_BAND_IDS = new Set(['media'])
@@ -24,12 +21,8 @@ const USERS_ATTACHED_IDS = new Set(['profiles'])
 
 export type BuildAdminNavOptions = {
   flags: AdminNavFeatureFlags
-  /** Which admin surface is rendering — same tree; marks cross-links. */
+  /** Which admin surface is rendering. Core `/admin` is the only shell. */
   surface: AdminNavSurface
-  /** Optional Payload visibility filter for CMS children. */
-  cmsVisibility?: CmsVisibility | null
-  /** Override CMS children (tests); default = filtered CMS_NAV_LINKS. */
-  cmsLinks?: AdminCmsNavLink[]
   /**
    * Module ids whose Site Settings toggle (or required catalog row) is on.
    * Used to filter manifest `admin.nav` contributions (M2).
@@ -121,37 +114,13 @@ function buildLayoutsBand(flags: AdminNavFeatureFlags): AdminNavGroup[] {
   ]
 }
 
-function buildCmsGroup(
-  surface: AdminNavSurface,
-  cmsLinks: AdminCmsNavLink[],
-): AdminNavGroup | null {
-  if (cmsLinks.length === 0) return null
-  return {
-    id: 'cms',
-    label: 'CMS',
-    href: CMS,
-    expandable: true,
-    links: cmsLinks.map((link) => ({
-      href: link.href,
-      label: link.label,
-      exact: link.exact,
-      // From Core, CMS destinations leave the Core shell; from Payload they are local.
-      external:
-        surface === 'core' ? true : link.external && !link.href.startsWith(CMS),
-    })),
-  }
-}
-
 /**
- * One seamless admin tree for Core + Payload.
+ * Admin tree for Core `/admin`.
  * Bands: home → site shell → Skins (Outline nest) → product modules → access/platform.
- * CMS accordion children are Payload destinations; other leaves stay on Core routes.
- * Product packs (Forms / Redirects / Media / …) contribute via manifest admin.nav (M2).
+ * Pages and Media come from their module nav. Product packs contribute via manifest admin.nav.
  */
 export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGroup[] {
-  const { flags, surface, cmsVisibility } = options
-  const cmsLinks =
-    options.cmsLinks ?? filterCmsNavLinks(CMS_NAV_LINKS, cmsVisibility ?? null)
+  const { flags } = options
 
   const contributed = buildContributedAdminNavGroups(options.enabledModuleIds)
   const auditOn = Boolean(asEnabledSet(options.enabledModuleIds)?.has(MODULE_IDS.audit))
@@ -176,13 +145,13 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
       id: 'site-chrome',
       label: 'Chrome',
       href: `${CORE}/site-chrome`,
-      // Always accordion — Environment must stay a visible child (Core + Payload).
+      // Always accordion — Environment must stay a visible child.
       expandable: true,
       // Keep Environment visible without hunting the caret on other admin pages.
       defaultOpen: true,
       links: [
         { href: `${CORE}/site-chrome`, label: 'Chrome', exact: true },
-        // #55 gated Environment editor (must stay in shared nav — Core + Payload)
+        // #55 gated Environment editor (must stay in shared nav)
         { href: `${CORE}/site-chrome/environment`, label: 'Environment' },
       ],
     },
@@ -203,11 +172,6 @@ export function buildAdminNavGroups(options: BuildAdminNavOptions): AdminNavGrou
 
   // —— Structure & content ——
   groups.push(...buildLayoutsBand(flags))
-
-  if (flags.cms) {
-    const cms = buildCmsGroup(surface, cmsLinks)
-    if (cms) groups.push(cms)
-  }
 
   if (mediaGroup) groups.push(mediaGroup)
 

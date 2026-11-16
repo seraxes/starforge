@@ -43,7 +43,7 @@ Disabled at install time → not in `node_modules` / not in bundle → no deadwe
 | Kind | Id | Label | Notes |
 | --- | --- | --- | --- |
 | platform | `platform:better-auth` | Better Auth | **Required** |
-| platform | `platform:payload-cms` | Payload CMS | Gates CMS nav / admin entry |
+| product | `product:pages` | Pages | Editorial pages. The `platform:payload-cms` toggle was removed in phase 4. |
 | product | `product:layout-manager` | Layout manager / Outlines | Admin Layout+Outlines+Skins; minimal public shell when off |
 | product | `product:page-settings` | Page Settings | Admin + public chrome emit |
 | product | `product:primary-nav` | Primary nav | Nav manager admin + public header links (site default menu from Site Settings) |

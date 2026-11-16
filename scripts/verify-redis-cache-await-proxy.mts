@@ -69,7 +69,7 @@ assert.match(pageChrome, /getPublishedContentCache\(\)\.getCached/)
 assert.match(pageChrome, /await invalidatePageChrome/)
 console.log('page chrome cache + invalidate: ok')
 
-const pages = read('src/collections/Pages.ts')
+const pages = read('src/modules/pages/store.ts')
 assert.match(pages, /await invalidatePublishedPage/)
 const siteSettings = read('src/core/settings/index.ts')
 assert.match(siteSettings, /await invalidateSiteSettings/)

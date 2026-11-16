@@ -137,16 +137,6 @@ export const hostModuleManifests: StarforgeModuleManifest[] = [
     ],
   }),
   defineStarforgeModule({
-    id: 'platform:payload-cms',
-    kind: 'platform',
-    label: 'Payload CMS',
-    description:
-      'Content CMS (/cms/admin) for pages and media. Off hides CMS nav and blocks Payload admin entry when safe.',
-    version: '0.1.0',
-    defaultEnabled: true,
-    navViews: [{ key: 'admin', label: 'Content CMS', href: '/cms/admin' }],
-  }),
-  defineStarforgeModule({
     id: 'product:layout-manager',
     kind: 'product',
     label: 'Layout manager / Outlines',

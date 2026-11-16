@@ -2,7 +2,7 @@
  * Lock: site settings read/write stays on Core sf_site_settings.
  * Run: npx tsx scripts/verify-site-settings-boot-heal.mts
  */
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -70,8 +70,17 @@ must(
   'db-migrate.mts must not heal payload.site_settings',
 )
 
-const payloadConfig = read('src/payload.config.ts')
-must(!payloadConfig.includes('SiteSettings'), 'payload.config must not register SiteSettings')
-must(/globals:\s*\[\s*\]/.test(payloadConfig), 'payload.config globals list must be empty')
+must(
+  !existsSync(join(root, 'src/payload.config.ts')),
+  'payload.config.ts must be gone (phase 4)',
+)
+must(
+  migrate.includes('0048_drop_payload_schema.sql'),
+  'db-migrate.mts must drop the leftover payload schema after the copy',
+)
+must(
+  !migrate.includes('payload:migrate'),
+  'db-migrate.mts must not run payload migrate',
+)
 
-console.log('ok: site settings live on sf_site_settings (no Payload global in the settings path)')
+console.log('ok: site settings live on sf_site_settings (no Payload config)')

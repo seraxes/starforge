@@ -32,10 +32,10 @@ Before writing a new admin settings/list screen:
 | Surface | Tokens / CSS | Prefer these classes |
 | --- | --- | --- |
 | **Admin** (`/admin`) | `src/core/admin-theme/themes/starforge-gantry/core-chrome.css` (`--sf-admin-*`, `--sf-*`) | `gantry-btn`, `gantry-btn-primary`, `gantry-toolbar-btn`, `gantry-toolbar-btn-save`, `settings-field`, `page-settings-panel`, `admin-settings-mosaic`, `outlines-create`, `admin-inline-actions` |
-| **Payload CMS** (`/cms/admin`) | `…/starforge-gantry/payload-chrome.css` — same tokens; Layouts chrome is the visual reference | Payload widgets themed to SF; shared TipTap/`gantry-*`/`settings-field` when embedded |
+| **Admin** is `/admin` only | `/cms` redirects to `/admin`. Do not mount a second CMS skin. | Same classes as the Admin row |
 | **Public / member account** | `src/app/(frontend)/styles.css` (`:root` `--sf-*`) | Account editors still use `settings-field` + `gantry-btn*` / panel shell when editing |
 
-Prefs (admin): blue-dominated Gantry chrome; orange only on primary Save / rare CTAs; shared button tokens (`--sf-admin-btn-*`) with **compact action clusters** (no sprawling header chrome); no thin full-width action bars. Payload Publish / Create New = orange; Save Draft = muted toolbar blue — match Layouts.
+Prefs (admin): blue-dominated Gantry chrome; orange only on primary Save / rare CTAs; shared button tokens (`--sf-admin-btn-*`) with **compact action clusters** (no sprawling header chrome); no thin full-width action bars. Save Draft stays muted toolbar blue — match Layouts.
 
 **Card actions (hard rule):** Cancel / Save / Apply / Delete / Geocode (and siblings) live in the **bottom-right** of the card (`page-settings-actions`, `outlines-create`, `settings-fieldset`, page-settings panel). Use `admin-action-row`, `page-settings-actions`, or `sf-events-form-actions` with `justify-content: flex-end`. Do not left-align or stretch a full-width action strip inside a card. Toolbar / filter / Add+ disclosure bars are not “card actions” — those stay top/inline.
 

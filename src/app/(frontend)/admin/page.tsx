@@ -1,7 +1,7 @@
 import React from 'react'
 import Link from 'next/link'
 
-import { CORE_ADMIN_ROOT, PAYLOAD_ADMIN_ROOT } from '@/core/admin-paths'
+import { CORE_ADMIN_ROOT } from '@/core/admin-paths'
 import {
   DashboardWidgetGrid,
   resolveDashboardWidgets,
@@ -26,7 +26,7 @@ export const metadata = {
 }
 
 /**
- * Starforge Dashboard — canonical URL `/admin` (Payload at `/cms/admin`).
+ * Starforge Dashboard — canonical URL `/admin`.
  * Do **not** redirect to `/admin/users` — Users is a child area, never the admin home.
  */
 export default async function CoreAdminDashboardPage() {
@@ -64,8 +64,8 @@ export default async function CoreAdminDashboardPage() {
       </header>
       <p className="sf-dashboard-page-note">
         Module cards use soft placeholders when a pack is off under{' '}
-        <Link href={`${CORE_ADMIN_ROOT}/settings`}>Settings → Modules</Link>. Payload CMS:{' '}
-        <Link href={PAYLOAD_ADMIN_ROOT}>{PAYLOAD_ADMIN_ROOT}</Link>.
+        <Link href={`${CORE_ADMIN_ROOT}/settings`}>Settings → Modules</Link>. Brochure pages live
+        at <Link href={`${CORE_ADMIN_ROOT}/pages`}>Pages</Link>.
       </p>
 
       {widgets.length > 0 ? (

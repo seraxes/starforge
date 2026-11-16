@@ -18,10 +18,6 @@ export type LocalizationSettings = {
   localesEnabled: string[]
   /** Default public locale; must be one of `localesEnabled`. */
   defaultLocale: string
-  /**
-   * When true, missing locale content falls back to `defaultLocale`.
-   * Stored for Site Settings; Payload `localization.fallback` in
-   * `payload.config.ts` remains code-configured until a later sync pass.
-   */
+  /** When true, missing locale content falls back to `defaultLocale`. */
   localeFallback: boolean
 }

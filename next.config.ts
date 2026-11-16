@@ -1,4 +1,3 @@
-import { withPayload } from '@payloadcms/next/withPayload'
 import withSerwistInit from '@serwist/next'
 import type { NextConfig } from 'next'
 import { readFileSync } from 'node:fs'
@@ -35,7 +34,7 @@ const nextConfig: NextConfig = {
       bodySizeLimit: '12mb',
     },
   },
-  // Route migration bookmarks: Core `/admin` (was `/app/admin`); Payload `/cms/admin` (was `/admin`).
+  // Route bookmarks: Core `/admin` (was `/app/admin`). Former `/cms` admin redirects here.
   async redirects() {
     return [
       {
@@ -43,7 +42,6 @@ const nextConfig: NextConfig = {
         destination: '/admin/breakpoints',
         permanent: false,
       },
-      // Legacy Core admin prefix
       {
         source: '/app/admin',
         destination: '/admin',
@@ -54,21 +52,29 @@ const nextConfig: NextConfig = {
         destination: '/admin/:path*',
         permanent: false,
       },
-      // Legacy Payload deep links that used to live under /admin
+      {
+        source: '/cms',
+        destination: '/admin',
+        permanent: false,
+      },
+      {
+        source: '/cms/:path*',
+        destination: '/admin',
+        permanent: false,
+      },
       {
         source: '/admin/collections/:path*',
-        destination: '/cms/admin/collections/:path*',
+        destination: '/admin',
         permanent: false,
       },
       {
         source: '/admin/globals/:path*',
-        destination: '/cms/admin/globals/:path*',
+        destination: '/admin',
         permanent: false,
       },
-      // `/admin/login` is Core staff sign-in (do not redirect to Payload).
       {
         source: '/admin/create-first-user',
-        destination: '/cms/admin/create-first-user',
+        destination: '/admin',
         permanent: false,
       },
     ]
@@ -107,7 +113,7 @@ const nextConfig: NextConfig = {
 
 /**
  * product:pwa is compiled in only when the active allowlist names it.
- * `withPayload` stays unconditional. Dev still disables Serwist inside the init.
+ * Dev still disables Serwist inside the init.
  */
 function pwaOnActiveAllowlist(): boolean {
   const env = process.env.SF_MODULES
@@ -131,8 +137,6 @@ function pwaOnActiveAllowlist(): boolean {
   return ids.some((id) => id === 'product:pwa')
 }
 
-const withPayloadConfig = withPayload(withNextIntl(nextConfig), {
-  devBundleServerPackages: false,
-})
+const appConfig = withNextIntl(nextConfig)
 
-export default pwaOnActiveAllowlist() ? withSerwist(withPayloadConfig) : withPayloadConfig
+export default pwaOnActiveAllowlist() ? withSerwist(appConfig) : appConfig

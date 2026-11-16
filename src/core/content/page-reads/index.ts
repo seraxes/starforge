@@ -16,6 +16,7 @@ import { loadPagesPackDoor } from '@/core/content/pages-pack-door'
 import type { PageReadsPort } from './types'
 
 export type {
+  Page,
   PageReadsPort,
   PageReadsPublishedSummary,
   PageReadsSearchDoc,

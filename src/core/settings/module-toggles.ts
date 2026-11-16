@@ -12,7 +12,6 @@ export const ATOM_TOGGLE_PREFIX = 'atom:' as const
 /** Stable product / platform catalog ids (also used as gate keys). */
 export const MODULE_IDS = {
   betterAuth: 'platform:better-auth',
-  payloadCms: 'platform:payload-cms',
   layoutManager: 'product:layout-manager',
   pageSettings: 'product:page-settings',
   primaryNav: 'product:primary-nav',

@@ -38,7 +38,7 @@ function pageBindKey(id: string | number): string {
  * Resolve page binds → slugs via PageReadsPort published summaries.
  * Unpublished page links stay unresolved (no href) — public nav is published-only.
  * A numeric id is a Payload id still sitting in the nav cache (or an unread
- * menu). The pages pack maps it through payload_legacy_id. No getPayload().
+ * menu). The pages pack maps it through payload_legacy_id.
  */
 async function resolvePageSlugMap(
   pageIds: Array<string | number>,

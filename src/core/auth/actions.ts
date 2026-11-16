@@ -106,24 +106,11 @@ async function findAppCredential(email: string) {
   }
 }
 
-async function mintPayloadSessionIfNeeded(): Promise<void> {
-  try {
-    const session = await auth.api.getSession({ headers: await headers() })
-    if (session?.user?.id) {
-      const { loadCoreUserCmsAccess } = await import('@/core/cms-bridge')
-      const access = await loadCoreUserCmsAccess(session.user.id)
-      if (access?.cmsAccess && !access.banned) {
-        const { setPayloadAdminSessionCookie } = await import('@/core/cms-bridge/payload-session')
-        await setPayloadAdminSessionCookie({
-          coreUserId: session.user.id,
-          email: session.user.email,
-          name: session.user.name,
-        })
-      }
-    }
-  } catch (error) {
-    console.error('[login] Payload JWT exchange skipped:', error)
-  }
+/** Staff next path. Legacy `/cms` bookmarks land on Core `/admin`. */
+function staffDestination(next: string): string | null {
+  if (next === '/cms' || next.startsWith('/cms/')) return '/admin'
+  if (next.startsWith('/admin')) return next
+  return null
 }
 
 function appOrigin(): string {
@@ -304,10 +291,10 @@ export async function loginAction(
     }
   }
 
-  await mintPayloadSessionIfNeeded()
   // Staff destinations need the admin session cookie minted (Set-Cookie via route).
-  if (next.startsWith('/admin') || next.startsWith('/cms')) {
-    redirect(`/api/auth/admin-session?next=${encodeURIComponent(next)}`)
+  const staffNext = staffDestination(next)
+  if (staffNext) {
+    redirect(`/api/auth/admin-session?next=${encodeURIComponent(staffNext)}`)
   }
   redirect(next)
 }
@@ -566,9 +553,9 @@ export async function verifyEmailOtpAction(
     }
   }
 
-  await mintPayloadSessionIfNeeded()
-  if (next.startsWith('/admin') || next.startsWith('/cms')) {
-    redirect(`/api/auth/admin-session?next=${encodeURIComponent(next)}`)
+  const staffNext = staffDestination(next)
+  if (staffNext) {
+    redirect(`/api/auth/admin-session?next=${encodeURIComponent(staffNext)}`)
   }
   redirect(next)
 }
@@ -617,16 +604,16 @@ export async function verifyTwoFactorAction(
     }
   }
 
-  await mintPayloadSessionIfNeeded()
-  if (next.startsWith('/admin') || next.startsWith('/cms')) {
-    redirect(`/api/auth/admin-session?next=${encodeURIComponent(next)}`)
+  const staffNext = staffDestination(next)
+  if (staffNext) {
+    redirect(`/api/auth/admin-session?next=${encodeURIComponent(staffNext)}`)
   }
   redirect(next)
 }
 
 export async function logoutAction(): Promise<void> {
   try {
-    // Public Better Auth cookie only — leave staff admin session + payload-token.
+    // Public Better Auth cookie only — leave the staff admin session.
     await auth.api.signOut({
       headers: await headers(),
     })
@@ -636,17 +623,11 @@ export async function logoutAction(): Promise<void> {
   redirect(await resolvePostLogoutUrl())
 }
 
-/** Sign out of the backend only — clears admin session + payload-token. */
+/** Sign out of the backend only — clears the admin session. */
 export async function adminLogoutAction(): Promise<void> {
   try {
     const { clearAdminSession } = await import('./admin-session')
     await clearAdminSession()
-  } catch {
-    // ignore
-  }
-  try {
-    const { clearPayloadAdminSession } = await import('@/core/cms-bridge/payload-session')
-    await clearPayloadAdminSession()
   } catch {
     // ignore
   }

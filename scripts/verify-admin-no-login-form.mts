@@ -1,6 +1,5 @@
 /**
- * Prove /cms/admin and /cms/admin/login never serve Payload's email/password form
- * when a Better Auth session exists (with cms_access).
+ * Prove /cms/admin redirects to Core /admin and never serves a Payload password form.
  *
  * Usage: npx tsx scripts/verify-admin-no-login-form.mts
  */
@@ -129,18 +128,22 @@ async function main() {
   console.log('  looksAdmin-ish', looksAdmin, 'htmlLen', admin.html.length)
   console.log('  OK: no password form')
 
-  // 4) Unauthenticated /cms/admin/login → core login
+  // 4) Unauthenticated /cms/admin/login → Core /admin (admin layout sends strangers to login)
   console.log('\nGET /cms/admin/login (no cookies)…')
   const bare = await fetch(`${base}/cms/admin/login`, { redirect: 'manual' })
   const loc = bare.headers.get('location') || ''
   console.log('  status', bare.status, 'location', loc)
-  if (!(bare.status >= 300 && bare.status < 400 && loc.includes('/login'))) {
-    console.error('FAIL: unauthenticated /cms/admin/login should redirect to /login')
+  if (!(bare.status >= 300 && bare.status < 400 && (loc.includes('/admin') || loc.includes('/login')))) {
+    console.error('FAIL: unauthenticated /cms/admin/login should redirect to /admin')
+    process.exit(1)
+  }
+  if (loc.includes('/cms')) {
+    console.error('FAIL: redirect still points at /cms')
     process.exit(1)
   }
   console.log('  OK')
 
-  console.log('\nPASS: /cms/admin and /cms/admin/login never show Payload password form')
+  console.log('\nPASS: /cms redirects away from a Payload admin')
 }
 
 main().catch((err) => {

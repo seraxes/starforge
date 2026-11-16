@@ -1,19 +1,16 @@
 /**
  * Platform locale catalog (Core i18n port).
  * Public URLs use these codes as `/[locale]/…` prefixes (localePrefix: always).
- * Admin `/admin` and Payload `/cms` stay outside this list.
+ * Admin `/admin` stays outside this list. `/cms` redirects there.
  *
  * Bootstrap codes (`en`, `hu`) ship in code. Admins can extend the site catalog
- * under `/admin/localization` (persisted on Site Chrome JSON). Payload
- * `localization` in `payload.config.ts` stays code-bootstrapped from this
- * bootstrap list until a later sync pass — admin-added locales work for
- * public routing / switcher / hreflang immediately, but CMS field locales
- * need a config change + restart.
+ * under `/admin/localization` (persisted on Site Chrome JSON). Public routing,
+ * the switcher, and hreflang pick up new codes immediately.
  */
 
 export const BOOTSTRAP_LOCALES = ['en', 'hu'] as const
 
-/** @deprecated Prefer BOOTSTRAP_LOCALES — kept for Payload + existing imports. */
+/** @deprecated Prefer BOOTSTRAP_LOCALES — kept for existing imports. */
 export const LOCALES = BOOTSTRAP_LOCALES
 
 export type BootstrapLocale = (typeof BOOTSTRAP_LOCALES)[number]
@@ -119,9 +116,8 @@ export function normalizeLocaleCode(raw: string): string {
 }
 
 /**
- * Map a public route locale to a Payload-configured locale.
- * Payload `localization` is code-bootstrapped (`en`/`hu`); admin-added codes
- * fall back to DEFAULT_LOCALE for CMS queries until config catches up.
+ * Map a public route locale onto the bootstrap catalog (`en` / `hu`).
+ * Admin-added codes fall back to DEFAULT_LOCALE for callers that only know those two.
  */
 export function toPayloadLocale(locale: AppLocale): BootstrapLocale {
   return isBootstrapLocale(locale) ? locale : DEFAULT_LOCALE

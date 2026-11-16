@@ -1,21 +1,21 @@
 # Starforge
 
-Reusable **product core** for ordinary web apps (auth, users, app shell, extension points) with **Payload CMS 3** as a swappable **content/media module** — not the whole product.
+Reusable **product core** for ordinary web apps (auth, users, app shell, extension points). The content manager is **`product:pages`**. Media is **`product:media`**.
 
-**Two admin surfaces, one login:** **Starforge admin** (`/admin` — Dashboard, users, groups, site settings, nav, layouts) ↔ **Payload Content CMS** (`/cms/admin` — pages, media); each sidebar links to the other.
+**One admin:** `/admin` (Dashboard, users, groups, site settings, nav, layouts, pages, media). `/cms` redirects there. Sign-in is Better Auth. `cms_access` gates page editing and draft preview.
 
-This is an early scaffold plus **core app auth** (Better Auth), **roles + user groups + ACL matrix**, **one-login Payload CMS access** (`cms_access` toggle), **site settings + feature toggles**, **Nav manager**, **Page Settings** (Gantry-style Head / Assets / Body / Font Awesome / Atoms in `sf_page_chrome`; outline assignment via nav), **Lexical** page editing, **public `/[slug]`** rendering, **draft preview** (`/preview/[slug]`), **published content cache** (Next.js tags; Redis later), **page SEO fields**, **extension modules + Gantry-like layout manager** (sections/rows/slots + % widths in `sf_layouts`, palette UI at `/admin/layouts`, typed Logo/Copyright/Social + page-content + Custom particles), and **`npm run seed`**. It is intentionally small and runnable locally — not Airsoftnexus 2.0 feature parity, and not a DigitalOcean deploy.
+This is an early scaffold plus **core app auth** (Better Auth), **roles + user groups + ACL matrix**, **`cms_access`**, **site settings + feature toggles**, **Nav manager**, **Page Settings** (Gantry-style Head / Assets / Body / Font Awesome / Atoms in `sf_page_chrome`; outline assignment via nav), **TipTap** page editing, **public `/[locale]/[slug]`** rendering, **draft preview** (`/preview/[slug]`), **published content cache** (Next.js tags; Redis later), **page SEO fields**, **extension modules + Gantry-like layout manager** (sections/rows/slots + % widths in `sf_layouts`, palette UI at `/admin/layouts`, typed Logo/Copyright/Social + page-content + Custom particles), and **`npm run seed`**. It is intentionally small and runnable locally — not Airsoftnexus 2.0 feature parity, and not a DigitalOcean deploy.
 
 ## Architecture
 
 | Layer | Owns | Location |
 | --- | --- | --- |
 | **Starforge core** | Product APIs, auth/sessions/users (incl. 2FA), Drizzle tables in Postgres `public` | `src/core/`, `src/app/api/` |
-| **Payload content module** | Collections, globals (site settings), drafts, media, CMS admin | `src/collections/`, `src/globals/`, `src/payload.config.ts`, `src/app/(payload)/` |
+| **`product:pages`** | Editorial pages, drafts, versions, page tags | `src/modules/pages` |
+| **`product:media`** | Media documents (`sf_media_*`) and the library UI | `src/modules/media` |
 
-- Payload tables use Postgres schema **`payload`** (created by `docker/postgres/init.sql`).
-- Core tables (`sf_*` in `public`) and Payload (`payload` schema) are applied with **migrations** (`npm run db:migrate`). Local scratch may still use `npm run db:core:push` / `STARFORGE_PAYLOAD_PUSH=1`; never on shared/prod DBs.
-- Hot paths stay in core — do not put high-QPS app traffic through Payload Local API.
+- Core tables (`sf_*` in `public`) are applied with **migrations** (`npm run db:migrate`). That command also drops a leftover `payload` schema after copying any remaining rows. Local scratch may still use `npm run db:core:push`; never on shared/prod DBs.
+- Hot paths stay in core.
 
 ### Published content cache
 

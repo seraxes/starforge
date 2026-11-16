@@ -1,5 +1,7 @@
 # Decision: Payload peel
 
+**Status:** done (2026-11-16). Phases 1–4 shipped. The content manager is `product:pages`. The `/cms` shell and the CMS npm packages are gone. `@payloadcms/richtext-lexical` stays for `product:lexical-editor`.
+
 **Date:** 2026-11-15
 
 **Decision:** Do not vendor or fork Payload source. Peel `getPayload()` callers, then delete the npm packages. `product:media` owns media, including the document store still in Payload (meta, categories, media-tags, blobs via MediaStorage). `product:pages` (`src/modules/pages`, not Core, `requires` rich-editor and media) is the chosen content manager behind `PageReadsPort` (editorial pages, drafts, page admin, page tags). Site settings (toggles, performance, `primaryNavMenuId`) move to Core `sf_*`, not a CMS. Media peels before pages. The Payload UI stays until both parity bars are green. `PageReadsPort` stays the swap boundary. Payload is not a long-lived second CMS. Media and site settings do not go back into Payload.

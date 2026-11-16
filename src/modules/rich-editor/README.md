@@ -59,12 +59,6 @@ Toggle: **Site Settings → Modules → Rich editor** (`product:rich-editor` / `
 
 The TipTap engine lives in this pack (`RichEditor`, sanitize, nodes). Other packs bind `@/modules/rich-editor/api` and pass `MediaPicker` from `@/modules/media/api`. The editor file does not import the media module. Settings: `/admin/rich-editor/settings`.
 
-Page body save sanitizes in `sfHtmlBodyField` (`beforeValidate` → `sanitizeRichHtml`). That hook imports `../sanitize` directly so the Pages collection config does not load Site Settings.
-
-## Payload Pages
-
-Pages `body` uses TipTap HTML via `sfHtmlBodyField()` + `SfHtmlField` (Payload admin). The locale column is text (`20261111_pages_body_html_text`); unread Lexical documents stay as JSON text. Public render: `RichContent`, or `RichText` when that text is still a Lexical document.
+`product:pages` sanitizes body HTML with `sanitizeRichHtml` on save. Public render is `RichContent`. Old Lexical JSON still renders through `RichText` when `product:lexical-editor` is on (`@payloadcms/richtext-lexical`).
 
 Popups: Link, Callout (portal). Video: inline Media / YouTube–Vimeo panel under the toolbar.
-
-`@payloadcms/richtext-lexical` remains only so public `RichText` can still render old Lexical JSON until pages are re-saved as HTML.

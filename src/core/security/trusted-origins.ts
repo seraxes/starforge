@@ -43,9 +43,7 @@ export function hasUntrustedOrigin(
 }
 
 /**
- * Payload `csrf` allowlist: the `payload-token` cookie is only accepted from
- * these Origins (cross-site requests without Origin fall back to
- * `Sec-Fetch-Site`). An empty list would accept the cookie from anywhere.
+ * Alias of `appTrustedOrigins`. The name stayed after the CMS shell left.
  */
 export function payloadCsrfOrigins(env: NodeJS.ProcessEnv = process.env): string[] {
   return appTrustedOrigins(env)

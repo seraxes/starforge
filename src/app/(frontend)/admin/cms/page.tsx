@@ -2,18 +2,14 @@ import React from 'react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
-import { PAYLOAD_ADMIN_BASE } from '@/core/admin-paths'
 import { requireAdminArea } from '@/core/acl/access'
-import {
-  findPayloadCmsUserByCoreUserId,
-  loadCoreUserCmsAccess,
-} from '@/core/cms-bridge'
+import { loadCoreUserCmsAccess } from '@/core/cms-bridge'
 
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
   title: 'CMS access — Starforge',
-  description: 'One login: Better Auth opens Payload /cms/admin when CMS access is on.',
+  description: 'Better Auth cms_access opens editorial pages and draft preview.',
 }
 
 export default async function AdminCmsBridgePage() {
@@ -23,19 +19,16 @@ export default async function AdminCmsBridgePage() {
   }
 
   const access = await loadCoreUserCmsAccess(session.user.id)
-  const linked = await findPayloadCmsUserByCoreUserId(session.user.id)
   const email = session.user.email.trim().toLowerCase()
-  const hasCms = Boolean(access?.cmsAccess)
+  const hasCms = Boolean(access?.cmsAccess) && !access?.banned
 
   return (
     <section className="admin-section">
-      <h2>Payload CMS access</h2>
+      <h2>CMS access</h2>
       <p className="lede admin-lede">
-        <strong>One account.</strong> Staff sign in at{' '}
-        <Link href="/admin/login">/admin/login</Link> (same Better Auth credentials as public{' '}
-        <Link href="/login">/login</Link>). If CMS access is on, open{' '}
-        <Link href={PAYLOAD_ADMIN_BASE}>{PAYLOAD_ADMIN_BASE}</Link> — no second email/password.
-        Toggle CMS access per user under <Link href="/admin/users">Users</Link>.
+        <strong>One account.</strong> Staff sign in at <Link href="/admin/login">/admin/login</Link>.
+        When CMS access is on, this user can edit brochure pages and open draft preview. Toggle it
+        per user under <Link href="/admin/users">Users</Link>.
       </p>
 
       <dl className="cms-bridge-meta">
@@ -55,26 +48,19 @@ export default async function AdminCmsBridgePage() {
             )}
           </dd>
         </div>
-        <div>
-          <dt>Payload stub linked</dt>
-          <dd>
-            {linked ? (
-              <span className="admin-badge">Yes</span>
-            ) : (
-              <span className="admin-badge-warn">
-                Not yet (opens on first {PAYLOAD_ADMIN_BASE} visit)
-              </span>
-            )}
-          </dd>
-        </div>
       </dl>
 
       <div className="cms-bridge-panel">
         <div className="cms-bridge-actions">
           {hasCms ? (
-            <Link className="primary" href={PAYLOAD_ADMIN_BASE}>
-              Open Payload CMS
-            </Link>
+            <>
+              <Link className="primary" href="/admin/pages">
+                Open pages
+              </Link>
+              <Link className="secondary" href="/admin/media">
+                Open media
+              </Link>
+            </>
           ) : (
             <Link className="secondary" href="/admin/users">
               Turn on CMS access in Users
@@ -84,17 +70,15 @@ export default async function AdminCmsBridgePage() {
       </div>
 
       <p className="admin-lede cms-bridge-footnote">
-        Unauthenticated visits to <code>{PAYLOAD_ADMIN_BASE}</code> redirect to core login, then
-        return already authenticated. Without CMS access you see a clear deny — no Payload account
-        is required for ordinary members. Starforge Core admin stays at <code>/admin</code>.
+        Former <code>/cms</code> addresses redirect to <code>/admin</code>. Ordinary members do not
+        need CMS access to use the site.
       </p>
 
       <h3 className="admin-subhead">Draft preview</h3>
       <p className="admin-lede">
-        Turn on <strong>Draft preview</strong> under{' '}
-        <Link href="/admin/settings">Settings</Link>, then open{' '}
-        <code>/preview/&#123;slug&#125;</code> while signed in with CMS access. Unpublished pages
-        render there; anonymous visitors still only see published <code>/&#123;slug&#125;</code>.
+        Turn on <strong>Draft preview</strong> under <Link href="/admin/settings">Settings</Link>,
+        then open <code>/preview/&#123;slug&#125;</code> while signed in with CMS access.
+        Unpublished pages render there; anonymous visitors still only see published pages.
       </p>
     </section>
   )

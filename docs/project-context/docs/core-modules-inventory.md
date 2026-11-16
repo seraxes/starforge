@@ -25,7 +25,7 @@ Durable map of **feature modules** (Site Settings / allowlist toggleable) vs **i
 | Area | Kind | Status | Notes |
 | --- | --- | --- | --- |
 | Better Auth session | platform | shipped | Sole product login; Payload bridged via CMS access — no second password |
-| Payload CMS | platform module (`platform:payload-cms`) | shipped | Pages body + Lexical + Media store; Core owns chrome/users/layout |
+| Content manager | `product:pages` | shipped | Editorial pages. The `platform:payload-cms` catalog row was removed in phase 4. |
 | Module Manager | module tooling | shipped | Runtime toggles + allowlist codegen (`modules:generate`); P2 GitHub Packages sync still open |
 
 ---

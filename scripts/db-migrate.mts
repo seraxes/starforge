@@ -1,13 +1,10 @@
 /**
- * Apply Core (Drizzle / public.sf_*) then Payload (payload.*) migrations.
- * Re-runs `0043_site_settings` after Payload so a fresh database can copy
- * `payload.site_settings` once the Payload schema exists.
- * Re-runs `0044_media_document_store` the same way for `payload.media`.
- * Then copies Payload pages into `sf_pages_*` (idempotent; locale files + Nav remap).
- * Both SQL files are idempotent.
+ * Apply Core (Drizzle / public.sf_*) migrations.
+ * If the leftover `payload` schema is still present, copy site settings, media,
+ * and pages into `sf_*` (idempotent), then drop that schema.
+ * The drop is not in the Drizzle journal, so it cannot run before the copy.
  *
- * Verifies `sf_sessions`, locked-document rel columns, `sf_site_settings`,
- * and `sf_media_assets`.
+ * Verifies `sf_sessions`, `sf_site_settings`, `sf_media_assets`, and `sf_pages_versions`.
  */
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -27,6 +24,10 @@ const SITE_SETTINGS_MIGRATION = join(
 const MEDIA_STORE_MIGRATION = join(
   root,
   'src/core/db/migrations/0044_media_document_store.sql',
+)
+const DROP_PAYLOAD_SCHEMA = join(
+  root,
+  'src/core/db/migrations/0048_drop_payload_schema.sql',
 )
 
 function run(label: string, args: string[]): void {
@@ -98,32 +99,8 @@ async function verifyAndHeal(): Promise<void> {
       )
     }
 
-    const tagsOk = await columnExists(
-      client,
-      'payload',
-      'payload_locked_documents_rels',
-      'tags_id',
-    )
-    if (!tagsOk) {
-      throw new Error(
-        'payload.payload_locked_documents_rels.tags_id missing after migrate',
-      )
-    }
-
-    const categoriesOk = await columnExists(
-      client,
-      'payload',
-      'payload_locked_documents_rels',
-      'categories_id',
-    )
-    if (!categoriesOk) {
-      throw new Error(
-        'payload.payload_locked_documents_rels.categories_id missing after migrate',
-      )
-    }
-
     console.log(
-      '\n→ Copy site settings into public.sf_site_settings (idempotent; skips when payload_copied_at is set)',
+      '\n→ Copy site settings into public.sf_site_settings (idempotent; skips when payload schema is already gone)',
     )
     await replaySiteSettingsMigration(client)
 
@@ -139,6 +116,9 @@ async function verifyAndHeal(): Promise<void> {
     console.log(
       `  pages ${pagesCopy.pagesCopied}, skipped ${pagesCopy.pagesSkipped}, tags ${pagesCopy.tagsCopied}, versions ${pagesCopy.versionsCopied}, locale files ${pagesCopy.localesWritten}, nav binds ${pagesCopy.navItemsRemapped}${pagesCopy.note ? ` (${pagesCopy.note})` : ''}`,
     )
+
+    console.log('\n→ Drop leftover payload schema (idempotent)')
+    await replaySqlFile(client, DROP_PAYLOAD_SCHEMA)
 
     for (const col of SITE_SETTINGS_CORE_VERIFY_COLUMNS) {
       const ok = await columnExists(client, 'public', 'sf_site_settings', col)
@@ -179,7 +159,7 @@ async function verifyAndHeal(): Promise<void> {
     }
 
     console.log(
-      '\n✓ Verified public.sf_sessions + locked-docs tags_id/categories_id + public.sf_site_settings + public.sf_media_assets + public.sf_pages_versions',
+      '\n✓ Verified public.sf_sessions + public.sf_site_settings + public.sf_media_assets + public.sf_pages_versions',
     )
   } finally {
     await client.end()
@@ -187,7 +167,6 @@ async function verifyAndHeal(): Promise<void> {
 }
 
 run('Core Drizzle (sf_*)', ['run', 'db:core:migrate'])
-run('Payload (payload.*)', ['run', 'payload:migrate'])
 try {
   await verifyAndHeal()
 } catch (err) {

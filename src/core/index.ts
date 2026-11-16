@@ -179,7 +179,6 @@ export {
 export {
   buildAdminNavGroups,
   resolveEnabledAdminNavModuleIds,
-  CMS_NAV_LINKS,
 } from './admin-nav'
 export type {
   AdminNavFeatureFlags,
@@ -330,20 +329,10 @@ export { getEnvOverlayPath, loadEnvEditorSnapshot } from './env-editor/server'
 export {
   BOOTSTRAP_ADMIN_EMAIL,
   ensureCmsAccessForCoreUserIds,
-  ensurePayloadCmsUser,
-  findPayloadCmsUserByCoreUserId,
-  findPayloadCmsUserByEmail,
   loadCoreUserCmsAccess,
-  revokePayloadCmsUser,
   setCoreUserCmsAccess,
   userHasCmsAccess,
 } from './cms-bridge'
-export {
-  clearPayloadAdminSession,
-  establishPayloadAdminSession,
-  PAYLOAD_TOKEN_COOKIE,
-  setPayloadAdminSessionCookie,
-} from './cms-bridge/payload-session'
 export {
   ACL_ADMIN_RESOURCES,
   accessTagsForStorage,

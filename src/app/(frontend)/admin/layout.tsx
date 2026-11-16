@@ -33,7 +33,6 @@ import {
 } from '@/core/auth/admin'
 import { getAdminSession } from '@/core/auth/admin-session'
 import { getAppSession } from '@/core/auth/session'
-import { loadCoreUserCmsAccess, userHasCmsAccess } from '@/core/cms-bridge'
 import {
   MODULE_IDS,
   ensureSiteSettingsDefaults,
@@ -50,7 +49,7 @@ function isAdminLoginPath(pathname: string): boolean {
 export const metadata = {
   title: 'Starforge admin',
   description:
-    'Starforge admin — Dashboard home at /admin; users, site settings, nav, layouts (Payload CMS at /cms/admin).',
+    'Starforge admin — Dashboard home at /admin; users, site settings, nav, layouts, pages, and media.',
 }
 
 export default async function CoreAdminLayout(props: { children: React.ReactNode }) {
@@ -103,15 +102,12 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
   }
 
   const role = roleFromUser(session.user)
-  const access = session.user.id ? await loadCoreUserCmsAccess(session.user.id) : null
   // ensure* backfills newly allowlisted defaultEnabled packs (e.g. Email Manager)
   // into moduleToggles so upgrades do not need a SQL edit.
   const settings = await ensureSiteSettingsDefaults()
-  const payloadOn = isCatalogModuleEnabled(settings, MODULE_IDS.payloadCms)
   const layoutOn = isCatalogModuleEnabled(settings, MODULE_IDS.layoutManager)
   const pageSettingsOn = isCatalogModuleEnabled(settings, MODULE_IDS.pageSettings)
   const navOn = isCatalogModuleEnabled(settings, MODULE_IDS.primaryNav)
-  const showPayloadCms = payloadOn && userHasCmsAccess(access)
   const theme = getActiveAdminTheme()
   // Forms / Email / Redirects / Media — derived from manifest contributions + catalog toggles.
   const enabledModuleIds = resolveEnabledAdminNavModuleIds(settings)
@@ -123,7 +119,6 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
         nav: navOn,
         layout: layoutOn,
         pageSettings: pageSettingsOn,
-        cms: showPayloadCms,
       },
       enabledModuleIds,
       developerAdmin: userIsDeveloperAdmin(session.user),

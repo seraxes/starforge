@@ -71,8 +71,8 @@ must(
   'localization form must persist locale catalog codes',
 )
 must(
-  /payload\.config\.ts/.test(localizationForm),
-  'localization form must document Payload bootstrap limit',
+  !/payload\.config\.ts/.test(localizationForm),
+  'localization form must not send editors to payload.config.ts',
 )
 
 const store = readFileSync(join(root, 'src/core/site-chrome/store.ts'), 'utf8')

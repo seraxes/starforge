@@ -2,11 +2,6 @@ import createMiddleware from 'next-intl/middleware'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-import { isPayloadAdminPath, PAYLOAD_ADMIN_BASE } from '@/core/admin-paths'
-import {
-  adminSessionCookieNames,
-  publicSessionCookieNames,
-} from '@/core/auth/admin-session'
 import {
   DEFAULT_LOCALE,
   LOCALES,
@@ -77,20 +72,6 @@ async function handleI18nRouting(request: NextRequest): Promise<NextResponse> {
 function finalize(response: NextResponse, cspSources?: CspSources | null): NextResponse {
   applySecurityHeaders(response.headers, { cspSources })
   return response
-}
-
-/** Public Better Auth cookie (member site). */
-function hasPublicSession(request: NextRequest): boolean {
-  return publicSessionCookieNames().some((name) => request.cookies.has(name))
-}
-
-/** Staff backend session cookie. */
-function hasAdminSession(request: NextRequest): boolean {
-  return adminSessionCookieNames().some((name) => request.cookies.has(name))
-}
-
-function hasPayloadToken(request: NextRequest): boolean {
-  return request.cookies.has('payload-token')
 }
 
 /**
@@ -241,64 +222,15 @@ async function finalizePublic(
 /**
  * Next.js 16 Node `proxy` (replaces deprecated Edge `middleware`).
  *
- * Order: Payload SSO → skip locale for admin/cms/api → next-intl locale negotiation
+ * Order: legacy `/cms` → `/admin` → skip locale for admin/api → next-intl locale negotiation
  * early on public paths → module proxy hooks → offline 503 → pathname header + feature CSP.
  */
 export async function proxy(request: NextRequest) {
-  const { pathname, search } = request.nextUrl
+  const { pathname } = request.nextUrl
 
-  // Payload CMS admin — SSO exchange gate (not Core `/admin`).
-  if (isPayloadAdminPath(pathname)) {
-    const admin = hasAdminSession(request)
-    const publicBa = hasPublicSession(request)
-    const token = hasPayloadToken(request)
-    const nextPath = `${pathname}${search || ''}`
-    const destPath = nextPath.startsWith(`${PAYLOAD_ADMIN_BASE}/login`)
-      ? PAYLOAD_ADMIN_BASE
-      : nextPath
-    const loginDest = new URL(
-      `/login?next=${encodeURIComponent(
-        nextPath.startsWith(`${PAYLOAD_ADMIN_BASE}/login`) ? PAYLOAD_ADMIN_BASE : nextPath,
-      )}`,
-      request.url,
-    )
-    const mintDest = new URL(
-      `/api/auth/admin-session?next=${encodeURIComponent(destPath)}`,
-      request.url,
-    )
-    const exchangeDest = new URL(
-      `/api/cms/exchange?next=${encodeURIComponent(
-        pathname.startsWith(`${PAYLOAD_ADMIN_BASE}/login`) ||
-          pathname.startsWith(`${PAYLOAD_ADMIN_BASE}/create-first-user`)
-          ? PAYLOAD_ADMIN_BASE
-          : nextPath,
-      )}`,
-      request.url,
-    )
-
-    if (!admin && !publicBa) {
-      return finalize(NextResponse.redirect(loginDest))
-    }
-
-    // Public staff session alone → mint backend cookie before CMS exchange.
-    if (!admin && publicBa) {
-      return finalize(NextResponse.redirect(mintDest))
-    }
-
-    if (
-      pathname === `${PAYLOAD_ADMIN_BASE}/login` ||
-      pathname.startsWith(`${PAYLOAD_ADMIN_BASE}/login/`) ||
-      pathname === `${PAYLOAD_ADMIN_BASE}/create-first-user` ||
-      pathname.startsWith(`${PAYLOAD_ADMIN_BASE}/create-first-user/`)
-    ) {
-      return finalize(NextResponse.redirect(exchangeDest))
-    }
-
-    if (!token) {
-      return finalize(NextResponse.redirect(exchangeDest))
-    }
-
-    return finalize(NextResponse.next())
+  // Former Payload admin. Bookmarks land on Core admin. No second login.
+  if (pathname === '/cms' || pathname.startsWith('/cms/')) {
+    return finalize(NextResponse.redirect(new URL('/admin', request.url)))
   }
 
   if (isNonLocalizedPath(pathname)) {

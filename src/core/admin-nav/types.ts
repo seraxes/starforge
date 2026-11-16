@@ -1,11 +1,11 @@
-/** Shared admin left-nav model — Core `/admin` and Payload `/cms/admin` consume the same tree. */
+/** Admin left-nav model for Core `/admin`. */
 
 export type AdminNavLink = {
   href: string
   label: string
-  /** Exact match only (e.g. CMS Dashboard → `/cms/admin`). */
+  /** Exact match only (e.g. Dashboard → `/admin`). */
   exact?: boolean
-  /** Cross-surface link (Core ↔ Payload); still same-tab navigation. */
+  /** Link that leaves the current admin shell. */
   external?: boolean
   /** Nested leaves under this link (e.g. Outline → Layout / Styles / Page settings). */
   children?: AdminNavLink[]
@@ -45,13 +45,9 @@ export type AdminNavFeatureFlags = {
   redirects?: boolean
   layout: boolean
   pageSettings: boolean
-  /** Payload CMS module on + user may open /cms/admin. */
-  cms: boolean
-}
-
-/** Payload collection / global destinations under the CMS accordion. */
-export type AdminCmsNavLink = AdminNavLink & {
-  /** Payload entity kind — used when filtering by visibleEntities. */
-  entity?: 'collection' | 'global' | 'dashboard'
-  slug?: string
+  /**
+   * Ignored. The Payload CMS accordion was removed in phase 4.
+   * Kept so existing flag objects still typecheck.
+   */
+  cms?: boolean
 }

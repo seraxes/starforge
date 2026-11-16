@@ -1,6 +1,6 @@
 import { cache } from 'react'
 
-import type { Page } from '@/payload-types'
+import type { Page } from './page-reads/types'
 
 import {
   type AppLocale,
@@ -46,8 +46,7 @@ export const getPublishedPageBySlug = cache(
  *
  * Used only by `/[locale]/preview/[slug]` after core auth + feature-flag checks.
  * Intentionally **not** cached — editors must see the latest draft.
- * Access override lives in the Payload adapter — the public route has a Better Auth
- * session, not a Payload `req.user`, so collection access would otherwise hide drafts.
+ * The public route checks the Better Auth session and `cms_access` before calling this.
  */
 export const getDraftPageBySlug = cache(
   async (slug: string, locale: AppLocale): Promise<Page | null> => {

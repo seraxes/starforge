@@ -36,11 +36,9 @@ export default async function AdminLocalizationPage() {
       <p className="lede admin-lede">
         Locale catalog (add codes beyond <code>en</code>/<code>hu</code>), enable list,
         default locale, and fallback. Public routing, switcher, nav, and hreflang honor this
-        catalog immediately. Payload CMS locales in <code>payload.config.ts</code> stay
-        code-bootstrapped from Core bootstrap codes — admin-added languages do not appear in{' '}
-        <code>/cms</code> until that config is updated and the app restarts. Offline /
-        SEO / cookies / email under <Link href="/admin/site-chrome">Chrome</Link>; Modules
-        / Auth / Security under <Link href="/admin/settings">Settings</Link>.
+        catalog immediately. Offline / SEO / cookies / email under{' '}
+        <Link href="/admin/site-chrome">Chrome</Link>; Modules / Auth / Security under{' '}
+        <Link href="/admin/settings">Settings</Link>.
       </p>
       <LocalizationForm settings={settings} />
       <div className="admin-settings-mosaic" style={{ marginTop: '1.25rem' }}>

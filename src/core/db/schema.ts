@@ -34,8 +34,8 @@ export const sfUsers = pgTable('sf_users', {
    */
   role: text('role').default('member').notNull(),
   /**
-   * When true, this core user may open Payload `/cms/admin` via the Better Auth
-   * session strategy (linked CMS stub). Global admins get this by default.
+   * When true, this core user may edit brochure pages and open draft preview.
+   * Global admins get this by default. Sign-in is Better Auth only.
    */
   cmsAccess: boolean('cms_access').default(false).notNull(),
   banned: boolean('banned').default(false).notNull(),

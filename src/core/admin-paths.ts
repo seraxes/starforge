@@ -1,8 +1,8 @@
 /**
- * Canonical admin URL bases (Starforge Core vs Payload CMS).
+ * Canonical admin URL bases.
  *
  * Core UI lives at `/admin` (Dashboard at the root).
- * Payload UI lives at `/cms/admin` (and `/cms/admin/...` collection routes).
+ * `/cms` and `/cms/admin` are legacy bookmarks. Proxy and next.config send them to `/admin`.
  * Legacy `/app/admin/*` bookmarks redirect to `/admin/*` (see next.config).
  */
 
@@ -12,7 +12,7 @@ export const CORE_ADMIN_BASE = '/admin'
 /** @deprecated Prefer CORE_ADMIN_BASE — alias kept for Dashboard D0 callers. */
 export const CORE_ADMIN_ROOT = CORE_ADMIN_BASE
 
-/** Payload CMS admin panel root. */
+/** Legacy CMS prefix. Requests here redirect to `/admin`. */
 export const PAYLOAD_ADMIN_BASE = '/cms/admin'
 
 /** @deprecated Prefer PAYLOAD_ADMIN_BASE — alias kept for Dashboard D0 callers. */

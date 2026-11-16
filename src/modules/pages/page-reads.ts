@@ -6,7 +6,7 @@
 
 import 'server-only'
 
-import type { Page } from '@/payload-types'
+import type { Page } from '@/core/content/page-reads/types'
 
 import type { PageReadsPort, PageReadsSearchResult } from '@/core/content/page-reads/types'
 import { buildPageKey } from '@/core/i18n/content-locale-keys'
@@ -114,7 +114,7 @@ function toPage(page: PageRecord, fields: LocaleFields): Page {
     updatedAt: page.updatedAt.toISOString(),
     createdAt: page.createdAt.toISOString(),
     _status: page.status,
-  } as unknown as Page
+  }
 }
 
 function missingPagesTable(error: unknown): boolean {

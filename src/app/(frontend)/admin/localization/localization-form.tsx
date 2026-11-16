@@ -117,10 +117,7 @@ export function LocalizationForm({ settings }: Props) {
           <p className="settings-hint">
             Use a BCP-47-ish code (<code>de</code>, <code>fr</code>, <code>en-US</code>,{' '}
             <code>pt-BR</code>). Public routing, the locale switcher, nav prefixes, and
-            hreflang pick up new codes immediately. Payload CMS locales in{' '}
-            <code>payload.config.ts</code> stay code-bootstrapped from <code>en</code>/
-            <code>hu</code> — admin-added codes do <strong>not</strong> hot-reload into{' '}
-            <code>/cms</code> until that config is updated and the app restarts.
+            hreflang pick up new codes immediately.
           </p>
           <div className="sf-locale-add-row">
             <label className="settings-field">
@@ -186,10 +183,7 @@ export function LocalizationForm({ settings }: Props) {
         <fieldset className="settings-fieldset">
           <legend>Fallback</legend>
           <p className="settings-hint">
-            When on, missing translations fall back to the default locale. Payload’s{' '}
-            <code>localization.fallback</code> in <code>payload.config.ts</code> stays
-            code-configured for now (restart / redeploy to change runtime CMS fallback). This
-            toggle stores the Site Settings intent for a later sync pass.
+            When on, missing translations fall back to the default locale.
           </p>
           <label className="settings-flag">
             <input

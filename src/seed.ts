@@ -2,9 +2,9 @@
  * Local demo seed for Starforge.
  *
  * Creates sample **published** pages (`product:pages`), site settings, core app
- * users (Better Auth), and grants **cms_access** (+ Payload stub) for the
- * bootstrap global admin. One Better Auth login opens `/cms/admin` — no second
- * password. Product members stay in core unless CMS access is toggled on.
+ * users (Better Auth), and grants **cms_access** for the bootstrap global admin.
+ * One Better Auth login opens `/admin`. Product members stay in core unless CMS
+ * access is toggled on.
  *
  * Usage (Compose up, `.env` present, core tables pushed):
  *   npm run seed
@@ -39,7 +39,7 @@ const DEMO_APP_EMAIL = 'demo@starforge.local'
 const DEMO_APP_PASSWORD = 'starforge-demo'
 const DEMO_APP_NAME = 'Demo Member'
 
-/** Local bootstrap admin — same email/password for core `/login` and Payload `/cms/admin`. */
+/** Local bootstrap admin — same email/password for `/login` and `/admin`. */
 const BOOTSTRAP_ADMIN_PASSWORD = 'starforge-admin'
 const BOOTSTRAP_ADMIN_NAME = 'Demo Admin'
 
@@ -312,7 +312,7 @@ async function main() {
   console.log('')
   console.log('Starforge seed')
   console.log('--------------')
-  console.log('One login: Better Auth at /login. CMS access opens /cms/admin with no second password.')
+  console.log('One login: Better Auth at /login. CMS access edits pages at /admin/pages.')
   console.log('Toggle CMS access under /admin/users (admins get it by default).')
   console.log('')
 
@@ -482,20 +482,20 @@ async function main() {
     const { enabled, failed } = await seedCmsAccessForAdmins()
     console.log('')
     console.log(
-      `CMS access (+ Payload stub) for admins: ${enabled.length ? enabled.join(', ') : '(none)'}`,
+      `CMS access for admins: ${enabled.length ? enabled.join(', ') : '(none)'}`,
     )
     for (const fail of failed) {
       console.warn(`CMS access failed for ${fail.email}: ${fail.error}`)
     }
-    console.log('Open /cms/admin after /login — no second password prompt.')
+    console.log('Open /admin/pages after /login when cms_access is on.')
   } catch (error) {
     console.warn('')
-    console.warn('Could not ensure CMS access / Payload stubs.')
+    console.warn('Could not ensure CMS access.')
     console.warn(error instanceof Error ? error.message : error)
   }
 
   console.log('')
-  console.log('Try: http://localhost:3000/  (Payload home)  ·  /about  ·  /getting-started  ·  /welcome')
+  console.log('Try: http://localhost:3000/  ·  /about  ·  /getting-started  ·  /welcome')
   console.log('Notice bar (modules): header position when Modules is on')
   console.log('Login once: http://localhost:3000/login  then open Core http://localhost:3000/admin')
   console.log('Core admin users:    http://localhost:3000/admin/users')
@@ -503,7 +503,7 @@ async function main() {
   console.log('Core site settings:  http://localhost:3000/admin/settings')
   console.log('Core page settings:  http://localhost:3000/admin/page-settings')
   console.log('Core layout manager: http://localhost:3000/admin/layouts')
-  console.log('Payload CMS:         http://localhost:3000/cms/admin')
+  console.log('Pages:               http://localhost:3000/admin/pages')
   console.log('')
 
   process.exit(0)

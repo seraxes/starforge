@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import { languageAlternateMetadata } from '@/core/i18n/alternates'
 import { getEnabledPublicLocales } from '@/core/i18n/enabled'
 import { HOME_PAGE_KEY } from '@/core/page-settings/defaults'
-import type { Media, Page } from '@/payload-types'
+import type { Page } from './page-reads/types'
 
 const DEFAULT_SITE_NAME = 'Starforge'
 
@@ -24,8 +24,10 @@ export function appOrigin(): string {
   ).replace(/\/$/, '')
 }
 
-/** Turn a Payload media `url` (or absolute URL) into an absolute public URL. */
-export function absoluteMediaUrl(media: Media | null | undefined): string | undefined {
+/** Turn a media `url` (or absolute URL) into an absolute public URL. */
+export function absoluteMediaUrl(
+  media: { url?: string | null } | null | undefined,
+): string | undefined {
   if (!media?.url) {
     return undefined
   }

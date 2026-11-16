@@ -197,46 +197,16 @@ for (const surface of ['core', 'payload'] as const) {
   }
   console.log(`[${surface}] ok — Skins → Outline → Page settings (no Font Awesome nav leaf)`)
 
-  const cms = groups.find((g) => g.id === 'cms')
-  if (!cms) {
-    console.error(`[${surface}] missing cms group`)
+  if (groups.some((g) => g.id === 'cms')) {
+    console.error(`[${surface}] Payload CMS accordion must be gone`, groups.map((g) => g.id))
     process.exit(1)
   }
-  const cmsSiteSettings = cms.links.find(
-    (l) =>
-      l.href.includes('/globals/site-settings') ||
-      /^site settings$/i.test(l.label.trim()),
-  )
-  if (cmsSiteSettings) {
-    console.error(
-      `[${surface}] CMS accordion must not list Settings (Core top-level only)`,
-      cms.links,
-    )
+  const settings = groups.find((g) => g.id === 'site-settings')
+  if (!settings) {
+    console.error(`[${surface}] missing site-settings group`)
     process.exit(1)
   }
-  console.log(`[${surface}] ok — Settings top-level only (not under CMS)`)
-
-  if (cms.href !== '/cms/admin') {
-    console.error(`[${surface}] CMS group href must be /cms/admin, got`, cms.href)
-    process.exit(1)
-  }
-  const cmsDash = cms.links.find((l) => l.label === 'Dashboard')
-  if (!cmsDash || cmsDash.href !== '/cms/admin' || !cmsDash.exact) {
-    console.error(`[${surface}] CMS → Dashboard must be exact /cms/admin`, cmsDash)
-    process.exit(1)
-  }
-  if (cms.links.some((l) => l.href === '/admin' || l.href.startsWith('/admin/'))) {
-    console.error(
-      `[${surface}] CMS accordion must not link into Core /admin/*`,
-      cms.links,
-    )
-    process.exit(1)
-  }
-  if (!cms.links.every((l) => l.href === '/cms/admin' || l.href.startsWith('/cms/admin/'))) {
-    console.error(`[${surface}] CMS children must stay under /cms/admin`, cms.links)
-    process.exit(1)
-  }
-  console.log(`[${surface}] ok — CMS → Dashboard /cms/admin (Payload only)`)
+  console.log(`[${surface}] ok — no Payload CMS accordion; Settings stays top-level`)
 }
 
 console.log('verify-admin-nav-site-chrome: pass')

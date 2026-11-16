@@ -63,15 +63,14 @@ function redisAuthOptions() {
 
 /**
  * Starforge product auth (app users).
- * Completely separate from Payload CMS editor accounts at `/cms/admin`.
+ * Sole sign-in for Starforge. Editorial rights are `sf_users.cms_access`.
  *
  * Physical tables stay `sf_*` in `public`; Better Auth model keys stay the
  * defaults (`user` / `session` / `account` / `verification` / `twoFactor`) so
  * adapter joins and credential lookups stay reliable.
  *
  * Roles live on `sf_users.role` via the Better Auth admin plugin (`admin` | `member`).
- * CMS access (`sf_users.cms_access`) opens Payload `/cms/admin` via the Better Auth
- * session strategy — one login only (no second Payload password).
+ * CMS access (`sf_users.cms_access`) lets that user edit pages and open draft preview.
  *
  * Recovery / passwordless / 2FA (SF-17): password reset + magic link + email OTP
  * + TOTP/backup codes, all through the platform Mailer port.
@@ -177,7 +176,7 @@ export const auth = betterAuth({
               const { setCoreUserCmsAccess } = await import('@/core/cms-bridge')
               await setCoreUserCmsAccess(user.id, true)
             } catch {
-              // Payload may be unavailable during early bootstrap; seed will retry.
+              // cms_access is also set on the row above; ignore a second write failure.
             }
           }
         },

@@ -23,7 +23,7 @@ export type SitemapPageEntry = {
  * Home slug `home` maps to `/{locale}`; other slugs → `/{locale}/{slug}`.
  * Shared slug across locales (P1); hreflang alternates built in the route.
  * Enabled locales come from Localization admin (P2).
- * Goes through PageReadsPort — no direct `getPayload()` here.
+ * Goes through PageReadsPort.
  */
 export async function listPublishedPagesForSitemap(): Promise<SitemapPageEntry[]> {
   const locales = await getEnabledPublicLocales()

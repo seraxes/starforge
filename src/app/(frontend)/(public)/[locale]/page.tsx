@@ -80,9 +80,9 @@ export default async function HomePage({ params, searchParams }: Props) {
       {showCmsDenied ? (
         <div className="notice-banner" role="status">
           <p>
-            <strong>No CMS access.</strong> Content CMS (<code>/cms/admin</code>) needs{' '}
-            <code>cms_access</code>. Ask a Starforge admin under{' '}
-            <Link href="/admin/users">Users</Link>, or sign in as the seed admin.
+            <strong>No CMS access.</strong> Editing pages needs <code>cms_access</code>. Ask a
+            Starforge admin under <Link href="/admin/users">Users</Link>, or sign in as the seed
+            admin.
           </p>
         </div>
       ) : null}

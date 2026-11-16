@@ -32,18 +32,14 @@ Do **not** route high-QPS app login/session traffic through Payload Local API. P
 
 ### Bootstrap an admin
 
-1. **Seed:** `npm run seed` creates `admin@starforge.local` / `starforge-admin` with role `admin` + `cms_access`, and a Payload stub. Sign in once at `/login`, then open `/admin` — no second password.
+1. **Seed:** `npm run seed` creates `admin@starforge.local` / `starforge-admin` with role `admin` + `cms_access`. Sign in once at `/login`, then open `/admin`.
 2. **Env promote:** set `STARFORGE_ADMIN_EMAILS=you@example.com`, restart `npm run dev`, reload while signed in — promoted to admin + CMS access.
 
-Members visiting `/admin/users` are redirected to `/?notice=admins-only`. Users without `cms_access` who open `/admin` go to `/?notice=cms-denied`.
+Members visiting `/admin/users` are redirected to `/?notice=admins-only`.
 
-### Reach Payload `/admin`
+### CMS access
 
-1. Sign in at `/login` (seed admin or any user with CMS access on).
-2. Open `/cms/admin` (or `/cms/admin/login`) — middleware sends you through `/api/cms/exchange`, which sets a Payload `payload-token` JWT, then the dashboard loads (**no** Payload password form; `/admin/login` never renders).
-3. Manage the per-user switch under `/admin/users` (CMS access column).
-
-Unauthenticated `/cms/admin` → core `/login?next=/cms/admin` → after login, exchange → CMS.
+`sf_users.cms_access` lets that user edit pages and open draft preview. Toggle it under `/admin/users`. `/cms` redirects to `/admin`. There is no second password.
 
 ## Local forms
 

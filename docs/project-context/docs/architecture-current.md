@@ -8,17 +8,17 @@ Read this before [design-system-overview](./design-system-overview.md) (3 Nov sn
 
 Starforge is the reusable starter: auth, the layout host, a content-manager pack behind PageReadsPort, and toggleable packs. ASN 2.0 is a later **Hero** (theme + airsoft rules) on top of those packs. It does not fork them.
 
-Four placements: **Core** is the host and the ports. **Base modules** are the dependency engines (Media, Forms, Rich editor, Email Manager, Payments, Profiles, Maps). The content manager is **`product:pages`** (chosen 2026-11-15; phase 3b cutover done 2026-11-16). **Advanced modules** are the domain packs that `require` those engines (Events, Subscriptions, and later Ads, Shop, Marketplace, Support, Stream). **Hero** is brand and vertical rules. Base modules are not Core. The old nickname “level-1 engines” means the base modules. Placement: [platform-module-layers](./platform-module-layers.md). Rule: [sf-architecture](../../../.cursor/rules/sf-architecture.mdc). Ownership: [sf-module-ownership](../../../.cursor/rules/sf-module-ownership.mdc). Rows in the placement table that still call Payload the content manager or the one media library are behind this map.
+Four placements: **Core** is the host and the ports. **Base modules** are the dependency engines (Media, Forms, Rich editor, Email Manager, Payments, Profiles, Maps). The content manager is **`product:pages`** only (phase 4 shell removed 2026-11-16). **Advanced modules** are the domain packs that `require` those engines (Events, Subscriptions, and later Ads, Shop, Marketplace, Support, Stream). **Hero** is brand and vertical rules. Base modules are not Core. The old nickname “level-1 engines” means the base modules. Placement: [platform-module-layers](./platform-module-layers.md). Rule: [sf-architecture](../../../.cursor/rules/sf-architecture.mdc). Ownership: [sf-module-ownership](../../../.cursor/rules/sf-module-ownership.mdc). Rows in older placement tables that still call a CMS package the content manager or the media library are behind this map.
 
 ## Routes
 
 | Surface | Path |
 | --- | --- |
-| Core admin | `/admin` (root = Dashboard) |
-| Payload CMS | `/cms` (editor at `/cms/admin`). Stays until the peel parity bars are green |
+| Core admin | `/admin` (root = Dashboard). Pages at `/admin/pages`. Media at `/admin/media`. |
+| Former `/cms` | Redirects to `/admin`. Not an admin. |
 | Public site | `/[locale]/…` |
 
-Older sentences that say Core lives at `/app/admin` and Payload lives at `/admin` are obsolete (SF-213).
+Older sentences that say Core lives at `/app/admin` or that a CMS package lives at `/admin` or `/cms/admin` are obsolete (SF-213, phase 4).
 
 ## Admin chrome
 
@@ -26,7 +26,7 @@ Follow [sf-ui-design](../../../.cursor/rules/sf-ui-design.mdc). Copy Events or P
 
 - **Canvas builders** (Layout, Form builder) autosave when the value changes. Not on focus alone.
 - **Entity cards** (Events, Venues, Payments, module settings) keep bottom-right Apply / Save / Cancel. Do not strip those buttons to match canvas autosave.
-- Admin is blue Gantry chrome. Orange is the primary Save / rare CTA. Payload admin uses the same tokens (`payload-chrome.css`). It is not left on the Payload default skin.
+- Admin is blue Gantry chrome. Orange is the primary Save / rare CTA. There is one admin skin (`core-chrome.css`).
 
 ## Secrets
 
@@ -57,13 +57,13 @@ Installing Starforge means choosing which modules come with that site. The mecha
 
 **Not downloaded unless chosen:** any product engine. Forms, the media library, redirects, TipTap, Lexical, search, Email Manager, Payments (gateways, NAV, Billingo, Számlázz), Maps (Leaflet), Events, Profiles, Consent’s banner, and PWA. Adding one later is a new install and a new build, not a checkbox over code that was already on disk.
 
-**Content manager (decided 2026-11-15, phase 3b done 2026-11-16):** `product:pages` lives in `src/modules/pages`, not in Core. It owns editorial pages, drafts, the last 20 version snapshots, page admin, and page tags (`sf_pages_*`). Its manifest `requires` `product:rich-editor` and `product:media`. Layout, search, and sitemap keep reading through `PageReadsPort` (`src/core/content/page-reads`): published page by slug, draft preview, search list, sitemap summaries. When the pack is enabled, `getPageReads()` uses the pages adapter. When the pack is off, those reads are empty. That port is the swap boundary. Payload is not a second CMS to keep beside `product:pages`. 3b copies Payload pages once and does not delete `/cms`.
+**Content manager (decided 2026-11-15, shell removed 2026-11-16):** `product:pages` lives in `src/modules/pages`, not in Core. It owns editorial pages, drafts, the last 20 version snapshots, page admin, and page tags (`sf_pages_*`). Its manifest `requires` `product:rich-editor` and `product:media`. Layout, search, and sitemap keep reading through `PageReadsPort` (`src/core/content/page-reads`): published page by slug, draft preview, search list, sitemap summaries. When the pack is enabled, `getPageReads()` uses the pages adapter. When the pack is off, those reads are empty. That port is the swap boundary. There is no second CMS.
 
-`product:media` owns the media document store (`sf_media_assets`, `sf_media_categories`, `sf_media_tags`, `sf_media_asset_tags`) and the library UI. Blobs stay on the MediaStorage port. ImageFrame stays the display crop. Site settings — module toggles, performance knobs, and `primaryNavMenuId` — live on Core `sf_site_settings` (phase 1, done). They are not CMS content. Site Chrome stays on `sf_site_chrome`. Media and site settings do not go back into Payload.
+`product:media` owns the media document store (`sf_media_assets`, `sf_media_categories`, `sf_media_tags`, `sf_media_asset_tags`) and the library UI. Blobs stay on the MediaStorage port. ImageFrame stays the display crop. Site settings — module toggles, performance knobs, and `primaryNavMenuId` — live on Core `sf_site_settings`. They are not CMS content. Site Chrome stays on `sf_site_chrome`. Media and site settings do not go back into a CMS package.
 
-Do not vendor or fork Payload source. Peel `getPayload()` callers, then delete the npm packages. Payload is still on the install path for the CMS bridge and the `/cms` shell. Page reads, Nav page binds, and `seedPages` do not call `getPayload()`. Site settings and the media document store do not call `getPayload()`. Media UX parity (2a), the store move (2b), and pages 3a–3b are done. `/cms` stays up until phase 4. Buckets, packages, order, and those bars: [payload-dependency-map](./payload-dependency-map.md). Decision: [2026-11-15-payload-peel](./decisions/2026-11-15-payload-peel.md). Pages one-pager: [pages-pack-plan](./pages-pack-plan.md).
+CMS access is Better Auth plus `sf_users.cms_access`. Draft preview and page edits use that flag. `/cms` redirects to `/admin`. The CMS npm packages are gone except `@payloadcms/richtext-lexical`, which `product:lexical-editor` still imports. `npm run db:migrate` copies any leftover `payload` schema rows into `sf_*`, then drops that schema. Archive: [payload-dependency-map](./payload-dependency-map.md). Decision: [2026-11-15-payload-peel](./decisions/2026-11-15-payload-peel.md). Pages one-pager: [pages-pack-plan](./pages-pack-plan.md).
 
-**Payload peel:** (1) site settings → Core `sf_site_settings` — **done**. (2a) media UX parity — **done**. (2b) media document store → `sf_media_*` — **done**. (3a) `product:pages` MVP daily edit — **done**. (3b) version restore, data migrate, Nav id remap, Payload pages removal — **done** (2026-11-16). (4) cms-bridge, the `(payload)` shell, and the npm packages — still open. Do not start phase 4 from a docs change. This does not replace ads as the next product pack.
+**Payload peel:** (1) site settings → Core `sf_site_settings` — **done**. (2a) media UX parity — **done**. (2b) media document store → `sf_media_*` — **done**. (3a) `product:pages` MVP daily edit — **done**. (3b) version restore, data migrate, Nav id remap — **done** (2026-11-16). (4) cms-bridge, the `/cms` shell, and the CMS npm packages — **done** (2026-11-16). This does not replace ads as the next product pack.
 
 `modules:sync` does not yet omit an unchosen engine. It only adds or removes `@starforge/module-*` packages, and only notice-bar and consent are real packages. Forms, media, payments, maps, and the rest are still inside this repo, so every install downloads them. Moving those engines out so an unchosen pack is absent from disk is the modularity target. Do not treat “the admin toggle is off” as that target.
 
@@ -77,7 +77,7 @@ Do not re-open work that already shipped: RateLimiter, captcha-in-security, the 
 
 **Resume (2026-11-13):** Core finish slices 1–9 shipped. Base modules (Forms, Media, Email Manager, Rich editor, Profiles, Payments, Maps v1) plus site utilities are in place. Subscriptions resolve is an advanced pack on those engines. `requires` on each manifest is the dependency map; install and the Modules toggle close it. Paid tickets and the subscriptions lifecycle already shipped. Next product pack is ads. Redirects, Forms, and the TipTap engine are in `src/modules`. Page reads go through `PageReadsPort`.
 
-**Payload peel:** phase 1 (site settings → `sf_site_settings`) is done. Phase 2a (media UX parity) and phase 2b (media document store on `sf_media_*`) are done. Phase 3a (pages MVP) and phase 3b (migrate, version restore, Nav remap) are done. Still open: the shell (phase 4). It does not replace ads as the next product pack. Detail is under Installer → Content manager, and in [payload-dependency-map](./payload-dependency-map.md).
+**Payload peel:** phases 1–4 are done (2026-11-16). The content manager is `product:pages`. Detail is under Installer → Content manager, and in the archived [payload-dependency-map](./payload-dependency-map.md). It does not replace ads as the next product pack.
 
 **Core finish (shipped).** One slice per chat was the rule; paste archive in [core-finish-instructions](./core-finish-instructions.md):
 
@@ -132,7 +132,7 @@ Do not relocate these in a drive-by:
 | Payment fulfillment | `registerPaymentConsumerHook('events.confirmRegistration', …)` | One hook key per consumer, passed into checkout. Registrations on that key append. The first handler’s throw still fails the request. Later listeners are isolated. The default hero adds none. No second event bus. |
 | Online payment gateway | Core adapter `src/core/payments/<id>.ts` plus an import in `register-online.ts` | A developer ships it in the build. An admin enables it and pastes keys. No upload-a-gateway screen. Offline methods stay the fixed list. |
 | Process boot | generated `runModuleBoot`, then `runHeroBoot` | `instrumentation.ts` asserts env, then calls both. No pack paths. Each pack boot returns immediately when its own toggle is off. The default hero loader is null. The Events abandoned-checkout sweep stays unarmed while Events is off; stuck `pending_payment` seats wait until Events is on and boot runs again. |
-| Page reads | `PageReadsPort` (`src/core/content/page-reads`); pages adapter when `product:pages` is on, else empty | Layout, search, and sitemap use `getPageReads()`. They do not call `getPayload()`. |
+| Page reads | `PageReadsPort` (`src/core/content/page-reads`); pages adapter when `product:pages` is on, else empty | Layout, search, and sitemap use `getPageReads()`. |
 | Admin ACL | Core groups. Each grant is `view`, `edit`, or `manage` (manage includes the lower levels; the highest group wins). App admin bypasses. Role, group membership, the matrix, and the environment file stay app-admin. | Do not add an Access Level entity. Do not flatten the matrix back to a checkbox. |
 | Admin audit | Core `sf_admin_audit` + `recordAdminAudit`. Optional site pack `product:audit` is the company reader and the extra activity rows. | No second audit table. Do not put secrets or free-text notes in a row. |
 
@@ -162,8 +162,8 @@ Still paper, and only when a consumer is actually being built: `LlmProvider`, `M
 | Glossary / agent index | [glossary](./glossary.md), [AGENTS.md](../../../AGENTS.md) |
 | Accepted decisions | [decisions/](./decisions/) |
 | ACL levels and optional audit | [2026-11-16-acl-levels-and-audit](./decisions/2026-11-16-acl-levels-and-audit.md) |
-| Payload peel (buckets, packages, order) | [payload-dependency-map](./payload-dependency-map.md), [2026-11-15-payload-peel](./decisions/2026-11-15-payload-peel.md) |
-| Pages pack (phase 3b done; phase 4 shell open) | [pages-pack-plan](./pages-pack-plan.md) |
+| Payload peel (archive; phases 1–4 done) | [payload-dependency-map](./payload-dependency-map.md), [2026-11-15-payload-peel](./decisions/2026-11-15-payload-peel.md) |
+| Pages pack (shipped; shell removed) | [pages-pack-plan](./pages-pack-plan.md) |
 | Slice-by-slice Core finish | [core-finish-instructions](./core-finish-instructions.md) |
 | Layer placement | [platform-module-layers](./platform-module-layers.md) |
 | Commerce contract | [payments-cart-plan](./payments-cart-plan.md), [payments-merchant-plan](./payments-merchant-plan.md), `sf-payments-module.mdc` |

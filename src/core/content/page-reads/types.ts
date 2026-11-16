@@ -1,12 +1,31 @@
 /**
  * PageReadsPort — layout-host page reads (Core finish slice 9).
  *
- * Four reads only. Callers use `getPageReads()`; they never call `getPayload()`.
+ * Four reads only. Callers use `getPageReads()`.
  * `product:pages` is the only adapter. Pack off → empty reads.
  */
 
 import type { AppLocale } from '@/core/i18n/locales'
-import type { Page } from '@/payload-types'
+
+/**
+ * Public page shape served by PageReadsPort.
+ * `product:pages` fills it. Callers do not import a CMS package.
+ */
+export type Page = {
+  id: string | number
+  title: string
+  slug: string
+  body?: string | null
+  tags?: { id: string | number; title: string; slug: string }[] | null
+  meta?: {
+    title?: string | null
+    description?: string | null
+    mediaId?: string | null
+  }
+  updatedAt: string
+  createdAt: string
+  _status?: 'draft' | 'published' | null
+}
 
 /** Published page fields search needs (title / slug / meta). */
 export type PageReadsSearchDoc = {

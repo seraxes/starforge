@@ -50,7 +50,6 @@ const API_MODULES_DIR = path.join(ROOT, 'src/app/api/(modules)')
 const MODULE_STYLES_PATH = path.join(ROOT, 'src/generated/module-styles.ts')
 const MODULE_MEDIA_HOST_PATH = path.join(ROOT, 'src/generated/module-media-host.ts')
 const MODULE_RICH_HOST_PATH = path.join(ROOT, 'src/generated/module-rich-host.ts')
-const MODULE_PAYLOAD_HOST_PATH = path.join(ROOT, 'src/generated/module-payload-host.ts')
 const ROUTE_EXPORT_NAME = /^[A-Za-z_$][A-Za-z0-9_$]*$/
 const ROUTE_DYNAMIC = new Set(['auto', 'force-dynamic', 'error', 'force-static'])
 const ROUTE_RUNTIME = new Set(['nodejs', 'edge'])
@@ -1786,15 +1785,6 @@ export type MediaPickerValue = { mediaId?: string }
   return null
 }
 `
-  const payload = ids.has('product:rich-editor')
-    ? `export { sfHtmlBodyField } from '@/modules/rich-editor/payload/sfHtmlBodyField'
-`
-    : `import type { Field } from 'payload'
-
-export function sfHtmlBodyField(): Field {
-  return { name: 'body', type: 'textarea', localized: true }
-}
-`
   await mkdir(path.dirname(MODULE_MEDIA_HOST_PATH), { recursive: true })
   await writeFile(
     MODULE_MEDIA_HOST_PATH,
@@ -1804,11 +1794,6 @@ export function sfHtmlBodyField(): Field {
   await writeFile(
     MODULE_RICH_HOST_PATH,
     `${hostScaffoldBanner('Public HTML body renderer. Present only when product:rich-editor is allowlisted.')}${rich}`,
-    'utf8',
-  )
-  await writeFile(
-    MODULE_PAYLOAD_HOST_PATH,
-    `${hostScaffoldBanner('Payload page body field. Present only when product:rich-editor is allowlisted.')}${payload}`,
     'utf8',
   )
 }
