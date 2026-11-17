@@ -218,6 +218,12 @@ export function clampDashboardOnlineWindowMin(raw: unknown): number {
   )
 }
 
+/** Site root pointer on `sf_site_settings.root_item`. */
+export type SiteRootPointer = {
+  menuId: string
+  itemId: string
+}
+
 export type SiteSettingsData = {
   siteName: string
   /**
@@ -227,6 +233,11 @@ export type SiteSettingsData = {
   primaryNav: NavItem[]
   /** Which `sf_nav_menus` id powers the public primary nav (site default). */
   primaryNavMenuId: string
+  /**
+   * Nav item that owns public `/{locale}`. Null until an admin marks a Root.
+   * One item for every locale. Missing copy uses Localization’s default language.
+   */
+  rootItem: SiteRootPointer | null
   /**
    * Core `/admin` text-field autosave debounce (ms). Blur still flushes
    * immediately. Clamped to {@link ADMIN_AUTOSAVE_DEBOUNCE_MIN_MS}–
@@ -300,6 +311,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettingsData = {
   siteName: DEFAULT_SITE_NAME,
   primaryNav: DEFAULT_PRIMARY_NAV,
   primaryNavMenuId: DEFAULT_PRIMARY_NAV_MENU_ID,
+  rootItem: null,
   adminAutosaveDebounceMs: DEFAULT_ADMIN_AUTOSAVE_DEBOUNCE_MS,
   formRateLimitMax: DEFAULT_FORM_RATE_LIMIT_MAX,
   formRateLimitWindowSec: DEFAULT_FORM_RATE_LIMIT_WINDOW_SEC,

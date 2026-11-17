@@ -73,16 +73,25 @@ assert.match(manifest, /id: 'media\.counts'/)
 mustExist('src/modules/media/dashboard/MediaCountsWidget.tsx')
 mustExist('src/modules/media/dashboard/media-stats.ts')
 mustExist('src/modules/media/dashboard/media-kind.ts')
-assert.match(read('src/modules/media/dashboard/media-stats.ts'), /payload\.media/)
+assert.match(read('src/modules/media/dashboard/media-stats.ts'), /sf_media_assets/)
 
-// Consumers bind via module api (not Core-hosted picker)
+// Packs bind the media public door. Host admin screens use the generated scaffold.
+assert.match(
+  read('src/modules/forms/admin/form-builder.tsx'),
+  /from '@\/modules\/media\/api'/,
+  'form builder should import MediaPicker from the media public door',
+)
 for (const rel of [
-  'src/modules/forms/admin/form-builder.tsx',
   'src/app/(frontend)/admin/layouts/typed-particle-editors.tsx',
   'src/app/(frontend)/admin/breakpoints/section-styles-panel.tsx',
 ]) {
   const src = read(rel)
-  assert.match(src, /from '@\/modules\/media\/api'/, `${rel} should import MediaPicker from module api`)
+  assert.match(
+    src,
+    /from '@\/generated\/module-media-host'/,
+    `${rel} should import MediaPicker from the generated media host`,
+  )
+  assert.doesNotMatch(src, /from '@\/modules\/media\//, `${rel} must not import the media pack`)
 }
 
 // Core must not import the media module pack (ESLint rule; smoke via walk)

@@ -6,7 +6,11 @@ import {
   DEFAULT_LOCALE,
   LOCALES,
   pathnameWithoutLocale,
+  stripLocalePrefix,
+  withLocalePrefix,
 } from '@/core/i18n'
+import { resolveSiteRoot, type SiteRootResolved } from '@/core/nav/root'
+import { HOME_PAGE_KEY } from '@/core/page-settings/defaults'
 import { getLocalizationSettings } from '@/core/localization/store'
 import type { CspSources } from '@/core/security/csp'
 import { getCachedFeatureCspSources } from '@/core/security/feature-sources-cached'
@@ -86,6 +90,7 @@ function withPathnameHeader(
   request: NextRequest,
   pathname: string,
   base?: NextResponse,
+  bareOverride?: string,
 ): NextResponse {
   const requestHeaders = new Headers(request.headers)
 
@@ -103,7 +108,10 @@ function withPathnameHeader(
   }
 
   requestHeaders.set('x-sf-pathname', pathname)
-  requestHeaders.set('x-sf-pathname-bare', pathnameWithoutLocale(pathname))
+  requestHeaders.set(
+    'x-sf-pathname-bare',
+    bareOverride ?? pathnameWithoutLocale(pathname),
+  )
 
   const response = NextResponse.next({
     request: { headers: requestHeaders },
@@ -213,10 +221,102 @@ async function finalizePublic(
   }
 
   const cspSources = await getCachedFeatureCspSources().catch(() => ({} as CspSources))
+
+  if (request.headers.get('x-sf-root-rewrite') === '1') {
+    const stamped = request.headers.get('x-sf-pathname') || request.nextUrl.pathname
+    const bare = request.headers.get('x-sf-pathname-bare') || undefined
+    return finalize(withPathnameHeader(request, stamped, base, bare), cspSources)
+  }
+
+  const rootResponse = await maybeRewriteSiteRoot(request, base)
+  if (rootResponse) return finalize(rootResponse, cspSources)
+
   return finalize(
     withPathnameHeader(request, request.nextUrl.pathname, base),
     cspSources,
   )
+}
+
+function normalizeBare(pathname: string): string {
+  const path = pathname.split('?')[0]?.split('#')[0] || '/'
+  if (path.length > 1 && path.endsWith('/')) return path.slice(0, -1)
+  return path || '/'
+}
+
+function copyIntlResponse(response: NextResponse, base?: NextResponse) {
+  if (!base) return
+  base.cookies.getAll().forEach((cookie) => {
+    response.cookies.set(cookie)
+  })
+}
+
+/**
+ * One nav item owns `/{locale}`.
+ * A module or internal path is rewritten so the browser URL stays `/{locale}`.
+ * The target’s own path redirects to `/{locale}`.
+ * Unset root keeps slug `home` at `/{locale}` and redirects `/{locale}/home` there.
+ */
+async function maybeRewriteSiteRoot(
+  request: NextRequest,
+  base?: NextResponse,
+): Promise<NextResponse | null> {
+  const { pathname } = request.nextUrl
+  if (isNonLocalizedPath(pathname)) return null
+  if (request.headers.get('x-sf-root-rewrite') === '1') return null
+
+  let root: SiteRootResolved | null = null
+  try {
+    root = await resolveSiteRoot()
+  } catch {
+    return null
+  }
+
+  const stripped = stripLocalePrefix(pathname)
+  if (!stripped.locale) return null
+  const bare = normalizeBare(stripped.pathname)
+  const locale = stripped.locale
+
+  const ownPath = !root
+    ? `/${HOME_PAGE_KEY}`
+    : root.kind === 'page'
+      ? `/${root.slug}`
+      : root.href
+
+  if (ownPath !== '/' && bare === ownPath) {
+    const url = request.nextUrl.clone()
+    url.pathname = withLocalePrefix('/', locale)
+    const response = NextResponse.redirect(url, 308)
+    copyIntlResponse(response, base)
+    return response
+  }
+
+  if (bare === '/' && root?.kind === 'path') {
+    const rewriteUrl = request.nextUrl.clone()
+    rewriteUrl.pathname = withLocalePrefix(root.href, locale)
+    const requestHeaders = new Headers(request.headers)
+    if (base) {
+      const override = base.headers.get('x-middleware-override-headers')
+      if (override) {
+        for (const rawName of override.split(',')) {
+          const name = rawName.trim()
+          if (!name) continue
+          const value = base.headers.get(`x-middleware-request-${name}`)
+          if (value !== null) requestHeaders.set(name, value)
+        }
+      }
+    }
+    const publicPath = withLocalePrefix('/', locale)
+    requestHeaders.set('x-sf-root-rewrite', '1')
+    requestHeaders.set('x-sf-pathname', publicPath)
+    requestHeaders.set('x-sf-pathname-bare', root.href)
+    const response = NextResponse.rewrite(rewriteUrl, {
+      request: { headers: requestHeaders },
+    })
+    copyIntlResponse(response, base)
+    return response
+  }
+
+  return null
 }
 
 /**

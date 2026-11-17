@@ -351,6 +351,20 @@
       "when": 1794044000000,
       "tag": "0050_pages_publish_meta",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1794045000000,
+      "tag": "0051_sub_billing_interval_count",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1794046000000,
+      "tag": "0052_site_root_item",
+      "breakpoints": true
     }
   ]
 }

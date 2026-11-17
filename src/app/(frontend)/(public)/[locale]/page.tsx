@@ -10,12 +10,20 @@ import { buildPageMetadata } from '@/core/content/metadata'
 import { getPublishedPageBySlug, requireContentLocale } from '@/core/content/pages'
 import { isValidLocaleCode } from '@/core/i18n'
 import { findNavOverridesForPath } from '@/core/nav'
+import { resolveSiteRoot } from '@/core/nav/root'
 import { HOME_PAGE_KEY } from '@/core/page-settings'
 import { getSiteSettings } from '@/core/settings'
 import { getSiteChrome } from '@/core/site-chrome'
 
-/** Payload page slug for `/` (matches Page Settings pageKey). */
+/** Slug used at `/{locale}` when no nav item is marked Root. */
 const HOME_SLUG = HOME_PAGE_KEY
+
+async function rootPageSlug(): Promise<string | null> {
+  const root = await resolveSiteRoot()
+  if (root?.kind === 'path') return null
+  if (root?.kind === 'page') return root.slug
+  return HOME_SLUG
+}
 
 type Props = {
   params: Promise<{ locale: string }>
@@ -23,8 +31,9 @@ type Props = {
 }
 
 /**
- * Public home — Payload page `home` via the layout page-content particle.
- * Auth welcome lives in the Login particle (Layouts), not hard-coded here.
+ * Public root — the Navigation Root item, or slug `home` when none is set.
+ * A module root is rewritten in the proxy before this page runs.
+ * Auth welcome lives in the Login particle (Layouts).
  */
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale: localeParam } = await params
@@ -32,7 +41,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return { title: 'Starforge' }
   }
   const locale = requireContentLocale(localeParam)
-  const page = await getPublishedPageBySlug(HOME_SLUG, locale)
+  const slug = await rootPageSlug()
+  if (!slug) {
+    return { title: 'Starforge' }
+  }
+  const page = await getPublishedPageBySlug(slug, locale)
   if (!page) {
     const [settings, chrome] = await Promise.all([getSiteSettings(), getSiteChrome()])
     const siteName = chrome.siteName || settings.siteName
@@ -40,7 +53,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
   const settings = await getSiteSettings()
   const overrides = findNavOverridesForPath(settings.primaryNav, '/')
-  const meta = await buildPageMetadata(page)
+  const meta = await buildPageMetadata(page, { barePath: '/' })
   if (overrides?.browserTitle) {
     return { ...meta, title: overrides.browserTitle }
   }
@@ -56,7 +69,11 @@ export default async function HomePage({ params, searchParams }: Props) {
   setRequestLocale(locale)
 
   const query = await searchParams
-  const page = await getPublishedPageBySlug(HOME_SLUG, locale)
+  const slug = await rootPageSlug()
+  if (!slug) {
+    notFound()
+  }
+  const page = await getPublishedPageBySlug(slug, locale)
 
   if (!page) {
     notFound()

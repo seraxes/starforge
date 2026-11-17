@@ -10,6 +10,7 @@ import { setRealtimeRuntimeConfig } from '@/core/realtime/runtime-config'
 import { isModuleAllowlisted } from '@/generated/module-registry'
 
 import { resolveNavMenuItems } from '@/core/nav/resolve'
+import { normalizeSiteRootPointer } from '@/core/nav/root-target'
 import { DEFAULT_NAV_MENU_ID } from '@/core/db'
 
 import {
@@ -55,7 +56,12 @@ import {
   resolveNavItems,
   type RawNavRow,
 } from './nav'
-import { readSiteSettingsRow, writeSiteSettingsRow, type SiteSettingsRow } from './store'
+import {
+  readSiteSettingsRow,
+  writeSiteRootItem,
+  writeSiteSettingsRow,
+  type SiteSettingsRow,
+} from './store'
 
 export type { FeatureFlags, ModuleToggleMap, NavItem, NavItemInput, SiteSettingsData }
 export type { RawNavRow }
@@ -155,6 +161,7 @@ export {
 type SiteSettingsDoc = {
   siteName?: string | null
   primaryNavMenuId?: string | null
+  rootItem?: { menuId?: string | null; itemId?: string | null } | null
   adminAutosaveDebounceMs?: number | null
   formRateLimitMax?: number | null
   formRateLimitWindowSec?: number | null
@@ -192,6 +199,7 @@ function rowToDoc(row: SiteSettingsRow): SiteSettingsDoc {
   return {
     siteName: row.siteName,
     primaryNavMenuId: row.primaryNavMenuId,
+    rootItem: row.rootItem,
     adminAutosaveDebounceMs: row.adminAutosaveDebounceMs,
     formRateLimitMax: row.formRateLimitMax,
     formRateLimitWindowSec: row.formRateLimitWindowSec,
@@ -247,6 +255,7 @@ function fallbackSettings(): SiteSettingsData {
     features: { ...DEFAULT_FEATURE_FLAGS },
     primaryNav: DEFAULT_PRIMARY_NAV.map((item) => ({ ...item })),
     primaryNavMenuId: DEFAULT_PRIMARY_NAV_MENU_ID,
+    rootItem: null,
     moduleToggles: {},
   }
   syncPublishedCacheRuntime(defaults)
@@ -264,6 +273,7 @@ export function normalizeSiteSettings(
       features: { ...DEFAULT_FEATURE_FLAGS },
       primaryNav: (resolvedNav ?? DEFAULT_PRIMARY_NAV).map((i) => ({ ...i })),
       primaryNavMenuId: DEFAULT_PRIMARY_NAV_MENU_ID,
+      rootItem: null,
       adminAutosaveDebounceMs: DEFAULT_ADMIN_AUTOSAVE_DEBOUNCE_MS,
       formRateLimitMax: DEFAULT_FORM_RATE_LIMIT_MAX,
       formRateLimitWindowSec: DEFAULT_FORM_RATE_LIMIT_WINDOW_SEC,
@@ -288,6 +298,7 @@ export function normalizeSiteSettings(
   const normalized: SiteSettingsData = {
     siteName,
     primaryNavMenuId: normalizePrimaryNavMenuId(doc.primaryNavMenuId),
+    rootItem: normalizeSiteRootPointer(doc.rootItem),
     adminAutosaveDebounceMs: clampAdminAutosaveDebounceMs(doc.adminAutosaveDebounceMs),
     formRateLimitMax: clampFormRateLimitMax(doc.formRateLimitMax),
     formRateLimitWindowSec: clampFormRateLimitWindowSec(doc.formRateLimitWindowSec),
@@ -516,6 +527,20 @@ export async function updateSiteSettings(input: UpdateSiteSettingsInput): Promis
   const normalized = normalizeSiteSettings(doc, primaryNav)
   await invalidateSiteSettings()
   return normalized
+}
+
+/** Navigation is the only writer. Null clears the root. */
+export async function setSiteRootItem(
+  pointer: { menuId: string; itemId: string } | null,
+): Promise<void> {
+  const next = pointer
+    ? normalizeSiteRootPointer(pointer)
+    : null
+  if (pointer && !next) {
+    throw new Error('Site root needs a menu id and an item id.')
+  }
+  await writeSiteRootItem(next)
+  await invalidateSiteSettings()
 }
 
 /** Ensure the Core row exists with sensible defaults (idempotent). */

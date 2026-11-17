@@ -14,8 +14,10 @@ import { getLocaleTextContext } from '@/core/i18n/locale-text.server'
 
 import { flattenNavItemsInOrder } from './document'
 import { resolveModuleNavHref } from './module-views'
+import { navItemCanBeRoot } from './root-target'
 import { DEFAULT_NAV_MENU_ID, getCachedNavMenu } from './store'
 import type { NavMenuItem } from './types'
+import type { SiteRootPointer } from '@/core/settings/defaults'
 
 export type ResolvedNavItem = NavItem & {
   id?: string
@@ -101,6 +103,7 @@ function itemToResolved(
   fallbackEnabled: boolean,
   currentCatalog: ContentLocaleCatalog,
   defaultCatalog: ContentLocaleCatalog,
+  root: SiteRootPointer | null,
 ): ResolvedNavItem | null {
   const label = localized(
     buildNavItemKey({ menuId, itemId: item.id, field: 'label' }),
@@ -129,6 +132,16 @@ function itemToResolved(
   } else {
     href = normalizeHref(item.url ?? '')
     if (!href) return null
+  }
+
+  if (
+    root &&
+    root.menuId === menuId &&
+    root.itemId === item.id &&
+    navItemCanBeRoot(item) &&
+    href.startsWith('/')
+  ) {
+    href = '/'
   }
 
   const resolved: ResolvedNavItem = { label, href, id: item.id, linkType: item.linkType }
@@ -221,6 +234,7 @@ export async function resolveNavMenuItems(
       localeCtx.fallbackEnabled,
       currentCatalog,
       defaultCatalogResolved,
+      settings?.rootItem ?? null,
     )
     if (resolved) out.push(resolved)
   }

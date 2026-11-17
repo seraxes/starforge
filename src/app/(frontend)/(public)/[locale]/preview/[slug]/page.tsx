@@ -14,6 +14,8 @@ import {
 } from '@/core/content/preview'
 import { isValidLocaleCode } from '@/core/i18n'
 import { withLocalePrefix } from '@/core/i18n/path'
+import { rootPageSlug } from '@/core/nav/root'
+import { barePathForSlug } from '@/core/nav/root-target'
 import { getSiteSettings } from '@/core/settings'
 import { getSiteChrome } from '@/core/site-chrome'
 
@@ -90,7 +92,7 @@ export default async function DraftPreviewPage({ params }: Args) {
         : 'draft'
   const t = await getTranslations({ locale, namespace: 'Page' })
   const publicHref = withLocalePrefix(
-    page.slug === 'home' ? '/' : `/${page.slug}`,
+    barePathForSlug(page.slug, await rootPageSlug()),
     locale,
   )
   const rawId = typeof page.id === 'string' ? page.id.trim() : ''

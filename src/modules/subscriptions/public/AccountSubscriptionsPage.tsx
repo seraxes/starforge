@@ -25,6 +25,7 @@ import {
   listPlansByIds,
   listSeats,
 } from '@/modules/subscriptions/store'
+import { formatBillingPeriodLabel } from '@/modules/subscriptions/types'
 
 type Args = { params: Promise<{ locale: string }> }
 
@@ -148,7 +149,7 @@ export default async function AccountSubscriptionsPage({ params }: Args) {
                         <SubscribePlanForm
                           planId={plan.id}
                           planTitle={plan.title}
-                          priceLabel={`${formatMoney(plan.earlyRenewPrice ?? plan.price)} / ${plan.billingPeriod}`}
+                          priceLabel={`${formatMoney(plan.earlyRenewPrice ?? plan.price)} / ${formatBillingPeriodLabel(plan.billingPeriod, plan.billingIntervalCount)}`}
                           methods={methods}
                           mode="renew"
                           recurringSupported={plan.recurringSupported}
@@ -170,7 +171,7 @@ export default async function AccountSubscriptionsPage({ params }: Args) {
                               key={target.id}
                               planId={target.id}
                               planTitle={target.title}
-                              priceLabel={`${formatMoney(target.price)} / ${target.billingPeriod}`}
+                              priceLabel={`${formatMoney(target.price)} / ${formatBillingPeriodLabel(target.billingPeriod, target.billingIntervalCount)}`}
                               methods={methods}
                               mode="upgrade"
                               fromPeriodId={p.id}
@@ -220,10 +221,12 @@ export default async function AccountSubscriptionsPage({ params }: Args) {
 
       <section className="admin-settings-mosaic" style={{ marginTop: '1.5rem' }}>
         {plans.map((plan) => {
+          const periodLabel = formatBillingPeriodLabel(
+            plan.billingPeriod,
+            plan.billingIntervalCount,
+          )
           const priceLabel =
-            plan.price <= 0
-              ? `Free / ${plan.billingPeriod}`
-              : `${formatMoney(plan.price)} / ${plan.billingPeriod}`
+            plan.price <= 0 ? `Free / ${periodLabel}` : `${formatMoney(plan.price)} / ${periodLabel}`
           return (
             <article key={plan.id} className="page-settings-panel">
               <div className="page-settings-panel-head">

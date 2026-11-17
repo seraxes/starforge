@@ -37,7 +37,8 @@ import {
   replaceNavMenuItems,
 } from './store'
 import { getPreferredLayoutId } from '@/core/skin/preferred-outline'
-import { getSiteSettings } from '@/core/settings'
+import { getSiteSettings, setSiteRootItem } from '@/core/settings'
+import { navItemCanBeRoot } from './root-target'
 import type { NavMenuItem } from './types'
 
 export type NavActionState = {
@@ -172,6 +173,11 @@ export async function deleteNavMenuAction(
   const result = await deleteNavMenu(id)
   if ('error' in result) return { error: result.error }
 
+  const settings = await getSiteSettings()
+  if (settings.rootItem?.menuId === id) {
+    await setSiteRootItem(null)
+  }
+
   await revalidateNavPaths()
   return { ok: true, message: `Menu “${id}” deleted.` }
 }
@@ -268,6 +274,35 @@ function parseItemsFromForm(formData: FormData): NavMenuItem[] {
   return normalizeNavMenuDocument({ version: 1, items: [...byId.values()] }).items
 }
 
+async function persistRootFromForm(
+  menuId: string,
+  items: NavMenuItem[],
+  formData: FormData,
+): Promise<string | null> {
+  if (!formData.has('rootItemId')) return null
+  const requested = String(formData.get('rootItemId') ?? '').trim()
+  const current = (await getSiteSettings()).rootItem
+  if (!requested) {
+    if (current?.menuId === menuId) await setSiteRootItem(null)
+    return null
+  }
+  const item = items.find((row) => row.id === requested)
+  if (!item || !navItemCanBeRoot(item)) {
+    if (current?.menuId === menuId) await setSiteRootItem(null)
+    return 'That item cannot be the site root. Use a page, a module view, or an internal path.'
+  }
+  if (item.linkType === 'page' && (item.pageId == null || item.pageId === '')) {
+    if (current?.menuId === menuId && current.itemId === item.id) await setSiteRootItem(null)
+    return 'Pick a page before marking this item as Root.'
+  }
+  if (item.linkType === 'module' && (!item.moduleId || !item.moduleViewKey)) {
+    if (current?.menuId === menuId && current.itemId === item.id) await setSiteRootItem(null)
+    return 'Pick a module view before marking this item as Root.'
+  }
+  await setSiteRootItem({ menuId, itemId: item.id })
+  return null
+}
+
 async function syncOutlinesAfterSave(items: NavMenuItem[]): Promise<void> {
   try {
     const settings = await getSiteSettings()
@@ -305,6 +340,9 @@ export async function saveNavMenuItemsAction(
   }
   const result = await replaceNavMenuItems(menuId, items)
   if ('error' in result) return { error: result.error }
+
+  const rootError = await persistRootFromForm(menuId, result.document.items, formData)
+  if (rootError) return { error: rootError, menuId }
 
   await syncOutlinesAfterSave(result.document.items)
   await revalidateNavPaths(menuId)

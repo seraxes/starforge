@@ -96,7 +96,7 @@
   "categoryEdit": "Szerkesztés",
   "categoryDelete": "Törlés",
   "categoryDeleting": "…",
-  "categoryConfirmDelete": "Törlöd a(z) „{title}” kategóriát? Az oldalak tartalma megmarad, kategória nélkül.",
+  "categoryConfirmDelete": "Törlöd a(z) „'{title}'” kategóriát? Az oldalak tartalma megmarad, kategória nélkül.",
   "categoryEmptyHeading": "Még nincs kategória",
   "categoryEmptyLede": "Az Új + gombbal vehetsz fel címkét, majd az oldalon rendelheted hozzá.",
   "categoryListHeading": "Kategóriák",

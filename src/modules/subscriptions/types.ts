@@ -33,6 +33,28 @@ export function isPlanBillingPeriod(value: unknown): value is PlanBillingPeriod 
   )
 }
 
+/** How many day/week/month/year units one paid period covers. Lifetime always 1. */
+export function normalizeBillingIntervalCount(value: unknown, fallback = 1): number {
+  if (value == null || value === '') return fallback
+  const n = typeof value === 'number' ? value : Number(String(value).trim())
+  if (!Number.isFinite(n) || n < 1) return fallback
+  return Math.min(Math.floor(n), 3650)
+}
+
+/** Display label: `14 days`, `3 weeks`, `month`, `lifetime`. */
+export function formatBillingPeriodLabel(
+  period: PlanBillingPeriod,
+  count: unknown = 1,
+): string {
+  if (period === 'lifetime') return 'lifetime'
+  const n = normalizeBillingIntervalCount(count, 1)
+  if (period === 'day') return n === 1 ? 'day' : `${n} days`
+  if (period === 'week') return n === 1 ? 'week' : `${n} weeks`
+  if (period === 'month') return n === 1 ? 'month' : `${n} months`
+  if (period === 'year') return n === 1 ? 'year' : `${n} years`
+  return period
+}
+
 export const PERIOD_STATUSES = ['active', 'expired', 'refunded'] as const
 export type PeriodStatus = (typeof PERIOD_STATUSES)[number]
 
@@ -54,6 +76,8 @@ export type SubscriptionPlanRecord = {
   description: string
   price: number
   billingPeriod: PlanBillingPeriod
+  /** Units of `billingPeriod` per charge (default 1). Ignored for lifetime. */
+  billingIntervalCount: number
   entitlementKeys: string[]
   groupIds: string[]
   sourceModule: string
@@ -90,6 +114,8 @@ export type SubscriptionPeriodRecord = {
   subject: string
   audience: string
   billingPeriod: PlanBillingPeriod
+  /** Snapshot of plan interval count at activate / renew. */
+  billingIntervalCount: number
   entitlementKeys: string[]
   groupIds: string[]
   sourceModule: string

@@ -10,9 +10,9 @@ import {
   DocumentHeadChrome,
   emptyResolvedChrome,
   getResolvedPageChrome,
-  pageKeyFromPathname,
   publicPathnameFromHeaders,
 } from '@/core/page-settings'
+import { pageKeyForPublicPath } from '@/core/nav/root'
 import { PublicShellSync } from '@/core/page-settings/public-shell-sync'
 import { paintedPublicShellKey } from '@/core/page-settings/shell-key.server'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
@@ -46,7 +46,7 @@ export default async function PublicLocaleTemplate({ children }: Props) {
       ? bare
       : `/${bare}`
     : publicPathnameFromHeaders(headerList, locale)
-  const pageKey = pageKeyFromPathname(pathname)
+  const pageKey = await pageKeyForPublicPath(pathname)
   const clientPath = publicPathnameFromHeaders(headerList, locale)
   const pageSettingsOn = isCatalogModuleEnabled(settings, MODULE_IDS.pageSettings)
   const layoutOn = isCatalogModuleEnabled(settings, MODULE_IDS.layoutManager)

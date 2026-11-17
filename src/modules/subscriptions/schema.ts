@@ -34,6 +34,8 @@ export const sfSubPlans = pgTable(
     price: integer('price').notNull().default(0),
     /** day | week | month | year | lifetime */
     billingPeriod: text('billing_period').notNull().default('month'),
+    /** How many billingPeriod units one charge covers (e.g. 14 days). Lifetime ignores. */
+    billingIntervalCount: integer('billing_interval_count').notNull().default(1),
     /** Entitlement keys granted while active. */
     entitlementKeys: jsonb('entitlement_keys').$type<string[]>().notNull().default([]),
     /** Optional Core user-group ids (audience resolve only — not written to membership). */
@@ -93,6 +95,7 @@ export const sfSubPeriods = pgTable(
     subject: text('subject').notNull().default('membership'),
     audience: text('audience').notNull().default(''),
     billingPeriod: text('billing_period').notNull().default('month'),
+    billingIntervalCount: integer('billing_interval_count').notNull().default(1),
     entitlementKeys: jsonb('entitlement_keys').$type<string[]>().notNull().default([]),
     groupIds: jsonb('group_ids').$type<string[]>().notNull().default([]),
     sourceModule: text('source_module').notNull().default(''),

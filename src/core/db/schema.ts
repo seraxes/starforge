@@ -213,6 +213,11 @@ export const sfSiteSettings = pgTable('sf_site_settings', {
   id: text('id').primaryKey(),
   siteName: text('site_name').notNull().default('Starforge'),
   primaryNavMenuId: text('primary_nav_menu_id').notNull().default('main'),
+  /**
+   * The one nav item that owns `/{locale}`. Null until an admin marks a Root.
+   * `{ menuId, itemId }`. Languages are fields on that target, not a second item.
+   */
+  rootItem: jsonb('root_item').$type<{ menuId: string; itemId: string } | null>(),
   adminAutosaveDebounceMs: integer('admin_autosave_debounce_ms').notNull().default(800),
   formRateLimitMax: integer('form_rate_limit_max').notNull().default(8),
   formRateLimitWindowSec: integer('form_rate_limit_window_sec').notNull().default(60),

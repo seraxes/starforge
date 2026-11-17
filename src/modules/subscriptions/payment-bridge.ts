@@ -72,6 +72,11 @@ export async function applySubscriptionsPaymentResult(
       const billingPeriod: PlanBillingPeriod | undefined = isPlanBillingPeriod(billingPeriodRaw)
         ? billingPeriodRaw
         : undefined
+      const billingIntervalCountRaw = line.metadata.billingIntervalCount
+      const billingIntervalCount =
+        billingIntervalCountRaw == null || billingIntervalCountRaw === ''
+          ? undefined
+          : Number(billingIntervalCountRaw)
 
       const mode = String(line.metadata.mode ?? metadata.mode ?? 'subscribe').trim()
       const isTrial = line.metadata.isTrial === true || line.metadata.isTrial === 'true'
@@ -87,6 +92,10 @@ export async function applySubscriptionsPaymentResult(
         subject: String(line.metadata.subject ?? '').trim() || undefined,
         audience: String(line.metadata.audience ?? '').trim() || undefined,
         billingPeriod,
+        billingIntervalCount:
+          billingIntervalCount != null && Number.isFinite(billingIntervalCount)
+            ? billingIntervalCount
+            : undefined,
         entitlementKeys: asStringList(line.metadata.entitlementKeys),
         groupIds: asStringList(line.metadata.groupIds),
         sourceModule: String(line.metadata.sourceModule ?? '').trim() || undefined,
@@ -340,7 +349,11 @@ export async function startSubscriptionCheckout(
         sourceModule: 'product:subscriptions',
         sourceType: 'plan',
         sourceId: plan.id,
-        metadata: { planId: plan.id, billingPeriod: plan.billingPeriod },
+        metadata: {
+          planId: plan.id,
+          billingPeriod: plan.billingPeriod,
+          billingIntervalCount: plan.billingIntervalCount,
+        },
       })
       if (recurring.ok) paymentsRecurringId = recurring.id
     } catch {
@@ -360,6 +373,7 @@ export async function startSubscriptionCheckout(
       subject: plan.subject,
       audience: plan.audience,
       billingPeriod: plan.billingPeriod,
+      billingIntervalCount: plan.billingIntervalCount,
       entitlementKeys: plan.entitlementKeys,
       groupIds: plan.groupIds,
       sourceModule: plan.sourceModule,

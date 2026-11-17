@@ -96,7 +96,7 @@
   "categoryEdit": "Edit",
   "categoryDelete": "Delete",
   "categoryDeleting": "…",
-  "categoryConfirmDelete": "Delete category “{title}”? Pages keep their content and become uncategorized.",
+  "categoryConfirmDelete": "Delete category “'{title}'”? Pages keep their content and become uncategorized.",
   "categoryEmptyHeading": "No categories yet",
   "categoryEmptyLede": "Use Add + for an editorial label, then assign it on a page.",
   "categoryListHeading": "Categories",

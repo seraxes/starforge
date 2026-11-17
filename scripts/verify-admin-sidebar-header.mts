@@ -26,10 +26,6 @@ const layout = readFileSync(
   join(root, 'src/app/(frontend)/admin/layout.tsx'),
   'utf8',
 )
-const payloadNav = readFileSync(
-  join(root, 'src/components/payload/StarforgeAdminNav.tsx'),
-  'utf8',
-)
 const brand = readFileSync(
   join(root, 'src/components/admin/AdminSidebarBrand.tsx'),
   'utf8',
@@ -58,11 +54,6 @@ mustNotInclude(layout, 'Core content header h1', '<h1>Starforge admin</h1>')
 mustNotInclude(layout, 'Core signed-in copy', 'Signed in as')
 mustNotInclude(layout, 'Core admin-header shell', 'className="admin-header"')
 
-mustInclude(payloadNav, 'Payload brand component', 'AdminSidebarBrand')
-mustInclude(payloadNav, 'Payload account component', 'AdminSidebarAccount')
-mustNotInclude(payloadNav, 'Payload signed-in copy', 'Signed in as')
-mustNotInclude(payloadNav, 'Payload sidebar title copy', 'admin-sidebar-title')
-
 mustInclude(brand, 'STARFORGE logo text', 'STARFORGE')
 mustInclude(brand, 'Admin kicker', 'admin-sidebar-kicker')
 mustInclude(brand, 'Admin kicker label', 'Admin')
@@ -87,7 +78,6 @@ mustInclude(chrome, 'admin account route helper', 'export function adminAccountH
 mustInclude(chrome, 'admin user account route', '/admin/users/')
 mustInclude(chrome, 'tooltip starts with Starforge admin', "'Starforge admin —")
 mustInclude(chrome, 'tooltip names Dashboard home', 'Dashboard (/admin)')
-mustInclude(payloadNav, 'Payload brand surface', 'surface="payload"')
 
 mustInclude(styles, 'kicker style', '.admin-sidebar-kicker')
 mustInclude(styles, 'account style', '.admin-sidebar-account')

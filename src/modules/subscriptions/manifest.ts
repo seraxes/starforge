@@ -14,7 +14,7 @@ export default defineStarforgeModule({
   version: '0.1.0',
   defaultEnabled: true,
   requires: ['product:payments', 'product:email-manager', 'product:forms', 'product:profiles'],
-  optionalRequires: ['form'],
+  optionalRequires: ['form', 'product:media'],
   boot: {
     importPath: '@/modules/subscriptions/boot',
     exportName: 'bootSubscriptions',
@@ -23,8 +23,10 @@ export default defineStarforgeModule({
     namespaces: ['product:subscriptions'],
   },
   navViews: [
+    { key: 'catalog', label: 'Plans', href: '/plans' },
+    { key: 'account', label: 'My subscriptions', href: '/account/subscriptions' },
     { key: 'admin', label: 'Subscriptions', href: '/admin/subscriptions' },
-    { key: 'plans', label: 'Plans', href: '/admin/subscriptions' },
+    { key: 'plans', label: 'Admin plans', href: '/admin/subscriptions' },
     { key: 'subscribers', label: 'Subscribers', href: '/admin/subscriptions/subscribers' },
     { key: 'settings', label: 'Settings', href: '/admin/subscriptions/settings' },
   ],
@@ -81,6 +83,11 @@ export default defineStarforgeModule({
   },
   doors: [{ id: 'subscriptions-api', importPath: '@/modules/subscriptions/api' }],
   publicRoutes: [
+    {
+      path: 'plans',
+      pageImportPath: '@/modules/subscriptions/public/SubscriptionsPublicPlansPage',
+      reexport: ['generateMetadata'],
+    },
     {
       path: 'account/subscriptions',
       pageImportPath: '@/modules/subscriptions/public/AccountSubscriptionsPage',

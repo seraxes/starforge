@@ -8,7 +8,8 @@
 | --- | --- |
 | Plans, periods, seats, entitlement resolve, trial/renew/upgrade rules, group membership **sync** | **payments** (cart, coupons, invoices, recurring intents) |
 | | **email-manager** (`emitEmailTrigger` + starters) |
-| | **forms** (`subscription-registration` preset) |
+| | **forms** (`subscription-registration` preset; plan editor selects the definition) |
+| | **media** (plan thumbnail via MediaPicker; optional require) |
 | | **profiles** (labels) |
 | | **Core ACL** (groups + matrix; Subscriptions only add/remove members) |
 
@@ -23,14 +24,16 @@ Rules: [sf-subscriptions-module](../../../.cursor/rules/sf-subscriptions-module.
 
 ## Shipped
 
-- Free + paid plans; day/week/month/year/lifetime; fixed expiry; trial; capacity; grace; early-renew price; upgrade targets; seats; cancel-at-period-end.
+- Free + paid plans; day/week/month/year/lifetime with `billingIntervalCount` (N units per charge); fixed expiry; trial; capacity; grace; early-renew price; upgrade targets; seats; cancel-at-period-end.
 - Checkout modes subscribe / renew / upgrade via Payments; free activate without cart.
 - Email triggers with `buyerEmail`; self-rescheduling expiry + reminder job.
-- Forms preset + plan `formDefinitionId` deep-link.
+- Forms preset + plan editor signup-form select (`formDefinitionId`) with a deep-link into Forms.
+- Plan editor: Media thumbnail, upgrade-target multi-select. Proration credit stays in checkout; Payments charges the remainder.
 - Payments `sf_pay_recurring` create/cancel API for auto-renew opt-in.
 - Admin Settings tab (`/admin/subscriptions/settings`) for reminder days, default grace, default Forms id, email seed, and deep-links to Payments / Email / Forms / Users.
 - Email Manager starters for activated / renewed / upgraded / expiring_soon / trial_ending / expired (`buyerEmail`).
 - Plan access-group multi-select; Core membership sync on activate/expire.
+- Public `/plans` catalog + `subscription-plans` particle (layout placement). Nav module links for Plans and My subscriptions.
 
 ## Parked
 

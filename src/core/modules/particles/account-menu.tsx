@@ -68,16 +68,21 @@ export const accountMenuModule: StarforgeModule = {
     }
 
     const profilesOn = isCatalogModuleEnabled(settings, MODULE_IDS.profiles)
+    const subscriptionsOn = isCatalogModuleEnabled(settings, MODULE_IDS.subscriptions)
     const links = signedIn
       ? [
           ...(profilesOn ? [{ href: '/account/profile', label: t('profile') }] : []),
           { href: '/account/security', label: t('accountSecurity') },
+          ...(subscriptionsOn
+            ? [{ href: '/account/subscriptions', label: t('mySubscriptions') }]
+            : []),
         ]
       : [
           { href: '/login', label: t('signIn') },
           ...(settings.features.registration
             ? [{ href: '/register', label: t('createAccount') }]
             : []),
+          ...(subscriptionsOn ? [{ href: '/plans', label: t('plans') }] : []),
         ]
 
     return (

@@ -32,6 +32,7 @@ import {
   saveNavMenuItemsAction,
   type NavActionState,
 } from '@/core/nav/actions'
+import { navItemCanBeRoot } from '@/core/nav/root-target'
 import type { NavLinkType, NavMenuItem, NavModuleOption, NavPageOption } from '@/core/nav/types'
 
 import { useNotifySavedOnOk } from '../../admin-toast'
@@ -71,9 +72,22 @@ type Props = {
   locales: ContentLocaleOption[]
   preferredLayoutId: string
   isSitePrimary: boolean
+  /** Item id in this menu that is the site root. Empty when unset or set on another menu. */
+  rootItemId: string
+  /** Label of the other menu that currently owns the root. */
+  rootElsewhere: string | null
+  defaultLocaleLabel: string
+  localeFallback: boolean
 }
 
 const initial: NavActionState = {}
+
+const LINK_TYPES: { value: NavLinkType; label: string }[] = [
+  { value: 'page', label: 'CMS page' },
+  { value: 'url', label: 'URL' },
+  { value: 'module', label: 'Module view' },
+  { value: 'admin', label: 'Admin' },
+]
 
 function toEditable(item: NavMenuItem, defaultCode: string): EditableItem {
   const tags =
@@ -223,6 +237,11 @@ type SortableNavItemProps = {
   onRemove: () => void
   saveNow: () => void
   saveDebounced: () => void
+  isRoot: boolean
+  canBeRoot: boolean
+  onSetRoot: (on: boolean) => void
+  defaultLocaleLabel: string
+  localeFallback: boolean
 }
 
 function SortableNavItem({
@@ -241,6 +260,11 @@ function SortableNavItem({
   onRemove,
   saveNow,
   saveDebounced,
+  isRoot,
+  canBeRoot,
+  onSetRoot,
+  defaultLocaleLabel,
+  localeFallback,
 }: SortableNavItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: row.id,
@@ -275,7 +299,15 @@ function SortableNavItem({
               onClick={onToggle}
             >
               <div className="gantry-slot-labels">
-                <strong className="sf-form-slot-name">{row.label || 'Untitled'}</strong>
+                <strong className="sf-form-slot-name">
+                  {row.label || 'Untitled'}
+                  {isRoot ? (
+                    <>
+                      {' '}
+                      <span className="outlines-badge">Root</span>
+                    </>
+                  ) : null}
+                </strong>
                 <span className="gantry-slot-sub">{summarizeLink(row, pages, modules)}</span>
               </div>
             </button>
@@ -325,241 +357,312 @@ function SortableNavItem({
 
       {expanded ? (
         <div className="nav-item-card-body">
-          <div className="nav-item-body-actions admin-action-row">
-            <button type="button" className="gantry-toolbar-btn gantry-toolbar-btn-muted" onClick={onCopy}>
+          <div className="admin-settings-mosaic nav-item-mosaic">
+            <section className="page-settings-panel">
+              <header className="page-settings-panel-head">
+                <h3>Menu</h3>
+              </header>
+              <div className="page-settings-panel-body">
+                <LocaleInput
+                  locales={locales}
+                  values={row.labels}
+                  label="Label"
+                  requiredDefault
+                  onChange={(code, value) => {
+                    const labels = { ...row.labels, [code]: value }
+                    const isDefault = locales.find((locale) => locale.code === code)?.isDefault
+                    onPatch(isDefault ? { labels, label: value } : { labels })
+                    saveDebounced()
+                  }}
+                  onBlur={saveNow}
+                />
+                <label className="settings-field">
+                  <span>Parent</span>
+                  <select
+                    value={row.parentId}
+                    onChange={(e) => {
+                      onPatch({ parentId: e.target.value })
+                      queueMicrotask(saveNow)
+                    }}
+                  >
+                    <option value="">Top level</option>
+                    {parentOptions
+                      .filter((p) => p.id !== row.id)
+                      .map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.label}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                <label className="settings-field">
+                  <span>CSS class</span>
+                  <input
+                    type="text"
+                    value={row.cssClass}
+                    placeholder="e.g. nav-highlight"
+                    onChange={(e) => {
+                      onPatch({ cssClass: e.target.value })
+                      saveDebounced()
+                    }}
+                    onBlur={saveNow}
+                  />
+                </label>
+              </div>
+            </section>
+
+            <section className="page-settings-panel">
+              <header className="page-settings-panel-head">
+                <h3>Link</h3>
+              </header>
+              <div className="page-settings-panel-body">
+                <label className="settings-field">
+                  <span>Link type</span>
+                  <select
+                    value={row.linkType}
+                    onChange={(e) => {
+                      const next = e.target.value as NavLinkType
+                      const patch: Partial<EditableItem> = { linkType: next }
+                      if (next === 'module' && !row.moduleId && modules[0]) {
+                        patch.moduleId = modules[0].moduleId
+                        patch.moduleViewKey = modules[0].views[0]?.key ?? ''
+                      }
+                      if (next === 'admin') {
+                        patch.layoutId = ''
+                        patch.pageId = ''
+                        patch.url = ''
+                        patch.moduleId = ''
+                        patch.moduleViewKey = ''
+                        if (isRoot) onSetRoot(false)
+                      }
+                      onPatch(patch)
+                      queueMicrotask(saveNow)
+                    }}
+                  >
+                    {LINK_TYPES.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {row.linkType === 'admin' ? (
+                  <p className="settings-hint">
+                    Links to <code>/admin</code> without a locale prefix. Pick Admin role and/or a
+                    group under Who can see. Admin links cannot be the site root.
+                  </p>
+                ) : null}
+                {row.linkType === 'page' ? (
+                  <label className="settings-field">
+                    <span>Page</span>
+                    <select
+                      value={row.pageId}
+                      onChange={(e) => {
+                        onPatch({ pageId: e.target.value })
+                        queueMicrotask(saveNow)
+                      }}
+                    >
+                      <option value="">Select page…</option>
+                      {pages.map((p) => (
+                        <option key={p.id} value={String(p.id)}>
+                          {p.title} (/{p.slug})
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+                {row.linkType === 'url' ? (
+                  <label className="settings-field">
+                    <span>URL</span>
+                    <input
+                      type="text"
+                      value={row.url}
+                      placeholder="/about or https://…"
+                      onChange={(e) => {
+                        const url = e.target.value
+                        onPatch({ url })
+                        if (isRoot && !navItemCanBeRoot({ linkType: 'url', url })) onSetRoot(false)
+                        saveDebounced()
+                      }}
+                      onBlur={saveNow}
+                    />
+                  </label>
+                ) : null}
+                {row.linkType === 'module' ? (
+                  <>
+                    <label className="settings-field">
+                      <span>Module</span>
+                      <select
+                        value={row.moduleId}
+                        onChange={(e) => {
+                          const moduleId = e.target.value
+                          const views = modules.find((m) => m.moduleId === moduleId)?.views ?? []
+                          onPatch({
+                            moduleId,
+                            moduleViewKey: views[0]?.key ?? '',
+                          })
+                          queueMicrotask(saveNow)
+                        }}
+                      >
+                        <option value="">Select module…</option>
+                        {modules.map((m) => (
+                          <option key={m.moduleId} value={m.moduleId}>
+                            {m.moduleLabel}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="settings-field">
+                      <span>View</span>
+                      <select
+                        value={row.moduleViewKey}
+                        onChange={(e) => {
+                          onPatch({ moduleViewKey: e.target.value })
+                          queueMicrotask(saveNow)
+                        }}
+                        disabled={!row.moduleId || moduleViews.length === 0}
+                      >
+                        <option value="">Select view…</option>
+                        {moduleViews.map((v) => (
+                          <option key={v.key} value={v.key}>
+                            {v.label} ({v.href})
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    {modules.length === 0 ? (
+                      <p className="settings-hint">
+                        No enabled modules declare navigable views. Turn modules on under Settings
+                        → Modules, or register <code>navViews</code> on a module.
+                      </p>
+                    ) : null}
+                  </>
+                ) : null}
+                {row.linkType !== 'admin' ? (
+                  <label className="settings-flag">
+                    <input
+                      type="checkbox"
+                      checked={isRoot}
+                      disabled={!canBeRoot}
+                      onChange={(e) => onSetRoot(e.target.checked)}
+                    />
+                    <span>
+                      <strong>Root</strong>
+                      <span className="settings-flag-desc">
+                        {canBeRoot
+                          ? 'Visitors at /{locale} see this item in that language.'
+                          : 'External URLs cannot be the site root. Use an internal path.'}
+                      </span>
+                    </span>
+                  </label>
+                ) : null}
+                {row.linkType !== 'admin' && canBeRoot ? (
+                  <p className="settings-hint">
+                    {localeFallback ? (
+                      <>Missing fields use {defaultLocaleLabel}. </>
+                    ) : (
+                      <>Fallback is off, so a missing field stays empty. </>
+                    )}
+                    <Link href="/admin/localization">Localization</Link>
+                  </p>
+                ) : null}
+              </div>
+            </section>
+
+            {row.linkType !== 'admin' ? (
+              <section className="page-settings-panel">
+                <header className="page-settings-panel-head">
+                  <h3>Page</h3>
+                </header>
+                <div className="page-settings-panel-body">
+                  <label className="settings-field">
+                    <span>Layout outline</span>
+                    <select
+                      value={row.layoutId}
+                      onChange={(e) => {
+                        onPatch({ layoutId: e.target.value })
+                        queueMicrotask(saveNow)
+                      }}
+                    >
+                      <option value="">Site default (no page override)</option>
+                      {outlines.map((o) => (
+                        <option key={o.id} value={o.id}>
+                          {o.label} ({o.id})
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <p className="settings-hint">
+                    Same assignment as Layouts →{' '}
+                    <Link
+                      href={
+                        row.layoutId
+                          ? `/admin/assigned-menu?outline=${encodeURIComponent(row.layoutId)}`
+                          : '/admin/assigned-menu'
+                      }
+                    >
+                      Assigned Menu
+                    </Link>
+                    .
+                  </p>
+                  <LocaleInput
+                    locales={locales}
+                    values={row.browserTitles}
+                    label="Browser title override"
+                    onChange={(code, value) => {
+                      const browserTitles = { ...row.browserTitles, [code]: value }
+                      const isDefault = locales.find((locale) => locale.code === code)?.isDefault
+                      onPatch(
+                        isDefault ? { browserTitles, browserTitle: value } : { browserTitles },
+                      )
+                      saveDebounced()
+                    }}
+                    onBlur={saveNow}
+                  />
+                  <LocaleInput
+                    locales={locales}
+                    values={row.pageHeadings}
+                    label="Page heading override"
+                    onChange={(code, value) => {
+                      const pageHeadings = { ...row.pageHeadings, [code]: value }
+                      const isDefault = locales.find((locale) => locale.code === code)?.isDefault
+                      onPatch(isDefault ? { pageHeadings, pageHeading: value } : { pageHeadings })
+                      saveDebounced()
+                    }}
+                    onBlur={saveNow}
+                  />
+                </div>
+              </section>
+            ) : null}
+
+            <section className="page-settings-panel page-settings-panel-wide">
+              <header className="page-settings-panel-head">
+                <h3>Who can see</h3>
+              </header>
+              <div className="page-settings-panel-body">
+                <AccessTagsField
+                  value={row.accessTags}
+                  groups={groups}
+                  allowEmpty={row.linkType === 'admin'}
+                  legend="Who can see"
+                  className="nav-item-access"
+                  onChange={(accessTags) => {
+                    onPatch({ accessTags })
+                    queueMicrotask(saveNow)
+                  }}
+                />
+              </div>
+            </section>
+          </div>
+          <div className="page-settings-actions">
+            <button
+              type="button"
+              className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+              onClick={onCopy}
+            >
               Copy item
             </button>
           </div>
-          <LocaleInput
-            locales={locales}
-            values={row.labels}
-            label="Label"
-            requiredDefault
-            onChange={(code, value) => {
-              const labels = { ...row.labels, [code]: value }
-              const isDefault = locales.find((locale) => locale.code === code)?.isDefault
-              onPatch(isDefault ? { labels, label: value } : { labels })
-              saveDebounced()
-            }}
-            onBlur={saveNow}
-          />
-          <label className="settings-field">
-            <span>Link type</span>
-            <select
-              value={row.linkType}
-              onChange={(e) => {
-                const next = e.target.value as NavLinkType
-                const patch: Partial<EditableItem> = { linkType: next }
-                if (next === 'module' && !row.moduleId && modules[0]) {
-                  patch.moduleId = modules[0].moduleId
-                  patch.moduleViewKey = modules[0].views[0]?.key ?? ''
-                }
-                if (next === 'admin') {
-                  patch.layoutId = ''
-                  patch.pageId = ''
-                  patch.url = ''
-                  patch.moduleId = ''
-                  patch.moduleViewKey = ''
-                }
-                onPatch(patch)
-                queueMicrotask(saveNow)
-              }}
-            >
-              <option value="page">CMS page</option>
-              <option value="url">URL</option>
-              <option value="module">Module view</option>
-              <option value="admin">Admin</option>
-            </select>
-          </label>
-          {row.linkType === 'admin' ? (
-            <p className="settings-hint">
-              Links to <code>/admin</code> without a locale prefix. Pick Admin role and/or a group
-              under Who can see.
-            </p>
-          ) : null}
-          {row.linkType === 'page' ? (
-            <label className="settings-field">
-              <span>Page</span>
-              <select
-                value={row.pageId}
-                onChange={(e) => {
-                  onPatch({ pageId: e.target.value })
-                  queueMicrotask(saveNow)
-                }}
-              >
-                <option value="">Select page…</option>
-                {pages.map((p) => (
-                  <option key={p.id} value={String(p.id)}>
-                    {p.title} (/{p.slug})
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-          {row.linkType === 'url' ? (
-            <label className="settings-field">
-              <span>URL</span>
-              <input
-                type="text"
-                value={row.url}
-                placeholder="/about or https://…"
-                onChange={(e) => {
-                  onPatch({ url: e.target.value })
-                  saveDebounced()
-                }}
-                onBlur={saveNow}
-              />
-            </label>
-          ) : null}
-          {row.linkType === 'module' ? (
-            <>
-              <label className="settings-field">
-                <span>Module</span>
-                <select
-                  value={row.moduleId}
-                  onChange={(e) => {
-                    const moduleId = e.target.value
-                    const views = modules.find((m) => m.moduleId === moduleId)?.views ?? []
-                    onPatch({
-                      moduleId,
-                      moduleViewKey: views[0]?.key ?? '',
-                    })
-                    queueMicrotask(saveNow)
-                  }}
-                >
-                  <option value="">Select module…</option>
-                  {modules.map((m) => (
-                    <option key={m.moduleId} value={m.moduleId}>
-                      {m.moduleLabel}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="settings-field">
-                <span>View</span>
-                <select
-                  value={row.moduleViewKey}
-                  onChange={(e) => {
-                    onPatch({ moduleViewKey: e.target.value })
-                    queueMicrotask(saveNow)
-                  }}
-                  disabled={!row.moduleId || moduleViews.length === 0}
-                >
-                  <option value="">Select view…</option>
-                  {moduleViews.map((v) => (
-                    <option key={v.key} value={v.key}>
-                      {v.label} ({v.href})
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {modules.length === 0 ? (
-                <p className="settings-hint">
-                  No enabled modules declare navigable views. Turn modules on under Settings →
-                  Modules, or register <code>navViews</code> on a module.
-                </p>
-              ) : null}
-            </>
-          ) : null}
-          <label className="settings-field">
-            <span>Parent (optional)</span>
-            <select
-              value={row.parentId}
-              onChange={(e) => {
-                onPatch({ parentId: e.target.value })
-                queueMicrotask(saveNow)
-              }}
-            >
-              <option value="">Top level</option>
-              {parentOptions
-                .filter((p) => p.id !== row.id)
-                .map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.label}
-                  </option>
-                ))}
-            </select>
-          </label>
-          {row.linkType !== 'admin' ? (
-            <>
-              <label className="settings-field">
-                <span>Layout outline</span>
-                <select
-                  value={row.layoutId}
-                  onChange={(e) => {
-                    onPatch({ layoutId: e.target.value })
-                    queueMicrotask(saveNow)
-                  }}
-                >
-                  <option value="">Site default (no page override)</option>
-                  {outlines.map((o) => (
-                    <option key={o.id} value={o.id}>
-                      {o.label} ({o.id})
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <p className="settings-hint">
-                Same assignment as Layouts →{' '}
-                <Link
-                  href={
-                    row.layoutId
-                      ? `/admin/assigned-menu?outline=${encodeURIComponent(row.layoutId)}`
-                      : '/admin/assigned-menu'
-                  }
-                >
-                  Assigned Menu
-                </Link>
-                .
-              </p>
-            </>
-          ) : null}
-          <label className="settings-field">
-            <span>CSS class</span>
-            <input
-              type="text"
-              value={row.cssClass}
-              placeholder="e.g. nav-highlight"
-              onChange={(e) => {
-                onPatch({ cssClass: e.target.value })
-                saveDebounced()
-              }}
-              onBlur={saveNow}
-            />
-          </label>
-          <LocaleInput
-            locales={locales}
-            values={row.browserTitles}
-            label="Browser title override"
-            onChange={(code, value) => {
-              const browserTitles = { ...row.browserTitles, [code]: value }
-              const isDefault = locales.find((locale) => locale.code === code)?.isDefault
-              onPatch(isDefault ? { browserTitles, browserTitle: value } : { browserTitles })
-              saveDebounced()
-            }}
-            onBlur={saveNow}
-          />
-          <LocaleInput
-            locales={locales}
-            values={row.pageHeadings}
-            label="Page heading override"
-            onChange={(code, value) => {
-              const pageHeadings = { ...row.pageHeadings, [code]: value }
-              const isDefault = locales.find((locale) => locale.code === code)?.isDefault
-              onPatch(isDefault ? { pageHeadings, pageHeading: value } : { pageHeadings })
-              saveDebounced()
-            }}
-            onBlur={saveNow}
-          />
-          <AccessTagsField
-            value={row.accessTags}
-            groups={groups}
-            allowEmpty={row.linkType === 'admin'}
-            onChange={(accessTags) => {
-              onPatch({ accessTags })
-              queueMicrotask(saveNow)
-            }}
-          />
         </div>
       ) : null}
     </li>
@@ -577,18 +680,38 @@ export function NavItemsEditor({
   locales,
   preferredLayoutId,
   isSitePrimary,
+  rootItemId: rootItemIdProp,
+  rootElsewhere,
+  defaultLocaleLabel,
+  localeFallback,
 }: Props) {
   const router = useRouter()
   const defaultCode = locales.find((locale) => locale.isDefault)?.code ?? locales[0]?.code ?? ''
   const [rows, setRows] = useState<EditableItem[]>(() =>
     items.map((item) => toEditable(item, defaultCode)),
   )
+  /**
+   * Intentional draft — updated only in commit paths, never from a passive rows sync.
+   * Autosave reads this so link-type/module changes are not lost to stale hidden inputs
+   * or useActionState transition rollback after save.
+   */
+  const rowsRef = useRef<EditableItem[]>(rows)
   const [clipboard, setClipboard] = useState<string>('')
   const [expandedId, setExpandedId] = useState<string | null>(items[0]?.id ?? null)
   const [newLinkType, setNewLinkType] = useState<NavLinkType>('page')
   const [newModuleId, setNewModuleId] = useState(modules[0]?.moduleId ?? '')
   const [newLayoutId, setNewLayoutId] = useState(preferredLayoutId)
   const [newAccessTags, setNewAccessTags] = useState<string[]>([])
+  const [rootItemId, setRootItemId] = useState(rootItemIdProp)
+  const rootItemIdRef = useRef(rootItemIdProp)
+  const rootInputRef = useRef<HTMLInputElement>(null)
+
+  const setRoot = (id: string) => {
+    rootItemIdRef.current = id
+    setRootItemId(id)
+    if (rootInputRef.current) rootInputRef.current.value = id
+    queueMicrotask(saveNow)
+  }
 
   const [saveState, saveAction, savePending] = useActionState(saveNavMenuItemsAction, initial)
   const [addState, addAction, addPending] = useActionState(addNavMenuItemAction, initial)
@@ -597,6 +720,14 @@ export function NavItemsEditor({
   useNotifySavedOnOk(addState, { successMessage: 'Saved', toastErrors: true })
   useNotifySavedOnOk(pasteState, { successMessage: 'Saved', toastErrors: true })
   const { formRef, saveDebounced, saveNow } = useAutosaveForm()
+
+  const commitRows = (updater: (prev: EditableItem[]) => EditableItem[]) => {
+    // Sync ref immediately so queueMicrotask(saveNow) / onSubmit see the draft
+    // before React flushes (link type + module were jumping back after autosave).
+    const next = updater(rowsRef.current)
+    rowsRef.current = next
+    setRows(next)
+  }
 
   /**
    * Local draft is source of truth while editing (same class of fix as particle cogs #32).
@@ -607,15 +738,28 @@ export function NavItemsEditor({
   useEffect(() => {
     if (menuIdRef.current !== menuId) {
       menuIdRef.current = menuId
-      setRows(items.map((item) => toEditable(item, defaultCode)))
+      const next = items.map((item) => toEditable(item, defaultCode))
+      rowsRef.current = next
+      setRows(next)
       setExpandedId(items[0]?.id ?? null)
       return
     }
     setRows((prev) => {
       if (sameIdSet(prev, items)) return prev
-      return items.map((item) => toEditable(item, defaultCode))
+      const next = items.map((item) => toEditable(item, defaultCode))
+      rowsRef.current = next
+      return next
     })
   }, [menuId, items, defaultCode])
+
+  // Re-assert draft after autosave — pending transition can snap selects back to pre-save values.
+  const savePendingRef = useRef(false)
+  useEffect(() => {
+    if (savePendingRef.current && !savePending) {
+      setRows(rowsRef.current)
+    }
+    savePendingRef.current = savePending
+  }, [savePending])
 
   // Add/paste create server-side ids — refresh once so membership soft-sync can pick them up.
   const pasteOkRef = useRef(false)
@@ -647,15 +791,16 @@ export function NavItemsEditor({
   const refresh = () => router.refresh()
 
   const updateRow = (id: string, patch: Partial<EditableItem>) => {
-    setRows((prev) => prev.map((row) => (row.id === id ? { ...row, ...patch } : row)))
+    commitRows((prev) => prev.map((row) => (row.id === id ? { ...row, ...patch } : row)))
   }
 
   const removeRow = (id: string) => {
-    setRows((prev) =>
+    commitRows((prev) =>
       prev
         .filter((row) => row.id !== id)
         .map((row) => (row.parentId === id ? { ...row, parentId: '' } : row)),
     )
+    if (rootItemIdRef.current === id) setRoot('')
     if (expandedId === id) setExpandedId(null)
     queueMicrotask(saveNow)
   }
@@ -688,7 +833,7 @@ export function NavItemsEditor({
   const onDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
     if (!over || active.id === over.id) return
-    setRows((prev) => {
+    commitRows((prev) => {
       const oldIndex = prev.findIndex((row) => row.id === active.id)
       const newIndex = prev.findIndex((row) => row.id === over.id)
       if (oldIndex < 0 || newIndex < 0) return prev
@@ -708,14 +853,34 @@ export function NavItemsEditor({
           </>
         ) : null}{' '}
         · <Link href="/admin/nav">All menus</Link>
+        {rootItemId ? null : rootElsewhere ? (
+          <>
+            {' '}
+            · Root is set on <strong>{rootElsewhere}</strong>.
+          </>
+        ) : (
+          <>
+            {' '}
+            · <code>/{'{locale}'}</code> is still the page slug <code>home</code>.
+          </>
+        )}
       </p>
 
       <Feedback state={saveState} />
       <Feedback state={addState} />
       <Feedback state={pasteState} />
 
-      <form ref={formRef} action={saveAction} className="nav-items-form">
+      <form
+        ref={formRef}
+        action={saveAction}
+        className="nav-items-form"
+        onSubmit={(e) => {
+          // Last-write-wins in parseItemsFromForm — draft beats stale controlled hiddens.
+          appendItemFields(e.currentTarget, rowsRef.current)
+        }}
+      >
         <input type="hidden" name="menuId" value={menuId} />
+        <input ref={rootInputRef} type="hidden" name="rootItemId" value={rootItemId} />
 
         {rows.length === 0 ? (
           <p className="outlines-muted">No items yet — add one below.</p>
@@ -741,6 +906,11 @@ export function NavItemsEditor({
                     onRemove={() => removeRow(row.id)}
                     saveNow={saveNow}
                     saveDebounced={saveDebounced}
+                    isRoot={rootItemId === row.id}
+                    canBeRoot={navItemCanBeRoot({ linkType: row.linkType, url: row.url })}
+                    onSetRoot={(on) => setRoot(on ? row.id : '')}
+                    defaultLocaleLabel={defaultLocaleLabel}
+                    localeFallback={localeFallback}
                   />
                 ))}
               </ul>
@@ -773,14 +943,16 @@ export function NavItemsEditor({
         </div>
       </form>
 
-      <section className="nav-items-add" aria-label="Add menu item">
-        <h3>Add item</h3>
+      <section className="page-settings-panel nav-items-add" aria-label="Add menu item">
+        <header className="page-settings-panel-head">
+          <h3>Add item</h3>
+        </header>
         <form
           action={addAction}
-          className="outlines-create-form admin-create-form"
+          className="page-settings-panel-body outlines-create-form admin-create-form nav-items-add-form"
           onSubmit={(e) => {
             const form = e.currentTarget
-            appendItemFields(form, rows)
+            appendItemFields(form, rowsRef.current)
             setTimeout(refresh, 80)
           }}
         >
@@ -802,17 +974,13 @@ export function NavItemsEditor({
                 }
               }}
             >
-              <option value="page">CMS page</option>
-              <option value="url">URL</option>
-              <option value="module">Module view</option>
-              <option value="admin">Admin</option>
+              {LINK_TYPES.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           </label>
-          {newLinkType === 'admin' ? (
-            <p className="settings-hint">
-              Links to <code>/admin</code> without a locale prefix. Pick Admin role and/or a group below.
-            </p>
-          ) : null}
           {newLinkType === 'page' ? (
             <label className="settings-field">
               <span>Page</span>
@@ -881,8 +1049,13 @@ export function NavItemsEditor({
                 ))}
               </select>
             </label>
-          ) : (
-            <>
+          ) : null}
+          {newLinkType === 'admin' ? (
+            <div className="nav-items-add-span">
+              <p className="settings-hint">
+                Links to <code>/admin</code> without a locale prefix. Pick Admin role and/or a group
+                below.
+              </p>
               <AccessTagsField
                 value={newAccessTags}
                 groups={groups}
@@ -890,8 +1063,14 @@ export function NavItemsEditor({
                 allowEmpty
               />
               <input type="hidden" name="newAccessTags" value={JSON.stringify(newAccessTags)} />
-            </>
-          )}
+            </div>
+          ) : null}
+          {newLinkType === 'module' && modules.length === 0 ? (
+            <p className="settings-hint nav-items-add-span">
+              No enabled modules declare navigable views. Turn modules on under Settings → Modules,
+              or register <code>navViews</code> on a module.
+            </p>
+          ) : null}
           <button
             type="submit"
             className="gantry-toolbar-btn gantry-toolbar-btn-save"

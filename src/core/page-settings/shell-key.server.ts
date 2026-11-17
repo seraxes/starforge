@@ -6,7 +6,9 @@ import { getActiveSkin } from '@/core/skin/resolve-active'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
 import { emptyResolvedChrome } from './defaults'
-import { getResolvedPageChrome, pageKeyFromPathname } from './resolve'
+import { pageKeyForPublicPath } from '@/core/nav/root'
+
+import { getResolvedPageChrome } from './resolve'
 import type { PublicShellKey } from './shell-key'
 import type { SectionsLayoutMode } from './types'
 
@@ -38,7 +40,7 @@ export async function paintedPublicShellKey(input: {
 
 /** Shell identity for a public pathname (locale prefix allowed). */
 export async function resolvePublicShellKeyFromPath(pathname: string): Promise<PublicShellKey> {
-  const pageKey = pageKeyFromPathname(pathname)
+  const pageKey = await pageKeyForPublicPath(pathname)
   const [settings, skin] = await Promise.all([getSiteSettings(), getActiveSkin()])
   const pageSettingsOn = isCatalogModuleEnabled(settings, MODULE_IDS.pageSettings)
   const layoutOn = isCatalogModuleEnabled(settings, MODULE_IDS.layoutManager)

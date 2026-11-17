@@ -33,6 +33,10 @@ export type OptionalParticleLoader = {
  */
 export const optionalParticleLoaders: OptionalParticleLoader[] = [
   {
+    id: "subscription-plans",
+    load: async () => (await import("@/modules/subscriptions/particles/subscription-plans-module")).subscriptionPlansModule,
+  },
+  {
     id: "event-list",
     load: async () => (await import("@/modules/events/particles/event-list-module")).eventListModule,
   },

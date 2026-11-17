@@ -16,6 +16,7 @@ import {
   addSeat,
   adminCompPeriod,
   createPlan,
+  deletePlan,
   listPeriods,
   periodsToCsv,
   removeSeat,
@@ -80,6 +81,7 @@ function planFieldsFromForm(formData: FormData) {
     description: String(formData.get('description') ?? ''),
     price: formData.get('price'),
     billingPeriod: formData.get('billingPeriod'),
+    billingIntervalCount: formData.get('billingIntervalCount'),
     entitlementKeys: formData.get('entitlementKeys'),
     groupIds,
     sourceModule: String(formData.get('sourceModule') ?? ''),
@@ -96,7 +98,10 @@ function planFieldsFromForm(formData: FormData) {
     formDefinitionId: String(formData.get('formDefinitionId') ?? ''),
     earlyRenewDays: formData.get('earlyRenewDays'),
     earlyRenewPrice: formData.get('earlyRenewPrice'),
-    upgradeTargetIds: formData.get('upgradeTargetIds'),
+    upgradeTargetIds:
+      formData.get('upgradeTargetIdsField') === '1'
+        ? formData.getAll('upgradeTargetIds').map((v) => String(v).trim()).filter(Boolean)
+        : formData.get('upgradeTargetIds'),
     graceHours: formData.get('graceHours'),
     seatLimit: formData.get('seatLimit'),
     recurringSupported: formData.get('recurringSupported') === '1',
@@ -183,6 +188,21 @@ export async function setPlanActiveAction(
   const flagged = formData.get('setActive')
   const active = flagged != null ? String(flagged) !== '0' : formData.get('active') !== '0'
   const result = await setPlanActive(id, active)
+  if (!result.ok) return { error: result.error }
+  revalidatePath('/admin/subscriptions')
+  return { ok: true }
+}
+
+export async function deletePlanAction(
+  _prev: SubscriptionsActionState,
+  formData: FormData,
+): Promise<SubscriptionsActionState> {
+  const denied = await requireSubscriptionsAdmin()
+  if (denied) return denied
+
+  const id = String(formData.get('id') ?? '').trim()
+  if (!id) return { error: 'Missing plan id.' }
+  const result = await deletePlan(id)
   if (!result.ok) return { error: result.error }
   revalidatePath('/admin/subscriptions')
   return { ok: true }
@@ -297,6 +317,7 @@ export async function startSubscribeAction(
   if (!result.ok) return { error: result.error }
   if ('free' in result && result.free) {
     revalidatePath('/account/subscriptions')
+    revalidatePath('/plans')
     return { ok: true, periodId: result.periodId }
   }
   if ('orderId' in result) {

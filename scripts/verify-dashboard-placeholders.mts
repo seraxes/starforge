@@ -52,9 +52,9 @@ assert.doesNotMatch(hostManifest, /product:stats/)
 const mediaManifest = read('src/modules/media/manifest.ts')
 assert.match(mediaManifest, /id: 'media\.counts'/)
 
-// D2: media.counts loader must hit Payload Media (not the old hard unavailable stub)
+// D2: media.counts loader must hit the media document store (not the old hard unavailable stub)
 const mediaStats = read('src/modules/media/dashboard/media-stats.ts')
-assert.match(mediaStats, /payload\.media/)
+assert.match(mediaStats, /sf_media_assets/)
 assert.doesNotMatch(mediaStats, /Media dashboard counts are not wired yet/)
 
 const emailManifest = read('src/modules/email-manager/manifest.ts')

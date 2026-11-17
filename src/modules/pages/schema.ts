@@ -42,7 +42,7 @@ export const sfPages = pgTable(
   'sf_pages',
   {
     id: text('id').primaryKey(),
-    /** Public slug. `home` is the site root (`/{locale}`). */
+    /** Public slug, shared across locales. `/{locale}` is the nav Root item; slug `home` is only the fallback. */
     slug: text('slug').notNull(),
     /** `draft` | `published` | `unpublished`. */
     status: text('status').notNull().default('draft'),

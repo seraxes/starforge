@@ -1,12 +1,14 @@
 'use client'
 
-import React, { useActionState, useEffect, useMemo, useState } from 'react'
+import React, { startTransition, useActionState, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 import { useNotifySavedOnOk } from '@/app/(frontend)/admin/admin-toast'
+import { AdminConfirmDialog } from '@/components/admin/AdminConfirmDialog'
 import type { ContentLocaleOption } from '@/core/i18n/locale-text'
 import { LocaleInput } from '@/core/localization/LocaleInput'
+import { MediaPicker } from '@/modules/media/api'
 
 import {
   audienceMatchesSubtype,
@@ -21,13 +23,16 @@ import {
 } from '../catalog'
 import {
   createPlanAction,
+  deletePlanAction,
   setPlanActiveAction,
   updatePlanAction,
   type SubscriptionsActionState,
 } from '../actions'
 import {
   defaultEntitlementKeysForSubject,
+  formatBillingPeriodLabel,
   PLAN_SUBJECTS,
+  type PlanBillingPeriod,
   type SubscriptionPlanRecord,
 } from '../types'
 
@@ -37,6 +42,8 @@ type PlanSort = 'catalog' | 'newest' | 'title' | 'price'
 type PlanStatusFilter = 'all' | 'active' | 'inactive'
 
 export type PlanGroupOption = { id: string; label: string }
+export type PlanFormOption = { id: string; label: string }
+export type PlanUpgradeOption = { id: string; title: string }
 
 export type PlanAdminRow = SubscriptionPlanRecord & {
   titleLocales: Record<string, string>
@@ -50,6 +57,8 @@ type Props = {
   defaultGraceHours?: number
   defaultFormDefinitionId?: string
   groupOptions?: PlanGroupOption[]
+  formOptions?: PlanFormOption[]
+  mediaEnabled?: boolean
   locales?: ContentLocaleOption[]
 }
 
@@ -67,8 +76,9 @@ function initialTypeId(raw: string | undefined): string {
 }
 
 function priceLabel(plan: SubscriptionPlanRecord, currency: string): string {
-  if (plan.price <= 0) return `Free / ${plan.billingPeriod}`
-  return `${plan.price} ${currency} / ${plan.billingPeriod}`
+  const period = formatBillingPeriodLabel(plan.billingPeriod, plan.billingIntervalCount)
+  if (plan.price <= 0) return `Free / ${period}`
+  return `${plan.price} ${currency} / ${period}`
 }
 
 function Feedback({ state }: { state: SubscriptionsActionState }) {
@@ -110,12 +120,31 @@ function FilterChip({
   )
 }
 
+/** Half-width mosaic card — same shell as Events edit (`settings-fieldset`). */
+function PlanSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <fieldset className="settings-fieldset sf-events-form-section">
+      <legend>{title}</legend>
+      <div className="sf-subscriptions-plan-fields">{children}</div>
+    </fieldset>
+  )
+}
+
+function withCurrentOption(options: PlanFormOption[], currentId: string): PlanFormOption[] {
+  const id = currentId.trim()
+  if (!id || options.some((opt) => opt.id === id)) return options
+  return [{ id, label: id }, ...options]
+}
+
 function PlanFields({
   row,
   pending,
   defaultGraceHours = 0,
   defaultFormDefinitionId = 'subscription-registration',
   groupOptions = [],
+  formOptions = [],
+  upgradeOptions = [],
+  mediaEnabled = false,
   locales = [],
 }: {
   row?: PlanAdminRow
@@ -123,11 +152,20 @@ function PlanFields({
   defaultGraceHours?: number
   defaultFormDefinitionId?: string
   groupOptions?: PlanGroupOption[]
+  formOptions?: PlanFormOption[]
+  upgradeOptions?: PlanUpgradeOption[]
+  mediaEnabled?: boolean
   locales?: ContentLocaleOption[]
 }) {
   const [subject, setSubject] = useState(row?.subject || PLAN_SUBJECTS.membership)
   const [audience, setAudience] = useState(
     row ? canonicalPlanAudience(row.subject, row.audience) : defaultAudienceForSubject(PLAN_SUBJECTS.membership),
+  )
+  const [billingPeriod, setBillingPeriod] = useState<PlanBillingPeriod>(
+    row?.billingPeriod || 'month',
+  )
+  const [billingIntervalCount, setBillingIntervalCount] = useState(
+    String(row?.billingIntervalCount && row.billingIntervalCount > 0 ? row.billingIntervalCount : 1),
   )
   const defaultCode = locales.find((l) => l.isDefault)?.code || locales[0]?.code || ''
   const [title, setTitle] = useState(row?.title ?? '')
@@ -136,7 +174,21 @@ function PlanFields({
   const [descriptionLocales, setDescriptionLocales] = useState<Record<string, string>>(
     row?.descriptionLocales ?? {},
   )
+  const [imageMediaId, setImageMediaId] = useState(row?.imageMediaId ?? '')
   const formDeepLinkId = (row?.formDefinitionId || defaultFormDefinitionId || '').trim()
+  const formChoices = withCurrentOption(
+    formOptions,
+    row?.formDefinitionId || (!row ? defaultFormDefinitionId : ''),
+  )
+  const selectedUpgradeIds = (row?.upgradeTargetIds ?? []).filter((id) => id !== row?.id)
+  const upgradeSelect = [
+    ...upgradeOptions
+      .filter((plan) => plan.id !== row?.id)
+      .map((plan) => ({ id: plan.id, label: plan.title || plan.id })),
+    ...selectedUpgradeIds
+      .filter((id) => !upgradeOptions.some((plan) => plan.id === id))
+      .map((id) => ({ id, label: id })),
+  ]
   const typeOptions = PLAN_TYPE_OPTIONS.some((opt) => opt.id === subject)
     ? PLAN_TYPE_OPTIONS
     : [...PLAN_TYPE_OPTIONS, { id: subject, label: planSubjectLabel(subject) }]
@@ -151,10 +203,8 @@ function PlanFields({
       : ''
 
   return (
-    <div className="sf-subscriptions-plan-sections">
-      <fieldset className="sf-subscriptions-plan-section">
-        <legend>Basics</legend>
-        <div className="sf-subscriptions-plan-fields">
+    <>
+      <PlanSection title="Basics">
           <label className="settings-field">
             <span>Type</span>
             <select
@@ -286,6 +336,32 @@ function PlanFields({
               </label>
             </>
           )}
+          <div className="settings-field sf-subscriptions-plan-field-wide">
+            {mediaEnabled ? (
+              <>
+                <MediaPicker
+                  label="Thumbnail"
+                  value={{ mediaId: imageMediaId, url: '', alt: '' }}
+                  defaultFolder="general"
+                  defaultPurpose="photo"
+                  disabled={pending}
+                  includeHiddenInputs={false}
+                  allowUrlFallback={false}
+                  hint="Media library image for this plan. Media owns the file."
+                  onChange={(next) => setImageMediaId(next.mediaId)}
+                />
+                <input type="hidden" name="imageMediaId" value={imageMediaId} />
+              </>
+            ) : (
+              <>
+                <span>Thumbnail</span>
+                <input type="hidden" name="imageMediaId" value={row?.imageMediaId ?? ''} />
+                <span className="settings-hint">
+                  Enable Media under Settings → Modules to choose a thumbnail.
+                </span>
+              </>
+            )}
+          </div>
           <label className="settings-field settings-flag">
             <span>Active</span>
             <input
@@ -296,12 +372,9 @@ function PlanFields({
               disabled={pending}
             />
           </label>
-        </div>
-      </fieldset>
+      </PlanSection>
 
-      <fieldset className="sf-subscriptions-plan-section">
-        <legend>Pricing</legend>
-        <div className="sf-subscriptions-plan-fields">
+      <PlanSection title="Pricing">
           <label className="settings-field">
             <span>Price (major)</span>
             <input
@@ -316,8 +389,32 @@ function PlanFields({
             <span className="settings-hint">0 = free plan (no Payments cart).</span>
           </label>
           <label className="settings-field">
+            <span>Length</span>
+            <input
+              type="number"
+              name="billingIntervalCount"
+              min={1}
+              max={3650}
+              step={1}
+              required
+              value={billingPeriod === 'lifetime' ? '1' : billingIntervalCount}
+              disabled={pending || billingPeriod === 'lifetime'}
+              onChange={(e) => setBillingIntervalCount(e.target.value)}
+            />
+            <span className="settings-hint">How many units each charge covers (e.g. 14 days).</span>
+          </label>
+          <label className="settings-field">
             <span>Billing period</span>
-            <select name="billingPeriod" defaultValue={row?.billingPeriod || 'month'} disabled={pending}>
+            <select
+              name="billingPeriod"
+              value={billingPeriod}
+              disabled={pending}
+              onChange={(e) => {
+                const next = e.target.value as PlanBillingPeriod
+                setBillingPeriod(next)
+                if (next === 'lifetime') setBillingIntervalCount('1')
+              }}
+            >
               <option value="day">Day</option>
               <option value="week">Week</option>
               <option value="month">Month</option>
@@ -336,12 +433,9 @@ function PlanFields({
             />
             <span className="settings-hint">Payments owns gateway renew; this only opts the plan in.</span>
           </label>
-        </div>
-      </fieldset>
+      </PlanSection>
 
-      <fieldset className="sf-subscriptions-plan-section">
-        <legend>Trial</legend>
-        <div className="sf-subscriptions-plan-fields">
+      <PlanSection title="Trial">
           <label className="settings-field">
             <span>Trial days</span>
             <input
@@ -374,12 +468,9 @@ function PlanFields({
               disabled={pending}
             />
           </label>
-        </div>
-      </fieldset>
+      </PlanSection>
 
-      <fieldset className="sf-subscriptions-plan-section">
-        <legend>Renewal &amp; limits</legend>
-        <div className="sf-subscriptions-plan-fields">
+      <PlanSection title="Renewal and limits">
           <label className="settings-field">
             <span>Early renew days</span>
             <input
@@ -436,22 +527,30 @@ function PlanFields({
             />
           </label>
           <label className="settings-field sf-subscriptions-plan-field-wide">
-            <span>Upgrade target plan ids</span>
-            <input
-              type="text"
+            <span>Upgrade targets</span>
+            <input type="hidden" name="upgradeTargetIdsField" value="1" />
+            <select
               name="upgradeTargetIds"
-              defaultValue={row?.upgradeTargetIds?.join(', ') ?? ''}
+              multiple
+              size={Math.min(6, Math.max(3, upgradeSelect.length || 3))}
+              defaultValue={selectedUpgradeIds}
               disabled={pending}
-              placeholder="Comma-separated plan ids"
-              autoComplete="off"
-            />
+            >
+              {upgradeSelect.map((plan) => (
+                <option key={plan.id} value={plan.id}>
+                  {plan.label}
+                </option>
+              ))}
+            </select>
+            <span className="settings-hint">
+              A member can move to these plans. Checkout credits unused time on the current plan
+              against the target price; lifetime credits nothing. Payments charges the remainder.
+              Deselect all and Save to clear.
+            </span>
           </label>
-        </div>
-      </fieldset>
+      </PlanSection>
 
-      <fieldset className="sf-subscriptions-plan-section">
-        <legend>Access</legend>
-        <div className="sf-subscriptions-plan-fields">
+      <PlanSection title="Access">
           <label className="settings-field">
             <span>Seat limit (0 = none)</span>
             <input
@@ -464,15 +563,30 @@ function PlanFields({
             />
           </label>
           <label className="settings-field">
-            <span>Forms definition id</span>
-            <input
-              type="text"
-              name="formDefinitionId"
-              defaultValue={row?.formDefinitionId || (!row ? defaultFormDefinitionId : '')}
-              disabled={pending}
-              placeholder={defaultFormDefinitionId}
-              autoComplete="off"
-            />
+            <span>Signup form</span>
+            {formOptions.length > 0 ? (
+              <select
+                name="formDefinitionId"
+                defaultValue={row?.formDefinitionId || (!row ? defaultFormDefinitionId : '')}
+                disabled={pending}
+              >
+                <option value="">None</option>
+                {formChoices.map((form) => (
+                  <option key={form.id} value={form.id}>
+                    {form.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                name="formDefinitionId"
+                defaultValue={row?.formDefinitionId || (!row ? defaultFormDefinitionId : '')}
+                disabled={pending}
+                placeholder={defaultFormDefinitionId}
+                autoComplete="off"
+              />
+            )}
             <span className="settings-hint">
               Forms owns the field schema.{' '}
               {formDeepLinkId ? (
@@ -535,9 +649,8 @@ function PlanFields({
               deselect all and Save to clear.
             </span>
           </label>
-        </div>
-      </fieldset>
-    </div>
+      </PlanSection>
+    </>
   )
 }
 
@@ -546,12 +659,18 @@ function CreatePlanCard({
   defaultGraceHours,
   defaultFormDefinitionId,
   groupOptions,
+  formOptions,
+  upgradeOptions,
+  mediaEnabled,
   locales,
 }: {
   currency: string
   defaultGraceHours: number
   defaultFormDefinitionId: string
   groupOptions: PlanGroupOption[]
+  formOptions: PlanFormOption[]
+  upgradeOptions: PlanUpgradeOption[]
+  mediaEnabled: boolean
   locales: ContentLocaleOption[]
 }) {
   const router = useRouter()
@@ -567,38 +686,48 @@ function CreatePlanCard({
   }, [state.ok, router])
 
   return (
-    <section
-      className={`outlines-create sf-events-add-panel sf-subscriptions-add-panel${createOpen ? ' is-open' : ''}`}
-      aria-label="Add plan"
-    >
-      <h3>Add plan</h3>
-      <div className="sf-events-add-bar">
-        <button
-          type="button"
-          className={`gantry-toolbar-btn${createOpen ? ' gantry-toolbar-btn-muted' : ' gantry-toolbar-btn-save'}`}
-          aria-expanded={createOpen}
-          aria-controls="sf-subscriptions-add-plan-form"
-          onClick={() => setCreateOpen((open) => !open)}
-        >
-          {createOpen ? 'Close' : 'Add +'}
-        </button>
-        {!createOpen ? (
-          <p className="settings-hint sf-events-add-hint">
-            Click Add + to extend the form — currency {currency}. Checkout re-reads the price.
-          </p>
-        ) : null}
-      </div>
+    <div className={`sf-subscriptions-add-panel${createOpen ? ' is-open' : ''}`} aria-label="Add plan">
+      <section className="outlines-create sf-events-add-panel">
+        <h3>Add plan</h3>
+        <div className="sf-events-add-bar">
+          <button
+            type="button"
+            className={`gantry-toolbar-btn${createOpen ? ' gantry-toolbar-btn-muted' : ''}`}
+            aria-expanded={createOpen}
+            aria-controls="sf-subscriptions-add-plan-form"
+            onClick={() => setCreateOpen((open) => !open)}
+          >
+            {createOpen ? 'Close' : 'Add +'}
+          </button>
+          {!createOpen ? (
+            <p className="settings-hint sf-events-add-hint">
+              Click Add + to extend the form — currency {currency}. Checkout re-reads the price.
+            </p>
+          ) : null}
+        </div>
+      </section>
       {createOpen ? (
-        <form key={formKey} id="sf-subscriptions-add-plan-form" action={action} aria-label="Create plan">
-          <PlanFields
-            pending={pending}
-            defaultGraceHours={defaultGraceHours}
-            defaultFormDefinitionId={defaultFormDefinitionId}
-            groupOptions={groupOptions}
-            locales={locales}
-          />
+        <div className="sf-subscriptions-plan-edit sf-events-form-mosaic">
+          <form
+            key={formKey}
+            id="sf-subscriptions-add-plan-form"
+            action={action}
+            aria-label="Create plan"
+            className="sf-events-form-mosaic-form"
+          >
+            <PlanFields
+              pending={pending}
+              defaultGraceHours={defaultGraceHours}
+              defaultFormDefinitionId={defaultFormDefinitionId}
+              groupOptions={groupOptions}
+              formOptions={formOptions}
+              upgradeOptions={upgradeOptions}
+              mediaEnabled={mediaEnabled}
+              locales={locales}
+            />
+          </form>
           <Feedback state={state} />
-          <div className="page-settings-actions sf-events-form-actions">
+          <div className="sf-events-form-actions admin-action-row">
             <button
               type="button"
               className="gantry-toolbar-btn gantry-toolbar-btn-muted"
@@ -607,44 +736,88 @@ function CreatePlanCard({
             >
               Cancel
             </button>
-            <button type="submit" className="gantry-toolbar-btn gantry-toolbar-btn-save" disabled={pending}>
+            <button
+              type="submit"
+              form="sf-subscriptions-add-plan-form"
+              className="gantry-toolbar-btn gantry-toolbar-btn-save"
+              disabled={pending}
+            >
               {pending ? 'Saving…' : 'Create'}
             </button>
           </div>
-        </form>
+        </div>
       ) : null}
-    </section>
+    </div>
   )
 }
 
 function EditPlanForm({
   plan,
   onClose,
+  defaultFormDefinitionId,
   groupOptions,
+  formOptions,
+  upgradeOptions,
+  mediaEnabled,
   locales,
+  onDeleted,
 }: {
   plan: PlanAdminRow
   onClose: () => void
+  defaultFormDefinitionId: string
   groupOptions: PlanGroupOption[]
+  formOptions: PlanFormOption[]
+  upgradeOptions: PlanUpgradeOption[]
+  mediaEnabled: boolean
   locales: ContentLocaleOption[]
+  onDeleted: () => void
 }) {
   const router = useRouter()
   const [state, action, pending] = useActionState(updatePlanAction, initial)
   const [activeState, activeAction, activePending] = useActionState(setPlanActiveAction, initial)
+  const [deleteState, deleteAction, deletePending] = useActionState(deletePlanAction, initial)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   useNotifySavedOnOk(state)
   useNotifySavedOnOk(activeState)
+  useNotifySavedOnOk(deleteState)
   useEffect(() => {
     if (state.ok || activeState.ok) router.refresh()
   }, [state.ok, activeState.ok, router])
+  useEffect(() => {
+    if (!deleteState.ok) return
+    onDeleted()
+    router.refresh()
+  }, [deleteState.ok, onDeleted, router])
 
-  const busy = pending || activePending
+  const busy = pending || activePending || deletePending
+  const formId = `sf-subscriptions-edit-${plan.id}`
+  const feedback = state.error
+    ? state
+    : activeState.error
+      ? activeState
+      : deleteState.error
+        ? deleteState
+        : state.ok || activeState.ok || deleteState.ok
+          ? { ok: true as const }
+          : {}
 
   return (
-    <form action={action} className="sf-subscriptions-plan-edit">
-      <input type="hidden" name="id" value={plan.id} />
-      <PlanFields row={plan} pending={busy} groupOptions={groupOptions} locales={locales} />
-      <Feedback state={state.error ? state : activeState} />
-      <div className="page-settings-actions sf-events-form-actions">
+    <div className="sf-subscriptions-plan-edit sf-events-form-mosaic">
+      <form id={formId} action={action} className="sf-events-form-mosaic-form">
+        <input type="hidden" name="id" value={plan.id} />
+        <PlanFields
+          row={plan}
+          pending={busy}
+          defaultFormDefinitionId={defaultFormDefinitionId}
+          groupOptions={groupOptions}
+          formOptions={formOptions}
+          upgradeOptions={upgradeOptions}
+          mediaEnabled={mediaEnabled}
+          locales={locales}
+        />
+      </form>
+      <Feedback state={feedback} />
+      <div className="sf-events-form-actions admin-action-row">
         <button
           type="button"
           className="gantry-toolbar-btn gantry-toolbar-btn-muted"
@@ -654,20 +827,51 @@ function EditPlanForm({
           Cancel
         </button>
         <button
+          type="button"
+          className="gantry-toolbar-btn gantry-toolbar-btn-danger"
+          disabled={busy}
+          onClick={() => setConfirmDelete(true)}
+        >
+          Delete
+        </button>
+        <button
           type="submit"
+          form={formId}
           formAction={activeAction}
           name="setActive"
           value={plan.active ? '0' : '1'}
-          className="gantry-toolbar-btn"
+          className="gantry-toolbar-btn gantry-toolbar-btn-muted"
           disabled={busy}
         >
           {plan.active ? 'Deactivate' : 'Activate'}
         </button>
-        <button type="submit" className="gantry-toolbar-btn gantry-toolbar-btn-save" disabled={busy}>
+        <button
+          type="submit"
+          form={formId}
+          className="gantry-toolbar-btn gantry-toolbar-btn-save"
+          disabled={busy}
+        >
           {pending ? 'Saving…' : 'Save'}
         </button>
       </div>
-    </form>
+      <AdminConfirmDialog
+        open={confirmDelete}
+        title="Delete plan"
+        message={`Delete plan “${plan.title}”? This cannot be undone. Plans with subscribers cannot be deleted.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        danger
+        onCancel={() => setConfirmDelete(false)}
+        onConfirm={() => {
+          setConfirmDelete(false)
+          const data = new FormData()
+          data.set('id', plan.id)
+          startTransition(() => {
+            void deleteAction(data)
+          })
+        }}
+      />
+    </div>
   )
 }
 
@@ -676,22 +880,27 @@ function PlanRow({
   currency,
   open,
   onToggle,
-  groupOptions,
-  locales,
+  onRequestDelete,
 }: {
   plan: PlanAdminRow
   currency: string
   open: boolean
   onToggle: () => void
-  groupOptions: PlanGroupOption[]
-  locales: ContentLocaleOption[]
+  onRequestDelete: () => void
 }) {
   return (
     <div
       className={`sf-subscriptions-plan-item${open ? ' is-open' : ''}${plan.active ? '' : ' is-inactive'}`}
     >
       <div className="sf-subscriptions-plan-row">
-        <span className="sf-subscriptions-plan-title">{plan.title}</span>
+        <button
+          type="button"
+          className="sf-subscriptions-plan-title"
+          aria-expanded={open}
+          onClick={onToggle}
+        >
+          {plan.title}
+        </button>
         <span className="sf-subscriptions-plan-meta">{planTypeSummary(plan.subject, plan.audience)}</span>
         <span className="sf-subscriptions-plan-meta">{priceLabel(plan, currency)}</span>
         <span
@@ -708,16 +917,15 @@ function PlanRow({
           >
             {open ? 'Close' : 'Edit'}
           </button>
+          <button
+            type="button"
+            className="gantry-toolbar-btn gantry-toolbar-btn-danger"
+            onClick={onRequestDelete}
+          >
+            Delete
+          </button>
         </div>
       </div>
-      {open ? (
-        <EditPlanForm
-          plan={plan}
-          onClose={onToggle}
-          groupOptions={groupOptions}
-          locales={locales}
-        />
-      ) : null}
     </div>
   )
 }
@@ -729,6 +937,8 @@ export function PlansManager({
   defaultGraceHours = 0,
   defaultFormDefinitionId = 'subscription-registration',
   groupOptions = [],
+  formOptions = [],
+  mediaEnabled = false,
   locales = [],
 }: Props) {
   const [typeId, setTypeId] = useState(() => initialTypeId(initialType))
@@ -736,6 +946,24 @@ export function PlansManager({
   const [status, setStatus] = useState<PlanStatusFilter>('all')
   const [sort, setSort] = useState<PlanSort>('catalog')
   const [openId, setOpenId] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<PlanAdminRow | null>(null)
+  const [deleteState, deleteAction, deletePending] = useActionState(deletePlanAction, initial)
+  useNotifySavedOnOk(deleteState)
+  const router = useRouter()
+  useEffect(() => {
+    if (!deleteState.ok) return
+    setDeleteTarget(null)
+    setOpenId(null)
+    router.refresh()
+  }, [deleteState.ok, router])
+  const upgradeOptions = useMemo(
+    () => plans.map((plan) => ({ id: plan.id, title: plan.title })),
+    [plans],
+  )
+  const openPlan = useMemo(
+    () => (openId ? plans.find((plan) => plan.id === openId) ?? null : null),
+    [plans, openId],
+  )
 
   const typeCounts = useMemo(() => {
     const counts = new Map<string, number>()
@@ -799,6 +1027,9 @@ export function PlansManager({
         defaultGraceHours={defaultGraceHours}
         defaultFormDefinitionId={defaultFormDefinitionId}
         groupOptions={groupOptions}
+        formOptions={formOptions}
+        upgradeOptions={upgradeOptions}
+        mediaEnabled={mediaEnabled}
         locales={locales}
       />
 
@@ -884,13 +1115,56 @@ export function PlansManager({
                 currency={currency}
                 open={openId === plan.id}
                 onToggle={() => setOpenId((current) => (current === plan.id ? null : plan.id))}
-                groupOptions={groupOptions}
-                locales={locales}
+                onRequestDelete={() => setDeleteTarget(plan)}
               />
             ))}
           </div>
         )}
+        {deleteState.error ? (
+          <p className="admin-inline-error" role="alert">
+            {deleteState.error}
+          </p>
+        ) : null}
       </section>
+
+      {openPlan ? (
+        <EditPlanForm
+          key={openPlan.id}
+          plan={openPlan}
+          onClose={() => setOpenId(null)}
+          defaultFormDefinitionId={defaultFormDefinitionId}
+          groupOptions={groupOptions}
+          formOptions={formOptions}
+          upgradeOptions={upgradeOptions}
+          mediaEnabled={mediaEnabled}
+          locales={locales}
+          onDeleted={() => setOpenId(null)}
+        />
+      ) : null}
+
+      <AdminConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Delete plan"
+        message={
+          deleteTarget
+            ? `Delete plan “${deleteTarget.title}”? This cannot be undone. Plans with subscribers cannot be deleted.`
+            : ''
+        }
+        confirmLabel={deletePending ? 'Deleting…' : 'Delete'}
+        cancelLabel="Cancel"
+        danger
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={() => {
+          if (!deleteTarget || deletePending) return
+          const id = deleteTarget.id
+          setDeleteTarget(null)
+          const data = new FormData()
+          data.set('id', id)
+          startTransition(() => {
+            void deleteAction(data)
+          })
+        }}
+      />
     </div>
   )
 }

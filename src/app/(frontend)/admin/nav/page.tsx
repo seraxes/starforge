@@ -29,8 +29,10 @@ export default async function AdminNavPage() {
         Top-level navigation manager (sibling of Users / Settings / Layouts) — named{' '}
         <strong>navigation sets</strong> with their own items: CMS page or URL, reorder, copy/paste.
         Settings only <em>assigns</em> which set is the public primary (
-        <Link href="/admin/settings">Primary nav assignment</Link>). Storage:{' '}
-        <code>sf_nav_menus</code>. Default set id: <code>{DEFAULT_NAV_MENU_ID}</code>.
+        <Link href="/admin/settings">Primary nav assignment</Link>).         Storage:{' '}
+        <code>sf_nav_menus</code>. Default set id: <code>{DEFAULT_NAV_MENU_ID}</code>. Mark one
+        item as <strong>Root</strong> to choose what <code>/{'{locale}'}</code> opens. Until then
+        that URL is the page slug <code>home</code>.
       </p>
       <NavMenusManager
         primaryNavMenuId={settings.primaryNavMenuId}

@@ -18,6 +18,7 @@ import {
 import {
   defaultEntitlementKeysForSubject,
   isPlanBillingPeriod,
+  normalizeBillingIntervalCount,
   type AudienceResolve,
   type PeriodStatus,
   type PlanBillingPeriod,
@@ -98,6 +99,10 @@ function mapPlan(row: typeof sfSubPlans.$inferSelect): SubscriptionPlanRecord {
     price:
       typeof row.price === 'number' && Number.isFinite(row.price) ? Math.floor(row.price) : 0,
     billingPeriod,
+    billingIntervalCount:
+      billingPeriod === 'lifetime'
+        ? 1
+        : normalizeBillingIntervalCount(row.billingIntervalCount, 1),
     entitlementKeys: asStringList(row.entitlementKeys),
     groupIds: asStringList(row.groupIds),
     sourceModule: row.sourceModule ?? '',
@@ -145,6 +150,10 @@ function mapPeriod(row: typeof sfSubPeriods.$inferSelect): SubscriptionPeriodRec
     subject: row.subject?.trim() || 'membership',
     audience: row.audience ?? '',
     billingPeriod,
+    billingIntervalCount:
+      billingPeriod === 'lifetime'
+        ? 1
+        : normalizeBillingIntervalCount(row.billingIntervalCount, 1),
     entitlementKeys: asStringList(row.entitlementKeys),
     groupIds: asStringList(row.groupIds),
     sourceModule: row.sourceModule ?? '',
@@ -209,6 +218,7 @@ export type SavePlanInput = {
   description?: string
   price: unknown
   billingPeriod: unknown
+  billingIntervalCount?: unknown
   entitlementKeys?: unknown
   groupIds?: unknown
   sourceModule?: string
@@ -243,6 +253,11 @@ function planValuesFromInput(input: SavePlanInput, existing?: SubscriptionPlanRe
   const lifetime =
     input.lifetime === true || billingPeriod === 'lifetime' || existing?.lifetime === true
   if (lifetime) billingPeriod = 'lifetime'
+  let billingIntervalCount = normalizeBillingIntervalCount(
+    input.billingIntervalCount ?? existing?.billingIntervalCount,
+    1,
+  )
+  if (lifetime) billingIntervalCount = 1
   let entitlementKeys = parseKeysField(input.entitlementKeys)
   if (entitlementKeys.length === 0) {
     entitlementKeys = existing?.entitlementKeys?.length
@@ -260,6 +275,7 @@ function planValuesFromInput(input: SavePlanInput, existing?: SubscriptionPlanRe
     description: String(input.description ?? existing?.description ?? '').trim(),
     price: parsePrice(input.price ?? existing?.price ?? 0),
     billingPeriod,
+    billingIntervalCount,
     entitlementKeys,
     groupIds:
       input.groupIds !== undefined
@@ -286,7 +302,9 @@ function planValuesFromInput(input: SavePlanInput, existing?: SubscriptionPlanRe
     earlyRenewPrice: parseOptionalPrice(
       input.earlyRenewPrice !== undefined ? input.earlyRenewPrice : existing?.earlyRenewPrice,
     ),
-    upgradeTargetIds: parseKeysField(input.upgradeTargetIds ?? existing?.upgradeTargetIds),
+    upgradeTargetIds: parseKeysField(input.upgradeTargetIds ?? existing?.upgradeTargetIds).filter(
+      (targetId) => targetId !== (input.id || '').trim(),
+    ),
     graceHours: parseNonNegInt(input.graceHours ?? existing?.graceHours, 0),
     seatLimit: parseNonNegInt(input.seatLimit ?? existing?.seatLimit, 0),
     recurringSupported:
@@ -368,6 +386,52 @@ export async function setPlanActive(
       .where(eq(sfSubPlans.id, trimmed))
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
+    return { ok: false, error: msg }
+  }
+  return { ok: true }
+}
+
+/** Delete a plan only when no periods still reference it (FK restrict). */
+export async function deletePlan(
+  id: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const trimmed = id.trim()
+  if (!trimmed) return { ok: false, error: 'Missing plan id.' }
+  try {
+    const periodRows = await db
+      .select({ id: sfSubPeriods.id })
+      .from(sfSubPeriods)
+      .where(eq(sfSubPeriods.planId, trimmed))
+      .limit(1)
+    if (periodRows[0]) {
+      return {
+        ok: false,
+        error: 'This plan has subscribers. Deactivate it instead of deleting.',
+      }
+    }
+    const otherPlans = await db.select().from(sfSubPlans)
+    for (const row of otherPlans) {
+      if (row.id === trimmed) continue
+      const targets = asStringList(row.upgradeTargetIds)
+      if (!targets.includes(trimmed)) continue
+      const nextTargets = targets.filter((targetId) => targetId !== trimmed)
+      await db
+        .update(sfSubPlans)
+        .set({ upgradeTargetIds: nextTargets, updatedAt: new Date() })
+        .where(eq(sfSubPlans.id, row.id))
+    }
+    await db.delete(sfSubPlans).where(eq(sfSubPlans.id, trimmed))
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    if (/sf_sub_plans|does not exist|relation/i.test(msg)) {
+      return { ok: false, error: 'sf_sub_plans missing — run npm run db:migrate.' }
+    }
+    if (/foreign key|violates/i.test(msg)) {
+      return {
+        ok: false,
+        error: 'This plan has subscribers. Deactivate it instead of deleting.',
+      }
+    }
     return { ok: false, error: msg }
   }
   return { ok: true }
@@ -607,6 +671,7 @@ export type ActivatePeriodInput = {
   subject?: string
   audience?: string
   billingPeriod?: PlanBillingPeriod
+  billingIntervalCount?: number
   entitlementKeys?: string[]
   groupIds?: string[]
   sourceModule?: string
@@ -639,6 +704,13 @@ export async function activateOrExtendPeriod(
     input.billingPeriod && isPlanBillingPeriod(input.billingPeriod)
       ? input.billingPeriod
       : plan?.billingPeriod || 'month'
+  const billingIntervalCount =
+    billingPeriod === 'lifetime'
+      ? 1
+      : normalizeBillingIntervalCount(
+          input.billingIntervalCount ?? plan?.billingIntervalCount,
+          1,
+        )
   const subject = (input.subject || plan?.subject || 'membership').trim()
   const audience = (input.audience ?? plan?.audience ?? '').trim()
   const entitlementKeys =
@@ -719,6 +791,7 @@ export async function activateOrExtendPeriod(
       const endsAt = addBillingPeriod(base, billingPeriod, {
         lifetime: plan?.lifetime,
         fixedExpiresAt: plan?.fixedExpiresAt,
+        count: billingIntervalCount,
       })
       if (endsAt.getTime() <= current.endsAt.getTime()) {
         return {
@@ -737,6 +810,7 @@ export async function activateOrExtendPeriod(
           subject,
           audience,
           billingPeriod,
+          billingIntervalCount,
           sourceModule,
           sourceType,
           sourceId,
@@ -766,6 +840,7 @@ export async function activateOrExtendPeriod(
       lifetime: plan?.lifetime && !isTrial,
       fixedExpiresAt: isTrial ? null : plan?.fixedExpiresAt,
       trialDays: isTrial ? plan?.trialDurationDays : 0,
+      count: billingIntervalCount,
     })
     await db.insert(sfSubPeriods).values({
       id,
@@ -778,6 +853,7 @@ export async function activateOrExtendPeriod(
       subject,
       audience,
       billingPeriod,
+      billingIntervalCount,
       entitlementKeys,
       groupIds: asStringList(groupIds),
       sourceModule,
@@ -870,7 +946,11 @@ export async function endPeriodsForOrder(
           !period.isTrial &&
           period.endsAt.getTime() > now.getTime()
         if (canShrink) {
-          const shrunkEnds = subtractBillingPeriod(period.endsAt, bp)
+          const shrunkEnds = subtractBillingPeriod(
+            period.endsAt,
+            bp,
+            period.billingIntervalCount,
+          )
           if (
             shrunkEnds.getTime() > now.getTime() &&
             shrunkEnds.getTime() > period.startsAt.getTime()

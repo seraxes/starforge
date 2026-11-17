@@ -3,6 +3,8 @@ import 'server-only'
 import { getEnabledPublicLocales } from '@/core/i18n/enabled'
 import { type AppLocale } from '@/core/i18n/locales'
 import { withLocalePrefix } from '@/core/i18n/path'
+import { barePathForSlug, rootPageSlugFromTarget } from '@/core/nav/root-target'
+import { resolveSiteRoot } from '@/core/nav/root'
 import { HOME_PAGE_KEY } from '@/core/page-settings/defaults'
 
 import { getPageReads } from './page-reads'
@@ -31,13 +33,15 @@ export async function listPublishedPagesForSitemap(): Promise<SitemapPageEntry[]
   try {
     const docs = await getPageReads().listPublishedSummaries()
 
+    const root = await resolveSiteRoot()
+    const rootSlug = rootPageSlugFromTarget(root)
     const seenBare = new Set<string>()
     const bareEntries: Array<{ barePath: string; slug: string; lastModified: Date }> = []
 
     for (const doc of docs) {
       const slug = doc.slug.trim()
       if (!slug) continue
-      const barePath = slug === HOME_PAGE_KEY ? '/' : `/${slug.replace(/^\/+/, '')}`
+      const barePath = barePathForSlug(slug, rootSlug)
       if (seenBare.has(barePath)) continue
       seenBare.add(barePath)
 
@@ -53,7 +57,7 @@ export async function listPublishedPagesForSitemap(): Promise<SitemapPageEntry[]
     if (!seenBare.has('/')) {
       bareEntries.unshift({
         barePath: '/',
-        slug: HOME_PAGE_KEY,
+        slug: root?.kind === 'path' ? root.href.replace(/^\//, '') : HOME_PAGE_KEY,
         lastModified: new Date(),
       })
     }

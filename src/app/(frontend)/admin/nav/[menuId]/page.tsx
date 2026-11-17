@@ -12,6 +12,7 @@ import {
   loadNavMenu,
 } from '@/core/nav'
 import { listLayoutOutlines } from '@/core/modules/layout-store'
+import { getLocalizationSettings } from '@/core/localization'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { ensureModulesRegistered } from '@/core/modules/boot'
 import {
@@ -58,14 +59,26 @@ export default async function AdminNavMenuItemsPage({ params }: Args) {
   await ensureDefaultUserGroupsSeeded()
   const activeSkin = await getActiveSkin()
   await ensureSkinOutlineSeeds(activeSkin.id)
-  const [pages, modules, groups, outlines, preferredLayoutId, locales] = await Promise.all([
-    listNavPageOptions(),
-    Promise.resolve(listEnabledModuleNavOptions(settings)),
-    listUserGroupOptions(),
-    listLayoutOutlines(),
-    getPreferredLayoutId(),
-    getContentLocaleOptions(),
-  ])
+  const [pages, modules, groups, outlines, preferredLayoutId, locales, localization] =
+    await Promise.all([
+      listNavPageOptions(),
+      Promise.resolve(listEnabledModuleNavOptions(settings)),
+      listUserGroupOptions(),
+      listLayoutOutlines(),
+      getPreferredLayoutId(),
+      getContentLocaleOptions(),
+      getLocalizationSettings(),
+    ])
+  const root = settings.rootItem
+  const rootInThisMenu = root?.menuId === loaded.id ? root.itemId : ''
+  let rootElsewhere: string | null = null
+  if (root && root.menuId !== loaded.id) {
+    const other = await loadNavMenu(root.menuId)
+    rootElsewhere = other.isFallback && other.source === 'empty' ? root.menuId : other.label
+  }
+  const defaultLocaleEntry = localization.localeCatalog.find(
+    (entry) => entry.code === localization.defaultLocale,
+  )
   const items = flattenNavItemsInOrder(document.items)
   const outlineOptions = outlines.map((o) => ({ id: o.id, label: o.label }))
   if (
@@ -108,6 +121,14 @@ export default async function AdminNavMenuItemsPage({ params }: Args) {
         locales={locales}
         preferredLayoutId={preferredLayoutId}
         isSitePrimary={settings.primaryNavMenuId === loaded.id}
+        rootItemId={rootInThisMenu}
+        rootElsewhere={rootElsewhere}
+        defaultLocaleLabel={
+          defaultLocaleEntry
+            ? `${defaultLocaleEntry.label} (${defaultLocaleEntry.code})`
+            : localization.defaultLocale
+        }
+        localeFallback={localization.localeFallback}
       />
     </section>
   )

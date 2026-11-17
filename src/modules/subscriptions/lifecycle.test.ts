@@ -19,6 +19,7 @@ function plan(partial: Partial<SubscriptionPlanRecord>): SubscriptionPlanRecord 
     description: '',
     price: 100,
     billingPeriod: 'month',
+    billingIntervalCount: 1,
     entitlementKeys: ['events.member'],
     groupIds: [],
     sourceModule: '',
@@ -58,6 +59,7 @@ function period(partial: Partial<SubscriptionPeriodRecord>): SubscriptionPeriodR
     subject: 'membership',
     audience: '',
     billingPeriod: 'month',
+    billingIntervalCount: 1,
     entitlementKeys: [],
     groupIds: [],
     sourceModule: '',
@@ -113,5 +115,18 @@ describe('subscription lifecycle helpers', () => {
     const ms = billingPeriodDurationMs('month', from)
     assert.ok(ms > 0)
     assert.equal(addBillingPeriod(from, 'month').getTime() - from.getTime(), ms)
+  })
+
+  it('adds and subtracts N days / weeks by interval count', () => {
+    const from = new Date('2026-01-01T00:00:00.000Z')
+    const fourteenDays = addBillingPeriod(from, 'day', { count: 14 })
+    assert.equal(fourteenDays.toISOString(), '2026-01-15T00:00:00.000Z')
+    assert.equal(
+      subtractBillingPeriod(fourteenDays, 'day', 14).toISOString(),
+      from.toISOString(),
+    )
+    const threeWeeks = addBillingPeriod(from, 'week', { count: 3 })
+    assert.equal(threeWeeks.toISOString(), '2026-01-22T00:00:00.000Z')
+    assert.equal(billingPeriodDurationMs('day', from, 14), 14 * 24 * 60 * 60 * 1000)
   })
 })

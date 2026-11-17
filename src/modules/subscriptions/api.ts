@@ -14,8 +14,10 @@ export {
   PLAN_SUBJECTS,
   PLAN_BILLING_PERIODS,
   defaultEntitlementKeysForSubject,
+  formatBillingPeriodLabel,
   isCheckoutMode,
   isPlanBillingPeriod,
+  normalizeBillingIntervalCount,
 } from './types'
 export type {
   AudienceResolve,
@@ -45,6 +47,7 @@ export {
   countActivePeriodsForPlan,
   countActiveSubscribers,
   createPlan,
+  deletePlan,
   endPeriodsForOrder,
   expireLapsedPeriods,
   findPeriodById,

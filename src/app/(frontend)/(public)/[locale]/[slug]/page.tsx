@@ -7,10 +7,19 @@ import { RichText } from '@/components/RichText'
 import { PageByline } from '@/core/content/PageByline'
 import { buildPageMetadata } from '@/core/content/metadata'
 import { getPublishedPageBySlug, requireContentLocale } from '@/core/content/pages'
-import { isValidLocaleCode } from '@/core/i18n'
+import { isValidLocaleCode, redirect } from '@/core/i18n'
 import { findNavOverridesForPath } from '@/core/nav'
+import { resolveSiteRoot, rootPageSlug } from '@/core/nav/root'
+import { barePathForSlug } from '@/core/nav/root-target'
+import { HOME_PAGE_KEY } from '@/core/page-settings'
 import { getSiteSettings } from '@/core/settings'
 import { getSiteChrome } from '@/core/site-chrome'
+
+async function slugOwnsLocaleRoot(slug: string): Promise<boolean> {
+  const root = await resolveSiteRoot()
+  if (!root) return slug === HOME_PAGE_KEY
+  return root.kind === 'page' && root.slug === slug
+}
 
 type Args = {
   params: Promise<{
@@ -42,8 +51,9 @@ export async function generateMetadata({ params }: Args): Promise<Metadata> {
   }
 
   const settings = await getSiteSettings()
-  const overrides = findNavOverridesForPath(settings.primaryNav, `/${decoded}`)
-  const meta = await buildPageMetadata(page)
+  const bare = barePathForSlug(decoded, await rootPageSlug())
+  const overrides = findNavOverridesForPath(settings.primaryNav, bare)
+  const meta = await buildPageMetadata(page, { barePath: bare })
   if (overrides?.browserTitle) {
     return { ...meta, title: overrides.browserTitle }
   }
@@ -59,6 +69,9 @@ export default async function PublicCmsPage({ params }: Args) {
   setRequestLocale(locale)
 
   const decodedSlug = decodeURIComponent(slug)
+  if (await slugOwnsLocaleRoot(decodedSlug)) {
+    redirect({ href: '/', locale })
+  }
   const page = await getPublishedPageBySlug(decodedSlug, locale)
 
   if (!page) {
@@ -66,7 +79,8 @@ export default async function PublicCmsPage({ params }: Args) {
   }
 
   const settings = await getSiteSettings()
-  const overrides = findNavOverridesForPath(settings.primaryNav, `/${decodedSlug}`)
+  const bare = barePathForSlug(decodedSlug, await rootPageSlug())
+  const overrides = findNavOverridesForPath(settings.primaryNav, bare)
   const heading = overrides?.pageHeading?.trim() || page.title
   const t = await getTranslations({ locale, namespace: 'Page' })
 

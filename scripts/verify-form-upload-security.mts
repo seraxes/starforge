@@ -33,19 +33,24 @@ function mustNotInclude(rel: string, needle: string | RegExp, label: string) {
 }
 
 mustInclude(
-  'src/collections/Media.ts',
-  'folder: { not_equals: \'forms\' }',
-  'Media access.read excludes folder=forms for anonymous',
+  'src/core/media/privacy.ts',
+  "(doc.folder ?? '') === 'forms'",
+  'Form folder stays private after the Payload media collection was removed',
 )
 mustInclude(
-  'src/collections/Media.ts',
-  'name: \'private\'',
-  'Media has private checkbox field',
+  'src/core/media/privacy.ts',
+  'doc.private === true',
+  'Private flag stays private after the Payload media collection was removed',
 )
 mustInclude(
   'src/core/media/form-upload.ts',
-  'private: true',
-  'Form uploads set private: true',
+  'formAttachment: true',
+  'Form uploads mark the file as a form attachment',
+)
+mustInclude(
+  'src/core/media/ingest.ts',
+  'isPrivate: input.formAttachment === true',
+  'Form attachments are stored private',
 )
 mustInclude(
   'src/core/media/form-upload.ts',
@@ -89,7 +94,7 @@ mustInclude(
 )
 mustInclude(
   'src/app/api/admin/form-attachments/[id]/route.ts',
-  'requireAppAdmin',
+  "requireAdminArea('admin.forms', 'edit')",
   'Admin attachment route is gated',
 )
 mustInclude(

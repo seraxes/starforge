@@ -26,6 +26,7 @@ export const SITE_SETTINGS_CORE_VERIFY_COLUMNS = [
   'module_toggles',
   'legacy_primary_nav',
   'payload_copied_at',
+  'root_item',
 ] as const
 
 export type SiteSettingsSchemaHealResult = {

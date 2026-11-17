@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 
 import { useNotifySavedOnOk } from '@/app/(frontend)/admin/admin-toast'
 import type { ContentLocaleOption } from '@/core/i18n/locale-text'
+import { barePathForSlug, type RootPageSlug } from '@/core/nav/root-target'
 import {
   LocaleFieldLabel,
   LocaleInput,
@@ -266,6 +267,7 @@ export function PageEditor({
   heading,
   lede,
   chrome,
+  rootPageSlug,
 }: {
   page: PageShape | null
   versions: VersionRow[]
@@ -275,6 +277,8 @@ export function PageEditor({
   heading: string
   lede: string
   chrome: Chrome
+  /** `undefined` = slug `home` is still `/`. `null` = a module owns `/`. */
+  rootPageSlug?: RootPageSlug
 }) {
   const router = useRouter()
   const defaultCode = locales.find((locale) => locale.isDefault)?.code ?? locales[0]?.code ?? ''
@@ -316,7 +320,12 @@ export function PageEditor({
 
   const formId = 'sf-page-editor'
   const slug = page?.slug ?? ''
-  const publicHref = slug === 'home' ? `/${previewLocale}` : `/${previewLocale}/${slug}`
+  const publicBare = slug ? barePathForSlug(slug, rootPageSlug) : ''
+  const publicHref = publicBare
+    ? publicBare === '/'
+      ? `/${previewLocale}`
+      : `/${previewLocale}${publicBare}`
+    : ''
   const previewHref = `/${previewLocale}/preview/${slug || 'home'}`
   const bodyValue = bodyLocale === defaultCode ? body : (bodyLocales[bodyLocale] ?? '')
 

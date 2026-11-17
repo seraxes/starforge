@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 
 import { db, SITE_SETTINGS_ID, sfSiteSettings } from '@/core/db'
+import type { SiteRootPointer } from '@/core/settings/defaults'
 
 export type SiteSettingsRow = typeof sfSiteSettings.$inferSelect
 
@@ -100,6 +101,39 @@ export async function writeSiteSettingsRow(input: SiteSettingsWrite): Promise<Si
   } catch (error) {
     if (isMissingSiteSettingsTable(error)) {
       throw new Error('sf_site_settings missing — run npm run db:migrate.')
+    }
+    throw error
+  }
+}
+
+function isMissingRootItemColumn(error: unknown): boolean {
+  for (const item of errorChain(error)) {
+    if (typeof item === 'object' && item && 'code' in item && (item as { code?: string }).code === '42703') {
+      return true
+    }
+    const message = item instanceof Error ? item.message : typeof item === 'string' ? item : ''
+    if (/root_item/i.test(message) && /does not exist|undefined_column/i.test(message)) {
+      return true
+    }
+  }
+  return false
+}
+
+/** Write the site root pointer. Other settings columns stay as they are. */
+export async function writeSiteRootItem(pointer: SiteRootPointer | null): Promise<void> {
+  const now = new Date()
+  try {
+    const [row] = await db
+      .update(sfSiteSettings)
+      .set({ rootItem: pointer, updatedAt: now })
+      .where(eq(sfSiteSettings.id, SITE_SETTINGS_ID))
+      .returning({ id: sfSiteSettings.id })
+    if (!row) {
+      throw new Error('sf_site_settings has no row — open Admin → Settings once, then set Root again.')
+    }
+  } catch (error) {
+    if (isMissingRootItemColumn(error)) {
+      throw new Error('sf_site_settings.root_item missing — run npm run db:migrate.')
     }
     throw error
   }

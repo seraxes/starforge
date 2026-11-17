@@ -2,7 +2,7 @@
  * Smoke: D2 Media dashboard aggregates — real Payload Media path (not stub).
  * Run: npm run verify:media-dashboard-aggregates
  *
- * When DATABASE_URL reaches a DB with `payload.media`, also probes the loader.
+ * When DATABASE_URL reaches a DB with `sf_media_assets`, also probes the loader.
  * Soft-fail is OK when DB is down (CI without Postgres still passes static asserts).
  */
 import assert from 'node:assert/strict'
@@ -26,7 +26,7 @@ mustExist('src/modules/media/dashboard/MediaCountsWidget.tsx')
 mustExist('src/modules/media/dashboard/media-kind.test.ts')
 
 const stats = read('src/modules/media/dashboard/media-stats.ts')
-assert.match(stats, /payload\.media/, 'loader must query payload.media')
+assert.match(stats, /sf_media_assets/, 'loader must query sf_media_assets')
 assert.match(stats, /MEDIA_NEW_24H_MS/)
 assert.match(stats, /MEDIA_NEW_1W_MS/)
 assert.match(stats, /MEDIA_NEW_1M_MS/)
@@ -73,7 +73,7 @@ try {
     const exists = await client.query<{ exists: boolean }>(
       `SELECT EXISTS (
          SELECT 1 FROM information_schema.tables
-         WHERE table_schema = 'payload' AND table_name = 'media'
+         WHERE table_schema = 'public' AND table_name = 'sf_media_assets'
        ) AS exists`,
     )
     if (exists.rows[0]?.exists) {
@@ -81,16 +81,16 @@ try {
         `SELECT
            COUNT(*)::int AS total,
            COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '24 hours')::int AS new24h
-         FROM payload.media`,
+         FROM sf_media_assets`,
       )
-      assert.ok(counts.rows[0], 'expected aggregate row from payload.media')
+      assert.ok(counts.rows[0], 'expected aggregate row from sf_media_assets')
       console.log(
-        'verify-media-dashboard-aggregates: live payload.media probe ok',
+        'verify-media-dashboard-aggregates: live sf_media_assets probe ok',
         counts.rows[0],
       )
     } else {
       console.log(
-        'verify-media-dashboard-aggregates: payload.media missing — static asserts only',
+        'verify-media-dashboard-aggregates: sf_media_assets missing — static asserts only',
       )
     }
   } finally {

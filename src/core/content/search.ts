@@ -2,6 +2,8 @@ import 'server-only'
 
 import { type AppLocale } from '@/core/i18n/locales'
 
+import { rootPageSlug } from '@/core/nav/root'
+
 import { getPageReads } from './page-reads'
 import {
   SEARCH_RESULT_LIMIT,
@@ -55,6 +57,7 @@ export async function searchPublishedPages(
 
   try {
     const result = await getPageReads().searchPublished(query, locale, { limit })
+    const rootSlug = await rootPageSlug()
 
     const hits: PublishedSearchHit[] = []
     for (const doc of result.docs) {
@@ -73,7 +76,7 @@ export async function searchPublishedPages(
         id: String(doc.id),
         title,
         slug,
-        path: publishedPagePath(slug, locale),
+        path: publishedPagePath(slug, locale, rootSlug),
         excerpt,
       })
     }

@@ -185,7 +185,7 @@ export function PagesCategoriesManager({ categories, chrome }: Props) {
   return (
     <div className="sf-pages-categories-manager admin-settings-mosaic">
       <section className="outlines-create sf-pages-add-panel" aria-label={chrome.add}>
-        <div className="sf-pages-add-bar admin-inline-actions">
+        <div className="sf-pages-add-bar">
           <button
             type="button"
             className={`gantry-toolbar-btn${createOpen ? ' gantry-toolbar-btn-muted' : ' gantry-toolbar-btn-save'}`}
@@ -277,7 +277,7 @@ export function PagesCategoriesManager({ categories, chrome }: Props) {
                     <td>{row.sortOrder}</td>
                     <td>{row.pageCount}</td>
                     <td>
-                      <div className="admin-inline-actions">
+                      <div className="admin-action-row sf-pages-list-row-actions">
                         <button
                           type="button"
                           className="gantry-toolbar-btn gantry-toolbar-btn-muted"
@@ -299,7 +299,7 @@ export function PagesCategoriesManager({ categories, chrome }: Props) {
                           <input type="hidden" name="id" value={row.id} />
                           <button
                             type="submit"
-                            className="gantry-toolbar-btn"
+                            className="gantry-toolbar-btn gantry-toolbar-btn-danger"
                             disabled={busy}
                           >
                             {deletePending ? chrome.deleting : chrome.delete}
@@ -331,7 +331,7 @@ export function PagesCategoriesManager({ categories, chrome }: Props) {
             <input type="hidden" name="id" value={editing.id} />
             <CategoryFields row={editing} chrome={chrome} busy={busy} />
           </form>
-          <div className="page-settings-actions">
+          <div className="admin-action-row page-settings-actions">
             <button
               type="button"
               className="gantry-toolbar-btn gantry-toolbar-btn-muted"

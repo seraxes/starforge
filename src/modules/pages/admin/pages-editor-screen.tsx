@@ -5,6 +5,7 @@ import { getTranslations } from 'next-intl/server'
 
 import { getContentLocaleOptions } from '@/core/i18n/locale-text.server'
 import { getLocalizationSettings } from '@/core/localization/store'
+import { rootPageSlug } from '@/core/nav/root'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
 import { listPageCategories } from '../categories'
@@ -130,6 +131,7 @@ export async function PagesEditorScreen({ pageId }: { pageId: string | null }) {
         }))}
         locales={locales}
         previewLocale={localization.defaultLocale}
+        rootPageSlug={await rootPageSlug()}
         chrome={chrome}
       />
     </section>

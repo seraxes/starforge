@@ -67,13 +67,28 @@ export default async function SubscriptionsPlansPage({
     /* ACL migrate pending */
   }
 
+  let formOptions: { id: string; label: string }[] = []
+  try {
+    const { listFormDefinitions } = await import('@/modules/forms/api')
+    const definitions = await listFormDefinitions()
+    formOptions = definitions.map((form) => ({
+      id: form.id,
+      label: form.label?.trim() || form.id,
+    }))
+  } catch {
+    /* forms optional at render if migrate pending */
+  }
+
+  const mediaEnabled = isCatalogModuleEnabled(settings, MODULE_IDS.media)
+
   return (
     <section className="admin-section admin-layouts-full">
       <SubscriptionsAdminNav active="plans" />
       <h2>Plans</h2>
       <p className="lede admin-lede">
-        Catalog of what can be sold. Filter by type and subtype, then edit one plan. Payments
-        charges the price; a period grants entitlements and syncs access groups for ACL.
+        Edit one plan at a time. The thumbnail is a Media library image. Signup fields stay in
+        Forms. Upgrade targets are other plans: checkout credits unused time on the current plan,
+        and Payments charges the difference. A period grants entitlements and syncs access groups.
       </p>
       <PlansManager
         plans={planRows}
@@ -82,6 +97,8 @@ export default async function SubscriptionsPlansPage({
         defaultGraceHours={packSettings.settings.defaultGraceHours}
         defaultFormDefinitionId={packSettings.settings.defaultFormDefinitionId}
         groupOptions={groupOptions}
+        formOptions={formOptions}
+        mediaEnabled={mediaEnabled}
         locales={locales}
       />
     </section>

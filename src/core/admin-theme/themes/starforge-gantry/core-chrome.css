@@ -649,6 +649,19 @@ body:has(.admin-shell) > main {
   box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 6%, transparent) !important;
 }
 
+/* Multi-selects keep the input well. The single-select chevron and one-line height do not apply. */
+.admin-shell .settings-field select[multiple],
+.admin-shell .page-settings-panel-body select[multiple] {
+  -webkit-appearance: auto;
+  -moz-appearance: auto;
+  appearance: auto;
+  background-image: none !important;
+  background-color: var(--sf-admin-input, #152033) !important;
+  padding: 0.25rem !important;
+  height: auto !important;
+  min-height: 0 !important;
+}
+
 .admin-shell select option,
 .admin-shell .settings-field select option,
 .admin-shell .page-settings-panel-body select option {
@@ -3787,6 +3800,8 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .gantry-toolbar-btn-save,
+.admin-shell button.gantry-toolbar-btn-save,
+.admin-shell a.gantry-toolbar-btn-save,
 .admin-shell .admin-create-form > button.gantry-toolbar-btn-save,
 .admin-shell .outlines-create-form > button.gantry-toolbar-btn-save,
 .admin-shell .nav-items-add button.gantry-toolbar-btn-save,
@@ -3796,7 +3811,9 @@ body:has(.admin-shell) > main {
   color: var(--sf-primary-ink);
 }
 
-.admin-shell .gantry-toolbar-btn-save:hover:not(:disabled) {
+.admin-shell .gantry-toolbar-btn-save:hover:not(:disabled),
+.admin-shell button.gantry-toolbar-btn-save:hover:not(:disabled),
+.admin-shell a.gantry-toolbar-btn-save:hover {
   background: var(--sf-primary-strong);
 }
 
@@ -3897,7 +3914,10 @@ body:has(.admin-shell) > main {
 .admin-shell .sf-events-form-actions,
 .admin-shell .sf-events-inline-editor > .admin-action-row,
 .admin-shell .sf-events-add-inline-form > .page-settings-actions,
-.admin-shell .sf-events-add-inline-form > .sf-events-form-actions {
+.admin-shell .sf-events-add-inline-form > .sf-events-form-actions,
+.admin-shell .sf-pages-add-inline-form > .page-settings-actions,
+.admin-shell .sf-pages-inline-editor > .admin-action-row,
+.admin-shell .sf-pages-inline-editor > .page-settings-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -3914,6 +3934,7 @@ body:has(.admin-shell) > main {
 .admin-shell .outlines-create > .admin-action-row > form,
 .admin-shell .sf-events-form-actions > form,
 .admin-shell .sf-events-inline-editor > .admin-action-row > form,
+.admin-shell .sf-pages-inline-editor > .admin-action-row > form,
 .admin-shell .page-settings-actions > form {
   display: inline-flex;
   margin: 0;
@@ -4905,12 +4926,23 @@ body:has(.admin-shell) > main {
   align-self: flex-end;
 }
 
-.admin-shell .sf-pages-add-bar {
-  margin-bottom: 0.65rem;
+/* Pages categories: same Add+ bar / row-action density as Events lists. */
+.admin-shell .sf-pages-add-panel > .sf-pages-add-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1rem;
+  margin-top: var(--sf-admin-card-pad-y, 0.75rem);
+  margin-bottom: var(--sf-admin-card-pad-y, 0.75rem);
 }
 
 .admin-shell .sf-pages-add-hint {
   margin: 0;
+  flex: 1 1 12rem;
+}
+
+.admin-shell .sf-pages-add-inline-form {
+  margin: 0 0 var(--sf-admin-card-pad-bottom, 0.85rem);
 }
 
 .admin-shell .sf-pages-category-fields {
@@ -4918,7 +4950,22 @@ body:has(.admin-shell) > main {
   gap: 0.75rem;
 }
 
+.admin-shell .sf-pages-list-row-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sf-admin-btn-gap, 0.45rem);
+  margin: 0;
+}
+
+.admin-shell .sf-pages-list-row-actions > form {
+  display: inline-flex;
+  margin: 0;
+}
+
 .admin-shell .sf-pages-list-title-btn {
+  appearance: none;
   display: inline;
   margin: 0;
   padding: 0;

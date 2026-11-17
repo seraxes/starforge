@@ -15,7 +15,8 @@ Any Starforge feature that sells **recurring access** (player premium, organizer
 | Plan catalog, periods, trial/renew/upgrade rules, entitlement keys, seats | **`product:subscriptions`** — `@/modules/subscriptions/api` |
 | Charge, VAT, coupons, gateways, invoices, refunds, recurring intents | **`product:payments`** |
 | Lifecycle / reminder mail | **`product:email-manager`** — `emitEmailTrigger` / starters |
-| Optional signup field schema | **`product:forms`** — definition + `subscription-registration` preset |
+| Optional signup field schema | **`product:forms`** — definition + `subscription-registration` preset. Plan editor picks a definition id |
+| Plan thumbnail | **`product:media`** — `MediaPicker` binds `imageMediaId` (optional require) |
 | User groups + ACL permission matrix | **Core ACL** — Subscriptions may only **add/remove members** for plan `groupIds` |
 | Member / group ticket amounts | **`product:events`** — asks `resolveAudience` / `hasEntitlement` |
 | Ad placement / listing rank | **`product:ads`** / Marketplace (later) — asks `hasEntitlement` |
@@ -50,6 +51,12 @@ Subject and audience are open strings. Do not add a new subscription module for 
 - **Cancel at period end** — flips flag; cancels Payments recurring id when present.
 - **Auto-renew** — plan `recurringSupported` + Payments `createRecurring`; this pack only stores the foreign key and grants on paid hooks.
 - **Seats** — `sf_sub_seats` on parent period; seat members inherit entitlements via `resolveAudience`.
+
+## Public placement
+
+- Brochure / page placement uses the **`subscription-plans`** particle (requires this pack). Do not fork a second catalog UI in Events or Pages.
+- Public hub route is `/plans`. Account lifecycle stays `/account/subscriptions`.
+- Nav uses existing `module` link type + pack `navViews` (`catalog` → `/plans`, `account` → `/account/subscriptions`). Do not add a Core nav type for subscriptions.
 
 ## Do
 

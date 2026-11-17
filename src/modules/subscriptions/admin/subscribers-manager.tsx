@@ -455,7 +455,7 @@ export function SubscribersManager({ periods, plans, people }: Props) {
         <div className="sf-events-add-bar">
           <button
             type="button"
-            className={`gantry-toolbar-btn${addOpen ? ' gantry-toolbar-btn-muted' : ' gantry-toolbar-btn-save'}`}
+            className={`gantry-toolbar-btn${addOpen ? ' gantry-toolbar-btn-muted' : ''}`}
             aria-expanded={addOpen}
             aria-controls="sf-subscriptions-add-dialog"
             disabled={plans.length === 0}

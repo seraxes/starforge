@@ -9,6 +9,7 @@ Plans, periods, and entitlements. Payments charges and snapshots; this pack gran
   - `organizer` — organizers: `organizer` (blank counts as this), `brand` (owns a managed page that operates as their website)
   - `advertisement` — `organizer`, `marketplace`, `brand`, `shop`
   - `other` — catch-all, including unknown subject strings
+- Billing length: `billingPeriod` (day / week / month / year / lifetime) × `billingIntervalCount` (e.g. 14 days, 3 months). Snapshotted on periods.
 - Periods (`sf_sub_periods`) — active / expired / refunded windows with entitlement + group snapshots. Admin may change the end date or expire a period. Refunds stay with Payments.
 - Seats (`sf_sub_seats`) — group membership pool on a parent period.
 - Lifecycle rules: free activate, trial (once), manual renew, upgrade graph + proration credit, grace hours, cancel-at-period-end, capacity `maxActive`.
@@ -17,6 +18,7 @@ Plans, periods, and entitlements. Payments charges and snapshots; this pack gran
 - Admin `/admin/subscriptions` (plans + subscribers + settings + CSV export).
 - Pack settings in `sf_module_settings` (reminder days, default Forms id, default grace).
 - Email Manager triggers `product:subscriptions/*` + starter seed (activated, renewed, upgraded, expiring_soon, trial_ending, expired).
+- Public catalog `/plans` + **`subscription-plans`** layout particle (place on brochure pages). Nav module views: Plans (`/plans`), My subscriptions (`/account/subscriptions`).
 
 ## Consumes
 
@@ -25,7 +27,7 @@ Plans, periods, and entitlements. Payments charges and snapshots; this pack gran
 - **`product:forms`** — optional plan `formDefinitionId`; preset `subscription-registration` under Subscriptions category. Account subscribe renders the FormWidget intake; admin deep-links to `/admin/forms/[id]`. `ensureSubscriptionRegistrationFormSeeded` stays here: Subscriptions settings and admin actions, and `bootSubscriptions` (generated `runModuleBoot`). Forms admin does not seed it. Boot also registers the Payments collect resolver and the expiry job, and skips all of that when Subscriptions is toggled off.
 - **Content locales** — plan title/description via `LocaleInput` → `data/content-locales/{locale}/subscriptions/{planId}.json` (same pattern as Events categories).
 - **`product:profiles`** — subscriber labels via `getPersonas`. Store `userId` only.
-- **`product:media`** — plan `imageMediaId` via MediaPicker when wired in admin.
+- **`product:media`** — plan thumbnail via `MediaPicker` (`imageMediaId`). Optional require; the editor keeps the stored id when Media is off.
 - **Core ACL** — `addUserToGroup` / `removeUserFromGroup` / `listUserGroupOptions`. Does **not** write ACL permission rows or own the matrix UI.
 
 ## Public door
