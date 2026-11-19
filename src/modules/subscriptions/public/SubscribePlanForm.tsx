@@ -12,7 +12,7 @@ type Props = {
   planTitle: string
   priceLabel: string
   methods: string[]
-  mode?: 'subscribe' | 'renew' | 'upgrade'
+  mode?: 'subscribe' | 'renew' | 'upgrade' | 'downgrade'
   fromPeriodId?: string
   recurringSupported?: boolean
   isFree?: boolean
@@ -43,7 +43,15 @@ export function SubscribePlanForm({
 
   const label =
     submitLabel ||
-    (mode === 'renew' ? 'Renew' : mode === 'upgrade' ? 'Upgrade' : isFree ? 'Activate' : 'Subscribe')
+    (mode === 'renew'
+      ? 'Renew'
+      : mode === 'upgrade'
+        ? 'Upgrade'
+        : mode === 'downgrade'
+          ? 'Switch at next renewal'
+          : isFree
+            ? 'Activate'
+            : 'Subscribe')
 
   return (
     <form action={action} className="sf-subscribe-plan-form settings-fieldset">
@@ -53,7 +61,7 @@ export function SubscribePlanForm({
       <p>
         <strong>{planTitle}</strong> — {priceLabel}
       </p>
-      {!isFree ? (
+      {!isFree && mode !== 'downgrade' ? (
         <>
           <label className="settings-field">
             <span>Payment method</span>
@@ -85,7 +93,11 @@ export function SubscribePlanForm({
           {state.error}
         </p>
       ) : null}
-      {state.ok && state.periodId ? (
+      {state.ok && state.message ? (
+        <p className="admin-inline-ok" role="status">
+          {state.message}
+        </p>
+      ) : state.ok && state.periodId ? (
         <p className="admin-inline-ok" role="status">
           Activated.
         </p>

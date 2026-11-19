@@ -8,6 +8,7 @@ import { MODULE_IDS, isCatalogModuleEnabled } from '@/core/settings'
 
 import { PlansCatalog } from '../public/PlansCatalog'
 import { loadPlansCatalogMoney, loadPublicPlans } from '../public/load-plans-catalog'
+import { loadPlanHoldNotices } from '../store'
 import { readSubscriptionPlansConfig } from './subscription-plans-config'
 
 /**
@@ -29,13 +30,15 @@ export const subscriptionPlansModule: StarforgeModule = {
     const localeRaw = await getLocale()
     const locale = isAppLocale(localeRaw) ? localeRaw : 'en'
     const session = await getAppSession()
+    const userId = session?.user?.id ? String(session.user.id).trim() : ''
 
-    const [plans, money] = await Promise.all([
+    const [plans, money, holds] = await Promise.all([
       loadPublicPlans({
         subject: cfg.subject || undefined,
         limit: cfg.limit,
       }),
       loadPlansCatalogMoney(),
+      userId ? loadPlanHoldNotices(userId, locale) : Promise.resolve({}),
     ])
 
     return React.createElement(PlansCatalog, {
@@ -50,6 +53,7 @@ export const subscriptionPlansModule: StarforgeModule = {
       showDescription: cfg.showDescription,
       className: 'sf-subscription-plans-particle',
       showAccountLink: true,
+      holds,
     })
   },
 }

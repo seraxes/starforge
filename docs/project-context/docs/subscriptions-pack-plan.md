@@ -24,13 +24,14 @@ Rules: [sf-subscriptions-module](../../../.cursor/rules/sf-subscriptions-module.
 
 ## Shipped
 
-- Free + paid plans; day/week/month/year/lifetime with `billingIntervalCount` (N units per charge); fixed expiry; trial; capacity; grace; early-renew price; upgrade targets; seats; cancel-at-period-end.
+- Free + paid plans; day/week/month/year/lifetime with `billingIntervalCount` (N units per charge); fixed expiry; trial; capacity; grace; early-renew window (`earlyRenewDays`, 0 = renew only at period end); seats; cancel-at-period-end.
 - Checkout modes subscribe / renew / upgrade via Payments; free activate without cart.
 - Email triggers with `buyerEmail`; self-rescheduling expiry + reminder job.
 - Forms preset + plan editor signup-form select (`formDefinitionId`) with a deep-link into Forms.
-- Plan editor: Media thumbnail, upgrade-target multi-select. Proration credit stays in checkout; Payments charges the remainder.
+- Plan editor: Media thumbnail. Plan changes live on `/admin/subscriptions/changes` (`sf_sub_upgrade_paths`). A higher price starts immediately and the path chooses pay-the-difference or pay-full-price. A lower price waits for the next renewal. No refund.
+- Same-plan repeat is refused until the period ends, unless that plan’s early-renew window is open. The buyer sees time left and the next renew date.
 - Payments `sf_pay_recurring` create/cancel API for auto-renew opt-in.
-- Admin Settings tab (`/admin/subscriptions/settings`) for reminder days, default grace, default Forms id, email seed, and deep-links to Payments / Email / Forms / Users.
+- Admin Settings tab (`/admin/subscriptions/settings`) for reminder days, default grace, default Forms id, email seed, and deep-links to Payments / Email / Forms / Users. Changes tab lists from-plan → to-plan rows.
 - Email Manager starters for activated / renewed / upgraded / expiring_soon / trial_ending / expired (`buyerEmail`).
 - Plan access-group multi-select; Core membership sync on activate/expire.
 - Public `/plans` catalog + `subscription-plans` particle (layout placement). Nav module links for Plans and My subscriptions.

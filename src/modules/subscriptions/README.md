@@ -12,10 +12,12 @@ Plans, periods, and entitlements. Payments charges and snapshots; this pack gran
 - Billing length: `billingPeriod` (day / week / month / year / lifetime) × `billingIntervalCount` (e.g. 14 days, 3 months). Snapshotted on periods.
 - Periods (`sf_sub_periods`) — active / expired / refunded windows with entitlement + group snapshots. Admin may change the end date or expire a period. Refunds stay with Payments.
 - Seats (`sf_sub_seats`) — group membership pool on a parent period.
-- Lifecycle rules: free activate, trial (once), manual renew, upgrade graph + proration credit, grace hours, cancel-at-period-end, capacity `maxActive`.
+- Lifecycle rules: free activate, trial (once), manual renew, upgrade paths + proration credit, grace hours, cancel-at-period-end, capacity `maxActive`.
+- Plan changes (`sf_sub_upgrade_paths`) — which plan may move to which. Admin **Changes** at `/admin/subscriptions/changes`. A higher price starts now (`prorate` or `full` on the path). A lower price is stored on the period and applies on the next renewal, with no refund.
+- Same-plan repeat stays closed while time remains, unless `earlyRenewDays` opens a window. Account and the public catalog say how much time is left and the next renew date.
 - Resolve API: `hasEntitlement`, `resolveAudience`, `hasActiveSubject`.
 - Core **group membership sync** for plan/period `groupIds` (add on activate, remove on expire when unused).
-- Admin `/admin/subscriptions` (plans + subscribers + settings + CSV export).
+- Admin `/admin/subscriptions` (plans + subscribers + changes + settings + CSV export).
 - Pack settings in `sf_module_settings` (reminder days, default Forms id, default grace).
 - Email Manager triggers `product:subscriptions/*` + starter seed (activated, renewed, upgraded, expiring_soon, trial_ending, expired).
 - Public catalog `/plans` + **`subscription-plans`** layout particle (place on brochure pages). Nav module views: Plans (`/plans`), My subscriptions (`/account/subscriptions`).

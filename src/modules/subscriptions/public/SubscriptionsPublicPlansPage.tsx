@@ -14,6 +14,7 @@ import {
   ensureSubscriptionsExpiryJob,
   ensureSubscriptionsPaymentHook,
 } from '../api'
+import { loadPlanHoldNotices } from '../store'
 import { PlansCatalog } from './PlansCatalog'
 import { loadPlansCatalogMoney, loadPublicPlans } from './load-plans-catalog'
 
@@ -51,7 +52,12 @@ export default async function SubscriptionsPublicPlansPage({ params }: Args) {
   ensureSubscriptionsExpiryJob()
   void ensureSubscriptionRegistrationFormSeeded()
 
-  const [plans, money] = await Promise.all([loadPublicPlans(), loadPlansCatalogMoney()])
+  const userId = session?.user?.id ? String(session.user.id).trim() : ''
+  const [plans, money, holds] = await Promise.all([
+    loadPublicPlans(),
+    loadPlansCatalogMoney(),
+    userId ? loadPlanHoldNotices(userId, locale) : Promise.resolve({}),
+  ])
 
   return (
     <article className="cms-page sf-subscriptions-plans-page">
@@ -67,6 +73,7 @@ export default async function SubscriptionsPublicPlansPage({ params }: Args) {
         methods={money.methods}
         formatMoney={money.formatMoney}
         showAccountLink
+        holds={holds}
       />
     </article>
   )

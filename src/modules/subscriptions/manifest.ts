@@ -28,6 +28,7 @@ export default defineStarforgeModule({
     { key: 'admin', label: 'Subscriptions', href: '/admin/subscriptions' },
     { key: 'plans', label: 'Admin plans', href: '/admin/subscriptions' },
     { key: 'subscribers', label: 'Subscribers', href: '/admin/subscriptions/subscribers' },
+    { key: 'changes', label: 'Changes', href: '/admin/subscriptions/changes' },
     { key: 'settings', label: 'Settings', href: '/admin/subscriptions/settings' },
   ],
   admin: {
@@ -56,6 +57,13 @@ export default defineStarforgeModule({
       },
       {
         group: 'subscriptions',
+        label: 'Changes',
+        href: '/admin/subscriptions/changes',
+        order: 25,
+        area: 'subscriptions',
+      },
+      {
+        group: 'subscriptions',
         label: 'Settings',
         href: '/admin/subscriptions/settings',
         order: 30,
@@ -72,6 +80,11 @@ export default defineStarforgeModule({
       {
         path: 'subscriptions/subscribers',
         pageImportPath: '@/modules/subscriptions/admin/SubscriptionsSubscribersPage',
+        pageExportName: 'default',
+      },
+      {
+        path: 'subscriptions/changes',
+        pageImportPath: '@/modules/subscriptions/admin/SubscriptionsUpgradesPage',
         pageExportName: 'default',
       },
       {

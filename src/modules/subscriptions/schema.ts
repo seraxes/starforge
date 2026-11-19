@@ -54,7 +54,7 @@ export const sfSubPlans = pgTable(
     maxActive: integer('max_active').notNull().default(0),
     /** Optional product:forms definition id. */
     formDefinitionId: text('form_definition_id').notNull().default(''),
-    /** Days before endsAt when early renew price applies. 0 = always use early price when set. */
+    /** Days before endsAt when renew is allowed. 0 = renew only when the period ends. */
     earlyRenewDays: integer('early_renew_days').notNull().default(0),
     /** Major units; null = use normal price. */
     earlyRenewPrice: integer('early_renew_price'),
@@ -111,6 +111,10 @@ export const sfSubPeriods = pgTable(
     seatRole: text('seat_role').notNull().default(''),
     reminderExpiringSentAt: timestamp('reminder_expiring_sent_at', { withTimezone: true }),
     reminderTrialSentAt: timestamp('reminder_trial_sent_at', { withTimezone: true }),
+    /** Plan id to use on the next renewal. Null until a downgrade is scheduled. */
+    scheduledPlanId: text('scheduled_plan_id'),
+    /** Set once Core groups for this period have been applied. */
+    groupSyncedAt: timestamp('group_synced_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true })
       .defaultNow()
@@ -144,5 +148,27 @@ export const sfSubSeats = pgTable(
     index('sf_sub_seats_period_id_idx').on(table.periodId),
     index('sf_sub_seats_user_id_idx').on(table.userId),
     uniqueIndex('sf_sub_seats_period_user_uidx').on(table.periodId, table.userId),
+  ],
+)
+
+/** Which plan may change into which. Edited at /admin/subscriptions/changes. */
+export const sfSubUpgradePaths = pgTable(
+  'sf_sub_upgrade_paths',
+  {
+    id: text('id').primaryKey(),
+    fromPlanId: text('from_plan_id')
+      .notNull()
+      .references(() => sfSubPlans.id, { onDelete: 'cascade' }),
+    toPlanId: text('to_plan_id')
+      .notNull()
+      .references(() => sfSubPlans.id, { onDelete: 'cascade' }),
+    /** prorate = pay the difference. full = pay the target price. Used only when the target costs more. */
+    creditMode: text('credit_mode').notNull().default('prorate'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('sf_sub_upgrade_paths_from_to_uidx').on(table.fromPlanId, table.toPlanId),
+    index('sf_sub_upgrade_paths_from_idx').on(table.fromPlanId),
+    index('sf_sub_upgrade_paths_to_idx').on(table.toPlanId),
   ],
 )

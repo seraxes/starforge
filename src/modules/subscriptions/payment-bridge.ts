@@ -13,15 +13,20 @@ import { majorToMinor } from '@/core/payments'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
 import { emitSubscriptionsEmail } from './email'
+import { classifyPlanChange, upgradeChargeMajor } from './lifecycle-math'
 import {
   activateOrExtendPeriod,
   computeUpgradeCreditMajor,
   countActivePeriodsForPlan,
   endPeriodsForOrder,
+  findPendingSchedule,
   findPlanById,
+  findUpgradePath,
   hasEntitlement,
   listActivePeriodsForUser,
+  loadPlanHoldNotices,
   resolveCheckoutPriceMajor,
+  scheduleDowngrade,
   userHasUsedTrial,
 } from './store'
 import {
@@ -83,12 +88,19 @@ export async function applySubscriptionsPaymentResult(
       const exclusiveSubject = mode === 'upgrade'
       const autoRenew = line.metadata.autoRenew === true || line.metadata.autoRenew === 'true'
       const paymentsRecurringId = String(line.metadata.paymentsRecurringId ?? '').trim() || null
+      const fromPeriodId = String(line.metadata.fromPeriodId ?? '').trim()
+      const clearSchedulePeriodId = String(line.metadata.clearSchedulePeriodId ?? '').trim()
+      const startsAtRaw = String(line.metadata.startsAt ?? '').trim()
+      const startsAt = startsAtRaw ? new Date(startsAtRaw) : null
 
       const result = await activateOrExtendPeriod({
         planId,
         userId,
         orderId: id,
         source: mode === 'upgrade' ? 'upgrade' : isTrial ? 'trial' : 'purchase',
+        endPeriodId: mode === 'upgrade' ? fromPeriodId : null,
+        startsAt: startsAt && Number.isFinite(startsAt.getTime()) ? startsAt : null,
+        clearSchedulePeriodId: clearSchedulePeriodId || null,
         subject: String(line.metadata.subject ?? '').trim() || undefined,
         audience: String(line.metadata.audience ?? '').trim() || undefined,
         billingPeriod,
@@ -204,7 +216,7 @@ export type StartSubscriptionCheckoutInput = {
 export type StartSubscriptionCheckoutResult =
   | { ok: true; orderId: string; redirectPath: string; redirectUrl?: string }
   | { ok: false; error: string }
-  | { ok: true; free: true; periodId: string }
+  | { ok: true; free: true; periodId: string; scheduled?: boolean }
 
 export async function startSubscriptionCheckout(
   input: StartSubscriptionCheckoutInput,
@@ -214,14 +226,65 @@ export async function startSubscriptionCheckout(
     return { ok: false, error: 'Subscriptions is disabled.' }
   }
 
-  const plan = await findPlanById(input.planId)
+  let plan = await findPlanById(input.planId)
   if (!plan || !plan.active) return { ok: false, error: 'Plan not found or inactive.' }
 
   const userId = input.userId.trim()
   const email = input.buyerEmail.trim()
   if (!userId || !email) return { ok: false, error: 'Buyer required.' }
 
-  const mode: CheckoutMode = isCheckoutMode(input.mode) ? input.mode : 'subscribe'
+  let mode: CheckoutMode = isCheckoutMode(input.mode) ? input.mode : 'subscribe'
+  let deferredStart: Date | null = null
+  let clearSchedulePeriodId = ''
+  let upgradeCreditMode: 'prorate' | 'full' = 'prorate'
+  let upgradeFromPeriod: Awaited<ReturnType<typeof listActivePeriodsForUser>>[number] | null = null
+  let upgradeFromPlan: Awaited<ReturnType<typeof findPlanById>> = null
+
+  let locale: AppLocale = DEFAULT_LOCALE
+  try {
+    const loc = await getLocale()
+    if (isAppLocale(loc)) locale = loc
+  } catch {
+    /* default */
+  }
+
+  if (mode === 'subscribe' || mode === 'renew') {
+    const pending = await findPendingSchedule(userId, plan.id)
+    if (pending && (plan.id === pending.fromPlanId || plan.id === pending.toPlanId)) {
+      const nextPlan = await findPlanById(pending.toPlanId)
+      const fromPlan = await findPlanById(pending.fromPlanId)
+      if (!nextPlan || !nextPlan.active || !fromPlan) {
+        return { ok: false, error: 'The scheduled plan is no longer available.' }
+      }
+      if (pending.endsAt.getTime() > Date.now()) {
+        const { describeSamePlanHold, planCanRenew, samePlanHoldMessage, formatRenewsOn } =
+          await import('./lifecycle-math')
+        const hold = describeSamePlanHold({
+          now: new Date(),
+          endsAt: pending.endsAt,
+          earlyRenewDays: fromPlan.earlyRenewDays,
+          renewable: planCanRenew(fromPlan),
+        })
+        if (!hold.allowed) {
+          const label = hold.renewsAt ? formatRenewsOn(hold.renewsAt, locale) : ''
+          return { ok: false, error: samePlanHoldMessage(hold, label) || 'This plan cannot be renewed yet.' }
+        }
+      }
+      plan = nextPlan
+      mode = 'renew'
+      deferredStart = pending.endsAt.getTime() > Date.now() ? pending.endsAt : null
+      clearSchedulePeriodId = pending.periodId
+    } else {
+      const holds = await loadPlanHoldNotices(userId, locale)
+      const hold = holds[plan.id]
+      if (hold) {
+        if (!hold.allowed) {
+          return { ok: false, error: hold.message || 'This plan cannot be renewed yet.' }
+        }
+        mode = 'renew'
+      }
+    }
+  }
 
   if (plan.maxActive > 0 && mode === 'subscribe') {
     const n = await countActivePeriodsForPlan(plan.id)
@@ -234,23 +297,57 @@ export async function startSubscriptionCheckout(
     }
   }
 
-  if (mode === 'upgrade') {
-    if (!plan.upgradeTargetIds.length && !input.fromPeriodId) {
-      /* target plan is `plan`; fromPeriodId identifies the period being left */
-    }
+  if (mode === 'upgrade' || mode === 'downgrade') {
     const fromPeriodId = (input.fromPeriodId || '').trim()
-    if (!fromPeriodId) return { ok: false, error: 'Upgrade requires the current period.' }
+    if (!fromPeriodId) return { ok: false, error: 'A plan change requires the current period.' }
     const active = await listActivePeriodsForUser(userId)
     const from = active.find((p) => p.id === fromPeriodId)
     if (!from) return { ok: false, error: 'Current subscription not found.' }
+    if (from.planId === plan.id) {
+      return { ok: false, error: 'Choose a different plan.' }
+    }
     const fromPlan = await findPlanById(from.planId)
     if (!fromPlan) return { ok: false, error: 'Current plan not found.' }
-    if (!fromPlan.upgradeTargetIds.includes(plan.id)) {
-      return { ok: false, error: 'This upgrade path is not allowed.' }
+    const path = await findUpgradePath(from.planId, plan.id)
+    if (!path) return { ok: false, error: 'This plan change is not allowed.' }
+    if (classifyPlanChange(fromPlan.price, plan.price) === 'downgrade') {
+      const scheduled = await scheduleDowngrade({
+        periodId: from.id,
+        userId,
+        toPlanId: plan.id,
+      })
+      if (!scheduled.ok) return { ok: false, error: scheduled.error }
+      return { ok: true, free: true, periodId: from.id, scheduled: true }
     }
+    mode = 'upgrade'
+    upgradeCreditMode = path.creditMode
+    upgradeFromPeriod = from
+    upgradeFromPlan = fromPlan
   }
 
   const priced = await resolveCheckoutPriceMajor({ plan, userId, mode })
+
+  if (clearSchedulePeriodId && priced.priceMajor <= 0) {
+    const result = await activateOrExtendPeriod({
+      planId: plan.id,
+      userId,
+      source: 'purchase',
+      startsAt: deferredStart,
+      clearSchedulePeriodId,
+      isTrial: false,
+    })
+    if (!result.ok) return { ok: false, error: result.error }
+    await emitSubscriptionsEmail('product:subscriptions/renewed', {
+      periodId: result.period.id,
+      planId: plan.id,
+      userId,
+      buyerEmail: email,
+      subject: result.period.subject,
+      endsAt: result.period.endsAt.toISOString(),
+      mode: 'renew',
+    })
+    return { ok: true, free: true, periodId: result.period.id }
+  }
 
   // Free path — no Payments cart (plan locks this).
   if (priced.priceMajor <= 0) {
@@ -289,24 +386,21 @@ export async function startSubscriptionCheckout(
   const currency = paySettings.currency || 'HUF'
 
   let chargeMajor = priced.priceMajor
-  if (mode === 'upgrade' && input.fromPeriodId) {
-    const active = await listActivePeriodsForUser(userId)
-    const from = active.find((p) => p.id === input.fromPeriodId?.trim())
-    if (from) {
-      const fromPlan = await findPlanById(from.planId)
-      if (fromPlan) {
-        const credit = computeUpgradeCreditMajor(from, fromPlan)
-        chargeMajor = Math.max(0, plan.price - credit)
-      }
-    }
+  if (mode === 'upgrade' && upgradeFromPeriod && upgradeFromPlan) {
+    const credit =
+      upgradeCreditMode === 'prorate'
+        ? computeUpgradeCreditMajor(upgradeFromPeriod, upgradeFromPlan)
+        : 0
+    chargeMajor = upgradeChargeMajor(plan.price, upgradeCreditMode, credit)
   }
 
-  if (chargeMajor <= 0) {
+  if (chargeMajor <= 0 && mode === 'upgrade') {
     const result = await activateOrExtendPeriod({
       planId: plan.id,
       userId,
       source: 'upgrade',
-      exclusiveSubject: mode === 'upgrade',
+      exclusiveSubject: true,
+      endPeriodId: input.fromPeriodId,
       isTrial: false,
     })
     if (!result.ok) return { ok: false, error: result.error }
@@ -325,14 +419,6 @@ export async function startSubscriptionCheckout(
   const unitAmountMinor = majorToMinor(chargeMajor, currency)
   if (unitAmountMinor == null || unitAmountMinor <= 0) {
     return { ok: false, error: 'Could not convert plan price.' }
-  }
-
-  let locale: AppLocale = DEFAULT_LOCALE
-  try {
-    const loc = await getLocale()
-    if (isAppLocale(loc)) locale = loc
-  } catch {
-    /* default */
   }
 
   const checkoutBase = withLocalePrefix(locale, `/checkout`)
@@ -382,6 +468,8 @@ export async function startSubscriptionCheckout(
       mode,
       isTrial: priced.isTrial,
       fromPeriodId: input.fromPeriodId ?? '',
+      clearSchedulePeriodId,
+      startsAt: deferredStart ? deferredStart.toISOString() : '',
       autoRenew: wantAutoRenew,
       paymentsRecurringId: paymentsRecurringId ?? '',
     },

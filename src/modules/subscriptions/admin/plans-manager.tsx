@@ -43,8 +43,6 @@ type PlanStatusFilter = 'all' | 'active' | 'inactive'
 
 export type PlanGroupOption = { id: string; label: string }
 export type PlanFormOption = { id: string; label: string }
-export type PlanUpgradeOption = { id: string; title: string }
-
 export type PlanAdminRow = SubscriptionPlanRecord & {
   titleLocales: Record<string, string>
   descriptionLocales: Record<string, string>
@@ -143,7 +141,6 @@ function PlanFields({
   defaultFormDefinitionId = 'subscription-registration',
   groupOptions = [],
   formOptions = [],
-  upgradeOptions = [],
   mediaEnabled = false,
   locales = [],
 }: {
@@ -153,7 +150,6 @@ function PlanFields({
   defaultFormDefinitionId?: string
   groupOptions?: PlanGroupOption[]
   formOptions?: PlanFormOption[]
-  upgradeOptions?: PlanUpgradeOption[]
   mediaEnabled?: boolean
   locales?: ContentLocaleOption[]
 }) {
@@ -180,15 +176,6 @@ function PlanFields({
     formOptions,
     row?.formDefinitionId || (!row ? defaultFormDefinitionId : ''),
   )
-  const selectedUpgradeIds = (row?.upgradeTargetIds ?? []).filter((id) => id !== row?.id)
-  const upgradeSelect = [
-    ...upgradeOptions
-      .filter((plan) => plan.id !== row?.id)
-      .map((plan) => ({ id: plan.id, label: plan.title || plan.id })),
-    ...selectedUpgradeIds
-      .filter((id) => !upgradeOptions.some((plan) => plan.id === id))
-      .map((id) => ({ id, label: id })),
-  ]
   const typeOptions = PLAN_TYPE_OPTIONS.some((opt) => opt.id === subject)
     ? PLAN_TYPE_OPTIONS
     : [...PLAN_TYPE_OPTIONS, { id: subject, label: planSubjectLabel(subject) }]
@@ -481,6 +468,10 @@ function PlanFields({
               defaultValue={row?.earlyRenewDays ?? 0}
               disabled={pending}
             />
+            <span className="settings-hint">
+              0 keeps a repeat purchase closed until this period ends. A number is how many days
+              before the end a member may buy the next term.
+            </span>
           </label>
           <label className="settings-field">
             <span>Early renew price (major, empty = list)</span>
@@ -492,6 +483,9 @@ function PlanFields({
               defaultValue={row?.earlyRenewPrice ?? ''}
               disabled={pending}
             />
+            <span className="settings-hint">
+              Used only inside that window. Empty charges the list price.
+            </span>
           </label>
           <label className="settings-field">
             <span>Grace hours</span>
@@ -526,28 +520,11 @@ function PlanFields({
               disabled={pending}
             />
           </label>
-          <label className="settings-field sf-subscriptions-plan-field-wide">
-            <span>Upgrade targets</span>
-            <input type="hidden" name="upgradeTargetIdsField" value="1" />
-            <select
-              name="upgradeTargetIds"
-              multiple
-              size={Math.min(6, Math.max(3, upgradeSelect.length || 3))}
-              defaultValue={selectedUpgradeIds}
-              disabled={pending}
-            >
-              {upgradeSelect.map((plan) => (
-                <option key={plan.id} value={plan.id}>
-                  {plan.label}
-                </option>
-              ))}
-            </select>
-            <span className="settings-hint">
-              A member can move to these plans. Checkout credits unused time on the current plan
-              against the target price; lifetime credits nothing. Payments charges the remainder.
-              Deselect all and Save to clear.
-            </span>
-          </label>
+          <p className="settings-hint">
+            Which plan this one can move to is set on{' '}
+            <Link href="/admin/subscriptions/changes">Changes</Link>. A higher price starts
+            immediately. A lower price waits until this term ends.
+          </p>
       </PlanSection>
 
       <PlanSection title="Access">
@@ -660,7 +637,6 @@ function CreatePlanCard({
   defaultFormDefinitionId,
   groupOptions,
   formOptions,
-  upgradeOptions,
   mediaEnabled,
   locales,
 }: {
@@ -669,7 +645,6 @@ function CreatePlanCard({
   defaultFormDefinitionId: string
   groupOptions: PlanGroupOption[]
   formOptions: PlanFormOption[]
-  upgradeOptions: PlanUpgradeOption[]
   mediaEnabled: boolean
   locales: ContentLocaleOption[]
 }) {
@@ -721,7 +696,6 @@ function CreatePlanCard({
               defaultFormDefinitionId={defaultFormDefinitionId}
               groupOptions={groupOptions}
               formOptions={formOptions}
-              upgradeOptions={upgradeOptions}
               mediaEnabled={mediaEnabled}
               locales={locales}
             />
@@ -757,7 +731,6 @@ function EditPlanForm({
   defaultFormDefinitionId,
   groupOptions,
   formOptions,
-  upgradeOptions,
   mediaEnabled,
   locales,
   onDeleted,
@@ -767,7 +740,6 @@ function EditPlanForm({
   defaultFormDefinitionId: string
   groupOptions: PlanGroupOption[]
   formOptions: PlanFormOption[]
-  upgradeOptions: PlanUpgradeOption[]
   mediaEnabled: boolean
   locales: ContentLocaleOption[]
   onDeleted: () => void
@@ -811,7 +783,6 @@ function EditPlanForm({
           defaultFormDefinitionId={defaultFormDefinitionId}
           groupOptions={groupOptions}
           formOptions={formOptions}
-          upgradeOptions={upgradeOptions}
           mediaEnabled={mediaEnabled}
           locales={locales}
         />
@@ -956,10 +927,6 @@ export function PlansManager({
     setOpenId(null)
     router.refresh()
   }, [deleteState.ok, router])
-  const upgradeOptions = useMemo(
-    () => plans.map((plan) => ({ id: plan.id, title: plan.title })),
-    [plans],
-  )
   const openPlan = useMemo(
     () => (openId ? plans.find((plan) => plan.id === openId) ?? null : null),
     [plans, openId],
@@ -1028,7 +995,6 @@ export function PlansManager({
         defaultFormDefinitionId={defaultFormDefinitionId}
         groupOptions={groupOptions}
         formOptions={formOptions}
-        upgradeOptions={upgradeOptions}
         mediaEnabled={mediaEnabled}
         locales={locales}
       />
@@ -1135,7 +1101,6 @@ export function PlansManager({
           defaultFormDefinitionId={defaultFormDefinitionId}
           groupOptions={groupOptions}
           formOptions={formOptions}
-          upgradeOptions={upgradeOptions}
           mediaEnabled={mediaEnabled}
           locales={locales}
           onDeleted={() => setOpenId(null)}

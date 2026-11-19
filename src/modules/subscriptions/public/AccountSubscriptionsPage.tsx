@@ -15,6 +15,7 @@ import {
   ensureSubscriptionsPaymentHook,
 } from '@/modules/subscriptions/api'
 import { CancelSubscriptionForm } from '@/modules/subscriptions/public/CancelSubscriptionForm'
+import { ClearPlanChangeForm } from '@/modules/subscriptions/public/ClearPlanChangeForm'
 import { SeatManager } from '@/modules/subscriptions/public/SeatManager'
 import { SubscribePlanForm } from '@/modules/subscriptions/public/SubscribePlanForm'
 import { SubscriptionIntakeForm } from '@/modules/subscriptions/public/SubscriptionIntakeForm'
@@ -23,7 +24,11 @@ import {
   listPeriods,
   listPlans,
   listPlansByIds,
+  computeUpgradeCreditMajor,
   listSeats,
+  listUpgradePaths,
+  loadPlanHoldNotices,
+  upgradeChargeMajor,
 } from '@/modules/subscriptions/store'
 import { formatBillingPeriodLabel } from '@/modules/subscriptions/types'
 
@@ -54,11 +59,13 @@ export default async function AccountSubscriptionsPage({ params }: Args) {
   const profilesOn = isCatalogModuleEnabled(settings, MODULE_IDS.profiles)
   const eventsOn = isCatalogModuleEnabled(settings, MODULE_IDS.events)
 
-  const [active, history, plans, profile] = await Promise.all([
+  const [active, history, plans, profile, holds, upgradePaths] = await Promise.all([
     listActivePeriodsForUser(userId),
     listPeriods({ userId, limit: 50 }),
     listPlans({ activeOnly: true }),
     profilesOn ? ensureProfile(userId) : Promise.resolve(null),
+    loadPlanHoldNotices(userId, locale),
+    listUpgradePaths(),
   ])
 
   const activePlans = await listPlansByIds(active.map((p) => p.planId))
@@ -124,10 +131,19 @@ export default async function AccountSubscriptionsPage({ params }: Args) {
               {active.map((p) => {
                 const plan = activePlans.find((x) => x.id === p.planId)
                 const seats = seatsByPeriod.get(p.id) || []
-                const upgrades =
-                  plan?.upgradeTargetIds
-                    .map((id) => plans.find((x) => x.id === id))
-                    .filter(Boolean) ?? []
+                const hold = holds[p.planId]
+                const scheduled = p.scheduledPlanId
+                  ? plans.find((x) => x.id === p.scheduledPlanId) ??
+                    activePlans.find((x) => x.id === p.scheduledPlanId) ??
+                    null
+                  : null
+                const changes = upgradePaths
+                  .filter((path) => path.fromPlanId === p.planId)
+                  .map((path) => ({
+                    path,
+                    target: plans.find((x) => x.id === path.toPlanId) ?? null,
+                  }))
+                  .filter((row) => row.target)
                 return (
                   <li key={p.id} style={{ marginBottom: '1rem' }}>
                     <strong>{planTitle(p.planId)}</strong> ({p.subject}
@@ -142,44 +158,99 @@ export default async function AccountSubscriptionsPage({ params }: Args) {
                       </>
                     ) : null}
                     <div style={{ marginTop: '0.5rem' }}>
-                      {plan &&
-                      !plan.lifetime &&
-                      plan.billingPeriod !== 'lifetime' &&
-                      !plan.fixedExpiresAt ? (
+                      {scheduled ? (
+                        <p className="sf-subscription-plan-hold">
+                          This plan runs until {p.endsAt.toISOString().slice(0, 10)}. The next
+                          renewal is {scheduled.title}. No refund.
+                        </p>
+                      ) : null}
+                      {plan && hold && !hold.allowed ? (
+                        <p className="sf-subscription-plan-hold">{hold.message}</p>
+                      ) : null}
+                      {plan && !scheduled && hold?.early ? (
+                        <p className="settings-hint">
+                          You still have {hold.timeLeftLabel} left. Early renewal is open.
+                        </p>
+                      ) : null}
+                      {plan && hold?.allowed ? (
                         <SubscribePlanForm
-                          planId={plan.id}
-                          planTitle={plan.title}
-                          priceLabel={`${formatMoney(plan.earlyRenewPrice ?? plan.price)} / ${formatBillingPeriodLabel(plan.billingPeriod, plan.billingIntervalCount)}`}
+                          planId={scheduled ? scheduled.id : plan.id}
+                          planTitle={scheduled ? scheduled.title : plan.title}
+                          priceLabel={
+                            scheduled
+                              ? `${formatMoney(scheduled.price)} / ${formatBillingPeriodLabel(scheduled.billingPeriod, scheduled.billingIntervalCount)}`
+                              : `${formatMoney(
+                                  hold.early && plan.earlyRenewPrice != null
+                                    ? plan.earlyRenewPrice
+                                    : plan.price,
+                                )} / ${formatBillingPeriodLabel(plan.billingPeriod, plan.billingIntervalCount)}`
+                          }
                           methods={methods}
                           mode="renew"
-                          recurringSupported={plan.recurringSupported}
-                          isFree={plan.price <= 0}
-                          submitLabel="Renew"
+                          fromPeriodId={scheduled ? p.id : undefined}
+                          recurringSupported={
+                            scheduled ? scheduled.recurringSupported : plan.recurringSupported
+                          }
+                          isFree={(scheduled ? scheduled.price : hold.early && plan.earlyRenewPrice != null ? plan.earlyRenewPrice : plan.price) <= 0}
+                          submitLabel={
+                            scheduled
+                              ? `Renew as ${scheduled.title}`
+                              : hold.early
+                                ? 'Renew early'
+                                : 'Renew'
+                          }
                         />
                       ) : null}
+                      {scheduled ? <ClearPlanChangeForm periodId={p.id} /> : null}
                       <CancelSubscriptionForm
                         periodId={p.id}
                         cancelAtPeriodEnd={p.cancelAtPeriodEnd}
                       />
                     </div>
-                    {upgrades.length > 0 ? (
+                    {plan && changes.length > 0 ? (
                       <div style={{ marginTop: '0.75rem' }}>
-                        <p className="settings-hint">Upgrade options</p>
-                        {upgrades.map((target) =>
-                          target ? (
+                        <p className="settings-hint">Plan changes</p>
+                        {changes.map(({ path, target }) => {
+                          if (!target || target.id === scheduled?.id) return null
+                          const upgrade = target.price > plan.price
+                          if (!upgrade) {
+                            return (
+                              <SubscribePlanForm
+                                key={path.id}
+                                planId={target.id}
+                                planTitle={target.title}
+                                priceLabel="No charge now. This plan runs until it ends."
+                                methods={methods}
+                                mode="downgrade"
+                                fromPeriodId={p.id}
+                                isFree
+                                submitLabel={`Switch to ${target.title} at next renewal`}
+                              />
+                            )
+                          }
+                          const credit =
+                            path.creditMode === 'prorate'
+                              ? computeUpgradeCreditMajor(p, plan)
+                              : 0
+                          const due = upgradeChargeMajor(target.price, path.creditMode, credit)
+                          const dueLabel =
+                            path.creditMode === 'full'
+                              ? `${formatMoney(due)} now. Remaining time is not credited.`
+                              : `${formatMoney(due)} now. Remaining time is credited.`
+                          return (
                             <SubscribePlanForm
-                              key={target.id}
+                              key={path.id}
                               planId={target.id}
                               planTitle={target.title}
-                              priceLabel={`${formatMoney(target.price)} / ${formatBillingPeriodLabel(target.billingPeriod, target.billingIntervalCount)}`}
+                              priceLabel={dueLabel}
                               methods={methods}
                               mode="upgrade"
                               fromPeriodId={p.id}
-                              isFree={target.price <= 0}
+                              isFree={due <= 0}
                               submitLabel={`Upgrade to ${target.title}`}
                             />
-                          ) : null,
-                        )}
+                          )
+                        })}
                       </div>
                     ) : null}
                     {plan && plan.seatLimit > 0 ? (
@@ -220,7 +291,9 @@ export default async function AccountSubscriptionsPage({ params }: Args) {
       </section>
 
       <section className="admin-settings-mosaic" style={{ marginTop: '1.5rem' }}>
-        {plans.map((plan) => {
+        {plans
+          .filter((plan) => !holds[plan.id])
+          .map((plan) => {
           const periodLabel = formatBillingPeriodLabel(
             plan.billingPeriod,
             plan.billingIntervalCount,

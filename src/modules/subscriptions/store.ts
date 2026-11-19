@@ -4,17 +4,24 @@
 
 import 'server-only'
 
-import { and, asc, desc, eq, gte, inArray, isNull, lte, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lte, or, sql } from 'drizzle-orm'
 import { randomUUID } from 'node:crypto'
 
 import { db } from '@/core/db'
 
-import { sfSubPeriods, sfSubPlans, sfSubSeats } from './schema'
+import { sfSubPeriods, sfSubPlans, sfSubSeats, sfSubUpgradePaths } from './schema'
 import {
   addBillingPeriod,
+  classifyPlanChange,
+  describeSamePlanHold,
+  earlyRenewPriceApplies,
+  formatRenewsOn,
   periodEffectiveEnd,
+  planCanRenew,
+  samePlanHoldMessage,
   subtractBillingPeriod,
 } from './lifecycle-math'
+import { isChangeCreditMode, type ChangeCreditMode } from './lifecycle-math'
 import {
   defaultEntitlementKeysForSubject,
   isPlanBillingPeriod,
@@ -31,9 +38,19 @@ export {
   addBillingPeriod,
   billingPeriodDurationMs,
   computeUpgradeCreditMajor,
+  classifyPlanChange,
+  describeSamePlanHold,
+  earlyRenewPriceApplies,
+  formatRenewsOn,
+  formatTimeLeft,
+  isChangeCreditMode,
   periodEffectiveEnd,
+  planCanRenew,
+  samePlanHoldMessage,
   subtractBillingPeriod,
+  upgradeChargeMajor,
 } from './lifecycle-math'
+export type { ChangeCreditMode, SamePlanHold } from './lifecycle-math'
 
 function newId(prefix: string): string {
   return `${prefix}_${randomUUID().replace(/-/g, '')}`
@@ -168,6 +185,7 @@ function mapPeriod(row: typeof sfSubPeriods.$inferSelect): SubscriptionPeriodRec
     seatRole: row.seatRole ?? '',
     reminderExpiringSentAt: row.reminderExpiringSentAt ?? null,
     reminderTrialSentAt: row.reminderTrialSentAt ?? null,
+    scheduledPlanId: (row.scheduledPlanId || '').trim() || null,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   }
@@ -649,7 +667,13 @@ export async function resolveCheckoutPriceMajor(
     const current = active.find((p) => p.planId === plan.id)
     if (current) {
       const daysLeft = (current.endsAt.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)
-      if (plan.earlyRenewDays <= 0 || daysLeft <= plan.earlyRenewDays) {
+      if (
+        earlyRenewPriceApplies({
+          earlyRenewDays: plan.earlyRenewDays,
+          earlyRenewPrice: plan.earlyRenewPrice,
+          daysLeft,
+        })
+      ) {
         return { priceMajor: plan.earlyRenewPrice, isTrial: false, reason: 'early_renew' }
       }
     }
@@ -683,6 +707,33 @@ export type ActivatePeriodInput = {
   paymentsRecurringId?: string | null
   /** End sibling active periods with the same subject (upgrade). */
   exclusiveSubject?: boolean
+  /** End this period immediately (the plan being left on an upgrade). */
+  endPeriodId?: string | null
+  /** Open the new term at this time when it is still in the future. */
+  startsAt?: Date | null
+  /** Clear a scheduled downgrade once the following term is paid. */
+  clearSchedulePeriodId?: string | null
+}
+
+async function endPeriodNow(periodId: string, now: Date): Promise<void> {
+  const id = periodId.trim()
+  if (!id) return
+  const rows = await db.select().from(sfSubPeriods).where(eq(sfSubPeriods.id, id)).limit(1)
+  const row = rows[0]
+  if (!row || row.status !== 'active') return
+  const ended = mapPeriod(row)
+  await db
+    .update(sfSubPeriods)
+    .set({
+      status: 'expired',
+      endsAt: now,
+      cancelAtPeriodEnd: false,
+      scheduledPlanId: null,
+      updatedAt: now,
+    })
+    .where(eq(sfSubPeriods.id, id))
+  const { syncGroupsOnPeriodEnd } = await import('./group-sync')
+  await syncGroupsOnPeriodEnd({ ...ended, status: 'expired' }, now)
 }
 
 /**
@@ -729,6 +780,8 @@ export async function activateOrExtendPeriod(
 
   try {
     const orderId = (input.orderId || '').trim() || null
+    const endPeriodId = (input.endPeriodId || '').trim()
+    if (endPeriodId) await endPeriodNow(endPeriodId, now)
     if (orderId) {
       const already = await db
         .select()
@@ -835,7 +888,8 @@ export async function activateOrExtendPeriod(
     }
 
     const id = newId('speriod')
-    const startsAt = now
+    const startsAt =
+      input.startsAt && input.startsAt.getTime() > now.getTime() ? input.startsAt : now
     const endsAt = addBillingPeriod(startsAt, billingPeriod, {
       lifetime: plan?.lifetime && !isTrial,
       fixedExpiresAt: isTrial ? null : plan?.fixedExpiresAt,
@@ -879,8 +933,21 @@ export async function activateOrExtendPeriod(
 
     const rows = await db.select().from(sfSubPeriods).where(eq(sfSubPeriods.id, id)).limit(1)
     const created = mapPeriod(rows[0]!)
-    const { syncGroupsOnActivate } = await import('./group-sync')
-    await syncGroupsOnActivate(created)
+    if (startsAt.getTime() <= now.getTime()) {
+      const { syncGroupsOnActivate } = await import('./group-sync')
+      await syncGroupsOnActivate(created)
+      await db
+        .update(sfSubPeriods)
+        .set({ groupSyncedAt: now })
+        .where(eq(sfSubPeriods.id, created.id))
+    }
+    const clearSchedulePeriodId = (input.clearSchedulePeriodId || '').trim()
+    if (clearSchedulePeriodId) {
+      await db
+        .update(sfSubPeriods)
+        .set({ scheduledPlanId: null, updatedAt: now })
+        .where(eq(sfSubPeriods.id, clearSchedulePeriodId))
+    }
     return { ok: true, period: created }
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
@@ -980,6 +1047,35 @@ export async function endPeriodsForOrder(
     return ended
   } catch {
     return []
+  }
+}
+
+/** Apply Core groups for periods whose start has arrived and were not synced yet. */
+export async function syncDuePeriodGroups(now = new Date()): Promise<number> {
+  try {
+    const rows = await db
+      .select()
+      .from(sfSubPeriods)
+      .where(
+        and(
+          eq(sfSubPeriods.status, 'active'),
+          lte(sfSubPeriods.startsAt, now),
+          isNull(sfSubPeriods.groupSyncedAt),
+        ),
+      )
+      .limit(500)
+    if (rows.length === 0) return 0
+    const { syncGroupsOnActivate } = await import('./group-sync')
+    for (const row of rows) {
+      await syncGroupsOnActivate(mapPeriod(row))
+      await db
+        .update(sfSubPeriods)
+        .set({ groupSyncedAt: now })
+        .where(eq(sfSubPeriods.id, row.id))
+    }
+    return rows.length
+  } catch {
+    return 0
   }
 }
 
@@ -1210,6 +1306,340 @@ export async function countActiveSubscribers(): Promise<number> {
   } catch {
     return 0
   }
+}
+
+export type PlanHoldNotice = {
+  allowed: boolean
+  early: boolean
+  message: string
+  timeLeftLabel: string
+}
+
+/** Active same-plan holds for the signed-in buyer. Keyed by plan id. */
+export async function loadPlanHoldNotices(
+  userId: string,
+  locale: string,
+  now = new Date(),
+): Promise<Record<string, PlanHoldNotice>> {
+  const uid = userId.trim()
+  if (!uid) return {}
+  const periods = await listActivePeriodsForUser(uid, now)
+  const latest = new Map<string, (typeof periods)[number]>()
+  for (const period of periods) {
+    if (period.endsAt.getTime() <= now.getTime()) continue
+    const prev = latest.get(period.planId)
+    if (!prev || period.endsAt.getTime() > prev.endsAt.getTime()) latest.set(period.planId, period)
+  }
+  if (latest.size === 0) return {}
+  const plans = await listPlansByIds([...latest.keys()])
+  const out: Record<string, PlanHoldNotice> = {}
+  for (const [planId, period] of latest) {
+    const plan = plans.find((row) => row.id === planId)
+    if (!plan) continue
+    const hold = describeSamePlanHold({
+      now,
+      endsAt: period.endsAt,
+      earlyRenewDays: plan.earlyRenewDays,
+      renewable: planCanRenew(plan),
+    })
+    const label = hold.renewsAt ? formatRenewsOn(hold.renewsAt, locale || 'en') : ''
+    out[planId] = {
+      allowed: hold.allowed,
+      early: hold.early,
+      message: samePlanHoldMessage(hold, label),
+      timeLeftLabel: hold.timeLeftLabel,
+    }
+  }
+  return out
+}
+
+export type UpgradePathRecord = {
+  id: string
+  fromPlanId: string
+  toPlanId: string
+  /** Used when the target costs more. Downgrades ignore it. */
+  creditMode: ChangeCreditMode
+  createdAt: Date
+}
+
+export type PendingPlanChange = {
+  periodId: string
+  fromPlanId: string
+  toPlanId: string
+  endsAt: Date
+}
+
+function isMissingUpgradeTable(error: unknown): boolean {
+  const msg = error instanceof Error ? error.message : String(error)
+  return /sf_sub_upgrade_paths/i.test(msg) && /does not exist|relation/i.test(msg)
+}
+
+function mapUpgradePath(row: typeof sfSubUpgradePaths.$inferSelect): UpgradePathRecord {
+  return {
+    id: row.id,
+    fromPlanId: row.fromPlanId,
+    toPlanId: row.toPlanId,
+    creditMode: row.creditMode === 'full' ? 'full' : 'prorate',
+    createdAt: row.createdAt,
+  }
+}
+
+async function mirrorUpgradeTargets(fromPlanId: string): Promise<void> {
+  const rows = await db
+    .select({ toPlanId: sfSubUpgradePaths.toPlanId })
+    .from(sfSubUpgradePaths)
+    .where(eq(sfSubUpgradePaths.fromPlanId, fromPlanId))
+  await db
+    .update(sfSubPlans)
+    .set({
+      upgradeTargetIds: rows.map((row) => row.toPlanId),
+      updatedAt: new Date(),
+    })
+    .where(eq(sfSubPlans.id, fromPlanId))
+}
+
+export async function listUpgradePaths(): Promise<UpgradePathRecord[]> {
+  try {
+    const rows = await db
+      .select()
+      .from(sfSubUpgradePaths)
+      .orderBy(asc(sfSubUpgradePaths.createdAt))
+    return rows.map(mapUpgradePath)
+  } catch (error) {
+    if (!isMissingUpgradeTable(error)) throw error
+    const plans = await listPlans()
+    const out: UpgradePathRecord[] = []
+    for (const plan of plans) {
+      for (const toPlanId of plan.upgradeTargetIds) {
+        if (!toPlanId || toPlanId === plan.id) continue
+        out.push({
+          id: `legacy:${plan.id}:${toPlanId}`,
+          fromPlanId: plan.id,
+          toPlanId,
+          creditMode: 'prorate',
+          createdAt: plan.updatedAt,
+        })
+      }
+    }
+    return out
+  }
+}
+
+/** Targets a member may move to. Falls back to the plan column only when the table is not migrated yet. */
+export async function listUpgradeTargetIds(fromPlanId: string): Promise<string[]> {
+  const id = fromPlanId.trim()
+  if (!id) return []
+  try {
+    const rows = await db
+      .select({ toPlanId: sfSubUpgradePaths.toPlanId })
+      .from(sfSubUpgradePaths)
+      .where(eq(sfSubUpgradePaths.fromPlanId, id))
+    return rows.map((row) => row.toPlanId)
+  } catch (error) {
+    if (!isMissingUpgradeTable(error)) throw error
+    const plan = await findPlanById(id)
+    return plan?.upgradeTargetIds ?? []
+  }
+}
+
+export async function addUpgradePath(
+  fromPlanId: string,
+  toPlanId: string,
+  creditMode: ChangeCreditMode = 'prorate',
+): Promise<{ ok: true; path: UpgradePathRecord } | { ok: false; error: string }> {
+  const fromId = fromPlanId.trim()
+  const toId = toPlanId.trim()
+  const mode: ChangeCreditMode = isChangeCreditMode(creditMode) ? creditMode : 'prorate'
+  if (!fromId || !toId || fromId === toId) {
+    return { ok: false, error: 'Choose two different plans.' }
+  }
+  const [fromPlan, toPlan] = await Promise.all([findPlanById(fromId), findPlanById(toId)])
+  if (!fromPlan || !toPlan) return { ok: false, error: 'Plan not found.' }
+  const id = newId('supg')
+  try {
+    await db.insert(sfSubUpgradePaths).values({
+      id,
+      fromPlanId: fromId,
+      toPlanId: toId,
+      creditMode: mode,
+    })
+    await mirrorUpgradeTargets(fromId)
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    if (isMissingUpgradeTable(error)) {
+      return { ok: false, error: 'sf_sub_upgrade_paths missing — run npm run db:migrate.' }
+    }
+    if (/unique|duplicate|sf_sub_upgrade_paths_from_to/i.test(msg)) {
+      return { ok: false, error: 'That upgrade path already exists.' }
+    }
+    return { ok: false, error: msg }
+  }
+  return {
+    ok: true,
+    path: { id, fromPlanId: fromId, toPlanId: toId, creditMode: mode, createdAt: new Date() },
+  }
+}
+
+export async function removeUpgradePath(
+  id: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const pathId = id.trim()
+  if (!pathId) return { ok: false, error: 'Missing upgrade path.' }
+  try {
+    const rows = await db
+      .select()
+      .from(sfSubUpgradePaths)
+      .where(eq(sfSubUpgradePaths.id, pathId))
+      .limit(1)
+    const row = rows[0]
+    if (!row) return { ok: false, error: 'Upgrade path not found.' }
+    await db.delete(sfSubUpgradePaths).where(eq(sfSubUpgradePaths.id, pathId))
+    await mirrorUpgradeTargets(row.fromPlanId)
+  } catch (error) {
+    if (isMissingUpgradeTable(error)) {
+      return { ok: false, error: 'sf_sub_upgrade_paths missing — run npm run db:migrate.' }
+    }
+    const msg = error instanceof Error ? error.message : String(error)
+    return { ok: false, error: msg }
+  }
+  return { ok: true }
+}
+
+export async function setUpgradePathCreditMode(
+  id: string,
+  creditMode: ChangeCreditMode,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const pathId = id.trim()
+  if (!pathId) return { ok: false, error: 'Missing path.' }
+  if (!isChangeCreditMode(creditMode)) return { ok: false, error: 'Choose how an upgrade is charged.' }
+  try {
+    const rows = await db
+      .select({ id: sfSubUpgradePaths.id })
+      .from(sfSubUpgradePaths)
+      .where(eq(sfSubUpgradePaths.id, pathId))
+      .limit(1)
+    if (!rows[0]) return { ok: false, error: 'Path not found.' }
+    await db
+      .update(sfSubUpgradePaths)
+      .set({ creditMode })
+      .where(eq(sfSubUpgradePaths.id, pathId))
+  } catch (error) {
+    if (isMissingUpgradeTable(error)) {
+      return { ok: false, error: 'sf_sub_upgrade_paths missing — run npm run db:migrate.' }
+    }
+    const msg = error instanceof Error ? error.message : String(error)
+    return { ok: false, error: msg }
+  }
+  return { ok: true }
+}
+
+export async function findUpgradePath(
+  fromPlanId: string,
+  toPlanId: string,
+): Promise<UpgradePathRecord | null> {
+  const fromId = fromPlanId.trim()
+  const toId = toPlanId.trim()
+  if (!fromId || !toId) return null
+  const paths = await listUpgradePaths()
+  return paths.find((path) => path.fromPlanId === fromId && path.toPlanId === toId) ?? null
+}
+
+/** Latest period that still owes a following plan, for this plan or its scheduled target. */
+export async function findPendingSchedule(
+  userId: string,
+  planId: string,
+): Promise<PendingPlanChange | null> {
+  const uid = userId.trim()
+  const pid = planId.trim()
+  if (!uid || !pid) return null
+  try {
+    const rows = await db
+      .select()
+      .from(sfSubPeriods)
+      .where(
+        and(
+          eq(sfSubPeriods.userId, uid),
+          isNotNull(sfSubPeriods.scheduledPlanId),
+          or(eq(sfSubPeriods.planId, pid), eq(sfSubPeriods.scheduledPlanId, pid)),
+        ),
+      )
+      .orderBy(desc(sfSubPeriods.endsAt))
+      .limit(1)
+    const row = rows[0]
+    const toPlanId = (row?.scheduledPlanId || '').trim()
+    if (!row || !toPlanId) return null
+    return {
+      periodId: row.id,
+      fromPlanId: row.planId,
+      toPlanId,
+      endsAt: row.endsAt,
+    }
+  } catch {
+    return null
+  }
+}
+
+export async function scheduleDowngrade(input: {
+  periodId: string
+  userId: string
+  toPlanId: string
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const periodId = input.periodId.trim()
+  const userId = input.userId.trim()
+  const toPlanId = input.toPlanId.trim()
+  if (!periodId || !userId || !toPlanId) return { ok: false, error: 'Missing plan change.' }
+  const period = await findPeriodById(periodId)
+  if (!period || period.userId !== userId || period.status !== 'active') {
+    return { ok: false, error: 'Current subscription not found.' }
+  }
+  if (period.endsAt.getTime() <= Date.now()) {
+    return { ok: false, error: 'This term has already ended.' }
+  }
+  const [fromPlan, toPlan] = await Promise.all([
+    findPlanById(period.planId),
+    findPlanById(toPlanId),
+  ])
+  if (!fromPlan || !toPlan || !toPlan.active) return { ok: false, error: 'Plan not found.' }
+  if (!planCanRenew(fromPlan)) {
+    return { ok: false, error: 'This plan does not renew, so a later plan cannot follow it.' }
+  }
+  if (classifyPlanChange(fromPlan.price, toPlan.price) !== 'downgrade') {
+    return { ok: false, error: 'This plan costs more. Upgrade to start it now.' }
+  }
+  const allowed = await listUpgradeTargetIds(fromPlan.id)
+  if (!allowed.includes(toPlan.id)) {
+    return { ok: false, error: 'This plan change is not allowed.' }
+  }
+  try {
+    await db
+      .update(sfSubPeriods)
+      .set({ scheduledPlanId: toPlan.id, updatedAt: new Date() })
+      .where(eq(sfSubPeriods.id, period.id))
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    return { ok: false, error: msg }
+  }
+  return { ok: true }
+}
+
+export async function clearScheduledPlan(input: {
+  periodId: string
+  userId: string
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const periodId = input.periodId.trim()
+  const userId = input.userId.trim()
+  const period = await findPeriodById(periodId)
+  if (!period || period.userId !== userId) return { ok: false, error: 'Current subscription not found.' }
+  try {
+    await db
+      .update(sfSubPeriods)
+      .set({ scheduledPlanId: null, updatedAt: new Date() })
+      .where(eq(sfSubPeriods.id, period.id))
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    return { ok: false, error: msg }
+  }
+  return { ok: true }
 }
 
 export async function listPlansByIds(ids: string[]): Promise<SubscriptionPlanRecord[]> {

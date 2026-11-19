@@ -365,6 +365,20 @@
       "when": 1794046000000,
       "tag": "0052_site_root_item",
       "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1794047000000,
+      "tag": "0053_sub_upgrade_paths",
+      "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1794048000000,
+      "tag": "0054_sub_change_rules",
+      "breakpoints": true
     }
   ]
 }

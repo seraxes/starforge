@@ -4,8 +4,15 @@ import { describe, it } from 'node:test'
 import {
   addBillingPeriod,
   billingPeriodDurationMs,
+  classifyPlanChange,
   computeUpgradeCreditMajor,
+  describeSamePlanHold,
+  upgradeChargeMajor,
+  earlyRenewPriceApplies,
+  formatRenewsOn,
   periodEffectiveEnd,
+  planCanRenew,
+  samePlanHoldMessage,
   subtractBillingPeriod,
 } from './lifecycle-math'
 import type { SubscriptionPeriodRecord, SubscriptionPlanRecord } from './types'
@@ -74,6 +81,7 @@ function period(partial: Partial<SubscriptionPeriodRecord>): SubscriptionPeriodR
     seatRole: '',
     reminderExpiringSentAt: null,
     reminderTrialSentAt: null,
+    scheduledPlanId: null,
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
     updatedAt: new Date('2026-01-01T00:00:00.000Z'),
     ...partial,
@@ -128,5 +136,113 @@ describe('subscription lifecycle helpers', () => {
     const threeWeeks = addBillingPeriod(from, 'week', { count: 3 })
     assert.equal(threeWeeks.toISOString(), '2026-01-22T00:00:00.000Z')
     assert.equal(billingPeriodDurationMs('day', from, 14), 14 * 24 * 60 * 60 * 1000)
+  })
+
+  it('keeps a repeat purchase closed until the period ends when early renew is off', () => {
+    const endsAt = new Date('2026-04-01T00:00:00.000Z')
+    const now = new Date('2026-03-12T00:00:00.000Z')
+    const hold = describeSamePlanHold({
+      now,
+      endsAt,
+      earlyRenewDays: 0,
+      renewable: true,
+    })
+    assert.equal(hold.allowed, false)
+    assert.equal(hold.early, false)
+    assert.equal(hold.timeLeftLabel, '20 days')
+    assert.equal(hold.renewsAt?.toISOString(), endsAt.toISOString())
+    assert.equal(
+      samePlanHoldMessage(hold, formatRenewsOn(hold.renewsAt!, 'en-GB')),
+      'You still have 20 days left. You can renew on 1 Apr 2026.',
+    )
+  })
+
+  it('opens renew only inside the early-renew window', () => {
+    const endsAt = new Date('2026-04-01T00:00:00.000Z')
+    const tooSoon = describeSamePlanHold({
+      now: new Date('2026-03-20T00:00:00.000Z'),
+      endsAt,
+      earlyRenewDays: 7,
+      renewable: true,
+    })
+    assert.equal(tooSoon.allowed, false)
+    assert.equal(tooSoon.renewsAt?.toISOString(), '2026-03-25T00:00:00.000Z')
+    assert.equal(tooSoon.timeLeftLabel, '12 days')
+
+    const open = describeSamePlanHold({
+      now: new Date('2026-03-26T00:00:00.000Z'),
+      endsAt,
+      earlyRenewDays: 7,
+      renewable: true,
+    })
+    assert.equal(open.allowed, true)
+    assert.equal(open.early, true)
+    assert.equal(open.timeLeftLabel, '6 days')
+    assert.equal(samePlanHoldMessage(open, '25 Mar 2026'), '')
+    assert.equal(
+      earlyRenewPriceApplies({ earlyRenewDays: 7, earlyRenewPrice: 40, daysLeft: 6 }),
+      true,
+    )
+    assert.equal(
+      earlyRenewPriceApplies({ earlyRenewDays: 0, earlyRenewPrice: 40, daysLeft: 1 }),
+      false,
+    )
+  })
+
+  it('uses hours when less than a day remains', () => {
+    const endsAt = new Date('2026-04-01T00:00:00.000Z')
+    const hold = describeSamePlanHold({
+      now: new Date('2026-03-31T19:00:00.000Z'),
+      endsAt,
+      earlyRenewDays: 0,
+      renewable: true,
+    })
+    assert.equal(hold.timeLeftLabel, '5 hours')
+    assert.equal(hold.allowed, false)
+  })
+
+  it('does not renew lifetime or fixed-end plans', () => {
+    assert.equal(
+      planCanRenew({ lifetime: true, billingPeriod: 'month', fixedExpiresAt: null }),
+      false,
+    )
+    assert.equal(
+      planCanRenew({
+        lifetime: false,
+        billingPeriod: 'month',
+        fixedExpiresAt: new Date('2026-12-01T00:00:00.000Z'),
+      }),
+      false,
+    )
+    const hold = describeSamePlanHold({
+      now: new Date('2026-03-01T00:00:00.000Z'),
+      endsAt: new Date('2026-04-01T00:00:00.000Z'),
+      earlyRenewDays: 30,
+      renewable: false,
+    })
+    assert.equal(hold.allowed, false)
+    assert.equal(hold.renewsAt, null)
+    assert.match(samePlanHoldMessage(hold, ''), /does not renew/)
+  })
+
+  it('charges the difference or the full price on an upgrade', () => {
+    assert.equal(classifyPlanChange(1000, 2500), 'upgrade')
+    assert.equal(classifyPlanChange(2500, 1000), 'downgrade')
+    assert.equal(classifyPlanChange(1000, 1000), 'downgrade')
+    const fromPlan = plan({ price: 3000, billingPeriod: 'month' })
+    const fromPeriod = period({
+      startsAt: new Date('2026-03-01T00:00:00.000Z'),
+      endsAt: new Date('2026-04-01T00:00:00.000Z'),
+    })
+    const credit = computeUpgradeCreditMajor(
+      fromPeriod,
+      fromPlan,
+      new Date('2026-03-16T00:00:00.000Z'),
+    )
+    assert.ok(credit > 0)
+    assert.ok(credit < 3000)
+    assert.equal(upgradeChargeMajor(5000, 'prorate', credit), 5000 - credit)
+    assert.equal(upgradeChargeMajor(5000, 'full', credit), 5000)
+    assert.equal(upgradeChargeMajor(1000, 'prorate', 1500), 0)
   })
 })

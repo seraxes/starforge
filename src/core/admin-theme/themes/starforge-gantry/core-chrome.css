@@ -3894,6 +3894,145 @@ body:has(.admin-shell) > main {
 }
 
 /*
+ * One-line control clusters (select + Save, filter + button, table cell editors).
+ * Every control on that line shares one vertical center and the input height.
+ */
+.admin-shell .admin-control-row,
+.admin-shell .admin-action-row.admin-control-row,
+.admin-shell .admin-inline-actions.admin-control-row,
+.admin-shell .outlines-table .admin-control-row {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: var(--sf-admin-btn-gap);
+  margin: 0;
+  min-width: 0;
+  width: auto;
+  max-width: 100%;
+  vertical-align: middle;
+}
+
+.admin-shell .admin-control-row > .settings-field,
+.admin-shell .admin-control-row > label.settings-field {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  gap: 0;
+  min-width: 0;
+  flex: 0 0 auto;
+  width: auto;
+}
+
+.admin-shell .admin-control-row input:not([type='hidden']),
+.admin-shell .admin-control-row select,
+.admin-shell .admin-control-row .gantry-toolbar-btn,
+.admin-shell .admin-control-row .gantry-btn,
+.admin-shell .admin-control-row a.gantry-toolbar-btn,
+.admin-shell .admin-control-row button {
+  margin: 0;
+  align-self: center;
+  min-height: var(--sf-admin-input-min-height, 2.5rem);
+  height: var(--sf-admin-input-min-height, 2.5rem);
+  box-sizing: border-box;
+  flex: 0 0 auto;
+}
+
+.admin-shell .admin-control-row select {
+  width: auto;
+  max-width: 11rem;
+}
+
+.admin-shell .admin-control-row .admin-inline-error,
+.admin-shell .admin-control-row .admin-inline-ok {
+  flex: 1 0 100%;
+  margin: 0;
+  width: 100%;
+}
+
+/*
+ * Paths table Actions — select + Save + Remove must be one exact height and one center line.
+ * Native selects and toolbar buttons use different tokens; force them equal here.
+ */
+.admin-shell .outlines-table td.outlines-actions {
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.admin-shell .outlines-table td.outlines-actions .sf-subscriptions-path-actions {
+  --sf-path-control-h: var(--sf-admin-input-min-height, 2.5rem);
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: var(--sf-admin-btn-gap, 0.55rem);
+  margin: 0;
+  padding: 0;
+  width: auto;
+  max-width: 100%;
+  min-height: var(--sf-path-control-h);
+}
+
+.admin-shell .outlines-table td.outlines-actions .sf-subscriptions-path-actions > form {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: var(--sf-admin-btn-gap, 0.55rem);
+  margin: 0 !important;
+  padding: 0;
+  border: 0;
+  min-height: var(--sf-path-control-h);
+  vertical-align: middle;
+}
+
+.admin-shell .outlines-table td.outlines-actions .sf-subscriptions-path-actions select,
+.admin-shell .outlines-table td.outlines-actions .sf-subscriptions-path-actions .gantry-toolbar-btn,
+.admin-shell .outlines-table td.outlines-actions .sf-subscriptions-path-actions button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  height: var(--sf-path-control-h) !important;
+  min-height: var(--sf-path-control-h) !important;
+  max-height: var(--sf-path-control-h) !important;
+  padding: 0 0.85rem !important;
+  font-size: var(--sf-admin-btn-font, 0.95rem) !important;
+  font-weight: 650 !important;
+  line-height: 1 !important;
+  border-radius: var(--sf-admin-btn-radius, 3px) !important;
+  vertical-align: middle;
+}
+
+.admin-shell .outlines-table td.outlines-actions .sf-subscriptions-path-actions select {
+  width: 8.75rem !important;
+  max-width: 8.75rem !important;
+  flex: 0 0 8.75rem;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position:
+    calc(100% - 1rem) 50%,
+    calc(100% - 0.65rem) 50%;
+  background-size:
+    0.35rem 0.35rem,
+    0.35rem 0.35rem;
+  background-repeat: no-repeat;
+  padding-right: 1.75rem !important;
+  border: 1px solid var(--sf-admin-blue-border, var(--sf-line)) !important;
+  background-color: var(--sf-admin-input, #132033) !important;
+  color: var(--sf-admin-input-ink, #fff) !important;
+}
+
+.admin-shell .outlines-table td.outlines-actions .sf-subscriptions-path-actions .admin-inline-error {
+  flex: 1 0 100%;
+  margin: 0.25rem 0 0;
+  white-space: normal;
+}
+
+/*
  * Card actions — always bottom-right of the panel (Cancel / Save / Apply / Delete…).
  * Not for top Add+/filter toolbars.
  *

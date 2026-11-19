@@ -21,6 +21,11 @@ export type PlansCatalogProps = {
   /** Extra class on the outer section (particle vs full page). */
   className?: string
   showAccountLink?: boolean
+  /**
+   * Same-plan hold for the signed-in buyer.
+   * Missing key = they do not hold that plan.
+   */
+  holds?: Record<string, { allowed: boolean; early: boolean; message: string; timeLeftLabel: string }>
 }
 
 /**
@@ -38,6 +43,7 @@ export function PlansCatalog({
   showDescription = true,
   className = '',
   showAccountLink = true,
+  holds = {},
 }: PlansCatalogProps) {
   const loginHref = `${withLocalePrefix('/login', locale)}?next=${encodeURIComponent(
     withLocalePrefix('/plans', locale),
@@ -70,6 +76,13 @@ export function PlansCatalog({
               plan.price <= 0
                 ? `Free / ${periodLabel}`
                 : `${formatMoney(plan.price)} / ${periodLabel}`
+            const hold = holds[plan.id]
+            const renewPrice =
+              hold?.early && plan.earlyRenewPrice != null ? plan.earlyRenewPrice : plan.price
+            const renewPriceLabel =
+              renewPrice <= 0
+                ? `Free / ${periodLabel}`
+                : `${formatMoney(renewPrice)} / ${periodLabel}`
             return (
               <article key={plan.id} className="sf-subscription-plan-card" id={`plan-${plan.id}`}>
                 <header className="sf-subscription-plan-card-head">
@@ -83,9 +96,16 @@ export function PlansCatalog({
                   <p className="sf-subscription-plan-card-desc">{plan.description}</p>
                 ) : null}
                 <div className="sf-subscription-plan-card-body">
-                  {signedIn ? (
+                  {signedIn && hold && !hold.allowed ? (
+                    <p className="sf-subscription-plan-hold">{hold.message}</p>
+                  ) : signedIn ? (
                     <>
-                      {plan.formDefinitionId ? (
+                      {hold?.early ? (
+                        <p className="settings-hint">
+                          You still have {hold.timeLeftLabel} left. Early renewal is open.
+                        </p>
+                      ) : null}
+                      {!hold && plan.formDefinitionId ? (
                         <SubscriptionIntakeForm
                           planId={plan.id}
                           formDefinitionId={plan.formDefinitionId}
@@ -94,10 +114,12 @@ export function PlansCatalog({
                       <SubscribePlanForm
                         planId={plan.id}
                         planTitle={plan.title}
-                        priceLabel={priceLabel}
+                        priceLabel={hold?.allowed ? renewPriceLabel : priceLabel}
                         methods={methods}
+                        mode={hold?.allowed ? 'renew' : 'subscribe'}
                         recurringSupported={plan.recurringSupported}
-                        isFree={plan.price <= 0}
+                        isFree={(hold?.allowed ? renewPrice : plan.price) <= 0}
+                        submitLabel={hold?.allowed ? 'Renew' : undefined}
                       />
                     </>
                   ) : (

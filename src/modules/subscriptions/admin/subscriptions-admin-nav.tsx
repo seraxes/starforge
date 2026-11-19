@@ -3,7 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 
-export type SubscriptionsAdminTab = 'plans' | 'subscribers' | 'settings'
+export type SubscriptionsAdminTab = 'plans' | 'subscribers' | 'changes' | 'settings'
 
 const TABS: {
   id: SubscriptionsAdminTab
@@ -22,6 +22,12 @@ const TABS: {
     label: 'Subscribers',
     href: '/admin/subscriptions/subscribers',
     title: 'Active and past subscription periods',
+  },
+  {
+    id: 'changes',
+    label: 'Changes',
+    href: '/admin/subscriptions/changes',
+    title: 'Which plan can change to which',
   },
   {
     id: 'settings',

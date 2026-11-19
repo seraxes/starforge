@@ -12,6 +12,7 @@ import { ensureSubscriptionsEmailStartersSeeded } from './email-starters'
 import { loadSubscriptionsModuleSettings } from './settings'
 import {
   expireLapsedPeriods,
+  syncDuePeriodGroups,
   listPeriodsExpiringSoon,
   listTrialsEndingSoon,
   markReminderSent,
@@ -58,6 +59,7 @@ export async function sweepExpiredSubscriptionPeriods(
   now = new Date(),
 ): Promise<{ expired: number; reminded: number; trialReminded: number }> {
   const ended = await expireLapsedPeriods(now)
+  await syncDuePeriodGroups(now)
   for (const period of ended) {
     await emitPeriodEmail('product:subscriptions/expired', period, {
       reason: 'period_ended',

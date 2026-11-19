@@ -21,10 +21,15 @@ import {
   periodsToCsv,
   removeSeat,
   setCancelAtPeriodEnd,
+  addUpgradePath,
+  clearScheduledPlan,
+  removeUpgradePath,
+  setUpgradePathCreditMode,
   setPlanActive,
   updatePeriodWindow,
   updatePlan,
 } from './store'
+import { isChangeCreditMode } from './lifecycle-math'
 import { isCheckoutMode } from './types'
 import { loadSubscriberEmail } from './user-email'
 
@@ -318,6 +323,13 @@ export async function startSubscribeAction(
   if ('free' in result && result.free) {
     revalidatePath('/account/subscriptions')
     revalidatePath('/plans')
+    if (result.scheduled) {
+      return {
+        ok: true,
+        periodId: result.periodId,
+        message: 'Your current plan runs until it ends. The next renewal uses the lower plan. No refund.',
+      }
+    }
     return { ok: true, periodId: result.periodId }
   }
   if ('orderId' in result) {
@@ -354,6 +366,67 @@ export async function addSeatAction(
     memberUserId,
   })
   if (!result.ok) return { error: result.error }
+  revalidatePath('/account/subscriptions')
+  return { ok: true }
+}
+
+export async function addUpgradePathAction(
+  _prev: SubscriptionsActionState,
+  formData: FormData,
+): Promise<SubscriptionsActionState> {
+  const denied = await requireSubscriptionsAdmin()
+  if (denied) return denied
+  const creditRaw = String(formData.get('creditMode') ?? 'prorate')
+  const result = await addUpgradePath(
+    String(formData.get('fromPlanId') ?? ''),
+    String(formData.get('toPlanId') ?? ''),
+    isChangeCreditMode(creditRaw) ? creditRaw : 'prorate',
+  )
+  if (!result.ok) return { error: result.error }
+  revalidatePath('/admin/subscriptions/changes')
+  revalidatePath('/account/subscriptions')
+  return { ok: true }
+}
+
+export async function setUpgradePathCreditModeAction(
+  _prev: SubscriptionsActionState,
+  formData: FormData,
+): Promise<SubscriptionsActionState> {
+  const denied = await requireSubscriptionsAdmin()
+  if (denied) return denied
+  const creditRaw = String(formData.get('creditMode') ?? '')
+  if (!isChangeCreditMode(creditRaw)) return { error: 'Choose how an upgrade is charged.' }
+  const result = await setUpgradePathCreditMode(String(formData.get('id') ?? ''), creditRaw)
+  if (!result.ok) return { error: result.error }
+  revalidatePath('/admin/subscriptions/changes')
+  revalidatePath('/account/subscriptions')
+  return { ok: true }
+}
+
+export async function clearScheduledPlanAction(
+  _prev: SubscriptionsActionState,
+  formData: FormData,
+): Promise<SubscriptionsActionState> {
+  const session = await getAppSession()
+  if (!session?.user?.id) return { error: 'Sign in required.' }
+  const result = await clearScheduledPlan({
+    periodId: String(formData.get('periodId') ?? ''),
+    userId: session.user.id,
+  })
+  if (!result.ok) return { error: result.error }
+  revalidatePath('/account/subscriptions')
+  return { ok: true, message: 'This plan will renew as itself.' }
+}
+
+export async function removeUpgradePathAction(
+  _prev: SubscriptionsActionState,
+  formData: FormData,
+): Promise<SubscriptionsActionState> {
+  const denied = await requireSubscriptionsAdmin()
+  if (denied) return denied
+  const result = await removeUpgradePath(String(formData.get('id') ?? ''))
+  if (!result.ok) return { error: result.error }
+  revalidatePath('/admin/subscriptions/changes')
   revalidatePath('/account/subscriptions')
   return { ok: true }
 }

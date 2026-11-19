@@ -58,11 +58,11 @@ export function formatBillingPeriodLabel(
 export const PERIOD_STATUSES = ['active', 'expired', 'refunded'] as const
 export type PeriodStatus = (typeof PERIOD_STATUSES)[number]
 
-export const CHECKOUT_MODES = ['subscribe', 'renew', 'upgrade'] as const
+export const CHECKOUT_MODES = ['subscribe', 'renew', 'upgrade', 'downgrade'] as const
 export type CheckoutMode = (typeof CHECKOUT_MODES)[number]
 
 export function isCheckoutMode(value: unknown): value is CheckoutMode {
-  return value === 'subscribe' || value === 'renew' || value === 'upgrade'
+  return value === 'subscribe' || value === 'renew' || value === 'upgrade' || value === 'downgrade'
 }
 
 /** Far-future sentinel for lifetime periods (UTC). */
@@ -130,6 +130,8 @@ export type SubscriptionPeriodRecord = {
   seatRole: string
   reminderExpiringSentAt: Date | null
   reminderTrialSentAt: Date | null
+  /** Lower plan to start on the next renewal. Empty while this term simply continues. */
+  scheduledPlanId: string | null
   createdAt: Date
   updatedAt: Date
 }

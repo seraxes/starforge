@@ -46,8 +46,8 @@ Subject and audience are open strings. Do not add a new subscription module for 
 
 - **Free plans** — activate locally (no cart).
 - **Paid / charged trial** — Payments checkout; hook `subscriptions.activate`.
-- **Manual renew** — same plan checkout; extends `endsAt`.
-- **Upgrade** — target must be in plan `upgradeTargetIds`; one active period per subject; proration credit calculated here, charged via Payments.
+- **Manual renew** — same plan extends `endsAt` only after the period ends, or inside the plan’s early-renew window (`earlyRenewDays` > 0). A repeat purchase outside that window is refused and the buyer is told the time left and the next renew date.
+- **Plan change** — a row in `sf_sub_upgrade_paths`, edited at `/admin/subscriptions/changes`. A higher price starts immediately. The path chooses `prorate` (pay the difference from remaining days) or `full` (pay the target price and drop the leftover). A lower or equal price is scheduled on the period and starts on the next renewal. The current term runs out. There is no refund.
 - **Cancel at period end** — flips flag; cancels Payments recurring id when present.
 - **Auto-renew** — plan `recurringSupported` + Payments `createRecurring`; this pack only stores the foreign key and grants on paid hooks.
 - **Seats** — `sf_sub_seats` on parent period; seat members inherit entitlements via `resolveAudience`.
