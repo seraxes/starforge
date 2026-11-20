@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useActionState, useEffect, useState } from 'react'
+import React, { useActionState, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 import {
   updateSiteSettingsAction,
@@ -13,6 +14,11 @@ import type { ModuleCatalogItem, ModuleToggleKind } from '@/core/settings/module
 
 import { useNotifySavedOnOk } from '../admin-toast'
 import { useAutosaveForm } from '../use-autosave-form'
+import {
+  applyModulesActionToggles,
+  moduleTogglesSignature,
+  resolveModuleToggleChecked,
+} from './settings-modules-state'
 
 type NavMenuOption = {
   id: string
@@ -61,14 +67,6 @@ const KIND_SECTIONS: Array<{ kind: ModuleToggleKind; title: string; hint: string
   },
 ]
 
-function resolveChecked(item: ModuleCatalogItem, toggles: ModuleToggleMap, features: FeatureFlags) {
-  if (item.required) return true
-  if (typeof toggles[item.id] === 'boolean') return toggles[item.id]!
-  if (item.featureFlag) return Boolean(features[item.featureFlag])
-  if (!item.defaultEnabled) return features.modules
-  return true
-}
-
 function ModuleRows({
   items,
   moduleToggles,
@@ -86,7 +84,7 @@ function ModuleRows({
   return (
     <ul className="settings-modules-list">
       {items.map((item) => {
-        const checked = resolveChecked(item, moduleToggles, features)
+        const checked = resolveModuleToggleChecked(item, moduleToggles, features)
         const infoHref = resolveModuleInfoSettingsHref(item.id, item)
         return (
           <li key={item.id} className="settings-modules-row">
@@ -136,19 +134,43 @@ export function SettingsForm({
   moduleCatalog,
   moduleToggles,
 }: Props) {
+  const router = useRouter()
   const [state, formAction, pending] = useActionState(updateSiteSettingsAction, initialState)
   useNotifySavedOnOk(state, { toastErrors: true })
   const { formRef, discreteAutosaveProps, saveNow } = useAutosaveForm()
-  // defaultChecked only applies on mount — remount after requires closure pulls deps
-  // on, or after a refused disable, so checkboxes match server toggles again.
-  const togglesSig = Object.keys(moduleToggles)
-    .sort()
-    .map((id) => `${id}:${moduleToggles[id] ? 1 : 0}`)
-    .join(',')
+
+  // Live effective toggles: server props first, then action-returned map after save
+  // (deferred revalidate may leave props stale; requires closure must remount).
+  const [liveToggles, setLiveToggles] = useState(moduleToggles)
+  const [liveFeatures, setLiveFeatures] = useState(features)
+  const propsSig = moduleTogglesSignature(moduleToggles)
+  const [propsEpoch, setPropsEpoch] = useState(propsSig)
+  if (propsSig !== propsEpoch) {
+    setPropsEpoch(propsSig)
+    setLiveToggles(moduleToggles)
+    setLiveFeatures(features)
+  }
+
+  const liveRef = useRef({ moduleToggles: liveToggles, features: liveFeatures })
+  liveRef.current = { moduleToggles: liveToggles, features: liveFeatures }
+
   const [errorEpoch, setErrorEpoch] = useState(0)
   useEffect(() => {
-    if (!pending && state.error) setErrorEpoch((n) => n + 1)
-  }, [pending, state.error])
+    if (pending) return
+    if (state.error) {
+      setErrorEpoch((n) => n + 1)
+      return
+    }
+    // Action carries effective toggles (incl. requires). Props may stay stale under deferred revalidate.
+    const applied = applyModulesActionToggles(state, liveRef.current)
+    if (!applied) return
+    setLiveToggles(applied.moduleToggles)
+    setLiveFeatures(applied.features)
+    // Rebuild admin layout so disabled packs leave the left sidebar immediately.
+    router.refresh()
+  }, [pending, state, router])
+
+  const togglesSig = moduleTogglesSignature(liveToggles)
 
   return (
     <form
@@ -211,8 +233,8 @@ export function SettingsForm({
             <p className="settings-hint">{section.hint}</p>
             <ModuleRows
               items={moduleCatalog.filter((m) => m.kind === section.kind)}
-              moduleToggles={moduleToggles}
-              features={features}
+              moduleToggles={liveToggles}
+              features={liveFeatures}
               disabled={pending}
               onToggle={saveNow}
             />

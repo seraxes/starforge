@@ -45,6 +45,12 @@ function performanceFieldsFrom(current: SiteSettingsData) {
 export type SettingsActionState = {
   error?: string
   ok?: boolean
+  /**
+   * Modules topic only — effective toggles after requires closure.
+   * Client form remounts from this; deferred revalidate alone may leave props stale.
+   */
+  moduleToggles?: ModuleToggleMap
+  features?: SiteSettingsData['features']
 }
 
 /** One row per module whose effective on/off actually changed. */
@@ -107,6 +113,9 @@ function parseModuleToggles(
 async function revalidateSettingsPaths() {
   await invalidateSiteSettings()
   revalidatePath('/', 'layout')
+  // Left sidebar is built in admin/layout — mark that layout stale so Modules
+  // on/off drops disabled packs from the accordion without a hard reload.
+  revalidatePath('/admin', 'layout')
   revalidatePath('/register')
   revalidatePath('/login')
   revalidatePath('/admin/settings')
@@ -194,7 +203,7 @@ export async function updateSiteSettingsAction(
   }
 
   await revalidateSettingsPaths()
-  return { ok: true }
+  return { ok: true, moduleToggles, features }
 }
 
 /** Site Settings → Admin UX: autosave debounce only. */
