@@ -40,7 +40,7 @@ export function HeroProfileFields({
   }
 
   return (
-    <fieldset className="settings-fieldset" data-sf-width={100} data-hero={heroId}>
+    <fieldset className="settings-fieldset" data-sf-width={50} data-hero={heroId}>
       <legend>{legend}</legend>
       <input type="hidden" name="heroExtensionsJson" value={JSON.stringify(values)} />
       {fields.map((field) => {

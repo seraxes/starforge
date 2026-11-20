@@ -96,10 +96,10 @@ export function UserAccountPanel({
   const nextDisabled = !user.banned
 
   return (
-    <div className="admin-settings-mosaic">
+    <div className="admin-settings-mosaic sf-users-account-mosaic">
       <fieldset className="settings-fieldset">
         <legend>Identity</legend>
-        <form action={identityAction} className="sf-events-manager">
+        <form action={identityAction}>
           <input type="hidden" name="userId" value={user.id} />
           <label className="settings-field">
             <span>Real name</span>
@@ -163,30 +163,32 @@ export function UserAccountPanel({
           <input type="hidden" name="userId" value={user.id} />
           <input type="hidden" name="cmsAccess" value={nextCms ? 'true' : 'false'} />
           <span>CMS access</span>
-          <button
-            type="submit"
-            role="switch"
-            aria-checked={user.cmsAccess}
-            className={user.cmsAccess ? 'cms-switch-track is-on' : 'cms-switch-track'}
-            disabled={busy}
-          >
-            <span className="cms-switch-thumb" />
-          </button>
-          <span className={user.cmsAccess ? 'cms-switch-label is-on' : 'cms-switch-label is-off'}>
-            {user.cmsAccess ? 'On' : 'Off'}
-          </span>
+          <div className="cms-switch">
+            <button
+              type="submit"
+              role="switch"
+              aria-checked={user.cmsAccess}
+              className={user.cmsAccess ? 'cms-switch-track is-on' : 'cms-switch-track'}
+              disabled={busy}
+            >
+              <span className="cms-switch-thumb" />
+            </button>
+            <span className={user.cmsAccess ? 'cms-switch-label is-on' : 'cms-switch-label is-off'}>
+              {user.cmsAccess ? 'On' : 'Off'}
+            </span>
+          </div>
         </form>
 
-        <form action={groupsAction}>
+        <form action={groupsAction} className="settings-field">
           <input type="hidden" name="userId" value={user.id} />
-          <fieldset className="admin-groups-fieldset">
-            <legend>Groups</legend>
-            {groupOptions.length === 0 ? (
-              <p className="settings-hint">
-                <Link href="/admin/users/groups">Create groups</Link>
-              </p>
-            ) : (
-              groupOptions.map((g) => (
+          <span>Groups</span>
+          {groupOptions.length === 0 ? (
+            <p className="settings-hint">
+              <Link href="/admin/users/groups">Create groups</Link>
+            </p>
+          ) : (
+            <div className="admin-groups-fieldset">
+              {groupOptions.map((g) => (
                 <label key={g.id} className="outlines-check">
                   <input
                     type="checkbox"
@@ -198,15 +200,15 @@ export function UserAccountPanel({
                   />
                   <span>{g.label}</span>
                 </label>
-              ))
-            )}
-          </fieldset>
+              ))}
+            </div>
+          )}
         </form>
       </fieldset>
 
       <fieldset className="settings-fieldset">
         <legend>Status</legend>
-        <p>
+        <p className="settings-hint">
           {user.banned ? (
             <span className="admin-badge admin-badge-warn" title={user.banReason ?? undefined}>
               Disabled

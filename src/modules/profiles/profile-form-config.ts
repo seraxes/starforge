@@ -6,6 +6,9 @@
 import type { FormFieldDef, FormFieldOption, FormSectionDef } from '@/modules/forms/api'
 import { clampGridWidth, LAYOUT_WIDTH_FULL } from '@/core/modules/grid'
 
+/** Default section span when seeding the profile form (two cards per row). */
+export const PROFILE_CARD_WIDTH = 50
+
 import {
   PROFILE_FIELD_GROUPS,
   PROFILE_FIELDS,
@@ -66,11 +69,24 @@ export type ProfileFormFieldConfig = {
   options?: FormFieldOption[]
 }
 
+export type ProfileFormColumn = {
+  key: ProfileFieldKey
+  /** Column % inside the section row — same value the Form builder stores. */
+  width: number
+}
+
+export type ProfileFormRow = {
+  id: string
+  columns: ProfileFormColumn[]
+}
+
 export type ProfileFormSection = {
   id: string
   label: string
   fields: ProfileFieldKey[]
-  /** Mosaic span % from Forms section config (same 5–100 model as Layout particles). */
+  /** Rows and column widths from the Form builder. */
+  rows: ProfileFormRow[]
+  /** Section span % (same model as the Form builder mosaic). */
   width: number
 }
 
@@ -90,18 +106,15 @@ function defaultFieldConfig(key: ProfileFieldKey): ProfileFormFieldConfig {
   }
 }
 
-function resolveSectionWidth(
-  raw: unknown,
-  fallback: number,
-  fields: ProfileFieldKey[],
-): number {
-  if (raw != null && Number.isFinite(Number(raw))) {
-    return clampGridWidth(raw, fallback)
-  }
-  // Legacy: bio-only sections were full-bleed before Forms owned width.
-  if (fields.length === 1 && fields[0] === 'bio') return LAYOUT_WIDTH_FULL
-  // Match Forms UI (`section.width ?? 100`) and Layout particles — missing = full row.
-  return clampGridWidth(fallback, LAYOUT_WIDTH_FULL)
+function resolveSectionWidth(raw: unknown): number {
+  return clampGridWidth(raw, LAYOUT_WIDTH_FULL)
+}
+
+function rowsFromKeys(keys: ProfileFieldKey[]): ProfileFormRow[] {
+  return keys.map((key, index) => ({
+    id: `row_${key}_${index}`,
+    columns: [{ key, width: LAYOUT_WIDTH_FULL }],
+  }))
 }
 
 function buildGroupedSections(enabledOrder: ProfileFieldKey[]): ProfileFormSection[] {
@@ -118,15 +131,18 @@ function buildGroupedSections(enabledOrder: ProfileFieldKey[]): ProfileFormSecti
       id: `sec_${group.key}`,
       label: group.label,
       fields,
-      width: LAYOUT_WIDTH_FULL,
+      rows: rowsFromKeys(fields),
+      width: PROFILE_CARD_WIDTH,
     })
   }
   if (remaining.size > 0) {
+    const fields = enabledOrder.filter((k) => remaining.has(k))
     sections.push({
       id: 'sec_other',
       label: 'Other',
-      fields: enabledOrder.filter((k) => remaining.has(k)),
-      width: LAYOUT_WIDTH_FULL,
+      fields,
+      rows: rowsFromKeys(fields),
+      width: PROFILE_CARD_WIDTH,
     })
   }
   return sections
@@ -187,21 +203,26 @@ export function profileFormConfigFromFields(
   if (sections && sections.length > 0) {
     const assigned = new Set<ProfileFieldKey>()
     for (const section of sections) {
-      const keys: ProfileFieldKey[] = []
+      const rows: ProfileFormRow[] = []
       for (const row of section.rows) {
+        const columns: ProfileFormColumn[] = []
         for (const col of row.columns) {
           const key = profileFieldKeyFromFormName(col.fieldName)
           if (!key || !configs[key].enabled || assigned.has(key)) continue
           assigned.add(key)
-          keys.push(key)
+          columns.push({ key, width: clampGridWidth(col.width, LAYOUT_WIDTH_FULL) })
         }
+        if (columns.length === 0) continue
+        rows.push({ id: row.id, columns })
       }
-      if (keys.length === 0) continue
+      if (rows.length === 0) continue
+      const keys = rows.flatMap((row) => row.columns.map((col) => col.key))
       mappedSections.push({
         id: section.id,
         label: section.label?.trim() || 'Fields',
         fields: keys,
-        width: resolveSectionWidth(section.width, LAYOUT_WIDTH_FULL, keys),
+        rows,
+        width: resolveSectionWidth(section.width),
       })
     }
     const orphan = enabledOrder.filter((k) => !assigned.has(k))
@@ -210,7 +231,8 @@ export function profileFormConfigFromFields(
         id: 'sec_orphan',
         label: 'Fields',
         fields: orphan,
-        width: resolveSectionWidth(undefined, LAYOUT_WIDTH_FULL, orphan),
+        rows: rowsFromKeys(orphan),
+        width: resolveSectionWidth(undefined),
       })
     }
   }

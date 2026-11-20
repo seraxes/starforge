@@ -10192,6 +10192,32 @@ button.danger:hover,
   min-width: 0;
   box-sizing: border-box;
 }
+/* Row is a padded fieldset child — width:100% plus the card inset overflows. */
+.sf-profile-form-mosaic > .settings-fieldset > .sf-form-row {
+  width: auto;
+  max-width: 100%;
+  align-self: stretch;
+  box-sizing: border-box;
+}
+
+/* Account/profile editor: stack every field full-width inside the card. */
+.sf-profile-form-mosaic .sf-form-row,
+.sf-profile-form-mosaic .sf-form-row.sf-form-row-multi {
+  flex-direction: column;
+  flex-wrap: nowrap;
+}
+.sf-profile-form-mosaic .sf-form-col {
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+.sf-profile-form-mosaic .settings-field > input,
+.sf-profile-form-mosaic .settings-field > select,
+.sf-profile-form-mosaic .settings-field > textarea {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
 @media (max-width: 720px) {
   .sf-profile-form-mosaic > .settings-fieldset {
     flex: 0 0 100% !important;
@@ -10204,7 +10230,6 @@ button.danger:hover,
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
   gap: 0.35rem 0.75rem;
   margin-bottom: 0.35rem;
 }
@@ -10212,32 +10237,142 @@ button.danger:hover,
   font-weight: 600;
   font-size: 0.92rem;
 }
-.sf-profile-vis {
-  font: inherit;
-  font-size: var(--sf-admin-input-font, 1rem);
-  font-weight: 400;
-  min-height: var(--sf-admin-input-min-height, 2.5rem);
-  padding: var(--sf-admin-input-pad-y, 0.5rem) 2.25rem var(--sf-admin-input-pad-y, 0.5rem)
-    var(--sf-admin-input-pad-x, 0.75rem);
-  border: 1px solid var(--sf-line);
-  background: #fff;
-  color: #1c2834;
-  max-width: 12rem;
-  border-radius: 3px;
+
+/* Audience control sits outside the control: after a one-line field, above a block. */
+.sf-profile-form-mosaic > .settings-fieldset,
+.admin-shell .sf-profile-form-mosaic > .settings-fieldset {
+  overflow: visible;
+}
+.sf-profile-control {
+  position: relative;
+  width: 100%;
+  min-width: 0;
   box-sizing: border-box;
 }
-.admin-shell .sf-profile-vis {
-  background: #152033 !important;
-  background-color: #152033 !important;
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-  border-color: var(--sf-admin-blue-border, #1e4d72) !important;
-  -webkit-appearance: none;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 5.75L8 10.25L12.5 5.75' stroke='%23c5d2e0' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
-  background-repeat: no-repeat !important;
-  background-position: right 0.5rem center !important;
-  background-size: 0.9rem 0.9rem !important;
+.sf-profile-control--inline {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.sf-profile-control--inline > input,
+.sf-profile-control--inline > select,
+.admin-shell .settings-field .sf-profile-control--inline > input,
+.admin-shell .settings-field .sf-profile-control--inline > select {
+  flex: 1 1 auto;
+  width: auto !important;
+  max-width: none !important;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.sf-profile-control--corner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+}
+.sf-profile-control--corner > :not(.sf-profile-vis-control) {
+  width: 100%;
+  align-self: stretch;
+  min-width: 0;
+}
+.sf-profile-control--corner .sf-profile-vis-control {
+  order: -1;
+  align-self: flex-end;
+}
+.sf-profile-location-body,
+.sf-profile-links-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-width: 0;
+}
+.sf-profile-vis-control {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+.sf-profile-vis-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  padding: 0;
+  border: 1px solid var(--sf-line);
+  border-radius: 3px;
+  background: var(--sf-paper, #fff);
+  color: var(--sf-muted);
+  cursor: pointer;
+}
+.sf-profile-vis-trigger:hover:not(:disabled),
+.sf-profile-vis-control.is-open .sf-profile-vis-trigger {
+  color: var(--sf-ink);
+  background: color-mix(in srgb, var(--sf-secondary) 22%, var(--sf-paper, #fff));
+}
+.sf-profile-vis-trigger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.sf-profile-vis-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.25rem);
+  z-index: 30;
+  min-width: 12.5rem;
+  margin: 0;
+  padding: 0.3rem;
+  list-style: none;
+  border: 1px solid var(--sf-line);
+  border-radius: 3px;
+  background: var(--sf-paper, #fff);
+  box-shadow: 0 8px 22px rgba(28, 40, 52, 0.16);
+}
+.sf-profile-vis-option {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.45rem 0.55rem;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--sf-ink);
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.sf-profile-vis-option:hover:not(:disabled),
+.sf-profile-vis-option.is-selected {
+  background: color-mix(in srgb, var(--sf-secondary) 20%, transparent);
+}
+.sf-profile-vis-option:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.admin-shell .sf-profile-vis-trigger {
+  background: color-mix(in srgb, #152033 70%, transparent);
+  color: #9eb1c7;
+}
+.admin-shell .sf-profile-vis-trigger:hover:not(:disabled),
+.admin-shell .sf-profile-vis-control.is-open .sf-profile-vis-trigger {
+  color: #fff;
+  background: color-mix(in srgb, #3498db 28%, #152033);
+}
+.admin-shell .sf-profile-vis-menu {
+  background: #152033;
+  border-color: var(--sf-admin-panel-border, #2a3648);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+}
+.admin-shell .sf-profile-vis-option {
+  color: #fff;
+}
+.admin-shell .sf-profile-vis-option:hover:not(:disabled),
+.admin-shell .sf-profile-vis-option.is-selected {
+  background: color-mix(in srgb, #3498db 28%, #152033);
 }
 
 .sf-profile-links {
@@ -10462,6 +10597,38 @@ button.danger:hover,
   max-width: 100%;
   aspect-ratio: 3 / 1;
 }
+
+/* Profile editor — large cropped avatar + full-width cover. */
+.sf-profile-form-mosaic .sf-member-media--circle .sf-member-media-preview,
+.sf-profile-form-mosaic .sf-profile-library-image--circle .sf-profile-media-preview {
+  max-width: min(100%, 18rem);
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid var(--sf-line);
+  background: color-mix(in srgb, var(--sf-secondary) 14%, white);
+  display: grid;
+  place-items: center;
+}
+.sf-profile-form-mosaic .sf-member-media--wide .sf-member-media-preview,
+.sf-profile-form-mosaic .sf-profile-library-image--wide .sf-profile-media-preview {
+  max-width: none;
+  width: 100%;
+  aspect-ratio: 3 / 1;
+  border-radius: 0;
+  overflow: hidden;
+  border: 1px solid var(--sf-line);
+  background: color-mix(in srgb, var(--sf-secondary) 14%, white);
+  display: grid;
+  place-items: center;
+}
+.sf-profile-form-mosaic .sf-profile-media-preview .sf-framed-image,
+.sf-profile-form-mosaic .sf-member-media-preview .sf-framed-image {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+}
 .sf-member-media-preview img {
   width: 100%;
   height: 100%;
@@ -10665,21 +10832,6 @@ button.danger:hover,
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
-}
-.sf-profile-library-image .sf-member-media-preview {
-  width: 100%;
-  max-width: 14rem;
-  aspect-ratio: 1;
-  border: 1px solid var(--sf-line);
-  overflow: hidden;
-}
-.sf-profile-library-image--circle .sf-member-media-preview {
-  border-radius: 999px;
-}
-.sf-profile-library-image--wide .sf-member-media-preview {
-  max-width: 100%;
-  aspect-ratio: 3 / 1;
-  border-radius: 0;
 }
 
 .admin-shell .sf-image-frame-dialog {

@@ -83,12 +83,14 @@ describe('profileFormConfigFromFields', () => {
     assert.ok(about)
     assert.equal(about!.label, 'Custom about')
     assert.equal(about!.width, 100)
+    assert.equal(about!.rows[0]?.columns[0]?.key, 'bio')
+    assert.equal(about!.rows[0]?.columns[0]?.width, 100)
     assert.deepEqual(about!.fields.slice(0, 2), ['bio', 'headline'])
     const third = config.sections.find((s) => s.id === 'sec_third')
     assert.equal(third?.width, 33)
   })
 
-  it('defaults missing section width to 100 (same as Forms UI)', () => {
+  it('defaults a missing section width to a full row, matching the Form builder', () => {
     const fields = fieldsForPreset('profile')
     const sections: FormSectionDef[] = [
       {

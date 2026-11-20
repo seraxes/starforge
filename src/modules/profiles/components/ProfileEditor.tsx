@@ -27,12 +27,12 @@ import { countryOptions } from '../countries'
 import {
   GENDER_OPTIONS,
   PROFILE_LINKS_MAX,
-  VISIBILITY_LABELS,
   type ProfileFieldKey,
   type ProfileLink,
   type VisibilityScope,
 } from '../fields'
 import { HeroProfileFields } from './HeroProfileFields'
+import { ProfileVisibilityControl } from './ProfileVisibilityControl'
 import type { ProfileEditorModel } from '../form'
 import type { ProfilesActionState } from '../types'
 
@@ -68,44 +68,17 @@ function FieldHead({
   htmlFor,
   label,
   required,
-  field,
-  model,
-  visibility,
-  onVisibility,
-  disabled,
 }: {
   htmlFor?: string
   label: string
   required?: boolean
-  field?: ProfileFieldKey
-  model: ProfileEditorModel
-  visibility?: Partial<Record<ProfileFieldKey, VisibilityScope>>
-  onVisibility?: (key: ProfileFieldKey, scope: VisibilityScope) => void
-  disabled: boolean
 }) {
-  const state = field ? model.fields[field] : null
-  const scope = field && state ? (visibility?.[field] ?? state.visibility) : null
   return (
     <span className="sf-profile-field-head">
       <label htmlFor={htmlFor}>
         {label}
         {required ? <span aria-hidden="true"> *</span> : null}
       </label>
-      {field && state?.configurable && scope && onVisibility ? (
-        <select
-          className="sf-profile-vis"
-          aria-label={`Who can see: ${label}`}
-          value={scope}
-          disabled={disabled}
-          onChange={(e) => onVisibility(field, e.target.value as VisibilityScope)}
-        >
-          {model.scopes.map((s) => (
-            <option key={s} value={s}>
-              {VISIBILITY_LABELS[s]}
-            </option>
-          ))}
-        </select>
-      ) : null}
     </span>
   )
 }
@@ -184,20 +157,33 @@ export function ProfileEditor({
     setVisibility((prev) => ({ ...prev, [key]: scope }))
 
   const canUpload = imagePicker === 'library' || model.memberUploadsEnabled
-  const head = (
-    props: Omit<
-      React.ComponentProps<typeof FieldHead>,
-      'model' | 'visibility' | 'onVisibility' | 'disabled'
-    >,
-  ) => (
-    <FieldHead
-      {...props}
-      model={model}
-      visibility={visibility}
-      onVisibility={setScope}
-      disabled={pending}
-    />
-  )
+
+  function visibilityFor(key: ProfileFieldKey): VisibilityScope | null {
+    const state = f[key]
+    if (!state?.configurable) return null
+    return visibility[key] ?? state.visibility
+  }
+
+  function withVisibility(
+    key: ProfileFieldKey,
+    placement: 'inline' | 'corner',
+    children: React.ReactNode,
+  ): React.ReactNode {
+    const scope = visibilityFor(key)
+    if (!scope) return children
+    return (
+      <div className={`sf-profile-control sf-profile-control--${placement}`}>
+        {children}
+        <ProfileVisibilityControl
+          label={f[key].label}
+          scope={scope}
+          scopes={model.scopes}
+          disabled={pending}
+          onChange={(next) => setScope(key, next)}
+        />
+      </div>
+    )
+  }
 
   function renderImage(kind: 'avatar' | 'cover') {
     const label = f[kind].label
@@ -211,11 +197,13 @@ export function ProfileEditor({
     if (imagePicker === 'library') {
       return (
         <div className={`sf-profile-library-image sf-profile-library-image--${shape}`}>
-          {src ? (
-            <div className="sf-member-media-preview">
+          <div className="sf-profile-media-preview">
+            {src ? (
               <FramedImage src={src} frame={frame} shape={shape} alt="" />
-            </div>
-          ) : null}
+            ) : (
+              <span className="sf-member-media-empty">No image</span>
+            )}
+          </div>
           <MediaPicker
             label={label}
             value={{ mediaId: value, url: '', alt: '' }}
@@ -224,6 +212,7 @@ export function ProfileEditor({
             disabled={pending}
             includeHiddenInputs={false}
             allowUrlFallback={false}
+            showPreview={false}
             onChange={(next) => {
               setValue(next.mediaId)
               setFrame(DEFAULT_IMAGE_FRAME)
@@ -273,7 +262,7 @@ export function ProfileEditor({
       case 'displayName':
         return (
           <div key={key} className="settings-field">
-            {head({ htmlFor: 'pf-displayName', label, required: true })}
+            <FieldHead htmlFor="pf-displayName" label={label} required />
             <input
               id="pf-displayName"
               type="text"
@@ -290,7 +279,7 @@ export function ProfileEditor({
       case 'handle':
         return (
           <div key={key} className="settings-field">
-            {head({ htmlFor: 'pf-handle', label, required: true })}
+            <FieldHead htmlFor="pf-handle" label={label} required />
             <input
               id="pf-handle"
               type="text"
@@ -317,16 +306,20 @@ export function ProfileEditor({
       case 'headline':
         return (
           <div key={key} className="settings-field">
-            {head({ htmlFor: 'pf-headline', label, field: 'headline', required })}
-            <input
-              id="pf-headline"
-              type="text"
-              name="headline"
-              maxLength={120}
-              defaultValue={v.headline}
-              disabled={pending}
-              placeholder={placeholder || 'A short line under your name'}
-            />
+            <FieldHead htmlFor="pf-headline" label={label} required={required} />
+            {withVisibility(
+              key,
+              'inline',
+              <input
+                id="pf-headline"
+                type="text"
+                name="headline"
+                maxLength={120}
+                defaultValue={v.headline}
+                disabled={pending}
+                placeholder={placeholder || 'A short line under your name'}
+              />,
+            )}
           </div>
         )
       case 'avatar':
@@ -338,37 +331,44 @@ export function ProfileEditor({
       case 'cover':
         return (
           <div key={key} className="settings-field">
-            {head({ label: `${label} visibility`, field: 'cover', required })}
-            {renderImage('cover')}
+            {withVisibility(key, 'corner', renderImage('cover'))}
           </div>
         )
       case 'bio':
         return (
           <div key={key} className="settings-field">
-            {head({ htmlFor: 'pf-bio', label, field: 'bio', required })}
-            <textarea
-              id="pf-bio"
-              name="bio"
-              rows={6}
-              maxLength={2000}
-              defaultValue={v.bio}
-              disabled={pending}
-              placeholder={placeholder || 'Tell the community about yourself…'}
-            />
+            <FieldHead htmlFor="pf-bio" label={label} required={required} />
+            {withVisibility(
+              key,
+              'corner',
+              <textarea
+                id="pf-bio"
+                name="bio"
+                rows={6}
+                maxLength={2000}
+                defaultValue={v.bio}
+                disabled={pending}
+                placeholder={placeholder || 'Tell the community about yourself…'}
+              />,
+            )}
           </div>
         )
       case 'birthDate':
         return (
           <div key={key} className="settings-field">
-            {head({ htmlFor: 'pf-birthDate', label, field: 'birthDate', required })}
-            <input
-              id="pf-birthDate"
-              type="date"
-              name="birthDate"
-              defaultValue={v.birthDate}
-              disabled={pending}
-              min="1900-01-01"
-            />
+            <FieldHead htmlFor="pf-birthDate" label={label} required={required} />
+            {withVisibility(
+              key,
+              'inline',
+              <input
+                id="pf-birthDate"
+                type="date"
+                name="birthDate"
+                defaultValue={v.birthDate}
+                disabled={pending}
+                min="1900-01-01"
+              />,
+            )}
             <span className="settings-hint">
               {hint ||
                 'Others only ever see your age — and only if you allow it. Events can use it for age limits.'}
@@ -382,84 +382,102 @@ export function ProfileEditor({
             : GENDER_OPTIONS.map((o) => ({ value: o.value, label: o.label }))
         return (
           <div key={key} className="settings-field">
-            {head({ htmlFor: 'pf-gender', label, field: 'gender', required })}
-            <select id="pf-gender" name="gender" defaultValue={v.gender} disabled={pending}>
-              {options.map((o) => (
-                <option key={o.value || '_empty'} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
+            <FieldHead htmlFor="pf-gender" label={label} required={required} />
+            {withVisibility(
+              key,
+              'inline',
+              <select id="pf-gender" name="gender" defaultValue={v.gender} disabled={pending}>
+                {options.map((o) => (
+                  <option key={o.value || '_empty'} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>,
+            )}
           </div>
         )
       }
       case 'country':
         return (
           <div key={key} className="settings-field">
-            {head({ htmlFor: 'pf-country', label, field: 'country', required })}
-            <select id="pf-country" name="country" defaultValue={v.country} disabled={pending}>
-              <option value="">—</option>
-              {countries.length === 0 && v.country ? (
-                <option value={v.country}>{v.country}</option>
-              ) : null}
-              {countries.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+            <FieldHead htmlFor="pf-country" label={label} required={required} />
+            {withVisibility(
+              key,
+              'inline',
+              <select id="pf-country" name="country" defaultValue={v.country} disabled={pending}>
+                <option value="">—</option>
+                {countries.length === 0 && v.country ? (
+                  <option value={v.country}>{v.country}</option>
+                ) : null}
+                {countries.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>,
+            )}
           </div>
         )
       case 'city':
         return (
           <div key={key} className="settings-field">
-            {head({ htmlFor: 'pf-city', label, field: 'city', required })}
-            <input
-              id="pf-city"
-              type="text"
-              name="city"
-              maxLength={80}
-              defaultValue={v.city}
-              disabled={pending}
-              autoComplete="address-level2"
-              placeholder={placeholder || undefined}
-            />
+            <FieldHead htmlFor="pf-city" label={label} required={required} />
+            {withVisibility(
+              key,
+              'inline',
+              <input
+                id="pf-city"
+                type="text"
+                name="city"
+                maxLength={80}
+                defaultValue={v.city}
+                disabled={pending}
+                autoComplete="address-level2"
+                placeholder={placeholder || undefined}
+              />,
+            )}
           </div>
         )
       case 'location':
         return (
           <div key={key} className="settings-field">
-            {head({ label, field: 'location', required })}
+            <FieldHead label={label} required={required} />
             <input type="hidden" name="latitude" value={latitude} />
             <input type="hidden" name="longitude" value={longitude} />
-            {mapClientConfig ? (
-              <VenueLocationMap
-                clientConfig={mapClientConfig}
-                latitude={lat}
-                longitude={lng}
-                disabled={pending}
-                height="14rem"
-                onPick={(a, b) => {
-                  setLatitude(String(Number(a.toFixed(5))))
-                  setLongitude(String(Number(b.toFixed(5))))
-                }}
-              />
-            ) : (
-              <span className="settings-hint">Map is not enabled on this site.</span>
+            {withVisibility(
+              key,
+              'corner',
+              <div className="sf-profile-location-body">
+                {mapClientConfig ? (
+                  <VenueLocationMap
+                    clientConfig={mapClientConfig}
+                    latitude={lat}
+                    longitude={lng}
+                    disabled={pending}
+                    height="14rem"
+                    onPick={(a, b) => {
+                      setLatitude(String(Number(a.toFixed(5))))
+                      setLongitude(String(Number(b.toFixed(5))))
+                    }}
+                  />
+                ) : (
+                  <span className="settings-hint">Map is not enabled on this site.</span>
+                )}
+                {lat != null && lng != null ? (
+                  <button
+                    type="button"
+                    className={btn(chrome, 'muted')}
+                    disabled={pending}
+                    onClick={() => {
+                      setLatitude('')
+                      setLongitude('')
+                    }}
+                  >
+                    Clear pin
+                  </button>
+                ) : null}
+              </div>,
             )}
-            {lat != null && lng != null ? (
-              <button
-                type="button"
-                className={btn(chrome, 'muted')}
-                disabled={pending}
-                onClick={() => {
-                  setLatitude('')
-                  setLongitude('')
-                }}
-              >
-                Clear pin
-              </button>
-            ) : null}
             <span className="settings-hint">
               {hint || 'Other members only ever see the area (about 1 km), never the exact pin.'}
             </span>
@@ -468,95 +486,109 @@ export function ProfileEditor({
       case 'website':
         return (
           <div key={key} className="settings-field">
-            {head({ htmlFor: 'pf-website', label, field: 'website', required })}
-            <input
-              id="pf-website"
-              type="url"
-              name="website"
-              maxLength={500}
-              defaultValue={v.website}
-              disabled={pending}
-              placeholder={placeholder || 'https://'}
-            />
+            <FieldHead htmlFor="pf-website" label={label} required={required} />
+            {withVisibility(
+              key,
+              'inline',
+              <input
+                id="pf-website"
+                type="url"
+                name="website"
+                maxLength={500}
+                defaultValue={v.website}
+                disabled={pending}
+                placeholder={placeholder || 'https://'}
+              />,
+            )}
           </div>
         )
       case 'phone':
         return (
           <div key={key} className="settings-field">
-            {head({ htmlFor: 'pf-phone', label, field: 'phone', required })}
-            <input
-              id="pf-phone"
-              type="text"
-              name="phone"
-              maxLength={32}
-              defaultValue={v.phone}
-              disabled={pending}
-              autoComplete="tel"
-              placeholder={placeholder || undefined}
-            />
+            <FieldHead htmlFor="pf-phone" label={label} required={required} />
+            {withVisibility(
+              key,
+              'inline',
+              <input
+                id="pf-phone"
+                type="text"
+                name="phone"
+                maxLength={32}
+                defaultValue={v.phone}
+                disabled={pending}
+                autoComplete="tel"
+                placeholder={placeholder || undefined}
+              />,
+            )}
           </div>
         )
       case 'links':
         return (
           <div key={key} className="settings-field">
-            {head({ label, field: 'links', required })}
-            <ul className="sf-profile-links">
-              {links.map((link, i) => (
-                <li key={i}>
-                  <input
-                    type="text"
-                    aria-label={`Link ${i + 1} label`}
-                    placeholder="Label (Instagram…)"
-                    maxLength={40}
-                    value={link.label}
-                    disabled={pending}
-                    onChange={(e) =>
-                      setLinks((prev) =>
-                        prev.map((l, j) => (j === i ? { ...l, label: e.target.value } : l)),
-                      )
-                    }
-                  />
-                  <input
-                    type="url"
-                    aria-label={`Link ${i + 1} address`}
-                    placeholder="https://"
-                    maxLength={500}
-                    value={link.url}
-                    disabled={pending}
-                    onChange={(e) =>
-                      setLinks((prev) =>
-                        prev.map((l, j) => (j === i ? { ...l, url: e.target.value } : l)),
-                      )
-                    }
-                  />
+            <FieldHead label={label} required={required} />
+            {withVisibility(
+              key,
+              'corner',
+              <div className="sf-profile-links-body">
+                <ul className="sf-profile-links">
+                  {links.map((link, i) => (
+                    <li key={i}>
+                      <input
+                        type="text"
+                        aria-label={`Link ${i + 1} label`}
+                        placeholder="Label (Instagram…)"
+                        maxLength={40}
+                        value={link.label}
+                        disabled={pending}
+                        onChange={(e) =>
+                          setLinks((prev) =>
+                            prev.map((l, j) => (j === i ? { ...l, label: e.target.value } : l)),
+                          )
+                        }
+                      />
+                      <input
+                        type="url"
+                        aria-label={`Link ${i + 1} address`}
+                        placeholder="https://"
+                        maxLength={500}
+                        value={link.url}
+                        disabled={pending}
+                        onChange={(e) =>
+                          setLinks((prev) =>
+                            prev.map((l, j) => (j === i ? { ...l, url: e.target.value } : l)),
+                          )
+                        }
+                      />
+                      <button
+                        type="button"
+                        className={btn(chrome, 'muted')}
+                        disabled={pending}
+                        onClick={() => setLinks((prev) => prev.filter((_, j) => j !== i))}
+                      >
+                        Remove
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                {links.length < PROFILE_LINKS_MAX ? (
                   <button
                     type="button"
                     className={btn(chrome, 'muted')}
                     disabled={pending}
-                    onClick={() => setLinks((prev) => prev.filter((_, j) => j !== i))}
+                    onClick={() => setLinks((prev) => [...prev, { label: '', url: '' }])}
                   >
-                    Remove
+                    Add link
                   </button>
-                </li>
-              ))}
-            </ul>
-            {links.length < PROFILE_LINKS_MAX ? (
-              <button
-                type="button"
-                className={btn(chrome, 'muted')}
-                disabled={pending}
-                onClick={() => setLinks((prev) => [...prev, { label: '', url: '' }])}
-              >
-                Add link
-              </button>
-            ) : null}
+                ) : null}
+              </div>,
+            )}
           </div>
         )
       case 'locale':
         if (model.locales.length === 0) return null
         return (
           <div key={key} className="settings-field">
-            {head({ htmlFor: 'pf-locale', label })}
+            <FieldHead htmlFor="pf-locale" label={label} />
             <select id="pf-locale" name="locale" defaultValue={v.locale} disabled={pending}>
               <option value="">Site default</option>
               {model.locales.map((l) => (
@@ -570,7 +602,7 @@ export function ProfileEditor({
       case 'timezone':
         return (
           <div key={key} className="settings-field">
-            {head({ htmlFor: 'pf-timezone', label })}
+            <FieldHead htmlFor="pf-timezone" label={label} />
             <input
               id="pf-timezone"
               type="text"
@@ -613,6 +645,13 @@ export function ProfileEditor({
       <div className="sf-profile-form-mosaic">
         {model.sections.map((section) => {
           const width = clampGridWidth(section.width, LAYOUT_WIDTH_FULL)
+          const rows =
+            section.rows?.length > 0
+              ? section.rows
+              : section.fields.map((key, index) => ({
+                  id: `row_${key}_${index}`,
+                  columns: [{ key, width: LAYOUT_WIDTH_FULL }],
+                }))
           return (
             <fieldset
               key={section.id}
@@ -620,7 +659,38 @@ export function ProfileEditor({
               data-sf-width={width}
             >
               <legend>{section.label}</legend>
-              {section.fields.map((key) => renderField(key))}
+              {rows.map((row) => {
+                const multi = row.columns.length > 1
+                return (
+                  <div
+                    key={row.id}
+                    className={multi ? 'sf-form-row sf-form-row-multi' : 'sf-form-row'}
+                  >
+                    {row.columns.map((col) => {
+                      const pct = col.width || LAYOUT_WIDTH_FULL
+                      return (
+                        <div
+                          key={col.key}
+                          className="sf-form-col"
+                          data-sf-width={pct}
+                          style={
+                            multi
+                              ? {
+                                  flex: `${pct} 1 0`,
+                                  maxWidth: `${pct}%`,
+                                  width: `${pct}%`,
+                                  minWidth: 0,
+                                }
+                              : undefined
+                          }
+                        >
+                          {renderField(col.key)}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })}
               {showIdentityEmailHint &&
               section.fields.includes('displayName') &&
               section.fields.includes('handle') ? (

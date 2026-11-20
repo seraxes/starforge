@@ -261,6 +261,38 @@ body:has(.admin-shell) > main {
   .admin-shell .admin-settings-mosaic.sf-payments-method-mosaic > .page-settings-panel:last-child:nth-child(odd) {
     grid-column: span 1;
   }
+
+  /* Users → Account: Identity / Access / Status stay half-width (odd Status must not stretch). */
+  .admin-shell .admin-settings-mosaic.sf-users-account-mosaic > .settings-fieldset,
+  .admin-shell
+    .admin-settings-mosaic.sf-users-account-mosaic
+    > .settings-fieldset:last-child:nth-child(odd) {
+    grid-column: span 1;
+  }
+}
+
+/* Users → Account: one card inset for every body form (no Events-manager leftover padding). */
+.admin-shell .sf-users-account-mosaic > .settings-fieldset > form {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: auto;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.admin-shell .sf-users-account-mosaic > .settings-fieldset .page-settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sf-admin-btn-gap);
+  margin-top: 0.75rem;
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+  align-self: stretch;
+  box-sizing: border-box;
 }
 
 .admin-shell .gantry-assigned-menu-card .page-settings-panel-head h3 {

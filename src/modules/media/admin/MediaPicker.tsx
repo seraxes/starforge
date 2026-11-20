@@ -63,6 +63,8 @@ type Props = {
   mediaUrlName?: string
   /** When false, parent owns FormData keys (Styles autosave). */
   includeHiddenInputs?: boolean
+  /** When false, omit the inline thumbnail (parent shows a framed preview). */
+  showPreview?: boolean
 }
 
 const emptyUploadState: MediaActionState = {}
@@ -83,6 +85,7 @@ export function MediaPicker({
   mediaIdName = 'mediaId',
   mediaUrlName = 'mediaUrl',
   includeHiddenInputs = true,
+  showPreview = true,
 }: Props) {
   const titleId = useId()
   const [open, setOpen] = useState(false)
@@ -293,22 +296,24 @@ export function MediaPicker({
         </div>
       </div>
 
-      {previewSrc ? (
-        <div className="sf-media-picker-preview">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={previewSrc} alt={value.alt || 'Selected media'} />
-          <div className="sf-media-picker-meta">
-            {value.mediaId ? (
-              <code title="Payload Media id">{value.mediaId}</code>
-            ) : (
-              <span className="layout-muted">URL fallback</span>
-            )}
-            {value.alt ? <span>{value.alt}</span> : null}
+      {showPreview ? (
+        previewSrc ? (
+          <div className="sf-media-picker-preview">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={previewSrc} alt={value.alt || 'Selected media'} />
+            <div className="sf-media-picker-meta">
+              {value.mediaId ? (
+                <code title="Payload Media id">{value.mediaId}</code>
+              ) : (
+                <span className="layout-muted">URL fallback</span>
+              )}
+              {value.alt ? <span>{value.alt}</span> : null}
+            </div>
           </div>
-        </div>
-      ) : (
-        <p className="layout-muted sf-media-picker-empty">No media selected</p>
-      )}
+        ) : (
+          <p className="layout-muted sf-media-picker-empty">No media selected</p>
+        )
+      ) : null}
 
       {includeHiddenInputs ? (
         <input type="hidden" name={mediaIdName} value={value.mediaId ?? ''} />

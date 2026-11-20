@@ -23,13 +23,12 @@ export const VISIBILITY_LABELS: Record<VisibilityScope, string> = {
   private: 'Only me',
 }
 
+/** Four half-width editor cards, four fields each. */
 export const PROFILE_FIELD_GROUPS = [
   { key: 'identity', label: 'Identity' },
-  { key: 'about', label: 'About' },
   { key: 'personal', label: 'Personal' },
   { key: 'location', label: 'Location' },
-  { key: 'contact', label: 'Contact & links' },
-  { key: 'preferences', label: 'Preferences' },
+  { key: 'contact', label: 'Contact' },
 ] as const
 
 export type ProfileFieldGroup = (typeof PROFILE_FIELD_GROUPS)[number]['key']
@@ -67,19 +66,19 @@ export const PROFILE_FIELDS: readonly ProfileFieldDef[] = [
   { key: 'displayName', label: 'Display name', group: 'identity', locked: true, defaultVisibility: 'public' },
   { key: 'handle', label: 'Username', group: 'identity', locked: true, defaultVisibility: 'public' },
   { key: 'headline', label: 'Headline', group: 'identity', defaultVisibility: 'public' },
-  { key: 'avatar', label: 'Avatar', group: 'identity', locked: true, defaultVisibility: 'public' },
-  { key: 'cover', label: 'Cover image', group: 'identity', defaultVisibility: 'public' },
-  { key: 'bio', label: 'Bio', group: 'about', defaultVisibility: 'public' },
+  { key: 'bio', label: 'Bio', group: 'identity', defaultVisibility: 'public' },
+  { key: 'avatar', label: 'Avatar', group: 'personal', locked: true, defaultVisibility: 'public' },
+  { key: 'cover', label: 'Cover image', group: 'personal', defaultVisibility: 'public' },
   { key: 'birthDate', label: 'Date of birth (shown as age)', group: 'personal', defaultVisibility: 'private' },
   { key: 'gender', label: 'Gender', group: 'personal', defaultVisibility: 'private' },
   { key: 'country', label: 'Country', group: 'location', defaultVisibility: 'public' },
   { key: 'city', label: 'City', group: 'location', defaultVisibility: 'registered' },
   { key: 'location', label: 'Map location (approximate)', group: 'location', defaultVisibility: 'private' },
+  { key: 'timezone', label: 'Time zone', group: 'location', selfOnly: true, defaultVisibility: 'private' },
   { key: 'website', label: 'Website', group: 'contact', defaultVisibility: 'public' },
   { key: 'phone', label: 'Phone', group: 'contact', defaultVisibility: 'private' },
   { key: 'links', label: 'Social links', group: 'contact', defaultVisibility: 'public' },
-  { key: 'locale', label: 'Language', group: 'preferences', selfOnly: true, defaultVisibility: 'private' },
-  { key: 'timezone', label: 'Time zone', group: 'preferences', selfOnly: true, defaultVisibility: 'private' },
+  { key: 'locale', label: 'Language', group: 'contact', selfOnly: true, defaultVisibility: 'private' },
 ] as const
 
 const FIELD_BY_KEY = new Map<string, ProfileFieldDef>(
