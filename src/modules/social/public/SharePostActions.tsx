@@ -9,36 +9,56 @@ import {
 
 const initial: SocialFeedActionState = {}
 
-/** Share control on a feed / permalink card. Challenge posts stay unshareable server-side. */
+/**
+ * Share note under a post. Challenge posts stay refused on the server.
+ * When the card is already a share, pass the original post id.
+ */
 export function SharePostActions({
   postId,
-  postKind,
+  noteOnly = false,
 }: {
+  /** Post id that lands in sharedPostId (original when resharing a share). */
   postId: string
-  postKind: string
+  /** The post action bar already has Share. This form is only the note. */
+  noteOnly?: boolean
 }) {
   const [state, formAction, pending] = useActionState(createSharePostAction, initial)
 
-  if (postKind === 'challenge' || postKind === 'share') {
-    return null
-  }
-
   return (
-    <form action={formAction} className="sf-social-share-actions admin-control-row">
+    <form
+      action={formAction}
+      className={noteOnly ? 'sf-social-share-note' : 'sf-social-share-actions admin-control-row'}
+    >
       <input type="hidden" name="sharedPostId" value={postId} />
       <input type="hidden" name="audience" value="friends" />
-      <label className="settings-field">
-        <span className="sr-only">Note on the share</span>
+      {noteOnly ? (
         <input
           type="text"
           name="body"
+          className="sf-social-comment-input"
           maxLength={2000}
-          placeholder="Add a note when you share"
+          placeholder="Say something about this…"
           disabled={pending}
+          aria-label="Note on the share"
         />
-      </label>
-      <button type="submit" className="gantry-btn" disabled={pending}>
-        {pending ? 'Sharing…' : 'Share'}
+      ) : (
+        <label className="settings-field">
+          <span className="sr-only">Note on the share</span>
+          <input
+            type="text"
+            name="body"
+            maxLength={2000}
+            placeholder="Add a note when you share"
+            disabled={pending}
+          />
+        </label>
+      )}
+      <button
+        type="submit"
+        className={noteOnly ? 'secondary' : 'gantry-btn'}
+        disabled={pending}
+      >
+        {pending ? 'Sharing…' : noteOnly ? 'Post' : 'Share'}
       </button>
       {state.error ? (
         <p className="admin-inline-error" role="alert">

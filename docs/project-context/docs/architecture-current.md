@@ -93,7 +93,7 @@ Do not re-open work that already shipped: RateLimiter, captcha-in-security, the 
 
 **Parked, and not ahead of the commercial order:** TacMap stations, BLE beacons, `apps/asn-capacitor`, Shop, Marketplace schema, Social, Chat, Stream, Notifications, ASN Hero theme and domain fields, ASN currency, DigitalOcean, WordPress migration.
 
-**Named 2026-11-11, still waiting, not this queue:** organizations, campaigns, comments, reports, outbound webhooks, support. Checkout **coupons** live in `product:payments` (not a promotions pack). Instructions and the “this is not a new pack” list: [core-finish-instructions](./core-finish-instructions.md). Do not start them ahead of the commercial order.
+**Named 2026-11-11, still waiting, not this queue:** organizations, campaigns, comments, reports, outbound webhooks, support. A light campaign (label + template + pasted recipients) lives in Email Manager; Send queues one paced broadcast (`sourceKey` `email-campaign:<id>`), status follows that broadcast, and counts are the broadcast counters. Failed-address list and open/click tracking stay later. The durable subscriber-list `product:campaigns` pack stays parked. Checkout **coupons** live in `product:payments` (not a promotions pack). Instructions and the “this is not a new pack” list: [core-finish-instructions](./core-finish-instructions.md). Do not start them ahead of the commercial order.
 
 The 5 Nov wireframe order does not override this. Email Manager already shipped ahead of the heavy packs. i18n P0–P3 already shipped.
 
@@ -134,6 +134,7 @@ Do not relocate these in a drive-by:
 | Process boot | generated `runModuleBoot`, then `runHeroBoot` | `instrumentation.ts` asserts env, then calls both. No pack paths. Each pack boot returns immediately when its own toggle is off. The default hero loader is null. The Events abandoned-checkout sweep stays unarmed while Events is off; stuck `pending_payment` seats wait until Events is on and boot runs again. |
 | Page reads | `PageReadsPort` (`src/core/content/page-reads`); pages adapter when `product:pages` is on, else empty | Layout, search, and sitemap use `getPageReads()`. |
 | Admin ACL | Core groups. Each grant is `view`, `edit`, or `manage` (manage includes the lower levels; the highest group wins). App admin bypasses. Role, group membership, the matrix, and the environment file stay app-admin. | Do not add an Access Level entity. Do not flatten the matrix back to a checkbox. |
+| Staff bypass on member gates | App admins (developer-admins included) and pack `admin.<id>` edit/manage may perform ownership-gated member actions (edit / delete / audience / …) anywhere by default. Staff UI is additive. | Do not ship author-only gates that refuse `isAppAdmin`. Decision: `docs/project-context/docs/decisions/2026-11-21-staff-bypass.md`. Rule: `sf-staff-bypass.mdc`. |
 | Admin audit | Core `sf_admin_audit` + `recordAdminAudit`. Optional site pack `product:audit` is the company reader and the extra activity rows. | No second audit table. Do not put secrets or free-text notes in a row. |
 
 New packs follow Payments: a **port** in `src/core/<port>`, **product behavior** in `src/modules/<id>`. A PR may touch Core when it adds a port or a host extension. It does not put product screens, catalogs, or fulfillment in Core.

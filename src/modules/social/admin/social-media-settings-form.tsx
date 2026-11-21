@@ -149,7 +149,7 @@ export function SocialMediaSettingsForm({ settings }: Props) {
               <span className="settings-hint">Default 10. Image plus video stays refused.</span>
             </label>
             <label className="settings-field">
-              <span>Feed image max width (px)</span>
+              <span>Feed media max width (px)</span>
               <input
                 type="number"
                 name="feedImageMaxWidthPx"
@@ -159,10 +159,12 @@ export function SocialMediaSettingsForm({ settings }: Props) {
                 defaultValue={settings.feedImageMaxWidthPx}
                 disabled={pending}
               />
-              <span className="settings-hint">Default 720. Wider photos scale down to this.</span>
+              <span className="settings-hint">
+                Default 720. Wider photos and videos scale down to this.
+              </span>
             </label>
             <label className="settings-field">
-              <span>Feed image max height (px)</span>
+              <span>Feed media max height (px)</span>
               <input
                 type="number"
                 name="feedImageMaxHeightPx"
@@ -173,7 +175,7 @@ export function SocialMediaSettingsForm({ settings }: Props) {
                 disabled={pending}
               />
               <span className="settings-hint">
-                Taller photos are cut at the center so one image cannot fill the page.
+                Taller photos and videos are cut at the center so one clip cannot fill the page.
               </span>
             </label>
             <label className="settings-field settings-flag">

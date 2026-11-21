@@ -29,6 +29,7 @@ export default defineStarforgeModule({
     { key: 'templates', label: 'Email templates', href: '/admin/email/templates' },
     { key: 'sends', label: 'Email sends', href: '/admin/email/sends' },
     { key: 'broadcasts', label: 'Email broadcasts', href: '/admin/email/broadcasts' },
+    { key: 'campaigns', label: 'Email campaigns', href: '/admin/email/campaigns' },
   ],
   admin: {
     navGroup: {
@@ -68,6 +69,13 @@ export default defineStarforgeModule({
         order: 40,
         area: 'email-manager',
       },
+      {
+        group: 'email',
+        label: 'Campaigns',
+        href: '/admin/email/campaigns',
+        order: 50,
+        area: 'email-manager',
+      },
     ],
     areas: [{ key: 'email-manager', label: 'Email Manager' }],
     routes: [
@@ -82,6 +90,11 @@ export default defineStarforgeModule({
         pageExportName: 'default',
       },
       {
+        path: 'email/templates/[templateId]',
+        pageImportPath: '@/modules/email-manager/admin/EmailTemplateEditPage',
+        pageExportName: 'default',
+      },
+      {
         path: 'email/sends',
         pageImportPath: '@/modules/email-manager/admin/EmailSendsPage',
         pageExportName: 'default',
@@ -89,6 +102,16 @@ export default defineStarforgeModule({
       {
         path: 'email/broadcasts',
         pageImportPath: '@/modules/email-manager/admin/EmailBroadcastsPage',
+        pageExportName: 'default',
+      },
+      {
+        path: 'email/campaigns',
+        pageImportPath: '@/modules/email-manager/admin/EmailCampaignsPage',
+        pageExportName: 'default',
+      },
+      {
+        path: 'email/campaigns/[campaignId]',
+        pageImportPath: '@/modules/email-manager/admin/EmailCampaignEditPage',
         pageExportName: 'default',
       },
     ],

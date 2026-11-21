@@ -62,10 +62,16 @@ export async function loadPageChromeRowUncached(id: string): Promise<PageChromeL
 }
 
 /**
- * Load one chrome row by id (`global` or pageKey).
- * Cross-request cache via published-content cache.
+ * Load one chrome row by id (`global`, `outline:<id>`, or pageKey).
+ * Admin/store mutators call this (uncached) so save→refresh in one request stays fresh.
+ * Public resolve uses {@link getCachedPageChromeRow}.
  */
 export async function loadPageChromeRow(id: string): Promise<PageChromeLoadResult> {
+  return loadPageChromeRowUncached(id.trim() || GLOBAL_PAGE_CHROME_ID)
+}
+
+/** Cross-request cached chrome load for public resolve / CSP. */
+export async function getCachedPageChromeRow(id: string): Promise<PageChromeLoadResult> {
   const rowId = id.trim() || GLOBAL_PAGE_CHROME_ID
   return getPublishedContentCache().getCached(
     {
@@ -81,13 +87,25 @@ export async function loadGlobalPageChrome(): Promise<PageChromeLoadResult> {
   return loadPageChromeRow(GLOBAL_PAGE_CHROME_ID)
 }
 
+export async function getCachedGlobalPageChrome(): Promise<PageChromeLoadResult> {
+  return getCachedPageChromeRow(GLOBAL_PAGE_CHROME_ID)
+}
+
 export async function loadPageChromeOverride(pageKey: string): Promise<PageChromeLoadResult> {
   return loadPageChromeRow(pageKey)
+}
+
+export async function getCachedPageChromeOverride(pageKey: string): Promise<PageChromeLoadResult> {
+  return getCachedPageChromeRow(pageKey)
 }
 
 /** Load sparse chrome overrides for a non-Base outline (`outline:<id>`). */
 export async function loadOutlinePageChrome(outlineId: string): Promise<PageChromeLoadResult> {
   return loadPageChromeRow(outlineChromeRowId(outlineId))
+}
+
+export async function getCachedOutlinePageChrome(outlineId: string): Promise<PageChromeLoadResult> {
+  return getCachedPageChromeRow(outlineChromeRowId(outlineId))
 }
 
 /** Upsert chrome JSON for global, outline, or pageKey. */

@@ -11,7 +11,7 @@ import { isValidLocaleCode } from '@/core/i18n'
 import { withLocalePrefix } from '@/core/i18n/path'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { getSiteChrome } from '@/core/site-chrome'
-import { getPersonas } from '@/modules/profiles/api.server'
+import { getPersonas, personaMediaSrc } from '@/modules/profiles/api.server'
 
 import { listHomeFeedPosts } from '../feed-store'
 import { listOwnedGroups } from '../groups-store'
@@ -117,6 +117,7 @@ export default async function SocialHomeFeedPage({ params }: Args) {
           ownedGroups={ownedGroups.map((g) => ({ id: g.id, name: g.name }))}
           defaultAudience={pack.settings.defaultPostAudience}
           authorName={authorName}
+          authorAvatarSrc={personaMediaSrc(self?.avatarMediaId) || null}
           allowText={pack.settings.allowText}
           allowMedia={pack.settings.allowMedia}
           allowLink={pack.settings.allowLink}
@@ -132,6 +133,7 @@ export default async function SocialHomeFeedPage({ params }: Args) {
         locale={locale}
         emptyMessage="No posts in your feed yet."
         showShare={pack.settings.allowShare}
+        ownedGroups={ownedGroups.map((group) => ({ id: group.id, name: group.name }))}
       />
     </article>
   )

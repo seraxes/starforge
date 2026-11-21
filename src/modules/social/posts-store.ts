@@ -17,6 +17,7 @@ import {
   createPostRecord,
   decideDeletePost,
   decideEditPost,
+  decideSetPostAudience,
   decideStaffHidePost,
   isPostMediaRole,
   resolvePostPermalink,
@@ -25,6 +26,7 @@ import {
   type CreatePostInput,
   type DeletePostInput,
   type EditPostInput,
+  type SetPostAudienceInput,
   type MediaResolveResult,
   type PermalinkResult,
   type PostDeleteResult,
@@ -337,10 +339,46 @@ export async function getPostPermalink(
   })
 }
 
-/** Author-only body edit. */
-export async function editPost(input: EditPostInput): Promise<PostMutationResult> {
+/** Change audience. Author, or Social staff with canManagePosts. Body/editedAt stay. */
+export async function setPostAudience(
+  input: SetPostAudienceInput,
+  gates?: { canManagePosts?: boolean },
+): Promise<PostMutationResult> {
   const current = await findPost(input.postId)
-  const result = decideEditPost(current, input)
+  const result = decideSetPostAudience(current, input, {
+    canManagePosts: gates?.canManagePosts,
+  })
+  if (!result.ok) return result
+  const next = result.post
+  try {
+    await db
+      .update(sfSocialPosts)
+      .set({
+        audience: next.audience,
+        groupId: next.groupId,
+        updatedAt: next.updatedAt,
+      })
+      .where(eq(sfSocialPosts.id, next.id))
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    if (/sf_social_posts|does not exist|relation/i.test(msg)) {
+      return { ok: false, reason: 'invalid' }
+    }
+    throw error
+  }
+  const stored = await findPost(next.id)
+  return stored ? { ok: true, post: stored } : { ok: true, post: next }
+}
+
+/** Body edit. Author, or Social staff with canManagePosts. */
+export async function editPost(
+  input: EditPostInput,
+  gates?: { canManagePosts?: boolean },
+): Promise<PostMutationResult> {
+  const current = await findPost(input.postId)
+  const result = decideEditPost(current, input, {
+    canManagePosts: gates?.canManagePosts,
+  })
   if (!result.ok) return result
 
   const next = result.post
@@ -373,13 +411,19 @@ export async function editPost(input: EditPostInput): Promise<PostMutationResult
 }
 
 /**
- * Author delete. Same transaction removes comments, likes (post reactions),
+ * Delete. Author, or Social staff with canManagePosts.
+ * Same transaction removes comments, likes (post reactions),
  * media binds, activity cards, tags, mentions, saves, poll votes, and share
  * posts that point at this post (sharedPostId). Report rows are kept.
  */
-export async function deletePost(input: DeletePostInput): Promise<PostDeleteResult> {
+export async function deletePost(
+  input: DeletePostInput,
+  gates?: { canManagePosts?: boolean },
+): Promise<PostDeleteResult> {
   const current = await findPost(input.postId)
-  const result = decideDeletePost(current, input)
+  const result = decideDeletePost(current, input, {
+    canManagePosts: gates?.canManagePosts,
+  })
   if (!result.ok) return result
 
   const postId = result.postId

@@ -123,6 +123,13 @@ export type EditPostInput = {
   body?: string
 }
 
+export type SetPostAudienceInput = {
+  actorUserId: string
+  postId: string
+  audience: string
+  groupId?: string | null
+}
+
 export type DeletePostInput = {
   actorUserId: string
   postId: string
@@ -454,6 +461,27 @@ export function decidePostAttachments(
 }
 
 /**
+ * True when a share at `next` would show the original to people it does not
+ * already allow. Public can be shared anywhere. Friends cannot become public
+ * or a group. Only-me stays only-me. A group post stays in that same group,
+ * or only-me.
+ */
+export function shareAudienceIsWider(
+  original: PostAudience,
+  next: PostAudience,
+  opts?: { originalGroupId?: string | null; nextGroupId?: string | null },
+): boolean {
+  if (original === 'public') return false
+  if (original === 'friends') return next === 'public' || next === 'group'
+  if (original === 'only_me') return next !== 'only_me'
+  if (next === 'only_me') return false
+  if (next !== 'group') return true
+  const originalGroupId = opts?.originalGroupId?.trim() || ''
+  const nextGroupId = opts?.nextGroupId?.trim() || ''
+  return !originalGroupId || !nextGroupId || originalGroupId !== nextGroupId
+}
+
+/**
  * Decide whether a viewer may read a post.
  * Author always sees their own row. Block (either blocker column), hidden author,
  * and staff hide deny everyone else (manage grant may see a staff-hidden post).
@@ -604,18 +632,55 @@ export function createPostRecord(
   }
 }
 
-/** Author-only body edit. Sets editedAt. Closed polls are refused. */
+/**
+ * Change who can see the post. Does not mark the body edited
+ * and does not move the post in the feed.
+ * Author always may. Social staff with canManagePosts (admin / dev) may change any post.
+ */
+export function decideSetPostAudience(
+  current: PostRecord | null,
+  input: SetPostAudienceInput,
+  opts?: { now?: Date; canManagePosts?: boolean },
+): PostMutationResult {
+  if (!current) return { ok: false, reason: 'not_found' }
+  const actor = input.actorUserId.trim()
+  const postId = input.postId.trim()
+  if (!actor || !postId || current.id.trim() !== postId) {
+    return { ok: false, reason: 'invalid' }
+  }
+  const isAuthor = current.authorUserId === actor
+  if (!isAuthor && !opts?.canManagePosts) return { ok: false, reason: 'not_author' }
+  const audience = input.audience.trim()
+  if (!isPostAudience(audience)) return { ok: false, reason: 'invalid_audience' }
+  const groupId = input.groupId?.trim() || null
+  if (audience === 'group' && !groupId) return { ok: false, reason: 'group_required' }
+  return {
+    ok: true,
+    post: {
+      ...current,
+      audience,
+      groupId: audience === 'group' ? groupId : null,
+      updatedAt: opts?.now ?? new Date(),
+    },
+  }
+}
+
+/**
+ * Body edit. Sets editedAt. Closed polls are refused.
+ * Author always may. Social staff with canManagePosts (admin / dev) may edit any post.
+ */
 export function decideEditPost(
   current: PostRecord | null,
   input: EditPostInput,
-  opts?: { now?: Date },
+  opts?: { now?: Date; canManagePosts?: boolean },
 ): PostMutationResult {
   if (!current) return { ok: false, reason: 'not_found' }
   const actor = input.actorUserId.trim()
   if (!actor || current.id.trim() !== input.postId.trim()) {
     return { ok: false, reason: 'invalid' }
   }
-  if (current.authorUserId !== actor) return { ok: false, reason: 'not_author' }
+  const isAuthor = current.authorUserId === actor
+  if (!isAuthor && !opts?.canManagePosts) return { ok: false, reason: 'not_author' }
   if (current.kind === 'poll' && current.pollClosedAt) {
     return { ok: false, reason: 'poll_closed' }
   }
@@ -640,17 +705,22 @@ export function decideEditPost(
   }
 }
 
-/** Author-only delete gate. Cascade of comments / likes is the caller's job. */
+/**
+ * Delete gate. Cascade of comments / likes is the caller's job.
+ * Author always may. Social staff with canManagePosts (admin / dev) may delete any post.
+ */
 export function decideDeletePost(
   current: PostRecord | null,
   input: DeletePostInput,
+  opts?: { canManagePosts?: boolean },
 ): PostDeleteResult {
   if (!current) return { ok: false, reason: 'not_found' }
   const actor = input.actorUserId.trim()
   if (!actor || current.id.trim() !== input.postId.trim()) {
     return { ok: false, reason: 'invalid' }
   }
-  if (current.authorUserId !== actor) return { ok: false, reason: 'not_author' }
+  const isAuthor = current.authorUserId === actor
+  if (!isAuthor && !opts?.canManagePosts) return { ok: false, reason: 'not_author' }
   return { ok: true, postId: current.id }
 }
 
@@ -693,8 +763,14 @@ export function createPostMemory(opts?: {
     input: CreatePostInput,
     gates?: { authorBannedAt?: Date | null },
   ) => PostMutationResult
-  edit: (input: EditPostInput) => PostMutationResult
-  delete: (input: DeletePostInput) => PostDeleteResult
+  edit: (
+    input: EditPostInput,
+    gates?: { canManagePosts?: boolean },
+  ) => PostMutationResult
+  delete: (
+    input: DeletePostInput,
+    gates?: { canManagePosts?: boolean },
+  ) => PostDeleteResult
   setStaffHidden: (
     input: StaffHidePostInput,
     gates: { canManagePosts: boolean },
@@ -716,16 +792,21 @@ export function createPostMemory(opts?: {
       if (result.ok) rows.set(result.post.id, result.post)
       return result
     },
-    edit: (input) => {
+    edit: (input, gates) => {
       const current = rows.get(input.postId.trim()) ?? null
-      const result = decideEditPost(current, input, { now: now() })
+      const result = decideEditPost(current, input, {
+        now: now(),
+        canManagePosts: gates?.canManagePosts,
+      })
       if (!result.ok) return result
       rows.set(result.post.id, result.post)
       return result
     },
-    delete: (input) => {
+    delete: (input, gates) => {
       const current = rows.get(input.postId.trim()) ?? null
-      const result = decideDeletePost(current, input)
+      const result = decideDeletePost(current, input, {
+        canManagePosts: gates?.canManagePosts,
+      })
       if (!result.ok) return result
       rows.delete(result.postId)
       return result

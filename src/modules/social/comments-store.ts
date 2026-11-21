@@ -261,8 +261,10 @@ export async function deleteComment(
   for (const replyId of replyIds) {
     nestedIds.push(...(await listReplyIds(replyId)))
   }
+  const post = current ? await findPost(current.postId) : null
   const result = decideDeleteComment(current, input, [...replyIds, ...nestedIds], {
     canManagePosts: gates?.canManagePosts,
+    postAuthorUserId: post?.authorUserId,
   })
   if (!result.ok) return result
 

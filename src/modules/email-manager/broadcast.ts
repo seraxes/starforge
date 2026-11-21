@@ -11,6 +11,8 @@ import {
   EMAIL_BROADCAST_GAP_MIN,
   EMAIL_BROADCAST_RECIPIENT_CAP,
   type EmailBroadcastRecipientInput,
+  type EmailBroadcastStatus,
+  type EmailCampaignStatus,
   type EmailManagerModuleSettings,
 } from './types'
 
@@ -84,12 +86,53 @@ export function applyBroadcastRecipientCap(
   return { recipients: recipients.slice(0, limit), truncated: true }
 }
 
+/**
+ * Paste → normalized recipient list for campaign drafts.
+ * Splits on commas / semicolons / whitespace via `splitEmailList` inside
+ * `normalizeBroadcastRecipients` (one row per token so every address is kept).
+ * First address wins; invalid dropped; hard cap applied.
+ */
+export function parseCampaignRecipientPaste(
+  raw: string,
+  cap: number = EMAIL_BROADCAST_RECIPIENT_CAP,
+): { recipients: NormalizedBroadcastRecipient[]; truncated: boolean } {
+  const tokens = String(raw ?? '')
+    .split(/[,;\s]+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+  const normalized = normalizeBroadcastRecipients(tokens.map((email) => ({ email })))
+  return applyBroadcastRecipientCap(normalized, cap)
+}
+
 /** How many drain slices are needed for `total` recipients at `batchSize`. */
 export function broadcastSliceCount(total: number, batchSize: number): number {
   const n = Math.max(0, Math.floor(total))
   const size = Math.max(1, Math.floor(batchSize))
   if (n === 0) return 0
   return Math.ceil(n / size)
+}
+
+/**
+ * Map a paced broadcast status onto the campaign status word.
+ * Pause stays `sending` on the campaign; the editor still shows the broadcast status.
+ */
+export function campaignStatusFromBroadcastStatus(
+  status: EmailBroadcastStatus | string | null | undefined,
+): EmailCampaignStatus | null {
+  switch ((status || '').trim()) {
+    case 'queued':
+    case 'running':
+    case 'paused':
+      return 'sending'
+    case 'done':
+      return 'sent'
+    case 'cancelled':
+      return 'cancelled'
+    case 'failed':
+      return 'failed'
+    default:
+      return null
+  }
 }
 
 export const EMAIL_BROADCAST_DRAIN_JOB = 'email.broadcast-drain' as const

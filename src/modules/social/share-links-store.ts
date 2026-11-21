@@ -244,7 +244,12 @@ export async function createSharePost(input: {
 }): Promise<ShareLinkMutationResult> {
   const authorUserId = input.authorUserId.trim()
   const sharedPostId = input.sharedPostId.trim()
-  const target = await findPost(sharedPostId)
+  let target = await findPost(sharedPostId)
+  // Sharing a share card points at the original, the same way Facebook does.
+  if (target?.kind === 'share' && target.sharedPostId) {
+    const original = await findPost(target.sharedPostId)
+    if (original) target = original
+  }
   const actorBannedAt = authorUserId ? await getMemberBannedAt(authorUserId) : null
 
   const otherId = target?.authorUserId ?? ''
@@ -278,7 +283,7 @@ export async function createSharePost(input: {
     target,
     {
       authorUserId,
-      sharedPostId,
+      sharedPostId: target?.id ?? sharedPostId,
       body: input.body,
       audience: input.audience,
       groupId: input.groupId,

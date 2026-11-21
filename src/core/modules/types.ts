@@ -109,6 +109,11 @@ export type LayoutSection = {
   /** Display name on the canvas (editable; id stays stable). */
   label: string
   /**
+   * Optional public HTML `id` on the section wrapper (for `#…` targets / atoms).
+   * Distinct from the stable layout `id` (`data-sf-section`).
+   */
+  htmlId?: string
+  /**
    * Optional space-separated CSS classes applied on the public section wrapper.
    * Does not replace the built-in `sf-layout-section` class.
    */

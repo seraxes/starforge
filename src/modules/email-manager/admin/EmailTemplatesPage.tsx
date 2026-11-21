@@ -48,8 +48,8 @@ export default async function EmailTemplatesPage({
       <EmailAdminNav active="templates" />
       <h2>Email templates</h2>
       <p className="lede admin-lede">
-        Subject and body with <code>{'{{merge.fields}}'}</code>. Rules pick a template; Mailer
-        sends ({transportLabel}). Rules list:{' '}
+        Subject and body with <code>{'{{merge.fields}}'}</code>. Edit opens a full-page editor;
+        label and module sit in Details. Rules pick a template; Mailer sends ({transportLabel}).{' '}
         <Link href="/admin/email">Email → Rules</Link>.
       </p>
 

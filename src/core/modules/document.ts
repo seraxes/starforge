@@ -162,6 +162,7 @@ function normalizeSection(entry: LayoutSection | null | undefined, index: number
   const id = entry.id.trim()
   const label =
     typeof entry.label === 'string' && entry.label.trim() ? entry.label.trim() : id
+  const htmlId = sanitizeHtmlId(entry.htmlId)
   const cssClass = sanitizeCssClassList(entry.cssClass)
   const containerMode = asContainerMode(entry.containerMode)
   const width =
@@ -178,6 +179,7 @@ function normalizeSection(entry: LayoutSection | null | undefined, index: number
   const section: LayoutSection = {
     id,
     label,
+    ...(htmlId ? { htmlId } : {}),
     ...(cssClass ? { cssClass } : {}),
     ...(containerMode ? { containerMode } : {}),
     ...(width != null ? { width } : {}),

@@ -5,6 +5,7 @@ import { canInteract, type CanInteractContext } from './interact'
 import {
   canViewPost,
   createPostRecord,
+  decideSetPostAudience,
   type CanViewPostContext,
   type PostRecord,
 } from './posts'
@@ -168,6 +169,71 @@ describe('share and links', () => {
     assert.equal(card.targetOmitted, true)
     assert.equal(card.target, null)
     assert.equal(card.share.body, 'look')
+  })
+
+  it('refuses a share that widens the original audience (failure path)', () => {
+    const friendsOnly: PostRecord = { ...publicPost('alice'), id: 'friends-post', audience: 'friends' }
+    const widened = decideCreateSharePost(friendsOnly, {
+      authorUserId: 'bob',
+      sharedPostId: friendsOnly.id,
+      audience: 'public',
+      interact: interactOk(),
+      canViewTarget: true,
+    })
+    assert.deepEqual(widened, { ok: false, reason: 'audience_too_wide' })
+
+    const onlyMe: PostRecord = { ...publicPost('alice'), id: 'only-me-post', audience: 'only_me' }
+    const leaked = decideCreateSharePost(onlyMe, {
+      authorUserId: 'alice',
+      sharedPostId: onlyMe.id,
+      audience: 'friends',
+      interact: interactOk(),
+      canViewTarget: true,
+    })
+    assert.deepEqual(leaked, { ok: false, reason: 'audience_too_wide' })
+  })
+
+  it('lets the author change who can see their post (success path)', () => {
+    const post = publicPost('alice')
+    const changed = decideSetPostAudience(post, {
+      actorUserId: 'alice',
+      postId: post.id,
+      audience: 'public',
+    })
+    assert.equal(changed.ok, true)
+    if (!changed.ok) return
+    assert.equal(changed.post.audience, 'public')
+    assert.equal(changed.post.editedAt, null)
+
+    const stranger = decideSetPostAudience(post, {
+      actorUserId: 'bob',
+      postId: post.id,
+      audience: 'public',
+    })
+    assert.deepEqual(stranger, { ok: false, reason: 'not_author' })
+
+    const staff = decideSetPostAudience(
+      post,
+      { actorUserId: 'bob', postId: post.id, audience: 'only_me' },
+      { canManagePosts: true },
+    )
+    assert.equal(staff.ok, true)
+    if (!staff.ok) return
+    assert.equal(staff.post.audience, 'only_me')
+  })
+
+  it('allows a share into the same or a narrower audience (success path)', () => {
+    const target = publicPost('alice')
+    const shared = decideCreateSharePost(target, {
+      authorUserId: 'bob',
+      sharedPostId: target.id,
+      audience: 'friends',
+      interact: interactOk(),
+      canViewTarget: true,
+    })
+    assert.equal(shared.ok, true)
+    if (!shared.ok) return
+    assert.equal(shared.post.audience, 'friends')
   })
 
   it('refuses a share when canInteract is false (blocked-user case)', () => {

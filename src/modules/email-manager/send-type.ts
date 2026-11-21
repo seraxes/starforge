@@ -31,6 +31,18 @@ export function emailTypeFromModuleCategory(
   return 'transactional'
 }
 
+/**
+ * Broadcast drain type: campaign sourceKeys are always marketing, even when the
+ * template category is forms/events/other. Everything else uses module category.
+ */
+export function emailTypeFromBroadcastSource(
+  sourceKey: string | null | undefined,
+  moduleCategory: EmailModuleCategory | string | null | undefined,
+): EmailSendType {
+  if ((sourceKey || '').startsWith('email-campaign:')) return 'marketing'
+  return emailTypeFromModuleCategory(moduleCategory)
+}
+
 /** Normalize optional Mailer meta type, falling back via module category. */
 export function resolveEmailSendType(options: {
   emailType?: MailEmailType | string | null

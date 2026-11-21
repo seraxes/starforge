@@ -9,6 +9,7 @@ import { sanitizeRichHtml } from '@/modules/rich-editor/api.server'
 
 import {
   acceptFriendship,
+  blockUser,
   declineFriendship,
   requestFriendshipNotifying,
 } from './friends-store'
@@ -259,6 +260,130 @@ export async function createTextPostAction(
   return { ok: true, postId: result.post.id }
 }
 
+/** Author or Social staff (admin / dev) edits a post body. */
+export async function editPostAction(
+  _prev: SocialFeedActionState,
+  formData: FormData,
+): Promise<SocialFeedActionState> {
+  const gate = await requireSocialMember()
+  if (!gate.ok) return { error: gate.error }
+
+  const postId = String(formData.get('postId') ?? '').trim()
+  if (!postId) return { error: 'Choose a post.' }
+  const rawBody = String(formData.get('body') ?? '')
+  const body = sanitizeRichHtml(rawBody).trim() || rawBody.trim()
+
+  const canManagePosts = await viewerMayModerateSocialContent(gate.userId)
+  const { editPost } = await import('./posts-store')
+  const result = await editPost(
+    {
+      actorUserId: gate.userId,
+      postId,
+      body,
+    },
+    { canManagePosts },
+  )
+  if (!result.ok) {
+    if (result.reason === 'not_author') return { error: 'You can only edit your own posts.' }
+    if (result.reason === 'empty_body') return { error: 'Write something first.' }
+    if (result.reason === 'poll_closed') return { error: 'That poll is closed.' }
+    if (result.reason === 'not_found') return { error: 'That post is no longer there.' }
+    return { error: 'Could not save the post.' }
+  }
+
+  revalidatePath('/feed')
+  revalidatePath('/feed/post')
+  return { ok: true, postId }
+}
+
+/** Author or Social staff (admin / dev) deletes a post. */
+export async function deletePostAction(
+  _prev: SocialFeedActionState,
+  formData: FormData,
+): Promise<SocialFeedActionState> {
+  const gate = await requireSocialMember()
+  if (!gate.ok) return { error: gate.error }
+
+  const postId = String(formData.get('postId') ?? '').trim()
+  if (!postId) return { error: 'Choose a post.' }
+
+  const canManagePosts = await viewerMayModerateSocialContent(gate.userId)
+  const { deletePost } = await import('./posts-store')
+  const result = await deletePost(
+    {
+      actorUserId: gate.userId,
+      postId,
+    },
+    { canManagePosts },
+  )
+  if (!result.ok) {
+    if (result.reason === 'not_author') return { error: 'You can only delete your own posts.' }
+    if (result.reason === 'not_found') return { error: 'That post is no longer there.' }
+    return { error: 'Could not delete the post.' }
+  }
+
+  revalidatePath('/feed')
+  revalidatePath('/feed/post')
+  return { ok: true, postId }
+}
+
+/** Author or Social staff (admin / dev) changes who can see a post. */
+export async function setPostAudienceAction(
+  _prev: SocialFeedActionState,
+  formData: FormData,
+): Promise<SocialFeedActionState> {
+  const gate = await requireSocialMember()
+  if (!gate.ok) return { error: gate.error }
+
+  const postId = String(formData.get('postId') ?? '').trim()
+  const audienceRaw = String(formData.get('audience') ?? '').trim()
+  const groupId = String(formData.get('groupId') ?? '').trim() || null
+  if (!postId) return { error: 'Choose a post.' }
+  if (!isPostAudience(audienceRaw) || !COMPOSER_AUDIENCES.includes(audienceRaw)) {
+    return { error: 'Choose who can see this.' }
+  }
+
+  const canManagePosts = await viewerMayModerateSocialContent(gate.userId)
+  if (audienceRaw === 'group') {
+    if (!groupId) return { error: 'Choose a group you own.' }
+    const actorOwned = await listOwnedGroups(gate.userId)
+    if (actorOwned.some((group) => group.id === groupId)) {
+      /* ok — actor owns the group */
+    } else if (canManagePosts) {
+      const { findPost } = await import('./posts-store')
+      const post = await findPost(postId)
+      const authorOwned = post ? await listOwnedGroups(post.authorUserId) : []
+      if (!authorOwned.some((group) => group.id === groupId)) {
+        return { error: 'Choose a group you own.' }
+      }
+    } else {
+      return { error: 'Choose a group you own.' }
+    }
+  }
+
+  const { setPostAudience } = await import('./posts-store')
+  const result = await setPostAudience(
+    {
+      actorUserId: gate.userId,
+      postId,
+      audience: audienceRaw,
+      groupId,
+    },
+    { canManagePosts },
+  )
+  if (!result.ok) {
+    if (result.reason === 'not_author') return { error: 'You can only change your own posts.' }
+    if (result.reason === 'invalid_audience' || result.reason === 'group_required') {
+      return { error: 'Choose who can see this.' }
+    }
+    return { error: 'Could not update who can see this.' }
+  }
+
+  revalidatePath('/feed')
+  revalidatePath('/feed/post')
+  return { ok: true, postId }
+}
+
 /** Share another post onto the feed (optional comment). */
 export async function createSharePostAction(
   _prev: SocialFeedActionState,
@@ -298,6 +423,9 @@ export async function createSharePostAction(
     }
     if (result.reason === 'cannot_view' || result.reason === 'not_found') {
       return { error: 'That post is not available.' }
+    }
+    if (result.reason === 'audience_too_wide') {
+      return { error: 'That share would show the post to more people than the original allows.' }
     }
     if (result.reason === 'banned') return { error: 'You cannot share while banned.' }
     return { error: 'Could not share the post.' }
@@ -1120,11 +1248,20 @@ export type SocialCommentActionState = {
   ok?: boolean
 }
 
-/** True when the signed-in member may moderate Social comments (edit/delete any). */
-async function viewerMayModerateSocialComments(userId: string): Promise<boolean> {
-  const { getAccessViewer, viewerMayAccessAdminResource } = await import('@/core/acl/access')
+/**
+ * True when the signed-in member may moderate Social posts/comments
+ * (edit / delete / audience on any). App admins (devs included) bypass;
+ * others need admin.social edit. See `sf-staff-bypass`.
+ */
+async function viewerMayModerateSocialContent(userId: string): Promise<boolean> {
+  const {
+    getAccessViewer,
+    viewerMayAccessAdminResource,
+    viewerMayOverrideMemberOwnership,
+  } = await import('@/core/acl/access')
   const viewer = await getAccessViewer()
   if (!viewer.userId || viewer.userId !== userId) return false
+  if (viewerMayOverrideMemberOwnership(viewer)) return true
   return viewerMayAccessAdminResource(viewer, 'admin.social', 'edit')
 }
 
@@ -1181,7 +1318,7 @@ export async function editCommentAction(
   if (!commentId) return { error: 'Choose a comment.' }
   if (!body) return { error: 'Write a comment first.' }
 
-  const canManagePosts = await viewerMayModerateSocialComments(gate.userId)
+  const canManagePosts = await viewerMayModerateSocialContent(gate.userId)
   const { editComment } = await import('./comments-store')
   const result = await editComment(
     { actorUserId: gate.userId, commentId, body },
@@ -1210,14 +1347,14 @@ export async function deleteCommentAction(
   const commentId = String(formData.get('commentId') ?? '').trim()
   if (!commentId) return { error: 'Choose a comment.' }
 
-  const canManagePosts = await viewerMayModerateSocialComments(gate.userId)
+  const canManagePosts = await viewerMayModerateSocialContent(gate.userId)
   const { deleteComment } = await import('./comments-store')
   const result = await deleteComment(
     { actorUserId: gate.userId, commentId },
     { canManagePosts },
   )
   if (!result.ok) {
-    if (result.reason === 'not_author') return { error: 'You can only delete your own comments.' }
+    if (result.reason === 'not_author') return { error: 'You cannot delete that comment.' }
     if (result.reason === 'not_found') return { error: 'That comment is no longer there.' }
     return { error: 'Could not delete the comment.' }
   }
@@ -1238,8 +1375,27 @@ export async function setReactionAction(
   const targetType = String(formData.get('targetType') ?? '').trim()
   const targetId = String(formData.get('targetId') ?? '').trim()
   const kind = String(formData.get('kind') ?? '').trim()
+  const remove = String(formData.get('remove') ?? '').trim() === '1'
   if (!targetId || (targetType !== 'post' && targetType !== 'comment')) {
     return { error: 'Choose a post or a comment.' }
+  }
+
+  if (remove) {
+    const { clearReaction } = await import('./reactions-store')
+    const cleared = await clearReaction({
+      actorUserId: gate.userId,
+      targetType,
+      targetId,
+    })
+    if (!cleared.ok) {
+      if (cleared.reason === 'cannot_view' || cleared.reason === 'cannot_interact') {
+        return { error: 'You cannot react to that.' }
+      }
+      return { error: 'Could not save the reaction.' }
+    }
+    revalidatePath('/feed')
+    revalidatePath('/feed/post')
+    return { ok: true }
   }
 
   const { likeComment, likePost } = await import('./reactions-store')
@@ -1328,6 +1484,32 @@ export async function declineFriendAction(
 
   revalidatePath('/feed/people')
   revalidatePath('/feed/requests')
+  return { ok: true }
+}
+
+/** Block a member from a post/comment ··· menu. */
+export async function blockUserAction(
+  _prev: SocialPeopleActionState,
+  formData: FormData,
+): Promise<SocialPeopleActionState> {
+  const gate = await requireSocialMember()
+  if (!gate.ok) return { error: gate.error }
+
+  const otherId = String(formData.get('userId') ?? '').trim()
+  if (!otherId) return { error: 'Choose a member.' }
+  if (otherId === gate.userId) return { error: 'You cannot block yourself.' }
+
+  const result = await blockUser(gate.userId, otherId)
+  if (!result.ok) {
+    if (result.reason === 'self') return { error: 'You cannot block yourself.' }
+    return { error: 'Could not block this member.' }
+  }
+
+  revalidatePath('/feed')
+  revalidatePath('/feed/people')
+  revalidatePath('/feed/following')
+  revalidatePath('/feed/post')
+  revalidatePath('/feed/u')
   return { ok: true }
 }
 

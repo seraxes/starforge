@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import {
+  emailTypeFromBroadcastSource,
   emailTypeFromModuleCategory,
   isEmailSendType,
   resolveEmailSendType,
@@ -24,6 +25,30 @@ describe('emailTypeFromModuleCategory', () => {
     assert.equal(emailTypeFromModuleCategory('other'), 'transactional')
     assert.equal(emailTypeFromModuleCategory(''), 'transactional')
     assert.equal(emailTypeFromModuleCategory(null), 'transactional')
+  })
+})
+
+describe('emailTypeFromBroadcastSource', () => {
+  it('forces marketing for email-campaign sourceKeys', () => {
+    assert.equal(
+      emailTypeFromBroadcastSource('email-campaign:abc', 'forms'),
+      'marketing',
+    )
+    assert.equal(
+      emailTypeFromBroadcastSource('email-campaign:abc', 'events'),
+      'marketing',
+    )
+    assert.equal(
+      emailTypeFromBroadcastSource('email-campaign:abc', 'system'),
+      'marketing',
+    )
+  })
+
+  it('falls back to module category for other sourceKeys', () => {
+    assert.equal(emailTypeFromBroadcastSource('events:1', 'forms'), 'transactional')
+    assert.equal(emailTypeFromBroadcastSource('events:1', 'social'), 'marketing')
+    assert.equal(emailTypeFromBroadcastSource('', 'system'), 'system')
+    assert.equal(emailTypeFromBroadcastSource(null, 'other'), 'transactional')
   })
 })
 

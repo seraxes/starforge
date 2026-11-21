@@ -13,6 +13,7 @@ import {
   canViewPost,
   emptyPollCheckinFields,
   isPostAudience,
+  shareAudienceIsWider,
   type CanViewPostContext,
   type PostAudience,
   type PostRecord,
@@ -36,6 +37,7 @@ export type ShareLinkRefuseReason =
   | 'blocked'
   | 'banned'
   | 'disabled_kind'
+  | 'audience_too_wide'
 
 export type ShareLinkMutationResult =
   | { ok: true; post: PostRecord }
@@ -345,6 +347,14 @@ export function decideCreateSharePost(
   const pageId = input.pageId?.trim() || null
   const audienceDecision = resolveAudience(input.audience, groupId)
   if (!audienceDecision.ok) return audienceDecision
+  if (
+    shareAudienceIsWider(target.audience, audienceDecision.audience, {
+      originalGroupId: target.groupId,
+      nextGroupId: audienceDecision.groupId,
+    })
+  ) {
+    return { ok: false, reason: 'audience_too_wide' }
+  }
 
   const now = opts?.now ?? new Date()
   const newId = opts?.newId ?? (() => crypto.randomUUID())

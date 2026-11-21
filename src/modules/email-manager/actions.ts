@@ -38,11 +38,30 @@ async function requireEmailManagerAdmin(
   return null
 }
 
-function revalidateEmailAdmin() {
+function revalidateEmailAdmin(templateId?: string) {
   revalidatePath('/admin/email')
   revalidatePath('/admin/email/templates')
   revalidatePath('/admin/email/sends')
   revalidatePath('/admin/email/broadcasts')
+  revalidatePath('/admin/email/campaigns')
+  const id = (templateId || '').trim()
+  if (id) revalidatePath(`/admin/email/templates/${id}`)
+}
+
+function revalidateEmailCampaignAdmin(campaignId?: string) {
+  revalidatePath('/admin/email/campaigns')
+  const id = (campaignId || '').trim()
+  if (id) revalidatePath(`/admin/email/campaigns/${id}`)
+}
+
+function revalidateEmailCampaignSend(campaignId?: string) {
+  revalidateEmailCampaignAdmin(campaignId)
+  revalidatePath('/admin/email/broadcasts')
+}
+
+function parseAfterIntent(formData: FormData): 'apply' | 'save' {
+  const raw = String(formData.get('after') ?? 'save').trim().toLowerCase()
+  return raw === 'apply' ? 'apply' : 'save'
 }
 
 function parseConditionsFromForm(formData: FormData) {
@@ -100,7 +119,7 @@ export async function createEmailTemplateAction(
     bodyHtml: String(formData.get('bodyHtml') ?? ''),
   })
   if ('error' in result) return { error: result.error }
-  revalidateEmailAdmin()
+  revalidateEmailAdmin(result.template.id)
   return {
     ok: true,
     message: `Template “${result.template.label}” created.`,
@@ -116,6 +135,7 @@ export async function updateEmailTemplateAction(
   if (denied) return denied
 
   const id = String(formData.get('id') ?? '').trim()
+  const after = parseAfterIntent(formData)
   const result = await updateEmailTemplate({
     id,
     label: String(formData.get('label') ?? ''),
@@ -125,11 +145,12 @@ export async function updateEmailTemplateAction(
     bodyHtml: String(formData.get('bodyHtml') ?? ''),
   })
   if ('error' in result) return { error: result.error }
-  revalidateEmailAdmin()
+  revalidateEmailAdmin(result.template.id)
   return {
     ok: true,
     message: `Template “${result.template.label}” saved.`,
     id: result.template.id,
+    after,
   }
 }
 
@@ -355,4 +376,169 @@ export async function cancelEmailBroadcastAction(
   if (!result.ok) return { error: result.error || 'Cancel failed.', id }
   revalidateEmailAdmin()
   return { ok: true, message: 'Broadcast cancelled.', id }
+}
+
+export async function createEmailCampaignAction(
+  _prev: EmailAdminActionState,
+  formData: FormData,
+): Promise<EmailAdminActionState> {
+  const denied = await requireEmailManagerAdmin()
+  if (denied) return denied
+
+  const { createEmailCampaign } = await import('./campaign-store')
+  const result = await createEmailCampaign({
+    label: String(formData.get('label') ?? ''),
+  })
+  if ('error' in result) return { error: result.error }
+  revalidateEmailCampaignAdmin(result.campaign.id)
+  return {
+    ok: true,
+    message: `Campaign “${result.campaign.label}” created.`,
+    id: result.campaign.id,
+  }
+}
+
+export async function updateEmailCampaignAction(
+  _prev: EmailAdminActionState,
+  formData: FormData,
+): Promise<EmailAdminActionState> {
+  const denied = await requireEmailManagerAdmin()
+  if (denied) return denied
+
+  const id = String(formData.get('id') ?? '').trim()
+  const { updateEmailCampaignDraft } = await import('./campaign-store')
+  const { EMAIL_BROADCAST_RECIPIENT_CAP } = await import('./types')
+  const result = await updateEmailCampaignDraft({
+    id,
+    label: String(formData.get('label') ?? ''),
+    templateId: String(formData.get('templateId') ?? ''),
+    recipientsPaste: String(formData.get('recipients') ?? ''),
+  })
+  if ('error' in result) return { error: result.error }
+  revalidateEmailCampaignAdmin(result.campaign.id)
+
+  const capNote = result.truncated
+    ? ` First ${EMAIL_BROADCAST_RECIPIENT_CAP} addresses kept; the rest were left off.`
+    : ''
+  return {
+    ok: true,
+    message: `Campaign “${result.campaign.label}” saved (${result.recipientCount} recipient${result.recipientCount === 1 ? '' : 's'}).${capNote}`,
+    id: result.campaign.id,
+  }
+}
+
+export async function deleteEmailCampaignAction(
+  _prev: EmailAdminActionState,
+  formData: FormData,
+): Promise<EmailAdminActionState> {
+  const denied = await requireEmailManagerAdmin('manage')
+  if (denied) return denied
+  const id = String(formData.get('id') ?? '').trim()
+  const { deleteEmailCampaign } = await import('./campaign-store')
+  const result = await deleteEmailCampaign(id)
+  if ('error' in result) return { error: result.error }
+  revalidateEmailCampaignAdmin()
+  return { ok: true, message: 'Campaign deleted.', id }
+}
+
+/**
+ * Save draft fields (same as update), then enqueue one paced broadcast.
+ * Does not call getMailer — enqueueEmailBroadcast owns transport.
+ */
+export async function sendEmailCampaignAction(
+  _prev: EmailAdminActionState,
+  formData: FormData,
+): Promise<EmailAdminActionState> {
+  const denied = await requireEmailManagerAdmin('manage')
+  if (denied) return denied
+
+  const id = String(formData.get('id') ?? '').trim()
+  if (!id) return { error: 'Campaign id is required.' }
+
+  const {
+    findEmailCampaignById,
+    linkEmailCampaignBroadcast,
+    listEmailCampaignRecipientEmails,
+    updateEmailCampaignDraft,
+  } = await import('./campaign-store')
+
+  const existing = await findEmailCampaignById(id)
+  if (!existing) return { error: 'Campaign not found.', id }
+
+  if (existing.broadcastId || existing.status !== 'draft') {
+    return {
+      error: existing.broadcastId
+        ? 'This campaign already has a broadcast and cannot be queued again.'
+        : `Only draft campaigns can be sent (status is “${existing.status}”).`,
+      id,
+    }
+  }
+
+  const saved = await updateEmailCampaignDraft({
+    id,
+    label: String(formData.get('label') ?? ''),
+    templateId: String(formData.get('templateId') ?? ''),
+    recipientsPaste: String(formData.get('recipients') ?? ''),
+  })
+  if ('error' in saved) return { error: saved.error, id }
+
+  const campaign = saved.campaign
+  if (!campaign.templateId) {
+    return { error: 'Template is required before send.', id }
+  }
+  if (saved.recipientCount <= 0) {
+    return { error: 'Add at least one recipient before send.', id }
+  }
+
+  const emails = await listEmailCampaignRecipientEmails(campaign.id)
+  if (emails.length === 0) {
+    return { error: 'Add at least one recipient before send.', id }
+  }
+
+  const { enqueueEmailBroadcast } = await import('./broadcast-engine')
+  const enqueued = await enqueueEmailBroadcast({
+    label: campaign.label,
+    templateId: campaign.templateId,
+    moduleCategory: campaign.moduleCategory,
+    sourceKey: `email-campaign:${campaign.id}`,
+    recipients: emails.map((email) => ({ email, payload: {} })),
+  })
+
+  if (!enqueued.ok) {
+    revalidateEmailCampaignSend(campaign.id)
+    return {
+      error: enqueued.error || 'Could not queue the campaign broadcast.',
+      id: campaign.id,
+    }
+  }
+
+  const broadcastId = (enqueued.broadcastId || '').trim()
+  if (!broadcastId) {
+    revalidateEmailCampaignSend(campaign.id)
+    return {
+      error: 'Broadcast queued but no broadcast id was returned.',
+      id: campaign.id,
+    }
+  }
+
+  // Success or alreadyRunning with a broadcastId — attach and mark sending.
+  const linked = await linkEmailCampaignBroadcast({
+    id: campaign.id,
+    broadcastId,
+  })
+  if ('error' in linked) {
+    revalidateEmailCampaignSend(campaign.id)
+    return { error: linked.error, id: campaign.id }
+  }
+
+  revalidateEmailCampaignSend(linked.campaign.id)
+  const total = enqueued.totalCount ?? emails.length
+  const already = enqueued.alreadyRunning
+    ? ' An in-flight broadcast for this campaign was reused.'
+    : ''
+  return {
+    ok: true,
+    message: `Campaign “${linked.campaign.label}” queued to ${total} recipient${total === 1 ? '' : 's'}.${already}`,
+    id: linked.campaign.id,
+  }
 }

@@ -19,7 +19,7 @@ import {
   coercePublishedCacheEnabled,
   coerceRealtimeEnabled,
   featureFlagsFromModuleToggles,
-  getSiteSettings,
+  getSiteSettingsLive,
   isCatalogModuleEnabled,
   listInstalledModuleCatalog,
   type ModuleToggleMap,
@@ -146,7 +146,8 @@ export async function updateSiteSettingsAction(
     return { error: 'Sign in with Settings manage access (Users → ACL) or as an app admin.' }
   }
 
-  const current = await getSiteSettings()
+  // Live read — published SWR cache can still serve the prior row after save.
+  const current = await getSiteSettingsLive()
   const siteName = String(formData.get('siteName') ?? '').trim() || current.siteName
   const primaryNavMenuId =
     String(formData.get('primaryNavMenuId') ?? '').trim() || current.primaryNavMenuId
@@ -216,7 +217,7 @@ export async function updateAdminUxSettingsAction(
     return { error: 'Sign in with Settings manage access (Users → ACL) or as an app admin.' }
   }
 
-  const current = await getSiteSettings()
+  const current = await getSiteSettingsLive()
   const adminAutosaveDebounceMs = clampAdminAutosaveDebounceMs(
     formData.get('adminAutosaveDebounceMs'),
   )
@@ -253,7 +254,7 @@ export async function updatePerformanceSettingsAction(
     return { error: 'Sign in with Settings manage access (Users → ACL) or as an app admin.' }
   }
 
-  const current = await getSiteSettings()
+  const current = await getSiteSettingsLive()
   const formRateLimitMax = clampFormRateLimitMax(formData.get('formRateLimitMax'))
   const formRateLimitWindowSec = clampFormRateLimitWindowSec(
     formData.get('formRateLimitWindowSec'),
@@ -319,7 +320,7 @@ export async function updateAuthSettingsAction(
     return { error: 'Sign in with Settings manage access (Users → ACL) or as an app admin.' }
   }
 
-  const current = await getSiteSettings()
+  const current = await getSiteSettingsLive()
   const registrationOn = parseBool(formData, 'registrationEnabled')
   const moduleToggles: ModuleToggleMap = {
     ...current.moduleToggles,

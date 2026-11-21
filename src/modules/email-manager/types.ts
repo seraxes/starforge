@@ -140,6 +140,8 @@ export type EmailAdminActionState = {
   ok?: boolean
   message?: string
   id?: string
+  /** Template editor: apply stays; save returns to the list. */
+  after?: 'apply' | 'save'
 }
 
 /** Module settings document in `sf_module_settings` (id = product:email-manager). */
@@ -200,6 +202,33 @@ export function isEmailBroadcastRecipientStatus(
   )
 }
 
+/** Campaign editor filter for `sf_email_broadcast_recipients`. `queued` includes `sending`. */
+export const BROADCAST_RECIPIENT_ADMIN_FILTERS = [
+  'failed',
+  'skipped',
+  'sent',
+  'queued',
+  'all',
+] as const
+
+export type BroadcastRecipientAdminFilter =
+  (typeof BROADCAST_RECIPIENT_ADMIN_FILTERS)[number]
+
+export function normalizeBroadcastRecipientAdminFilter(
+  value: unknown,
+): BroadcastRecipientAdminFilter {
+  if (
+    value === 'skipped' ||
+    value === 'sent' ||
+    value === 'queued' ||
+    value === 'all'
+  ) {
+    return value
+  }
+  // Default (and unknown) → failed.
+  return 'failed'
+}
+
 export type EmailBroadcastRecipientInput = {
   email: string
   /** Frozen merge fields for this recipient. */
@@ -247,4 +276,49 @@ export type EmailBroadcastEnqueueResult = {
   /** True when an in-flight broadcast for the same sourceKey was returned. */
   alreadyRunning?: boolean
   message?: string
+}
+
+/** Campaign lifecycle — draft until Send; then follows the linked broadcast. */
+export const EMAIL_CAMPAIGN_STATUSES = [
+  'draft',
+  'sending',
+  'sent',
+  'cancelled',
+  'failed',
+] as const
+
+export type EmailCampaignStatus = (typeof EMAIL_CAMPAIGN_STATUSES)[number]
+
+export function isEmailCampaignStatus(value: unknown): value is EmailCampaignStatus {
+  return (
+    typeof value === 'string' &&
+    (EMAIL_CAMPAIGN_STATUSES as readonly string[]).includes(value)
+  )
+}
+
+export type EmailCampaignRecord = {
+  id: string
+  label: string
+  templateId: string | null
+  status: EmailCampaignStatus
+  broadcastId: string | null
+  moduleCategory: EmailModuleCategory
+  createdAt: Date
+  updatedAt: Date
+}
+
+/** Broadcast counters shown on the campaign list / editor (one query join). */
+export type EmailCampaignBroadcastProgress = {
+  status: EmailBroadcastStatus
+  totalCount: number
+  sentCount: number
+  failedCount: number
+  skippedCount: number
+  nextRunAt: Date | null
+}
+
+export type EmailCampaignListRow = EmailCampaignRecord & {
+  templateLabel: string
+  recipientCount: number
+  broadcast: EmailCampaignBroadcastProgress | null
 }

@@ -391,4 +391,15 @@ export const hostModuleManifests: StarforgeModuleManifest[] = [
     importPath: '@/core/page-settings/atoms/custom-css-js',
     exportName: 'customCssJsAtom',
   }),
+  defineStarforgeModule({
+    id: 'atom:headroom',
+    kind: 'atom',
+    label: 'Sticky / Headroom',
+    description:
+      'Make one layout section sticky, or headroom (hide on scroll down, show on scroll up).',
+    version: '0.1.0',
+    defaultEnabled: true,
+    importPath: '@/core/page-settings/atoms/headroom',
+    exportName: 'headroomAtom',
+  }),
 ]

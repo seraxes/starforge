@@ -433,7 +433,6 @@ body:has(.admin-shell) > main {
 .admin-shell .settings-fieldset,
 .admin-shell .settings-modules-row,
 .admin-shell .page-settings-panel,
-.admin-shell .page-settings-atom-row,
 .admin-shell .outlines-create,
 .admin-shell .outlines-table-wrap,
 .admin-shell .nav-item-card-body,
@@ -515,6 +514,7 @@ body:has(.admin-shell) > main {
 .admin-shell .layout-inline-form select,
 .admin-shell .gantry-inline-input,
 .admin-shell .gantry-section-name-input,
+.admin-shell .gantry-section-id-input,
 .admin-shell .gantry-section-class-input,
 .admin-shell .gantry-slot-name-input,
 .admin-shell .settings-field input:not([type]),
@@ -559,6 +559,17 @@ body:has(.admin-shell) > main {
   max-width: 100% !important;
   color-scheme: dark;
   box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 6%, transparent) !important;
+}
+
+.admin-shell .settings-field input::placeholder,
+.admin-shell .settings-field textarea::placeholder,
+.admin-shell .gantry-typed-form input::placeholder,
+.admin-shell .gantry-typed-form textarea::placeholder,
+.admin-shell .page-settings-panel-body input::placeholder,
+.admin-shell .page-settings-panel-body textarea::placeholder {
+  color: #8b97a8 !important;
+  -webkit-text-fill-color: #8b97a8 !important;
+  opacity: 1;
 }
 
 .admin-shell .settings-field input:-webkit-autofill,
@@ -1741,6 +1752,9 @@ body:has(.admin-shell) > main {
   .page-settings-field-with-inherit-active:has(.page-settings-list)
   > .page-settings-field-inherit-aside,
 .admin-shell
+  .page-settings-field-with-inherit-active:has(.page-settings-atom-pills)
+  > .page-settings-field-inherit-aside,
+.admin-shell
   .page-settings-field-with-inherit-active:has(.nav-access-tags)
   > .page-settings-field-inherit-aside,
 .admin-shell
@@ -2449,6 +2463,14 @@ body:has(.admin-shell) > main {
   color-scheme: dark;
 }
 
+/* Placeholders stay muted grey — input `-webkit-text-fill-color: #fff` would otherwise paint them white. */
+.gantry-settings-theme-dark input::placeholder,
+.gantry-settings-theme-dark textarea::placeholder {
+  color: #8b97a8 !important;
+  -webkit-text-fill-color: #8b97a8 !important;
+  opacity: 1;
+}
+
 .gantry-settings-theme-dark select:not([multiple]) {
   padding-right: 2.25rem !important;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 5.75L8 10.25L12.5 5.75' stroke='%23c5d2e0' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
@@ -2543,6 +2565,26 @@ body:has(.admin-shell) > main {
 .gantry-settings-theme-dark .gantry-color-swatch {
   border-color: #2f3d50;
   background: #161e27;
+}
+
+/* Atom headroom opacity — full-width range (do not use admin-control-row; it collapses ranges). */
+.gantry-settings-theme-dark .page-settings-atom-opacity-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+}
+
+.gantry-settings-theme-dark .page-settings-atom-opacity-range {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 8rem;
+  height: 1.25rem;
+  accent-color: var(--sf-admin-blue-mid, #4a7ab0);
+}
+
+.gantry-settings-theme-dark .page-settings-atom-opacity-value {
+  color: #9aa8bc;
 }
 
 /* Helium footer actions: Apply blue · Save orange · Close dark */
@@ -2810,10 +2852,52 @@ body:has(.admin-shell) > main {
   opacity: 0.72;
 }
 
-.admin-shell .page-settings-atom-pill {
-  border-color: var(--sf-admin-blue-border);
-  background: color-mix(in srgb, var(--sf-secondary) 18%, var(--sf-admin-surface));
-  color: var(--sf-secondary-strong);
+.admin-shell .page-settings-atom-pill,
+.admin-shell .page-settings-atom-chip {
+  border: 1px solid var(--sf-admin-panel-border);
+  background: #121a24;
+  color: #c5d2e0;
+  border-radius: var(--sf-admin-btn-radius);
+  box-shadow: none;
+}
+
+.admin-shell .page-settings-atom-pill:not(:disabled):hover,
+.admin-shell .page-settings-atom-chip:hover {
+  background: var(--sf-admin-blue-mid);
+  border-color: var(--sf-admin-blue-mid);
+  color: #fff;
+}
+
+.admin-shell .page-settings-atom-chip .page-settings-atom-enable {
+  color: inherit;
+  margin: 0;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.admin-shell .page-settings-atom-chip-trigger {
+  background: transparent !important;
+  border: 0 !important;
+  color: inherit !important;
+  box-shadow: none !important;
+  min-height: 0;
+  padding: 0.1rem 0.15rem 0.1rem 0.2rem;
+}
+
+.admin-shell .page-settings-atom-chip-trigger:hover {
+  background: transparent !important;
+  color: inherit !important;
+}
+
+.admin-shell .page-settings-atom-cog {
+  color: #fff;
+  font-size: var(--sf-admin-icon-primary);
+}
+
+.admin-shell .page-settings-atom-chip .page-settings-atom-remove {
+  width: var(--sf-admin-icon-secondary);
+  height: var(--sf-admin-icon-secondary);
+  margin: 0;
 }
 
 .admin-shell .page-settings-acl {

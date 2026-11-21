@@ -34,6 +34,7 @@ export {
   requireAdminAreaForRequest,
   viewerMayAccessAdminResource,
   viewerMayEnterAdminShell,
+  viewerMayOverrideMemberOwnership,
 } from './access'
 
 /** Pure ACL decision helpers — safe for unit tests / shared graphs. */

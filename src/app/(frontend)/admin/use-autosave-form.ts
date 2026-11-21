@@ -31,11 +31,18 @@ export function useAutosaveForm(delayMs?: number) {
     }
   }, [])
 
-  /** Immediate submit (checkboxes/selects after a real change). Always submits. */
+  /**
+   * Immediate submit (checkboxes/selects after a real change). Always submits.
+   * Deferred to a microtask so setState in the same event handler can commit
+   * before FormData is built (hidden JSON inputs + controlled fields). A sync
+   * submit raced the prior value; revalidation then remounted admin UIs on it.
+   */
   const saveNow = useCallback(() => {
     clearTimer()
     dirtyRef.current = false
-    formRef.current?.requestSubmit()
+    queueMicrotask(() => {
+      formRef.current?.requestSubmit()
+    })
   }, [clearTimer])
 
   /** Debounced submit after a real text/value edit. */

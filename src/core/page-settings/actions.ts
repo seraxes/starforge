@@ -10,7 +10,7 @@ import type { UserGroupOption } from '@/core/acl/types'
 import { requireAdminArea } from '@/core/acl/access'
 import { userIsDeveloperAdmin } from '@/core/auth/admin'
 import { GLOBAL_PAGE_CHROME_ID } from '@/core/db'
-import { getSiteSettings, isAtomModuleEnabled } from '@/core/settings'
+import { getSiteSettingsLive, isAtomModuleEnabled } from '@/core/settings'
 import { getActiveSkin, isSkinBaseOutlineId } from '@/core/skin'
 
 import { ensureAtomsRegistered, getRegisteredAtom, listRegisteredAtoms } from './atoms'
@@ -236,7 +236,7 @@ export async function loadPageSettingsAdmin(
       : { ...outlineRow.chrome, pageKey: null, layoutId: undefined }
   }
 
-  const settingsSite = await getSiteSettings()
+  const settingsSite = await getSiteSettingsLive()
 
   return {
     outlineId: outline,
@@ -267,7 +267,7 @@ export async function createAtomInstanceAction(
   await ensureAtomsRegistered()
   const def = getRegisteredAtom(type)
   if (!def) return { ok: false, error: `Unknown atom type “${type}”.` }
-  const settings = await getSiteSettings()
+  const settings = await getSiteSettingsLive()
   if (!isAtomModuleEnabled(settings, type)) {
     return { ok: false, error: `Atom “${type}” is disabled in Settings → Modules.` }
   }

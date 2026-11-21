@@ -14,7 +14,7 @@ import { canInteract, type CanInteractContext } from './interact'
 import { areBlocked } from './friends-store'
 import { getMemberBannedAt, isMemberAccountHidden } from './members-store'
 import { canViewerSeePost, findPost } from './posts-store'
-import { DEFAULT_ENABLED_REACTION_KINDS, decideCommentLike, decidePostLike, isReactionKind, isReactionTargetType, type ReactionMutationResult, type ReactionRecord, type SetCommentLikeInput, type SetPostLikeInput } from './reactions'
+import { DEFAULT_ENABLED_REACTION_KINDS, decideClearReaction, decideCommentLike, decidePostLike, isReactionKind, isReactionTargetType, type ReactionMutationResult, type ReactionRecord, type ReactionRefuseReason, type ReactionTargetType, type SetCommentLikeInput, type SetPostLikeInput } from './reactions'
 import { loadSocialModuleSettings } from './settings'
 import { sfSocialComments, sfSocialReactions } from './schema'
 
@@ -277,6 +277,94 @@ export async function likeComment(
 
   const stored = await findReaction(actor, 'comment', commentId)
   return stored ? { ok: true, reaction: stored } : { ok: true, reaction: next }
+}
+
+export type ClearReactionResult =
+  | { ok: true; cleared: boolean }
+  | { ok: false; reason: ReactionRefuseReason }
+
+/**
+ * Take the viewer's reaction off a post or comment.
+ * Clicking the active Like control sends this. Setting the same kind still noops.
+ */
+export async function clearReaction(input: {
+  actorUserId: string
+  targetType: ReactionTargetType
+  targetId: string
+}): Promise<ClearReactionResult> {
+  const actor = input.actorUserId.trim()
+  const targetType = input.targetType
+  const targetId = input.targetId.trim()
+  if (!actor || !targetId || !isReactionTargetType(targetType)) {
+    return { ok: false, reason: 'invalid' }
+  }
+
+  let canView = false
+  let interactOk = false
+
+  if (targetType === 'post') {
+    const post = await findPost(targetId)
+    if (!post) return { ok: false, reason: 'cannot_view' }
+    ;[canView, interactOk] = await Promise.all([
+      canViewerSeePost(actor, post),
+      canActorInteractWith(actor, post.authorUserId),
+    ])
+  } else {
+    let commentAuthor = ''
+    let postId = ''
+    let staffHidden = false
+    try {
+      const rows = await db
+        .select({
+          authorUserId: sfSocialComments.authorUserId,
+          postId: sfSocialComments.postId,
+          staffHidden: sfSocialComments.staffHidden,
+        })
+        .from(sfSocialComments)
+        .where(eq(sfSocialComments.id, targetId))
+        .limit(1)
+      const row = rows[0]
+      if (!row) return { ok: false, reason: 'cannot_view' }
+      commentAuthor = row.authorUserId
+      postId = row.postId
+      staffHidden = row.staffHidden
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error)
+      if (/sf_social_comments|does not exist|relation/i.test(msg)) {
+        return { ok: false, reason: 'invalid' }
+      }
+      throw error
+    }
+    if (staffHidden && commentAuthor !== actor) {
+      return { ok: false, reason: 'cannot_view' }
+    }
+    const post = await findPost(postId)
+    if (!post) return { ok: false, reason: 'cannot_view' }
+    ;[canView, interactOk] = await Promise.all([
+      canViewerSeePost(actor, post),
+      canActorInteractWith(actor, commentAuthor),
+    ])
+  }
+
+  const current = await findReaction(actor, targetType, targetId)
+  const decision = decideClearReaction(
+    current,
+    { actorUserId: actor, targetType, targetId },
+    { canView, canInteract: interactOk },
+  )
+  if (!decision.ok) return { ok: false, reason: decision.reason }
+  if (decision.write === 'noop') return { ok: true, cleared: false }
+
+  try {
+    await db.delete(sfSocialReactions).where(eq(sfSocialReactions.id, decision.reaction.id))
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    if (/sf_social_reactions|does not exist|relation/i.test(msg)) {
+      return { ok: false, reason: 'invalid' }
+    }
+    throw error
+  }
+  return { ok: true, cleared: true }
 }
 
 /** Reactions on the posts and comments currently on a feed page. */

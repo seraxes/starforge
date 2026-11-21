@@ -144,9 +144,18 @@ async function viewerHasPagesCmsAccess(userId: string): Promise<boolean> {
 }
 
 /**
+ * True when the viewer is platform staff for ownership-gated member actions.
+ * App admins (including developer-admins) always pass — see `sf-staff-bypass`.
+ */
+export function viewerMayOverrideMemberOwnership(viewer: AccessViewer): boolean {
+  return Boolean(viewer.isAppAdmin)
+}
+
+/**
  * Admin-area ACL check.
  * Global app admins always pass. Others need a group grant and/or a live
  * subscription entitlement (e.g. organizer premium → admin.events).
+ * Also the pack-staff path for member ownership overrides (`sf-staff-bypass`).
  */
 export async function viewerMayAccessAdminResource(
   viewer: AccessViewer,

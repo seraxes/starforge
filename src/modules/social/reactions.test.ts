@@ -7,7 +7,13 @@ import {
   type CanViewPostContext,
   type PostRecord,
 } from './posts'
-import { createReactionMemory, decideCommentLike, decidePostLike } from './reactions'
+import {
+  createReactionMemory,
+  decideClearReaction,
+  decideCommentLike,
+  decidePostLike,
+  type ReactionRecord,
+} from './reactions'
 
 function interactCtx(
   overrides: Partial<CanInteractContext> = {},
@@ -218,5 +224,50 @@ describe('post likes', () => {
       { canView: true, canInteract: true, reactionsOnComments: false },
     )
     assert.deepEqual(result, { ok: false, reason: 'disabled_kind' })
+  })
+
+  it('clears the active reaction (success path)', () => {
+    const current: ReactionRecord = {
+      id: 'rxn-1',
+      actorUserId: 'bob',
+      targetType: 'post',
+      targetId: 'post-1',
+      kind: 'like',
+      createdAt: new Date('2026-11-19T19:00:00.000Z'),
+      updatedAt: new Date('2026-11-19T19:00:00.000Z'),
+    }
+    const cleared = decideClearReaction(
+      current,
+      { actorUserId: 'bob', targetType: 'post', targetId: 'post-1' },
+      { canView: true, canInteract: true },
+    )
+    assert.deepEqual(cleared, { ok: true, write: 'delete', reaction: current })
+
+    const missing = decideClearReaction(
+      null,
+      { actorUserId: 'bob', targetType: 'post', targetId: 'post-1' },
+      { canView: true, canInteract: true },
+    )
+    assert.deepEqual(missing, { ok: true, write: 'noop' })
+  })
+
+  it('refuses to clear a reaction when the pair is blocked (failure path)', () => {
+    const current: ReactionRecord = {
+      id: 'rxn-1',
+      actorUserId: 'bob',
+      targetType: 'comment',
+      targetId: 'c-1',
+      kind: 'love',
+      createdAt: new Date('2026-11-19T19:00:00.000Z'),
+      updatedAt: new Date('2026-11-19T19:00:00.000Z'),
+    }
+    assert.deepEqual(
+      decideClearReaction(
+        current,
+        { actorUserId: 'bob', targetType: 'comment', targetId: 'c-1' },
+        { canView: true, canInteract: false },
+      ),
+      { ok: false, reason: 'cannot_interact' },
+    )
   })
 })

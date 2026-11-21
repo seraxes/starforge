@@ -828,6 +828,7 @@ function SectionCanvas({
   const persistSectionMeta = useCallback(
     (fields: {
       label?: string
+      htmlId?: string
       cssClass?: string
       containerMode?: 'full' | 'boxed'
       width?: number
@@ -847,6 +848,14 @@ function SectionCanvas({
         }
         if (next !== section.label) {
           fd.set('label', next)
+          changed = true
+        }
+      }
+      if (fields.htmlId !== undefined) {
+        const next = fields.htmlId.trim()
+        const prev = (section.htmlId ?? '').trim()
+        if (next !== prev) {
+          fd.set('htmlId', next)
           changed = true
         }
       }
@@ -921,6 +930,7 @@ function SectionCanvas({
       router,
       section.containerMode,
       section.cssClass,
+      section.htmlId,
       section.id,
       section.label,
       section.width,
@@ -1161,6 +1171,28 @@ function SectionCanvas({
                   onCommit={(css) => persistSectionMeta({ margin: css })}
                 />
               </div>
+              <label className="gantry-inline-label gantry-section-id-label">
+                <span className="gantry-field-hint">HTML id</span>
+                <input
+                  key={`section-htmlid-${section.id}-${section.htmlId ?? ''}`}
+                  type="text"
+                  className="gantry-inline-input gantry-section-id-input"
+                  defaultValue={section.htmlId ?? ''}
+                  disabled={metaPending}
+                  placeholder="e.g. g-navigation"
+                  spellCheck={false}
+                  autoComplete="off"
+                  title="Public HTML id on the section wrapper (bare name, no # — Sticky / Headroom Target type: HTML id)"
+                  aria-label="Section HTML id"
+                  onBlur={(event) => persistSectionMeta({ htmlId: event.target.value })}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault()
+                      ;(event.target as HTMLInputElement).blur()
+                    }
+                  }}
+                />
+              </label>
               <label className="gantry-inline-label gantry-section-class-label">
                 <span className="gantry-field-hint">CSS classes</span>
                 <input
@@ -1181,7 +1213,9 @@ function SectionCanvas({
                   }}
                 />
               </label>
-              <code className="layout-id">{section.id}</code>
+              <code className="layout-id" title="Stable layout section id (data-sf-section)">
+                {section.id}
+              </code>
             </div>
           </details>
         </>

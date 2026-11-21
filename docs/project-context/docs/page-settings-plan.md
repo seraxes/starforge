@@ -33,7 +33,8 @@ Admin UI mirroring Gantry’s Page Settings tabs/panels: **outline-gated** docum
 Gantry atoms = headroom, analytics, custom CSS/JS, JS frameworks, lightcase, etc.
 - Starforge: **Atom registry** (same pattern as particles): id, label, config schema, inject into head/body.
 - v1 atoms: **Custom CSS/JS**, **Google Analytics** (or generic analytics id).
-- Later: Headroom, Lightcase, JS frameworks — add as modules when needed.
+- Shipped: **Sticky / Headroom** (`atom:headroom`) — one section via `data-sf-section`; Mode sticky or headroom (exclusive).
+- Later: Lightcase, JS frameworks — add as modules when needed.
 - Admin: pill buttons to add atom; list with settings gear → **popup overlay** (same as layout particle editors).
 
 **Outline assignment** is **not** edited in Page Settings. Nav menu items carry `layoutId` (Menus editor + Layouts → Assigned Menu) and sync into `sf_page_chrome.layoutId` for runtime resolve.

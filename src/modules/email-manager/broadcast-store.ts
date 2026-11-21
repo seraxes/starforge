@@ -13,6 +13,7 @@ import {
   isEmailBroadcastRecipientStatus,
   isEmailBroadcastStatus,
   isEmailModuleCategory,
+  normalizeBroadcastRecipientAdminFilter,
   type EmailBroadcastRecord,
   type EmailBroadcastRecipientStatus,
   type EmailBroadcastStatus,
@@ -343,5 +344,76 @@ export async function getBroadcastFromOverride(id: string): Promise<string> {
     return row?.fromOverride?.trim() || ''
   } catch {
     return ''
+  }
+}
+
+const BROADCAST_RECIPIENT_ADMIN_LIST_CAP = 200
+
+export type BroadcastRecipientAdminRow = {
+  id: string
+  email: string
+  status: string
+  error: string | null
+  sentAt: Date | null
+}
+
+/**
+ * Campaign editor recipient table — capped rows + full filter total.
+ * Soft-fails when the recipients table is missing.
+ */
+export async function listBroadcastRecipientsForAdmin(
+  broadcastId: string,
+  statusFilter: string,
+): Promise<{ rows: BroadcastRecipientAdminRow[]; total: number }> {
+  const id = broadcastId.trim()
+  if (!id) return { rows: [], total: 0 }
+
+  const filter = normalizeBroadcastRecipientAdminFilter(statusFilter)
+  const statusClause =
+    filter === 'all'
+      ? undefined
+      : filter === 'queued'
+        ? inArray(sfEmailBroadcastRecipients.status, ['queued', 'sending'])
+        : eq(sfEmailBroadcastRecipients.status, filter)
+  const where = statusClause
+    ? and(eq(sfEmailBroadcastRecipients.broadcastId, id), statusClause)
+    : eq(sfEmailBroadcastRecipients.broadcastId, id)
+
+  try {
+    const [countRow] = await db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(sfEmailBroadcastRecipients)
+      .where(where)
+    const total =
+      typeof countRow?.n === 'number' ? countRow.n : Number(countRow?.n) || 0
+
+    const rows = await db
+      .select({
+        id: sfEmailBroadcastRecipients.id,
+        email: sfEmailBroadcastRecipients.email,
+        status: sfEmailBroadcastRecipients.status,
+        error: sfEmailBroadcastRecipients.error,
+        sentAt: sfEmailBroadcastRecipients.sentAt,
+      })
+      .from(sfEmailBroadcastRecipients)
+      .where(where)
+      .orderBy(
+        asc(sfEmailBroadcastRecipients.sortOrder),
+        asc(sfEmailBroadcastRecipients.id),
+      )
+      .limit(BROADCAST_RECIPIENT_ADMIN_LIST_CAP)
+
+    return {
+      rows: rows.map((row) => ({
+        id: row.id,
+        email: row.email,
+        status: row.status,
+        error: row.error ?? null,
+        sentAt: row.sentAt ?? null,
+      })),
+      total,
+    }
+  } catch {
+    return { rows: [], total: 0 }
   }
 }

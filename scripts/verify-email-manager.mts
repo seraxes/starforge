@@ -130,24 +130,32 @@ assert.doesNotMatch(
   /admin-table-wrap/,
   'rules list must not nest admin-table-wrap inside outlines-table-wrap (double card chrome)',
 )
+assert.match(rulesUi, /sf-events-add-panel/)
+assert.match(rulesUi, /sf-events-form-actions page-settings-actions/)
+assert.match(rulesUi, /sf-events-inline-editor/)
+assert.doesNotMatch(rulesUi, /<details>/, 'rules edit must not open in a table-cell details panel')
 
 const templatesUi = read('src/modules/email-manager/admin/email-templates-manager.tsx')
-assert.match(templatesUi, /admin-settings-mosaic/)
-assert.match(templatesUi, /outlines-create/)
-assert.match(
-  templatesUi,
-  /outlines-create admin-settings-panel-wide[\s\S]*Filter by module/,
-  'Filter section must span full mosaic width',
-)
-assert.match(templatesUi, /sf-email-templates-card/)
-assert.match(templatesUi, /sf-email-templates-card-form/)
-assert.match(templatesUi, /outlines-table-wrap admin-settings-panel-wide/)
+assert.match(templatesUi, /sf-email-templates-manager/)
+assert.match(templatesUi, /sf-events-add-panel/)
+assert.match(templatesUi, /sf-events-form-mosaic/)
+assert.match(templatesUi, /Filter/)
+assert.match(templatesUi, /sf-events-filters/)
+assert.match(templatesUi, /sf-events-form-actions page-settings-actions/)
+assert.match(templatesUi, /outlines-table-wrap/)
 assert.match(templatesUi, /outlines-table/)
 assert.match(templatesUi, /admin-empty/)
+assert.match(
+  templatesUi,
+  /\/admin\/email\/templates\/\$\{encodeURIComponent\(tpl\.id\)\}/,
+  'Edit must link to the full-page template editor',
+)
+assert.match(templatesUi, /sf-admin-form-dialog/, 'Test send uses the shared admin form dialog')
+assert.doesNotMatch(templatesUi, /<details>/, 'Edit must not open in a table-cell details panel')
 assert.doesNotMatch(
   templatesUi,
   /page-settings-panel(?!-)/,
-  'templates UI must use outlines-create head strip, not bare page-settings-panel',
+  'templates UI must use outlines-create / Events mosaic, not bare page-settings-panel',
 )
 assert.doesNotMatch(
   templatesUi,
@@ -155,16 +163,37 @@ assert.doesNotMatch(
   'templates list must not nest admin-table-wrap inside outlines-table-wrap',
 )
 
+const templateEditor = read('src/modules/email-manager/admin/email-template-editor.tsx')
+assert.match(templateEditor, /sf-events-form-mosaic/)
+assert.match(templateEditor, /sf-admin-form-dialog/, 'Details popup uses form-dialog chrome')
+assert.match(templateEditor, /hideIdentity/)
+
+const campaignsUi = read('src/modules/email-manager/admin/email-campaigns-manager.tsx')
+assert.match(campaignsUi, /sf-events-list-title-btn/, 'campaign label opens list expand')
+assert.match(campaignsUi, /EmailCampaignEditor/)
+assert.doesNotMatch(
+  campaignsUi,
+  /\/admin\/email\/campaigns\/\$\{/,
+  'campaigns edit must not navigate to a dedicated page',
+)
+
+const campaignEditor = read('src/modules/email-manager/admin/email-campaign-editor.tsx')
+assert.match(campaignEditor, /sf-events-form-mosaic/)
+assert.match(campaignEditor, /wideSections=\{false\}/, 'campaign message cards stay half-width')
+assert.match(campaignEditor, /onClose/)
+
+const campaignEditPage = read('src/modules/email-manager/admin/EmailCampaignEditPage.tsx')
+assert.match(
+  campaignEditPage,
+  /redirect\(['"]\/admin\/email\/campaigns['"]\)/,
+  'legacy campaign edit URL redirects to the list',
+)
+
 const styles = read('src/app/(frontend)/styles.css')
 assert.match(
   styles,
-  /\.admin-settings-mosaic\.sf-email-templates-manager > \.outlines-create\.sf-email-templates-card/,
-  'templates mosaic must let Test send / Add template share a 2-col row',
-)
-assert.match(
-  styles,
-  /sf-email-templates-card-form[\s\S]*grid-template-columns: minmax\(0, 1fr\)/,
-  'Test send / Add template forms must be single-column inside their cards',
+  /\.sf-email-templates-manager,\s*\n\.sf-email-campaigns-manager\s*\{/,
+  'templates/campaigns lists use column stack chrome after full-page edit peel',
 )
 
 const rulesPage = read('src/modules/email-manager/admin/EmailRulesPage.tsx')

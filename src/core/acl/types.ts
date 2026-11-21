@@ -72,7 +72,11 @@ export type AccessViewer = {
   userId: string | null
   /** True when signed in (any role). */
   isRegistered: boolean
-  /** Global app admin — bypasses group ACL grants. */
+  /**
+   * Global app admin (role admin / bootstrap admin email).
+   * Bypasses group ACL grants and ownership-gated member actions
+   * (`sf-staff-bypass`). Developer-admins are app admins.
+   */
   isAppAdmin: boolean
   /** Group ids this user belongs to. */
   groupIds: string[]

@@ -3,8 +3,9 @@
  *
  * Create calls canViewPost + canInteract (slice 6). It does not re-derive them.
  * A comment on the post can be replied to, and that reply can be replied to
- * once. A reply under that second reply is refused. Author edit / delete own
- * comment; deleting a comment deletes the replies under it. DB persistence
+ * once. A reply under that second reply is refused. The comment author may
+ * edit or delete their own. The post author may delete any comment on that
+ * post. Deleting a comment deletes the replies under it. DB persistence
  * lives in comments-store.ts.
  */
 
@@ -245,20 +246,22 @@ export function decideEditComment(
 
 /**
  * Delete a comment.
- * Author always may. Social staff with canManagePosts may delete any comment.
+ * The comment author may. The post author may delete any comment on their post.
+ * Social staff with canManagePosts may delete any comment.
  * Returns the comment id plus reply ids under it (direct and nested).
  */
 export function decideDeleteComment(
   current: CommentRecord | null,
   input: DeleteCommentInput,
   replyIds: string[],
-  opts?: { canManagePosts?: boolean },
+  opts?: { canManagePosts?: boolean; postAuthorUserId?: string | null },
 ): CommentDeleteResult {
   if (!current) return { ok: false, reason: 'not_found' }
   const actor = input.actorUserId.trim()
   if (!actor) return { ok: false, reason: 'invalid' }
   const isAuthor = current.authorUserId === actor
-  if (!isAuthor && !opts?.canManagePosts) return { ok: false, reason: 'not_author' }
+  const isPostAuthor = Boolean(opts?.postAuthorUserId?.trim()) && opts?.postAuthorUserId?.trim() === actor
+  if (!isAuthor && !isPostAuthor && !opts?.canManagePosts) return { ok: false, reason: 'not_author' }
 
   const deletedIds = [current.id, ...replyIds.filter((id) => id.trim() && id !== current.id)]
   return { ok: true, deletedIds }
@@ -328,7 +331,7 @@ export function createCommentMemory(opts?: {
   ) => CommentMutationResult
   delete: (
     input: DeleteCommentInput,
-    gates?: { canManagePosts?: boolean },
+    gates?: { canManagePosts?: boolean; postAuthorUserId?: string | null },
   ) => CommentDeleteResult
   setStaffHidden: (
     input: StaffHideCommentInput,
@@ -396,6 +399,7 @@ export function createCommentMemory(opts?: {
         : []
       const result = decideDeleteComment(current, input, [...replies, ...nested], {
         canManagePosts: gates?.canManagePosts,
+        postAuthorUserId: gates?.postAuthorUserId,
       })
       if (!result.ok) return result
       for (const id of result.deletedIds) rows.delete(id)

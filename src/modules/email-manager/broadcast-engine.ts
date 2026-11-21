@@ -27,7 +27,7 @@ import {
   updateBroadcastStatus,
 } from './broadcast-store'
 import { isEmailManagerEnabled } from './engine'
-import { emailTypeFromModuleCategory } from './send-type'
+import { emailTypeFromBroadcastSource } from './send-type'
 import { loadEmailManagerModuleSettings } from './settings'
 import { findEmailTemplateById } from './store'
 import { renderEmailTemplate } from './template-render'
@@ -277,7 +277,10 @@ async function drainBroadcastBatch(broadcastId: string): Promise<void> {
         text: rendered.text,
         html: rendered.html,
         meta: {
-          emailType: emailTypeFromModuleCategory(broadcast.moduleCategory),
+          emailType: emailTypeFromBroadcastSource(
+            broadcast.sourceKey,
+            broadcast.moduleCategory,
+          ),
           title: template.label || broadcast.label,
           source: 'email-manager-broadcast',
           templateId: template.id,

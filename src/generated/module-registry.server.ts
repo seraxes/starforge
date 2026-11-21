@@ -102,6 +102,11 @@ export const optionalAtomLoaders: OptionalAtomLoader[] = [
     type: "custom-css-js",
     toggleId: "atom:custom-css-js",
     load: async () => (await import("@/core/page-settings/atoms/custom-css-js")).customCssJsAtom,
+  },
+  {
+    type: "headroom",
+    toggleId: "atom:headroom",
+    load: async () => (await import("@/core/page-settings/atoms/headroom")).headroomAtom,
   }
 ]
 

@@ -105,6 +105,7 @@ export function mergeSectionAgainstParent(
         label: child.label || child.id,
         order: child.order,
         rows: [],
+        ...(child.htmlId ? { htmlId: child.htmlId } : {}),
         ...(child.cssClass ? { cssClass: child.cssClass } : {}),
         ...(child.containerMode ? { containerMode: child.containerMode } : {}),
         ...(child.width != null ? { width: child.width } : {}),
@@ -118,6 +119,10 @@ export function mergeSectionAgainstParent(
     delete out.stylesInheritMode
     if (child.label?.trim()) out.label = child.label.trim()
     if (child.order != null && Number.isFinite(child.order)) out.order = child.order
+    if (child.htmlId !== undefined) {
+      if (child.htmlId) out.htmlId = child.htmlId
+      else delete out.htmlId
+    }
     if (child.cssClass !== undefined) {
       if (child.cssClass) out.cssClass = child.cssClass
       else delete out.cssClass
@@ -144,6 +149,8 @@ export function mergeSectionAgainstParent(
     order: child.order ?? parent?.order,
     rows: resolveRowsAgainstParent(child.rows ?? [], parent),
   }
+  if (child.htmlId) out.htmlId = child.htmlId
+  else if (parent?.htmlId) out.htmlId = parent.htmlId
   if (child.cssClass) out.cssClass = child.cssClass
   else if (parent?.cssClass) out.cssClass = parent.cssClass
   if (child.containerMode) out.containerMode = child.containerMode

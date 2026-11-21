@@ -393,6 +393,13 @@
       "when": 1794050000000,
       "tag": "0056_account_retention",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1795285527261,
+      "tag": "0057_email_campaigns",
+      "breakpoints": true
     }
   ]
 }

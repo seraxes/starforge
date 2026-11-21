@@ -2,10 +2,10 @@ import 'server-only'
 
 import {
   ensureAtomsRegistered,
+  getCachedGlobalPageChrome,
+  getCachedPageChromeOverride,
   getRegisteredAtom,
   listPageChromeOverrideKeys,
-  loadGlobalPageChrome,
-  loadPageChromeOverride,
   mergePageChrome,
 } from '@/core/page-settings'
 import { pageChromeCspSources } from '@/core/page-settings/csp'
@@ -21,10 +21,10 @@ import { getSiteChrome } from '@/core/site-chrome'
 import { CSP_TURNSTILE, mergeCspSources, type CspSources } from './csp'
 
 async function resolveAllPageChromes(): Promise<ResolvedPageChrome[]> {
-  const global = (await loadGlobalPageChrome()).chrome
+  const global = (await getCachedGlobalPageChrome()).chrome
   const chromes: ResolvedPageChrome[] = [mergePageChrome(global, null, null)]
   for (const pageKey of await listPageChromeOverrideKeys()) {
-    const override = await loadPageChromeOverride(pageKey)
+    const override = await getCachedPageChromeOverride(pageKey)
     if (override.isFallback) continue
     chromes.push(mergePageChrome(global, override.chrome, pageKey))
   }

@@ -116,10 +116,12 @@ async function SectionBlock({
 
   const width = clampGridWidth(section.width ?? LAYOUT_WIDTH_FULL, LAYOUT_WIDTH_FULL)
   // Width from data-sf-width + grid-widths.css; boxed max from --sf-container-max.
+  const htmlId = typeof section.htmlId === 'string' ? section.htmlId.trim() : ''
 
   if (isFooter) {
     return (
       <footer
+        id={htmlId || undefined}
         className={sectionWrapperClass(section, 'site-footer sf-layout-section')}
         data-sf-section={section.id}
         data-sf-container={containerMode}
@@ -135,6 +137,7 @@ async function SectionBlock({
 
   return (
     <section
+      id={htmlId || undefined}
       className={sectionWrapperClass(section, 'sf-layout-section')}
       data-sf-section={section.id}
       data-sf-container={containerMode}

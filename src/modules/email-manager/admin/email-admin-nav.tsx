@@ -3,7 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 
-export type EmailAdminTab = 'rules' | 'templates' | 'sends' | 'broadcasts'
+export type EmailAdminTab = 'rules' | 'templates' | 'sends' | 'broadcasts' | 'campaigns'
 
 const TABS: { id: EmailAdminTab; label: string; href: string; title: string }[] = [
   {
@@ -30,9 +30,15 @@ const TABS: { id: EmailAdminTab; label: string; href: string; title: string }[] 
     href: '/admin/email/broadcasts',
     title: 'Paced bulk send queue and pace rules',
   },
+  {
+    id: 'campaigns',
+    label: 'Campaigns',
+    href: '/admin/email/campaigns',
+    title: 'Draft emails with a template and pasted recipients',
+  },
 ]
 
-/** Horizontal Email Manager chrome — Rules + Templates + Sends. */
+/** Horizontal Email Manager chrome — Rules + Templates + Sends + Broadcasts + Campaigns. */
 export function EmailAdminNav({ active }: { active: EmailAdminTab }) {
   return (
     <nav className="gantry-layouts-nav sf-email-admin-nav" aria-label="Email Manager">

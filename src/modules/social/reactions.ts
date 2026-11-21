@@ -2,7 +2,9 @@
  * product:social reactions — Facebook-style catalog (not challenge votes).
  *
  * Unique on (actorUserId, targetType, targetId). Choosing another enabled
- * kind updates that one row. Challenge likes use a different table.
+ * kind updates that one row. Sending the same kind again is a noop.
+ * Removing the active reaction is a separate clear (the Like control toggles).
+ * Challenge likes use a different table.
  *
  * Catalog kinds: like, love, haha, wow, sad, angry. Pack settings choose which
  * kinds are on. `like` cannot be turned off. A disabled kind is refused.
@@ -289,6 +291,44 @@ export function decideCommentLike(
       updatedAt: now,
     },
   }
+}
+
+export type ClearReactionDecision =
+  | { ok: true; write: 'delete'; reaction: ReactionRecord }
+  | { ok: true; write: 'noop' }
+  | { ok: false; reason: ReactionRefuseReason }
+
+/**
+ * Remove the viewer's one reaction on a post or comment.
+ * No row is a noop. Same view and interact gates as setting a reaction.
+ * The pack switch does not block a clear, so a member can take a reaction off
+ * after reactions on comments are turned off.
+ */
+export function decideClearReaction(
+  current: ReactionRecord | null,
+  input: {
+    actorUserId: string
+    targetType: ReactionTargetType
+    targetId: string
+  },
+  gates: { canView: boolean; canInteract: boolean },
+): ClearReactionDecision {
+  const actorUserId = input.actorUserId.trim()
+  const targetId = input.targetId.trim()
+  if (!actorUserId || !targetId || !isReactionTargetType(input.targetType)) {
+    return { ok: false, reason: 'invalid' }
+  }
+  if (!gates.canView) return { ok: false, reason: 'cannot_view' }
+  if (!gates.canInteract) return { ok: false, reason: 'cannot_interact' }
+  if (!current) return { ok: true, write: 'noop' }
+  if (
+    current.actorUserId !== actorUserId ||
+    current.targetType !== input.targetType ||
+    current.targetId !== targetId
+  ) {
+    return { ok: false, reason: 'invalid' }
+  }
+  return { ok: true, write: 'delete', reaction: current }
 }
 
 /** In-memory reactions with the same unique (actor, targetType, targetId) rule. */

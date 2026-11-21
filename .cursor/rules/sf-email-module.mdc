@@ -14,11 +14,12 @@ Any Starforge module that sends product email **must** use `product:email-manage
 | --- | --- |
 | Trigger → rule → template → send | **`product:email-manager`** — `emitEmailTrigger` |
 | Paced bulk send (caller-supplied audience) | **`product:email-manager`** — `enqueueEmailBroadcast` |
+| Campaign (label + template + pasted recipients) | **`product:email-manager`** — Send copies the saved paste into `enqueueEmailBroadcast` (`sourceKey` `email-campaign:<id>`); status moves draft → sending → sent/cancelled/failed from the broadcast row; counts are the broadcast counters. List edit expands on `/admin/email/campaigns` (clickable label; half-width mosaic cards). The expand lists broadcast recipient rows (address, status, error), filtered and capped at 200. Open/click tracking and a durable subscriber list stay out. |
 | Transport / From / provider secrets | **Core Mailer** + Site Chrome / env |
 | Template HTML editing | **`product:rich-editor`** (email preset) + Media picker |
-| Newsletter lists / segments | **`product:campaigns`** (later) — not this pack |
+| Durable subscriber lists / segments | **`product:campaigns`** (later) — not this pack |
 
-Transactional emits stay immediate (one audience per trigger). Hundreds of recipients go through the broadcast queue (batch + gap). Pace rules live under `/admin/email/broadcasts`.
+Transactional emits stay immediate (one audience per trigger). Hundreds of recipients go through the broadcast queue (batch + gap). Pace rules live under `/admin/email/broadcasts`. Campaign Send uses that same pipe; Pause / Resume / Cancel stay on the broadcasts admin.
 
 ## Do
 
@@ -31,9 +32,10 @@ Transactional emits stay immediate (one audience per trigger). Hundreds of recip
 
 - Call `getMailer()` from Events, Forms, Payments, or other product packs for product mail.
 - Loop `mailer.send` in a consumer for a registrant / order list.
-- Treat Email Manager as a mailing-list product — that is `product:campaigns`.
+- Treat Email Manager as a mailing-list product — durable lists/segments are `product:campaigns`. Light pasted-recipient campaigns live here.
 - Seed organizer-notify / reminder / cancellation templates in a pass that only needs paced registrant mail (leave existing seeds alone).
+- Export campaign helpers on `api` / `api.server`.
 
 ## Quick check
 
-If the message fires because something already happened (registered, paid, form submitted) → trigger. If an admin picks a template and a list of rows → `enqueueEmailBroadcast`.
+If the message fires because something already happened (registered, paid, form submitted) → trigger. If an admin picks a template and a list of rows → `enqueueEmailBroadcast`. If they save a draft name + template + paste and hit Send → Email Manager campaign → one paced broadcast (`email-campaign:<id>`), not `product:campaigns`.

@@ -169,3 +169,50 @@ export const sfEmailBroadcastRecipients = pgTable(
     ),
   ],
 )
+
+/**
+ * Light campaign — label + template + pasted recipients.
+ * Send copies saved addresses into enqueueEmailBroadcast and sets broadcastId.
+ */
+export const sfEmailCampaigns = pgTable(
+  'sf_email_campaigns',
+  {
+    id: text('id').primaryKey(),
+    label: text('label').notNull().default('Untitled campaign'),
+    templateId: text('template_id').references(() => sfEmailTemplates.id, {
+      onDelete: 'restrict',
+    }),
+    /** draft | sending | sent | cancelled | failed — follows the linked broadcast after Send. */
+    status: text('status').notNull().default('draft'),
+    /** Plain id of the paced broadcast after Send — no FK. */
+    broadcastId: text('broadcast_id'),
+    moduleCategory: text('module_category').notNull().default('other'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('sf_email_campaigns_status_idx').on(table.status),
+    index('sf_email_campaigns_template_id_idx').on(table.templateId),
+    index('sf_email_campaigns_updated_at_idx').on(table.updatedAt),
+  ],
+)
+
+/** One normalized address per campaign draft. */
+export const sfEmailCampaignRecipients = pgTable(
+  'sf_email_campaign_recipients',
+  {
+    id: text('id').primaryKey(),
+    campaignId: text('campaign_id')
+      .notNull()
+      .references(() => sfEmailCampaigns.id, { onDelete: 'cascade' }),
+    email: text('email').notNull().default(''),
+    sortOrder: integer('sort_order').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('sf_email_campaign_recipients_campaign_id_idx').on(table.campaignId),
+  ],
+)

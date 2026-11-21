@@ -5,6 +5,12 @@ import React, { useActionState, useState } from 'react'
 import { AccessTagsField } from '@/components/admin/AccessTagsField'
 import { CodeEditorField } from '@/components/admin/CodeEditorField'
 import { resolveAccessTags } from '@/core/acl/nav-access'
+import { cssColorToColorInputValue } from '@/core/modules/styles'
+import {
+  hexAlphaPercent,
+  mergeHexAlphaPercent,
+  mergeHexRgbPreservingAlpha,
+} from '@/core/page-settings/atoms/headroom'
 import {
   savePageSettingsAction,
   type PageSettingsActionState,
@@ -531,6 +537,9 @@ export function PageSettingsForm({ bootstrap }: Props) {
         setFaCssLinkHtml(baseChrome.fontAwesome?.cssLinkHtml ?? '')
         setFaJsScriptHtml(baseChrome.fontAwesome?.jsScriptHtml ?? '')
         break
+      case 'atoms':
+        setAtoms(structuredClone(baseChrome.atoms ?? []))
+        break
       default:
         break
     }
@@ -545,6 +554,7 @@ export function PageSettingsForm({ bootstrap }: Props) {
   }
 
   const addAtom = (type: string) => {
+    if (inherits('atoms')) return
     const def = bootstrap.atoms.find((a) => a.type === type)
     if (!def) return
     if (def.requiresDeveloperAdmin && lockedScripts) return
@@ -560,7 +570,12 @@ export function PageSettingsForm({ bootstrap }: Props) {
     saveNow()
   }
 
-  const updateAtomConfig = (id: string, config: Record<string, unknown>, persist: 'now' | 'debounce' = 'debounce') => {
+  const updateAtomConfig = (
+    id: string,
+    config: Record<string, unknown>,
+    persist: 'now' | 'debounce' = 'debounce',
+  ) => {
+    if (inherits('atoms')) return
     setAtoms((prev) => prev.map((a) => (a.id === id ? { ...a, config } : a)))
     if (persist === 'now') saveNow()
     else saveDebounced()
@@ -627,7 +642,12 @@ export function PageSettingsForm({ bootstrap }: Props) {
           value={JSON.stringify(javascript)}
           disabled={inherits('javascript')}
         />
-        <input type="hidden" name="atomsJson" value={JSON.stringify(atoms)} />
+        <input
+          type="hidden"
+          name="atomsJson"
+          value={JSON.stringify(atoms)}
+          disabled={inherits('atoms')}
+        />
         {lockedScripts ? (
           <>
             <input type="hidden" name="customHeadHtml" value={customHeadHtml} />
@@ -1127,136 +1147,494 @@ export function PageSettingsForm({ bootstrap }: Props) {
         </Panel>
 
         <Panel title="Atoms" wide>
-          <p className="settings-hint">
-            Non-visual injectors (like Gantry atoms). Add with a pill, configure in a popup overlay.
-          </p>
-          <div className="page-settings-atom-pills">
-            {bootstrap.atoms.map((atom) => {
-              const blocked = Boolean(atom.requiresDeveloperAdmin && lockedScripts)
-              return (
-                <button
-                  key={atom.type}
-                  type="button"
-                  className="page-settings-atom-pill"
-                  disabled={blocked}
-                  title={atom.description || atom.label}
-                  onClick={() => addAtom(atom.type)}
-                >
-                  + {atom.label}
-                </button>
-              )
-            })}
-          </div>
-          <ul className="page-settings-atom-list">
-            {atoms.map((atom) => {
-              const def = bootstrap.atoms.find((a) => a.type === atom.type)
-              return (
-                <li key={atom.id} className="page-settings-atom-row">
-                  <label className="page-settings-atom-enable">
-                    <input
-                      type="checkbox"
-                      checked={atom.enabled}
-                      onChange={(e) => {
-                        setAtoms((prev) =>
-                          prev.map((a) => (a.id === atom.id ? { ...a, enabled: e.target.checked } : a)),
-                        )
-                        saveNow()
-                      }}
-                    />
-                    <strong>{def?.label || atom.type}</strong>
-                  </label>
-                  <code>{atom.type}</code>
-                  <AtomSettingsPopover title={def?.label || atom.type}>
-                    {atom.type === 'custom-css-js' ? (
-                      <div className="gantry-typed-form">
-                        {lockedScripts ? (
-                          <p className="settings-hint">Locked — atom CSS/JS preserved on save.</p>
-                        ) : (
-                          <>
-                            <CodeEditorField
-                              key={`atom-css-${atom.id}`}
-                              label="CSS"
-                              language="css"
-                              initialValue={String(atom.config.css ?? '')}
-                              initialHeight={140}
-                              onValueChange={(next) =>
-                                updateAtomConfig(atom.id, { ...atom.config, css: next })
+          <FieldInheritRow
+            show={canInherit}
+            fieldKey="atoms"
+            onCopy={copyFieldFromBase}
+            inherited={inherits('atoms')}
+            onChange={setFieldInherit}
+          >
+            <p className="settings-hint">
+              Non-visual injectors (like Gantry atoms). Add with a pill, configure in a popup
+              overlay.
+              {canInherit
+                ? ' Inherit / Copy uses the Base outline atom list.'
+                : null}
+            </p>
+            <div className="page-settings-atom-pills">
+              {bootstrap.atoms.map((atom) => {
+                const blocked =
+                  Boolean(atom.requiresDeveloperAdmin && lockedScripts) || inherits('atoms')
+                return (
+                  <button
+                    key={atom.type}
+                    type="button"
+                    className="page-settings-atom-pill"
+                    disabled={blocked}
+                    title={atom.description || atom.label}
+                    onClick={() => addAtom(atom.type)}
+                  >
+                    + {atom.label}
+                  </button>
+                )
+              })}
+            </div>
+            <ul className="page-settings-atom-list">
+              {atoms.map((atom) => {
+                const def = bootstrap.atoms.find((a) => a.type === atom.type)
+                const label = def?.label || atom.type
+                const atomsLocked = inherits('atoms')
+                const headroomTargetRaw =
+                  typeof atom.config.target === 'string'
+                    ? atom.config.target
+                    : typeof atom.config.sectionId === 'string'
+                      ? String(atom.config.sectionId)
+                      : ''
+                const headroomTarget = headroomTargetRaw.replace(/^[#.]+/, '').trim()
+                const headroomTargetKind =
+                  atom.config.targetKind === 'section' ||
+                  atom.config.targetKind === 'id' ||
+                  atom.config.targetKind === 'class'
+                    ? atom.config.targetKind
+                    : headroomTargetRaw.startsWith('#')
+                      ? 'id'
+                      : headroomTargetRaw.startsWith('.')
+                        ? 'class'
+                        : headroomTargetRaw && !atom.config.targetKind
+                          ? 'section'
+                          : 'id'
+                return (
+                  <li
+                    key={atom.id}
+                    className={
+                      atom.enabled
+                        ? 'page-settings-atom-chip'
+                        : 'page-settings-atom-chip is-disabled'
+                    }
+                    title={atom.type}
+                  >
+                    <label className="page-settings-atom-enable" title="Enabled">
+                      <input
+                        type="checkbox"
+                        checked={atom.enabled}
+                        disabled={atomsLocked}
+                        aria-label={`Enable ${label}`}
+                        onChange={(e) => {
+                          if (atomsLocked) return
+                          setAtoms((prev) =>
+                            prev.map((a) =>
+                              a.id === atom.id ? { ...a, enabled: e.target.checked } : a,
+                            ),
+                          )
+                          saveNow()
+                        }}
+                      />
+                    </label>
+                    <AtomSettingsPopover
+                      title={label}
+                      onClose={() => saveNow()}
+                      triggerContent={
+                        <>
+                          <span className="page-settings-atom-chip-label">{label}</span>
+                          <span className="page-settings-atom-cog" aria-hidden="true">
+                            ⚙
+                          </span>
+                        </>
+                      }
+                    >
+                      {atom.type === 'custom-css-js' ? (
+                        <div className="gantry-typed-form">
+                          {lockedScripts || atomsLocked ? (
+                            <p className="settings-hint">
+                              {atomsLocked
+                                ? 'Inherited from Base — Copy to edit locally.'
+                                : 'Locked — atom CSS/JS preserved on save.'}
+                            </p>
+                          ) : (
+                            <>
+                              <CodeEditorField
+                                key={`atom-css-${atom.id}`}
+                                label="CSS"
+                                language="css"
+                                initialValue={String(atom.config.css ?? '')}
+                                initialHeight={140}
+                                onValueChange={(next) =>
+                                  updateAtomConfig(atom.id, { ...atom.config, css: next })
+                                }
+                              />
+                              <CodeEditorField
+                                key={`atom-js-${atom.id}`}
+                                label="JavaScript"
+                                language="javascript"
+                                initialValue={String(atom.config.javascript ?? '')}
+                                initialHeight={140}
+                                onValueChange={(next) =>
+                                  updateAtomConfig(atom.id, {
+                                    ...atom.config,
+                                    javascript: next,
+                                  })
+                                }
+                              />
+                            </>
+                          )}
+                        </div>
+                      ) : atom.type === 'analytics' ? (
+                        <div className="gantry-typed-form">
+                          <label className="settings-field">
+                            <span>Provider</span>
+                            <select
+                              value={String(atom.config.provider ?? 'google')}
+                              disabled={lockedScripts || atomsLocked}
+                              onChange={(e) =>
+                                updateAtomConfig(
+                                  atom.id,
+                                  {
+                                    ...atom.config,
+                                    provider: e.target.value,
+                                  },
+                                  'now',
+                                )
                               }
-                            />
-                            <CodeEditorField
-                              key={`atom-js-${atom.id}`}
-                              label="JavaScript"
-                              language="javascript"
-                              initialValue={String(atom.config.javascript ?? '')}
-                              initialHeight={140}
-                              onValueChange={(next) =>
+                            >
+                              <option value="google">Google Analytics (gtag)</option>
+                              <option value="generic">Generic measurement id</option>
+                            </select>
+                          </label>
+                          <label className="settings-field">
+                            <span>Measurement ID</span>
+                            <input
+                              type="text"
+                              value={String(atom.config.measurementId ?? '')}
+                              disabled={lockedScripts || atomsLocked}
+                              placeholder="G-XXXXXXXX"
+                              onChange={(e) =>
                                 updateAtomConfig(atom.id, {
                                   ...atom.config,
-                                  javascript: next,
+                                  measurementId: e.target.value,
                                 })
                               }
+                              onBlur={() => saveNow()}
                             />
-                          </>
-                        )}
-                      </div>
-                    ) : atom.type === 'analytics' ? (
-                      <div className="gantry-typed-form">
-                        <label>
-                          Provider
-                          <select
-                            value={String(atom.config.provider ?? 'google')}
-                            disabled={lockedScripts}
-                            onChange={(e) =>
-                              updateAtomConfig(
-                                atom.id,
-                                {
+                          </label>
+                        </div>
+                      ) : atom.type === 'headroom' ? (
+                        <div className="gantry-typed-form">
+                          <label className="settings-field">
+                            <span>Mode</span>
+                            <select
+                              value={String(atom.config.mode ?? 'sticky')}
+                              disabled={lockedScripts || atomsLocked}
+                              onChange={(e) =>
+                                updateAtomConfig(
+                                  atom.id,
+                                  {
+                                    ...atom.config,
+                                    mode: e.target.value,
+                                  },
+                                  'now',
+                                )
+                              }
+                            >
+                              <option value="sticky">Sticky (always visible)</option>
+                              <option value="headroom">Headroom (hide on scroll down)</option>
+                            </select>
+                          </label>
+                          <label className="settings-field">
+                            <span>Target type</span>
+                            <select
+                              value={String(headroomTargetKind)}
+                              disabled={lockedScripts || atomsLocked}
+                              onChange={(e) => {
+                                const next = {
                                   ...atom.config,
-                                  provider: e.target.value,
-                                },
-                                'now',
-                              )
-                            }
-                          >
-                            <option value="google">Google Analytics (gtag)</option>
-                            <option value="generic">Generic measurement id</option>
-                          </select>
-                        </label>
-                        <label>
-                          Measurement ID
-                          <input
-                            type="text"
-                            value={String(atom.config.measurementId ?? '')}
-                            disabled={lockedScripts}
-                            placeholder="G-XXXXXXXX"
-                            onChange={(e) =>
-                              updateAtomConfig(atom.id, {
-                                ...atom.config,
-                                measurementId: e.target.value,
-                              })
-                            }
-                            onBlur={() => saveNow()}
-                          />
-                        </label>
-                      </div>
-                    ) : (
-                      <p className="settings-hint">No settings UI for this atom yet.</p>
-                    )}
-                  </AtomSettingsPopover>
-                  <button
-                    type="button"
-                    className="danger"
-                    onClick={() => {
-                      setAtoms((prev) => prev.filter((a) => a.id !== atom.id))
-                      saveNow()
-                    }}
-                  >
-                    Remove
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
-          {atoms.length === 0 ? <p className="settings-hint">No atoms on this chrome yet.</p> : null}
+                                  targetKind: e.target.value,
+                                  target: headroomTarget,
+                                }
+                                delete next.sectionId
+                                updateAtomConfig(atom.id, next, 'now')
+                              }}
+                            >
+                              <option value="id">HTML id</option>
+                              <option value="class">CSS class</option>
+                              <option value="section">Layout section id</option>
+                            </select>
+                          </label>
+                          <label className="settings-field">
+                            <span>
+                              {headroomTargetKind === 'class'
+                                ? 'Class name'
+                                : headroomTargetKind === 'section'
+                                  ? 'Section id'
+                                  : 'HTML id'}
+                            </span>
+                            <input
+                              type="text"
+                              value={headroomTarget}
+                              disabled={lockedScripts || atomsLocked}
+                              placeholder={
+                                headroomTargetKind === 'class'
+                                  ? 'site-header'
+                                  : headroomTargetKind === 'section'
+                                    ? 'header'
+                                    : 'g-navigation'
+                              }
+                              spellCheck={false}
+                              autoComplete="off"
+                              onChange={(e) => {
+                                const next = {
+                                  ...atom.config,
+                                  targetKind: headroomTargetKind,
+                                  target: e.target.value.replace(/^[#.]+/, ''),
+                                }
+                                delete next.sectionId
+                                updateAtomConfig(atom.id, next)
+                              }}
+                              onBlur={() => saveNow()}
+                            />
+                          </label>
+                          <p className="settings-hint">
+                            Bare token only — same as Layout HTML id / CSS classes (no # or .).
+                            Matches section HTML id, a class on the wrapper, or the stable layout
+                            section id.
+                          </p>
+                          <label className="settings-field">
+                            <span>Background (default)</span>
+                            <span className="gantry-color-field page-settings-atom-color-row">
+                              <input
+                                type="color"
+                                className="gantry-color-swatch"
+                                value={cssColorToColorInputValue(
+                                  String(atom.config.backgroundDefault ?? ''),
+                                )}
+                                disabled={lockedScripts || atomsLocked}
+                                title="Background at rest (top of page)"
+                                aria-label="Default position background"
+                                onChange={(e) =>
+                                  updateAtomConfig(
+                                    atom.id,
+                                    {
+                                      ...atom.config,
+                                      backgroundDefault: mergeHexRgbPreservingAlpha(
+                                        e.target.value,
+                                        String(atom.config.backgroundDefault ?? ''),
+                                      ),
+                                    },
+                                    'now',
+                                  )
+                                }
+                              />
+                              <input
+                                type="text"
+                                value={String(atom.config.backgroundDefault ?? '')}
+                                disabled={lockedScripts || atomsLocked}
+                                placeholder="#ffffffcc"
+                                spellCheck={false}
+                                autoComplete="off"
+                                onChange={(e) =>
+                                  updateAtomConfig(atom.id, {
+                                    ...atom.config,
+                                    backgroundDefault: e.target.value,
+                                  })
+                                }
+                                onBlur={() => saveNow()}
+                              />
+                            </span>
+                          </label>
+                          <label className="settings-field page-settings-atom-opacity-field">
+                            <span>Opacity (default)</span>
+                            <span className="page-settings-atom-opacity-row">
+                              <input
+                                type="range"
+                                className="page-settings-atom-opacity-range"
+                                min={0}
+                                max={100}
+                                step={1}
+                                value={hexAlphaPercent(String(atom.config.backgroundDefault ?? ''))}
+                                disabled={lockedScripts || atomsLocked}
+                                aria-label="Default background opacity"
+                                onChange={(e) =>
+                                  updateAtomConfig(
+                                    atom.id,
+                                    {
+                                      ...atom.config,
+                                      backgroundDefault: mergeHexAlphaPercent(
+                                        String(atom.config.backgroundDefault ?? ''),
+                                        Number(e.target.value),
+                                      ),
+                                    },
+                                    'now',
+                                  )
+                                }
+                              />
+                              <span className="page-settings-atom-opacity-value">
+                                {hexAlphaPercent(String(atom.config.backgroundDefault ?? ''))}%
+                              </span>
+                            </span>
+                          </label>
+                          <label className="settings-field">
+                            <span>Background (scrolled)</span>
+                            <span className="gantry-color-field page-settings-atom-color-row">
+                              <input
+                                type="color"
+                                className="gantry-color-swatch"
+                                value={cssColorToColorInputValue(
+                                  String(atom.config.backgroundScrolled ?? ''),
+                                )}
+                                disabled={lockedScripts || atomsLocked}
+                                title="Background when over page content (not at top)"
+                                aria-label="Scrolled position background"
+                                onChange={(e) =>
+                                  updateAtomConfig(
+                                    atom.id,
+                                    {
+                                      ...atom.config,
+                                      backgroundScrolled: mergeHexRgbPreservingAlpha(
+                                        e.target.value,
+                                        String(atom.config.backgroundScrolled ?? ''),
+                                      ),
+                                    },
+                                    'now',
+                                  )
+                                }
+                              />
+                              <input
+                                type="text"
+                                value={String(atom.config.backgroundScrolled ?? '')}
+                                disabled={lockedScripts || atomsLocked}
+                                placeholder="#ffffffcc"
+                                spellCheck={false}
+                                autoComplete="off"
+                                onChange={(e) =>
+                                  updateAtomConfig(atom.id, {
+                                    ...atom.config,
+                                    backgroundScrolled: e.target.value,
+                                  })
+                                }
+                                onBlur={() => saveNow()}
+                              />
+                            </span>
+                          </label>
+                          <label className="settings-field page-settings-atom-opacity-field">
+                            <span>Opacity (scrolled)</span>
+                            <span className="page-settings-atom-opacity-row">
+                              <input
+                                type="range"
+                                className="page-settings-atom-opacity-range"
+                                min={0}
+                                max={100}
+                                step={1}
+                                value={hexAlphaPercent(String(atom.config.backgroundScrolled ?? ''))}
+                                disabled={lockedScripts || atomsLocked}
+                                aria-label="Scrolled background opacity"
+                                onChange={(e) =>
+                                  updateAtomConfig(
+                                    atom.id,
+                                    {
+                                      ...atom.config,
+                                      backgroundScrolled: mergeHexAlphaPercent(
+                                        String(atom.config.backgroundScrolled ?? ''),
+                                        Number(e.target.value),
+                                      ),
+                                    },
+                                    'now',
+                                  )
+                                }
+                              />
+                              <span className="page-settings-atom-opacity-value">
+                                {hexAlphaPercent(String(atom.config.backgroundScrolled ?? ''))}%
+                              </span>
+                            </span>
+                          </label>
+                          <p className="settings-hint">
+                            Default = at top of page. Scrolled = over page content after leaving the
+                            top. Opacity slider writes the last two hex digits (`#rrggbbaa`). Empty
+                            color keeps the section’s own background.
+                          </p>
+                          <label className="settings-field">
+                            <span>Offset (px)</span>
+                            <input
+                              type="number"
+                              min={0}
+                              value={Number(atom.config.offset ?? 0)}
+                              disabled={lockedScripts || atomsLocked}
+                              onChange={(e) =>
+                                updateAtomConfig(atom.id, {
+                                  ...atom.config,
+                                  offset: Number(e.target.value),
+                                })
+                              }
+                              onBlur={() => saveNow()}
+                            />
+                          </label>
+                          <label className="settings-field">
+                            <span>Tolerance (px)</span>
+                            <input
+                              type="number"
+                              min={0}
+                              value={Number(atom.config.tolerance ?? 5)}
+                              disabled={
+                                lockedScripts ||
+                                atomsLocked ||
+                                String(atom.config.mode ?? 'sticky') !== 'headroom'
+                              }
+                              onChange={(e) =>
+                                updateAtomConfig(atom.id, {
+                                  ...atom.config,
+                                  tolerance: Number(e.target.value),
+                                })
+                              }
+                              onBlur={() => saveNow()}
+                            />
+                          </label>
+                          <p className="settings-hint">
+                            Sensitivity — scroll delta before headroom hides/shows. Sticky mode
+                            ignores tolerance.
+                          </p>
+                          <label className="settings-field">
+                            <span>Z-index</span>
+                            <input
+                              type="number"
+                              min={0}
+                              value={Number(atom.config.zIndex ?? 100)}
+                              disabled={lockedScripts || atomsLocked}
+                              onChange={(e) =>
+                                updateAtomConfig(atom.id, {
+                                  ...atom.config,
+                                  zIndex: Number(e.target.value),
+                                })
+                              }
+                              onBlur={() => saveNow()}
+                            />
+                          </label>
+                        </div>
+                      ) : (
+                        <p className="settings-hint">No settings UI for this atom yet.</p>
+                      )}
+                    </AtomSettingsPopover>
+                    <button
+                      type="button"
+                      className="gantry-bar-remove page-settings-atom-remove"
+                      aria-label={`Remove ${label}`}
+                      title="Remove"
+                      disabled={atomsLocked}
+                      onClick={() => {
+                        if (atomsLocked) return
+                        setAtoms((prev) => prev.filter((a) => a.id !== atom.id))
+                        saveNow()
+                      }}
+                    >
+                      <span className="gantry-bar-remove-icon" aria-hidden="true">
+                        ×
+                      </span>
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+            {atoms.length === 0 ? (
+              <p className="settings-hint">No atoms on this chrome yet.</p>
+            ) : null}
+          </FieldInheritRow>
         </Panel>
 
         </div>

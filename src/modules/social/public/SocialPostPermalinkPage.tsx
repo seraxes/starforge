@@ -71,7 +71,7 @@ export default async function SocialPostPermalinkPage({ params }: Args) {
           <Link href={withLocalePrefix('/feed', locale)}>Back to feed</Link>
         </p>
       </header>
-      <FeedPostList items={items} locale={locale} showShare />
+      <FeedPostList items={items} locale={locale} showShare commentsExpanded />
     </article>
   )
 }

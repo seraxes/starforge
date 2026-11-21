@@ -10,7 +10,12 @@ import {
 
 type Props = {
   title: string
+  /** Plain trigger text when `triggerContent` is omitted (e.g. Assets “Edit”). */
   triggerLabel?: string
+  /** Custom trigger body (e.g. atom tag label + cog). */
+  triggerContent?: React.ReactNode
+  /** Extra classes on the trigger button. */
+  triggerClassName?: string
   /** Dialog width (Assets CodeMirror editors prefer ~560–640). */
   preferredWidth?: number
   /** Called when the panel closes (Escape / Close) — flush autosave. */
@@ -29,6 +34,8 @@ const DEFAULT_PANEL_WIDTH = 440
 export function AtomSettingsPopover({
   title,
   triggerLabel = 'Settings',
+  triggerContent,
+  triggerClassName,
   preferredWidth = DEFAULT_PANEL_WIDTH,
   onClose,
   children,
@@ -80,20 +87,31 @@ export function AtomSettingsPopover({
     }
   }, [open])
 
+  const triggerClasses = [
+    'secondary',
+    'gantry-settings-trigger',
+    triggerContent ? 'page-settings-atom-chip-trigger' : '',
+    triggerClassName ?? '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+
   return (
-    <div className="gantry-settings-trigger-wrap">
+    <div className="gantry-settings-trigger-wrap page-settings-atom-trigger-wrap">
       <button
         ref={triggerRef}
         type="button"
-        className="secondary gantry-settings-trigger"
+        className={triggerClasses}
         aria-expanded={open}
         aria-haspopup="dialog"
+        aria-label={open ? `Close ${title}` : `Configure ${title}`}
+        title={open ? 'Close' : title}
         onClick={() => {
           if (open) closePanel()
           else setOpen(true)
         }}
       >
-        {open ? 'Close' : triggerLabel}
+        {triggerContent ?? (open ? 'Close' : triggerLabel)}
       </button>
       {mounted && open && portalTarget
         ? createPortal(

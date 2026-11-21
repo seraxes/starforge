@@ -1,0 +1,33 @@
+---
+description: App admins and developers may perform any ownership-gated member action
+alwaysApply: true
+---
+
+# Starforge — staff bypass (admin / developer)
+
+**App admins and developer-admins may edit, delete, and use ownership-gated member functions anywhere.** That is the default. Ordinary members stay fail-closed.
+
+Developer-admin is a subset of app admin (`role=admin` / bootstrap admin email). `AccessViewer.isAppAdmin` is the check. Pack ACL grants (`admin.<pack>` edit/manage via `viewerMayAccessAdminResource`) also count for that pack’s tools.
+
+## Laws
+
+1. **Ownership gates are additive for staff.** Author-only / owner-only decide paths take `{ canManagePosts }` / `canModerate` / `viewer.isAppAdmin`. Staff may act; members without ownership may not.
+2. **Staff menus stay additive.** Giving staff Edit / Delete does not remove member tools they also need (Hide, Block, audience, etc.) on someone else’s content.
+3. **Use Core ACL.** Prefer `viewer.isAppAdmin` or `viewerMayAccessAdminResource(viewer, 'admin.<pack>', 'edit')`. Do not invent a second “superuser” flag inside a pack.
+4. **Explicit exceptions only.** A narrower staff gate needs an accepted decision on the live map. Do not silently refuse admins “for safety” on normal edit/delete/settings.
+
+## Do
+
+- When adding “only the author may …”, also allow app admin / pack staff in the decide function, the store/action, and the UI.
+- Keep Hide / Block / audience / similar on others’ content for staff who also get Edit / Delete.
+- Reuse `viewerMayAccessAdminResource` (app admin already bypasses inside it).
+
+## Don’t
+
+- Ship author-only UI or actions that refuse `isAppAdmin`.
+- Replace Hide/Block with Edit/Delete for staff; stack them.
+- Require a pack-specific ACL for app admins — they already pass.
+
+## Quick check
+
+If an app admin cannot do what the content owner can, the gate is wrong unless a live-map decision says so.

@@ -6,25 +6,33 @@ import { getAppSession } from '@/core/auth/session'
 import { withLocalePrefix } from '@/core/i18n'
 import { RichContent } from '@/modules/rich-editor/api'
 import type { Persona } from '@/modules/profiles/api'
-import { getPersonas } from '@/modules/profiles/api.server'
+import { getPersonas, personaMediaSrc } from '@/modules/profiles/api.server'
 
 import { listCommentsForPosts } from '../comments-store'
+import { canViewerSeePost, findPost } from '../posts-store'
 import {
-  classifyMediaMime,
   memberFeedHref,
   permalinkHref,
   type PostRecord,
 } from '../posts'
 import { listFeedReactions } from '../reactions-store'
 import { loadSocialModuleSettings } from '../settings'
+import { FeedPostMedia } from './FeedPostMedia'
+import { HideableShell } from './HideableShell'
 import { PollPostActions } from './PollPostActions'
+import { PostAudienceControl, type AudienceGroup } from './PostAudienceControl'
+import {
+  PostManageBody,
+  PostManageProvider,
+  PostManageTools,
+} from './PostManageMenu'
 import {
   PostConversation,
   type ConversationComment,
   type ConversationReaction,
 } from './PostConversation'
 import { SavePostActions } from './SavePostActions'
-import { SharePostActions } from './SharePostActions'
+import { SocialAvatar } from './SocialAvatar'
 
 export type FeedPostListItem = {
   post: PostRecord
@@ -44,6 +52,24 @@ function authorHref(author: Persona | null, locale: string): string | null {
   return withLocalePrefix(memberFeedHref(handle), locale)
 }
 
+const AUDIENCE_LABEL: Record<PostRecord['audience'], string> = {
+  only_me: 'Only me',
+  friends: 'Friends',
+  group: 'Group',
+  public: 'Public',
+}
+
+function compactTime(date: Date): string {
+  const minutes = Math.floor((Date.now() - date.getTime()) / 60000)
+  if (minutes < 1) return 'Just now'
+  if (minutes < 60) return `${minutes}m`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `${days}d`
+  return date.toISOString().slice(0, 10)
+}
+
 /** Chronological post cards for home feed and member walls. */
 export async function FeedPostList({
   items,
@@ -54,6 +80,8 @@ export async function FeedPostList({
   savedPostIds,
   viewerUserId = null,
   pollVotesByPostId,
+  commentsExpanded = false,
+  ownedGroups = [],
 }: {
   items: FeedPostListItem[]
   locale: string
@@ -68,6 +96,10 @@ export async function FeedPostList({
   viewerUserId?: string | null
   /** Viewer’s selected option id per poll post. */
   pollVotesByPostId?: ReadonlyMap<string, string>
+  /** Permalink shows every top-level comment. The feed keeps a short preview. */
+  commentsExpanded?: boolean
+  /** Groups the viewer owns, so they can move their own post into one. */
+  ownedGroups?: AudienceGroup[]
 }) {
   if (items.length === 0) {
     return <p className="layout-muted sf-social-feed-empty">{emptyMessage}</p>
@@ -86,14 +118,44 @@ export async function FeedPostList({
     visibleComments.map((comment) => comment.id),
   )
   const viewer = await getAccessViewer()
-  const canModerateComments = Boolean(
+  const canModerateContent = Boolean(
     viewerId &&
       viewer.userId === viewerId &&
       (await viewerMayAccessAdminResource(viewer, 'admin.social', 'edit')),
   )
   const commentAuthors = await getPersonas(
-    [...new Set(visibleComments.map((comment) => comment.authorUserId))],
+    [
+      ...new Set([
+        ...visibleComments.map((comment) => comment.authorUserId),
+        ...reactionRows.map((row) => row.actorUserId),
+      ]),
+    ],
     viewer,
+  )
+  const reactorNames: Record<string, string> = {}
+  for (const row of reactionRows) {
+    if (reactorNames[row.actorUserId]) continue
+    const persona = commentAuthors.get(row.actorUserId) ?? null
+    reactorNames[row.actorUserId] = authorLabel(persona, row.actorUserId)
+  }
+  const shareTargetIds = [
+    ...new Set(
+      items
+        .filter((item) => item.post.kind === 'share' && item.post.sharedPostId)
+        .map((item) => item.post.sharedPostId as string),
+    ),
+  ]
+  const shareTargets = await Promise.all(shareTargetIds.map((id) => findPost(id)))
+  const shareVisible = new Map<string, boolean>()
+  await Promise.all(
+    items.map(async (item) => {
+      if (item.post.kind !== 'share' || !item.post.sharedPostId) return
+      const target = shareTargets[shareTargetIds.indexOf(item.post.sharedPostId)] ?? null
+      shareVisible.set(
+        item.post.id,
+        Boolean(target && (await canViewerSeePost(viewerId, target))),
+      )
+    }),
   )
   const commentsByPost = new Map<string, ConversationComment[]>()
   for (const comment of visibleComments) {
@@ -105,6 +167,7 @@ export async function FeedPostList({
       authorUserId: comment.authorUserId,
       authorName: name,
       authorHref: authorHref(author, locale),
+      authorAvatarSrc: personaMediaSrc(author?.avatarMediaId) || null,
       body: comment.body,
       parentCommentId: comment.parentCommentId,
       createdAt: comment.createdAt.toISOString(),
@@ -131,26 +194,60 @@ export async function FeedPostList({
         const name = authorLabel(author, post.authorUserId)
         const profileHref = authorHref(author, locale)
         const postHref = withLocalePrefix(permalinkHref(post.id), locale)
-        return (
-          <li key={post.id} className="sf-social-feed-item">
+        const isAuthor = viewerId === post.authorUserId
+        const avatarSrc = personaMediaSrc(author?.avatarMediaId) || null
+        const showOptions = Boolean(viewerId)
+        const card = (
+          <>
             <header className="sf-social-feed-item-head">
-              {profileHref ? (
-                <Link href={profileHref}>{name}</Link>
-              ) : (
-                <span>{name}</span>
-              )}
-              <span className="layout-muted sf-social-feed-meta">
-                {post.audience}
-                {' · '}
-                <Link href={postHref}>
-                  <time dateTime={post.createdAt.toISOString()}>
-                    {post.createdAt.toISOString().slice(0, 16).replace('T', ' ')}
-                  </time>
-                </Link>
-              </span>
+              <SocialAvatar src={avatarSrc} href={profileHref} size={40} label={name} />
+              <div className="sf-social-feed-author">
+                {profileHref ? (
+                  <Link href={profileHref}>{name}</Link>
+                ) : (
+                  <span>{name}</span>
+                )}
+                <span className="layout-muted sf-social-feed-meta">
+                  <Link href={postHref}>
+                    <time
+                      dateTime={post.createdAt.toISOString()}
+                      title={post.createdAt.toISOString().slice(0, 16).replace('T', ' ')}
+                    >
+                      {compactTime(post.createdAt)}
+                    </time>
+                  </Link>
+                </span>
+              </div>
+              <div className="sf-social-feed-item-tools">
+                {showSave ? (
+                  <SavePostActions
+                    postId={post.id}
+                    saved={Boolean(savedPostIds?.has(post.id))}
+                  />
+                ) : null}
+                {isAuthor || canModerateContent ? (
+                  <PostAudienceControl
+                    postId={post.id}
+                    audience={post.audience}
+                    groupId={post.groupId}
+                    ownedGroups={ownedGroups}
+                  />
+                ) : (
+                  <span className="layout-muted sf-social-feed-audience">
+                    {AUDIENCE_LABEL[post.audience]}
+                  </span>
+                )}
+                {showOptions ? <PostManageTools /> : null}
+              </div>
             </header>
             <div className="sf-social-feed-body">
-              {post.body.trim() ? <RichContent html={post.body} /> : null}
+              {showOptions ? (
+                <PostManageBody>
+                  {post.body.trim() ? <RichContent html={post.body} /> : null}
+                </PostManageBody>
+              ) : post.body.trim() ? (
+                <RichContent html={post.body} />
+              ) : null}
               {post.kind === 'link' && post.linkUrl ? (
                 <p className="sf-social-feed-link">
                   <a href={post.linkUrl} rel="noopener noreferrer" target="_blank">
@@ -162,17 +259,23 @@ export async function FeedPostList({
                 </p>
               ) : null}
               {post.kind === 'share' && post.sharedPostId ? (
-                <p className="layout-muted sf-social-feed-share">
-                  Shared{' '}
-                  <Link
-                    href={withLocalePrefix(
-                      permalinkHref(post.sharedPostId),
-                      locale,
-                    )}
-                  >
-                    a post
-                  </Link>
-                </p>
+                shareVisible.get(post.id) ? (
+                  <p className="layout-muted sf-social-feed-share">
+                    Shared{' '}
+                    <Link
+                      href={withLocalePrefix(
+                        permalinkHref(post.sharedPostId),
+                        locale,
+                      )}
+                    >
+                      a post
+                    </Link>
+                  </p>
+                ) : (
+                  <p className="layout-muted sf-social-feed-share">
+                    This content isn’t available.
+                  </p>
+                )
               ) : null}
               {post.kind === 'poll' && post.pollOptions.length > 0 ? (
                 <PollPostActions
@@ -193,28 +296,48 @@ export async function FeedPostList({
                 </p>
               ) : null}
               {post.media.length > 0 ? (
-                <ul className="sf-social-feed-media">
-                  {post.media.map((item) => {
-                    const src = `/api/media/${encodeURIComponent(item.mediaId)}`
-                    const kind = classifyMediaMime(item.mimeType)
-                    return (
-                      <li
-                        key={`${post.id}-${item.mediaId}`}
-                        className="sf-social-feed-media-item"
-                      >
-                        {kind === 'video' ? (
-                          <video src={src} controls playsInline preload="metadata" />
-                        ) : (
-                          // eslint-disable-next-line @next/next/no-img-element -- Media library redirect
-                          <img src={src} alt="" />
-                        )}
-                      </li>
-                    )
-                  })}
-                </ul>
+                <FeedPostMedia
+                  media={post.media}
+                  authorName={name}
+                  authorHref={profileHref}
+                  authorAvatarSrc={avatarSrc}
+                  createdAtLabel={compactTime(post.createdAt)}
+                  createdAtIso={post.createdAt.toISOString()}
+                  postHref={postHref}
+                  bodyHtml={post.body}
+                  postId={post.id}
+                  postKind={post.kind}
+                  sharedPostId={post.sharedPostId}
+                  postAudience={post.audience}
+                  postGroupId={post.groupId}
+                  postAuthorUserId={post.authorUserId}
+                  reactorNames={reactorNames}
+                  comments={commentsByPost.get(post.id) ?? []}
+                  reactions={reactions.filter(
+                    (row) =>
+                      (row.targetType === 'post' && row.targetId === post.id) ||
+                      (row.targetType === 'comment' &&
+                        (commentsByPost.get(post.id) ?? []).some(
+                          (comment) => comment.id === row.targetId,
+                        )),
+                  )}
+                  viewerUserId={viewerId}
+                  canModerate={canModerateContent}
+                  reactionKinds={pack.settings.enabledReactionKinds}
+                  allowComments={pack.settings.allowComments}
+                  allowCommentReactions={pack.settings.allowReactionsOnComments}
+                  commentLengthLimit={pack.settings.commentLengthLimit}
+                  showShare={showShare}
+                />
               ) : null}
               <PostConversation
                 postId={post.id}
+                postKind={post.kind}
+                sharedPostId={post.sharedPostId}
+                postAudience={post.audience}
+                postGroupId={post.groupId}
+                postAuthorUserId={post.authorUserId}
+                reactorNames={reactorNames}
                 comments={commentsByPost.get(post.id) ?? []}
                 reactions={reactions.filter(
                   (row) =>
@@ -223,22 +346,38 @@ export async function FeedPostList({
                       (commentsByPost.get(post.id) ?? []).some((comment) => comment.id === row.targetId)),
                 )}
                 viewerUserId={viewerId}
-                canModerate={canModerateComments}
+                canModerate={canModerateContent}
                 reactionKinds={pack.settings.enabledReactionKinds}
                 allowComments={pack.settings.allowComments}
                 allowCommentReactions={pack.settings.allowReactionsOnComments}
                 commentLengthLimit={pack.settings.commentLengthLimit}
+                showShare={showShare}
+                commentsExpanded={commentsExpanded}
               />
-              {showShare ? (
-                <SharePostActions postId={post.id} postKind={post.kind} />
-              ) : null}
-              {showSave ? (
-                <SavePostActions
-                  postId={post.id}
-                  saved={Boolean(savedPostIds?.has(post.id))}
-                />
-              ) : null}
             </div>
+          </>
+        )
+        const managed = showOptions && viewerId ? (
+          <PostManageProvider
+            postId={post.id}
+            body={post.body}
+            viewerUserId={viewerId}
+            authorUserId={post.authorUserId}
+            authorName={name}
+            canModerate={canModerateContent}
+          >
+            {card}
+          </PostManageProvider>
+        ) : (
+          card
+        )
+        return (
+          <li key={post.id} className="sf-social-feed-item">
+            {showOptions ? (
+              <HideableShell itemKey={`post:${post.id}`}>{managed}</HideableShell>
+            ) : (
+              managed
+            )}
           </li>
         )
       })}

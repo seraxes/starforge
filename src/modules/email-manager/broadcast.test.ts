@@ -4,10 +4,12 @@ import { describe, it } from 'node:test'
 import {
   applyBroadcastRecipientCap,
   broadcastSliceCount,
+  campaignStatusFromBroadcastStatus,
   clampBroadcastBatchSize,
   clampBroadcastGapMinutes,
   normalizeBroadcastRecipients,
   normalizeEmailManagerModuleSettings,
+  parseCampaignRecipientPaste,
 } from './broadcast'
 import {
   DEFAULT_EMAIL_MANAGER_MODULE_SETTINGS,
@@ -51,6 +53,37 @@ describe('applyBroadcastRecipientCap', () => {
   })
 })
 
+describe('parseCampaignRecipientPaste', () => {
+  it('splits commas / semicolons / whitespace; dedupes; drops invalid', () => {
+    const { recipients, truncated } = parseCampaignRecipientPaste(
+      'A@B.C, other@x.y; bad\nnot-an-email\na@b.c  third@z.w',
+    )
+    assert.deepEqual(
+      recipients.map((r) => r.email),
+      ['a@b.c', 'other@x.y', 'third@z.w'],
+    )
+    assert.equal(truncated, false)
+  })
+
+  it('keeps the first 2000 and marks truncated', () => {
+    const paste = Array.from(
+      { length: EMAIL_BROADCAST_RECIPIENT_CAP + 3 },
+      (_, i) => `u${i}@x.y`,
+    ).join('\n')
+    const { recipients, truncated } = parseCampaignRecipientPaste(paste)
+    assert.equal(recipients.length, EMAIL_BROADCAST_RECIPIENT_CAP)
+    assert.equal(truncated, true)
+    assert.equal(recipients[0]?.email, 'u0@x.y')
+    assert.equal(recipients[EMAIL_BROADCAST_RECIPIENT_CAP - 1]?.email, `u${EMAIL_BROADCAST_RECIPIENT_CAP - 1}@x.y`)
+  })
+
+  it('allows an empty paste', () => {
+    const { recipients, truncated } = parseCampaignRecipientPaste('  \n  ')
+    assert.equal(recipients.length, 0)
+    assert.equal(truncated, false)
+  })
+})
+
 describe('broadcastSliceCount', () => {
   it('splits 45 people into three slices of 20', () => {
     assert.equal(broadcastSliceCount(45, 20), 3)
@@ -62,6 +95,23 @@ describe('broadcastSliceCount', () => {
 
   it('returns 1 when total fits one batch', () => {
     assert.equal(broadcastSliceCount(20, 20), 1)
+  })
+})
+
+describe('campaignStatusFromBroadcastStatus', () => {
+  it('maps in-flight and terminal broadcast statuses', () => {
+    assert.equal(campaignStatusFromBroadcastStatus('queued'), 'sending')
+    assert.equal(campaignStatusFromBroadcastStatus('running'), 'sending')
+    assert.equal(campaignStatusFromBroadcastStatus('paused'), 'sending')
+    assert.equal(campaignStatusFromBroadcastStatus('done'), 'sent')
+    assert.equal(campaignStatusFromBroadcastStatus('cancelled'), 'cancelled')
+    assert.equal(campaignStatusFromBroadcastStatus('failed'), 'failed')
+  })
+
+  it('returns null for unknown values', () => {
+    assert.equal(campaignStatusFromBroadcastStatus('draft'), null)
+    assert.equal(campaignStatusFromBroadcastStatus(''), null)
+    assert.equal(campaignStatusFromBroadcastStatus(null), null)
   })
 })
 

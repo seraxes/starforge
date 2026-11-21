@@ -6,6 +6,8 @@ import { MemberMediaPicker } from '@/modules/media/api'
 
 import { createTextPostAction, type SocialFeedActionState } from '../actions'
 import { POST_MEDIA_IMAGE_MAX } from '../posts'
+import { SocialAvatar } from './SocialAvatar'
+import { useDismissible } from './useDismissible'
 import {
   bodyWithoutUrl,
   firstHttpUrl,
@@ -44,6 +46,7 @@ export function FeedComposer({
   ownedGroups = [],
   defaultAudience = 'friends',
   authorName = 'You',
+  authorAvatarSrc = null,
   allowText = true,
   allowMedia = false,
   allowLink = false,
@@ -57,6 +60,7 @@ export function FeedComposer({
   /** Pack default. Group falls back to friends when the author owns no group. */
   defaultAudience?: string
   authorName?: string
+  authorAvatarSrc?: string | null
   allowText?: boolean
   allowMedia?: boolean
   allowLink?: boolean
@@ -91,6 +95,9 @@ export function FeedComposer({
         : 'friends'
   const [audience, setAudience] = useState(initialAudience)
   const [audienceOpen, setAudienceOpen] = useState(false)
+  const audienceRef = useDismissible<HTMLSpanElement>(audienceOpen, () =>
+    setAudienceOpen(false),
+  )
 
   const expanded = open || body.trim().length > 0 || block !== null
   const mediaIds = block?.kind === 'media' ? block.mediaIds : []
@@ -247,10 +254,12 @@ export function FeedComposer({
         if (!canPost || pending) event.preventDefault()
       }}
     >
-      {expanded ? (
-        <header className="sf-social-feed-item-head">
-          <span>{authorName}</span>
-          <span className="sf-social-stage-audience-wrap">
+      <header className="sf-social-feed-item-head">
+        <SocialAvatar src={authorAvatarSrc} size={40} label={authorName} />
+        <div className="sf-social-feed-author">
+          {expanded ? <span>{authorName}</span> : <span className="layout-muted">Who can see this</span>}
+        </div>
+        <span className="sf-social-stage-audience-wrap" ref={audienceRef}>
             <button
               type="button"
               className="sf-social-stage-audience"
@@ -259,7 +268,7 @@ export function FeedComposer({
               disabled={pending}
               onClick={() => setAudienceOpen((value) => !value)}
             >
-              {AUDIENCE_LABEL[audience] ?? 'Friends'}
+              {`${AUDIENCE_LABEL[audience] ?? 'Friends'} ▾`}
             </button>
             {audienceOpen ? (
               <ul className="sf-social-stage-audience-menu" role="listbox">
@@ -296,9 +305,8 @@ export function FeedComposer({
                 ))}
               </select>
             ) : null}
-          </span>
-        </header>
-      ) : null}
+        </span>
+      </header>
 
       <div className="sf-social-feed-body">
         <textarea

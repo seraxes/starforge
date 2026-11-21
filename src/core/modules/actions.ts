@@ -319,10 +319,10 @@ function patchSectionStyles(
 }
 
 /**
- * Persist section display name, CSS classes, container mode, and/or Section Styles
- * (background, text, image, overlay). Section `id` is never changed.
- * Empty cssClass / colors / image clear. Styles live on the section — deleting
- * the section removes its Styles entry automatically.
+ * Persist section display name, HTML id, CSS classes, container mode, and/or
+ * Section Styles (background, text, image, overlay). Section layout `id` is
+ * never changed. Empty htmlId / cssClass / colors / image clear. Styles live on
+ * the section — deleting the section removes its Styles entry automatically.
  */
 export async function updateLayoutSectionMetaAction(
   _prev: LayoutActionState,
@@ -332,6 +332,7 @@ export async function updateLayoutSectionMetaAction(
   if (!sectionId) return { error: 'Missing section id.' }
 
   const hasLabel = formData.has('label')
+  const hasHtmlId = formData.has('htmlId')
   const hasCssClass = formData.has('cssClass')
   const hasContainerMode = formData.has('containerMode')
   const hasWidth = formData.has('width')
@@ -357,12 +358,33 @@ export async function updateLayoutSectionMetaAction(
     hasAllowGradientOverlay ||
     hasPadding ||
     hasMargin
-  if (!hasLabel && !hasCssClass && !hasContainerMode && !hasWidth && !stylesTouched) {
+  if (
+    !hasLabel &&
+    !hasHtmlId &&
+    !hasCssClass &&
+    !hasContainerMode &&
+    !hasWidth &&
+    !stylesTouched
+  ) {
     return { error: 'Nothing to update on this section.' }
   }
 
   const label = hasLabel ? String(formData.get('label') ?? '').trim() : undefined
   if (hasLabel && !label) return { error: 'Section name is required.' }
+
+  const htmlIdRaw = hasHtmlId ? String(formData.get('htmlId') ?? '').trim() : undefined
+  let htmlId: string | undefined
+  if (hasHtmlId) {
+    if (htmlIdRaw) {
+      htmlId = sanitizeHtmlId(htmlIdRaw)
+      if (!htmlId) {
+        return {
+          error:
+            'HTML id is invalid. Use a letter or underscore first, then letters, digits, _, :, ., or -.',
+        }
+      }
+    }
+  }
 
   const cssClassRaw = hasCssClass ? String(formData.get('cssClass') ?? '') : undefined
   const cssClass = hasCssClass ? sanitizeCssClassList(cssClassRaw) : undefined
@@ -445,6 +467,10 @@ export async function updateLayoutSectionMetaAction(
     }
     if (!section) return { error: `Section “${sectionId}” not found.` }
     if (hasLabel && label) section.label = label
+    if (hasHtmlId) {
+      if (htmlId) section.htmlId = htmlId
+      else delete section.htmlId
+    }
     if (hasCssClass) {
       if (cssClass) section.cssClass = cssClass
       else delete section.cssClass
@@ -637,6 +663,7 @@ export async function updateLayoutSectionMetaAction(
   if (state.ok) {
     const bits: string[] = []
     if (hasLabel && label) bits.push(`name “${label}”`)
+    if (hasHtmlId) bits.push(htmlId ? `id “${htmlId}”` : 'id cleared')
     if (hasCssClass) bits.push(cssClass ? `classes “${cssClass}”` : 'classes cleared')
     if (hasContainerMode && containerMode) bits.push(`container ${containerMode}`)
     if (hasWidth && width != null) bits.push(`column ${width}%`)
@@ -712,6 +739,7 @@ export async function setSectionInheritModeAction(
         stylesInheritMode: existing?.stylesInheritMode ?? 'inherit',
         order: existing?.order ?? parentSection?.order ?? doc.sections.length,
         rows: [],
+        ...(existing?.htmlId ? { htmlId: existing.htmlId } : {}),
         ...(existing?.cssClass ? { cssClass: existing.cssClass } : {}),
         ...(existing?.containerMode ? { containerMode: existing.containerMode } : {}),
         ...(existing?.width != null ? { width: existing.width } : {}),

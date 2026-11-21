@@ -166,116 +166,115 @@ export function EmailBroadcastsManager({
 
       <section className="outlines-create" aria-label="Broadcast queue">
         <h3>Broadcasts</h3>
-        <p className="field-hint">
-          Caller-supplied audiences (e.g. Events → registrants). Pause stops the next
-          batch; already-sent rows stay sent.
+        <p className="settings-hint">
+          Caller-supplied audiences (e.g. Events → registrants). Pause stops the next batch;
+          already-sent rows stay sent.
         </p>
-      </section>
-
-      <div className="outlines-table-wrap admin-settings-panel-wide" aria-label="Broadcast list">
-        <table className="outlines-table">
-          <thead>
-            <tr>
-              <th scope="col">Label</th>
-              <th scope="col">Status</th>
-              <th scope="col">Progress</th>
-              <th scope="col">Pace</th>
-              <th scope="col">Next run</th>
-              <th scope="col">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {broadcasts.length === 0 ? (
+        <div className="outlines-table-wrap admin-settings-panel-wide" aria-label="Broadcast list">
+          <table className="outlines-table">
+            <thead>
               <tr>
-                <td colSpan={6} className="admin-empty">
-                  {unavailable
-                    ? 'Broadcast tables are unavailable (run db:migrate).'
-                    : 'No broadcasts yet. Queue one from Events → Registrants or another caller.'}
-                </td>
+                <th scope="col">Label</th>
+                <th scope="col">Status</th>
+                <th scope="col">Progress</th>
+                <th scope="col">Pace</th>
+                <th scope="col">Next run</th>
+                <th scope="col">Actions</th>
               </tr>
-            ) : (
-              broadcasts.map((row) => {
-                const canPause = row.status === 'queued' || row.status === 'running'
-                const canResume = row.status === 'paused'
-                const canCancel =
-                  row.status === 'queued' ||
-                  row.status === 'running' ||
-                  row.status === 'paused'
-                return (
-                  <tr key={row.id} title={row.lastError || row.sourceKey || undefined}>
-                    <td>
-                      <strong>{row.label}</strong>
-                      <span className="field-hint"> ({row.moduleCategory})</span>
-                    </td>
-                    <td>{row.status}</td>
-                    <td>
-                      {progressLabel(row)}
-                      {row.failedCount > 0 ? (
-                        <span className="field-hint"> · {row.failedCount} failed</span>
-                      ) : null}
-                    </td>
-                    <td>
-                      {row.batchSize} / {row.gapMinutes}m
-                    </td>
-                    <td>{formatWhen(row.nextRunAt)}</td>
-                    <td>
-                      <div className="admin-inline-actions">
-                        {canPause ? (
-                          <form action={pauseAction}>
-                            <input type="hidden" name="id" value={row.id} />
-                            <button
-                              type="submit"
-                              className="gantry-toolbar-btn gantry-toolbar-btn-muted"
-                              disabled={busy}
-                            >
-                              Pause
-                            </button>
-                          </form>
+            </thead>
+            <tbody>
+              {broadcasts.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="admin-empty">
+                    {unavailable
+                      ? 'Broadcast tables are unavailable (run db:migrate).'
+                      : 'No broadcasts yet. Queue one from Events → Registrants or another caller.'}
+                  </td>
+                </tr>
+              ) : (
+                broadcasts.map((row) => {
+                  const canPause = row.status === 'queued' || row.status === 'running'
+                  const canResume = row.status === 'paused'
+                  const canCancel =
+                    row.status === 'queued' ||
+                    row.status === 'running' ||
+                    row.status === 'paused'
+                  return (
+                    <tr key={row.id} title={row.lastError || row.sourceKey || undefined}>
+                      <td>
+                        <strong>{row.label}</strong>
+                        <span className="field-hint"> ({row.moduleCategory})</span>
+                      </td>
+                      <td>{row.status}</td>
+                      <td>
+                        {progressLabel(row)}
+                        {row.failedCount > 0 ? (
+                          <span className="field-hint"> · {row.failedCount} failed</span>
                         ) : null}
-                        {canResume ? (
-                          <form action={resumeAction}>
-                            <input type="hidden" name="id" value={row.id} />
-                            <button
-                              type="submit"
-                              className="gantry-toolbar-btn"
-                              disabled={busy}
-                            >
-                              Resume
-                            </button>
-                          </form>
-                        ) : null}
-                        {canCancel ? (
-                          <form action={cancelAction}>
-                            <input type="hidden" name="id" value={row.id} />
-                            <button
-                              type="submit"
-                              className="gantry-toolbar-btn gantry-toolbar-btn-muted"
-                              disabled={busy}
-                            >
-                              Cancel
-                            </button>
-                          </form>
-                        ) : null}
-                      </div>
-                      <Feedback
-                        state={
-                          pauseState.id === row.id
-                            ? pauseState
-                            : resumeState.id === row.id
-                              ? resumeState
-                              : cancelState.id === row.id
-                                ? cancelState
-                                : {}
-                        }
-                      />
-                    </td>
-                  </tr>
-                )
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+                      </td>
+                      <td>
+                        {row.batchSize} / {row.gapMinutes}m
+                      </td>
+                      <td>{formatWhen(row.nextRunAt)}</td>
+                      <td>
+                        <div className="admin-action-row sf-events-list-row-actions">
+                          {canPause ? (
+                            <form action={pauseAction}>
+                              <input type="hidden" name="id" value={row.id} />
+                              <button
+                                type="submit"
+                                className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+                                disabled={busy}
+                              >
+                                Pause
+                              </button>
+                            </form>
+                          ) : null}
+                          {canResume ? (
+                            <form action={resumeAction}>
+                              <input type="hidden" name="id" value={row.id} />
+                              <button
+                                type="submit"
+                                className="gantry-toolbar-btn"
+                                disabled={busy}
+                              >
+                                Resume
+                              </button>
+                            </form>
+                          ) : null}
+                          {canCancel ? (
+                            <form action={cancelAction}>
+                              <input type="hidden" name="id" value={row.id} />
+                              <button
+                                type="submit"
+                                className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+                                disabled={busy}
+                              >
+                                Cancel
+                              </button>
+                            </form>
+                          ) : null}
+                        </div>
+                        <Feedback
+                          state={
+                            pauseState.id === row.id
+                              ? pauseState
+                              : resumeState.id === row.id
+                                ? resumeState
+                                : cancelState.id === row.id
+                                  ? cancelState
+                                  : {}
+                          }
+                        />
+                      </td>
+                    </tr>
+                  )
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
   )
 }

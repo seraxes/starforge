@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import { createCommentMemory, decideCreateComment } from './comments'
+import { createCommentMemory, decideCreateComment, decideDeleteComment } from './comments'
 import { type CanInteractContext } from './interact'
 import {
   canViewPost,
@@ -276,6 +276,31 @@ describe('comments', () => {
     assert.deepEqual(staffDelete.deletedIds.sort(), ['c-1', 'c-2'].sort())
     assert.equal(comments.get(top.comment.id), null)
     assert.equal(comments.get(reply.comment.id), null)
+  })
+
+  it('lets the post author delete a comment on their post (success path)', () => {
+    const row = {
+      id: 'c-9',
+      postId: 'post-1',
+      authorUserId: 'bob',
+      body: 'on your post',
+      parentCommentId: null,
+      staffHidden: false,
+      editedAt: null,
+      createdAt: new Date('2026-11-19T20:00:00.000Z'),
+      updatedAt: new Date('2026-11-19T20:00:00.000Z'),
+    }
+    const removed = decideDeleteComment(row, { actorUserId: 'alice', commentId: 'c-9' }, [], {
+      postAuthorUserId: 'alice',
+    })
+    assert.equal(removed.ok, true)
+    if (!removed.ok) return
+    assert.deepEqual(removed.deletedIds, ['c-9'])
+
+    const stranger = decideDeleteComment(row, { actorUserId: 'carol', commentId: 'c-9' }, [], {
+      postAuthorUserId: 'alice',
+    })
+    assert.deepEqual(stranger, { ok: false, reason: 'not_author' })
   })
 
   it('lets the author edit or delete their own post; delete cascades comments and likes', () => {

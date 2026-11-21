@@ -23,6 +23,7 @@ export const PAGE_CHROME_INHERIT_KEYS = [
   'afterBodyHtml',
   'beforeBodyCloseHtml',
   'fontAwesome',
+  'atoms',
 ] as const satisfies ReadonlyArray<keyof PageChrome>
 
 export type PageChromeInheritKey = (typeof PAGE_CHROME_INHERIT_KEYS)[number]

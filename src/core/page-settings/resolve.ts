@@ -13,9 +13,9 @@ import {
   outlineChromeRowId,
 } from './outline-chrome'
 import {
-  loadGlobalPageChrome,
-  loadOutlinePageChrome,
-  loadPageChromeOverride,
+  getCachedGlobalPageChrome,
+  getCachedOutlinePageChrome,
+  getCachedPageChromeOverride,
   loadPageChromeRowUncached,
 } from './store'
 import type { PageChrome, ResolvedPageChrome } from './types'
@@ -94,7 +94,7 @@ export function publicPathnameFromHeaders(
  */
 export async function resolvePageChrome(pageKey: string | null): Promise<ResolvedPageChrome> {
   const [globalResult, preferredLayoutId] = await Promise.all([
-    loadGlobalPageChrome(),
+    getCachedGlobalPageChrome(),
     getPreferredLayoutId(),
   ])
   const mergeOpts = { fallbackLayoutId: preferredLayoutId }
@@ -112,7 +112,7 @@ export async function resolvePageChrome(pageKey: string | null): Promise<Resolve
 
   // Fall back to page chrome mirror only when nav has no assignment for this pageKey.
   if (!navLayoutId) {
-    const pageResult = await loadPageChromeOverride(pageKey)
+    const pageResult = await getCachedPageChromeOverride(pageKey)
     if (!pageResult.isFallback && typeof pageResult.chrome.layoutId === 'string') {
       navLayoutId = pageResult.chrome.layoutId.trim()
     }
@@ -126,7 +126,7 @@ export async function resolvePageChrome(pageKey: string | null): Promise<Resolve
 
   let outlineOverride: PageChrome | null = null
   if (layoutId && layoutId !== preferredLayoutId) {
-    const outlineRow = await loadOutlinePageChrome(layoutId)
+    const outlineRow = await getCachedOutlinePageChrome(layoutId)
     if (!outlineRow.isFallback) {
       const { layoutId: _dropLayout, pageKey: _dropKey, ...rest } = outlineRow.chrome
       outlineOverride = rest
@@ -182,7 +182,7 @@ async function mergeOutlinePageChrome(
 export async function resolvePageChromeForOutline(
   outlineId: string | null | undefined,
 ): Promise<ResolvedPageChrome> {
-  return mergeOutlinePageChrome(outlineId, loadGlobalPageChrome, loadOutlinePageChrome)
+  return mergeOutlinePageChrome(outlineId, getCachedGlobalPageChrome, getCachedOutlinePageChrome)
 }
 
 /**
@@ -218,13 +218,13 @@ export const getResolvedPageChromeForOutlineLive = cache(
 )
 
 export async function getGlobalPageChrome(): Promise<PageChrome> {
-  const result = await loadGlobalPageChrome()
+  const result = await getCachedGlobalPageChrome()
   return result.chrome
 }
 
 export async function getPageChromeOverride(pageKey: string): Promise<PageChrome | null> {
   if (isOutlineChromeRowId(pageKey)) return null
-  const result = await loadPageChromeOverride(pageKey)
+  const result = await getCachedPageChromeOverride(pageKey)
   if (result.isFallback) return null
   return result.chrome
 }
