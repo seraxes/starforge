@@ -18,6 +18,7 @@ export {
   cloneNavMenuItem,
   flattenNavItemsInOrder,
   moveNavItemAmongSiblings,
+  nestResolvedNavItems,
   normalizeNavMenuDocument,
   normalizeNavMenuItem,
   parseNavMenuDocumentJson,

@@ -145,6 +145,35 @@ function sameIdSet(a: { id: string }[], b: { id: string }[]) {
   return b.every((row) => set.has(row.id))
 }
 
+/** Parent select options in tree order; `excludeId` drops that node and its descendants. */
+function buildParentTreeOptions(
+  rows: { id: string; parentId: string; label: string }[],
+  excludeId?: string,
+): { id: string; label: string; depth: number }[] {
+  const byParent = new Map<string, typeof rows>()
+  for (const row of rows) {
+    const key = row.parentId && rows.some((r) => r.id === row.parentId) ? row.parentId : ''
+    const list = byParent.get(key) ?? []
+    list.push(row)
+    byParent.set(key, list)
+  }
+
+  const out: { id: string; label: string; depth: number }[] = []
+  const walk = (parentKey: string, depth: number) => {
+    for (const child of byParent.get(parentKey) ?? []) {
+      if (excludeId && child.id === excludeId) continue
+      out.push({ id: child.id, label: child.label || 'Untitled', depth })
+      walk(child.id, depth + 1)
+    }
+  }
+  walk('', 0)
+  return out
+}
+
+function formatParentTreeLabel(label: string, depth: number) {
+  return depth > 0 ? `${'—'.repeat(depth)} ${label}` : label
+}
+
 function Feedback({ state }: { state: NavActionState }) {
   if (state.error) {
     return (
@@ -230,7 +259,7 @@ type SortableNavItemProps = {
   groups: UserGroupOption[]
   outlines: OutlineOption[]
   locales: ContentLocaleOption[]
-  parentOptions: { id: string; label: string }[]
+  parentOptions: { id: string; label: string; depth: number }[]
   onToggle: () => void
   onPatch: (patch: Partial<EditableItem>) => void
   onCopy: () => void
@@ -386,13 +415,11 @@ function SortableNavItem({
                     }}
                   >
                     <option value="">Top level</option>
-                    {parentOptions
-                      .filter((p) => p.id !== row.id)
-                      .map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.label}
-                        </option>
-                      ))}
+                    {parentOptions.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {formatParentTreeLabel(p.label, p.depth)}
+                      </option>
+                    ))}
                   </select>
                 </label>
                 <label className="settings-field">
@@ -698,8 +725,11 @@ export function NavItemsEditor({
   const rowsRef = useRef<EditableItem[]>(rows)
   const [clipboard, setClipboard] = useState<string>('')
   const [expandedId, setExpandedId] = useState<string | null>(items[0]?.id ?? null)
+  const [addOpen, setAddOpen] = useState(false)
+  const [addFormKey, setAddFormKey] = useState(0)
   const [newLinkType, setNewLinkType] = useState<NavLinkType>('page')
   const [newModuleId, setNewModuleId] = useState(modules[0]?.moduleId ?? '')
+  const [newParentId, setNewParentId] = useState('')
   const [newLayoutId, setNewLayoutId] = useState(preferredLayoutId)
   const [newAccessTags, setNewAccessTags] = useState<string[]>([])
   const [rootItemId, setRootItemId] = useState(rootItemIdProp)
@@ -720,6 +750,26 @@ export function NavItemsEditor({
   useNotifySavedOnOk(addState, { successMessage: 'Saved', toastErrors: true })
   useNotifySavedOnOk(pasteState, { successMessage: 'Saved', toastErrors: true })
   const { formRef, saveDebounced, saveNow } = useAutosaveForm()
+
+  const addOkRef = useRef(false)
+  useEffect(() => {
+    if (addState.ok && !addOkRef.current) {
+      addOkRef.current = true
+      setAddOpen(false)
+      setAddFormKey((k) => k + 1)
+      setNewLinkType('page')
+      setNewModuleId(modules[0]?.moduleId ?? '')
+      setNewParentId('')
+      setNewLayoutId(preferredLayoutId)
+      setNewAccessTags([])
+      router.refresh()
+    }
+    if (!addState.ok) addOkRef.current = false
+  }, [addState, modules, preferredLayoutId, router])
+
+  useEffect(() => {
+    if (addState.error) setAddOpen(true)
+  }, [addState.error])
 
   const commitRows = (updater: (prev: EditableItem[]) => EditableItem[]) => {
     // Sync ref immediately so queueMicrotask(saveNow) / onSubmit see the draft
@@ -776,10 +826,7 @@ export function NavItemsEditor({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
-  const parentOptions = useMemo(
-    () => rows.map((r) => ({ id: r.id, label: r.label })),
-    [rows],
-  )
+  const parentTreeOptions = useMemo(() => buildParentTreeOptions(rows), [rows])
 
   const newModuleViews = useMemo(
     () => modules.find((m) => m.moduleId === newModuleId)?.views ?? [],
@@ -787,8 +834,6 @@ export function NavItemsEditor({
   )
 
   const sortableIds = useMemo(() => rows.map((r) => r.id), [rows])
-
-  const refresh = () => router.refresh()
 
   const updateRow = (id: string, patch: Partial<EditableItem>) => {
     commitRows((prev) => prev.map((row) => (row.id === id ? { ...row, ...patch } : row)))
@@ -870,6 +915,195 @@ export function NavItemsEditor({
       <Feedback state={addState} />
       <Feedback state={pasteState} />
 
+      <section className="outlines-create sf-events-add-panel nav-items-add" aria-label="Add menu item">
+        <div className="sf-events-add-bar">
+          <button
+            type="button"
+            className={`gantry-toolbar-btn${addOpen ? ' gantry-toolbar-btn-muted' : ' gantry-toolbar-btn-save'}`}
+            aria-expanded={addOpen}
+            aria-controls="nav-items-add-form"
+            onClick={() => {
+              if (addOpen) {
+                setAddOpen(false)
+                setAddFormKey((k) => k + 1)
+              } else {
+                setAddOpen(true)
+              }
+            }}
+          >
+            {addOpen ? 'Close' : 'Add +'}
+          </button>
+          {!addOpen ? (
+            <p className="settings-hint sf-events-add-hint">
+              Click Add + to create a menu item — pick parent in the tree when nesting.
+            </p>
+          ) : null}
+        </div>
+
+        {addOpen ? (
+          <form
+            key={addFormKey}
+            id="nav-items-add-form"
+            action={addAction}
+            className="outlines-create-form admin-create-form nav-items-add-form"
+            onSubmit={(e) => {
+              appendItemFields(e.currentTarget, rowsRef.current)
+            }}
+          >
+            <input type="hidden" name="menuId" value={menuId} />
+            <label className="settings-field">
+              <span>Label</span>
+              <input type="text" name="newLabel" placeholder="About" required maxLength={120} />
+            </label>
+            <label className="settings-field">
+              <span>Parent</span>
+              <select
+                name="newParentId"
+                value={newParentId}
+                onChange={(e) => setNewParentId(e.target.value)}
+              >
+                <option value="">Top level</option>
+                {parentTreeOptions.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {formatParentTreeLabel(p.label, p.depth)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="settings-field">
+              <span>Link type</span>
+              <select
+                name="newLinkType"
+                value={newLinkType}
+                onChange={(e) => {
+                  const next = e.target.value as NavLinkType
+                  setNewLinkType(next)
+                  if (next === 'module' && !newModuleId && modules[0]) {
+                    setNewModuleId(modules[0].moduleId)
+                  }
+                }}
+              >
+                {LINK_TYPES.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {newLinkType === 'page' ? (
+              <label className="settings-field">
+                <span>Page</span>
+                <select name="newPageId" defaultValue="">
+                  <option value="">Select…</option>
+                  {pages.map((p) => (
+                    <option key={p.id} value={String(p.id)}>
+                      {p.title} (/{p.slug})
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+            {newLinkType === 'url' ? (
+              <label className="settings-field">
+                <span>URL</span>
+                <input type="text" name="newUrl" placeholder="/path" />
+              </label>
+            ) : null}
+            {newLinkType === 'module' ? (
+              <>
+                <label className="settings-field">
+                  <span>Module</span>
+                  <select
+                    name="newModuleId"
+                    value={newModuleId}
+                    onChange={(e) => setNewModuleId(e.target.value)}
+                  >
+                    <option value="">Select…</option>
+                    {modules.map((m) => (
+                      <option key={m.moduleId} value={m.moduleId}>
+                        {m.moduleLabel}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="settings-field">
+                  <span>View</span>
+                  <select
+                    name="newModuleViewKey"
+                    defaultValue={newModuleViews[0]?.key ?? ''}
+                    key={newModuleId}
+                  >
+                    <option value="">Select…</option>
+                    {newModuleViews.map((v) => (
+                      <option key={v.key} value={v.key}>
+                        {v.label} ({v.href})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </>
+            ) : null}
+            {newLinkType !== 'admin' ? (
+              <label className="settings-field">
+                <span>Layout outline</span>
+                <select
+                  name="newLayoutId"
+                  value={newLayoutId}
+                  onChange={(e) => setNewLayoutId(e.target.value)}
+                >
+                  {outlines.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.label} ({o.id})
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+            {newLinkType === 'admin' ? (
+              <div className="nav-items-add-span">
+                <p className="settings-hint">
+                  Links to <code>/admin</code> without a locale prefix. Pick Admin role and/or a
+                  group below.
+                </p>
+                <AccessTagsField
+                  value={newAccessTags}
+                  groups={groups}
+                  onChange={setNewAccessTags}
+                  allowEmpty
+                />
+                <input type="hidden" name="newAccessTags" value={JSON.stringify(newAccessTags)} />
+              </div>
+            ) : null}
+            {newLinkType === 'module' && modules.length === 0 ? (
+              <p className="settings-hint nav-items-add-span">
+                No enabled modules declare navigable views. Turn modules on under Settings → Modules,
+                or register <code>navViews</code> on a module.
+              </p>
+            ) : null}
+            <div className="page-settings-actions nav-items-add-span">
+              <button
+                type="button"
+                className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+                disabled={addPending}
+                onClick={() => {
+                  setAddOpen(false)
+                  setAddFormKey((k) => k + 1)
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="gantry-toolbar-btn gantry-toolbar-btn-save"
+                disabled={addPending}
+              >
+                {addPending ? 'Adding…' : 'Add item'}
+              </button>
+            </div>
+          </form>
+        ) : null}
+      </section>
+
       <form
         ref={formRef}
         action={saveAction}
@@ -883,7 +1117,7 @@ export function NavItemsEditor({
         <input ref={rootInputRef} type="hidden" name="rootItemId" value={rootItemId} />
 
         {rows.length === 0 ? (
-          <p className="outlines-muted">No items yet — add one below.</p>
+          <p className="outlines-muted">No items yet — use Add + above.</p>
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
             <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
@@ -899,7 +1133,7 @@ export function NavItemsEditor({
                     groups={groups}
                     outlines={outlines}
                     locales={locales}
-                    parentOptions={parentOptions}
+                    parentOptions={buildParentTreeOptions(rows, row.id)}
                     onToggle={() => setExpandedId(expandedId === row.id ? null : row.id)}
                     onPatch={(patch) => updateRow(row.id, patch)}
                     onCopy={() => copyRow(row)}
@@ -942,144 +1176,6 @@ export function NavItemsEditor({
           </button>
         </div>
       </form>
-
-      <section className="page-settings-panel nav-items-add" aria-label="Add menu item">
-        <header className="page-settings-panel-head">
-          <h3>Add item</h3>
-        </header>
-        <form
-          action={addAction}
-          className="page-settings-panel-body outlines-create-form admin-create-form nav-items-add-form"
-          onSubmit={(e) => {
-            const form = e.currentTarget
-            appendItemFields(form, rowsRef.current)
-            setTimeout(refresh, 80)
-          }}
-        >
-          <input type="hidden" name="menuId" value={menuId} />
-          <label className="settings-field">
-            <span>Label</span>
-            <input type="text" name="newLabel" placeholder="About" required maxLength={120} />
-          </label>
-          <label className="settings-field">
-            <span>Link type</span>
-            <select
-              name="newLinkType"
-              value={newLinkType}
-              onChange={(e) => {
-                const next = e.target.value as NavLinkType
-                setNewLinkType(next)
-                if (next === 'module' && !newModuleId && modules[0]) {
-                  setNewModuleId(modules[0].moduleId)
-                }
-              }}
-            >
-              {LINK_TYPES.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          {newLinkType === 'page' ? (
-            <label className="settings-field">
-              <span>Page</span>
-              <select name="newPageId" defaultValue="">
-                <option value="">Select…</option>
-                {pages.map((p) => (
-                  <option key={p.id} value={String(p.id)}>
-                    {p.title} (/{p.slug})
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-          {newLinkType === 'url' ? (
-            <label className="settings-field">
-              <span>URL</span>
-              <input type="text" name="newUrl" placeholder="/path" />
-            </label>
-          ) : null}
-          {newLinkType === 'module' ? (
-            <>
-              <label className="settings-field">
-                <span>Module</span>
-                <select
-                  name="newModuleId"
-                  value={newModuleId}
-                  onChange={(e) => setNewModuleId(e.target.value)}
-                >
-                  <option value="">Select…</option>
-                  {modules.map((m) => (
-                    <option key={m.moduleId} value={m.moduleId}>
-                      {m.moduleLabel}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="settings-field">
-                <span>View</span>
-                <select
-                  name="newModuleViewKey"
-                  defaultValue={newModuleViews[0]?.key ?? ''}
-                  key={newModuleId}
-                >
-                  <option value="">Select…</option>
-                  {newModuleViews.map((v) => (
-                    <option key={v.key} value={v.key}>
-                      {v.label} ({v.href})
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </>
-          ) : null}
-          {newLinkType !== 'admin' ? (
-            <label className="settings-field">
-              <span>Layout outline</span>
-              <select
-                name="newLayoutId"
-                value={newLayoutId}
-                onChange={(e) => setNewLayoutId(e.target.value)}
-              >
-                {outlines.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.label} ({o.id})
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-          {newLinkType === 'admin' ? (
-            <div className="nav-items-add-span">
-              <p className="settings-hint">
-                Links to <code>/admin</code> without a locale prefix. Pick Admin role and/or a group
-                below.
-              </p>
-              <AccessTagsField
-                value={newAccessTags}
-                groups={groups}
-                onChange={setNewAccessTags}
-                allowEmpty
-              />
-              <input type="hidden" name="newAccessTags" value={JSON.stringify(newAccessTags)} />
-            </div>
-          ) : null}
-          {newLinkType === 'module' && modules.length === 0 ? (
-            <p className="settings-hint nav-items-add-span">
-              No enabled modules declare navigable views. Turn modules on under Settings → Modules,
-              or register <code>navViews</code> on a module.
-            </p>
-          ) : null}
-          <button
-            type="submit"
-            className="gantry-toolbar-btn gantry-toolbar-btn-save"
-            disabled={addPending}
-          >
-            {addPending ? 'Adding…' : 'Add item'}
-          </button>
-        </form>
-      </section>
     </div>
   )
 }

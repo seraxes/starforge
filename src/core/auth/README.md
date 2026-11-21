@@ -15,10 +15,16 @@ Do **not** route high-QPS app login/session traffic through Payload Local API. P
 
 ## Tables (`public`)
 
-- `sf_users` — app user profile (`role`, `cms_access`, `banned`, …)
+- `sf_users` — app user profile (`role`, `cms_access`, `banned`, retention clock, …)
 - `sf_sessions` — cookie sessions (+ `impersonated_by` for Better Auth admin plugin)
 - `sf_accounts` — auth providers (email/password hash lives here on the `credential` provider)
 - `sf_verifications` — one-time tokens (unused until email flows land)
+
+## Account retention clock
+
+Member “Delete my account” **hides** the row (`hidden_at` + `purge_eligible_at`) instead of calling `deleteUser`. Wait days come from Core `sf_site_settings.account_retention_days` (default 365). Related pack rows stay. Public pages treat the account as absent (`isAccountPubliclyAbsent`). Sign-in during the wait offers restore (`/account/restore`), which clears the clock. App admins can restore, set a legal hold, or approve final delete after `purge_eligible_at` when no hold is set. Final delete calls each pack’s purge door via `loadModuleDoor` (including Social `purgeOwnSocialRecord`), then removes the auth user.
+
+Staff accounts (`role=admin` until the five named roles exist) cannot be hidden or finally deleted by the member flow or by the same user. Only a different app admin may act on them.
 
 **After pulling this branch, always run** `npm run db:core:push` so Postgres gains `sf_users.cms_access` (and any earlier admin columns). Without that push, admin pages fail on missing columns.
 

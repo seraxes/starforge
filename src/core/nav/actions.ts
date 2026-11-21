@@ -419,6 +419,9 @@ export async function addNavMenuItemAction(
   const moduleId = String(formData.get('newModuleId') ?? '').trim()
   const moduleViewKey = String(formData.get('newModuleViewKey') ?? '').trim()
   const layoutIdRaw = String(formData.get('newLayoutId') ?? '').trim()
+  const parentIdRaw = String(formData.get('newParentId') ?? '').trim()
+  const parentId =
+    parentIdRaw && items.some((item) => item.id === parentIdRaw) ? parentIdRaw : null
   const preferredLayoutId = await getPreferredLayoutId()
 
   let accessTags: string[] = ['public']
@@ -446,6 +449,7 @@ export async function addNavMenuItemAction(
     createNavMenuItem(
       {
         label,
+        parentId,
         linkType,
         pageId: pageIdRaw || null,
         url: linkType === 'url' ? url : null,

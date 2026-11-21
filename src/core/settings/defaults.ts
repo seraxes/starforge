@@ -5,6 +5,20 @@
  * rows (copied once from Payload) still resolve in `getSiteSettings`.
  */
 
+import {
+  ACCOUNT_RETENTION_DAYS_MAX,
+  ACCOUNT_RETENTION_DAYS_MIN,
+  DEFAULT_ACCOUNT_RETENTION_DAYS,
+  clampAccountRetentionDays,
+} from '@/core/auth/account-retention-days'
+
+export {
+  ACCOUNT_RETENTION_DAYS_MAX,
+  ACCOUNT_RETENTION_DAYS_MIN,
+  DEFAULT_ACCOUNT_RETENTION_DAYS,
+  clampAccountRetentionDays,
+}
+
 export type NavItem = {
   label: string
   /** Resolved path (`/about`) or absolute URL. */
@@ -22,6 +36,8 @@ export type NavItem = {
   accessTags?: string[]
   /** @deprecated Prefer `accessTags`; still read for legacy single-value rows. */
   accessLevel?: string
+  /** Nested items from Nav manager `parentId` (public menu dropdowns). */
+  children?: NavItem[]
 }
 
 /** Legacy nav input shape. Core no longer writes the primary-nav array. */
@@ -283,6 +299,11 @@ export type SiteSettingsData = {
    * Site Settings → Performance. Redis fanout (later) stays env-selected.
    */
   realtimeEnabled: boolean
+  /**
+   * Days a hidden account waits before purge eligibility (default one year).
+   * Core account retention clock.
+   */
+  accountRetentionDays: number
   features: FeatureFlags
   /** Runtime gates for registered particles + atoms (`atom:` prefix). */
   moduleToggles: ModuleToggleMap
@@ -321,6 +342,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettingsData = {
   dashboardRefreshIntervalSec: DEFAULT_DASHBOARD_REFRESH_INTERVAL_SEC,
   dashboardOnlineWindowMin: DEFAULT_DASHBOARD_ONLINE_WINDOW_MIN,
   realtimeEnabled: DEFAULT_REALTIME_ENABLED,
+  accountRetentionDays: DEFAULT_ACCOUNT_RETENTION_DAYS,
   features: { ...DEFAULT_FEATURE_FLAGS },
   moduleToggles: {},
 }

@@ -17,6 +17,7 @@ export type SiteSettingsWrite = {
   dashboardRefreshIntervalSec: number
   dashboardOnlineWindowMin: number
   realtimeEnabled: boolean
+  accountRetentionDays: number
   featureRegistration: boolean
   featureRichEditor: boolean
   featurePosts: boolean

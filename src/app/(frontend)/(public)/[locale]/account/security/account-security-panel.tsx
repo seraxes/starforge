@@ -203,8 +203,9 @@ export function AccountSecurityPanel({ twoFactorEnabled }: { twoFactorEnabled: b
           Your data
         </h2>
         <p className="auth-hint">
-          Download a JSON copy of your account (and profile when Profiles is on). Deleting your
-          account is permanent and requires your current password.
+          Download a JSON copy of your account (and profile when Profiles is on). Deleting hides your
+          account for a retention wait (default one year); you can restore by signing in. Final
+          removal needs a separate staff approval after that wait. Requires your current password.
         </p>
         <form className="auth-form" action={deleteAction} noValidate>
           <label>
@@ -222,7 +223,7 @@ export function AccountSecurityPanel({ twoFactorEnabled }: { twoFactorEnabled: b
               Download my data
             </a>
             <button type="submit" className="gantry-btn" disabled={deletePending}>
-              {deletePending ? 'Deleting…' : 'Delete my account'}
+              {deletePending ? 'Hiding…' : 'Delete my account'}
             </button>
           </div>
         </form>

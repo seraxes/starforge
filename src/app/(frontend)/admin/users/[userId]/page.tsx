@@ -16,6 +16,7 @@ import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/sett
 
 import { UserAccountPanel } from '../user-account-panel'
 import { UserProfileStatusForm } from '../user-profile-status-form'
+import { UserRetentionPanel } from '../user-retention-panel'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,6 +38,9 @@ export default async function AdminUserDetailPage({ params }: { params: Params }
       cmsAccess: sfUsers.cmsAccess,
       banned: sfUsers.banned,
       banReason: sfUsers.banReason,
+      hiddenAt: sfUsers.hiddenAt,
+      purgeEligibleAt: sfUsers.purgeEligibleAt,
+      legalHold: sfUsers.legalHold,
       createdAt: sfUsers.createdAt,
     })
     .from(sfUsers)
@@ -81,6 +85,13 @@ export default async function AdminUserDetailPage({ params }: { params: Params }
 
       <h3>Account</h3>
       <UserAccountPanel user={account} groupOptions={groupOptions} />
+
+      <UserRetentionPanel
+        userId={userId}
+        hiddenAt={row.hiddenAt?.toISOString() ?? null}
+        purgeEligibleAt={row.purgeEligibleAt?.toISOString() ?? null}
+        legalHold={Boolean(row.legalHold)}
+      />
 
       {profilesEnabled ? <UserProfileSection userId={userId} email={account.email} /> : null}
     </section>

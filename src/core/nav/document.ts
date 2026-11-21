@@ -205,6 +205,51 @@ export function cloneNavMenuItem(
   )
 }
 
+/**
+ * Nest flat resolved public items using Nav manager `parentId`.
+ * `ordered` must list parents before children (same order as `flattenNavItemsInOrder`).
+ * Orphans whose parent did not resolve become top-level.
+ */
+export function nestResolvedNavItems<T extends { id?: string; children?: T[] }>(
+  ordered: Array<{ parentId: string | null; resolved: T }>,
+): T[] {
+  const byId = new Map<string, T>()
+  for (const { resolved } of ordered) {
+    if (!resolved.id) continue
+    byId.set(resolved.id, { ...resolved, children: [] as T[] })
+  }
+
+  const roots: T[] = []
+  for (const { parentId, resolved } of ordered) {
+    const id = resolved.id
+    const node = id ? byId.get(id) : undefined
+    if (!node) {
+      roots.push({ ...resolved })
+      continue
+    }
+    const parent = parentId && byId.has(parentId) ? byId.get(parentId) : undefined
+    if (parent) {
+      parent.children = parent.children ?? []
+      parent.children.push(node)
+    } else {
+      roots.push(node)
+    }
+  }
+
+  const stripEmpty = (items: T[]): T[] =>
+    items.map((item) => {
+      const children = item.children?.length ? stripEmpty(item.children) : undefined
+      if (!children?.length) {
+        const { children: _drop, ...rest } = item
+        void _drop
+        return rest as T
+      }
+      return { ...item, children }
+    })
+
+  return stripEmpty(roots)
+}
+
 /** Ordered flat list for admin tables (parents before children). */
 export function flattenNavItemsInOrder(items: NavMenuItem[]): NavMenuItem[] {
   const byParent = new Map<string | null, NavMenuItem[]>()

@@ -26,7 +26,13 @@ function redirectAfterLogin(next: string, locale: string): never {
 
 type Props = {
   params: Promise<{ locale: string }>
-  searchParams: Promise<{ next?: string; reset?: string; error?: string; mode?: string }>
+  searchParams: Promise<{
+    next?: string
+    reset?: string
+    error?: string
+    mode?: string
+    notice?: string
+  }>
 }
 
 export async function generateMetadata({ params }: Props) {
@@ -54,13 +60,29 @@ export default async function LoginPage({ params, searchParams }: Props) {
     resolvePostLoginUrl(query.next),
   ])
   const googleSignInEnabled = isGoogleSignInConfigured()
-  if (session) {
+  if (session?.user?.id) {
+    const { loadAccountRetentionState } = await import(
+      '@/core/auth/account-retention-store'
+    )
+    const { isAccountPubliclyAbsent } = await import('@/core/auth/account-retention')
+    const retention = await loadAccountRetentionState(session.user.id)
+    if (retention && isAccountPubliclyAbsent(retention)) {
+      nextRedirect(
+        `/account/restore?next=${encodeURIComponent(next)}`,
+      )
+    }
     redirectAfterLogin(next, locale)
   }
 
   const defaultLogin = chrome.authPostLoginUrl || '/'
+  const accountHiddenNotice = query.notice === 'account-hidden'
   return (
     <div className="auth-page">
+      {accountHiddenNotice ? (
+        <p className="auth-success" role="status">
+          Your account is hidden for the retention wait. Sign in again to restore it.
+        </p>
+      ) : null}
       <AuthWelcomePanel
         siteName={settings.siteName}
         variant="page"

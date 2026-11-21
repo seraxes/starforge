@@ -117,10 +117,12 @@ export function MediaFileField({
           onChange={(e) => applyFiles(e.target.files)}
         />
         <div className="sf-media-file-field-body">
-          <p className="sf-media-file-field-title">
-            {fileName ? fileName : titleIdle}
-          </p>
-          <p className="sf-media-file-field-hint settings-hint">{titleHint}</p>
+          <div className="sf-media-file-field-copy">
+            <p className="sf-media-file-field-title">
+              {fileName ? fileName : titleIdle}
+            </p>
+            <p className="sf-media-file-field-hint settings-hint">{titleHint}</p>
+          </div>
           <button
             type="button"
             className="gantry-toolbar-btn gantry-toolbar-btn-muted"

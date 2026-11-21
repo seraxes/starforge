@@ -114,13 +114,15 @@ function SkinPackFileField({ disabled }: { disabled?: boolean }) {
         onChange={(e) => applyFiles(e.target.files)}
       />
       <div className="sf-media-file-field-body">
-        <p className="sf-media-file-field-title">
-          {fileName ? fileName : 'Drop a skin pack here, or choose a file'}
-        </p>
-        <p className="sf-media-file-field-hint settings-hint">
-          Zip with <code>skin.yaml</code>, <code>outlines/*.yaml</code>, optional{' '}
-          <code>skin.css</code>.
-        </p>
+        <div className="sf-media-file-field-copy">
+          <p className="sf-media-file-field-title">
+            {fileName ? fileName : 'Drop a skin pack here, or choose a file'}
+          </p>
+          <p className="sf-media-file-field-hint settings-hint">
+            Zip with <code>skin.yaml</code>, <code>outlines/*.yaml</code>, optional{' '}
+            <code>skin.css</code>.
+          </p>
+        </div>
         <button
           type="button"
           className="gantry-toolbar-btn gantry-toolbar-btn-muted"

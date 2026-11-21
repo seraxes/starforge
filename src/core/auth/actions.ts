@@ -291,6 +291,19 @@ export async function loginAction(
     }
   }
 
+  // Retention-hidden accounts stay sign-in capable; offer restore instead of the home page.
+  {
+    const { loadAccountRetentionState } = await import('./account-retention-store')
+    const { isAccountPubliclyAbsent } = await import('./account-retention')
+    const sessionUser = await auth.api.getSession({ headers: await headers() })
+    if (sessionUser?.user?.id) {
+      const retention = await loadAccountRetentionState(sessionUser.user.id)
+      if (retention && isAccountPubliclyAbsent(retention)) {
+        redirect(`/account/restore?next=${encodeURIComponent(next)}`)
+      }
+    }
+  }
+
   // Staff destinations need the admin session cookie minted (Set-Cookie via route).
   const staffNext = staffDestination(next)
   if (staffNext) {

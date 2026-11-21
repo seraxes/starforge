@@ -4546,9 +4546,23 @@ body:has(.admin-shell) > main {
 
 .admin-shell .sf-media-file-field-body {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem 1rem;
+}
+
+.admin-shell .sf-media-file-field-copy {
+  flex: 1 1 14rem;
+  min-width: 0;
+  display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 0.35rem;
+}
+
+.admin-shell .sf-media-file-field-body > .gantry-toolbar-btn {
+  flex: 0 0 auto;
 }
 
 .admin-shell .sf-media-file-field-title {
@@ -4560,7 +4574,7 @@ body:has(.admin-shell) > main {
 }
 
 .admin-shell .sf-media-file-field-hint {
-  margin: 0 0 0.25rem;
+  margin: 0;
 }
 
 .admin-shell .sf-media-library-filters label,
@@ -5097,23 +5111,9 @@ body:has(.admin-shell) > main {
   align-self: flex-end;
 }
 
-/* Pages categories: same Add+ bar / row-action density as Events lists. */
-.admin-shell .sf-pages-add-panel > .sf-pages-add-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.65rem 1rem;
-  margin-top: var(--sf-admin-card-pad-y, 0.75rem);
-  margin-bottom: var(--sf-admin-card-pad-y, 0.75rem);
-}
-
-.admin-shell .sf-pages-add-hint {
-  margin: 0;
-  flex: 1 1 12rem;
-}
-
+/* Pages categories: same Add + disclosure inset as Events / Subscriptions / Nav. */
 .admin-shell .sf-pages-add-inline-form {
-  margin: 0 0 var(--sf-admin-card-pad-bottom, 0.85rem);
+  margin: 0 0 var(--sf-admin-card-pad-x, 0.85rem);
 }
 
 .admin-shell .sf-pages-category-fields {

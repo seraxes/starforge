@@ -12,7 +12,7 @@ import {
 import { pickLocaleText } from '@/core/i18n/locale-text'
 import { getLocaleTextContext } from '@/core/i18n/locale-text.server'
 
-import { flattenNavItemsInOrder } from './document'
+import { flattenNavItemsInOrder, nestResolvedNavItems } from './document'
 import { resolveModuleNavHref } from './module-views'
 import { navItemCanBeRoot } from './root-target'
 import { DEFAULT_NAV_MENU_ID, getCachedNavMenu } from './store'
@@ -30,6 +30,7 @@ export type ResolvedNavItem = NavItem & {
   moduleId?: string | null
   moduleViewKey?: string | null
   linkType?: NavMenuItem['linkType']
+  children?: ResolvedNavItem[]
 }
 
 function pageBindKey(id: string | number): string {
@@ -218,7 +219,7 @@ export async function resolveNavMenuItems(
   const defaultCatalogResolved =
     localeCtx.locale === localeCtx.defaultLocale ? currentCatalog : defaultCatalog
 
-  const out: ResolvedNavItem[] = []
+  const flat: Array<{ parentId: string | null; resolved: ResolvedNavItem }> = []
   for (const item of ordered) {
     const moduleHref =
       item.linkType === 'module' && settings
@@ -236,9 +237,18 @@ export async function resolveNavMenuItems(
       defaultCatalogResolved,
       settings?.rootItem ?? null,
     )
-    if (resolved) out.push(resolved)
+    if (resolved) {
+      flat.push({
+        parentId:
+          item.parentId && ordered.some((row) => row.id === item.parentId)
+            ? item.parentId
+            : null,
+        resolved,
+      })
+    }
   }
 
+  const out = nestResolvedNavItems(flat)
   return out.length > 0 ? out : DEFAULT_PRIMARY_NAV.map((i) => ({ ...i }))
 }
 
@@ -248,18 +258,33 @@ export function findNavOverridesForPath(
   pathname: string,
 ): { browserTitle?: string; pageHeading?: string } | null {
   const path = pathname.split('?')[0]?.split('#')[0] || '/'
-  for (const item of items) {
-    const target = normalizeHref(item.href).split('?')[0]?.split('#')[0] || '/'
-    if (target === path || (target !== '/' && path.startsWith(`${target}/`))) {
-      if (item.browserTitle || item.pageHeading) {
-        return {
-          ...(item.browserTitle ? { browserTitle: item.browserTitle } : {}),
-          ...(item.pageHeading ? { pageHeading: item.pageHeading } : {}),
+  let best: { score: number; browserTitle?: string; pageHeading?: string } | null =
+    null
+
+  const walk = (list: ResolvedNavItem[]) => {
+    for (const item of list) {
+      const target = normalizeHref(item.href).split('?')[0]?.split('#')[0] || '/'
+      if (target === path || (target !== '/' && path.startsWith(`${target}/`))) {
+        if (item.browserTitle || item.pageHeading) {
+          const score = target.length
+          if (!best || score > best.score) {
+            best = {
+              score,
+              ...(item.browserTitle ? { browserTitle: item.browserTitle } : {}),
+              ...(item.pageHeading ? { pageHeading: item.pageHeading } : {}),
+            }
+          }
         }
       }
+      if (item.children?.length) walk(item.children)
     }
   }
-  return null
+  walk(items)
+
+  if (!best) return null
+  const { score: _score, ...result } = best
+  void _score
+  return result
 }
 
 /** Bridge: resolve legacy Payload primaryNav rows when no menu id is set. */

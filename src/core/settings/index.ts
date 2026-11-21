@@ -25,9 +25,11 @@ import {
   DEFAULT_PRIMARY_NAV_MENU_ID,
   DEFAULT_PUBLISHED_CACHE_ENABLED,
   DEFAULT_PUBLISHED_CACHE_TTL_SEC,
+  DEFAULT_ACCOUNT_RETENTION_DAYS,
   DEFAULT_REALTIME_ENABLED,
   DEFAULT_SITE_NAME,
   DEFAULT_SITE_SETTINGS,
+  clampAccountRetentionDays,
   clampAdminAutosaveDebounceMs,
   clampDashboardOnlineWindowMin,
   clampDashboardRefreshIntervalSec,
@@ -171,6 +173,7 @@ type SiteSettingsDoc = {
   dashboardRefreshIntervalSec?: number | null
   dashboardOnlineWindowMin?: number | null
   realtimeEnabled?: boolean | null
+  accountRetentionDays?: number | null
   primaryNav?: RawNavRow[] | null
   featureRegistration?: boolean | null
   featureRichEditor?: boolean | null
@@ -209,6 +212,7 @@ function rowToDoc(row: SiteSettingsRow): SiteSettingsDoc {
     dashboardRefreshIntervalSec: row.dashboardRefreshIntervalSec,
     dashboardOnlineWindowMin: row.dashboardOnlineWindowMin,
     realtimeEnabled: row.realtimeEnabled,
+    accountRetentionDays: row.accountRetentionDays,
     primaryNav: asNavRows(row.legacyPrimaryNav),
     featureRegistration: row.featureRegistration,
     featureRichEditor: row.featureRichEditor,
@@ -283,6 +287,7 @@ export function normalizeSiteSettings(
       dashboardRefreshIntervalSec: DEFAULT_DASHBOARD_REFRESH_INTERVAL_SEC,
       dashboardOnlineWindowMin: DEFAULT_DASHBOARD_ONLINE_WINDOW_MIN,
       realtimeEnabled: DEFAULT_REALTIME_ENABLED,
+      accountRetentionDays: DEFAULT_ACCOUNT_RETENTION_DAYS,
       moduleToggles: {},
     }
     syncPublishedCacheRuntime(defaults)
@@ -310,6 +315,7 @@ export function normalizeSiteSettings(
     ),
     dashboardOnlineWindowMin: clampDashboardOnlineWindowMin(doc.dashboardOnlineWindowMin),
     realtimeEnabled: coerceRealtimeEnabled(doc.realtimeEnabled),
+    accountRetentionDays: clampAccountRetentionDays(doc.accountRetentionDays),
     primaryNav: resolvedNav ?? resolveNavItems(doc.primaryNav),
     features: normalizeFlags(doc),
     moduleToggles: normalizeModuleToggles(doc.moduleToggles),
@@ -446,6 +452,8 @@ export type UpdateSiteSettingsInput = {
   dashboardOnlineWindowMin?: number
   /** RealtimePort SSE / publish on/off; Site Settings → Performance. */
   realtimeEnabled?: boolean
+  /** Account retention wait in days (default 365). */
+  accountRetentionDays?: number
   /**
    * Accepted for callers. Legacy primary nav is not written.
    * The copied Payload array stays a read fallback.
@@ -514,6 +522,10 @@ export async function updateSiteSettings(input: UpdateSiteSettingsInput): Promis
       input.realtimeEnabled !== undefined
         ? coerceRealtimeEnabled(input.realtimeEnabled)
         : coerceRealtimeEnabled(existingDoc?.realtimeEnabled),
+    accountRetentionDays:
+      input.accountRetentionDays !== undefined
+        ? clampAccountRetentionDays(input.accountRetentionDays)
+        : clampAccountRetentionDays(existingDoc?.accountRetentionDays),
     featureRegistration: input.features.registration,
     featureRichEditor: input.features.richEditor,
     featurePosts: input.features.posts,

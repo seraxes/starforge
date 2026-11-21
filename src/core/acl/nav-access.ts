@@ -124,13 +124,31 @@ export function filterNavItemsForViewer<T extends NavItem>(
   items: T[],
   viewer: AccessViewer,
 ): T[] {
-  return items.filter((item) => {
+  const out: T[] = []
+  for (const item of items) {
     const tags =
       item.accessTags && item.accessTags.length > 0
         ? item.accessTags
         : normalizeAccessTags({ accessLevel: item.accessLevel })
-    return canSeeNavAccessTags(tags, viewer)
-  })
+    if (!canSeeNavAccessTags(tags, viewer)) continue
+
+    const nested = item.children
+    if (Array.isArray(nested) && nested.length > 0) {
+      const children = filterNavItemsForViewer(nested, viewer)
+      out.push(
+        (children.length > 0
+          ? { ...item, children }
+          : (() => {
+              const { children: _drop, ...rest } = item
+              void _drop
+              return rest
+            })()) as T,
+      )
+      continue
+    }
+    out.push(item)
+  }
+  return out
 }
 
 /** Toggle one access tag in a multi-select set. Empty → `['public']`. */

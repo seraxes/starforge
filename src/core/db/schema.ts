@@ -46,12 +46,20 @@ export const sfUsers = pgTable('sf_users', {
    * Column: `two_factor_enabled`. Apply with `npm run db:core:push` after pull.
    */
   twoFactorEnabled: boolean('two_factor_enabled').default(false).notNull(),
+  /**
+   * Account retention clock. Member "delete" sets `hidden_at` + `purge_eligible_at`
+   * instead of deleting. Rows stay until a separate final-delete approval.
+   */
+  hiddenAt: timestamp('hidden_at', { withTimezone: true }),
+  purgeEligibleAt: timestamp('purge_eligible_at', { withTimezone: true }),
+  /** When true, final delete stays refused past `purge_eligible_at`. */
+  legalHold: boolean('legal_hold').default(false).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true })
     .defaultNow()
     .$onUpdate(() => new Date())
     .notNull(),
-})
+}, (table) => [index('sf_users_hidden_at_idx').on(table.hiddenAt)])
 
 /**
  * Better Auth twoFactor plugin secrets + backup codes (encrypted/hashed by BA).
@@ -227,6 +235,11 @@ export const sfSiteSettings = pgTable('sf_site_settings', {
   dashboardRefreshIntervalSec: integer('dashboard_refresh_interval_sec').notNull().default(60),
   dashboardOnlineWindowMin: integer('dashboard_online_window_min').notNull().default(15),
   realtimeEnabled: boolean('realtime_enabled').notNull().default(true),
+  /**
+   * Days a hidden account waits before purge eligibility (default one year).
+   * Core account retention clock — not a Social setting.
+   */
+  accountRetentionDays: integer('account_retention_days').notNull().default(365),
   featureRegistration: boolean('feature_registration').notNull().default(true),
   featureRichEditor: boolean('feature_rich_editor').notNull().default(true),
   featurePosts: boolean('feature_posts').notNull().default(false),

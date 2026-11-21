@@ -663,11 +663,10 @@ function CreatePlanCard({
   return (
     <div className={`sf-subscriptions-add-panel${createOpen ? ' is-open' : ''}`} aria-label="Add plan">
       <section className="outlines-create sf-events-add-panel">
-        <h3>Add plan</h3>
         <div className="sf-events-add-bar">
           <button
             type="button"
-            className={`gantry-toolbar-btn${createOpen ? ' gantry-toolbar-btn-muted' : ''}`}
+            className={`gantry-toolbar-btn${createOpen ? ' gantry-toolbar-btn-muted' : ' gantry-toolbar-btn-save'}`}
             aria-expanded={createOpen}
             aria-controls="sf-subscriptions-add-plan-form"
             onClick={() => setCreateOpen((open) => !open)}

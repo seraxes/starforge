@@ -21,6 +21,7 @@ export const SITE_SETTINGS_CORE_VERIFY_COLUMNS = [
   'dashboard_refresh_interval_sec',
   'dashboard_online_window_min',
   'realtime_enabled',
+  'account_retention_days',
   'feature_registration',
   'feature_modules',
   'module_toggles',

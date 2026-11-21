@@ -1,6 +1,6 @@
 /**
  * Nav manager document model (stored as JSON in `sf_nav_menus.document`).
- * Flat list + optional `parentId` for later nesting; public layout is flat for now.
+ * Flat list + optional `parentId`; public Menu / SiteNav nests children into dropdowns.
  */
 
 /**
@@ -24,7 +24,7 @@ export type NavLinkType = 'page' | 'url' | 'module' | 'admin'
 
 export type NavMenuItem = {
   id: string
-  /** Null = top-level. Nesting UX can come later; storage is ready. */
+  /** Null = top-level. Public menu nests children under this parent. */
   parentId: string | null
   /** Sibling order (ascending). */
   sortOrder: number
