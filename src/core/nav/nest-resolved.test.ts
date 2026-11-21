@@ -3,7 +3,14 @@ import { describe, it } from 'node:test'
 
 import { nestResolvedNavItems } from './document'
 
-function leaf(id: string, label: string, href: string) {
+type NestLeaf = {
+  id: string
+  label: string
+  href: string
+  children?: NestLeaf[]
+}
+
+function leaf(id: string, label: string, href: string): NestLeaf {
   return { id, label, href }
 }
 

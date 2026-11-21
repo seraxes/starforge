@@ -39,7 +39,6 @@ describe('people — dual blockers', () => {
     )
 
     const post = createPostRecord({
-      id: 'post-mutual-block',
       authorUserId: 'alice',
       body: 'hi',
       audience: 'public',

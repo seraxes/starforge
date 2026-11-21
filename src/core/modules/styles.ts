@@ -198,7 +198,7 @@ export function parseLayoutBoxSpacing(
 
   const nums = parts.map((p) => p.slice(0, -unit.length))
   // Expand CSS shorthand: 1 → all; 2 → vertical/horizontal; 3 → top / x / bottom; 4 → TRBL.
-  let top = nums[0]
+  const top = nums[0]
   let right = nums[0]
   let bottom = nums[0]
   let left = nums[0]

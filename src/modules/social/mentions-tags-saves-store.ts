@@ -243,7 +243,7 @@ export async function syncPostMentionsFromBody(
     try {
       const hit = await getPersonaByHandle(handle, viewer)
       const userId = hit?.record.userId?.trim()
-      if (!userId) continue
+      if (!hit || !userId) continue
       resolved.push({
         userId,
         handle: hit.persona.handle?.trim().toLowerCase() || handle,

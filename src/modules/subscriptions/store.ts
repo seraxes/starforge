@@ -733,7 +733,7 @@ async function endPeriodNow(periodId: string, now: Date): Promise<void> {
     })
     .where(eq(sfSubPeriods.id, id))
   const { syncGroupsOnPeriodEnd } = await import('./group-sync')
-  await syncGroupsOnPeriodEnd({ ...ended, status: 'expired' }, now)
+  await syncGroupsOnPeriodEnd(ended, now)
 }
 
 /**

@@ -35,7 +35,7 @@ describe('settings modules toggle UI state', () => {
           'product:media': true,
           'product:forms': true,
         },
-        features: { ...baseFeatures, forms: true },
+        features: baseFeatures,
       },
       current,
     )
@@ -53,7 +53,7 @@ describe('settings modules toggle UI state', () => {
       moduleToggles: { 'product:social': false },
       features: baseFeatures,
     }
-    assert.equal(applyModulesActionToggles({ error: 'refused' }, current), null)
+    assert.equal(applyModulesActionToggles({ ok: false }, current), null)
     assert.equal(applyModulesActionToggles({ ok: true }, current), null)
   })
 
@@ -65,6 +65,7 @@ describe('settings modules toggle UI state', () => {
       description: '',
       required: false,
       defaultEnabled: false,
+      installed: true as const,
     }
     assert.equal(resolveModuleToggleChecked(item, { 'product:social': true }, baseFeatures), true)
     assert.equal(resolveModuleToggleChecked(item, {}, baseFeatures), false)

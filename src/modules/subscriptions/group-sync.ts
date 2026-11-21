@@ -41,7 +41,7 @@ export async function syncGroupsOnPeriodEnd(
   ]
   if (endedGroups.length === 0) return
 
-  let desired = new Set<string>()
+  const desired = new Set<string>()
   try {
     const { listActivePeriodsForUser } = await import('./store')
     const active = await listActivePeriodsForUser(userId, now)

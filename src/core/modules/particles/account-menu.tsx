@@ -37,7 +37,7 @@ export const accountMenuModule: StarforgeModule = {
       | undefined
     const signedIn = Boolean(user?.id)
     let displayName = (user?.name ?? '').trim()
-    let email = (user?.email ?? '').trim()
+    const email = (user?.email ?? '').trim()
     let avatarUrl = ''
 
     if (signedIn && user?.id) {

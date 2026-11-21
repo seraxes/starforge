@@ -9,7 +9,6 @@ import {
   findMembershipForUserInRoom,
   listOverlaysForRoom,
   listTeamPositions,
-  MAP_POSITION_STALE_MS,
   isPositionStale,
 } from '../store'
 import { LiveMapPanel } from './LiveMapPanel'
@@ -42,7 +41,6 @@ export async function EventLiveMap({ eventId }: { eventId: string }) {
 
   if (membership) {
     const positions = await listTeamPositions(membership.team.id)
-    const now = Date.now()
     initialPositions = positions.map((p) => ({
       userId: p.userId,
       latitude: p.latitude,
@@ -50,7 +48,7 @@ export async function EventLiveMap({ eventId }: { eventId: string }) {
       accuracy: p.accuracy,
       heading: p.heading,
       updatedAt: p.updatedAt.toISOString(),
-      stale: isPositionStale(p.updatedAt, now, MAP_POSITION_STALE_MS),
+      stale: isPositionStale(p.updatedAt),
     }))
   }
 

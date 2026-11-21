@@ -2,6 +2,7 @@
 
 import React, { useActionState, useEffect, useId, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 import { useNotifySavedOnOk } from '@/app/(frontend)/admin/admin-toast'
@@ -397,7 +398,7 @@ export function SubscribersManager({ periods, plans, people }: Props) {
   const [sort, setSort] = useState<SortKey>('newest')
   const [query, setQuery] = useState('')
   const [dialog, setDialog] = useState<DialogState>(null)
-  const now = useMemo(() => Date.now(), [periods])
+  const [now] = useState(() => Date.now())
 
   const typeCounts = useMemo(() => {
     const counts = new Map<string, number>()
@@ -468,8 +469,8 @@ export function SubscribersManager({ periods, plans, people }: Props) {
           {!addOpen ? (
             <p className="settings-hint sf-events-add-hint">
               Grant a period without checkout. Edit one subscription at a time. Coupons live under{' '}
-              <a href="/admin/payments/coupons">Payments → Coupons</a>; mail under{' '}
-              <a href="/admin/email">Email</a>.
+              <Link href="/admin/payments/coupons">Payments → Coupons</Link>; mail under{' '}
+              <Link href="/admin/email">Email</Link>.
             </p>
           ) : null}
         </div>

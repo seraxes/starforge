@@ -282,9 +282,11 @@ export function findNavOverridesForPath(
   walk(items)
 
   if (!best) return null
-  const { score: _score, ...result } = best
-  void _score
-  return result
+  const match: { score: number; browserTitle?: string; pageHeading?: string } = best
+  return {
+    ...(match.browserTitle ? { browserTitle: match.browserTitle } : {}),
+    ...(match.pageHeading ? { pageHeading: match.pageHeading } : {}),
+  }
 }
 
 /** Bridge: resolve legacy Payload primaryNav rows when no menu id is set. */

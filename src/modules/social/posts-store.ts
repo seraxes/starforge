@@ -441,7 +441,10 @@ export async function listStaffHiddenPosts(opts?: {
       .where(eq(sfSocialPosts.staffHidden, true))
       .orderBy(desc(sfSocialPosts.updatedAt))
       .limit(limit)
-    return await hydratePostsMedia(rows.map(toPostRecord))
+    const posts = rows
+      .map((row) => toPostRecord(row))
+      .filter((post): post is NonNullable<typeof post> => post != null)
+    return await hydratePostsMedia(posts)
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
     if (/sf_social_posts|does not exist|relation/i.test(msg)) return []

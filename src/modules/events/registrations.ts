@@ -257,7 +257,7 @@ export async function createEventRegistration(
     }
   }
 
-  let ticketTierId = (input.ticketTierId || '').trim() || null
+  const ticketTierId = (input.ticketTierId || '').trim() || null
   let tierCapacity: number | null = null
   let bookingCap = DEFAULT_MAX_TICKETS_PER_BOOKING
   if (ticketTierId) {
@@ -575,7 +575,7 @@ export async function updateEventRegistration(
       .limit(1)
     if (!current) return { error: 'Registration not found.' }
 
-    let ticketTierId = (input.ticketTierId || '').trim() || null
+    const ticketTierId = (input.ticketTierId || '').trim() || null
     let bookingCap = DEFAULT_MAX_TICKETS_PER_BOOKING
     if (ticketTierId) {
       const tier = await findTicketTierById(ticketTierId)

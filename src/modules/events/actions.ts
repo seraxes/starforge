@@ -1188,7 +1188,7 @@ export async function cancelOwnRegistrationAction(
   revalidatePath('/account/events')
   revalidateEventsAdmin(result.registration.eventId)
 
-  let message = 'Registration cancelled.'
+  const message = 'Registration cancelled.'
   let refundMessage: string | undefined
   if (result.refund) {
     if (result.refund.ok) {
