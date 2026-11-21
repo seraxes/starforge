@@ -24,7 +24,7 @@ export type ReactionKind = (typeof REACTION_KINDS)[number]
 /** Default enabled set. Pack settings can add kinds; `like` stays on. */
 export const DEFAULT_ENABLED_REACTION_KINDS: readonly ReactionKind[] = ['like']
 
-export const REACTION_TARGET_TYPES = ['post'] as const
+export const REACTION_TARGET_TYPES = ['post', 'comment'] as const
 export type ReactionTargetType = (typeof REACTION_TARGET_TYPES)[number]
 
 export type ReactionRecord = {
@@ -59,6 +59,13 @@ export type ReactionDecision =
 export type SetPostLikeInput = {
   actorUserId: string
   postId: string
+  /** Must be an enabled catalog kind. Unknown → invalid_kind; disabled → disabled_kind. */
+  kind: string
+}
+
+export type SetCommentLikeInput = {
+  actorUserId: string
+  commentId: string
   /** Must be an enabled catalog kind. Unknown → invalid_kind; disabled → disabled_kind. */
   kind: string
 }
@@ -214,6 +221,74 @@ export function setPostLikeWithGates(
     newId: opts.newId,
     enabledKinds: opts.enabledKinds,
   })
+}
+
+/**
+ * Decide a reaction on a comment. Same unique row as a post reaction.
+ * Pack switch off → disabled_kind. A reply is still one comment row.
+ */
+export function decideCommentLike(
+  current: ReactionRecord | null,
+  input: SetCommentLikeInput,
+  gates: { canView: boolean; canInteract: boolean; reactionsOnComments: boolean },
+  opts?: {
+    now?: Date
+    newId?: () => string
+    enabledKinds?: readonly string[]
+  },
+): ReactionDecision {
+  const actorUserId = input.actorUserId.trim()
+  const commentId = input.commentId.trim()
+  if (!actorUserId || !commentId) return { ok: false, reason: 'invalid' }
+  if (!gates.reactionsOnComments) return { ok: false, reason: 'disabled_kind' }
+
+  const kindRaw = (input.kind ?? '').trim()
+  if (!isReactionKind(kindRaw)) return { ok: false, reason: 'invalid_kind' }
+
+  const enabled = normalizeEnabledReactionKinds(
+    opts?.enabledKinds ?? DEFAULT_ENABLED_REACTION_KINDS,
+  )
+  if (!isReactionKindEnabled(kindRaw, enabled)) {
+    return { ok: false, reason: 'disabled_kind' }
+  }
+
+  if (!gates.canView) return { ok: false, reason: 'cannot_view' }
+  if (!gates.canInteract) return { ok: false, reason: 'cannot_interact' }
+
+  const now = opts?.now ?? new Date()
+  const newId = opts?.newId ?? (() => crypto.randomUUID())
+
+  if (current) {
+    if (
+      current.actorUserId !== actorUserId ||
+      current.targetType !== 'comment' ||
+      current.targetId !== commentId
+    ) {
+      return { ok: false, reason: 'invalid' }
+    }
+    if (current.kind === kindRaw) {
+      return { ok: true, write: 'noop', reaction: current }
+    }
+    return {
+      ok: true,
+      write: 'update',
+      reaction: { ...current, kind: kindRaw, updatedAt: now },
+    }
+  }
+
+  return {
+    ok: true,
+    write: 'insert',
+    reaction: {
+      id: newId(),
+      actorUserId,
+      targetType: 'comment',
+      targetId: commentId,
+      kind: kindRaw,
+      createdAt: now,
+      updatedAt: now,
+    },
+  }
 }
 
 /** In-memory reactions with the same unique (actor, targetType, targetId) rule. */

@@ -6,7 +6,7 @@
 
 import 'server-only'
 
-import { and, eq } from 'drizzle-orm'
+import { and, eq, inArray, or } from 'drizzle-orm'
 
 import { db } from '@/core/db'
 
@@ -14,9 +14,9 @@ import { canInteract, type CanInteractContext } from './interact'
 import { areBlocked } from './friends-store'
 import { getMemberBannedAt, isMemberAccountHidden } from './members-store'
 import { canViewerSeePost, findPost } from './posts-store'
-import { DEFAULT_ENABLED_REACTION_KINDS, decidePostLike, isReactionKind, isReactionTargetType, type ReactionMutationResult, type ReactionRecord, type SetPostLikeInput } from './reactions'
+import { DEFAULT_ENABLED_REACTION_KINDS, decideCommentLike, decidePostLike, isReactionKind, isReactionTargetType, type ReactionMutationResult, type ReactionRecord, type SetCommentLikeInput, type SetPostLikeInput } from './reactions'
 import { loadSocialModuleSettings } from './settings'
-import { sfSocialReactions } from './schema'
+import { sfSocialComments, sfSocialReactions } from './schema'
 
 function mapRow(row: typeof sfSocialReactions.$inferSelect): ReactionRecord | null {
   if (!isReactionKind(row.kind) || !isReactionTargetType(row.targetType)) return null
@@ -180,4 +180,139 @@ export async function likePost(
   return stored
     ? { ok: true, reaction: stored }
     : { ok: true, reaction: next }
+}
+
+/**
+ * React to a comment. Refuses when the post is hidden, the pair cannot
+ * interact, the kind is disabled, or reactions on comments are off.
+ */
+export async function likeComment(
+  input: SetCommentLikeInput,
+): Promise<ReactionMutationResult> {
+  const actor = input.actorUserId.trim()
+  const commentId = input.commentId.trim()
+  if (!actor || !commentId) return { ok: false, reason: 'invalid' }
+
+  let commentAuthor = ''
+  let postId = ''
+  let staffHidden = false
+  try {
+    const rows = await db
+      .select({
+        authorUserId: sfSocialComments.authorUserId,
+        postId: sfSocialComments.postId,
+        staffHidden: sfSocialComments.staffHidden,
+      })
+      .from(sfSocialComments)
+      .where(eq(sfSocialComments.id, commentId))
+      .limit(1)
+    const row = rows[0]
+    if (!row) return { ok: false, reason: 'cannot_view' }
+    commentAuthor = row.authorUserId
+    postId = row.postId
+    staffHidden = row.staffHidden
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    if (/sf_social_comments|does not exist|relation/i.test(msg)) {
+      return { ok: false, reason: 'invalid' }
+    }
+    throw error
+  }
+
+  if (staffHidden && commentAuthor !== actor) {
+    return { ok: false, reason: 'cannot_view' }
+  }
+
+  const post = await findPost(postId)
+  if (!post) return { ok: false, reason: 'cannot_view' }
+
+  const [canView, interactOk, pack] = await Promise.all([
+    canViewerSeePost(actor, post),
+    canActorInteractWith(actor, commentAuthor),
+    loadSocialModuleSettings().catch(() => null),
+  ])
+
+  const current = await findReaction(actor, 'comment', commentId)
+  const decision = decideCommentLike(
+    current,
+    input,
+    {
+      canView,
+      canInteract: interactOk,
+      reactionsOnComments: pack?.settings.allowReactionsOnComments === true,
+    },
+    { enabledKinds: pack?.settings.enabledReactionKinds ?? DEFAULT_ENABLED_REACTION_KINDS },
+  )
+  if (!decision.ok) return { ok: false, reason: decision.reason }
+  if (decision.write === 'noop') return { ok: true, reaction: decision.reaction }
+
+  const next = decision.reaction
+  try {
+    await db
+      .insert(sfSocialReactions)
+      .values({
+        id: next.id,
+        actorUserId: next.actorUserId,
+        targetType: next.targetType,
+        targetId: next.targetId,
+        kind: next.kind,
+        createdAt: next.createdAt,
+        updatedAt: next.updatedAt,
+      })
+      .onConflictDoUpdate({
+        target: [
+          sfSocialReactions.actorUserId,
+          sfSocialReactions.targetType,
+          sfSocialReactions.targetId,
+        ],
+        set: { kind: next.kind, updatedAt: next.updatedAt },
+      })
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    if (/sf_social_reactions|does not exist|relation/i.test(msg)) {
+      return { ok: false, reason: 'invalid' }
+    }
+    throw error
+  }
+
+  const stored = await findReaction(actor, 'comment', commentId)
+  return stored ? { ok: true, reaction: stored } : { ok: true, reaction: next }
+}
+
+/** Reactions on the posts and comments currently on a feed page. */
+export async function listFeedReactions(
+  postIds: string[],
+  commentIds: string[],
+): Promise<ReactionRecord[]> {
+  const posts = [...new Set(postIds.map((id) => id.trim()).filter(Boolean))]
+  const comments = [...new Set(commentIds.map((id) => id.trim()).filter(Boolean))]
+  const clauses = []
+  if (posts.length > 0) {
+    clauses.push(
+      and(eq(sfSocialReactions.targetType, 'post'), inArray(sfSocialReactions.targetId, posts)),
+    )
+  }
+  if (comments.length > 0) {
+    clauses.push(
+      and(
+        eq(sfSocialReactions.targetType, 'comment'),
+        inArray(sfSocialReactions.targetId, comments),
+      ),
+    )
+  }
+  if (clauses.length === 0) return []
+  const where = clauses.length === 1 ? clauses[0] : or(...clauses)
+  if (!where) return []
+
+  try {
+    const rows = await db.select().from(sfSocialReactions).where(where)
+    return rows.flatMap((row) => {
+      const mapped = mapRow(row)
+      return mapped ? [mapped] : []
+    })
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    if (/sf_social_reactions|does not exist|relation/i.test(msg)) return []
+    throw error
+  }
 }

@@ -50,6 +50,8 @@ export function FeedComposer({
   allowPoll = false,
   allowCheckin = false,
   maxImages = POST_MEDIA_IMAGE_MAX,
+  imageMaxWidth = 720,
+  imageMaxHeight = 540,
 }: {
   ownedGroups?: FeedComposerOwnedGroup[]
   /** Pack default. Group falls back to friends when the author owns no group. */
@@ -61,6 +63,8 @@ export function FeedComposer({
   allowPoll?: boolean
   allowCheckin?: boolean
   maxImages?: number
+  imageMaxWidth?: number
+  imageMaxHeight?: number
 }) {
   const [state, formAction, pending] = useActionState(createTextPostAction, initial)
   const [open, setOpen] = useState(false)
@@ -233,6 +237,12 @@ export function FeedComposer({
     <form
       action={formAction}
       className={`sf-social-stage sf-social-feed-item${expanded ? ' is-open' : ''}`}
+      style={
+        {
+          '--sf-social-media-max-width': `${imageMaxWidth}px`,
+          '--sf-social-media-max-height': `${imageMaxHeight}px`,
+        } as React.CSSProperties
+      }
       onSubmit={(event) => {
         if (!canPost || pending) event.preventDefault()
       }}

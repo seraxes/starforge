@@ -1,17 +1,28 @@
 import React from 'react'
 import Link from 'next/link'
 
+import { getAccessViewer, viewerMayAccessAdminResource } from '@/core/acl/access'
+import { getAppSession } from '@/core/auth/session'
 import { withLocalePrefix } from '@/core/i18n'
 import { RichContent } from '@/modules/rich-editor/api'
 import type { Persona } from '@/modules/profiles/api'
+import { getPersonas } from '@/modules/profiles/api.server'
 
+import { listCommentsForPosts } from '../comments-store'
 import {
   classifyMediaMime,
   memberFeedHref,
   permalinkHref,
   type PostRecord,
 } from '../posts'
+import { listFeedReactions } from '../reactions-store'
+import { loadSocialModuleSettings } from '../settings'
 import { PollPostActions } from './PollPostActions'
+import {
+  PostConversation,
+  type ConversationComment,
+  type ConversationReaction,
+} from './PostConversation'
 import { SavePostActions } from './SavePostActions'
 import { SharePostActions } from './SharePostActions'
 
@@ -34,7 +45,7 @@ function authorHref(author: Persona | null, locale: string): string | null {
 }
 
 /** Chronological post cards for home feed and member walls. */
-export function FeedPostList({
+export async function FeedPostList({
   items,
   locale,
   emptyMessage = 'No posts yet.',
@@ -62,8 +73,60 @@ export function FeedPostList({
     return <p className="layout-muted sf-social-feed-empty">{emptyMessage}</p>
   }
 
+  const pack = await loadSocialModuleSettings()
+  const session = await getAppSession()
+  const sessionUserId = session?.user?.id ? String(session.user.id).trim() : ''
+  const viewerId = viewerUserId?.trim() || sessionUserId || null
+  const storedComments = await listCommentsForPosts(items.map((item) => item.post.id))
+  const visibleComments = storedComments.filter(
+    (comment) => !comment.staffHidden || comment.authorUserId === viewerId,
+  )
+  const reactionRows = await listFeedReactions(
+    items.map((item) => item.post.id),
+    visibleComments.map((comment) => comment.id),
+  )
+  const viewer = await getAccessViewer()
+  const canModerateComments = Boolean(
+    viewerId &&
+      viewer.userId === viewerId &&
+      (await viewerMayAccessAdminResource(viewer, 'admin.social', 'edit')),
+  )
+  const commentAuthors = await getPersonas(
+    [...new Set(visibleComments.map((comment) => comment.authorUserId))],
+    viewer,
+  )
+  const commentsByPost = new Map<string, ConversationComment[]>()
+  for (const comment of visibleComments) {
+    const author = commentAuthors.get(comment.authorUserId) ?? null
+    const name = authorLabel(author, comment.authorUserId)
+    const row: ConversationComment = {
+      id: comment.id,
+      postId: comment.postId,
+      authorUserId: comment.authorUserId,
+      authorName: name,
+      authorHref: authorHref(author, locale),
+      body: comment.body,
+      parentCommentId: comment.parentCommentId,
+      createdAt: comment.createdAt.toISOString(),
+      editedAt: comment.editedAt ? comment.editedAt.toISOString() : null,
+    }
+    const list = commentsByPost.get(comment.postId) ?? []
+    list.push(row)
+    commentsByPost.set(comment.postId, list)
+  }
+  const reactions: ConversationReaction[] = reactionRows.map((row) => ({
+    actorUserId: row.actorUserId,
+    targetType: row.targetType,
+    targetId: row.targetId,
+    kind: row.kind,
+  }))
+  const mediaStyle = {
+    '--sf-social-media-max-width': `${pack.settings.feedImageMaxWidthPx}px`,
+    '--sf-social-media-max-height': `${pack.settings.feedImageMaxHeightPx}px`,
+  } as React.CSSProperties
+
   return (
-    <ul className="sf-social-feed-list">
+    <ul className="sf-social-feed-list" style={mediaStyle}>
       {items.map(({ post, author }) => {
         const name = authorLabel(author, post.authorUserId)
         const profileHref = authorHref(author, locale)
@@ -150,6 +213,22 @@ export function FeedPostList({
                   })}
                 </ul>
               ) : null}
+              <PostConversation
+                postId={post.id}
+                comments={commentsByPost.get(post.id) ?? []}
+                reactions={reactions.filter(
+                  (row) =>
+                    (row.targetType === 'post' && row.targetId === post.id) ||
+                    (row.targetType === 'comment' &&
+                      (commentsByPost.get(post.id) ?? []).some((comment) => comment.id === row.targetId)),
+                )}
+                viewerUserId={viewerId}
+                canModerate={canModerateComments}
+                reactionKinds={pack.settings.enabledReactionKinds}
+                allowComments={pack.settings.allowComments}
+                allowCommentReactions={pack.settings.allowReactionsOnComments}
+                commentLengthLimit={pack.settings.commentLengthLimit}
+              />
               {showShare ? (
                 <SharePostActions postId={post.id} postKind={post.kind} />
               ) : null}

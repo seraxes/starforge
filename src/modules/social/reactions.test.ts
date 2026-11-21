@@ -7,7 +7,7 @@ import {
   type CanViewPostContext,
   type PostRecord,
 } from './posts'
-import { createReactionMemory, decidePostLike } from './reactions'
+import { createReactionMemory, decideCommentLike, decidePostLike } from './reactions'
 
 function interactCtx(
   overrides: Partial<CanInteractContext> = {},
@@ -195,5 +195,28 @@ describe('post likes', () => {
     )
     assert.deepEqual(result, { ok: false, reason: 'cannot_interact' })
     assert.equal(memory.get('bob', 'post', post.id), null)
+  })
+
+  it('likes a comment when reactions on comments are on (success path)', () => {
+    const result = decideCommentLike(
+      null,
+      { actorUserId: 'bob', commentId: 'c-1', kind: 'love' },
+      { canView: true, canInteract: true, reactionsOnComments: true },
+      { enabledKinds: ['like', 'love'], newId: () => 'r-1', now: new Date('2026-01-01T00:00:00Z') },
+    )
+    assert.equal(result.ok, true)
+    if (!result.ok) return
+    assert.equal(result.write, 'insert')
+    assert.equal(result.reaction.targetType, 'comment')
+    assert.equal(result.reaction.kind, 'love')
+  })
+
+  it('refuses a comment reaction when the pack switch is off (failure path)', () => {
+    const result = decideCommentLike(
+      null,
+      { actorUserId: 'bob', commentId: 'c-1', kind: 'like' },
+      { canView: true, canInteract: true, reactionsOnComments: false },
+    )
+    assert.deepEqual(result, { ok: false, reason: 'disabled_kind' })
   })
 })

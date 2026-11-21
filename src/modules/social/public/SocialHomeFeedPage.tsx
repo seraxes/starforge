@@ -123,6 +123,8 @@ export default async function SocialHomeFeedPage({ params }: Args) {
           allowPoll={pack.settings.allowPoll}
           allowCheckin={pack.settings.allowCheckin}
           maxImages={pack.settings.maxImagesPerPost}
+          imageMaxWidth={pack.settings.feedImageMaxWidthPx}
+          imageMaxHeight={pack.settings.feedImageMaxHeightPx}
         />
       ) : null}
       <FeedPostList

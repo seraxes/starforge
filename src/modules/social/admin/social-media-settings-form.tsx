@@ -16,6 +16,10 @@ import {
 import {
   SOCIAL_MAX_ALBUM_ITEMS_MAX,
   SOCIAL_MAX_ALBUM_ITEMS_MIN,
+  SOCIAL_FEED_IMAGE_MAX_HEIGHT_MAX,
+  SOCIAL_FEED_IMAGE_MAX_HEIGHT_MIN,
+  SOCIAL_FEED_IMAGE_MAX_WIDTH_MAX,
+  SOCIAL_FEED_IMAGE_MAX_WIDTH_MIN,
   SOCIAL_MAX_IMAGES_PER_POST_MAX,
   SOCIAL_MAX_IMAGES_PER_POST_MIN,
   SOCIAL_MULTI_CHALLENGE_CAP_MAX,
@@ -143,6 +147,34 @@ export function SocialMediaSettingsForm({ settings }: Props) {
                 disabled={pending}
               />
               <span className="settings-hint">Default 10. Image plus video stays refused.</span>
+            </label>
+            <label className="settings-field">
+              <span>Feed image max width (px)</span>
+              <input
+                type="number"
+                name="feedImageMaxWidthPx"
+                min={SOCIAL_FEED_IMAGE_MAX_WIDTH_MIN}
+                max={SOCIAL_FEED_IMAGE_MAX_WIDTH_MAX}
+                step={1}
+                defaultValue={settings.feedImageMaxWidthPx}
+                disabled={pending}
+              />
+              <span className="settings-hint">Default 720. Wider photos scale down to this.</span>
+            </label>
+            <label className="settings-field">
+              <span>Feed image max height (px)</span>
+              <input
+                type="number"
+                name="feedImageMaxHeightPx"
+                min={SOCIAL_FEED_IMAGE_MAX_HEIGHT_MIN}
+                max={SOCIAL_FEED_IMAGE_MAX_HEIGHT_MAX}
+                step={1}
+                defaultValue={settings.feedImageMaxHeightPx}
+                disabled={pending}
+              />
+              <span className="settings-hint">
+                Taller photos are cut at the center so one image cannot fill the page.
+              </span>
             </label>
             <label className="settings-field settings-flag">
               <input

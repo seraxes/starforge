@@ -28,12 +28,12 @@ export function SharePostActions({
       <input type="hidden" name="sharedPostId" value={postId} />
       <input type="hidden" name="audience" value="friends" />
       <label className="settings-field">
-        <span className="sr-only">Share comment</span>
+        <span className="sr-only">Note on the share</span>
         <input
           type="text"
           name="body"
           maxLength={2000}
-          placeholder="Add a comment (optional)"
+          placeholder="Add a note when you share"
           disabled={pending}
         />
       </label>

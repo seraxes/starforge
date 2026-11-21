@@ -1,11 +1,11 @@
 /**
  * product:social comment persistence (sf_social_comments).
- * One reply deep. Create calls canViewPost + canInteract.
+ * Two reply levels. Create calls canViewPost + canInteract.
  */
 
 import 'server-only'
 
-import { asc, eq, inArray } from 'drizzle-orm'
+import { and, asc, eq, inArray } from 'drizzle-orm'
 
 import { db } from '@/core/db'
 
@@ -25,7 +25,7 @@ import {
   type EditCommentInput,
   type StaffHideCommentInput,
 } from './comments'
-import { sfSocialComments } from './schema'
+import { sfSocialComments, sfSocialReactions } from './schema'
 
 function mapRow(row: typeof sfSocialComments.$inferSelect): CommentRecord {
   return {
@@ -54,6 +54,24 @@ export async function findComment(commentId: string): Promise<CommentRecord | nu
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
     if (/sf_social_comments|does not exist|relation/i.test(msg)) return null
+    throw error
+  }
+}
+
+/** Comments on the posts currently on a feed page, oldest first. */
+export async function listCommentsForPosts(postIds: string[]): Promise<CommentRecord[]> {
+  const ids = [...new Set(postIds.map((id) => id.trim()).filter(Boolean))]
+  if (ids.length === 0) return []
+  try {
+    const rows = await db
+      .select()
+      .from(sfSocialComments)
+      .where(inArray(sfSocialComments.postId, ids))
+      .orderBy(asc(sfSocialComments.createdAt))
+    return rows.map(mapRow)
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    if (/sf_social_comments|does not exist|relation/i.test(msg)) return []
     throw error
   }
 }
@@ -92,8 +110,8 @@ async function listReplyIds(parentCommentId: string): Promise<string[]> {
 }
 
 /**
- * Create a comment or one-level reply.
- * Refuses when canViewPost denies, canInteract denies, or parent is already a reply.
+ * Create a comment, a reply, or a reply to that reply.
+ * Refuses when canViewPost denies, canInteract denies, or the reply is a third level.
  */
 export async function createComment(
   input: CreateCommentInput,
@@ -111,6 +129,7 @@ export async function createComment(
 
   const parentId = input.parentCommentId?.trim() || null
   const parent = parentId ? await findComment(parentId) : null
+  const ancestor = parent?.parentCommentId ? await findComment(parent.parentCommentId) : null
 
   const [canView, interactOk] = await Promise.all([
     canViewerSeePost(author, post, extras?.view),
@@ -125,6 +144,7 @@ export async function createComment(
       canView,
       canInteract: interactOk,
       parent,
+      ancestor,
     },
     {
       commentsEnabled: pack.settings.allowComments,
@@ -163,9 +183,12 @@ export async function createComment(
 
 export async function editComment(
   input: EditCommentInput,
+  gates?: { canManagePosts?: boolean },
 ): Promise<CommentMutationResult> {
   const current = await findComment(input.commentId)
-  const result = decideEditComment(current, input)
+  const result = decideEditComment(current, input, {
+    canManagePosts: gates?.canManagePosts,
+  })
   if (!result.ok) return result
 
   const next = result.comment
@@ -225,18 +248,34 @@ export async function setCommentStaffHidden(
 }
 
 /**
- * Author delete. Parent delete also removes its one reply in the same transaction.
+ * Delete a comment (author or Social staff). Removes replies under it and
+ * comment reactions on those rows.
  */
 export async function deleteComment(
   input: DeleteCommentInput,
+  gates?: { canManagePosts?: boolean },
 ): Promise<CommentDeleteResult> {
   const current = await findComment(input.commentId)
   const replyIds = current ? await listReplyIds(current.id) : []
-  const result = decideDeleteComment(current, input, replyIds)
+  const nestedIds: string[] = []
+  for (const replyId of replyIds) {
+    nestedIds.push(...(await listReplyIds(replyId)))
+  }
+  const result = decideDeleteComment(current, input, [...replyIds, ...nestedIds], {
+    canManagePosts: gates?.canManagePosts,
+  })
   if (!result.ok) return result
 
   try {
     await db.transaction(async (tx) => {
+      await tx
+        .delete(sfSocialReactions)
+        .where(
+          and(
+            eq(sfSocialReactions.targetType, 'comment'),
+            inArray(sfSocialReactions.targetId, result.deletedIds),
+          ),
+        )
       if (result.deletedIds.length === 1) {
         await tx
           .delete(sfSocialComments)
@@ -249,7 +288,7 @@ export async function deleteComment(
     })
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
-    if (/sf_social_comments|does not exist|relation/i.test(msg)) {
+    if (/sf_social_comments|sf_social_reactions|does not exist|relation/i.test(msg)) {
       return { ok: false, reason: 'invalid' }
     }
     throw error

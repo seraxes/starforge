@@ -1115,6 +1115,152 @@ async function requireSocialMember(): Promise<
   return { ok: true, userId }
 }
 
+export type SocialCommentActionState = {
+  error?: string
+  ok?: boolean
+}
+
+/** True when the signed-in member may moderate Social comments (edit/delete any). */
+async function viewerMayModerateSocialComments(userId: string): Promise<boolean> {
+  const { getAccessViewer, viewerMayAccessAdminResource } = await import('@/core/acl/access')
+  const viewer = await getAccessViewer()
+  if (!viewer.userId || viewer.userId !== userId) return false
+  return viewerMayAccessAdminResource(viewer, 'admin.social', 'edit')
+}
+
+/** Comment, reply, or a reply to that reply. A third level is refused. */
+export async function createCommentAction(
+  _prev: SocialCommentActionState,
+  formData: FormData,
+): Promise<SocialCommentActionState> {
+  const gate = await requireSocialMember()
+  if (!gate.ok) return { error: gate.error }
+
+  const postId = String(formData.get('postId') ?? '').trim()
+  const parentCommentId = String(formData.get('parentCommentId') ?? '').trim() || null
+  const body = String(formData.get('body') ?? '').trim()
+  if (!postId) return { error: 'Choose a post.' }
+  if (!body) return { error: 'Write a comment first.' }
+
+  const { createComment } = await import('./comments-store')
+  const result = await createComment({
+    authorUserId: gate.userId,
+    postId,
+    parentCommentId,
+    body,
+  })
+  if (!result.ok) {
+    if (result.reason === 'empty_body') return { error: 'Write a comment first.' }
+    if (result.reason === 'reply_too_deep') {
+      return { error: 'Replies stop after two levels.' }
+    }
+    if (result.reason === 'parent_not_found') return { error: 'That comment is no longer there.' }
+    if (result.reason === 'cannot_view') return { error: 'You cannot comment on this post.' }
+    if (result.reason === 'cannot_interact') return { error: 'You cannot comment on this post.' }
+    if (result.reason === 'disabled') return { error: 'Comments are turned off.' }
+    if (result.reason === 'too_long') return { error: 'That comment is too long.' }
+    if (result.reason === 'blocked_word') return { error: 'That comment is not allowed.' }
+    return { error: 'Could not post the comment.' }
+  }
+
+  revalidatePath('/feed')
+  revalidatePath('/feed/post')
+  return { ok: true }
+}
+
+/** Edit a comment. Author, or Social staff with admin.social edit. */
+export async function editCommentAction(
+  _prev: SocialCommentActionState,
+  formData: FormData,
+): Promise<SocialCommentActionState> {
+  const gate = await requireSocialMember()
+  if (!gate.ok) return { error: gate.error }
+
+  const commentId = String(formData.get('commentId') ?? '').trim()
+  const body = String(formData.get('body') ?? '').trim()
+  if (!commentId) return { error: 'Choose a comment.' }
+  if (!body) return { error: 'Write a comment first.' }
+
+  const canManagePosts = await viewerMayModerateSocialComments(gate.userId)
+  const { editComment } = await import('./comments-store')
+  const result = await editComment(
+    { actorUserId: gate.userId, commentId, body },
+    { canManagePosts },
+  )
+  if (!result.ok) {
+    if (result.reason === 'empty_body') return { error: 'Write a comment first.' }
+    if (result.reason === 'not_author') return { error: 'You can only edit your own comments.' }
+    if (result.reason === 'not_found') return { error: 'That comment is no longer there.' }
+    return { error: 'Could not save the comment.' }
+  }
+
+  revalidatePath('/feed')
+  revalidatePath('/feed/post')
+  return { ok: true }
+}
+
+/** Delete a comment. Author, or Social staff with admin.social edit. */
+export async function deleteCommentAction(
+  _prev: SocialCommentActionState,
+  formData: FormData,
+): Promise<SocialCommentActionState> {
+  const gate = await requireSocialMember()
+  if (!gate.ok) return { error: gate.error }
+
+  const commentId = String(formData.get('commentId') ?? '').trim()
+  if (!commentId) return { error: 'Choose a comment.' }
+
+  const canManagePosts = await viewerMayModerateSocialComments(gate.userId)
+  const { deleteComment } = await import('./comments-store')
+  const result = await deleteComment(
+    { actorUserId: gate.userId, commentId },
+    { canManagePosts },
+  )
+  if (!result.ok) {
+    if (result.reason === 'not_author') return { error: 'You can only delete your own comments.' }
+    if (result.reason === 'not_found') return { error: 'That comment is no longer there.' }
+    return { error: 'Could not delete the comment.' }
+  }
+
+  revalidatePath('/feed')
+  revalidatePath('/feed/post')
+  return { ok: true }
+}
+
+/** Set the viewer's reaction on a post or a comment. One row per person per target. */
+export async function setReactionAction(
+  _prev: SocialCommentActionState,
+  formData: FormData,
+): Promise<SocialCommentActionState> {
+  const gate = await requireSocialMember()
+  if (!gate.ok) return { error: gate.error }
+
+  const targetType = String(formData.get('targetType') ?? '').trim()
+  const targetId = String(formData.get('targetId') ?? '').trim()
+  const kind = String(formData.get('kind') ?? '').trim()
+  if (!targetId || (targetType !== 'post' && targetType !== 'comment')) {
+    return { error: 'Choose a post or a comment.' }
+  }
+
+  const { likeComment, likePost } = await import('./reactions-store')
+  const result =
+    targetType === 'comment'
+      ? await likeComment({ actorUserId: gate.userId, commentId: targetId, kind })
+      : await likePost({ actorUserId: gate.userId, postId: targetId, kind })
+  if (!result.ok) {
+    if (result.reason === 'disabled_kind') return { error: 'That reaction is turned off.' }
+    if (result.reason === 'invalid_kind') return { error: 'Choose a reaction.' }
+    if (result.reason === 'cannot_view' || result.reason === 'cannot_interact') {
+      return { error: 'You cannot react to that.' }
+    }
+    return { error: 'Could not save the reaction.' }
+  }
+
+  revalidatePath('/feed')
+  revalidatePath('/feed/post')
+  return { ok: true }
+}
+
 /** Send a friend request from /feed/people. Mail failure does not roll back. */
 export async function requestFriendAction(
   _prev: SocialPeopleActionState,

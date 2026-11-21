@@ -37,6 +37,8 @@ describe('social stories / albums / media / challenge settings (slice 15e)', () 
     assert.equal(saved.settings.allowAlbums, true)
     assert.equal(saved.settings.maxAlbumItems, 20)
     assert.equal(saved.settings.maxImagesPerPost, 5)
+    assert.equal(saved.settings.feedImageMaxWidthPx, 720)
+    assert.equal(saved.settings.feedImageMaxHeightPx, 540)
     assert.equal(saved.settings.allowPostVideo, false)
     assert.equal(saved.settings.allowChallengeWindow24, true)
     assert.equal(saved.settings.allowChallengeWindow48, false)
@@ -131,6 +133,13 @@ describe('social stories / albums / media / challenge settings (slice 15e)', () 
         storyLifetimeHours: -1,
       }),
       { ok: false, reason: 'invalid_story_lifetime' },
+    )
+    assert.deepEqual(
+      decideSocialPackSettings({
+        ...DEFAULT_SOCIAL_MODULE_SETTINGS,
+        feedImageMaxHeightPx: 50,
+      }),
+      { ok: false, reason: 'invalid_feed_image_size' },
     )
 
     assert.deepEqual(

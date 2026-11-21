@@ -80,6 +80,14 @@ export const SOCIAL_MAX_IMAGES_PER_POST_DEFAULT = POST_MEDIA_IMAGE_MAX
 export const SOCIAL_MAX_IMAGES_PER_POST_MIN = 1
 export const SOCIAL_MAX_IMAGES_PER_POST_MAX = POST_MEDIA_IMAGE_MAX
 
+/** Feed photo box. Taller images are cut at the center. */
+export const SOCIAL_FEED_IMAGE_MAX_WIDTH_DEFAULT = 720
+export const SOCIAL_FEED_IMAGE_MAX_WIDTH_MIN = 240
+export const SOCIAL_FEED_IMAGE_MAX_WIDTH_MAX = 1600
+export const SOCIAL_FEED_IMAGE_MAX_HEIGHT_DEFAULT = 540
+export const SOCIAL_FEED_IMAGE_MAX_HEIGHT_MIN = 180
+export const SOCIAL_FEED_IMAGE_MAX_HEIGHT_MAX = 1200
+
 export const SOCIAL_CHALLENGE_MIN_LENGTH_DAYS_DEFAULT = CHALLENGE_LENGTH_DAYS_MIN
 export const SOCIAL_CHALLENGE_MAX_LENGTH_DAYS_DEFAULT = CHALLENGE_LENGTH_DAYS_MAX
 
@@ -152,6 +160,9 @@ export type SocialModuleSettings = {
   allowAlbums: boolean
   maxAlbumItems: number
   maxImagesPerPost: number
+  /** Pixel cap for a feed photo. The center is kept; the rest is cut. */
+  feedImageMaxWidthPx: number
+  feedImageMaxHeightPx: number
   allowPostVideo: boolean
   allowChallengeWindow24: boolean
   allowChallengeWindow48: boolean
@@ -187,7 +198,7 @@ export const DEFAULT_SOCIAL_MODULE_SETTINGS: SocialModuleSettings = {
   allowFriendRequests: true,
   maxPendingFriendRequests: SOCIAL_MAX_PENDING_FRIEND_REQUESTS_DEFAULT,
   allowFollow: true,
-  allowReactionsOnComments: false,
+  allowReactionsOnComments: true,
   allowReactionsOnStories: false,
   enabledReportReasons: [...REPORT_REASONS],
   autoHideOpenReportThreshold: SOCIAL_AUTO_HIDE_OPEN_REPORT_THRESHOLD_DEFAULT,
@@ -208,6 +219,8 @@ export const DEFAULT_SOCIAL_MODULE_SETTINGS: SocialModuleSettings = {
   allowAlbums: true,
   maxAlbumItems: SOCIAL_MAX_ALBUM_ITEMS_DEFAULT,
   maxImagesPerPost: SOCIAL_MAX_IMAGES_PER_POST_DEFAULT,
+  feedImageMaxWidthPx: SOCIAL_FEED_IMAGE_MAX_WIDTH_DEFAULT,
+  feedImageMaxHeightPx: SOCIAL_FEED_IMAGE_MAX_HEIGHT_DEFAULT,
   allowPostVideo: true,
   allowChallengeWindow24: true,
   allowChallengeWindow48: true,
@@ -230,6 +243,7 @@ export type SocialPackSettingsRefuseReason =
   | 'invalid_max_group_members'
   | 'invalid_max_album_items'
   | 'invalid_max_images_per_post'
+  | 'invalid_feed_image_size'
   | 'invalid_challenge_length'
 
 export type SocialPackSettingsDecision =
@@ -405,6 +419,24 @@ function readSettings(
   )
   if (maxImagesPerPost === 'invalid') return 'invalid_max_images_per_post'
 
+  const feedImageMaxWidthPx = readBoundedInt(
+    obj.feedImageMaxWidthPx,
+    DEFAULT_SOCIAL_MODULE_SETTINGS.feedImageMaxWidthPx,
+    SOCIAL_FEED_IMAGE_MAX_WIDTH_MIN,
+    SOCIAL_FEED_IMAGE_MAX_WIDTH_MAX,
+    mode,
+  )
+  if (feedImageMaxWidthPx === 'invalid') return 'invalid_feed_image_size'
+
+  const feedImageMaxHeightPx = readBoundedInt(
+    obj.feedImageMaxHeightPx,
+    DEFAULT_SOCIAL_MODULE_SETTINGS.feedImageMaxHeightPx,
+    SOCIAL_FEED_IMAGE_MAX_HEIGHT_MIN,
+    SOCIAL_FEED_IMAGE_MAX_HEIGHT_MAX,
+    mode,
+  )
+  if (feedImageMaxHeightPx === 'invalid') return 'invalid_feed_image_size'
+
   let challengeMinLengthDays = readBoundedInt(
     obj.challengeMinLengthDays,
     DEFAULT_SOCIAL_MODULE_SETTINGS.challengeMinLengthDays,
@@ -523,6 +555,8 @@ function readSettings(
     allowAlbums: readFlag(obj.allowAlbums, DEFAULT_SOCIAL_MODULE_SETTINGS.allowAlbums),
     maxAlbumItems,
     maxImagesPerPost,
+    feedImageMaxWidthPx,
+    feedImageMaxHeightPx,
     allowPostVideo: readFlag(
       obj.allowPostVideo,
       DEFAULT_SOCIAL_MODULE_SETTINGS.allowPostVideo,
@@ -590,6 +624,8 @@ export function socialPackSettingsError(reason: SocialPackSettingsRefuseReason):
       return 'Max album items must be a whole number from 1 to 500.'
     case 'invalid_max_images_per_post':
       return `Max images per post must be a whole number from 1 to ${SOCIAL_MAX_IMAGES_PER_POST_MAX}.`
+    case 'invalid_feed_image_size':
+      return `Feed image size must be a whole number from ${SOCIAL_FEED_IMAGE_MAX_WIDTH_MIN} to ${SOCIAL_FEED_IMAGE_MAX_WIDTH_MAX} wide and ${SOCIAL_FEED_IMAGE_MAX_HEIGHT_MIN} to ${SOCIAL_FEED_IMAGE_MAX_HEIGHT_MAX} tall.`
     case 'invalid_challenge_length':
       return `Challenge length days must be whole numbers from ${CHALLENGE_LENGTH_DAYS_MIN} to ${CHALLENGE_LENGTH_DAYS_MAX}, with min ≤ max.`
   }
@@ -747,6 +783,8 @@ export function socialMediaSettingsFromForm(formData: FormData): Record<string, 
     allowAlbums: formData.get('allowAlbums') === '1',
     maxAlbumItems: formData.get('maxAlbumItems'),
     maxImagesPerPost: formData.get('maxImagesPerPost'),
+    feedImageMaxWidthPx: formData.get('feedImageMaxWidthPx'),
+    feedImageMaxHeightPx: formData.get('feedImageMaxHeightPx'),
     allowPostVideo: formData.get('allowPostVideo') === '1',
     allowChallenge: formData.get('allowChallenge') === '1',
     allowChallengeWindow24: formData.get('allowChallengeWindow24') === '1',

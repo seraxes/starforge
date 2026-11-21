@@ -98,7 +98,7 @@ describe('comments', () => {
     assert.equal(comments.listReplies(top.comment.id).length, 1)
   })
 
-  it('refuses a reply to a reply (failure path)', () => {
+  it('allows a reply to a reply and refuses a third level (failure path)', () => {
     const post = publicPost()
     const comments = createCommentMemory({
       newId: (() => {
@@ -134,11 +134,11 @@ describe('comments', () => {
     assert.equal(reply.ok, true)
     if (!reply.ok) return
 
-    const nested = comments.create(
+    const second = comments.create(
       {
         authorUserId: 'bob',
         postId: post.id,
-        body: 'too deep',
+        body: 'reply to the reply',
         parentCommentId: reply.comment.id,
       },
       {
@@ -147,20 +147,38 @@ describe('comments', () => {
         interactCtx: interactCtx(),
       },
     )
-    assert.deepEqual(nested, { ok: false, reason: 'reply_too_deep' })
+    assert.equal(second.ok, true)
+    if (!second.ok) return
+    assert.equal(second.comment.parentCommentId, reply.comment.id)
+
+    const third = comments.create(
+      {
+        authorUserId: 'carol',
+        postId: post.id,
+        body: 'too deep',
+        parentCommentId: second.comment.id,
+      },
+      {
+        post,
+        viewCtx: viewCtx({ viewerUserId: 'carol' }),
+        interactCtx: interactCtx(),
+      },
+    )
+    assert.deepEqual(third, { ok: false, reason: 'reply_too_deep' })
 
     assert.deepEqual(
       decideCreateComment(
         {
-          authorUserId: 'bob',
+          authorUserId: 'carol',
           postId: post.id,
           body: 'too deep',
-          parentCommentId: reply.comment.id,
+          parentCommentId: second.comment.id,
         },
         {
           canView: true,
           canInteract: true,
-          parent: reply.comment,
+          parent: second.comment,
+          ancestor: reply.comment,
         },
       ),
       { ok: false, reason: 'reply_too_deep' },
@@ -181,7 +199,7 @@ describe('comments', () => {
     assert.deepEqual(result, { ok: false, reason: 'cannot_interact' })
   })
 
-  it('lets the author edit and delete their own comment; parent delete removes the reply', () => {
+  it('lets the author or staff edit/delete a comment; parent delete removes the reply', () => {
     const post = publicPost()
     const comments = createCommentMemory({
       newId: (() => {
@@ -230,13 +248,32 @@ describe('comments', () => {
     })
     assert.deepEqual(stolen, { ok: false, reason: 'not_author' })
 
-    const deleted = comments.delete({
-      actorUserId: 'bob',
+    const staffEdit = comments.edit(
+      {
+        actorUserId: 'mod',
+        commentId: top.comment.id,
+        body: 'staff edit',
+      },
+      { canManagePosts: true },
+    )
+    assert.equal(staffEdit.ok, true)
+    if (!staffEdit.ok) return
+    assert.equal(staffEdit.comment.body, 'staff edit')
+    assert.ok(staffEdit.comment.editedAt)
+
+    const staffDenied = comments.delete({
+      actorUserId: 'mod',
       commentId: top.comment.id,
     })
-    assert.equal(deleted.ok, true)
-    if (!deleted.ok) return
-    assert.deepEqual(deleted.deletedIds.sort(), ['c-1', 'c-2'].sort())
+    assert.deepEqual(staffDenied, { ok: false, reason: 'not_author' })
+
+    const staffDelete = comments.delete(
+      { actorUserId: 'mod', commentId: top.comment.id },
+      { canManagePosts: true },
+    )
+    assert.equal(staffDelete.ok, true)
+    if (!staffDelete.ok) return
+    assert.deepEqual(staffDelete.deletedIds.sort(), ['c-1', 'c-2'].sort())
     assert.equal(comments.get(top.comment.id), null)
     assert.equal(comments.get(reply.comment.id), null)
   })

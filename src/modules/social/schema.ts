@@ -9,7 +9,7 @@
  * Slice 6: reactions (unique per actor + target; catalog kinds in slice 22).
  * Slice 7: second blocker column (blocked_by_other) for mutual block without erase.
  * Slice 7b: home feed SQL visibility predicate (no new tables).
- * Slice 8: comments (one reply deep); post delete cascades comments + likes.
+ * Slice 8: comments (two reply levels); post delete cascades comments + likes.
  * Slice 9: reports (postId required, optional commentId; one open per reporter/post).
  * Slice 9b: member bannedAt; comment staff hide; report resolve (review queue).
  * Slice 10: member hiddenAt (account hide keeps rows; purge is Core retention only).
@@ -203,8 +203,9 @@ export const sfSocialReactions = pgTable(
 )
 
 /**
- * Comment on a post. One reply deep: parentCommentId points at a top-level
- * comment only. A reply to a reply is refused in decideCreateComment.
+ * Comment on a post. Two reply levels: parentCommentId points at the comment
+ * being answered. That parent may itself be a reply, but not a reply to a reply.
+ * A third level is refused in decideCreateComment.
  * User ids and post/comment ids are plain text (no cross-pack FK).
  */
 export const sfSocialComments = pgTable(
@@ -215,7 +216,7 @@ export const sfSocialComments = pgTable(
     authorUserId: text('author_user_id').notNull(),
     /** Author words (rich-editor HTML). Not content-locale files. */
     body: text('body').notNull().default(''),
-    /** Null = top-level. Set = reply to a top-level comment on the same post. */
+    /** Null = comment on the post. Set = reply to that comment, or to one reply under it. */
     parentCommentId: text('parent_comment_id'),
     /** Staff moderation hide. Author and social.posts manage still see it. */
     staffHidden: boolean('staff_hidden').notNull().default(false),
