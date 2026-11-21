@@ -88,9 +88,18 @@ export default async function SocialHomeFeedPage({ params }: Args) {
     listOwnedGroups(userId),
   ])
   const personas = await getPersonas(
-    posts.map((p) => p.authorUserId),
+    [...new Set([userId, ...posts.map((p) => p.authorUserId)])],
     viewer,
   )
+  const self = personas.get(userId)
+  const authorName =
+    self?.displayName?.trim() || (self?.handle?.trim() ? `@${self.handle.trim()}` : 'You')
+  const showComposer =
+    pack.settings.allowText ||
+    pack.settings.allowMedia ||
+    pack.settings.allowLink ||
+    pack.settings.allowPoll ||
+    pack.settings.allowCheckin
   const items = posts.map((post) => ({
     post,
     author: personas.get(post.authorUserId) ?? null,
@@ -103,11 +112,17 @@ export default async function SocialHomeFeedPage({ params }: Args) {
         <p className="lede">Your posts, friends, and groups you belong to.</p>
       </header>
       <FeedTabs locale={locale} active="friends" {...tabFlags} />
-      {pack.settings.allowText || pack.settings.allowMedia ? (
+      {showComposer ? (
         <FeedComposer
           ownedGroups={ownedGroups.map((g) => ({ id: g.id, name: g.name }))}
           defaultAudience={pack.settings.defaultPostAudience}
+          authorName={authorName}
+          allowText={pack.settings.allowText}
           allowMedia={pack.settings.allowMedia}
+          allowLink={pack.settings.allowLink}
+          allowPoll={pack.settings.allowPoll}
+          allowCheckin={pack.settings.allowCheckin}
+          maxImages={pack.settings.maxImagesPerPost}
         />
       ) : null}
       <FeedPostList

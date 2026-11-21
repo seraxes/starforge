@@ -8,6 +8,7 @@ Member social feed under `/feed`. Live video stays `product:stream`. Do not reus
 - **Slice 2 friends** — `sf_social_friendships` (one row per unordered pair), request / accept / decline / cancel / unfriend / block.
 - **Slice 3 posts** — `sf_social_posts` text posts, audiences `only_me` | `group` | `friends` (default) | `public`, `canViewPost`, permalink not-found, reserved handles.
 - **Slice 4 feed** — home friends feed, text composer (empty body refused), member route `/feed/[handle]` (+ `/feed/u/[handle]` for reserved words), `social-friends` particle, nav views Social + People.
+- **Composer stage (first pass)** — the home composer is the feed card. A quiet strip grows in place. Instruments are photo, link, vote, and place, each gated by its pack switch. One block at a time; a second block asks before it replaces the first. The client submits only that block. Challenge and the Watch chip are later.
 - **Slice 5 media** — `MediaPicker` / member picker on the composer; `sf_social_post_media` binds (`mediaId` stays in Media). Many images (≤10) or one video, not both. Unknown `mediaId`, non-owned media, 11 images, and image+video are refused.
 - **Slice 6 like** — `canInteract` write gate (block / hidden / bannedAt); `sf_social_reactions` unique `(actorUserId, targetType, targetId)`. Not the challenge vote table.
 - **Slice 7 people** — `/feed/people` directory (omit hidden + blocked), People nav, dual blockers (`blockedBy` + `blockedByOther`), `product:social/friend.requested` (mail failure does not roll back the request). `/feed/requests` redirects to People.
@@ -53,7 +54,7 @@ Member social feed under `/feed`. Live video stays `product:stream`. Do not reus
 - Mentions (`sf_social_mentions`): unique `(postId, mentionedUserId)`; notify via `canInteract` (blocked → no notify). Hashtags (`sf_social_post_tags`): unique `(postId, tag)`; `/feed/tag/[tag]`. Saves (`sf_social_saves`): unique `(userId, postId)`; `/feed/saved`. Tag and saved lists call `canViewPost`.
 - Members (`sf_social_members`): one row per userId; `bannedAt` is the Social ban (not a Core role); `hiddenAt` is account hide (rows kept until Core purge).
 - Account doors: export / hide / purge registry covering every `sf_social_*` table.
-- Home feed selection (SQL visibility predicate + paginate), Following tab, Discover tab (public posts only), Watch short-video layout (single-video posts), Saved, tag feeds, the personal text composer, and the People directory.
+- Home feed selection (SQL visibility predicate + paginate), Following tab, Discover tab (public posts only), Watch short-video layout (single-video posts), Saved, tag feeds, the personal stage composer (one live card; photo, link, vote, or place), and the People directory.
 - Process boot arms `social.sweep` only when Social is enabled (challenges + story expiry on that one job).
 
 ## Consumes

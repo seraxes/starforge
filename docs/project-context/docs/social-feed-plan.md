@@ -2,6 +2,10 @@
 
 **Status:** parked. [architecture-current](./architecture-current.md) still wins. The next product pack on that map is ads. This file is the build spec for when a Composer chat starts Social. It does not change the queue.
 
+## Composer stage
+
+The home composer is the feed card (`sf-social-feed-item`), not a stack of fields and not a dialog. A quiet strip under the feed tabs grows in place when the member focuses it or uses an instrument. Photo, link, vote, and place each add one block, and only when that pack switch is on. A second block asks before it replaces the first. The client submits only the active block through `createTextPostAction`. A pasted `http(s)` URL becomes the link card; Post still fills the preview on the server. Challenge and the Watch chip are a later pass. This does not add a post kind or a table, and it does not move Social ahead of ads.
+
 **Builder:** Composer 2.5. One slice is one chat. The chat ends when that slice’s tests pass. Do not start the next slice in the same chat.
 
 ## How to run a chat

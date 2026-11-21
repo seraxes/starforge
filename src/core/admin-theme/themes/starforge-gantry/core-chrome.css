@@ -2857,6 +2857,10 @@ body:has(.admin-shell) > main {
   color: #fff !important;
 }
 
+.admin-shell .nav-item-depth-mark {
+  color: rgba(255, 255, 255, 0.82);
+}
+
 /* Helium info/callout bars (login CSS / atom version banners) */
 .admin-shell .cms-bridge-password-hint,
 .admin-shell .clarity-callout,

@@ -56,6 +56,7 @@ import {
   votePoll,
 } from './polls-checkin-store'
 import { POLL_OPTIONS_MAX, POLL_OPTIONS_MIN } from './polls-checkin'
+import { splitPollOptionInput } from './stage'
 import { createStory, recordStoryView } from './stories-store'
 import { resolveReport } from './reports-store'
 import {
@@ -186,10 +187,7 @@ export async function createTextPostAction(
 
   const pollOptionsRaw = String(formData.get('pollOptions') ?? '').trim()
   if (pollOptionsRaw) {
-    const options = pollOptionsRaw
-      .split(/\r?\n|,/)
-      .map((line) => line.trim())
-      .filter(Boolean)
+    const options = splitPollOptionInput(pollOptionsRaw)
     if (options.length < POLL_OPTIONS_MIN || options.length > POLL_OPTIONS_MAX) {
       return {
         error: `A poll needs ${POLL_OPTIONS_MIN}–${POLL_OPTIONS_MAX} options.`,
@@ -1425,12 +1423,7 @@ export async function editPollAction(
   const body =
     bodyRaw == null ? undefined : sanitizeRichHtml(String(bodyRaw)).trim() || String(bodyRaw).trim()
   const pollOptionsRaw = String(formData.get('pollOptions') ?? '').trim()
-  const options = pollOptionsRaw
-    ? pollOptionsRaw
-        .split(/\r?\n|,/)
-        .map((line) => line.trim())
-        .filter(Boolean)
-    : undefined
+  const options = pollOptionsRaw ? splitPollOptionInput(pollOptionsRaw) : undefined
 
   const result = await editPollPost({
     actorUserId: gate.userId,

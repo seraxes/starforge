@@ -1,6 +1,13 @@
 'use client'
 
-import React, { useActionState, useEffect, useMemo, useRef, useState } from 'react'
+import React, {
+  useActionState,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -174,6 +181,34 @@ function formatParentTreeLabel(label: string, depth: number) {
   return depth > 0 ? `${'—'.repeat(depth)} ${label}` : label
 }
 
+/** Extra dash count after the L corner: depth 1 → none, 2 → one, 3 → two… */
+function submenuDepthExtraDashes(depth: number) {
+  return depth > 1 ? depth - 1 : 0
+}
+
+function buildItemDepthMap(rows: { id: string; parentId: string }[]): Map<string, number> {
+  const byId = new Map(rows.map((row) => [row.id, row]))
+  const depths = new Map<string, number>()
+  const depthOf = (id: string, stack: Set<string>): number => {
+    const cached = depths.get(id)
+    if (cached !== undefined) return cached
+    if (stack.has(id)) return 0
+    const row = byId.get(id)
+    const parentId = row?.parentId
+    if (!parentId || !byId.has(parentId)) {
+      depths.set(id, 0)
+      return 0
+    }
+    stack.add(id)
+    const depth = depthOf(parentId, stack) + 1
+    stack.delete(id)
+    depths.set(id, depth)
+    return depth
+  }
+  for (const row of rows) depthOf(row.id, new Set())
+  return depths
+}
+
 function Feedback({ state }: { state: NavActionState }) {
   if (state.error) {
     return (
@@ -192,43 +227,63 @@ function Feedback({ state }: { state: NavActionState }) {
   return null
 }
 
-/** Hidden fields injected so Add/Paste can persist unsaved cog edits. */
-const INJECTED_ITEM_FIELD = 'data-sf-nav-item-field'
-
-function clearInjectedItemFields(form: HTMLFormElement) {
-  form.querySelectorAll(`[${INJECTED_ITEM_FIELD}]`).forEach((el) => el.remove())
+/** Remember which cog was open across save revalidation / remount. */
+function expandedStorageKey(menuId: string) {
+  return `sf.admin.nav.expanded.${menuId}`
 }
 
-function appendItemFields(form: HTMLFormElement, rows: EditableItem[]) {
-  // Drop prior injects first — a failed Admin add (missing group) leaves the
-  // form mounted; a second submit would otherwise double every itemId.
-  clearInjectedItemFields(form)
-  for (const row of rows) {
-    const add = (name: string, value: string) => {
-      const input = document.createElement('input')
-      input.type = 'hidden'
-      input.name = name
-      input.value = value
-      input.setAttribute(INJECTED_ITEM_FIELD, '1')
-      form.appendChild(input)
-    }
-    add('itemId', row.id)
-    add('itemLabel', row.label)
-    add('itemLabels', JSON.stringify(row.labels))
-    add('itemLinkType', row.linkType)
-    add('itemPageId', row.pageId)
-    add('itemUrl', row.url)
-    add('itemModuleId', row.moduleId)
-    add('itemModuleViewKey', row.moduleViewKey)
-    add('itemParentId', row.parentId)
-    add('itemCssClass', row.cssClass)
-    add('itemBrowserTitle', row.browserTitle)
-    add('itemBrowserTitles', JSON.stringify(row.browserTitles))
-    add('itemPageHeading', row.pageHeading)
-    add('itemPageHeadings', JSON.stringify(row.pageHeadings))
-    add('itemLayoutId', row.layoutId)
-    add('itemAccessTags', JSON.stringify(row.accessTags.length ? row.accessTags : ['public']))
+function readStoredExpanded(menuId: string): string | null {
+  if (typeof window === 'undefined') return null
+  try {
+    return sessionStorage.getItem(expandedStorageKey(menuId))
+  } catch {
+    return null
   }
+}
+
+function writeStoredExpanded(menuId: string, id: string | null) {
+  if (typeof window === 'undefined') return
+  try {
+    const key = expandedStorageKey(menuId)
+    if (id) sessionStorage.setItem(key, id)
+    else sessionStorage.removeItem(key)
+  } catch {
+    // Private mode / quota — ignore.
+  }
+}
+
+/** Single draft payload — avoids parallel getAll skew and stale hidden races. */
+const ITEMS_JSON_FIELD = 'itemsJson'
+
+function writeItemsJson(form: HTMLFormElement, rows: EditableItem[]) {
+  let input = form.querySelector<HTMLInputElement>(`input[name="${ITEMS_JSON_FIELD}"]`)
+  if (!input) {
+    input = document.createElement('input')
+    input.type = 'hidden'
+    input.name = ITEMS_JSON_FIELD
+    form.appendChild(input)
+  }
+  input.value = JSON.stringify(
+    rows.map((row, index) => ({
+      id: row.id,
+      parentId: row.parentId || null,
+      label: row.label,
+      labels: row.labels,
+      linkType: row.linkType,
+      pageId: row.pageId || null,
+      url: row.url || null,
+      moduleId: row.moduleId || null,
+      moduleViewKey: row.moduleViewKey || null,
+      cssClass: row.cssClass || null,
+      browserTitle: row.browserTitle || null,
+      browserTitles: row.browserTitles,
+      pageHeading: row.pageHeading || null,
+      pageHeadings: row.pageHeadings,
+      layoutId: row.layoutId || null,
+      accessTags: row.accessTags.length ? row.accessTags : ['public'],
+      sortOrder: index,
+    })),
+  )
 }
 
 function summarizeLink(
@@ -253,6 +308,7 @@ function summarizeLink(
 type SortableNavItemProps = {
   row: EditableItem
   index: number
+  depth: number
   expanded: boolean
   pages: NavPageOption[]
   modules: NavModuleOption[]
@@ -276,6 +332,7 @@ type SortableNavItemProps = {
 function SortableNavItem({
   row,
   index,
+  depth,
   expanded,
   pages,
   modules,
@@ -304,6 +361,7 @@ function SortableNavItem({
     opacity: isDragging ? 0.85 : 1,
   }
   const moduleViews = modules.find((m) => m.moduleId === row.moduleId)?.views ?? []
+  const extraDashes = submenuDepthExtraDashes(depth)
 
   return (
     <li ref={setNodeRef} style={style} className="nav-item-row">
@@ -321,6 +379,14 @@ function SortableNavItem({
             >
               ▣
             </button>
+            {depth > 0 ? (
+              <span className="nav-item-depth-mark" aria-hidden="true">
+                <span className="nav-item-depth-l" />
+                {Array.from({ length: extraDashes }, (_, i) => (
+                  <span key={i} className="nav-item-depth-dash" />
+                ))}
+              </span>
+            ) : null}
             <button
               type="button"
               className="nav-item-toggle"
@@ -362,27 +428,6 @@ function SortableNavItem({
           </div>
         </header>
       </article>
-
-      <input type="hidden" name="itemId" value={row.id} />
-      <input type="hidden" name="itemLabel" value={row.label} />
-      <input type="hidden" name="itemLabels" value={JSON.stringify(row.labels)} />
-      <input type="hidden" name="itemLinkType" value={row.linkType} />
-      <input type="hidden" name="itemPageId" value={row.pageId} />
-      <input type="hidden" name="itemUrl" value={row.url} />
-      <input type="hidden" name="itemModuleId" value={row.moduleId} />
-      <input type="hidden" name="itemModuleViewKey" value={row.moduleViewKey} />
-      <input type="hidden" name="itemParentId" value={row.parentId} />
-      <input type="hidden" name="itemCssClass" value={row.cssClass} />
-      <input type="hidden" name="itemBrowserTitle" value={row.browserTitle} />
-      <input type="hidden" name="itemBrowserTitles" value={JSON.stringify(row.browserTitles)} />
-      <input type="hidden" name="itemPageHeading" value={row.pageHeading} />
-      <input type="hidden" name="itemPageHeadings" value={JSON.stringify(row.pageHeadings)} />
-      <input type="hidden" name="itemLayoutId" value={row.layoutId} />
-      <input
-        type="hidden"
-        name="itemAccessTags"
-        value={JSON.stringify(row.accessTags.length ? row.accessTags : ['public'])}
-      />
 
       {expanded ? (
         <div className="nav-item-card-body">
@@ -449,17 +494,13 @@ function SortableNavItem({
                     value={row.linkType}
                     onChange={(e) => {
                       const next = e.target.value as NavLinkType
+                      // Layout outline stays frozen — only the Layout select changes it.
                       const patch: Partial<EditableItem> = { linkType: next }
                       if (next === 'module' && !row.moduleId && modules[0]) {
                         patch.moduleId = modules[0].moduleId
                         patch.moduleViewKey = modules[0].views[0]?.key ?? ''
                       }
                       if (next === 'admin') {
-                        patch.layoutId = ''
-                        patch.pageId = ''
-                        patch.url = ''
-                        patch.moduleId = ''
-                        patch.moduleViewKey = ''
                         if (isRoot) onSetRoot(false)
                       }
                       onPatch(patch)
@@ -724,7 +765,17 @@ export function NavItemsEditor({
    */
   const rowsRef = useRef<EditableItem[]>(rows)
   const [clipboard, setClipboard] = useState<string>('')
-  const [expandedId, setExpandedId] = useState<string | null>(items[0]?.id ?? null)
+  // Null until sessionStorage hydrate — never default to items[0] (that jumped after save remounts).
+  const [expandedId, setExpandedIdState] = useState<string | null>(null)
+  const expandedIdRef = useRef<string | null>(null)
+  const scrollYOnSaveRef = useRef<number | null>(null)
+
+  const setExpandedId = (id: string | null) => {
+    expandedIdRef.current = id
+    setExpandedIdState(id)
+    writeStoredExpanded(menuId, id)
+  }
+
   const [addOpen, setAddOpen] = useState(false)
   const [addFormKey, setAddFormKey] = useState(0)
   const [newLinkType, setNewLinkType] = useState<NavLinkType>('page')
@@ -749,7 +800,26 @@ export function NavItemsEditor({
   useNotifySavedOnOk(saveState, { toastErrors: true })
   useNotifySavedOnOk(addState, { successMessage: 'Saved', toastErrors: true })
   useNotifySavedOnOk(pasteState, { successMessage: 'Saved', toastErrors: true })
-  const { formRef, saveDebounced, saveNow } = useAutosaveForm()
+  const { formRef, saveDebounced: saveDebouncedRaw, saveNow: saveNowRaw } = useAutosaveForm()
+  /** Queue a follow-up save when edits arrive while an action is still pending. */
+  const resaveAfterPendingRef = useRef(false)
+  const savePendingLiveRef = useRef(false)
+
+  const saveNow = () => {
+    if (savePendingLiveRef.current) {
+      resaveAfterPendingRef.current = true
+      return
+    }
+    saveNowRaw()
+  }
+
+  const saveDebounced = () => {
+    if (savePendingLiveRef.current) {
+      resaveAfterPendingRef.current = true
+      return
+    }
+    saveDebouncedRaw()
+  }
 
   const addOkRef = useRef(false)
   useEffect(() => {
@@ -791,25 +861,58 @@ export function NavItemsEditor({
       const next = items.map((item) => toEditable(item, defaultCode))
       rowsRef.current = next
       setRows(next)
-      setExpandedId(items[0]?.id ?? null)
       return
     }
     setRows((prev) => {
       if (sameIdSet(prev, items)) return prev
       const next = items.map((item) => toEditable(item, defaultCode))
       rowsRef.current = next
+      // Keep the open cog if that item still exists — never jump to another row.
+      if (expandedIdRef.current && !next.some((row) => row.id === expandedIdRef.current)) {
+        expandedIdRef.current = null
+        setExpandedIdState(null)
+        writeStoredExpanded(menuId, null)
+      }
       return next
     })
   }, [menuId, items, defaultCode])
 
-  // Re-assert draft after autosave — pending transition can snap selects back to pre-save values.
-  const savePendingRef = useRef(false)
-  useEffect(() => {
-    if (savePendingRef.current && !savePending) {
+  // Restore open cog per menu (survives save revalidation remounts).
+  useLayoutEffect(() => {
+    const stored = readStoredExpanded(menuId)
+    const valid =
+      stored && rowsRef.current.some((row) => row.id === stored) ? stored : null
+    expandedIdRef.current = valid
+    setExpandedIdState(valid)
+  }, [menuId])
+
+  // useActionState transitions can roll controlled selects back mid-save.
+  // Keep the intentional draft + open cog + scroll for the whole pending window.
+  useLayoutEffect(() => {
+    savePendingLiveRef.current = savePending
+    if (savePending) {
+      if (scrollYOnSaveRef.current == null) scrollYOnSaveRef.current = window.scrollY
       setRows(rowsRef.current)
+      if (expandedIdRef.current !== null) setExpandedIdState(expandedIdRef.current)
+      return
     }
-    savePendingRef.current = savePending
-  }, [savePending])
+    setRows(rowsRef.current)
+    if (expandedIdRef.current !== null) setExpandedIdState(expandedIdRef.current)
+    const y = scrollYOnSaveRef.current
+    scrollYOnSaveRef.current = null
+    if (y != null) window.scrollTo(0, y)
+    if (resaveAfterPendingRef.current) {
+      resaveAfterPendingRef.current = false
+      queueMicrotask(() => saveNowRaw())
+    }
+  }, [savePending, saveNowRaw])
+
+  // While pending, also re-snap if React rolled `rows` / expanded away from the draft.
+  useLayoutEffect(() => {
+    if (!savePending) return
+    if (rows !== rowsRef.current) setRows(rowsRef.current)
+    if (expandedId !== expandedIdRef.current) setExpandedIdState(expandedIdRef.current)
+  }, [savePending, rows, expandedId])
 
   // Add/paste create server-side ids — refresh once so membership soft-sync can pick them up.
   const pasteOkRef = useRef(false)
@@ -827,6 +930,7 @@ export function NavItemsEditor({
   )
 
   const parentTreeOptions = useMemo(() => buildParentTreeOptions(rows), [rows])
+  const itemDepthById = useMemo(() => buildItemDepthMap(rows), [rows])
 
   const newModuleViews = useMemo(
     () => modules.find((m) => m.moduleId === newModuleId)?.views ?? [],
@@ -947,7 +1051,7 @@ export function NavItemsEditor({
             action={addAction}
             className="outlines-create-form admin-create-form nav-items-add-form"
             onSubmit={(e) => {
-              appendItemFields(e.currentTarget, rowsRef.current)
+              writeItemsJson(e.currentTarget, rowsRef.current)
             }}
           >
             <input type="hidden" name="menuId" value={menuId} />
@@ -1104,78 +1208,87 @@ export function NavItemsEditor({
         ) : null}
       </section>
 
+      {/*
+        Item editors stay OUTSIDE the useActionState form. React form-action
+        transitions were rolling every Link type / layout select back to defaults
+        on save even though itemsJson persisted correctly (reload looked fine).
+      */}
+      {rows.length === 0 ? (
+        <p className="outlines-muted">No items yet — use Add + above.</p>
+      ) : (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+          <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+            <ul className="nav-items-list">
+              {rows.map((row, index) => (
+                <SortableNavItem
+                  key={row.id}
+                  row={row}
+                  index={index}
+                  depth={itemDepthById.get(row.id) ?? 0}
+                  expanded={expandedId === row.id}
+                  pages={pages}
+                  modules={modules}
+                  groups={groups}
+                  outlines={outlines}
+                  locales={locales}
+                  parentOptions={buildParentTreeOptions(rows, row.id)}
+                  onToggle={() => setExpandedId(expandedId === row.id ? null : row.id)}
+                  onPatch={(patch) => updateRow(row.id, patch)}
+                  onCopy={() => copyRow(row)}
+                  onRemove={() => removeRow(row.id)}
+                  saveNow={saveNow}
+                  saveDebounced={saveDebounced}
+                  isRoot={rootItemId === row.id}
+                  canBeRoot={navItemCanBeRoot({ linkType: row.linkType, url: row.url })}
+                  onSetRoot={(on) => setRoot(on ? row.id : '')}
+                  defaultLocaleLabel={defaultLocaleLabel}
+                  localeFallback={localeFallback}
+                />
+              ))}
+            </ul>
+          </SortableContext>
+        </DndContext>
+      )}
+
       <form
         ref={formRef}
         action={saveAction}
         className="nav-items-form"
         onSubmit={(e) => {
-          // Last-write-wins in parseItemsFromForm — draft beats stale controlled hiddens.
-          appendItemFields(e.currentTarget, rowsRef.current)
+          writeItemsJson(e.currentTarget, rowsRef.current)
         }}
       >
         <input type="hidden" name="menuId" value={menuId} />
         <input ref={rootInputRef} type="hidden" name="rootItemId" value={rootItemId} />
+      </form>
 
-        {rows.length === 0 ? (
-          <p className="outlines-muted">No items yet — use Add + above.</p>
-        ) : (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-            <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
-              <ul className="nav-items-list">
-                {rows.map((row, index) => (
-                  <SortableNavItem
-                    key={row.id}
-                    row={row}
-                    index={index}
-                    expanded={expandedId === row.id}
-                    pages={pages}
-                    modules={modules}
-                    groups={groups}
-                    outlines={outlines}
-                    locales={locales}
-                    parentOptions={buildParentTreeOptions(rows, row.id)}
-                    onToggle={() => setExpandedId(expandedId === row.id ? null : row.id)}
-                    onPatch={(patch) => updateRow(row.id, patch)}
-                    onCopy={() => copyRow(row)}
-                    onRemove={() => removeRow(row.id)}
-                    saveNow={saveNow}
-                    saveDebounced={saveDebounced}
-                    isRoot={rootItemId === row.id}
-                    canBeRoot={navItemCanBeRoot({ linkType: row.linkType, url: row.url })}
-                    onSetRoot={(on) => setRoot(on ? row.id : '')}
-                    defaultLocaleLabel={defaultLocaleLabel}
-                    localeFallback={localeFallback}
-                  />
-                ))}
-              </ul>
-            </SortableContext>
-          </DndContext>
-        )}
-
-        <div className="nav-items-toolbar admin-action-row">
-          {savePending ? <span className="field-hint">Saving…</span> : null}
+      <div className="nav-items-toolbar admin-action-row">
+        {savePending ? <span className="field-hint">Saving…</span> : null}
+        <form
+          action={pasteAction}
+          className="nav-items-paste-form"
+          onSubmit={(e) => {
+            writeItemsJson(e.currentTarget, rowsRef.current)
+            let clip = e.currentTarget.querySelector<HTMLInputElement>('input[name="clipboardJson"]')
+            if (!clip) {
+              clip = document.createElement('input')
+              clip.type = 'hidden'
+              clip.name = 'clipboardJson'
+              e.currentTarget.appendChild(clip)
+            }
+            clip.value = clipboard
+          }}
+        >
+          <input type="hidden" name="menuId" value={menuId} />
           <button
             type="submit"
             className="gantry-toolbar-btn gantry-toolbar-btn-muted"
-            formAction={pasteAction}
             disabled={pastePending || !clipboard}
-            onClick={(e) => {
-              const form = e.currentTarget.form
-              if (!form) return
-              let clip = form.querySelector<HTMLInputElement>('input[name="clipboardJson"]')
-              if (!clip) {
-                clip = document.createElement('input')
-                clip.type = 'hidden'
-                clip.name = 'clipboardJson'
-                form.appendChild(clip)
-              }
-              clip.value = clipboard
-            }}
           >
             Paste item
           </button>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   )
 }

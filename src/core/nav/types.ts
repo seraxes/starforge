@@ -55,7 +55,8 @@ export type NavMenuItem = {
   pageHeadings?: Record<string, string>
   /**
    * Layout outline id (`sf_layouts`). Empty = do not write Page Settings.
-   * When set, save syncs `layoutId` onto the target page’s Page Settings chrome.
+   * Kept across link-type changes (including Admin); save syncs chrome only when
+   * the item resolves to a public page key.
    */
   layoutId?: string | null
   /**

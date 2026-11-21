@@ -193,7 +193,41 @@ function localeMapFromField(raw: string): Record<string, string> | undefined {
   }
 }
 
+/**
+ * Prefer a single `itemsJson` draft from the editor (avoids parallel getAll
+ * index skew + stale controlled hiddens racing inject). Fall back to the
+ * legacy per-field arrays when JSON is absent.
+ * Layout outline stays on the item for every link type — Admin simply does
+ * not sync it to Page Settings.
+ */
 function parseItemsFromForm(formData: FormData): NavMenuItem[] {
+  const jsonRaw = String(formData.get('itemsJson') ?? '').trim()
+  if (jsonRaw) {
+    try {
+      const parsed = JSON.parse(jsonRaw) as unknown
+      if (Array.isArray(parsed)) {
+        const items: NavMenuItem[] = []
+        for (let i = 0; i < parsed.length; i++) {
+          const row = parsed[i]
+          if (!row || typeof row !== 'object') continue
+          const r = row as Record<string, unknown>
+          const normalized = normalizeNavMenuItem(
+            {
+              ...r,
+              accessTags: r.accessTags ?? ['public'],
+              sortOrder: i,
+            },
+            i,
+          )
+          if (normalized) items.push(normalized)
+        }
+        return normalizeNavMenuDocument({ version: 1, items }).items
+      }
+    } catch {
+      // Fall through to parallel fields.
+    }
+  }
+
   const ids = formData.getAll('itemId').map((v) => String(v ?? ''))
   const labels = formData.getAll('itemLabel').map((v) => String(v ?? ''))
   const linkTypes = formData.getAll('itemLinkType').map((v) => String(v ?? ''))
@@ -257,7 +291,8 @@ function parseItemsFromForm(formData: FormData): NavMenuItem[] {
         pageHeading: pageHeadings[i] || null,
         pageHeadings: localeMapFromField(pageHeadingsJson[i] ?? ''),
         labels: localeMapFromField(labelsJson[i] ?? ''),
-        layoutId: linkType === 'admin' ? null : (layoutIds[i] ?? '').trim() || null,
+        // Keep outline even for Admin — chrome sync already skips admin links.
+        layoutId: (layoutIds[i] ?? '').trim() || null,
         accessTags: tags,
         sortOrder: i,
       },
@@ -325,6 +360,20 @@ export async function saveNavMenuItemsAction(
 
   const menuId = String(formData.get('menuId') ?? '').trim()
   if (!menuId) return { error: 'Menu id is required.' }
+
+  const jsonRaw = String(formData.get('itemsJson') ?? '').trim()
+  if (jsonRaw) {
+    try {
+      if (!Array.isArray(JSON.parse(jsonRaw) as unknown)) {
+        return { error: 'Could not read menu draft.', menuId }
+      }
+    } catch {
+      return { error: 'Could not read menu draft.', menuId }
+    }
+  } else if (formData.getAll('itemId').length === 0) {
+    // No draft payload — refuse rather than replace the menu with [].
+    return { error: 'Nothing to save — draft payload missing.', menuId }
+  }
 
   const items = parseItemsFromForm(formData)
   const badAdmin = items.find(
@@ -400,7 +449,7 @@ export async function addNavMenuItemAction(
 
   // Prefer current form rows when the editor submitted them alongside Add
   const items =
-    formData.getAll('itemId').length > 0
+    String(formData.get('itemsJson') ?? '').trim() || formData.getAll('itemId').length > 0
       ? parseItemsFromForm(formData)
       : [...loaded.document.items]
 
@@ -455,7 +504,8 @@ export async function addNavMenuItemAction(
         url: linkType === 'url' ? url : null,
         moduleId: linkType === 'module' ? moduleId || null : null,
         moduleViewKey: linkType === 'module' ? moduleViewKey || null : null,
-        layoutId: linkType === 'admin' ? null : layoutIdRaw || preferredLayoutId,
+        // Admin links keep an outline id if the add form sent one; chrome sync skips them.
+        layoutId: layoutIdRaw || (linkType === 'admin' ? null : preferredLayoutId),
         accessTags,
       },
       items.length,
@@ -499,7 +549,7 @@ export async function pasteNavMenuItemAction(
   }
 
   const items =
-    formData.getAll('itemId').length > 0
+    String(formData.get('itemsJson') ?? '').trim() || formData.getAll('itemId').length > 0
       ? parseItemsFromForm(formData)
       : [...loaded.document.items]
 
