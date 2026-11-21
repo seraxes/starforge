@@ -12,7 +12,7 @@ Member **persona / identity** layer. One `sf_profiles` row per account. Field re
 
 ## Public door
 
-`@/modules/profiles/api` and `@/modules/profiles/api.server`. Other packs resolve identity through `@/modules/profiles/api.server` (`getPersonas`, `getPersona`, `getPersonaByHandle`, `getAgeYearsForEligibility`, `personaMediaSrc`).
+`@/modules/profiles/api` and `@/modules/profiles/api.server`. Other packs resolve identity through `@/modules/profiles/api.server` (`getPersonas`, `getPersona`, `getPersonaByHandle`, `getAgeYearsForEligibility`, `personaMediaSrc`, `PublicProfile`). Client door also re-exports the `Persona` type.
 
 ## Contract for other modules
 

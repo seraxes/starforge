@@ -174,6 +174,9 @@ export default async function EventEditPage({ params }: { params: Params }) {
           registrationFormId: event.registrationFormId,
           hasAccessPassword: event.hasAccessPassword,
           accessTags: event.accessTags,
+          hostModule: event.hostModule,
+          hostKind: event.hostKind,
+          hostId: event.hostId,
           updatedAt: event.updatedAt.toISOString(),
         }}
       />

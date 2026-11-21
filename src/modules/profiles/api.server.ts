@@ -46,6 +46,7 @@ export type {
   ViewerRelation,
 } from './types'
 export { VISIBILITY_LABELS, VISIBILITY_SCOPES, type VisibilityScope } from './fields'
+export { PublicProfile } from './public/PublicProfile'
 
 const MAX_BATCH = 200
 
@@ -84,15 +85,23 @@ export async function getPersonas(
   if (ids.length === 0) return out
 
   const users = await db
-    .select({ id: sfUsers.id, name: sfUsers.name })
+    .select({ id: sfUsers.id, name: sfUsers.name, hiddenAt: sfUsers.hiddenAt })
     .from(sfUsers)
     .where(inArray(sfUsers.id, ids))
   const nameById = new Map(users.map((u) => [u.id, u.name] as const))
+  const retentionHidden = new Set(
+    users.filter((u) => u.hiddenAt != null).map((u) => u.id),
+  )
 
   const enabled = await isProfilesModuleEnabled()
   if (!enabled) {
     for (const id of ids) {
       if (!nameById.has(id)) continue
+      const relation = relationFor(viewer, id)
+      // Core retention clock — public pages treat the account as absent.
+      if (retentionHidden.has(id) && relation !== 'self' && relation !== 'admin') {
+        continue
+      }
       out.set(
         id,
         fallbackPersona({
@@ -122,6 +131,11 @@ export async function getPersonas(
   for (const id of ids) {
     const name = nameById.get(id)
     if (name == null) continue
+    const relation = relationFor(viewer, id)
+    // Core retention clock — public pages treat the account as absent.
+    if (retentionHidden.has(id) && relation !== 'self' && relation !== 'admin') {
+      continue
+    }
     const profile = profiles.get(id)
     if (!profile) {
       out.set(
@@ -135,7 +149,6 @@ export async function getPersonas(
       )
       continue
     }
-    const relation = relationFor(viewer, id)
     if (profile.status === 'hidden' && relation !== 'self' && relation !== 'admin') {
       out.set(id, {
         ...fallbackPersona({
@@ -182,12 +195,18 @@ export async function getPersonaByHandle(
     return null
   }
   const users = await db
-    .select({ name: sfUsers.name, createdAt: sfUsers.createdAt })
+    .select({
+      name: sfUsers.name,
+      createdAt: sfUsers.createdAt,
+      hiddenAt: sfUsers.hiddenAt,
+    })
     .from(sfUsers)
     .where(eq(sfUsers.id, record.userId))
     .limit(1)
   const user = users[0]
   if (!user) return null
+  // Core retention clock — public profile pages treat the account as absent.
+  if (user.hiddenAt != null && !privileged) return null
   return {
     persona: projectPersona(record, relation, settings, { fallbackName: user.name }),
     record,

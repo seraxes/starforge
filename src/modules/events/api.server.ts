@@ -1,5 +1,7 @@
 /**
- * product:events server door.
+ * product:events server door (boot / Maps / ICS / form hooks).
+ *
+ * Consumer list/create hosting (Social calendars) uses `@/modules/events/api`.
  *
  * `bootEvents` calls `ensureEventsMapCatalog` so Maps can ask for pins, labels,
  * and a roster without importing this pack.

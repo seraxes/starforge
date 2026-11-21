@@ -15,6 +15,7 @@ import {
 } from '../registration-form'
 import { countRegistrationStatsForEvents } from '../registrations'
 import { loadEventsModuleSettings } from '../settings'
+import { parseEventHost } from '../host'
 import { listEvents, listVenues, viewerIsAssignedToEvent } from '../store'
 import { isEventStatus } from '../types'
 import { listEventsUserOptions } from '../user-options'
@@ -26,7 +27,15 @@ export const metadata = {
   description: 'Events list and edit (Events module).',
 }
 
-type Search = Promise<{ status?: string; scope?: string; organizer?: string }>
+type Search = Promise<{
+  status?: string
+  scope?: string
+  organizer?: string
+  create?: string
+  hostModule?: string
+  hostKind?: string
+  hostId?: string
+}>
 
 /** product:events events admin. */
 export default async function EventsListPage({ searchParams }: { searchParams: Search }) {
@@ -41,6 +50,17 @@ export default async function EventsListPage({ searchParams }: { searchParams: S
     rawStatus === 'all' || isEventStatus(rawStatus) ? rawStatus : 'all'
   const scope = (params.scope ?? '').trim() === 'mine' ? 'mine' : 'all'
   const organizerId = (params.organizer ?? '').trim()
+  const openCreate = (params.create ?? '').trim() === '1'
+  const hostParsed = parseEventHost({
+    hostModule: params.hostModule,
+    hostKind: params.hostKind,
+    hostId: params.hostId,
+  })
+  const hostCreateDefaults =
+    hostParsed.ok && hostParsed.host
+      ? hostParsed.host
+      : null
+  const initialCreateOpen = openCreate && Boolean(hostCreateDefaults)
 
   await ensureDefaultUserGroupsSeeded()
   await ensureEventRegistrationFormSeeded()
@@ -86,6 +106,8 @@ export default async function EventsListPage({ searchParams }: { searchParams: S
         organizerOptions={parties.map((p) => ({ id: p.id, label: p.name }))}
         defaultTimezone={moduleSettings.settings.defaultTimezone}
         richEditorEnabled={isRichEditorEnabled(settings)}
+        initialCreateOpen={initialCreateOpen}
+        hostCreateDefaults={hostCreateDefaults}
         groups={groups}
         users={users}
         parties={parties.map((p) => ({ id: p.id, label: p.name }))}

@@ -138,6 +138,7 @@ body > main {
 .site-nav {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.65rem 1rem;
 }
 
@@ -157,6 +158,114 @@ body > main {
   text-decoration: underline;
   text-underline-offset: 0.22em;
   text-decoration-thickness: 2px;
+}
+
+/* Nested Nav manager items (parentId) — hover / focus-within dropdown. */
+.site-nav-dropdown {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.site-nav-dropdown-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.site-nav-dropdown-trigger::after {
+  content: '';
+  width: 0.35rem;
+  height: 0.35rem;
+  margin-top: -0.12em;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  opacity: 0.7;
+}
+
+.site-nav-submenu {
+  list-style: none;
+  margin: 0;
+  padding: 0.4rem 0;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 40;
+  min-width: 11.5rem;
+  border: 1px solid var(--sf-line);
+  border-radius: 0.35rem;
+  background: var(--sf-surface, #fff);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--sf-ink) 12%, transparent);
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(0.2rem);
+  transition:
+    opacity 0.12s ease,
+    visibility 0.12s ease,
+    transform 0.12s ease;
+}
+
+/* Bridge the gap so the pointer can reach the panel without closing. */
+.site-nav-submenu::before {
+  content: '';
+  position: absolute;
+  top: -0.45rem;
+  left: 0;
+  right: 0;
+  height: 0.5rem;
+}
+
+.site-nav-dropdown:hover > .site-nav-submenu,
+.site-nav-dropdown:focus-within > .site-nav-submenu {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.site-nav-submenu > li {
+  margin: 0;
+  padding: 0;
+}
+
+.site-nav-submenu a {
+  display: block;
+  padding: 0.45rem 0.9rem;
+  white-space: nowrap;
+  font-size: 0.92rem;
+}
+
+.site-nav-submenu a:hover,
+.site-nav-submenu a:focus-visible {
+  background: color-mix(in srgb, var(--sf-secondary) 14%, transparent);
+  color: var(--sf-primary-strong);
+  outline: none;
+}
+
+/* Nested dropdowns open to the side. */
+.site-nav-submenu .site-nav-dropdown {
+  display: block;
+  width: 100%;
+}
+
+.site-nav-submenu .site-nav-dropdown-trigger {
+  width: 100%;
+  justify-content: space-between;
+  padding: 0.45rem 0.9rem;
+  box-sizing: border-box;
+}
+
+.site-nav-submenu .site-nav-dropdown-trigger::after {
+  transform: rotate(-45deg);
+  margin-top: 0;
+}
+
+.site-nav-submenu .site-nav-submenu {
+  top: 0;
+  left: 100%;
+  margin-left: 0.15rem;
 }
 
 .sf-account-menu {
@@ -3960,32 +4069,41 @@ button:disabled {
   margin: 0;
 }
 
-/* Events list: collapsed Add + disclosure above filters / list.
- * Horizontal inset comes from `.outlines-create > :not(h3)` card pad —
- * do not re-add 0.85rem left/right here (that fought the Starforge card norm). */
-.sf-events-add-panel > .sf-events-add-bar,
-.sf-events-tiers-embedded > .sf-events-add-bar {
+/* Shared Add + disclosure — equal inset with pad-x (top / left / bottom / right).
+ * Horizontal inset comes from `.outlines-create > :not(h3)` — do not re-add L/R here.
+ * Kill panel pad-bottom so it does not stack under the bar margin. */
+.admin-shell .outlines-create:has(> .sf-events-add-bar),
+.admin-shell .outlines-create:has(> .sf-pages-add-bar),
+.admin-shell .outlines-create.sf-events-add-panel,
+.admin-shell .outlines-create.sf-pages-add-panel,
+.admin-shell .sf-events-tiers-embedded:has(> .sf-events-add-bar) {
+  padding-bottom: 0 !important;
+}
+
+.sf-events-add-bar,
+.sf-pages-add-bar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.65rem 1rem;
-  margin-top: var(--sf-admin-card-pad-y, 0.75rem);
-  margin-bottom: var(--sf-admin-card-pad-y, 0.75rem);
+  margin-top: var(--sf-admin-card-pad-x, 0.85rem);
+  margin-bottom: var(--sf-admin-card-pad-x, 0.85rem);
 }
 
-.sf-events-add-hint {
+.sf-events-add-hint,
+.sf-pages-add-hint {
   margin: 0;
   flex: 1 1 12rem;
 }
 
 .sf-events-add-form.sf-events-form-mosaic {
-  margin: 0 0 var(--sf-admin-card-pad-bottom, 0.85rem);
+  margin: 0 0 var(--sf-admin-card-pad-x, 0.85rem);
   width: auto;
   grid-column: auto;
 }
 
 .sf-events-add-inline-form {
-  margin: 0 0 var(--sf-admin-card-pad-bottom, 0.85rem);
+  margin: 0 0 var(--sf-admin-card-pad-x, 0.85rem);
 }
 
 .sf-events-list-title-btn {
@@ -5654,15 +5772,6 @@ button:disabled {
   gap: 1rem;
   width: 100%;
   min-width: 0;
-}
-
-.admin-shell .sf-subscriptions-add-panel > .outlines-create > h3 {
-  margin-bottom: 0;
-}
-
-.sf-subscriptions-add-panel > .outlines-create > .sf-events-add-bar {
-  margin-top: 0.35rem;
-  margin-bottom: var(--sf-admin-card-pad-y, 0.75rem);
 }
 
 /* Public plans catalog (/plans + subscription-plans particle). */
@@ -8611,6 +8720,14 @@ button:disabled {
   gap: 1rem;
 }
 
+/* Pack zip drop zone: outlines create caps fields at 16rem — let this one span the card. */
+.admin-shell .sf-skins-manager > .outlines-create .outlines-create-form > .settings-field:has(.sf-media-file-field) {
+  flex: 1 1 100%;
+  min-width: 0;
+  max-width: none;
+  width: 100%;
+}
+
 /* Skin picker reuses outline picker chrome (gantry-layouts-nav-outline). */
 
 .outlines-muted {
@@ -8797,11 +8914,12 @@ button.danger:hover,
   margin-top: 0.75rem;
 }
 
-.nav-items-add > .page-settings-panel-body.nav-items-add-form {
+.nav-items-add .nav-items-add-form {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.75rem 1rem;
   align-items: end;
+  margin: 0 0 var(--sf-admin-card-pad-x, 0.85rem);
 }
 
 .nav-items-add-span {
@@ -8812,15 +8930,19 @@ button.danger:hover,
   margin: 0 0 0.65rem;
 }
 
+.nav-items-add .nav-items-add-form > .page-settings-actions {
+  margin-top: 0.25rem;
+}
+
 @media (max-width: 960px) {
-  .nav-items-add > .page-settings-panel-body.nav-items-add-form {
+  .nav-items-add .nav-items-add-form {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 720px) {
   .admin-settings-mosaic.nav-item-mosaic,
-  .nav-items-add > .page-settings-panel-body.nav-items-add-form {
+  .nav-items-add .nav-items-add-form {
     grid-template-columns: 1fr;
   }
 }
@@ -10837,5 +10959,53 @@ button.danger:hover,
 .admin-shell .sf-image-frame-dialog {
   background: color-mix(in srgb, var(--sf-admin-panel, #1a2332) 100%, transparent);
   border-color: var(--sf-admin-line, rgba(255, 255, 255, 0.12));
+  color: inherit;
+}
+
+/* product:social short-video layout (/feed/watch) */
+.sf-social-short-video-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sf-social-short-video-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: min(80vh, 40rem);
+  max-width: 28rem;
+  margin-inline: auto;
+  width: 100%;
+  background: #0b0f14;
+  overflow: hidden;
+}
+
+.sf-social-short-video-player {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+
+.sf-social-short-video-meta {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: center;
+  padding: 0.85rem 1rem;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.72));
+  color: #fff;
+}
+
+.sf-social-short-video-meta a {
   color: inherit;
 }

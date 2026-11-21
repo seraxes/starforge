@@ -430,6 +430,9 @@ export type EventFormRow = {
   registrationFormId?: string
   hasAccessPassword?: boolean
   accessTags?: string[]
+  hostModule?: string
+  hostKind?: string
+  hostId?: string
 }
 
 function formatSeriesPatternSummary(pattern: EventSeriesPattern | null | undefined): string {
@@ -982,8 +985,21 @@ export function EventFormFields({
   busy,
   richEditorEnabled,
 }: EventFormFieldsProps) {
+  const hostModule = (row?.hostModule || '').trim()
+  const hostKind = (row?.hostKind || '').trim()
+  const hostId = (row?.hostId || '').trim()
+  const hosted = Boolean(hostModule && hostKind && hostId)
+
   return (
     <>
+      <input type="hidden" name="hostModule" value={hostModule} />
+      <input type="hidden" name="hostKind" value={hostKind} />
+      <input type="hidden" name="hostId" value={hostId} />
+      {hosted ? (
+        <p className="settings-hint sf-events-host-hint" role="status">
+          Hosted by <strong>{hostModule}</strong> · {hostKind} · {hostId}
+        </p>
+      ) : null}
       <fieldset className="settings-fieldset sf-events-form-section sf-events-form-section-wide">
         <legend>Basics</legend>
         <label className="settings-field">

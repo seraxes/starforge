@@ -1,0 +1,67 @@
+import React from 'react'
+import Link from 'next/link'
+
+import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
+
+import { socialPackAdminPage } from '../pack-settings'
+import { loadSocialModuleSettings } from '../settings'
+import { SocialAdminNav } from './social-admin-nav'
+import { SocialMediaSettingsForm } from './social-media-settings-form'
+
+export const metadata = {
+  title: 'Social media — Starforge',
+  description: 'Social stories, albums, media, and challenge pack settings.',
+}
+
+/** product:social stories / albums / media / challenge admin (slice 15e). */
+export default async function SocialMediaSettingsPage() {
+  const site = await getSiteSettings()
+  const on = isCatalogModuleEnabled(site, MODULE_IDS.social)
+  const page = socialPackAdminPage(on)
+
+  if (page.mode === 'disabled-notice') {
+    return (
+      <section className="admin-section admin-layouts-full">
+        <SocialAdminNav active="media" />
+        <h2>Media</h2>
+        <p className="lede admin-lede">
+          Stories lifetime, albums, images per post, and challenge windows. Module on/off:{' '}
+          <Link href="/admin/settings">Settings → Modules</Link>.
+        </p>
+        <div className="admin-settings-mosaic">
+          <div className="page-settings-panel">
+            <div className="page-settings-panel-head">
+              <h3>Status</h3>
+            </div>
+            <div className="page-settings-panel-body">
+              <p className="layout-muted settings-hint">{page.notice}</p>
+              <p>
+                <Link href="/admin/settings">Settings → Modules</Link>
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  const loaded = await loadSocialModuleSettings()
+
+  return (
+    <section className="admin-section admin-layouts-full">
+      <SocialAdminNav active="media" />
+      <h2>Media</h2>
+      <p className="lede admin-lede">
+        Stories lifetime, album cap, images per post, video on posts, and challenge windows.
+        Module on/off: <Link href="/admin/settings">Settings → Modules</Link>.
+      </p>
+      {loaded.isFallback ? (
+        <p className="layout-muted">
+          Using code defaults (source: {loaded.source}). Run <code>npm run db:migrate</code> if{' '}
+          <code>sf_module_settings</code> is missing.
+        </p>
+      ) : null}
+      <SocialMediaSettingsForm settings={loaded.settings} />
+    </section>
+  )
+}

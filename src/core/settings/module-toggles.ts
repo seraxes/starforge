@@ -28,6 +28,7 @@ export const MODULE_IDS = {
   events: 'product:events',
   profiles: 'product:profiles',
   maps: 'product:maps',
+  social: 'product:social',
   marketplace: 'product:marketplace',
   redirects: 'product:redirects',
   consent: 'product:consent',

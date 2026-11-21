@@ -605,6 +605,11 @@ export const moduleDoorLoaders: ModuleDoorLoader[] = [
     load: async () => import("@/modules/subscriptions/api"),
   },
   {
+    id: "events-api",
+    moduleId: "product:events",
+    load: async () => import("@/modules/events/api"),
+  },
+  {
     id: "profiles-api",
     moduleId: "product:profiles",
     load: async () => import("@/modules/profiles/api"),
@@ -613,6 +618,16 @@ export const moduleDoorLoaders: ModuleDoorLoader[] = [
     id: "profiles-api-server",
     moduleId: "product:profiles",
     load: async () => import("@/modules/profiles/api.server"),
+  },
+  {
+    id: "social-api",
+    moduleId: "product:social",
+    load: async () => import("@/modules/social/api"),
+  },
+  {
+    id: "social-api-server",
+    moduleId: "product:social",
+    load: async () => import("@/modules/social/api.server"),
   },
   {
     id: "audit-log",
@@ -711,6 +726,10 @@ export const bootLoaders: ModuleBootLoader[] = [
   {
     moduleId: "product:events",
     load: async () => (await import("@/modules/events/boot")).bootEvents,
+  },
+  {
+    moduleId: "product:social",
+    load: async () => (await import("@/modules/social/boot")).bootSocial,
   },
   {
     moduleId: "product:subscriptions",

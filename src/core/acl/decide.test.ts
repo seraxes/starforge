@@ -222,6 +222,17 @@ describe('adminAreaGateForPath', () => {
     })
   })
 
+  it('maps Social admin paths to admin.social', () => {
+    assert.deepEqual(adminAreaGateForPath('/admin/social'), {
+      type: 'resource',
+      key: 'admin.social',
+    })
+    assert.deepEqual(adminAreaGateForPath('/admin/social/settings'), {
+      type: 'resource',
+      key: 'admin.social',
+    })
+  })
+
   it('maps Maps admin paths to admin.maps', () => {
     assert.deepEqual(adminAreaGateForPath('/admin/maps'), {
       type: 'resource',

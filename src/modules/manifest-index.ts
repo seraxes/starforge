@@ -37,6 +37,11 @@ import auditManifest from './audit/manifest'
 import richEditorManifest from './rich-editor/manifest'
 import searchManifest from './search/manifest'
 import searchParticleManifest from './search/particle-manifest'
+import socialManifest from './social/manifest'
+import socialFriendsParticleManifest from './social/particles/social-friends-manifest'
+import socialGroupsParticleManifest from './social/particles/social-groups-manifest'
+import socialPagesParticleManifest from './social/particles/social-pages-manifest'
+import socialStoriesParticleManifest from './social/particles/social-stories-manifest'
 
 /** All installable manifests (host + packs). Source of truth for codegen. */
 export const ALL_MODULE_MANIFESTS: StarforgeModuleManifest[] = [
@@ -57,6 +62,11 @@ export const ALL_MODULE_MANIFESTS: StarforgeModuleManifest[] = [
   eventDetailParticleManifest,
   eventCountdownParticleManifest,
   profilesManifest,
+  socialManifest,
+  socialFriendsParticleManifest,
+  socialGroupsParticleManifest,
+  socialPagesParticleManifest,
+  socialStoriesParticleManifest,
   mapsManifest,
   mapParticleManifest,
   liveMapParticleManifest,

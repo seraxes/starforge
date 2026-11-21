@@ -23,6 +23,7 @@ import {
 
 import { hashEventPassword } from './access-password'
 import { assertRegistrationFormId, findEventCategoryById } from './categories'
+import { parseEventHost } from './host'
 import { sfEvents, sfVenues } from './schema'
 import {
   expandSeriesStarts,
@@ -154,6 +155,9 @@ function mapEvent(row: typeof sfEvents.$inferSelect): EventRecord {
     registrationFormId: (row.registrationFormId || '').trim(),
     hasAccessPassword: Boolean((row.accessPasswordHash || '').trim()),
     accessTags: normalizeAccessTags({ accessTags: row.accessTags }),
+    hostModule: (row.hostModule || '').trim(),
+    hostKind: (row.hostKind || '').trim(),
+    hostId: (row.hostId || '').trim(),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   }
@@ -465,6 +469,34 @@ export async function listEvents(filter?: {
   }
 }
 
+/** Events hosted by a pack entity (Social group/page). Missing host id → []. */
+export async function listEventsForHost(host: {
+  hostModule: string
+  hostKind: string
+  hostId: string
+}): Promise<EventRecord[]> {
+  const hostModule = host.hostModule.trim()
+  const hostKind = host.hostKind.trim()
+  const hostId = host.hostId.trim()
+  if (!hostModule || !hostKind || !hostId) return []
+  try {
+    const rows = await db
+      .select()
+      .from(sfEvents)
+      .where(
+        and(
+          eq(sfEvents.hostModule, hostModule),
+          eq(sfEvents.hostKind, hostKind),
+          eq(sfEvents.hostId, hostId),
+        ),
+      )
+      .orderBy(asc(sfEvents.startsAt), asc(sfEvents.title), asc(sfEvents.id))
+    return rows.map(mapEvent)
+  } catch {
+    return []
+  }
+}
+
 export async function findEventById(id: string): Promise<EventRecord | null> {
   const trimmed = id.trim()
   if (!trimmed) return null
@@ -531,6 +563,12 @@ export type UpsertEventInput = {
   accessPassword?: unknown
   clearAccessPassword?: unknown
   accessTags?: unknown
+  /** Host pack id (e.g. product:social). Empty = standalone. */
+  hostModule?: unknown
+  /** Host kind: group | page when hosted. */
+  hostKind?: unknown
+  /** Host entity id. Required when any host field is set. */
+  hostId?: unknown
 }
 
 function parseOptionalIdList(raw: unknown): string[] {
@@ -617,6 +655,15 @@ export async function createEvent(
     plainPassword.trim().length > 0 ? hashEventPassword(plainPassword.trim()) : null
   const slug = normalizeSlug(input.slug)
   const accessTags = normalizeAccessTagsForDb(input.accessTags)
+  const hostParsed = parseEventHost({
+    hostModule: input.hostModule,
+    hostKind: input.hostKind,
+    hostId: input.hostId,
+  })
+  if (!hostParsed.ok) return { error: hostParsed.error }
+  const hostModule = hostParsed.host?.hostModule ?? ''
+  const hostKind = hostParsed.host?.hostKind ?? ''
+  const hostId = hostParsed.host?.hostId ?? ''
   const id = (input.id || '').trim() || crypto.randomUUID()
 
   if (startsAt && endsAt && endsAt.getTime() < startsAt.getTime()) {
@@ -680,6 +727,9 @@ export async function createEvent(
       registrationFormId: registrationForm.id,
       accessPasswordHash,
       accessTags,
+      hostModule,
+      hostKind,
+      hostId,
     })
     const created = await findEventById(id)
     if (!created) return { error: 'Event created but could not be reloaded.' }
@@ -1194,6 +1244,25 @@ export async function updateEvent(
     input.accessTags !== undefined
       ? normalizeAccessTagsForDb(input.accessTags)
       : normalizeAccessTagsForDb(current.accessTags)
+  let hostModule = current.hostModule
+  let hostKind = current.hostKind
+  let hostId = current.hostId
+  if (
+    input.hostModule !== undefined ||
+    input.hostKind !== undefined ||
+    input.hostId !== undefined
+  ) {
+    const hostParsed = parseEventHost({
+      hostModule:
+        input.hostModule !== undefined ? input.hostModule : current.hostModule,
+      hostKind: input.hostKind !== undefined ? input.hostKind : current.hostKind,
+      hostId: input.hostId !== undefined ? input.hostId : current.hostId,
+    })
+    if (!hostParsed.ok) return { error: hostParsed.error }
+    hostModule = hostParsed.host?.hostModule ?? ''
+    hostKind = hostParsed.host?.hostKind ?? ''
+    hostId = hostParsed.host?.hostId ?? ''
+  }
 
   if (startsAt && endsAt && endsAt.getTime() < startsAt.getTime()) {
     return { error: 'End time must be on or after start time.' }
@@ -1255,6 +1324,9 @@ export async function updateEvent(
         registrationFormId: registrationForm.id,
         ...(accessPasswordHash !== undefined ? { accessPasswordHash } : {}),
         accessTags,
+        hostModule,
+        hostKind,
+        hostId,
       })
       .where(eq(sfEvents.id, id))
     const updated = await findEventById(id)

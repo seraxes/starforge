@@ -168,6 +168,14 @@ export type EventRecord = {
   /** True when a shared access password is set (hash never exposed). */
   hasAccessPassword: boolean
   accessTags: string[]
+  /**
+   * Host pack id (plain text). Empty = standalone. Social uses `product:social`.
+   */
+  hostModule: string
+  /** `group` | `page` when hosted by Social; empty = standalone. */
+  hostKind: string
+  /** Host entity id (group/page). Plain text, no FK. Empty = standalone. */
+  hostId: string
   createdAt: Date
   updatedAt: Date
 }

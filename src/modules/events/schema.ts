@@ -231,6 +231,17 @@ export const sfEvents = pgTable(
     /** scrypt hash for optional shared access password; never expose to client. */
     accessPasswordHash: text('access_password_hash'),
     accessTags: jsonb('access_tags').$type<string[]>().notNull().default([]),
+    /**
+     * Optional host pack (plain text, no FK). Social uses `product:social`.
+     * Empty = standalone site event.
+     */
+    hostModule: text('host_module').notNull().default(''),
+    /**
+     * Host kind when hosted: `group` | `page` (Social). Empty = standalone.
+     */
+    hostKind: text('host_kind').notNull().default(''),
+    /** Host entity id (Social group/page id). Plain text, no FK. */
+    hostId: text('host_id').notNull().default(''),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true })
       .defaultNow()
@@ -247,6 +258,7 @@ export const sfEvents = pgTable(
     index('sf_events_category_id_idx').on(table.categoryId),
     index('sf_events_merchant_user_id_idx').on(table.merchantUserId),
     index('sf_events_series_id_idx').on(table.seriesId),
+    index('sf_events_host_idx').on(table.hostModule, table.hostKind, table.hostId),
   ],
 )
 

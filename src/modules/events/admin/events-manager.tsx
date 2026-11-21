@@ -63,6 +63,12 @@ function eventsListHref(opts: {
 
 type IdOpt = { id: string; label: string }
 
+type HostCreateDefaults = {
+  hostModule: string
+  hostKind: string
+  hostId: string
+}
+
 type Props = {
   events: EventRow[]
   venues: VenueOpt[]
@@ -78,6 +84,9 @@ type Props = {
   organizerOptions?: { id: string; label: string }[]
   /** Site Settings → Modules → Rich editor gate. */
   richEditorEnabled?: boolean
+  /** Open Add+ with host fields (Social deep-link create). */
+  initialCreateOpen?: boolean
+  hostCreateDefaults?: HostCreateDefaults | null
 }
 
 const initial: EventsAdminActionState = {}
@@ -134,9 +143,11 @@ export function EventsManager({
   organizerFilter = '',
   organizerOptions = [],
   richEditorEnabled = true,
+  initialCreateOpen = false,
+  hostCreateDefaults = null,
 }: Props) {
   const router = useRouter()
-  const [createOpen, setCreateOpen] = useState(false)
+  const [createOpen, setCreateOpen] = useState(initialCreateOpen)
   const [formKey, setFormKey] = useState(0)
   const [createState, createAction, createPending] = useActionState(
     createEventAction,
@@ -232,6 +243,15 @@ export function EventsManager({
               ) : null}
             </div>
             <EventFormFields
+              row={
+                hostCreateDefaults
+                  ? {
+                      hostModule: hostCreateDefaults.hostModule,
+                      hostKind: hostCreateDefaults.hostKind,
+                      hostId: hostCreateDefaults.hostId,
+                    }
+                  : undefined
+              }
               venues={venues}
               categories={categories}
               forms={forms}

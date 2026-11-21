@@ -50,6 +50,7 @@ Plans, periods, and entitlements. Payments charges and snapshots; this pack gran
 | `events.member` | membership | Member ticket price (Events) |
 | `events.manage` | organizer | Satisfies `admin.events` at request time |
 | `payments.collect` | organizer | Merchant collect when Subscriptions is on |
+| `social.challenge.multi` | (admin-attached) | Social second+ challenge invitee; not default on membership/organizer |
 
 ## Consumer contract
 

@@ -3,6 +3,8 @@ export const ENTITLEMENT_KEYS = {
   eventsMember: 'events.member',
   eventsManage: 'events.manage',
   paymentsCollect: 'payments.collect',
+  /** Social challenge: second+ invitee (not default on membership/organizer). */
+  socialChallengeMulti: 'social.challenge.multi',
 } as const
 
 export type EntitlementKey = (typeof ENTITLEMENT_KEYS)[keyof typeof ENTITLEMENT_KEYS]

@@ -384,6 +384,39 @@ export const BUILTIN_EMAIL_TRIGGERS: readonly EmailTriggerDef[] = [
       'at',
     ],
   },
+  {
+    key: 'product:social/friend.requested',
+    label: 'Friend request',
+    moduleCategory: 'social',
+    moduleId: 'product:social',
+    description:
+      'Fired after a member sends a friend request. Mail failure must not roll back the request.',
+    payloadFields: ['requesterId', 'addresseeId', 'friendshipId', 'addresseeEmail'],
+  },
+  {
+    key: 'product:social/group.invited',
+    label: 'Group invite',
+    moduleCategory: 'social',
+    moduleId: 'product:social',
+    description:
+      'Fired after a group owner/admin invites a member. Mail failure must not roll back the invite.',
+    payloadFields: [
+      'groupId',
+      'membershipId',
+      'inviterUserId',
+      'inviteeUserId',
+      'inviteeEmail',
+    ],
+  },
+  {
+    key: 'product:social/group.announced',
+    label: 'Group announcement',
+    moduleCategory: 'social',
+    moduleId: 'product:social',
+    description:
+      'Fired after a group wall post is marked as an announcement. Mail failure must not roll back the pin.',
+    payloadFields: ['groupId', 'postId', 'actorUserId'],
+  },
 ] as const
 
 const BY_KEY = new Map(BUILTIN_EMAIL_TRIGGERS.map((t) => [t.key, t]))

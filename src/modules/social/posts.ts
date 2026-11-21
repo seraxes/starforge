@@ -1,0 +1,741 @@
+/**
+ * product:social posts — audiences, canViewPost, reserved handles, permalink, media.
+ *
+ * canViewPost is the only read check for a post. Feeds, permalinks, shares,
+ * hashtags, discover, and group walls call it; they do not repeat the rules.
+ * Create refuses when the author has a Social bannedAt.
+ * DB persistence lives in posts-store.ts.
+ */
+
+import { isSocialBanned } from './interact'
+
+export const POST_AUDIENCES = ['only_me', 'group', 'friends', 'public'] as const
+export type PostAudience = (typeof POST_AUDIENCES)[number]
+
+export const POST_KINDS = [
+  'text',
+  'media',
+  'activity',
+  'challenge',
+  'link',
+  'share',
+  'poll',
+  'checkin',
+] as const
+export type PostKind = (typeof POST_KINDS)[number]
+
+/** Single-choice poll option (stored on the post; votes are sf_social_poll_votes). */
+export type PollOption = {
+  id: string
+  label: string
+}
+
+export const POST_MEDIA_ROLES = ['attachment', 'challenge_entry'] as const
+export type PostMediaRole = (typeof POST_MEDIA_ROLES)[number]
+
+/** Soft cap for image galleries on one post (many images, or one video). */
+export const POST_MEDIA_IMAGE_MAX = 10
+
+/** Path words that are never treated as a member handle under /feed. */
+export const RESERVED_FEED_HANDLES = [
+  'people',
+  'groups',
+  'pages',
+  'stories',
+  'following',
+  'discover',
+  'watch',
+  'requests',
+  'saved',
+  'post',
+  'tag',
+  'c',
+  'g',
+  'p',
+  'u',
+] as const
+
+export type ReservedFeedHandle = (typeof RESERVED_FEED_HANDLES)[number]
+
+export type PostMediaAttachment = {
+  mediaId: string
+  role: PostMediaRole
+  sortOrder: number
+  mimeType: string | null
+}
+
+export type PostRecord = {
+  id: string
+  authorUserId: string
+  body: string
+  kind: PostKind
+  audience: PostAudience
+  groupId: string | null
+  pageId: string | null
+  staffHidden: boolean
+  /** Group announcement pin (slice 14). Stays pinned on the wall. */
+  isAnnouncement: boolean
+  editedAt: Date | null
+  extensions: Record<string, unknown>
+  /** Ordered media binds (files stay in product:media). */
+  media: PostMediaAttachment[]
+  /** Share target (kind=share). Plain text id — no FK. */
+  sharedPostId: string | null
+  /** Link preview (kind=link). Snapshot from server fetch. */
+  linkUrl: string | null
+  linkTitle: string | null
+  linkDescription: string | null
+  linkImageUrl: string | null
+  /** Poll options (kind=poll). Empty when not a poll. */
+  pollOptions: PollOption[]
+  /** When set, the poll is closed — options and body cannot be edited. */
+  pollClosedAt: Date | null
+  /** Check-in place label (kind=checkin). */
+  placeLabel: string | null
+  /** Optional Maps pin id when the Maps door resolved a pin. */
+  mapsPinId: string | null
+  placeLat: number | null
+  placeLng: number | null
+  createdAt: Date
+  updatedAt: Date
+}
+
+export type PostRefuseReason =
+  | 'invalid'
+  | 'invalid_audience'
+  | 'group_required'
+  | 'empty_body'
+  | 'unknown_media'
+  | 'invalid_media_mix'
+  | 'not_found'
+  | 'not_author'
+  | 'cannot_manage'
+  | 'banned'
+  | 'poll_closed'
+  /** Pack switch for this composer kind is off (slice 15b). */
+  | 'disabled_kind'
+  /** Pack blocked-words list matched the body (slice 15c). */
+  | 'blocked_word'
+
+export type EditPostInput = {
+  actorUserId: string
+  postId: string
+  body?: string
+}
+
+export type DeletePostInput = {
+  actorUserId: string
+  postId: string
+}
+
+export type StaffHidePostInput = {
+  actorUserId: string
+  postId: string
+  staffHidden: boolean
+}
+
+export type PostDeleteResult =
+  | { ok: true; postId: string }
+  | { ok: false; reason: PostRefuseReason }
+
+/** True when the composer body has no visible text (whitespace / empty HTML). */
+export function isEmptyPostBody(body: string | null | undefined): boolean {
+  const raw = (body ?? '').trim()
+  if (!raw) return true
+  const text = raw
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return !text
+}
+
+export type PostMutationResult =
+  | { ok: true; post: PostRecord }
+  | { ok: false; reason: PostRefuseReason }
+
+export type CreatePostInput = {
+  authorUserId: string
+  body?: string
+  audience?: PostAudience | string
+  groupId?: string | null
+  pageId?: string | null
+  extensions?: Record<string, unknown>
+  /** Media library ids to attach (role attachment). */
+  mediaIds?: string[]
+}
+
+/**
+ * Facts canViewPost needs from friendships, groups, pages, and account state.
+ * Callers resolve those owners; this function does not query them.
+ */
+export type CanViewPostContext = {
+  viewerUserId: string | null
+  areFriends: boolean
+  /**
+   * True when either person has blocked the other.
+   * Callers resolve from the pair query (`blockedBy` / `blockedByOther`).
+   */
+  isBlocked: boolean
+  authorHidden: boolean
+  isGroupMember: boolean
+  isPageLiker: boolean
+  isPageAdmin: boolean
+  /** `social.posts` manage — review queue may see a staff-hidden post. */
+  canManagePosts: boolean
+  /**
+   * When false, guests (no viewer) cannot read audience=public posts.
+   * Omit / true keeps the historical open-public behaviour.
+   */
+  guestCanReadPublic?: boolean
+}
+
+export type PermalinkResult =
+  | { ok: true; post: PostRecord }
+  | { ok: false; reason: 'not_found' }
+
+export type MediaResolveResult = {
+  mediaId: string
+  mimeType: string | null
+}
+
+export type MediaKindClass = 'image' | 'video' | 'other'
+
+export function isPostAudience(value: string): value is PostAudience {
+  return (POST_AUDIENCES as readonly string[]).includes(value)
+}
+
+export function isPostKind(value: string): value is PostKind {
+  return (POST_KINDS as readonly string[]).includes(value)
+}
+
+/** Empty share / link columns for text, media, activity, challenge rows. */
+export function emptyShareLinkFields(): Pick<
+  PostRecord,
+  'sharedPostId' | 'linkUrl' | 'linkTitle' | 'linkDescription' | 'linkImageUrl'
+> {
+  return {
+    sharedPostId: null,
+    linkUrl: null,
+    linkTitle: null,
+    linkDescription: null,
+    linkImageUrl: null,
+  }
+}
+
+/** Empty poll / check-in columns for non-poll / non-checkin rows. */
+export function emptyPollCheckinFields(): Pick<
+  PostRecord,
+  'pollOptions' | 'pollClosedAt' | 'placeLabel' | 'mapsPinId' | 'placeLat' | 'placeLng'
+> {
+  return {
+    pollOptions: [],
+    pollClosedAt: null,
+    placeLabel: null,
+    mapsPinId: null,
+    placeLat: null,
+    placeLng: null,
+  }
+}
+
+/**
+ * Map a posts table row (or equivalent) into PostRecord.
+ * Unknown audience / kind → null (callers treat as missing).
+ */
+export function toPostRecord(
+  row: {
+    id: string
+    authorUserId: string
+    body: string
+    kind: string
+    audience: string
+    groupId: string | null
+    pageId: string | null
+    staffHidden: boolean
+    isAnnouncement?: boolean | null
+    editedAt: Date | null
+    extensions?: Record<string, unknown> | null
+    sharedPostId?: string | null
+    linkUrl?: string | null
+    linkTitle?: string | null
+    linkDescription?: string | null
+    linkImageUrl?: string | null
+    pollOptions?: PollOption[] | null
+    pollClosedAt?: Date | null
+    placeLabel?: string | null
+    mapsPinId?: string | null
+    placeLat?: number | null
+    placeLng?: number | null
+    createdAt: Date
+    updatedAt: Date
+  },
+  media: PostMediaAttachment[] = [],
+): PostRecord | null {
+  if (!isPostAudience(row.audience) || !isPostKind(row.kind)) return null
+  return {
+    id: row.id,
+    authorUserId: row.authorUserId,
+    body: row.body,
+    kind: row.kind,
+    audience: row.audience,
+    groupId: row.groupId,
+    pageId: row.pageId,
+    staffHidden: row.staffHidden,
+    isAnnouncement: Boolean(row.isAnnouncement),
+    editedAt: row.editedAt,
+    extensions:
+      row.extensions && typeof row.extensions === 'object' && !Array.isArray(row.extensions)
+        ? (row.extensions as Record<string, unknown>)
+        : {},
+    media,
+    sharedPostId: row.sharedPostId?.trim() || null,
+    linkUrl: row.linkUrl?.trim() || null,
+    linkTitle: row.linkTitle?.trim() || null,
+    linkDescription: row.linkDescription?.trim() || null,
+    linkImageUrl: row.linkImageUrl?.trim() || null,
+    pollOptions: normalizePollOptions(row.pollOptions),
+    pollClosedAt: row.pollClosedAt ?? null,
+    placeLabel: row.placeLabel?.trim() || null,
+    mapsPinId: row.mapsPinId?.trim() || null,
+    placeLat: typeof row.placeLat === 'number' && Number.isFinite(row.placeLat) ? row.placeLat : null,
+    placeLng: typeof row.placeLng === 'number' && Number.isFinite(row.placeLng) ? row.placeLng : null,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  }
+}
+
+/** Coerce jsonb poll options into a clean list (drop blanks / non-objects). */
+export function normalizePollOptions(raw: unknown): PollOption[] {
+  if (!Array.isArray(raw)) return []
+  const out: PollOption[] = []
+  const seen = new Set<string>()
+  for (const item of raw) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) continue
+    const id = typeof (item as { id?: unknown }).id === 'string'
+      ? (item as { id: string }).id.trim()
+      : ''
+    const label = typeof (item as { label?: unknown }).label === 'string'
+      ? (item as { label: string }).label.trim()
+      : ''
+    if (!id || !label || seen.has(id)) continue
+    seen.add(id)
+    out.push({ id, label })
+  }
+  return out
+}
+
+export function isPostMediaRole(value: string): value is PostMediaRole {
+  return (POST_MEDIA_ROLES as readonly string[]).includes(value)
+}
+
+export function isReservedFeedHandle(handle: string): boolean {
+  const key = handle.trim().toLowerCase()
+  return (RESERVED_FEED_HANDLES as readonly string[]).includes(key)
+}
+
+/** Member profile under /feed — reserved words use the /u/ prefix. */
+export function memberFeedHref(handle: string): string {
+  const trimmed = handle.trim()
+  if (!trimmed) return '/feed'
+  return isReservedFeedHandle(trimmed)
+    ? `/feed/u/${encodeURIComponent(trimmed)}`
+    : `/feed/${encodeURIComponent(trimmed)}`
+}
+
+export function permalinkHref(postId: string): string {
+  return `/feed/post/${encodeURIComponent(postId.trim())}`
+}
+
+export function classifyMediaMime(mimeType: string | null | undefined): MediaKindClass {
+  const mime = (mimeType ?? '').trim().toLowerCase()
+  if (mime.startsWith('image/')) return 'image'
+  if (mime.startsWith('video/')) return 'video'
+  return 'other'
+}
+
+/** Dedupe media ids while keeping first-seen order. */
+export function normalizeMediaIds(mediaIds: string[] | null | undefined): string[] {
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const raw of mediaIds ?? []) {
+    const id = raw.trim()
+    if (!id || seen.has(id)) continue
+    seen.add(id)
+    out.push(id)
+  }
+  return out
+}
+
+/**
+ * Media door for attach: asset must resolve and this member may use it.
+ * Unreadable / not-owned → null (callers map that to unknown_media).
+ */
+export function resolveMediaForMember(
+  mediaId: string,
+  opts: {
+    resolveMedia: (mediaId: string) => MediaResolveResult | null
+    memberCanRead: (mediaId: string) => boolean
+  },
+): MediaResolveResult | null {
+  const id = mediaId.trim()
+  if (!id) return null
+  if (!opts.memberCanRead(id)) return null
+  return opts.resolveMedia(id)
+}
+
+/**
+ * Resolve and validate post attachments.
+ * Many images (up to maxImages, default POST_MEDIA_IMAGE_MAX) or exactly one
+ * video — not both. Pack may turn video off (`allowVideo: false`).
+ * Unknown mediaId, or an id the Media door will not read for this member →
+ * unknown_media (named failure paths for slice 5).
+ */
+export function decidePostAttachments(
+  mediaIds: string[] | null | undefined,
+  resolveMedia: (mediaId: string) => MediaResolveResult | null,
+  opts?: {
+    maxImages?: number
+    allowVideo?: boolean
+  },
+):
+  | { ok: true; attachments: PostMediaAttachment[] }
+  | { ok: false; reason: 'unknown_media' | 'invalid_media_mix' } {
+  const ids = normalizeMediaIds(mediaIds)
+  if (ids.length === 0) return { ok: true, attachments: [] }
+
+  const maxImages =
+    typeof opts?.maxImages === 'number' &&
+    Number.isInteger(opts.maxImages) &&
+    opts.maxImages > 0
+      ? Math.min(POST_MEDIA_IMAGE_MAX, opts.maxImages)
+      : POST_MEDIA_IMAGE_MAX
+  const allowVideo = opts?.allowVideo !== false
+
+  const resolved: MediaResolveResult[] = []
+  for (const mediaId of ids) {
+    const doc = resolveMedia(mediaId)
+    if (!doc) return { ok: false, reason: 'unknown_media' }
+    resolved.push({ mediaId: doc.mediaId, mimeType: doc.mimeType })
+  }
+
+  const classes = resolved.map((row) => classifyMediaMime(row.mimeType))
+  if (classes.some((c) => c === 'other')) {
+    return { ok: false, reason: 'invalid_media_mix' }
+  }
+
+  const imageCount = classes.filter((c) => c === 'image').length
+  const videoCount = classes.filter((c) => c === 'video').length
+
+  if (videoCount > 0 && !allowVideo) {
+    return { ok: false, reason: 'invalid_media_mix' }
+  }
+  if (videoCount > 0 && imageCount > 0) {
+    return { ok: false, reason: 'invalid_media_mix' }
+  }
+  if (videoCount > 1) {
+    return { ok: false, reason: 'invalid_media_mix' }
+  }
+  if (videoCount === 1 && resolved.length !== 1) {
+    return { ok: false, reason: 'invalid_media_mix' }
+  }
+  if (imageCount > maxImages) {
+    return { ok: false, reason: 'invalid_media_mix' }
+  }
+
+  return {
+    ok: true,
+    attachments: resolved.map((row, index) => ({
+      mediaId: row.mediaId,
+      role: 'attachment' as const,
+      sortOrder: index,
+      mimeType: row.mimeType,
+    })),
+  }
+}
+
+/**
+ * Decide whether a viewer may read a post.
+ * Author always sees their own row. Block (either blocker column), hidden author,
+ * and staff hide deny everyone else (manage grant may see a staff-hidden post).
+ */
+export function canViewPost(post: PostRecord, ctx: CanViewPostContext): boolean {
+  const viewer = ctx.viewerUserId?.trim() || null
+  if (viewer && viewer === post.authorUserId) return true
+
+  if (ctx.isBlocked) return false
+  if (ctx.authorHidden) return false
+  if (post.staffHidden && !ctx.canManagePosts) return false
+
+  // Page posts: likers and page admins only (not the audience picker).
+  if (post.pageId) {
+    return ctx.isPageLiker || ctx.isPageAdmin
+  }
+
+  switch (post.audience) {
+    case 'only_me':
+      return false
+    case 'friends':
+      return Boolean(viewer) && ctx.areFriends
+    case 'public':
+      if (!viewer) return ctx.guestCanReadPublic !== false
+      return true
+    case 'group':
+      return Boolean(viewer) && ctx.isGroupMember
+    default:
+      return false
+  }
+}
+
+/**
+ * Permalink read: missing or denied → not_found (do not leak existence).
+ */
+export function resolvePostPermalink(
+  post: PostRecord | null,
+  ctx: CanViewPostContext,
+): PermalinkResult {
+  if (!post) return { ok: false, reason: 'not_found' }
+  if (!canViewPost(post, ctx)) return { ok: false, reason: 'not_found' }
+  return { ok: true, post }
+}
+
+/**
+ * Build a text or media post row. Default audience is friends.
+ * Group audience requires groupId. Empty body is refused unless media is attached.
+ * Unknown mediaId is refused (resolveMedia must return the asset).
+ * Named failure (slice 9b): author Social bannedAt → banned.
+ * Named failure (slice 15b): pack switch off for the resolved kind → disabled_kind.
+ */
+export function createPostRecord(
+  input: CreatePostInput,
+  opts?: {
+    now?: Date
+    newId?: () => string
+    resolveMedia?: (mediaId: string) => MediaResolveResult | null
+    /** Author’s Social member bannedAt — refused when set. */
+    authorBannedAt?: Date | null
+    /** Pack composer switch. Omit → allow (unit tests / callers without pack). */
+    isKindEnabled?: (kind: PostKind) => boolean
+    /** Pack hold-for-review. New posts start staff-hidden when true. */
+    holdForStaffReview?: boolean
+    /** Pack blockedWords. Matching body → blocked_word. */
+    blockedWords?: readonly string[]
+    /** Pack maxImagesPerPost. Omitted → POST_MEDIA_IMAGE_MAX. */
+    maxImagesPerPost?: number
+    /** Pack allowPostVideo. false → video attachments refused. */
+    allowPostVideo?: boolean
+  },
+): PostMutationResult {
+  const authorUserId = input.authorUserId.trim()
+  if (!authorUserId) return { ok: false, reason: 'invalid' }
+  if (isSocialBanned(opts?.authorBannedAt ?? null)) {
+    return { ok: false, reason: 'banned' }
+  }
+
+  const body = (input.body ?? '').trim()
+  if (opts?.blockedWords?.length) {
+    const hay = body.toLowerCase()
+    for (const word of opts.blockedWords) {
+      const needle = word.trim().toLowerCase()
+      if (needle && hay.includes(needle)) return { ok: false, reason: 'blocked_word' }
+    }
+  }
+  const mediaIds = normalizeMediaIds(input.mediaIds)
+
+  if (mediaIds.length > 0 && !opts?.resolveMedia) {
+    return { ok: false, reason: 'unknown_media' }
+  }
+
+  const mediaDecision =
+    mediaIds.length === 0
+      ? ({ ok: true as const, attachments: [] as PostMediaAttachment[] })
+      : decidePostAttachments(mediaIds, opts!.resolveMedia!, {
+          maxImages: opts?.maxImagesPerPost,
+          allowVideo: opts?.allowPostVideo,
+        })
+  if (!mediaDecision.ok) return mediaDecision
+
+  if (isEmptyPostBody(body) && mediaDecision.attachments.length === 0) {
+    return { ok: false, reason: 'empty_body' }
+  }
+
+  const rawAudience = input.audience ?? 'friends'
+  const audience =
+    typeof rawAudience === 'string' && rawAudience.trim() === ''
+      ? 'friends'
+      : typeof rawAudience === 'string'
+        ? rawAudience.trim()
+        : rawAudience
+  if (!isPostAudience(audience)) return { ok: false, reason: 'invalid_audience' }
+
+  const groupId = input.groupId?.trim() || null
+  const pageId = input.pageId?.trim() || null
+
+  if (audience === 'group' && !groupId) {
+    return { ok: false, reason: 'group_required' }
+  }
+
+  const now = opts?.now ?? new Date()
+  const newId = opts?.newId ?? (() => crypto.randomUUID())
+  const kind: PostKind = mediaDecision.attachments.length > 0 ? 'media' : 'text'
+  if (opts?.isKindEnabled && !opts.isKindEnabled(kind)) {
+    return { ok: false, reason: 'disabled_kind' }
+  }
+
+  return {
+    ok: true,
+    post: {
+      id: newId(),
+      authorUserId,
+      body,
+      kind,
+      audience,
+      groupId: audience === 'group' ? groupId : null,
+      pageId,
+      staffHidden: Boolean(opts?.holdForStaffReview),
+      isAnnouncement: false,
+      editedAt: null,
+      extensions: input.extensions ?? {},
+      media: mediaDecision.attachments,
+      ...emptyShareLinkFields(),
+      ...emptyPollCheckinFields(),
+      createdAt: now,
+      updatedAt: now,
+    },
+  }
+}
+
+/** Author-only body edit. Sets editedAt. Closed polls are refused. */
+export function decideEditPost(
+  current: PostRecord | null,
+  input: EditPostInput,
+  opts?: { now?: Date },
+): PostMutationResult {
+  if (!current) return { ok: false, reason: 'not_found' }
+  const actor = input.actorUserId.trim()
+  if (!actor || current.id.trim() !== input.postId.trim()) {
+    return { ok: false, reason: 'invalid' }
+  }
+  if (current.authorUserId !== actor) return { ok: false, reason: 'not_author' }
+  if (current.kind === 'poll' && current.pollClosedAt) {
+    return { ok: false, reason: 'poll_closed' }
+  }
+
+  const body = (input.body ?? '').trim()
+  const hasMedia = current.media.length > 0
+  const hasPoll = current.kind === 'poll' && current.pollOptions.length > 0
+  const hasCheckin = current.kind === 'checkin' && Boolean(current.placeLabel)
+  if (isEmptyPostBody(body) && !hasMedia && !hasPoll && !hasCheckin) {
+    return { ok: false, reason: 'empty_body' }
+  }
+
+  const now = opts?.now ?? new Date()
+  return {
+    ok: true,
+    post: {
+      ...current,
+      body,
+      editedAt: now,
+      updatedAt: now,
+    },
+  }
+}
+
+/** Author-only delete gate. Cascade of comments / likes is the caller's job. */
+export function decideDeletePost(
+  current: PostRecord | null,
+  input: DeletePostInput,
+): PostDeleteResult {
+  if (!current) return { ok: false, reason: 'not_found' }
+  const actor = input.actorUserId.trim()
+  if (!actor || current.id.trim() !== input.postId.trim()) {
+    return { ok: false, reason: 'invalid' }
+  }
+  if (current.authorUserId !== actor) return { ok: false, reason: 'not_author' }
+  return { ok: true, postId: current.id }
+}
+
+/**
+ * Staff hide / restore. Requires social.posts manage (canManagePosts).
+ * Author still sees their own row via canViewPost.
+ */
+export function decideStaffHidePost(
+  current: PostRecord | null,
+  input: StaffHidePostInput,
+  gates: { canManagePosts: boolean },
+  opts?: { now?: Date },
+): PostMutationResult {
+  if (!current) return { ok: false, reason: 'not_found' }
+  const actor = input.actorUserId.trim()
+  if (!actor || current.id.trim() !== input.postId.trim()) {
+    return { ok: false, reason: 'invalid' }
+  }
+  if (!gates.canManagePosts) return { ok: false, reason: 'cannot_manage' }
+
+  const now = opts?.now ?? new Date()
+  return {
+    ok: true,
+    post: {
+      ...current,
+      staffHidden: Boolean(input.staffHidden),
+      updatedAt: now,
+    },
+  }
+}
+
+/** In-memory posts for unit tests — same canViewPost / create rules as the DB path. */
+export function createPostMemory(opts?: {
+  newId?: () => string
+  now?: () => Date
+  resolveMedia?: (mediaId: string) => MediaResolveResult | null
+}): {
+  get: (postId: string) => PostRecord | null
+  create: (
+    input: CreatePostInput,
+    gates?: { authorBannedAt?: Date | null },
+  ) => PostMutationResult
+  edit: (input: EditPostInput) => PostMutationResult
+  delete: (input: DeletePostInput) => PostDeleteResult
+  setStaffHidden: (
+    input: StaffHidePostInput,
+    gates: { canManagePosts: boolean },
+  ) => PostMutationResult
+} {
+  const rows = new Map<string, PostRecord>()
+  const newId = opts?.newId ?? (() => crypto.randomUUID())
+  const now = opts?.now ?? (() => new Date())
+
+  return {
+    get: (postId) => rows.get(postId.trim()) ?? null,
+    create: (input, gates) => {
+      const result = createPostRecord(input, {
+        now: now(),
+        newId,
+        resolveMedia: opts?.resolveMedia,
+        authorBannedAt: gates?.authorBannedAt ?? null,
+      })
+      if (result.ok) rows.set(result.post.id, result.post)
+      return result
+    },
+    edit: (input) => {
+      const current = rows.get(input.postId.trim()) ?? null
+      const result = decideEditPost(current, input, { now: now() })
+      if (!result.ok) return result
+      rows.set(result.post.id, result.post)
+      return result
+    },
+    delete: (input) => {
+      const current = rows.get(input.postId.trim()) ?? null
+      const result = decideDeletePost(current, input)
+      if (!result.ok) return result
+      rows.delete(result.postId)
+      return result
+    },
+    setStaffHidden: (input, gates) => {
+      const current = rows.get(input.postId.trim()) ?? null
+      const result = decideStaffHidePost(current, input, gates, { now: now() })
+      if (!result.ok) return result
+      rows.set(result.post.id, result.post)
+      return result
+    },
+  }
+}

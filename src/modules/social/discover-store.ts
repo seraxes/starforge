@@ -1,0 +1,75 @@
+/**
+ * product:social discover persistence — public post list for /feed/discover.
+ *
+ * SQL filters audience=public + block/hidden/staff-hide, then LIMIT.
+ * Friends-only posts are never selected (named failure: absent from discover).
+ */
+
+import 'server-only'
+
+import { and, desc, eq, isNull, notInArray, sql } from 'drizzle-orm'
+
+import { db } from '@/core/db'
+
+import { listSocialHiddenUserIds } from './members-store'
+import { listBlockedPeerIds } from './people-store'
+import { toPostRecord, type PostRecord } from './posts'
+import { hydratePostsMedia } from './posts-store'
+import { sfSocialPosts } from './schema'
+
+/**
+ * Discover: personal public posts the viewer may read.
+ * Omits friends-only, page walls, staff-hidden, blocked peers, and hidden authors.
+ */
+export async function listDiscoverFeedPosts(
+  viewerUserId: string | null,
+  opts?: { limit?: number },
+): Promise<PostRecord[]> {
+  const viewer = viewerUserId?.trim() || null
+  const limit = Math.min(Math.max(1, Math.floor(opts?.limit ?? 50)), 100)
+
+  const [blockedPeerIds, hiddenAuthorIds] = await Promise.all([
+    viewer ? listBlockedPeerIds(viewer) : Promise.resolve(new Set<string>()),
+    listSocialHiddenUserIds(),
+  ])
+
+  const hiddenList = [...hiddenAuthorIds]
+  const blockedList = [...blockedPeerIds]
+  const authorNotBlocked =
+    blockedList.length > 0
+      ? notInArray(sfSocialPosts.authorUserId, blockedList)
+      : sql`true`
+  const authorNotHidden =
+    hiddenList.length > 0
+      ? notInArray(sfSocialPosts.authorUserId, hiddenList)
+      : sql`true`
+
+  let rows: (typeof sfSocialPosts.$inferSelect)[] = []
+  try {
+    rows = await db
+      .select()
+      .from(sfSocialPosts)
+      .where(
+        and(
+          eq(sfSocialPosts.audience, 'public'),
+          isNull(sfSocialPosts.pageId),
+          eq(sfSocialPosts.staffHidden, false),
+          authorNotBlocked,
+          authorNotHidden,
+        ),
+      )
+      .orderBy(desc(sfSocialPosts.createdAt))
+      .limit(limit)
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    if (/sf_social_posts|does not exist|relation/i.test(msg)) {
+      return []
+    }
+    throw error
+  }
+
+  const posts = rows
+    .map((row) => toPostRecord(row))
+    .filter((p): p is PostRecord => Boolean(p))
+  return hydratePostsMedia(posts)
+}

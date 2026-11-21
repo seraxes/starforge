@@ -182,6 +182,9 @@ function eventFieldsFromForm(formData: FormData) {
     accessPassword: String(formData.get('accessPassword') ?? ''),
     clearAccessPassword: formData.get('clearAccessPassword') === '1' ? '1' : '',
     accessTags: parseAccessTagsFromForm(formData),
+    hostModule: String(formData.get('hostModule') ?? ''),
+    hostKind: String(formData.get('hostKind') ?? ''),
+    hostId: String(formData.get('hostId') ?? ''),
   }
 }
 

@@ -209,5 +209,6 @@ export default defineStarforgeModule({
       importPath: '@/modules/events/public/AccountEventsPage',
     },
   ],
+  doors: [{ id: 'events-api', importPath: '@/modules/events/api' }],
   db: { schema: 'src/modules/events/schema.ts' },
 })

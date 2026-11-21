@@ -6,6 +6,7 @@ Events + venues + registration + ticket tiers + parties (`sf_venues` / `sf_event
 
 - Events + venues + registration + ticket tiers + parties (`sf_venues` / `sf_events` / …)
 - Categories, waitlist, door check-in, finite recurring series, layout particles
+- Hosted-event fields (`hostModule` / `hostKind` / `hostId`) for Social groups and pages
 - Event pricing / `quoteTierMajor`; seat hold and fulfillment on paid / fail / expire / refund (`payment-bridge.ts`)
 - Registration emails (`product:events/*` seeds + `emitEmailTrigger` / `enqueueEmailBroadcast`)
 - `ensureEventRegistrationFormSeeded`, `ensureEventsMapCatalog` (via `bootEvents`)
@@ -18,13 +19,16 @@ Events + venues + registration + ticket tiers + parties (`sf_venues` / `sf_event
 - **Email Manager** — `emitEmailTrigger` / `enqueueEmailBroadcast`; never `getMailer()` from Events
 - **`product:subscriptions`** — `resolveAudience` for member / group tier prices; `events.manage` for organizer premium
 - Rich Editor (venue description), gallery media, one-click Register from profile
+- **`product:social`** (optional consumer) — lists/links create via Events door; does not own event rows
 
 ## Public door
 
-`@/modules/events/api.server`
+- `@/modules/events/api` — door id `events-api` (Social hosted calendars via `loadModuleDoor`): `listEventsForHost`, `resolveSocialEventHost`, `buildHostedEventCreateHref`, `createEvent`
+- `@/modules/events/api.server` — boot / Maps catalog / ICS / form hooks
 
 ## Shipped
 
+- **Social host fields** — plain-text `hostModule` / `hostKind` (`group` | `page`) / `hostId` on `sf_events`. Social lists and links create through `@/modules/events/api` with `hostModule = product:social`. Create deep-links `/admin/events?create=1&hostModule=…` — editor stays Events. Missing host id is refused. No second calendar inside Social.
 - Admin: list (Add+ collapsed → filters → EB-style table) → `/admin/events/[id]` card mosaic (Apply / Save / Cancel)
 - **Recurring (finite series):** Recurring card on **Add +** and **edit** — daily / weekly / monthly with count or until-date. Expands once into concrete `sf_events` rows linked by `seriesId` (own capacity/registrants). Edit expand copies ticket types onto extra dates. Registration windows shift with each start. Pattern stored on the series root. Already-linked dates show series summary (read-only). Not a live RRULE engine; group edit across dates is later. Duplicate on the edit toolbar stays a one-off copy.
 - Venues: same Add+/table pattern; description (Rich Editor), gallery, Leaflet pin picker via product:maps
