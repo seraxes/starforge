@@ -2,7 +2,7 @@
  * Local demo seed for Starforge.
  *
  * Creates sample **published** pages (`product:pages`), site settings, core app
- * users (Better Auth), and grants **cms_access** for the bootstrap global admin.
+ * users (Better Auth, including Demo Member 1–10), and grants **cms_access** for the bootstrap global admin.
  * One Better Auth login opens `/admin`. Product members stay in core unless CMS
  * access is toggled on.
  *
@@ -38,6 +38,17 @@ import { eq } from 'drizzle-orm'
 const DEMO_APP_EMAIL = 'demo@starforge.local'
 const DEMO_APP_PASSWORD = 'starforge-demo'
 const DEMO_APP_NAME = 'Demo Member'
+
+/** Numbered members for social / layout particle fixtures. Same password as the original demo. */
+const DEMO_MEMBER_COUNT = 10
+
+function demoMemberName(n: number): string {
+  return `Demo Member ${n}`
+}
+
+function demoMemberEmail(n: number): string {
+  return `demo-member-${n}@starforge.local`
+}
 
 /** Local bootstrap admin — same email/password for `/login` and `/admin`. */
 const BOOTSTRAP_ADMIN_PASSWORD = 'starforge-admin'
@@ -226,6 +237,57 @@ async function seedDemoAppUser() {
   })
 
   return { created: true as const, email: DEMO_APP_EMAIL }
+}
+
+/**
+ * Demo Member 1–10. Idempotent. Profiles are provisioned so particles can
+ * resolve a display name and `/u/demo-member-N` handle.
+ */
+async function seedNumberedDemoMembers() {
+  const { ensureProfile } = await import('@/modules/profiles/api.server')
+  const created: string[] = []
+  const existing: string[] = []
+  const profiles: string[] = []
+
+  for (let n = 1; n <= DEMO_MEMBER_COUNT; n += 1) {
+    const email = demoMemberEmail(n)
+    const name = demoMemberName(n)
+    const [row] = await db
+      .select({ id: sfUsers.id })
+      .from(sfUsers)
+      .where(eq(sfUsers.email, email))
+      .limit(1)
+
+    let userId = row?.id ?? ''
+    if (!userId) {
+      const result = await auth.api.signUpEmail({
+        body: {
+          name,
+          email,
+          password: DEMO_APP_PASSWORD,
+        },
+      })
+      userId = result.user?.id ?? ''
+      if (!userId) {
+        const [again] = await db
+          .select({ id: sfUsers.id })
+          .from(sfUsers)
+          .where(eq(sfUsers.email, email))
+          .limit(1)
+        userId = again?.id ?? ''
+      }
+      created.push(email)
+    } else {
+      existing.push(email)
+    }
+
+    if (userId) {
+      const profile = await ensureProfile(userId)
+      if (profile) profiles.push(profile.handle)
+    }
+  }
+
+  return { created, existing, profiles }
 }
 
 async function seedBootstrapAdmin() {
@@ -461,6 +523,23 @@ async function main() {
       console.log(`  role:     member`)
     } else {
       console.log(`Demo app member already exists: ${appUser.email}`)
+    }
+
+    const numbered = await seedNumberedDemoMembers()
+    console.log('')
+    if (numbered.created.length) {
+      console.log(`Demo members created (${numbered.created.length}):`)
+      for (const email of numbered.created) {
+        console.log(`  ${email}`)
+      }
+      console.log(`  password: ${DEMO_APP_PASSWORD}`)
+      console.log(`  role:     member`)
+    }
+    if (numbered.existing.length) {
+      console.log(`Demo members already exist: ${numbered.existing.join(', ')}`)
+    }
+    if (numbered.profiles.length) {
+      console.log(`Profiles: ${numbered.profiles.map((h) => `/u/${h}`).join(', ')}`)
     }
 
     const envEmails = getBootstrapAdminEmails()
