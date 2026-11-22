@@ -72,6 +72,8 @@ export const sfEventCategories = pgTable(
      * Empty = shared `event-registration` form.
      */
     registrationFormId: text('registration_form_id').notNull().default(''),
+    /** Optional parent category id. Empty/null = top level. */
+    parentId: text('parent_id'),
     published: pgBoolean('published').notNull().default(true),
     sortOrder: integer('sort_order').notNull().default(0),
     /**
@@ -88,6 +90,7 @@ export const sfEventCategories = pgTable(
   (table) => [
     index('sf_event_categories_slug_idx').on(table.slug),
     index('sf_event_categories_sort_idx').on(table.sortOrder),
+    index('sf_event_categories_parent_idx').on(table.parentId),
   ],
 )
 

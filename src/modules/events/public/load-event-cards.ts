@@ -9,6 +9,7 @@ import type { AppLocale } from '@/core/i18n/locales'
 
 import {
   categoryAllowsViewer,
+  collectEventCategorySubtreeIds,
   listEventCategories,
   publicCategoryLabel,
 } from '../categories'
@@ -43,15 +44,18 @@ export async function loadPublicEventCards(
   options: LoadEventCardsOptions,
 ): Promise<{ events: EventRecord[]; cards: EventCardModel[] }> {
   const categoryId = (options.categoryId || '').trim()
-  const [raw, categories] = await Promise.all([
-    listPublishedEvents({
-      limit: options.limit ?? 100,
-      includePast: options.includePast === true,
-      featuredOnly: options.featuredOnly === true,
-      categoryId: categoryId || undefined,
-    }),
-    listEventCategories(),
-  ])
+  const categories = await listEventCategories()
+  const categoryIds =
+    categoryId && categoryId !== '__none__'
+      ? collectEventCategorySubtreeIds(categoryId, categories)
+      : undefined
+  const raw = await listPublishedEvents({
+    limit: options.limit ?? 100,
+    includePast: options.includePast === true,
+    featuredOnly: options.featuredOnly === true,
+    categoryId: categoryId === '__none__' ? categoryId : undefined,
+    categoryIds,
+  })
   const categoriesById = new Map(categories.map((category) => [category.id, category]))
   const events = filterEventsForViewer(raw, options.viewer).filter((event) =>
     categoryAllowsViewer(

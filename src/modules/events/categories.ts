@@ -40,6 +40,7 @@ export type UpsertEventCategoryInput = {
   slug?: string
   description?: string
   registrationFormId?: unknown
+  parentId?: unknown
   published?: unknown
   sortOrder?: unknown
   accessTags?: unknown
@@ -54,6 +55,7 @@ function mapCategory(row: typeof sfEventCategories.$inferSelect): EventCategoryR
     slug: (row.slug || '').trim(),
     description: (row.description || '').trim(),
     registrationFormId: (row.registrationFormId || '').trim(),
+    parentId: (row.parentId || '').trim(),
     published: row.published !== false,
     sortOrder:
       typeof row.sortOrder === 'number' && Number.isFinite(row.sortOrder)
@@ -63,6 +65,75 @@ function mapCategory(row: typeof sfEventCategories.$inferSelect): EventCategoryR
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   }
+}
+
+/** Depth + tree order for admin lists and parent pickers. */
+export function orderEventCategoriesTree<T extends { id: string; parentId: string; sortOrder: number; title: string }>(
+  rows: T[],
+): Array<T & { depth: number }> {
+  const byParent = new Map<string, T[]>()
+  for (const row of rows) {
+    const key = row.parentId && rows.some((r) => r.id === row.parentId) ? row.parentId : ''
+    const list = byParent.get(key) ?? []
+    list.push(row)
+    byParent.set(key, list)
+  }
+  for (const list of byParent.values()) {
+    list.sort((a, b) => a.sortOrder - b.sortOrder || a.title.localeCompare(b.title) || a.id.localeCompare(b.id))
+  }
+  const out: Array<T & { depth: number }> = []
+  const walk = (parentKey: string, depth: number) => {
+    for (const row of byParent.get(parentKey) ?? []) {
+      out.push({ ...row, depth })
+      walk(row.id, depth + 1)
+    }
+  }
+  walk('', 0)
+  return out
+}
+
+/** Ids for a category and every descendant (for hub filter expansion). */
+export function collectEventCategorySubtreeIds(
+  rootId: string,
+  categories: Array<{ id: string; parentId: string }>,
+): string[] {
+  const root = rootId.trim()
+  if (!root) return []
+  const byParent = new Map<string, string[]>()
+  for (const row of categories) {
+    const key = (row.parentId || '').trim()
+    const list = byParent.get(key) ?? []
+    list.push(row.id)
+    byParent.set(key, list)
+  }
+  const out: string[] = []
+  const walk = (id: string) => {
+    out.push(id)
+    for (const child of byParent.get(id) ?? []) walk(child)
+  }
+  walk(root)
+  return out
+}
+
+async function resolveParentId(
+  raw: unknown,
+  exceptId?: string,
+): Promise<{ parentId: string } | { error: string }> {
+  const parentId = String(raw ?? '').trim()
+  if (!parentId) return { parentId: '' }
+  if (exceptId && parentId === exceptId) {
+    return { error: 'A category cannot be its own parent.' }
+  }
+  const parent = await findEventCategoryById(parentId)
+  if (!parent) return { error: 'Selected parent category was not found.' }
+  if (exceptId) {
+    const all = await listEventCategories()
+    const subtree = new Set(collectEventCategorySubtreeIds(exceptId, all))
+    if (subtree.has(parentId)) {
+      return { error: 'A category cannot nest under one of its own children.' }
+    }
+  }
+  return { parentId }
 }
 
 function normalizeAccessTagsForDb(raw: unknown): string[] {
@@ -215,6 +286,8 @@ export async function createEventCategory(
   const description = String(input.description ?? '').trim().slice(0, 4000)
   const form = await assertRegistrationFormId(input.registrationFormId)
   if ('error' in form) return form
+  const parent = await resolveParentId(input.parentId)
+  if ('error' in parent) return parent
   const slug = await uniqueSlug(normalizeSlug(input.slug) || normalizeSlug(title))
   const id = (input.id || '').trim() || crypto.randomUUID()
   try {
@@ -224,6 +297,7 @@ export async function createEventCategory(
       slug,
       description,
       registrationFormId: form.id,
+      parentId: parent.parentId || null,
       published: parsePublished(input.published, true),
       sortOrder: parseSortOrder(input.sortOrder, 0),
       accessTags: normalizeAccessTagsForDb(input.accessTags),
@@ -260,6 +334,11 @@ export async function updateEventCategory(
       : current.registrationFormId,
   )
   if ('error' in form) return form
+  const parent = await resolveParentId(
+    input.parentId !== undefined ? input.parentId : current.parentId,
+    id,
+  )
+  if ('error' in parent) return parent
   const slug = await uniqueSlug(
     normalizeSlug(input.slug) || normalizeSlug(title) || current.slug,
     id,
@@ -272,6 +351,7 @@ export async function updateEventCategory(
         slug,
         description,
         registrationFormId: form.id,
+        parentId: parent.parentId || null,
         published: parsePublished(input.published, current.published),
         sortOrder: parseSortOrder(input.sortOrder, current.sortOrder),
         accessTags:
@@ -312,6 +392,10 @@ export async function deleteEventCategory(
   const trimmed = id.trim()
   if (!trimmed) return { error: 'Missing category id.' }
   try {
+    await db
+      .update(sfEventCategories)
+      .set({ parentId: null })
+      .where(eq(sfEventCategories.parentId, trimmed))
     await db.delete(sfEventCategories).where(eq(sfEventCategories.id, trimmed))
     await removeCategoryLocaleFiles(trimmed)
     return { ok: true }

@@ -1242,6 +1242,7 @@ function categoryFieldsFromForm(formData: FormData) {
     slug: String(formData.get('slug') ?? ''),
     description: String(formData.get('description') ?? ''),
     registrationFormId: String(formData.get('registrationFormId') ?? ''),
+    parentId: String(formData.get('parentId') ?? ''),
     published: formData.get('published') === '0' ? '0' : '1',
     sortOrder: String(formData.get('sortOrder') ?? '0'),
     accessTags: parseAccessTagsFromForm(formData),

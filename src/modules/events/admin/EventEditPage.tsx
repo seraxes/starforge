@@ -6,7 +6,7 @@ import { ensureDefaultUserGroupsSeeded, listUserGroupOptions } from '@/core/acl'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { isRichEditorEnabled } from '@/modules/rich-editor/api.server'
 
-import { listEventCategories } from '../categories'
+import { listEventCategories, orderEventCategoriesTree } from '../categories'
 import { listEventParties } from '../parties'
 import { listEventRegistrationFormOptions } from '../registration-form'
 import { loadEventsModuleSettings } from '../settings'
@@ -119,7 +119,10 @@ export default async function EventEditPage({ params }: { params: Params }) {
           .filter((e) => e.id !== event.id)
           .map((e) => ({ id: e.id, label: e.title }))}
         venues={venues.map((v) => ({ id: v.id, name: v.name }))}
-        categories={categories.map((c) => ({ id: c.id, label: c.title }))}
+        categories={orderEventCategoriesTree(categories).map((c) => ({
+          id: c.id,
+          label: c.depth > 0 ? `${'—'.repeat(c.depth)} ${c.title}` : c.title,
+        }))}
         forms={forms}
         tiers={tiersWithOcc}
         event={{

@@ -74,6 +74,8 @@ export type EventCategoryRecord = {
   description: string
   /** Empty = shared event-registration form for events in this category. */
   registrationFormId: string
+  /** Empty = top-level category. */
+  parentId: string
   published: boolean
   sortOrder: number
   accessTags: string[]

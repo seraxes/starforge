@@ -97,6 +97,7 @@ Paid tickets consume shared **`product:payments`** via [`payment-bridge.ts`](./p
 - `0042` event `self_cancel_enabled` + `switch_enabled` (separate admin toggles; backfill from deadline)
 - `0031` event `cover_media_ids` + `cover_display_mode` (Premium random/rotate UI; public playback later)
 - `0032` `sf_event_categories` + event `category_id` + `registration_form_id`
+- `0058` event category `parent_id` (sub-categories)
 - `0033` event `price_rules.time` is a list of time-left bands (sold stays one rule)
 - `0034` event `require_approval` (optional signup approval gate)
 - `0036` Subscriptions `sf_sub_plans` / `sf_sub_periods` (product:subscriptions)

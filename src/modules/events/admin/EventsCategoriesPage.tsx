@@ -6,7 +6,11 @@ import { ensureDefaultUserGroupsSeeded, listUserGroupOptions } from '@/core/acl'
 import { getContentLocaleOptions } from '@/core/i18n/locale-text.server'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
-import { listEventCategories, loadEventCategoryLocaleMaps } from '../categories'
+import {
+  listEventCategories,
+  loadEventCategoryLocaleMaps,
+  orderEventCategoriesTree,
+} from '../categories'
 import { ensureEventRegistrationFormSeeded, listEventRegistrationFormOptions } from '../registration-form'
 import { CategoriesManager } from './categories-manager'
 import { EventsAdminNav } from './events-admin-nav'
@@ -32,8 +36,9 @@ export default async function EventsCategoriesPage() {
     getContentLocaleOptions(),
   ])
   const localeCodes = locales.map((locale) => locale.code)
+  const ordered = orderEventCategoriesTree(categories)
   const rows = await Promise.all(
-    categories.map(async (category) => {
+    ordered.map(async (category) => {
       const maps = await loadEventCategoryLocaleMaps(category.id, localeCodes)
       return {
         id: category.id,
@@ -41,6 +46,8 @@ export default async function EventsCategoriesPage() {
         slug: category.slug,
         description: category.description,
         registrationFormId: category.registrationFormId,
+        parentId: category.parentId,
+        depth: category.depth,
         published: category.published,
         sortOrder: category.sortOrder,
         accessTags: category.accessTags,

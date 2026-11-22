@@ -8,6 +8,7 @@ import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/sett
 import {
   categoryAllowsViewer,
   listEventCategories,
+  orderEventCategoriesTree,
   publicCategoryLabel,
 } from '../categories'
 import { EventCalendarMonth } from './EventCalendarMonth'
@@ -56,13 +57,13 @@ export async function EventsHub({
 
   const categories = await listEventCategories()
   const visibleCategories = []
-  for (const category of categories) {
+  for (const category of orderEventCategoriesTree(categories)) {
     if (!categoryAllowsViewer(category.id, category, viewer)) continue
     const label = await publicCategoryLabel(category, locale)
     visibleCategories.push({
       id: category.id,
       slug: category.slug,
-      title: label.title,
+      title: category.depth > 0 ? `${'—'.repeat(category.depth)} ${label.title}` : label.title,
     })
   }
   const selected = requestedCategory

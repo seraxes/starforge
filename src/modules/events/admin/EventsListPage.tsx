@@ -7,7 +7,7 @@ import { ensureDefaultUserGroupsSeeded, listUserGroupOptions } from '@/core/acl'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { isRichEditorEnabled } from '@/modules/rich-editor/api.server'
 
-import { listEventCategories } from '../categories'
+import { listEventCategories, orderEventCategoriesTree } from '../categories'
 import { listEventParties } from '../parties'
 import {
   ensureEventRegistrationFormSeeded,
@@ -86,6 +86,7 @@ export default async function EventsListPage({ searchParams }: { searchParams: S
   }
 
   const venueNameById = new Map(venues.map((v) => [v.id, v.name] as const))
+  const categoryTree = orderEventCategoriesTree(categories)
   const categoryTitleById = new Map(categories.map((c) => [c.id, c.title] as const))
   const regStats = await countRegistrationStatsForEvents(events.map((e) => e.id))
 
@@ -112,7 +113,10 @@ export default async function EventsListPage({ searchParams }: { searchParams: S
         users={users}
         parties={parties.map((p) => ({ id: p.id, label: p.name }))}
         venues={venues.map((v) => ({ id: v.id, name: v.name }))}
-        categories={categories.map((c) => ({ id: c.id, label: c.title }))}
+        categories={categoryTree.map((c) => ({
+          id: c.id,
+          label: c.depth > 0 ? `${'—'.repeat(c.depth)} ${c.title}` : c.title,
+        }))}
         forms={forms}
         events={events.map((e) => {
           const stats = regStats.get(e.id) ?? { registered: 0, pending: 0, waitlisted: 0 }

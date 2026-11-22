@@ -4,7 +4,7 @@
 
 import 'server-only'
 
-import { and, asc, count, eq, gte, isNull, lt, or } from 'drizzle-orm'
+import { and, asc, count, eq, gte, inArray, isNull, lt, or } from 'drizzle-orm'
 
 import { db } from '@/core/db'
 import {
@@ -1508,6 +1508,8 @@ export async function listPublishedEvents(options?: {
   featuredOnly?: boolean
   /** Limit to one editorial category. Does not replace the featured flag. */
   categoryId?: string
+  /** Limit to several categories (e.g. parent + sub-categories). */
+  categoryIds?: string[]
   limit?: number
   now?: Date
 }): Promise<EventRecord[]> {
@@ -1521,9 +1523,16 @@ export async function listPublishedEvents(options?: {
     const listed = eq(sfEvents.listed, true)
     const featured = eq(sfEvents.featured, true)
     const categoryId = (options?.categoryId || '').trim()
+    const categoryIds = (options?.categoryIds ?? [])
+      .map((id) => id.trim())
+      .filter(Boolean)
     let base = listedOnly ? and(published, listed) : published
     if (featuredOnly) base = and(base, featured)
-    if (categoryId) base = and(base, eq(sfEvents.categoryId, categoryId))
+    if (categoryIds.length > 0) {
+      base = and(base, inArray(sfEvents.categoryId, categoryIds))
+    } else if (categoryId) {
+      base = and(base, eq(sfEvents.categoryId, categoryId))
+    }
     const rows = await db
       .select()
       .from(sfEvents)

@@ -23,6 +23,8 @@ type CategoryRow = {
   slug: string
   description: string
   registrationFormId: string
+  parentId: string
+  depth: number
   published: boolean
   sortOrder: number
   accessTags: string[]
@@ -38,6 +40,39 @@ type Props = {
   forms: FormOpt[]
   groups: UserGroupOption[]
   locales: ContentLocaleOption[]
+}
+
+function treeLabel(title: string, depth: number): string {
+  if (depth <= 0) return title
+  return `${'—'.repeat(depth)} ${title}`
+}
+
+/** Parent picker options; excludes self and descendants when editing. */
+function parentPickerOptions(
+  categories: CategoryRow[],
+  exceptId?: string,
+): Array<{ id: string; label: string }> {
+  const blocked = new Set<string>()
+  if (exceptId) {
+    blocked.add(exceptId)
+    const byParent = new Map<string, string[]>()
+    for (const row of categories) {
+      const key = row.parentId || ''
+      const list = byParent.get(key) ?? []
+      list.push(row.id)
+      byParent.set(key, list)
+    }
+    const walk = (id: string) => {
+      for (const child of byParent.get(id) ?? []) {
+        blocked.add(child)
+        walk(child)
+      }
+    }
+    walk(exceptId)
+  }
+  return categories
+    .filter((row) => !blocked.has(row.id))
+    .map((row) => ({ id: row.id, label: treeLabel(row.title, row.depth) }))
 }
 
 const initial: EventsAdminActionState = {}
@@ -62,12 +97,14 @@ function Feedback({ state }: { state: EventsAdminActionState }) {
 
 function CategoryFields({
   row,
+  categories,
   forms,
   groups,
   locales,
   busy,
 }: {
   row?: CategoryRow
+  categories: CategoryRow[]
   forms: FormOpt[]
   groups: UserGroupOption[]
   locales: ContentLocaleOption[]
@@ -86,6 +123,7 @@ function CategoryFields({
   const [accessTags, setAccessTags] = useState(
     row?.accessTags?.length ? row.accessTags : ['public'],
   )
+  const parentOptions = parentPickerOptions(categories, row?.id)
 
   return (
     <div className="sf-events-form-mosaic">
@@ -112,6 +150,20 @@ function CategoryFields({
             if (code === defaultCode) setTitle(value)
           }}
         />
+        <label className="settings-field">
+          <span>Parent</span>
+          <select name="parentId" defaultValue={row?.parentId ?? ''} disabled={busy}>
+            <option value="">None (top level)</option>
+            {parentOptions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <span className="settings-hint">
+            Choose a parent to nest this as a sub-category.
+          </span>
+        </label>
         <label className="settings-field">
           <span>Slug</span>
           <input
@@ -290,7 +342,13 @@ export function CategoriesManager({ categories, forms, groups, locales }: Props)
             action={createAction}
             className="sf-events-add-inline-form"
           >
-            <CategoryFields forms={forms} groups={groups} locales={locales} busy={busy} />
+            <CategoryFields
+              categories={categories}
+              forms={forms}
+              groups={groups}
+              locales={locales}
+              busy={busy}
+            />
             <div className="sf-events-form-actions page-settings-actions">
               <button
                 type="button"
@@ -357,7 +415,7 @@ export function CategoriesManager({ categories, forms, groups, locales }: Props)
                             setEditingId((id) => (id === row.id ? null : row.id))
                           }}
                         >
-                          {row.title}
+                          {treeLabel(row.title, row.depth)}
                         </button>
                       </td>
                       <td>
@@ -421,6 +479,7 @@ export function CategoriesManager({ categories, forms, groups, locales }: Props)
             <input type="hidden" name="id" value={editing.id} />
             <CategoryFields
               row={editing}
+              categories={categories}
               forms={forms}
               groups={groups}
               locales={locales}
