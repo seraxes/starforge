@@ -15,6 +15,7 @@ Developer-admin is a subset of app admin (`role=admin` / bootstrap admin email).
 2. **Staff menus stay additive.** Giving staff Edit / Delete does not remove member tools they also need (Hide, Block, audience, etc.) on someone else’s content.
 3. **Use Core ACL.** Prefer `viewer.isAppAdmin` or `viewerMayAccessAdminResource(viewer, 'admin.<pack>', 'edit')`. Do not invent a second “superuser” flag inside a pack.
 4. **Explicit exceptions only.** A narrower staff gate needs an accepted decision on the live map. Do not silently refuse admins “for safety” on normal edit/delete/settings.
+5. **Front-end private-read.** The same Social staff grant (`viewerMayOverrideMemberOwnership` or `admin.social` edit → `canManagePosts`) may read `only_me`, friends-only, and non-member group posts; block and author-hidden still deny.
 
 ## Do
 

@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Page Settings submenu plan
 
 Gantry Helium–style **Page Settings** for Starforge Core (see user screenshot: Head Properties, Assets, Body Attributes, Font Awesome, Atoms). Core owns document chrome; nav menu items own outline assignment; Payload keeps page body / base SEO.

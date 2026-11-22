@@ -1,6 +1,12 @@
 # product:events
 
-Events + venues + registration + ticket tiers + parties (`sf_venues` / `sf_events` / …).
+Layer: advanced
+
+Status: shipped
+
+Events + venues + registration + ticket tiers + parties. Requires: `product:forms`, `product:media`, `product:rich-editor`, `product:payments`, `product:profiles`, `product:maps`. `optionalRequires`: `product:email-manager`, `form`.
+
+Tables: `sf_venues`, `sf_event_categories`, `sf_events`, `sf_event_parties`, `sf_event_ticket_tiers`, `sf_event_registrations`.
 
 ## Owns
 
@@ -11,24 +17,8 @@ Events + venues + registration + ticket tiers + parties (`sf_venues` / `sf_event
 - Registration emails (`product:events/*` seeds + `emitEmailTrigger` / `enqueueEmailBroadcast`)
 - `ensureEventRegistrationFormSeeded`, `ensureEventsMapCatalog` (via `bootEvents`)
 
-## Consumes
+**Social host fields** — plain-text `hostModule` / `hostKind` (`group` | `page`) / `hostId` on `sf_events`. Social lists and links create through `@/modules/events/api` with `hostModule = product:social`. Create deep-links `/admin/events?create=1&hostModule=…` — editor stays Events. Missing host id is refused. No second calendar inside Social.
 
-- **`product:payments`** — paid tickets via `payment-bridge.ts`; forward `couponCode` only (never discount in `quoteTierMajor`)
-- **Forms** — registration form definitions; required dependency; Events seeds `event-registration`
-- **`product:maps`** — venue Leaflet pin / TacMap catalog; Maps does not import Events
-- **Email Manager** — `emitEmailTrigger` / `enqueueEmailBroadcast`; never `getMailer()` from Events
-- **`product:subscriptions`** — `resolveAudience` for member / group tier prices; `events.manage` for organizer premium
-- Rich Editor (venue description), gallery media, one-click Register from profile
-- **`product:social`** (optional consumer) — lists/links create via Events door; does not own event rows
-
-## Public door
-
-- `@/modules/events/api` — door id `events-api` (Social hosted calendars via `loadModuleDoor`): `listEventsForHost`, `resolveSocialEventHost`, `buildHostedEventCreateHref`, `createEvent`
-- `@/modules/events/api.server` — boot / Maps catalog / ICS / form hooks
-
-## Shipped
-
-- **Social host fields** — plain-text `hostModule` / `hostKind` (`group` | `page`) / `hostId` on `sf_events`. Social lists and links create through `@/modules/events/api` with `hostModule = product:social`. Create deep-links `/admin/events?create=1&hostModule=…` — editor stays Events. Missing host id is refused. No second calendar inside Social.
 - Admin: list (Add+ collapsed → filters → EB-style table) → `/admin/events/[id]` card mosaic (Apply / Save / Cancel)
 - **Recurring (finite series):** Recurring card on **Add +** and **edit** — daily / weekly / monthly with count or until-date. Expands once into concrete `sf_events` rows linked by `seriesId` (own capacity/registrants). Edit expand copies ticket types onto extra dates. Registration windows shift with each start. Pattern stored on the series root. Already-linked dates show series summary (read-only). Not a live RRULE engine; group edit across dates is later. Duplicate on the edit toolbar stays a one-off copy.
 - Venues: same Add+/table pattern; description (Rich Editor), gallery, Leaflet pin picker via product:maps
@@ -54,7 +44,66 @@ Events + venues + registration + ticket tiers + parties (`sf_venues` / `sf_event
 - **Abandoned online checkout:** a JobRunner sweep (`events.abandoned-checkout-sweep`, when Events boot runs and about once a minute) asks Payments to expire Barion / Stripe / PayPal orders still open after `checkoutTtlMinutes`. The existing payment hook then cancels that `pending_payment` row and promotes the waitlist. Pay at entrance, cash, and bank transfer stay `awaiting_offline` until staff mark them paid. A hold that never received an order id is cancelled the same way after that TTL. Paid orders are left as they are. **While Events is toggled off, boot does not arm the sweep** (`__sfEventsAbandonedCheckoutSweep` stays unset). Seats already stuck in `pending_payment` stay stuck until Events is enabled and the process boots again. Turning Events off does not release those holds, and it does not start a sweep that would.
 - **Registrant CSV export** (admin): one event via `/api/admin/events/registrants/export?eventId=` — same list/statuses as Registrants (`registered` / `pending` / `waitlisted` / `pending_payment` / `cancelled`); columns name, email, ticket type, guests, status, paid amount (Payments order gross when `paymentOrderId` is set)
 
-## Missing / next
+## Consumes
+
+- **`product:payments`** — paid tickets via `payment-bridge.ts`; forward `couponCode` only (never discount in `quoteTierMajor`)
+- **`product:forms`** — registration form definitions; required dependency; Events seeds `event-registration`
+- **`form`** (`optionalRequires`) — Form particle pack for layout placement
+- **`product:maps`** — venue Leaflet pin / TacMap catalog; Maps does not import Events
+- **`product:email-manager`** (`optionalRequires`) — `emitEmailTrigger` / `enqueueEmailBroadcast`; never `getMailer()` from Events
+- **`product:media`**, **`product:rich-editor`**, **`product:profiles`** — gallery, venue description, one-click Register from profile
+- **`product:subscriptions`** — `resolveAudience` for member / group tier prices; `events.manage` for organizer premium (not a hard require; resolve via Core/door when on)
+- **`product:social`** (optional consumer) — lists/links create via Events door; does not own event rows
+
+## Public door
+
+Door id `events-api` on `@/modules/events/api` (Social hosted calendars via `loadModuleDoor`):
+
+```ts
+import {
+  EVENT_HOST_KINDS,
+  SOCIAL_EVENTS_HOST_MODULE,
+  buildHostedEventCreateHref,
+  buildHostedEventEditHref,
+  createEvent,
+  findEventById,
+  isEventHostKind,
+  listEventsForHost,
+  parseEventHost,
+  resolveSocialEventHost,
+} from '@/modules/events/api'
+```
+
+`@/modules/events/api.server` — boot / Maps catalog / ICS / form hooks:
+
+```ts
+import {
+  buildEventIcs,
+  ensureEventRegistrationFormSeeded,
+  ensureEventsFormHooks,
+  ensureEventsMapCatalog,
+  findEventById,
+  findPublishedEventByPublicKey,
+  findVenueById,
+  viewerPassesEventPassword,
+  viewerPassesEventVisibility,
+} from '@/modules/events/api.server'
+```
+
+Consumer list/create hosting uses `api`; boot, Maps catalog, ICS (`/api/events/:id/ics`), and form hooks use `api.server`. The event editor stays `/admin/events`.
+
+## Admin surfaces
+
+- `/admin/events`, `/admin/events/[eventId]`, `/admin/events/categories`, `/admin/events/venues`, `/admin/events/parties`, `/admin/events/tiers`, `/admin/events/registrants`, `/admin/events/check-in`, `/admin/events/settings`
+- ACL area `events` (`admin.events`)
+- Dashboard widget `events.upcoming`
+- Public: `/[locale]/events`, `/[locale]/events/[slug]`, `/[locale]/events/[slug]/registration`, `/[locale]/events/ticket/[registrationId]`; account host page `account-events`
+
+## Boot and jobs
+
+`bootEvents` (generated `runModuleBoot`) when Events is enabled: `ensureEventsFormHooks`, payment consumer hook + `ensureEventsPaymentHookReady`, `ensureAbandonedCheckoutSweep` (`events.abandoned-checkout-sweep` ~1m), `ensureEventsReminderJob` (attendee reminder ~24h before `startsAt`), `ensureEventsMapCatalog`, `ensureEventRegistrationFormSeeded`. Returns immediately when Events is off — map catalog and abandoned-checkout sweep are not armed.
+
+## Known gaps
 
 ### Visibility (later)
 
@@ -85,7 +134,7 @@ Slot kinds are choosable: **Ticket type**, **Booking type**, **Faction**, plus n
 
 Paid tickets consume shared **`product:payments`** via [`payment-bridge.ts`](./payment-bridge.ts) — not an Events checkout UI. Buyer handoff is Payments public checkout. Receipts: Email Manager `product:payments/*`. Seat confirmation mail: `product:events/registered` after paid (or immediately for free/waitlist; after admin approval when that gate is on). **Coupons:** Payments owns codes (`/admin/payments/coupons`); Events only collects/forwards `couponCode` on registration / quick-register — never apply discounts in `quoteTierMajor`. See [payments-cart-plan](../../../docs/project-context/docs/payments-cart-plan.md) and `sf-payments-module`.
 
-## Migrations
+### Schema migrations
 
 - `0013` event `featured` boolean (+ index)
 - `0016` ticket tier `short_description`
@@ -104,11 +153,8 @@ Paid tickets consume shared **`product:payments`** via [`payment-bridge.ts`](./p
 - `0037` tier `member_price` + `group_prices` (player-premium audience pricing)
 - `0040` event `series_id` + `series_pattern` (finite recurring create)
 
-## Migrations (history)
+History: `0004` venues/events → `0010` listed + access password hash (`0008` reg window, `0009` people/parties); `0011` venue `description` + `gallery_media_ids`. Run: `npm run db:migrate` (or `db:core:push`).
 
-- `0004` venues/events → `0010` listed + access password hash (`0008` reg window, `0009` people/parties)
-- `0011` venue `description` + `gallery_media_ids`
-- `0013` event `featured`
-- `0016` ticket tier `short_description`
+## Tests
 
-Run: `npm run db:migrate` (or `db:core:push`).
+`src/modules/events/registration-form-resolve.test.ts`, `registration-status.test.ts`, `abandoned-checkout-rules.test.ts`, `price-rules.test.ts`, `host.test.ts`, `seed-map-room-rows.test.ts`, `boot.test.ts` (all in `test:unit`)

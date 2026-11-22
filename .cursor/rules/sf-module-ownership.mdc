@@ -1,6 +1,5 @@
 ---
 description: One module owns each concern — document ownership continuously; never rebuild another pack’s job.
-globs: "**/*.{tsx,ts,md,mdc}"
 alwaysApply: true
 ---
 
@@ -20,19 +19,17 @@ Do not leave ownership only in chat. If it is clear in your head, it must be cle
 
 ## Revenue spine (why Payments is foundational)
 
-The platform’s commercial base is **modular checkout**, not a shop monolith. MVP money flows that must work end-to-end:
+The platform’s commercial base is **modular checkout**, not a shop monolith. Money flows that must work end-to-end:
 
 | Flow | Domain owner (catalog / rules / fulfillment) | Checkout / money movement |
 | --- | --- | --- |
-| **Subscriptions** (plans, highlight, entitlements) | **`product:subscriptions`** (when shipped) | **`product:payments`** |
+| **Subscriptions** (plans, highlight, entitlements) | **`product:subscriptions`** | **`product:payments`** |
 | **Events tickets** | **`product:events`** | **`product:payments`** |
 | **Ads** (packages, credits, campaigns) | **`product:ads`** | **`product:payments`** |
-| **Shop** (SKUs, shipping) | **`product:shop`** — **later** | **`product:payments`** |
+| **Shop** (SKUs, shipping) | **`product:shop`** | **`product:payments`** |
 | **Marketplace** fees / boosts | Owning marketplace / listings pack | **`product:payments`** (same cart/orders) |
 
-Shop is deferred; subscriptions, event tickets, and ads are the **revenue strategy floor**. Marketplace later reuses the same payments + domain layers (e.g. highlight via subscriptions).
-
-**Live queue** when an older plan disagrees: [architecture-current](../../docs/project-context/docs/architecture-current.md). Finish and polish Core before the next pack. The commercial order after that is still paid tickets, then subscriptions, then ads. Shop, marketplace schema, Social, and Chat stay parked. The 5 Nov ASN wireframe order does not override this.
+Live map: `docs/project-context/docs/architecture-current.md`.
 
 ## Ownership test
 
@@ -63,9 +60,6 @@ Payments stores **`sourceModule` + price snapshot** on lines; consumers **re-res
 - Put subscription billing rules or ad auction logic inside payments.
 - Rebuild Forms / Media / Email / Profiles inside any commercial pack.
 
-## Related rules
+## Quick check
 
-- `sf-architecture.mdc` — Core host, base modules, advanced modules, Hero
-- `sf-payments-module.mdc` — commerce engine boundaries
-- `sf-forms-module.mdc` — intake / field schema
-- `sf-ui-design.mdc` — shared admin chrome
+If two packs claim the same concept, pick one owner and update the table.

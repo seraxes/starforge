@@ -1,4 +1,6 @@
 ---
+kind: history
+last_verified: 2026-11-22
 cursor:
   subagentId: "bc-08115c42-6220-5047-8dda-3f2850e7ed4f"
 ---

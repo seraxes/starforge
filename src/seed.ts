@@ -34,6 +34,7 @@ import {
   updateSiteSettings,
 } from './core/settings'
 import { eq } from 'drizzle-orm'
+import { assertSeedAllowed } from './seed-production-guard'
 
 const DEMO_APP_EMAIL = 'demo@starforge.local'
 const DEMO_APP_PASSWORD = 'starforge-demo'
@@ -244,7 +245,11 @@ async function seedDemoAppUser() {
  * resolve a display name and `/u/demo-member-N` handle.
  */
 async function seedNumberedDemoMembers() {
-  const { ensureProfile } = await import('@/modules/profiles/api.server')
+  const { loadModuleDoor } = await import('@/generated/module-registry.server')
+  const profilesDoor = await loadModuleDoor('profiles-api-server')
+  const ensureProfile = profilesDoor?.ensureProfile as
+    | ((userId: string) => Promise<{ handle: string } | null | undefined>)
+    | undefined
   const created: string[] = []
   const existing: string[] = []
   const profiles: string[] = []
@@ -281,9 +286,9 @@ async function seedNumberedDemoMembers() {
       existing.push(email)
     }
 
-    if (userId) {
+    if (userId && ensureProfile) {
       const profile = await ensureProfile(userId)
-      if (profile) profiles.push(profile.handle)
+      if (profile?.handle) profiles.push(profile.handle)
     }
   }
 
@@ -368,6 +373,8 @@ async function seedCmsAccessForAdmins() {
 }
 
 async function main() {
+  assertSeedAllowed(process.env)
+
   // Lets Better Auth create bootstrap users even if registration toggle is off.
   process.env.STARFORGE_SEEDING = '1'
 

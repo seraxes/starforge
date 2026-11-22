@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Site Settings topics plan (SF-113 / SF-116)
 
 Split the monolithic Core **Site Settings** page into an expandable sidebar submenu by topic.

@@ -1,3 +1,7 @@
+---
+kind: reference
+last_verified: 2026-11-23
+---
 # product:social — standing brief (for second opinion)
 
 **Date:** 2026-11-21  
@@ -8,20 +12,20 @@
 
 ## One-line verdict
 
-**Social’s planned MVP is largely implemented in-tree** (slices 1–22 + admin panels + composer stage), **default-off**, with **unit tests registered**, but the **live map still parks Social behind ads** and several **cross-pack callers / sibling packs / polish edges are unfinished**. Treat it as a **built-but-queued** advanced pack, not as “open for product enablement” or “done for production polish.”
+**Social’s planned MVP is largely implemented in-tree** (slices 1–22 + admin panels + composer stage), **default-off**, with **unit tests registered**. The live map puts **finishing Social ahead of Ads**; enablement still waits on Social Open work. Treat it as an **in-scope advanced pack to finish**, not as parked behind ads and not as production-polish complete.
 
 ---
 
-## Queue conflict (read this first)
+## Queue (read this first)
 
 | Source | What it says |
 | --- | --- |
-| **Live map** (`architecture-current`) | Next product pack after the base-module pass is **`product:ads`**. Do **not** open Social, Chat, Shop, or Marketplace schema ahead of that. Social is listed under **Parked**. |
-| **Preferences / platform layers** | Same: Social stays parked; commercial order is paid tickets → subscriptions → ads. |
-| **`social-feed-plan.md` header** | Status: **parked**. Plan is the build spec; it does not change the queue. |
-| **Code + pack README** | Slices **1–22** documented as shipped. `defaultEnabled: false`. ~151 files under `src/modules/social`, ~35k lines of TS/TSX including tests. Full `sf_social_*` schema present. |
+| **Live map** (`architecture-current`) | **Active:** finish Social. **Next after Social:** `product:ads` (depends on Social + Email Manager + Forms + Subscriptions + Payments). Do not start Ads ahead of finishing Social. |
+| **Accepted decisions (2026-11-22)** | Launch scope includes Social; continue Social work; no Payments/Maps hard requires; comments/reports stay in Social; media access + staff private-read are accepted policy with Open work where code lags. |
+| **`social-feed-plan.md` header** | May still say parked historically. Plan is the build spec; the live map wins. |
+| **Code + pack README** | Slices **1–22** documented as shipped. `defaultEnabled: false`. Full `sf_social_*` schema present. |
 
-**Implication for a second opinion:** The interesting question is not “should we start Social?” — the code already exists. The interesting questions are: (1) does the live map need an honest “built, still parked for enablement” line, (2) should further Social work stay frozen until ads, and (3) which ownership tensions to resolve before turning the module on for a site.
+**Implication for a second opinion:** The code already exists. Remaining questions are enablement blockers (media access, rate limits, staff private-read, `form` optionalRequires) and polish before Airsoft Nexus turns Social on.
 
 ---
 
@@ -36,13 +40,15 @@
 | Public doors | `@/modules/social/api`, `@/modules/social/api.server` (`social-api`, `social-api-server`) |
 | Builtin particle `social` | Footer links — **do not reuse**. Social particles are `social-friends`, `social-groups`, `social-pages`, `social-stories` |
 | Live video | Stays `product:stream` (not built here) |
-| Money | `product:payments` is **required** so Social never grows a cart; **no Social charge path yet** |
+| Money | Payments is **not** a Social dependency; **no Social cart**; no Social charge path yet |
 | Mail | Email Manager triggers only (`emitEmailTrigger`); never `getMailer()` |
-| Media / forms / maps / profiles / rich-editor | Consumed via owners; bytes stay in Media |
+| Media / forms / profiles / rich-editor | Consumed via owners; bytes stay in Media |
+| Maps | Check-in uses Core `MapProvider`; `product:maps` (TacMap) is for events — not a Social require |
+| Comments / likes / reports | Owned here; no `product:comments` / `product:reports` |
 | Hero extras | `extensions` jsonb on posts/albums/etc. — not new `sf_social_*` columns |
 
-**Hard `requires`:** profiles, media, rich-editor, forms, email-manager, payments, maps.  
-**`optionalRequires`:** `product:subscriptions`, `product:events` — and a stray `'form'` string in the manifest (likely legacy / wrong id; worth a cleanup when Social is touched).
+**Hard `requires`:** profiles, media, rich-editor, forms, email-manager.  
+**`optionalRequires`:** `product:subscriptions`, `product:events`, and particle id `form` (keep-or-drop still Open work).
 
 ---
 
@@ -117,25 +123,13 @@ User / media / group / page ids are **plain text** (no cross-pack FKs). Unique k
 
 These are the main places a second opinion should push back or confirm.
 
-### 1. Live map vs disk
+### 1. Live map vs disk — decided
 
-Social schema and product surface exist while the live map still says “do not open Social … schema ahead of ads.” Options usually debated:
+Finish Social before Ads ([2026-11-22-social-built-parked](./decisions/2026-11-22-social-built-parked.md), live map). Default-off until enablement Open work closes. Airsoft Nexus includes Social ([2026-11-22-launch-scope](./decisions/2026-11-22-launch-scope.md)).
 
-- Leave map as-is (parked for *enablement / further work*; code is inventory).
-- Update the live map to “Social MVP coded, still parked behind ads; do not enable for sites / do not extend until ads.”
-- Treat accidental early build as debt and freeze hard until ads ships.
+### 2. Comments / reports — decided
 
-### 2. `product:comments` and `product:reports` vs Social’s own tables
-
-[core-finish-instructions](./core-finish-instructions.md) still says:
-
-- `product:comments` — thread on page/event/listing; **before Social**; page comments must not require Social.
-- `product:reports` — shared report queue; **not** one report table per pack; same pass as comments or Social going public.
-
-Social already has `sf_social_comments` and `sf_social_reports`. That is coherent for **feed posts**, but it conflicts with the “each pack does not get its own report table” line and with a future generic comments pack. Needs a boundary decision before Social is enabled:
-
-- Social comments/reports stay **feed-scoped**; generic packs own page/event/listing threads and a shared report queue that Social can call into later, **or**
-- Social’s tables become the temporary home and get peeled later (higher risk).
+Social owns the comments engine, likes, and reports. No `product:comments` / `product:reports`. Pages/events may opt into Social’s conversation engine when Social is on ([2026-11-22-comments-reports-ownership](./decisions/2026-11-22-comments-reports-ownership.md)). Archive [core-finish-instructions](../../archive/core-finish-instructions.md) rows naming those packs are historical.
 
 ### 3. Cross-pack wiring incomplete
 
@@ -145,8 +139,10 @@ Social already has `sf_social_comments` and `sf_social_reports`. That is coheren
 | Events host calendar on group/page | Social lists/links via Events door; host fields exist on Events |
 | Subscriptions entitlement `social.challenge.multi` | Gate exists; depends on Subscriptions being on |
 | Core retention hide/purge | Doors registered on Core side |
-| Media ACL for non-public attachments | Still open; `/api/media/[id]` is public for ordinary files — `canViewPost` does **not** hide bytes |
-| Payments charge from Social | Required dependency only; no charge slice |
+| Media access — attach (refuse wider-audience bind) | Done (`audience_too_wide` on create / set audience) |
+| Media access — serve (`/api/media/[id]` honors owning audience) | Done; routes call Social `decideSocialMediaServeAccess` before redirect/bytes |
+| Staff private-read | Accepted policy; `canViewPost` does not grant it yet |
+| Payments charge from Social | Not a Social dependency; no Social cart |
 | Notifications / Search / Gamification / Chat | Slice 23 — packs absent or parked |
 
 ### 4. Product polish leftovers (not new slices, but unfinished UX)
@@ -158,9 +154,9 @@ Social already has `sf_social_comments` and `sf_social_reports`. That is coheren
 - Hold-new-posts-for-review sets `staffHidden` on create; there is no separate “pending review” workflow beyond that flag + reports queue.
 - Plan duplicate text on stories slice (cosmetic in the plan file).
 
-### 5. Size vs commercial priority
+### 5. Size vs commercial priority — dependency floor decided
 
-Social is already one of the largest packs in the monorepo. Enabling it pulls Profiles, Media, Rich editor, Forms, Email Manager, Payments, and Maps. That is intentional (`requires`), but it means “turn Social on” is a **platform enable**, not a light feature flag. Second opinions often ask whether that dependency floor is still correct, especially **payments** and **maps** required before any charge or check-in is mandatory for every Social install.
+Social is one of the largest packs. Hard `requires` are Profiles, Media, Rich editor, Forms, Email Manager only — Payments and Maps removed ([2026-11-22-social-dependency-floor](./decisions/2026-11-22-social-dependency-floor.md)). Enabling Social is still a platform enable of those base packs, not a light feature flag.
 
 ### 6. What Social deliberately does not own
 
@@ -181,16 +177,11 @@ Per plan / README: points/badges, support tickets, chat, notification bell, live
 
 ---
 
-## Suggested questions for a second opinion
+## Remaining questions (post 2026-11-22 decisions)
 
-Copy any subset:
-
-1. Given the live map still parks Social behind ads, should we **freeze all Social code changes** until ads ships, or allow **docs/cleanup-only** (map honesty, `'form'` optionalRequires, comments/reports ownership note)?
-2. Should `architecture-current` be updated to say **“Social MVP is in-tree, default-off, parked for enablement”** so agents stop treating Social as unstarted?
-3. Confirm boundary: **feed comments/reports stay in Social**; `product:comments` / `product:reports` remain for page/event/listing — or reverse that decision now.
-4. Is requiring **Payments + Maps** on every Social install still correct before Social has charges?
-5. Priority of unfinished edges if Social is ever unparked: Media ACL for private attachments, Events/Pages `publishActivity` callers, composer Challenge/Watch chips, Notifications — what order?
-6. Any slice-22+ surface that looks overbuilt for ASN Hero needs (short-video Watch, Discover, Challenges) and should stay switch-off forever for ASN?
+1. Priority among Open work: staff private-read, Social write rate limits, `'form'` optionalRequires keep/drop, Events/Pages `publishActivity` callers, composer Challenge/Watch chips.
+2. Any slice-22+ surface that should stay switch-off forever for ASN (short-video Watch, Discover, Challenges)?
+3. Admin / manager permission matrices (deferred; do not invent in Social).
 
 ---
 
@@ -201,7 +192,7 @@ Copy any subset:
 | [architecture-current.md](./architecture-current.md) | Live queue (wins) |
 | [social-feed-plan.md](./social-feed-plan.md) | Slice build plan (parked header) |
 | [platform-module-layers.md](./platform-module-layers.md) | Advanced placement |
-| [core-finish-instructions.md](./core-finish-instructions.md) | `product:comments` / `product:reports` rows |
+| [core-finish-instructions.md](../../archive/core-finish-instructions.md) | `product:comments` / `product:reports` rows |
 | [src/modules/social/README.md](../../../src/modules/social/README.md) | Owns / Consumes / Shipped |
 | [src/modules/social/manifest.ts](../../../src/modules/social/manifest.ts) | Routes, nav, doors, requires |
 | [src/modules/social/schema.ts](../../../src/modules/social/schema.ts) | All `sf_social_*` tables |

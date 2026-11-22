@@ -1,6 +1,10 @@
+---
+kind: reference
+last_verified: 2026-11-22
+---
 # Starforge glossary
 
-Vocabulary from `.cursor/rules/sf-architecture.mdc` and section 1 of `ARCHITECTURE_REMEDIATION_PLAN.md`. When this page disagrees with [architecture-current](./architecture-current.md), the live map wins.
+Vocabulary from `.cursor/rules/sf-architecture.mdc` and section 1 of `docs/archive/ARCHITECTURE_REMEDIATION_PLAN.md`. When this page disagrees with [architecture-current](./architecture-current.md), the live map wins.
 
 ## Core
 

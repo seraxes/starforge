@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Maps / location sharing (Modules)
 
 **Layer:** **Modules** (`product:maps`) for shares/privacy/particle/API. **`MapProvider`** = **Core port**. ASN field-finder filters / branded chrome = **Hero** — not a maps fork ([platform-module-layers](./platform-module-layers.md)).

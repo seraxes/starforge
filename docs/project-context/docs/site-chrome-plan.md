@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Site Chrome plan
 
 Site-wide chrome & policy (not per-page Page Settings, not feature Modules).

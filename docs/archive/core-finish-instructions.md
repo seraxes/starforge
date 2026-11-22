@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Core finish — instructions
 
 **Status:** Core finish complete as of 2026-11-11 (slices 1–9). Archive — do not restart a finished slice. Next work is the commercial order in [architecture-current](./architecture-current.md).

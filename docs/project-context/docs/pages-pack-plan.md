@@ -1,6 +1,10 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # product:pages — pack plan
 
-**Status:** shipped. Phase 3b (2026-11-16) and phase 4 (shell and CMS packages, 2026-11-16) are done. The live map wins: [architecture-current](./architecture-current.md). Decision: [2026-11-15-payload-peel](./decisions/2026-11-15-payload-peel.md). Archive: [payload-dependency-map](./payload-dependency-map.md).
+**Status:** shipped. Phase 3b (2026-11-16) and phase 4 (shell and CMS packages, 2026-11-16) are done. The live map wins: [architecture-current](./architecture-current.md). Decision: [2026-11-15-payload-peel](./decisions/2026-11-15-payload-peel.md). Archive: [payload-dependency-map](../../archive/payload-dependency-map.md).
 
 Media (phase 2) is done. `src/modules/pages` writes `sf_pages_*` only. There is no dual-write. `db:migrate` drops a leftover `payload` schema after the copy.
 

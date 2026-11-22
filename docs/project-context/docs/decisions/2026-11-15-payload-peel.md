@@ -1,3 +1,7 @@
+---
+kind: decision
+last_verified: 2026-11-22
+---
 # Decision: Payload peel
 
 **Status:** done (2026-11-16). Phases 1–4 shipped. The content manager is `product:pages`. The `/cms` shell and the CMS npm packages are gone. `@payloadcms/richtext-lexical` stays for `product:lexical-editor`.
@@ -13,6 +17,6 @@
 - Rule: `.cursor/rules/sf-architecture.mdc` (content manager, media store, site settings, peel)
 - Live map: `docs/project-context/docs/architecture-current.md` (Content manager; peel is open work)
 - Owner README: `src/modules/media/README.md` (will take the document store; Payload is not the long-term store)
-- Map: `docs/project-context/docs/payload-dependency-map.md` (buckets, packages, order 0→4, parity bars)
+- Map: `docs/archive/payload-dependency-map.md` (buckets, packages, order 0→4, parity bars)
 - Preferences: `docs/project-context/preferences.md` (current-overrides content-manager bullet)
 - Pages one-pager: `docs/project-context/docs/pages-pack-plan.md` (phase 3 only — no `src/modules/pages`)

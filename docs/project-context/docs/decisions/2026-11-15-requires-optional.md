@@ -1,3 +1,7 @@
+---
+kind: decision
+last_verified: 2026-11-22
+---
 # Decision: requires and optionalRequires
 
 **Date:** 2026-11-15

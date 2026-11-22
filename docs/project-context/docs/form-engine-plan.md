@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Modular Form engine (SF-65)
 
 Reuse one Core Form engine for contact, survey, event registration, voting, and ticket/report intake. Prefer **dnd-kit + JSON Schema / Zod** over SurveyJS. Principle: [modular-core](../principles/modular-core.md). Builds on SF-48 (`product:forms` + Form particle + submissions + Turnstile).

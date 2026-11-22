@@ -1,4 +1,6 @@
 ---
+kind: history
+last_verified: 2026-11-22
 format: 2
 description: Build Starforge first as a core CMS platform (auth, users, content, media); ASN 2.0 comes later on top of it.
 taskPrefix: SF

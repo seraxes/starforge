@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Starforge — core CMS build plan
 
 **Historical roadmap (refreshed 2026-11-02).** Do not use it as the queue or as the Payload/media split. Live map: [architecture-current](./architecture-current.md).

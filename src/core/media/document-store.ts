@@ -439,6 +439,8 @@ export async function claimMediaKey(preferred: string, reserved: Set<string>): P
 }
 
 export type ServedObject = {
+  /** sf_media_assets.id — needed for Social bind checks on the file route. */
+  mediaId: string
   key: string
   mimeType: string | null
   filename: string | null
@@ -451,6 +453,7 @@ export async function findStoredObjectByKey(key: string): Promise<ServedObject |
   const raw = key.trim()
   if (!raw) return null
   const rows = await q<{
+    id: string
     path: string | null
     filename: string | null
     mime_type: string | null
@@ -458,7 +461,7 @@ export async function findStoredObjectByKey(key: string): Promise<ServedObject |
     private: boolean | null
     sizes: unknown
   }>(sql`
-    SELECT a.path, a.filename, a.mime_type, a.folder, a.private, a.sizes
+    SELECT a.id, a.path, a.filename, a.mime_type, a.folder, a.private, a.sizes
     FROM sf_media_assets a
     WHERE a.filename = ${raw}
        OR a.path = ${raw}
@@ -489,6 +492,7 @@ export async function findStoredObjectByKey(key: string): Promise<ServedObject |
     mime = row.mime_type
   }
   return {
+    mediaId: String(row.id),
     key: serveKey,
     mimeType: mime,
     filename: row.filename,

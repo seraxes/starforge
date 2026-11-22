@@ -1,3 +1,7 @@
+---
+kind: decision
+last_verified: 2026-11-22
+---
 # Decision: atomic guardrails
 
 **Date:** 2026-11-15

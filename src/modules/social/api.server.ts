@@ -513,6 +513,7 @@ export {
   POST_MEDIA_IMAGE_MAX,
   POST_MEDIA_ROLES,
   RESERVED_FEED_HANDLES,
+  canViewBoundMedia,
   canViewPost,
   classifyMediaMime,
   createPostRecord,
@@ -522,6 +523,8 @@ export {
   decideStaffHidePost,
   emptyPollCheckinFields,
   emptyShareLinkFields,
+  mediaBindIsRestricted,
+  narrowerBoundMediaOwner,
   resolveMediaForMember,
   isEmptyPostBody,
   isPostAudience,
@@ -536,6 +539,7 @@ export {
   toPostRecord,
 } from './posts'
 export type {
+  BoundMediaOwner,
   CanViewPostContext,
   CreatePostInput,
   DeletePostInput,
@@ -553,6 +557,11 @@ export type {
   PostRefuseReason,
   StaffHidePostInput,
 } from './posts'
+export {
+  decideSocialMediaServeAccess,
+  findNarrowestSocialMediaBind,
+} from './media-serve-store'
+export type { SocialMediaServeDecision } from './media-serve-store'
 export {
   canViewerSeePost,
   createPost,

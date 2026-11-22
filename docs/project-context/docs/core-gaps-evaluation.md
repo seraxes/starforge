@@ -1,11 +1,13 @@
 ---
+kind: history
+last_verified: 2026-11-22
 cursor:
   subagentId: "bc-5056f8e8-cd66-51ec-871f-8d79af06b092"
 ---
 
 # Starforge Core — gaps evaluation
 
-**Lens:** Opus design docs ([architecture-opus-audit](./architecture-opus-audit.md), [design-system-overview](./design-system-overview.md), [design-security](./design-security.md), [design-data-deploy](./design-data-deploy.md), [design-module-boundary](./design-module-boundary.md)) + [preferences](../preferences.md) + [notes](../notes.md) vs `seraxes/starforge` `main` @ `2711964` (spot-check Nov 4, 2026).
+**Lens:** Opus design docs ([architecture-opus-audit](./architecture-opus-audit.md), [design-system-overview](../../archive/design-system-overview.md), [design-security](./design-security.md), [design-data-deploy](./design-data-deploy.md), [design-module-boundary](./design-module-boundary.md)) + [preferences](../preferences.md) + [notes](../../archive/notes.md) vs `seraxes/starforge` `main` @ `2711964` (spot-check Nov 4, 2026).
 
 **Verdict:** Core spine that the design docs called “now” is largely **shipped** (auth, layout host, Forms+upload hardening, Media Manager Phases 1–2, Redis cache, S3, CSP/csrf, Consent, redirects/sitemap, search/taxonomy, migrations+CI, env boot validation, manifest **M0**). What still blocks a clean next Module wave is **not** missing product packs — it is unfinished **security ports**, **authz fail-closed**, and **module boundary M1–M2** (new packs still edit Core admin nav / particle actions). Hero/ASN correctly stays later. Inventory doc is stale; trust design overview + this eval over [core-modules-inventory](./core-modules-inventory.md).
 

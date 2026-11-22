@@ -5,27 +5,35 @@
 
 import 'server-only'
 
-import { and, asc, desc, eq, inArray } from 'drizzle-orm'
+import { asc, desc, eq, inArray } from 'drizzle-orm'
 
 import { db } from '@/core/db'
+import { isPrivateFormMedia } from '@/core/media/privacy'
 import { findMediaById, memberOwnsMedia } from '@/modules/media/api.server'
 
 import { areBlocked, areFriends } from './friends-store'
 import { getMemberBannedAt, isMemberAccountHidden } from './members-store'
+import { viewerMayModerateSocialContent } from './staff-grant'
 import {
+  albumOwnerMediaAccess,
   canViewPost,
   createPostRecord,
   decideDeletePost,
   decideEditPost,
   decideSetPostAudience,
   decideStaffHidePost,
+  groupDocumentMediaAccess,
+  isPostAudience,
   isPostMediaRole,
+  mediaAccessLevelFromFacts,
   resolvePostPermalink,
+  storyMediaAccess,
   toPostRecord,
   type CanViewPostContext,
   type CreatePostInput,
   type DeletePostInput,
   type EditPostInput,
+  type MediaAccessLevel,
   type SetPostAudienceInput,
   type MediaResolveResult,
   type PermalinkResult,
@@ -37,7 +45,10 @@ import {
 } from './posts'
 import {
   sfSocialActivities,
+  sfSocialAlbumItems,
+  sfSocialAlbums,
   sfSocialComments,
+  sfSocialGroupDocuments,
   sfSocialMentions,
   sfSocialPollVotes,
   sfSocialPostMedia,
@@ -45,6 +56,7 @@ import {
   sfSocialPosts,
   sfSocialReactions,
   sfSocialSaves,
+  sfSocialStories,
 } from './schema'
 
 async function resolveMediaMeta(mediaId: string): Promise<MediaResolveResult | null> {
@@ -63,6 +75,137 @@ async function resolveMediaMetaForMember(
 ): Promise<MediaResolveResult | null> {
   if (!(await memberOwnsMedia(authorUserId, mediaId))) return null
   return resolveMediaMeta(mediaId)
+}
+
+/**
+ * Current access level for each mediaId: private form media → only_me, else the
+ * narrowest Social post / album / story / group-document bind. Pure combine is
+ * mediaAccessLevelFromFacts — this only loads facts.
+ */
+async function resolveMediaAccessLevels(
+  mediaIds: string[],
+): Promise<Map<string, MediaAccessLevel>> {
+  const out = new Map<string, MediaAccessLevel>()
+  const ids = [...new Set(mediaIds.map((id) => id.trim()).filter(Boolean))]
+  if (ids.length === 0) return out
+
+  const privateById = new Map<string, boolean>()
+  for (const id of ids) {
+    const doc = await findMediaById(id)
+    privateById.set(
+      id,
+      doc
+        ? isPrivateFormMedia({ folder: doc.folder, private: doc.private })
+        : false,
+    )
+  }
+
+  const bindsById = new Map<string, MediaAccessLevel[]>()
+  const pushBind = (mediaId: string, bind: MediaAccessLevel) => {
+    const list = bindsById.get(mediaId) ?? []
+    list.push(bind)
+    bindsById.set(mediaId, list)
+  }
+
+  try {
+    const postRows = await db
+      .select({
+        mediaId: sfSocialPostMedia.mediaId,
+        audience: sfSocialPosts.audience,
+        groupId: sfSocialPosts.groupId,
+      })
+      .from(sfSocialPostMedia)
+      .innerJoin(sfSocialPosts, eq(sfSocialPostMedia.postId, sfSocialPosts.id))
+      .where(inArray(sfSocialPostMedia.mediaId, ids))
+    for (const row of postRows) {
+      if (!isPostAudience(row.audience)) continue
+      pushBind(row.mediaId, {
+        audience: row.audience,
+        groupId: row.groupId,
+      })
+    }
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    if (!/sf_social_post|does not exist|relation/i.test(msg)) throw error
+  }
+
+  try {
+    const storyRows = await db
+      .select({ mediaId: sfSocialStories.mediaId })
+      .from(sfSocialStories)
+      .where(inArray(sfSocialStories.mediaId, ids))
+    for (const row of storyRows) {
+      pushBind(row.mediaId, storyMediaAccess())
+    }
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    if (!/sf_social_stories|does not exist|relation/i.test(msg)) throw error
+  }
+
+  try {
+    const docRows = await db
+      .select({
+        mediaId: sfSocialGroupDocuments.mediaId,
+        groupId: sfSocialGroupDocuments.groupId,
+      })
+      .from(sfSocialGroupDocuments)
+      .where(inArray(sfSocialGroupDocuments.mediaId, ids))
+    for (const row of docRows) {
+      pushBind(row.mediaId, groupDocumentMediaAccess(row.groupId))
+    }
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    if (!/sf_social_group_documents|does not exist|relation/i.test(msg)) throw error
+  }
+
+  try {
+    const albumItemRows = await db
+      .select({
+        mediaId: sfSocialAlbumItems.mediaId,
+        ownerType: sfSocialAlbums.ownerType,
+        ownerId: sfSocialAlbums.ownerId,
+      })
+      .from(sfSocialAlbumItems)
+      .innerJoin(sfSocialAlbums, eq(sfSocialAlbumItems.albumId, sfSocialAlbums.id))
+      .where(inArray(sfSocialAlbumItems.mediaId, ids))
+    for (const row of albumItemRows) {
+      if (row.ownerType !== 'user' && row.ownerType !== 'group' && row.ownerType !== 'page') {
+        continue
+      }
+      pushBind(row.mediaId, albumOwnerMediaAccess(row.ownerType, row.ownerId))
+    }
+
+    const coverRows = await db
+      .select({
+        mediaId: sfSocialAlbums.coverMediaId,
+        ownerType: sfSocialAlbums.ownerType,
+        ownerId: sfSocialAlbums.ownerId,
+      })
+      .from(sfSocialAlbums)
+      .where(inArray(sfSocialAlbums.coverMediaId, ids))
+    for (const row of coverRows) {
+      const mediaId = row.mediaId?.trim()
+      if (!mediaId) continue
+      if (row.ownerType !== 'user' && row.ownerType !== 'group' && row.ownerType !== 'page') {
+        continue
+      }
+      pushBind(mediaId, albumOwnerMediaAccess(row.ownerType, row.ownerId))
+    }
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    if (!/sf_social_album|does not exist|relation/i.test(msg)) throw error
+  }
+
+  for (const id of ids) {
+    out.set(
+      id,
+      mediaAccessLevelFromFacts({
+        isPrivateForm: privateById.get(id) === true,
+        binds: bindsById.get(id) ?? [],
+      }),
+    )
+  }
+  return out
 }
 
 function mapMediaRow(row: typeof sfSocialPostMedia.$inferSelect): PostMediaAttachment | null {
@@ -143,20 +286,24 @@ export async function createPost(input: CreatePostInput): Promise<PostMutationRe
   const authorUserId = input.authorUserId.trim()
   const authorBannedAt = authorUserId ? await getMemberBannedAt(authorUserId) : null
   const cache = new Map<string, MediaResolveResult | null>()
+  const mediaIds: string[] = []
   for (const raw of input.mediaIds ?? []) {
     const id = raw.trim()
     if (!id || cache.has(id)) continue
+    mediaIds.push(id)
     cache.set(
       id,
       authorUserId ? await resolveMediaMetaForMember(authorUserId, id) : null,
     )
   }
+  const accessLevels = await resolveMediaAccessLevels(mediaIds)
 
   const { loadSocialModuleSettings } = await import('./settings')
   const { isComposerPostKindEnabled } = await import('./pack-settings')
   const pack = await loadSocialModuleSettings()
   const decided = createPostRecord(input, {
     resolveMedia: (mediaId) => cache.get(mediaId) ?? null,
+    mediaAccessLevel: (mediaId) => accessLevels.get(mediaId.trim()),
     authorBannedAt,
     isKindEnabled: (kind) => isComposerPostKindEnabled(kind, pack.settings),
     holdForStaffReview: pack.settings.holdNewPostsForReview,
@@ -278,6 +425,10 @@ export async function canViewerSeePost(
     }
   }
 
+  const canManagePosts =
+    extras?.canManagePosts ??
+    (viewer ? await viewerMayModerateSocialContent(viewer) : false)
+
   return canViewPost(post, {
     viewerUserId: viewer,
     areFriends: friends,
@@ -286,7 +437,7 @@ export async function canViewerSeePost(
     isGroupMember,
     isPageLiker,
     isPageAdmin,
-    canManagePosts: extras?.canManagePosts ?? false,
+    canManagePosts,
     guestCanReadPublic: guestCanReadPublic ?? true,
   })
 }
@@ -327,6 +478,10 @@ export async function getPostPermalink(
           ? isUserPageAdmin(viewer, post.pageId)
           : Promise.resolve(false),
     ])
+  const canManagePosts =
+    extras?.canManagePosts ??
+    (viewer ? await viewerMayModerateSocialContent(viewer) : false)
+
   return resolvePostPermalink(post, {
     viewerUserId: viewer,
     areFriends: friends,
@@ -335,7 +490,7 @@ export async function getPostPermalink(
     isGroupMember,
     isPageLiker,
     isPageAdmin,
-    canManagePosts: extras?.canManagePosts ?? false,
+    canManagePosts,
   })
 }
 
@@ -345,8 +500,13 @@ export async function setPostAudience(
   gates?: { canManagePosts?: boolean },
 ): Promise<PostMutationResult> {
   const current = await findPost(input.postId)
+  const accessLevels =
+    current && current.media.length > 0
+      ? await resolveMediaAccessLevels(current.media.map((row) => row.mediaId))
+      : new Map<string, MediaAccessLevel>()
   const result = decideSetPostAudience(current, input, {
     canManagePosts: gates?.canManagePosts,
+    mediaAccessLevel: (mediaId) => accessLevels.get(mediaId.trim()),
   })
   if (!result.ok) return result
   const next = result.post

@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Core admin Dashboard — plan
 
 **Layer:** Core host + module contributions (same pattern as `admin.nav`).  

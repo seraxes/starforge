@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Admin Dashboard — plan vs shipped gap
 
 **Compared:** [admin-dashboard-plan](./admin-dashboard-plan.md) + [admin-dashboard-benchmarks](./admin-dashboard-benchmarks.md) vs `main` @ `e2b4442` (post [#127](https://github.com/seraxes/starforge/pull/127) D0, [#129](https://github.com/seraxes/starforge/pull/129) placeholders, [#130](https://github.com/seraxes/starforge/pull/130) landing lock, [#132](https://github.com/seraxes/starforge/pull/132) settings heal).  

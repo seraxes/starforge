@@ -110,6 +110,30 @@ describe('posts canViewPost', () => {
     )
   })
 
+  it('staff grant: sees another member only_me and friends-only posts (success path)', () => {
+    const onlyMe = textPost({ audience: 'only_me' })
+    const friendsOnly = textPost({ audience: 'friends' })
+    const staff = baseCtx({
+      viewerUserId: 'bob',
+      areFriends: false,
+      canManagePosts: true,
+    })
+    assert.equal(canViewPost(onlyMe, staff), true)
+    assert.equal(canViewPost(friendsOnly, staff), true)
+  })
+
+  it('normal member without staff grant: sees neither only_me nor friends-only (failure path)', () => {
+    const onlyMe = textPost({ audience: 'only_me' })
+    const friendsOnly = textPost({ audience: 'friends' })
+    const member = baseCtx({
+      viewerUserId: 'bob',
+      areFriends: false,
+      canManagePosts: false,
+    })
+    assert.equal(canViewPost(onlyMe, member), false)
+    assert.equal(canViewPost(friendsOnly, member), false)
+  })
+
   it('public: anyone can see the post (success path)', () => {
     const post = textPost({ audience: 'public' })
     assert.equal(canViewPost(post, baseCtx({ viewerUserId: null })), true)

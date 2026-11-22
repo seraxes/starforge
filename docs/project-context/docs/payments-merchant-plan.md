@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Premium merchant collect (own keys + own invoices)
 
 **Status:** Implementation wave after site MoR cart.  

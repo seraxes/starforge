@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Auth recovery, passwordless, and 2FA (SF-17)
 
 Ship forgot-password / login-email reminder / passwordless / stay-signed-in / full TOTP 2FA on the **existing Better Auth + Mailer** stack. No second auth product.

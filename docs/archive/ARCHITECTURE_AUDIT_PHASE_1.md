@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Starforge architecture map — Phase 1 (discovery)
 
 **Date:** 2026-11-14  

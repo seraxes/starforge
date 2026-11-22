@@ -22,6 +22,7 @@ import { listBlockedPeerIds } from './people-store'
 import { toPostRecord, type PostRecord } from './posts'
 import { hydratePostsMedia } from './posts-store'
 import { sfSocialPostMedia, sfSocialPosts } from './schema'
+import { viewerMayModerateSocialContent } from './staff-grant'
 
 async function listHiddenAuthorIds(): Promise<Set<string>> {
   const [profileHidden, socialHidden] = await Promise.all([
@@ -50,7 +51,8 @@ export async function listShortVideoLayoutPosts(
   const viewer = viewerUserId.trim()
   if (!viewer) return []
   const limit = Math.min(Math.max(1, Math.floor(opts?.limit ?? 50)), 100)
-  const canManagePosts = opts?.canManagePosts ?? false
+  const canManagePosts =
+    opts?.canManagePosts ?? (await viewerMayModerateSocialContent(viewer))
 
   const [
     friendIds,
@@ -119,11 +121,22 @@ export async function listShortVideoLayoutPosts(
         )
       : sql`false`
 
+  const staffPrivateVisible = canManagePosts
+    ? and(
+        authorNotBlocked,
+        authorNotHidden,
+        isNull(sfSocialPosts.pageId),
+        inArray(sfSocialPosts.audience, ['only_me', 'friends', 'group', 'public']),
+        staffOk,
+      )
+    : sql`false`
+
   const visibility = or(
     eq(sfSocialPosts.authorUserId, viewer),
     friendVisible,
     groupVisible,
     pageVisible,
+    staffPrivateVisible,
   )
 
   // Posts with at least one video/* bind (image-only / text never match).

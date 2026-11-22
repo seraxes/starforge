@@ -14,23 +14,7 @@ Place every feature in one spot. **Base modules are not Core.**
 | **Advanced module** | Domain product that depends on base modules. | Owns a catalog or workflow, and its manifest `requires` names base packs. |
 | **Hero** | One site's brand and vertical rules. | Theme, fee table, milsim sheet, custom approval, ASN currency. Calls `@/modules/<id>/api` and extension points. Does not fork a module. |
 
-Site packs (Consent, Redirects, Search, PWA, Lexical, Notice bar, Audit) are optional modules beside those two tiers. They are not Core, and they are not a domain product.
-
-## Base (dependency engines)
-
-`product:media`, `product:forms`, `product:rich-editor`, `product:email-manager`, `product:payments`, `product:profiles`, `product:maps`.
-
-`product:pages` is the content-manager pack behind `PageReadsPort` (editorial pages, draft / published / unpublished, created and published dates, creator and publisher, version restore, page admin, page tags). It lives in `src/modules/pages`, not Core, and it `requires` `product:rich-editor` and `product:media`. It is not one of the base engines above. When this pack is enabled, `getPageReads()` uses it; when it is off, those reads are empty. Nav page binds call the pack door (Core does not import the pack). `product:media` owns the media document store (`sf_media_*`: assets, categories, media-tags; blobs via MediaStorage). Site settings (toggles, performance, `primaryNavMenuId`, `rootItem`) live on Core `sf_site_settings`, not a CMS. `rootItem` is the one nav item at `/{locale}` for every locale. Localization owns `defaultLocale` and `localeFallback`. There is no second CMS. `/cms` redirects to `/admin`. CMS rights are Better Auth plus `sf_users.cms_access`. `PageReadsPort` is the swap boundary. Do not vendor a CMS, and do not put media or site settings back into one. The peel record is `docs/project-context/docs/payload-dependency-map.md`. Decision: `docs/project-context/docs/decisions/2026-11-15-payload-peel.md`. `@payloadcms/richtext-lexical` stays only while `product:lexical-editor` imports it.
-
-Chain today: Forms → Media. Rich editor → Media. Email Manager → Rich editor + Media. Payments → Email Manager. Profiles → Media + Forms. Maps has an empty `requires`; Events still depends on it.
-
-There is no Skills module. A shared capability is a Core port or the base module that already owns it.
-
-## Advanced (consumers)
-
-`product:events` requires Forms, Media, Rich editor, Payments, Profiles, and Maps. `product:subscriptions` requires Payments, Email Manager, Forms, and Profiles.
-
-Ads, Shop, Marketplace, Support, and Stream are this same tier when built: they call base APIs and list those ids in `requires`. Profiles stays base, because Events and Subscriptions require it.
+Site packs (Consent, Redirects, Search, PWA, Lexical, Notice bar, Audit) are optional beside those tiers — not Core, not a domain product. Pack inventory and requires edges: live map. No Skills module — a shared capability is a Core port or the owning base module.
 
 ## Install
 
@@ -57,4 +41,4 @@ Manifest edges are `requires` plus `optionalRequires`. Both count for a legal pu
 
 If other packs `require` it, it is base. If it runs a domain and lists those packs in `requires`, it is advanced. If the site cannot boot without it, it is Core. If only one brand needs it, it is Hero.
 
-Placement table: `docs/project-context/docs/platform-module-layers.md`. Live queue: `docs/project-context/docs/architecture-current.md`. Ownership: `sf-module-ownership.mdc`.
+Placement table: `docs/project-context/docs/platform-module-layers.md`. Live map: `docs/project-context/docs/architecture-current.md`. Ownership: `sf-module-ownership.mdc`.

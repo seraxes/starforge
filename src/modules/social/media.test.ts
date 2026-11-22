@@ -6,7 +6,10 @@ import {
   createPostMemory,
   createPostRecord,
   decidePostAttachments,
+  decideSetPostAudience,
+  mediaAccessLevelFromFacts,
   resolveMediaForMember,
+  type MediaAccessLevel,
   type MediaResolveResult,
 } from './posts'
 
@@ -154,6 +157,97 @@ describe('post media attachments', () => {
     assert.deepEqual(
       decidePostAttachments(['pdf-1'], resolveKnown),
       { ok: false, reason: 'invalid_media_mix' },
+    )
+  })
+
+  it('attaches a public file to a public post (success path)', () => {
+    const levels = new Map<string, MediaAccessLevel>([
+      ['img-1', mediaAccessLevelFromFacts({})],
+    ])
+    assert.equal(levels.get('img-1')?.audience, 'public')
+
+    const decided = decidePostAttachments(['img-1'], resolveKnown, {
+      audience: 'public',
+      mediaAccessLevel: (id) => levels.get(id),
+    })
+    assert.equal(decided.ok, true)
+
+    const result = createPostRecord(
+      {
+        authorUserId: 'alice',
+        body: 'public album',
+        audience: 'public',
+        mediaIds: ['img-1'],
+      },
+      {
+        resolveMedia: resolveKnown,
+        mediaAccessLevel: (id) => levels.get(id),
+        newId: () => 'post-public-media',
+      },
+    )
+    assert.equal(result.ok, true)
+    if (!result.ok) return
+    assert.equal(result.post.audience, 'public')
+    assert.equal(result.post.media[0]?.mediaId, 'img-1')
+  })
+
+  it('refuses attaching a friends-only file to a public post (failure path)', () => {
+    const friendsLevel = mediaAccessLevelFromFacts({
+      binds: [{ audience: 'friends' }],
+    })
+    assert.equal(friendsLevel.audience, 'friends')
+    const levels = new Map<string, MediaAccessLevel>([['img-1', friendsLevel]])
+
+    assert.deepEqual(
+      decidePostAttachments(['img-1'], resolveKnown, {
+        audience: 'public',
+        mediaAccessLevel: (id) => levels.get(id),
+      }),
+      { ok: false, reason: 'audience_too_wide' },
+    )
+    assert.deepEqual(
+      createPostRecord(
+        {
+          authorUserId: 'alice',
+          body: 'leaked',
+          audience: 'public',
+          mediaIds: ['img-1'],
+        },
+        {
+          resolveMedia: resolveKnown,
+          mediaAccessLevel: (id) => levels.get(id),
+        },
+      ),
+      { ok: false, reason: 'audience_too_wide' },
+    )
+
+    // Widening an existing friends media post to public is also refused.
+    const created = createPostRecord(
+      {
+        authorUserId: 'alice',
+        body: 'friends album',
+        audience: 'friends',
+        mediaIds: ['img-1'],
+      },
+      {
+        resolveMedia: resolveKnown,
+        mediaAccessLevel: (id) => levels.get(id),
+        newId: () => 'post-friends-media',
+      },
+    )
+    assert.equal(created.ok, true)
+    if (!created.ok) return
+    assert.deepEqual(
+      decideSetPostAudience(
+        created.post,
+        {
+          actorUserId: 'alice',
+          postId: created.post.id,
+          audience: 'public',
+        },
+        { mediaAccessLevel: (id) => levels.get(id) },
+      ),
+      { ok: false, reason: 'audience_too_wide' },
     )
   })
 })

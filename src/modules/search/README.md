@@ -1,21 +1,36 @@
-# product:search + `search` particle (SF-132)
+# product:search
 
-Public findability over **published** Payload pages — title, slug, meta title/description — via Payload/`contains` (Postgres ILIKE). No Algolia/Meilisearch.
+Layer: site pack
 
-| Layer | Role |
-| --- | --- |
-| Allowlist | `product:search` + `search` in `starforge.modules.json` |
-| Manifests | `manifest.ts` (product) + `particle-manifest.ts` (particle) → `manifest-index.ts` |
-| Site Settings → Modules | Runtime on/off for both ids |
-| Route | `/search?q=` (404 when product off) |
-| Particle | Layout palette `search` → GET form to `/search` |
+Status: shipped
 
-## DB
+## Owns
 
-Tags live in Payload (`tags` + `pages.tags` → `payload.pages_rels`). After pull, run `npm run db:migrate` (Core + Payload). That path also ensures `payload_locked_documents_rels.tags_id` and `categories_id` (Media Categories). Local push-era DBs: volume reset, then migrate + seed (see root README Windows sequences).
+Public findability over **published** pages — title, slug, meta title/description — via Postgres ILIKE (no Algolia/Meilisearch). Public route `/search?q=` (404 when product off). Companion layout particle `search` (`particle-manifest.ts` → `searchModule`) — GET form to `/search`. Allowlist: `product:search` (+ particle id `search`) in `starforge.modules.json`. No pack `sf_*` tables; reads published page data through the pages / PageReads path. Runtime on/off under Site Settings → Modules.
 
-## Deferred
+## Consumes
+
+None in `requires` / `optionalRequires`. Searches published page content (post–Payload peel: pages live in `product:pages` / `PageReadsPort`, not Payload).
+
+## Public door
+
+none (route + particle are manifest-driven; no `@/modules/search/api`)
+
+## Admin surfaces
+
+None. ACL area: none declared.
+
+## Boot and jobs
+
+None. When on, `/search` and the `search` particle are available.
+
+## Known gaps
 
 - Public tag browse routes
 - Full-text ranking / Postgres `tsvector`
-- Particle cog editor (placeholder/button use defaults; M1 generic editor later)
+- Particle cog editor (placeholder/button use defaults; generic editor later)
+- Older notes about Payload `tags` / `pages_rels` are historical; brochure pages are `product:pages`
+
+## Tests
+
+None registered in `test:unit` for this pack. Related verify script: `verify:search-query`.

@@ -1,11 +1,13 @@
 ---
+kind: history
+last_verified: 2026-11-22
 cursor:
   subagentId: "bc-0ab719b5-2646-52f8-8a6c-6069013cc077"
 ---
 
 # Starforge design — data and deploy-ready Core
 
-**Status:** target design. Today there are no migrations (Drizzle `push` only; Payload pushes in dev only), no CI, and no boot env validation. Local-first stays; this is what must be true before SF-6 hosting. Overview: [design-system-overview](./design-system-overview.md). Security items referenced: [design-security](./design-security.md).
+**Status:** target design. Today there are no migrations (Drizzle `push` only; Payload pushes in dev only), no CI, and no boot env validation. Local-first stays; this is what must be true before SF-6 hosting. Overview: [design-system-overview](../../archive/design-system-overview.md). Security items referenced: [design-security](./design-security.md).
 
 ## 1. Topology (DigitalOcean, per preferences)
 

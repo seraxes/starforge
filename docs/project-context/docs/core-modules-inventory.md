@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Starforge core — modular inventory
 
 **Inventory as of early November 2026.** Status columns are stale. For what is host, what is an install pack, and what to build next, read [architecture-current](./architecture-current.md).

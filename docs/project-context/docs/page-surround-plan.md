@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Page surround / full-height public page (SF-75)
 
 Gantry analogy: `#g-page-surround` wraps header + layout sections + footer so the **whole page** fills the viewport (not the article alone). Starforge maps that to the existing public layout tree — prefer the **smallest correct CSS fix**, not a new nested wrapper by default.

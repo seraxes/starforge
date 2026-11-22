@@ -107,6 +107,8 @@ export type PostRefuseReason =
   | 'empty_body'
   | 'unknown_media'
   | 'invalid_media_mix'
+  /** New post audience is wider than the file’s current access level. */
+  | 'audience_too_wide'
   | 'not_found'
   | 'not_author'
   | 'cannot_manage'
@@ -116,6 +118,12 @@ export type PostRefuseReason =
   | 'disabled_kind'
   /** Pack blocked-words list matched the body (slice 15c). */
   | 'blocked_word'
+
+/** Access level for a media file on the Social audience ladder. */
+export type MediaAccessLevel = {
+  audience: PostAudience
+  groupId?: string | null
+}
 
 export type EditPostInput = {
   actorUserId: string
@@ -188,7 +196,10 @@ export type CanViewPostContext = {
   isGroupMember: boolean
   isPageLiker: boolean
   isPageAdmin: boolean
-  /** `social.posts` manage — review queue may see a staff-hidden post. */
+  /**
+   * Staff grant (`viewerMayModerateSocialContent` / admin.social edit):
+   * see staff-hidden posts, and private-read only_me / friends / group.
+   */
   canManagePosts: boolean
   /**
    * When false, guests (no viewer) cannot read audience=public posts.
@@ -391,11 +402,110 @@ export function resolveMediaForMember(
 }
 
 /**
+ * True when a share at `next` would show the original to people it does not
+ * already allow. Public can be shared anywhere. Friends cannot become public
+ * or a group. Only-me stays only-me. A group post stays in that same group,
+ * or only-me.
+ */
+export function shareAudienceIsWider(
+  original: PostAudience,
+  next: PostAudience,
+  opts?: { originalGroupId?: string | null; nextGroupId?: string | null },
+): boolean {
+  if (original === 'public') return false
+  if (original === 'friends') return next === 'public' || next === 'group'
+  if (original === 'only_me') return next !== 'only_me'
+  if (next === 'only_me') return false
+  if (next !== 'group') return true
+  const originalGroupId = opts?.originalGroupId?.trim() || ''
+  const nextGroupId = opts?.nextGroupId?.trim() || ''
+  return !originalGroupId || !nextGroupId || originalGroupId !== nextGroupId
+}
+
+/**
+ * Narrower of two media access levels on the Social audience ladder.
+ * Incompatible group binds collapse to only_me.
+ */
+export function narrowerMediaAccessLevel(
+  a: MediaAccessLevel,
+  b: MediaAccessLevel,
+): MediaAccessLevel {
+  const aAudience = a.audience
+  const bAudience = b.audience
+  const aGroupId = a.groupId?.trim() || null
+  const bGroupId = b.groupId?.trim() || null
+  const bIsWider = shareAudienceIsWider(aAudience, bAudience, {
+    originalGroupId: aGroupId,
+    nextGroupId: bGroupId,
+  })
+  const aIsWider = shareAudienceIsWider(bAudience, aAudience, {
+    originalGroupId: bGroupId,
+    nextGroupId: aGroupId,
+  })
+  if (aIsWider && bIsWider) return { audience: 'only_me', groupId: null }
+  if (bIsWider) {
+    return { audience: aAudience, groupId: aAudience === 'group' ? aGroupId : null }
+  }
+  if (aIsWider) {
+    return { audience: bAudience, groupId: bAudience === 'group' ? bGroupId : null }
+  }
+  if (aAudience === 'group') {
+    return { audience: 'group', groupId: aGroupId }
+  }
+  return { audience: aAudience, groupId: null }
+}
+
+/**
+ * File access level from form privacy + existing Social binds (passed in).
+ * Private form media is only_me. No binds and not private → public.
+ * Does not query the database.
+ */
+export function mediaAccessLevelFromFacts(opts: {
+  isPrivateForm?: boolean
+  binds?: readonly MediaAccessLevel[]
+}): MediaAccessLevel {
+  let level: MediaAccessLevel = { audience: 'public', groupId: null }
+  if (opts.isPrivateForm) {
+    level = narrowerMediaAccessLevel(level, { audience: 'only_me', groupId: null })
+  }
+  for (const bind of opts.binds ?? []) {
+    level = narrowerMediaAccessLevel(level, bind)
+  }
+  return level
+}
+
+/**
+ * Album owner → audience ladder. User/page albums use friends (canInteract /
+ * likers). Group albums use that group.
+ */
+export function albumOwnerMediaAccess(
+  ownerType: 'user' | 'group' | 'page',
+  ownerId: string,
+): MediaAccessLevel {
+  if (ownerType === 'group') {
+    return { audience: 'group', groupId: ownerId.trim() || null }
+  }
+  return { audience: 'friends', groupId: null }
+}
+
+/** Stories are visible via canInteract — friends on the post ladder. */
+export function storyMediaAccess(): MediaAccessLevel {
+  return { audience: 'friends', groupId: null }
+}
+
+/** Group document bind — group audience for that group. */
+export function groupDocumentMediaAccess(groupId: string): MediaAccessLevel {
+  return { audience: 'group', groupId: groupId.trim() || null }
+}
+
+/**
  * Resolve and validate post attachments.
  * Many images (up to maxImages, default POST_MEDIA_IMAGE_MAX) or exactly one
  * video — not both. Pack may turn video off (`allowVideo: false`).
  * Unknown mediaId, or an id the Media door will not read for this member →
  * unknown_media (named failure paths for slice 5).
+ * When `audience` is set, refuse attach if the post audience is wider than the
+ * file’s current level (`audience_too_wide`). Pass levels in — no DB here.
  */
 export function decidePostAttachments(
   mediaIds: string[] | null | undefined,
@@ -403,10 +513,18 @@ export function decidePostAttachments(
   opts?: {
     maxImages?: number
     allowVideo?: boolean
+    /** Target post audience for the attach-time access check. */
+    audience?: PostAudience
+    groupId?: string | null
+    /**
+     * Current access level per mediaId (form privacy + existing binds).
+     * Omit / missing id → public (no narrower bind).
+     */
+    mediaAccessLevel?: (mediaId: string) => MediaAccessLevel | null | undefined
   },
 ):
   | { ok: true; attachments: PostMediaAttachment[] }
-  | { ok: false; reason: 'unknown_media' | 'invalid_media_mix' } {
+  | { ok: false; reason: 'unknown_media' | 'invalid_media_mix' | 'audience_too_wide' } {
   const ids = normalizeMediaIds(mediaIds)
   if (ids.length === 0) return { ok: true, attachments: [] }
 
@@ -417,11 +535,27 @@ export function decidePostAttachments(
       ? Math.min(POST_MEDIA_IMAGE_MAX, opts.maxImages)
       : POST_MEDIA_IMAGE_MAX
   const allowVideo = opts?.allowVideo !== false
+  const targetAudience = opts?.audience
+  const targetGroupId = opts?.groupId?.trim() || null
 
   const resolved: MediaResolveResult[] = []
   for (const mediaId of ids) {
     const doc = resolveMedia(mediaId)
     if (!doc) return { ok: false, reason: 'unknown_media' }
+    if (targetAudience) {
+      const level = opts?.mediaAccessLevel?.(doc.mediaId) ?? {
+        audience: 'public' as const,
+        groupId: null,
+      }
+      if (
+        shareAudienceIsWider(level.audience, targetAudience, {
+          originalGroupId: level.groupId,
+          nextGroupId: targetGroupId,
+        })
+      ) {
+        return { ok: false, reason: 'audience_too_wide' }
+      }
+    }
     resolved.push({ mediaId: doc.mediaId, mimeType: doc.mimeType })
   }
 
@@ -461,30 +595,10 @@ export function decidePostAttachments(
 }
 
 /**
- * True when a share at `next` would show the original to people it does not
- * already allow. Public can be shared anywhere. Friends cannot become public
- * or a group. Only-me stays only-me. A group post stays in that same group,
- * or only-me.
- */
-export function shareAudienceIsWider(
-  original: PostAudience,
-  next: PostAudience,
-  opts?: { originalGroupId?: string | null; nextGroupId?: string | null },
-): boolean {
-  if (original === 'public') return false
-  if (original === 'friends') return next === 'public' || next === 'group'
-  if (original === 'only_me') return next !== 'only_me'
-  if (next === 'only_me') return false
-  if (next !== 'group') return true
-  const originalGroupId = opts?.originalGroupId?.trim() || ''
-  const nextGroupId = opts?.nextGroupId?.trim() || ''
-  return !originalGroupId || !nextGroupId || originalGroupId !== nextGroupId
-}
-
-/**
  * Decide whether a viewer may read a post.
- * Author always sees their own row. Block (either blocker column), hidden author,
- * and staff hide deny everyone else (manage grant may see a staff-hidden post).
+ * Author always sees their own row. Block (either blocker column) and hidden
+ * author deny everyone else. Staff hide denies without the staff grant.
+ * Staff grant (`canManagePosts`) also private-reads only_me / friends / group.
  */
 export function canViewPost(post: PostRecord, ctx: CanViewPostContext): boolean {
   const viewer = ctx.viewerUserId?.trim() || null
@@ -501,16 +615,124 @@ export function canViewPost(post: PostRecord, ctx: CanViewPostContext): boolean 
 
   switch (post.audience) {
     case 'only_me':
-      return false
+      return Boolean(viewer) && ctx.canManagePosts
     case 'friends':
-      return Boolean(viewer) && ctx.areFriends
+      return Boolean(viewer) && (ctx.areFriends || ctx.canManagePosts)
     case 'public':
       if (!viewer) return ctx.guestCanReadPublic !== false
       return true
     case 'group':
-      return Boolean(viewer) && ctx.isGroupMember
+      return Boolean(viewer) && (ctx.isGroupMember || ctx.canManagePosts)
     default:
       return false
+  }
+}
+
+/**
+ * Owning Social object for a media bind (post / album / story / group document).
+ * Serve-time check builds a synthetic post and calls canViewPost — same ladder.
+ */
+export type BoundMediaOwner = {
+  authorUserId: string
+  audience: PostAudience
+  groupId?: string | null
+  pageId?: string | null
+  staffHidden?: boolean
+}
+
+/** True when the file’s narrowest Social bind is not public on the share ladder. */
+export function mediaBindIsRestricted(level: MediaAccessLevel): boolean {
+  return shareAudienceIsWider(level.audience, 'public', {
+    originalGroupId: level.groupId,
+  })
+}
+
+/**
+ * Allow or deny a viewer for a Social-bound file.
+ * Reuses canViewPost with a synthetic owning post. No database.
+ */
+export function canViewBoundMedia(
+  owning: BoundMediaOwner,
+  ctx: CanViewPostContext,
+): boolean {
+  const authorUserId = owning.authorUserId.trim()
+  if (!authorUserId) return false
+  const post: PostRecord = {
+    id: '',
+    authorUserId,
+    body: '',
+    kind: 'media',
+    audience: owning.audience,
+    groupId: owning.groupId?.trim() || null,
+    pageId: owning.pageId?.trim() || null,
+    staffHidden: owning.staffHidden === true,
+    isAnnouncement: false,
+    editedAt: null,
+    extensions: {},
+    media: [],
+    ...emptyShareLinkFields(),
+    ...emptyPollCheckinFields(),
+    createdAt: new Date(0),
+    updatedAt: new Date(0),
+  }
+  return canViewPost(post, ctx)
+}
+
+/**
+ * Keep the owner facts that produce the narrower MediaAccessLevel.
+ * Incompatible group binds collapse to only_me (author from `a`).
+ */
+export function narrowerBoundMediaOwner(
+  a: BoundMediaOwner,
+  b: BoundMediaOwner,
+): BoundMediaOwner {
+  const aLevel: MediaAccessLevel = {
+    audience: a.audience,
+    groupId: a.groupId,
+  }
+  const bLevel: MediaAccessLevel = {
+    audience: b.audience,
+    groupId: b.groupId,
+  }
+  const narrow = narrowerMediaAccessLevel(aLevel, bLevel)
+  const aGroup = a.groupId?.trim() || null
+  const bGroup = b.groupId?.trim() || null
+  const narrowGroup = narrow.groupId?.trim() || null
+  const aMatches =
+    narrow.audience === a.audience &&
+    (narrow.audience !== 'group' || narrowGroup === aGroup)
+  const bMatches =
+    narrow.audience === b.audience &&
+    (narrow.audience !== 'group' || narrowGroup === bGroup)
+  if (aMatches && !bMatches) {
+    return {
+      ...a,
+      audience: narrow.audience,
+      groupId: narrow.audience === 'group' ? narrowGroup : null,
+    }
+  }
+  if (bMatches && !aMatches) {
+    return {
+      ...b,
+      audience: narrow.audience,
+      groupId: narrow.audience === 'group' ? narrowGroup : null,
+    }
+  }
+  if (!aMatches && !bMatches) {
+    return {
+      authorUserId: a.authorUserId,
+      audience: 'only_me',
+      groupId: null,
+      pageId: null,
+      staffHidden: a.staffHidden === true || b.staffHidden === true,
+    }
+  }
+  return {
+    ...a,
+    audience: narrow.audience,
+    groupId: narrow.audience === 'group' ? narrowGroup : null,
+    pageId: a.pageId ?? b.pageId ?? null,
+    staffHidden: a.staffHidden === true || b.staffHidden === true,
   }
 }
 
@@ -539,6 +761,11 @@ export function createPostRecord(
     now?: Date
     newId?: () => string
     resolveMedia?: (mediaId: string) => MediaResolveResult | null
+    /**
+     * Current access level per mediaId (form privacy + existing binds).
+     * Passed into decidePostAttachments — no DB inside that helper.
+     */
+    mediaAccessLevel?: (mediaId: string) => MediaAccessLevel | null | undefined
     /** Author’s Social member bannedAt — refused when set. */
     authorBannedAt?: Date | null
     /** Pack composer switch. Omit → allow (unit tests / callers without pack). */
@@ -567,24 +794,6 @@ export function createPostRecord(
       if (needle && hay.includes(needle)) return { ok: false, reason: 'blocked_word' }
     }
   }
-  const mediaIds = normalizeMediaIds(input.mediaIds)
-
-  if (mediaIds.length > 0 && !opts?.resolveMedia) {
-    return { ok: false, reason: 'unknown_media' }
-  }
-
-  const mediaDecision =
-    mediaIds.length === 0
-      ? ({ ok: true as const, attachments: [] as PostMediaAttachment[] })
-      : decidePostAttachments(mediaIds, opts!.resolveMedia!, {
-          maxImages: opts?.maxImagesPerPost,
-          allowVideo: opts?.allowPostVideo,
-        })
-  if (!mediaDecision.ok) return mediaDecision
-
-  if (isEmptyPostBody(body) && mediaDecision.attachments.length === 0) {
-    return { ok: false, reason: 'empty_body' }
-  }
 
   const rawAudience = input.audience ?? 'friends'
   const audience =
@@ -600,6 +809,28 @@ export function createPostRecord(
 
   if (audience === 'group' && !groupId) {
     return { ok: false, reason: 'group_required' }
+  }
+
+  const mediaIds = normalizeMediaIds(input.mediaIds)
+
+  if (mediaIds.length > 0 && !opts?.resolveMedia) {
+    return { ok: false, reason: 'unknown_media' }
+  }
+
+  const mediaDecision =
+    mediaIds.length === 0
+      ? ({ ok: true as const, attachments: [] as PostMediaAttachment[] })
+      : decidePostAttachments(mediaIds, opts!.resolveMedia!, {
+          maxImages: opts?.maxImagesPerPost,
+          allowVideo: opts?.allowPostVideo,
+          audience,
+          groupId,
+          mediaAccessLevel: opts?.mediaAccessLevel,
+        })
+  if (!mediaDecision.ok) return mediaDecision
+
+  if (isEmptyPostBody(body) && mediaDecision.attachments.length === 0) {
+    return { ok: false, reason: 'empty_body' }
   }
 
   const now = opts?.now ?? new Date()
@@ -640,7 +871,15 @@ export function createPostRecord(
 export function decideSetPostAudience(
   current: PostRecord | null,
   input: SetPostAudienceInput,
-  opts?: { now?: Date; canManagePosts?: boolean },
+  opts?: {
+    now?: Date
+    canManagePosts?: boolean
+    /**
+     * Current access level per attached mediaId (form privacy + existing binds,
+     * including this post). Passed in — no DB here.
+     */
+    mediaAccessLevel?: (mediaId: string) => MediaAccessLevel | null | undefined
+  },
 ): PostMutationResult {
   if (!current) return { ok: false, reason: 'not_found' }
   const actor = input.actorUserId.trim()
@@ -654,6 +893,29 @@ export function decideSetPostAudience(
   if (!isPostAudience(audience)) return { ok: false, reason: 'invalid_audience' }
   const groupId = input.groupId?.trim() || null
   if (audience === 'group' && !groupId) return { ok: false, reason: 'group_required' }
+
+  if (current.media.length > 0) {
+    for (const row of current.media) {
+      const fromBinds = opts?.mediaAccessLevel?.(row.mediaId) ?? {
+        audience: 'public' as const,
+        groupId: null,
+      }
+      // This post is already a bind — fold it in so widening cannot outrun the file.
+      const level = narrowerMediaAccessLevel(fromBinds, {
+        audience: current.audience,
+        groupId: current.groupId,
+      })
+      if (
+        shareAudienceIsWider(level.audience, audience, {
+          originalGroupId: level.groupId,
+          nextGroupId: groupId,
+        })
+      ) {
+        return { ok: false, reason: 'audience_too_wide' }
+      }
+    }
+  }
+
   return {
     ok: true,
     post: {

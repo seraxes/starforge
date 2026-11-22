@@ -98,11 +98,10 @@ export const ENV_EDITOR_FIELDS: EnvEditorField[] = [
     key: 'PAYLOAD_SECRET',
     label: 'PAYLOAD_SECRET',
     description:
-      'Long random string. Still the payments credential key when SF_PAY_CREDENTIALS_KEY is unset. Not a CMS login secret.',
+      'Long random string for Payload. Not a CMS login secret. Merchant credential encryption uses SF_PAY_CREDENTIALS_KEY (required in production).',
     secret: true,
     kind: 'password',
-    warning:
-      'Changing this changes decrypted merchant credentials when SF_PAY_CREDENTIALS_KEY is unset.',
+    warning: 'Changing this invalidates Payload-signed tokens after restart.',
     group: 'core',
   },
   {

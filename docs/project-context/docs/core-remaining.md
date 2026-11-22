@@ -1,9 +1,13 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Starforge Core — what remains
 
 **Not the live queue.** Dashboard D2–D4, the email send log, Forms/Security/Performance cards, module info pages, and the core glance / needs-attention rail shipped after the lists below (SF-226–SF-230). Events, Maps, Profiles, and Payments are real packs, not stubs. What is still open in Core, and the decision to finish that before the next pack: [architecture-current](./architecture-current.md).
 
 **Scope:** Core only (not heavy Modules / Hero).  
-**Sources:** [core-gaps-evaluation](./core-gaps-evaluation.md) (Nov 4 — **stale on P0–M5**), [admin-dashboard-gap](./admin-dashboard-gap.md), [preferences](../preferences.md), [notes](../notes.md) Done vs Queued (through SF-223 / #135).  
+**Sources:** [core-gaps-evaluation](./core-gaps-evaluation.md) (Nov 4 — **stale on P0–M5**), [admin-dashboard-gap](./admin-dashboard-gap.md), [preferences](../preferences.md), [notes](../../archive/notes.md) Done vs Queued (through SF-223 / #135).  
 
 **Verdict at the time:** Opus called the Core spine “done enough” to start modules. That bar is withdrawn (2026-11-10). Finish the remaining Core host work before the next pack. Do not treat the shipped security slices or the dashboard glance as permission to skip the engine extract. Particle Defaults are not a Core page. They are deferred skin-pack demo content.
 
@@ -83,7 +87,7 @@ Do **not** treat as Core leftovers (focus guard + prefs):
 
 **Shipped after this list was written.** Do not pick these up again: D2 media aggregates (SF-226), D4 soft refresh (SF-227), Forms/Security/Performance cards (SF-228), email send log (SF-229), module info/settings (SF-230), the core glance pack (item 5), the needs-attention rail (item 6), consent categories and redirect CSV (item 10), Mailer transactional templates via `renderTransactionalMail` (item 11), admin theme CSS selected from the registry with a static import per known theme (item 12), and the Forms/Redirects/TipTap extract (item 9). Item 8 is deferred skin-pack demo content. Detail: [architecture-current](./architecture-current.md).
 
-The public Skin port already shipped. The dashboard core glance and needs-attention rail shipped with it as host widgets on `/admin`. Slice instructions, including the admin audit trail and the packs named on 2026-11-11: [core-finish-instructions](./core-finish-instructions.md).
+The public Skin port already shipped. The dashboard core glance and needs-attention rail shipped with it as host widgets on `/admin`. Slice instructions, including the admin audit trail and the packs named on 2026-11-11: [core-finish-instructions](../../archive/core-finish-instructions.md).
 
 ---
 

@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Starforge project context
 
 **Live map:** [architecture-current](./architecture-current.md). Where this file still says Payload owns media, or that Core is the whole CMS, the live map wins. Payload is the first optional content-manager pack. The media library and site settings stay Starforge’s.

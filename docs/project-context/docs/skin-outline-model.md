@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Skin + outline model (Base shell)
 
 **Status:** Skin owns outlines. Each skin is a **YAML + files pack** on disk. Each skin has one **Base** shell; every new outline is a **child** of that Base by default and carries `skin_id`.

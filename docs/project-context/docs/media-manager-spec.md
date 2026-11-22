@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Media Manager — termék / design spec
 
 **Modul:** `product:media` (kötelező) · **Store:** egy Payload `media` gyűjtemény · **UI:** Core `/app/admin/media`  

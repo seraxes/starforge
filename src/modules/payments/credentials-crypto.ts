@@ -2,16 +2,27 @@ import 'server-only'
 
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto'
 
+/** Dev-only fallback when SF_PAY_CREDENTIALS_KEY and PAYLOAD_SECRET are unset. Never use in production. */
+export const DEV_ONLY_PAYMENTS_CREDENTIALS_KEY = 'dev-only-payments-credentials-key'
+
 /**
  * Encrypt merchant secrets at rest (AES-256-GCM).
- * Key: SF_PAY_CREDENTIALS_KEY or derived from PAYLOAD_SECRET.
+ * Key: SF_PAY_CREDENTIALS_KEY (required in production).
+ * Development may fall back to PAYLOAD_SECRET, then DEV_ONLY_PAYMENTS_CREDENTIALS_KEY.
  */
 
 function keyBytes(): Buffer {
+  const dedicated = process.env.SF_PAY_CREDENTIALS_KEY?.trim()
+  if (dedicated) {
+    return createHash('sha256').update(dedicated).digest()
+  }
+  if ((process.env.NODE_ENV ?? '').trim() === 'production') {
+    throw new Error(
+      'SF_PAY_CREDENTIALS_KEY is required in production — do not fall back to PAYLOAD_SECRET or a hardcoded key.',
+    )
+  }
   const raw =
-    process.env.SF_PAY_CREDENTIALS_KEY?.trim() ||
-    process.env.PAYLOAD_SECRET?.trim() ||
-    'dev-only-payments-credentials-key'
+    process.env.PAYLOAD_SECRET?.trim() || DEV_ONLY_PAYMENTS_CREDENTIALS_KEY
   return createHash('sha256').update(raw).digest()
 }
 

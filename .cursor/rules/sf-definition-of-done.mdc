@@ -1,0 +1,18 @@
+---
+description: When a Starforge slice is done — lint, tests, atomic gate, boundary docs, no hand-edits to generated files.
+alwaysApply: true
+---
+
+# Starforge — definition of done
+
+## Laws
+
+1. A slice is done when `npm run lint`, the registered `test:unit` files for the touched area, and `npm run check:atomic` (if a manifest, schema, or public door changed) pass.
+2. New behavior has a success-path test and a failure-path test, registered in `test:unit`.
+3. A boundary change updates the matching rule, the live map, and the owner README in the same change.
+4. Generated files (`AUTO-GENERATED` headers, `src/generated`) are never edited by hand.
+5. Stop and report if a check fails. Do not weaken a check to pass it.
+
+## Quick check
+
+If lint, the area’s unit tests, or `check:atomic` (when required) are red, the slice is not done.

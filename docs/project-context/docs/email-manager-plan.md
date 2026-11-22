@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Email Manager (Modules phase — ahead of Events/Social)
 
 Shared automatic/conditional email pack. **Build after Core freeze** (Profiles thin optional); **before** Events / Maps / Social / Marketplace. Complements shipped [email-mailer-plan](./email-mailer-plan.md) (transport only). Wireframe order: [asn-modules-wireframe](./asn-modules-wireframe.md).

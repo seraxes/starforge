@@ -165,6 +165,43 @@ describe('feed query canViewPost SQL predicate parity', () => {
       'bob',
       facts({ hiddenAuthorIds: new Set(['bob']) }),
     )
+
+    // Staff private-read — only_me / friends / non-member group
+    assertParity(
+      textPost({ authorUserId: 'carol', audience: 'only_me' }),
+      'alice',
+      facts({ canManagePosts: true }),
+    )
+    assertParity(
+      textPost({ authorUserId: 'carol', audience: 'friends' }),
+      'alice',
+      facts({ friendIds: new Set(), canManagePosts: true }),
+    )
+    assertParity(
+      textPost({ authorUserId: 'carol', audience: 'group', groupId: 'g9' }),
+      'alice',
+      facts({ memberGroupIds: new Set(), canManagePosts: true }),
+    )
+    assertParity(
+      textPost({ authorUserId: 'carol', audience: 'only_me' }),
+      'alice',
+      facts({ canManagePosts: false }),
+    )
+    // Block / author-hidden still deny staff
+    assertParity(
+      textPost({ authorUserId: 'carol', audience: 'only_me' }),
+      'alice',
+      facts({ canManagePosts: true, blockedPeerIds: new Set(['carol']) }),
+    )
+    assertParity(
+      textPost({ authorUserId: 'carol', audience: 'friends' }),
+      'alice',
+      facts({
+        friendIds: new Set(),
+        canManagePosts: true,
+        hiddenAuthorIds: new Set(['carol']),
+      }),
+    )
   })
 })
 

@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Media pipeline plan (SF-28 → SF-66 → SF-117)
 
 **Layer:** **Modules** (library UX + sharp/ffmpeg pipeline + tags/categories). **Core ports:** `MediaStorage` (local → Spaces/S3), later `MediaAnalysisPort` (OCR/vision hooks). Quality-check AI **apps** = **Hero** (or external) consumers of that port — they do not fork Media ([platform-module-layers](./platform-module-layers.md)).

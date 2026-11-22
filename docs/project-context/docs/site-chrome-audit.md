@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Site Chrome audit (SF-46)
 
 **Scope:** PR [#25](https://github.com/seraxes/starforge/pull/25) / branch `cursor/site-chrome-admin-95c0` (ahead of `main`).  

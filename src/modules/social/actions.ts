@@ -1,11 +1,18 @@
 'use server'
 
+import { headers } from 'next/headers'
+
 import { revalidatePath } from '@/core/content/defer-revalidate'
 import { requireAdminArea } from '@/core/acl/access'
 import { getAppSession } from '@/core/auth/session'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { memberOwnsMedia } from '@/modules/media/api.server'
 import { sanitizeRichHtml } from '@/modules/rich-editor/api.server'
+
+import {
+  checkSocialWriteRateLimit,
+  SOCIAL_WRITE_RATE_LIMITED_MESSAGE,
+} from './rate-limit'
 
 import {
   acceptFriendship,
@@ -34,6 +41,7 @@ import {
   transferGroup,
 } from './groups-store'
 import { banMember, unbanMember } from './members-store'
+import { viewerMayModerateSocialContent } from './staff-grant'
 import {
   addPageAdmin,
   createPage,
@@ -115,6 +123,9 @@ export async function createTextPostAction(
   const session = await getAppSession()
   const userId = session?.user?.id ? String(session.user.id).trim() : ''
   if (!userId) return { error: 'Sign in to post.' }
+
+  const rateLimited = await socialWriteRateLimited(userId)
+  if (rateLimited) return { error: rateLimited }
 
   const rawBody = String(formData.get('body') ?? '')
   const body = sanitizeRichHtml(rawBody).trim() || rawBody.trim()
@@ -248,6 +259,9 @@ export async function createTextPostAction(
     if (result.reason === 'invalid_media_mix') {
       return { error: 'Use many images or one video — not both.' }
     }
+    if (result.reason === 'audience_too_wide') {
+      return { error: 'That file cannot be attached to a wider audience.' }
+    }
     if (result.reason === 'banned') return { error: 'You cannot post while banned.' }
     if (result.reason === 'disabled_kind') {
       return { error: 'That post type is turned off in Social settings.' }
@@ -376,6 +390,9 @@ export async function setPostAudienceAction(
     if (result.reason === 'invalid_audience' || result.reason === 'group_required') {
       return { error: 'Choose who can see this.' }
     }
+    if (result.reason === 'audience_too_wide') {
+      return { error: 'That file cannot be attached to a wider audience.' }
+    }
     return { error: 'Could not update who can see this.' }
   }
 
@@ -397,6 +414,9 @@ export async function createSharePostAction(
   const session = await getAppSession()
   const userId = session?.user?.id ? String(session.user.id).trim() : ''
   if (!userId) return { error: 'Sign in to share.' }
+
+  const rateLimited = await socialWriteRateLimited(userId)
+  if (rateLimited) return { error: rateLimited }
 
   const sharedPostId = String(formData.get('sharedPostId') ?? '').trim()
   if (!sharedPostId) return { error: 'Choose a post to share.' }
@@ -450,6 +470,8 @@ export async function createGroupAction(
 ): Promise<SocialGroupActionState> {
   const gate = await requireSocialMember()
   if (!gate.ok) return { error: gate.error }
+  const rateLimited = await socialWriteRateLimited(gate.userId)
+  if (rateLimited) return { error: rateLimited }
 
   const name = String(formData.get('name') ?? '').trim()
   const categoryId = String(formData.get('categoryId') ?? '').trim()
@@ -551,6 +573,8 @@ export async function inviteToGroupAction(
 ): Promise<SocialGroupActionState> {
   const gate = await requireSocialMember()
   if (!gate.ok) return { error: gate.error }
+  const rateLimited = await socialWriteRateLimited(gate.userId)
+  if (rateLimited) return { error: rateLimited }
 
   const groupId = String(formData.get('groupId') ?? '').trim()
   const inviteeUserId = String(formData.get('inviteeUserId') ?? '').trim()
@@ -583,6 +607,8 @@ export async function createGroupWallPostAction(
 ): Promise<SocialGroupActionState> {
   const gate = await requireSocialMember()
   if (!gate.ok) return { error: gate.error }
+  const rateLimited = await socialWriteRateLimited(gate.userId)
+  if (rateLimited) return { error: rateLimited }
 
   const groupId = String(formData.get('groupId') ?? '').trim()
   if (!groupId) return { error: 'Missing group.' }
@@ -882,6 +908,8 @@ export async function createPageAction(
 ): Promise<SocialPageActionState> {
   const gate = await requireSocialMember()
   if (!gate.ok) return { error: gate.error }
+  const rateLimited = await socialWriteRateLimited(gate.userId)
+  if (rateLimited) return { error: rateLimited }
 
   const name = String(formData.get('name') ?? '').trim()
   const description = String(formData.get('description') ?? '').trim()
@@ -1010,6 +1038,8 @@ export async function createPageWallPostAction(
 ): Promise<SocialPageActionState> {
   const gate = await requireSocialMember()
   if (!gate.ok) return { error: gate.error }
+  const rateLimited = await socialWriteRateLimited(gate.userId)
+  if (rateLimited) return { error: rateLimited }
 
   const pageId = String(formData.get('pageId') ?? '').trim()
   if (!pageId) return { error: 'Missing page.' }
@@ -1052,6 +1082,8 @@ export async function createStoryAction(
 ): Promise<SocialStoryActionState> {
   const gate = await requireSocialMember()
   if (!gate.ok) return { error: gate.error }
+  const rateLimited = await socialWriteRateLimited(gate.userId)
+  if (rateLimited) return { error: rateLimited }
 
   const mediaId = String(formData.get('mediaId') ?? '').trim()
   if (!mediaId) return { error: 'Pick a photo or video.' }
@@ -1135,6 +1167,8 @@ export async function createAlbumAction(
 ): Promise<SocialAlbumActionState> {
   const gate = await requireSocialMember()
   if (!gate.ok) return { error: gate.error }
+  const rateLimited = await socialWriteRateLimited(gate.userId)
+  if (rateLimited) return { error: rateLimited }
 
   const title = String(formData.get('title') ?? '').trim()
   const ownerTypeRaw = String(formData.get('ownerType') ?? '').trim()
@@ -1186,6 +1220,8 @@ export async function addAlbumItemAction(
 ): Promise<SocialAlbumActionState> {
   const gate = await requireSocialMember()
   if (!gate.ok) return { error: gate.error }
+  const rateLimited = await socialWriteRateLimited(gate.userId)
+  if (rateLimited) return { error: rateLimited }
 
   const albumId = String(formData.get('albumId') ?? '').trim()
   const mediaId = String(formData.get('mediaId') ?? '').trim()
@@ -1243,26 +1279,16 @@ async function requireSocialMember(): Promise<
   return { ok: true, userId }
 }
 
+/** After member gate; before create / mail writes. Staff are not exempt. */
+async function socialWriteRateLimited(userId: string): Promise<string | null> {
+  const limited = await checkSocialWriteRateLimit(userId, await headers())
+  if (!limited.ok) return SOCIAL_WRITE_RATE_LIMITED_MESSAGE
+  return null
+}
+
 export type SocialCommentActionState = {
   error?: string
   ok?: boolean
-}
-
-/**
- * True when the signed-in member may moderate Social posts/comments
- * (edit / delete / audience on any). App admins (devs included) bypass;
- * others need admin.social edit. See `sf-staff-bypass`.
- */
-async function viewerMayModerateSocialContent(userId: string): Promise<boolean> {
-  const {
-    getAccessViewer,
-    viewerMayAccessAdminResource,
-    viewerMayOverrideMemberOwnership,
-  } = await import('@/core/acl/access')
-  const viewer = await getAccessViewer()
-  if (!viewer.userId || viewer.userId !== userId) return false
-  if (viewerMayOverrideMemberOwnership(viewer)) return true
-  return viewerMayAccessAdminResource(viewer, 'admin.social', 'edit')
 }
 
 /** Comment, reply, or a reply to that reply. A third level is refused. */
@@ -1272,6 +1298,8 @@ export async function createCommentAction(
 ): Promise<SocialCommentActionState> {
   const gate = await requireSocialMember()
   if (!gate.ok) return { error: gate.error }
+  const rateLimited = await socialWriteRateLimited(gate.userId)
+  if (rateLimited) return { error: rateLimited }
 
   const postId = String(formData.get('postId') ?? '').trim()
   const parentCommentId = String(formData.get('parentCommentId') ?? '').trim() || null
@@ -1371,6 +1399,8 @@ export async function setReactionAction(
 ): Promise<SocialCommentActionState> {
   const gate = await requireSocialMember()
   if (!gate.ok) return { error: gate.error }
+  const rateLimited = await socialWriteRateLimited(gate.userId)
+  if (rateLimited) return { error: rateLimited }
 
   const targetType = String(formData.get('targetType') ?? '').trim()
   const targetId = String(formData.get('targetId') ?? '').trim()
@@ -1424,6 +1454,8 @@ export async function requestFriendAction(
 ): Promise<SocialPeopleActionState> {
   const gate = await requireSocialMember()
   if (!gate.ok) return { error: gate.error }
+  const rateLimited = await socialWriteRateLimited(gate.userId)
+  if (rateLimited) return { error: rateLimited }
 
   const otherId = String(formData.get('userId') ?? '').trim()
   if (!otherId) return { error: 'Choose a member.' }
@@ -1568,6 +1600,8 @@ export async function followUserAction(
 ): Promise<SocialFollowActionState> {
   const gate = await requireSocialMember()
   if (!gate.ok) return { error: gate.error }
+  const rateLimited = await socialWriteRateLimited(gate.userId)
+  if (rateLimited) return { error: rateLimited }
 
   const otherId = String(formData.get('userId') ?? '').trim()
   if (!otherId) return { error: 'Choose a member.' }
@@ -1680,6 +1714,8 @@ export async function votePollAction(
 ): Promise<SocialPollActionState> {
   const gate = await requireSocialMember()
   if (!gate.ok) return { error: gate.error }
+  const rateLimited = await socialWriteRateLimited(gate.userId)
+  if (rateLimited) return { error: rateLimited }
 
   const postId = String(formData.get('postId') ?? '').trim()
   const optionId = String(formData.get('optionId') ?? '').trim()

@@ -1,3 +1,7 @@
+---
+kind: reference
+last_verified: 2026-11-22
+---
 # Starforge — local setup guide (first time)
 
 You are new to React + Node + PostgreSQL. Follow this in order. Do not skip ahead to DigitalOcean.

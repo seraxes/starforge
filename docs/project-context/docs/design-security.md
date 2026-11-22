@@ -1,11 +1,15 @@
 ---
+kind: superseded
+last_verified: 2026-11-22
+superseded_by: architecture-current.md
 cursor:
   subagentId: "bc-0ab719b5-2646-52f8-8a6c-6069013cc077"
 ---
+this is a Payload-era target design; current posture is the live map.
 
 # Starforge design — security target
 
-**Status:** target design. Current gaps and evidence are in [architecture-opus-audit](./architecture-opus-audit.md) (state at `main` @ `812b8f5`: #77/#78 merged; CSP, `csrf`, and upload gaps still open). Overview: [design-system-overview](./design-system-overview.md).
+**Status:** target design. Current gaps and evidence are in [architecture-opus-audit](./architecture-opus-audit.md) (state at `main` @ `812b8f5`: #77/#78 merged; CSP, `csrf`, and upload gaps still open). Overview: [design-system-overview](../../archive/design-system-overview.md).
 
 ## 1. Trust model
 

@@ -1,0 +1,17 @@
+---
+description: Rules hold laws; dates, queue, and open work live on the map; finished plans archive; live links resolve.
+globs: "docs/**,AGENTS.md,.cursor/rules/**"
+alwaysApply: false
+---
+
+# Starforge — docs hygiene
+
+## Laws
+
+1. A rule holds laws. Dates, queue, and temporary standing belong on the live map — not in a rule.
+2. Open work stays on the live map. Finished plans move to `docs/archive/` in the change that finishes them.
+3. Links in live docs are relative and must resolve.
+
+## Quick check
+
+If a rule mentions a date, a build queue, or temporary standing, move that fact to the live map.

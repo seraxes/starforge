@@ -1,4 +1,6 @@
 ---
+kind: reference
+last_verified: 2026-11-22
 cursor:
   subagentId: "bc-0ab719b5-2646-52f8-8a6c-6069013cc077"
 ---
@@ -7,7 +9,7 @@ cursor:
 
 **Status:** the manifest **shape** is still the contract. The 3 Nov queue and the “a pack PR never touches Core” acceptance test are not. Live map: [architecture-current](./architecture-current.md). M0–M2 and the Media UI move (M5) shipped. Redirects engine is `src/modules/redirects` (M3). Forms engine is `src/modules/forms` (M4). TipTap engine is `src/modules/rich-editor`.
 
-**Status (original):** target design. Goal: the next packs are added without product behavior landing in `src/core`. A new **port** or host extension may still edit Core. This complements [module-toggle-architecture](./module-toggle-architecture.md) (allowlist/packages) and [replaceable-modularity-plan](./replaceable-modularity-plan.md) (ports vs modules). Overview: [design-system-overview](./design-system-overview.md).
+**Status (original):** target design. Goal: the next packs are added without product behavior landing in `src/core`. A new **port** or host extension may still edit Core. This complements [module-toggle-architecture](./module-toggle-architecture.md) (allowlist/packages) and [replaceable-modularity-plan](./replaceable-modularity-plan.md) (ports vs modules). Overview: [design-system-overview](../../archive/design-system-overview.md).
 
 ## 1. Why (evidence)
 

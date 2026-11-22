@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Layout Styles plan (SF-34 / SF-64)
 
 Gantry Helium Styles reference (`media/gantry-core-section-styles.png`).

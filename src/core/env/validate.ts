@@ -33,6 +33,27 @@ function looksHttp(url: string): boolean {
   return /^https?:\/\//i.test(url)
 }
 
+/** Values from `.env.example` — never ship these in production. */
+const EXAMPLE_PLACEHOLDER_SECRETS = new Set([
+  'dev-only-change-me-to-a-long-random-string',
+  'dev-only-better-auth-secret-change-me',
+])
+
+/** Hardcoded payments credentials fallback — never ship as SF_PAY_CREDENTIALS_KEY in production. */
+const PAYMENTS_CREDENTIALS_DEV_FALLBACK = 'dev-only-payments-credentials-key'
+
+/**
+ * True when a secret looks like a documented placeholder (not CI `ci-only-*`).
+ * Case-insensitive for substring markers; exact match for known example values.
+ */
+export function isPlaceholderSecret(value: string): boolean {
+  const trimmed = value.trim()
+  if (!trimmed) return false
+  if (EXAMPLE_PLACEHOLDER_SECRETS.has(trimmed)) return true
+  const lower = trimmed.toLowerCase()
+  return lower.includes('dev-only') || lower.includes('change-me')
+}
+
 /**
  * Validate Starforge process env against the deploy contract.
  * Pass `env` in tests; defaults to `process.env`.
@@ -78,16 +99,23 @@ export function validateStarforgeEnv(
       ;(prod ? errors : warnings).push(issue)
       continue
     }
-    if (
-      (key === 'PAYLOAD_SECRET' || key === 'BETTER_AUTH_SECRET') &&
-      value.length < 32
-    ) {
-      const issue: EnvIssue = {
-        level: prod ? 'error' : 'warn',
-        key,
-        message: `${key} should be at least 32 characters.`,
+    if (key === 'PAYLOAD_SECRET' || key === 'BETTER_AUTH_SECRET') {
+      if (value.length < 32) {
+        const issue: EnvIssue = {
+          level: prod ? 'error' : 'warn',
+          key,
+          message: `${key} should be at least 32 characters.`,
+        }
+        ;(prod ? errors : warnings).push(issue)
+      } else if (isPlaceholderSecret(value)) {
+        // Production: refuse known placeholders. Dev/test: warn so `.env.example` still boots.
+        const issue: EnvIssue = {
+          level: prod ? 'error' : 'warn',
+          key,
+          message: `${key} looks like a placeholder — set a real random secret before production.`,
+        }
+        ;(prod ? errors : warnings).push(issue)
       }
-      ;(prod ? errors : warnings).push(issue)
     }
   }
 
@@ -115,8 +143,19 @@ export function validateStarforgeEnv(
   }
 
   // --- Cookies / origins (optional) ---
+  // Production: warn when unset/empty (proxy headers ignored → shared rate-limit bucket).
+  // Non-integer stays a warning in every env. Never an error — CI boots without this key.
   const trustedProxy = trim('STARFORGE_TRUSTED_PROXY_HOPS', env)
-  if (trustedProxy && !/^\d+$/.test(trustedProxy)) {
+  if (!trustedProxy) {
+    if (prod) {
+      warnings.push({
+        level: 'warn',
+        key: 'STARFORGE_TRUSTED_PROXY_HOPS',
+        message:
+          'STARFORGE_TRUSTED_PROXY_HOPS is unset — proxy headers are ignored and clients share one rate-limit bucket. Set a non-negative integer (usually 1) behind a reverse proxy.',
+      })
+    }
+  } else if (!/^\d+$/.test(trustedProxy)) {
     warnings.push({
       level: 'warn',
       key: 'STARFORGE_TRUSTED_PROXY_HOPS',
@@ -191,6 +230,30 @@ export function validateStarforgeEnv(
       key: 'SMTP_PORT',
       message: 'SMTP_HOST is set but SMTP_PORT is empty.',
     })
+  }
+
+  // --- Payments merchant-credentials key (production only) ---
+  // Must not fall back to PAYLOAD_SECRET or the hardcoded dev string.
+  if (prod) {
+    const payCredKey = trim('SF_PAY_CREDENTIALS_KEY', env)
+    if (!payCredKey) {
+      errors.push({
+        level: 'error',
+        key: 'SF_PAY_CREDENTIALS_KEY',
+        message:
+          'SF_PAY_CREDENTIALS_KEY is required in production (do not fall back to PAYLOAD_SECRET).',
+      })
+    } else if (
+      payCredKey === PAYMENTS_CREDENTIALS_DEV_FALLBACK ||
+      isPlaceholderSecret(payCredKey)
+    ) {
+      errors.push({
+        level: 'error',
+        key: 'SF_PAY_CREDENTIALS_KEY',
+        message:
+          'SF_PAY_CREDENTIALS_KEY looks like a placeholder — set a dedicated production key.',
+      })
+    }
   }
 
   // Touch requireNonEmpty helper so tree-shaking keeps the shape for future hard rules.

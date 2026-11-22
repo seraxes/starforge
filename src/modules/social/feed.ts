@@ -20,7 +20,9 @@ export type HomeFeedVisibilityFacts = {
   blockedPeerIds: ReadonlySet<string>
   /** Authors whose account / profile is hidden from others. */
   hiddenAuthorIds: ReadonlySet<string>
-  /** `social.posts` manage — review queue may see staff-hidden posts. */
+  /**
+   * Staff grant — staff-hidden posts and private-read (only_me / friends / group).
+   */
   canManagePosts?: boolean
   /** Group ids the viewer belongs to (slice 13). */
   memberGroupIds?: ReadonlySet<string>
@@ -104,16 +106,22 @@ export function matchesCanViewPostPredicate(
     )
   }
 
+  const staff = facts.canManagePosts ?? false
+
   switch (post.audience) {
     case 'only_me':
-      return false
+      return Boolean(viewer) && staff
     case 'friends':
-      return Boolean(viewer) && facts.friendIds.has(post.authorUserId)
+      return (
+        Boolean(viewer) &&
+        (facts.friendIds.has(post.authorUserId) || staff)
+      )
     case 'public':
       return true
     case 'group':
       return Boolean(
-        viewer && post.groupId && facts.memberGroupIds?.has(post.groupId),
+        viewer &&
+          ((post.groupId && facts.memberGroupIds?.has(post.groupId)) || staff),
       )
     default:
       return false
@@ -123,23 +131,27 @@ export function matchesCanViewPostPredicate(
 /**
  * Home-feed row predicate: candidate scope plus canViewPost.
  * This is what the SQL WHERE encodes before LIMIT.
+ * Staff grant skips the friends-graph candidate cut so private-read posts
+ * (only_me / non-friend friends / non-member group) stay in the SQL page.
  */
 export function matchesHomeFeedVisibilityPredicate(
   post: PostRecord,
   viewerUserId: string,
   facts: HomeFeedVisibilityFacts,
 ): boolean {
-  if (
-    !isHomeFeedCandidate(
-      post,
-      viewerUserId,
-      facts.friendIds,
-      facts.memberGroupIds,
-      facts.likedPageIds,
-      facts.adminPageIds,
-    )
-  ) {
-    return false
+  if (!(facts.canManagePosts ?? false)) {
+    if (
+      !isHomeFeedCandidate(
+        post,
+        viewerUserId,
+        facts.friendIds,
+        facts.memberGroupIds,
+        facts.likedPageIds,
+        facts.adminPageIds,
+      )
+    ) {
+      return false
+    }
   }
   return matchesCanViewPostPredicate(post, viewerUserId, facts)
 }

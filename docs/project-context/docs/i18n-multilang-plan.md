@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Multilanguage (i18n) plan — before Modules wave
 
 **Purpose:** Lock App Router best practice for Starforge locales **before** heavy Modules (Events…) so packs ship with a string/content contract instead of retrofitting later.  

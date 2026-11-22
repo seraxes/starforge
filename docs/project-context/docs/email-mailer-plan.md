@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Email settings + Mailer port (SF-96)
 
 Thin infrastructure port so Forms (and later forgot-password) send mail without hard-coding a vendor. Aligns with [replaceable-modularity-plan](./replaceable-modularity-plan.md): Chrome policy + env secrets; one active adapter at boot/send time.

@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Form feature gap analysis — Starforge Core vs RSForm-style builders
 
 **Lens:** Starforge Forms as ~70% shared platform engine (contact / survey / ticket intake / registration seeds). Compare to **RSForm! Pro** (primary), with a light **Gravity Forms**-class cross-check. Prioritize what Core must own — not every enterprise checkbox. ASN keeps commerce / domain workflows.

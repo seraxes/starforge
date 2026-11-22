@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Events / venues manager (Modules)
 
 **Layer:** **Modules** (`product:events`). AI description assist uses Core **`LlmProvider`** port. ASN field/milsim semantics = **Hero** on the same entities — not an events fork ([platform-module-layers](./platform-module-layers.md)).

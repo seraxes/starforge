@@ -1,4 +1,6 @@
 ---
+kind: history
+last_verified: 2026-11-22
 cursor:
   subagentId: "bc-4d38b236-3d6b-57b9-b8c4-72e67a53bb42"
 ---
@@ -6,7 +8,7 @@ cursor:
 # Starforge Core — architecture audit (Opus, SF-136)
 
 **Scope:** `seraxes/starforge` `main` @ `f8a3640` (includes Redis cache [#76](https://github.com/seraxes/starforge/pull/76) + Form upload/hidden [#75](https://github.com/seraxes/starforge/pull/75)) plus open spine PRs [#77](https://github.com/seraxes/starforge/pull/77) (S3/Spaces) and [#78](https://github.com/seraxes/starforge/pull/78) (security headers). Read-only. Paths are repo-relative to `/agent/repos/starforge`.
-**Builds on:** [stack-architecture-coherence](../internal/stack-architecture-coherence.md) (Nov 2) — not repeated here except where still open.
+**Builds on:** stack-architecture-coherence (Nov 2) — not repeated here except where still open.
 
 **Verdict:** The direction holds up: one login, schema isolation, and Mailer/cache ports behind interfaces are all good. Two things are weak. First, the **Module layer is a concept, not a code boundary**: every "module" today means editing Core. Second, the **public write paths (Form uploads, Payload globals, deploy/migrations) have not been hardened** to the level the feature velocity assumes. Fix the security and deploy items before more spine features, and define a module contract before SF-130/131/133 add more code to Core.
 

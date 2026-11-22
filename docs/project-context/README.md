@@ -14,7 +14,7 @@ Snapshot of the Cursor **Project Context** store, synced into the git repo so pl
 
 | Path in repo | From Context store |
 |--------------|--------------------|
-| [`notes.md`](./notes.md) | Live SF task board |
+| [`notes.md`](../archive/notes.md) | SF task board (archived) |
 | [`preferences.md`](./preferences.md) | `preferences.md` |
 | [`docs/`](./docs/) | Entire `docs/` (plans, audits, specs, kickoffs) |
 | [`principles/`](./principles/) | Entire `principles/` |
@@ -28,7 +28,7 @@ Snapshot of the Cursor **Project Context** store, synced into the git repo so pl
 
 ## Top-level contents
 
-- **notes.md** — SF task board (For Review / Queued / Done)
+- **notes.md** — SF task board (archived: [`../archive/notes.md`](../archive/notes.md))
 - **preferences.md** — durable product / process preferences
 - **docs/** — 38 markdown plans, audits, and specs
 - **principles/** — `modular-core.md`, `on-demand-one-worker.md`
@@ -36,7 +36,7 @@ Snapshot of the Cursor **Project Context** store, synced into the git repo so pl
 ### Docs index (filenames)
 
 - `architecture-current.md` — **read first** (queue, routes, secrets, hero line)
-- `core-finish-instructions.md` — one-slice instructions for the Core finish, plus packs named later
+- `core-finish-instructions.md` — archived: [`../archive/core-finish-instructions.md`](../archive/core-finish-instructions.md)
 - `admin-dashboard-benchmarks.md`
 - `admin-dashboard-gap.md`
 - `admin-dashboard-plan.md`
@@ -50,7 +50,7 @@ Snapshot of the Cursor **Project Context** store, synced into the git repo so pl
 - `design-data-deploy.md`
 - `design-module-boundary.md`
 - `design-security.md`
-- `design-system-overview.md`
+- `design-system-overview.md` — archived: [`../archive/design-system-overview.md`](../archive/design-system-overview.md)
 - `email-mailer-plan.md`
 - `email-manager-plan.md`
 - `events-manager-plan.md`

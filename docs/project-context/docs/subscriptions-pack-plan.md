@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # product:subscriptions — pack plan
 
 **Status:** Lifecycle MVP implemented (Membership Pro–inspired, Starforge ownership). Live queue: [architecture-current](./architecture-current.md) — after paid event tickets, before ads.

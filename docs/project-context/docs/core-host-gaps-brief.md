@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Core host gaps — instructions for Auto
 
 **Model:** Cursor Auto or Composer. One slice per chat. Do not start the next slice in the same chat.

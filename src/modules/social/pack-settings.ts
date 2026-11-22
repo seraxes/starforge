@@ -2,7 +2,8 @@
  * product:social pack settings — one document in `sf_module_settings`.
  *
  * Composer and feed (slice 15b): default audience, guest public read, feed page
- * size, composer/feature switches, activity cards, comment length, hold-for-review.
+ * size, composer/feature switches, activity cards, comment length, member write
+ * rate limit, hold-for-review.
  * People / reactions / reports (slice 15c): friend requests, follow, ban list
  * surfaces, reaction catalog + comment/story toggles, report reasons, auto-hide,
  * word list, friend-list visibility. Groups / pages (slice 15d): creation rules,
@@ -46,6 +47,14 @@ export const SOCIAL_FEED_PAGE_SIZE_MAX = 100
 export const SOCIAL_COMMENT_LENGTH_LIMIT_DEFAULT = 5000
 export const SOCIAL_COMMENT_LENGTH_LIMIT_MIN = 1
 export const SOCIAL_COMMENT_LENGTH_LIMIT_MAX = 20000
+
+/** Member write flood bucket (posts, comments, reactions, requests, …). */
+export const SOCIAL_WRITE_RATE_LIMIT_MAX_DEFAULT = 60
+export const SOCIAL_WRITE_RATE_LIMIT_MAX_MIN = 1
+export const SOCIAL_WRITE_RATE_LIMIT_MAX_MAX = 500
+export const SOCIAL_WRITE_RATE_LIMIT_WINDOW_SEC_DEFAULT = 60
+export const SOCIAL_WRITE_RATE_LIMIT_WINDOW_SEC_MIN = 1
+export const SOCIAL_WRITE_RATE_LIMIT_WINDOW_SEC_MAX = 3600
 
 /** 0 = no pending-request cap. */
 export const SOCIAL_MAX_PENDING_FRIEND_REQUESTS_DEFAULT = 50
@@ -131,6 +140,10 @@ export type SocialModuleSettings = {
   allowFollowingTab: boolean
   allowShortVideoLayout: boolean
   commentLengthLimit: number
+  /** Max Social member writes per window (shared bucket). */
+  writeRateLimitMax: number
+  /** Window seconds for {@link writeRateLimitMax}. */
+  writeRateLimitWindowSec: number
   /** When on, new posts start staff-hidden until review. Default off. */
   holdNewPostsForReview: boolean
   /** Slice 15c — people / reactions / reports. */
@@ -194,6 +207,8 @@ export const DEFAULT_SOCIAL_MODULE_SETTINGS: SocialModuleSettings = {
   allowFollowingTab: true,
   allowShortVideoLayout: true,
   commentLengthLimit: SOCIAL_COMMENT_LENGTH_LIMIT_DEFAULT,
+  writeRateLimitMax: SOCIAL_WRITE_RATE_LIMIT_MAX_DEFAULT,
+  writeRateLimitWindowSec: SOCIAL_WRITE_RATE_LIMIT_WINDOW_SEC_DEFAULT,
   holdNewPostsForReview: false,
   allowFriendRequests: true,
   maxPendingFriendRequests: SOCIAL_MAX_PENDING_FRIEND_REQUESTS_DEFAULT,
@@ -235,6 +250,7 @@ export type SocialPackSettingsRefuseReason =
   | 'invalid_multi_cap'
   | 'invalid_feed_page_size'
   | 'invalid_comment_length'
+  | 'invalid_write_rate_limit'
   | 'invalid_max_pending'
   | 'invalid_auto_hide_threshold'
   | 'invalid_group_creator'
@@ -349,6 +365,24 @@ function readSettings(
     mode,
   )
   if (commentLengthLimit === 'invalid') return 'invalid_comment_length'
+
+  const writeRateLimitMax = readBoundedInt(
+    obj.writeRateLimitMax,
+    DEFAULT_SOCIAL_MODULE_SETTINGS.writeRateLimitMax,
+    SOCIAL_WRITE_RATE_LIMIT_MAX_MIN,
+    SOCIAL_WRITE_RATE_LIMIT_MAX_MAX,
+    mode,
+  )
+  if (writeRateLimitMax === 'invalid') return 'invalid_write_rate_limit'
+
+  const writeRateLimitWindowSec = readBoundedInt(
+    obj.writeRateLimitWindowSec,
+    DEFAULT_SOCIAL_MODULE_SETTINGS.writeRateLimitWindowSec,
+    SOCIAL_WRITE_RATE_LIMIT_WINDOW_SEC_MIN,
+    SOCIAL_WRITE_RATE_LIMIT_WINDOW_SEC_MAX,
+    mode,
+  )
+  if (writeRateLimitWindowSec === 'invalid') return 'invalid_write_rate_limit'
 
   const maxPendingFriendRequests = readBoundedInt(
     obj.maxPendingFriendRequests,
@@ -500,6 +534,8 @@ function readSettings(
       DEFAULT_SOCIAL_MODULE_SETTINGS.allowShortVideoLayout,
     ),
     commentLengthLimit,
+    writeRateLimitMax,
+    writeRateLimitWindowSec,
     holdNewPostsForReview: readFlag(
       obj.holdNewPostsForReview,
       DEFAULT_SOCIAL_MODULE_SETTINGS.holdNewPostsForReview,
@@ -608,6 +644,8 @@ export function socialPackSettingsError(reason: SocialPackSettingsRefuseReason):
       return 'Feed page size must be a whole number from 1 to 100.'
     case 'invalid_comment_length':
       return 'Comment length limit must be a whole number from 1 to 20000.'
+    case 'invalid_write_rate_limit':
+      return `Write rate limit must be a whole number from ${SOCIAL_WRITE_RATE_LIMIT_MAX_MIN} to ${SOCIAL_WRITE_RATE_LIMIT_MAX_MAX} actions per ${SOCIAL_WRITE_RATE_LIMIT_WINDOW_SEC_MIN}–${SOCIAL_WRITE_RATE_LIMIT_WINDOW_SEC_MAX} seconds.`
     case 'invalid_max_pending':
       return 'Max pending friend requests must be a whole number from 0 to 500.'
     case 'invalid_auto_hide_threshold':
@@ -731,6 +769,8 @@ export function socialComposerSettingsFromForm(formData: FormData): Record<strin
     allowFollowingTab: formData.get('allowFollowingTab') === '1',
     allowShortVideoLayout: formData.get('allowShortVideoLayout') === '1',
     commentLengthLimit: formData.get('commentLengthLimit'),
+    writeRateLimitMax: formData.get('writeRateLimitMax'),
+    writeRateLimitWindowSec: formData.get('writeRateLimitWindowSec'),
     holdNewPostsForReview: formData.get('holdNewPostsForReview') === '1',
   }
 }

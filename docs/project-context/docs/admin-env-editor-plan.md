@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Admin Environment editor (configuration.php-like)
 
 Joomla-style env editing from Core admin — **not** secrets in Postgres / Payload / Site Settings / Site Chrome DB fields. Aligns with prefs: secrets stay in env / `.env` only.

@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Payload + Core admin theme (replaceable)
 
 Align Payload `/admin` with Core `/app/admin` (Gantry Helium dark navy, pastel blue chrome, orange primary actions) and keep one left-nav tree. Theme is a **replaceable port**, not a one-off CSS dump.

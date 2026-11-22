@@ -30,6 +30,7 @@ import {
 } from './posts'
 import { hydratePostsMedia } from './posts-store'
 import { sfSocialFriendships, sfSocialPosts } from './schema'
+import { viewerMayModerateSocialContent } from './staff-grant'
 
 function mapPostRow(row: typeof sfSocialPosts.$inferSelect): PostRecord | null {
   return toPostRecord(row)
@@ -45,22 +46,30 @@ async function viewCtxForPost(
 ): Promise<CanViewPostContext> {
   const viewer = viewerUserId?.trim() || null
   const author = post.authorUserId
-  const [friends, blocked, authorHidden, isGroupMember, isPageLiker, isPageAdmin] =
-    await Promise.all([
-      viewer && viewer !== author ? areFriends(viewer, author) : Promise.resolve(false),
-      viewer && viewer !== author ? areBlocked(viewer, author) : Promise.resolve(false),
-      // Author may always see own posts (canViewPost); hidden still blocks others.
-      viewer === author ? Promise.resolve(false) : isMemberAccountHidden(author),
-      viewer && post.groupId
-        ? isUserActiveGroupMember(viewer, post.groupId)
-        : Promise.resolve(false),
-      viewer && post.pageId
-        ? isUserPageLiker(viewer, post.pageId)
-        : Promise.resolve(false),
-      viewer && post.pageId
-        ? isUserPageAdmin(viewer, post.pageId)
-        : Promise.resolve(false),
-    ])
+  const [
+    friends,
+    blocked,
+    authorHidden,
+    isGroupMember,
+    isPageLiker,
+    isPageAdmin,
+    canManagePosts,
+  ] = await Promise.all([
+    viewer && viewer !== author ? areFriends(viewer, author) : Promise.resolve(false),
+    viewer && viewer !== author ? areBlocked(viewer, author) : Promise.resolve(false),
+    // Author may always see own posts (canViewPost); hidden still blocks others.
+    viewer === author ? Promise.resolve(false) : isMemberAccountHidden(author),
+    viewer && post.groupId
+      ? isUserActiveGroupMember(viewer, post.groupId)
+      : Promise.resolve(false),
+    viewer && post.pageId
+      ? isUserPageLiker(viewer, post.pageId)
+      : Promise.resolve(false),
+    viewer && post.pageId
+      ? isUserPageAdmin(viewer, post.pageId)
+      : Promise.resolve(false),
+    viewer ? viewerMayModerateSocialContent(viewer) : Promise.resolve(false),
+  ])
   return {
     viewerUserId: viewer,
     areFriends: friends,
@@ -69,7 +78,7 @@ async function viewCtxForPost(
     isGroupMember,
     isPageLiker,
     isPageAdmin,
-    canManagePosts: false,
+    canManagePosts,
   }
 }
 
@@ -200,7 +209,8 @@ export async function listHomeFeedPosts(
     }
   }
   const limit = Math.min(Math.max(1, Math.floor(opts?.limit ?? defaultLimit)), 100)
-  const canManagePosts = opts?.canManagePosts ?? false
+  const canManagePosts =
+    opts?.canManagePosts ?? (await viewerMayModerateSocialContent(viewer))
 
   const [
     friendIds,
@@ -270,12 +280,26 @@ export async function listHomeFeedPosts(
         )
       : sql`false`
 
-  // Own posts always; friends’ friends/public; group walls; liked/admin pages.
+  // Staff private-read: only_me / friends / group without friendship or membership
+  // (parity with canViewPost). Block + author-hidden still deny.
+  const staffPrivateVisible = canManagePosts
+    ? and(
+        authorNotBlocked,
+        authorNotHidden,
+        isNull(sfSocialPosts.pageId),
+        inArray(sfSocialPosts.audience, ['only_me', 'friends', 'group', 'public']),
+        staffOk,
+      )
+    : sql`false`
+
+  // Own posts always; friends’ friends/public; group walls; liked/admin pages;
+  // staff private-read when granted.
   const visibility = or(
     eq(sfSocialPosts.authorUserId, viewer),
     friendVisible,
     groupVisible,
     pageVisible,
+    staffPrivateVisible,
   )
 
   let rows: (typeof sfSocialPosts.$inferSelect)[] = []

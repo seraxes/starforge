@@ -1,578 +1,76 @@
 # Starforge
 
-Reusable **product core** for ordinary web apps (auth, users, app shell, extension points). The content manager is **`product:pages`**. Media is **`product:media`**.
+Reusable product core for ordinary web apps: auth, users/groups, app shell, and toggleable packs. The content manager is **`product:pages`**. Media is **`product:media`**. Sign-in is Better Auth only; one admin at `/admin`.
 
-**One admin:** `/admin` (Dashboard, users, groups, site settings, nav, layouts, pages, media). `/cms` redirects there. Sign-in is Better Auth. `cms_access` gates page editing and draft preview.
+Live architecture and open work: [architecture-current](docs/project-context/docs/architecture-current.md). Agent index: [AGENTS.md](AGENTS.md).
 
-This is an early scaffold plus **core app auth** (Better Auth), **roles + user groups + ACL matrix**, **`cms_access`**, **site settings + feature toggles**, **Nav manager**, **Page Settings** (Gantry-style Head / Assets / Body / Font Awesome / Atoms in `sf_page_chrome`; outline assignment via nav), **TipTap** page editing, **public `/[locale]/[slug]`** rendering, **draft preview** (`/preview/[slug]`), **published content cache** (Next.js tags; Redis later), **page SEO fields**, **extension modules + Gantry-like layout manager** (sections/rows/slots + % widths in `sf_layouts`, palette UI at `/admin/layouts`, typed Logo/Copyright/Social + page-content + Custom particles), and **`npm run seed`**. It is intentionally small and runnable locally — not Airsoftnexus 2.0 feature parity, and not a DigitalOcean deploy.
+## Placements
 
-## Architecture
-
-| Layer | Owns | Location |
-| --- | --- | --- |
-| **Starforge core** | Product APIs, auth/sessions/users (incl. 2FA), Drizzle tables in Postgres `public` | `src/core/`, `src/app/api/` |
-| **`product:pages`** | Editorial pages, drafts, versions, page tags | `src/modules/pages` |
-| **`product:media`** | Media documents (`sf_media_*`) and the library UI | `src/modules/media` |
-
-- Core tables (`sf_*` in `public`) are applied with **migrations** (`npm run db:migrate`). That command also drops a leftover `payload` schema after copying any remaining rows. Local scratch may still use `npm run db:core:push`; never on shared/prod DBs.
-- Hot paths stay in core.
-
-### Published content cache
-
-Anonymous `/[slug]` and public chrome load through core helpers backed by a small **pluggable cache**:
-
-| Piece | Behavior |
+| Placement | What it is |
 | --- | --- |
-| Default (local) | Next.js `unstable_cache` + cache tags (`sf:published-page:{slug}`, `sf:site-settings`, `sf:layout:*`, `sf:nav-menu:*`, `sf:page-chrome:*`, `sf:proxy-policy`, …) |
-| Revalidate | Payload hooks + Core admin actions **await** `invalidateTags` / helpers so Redis multi-instance never races save → redirect |
-| Cached reads | Pages, Site Settings, Site Chrome, layout outlines, Nav menus, Page Settings chrome, feature CSP sources |
-| Draft preview | `/preview/[slug]` stays **uncached** and auth-gated (`cms_access` + feature toggle) |
-| Redis | **Optional for DigitalOcean multi-instance.** Not required locally. Same loader API — set `STARFORGE_CONTENT_CACHE=redis` and `REDIS_URL` (`src/core/content/cache/`). Optional `STARFORGE_REDIS_PREFIX` (default `sf:${NODE_ENV}`). |
-| Node proxy | `src/proxy.ts` (Next 16; replaces Edge `middleware`) reads redirects / offline / CSP **in-process** — no internal HTTP hops. Leftover: optional redirect-map cache at volume + CSP report-only → enforce. |
+| **Core** | Host that boots every site (auth, layout/nav/chrome, module installer, thin ports) |
+| **Base module** | Shared engine other packs list in `requires` (Media, Forms, Payments, …) |
+| **Advanced module** | Domain product that depends on base packs (Events, Subscriptions, Social, …) |
+| **Hero** | One site’s brand and vertical rules — does not fork a module |
 
-Do not call Payload Local API from hot anonymous paths except through these helpers.
-
-### Media storage
-
-One Payload **Media** library forever (sharp resize/WebP pipeline unchanged). Blob backend is a Core port:
-
-| Backend | When | Env |
-| --- | --- | --- |
-| Local disk (default) | Dev / single node | Unset or `STARFORGE_MEDIA_STORAGE=local` — files under `/media` |
-| DigitalOcean Spaces / S3 | Hosting | `STARFORGE_MEDIA_STORAGE=s3` plus required `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` (`S3_REGION` defaults to `us-east-1` for the SDK; Spaces datacenter is in the endpoint). Optional: `S3_PUBLIC_BASE_URL` (CDN), `S3_FORCE_PATH_STYLE`, `S3_ACL` |
-
-Keys live in `.env` / Site Chrome → **Environment** only — never the database. Incomplete `s3` env **throws** at boot and marks Media storage not ready (no silent local fallback). Core admin → Media links to Environment when not ready; folder/purpose/**tag** filters + sharp WebP (PNG logos kept). OCR/AI: `MediaAnalysisPort` stub surfaced in Media status — no vendor / auto-run yet.
-
-### App users vs Payload CMS stubs (one login)
-
-| | Starforge app account | Payload CMS stub |
-| --- | --- | --- |
-| Purpose | Product login (membership, gated app features) | Content editor identity inside Payload |
-| UI | `/register`, `/login`; admins also `/admin/*` | **`/cms/admin`** (opens with the **same** Better Auth session when `cms_access` is on) |
-| API | Better Auth `/api/auth/*`, `GET /api/me` | Payload REST/GraphQL under `/api/...` |
-| Storage | `public.sf_*` (`role`, **`cms_access`**) | `payload` schema — stub linked by `coreUserId` |
-
-**One login only:** Better Auth at `/login`. With `cms_access`, `/cms/admin` is already authenticated (custom Payload strategy — no second password). Product **members** stay in core unless an admin turns CMS access on for them. Payload stays a swappable content module.
-
-**Bootstrap path:** after seed, sign in as `admin@starforge.local` / `starforge-admin` at `/login`, then open `/admin` (Core) or `/cms/admin` (CMS) — no second prompt.
+Details: [platform-module-layers](docs/project-context/docs/platform-module-layers.md).
 
 ## Requirements
 
-- **Node.js 22 LTS** (`^22.23.4` or newer LTS / Node 24+) — [nodejs.org](https://nodejs.org)
-- **Docker Desktop** (or Docker Engine + Compose) — for local Postgres
+- **Node.js** `^22.23.4` or `>=24.22.1` (`package.json` `engines`)
+- **Postgres 16** (Compose image `postgres:16-alpine` in `docker-compose.yml`)
+- Docker Desktop (or Engine + Compose) for local Postgres
 - Git
 
-## First-time local setup
+## Quickstart
 
 ```bash
-git clone https://github.com/seraxes/starforge.git
+git clone <repo-url>
 cd starforge
-
-# Start Postgres (bound to 127.0.0.1 only)
 docker compose up -d
-# Optional Redis: docker compose --profile redis up -d
-
-# Env + install
 cp .env.example .env
 npm install
-
-# Apply Core (Drizzle) + Payload migrations on an empty DB
 npm run db:migrate
-
-# Sample published pages (+ optional demo app user)
-npm run seed
-
-# Run the app
+npm run seed          # local development database only — never production
 npm run dev
 ```
 
-### Database migrations (SF-139)
+Open **http://localhost:3000** (prefer `localhost` over `127.0.0.1` for cookies).
 
-| Script | Use |
+After `npm run seed` on a **local** database, you can sign in as `admin@starforge.local` / `starforge-admin`. That account is for a development database only. `npm run seed` refuses `NODE_ENV=production` unless `STARFORGE_ALLOW_PRODUCTION_SEED=1` (demo override — not normal production). Never reuse seed credentials on a deployed site.
+
+Longer first-time steps (Windows volume reset, env notes): [docs/dev/local-setup.md](docs/dev/local-setup.md).
+
+## Important scripts
+
+| Script | Purpose |
 | --- | --- |
-| `db:core:generate` | New Core migration from schema diff (every PR that touches `src/core/db/schema.ts` or `src/modules/*/schema.ts`) |
-| `db:core:migrate` | Apply Core migrations (CI / deploy) |
-| `db:core:push` | **Local scratch only** — never prod |
-| `payload:migrate` / `payload:migrate:create` | Payload `payload` schema |
-| `db:migrate` | Core Drizzle (`sf_*`) **then** Payload (`payload.*`), then verifies `sf_sessions` + `payload_locked_documents_rels.tags_id` + `categories_id` + `public.sf_site_settings` |
+| `npm run db:migrate` | Apply Core Drizzle (`sf_*`) migrations |
+| `npm run seed` | Local demo data (blocked in production without override) |
+| `npm run dev` | Next.js development server |
+| `npm run build` / `npm run start` | Production build and serve |
+| `npm run lint` | ESLint |
+| `npm run test:unit` | Registered unit tests |
+| `npm run check:atomic` | Module boundary verify |
+| `npm run check:docs` | Docs frontmatter / links / rules hygiene |
+| `npm run modules:generate` | Regenerate module registry (`predev` / `prebuild`) |
 
-**Always use `npm run db:migrate`** after pull / volume reset — it applies **both** Core and Payload. Running only `payload:migrate` leaves Better Auth tables (`sf_sessions`, …) missing.
+More commands and admin URLs: [docs/dev/admin-tour.md](docs/dev/admin-tour.md). Ops deploy / env: [docs/ops/](docs/ops/).
 
-**Existing push-created DBs:** either reset (`docker compose down -v && docker compose up -d` then `npm run db:migrate`), or mark the Core baseline applied by inserting its hash into `drizzle.__drizzle_migrations` (see `src/core/db/migrations/meta/_journal.json` for the tag). Payload’s `payload migrate` tracks its own table — after a push-era DB, prefer a volume reset, or run `payload migrate` only if the schema already matches and you need the journal row.
+## Production warning
 
-**After SF-132 taxonomy / SF-148 media tags / Media Categories:** Payload needs `tags`, `pages_rels`, `_pages_v_rels`, `media_rels`, `categories`, `media.category_id`, and `payload_locked_documents_rels.tags_id` + `categories_id`. Prefer a volume reset on local push-era DBs, then migrate + seed — do not rely on `STARFORGE_PAYLOAD_PUSH=1` for shared/CI.
+- Do **not** run `npm run seed` against production.
+- Replace every `dev-only` / `change-me` secret before shared use. Production boot rejects placeholders and requires `SF_PAY_CREDENTIALS_KEY`. See [production-env-checklist](docs/ops/production-env-checklist.md).
+- Use `https://` app URLs (or deliberate `STARFORGE_SECURE_COOKIES=0`). Prefer file-based env over a writable Environment UI in production.
+- Deploy / backup / cutover: [docs/ops/deploy.md](docs/ops/deploy.md).
 
-#### Local volume reset (Windows)
+## Docs map
 
-Run from the repo root (`…\starforge`). Docker Desktop must be **Running**.
-
-**CMD:**
-
-```bat
-cd %USERPROFILE%\starforge
-git pull
-docker compose down -v
-docker compose up -d
-npm run db:migrate
-npm run seed
-npm run dev
-```
-
-**PowerShell:**
-
-```powershell
-cd $env:USERPROFILE\starforge
-git pull
-docker compose down -v
-docker compose up -d
-npm run db:migrate
-npm run seed
-npm run dev
-```
-
-`db:migrate` must print Core then Payload steps and end with a verification line for `sf_sessions` + `tags_id` + `categories_id` + `public.sf_site_settings`. If any are missing, fix migrate before `seed` / `dev`.
-
-Then open **http://localhost:3000** (prefer `localhost`, not `127.0.0.1`, so cookies and CSRF stay consistent):
-
-| URL | What |
+| Need | Doc |
 | --- | --- |
-| http://localhost:3000 | App shell (register / sign in / signed-in state) |
-| http://localhost:3000/register | Create a **core app** account (email + password; auto sign-in; default role `member`) |
-| http://localhost:3000/ | Home — CMS content plus welcome/login panel (options + form; signed-in → Account security / 2FA). Not in the branded hero |
-| http://localhost:3000/login | **Only** sign-in page (Better Auth: password, magic link, email OTP; `?mode=` deep-links). Also used when `/cms/admin` redirects unauthenticated visitors |
-| http://localhost:3000/forgot-password | Request password reset email (Mailer) |
-| http://localhost:3000/forgot-username | Sign-in email reminder (login is email, not a separate username) |
-| http://localhost:3000/reset-password | Set a new password from the emailed token link |
-| http://localhost:3000/two-factor | TOTP / recovery-code challenge when 2FA is enabled |
-| http://localhost:3000/account/security | Enable/disable authenticator 2FA + recovery codes (signed-in) |
-| http://localhost:3000/admin | Starforge admin **Dashboard** (canonical home — not Users) |
-| http://localhost:3000/admin/users | Starforge admin — accounts (roles, groups, **CMS access**, disable) |
-| http://localhost:3000/admin/users/groups | Starforge admin — **user groups** |
-| http://localhost:3000/admin/users/acl | Starforge admin — **ACL** groups matrix (admin-area grants) |
-| http://localhost:3000/admin/site-chrome | Starforge admin — **Site Chrome** (offline, metadata, robots, cookies) |
-| http://localhost:3000/admin/settings | Starforge admin — Modules on/off + primary nav menu assignment |
-| http://localhost:3000/admin/pwa | Starforge admin — PWA settings (opt-in module) |
-| http://localhost:3000/admin/nav | Starforge admin — **Nav** manager (navigation sets + items) |
-| http://localhost:3000/admin/forms | Starforge admin — **Forms** definitions + builder + settings |
-| http://localhost:3000/admin/redirects | Starforge admin — **Redirects** (from → to + status; module `product:redirects`) |
-| http://localhost:3000/admin/media | Starforge admin — **Media** library (Payload store + resize/WebP pipeline) |
-| http://localhost:3000/robots.txt | Site Chrome robots.txt snippet (+ Sitemap line) |
-| http://localhost:3000/sitemap.xml | Published Payload pages sitemap |
-| http://localhost:3000/admin/layouts | Starforge admin — **Layouts** (hover submenu) → **Layout** canvas (default) |
-| http://localhost:3000/admin/page-settings | Starforge admin — **Layouts → Page settings** (Head / Assets / Body / FA / Atoms) |
-| http://localhost:3000/api/me | Current app session JSON including `role` / `isAdmin` (`401` when signed out) |
-| http://localhost:3000/cms/admin | Payload Content CMS — nav **CMS** when `cms_access` is on; Core Dashboard → `/admin` |
-| http://localhost:3000/about | Sample published page (after `npm run seed`) |
-| http://localhost:3000/getting-started | Sample published page |
-| http://localhost:3000/welcome | Sample published page with SEO meta filled |
-| http://localhost:3000/preview/{slug} | Draft preview (CMS access + **Draft preview** toggle on) |
-| http://localhost:3000/api/health | Core health JSON (`database: "up"` when Postgres is reachable) |
-
-App login uses **email**, not a separate username. Auth helpers (SF-17) use **Better Auth first-party plugins** only — `emailAndPassword` reset, `magicLink`, `emailOTP`, `twoFactor` (TOTP + backup codes) — plus the platform Mailer port (console / SMTP / Resend). No second auth stack.
-
-### Roles + bootstrap admin
-
-| Role / flag | Who | Can open |
-| --- | --- | --- |
-| `admin` | Global **app** admin | `/admin/*`; **`cms_access` on by default** → `/cms/admin`; bypasses group ACL |
-| `member` | Default product user | App routes; Core admin only when a group grant exists |
-| `cms_access` | Per-user switch on Users | Payload `/cms/admin` via Better Auth session |
-| User groups | Named sets under Users → Groups | Membership drives nav `group:<id>` visibility + ACL matrix (Managers = group, not a Role) |
-
-### User groups + ACL foundation
-
-**Users** hover submenu: **Accounts** · **Groups** · **ACL**.
-
-| Piece | Role |
-| --- | --- |
-| **Groups** | Create / rename / delete; assign members. Only ACL entity (no separate Access Level table). |
-| **ACL** | One matrix: grant admin-area permissions **to groups** (`sf_acl_permissions`). Enforced via `requireAdminArea` / path gates (Navigation = `admin.nav`). |
-| **Nav / Layout / Page “Who can see”** | Multi-select tags (`public` / `registered` / `group:<id>`) on Nav items, layout particles, and Page Settings chrome. Visible if the viewer matches **any** tag; empty = public. Restricted pages hide (`notFound`). |
-
-Global app admins open all Core admin. Members in a group with matrix grants (e.g. seed **Managers** + `admin.nav`) enter `/admin` for those areas only. Media stays app-admin until a matrix row is added.
-
-### Site Chrome + Site settings + Nav
-
-**Site Chrome** (`/admin/site-chrome`, `sf_site_chrome`) is the top-level policy panel: site offline (+ message), default captcha (enable + provider; Turnstile keys in env), outbound email (enable + provider + From; SMTP / Resend secrets in env), site metadata (name / description / OG image), robots meta + `/robots.txt`, content rights, cookie domain/path. Offline mode shows the active skin offline outline to everyone; `/admin` and `/login` stay reachable. **Environment** (`/admin/site-chrome/environment`) is a developer-admin panel behind password re-auth that writes allowlisted keys to gitignored `.env.local` (never Postgres). Production is read-only unless `STARFORGE_ENV_EDITOR=write`; restart Node after writes so Next reloads env.
-
-**Security headers + Secure cookies (SF-129):** Next `headers()` + `src/proxy.ts` send a practical CSP (Next/Payload + Turnstile), `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy`, `nosniff`, and `Permissions-Policy`. HSTS and Better Auth `useSecureCookies` (plus Payload JWT / Environment gate cookies) turn on when `BETTER_AUTH_URL` / `NEXT_PUBLIC_APP_URL` is `https://`, or when `STARFORGE_SECURE_COOKIES=1`. Local `http://localhost` stays insecure so Windows/macOS HTTP keeps working. Override with `STARFORGE_SECURE_COOKIES=0|1`. Site Settings → Security documents this; no DB toggle for headers. Postgres must stay private (localhost / VPC) — not exposed on the public internet.
-
-**Nav** is a **top-level** Core admin item (`/admin/nav`, sibling of Users / Site Chrome / Site settings / Layouts): multiple named **navigation sets** (menus) in `sf_nav_menus`, each with items (CMS page, URL, or module view; reorder; copy/paste; CSS class; browser/page title; multi-select access tags). Site Settings only **assigns** which set is the site primary header menu — not nested under Site Chrome.
-
-**Forms** (`/admin/forms`, gated by Modules → **Forms** / `product:forms`) is the modular Form engine: visual builder (the layout canvas with a field palette → JSON Schema / Zod), definitions in `sf_forms`, submissions in `sf_form_submissions`. Place the **Form** particle on the layout canvas and bind a definition. Typed presets: contact, survey, event-registration, voting, ticket (create-from-preset in Forms admin). Other modules reuse presets via `@/modules/forms/api` (`registerFormPreset` + optional `onSubmitted`) — no second builder. Optional Site Chrome captcha (Turnstile) when the form opts into the site default. Email-on-submit uses the platform **Mailer** (Site Chrome enable / provider / From); when **Email Manager** (`product:email-manager`, `/admin/email`) has matching rules, Forms prefer those over legacy per-form notify. Run `npm run db:migrate` after pull so `sf_forms` / `sf_email_*` columns exist.
-
-**Email Manager** (`/admin/email`, Modules → **Email Manager**) — automatic/conditional rules + templates filtered by module category. Modules emit triggers (`emitEmailTrigger` from `@/modules/email-manager/api.server`); Core Mailer sends. No per-module SMTP.
-
-**Redirects** (`/admin/redirects`, gated by Modules → **Redirects** / `product:redirects`) stores `from` / `to` / status (301·302·307·308) in `sf_redirects`, with admin CSV import (`from,to,status,enabled,note`; matching `fromPath` updates). Middleware looks up enabled rules before offline / page render. **Sitemap** (`/sitemap.xml`) lists published Payload pages (home slug `home` → `/`) and is always available — not gated by the Redirects toggle. Run `npm run db:migrate` after pull so `sf_redirects` exists.
-
-**PWA** (`/admin/pwa`, gated by Modules → **PWA** / `product:pwa`, opt-in) serves `/manifest.webmanifest` and registers a Serwist service worker (`public/sw.js`, production). Reuses Site Chrome name and Page Settings icons; knobs live in `sf_module_settings`.
-
-Core `sf_site_settings` (singleton `global`) holds synced site name, `primaryNavMenuId`, capability flags, and module toggles. Core admins edit them at **`/admin/settings`**. The Payload site-settings global is not registered. Legacy `primaryNav` is a read fallback copied once by migration `0043_site_settings`.
-
-| Field | Default | What it does |
-| --- | --- | --- |
-| Site name | `Starforge` | Owned by Site Chrome; synced into `sf_site_settings.site_name` |
-| Primary nav assignment | `main` | Which Nav menu set powers the public header (assignment only) |
-| Registration | on | Hide `/register` + reject signup when off |
-| Rich editor | on | Flag reserved for a future simpler mode (Lexical stays on Pages today) |
-| Posts | **off** | Placeholder — no Posts collection yet |
-| Modules | Site Settings → **Modules** lists *installed* packs only; seed enables `notice-bar` | Runtime off = hide palette / public inject. Install allowlist (`starforge.modules.json`) drops packs from the generated registry so they are not eager-imported |
-| Draft preview | **off** | When on, `cms_access` users can open `/preview/{slug}` for unpublished drafts |
-
-`npm run seed` ensures the global exists, seeds Nav manager **Main** with About / Getting started / Welcome page binds, sets `primaryNavMenuId=main`, and enables the **notice-bar** module toggle. Flags are **product capabilities**, not npm libraries.
-
-### Module Manager — install vs generate vs runtime
-
-| Layer | File / UI | Effect |
-| --- | --- | --- |
-| **Install / sync** | `starforge.modules.json` → `npm run modules:sync` (or `modules:wizard`) | Adds/removes `@starforge/module-*` deps from GitHub Packages (or local `packages/`). Unused packs stay off disk. |
-| **Build allowlist / codegen** | same JSON (or env `SF_MODULES`) → `npm run modules:generate` | Only listed packs appear in `src/generated/module-registry.ts` with `import()` loaders. |
-| **Runtime toggle** | Site Settings → **Modules** | On/off for *installed* modules — admin nav, palette, public render. Does not remove code from disk. |
-
-Required always: `platform:better-auth`, `page-content`. Flavors: `flavor: "core"` (default) or `"lean"` (presets in the JSON). See `src/generated/README.md` and [module-install-packages](docs/project-context/docs/module-install-packages.md).
-
-### Extension modules + Gantry-like layout manager
-
-Public chrome is driven by a **layout document**: **sections → rows → slots** (`moduleId` + **`width` as %**). Storage is **JSON** in `sf_layouts` (fallback `default-layout.json`). Admin at **`/admin/layouts`** is **full width** and follows Gantry Layout Manager: create section → edit section **name** / **CSS classes** → add row → **drag** particles into the row (side-by-side; editable instance **display name**) → resize by **1%** steps (**5%–95%**, pair sums to 100%; Starforge flex math — **not Bootstrap**).
-
-| Piece | Where |
-| --- | --- |
-| Register API | `registerModule()` · `src/core/modules/` |
-| Install allowlist | `starforge.modules.json` → `npm run modules:generate` → `src/generated/module-registry.ts` |
-| Built-in particles | `page-content`, `site-header`, `logo`, `copyright`, `social`, `custom` (HTML/CSS; JS stub) |
-| Example extension | `src/modules/notice-bar/` (dynamic-imported only when allowlisted) |
-| Catalog boot | `src/modules/catalog.ts` (+ generated optional loaders) |
-| Layout document | `sf_layouts` rows (id + label + v3 JSON) · fallback `default-layout.json` |
-| Outlines | `/admin/outlines` — create / rename / duplicate / select (opens Layout canvas) |
-| Admin UI | `/admin/layouts?outline=<id>` |
-| Public render | `PublicLayoutBody` + `SlotRenderer` (chrome `layoutId` from nav sync) |
-
-Default seed: Header → notice-bar (12); Navigation → site-header (12); Main → page-content (12); Footer → custom note (12). Docs: `src/core/modules/README.md`.
-
-**Code editors:** Custom particle HTML/CSS/JS use **CodeMirror** (syntax highlighting + resizable panels) — not plain textareas. Monaco remains an option for a heavier Styles IDE later.
-
-**Next polish (not this PR):** Gantry-like **Styles / Menu** editors; per-slot CSS/variations; outline inheritance; cross-row reorder; Custom JS execution + ACL; YAML export; nested menus; Redis on DO. See `src/core/modules/README.md` and [docs.gantry.org](https://docs.gantry.org/).
-
-### Page Settings (document chrome)
-
-Gantry-style **Page Settings** (Core admin nav: parent **Layouts** reveals a hover submenu — **Layout** default + **Outlines** + **Page settings**; parent click → Layout canvas; route **`/admin/page-settings`**): outline-gated document chrome (Base = `global` source; other outlines Inherit/Copy into `outline:<id>`). Nav writes layoutId-only pageKey rows. Public resolve merges Base + page outline chrome, then emits head meta/icons/CSS, body attrs/hooks, Font Awesome, ordered JS, and **atoms**.
-
-| Panel | Notes |
-| --- | --- |
-| Page access & sections | Sections mode (fullwidth / boxed) + **Who can see** page viewing tags. Outline/`layoutId` is assigned on nav menu items (syncs into chrome for runtime). |
-| Head Properties | Repeatable meta tags + custom head HTML |
-| Assets | Favicon, touch icon, ordered CSS / JS lists |
-| Body Attributes | Id, classes, tag attrs, after `<body>` / before `</body>` |
-| Font Awesome | Optional CDN (6/7 Free) + advanced HTML overrides |
-| Atoms | Registry (v1: Custom CSS/JS, Analytics); settings open in a **popup overlay** |
-
-**ACL:** meta / classes / favicon / CSS URLs / FA enable = app admin. Custom head, body hooks, JS lists, atom scripts, FA HTML overrides = **developer-admin** (`STARFORGE_DEVELOPER_ADMIN_EMAILS`; empty → nobody in production, all app admins locally).
-
-**First admin paths:**
-
-1. `npm run seed` creates bootstrap admin `admin@starforge.local` / `starforge-admin` (role `admin` + `cms_access`) and a Payload stub. Sign in **once** at `/login`, then open `/cms/admin` — already authenticated.
-2. Or set `STARFORGE_ADMIN_EMAILS=you@example.com` in `.env`, **restart** `npm run dev`, reload while signed in — promoted to admin + CMS access.
-
-Members visiting `/admin/users` are redirected home with an **Admins only** notice. Users without CMS access who open `/cms/admin` get **No CMS access**. Disabled users cannot sign in.
-
-### One-login CMS access
-
-| Piece | Behavior |
-| --- | --- |
-| Auth | Custom Payload strategy reads the Better Auth session cookie |
-| Flag | `sf_users.cms_access` — toggle on `/admin/users` (On/Off switch) |
-| Enable | Sets flag + creates/links Payload stub (`coreUserId` + email) |
-| Disable | Clears flag + deletes Payload stub |
-| Unauthenticated `/cms/admin` | Redirect → `/login?next=/cms/admin` → return already in CMS |
-| Members | Not provisioned unless an admin turns CMS access on |
-
-### Seed (`npm run seed`)
-
-Idempotent local demo data:
-
-- **Published CMS pages:** `/` (Payload slug `home`), `/about`, `/getting-started`, `/welcome`
-- **Site settings** global defaults + **Nav manager Main** menu linked to those pages (`sf_nav_menus`)
-- **Modules** feature enabled + **layout document v3** seeded into `sf_layouts` (notice-bar, site-header, page-content, custom footer)
-- **Page Settings** global chrome defaults seeded into `sf_page_chrome`
-- **Bootstrap app admin**: `admin@starforge.local` / `starforge-admin` → `admin` + `cms_access` + Payload stub
-- **Demo app member**: `demo@starforge.local` / `starforge-demo` → `member`, **no** CMS access
-- Promotes `STARFORGE_ADMIN_EMAILS` and grants them CMS access
-
-### Edit pages in Payload admin (Lexical + SEO)
-
-1. Sign in at **http://localhost:3000/login** as the seed admin, then open **http://localhost:3000/cms/admin** (no second login).
-2. **Media** → upload if needed (fill **Alt**).
-3. **Pages** → edit a seeded page (Lexical + SEO tab).
-4. **Publish** → open **http://localhost:3000/{slug}**. Drafts stay 404 for anonymous visitors.
-5. **Draft preview (optional):** turn on **Draft preview** at `/admin/settings`, leave a page as draft (or edit a published page without publishing), then open **http://localhost:3000/preview/{slug}** while signed in with CMS access. Anonymous users still only see published `/[slug]`.
-
-Public render: `src/app/(frontend)/(public)/[slug]/page.tsx` · `getPublishedPageBySlug` · `buildPageMetadata`.  
-Draft preview: `src/app/(frontend)/(public)/preview/[slug]/page.tsx` · `getDraftPageBySlug` · `requireDraftPreviewAccess`.
-
-### Windows: Nav manager (SF-40)
-
-If Site Settings still shows **Site chrome → Primary nav** add/remove rows and the top bar has no **Nav** link, you are on old `main` — hard-reset onto this branch (stop `npm run dev` first).
-
-**CMD**
-
-```bat
-cd %USERPROFILE%\starforge
-git fetch origin
-git checkout cursor/nav-manager-menus-541e
-git reset --hard origin/cursor/nav-manager-menus-541e
-
-docker compose up -d
-if not exist .env copy .env.example .env
-npm install
-npm run db:core:push
-npm run seed
-
-rem Stop ANY old npm run dev window (Ctrl+C), then:
-npm run dev
-```
-
-**PowerShell**
-
-```powershell
-cd $env:USERPROFILE\starforge
-git fetch origin
-git checkout cursor/nav-manager-menus-541e
-git reset --hard origin/cursor/nav-manager-menus-541e
-
-docker compose up -d
-if (-not (Test-Path .env)) { Copy-Item .env.example .env }
-npm install
-npm run db:core:push
-npm run seed
-
-# Stop ANY old npm run dev window (Ctrl+C), then:
-npm run dev
-```
-
-1. Admin bar must show **Site Chrome | Site Settings | Navigation | Forms | Users | Layouts | CMS | Check site** (Forms gated by Modules → Forms).
-2. **/admin/site-chrome** — offline, captcha defaults, metadata, robots, rights, cookies. **/admin/settings** — **Primary nav assignment** + Modules (no nav item editor).
-3. **/admin/nav** — edit Main menu items (CMS page / URL / **module view**, CSS class, title overrides, Up/Down, Copy/Paste). Module views come from enabled Modules catalog entries that declare `navViews`.
-4. Modules → Primary nav on/off gates the Nav link + public header. Forms on/off gates Admin → Forms + Form particle.
-5. Public **/about** — matching nav active.
-
-### Windows: published content cache smoke test
-
-```bat
-cd %USERPROFILE%\starforge
-git fetch origin
-git checkout cursor/published-content-cache-8a53
-git pull origin cursor/published-content-cache-8a53
-
-docker compose up -d
-if not exist .env copy .env.example .env
-npm install
-npm run db:core:push
-npm run seed
-
-rem Stop ANY old npm run dev window (Ctrl+C), then:
-npm run dev
-```
-
-1. Open **http://localhost:3000/about** (anonymous) — sample published page.
-2. Sign in → `/cms/admin` → Pages → edit **About**, change the title, **Publish**.
-3. Hard-refresh **http://localhost:3000/about** — new title should show (cache tag revalidated on publish).
-4. Unpublish (save as draft) → anonymous `/about` must **404**.
-5. `/preview/about` with Draft preview on still works for CMS-access users (uncached path).
-
-Leave `STARFORGE_CONTENT_CACHE` unset locally. For DO multi-instance: `STARFORGE_CONTENT_CACHE=redis` + `REDIS_URL`.
-
-### Windows: draft preview smoke test
-
-```bat
-cd %USERPROFILE%\starforge
-git fetch origin
-git checkout main
-git pull origin main
-
-docker compose up -d
-if not exist .env copy .env.example .env
-npm install
-npm run db:core:push
-npm run seed
-
-rem Stop ANY old npm run dev window (Ctrl+C), then:
-npm run dev
-```
-
-1. Open **http://localhost:3000** (not `127.0.0.1`).
-2. Sign in at `/login` as `admin@starforge.local` / `starforge-admin`.
-3. `/admin/settings` → enable **Draft preview** → Save.
-4. `/admin` → Pages → create or edit a page, leave it as **Draft** (do not publish), note the slug.
-5. Open `http://localhost:3000/preview/{slug}` — should show the draft with a preview banner.
-6. Open `http://localhost:3000/{slug}` while signed out (or in a private window) — must **404**.
-7. Turn **Draft preview** off → `/preview/{slug}` must **404** even when signed in with CMS access.
-
-### Windows: one-login CMS smoke test
-
-**How it works now:** core `/login` (Better Auth) → `/cms/admin` or `/cms/admin/login` is blocked by `src/proxy.ts` → `/api/cms/exchange` sets a Payload `payload-token` JWT → Payload **Dashboard** at `/cms/admin`. Payload’s stock email/password form is never served.
-
-**Required after pull:** `npm run db:core:push` (adds `sf_users.cms_access`), then **fully stop and restart** `npm run dev` (proxy only loads on process start).
-
-```bat
-cd %USERPROFILE%\starforge
-git fetch origin
-git checkout main
-git pull origin main
-
-docker compose up -d
-if not exist .env copy .env.example .env
-npm install
-npm run db:core:push
-npm run seed
-npm run generate:importmap
-
-rem Stop ANY old npm run dev window (Ctrl+C). Auth/config does not hot-reload.
-npm run dev
-```
-
-1. Use **http://localhost:3000** only (not `127.0.0.1`).
-2. Open **http://localhost:3000/login** — sign in as `admin@starforge.local` / `starforge-admin` (**only** password prompt in the whole flow).
-3. Open **http://localhost:3000/admin** — Starforge **Dashboard** (not Users). Logo + first nav item also land here.
-4. Open **http://localhost:3000/cms/admin** — Payload Content CMS (SSO via `/api/cms/exchange`). **http://localhost:3000/cms/admin/login** must redirect away (never show Payload’s password form). Hard-refresh (Ctrl+F5) if an old login page was cached.
-5. **http://localhost:3000/admin/users** — seed admin **CMS access On**; demo member **Off**.
-6. Sign out → `/cms/admin` → core `/login?next=/cms/admin` → after login, CMS again with no second form.
-
-Optional checks: `npm run verify:cms-sso` and `npm run verify:admin-no-login-form`.
-
-### Useful commands
-
-```bash
-docker compose ps          # Postgres should be healthy
-docker compose logs -f postgres
-docker compose down        # stop DB (data kept in the named volume)
-npm run seed               # sample published pages + optional demo app user
-npm run generate:types     # regenerate src/payload-types.ts after collection edits
-npm run generate:importmap # regenerate Payload admin import map if admin UI breaks
-npm run db:core:push       # push Starforge core Drizzle schema to public
-```
-
-### Environment
-
-`.env.example` already matches Compose:
-
-```env
-DATABASE_URL=postgresql://starforge:starforge@127.0.0.1:5432/starforge
-PAYLOAD_SECRET=dev-only-change-me-to-a-long-random-string
-BETTER_AUTH_SECRET=dev-only-better-auth-secret-change-me
-BETTER_AUTH_URL=http://localhost:3000
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-# STARFORGE_ADMIN_EMAILS=you@example.com
-```
-
-Change `PAYLOAD_SECRET` and `BETTER_AUTH_SECRET` before any shared or non-local use.
-`BETTER_AUTH_SECRET` is also required to unlock Site Chrome → Environment (gate cookie HMAC).
-
-For production HTTPS, set `BETTER_AUTH_URL` / `NEXT_PUBLIC_APP_URL` to `https://…` so Secure cookies and HSTS enable automatically (or set `STARFORGE_SECURE_COOKIES=1`). Keep `STARFORGE_SECURE_COOKIES` unset or `0` for local HTTP.
-
-## Project layout
-
-```text
-docker-compose.yml          # local Postgres only
-docker/postgres/init.sql    # CREATE SCHEMA payload
-src/
-  app/
-    (frontend)/             # public app shell + /login + /register + /[slug] + /preview/[slug]
-      (public)/             # site header + ModuleSlots (header / after-content / footer)
-      app/admin/            # core app admin (users/groups + settings + nav + layouts + CMS bridge)
-    (payload)/              # Payload admin + REST/GraphQL (do not hand-edit)
-    api/auth/               # Better Auth handler
-    api/health/             # core health route
-    api/me/                 # current app session
-  collections/              # Payload content collections (Pages, Media, Users)
-  globals/SiteSettings.ts   # stub — settings moved to core/settings (sf_site_settings)
-  components/               # SiteHeader + SiteNav + RichText (Lexical → JSX)
-  modules/                  # extension modules (notice-bar) + catalog register
-  core/
-    auth/                   # Better Auth + roles/admin helpers + Zod schemas
-    cms-bridge/             # cms_access + Payload session strategy (one login)
-    content/                # published + draft CMS reads, cache layer, preview gate, SEO
-      cache/                # Next tags (default) + Redis stub for DO
-    nav/                    # Nav manager (sf_nav_menus) store + resolve + actions
-    acl/                    # User groups + ACL matrix (sf_user_groups, sf_acl_permissions)
-    modules/                # register API, layout document, ModuleSlot, PublicLayoutBody
-    settings/               # site-settings + legacy nav resolve + flag helpers
-    db/                     # Drizzle core schema + client (sf_layouts, sf_nav_menus, groups, …)
-  fields/pagesLexical.ts    # Lexical editor features for Pages
-  seed.ts                   # pages + settings + layout + modules on + bootstrap admin + demo member
-  payload.config.ts         # Payload config (content module)
-```
-
-### Windows: layout manager smoke test
-
-Command Prompt:
-
-```bat
-cd %USERPROFILE%\starforge
-git fetch origin
-git checkout cursor/layout-editable-labels-f0de
-git pull origin cursor/layout-editable-labels-f0de
-
-docker compose up -d
-if not exist .env copy .env.example .env
-npm install
-npm run db:core:push
-npm run seed
-
-rem Stop ANY old npm run dev window (Ctrl+C), then:
-npm run dev
-```
-
-PowerShell:
-
-```powershell
-cd $env:USERPROFILE\starforge
-git fetch origin
-git checkout cursor/layout-editable-labels-f0de
-git pull origin cursor/layout-editable-labels-f0de
-
-docker compose up -d
-if (-not (Test-Path .env)) { Copy-Item .env.example .env }
-npm install
-npm run db:core:push
-npm run seed
-
-# Stop ANY old npm run dev window (Ctrl+C), then:
-npm run dev
-```
-
-1. Open **http://localhost:3000** — notice bar in the header (Modules on from seed).
-2. Sign in as `admin@starforge.local` / `starforge-admin`.
-3. Open **http://localhost:3000/admin/layouts** — page is **full width**; left palette + canvas.
-4. Edit a section **name** and **CSS classes** (blur to save); confirm classes appear on the public section wrapper.
-5. Create a section → **Add row** → **drag** Notice bar (or Custom) into the row; edit the particle **display name** (type id unchanged).
-6. Drag a second particle into the same row — both sit **side by side**; drag the divider (1% steps, 5%–95%, sum 100%).
-7. Drag a particle’s **⋮⋮** handle to **reorder** within the row (order persists; widths stay).
-8. Drag **Logo / Image**, **Copyright**, and **Social** from the palette — **Settings** opens a floating overlay (row stays side-by-side). Save and confirm public render.
-9. Edit Custom via its Settings overlay (CodeMirror); Escape / Close only (outside click does not dismiss). **Reset to default** restores the seeded layout.
-
-## Not in this scaffold
-
-- Production / DigitalOcean deploy (including Redis — cache interface is ready; backend not wired)
-- OAuth / social providers
-- Second Payload password login (removed — Better Auth session strategy only)
-- Posts collection
-- Full Gantry Styles / Outlines / Menu editors, cross-row reorder, YAML mode, Custom JS execution + ACL, Payload media picker for Logo (layout DnD canvas + typed Logo/Copyright/Social + CodeMirror Custom + JSON storage are in)
-- Nested menus, Joomla-like menu CSS / browser-title overrides (stub fields only)
-- Airsoftnexus 2.0 feature parity
-
-## Troubleshooting
-
-1. **Docker not running** — start Docker Desktop; `docker compose ps` should show `starforge-postgres` healthy.
-2. **Port 5432 or 3000 in use** — stop the other process, or change the host port in `docker-compose.yml` / Next’s port (`npm run dev -- -p 3001`).
-3. **Payload admin import errors after upgrading** — run `npm run generate:importmap`.
-4. **Fresh DB without `payload` schema** — Compose mounts `init.sql` only on first volume create. If you need to recreate: `docker compose down -v && docker compose up -d`.
-5. **Auth tables missing / Better Auth schema errors / `Failed query` on `sf_sessions`** — Core tables live in `public` and come from Drizzle (`0000_baseline` includes `sf_sessions`). Run **`npm run db:migrate`** (not Payload-only). After a volume reset, use the Windows CMD/PowerShell sequence under Database migrations. Scratch-only fallback: `db:core:push`.
-6. **`column "impersonated_by" does not exist` (or missing `role` / `banned` / `two_factor_enabled` on `sf_users`, or missing `sf_two_factors`)** — code already defines these in `src/core/db/schema.ts`; your Postgres is behind. With Compose up: prefer `docker compose down -v` then `npm run db:migrate`, or `db:core:push` on scratch only; restart `npm run dev`.
-7. **Seed fails on demo app user** — ensure `npm run db:migrate` succeeded; pages may still have been created.
-8. **Windows** — use PowerShell or Command Prompt from the repo root; ensure Docker Desktop is **Running** before `docker compose up -d`. Copy env with `copy .env.example .env` if `cp` is unavailable. Always open the app as `http://localhost:3000` (mixing `127.0.0.1` can break sessions).
-9. **Login says invalid email/password after register** — restart `npm run dev`; register a **new** email (or use seed demo); sign in with that **email**. Last resort: volume reset + `npm run db:migrate` + `npm run seed` (Windows sequences above).
-10. **Payload `/cms/admin` asks for a password or denies access** — confirm migrations applied `cms_access`, re-run `npm run seed`, sign in at `/login` first, then open `/cms/admin`. Members need the Users **CMS access** switch On.
-11. **`Failed query` / `relation "payload.pages_rels" does not exist` (home `/` or published pages)** — SF-132 added `pages.tags`; Payload depth queries join `pages_rels`. Run `npm run db:migrate` (taxonomy + media-tags migrations). Push-era DB: volume reset, then migrate + seed.
-12. **`Failed query` / missing `tags_id` on `payload.payload_locked_documents_rels`** — Tags taxonomy requires that column for document locks. `npm run db:migrate` applies it (idempotent). If migrate previously failed mid-chain, pull latest, run `db:migrate` again, or volume-reset then migrate + seed.
-13. **`Failed query` / missing `categories_id` on `payload.payload_locked_documents_rels`** — Nested Media Categories registers the `categories` collection, so lock queries select `categories_id`. `npm run db:migrate` applies phase2 + an idempotent heal migration. Prefer migrate over `STARFORGE_PAYLOAD_PUSH=1`; if still missing after pull, volume-reset then migrate + seed (Windows sequences above).
-14. **`sf_site_settings` missing / site settings save fails** — Modules, performance knobs, and `primaryNavMenuId` live on Core `public.sf_site_settings` (migration `0043_site_settings`), not the Payload global. Run `npm run db:migrate` (Core then Payload, then an idempotent copy from `payload.site_settings` when that table still has the old row). Opening `/admin` does not ALTER Payload columns anymore. If the table is still missing, volume-reset then migrate + seed.
+| Live map | [architecture-current](docs/project-context/docs/architecture-current.md) |
+| Agent entry | [AGENTS.md](AGENTS.md) |
+| Local setup | [docs/dev/local-setup.md](docs/dev/local-setup.md) |
+| Admin tour | [docs/dev/admin-tour.md](docs/dev/admin-tour.md) |
+| Troubleshooting | [docs/dev/troubleshooting.md](docs/dev/troubleshooting.md) |
+| Ops / launch | [docs/ops/](docs/ops/) |

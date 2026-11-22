@@ -12,6 +12,10 @@ import {
   SOCIAL_COMMENT_LENGTH_LIMIT_MIN,
   SOCIAL_FEED_PAGE_SIZE_MAX,
   SOCIAL_FEED_PAGE_SIZE_MIN,
+  SOCIAL_WRITE_RATE_LIMIT_MAX_MAX,
+  SOCIAL_WRITE_RATE_LIMIT_MAX_MIN,
+  SOCIAL_WRITE_RATE_LIMIT_WINDOW_SEC_MAX,
+  SOCIAL_WRITE_RATE_LIMIT_WINDOW_SEC_MIN,
   type SocialModuleSettings,
 } from '../pack-settings'
 import { POST_AUDIENCES } from '../posts'
@@ -143,6 +147,35 @@ export function SocialSettingsForm({ settings }: Props) {
                   disabled={pending}
                 />
                 <span className="settings-hint">Max characters per comment. Default 5000.</span>
+              </label>
+              <label className="settings-field">
+                <span>Member write rate limit</span>
+                <input
+                  type="number"
+                  name="writeRateLimitMax"
+                  min={SOCIAL_WRITE_RATE_LIMIT_MAX_MIN}
+                  max={SOCIAL_WRITE_RATE_LIMIT_MAX_MAX}
+                  step={1}
+                  defaultValue={settings.writeRateLimitMax}
+                  disabled={pending}
+                />
+                <span className="settings-hint">
+                  Max posts, comments, reactions, requests, and other member writes per window.
+                  Default 60.
+                </span>
+              </label>
+              <label className="settings-field">
+                <span>Write rate-limit window (seconds)</span>
+                <input
+                  type="number"
+                  name="writeRateLimitWindowSec"
+                  min={SOCIAL_WRITE_RATE_LIMIT_WINDOW_SEC_MIN}
+                  max={SOCIAL_WRITE_RATE_LIMIT_WINDOW_SEC_MAX}
+                  step={1}
+                  defaultValue={settings.writeRateLimitWindowSec}
+                  disabled={pending}
+                />
+                <span className="settings-hint">Sliding window for the write bucket. Default 60.</span>
               </label>
               <label className="settings-field settings-flag">
                 <input

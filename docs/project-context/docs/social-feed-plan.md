@@ -1,3 +1,7 @@
+---
+kind: reference
+last_verified: 2026-11-22
+---
 # product:social — Composer build plan
 
 **Status:** parked. [architecture-current](./architecture-current.md) still wins. The next product pack on that map is ads. This file is the build spec for when a Composer chat starts Social. It does not change the queue.

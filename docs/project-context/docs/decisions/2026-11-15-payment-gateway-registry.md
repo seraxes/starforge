@@ -1,3 +1,7 @@
+---
+kind: decision
+last_verified: 2026-11-22
+---
 # Decision: who adds an online payment gateway
 
 **Date:** 2026-11-15

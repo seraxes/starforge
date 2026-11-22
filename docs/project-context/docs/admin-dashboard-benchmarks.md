@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Admin dashboard benchmarks → Starforge next
 
 **Scope:** What `/admin` should add **beyond** [admin-dashboard-plan](./admin-dashboard-plan.md) (users strip, Media/Email cards, `admin.dashboard[]`, refresh setting, Events/Marketplace stubs).  

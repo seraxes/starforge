@@ -45,8 +45,6 @@ export default defineStarforgeModule({
     'product:rich-editor',
     'product:forms',
     'product:email-manager',
-    'product:payments',
-    'product:maps',
   ],
   optionalRequires: ['form', 'product:subscriptions', 'product:events'],
   boot: {

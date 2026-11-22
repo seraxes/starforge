@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Starforge architecture audit — Phase 2 (dependency and modularity)
 
 **Date:** 2026-11-14  

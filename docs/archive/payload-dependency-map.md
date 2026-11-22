@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Payload dependency map
 
 **Status:** archive. Phases **0–4 done** (phase 4 on 2026-11-16). The content manager is `product:pages`. Media documents are `sf_media_*`. Site settings are Core `sf_site_settings`. There is no `getPayload()` and no `/cms` admin. Live map: [architecture-current](./architecture-current.md). Decision: [2026-11-15-payload-peel](./decisions/2026-11-15-payload-peel.md).

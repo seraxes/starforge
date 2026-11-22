@@ -1,3 +1,7 @@
+---
+kind: decision
+last_verified: 2026-11-22
+---
 # ACL levels and optional audit
 
 **Date:** 2026-11-16

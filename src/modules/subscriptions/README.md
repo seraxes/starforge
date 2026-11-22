@@ -1,5 +1,9 @@
 # product:subscriptions
 
+Layer: advanced
+
+Status: shipped
+
 Plans, periods, and entitlements. Payments charges and snapshots; this pack grants access. Email Manager sends mail. Forms owns optional intake. Core ACL owns groups — this pack syncs membership for plan groups.
 
 ## Owns
@@ -9,50 +13,41 @@ Plans, periods, and entitlements. Payments charges and snapshots; this pack gran
   - `organizer` — organizers: `organizer` (blank counts as this), `brand` (owns a managed page that operates as their website)
   - `advertisement` — `organizer`, `marketplace`, `brand`, `shop`
   - `other` — catch-all, including unknown subject strings
-- Billing length: `billingPeriod` (day / week / month / year / lifetime) × `billingIntervalCount` (e.g. 14 days, 3 months). Snapshotted on periods.
+- Billing length: `billingPeriod` (day / week / month / year / lifetime) × `billingIntervalCount`. Snapshotted on periods.
 - Periods (`sf_sub_periods`) — active / expired / refunded windows with entitlement + group snapshots. Admin may change the end date or expire a period. Refunds stay with Payments.
 - Seats (`sf_sub_seats`) — group membership pool on a parent period.
 - Lifecycle rules: free activate, trial (once), manual renew, upgrade paths + proration credit, grace hours, cancel-at-period-end, capacity `maxActive`.
-- Plan changes (`sf_sub_upgrade_paths`) — which plan may move to which. Admin **Changes** at `/admin/subscriptions/changes`. A higher price starts now (`prorate` or `full` on the path). A lower price is stored on the period and applies on the next renewal, with no refund.
-- Same-plan repeat stays closed while time remains, unless `earlyRenewDays` opens a window. Account and the public catalog say how much time is left and the next renew date.
+- Plan changes (`sf_sub_upgrade_paths`) — Admin **Changes** at `/admin/subscriptions/changes`. Higher price starts now (`prorate` or `full`). Lower price applies on next renewal, no refund.
+- Same-plan repeat stays closed while time remains, unless `earlyRenewDays` opens a window.
 - Resolve API: `hasEntitlement`, `resolveAudience`, `hasActiveSubject`.
 - Core **group membership sync** for plan/period `groupIds` (add on activate, remove on expire when unused).
 - Admin `/admin/subscriptions` (plans + subscribers + changes + settings + CSV export).
 - Pack settings in `sf_module_settings` (reminder days, default Forms id, default grace).
 - Email Manager triggers `product:subscriptions/*` + starter seed (activated, renewed, upgraded, expiring_soon, trial_ending, expired).
-- Public catalog `/plans` + **`subscription-plans`** layout particle (place on brochure pages). Nav module views: Plans (`/plans`), My subscriptions (`/account/subscriptions`).
+- Public catalog `/plans` + **`subscription-plans`** layout particle. Nav views: Plans (`/plans`), My subscriptions (`/account/subscriptions`).
+
+**Access model (hybrid):** Pages/nav/modules use plan access groups → Core membership → ACL. Ticket price, `payments.collect`, `events.manage` use `hasEntitlement` / `resolveAudience`.
+
+**Built-in entitlement keys:** `events.member`, `events.manage`, `payments.collect`, `social.challenge.multi`.
+
+**Frozen Payments stub:** `sf_pay_collect_entitlements` stays a boolean stub. When this pack is enabled, `hasCollectCapability` reads `payments.collect`.
+
+**Locked money / mail:** Free plans (`price = 0`) activate without a cart. Paid / charged trials always go through Payments. Coupons and invoices stay in Payments. Never call `getMailer()` from this pack.
 
 ## Consumes
 
 - **`product:payments`** — `createCart` / `addCartLine` (`plan`) / `startCheckout` with hook `subscriptions.activate`. Coupons forwarded only. Recurring intents via `createRecurring` / `cancelRecurring`. No second cart.
-- **`product:email-manager`** — `emitEmailTrigger` only (payload includes `buyerEmail`). Starters create templates/rules under Email Manager.
-- **`product:forms`** — optional plan `formDefinitionId`; preset `subscription-registration` under Subscriptions category. Account subscribe renders the FormWidget intake; admin deep-links to `/admin/forms/[id]`. `ensureSubscriptionRegistrationFormSeeded` stays here: Subscriptions settings and admin actions, and `bootSubscriptions` (generated `runModuleBoot`). Forms admin does not seed it. Boot also registers the Payments collect resolver and the expiry job, and skips all of that when Subscriptions is toggled off.
-- **Content locales** — plan title/description via `LocaleInput` → `data/content-locales/{locale}/subscriptions/{planId}.json` (same pattern as Events categories).
+- **`product:email-manager`** — `emitEmailTrigger` only (payload includes `buyerEmail`). Starters under Email Manager.
+- **`product:forms`** — optional plan `formDefinitionId`; preset `subscription-registration`. `ensureSubscriptionRegistrationFormSeeded` stays here (settings, admin actions, `bootSubscriptions`). Forms admin does not seed it.
 - **`product:profiles`** — subscriber labels via `getPersonas`. Store `userId` only.
-- **`product:media`** — plan thumbnail via `MediaPicker` (`imageMediaId`). Optional require; the editor keeps the stored id when Media is off.
-- **Core ACL** — `addUserToGroup` / `removeUserFromGroup` / `listUserGroupOptions`. Does **not** write ACL permission rows or own the matrix UI.
+- **`form`** (`optionalRequires`) — Form particle for brochure placement when used
+- **`product:media`** (`optionalRequires`) — plan thumbnail via `MediaPicker` (`imageMediaId`); editor keeps stored id when Media is off
+- **Content locales** — plan title/description via `LocaleInput` → `data/content-locales/{locale}/subscriptions/{planId}.json` (planned parity with Events categories)
+- **Core ACL** — `addUserToGroup` / `removeUserFromGroup` / `listUserGroupOptions`. Does **not** write ACL permission rows
 
 ## Public door
 
-`@/modules/subscriptions/api`
-
-## Access model (hybrid)
-
-| Surface | Mechanism |
-| --- | --- |
-| Pages, nav, modules, later NetSuite | Plan **access groups** → Core membership → existing ACL |
-| Ticket price, `payments.collect`, `events.manage` | **`hasEntitlement` / `resolveAudience`**. Events does not import this pack. Boot registers the Core member-audience slot; Events reads `events.member` from it. |
-
-## Built-in entitlement keys
-
-| Key | Subject | Effect |
-| --- | --- | --- |
-| `events.member` | membership | Member ticket price (Events) |
-| `events.manage` | organizer | Satisfies `admin.events` at request time |
-| `payments.collect` | organizer | Merchant collect when Subscriptions is on |
-| `social.challenge.multi` | (admin-attached) | Social second+ challenge invitee; not default on membership/organizer |
-
-## Consumer contract
+`@/modules/subscriptions/api` (server-only door; **no** separate `api.server.ts`). Exports include `hasEntitlement`, `resolveAudience`, `hasActiveSubject`, `startSubscriptionCheckout`, `ENTITLEMENT_KEYS`, plan/period/seat CRUD, checkout price resolve, expiry sweep helpers, email seed helpers, `ensureSubscriptionsPaymentHook`, `ensureSubscriptionsExpiryJob`, settings load/save, CSV export helpers, and related constants (`CHECKOUT_MODES`, `PLAN_BILLING_PERIODS`, `SUBSCRIPTIONS_EXPIRY_JOB`, …). Door id: `subscriptions-api`.
 
 ```ts
 import {
@@ -61,30 +56,24 @@ import {
   startSubscriptionCheckout,
   ENTITLEMENT_KEYS,
 } from '@/modules/subscriptions/api'
-
-await hasEntitlement(userId, ENTITLEMENT_KEYS.eventsMember)
-await resolveAudience(userId) // { entitlementKeys, groupIds, periodIds }
 ```
 
-## Frozen Payments stub
+## Admin surfaces
 
-`sf_pay_collect_entitlements` stays a boolean stub. When this pack is enabled, `hasCollectCapability` reads `payments.collect`. When off, the stub / ACL auto-grant stays.
+- `/admin/subscriptions`, `/admin/subscriptions/subscribers`, `/admin/subscriptions/changes`, `/admin/subscriptions/settings`
+- ACL area: `subscriptions`
+- Public: `/plans`, `/account/subscriptions`
 
-## Locked money / mail rules
+## Boot and jobs
 
-- Free plans (`price = 0`) activate without a cart.
-- Paid / charged trials always go through Payments.
-- Coupons and invoices stay in Payments (deep-link admin).
-- Never call `getMailer()` from this pack.
+`bootSubscriptions` when on: form seed, Payments collect resolver registration, expiry job — **skipped when module off**. Job: subscriptions expiry sweep (`SUBSCRIPTIONS_EXPIRY_JOB` / `ensureSubscriptionsExpiryJob`). Payment hook `subscriptions.activate` registered from boot.
 
-## Content-locale note
+## Known gaps
 
-Plan title/description remain on `sf_sub_plans` columns for this pass. Wire `LocaleInput` + content-locale files when Localization owns sibling entity catalogs the same way (see Events categories). Do not invent a second resolve helper.
+- Phase 5 parked: membership cards/QR, drip content, downloads, members directory, newsletter list sync, affiliate, forced registration redirect
+- Plan title/description still on row columns; LocaleInput + content-locale files pending full wire-up
+- Out of scope: ASN currency, ad inventory, listing ranking, writing ACL permission rows from purchase, gateway secrets, invoice PDF generation
 
-## Parked (Phase 5)
+## Tests
 
-Membership cards/QR, drip content, downloads, members directory, newsletter list sync, affiliate, forced registration redirect.
-
-## Out of scope
-
-ASN currency, ad inventory, listing ranking, event-series CRUD, writing ACL **permission** rows from a purchase, gateway secrets, invoice PDF generation.
+`src/modules/subscriptions/catalog.test.ts`

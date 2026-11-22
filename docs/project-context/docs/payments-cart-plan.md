@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Payments cart plan (`product:payments`)
 
 **Status:** Design frozen for implementation (2026-11-08). Commercial order, when product work resumes: this pack’s paid-ticket loop, then subscriptions, then ads. That order waits until Core is finished — [architecture-current](./architecture-current.md). The 5 Nov wireframe does not put Marketplace or Social ahead of it. `sf_pay_collect_entitlements` stays a frozen boolean until subscriptions owns it.  

@@ -1,32 +1,76 @@
+---
+kind: live
+last_verified: 2026-11-23
+---
 # Starforge architecture — current
 
-**Status:** live map as of 2026-11-15. **This page wins** when it disagrees with an older plan, a preference bullet, or a status table.
+Last verified against code: 2026-11-23.
 
-Read this before [design-system-overview](./design-system-overview.md) (3 Nov snapshot), [core-remaining](./core-remaining.md), [asn-modules-wireframe](./asn-modules-wireframe.md) §3, or [replaceable-modularity-plan](./replaceable-modularity-plan.md). Those stay as history and as design detail. They are not the queue.
+**This page wins** when it disagrees with an older plan, preference bullet, or status table. Plans and audits are history.
 
 ## What this platform is
 
-Starforge is the reusable starter: auth, the layout host, a content-manager pack behind PageReadsPort, and toggleable packs. ASN 2.0 is a later **Hero** (theme + airsoft rules) on top of those packs. It does not fork them.
+Reusable starter: auth, layout host, content manager behind PageReadsPort, toggleable packs. ASN 2.0 / Airsoft Nexus is a later Hero on those packs; InspecTra may ship earlier.
+**Core** — host + ports. **Base** — Media, Forms, Rich editor, Email Manager, Payments, Profiles, Maps (TacMap / tactical event map).
+**Advanced** — Events, Subscriptions, Social (finish before Ads); later Ads (depends on Social + Email Manager + Forms + Subscriptions + Payments), Shop, Marketplace, Support, Stream. **Hero** — brand + vertical rules.
+`product:pages` is the content manager (site pack), not a base engine. Base modules are not Core.
+Placement: [platform-module-layers](./platform-module-layers.md). Rules: [sf-architecture](../../../.cursor/rules/sf-architecture.mdc), [sf-module-ownership](../../../.cursor/rules/sf-module-ownership.mdc).
 
-Four placements: **Core** is the host and the ports. **Base modules** are the dependency engines (Media, Forms, Rich editor, Email Manager, Payments, Profiles, Maps). The content manager is **`product:pages`** only (phase 4 shell removed 2026-11-16). **Advanced modules** are the domain packs that `require` those engines (Events, Subscriptions, and later Ads, Shop, Marketplace, Support, Stream). **Hero** is brand and vertical rules. Base modules are not Core. The old nickname “level-1 engines” means the base modules. Placement: [platform-module-layers](./platform-module-layers.md). Rule: [sf-architecture](../../../.cursor/rules/sf-architecture.mdc). Ownership: [sf-module-ownership](../../../.cursor/rules/sf-module-ownership.mdc). Rows in older placement tables that still call a CMS package the content manager or the media library are behind this map.
+## Launch scope
+
+Accepted: [2026-11-22-launch-scope](./decisions/2026-11-22-launch-scope.md).
+
+- **First production site:** Airsoft Nexus — every module already built; Lexical may stay off.
+- **Earlier site allowed:** InspecTra (quality inspection) may ship before Airsoft Nexus; Core polish comes first.
+- **Do not archive built modules.** Nothing built stays off except the possible Lexical exception.
+- **Absent until built:** Ads, Chat, Shop, Stream (and any other pack not in the tree).
+- **Migrate:** users, avatars, profile settings (new password on first login — do not migrate passwords); upcoming events only (past events stay archived on the old site); marketplace user ratings. Marketplace posts = later examination, not a cutover requirement. Everything else stays on the old site.
+
+## Build queue
+
+Core → base → advanced → Hero still holds. Core finish (slices 1–9) and the base-module pass items that were open on this map (requires-graph auto-enable, Payments `requestOrderRefund`, Forms CSV / stringConstraints / success redirect, Mailer transactional helper, admin theme CSS from the registry) are in tree. Paid event tickets and the Subscriptions lifecycle are in tree. `sf_pay_collect_entitlements` stays a frozen stub; collect reads `payments.collect` when Subscriptions is on.
+
+| Lane | What |
+| --- | --- |
+| **Active** | Finish `product:social` (in scope; not frozen). Close Social Open work that blocks enablement. Core / launch polish in parallel where it blocks cutover. |
+| **Next product pack after Social** | `product:ads` (advanced; not Core/base). No `src/modules/ads` yet. When built, Ads depends on Social, Email Manager, Forms, Subscriptions, and Payments (an ad posts into Social). Do not start Ads, Chat, Shop, Stream, or Marketplace schema ahead of finishing Social. |
+| **Parked** | Chat, Shop, Stream, Notifications, ASN Hero theme / currency / `apps/asn-capacitor`, TacMap stations / BLE beacons, durable `product:campaigns`, organizations, support, outbound webhooks. Marketplace today is a Dashboard stub (`product:marketplace`, no commerce schema). |
+
+The 5 Nov wireframe order does not override this. Event slot kinds decided as choosable Ticket type / Booking type / Faction (+ admin names) wait; code is still `general \| faction` on `sf_event_ticket_tiers.kind`.
+
+## Social (in scope — finish before Ads)
+
+**`product:social`** — slices **1–22** documented in `src/modules/social/manifest.ts` and the pack README; `defaultEnabled: false`; enable for Airsoft Nexus after Social Open work that blocks enablement closes. Brief: [social-module-standing](./social-module-standing.md). Hard `requires`: profiles, media, rich-editor, forms, email-manager. `optionalRequires`: `form` (particle pack `src/modules/form`), `product:subscriptions`, `product:events`. Not Payments / not Maps ([2026-11-22-social-dependency-floor](./decisions/2026-11-22-social-dependency-floor.md)). Posture: finish Social ([2026-11-22-social-built-parked](./decisions/2026-11-22-social-built-parked.md)). Comments, likes, and reports stay in Social — no `product:comments` / `product:reports` ([2026-11-22-comments-reports-ownership](./decisions/2026-11-22-comments-reports-ownership.md)).
+
+## Open work
+
+| Item | Owner | Status | Blocking launch? | Link |
+| --- | --- | --- | --- | --- |
+| Media access — attach: refuse bind when the target audience is wider than the file’s level | Social (+ Media) | Done; `decidePostAttachments` / `decideSetPostAudience` use `shareAudienceIsWider` + passed-in file level (`audience_too_wide`). Serve also Done; `sf-security.mdc` still absent so no law | only if Social is on | [2026-11-22-media-access-model](./decisions/2026-11-22-media-access-model.md), `src/modules/social/posts.ts` |
+| Media access — serve: `/api/media/[id]` must honor the owning audience | Media (+ Social) | Done; both `/api/media/[id]` and `/api/media/file/[...key]` call Social via `loadModuleDoor('social-api-server')` → `decideSocialMediaServeAccess` (`canViewBoundMedia` / `canViewPost`). Restricted binds 404 for strangers, skip public CDN redirect, and omit `Cache-Control: public`. `sf-security.mdc` absent — no law appended | only if Social is on | [2026-11-22-media-access-model](./decisions/2026-11-22-media-access-model.md), `src/modules/social/media-serve-store.ts`, `src/app/api/media/` |
+| Staff / moderator private-read on front end (`only_me`, friends-only) | Core ACL / Social | Done; `canViewPost` / feed predicate / SQL / media serve use the existing staff grant (`viewerMayModerateSocialContent` — `viewerMayOverrideMemberOwnership` or `admin.social` edit). Block and author-hidden still deny. | only if Social is on | [2026-11-22-staff-bypass-limits](./decisions/2026-11-22-staff-bypass-limits.md), `src/modules/social/posts.ts` `canViewPost` |
+| Rate limits on Social member writes | Social + Core RateLimiter | Done; `checkSocialWriteRateLimit` → `getRateLimiter().consume` (`social-write:${userId}:${clientIp}`). Pack settings override on the existing Social document (`writeRateLimitMax` / `writeRateLimitWindowSec`, same screen as comment length). Staff not exempt. Member media upload keeps its own bucket — no second consume in that request. `sf-security.mdc` absent — no law appended | only if Social is on | `src/modules/social/rate-limit.ts`, `src/core/security/rate-limit` |
+| Seed refuses production; README must not treat the seed password as production | Core seed / README | Done; `assertSeedAllowed` refuses `NODE_ENV=production` unless `STARFORGE_ALLOW_PRODUCTION_SEED=1`. README warns local-only | yes | `src/seed-production-guard.ts`, `src/seed.ts`, `README.md` |
+| Env validation rejects placeholder secrets | Core env | Done; production errors on `.env.example` values and secrets containing `dev-only` / `change-me`; CI `ci-only-*` secrets are not placeholders; dev/test warn only | yes | `src/core/env/validate.ts` |
+| Dedicated payment-credentials key required in production | Payments | Done; production requires non-placeholder `SF_PAY_CREDENTIALS_KEY` (no `PAYLOAD_SECRET` / hardcoded fallback); dev may still fall back | yes | `src/modules/payments/credentials-crypto.ts`, `src/core/env/validate.ts` |
+| Production warning when `STARFORGE_TRUSTED_PROXY_HOPS` is unset | Core env | Done; production warns (not errors) when unset/empty; non-integer stays a warning; CI boots without the key | yes | `src/core/env/validate.ts` |
+| Social `optionalRequires` contains particle id `form` | Social | Confirmed: `form` is `src/modules/form` (`kind: 'particle'`). Keep or drop is undecided. Only if Social is on | only if Social is on | `src/modules/social/manifest.ts`, `src/modules/form/manifest.ts` |
+| Rename `product:maps` to TacMap (id / docs consistency) | Maps | Open; do not rename in the Social dependency slice. Pack README already brands TacMap | no | [2026-11-22-social-dependency-floor](./decisions/2026-11-22-social-dependency-floor.md), `src/modules/maps/README.md` |
+| Event / page conversation UI on Social’s comments engine | Social (+ Events / Pages) | Accepted ownership; event conversation not built | no | [2026-11-22-comments-reports-ownership](./decisions/2026-11-22-comments-reports-ownership.md) |
+| `dangerouslySetInnerHTML` sites need a sanitization review | Core + packs | Open; custom particle HTML, page-settings inject, Events description, and others | no | e.g. `src/core/modules/particles/custom.tsx` |
+| Event slot kinds chooser (Ticket type / Booking type / Faction + admin names) | Events | Decided; code still `general \| faction` | no | `src/modules/events/schema.ts` |
+| Organizations, outbound webhooks, support | TBD | Parked; not ahead of finishing Social then Ads | no | — |
+| Durable subscriber-list `product:campaigns` | Email Manager later | Parked. Light paste campaigns live in Email Manager today | no | `sf-email-module.mdc` |
+| Checkout coupons | Payments | Shipped under Payments (not a promotions pack) | no | `/admin/payments/coupons` |
+| `modules:sync` omits unchosen in-repo engines | Installer | Target only; sync adds/removes `@starforge/module-*` (notice-bar, consent). Other packs stay in this repo | no | [module-install-packages](./module-install-packages.md) |
 
 ## Routes
 
 | Surface | Path |
 | --- | --- |
-| Core admin | `/admin` (root = Dashboard). Pages at `/admin/pages`. Media at `/admin/media`. |
-| Former `/cms` | Redirects to `/admin`. Not an admin. |
+| Core admin | `/admin` (root = Dashboard). Pages `/admin/pages`. Media `/admin/media`. |
+| Former `/cms` | Redirects to `/admin` (`next.config.ts`). |
 | Public site | `/[locale]/…` |
-
-Older sentences that say Core lives at `/app/admin` or that a CMS package lives at `/admin` or `/cms/admin` are obsolete (SF-213, phase 4).
-
-## Admin chrome
-
-Follow [sf-ui-design](../../../.cursor/rules/sf-ui-design.mdc). Copy Events or Page Settings.
-
-- **Canvas builders** (Layout, Form builder) autosave when the value changes. Not on focus alone.
-- **Entity cards** (Events, Venues, Payments, module settings) keep bottom-right Apply / Save / Cancel. Do not strip those buttons to match canvas autosave.
-- Admin is blue Gantry chrome. Orange is the primary Save / rare CTA. There is one admin skin (`core-chrome.css`).
 
 ## Secrets
 
@@ -35,87 +79,38 @@ Follow [sf-ui-design](../../../.cursor/rules/sf-ui-design.mdc). Copy Events or P
 | Site-wide (`PAYLOAD_SECRET`, `BETTER_AUTH_SECRET`, platform gateway, SMTP, Turnstile, `REDIS_URL`, API keys) | Process env / gitignored Environment overlay. Never `site_settings`, never a Chrome field. |
 | Per-merchant gateway and Billingo / Számlázz keys | Encrypted `sf_pay_merchant_credentials`. Not Site Chrome env. Never plaintext. Never logs. |
 
-The second row is the exception to “secrets never in the database.” Do not “fix” it by moving merchant keys into the env file, and do not store site-wide secrets in jsonb because the merchant table exists.
+The second row is the exception to “secrets never in the database.”
 
 ## Editors
 
-`product:rich-editor` (TipTap, sanitized HTML) is the default for module fields and the page body. `product:lexical-editor` stays an optional pack for anyone who prefers Lexical, including after existing pages have been converted. It is off unless that install chooses it. Both are editor packs. Do not delete Lexical once migration is done.
+`product:rich-editor` (TipTap, `sanitizeRichHtml`) is the default for module fields and the page body. `product:lexical-editor` stays optional (`defaultEnabled: false`); `@payloadcms/richtext-lexical` remains for that pack. Do not delete Lexical once migration is done.
 
-## One canvas (decided 2026-11-10)
+## Installer
 
-One implementation for a behavior. The layout canvas is that implementation for arranging sections, rows, and percent-width slots.
+Installing Starforge means choosing which modules come with that site ([module-install-packages](./module-install-packages.md)): `modules:wizard` → allowlist, `modules:sync` → `@starforge/module-*` deps, `modules:generate` → registry. Site Settings → Modules only hides an installed pack; it does not remove code. Hard `requires` auto-enable via `src/core/modules/requires-graph.ts`.
 
-The Form builder is that same canvas (`src/app/(frontend)/admin/canvas/section-row-canvas.tsx`) with a field palette instead of a particle palette. It leaves out outlines, skin, inherit/copy, full-vs-boxed section width, particle config, and custom HTML/JS. It keeps the layout drag, the percent resize, the empty-row control, and drag-from-anywhere. Field schema, conditions, and validation stay form data. They open from the slot cog.
+**Always present:** auth, users/groups, admin shell, module installer, layout/nav/chrome, Page Settings, Skin, i18n host, Mailer and cache interfaces.
 
-Empty-row ids come from `nextEmptyRowId` in `src/core/modules/empty-row-id.ts`. Width math stays in `src/core/modules/grid.ts`. Do not add another drag stack. Nav item order and event tier order may still use dnd-kit; those are lists, not this canvas.
+**Not a separate download today unless packaged:** most engines still live in this monorepo (see Open work). Notice-bar and consent are real `@starforge/module-*` packages.
 
-## Installer (decided 2026-11-10)
+**Content manager:** `product:pages` in `src/modules/pages` (`requires` rich-editor + media). Owns editorial pages, last 20 versions (`PAGE_VERSION_KEEP`), page admin, categories, tags. Status draft / published / unpublished. Public reads go through `PageReadsPort`; pack off → empty reads. Nav page binds call the pack door (Core does not import the pack). `product:media` owns `sf_media_*`; blobs on MediaStorage. Site settings (`moduleToggles`, performance, `primaryNavMenuId`, `rootItem`) live on Core `sf_site_settings`. `rootItem` is the one nav item for `/{locale}` in every locale. CMS access is Better Auth + `sf_users.cms_access`. No second CMS; peel: [2026-11-15-payload-peel](./decisions/2026-11-15-payload-peel.md).
 
-Installing Starforge means choosing which modules come with that site. The mechanism is the one in [module-install-packages](./module-install-packages.md): `modules:wizard` writes the allowlist, `modules:sync` downloads only those packs, `modules:generate` wires them. Site Settings → Modules only hides a pack that is already installed. It does not remove code.
+**Payload peel (done):** phases 1–4 shipped 2026-11-16. Decision: [2026-11-15-payload-peel](./decisions/2026-11-15-payload-peel.md). Archive: [payload-dependency-map](../../archive/payload-dependency-map.md). Queue after tickets + subscriptions: finish Social, then Ads.
 
-**Always present:** the host Starforge cannot boot without. Auth, users and groups, the admin shell, the module installer itself, the layout document and particle slots, Nav, Site Chrome, Page Settings, the Skin port, the i18n routing host, and the Mailer and cache interfaces.
-
-**Not downloaded unless chosen:** any product engine. Forms, the media library, redirects, TipTap, Lexical, search, Email Manager, Payments (gateways, NAV, Billingo, Számlázz), Maps (Leaflet), Events, Profiles, Consent’s banner, and PWA. Adding one later is a new install and a new build, not a checkbox over code that was already on disk.
-
-**Content manager (decided 2026-11-15, shell removed 2026-11-16):** `product:pages` lives in `src/modules/pages`, not in Core. It owns editorial pages, the last 20 version snapshots, page admin, page categories (`sf_pages_categories`, one per page), and page tags (`sf_pages_*`). Status is draft, published, or unpublished. Each page stores created and published timestamps plus creator and publisher user ids. Only published pages are public. Its manifest `requires` `product:rich-editor` and `product:media`. Layout, search, and sitemap keep reading through `PageReadsPort` (`src/core/content/page-reads`): published page by slug, draft preview, search list, sitemap summaries. When the pack is enabled, `getPageReads()` uses the pages adapter. When the pack is off, those reads are empty. That port is the swap boundary. There is no second CMS.
-
-`product:media` owns the media document store (`sf_media_assets`, `sf_media_categories`, `sf_media_tags`, `sf_media_asset_tags`) and the library UI. Blobs stay on the MediaStorage port. Local disk and S3 use the same category slug key (`logos/events/photo.webp`); generated sizes sit in `_derivatives` under that prefix. On local disk, files dropped into those folders are imported when an admin opens the library or the picker. ImageFrame stays the display crop. Site settings — module toggles, performance knobs, `primaryNavMenuId`, and `rootItem` — live on Core `sf_site_settings`. `rootItem` is the one nav item that owns public `/{locale}` for every locale. Languages are fields on that target. Missing fields use Localization’s `defaultLocale` when `localeFallback` is on. Slug `home` is only the fallback while `rootItem` is empty. They are not CMS content. Site Chrome stays on `sf_site_chrome`. Media and site settings do not go back into a CMS package.
-
-CMS access is Better Auth plus `sf_users.cms_access`. Draft preview and page edits use that flag. `/cms` redirects to `/admin`. The CMS npm packages are gone except `@payloadcms/richtext-lexical`, which `product:lexical-editor` still imports. `npm run db:migrate` copies any leftover `payload` schema rows into `sf_*`, then drops that schema. Archive: [payload-dependency-map](./payload-dependency-map.md). Decision: [2026-11-15-payload-peel](./decisions/2026-11-15-payload-peel.md). Pages one-pager: [pages-pack-plan](./pages-pack-plan.md).
-
-**Payload peel:** (1) site settings → Core `sf_site_settings` — **done**. (2a) media UX parity — **done**. (2b) media document store → `sf_media_*` — **done**. (3a) `product:pages` MVP daily edit — **done**. (3b) version restore, data migrate, Nav id remap — **done** (2026-11-16). (4) cms-bridge, the `/cms` shell, and the CMS npm packages — **done** (2026-11-16). This does not replace ads as the next product pack.
-
-`modules:sync` does not yet omit an unchosen engine. It only adds or removes `@starforge/module-*` packages, and only notice-bar and consent are real packages. Forms, media, payments, maps, and the rest are still inside this repo, so every install downloads them. Moving those engines out so an unchosen pack is absent from disk is the modularity target. Do not treat “the admin toggle is off” as that target.
-
-## Build queue
-
-Core → base modules → advanced modules → Hero still holds. **Core finish (slices 1–9) is shipped.** The active job is the base-module pass: each module's `requires` installs and enables its dependencies, Payments refunds are real, Forms ops (CSV, string rules, success redirect) and the Mailer transactional helper are in place. Next product pack after that pass is `product:ads`. Do not open Social, Chat, Shop, or Marketplace schema ahead of that.
-
-Do not re-open work that already shipped: RateLimiter, captcha-in-security, the manifest host (M0–M2), Redis cache, the Skin port, dashboard D2–D4, the email send log, module info pages, or the dashboard core glance and needs-attention rail (`system.health`, `chrome.posture`, `modules.summary`, `attention.rail`).
-
-**Host gaps for Auto** (one slice per chat, instructions in [core-host-gaps-brief](./core-host-gaps-brief.md)): all five slices shipped — public error/404, optional email verification, download-my-data / delete-my-account, job-runner port (`src/core/jobs`), and Google sign-in (`GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET`, button only when both set). These do not replace the list below.
-
-**Resume (2026-11-13):** Core finish slices 1–9 shipped. Base modules (Forms, Media, Email Manager, Rich editor, Profiles, Payments, Maps v1) plus site utilities are in place. Subscriptions resolve is an advanced pack on those engines. `requires` on each manifest is the dependency map; install and the Modules toggle close it. Paid tickets and the subscriptions lifecycle already shipped. Next product pack is ads. Redirects, Forms, and the TipTap engine are in `src/modules`. Page reads go through `PageReadsPort`.
-
-**Payload peel:** phases 1–4 are done (2026-11-16). The content manager is `product:pages`. Detail is under Installer → Content manager, and in the archived [payload-dependency-map](./payload-dependency-map.md). It does not replace ads as the next product pack.
-
-**Core finish (shipped).** One slice per chat was the rule; paste archive in [core-finish-instructions](./core-finish-instructions.md):
-
-1. **Small host leftovers.** Consent choices (necessary + analytics, reopenable). Redirect CSV import. Admin theme CSS selected from the registry (layouts still import Gantry statically; Turbopack needs a static import per known theme). Forms success mail through Email Manager only — **shipped** (`email-notify.ts` is `emitEmailTrigger` only; no Mailer fallback).
-2. **Admin audit trail** — **shipped.** Append-only `sf_admin_audit` and `recordAdminAudit` in `src/core/audit`. Rows after a successful user role, group, disable, or CMS change; a Site Settings module on/off; a redirect create, update, delete, or CSV import; an environment save (the fact of the save only — no key names or values); and an ACL level change. Read-only `/admin/audit`. With `product:audit` off, only a developer-admin can open it (Settings → Audit). With that pack on, the link sits under Users next to ACL, and an app admin or a group with `admin.audit` view can filter and export the same table. Day-to-day content and commerce rows record only while the pack is on. No second audit table. No backfill.
-3. **Structural finish, its own passes.** Redirects engine is in `src/modules/redirects` (M3). Forms engine is in `src/modules/forms` (M4). TipTap engine is in `src/modules/rich-editor`; callers pass `MediaPicker` from `@/modules/media/api`. Page reads (published slug, draft preview, search list, sitemap) go through `PageReadsPort` (`src/core/content/page-reads`) — **shipped** (slice 9).
-
-**Particle defaults are not a Core admin page.** They are demo content inside a skin pack: the particles that ship with that skin already have default text and parameters, so an installed skin is not empty. Build that when Starforge is ready to hand to other people as a demo. Do not add `/admin/particle-defaults` back.
-
-**Base modules (active):** dependency closure, Payments refunds, Forms ops, Mailer transactional helper, admin theme CSS from the registry. `sf_pay_collect_entitlements` stays a frozen stub; collect reads `payments.collect` when Subscriptions is on. Subscriptions pack plan: [subscriptions-pack-plan](./subscriptions-pack-plan.md). Public sell surface: `/plans` + `subscription-plans` particle (place on brochure pages); account lifecycle stays `/account/subscriptions`. Ads is the next product pack. TacMap live rooms stay out of this pass.
-
-**Also decided, and also waiting:** event slot kinds are choosable **Ticket type**, **Booking type**, and **Faction**, and an admin can add other names. The code today is only `general | faction`. Do not build that chooser ahead of the commercial order.
-
-**Parked, and not ahead of the commercial order:** TacMap stations, BLE beacons, `apps/asn-capacitor`, Shop, Marketplace schema, Social, Chat, Stream, Notifications, ASN Hero theme and domain fields, ASN currency, DigitalOcean, WordPress migration.
-
-**Named 2026-11-11, still waiting, not this queue:** organizations, campaigns, comments, reports, outbound webhooks, support. A light campaign (label + template + pasted recipients) lives in Email Manager; Send queues one paced broadcast (`sourceKey` `email-campaign:<id>`), status follows that broadcast, and counts are the broadcast counters. Failed-address list and open/click tracking stay later. The durable subscriber-list `product:campaigns` pack stays parked. Checkout **coupons** live in `product:payments` (not a promotions pack). Instructions and the “this is not a new pack” list: [core-finish-instructions](./core-finish-instructions.md). Do not start them ahead of the commercial order.
-
-The 5 Nov wireframe order does not override this. Email Manager already shipped ahead of the heavy packs. i18n P0–P3 already shipped.
+**Requires chain:** Forms → Media; Rich editor → Media; Email Manager → Rich editor + Media; Payments → Email Manager; Profiles → Media + Forms; Maps has empty `requires` (Events still depends on Maps). Events requires Forms, Media, Rich editor, Payments, Profiles, Maps. Subscriptions requires Payments, Email Manager, Forms, Profiles. Social requires Profiles, Media, Rich editor, Forms, Email Manager (not Payments, not Maps). Profiles stays base because Events and Subscriptions require it.
 
 ## Languages
 
-One outline for every language. Do not copy a layout per locale. Particle chrome (account menu, sign-in, locale switcher) reads the message catalog for the current `[locale]`. Page body stays in the content manager.
-
-Editor-typed text uses one field. Localization owns that control (`LocaleInput`). It shows a language menu on the end of the field only when more than one public locale is enabled. Custom particle HTML and title use it. Custom CSS and JavaScript do not.
-
-**Content locale files:** non-default (and mirrored default) layout/nav/Chrome consent strings persist under `data/content-locales/{locale}/layouts|nav|chrome/{id}.json` as flat maps of stable keys → strings. The key *is* belonging (`layout.{layoutId}.slot.{slotId}.{field}`, `nav.{menuId}.item.{itemId}.{field}`, `chrome.consent.{message|privacyUrl|privacyLinkLabel}`). Runtime resolves via `pickContentLocaleText`. `/admin/localization` has a CodeMirror JSON editor plus download/upload. UI chrome packs (`src/core/i18n/messages`, module `messages/`) stay separate from page locales. Page title, body, and SEO for `product:pages` use content-locale files (`pages/{id}.json`). The 3b migrate writes those files once from Payload locales.
+Localization owns `defaultLocale` and `localeFallback`. One layout outline for every language. Particle chrome reads the message catalog for `[locale]`. Editor-typed copy uses Localization’s `LocaleInput` when more than one public locale is on. Content-locale files: `data/content-locales/{locale}/…` + `pickContentLocaleText`. UI chrome packs stay separate. Page title / body / SEO use `pages/{id}.json`.
 
 ## Hero vs module
 
 | Belongs in the module | Belongs in Hero |
 | --- | --- |
 | Maps rooms, teams, roster, same-team GPS | ASN map chrome, beacon SKUs, `apps/asn-capacitor` |
-| Event slot kinds: choosable Ticket type, Booking type, Faction, plus admin-added names | Milsim sheets, association membership, TEÁOR, field-safety policy |
+| Event slot kinds (chooser when built) | Milsim sheets, association membership, TEÁOR, field-safety |
 | Profiles `extensions` jsonb | ASN team / airsoft fields inside that jsonb |
-| Public pastel look | A second skin pack plus domain rules |
-| Real-money checkout (Payments) | **ASN currency** — a Hero token. Buy it, earn it from platform actions, spend it to lower or fully cover Hero services, subscriptions, and selected events. No token ledger on `sf_pay_*` or `sf_events_*`. |
-
-Those kind names live in Events. They are not a license to add airsoft columns to `sf_events_*`. Code today is still the closed pair `general | faction`.
+| Real-money checkout (Payments) | **ASN currency** — Hero token; no ledger on `sf_pay_*` / `sf_events_*` |
 
 ## Accepted transitions
 
@@ -123,51 +118,54 @@ Do not relocate these in a drive-by:
 
 | Thing | Where it lives | Rule |
 | --- | --- | --- |
-| Forms engine | `src/modules/forms` (`api.ts` door, `schema.ts` tables) | Events, Profiles, and Payments import `@/modules/forms/api` only. Core does not import the engine. Definitions stay `sf_forms`, `sf_form_submissions`, and `sf_form_settings`, declared in the Forms schema. |
-| Redirects engine | `src/modules/redirects` (`api.ts`, `schema.ts`, generated `runProxyHooks`) | Core calls the generated hook only. Sitemap list stays Core. |
-| TipTap engine | `src/modules/rich-editor` (`product:rich-editor`) | Lexical stays an optional pack. Callers use `@/modules/rich-editor/api` (server sanitize and the module gate: `api.server`). |
-| Image insert in the editor | Caller passes `MediaPicker` from `@/modules/media/api` | The editor file does not import media. Core does not import the picker. |
-| Forms success mail | `emitEmailTrigger` (`product:forms/submitted`) only | Do not call `getMailer()` from Forms or other packs for product mail. |
-| `sf_pay_collect_entitlements` | Frozen stub inside Payments | When Subscriptions is on, collect reads `payments.collect`. No plan/period columns on `sf_pay_*`. |
-| Payment fulfillment | `registerPaymentConsumerHook('events.confirmRegistration', …)` | One hook key per consumer, passed into checkout. Registrations on that key append. The first handler’s throw still fails the request. Later listeners are isolated. The default hero adds none. No second event bus. |
-| Online payment gateway | Core adapter `src/core/payments/<id>.ts` plus an import in `register-online.ts` | A developer ships it in the build. An admin enables it and pastes keys. No upload-a-gateway screen. Offline methods stay the fixed list. |
-| Process boot | generated `runModuleBoot`, then `runHeroBoot` | `instrumentation.ts` asserts env, then calls both. No pack paths. Each pack boot returns immediately when its own toggle is off. The default hero loader is null. The Events abandoned-checkout sweep stays unarmed while Events is off; stuck `pending_payment` seats wait until Events is on and boot runs again. |
-| Page reads | `PageReadsPort` (`src/core/content/page-reads`); pages adapter when `product:pages` is on, else empty | Layout, search, and sitemap use `getPageReads()`. |
-| Admin ACL | Core groups. Each grant is `view`, `edit`, or `manage` (manage includes the lower levels; the highest group wins). App admin bypasses. Role, group membership, the matrix, and the environment file stay app-admin. | Do not add an Access Level entity. Do not flatten the matrix back to a checkbox. |
-| Staff bypass on member gates | App admins (developer-admins included) and pack `admin.<id>` edit/manage may perform ownership-gated member actions (edit / delete / audience / …) anywhere by default. Staff UI is additive. | Do not ship author-only gates that refuse `isAppAdmin`. Decision: `docs/project-context/docs/decisions/2026-11-21-staff-bypass.md`. Rule: `sf-staff-bypass.mdc`. |
-| Admin audit | Core `sf_admin_audit` + `recordAdminAudit`. Optional site pack `product:audit` is the company reader and the extra activity rows. | No second audit table. Do not put secrets or free-text notes in a row. |
+| Forms engine | `src/modules/forms` | Consumers import `@/modules/forms/api` only. |
+| Redirects engine | `src/modules/redirects` | Core calls the generated hook only. |
+| TipTap engine | `src/modules/rich-editor` | Callers use `@/modules/rich-editor/api` (+ `api.server` for sanitize/gate). MediaPicker passed in from media. |
+| Forms success mail | `emitEmailTrigger` only | No `getMailer()` from Forms. |
+| `sf_pay_collect_entitlements` | Frozen stub | Subscriptions on → `payments.collect`. |
+| Payment fulfillment | `registerPaymentConsumerHook` | One hook key per consumer; later listeners isolated. |
+| Online payment gateway | `src/core/payments/<id>.ts` + `register-online.ts` | Developer ships; admin enables + pastes keys. |
+| Process boot | `runModuleBoot` then `runHeroBoot` | `instrumentation.ts` asserts env, then both. |
+| Page reads | `PageReadsPort` | Layout, search, sitemap use `getPageReads()`. |
+| Admin ACL | Core groups: view / edit / manage | No Access Level entity. App admin bypasses. |
+| Staff bypass | App admins + pack `admin.<id>` edit/manage on ownership gates; staff UI additive. Front-end private-read (`only_me` / friends / group) uses the same Social staff grant in `canViewPost` | [2026-11-21-staff-bypass](./decisions/2026-11-21-staff-bypass.md), [2026-11-22-staff-bypass-limits](./decisions/2026-11-22-staff-bypass-limits.md), `sf-staff-bypass.mdc` |
+| Comments / likes / reports | `product:social` only — no `product:comments` / `product:reports`. Pages/events may opt into Social’s conversation engine when Social is on | [2026-11-22-comments-reports-ownership](./decisions/2026-11-22-comments-reports-ownership.md) |
+| Admin audit | Core `sf_admin_audit` + optional `product:audit` reader | No second audit table. |
 
-New packs follow Payments: a **port** in `src/core/<port>`, **product behavior** in `src/modules/<id>`. A PR may touch Core when it adds a port or a host extension. It does not put product screens, catalogs, or fulfillment in Core.
+New packs follow Payments: port in `src/core/<port>`, product behavior in `src/modules/<id>`.
 
-## Ports already real
+## Ports
 
-Shipped, do not re-plan: Mailer, PublishedContentCache, Redis client, MediaStorage, RateLimiter, Captcha (`src/core/security`), admin theme, Skin (`src/core/skin`), RealtimePort (foundation), MapProvider (`src/core/maps`, leaflet-osm), Payments (`src/core/payments`: gateways, FiscalProvider, BillingProvider).
+Shipped: Mailer, PublishedContentCache, Redis client, MediaStorage, RateLimiter, Captcha (`src/core/security`), admin theme, Skin, RealtimePort, MapProvider (`leaflet-osm`), Payments adapters (gateways, FiscalProvider, BillingProvider), PageReadsPort, JobRunner.
 
-Online gateways (decided 2026-11-15): a developer adds `src/core/payments/<id>.ts` and imports it from `register-online.ts`, then ships the build. An admin enables that method and pastes keys. See [decision](./decisions/2026-11-15-payment-gateway-registry.md).
+Online gateways: developer adds adapter + `register-online.ts` import ([decision](./decisions/2026-11-15-payment-gateway-registry.md)).
 
-Still paper, and only when a consumer is actually being built: `LlmProvider`, `MediaAnalysisPort`. No stub port without a consumer.
+`MediaAnalysisPort` is a noop stub. `LlmProvider` is not in the tree — add only when a consumer needs it.
 
-## Manifest edges (decided 2026-11-15)
+## Manifest edges
 
-`requires` and `optionalRequires` both count for a legal public-door import. Hard `requires` still drives install and enable. See [decision](./decisions/2026-11-15-requires-optional.md) and the [glossary](./glossary.md).
+`requires` and `optionalRequires` both count for a legal public-door import. Hard `requires` drives install and enable ([decision](./decisions/2026-11-15-requires-optional.md), [glossary](./glossary.md)).
 
-**Public door:** do not design a parallel pack API. Cross-module calls extend `@/modules/<id>/api` / `api.server`; private files stay inside the pack (`sf-architecture`, `sf-extend-existing`).
+**Public door:** cross-module calls only through `@/modules/<id>/api` / `api.server`.
 
-**Atomic gate (decided 2026-11-15):** Do not add rows to `scripts/module-boundary-allowlist.json`. Before closing boundary / schema / public-door work, run `npm run check:atomic` (alias for `verify:module-boundaries`). See [decision](./decisions/2026-11-15-atomic-guardrails.md) and `sf-atomic-guardrails.mdc`.
+**Atomic gate:** do not add rows to `scripts/module-boundary-allowlist.json`. Before closing boundary / schema / door work, `npm run check:atomic` ([decision](./decisions/2026-11-15-atomic-guardrails.md), `sf-atomic-guardrails.mdc`).
 
-## Docs
+## Docs index
 
 | Use for | Doc |
 | --- | --- |
-| This queue, routes, secrets, hero line | This file |
+| This queue, routes, secrets, open work | This file |
 | Glossary / agent index | [glossary](./glossary.md), [AGENTS.md](../../../AGENTS.md) |
+| Ops / launch runbooks | [production-env-checklist](../../ops/production-env-checklist.md), [deploy](../../ops/deploy.md), [backup-restore](../../ops/backup-restore.md), [migration-users-events](../../ops/migration-users-events.md), [redirects-and-archive](../../ops/redirects-and-archive.md), [cutover](../../ops/cutover.md), [post-launch-first-week](../../ops/post-launch-first-week.md) |
+| Dev setup / admin tour | [local-setup](../../dev/local-setup.md), [troubleshooting](../../dev/troubleshooting.md), [admin-tour](../../dev/admin-tour.md) |
 | Accepted decisions | [decisions/](./decisions/) |
 | ACL levels and optional audit | [2026-11-16-acl-levels-and-audit](./decisions/2026-11-16-acl-levels-and-audit.md) |
-| Payload peel (archive; phases 1–4 done) | [payload-dependency-map](./payload-dependency-map.md), [2026-11-15-payload-peel](./decisions/2026-11-15-payload-peel.md) |
-| Pages pack (shipped; shell removed) | [pages-pack-plan](./pages-pack-plan.md) |
-| Slice-by-slice Core finish | [core-finish-instructions](./core-finish-instructions.md) |
+| Payload peel | [payload-dependency-map](../../archive/payload-dependency-map.md), [2026-11-15-payload-peel](./decisions/2026-11-15-payload-peel.md) |
+| Pages pack | [pages-pack-plan](./pages-pack-plan.md) |
+| Social standing (in scope; finish before Ads) | [social-module-standing](./social-module-standing.md) |
+| Core finish archive | [core-finish-instructions](../../archive/core-finish-instructions.md) |
 | Layer placement | [platform-module-layers](./platform-module-layers.md) |
 | Commerce contract | [payments-cart-plan](./payments-cart-plan.md), [payments-merchant-plan](./payments-merchant-plan.md), `sf-payments-module.mdc` |
-| Manifest shape | [design-module-boundary](./design-module-boundary.md) — contract still valid; 3 Nov status and the “diff touches only `src/modules`” acceptance test are not |
-| Security and deploy targets | [design-security](./design-security.md), [design-data-deploy](./design-data-deploy.md) |
+| Manifest shape | [design-module-boundary](./design-module-boundary.md) — contract; ignore 3 Nov status |
+| Security / deploy targets (history) | [design-security](./design-security.md), [design-data-deploy](./design-data-deploy.md) |
 | ASN surface inventory | [asn-modules-wireframe](./asn-modules-wireframe.md) — inventory only; ignore §3 as a queue |

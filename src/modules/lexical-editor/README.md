@@ -1,18 +1,37 @@
 # product:lexical-editor
 
-Optional **Payload Lexical** pack. Default Starforge editing is TipTap (`product:rich-editor`). Lexical stays available after pages are converted, for installs that prefer it. It is off unless the installer chooses it.
+Layer: site pack
 
-## Why it exists
+Status: built-default-off
 
-- Keep `@payloadcms/richtext-lexical` available without being the default CMS body editor
-- Export `pagesLexicalEditor` for opt-in Lexical fields
-- Site Settings → Modules toggle (`defaultEnabled: false`)
+## Owns
 
-## Imports
+Optional **Payload Lexical** editor pack. Keeps `@payloadcms/richtext-lexical` available without being the default body editor (default is TipTap via `product:rich-editor`). Exports `pagesLexicalEditor` for opt-in Lexical fields. Settings route shim under admin. No `sf_*` tables. `defaultEnabled: false` — off unless the installer chooses it. Do not delete Lexical once TipTap migration is done.
 
-```ts
-import { pagesLexicalEditor } from '@/modules/lexical-editor/api'
-import { isLexicalEditorEnabled } from '@/modules/lexical-editor/api.server'
-```
+## Consumes
 
-Public `RichText` still accepts legacy Lexical JSON so published pages do not blank when this module is off.
+None in `requires` / `optionalRequires`. Depends on `@payloadcms/richtext-lexical` as a library.
+
+## Public door
+
+- `@/modules/lexical-editor/api` — `pagesLexicalEditor`
+- `@/modules/lexical-editor/api.server` — `LEXICAL_EDITOR_MODULE_ID`, `isLexicalEditorEnabled`
+
+## Admin surfaces
+
+- `/admin/lexical-editor/settings` (route shim)
+- Toggle: Site Settings → Modules (`defaultEnabled: false`)
+- ACL: none beyond module toggle / settings route
+
+## Boot and jobs
+
+None.
+
+## Known gaps
+
+- Default editing stays TipTap (`product:rich-editor`); Lexical is legacy / opt-in.
+- Public `RichText` still accepts legacy Lexical JSON so published pages do not blank when this module is off.
+
+## Tests
+
+None registered in `test:unit` for this pack.

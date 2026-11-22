@@ -1,3 +1,7 @@
+---
+kind: history
+last_verified: 2026-11-22
+---
 # Live tactical map (closed event tool)
 
 **Layer:** **Modules** (`product:maps`) for rooms / teams / roster / overlays / live ingest / **stations**. **RealtimePort** + **MapProvider** = Core. ASN field chrome + hardware catalog = **Hero**.
