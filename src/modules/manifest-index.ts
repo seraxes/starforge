@@ -42,6 +42,7 @@ import socialFriendsParticleManifest from './social/particles/social-friends-man
 import socialGroupsParticleManifest from './social/particles/social-groups-manifest'
 import socialPagesParticleManifest from './social/particles/social-pages-manifest'
 import socialStoriesParticleManifest from './social/particles/social-stories-manifest'
+import adsManifest from './ads/manifest'
 
 /** All installable manifests (host + packs). Source of truth for codegen. */
 export const ALL_MODULE_MANIFESTS: StarforgeModuleManifest[] = [
@@ -67,6 +68,7 @@ export const ALL_MODULE_MANIFESTS: StarforgeModuleManifest[] = [
   socialGroupsParticleManifest,
   socialPagesParticleManifest,
   socialStoriesParticleManifest,
+  adsManifest,
   mapsManifest,
   mapParticleManifest,
   liveMapParticleManifest,

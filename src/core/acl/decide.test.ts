@@ -181,6 +181,21 @@ describe('adminAreaGateForPath', () => {
     })
   })
 
+  it('maps Ads admin paths to admin.ads', () => {
+    assert.deepEqual(adminAreaGateForPath('/admin/ads'), {
+      type: 'resource',
+      key: 'admin.ads',
+    })
+    assert.deepEqual(adminAreaGateForPath('/admin/ads/placements'), {
+      type: 'resource',
+      key: 'admin.ads',
+    })
+    assert.deepEqual(adminAreaGateForPath('/admin/ads/campaigns'), {
+      type: 'resource',
+      key: 'admin.ads',
+    })
+  })
+
   it('maps Pages admin paths to admin.pages', () => {
     assert.deepEqual(adminAreaGateForPath('/admin/pages'), {
       type: 'resource',

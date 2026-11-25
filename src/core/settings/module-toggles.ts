@@ -29,6 +29,7 @@ export const MODULE_IDS = {
   profiles: 'product:profiles',
   maps: 'product:maps',
   social: 'product:social',
+  ads: 'product:ads',
   marketplace: 'product:marketplace',
   redirects: 'product:redirects',
   consent: 'product:consent',

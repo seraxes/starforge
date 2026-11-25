@@ -4,7 +4,7 @@ last_verified: 2026-11-25
 ---
 # product:ads — pack plan
 
-**Status:** Slice 2 shipped (catalog schema + `/admin/ads`). Live queue: [architecture-current](./architecture-current.md) — Ads slice 3 Payments bridge next (Social enablement closed).  
+**Status:** Slice 2 shipped (catalog schema + `/admin/ads`). **Parked** on the live queue until after Social polish and Marketplace (and other major advanced modules). Live map: [architecture-current](./architecture-current.md). Do not start slice 3 (Payments bridge) while parked.  
 **Placement:** Advanced module (`product:ads`). Not Core. Not base.  
 **Principle:** Never rebuild an existing module’s job ([modular-core](../principles/modular-core.md), [sf-module-ownership](../../../.cursor/rules/sf-module-ownership.mdc), [sf-payments-module](../../../.cursor/rules/sf-payments-module.mdc)). Decisions: [2026-11-22-social-built-parked](./decisions/2026-11-22-social-built-parked.md), [2026-11-22-launch-scope](./decisions/2026-11-22-launch-scope.md).
 

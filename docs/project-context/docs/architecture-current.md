@@ -4,7 +4,7 @@ last_verified: 2026-11-25
 ---
 # Starforge architecture — current
 
-Last verified against code: 2026-11-25 (Ads slice 2 catalog + admin).
+Last verified against code: 2026-11-25 (Social polish Active; Marketplace next; Ads parked after major advanced modules).
 
 **This page wins** when it disagrees with an older plan, preference bullet, or status table. Plans and audits are history.
 
@@ -12,7 +12,7 @@ Last verified against code: 2026-11-25 (Ads slice 2 catalog + admin).
 
 Reusable starter: auth, layout host, content manager behind PageReadsPort, toggleable packs. ASN 2.0 / Airsoft Nexus is a later Hero on those packs; InspecTra may ship earlier.
 **Core** — host + ports. **Base** — Media, Forms, Rich editor, Email Manager, Payments, Profiles, Maps (TacMap / tactical event map).
-**Advanced** — Events, Subscriptions, Social, Ads (catalog + admin / default-off; depends on Social + Email Manager + Forms + Subscriptions + Payments; plan: [ads-pack-plan](./ads-pack-plan.md)), then Shop, Marketplace, Support, Stream. **Hero** — brand + vertical rules.
+**Advanced** — Events, Subscriptions, Social, Marketplace, Shop, then Ads (catalog + admin / default-off; plan: [ads-pack-plan](./ads-pack-plan.md)), Support, Stream. **Hero** — brand + vertical rules.
 `product:pages` is the content manager (site pack), not a base engine. Base modules are not Core.
 Placement: [platform-module-layers](./platform-module-layers.md). Rules: [sf-architecture](../../../.cursor/rules/sf-architecture.mdc), [sf-module-ownership](../../../.cursor/rules/sf-module-ownership.mdc).
 
@@ -23,7 +23,7 @@ Accepted: [2026-11-22-launch-scope](./decisions/2026-11-22-launch-scope.md).
 - **First production site:** Airsoft Nexus — every module already built; Lexical may stay off.
 - **Earlier site allowed:** InspecTra (quality inspection) may ship before Airsoft Nexus; Core polish comes first.
 - **Do not archive built modules.** Nothing built stays off except the possible Lexical exception.
-- **Absent until built:** Chat, Shop, Stream (and any other pack not in the tree). Ads is in tree (`src/modules/ads`, default-off) with catalog schema + `/admin/ads`; Payments bridge / Social publish not started.
+- **Absent until built:** Chat, Shop, Stream (and any other pack not in the tree). Ads is in tree (`src/modules/ads`, default-off) with catalog schema + `/admin/ads`; Payments bridge / Social publish parked until after Marketplace (and other major advanced modules). Marketplace today is a Dashboard stub (`product:marketplace`, no commerce schema) — next after Social polish.
 - **Migrate:** users, avatars, profile settings (new password on first login — do not migrate passwords); upcoming events only (past events stay archived on the old site); marketplace user ratings. Marketplace posts = later examination, not a cutover requirement. Everything else stays on the old site.
 
 ## Build queue
@@ -32,15 +32,15 @@ Core → base → advanced → Hero still holds. Core finish (slices 1–9) and 
 
 | Lane | What |
 | --- | --- |
-| **Active** | Ads slice 2 done (catalog schema + `/admin/ads`); slice 3 next (Payments bridge). Plan: [ads-pack-plan](./ads-pack-plan.md). Social enablement closed. Do not start Social publish, Email, Forms, or Subscriptions gating ahead of slice order. Core / launch polish in parallel where it blocks cutover. |
-| **Next after Ads MVP** | Do not start Chat, Shop, Stream, or Marketplace commerce schema ahead of Ads MVP unless the live map moves. |
-| **Parked** | Chat, Shop, Stream, Notifications, ASN Hero theme / currency / `apps/asn-capacitor`, TacMap stations / BLE beacons, durable `product:campaigns`, organizations, support, outbound webhooks. Marketplace today is a Dashboard stub (`product:marketplace`, no commerce schema). |
+| **Active** | Social polish and complete (enablement blockers Done). Close remaining Social Open work / UX leftovers before turning Social on for cutover. Brief: [social-module-standing](./social-module-standing.md). Core / launch polish in parallel where it blocks cutover. |
+| **Next after Social** | Marketplace commerce schema (today a Dashboard stub). Do not start Ads, Chat, Shop, or Stream ahead of Marketplace unless the live map moves. |
+| **Parked** | Ads (slice 2 catalog + admin in tree / default-off; resume after Marketplace and other major advanced modules — [ads-pack-plan](./ads-pack-plan.md)), Chat, Shop, Stream, Notifications, ASN Hero theme / currency / `apps/asn-capacitor`, TacMap stations / BLE beacons, durable `product:campaigns`, organizations, support, outbound webhooks. |
 
 The 5 Nov wireframe order does not override this. Event slot kinds decided as choosable Ticket type / Booking type / Faction (+ admin names) wait; code is still `general \| faction` on `sf_event_ticket_tiers.kind`.
 
-## Social (enablement closed; Ads MVP in progress)
+## Social (Active — polish and complete)
 
-**`product:social`** — slices **1–22** documented in `src/modules/social/manifest.ts` and the pack README; `defaultEnabled: false` until site cutover turns it on. Enablement blockers that were open on this map are **Done** (media attach/serve audience checks, staff private-read, member write rate limits). Brief: [social-module-standing](./social-module-standing.md). Hard `requires`: profiles, media, rich-editor, forms, email-manager. `optionalRequires`: `form` (particle pack `src/modules/form`), `product:subscriptions`, `product:events`. Not Payments / not Maps ([2026-11-22-social-dependency-floor](./decisions/2026-11-22-social-dependency-floor.md)). Posture: [2026-11-22-social-built-parked](./decisions/2026-11-22-social-built-parked.md). Comments, likes, and reports stay in Social — no `product:comments` / `product:reports` ([2026-11-22-comments-reports-ownership](./decisions/2026-11-22-comments-reports-ownership.md)). Ads catalog + admin are in tree (`product:ads`, default-off, slice 2); next is Payments bridge per [ads-pack-plan](./ads-pack-plan.md).
+**`product:social`** — slices **1–22** documented in `src/modules/social/manifest.ts` and the pack README; `defaultEnabled: false` until site cutover turns it on. Enablement blockers that were open on this map are **Done** (media attach/serve audience checks, staff private-read, member write rate limits). Remaining Active work is polish / complete (Open work leftovers + UX) before cutover turns Social on. Brief: [social-module-standing](./social-module-standing.md). Hard `requires`: profiles, media, rich-editor, forms, email-manager. `optionalRequires`: `form` (particle pack `src/modules/form`), `product:subscriptions`, `product:events`. Not Payments / not Maps ([2026-11-22-social-dependency-floor](./decisions/2026-11-22-social-dependency-floor.md)). Posture: [2026-11-22-social-built-parked](./decisions/2026-11-22-social-built-parked.md). Comments, likes, and reports stay in Social — no `product:comments` / `product:reports` ([2026-11-22-comments-reports-ownership](./decisions/2026-11-22-comments-reports-ownership.md)). Ads stays parked (slice 2 in tree); do not resume Ads slices ahead of Marketplace.
 
 ## Open work
 
@@ -59,7 +59,7 @@ The 5 Nov wireframe order does not override this. Event slot kinds decided as ch
 | Event / page conversation UI on Social’s comments engine | Social (+ Events / Pages) | Accepted ownership; event conversation not built | no | [2026-11-22-comments-reports-ownership](./decisions/2026-11-22-comments-reports-ownership.md) |
 | `dangerouslySetInnerHTML` sites need a sanitization review | Core + packs | Open; custom particle HTML, page-settings inject, Events description, and others | no | e.g. `src/core/modules/particles/custom.tsx` |
 | Event slot kinds chooser (Ticket type / Booking type / Faction + admin names) | Events | Decided; code still `general \| faction` | no | `src/modules/events/schema.ts` |
-| Organizations, outbound webhooks, support | TBD | Parked; not ahead of Ads MVP | no | — |
+| Organizations, outbound webhooks, support | TBD | Parked; not ahead of Marketplace | no | — |
 | Durable subscriber-list `product:campaigns` | Email Manager later | Parked. Light paste campaigns live in Email Manager today | no | `sf-email-module.mdc` |
 | Checkout coupons | Payments | Shipped under Payments (not a promotions pack) | no | `/admin/payments/coupons` |
 | `modules:sync` omits unchosen in-repo engines | Installer | Target only; sync adds/removes `@starforge/module-*` (notice-bar, consent). Other packs stay in this repo | no | [module-install-packages](./module-install-packages.md) |
@@ -95,7 +95,7 @@ Installing Starforge means choosing which modules come with that site ([module-i
 
 **Content manager:** `product:pages` in `src/modules/pages` (`requires` rich-editor + media). Owns editorial pages, last 20 versions (`PAGE_VERSION_KEEP`), page admin, categories, tags. Status draft / published / unpublished. Public reads go through `PageReadsPort`; pack off → empty reads. Nav page binds call the pack door (Core does not import the pack). `product:media` owns `sf_media_*`; blobs on MediaStorage. Site settings (`moduleToggles`, performance, `primaryNavMenuId`, `rootItem`) live on Core `sf_site_settings`. `rootItem` is the one nav item for `/{locale}` in every locale. CMS access is Better Auth + `sf_users.cms_access`. No second CMS; peel: [2026-11-15-payload-peel](./decisions/2026-11-15-payload-peel.md).
 
-**Payload peel (done):** phases 1–4 shipped 2026-11-16. Decision: [2026-11-15-payload-peel](./decisions/2026-11-15-payload-peel.md). Archive: [payload-dependency-map](../../archive/payload-dependency-map.md). Queue: Ads slice 3 Payments bridge → remaining Ads MVP ([ads-pack-plan](./ads-pack-plan.md)).
+**Payload peel (done):** phases 1–4 shipped 2026-11-16. Decision: [2026-11-15-payload-peel](./decisions/2026-11-15-payload-peel.md). Archive: [payload-dependency-map](../../archive/payload-dependency-map.md). Queue: Social polish → Marketplace → (later) Ads resume ([ads-pack-plan](./ads-pack-plan.md)).
 
 **Requires chain:** Forms → Media; Rich editor → Media; Email Manager → Rich editor + Media; Payments → Email Manager; Profiles → Media + Forms; Maps has empty `requires` (Events still depends on Maps). Events requires Forms, Media, Rich editor, Payments, Profiles, Maps. Subscriptions requires Payments, Email Manager, Forms, Profiles. Social requires Profiles, Media, Rich editor, Forms, Email Manager (not Payments, not Maps). Ads requires Social, Email Manager, Forms, Subscriptions, Payments (`optionalRequires`: Media). Profiles stays base because Events and Subscriptions require it.
 
@@ -162,7 +162,7 @@ Online gateways: developer adds adapter + `register-online.ts` import ([decision
 | ACL levels and optional audit | [2026-11-16-acl-levels-and-audit](./decisions/2026-11-16-acl-levels-and-audit.md) |
 | Payload peel | [payload-dependency-map](../../archive/payload-dependency-map.md), [2026-11-15-payload-peel](./decisions/2026-11-15-payload-peel.md) |
 | Pages pack | [pages-pack-plan](./pages-pack-plan.md) |
-| Social standing (enablement closed; Ads MVP in progress) | [social-module-standing](./social-module-standing.md) |
+| Social standing (Active polish; Marketplace next) | [social-module-standing](./social-module-standing.md) |
 | Ads pack plan | [ads-pack-plan](./ads-pack-plan.md) |
 | Core finish archive | [core-finish-instructions](../../archive/core-finish-instructions.md) |
 | Layer placement | [platform-module-layers](./platform-module-layers.md) |

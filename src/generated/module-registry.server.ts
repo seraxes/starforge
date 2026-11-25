@@ -635,6 +635,16 @@ export const moduleDoorLoaders: ModuleDoorLoader[] = [
     load: async () => import("@/modules/social/api.server"),
   },
   {
+    id: "ads-api",
+    moduleId: "product:ads",
+    load: async () => import("@/modules/ads/api"),
+  },
+  {
+    id: "ads-api-server",
+    moduleId: "product:ads",
+    load: async () => import("@/modules/ads/api.server"),
+  },
+  {
     id: "audit-log",
     moduleId: "product:audit",
     load: async () => import("@/modules/audit/admin/AuditLogPanel"),

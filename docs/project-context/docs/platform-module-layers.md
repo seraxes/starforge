@@ -1,6 +1,6 @@
 ---
 kind: reference
-last_verified: 2026-11-22
+last_verified: 2026-11-25
 ---
 # Platform layers — Core, base, advanced, Hero
 
@@ -23,7 +23,7 @@ last_verified: 2026-11-22
 | --- | --- | --- |
 | **Core** | Always-on host + ports | Auth, Users/Groups ACL, Layout/Nav/Chrome, Module Manager, env overlay; ports: Mailer, Redis/cache, MediaStorage, MapProvider, LlmProvider, Payments adapters, PageReadsPort, MediaAnalysis |
 | **Base modules** | Dependency engines | Media, Forms, Rich editor, Email Manager, Payments (cart/orders/VAT), Profiles, Maps. Content manager is `product:pages` (site pack, phase 3b done) behind `PageReadsPort`. Media stays `product:media` |
-| **Advanced modules** | Domain products that `require` base packs | Events, Subscriptions, Social; later Ads (depends on Social), Shop, Marketplace, Support, Stream, Chat |
+| **Advanced modules** | Domain products that `require` base packs | Events, Subscriptions, Social; next Marketplace; later Shop, Ads (depends on Social), Support, Stream, Chat |
 | **Hero** | Theme + unique rules — not a module fork | **Starforge theme:** pastel orange + blue. **ASN theme:** dark, tactical, gaming, military. Plus ASN team/RP/airsoft domain, catalog fees, ASN currency, quality-check **apps** that *call* Media analysis hooks |
 
 Site packs (Consent, Redirects, Search, PWA, Lexical, Notice bar, Audit) stay optional modules. They are not Core and not a domain product.
@@ -85,15 +85,15 @@ Form engine stays the shared intake path — other Modules do not rebuild fields
 
 ### Commercial priority (within Modules)
 
-Revenue floor — **`product:payments`**, then consumers on the same API: **subscriptions**, **Events tickets**, then finish **Social**, then **Ads** (Ads depends on Social + Email Manager + Forms + Subscriptions + Payments). **Shop** (incl. shipping quotes) later. **Marketplace** reuses payments + domain packs (e.g. highlight via subscriptions); never a second cart. Ownership map: [sf-module-ownership](../../../.cursor/rules/sf-module-ownership.mdc), [payments-cart-plan](./payments-cart-plan.md).
+Revenue floor — **`product:payments`**, then consumers on the same API: **subscriptions**, **Events tickets**. Product queue (live map wins): finish **Social** polish → **Marketplace** → later **Shop** / resume **Ads** (Ads depends on Social + Email Manager + Forms + Subscriptions + Payments). **Marketplace** reuses payments + domain packs (e.g. highlight via subscriptions); never a second cart. Ownership map: [sf-module-ownership](../../../.cursor/rules/sf-module-ownership.mdc), [payments-cart-plan](./payments-cart-plan.md).
 
 ## What to build next
 
-Live queue: [architecture-current](./architecture-current.md) — Core / launch polish in parallel; **finish Social before starting Ads**. Chat, Stream, Shop, and Marketplace schema stay parked behind that.
+Live queue: [architecture-current](./architecture-current.md) — **Active:** Social polish and complete; **Next:** Marketplace; Ads parked until after Marketplace (and other major advanced modules). Core / launch polish in parallel where it blocks cutover. Chat, Stream, and Shop stay parked behind that.
 
 - Feed layout variants = Social **Module** + Layout options; Hero **theme** brands them — still one Social Module.
 - Voice/video calling = later optional RTC **port** on Chat — decide when Chat ships.
-- TacMap rooms/teams/GPS stay in `product:maps` (rename id later). Stations, beacons, and `apps/asn-capacitor` wait; they are not ahead of finishing Social then Ads.
+- TacMap rooms/teams/GPS stay in `product:maps` (rename id later). Stations, beacons, and `apps/asn-capacitor` wait; they are not ahead of Social polish then Marketplace.
 
 ## Related
 
