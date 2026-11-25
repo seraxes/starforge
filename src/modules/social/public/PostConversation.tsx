@@ -2,6 +2,7 @@
 
 import React, { useActionState, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 import {
   createCommentAction,
@@ -10,7 +11,12 @@ import {
   type SocialCommentActionState,
 } from '../actions'
 import { shareAudienceIsWider, type PostAudience } from '../posts'
-import type { ReactionKind } from '../reactions'
+import type {
+  ReactionIconColors,
+  ReactionIconImageUrls,
+  ReactionIcons,
+  ReactionKind,
+} from '../reactions'
 import { HideableShell } from './HideableShell'
 import { CommentOptionsMenu } from './SocialOptionsMenu'
 import { SharePostActions } from './SharePostActions'
@@ -91,12 +97,85 @@ function peopleLabel(
   return `${people[0]} and ${people.length - 1} others`
 }
 
-function summaryLabel(rows: ConversationReaction[]): string {
+function hasReactionVisual(
+  kind: ReactionKind,
+  icons: ReactionIcons | null,
+  imageUrls: ReactionIconImageUrls | null | undefined,
+): boolean {
+  return Boolean(imageUrls?.[kind]?.trim() || icons?.[kind]?.trim())
+}
+
+function ReactionGlyph({
+  kind,
+  icons,
+  colors,
+  imageUrls,
+  sizePx,
+}: {
+  kind: ReactionKind
+  icons: ReactionIcons | null
+  colors?: ReactionIconColors | null
+  imageUrls?: ReactionIconImageUrls | null
+  /** When set (tray popup only), overrides default glyph size. */
+  sizePx?: number
+}) {
+  const imageUrl = imageUrls?.[kind]?.trim()
+  if (imageUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- Media library / pack icon
+      <img
+        className="sf-social-reaction-glyph sf-social-reaction-glyph-img"
+        src={imageUrl}
+        alt=""
+        aria-hidden
+        style={sizePx != null ? { width: sizePx, height: sizePx } : undefined}
+      />
+    )
+  }
+  const className = icons?.[kind]?.trim()
+  if (!className) return null
+  const color = colors?.[kind]?.trim()
+  return (
+    <i
+      className={`sf-social-reaction-glyph ${className}`}
+      aria-hidden
+      style={{
+        ...(color ? { color } : null),
+        ...(sizePx != null ? { fontSize: `${sizePx}px` } : null),
+      }}
+    />
+  )
+}
+
+function SummaryKinds({
+  rows,
+  icons,
+  colors,
+  imageUrls,
+}: {
+  rows: ConversationReaction[]
+  icons: ReactionIcons | null
+  colors?: ReactionIconColors | null
+  imageUrls?: ReactionIconImageUrls | null
+}) {
   const counts = new Map<ReactionKind, number>()
   for (const row of rows) counts.set(row.kind, (counts.get(row.kind) ?? 0) + 1)
-  return REACTION_ORDER.filter((kind) => (counts.get(kind) ?? 0) > 0)
-    .map((kind) => `${REACTION_LABEL[kind]} ${counts.get(kind)}`)
-    .join(' · ')
+  const parts = REACTION_ORDER.filter((kind) => (counts.get(kind) ?? 0) > 0)
+  if (parts.length === 0) return null
+  return (
+    <span className="sf-social-reaction-summary">
+      {parts.map((kind, index) => (
+        <span key={kind} className="sf-social-reaction-summary-part">
+          {index > 0 ? <span className="sf-social-reaction-summary-sep"> · </span> : null}
+          <ReactionGlyph kind={kind} icons={icons} colors={colors} imageUrls={imageUrls} />
+          <span>
+            {hasReactionVisual(kind, icons, imageUrls) ? '' : `${REACTION_LABEL[kind]} `}
+            {counts.get(kind)}
+          </span>
+        </span>
+      ))}
+    </span>
+  )
 }
 
 function ReactionSubmit({
@@ -111,6 +190,7 @@ function ReactionSubmit({
   onPointerDown,
   onPointerUp,
   onClick,
+  onSuccess,
 }: {
   targetType: 'post' | 'comment'
   targetId: string
@@ -123,8 +203,17 @@ function ReactionSubmit({
   onPointerDown?: (event: React.PointerEvent<HTMLButtonElement>) => void
   onPointerUp?: (event: React.PointerEvent<HTMLButtonElement>) => void
   onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void
+  onSuccess?: () => void
 }) {
+  const router = useRouter()
   const [state, formAction, pending] = useActionState(setReactionAction, initial)
+  const onSuccessRef = useRef(onSuccess)
+  onSuccessRef.current = onSuccess
+  useEffect(() => {
+    if (!state.ok) return
+    onSuccessRef.current?.()
+    router.refresh()
+  }, [state, router])
   return (
     <form action={formAction} className="sf-social-react-form">
       <input type="hidden" name="targetType" value={targetType} />
@@ -161,6 +250,11 @@ function ReactionControl({
   targetId,
   kinds,
   reactions,
+  reactionIcons,
+  reactionIconColors,
+  reactionIconImageUrls,
+  showReactionLabels,
+  reactionIconSizePx,
   viewerUserId,
   layout,
 }: {
@@ -168,12 +262,18 @@ function ReactionControl({
   targetId: string
   kinds: ReactionKind[]
   reactions: ConversationReaction[]
+  reactionIcons: ReactionIcons | null
+  reactionIconColors?: ReactionIconColors | null
+  reactionIconImageUrls?: ReactionIconImageUrls | null
+  showReactionLabels: boolean
+  reactionIconSizePx: number
   viewerUserId: string | null
   layout: 'bar' | 'inline'
 }) {
   const [open, setOpen] = useState(false)
   const trayRef = useDismissible<HTMLDivElement>(open, () => setOpen(false))
   const holdTimer = useRef<number | null>(null)
+  const closeTimer = useRef<number | null>(null)
   const suppressClick = useRef(false)
   const rows = rowsFor(reactions, targetType, targetId)
   const mine = viewerUserId
@@ -190,36 +290,76 @@ function ReactionControl({
     }
   }
 
+  function clearClose() {
+    if (closeTimer.current != null) {
+      window.clearTimeout(closeTimer.current)
+      closeTimer.current = null
+    }
+  }
+
+  function openTray() {
+    clearClose()
+    if (showTray) setOpen(true)
+  }
+
+  function scheduleCloseTray() {
+    clearHold()
+    clearClose()
+    // Brief delay so the pointer can cross the gap into the tray.
+    closeTimer.current = window.setTimeout(() => {
+      closeTimer.current = null
+      setOpen(false)
+    }, 220)
+  }
+
+  useEffect(() => {
+    return () => {
+      clearHold()
+      clearClose()
+    }
+  }, [])
+
   if (!viewerUserId) {
     if (total === 0) return null
-    return <span className="sf-social-reaction-count">{summaryLabel(rows)}</span>
+    return (
+      <span className="sf-social-reaction-count">
+        <SummaryKinds
+          rows={rows}
+          icons={reactionIcons}
+          colors={reactionIconColors}
+          imageUrls={reactionIconImageUrls}
+        />
+      </span>
+    )
   }
+
+  const mainKind = mine?.kind ?? 'like'
+  const mainWord = mine?.kind === 'like' ? 'Liked' : label
+  const hasIcon = hasReactionVisual(mainKind, reactionIcons, reactionIconImageUrls)
+  const showMainLabel = showReactionLabels || !hasIcon
 
   return (
     <div
       ref={trayRef}
       className={open ? `sf-social-react is-open sf-social-react-${layout}` : `sf-social-react sf-social-react-${layout}`}
-      onMouseEnter={() => {
-        if (showTray) setOpen(true)
-      }}
-      onMouseLeave={() => {
-        clearHold()
-        setOpen(false)
-      }}
+      onMouseEnter={openTray}
+      onMouseLeave={scheduleCloseTray}
       onBlur={(event) => {
         const next = event.relatedTarget
         if (next instanceof Node && event.currentTarget.contains(next)) return
+        clearClose()
         setOpen(false)
       }}
     >
       <ReactionSubmit
         targetType={targetType}
         targetId={targetId}
-        kind={mine?.kind ?? 'like'}
+        kind={mainKind}
         remove={Boolean(mine)}
         pressed={Boolean(mine)}
         className={mine ? 'is-selected' : undefined}
         pendingLabel={mine ? 'Removing…' : 'Liking…'}
+        onSuccess={() => setOpen(false)}
         onPointerDown={(event) => {
           if (!showTray || event.pointerType === 'mouse') return
           suppressClick.current = false
@@ -236,24 +376,46 @@ function ReactionControl({
           suppressClick.current = false
         }}
       >
-        {mine?.kind === 'like' ? 'Liked' : label}
+        <ReactionGlyph
+          kind={mainKind}
+          icons={reactionIcons}
+          colors={reactionIconColors}
+          imageUrls={reactionIconImageUrls}
+        />
+        {showMainLabel ? <span>{mainWord}</span> : <span className="sr-only">{mainWord}</span>}
         {layout === 'inline' && total > 0 ? <span className="sf-social-reaction-count"> {total}</span> : null}
       </ReactionSubmit>
       {showTray && open ? (
         <div className="sf-social-react-tray" role="group" aria-label="Reactions">
-          {kinds.map((kind) => (
-            <ReactionSubmit
-              key={kind}
-              targetType={targetType}
-              targetId={targetId}
-              kind={kind}
-              remove={mine?.kind === kind}
-              pressed={mine?.kind === kind}
-              className={mine?.kind === kind ? 'sf-social-react-choice is-selected' : 'sf-social-react-choice'}
-            >
-              {REACTION_LABEL[kind]}
-            </ReactionSubmit>
-          ))}
+          {kinds.map((kind) => {
+            const choiceHasIcon = hasReactionVisual(kind, reactionIcons, reactionIconImageUrls)
+            const showChoiceLabel = showReactionLabels || !choiceHasIcon
+            return (
+              <ReactionSubmit
+                key={kind}
+                targetType={targetType}
+                targetId={targetId}
+                kind={kind}
+                remove={mine?.kind === kind}
+                pressed={mine?.kind === kind}
+                className={mine?.kind === kind ? 'sf-social-react-choice is-selected' : 'sf-social-react-choice'}
+                onSuccess={() => setOpen(false)}
+              >
+                <ReactionGlyph
+                  kind={kind}
+                  icons={reactionIcons}
+                  colors={reactionIconColors}
+                  imageUrls={reactionIconImageUrls}
+                  sizePx={reactionIconSizePx}
+                />
+                {showChoiceLabel ? (
+                  <span>{REACTION_LABEL[kind]}</span>
+                ) : (
+                  <span className="sr-only">{REACTION_LABEL[kind]}</span>
+                )}
+              </ReactionSubmit>
+            )
+          })}
         </div>
       ) : null}
     </div>
@@ -267,6 +429,7 @@ function CommentForm({
   submitLabel,
   maxLength,
   focusKey,
+  onSuccess,
 }: {
   postId: string
   parentCommentId?: string
@@ -274,12 +437,22 @@ function CommentForm({
   submitLabel: string
   maxLength: number
   focusKey?: number
+  onSuccess?: () => void
 }) {
+  const router = useRouter()
   const [state, formAction, pending] = useActionState(createCommentAction, initial)
   const inputRef = useRef<HTMLInputElement>(null)
+  const onSuccessRef = useRef(onSuccess)
+  onSuccessRef.current = onSuccess
   useEffect(() => {
     if (focusKey && focusKey > 0) inputRef.current?.focus()
   }, [focusKey])
+  useEffect(() => {
+    if (!state.ok) return
+    if (inputRef.current) inputRef.current.value = ''
+    onSuccessRef.current?.()
+    router.refresh()
+  }, [state, router])
   return (
     <form action={formAction} className="sf-social-comment-form">
       <input type="hidden" name="postId" value={postId} />
@@ -316,7 +489,15 @@ function CommentEditForm({
   commentLengthLimit: number
   onCancel: () => void
 }) {
+  const router = useRouter()
   const [editState, editAction, editPending] = useActionState(editCommentAction, initial)
+  const onCancelRef = useRef(onCancel)
+  onCancelRef.current = onCancel
+  useEffect(() => {
+    if (!editState.ok) return
+    onCancelRef.current()
+    router.refresh()
+  }, [editState, router])
   return (
     <form action={editAction} className="sf-social-comment-form sf-social-comment-edit">
       <input type="hidden" name="commentId" value={comment.id} />
@@ -357,6 +538,11 @@ function CommentRow({
   canModerate,
   reactionKinds,
   reactions,
+  reactionIcons,
+  reactionIconColors,
+  reactionIconImageUrls,
+  showReactionLabels,
+  reactionIconSizePx,
   allowCommentReactions,
   canReply,
   onReply,
@@ -369,6 +555,11 @@ function CommentRow({
   canModerate: boolean
   reactionKinds: ReactionKind[]
   reactions: ConversationReaction[]
+  reactionIcons: ReactionIcons | null
+  reactionIconColors?: ReactionIconColors | null
+  reactionIconImageUrls?: ReactionIconImageUrls | null
+  showReactionLabels: boolean
+  reactionIconSizePx: number
   allowCommentReactions: boolean
   canReply: boolean
   onReply: () => void
@@ -423,6 +614,11 @@ function CommentRow({
               targetId={comment.id}
               kinds={reactionKinds}
               reactions={reactions}
+              reactionIcons={reactionIcons}
+              reactionIconColors={reactionIconColors}
+              reactionIconImageUrls={reactionIconImageUrls}
+              showReactionLabels={showReactionLabels}
+              reactionIconSizePx={reactionIconSizePx}
               viewerUserId={viewerUserId}
               layout="inline"
             />
@@ -471,6 +667,11 @@ function TopComment({
   canModerate,
   reactionKinds,
   reactions,
+  reactionIcons,
+  reactionIconColors,
+  reactionIconImageUrls,
+  showReactionLabels,
+  reactionIconSizePx,
   allowCommentReactions,
   allowReplies,
   commentLengthLimit,
@@ -483,6 +684,11 @@ function TopComment({
   canModerate: boolean
   reactionKinds: ReactionKind[]
   reactions: ConversationReaction[]
+  reactionIcons: ReactionIcons | null
+  reactionIconColors?: ReactionIconColors | null
+  reactionIconImageUrls?: ReactionIconImageUrls | null
+  showReactionLabels: boolean
+  reactionIconSizePx: number
   allowCommentReactions: boolean
   allowReplies: boolean
   commentLengthLimit: number
@@ -508,6 +714,11 @@ function TopComment({
         canModerate={canModerate}
         reactionKinds={reactionKinds}
         reactions={reactions}
+        reactionIcons={reactionIcons}
+        reactionIconColors={reactionIconColors}
+        reactionIconImageUrls={reactionIconImageUrls}
+        showReactionLabels={showReactionLabels}
+        reactionIconSizePx={reactionIconSizePx}
         allowCommentReactions={allowCommentReactions}
         canReply={allowReplies && Boolean(viewerUserId)}
         onReply={() => replyTarget(comment.id)}
@@ -522,6 +733,7 @@ function TopComment({
           submitLabel="Reply"
           maxLength={commentLengthLimit}
           focusKey={1}
+          onSuccess={() => setReplyingTo(null)}
         />
       ) : null}
       {replyCount > 0 ? (
@@ -543,13 +755,18 @@ function TopComment({
               <li key={reply.id} className="sf-social-comment">
                 <CommentRow
                   comment={reply}
-                  replyToName={depth === 2 ? parent?.authorName ?? null : null}
+                  replyToName={depth >= 2 ? parent?.authorName ?? null : null}
                   viewerUserId={viewerUserId}
                   canModerate={canModerate}
                   reactionKinds={reactionKinds}
                   reactions={reactions}
+                  reactionIcons={reactionIcons}
+                  reactionIconColors={reactionIconColors}
+                  reactionIconImageUrls={reactionIconImageUrls}
+                  showReactionLabels={showReactionLabels}
+                  reactionIconSizePx={reactionIconSizePx}
                   allowCommentReactions={allowCommentReactions}
-                  canReply={allowReplies && depth < 2 && Boolean(viewerUserId)}
+                  canReply={allowReplies && Boolean(viewerUserId)}
                   onReply={() => replyTarget(reply.id)}
                   commentLengthLimit={commentLengthLimit}
                   postAuthorUserId={postAuthorUserId}
@@ -562,6 +779,7 @@ function TopComment({
                     submitLabel="Reply"
                     maxLength={commentLengthLimit}
                     focusKey={1}
+                    onSuccess={() => setReplyingTo(null)}
                   />
                 ) : null}
               </li>
@@ -577,7 +795,8 @@ function TopComment({
  * Post actions and the comment thread.
  * Like is one control: click sets Like, click again clears it, and the tray
  * switches kind. Replies sit one step under the comment. A reply to a reply
- * stays on that step and names who it answers. A third level is still refused.
+ * stays on that step and names who it answers. Reply stays available on every
+ * comment; deeper answers keep the same visual step.
  */
 export function PostConversation({
   postId,
@@ -592,6 +811,11 @@ export function PostConversation({
   viewerUserId,
   canModerate = false,
   reactionKinds,
+  reactionIcons = null,
+  reactionIconColors = null,
+  reactionIconImageUrls = null,
+  showReactionLabels = true,
+  reactionIconSizePx = 16,
   allowComments,
   allowCommentReactions,
   commentLengthLimit,
@@ -612,6 +836,15 @@ export function PostConversation({
   /** Social staff may edit/delete any comment. */
   canModerate?: boolean
   reactionKinds: ReactionKind[]
+  /** FA class map when site Font Awesome is on; null → text-only for FA. */
+  reactionIcons?: ReactionIcons | null
+  /** FA tint per kind (ignored when that kind uses an image). */
+  reactionIconColors?: ReactionIconColors | null
+  /** Resolved Media URLs per kind; image wins over FA. */
+  reactionIconImageUrls?: ReactionIconImageUrls | null
+  showReactionLabels?: boolean
+  /** Tray popup glyph/image size only. */
+  reactionIconSizePx?: number
   allowComments: boolean
   allowCommentReactions: boolean
   commentLengthLimit: number
@@ -674,7 +907,13 @@ export function PostConversation({
               aria-expanded={whoOpen}
               onClick={() => setWhoOpen((open) => !open)}
             >
-              {who ? `${summaryLabel(postReactions)} · ${who}` : summaryLabel(postReactions)}
+              <SummaryKinds
+                rows={postReactions}
+                icons={reactionIcons}
+                colors={reactionIconColors}
+                imageUrls={reactionIconImageUrls}
+              />
+              {who ? <span> · {who}</span> : null}
             </button>
           ) : (
             <span />
@@ -690,7 +929,16 @@ export function PostConversation({
                 <li key={row.actorUserId}>
                   {reactorNames[row.actorUserId] || 'Someone'}
                   {' · '}
-                  {REACTION_LABEL[row.kind]}
+                  <ReactionGlyph
+                    kind={row.kind}
+                    icons={reactionIcons}
+                    colors={reactionIconColors}
+                    imageUrls={reactionIconImageUrls}
+                  />
+                  {showReactionLabels ||
+                  !hasReactionVisual(row.kind, reactionIcons, reactionIconImageUrls)
+                    ? REACTION_LABEL[row.kind]
+                    : null}
                 </li>
               ))}
             </ul>
@@ -709,6 +957,11 @@ export function PostConversation({
                 targetId={postId}
                 kinds={reactionKinds}
                 reactions={reactions}
+                reactionIcons={reactionIcons}
+                reactionIconColors={reactionIconColors}
+                reactionIconImageUrls={reactionIconImageUrls}
+                showReactionLabels={showReactionLabels}
+                reactionIconSizePx={reactionIconSizePx}
                 viewerUserId={viewerUserId}
                 layout="bar"
               />
@@ -755,6 +1008,11 @@ export function PostConversation({
               canModerate={canModerate}
               reactionKinds={reactionKinds}
               reactions={reactions}
+              reactionIcons={reactionIcons}
+              reactionIconColors={reactionIconColors}
+              reactionIconImageUrls={reactionIconImageUrls}
+              showReactionLabels={showReactionLabels}
+              reactionIconSizePx={reactionIconSizePx}
               allowCommentReactions={allowCommentReactions}
               allowReplies={allowComments}
               commentLengthLimit={commentLengthLimit}
@@ -770,6 +1028,7 @@ export function PostConversation({
           submitLabel="Post"
           maxLength={commentLengthLimit}
           focusKey={composerFocusKey}
+          onSuccess={() => setThreadOpen(true)}
         />
       ) : null}
     </section>

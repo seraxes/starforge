@@ -1289,9 +1289,11 @@ async function socialWriteRateLimited(userId: string): Promise<string | null> {
 export type SocialCommentActionState = {
   error?: string
   ok?: boolean
+  /** Set on a successful create / edit so the client can refresh once per write. */
+  commentId?: string
 }
 
-/** Comment, reply, or a reply to that reply. A third level is refused. */
+/** Comment on a post, or reply to any comment in the thread. */
 export async function createCommentAction(
   _prev: SocialCommentActionState,
   formData: FormData,
@@ -1316,9 +1318,6 @@ export async function createCommentAction(
   })
   if (!result.ok) {
     if (result.reason === 'empty_body') return { error: 'Write a comment first.' }
-    if (result.reason === 'reply_too_deep') {
-      return { error: 'Replies stop after two levels.' }
-    }
     if (result.reason === 'parent_not_found') return { error: 'That comment is no longer there.' }
     if (result.reason === 'cannot_view') return { error: 'You cannot comment on this post.' }
     if (result.reason === 'cannot_interact') return { error: 'You cannot comment on this post.' }
@@ -1330,7 +1329,7 @@ export async function createCommentAction(
 
   revalidatePath('/feed')
   revalidatePath('/feed/post')
-  return { ok: true }
+  return { ok: true, commentId: result.comment.id }
 }
 
 /** Edit a comment. Author, or Social staff with admin.social edit. */
@@ -1361,7 +1360,7 @@ export async function editCommentAction(
 
   revalidatePath('/feed')
   revalidatePath('/feed/post')
-  return { ok: true }
+  return { ok: true, commentId }
 }
 
 /** Delete a comment. Author, or Social staff with admin.social edit. */
@@ -1389,7 +1388,7 @@ export async function deleteCommentAction(
 
   revalidatePath('/feed')
   revalidatePath('/feed/post')
-  return { ok: true }
+  return { ok: true, commentId }
 }
 
 /** Set the viewer's reaction on a post or a comment. One row per person per target. */
@@ -1425,7 +1424,7 @@ export async function setReactionAction(
     }
     revalidatePath('/feed')
     revalidatePath('/feed/post')
-    return { ok: true }
+    return { ok: true, commentId: `${targetType}:${targetId}:clear` }
   }
 
   const { likeComment, likePost } = await import('./reactions-store')
@@ -1444,7 +1443,7 @@ export async function setReactionAction(
 
   revalidatePath('/feed')
   revalidatePath('/feed/post')
-  return { ok: true }
+  return { ok: true, commentId: `${targetType}:${targetId}:${result.reaction.kind}` }
 }
 
 /** Send a friend request from /feed/people. Mail failure does not roll back. */

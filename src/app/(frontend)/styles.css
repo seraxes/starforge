@@ -11227,6 +11227,61 @@ button.danger:hover,
   white-space: nowrap;
 }
 
+/* In-app confirm (replaces window.confirm) — Social member chrome. */
+.sf-social-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: color-mix(in srgb, #06090e 55%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.sf-social-confirm-dialog {
+  width: min(26rem, 100%);
+  background: #fff;
+  border: 1px solid var(--sf-line);
+  border-radius: var(--radius-sf, 0.375rem);
+  box-shadow: 0 12px 32px rgba(20, 32, 48, 0.18);
+  padding: 0 0 0.85rem;
+}
+
+.sf-social-confirm-head {
+  margin: 0 0 0.75rem;
+  padding: 0.7rem 0.9rem;
+  border-bottom: 1px solid var(--sf-line);
+}
+
+.sf-social-confirm-head h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--sf-ink);
+}
+
+.sf-social-confirm-message {
+  margin: 0 0.9rem 1rem;
+  white-space: pre-line;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: var(--sf-muted);
+}
+
+.sf-social-confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  margin: 0 0.9rem;
+}
+
+.sf-social-confirm-actions button.danger {
+  background: var(--sf-danger, #e11d48);
+  color: var(--sf-danger-ink, #ffffff);
+}
+
 .sf-social-post-menu {
   position: relative;
 }
@@ -11668,6 +11723,40 @@ button.danger:hover,
   position: relative;
 }
 
+.sf-social-reaction-glyph {
+  font-style: normal;
+  line-height: 1;
+}
+
+.sf-social-reaction-glyph-img {
+  width: 1em;
+  height: 1em;
+  object-fit: contain;
+  vertical-align: -0.125em;
+}
+
+.sf-social-react-form > button:has(.sf-social-reaction-glyph + span:not(.sr-only)) .sf-social-reaction-glyph,
+.sf-social-reaction-summary-part:has(.sf-social-reaction-glyph + span) .sf-social-reaction-glyph {
+  margin-right: 0.35rem;
+}
+
+.sf-social-react-tray .sf-social-react-form > button:has(.sf-social-reaction-glyph + span:not(.sr-only))
+  .sf-social-reaction-glyph {
+  margin-right: 0.3rem;
+}
+
+.sf-social-reaction-summary,
+.sf-social-reaction-summary-part {
+  display: inline;
+}
+
+.sf-social-react-form > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+
 .sf-social-react-form {
   display: flex;
   flex-direction: column;
@@ -11686,6 +11775,16 @@ button.danger:hover,
   border: 1px solid var(--sf-line);
   border-radius: var(--radius-sf, 0.375rem);
   box-shadow: 0 6px 18px rgba(20, 32, 48, 0.12);
+}
+
+/* Hit bridge: the visual gap above Like must still count as inside the control. */
+.sf-social-react-tray::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 0.45rem;
 }
 
 .sf-social-react-tray .sf-social-react-form {

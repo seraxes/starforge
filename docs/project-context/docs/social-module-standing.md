@@ -1,6 +1,6 @@
 ---
 kind: reference
-last_verified: 2026-11-23
+last_verified: 2026-11-25
 ---
 # product:social — standing brief (for second opinion)
 
@@ -12,7 +12,7 @@ last_verified: 2026-11-23
 
 ## One-line verdict
 
-**Social’s planned MVP is largely implemented in-tree** (slices 1–22 + admin panels + composer stage), **default-off**, with **unit tests registered**. The live map puts **finishing Social ahead of Ads**; enablement still waits on Social Open work. Treat it as an **in-scope advanced pack to finish**, not as parked behind ads and not as production-polish complete.
+**Social’s planned MVP is largely implemented in-tree** (slices 1–22 + admin panels + composer stage), **default-off**, with **unit tests registered**. Enablement blockers on the live map are **Done**. The live map’s **Active** lane is **Social polish and complete**; **Next** is Marketplace. Ads stays parked. Treat Social as an **in-scope advanced pack to finish**, not as production-polish complete yet.
 
 ---
 
@@ -20,12 +20,12 @@ last_verified: 2026-11-23
 
 | Source | What it says |
 | --- | --- |
-| **Live map** (`architecture-current`) | **Active:** finish Social. **Next after Social:** `product:ads` (depends on Social + Email Manager + Forms + Subscriptions + Payments). Do not start Ads ahead of finishing Social. |
+| **Live map** (`architecture-current`) | **Active:** Social polish and complete. **Next after Social:** Marketplace. Ads parked until after Marketplace (and other major advanced modules). |
 | **Accepted decisions (2026-11-22)** | Launch scope includes Social; continue Social work; no Payments/Maps hard requires; comments/reports stay in Social; media access + staff private-read are accepted policy with Open work where code lags. |
 | **`social-feed-plan.md` header** | May still say parked historically. Plan is the build spec; the live map wins. |
 | **Code + pack README** | Slices **1–22** documented as shipped. `defaultEnabled: false`. Full `sf_social_*` schema present. |
 
-**Implication for a second opinion:** The code already exists. Remaining questions are enablement blockers (media access, rate limits, staff private-read, `form` optionalRequires) and polish before Airsoft Nexus turns Social on.
+**Implication for a second opinion:** The code already exists. Enablement blockers (media access, rate limits, staff private-read) are closed on the live map. Remaining work is polish / Open work leftovers (`form` optionalRequires, event/page conversation UI, UX) before Airsoft Nexus turns Social on.
 
 ---
 
@@ -125,7 +125,7 @@ These are the main places a second opinion should push back or confirm.
 
 ### 1. Live map vs disk — decided
 
-Finish Social before Ads ([2026-11-22-social-built-parked](./decisions/2026-11-22-social-built-parked.md), live map). Default-off until enablement Open work closes. Airsoft Nexus includes Social ([2026-11-22-launch-scope](./decisions/2026-11-22-launch-scope.md)).
+Finish Social polish before Marketplace; Ads stays parked ([2026-11-22-social-built-parked](./decisions/2026-11-22-social-built-parked.md) still says Social-before-Ads — live map wins on queue). Default-off until polish / cutover. Airsoft Nexus includes Social ([2026-11-22-launch-scope](./decisions/2026-11-22-launch-scope.md)).
 
 ### 2. Comments / reports — decided
 
@@ -205,4 +205,4 @@ Per plan / README: points/badges, support tickets, chat, notification bell, live
 - Does not ask another agent to implement anything.
 - Does not change the live map or queue.
 - Does not declare Social “production ready.”
-- Does not start Ads, Chat, Stream, or Notifications.
+- Does not start Marketplace, Ads, Chat, Stream, or Notifications (queue lives on the live map).

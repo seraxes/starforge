@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { getAccessViewer, viewerMayAccessAdminResource } from '@/core/acl/access'
 import { getAppSession } from '@/core/auth/session'
 import { withLocalePrefix } from '@/core/i18n'
+import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { RichContent } from '@/modules/rich-editor/api'
 import type { Persona } from '@/modules/profiles/api'
 import { getPersonas, personaMediaSrc } from '@/modules/profiles/api.server'
@@ -15,6 +16,7 @@ import {
   permalinkHref,
   type PostRecord,
 } from '../posts'
+import { resolveReactionIconImageUrls } from '../reaction-icons-resolve'
 import { listFeedReactions } from '../reactions-store'
 import { loadSocialModuleSettings } from '../settings'
 import { FeedPostMedia } from './FeedPostMedia'
@@ -106,6 +108,14 @@ export async function FeedPostList({
   }
 
   const pack = await loadSocialModuleSettings()
+  const site = await getSiteSettings()
+  const reactionIcons = isCatalogModuleEnabled(site, MODULE_IDS.fontAwesome)
+    ? pack.settings.reactionIcons
+    : null
+  const reactionIconColors = reactionIcons ? pack.settings.reactionIconColors : null
+  const reactionIconImageUrls = await resolveReactionIconImageUrls(
+    pack.settings.reactionIconMediaIds,
+  )
   const session = await getAppSession()
   const sessionUserId = session?.user?.id ? String(session.user.id).trim() : ''
   const viewerId = viewerUserId?.trim() || sessionUserId || null
@@ -324,6 +334,11 @@ export async function FeedPostList({
                   viewerUserId={viewerId}
                   canModerate={canModerateContent}
                   reactionKinds={pack.settings.enabledReactionKinds}
+                  reactionIcons={reactionIcons}
+                  reactionIconColors={reactionIconColors}
+                  reactionIconImageUrls={reactionIconImageUrls}
+                  showReactionLabels={pack.settings.showReactionLabels}
+                  reactionIconSizePx={pack.settings.reactionIconSizePx}
                   allowComments={pack.settings.allowComments}
                   allowCommentReactions={pack.settings.allowReactionsOnComments}
                   commentLengthLimit={pack.settings.commentLengthLimit}
@@ -348,6 +363,11 @@ export async function FeedPostList({
                 viewerUserId={viewerId}
                 canModerate={canModerateContent}
                 reactionKinds={pack.settings.enabledReactionKinds}
+                reactionIcons={reactionIcons}
+                reactionIconColors={reactionIconColors}
+                reactionIconImageUrls={reactionIconImageUrls}
+                showReactionLabels={pack.settings.showReactionLabels}
+                reactionIconSizePx={pack.settings.reactionIconSizePx}
                 allowComments={pack.settings.allowComments}
                 allowCommentReactions={pack.settings.allowReactionsOnComments}
                 commentLengthLimit={pack.settings.commentLengthLimit}

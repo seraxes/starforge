@@ -98,7 +98,7 @@ describe('comments', () => {
     assert.equal(comments.listReplies(top.comment.id).length, 1)
   })
 
-  it('allows a reply to a reply and refuses a third level (failure path)', () => {
+  it('allows a reply under a reply-to-reply (visual depth stays flat in the UI)', () => {
     const post = publicPost()
     const comments = createCommentMemory({
       newId: (() => {
@@ -155,7 +155,7 @@ describe('comments', () => {
       {
         authorUserId: 'carol',
         postId: post.id,
-        body: 'too deep',
+        body: 'still allowed',
         parentCommentId: second.comment.id,
       },
       {
@@ -164,25 +164,26 @@ describe('comments', () => {
         interactCtx: interactCtx(),
       },
     )
-    assert.deepEqual(third, { ok: false, reason: 'reply_too_deep' })
+    assert.equal(third.ok, true)
+    if (!third.ok) return
+    assert.equal(third.comment.parentCommentId, second.comment.id)
 
-    assert.deepEqual(
-      decideCreateComment(
-        {
-          authorUserId: 'carol',
-          postId: post.id,
-          body: 'too deep',
-          parentCommentId: second.comment.id,
-        },
-        {
-          canView: true,
-          canInteract: true,
-          parent: second.comment,
-          ancestor: reply.comment,
-        },
-      ),
-      { ok: false, reason: 'reply_too_deep' },
+    const decided = decideCreateComment(
+      {
+        authorUserId: 'bob',
+        postId: post.id,
+        body: 'also allowed',
+        parentCommentId: third.comment.id,
+      },
+      {
+        canView: true,
+        canInteract: true,
+        parent: third.comment,
+      },
     )
+    assert.equal(decided.ok, true)
+    if (!decided.ok) return
+    assert.equal(decided.comment.parentCommentId, third.comment.id)
   })
 
   it('refuses a comment when the pair is blocked via canInteract (blocked-user case)', () => {

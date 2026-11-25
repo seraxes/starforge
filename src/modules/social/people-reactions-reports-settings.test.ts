@@ -10,6 +10,7 @@ import {
 } from './pack-settings'
 import { createPostRecord, type PostRecord } from './posts'
 import {
+  DEFAULT_REACTION_ICONS,
   decidePostLike,
   isReactionKindEnabled,
 } from './reactions'
@@ -72,6 +73,28 @@ describe('social people / reactions / reports settings (slice 15c)', () => {
       allowFollow: false,
       friendListVisibility: 'only_me',
       enabledReactionKinds: ['like', 'love'],
+      reactionIcons: {
+        ...DEFAULT_REACTION_ICONS,
+        love: 'fa-solid fa-heart-crack',
+      },
+      reactionIconColors: {
+        like: '#0866ff',
+        love: '#aabbcc',
+        haha: '#f7b125',
+        wow: '#f7b125',
+        sad: '#f7b125',
+        angry: '#e9710f',
+      },
+      reactionIconMediaIds: {
+        like: '',
+        love: 'media_love_1',
+        haha: '',
+        wow: '',
+        sad: '',
+        angry: '',
+      },
+      showReactionLabels: false,
+      reactionIconSizePx: 24,
       allowReactionsOnComments: true,
       allowReactionsOnStories: false,
       enabledReportReasons: ['spam', 'other'],
@@ -85,6 +108,12 @@ describe('social people / reactions / reports settings (slice 15c)', () => {
     assert.equal(saved.settings.allowFollow, false)
     assert.equal(saved.settings.friendListVisibility, 'only_me')
     assert.deepEqual(saved.settings.enabledReactionKinds, ['like', 'love'])
+    assert.equal(saved.settings.reactionIcons.love, 'fa-solid fa-heart-crack')
+    assert.equal(saved.settings.reactionIcons.like, DEFAULT_REACTION_ICONS.like)
+    assert.equal(saved.settings.reactionIconColors.love, '#aabbcc')
+    assert.equal(saved.settings.reactionIconMediaIds.love, 'media_love_1')
+    assert.equal(saved.settings.showReactionLabels, false)
+    assert.equal(saved.settings.reactionIconSizePx, 24)
     assert.equal(saved.settings.allowReactionsOnComments, true)
     assert.deepEqual(saved.settings.enabledReportReasons, ['spam', 'other'])
     assert.equal(saved.settings.autoHideOpenReportThreshold, 5)

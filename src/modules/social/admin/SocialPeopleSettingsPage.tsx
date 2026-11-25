@@ -6,6 +6,7 @@ import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/sett
 import { listBannedMembers } from '../members-store'
 import { socialPackAdminPage } from '../pack-settings'
 import { listStaffHiddenPosts } from '../posts-store'
+import { resolveReactionIconImageUrls } from '../reaction-icons-resolve'
 import { loadSocialModuleSettings } from '../settings'
 import { SocialAdminNav } from './social-admin-nav'
 import { SocialPeopleSettingsForm } from './social-people-settings-form'
@@ -53,6 +54,9 @@ export default async function SocialPeopleSettingsPage() {
     listBannedMembers({ limit: 100 }),
     listStaffHiddenPosts({ limit: 100 }),
   ])
+  const reactionIconMediaUrls = await resolveReactionIconImageUrls(
+    loaded.settings.reactionIconMediaIds,
+  )
 
   return (
     <section className="admin-section admin-layouts-full">
@@ -71,6 +75,7 @@ export default async function SocialPeopleSettingsPage() {
       ) : null}
       <SocialPeopleSettingsForm
         settings={loaded.settings}
+        reactionIconMediaUrls={reactionIconMediaUrls}
         banned={banned.map((row) => ({
           userId: row.userId,
           bannedAt: row.bannedAt?.toISOString() ?? '',

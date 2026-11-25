@@ -6,7 +6,7 @@ import { defineStarforgeModule } from '@/core/modules/define-module'
  * Slice 5: MediaPicker attachments on posts (many images or one video).
  * Slice 6: post likes (canInteract + sf_social_reactions).
  * Slice 7: People directory, dual blockers, friend.requested mail.
- * Slice 8: comments (two reply levels), author edit/delete, staff hide, post cascade.
+ * Slice 8: comments (visual two-level replies), author edit/delete, staff hide, post cascade.
  * Slice 9: reports (postId required, optional commentId; one open per reporter/post).
  * Slice 9b: moderation review queue, comment hide, resolve report, member bannedAt.
  * Slice 10: account doors exportOwnSocialRecord / hideOwnedSocialContent / purgeOwnSocialRecord.

@@ -7,7 +7,12 @@ import Link from 'next/link'
 import { RichContent } from '@/modules/rich-editor/api'
 
 import { classifyMediaMime, type PostAudience, type PostMediaAttachment } from '../posts'
-import type { ReactionKind } from '../reactions'
+import type {
+  ReactionIconColors,
+  ReactionIconImageUrls,
+  ReactionIcons,
+  ReactionKind,
+} from '../reactions'
 import {
   PostConversation,
   type ConversationComment,
@@ -54,6 +59,11 @@ type TheaterProps = {
   viewerUserId: string | null
   canModerate: boolean
   reactionKinds: ReactionKind[]
+  reactionIcons: ReactionIcons | null
+  reactionIconColors: ReactionIconColors | null
+  reactionIconImageUrls: ReactionIconImageUrls | null
+  showReactionLabels: boolean
+  reactionIconSizePx: number
   allowComments: boolean
   allowCommentReactions: boolean
   commentLengthLimit: number
@@ -88,6 +98,11 @@ function SocialMediaTheater({
   viewerUserId,
   canModerate,
   reactionKinds,
+  reactionIcons,
+  reactionIconColors,
+  reactionIconImageUrls,
+  showReactionLabels,
+  reactionIconSizePx,
   allowComments,
   allowCommentReactions,
   commentLengthLimit,
@@ -250,6 +265,11 @@ function SocialMediaTheater({
             viewerUserId={viewerUserId}
             canModerate={canModerate}
             reactionKinds={reactionKinds}
+            reactionIcons={reactionIcons}
+            reactionIconColors={reactionIconColors}
+            reactionIconImageUrls={reactionIconImageUrls}
+            showReactionLabels={showReactionLabels}
+            reactionIconSizePx={reactionIconSizePx}
             allowComments={allowComments}
             allowCommentReactions={allowCommentReactions}
             commentLengthLimit={commentLengthLimit}
@@ -290,6 +310,11 @@ export function FeedPostMedia({
   viewerUserId,
   canModerate = false,
   reactionKinds,
+  reactionIcons = null,
+  reactionIconColors = null,
+  reactionIconImageUrls = null,
+  showReactionLabels = true,
+  reactionIconSizePx = 16,
   allowComments,
   allowCommentReactions,
   commentLengthLimit,
@@ -315,6 +340,11 @@ export function FeedPostMedia({
   viewerUserId: string | null
   canModerate?: boolean
   reactionKinds: ReactionKind[]
+  reactionIcons?: ReactionIcons | null
+  reactionIconColors?: ReactionIconColors | null
+  reactionIconImageUrls?: ReactionIconImageUrls | null
+  showReactionLabels?: boolean
+  reactionIconSizePx?: number
   allowComments: boolean
   allowCommentReactions: boolean
   commentLengthLimit: number
@@ -380,6 +410,11 @@ export function FeedPostMedia({
           viewerUserId={viewerUserId}
           canModerate={canModerate}
           reactionKinds={reactionKinds}
+          reactionIcons={reactionIcons}
+          reactionIconColors={reactionIconColors}
+          reactionIconImageUrls={reactionIconImageUrls}
+          showReactionLabels={showReactionLabels}
+          reactionIconSizePx={reactionIconSizePx}
           allowComments={allowComments}
           allowCommentReactions={allowCommentReactions}
           commentLengthLimit={commentLengthLimit}

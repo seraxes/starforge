@@ -1,6 +1,7 @@
 /**
  * product:social comment persistence (sf_social_comments).
- * Two reply levels. Create calls canViewPost + canInteract.
+ * Any comment may be replied to; the conversation UI keeps two visual steps.
+ * Create calls canViewPost + canInteract.
  */
 
 import 'server-only'
@@ -109,9 +110,24 @@ async function listReplyIds(parentCommentId: string): Promise<string[]> {
   }
 }
 
+/** All reply ids under a comment, any depth. */
+async function listDescendantIds(rootCommentId: string): Promise<string[]> {
+  const out: string[] = []
+  const queue = [rootCommentId.trim()].filter(Boolean)
+  while (queue.length > 0) {
+    const parentId = queue.shift()!
+    const childIds = await listReplyIds(parentId)
+    for (const childId of childIds) {
+      out.push(childId)
+      queue.push(childId)
+    }
+  }
+  return out
+}
+
 /**
- * Create a comment, a reply, or a reply to that reply.
- * Refuses when canViewPost denies, canInteract denies, or the reply is a third level.
+ * Create a comment or a reply to any existing comment on the post.
+ * Refuses when canViewPost denies or canInteract denies.
  */
 export async function createComment(
   input: CreateCommentInput,
@@ -129,7 +145,6 @@ export async function createComment(
 
   const parentId = input.parentCommentId?.trim() || null
   const parent = parentId ? await findComment(parentId) : null
-  const ancestor = parent?.parentCommentId ? await findComment(parent.parentCommentId) : null
 
   const [canView, interactOk] = await Promise.all([
     canViewerSeePost(author, post, extras?.view),
@@ -144,7 +159,6 @@ export async function createComment(
       canView,
       canInteract: interactOk,
       parent,
-      ancestor,
     },
     {
       commentsEnabled: pack.settings.allowComments,
@@ -256,13 +270,9 @@ export async function deleteComment(
   gates?: { canManagePosts?: boolean },
 ): Promise<CommentDeleteResult> {
   const current = await findComment(input.commentId)
-  const replyIds = current ? await listReplyIds(current.id) : []
-  const nestedIds: string[] = []
-  for (const replyId of replyIds) {
-    nestedIds.push(...(await listReplyIds(replyId)))
-  }
+  const nestedIds = current ? await listDescendantIds(current.id) : []
   const post = current ? await findPost(current.postId) : null
-  const result = decideDeleteComment(current, input, [...replyIds, ...nestedIds], {
+  const result = decideDeleteComment(current, input, nestedIds, {
     canManagePosts: gates?.canManagePosts,
     postAuthorUserId: post?.authorUserId,
   })

@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useActionState, useState } from 'react'
+import React, { useActionState, useEffect, useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 
 import {
   blockUserAction,
@@ -12,11 +13,14 @@ import {
   type SocialPeopleActionState,
 } from '../actions'
 import { useHideItem } from './HideableShell'
+import { SocialConfirmDialog } from './SocialConfirmDialog'
 import { useDismissible } from './useDismissible'
 
 const feedInitial: SocialFeedActionState = {}
 const commentInitial: SocialCommentActionState = {}
 const peopleInitial: SocialPeopleActionState = {}
+
+type ConfirmKind = 'delete' | 'block' | null
 
 /**
  * Post ··· menu.
@@ -40,8 +44,10 @@ export function PostOptionsMenu({
   /** Opens the inline edit form. */
   onEdit?: () => void
 }) {
+  const router = useRouter()
   const hide = useHideItem()
   const [open, setOpen] = useState(false)
+  const [confirm, setConfirm] = useState<ConfirmKind>(null)
   const rootRef = useDismissible<HTMLDivElement>(open, () => setOpen(false))
   const [deleteState, deleteAction, deletePending] = useActionState(
     deletePostAction,
@@ -51,9 +57,25 @@ export function PostOptionsMenu({
     blockUserAction,
     peopleInitial,
   )
+  const [pending, startTransition] = useTransition()
   const isAuthor = viewerUserId.trim() === authorUserId.trim()
   const canManage = isAuthor || canModerate
   const showHideBlock = !isAuthor
+  const busy = deletePending || blockPending || pending
+
+  useEffect(() => {
+    if (!deleteState.ok) return
+    setOpen(false)
+    setConfirm(null)
+    router.refresh()
+  }, [deleteState, router])
+
+  useEffect(() => {
+    if (!blockState.ok) return
+    setOpen(false)
+    setConfirm(null)
+    router.refresh()
+  }, [blockState, router])
 
   return (
     <div className="sf-social-post-menu" ref={rootRef}>
@@ -84,17 +106,17 @@ export function PostOptionsMenu({
                 </button>
               </li>
               <li role="none">
-                <form
-                  action={deleteAction}
-                  onSubmit={(event) => {
-                    if (!window.confirm('Delete this post?')) event.preventDefault()
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={busy}
+                  onClick={() => {
+                    setOpen(false)
+                    setConfirm('delete')
                   }}
                 >
-                  <input type="hidden" name="postId" value={postId} />
-                  <button type="submit" role="menuitem" disabled={deletePending}>
-                    {deletePending ? 'Deleting…' : 'Delete post'}
-                  </button>
-                </form>
+                  {deletePending ? 'Deleting…' : 'Delete post'}
+                </button>
               </li>
             </>
           ) : null}
@@ -113,23 +135,17 @@ export function PostOptionsMenu({
                 </button>
               </li>
               <li role="none">
-                <form
-                  action={blockAction}
-                  onSubmit={(event) => {
-                    if (
-                      !window.confirm(
-                        `Block ${authorName}? You won’t see each other’s posts or comments.`,
-                      )
-                    ) {
-                      event.preventDefault()
-                    }
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={busy}
+                  onClick={() => {
+                    setOpen(false)
+                    setConfirm('block')
                   }}
                 >
-                  <input type="hidden" name="userId" value={authorUserId} />
-                  <button type="submit" role="menuitem" disabled={blockPending}>
-                    {blockPending ? 'Blocking…' : `Block ${authorName}`}
-                  </button>
-                </form>
+                  {blockPending ? 'Blocking…' : `Block ${authorName}`}
+                </button>
               </li>
             </>
           ) : null}
@@ -145,6 +161,40 @@ export function PostOptionsMenu({
           {blockState.error}
         </p>
       ) : null}
+      <SocialConfirmDialog
+        open={confirm === 'delete'}
+        title="Delete post"
+        message="Delete this post?"
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        danger
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => {
+          setConfirm(null)
+          const fd = new FormData()
+          fd.set('postId', postId)
+          startTransition(() => {
+            void deleteAction(fd)
+          })
+        }}
+      />
+      <SocialConfirmDialog
+        open={confirm === 'block'}
+        title={`Block ${authorName}`}
+        message={`Block ${authorName}? You won’t see each other’s posts or comments.`}
+        confirmLabel="Block"
+        cancelLabel="Cancel"
+        danger
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => {
+          setConfirm(null)
+          const fd = new FormData()
+          fd.set('userId', authorUserId)
+          startTransition(() => {
+            void blockAction(fd)
+          })
+        }}
+      />
     </div>
   )
 }
@@ -171,8 +221,10 @@ export function CommentOptionsMenu({
   canDelete: boolean
   onEdit?: () => void
 }) {
+  const router = useRouter()
   const hide = useHideItem()
   const [open, setOpen] = useState(false)
+  const [confirm, setConfirm] = useState<ConfirmKind>(null)
   const rootRef = useDismissible<HTMLDivElement>(open, () => setOpen(false))
   const [deleteState, deleteAction, deletePending] = useActionState(
     deleteCommentAction,
@@ -182,9 +234,25 @@ export function CommentOptionsMenu({
     blockUserAction,
     peopleInitial,
   )
+  const [pending, startTransition] = useTransition()
 
   const isOwn = Boolean(viewerUserId) && viewerUserId === authorUserId
   const showHideBlock = Boolean(viewerUserId) && !isOwn
+  const busy = deletePending || blockPending || pending
+
+  useEffect(() => {
+    if (!deleteState.ok) return
+    setOpen(false)
+    setConfirm(null)
+    router.refresh()
+  }, [deleteState, router])
+
+  useEffect(() => {
+    if (!blockState.ok) return
+    setOpen(false)
+    setConfirm(null)
+    router.refresh()
+  }, [blockState, router])
 
   if (!canEdit && !canDelete && !showHideBlock) return null
 
@@ -218,17 +286,17 @@ export function CommentOptionsMenu({
           ) : null}
           {canDelete ? (
             <li role="none">
-              <form
-                action={deleteAction}
-                onSubmit={(event) => {
-                  if (!window.confirm('Delete this comment?')) event.preventDefault()
+              <button
+                type="button"
+                role="menuitem"
+                disabled={busy}
+                onClick={() => {
+                  setOpen(false)
+                  setConfirm('delete')
                 }}
               >
-                <input type="hidden" name="commentId" value={commentId} />
-                <button type="submit" role="menuitem" disabled={deletePending}>
-                  {deletePending ? 'Deleting…' : 'Delete'}
-                </button>
-              </form>
+                {deletePending ? 'Deleting…' : 'Delete'}
+              </button>
             </li>
           ) : null}
           {showHideBlock ? (
@@ -246,23 +314,17 @@ export function CommentOptionsMenu({
                 </button>
               </li>
               <li role="none">
-                <form
-                  action={blockAction}
-                  onSubmit={(event) => {
-                    if (
-                      !window.confirm(
-                        `Block ${authorName}? You won’t see each other’s posts or comments.`,
-                      )
-                    ) {
-                      event.preventDefault()
-                    }
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={busy}
+                  onClick={() => {
+                    setOpen(false)
+                    setConfirm('block')
                   }}
                 >
-                  <input type="hidden" name="userId" value={authorUserId} />
-                  <button type="submit" role="menuitem" disabled={blockPending}>
-                    {blockPending ? 'Blocking…' : `Block ${authorName}`}
-                  </button>
-                </form>
+                  {blockPending ? 'Blocking…' : `Block ${authorName}`}
+                </button>
               </li>
             </>
           ) : null}
@@ -278,6 +340,40 @@ export function CommentOptionsMenu({
           {blockState.error}
         </p>
       ) : null}
+      <SocialConfirmDialog
+        open={confirm === 'delete'}
+        title="Delete comment"
+        message="Delete this comment?"
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        danger
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => {
+          setConfirm(null)
+          const fd = new FormData()
+          fd.set('commentId', commentId)
+          startTransition(() => {
+            void deleteAction(fd)
+          })
+        }}
+      />
+      <SocialConfirmDialog
+        open={confirm === 'block'}
+        title={`Block ${authorName}`}
+        message={`Block ${authorName}? You won’t see each other’s posts or comments.`}
+        confirmLabel="Block"
+        cancelLabel="Cancel"
+        danger
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => {
+          setConfirm(null)
+          const fd = new FormData()
+          fd.set('userId', authorUserId)
+          startTransition(() => {
+            void blockAction(fd)
+          })
+        }}
+      />
     </div>
   )
 }
@@ -292,7 +388,17 @@ export function PostEditForm({
   plainBody: string
   onCancel: () => void
 }) {
+  const router = useRouter()
   const [editState, editAction, editPending] = useActionState(editPostAction, feedInitial)
+  const onCancelRef = React.useRef(onCancel)
+  onCancelRef.current = onCancel
+
+  useEffect(() => {
+    if (!editState.ok) return
+    onCancelRef.current()
+    router.refresh()
+  }, [editState, router])
+
   return (
     <form action={editAction} className="sf-social-post-edit">
       <input type="hidden" name="postId" value={postId} />

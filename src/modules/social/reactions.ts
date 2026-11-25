@@ -26,6 +26,36 @@ export type ReactionKind = (typeof REACTION_KINDS)[number]
 /** Default enabled set. Pack settings can add kinds; `like` stays on. */
 export const DEFAULT_ENABLED_REACTION_KINDS: readonly ReactionKind[] = ['like']
 
+/**
+ * Default Font Awesome 6 solid classes per kind.
+ * Admin may override via pack settings `reactionIcons`.
+ */
+export const DEFAULT_REACTION_ICONS: Readonly<Record<ReactionKind, string>> = {
+  like: 'fa-solid fa-thumbs-up',
+  love: 'fa-solid fa-heart',
+  haha: 'fa-solid fa-face-laugh',
+  wow: 'fa-solid fa-face-surprise',
+  sad: 'fa-solid fa-face-sad-tear',
+  angry: 'fa-solid fa-face-angry',
+}
+
+/** Default FA tint per kind (ignored when a media image is set). */
+export const DEFAULT_REACTION_ICON_COLORS: Readonly<Record<ReactionKind, string>> = {
+  like: '#0866ff',
+  love: '#f33e58',
+  haha: '#f7b125',
+  wow: '#f7b125',
+  sad: '#f7b125',
+  angry: '#e9710f',
+}
+
+export type ReactionIcons = Record<ReactionKind, string>
+export type ReactionIconColors = Record<ReactionKind, string>
+/** Empty string = no image; use FA class + color. */
+export type ReactionIconMediaIds = Record<ReactionKind, string>
+/** Resolved public URLs for kinds that use a Media image. */
+export type ReactionIconImageUrls = Partial<Record<ReactionKind, string>>
+
 export const REACTION_TARGET_TYPES = ['post', 'comment'] as const
 export type ReactionTargetType = (typeof REACTION_TARGET_TYPES)[number]
 
@@ -113,6 +143,79 @@ export function normalizeEnabledReactionKinds(
     out.unshift('like')
   }
   return out.length > 0 ? out : [...DEFAULT_ENABLED_REACTION_KINDS]
+}
+
+/** Keep safe CSS class tokens only (FA class lists). Empty → ''. */
+export function sanitizeReactionIconClass(raw: unknown): string {
+  const text = String(raw ?? '').trim()
+  if (!text) return ''
+  const tokens = text
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter((token) => /^[a-zA-Z0-9_-]+$/.test(token))
+  return tokens.join(' ')
+}
+
+/**
+ * Full icon map for every catalog kind.
+ * Missing / empty / unsafe → that kind’s Font Awesome default.
+ */
+export function normalizeReactionIcons(raw: unknown): ReactionIcons {
+  const source =
+    raw && typeof raw === 'object' && !Array.isArray(raw)
+      ? (raw as Record<string, unknown>)
+      : {}
+  const out = { ...DEFAULT_REACTION_ICONS }
+  for (const kind of REACTION_KINDS) {
+    const cleaned = sanitizeReactionIconClass(source[kind])
+    out[kind] = cleaned || DEFAULT_REACTION_ICONS[kind]
+  }
+  return out
+}
+
+/** Keep a CSS hex color only. Empty / invalid → ''. */
+export function sanitizeReactionIconColor(raw: unknown): string {
+  const text = String(raw ?? '').trim()
+  if (!/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(text)) return ''
+  return text.toLowerCase()
+}
+
+/**
+ * Full color map for every catalog kind.
+ * Missing / empty / unsafe → that kind’s default tint.
+ */
+export function normalizeReactionIconColors(raw: unknown): ReactionIconColors {
+  const source =
+    raw && typeof raw === 'object' && !Array.isArray(raw)
+      ? (raw as Record<string, unknown>)
+      : {}
+  const out = { ...DEFAULT_REACTION_ICON_COLORS }
+  for (const kind of REACTION_KINDS) {
+    const cleaned = sanitizeReactionIconColor(source[kind])
+    out[kind] = cleaned || DEFAULT_REACTION_ICON_COLORS[kind]
+  }
+  return out
+}
+
+/** Safe media id token. Empty / unsafe → ''. */
+export function sanitizeReactionIconMediaId(raw: unknown): string {
+  const text = String(raw ?? '').trim()
+  if (!text) return ''
+  if (!/^[a-zA-Z0-9_-]+$/.test(text)) return ''
+  return text
+}
+
+/** Media id per kind. Empty string = use FA class. */
+export function normalizeReactionIconMediaIds(raw: unknown): ReactionIconMediaIds {
+  const source =
+    raw && typeof raw === 'object' && !Array.isArray(raw)
+      ? (raw as Record<string, unknown>)
+      : {}
+  const out = {} as ReactionIconMediaIds
+  for (const kind of REACTION_KINDS) {
+    out[kind] = sanitizeReactionIconMediaId(source[kind])
+  }
+  return out
 }
 
 function reactionMapKey(

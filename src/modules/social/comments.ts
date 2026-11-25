@@ -1,9 +1,9 @@
 /**
- * product:social comments — two reply levels.
+ * product:social comments — visual two-level replies.
  *
  * Create calls canViewPost + canInteract (slice 6). It does not re-derive them.
- * A comment on the post can be replied to, and that reply can be replied to
- * once. A reply under that second reply is refused. The comment author may
+ * Any comment or reply may be answered. The card draws replies one step under
+ * the top comment and names who a nested reply answers. The comment author may
  * edit or delete their own. The post author may delete any comment on that
  * post. Deleting a comment deletes the replies under it. DB persistence
  * lives in comments-store.ts.
@@ -35,7 +35,6 @@ export type CommentRefuseReason =
   | 'cannot_view'
   | 'cannot_interact'
   | 'parent_not_found'
-  | 'reply_too_deep'
   | 'not_found'
   | 'not_author'
   | 'cannot_manage'
@@ -64,7 +63,7 @@ export type CreateCommentInput = {
   authorUserId: string
   postId: string
   body?: string
-  /** Reply target — must be a top-level comment on the same post. */
+  /** Reply target — any existing comment on the same post. */
   parentCommentId?: string | null
 }
 
@@ -86,9 +85,8 @@ export type CommentDecision =
 /**
  * Decide a new comment / reply row.
  * Callers pass canView / canInteract results; this does not re-derive them.
- * Named failure: a third reply level → reply_too_deep.
- *
- * Depth: comment on the post, reply to that comment, reply to that reply.
+ * Any existing comment on the post may be the reply parent — visual depth is
+ * capped in the conversation UI, not here.
  */
 export function decideCreateComment(
   input: CreateCommentInput,
@@ -97,11 +95,6 @@ export function decideCreateComment(
     canInteract: boolean
     /** Parent row when parentCommentId is set; null when missing. */
     parent: CommentRecord | null
-    /**
-     * Parent of `parent`, when the reply target is itself a reply.
-     * Null when the target is a comment on the post.
-     */
-    ancestor?: CommentRecord | null
   },
   opts?: {
     now?: Date
@@ -149,18 +142,6 @@ export function decideCreateComment(
     if (gates.parent.postId !== postId) {
       return { ok: false, reason: 'parent_not_found' }
     }
-    // Two reply levels. A comment on the post (no parent) may be replied to.
-    // That reply may be replied to once. Its ancestor must be the post comment.
-    if (gates.parent.parentCommentId) {
-      const ancestor = gates.ancestor ?? null
-      const ancestorId = gates.parent.parentCommentId
-      if (!ancestor || ancestor.id !== ancestorId || ancestor.postId !== postId) {
-        return { ok: false, reason: 'parent_not_found' }
-      }
-      if (ancestor.parentCommentId) {
-        return { ok: false, reason: 'reply_too_deep' }
-      }
-    }
   }
 
   const now = opts?.now ?? new Date()
@@ -191,7 +172,6 @@ export function createCommentWithGates(
   opts: {
     post: PostRecord | null
     parent: CommentRecord | null
-    ancestor?: CommentRecord | null
     viewCtx: CanViewPostContext
     interactCtx: CanInteractContext
     now?: Date
@@ -209,7 +189,7 @@ export function createCommentWithGates(
   )
   return decideCreateComment(
     input,
-    { canView, canInteract: interactOk, parent: opts.parent, ancestor: opts.ancestor ?? null },
+    { canView, canInteract: interactOk, parent: opts.parent },
     { now: opts.now, newId: opts.newId },
   )
 }
@@ -309,7 +289,7 @@ export function canViewComment(
   return true
 }
 
-/** In-memory comments with the same two-reply-level rule as the DB path. */
+/** In-memory comments with the same parent rules as the DB path. */
 export function createCommentMemory(opts?: {
   newId?: () => string
   now?: () => Date
@@ -344,6 +324,19 @@ export function createCommentMemory(opts?: {
   const newId = opts?.newId ?? (() => crypto.randomUUID())
   const now = opts?.now ?? (() => new Date())
 
+  function descendantIds(rootId: string): string[] {
+    const out: string[] = []
+    const walk = (parentId: string) => {
+      for (const row of rows.values()) {
+        if (row.parentCommentId !== parentId) continue
+        out.push(row.id)
+        walk(row.id)
+      }
+    }
+    walk(rootId)
+    return out
+  }
+
   return {
     get: (commentId) => rows.get(commentId.trim()) ?? null,
     listForPost: (postId) => {
@@ -361,12 +354,9 @@ export function createCommentMemory(opts?: {
     create: (input, gates) => {
       const parentId = input.parentCommentId?.trim() || null
       const parent = parentId ? (rows.get(parentId) ?? null) : null
-      const ancestorId = parent?.parentCommentId?.trim() || null
-      const ancestor = ancestorId ? (rows.get(ancestorId) ?? null) : null
       const decision = createCommentWithGates(input, {
         ...gates,
         parent,
-        ancestor,
         now: now(),
         newId,
       })
@@ -386,18 +376,8 @@ export function createCommentMemory(opts?: {
     },
     delete: (input, gates) => {
       const current = rows.get(input.commentId.trim()) ?? null
-      const replies = current
-        ? [...rows.values()].flatMap((row) => {
-            if (row.parentCommentId === current.id) return [row.id]
-            return []
-          })
-        : []
-      const nested = current
-        ? [...rows.values()]
-            .filter((row) => row.parentCommentId && replies.includes(row.parentCommentId))
-            .map((row) => row.id)
-        : []
-      const result = decideDeleteComment(current, input, [...replies, ...nested], {
+      const nested = current ? descendantIds(current.id) : []
+      const result = decideDeleteComment(current, input, nested, {
         canManagePosts: gates?.canManagePosts,
         postAuthorUserId: gates?.postAuthorUserId,
       })

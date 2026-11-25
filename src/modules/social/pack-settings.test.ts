@@ -10,6 +10,7 @@ import {
   socialPackAdminPage,
   storyLifetimeMs,
 } from './pack-settings'
+import { DEFAULT_REACTION_ICONS } from './reactions'
 import { STORY_TTL_MS } from './stories'
 
 describe('social pack settings', () => {
@@ -42,6 +43,11 @@ describe('social pack settings', () => {
     assert.equal(saved.settings.activityEventPublished, false)
     assert.equal(saved.settings.activityPagePublished, true)
     assert.deepEqual(saved.settings.enabledReactionKinds, ['like', 'love'])
+    assert.deepEqual(saved.settings.reactionIcons, { ...DEFAULT_REACTION_ICONS })
+    assert.equal(saved.settings.reactionIconColors.like, '#0866ff')
+    assert.equal(saved.settings.reactionIconMediaIds.like, '')
+    assert.equal(saved.settings.showReactionLabels, true)
+    assert.equal(saved.settings.reactionIconSizePx, 16)
     assert.equal(isActivityCardEnabled('event.published', saved.settings), false)
     assert.equal(isActivityCardEnabled('page.published', saved.settings), true)
 
@@ -53,10 +59,13 @@ describe('social pack settings', () => {
       activityEventPublished: true,
       activityPagePublished: false,
       enabledReactionKinds: ['like', 'wow'],
+      reactionIcons: { love: 'fa-solid fa-heart-crack' },
     })
     assert.equal(loaded.defaultPostAudience, 'group')
     assert.equal(loaded.storyLifetimeHours, 12)
     assert.deepEqual(loaded.enabledReactionKinds, ['like', 'wow'])
+    assert.equal(loaded.reactionIcons.love, 'fa-solid fa-heart-crack')
+    assert.equal(loaded.reactionIcons.like, DEFAULT_REACTION_ICONS.like)
   })
 
   it('refuses an unknown audience and leaves Social off as a disabled notice (failure path)', () => {

@@ -6092,3 +6092,129 @@ body:has(.admin-shell) > main {
 .admin-shell .sf-media-bulk-select-all input[type='checkbox']::before {
   content: none;
 }
+
+/* Social Reactions — line 1: FA class + color; line 2: image chooser + thumb. */
+.admin-shell .sf-social-reaction-kind-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.55rem 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.admin-shell .sf-social-reaction-kind-row > .settings-flag {
+  margin: 0;
+  min-width: 6.5rem;
+  padding-top: 0.35rem;
+}
+
+.admin-shell .sf-social-reaction-icon-controls {
+  flex: 1 1 22rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.admin-shell .sf-social-reaction-fa-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.admin-shell .sf-social-reaction-icon-field {
+  flex: 1 1 auto;
+  margin: 0;
+  gap: 0.4rem;
+  min-width: 0;
+  align-items: center;
+}
+
+.admin-shell .sf-social-reaction-icon-field > input[type='text'] {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: var(--sf-admin-input-min-height, 2rem);
+}
+
+.admin-shell .sf-social-reaction-icon-preview {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--sf-admin-input-min-height, 2rem);
+  min-width: var(--sf-admin-input-min-height, 2rem);
+  height: var(--sf-admin-input-min-height, 2rem);
+  color: var(--sf-admin-ink, #e8eef6);
+  font-size: 1rem;
+  overflow: hidden;
+}
+
+.admin-shell .sf-social-reaction-color-field {
+  margin: 0;
+  width: auto;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+}
+
+.admin-shell .sf-social-reaction-color-field input[type='color'] {
+  width: 2.5rem;
+  height: var(--sf-admin-input-min-height, 2rem);
+  padding: 0.15rem;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.admin-shell .sf-social-reaction-media-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.admin-shell .sf-social-reaction-media-field {
+  flex: 0 1 auto;
+  margin: 0;
+  min-width: 0;
+}
+
+.admin-shell .sf-social-reaction-media-field .sf-media-picker {
+  margin: 0;
+}
+
+.admin-shell .sf-social-reaction-media-field .sf-media-picker-head {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.admin-shell .sf-social-reaction-media-field .sf-media-picker-label {
+  white-space: nowrap;
+}
+
+.admin-shell .sf-social-reaction-media-field .sf-media-picker-actions {
+  flex-wrap: nowrap;
+}
+
+.admin-shell .sf-social-reaction-media-thumb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 auto;
+  border: 1px solid var(--sf-admin-line, rgba(255, 255, 255, 0.12));
+  border-radius: 0.25rem;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.admin-shell .sf-social-reaction-media-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}

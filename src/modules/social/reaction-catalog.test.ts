@@ -9,11 +9,19 @@ import {
 } from './posts'
 import {
   DEFAULT_ENABLED_REACTION_KINDS,
+  DEFAULT_REACTION_ICON_COLORS,
+  DEFAULT_REACTION_ICONS,
   REACTION_KINDS,
   createReactionMemory,
   decidePostLike,
   isReactionKindEnabled,
   normalizeEnabledReactionKinds,
+  normalizeReactionIconColors,
+  normalizeReactionIconMediaIds,
+  normalizeReactionIcons,
+  sanitizeReactionIconClass,
+  sanitizeReactionIconColor,
+  sanitizeReactionIconMediaId,
 } from './reactions'
 
 function interactCtx(
@@ -166,5 +174,61 @@ describe('reaction catalog', () => {
       'haha',
     ])
     assert.deepEqual(normalizeEnabledReactionKinds([]), ['like'])
+  })
+
+  it('normalizes reaction icons to FA defaults and keeps safe overrides', () => {
+    assert.deepEqual(normalizeReactionIcons(undefined), { ...DEFAULT_REACTION_ICONS })
+    assert.deepEqual(normalizeReactionIcons({}), { ...DEFAULT_REACTION_ICONS })
+    assert.equal(sanitizeReactionIconClass('fa-solid fa-heart'), 'fa-solid fa-heart')
+    assert.equal(sanitizeReactionIconClass('fa-solid<script>'), '')
+    assert.equal(sanitizeReactionIconClass('fa-solid fa-heart<script>'), 'fa-solid')
+    assert.equal(sanitizeReactionIconClass(''), '')
+
+    const mixed = normalizeReactionIcons({
+      love: 'fa-solid fa-heart-crack',
+      haha: 'fa-solid fa-face-grin!!!',
+      wow: '',
+      angry: '  fa-regular   fa-face-angry  ',
+    })
+    assert.equal(mixed.like, DEFAULT_REACTION_ICONS.like)
+    assert.equal(mixed.love, 'fa-solid fa-heart-crack')
+    // Unsafe tokens drop; remaining safe classes are kept.
+    assert.equal(mixed.haha, 'fa-solid')
+    assert.equal(mixed.wow, DEFAULT_REACTION_ICONS.wow)
+    assert.equal(mixed.angry, 'fa-regular fa-face-angry')
+    assert.equal(mixed.sad, DEFAULT_REACTION_ICONS.sad)
+  })
+
+  it('normalizes reaction icon colors and media ids (success + failure paths)', () => {
+    assert.deepEqual(normalizeReactionIconColors(undefined), {
+      ...DEFAULT_REACTION_ICON_COLORS,
+    })
+    assert.equal(sanitizeReactionIconColor('#F33E58'), '#f33e58')
+    assert.equal(sanitizeReactionIconColor('#abc'), '#abc')
+    assert.equal(sanitizeReactionIconColor('red'), '')
+    assert.equal(sanitizeReactionIconColor('javascript:alert(1)'), '')
+
+    const colors = normalizeReactionIconColors({
+      like: '#112233',
+      love: 'not-a-color',
+      haha: '',
+    })
+    assert.equal(colors.like, '#112233')
+    assert.equal(colors.love, DEFAULT_REACTION_ICON_COLORS.love)
+    assert.equal(colors.haha, DEFAULT_REACTION_ICON_COLORS.haha)
+
+    assert.equal(sanitizeReactionIconMediaId('media_abc-1'), 'media_abc-1')
+    assert.equal(sanitizeReactionIconMediaId('../etc'), '')
+    assert.equal(sanitizeReactionIconMediaId(''), '')
+
+    const media = normalizeReactionIconMediaIds({
+      like: 'img_like',
+      love: 'bad id!',
+      wow: '',
+    })
+    assert.equal(media.like, 'img_like')
+    assert.equal(media.love, '')
+    assert.equal(media.wow, '')
+    assert.equal(media.haha, '')
   })
 })

@@ -21,7 +21,16 @@ import {
 } from './challenge'
 import { isPostAudience, POST_AUDIENCES, POST_MEDIA_IMAGE_MAX, type PostAudience, type PostKind } from './posts'
 import {
+  DEFAULT_REACTION_ICON_COLORS,
+  DEFAULT_REACTION_ICONS,
   normalizeEnabledReactionKinds,
+  normalizeReactionIconColors,
+  normalizeReactionIconMediaIds,
+  normalizeReactionIcons,
+  REACTION_KINDS,
+  type ReactionIconColors,
+  type ReactionIconMediaIds,
+  type ReactionIcons,
   type ReactionKind,
 } from './reactions'
 import { isReportReason, REPORT_REASONS, type ReportReason } from './reports'
@@ -47,6 +56,11 @@ export const SOCIAL_FEED_PAGE_SIZE_MAX = 100
 export const SOCIAL_COMMENT_LENGTH_LIMIT_DEFAULT = 5000
 export const SOCIAL_COMMENT_LENGTH_LIMIT_MIN = 1
 export const SOCIAL_COMMENT_LENGTH_LIMIT_MAX = 20000
+
+/** Reaction glyph size in px (admin). */
+export const SOCIAL_REACTION_ICON_SIZE_PX_DEFAULT = 16
+export const SOCIAL_REACTION_ICON_SIZE_PX_MIN = 12
+export const SOCIAL_REACTION_ICON_SIZE_PX_MAX = 40
 
 /** Member write flood bucket (posts, comments, reactions, requests, …). */
 export const SOCIAL_WRITE_RATE_LIMIT_MAX_DEFAULT = 60
@@ -123,6 +137,16 @@ export type SocialModuleSettings = {
   activityEventPublished: boolean
   activityPagePublished: boolean
   enabledReactionKinds: ReactionKind[]
+  /** Font Awesome class string per catalog kind (admin-editable). */
+  reactionIcons: ReactionIcons
+  /** FA tint per kind (ignored when that kind uses a media image). */
+  reactionIconColors: ReactionIconColors
+  /** Optional Media id per kind; when set, feed shows the image instead of FA. */
+  reactionIconMediaIds: ReactionIconMediaIds
+  /** When on, Like / tray show the word beside the icon. Off = icon-only (aria still named). */
+  showReactionLabels: boolean
+  /** Tray popup glyph/image size in pixels (main Like control stays default size). */
+  reactionIconSizePx: number
   /** Guests (no viewer) may read audience=public posts. */
   guestCanReadPublic: boolean
   feedPageSize: number
@@ -191,6 +215,18 @@ export const DEFAULT_SOCIAL_MODULE_SETTINGS: SocialModuleSettings = {
   activityEventPublished: true,
   activityPagePublished: true,
   enabledReactionKinds: ['like'],
+  reactionIcons: { ...DEFAULT_REACTION_ICONS },
+  reactionIconColors: { ...DEFAULT_REACTION_ICON_COLORS },
+  reactionIconMediaIds: {
+    like: '',
+    love: '',
+    haha: '',
+    wow: '',
+    sad: '',
+    angry: '',
+  },
+  showReactionLabels: true,
+  reactionIconSizePx: SOCIAL_REACTION_ICON_SIZE_PX_DEFAULT,
   guestCanReadPublic: true,
   feedPageSize: SOCIAL_FEED_PAGE_SIZE_DEFAULT,
   allowText: true,
@@ -509,6 +545,25 @@ function readSettings(
       DEFAULT_SOCIAL_MODULE_SETTINGS.activityPagePublished,
     ),
     enabledReactionKinds: normalizeEnabledReactionKinds(obj.enabledReactionKinds),
+    reactionIcons: normalizeReactionIcons(obj.reactionIcons),
+    reactionIconColors: normalizeReactionIconColors(obj.reactionIconColors),
+    reactionIconMediaIds: normalizeReactionIconMediaIds(obj.reactionIconMediaIds),
+    showReactionLabels: readFlag(
+      obj.showReactionLabels,
+      DEFAULT_SOCIAL_MODULE_SETTINGS.showReactionLabels,
+    ),
+    reactionIconSizePx: (() => {
+      const size = readBoundedInt(
+        obj.reactionIconSizePx,
+        DEFAULT_SOCIAL_MODULE_SETTINGS.reactionIconSizePx,
+        SOCIAL_REACTION_ICON_SIZE_PX_MIN,
+        SOCIAL_REACTION_ICON_SIZE_PX_MAX,
+        'coerce',
+      )
+      return size === 'invalid'
+        ? DEFAULT_SOCIAL_MODULE_SETTINGS.reactionIconSizePx
+        : size
+    })(),
     guestCanReadPublic: readFlag(
       obj.guestCanReadPublic,
       DEFAULT_SOCIAL_MODULE_SETTINGS.guestCanReadPublic,
@@ -777,9 +832,22 @@ export function socialComposerSettingsFromForm(formData: FormData): Record<strin
 
 /** People / reactions / reports form fields (slice 15c). */
 export function socialPeopleSettingsFromForm(formData: FormData): Record<string, unknown> {
+  const reactionIcons: Record<string, string> = {}
+  const reactionIconColors: Record<string, string> = {}
+  const reactionIconMediaIds: Record<string, string> = {}
+  for (const kind of REACTION_KINDS) {
+    reactionIcons[kind] = String(formData.get(`reactionIcon_${kind}`) ?? '')
+    reactionIconColors[kind] = String(formData.get(`reactionIconColor_${kind}`) ?? '')
+    reactionIconMediaIds[kind] = String(formData.get(`reactionIconMedia_${kind}`) ?? '')
+  }
   return {
     friendListVisibility: formData.get('friendListVisibility'),
     enabledReactionKinds: formData.getAll('reactionKind').map((value) => String(value)),
+    reactionIcons,
+    reactionIconColors,
+    reactionIconMediaIds,
+    showReactionLabels: formData.get('showReactionLabels') === '1',
+    reactionIconSizePx: formData.get('reactionIconSizePx'),
     allowFriendRequests: formData.get('allowFriendRequests') === '1',
     maxPendingFriendRequests: formData.get('maxPendingFriendRequests'),
     allowFollow: formData.get('allowFollow') === '1',

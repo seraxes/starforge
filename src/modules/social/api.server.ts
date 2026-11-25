@@ -601,6 +601,8 @@ export {
 } from './members-store'
 export {
   DEFAULT_ENABLED_REACTION_KINDS,
+  DEFAULT_REACTION_ICON_COLORS,
+  DEFAULT_REACTION_ICONS,
   REACTION_KINDS,
   REACTION_TARGET_TYPES,
   decidePostLike,
@@ -608,9 +610,19 @@ export {
   isReactionKindEnabled,
   isReactionTargetType,
   normalizeEnabledReactionKinds,
+  normalizeReactionIconColors,
+  normalizeReactionIconMediaIds,
+  normalizeReactionIcons,
+  sanitizeReactionIconClass,
+  sanitizeReactionIconColor,
+  sanitizeReactionIconMediaId,
   setPostLikeWithGates,
 } from './reactions'
 export type {
+  ReactionIconColors,
+  ReactionIconImageUrls,
+  ReactionIconMediaIds,
+  ReactionIcons,
   ReactionKind,
   ReactionMutationResult,
   ReactionRecord,
