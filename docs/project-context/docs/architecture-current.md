@@ -1,10 +1,10 @@
 ---
 kind: live
-last_verified: 2026-11-23
+last_verified: 2026-11-25
 ---
 # Starforge architecture — current
 
-Last verified against code: 2026-11-23.
+Last verified against code: 2026-11-25 (Ads slice 2 catalog + admin).
 
 **This page wins** when it disagrees with an older plan, preference bullet, or status table. Plans and audits are history.
 
@@ -12,7 +12,7 @@ Last verified against code: 2026-11-23.
 
 Reusable starter: auth, layout host, content manager behind PageReadsPort, toggleable packs. ASN 2.0 / Airsoft Nexus is a later Hero on those packs; InspecTra may ship earlier.
 **Core** — host + ports. **Base** — Media, Forms, Rich editor, Email Manager, Payments, Profiles, Maps (TacMap / tactical event map).
-**Advanced** — Events, Subscriptions, Social (finish before Ads); later Ads (depends on Social + Email Manager + Forms + Subscriptions + Payments), Shop, Marketplace, Support, Stream. **Hero** — brand + vertical rules.
+**Advanced** — Events, Subscriptions, Social, Ads (catalog + admin / default-off; depends on Social + Email Manager + Forms + Subscriptions + Payments; plan: [ads-pack-plan](./ads-pack-plan.md)), then Shop, Marketplace, Support, Stream. **Hero** — brand + vertical rules.
 `product:pages` is the content manager (site pack), not a base engine. Base modules are not Core.
 Placement: [platform-module-layers](./platform-module-layers.md). Rules: [sf-architecture](../../../.cursor/rules/sf-architecture.mdc), [sf-module-ownership](../../../.cursor/rules/sf-module-ownership.mdc).
 
@@ -23,33 +23,33 @@ Accepted: [2026-11-22-launch-scope](./decisions/2026-11-22-launch-scope.md).
 - **First production site:** Airsoft Nexus — every module already built; Lexical may stay off.
 - **Earlier site allowed:** InspecTra (quality inspection) may ship before Airsoft Nexus; Core polish comes first.
 - **Do not archive built modules.** Nothing built stays off except the possible Lexical exception.
-- **Absent until built:** Ads, Chat, Shop, Stream (and any other pack not in the tree).
+- **Absent until built:** Chat, Shop, Stream (and any other pack not in the tree). Ads is in tree (`src/modules/ads`, default-off) with catalog schema + `/admin/ads`; Payments bridge / Social publish not started.
 - **Migrate:** users, avatars, profile settings (new password on first login — do not migrate passwords); upcoming events only (past events stay archived on the old site); marketplace user ratings. Marketplace posts = later examination, not a cutover requirement. Everything else stays on the old site.
 
 ## Build queue
 
-Core → base → advanced → Hero still holds. Core finish (slices 1–9) and the base-module pass items that were open on this map (requires-graph auto-enable, Payments `requestOrderRefund`, Forms CSV / stringConstraints / success redirect, Mailer transactional helper, admin theme CSS from the registry) are in tree. Paid event tickets and the Subscriptions lifecycle are in tree. `sf_pay_collect_entitlements` stays a frozen stub; collect reads `payments.collect` when Subscriptions is on.
+Core → base → advanced → Hero still holds. Core finish (slices 1–9) and the base-module pass items that were open on this map (requires-graph auto-enable, Payments `requestOrderRefund`, Forms CSV / stringConstraints / success redirect, Mailer transactional helper, admin theme CSS from the registry) are in tree. Paid event tickets and the Subscriptions lifecycle are in tree. `sf_pay_collect_entitlements` stays a frozen stub; collect reads `payments.collect` when Subscriptions is on. Social enablement blockers (media attach/serve, staff private-read, write rate limits) are **Done** — see Open work rows below.
 
 | Lane | What |
 | --- | --- |
-| **Active** | Finish `product:social` (in scope; not frozen). Close Social Open work that blocks enablement. Core / launch polish in parallel where it blocks cutover. |
-| **Next product pack after Social** | `product:ads` (advanced; not Core/base). No `src/modules/ads` yet. When built, Ads depends on Social, Email Manager, Forms, Subscriptions, and Payments (an ad posts into Social). Do not start Ads, Chat, Shop, Stream, or Marketplace schema ahead of finishing Social. |
+| **Active** | Ads slice 2 done (catalog schema + `/admin/ads`); slice 3 next (Payments bridge). Plan: [ads-pack-plan](./ads-pack-plan.md). Social enablement closed. Do not start Social publish, Email, Forms, or Subscriptions gating ahead of slice order. Core / launch polish in parallel where it blocks cutover. |
+| **Next after Ads MVP** | Do not start Chat, Shop, Stream, or Marketplace commerce schema ahead of Ads MVP unless the live map moves. |
 | **Parked** | Chat, Shop, Stream, Notifications, ASN Hero theme / currency / `apps/asn-capacitor`, TacMap stations / BLE beacons, durable `product:campaigns`, organizations, support, outbound webhooks. Marketplace today is a Dashboard stub (`product:marketplace`, no commerce schema). |
 
 The 5 Nov wireframe order does not override this. Event slot kinds decided as choosable Ticket type / Booking type / Faction (+ admin names) wait; code is still `general \| faction` on `sf_event_ticket_tiers.kind`.
 
-## Social (in scope — finish before Ads)
+## Social (enablement closed; Ads MVP in progress)
 
-**`product:social`** — slices **1–22** documented in `src/modules/social/manifest.ts` and the pack README; `defaultEnabled: false`; enable for Airsoft Nexus after Social Open work that blocks enablement closes. Brief: [social-module-standing](./social-module-standing.md). Hard `requires`: profiles, media, rich-editor, forms, email-manager. `optionalRequires`: `form` (particle pack `src/modules/form`), `product:subscriptions`, `product:events`. Not Payments / not Maps ([2026-11-22-social-dependency-floor](./decisions/2026-11-22-social-dependency-floor.md)). Posture: finish Social ([2026-11-22-social-built-parked](./decisions/2026-11-22-social-built-parked.md)). Comments, likes, and reports stay in Social — no `product:comments` / `product:reports` ([2026-11-22-comments-reports-ownership](./decisions/2026-11-22-comments-reports-ownership.md)).
+**`product:social`** — slices **1–22** documented in `src/modules/social/manifest.ts` and the pack README; `defaultEnabled: false` until site cutover turns it on. Enablement blockers that were open on this map are **Done** (media attach/serve audience checks, staff private-read, member write rate limits). Brief: [social-module-standing](./social-module-standing.md). Hard `requires`: profiles, media, rich-editor, forms, email-manager. `optionalRequires`: `form` (particle pack `src/modules/form`), `product:subscriptions`, `product:events`. Not Payments / not Maps ([2026-11-22-social-dependency-floor](./decisions/2026-11-22-social-dependency-floor.md)). Posture: [2026-11-22-social-built-parked](./decisions/2026-11-22-social-built-parked.md). Comments, likes, and reports stay in Social — no `product:comments` / `product:reports` ([2026-11-22-comments-reports-ownership](./decisions/2026-11-22-comments-reports-ownership.md)). Ads catalog + admin are in tree (`product:ads`, default-off, slice 2); next is Payments bridge per [ads-pack-plan](./ads-pack-plan.md).
 
 ## Open work
 
 | Item | Owner | Status | Blocking launch? | Link |
 | --- | --- | --- | --- | --- |
-| Media access — attach: refuse bind when the target audience is wider than the file’s level | Social (+ Media) | Done; `decidePostAttachments` / `decideSetPostAudience` use `shareAudienceIsWider` + passed-in file level (`audience_too_wide`). Serve also Done; `sf-security.mdc` still absent so no law | only if Social is on | [2026-11-22-media-access-model](./decisions/2026-11-22-media-access-model.md), `src/modules/social/posts.ts` |
-| Media access — serve: `/api/media/[id]` must honor the owning audience | Media (+ Social) | Done; both `/api/media/[id]` and `/api/media/file/[...key]` call Social via `loadModuleDoor('social-api-server')` → `decideSocialMediaServeAccess` (`canViewBoundMedia` / `canViewPost`). Restricted binds 404 for strangers, skip public CDN redirect, and omit `Cache-Control: public`. `sf-security.mdc` absent — no law appended | only if Social is on | [2026-11-22-media-access-model](./decisions/2026-11-22-media-access-model.md), `src/modules/social/media-serve-store.ts`, `src/app/api/media/` |
-| Staff / moderator private-read on front end (`only_me`, friends-only) | Core ACL / Social | Done; `canViewPost` / feed predicate / SQL / media serve use the existing staff grant (`viewerMayModerateSocialContent` — `viewerMayOverrideMemberOwnership` or `admin.social` edit). Block and author-hidden still deny. | only if Social is on | [2026-11-22-staff-bypass-limits](./decisions/2026-11-22-staff-bypass-limits.md), `src/modules/social/posts.ts` `canViewPost` |
-| Rate limits on Social member writes | Social + Core RateLimiter | Done; `checkSocialWriteRateLimit` → `getRateLimiter().consume` (`social-write:${userId}:${clientIp}`). Pack settings override on the existing Social document (`writeRateLimitMax` / `writeRateLimitWindowSec`, same screen as comment length). Staff not exempt. Member media upload keeps its own bucket — no second consume in that request. `sf-security.mdc` absent — no law appended | only if Social is on | `src/modules/social/rate-limit.ts`, `src/core/security/rate-limit` |
+| Media access — attach: refuse bind when the target audience is wider than the file’s level | Social (+ Media) | Done (Social enablement closed) | only if Social is on | [2026-11-22-media-access-model](./decisions/2026-11-22-media-access-model.md), `src/modules/social/posts.ts` |
+| Media access — serve: `/api/media/[id]` must honor the owning audience | Media (+ Social) | Done (Social enablement closed) | only if Social is on | [2026-11-22-media-access-model](./decisions/2026-11-22-media-access-model.md), `src/modules/social/media-serve-store.ts`, `src/app/api/media/` |
+| Staff / moderator private-read on front end (`only_me`, friends-only) | Core ACL / Social | Done (Social enablement closed) | only if Social is on | [2026-11-22-staff-bypass-limits](./decisions/2026-11-22-staff-bypass-limits.md), `src/modules/social/posts.ts` `canViewPost` |
+| Rate limits on Social member writes | Social + Core RateLimiter | Done (Social enablement closed) | only if Social is on | `src/modules/social/rate-limit.ts`, `src/core/security/rate-limit` |
 | Seed refuses production; README must not treat the seed password as production | Core seed / README | Done; `assertSeedAllowed` refuses `NODE_ENV=production` unless `STARFORGE_ALLOW_PRODUCTION_SEED=1`. README warns local-only | yes | `src/seed-production-guard.ts`, `src/seed.ts`, `README.md` |
 | Env validation rejects placeholder secrets | Core env | Done; production errors on `.env.example` values and secrets containing `dev-only` / `change-me`; CI `ci-only-*` secrets are not placeholders; dev/test warn only | yes | `src/core/env/validate.ts` |
 | Dedicated payment-credentials key required in production | Payments | Done; production requires non-placeholder `SF_PAY_CREDENTIALS_KEY` (no `PAYLOAD_SECRET` / hardcoded fallback); dev may still fall back | yes | `src/modules/payments/credentials-crypto.ts`, `src/core/env/validate.ts` |
@@ -59,7 +59,7 @@ The 5 Nov wireframe order does not override this. Event slot kinds decided as ch
 | Event / page conversation UI on Social’s comments engine | Social (+ Events / Pages) | Accepted ownership; event conversation not built | no | [2026-11-22-comments-reports-ownership](./decisions/2026-11-22-comments-reports-ownership.md) |
 | `dangerouslySetInnerHTML` sites need a sanitization review | Core + packs | Open; custom particle HTML, page-settings inject, Events description, and others | no | e.g. `src/core/modules/particles/custom.tsx` |
 | Event slot kinds chooser (Ticket type / Booking type / Faction + admin names) | Events | Decided; code still `general \| faction` | no | `src/modules/events/schema.ts` |
-| Organizations, outbound webhooks, support | TBD | Parked; not ahead of finishing Social then Ads | no | — |
+| Organizations, outbound webhooks, support | TBD | Parked; not ahead of Ads MVP | no | — |
 | Durable subscriber-list `product:campaigns` | Email Manager later | Parked. Light paste campaigns live in Email Manager today | no | `sf-email-module.mdc` |
 | Checkout coupons | Payments | Shipped under Payments (not a promotions pack) | no | `/admin/payments/coupons` |
 | `modules:sync` omits unchosen in-repo engines | Installer | Target only; sync adds/removes `@starforge/module-*` (notice-bar, consent). Other packs stay in this repo | no | [module-install-packages](./module-install-packages.md) |
@@ -95,9 +95,9 @@ Installing Starforge means choosing which modules come with that site ([module-i
 
 **Content manager:** `product:pages` in `src/modules/pages` (`requires` rich-editor + media). Owns editorial pages, last 20 versions (`PAGE_VERSION_KEEP`), page admin, categories, tags. Status draft / published / unpublished. Public reads go through `PageReadsPort`; pack off → empty reads. Nav page binds call the pack door (Core does not import the pack). `product:media` owns `sf_media_*`; blobs on MediaStorage. Site settings (`moduleToggles`, performance, `primaryNavMenuId`, `rootItem`) live on Core `sf_site_settings`. `rootItem` is the one nav item for `/{locale}` in every locale. CMS access is Better Auth + `sf_users.cms_access`. No second CMS; peel: [2026-11-15-payload-peel](./decisions/2026-11-15-payload-peel.md).
 
-**Payload peel (done):** phases 1–4 shipped 2026-11-16. Decision: [2026-11-15-payload-peel](./decisions/2026-11-15-payload-peel.md). Archive: [payload-dependency-map](../../archive/payload-dependency-map.md). Queue after tickets + subscriptions: finish Social, then Ads.
+**Payload peel (done):** phases 1–4 shipped 2026-11-16. Decision: [2026-11-15-payload-peel](./decisions/2026-11-15-payload-peel.md). Archive: [payload-dependency-map](../../archive/payload-dependency-map.md). Queue: Ads slice 3 Payments bridge → remaining Ads MVP ([ads-pack-plan](./ads-pack-plan.md)).
 
-**Requires chain:** Forms → Media; Rich editor → Media; Email Manager → Rich editor + Media; Payments → Email Manager; Profiles → Media + Forms; Maps has empty `requires` (Events still depends on Maps). Events requires Forms, Media, Rich editor, Payments, Profiles, Maps. Subscriptions requires Payments, Email Manager, Forms, Profiles. Social requires Profiles, Media, Rich editor, Forms, Email Manager (not Payments, not Maps). Profiles stays base because Events and Subscriptions require it.
+**Requires chain:** Forms → Media; Rich editor → Media; Email Manager → Rich editor + Media; Payments → Email Manager; Profiles → Media + Forms; Maps has empty `requires` (Events still depends on Maps). Events requires Forms, Media, Rich editor, Payments, Profiles, Maps. Subscriptions requires Payments, Email Manager, Forms, Profiles. Social requires Profiles, Media, Rich editor, Forms, Email Manager (not Payments, not Maps). Ads requires Social, Email Manager, Forms, Subscriptions, Payments (`optionalRequires`: Media). Profiles stays base because Events and Subscriptions require it.
 
 ## Languages
 
@@ -162,7 +162,8 @@ Online gateways: developer adds adapter + `register-online.ts` import ([decision
 | ACL levels and optional audit | [2026-11-16-acl-levels-and-audit](./decisions/2026-11-16-acl-levels-and-audit.md) |
 | Payload peel | [payload-dependency-map](../../archive/payload-dependency-map.md), [2026-11-15-payload-peel](./decisions/2026-11-15-payload-peel.md) |
 | Pages pack | [pages-pack-plan](./pages-pack-plan.md) |
-| Social standing (in scope; finish before Ads) | [social-module-standing](./social-module-standing.md) |
+| Social standing (enablement closed; Ads MVP in progress) | [social-module-standing](./social-module-standing.md) |
+| Ads pack plan | [ads-pack-plan](./ads-pack-plan.md) |
 | Core finish archive | [core-finish-instructions](../../archive/core-finish-instructions.md) |
 | Layer placement | [platform-module-layers](./platform-module-layers.md) |
 | Commerce contract | [payments-cart-plan](./payments-cart-plan.md), [payments-merchant-plan](./payments-merchant-plan.md), `sf-payments-module.mdc` |

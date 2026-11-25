@@ -9,57 +9,43 @@ alwaysApply: true
 
 ## Continuously document
 
-When a boundary is decided or sharpened (who owns price, fulfillment, shipping, entitlements, chrome):
+When a boundary is decided or sharpened (price, fulfillment, shipping, entitlements, chrome):
 
 1. Update the owner’s **README** (Shipped / Owns / Consumes).
-2. Update or add the matching **`.cursor/rules/sf-*-module.mdc`** when the concern is cross-cutting (Forms, Payments, UI).
-3. Reflect it in **`docs/project-context/docs/`** (platform layers, pack plans) so agents and humans share one map.
+2. Update or add the matching **`.cursor/rules/sf-*-module.mdc`** when cross-cutting (Forms, Payments, UI).
+3. Reflect it in **`docs/project-context/docs/`** (layers, pack plans).
 
-Do not leave ownership only in chat. If it is clear in your head, it must be clear in the repo.
+Do not leave ownership only in chat.
 
-## Revenue spine (why Payments is foundational)
+## Revenue spine
 
-The platform’s commercial base is **modular checkout**, not a shop monolith. Money flows that must work end-to-end:
-
-| Flow | Domain owner (catalog / rules / fulfillment) | Checkout / money movement |
-| --- | --- | --- |
-| **Subscriptions** (plans, highlight, entitlements) | **`product:subscriptions`** | **`product:payments`** |
-| **Events tickets** | **`product:events`** | **`product:payments`** |
-| **Ads** (packages, credits, campaigns) | **`product:ads`** | **`product:payments`** |
-| **Shop** (SKUs, shipping) | **`product:shop`** | **`product:payments`** |
-| **Marketplace** fees / boosts | Owning marketplace / listings pack | **`product:payments`** (same cart/orders) |
-
-Live map: `docs/project-context/docs/architecture-current.md`.
+Modular checkout: domain packs own catalogs/rules/fulfillment; **`product:payments`** moves money. Same cart for subscriptions, event tickets, ads, later shop/marketplace. Live map: `docs/project-context/docs/architecture-current.md`.
 
 ## Ownership test
 
 Ask: *which module would you delete to remove this concept?* That module owns it.
 
-| Example | Owner | Not owner |
-| --- | --- | --- |
-| Cart, order, VAT line, gateway, invoice series | **payments** | Events / Ads / Shop |
-| Checkout coupon codes (amount/%, usage limit, scope) | **payments** | Events / Shop / Subscriptions / a promotions pack |
-| Tier capacity, waitlist, ticket fulfillment | **events** | payments |
-| Plan period, entitlement grant, “highlight” product | **subscriptions** | payments |
-| Ad package, placement, campaign credit balance | **ads** | payments |
-| Shipping rate / zone / delivery quote | **shop** | payments cart |
-| Registration field schema | **forms** | events / payments |
-| Receipt email copy / transport | **email-manager** (+ Core Mailer) | payments SMTP |
+- **payments** — cart, order, VAT, gateway, invoices, checkout coupons
+- **events** — tier capacity, waitlist, ticket fulfillment
+- **subscriptions** — plan period, entitlement, highlight product
+- **ads** — package, placement, campaign credits
+- **shop** — shipping rate/zone/quote (payments only stores the quoted line)
+- **forms** — registration/intake field schema
+- **email-manager** (+ Core Mailer) — receipt copy/transport (not payments SMTP)
 
-Payments stores **`sourceModule` + price snapshot** on lines; consumers **re-resolve** domain prices server-side at checkout and run **fulfillment hooks** on paid / expire / refund.
+Payments stores **`sourceModule` + price snapshot**; consumers **re-resolve** prices at checkout and run **fulfillment hooks** on paid / expire / refund.
 
 ## Do
 
-- Prefer extending the owning pack’s API over adding parallel tables in a consumer.
-- Deep-link admin to the owner (`/admin/payments`, `/admin/forms`, …) instead of duplicating settings.
-- When adding a new pack that touches money, forms, media, or identity — wire to existing owners first; document the consume edge.
+- Extend the owning pack’s API; do not add parallel tables in a consumer.
+- Deep-link admin to the owner (`/admin/payments`, `/admin/forms`, …).
+- New packs that touch money, forms, media, or identity wire to existing owners first; document the consume edge.
 
 ## Don’t
 
-- Put shipping math in the cart engine — shop owns delivery; payments only accepts quoted line amounts from the owner.
-- Put subscription billing rules or ad auction logic inside payments.
+- Shipping math in the cart; subscription/ad business logic inside payments.
 - Rebuild Forms / Media / Email / Profiles inside any commercial pack.
 
 ## Quick check
 
-If two packs claim the same concept, pick one owner and update the table.
+If two packs claim the same concept, pick one owner and update the README + live map.
