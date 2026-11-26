@@ -35,7 +35,7 @@ Core → base → advanced → Hero still holds. Core finish (slices 1–9) and 
 | **In progress** | TacMap (`product:maps`). Venue pins and live rooms are in tree. Stations, BLE beacons, and `apps/asn-capacitor` stay parked. This does not jump ahead of Social polish or Marketplace. |
 | **Next after Social** | Marketplace commerce schema (today a Dashboard stub). Do not start Ads, Chat, or Shop ahead of Marketplace unless the live map moves. |
 | **After Marketplace** | Chat and Shop. Live video is not a pack in this lane; it belongs to Social. |
-| **Parked** | Ads (slice 2 catalog + admin in tree / default-off; resume after Marketplace and other major advanced modules — [ads-pack-plan](./ads-pack-plan.md)), Notifications, ASN Hero theme / currency / `apps/asn-capacitor`, TacMap stations / BLE beacons, durable `product:campaigns`, organizations, support, outbound webhooks. Onboarding + Fleet: plan not written; one later chat, not this queue. |
+| **Parked** | Ads (slice 2 catalog + admin in tree / default-off; resume after Marketplace and other major advanced modules — [ads-pack-plan](./ads-pack-plan.md)), Notifications, ASN Hero theme / currency / `apps/asn-capacitor`, TacMap stations / BLE beacons, durable `product:campaigns`, organizations, support, outbound webhooks. Onboarding + Fleet + Documents (plans and build specs written — [primeone-pack-plans](./primeone-pack-plans.md); coverage [primeone-coverage-plan](./primeone-coverage-plan.md); not this queue; do not scaffold). Ledger and warehouse later ([ledger-pack-plan](./ledger-pack-plan.md), [warehouse-pack-plan](./warehouse-pack-plan.md)). |
 
 The 5 Nov wireframe order does not override this. Event slot kinds decided as choosable Ticket type / Booking type / Faction (+ admin names) wait; code is still `general \| faction` on `sf_event_ticket_tiers.kind`.
 
@@ -62,7 +62,7 @@ The 5 Nov wireframe order does not override this. Event slot kinds decided as ch
 | `dangerouslySetInnerHTML` sites need a sanitization review | Core + packs | Open; custom particle HTML, page-settings inject, Events description, and others | no | e.g. `src/core/modules/particles/custom.tsx` |
 | Event slot kinds chooser (Ticket type / Booking type / Faction + admin names) | Events | Decided; code still `general \| faction` | no | `src/modules/events/schema.ts` |
 | Organizations, outbound webhooks, support | TBD | Parked; not ahead of Marketplace | no | — |
-| Onboarding + Fleet plan | DSP | Note only. Write one plan in a later chat from the current PrimeOne Drivers and Fleet build (`com_primeone_drivers`, `com_primeone_fleet`). Do not scaffold the packs here. Not ahead of Social, Marketplace, Chat, or Shop | no | — |
+| Onboarding + Fleet + Documents plans | DSP | Plans and build specs written; packs not scaffolded. Parked — not ahead of Social polish, Marketplace, Chat, or Shop. Specs are a docs-only override; do not scaffold. Station catalog is Fleet; Onboarding stores the station id. Bookable is a bookable status or vehicle access. Quiz mode belongs in Forms. No Core fact-map port | no | [primeone-coverage-plan](./primeone-coverage-plan.md), [onboarding-build-spec](./onboarding-build-spec.md), [fleet-build-spec](./fleet-build-spec.md), [documents-build-spec](./documents-build-spec.md), [primeone-pack-plans](./primeone-pack-plans.md) |
 | Durable subscriber-list `product:campaigns` | Email Manager later | Parked. Light paste campaigns live in Email Manager today | no | `sf-email-module.mdc` |
 | Checkout coupons | Payments | Shipped under Payments (not a promotions pack) | no | `/admin/payments/coupons` |
 | `modules:sync` omits unchosen in-repo engines | Installer | Target only; sync adds/removes `@starforge/module-*` (notice-bar, consent). Other packs stay in this repo | no | [module-install-packages](./module-install-packages.md) |
@@ -190,6 +190,7 @@ Online gateways: developer adds adapter + `register-online.ts` import ([decision
 | Pages pack | [pages-pack-plan](./pages-pack-plan.md) |
 | Social standing (Active polish; Marketplace next) | [social-module-standing](./social-module-standing.md) |
 | Ads pack plan | [ads-pack-plan](./ads-pack-plan.md) |
+| PrimeOne packs (parked; not this queue) | [primeone-coverage-plan](./primeone-coverage-plan.md), [primeone-pack-plans](./primeone-pack-plans.md) — specs [onboarding](./onboarding-build-spec.md), [fleet](./fleet-build-spec.md), [documents](./documents-build-spec.md); plans [onboarding](./onboarding-pack-plan.md), [fleet](./fleet-pack-plan.md), [documents](./documents-pack-plan.md); later [ledger](./ledger-pack-plan.md), [warehouse](./warehouse-pack-plan.md) |
 | Base vs advanced class test | [2026-11-26-base-vs-advanced](./decisions/2026-11-26-base-vs-advanced.md) |
 | Chat, Shop, and live video | [2026-11-26-chat-shop-stream](./decisions/2026-11-26-chat-shop-stream.md) |
 | Core finish archive | [core-finish-instructions](../../archive/core-finish-instructions.md) |

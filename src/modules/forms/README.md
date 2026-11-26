@@ -37,6 +37,8 @@ None. Consumer packs seed their definitions from their own boot (Events / Profil
 ## Known gaps
 
 - List does not seed Events / Profiles / Subscriptions definitions — owners call `ensureFormDefinitionSeed`
+- Quiz mode is not built. A later Forms slice adds correct answers and a pass mark on a definition. Onboarding will store the attempt and the qualification. Onboarding does not grow a question builder.
+- Edit of the current submission is not the product path yet. Onboarding status forms need one editable submission per person per definition (RSForm-style edit). History of older saves stays. Onboarding does not ship that editor.
 - Captcha / upload security covered by verify scripts outside `test:unit`
 
 ## Tests

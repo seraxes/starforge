@@ -1,0 +1,184 @@
+PrimeOne on Starforge — module plan for review
+Status: proposed. Not accepted. Do not scaffold code from this note.
+Date: 2026-11-26.
+
+You are reviewing a module split. Starforge is an existing platform (Next.js, Postgres, Core auth and users, plus packs). PrimeOne is a live courier operation being rebuilt onto it. The live site today is Joomla: a Drivers product and a Fleet product.
+
+Do not put this work on Starforge's active queue. That queue is Social polish, then Marketplace. These packs stay parked until that moves.
+
+
+WHAT STARFORGE ALREADY OWNS — DO NOT REBUILD
+
+Accounts, groups, and grants: Core users.
+Files and photos: product:media. Packs store a media id.
+Forms and field schemas: product:forms. Packs seed a definition and store workflow.
+Mail: product:email-manager. Call emitEmailTrigger. No private SMTP.
+Name, avatar, generic contact: product:profiles.
+Map tiles: Core MapProvider. Not TacMap.
+Live push: Core RealtimePort.
+Checkout, VAT, invoices: product:payments.
+Public ticketed events: product:events. A shift is not a ticket. A ride-along is not a public event.
+Tactical rooms and same-team GPS: product:maps (TacMap). Courier cars do not go there.
+Hero: brand and chrome only. The PrimeOne hero owns no shifts, phases, or tests.
+
+
+DECISIONS ALREADY MADE
+
+1. Training is part of Onboarding. It is not its own pack.
+2. The person is the Core user. Name and email always come from that user. Onboarding and Fleet do not keep a second copy of the account.
+3. Fleet does not read Onboarding tables. A fact map tells Fleet which Onboarding fields it may use.
+4. Routes are Fleet records drawn on the map. Not a separate pack. Not TacMap.
+5. Attendance is the clock-in on a Fleet shift. Not a separate pack.
+6. Documents is a shared pack. Subjects are the user, the onboarding record, and the fleet vehicle. Media keeps the bytes.
+7. Ledger and warehouse stay later packs. They are not in the first build.
+8. Home, Coming up, and Analytics are pages. They store nothing.
+
+
+FACT MAP (CORE)
+
+Onboarding registers a fact provider at boot. Fleet settings name each fact, its source, and what to do if that source is missing. Fleet optionalRequires Onboarding so the call is legal. Fleet does not hard-require Onboarding and does not turn it on.
+
+Fact Fleet shows          PrimeOne source                         If Onboarding is off
+Name, email               Core user                               Still the user
+Phone                     Onboarding, else Profiles phone         Profiles phone
+Driver code               Onboarding driverCode                   Blank
+Station chip              Onboarding station                      Blank
+Bookable                  Onboarding phase is active              Deny. Do not invent a driver
+Home-run allow, free km   Onboarding                              Home-run hidden
+Trainer, Clearquote       Onboarding, writable from Fleet         Switches hidden
+
+Writable facts save back through the same provider. Fleet still does not know phases or form rows.
+
+A site with no recruiting can point Bookable at "any user with vehicle access". PrimeOne points Bookable at the Onboarding phase.
+
+
+PACK: product:onboarding
+
+Owns the person from the invite until they are an active driver, including training.
+
+Requires Forms, Media, Email Manager, Profiles. Runs with Fleet switched off.
+
+Screens:
+- Workers list (phase, station, documents, notes, follow-up, calls, procedure cards).
+- Person card (account link, phone, driver code, station, documents, history).
+- Procedure cards: ride-along, trial day, exam day. Dates, depot, trainer, outcome.
+- Valid-until on licence, health booklet, and contract. Missing and expired are different.
+- Invite: create the user, send set-password and application mail.
+- Training types, sittings, online test, practical checklist, trainer calendar.
+- Qualification earned by a pass, with a date. A pass does not move the phase.
+
+Records live on the user id: phase, driver code, phone, station, home-run allow and free km, trainer flag, Clearquote, notes, follow-up, calls, mail log, procedure events, document slots, training types, attempts, checklist, trainer slots.
+
+Form answers stay in Forms. Current answers are the latest submission per person per form. Older submissions stay as history. A kept file is not an empty upload. Files are Media ids.
+
+Rules that must survive:
+- Bookable means phase active only, even for staff who may book for someone else.
+- Visszautasítva means the applicant declined. Kitiltva means the company refused.
+- A saved test or checklist does not change the phase. Staff move the phase here.
+
+Door other packs may call: the fact provider above, plus latest training result for the person card.
+
+Grants: onboarding staff. Trainer and training manager, separate from Fleet managers.
+
+Slices: (1) identity facts only, (2) procedure, notes, follow-up, invite, three event cards, (3) training checklist and PDF, trainer calendar, then online tests, (4) valid-until on licence, health, and contract.
+
+Does not own: cars, shifts, stop lists, clock-in, stock, money lines, map rooms.
+
+
+PACK: product:fleet
+
+Owns stations, vehicles, access, and the shift. One day, one fleet vehicle, one driver, one shift.
+
+Requires Media. Uses the fact map. optionalRequires Onboarding. Does not require Forms. Map pins use Core MapProvider. Live car positions, when they exist, use Core RealtimePort. Not TacMap. Not Events.
+
+Also owns, inside this pack:
+- Routes: ordered stops on a shift, drawn with MapProvider. The 3 / 4 / Express count stays on the shift. No route without a shift.
+- Attendance: actual start, end, and breaks on that shift. No clock-in that is not a fleet shift.
+- Until Documents exists: vehicle files are Media ids on the car. Until Ledger exists: the home-run figure stays on the claim and is not a payout. Until Warehouse exists: clothing requests stay here.
+
+Door: book, approve, cancel, read a shift, list cars for a person, list stations. Create and approve ask the fact map. If Bookable is deny, they refuse. A driver who leaves active keeps an occupying booking.
+
+Shift rules:
+- Priority books as sent and locks the day. Secondary books as pending_approval and does not lock the day.
+- One pending request per vehicle per day.
+- Statuses: pending_approval, sent, accepted, accepted_changed, accepted_no_tour, rejected, cancelled, completed.
+- accepted* is dispatcher confirmation, not who may book the car.
+- Start grid 04:00–09:00, step 15 minutes. Driver create: 4-tour only through 06:00 inclusive. Express is its own type.
+- Priority horizon 60 days. Secondary horizon 30 days. Cancel lock 14 days. Lead time 12 hours.
+- Staff who may book for anyone skip the lead time on create. They still cannot book a person the fact map calls not bookable.
+- Leave blocks a new occupying booking. It does not cancel one already there.
+- A rented day cannot be booked.
+- Home run: one claim per fleet booking, priority access plus the home-run fact, two legs.
+
+Screens: Stations. Schedule (dispatcher grid and driver calendar). My tours. Workdays (leave and holidays). All vehicles. Inspections (dated checklist, separate from a fault). Faults and damage. Loans (company rental, and taking the car home). Service list (submitted, in progress, done). Live map (depot pins, then last-known position). Active drivers, editing only the writable facts. Routes on the shift. Clock-in on the shift.
+
+Slices: shifts against the fact map, then leave, rental, home run, holidays, clothing, damage, and faults, then inspections, then routes on the map, then clock-in, then the live map. A work order with an assignee, and "keys signed out to this person until Thursday", wait until someone works that way.
+
+Does not own: phases, form answers, training scores, a PDF template library, warehouse quantities, a money ledger, TacMap rooms.
+
+
+PACK: product:documents (SHARED, WHEN PERSON FILES AND CAR FILES NEED THE SAME RENDERER)
+
+Media keeps the file. Documents keeps the template and the link to a subject.
+
+Subject            Examples
+Core user          A file that belongs to the person
+Onboarding         Application pack, training PDF, licence, health booklet
+Fleet vehicle      Forgalmi, insurance, inspection sheet
+
+Onboarding and Fleet call this door. Neither grows its own PDF library. Invoices stay in Payments.
+
+Until this pack exists, Onboarding renders the training PDF itself and Fleet stores vehicle files as Media ids.
+
+
+PAGES, NOT PACKS
+
+Home: counts and links for the packs that are on.
+Coming up: procedure events inside 48 hours, tomorrow's shifts, open faults, upcoming sittings.
+Analytics: the same rows over a range. No second store.
+Documents list: links to files the packs already produce, until product:documents exists.
+
+
+LATER PACKS, NOT IN THE FIRST BUILD
+
+product:ledger — internal money lines (amount, in or out, date, source pack, receipt in Media). Fleet may post the home-run figure. Checkout, VAT, and invoices stay in Payments. Posting a line does not pay anyone.
+product:warehouse — SKUs, quantity on hand, assignment to a Core user, stocktakes. A clothing request may draw stock once this is on. Phones and fuel cards may stay fields on the car.
+
+These two do not require Onboarding or Fleet. Fleet may call them later.
+
+
+BUILD ORDER
+
+1. Fact map, then Onboarding identity facts.
+2. Fleet shifts. Match an exported week of real bookings before importing any.
+3. Fleet records already in use: leave, rental, home run, holidays, clothing, damage, faults.
+4. Onboarding procedure and files. Import submissions only after "latest submission, older rows kept" matches the live site.
+5. Training inside Onboarding: checklist and PDF, trainer calendar, then online tests.
+6. Valid-until dates, then vehicle inspections.
+7. Home and Coming up.
+8. Routes on the shift, then clock-in, then the live map.
+9. Documents when both a person file and a car file need the same renderer.
+10. Ledger or warehouse only when a second caller needs those rows.
+
+Each slice imports its own rows when a reconciliation matches. The current Joomla site stays the system of record for anything not yet cut over. Users set a new password on first login.
+
+
+GRANTS
+
+Onboarding staff, trainer, training manager: Onboarding.
+Approve, dispatch, book for another driver, fleet operations: Fleet.
+One grant for Documents, and later one each for ledger and warehouse.
+
+Opening a page is the grant. Writing checks the action. Pack code does not test legacy numeric group ids.
+
+
+NOT IN THIS PLAN
+
+A general CRM. A report-builder that copies other packs' rows. Payments inside Fleet. A second form builder, file library, or mailer. Cars in TacMap. Events used for shifts or ride-alongs. A separate training pack, routes pack, or attendance pack. Migrating old OS Services Booking rows. Hardcoding legacy group ids. Starting any of this ahead of Starforge's Social, then Marketplace, lane.
+
+
+PLEASE REVIEW
+
+1. Does the fact map keep Fleet free of Onboarding tables without hiding a hard dependency?
+2. Is anything still owned by the wrong pack?
+3. Which rule, if implemented wrong, loses a shift, a document, or an applicant?
