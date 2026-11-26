@@ -49,3 +49,9 @@ next-env.d.ts
 # Machine-local Compose overrides (for example a host port when Windows excludes 5432)
 docker-compose.override.yml
 
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+

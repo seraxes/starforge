@@ -51,6 +51,7 @@ Longer first-time steps (Windows volume reset, env notes): [docs/dev/local-setup
 | `npm run build` / `npm run start` | Production build and serve |
 | `npm run lint` | ESLint |
 | `npm run test:unit` | Registered unit tests |
+| `npm run test:e2e` | Playwright page smoke (app running; seed for auth) |
 | `npm run check:atomic` | Module boundary verify |
 | `npm run check:docs` | Docs frontmatter / links / rules hygiene |
 | `npm run modules:generate` | Regenerate module registry (`predev` / `prebuild`) |

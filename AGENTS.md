@@ -18,6 +18,8 @@ Start here. This file only points to the sources of truth.
 - `npm run dev` — local app
 - `npm run lint` — lint
 - `npm run test:unit` — unit tests
+- `npm run test:e2e` — Playwright page smoke (app must be running; seed for auth routes)
+- `npm run test:e2e:ui` — Playwright UI mode for triage
 - `npm run check:atomic` — pack boundary check
 - `npm run check:docs` — docs link / hygiene check
 - `npm run db:migrate` — apply migrations

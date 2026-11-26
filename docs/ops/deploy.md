@@ -1,6 +1,6 @@
 ---
 kind: reference
-last_verified: 2026-11-22
+last_verified: 2026-11-27
 ---
 # Deploy
 
@@ -27,7 +27,7 @@ Related scripts that exist but are not the primary deploy path: `db:core:migrate
 - Success `200`: `{ "ok": true, "service": "starforge-core", "database": "up", "timestamp": "…" }`
 - Failure `503`: `{ "ok": false, "service": "starforge-core", "database": "down", "error": "…", "timestamp": "…" }`
 
-CI smoke starts the server with `npm run start`, then curls `http://127.0.0.1:3000/api/health` and requires `"ok":true`.
+CI smoke starts the server with `npm run start`, then curls `http://127.0.0.1:3000/api/health` and requires `"ok":true`. After curl checks pass, the same job runs Playwright page smoke (`npm run test:e2e`) against Chromium (home, login, admin gate, authenticated Dashboard, social feed) and fails on page/console errors. Locally: start the app (seeded for auth routes), then `npm run test:e2e` or `npm run test:e2e:ui`.
 
 ## Host / process manager
 

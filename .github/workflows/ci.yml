@@ -177,7 +177,25 @@ jobs:
           headers=$(curl -sI http://127.0.0.1:3000/)
           echo "$headers" | grep -qi 'content-security-policy'
           echo "$headers" | grep -qi 'x-frame-options'
-          kill "$(cat /tmp/starforge-next.pid)" || true
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Playwright page smoke
+        run: npm run test:e2e
+        env:
+          CI: 'true'
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+      - name: Stop server
+        if: always()
+        run: kill "$(cat /tmp/starforge-next.pid)" || true
       - run: npm run verify:all
 
   flavor:
