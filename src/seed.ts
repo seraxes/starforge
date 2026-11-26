@@ -411,7 +411,7 @@ async function main() {
     const layoutSeed = await ensureDefaultLayoutSeeded()
     if (layoutSeed.created) {
       console.log(
-        'Layout document: seeded v3 default (notice-bar, site-header, page-content, custom) into sf_layouts',
+        'Layout document: seeded v3 default (notice-bar, site-header, page-content, cookie-settings) into sf_layouts',
       )
     } else if (layoutSeed.upgraded) {
       console.log('Layout document: upgraded existing sf_layouts row to v3 (sections → rows → slots)')

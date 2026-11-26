@@ -55,7 +55,7 @@ export function gridColStyle(width: LayoutGridWidth): {
       boxSizing: 'border-box',
     }
   }
-  const basis = `calc(${pct}% - var(--sf-mosaic-gap, 0.95rem))`
+  const basis = `calc(${pct}% - (var(--sf-mosaic-gap, 0.95rem) * ${100 - pct} / 100))`
   return {
     flex: `0 0 ${basis}`,
     maxWidth: basis,

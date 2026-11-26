@@ -28,6 +28,7 @@ import {
   removeEmptyLayoutRow,
 } from './empty-rows'
 import { clampGridWidth, evenColumnWidths, LAYOUT_WIDTH_FULL, resizeAdjacentPair } from './grid'
+import { applyRowContainerPatch, syncRowContainers, type RowContainerPatch } from './row-container'
 import { copySectionFromParent, copySlotFromParent } from './inherit-merge'
 import { resolveLayoutInheritance } from './inherit'
 import { loadLayoutDocument, saveLayoutDocument } from './layout-store'
@@ -39,16 +40,19 @@ import {
   normalizeLayoutBodyBackground,
   normalizeLayoutBreakpoints,
   normalizeLayoutSectionStyles,
+  normalizeLayoutTypography,
   sanitizeBackgroundImageUrl,
   sanitizeBackgroundMediaId,
   sanitizeCssBoxShorthand,
   sanitizeCssColor,
   sanitizeCssColorOrGradient,
+  type LayoutBodyBackground,
   type LayoutBodyBackgroundFit,
   type LayoutBreakpoints,
   type LayoutContainerMode,
   type LayoutDocumentStyles,
   type LayoutSectionStyles,
+  type LayoutTypography,
 } from './styles'
 import { resolveMediaById } from '@/core/media/resolve'
 import type {
@@ -60,21 +64,57 @@ import type {
   LayoutSlotConfig,
 } from './types'
 
+function assignSyncedRowContainers(doc: LayoutDocument) {
+  const next = syncRowContainers(doc.sections, doc.rowContainers, { createMissing: true })
+  if (next && next.length > 0) doc.rowContainers = next
+  else delete doc.rowContainers
+}
+
 function asInheritModeForm(raw: unknown): LayoutInheritMode | null {
   const value = String(raw ?? '').trim().toLowerCase()
   if (value === 'inherit' || value === 'local') return value
   return null
 }
 
+/**
+ * Explicit `inheritFrom`, or the active skin Base when this outline is not Base.
+ * Pastel Social and other children often show Base as parent without a stored link.
+ */
+async function parentOutlineId(doc: LayoutDocument, layoutId: string): Promise<string> {
+  const { getActiveSkin } = await import('@/core/skin/resolve-active')
+  const { outlineParentId } = await import('@/core/skin/outline-meta')
+  const skin = await getActiveSkin()
+  return outlineParentId(layoutId, doc.inheritFrom, skin.preferredDefaultOutlineId)
+}
+
 async function loadParentResolved(
   doc: LayoutDocument,
   layoutId: string,
 ): Promise<LayoutDocument | null> {
-  const inheritFrom =
-    typeof doc.inheritFrom === 'string' ? doc.inheritFrom.trim() : ''
-  if (!inheritFrom || inheritFrom === layoutId) return null
-  const { document: parentRaw, layoutId: parentId } = await loadLayoutDocument(inheritFrom)
-  return resolveLayoutInheritance(parentId, parentRaw)
+  const inheritFrom = await parentOutlineId(doc, layoutId)
+  if (!inheritFrom) return null
+  return loadResolvedOutline(inheritFrom)
+}
+
+function formSourceOutlineId(formData: FormData): string {
+  return String(formData.get('sourceOutlineId') ?? '').trim()
+}
+
+async function loadResolvedOutline(outlineId: string): Promise<LayoutDocument | null> {
+  const id = outlineId.trim()
+  if (!id) return null
+  const loaded = await loadLayoutDocument(id)
+  if (loaded.layoutId !== id && id !== DEFAULT_LAYOUT_ID) return null
+  return resolveLayoutInheritance(loaded.layoutId, loaded.document)
+}
+
+function storeOutlineSource(
+  target: { inheritFromOutlineId?: string },
+  sourceId: string,
+  defaultParentId: string,
+) {
+  if (sourceId && sourceId !== defaultParentId) target.inheritFromOutlineId = sourceId
+  else delete target.inheritFromOutlineId
 }
 
 function findSlotInSection(
@@ -216,6 +256,7 @@ export async function addLayoutSectionAction(
       ],
     }
     doc.sections.push(section)
+    assignSyncedRowContainers(doc)
     return doc
   })
 
@@ -268,6 +309,7 @@ export async function removeLayoutSectionAction(
         s.order = index
         return s
       })
+    assignSyncedRowContainers(doc)
     return doc
   })
 
@@ -657,6 +699,7 @@ export async function updateLayoutSectionMetaAction(
       if (nextStyles) section.styles = nextStyles
       else delete section.styles
     }
+    if (hasWidth) assignSyncedRowContainers(doc)
     return doc
   })
 
@@ -712,44 +755,59 @@ export async function setSectionInheritModeAction(
   formData: FormData,
 ): Promise<LayoutActionState> {
   const sectionId = String(formData.get('sectionId') ?? '').trim()
+  const sourceOnly = String(formData.get('sourceOnly') ?? '') === '1'
   const mode = asInheritModeForm(formData.get('inheritMode'))
   if (!sectionId) return { error: 'Missing section id.' }
-  if (!mode) return { error: 'Inherit mode must be inherit or local.' }
+  if (!sourceOnly && !mode) return { error: 'Inherit mode must be inherit or local.' }
 
   const layoutId = layoutIdFromForm(formData)
   const { document } = await loadLayoutDocument(layoutId)
-  if (!document.inheritFrom) {
+  const parentId = await parentOutlineId(document, layoutId)
+  const requestedSource = formSourceOutlineId(formData)
+  const sourceId = requestedSource || parentId
+  if (!sourceId) {
     return { error: 'This outline has no parent to inherit from.' }
   }
-  const parent = await loadParentResolved(document, layoutId)
-  const parentSection = parent?.sections.find((s) => s.id === sectionId)
+  const source = await loadResolvedOutline(sourceId)
+  if (!source) return { error: `Layout “${sourceId}” was not found.` }
+  const parentSection = source.sections.find((s) => s.id === sectionId)
+  if (!parentSection) {
+    return { error: `That layout has no section “${sectionId}”.` }
+  }
 
   const state = await mutateLayout(formData, (doc) => {
+    if ((sourceOnly || mode === 'inherit') && !String(doc.inheritFrom ?? '').trim() && parentId) {
+      doc.inheritFrom = parentId
+    }
     const omit = new Set(doc.omitSectionIds ?? [])
     omit.delete(sectionId)
     if (omit.size > 0) doc.omitSectionIds = [...omit]
     else delete doc.omitSectionIds
 
     const existing = findSection(doc, sectionId)
+    if (sourceOnly) {
+      if (!existing) return { error: `Section “${sectionId}” was not found.` }
+      storeOutlineSource(existing, sourceId, parentId)
+      if (existing.inheritMode === 'inherit') {
+        existing.rows = []
+        existing.stylesInheritMode = 'inherit'
+      }
+      return doc
+    }
     if (mode === 'inherit') {
+      // Thin stub only. Settings and particles stay on the chosen layout and merge at read.
       const stub: LayoutSection = {
         id: sectionId,
-        label: existing?.label || parentSection?.label || sectionId,
+        label: existing?.label?.trim() || parentSection?.label || sectionId,
         inheritMode: 'inherit',
-        stylesInheritMode: existing?.stylesInheritMode ?? 'inherit',
+        stylesInheritMode: 'inherit',
         order: existing?.order ?? parentSection?.order ?? doc.sections.length,
         rows: [],
-        ...(existing?.htmlId ? { htmlId: existing.htmlId } : {}),
-        ...(existing?.cssClass ? { cssClass: existing.cssClass } : {}),
-        ...(existing?.containerMode ? { containerMode: existing.containerMode } : {}),
-        ...(existing?.width != null ? { width: existing.width } : {}),
-        ...(existing?.stylesInheritMode === 'local' && existing.styles
-          ? { styles: existing.styles }
-          : {}),
       }
+      storeOutlineSource(stub, sourceId, parentId)
       if (existing) {
-        Object.assign(existing, stub)
-        existing.rows = []
+        const idx = doc.sections.findIndex((s) => s.id === sectionId)
+        if (idx >= 0) doc.sections[idx] = stub
       } else {
         doc.sections.push(stub)
       }
@@ -759,6 +817,7 @@ export async function setSectionInheritModeAction(
     // local
     if (existing && existing.inheritMode !== 'inherit' && (existing.rows?.length ?? 0) > 0) {
       existing.inheritMode = 'local'
+      storeOutlineSource(existing, sourceId, parentId)
       return doc
     }
     if (!parentSection) {
@@ -766,7 +825,9 @@ export async function setSectionInheritModeAction(
     }
     const copied = copySectionFromParent(parentSection)
     copied.order = existing?.order ?? parentSection.order ?? doc.sections.length
-    if (existing?.label) copied.label = existing.label
+    const renamed = existing?.label?.trim()
+    if (renamed && renamed !== sectionId) copied.label = renamed
+    storeOutlineSource(copied, sourceId, parentId)
     if (existing) {
       const idx = doc.sections.findIndex((s) => s.id === sectionId)
       if (idx >= 0) doc.sections[idx] = copied
@@ -777,10 +838,11 @@ export async function setSectionInheritModeAction(
   })
 
   if (state.ok) {
-    state.message =
-      mode === 'inherit'
-        ? `Section “${sectionId}” inherits from parent.`
-        : `Section “${sectionId}” is local.`
+    state.message = sourceOnly
+      ? `Section “${sectionId}” will inherit from “${sourceId}”.`
+      : mode === 'inherit'
+        ? `Section “${sectionId}” inherits settings and particles from “${sourceId}”.`
+        : `Section “${sectionId}” is a local copy of “${sourceId}”.`
   }
   return state
 }
@@ -797,13 +859,14 @@ export async function copySectionFromParentAction(
 
   const layoutId = layoutIdFromForm(formData)
   const { document } = await loadLayoutDocument(layoutId)
-  if (!document.inheritFrom) {
-    return { error: 'This outline has no parent to copy from.' }
-  }
-  const parent = await loadParentResolved(document, layoutId)
-  const parentSection = parent?.sections.find((s) => s.id === sectionId)
+  const parentId = await parentOutlineId(document, layoutId)
+  const sourceId = formSourceOutlineId(formData) || parentId
+  if (!sourceId) return { error: 'This outline has no parent to copy from.' }
+  const source = await loadResolvedOutline(sourceId)
+  if (!source) return { error: `Layout “${sourceId}” was not found.` }
+  const parentSection = source.sections.find((s) => s.id === sectionId)
   if (!parentSection) {
-    return { error: `Parent outline has no section “${sectionId}”.` }
+    return { error: `That layout has no section “${sectionId}”.` }
   }
 
   const state = await mutateLayout(formData, (doc) => {
@@ -814,7 +877,9 @@ export async function copySectionFromParentAction(
     const existing = findSection(doc, sectionId)
     const copied = copySectionFromParent(parentSection)
     copied.order = existing?.order ?? parentSection.order ?? doc.sections.length
-    if (existing?.label) copied.label = existing.label
+    const renamed = existing?.label?.trim()
+    if (renamed && renamed !== sectionId) copied.label = renamed
+    storeOutlineSource(copied, sourceId, parentId)
     if (existing) {
       const idx = doc.sections.findIndex((s) => s.id === sectionId)
       if (idx >= 0) doc.sections[idx] = copied
@@ -824,7 +889,7 @@ export async function copySectionFromParentAction(
     return doc
   })
 
-  if (state.ok) state.message = `Section “${sectionId}” copied from parent (local).`
+  if (state.ok) state.message = `Section “${sectionId}” copied from parent (settings and particles).`
   return state
 }
 
@@ -842,11 +907,9 @@ export async function setSectionStylesInheritModeAction(
 
   const layoutId = layoutIdFromForm(formData)
   const { document } = await loadLayoutDocument(layoutId)
-  if (!document.inheritFrom) {
-    return { error: 'This outline has no parent to inherit styles from.' }
-  }
   const parent = await loadParentResolved(document, layoutId)
-  const parentSection = parent?.sections.find((s) => s.id === sectionId)
+  if (!parent) return { error: 'This outline has no parent to inherit styles from.' }
+  const parentSection = parent.sections.find((s) => s.id === sectionId)
 
   const state = await mutateLayout(formData, (doc) => {
     let section = findSection(doc, sectionId)
@@ -895,11 +958,9 @@ export async function copySectionStylesFromParentAction(
 
   const layoutId = layoutIdFromForm(formData)
   const { document } = await loadLayoutDocument(layoutId)
-  if (!document.inheritFrom) {
-    return { error: 'This outline has no parent (Base) to copy styles from.' }
-  }
   const parent = await loadParentResolved(document, layoutId)
-  const parentSection = parent?.sections.find((s) => s.id === sectionId)
+  if (!parent) return { error: 'This outline has no parent (Base) to copy styles from.' }
+  const parentSection = parent.sections.find((s) => s.id === sectionId)
   if (!parentSection) {
     return { error: `Parent outline has no section “${sectionId}”.` }
   }
@@ -940,18 +1001,25 @@ export async function setSlotInheritModeAction(
   const sectionId = String(formData.get('sectionId') ?? '').trim()
   const rowId = String(formData.get('rowId') ?? '').trim()
   const slotId = String(formData.get('slotId') ?? '').trim()
+  const sourceOnly = String(formData.get('sourceOnly') ?? '') === '1'
   const mode = asInheritModeForm(formData.get('inheritMode'))
   if (!sectionId || !rowId || !slotId) return { error: 'Missing slot path.' }
-  if (!mode) return { error: 'Inherit mode must be inherit or local.' }
+  if (!sourceOnly && !mode) return { error: 'Inherit mode must be inherit or local.' }
 
   const layoutId = layoutIdFromForm(formData)
   const { document } = await loadLayoutDocument(layoutId)
-  if (!document.inheritFrom) {
-    return { error: 'This outline has no parent to inherit particles from.' }
+  const parentId = await parentOutlineId(document, layoutId)
+  const sourceId = formSourceOutlineId(formData) || parentId
+  if (!sourceId) return { error: 'This outline has no parent to inherit particles from.' }
+  const source = await loadResolvedOutline(sourceId)
+  if (!source) return { error: `Layout “${sourceId}” was not found.` }
+  const parentSlot = findSlotInSection(
+    source.sections.find((section) => section.id === sectionId),
+    slotId,
+  )
+  if (!parentSlot) {
+    return { error: `That layout has no particle “${slotId}” in section “${sectionId}”.` }
   }
-  const parent = await loadParentResolved(document, layoutId)
-  const parentSection = parent?.sections.find((s) => s.id === sectionId)
-  const parentSlot = findSlotInSection(parentSection, slotId)
 
   const state = await mutateLayout(formData, (doc) => {
     const section = findSection(doc, sectionId)
@@ -963,30 +1031,36 @@ export async function setSlotInheritModeAction(
     if (!found) return { error: `Slot “${slotId}” not found.` }
     const { slot } = found
 
-    if (mode === 'inherit') {
-      if (!parentSlot) {
-        return { error: `Parent has no particle “${slotId}” in section “${sectionId}”.` }
-      }
-      slot.inheritMode = 'inherit'
-      delete slot.inheritFromSlotId
+    if (sourceOnly) {
+      storeOutlineSource(slot, sourceId, parentId)
       return doc
     }
 
-    // local — if currently inheriting, snapshot parent first
-    if (slot.inheritMode === 'inherit' && parentSlot) {
+    if (mode === 'inherit') {
+      slot.inheritMode = 'inherit'
+      delete slot.inheritFromSlotId
+      storeOutlineSource(slot, sourceId, parentId)
+      return doc
+    }
+
+    // local — if currently inheriting, snapshot the source first
+    if (slot.inheritMode === 'inherit') {
       const copied = copySlotFromParent(parentSlot, slotId)
       Object.assign(slot, copied)
+      storeOutlineSource(slot, sourceId, parentId)
       return doc
     }
     slot.inheritMode = 'local'
     delete slot.inheritFromSlotId
+    storeOutlineSource(slot, sourceId, parentId)
     return doc
   })
 
   if (state.ok) {
-    state.message =
-      mode === 'inherit'
-        ? `Particle inherits from parent.`
+    state.message = sourceOnly
+      ? `Particle will inherit from “${sourceId}”.`
+      : mode === 'inherit'
+        ? `Particle inherits from “${sourceId}”.`
         : `Particle is local.`
   }
   return state
@@ -1006,16 +1080,17 @@ export async function copySlotFromParentAction(
 
   const layoutId = layoutIdFromForm(formData)
   const { document } = await loadLayoutDocument(layoutId)
-  if (!document.inheritFrom) {
-    return { error: 'This outline has no parent to copy from.' }
-  }
-  const parent = await loadParentResolved(document, layoutId)
+  const parentId = await parentOutlineId(document, layoutId)
+  const sourceId = formSourceOutlineId(formData) || parentId
+  if (!sourceId) return { error: 'This outline has no parent to copy from.' }
+  const source = await loadResolvedOutline(sourceId)
+  if (!source) return { error: `Layout “${sourceId}” was not found.` }
   const parentSlot = findSlotInSection(
-    parent?.sections.find((s) => s.id === sectionId),
+    source.sections.find((section) => section.id === sectionId),
     slotId,
   )
   if (!parentSlot) {
-    return { error: `Parent has no particle “${slotId}” in section “${sectionId}”.` }
+    return { error: `That layout has no particle “${slotId}” in section “${sectionId}”.` }
   }
 
   const state = await mutateLayout(formData, (doc) => {
@@ -1028,10 +1103,11 @@ export async function copySlotFromParentAction(
     if (!found) return { error: `Slot “${slotId}” not found.` }
     const copied = copySlotFromParent(parentSlot, slotId)
     Object.assign(found.slot, copied)
+    storeOutlineSource(found.slot, sourceId, parentId)
     return doc
   })
 
-  if (state.ok) state.message = `Particle copied from parent (local).`
+  if (state.ok) state.message = `Particle copied from “${sourceId}” (local).`
   return state
 }
 
@@ -1077,15 +1153,31 @@ function bodyFitFromForm(raw: unknown): LayoutBodyBackgroundFit {
   return 'cover-fixed'
 }
 
-function assignOutlineStyles(doc: LayoutDocument, next: LayoutDocumentStyles): void {
-  if (!next.breakpoints && !next.body) {
+/**
+ * Merge one outline style block. A key set to `null` drops that block.
+ * Omitted keys stay (saving page background must not wipe type, and the reverse).
+ */
+function patchOutlineStyles(
+  doc: LayoutDocument,
+  patch: {
+    body?: LayoutBodyBackground | null
+    typography?: LayoutTypography | null
+  },
+): void {
+  const prev = doc.styles
+  const breakpoints = prev?.breakpoints
+  const body = 'body' in patch ? (patch.body ?? undefined) : prev?.body
+  const typography = 'typography' in patch ? (patch.typography ?? undefined) : prev?.typography
+  if (!breakpoints && !body && !typography) {
     delete doc.styles
     return
   }
-  doc.styles = {
-    ...(next.breakpoints ? { breakpoints: next.breakpoints } : {}),
-    ...(next.body ? { body: next.body } : {}),
+  const next: LayoutDocumentStyles = {
+    ...(breakpoints ? { breakpoints } : {}),
+    ...(body ? { body } : {}),
+    ...(typography ? { typography } : {}),
   }
+  doc.styles = next
 }
 
 /**
@@ -1102,33 +1194,36 @@ export async function updateLayoutBodyBackgroundAction(
 
   const mode = String(formData.get('mode') ?? 'set').trim()
   const state = await mutateLayout(formData, (doc) => {
-    const breakpoints = doc.styles?.breakpoints
     if (mode === 'inherit') {
-      assignOutlineStyles(doc, { breakpoints })
+      patchOutlineStyles(doc, { body: null })
       return doc
     }
     if (mode === 'clear') {
-      assignOutlineStyles(doc, {
-        breakpoints,
-        ...(formData.get('blockInherit') === '1' ? { body: { disabled: true } } : {}),
+      patchOutlineStyles(doc, {
+        body: formData.get('blockInherit') === '1' ? { disabled: true } : null,
       })
       return doc
     }
 
     const body = normalizeLayoutBodyBackground({
       backgroundColor: String(formData.get('backgroundColor') ?? ''),
+      allowGradientBackground: formData.get('allowGradientBackground') === '1',
       backgroundMediaId: String(formData.get('backgroundMediaId') ?? ''),
       backgroundImage: String(formData.get('backgroundImage') ?? ''),
       ...layoutBodyBackgroundFromFit(bodyFitFromForm(formData.get('fit'))),
+      backgroundOverlay: String(formData.get('backgroundOverlay') ?? '').trim() === 'enabled'
+        ? 'enabled'
+        : 'disabled',
+      overlayColor: String(formData.get('overlayColor') ?? ''),
+      allowGradientOverlay: formData.get('allowGradientOverlay') === '1',
     })
     if (!body) {
-      assignOutlineStyles(doc, {
-        breakpoints,
-        ...(formData.get('blockInherit') === '1' ? { body: { disabled: true } } : {}),
+      patchOutlineStyles(doc, {
+        body: formData.get('blockInherit') === '1' ? { disabled: true } : null,
       })
       return doc
     }
-    assignOutlineStyles(doc, { breakpoints, body })
+    patchOutlineStyles(doc, { body })
     return doc
   })
 
@@ -1151,18 +1246,93 @@ export async function copyLayoutBodyBackgroundFromParentAction(
 
   const copied = normalizeLayoutBodyBackground(parent.styles?.body)
   const state = await mutateLayout(formData, (doc) => {
-    const breakpoints = doc.styles?.breakpoints
     if (!copied || copied.disabled) {
-      assignOutlineStyles(doc, { breakpoints, body: { disabled: true } })
+      patchOutlineStyles(doc, { body: { disabled: true } })
       return doc
     }
     const body = { ...copied }
     delete body.disabled
-    assignOutlineStyles(doc, { breakpoints, body })
+    patchOutlineStyles(doc, { body })
     return doc
   })
 
   if (state.ok) state.message = 'Page background copied from parent.'
+  return state
+}
+
+/**
+ * Persist outline type (Layouts → Styles → Type & accent).
+ * `mode=inherit` drops the local block. `mode=clear` removes it;
+ * `blockInherit=1` stores a local opt-out on child outlines.
+ */
+export async function updateLayoutTypographyAction(
+  _prev: LayoutActionState,
+  formData: FormData,
+): Promise<LayoutActionState> {
+  const denied = await requireLayoutAdmin()
+  if (denied) return denied
+
+  const mode = String(formData.get('mode') ?? 'set').trim()
+  const state = await mutateLayout(formData, (doc) => {
+    if (mode === 'inherit') {
+      patchOutlineStyles(doc, { typography: null })
+      return doc
+    }
+    if (mode === 'clear') {
+      patchOutlineStyles(doc, {
+        typography: formData.get('blockInherit') === '1' ? { disabled: true } : null,
+      })
+      return doc
+    }
+
+    const typography = normalizeLayoutTypography({
+      titleFont: String(formData.get('titleFont') ?? ''),
+      textFont: String(formData.get('textFont') ?? ''),
+      titleColor: String(formData.get('titleColor') ?? ''),
+      textColor: String(formData.get('textColor') ?? ''),
+      linkColor: String(formData.get('linkColor') ?? ''),
+      linkHoverColor: String(formData.get('linkHoverColor') ?? ''),
+    })
+    if (!typography) {
+      patchOutlineStyles(doc, {
+        typography: formData.get('blockInherit') === '1' ? { disabled: true } : null,
+      })
+      return doc
+    }
+    patchOutlineStyles(doc, { typography })
+    return doc
+  })
+
+  if (state.ok) state.message = 'Type saved.'
+  return state
+}
+
+/** Snapshot the parent outline type onto this outline as local. */
+export async function copyLayoutTypographyFromParentAction(
+  _prev: LayoutActionState,
+  formData: FormData,
+): Promise<LayoutActionState> {
+  const denied = await requireLayoutAdmin()
+  if (denied) return denied
+
+  const layoutId = layoutIdFromForm(formData)
+  const { document } = await loadLayoutDocument(layoutId)
+  const parent = await loadParentResolved(document, layoutId)
+  if (!parent) return { error: 'This outline has no parent to copy from.' }
+
+  const copied = normalizeLayoutTypography(parent.styles?.typography)
+  const state = await mutateLayout(formData, (doc) => {
+    if (!copied || copied.disabled) {
+      patchOutlineStyles(doc, { typography: { disabled: true } })
+      return doc
+    }
+    const typography = { ...copied }
+    delete typography.disabled
+    patchOutlineStyles(doc, { typography })
+    return doc
+  })
+
+  if (state.ok) state.message = 'Type copied from parent.'
   return state
 }
 
@@ -1251,12 +1421,165 @@ export async function reorderLayoutSectionsAction(
       }
       return section
     })
+    assignSyncedRowContainers(doc)
     return doc
   })
 
   if (state.ok) {
     state.message = widthById ? 'Section layout saved.' : 'Section order saved.'
   }
+  return state
+}
+
+/**
+ * Create row containers for every side-by-side line that does not have one yet.
+ * Existing container settings stay put.
+ */
+export async function ensureLayoutRowContainersAction(
+  _prev: LayoutActionState,
+  formData: FormData,
+): Promise<LayoutActionState> {
+  const state = await mutateLayout(formData, (doc) => {
+    assignSyncedRowContainers(doc)
+    return doc
+  })
+  if (state.ok) state.message = 'Row containers updated.'
+  return state
+}
+
+/**
+ * Basic section settings on the automatic row container (name, container mode,
+ * colors, spacing, HTML id, CSS classes). Member sections do not use container mode.
+ */
+export async function updateLayoutRowContainerMetaAction(
+  _prev: LayoutActionState,
+  formData: FormData,
+): Promise<LayoutActionState> {
+  const rawIds = String(formData.get('sectionIdsJson') ?? '').trim()
+  let sectionIds: string[]
+  try {
+    sectionIds = JSON.parse(rawIds) as string[]
+    if (!Array.isArray(sectionIds) || sectionIds.some((id) => typeof id !== 'string')) {
+      throw new Error('not string array')
+    }
+  } catch {
+    return { error: 'Invalid row container sections.' }
+  }
+  const containerId = String(formData.get('containerId') ?? '').trim()
+
+  const hasLabel = formData.has('label')
+  const hasHtmlId = formData.has('htmlId')
+  const hasCssClass = formData.has('cssClass')
+  const hasContainerMode = formData.has('containerMode')
+  const hasBackgroundColor = formData.has('backgroundColor')
+  const hasTextColor = formData.has('textColor')
+  const hasPadding = formData.has('padding')
+  const hasMargin = formData.has('margin')
+  if (
+    !hasLabel &&
+    !hasHtmlId &&
+    !hasCssClass &&
+    !hasContainerMode &&
+    !hasBackgroundColor &&
+    !hasTextColor &&
+    !hasPadding &&
+    !hasMargin
+  ) {
+    return { error: 'Nothing to update on this row container.' }
+  }
+
+  const patch: RowContainerPatch = {}
+  if (hasLabel) {
+    const label = String(formData.get('label') ?? '').trim()
+    if (!label) return { error: 'Container name is required.' }
+    patch.label = label
+  }
+  if (hasHtmlId) {
+    const htmlIdRaw = String(formData.get('htmlId') ?? '').trim()
+    if (!htmlIdRaw) patch.htmlId = null
+    else {
+      const htmlId = sanitizeHtmlId(htmlIdRaw)
+      if (!htmlId) {
+        return {
+          error:
+            'HTML id is invalid. Use a letter or underscore first, then letters, digits, _, :, ., or -.',
+        }
+      }
+      patch.htmlId = htmlId
+    }
+  }
+  if (hasCssClass) {
+    const cssClass = sanitizeCssClassList(String(formData.get('cssClass') ?? ''))
+    patch.cssClass = cssClass ?? null
+  }
+  if (hasContainerMode) {
+    const raw = String(formData.get('containerMode') ?? '').trim()
+    if (raw !== 'full' && raw !== 'boxed') {
+      return { error: 'Container mode must be full or boxed.' }
+    }
+    patch.containerMode = raw
+  }
+  if (hasBackgroundColor) {
+    const raw = String(formData.get('backgroundColor') ?? '').trim()
+    if (!raw) patch.backgroundColor = null
+    else {
+      const color = sanitizeCssColor(raw)
+      if (!color) {
+        return { error: 'Background color must be a hex value (e.g. #18191c) or transparent.' }
+      }
+      patch.backgroundColor = color
+    }
+  }
+  if (hasTextColor) {
+    const raw = String(formData.get('textColor') ?? '').trim()
+    if (!raw) patch.textColor = null
+    else {
+      const color = sanitizeCssColor(raw)
+      if (!color) {
+        return { error: 'Text color must be a hex value (e.g. #ffffff) or transparent.' }
+      }
+      patch.textColor = color
+    }
+  }
+  if (hasPadding) {
+    const raw = String(formData.get('padding') ?? '').trim()
+    if (!raw) patch.padding = null
+    else {
+      const padding = sanitizeCssBoxShorthand(raw, { allowNegative: false })
+      if (!padding) {
+        return {
+          error:
+            'Padding must be 1–4 lengths with the same px or rem unit (e.g. 1rem 1.5rem 1rem 1.5rem).',
+        }
+      }
+      patch.padding = padding
+    }
+  }
+  if (hasMargin) {
+    const raw = String(formData.get('margin') ?? '').trim()
+    if (!raw) patch.margin = null
+    else {
+      const margin = sanitizeCssBoxShorthand(raw, { allowNegative: true })
+      if (!margin) {
+        return {
+          error: 'Margin must be 1–4 lengths with the same px or rem unit (e.g. 0 0 2rem 0).',
+        }
+      }
+      patch.margin = margin
+    }
+  }
+
+  const state = await mutateLayout(formData, (doc) => {
+    const applied = applyRowContainerPatch(doc.sections, doc.rowContainers, {
+      sectionIds,
+      ...(containerId ? { containerId } : {}),
+      patch,
+    })
+    if (!applied.ok) return { error: applied.error }
+    doc.rowContainers = applied.containers
+    return doc
+  })
+  if (state.ok) state.message = 'Row container saved.'
   return state
 }
 
@@ -1978,7 +2301,8 @@ export async function resetLayoutToDefaultAction(
   revalidateLayoutPaths(layoutId)
   return {
     ok: true,
-    message: 'Layout reset to default (notice-bar, site-header, page-content, custom footer).',
+    message:
+      'Layout reset to default (notice-bar, site-header, page-content, cookie-settings footer).',
   }
 }
 
@@ -1993,11 +2317,13 @@ export async function listModulesForLayoutAdmin() {
   const settings = await getSiteSettings()
   const formsProductOn = isCatalogModuleEnabled(settings, MODULE_IDS.forms)
   const searchProductOn = isCatalogModuleEnabled(settings, MODULE_IDS.search)
+  const consentProductOn = isCatalogModuleEnabled(settings, MODULE_IDS.consent)
 
   return listRegisteredModules()
     .filter((m) => {
       if (m.id === 'form' && !formsProductOn) return false
       if (m.id === 'search' && !searchProductOn) return false
+      if (m.id === 'cookie-settings' && !consentProductOn) return false
       return isParticleModuleEnabled(settings, m.id, {
         builtin: m.builtin,
         featureFlag: m.featureFlag,

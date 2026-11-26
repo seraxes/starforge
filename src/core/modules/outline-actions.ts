@@ -135,20 +135,27 @@ export async function duplicateOutlineAction(
   const denied = await requireOutlineAdmin()
   if (denied) return denied
 
-  const { skinId, baseOutlineId } = await activeSkinContext()
+  const { skinId } = await activeSkinContext()
   const sourceId = String(formData.get('sourceId') ?? '').trim() || DEFAULT_LAYOUT_ID
   const label = String(formData.get('label') ?? '').trim()
+  if (!label) return { error: 'Outline name is required.' }
   const requestedId = String(formData.get('id') ?? '').trim()
-  // Default: inheriting child of Base (not a full snapshot root).
-  const asInheritingChild = formData.has('asInheritingChild')
-    ? String(formData.get('asInheritingChild') ?? '') === '1'
-    : true
+  // createMode matches Create. asInheritingChild remains for older forms.
+  const modeRaw = String(formData.get('createMode') ?? '').trim().toLowerCase()
+  const asInheritingChild =
+    modeRaw === 'copy'
+      ? false
+      : modeRaw === 'inherit'
+        ? true
+        : formData.has('asInheritingChild')
+          ? String(formData.get('asInheritingChild') ?? '') === '1'
+          : true
   const openAfter = String(formData.get('openAfter') ?? '') === '1'
 
   const result = await duplicateLayoutOutline(sourceId, label, requestedId || undefined, {
     asInheritingChild,
     skinId,
-    skinBaseOutlineId: baseOutlineId,
+    ...(asInheritingChild ? { inheritFromId: sourceId } : {}),
   })
   if ('error' in result) return { error: result.error }
 

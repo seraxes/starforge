@@ -5,12 +5,13 @@
 
 import 'server-only'
 
-import { and, asc, desc, eq } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray } from 'drizzle-orm'
 
 import { db } from '@/core/db'
 import { findMediaById, memberOwnsMedia } from '@/modules/media/api.server'
 
 import {
+  canViewAlbum,
   decideAddAlbumItem,
   decideCreateAlbum,
   selectAlbumItems,
@@ -23,7 +24,17 @@ import {
   type AlbumRecord,
   type CreateAlbumInput,
 } from './albums'
-import { getMemberBannedAt } from './members-store'
+import { areBlocked } from './friends-store'
+import { groupHref } from './groups'
+import {
+  findGroup,
+  isUserActiveGroupMember,
+  listActiveMemberGroupIds,
+} from './groups-store'
+import { getMemberBannedAt, isMemberAccountHidden } from './members-store'
+import { pageHref } from './pages'
+import { findPage, isUserPageAdmin, isUserPageLiker } from './pages-store'
+import { memberFeedHref } from './posts'
 import { sfSocialAlbumItems, sfSocialAlbums } from './schema'
 
 function mapAlbum(row: typeof sfSocialAlbums.$inferSelect): AlbumRecord {
@@ -279,6 +290,168 @@ export async function listAlbumItems(albumId: string): Promise<AlbumItemRecord[]
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
     if (/sf_social_album_items|does not exist|relation/i.test(msg)) return []
+    throw error
+  }
+}
+
+export type SocialAlbumParticleItem = {
+  albumId: string
+  title: string
+  /** Cover or first item; null when the album has no images yet. */
+  imageMediaId: string | null
+  href: string
+}
+
+async function firstAlbumItemMediaId(albumId: string): Promise<string | null> {
+  const items = await listAlbumItems(albumId)
+  return items[0]?.mediaId ?? null
+}
+
+async function resolveAlbumParticleHref(
+  album: AlbumRecord,
+  handleByUserId: Map<string, string>,
+): Promise<string | null> {
+  if (album.ownerType === 'user') {
+    const handle = handleByUserId.get(album.ownerId)?.trim()
+    return handle ? memberFeedHref(handle) : null
+  }
+  if (album.ownerType === 'group') {
+    const group = await findGroup(album.ownerId)
+    return group ? groupHref(group.slug) : null
+  }
+  if (album.ownerType === 'page') {
+    const page = await findPage(album.ownerId)
+    return page ? pageHref(page.slug) : null
+  }
+  return null
+}
+
+async function albumVisibleToViewer(
+  album: AlbumRecord,
+  viewerUserId: string,
+): Promise<boolean> {
+  const viewer = viewerUserId.trim()
+  if (!viewer) return false
+
+  if (album.ownerType === 'user') {
+    if (viewer === album.ownerId) return true
+    const [blocked, actorHidden, otherHidden, actorBannedAt, otherBannedAt] =
+      await Promise.all([
+        areBlocked(viewer, album.ownerId),
+        isMemberAccountHidden(viewer),
+        isMemberAccountHidden(album.ownerId),
+        getMemberBannedAt(viewer),
+        getMemberBannedAt(album.ownerId),
+      ])
+    return canViewAlbum(album, {
+      viewerUserId: viewer,
+      interact: {
+        isBlocked: blocked,
+        actorHidden,
+        otherHidden,
+        actorBannedAt,
+        otherBannedAt,
+      },
+    })
+  }
+
+  if (album.ownerType === 'group') {
+    const isGroupMember = await isUserActiveGroupMember(viewer, album.ownerId)
+    return canViewAlbum(album, { viewerUserId: viewer, isGroupMember })
+  }
+
+  if (album.ownerType === 'page') {
+    const [isPageLiker, isPageAdmin] = await Promise.all([
+      isUserPageLiker(viewer, album.ownerId),
+      isUserPageAdmin(viewer, album.ownerId),
+    ])
+    return canViewAlbum(album, {
+      viewerUserId: viewer,
+      isPageLiker,
+      isPageAdmin,
+    })
+  }
+
+  return false
+}
+
+async function toAlbumParticleItems(
+  albums: AlbumRecord[],
+  viewerUserId: string,
+  handleByUserId: Map<string, string>,
+  limit: number,
+): Promise<SocialAlbumParticleItem[]> {
+  const out: SocialAlbumParticleItem[] = []
+  for (const album of albums) {
+    if (out.length >= limit) break
+    if (!(await albumVisibleToViewer(album, viewerUserId))) continue
+    const href = await resolveAlbumParticleHref(album, handleByUserId)
+    if (!href) continue
+    const imageMediaId =
+      album.coverMediaId?.trim() || (await firstAlbumItemMediaId(album.id))
+    if (!imageMediaId) continue
+    out.push({
+      albumId: album.id,
+      title: album.title,
+      imageMediaId,
+      href,
+    })
+  }
+  return out
+}
+
+/**
+ * Albums for the social-albums particle (image-only cards).
+ * source=viewer → member albums; groups → group albums (optional groupIds);
+ * all → recent albums the viewer may see.
+ */
+export async function listAlbumsForParticle(opts: {
+  source: 'viewer' | 'groups' | 'all'
+  viewerUserId: string
+  groupIds?: readonly string[]
+  limit?: number
+  /** userId → public handle for member album links. */
+  handleByUserId?: Map<string, string>
+}): Promise<SocialAlbumParticleItem[]> {
+  const viewer = opts.viewerUserId.trim()
+  if (!viewer) return []
+  const limit = Math.min(Math.max(1, Math.floor(opts.limit ?? 12)), 48)
+  const handles = opts.handleByUserId ?? new Map<string, string>()
+
+  try {
+    if (opts.source === 'viewer') {
+      const albums = await listAlbumsForOwner('user', viewer)
+      return toAlbumParticleItems(albums, viewer, handles, limit)
+    }
+
+    if (opts.source === 'groups') {
+      const rawIds = (opts.groupIds ?? []).map((id) => id.trim()).filter(Boolean)
+      const groupIds =
+        rawIds.length > 0 ? [...new Set(rawIds)] : await listActiveMemberGroupIds(viewer)
+      if (groupIds.length === 0) return []
+      const rows = await db
+        .select()
+        .from(sfSocialAlbums)
+        .where(
+          and(
+            eq(sfSocialAlbums.ownerType, 'group'),
+            inArray(sfSocialAlbums.ownerId, groupIds.slice(0, 100)),
+          ),
+        )
+        .orderBy(desc(sfSocialAlbums.createdAt))
+        .limit(Math.min(limit * 4, 100))
+      return toAlbumParticleItems(rows.map(mapAlbum), viewer, handles, limit)
+    }
+
+    const rows = await db
+      .select()
+      .from(sfSocialAlbums)
+      .orderBy(desc(sfSocialAlbums.createdAt))
+      .limit(Math.min(limit * 6, 120))
+    return toAlbumParticleItems(rows.map(mapAlbum), viewer, handles, limit)
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    if (/sf_social_album|does not exist|relation/i.test(msg)) return []
     throw error
   }
 }

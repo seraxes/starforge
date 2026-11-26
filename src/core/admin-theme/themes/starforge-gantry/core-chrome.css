@@ -1306,12 +1306,38 @@ body:has(.admin-shell) > main {
 }
 
 /* Section chrome — white title + / gear; particles are the blue bars */
+.admin-shell .gantry-row-container {
+  flex: 0 0 100%;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  margin: 0 0 0.35rem;
+  padding: 0.35rem 0.45rem 0.45rem;
+  border: 1px solid color-mix(in srgb, var(--sf-admin-blue-mid) 50%, transparent);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--sf-admin-blue-mid) 10%, transparent);
+  list-style: none;
+}
+
+.admin-shell .gantry-row-container > .gantry-sections {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-shell .gantry-row-container-chrome {
+  margin-bottom: 0.25rem;
+}
+
 .admin-shell .gantry-section {
   padding: 0;
   border: 0;
   background: transparent;
   border-radius: 0;
   overflow: visible;
+  container-type: inline-size;
+  container-name: gantry-section;
 }
 
 .admin-shell .gantry-section.is-section-drop-before {
@@ -1346,6 +1372,17 @@ body:has(.admin-shell) > main {
   gap: 0.3rem;
   flex: 1 1 auto;
   min-width: 0;
+}
+
+.admin-shell .gantry-section-head-tools {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.2rem;
+  flex: 0 0 auto;
+  margin-left: auto;
 }
 
 /* Compact width control — admin input !important padding/width would crush % into digits. */
@@ -1398,16 +1435,48 @@ body:has(.admin-shell) > main {
   font-weight: 650 !important;
   min-height: 1.45rem !important;
   padding: 0.05rem 0.15rem !important;
-  max-width: 16rem;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   box-shadow: none !important;
 }
 
 .admin-shell .gantry-section-head-actions {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 0.35rem 0.55rem;
+  flex-wrap: nowrap;
+  flex: 0 0 auto;
+  gap: 0.1rem;
   justify-content: flex-end;
+}
+
+@container gantry-section (max-width: 18rem) {
+  .gantry-section-head-tools,
+  .gantry-section-head-actions {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.05rem;
+  }
+}
+
+.admin-shell .gantry-section-identity {
+  flex-wrap: nowrap;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.admin-shell .gantry-inline-label.gantry-section-name-label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  margin: 0;
 }
 
 .admin-shell .gantry-section-icon-btn,
@@ -1447,6 +1516,9 @@ body:has(.admin-shell) > main {
 
 .admin-shell .gantry-section-settings {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
 }
 
 .admin-shell .gantry-section-settings > summary::-webkit-details-marker {
@@ -1521,9 +1593,43 @@ body:has(.admin-shell) > main {
 .admin-shell .gantry-section-inherit-block {
   display: flex;
   flex-direction: column;
+  align-items: flex-end;
   gap: 0.4rem;
   padding-bottom: 0.35rem;
   border-bottom: 1px solid var(--sf-admin-blue-border);
+}
+
+/* Layout select, then Inherit + Copy on one right-aligned line. */
+.admin-shell .gantry-inherit-source {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.45rem;
+  width: 100%;
+}
+
+.admin-shell .gantry-inherit-source-layout {
+  display: grid;
+  grid-template-columns: var(--sf-section-cog-label, 5.75rem) minmax(0, 1fr);
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  width: 100%;
+  margin: 0;
+}
+
+.admin-shell .gantry-inherit-source-layout > .gantry-field-hint {
+  text-align: right;
+  line-height: 1.2;
+}
+
+.admin-shell .gantry-inherit-source-layout select {
+  width: 100%;
+  max-width: none;
+}
+
+.admin-shell .gantry-inherit-source > .gantry-inherit-copy-row-inline {
+  align-self: flex-end;
+  margin-left: auto;
 }
 
 .admin-shell .gantry-inherit-copy-row {
@@ -1932,6 +2038,8 @@ body:has(.admin-shell) > main {
   min-height: 3.25rem;
   box-shadow: none;
   overflow: visible;
+  container-type: inline-size;
+  container-name: gantry-slot;
 }
 
 .admin-shell .gantry-slot,
@@ -2015,9 +2123,22 @@ body:has(.admin-shell) > main {
 
 .admin-shell .gantry-slot-end {
   display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 0.25rem;
+  justify-content: flex-end;
+  gap: 0.2rem;
   flex: 0 0 auto;
+  margin-left: auto;
+}
+
+@container gantry-slot (max-width: 16rem) {
+  .gantry-slot-end,
+  .gantry-slot-actions {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.05rem;
+  }
 }
 
 /* Left/right insert line between particle bars (side-by-side placement). */
@@ -2118,66 +2239,70 @@ body:has(.admin-shell) > main {
   padding: 0.05rem 0.1rem;
 }
 
-.admin-shell .gantry-slot-actions {
+.admin-shell .gantry-slot-actions,
+.admin-shell .gantry-settings-trigger-wrap {
+  display: inline-flex;
+  align-items: center;
   width: auto;
   margin: 0;
   gap: 0.1rem;
+  flex: 0 0 auto;
+  vertical-align: middle;
 }
 
 .admin-shell .gantry-slot-actions .gantry-settings-trigger,
-.admin-shell .gantry-settings-gear {
-  width: var(--sf-admin-icon-primary);
-  height: var(--sf-admin-icon-primary);
-  padding: 0;
-  border: 0;
-  border-radius: 2px;
-  background: transparent;
-  color: #fff;
-  font-size: var(--sf-admin-icon-primary);
-  line-height: 1;
-}
-
-.admin-shell .gantry-slot-actions .gantry-settings-trigger:hover,
-.admin-shell .gantry-settings-gear:hover {
-  background: color-mix(in srgb, #0f1a2a 30%, transparent);
-}
-
-/* Muted danger remove beside cog — rose X only; no blue/chrome border box */
+.admin-shell .gantry-slot-actions button.secondary.gantry-settings-trigger,
+.admin-shell .gantry-settings-gear,
+.admin-shell button.secondary.gantry-settings-gear,
+.admin-shell .gantry-section-settings > summary.gantry-section-icon-btn,
 .admin-shell .gantry-slot-actions .gantry-bar-remove,
+.admin-shell .gantry-section-head-actions .gantry-bar-remove,
 .admin-shell .gantry-bar-remove {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--sf-admin-icon-secondary);
-  height: var(--sf-admin-icon-secondary);
-  margin: 0;
-  padding: 0;
-  border: 0;
+  width: var(--sf-admin-icon-primary) !important;
+  height: var(--sf-admin-icon-primary) !important;
+  min-width: var(--sf-admin-icon-primary) !important;
+  min-height: var(--sf-admin-icon-primary) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
   border-radius: 2px;
-  background: transparent;
-  box-shadow: none;
+  background: transparent !important;
+  box-shadow: none !important;
   outline: none;
-  color: color-mix(in srgb, var(--sf-danger-soft) 55%, #c5d2e0);
-  font-size: var(--sf-admin-icon-secondary);
-  line-height: 1;
+  color: #fff !important;
+  font-size: var(--sf-admin-icon-primary) !important;
+  font-weight: 700;
+  line-height: 1 !important;
   cursor: pointer;
+}
+
+.admin-shell .gantry-slot-actions .gantry-settings-trigger:hover,
+.admin-shell .gantry-slot-actions button.secondary.gantry-settings-trigger:hover,
+.admin-shell .gantry-settings-gear:hover,
+.admin-shell button.secondary.gantry-settings-gear:hover {
+  background: color-mix(in srgb, #0f1a2a 30%, transparent) !important;
 }
 
 .admin-shell .gantry-slot-actions .gantry-bar-remove-icon,
 .admin-shell .gantry-bar-remove-icon {
-  width: 1em;
-  height: 1em;
+  width: 0.68em;
+  height: 0.68em;
+  display: block;
+  flex-shrink: 0;
 }
 
 .admin-shell .gantry-slot-actions .gantry-bar-remove:hover,
 .admin-shell .gantry-slot-actions .gantry-bar-remove:focus-visible,
 .admin-shell .gantry-bar-remove:hover,
 .admin-shell .gantry-bar-remove:focus-visible {
-  background: color-mix(in srgb, var(--sf-danger) 16%, var(--sf-admin-surface));
+  background: transparent;
   border: 0;
   box-shadow: none;
   outline: none;
-  color: #f0c4be;
+  color: #fff;
 }
 
 .admin-shell .gantry-slot-actions .gantry-bar-remove:disabled {
@@ -3314,6 +3439,11 @@ body:has(.admin-shell) > main {
   min-width: 0;
 }
 
+.admin-shell .section-styles-gradient-hint {
+  margin: 0.2rem 0 0;
+  line-height: 1.45;
+}
+
 .admin-shell .section-styles-gradient-inline {
   display: inline-flex;
   align-items: center;
@@ -3329,6 +3459,31 @@ body:has(.admin-shell) > main {
 .admin-shell .section-styles-empty {
   margin: 0.5rem 0 1rem;
   color: #8fa0b5;
+}
+
+/* Type card sample — light paper so the chosen fonts and colors read as on the public site. */
+.admin-shell .section-styles-type-sample {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 1.15rem;
+  margin: 0 0 0.85rem;
+  padding: 0.7rem 0.85rem;
+  background: #f5f8fc;
+  color: #1c2834;
+  border: 1px solid #d3dce6;
+  border-radius: 3px;
+}
+
+.admin-shell .section-styles-type-sample-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.admin-shell .section-styles-type-sample-text {
+  font-size: 1rem;
+  line-height: 1.4;
 }
 
 /*
@@ -4063,6 +4218,29 @@ body:has(.admin-shell) > main {
 .admin-shell .admin-control-row select {
   width: auto;
   max-width: 11rem;
+}
+
+/* Outlines Duplicate: Name + Inherit/Copy + actions share one bottom line. */
+.admin-shell .outlines-inline-form.admin-control-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  width: 100%;
+  max-width: 100%;
+  margin-top: 0.65rem;
+  white-space: normal;
+}
+
+.admin-shell .outlines-inline-form.admin-control-row > .settings-field {
+  gap: 0.35rem;
+  flex: 1 1 11rem;
+  max-width: 16rem;
+}
+
+.admin-shell .outlines-inline-form.admin-control-row > .settings-field input[type='text'],
+.admin-shell .outlines-inline-form.admin-control-row > .settings-field select {
+  width: 100%;
+  max-width: none;
 }
 
 .admin-shell .admin-control-row .admin-inline-error,
@@ -6093,27 +6271,12 @@ body:has(.admin-shell) > main {
   content: none;
 }
 
-/* Social Reactions — line 1: FA class + color; line 2: image chooser + thumb. */
+/* Social Reactions — line 1: toggle + FA class + color; line 2: image + thumb. */
 .admin-shell .sf-social-reaction-kind-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 0.55rem 0.75rem;
-  margin-bottom: 0.85rem;
-}
-
-.admin-shell .sf-social-reaction-kind-row > .settings-flag {
-  margin: 0;
-  min-width: 6.5rem;
-  padding-top: 0.35rem;
-}
-
-.admin-shell .sf-social-reaction-icon-controls {
-  flex: 1 1 22rem;
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
-  min-width: 0;
+  margin-bottom: 0.85rem;
 }
 
 .admin-shell .sf-social-reaction-fa-row {
@@ -6121,14 +6284,31 @@ body:has(.admin-shell) > main {
   flex-wrap: nowrap;
   align-items: center;
   gap: 0.45rem;
+  width: 100%;
   min-width: 0;
 }
 
-.admin-shell .sf-social-reaction-icon-field {
+.admin-shell .sf-social-reaction-fa-row > .settings-flag {
+  display: inline-flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  min-width: 5.5rem;
+  flex: 0 0 auto;
+  height: var(--sf-admin-input-min-height, 2rem);
+}
+
+.admin-shell .sf-social-reaction-fa-row > .sf-social-reaction-icon-field {
   flex: 1 1 auto;
   margin: 0;
+  padding: 0;
   gap: 0.4rem;
   min-width: 0;
+  display: inline-flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
   align-items: center;
 }
 
@@ -6136,6 +6316,7 @@ body:has(.admin-shell) > main {
   flex: 1 1 auto;
   min-width: 0;
   height: var(--sf-admin-input-min-height, 2rem);
+  min-height: var(--sf-admin-input-min-height, 2rem);
 }
 
 .admin-shell .sf-social-reaction-icon-preview {

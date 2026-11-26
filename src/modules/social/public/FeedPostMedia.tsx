@@ -64,6 +64,8 @@ type TheaterProps = {
   reactionIconImageUrls: ReactionIconImageUrls | null
   showReactionLabels: boolean
   reactionIconSizePx: number
+  reactionTrayHoverSizePx: number
+  reactionTrayHoverEasing: string
   allowComments: boolean
   allowCommentReactions: boolean
   commentLengthLimit: number
@@ -103,6 +105,8 @@ function SocialMediaTheater({
   reactionIconImageUrls,
   showReactionLabels,
   reactionIconSizePx,
+  reactionTrayHoverSizePx,
+  reactionTrayHoverEasing,
   allowComments,
   allowCommentReactions,
   commentLengthLimit,
@@ -270,6 +274,8 @@ function SocialMediaTheater({
             reactionIconImageUrls={reactionIconImageUrls}
             showReactionLabels={showReactionLabels}
             reactionIconSizePx={reactionIconSizePx}
+            reactionTrayHoverSizePx={reactionTrayHoverSizePx}
+            reactionTrayHoverEasing={reactionTrayHoverEasing}
             allowComments={allowComments}
             allowCommentReactions={allowCommentReactions}
             commentLengthLimit={commentLengthLimit}
@@ -315,6 +321,8 @@ export function FeedPostMedia({
   reactionIconImageUrls = null,
   showReactionLabels = true,
   reactionIconSizePx = 16,
+  reactionTrayHoverSizePx = 28,
+  reactionTrayHoverEasing = 'ease',
   allowComments,
   allowCommentReactions,
   commentLengthLimit,
@@ -345,6 +353,8 @@ export function FeedPostMedia({
   reactionIconImageUrls?: ReactionIconImageUrls | null
   showReactionLabels?: boolean
   reactionIconSizePx?: number
+  reactionTrayHoverSizePx?: number
+  reactionTrayHoverEasing?: string
   allowComments: boolean
   allowCommentReactions: boolean
   commentLengthLimit: number
@@ -415,6 +425,8 @@ export function FeedPostMedia({
           reactionIconImageUrls={reactionIconImageUrls}
           showReactionLabels={showReactionLabels}
           reactionIconSizePx={reactionIconSizePx}
+          reactionTrayHoverSizePx={reactionTrayHoverSizePx}
+          reactionTrayHoverEasing={reactionTrayHoverEasing}
           allowComments={allowComments}
           allowCommentReactions={allowCommentReactions}
           commentLengthLimit={commentLengthLimit}

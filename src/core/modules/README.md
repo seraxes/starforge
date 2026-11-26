@@ -81,8 +81,9 @@ Reference: [docs.gantry.org](https://docs.gantry.org/).
 ```
 
 - `section.label` — editable canvas display name (id stays stable).
-- `section.containerMode` — `full` | `boxed` (edge-to-edge vs max-width container; row % inside). Omitted → Page Settings sections-layout default.
-- `section.width` — percent `5`–`100` (same model as particle/slot widths; consecutive partial widths sit side-by-side). Omitted → `100`.
+- `section.containerMode` — `full` | `boxed` (edge-to-edge vs max-width container). Omitted → Page Settings sections-layout default. Ignored while the section sits in a row container.
+- `section.width` — percent `5`–`100`. Widths that fit on one line share a row container. Omitted → `100`.
+- `rowContainers[]` — automatic wrapper when two or more sections share a line. Owns container mode plus basic section settings (name, colors, spacing, HTML id, CSS classes). Members keep width % only.
 - `section.styles` — Gantry-like Section Styles: `backgroundColor` / `textColor` (hex); `backgroundImage` / `backgroundOverlay` reserved. Applied on the public section wrapper only.
 - `section.inheritMode` / `stylesInheritMode` — outline inherit vs local (`inheritFrom` parent). Absent section = inherit-by-absence. Styles inherit is **per card**, not per input.
 - `section.cssClass` — space-separated classes on the public section/`footer` wrapper (plus `sf-layout-section`).

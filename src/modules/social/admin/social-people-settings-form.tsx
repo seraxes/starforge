@@ -22,7 +22,11 @@ import {
   SOCIAL_MAX_PENDING_FRIEND_REQUESTS_MIN,
   SOCIAL_REACTION_ICON_SIZE_PX_MAX,
   SOCIAL_REACTION_ICON_SIZE_PX_MIN,
+  SOCIAL_REACTION_TRAY_HOVER_EASINGS,
+  SOCIAL_REACTION_TRAY_HOVER_SIZE_PX_MAX,
+  SOCIAL_REACTION_TRAY_HOVER_SIZE_PX_MIN,
   type SocialModuleSettings,
+  type SocialReactionTrayHoverEasing,
 } from '../pack-settings'
 import {
   DEFAULT_REACTION_ICON_COLORS,
@@ -62,6 +66,14 @@ const initialModeration: SocialModerationActionState = {}
 const FRIEND_LIST_LABEL: Record<(typeof FRIEND_LIST_VISIBILITIES)[number], string> = {
   friends: 'Friends',
   only_me: 'Only me',
+}
+
+const TRAY_HOVER_EASING_LABEL: Record<SocialReactionTrayHoverEasing, string> = {
+  ease: 'Ease',
+  'ease-in': 'Ease in',
+  'ease-out': 'Ease out',
+  'ease-in-out': 'Ease in-out',
+  linear: 'Linear',
 }
 
 function emptyMediaPicker(kind: ReactionKind, mediaIds: ReactionIconMediaIds, urls: ReactionIconImageUrls): MediaPickerValue {
@@ -107,91 +119,89 @@ function ReactionKindRows({
         const color = colorDrafts[kind] || DEFAULT_REACTION_ICON_COLORS[kind]
         return (
           <div key={kind} className="sf-social-reaction-kind-row">
-            {kind === 'like' ? (
-              <label className="settings-field settings-flag">
-                <input type="checkbox" defaultChecked disabled />
-                <span>like</span>
-              </label>
-            ) : (
-              <label className="settings-field settings-flag">
-                <input
-                  type="checkbox"
-                  name="reactionKind"
-                  value={kind}
-                  defaultChecked={enabledKinds.has(kind)}
-                  disabled={pending}
-                />
-                <span>{kind}</span>
-              </label>
-            )}
-            <div className="sf-social-reaction-icon-controls">
-              <div className="sf-social-reaction-fa-row">
-                <label className="settings-field admin-control-row sf-social-reaction-icon-field">
-                  <span
-                    className="sf-social-reaction-icon-preview"
-                    aria-hidden="true"
-                    style={usesImage ? undefined : { color }}
-                  >
-                    <i className={preview} />
-                  </span>
-                  <input
-                    type="text"
-                    name={usesImage ? undefined : `reactionIcon_${kind}`}
-                    value={drafts[kind]}
-                    disabled={pending || usesImage}
-                    spellCheck={false}
-                    aria-label={`${kind} icon class`}
-                    placeholder={DEFAULT_REACTION_ICONS[kind]}
-                    onChange={(event) => {
-                      const next = event.target.value
-                      setDrafts((current) => ({ ...current, [kind]: next }))
-                    }}
-                  />
-                  {usesImage ? (
-                    <input type="hidden" name={`reactionIcon_${kind}`} value={drafts[kind]} />
-                  ) : null}
+            <div className="sf-social-reaction-fa-row">
+              {kind === 'like' ? (
+                <label className="settings-field settings-flag">
+                  <input type="checkbox" defaultChecked disabled />
+                  <span>like</span>
                 </label>
-                <label className="settings-field sf-social-reaction-color-field">
-                  <span className="sr-only">{kind} icon color</span>
+              ) : (
+                <label className="settings-field settings-flag">
                   <input
-                    type="color"
-                    name={usesImage ? undefined : `reactionIconColor_${kind}`}
-                    value={color}
-                    disabled={pending || usesImage}
-                    aria-label={`${kind} icon color`}
-                    onChange={(event) => {
-                      const next = event.target.value
-                      setColorDrafts((current) => ({ ...current, [kind]: next }))
-                    }}
-                  />
-                  {usesImage ? (
-                    <input type="hidden" name={`reactionIconColor_${kind}`} value={color} />
-                  ) : null}
-                </label>
-              </div>
-              <div className="sf-social-reaction-media-row">
-                <div className="sf-social-reaction-media-field">
-                  <MediaPicker
-                    label="Image"
-                    value={media}
-                    defaultFolder="general"
-                    defaultPurpose="logo"
+                    type="checkbox"
+                    name="reactionKind"
+                    value={kind}
+                    defaultChecked={enabledKinds.has(kind)}
                     disabled={pending}
-                    allowUrlFallback={false}
-                    showPreview={false}
-                    mediaIdName={`reactionIconMedia_${kind}`}
-                    onChange={(next) => {
-                      setMediaDrafts((current) => ({ ...current, [kind]: next }))
-                    }}
                   />
-                </div>
-                <span className="sf-social-reaction-media-thumb" aria-hidden="true">
-                  {usesImage && media.url ? (
-                    // eslint-disable-next-line @next/next/no-img-element -- Media library redirect
-                    <img src={media.url} alt="" />
-                  ) : null}
+                  <span>{kind}</span>
+                </label>
+              )}
+              <label className="settings-field admin-control-row sf-social-reaction-icon-field">
+                <span
+                  className="sf-social-reaction-icon-preview"
+                  aria-hidden="true"
+                  style={usesImage ? undefined : { color }}
+                >
+                  <i className={preview} />
                 </span>
+                <input
+                  type="text"
+                  name={usesImage ? undefined : `reactionIcon_${kind}`}
+                  value={drafts[kind]}
+                  disabled={pending || usesImage}
+                  spellCheck={false}
+                  aria-label={`${kind} icon class`}
+                  placeholder={DEFAULT_REACTION_ICONS[kind]}
+                  onChange={(event) => {
+                    const next = event.target.value
+                    setDrafts((current) => ({ ...current, [kind]: next }))
+                  }}
+                />
+                {usesImage ? (
+                  <input type="hidden" name={`reactionIcon_${kind}`} value={drafts[kind]} />
+                ) : null}
+              </label>
+              <label className="settings-field sf-social-reaction-color-field">
+                <span className="sr-only">{kind} icon color</span>
+                <input
+                  type="color"
+                  name={usesImage ? undefined : `reactionIconColor_${kind}`}
+                  value={color}
+                  disabled={pending || usesImage}
+                  aria-label={`${kind} icon color`}
+                  onChange={(event) => {
+                    const next = event.target.value
+                    setColorDrafts((current) => ({ ...current, [kind]: next }))
+                  }}
+                />
+                {usesImage ? (
+                  <input type="hidden" name={`reactionIconColor_${kind}`} value={color} />
+                ) : null}
+              </label>
+            </div>
+            <div className="sf-social-reaction-media-row">
+              <div className="sf-social-reaction-media-field">
+                <MediaPicker
+                  label="Image"
+                  value={media}
+                  defaultFolder="general"
+                  defaultPurpose="logo"
+                  disabled={pending}
+                  allowUrlFallback={false}
+                  showPreview={false}
+                  mediaIdName={`reactionIconMedia_${kind}`}
+                  onChange={(next) => {
+                    setMediaDrafts((current) => ({ ...current, [kind]: next }))
+                  }}
+                />
               </div>
+              <span className="sf-social-reaction-media-thumb" aria-hidden="true">
+                {usesImage && media.url ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- Media library redirect
+                  <img src={media.url} alt="" />
+                ) : null}
+              </span>
             </div>
           </div>
         )
@@ -334,6 +344,13 @@ export function SocialPeopleSettingsForm({
     if (state.ok) router.refresh()
   }, [state, router])
 
+  // Controlled so a successful action form-reset cannot snap back to the
+  // mount-time defaultValue before router.refresh brings the saved settings.
+  const [trayHoverEasing, setTrayHoverEasing] = useState(settings.reactionTrayHoverEasing)
+  useEffect(() => {
+    setTrayHoverEasing(settings.reactionTrayHoverEasing)
+  }, [settings.reactionTrayHoverEasing])
+
   const enabledKinds = new Set(settings.enabledReactionKinds)
   const enabledReasons = new Set(settings.enabledReportReasons)
 
@@ -444,6 +461,45 @@ export function SocialPeopleSettingsForm({
                   {SOCIAL_REACTION_ICON_SIZE_PX_MIN}–{SOCIAL_REACTION_ICON_SIZE_PX_MAX}. Only the
                   hover/hold reaction popup — not the main Like control or summary chips.
                 </span>
+              </label>
+              <label className="settings-field">
+                <span>Tray hover size (px)</span>
+                <input
+                  type="number"
+                  name="reactionTrayHoverSizePx"
+                  min={SOCIAL_REACTION_TRAY_HOVER_SIZE_PX_MIN}
+                  max={SOCIAL_REACTION_TRAY_HOVER_SIZE_PX_MAX}
+                  step={1}
+                  defaultValue={settings.reactionTrayHoverSizePx}
+                  disabled={pending}
+                />
+                <span className="settings-hint">
+                  {SOCIAL_REACTION_TRAY_HOVER_SIZE_PX_MIN}–{SOCIAL_REACTION_TRAY_HOVER_SIZE_PX_MAX}.
+                  How large a tray choice grows on hover.
+                </span>
+              </label>
+              <label className="settings-field">
+                <span>Tray hover animation</span>
+                <select
+                  name="reactionTrayHoverEasing"
+                  value={trayHoverEasing}
+                  disabled={pending}
+                  onChange={(event) => {
+                    const next = event.target.value
+                    if (
+                      (SOCIAL_REACTION_TRAY_HOVER_EASINGS as readonly string[]).includes(next)
+                    ) {
+                      setTrayHoverEasing(next as SocialReactionTrayHoverEasing)
+                    }
+                  }}
+                >
+                  {SOCIAL_REACTION_TRAY_HOVER_EASINGS.map((easing) => (
+                    <option key={easing} value={easing}>
+                      {TRAY_HOVER_EASING_LABEL[easing]}
+                    </option>
+                  ))}
+                </select>
+                <span className="settings-hint">CSS easing for the tray hover grow.</span>
               </label>
               <label className="settings-field settings-flag">
                 <input

@@ -807,7 +807,7 @@ function SectionLabelInput({
         value={label}
         disabled={disabled}
         required={required}
-        title="Section display name"
+        title={label.trim() || 'Section display name'}
         aria-label="Section name"
         onChange={(event) => onChange(event.target.value)}
         onBlur={(event) => onBlurCommit?.(event.target.value)}
@@ -828,7 +828,7 @@ function SectionLabelInput({
       defaultValue={label}
       disabled={disabled}
       required={required}
-      title="Section display name"
+      title={label.trim() || 'Section display name'}
       aria-label="Section name"
       onBlur={(event) => {
         const next = event.target.value.trim()
@@ -1017,24 +1017,26 @@ export function CanvasSectionFrame({
                 onBlurCommit={onLabelBlur}
               />
             </label>
-            <label className="gantry-inline-label gantry-section-width-label" title={widthTitle}>
-              <span className="sr-only">Section width percent</span>
-              <SectionWidthInput
-                sectionId={sectionId}
-                width={sectionWidth}
-                disabled={labelDisabled}
-                onChange={onWidthChange}
-                onBlurCommit={onWidthBlur}
-              />
-              <span className="gantry-slot-pct" aria-hidden="true">
-                %
-              </span>
-            </label>
           </div>
         </div>
-        <div className="gantry-section-head-actions">
-          {headEnd}
-          {settings}
+        <div className="gantry-section-head-tools">
+          <label className="gantry-inline-label gantry-section-width-label" title={widthTitle}>
+            <span className="sr-only">Section width percent</span>
+            <SectionWidthInput
+              sectionId={sectionId}
+              width={sectionWidth}
+              disabled={labelDisabled}
+              onChange={onWidthChange}
+              onBlurCommit={onWidthBlur}
+            />
+            <span className="gantry-slot-pct" aria-hidden="true">
+              %
+            </span>
+          </label>
+          <div className="gantry-section-head-actions">
+            {headEnd}
+            {settings}
+          </div>
         </div>
       </header>
       {afterHead}

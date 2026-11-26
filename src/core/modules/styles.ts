@@ -4,13 +4,15 @@
  * CSS ownership (keep layers separate — do not mix into admin chrome):
  * 1) Design tokens — platform `:root` + Skin `body.sf-skin-{id}`
  * 2) Outline Layout Styles — `body.sf-skin-*.sf-outline-*` breakpoints +
- *    page (body) background + section full/boxed + section bg/text/image/overlay
+ *    page (body) background + type (title/text fonts and colors, accent/link
+ *    and hover) + section full/boxed + section bg/text/image/overlay
  *    + section padding/margin (cog four-side px|rem → CSS shorthand)
  * 3) Custom CSS — Page Settings / Custom particle (not admin chrome)
  *
  * Section Styles live on each live section instance (`section.styles`) — listing
  * under Layouts → Styles mirrors the outline canvas; deleting a section drops
- * its styles with it. Breakpoints stay on `document.styles.breakpoints`.
+ * its styles with it. Breakpoints, page background, and type stay on
+ * `document.styles`.
  */
 
 import type { CSSProperties } from 'react'
@@ -93,7 +95,10 @@ export type LayoutBodyBackgroundFit = 'cover-fixed' | 'cover-scroll' | 'contain'
  */
 export type LayoutBodyBackground = {
   disabled?: boolean
+  /** Hex / transparent, or a CSS gradient when allowGradientBackground. */
   backgroundColor?: string
+  /** Permit CSS gradient syntax in backgroundColor. */
+  allowGradientBackground?: boolean
   /** Payload Media id (primary). */
   backgroundMediaId?: string
   /** URL fallback when no media id, or the resolved public URL at paint time. */
@@ -101,12 +106,78 @@ export type LayoutBodyBackground = {
   backgroundSize?: 'cover' | 'contain'
   backgroundAttachment?: 'scroll' | 'fixed'
   backgroundRepeat?: 'no-repeat' | 'repeat'
+  /** Paint a layer over the page background image (and gradient fill). */
+  backgroundOverlay?: 'enabled' | 'disabled'
+  /** Overlay fill: hex / transparent, or a gradient when allowGradientOverlay. */
+  overlayColor?: string
+  /** Permit CSS gradient syntax in overlayColor. */
+  allowGradientOverlay?: boolean
 }
 
-/** Outline document `styles` bag (breakpoints + page background). */
+/**
+ * Outline type: title and body fonts/colors, plus accent (hyperlinks) and hover.
+ * Font ids come from `LAYOUT_FONT_CHOICES` (system stacks, no remote font files).
+ * `disabled` blocks an inherited parent type block.
+ */
+export type LayoutTypography = {
+  disabled?: boolean
+  /** Catalog id (`LAYOUT_FONT_CHOICES`). Empty omits the override. */
+  titleFont?: string
+  textFont?: string
+  titleColor?: string
+  textColor?: string
+  /** Hyperlink and `--sf-accent` color. */
+  linkColor?: string
+  /** Hyperlink hover and `--sf-accent-hover`. */
+  linkHoverColor?: string
+}
+
+/** Outline document `styles` bag (breakpoints, page background, type). */
 export type LayoutDocumentStyles = {
   breakpoints?: LayoutBreakpoints
   body?: LayoutBodyBackground
+  typography?: LayoutTypography
+}
+
+/** System font stacks for Layouts → Styles → Type. Ids are what we persist. */
+export const LAYOUT_FONT_CHOICES = [
+  { id: 'system-sans', label: 'System sans', stack: "system-ui, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" },
+  { id: 'segoe', label: 'Segoe UI', stack: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif" },
+  { id: 'arial', label: 'Arial', stack: "Arial, 'Helvetica Neue', sans-serif" },
+  { id: 'verdana', label: 'Verdana', stack: "Verdana, Geneva, sans-serif" },
+  { id: 'trebuchet', label: 'Trebuchet MS', stack: "'Trebuchet MS', 'Segoe UI', sans-serif" },
+  { id: 'tahoma', label: 'Tahoma', stack: "Tahoma, Verdana, sans-serif" },
+  { id: 'calibri', label: 'Calibri', stack: "Calibri, 'Segoe UI', sans-serif" },
+  { id: 'candara', label: 'Candara', stack: "Candara, 'Segoe UI', sans-serif" },
+  { id: 'century-gothic', label: 'Century Gothic', stack: "'Century Gothic', 'Trebuchet MS', sans-serif" },
+  { id: 'georgia', label: 'Georgia', stack: "Georgia, 'Times New Roman', serif" },
+  { id: 'palatino', label: 'Palatino', stack: "Palatino, 'Palatino Linotype', 'Book Antiqua', serif" },
+  { id: 'times', label: 'Times New Roman', stack: "'Times New Roman', Times, serif" },
+  { id: 'cambria', label: 'Cambria', stack: "Cambria, Georgia, serif" },
+  { id: 'garamond', label: 'Garamond', stack: "Garamond, 'Palatino Linotype', serif" },
+  { id: 'constantia', label: 'Constantia', stack: "Constantia, Georgia, serif" },
+  { id: 'courier', label: 'Courier New', stack: "'Courier New', Courier, monospace" },
+  { id: 'consolas', label: 'Consolas', stack: "Consolas, 'Courier New', monospace" },
+  { id: 'impact', label: 'Impact', stack: "Impact, 'Arial Narrow', sans-serif" },
+] as const
+
+export type LayoutFontId = (typeof LAYOUT_FONT_CHOICES)[number]['id']
+
+const LAYOUT_FONT_BY_ID = new Map<string, (typeof LAYOUT_FONT_CHOICES)[number]>(
+  LAYOUT_FONT_CHOICES.map((font) => [font.id, font]),
+)
+
+/** Catalog id → CSS font stack. Unknown ids return undefined. */
+export function layoutFontStack(raw: unknown): string | undefined {
+  if (typeof raw !== 'string') return undefined
+  return LAYOUT_FONT_BY_ID.get(raw.trim())?.stack
+}
+
+export function sanitizeLayoutFontId(raw: unknown): string | undefined {
+  if (typeof raw !== 'string') return undefined
+  const id = raw.trim()
+  if (!id || !LAYOUT_FONT_BY_ID.has(id)) return undefined
+  return id
 }
 
 /** Gantry Helium–style rem presets (16px root). */
@@ -286,7 +357,9 @@ export function normalizeLayoutBodyBackground(raw: unknown): LayoutBodyBackgroun
   if (!raw || typeof raw !== 'object') return undefined
   const src = raw as Partial<LayoutBodyBackground>
   const disabled = asBoolFlag(src.disabled) === true
-  const backgroundColor = sanitizeCssColor(src.backgroundColor)
+  const allowGradientBackground = asBoolFlag(src.allowGradientBackground) === true
+  const allowGradientOverlay = asBoolFlag(src.allowGradientOverlay) === true
+  const backgroundColor = sanitizeCssColorOrGradient(src.backgroundColor, allowGradientBackground)
   const backgroundMediaId = sanitizeBackgroundMediaId(src.backgroundMediaId)
   const backgroundImage = sanitizeBackgroundImageUrl(src.backgroundImage)
   const backgroundSize = src.backgroundSize === 'contain' ? 'contain' : src.backgroundSize === 'cover' ? 'cover' : undefined
@@ -298,37 +371,81 @@ export function normalizeLayoutBodyBackground(raw: unknown): LayoutBodyBackgroun
     src.backgroundRepeat === 'repeat' || src.backgroundRepeat === 'no-repeat'
       ? src.backgroundRepeat
       : undefined
+  const overlayEnabled = asBackgroundOverlay(src.backgroundOverlay) === 'enabled'
+  const overlayColor = sanitizeCssColorOrGradient(src.overlayColor, allowGradientOverlay)
   if (
     !disabled &&
     !backgroundColor &&
     !backgroundMediaId &&
-    !backgroundImage
+    !backgroundImage &&
+    !overlayEnabled &&
+    !overlayColor &&
+    !allowGradientBackground &&
+    !allowGradientOverlay
   ) {
     return undefined
   }
   return {
     ...(disabled ? { disabled: true } : {}),
     ...(backgroundColor ? { backgroundColor } : {}),
+    ...(allowGradientBackground ? { allowGradientBackground: true } : {}),
     ...(backgroundMediaId ? { backgroundMediaId } : {}),
     ...(backgroundImage ? { backgroundImage } : {}),
     ...(backgroundSize ? { backgroundSize } : {}),
     ...(backgroundAttachment ? { backgroundAttachment } : {}),
     ...(backgroundRepeat ? { backgroundRepeat } : {}),
+    ...(overlayEnabled ? { backgroundOverlay: 'enabled' as const } : {}),
+    ...(overlayColor ? { overlayColor } : {}),
+    ...(allowGradientOverlay ? { allowGradientOverlay: true } : {}),
+  }
+}
+
+export function normalizeLayoutTypography(raw: unknown): LayoutTypography | undefined {
+  if (!raw || typeof raw !== 'object') return undefined
+  const src = raw as Partial<LayoutTypography>
+  const disabled = asBoolFlag(src.disabled) === true
+  const titleFont = sanitizeLayoutFontId(src.titleFont)
+  const textFont = sanitizeLayoutFontId(src.textFont)
+  const titleColor = sanitizeCssColor(src.titleColor)
+  const textColor = sanitizeCssColor(src.textColor)
+  const linkColor = sanitizeCssColor(src.linkColor)
+  const linkHoverColor = sanitizeCssColor(src.linkHoverColor)
+  if (
+    !disabled &&
+    !titleFont &&
+    !textFont &&
+    !titleColor &&
+    !textColor &&
+    !linkColor &&
+    !linkHoverColor
+  ) {
+    return undefined
+  }
+  return {
+    ...(disabled ? { disabled: true } : {}),
+    ...(titleFont ? { titleFont } : {}),
+    ...(textFont ? { textFont } : {}),
+    ...(titleColor ? { titleColor } : {}),
+    ...(textColor ? { textColor } : {}),
+    ...(linkColor ? { linkColor } : {}),
+    ...(linkHoverColor ? { linkHoverColor } : {}),
   }
 }
 
 export function normalizeLayoutOutlineStyles(raw: unknown): LayoutDocumentStyles | undefined {
   if (!raw || typeof raw !== 'object') return undefined
-  const src = raw as { breakpoints?: unknown; body?: unknown }
+  const src = raw as { breakpoints?: unknown; body?: unknown; typography?: unknown }
   const breakpoints =
     src.breakpoints !== undefined && src.breakpoints !== null
       ? normalizeLayoutBreakpoints(src.breakpoints)
       : undefined
   const body = normalizeLayoutBodyBackground(src.body)
-  if (!breakpoints && !body) return undefined
+  const typography = normalizeLayoutTypography(src.typography)
+  if (!breakpoints && !body && !typography) return undefined
   return {
     ...(breakpoints ? { breakpoints } : {}),
     ...(body ? { body } : {}),
+    ...(typography ? { typography } : {}),
   }
 }
 
@@ -629,7 +746,10 @@ export function buildOutlineBodyBackgroundCss(
   if (!normalized || normalized.disabled) return ''
   const image = normalized.backgroundImage
   const color = normalized.backgroundColor
-  if (!image && !color) return ''
+  const gradient = isCssGradient(color) ? color : undefined
+  const solid = color && !gradient ? color : undefined
+  const overlayOn = normalized.backgroundOverlay === 'enabled'
+  if (!image && !color && !overlayOn) return ''
 
   const outlineId = sanitizeCssScopeId(layoutId, 'default')
   const resolvedSkin =
@@ -640,15 +760,84 @@ export function buildOutlineBodyBackgroundCss(
   const attachment = fit === 'cover-scroll' || fit === 'tile' ? 'scroll' : 'fixed'
   const repeat = fit === 'tile' ? 'repeat' : 'no-repeat'
   const rules: string[] = []
-  if (color) rules.push(`background-color:${color};`)
-  if (image) {
+  if (solid) rules.push(`background-color:${solid};`)
+  if (image && gradient) {
+    rules.push(`background-image:url(${JSON.stringify(image)}),${gradient};`)
+    rules.push(`background-size:${size},cover;`)
+    rules.push('background-position:center center,center center;')
+    rules.push(`background-repeat:${repeat},no-repeat;`)
+    rules.push(`background-attachment:${attachment},${attachment};`)
+  } else if (image) {
     rules.push(`background-image:url(${JSON.stringify(image)});`)
     rules.push(`background-size:${size};`)
     rules.push('background-position:center center;')
     rules.push(`background-repeat:${repeat};`)
     rules.push(`background-attachment:${attachment};`)
+  } else if (gradient) {
+    rules.push(`background-image:${gradient};`)
+    rules.push('background-size:cover;')
+    rules.push('background-position:center center;')
+    rules.push('background-repeat:no-repeat;')
+    rules.push('background-attachment:fixed;')
   }
-  const css = `${sel}{${rules.join('')}}`
-  if (!image) return css
-  return `${css}${sel} .site-footer{background-color:transparent;}`
+  const chunks: string[] = []
+  if (rules.length > 0) chunks.push(`${sel}{${rules.join('')}}`)
+  if (image) chunks.push(`${sel} .site-footer{background-color:transparent;}`)
+  if (overlayOn) {
+    const paint = normalized.overlayColor || 'rgba(0,0,0,0.35)'
+    const fixed = Boolean(image) ? attachment === 'fixed' : true
+    chunks.push(`${sel}{position:relative;isolation:isolate;}`)
+    chunks.push(
+      `${sel}::before{content:"";position:${fixed ? 'fixed' : 'absolute'};inset:0;z-index:-1;pointer-events:none;background:${paint};}`,
+    )
+  }
+  return chunks.join('')
+}
+
+/**
+ * Title / body fonts and colors, plus accent (hyperlinks) and hover,
+ * on the outline body selector. Unset fields stay on the skin tokens.
+ * Section text color (`--sf-section-text`) still wins inside that section.
+ */
+export function buildOutlineTypographyCss(
+  layoutId: string,
+  skinId: string | null | undefined,
+  typography: LayoutTypography | null | undefined,
+): string {
+  const normalized = normalizeLayoutTypography(typography)
+  if (!normalized || normalized.disabled) return ''
+
+  const outlineId = sanitizeCssScopeId(layoutId, 'default')
+  const resolvedSkin =
+    typeof skinId === 'string' && skinId.trim() ? skinId.trim() : 'default'
+  const sel = skinOutlineBodySelector(resolvedSkin, outlineId)
+  const titleStack = layoutFontStack(normalized.titleFont)
+  const textStack = layoutFontStack(normalized.textFont)
+  const vars: string[] = []
+  if (titleStack) vars.push(`--font-display:${titleStack};`)
+  if (textStack) vars.push(`--font-body:${textStack};`)
+  if (normalized.titleColor) vars.push(`--sf-title-color:${normalized.titleColor};`)
+  if (normalized.textColor) vars.push(`--sf-ink:${normalized.textColor};`)
+  if (normalized.linkColor) {
+    vars.push(`--sf-accent:${normalized.linkColor};`)
+    vars.push(`--sf-link:${normalized.linkColor};`)
+  }
+  if (normalized.linkHoverColor) {
+    vars.push(`--sf-accent-hover:${normalized.linkHoverColor};`)
+    vars.push(`--sf-link-hover:${normalized.linkHoverColor};`)
+  }
+  if (vars.length === 0) return ''
+
+  const rules = [`${sel}{${vars.join('')}}`]
+  if (titleStack || normalized.titleColor) {
+    const decls: string[] = []
+    if (titleStack) decls.push('font-family:var(--font-display);')
+    if (normalized.titleColor) decls.push('color:var(--sf-section-text, var(--sf-title-color));')
+    rules.push(`${sel} :is(h1,h2,h3,h4,h5,h6){${decls.join('')}}`)
+  }
+  const linkSel = `${sel} :is(.cms-richtext,.sf-rich-content,.sf-rich-html,.sf-page-content) a:not(.button-link)`
+  if (normalized.linkColor) rules.push(`${linkSel}{color:var(--sf-link);}`)
+  if (normalized.linkHoverColor) rules.push(`${linkSel}:hover{color:var(--sf-link-hover);}`)
+  else if (normalized.linkColor) rules.push(`${linkSel}:hover{color:var(--sf-link);}`)
+  return rules.join('')
 }

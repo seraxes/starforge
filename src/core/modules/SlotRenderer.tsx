@@ -56,6 +56,11 @@ export async function SlotRenderer({ sectionId, slot, pageContent, layoutId }: P
     const { MODULE_IDS, isCatalogModuleEnabled } = await import('@/core/settings')
     if (!isCatalogModuleEnabled(settings, MODULE_IDS.search)) return null
   }
+  // Cookie settings particle requires product:consent.
+  if (mod.id === 'cookie-settings') {
+    const { MODULE_IDS, isCatalogModuleEnabled } = await import('@/core/settings')
+    if (!isCatalogModuleEnabled(settings, MODULE_IDS.consent)) return null
+  }
   // event-list / event-detail / event-countdown particles require product:events.
   if (
     mod.id === 'event-list' ||

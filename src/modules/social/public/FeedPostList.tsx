@@ -339,6 +339,8 @@ export async function FeedPostList({
                   reactionIconImageUrls={reactionIconImageUrls}
                   showReactionLabels={pack.settings.showReactionLabels}
                   reactionIconSizePx={pack.settings.reactionIconSizePx}
+                  reactionTrayHoverSizePx={pack.settings.reactionTrayHoverSizePx}
+                  reactionTrayHoverEasing={pack.settings.reactionTrayHoverEasing}
                   allowComments={pack.settings.allowComments}
                   allowCommentReactions={pack.settings.allowReactionsOnComments}
                   commentLengthLimit={pack.settings.commentLengthLimit}
@@ -368,6 +370,8 @@ export async function FeedPostList({
                 reactionIconImageUrls={reactionIconImageUrls}
                 showReactionLabels={pack.settings.showReactionLabels}
                 reactionIconSizePx={pack.settings.reactionIconSizePx}
+                reactionTrayHoverSizePx={pack.settings.reactionTrayHoverSizePx}
+                reactionTrayHoverEasing={pack.settings.reactionTrayHoverEasing}
                 allowComments={pack.settings.allowComments}
                 allowCommentReactions={pack.settings.allowReactionsOnComments}
                 commentLengthLimit={pack.settings.commentLengthLimit}

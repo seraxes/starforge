@@ -8,6 +8,7 @@ import { resolveMediaById } from '@/core/media/resolve'
 
 import { LayoutOutlineStyles } from './LayoutOutlineStyles'
 import { clampGridWidth, LAYOUT_WIDTH_FULL } from './grid'
+import { lineContainerMode, packSectionsIntoLines, rowContainerForSections } from './row-container'
 import { getPublicLayoutBundle } from './layout'
 import { isFooterLayoutSection, partitionSectionsForPublicPaint } from './section-order'
 
@@ -20,7 +21,7 @@ import {
   type LayoutSectionStyles,
 } from './styles'
 import { SlotRenderer } from './SlotRenderer'
-import type { LayoutRow, LayoutSection } from './types'
+import type { LayoutRow, LayoutRowContainer, LayoutSection } from './types'
 
 async function stylesWithResolvedBackground(
   styles: LayoutSectionStyles | undefined,
@@ -74,7 +75,7 @@ function sortByOrder<T extends { order?: number; id: string }>(items: T[]): T[] 
   return [...items].sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id))
 }
 
-function sectionWrapperClass(section: LayoutSection, base: string): string {
+function sectionWrapperClass(section: { cssClass?: string }, base: string): string {
   const extra = typeof section.cssClass === 'string' ? section.cssClass.trim() : ''
   return extra ? `${base} ${extra}` : base
 }
@@ -84,18 +85,20 @@ async function SectionBlock({
   pageContent,
   pageDefault,
   layoutId,
+  shareRow = false,
 }: {
   section: LayoutSection
   pageContent: React.ReactNode
   pageDefault: 'fullwidth' | 'boxed'
   layoutId?: string
+  /** Inside a row container: width % only — container mode lives on the wrapper. */
+  shareRow?: boolean
 }) {
   const rows = sortByOrder(section.rows)
   const isFooter = isFooterLayoutSection(section)
-  const containerMode: LayoutContainerMode = resolveSectionContainerMode(
-    section.containerMode,
-    pageDefault,
-  )
+  const containerMode: LayoutContainerMode | undefined = shareRow
+    ? undefined
+    : resolveSectionContainerMode(section.containerMode, pageDefault)
   const resolvedStyles = await stylesWithResolvedBackground(section.styles)
   const sectionStyle = buildSectionInlineStyle(resolvedStyles)
   const overlayOn = resolvedStyles?.backgroundOverlay === 'enabled'
@@ -151,38 +154,6 @@ async function SectionBlock({
   )
 }
 
-/** Group consecutive partial-width sections so they sit side-by-side (particle-like %). */
-function chunkSectionsForMosaic(sections: LayoutSection[]): Array<
-  | { kind: 'single'; section: LayoutSection }
-  | { kind: 'mosaic'; sections: LayoutSection[] }
-> {
-  const out: Array<
-    | { kind: 'single'; section: LayoutSection }
-    | { kind: 'mosaic'; sections: LayoutSection[] }
-  > = []
-  let partialBuf: LayoutSection[] = []
-  const flushPartial = () => {
-    if (partialBuf.length === 0) return
-    if (partialBuf.length === 1) {
-      out.push({ kind: 'single', section: partialBuf[0]! })
-    } else {
-      out.push({ kind: 'mosaic', sections: partialBuf })
-    }
-    partialBuf = []
-  }
-  for (const section of sections) {
-    const width = clampGridWidth(section.width ?? LAYOUT_WIDTH_FULL, LAYOUT_WIDTH_FULL)
-    if (width < LAYOUT_WIDTH_FULL) {
-      partialBuf.push(section)
-      continue
-    }
-    flushPartial()
-    out.push({ kind: 'single', section })
-  }
-  flushPartial()
-  return out
-}
-
 function LayoutRowView({
   sectionId,
   row,
@@ -212,6 +183,60 @@ function LayoutRowView({
   )
 }
 
+async function RowContainerBlock({
+  sections,
+  container,
+  pageContent,
+  pageDefault,
+  layoutId,
+}: {
+  sections: LayoutSection[]
+  container: LayoutRowContainer | undefined
+  pageContent: React.ReactNode
+  pageDefault: 'fullwidth' | 'boxed'
+  layoutId?: string
+}) {
+  const containerMode = resolveSectionContainerMode(
+    lineContainerMode(container, sections),
+    pageDefault,
+  )
+  const resolvedStyles = await stylesWithResolvedBackground(container?.styles)
+  const sectionStyle = buildSectionInlineStyle(resolvedStyles)
+  const overlayOn = resolvedStyles?.backgroundOverlay === 'enabled'
+  const htmlId = typeof container?.htmlId === 'string' ? container.htmlId.trim() : ''
+  const ids = sections.map((section) => section.id).join('-')
+
+  return (
+    <section
+      id={htmlId || undefined}
+      className={sectionWrapperClass(
+        { cssClass: container?.cssClass },
+        'sf-layout-section sf-layout-row-container',
+      )}
+      data-sf-section={container?.id ?? `row-${ids}`}
+      data-sf-row-container="true"
+      data-sf-container={containerMode}
+      data-sf-width={LAYOUT_WIDTH_FULL}
+      data-sf-section-styled={sectionStyle ? 'true' : undefined}
+      data-sf-overlay={overlayOn ? 'enabled' : undefined}
+      style={sectionStyle}
+    >
+      <div className="sf-layout-section-mosaic">
+        {sections.map((section) => (
+          <SectionBlock
+            key={section.id}
+            section={section}
+            pageContent={pageContent}
+            pageDefault={pageDefault}
+            layoutId={layoutId}
+            shareRow
+          />
+        ))}
+      </div>
+    </section>
+  )
+}
+
 function sectionHasEnabledSlots(section: LayoutSection): boolean {
   return section.rows.some((row) => row.slots.some((slot) => slot.enabled !== false))
 }
@@ -236,7 +261,8 @@ function documentHasPageContent(sections: LayoutSection[]): boolean {
  * not painted — the outline owns every visible block.
  *
  * Section `containerMode` owns full vs boxed width (boxed → outline `--sf-container-max`).
- * Section `width` (5–100%) via `data-sf-width` + CSS — consecutive partials sit side-by-side.
+ * When two or more sections share a line, a row container owns that mode and the
+ * basic section styles. Member sections keep `width` and do not paint container mode.
  */
 function hasRenderableChildren(children: React.ReactNode): boolean {
   if (children == null || children === false || children === true) return false
@@ -313,36 +339,34 @@ export async function PublicLayoutBody({
   const breakpoints = document.styles?.breakpoints ?? DEFAULT_LAYOUT_BREAKPOINTS
   const bodyBackground = await resolveBodyBackground(document.styles?.body)
   const pageDefault = sectionsLayout
-  const flowChunks = chunkSectionsForMosaic(paintableFlow)
-  const footerChunks = chunkSectionsForMosaic(paintableFooters)
+  const rowContainers = document.rowContainers
 
-  const paintChunks = (chunks: ReturnType<typeof chunkSectionsForMosaic>) =>
-    chunks.map((chunk) =>
-      chunk.kind === 'single' ? (
-        <SectionBlock
-          key={chunk.section.id}
-          section={chunk.section}
+  const paintLines = (sections: LayoutSection[]) =>
+    packSectionsIntoLines(sections).map((line) => {
+      if (line.sections.length < 2) {
+        const section = line.sections[0]!
+        return (
+          <SectionBlock
+            key={section.id}
+            section={section}
+            pageContent={children}
+            pageDefault={pageDefault}
+            layoutId={resolvedLayoutId}
+          />
+        )
+      }
+      const ids = line.sections.map((section) => section.id)
+      return (
+        <RowContainerBlock
+          key={ids.join('-')}
+          sections={line.sections}
+          container={rowContainerForSections(rowContainers, ids)}
           pageContent={children}
           pageDefault={pageDefault}
           layoutId={resolvedLayoutId}
         />
-      ) : (
-        <div
-          key={`mosaic-${chunk.sections.map((s) => s.id).join('-')}`}
-          className="sf-layout-section-mosaic"
-        >
-          {chunk.sections.map((section) => (
-            <SectionBlock
-              key={section.id}
-              section={section}
-              pageContent={children}
-              pageDefault={pageDefault}
-              layoutId={resolvedLayoutId}
-            />
-          ))}
-        </div>
-      ),
-    )
+      )
+    })
 
   return (
     <div
@@ -359,8 +383,9 @@ export async function PublicLayoutBody({
         skinId={skin.id}
         breakpoints={breakpoints}
         bodyBackground={bodyBackground}
+        typography={document.styles?.typography}
       />
-      {paintChunks(flowChunks)}
+      {paintLines(paintableFlow)}
 
       {!hasPageContent && showPageChildren ? (
         <section
@@ -377,7 +402,7 @@ export async function PublicLayoutBody({
         </section>
       ) : null}
 
-      {paintChunks(footerChunks)}
+      {paintLines(paintableFooters)}
     </div>
   )
 }

@@ -67,6 +67,8 @@ export function InheritSwitch({
   )
 }
 
+export type InheritOutlineOption = { id: string; label: string }
+
 type InheritCopyRowProps = {
   inherited: boolean
   disabled?: boolean
@@ -159,6 +161,70 @@ export function InheritCopyRow({
           setConfirmOpen(false)
           onCopy()
         }}
+      />
+    </div>
+  )
+}
+
+type InheritSourceControlsProps = Omit<InheritCopyRowProps, 'onInheritChange' | 'onCopy'> & {
+  outlines: InheritOutlineOption[]
+  /** Saved source, or the parent layout when none is stored. */
+  initialSourceId: string
+  onSourceChange: (outlineId: string) => void
+  onInheritChange: (inherited: boolean, sourceId: string) => void
+  onCopy: (sourceId: string) => void
+}
+
+/**
+ * Layout picker, then Inherit on/off and Copy on one line.
+ * The cluster sits on the right of the section cog.
+ */
+export function InheritSourceControls({
+  outlines,
+  initialSourceId,
+  onSourceChange,
+  onInheritChange,
+  onCopy,
+  ...rowProps
+}: InheritSourceControlsProps) {
+  const [sourceId, setSourceId] = useState(initialSourceId)
+  const choices =
+    outlines.some((outline) => outline.id === sourceId) || !sourceId
+      ? outlines
+      : [{ id: sourceId, label: sourceId }, ...outlines]
+
+  return (
+    <div
+      className="gantry-inherit-source"
+      onClick={(event) => {
+        event.stopPropagation()
+      }}
+    >
+      {choices.length > 0 ? (
+        <label className="gantry-inline-label gantry-inherit-source-layout">
+          <span className="gantry-field-hint">Layout</span>
+          <select
+            value={sourceId}
+            disabled={rowProps.disabled}
+            aria-label="Layout to inherit from"
+            onChange={(event) => {
+              const next = event.target.value
+              setSourceId(next)
+              onSourceChange(next)
+            }}
+          >
+            {choices.map((outline) => (
+              <option key={outline.id} value={outline.id}>
+                {outline.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
+      <InheritCopyRow
+        {...rowProps}
+        onInheritChange={(next) => onInheritChange(next, sourceId)}
+        onCopy={() => onCopy(sourceId)}
       />
     </div>
   )

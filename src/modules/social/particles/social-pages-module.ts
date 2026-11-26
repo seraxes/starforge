@@ -2,24 +2,31 @@ import React from 'react'
 import Link from 'next/link'
 import { getLocale } from 'next-intl/server'
 
+import { getAccessViewer } from '@/core/acl/access'
 import { getAppSession } from '@/core/auth/session'
 import { isAppLocale } from '@/core/i18n/locales'
 import { withLocalePrefix } from '@/core/i18n/path'
 import type { StarforgeModule } from '@/core/modules/types'
 import { MODULE_IDS, isCatalogModuleEnabled } from '@/core/settings'
+import { getPersonas, personaMediaSrc } from '@/modules/profiles/api.server'
 
 import { pageHref } from '../pages'
-import { listMyLikedPages } from '../pages-store'
+import {
+  listMyLikedPages,
+  listPagesByIds,
+  listPagesForParticle,
+} from '../pages-store'
+import { SocialEntityCards, type SocialEntityCard } from './SocialEntityCards'
 import { readSocialPagesConfig } from './social-pages-config'
 
 /**
- * social-pages particle — pages the viewer likes.
+ * social-pages particle — liked pages, selected pages, or directory.
  * Do not reuse the builtin particle id `social` (footer links).
  */
 export const socialPagesModule: StarforgeModule = {
   id: 'social-pages',
   name: 'Social pages',
-  description: 'Liked pages from product:social.',
+  description: 'Pages from product:social.',
   defaultWidth: 33,
   navViews: [
     { key: 'feed', label: 'Social', href: '/feed' },
@@ -40,7 +47,7 @@ export const socialPagesModule: StarforgeModule = {
     )}`
     const directoryHref = withLocalePrefix('/feed/pages', locale)
 
-    if (!userId) {
+    if (cfg.source === 'viewer' && !userId) {
       return React.createElement(
         'section',
         { className: 'sf-social-pages-particle', 'aria-label': cfg.heading || 'Pages' },
@@ -56,7 +63,33 @@ export const socialPagesModule: StarforgeModule = {
       )
     }
 
-    const pages = await listMyLikedPages(userId, cfg.limit)
+    const rows =
+      cfg.source === 'groups'
+        ? await listPagesByIds(cfg.scopeIds, cfg.limit)
+        : cfg.source === 'all'
+          ? await listPagesForParticle(cfg.limit)
+          : await listMyLikedPages(userId, cfg.limit)
+
+    const viewer = await getAccessViewer()
+    const personas = await getPersonas(
+      rows.map((row) => row.ownerUserId),
+      viewer,
+    )
+
+    const items: SocialEntityCard[] = rows.map((row) => {
+      const persona = personas.get(row.ownerUserId)
+      const avatarLabel =
+        persona?.displayName?.trim() ||
+        (persona?.handle ? `@${persona.handle}` : row.name)
+      return {
+        key: row.pageId,
+        href: withLocalePrefix(pageHref(row.slug), locale),
+        title: row.name,
+        imageSrc: personaMediaSrc(row.coverMediaId) || null,
+        avatarSrc: personaMediaSrc(persona?.avatarMediaId) || null,
+        avatarLabel,
+      }
+    })
 
     return React.createElement(
       'section',
@@ -69,35 +102,12 @@ export const socialPagesModule: StarforgeModule = {
         { className: 'sf-social-pages-directory-link' },
         React.createElement(Link, { href: directoryHref }, 'Browse pages'),
       ),
-      pages.length === 0
-        ? React.createElement('p', { className: 'layout-muted' }, cfg.emptyMessage)
-        : React.createElement(
-            'ul',
-            { className: 'sf-social-pages-list' },
-            ...pages.map((page) =>
-              React.createElement(
-                'li',
-                { key: page.pageId, className: 'sf-social-pages-item' },
-                React.createElement(
-                  Link,
-                  {
-                    href: withLocalePrefix(pageHref(page.slug), locale),
-                    className: 'sf-social-pages-link',
-                  },
-                  React.createElement(
-                    'span',
-                    { className: 'sf-social-pages-name' },
-                    page.name,
-                  ),
-                  React.createElement(
-                    'span',
-                    { className: 'layout-muted' },
-                    `${page.likeCount} like${page.likeCount === 1 ? '' : 's'}`,
-                  ),
-                ),
-              ),
-            ),
-          ),
+      React.createElement(SocialEntityCards, {
+        items,
+        showImages: cfg.showImages,
+        emptyMessage: cfg.emptyMessage,
+        className: 'sf-social-pages',
+      }),
     )
   },
 }

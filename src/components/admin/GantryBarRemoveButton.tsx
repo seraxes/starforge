@@ -16,8 +16,8 @@ type Props = {
 }
 
 /**
- * Soft muted-danger remove beside the bar cog (Layout modules / Form fields).
- * Thick X glyph on quiet chrome; confirms in an in-app dialog (not window.confirm).
+ * White X remove beside the bar cog (Layout modules / Form fields).
+ * No button fill. Confirms in an in-app dialog (not window.confirm).
  */
 export function GantryBarRemoveButton({
   label,
@@ -50,11 +50,11 @@ export function GantryBarRemoveButton({
           focusable="false"
         >
           <path
-            d="M3.25 3.25 L12.75 12.75 M12.75 3.25 L3.25 12.75"
+            d="M4.5 4.5 L11.5 11.5 M11.5 4.5 L4.5 11.5"
             fill="none"
-            stroke="currentColor"
-            strokeWidth="2.4"
-            strokeLinecap="square"
+            stroke="#fff"
+            strokeWidth="1.5"
+            strokeLinecap="round"
           />
         </svg>
       </button>

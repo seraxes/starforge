@@ -63,6 +63,11 @@ function formatUpdated(iso: string) {
   }
 }
 
+function suggestedDuplicateLabel(label: string): string {
+  const base = label.replace(/\s*—\s*Base$/i, '').trim()
+  return `${base || 'Outline'} copy`
+}
+
 export function OutlinesManager({
   outlines,
   activeSkinId,
@@ -80,6 +85,8 @@ export function OutlinesManager({
 
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null)
+  const [dupLabel, setDupLabel] = useState('')
+  const [dupMode, setDupMode] = useState<'inherit' | 'copy'>('inherit')
   const [createSourceId, setCreateSourceId] = useState(baseOutlineId ?? '')
   const [createMode, setCreateMode] = useState<'inherit' | 'copy'>('inherit')
 
@@ -264,7 +271,13 @@ export function OutlinesManager({
                       type="button"
                       className="secondary"
                       onClick={() => {
-                        setDuplicatingId(duplicatingId === outline.id ? null : outline.id)
+                        if (duplicatingId === outline.id) {
+                          setDuplicatingId(null)
+                          return
+                        }
+                        setDuplicatingId(outline.id)
+                        setDupLabel(suggestedDuplicateLabel(outline.label))
+                        setDupMode('inherit')
                         setRenamingId(null)
                       }}
                     >
@@ -340,27 +353,42 @@ export function OutlinesManager({
                   {duplicatingId === outline.id ? (
                     <form
                       action={dupAction}
-                      className="outlines-inline-form"
-                      onSubmit={() => {
-                        setDuplicatingId(null)
-                        setTimeout(refresh, 50)
-                      }}
+                      className="outlines-inline-form admin-control-row"
                     >
                       <input type="hidden" name="sourceId" value={outline.id} />
                       <input type="hidden" name="openAfter" value="1" />
-                      <input
-                        type="text"
-                        name="label"
-                        defaultValue={`${outline.label.replace(/\s*—\s*Base$/i, '').trim()} child`}
-                        required
-                        maxLength={80}
-                        aria-label="Duplicate outline name"
-                      />
                       <label className="settings-field">
+                        <span>Name</span>
+                        <input
+                          type="text"
+                          name="label"
+                          value={dupLabel}
+                          onChange={(e) => setDupLabel(e.target.value)}
+                          placeholder="Outline name"
+                          required
+                          maxLength={80}
+                          aria-label="Duplicate outline name"
+                          autoFocus
+                        />
+                      </label>
+                      <label
+                        className="settings-field"
+                        title={
+                          dupMode === 'inherit'
+                            ? 'Live child — source sections and styles stay shared'
+                            : 'Standalone snapshot of the source’s resolved layout'
+                        }
+                      >
                         <span>Source</span>
-                        <select name="asInheritingChild" defaultValue="1" title="Inherit = live child; Copy = resolved snapshot">
-                          <option value="1">Inherit</option>
-                          <option value="0">Copy</option>
+                        <select
+                          name="createMode"
+                          value={dupMode}
+                          onChange={(e) =>
+                            setDupMode(e.target.value === 'copy' ? 'copy' : 'inherit')
+                          }
+                        >
+                          <option value="inherit">Inherit</option>
+                          <option value="copy">Copy</option>
                         </select>
                       </label>
                       <button type="submit" className="gantry-toolbar-btn gantry-toolbar-btn-save" disabled={dupPending}>

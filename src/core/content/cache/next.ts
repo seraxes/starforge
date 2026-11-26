@@ -1,6 +1,6 @@
 import { unstable_cache } from 'next/cache'
 
-import { revalidateTagNow } from '../defer-revalidate'
+import { revalidateTagNow, type CacheInvalidateMode } from '../defer-revalidate'
 
 import type { ContentCacheGetOptions, PublishedContentCache } from './types'
 
@@ -17,9 +17,13 @@ export const nextPublishedContentCache: PublishedContentCache = {
     return cached()
   },
 
-  async invalidateTags(tags: readonly string[]): Promise<void> {
-    // Stale-while-revalidate. Immediate expiry blocks the next read and
-    // leaves /admin/media hung after upload.
-    for (const tag of tags) revalidateTagNow(tag)
+  async invalidateTags(
+    tags: readonly string[],
+    mode: CacheInvalidateMode = 'stale',
+  ): Promise<void> {
+    // `stale` keeps the action from blocking the next read (media upload hang,
+    // layout save → public 503). `expire` still returns immediately, but the
+    // following read misses instead of painting one stale copy.
+    for (const tag of tags) revalidateTagNow(tag, mode)
   },
 }

@@ -95,6 +95,8 @@ describe('social people / reactions / reports settings (slice 15c)', () => {
       },
       showReactionLabels: false,
       reactionIconSizePx: 24,
+      reactionTrayHoverSizePx: 40,
+      reactionTrayHoverEasing: 'ease-out',
       allowReactionsOnComments: true,
       allowReactionsOnStories: false,
       enabledReportReasons: ['spam', 'other'],
@@ -114,6 +116,8 @@ describe('social people / reactions / reports settings (slice 15c)', () => {
     assert.equal(saved.settings.reactionIconMediaIds.love, 'media_love_1')
     assert.equal(saved.settings.showReactionLabels, false)
     assert.equal(saved.settings.reactionIconSizePx, 24)
+    assert.equal(saved.settings.reactionTrayHoverSizePx, 40)
+    assert.equal(saved.settings.reactionTrayHoverEasing, 'ease-out')
     assert.equal(saved.settings.allowReactionsOnComments, true)
     assert.deepEqual(saved.settings.enabledReportReasons, ['spam', 'other'])
     assert.equal(saved.settings.autoHideOpenReportThreshold, 5)

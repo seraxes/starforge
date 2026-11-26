@@ -6,6 +6,7 @@ import { ensureLayoutSkinIdColumn } from '@/core/db/ensure-layout-skin-id'
 
 import {
   cloneDefaultLayoutDocument,
+  layoutDocumentIsStored,
   normalizeLayoutDocument,
   parseLayoutDocumentJson,
   serializeLayoutDocument,
@@ -14,7 +15,7 @@ import {
 import type { LayoutDocument } from './types'
 
 function isUsableDocument(doc: LayoutDocument | null | undefined): doc is LayoutDocument {
-  return Boolean(doc && doc.version === 3 && Array.isArray(doc.sections) && doc.sections.length > 0)
+  return layoutDocumentIsStored(doc)
 }
 
 export type LayoutLoadSource = 'database' | 'default-json'
@@ -390,12 +391,11 @@ export async function createLayoutOutline(input: {
     if (parent.layoutId !== inheritFrom && inheritFrom !== DEFAULT_LAYOUT_ID) {
       return { error: `Parent outline “${inheritFrom}” was not found.` }
     }
-    const parentResolved = await resolveLayoutInheritance(parent.layoutId, parent.document)
+    // Thin stub: sections and styles stay on the parent and merge at read time.
     document = {
       version: 3,
       inheritFrom,
       sections: [],
-      ...(parentResolved.styles ? { styles: structuredClone(parentResolved.styles) } : {}),
     }
   } else if (copyFrom) {
     const source = await loadLayoutDocument(copyFrom)
@@ -465,9 +465,8 @@ export async function renameLayoutOutline(
 }
 
 /**
- * Duplicate an outline into a new id + label.
- * Default: inheriting child of the skin Base (or source when source is Base),
- * same `skinId` as the source / active skin.
+ * Duplicate an outline into a new id + label under the same skin.
+ * Inherit: thin live child of the source. Copy: resolved snapshot, no inherit link.
  */
 export async function duplicateLayoutOutline(
   sourceId: string,
@@ -475,11 +474,9 @@ export async function duplicateLayoutOutline(
   requestedId?: string,
   options?: {
     asInheritingChild?: boolean
-    /** Parent for inheritFrom — defaults to skin Base when duplicating Base itself. */
+    /** Parent for inheritFrom — defaults to the source outline. */
     inheritFromId?: string
     skinId?: string | null
-    /** Skin Base outline id — used when duplicating the Base so children inherit Base. */
-    skinBaseOutlineId?: string | null
   },
 ): Promise<{ outline: LayoutOutlineMeta } | { error: string }> {
   const source = resolveLayoutId(sourceId)
@@ -487,11 +484,8 @@ export async function duplicateLayoutOutline(
   if (!nextLabel) return { error: 'Outline name is required.' }
 
   const loaded = await loadLayoutDocument(source)
-  if (loaded.source !== 'database' || (loaded.isFallback && loaded.layoutId !== source)) {
-    // Allow duplicating default even if only JSON fallback exists.
-    if (source !== DEFAULT_LAYOUT_ID && loaded.layoutId !== source) {
-      return { error: `Source outline “${source}” was not found.` }
-    }
+  if (loaded.layoutId !== source && source !== DEFAULT_LAYOUT_ID) {
+    return { error: `Source outline “${source}” was not found.` }
   }
 
   const sourceMeta = await getLayoutOutline(source)
@@ -502,52 +496,20 @@ export async function duplicateLayoutOutline(
     sourceMeta?.skinId ||
     null
 
-  const existing = await listLayoutOutlines()
-  const ids = new Set(existing.map((o) => o.id))
-  const idBase =
-    requestedId?.trim() ||
-    (skinId ? `${skinId}-${slugifyLayoutId(nextLabel)}` : slugifyLayoutId(nextLabel))
-  const id = uniqueOutlineId(idBase, ids)
-
   const asChild = options?.asInheritingChild !== false
-  // Inherit = live child of the source itself. Copy = resolved snapshot, no link.
   const inheritFrom =
     (typeof options?.inheritFromId === 'string' && options.inheritFromId.trim()
       ? options.inheritFromId.trim()
       : '') || (asChild ? source : '')
 
-  const { resolveLayoutInheritance } = await import('./inherit')
-
-  let document: LayoutDocument
-  if (asChild && inheritFrom) {
-    const parentResolved = await resolveLayoutInheritance(loaded.layoutId, loaded.document)
-    document = {
-      version: 3,
-      inheritFrom,
-      sections: [],
-      ...(parentResolved.styles ? { styles: structuredClone(parentResolved.styles) } : {}),
-    }
-  } else {
-    const resolved = await resolveLayoutInheritance(loaded.layoutId, loaded.document)
-    document = structuredClone(resolved)
-    delete document.inheritFrom
-    delete document.omitSectionIds
-  }
-
-  try {
-    await saveLayoutDocument(document, id, { label: nextLabel, skinId })
-  } catch (error) {
-    return {
-      error:
-        error instanceof Error && error.message
-          ? error.message
-          : 'Could not duplicate the outline.',
-    }
-  }
-
-  const outline = await getLayoutOutline(id)
-  if (!outline) return { error: 'Outline duplicated but could not be reloaded.' }
-  return { outline }
+  return createLayoutOutline({
+    label: nextLabel,
+    ...(requestedId?.trim() ? { id: requestedId.trim() } : {}),
+    skinId,
+    ...(asChild
+      ? { inheritFromId: inheritFrom || source, asInheritingChild: true }
+      : { copyFromId: source, asInheritingChild: false }),
+  })
 }
 
 /**

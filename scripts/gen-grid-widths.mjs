@@ -44,8 +44,14 @@ for (const sel of mosaicSels) {
   )
 }
 
+/*
+ * Share the flex gap across columns that sum to 100%.
+ * Full gap per column left a leftover strip on the right of the row.
+ * Formula: p% - gap * (100 - p) / 100
+ *   50|50 → each loses half a gap; 30|70 → 0.7 / 0.3 of one gap.
+ */
 for (let n = 5; n <= 99; n++) {
-  const basis = `calc(${n}% - ${gap})`
+  const basis = `calc(${n}% - (${gap} * ${100 - n} / 100))`
   const sel = [...mosaicSels, publicSectionMosaic]
     .map((s) => `${s}[data-sf-width="${n}"]`)
     .join(',\n')

@@ -62,6 +62,24 @@ export const SOCIAL_REACTION_ICON_SIZE_PX_DEFAULT = 16
 export const SOCIAL_REACTION_ICON_SIZE_PX_MIN = 12
 export const SOCIAL_REACTION_ICON_SIZE_PX_MAX = 40
 
+/** Tray-choice hover size in px (admin). */
+export const SOCIAL_REACTION_TRAY_HOVER_SIZE_PX_DEFAULT = 28
+export const SOCIAL_REACTION_TRAY_HOVER_SIZE_PX_MIN = 12
+export const SOCIAL_REACTION_TRAY_HOVER_SIZE_PX_MAX = 64
+
+/** CSS transition-timing-function for tray hover grow. */
+export const SOCIAL_REACTION_TRAY_HOVER_EASINGS = [
+  'ease',
+  'ease-in',
+  'ease-out',
+  'ease-in-out',
+  'linear',
+] as const
+export type SocialReactionTrayHoverEasing =
+  (typeof SOCIAL_REACTION_TRAY_HOVER_EASINGS)[number]
+export const SOCIAL_REACTION_TRAY_HOVER_EASING_DEFAULT: SocialReactionTrayHoverEasing =
+  'ease'
+
 /** Member write flood bucket (posts, comments, reactions, requests, …). */
 export const SOCIAL_WRITE_RATE_LIMIT_MAX_DEFAULT = 60
 export const SOCIAL_WRITE_RATE_LIMIT_MAX_MIN = 1
@@ -147,6 +165,10 @@ export type SocialModuleSettings = {
   showReactionLabels: boolean
   /** Tray popup glyph/image size in pixels (main Like control stays default size). */
   reactionIconSizePx: number
+  /** Tray choice hover size in pixels (scales from {@link reactionIconSizePx}). */
+  reactionTrayHoverSizePx: number
+  /** CSS easing for the tray hover grow. */
+  reactionTrayHoverEasing: SocialReactionTrayHoverEasing
   /** Guests (no viewer) may read audience=public posts. */
   guestCanReadPublic: boolean
   feedPageSize: number
@@ -227,6 +249,8 @@ export const DEFAULT_SOCIAL_MODULE_SETTINGS: SocialModuleSettings = {
   },
   showReactionLabels: true,
   reactionIconSizePx: SOCIAL_REACTION_ICON_SIZE_PX_DEFAULT,
+  reactionTrayHoverSizePx: SOCIAL_REACTION_TRAY_HOVER_SIZE_PX_DEFAULT,
+  reactionTrayHoverEasing: SOCIAL_REACTION_TRAY_HOVER_EASING_DEFAULT,
   guestCanReadPublic: true,
   feedPageSize: SOCIAL_FEED_PAGE_SIZE_DEFAULT,
   allowText: true,
@@ -564,6 +588,29 @@ function readSettings(
         ? DEFAULT_SOCIAL_MODULE_SETTINGS.reactionIconSizePx
         : size
     })(),
+    reactionTrayHoverSizePx: (() => {
+      const size = readBoundedInt(
+        obj.reactionTrayHoverSizePx,
+        DEFAULT_SOCIAL_MODULE_SETTINGS.reactionTrayHoverSizePx,
+        SOCIAL_REACTION_TRAY_HOVER_SIZE_PX_MIN,
+        SOCIAL_REACTION_TRAY_HOVER_SIZE_PX_MAX,
+        'coerce',
+      )
+      return size === 'invalid'
+        ? DEFAULT_SOCIAL_MODULE_SETTINGS.reactionTrayHoverSizePx
+        : size
+    })(),
+    reactionTrayHoverEasing: (() => {
+      const easing = readChoice(
+        obj.reactionTrayHoverEasing,
+        SOCIAL_REACTION_TRAY_HOVER_EASINGS,
+        DEFAULT_SOCIAL_MODULE_SETTINGS.reactionTrayHoverEasing,
+        'coerce',
+      )
+      return easing === 'invalid'
+        ? DEFAULT_SOCIAL_MODULE_SETTINGS.reactionTrayHoverEasing
+        : easing
+    })(),
     guestCanReadPublic: readFlag(
       obj.guestCanReadPublic,
       DEFAULT_SOCIAL_MODULE_SETTINGS.guestCanReadPublic,
@@ -848,6 +895,8 @@ export function socialPeopleSettingsFromForm(formData: FormData): Record<string,
     reactionIconMediaIds,
     showReactionLabels: formData.get('showReactionLabels') === '1',
     reactionIconSizePx: formData.get('reactionIconSizePx'),
+    reactionTrayHoverSizePx: formData.get('reactionTrayHoverSizePx'),
+    reactionTrayHoverEasing: formData.get('reactionTrayHoverEasing'),
     allowFriendRequests: formData.get('allowFriendRequests') === '1',
     maxPendingFriendRequests: formData.get('maxPendingFriendRequests'),
     allowFollow: formData.get('allowFollow') === '1',

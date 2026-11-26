@@ -571,9 +571,35 @@ export type SocialPageListItem = {
   name: string
   slug: string
   likeCount: number
+  coverMediaId: string | null
+  ownerUserId: string
 }
 
-/** Pages the viewer likes (social-pages particle). */
+function toSocialPageListItem(page: PageRecord, likeCount: number): SocialPageListItem {
+  return {
+    pageId: page.id,
+    name: page.name,
+    slug: page.slug,
+    likeCount,
+    coverMediaId: page.coverMediaId,
+    ownerUserId: page.ownerUserId,
+  }
+}
+
+async function likeCountsForPages(pageIds: string[]): Promise<Map<string, number>> {
+  if (pageIds.length === 0) return new Map()
+  const counts = await db
+    .select({
+      pageId: sfSocialPageLikes.pageId,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(sfSocialPageLikes)
+    .where(inArray(sfSocialPageLikes.pageId, pageIds))
+    .groupBy(sfSocialPageLikes.pageId)
+  return new Map(counts.map((row) => [row.pageId, Number(row.count) || 0]))
+}
+
+/** Pages the viewer likes (social-pages particle source=viewer). */
 export async function listMyLikedPages(
   userId: string,
   limit = 20,
@@ -595,25 +621,12 @@ export async function listMyLikedPages(
       .from(sfSocialPages)
       .where(inArray(sfSocialPages.id, pageIds))
     const byId = new Map(pages.map(mapPage).map((row) => [row.id, row]))
-    const counts = await db
-      .select({
-        pageId: sfSocialPageLikes.pageId,
-        count: sql<number>`count(*)::int`,
-      })
-      .from(sfSocialPageLikes)
-      .where(inArray(sfSocialPageLikes.pageId, pageIds))
-      .groupBy(sfSocialPageLikes.pageId)
-    const countById = new Map(counts.map((row) => [row.pageId, Number(row.count) || 0]))
+    const countById = await likeCountsForPages(pageIds)
     const out: SocialPageListItem[] = []
     for (const like of likes) {
       const page = byId.get(like.pageId)
       if (!page) continue
-      out.push({
-        pageId: page.id,
-        name: page.name,
-        slug: page.slug,
-        likeCount: countById.get(page.id) ?? 0,
-      })
+      out.push(toSocialPageListItem(page, countById.get(page.id) ?? 0))
     }
     return out
   } catch (error) {
@@ -621,6 +634,44 @@ export async function listMyLikedPages(
     if (/sf_social_page|does not exist|relation/i.test(msg)) return []
     throw error
   }
+}
+
+/** Selected pages by id (social-pages particle source=groups). */
+export async function listPagesByIds(
+  pageIds: readonly string[],
+  limit = 20,
+): Promise<SocialPageListItem[]> {
+  const ids = [...new Set(pageIds.map((id) => id.trim()).filter(Boolean))]
+  if (ids.length === 0) return []
+  const capped = Math.min(Math.max(1, Math.floor(limit)), 100)
+  const slice = ids.slice(0, capped)
+  try {
+    const pages = await db
+      .select()
+      .from(sfSocialPages)
+      .where(inArray(sfSocialPages.id, slice))
+    const byId = new Map(pages.map(mapPage).map((row) => [row.id, row]))
+    const countById = await likeCountsForPages(slice)
+    const out: SocialPageListItem[] = []
+    for (const id of slice) {
+      const page = byId.get(id)
+      if (!page) continue
+      out.push(toSocialPageListItem(page, countById.get(page.id) ?? 0))
+    }
+    return out
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    if (/sf_social_page|does not exist|relation/i.test(msg)) return []
+    throw error
+  }
+}
+
+/** Directory rows shaped for the social-pages particle (source=all). */
+export async function listPagesForParticle(
+  limit = 20,
+): Promise<SocialPageListItem[]> {
+  const directory = await listPagesDirectory({ limit })
+  return directory.map((row) => toSocialPageListItem(row.page, row.likeCount))
 }
 
 /** Wall posts for `/feed/p/[slug]` (newest first). */

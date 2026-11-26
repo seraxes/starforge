@@ -17,7 +17,7 @@ import {
   STARFORGE_PASTEL_OFFLINE_OUTLINE_ID,
   STARFORGE_PASTEL_SKIN_ID,
 } from './registry'
-import { isOutlineOwnedBySkin, listSkinOutlineSeeds } from './outline-meta'
+import { isOutlineOwnedBySkin, listSkinOutlineSeeds, outlineParentId } from './outline-meta'
 import { starforgePastelTokens } from './skins/starforge-pastel/tokens'
 
 describe('skin registry', () => {
@@ -51,6 +51,29 @@ describe('skin registry', () => {
     assert.ok(Array.isArray(base?.document.sections))
     const notFound = seeds.find((s) => s.id === STARFORGE_PASTEL_NOT_FOUND_OUTLINE_ID)
     assert.equal(notFound?.document.inheritFrom, STARFORGE_PASTEL_DEFAULT_OUTLINE_ID)
+  })
+
+  it('uses the skin Base as parent when a child outline has no inheritFrom', () => {
+    assert.equal(
+      outlineParentId('starforge-pastel-pastel-child', null, STARFORGE_PASTEL_DEFAULT_OUTLINE_ID),
+      STARFORGE_PASTEL_DEFAULT_OUTLINE_ID,
+    )
+    assert.equal(
+      outlineParentId(
+        'starforge-pastel-pastel-child',
+        'starforge-pastel-default',
+        STARFORGE_PASTEL_DEFAULT_OUTLINE_ID,
+      ),
+      STARFORGE_PASTEL_DEFAULT_OUTLINE_ID,
+    )
+  })
+
+  it('does not give the Base outline a parent', () => {
+    assert.equal(
+      outlineParentId(STARFORGE_PASTEL_DEFAULT_OUTLINE_ID, null, STARFORGE_PASTEL_DEFAULT_OUTLINE_ID),
+      '',
+    )
+    assert.equal(outlineParentId('starforge-pastel-pastel-child', null, ''), '')
   })
 
   it('builds body.sf-skin-* CSS vars from tokens', () => {

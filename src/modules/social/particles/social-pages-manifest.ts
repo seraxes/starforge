@@ -10,7 +10,7 @@ export default defineStarforgeModule({
   layer: 'advanced',
   label: 'Social pages',
   description:
-    'Pages you like. Needs product:social. Links to /feed/pages and /feed/p/[slug].',
+    'Pages list with cover + avatar. Scope: logged-in user (liked), selected page ids, or all. Needs product:social.',
   version: '0.1.0',
   defaultEnabled: true,
   importPath: '@/modules/social/particles/social-pages-module',

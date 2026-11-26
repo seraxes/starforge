@@ -43,7 +43,8 @@ function readConsentUiState(): ConsentUiState {
 }
 
 /**
- * Fixed sitewide consent bar + choices panel + Cookie settings reopen.
+ * Fixed sitewide consent bar + choices panel (first decision).
+ * Reopen lives in the `cookie-settings` layout particle.
  * Preference cookie is client-readable so atom:analytics can honor it.
  * Button / aria chrome uses `product:consent` messages (i18n P3).
  */
@@ -93,21 +94,7 @@ export function ConsentBanner({
     )
   }
 
-  if (consentState === 'pending') return null
-
-  if (consentState === 'decided') {
-    return (
-      <div className="sf-consent-settings">
-        <button
-          type="button"
-          className="sf-consent-banner-btn sf-consent-banner-btn-secondary sf-consent-settings-btn"
-          onClick={openPanel}
-        >
-          {t('cookieSettings')}
-        </button>
-      </div>
-    )
-  }
+  if (consentState === 'pending' || consentState === 'decided') return null
 
   return (
     <div className="sf-consent-banner" role="dialog" aria-label={t('dialogLabel')}>

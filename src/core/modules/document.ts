@@ -14,6 +14,7 @@ import type {
   LayoutDocumentV1,
   LayoutDocumentV2,
   LayoutRow,
+  LayoutRowContainer,
   LayoutSection,
   LayoutSlot,
   LayoutSlotConfig,
@@ -117,6 +118,10 @@ function normalizeSlot(entry: LayoutSlot | null | undefined, index: number): Lay
     typeof entry.inheritFromSlotId === 'string' && entry.inheritFromSlotId.trim()
       ? entry.inheritFromSlotId.trim()
       : undefined
+  const inheritFromOutlineId =
+    typeof entry.inheritFromOutlineId === 'string' && entry.inheritFromOutlineId.trim()
+      ? entry.inheritFromOutlineId.trim()
+      : undefined
   return {
     id,
     moduleId: entry.moduleId.trim(),
@@ -133,6 +138,7 @@ function normalizeSlot(entry: LayoutSlot | null | undefined, index: number): Lay
     ...(config ? { config } : {}),
     ...(inheritMode ? { inheritMode } : {}),
     ...(inheritFromSlotId ? { inheritFromSlotId } : {}),
+    ...(inheritFromOutlineId ? { inheritFromOutlineId } : {}),
   }
 }
 
@@ -172,6 +178,10 @@ function normalizeSection(entry: LayoutSection | null | undefined, index: number
   const styles = normalizeLayoutSectionStyles(entry.styles)
   const inheritMode = asInheritMode(entry.inheritMode)
   const stylesInheritMode = asInheritMode(entry.stylesInheritMode)
+  const inheritFromOutlineId =
+    typeof entry.inheritFromOutlineId === 'string' && entry.inheritFromOutlineId.trim()
+      ? entry.inheritFromOutlineId.trim()
+      : undefined
   const rows = Array.isArray(entry.rows)
     ? (entry.rows.map((r, i) => normalizeRow(r, i)).filter(Boolean) as LayoutRow[])
     : []
@@ -186,6 +196,7 @@ function normalizeSection(entry: LayoutSection | null | undefined, index: number
     ...(styles ? { styles } : {}),
     ...(inheritMode ? { inheritMode } : {}),
     ...(stylesInheritMode ? { stylesInheritMode } : {}),
+    ...(inheritFromOutlineId ? { inheritFromOutlineId } : {}),
     order: typeof entry.order === 'number' && Number.isFinite(entry.order) ? entry.order : index,
     rows,
   }
@@ -213,12 +224,53 @@ function withNormalizedStyles(doc: LayoutDocument, raw: unknown): LayoutDocument
         .filter(Boolean),
     ),
   ]
+  const rowContainers = normalizeRowContainers(src.rowContainers)
   return {
     ...doc,
     ...(inheritRaw ? { inheritFrom: inheritRaw } : {}),
     ...(omitSectionIds.length > 0 ? { omitSectionIds } : {}),
+    ...(rowContainers ? { rowContainers } : {}),
     ...(styles ? { styles } : {}),
   }
+}
+
+function normalizeRowContainers(raw: unknown): LayoutRowContainer[] | undefined {
+  if (!Array.isArray(raw)) return undefined
+  const out: LayoutRowContainer[] = []
+  const seen = new Set<string>()
+  for (const entry of raw) {
+    if (!entry || typeof entry !== 'object') continue
+    const rec = entry as Record<string, unknown>
+    const id = typeof rec.id === 'string' ? rec.id.trim() : ''
+    if (!/^[A-Za-z_][A-Za-z0-9_-]{0,79}$/.test(id) || seen.has(id)) continue
+    const sectionIds = Array.isArray(rec.sectionIds)
+      ? [
+          ...new Set(
+            rec.sectionIds
+              .map((value) => (typeof value === 'string' ? value.trim() : ''))
+              .filter(Boolean),
+          ),
+        ]
+      : []
+    if (sectionIds.length < 2) continue
+    seen.add(id)
+    const label =
+      typeof rec.label === 'string' && rec.label.trim() ? rec.label.trim() : 'Container'
+    const htmlId = sanitizeHtmlId(typeof rec.htmlId === 'string' ? rec.htmlId : undefined)
+    const cssClass = sanitizeCssClassList(typeof rec.cssClass === 'string' ? rec.cssClass : undefined)
+    const containerMode = asContainerMode(rec.containerMode)
+    const styles = normalizeLayoutSectionStyles(rec.styles)
+    out.push({
+      id,
+      sectionIds,
+      label,
+      ...(htmlId ? { htmlId } : {}),
+      ...(cssClass ? { cssClass } : {}),
+      ...(containerMode ? { containerMode } : {}),
+      ...(styles ? { styles } : {}),
+    })
+  }
+  return out.length > 0 ? out : undefined
 }
 
 function slotsFromModules(
@@ -484,17 +536,29 @@ export function cloneDefaultLayoutDocument(): LayoutDocument {
 }
 
 /**
+ * A row that must be loaded as itself.
+ * Empty inheriting children (`inheritFrom` + `sections: []`) count — they are live
+ * stubs, not missing documents. A blank `{ sections: [] }` does not.
+ */
+export function layoutDocumentIsStored(
+  document: LayoutDocument | null | undefined,
+): document is LayoutDocument {
+  if (!document || document.version !== 3 || !Array.isArray(document.sections)) return false
+  if (document.sections.length > 0) return true
+  const inheritFrom =
+    typeof document.inheritFrom === 'string' ? document.inheritFrom.trim() : ''
+  if (inheritFrom) return true
+  if (document.styles && Object.keys(document.styles).length > 0) return true
+  return (document.omitSectionIds?.length ?? 0) > 0
+}
+
+/**
  * Working copy for layout mutators.
  * Empty inheriting children (`inheritFrom` + `sections: []`) must stay empty stubs —
  * never substitute the core default (that drops inheritFrom and Pastel child settings).
  */
 export function cloneWorkingLayoutDocument(document: LayoutDocument): LayoutDocument {
-  const hasIdentity =
-    Boolean(document.inheritFrom) ||
-    document.sections.length > 0 ||
-    Boolean(document.styles) ||
-    (document.omitSectionIds?.length ?? 0) > 0
-  if (hasIdentity) return structuredClone(document)
+  if (layoutDocumentIsStored(document)) return structuredClone(document)
   return cloneDefaultLayoutDocument()
 }
 

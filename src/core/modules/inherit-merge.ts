@@ -8,7 +8,8 @@
  * - `stylesInheritMode: 'inherit'` / omitted when structure inherited → parent styles
  * - Slot `inheritMode: 'inherit'` → parent slot by id (or inheritFromSlotId)
  */
-import type { LayoutDocument, LayoutRow, LayoutSection, LayoutSlot } from './types'
+import { syncRowContainers } from './row-container'
+import type { LayoutDocument, LayoutRow, LayoutRowContainer, LayoutSection, LayoutSlot } from './types'
 
 function sortSections(sections: LayoutSection[]): LayoutSection[] {
   return [...sections].sort(
@@ -202,29 +203,81 @@ export function mergeLayoutDocuments(
   }
 
   const sections = sortSections([...byId.values()])
+  const rowContainers = mergeRowContainers(parent.rowContainers, child.rowContainers, sections)
   const breakpoints = child.styles?.breakpoints ?? parent.styles?.breakpoints
   const body = child.styles?.body ?? parent.styles?.body
-  const out: LayoutDocument = { version: 3, sections }
-  if (breakpoints || body) {
+  const typography = child.styles?.typography ?? parent.styles?.typography
+  const out: LayoutDocument = { version: 3, sections, ...(rowContainers ? { rowContainers } : {}) }
+  if (breakpoints || body || typography) {
     out.styles = {
       ...(breakpoints ? { breakpoints } : {}),
       ...(body ? { body } : {}),
+      ...(typography ? { typography } : {}),
     }
   }
   return out
 }
 
-/** Deep-clone a parent section for “Copy” → child local ownership. */
+function mergeRowContainers(
+  parent: LayoutRowContainer[] | undefined,
+  child: LayoutRowContainer[] | undefined,
+  sections: LayoutSection[],
+): LayoutRowContainer[] | undefined {
+  const byId = new Map<string, LayoutRowContainer>()
+  for (const container of parent ?? []) {
+    byId.set(container.id, {
+      ...container,
+      sectionIds: [...container.sectionIds],
+      ...(container.styles ? { styles: { ...container.styles } } : {}),
+    })
+  }
+  for (const container of child ?? []) {
+    byId.set(container.id, {
+      ...container,
+      sectionIds: [...container.sectionIds],
+      ...(container.styles ? { styles: { ...container.styles } } : {}),
+    })
+  }
+  return syncRowContainers(sections, [...byId.values()], { createMissing: false })
+}
+
+/**
+ * Deep-clone a parent section for “Copy” → child local ownership.
+ * Includes section settings (container, id, classes, width, styles) and every
+ * particle in the section’s rows.
+ */
 export function copySectionFromParent(parent: LayoutSection): LayoutSection {
   const out = cloneSection(parent)
   out.inheritMode = 'local'
   out.stylesInheritMode = 'local'
+  delete out.inheritFromOutlineId
   for (const row of out.rows) {
     for (const slot of row.slots) {
       slot.inheritMode = 'local'
       delete slot.inheritFromSlotId
+      delete slot.inheritFromOutlineId
     }
   }
+  return out
+}
+
+/**
+ * Live paint of a source section onto an inheriting stub.
+ * Settings and particles come from the source layout. Order stays on the child.
+ * A renamed child label (not the section id) is kept.
+ */
+export function sectionPaintedFromSource(
+  child: LayoutSection,
+  source: LayoutSection,
+): LayoutSection {
+  const out = cloneSection(source)
+  delete out.inheritMode
+  delete out.stylesInheritMode
+  delete out.inheritFromOutlineId
+  out.id = child.id
+  if (child.order != null && Number.isFinite(child.order)) out.order = child.order
+  const label = child.label?.trim()
+  if (label && label !== child.id) out.label = label
   return out
 }
 
@@ -234,5 +287,21 @@ export function copySlotFromParent(parent: LayoutSlot, slotId?: string): LayoutS
   if (slotId) out.id = slotId
   out.inheritMode = 'local'
   delete out.inheritFromSlotId
+  delete out.inheritFromOutlineId
+  return out
+}
+
+/**
+ * Live paint of a source particle onto an inheriting slot.
+ * Settings come from the source. This slot keeps its id, width, and order.
+ */
+export function slotPaintedFromSource(child: LayoutSlot, source: LayoutSlot): LayoutSlot {
+  const out = cloneSlot(source)
+  out.id = child.id
+  out.width = child.width
+  if (child.order != null && Number.isFinite(child.order)) out.order = child.order
+  delete out.inheritMode
+  delete out.inheritFromSlotId
+  delete out.inheritFromOutlineId
   return out
 }

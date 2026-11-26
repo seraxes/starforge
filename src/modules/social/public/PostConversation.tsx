@@ -255,6 +255,8 @@ function ReactionControl({
   reactionIconImageUrls,
   showReactionLabels,
   reactionIconSizePx,
+  reactionTrayHoverSizePx,
+  reactionTrayHoverEasing,
   viewerUserId,
   layout,
 }: {
@@ -267,6 +269,8 @@ function ReactionControl({
   reactionIconImageUrls?: ReactionIconImageUrls | null
   showReactionLabels: boolean
   reactionIconSizePx: number
+  reactionTrayHoverSizePx: number
+  reactionTrayHoverEasing: string
   viewerUserId: string | null
   layout: 'bar' | 'inline'
 }) {
@@ -386,7 +390,19 @@ function ReactionControl({
         {layout === 'inline' && total > 0 ? <span className="sf-social-reaction-count"> {total}</span> : null}
       </ReactionSubmit>
       {showTray && open ? (
-        <div className="sf-social-react-tray" role="group" aria-label="Reactions">
+        <div
+          className="sf-social-react-tray"
+          role="group"
+          aria-label="Reactions"
+          style={
+            {
+              '--sf-social-react-tray-hover-scale': String(
+                Math.max(reactionTrayHoverSizePx, 1) / Math.max(reactionIconSizePx, 1),
+              ),
+              '--sf-social-react-tray-hover-ease': reactionTrayHoverEasing,
+            } as React.CSSProperties
+          }
+        >
           {kinds.map((kind) => {
             const choiceHasIcon = hasReactionVisual(kind, reactionIcons, reactionIconImageUrls)
             const showChoiceLabel = showReactionLabels || !choiceHasIcon
@@ -543,6 +559,8 @@ function CommentRow({
   reactionIconImageUrls,
   showReactionLabels,
   reactionIconSizePx,
+  reactionTrayHoverSizePx,
+  reactionTrayHoverEasing,
   allowCommentReactions,
   canReply,
   onReply,
@@ -560,6 +578,8 @@ function CommentRow({
   reactionIconImageUrls?: ReactionIconImageUrls | null
   showReactionLabels: boolean
   reactionIconSizePx: number
+  reactionTrayHoverSizePx: number
+  reactionTrayHoverEasing: string
   allowCommentReactions: boolean
   canReply: boolean
   onReply: () => void
@@ -619,6 +639,8 @@ function CommentRow({
               reactionIconImageUrls={reactionIconImageUrls}
               showReactionLabels={showReactionLabels}
               reactionIconSizePx={reactionIconSizePx}
+              reactionTrayHoverSizePx={reactionTrayHoverSizePx}
+              reactionTrayHoverEasing={reactionTrayHoverEasing}
               viewerUserId={viewerUserId}
               layout="inline"
             />
@@ -672,6 +694,8 @@ function TopComment({
   reactionIconImageUrls,
   showReactionLabels,
   reactionIconSizePx,
+  reactionTrayHoverSizePx,
+  reactionTrayHoverEasing,
   allowCommentReactions,
   allowReplies,
   commentLengthLimit,
@@ -689,6 +713,8 @@ function TopComment({
   reactionIconImageUrls?: ReactionIconImageUrls | null
   showReactionLabels: boolean
   reactionIconSizePx: number
+  reactionTrayHoverSizePx: number
+  reactionTrayHoverEasing: string
   allowCommentReactions: boolean
   allowReplies: boolean
   commentLengthLimit: number
@@ -719,6 +745,8 @@ function TopComment({
         reactionIconImageUrls={reactionIconImageUrls}
         showReactionLabels={showReactionLabels}
         reactionIconSizePx={reactionIconSizePx}
+        reactionTrayHoverSizePx={reactionTrayHoverSizePx}
+        reactionTrayHoverEasing={reactionTrayHoverEasing}
         allowCommentReactions={allowCommentReactions}
         canReply={allowReplies && Boolean(viewerUserId)}
         onReply={() => replyTarget(comment.id)}
@@ -765,6 +793,8 @@ function TopComment({
                   reactionIconImageUrls={reactionIconImageUrls}
                   showReactionLabels={showReactionLabels}
                   reactionIconSizePx={reactionIconSizePx}
+                  reactionTrayHoverSizePx={reactionTrayHoverSizePx}
+                  reactionTrayHoverEasing={reactionTrayHoverEasing}
                   allowCommentReactions={allowCommentReactions}
                   canReply={allowReplies && Boolean(viewerUserId)}
                   onReply={() => replyTarget(reply.id)}
@@ -816,6 +846,8 @@ export function PostConversation({
   reactionIconImageUrls = null,
   showReactionLabels = true,
   reactionIconSizePx = 16,
+  reactionTrayHoverSizePx = 28,
+  reactionTrayHoverEasing = 'ease',
   allowComments,
   allowCommentReactions,
   commentLengthLimit,
@@ -845,6 +877,10 @@ export function PostConversation({
   showReactionLabels?: boolean
   /** Tray popup glyph/image size only. */
   reactionIconSizePx?: number
+  /** Tray choice hover size in px. */
+  reactionTrayHoverSizePx?: number
+  /** CSS easing for tray hover grow. */
+  reactionTrayHoverEasing?: string
   allowComments: boolean
   allowCommentReactions: boolean
   commentLengthLimit: number
@@ -962,6 +998,8 @@ export function PostConversation({
                 reactionIconImageUrls={reactionIconImageUrls}
                 showReactionLabels={showReactionLabels}
                 reactionIconSizePx={reactionIconSizePx}
+                reactionTrayHoverSizePx={reactionTrayHoverSizePx}
+                reactionTrayHoverEasing={reactionTrayHoverEasing}
                 viewerUserId={viewerUserId}
                 layout="bar"
               />
@@ -1013,6 +1051,8 @@ export function PostConversation({
               reactionIconImageUrls={reactionIconImageUrls}
               showReactionLabels={showReactionLabels}
               reactionIconSizePx={reactionIconSizePx}
+              reactionTrayHoverSizePx={reactionTrayHoverSizePx}
+              reactionTrayHoverEasing={reactionTrayHoverEasing}
               allowCommentReactions={allowCommentReactions}
               allowReplies={allowComments}
               commentLengthLimit={commentLengthLimit}

@@ -48,6 +48,8 @@ describe('social pack settings', () => {
     assert.equal(saved.settings.reactionIconMediaIds.like, '')
     assert.equal(saved.settings.showReactionLabels, true)
     assert.equal(saved.settings.reactionIconSizePx, 16)
+    assert.equal(saved.settings.reactionTrayHoverSizePx, 28)
+    assert.equal(saved.settings.reactionTrayHoverEasing, 'ease')
     assert.equal(isActivityCardEnabled('event.published', saved.settings), false)
     assert.equal(isActivityCardEnabled('page.published', saved.settings), true)
 
@@ -66,6 +68,13 @@ describe('social pack settings', () => {
     assert.deepEqual(loaded.enabledReactionKinds, ['like', 'wow'])
     assert.equal(loaded.reactionIcons.love, 'fa-solid fa-heart-crack')
     assert.equal(loaded.reactionIcons.like, DEFAULT_REACTION_ICONS.like)
+
+    const coercedHover = normalizeSocialModuleSettings({
+      reactionTrayHoverSizePx: 999,
+      reactionTrayHoverEasing: 'bounce',
+    })
+    assert.equal(coercedHover.reactionTrayHoverSizePx, 28)
+    assert.equal(coercedHover.reactionTrayHoverEasing, 'ease')
   })
 
   it('refuses an unknown audience and leaves Social off as a disabled notice (failure path)', () => {

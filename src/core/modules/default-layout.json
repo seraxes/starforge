@@ -80,7 +80,26 @@
       "id": "footer",
       "label": "Footer",
       "order": 3,
-      "rows": []
+      "rows": [
+        {
+          "id": "footer-row-1",
+          "order": 0,
+          "slots": [
+            {
+              "id": "footer-cookie-settings",
+              "moduleId": "cookie-settings",
+              "width": 100,
+              "enabled": true,
+              "order": 0
+            }
+          ]
+        },
+        {
+          "id": "footer__trailing-empty",
+          "order": 1,
+          "slots": []
+        }
+      ]
     }
   ]
 }

@@ -3,6 +3,7 @@ export {
   ConsentChoicesPanel,
   type ConsentChoicesPanelProps,
 } from './ConsentChoicesPanel'
+export { CookieSettings, type CookieSettingsProps } from './CookieSettings'
 export {
   buildConsentPreferences,
   hasAnalyticsConsent,

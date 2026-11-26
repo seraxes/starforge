@@ -13,6 +13,12 @@ import {
 import type { ParticleEditorProps } from '@/core/modules/particles/editor-props'
 import type { LayoutSlotConfig } from '@/core/modules/types'
 import {
+  defaultSocialAlbumsConfig,
+  readSocialAlbumsConfig,
+  socialAlbumsConfigToJson,
+  type SocialAlbumsParticleConfig,
+} from '@/modules/social/particles/social-albums-config'
+import {
   defaultSocialFriendsConfig,
   readSocialFriendsConfig,
   type SocialFriendsParticleConfig,
@@ -20,13 +26,19 @@ import {
 import {
   defaultSocialGroupsConfig,
   readSocialGroupsConfig,
+  socialGroupsConfigToJson,
   type SocialGroupsParticleConfig,
 } from '@/modules/social/particles/social-groups-config'
 import {
   defaultSocialPagesConfig,
   readSocialPagesConfig,
+  socialPagesConfigToJson,
   type SocialPagesParticleConfig,
 } from '@/modules/social/particles/social-pages-config'
+import {
+  scopeIdsToConfigValue,
+  type SocialParticleSource,
+} from '@/modules/social/particles/social-particle-scope'
 import {
   defaultSocialStoriesConfig,
   readSocialStoriesConfig,
@@ -37,6 +49,10 @@ import { useNotifySavedOnOk } from '@/app/(frontend)/admin/admin-toast'
 import { useAutosaveForm } from '@/app/(frontend)/admin/use-autosave-form'
 import { LayoutIdField } from '@/app/(frontend)/admin/layouts/layout-outline-context'
 import { ParticleSettingsPopover } from '@/app/(frontend)/admin/layouts/particle-settings-popover'
+
+function particleEditorKey(slot: ParticleEditorProps['slot']): string {
+  return `${slot.id}:${JSON.stringify(slot.config ?? {})}`
+}
 
 const initialState: LayoutActionState = {}
 
@@ -124,7 +140,13 @@ function SocialParticleEditorShell({
   return <ParticleSettingsPopover title={title}>{form}</ParticleSettingsPopover>
 }
 
-export function SocialFriendsParticleEditor({
+export function SocialFriendsParticleEditor(props: ParticleEditorProps) {
+  return (
+    <SocialFriendsParticleEditorInner key={particleEditorKey(props.slot)} {...props} />
+  )
+}
+
+function SocialFriendsParticleEditorInner({
   sectionId,
   rowId,
   slot,
@@ -134,9 +156,6 @@ export function SocialFriendsParticleEditor({
   const [draft, setDraft] = useState<SocialFriendsParticleConfig>(() =>
     readSocialFriendsConfig(slot.config),
   )
-  useEffect(() => {
-    setDraft(readSocialFriendsConfig(slot.config))
-  }, [slot.id, slot.config])
   const defaults = defaultSocialFriendsConfig()
 
   return (
@@ -187,7 +206,54 @@ export function SocialFriendsParticleEditor({
   )
 }
 
-export function SocialGroupsParticleEditor({
+function SourceFields({
+  source,
+  scopeIds,
+  scopeLabel,
+  onSource,
+  onScopeIds,
+}: {
+  source: SocialParticleSource
+  scopeIds: string[]
+  scopeLabel: string
+  onSource: (source: SocialParticleSource) => void
+  onScopeIds: (raw: string) => void
+}) {
+  return (
+    <>
+      <label className="settings-field">
+        <span>Show</span>
+        <select
+          value={source}
+          onChange={(e) => onSource(e.target.value as SocialParticleSource)}
+        >
+          <option value="viewer">Logged-in user</option>
+          <option value="groups">Selected ids</option>
+          <option value="all">All</option>
+        </select>
+      </label>
+      {source === 'groups' ? (
+        <label className="settings-field">
+          <span>{scopeLabel}</span>
+          <input
+            type="text"
+            value={scopeIdsToConfigValue(scopeIds)}
+            onChange={(e) => onScopeIds(e.target.value)}
+            placeholder="id1, id2"
+          />
+        </label>
+      ) : null}
+    </>
+  )
+}
+
+export function SocialGroupsParticleEditor(props: ParticleEditorProps) {
+  return (
+    <SocialGroupsParticleEditorInner key={particleEditorKey(props.slot)} {...props} />
+  )
+}
+
+function SocialGroupsParticleEditorInner({
   sectionId,
   rowId,
   slot,
@@ -197,9 +263,6 @@ export function SocialGroupsParticleEditor({
   const [draft, setDraft] = useState<SocialGroupsParticleConfig>(() =>
     readSocialGroupsConfig(slot.config),
   )
-  useEffect(() => {
-    setDraft(readSocialGroupsConfig(slot.config))
-  }, [slot.id, slot.config])
   const defaults = defaultSocialGroupsConfig()
 
   return (
@@ -208,11 +271,7 @@ export function SocialGroupsParticleEditor({
       sectionId={sectionId}
       rowId={rowId}
       slotId={slot.id}
-      configJson={JSON.stringify({
-        heading: draft.heading,
-        emptyMessage: draft.emptyMessage,
-        limit: draft.limit,
-      })}
+      configJson={JSON.stringify(socialGroupsConfigToJson(draft))}
       embedded={embedded}
       onConfigSaved={onConfigSaved}
     >
@@ -223,6 +282,29 @@ export function SocialGroupsParticleEditor({
           value={draft.heading}
           onChange={(e) => setDraft((d) => ({ ...d, heading: e.target.value }))}
           placeholder={defaults.heading}
+        />
+      </label>
+      <SourceFields
+        source={draft.source}
+        scopeIds={draft.scopeIds}
+        scopeLabel="Group ids"
+        onSource={(source) => setDraft((d) => ({ ...d, source }))}
+        onScopeIds={(raw) =>
+          setDraft((d) => ({
+            ...d,
+            scopeIds: raw
+              .split(/[\s,]+/)
+              .map((part) => part.trim())
+              .filter(Boolean),
+          }))
+        }
+      />
+      <label className="settings-field settings-flag">
+        <span>Show cover images</span>
+        <input
+          type="checkbox"
+          checked={draft.showImages}
+          onChange={(e) => setDraft((d) => ({ ...d, showImages: e.target.checked }))}
         />
       </label>
       <label className="settings-field">
@@ -250,7 +332,13 @@ export function SocialGroupsParticleEditor({
   )
 }
 
-export function SocialPagesParticleEditor({
+export function SocialPagesParticleEditor(props: ParticleEditorProps) {
+  return (
+    <SocialPagesParticleEditorInner key={particleEditorKey(props.slot)} {...props} />
+  )
+}
+
+function SocialPagesParticleEditorInner({
   sectionId,
   rowId,
   slot,
@@ -260,9 +348,6 @@ export function SocialPagesParticleEditor({
   const [draft, setDraft] = useState<SocialPagesParticleConfig>(() =>
     readSocialPagesConfig(slot.config),
   )
-  useEffect(() => {
-    setDraft(readSocialPagesConfig(slot.config))
-  }, [slot.id, slot.config])
   const defaults = defaultSocialPagesConfig()
 
   return (
@@ -271,11 +356,7 @@ export function SocialPagesParticleEditor({
       sectionId={sectionId}
       rowId={rowId}
       slotId={slot.id}
-      configJson={JSON.stringify({
-        heading: draft.heading,
-        emptyMessage: draft.emptyMessage,
-        limit: draft.limit,
-      })}
+      configJson={JSON.stringify(socialPagesConfigToJson(draft))}
       embedded={embedded}
       onConfigSaved={onConfigSaved}
     >
@@ -286,6 +367,29 @@ export function SocialPagesParticleEditor({
           value={draft.heading}
           onChange={(e) => setDraft((d) => ({ ...d, heading: e.target.value }))}
           placeholder={defaults.heading}
+        />
+      </label>
+      <SourceFields
+        source={draft.source}
+        scopeIds={draft.scopeIds}
+        scopeLabel="Page ids"
+        onSource={(source) => setDraft((d) => ({ ...d, source }))}
+        onScopeIds={(raw) =>
+          setDraft((d) => ({
+            ...d,
+            scopeIds: raw
+              .split(/[\s,]+/)
+              .map((part) => part.trim())
+              .filter(Boolean),
+          }))
+        }
+      />
+      <label className="settings-field settings-flag">
+        <span>Show cover images</span>
+        <input
+          type="checkbox"
+          checked={draft.showImages}
+          onChange={(e) => setDraft((d) => ({ ...d, showImages: e.target.checked }))}
         />
       </label>
       <label className="settings-field">
@@ -313,7 +417,90 @@ export function SocialPagesParticleEditor({
   )
 }
 
-export function SocialStoriesParticleEditor({
+export function SocialAlbumsParticleEditor(props: ParticleEditorProps) {
+  return (
+    <SocialAlbumsParticleEditorInner key={particleEditorKey(props.slot)} {...props} />
+  )
+}
+
+function SocialAlbumsParticleEditorInner({
+  sectionId,
+  rowId,
+  slot,
+  embedded,
+  onConfigSaved,
+}: ParticleEditorProps) {
+  const [draft, setDraft] = useState<SocialAlbumsParticleConfig>(() =>
+    readSocialAlbumsConfig(slot.config),
+  )
+  const defaults = defaultSocialAlbumsConfig()
+
+  return (
+    <SocialParticleEditorShell
+      title="Social albums"
+      sectionId={sectionId}
+      rowId={rowId}
+      slotId={slot.id}
+      configJson={JSON.stringify(socialAlbumsConfigToJson(draft))}
+      embedded={embedded}
+      onConfigSaved={onConfigSaved}
+    >
+      <label className="settings-field">
+        <span>Heading</span>
+        <input
+          type="text"
+          value={draft.heading}
+          onChange={(e) => setDraft((d) => ({ ...d, heading: e.target.value }))}
+          placeholder={defaults.heading}
+        />
+      </label>
+      <SourceFields
+        source={draft.source}
+        scopeIds={draft.scopeIds}
+        scopeLabel="Group ids (empty = my groups)"
+        onSource={(source) => setDraft((d) => ({ ...d, source }))}
+        onScopeIds={(raw) =>
+          setDraft((d) => ({
+            ...d,
+            scopeIds: raw
+              .split(/[\s,]+/)
+              .map((part) => part.trim())
+              .filter(Boolean),
+          }))
+        }
+      />
+      <label className="settings-field">
+        <span>Empty message</span>
+        <input
+          type="text"
+          value={draft.emptyMessage}
+          onChange={(e) => setDraft((d) => ({ ...d, emptyMessage: e.target.value }))}
+          placeholder={defaults.emptyMessage}
+        />
+      </label>
+      <label className="settings-field">
+        <span>Max images</span>
+        <input
+          type="number"
+          min={1}
+          max={48}
+          value={draft.limit}
+          onChange={(e) =>
+            setDraft((d) => ({ ...d, limit: Number(e.target.value) || defaults.limit }))
+          }
+        />
+      </label>
+    </SocialParticleEditorShell>
+  )
+}
+
+export function SocialStoriesParticleEditor(props: ParticleEditorProps) {
+  return (
+    <SocialStoriesParticleEditorInner key={particleEditorKey(props.slot)} {...props} />
+  )
+}
+
+function SocialStoriesParticleEditorInner({
   sectionId,
   rowId,
   slot,
@@ -323,9 +510,6 @@ export function SocialStoriesParticleEditor({
   const [draft, setDraft] = useState<SocialStoriesParticleConfig>(() =>
     readSocialStoriesConfig(slot.config),
   )
-  useEffect(() => {
-    setDraft(readSocialStoriesConfig(slot.config))
-  }, [slot.id, slot.config])
   const defaults = defaultSocialStoriesConfig()
 
   return (

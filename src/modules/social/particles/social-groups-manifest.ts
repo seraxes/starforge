@@ -10,7 +10,7 @@ export default defineStarforgeModule({
   layer: 'advanced',
   label: 'Social groups',
   description:
-    'Groups you belong to. Needs product:social. Links to /feed/groups and /feed/g/[slug].',
+    'Groups list with cover + avatar. Scope: logged-in user, selected group ids, or all. Needs product:social.',
   version: '0.1.0',
   defaultEnabled: true,
   importPath: '@/modules/social/particles/social-groups-module',

@@ -27,6 +27,7 @@ Before writing a new admin settings/list screen:
    - Card actions: `page-settings-actions` bottom-right + `gantry-toolbar-btn` / `gantry-toolbar-btn-save` (entity card)
    - Page-level Save (multi-card one form): `page-settings-actions` top-right under lede **and** bottom-right below mosaic
    - Save feedback: `useNotifySavedOnOk` + `admin-inline-error` / `admin-inline-ok`
+   - New selects/options: survive post-save reset — see `sf-admin-form-defaults.mdc` (`defaultValue` alone snaps back after `useActionState` success)
 3. If a control does not exist in theme, **extend `core-chrome.css` tokens** — never add module-scoped input sizing CSS.
 
 ## Source of truth

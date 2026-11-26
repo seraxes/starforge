@@ -4,11 +4,13 @@ import { describe, it } from 'node:test'
 import {
   buildOutlineBodyBackgroundCss,
   buildOutlineBreakpointCss,
+  buildOutlineTypographyCss,
   buildSectionInlineStyle,
   DEFAULT_LAYOUT_BREAKPOINTS,
   formatLayoutBoxSpacing,
   normalizeLayoutOutlineStyles,
   normalizeLayoutSectionStyles,
+  normalizeLayoutTypography,
   parseLayoutBoxSpacing,
   resolveSectionContainerMode,
   sanitizeCssBoxShorthand,
@@ -54,6 +56,43 @@ describe('buildOutlineBodyBackgroundCss', () => {
     )
   })
 
+  it('paints a gradient fill and a color or gradient overlay above the image', () => {
+    const css = buildOutlineBodyBackgroundCss('starforge-pastel-default', 'starforge-pastel', {
+      backgroundColor: 'linear-gradient(180deg, #1c2834 0%, #8ebad4 100%)',
+      allowGradientBackground: true,
+      backgroundImage: '/api/media/file/sf-bg01.webp',
+      backgroundSize: 'cover',
+      backgroundAttachment: 'fixed',
+      backgroundRepeat: 'no-repeat',
+      backgroundOverlay: 'enabled',
+      overlayColor: 'linear-gradient(180deg, rgba(0,0,0,0.45), transparent)',
+      allowGradientOverlay: true,
+    })
+    assert.match(
+      css,
+      /background-image:url\("\/api\/media\/file\/sf-bg01\.webp"\),linear-gradient\(180deg, #1c2834 0%, #8ebad4 100%\)/,
+    )
+    assert.match(css, /::before\{content:"";position:fixed;/)
+    assert.match(css, /background:linear-gradient\(180deg, rgba\(0,0,0,0\.45\), transparent\)/)
+  })
+
+  it('drops gradients unless the gradient flag is on, and rejects url() inside them', () => {
+    const stripped = normalizeLayoutOutlineStyles({
+      body: {
+        backgroundColor: 'linear-gradient(180deg, #111, #222)',
+        overlayColor: 'linear-gradient(red, url(https://evil))',
+        allowGradientOverlay: true,
+        backgroundOverlay: 'enabled',
+      },
+    })
+    assert.equal(stripped?.body?.backgroundColor, undefined)
+    assert.equal(stripped?.body?.overlayColor, undefined)
+    assert.equal(stripped?.body?.backgroundOverlay, 'enabled')
+    const css = buildOutlineBodyBackgroundCss('default', 'starforge-pastel', stripped?.body)
+    assert.match(css, /background:rgba\(0,0,0,0\.35\)/)
+    assert.doesNotMatch(css, /url\(|evil/)
+  })
+
   it('keeps page background beside breakpoints when normalizing', () => {
     const styles = normalizeLayoutOutlineStyles({
       breakpoints: DEFAULT_LAYOUT_BREAKPOINTS,
@@ -62,6 +101,80 @@ describe('buildOutlineBodyBackgroundCss', () => {
     assert.equal(styles?.body?.backgroundMediaId, 'bg1')
     assert.equal(styles?.body?.backgroundColor, '#112233')
     assert.equal(styles?.breakpoints?.largeDesktop, '75rem')
+  })
+})
+
+describe('buildOutlineTypographyCss', () => {
+  it('emits title and text fonts plus accent and hover on the outline body', () => {
+    const css = buildOutlineTypographyCss('starforge-pastel-default', 'starforge-pastel', {
+      titleFont: 'georgia',
+      textFont: 'verdana',
+      titleColor: '#112233',
+      textColor: '#445566',
+      linkColor: '#A85220',
+      linkHoverColor: '#f2a66a',
+    })
+    assert.match(css, /body\.sf-skin-starforge-pastel\.sf-outline-starforge-pastel-default\{/)
+    assert.match(css, /--font-display:Georgia, 'Times New Roman', serif;/)
+    assert.match(css, /--font-body:Verdana, Geneva, sans-serif;/)
+    assert.match(css, /--sf-title-color:#112233;/)
+    assert.match(css, /--sf-ink:#445566;/)
+    assert.match(css, /--sf-accent:#a85220;/)
+    assert.match(css, /--sf-link-hover:#f2a66a;/)
+    assert.match(css, /:is\(h1,h2,h3,h4,h5,h6\)\{font-family:var\(--font-display\);color:var\(--sf-section-text, var\(--sf-title-color\)\);\}/)
+    assert.match(css, /a:not\(\.button-link\):hover\{color:var\(--sf-link-hover\);\}/)
+  })
+
+  it('drops unknown fonts and unsafe colors', () => {
+    const normalized = normalizeLayoutTypography({
+      titleFont: "georgia;}.x{color:red",
+      textFont: 'not-a-font',
+      titleColor: '#fff;}body{background:url(https://evil)',
+      textColor: 'expression(alert(1))',
+      linkColor: '#abc',
+      linkHoverColor: 'javascript:alert(1)',
+    })
+    assert.equal(normalized?.titleFont, undefined)
+    assert.equal(normalized?.textFont, undefined)
+    assert.equal(normalized?.titleColor, undefined)
+    assert.equal(normalized?.textColor, undefined)
+    assert.equal(normalized?.linkColor, '#abc')
+    assert.equal(normalized?.linkHoverColor, undefined)
+    assert.equal(
+      buildOutlineTypographyCss('default', 'starforge-pastel', {
+        titleFont: "georgia;}.x{color:red",
+        textColor: 'expression(alert(1))',
+      }),
+      '',
+    )
+    const css = buildOutlineTypographyCss('default', 'starforge-pastel', {
+      ...normalized,
+      textFont: 'verdana',
+    })
+    assert.match(css, /--font-body:Verdana/)
+    assert.match(css, /--sf-link:#abc;/)
+    assert.doesNotMatch(css, /expression|javascript|evil/)
+  })
+
+  it('skips a disabled type block and keeps type beside page background', () => {
+    assert.equal(
+      buildOutlineTypographyCss('default', 'starforge-pastel', {
+        disabled: true,
+        titleFont: 'georgia',
+        titleColor: '#112233',
+      }),
+      '',
+    )
+    const styles = normalizeLayoutOutlineStyles({
+      body: { backgroundColor: '#112233' },
+      typography: { titleFont: 'georgia', linkColor: 'not-a-color', textFont: 'verdana' },
+    })
+    assert.equal(styles?.body?.backgroundColor, '#112233')
+    assert.equal(styles?.typography?.titleFont, 'georgia')
+    assert.equal(styles?.typography?.textFont, 'verdana')
+    assert.equal(styles?.typography?.linkColor, undefined)
+    assert.equal(normalizeLayoutTypography({}), undefined)
+    assert.equal(normalizeLayoutTypography({ disabled: true })?.disabled, true)
   })
 })
 

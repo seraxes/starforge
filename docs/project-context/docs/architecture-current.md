@@ -123,7 +123,7 @@ Manifest `layer` is the boot tag. It is not retagged in feature slices (open wor
 | `product:marketplace` | none yet (stub; will require Payments) | advanced (next after Social) | `advanced` |
 | `product:ads` | Social, Email Manager, Forms, Subscriptions, Payments | advanced (parked) | `advanced` |
 
-Site packs (not this test): `product:pages` (requires Rich editor and Media), `product:pwa` (requires Media), `product:audit`, `product:consent`, `product:lexical-editor`, `product:notice-bar`, `product:redirects`, `product:search`. The `form` particle requires `product:forms` and stays a particle.
+Site packs (not this test): `product:pages` (requires Rich editor and Media), `product:pwa` (requires Media), `product:audit`, `product:consent`, `product:lexical-editor`, `product:notice-bar`, `product:redirects`, `product:search`. The `form` particle requires `product:forms` and stays a particle. The `cookie-settings` particle requires `product:consent` (reopen control; banner stays on `publicShell`).
 
 ## Languages
 
@@ -153,6 +153,7 @@ Do not relocate these in a drive-by:
 | Online payment gateway | `src/core/payments/<id>.ts` + `register-online.ts` | Developer ships; admin enables + pastes keys. |
 | Process boot | `runModuleBoot` then `runHeroBoot` | `instrumentation.ts` asserts env, then both. |
 | Page reads | `PageReadsPort` | Layout, search, sitemap use `getPageReads()`. |
+| Side-by-side layout sections | `rowContainers` on the layout document | Two or more sections on one line get a row container. It owns container mode and basic section settings. Member sections keep width % and ignore container mode. |
 | Admin ACL | Core groups: view / edit / manage | No Access Level entity. App admin bypasses. |
 | Staff bypass | App admins + pack `admin.<id>` edit/manage on ownership gates; staff UI additive. Front-end private-read (`only_me` / friends / group) uses the same Social staff grant in `canViewPost` | [2026-11-21-staff-bypass](./decisions/2026-11-21-staff-bypass.md), [2026-11-22-staff-bypass-limits](./decisions/2026-11-22-staff-bypass-limits.md), `sf-staff-bypass.mdc` |
 | Comments / likes / reports | `product:social` only — no `product:comments` / `product:reports`. Pages/events may opt into Social’s conversation engine when Social is on | [2026-11-22-comments-reports-ownership](./decisions/2026-11-22-comments-reports-ownership.md) |

@@ -28,6 +28,12 @@ export interface PublishedContentCache {
    * Invalidate entries that carry any of the given tags.
    * Callers **must await** this from server actions / Payload hooks so
    * save → redirect never races a stale Redis read on another instance.
+   *
+   * `expire` — the next read misses (layout paint). `stale` — one more read
+   * may still return the previous entry.
    */
-  invalidateTags(tags: readonly string[]): void | Promise<void>
+  invalidateTags(
+    tags: readonly string[],
+    mode?: 'stale' | 'expire',
+  ): void | Promise<void>
 }

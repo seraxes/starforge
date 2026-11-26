@@ -2,18 +2,25 @@ import React from 'react'
 import Link from 'next/link'
 import { getLocale } from 'next-intl/server'
 
+import { getAccessViewer } from '@/core/acl/access'
 import { getAppSession } from '@/core/auth/session'
 import { isAppLocale } from '@/core/i18n/locales'
 import { withLocalePrefix } from '@/core/i18n/path'
 import type { StarforgeModule } from '@/core/modules/types'
 import { MODULE_IDS, isCatalogModuleEnabled } from '@/core/settings'
+import { getPersonas, personaMediaSrc } from '@/modules/profiles/api.server'
 
 import { groupHref } from '../groups'
-import { listMyGroups } from '../groups-store'
+import {
+  listGroupsByIds,
+  listGroupsForParticle,
+  listMyGroups,
+} from '../groups-store'
+import { SocialEntityCards, type SocialEntityCard } from './SocialEntityCards'
 import { readSocialGroupsConfig } from './social-groups-config'
 
 /**
- * social-groups particle — groups the viewer belongs to.
+ * social-groups particle — memberships, selected groups, or directory.
  * Do not reuse the builtin particle id `social` (footer links).
  */
 export const socialGroupsModule: StarforgeModule = {
@@ -40,7 +47,8 @@ export const socialGroupsModule: StarforgeModule = {
     )}`
     const directoryHref = withLocalePrefix('/feed/groups', locale)
 
-    if (!userId) {
+    const needsViewer = cfg.source === 'viewer'
+    if (needsViewer && !userId) {
       return React.createElement(
         'section',
         { className: 'sf-social-groups-particle', 'aria-label': cfg.heading || 'Groups' },
@@ -56,7 +64,33 @@ export const socialGroupsModule: StarforgeModule = {
       )
     }
 
-    const groups = await listMyGroups(userId, cfg.limit)
+    const rows =
+      cfg.source === 'groups'
+        ? await listGroupsByIds(cfg.scopeIds, cfg.limit)
+        : cfg.source === 'all'
+          ? await listGroupsForParticle(cfg.limit)
+          : await listMyGroups(userId, cfg.limit)
+
+    const viewer = await getAccessViewer()
+    const personas = await getPersonas(
+      rows.map((row) => row.ownerUserId),
+      viewer,
+    )
+
+    const items: SocialEntityCard[] = rows.map((row) => {
+      const persona = personas.get(row.ownerUserId)
+      const avatarLabel =
+        persona?.displayName?.trim() ||
+        (persona?.handle ? `@${persona.handle}` : row.name)
+      return {
+        key: row.groupId,
+        href: withLocalePrefix(groupHref(row.slug), locale),
+        title: row.name,
+        imageSrc: personaMediaSrc(row.coverMediaId) || null,
+        avatarSrc: personaMediaSrc(persona?.avatarMediaId) || null,
+        avatarLabel,
+      }
+    })
 
     return React.createElement(
       'section',
@@ -69,35 +103,12 @@ export const socialGroupsModule: StarforgeModule = {
         { className: 'sf-social-groups-directory-link' },
         React.createElement(Link, { href: directoryHref }, 'Browse groups'),
       ),
-      groups.length === 0
-        ? React.createElement('p', { className: 'layout-muted' }, cfg.emptyMessage)
-        : React.createElement(
-            'ul',
-            { className: 'sf-social-groups-list' },
-            ...groups.map((group) =>
-              React.createElement(
-                'li',
-                { key: group.groupId, className: 'sf-social-groups-item' },
-                React.createElement(
-                  Link,
-                  {
-                    href: withLocalePrefix(groupHref(group.slug), locale),
-                    className: 'sf-social-groups-link',
-                  },
-                  React.createElement(
-                    'span',
-                    { className: 'sf-social-groups-name' },
-                    group.name,
-                  ),
-                  React.createElement(
-                    'span',
-                    { className: 'layout-muted' },
-                    `${group.memberCount} member${group.memberCount === 1 ? '' : 's'}`,
-                  ),
-                ),
-              ),
-            ),
-          ),
+      React.createElement(SocialEntityCards, {
+        items,
+        showImages: cfg.showImages,
+        emptyMessage: cfg.emptyMessage,
+        className: 'sf-social-groups',
+      }),
     )
   },
 }

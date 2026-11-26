@@ -8,6 +8,7 @@ import { hostModuleManifests } from '@/core/modules/host-manifests'
 import type { StarforgeModuleManifest } from '@/core/modules/define-module'
 
 import consentManifest from './consent/manifest'
+import cookieSettingsParticleManifest from './consent/particles/cookie-settings-manifest'
 import emailManagerManifest from './email-manager/manifest'
 import paymentsManifest from './payments/manifest'
 import subscriptionsManifest from './subscriptions/manifest'
@@ -38,6 +39,7 @@ import richEditorManifest from './rich-editor/manifest'
 import searchManifest from './search/manifest'
 import searchParticleManifest from './search/particle-manifest'
 import socialManifest from './social/manifest'
+import socialAlbumsParticleManifest from './social/particles/social-albums-manifest'
 import socialFriendsParticleManifest from './social/particles/social-friends-manifest'
 import socialGroupsParticleManifest from './social/particles/social-groups-manifest'
 import socialPagesParticleManifest from './social/particles/social-pages-manifest'
@@ -67,6 +69,7 @@ export const ALL_MODULE_MANIFESTS: StarforgeModuleManifest[] = [
   socialFriendsParticleManifest,
   socialGroupsParticleManifest,
   socialPagesParticleManifest,
+  socialAlbumsParticleManifest,
   socialStoriesParticleManifest,
   adsManifest,
   mapsManifest,
@@ -76,6 +79,7 @@ export const ALL_MODULE_MANIFESTS: StarforgeModuleManifest[] = [
   redirectsManifest,
   auditManifest,
   consentManifest,
+  cookieSettingsParticleManifest,
   pwaManifest,
   searchManifest,
   mediaManifest,

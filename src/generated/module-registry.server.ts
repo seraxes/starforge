@@ -65,12 +65,32 @@ export const optionalParticleLoaders: OptionalParticleLoader[] = [
     load: async () => (await import("@/modules/events/particles/event-countdown-module")).eventCountdownModule,
   },
   {
+    id: "social-friends",
+    load: async () => (await import("@/modules/social/particles/social-friends-module")).socialFriendsModule,
+  },
+  {
+    id: "social-groups",
+    load: async () => (await import("@/modules/social/particles/social-groups-module")).socialGroupsModule,
+  },
+  {
+    id: "social-pages",
+    load: async () => (await import("@/modules/social/particles/social-pages-module")).socialPagesModule,
+  },
+  {
+    id: "social-albums",
+    load: async () => (await import("@/modules/social/particles/social-albums-module")).socialAlbumsModule,
+  },
+  {
     id: "map",
     load: async () => (await import("@/modules/maps")).mapModule,
   },
   {
     id: "live-map",
     load: async () => (await import("@/modules/maps/live-map-module")).liveMapModule,
+  },
+  {
+    id: "cookie-settings",
+    load: async () => (await import("@/modules/consent/particles/cookie-settings-module")).cookieSettingsModule,
   },
   {
     id: "notice-bar",
@@ -399,6 +419,19 @@ export type ModuleMessageLoader = {
  * Convention: `src/modules/<folder>/messages/<locale>.json`.
  */
 export const moduleMessageLoaders: ModuleMessageLoader[] = [
+  {
+    moduleId: "cookie-settings",
+    namespaces: ["cookie-settings"] as const,
+    load: async (locale: string): Promise<Record<string, unknown>> => {
+      switch (locale) {
+      case "hu":
+        return (await import("@/modules/consent/messages/hu.json")).default
+      case 'en':
+      default:
+        return (await import("@/modules/consent/messages/en.json")).default
+      }
+    },
+  },
   {
     moduleId: "event-calendar",
     namespaces: ["event-calendar"] as const,

@@ -709,6 +709,42 @@ export type SocialGroupListItem = {
   name: string
   slug: string
   memberCount: number
+  coverMediaId: string | null
+  ownerUserId: string
+}
+
+function toSocialGroupListItem(
+  group: GroupRecord,
+  memberCount: number,
+): SocialGroupListItem {
+  return {
+    groupId: group.id,
+    name: group.name,
+    slug: group.slug,
+    memberCount,
+    coverMediaId: group.coverMediaId,
+    ownerUserId: group.ownerUserId,
+  }
+}
+
+async function memberCountsForGroups(
+  groupIds: string[],
+): Promise<Map<string, number>> {
+  if (groupIds.length === 0) return new Map()
+  const counts = await db
+    .select({
+      groupId: sfSocialGroupMembers.groupId,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(sfSocialGroupMembers)
+    .where(
+      and(
+        inArray(sfSocialGroupMembers.groupId, groupIds),
+        eq(sfSocialGroupMembers.status, 'active'),
+      ),
+    )
+    .groupBy(sfSocialGroupMembers.groupId)
+  return new Map(counts.map((row) => [row.groupId, Number(row.count) || 0]))
 }
 
 /** Groups the viewer actively belongs to (social-groups particle). */
@@ -743,30 +779,12 @@ export async function listMyGroups(
         .filter((row): row is GroupRecord => Boolean(row))
         .map((row) => [row.id, row]),
     )
-    const counts = await db
-      .select({
-        groupId: sfSocialGroupMembers.groupId,
-        count: sql<number>`count(*)::int`,
-      })
-      .from(sfSocialGroupMembers)
-      .where(
-        and(
-          inArray(sfSocialGroupMembers.groupId, groupIds),
-          eq(sfSocialGroupMembers.status, 'active'),
-        ),
-      )
-      .groupBy(sfSocialGroupMembers.groupId)
-    const countById = new Map(counts.map((row) => [row.groupId, Number(row.count) || 0]))
+    const countById = await memberCountsForGroups(groupIds)
     const out: SocialGroupListItem[] = []
     for (const membership of memberships) {
       const group = byId.get(membership.groupId)
       if (!group) continue
-      out.push({
-        groupId: group.id,
-        name: group.name,
-        slug: group.slug,
-        memberCount: countById.get(group.id) ?? 0,
-      })
+      out.push(toSocialGroupListItem(group, countById.get(group.id) ?? 0))
     }
     return out
   } catch (error) {
@@ -774,6 +792,51 @@ export async function listMyGroups(
     if (/sf_social_group|does not exist|relation/i.test(msg)) return []
     throw error
   }
+}
+
+/** Selected groups by id (social-groups particle source=groups). */
+export async function listGroupsByIds(
+  groupIds: readonly string[],
+  limit = 20,
+): Promise<SocialGroupListItem[]> {
+  const ids = [...new Set(groupIds.map((id) => id.trim()).filter(Boolean))]
+  if (ids.length === 0) return []
+  const capped = Math.min(Math.max(1, Math.floor(limit)), 100)
+  const slice = ids.slice(0, capped)
+  try {
+    const groups = await db
+      .select()
+      .from(sfSocialGroups)
+      .where(inArray(sfSocialGroups.id, slice))
+    const byId = new Map(
+      groups
+        .map(mapGroup)
+        .filter((row): row is GroupRecord => Boolean(row))
+        .map((row) => [row.id, row]),
+    )
+    const countById = await memberCountsForGroups(slice)
+    const out: SocialGroupListItem[] = []
+    for (const id of slice) {
+      const group = byId.get(id)
+      if (!group) continue
+      out.push(toSocialGroupListItem(group, countById.get(group.id) ?? 0))
+    }
+    return out
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    if (/sf_social_group|does not exist|relation/i.test(msg)) return []
+    throw error
+  }
+}
+
+/** Directory rows shaped for the social-groups particle (source=all). */
+export async function listGroupsForParticle(
+  limit = 20,
+): Promise<SocialGroupListItem[]> {
+  const directory = await listGroupsDirectory({ limit })
+  return directory.map((row) =>
+    toSocialGroupListItem(row.group, row.memberCount),
+  )
 }
 
 /** Groups this member owns (personal composer group choice). */

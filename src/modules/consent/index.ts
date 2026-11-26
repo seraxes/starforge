@@ -4,3 +4,4 @@
  */
 
 export { ConsentBanner, type ConsentBannerProps } from './ConsentBanner'
+export { CookieSettings, type CookieSettingsProps } from './CookieSettings'

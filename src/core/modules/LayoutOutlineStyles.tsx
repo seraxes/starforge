@@ -4,8 +4,10 @@ import {
   DEFAULT_LAYOUT_BREAKPOINTS,
   buildOutlineBodyBackgroundCss,
   buildOutlineBreakpointCss,
+  buildOutlineTypographyCss,
   type LayoutBodyBackground,
   type LayoutBreakpoints,
+  type LayoutTypography,
 } from './styles'
 
 type Props = {
@@ -14,17 +16,20 @@ type Props = {
   breakpoints?: LayoutBreakpoints | null
   /** Resolved page background (media id already turned into a URL). */
   bodyBackground?: LayoutBodyBackground | null
+  /** Resolved type (title/text/accent). Inherited values are already merged. */
+  typography?: LayoutTypography | null
 }
 
 /**
  * Emit outline-scoped CSS on `body.sf-skin-*.sf-outline-*` (outline beats skin).
- * Server component — breakpoints and page background come from the layout document.
+ * Server component — breakpoints, page background, and type come from the layout document.
  */
 export function LayoutOutlineStyles({
   layoutId,
   skinId,
   breakpoints,
   bodyBackground,
+  typography,
 }: Props) {
   const css = [
     buildOutlineBreakpointCss(
@@ -33,6 +38,7 @@ export function LayoutOutlineStyles({
       skinId,
     ),
     buildOutlineBodyBackgroundCss(layoutId || 'default', skinId, bodyBackground),
+    buildOutlineTypographyCss(layoutId || 'default', skinId, typography),
   ]
     .filter(Boolean)
     .join('')

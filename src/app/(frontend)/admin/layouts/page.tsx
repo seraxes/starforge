@@ -63,11 +63,23 @@ export default async function AdminLayoutsPage(props: { searchParams?: SearchPar
     fallbackId: DEFAULT_LAYOUT_ID,
   })
 
-  const adminBundle = await getLayoutDocumentForAdmin(layoutId)
+  const skinBaseId =
+    typeof activeSkin.preferredDefaultOutlineId === 'string'
+      ? activeSkin.preferredDefaultOutlineId.trim()
+      : ''
+  const adminBundle = await getLayoutDocumentForAdmin(
+    layoutId,
+    isSkinBaseOutlineId(layoutId, skinBaseId) ? null : skinBaseId,
+  )
   const raw = await hydrateLayoutDocumentLocales(layoutId, adminBundle.raw)
   const resolved = await hydrateLayoutDocumentLocales(layoutId, adminBundle.resolved)
   const { parent, parentLayoutId, label } = adminBundle
-  const isFallback = raw.sections.length === 0
+  const inheritLink =
+    typeof raw.inheritFrom === 'string' ? raw.inheritFrom.trim() : ''
+  const isFallback =
+    raw.sections.length === 0 &&
+    !inheritLink &&
+    !(raw.styles && Object.keys(raw.styles).length > 0)
   const outlineMeta = (await getLayoutOutline(layoutId)) ?? {
     id: layoutId,
     label: label || layoutId,
@@ -119,6 +131,9 @@ export default async function AdminLayoutsPage(props: { searchParams?: SearchPar
           rawDocument={raw}
           parentDocument={parent}
           parentLayoutId={parentLayoutId}
+          inheritOutlines={skinOutlines
+            .filter((outline) => outline.id !== layoutId)
+            .map((outline) => ({ id: outline.id, label: outline.label }))}
           source={isFallback ? 'default-json' : 'database'}
           modules={modules}
           groups={groups}

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useEffect, useState, useTransition } from 'react'
+import React, { useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
 import {
@@ -36,6 +36,74 @@ const FITS: Array<{ value: LayoutBodyBackgroundFit; label: string }> = [
   { value: 'tile', label: 'Tile' },
 ]
 
+type Draft = {
+  color: string
+  fit: LayoutBodyBackgroundFit
+  allowGradient: boolean
+  mediaId: string
+  mediaUrl: string
+  overlay: 'enabled' | 'disabled'
+  overlayColor: string
+  allowGradientOverlay: boolean
+}
+
+const GRADIENT_HINT =
+  'linear-gradient(180deg, #1c2834 0%, #8ebad4 100%). radial-gradient(circle, #f2a66a, transparent) and conic-gradient(from 90deg, #a85220, #8ebad4) use the same parentheses. No url().'
+
+function isGradientValue(value: string): boolean {
+  return /gradient\(/i.test(value)
+}
+
+function draftFromBody(body: LayoutBodyBackground | undefined): Draft {
+  if (!body || body.disabled) {
+    return {
+      color: '',
+      fit: 'cover-fixed',
+      allowGradient: false,
+      mediaId: '',
+      mediaUrl: '',
+      overlay: 'disabled',
+      overlayColor: '',
+      allowGradientOverlay: false,
+    }
+  }
+  return {
+    color: body.backgroundColor ?? '',
+    fit: bodyBackgroundFit(body),
+    allowGradient: Boolean(body.allowGradientBackground),
+    mediaId: body.backgroundMediaId ?? '',
+    mediaUrl: body.backgroundImage ?? '',
+    overlay: body.backgroundOverlay === 'enabled' ? 'enabled' : 'disabled',
+    overlayColor: body.overlayColor ?? '',
+    allowGradientOverlay: Boolean(body.allowGradientOverlay),
+  }
+}
+
+function draftKey(draft: Draft): string {
+  return [
+    draft.color,
+    draft.fit,
+    draft.allowGradient ? '1' : '0',
+    draft.mediaId,
+    draft.mediaUrl,
+    draft.overlay,
+    draft.overlayColor,
+    draft.allowGradientOverlay ? '1' : '0',
+  ].join('\u0000')
+}
+
+function draftHasPaint(draft: Draft): boolean {
+  return Boolean(
+    draft.color ||
+      draft.mediaId ||
+      draft.mediaUrl ||
+      draft.overlay === 'enabled' ||
+      draft.overlayColor ||
+      draft.allowGradient ||
+      draft.allowGradientOverlay,
+  )
+}
+
 /**
  * Layouts → Styles → Page background.
  * Autosaves onto the outline document (`styles.body`).
@@ -47,38 +115,36 @@ export function BodyBackgroundPanel({ body, inherited, canInherit }: Props) {
   const [pending, startSave] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const fieldsDisabled = inherited || pending
-  const savedFit = bodyBackgroundFit(body)
-  const savedColor = body?.disabled ? '' : (body?.backgroundColor ?? '')
-  const mediaId = body?.disabled ? '' : (body?.backgroundMediaId ?? '')
-  const mediaUrl = body?.disabled ? '' : (body?.backgroundImage ?? '')
-  const [fit, setFit] = useState(savedFit)
-  const [color, setColor] = useState(savedColor)
+  const saved = draftFromBody(body)
+  const savedKey = draftKey(saved)
+  const [draft, setDraft] = useState<Draft>(saved)
+  const [syncedKey, setSyncedKey] = useState(savedKey)
+  const draftRef = useRef(draft)
+  if (savedKey !== syncedKey) {
+    setSyncedKey(savedKey)
+    setDraft(saved)
+  }
   useEffect(() => {
-    setFit(savedFit)
-    setColor(savedColor)
-  }, [savedFit, savedColor])
-  const hasPaint = Boolean(!inherited && (color || mediaId || mediaUrl))
+    draftRef.current = draft
+  }, [draft])
 
   const persist = useCallback(
-    (next: {
-      mode: 'set' | 'clear' | 'inherit'
-      color?: string
-      fit?: LayoutBodyBackgroundFit
-      mediaId?: string
-      url?: string
-    }) => {
+    (next: { mode: 'set' | 'clear' | 'inherit'; draft?: Draft }) => {
       const fd = new FormData()
       fd.set('layoutId', layoutId)
       fd.set('mode', next.mode)
       if (next.mode === 'clear' && canInherit) fd.set('blockInherit', '1')
-      if (next.mode === 'set') {
-        fd.set('backgroundColor', next.color ?? '')
-        fd.set('fit', next.fit ?? 'cover-fixed')
-        fd.set('backgroundMediaId', next.mediaId ?? '')
-        fd.set('backgroundImage', next.url ?? '')
-        if (canInherit && !next.color && !next.mediaId && !next.url) {
-          fd.set('blockInherit', '1')
-        }
+      if (next.mode === 'set' && next.draft) {
+        const current = next.draft
+        fd.set('backgroundColor', current.color)
+        fd.set('allowGradientBackground', current.allowGradient ? '1' : '0')
+        fd.set('fit', current.fit)
+        fd.set('backgroundMediaId', current.mediaId)
+        fd.set('backgroundImage', current.mediaUrl)
+        fd.set('backgroundOverlay', current.overlay)
+        fd.set('overlayColor', current.overlayColor)
+        fd.set('allowGradientOverlay', current.allowGradientOverlay ? '1' : '0')
+        if (canInherit && !draftHasPaint(current)) fd.set('blockInherit', '1')
       }
       startSave(async () => {
         const result: LayoutActionState = await updateLayoutBodyBackgroundAction({}, fd)
@@ -95,18 +161,21 @@ export function BodyBackgroundPanel({ body, inherited, canInherit }: Props) {
     [canInherit, layoutId, notifyError, notifySaved, router],
   )
 
-  const { schedule, flush } = useDebouncedPersist(
-    (next: { color: string }) => {
-      if (inherited) return
-      persist({
-        mode: 'set',
-        color: next.color,
-        fit,
-        mediaId,
-        url: mediaUrl,
-      })
-    },
-  )
+  const { schedule, flush } = useDebouncedPersist((next: Draft) => {
+    if (inherited) return
+    persist({ mode: 'set', draft: next })
+  })
+
+  const commit = (patch: Partial<Draft>, immediate: boolean) => {
+    const next = { ...draftRef.current, ...patch }
+    draftRef.current = next
+    setDraft(next)
+    if (inherited) return
+    if (immediate) flush('body', next)
+    else schedule('body', next)
+  }
+
+  const hasPaint = Boolean(!inherited && draftHasPaint(draft))
 
   return (
     <details className={inherited ? 'section-styles-card sf-inherited-muted' : 'section-styles-card'} open>
@@ -168,7 +237,7 @@ export function BodyBackgroundPanel({ body, inherited, canInherit }: Props) {
         <div className="settings-field">
           <MediaPicker
             label="Background image"
-            value={{ mediaId, url: mediaUrl }}
+            value={{ mediaId: draft.mediaId, url: draft.mediaUrl }}
             defaultFolder="backgrounds"
             defaultPurpose="photo"
             disabled={fieldsDisabled}
@@ -178,11 +247,7 @@ export function BodyBackgroundPanel({ body, inherited, canInherit }: Props) {
               if (inherited) return
               const url = next.url ?? ''
               const id = next.mediaId ?? ''
-              if (!id && !url && !color) {
-                persist({ mode: 'clear' })
-                return
-              }
-              persist({ mode: 'set', color, fit, mediaId: id, url })
+              commit({ mediaId: id, mediaUrl: url }, true)
             }}
           />
         </div>
@@ -190,12 +255,10 @@ export function BodyBackgroundPanel({ body, inherited, canInherit }: Props) {
         <label className="settings-field">
           <span>Fit</span>
           <select
-            value={fit}
-            disabled={fieldsDisabled || (!mediaId && !mediaUrl)}
+            value={draft.fit}
+            disabled={fieldsDisabled || (!draft.mediaId && !draft.mediaUrl)}
             onChange={(event) => {
-              const nextFit = event.target.value as LayoutBodyBackgroundFit
-              setFit(nextFit)
-              persist({ mode: 'set', color, fit: nextFit, mediaId, url: mediaUrl })
+              commit({ fit: event.target.value as LayoutBodyBackgroundFit }, true)
             }}
           >
             {FITS.map((option) => (
@@ -206,39 +269,52 @@ export function BodyBackgroundPanel({ body, inherited, canInherit }: Props) {
           </select>
         </label>
 
-        <div className="settings-field section-styles-color-field">
-          <span className="section-styles-color-label">Background color</span>
-          <span className="gantry-color-field section-styles-color-row">
-            <input
-              type="color"
-              className="gantry-color-swatch"
-              aria-label="Page background color picker"
-              disabled={fieldsDisabled}
-              value={cssColorToColorInputValue(color)}
-              onChange={(event) => {
-                const hex = event.target.value
-                setColor(hex)
-                schedule('backgroundColor', { color: hex })
-              }}
-            />
-            <input
-              type="text"
-              className="gantry-inline-input"
-              aria-label="Page background color"
-              disabled={fieldsDisabled}
-              value={color}
-              placeholder="#eef4fa"
-              spellCheck={false}
-              autoComplete="off"
-              onChange={(event) => {
-                const next = event.target.value
-                setColor(next)
-                schedule('backgroundColor', { color: next })
-              }}
-              onBlur={(event) => flush('backgroundColor', { color: event.target.value })}
-            />
-          </span>
-        </div>
+        <PaintField
+          label="Background color"
+          value={draft.color}
+          placeholder="#eef4fa"
+          allowGradient={draft.allowGradient}
+          disabled={fieldsDisabled}
+          onChange={(color, immediate) => commit({ color }, immediate)}
+          onAllowGradientChange={(allowGradient) => {
+            const color =
+              !allowGradient && isGradientValue(draftRef.current.color) ? '' : draftRef.current.color
+            commit({ allowGradient, color }, true)
+          }}
+        />
+
+        <label className="settings-field">
+          <span>Background overlay</span>
+          <select
+            value={draft.overlay}
+            disabled={fieldsDisabled}
+            onChange={(event) => {
+              commit(
+                { overlay: event.target.value === 'enabled' ? 'enabled' : 'disabled' },
+                true,
+              )
+            }}
+          >
+            <option value="disabled">Disabled</option>
+            <option value="enabled">Enabled</option>
+          </select>
+        </label>
+
+        <PaintField
+          label="Overlay color"
+          value={draft.overlayColor}
+          placeholder="#000000"
+          allowGradient={draft.allowGradientOverlay}
+          disabled={fieldsDisabled || draft.overlay !== 'enabled'}
+          onChange={(overlayColor, immediate) => commit({ overlayColor }, immediate)}
+          onAllowGradientChange={(allowGradientOverlay) => {
+            const overlayColor =
+              !allowGradientOverlay && isGradientValue(draftRef.current.overlayColor)
+                ? ''
+                : draftRef.current.overlayColor
+            commit({ allowGradientOverlay, overlayColor }, true)
+          }}
+        />
 
         {error ? (
           <p className="form-error" role="alert">
@@ -246,7 +322,7 @@ export function BodyBackgroundPanel({ body, inherited, canInherit }: Props) {
           </p>
         ) : null}
 
-        {hasPaint && !inherited ? (
+        {hasPaint ? (
           <div className="page-settings-actions">
             <button
               type="button"
@@ -260,5 +336,67 @@ export function BodyBackgroundPanel({ body, inherited, canInherit }: Props) {
         ) : null}
       </div>
     </details>
+  )
+}
+
+function PaintField({
+  label,
+  value,
+  placeholder,
+  allowGradient,
+  disabled,
+  onChange,
+  onAllowGradientChange,
+}: {
+  label: string
+  value: string
+  placeholder: string
+  allowGradient: boolean
+  disabled: boolean
+  onChange: (next: string, immediate: boolean) => void
+  onAllowGradientChange: (next: boolean) => void
+}) {
+  const gradient = allowGradient && isGradientValue(value)
+  return (
+    <div className="settings-field section-styles-color-field">
+      <span className="section-styles-color-label">{label}</span>
+      <span className="gantry-color-field section-styles-color-row">
+        {gradient ? null : (
+          <input
+            type="color"
+            className="gantry-color-swatch"
+            aria-label={`${label} picker`}
+            disabled={disabled}
+            value={cssColorToColorInputValue(value)}
+            onChange={(event) => onChange(event.target.value, true)}
+          />
+        )}
+        <input
+          type="text"
+          className="gantry-inline-input"
+          aria-label={label}
+          disabled={disabled}
+          value={value}
+          placeholder={allowGradient ? 'linear-gradient(180deg, #1c2834, #8ebad4)' : placeholder}
+          spellCheck={false}
+          autoComplete="off"
+          onChange={(event) => onChange(event.target.value, false)}
+          onBlur={(event) => onChange(event.target.value, true)}
+        />
+        <label className="section-styles-gradient-inline" title="Allow CSS gradients">
+          <input
+            type="checkbox"
+            checked={allowGradient}
+            disabled={disabled}
+            onChange={(event) => onAllowGradientChange(event.target.checked)}
+            aria-label={`Allow gradient for ${label}`}
+          />
+          <span>Allow gradient</span>
+        </label>
+      </span>
+      {allowGradient ? (
+        <p className="settings-hint section-styles-gradient-hint">{GRADIENT_HINT}</p>
+      ) : null}
+    </div>
   )
 }

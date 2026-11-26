@@ -38,7 +38,7 @@ last_verified: 2026-11-25
 | Public surface | `/feed…` (not Core; not Hero) |
 | Admin | `/admin/social`, `/people`, `/groups`, `/pages`, `/media`, `/reports` |
 | Public doors | `@/modules/social/api`, `@/modules/social/api.server` (`social-api`, `social-api-server`) |
-| Builtin particle `social` | Footer links — **do not reuse**. Social particles are `social-friends`, `social-groups`, `social-pages`, `social-stories` |
+| Builtin particle `social` | Footer links — **do not reuse**. Social particles are `social-friends`, `social-groups`, `social-pages`, `social-albums`, `social-stories` |
 | Live video | Part of Social. No `product:stream`. Not a separate pack after Marketplace ([2026-11-26-chat-shop-stream](./decisions/2026-11-26-chat-shop-stream.md)) |
 | Money | Payments is **not** a Social dependency; **no Social cart**; no Social charge path yet |
 | Mail | Email Manager triggers only (`emitEmailTrigger`); never `getMailer()` |
@@ -170,7 +170,7 @@ Per plan / README: points/badges, support tickets, chat (its own pack after Mark
 | --- | --- |
 | Public | `/feed`, `/feed/people`, `/feed/groups`, `/feed/g/[slug]`, `/feed/pages`, `/feed/p/[slug]`, `/feed/stories`, `/feed/following`, `/feed/discover`, `/feed/watch`, `/feed/saved`, `/feed/tag/[tag]`, `/feed/post/[id]`, `/feed/[handle]`, `/feed/u/[handle]` |
 | Admin | `/admin/social` (+ people, groups, pages, media, reports) |
-| Particles | `social-friends`, `social-groups`, `social-pages`, `social-stories` |
+| Particles | `social-friends`, `social-groups`, `social-pages`, `social-albums`, `social-stories` |
 | Job | `social.sweep` (challenges + story expiry) — armed only when Social enabled |
 | Mail triggers | `product:social/friend.requested`, `group.invited`, `group.announced`, `challenge.invited` |
 | Grants (planned shape) | `social.posts`, `social.reports` at view/edit/manage — plus admin area `admin.social` used in comment staff paths |

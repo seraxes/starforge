@@ -3,6 +3,10 @@ import { describe, it, beforeEach, afterEach } from 'node:test'
 
 import { contentCacheTags } from './cache/tags'
 import {
+  CACHE_EXPIRE_ON_NEXT_READ_SEC,
+  publishedCacheTagProfile,
+} from './defer-revalidate'
+import {
   invalidateLayout,
   invalidateNavMenu,
   invalidatePageChrome,
@@ -70,5 +74,16 @@ describe('content cache invalidate helpers await', () => {
     assert.equal(contentCacheTags.navMenu('main'), 'sf:nav-menu:main')
     assert.equal(contentCacheTags.pageChromeRow('global'), 'sf:page-chrome:global')
     assert.equal(contentCacheTags.proxyPolicy, 'sf:proxy-policy')
+  })
+
+  it('layout invalidation expires on the next read without blocking the action', () => {
+    const expired = publishedCacheTagProfile('expire')
+    assert.equal(publishedCacheTagProfile('stale'), 'max')
+    assert.equal(publishedCacheTagProfile(), 'max')
+    assert.equal(typeof expired, 'object')
+    if (typeof expired !== 'object') return
+    assert.equal(expired.expire, CACHE_EXPIRE_ON_NEXT_READ_SEC)
+    assert.ok(expired.expire > 0)
+    assert.ok(expired.expire < 1)
   })
 })

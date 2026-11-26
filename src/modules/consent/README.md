@@ -6,13 +6,13 @@ Status: shipped
 
 ## Owns
 
-Cookie consent banner, choices panel, and `sf-consent` preference helpers. Public UI via `publicShell` `bodyEnd` → `ConsentShell` (Essential / Customize / Accept all; Necessary locked, Analytics optional). Gates `atom:analytics` until analytics is accepted. Policy copy under Site Chrome. No `sf_*` tables; preferences live in the consent cookie.
+Cookie consent banner, choices panel, and `sf-consent` preference helpers. Public UI via `publicShell` `bodyEnd` → `ConsentShell` (Essential / Customize / Accept all; Necessary locked, Analytics optional). Reopen control is the `cookie-settings` layout particle (requires this pack). Gates `atom:analytics` until analytics is accepted. Policy copy under Site Chrome. No `sf_*` tables; preferences live in the consent cookie.
 
-Package story and publish notes: [`packages/module-consent/README.md`](../../../packages/module-consent/README.md). Host adapter stays at `src/modules/consent/public/ConsentShell.tsx`.
+Package story and publish notes: [`packages/module-consent/README.md`](../../../packages/module-consent/README.md). Host adapters: `src/modules/consent/public/ConsentShell.tsx` (banner) and `src/modules/consent/particles/cookie-settings-module.ts` (reopen).
 
 ## Consumes
 
-None (`requires` / `optionalRequires` empty). Uses Core layout `publicShell` slots and Site Chrome / Chrome policy copy.
+None (`requires` / `optionalRequires` empty). Uses Core layout `publicShell` slots, the layout particle host, and Site Chrome / Chrome policy copy.
 
 ## Public door
 
@@ -24,7 +24,7 @@ None. Toggle under Settings → Modules. ACL area: none declared.
 
 ## Boot and jobs
 
-None. When on, `ConsentShell` mounts at `bodyEnd`.
+None. When on, `ConsentShell` mounts at `bodyEnd`. Place `cookie-settings` in a layout outline (default seed: Footer) to reopen preferences.
 
 ## Known gaps
 

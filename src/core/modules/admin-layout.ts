@@ -17,9 +17,9 @@ export type LayoutAdminBundle = {
   raw: LayoutDocument
   /** Inheritance resolved for canvas / Styles display. */
   resolved: LayoutDocument
-  /** Parent outline id from raw.inheritFrom (trimmed), if any. */
+  /** Parent outline id (stored inheritFrom, or the skin Base fallback). */
   parentLayoutId: string | null
-  /** Parent raw document when inheritFrom is set and loadable. */
+  /** Resolved parent document when a parent id is loadable. */
   parent: LayoutDocument | null
 }
 
@@ -29,18 +29,20 @@ export type LayoutAdminBundle = {
  */
 export async function getLayoutDocumentForAdmin(
   layoutId?: string,
+  /** Skin Base id when this outline has no stored `inheritFrom`. */
+  fallbackParentId?: string | null,
 ): Promise<LayoutAdminBundle> {
   const id =
     typeof layoutId === 'string' && layoutId.trim() ? layoutId.trim() : DEFAULT_LAYOUT_ID
   const { document: raw, layoutId: resolvedId, label } = await loadLayoutDocument(id)
-  const inheritFrom =
-    typeof raw.inheritFrom === 'string' ? raw.inheritFrom.trim() : ''
+  const { outlineParentId } = await import('@/core/skin/outline-meta')
+  const parentKey = outlineParentId(resolvedId, raw.inheritFrom, fallbackParentId)
   let parent: LayoutDocument | null = null
   let parentLayoutId: string | null = null
-  if (inheritFrom && inheritFrom !== resolvedId) {
-    parentLayoutId = inheritFrom
+  if (parentKey) {
+    parentLayoutId = parentKey
     try {
-      const loaded = await loadLayoutDocument(inheritFrom)
+      const loaded = await loadLayoutDocument(parentKey)
       parent = await resolveLayoutInheritance(loaded.layoutId, loaded.document)
     } catch {
       parent = null

@@ -1,9 +1,23 @@
 import type { LayoutSlotConfig } from '@/core/modules/types'
 
+import {
+  parseSocialParticleScopeIds,
+  readSocialParticleLimit,
+  readSocialParticleShowImages,
+  readSocialParticleSource,
+  scopeIdsToConfigValue,
+  type SocialParticleSource,
+} from './social-particle-scope'
+
 export type SocialGroupsParticleConfig = {
   heading: string
   emptyMessage: string
   limit: number
+  /** viewer = memberships; groups = scopeIds; all = directory. */
+  source: SocialParticleSource
+  /** Group ids when source=groups. */
+  scopeIds: string[]
+  showImages: boolean
 }
 
 export function defaultSocialGroupsConfig(): SocialGroupsParticleConfig {
@@ -11,25 +25,36 @@ export function defaultSocialGroupsConfig(): SocialGroupsParticleConfig {
     heading: 'Groups',
     emptyMessage: 'No groups yet.',
     limit: 12,
+    source: 'viewer',
+    scopeIds: [],
+    showImages: true,
   }
 }
 
 export function readSocialGroupsConfig(
   config: LayoutSlotConfig | undefined,
 ): SocialGroupsParticleConfig {
-  const c = config ?? {}
   const defaults = defaultSocialGroupsConfig()
-  const limitRaw = typeof c.limit === 'number' ? c.limit : Number(c.limit)
-  const limit =
-    Number.isFinite(limitRaw) && limitRaw > 0
-      ? Math.min(Math.floor(limitRaw), 100)
-      : defaults.limit
   return {
-    heading: typeof c.heading === 'string' ? c.heading : defaults.heading,
+    heading: typeof config?.heading === 'string' ? config.heading : defaults.heading,
     emptyMessage:
-      typeof c.emptyMessage === 'string' && c.emptyMessage.trim()
-        ? c.emptyMessage.trim()
+      typeof config?.emptyMessage === 'string' && config.emptyMessage.trim()
+        ? config.emptyMessage.trim()
         : defaults.emptyMessage,
-    limit,
+    limit: readSocialParticleLimit(config, defaults.limit),
+    source: readSocialParticleSource(config, defaults.source),
+    scopeIds: parseSocialParticleScopeIds(config?.scopeIds ?? config?.groupIds),
+    showImages: readSocialParticleShowImages(config, defaults.showImages),
+  }
+}
+
+export function socialGroupsConfigToJson(cfg: SocialGroupsParticleConfig): LayoutSlotConfig {
+  return {
+    heading: cfg.heading,
+    emptyMessage: cfg.emptyMessage,
+    limit: cfg.limit,
+    source: cfg.source,
+    scopeIds: scopeIdsToConfigValue(cfg.scopeIds),
+    showImages: cfg.showImages,
   }
 }

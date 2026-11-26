@@ -46,6 +46,24 @@ export function isSkinBaseOutlineId(
 }
 
 /**
+ * Parent outline for section Inherit/Copy.
+ * An explicit `inheritFrom` wins. Otherwise a non-Base outline uses the skin Base
+ * (Outlines shows that parent even when the document link was never saved).
+ */
+export function outlineParentId(
+  layoutId: string,
+  inheritFrom: string | null | undefined,
+  skinBaseOutlineId: string | null | undefined,
+): string {
+  const id = layoutId.trim()
+  const explicit = typeof inheritFrom === 'string' ? inheritFrom.trim() : ''
+  if (explicit && explicit !== id) return explicit
+  const base = typeof skinBaseOutlineId === 'string' ? skinBaseOutlineId.trim() : ''
+  if (!base || !id || base === id) return ''
+  return base
+}
+
+/**
  * Pick which outline id to open for a skin: requested if it belongs to the skin,
  * else preferred Base, else first skin outline.
  */

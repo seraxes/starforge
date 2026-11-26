@@ -1,0 +1,37 @@
+---
+description: New selects/options in useActionState forms must survive post-save reset — prefer controlled value, not defaultValue alone.
+globs: "**/*.{ts,tsx}"
+alwaysApply: true
+---
+
+# Starforge — admin form option persistence
+
+## Cause
+
+React **resets uncontrolled fields** after a successful `useActionState` / Server Action submit. Reset restores mount-time `defaultValue` / `defaultChecked`.
+
+`router.refresh()` then updates props, but React **ignores** `defaultValue` after mount. The control keeps the reset (old) value until a hard remount/reload — even though the save succeeded.
+
+Symptom: “saves, but the select only shows the saved option after reloading.”
+
+## Check every time you add an option
+
+When adding a **select**, radio group, checkbox, or other choice to a form that uses `useActionState` (or any Server Action form that can reset):
+
+1. Ask: will this control still show the **just-saved** value after submit + `router.refresh()`, without a hard reload?
+2. If it uses only `defaultValue` / `defaultChecked` → **fix it** before shipping.
+
+## Do
+
+- Prefer **controlled** state: `value` + `onChange`, sync from props with `useEffect` when the server value changes (see Social People → tray hover animation).
+- Or remount after saved props arrive: `key` on the form/control tied to the saved setting(s).
+- Apply the same check to **every** new option field in that form — not only the one you noticed.
+
+## Don’t
+
+- Ship a new select/option on a `useActionState` form with `defaultValue` alone and assume refresh will update the UI.
+- Treat “hard reload fixes it” as done.
+
+## Quick check
+
+Change the option → Save → **without** reloading, confirm the control still shows the saved choice. If it snaps back, the field is uncontrolled against a post-save reset.

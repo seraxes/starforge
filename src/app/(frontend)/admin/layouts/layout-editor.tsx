@@ -1,17 +1,17 @@
 'use client'
 
-import React, { useActionState, useCallback, useRef, useState, useTransition } from 'react'
+import React, { useActionState, useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 import { AccessTagsField } from '@/components/admin/AccessTagsField'
-import { AdminConfirmDialog } from '@/components/admin/AdminConfirmDialog'
 import { GantryBarRemoveButton } from '@/components/admin/GantryBarRemoveButton'
 import { resolveAccessTags } from '@/core/acl/nav-access'
 import type { UserGroupOption } from '@/core/acl/types'
 import {
   addLayoutRowAction,
   addLayoutSectionAction,
+  ensureLayoutRowContainersAction,
   copySectionFromParentAction,
   copySlotFromParentAction,
   dropParticleIntoRowAction,
@@ -54,15 +54,27 @@ import {
   moveIdInOrder,
   type CanvasItemDrag,
 } from '../canvas/section-row-drag'
+import {
+  packSectionsIntoLines,
+  rowContainerForSections,
+  syncRowContainers,
+} from '@/core/modules/row-container'
 import { sortLayoutSectionsByOrder } from '@/core/modules/section-order'
 import { cssColorToColorInputValue } from '@/core/modules/styles'
-import type { LayoutDocument, LayoutRow, LayoutSection, LayoutSlot } from '@/core/modules/types'
+import type {
+  LayoutDocument,
+  LayoutRow,
+  LayoutRowContainer,
+  LayoutSection,
+  LayoutSlot,
+} from '@/core/modules/types'
 
 import { useAdminToast } from '../admin-toast'
-import { InheritCopyRow } from './layout-inherit-controls'
+import { InheritSourceControls, type InheritOutlineOption } from './layout-inherit-controls'
 import { ParticleAttributesEditor } from './particle-attributes-editor'
 import { ParticleEditorHost } from './particle-editor-host'
 import { ParticleSettingsPopover } from './particle-settings-popover'
+import { RowContainerFrame } from './row-container-frame'
 import { SectionBoxSpacingFields } from './section-box-spacing-fields'
 import type { FormDefinitionOption, NavMenuOption } from './typed-particle-editors'
 import type { ContentLocaleOption } from '@/core/i18n/locale-text'
@@ -80,16 +92,6 @@ function rawSectionStructureInherited(
   const child = raw.sections.find((s) => s.id === sectionId)
   if (!child) return true
   return child.inheritMode === 'inherit'
-}
-
-function parentHasSlot(
-  parent: LayoutDocument | null | undefined,
-  sectionId: string,
-  slotId: string,
-): boolean {
-  const section = parent?.sections.find((s) => s.id === sectionId)
-  if (!section) return false
-  return section.rows.some((row) => row.slots.some((slot) => slot.id === slotId))
 }
 
 function rawSlotInherited(
@@ -120,6 +122,8 @@ type Props = {
   /** Resolved parent outline when inheritFrom is set. */
   parentDocument?: LayoutDocument | null
   parentLayoutId?: string | null
+  /** Other layouts in this skin. Section and particle cogs inherit from one of these. */
+  inheritOutlines?: InheritOutlineOption[]
   source: 'database' | 'default-json'
   modules: ModuleOption[]
   /** Users → Groups options for slot accessTags multi-select. */
@@ -294,8 +298,10 @@ function ParticleBlock({
   onSlotPatched,
   canInherit,
   particleInherited,
-  parentHasMatchingSlot,
   sectionStructureInherited,
+  inheritOutlines = [],
+  parentLayoutId = '',
+  sourceOutlineId = '',
 }: {
   sectionId: string
   rowId: string
@@ -310,8 +316,11 @@ function ParticleBlock({
   onSlotPatched?: (patch: Partial<LayoutSlot>) => void
   canInherit: boolean
   particleInherited: boolean
-  parentHasMatchingSlot: boolean
   sectionStructureInherited: boolean
+  inheritOutlines?: InheritOutlineOption[]
+  parentLayoutId?: string
+  /** Saved particle source layout. Empty uses the parent layout. */
+  sourceOutlineId?: string
 }) {
   const router = useRouter()
   const layoutId = useLayoutOutlineId()
@@ -458,18 +467,38 @@ function ParticleBlock({
                           <div className="gantry-slot-inherit-panel">
                             {sectionStructureInherited ? (
                               <p className="settings-hint">
-                                Section inherits structure from the parent outline. Copy or turn off
+                                Section inherits structure from its layout. Copy or turn off
                                 section inherit first to manage particle inherit.
                               </p>
-                            ) : parentHasMatchingSlot ? (
-                              <InheritCopyRow
-                                inherited={particleInherited}
+                            ) : (
+                              <InheritSourceControls
+                                key={`${slot.id}:${sourceOutlineId || parentLayoutId}`}
+                                outlines={inheritOutlines}
+                                initialSourceId={sourceOutlineId || parentLayoutId}
                                 disabled={pending}
-                                onInheritChange={(next) => {
+                                inherited={particleInherited}
+                                hint="Inherit keeps a live link to that layout’s particle. Copy snapshots it locally."
+                                onSourceChange={(next) => {
                                   const fd = withOutlineId(new FormData(), layoutId)
                                   fd.set('sectionId', sectionId)
                                   fd.set('rowId', rowId)
                                   fd.set('slotId', slot.id)
+                                  fd.set('sourceOutlineId', next)
+                                  fd.set('sourceOnly', '1')
+                                  startTransition(async () => {
+                                    const result = await setSlotInheritModeAction({}, fd)
+                                    setFlash(result)
+                                    if (result.ok) notifySaved('Saved')
+                                    else if (result.error) notifyError(result.error)
+                                    router.refresh()
+                                  })
+                                }}
+                                onInheritChange={(next, chosen) => {
+                                  const fd = withOutlineId(new FormData(), layoutId)
+                                  fd.set('sectionId', sectionId)
+                                  fd.set('rowId', rowId)
+                                  fd.set('slotId', slot.id)
+                                  fd.set('sourceOutlineId', chosen)
                                   fd.set('inheritMode', next ? 'inherit' : 'local')
                                   startTransition(async () => {
                                     const result = await setSlotInheritModeAction({}, fd)
@@ -479,11 +508,12 @@ function ParticleBlock({
                                     router.refresh()
                                   })
                                 }}
-                                onCopy={() => {
+                                onCopy={(chosen) => {
                                   const fd = withOutlineId(new FormData(), layoutId)
                                   fd.set('sectionId', sectionId)
                                   fd.set('rowId', rowId)
                                   fd.set('slotId', slot.id)
+                                  fd.set('sourceOutlineId', chosen)
                                   startTransition(async () => {
                                     const result = await copySlotFromParentAction({}, fd)
                                     setFlash(result)
@@ -492,12 +522,7 @@ function ParticleBlock({
                                     router.refresh()
                                   })
                                 }}
-                                hint="Inherit keeps a live link to the parent particle. Copy snapshots it locally."
                               />
-                            ) : (
-                              <p className="settings-hint">
-                                Parent outline has no matching particle id in this section.
-                              </p>
                             )}
                             <ActionFeedback state={flash} />
                           </div>
@@ -566,11 +591,13 @@ function SectionCanvas({
   primaryNavMenuId,
   isDeveloperAdmin,
   canRemoveSection,
+  hideContainer = false,
   drag,
   onSectionRemoved,
   canInherit,
   rawDocument,
-  parentDocument,
+  inheritOutlines = [],
+  parentLayoutId = '',
 }: {
   section: LayoutSection
   modules: ModuleOption[]
@@ -581,26 +608,28 @@ function SectionCanvas({
   primaryNavMenuId: string
   isDeveloperAdmin?: boolean
   canRemoveSection: boolean
+  /** Side-by-side row: container mode lives on the row container, not this section. */
+  hideContainer?: boolean
   drag: SectionDragBind
   onSectionRemoved: (sectionId: string) => void
   canInherit: boolean
   rawDocument?: LayoutDocument
-  parentDocument?: LayoutDocument | null
+  inheritOutlines?: InheritOutlineOption[]
+  parentLayoutId?: string
 }) {
   const router = useRouter()
   const layoutId = useLayoutOutlineId()
   const [metaPending, startMetaSave] = useTransition()
   const [metaFlash, setMetaFlash] = useState<LayoutActionState>({})
-  const [removeConfirmOpen, setRemoveConfirmOpen] = useState(false)
   const { notifySaved, notifyError } = useAdminToast()
   const structureInherited = rawSectionStructureInherited(
     rawDocument,
     canInherit,
     section.id,
   )
-  const parentHasSection = Boolean(
-    parentDocument?.sections.some((s) => s.id === section.id),
-  )
+  const rawSection = rawDocument?.sections.find((item) => item.id === section.id)
+  const sectionSourceId =
+    rawSection?.inheritFromOutlineId?.trim() || parentLayoutId || inheritOutlines[0]?.id || ''
   const [localRows, setLocalRows] = useState<LayoutRow[]>(() => sortRows(section.rows))
   const [rowOrderSource, setRowOrderSource] = useState(section)
   const [slotMap, setSlotMap] = useState<Record<string, LayoutSlot[]>>(() => {
@@ -942,6 +971,7 @@ function SectionCanvas({
   )
 
   const sectionWidth = clampGridWidth(section.width ?? LAYOUT_WIDTH_FULL, LAYOUT_WIDTH_FULL)
+  const settingsLocked = metaPending || structureInherited
   const canvasRows: CanvasRowModel[] = rows.map((row) => ({
     id: row.id,
     items: sortSlots(slotMap[row.id] ?? row.slots).map((slot) => ({
@@ -957,7 +987,7 @@ function SectionCanvas({
       width={sectionWidth}
       className={structureInherited ? 'sf-inherited-muted' : ''}
       drag={drag}
-      labelDisabled={metaPending}
+      labelDisabled={metaPending || structureInherited}
       labelRequired
       onLabelBlur={(next) => persistSectionMeta({ label: next })}
       onWidthBlur={(next) => persistSectionMeta({ width: next })}
@@ -970,82 +1000,6 @@ function SectionCanvas({
       }
       headEnd={
         <>
-          {canInherit ? (
-            parentHasSection ? (
-              <InheritCopyRow
-                inline
-                inherited={structureInherited}
-                disabled={metaPending}
-                onInheritChange={(next) => {
-                  const fd = withOutlineId(new FormData(), layoutId)
-                  fd.set('sectionId', section.id)
-                  fd.set('inheritMode', next ? 'inherit' : 'local')
-                  startMetaSave(async () => {
-                    const result = await setSectionInheritModeAction({}, fd)
-                    setMetaFlash(result)
-                    if (result.ok) notifySaved('Saved')
-                    else if (result.error) notifyError(result.error)
-                    router.refresh()
-                  })
-                }}
-                onCopy={() => {
-                  const fd = withOutlineId(new FormData(), layoutId)
-                  fd.set('sectionId', section.id)
-                  startMetaSave(async () => {
-                    const result = await copySectionFromParentAction({}, fd)
-                    setMetaFlash(result)
-                    if (result.ok) notifySaved('Copied')
-                    else if (result.error) notifyError(result.error)
-                    router.refresh()
-                  })
-                }}
-              />
-            ) : (
-              <span
-                className="settings-hint gantry-section-inherit-missing"
-                title={`Parent outline has no section with id ${section.id}`}
-              >
-                No parent section
-              </span>
-            )
-          ) : null}
-          {canRemoveSection ? (
-            <div className="gantry-section-actions">
-              <button
-                type="button"
-                className="gantry-toolbar-btn danger"
-                title="Remove this section and everything inside it"
-                disabled={metaPending}
-                onClick={() => setRemoveConfirmOpen(true)}
-              >
-                Remove section
-              </button>
-              <AdminConfirmDialog
-                open={removeConfirmOpen}
-                title={`Remove section “${section.label}”?`}
-                message="WARNING: Everything inside this section (all rows and particles) will be permanently lost."
-                confirmLabel="OK"
-                cancelLabel="Cancel"
-                danger
-                onCancel={() => setRemoveConfirmOpen(false)}
-                onConfirm={() => {
-                  setRemoveConfirmOpen(false)
-                  const fd = withOutlineId(new FormData(), layoutId)
-                  fd.set('sectionId', section.id)
-                  startMetaSave(async () => {
-                    const result = await removeLayoutSectionAction({}, fd)
-                    setMetaFlash(result)
-                    if (result.error) {
-                      notifyError(result.error)
-                      return
-                    }
-                    onSectionRemoved(section.id)
-                    router.refresh()
-                  })
-                }}
-              />
-            </div>
-          ) : null}
           <details className="gantry-section-settings">
             <summary
               className="gantry-section-icon-btn"
@@ -1055,14 +1009,77 @@ function SectionCanvas({
               ⚙
             </summary>
             <div className="gantry-section-toolbar">
+              {canInherit ? (
+                <div className="gantry-section-inherit-block">
+                  <InheritSourceControls
+                    key={`${section.id}:${sectionSourceId}`}
+                    inline
+                    outlines={inheritOutlines}
+                    initialSourceId={sectionSourceId}
+                    inherited={structureInherited}
+                    disabled={metaPending}
+                    copyLabel="Copy section from the chosen layout"
+                    copyConfirmTitle={
+                      structureInherited
+                        ? 'Copy this section from the chosen layout?'
+                        : 'Replace this section from the chosen layout?'
+                    }
+                    copyConfirmMessage="Container, colors, spacing, HTML id, CSS classes, and the particles inside this section are included."
+                    hint="Inherit keeps this section live with the chosen layout. Copy snapshots its settings and particles here."
+                    onSourceChange={(next) => {
+                      const fd = withOutlineId(new FormData(), layoutId)
+                      fd.set('sectionId', section.id)
+                      fd.set('sourceOutlineId', next)
+                      fd.set('sourceOnly', '1')
+                      startMetaSave(async () => {
+                        const result = await setSectionInheritModeAction({}, fd)
+                        setMetaFlash(result)
+                        if (result.ok) notifySaved('Saved')
+                        else if (result.error) notifyError(result.error)
+                        router.refresh()
+                      })
+                    }}
+                    onInheritChange={(next, chosen) => {
+                      const fd = withOutlineId(new FormData(), layoutId)
+                      fd.set('sectionId', section.id)
+                      fd.set('sourceOutlineId', chosen)
+                      fd.set('inheritMode', next ? 'inherit' : 'local')
+                      startMetaSave(async () => {
+                        const result = await setSectionInheritModeAction({}, fd)
+                        setMetaFlash(result)
+                        if (result.ok) notifySaved('Saved')
+                        else if (result.error) notifyError(result.error)
+                        router.refresh()
+                      })
+                    }}
+                    onCopy={(chosen) => {
+                      const fd = withOutlineId(new FormData(), layoutId)
+                      fd.set('sectionId', section.id)
+                      fd.set('sourceOutlineId', chosen)
+                      startMetaSave(async () => {
+                        const result = await copySectionFromParentAction({}, fd)
+                        setMetaFlash(result)
+                        if (result.ok) notifySaved('Copied')
+                        else if (result.error) notifyError(result.error)
+                        router.refresh()
+                      })
+                    }}
+                  />
+                </div>
+              ) : null}
+              {hideContainer ? null : (
               <label className="gantry-inline-label gantry-section-container-label">
                 <span className="gantry-field-hint">Container</span>
                 <select
                   key={`section-container-${section.id}-${section.containerMode ?? 'unset'}`}
                   className="gantry-inline-input gantry-section-container-select"
                   defaultValue={section.containerMode ?? ''}
-                  disabled={metaPending}
-                  title="Section owns container width (boxed uses outline --sf-container-max). Editable on inherit stubs."
+                  disabled={settingsLocked}
+                  title={
+                    structureInherited
+                      ? 'Inherited from the parent outline. Copy the section to edit.'
+                      : 'Section owns container width (boxed uses outline --sf-container-max).'
+                  }
                   aria-label="Section container width"
                   onChange={(event) => {
                     const raw = event.target.value
@@ -1078,6 +1095,7 @@ function SectionCanvas({
                   <option value="boxed">Boxed width</option>
                 </select>
               </label>
+              )}
               <div className="gantry-section-styles" role="group" aria-label="Section styles">
                 <label className="gantry-inline-label gantry-section-color-label">
                   <span className="gantry-field-hint">Background</span>
@@ -1087,7 +1105,7 @@ function SectionCanvas({
                       type="color"
                       className="gantry-color-swatch"
                       value={cssColorToColorInputValue(section.styles?.backgroundColor)}
-                      disabled={metaPending}
+                      disabled={settingsLocked}
                       title="Section background color"
                       aria-label="Section background color picker"
                       onChange={(event) =>
@@ -1099,7 +1117,7 @@ function SectionCanvas({
                       type="text"
                       className="gantry-inline-input gantry-section-color-input"
                       defaultValue={section.styles?.backgroundColor ?? ''}
-                      disabled={metaPending}
+                      disabled={settingsLocked}
                       placeholder="#18191c"
                       spellCheck={false}
                       autoComplete="off"
@@ -1125,7 +1143,7 @@ function SectionCanvas({
                       type="color"
                       className="gantry-color-swatch"
                       value={cssColorToColorInputValue(section.styles?.textColor)}
-                      disabled={metaPending}
+                      disabled={settingsLocked}
                       title="Section text color"
                       aria-label="Section text color picker"
                       onChange={(event) => persistSectionMeta({ textColor: event.target.value })}
@@ -1135,7 +1153,7 @@ function SectionCanvas({
                       type="text"
                       className="gantry-inline-input gantry-section-color-input"
                       defaultValue={section.styles?.textColor ?? ''}
-                      disabled={metaPending}
+                      disabled={settingsLocked}
                       placeholder="#ffffff"
                       spellCheck={false}
                       autoComplete="off"
@@ -1158,7 +1176,7 @@ function SectionCanvas({
                   fieldKey="padding"
                   label="Padding"
                   value={section.styles?.padding}
-                  disabled={metaPending}
+                  disabled={settingsLocked}
                   onCommit={(css) => persistSectionMeta({ padding: css })}
                 />
                 <SectionBoxSpacingFields
@@ -1167,7 +1185,7 @@ function SectionCanvas({
                   label="Margin"
                   value={section.styles?.margin}
                   allowNegative
-                  disabled={metaPending}
+                  disabled={settingsLocked}
                   onCommit={(css) => persistSectionMeta({ margin: css })}
                 />
               </div>
@@ -1178,7 +1196,7 @@ function SectionCanvas({
                   type="text"
                   className="gantry-inline-input gantry-section-id-input"
                   defaultValue={section.htmlId ?? ''}
-                  disabled={metaPending}
+                  disabled={settingsLocked}
                   placeholder="e.g. g-navigation"
                   spellCheck={false}
                   autoComplete="off"
@@ -1200,7 +1218,7 @@ function SectionCanvas({
                   type="text"
                   className="gantry-inline-input gantry-section-class-input"
                   defaultValue={section.cssClass ?? ''}
-                  disabled={metaPending}
+                  disabled={settingsLocked}
                   placeholder="e.g. dark-header"
                   title="Space-separated CSS classes on the public section wrapper"
                   aria-label="Section CSS classes"
@@ -1218,6 +1236,28 @@ function SectionCanvas({
               </code>
             </div>
           </details>
+          {canRemoveSection ? (
+            <GantryBarRemoveButton
+              label={`Remove section ${section.label}`}
+              confirmTitle={`Remove section “${section.label}”?`}
+              confirmMessage="WARNING: Everything inside this section (all rows and particles) will be permanently lost."
+              disabled={metaPending}
+              onConfirm={() => {
+                const fd = withOutlineId(new FormData(), layoutId)
+                fd.set('sectionId', section.id)
+                startMetaSave(async () => {
+                  const result = await removeLayoutSectionAction({}, fd)
+                  setMetaFlash(result)
+                  if (result.error) {
+                    notifyError(result.error)
+                    return
+                  }
+                  onSectionRemoved(section.id)
+                  router.refresh()
+                })
+              }}
+            />
+          ) : null}
         </>
       }
       afterHead={<ActionFeedback state={metaFlash} />}
@@ -1236,8 +1276,8 @@ function SectionCanvas({
         }
         rowsLockedNotice={
           <p className="settings-hint gantry-section-inherit-hint">
-            Structure inherited from parent — particles are read-only here. Turn inherit off or Copy
-            from parent in section settings to edit.
+            Structure inherited from the parent outline — settings and particles are read-only here.
+            Open the section cog to turn Inherit off or Copy them into this outline.
           </p>
         }
         renderAfterRow={(rowId) => <ActionFeedback state={rowNotices[rowId] ?? {}} />}
@@ -1272,8 +1312,15 @@ function SectionCanvas({
               }}
               canInherit={canInherit}
               particleInherited={rawSlotInherited(rawDocument, section.id, ctx.rowId, slot.id)}
-              parentHasMatchingSlot={parentHasSlot(parentDocument, section.id, slot.id)}
               sectionStructureInherited={structureInherited}
+              inheritOutlines={inheritOutlines}
+              parentLayoutId={parentLayoutId}
+              sourceOutlineId={
+                rawDocument?.sections
+                  .find((item) => item.id === section.id)
+                  ?.rows.find((row) => row.id === ctx.rowId)
+                  ?.slots.find((item) => item.id === slot.id)?.inheritFromOutlineId || ''
+              }
             />
           )
         }}
@@ -1343,8 +1390,9 @@ function SectionCanvas({
 export function LayoutEditor({
   document,
   rawDocument,
-  parentDocument = null,
-  parentLayoutId: _parentLayoutId = null,
+  parentDocument: _parentDocument = null,
+  parentLayoutId = null,
+  inheritOutlines = [],
   source,
   modules,
   groups,
@@ -1370,12 +1418,21 @@ export function LayoutEditor({
             String(rawDocument.inheritFrom).trim() !== layoutId,
         )
   const [sectionPendingSave, startSectionSave] = useTransition()
+  // Deferred revalidatePath does not repaint this canvas, so refresh after a successful save.
   const [sectionState, sectionAction, sectionPending] = useActionState(
-    addLayoutSectionAction,
+    async (prev: LayoutActionState, formData: FormData) => {
+      const result = await addLayoutSectionAction(prev, formData)
+      if (result.ok) router.refresh()
+      return result
+    },
     initialState,
   )
   const [resetState, resetAction, resetPending] = useActionState(
-    resetLayoutToDefaultAction,
+    async (prev: LayoutActionState, formData: FormData) => {
+      const result = await resetLayoutToDefaultAction(prev, formData)
+      if (result.ok) router.refresh()
+      return result
+    },
     initialState,
   )
   const [reorderFlash, setReorderFlash] = useState<LayoutActionState>({})
@@ -1383,11 +1440,19 @@ export function LayoutEditor({
 
   const [sectionList, setSectionList] = useState(() => sortSections(document.sections))
   const [sectionListSource, setSectionListSource] = useState(document.sections)
+  const [rowContainers, setRowContainers] = useState<LayoutRowContainer[]>(
+    () => document.rowContainers ?? [],
+  )
+  const [rowContainerSource, setRowContainerSource] = useState(document.rowContainers)
 
   // Soft-merge when the server layout document refreshes (particle autosave revalidate).
   if (document.sections !== sectionListSource) {
     setSectionListSource(document.sections)
     setSectionList((prev) => mergeSectionsFromServer(prev, document.sections))
+  }
+  if (document.rowContainers !== rowContainerSource) {
+    setRowContainerSource(document.rowContainers)
+    setRowContainers(document.rowContainers ?? [])
   }
 
   const persistSectionOrder = useCallback(
@@ -1439,12 +1504,37 @@ export function LayoutEditor({
         }
       }
       setSectionList(next)
+      setRowContainers((prev) => syncRowContainers(next, prev, { createMissing: true }) ?? [])
       persistSectionOrder(next, widthOverrides)
     },
     [persistSectionOrder, sectionList],
   )
 
   const sectionDrag = useCanvasSectionListDrag(handleSectionDrop)
+  const sectionLines = packSectionsIntoLines(sectionList)
+  const ensureKey = sectionLines
+    .filter((line) => line.sections.length > 1)
+    .map((line) => line.sections.map((section) => section.id).join(','))
+    .join('|')
+  const missingRowContainer = sectionLines.some((line) => {
+    if (line.sections.length < 2) return false
+    return !rowContainerForSections(
+      rowContainers,
+      line.sections.map((section) => section.id),
+    )
+  })
+  const ensuredKeyRef = useRef('')
+  const [, startEnsure] = useTransition()
+  useEffect(() => {
+    if (!missingRowContainer || sectionPendingSave) return
+    if (ensuredKeyRef.current === ensureKey) return
+    ensuredKeyRef.current = ensureKey
+    const fd = withOutlineId(new FormData(), outlineId)
+    startEnsure(async () => {
+      const result = await ensureLayoutRowContainersAction({}, fd)
+      if (result.ok) router.refresh()
+    })
+  }, [ensureKey, missingRowContainer, outlineId, router, sectionPendingSave])
 
   return (
     <ContentLocalesProvider locales={contentLocales}>
@@ -1463,7 +1553,8 @@ export function LayoutEditor({
         >
           Gantry Layout Manager
         </a>
-        : drag <strong>⋮⋮</strong> above/below to reorder, left/right to place beside (50%|50%) ·
+        : drag <strong>⋮⋮</strong> above/below to reorder, left/right to place beside — two or more
+        sections on one line get a row container ·
         section → row → drag particles · resize by % (1% steps, min 5%).
       </p>
 
@@ -1614,31 +1705,56 @@ export function LayoutEditor({
             <p className="admin-empty">No sections yet — create one to start.</p>
           ) : (
             <ol className="gantry-sections">
-              {sectionList.map((section) => (
-                <SectionCanvas
-                  key={section.id}
-                  section={section}
-                  modules={modules}
-                  groups={groups}
-                  navMenus={navMenus}
-                  formDefinitions={formDefinitions}
-                  formsModuleEnabled={formsModuleEnabled}
-                  primaryNavMenuId={primaryNavMenuId}
-                  isDeveloperAdmin={isDeveloperAdmin}
-                  canRemoveSection={sectionList.length > 1}
-                  drag={sectionDrag.bind(section.id)}
-                  onSectionRemoved={(sectionId) => {
-                    setSectionList((prev) =>
-                      prev
-                        .filter((s) => s.id !== sectionId)
-                        .map((s, index) => ({ ...s, order: index })),
-                    )
-                  }}
-                  canInherit={canInherit}
-                  rawDocument={rawDocument}
-                  parentDocument={parentDocument}
-                />
-              ))}
+              {sectionLines.map((line) => {
+                const paint = (section: LayoutSection, hideContainer: boolean) => (
+                  <SectionCanvas
+                    key={section.id}
+                    section={section}
+                    modules={modules}
+                    groups={groups}
+                    navMenus={navMenus}
+                    formDefinitions={formDefinitions}
+                    formsModuleEnabled={formsModuleEnabled}
+                    primaryNavMenuId={primaryNavMenuId}
+                    isDeveloperAdmin={isDeveloperAdmin}
+                    canRemoveSection={sectionList.length > 1}
+                    hideContainer={hideContainer}
+                    drag={sectionDrag.bind(section.id)}
+                    onSectionRemoved={(sectionId) => {
+                      const next = sectionList
+                        .filter((item) => item.id !== sectionId)
+                        .map((item, index) => ({ ...item, order: index }))
+                      setSectionList(next)
+                      setRowContainers(
+                        (prev) => syncRowContainers(next, prev, { createMissing: true }) ?? [],
+                      )
+                    }}
+                    canInherit={canInherit}
+                    rawDocument={rawDocument}
+                    inheritOutlines={inheritOutlines}
+                    parentLayoutId={parentLayoutId ?? ''}
+                  />
+                )
+                if (line.sections.length < 2) return paint(line.sections[0]!, false)
+                const ids = line.sections.map((section) => section.id)
+                const container = rowContainerForSections(rowContainers, ids)
+                return (
+                  <li
+                    key={container?.id ?? `row-${ids.join('-')}`}
+                    className="gantry-row-container"
+                    data-sf-width="100"
+                  >
+                    <RowContainerFrame
+                      sectionIds={ids}
+                      container={container}
+                      sections={line.sections}
+                    />
+                    <ol className="gantry-sections">
+                      {line.sections.map((section) => paint(section, true))}
+                    </ol>
+                  </li>
+                )
+              })}
             </ol>
           )}
         </div>
@@ -1646,7 +1762,13 @@ export function LayoutEditor({
 
       <details className="layout-json-preview">
         <summary>Layout document (JSON storage)</summary>
-        <pre>{JSON.stringify({ ...document, sections: sectionList }, null, 2)}</pre>
+        <pre>
+          {JSON.stringify(
+            { ...document, sections: sectionList, rowContainers },
+            null,
+            2,
+          )}
+        </pre>
         <p className="layout-muted">
           Section <code>label</code> / <code>width</code> / <code>containerMode</code> / Section Styles (
           <code>backgroundColor</code> · <code>textColor</code>) / <code>cssClass</code> and slot{' '}

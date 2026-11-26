@@ -88,12 +88,17 @@ export type LayoutSlot = {
   particleJs?: string
   config?: LayoutSlotConfig
   /**
-   * Particle inherit vs local vs parent outline slot (same id, or `inheritFromSlotId`).
-   * Only meaningful when the outline has `inheritFrom` and the parent section has a match.
+   * Particle inherit vs local vs a source outline slot (same id, or `inheritFromSlotId`).
+   * Source outline defaults to this layout’s parent. `inheritFromOutlineId` picks another layout.
    */
   inheritMode?: LayoutInheritMode
   /** Parent slot id to inherit from when different from this slot’s id. */
   inheritFromSlotId?: string
+  /**
+   * Layout outline to inherit or copy this particle from.
+   * Empty = this outline’s parent layout.
+   */
+  inheritFromOutlineId?: string
 }
 
 /** Horizontal row of slots inside a section (widths should sum to ~100%). */
@@ -121,14 +126,15 @@ export type LayoutSection = {
   /**
    * Section owns container width (SF-34): `full` = edge-to-edge, `boxed` =
    * constrained to `--sf-container-max` (outline large-desktop breakpoint).
-   * Row % is share *inside* this container. Omitted → inherit Page Settings
-   * sections layout default (`fullwidth` → full).
+   * Ignored while this section shares a row container — the container owns
+   * full vs boxed, and this section only contributes `width`.
+   * Omitted → inherit Page Settings sections layout default (`fullwidth` → full).
    */
   containerMode?: LayoutContainerMode
   /**
    * Mosaic column span as percent (same model as particle/slot widths and Forms
-   * sections): 5–100. Consecutive partial-width sections sit side-by-side in a
-   * flex row. Omitted → full (`100`).
+   * sections): 5–100. Widths that fit on one line share a row container.
+   * Omitted → full (`100`).
    */
   width?: LayoutGridWidth
   /**
@@ -137,11 +143,17 @@ export type LayoutSection = {
    */
   styles?: LayoutSectionStyles
   /**
-   * Structure inherit vs local relative to parent outline section (same id).
-   * `inherit` = thin stub (rows ignored); merge pulls parent rows/particles.
-   * Absent from child doc = inherit-by-absence. Present without mode = `local`.
+   * Structure inherit vs local relative to a source outline section (same id).
+   * `inherit` = thin stub (rows ignored); merge pulls that layout’s settings and particles.
+   * Absent from child doc = inherit-by-absence from this outline’s parent.
+   * Present without mode = `local`.
    */
   inheritMode?: LayoutInheritMode
+  /**
+   * Layout outline this section inherits or copies from.
+   * Empty = this outline’s parent layout.
+   */
+  inheritFromOutlineId?: string
   /**
    * Section Styles card inherit vs local (Layouts → Styles).
    * `inherit` / omitted when structure is inherited → use parent `styles`.
@@ -153,9 +165,26 @@ export type LayoutSection = {
 }
 
 /**
+ * Automatic wrapper when two or more sections share one line.
+ * Owns the basic section settings (container, colors, spacing, id, classes).
+ * Member sections keep their width % and do not paint their own container mode.
+ */
+export type LayoutRowContainer = {
+  id: string
+  /** Section ids on this line, in canvas order. */
+  sectionIds: string[]
+  label: string
+  htmlId?: string
+  cssClass?: string
+  containerMode?: LayoutContainerMode
+  styles?: LayoutSectionStyles
+}
+
+/**
  * Canonical layout document (version 3).
  * Storage: JSON in `sf_layouts`. Seed / fallback: `default-layout.json`.
- * `styles.breakpoints` and `styles.body` (page background) are outline-scoped.
+ * `styles.breakpoints`, `styles.body` (page background), and `styles.typography`
+ * (title/text fonts and colors, accent and hover) are outline-scoped.
  *
  * Inheritance (skin Default shell → children):
  * - `inheritFrom` — parent outline id; merged on public load (and admin preview)
@@ -171,7 +200,12 @@ export type LayoutDocument = {
   /** Section ids from the parent to exclude after inherit. */
   omitSectionIds?: string[]
   sections: LayoutSection[]
-  /** Outline-scoped styles: breakpoints and page (body) background. */
+  /**
+   * Side-by-side row wrappers. Created when more than one section shares a line.
+   * Membership follows section order and width; settings stay on the container.
+   */
+  rowContainers?: LayoutRowContainer[]
+  /** Outline-scoped styles: breakpoints, page background, and type. */
   styles?: LayoutDocumentStyles
 }
 

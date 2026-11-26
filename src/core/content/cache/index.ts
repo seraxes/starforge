@@ -43,8 +43,11 @@ function wrapBackend(backend: PublishedContentCache): PublishedContentCache {
     getCached<T>(options: ContentCacheGetOptions, loader: () => Promise<T>): Promise<T> {
       return backend.getCached(withPerformanceTtl(options), loader)
     },
-    invalidateTags(tags: readonly string[]): void | Promise<void> {
-      return backend.invalidateTags(tags)
+    invalidateTags(
+      tags: readonly string[],
+      mode?: 'stale' | 'expire',
+    ): void | Promise<void> {
+      return backend.invalidateTags(tags, mode)
     },
   }
 }

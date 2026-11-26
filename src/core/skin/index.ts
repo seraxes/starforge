@@ -36,6 +36,7 @@ export {
   findSkinIdForOutline,
   isOutlineOwnedBySkin,
   isSkinBaseOutlineId,
+  outlineParentId,
   listSkinOutlineSeeds,
   outlineBelongsToSkin,
   resolveOutlineIdForSkin,

@@ -1,7 +1,10 @@
 import { getPublishedContentCache, contentCacheTags } from './cache'
 
-async function invalidate(tags: readonly string[]): Promise<void> {
-  await getPublishedContentCache().invalidateTags(tags)
+async function invalidate(
+  tags: readonly string[],
+  mode: 'stale' | 'expire' = 'stale',
+): Promise<void> {
+  await getPublishedContentCache().invalidateTags(tags, mode)
 }
 
 /**
@@ -43,12 +46,16 @@ export async function invalidateSiteChrome(): Promise<void> {
   await invalidate([contentCacheTags.siteChrome, contentCacheTags.proxyPolicy])
 }
 
-/** Drop cached layout outline(s). */
+/**
+ * Drop cached layout outline(s).
+ * Expire, so the next public read paints the saved document. A stale mark
+ * serves the previous outline once.
+ */
 export async function invalidateLayout(layoutId?: string | null): Promise<void> {
   const tags = new Set<string>([contentCacheTags.layouts])
   const id = typeof layoutId === 'string' ? layoutId.trim() : ''
   if (id) tags.add(contentCacheTags.layout(id))
-  await invalidate([...tags])
+  await invalidate([...tags], 'expire')
 }
 
 /** Drop cached Nav manager menu(s) and site-settings (primary nav embeds menu items). */
