@@ -1,6 +1,8 @@
 # product:payments
 
-Layer: base
+Layer: base (manifest boot tag — not retagged)
+
+Class: advanced — `requires` Email Manager ([2026-11-26-base-vs-advanced](../../../docs/project-context/docs/decisions/2026-11-26-base-vs-advanced.md))
 
 Status: shipped
 

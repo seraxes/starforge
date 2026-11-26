@@ -1,7 +1,7 @@
 # Extension modules
 
 Product packs hang off Starforge Core via **`defineStarforgeModule`** manifests (SF-141).
-**Tiers:** base modules are the `requires` targets (Media, Forms, Rich editor, Email Manager, Payments, Profiles, Maps). Advanced modules list those ids (Events, Subscriptions). Hero does not live in this folder. See [sf-architecture](../../.cursor/rules/sf-architecture.mdc).
+**Tiers:** a product pack that depends only on Core is base (Media). A product pack that `requires` another module is advanced (Forms, Rich editor, Email Manager, Payments, Profiles, Maps, Events, Subscriptions, Social, Marketplace, Ads). Site packs stay site. Hero does not live in this folder. Manifest `layer` is the boot tag and is not retagged here. See [sf-architecture](../../.cursor/rules/sf-architecture.mdc).
 Core hosts extension points; packs contribute metadata + lazy import pointers. Codegen
 writes `src/generated/module-registry.ts` — Core may import `@/generated/*` only, not
 `@/modules/**` internals.

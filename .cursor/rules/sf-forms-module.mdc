@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Starforge Forms — modular ownership
 
-Any Starforge module that needs user-facing forms **must** use `product:forms` — presets, definitions, visual builder, submissions, and mail hooks. Do not ship a parallel field builder, schema editor, or SMTP form UI inside the module. Forms is a **base module** (`sf-architecture.mdc`).
+Any Starforge module that needs user-facing forms **must** use `product:forms` — presets, definitions, visual builder, submissions, and mail hooks. Do not ship a parallel field builder, schema editor, or SMTP form UI inside the module. Forms `requires` Media, so the deciding rule classes it **advanced**. Manifest `layer` stays `base` until the boot-order retag (Decision: [base vs advanced](../../docs/project-context/docs/decisions/2026-11-26-base-vs-advanced.md)).
 
 ## Source of truth
 

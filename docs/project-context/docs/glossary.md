@@ -1,6 +1,6 @@
 ---
 kind: reference
-last_verified: 2026-11-22
+last_verified: 2026-11-26
 ---
 # Starforge glossary
 
@@ -14,15 +14,15 @@ The host that boots every site; it is not a `requires` id.
 
 ## Base module
 
-A shared engine that other packs list in `requires`; a base pack may `require` another base pack, and that does not make it advanced.
+A product pack that depends only on Core. Its manifest does not `require` another module.
 
-**Test:** If other packs `require` it, it is base.
+**Test:** If a product pack has no module id in `requires`, it is base. In tree: Media.
 
 ## Advanced module
 
-A domain product that owns a catalog or workflow and whose manifest `requires` names base packs.
+A product pack whose manifest `requires` another module.
 
-**Test:** If it runs a domain and lists base packs in `requires`, it is advanced.
+**Test:** If a product pack `requires` another module, it is advanced. Marketplace stays advanced while its stub `requires` is still empty. Decision: [2026-11-26-base-vs-advanced](./decisions/2026-11-26-base-vs-advanced.md).
 
 ## Hero
 

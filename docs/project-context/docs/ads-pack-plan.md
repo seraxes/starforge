@@ -101,7 +101,7 @@ One slice per chat. Stop when that slice’s checks pass. **Do not start schema 
 | --- | --- |
 | **Shop** | SKUs, inventory, and shipping live in `product:shop` (later). Ads is packages / credits / placements, not a storefront. |
 | **Marketplace** | C2C listings and listing rank stay with Marketplace (stub today). Ads may later boost via the same Payments layer; it does not own classifieds. |
-| **Stream** | Live video stays `product:stream` (absent). Ads does not embed a stream product. |
+| **Live video** | Part of Social. No `product:stream`. Ads does not embed a stream product. |
 | Parallel Ads feed / wall | Social owns the feed. |
 | Cart, gateway, invoice, or coupon engine inside Ads | `product:payments` |
 | Field builder or SMTP inside Ads | Forms / Email Manager |

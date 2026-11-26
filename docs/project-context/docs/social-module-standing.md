@@ -39,7 +39,7 @@ last_verified: 2026-11-25
 | Admin | `/admin/social`, `/people`, `/groups`, `/pages`, `/media`, `/reports` |
 | Public doors | `@/modules/social/api`, `@/modules/social/api.server` (`social-api`, `social-api-server`) |
 | Builtin particle `social` | Footer links — **do not reuse**. Social particles are `social-friends`, `social-groups`, `social-pages`, `social-stories` |
-| Live video | Stays `product:stream` (not built here) |
+| Live video | Part of Social. No `product:stream`. Not a separate pack after Marketplace ([2026-11-26-chat-shop-stream](./decisions/2026-11-26-chat-shop-stream.md)) |
 | Money | Payments is **not** a Social dependency; **no Social cart**; no Social charge path yet |
 | Mail | Email Manager triggers only (`emitEmailTrigger`); never `getMailer()` |
 | Media / forms / profiles / rich-editor | Consumed via owners; bytes stay in Media |
@@ -160,7 +160,7 @@ Social is one of the largest packs. Hard `requires` are Profiles, Media, Rich ed
 
 ### 6. What Social deliberately does not own
 
-Per plan / README: points/badges, support tickets, chat, notification bell, live video, Profiles field schema, Email templates, Payments cart, Maps rooms, Hero airsoft columns. Keep those out.
+Per plan / README: points/badges, support tickets, chat (its own pack after Marketplace), notification bell, Profiles field schema, Email templates, Payments cart, Maps rooms, Hero airsoft columns. Keep those out. Live video stays in Social; there is no `product:stream`.
 
 ---
 

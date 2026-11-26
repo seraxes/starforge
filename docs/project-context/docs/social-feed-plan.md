@@ -32,7 +32,7 @@ Copy the nearest finished pack for chrome and registration. Manifest shape: [src
 
 ## Rules
 
-- Pack id `product:social`, label Social, routes under `/feed`. Do not reuse the built-in particle id `social` (footer links). Live video stays `product:stream`.
+- Pack id `product:social`, label Social, routes under `/feed`. Do not reuse the built-in particle id `social` (footer links). Live video belongs to Social. There is no `product:stream`.
 - `requires`: `product:profiles`, `product:media`, `product:rich-editor`, `product:forms`, `product:email-manager`, `product:payments`, `product:maps`.
 - `optionalRequires`: `product:subscriptions`, `product:events`.
 - Call those owners. Do not copy their tables, carts, mailers, media libraries, form builders, or map clients. Do not call `getMailer()`.

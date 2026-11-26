@@ -80,7 +80,7 @@ Core (done) ── Auth · ACL groups · Layout/Nav · Mailer · RateLimiter
      │
      ├── product:marketplace ◄── Media · Profiles · (optional Payments port)
      ├── product:ads ◄── Media · Layout particles
-     └── product:stream (later) ◄── Media · ACL
+     └── live video stays in product:social (no product:stream) ◄── Media · ACL
 
 Hero: ASN theme + extensions jsonb on Profiles/Events/Marketplace/Social
       requires: public theme port + module `extends` seam

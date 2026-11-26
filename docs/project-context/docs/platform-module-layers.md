@@ -1,18 +1,18 @@
 ---
 kind: reference
-last_verified: 2026-11-25
+last_verified: 2026-11-26
 ---
 # Platform layers — Core, base, advanced, Hero
 
-**Decision (2026-11-03, tiers sharpened 2026-11-14):** Starforge has a Core host, toggleable modules, and a Hero on top. Modules split by dependency, not by folder: **base** engines are what other packs `require`; **advanced** packs are the domain products that depend on them. ASN (and other sites) live in **Hero**: theme + unique business logic — **not** forks of those modules. Rule: [sf-architecture](../../../.cursor/rules/sf-architecture.mdc).
+**Decision (2026-11-03, tiers sharpened 2026-11-14, class test 2026-11-26):** Starforge has a Core host, toggleable modules, and a Hero on top. A product pack that depends only on Core is **base**. A product pack that `requires` another module is **advanced**. Site packs stay site. ASN (and other sites) live in **Hero**: theme + unique business logic — **not** forks of those modules. Rule: [sf-architecture](../../../.cursor/rules/sf-architecture.mdc). Decision: [2026-11-26-base-vs-advanced](./decisions/2026-11-26-base-vs-advanced.md).
 
 ## Rule of thumb
 
 | Placement | Put it here when… |
 | --- | --- |
 | **Core** | Skeleton / host / **ports** every app needs to **boot** (auth session, layout host, module loader, Mailer/cache/storage/LLM/map/payments *adapters*). Not a `requires` id. |
-| **Base module** | Shared engine other packs list in `requires` (Forms, Media, Email Manager, Payments, Profiles, Maps, Rich editor). A base pack may require another base pack. |
-| **Advanced module** | Domain product whose manifest `requires` names those base packs (Events, Subscriptions, and later Ads, Shop, Marketplace, Support, Stream). |
+| **Base module** | Product pack that depends only on Core (no other module in `requires`). In tree: Media. |
+| **Advanced module** | Product pack whose manifest `requires` another module. In tree: Forms, Rich editor, Email Manager, Payments, Profiles, Maps (in progress), Events, Subscriptions, Social (live video included), Marketplace (next after Social), Ads (parked). After Marketplace: Chat, Shop. Later: Support. |
 | **Hero** | **Brand theme** + **unique business rules** / custom workflows on top of modules — never a parallel copy of a module. |
 
 **Ports** = thin Core adapters (env secrets, factory pick). **Modules** use ports; they do not own vendor SDKs. **Hero** skins and rules modules — it does not fork them. The old queue nickname “level-1 engines” means these **base modules**, not Core.
@@ -22,8 +22,8 @@ last_verified: 2026-11-25
 | Placement | Owns | Examples |
 | --- | --- | --- |
 | **Core** | Always-on host + ports | Auth, Users/Groups ACL, Layout/Nav/Chrome, Module Manager, env overlay; ports: Mailer, Redis/cache, MediaStorage, MapProvider, LlmProvider, Payments adapters, PageReadsPort, MediaAnalysis |
-| **Base modules** | Dependency engines | Media, Forms, Rich editor, Email Manager, Payments (cart/orders/VAT), Profiles, Maps. Content manager is `product:pages` (site pack, phase 3b done) behind `PageReadsPort`. Media stays `product:media` |
-| **Advanced modules** | Domain products that `require` base packs | Events, Subscriptions, Social; next Marketplace; later Shop, Ads (depends on Social), Support, Stream, Chat |
+| **Base modules** | Depend only on Core | Media. Content manager is `product:pages` (site pack) behind `PageReadsPort`, not a base engine |
+| **Advanced modules** | `require` another module | Forms, Rich editor, Email Manager, Payments, Profiles, Maps (in progress), Events, Subscriptions, Social (live video stays here). Next: Marketplace, after Social. After Marketplace: Chat, Shop. Ads stays parked until after Marketplace. Later: Support |
 | **Hero** | Theme + unique rules — not a module fork | **Starforge theme:** pastel orange + blue. **ASN theme:** dark, tactical, gaming, military. Plus ASN team/RP/airsoft domain, catalog fees, ASN currency, quality-check **apps** that *call* Media analysis hooks |
 
 Site packs (Consent, Redirects, Search, PWA, Lexical, Notice bar, Audit) stay optional modules. They are not Core and not a domain product.
@@ -39,7 +39,7 @@ Rows in the placement guide below that still say **Modules** mean one of: base, 
 | **Module Manager / allowlist** | **Core** | Host that loads Modules |
 | **Redis / cache** | **Core (port)** | `PublishedContentCache` (+ later rate-limit/queues); not a product Module |
 | **Mailer** | **Core (port)** | console / SMTP / Resend adapters; Modules call `send()` |
-| **Payments** | **Core (port)** + **base `product:payments`** | Core: gateway/fiscal adapters + secrets (Mailer-like). Base module: cart, orders, VAT invoices, admin — Events/Shop/Subscriptions/Ads consume `@/modules/payments/api` only |
+| **Payments** | **Core (port)** + **advanced `product:payments`** | Core: gateway/fiscal adapters + secrets (Mailer-like). Payments `requires` Email Manager, so it is advanced. Cart, orders, VAT invoices, admin — Events/Shop/Subscriptions/Ads consume `@/modules/payments/api` only |
 | **LlmProvider** | **Core (port)** | Optional complete() for Events AI draft (and later others); Mailer-like adapters |
 | **MapProvider** | **Core (port)** | Tiles/geocode adapters; Maps Module consumes |
 | **MediaStorage** (local → Spaces/S3) | **Core (port)** | Storage swap only — not a second media DB |
@@ -51,7 +51,7 @@ Rows in the placement guide below that still say **Modules** mean one of: base, 
 | **Social / feed skins** | **Modules** | Follow/friend/feed; FB-like vs short-video = layout/particle options on **one** Social Module — Hero only brands |
 | **Chat** | **Modules** | DM/group/media; uses **RealtimePort** for live messages; RTC port later on Core when calls ship |
 | **RealtimePort** (SSE → Redis fanout) | **Core (port)** | Shared push bus; Notifications / Chat / live Maps consume — not per-module WebSocket stacks |
-| **Stream** | **Modules** | Ingest/playback + ACL |
+| **Live video** | **Social** | Part of `product:social`. No `product:stream` |
 | **Marketplace / Shop** | **Modules** | Listings/SKUs; checkout via **`product:payments`** (Core Payments port for gateways) |
 | **Payments (commerce)** | **Modules** | `product:payments` — shared cart/orders/VAT; never fork Forms/Email/Media |
 | **Ads** | **Modules** | Placements + campaign CRUD |
@@ -79,8 +79,8 @@ Form engine stays the shared intake path — other Modules do not rebuild fields
 ## Build order (locked)
 
 1. **Core** — make it excellent, but **agile**: thin solid ports and host, iterate; no big-bang perfection.
-2. **Base modules** — shared engines other packs `require`, on those ports.
-3. **Advanced modules** — domain packs that list the base ids in `requires`.
+2. **Base modules** — product packs that depend only on Core, on those ports.
+3. **Advanced modules** — product packs that `require` another module.
 4. **Hero** — unique business logic / features / theme **only on** Core + modules; no Hero shortcuts that bypass unfinished ports.
 
 ### Commercial priority (within Modules)
@@ -89,7 +89,7 @@ Revenue floor — **`product:payments`**, then consumers on the same API: **subs
 
 ## What to build next
 
-Live queue: [architecture-current](./architecture-current.md) — **Active:** Social polish and complete; **Next:** Marketplace; Ads parked until after Marketplace (and other major advanced modules). Core / launch polish in parallel where it blocks cutover. Chat, Stream, and Shop stay parked behind that.
+Live queue: [architecture-current](./architecture-current.md) — **Active:** Social polish and complete; **Next:** Marketplace; **After Marketplace:** Chat and Shop. Ads parked until after Marketplace. Live video stays in Social. Core / launch polish in parallel where it blocks cutover.
 
 - Feed layout variants = Social **Module** + Layout options; Hero **theme** brands them — still one Social Module.
 - Voice/video calling = later optional RTC **port** on Chat — decide when Chat ships.

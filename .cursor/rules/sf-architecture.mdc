@@ -10,8 +10,8 @@ Place every feature in one spot. **Base modules are not Core.**
 | Placement | What it is | Test |
 | --- | --- | --- |
 | **Core** | Host that boots every site. Not a `requires` id. | Auth, users/groups, layout/nav/chrome, module installer, Skin, i18n host, jobs, cache. Thin ports only: Mailer, gateway/fiscal adapters, MediaStorage, MapProvider, PageReadsPort, Realtime, RateLimiter, Captcha. |
-| **Base module** | Shared engine other packs list in `requires`. | Delete it and several packs lose a service. A base pack may `require` another base pack. That does not make it advanced. |
-| **Advanced module** | Domain product that depends on base modules. | Owns a catalog or workflow, and its manifest `requires` names base packs. |
+| **Base module** | Product pack that depends only on Core. | Its manifest does not `require` another module. In tree: Media. |
+| **Advanced module** | Product pack that `requires` another module. | Forms, Rich editor, Email Manager, Payments, Profiles, Maps, Events, Subscriptions, Social, Ads, Marketplace. |
 | **Hero** | One site's brand and vertical rules. | Theme, fee table, milsim sheet, custom approval, ASN currency. Calls `@/modules/<id>/api` and extension points. Does not fork a module. |
 
 Site packs (Consent, Redirects, Search, PWA, Lexical, Notice bar, Audit) are optional beside those tiers — not Core, not a domain product. Pack inventory and requires edges: live map. No Skills module — a shared capability is a Core port or the owning base module.
@@ -39,6 +39,6 @@ Manifest edges are `requires` plus `optionalRequires`. Both count for a legal pu
 
 ## Quick check
 
-If other packs `require` it, it is base. If it runs a domain and lists those packs in `requires`, it is advanced. If the site cannot boot without it, it is Core. If only one brand needs it, it is Hero.
+If a product pack does not `require` another module, it is base. If it `requires` another module, it is advanced. Site packs stay site. If the site cannot boot without it, it is Core. If only one brand needs it, it is Hero. Do not retag manifest `layer` in a feature slice — boot order is still base, then site, then advanced (Decision: [base vs advanced](../../docs/project-context/docs/decisions/2026-11-26-base-vs-advanced.md)).
 
 Placement table: `docs/project-context/docs/platform-module-layers.md`. Live map: `docs/project-context/docs/architecture-current.md`. Ownership: `sf-module-ownership.mdc`.

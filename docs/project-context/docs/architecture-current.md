@@ -1,19 +1,18 @@
 ---
 kind: live
-last_verified: 2026-11-25
+last_verified: 2026-11-26
 ---
 # Starforge architecture — current
 
-Last verified against code: 2026-11-25 (Social polish Active; Marketplace next; Ads parked after major advanced modules).
+Last verified against code: 2026-11-26 (Social polish Active; Marketplace next after Social; Chat and Shop after Marketplace; live video stays in Social).
 
 **This page wins** when it disagrees with an older plan, preference bullet, or status table. Plans and audits are history.
 
 ## What this platform is
 
 Reusable starter: auth, layout host, content manager behind PageReadsPort, toggleable packs. ASN 2.0 / Airsoft Nexus is a later Hero on those packs; InspecTra may ship earlier.
-**Core** — host + ports. **Base** — Media, Forms, Rich editor, Email Manager, Payments, Profiles, Maps (TacMap / tactical event map).
-**Advanced** — Events, Subscriptions, Social, Marketplace, Shop, then Ads (catalog + admin / default-off; plan: [ads-pack-plan](./ads-pack-plan.md)), Support, Stream. **Hero** — brand + vertical rules.
-`product:pages` is the content manager (site pack), not a base engine. Base modules are not Core.
+**Core** — host + ports. **Base** — a product pack that depends only on Core. In tree: Media. **Advanced** — a product pack that `requires` another module: Forms, Rich editor, Email Manager, Payments, Profiles, Maps (in progress), Events, Subscriptions, Social (live video stays here — no `product:stream`), Marketplace (next after Social), Chat and Shop (after Marketplace), Ads (catalog + admin / default-off; parked until after Marketplace — plan: [ads-pack-plan](./ads-pack-plan.md)). Support stays later. **Hero** — brand + vertical rules, not a module.
+`product:pages` is the content manager (site pack), not a base engine. Base modules are not Core. Class test: [2026-11-26-base-vs-advanced](./decisions/2026-11-26-base-vs-advanced.md).
 Placement: [platform-module-layers](./platform-module-layers.md). Rules: [sf-architecture](../../../.cursor/rules/sf-architecture.mdc), [sf-module-ownership](../../../.cursor/rules/sf-module-ownership.mdc).
 
 ## Launch scope
@@ -23,7 +22,7 @@ Accepted: [2026-11-22-launch-scope](./decisions/2026-11-22-launch-scope.md).
 - **First production site:** Airsoft Nexus — every module already built; Lexical may stay off.
 - **Earlier site allowed:** InspecTra (quality inspection) may ship before Airsoft Nexus; Core polish comes first.
 - **Do not archive built modules.** Nothing built stays off except the possible Lexical exception.
-- **Absent until built:** Chat, Shop, Stream (and any other pack not in the tree). Ads is in tree (`src/modules/ads`, default-off) with catalog schema + `/admin/ads`; Payments bridge / Social publish parked until after Marketplace (and other major advanced modules). Marketplace today is a Dashboard stub (`product:marketplace`, no commerce schema) — next after Social polish.
+- **Absent until built:** Chat and Shop, after Marketplace (and any other pack not in the tree). There is no `product:stream`; live video is part of Social ([2026-11-26-chat-shop-stream](./decisions/2026-11-26-chat-shop-stream.md)). Ads is in tree (`src/modules/ads`, default-off) with catalog schema + `/admin/ads`; Payments bridge / Social publish parked until after Marketplace (and other major advanced modules). Marketplace today is a Dashboard stub (`product:marketplace`, no commerce schema) — next after Social polish.
 - **Migrate:** users, avatars, profile settings (new password on first login — do not migrate passwords); upcoming events only (past events stay archived on the old site); marketplace user ratings. Marketplace posts = later examination, not a cutover requirement. Everything else stays on the old site.
 
 ## Build queue
@@ -33,14 +32,16 @@ Core → base → advanced → Hero still holds. Core finish (slices 1–9) and 
 | Lane | What |
 | --- | --- |
 | **Active** | Social polish and complete (enablement blockers Done). Close remaining Social Open work / UX leftovers before turning Social on for cutover. Brief: [social-module-standing](./social-module-standing.md). Core / launch polish in parallel where it blocks cutover. |
-| **Next after Social** | Marketplace commerce schema (today a Dashboard stub). Do not start Ads, Chat, Shop, or Stream ahead of Marketplace unless the live map moves. |
-| **Parked** | Ads (slice 2 catalog + admin in tree / default-off; resume after Marketplace and other major advanced modules — [ads-pack-plan](./ads-pack-plan.md)), Chat, Shop, Stream, Notifications, ASN Hero theme / currency / `apps/asn-capacitor`, TacMap stations / BLE beacons, durable `product:campaigns`, organizations, support, outbound webhooks. |
+| **In progress** | TacMap (`product:maps`). Venue pins and live rooms are in tree. Stations, BLE beacons, and `apps/asn-capacitor` stay parked. This does not jump ahead of Social polish or Marketplace. |
+| **Next after Social** | Marketplace commerce schema (today a Dashboard stub). Do not start Ads, Chat, or Shop ahead of Marketplace unless the live map moves. |
+| **After Marketplace** | Chat and Shop. Live video is not a pack in this lane; it belongs to Social. |
+| **Parked** | Ads (slice 2 catalog + admin in tree / default-off; resume after Marketplace and other major advanced modules — [ads-pack-plan](./ads-pack-plan.md)), Notifications, ASN Hero theme / currency / `apps/asn-capacitor`, TacMap stations / BLE beacons, durable `product:campaigns`, organizations, support, outbound webhooks. Onboarding + Fleet: plan not written; one later chat, not this queue. |
 
 The 5 Nov wireframe order does not override this. Event slot kinds decided as choosable Ticket type / Booking type / Faction (+ admin names) wait; code is still `general \| faction` on `sf_event_ticket_tiers.kind`.
 
 ## Social (Active — polish and complete)
 
-**`product:social`** — slices **1–22** documented in `src/modules/social/manifest.ts` and the pack README; `defaultEnabled: false` until site cutover turns it on. Enablement blockers that were open on this map are **Done** (media attach/serve audience checks, staff private-read, member write rate limits). Remaining Active work is polish / complete (Open work leftovers + UX) before cutover turns Social on. Brief: [social-module-standing](./social-module-standing.md). Hard `requires`: profiles, media, rich-editor, forms, email-manager. `optionalRequires`: `form` (particle pack `src/modules/form`), `product:subscriptions`, `product:events`. Not Payments / not Maps ([2026-11-22-social-dependency-floor](./decisions/2026-11-22-social-dependency-floor.md)). Posture: [2026-11-22-social-built-parked](./decisions/2026-11-22-social-built-parked.md). Comments, likes, and reports stay in Social — no `product:comments` / `product:reports` ([2026-11-22-comments-reports-ownership](./decisions/2026-11-22-comments-reports-ownership.md)). Ads stays parked (slice 2 in tree); do not resume Ads slices ahead of Marketplace.
+**`product:social`** — slices **1–22** documented in `src/modules/social/manifest.ts` and the pack README; `defaultEnabled: false` until site cutover turns it on. Enablement blockers that were open on this map are **Done** (media attach/serve audience checks, staff private-read, member write rate limits). Remaining Active work is polish / complete (Open work leftovers + UX) before cutover turns Social on. Brief: [social-module-standing](./social-module-standing.md). Hard `requires`: profiles, media, rich-editor, forms, email-manager. `optionalRequires`: `form` (particle pack `src/modules/form`), `product:subscriptions`, `product:events`. Not Payments / not Maps ([2026-11-22-social-dependency-floor](./decisions/2026-11-22-social-dependency-floor.md)). Posture: [2026-11-22-social-built-parked](./decisions/2026-11-22-social-built-parked.md). Comments, likes, and reports stay in Social — no `product:comments` / `product:reports` ([2026-11-22-comments-reports-ownership](./decisions/2026-11-22-comments-reports-ownership.md)). Ads stays parked (slice 2 in tree); do not resume Ads slices ahead of Marketplace. Live video stays in Social; do not add `product:stream` ([2026-11-26-chat-shop-stream](./decisions/2026-11-26-chat-shop-stream.md)). Chat and Shop start after Marketplace.
 
 ## Open work
 
@@ -55,11 +56,13 @@ The 5 Nov wireframe order does not override this. Event slot kinds decided as ch
 | Dedicated payment-credentials key required in production | Payments | Done; production requires non-placeholder `SF_PAY_CREDENTIALS_KEY` (no `PAYLOAD_SECRET` / hardcoded fallback); dev may still fall back | yes | `src/modules/payments/credentials-crypto.ts`, `src/core/env/validate.ts` |
 | Production warning when `STARFORGE_TRUSTED_PROXY_HOPS` is unset | Core env | Done; production warns (not errors) when unset/empty; non-integer stays a warning; CI boots without the key | yes | `src/core/env/validate.ts` |
 | Social `optionalRequires` contains particle id `form` | Social | Confirmed: `form` is `src/modules/form` (`kind: 'particle'`). Keep or drop is undecided. Only if Social is on | only if Social is on | `src/modules/social/manifest.ts`, `src/modules/form/manifest.ts` |
-| Rename `product:maps` to TacMap (id / docs consistency) | Maps | Open; do not rename in the Social dependency slice. Pack README already brands TacMap | no | [2026-11-22-social-dependency-floor](./decisions/2026-11-22-social-dependency-floor.md), `src/modules/maps/README.md` |
+| Rename `product:maps` to TacMap (id / docs consistency) | Maps | Open; do not rename in the Social dependency slice. Pack README already brands TacMap. Maps stays in progress | no | [2026-11-22-social-dependency-floor](./decisions/2026-11-22-social-dependency-floor.md), `src/modules/maps/README.md` |
+| Manifest `layer` vs base/advanced class test | Core boot | Open. The class test is accepted. Do not retag `layer` until a site pack no longer `requires` a pack that would boot later (`product:pages` requires the rich editor). Boot order stays base, then site, then advanced | no | [2026-11-26-base-vs-advanced](./decisions/2026-11-26-base-vs-advanced.md), `src/core/modules/boot-order.ts` |
 | Event / page conversation UI on Social’s comments engine | Social (+ Events / Pages) | Accepted ownership; event conversation not built | no | [2026-11-22-comments-reports-ownership](./decisions/2026-11-22-comments-reports-ownership.md) |
 | `dangerouslySetInnerHTML` sites need a sanitization review | Core + packs | Open; custom particle HTML, page-settings inject, Events description, and others | no | e.g. `src/core/modules/particles/custom.tsx` |
 | Event slot kinds chooser (Ticket type / Booking type / Faction + admin names) | Events | Decided; code still `general \| faction` | no | `src/modules/events/schema.ts` |
 | Organizations, outbound webhooks, support | TBD | Parked; not ahead of Marketplace | no | — |
+| Onboarding + Fleet plan | DSP | Note only. Write one plan in a later chat from the current PrimeOne Drivers and Fleet build (`com_primeone_drivers`, `com_primeone_fleet`). Do not scaffold the packs here. Not ahead of Social, Marketplace, Chat, or Shop | no | — |
 | Durable subscriber-list `product:campaigns` | Email Manager later | Parked. Light paste campaigns live in Email Manager today | no | `sf-email-module.mdc` |
 | Checkout coupons | Payments | Shipped under Payments (not a promotions pack) | no | `/admin/payments/coupons` |
 | `modules:sync` omits unchosen in-repo engines | Installer | Target only; sync adds/removes `@starforge/module-*` (notice-bar, consent). Other packs stay in this repo | no | [module-install-packages](./module-install-packages.md) |
@@ -97,7 +100,30 @@ Installing Starforge means choosing which modules come with that site ([module-i
 
 **Payload peel (done):** phases 1–4 shipped 2026-11-16. Decision: [2026-11-15-payload-peel](./decisions/2026-11-15-payload-peel.md). Archive: [payload-dependency-map](../../archive/payload-dependency-map.md). Queue: Social polish → Marketplace → (later) Ads resume ([ads-pack-plan](./ads-pack-plan.md)).
 
-**Requires chain:** Forms → Media; Rich editor → Media; Email Manager → Rich editor + Media; Payments → Email Manager; Profiles → Media + Forms; Maps has empty `requires` (Events still depends on Maps). Events requires Forms, Media, Rich editor, Payments, Profiles, Maps. Subscriptions requires Payments, Email Manager, Forms, Profiles. Social requires Profiles, Media, Rich editor, Forms, Email Manager (not Payments, not Maps). Ads requires Social, Email Manager, Forms, Subscriptions, Payments (`optionalRequires`: Media). Profiles stays base because Events and Subscriptions require it.
+**Requires chain:** Forms → Media; Rich editor → Media; Email Manager → Rich editor + Media; Payments → Email Manager; Profiles → Media + Forms; Maps → Media. Events requires Forms, Media, Rich editor, Payments, Profiles, Maps. Subscriptions requires Payments, Email Manager, Forms, Profiles. Social requires Profiles, Media, Rich editor, Forms, Email Manager (not Payments, not Maps). Ads requires Social, Email Manager, Forms, Subscriptions, Payments (`optionalRequires`: Media). Marketplace stub `requires` is empty until the commerce schema; it stays advanced.
+
+## Module class
+
+Deciding rule: [2026-11-26-base-vs-advanced](./decisions/2026-11-26-base-vs-advanced.md). A product pack that depends only on Core is **base**. A product pack that `requires` another module is **advanced**. Site packs stay site. Hero is not a module.
+
+Manifest `layer` is the boot tag. It is not retagged in feature slices (open work above).
+
+| Pack | Requires another module | Class | Manifest `layer` |
+| --- | --- | --- | --- |
+| `product:media` | no | base | `base` |
+| `product:forms` | Media | advanced | `base` |
+| `product:rich-editor` | Media | advanced | `base` |
+| `product:email-manager` | Rich editor, Media | advanced | `base` |
+| `product:payments` | Email Manager | advanced | `base` |
+| `product:profiles` | Media, Forms | advanced | `base` |
+| `product:maps` | Media | advanced (in progress) | `base` |
+| `product:events` | Forms, Media, Rich editor, Payments, Profiles, Maps | advanced | `advanced` |
+| `product:subscriptions` | Payments, Email Manager, Forms, Profiles | advanced | `advanced` |
+| `product:social` | Profiles, Media, Rich editor, Forms, Email Manager | advanced | `advanced` |
+| `product:marketplace` | none yet (stub; will require Payments) | advanced (next after Social) | `advanced` |
+| `product:ads` | Social, Email Manager, Forms, Subscriptions, Payments | advanced (parked) | `advanced` |
+
+Site packs (not this test): `product:pages` (requires Rich editor and Media), `product:pwa` (requires Media), `product:audit`, `product:consent`, `product:lexical-editor`, `product:notice-bar`, `product:redirects`, `product:search`. The `form` particle requires `product:forms` and stays a particle.
 
 ## Languages
 
@@ -164,6 +190,8 @@ Online gateways: developer adds adapter + `register-online.ts` import ([decision
 | Pages pack | [pages-pack-plan](./pages-pack-plan.md) |
 | Social standing (Active polish; Marketplace next) | [social-module-standing](./social-module-standing.md) |
 | Ads pack plan | [ads-pack-plan](./ads-pack-plan.md) |
+| Base vs advanced class test | [2026-11-26-base-vs-advanced](./decisions/2026-11-26-base-vs-advanced.md) |
+| Chat, Shop, and live video | [2026-11-26-chat-shop-stream](./decisions/2026-11-26-chat-shop-stream.md) |
 | Core finish archive | [core-finish-instructions](../../archive/core-finish-instructions.md) |
 | Layer placement | [platform-module-layers](./platform-module-layers.md) |
 | Commerce contract | [payments-cart-plan](./payments-cart-plan.md), [payments-merchant-plan](./payments-merchant-plan.md), `sf-payments-module.mdc` |

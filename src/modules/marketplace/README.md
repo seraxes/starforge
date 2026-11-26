@@ -2,11 +2,13 @@
 
 Layer: advanced
 
-Status: parked
+Class: advanced — domain product. Stub `requires` is empty until the commerce schema; it will `require` Payments. Next after Social polish ([2026-11-26-base-vs-advanced](../../../docs/project-context/docs/decisions/2026-11-26-base-vs-advanced.md)).
+
+Status: next after Social (stub today)
 
 ## Owns
 
-Thin dashboard stub only so `/admin` can show a **Marketplace** soft card via `admin.dashboard[]` (`marketplace.listings`). No schema, no admin routes, no public UI yet. Full listings / fees / boosts pack is parked behind finishing Social then Ads (live map). Toggle under Site Settings → Modules (`defaultEnabled: true` for the stub card).
+Thin dashboard stub only so `/admin` can show a **Marketplace** soft card via `admin.dashboard[]` (`marketplace.listings`). No schema, no admin routes, no public UI yet. Full listings / fees / boosts pack builds after Social polish. Ads stays parked until after Marketplace (live map). Toggle under Site Settings → Modules (`defaultEnabled: true` for the stub card).
 
 ## Consumes
 
@@ -28,7 +30,7 @@ None.
 
 - No `sf_marketplace_*` schema, routes, or admin UI.
 - Destination rating / listings tables TBD when the pack ships (see ops migration notes).
-- Full pack per ASN modules wireframe — not ahead of Social → Ads on the live map.
+- Full pack per ASN modules wireframe — not ahead of Social. Ads follows Marketplace.
 
 ## Tests
 

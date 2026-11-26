@@ -1,6 +1,8 @@
 # product:media
 
-Layer: base
+Layer: base (manifest boot tag)
+
+Class: base — depends only on Core ([2026-11-26-base-vs-advanced](../../../docs/project-context/docs/decisions/2026-11-26-base-vs-advanced.md))
 
 Status: shipped
 

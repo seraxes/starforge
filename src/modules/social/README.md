@@ -4,7 +4,7 @@ Layer: advanced
 
 Status: built-default-off (`defaultEnabled: false`; in scope to finish — [2026-11-22-social-built-parked](../../../docs/project-context/docs/decisions/2026-11-22-social-built-parked.md); not parked)
 
-Member social feed under `/feed`. Live video stays `product:stream`. Do not reuse the builtin particle id `social` (footer links).
+Member social feed under `/feed`. Live video belongs to this pack. There is no `product:stream` ([2026-11-26-chat-shop-stream](../../../docs/project-context/docs/decisions/2026-11-26-chat-shop-stream.md)). Do not reuse the builtin particle id `social` (footer links).
 
 Requires: `product:profiles`, `product:media`, `product:rich-editor`, `product:forms`, `product:email-manager`. `optionalRequires`: `form`, `product:subscriptions`, `product:events`.
 

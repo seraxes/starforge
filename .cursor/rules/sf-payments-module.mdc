@@ -8,7 +8,7 @@ alwaysApply: false
 
 Any Starforge module that takes money **must** use `product:payments` — cart, checkout, orders, VAT/money math, invoices/fiscal outbox, and gateway orchestration. Do not ship a parallel cart, checkout UI, gateway settings screen, invoice engine, or SMTP/notify stack inside the consumer module.
 
-**Never rebuild an existing module’s job inside Payments** (or any new pack). One engine per concern. Payments is a **base module** (`sf-architecture.mdc`): advanced packs `require` it. See also `sf-module-ownership.mdc`.
+**Never rebuild an existing module’s job inside Payments** (or any new pack). One engine per concern. Payments `requires` Email Manager, so the deciding rule classes it **advanced**. Other packs still `require` it for money. Manifest `layer` stays `base` until the boot-order retag (Decision: [base vs advanced](../../docs/project-context/docs/decisions/2026-11-26-base-vs-advanced.md), `sf-module-ownership.mdc`).
 
 ## Why Payments is foundational
 

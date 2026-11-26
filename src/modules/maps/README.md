@@ -1,8 +1,10 @@
 # product:maps
 
-Layer: base
+Layer: base (manifest boot tag — not retagged)
 
-Status: shipped
+Class: advanced — `requires` Media ([2026-11-26-base-vs-advanced](../../../docs/project-context/docs/decisions/2026-11-26-base-vs-advanced.md))
+
+Status: in progress
 
 **Short name:** TacMap · **Long name:** Tactical Maps (product branding). Manifest id stays `product:maps`.
 
@@ -44,7 +46,7 @@ None in this pack. Events `bootEvents` → `ensureEventsMapCatalog` registers th
 ## Known gaps
 
 - A later slice may rename id `product:maps` to TacMap for docs/id consistency — **do not rename in this slice**
-- Stations / hold-to-capture / BLE beacons (ASN TacMap sellable kits) wait until Core is finished and are not ahead of finishing Social then Ads; room engine stays here; ASN chrome, beacon SKUs, and `apps/asn-capacitor` are Hero clients
+- Stations / hold-to-capture / BLE beacons (ASN TacMap sellable kits) stay parked. TacMap itself is in progress and does not jump ahead of Social polish or Marketplace. Ads follows Marketplace. Room engine stays here; ASN chrome, beacon SKUs, and `apps/asn-capacitor` are Hero clients
 - Cross-team visibility + finer admin roles
 - Trails / freehand overlays
 - Mapbox / Google adapters behind the same port
