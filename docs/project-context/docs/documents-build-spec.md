@@ -1,10 +1,10 @@
 ---
 kind: reference
-last_verified: 2026-11-26
+last_verified: 2026-11-27
 ---
 # product:documents — build spec
 
-**Status:** Spec only. **Parked.** Do not scaffold `src/modules/documents`, schema, admin UI, or a manifest from this file. Active stays Social polish → Marketplace → Messages (Chat) → Ads. Live map: [architecture-current](./architecture-current.md).  
+**Status:** Spec only. **Parked.** Do not scaffold `src/modules/documents`, schema, admin UI, or a manifest from this file. Onboarding may proceed; Documents stays parked. Live map: [architecture-current](./architecture-current.md).  
 **Pack plan:** [documents-pack-plan](./documents-pack-plan.md). **Family order:** [primeone-pack-plans](./primeone-pack-plans.md) wave **9** only.  
 **Coverage:** [primeone-coverage-plan](./primeone-coverage-plan.md).
 

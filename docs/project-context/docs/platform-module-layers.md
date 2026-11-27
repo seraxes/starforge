@@ -1,6 +1,6 @@
 ---
 kind: reference
-last_verified: 2026-11-26
+last_verified: 2026-11-27
 ---
 # Platform layers — Core, base, advanced, Hero
 
@@ -12,7 +12,7 @@ last_verified: 2026-11-26
 | --- | --- |
 | **Core** | Skeleton / host / **ports** every app needs to **boot** (auth session, layout host, module loader, Mailer/cache/storage/LLM/map/payments *adapters*). Not a `requires` id. |
 | **Base module** | Product pack that depends only on Core (no other module in `requires`). In tree: Media. |
-| **Advanced module** | Product pack whose manifest `requires` another module. In tree: Forms, Rich editor, Email Manager, Payments, Profiles, Maps (in progress), Events, Subscriptions, Social (live video included), Marketplace (next after Social), Ads (parked). After Marketplace: Chat, Shop. Later: Support. |
+| **Advanced module** | Product pack whose manifest `requires` another module. In tree: Forms, Rich editor, Email Manager, Payments, Profiles, Maps (in progress), Events, Subscriptions, Social (live video included), Marketplace (slice 4 public loop), Onboarding (PrimeOne, default-off; slice 2 statuses), Ads (parked). After Marketplace: Chat, Shop. Fleet and Documents stay parked. Later: Support. |
 | **Hero** | **Brand theme** + **unique business rules** / custom workflows on top of modules — never a parallel copy of a module. |
 
 **Ports** = thin Core adapters (env secrets, factory pick). **Modules** use ports; they do not own vendor SDKs. **Hero** skins and rules modules — it does not fork them. The old queue nickname “level-1 engines” means these **base modules**, not Core.
@@ -23,7 +23,7 @@ last_verified: 2026-11-26
 | --- | --- | --- |
 | **Core** | Always-on host + ports | Auth, Users/Groups ACL, Layout/Nav/Chrome, Module Manager, env overlay; ports: Mailer, Redis/cache, MediaStorage, MapProvider, LlmProvider, Payments adapters, PageReadsPort, MediaAnalysis |
 | **Base modules** | Depend only on Core | Media. Content manager is `product:pages` (site pack) behind `PageReadsPort`, not a base engine |
-| **Advanced modules** | `require` another module | Forms, Rich editor, Email Manager, Payments, Profiles, Maps (in progress), Events, Subscriptions, Social (live video stays here). Next: Marketplace, after Social. After Marketplace: Chat, Shop. Ads stays parked until after Marketplace. Later: Support |
+| **Advanced modules** | `require` another module | Forms, Rich editor, Email Manager, Payments, Profiles, Maps (in progress), Events, Subscriptions, Social (live video stays here). Marketplace public loop and Onboarding slice 2 are both in tree. After Marketplace: Chat, Shop. Ads stays parked until after Marketplace. Fleet and Documents stay parked. Later: Support |
 | **Hero** | Theme + unique rules — not a module fork | **Starforge theme:** pastel orange + blue. **ASN theme:** dark, tactical, gaming, military. Plus ASN team/RP/airsoft domain, catalog fees, ASN currency, quality-check **apps** that *call* Media analysis hooks |
 
 Site packs (Consent, Redirects, Search, PWA, Lexical, Notice bar, Audit) stay optional modules. They are not Core and not a domain product.
@@ -89,7 +89,7 @@ Revenue floor — **`product:payments`**, then consumers on the same API: **subs
 
 ## What to build next
 
-Live queue: [architecture-current](./architecture-current.md) — **Active:** Social polish and complete; **Next:** Marketplace; **After Marketplace:** Chat and Shop. Ads parked until after Marketplace. Live video stays in Social. Core / launch polish in parallel where it blocks cutover.
+Live queue: [architecture-current](./architecture-current.md) — **Active:** Social polish and complete; **Next:** Marketplace slice 4, saves next; **PrimeOne:** Onboarding slice 2. **After Marketplace:** Chat and Shop. Ads parked until after Marketplace. Fleet and Documents stay parked. Live video stays in Social. Core / launch polish in parallel where it blocks cutover.
 
 - Feed layout variants = Social **Module** + Layout options; Hero **theme** brands them — still one Social Module.
 - Voice/video calling = later optional RTC **port** on Chat — decide when Chat ships.

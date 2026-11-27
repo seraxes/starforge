@@ -1,7 +1,7 @@
 # Extension modules
 
 Product packs hang off Starforge Core via **`defineStarforgeModule`** manifests (SF-141).
-**Tiers:** a product pack that depends only on Core is base (Media). A product pack that `requires` another module is advanced (Forms, Rich editor, Email Manager, Payments, Profiles, Maps, Events, Subscriptions, Social, Marketplace, Ads). Site packs stay site. Hero does not live in this folder. Manifest `layer` is the boot tag and is not retagged here. See [sf-architecture](../../.cursor/rules/sf-architecture.mdc).
+**Tiers:** a product pack that depends only on Core is base (Media). A product pack that `requires` another module is advanced (Forms, Rich editor, Email Manager, Payments, Profiles, Maps, Events, Subscriptions, Social, Marketplace, Ads, Onboarding). Site packs stay site. Hero does not live in this folder. Manifest `layer` is the boot tag and is not retagged here. See [sf-architecture](../../.cursor/rules/sf-architecture.mdc).
 Core hosts extension points; packs contribute metadata + lazy import pointers. Codegen
 writes `src/generated/module-registry.ts` — Core may import `@/generated/*` only, not
 `@/modules/**` internals.
@@ -56,6 +56,7 @@ Lean flavor: set `"flavor": "lean"` in `starforge.modules.json` (uses `presets.l
 | `product:events` | `events/` | Events + venues + registration + particles |
 | `product:profiles` | `profiles/` | Member persona — `/u/[handle]`, account editor, `getPersonas()` contract |
 | `product:marketplace` | `marketplace/` | Slice 4 public loop (`/marketplace` browse, create, you, detail, edit). Saves are slice 5. Plan: [marketplace-pack-plan](../../docs/project-context/docs/marketplace-pack-plan.md). Slices: [marketplace-build-spec](../../docs/project-context/docs/marketplace-build-spec.md) |
+| `product:onboarding` | `onboarding/` | Slice 2 statuses and identity facts. Default off. Procedure is slice 3. Plan: [onboarding-pack-plan](../../docs/project-context/docs/onboarding-pack-plan.md). Slices: [onboarding-build-spec](../../docs/project-context/docs/onboarding-build-spec.md) |
 | `product:media` | `media/` | Library + Dashboard `media.counts` stub |
 | `product:consent` | `consent/` | Banner + `publicShell` bodyEnd via generated loaders |
 | `product:pwa` | `pwa/` | Web App Manifest + Serwist SW (`publicShell` head/bodyEnd); opt-in |

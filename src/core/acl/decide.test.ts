@@ -211,6 +211,17 @@ describe('adminAreaGateForPath', () => {
     })
   })
 
+  it('maps Onboarding admin paths to admin.onboarding', () => {
+    assert.deepEqual(adminAreaGateForPath('/admin/onboarding'), {
+      type: 'resource',
+      key: 'admin.onboarding',
+    })
+    assert.deepEqual(adminAreaGateForPath('/admin/onboarding/statuses'), {
+      type: 'resource',
+      key: 'admin.onboarding',
+    })
+  })
+
   it('maps Pages admin paths to admin.pages', () => {
     assert.deepEqual(adminAreaGateForPath('/admin/pages'), {
       type: 'resource',

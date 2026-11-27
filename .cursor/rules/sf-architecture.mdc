@@ -11,7 +11,7 @@ Place every feature in one spot. **Base modules are not Core.**
 | --- | --- | --- |
 | **Core** | Host that boots every site. Not a `requires` id. | Auth, users/groups, layout/nav/chrome, module installer, Skin, i18n host, jobs, cache. Thin ports only: Mailer, gateway/fiscal adapters, MediaStorage, MapProvider, PageReadsPort, Realtime, RateLimiter, Captcha. |
 | **Base module** | Product pack that depends only on Core. | Its manifest does not `require` another module. In tree: Media. |
-| **Advanced module** | Product pack that `requires` another module. | Forms, Rich editor, Email Manager, Payments, Profiles, Maps, Events, Subscriptions, Social, Ads, Marketplace. |
+| **Advanced module** | Product pack that `requires` another module. | Forms, Rich editor, Email Manager, Payments, Profiles, Maps, Events, Subscriptions, Social, Ads, Marketplace, Onboarding. |
 | **Hero** | One site's brand and vertical rules. | Theme, fee table, milsim sheet, custom approval, ASN currency. Calls `@/modules/<id>/api` and extension points. Does not fork a module. |
 
 Site packs (Consent, Redirects, Search, PWA, Lexical, Notice bar, Audit) are optional beside those tiers — not Core, not a domain product. Pack inventory and requires edges: live map. No Skills module — a shared capability is a Core port or the owning base module.

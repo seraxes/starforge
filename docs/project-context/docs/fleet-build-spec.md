@@ -1,10 +1,10 @@
 ---
 kind: reference
-last_verified: 2026-11-26
+last_verified: 2026-11-27
 ---
 # product:fleet — build spec
 
-**Status:** Spec only. **Parked.** Do not scaffold `src/modules/fleet`, schema, admin UI, or a manifest from this file. Active stays Social polish → Marketplace → Messages (Chat) → Ads. Live map: [architecture-current](./architecture-current.md).  
+**Status:** Spec only. **Parked.** Do not scaffold `src/modules/fleet`, schema, admin UI, or a manifest from this file. Onboarding may proceed; Fleet stays parked. Live map: [architecture-current](./architecture-current.md).  
 **Pack plan:** [fleet-pack-plan](./fleet-pack-plan.md). **Family order:** [primeone-pack-plans](./primeone-pack-plans.md) waves **2, 3, 6, 8**.  
 **Inventory:** [primeone-inventory-fleet](./primeone-inventory-fleet.md). **Coverage:** [primeone-coverage-plan](./primeone-coverage-plan.md).
 

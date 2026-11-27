@@ -31,6 +31,7 @@ export const MODULE_IDS = {
   social: 'product:social',
   ads: 'product:ads',
   marketplace: 'product:marketplace',
+  onboarding: 'product:onboarding',
   redirects: 'product:redirects',
   consent: 'product:consent',
   search: 'product:search',
