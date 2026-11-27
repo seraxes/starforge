@@ -55,7 +55,7 @@ Lean flavor: set `"flavor": "lean"` in `starforge.modules.json` (uses `presets.l
 | `product:email-manager` | `email-manager/` | Rules/templates + send log + Dashboard `email.sent` |
 | `product:events` | `events/` | Events + venues + registration + particles |
 | `product:profiles` | `profiles/` | Member persona — `/u/[handle]`, account editor, `getPersonas()` contract |
-| `product:marketplace` | `marketplace/` | Thin Dashboard `marketplace.listings` stub (no schema yet) |
+| `product:marketplace` | `marketplace/` | Thin Dashboard `marketplace.listings` stub (no schema yet). Plan: [marketplace-pack-plan](../../docs/project-context/docs/marketplace-pack-plan.md). Slices: [marketplace-build-spec](../../docs/project-context/docs/marketplace-build-spec.md) |
 | `product:media` | `media/` | Library + Dashboard `media.counts` stub |
 | `product:consent` | `consent/` | Banner + `publicShell` bodyEnd via generated loaders |
 | `product:pwa` | `pwa/` | Web App Manifest + Serwist SW (`publicShell` head/bodyEnd); opt-in |

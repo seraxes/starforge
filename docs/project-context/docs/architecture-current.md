@@ -33,7 +33,7 @@ Core → base → advanced → Hero still holds. Core finish (slices 1–9) and 
 | --- | --- |
 | **Active** | Social polish and complete (enablement blockers Done). Close remaining Social Open work / UX leftovers before turning Social on for cutover. Brief: [social-module-standing](./social-module-standing.md). Core / launch polish in parallel where it blocks cutover. |
 | **In progress** | TacMap (`product:maps`). Venue pins and live rooms are in tree. Stations, BLE beacons, and `apps/asn-capacitor` stay parked. This does not jump ahead of Social polish or Marketplace. |
-| **Next after Social** | Marketplace commerce schema (today a Dashboard stub). Do not start Ads, Chat, or Shop ahead of Marketplace unless the live map moves. |
+| **Next after Social** | Marketplace commerce schema (today a Dashboard stub). Proposed design: [marketplace-pack-plan](./marketplace-pack-plan.md). Do not scaffold it while Social polish is Active. Do not start Ads, Chat, or Shop ahead of Marketplace unless the live map moves. |
 | **After Marketplace** | Chat and Shop. Live video is not a pack in this lane; it belongs to Social. |
 | **Parked** | Ads (slice 2 catalog + admin in tree / default-off; resume after Marketplace and other major advanced modules — [ads-pack-plan](./ads-pack-plan.md)), Notifications, ASN Hero theme / currency / `apps/asn-capacitor`, TacMap stations / BLE beacons, durable `product:campaigns`, organizations, support, outbound webhooks. Onboarding + Fleet + Documents (plans and build specs written — [primeone-pack-plans](./primeone-pack-plans.md); coverage [primeone-coverage-plan](./primeone-coverage-plan.md); not this queue; do not scaffold). Ledger and warehouse later ([ledger-pack-plan](./ledger-pack-plan.md), [warehouse-pack-plan](./warehouse-pack-plan.md)). |
 
@@ -190,6 +190,7 @@ Online gateways: developer adds adapter + `register-online.ts` import ([decision
 | Payload peel | [payload-dependency-map](../../archive/payload-dependency-map.md), [2026-11-15-payload-peel](./decisions/2026-11-15-payload-peel.md) |
 | Pages pack | [pages-pack-plan](./pages-pack-plan.md) |
 | Social standing (Active polish; Marketplace next) | [social-module-standing](./social-module-standing.md) |
+| Marketplace pack plan (proposed; stub today) | [marketplace-pack-plan](./marketplace-pack-plan.md), coding slices [marketplace-build-spec](./marketplace-build-spec.md) |
 | Ads pack plan | [ads-pack-plan](./ads-pack-plan.md) |
 | PrimeOne packs (parked; not this queue) | [primeone-coverage-plan](./primeone-coverage-plan.md), [primeone-pack-plans](./primeone-pack-plans.md) — specs [onboarding](./onboarding-build-spec.md), [fleet](./fleet-build-spec.md), [documents](./documents-build-spec.md); plans [onboarding](./onboarding-pack-plan.md), [fleet](./fleet-pack-plan.md), [documents](./documents-pack-plan.md); later [ledger](./ledger-pack-plan.md), [warehouse](./warehouse-pack-plan.md) |
 | Base vs advanced class test | [2026-11-26-base-vs-advanced](./decisions/2026-11-26-base-vs-advanced.md) |
