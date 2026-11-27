@@ -1,10 +1,10 @@
 ---
 kind: reference
-last_verified: 2026-11-26
+last_verified: 2026-11-27
 ---
 # product:onboarding — pack plan
 
-**Status:** Proposed. **Parked** — not on the live queue (Social polish, then Marketplace first). Live map: [architecture-current](./architecture-current.md). Do not scaffold schema, admin UI, or a manifest from this plan.  
+**Status:** Slice 2 (status builder + identity facts) is in tree. `defaultEnabled: false`. Next chat is slice 3 (procedure + notes + invite). Parallel with Marketplace. Fleet and Documents stay parked. Live map: [architecture-current](./architecture-current.md).  
 **Placement:** Advanced module (`product:onboarding`). Not Core. Not base. Not Hero.  
 **Family index:** [primeone-pack-plans](./primeone-pack-plans.md).  
 **Principle:** Never rebuild an existing module’s job ([modular-core](../principles/modular-core.md), [sf-module-ownership](../../../.cursor/rules/sf-module-ownership.mdc), [sf-architecture](../../../.cursor/rules/sf-architecture.mdc)).
@@ -109,12 +109,12 @@ Form answers stay in Forms. One current submission per person per status form. O
 
 Staff menus stay additive (`sf-staff-bypass`). Do not refuse `isAppAdmin` on ownership-gated tools.
 
-## Slice order (when unparked)
+## Slice order
 
 One slice per chat. Stop when that slice’s checks pass. **Do not start schema or admin UI in the plan-only chat.**
 
-1. **Scaffold** — `src/modules/onboarding` manifest (`layer: advanced`), hard `requires`: Forms, Media, Email Manager, Profiles; `optionalRequires`: Fleet; empty public door; README Owns/Consumes; registry generate. No commerce tables. No Core fact-map port.
-2. **Status builder + identity facts** — statuses with a bookable flag and an optional Forms definition id; driver code, phone, Fleet station id, home-run, trainer, Clearquote. Person-fact reads on the public door. Station list comes from Fleet when Fleet is on.
+1. **Scaffold** — done. Manifest (`layer: advanced`, `defaultEnabled: false`), hard `requires`: Forms, Media, Email Manager, Profiles; empty public door; README Owns/Consumes; registry generate. `optionalRequires: product:fleet` waits until that manifest exists (unknown optional ids fail `modules:generate`). No tables. No Core fact-map port.
+2. **Status builder + identity facts** — done. Statuses with a bookable flag and an optional Forms definition id; driver code, phone, Fleet station id, home-run, trainer, Clearquote. Person-fact reads on the public door. Station list empty while Fleet is absent.
 3. **Procedure + notes + invite** — three event cards, notes, follow-up, calls, mail log, invite + Email Manager starters.
 4. **Training** — checklist and PDF (pack-local until Documents exists), trainer calendar, then a Forms quiz attempt; qualification on pass without a status move.
 5. **Valid-until** — licence, health booklet, contract; missing vs expired.
@@ -131,11 +131,11 @@ One slice per chat. Stop when that slice’s checks pass. **Do not start schema 
 | File bytes store | Media |
 | TacMap rooms | Core MapProvider is for Fleet routes; TacMap is not for recruiting |
 | Stock or money ledger | Later warehouse / ledger |
-| Starting ahead of Social → Marketplace | Live map |
+| Scaffolding Fleet or Documents from this plan | Those packs stay parked on the live map |
 
 ## Related
 
-- Build spec (parked): [onboarding-build-spec](./onboarding-build-spec.md)
+- Build spec: [onboarding-build-spec](./onboarding-build-spec.md)
 - Family index: [primeone-pack-plans](./primeone-pack-plans.md)
 - Fleet (fact-map consumer): [fleet-pack-plan](./fleet-pack-plan.md)
 - Documents (shared renderer): [documents-pack-plan](./documents-pack-plan.md)

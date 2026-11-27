@@ -1,11 +1,11 @@
 ---
 kind: reference
-last_verified: 2026-11-26
+last_verified: 2026-11-27
 ---
 # PrimeOne → Starforge — coverage plan
 
-**Status:** Inventory and build specs are written. **Parked** for implementation — not on the live product queue. Active stays Social polish → Marketplace → Messages (Chat) → Ads for ASN 2.0 base / Hero. Live map: [architecture-current](./architecture-current.md).  
-**Do not** scaffold `src/modules`, start schema, admin UI, or manifests from these docs. Specs exist ahead of that queue by an explicit docs-only override; scaffolding still waits.  
+**Status:** Onboarding is unparked (slice 1 door in tree, parallel with Marketplace). Fleet and Documents stay parked — do not scaffold those. Live map: [architecture-current](./architecture-current.md).  
+**Do not** scaffold `src/modules/{fleet,documents}`, or start their schema, admin UI, or manifests from these docs. Onboarding follows [onboarding-build-spec](./onboarding-build-spec.md).  
 **Ownership:** Pack plans win — [primeone-pack-plans](./primeone-pack-plans.md) plus [onboarding](./onboarding-pack-plan.md) / [fleet](./fleet-pack-plan.md) / [documents](./documents-pack-plan.md) / [ledger](./ledger-pack-plan.md) / [warehouse](./warehouse-pack-plan.md).  
 **Live source (read-only):** PrimeOne repo `com_primeone_drivers` + `com_primeone_fleet` (and related modules/plugins listed in the inventories).  
 **Shape:** Pack-plan style like [ads-pack-plan](./ads-pack-plan.md). Inventory tables: surface → owner like [asn-modules-wireframe](./asn-modules-wireframe.md).
@@ -15,10 +15,11 @@ last_verified: 2026-11-26
 | State | Allowed now? |
 | --- | --- |
 | Coverage plan + inventories (this phase) | Yes |
-| Build specs (`onboarding-build-spec`, `fleet-build-spec`, `documents-build-spec`) | Written. Docs-only override — implementation still waits until P1 is unparked |
-| Scaffold `src/modules/{onboarding,fleet,documents,…}`, schema, admin UI, manifests | No — after Social → Marketplace → Messages → Ads, when P1 is unparked |
+| Build specs (`onboarding-build-spec`, `fleet-build-spec`, `documents-build-spec`) | Written. Onboarding implementation follows its spec. Fleet and Documents stay docs-only |
+| Scaffold Onboarding | Yes — slice 1 door is in tree. Later slices one chat each |
+| Scaffold `src/modules/{fleet,documents}`, schema, admin UI, manifests | No — those packs stay parked |
 
-P1 packs stay **Parked** on the live map. Inventory work does not move them into Active.
+Fleet and Documents stay **Parked** on the live map. Inventory work does not unpark them.
 
 ## Slice checklist
 
@@ -28,7 +29,7 @@ P1 packs stay **Parked** on the live map. Inventory work does not move them into
 | 2 | Inventory drivers — [primeone-inventory-drivers](./primeone-inventory-drivers.md) | This chat |
 | 3 | Inventory fleet — [primeone-inventory-fleet](./primeone-inventory-fleet.md) | This chat |
 | 4 | Inventory crosscut — [primeone-inventory-crosscut](./primeone-inventory-crosscut.md) | This chat |
-| 5 | Onboarding / Fleet / Documents **build specs** | Written, still parked — [onboarding](./onboarding-build-spec.md), [fleet](./fleet-build-spec.md), [documents](./documents-build-spec.md) |
+| 5 | Onboarding / Fleet / Documents **build specs** | Written. Onboarding slice 1 is in tree — [onboarding](./onboarding-build-spec.md). Fleet and Documents stay parked — [fleet](./fleet-build-spec.md), [documents](./documents-build-spec.md) |
 | 6 | Close loop — every inventory row has Spec link + First build decided; reconcile imports | Later |
 
 ## Inventory row contract

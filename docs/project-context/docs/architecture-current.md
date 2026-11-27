@@ -1,17 +1,17 @@
 ---
 kind: live
-last_verified: 2026-11-26
+last_verified: 2026-11-27
 ---
 # Starforge architecture — current
 
-Last verified against code: 2026-11-26 (Social polish Active; Marketplace next after Social; Chat and Shop after Marketplace; live video stays in Social).
+Last verified against code: 2026-11-27 (Social polish Active; Onboarding slice 2 statuses and identity facts in tree, default off; Marketplace progress is on `cursor/marketplace`, not this branch; Chat and Shop after Marketplace; live video stays in Social).
 
 **This page wins** when it disagrees with an older plan, preference bullet, or status table. Plans and audits are history.
 
 ## What this platform is
 
 Reusable starter: auth, layout host, content manager behind PageReadsPort, toggleable packs. ASN 2.0 / Airsoft Nexus is a later Hero on those packs; InspecTra may ship earlier.
-**Core** — host + ports. **Base** — a product pack that depends only on Core. In tree: Media. **Advanced** — a product pack that `requires` another module: Forms, Rich editor, Email Manager, Payments, Profiles, Maps (in progress), Events, Subscriptions, Social (live video stays here — no `product:stream`), Marketplace (next after Social), Chat and Shop (after Marketplace), Ads (catalog + admin / default-off; parked until after Marketplace — plan: [ads-pack-plan](./ads-pack-plan.md)). Support stays later. **Hero** — brand + vertical rules, not a module.
+**Core** — host + ports. **Base** — a product pack that depends only on Core. In tree: Media. **Advanced** — a product pack that `requires` another module: Forms, Rich editor, Email Manager, Payments, Profiles, Maps (in progress), Events, Subscriptions, Social (live video stays here — no `product:stream`), Marketplace (next after Social; this branch keeps the Dashboard stub), Onboarding (PrimeOne, slice 2 in tree, default-off; Fleet and Documents stay parked), Chat and Shop (after Marketplace), Ads (catalog + admin / default-off; parked until after Marketplace — plan: [ads-pack-plan](./ads-pack-plan.md)). Support stays later. **Hero** — brand + vertical rules, not a module.
 `product:pages` is the content manager (site pack), not a base engine. Base modules are not Core. Class test: [2026-11-26-base-vs-advanced](./decisions/2026-11-26-base-vs-advanced.md).
 Placement: [platform-module-layers](./platform-module-layers.md). Rules: [sf-architecture](../../../.cursor/rules/sf-architecture.mdc), [sf-module-ownership](../../../.cursor/rules/sf-module-ownership.mdc).
 
@@ -22,7 +22,7 @@ Accepted: [2026-11-22-launch-scope](./decisions/2026-11-22-launch-scope.md).
 - **First production site:** Airsoft Nexus — every module already built; Lexical may stay off.
 - **Earlier site allowed:** InspecTra (quality inspection) may ship before Airsoft Nexus; Core polish comes first.
 - **Do not archive built modules.** Nothing built stays off except the possible Lexical exception.
-- **Absent until built:** Chat and Shop, after Marketplace (and any other pack not in the tree). There is no `product:stream`; live video is part of Social ([2026-11-26-chat-shop-stream](./decisions/2026-11-26-chat-shop-stream.md)). Ads is in tree (`src/modules/ads`, default-off) with catalog schema + `/admin/ads`; Payments bridge / Social publish parked until after Marketplace (and other major advanced modules). Marketplace today is a Dashboard stub (`product:marketplace`, no commerce schema) — next after Social polish.
+- **Absent until built:** Chat and Shop, after Marketplace (and any other pack not in the tree). There is no `product:stream`; live video is part of Social ([2026-11-26-chat-shop-stream](./decisions/2026-11-26-chat-shop-stream.md)). Ads is in tree (`src/modules/ads`, default-off) with catalog schema + `/admin/ads`; Payments bridge / Social publish parked until after Marketplace (and other major advanced modules). Marketplace on this branch is still the Dashboard stub. The public loop lives on `cursor/marketplace`.
 - **Migrate:** users, avatars, profile settings (new password on first login — do not migrate passwords); upcoming events only (past events stay archived on the old site); marketplace user ratings. Marketplace posts = later examination, not a cutover requirement. Everything else stays on the old site.
 
 ## Build queue
@@ -33,9 +33,10 @@ Core → base → advanced → Hero still holds. Core finish (slices 1–9) and 
 | --- | --- |
 | **Active** | Social polish and complete (enablement blockers Done). Close remaining Social Open work / UX leftovers before turning Social on for cutover. Brief: [social-module-standing](./social-module-standing.md). Core / launch polish in parallel where it blocks cutover. |
 | **In progress** | TacMap (`product:maps`). Venue pins and live rooms are in tree. Stations, BLE beacons, and `apps/asn-capacitor` stay parked. This does not jump ahead of Social polish or Marketplace. |
-| **Next after Social** | Marketplace commerce schema (today a Dashboard stub). Proposed design: [marketplace-pack-plan](./marketplace-pack-plan.md). Do not scaffold it while Social polish is Active. Do not start Ads, Chat, or Shop ahead of Marketplace unless the live map moves. |
+| **This branch** | Onboarding (`product:onboarding`). Slice 2 (status builder + identity facts) is in tree. `defaultEnabled: false`. Procedure / notes / invite is slice 3 — [onboarding-build-spec](./onboarding-build-spec.md). Fleet and Documents stay parked. |
+| **Marketplace** | Not on this branch. `cursor/marketplace` has the public loop. This tree still has the Dashboard stub. Do not start Ads, Chat, or Shop here. |
 | **After Marketplace** | Chat and Shop. Live video is not a pack in this lane; it belongs to Social. |
-| **Parked** | Ads (slice 2 catalog + admin in tree / default-off; resume after Marketplace and other major advanced modules — [ads-pack-plan](./ads-pack-plan.md)), Notifications, ASN Hero theme / currency / `apps/asn-capacitor`, TacMap stations / BLE beacons, durable `product:campaigns`, organizations, support, outbound webhooks. Onboarding + Fleet + Documents (plans and build specs written — [primeone-pack-plans](./primeone-pack-plans.md); coverage [primeone-coverage-plan](./primeone-coverage-plan.md); not this queue; do not scaffold). Ledger and warehouse later ([ledger-pack-plan](./ledger-pack-plan.md), [warehouse-pack-plan](./warehouse-pack-plan.md)). |
+| **Parked** | Ads (slice 2 catalog + admin in tree / default-off; resume after Marketplace and other major advanced modules — [ads-pack-plan](./ads-pack-plan.md)), Notifications, ASN Hero theme / currency / `apps/asn-capacitor`, TacMap stations / BLE beacons, durable `product:campaigns`, organizations, support, outbound webhooks. Fleet + Documents (plans and build specs written — [primeone-pack-plans](./primeone-pack-plans.md); coverage [primeone-coverage-plan](./primeone-coverage-plan.md); do not scaffold). Ledger and warehouse later ([ledger-pack-plan](./ledger-pack-plan.md), [warehouse-pack-plan](./warehouse-pack-plan.md)). |
 
 The 5 Nov wireframe order does not override this. Event slot kinds decided as choosable Ticket type / Booking type / Faction (+ admin names) wait; code is still `general \| faction` on `sf_event_ticket_tiers.kind`.
 
@@ -62,7 +63,8 @@ The 5 Nov wireframe order does not override this. Event slot kinds decided as ch
 | `dangerouslySetInnerHTML` sites need a sanitization review | Core + packs | Open; custom particle HTML, page-settings inject, Events description, and others | no | e.g. `src/core/modules/particles/custom.tsx` |
 | Event slot kinds chooser (Ticket type / Booking type / Faction + admin names) | Events | Decided; code still `general \| faction` | no | `src/modules/events/schema.ts` |
 | Organizations, outbound webhooks, support | TBD | Parked; not ahead of Marketplace | no | — |
-| Onboarding + Fleet + Documents plans | DSP | Plans and build specs written; packs not scaffolded. Parked — not ahead of Social polish, Marketplace, Chat, or Shop. Specs are a docs-only override; do not scaffold. Station catalog is Fleet; Onboarding stores the station id. Bookable is a bookable status or vehicle access. Quiz mode belongs in Forms. No Core fact-map port | no | [primeone-coverage-plan](./primeone-coverage-plan.md), [onboarding-build-spec](./onboarding-build-spec.md), [fleet-build-spec](./fleet-build-spec.md), [documents-build-spec](./documents-build-spec.md), [primeone-pack-plans](./primeone-pack-plans.md) |
+| Onboarding | DSP | Slice 2 status builder + identity facts in tree (`defaultEnabled: false`). Procedure / notes / invite is slice 3. `optionalRequires` Fleet waits until that manifest exists. Station catalog is Fleet; Onboarding stores the station id. Bookable is a bookable status or vehicle access. Quiz mode belongs in Forms. No Core fact-map port | no | [onboarding-build-spec](./onboarding-build-spec.md), [onboarding-pack-plan](./onboarding-pack-plan.md) |
+| Fleet + Documents | DSP | Plans and build specs written; packs not scaffolded. Parked — do not scaffold. | no | [primeone-coverage-plan](./primeone-coverage-plan.md), [fleet-build-spec](./fleet-build-spec.md), [documents-build-spec](./documents-build-spec.md), [primeone-pack-plans](./primeone-pack-plans.md) |
 | Durable subscriber-list `product:campaigns` | Email Manager later | Parked. Light paste campaigns live in Email Manager today | no | `sf-email-module.mdc` |
 | Checkout coupons | Payments | Shipped under Payments (not a promotions pack) | no | `/admin/payments/coupons` |
 | `modules:sync` omits unchosen in-repo engines | Installer | Target only; sync adds/removes `@starforge/module-*` (notice-bar, consent). Other packs stay in this repo | no | [module-install-packages](./module-install-packages.md) |
@@ -100,7 +102,7 @@ Installing Starforge means choosing which modules come with that site ([module-i
 
 **Payload peel (done):** phases 1–4 shipped 2026-11-16. Decision: [2026-11-15-payload-peel](./decisions/2026-11-15-payload-peel.md). Archive: [payload-dependency-map](../../archive/payload-dependency-map.md). Queue: Social polish → Marketplace → (later) Ads resume ([ads-pack-plan](./ads-pack-plan.md)).
 
-**Requires chain:** Forms → Media; Rich editor → Media; Email Manager → Rich editor + Media; Payments → Email Manager; Profiles → Media + Forms; Maps → Media. Events requires Forms, Media, Rich editor, Payments, Profiles, Maps. Subscriptions requires Payments, Email Manager, Forms, Profiles. Social requires Profiles, Media, Rich editor, Forms, Email Manager (not Payments, not Maps). Ads requires Social, Email Manager, Forms, Subscriptions, Payments (`optionalRequires`: Media). Marketplace stub `requires` is empty until the commerce schema; it stays advanced.
+**Requires chain:** Forms → Media; Rich editor → Media; Email Manager → Rich editor + Media; Payments → Email Manager; Profiles → Media + Forms; Maps → Media. Events requires Forms, Media, Rich editor, Payments, Profiles, Maps. Subscriptions requires Payments, Email Manager, Forms, Profiles. Social requires Profiles, Media, Rich editor, Forms, Email Manager (not Payments, not Maps). Ads requires Social, Email Manager, Forms, Subscriptions, Payments (`optionalRequires`: Media). Marketplace on this branch is still the Dashboard stub. Onboarding requires Forms, Media, Email Manager, and Profiles. `optionalRequires` Fleet is omitted until `product:fleet` is a manifest id. `defaultEnabled: false`. Slice 2 is statuses and identity facts. It stays advanced.
 
 ## Module class
 
@@ -120,7 +122,8 @@ Manifest `layer` is the boot tag. It is not retagged in feature slices (open wor
 | `product:events` | Forms, Media, Rich editor, Payments, Profiles, Maps | advanced | `advanced` |
 | `product:subscriptions` | Payments, Email Manager, Forms, Profiles | advanced | `advanced` |
 | `product:social` | Profiles, Media, Rich editor, Forms, Email Manager | advanced | `advanced` |
-| `product:marketplace` | none yet (stub; will require Payments) | advanced (next after Social) | `advanced` |
+| `product:marketplace` | none yet (stub on this branch; public loop is on `cursor/marketplace`) | advanced | `advanced` |
+| `product:onboarding` | Forms, Media, Email Manager, Profiles (`optionalRequires` Fleet when that pack exists) | advanced (slice 2 statuses + identity facts; default off; procedure next) | `advanced` |
 | `product:ads` | Social, Email Manager, Forms, Subscriptions, Payments | advanced (parked) | `advanced` |
 
 Site packs (not this test): `product:pages` (requires Rich editor and Media), `product:pwa` (requires Media), `product:audit`, `product:consent`, `product:lexical-editor`, `product:notice-bar`, `product:redirects`, `product:search`. The `form` particle requires `product:forms` and stays a particle. The `cookie-settings` particle requires `product:consent` (reopen control; banner stays on `publicShell`).
@@ -192,7 +195,7 @@ Online gateways: developer adds adapter + `register-online.ts` import ([decision
 | Social standing (Active polish; Marketplace next) | [social-module-standing](./social-module-standing.md) |
 | Marketplace pack plan (proposed; stub today) | [marketplace-pack-plan](./marketplace-pack-plan.md), coding slices [marketplace-build-spec](./marketplace-build-spec.md) |
 | Ads pack plan | [ads-pack-plan](./ads-pack-plan.md) |
-| PrimeOne packs (parked; not this queue) | [primeone-coverage-plan](./primeone-coverage-plan.md), [primeone-pack-plans](./primeone-pack-plans.md) — specs [onboarding](./onboarding-build-spec.md), [fleet](./fleet-build-spec.md), [documents](./documents-build-spec.md); plans [onboarding](./onboarding-pack-plan.md), [fleet](./fleet-pack-plan.md), [documents](./documents-pack-plan.md); later [ledger](./ledger-pack-plan.md), [warehouse](./warehouse-pack-plan.md) |
+| PrimeOne packs | [primeone-coverage-plan](./primeone-coverage-plan.md), [primeone-pack-plans](./primeone-pack-plans.md) — Onboarding slice 2 in tree ([spec](./onboarding-build-spec.md), [plan](./onboarding-pack-plan.md)); Fleet and Documents still parked ([fleet spec](./fleet-build-spec.md), [documents spec](./documents-build-spec.md)); later [ledger](./ledger-pack-plan.md), [warehouse](./warehouse-pack-plan.md) |
 | Base vs advanced class test | [2026-11-26-base-vs-advanced](./decisions/2026-11-26-base-vs-advanced.md) |
 | Chat, Shop, and live video | [2026-11-26-chat-shop-stream](./decisions/2026-11-26-chat-shop-stream.md) |
 | Core finish archive | [core-finish-instructions](../../archive/core-finish-instructions.md) |

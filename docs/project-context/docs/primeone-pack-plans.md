@@ -1,12 +1,12 @@
 ---
 kind: reference
-last_verified: 2026-11-26
+last_verified: 2026-11-27
 ---
 # PrimeOne packs — plan index
 
-**Status:** Proposed plans only. **Parked** — not on the live queue. Active stays Social polish → Marketplace → Messages (Chat) → Ads for ASN 2.0 base. Live map: [architecture-current](./architecture-current.md). Do not scaffold `src/modules` from these plans.  
+**Status:** Onboarding is unparked and runs beside Marketplace. Fleet, Documents, Ledger, and Warehouse stay parked — do not scaffold those. Live map: [architecture-current](./architecture-current.md).  
 **Coverage / inventory:** [primeone-coverage-plan](./primeone-coverage-plan.md) — [drivers](./primeone-inventory-drivers.md) · [fleet](./primeone-inventory-fleet.md) · [crosscut](./primeone-inventory-crosscut.md).  
-**Build specs (written, parked — do not scaffold):** [onboarding](./onboarding-build-spec.md) · [fleet](./fleet-build-spec.md) · [documents](./documents-build-spec.md).  
+**Build specs:** [onboarding](./onboarding-build-spec.md) (slice 1 in tree) · [fleet](./fleet-build-spec.md) · [documents](./documents-build-spec.md) (Fleet and Documents still parked).  
 **Source note:** [primeone-for-claude](../../review/primeone-for-claude.txt) (review draft; these files are the filed shape).  
 **Principle:** Never rebuild an existing module’s job ([modular-core](../principles/modular-core.md), [sf-module-ownership](../../../.cursor/rules/sf-module-ownership.mdc), [sf-architecture](../../../.cursor/rules/sf-architecture.mdc)).
 
@@ -14,7 +14,7 @@ last_verified: 2026-11-26
 
 | Pack | Standing | Plan |
 | --- | --- | --- |
-| `product:onboarding` | First build (training included) | [onboarding-pack-plan](./onboarding-pack-plan.md) · [build spec](./onboarding-build-spec.md) |
+| `product:onboarding` | Unparked. Slice 1 door in tree (`defaultEnabled: false`). Training included | [onboarding-pack-plan](./onboarding-pack-plan.md) · [build spec](./onboarding-build-spec.md) |
 | `product:fleet` | First build (routes + attendance included) | [fleet-pack-plan](./fleet-pack-plan.md) · [build spec](./fleet-build-spec.md) |
 | `product:documents` | First build (shared renderer) | [documents-pack-plan](./documents-pack-plan.md) · [build spec](./documents-build-spec.md) |
 | `product:ledger` | Later — not first build | [ledger-pack-plan](./ledger-pack-plan.md) |
@@ -97,12 +97,12 @@ Opening a page is the grant. Writing checks the action. Pack code does not test 
 | General CRM or report-builder that copies other packs’ rows | Out of scope |
 | Migrating old OS Services Booking rows | Not in this plan |
 | Hardcoding legacy group ids | Core ACL only |
-| Starting ahead of Social → Marketplace | Live map queue wins |
+| Scaffolding Fleet, Documents, Ledger, or Warehouse while they are parked | Live map. Onboarding is the only unparked pack in this family |
 
 ## Related
 
 - Coverage plan + inventories: [primeone-coverage-plan](./primeone-coverage-plan.md)
-- Build specs (parked): [onboarding](./onboarding-build-spec.md), [fleet](./fleet-build-spec.md), [documents](./documents-build-spec.md)
+- Build specs: [onboarding](./onboarding-build-spec.md) (slice 1 in tree), [fleet](./fleet-build-spec.md), [documents](./documents-build-spec.md) (still parked)
 - Live map: [architecture-current](./architecture-current.md)
 - Layers: [platform-module-layers](./platform-module-layers.md)
 - Review draft: [primeone-for-claude](../../review/primeone-for-claude.txt)

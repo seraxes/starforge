@@ -1,10 +1,10 @@
 ---
 kind: reference
-last_verified: 2026-11-26
+last_verified: 2026-11-27
 ---
 # product:onboarding — build spec
 
-**Status:** Spec only. **Parked.** Do not scaffold `src/modules/onboarding`, schema, admin UI, or a manifest from this file. Active stays Social polish → Marketplace → Messages (Chat) → Ads. Live map: [architecture-current](./architecture-current.md).  
+**Status:** Slice 2 (status builder + identity facts) is in tree. Next chat is slice 3 (procedure + notes + invite) only. `defaultEnabled: false`. This branch is Onboarding only. Marketplace work is on `cursor/marketplace`. Fleet and Documents stay parked. Live map: [architecture-current](./architecture-current.md).  
 **Pack plan:** [onboarding-pack-plan](./onboarding-pack-plan.md). **Family order:** [primeone-pack-plans](./primeone-pack-plans.md) waves **1, 4, 5, 6**.  
 **Inventory:** [primeone-inventory-drivers](./primeone-inventory-drivers.md). **Coverage:** [primeone-coverage-plan](./primeone-coverage-plan.md).
 
@@ -28,20 +28,20 @@ Event types are configurable and can be tied to a step. Staff stack as many as t
 - Training stays in this pack. Quiz questions, correct answers, and the pass mark are a Forms quiz mode. This pack stores the attempt and the qualification. Testday also keeps a Forms definition plus `exam_url`.
 - Fleet must not read these tables. It calls this public door. This pack calls Fleet’s public door for the station list. No new Core port.
 
-## Door (name only — scaffold later)
+## Door
 
-`@/modules/onboarding/api` (and `api.server` if the scaffold needs a server-only split). Door id: `onboarding-api`.
+`@/modules/onboarding/api` and `@/modules/onboarding/api.server`. Door ids: `onboarding-api`, `onboarding-api-server`. Slice 2 exports `runOnboardingDoor`, list statuses, identity fact read/write, bookable, and station list (empty while Fleet absent).
 
-Exports to freeze at scaffold: read/write identity facts; list statuses and the attached form id; latest training result; settings load/save; email seed helpers.
+Exports that land with later slices: latest training result; settings load/save; email seed helpers.
 
-Hard `requires` when scaffolded: Forms, Media, Email Manager, Profiles. `optionalRequires`: Fleet. `layer: advanced`. No Core fact-map port.
+Hard `requires`: Forms, Media, Email Manager, Profiles. `optionalRequires`: Fleet once `product:fleet` is a manifest id — omitted in slice 1 because unknown optional ids fail `modules:generate`. `layer: advanced`. `defaultEnabled: false`. No Core fact-map port.
 
-## Slices (one chat each, when unparked)
+## Slices (one chat each)
 
 | # | Slice | Family wave | Done when |
 | --- | --- | --- | --- |
-| 1 | Scaffold: manifest, empty door, README Owns/Consumes, registry generate. No tables. | 1 | `check:atomic` if the manifest/door lands |
-| 2 | Status builder + identity facts. Seeded statuses. Person-fact reads on the door. Station id only; catalog from Fleet. | 1 | Bookable when the status flag is on or the user has vehicle access |
+| 1 | Scaffold: manifest, empty door, README Owns/Consumes, registry generate. No tables. | 1 | Done. Door on/off tests, lint, `check:atomic` |
+| 2 | Status builder + identity facts. Seeded statuses. Person-fact reads on the door. Station id only; catalog from Fleet. | 1 | Done. Bookable when the status flag is on or the user has vehicle access |
 | 3 | Procedure cards, notes, follow-up, calls, mail log, invite + Email Manager starters. | 4 | Invite creates a Core user and sends set-password + application mail |
 | 4 | Training checklist, pack-local PDF, trainer calendar, Forms quiz attempt, dated qualification on pass. Pass does not move status. | 5 | PDF stays in this pack until Documents exists. Questions stay in Forms |
 | 5 | Valid-until on licence, health booklet, contract. Missing is not expired. | 6 | Presence-only live rows import with empty valid-until |

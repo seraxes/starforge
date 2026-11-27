@@ -1,10 +1,10 @@
 ---
 kind: reference
-last_verified: 2026-11-26
+last_verified: 2026-11-27
 ---
 # product:fleet — pack plan
 
-**Status:** Proposed. **Parked** — not on the live queue (Social polish, then Marketplace first). Live map: [architecture-current](./architecture-current.md). Do not scaffold schema, admin UI, or a manifest from this plan.  
+**Status:** Proposed. **Parked.** Onboarding is unparked; this pack is not. Live map: [architecture-current](./architecture-current.md). Do not scaffold schema, admin UI, or a manifest from this plan.  
 **Placement:** Advanced module (`product:fleet`). Not Core. Not base. Not Hero.  
 **Family index:** [primeone-pack-plans](./primeone-pack-plans.md).  
 **Principle:** Never rebuild an existing module’s job ([modular-core](../principles/modular-core.md), [sf-module-ownership](../../../.cursor/rules/sf-module-ownership.mdc), [sf-architecture](../../../.cursor/rules/sf-architecture.mdc)).

@@ -414,6 +414,13 @@
       "when": 1795287000000,
       "tag": "0059_ads",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1795802383439,
+      "tag": "0060_onboarding_statuses",
+      "breakpoints": true
     }
   ]
 }

@@ -26,6 +26,7 @@ export const ACL_ADMIN_RESOURCES = [
   { key: 'admin.profiles', label: 'Profiles' },
   { key: 'admin.social', label: 'Social' },
   { key: 'admin.ads', label: 'Ads' },
+  { key: 'admin.onboarding', label: 'Onboarding' },
   { key: 'admin.maps', label: 'TacMap' },
   { key: 'admin.media', label: 'Media library' },
   { key: 'admin.redirects', label: 'Redirects' },
