@@ -238,7 +238,10 @@ export async function listHomeFeedPosts(
 
   const staffOk = canManagePosts
     ? sql`true`
-    : eq(sfSocialPosts.staffHidden, false)
+    : and(
+        eq(sfSocialPosts.staffHidden, false),
+        eq(sfSocialPosts.pendingReview, false),
+      )
 
   const friendVisible =
     visibleFriendIds.length > 0

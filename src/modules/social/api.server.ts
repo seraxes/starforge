@@ -526,9 +526,11 @@ export {
   canViewPost,
   classifyMediaMime,
   createPostRecord,
+  decideApprovePendingPost,
   decideDeletePost,
   decideEditPost,
   decidePostAttachments,
+  decideRejectPendingPost,
   decideStaffHidePost,
   emptyPollCheckinFields,
   emptyShareLinkFields,
@@ -564,6 +566,7 @@ export type {
   PostMutationResult,
   PostRecord,
   PostRefuseReason,
+  ReviewPendingPostInput,
   StaffHidePostInput,
 } from './posts'
 export {
@@ -572,6 +575,7 @@ export {
 } from './media-serve-store'
 export type { SocialMediaServeDecision } from './media-serve-store'
 export {
+  approvePendingPost,
   canViewerSeePost,
   createPost,
   deletePost,
@@ -579,7 +583,9 @@ export {
   findPost,
   getPostPermalink,
   hydratePostsMedia,
+  listPendingReviewPosts,
   listStaffHiddenPosts,
+  rejectPendingPost,
   setPostStaffHidden,
 } from './posts-store'
 export { canInteract, isSocialBanned } from './interact'

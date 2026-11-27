@@ -151,7 +151,7 @@ Social owns the comments engine, likes, and reports. No `product:comments` / `pr
 - `/feed/requests` is still a stub that redirects to People.
 - Schema comment still says reaction `targetType` “comment later” in places while comment reactions are already implemented — doc drift.
 - Manifest `optionalRequires` includes `'form'` (suspicious next to `product:forms` in `requires`).
-- Hold-new-posts-for-review sets `staffHidden` on create; there is no separate “pending review” workflow beyond that flag + reports queue.
+- Hold-new-posts-for-review uses `pendingReview` + `/admin/social/pending` (Approve / Reject); `staffHidden` stays the hide/restore tool.
 - Plan duplicate text on stories slice (cosmetic in the plan file).
 
 ### 5. Size vs commercial priority — dependency floor decided
@@ -169,7 +169,7 @@ Per plan / README: points/badges, support tickets, chat (its own pack after Mark
 | Kind | Paths / ids |
 | --- | --- |
 | Public | `/feed`, `/feed/people`, `/feed/groups`, `/feed/g/[slug]`, `/feed/pages`, `/feed/p/[slug]`, `/feed/stories`, `/feed/following`, `/feed/discover`, `/feed/watch`, `/feed/saved`, `/feed/tag/[tag]`, `/feed/post/[id]`, `/feed/[handle]`, `/feed/u/[handle]` |
-| Admin | `/admin/social` (+ people, groups, pages, media, reports) |
+| Admin | `/admin/social` (+ people, groups, pages, media, pending, reports) |
 | Particles | `social-friends`, `social-groups`, `social-pages`, `social-albums`, `social-stories` |
 | Job | `social.sweep` (challenges + story expiry) — armed only when Social enabled |
 | Mail triggers | `product:social/friend.requested`, `group.invited`, `group.announced`, `challenge.invited` |

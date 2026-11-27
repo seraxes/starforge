@@ -53,7 +53,12 @@ import {
   setPageVerified,
   unlikePage,
 } from './pages-store'
-import { createPost, setPostStaffHidden } from './posts-store'
+import {
+  approvePendingPost,
+  createPost,
+  rejectPendingPost,
+  setPostStaffHidden,
+} from './posts-store'
 import { addAlbumItem, createAlbum, findAlbum } from './albums-store'
 import { isAlbumOwnerType } from './albums'
 import { createLinkPost, createSharePost } from './share-links-store'
@@ -1992,6 +1997,79 @@ export async function setSocialPostStaffHiddenAction(
 
   revalidatePath('/admin/social/people')
   revalidatePath('/admin/social/reports')
+  revalidatePath('/admin/social/pending')
+  revalidatePath('/feed')
+  revalidatePath(`/feed/post/${postId}`)
+  return { ok: true }
+}
+
+/** Approve a held post from /admin/social/pending. */
+export async function approvePendingSocialPostAction(
+  _prev: SocialModerationActionState,
+  formData: FormData,
+): Promise<SocialModerationActionState> {
+  const settings = await getSiteSettings()
+  if (!isCatalogModuleEnabled(settings, MODULE_IDS.social)) {
+    return { error: 'Social is disabled.' }
+  }
+
+  const session = await requireAdminArea('admin.social', 'manage')
+  const actorUserId = session?.user?.id ? String(session.user.id).trim() : ''
+  if (!actorUserId) {
+    return { error: 'Sign in with Social admin access (Users → ACL) or as an app admin.' }
+  }
+
+  const postId = String(formData.get('postId') ?? '').trim()
+  if (!postId) return { error: 'Missing post.' }
+
+  const result = await approvePendingPost(
+    { actorUserId, postId },
+    { canManagePosts: true },
+  )
+  if (!result.ok) {
+    if (result.reason === 'cannot_manage') return { error: 'Not allowed.' }
+    if (result.reason === 'not_found') return { error: 'Post not found.' }
+    return { error: 'Could not approve the post.' }
+  }
+
+  revalidatePath('/admin/social/pending')
+  revalidatePath('/admin/social/people')
+  revalidatePath('/feed')
+  revalidatePath(`/feed/post/${postId}`)
+  return { ok: true }
+}
+
+/** Reject a held post from /admin/social/pending (staff-hide). */
+export async function rejectPendingSocialPostAction(
+  _prev: SocialModerationActionState,
+  formData: FormData,
+): Promise<SocialModerationActionState> {
+  const settings = await getSiteSettings()
+  if (!isCatalogModuleEnabled(settings, MODULE_IDS.social)) {
+    return { error: 'Social is disabled.' }
+  }
+
+  const session = await requireAdminArea('admin.social', 'manage')
+  const actorUserId = session?.user?.id ? String(session.user.id).trim() : ''
+  if (!actorUserId) {
+    return { error: 'Sign in with Social admin access (Users → ACL) or as an app admin.' }
+  }
+
+  const postId = String(formData.get('postId') ?? '').trim()
+  if (!postId) return { error: 'Missing post.' }
+
+  const result = await rejectPendingPost(
+    { actorUserId, postId },
+    { canManagePosts: true },
+  )
+  if (!result.ok) {
+    if (result.reason === 'cannot_manage') return { error: 'Not allowed.' }
+    if (result.reason === 'not_found') return { error: 'Post not found.' }
+    return { error: 'Could not reject the post.' }
+  }
+
+  revalidatePath('/admin/social/pending')
+  revalidatePath('/admin/social/people')
   revalidatePath('/feed')
   revalidatePath(`/feed/post/${postId}`)
   return { ok: true }

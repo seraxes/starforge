@@ -251,6 +251,13 @@ export async function FeedPostList({
               </div>
             </header>
             <div className="sf-social-feed-body">
+              {post.pendingReview && (isAuthor || canModerateContent) ? (
+                <p className="layout-muted sf-social-pending-review-notice">
+                  {isAuthor
+                    ? 'Waiting for staff review. Only you and moderators can see this post until it is approved.'
+                    : 'Pending staff review — withheld from the audience until approved.'}
+                </p>
+              ) : null}
               {showOptions ? (
                 <PostManageBody>
                   {post.body.trim() ? <RichContent html={post.body} /> : null}

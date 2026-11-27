@@ -73,6 +73,8 @@ export type PostRecord = {
   groupId: string | null
   pageId: string | null
   staffHidden: boolean
+  /** Hold-for-review queue. Distinct from staffHidden. */
+  pendingReview: boolean
   /** Group announcement pin (slice 14). Stays pinned on the wall. */
   isAnnouncement: boolean
   editedAt: Date | null
@@ -147,6 +149,11 @@ export type StaffHidePostInput = {
   actorUserId: string
   postId: string
   staffHidden: boolean
+}
+
+export type ReviewPendingPostInput = {
+  actorUserId: string
+  postId: string
 }
 
 export type PostDeleteResult =
@@ -270,6 +277,7 @@ export function toPostRecord(
     groupId: string | null
     pageId: string | null
     staffHidden: boolean
+    pendingReview?: boolean | null
     isAnnouncement?: boolean | null
     editedAt: Date | null
     extensions?: Record<string, unknown> | null
@@ -299,6 +307,7 @@ export function toPostRecord(
     groupId: row.groupId,
     pageId: row.pageId,
     staffHidden: row.staffHidden,
+    pendingReview: Boolean(row.pendingReview),
     isAnnouncement: Boolean(row.isAnnouncement),
     editedAt: row.editedAt,
     extensions:
@@ -597,8 +606,9 @@ export function decidePostAttachments(
 /**
  * Decide whether a viewer may read a post.
  * Author always sees their own row. Block (either blocker column) and hidden
- * author deny everyone else. Staff hide denies without the staff grant.
- * Staff grant (`canManagePosts`) also private-reads only_me / friends / group.
+ * author deny everyone else. Pending review and staff hide deny without the
+ * staff grant. Staff grant (`canManagePosts`) also private-reads only_me /
+ * friends / group (and pending-held posts).
  */
 export function canViewPost(post: PostRecord, ctx: CanViewPostContext): boolean {
   const viewer = ctx.viewerUserId?.trim() || null
@@ -606,6 +616,7 @@ export function canViewPost(post: PostRecord, ctx: CanViewPostContext): boolean 
 
   if (ctx.isBlocked) return false
   if (ctx.authorHidden) return false
+  if (post.pendingReview && !ctx.canManagePosts) return false
   if (post.staffHidden && !ctx.canManagePosts) return false
 
   // Page posts: likers and page admins only (not the audience picker).
@@ -638,6 +649,7 @@ export type BoundMediaOwner = {
   groupId?: string | null
   pageId?: string | null
   staffHidden?: boolean
+  pendingReview?: boolean
 }
 
 /** True when the file’s narrowest Social bind is not public on the share ladder. */
@@ -666,6 +678,7 @@ export function canViewBoundMedia(
     groupId: owning.groupId?.trim() || null,
     pageId: owning.pageId?.trim() || null,
     staffHidden: owning.staffHidden === true,
+    pendingReview: owning.pendingReview === true,
     isAnnouncement: false,
     editedAt: null,
     extensions: {},
@@ -725,6 +738,7 @@ export function narrowerBoundMediaOwner(
       groupId: null,
       pageId: null,
       staffHidden: a.staffHidden === true || b.staffHidden === true,
+      pendingReview: a.pendingReview === true || b.pendingReview === true,
     }
   }
   return {
@@ -733,6 +747,7 @@ export function narrowerBoundMediaOwner(
     groupId: narrow.audience === 'group' ? narrowGroup : null,
     pageId: a.pageId ?? b.pageId ?? null,
     staffHidden: a.staffHidden === true || b.staffHidden === true,
+    pendingReview: a.pendingReview === true || b.pendingReview === true,
   }
 }
 
@@ -850,7 +865,8 @@ export function createPostRecord(
       audience,
       groupId: audience === 'group' ? groupId : null,
       pageId,
-      staffHidden: Boolean(opts?.holdForStaffReview),
+      staffHidden: false,
+      pendingReview: Boolean(opts?.holdForStaffReview),
       isAnnouncement: false,
       editedAt: null,
       extensions: input.extensions ?? {},
@@ -1014,16 +1030,76 @@ export function decideStaffHidePost(
   }
 }
 
+/**
+ * Approve a held post: clear pendingReview so normal audience rules apply.
+ * Requires Social moderate grant (canManagePosts).
+ */
+export function decideApprovePendingPost(
+  current: PostRecord | null,
+  input: ReviewPendingPostInput,
+  gates: { canManagePosts: boolean },
+  opts?: { now?: Date },
+): PostMutationResult {
+  if (!current) return { ok: false, reason: 'not_found' }
+  const actor = input.actorUserId.trim()
+  if (!actor || current.id.trim() !== input.postId.trim()) {
+    return { ok: false, reason: 'invalid' }
+  }
+  if (!gates.canManagePosts) return { ok: false, reason: 'cannot_manage' }
+  if (!current.pendingReview) return { ok: false, reason: 'invalid' }
+
+  const now = opts?.now ?? new Date()
+  return {
+    ok: true,
+    post: {
+      ...current,
+      pendingReview: false,
+      updatedAt: now,
+    },
+  }
+}
+
+/**
+ * Reject a held post: clear pendingReview and staff-hide (restore list).
+ * Requires Social moderate grant (canManagePosts).
+ */
+export function decideRejectPendingPost(
+  current: PostRecord | null,
+  input: ReviewPendingPostInput,
+  gates: { canManagePosts: boolean },
+  opts?: { now?: Date },
+): PostMutationResult {
+  if (!current) return { ok: false, reason: 'not_found' }
+  const actor = input.actorUserId.trim()
+  if (!actor || current.id.trim() !== input.postId.trim()) {
+    return { ok: false, reason: 'invalid' }
+  }
+  if (!gates.canManagePosts) return { ok: false, reason: 'cannot_manage' }
+  if (!current.pendingReview) return { ok: false, reason: 'invalid' }
+
+  const now = opts?.now ?? new Date()
+  return {
+    ok: true,
+    post: {
+      ...current,
+      pendingReview: false,
+      staffHidden: true,
+      updatedAt: now,
+    },
+  }
+}
+
 /** In-memory posts for unit tests — same canViewPost / create rules as the DB path. */
 export function createPostMemory(opts?: {
   newId?: () => string
   now?: () => Date
   resolveMedia?: (mediaId: string) => MediaResolveResult | null
+  holdForStaffReview?: boolean
 }): {
   get: (postId: string) => PostRecord | null
   create: (
     input: CreatePostInput,
-    gates?: { authorBannedAt?: Date | null },
+    gates?: { authorBannedAt?: Date | null; holdForStaffReview?: boolean },
   ) => PostMutationResult
   edit: (
     input: EditPostInput,
@@ -1035,6 +1111,14 @@ export function createPostMemory(opts?: {
   ) => PostDeleteResult
   setStaffHidden: (
     input: StaffHidePostInput,
+    gates: { canManagePosts: boolean },
+  ) => PostMutationResult
+  approvePending: (
+    input: ReviewPendingPostInput,
+    gates: { canManagePosts: boolean },
+  ) => PostMutationResult
+  rejectPending: (
+    input: ReviewPendingPostInput,
     gates: { canManagePosts: boolean },
   ) => PostMutationResult
 } {
@@ -1050,6 +1134,8 @@ export function createPostMemory(opts?: {
         newId,
         resolveMedia: opts?.resolveMedia,
         authorBannedAt: gates?.authorBannedAt ?? null,
+        holdForStaffReview:
+          gates?.holdForStaffReview ?? opts?.holdForStaffReview ?? false,
       })
       if (result.ok) rows.set(result.post.id, result.post)
       return result
@@ -1076,6 +1162,24 @@ export function createPostMemory(opts?: {
     setStaffHidden: (input, gates) => {
       const current = rows.get(input.postId.trim()) ?? null
       const result = decideStaffHidePost(current, input, gates, { now: now() })
+      if (!result.ok) return result
+      rows.set(result.post.id, result.post)
+      return result
+    },
+    approvePending: (input, gates) => {
+      const current = rows.get(input.postId.trim()) ?? null
+      const result = decideApprovePendingPost(current, input, gates, {
+        now: now(),
+      })
+      if (!result.ok) return result
+      rows.set(result.post.id, result.post)
+      return result
+    },
+    rejectPending: (input, gates) => {
+      const current = rows.get(input.postId.trim()) ?? null
+      const result = decideRejectPendingPost(current, input, gates, {
+        now: now(),
+      })
       if (!result.ok) return result
       rows.set(result.post.id, result.post)
       return result

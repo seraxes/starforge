@@ -114,6 +114,13 @@ export default defineStarforgeModule({
       },
       {
         group: 'social',
+        label: 'Pending',
+        href: '/admin/social/pending',
+        order: 19,
+        area: 'social',
+      },
+      {
+        group: 'social',
         label: 'Reports',
         href: '/admin/social/reports',
         order: 20,
@@ -150,6 +157,11 @@ export default defineStarforgeModule({
       {
         path: 'social/media',
         pageImportPath: '@/modules/social/admin/SocialMediaSettingsPage',
+        pageExportName: 'default',
+      },
+      {
+        path: 'social/pending',
+        pageImportPath: '@/modules/social/admin/SocialPendingPage',
         pageExportName: 'default',
       },
       {

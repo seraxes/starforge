@@ -9,6 +9,7 @@ export type SocialAdminTab =
   | 'groups'
   | 'pages'
   | 'media'
+  | 'pending'
   | 'reports'
 
 const TABS: { id: SocialAdminTab; label: string; href: string; title: string }[] = [
@@ -41,6 +42,12 @@ const TABS: { id: SocialAdminTab; label: string; href: string; title: string }[]
     label: 'Media',
     href: '/admin/social/media',
     title: 'Stories, albums, media, and challenge settings',
+  },
+  {
+    id: 'pending',
+    label: 'Pending',
+    href: '/admin/social/pending',
+    title: 'Hold-new-posts-for-review queue',
   },
   {
     id: 'reports',

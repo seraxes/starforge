@@ -61,6 +61,7 @@ export async function findNarrowestSocialMediaBind(
         pageId: sfSocialPosts.pageId,
         authorUserId: sfSocialPosts.authorUserId,
         staffHidden: sfSocialPosts.staffHidden,
+        pendingReview: sfSocialPosts.pendingReview,
       })
       .from(sfSocialPostMedia)
       .innerJoin(sfSocialPosts, eq(sfSocialPostMedia.postId, sfSocialPosts.id))
@@ -73,6 +74,7 @@ export async function findNarrowestSocialMediaBind(
         groupId: row.groupId,
         pageId: row.pageId,
         staffHidden: row.staffHidden,
+        pendingReview: row.pendingReview,
       })
     }
   } catch (error) {

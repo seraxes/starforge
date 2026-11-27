@@ -54,6 +54,7 @@ export async function listDiscoverFeedPosts(
           eq(sfSocialPosts.audience, 'public'),
           isNull(sfSocialPosts.pageId),
           eq(sfSocialPosts.staffHidden, false),
+          eq(sfSocialPosts.pendingReview, false),
           authorNotBlocked,
           authorNotHidden,
         ),

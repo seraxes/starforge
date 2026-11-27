@@ -98,6 +98,7 @@ export function matchesCanViewPostPredicate(
 
   if (viewer && facts.blockedPeerIds.has(post.authorUserId)) return false
   if (facts.hiddenAuthorIds.has(post.authorUserId)) return false
+  if (post.pendingReview && !(facts.canManagePosts ?? false)) return false
   if (post.staffHidden && !(facts.canManagePosts ?? false)) return false
 
   if (post.pageId) {

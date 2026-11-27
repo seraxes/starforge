@@ -345,9 +345,11 @@ export {
   canViewPost,
   classifyMediaMime,
   createPostRecord,
+  decideApprovePendingPost,
   decideDeletePost,
   decideEditPost,
   decidePostAttachments,
+  decideRejectPendingPost,
   decideStaffHidePost,
   emptyPollCheckinFields,
   emptyShareLinkFields,
@@ -383,6 +385,7 @@ export type {
   PostMutationResult,
   PostRecord,
   PostRefuseReason,
+  ReviewPendingPostInput,
   StaffHidePostInput,
 } from './posts'
 export { canInteract, isSocialBanned } from './interact'

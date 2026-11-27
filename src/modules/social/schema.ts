@@ -122,6 +122,11 @@ export const sfSocialPosts = pgTable(
     placeLng: doublePrecision('place_lng'),
     /** Staff moderation hide. Author and social.posts manage still see it. */
     staffHidden: boolean('staff_hidden').notNull().default(false),
+    /**
+     * Hold-new-posts-for-review queue. Withheld from feeds / non-staff readers
+     * until approve; reject clears this and sets staffHidden. Distinct from hide.
+     */
+    pendingReview: boolean('pending_review').notNull().default(false),
     /** Group announcement pin (team/association tools). */
     isAnnouncement: boolean('is_announcement').notNull().default(false),
     editedAt: timestamp('edited_at', { withTimezone: true }),

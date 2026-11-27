@@ -18,8 +18,10 @@ import {
   albumOwnerMediaAccess,
   canViewPost,
   createPostRecord,
+  decideApprovePendingPost,
   decideDeletePost,
   decideEditPost,
+  decideRejectPendingPost,
   decideSetPostAudience,
   decideStaffHidePost,
   groupDocumentMediaAccess,
@@ -41,6 +43,7 @@ import {
   type PostMediaAttachment,
   type PostMutationResult,
   type PostRecord,
+  type ReviewPendingPostInput,
   type StaffHidePostInput,
 } from './posts'
 import {
@@ -335,6 +338,7 @@ export async function createPost(input: CreatePostInput): Promise<PostMutationRe
       placeLat: next.placeLat,
       placeLng: next.placeLng,
       staffHidden: next.staffHidden,
+      pendingReview: next.pendingReview,
       isAnnouncement: next.isAnnouncement,
       editedAt: next.editedAt,
       extensions: next.extensions,
@@ -656,6 +660,29 @@ export async function listStaffHiddenPosts(opts?: {
   }
 }
 
+/** Posts waiting in the hold-new-posts-for-review queue. */
+export async function listPendingReviewPosts(opts?: {
+  limit?: number
+}): Promise<PostRecord[]> {
+  const limit = Math.min(Math.max(opts?.limit ?? 100, 1), 500)
+  try {
+    const rows = await db
+      .select()
+      .from(sfSocialPosts)
+      .where(eq(sfSocialPosts.pendingReview, true))
+      .orderBy(asc(sfSocialPosts.createdAt))
+      .limit(limit)
+    const posts = rows
+      .map((row) => toPostRecord(row))
+      .filter((post): post is NonNullable<typeof post> => post != null)
+    return await hydratePostsMedia(posts)
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    if (/sf_social_posts|does not exist|relation/i.test(msg)) return []
+    throw error
+  }
+}
+
 /**
  * Staff hide / restore a post. Requires social.posts manage.
  */
@@ -672,6 +699,71 @@ export async function setPostStaffHidden(
     await db
       .update(sfSocialPosts)
       .set({
+        staffHidden: next.staffHidden,
+        updatedAt: next.updatedAt,
+      })
+      .where(eq(sfSocialPosts.id, next.id))
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    if (/sf_social_posts|does not exist|relation/i.test(msg)) {
+      return { ok: false, reason: 'invalid' }
+    }
+    throw error
+  }
+
+  const stored = await findPost(next.id)
+  return stored ? { ok: true, post: stored } : { ok: true, post: next }
+}
+
+/**
+ * Approve a held post from the pending-review admin queue.
+ */
+export async function approvePendingPost(
+  input: ReviewPendingPostInput,
+  gates: { canManagePosts: boolean },
+): Promise<PostMutationResult> {
+  const current = await findPost(input.postId)
+  const result = decideApprovePendingPost(current, input, gates)
+  if (!result.ok) return result
+
+  const next = result.post
+  try {
+    await db
+      .update(sfSocialPosts)
+      .set({
+        pendingReview: next.pendingReview,
+        updatedAt: next.updatedAt,
+      })
+      .where(eq(sfSocialPosts.id, next.id))
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    if (/sf_social_posts|does not exist|relation/i.test(msg)) {
+      return { ok: false, reason: 'invalid' }
+    }
+    throw error
+  }
+
+  const stored = await findPost(next.id)
+  return stored ? { ok: true, post: stored } : { ok: true, post: next }
+}
+
+/**
+ * Reject a held post: leave the pending queue as staff-hidden.
+ */
+export async function rejectPendingPost(
+  input: ReviewPendingPostInput,
+  gates: { canManagePosts: boolean },
+): Promise<PostMutationResult> {
+  const current = await findPost(input.postId)
+  const result = decideRejectPendingPost(current, input, gates)
+  if (!result.ok) return result
+
+  const next = result.post
+  try {
+    await db
+      .update(sfSocialPosts)
+      .set({
+        pendingReview: next.pendingReview,
         staffHidden: next.staffHidden,
         updatedAt: next.updatedAt,
       })
