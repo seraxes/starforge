@@ -28,6 +28,7 @@ import { defineStarforgeModule } from '@/core/modules/define-module'
  * Slice 22 discover: /feed/discover public posts (friends-only absent); reserved handle discover.
  * Slice 22 reaction catalog: like|love|haha|wow|sad|angry; like stays on; other kinds follow pack settings (15c people panel).
  * Slice 22 short-video: layout mode short_video; /feed/watch; reserved handle watch; non-video absent.
+ * Slice quiet: viewer post hides + person mutes (feed SQL before LIMIT; permalink canViewPost unchanged).
  * Do not reuse the builtin particle id `social` (footer links).
  */
 export default defineStarforgeModule({

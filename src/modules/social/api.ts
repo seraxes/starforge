@@ -242,6 +242,34 @@ export {
   selectDiscoverFeedPage,
 } from './discover'
 export {
+  applyHidePost,
+  applyMute,
+  applyUnhidePost,
+  applyUnmute,
+  createQuietMemory,
+  decideHidePost,
+  decideMute,
+  decideUnhidePost,
+  decideUnmute,
+  hidePairKey,
+  listHiddenPostIds,
+  listMutedAuthorIds,
+  matchesFeedQuietExclusion,
+  mutePairKey,
+} from './quiet'
+export type {
+  HidePostInput,
+  HidePostMutationResult,
+  MuteInput,
+  MuteMutationResult,
+  MuteRecord,
+  PostHideRecord,
+  QuietBag,
+  QuietRefuseReason,
+  UnhidePostMutationResult,
+  UnmuteMutationResult,
+} from './quiet'
+export {
   DEFAULT_FEED_LAYOUT_MODE,
   FEED_LAYOUT_MODES,
   isFeedLayoutMode,

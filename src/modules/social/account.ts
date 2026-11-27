@@ -38,6 +38,7 @@ import type {
   SaveRecord,
 } from './mentions-tags-saves'
 import type { PollVoteRecord } from './polls-checkin'
+import type { MuteRecord, PostHideRecord } from './quiet'
 import type { StoryRecord, StoryViewRecord } from './stories'
 
 /** Every `sf_social_*` table must appear here with export, hide, and purge. */
@@ -70,6 +71,8 @@ export const SOCIAL_ACCOUNT_TABLE_NAMES = [
   'sf_social_post_tags',
   'sf_social_mentions',
   'sf_social_poll_votes',
+  'sf_social_post_hides',
+  'sf_social_mutes',
 ] as const
 
 export type SocialAccountTableName = (typeof SOCIAL_ACCOUNT_TABLE_NAMES)[number]
@@ -106,6 +109,8 @@ export type AccountSaveRow = SaveRecord
 export type AccountPostTagRow = PostTagRecord
 export type AccountMentionRow = MentionRecord
 export type AccountPollVoteRow = PollVoteRecord
+export type AccountPostHideRow = PostHideRecord
+export type AccountMuteRow = MuteRecord
 
 /** In-memory bag the registry handlers read and write (unit tests + pure doors). */
 export type SocialAccountBag = {
@@ -137,6 +142,8 @@ export type SocialAccountBag = {
   postTags: Map<string, AccountPostTagRow>
   mentions: Map<string, AccountMentionRow>
   pollVotes: Map<string, AccountPollVoteRow>
+  postHides: Map<string, AccountPostHideRow>
+  mutes: Map<string, AccountMuteRow>
 }
 
 export type SocialAccountTableHandlers = {
@@ -212,6 +219,8 @@ function emptyBag(): SocialAccountBag {
     postTags: new Map(),
     mentions: new Map(),
     pollVotes: new Map(),
+    postHides: new Map(),
+    mutes: new Map(),
   }
 }
 
@@ -736,6 +745,39 @@ export const SOCIAL_ACCOUNT_REGISTRY: readonly SocialAccountTableHandlers[] = [
       }
     },
   },
+  {
+    table: 'sf_social_post_hides',
+    exportRows: (bag, userId) =>
+      [...bag.postHides.values()].filter((row) => row.userId === userId),
+    hide: () => {
+      /* keep rows */
+    },
+    purge: (bag, userId) => {
+      const owned = ownedPostIds(bag, userId)
+      for (const [id, row] of bag.postHides) {
+        if (row.userId === userId || owned.has(row.postId)) {
+          bag.postHides.delete(id)
+        }
+      }
+    },
+  },
+  {
+    table: 'sf_social_mutes',
+    exportRows: (bag, userId) =>
+      [...bag.mutes.values()].filter(
+        (row) => row.muterUserId === userId || row.mutedUserId === userId,
+      ),
+    hide: () => {
+      /* keep rows */
+    },
+    purge: (bag, userId) => {
+      for (const [id, row] of bag.mutes) {
+        if (row.muterUserId === userId || row.mutedUserId === userId) {
+          bag.mutes.delete(id)
+        }
+      }
+    },
+  },
 ]
 
 /**
@@ -820,11 +862,13 @@ export function purgeOwnSocialRecord(
     'sf_social_story_views',
     'sf_social_stories',
     'sf_social_follows',
-    // Tags / mentions / saves / poll votes before posts so authorship is still known.
+    // Tags / mentions / saves / poll votes / hides / mutes before posts so authorship is still known.
     'sf_social_post_tags',
     'sf_social_mentions',
     'sf_social_saves',
     'sf_social_poll_votes',
+    'sf_social_post_hides',
+    'sf_social_mutes',
     'sf_social_friendships',
     'sf_social_posts',
     'sf_social_members',
@@ -875,6 +919,8 @@ export function createAccountMemory(opts?: {
   seedSave: (row: AccountSaveRow) => void
   seedPostTag: (row: AccountPostTagRow) => void
   seedMention: (row: AccountMentionRow) => void
+  seedPostHide: (row: AccountPostHideRow) => void
+  seedMute: (row: AccountMuteRow) => void
   countOwnedPosts: (userId: string) => number
   countOwnedFriendships: (userId: string) => number
 } {
@@ -972,6 +1018,12 @@ export function createAccountMemory(opts?: {
     },
     seedMention: (row) => {
       bag.mentions.set(row.id, row)
+    },
+    seedPostHide: (row) => {
+      bag.postHides.set(row.id, row)
+    },
+    seedMute: (row) => {
+      bag.mutes.set(row.id, row)
     },
     countOwnedPosts: (userId) =>
       [...bag.posts.values()].filter((row) => row.authorUserId === userId).length,

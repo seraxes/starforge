@@ -16,6 +16,7 @@ type PostManageContextValue = {
   authorUserId: string
   authorName: string
   canModerate: boolean
+  isMuted: boolean
   editing: boolean
   setEditing: (value: boolean) => void
 }
@@ -38,6 +39,7 @@ export function PostManageProvider({
   authorUserId,
   authorName,
   canModerate = false,
+  isMuted = false,
   children,
 }: {
   postId: string
@@ -47,6 +49,8 @@ export function PostManageProvider({
   authorName: string
   /** App admin / dev / Social staff — Edit/Delete any post. */
   canModerate?: boolean
+  /** Viewer already muted this author. */
+  isMuted?: boolean
   children: ReactNode
 }) {
   const [editing, setEditing] = useState(false)
@@ -61,6 +65,7 @@ export function PostManageProvider({
         authorUserId,
         authorName,
         canModerate,
+        isMuted,
         editing,
         setEditing,
       }}
@@ -70,7 +75,7 @@ export function PostManageProvider({
   )
 }
 
-/** ··· after audience on the right of the card head (Edit/Delete or Hide/Block). */
+/** ··· after audience on the right of the card head (Edit/Delete/Hide/Mute/Block). */
 export function PostManageTools() {
   const {
     postId,
@@ -78,6 +83,7 @@ export function PostManageTools() {
     authorUserId,
     authorName,
     canModerate,
+    isMuted,
     setEditing,
   } = usePostManage()
   return (
@@ -87,6 +93,7 @@ export function PostManageTools() {
       authorUserId={authorUserId}
       authorName={authorName}
       canModerate={canModerate}
+      isMuted={isMuted}
       onEdit={() => setEditing(true)}
     />
   )

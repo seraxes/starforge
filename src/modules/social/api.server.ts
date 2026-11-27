@@ -394,6 +394,16 @@ export {
 } from './discover'
 export { listDiscoverFeedPosts } from './discover-store'
 export {
+  findMute,
+  findPostHide,
+  hidePost,
+  listHiddenPostIdsForViewer,
+  listMutedAuthorIdsForViewer,
+  muteUser,
+  unhidePost,
+  unmuteUser,
+} from './quiet-store'
+export {
   DEFAULT_FEED_LAYOUT_MODE,
   FEED_LAYOUT_MODES,
   isFeedLayoutMode,

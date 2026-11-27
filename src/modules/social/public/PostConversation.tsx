@@ -24,6 +24,7 @@ import { SocialAvatar } from './SocialAvatar'
 import { useDismissible } from './useDismissible'
 
 const initial: SocialCommentActionState = {}
+const EMPTY_MUTED_AUTHORS: ReadonlySet<string> = new Set()
 
 const REACTION_LABEL: Record<ReactionKind, string> = {
   like: 'Like',
@@ -552,6 +553,7 @@ function CommentRow({
   replyToName,
   viewerUserId,
   canModerate,
+  mutedAuthorIds,
   reactionKinds,
   reactions,
   reactionIcons,
@@ -571,6 +573,7 @@ function CommentRow({
   replyToName: string | null
   viewerUserId: string | null
   canModerate: boolean
+  mutedAuthorIds: ReadonlySet<string>
   reactionKinds: ReactionKind[]
   reactions: ConversationReaction[]
   reactionIcons: ReactionIcons | null
@@ -660,6 +663,7 @@ function CommentRow({
           viewerUserId={viewerUserId}
           canEdit={canEdit}
           canDelete={canDelete}
+          isMuted={mutedAuthorIds.has(comment.authorUserId)}
           onEdit={() => setEditing(true)}
         />
       ) : null}
@@ -687,6 +691,7 @@ function TopComment({
   byId,
   viewerUserId,
   canModerate,
+  mutedAuthorIds,
   reactionKinds,
   reactions,
   reactionIcons,
@@ -706,6 +711,7 @@ function TopComment({
   byId: Map<string, ConversationComment>
   viewerUserId: string | null
   canModerate: boolean
+  mutedAuthorIds: ReadonlySet<string>
   reactionKinds: ReactionKind[]
   reactions: ConversationReaction[]
   reactionIcons: ReactionIcons | null
@@ -738,6 +744,7 @@ function TopComment({
         replyToName={null}
         viewerUserId={viewerUserId}
         canModerate={canModerate}
+        mutedAuthorIds={mutedAuthorIds}
         reactionKinds={reactionKinds}
         reactions={reactions}
         reactionIcons={reactionIcons}
@@ -786,6 +793,7 @@ function TopComment({
                   replyToName={depth >= 2 ? parent?.authorName ?? null : null}
                   viewerUserId={viewerUserId}
                   canModerate={canModerate}
+                  mutedAuthorIds={mutedAuthorIds}
                   reactionKinds={reactionKinds}
                   reactions={reactions}
                   reactionIcons={reactionIcons}
@@ -840,6 +848,7 @@ export function PostConversation({
   reactions,
   viewerUserId,
   canModerate = false,
+  mutedAuthorIds,
   reactionKinds,
   reactionIcons = null,
   reactionIconColors = null,
@@ -867,6 +876,8 @@ export function PostConversation({
   viewerUserId: string | null
   /** Social staff may edit/delete any comment. */
   canModerate?: boolean
+  /** Authors this viewer muted (Mute / Unmute labels). */
+  mutedAuthorIds?: ReadonlySet<string>
   reactionKinds: ReactionKind[]
   /** FA class map when site Font Awesome is on; null → text-only for FA. */
   reactionIcons?: ReactionIcons | null
@@ -894,6 +905,7 @@ export function PostConversation({
   const whoRef = useDismissible<HTMLDivElement>(whoOpen, () => setWhoOpen(false))
   const shareRef = useDismissible<HTMLDivElement>(shareOpen, () => setShareOpen(false))
   const [composerFocusKey, setComposerFocusKey] = useState(0)
+  const mutedAuthors = mutedAuthorIds ?? EMPTY_MUTED_AUTHORS
   const byId = new Map(comments.map((comment) => [comment.id, comment]))
   const tops = comments
     .filter((comment) => !comment.parentCommentId)
@@ -1044,6 +1056,7 @@ export function PostConversation({
               byId={byId}
               viewerUserId={viewerUserId}
               canModerate={canModerate}
+              mutedAuthorIds={mutedAuthors}
               reactionKinds={reactionKinds}
               reactions={reactions}
               reactionIcons={reactionIcons}

@@ -26,6 +26,8 @@
  * Slice 21: polls (options on post + sf_social_poll_votes) and check-in (label + optional Maps pin).
  * Slice 22 discover: /feed/discover public posts (no new tables); friends-only absent.
  * Slice 22 reaction catalog: kinds like|love|haha|wow|sad|angry; only like enabled (admin toggles in 15b).
+ * Slice quiet: viewer post hides (sf_social_post_hides) + person mutes (sf_social_mutes);
+ *   feed SQL excludes before LIMIT; canViewPost / permalink unchanged.
  */
 
 import { sql } from 'drizzle-orm'
@@ -918,5 +920,52 @@ export const sfSocialPollVotes = pgTable(
     index('sf_social_poll_votes_post_idx').on(table.postId),
     index('sf_social_poll_votes_user_idx').on(table.userId),
     index('sf_social_poll_votes_option_idx').on(table.optionId),
+  ],
+)
+
+/**
+ * Viewer-only post hide. Unique (userId, postId) — second hide updates that row.
+ * Feed SQL excludes before LIMIT; canViewPost / permalink stay unchanged.
+ */
+export const sfSocialPostHides = pgTable(
+  'sf_social_post_hides',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    postId: text('post_id').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex('sf_social_post_hides_user_post_uidx').on(table.userId, table.postId),
+    index('sf_social_post_hides_user_idx').on(table.userId),
+    index('sf_social_post_hides_post_idx').on(table.postId),
+  ],
+)
+
+/**
+ * Viewer mute of another member. Unique (muterUserId, mutedUserId).
+ * Friendship / follow / block stay unchanged. No notify. Feed SQL excludes
+ * the muted author’s posts before LIMIT; permalink still uses canViewPost.
+ */
+export const sfSocialMutes = pgTable(
+  'sf_social_mutes',
+  {
+    id: text('id').primaryKey(),
+    muterUserId: text('muter_user_id').notNull(),
+    mutedUserId: text('muted_user_id').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex('sf_social_mutes_pair_uidx').on(table.muterUserId, table.mutedUserId),
+    index('sf_social_mutes_muter_idx').on(table.muterUserId),
+    index('sf_social_mutes_muted_idx').on(table.mutedUserId),
   ],
 )

@@ -8,6 +8,7 @@
  */
 
 import { canViewPost, type CanViewPostContext, type PostRecord } from './posts'
+import { matchesFeedQuietExclusion } from './quiet'
 
 /**
  * Set-shaped facts the home-feed SQL predicate uses (friend / block / hidden lists).
@@ -30,6 +31,10 @@ export type HomeFeedVisibilityFacts = {
   likedPageIds?: ReadonlySet<string>
   /** Page ids the viewer admins (slice 15). */
   adminPageIds?: ReadonlySet<string>
+  /** Posts this viewer hid (viewer-only; not canViewPost). */
+  hiddenPostIds?: ReadonlySet<string>
+  /** Authors this viewer muted (viewer-only; friendship/follow/block unchanged). */
+  mutedAuthorIds?: ReadonlySet<string>
 }
 
 /**
@@ -130,10 +135,12 @@ export function matchesCanViewPostPredicate(
 }
 
 /**
- * Home-feed row predicate: candidate scope plus canViewPost.
+ * Home-feed row predicate: candidate scope plus canViewPost, then quiet cut.
  * This is what the SQL WHERE encodes before LIMIT.
  * Staff grant skips the friends-graph candidate cut so private-read posts
  * (only_me / non-friend friends / non-member group) stay in the SQL page.
+ * Hidden posts and muted authors are excluded after canViewPost parity
+ * (permalink still uses canViewPost alone).
  */
 export function matchesHomeFeedVisibilityPredicate(
   post: PostRecord,
@@ -154,7 +161,16 @@ export function matchesHomeFeedVisibilityPredicate(
       return false
     }
   }
-  return matchesCanViewPostPredicate(post, viewerUserId, facts)
+  if (!matchesCanViewPostPredicate(post, viewerUserId, facts)) return false
+  if (
+    matchesFeedQuietExclusion(post, viewerUserId, {
+      hiddenPostIds: facts.hiddenPostIds,
+      mutedAuthorIds: facts.mutedAuthorIds,
+    })
+  ) {
+    return false
+  }
+  return true
 }
 
 /** Keep posts the viewer may read, newest first. */

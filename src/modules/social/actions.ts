@@ -64,6 +64,7 @@ import { isAlbumOwnerType } from './albums'
 import { createLinkPost, createSharePost } from './share-links-store'
 import { followUser, unfollowUser } from './follows-store'
 import { savePost, unsavePost } from './mentions-tags-saves-store'
+import { hidePost, muteUser, unhidePost, unmuteUser } from './quiet-store'
 import {
   closePoll,
   createCheckinPost,
@@ -1622,6 +1623,113 @@ export async function blockUserAction(
   revalidatePath('/feed/people')
   revalidatePath('/feed/following')
   revalidatePath('/feed/post')
+  revalidatePath('/feed/u')
+  return { ok: true }
+}
+
+export type SocialQuietActionState = {
+  error?: string
+  ok?: boolean
+}
+
+/** Hide a post for this viewer only. Idempotent; feed SQL excludes before LIMIT. */
+export async function hidePostAction(
+  _prev: SocialQuietActionState,
+  formData: FormData,
+): Promise<SocialQuietActionState> {
+  const gate = await requireSocialMember()
+  if (!gate.ok) return { error: gate.error }
+
+  const postId = String(formData.get('postId') ?? '').trim()
+  if (!postId) return { error: 'Missing post.' }
+
+  const result = await hidePost({ userId: gate.userId, postId })
+  if (!result.ok) {
+    if (result.reason === 'cannot_view') return { error: 'You cannot hide this post.' }
+    if (result.reason === 'banned') return { error: 'Your Social account is restricted.' }
+    return { error: 'Could not hide this post.' }
+  }
+
+  revalidatePath('/feed')
+  revalidatePath('/feed/following')
+  revalidatePath('/feed/discover')
+  return { ok: true }
+}
+
+/** Undo a viewer hide (small feed undo). */
+export async function unhidePostAction(
+  _prev: SocialQuietActionState,
+  formData: FormData,
+): Promise<SocialQuietActionState> {
+  const gate = await requireSocialMember()
+  if (!gate.ok) return { error: gate.error }
+
+  const postId = String(formData.get('postId') ?? '').trim()
+  if (!postId) return { error: 'Missing post.' }
+
+  const result = await unhidePost(gate.userId, postId)
+  if (!result.ok) {
+    if (result.reason === 'not_hidden') return { error: 'That post is not hidden.' }
+    return { error: 'Could not undo hide.' }
+  }
+
+  revalidatePath('/feed')
+  revalidatePath('/feed/following')
+  revalidatePath('/feed/discover')
+  return { ok: true }
+}
+
+/** Mute a person — their posts drop from this viewer’s home / following / discover. */
+export async function muteUserAction(
+  _prev: SocialQuietActionState,
+  formData: FormData,
+): Promise<SocialQuietActionState> {
+  const gate = await requireSocialMember()
+  if (!gate.ok) return { error: gate.error }
+
+  const otherId = String(formData.get('userId') ?? '').trim()
+  if (!otherId) return { error: 'Choose a member.' }
+  if (otherId === gate.userId) return { error: 'You cannot mute yourself.' }
+
+  const result = await muteUser({
+    muterUserId: gate.userId,
+    mutedUserId: otherId,
+  })
+  if (!result.ok) {
+    if (result.reason === 'self') return { error: 'You cannot mute yourself.' }
+    if (result.reason === 'banned') return { error: 'Your Social account is restricted.' }
+    return { error: 'Could not mute this member.' }
+  }
+
+  revalidatePath('/feed')
+  revalidatePath('/feed/following')
+  revalidatePath('/feed/discover')
+  revalidatePath('/feed/people')
+  revalidatePath('/feed/u')
+  return { ok: true }
+}
+
+/** Unmute a person — their posts return to this viewer’s feeds. */
+export async function unmuteUserAction(
+  _prev: SocialQuietActionState,
+  formData: FormData,
+): Promise<SocialQuietActionState> {
+  const gate = await requireSocialMember()
+  if (!gate.ok) return { error: gate.error }
+
+  const otherId = String(formData.get('userId') ?? '').trim()
+  if (!otherId) return { error: 'Choose a member.' }
+
+  const result = await unmuteUser(gate.userId, otherId)
+  if (!result.ok) {
+    if (result.reason === 'not_muted') return { error: 'That member is not muted.' }
+    return { error: 'Could not unmute this member.' }
+  }
+
+  revalidatePath('/feed')
+  revalidatePath('/feed/following')
+  revalidatePath('/feed/discover')
+  revalidatePath('/feed/people')
   revalidatePath('/feed/u')
   return { ok: true }
 }

@@ -11,6 +11,7 @@ import { getPersonas, personaMediaSrc } from '@/modules/profiles/api.server'
 
 import { listCommentsForPosts } from '../comments-store'
 import { canViewerSeePost, findPost } from '../posts-store'
+import { listMutedAuthorIdsForViewer } from '../quiet-store'
 import {
   memberFeedHref,
   permalinkHref,
@@ -20,7 +21,7 @@ import { resolveReactionIconImageUrls } from '../reaction-icons-resolve'
 import { listFeedReactions } from '../reactions-store'
 import { loadSocialModuleSettings } from '../settings'
 import { FeedPostMedia } from './FeedPostMedia'
-import { HideableShell } from './HideableShell'
+import { QuietPostShell } from './QuietPostShell'
 import { PollPostActions } from './PollPostActions'
 import { PostAudienceControl, type AudienceGroup } from './PostAudienceControl'
 import {
@@ -133,6 +134,9 @@ export async function FeedPostList({
       viewer.userId === viewerId &&
       (await viewerMayAccessAdminResource(viewer, 'admin.social', 'edit')),
   )
+  const mutedAuthorIds = viewerId
+    ? await listMutedAuthorIdsForViewer(viewerId)
+    : new Set<string>()
   const commentAuthors = await getPersonas(
     [
       ...new Set([
@@ -340,6 +344,7 @@ export async function FeedPostList({
                   )}
                   viewerUserId={viewerId}
                   canModerate={canModerateContent}
+                  mutedAuthorIds={mutedAuthorIds}
                   reactionKinds={pack.settings.enabledReactionKinds}
                   reactionIcons={reactionIcons}
                   reactionIconColors={reactionIconColors}
@@ -371,6 +376,7 @@ export async function FeedPostList({
                 )}
                 viewerUserId={viewerId}
                 canModerate={canModerateContent}
+                mutedAuthorIds={mutedAuthorIds}
                 reactionKinds={pack.settings.enabledReactionKinds}
                 reactionIcons={reactionIcons}
                 reactionIconColors={reactionIconColors}
@@ -396,6 +402,7 @@ export async function FeedPostList({
             authorUserId={post.authorUserId}
             authorName={name}
             canModerate={canModerateContent}
+            isMuted={mutedAuthorIds.has(post.authorUserId)}
           >
             {card}
           </PostManageProvider>
@@ -405,7 +412,7 @@ export async function FeedPostList({
         return (
           <li key={post.id} className="sf-social-feed-item">
             {showOptions ? (
-              <HideableShell itemKey={`post:${post.id}`}>{managed}</HideableShell>
+              <QuietPostShell postId={post.id}>{managed}</QuietPostShell>
             ) : (
               managed
             )}

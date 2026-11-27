@@ -58,6 +58,7 @@ type TheaterProps = {
   reactions: ConversationReaction[]
   viewerUserId: string | null
   canModerate: boolean
+  mutedAuthorIds?: ReadonlySet<string>
   reactionKinds: ReactionKind[]
   reactionIcons: ReactionIcons | null
   reactionIconColors: ReactionIconColors | null
@@ -99,6 +100,7 @@ function SocialMediaTheater({
   reactions,
   viewerUserId,
   canModerate,
+  mutedAuthorIds,
   reactionKinds,
   reactionIcons,
   reactionIconColors,
@@ -268,6 +270,7 @@ function SocialMediaTheater({
             reactions={reactions}
             viewerUserId={viewerUserId}
             canModerate={canModerate}
+            mutedAuthorIds={mutedAuthorIds}
             reactionKinds={reactionKinds}
             reactionIcons={reactionIcons}
             reactionIconColors={reactionIconColors}
@@ -315,6 +318,7 @@ export function FeedPostMedia({
   reactions,
   viewerUserId,
   canModerate = false,
+  mutedAuthorIds,
   reactionKinds,
   reactionIcons = null,
   reactionIconColors = null,
@@ -347,6 +351,7 @@ export function FeedPostMedia({
   reactions: ConversationReaction[]
   viewerUserId: string | null
   canModerate?: boolean
+  mutedAuthorIds?: ReadonlySet<string>
   reactionKinds: ReactionKind[]
   reactionIcons?: ReactionIcons | null
   reactionIconColors?: ReactionIconColors | null
@@ -419,6 +424,7 @@ export function FeedPostMedia({
           reactions={reactions}
           viewerUserId={viewerUserId}
           canModerate={canModerate}
+          mutedAuthorIds={mutedAuthorIds}
           reactionKinds={reactionKinds}
           reactionIcons={reactionIcons}
           reactionIconColors={reactionIconColors}

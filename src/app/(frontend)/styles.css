@@ -11752,6 +11752,26 @@ button.danger:hover,
   color: var(--sf-danger-ink, #ffffff);
 }
 
+.sf-social-quiet-undo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding: 0.65rem 0.85rem;
+  color: var(--sf-muted);
+  font-size: 0.95rem;
+}
+
+.sf-social-quiet-undo button.ghost {
+  padding: 0.15rem 0.25rem;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+  color: var(--sf-secondary-strong);
+  cursor: pointer;
+}
+
 .sf-social-post-menu {
   position: relative;
 }

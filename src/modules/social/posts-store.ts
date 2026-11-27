@@ -59,6 +59,7 @@ import {
   sfSocialPosts,
   sfSocialReactions,
   sfSocialSaves,
+  sfSocialPostHides,
   sfSocialStories,
 } from './schema'
 
@@ -621,6 +622,9 @@ export async function deletePost(
       await tx
         .delete(sfSocialPollVotes)
         .where(inArray(sfSocialPollVotes.postId, cascadeIds))
+      await tx
+        .delete(sfSocialPostHides)
+        .where(inArray(sfSocialPostHides.postId, cascadeIds))
       if (shareIds.length > 0) {
         await tx.delete(sfSocialPosts).where(inArray(sfSocialPosts.id, shareIds))
       }

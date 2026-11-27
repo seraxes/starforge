@@ -8,24 +8,29 @@ import {
   deleteCommentAction,
   deletePostAction,
   editPostAction,
+  muteUserAction,
+  unmuteUserAction,
   type SocialCommentActionState,
   type SocialFeedActionState,
   type SocialPeopleActionState,
+  type SocialQuietActionState,
 } from '../actions'
 import { useHideItem } from './HideableShell'
+import { useQuietHidePost } from './QuietPostShell'
 import { SocialConfirmDialog } from './SocialConfirmDialog'
 import { useDismissible } from './useDismissible'
 
 const feedInitial: SocialFeedActionState = {}
 const commentInitial: SocialCommentActionState = {}
 const peopleInitial: SocialPeopleActionState = {}
+const quietInitial: SocialQuietActionState = {}
 
 type ConfirmKind = 'delete' | 'block' | null
 
 /**
  * Post ··· menu.
  * Own post: Edit + Delete.
- * Someone else’s: Hide + Block; staff also get Edit + Delete.
+ * Someone else’s: Hide this post + Mute + Block; staff also get Edit + Delete.
  */
 export function PostOptionsMenu({
   postId,
@@ -33,6 +38,7 @@ export function PostOptionsMenu({
   authorUserId,
   authorName,
   canModerate = false,
+  isMuted = false,
   onEdit,
 }: {
   postId: string
@@ -41,11 +47,13 @@ export function PostOptionsMenu({
   authorName: string
   /** App admin / developer / Social staff — Edit/Delete any post. */
   canModerate?: boolean
+  /** Viewer already muted this author. */
+  isMuted?: boolean
   /** Opens the inline edit form. */
   onEdit?: () => void
 }) {
   const router = useRouter()
-  const hide = useHideItem()
+  const hide = useQuietHidePost()
   const [open, setOpen] = useState(false)
   const [confirm, setConfirm] = useState<ConfirmKind>(null)
   const rootRef = useDismissible<HTMLDivElement>(open, () => setOpen(false))
@@ -57,11 +65,20 @@ export function PostOptionsMenu({
     blockUserAction,
     peopleInitial,
   )
+  const [muteState, muteAction, mutePending] = useActionState(
+    muteUserAction,
+    quietInitial,
+  )
+  const [unmuteState, unmuteAction, unmutePending] = useActionState(
+    unmuteUserAction,
+    quietInitial,
+  )
   const [pending, startTransition] = useTransition()
   const isAuthor = viewerUserId.trim() === authorUserId.trim()
   const canManage = isAuthor || canModerate
-  const showHideBlock = !isAuthor
-  const busy = deletePending || blockPending || pending
+  const showQuietTools = !isAuthor
+  const busy =
+    deletePending || blockPending || mutePending || unmutePending || pending
 
   useEffect(() => {
     if (!deleteState.ok) return
@@ -76,6 +93,12 @@ export function PostOptionsMenu({
     setConfirm(null)
     router.refresh()
   }, [blockState, router])
+
+  useEffect(() => {
+    if (!muteState.ok && !unmuteState.ok) return
+    setOpen(false)
+    router.refresh()
+  }, [muteState, unmuteState, router])
 
   return (
     <div className="sf-social-post-menu" ref={rootRef}>
@@ -120,18 +143,42 @@ export function PostOptionsMenu({
               </li>
             </>
           ) : null}
-          {showHideBlock ? (
+          {showQuietTools ? (
             <>
               <li role="none">
                 <button
                   type="button"
                   role="menuitem"
+                  disabled={busy}
                   onClick={() => {
                     setOpen(false)
                     hide()
                   }}
                 >
-                  Hide post
+                  Hide this post
+                </button>
+              </li>
+              <li role="none">
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={busy}
+                  onClick={() => {
+                    setOpen(false)
+                    const fd = new FormData()
+                    fd.set('userId', authorUserId)
+                    startTransition(() => {
+                      void (isMuted ? unmuteAction(fd) : muteAction(fd))
+                    })
+                  }}
+                >
+                  {mutePending || unmutePending
+                    ? isMuted
+                      ? 'Unmuting…'
+                      : 'Muting…'
+                    : isMuted
+                      ? `Unmute ${authorName}`
+                      : `Mute ${authorName}`}
                 </button>
               </li>
               <li role="none">
@@ -159,6 +206,11 @@ export function PostOptionsMenu({
       {blockState.error ? (
         <p className="admin-inline-error" role="alert">
           {blockState.error}
+        </p>
+      ) : null}
+      {muteState.error || unmuteState.error ? (
+        <p className="admin-inline-error" role="alert">
+          {muteState.error || unmuteState.error}
         </p>
       ) : null}
       <SocialConfirmDialog
@@ -202,7 +254,7 @@ export function PostOptionsMenu({
 /**
  * Reply ··· on the right.
  * Own / staff: Edit/Delete when allowed.
- * Someone else’s: Hide + Block (kept even when staff can also edit).
+ * Someone else’s: Hide + Mute + Block (kept even when staff can also edit).
  */
 export function CommentOptionsMenu({
   commentId,
@@ -211,6 +263,7 @@ export function CommentOptionsMenu({
   viewerUserId,
   canEdit,
   canDelete,
+  isMuted = false,
   onEdit,
 }: {
   commentId: string
@@ -219,6 +272,7 @@ export function CommentOptionsMenu({
   viewerUserId: string | null
   canEdit: boolean
   canDelete: boolean
+  isMuted?: boolean
   onEdit?: () => void
 }) {
   const router = useRouter()
@@ -234,11 +288,20 @@ export function CommentOptionsMenu({
     blockUserAction,
     peopleInitial,
   )
+  const [muteState, muteAction, mutePending] = useActionState(
+    muteUserAction,
+    quietInitial,
+  )
+  const [unmuteState, unmuteAction, unmutePending] = useActionState(
+    unmuteUserAction,
+    quietInitial,
+  )
   const [pending, startTransition] = useTransition()
 
   const isOwn = Boolean(viewerUserId) && viewerUserId === authorUserId
-  const showHideBlock = Boolean(viewerUserId) && !isOwn
-  const busy = deletePending || blockPending || pending
+  const showQuietTools = Boolean(viewerUserId) && !isOwn
+  const busy =
+    deletePending || blockPending || mutePending || unmutePending || pending
 
   useEffect(() => {
     if (!deleteState.ok) return
@@ -254,7 +317,13 @@ export function CommentOptionsMenu({
     router.refresh()
   }, [blockState, router])
 
-  if (!canEdit && !canDelete && !showHideBlock) return null
+  useEffect(() => {
+    if (!muteState.ok && !unmuteState.ok) return
+    setOpen(false)
+    router.refresh()
+  }, [muteState, unmuteState, router])
+
+  if (!canEdit && !canDelete && !showQuietTools) return null
 
   return (
     <div className="sf-social-post-menu sf-social-comment-menu" ref={rootRef}>
@@ -299,7 +368,7 @@ export function CommentOptionsMenu({
               </button>
             </li>
           ) : null}
-          {showHideBlock ? (
+          {showQuietTools ? (
             <>
               <li role="none">
                 <button
@@ -311,6 +380,29 @@ export function CommentOptionsMenu({
                   }}
                 >
                   Hide
+                </button>
+              </li>
+              <li role="none">
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={busy}
+                  onClick={() => {
+                    setOpen(false)
+                    const fd = new FormData()
+                    fd.set('userId', authorUserId)
+                    startTransition(() => {
+                      void (isMuted ? unmuteAction(fd) : muteAction(fd))
+                    })
+                  }}
+                >
+                  {mutePending || unmutePending
+                    ? isMuted
+                      ? 'Unmuting…'
+                      : 'Muting…'
+                    : isMuted
+                      ? `Unmute ${authorName}`
+                      : `Mute ${authorName}`}
                 </button>
               </li>
               <li role="none">
@@ -338,6 +430,11 @@ export function CommentOptionsMenu({
       {blockState.error ? (
         <p className="admin-inline-error" role="alert">
           {blockState.error}
+        </p>
+      ) : null}
+      {muteState.error || unmuteState.error ? (
+        <p className="admin-inline-error" role="alert">
+          {muteState.error || unmuteState.error}
         </p>
       ) : null}
       <SocialConfirmDialog
