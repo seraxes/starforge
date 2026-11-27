@@ -26,10 +26,18 @@ export type {
   FriendshipStatus,
 } from './friends'
 export {
+  PEOPLE_SUGGESTION_LIMIT_DEFAULT,
+  countMutualFriends,
+  formatMutualFriendCount,
   isPeopleDirectoryCandidate,
+  isPeopleSuggestionCandidate,
   selectPeopleDirectory,
+  selectPeopleSuggestions,
 } from './people'
-export type { PeopleDirectoryCandidate } from './people'
+export type {
+  PeopleDirectoryCandidate,
+  PeopleSuggestionCandidate,
+} from './people'
 export {
   SOCIAL_CHALLENGE_INVITED_TRIGGER,
   SOCIAL_FRIEND_REQUESTED_TRIGGER,

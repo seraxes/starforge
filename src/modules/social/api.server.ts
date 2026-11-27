@@ -75,16 +75,30 @@ export {
   unfriend,
 } from './friends-store'
 export {
+  PEOPLE_SUGGESTION_LIMIT_DEFAULT,
+  countMutualFriends,
+  formatMutualFriendCount,
   isPeopleDirectoryCandidate,
+  isPeopleSuggestionCandidate,
   selectPeopleDirectory,
+  selectPeopleSuggestions,
 } from './people'
-export type { PeopleDirectoryCandidate } from './people'
+export type {
+  PeopleDirectoryCandidate,
+  PeopleSuggestionCandidate,
+} from './people'
 export {
+  countMutualFriendsBetween,
   listBlockedPeerIds,
   listIncomingFriendRequests,
   listPeopleDirectory,
+  listPeopleSuggestions,
 } from './people-store'
-export type { IncomingFriendRequestItem, PeopleDirectoryItem } from './people-store'
+export type {
+  IncomingFriendRequestItem,
+  PeopleDirectoryItem,
+  PeopleSuggestionItem,
+} from './people-store'
 export {
   SOCIAL_CHALLENGE_INVITED_TRIGGER,
   SOCIAL_FRIEND_REQUESTED_TRIGGER,
@@ -620,6 +634,7 @@ export {
   getMemberHiddenAt,
   isMemberAccountHidden,
   listBannedMembers,
+  listSocialBannedUserIds,
   listSocialHiddenUserIds,
   setMemberHiddenAt,
   unbanMember,

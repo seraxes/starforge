@@ -13,8 +13,13 @@ import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/sett
 import { getSiteChrome } from '@/core/site-chrome'
 import { getPersonas, personaMediaSrc } from '@/modules/profiles/api.server'
 
+import { formatMutualFriendCount } from '../people'
 import { memberFeedHref } from '../posts'
-import { listIncomingFriendRequests, listPeopleDirectory } from '../people-store'
+import {
+  listIncomingFriendRequests,
+  listPeopleDirectory,
+  listPeopleSuggestions,
+} from '../people-store'
 import { IncomingRequestActions, RequestFriendButton } from './PeopleActions'
 
 type Args = { params: Promise<{ locale: string }> }
@@ -72,13 +77,15 @@ export default async function SocialPeoplePage({ params }: Args) {
     )
   }
 
-  const [people, incoming] = await Promise.all([
+  const [people, incoming, suggestions] = await Promise.all([
     listPeopleDirectory(userId),
     listIncomingFriendRequests(userId),
+    listPeopleSuggestions(userId),
   ])
   const personaIds = [
     ...people.map((p) => p.userId),
     ...incoming.map((r) => r.requesterId),
+    ...suggestions.map((s) => s.userId),
   ]
   const personas = await getPersonas(personaIds, viewer)
 
@@ -129,6 +136,52 @@ export default async function SocialPeoplePage({ params }: Args) {
           </ul>
         )}
       </section>
+
+      {suggestions.length > 0 ? (
+        <section className="sf-social-people-suggestions" aria-label="People you may know">
+          <h2 className="sf-social-section-heading">People you may know</h2>
+          <ul className="sf-social-people-list">
+            {suggestions.map((row) => {
+              const persona = personas.get(row.userId)
+              const name =
+                persona?.displayName?.trim() ||
+                row.displayName ||
+                (row.handle ? `@${row.handle}` : row.userId)
+              const handle = (persona?.handle || row.handle).trim()
+              const href = handle
+                ? withLocalePrefix(memberFeedHref(handle), locale)
+                : withLocalePrefix('/feed', locale)
+              const avatar = personaMediaSrc(persona?.avatarMediaId || row.avatarMediaId)
+              const mutualLabel = formatMutualFriendCount(row.mutualFriendCount)
+              return (
+                <li key={row.userId} className="sf-social-people-item">
+                  <Link href={href} className="sf-social-people-link">
+                    {avatar ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={avatar}
+                        alt=""
+                        className="sf-social-people-avatar"
+                        width={40}
+                        height={40}
+                      />
+                    ) : (
+                      <span className="sf-social-people-avatar sf-social-people-avatar-empty" />
+                    )}
+                    <span className="sf-social-people-copy">
+                      <span className="sf-social-people-name">{name}</span>
+                      {mutualLabel ? (
+                        <span className="sf-social-people-mutual layout-muted">{mutualLabel}</span>
+                      ) : null}
+                    </span>
+                  </Link>
+                  <RequestFriendButton userId={row.userId} />
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      ) : null}
 
       <section className="sf-social-people-directory" aria-label="People directory">
         <h2 className="sf-social-section-heading">Directory</h2>

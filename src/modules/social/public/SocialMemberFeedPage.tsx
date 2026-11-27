@@ -21,6 +21,8 @@ import { listMemberFeedPosts } from '../feed-store'
 import { findFollow } from '../follows-store'
 import { areBlocked } from '../friends-store'
 import { getMemberBannedAt, isMemberAccountHidden } from '../members-store'
+import { formatMutualFriendCount } from '../people'
+import { countMutualFriendsBetween } from '../people-store'
 import { isReservedFeedHandle } from '../posts'
 import { AlbumList, CreateAlbumForm } from './AlbumActions'
 import { FeedPostList } from './FeedPostList'
@@ -142,6 +144,12 @@ export default async function SocialMemberFeedPage({
     !interact.actorHidden &&
     !interact.otherHidden
 
+  const mutualFriendCount =
+    sessionUserId && sessionUserId !== ownerUserId && !interact.isBlocked
+      ? await countMutualFriendsBetween(sessionUserId, ownerUserId)
+      : 0
+  const mutualLabel = formatMutualFriendCount(mutualFriendCount)
+
   return (
     <article className="cms-page sf-social-member-page">
       <PublicProfile
@@ -152,6 +160,11 @@ export default async function SocialMemberFeedPage({
           viewer.isAppAdmin ? `/admin/profiles/${found.persona.userId}` : undefined
         }
       />
+      {mutualLabel ? (
+        <p className="sf-social-member-mutual layout-muted" aria-label="Mutual friends">
+          {mutualLabel}
+        </p>
+      ) : null}
       {canOfferFollow ? (
         <section className="sf-social-member-follow admin-control-row" aria-label="Follow">
           {existingFollow ? (
