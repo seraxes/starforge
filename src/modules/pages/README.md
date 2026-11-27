@@ -20,6 +20,7 @@ Brochure pages, drafts, the last 20 version snapshots, `/admin/pages`, page cate
 
 - **`product:rich-editor`** — TipTap `preset="full"`, `sanitizeRichHtml` on save
 - **`product:media`** — `meta.mediaId` text, MediaPicker
+- **`product:social`** (optional; via `loadModuleDoor('social-api-server')`) — after a successful save with `status=published`, Pages calls `publishActivity` (`page.published`) with a title / href / meta-media snapshot. Social off or the pack switch off returns `disabled` and does not fail the Pages write. No static import of Social store / schema / actions.
 - Core Nav binds a page id; Core locale host
 - `PageReadsPort` stays the only public read API for published slug, draft preview, search, and sitemap summaries. Pack off → empty reads
 
@@ -46,4 +47,4 @@ None.
 
 ## Tests
 
-None registered in `test:unit` for this pack.
+- `publish-social-activity.test.ts` — activity card notify after publish (door soft-fail; registered in `test:unit`).

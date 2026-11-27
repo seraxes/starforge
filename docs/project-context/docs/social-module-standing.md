@@ -92,7 +92,7 @@ Owner README lists slices **1–22** as done. Summary:
 ### Activity door
 
 - `publishActivity` on the Social door (off → no write; errors soft-fail).
-- **Callers in Events / Pages are not wired yet** (plan said those are separate chats). Switches for `event.published` / `page.published` exist on the Social side with no publisher.
+- Events and Pages call it through `loadModuleDoor('social-api-server')` after a successful publish (`event.published` / `page.published`). Pack switches default on.
 
 ### Slice 23 (explicitly later)
 
@@ -135,7 +135,7 @@ Social owns the comments engine, likes, and reports. No `product:comments` / `pr
 
 | Edge | Status |
 | --- | --- |
-| Events / Pages → `publishActivity` | Door ready; **no callers** |
+| Events / Pages → `publishActivity` | **Done** — callers via `loadModuleDoor('social-api-server')` |
 | Events host calendar on group/page | Social lists/links via Events door; host fields exist on Events |
 | Subscriptions entitlement `social.challenge.multi` | Gate exists; depends on Subscriptions being on |
 | Core retention hide/purge | Doors registered on Core side |
@@ -179,7 +179,7 @@ Per plan / README: points/badges, support tickets, chat (its own pack after Mark
 
 ## Remaining questions (post 2026-11-22 decisions)
 
-1. Priority among Open work: staff private-read, Social write rate limits, `'form'` optionalRequires keep/drop, Events/Pages `publishActivity` callers, composer Challenge/Watch chips.
+1. Priority among Open work: `'form'` optionalRequires keep/drop, composer Challenge/Watch chips, remaining UX polish before cutover.
 2. Any slice-22+ surface that should stay switch-off forever for ASN (short-video Watch, Discover, Challenges)?
 3. Admin / manager permission matrices (deferred; do not invent in Social).
 

@@ -3,8 +3,9 @@
  *
  * Unique on (sourceModule, sourceId, activityKind). A republish updates that
  * row (and its linked activity post). Not composed by the member. Events and
- * Pages callers are separate chats; this pack never throws out of the door so
- * a Social failure does not fail their publish. Off → disabled, no write.
+ * Pages call via `loadModuleDoor('social-api-server')`; this pack never throws
+ * out of the door so a Social failure does not fail their publish.
+ * Off → disabled, no write.
  */
 
 import { runSocialDoor, type SocialDoorResult } from './door'

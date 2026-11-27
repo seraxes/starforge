@@ -10,7 +10,7 @@ import { defineStarforgeModule } from '@/core/modules/define-module'
  * Slice 9: reports (postId required, optional commentId; one open per reporter/post).
  * Slice 9b: moderation review queue, comment hide, resolve report, member bannedAt.
  * Slice 10: account doors exportOwnSocialRecord / hideOwnedSocialContent / purgeOwnSocialRecord.
- * Slice 11: publishActivity (sf_social_activities; Events/Pages callers are separate chats).
+ * Slice 11: publishActivity (sf_social_activities; Events/Pages call via loadModuleDoor).
  * Slice 12: challenges (endsAt / multi invite / challenge likes), social.sweep.
  * Slice 13: groups (categories, membership, wall, directory, invite mail, social-groups).
  * Slice 14: team tools (ranks, documents, announcements, formDefinitionId).
