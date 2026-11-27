@@ -8,6 +8,7 @@
  */
 
 import type { ActivityRecord } from './activity'
+import type { HostConversationRecord } from './host-conversation'
 import type {
   ChallengeEntryRecord,
   ChallengeLikeRecord,
@@ -51,6 +52,7 @@ export const SOCIAL_ACCOUNT_TABLE_NAMES = [
   'sf_social_members',
   'sf_social_reports',
   'sf_social_activities',
+  'sf_social_conversations',
   'sf_social_challenges',
   'sf_social_challenge_entries',
   'sf_social_challenge_likes',
@@ -89,6 +91,7 @@ export type AccountCommentRow = CommentRecord
 export type AccountMemberRow = MemberRecord
 export type AccountReportRow = ReportRecord
 export type AccountActivityRow = ActivityRecord
+export type AccountConversationRow = HostConversationRecord
 export type AccountChallengeRow = ChallengeRecord
 export type AccountChallengeEntryRow = ChallengeEntryRecord
 export type AccountChallengeLikeRow = ChallengeLikeRecord
@@ -122,6 +125,7 @@ export type SocialAccountBag = {
   members: Map<string, AccountMemberRow>
   reports: Map<string, AccountReportRow>
   activities: Map<string, AccountActivityRow>
+  conversations: Map<string, AccountConversationRow>
   challenges: Map<string, AccountChallengeRow>
   challengeEntries: Map<string, AccountChallengeEntryRow>
   challengeLikes: Map<string, AccountChallengeLikeRow>
@@ -199,6 +203,7 @@ function emptyBag(): SocialAccountBag {
     members: new Map(),
     reports: new Map(),
     activities: new Map(),
+    conversations: new Map(),
     challenges: new Map(),
     challengeEntries: new Map(),
     challengeLikes: new Map(),
@@ -422,6 +427,16 @@ export const SOCIAL_ACCOUNT_REGISTRY: readonly SocialAccountTableHandlers[] = [
       for (const [id, row] of bag.activities) {
         if (row.actorUserId === userId) bag.activities.delete(id)
       }
+    },
+  },
+  {
+    table: 'sf_social_conversations',
+    exportRows: () => [],
+    hide: () => {
+      /* host-owned event/page threads — keep */
+    },
+    purge: () => {
+      /* host-owned — not purged with a member */
     },
   },
   {
@@ -845,6 +860,7 @@ export function purgeOwnSocialRecord(
     'sf_social_comments',
     'sf_social_reports',
     'sf_social_activities',
+    'sf_social_conversations',
     'sf_social_challenge_likes',
     'sf_social_challenge_entries',
     'sf_social_challenges',

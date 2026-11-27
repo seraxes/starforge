@@ -53,7 +53,7 @@ Tables: `sf_venues`, `sf_event_categories`, `sf_events`, `sf_event_parties`, `sf
 - **`product:email-manager`** (`optionalRequires`) — `emitEmailTrigger` / `enqueueEmailBroadcast`; never `getMailer()` from Events
 - **`product:media`**, **`product:rich-editor`**, **`product:profiles`** — gallery, venue description, one-click Register from profile
 - **`product:subscriptions`** — `resolveAudience` for member / group tier prices; `events.manage` for organizer premium (not a hard require; resolve via Core/door when on)
-- **`product:social`** (optional; via `loadModuleDoor('social-api-server')`) — after a successful create/update with `status=published`, Events calls `publishActivity` (`event.published`) with a title / href / cover snapshot. Social off or the pack switch off returns `disabled` and does not fail the Events write. No static import of Social store / schema / actions. Social may also list/link create via the Events door (`hostModule`); it does not own event rows.
+- **`product:social`** (`optionalRequires`; via `loadModuleDoor('social-api-server')` / soft-import) — after a successful create/update with `status=published`, Events calls `publishActivity` (`event.published`) with a title / href / cover snapshot. Public event detail soft-mounts Social’s shared comment controls (`HostConversationMount`); Social off → no form and no error. Events exposes `viewerMayAccessEventConversation` / `viewerMayModerateEventConversation` on `events-api` for Social’s host gates. No static import of Social store / schema / actions. Social may also list/link create via the Events door (`hostModule`); it does not own event rows.
 
 ## Public door
 

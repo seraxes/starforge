@@ -7,7 +7,7 @@
 
 import 'server-only'
 
-import { and, desc, eq, inArray, isNull, notInArray, or, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNull, ne, notInArray, or, sql } from 'drizzle-orm'
 
 import { db } from '@/core/db'
 import { listProfileDirectory } from '@/modules/profiles/api.server'
@@ -339,7 +339,7 @@ export async function listHomeFeedPosts(
     rows = await db
       .select()
       .from(sfSocialPosts)
-      .where(visibility)
+      .where(and(visibility, ne(sfSocialPosts.kind, 'conversation')))
       .orderBy(desc(sfSocialPosts.createdAt))
       .limit(limit)
   } catch (error) {

@@ -27,6 +27,7 @@ import { signupStatusFromRegistrationStatus } from '@/modules/events/public/sign
 import { EventRegistrationForm } from '@/modules/events/public/EventRegistrationForm'
 import { EventVenueMap } from '@/modules/events/public/EventVenueMap'
 import { EventLiveMap } from '@/modules/maps'
+import { EventHostConversation } from '@/modules/events/public/EventHostConversation'
 import { listPublicTicketTiersForEvent } from '@/modules/events/public-tiers'
 import {
   countRegisteredGuests,
@@ -217,6 +218,7 @@ export default async function PublicEventDetailPage({ params, searchParams }: Ar
       {formsOn && !myReg ? (
         <EventRegistrationForm event={event} preferredTierId={preferredTierId} />
       ) : null}
+      <EventHostConversation eventId={event.id} hostPath={eventPath} />
     </div>
   )
 }

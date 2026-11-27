@@ -25,7 +25,7 @@ last_verified: 2026-11-25
 | **`social-feed-plan.md` header** | May still say parked historically. Plan is the build spec; the live map wins. |
 | **Code + pack README** | Slices **1–22** documented as shipped. `defaultEnabled: false`. Full `sf_social_*` schema present. |
 
-**Implication for a second opinion:** The code already exists. Enablement blockers (media access, rate limits, staff private-read) are closed on the live map. Remaining work is polish / Open work leftovers (`form` optionalRequires, event/page conversation UI, UX) before Airsoft Nexus turns Social on.
+**Implication for a second opinion:** The code already exists. Enablement blockers (media access, rate limits, staff private-read) are closed on the live map. Event/page conversation UI is shipped. Remaining work is polish / Open work leftovers (`form` optionalRequires, UX) before Airsoft Nexus turns Social on.
 
 ---
 

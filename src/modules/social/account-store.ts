@@ -120,6 +120,9 @@ export async function exportOwnSocialRecordFromDb(
       .from(sfSocialActivities)
       .where(eq(sfSocialActivities.actorUserId, id))
 
+    // Host event/page threads — export stays empty for a member.
+    tables.sf_social_conversations = []
+
     tables.sf_social_challenges = await db
       .select()
       .from(sfSocialChallenges)

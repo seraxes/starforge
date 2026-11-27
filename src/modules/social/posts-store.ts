@@ -386,6 +386,7 @@ export async function canViewerSeePost(
       | 'isPageAdmin'
       | 'canManagePosts'
       | 'guestCanReadPublic'
+      | 'hostCanView'
     >
   >,
 ): Promise<boolean> {
@@ -401,7 +402,10 @@ export async function canViewerSeePost(
         ? Promise.resolve(extras.authorHidden)
         : viewer === author
           ? Promise.resolve(false)
-          : isMemberAccountHidden(author),
+          : // Synthetic host authors are never account-hidden.
+            author.startsWith('host:')
+            ? Promise.resolve(false)
+            : isMemberAccountHidden(author),
       extras?.isGroupMember !== undefined
         ? Promise.resolve(extras.isGroupMember)
         : viewer && post.groupId
@@ -434,6 +438,20 @@ export async function canViewerSeePost(
     extras?.canManagePosts ??
     (viewer ? await viewerMayModerateSocialContent(viewer) : false)
 
+  let hostCanView = extras?.hostCanView
+  if (hostCanView === undefined && post.kind === 'conversation') {
+    try {
+      const { findConversationByPostId } = await import('./host-conversation-store')
+      const { resolveHostConversationCanView } = await import('./host-resolve')
+      const conversation = await findConversationByPostId(post.id)
+      hostCanView = conversation
+        ? await resolveHostConversationCanView(conversation, viewer)
+        : false
+    } catch {
+      hostCanView = false
+    }
+  }
+
   return canViewPost(post, {
     viewerUserId: viewer,
     areFriends: friends,
@@ -444,6 +462,7 @@ export async function canViewerSeePost(
     isPageAdmin,
     canManagePosts,
     guestCanReadPublic: guestCanReadPublic ?? true,
+    hostCanView,
   })
 }
 

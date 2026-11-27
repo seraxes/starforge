@@ -30,3 +30,7 @@ export {
   listEventsForHost,
 } from './store'
 export type { EventRecord } from './types'
+export {
+  viewerMayAccessEventConversation,
+  viewerMayModerateEventConversation,
+} from './conversation-access'

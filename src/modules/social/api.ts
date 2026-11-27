@@ -542,6 +542,26 @@ export type {
   PublishActivityResult,
 } from './activity'
 export {
+  HOST_CONVERSATION_MODULES,
+  applyEnsureHostConversation,
+  createHostConversationMemory,
+  decideEnsureHostConversation,
+  ensureHostConversationThroughDoor,
+  hostConversationAuthorId,
+  isHostConversationModule,
+} from './host-conversation'
+export type {
+  EnsureHostConversationDecision,
+  EnsureHostConversationInput,
+  EnsureHostConversationResult,
+  HostConversationBag,
+  HostConversationModule,
+  HostConversationRecord,
+  HostConversationRefuseReason,
+} from './host-conversation'
+export { HostConversation } from './public/HostConversation'
+export type { HostConversationProps } from './public/HostConversation'
+export {
   CHALLENGE_ACCEPT_WINDOW_HOURS,
   CHALLENGE_ENTRY_STATUSES,
   CHALLENGE_LENGTH_DAYS_MAX,

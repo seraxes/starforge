@@ -50,7 +50,12 @@ export default defineStarforgeModule({
     'product:forms',
     'product:email-manager',
   ],
-  optionalRequires: ['form', 'product:subscriptions', 'product:events'],
+  optionalRequires: [
+    'form',
+    'product:subscriptions',
+    'product:events',
+    'product:pages',
+  ],
   boot: {
     importPath: '@/modules/social/boot',
     exportName: 'bootSocial',

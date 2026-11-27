@@ -7,7 +7,7 @@
 
 import 'server-only'
 
-import { and, desc, eq, isNull, notInArray, sql } from 'drizzle-orm'
+import { and, desc, eq, isNull, ne, notInArray, sql } from 'drizzle-orm'
 
 import { db } from '@/core/db'
 
@@ -70,6 +70,7 @@ export async function listDiscoverFeedPosts(
       .where(
         and(
           eq(sfSocialPosts.audience, 'public'),
+          ne(sfSocialPosts.kind, 'conversation'),
           isNull(sfSocialPosts.pageId),
           eq(sfSocialPosts.staffHidden, false),
           eq(sfSocialPosts.pendingReview, false),

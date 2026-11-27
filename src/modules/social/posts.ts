@@ -21,6 +21,8 @@ export const POST_KINDS = [
   'share',
   'poll',
   'checkin',
+  /** Host surface thread (event / CMS page). Excluded from feeds. */
+  'conversation',
 ] as const
 export type PostKind = (typeof POST_KINDS)[number]
 
@@ -213,6 +215,12 @@ export type CanViewPostContext = {
    * Omit / true keeps the historical open-public behaviour.
    */
   guestCanReadPublic?: boolean
+  /**
+   * Host conversation posts (`kind=conversation`): true when the owning pack
+   * says the viewer may see that event / page. Staff private-read uses
+   * `canManagePosts` instead. Omit / false denies non-staff.
+   */
+  hostCanView?: boolean
 }
 
 export type PermalinkResult =
@@ -618,6 +626,13 @@ export function canViewPost(post: PostRecord, ctx: CanViewPostContext): boolean 
   if (ctx.authorHidden) return false
   if (post.pendingReview && !ctx.canManagePosts) return false
   if (post.staffHidden && !ctx.canManagePosts) return false
+
+  // Host event / CMS page threads — visibility follows the owner pack, not the
+  // audience ladder. Social staff private-read uses canManagePosts.
+  if (post.kind === 'conversation') {
+    if (ctx.canManagePosts) return true
+    return ctx.hostCanView === true
+  }
 
   // Page posts: likers and page admins only (not the audience picker).
   if (post.pageId) {

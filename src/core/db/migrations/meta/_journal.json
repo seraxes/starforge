@@ -449,6 +449,13 @@
       "when": 1795804000000,
       "tag": "0064_social_quiet_hide_mute",
       "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1795805000000,
+      "tag": "0065_social_host_conversations",
+      "breakpoints": true
     }
   ]
 }

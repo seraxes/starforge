@@ -1376,6 +1376,33 @@ export type SocialCommentActionState = {
   commentId?: string
 }
 
+/** Social staff, or host event/page moderator for a conversation thread. */
+async function viewerMayModerateComment(
+  userId: string,
+  commentId: string,
+): Promise<boolean> {
+  if (await viewerMayModerateSocialContent(userId)) return true
+  const { findComment } = await import('./comments-store')
+  const comment = await findComment(commentId)
+  if (!comment) return false
+  const { findConversationByPostId } = await import('./host-conversation-store')
+  const conversation = await findConversationByPostId(comment.postId)
+  if (!conversation) return false
+  const { resolveHostConversationCanModerate } = await import('./host-resolve')
+  return resolveHostConversationCanModerate(conversation, userId)
+}
+
+async function revalidateHostConversationPath(postId: string): Promise<void> {
+  try {
+    const { findConversationByPostId } = await import('./host-conversation-store')
+    const conversation = await findConversationByPostId(postId)
+    const path = conversation?.hostPath?.trim()
+    if (path) revalidatePath(path)
+  } catch {
+    /* host path optional */
+  }
+}
+
 /** Comment on a post, or reply to any comment in the thread. */
 export async function createCommentAction(
   _prev: SocialCommentActionState,
@@ -1412,6 +1439,7 @@ export async function createCommentAction(
 
   revalidatePath('/feed')
   revalidatePath('/feed/post')
+  await revalidateHostConversationPath(postId)
   return { ok: true, commentId: result.comment.id }
 }
 
@@ -1428,7 +1456,7 @@ export async function editCommentAction(
   if (!commentId) return { error: 'Choose a comment.' }
   if (!body) return { error: 'Write a comment first.' }
 
-  const canManagePosts = await viewerMayModerateSocialContent(gate.userId)
+  const canManagePosts = await viewerMayModerateComment(gate.userId, commentId)
   const { editComment } = await import('./comments-store')
   const result = await editComment(
     { actorUserId: gate.userId, commentId, body },
@@ -1443,6 +1471,9 @@ export async function editCommentAction(
 
   revalidatePath('/feed')
   revalidatePath('/feed/post')
+  const { findComment } = await import('./comments-store')
+  const edited = await findComment(commentId)
+  if (edited) await revalidateHostConversationPath(edited.postId)
   return { ok: true, commentId }
 }
 
@@ -1457,8 +1488,9 @@ export async function deleteCommentAction(
   const commentId = String(formData.get('commentId') ?? '').trim()
   if (!commentId) return { error: 'Choose a comment.' }
 
-  const canManagePosts = await viewerMayModerateSocialContent(gate.userId)
-  const { deleteComment } = await import('./comments-store')
+  const canManagePosts = await viewerMayModerateComment(gate.userId, commentId)
+  const { deleteComment, findComment } = await import('./comments-store')
+  const existing = await findComment(commentId)
   const result = await deleteComment(
     { actorUserId: gate.userId, commentId },
     { canManagePosts },
@@ -1471,6 +1503,7 @@ export async function deleteCommentAction(
 
   revalidatePath('/feed')
   revalidatePath('/feed/post')
+  if (existing) await revalidateHostConversationPath(existing.postId)
   return { ok: true, commentId }
 }
 
@@ -1507,6 +1540,12 @@ export async function setReactionAction(
     }
     revalidatePath('/feed')
     revalidatePath('/feed/post')
+    if (targetType === 'post') await revalidateHostConversationPath(targetId)
+    else {
+      const { findComment } = await import('./comments-store')
+      const comment = await findComment(targetId)
+      if (comment) await revalidateHostConversationPath(comment.postId)
+    }
     return { ok: true, commentId: `${targetType}:${targetId}:clear` }
   }
 
@@ -1526,6 +1565,12 @@ export async function setReactionAction(
 
   revalidatePath('/feed')
   revalidatePath('/feed/post')
+  if (targetType === 'post') await revalidateHostConversationPath(targetId)
+  else {
+    const { findComment } = await import('./comments-store')
+    const comment = await findComment(targetId)
+    if (comment) await revalidateHostConversationPath(comment.postId)
+  }
   return { ok: true, commentId: `${targetType}:${targetId}:${result.reaction.kind}` }
 }
 

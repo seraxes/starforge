@@ -7,7 +7,7 @@
 
 import 'server-only'
 
-import { and, desc, eq, inArray, isNull, notInArray, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNull, ne, notInArray, sql } from 'drizzle-orm'
 
 import { db } from '@/core/db'
 
@@ -253,6 +253,7 @@ export async function listFollowingFeedPosts(
         and(
           inArray(sfSocialPosts.authorUserId, visibleFollowees),
           eq(sfSocialPosts.audience, 'public'),
+          ne(sfSocialPosts.kind, 'conversation'),
           isNull(sfSocialPosts.pageId),
           eq(sfSocialPosts.staffHidden, false),
           eq(sfSocialPosts.pendingReview, false),

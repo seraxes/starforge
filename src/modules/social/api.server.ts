@@ -955,6 +955,51 @@ export async function publishActivity(
   }
 }
 
+/**
+ * Ensure a host conversation anchor (event / CMS page) + linked post.
+ * Off → `{ ok: false, reason: 'disabled' }` with no write.
+ */
+export async function ensureHostConversation(
+  input: import('./host-conversation').EnsureHostConversationInput,
+): Promise<import('./host-conversation').EnsureHostConversationResult> {
+  try {
+    if (!(await isSocialModuleEnabled())) {
+      return { ok: false, reason: 'disabled' }
+    }
+    const { ensureHostConversationInDb } = await import('./host-conversation-store')
+    return await ensureHostConversationInDb(input)
+  } catch (error) {
+    console.error('[social] ensureHostConversation failed', error)
+    return { ok: false, reason: 'failed' }
+  }
+}
+
+/**
+ * Load props for the shared HostConversation UI on an event / CMS page.
+ * Off / cannot_view → not-ok; callers render nothing.
+ */
+export async function loadHostConversationSurface(
+  input: import('./host-conversation').EnsureHostConversationInput & {
+    viewerAlreadyCanView?: boolean
+  },
+): Promise<import('./host-conversation-surface').LoadHostConversationSurfaceResult> {
+  try {
+    if (!(await isSocialModuleEnabled())) {
+      return { ok: false, reason: 'disabled' }
+    }
+    const { loadHostConversationSurface: load } = await import(
+      './host-conversation-surface'
+    )
+    return await load(input)
+  } catch (error) {
+    console.error('[social] loadHostConversationSurface failed', error)
+    return { ok: false, reason: 'failed' }
+  }
+}
+
+/** Server mount for event / CMS page comment threads. Soft-fails when Social is off. */
+export { HostConversationMount } from './public/HostConversationMount'
+
 async function resolveChallengeMultiGate(userId: string): Promise<ChallengeMultiGate> {
   try {
     const settings = await getSiteSettings()
