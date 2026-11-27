@@ -89,6 +89,10 @@ export const optionalParticleLoaders: OptionalParticleLoader[] = [
     load: async () => (await import("@/modules/maps/live-map-module")).liveMapModule,
   },
   {
+    id: "driver-home",
+    load: async () => (await import("@/modules/onboarding/particles/driver-home-module")).driverHomeModule,
+  },
+  {
     id: "cookie-settings",
     load: async () => (await import("@/modules/consent/particles/cookie-settings-module")).cookieSettingsModule,
   },
@@ -686,6 +690,16 @@ export const moduleDoorLoaders: ModuleDoorLoader[] = [
     id: "marketplace-api-server",
     moduleId: "product:marketplace",
     load: async () => import("@/modules/marketplace/api.server"),
+  },
+  {
+    id: "documents-api",
+    moduleId: "product:documents",
+    load: async () => import("@/modules/documents/api"),
+  },
+  {
+    id: "documents-api-server",
+    moduleId: "product:documents",
+    load: async () => import("@/modules/documents/api.server"),
   },
   {
     id: "onboarding-api",

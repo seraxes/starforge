@@ -58,6 +58,7 @@ type StatusRow = {
   displayLabel: string
   actionChip: string
   nextStepMessage: string
+  pageId: string
   bookable: boolean
   formDefinitionId: string
   reminderTemplateId: string
@@ -130,6 +131,7 @@ function StatusFields({
   const [displayLabel, setDisplayLabel] = useState(row?.displayLabel ?? '')
   const [actionChip, setActionChip] = useState(row?.actionChip ?? '')
   const [nextStepMessage, setNextStepMessage] = useState(row?.nextStepMessage ?? '')
+  const [pageId, setPageId] = useState(row?.pageId ?? '')
   const [formDefinitionId, setFormDefinitionId] = useState(row?.formDefinitionId ?? '')
   const [reminderTemplateId, setReminderTemplateId] = useState(row?.reminderTemplateId ?? '')
   const formChoices = withCurrentOption(formOptions, formDefinitionId)
@@ -145,6 +147,7 @@ function StatusFields({
     setDisplayLabel(row?.displayLabel ?? '')
     setActionChip(row?.actionChip ?? '')
     setNextStepMessage(row?.nextStepMessage ?? '')
+    setPageId(row?.pageId ?? '')
     setFormDefinitionId(row?.formDefinitionId ?? '')
     setReminderTemplateId(row?.reminderTemplateId ?? '')
   }, [row])
@@ -237,6 +240,22 @@ function StatusFields({
           placeholder="Instruction shown for this status"
           onChange={(e) => setNextStepMessage(e.target.value)}
         />
+      </label>
+      <label className="settings-field">
+        <span>Explanation page id</span>
+        <input
+          type="text"
+          name="pageId"
+          value={pageId}
+          disabled={pending}
+          placeholder="Optional Pages page id"
+          autoComplete="off"
+          onChange={(e) => setPageId(e.target.value)}
+        />
+        <span className="settings-hint">
+          Optional page above the driver-home particle. Pages owns the article; Onboarding stores
+          the id only (plain text). Leave blank for none.
+        </span>
       </label>
       <label className="settings-field">
         <span>Forms definition</span>

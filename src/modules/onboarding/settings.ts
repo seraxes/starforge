@@ -1,6 +1,7 @@
 /**
  * product:onboarding module settings — document in `sf_module_settings`.
- * Invite + event-type Email Manager template ids, plus event-type Forms / status lists.
+ * Invite Email Manager template id only.
+ * Event-type template ids and Forms / status lists live on `sf_onboarding_event_types`.
  */
 
 import 'server-only'
@@ -17,7 +18,6 @@ import {
   type OnboardingEmailEventType,
 } from './email-binding-rules'
 import {
-  DEFAULT_EVENT_TYPE_SETTINGS,
   normalizeAllEventTypeSettings,
   normalizeEventTypeSettings,
   type OnboardingEventTypeSettings,
@@ -36,22 +36,34 @@ function parseEventTemplateIds(raw: unknown): Record<OnboardingEmailEventType, s
     raw && typeof raw === 'object' && !Array.isArray(raw)
       ? (raw as Record<string, unknown>)
       : {}
-  const out = { ...DEFAULT_ONBOARDING_MODULE_SETTINGS.eventTemplateIds }
+  const out = { ridealong: '', testday: '', trialday: '' }
   for (const key of ONBOARDING_EMAIL_EVENT_TYPES) {
     out[key] = asTrimmed(obj[key])
   }
   return out
 }
 
-function emptyEventTypeSettings(): Record<
-  OnboardingEmailEventType,
-  OnboardingEventTypeSettings
-> {
-  return {
-    ridealong: { ...DEFAULT_EVENT_TYPE_SETTINGS, dateFieldNames: [], activeStatusIds: [], completedStatusIds: [] },
-    testday: { ...DEFAULT_EVENT_TYPE_SETTINGS, dateFieldNames: [], activeStatusIds: [], completedStatusIds: [] },
-    trialday: { ...DEFAULT_EVENT_TYPE_SETTINGS, dateFieldNames: [], activeStatusIds: [], completedStatusIds: [] },
+export type LegacyEventTypeSeed = OnboardingEventTypeSettings & { templateId: string }
+
+/**
+ * Read event-type values saved before the catalog table.
+ * Used once, when a seed row is inserted. Missing keys are empty.
+ */
+export function readLegacyEventTypeSeed(
+  rawDocument: unknown,
+): Partial<Record<string, LegacyEventTypeSeed>> {
+  const obj =
+    rawDocument && typeof rawDocument === 'object' && !Array.isArray(rawDocument)
+      ? (rawDocument as Record<string, unknown>)
+      : {}
+  const templates = parseEventTemplateIds(obj.eventTemplateIds)
+  const settings = normalizeAllEventTypeSettings(obj.eventTypeSettings)
+  const out: Partial<Record<string, LegacyEventTypeSeed>> = {}
+  for (const key of ONBOARDING_EMAIL_EVENT_TYPES) {
+    const row = normalizeEventTypeSettings(settings[key])
+    out[key] = { ...row, templateId: templates[key] }
   }
+  return out
 }
 
 export function normalizeOnboardingModuleSettings(raw: unknown): OnboardingModuleSettings {
@@ -61,8 +73,6 @@ export function normalizeOnboardingModuleSettings(raw: unknown): OnboardingModul
       : {}
   return {
     inviteTemplateId: asTrimmed(obj.inviteTemplateId),
-    eventTemplateIds: parseEventTemplateIds(obj.eventTemplateIds),
-    eventTypeSettings: normalizeAllEventTypeSettings(obj.eventTypeSettings),
   }
 }
 
@@ -73,8 +83,6 @@ export async function loadOnboardingModuleSettings(): Promise<{
 }> {
   const loaded = await loadModuleSettingsDocument(MODULE_IDS.onboarding, () => ({
     ...DEFAULT_ONBOARDING_MODULE_SETTINGS,
-    eventTemplateIds: { ...DEFAULT_ONBOARDING_MODULE_SETTINGS.eventTemplateIds },
-    eventTypeSettings: emptyEventTypeSettings(),
   }))
   return {
     settings: normalizeOnboardingModuleSettings(loaded.document),
@@ -98,36 +106,13 @@ async function templateExists(templateId: string): Promise<boolean> {
   }
 }
 
-function parseEventTypeSettingsInput(
-  raw: Partial<Record<OnboardingEmailEventType, unknown>> | undefined,
-  current: Record<OnboardingEmailEventType, OnboardingEventTypeSettings>,
-): Record<OnboardingEmailEventType, OnboardingEventTypeSettings> {
-  const out = emptyEventTypeSettings()
-  for (const key of ONBOARDING_EMAIL_EVENT_TYPES) {
-    if (raw && raw[key] !== undefined) {
-      out[key] = normalizeEventTypeSettings(raw[key])
-    } else {
-      out[key] = {
-        formDefinitionId: current[key].formDefinitionId,
-        dateFieldNames: [...current[key].dateFieldNames],
-        activeStatusIds: [...current[key].activeStatusIds],
-        completedStatusIds: [...current[key].completedStatusIds],
-      }
-    }
-  }
-  return out
-}
-
 /**
- * Save invite + event-type template bindings and event-type Forms / status settings.
- * Empty template clears. Unknown Email Manager template ids are refused.
+ * Save the invite template id. Empty clears. Unknown Email Manager template ids are refused.
+ * Copies legacy event-type settings onto the catalog before replacing the document,
+ * so a save does not drop values that have not been seeded yet.
  */
 export async function saveOnboardingModuleSettings(
-  input: Partial<{
-    inviteTemplateId: unknown
-    eventTemplateIds: Partial<Record<OnboardingEmailEventType, unknown>>
-    eventTypeSettings: Partial<Record<OnboardingEmailEventType, unknown>>
-  }>,
+  input: Partial<{ inviteTemplateId: unknown }>,
 ): Promise<OnboardingSettingsMutationResult> {
   const current = await loadOnboardingModuleSettings()
 
@@ -144,40 +129,18 @@ export async function saveOnboardingModuleSettings(
   )
   if (!inviteChecked.ok) return inviteChecked
 
-  const eventTemplateIds = { ...current.settings.eventTemplateIds }
-  const eventInput = input.eventTemplateIds ?? {}
-  for (const key of ONBOARDING_EMAIL_EVENT_TYPES) {
-    const candidate = asTrimmed(
-      eventInput[key] !== undefined ? eventInput[key] : current.settings.eventTemplateIds[key],
-    )
-    if (!candidate) {
-      eventTemplateIds[key] = ''
-      continue
-    }
-    const exists = await templateExists(candidate)
-    const checked = validateEmailTemplateBinding(candidate, () => exists, `${key} template`)
-    if (!checked.ok) return checked
-    eventTemplateIds[key] = checked.value
+  let seeded = false
+  try {
+    const { ensureSeededEventTypes } = await import('./event-type-store')
+    await ensureSeededEventTypes()
+    seeded = true
+  } catch {
+    seeded = false
   }
 
-  const eventTypeSettings = parseEventTypeSettingsInput(
-    input.eventTypeSettings,
-    current.settings.eventTypeSettings,
-  )
-
-  const next: OnboardingModuleSettings = {
-    inviteTemplateId: inviteChecked.value,
-    eventTemplateIds,
-    eventTypeSettings,
-  }
-  await saveModuleSettingsDocument(MODULE_IDS.onboarding, {
-    ...next,
-    eventTemplateIds: { ...next.eventTemplateIds },
-    eventTypeSettings: {
-      ridealong: { ...next.eventTypeSettings.ridealong },
-      testday: { ...next.eventTypeSettings.testday },
-      trialday: { ...next.eventTypeSettings.trialday },
-    },
-  })
+  const loaded = await loadModuleSettingsDocument(MODULE_IDS.onboarding, () => ({}))
+  const next: OnboardingModuleSettings = { inviteTemplateId: inviteChecked.value }
+  const document = seeded ? next : { ...loaded.document, ...next }
+  await saveModuleSettingsDocument(MODULE_IDS.onboarding, document)
   return { ok: true, settings: next }
 }

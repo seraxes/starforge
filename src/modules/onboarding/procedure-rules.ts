@@ -54,11 +54,15 @@ export function isOnboardingMailChannel(value: unknown): value is OnboardingMail
   )
 }
 
-export function outcomesForEventKind(kind: OnboardingEventKind): readonly string[] {
-  return OUTCOMES_BY_KIND[kind]
+/** Outcomes for a catalog key. Seeded kinds keep their lists. Any other key uses the shared set. */
+const CUSTOM_EVENT_OUTCOMES = ['email_sent', 'completed', 'no_show', 'passed', 'failed'] as const
+
+export function outcomesForEventKind(kind: string): readonly string[] {
+  if (isOnboardingEventKind(kind)) return OUTCOMES_BY_KIND[kind]
+  return CUSTOM_EVENT_OUTCOMES
 }
 
-export function isOutcomeAllowedForKind(kind: OnboardingEventKind, outcome: string): boolean {
+export function isOutcomeAllowedForKind(kind: string, outcome: string): boolean {
   const trimmed = outcome.trim()
   if (!trimmed) return false
   return outcomesForEventKind(kind).includes(trimmed)
@@ -90,7 +94,7 @@ export type EventFieldInput = {
 }
 
 export type EventFieldValues = {
-  kind: OnboardingEventKind
+  kind: string
   location: string
   address: string
   eventDate: string
@@ -126,9 +130,15 @@ function asStringList(raw: unknown): string[] {
 export function validateEventFields(
   input: EventFieldInput,
   defaults?: Partial<EventFieldValues>,
+  options?: { allowedKinds?: readonly string[] },
 ): { ok: true; values: EventFieldValues } | { ok: false; error: string } {
   const kindRaw = asTrimmed(input.kind ?? defaults?.kind ?? '')
-  if (!isOnboardingEventKind(kindRaw)) {
+  const allowed = options?.allowedKinds?.map((kind) => kind.trim()).filter(Boolean)
+  if (allowed) {
+    if (!kindRaw || !allowed.includes(kindRaw)) {
+      return { ok: false, error: 'Event kind must be an enabled event type.' }
+    }
+  } else if (!isOnboardingEventKind(kindRaw)) {
     return { ok: false, error: 'Event kind is required (ridealong, trialday, testday, or trainingday).' }
   }
 

@@ -60,6 +60,13 @@ export {
 } from './event-type-settings-rules'
 export type { OnboardingEventTypeSettings } from './event-type-settings-rules'
 export {
+  SEEDED_ONBOARDING_EVENT_TYPES,
+  eventTypesForExistingCard,
+  eventTypesForNewCard,
+  planDeleteEventType,
+  validateEventTypeFields,
+} from './event-type-catalog-rules'
+export {
   SEEDED_ONBOARDING_TAGS,
   statusIdAfterTagSave,
   validateFollowUpTagIds,
@@ -79,6 +86,7 @@ export type {
 export type {
   OnboardingDocumentSlotRecord,
   OnboardingEventRecord,
+  OnboardingEventTypeRecord,
   OnboardingIdentityFacts,
   OnboardingMailLogRecord,
   OnboardingModuleSettings,

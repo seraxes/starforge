@@ -7,7 +7,6 @@ import {
   ONBOARDING_EMAIL_EVENT_TYPES,
   type OnboardingEmailEventType,
 } from './email-binding-rules'
-import type { OnboardingEventKind } from './procedure-rules'
 
 export type OnboardingEventTypeSettings = {
   /** Forms definition id (plain text). Empty = unbound. */
@@ -128,30 +127,38 @@ export type OpenEventForOutcome = {
   outcome: string
 }
 
+export type CompletedStatusEventType = {
+  key: string
+  completedStatusIds: readonly string[]
+}
+
 /**
  * When the person moves onto `newStatusId`, which open events should become `passed`.
+ * Walks every catalog type, not a fixed list of three.
  * Never plans failed or no_show. Does not change the person’s status.
  */
 export function planPassedOutcomesForCompletedStatus(input: {
   newStatusId: string
-  eventTypeSettings: Record<OnboardingEmailEventType, Pick<OnboardingEventTypeSettings, 'completedStatusIds'>>
+  eventTypes: readonly CompletedStatusEventType[]
   openEvents: OpenEventForOutcome[]
 }): {
   eventIds: string[]
   /** Always passed — never failed or no_show. */
   outcome: 'passed'
-  kinds: OnboardingEmailEventType[]
+  kinds: string[]
 } {
   const statusId = asTrimmed(input.newStatusId)
-  const kinds: OnboardingEmailEventType[] = []
+  const kinds: string[] = []
   if (!statusId) {
     return { eventIds: [], outcome: 'passed', kinds }
   }
 
-  for (const kind of ONBOARDING_EMAIL_EVENT_TYPES) {
-    const completed = input.eventTypeSettings[kind]?.completedStatusIds ?? []
+  for (const row of input.eventTypes) {
+    const key = asTrimmed(row.key)
+    if (!key) continue
+    const completed = row.completedStatusIds ?? []
     if (completed.some((id) => asTrimmed(id) === statusId)) {
-      kinds.push(kind)
+      kinds.push(key)
     }
   }
 
@@ -175,18 +182,4 @@ export function depotsAsStationCatalog(
     id: depot.id,
     label: depot.name.trim() || depot.id,
   }))
-}
-
-export function eventTypeKindIsConfigurable(
-  kind: string,
-): kind is OnboardingEmailEventType {
-  return (ONBOARDING_EMAIL_EVENT_TYPES as readonly string[]).includes(kind)
-}
-
-/** Event kinds that share the configured types (excludes trainingday). */
-export function configurableKindsFromEventKind(
-  kind: OnboardingEventKind,
-): OnboardingEmailEventType | null {
-  if (eventTypeKindIsConfigurable(kind)) return kind
-  return null
 }

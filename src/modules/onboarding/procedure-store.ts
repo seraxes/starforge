@@ -11,15 +11,14 @@ import { randomUUID } from 'node:crypto'
 import { db } from '@/core/db'
 import { sfUsers } from '@/core/db/schema'
 
+import { eventTypesForExistingCard, eventTypesForNewCard } from './event-type-catalog-rules'
 import {
-  isOnboardingEventKind,
   isOnboardingMailChannel,
   isOnboardingMeetingMode,
   isOutcomeAllowedForKind,
   statusIdAfterEventOutcome,
   validateEventFields,
   type EventFieldInput,
-  type OnboardingEventKind,
   type OnboardingMailChannel,
   type OnboardingMeetingMode,
 } from './procedure-rules'
@@ -56,7 +55,7 @@ function asStringList(raw: unknown): string[] {
 }
 
 function mapEvent(row: typeof sfOnboardingEvents.$inferSelect): OnboardingEventRecord {
-  const kind = isOnboardingEventKind(row.kind) ? row.kind : 'ridealong'
+  const kind = (row.kind ?? '').trim()
   const meetingMode: OnboardingMeetingMode = isOnboardingMeetingMode(row.meetingMode)
     ? row.meetingMode
     : 'onsite'
@@ -164,13 +163,42 @@ export type EventMutationResult =
   | { ok: true; event: OnboardingEventRecord }
   | { ok: false; error: string }
 
+async function allowedKindsForCreate(): Promise<
+  { ok: true; kinds: string[] } | { ok: false; error: string }
+> {
+  try {
+    const { ensureSeededEventTypes } = await import('./event-type-store')
+    const types = await ensureSeededEventTypes()
+    return { ok: true, kinds: eventTypesForNewCard(types).map((row) => row.key) }
+  } catch {
+    return { ok: false, error: 'Event type catalog is unavailable. Run db:migrate.' }
+  }
+}
+
+async function allowedKindsForUpdate(
+  currentKind: string,
+): Promise<{ ok: true; kinds: string[] } | { ok: false; error: string }> {
+  try {
+    const { ensureSeededEventTypes } = await import('./event-type-store')
+    const types = await ensureSeededEventTypes()
+    const kinds = eventTypesForExistingCard(types, currentKind).map((row) => row.key)
+    const current = currentKind.trim()
+    if (current && !kinds.includes(current)) kinds.push(current)
+    return { ok: true, kinds }
+  } catch {
+    return { ok: false, error: 'Event type catalog is unavailable. Run db:migrate.' }
+  }
+}
+
 export async function createEvent(
   userId: string,
   input: EventFieldInput,
 ): Promise<EventMutationResult> {
   const uid = userId.trim()
   if (!uid) return { ok: false, error: 'User id is required.' }
-  const parsed = validateEventFields(input)
+  const allowed = await allowedKindsForCreate()
+  if (!allowed.ok) return allowed
+  const parsed = validateEventFields(input, undefined, { allowedKinds: allowed.kinds })
   if (!parsed.ok) return parsed
 
   const id = newId('onb_event')
@@ -206,7 +234,9 @@ export async function updateEvent(
   const existing = await getEventById(id)
   if (!existing) return { ok: false, error: 'Event not found.' }
 
-  const parsed = validateEventFields(input, existing)
+  const allowed = await allowedKindsForUpdate(existing.kind)
+  if (!allowed.ok) return allowed
+  const parsed = validateEventFields(input, existing, { allowedKinds: allowed.kinds })
   if (!parsed.ok) return parsed
 
   await db
@@ -233,6 +263,18 @@ export async function updateEvent(
   const saved = await getEventById(id)
   if (!saved) return { ok: false, error: 'Failed to update event.' }
   return { ok: true, event: saved }
+}
+
+/** Delete one person card. Does not delete the event type. */
+export async function deleteEvent(
+  eventId: string,
+): Promise<{ ok: true; userId: string } | { ok: false; error: string }> {
+  const id = eventId.trim()
+  if (!id) return { ok: false, error: 'Missing event id.' }
+  const existing = await getEventById(id)
+  if (!existing) return { ok: false, error: 'Event not found.' }
+  await db.delete(sfOnboardingEvents).where(eq(sfOnboardingEvents.id, id))
+  return { ok: true, userId: existing.userId }
 }
 
 export type SetOutcomeResult =
@@ -262,14 +304,17 @@ export async function applyCompletedStatusPassedOutcomes(
   const statusId = newStatusId.trim()
   if (!id || !statusId) return { eventIds: [], outcome: 'passed' }
 
-  const { loadOnboardingModuleSettings } = await import('./settings')
   const { planPassedOutcomesForCompletedStatus } = await import('./event-type-settings-rules')
+  const { ensureSeededEventTypes } = await import('./event-type-store')
 
-  const loaded = await loadOnboardingModuleSettings()
+  const types = await ensureSeededEventTypes()
   const events = await listEventsForUser(id)
   const plan = planPassedOutcomesForCompletedStatus({
     newStatusId: statusId,
-    eventTypeSettings: loaded.settings.eventTypeSettings,
+    eventTypes: types.map((row) => ({
+      key: row.key,
+      completedStatusIds: row.completedStatusIds,
+    })),
     openEvents: events.map((event) => ({
       id: event.id,
       kind: event.kind,
@@ -710,4 +755,3 @@ export async function getPersonCard(userId: string): Promise<{
   }
 }
 
-export type { OnboardingEventKind }

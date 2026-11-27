@@ -9,6 +9,7 @@ import {
   createOnboardingCallAction,
   createOnboardingEventAction,
   createOnboardingNoteAction,
+  deleteOnboardingEventAction,
   saveOnboardingFollowUpAction,
   saveOnboardingValidUntilAction,
   setOnboardingEventOutcomeAction,
@@ -17,7 +18,8 @@ import {
   updateOnboardingPersonStatusAction,
   type OnboardingAdminActionState,
 } from '../actions'
-import { ONBOARDING_EVENT_KINDS, type OnboardingEventKind } from '../procedure-rules'
+import { eventTypesForExistingCard, eventTypesForNewCard } from '../event-type-catalog-rules'
+import { outcomesForEventKind } from '../procedure-rules'
 import {
   ONBOARDING_DOCUMENT_KIND_LABELS,
   ONBOARDING_DOCUMENT_KINDS,
@@ -27,9 +29,11 @@ import {
 
 const initial: OnboardingAdminActionState = {}
 
+type KindOption = { key: string; label: string; enabled: boolean }
+
 type EventRow = {
   id: string
-  kind: OnboardingEventKind
+  kind: string
   location: string
   address: string
   eventDate: string
@@ -83,7 +87,7 @@ type Props = {
   calls: CallRow[]
   mailLogs: MailRow[]
   documentSlots: DocumentSlotRow[]
-  outcomeOptions: Record<OnboardingEventKind, string[]>
+  kindOptions: KindOption[]
 }
 
 function Feedback({ state }: { state: OnboardingAdminActionState }) {
@@ -107,21 +111,33 @@ function Feedback({ state }: { state: OnboardingAdminActionState }) {
 function EventCard({
   userId,
   event,
-  outcomes,
+  kindOptions,
 }: {
   userId: string
   event?: EventRow
-  outcomes: string[]
+  kindOptions: KindOption[]
 }) {
   const router = useRouter()
   const isNew = !event
   const saveAction = isNew ? createOnboardingEventAction : updateOnboardingEventAction
   const [state, action, pending] = useActionState(saveAction, initial)
+  const [deleteState, deleteAction, deletePending] = useActionState(
+    deleteOnboardingEventAction,
+    initial,
+  )
   const [outcomeState, outcomeAction, outcomePending] = useActionState(
     setOnboardingEventOutcomeAction,
     initial,
   )
-  const [kind, setKind] = useState(event?.kind ?? 'ridealong')
+  const choices = event
+    ? eventTypesForExistingCard(kindOptions, event.kind)
+    : eventTypesForNewCard(kindOptions)
+  const kindChoices =
+    event && event.kind && !choices.some((row) => row.key === event.kind)
+      ? [...choices, { key: event.kind, label: event.kind, enabled: false }]
+      : choices
+  const choiceSignature = kindChoices.map((row) => `${row.key}:${row.enabled ? 1 : 0}`).join('|')
+  const [kind, setKind] = useState(event?.kind ?? kindChoices[0]?.key ?? '')
   const [meetingMode, setMeetingMode] = useState(event?.meetingMode ?? 'onsite')
   const [applicantResponse, setApplicantResponse] = useState(event?.applicantResponse ?? '')
   const [alsoTrial, setAlsoTrial] = useState(event?.alsoTrial === true)
@@ -129,25 +145,25 @@ function EventCard({
   const [outcome, setOutcome] = useState(event?.outcome ?? '')
 
   useNotifySavedOnOk(state)
+  useNotifySavedOnOk(deleteState)
   useNotifySavedOnOk(outcomeState)
   useEffect(() => {
-    if (state.ok || outcomeState.ok) router.refresh()
-  }, [state.ok, outcomeState.ok, router])
+    if (state.ok || deleteState.ok || outcomeState.ok) router.refresh()
+  }, [state.ok, deleteState.ok, outcomeState.ok, router])
 
   useEffect(() => {
-    setKind(event?.kind ?? 'ridealong')
+    const first = choiceSignature.split('|')[0]?.split(':')[0] ?? ''
+    setKind(event?.kind || first)
     setMeetingMode(event?.meetingMode ?? 'onsite')
     setApplicantResponse(event?.applicantResponse ?? '')
     setAlsoTrial(event?.alsoTrial === true)
     setDueNotice(event?.dueNotice === true)
     setOutcome(event?.outcome ?? '')
-  }, [event])
+  }, [event, choiceSignature])
 
   const formId = event ? `sf-onboarding-event-${event.id}` : 'sf-onboarding-event-new'
-  const busy = pending || outcomePending
-  const kindOutcomes = outcomes.length
-    ? outcomes
-    : (['email_sent'] as string[])
+  const busy = pending || deletePending || outcomePending
+  const kindOutcomes = [...outcomesForEventKind(kind)]
 
   return (
     <div className="page-settings-panel">
@@ -164,11 +180,13 @@ function EventCard({
               name="kind"
               value={kind}
               disabled={busy}
-              onChange={(e) => setKind(e.target.value as OnboardingEventKind)}
+              onChange={(e) => setKind(e.target.value)}
             >
-              {ONBOARDING_EVENT_KINDS.map((k) => (
-                <option key={k} value={k}>
-                  {k}
+              {kindChoices.length === 0 ? <option value="">No enabled event types</option> : null}
+              {kindChoices.map((row) => (
+                <option key={row.key} value={row.key}>
+                  {row.label || row.key}
+                  {row.enabled ? '' : ' (inactive)'}
                 </option>
               ))}
             </select>
@@ -302,12 +320,26 @@ function EventCard({
           </label>
         </form>
         <Feedback state={state} />
+        <Feedback state={deleteState} />
         <div className="page-settings-actions admin-action-row">
+          {event ? (
+            <form action={deleteAction}>
+              <input type="hidden" name="eventId" value={event.id} />
+              <input type="hidden" name="userId" value={userId} />
+              <button
+                type="submit"
+                className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+                disabled={busy}
+              >
+                {deletePending ? 'Deleting…' : 'Delete'}
+              </button>
+            </form>
+          ) : null}
           <button
             type="submit"
             form={formId}
             className="gantry-toolbar-btn gantry-toolbar-btn-save"
-            disabled={busy}
+            disabled={busy || !kind}
           >
             {pending ? 'Saving…' : isNew ? 'Create event' : 'Save event'}
           </button>
@@ -545,7 +577,7 @@ export function PersonManager({
   calls,
   mailLogs,
   documentSlots,
-  outcomeOptions,
+  kindOptions,
 }: Props) {
   const router = useRouter()
   const [noteState, noteAction, notePending] = useActionState(createOnboardingNoteAction, initial)
@@ -598,10 +630,7 @@ export function PersonManager({
           </div>
           <div className="page-settings-panel-body">
             {addEventOpen ? (
-              <EventCard
-                userId={userId}
-                outcomes={outcomeOptions.ridealong}
-              />
+              <EventCard userId={userId} kindOptions={kindOptions} />
             ) : null}
             {events.length === 0 && !addEventOpen ? (
               <p className="settings-hint">No events yet.</p>
@@ -611,7 +640,7 @@ export function PersonManager({
                 key={event.id}
                 userId={userId}
                 event={event}
-                outcomes={outcomeOptions[event.kind] ?? ['email_sent']}
+                kindOptions={kindOptions}
               />
             ))}
           </div>

@@ -505,6 +505,41 @@
       "when": 1795812000000,
       "tag": "0072_onboarding_staff_tags",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1795813000000,
+      "tag": "0073_onboarding_event_type_catalog",
+      "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1795814000000,
+      "tag": "0074_onboarding_dashboard_tiles",
+      "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1795822000000,
+      "tag": "0075_documents_links",
+      "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1795823000000,
+      "tag": "0076_documents_templates",
+      "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1795824000000,
+      "tag": "0077_documents_signing",
+      "breakpoints": true
     }
   ]
 }

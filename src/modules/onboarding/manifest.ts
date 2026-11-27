@@ -1,8 +1,7 @@
 import { defineStarforgeModule } from '@/core/modules/define-module'
 
 /**
- * product:onboarding — slice 8: email binding (reminder / invite / event-type template ids).
- * Documents bridge is a later slice.
+ * product:onboarding — slice 6: Documents bridge for training PDF render.
  * `optionalRequires: product:fleet` waits until that manifest exists
  * (unknown optional ids fail modules:generate).
  * Plan: docs/project-context/docs/onboarding-build-spec.md
@@ -13,8 +12,8 @@ export default defineStarforgeModule({
   layer: 'advanced',
   label: 'Onboarding',
   description:
-    'Recruiting workflow from invite until an active driver. Email Manager template bindings for reminders, invite, and event confirms. Default off until a PrimeOne site turns it on.',
-  version: '0.8.0',
+    'Recruiting workflow from invite until an active driver. Driver-home particle shows status message, action chip, and dashboard tiles. Default off until a PrimeOne site turns it on.',
+  version: '0.13.0',
   defaultEnabled: false,
   requires: [
     'product:forms',
@@ -22,7 +21,10 @@ export default defineStarforgeModule({
     'product:email-manager',
     'product:profiles',
   ],
+  optionalRequires: ['product:documents'],
   navViews: [
+    { key: 'apply', label: 'Apply', href: '/onboarding/apply' },
+    { key: 'home', label: 'My onboarding', href: '/account/onboarding' },
     { key: 'admin', label: 'Onboarding', href: '/admin/onboarding' },
     { key: 'workers', label: 'People', href: '/admin/onboarding' },
     { key: 'statuses', label: 'Statuses', href: '/admin/onboarding/statuses' },
@@ -100,6 +102,18 @@ export default defineStarforgeModule({
   doors: [
     { id: 'onboarding-api', importPath: '@/modules/onboarding/api' },
     { id: 'onboarding-api-server', importPath: '@/modules/onboarding/api.server' },
+  ],
+  publicRoutes: [
+    {
+      path: 'onboarding/apply',
+      pageImportPath: '@/modules/onboarding/public/OnboardingApplyPage',
+      reexport: ['generateMetadata'],
+    },
+    {
+      path: 'account/onboarding',
+      pageImportPath: '@/modules/onboarding/public/AccountOnboardingPage',
+      reexport: ['metadata'],
+    },
   ],
   db: { schema: 'src/modules/onboarding/schema.ts' },
 })

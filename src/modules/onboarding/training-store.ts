@@ -10,6 +10,7 @@ import { randomUUID } from 'node:crypto'
 
 import { db } from '@/core/db'
 import { ingestImageUpload } from '@/core/media/ingest'
+import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
 import {
   sfOnboardingIdentityFacts,
@@ -21,6 +22,11 @@ import {
   sfOnboardingTrainingSaveLogs,
 } from './schema'
 import { getIdentityFacts } from './store'
+import {
+  resolveTrainingReportMediaId,
+  type TrainingDocumentsRenderDoorResult,
+  type TrainingDocumentsRenderInput,
+} from './training-documents-bridge'
 import { renderTrainingReportPdf } from './training-pdf'
 import {
   emptyTrainingChecklist,
@@ -214,7 +220,38 @@ async function readStatusId(userId: string): Promise<string> {
   return (facts?.statusId ?? '').trim()
 }
 
-async function storeReportPdf(
+/**
+ * Advanced must not static-import advanced — load Documents through the Core
+ * door slot (`loadModuleDoor('documents-api-server')` → api.server
+ * `renderDocumentTemplate`). Same pattern as Marketplace → Social share.
+ */
+type DocumentsRenderDoor = {
+  renderDocumentTemplate: (
+    input: TrainingDocumentsRenderInput,
+  ) => Promise<TrainingDocumentsRenderDoorResult>
+}
+
+async function loadDocumentsRenderDoor(): Promise<DocumentsRenderDoor | null> {
+  try {
+    const { loadModuleDoor } = await import('@/generated/module-registry.server')
+    const door = await loadModuleDoor('documents-api-server')
+    if (!door || typeof door.renderDocumentTemplate !== 'function') return null
+    return door as unknown as DocumentsRenderDoor
+  } catch {
+    return null
+  }
+}
+
+async function renderViaDocumentsDoor(
+  args: TrainingDocumentsRenderInput,
+): Promise<TrainingDocumentsRenderDoorResult> {
+  const door = await loadDocumentsRenderDoor()
+  if (!door) return { ok: false, reason: 'disabled' }
+  return door.renderDocumentTemplate(args)
+}
+
+/** Pack-local PDF bytes → Media. Used when Documents is off. */
+async function storePackLocalReportPdf(
   report: OnboardingTrainingReportRecord,
 ): Promise<string> {
   const bytes = renderTrainingReportPdf(report, report.checklist)
@@ -232,6 +269,35 @@ async function storeReportPdf(
     resize: false,
   })
   return saved.id
+}
+
+/**
+ * Documents on → renderDocumentTemplate; off → pack-local PDF.
+ * Authz disabled while Documents is on → leave mediaId unchanged (null).
+ */
+async function resolveReportPdfMediaId(
+  report: OnboardingTrainingReportRecord,
+  opts: { authorized: boolean; createdBy: string },
+): Promise<string | null> {
+  const settings = await getSiteSettings()
+  const documentsEnabled = isCatalogModuleEnabled(settings, MODULE_IDS.documents)
+
+  const resolved = await resolveTrainingReportMediaId(
+    { documentsEnabled },
+    {
+      report,
+      authorized: opts.authorized,
+      createdBy: opts.createdBy,
+      title: 'Training report',
+    },
+    {
+      renderViaDocuments: renderViaDocumentsDoor,
+      renderPackLocal: async () => storePackLocalReportPdf(report),
+    },
+  )
+
+  if (resolved.action === 'leave_unchanged') return null
+  return resolved.mediaId
 }
 
 export async function listTrainingReports(filter?: {
@@ -381,10 +447,16 @@ export async function getLatestTrainingResult(userId: string): Promise<{
 /**
  * Save (create or update) a training report.
  * On checklist pass → dated qualification (idempotent by source). Status unchanged.
- * Writes a save log. Renders PDF into Media and stores mediaId.
+ * Writes a save log. Renders PDF (Documents door when on, else pack-local) and stores mediaId.
+ * `documentsAuthorized` defaults true for staff saves; false → Documents door disabled,
+ * report mediaId left unchanged, no pack-local PDF.
  */
 export async function saveTrainingReport(
-  input: TrainingReportFieldInput & { id?: unknown; actorUserId?: unknown },
+  input: TrainingReportFieldInput & {
+    id?: unknown
+    actorUserId?: unknown
+    documentsAuthorized?: unknown
+  },
 ): Promise<
   | {
       ok: true
@@ -501,13 +573,23 @@ export async function saveTrainingReport(
   let report = await getTrainingReportById(id)
   if (!report) return { ok: false, error: 'Training report save failed.' }
 
+  const documentsAuthorized =
+    input.documentsAuthorized === undefined
+      ? true
+      : input.documentsAuthorized === true || input.documentsAuthorized === '1'
+
   try {
-    const mediaId = await storeReportPdf(report)
-    await db
-      .update(sfOnboardingTrainingReports)
-      .set({ mediaId })
-      .where(eq(sfOnboardingTrainingReports.id, id))
-    report = (await getTrainingReportById(id)) ?? { ...report, mediaId }
+    const mediaId = await resolveReportPdfMediaId(report, {
+      authorized: documentsAuthorized,
+      createdBy: actorUserId,
+    })
+    if (mediaId != null) {
+      await db
+        .update(sfOnboardingTrainingReports)
+        .set({ mediaId })
+        .where(eq(sfOnboardingTrainingReports.id, id))
+      report = (await getTrainingReportById(id)) ?? { ...report, mediaId }
+    }
   } catch (err) {
     console.error('[onboarding] training PDF media store failed', err)
   }

@@ -9,6 +9,15 @@ import {
   validateDepotFields,
 } from './event-type-settings-rules'
 
+function eventTypesFrom(
+  settings: Record<string, { completedStatusIds: string[] }>,
+): Array<{ key: string; completedStatusIds: string[] }> {
+  return Object.entries(settings).map(([key, row]) => ({
+    key,
+    completedStatusIds: row.completedStatusIds,
+  }))
+}
+
 const emptySettings = {
   ridealong: { ...DEFAULT_EVENT_TYPE_SETTINGS, completedStatusIds: [] as string[] },
   testday: { ...DEFAULT_EVENT_TYPE_SETTINGS, completedStatusIds: [] as string[] },
@@ -43,7 +52,7 @@ describe('onboarding completed status → passed outcome', () => {
     }
     const plan = planPassedOutcomesForCompletedStatus({
       newStatusId: 'status_exam_done',
-      eventTypeSettings: settings,
+      eventTypes: eventTypesFrom(settings),
       openEvents: [
         { id: 'evt_open', kind: 'testday', outcome: '' },
         { id: 'evt_other', kind: 'ridealong', outcome: '' },
@@ -68,7 +77,7 @@ describe('onboarding completed status → passed outcome', () => {
     }
     const plan = planPassedOutcomesForCompletedStatus({
       newStatusId: 'status_exam_done',
-      eventTypeSettings: settings,
+      eventTypes: eventTypesFrom(settings),
       openEvents: [
         { id: 'evt_a', kind: 'testday', outcome: 'email_sent' },
         { id: 'evt_b', kind: 'trialday', outcome: '' },
@@ -90,7 +99,7 @@ describe('onboarding completed status → passed outcome', () => {
     }
     const plan = planPassedOutcomesForCompletedStatus({
       newStatusId: 'status_exam_done',
-      eventTypeSettings: settings,
+      eventTypes: eventTypesFrom(settings),
       openEvents: [
         { id: 'evt_failed', kind: 'testday', outcome: 'failed' },
         { id: 'evt_noshow', kind: 'testday', outcome: 'no_show' },
@@ -111,7 +120,7 @@ describe('onboarding completed status → passed outcome', () => {
     }
     const plan = planPassedOutcomesForCompletedStatus({
       newStatusId: 'status_other',
-      eventTypeSettings: settings,
+      eventTypes: eventTypesFrom(settings),
       openEvents: [{ id: 'evt_open', kind: 'testday', outcome: '' }],
     })
     assert.deepEqual(plan.eventIds, [])

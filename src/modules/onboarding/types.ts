@@ -1,12 +1,6 @@
-/** product:onboarding domain records (slice 11 staff tags + earlier). */
+/** product:onboarding domain records (dashboard tiles + event-type catalog + staff tags + earlier). */
 
-import type { OnboardingEmailEventType } from './email-binding-rules'
-import type { OnboardingEventTypeSettings } from './event-type-settings-rules'
-import type {
-  OnboardingEventKind,
-  OnboardingMailChannel,
-  OnboardingMeetingMode,
-} from './procedure-rules'
+import type { OnboardingMailChannel, OnboardingMeetingMode } from './procedure-rules'
 import type { OnboardingStatusPhase } from './status-rules'
 import type {
   TrainerSlotKind,
@@ -18,8 +12,6 @@ import type {
 } from './training-rules'
 import type { OnboardingDocumentKind } from './valid-until-rules'
 
-export type { OnboardingEventTypeSettings }
-
 export type OnboardingStatusRecord = {
   id: string
   key: string
@@ -29,6 +21,11 @@ export type OnboardingStatusRecord = {
   displayLabel: string
   actionChip: string
   nextStepMessage: string
+  /**
+   * Optional Pages page id for a longer explanation above the driver-home particle.
+   * Pages owns the article. Empty = unbound.
+   */
+  pageId: string
   /** True when phase is active (or legacy flag). */
   bookable: boolean
   /** Forms definition id, or empty when the status has no intake. */
@@ -43,40 +40,50 @@ export type OnboardingStatusRecord = {
   updatedAt: Date
 }
 
+/**
+ * Driver-home dashboard tile.
+ * Empty statusIds = every person who has a status. Unpublished and staff-only are filtered in the particle.
+ */
+export type OnboardingDashboardTileRecord = {
+  id: string
+  title: string
+  icon: string
+  url: string
+  sortOrder: number
+  published: boolean
+  statusIds: string[]
+  staffOnly: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+
 /** Module settings document in `sf_module_settings` (id = product:onboarding). */
 export type OnboardingModuleSettings = {
   /** New-driver invite Email Manager template id. Empty = unbound. */
   inviteTemplateId: string
-  /** Confirmation template id per event type. Empty = unbound. */
-  eventTemplateIds: Record<OnboardingEmailEventType, string>
-  /**
-   * Per event type: Forms definition id, date field name(s), active / completed status ids.
-   * Template ids stay in `eventTemplateIds`. Subject/body stay in Email Manager.
-   */
-  eventTypeSettings: Record<OnboardingEmailEventType, OnboardingEventTypeSettings>
-}
-
-function defaultEventTypeSettings(): OnboardingEventTypeSettings {
-  return {
-    formDefinitionId: '',
-    dateFieldNames: [],
-    activeStatusIds: [],
-    completedStatusIds: [],
-  }
 }
 
 export const DEFAULT_ONBOARDING_MODULE_SETTINGS: OnboardingModuleSettings = {
   inviteTemplateId: '',
-  eventTemplateIds: {
-    ridealong: '',
-    testday: '',
-    trialday: '',
-  },
-  eventTypeSettings: {
-    ridealong: defaultEventTypeSettings(),
-    testday: defaultEventTypeSettings(),
-    trialday: defaultEventTypeSettings(),
-  },
+}
+
+/**
+ * Event-type catalog row. Person cards store `key`.
+ * Template id and Forms / status lists live here. Subject and body stay in Email Manager.
+ */
+export type OnboardingEventTypeRecord = {
+  id: string
+  key: string
+  label: string
+  enabled: boolean
+  templateId: string
+  formDefinitionId: string
+  dateFieldNames: string[]
+  activeStatusIds: string[]
+  completedStatusIds: string[]
+  sortOrder: number
+  createdAt: Date
+  updatedAt: Date
 }
 
 /** Depot row — catalog while Fleet is absent. */
@@ -134,7 +141,8 @@ export type OnboardingStationRecord = {
 export type OnboardingEventRecord = {
   id: string
   userId: string
-  kind: OnboardingEventKind
+  /** Catalog key. Kept even when that type is later deactivated. */
+  kind: string
   location: string
   address: string
   eventDate: string

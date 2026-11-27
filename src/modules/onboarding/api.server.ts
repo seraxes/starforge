@@ -272,7 +272,7 @@ export async function saveOnboardingValidUntilDoor(
   return runOnboardingDoor(onboardingEnabled, () => savePersonValidUntilDates(input))
 }
 
-/** Load Onboarding settings (invite + event-type templates + Forms / status lists). */
+/** Load Onboarding settings (invite template id). Event types live on the catalog. */
 export async function loadOnboardingSettingsDoor(): Promise<
   OnboardingDoorResult<OnboardingModuleSettings>
 > {
@@ -282,7 +282,7 @@ export async function loadOnboardingSettingsDoor(): Promise<
   })
 }
 
-/** Save invite + event-type template bindings and event-type settings. Empty clears; unknown ids refused. */
+/** Save the invite template id. Empty clears; unknown ids are refused. */
 export async function saveOnboardingSettingsDoor(
   input: Parameters<typeof saveOnboardingModuleSettings>[0],
 ): Promise<OnboardingDoorResult<Awaited<ReturnType<typeof saveOnboardingModuleSettings>>>> {

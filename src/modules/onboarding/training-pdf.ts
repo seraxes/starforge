@@ -1,6 +1,7 @@
 /**
- * Pack-local training-report PDF until product:documents exists.
+ * Pack-local training-report PDF while product:documents is off.
  * Produces PDF 1.4 bytes; callers store them via Media (`mediaId`).
+ * When Documents is on, training-store calls renderDocumentTemplate instead.
  */
 
 import type { TrainingChecklistSection } from './training-rules'

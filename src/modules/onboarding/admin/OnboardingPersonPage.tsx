@@ -4,7 +4,7 @@ import { notFound, redirect } from 'next/navigation'
 
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
-import { outcomesForEventKind } from '../procedure-rules'
+import { ensureSeededEventTypes, listEventTypes } from '../event-type-store'
 import { getPersonCard } from '../procedure-store'
 import { ensureSeededStatuses, listStatuses } from '../store'
 import { statusListLabel } from '../status-rules'
@@ -47,12 +47,15 @@ export default async function OnboardingPersonPage({ params }: { params: Params 
     fade: tag.fade,
   }))
 
-  const outcomeOptions = {
-    ridealong: [...outcomesForEventKind('ridealong')],
-    trialday: [...outcomesForEventKind('trialday')],
-    testday: [...outcomesForEventKind('testday')],
-    trainingday: [...outcomesForEventKind('trainingday')],
-  }
+  const eventTypes = await ensureSeededEventTypes().catch(() => listEventTypes().catch(() => []))
+  const kindOptions = eventTypes.map((row) => ({
+    key: row.key,
+    label: row.label,
+    enabled: row.enabled,
+  }))
+
+  const documentsEnabled = isCatalogModuleEnabled(settings, MODULE_IDS.documents)
+  const documentsHref = `/admin/documents?subjectKind=onboarding&subjectId=${encodeURIComponent(userId)}`
 
   return (
     <section className="admin-section admin-layouts-full">
@@ -65,6 +68,12 @@ export default async function OnboardingPersonPage({ params }: { params: Params 
         {card.worker.driverCode ? ` · code ${card.worker.driverCode}` : ''}
         {' · '}
         {card.worker.email}
+        {documentsEnabled ? (
+          <>
+            {' · '}
+            <Link href={documentsHref}>Documents</Link>
+          </>
+        ) : null}
       </p>
       <PersonManager
         userId={userId}
@@ -114,12 +123,12 @@ export default async function OnboardingPersonPage({ params }: { params: Params 
           toEmail: m.toEmail,
           sentAt: m.sentAt.toISOString(),
         }))}
+        kindOptions={kindOptions}
         documentSlots={card.documentSlots.map((s) => ({
           kind: s.kind,
           mediaId: s.mediaId,
           validUntil: s.validUntil,
         }))}
-        outcomeOptions={outcomeOptions}
       />
     </section>
   )

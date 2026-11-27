@@ -23,6 +23,7 @@ export type StatusFieldInput = {
   displayLabel?: unknown
   actionChip?: unknown
   nextStepMessage?: unknown
+  pageId?: unknown
   bookable?: unknown
   formDefinitionId?: unknown
   sortOrder?: unknown
@@ -35,6 +36,8 @@ export type StatusFieldValues = {
   displayLabel: string
   actionChip: string
   nextStepMessage: string
+  /** Optional Pages page id (plain text). Empty = unbound. */
+  pageId: string
   bookable: boolean
   formDefinitionId: string
   sortOrder: number
@@ -221,6 +224,9 @@ export function validateStatusFields(
       ? input.nextStepMessage
       : (existing?.nextStepMessage ?? ''),
   )
+  const pageId = asTrimmed(
+    input.pageId !== undefined ? input.pageId : (existing?.pageId ?? ''),
+  )
 
   // Phase owns bookable. Active → true.
   const bookable = bookableFromPhase(phase)
@@ -246,6 +252,7 @@ export function validateStatusFields(
       displayLabel: displayLabel || name,
       actionChip,
       nextStepMessage,
+      pageId,
       bookable,
       formDefinitionId,
       sortOrder: sortParsed.value,

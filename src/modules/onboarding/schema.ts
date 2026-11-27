@@ -2,15 +2,17 @@
  * product:onboarding tables (sf_onboarding_*).
  * Included via drizzle.config schema glob under src/modules.
  *
+ * Slice 12: dashboard tiles + optional status page id for the driver-home particle.
  * Slice 11: staff tag catalog (label, color, to-do, fade). Follow-up tags store catalog ids.
- * Slice 10: depots (short name + address while Fleet is off) + event-type settings
- * (Forms id, date field names, active/completed status ids) in module settings.
+ * Event-type catalog (`sf_onboarding_event_types`): key, label, enabled, template id,
+ * Forms definition id, date field names, active/completed status ids. Seeds are not the only types.
+ * Slice 10: depots (short name + address while Fleet is off).
  * Slice 8: email binding — reminder template id on recruiting statuses;
- * invite + event-type template ids live in module settings (sf_module_settings).
+ * invite template id lives in module settings. Event-type template ids live on the catalog.
  * Slice 7: status phase + driver-list copy (display label, action chip, next-step message).
  * Slice 5: document slots + valid-until on licence / health booklet / contract
  * (plus slice 4 training, slice 3 procedure / notes / invite, slice 2 statuses / facts).
- * Cross-pack ids (Core user, Forms definition, Fleet station, Media, Email templates) are plain text — no FKs.
+ * Cross-pack ids (Core user, Forms definition, Fleet station, Media, Email templates, Pages) are plain text — no FKs.
  */
 
 import {
@@ -39,10 +41,15 @@ export const sfOnboardingStatuses = pgTable(
     phase: text('phase').notNull().default('recruiting'),
     /** Label shown on the driver / people list. Empty → fall back to name. */
     displayLabel: text('display_label').notNull().default(''),
-    /** Short action text for the driver home (later particle). */
+    /** Short action text for the driver home particle. */
     actionChip: text('action_chip').notNull().default(''),
-    /** Next-step instruction for the driver home (later particle). */
+    /** Next-step instruction for the driver home particle. */
     nextStepMessage: text('next_step_message').notNull().default(''),
+    /**
+     * Optional Pages page id for a longer explanation above the particle (plain text; no FK).
+     * Pages owns the article body. Empty = no linked page.
+     */
+    pageId: text('page_id').notNull().default(''),
     /** When true, the person is bookable without Fleet vehicle access. Synced from phase === active. */
     bookable: boolean('bookable').notNull().default(false),
     /** Optional Forms definition id (plain text). Empty = no intake (e.g. banned). */
@@ -114,7 +121,7 @@ export const sfOnboardingEvents = pgTable(
   {
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
-    /** ridealong | trialday | testday | trainingday */
+    /** Event-type catalog key (plain text; no FK). */
     kind: text('kind').notNull(),
     location: text('location').notNull().default(''),
     address: text('address').notNull().default(''),
@@ -454,6 +461,79 @@ export const sfOnboardingDepots = pgTable(
   (table) => [
     index('sf_onboarding_depots_sort_idx').on(table.sortOrder),
     index('sf_onboarding_depots_name_idx').on(table.name),
+  ],
+)
+
+/**
+ * Event-type catalog. Staff add, deactivate, and delete types.
+ * Person cards store `key` on `sf_onboarding_events.kind` (plain text; no FK).
+ * Seeds ridealong / testday / trialday / trainingday are examples, not a fixed set.
+ * Deactivate sets `enabled` false. Delete is refused while a person card uses the key.
+ */
+export const sfOnboardingEventTypes = pgTable(
+  'sf_onboarding_event_types',
+  {
+    id: text('id').primaryKey(),
+    /** Stable key stored on person-card events. Unique. */
+    key: text('key').notNull(),
+    /** Display label. Empty refused on write. */
+    label: text('label').notNull().default(''),
+    /** False hides the type from the new-event kind list. Existing cards keep it. */
+    enabled: boolean('enabled').notNull().default(true),
+    /** Email Manager confirmation template id (plain text; no FK). Empty = unbound. */
+    templateId: text('template_id').notNull().default(''),
+    /** Forms definition id (plain text; no FK). Empty = unbound. */
+    formDefinitionId: text('form_definition_id').notNull().default(''),
+    dateFieldNames: jsonb('date_field_names').$type<string[]>().notNull().default([]),
+    activeStatusIds: jsonb('active_status_ids').$type<string[]>().notNull().default([]),
+    completedStatusIds: jsonb('completed_status_ids').$type<string[]>().notNull().default([]),
+    sortOrder: integer('sort_order').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex('sf_onboarding_event_types_key_uidx').on(table.key),
+    index('sf_onboarding_event_types_sort_idx').on(table.sortOrder),
+    index('sf_onboarding_event_types_enabled_idx').on(table.enabled),
+  ],
+)
+
+/**
+ * Driver-home dashboard tile. Visibility is filtered by published, status ids,
+ * and staff-only. Empty statusIds = every person who has a status.
+ * Cross-pack page/status ids are plain text — no FKs.
+ */
+export const sfOnboardingDashboardTiles = pgTable(
+  'sf_onboarding_dashboard_tiles',
+  {
+    id: text('id').primaryKey(),
+    title: text('title').notNull().default(''),
+    /** Icon key or short class name (display hint). */
+    icon: text('icon').notNull().default(''),
+    /** Destination URL (absolute or site-relative). */
+    url: text('url').notNull().default(''),
+    sortOrder: integer('sort_order').notNull().default(0),
+    /** Unpublished tiles are hidden from the particle. */
+    published: boolean('published').notNull().default(true),
+    /**
+     * Status ids this tile is visible for (plain text; no FK).
+     * Empty list = every person who has a status.
+     */
+    statusIds: jsonb('status_ids').$type<string[]>().notNull().default([]),
+    /** When true, only Onboarding staff (or app admin) see the tile. */
+    staffOnly: boolean('staff_only').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('sf_onboarding_dashboard_tiles_sort_idx').on(table.sortOrder),
+    index('sf_onboarding_dashboard_tiles_published_idx').on(table.published),
   ],
 )
 

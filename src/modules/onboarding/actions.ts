@@ -5,15 +5,28 @@ import { revalidatePath } from '@/core/content/defer-revalidate'
 import { requireAdminArea } from '@/core/acl/access'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 
+import {
+  createDashboardTile,
+  deleteDashboardTile,
+  updateDashboardTile,
+} from './dashboard-tile-store'
+import { asDashboardTileStatusIdList } from './dashboard-tile-rules'
 import { createDepot, deleteDepot, updateDepot } from './depot-store'
+import {
+  createEventType,
+  deleteEventType,
+  setEventTypeEnabled,
+  updateEventType,
+} from './event-type-store'
+import { asEventTypeStringList } from './event-type-catalog-rules'
 import { createTag, deleteTag, updateTag } from './tag-store'
-import { ONBOARDING_EMAIL_EVENT_TYPES } from './email-binding-rules'
 import { seedOnboardingEmailStarters } from './email-starters'
 import { invitePersonWithRuntime } from './invite-runtime'
 import {
   createCall,
   createEvent,
   createNote,
+  deleteEvent,
   setEventOutcome,
   updateCall,
   updateEvent,
@@ -107,6 +120,7 @@ export async function createOnboardingStatusAction(
     displayLabel: formData.get('displayLabel'),
     actionChip: formData.get('actionChip'),
     nextStepMessage: formData.get('nextStepMessage'),
+    pageId: formData.get('pageId'),
     formDefinitionId: formData.get('formDefinitionId'),
     reminderTemplateId: formData.get('reminderTemplateId'),
     sortOrder: sortBlank ? nextSort : sortRaw,
@@ -133,6 +147,7 @@ export async function updateOnboardingStatusAction(
     displayLabel: formData.get('displayLabel'),
     actionChip: formData.get('actionChip'),
     nextStepMessage: formData.get('nextStepMessage'),
+    pageId: formData.get('pageId'),
     formDefinitionId: formData.get('formDefinitionId'),
     reminderTemplateId: formData.get('reminderTemplateId'),
     sortOrder: formData.get('sortOrder'),
@@ -196,40 +211,24 @@ export async function createOnboardingStatusFormAction(
   return { ok: true, formId: createdId, message: 'Form created.' }
 }
 
-function readStatusIdList(formData: FormData, name: string): string[] {
+function readIdList(formData: FormData, name: string): string[] {
   const all = formData.getAll(name).map((value) => String(value ?? '').trim()).filter(Boolean)
   if (all.length > 0) return all
-  const raw = String(formData.get(name) ?? '').trim()
-  if (!raw) return []
-  return raw
-    .split(/[\n,]/)
-    .map((part) => part.trim())
-    .filter(Boolean)
+  return asEventTypeStringList(formData.get(name))
 }
 
-function readEventTypeSettingsFromForm(formData: FormData) {
-  const eventTypeSettings: Record<
-    string,
-    {
-      formDefinitionId: string
-      dateFieldNames: string[]
-      activeStatusIds: string[]
-      completedStatusIds: string[]
-    }
-  > = {}
-  for (const kind of ONBOARDING_EMAIL_EVENT_TYPES) {
-    const dateRaw = String(formData.get(`eventDateFields_${kind}`) ?? '')
-    eventTypeSettings[kind] = {
-      formDefinitionId: String(formData.get(`eventFormDefinitionId_${kind}`) ?? ''),
-      dateFieldNames: dateRaw
-        .split(/[\n,]/)
-        .map((part) => part.trim())
-        .filter(Boolean),
-      activeStatusIds: readStatusIdList(formData, `eventActiveStatusIds_${kind}`),
-      completedStatusIds: readStatusIdList(formData, `eventCompletedStatusIds_${kind}`),
-    }
+function eventTypeInputFromForm(formData: FormData) {
+  return {
+    label: formData.get('label'),
+    key: formData.get('key'),
+    enabled: formData.get('enabled'),
+    templateId: formData.get('templateId'),
+    formDefinitionId: formData.get('formDefinitionId'),
+    dateFieldNames: formData.get('dateFieldNames'),
+    activeStatusIds: readIdList(formData, 'activeStatusIds'),
+    completedStatusIds: readIdList(formData, 'completedStatusIds'),
+    sortOrder: formData.get('sortOrder'),
   }
-  return eventTypeSettings
 }
 
 export async function saveOnboardingSettingsAction(
@@ -241,16 +240,72 @@ export async function saveOnboardingSettingsAction(
 
   const result = await saveOnboardingModuleSettings({
     inviteTemplateId: formData.get('inviteTemplateId'),
-    eventTemplateIds: {
-      ridealong: formData.get('eventTemplateId_ridealong'),
-      testday: formData.get('eventTemplateId_testday'),
-      trialday: formData.get('eventTemplateId_trialday'),
-    },
-    eventTypeSettings: readEventTypeSettingsFromForm(formData),
   })
   if (!result.ok) return { error: result.error }
   revalidateOnboardingAdmin()
   return { ok: true, message: 'Onboarding settings saved.' }
+}
+
+export async function createOnboardingEventTypeAction(
+  _prev: OnboardingAdminActionState,
+  formData: FormData,
+): Promise<OnboardingAdminActionState> {
+  const gate = await requireOnboardingAdmin()
+  if (gate.denied) return gate.denied
+
+  const result = await createEventType({
+    ...eventTypeInputFromForm(formData),
+    enabled: formData.get('enabled') ?? '1',
+  })
+  if (!result.ok) return { error: result.error }
+  revalidateOnboardingAdmin()
+  return { ok: true, message: 'Event type created.' }
+}
+
+export async function updateOnboardingEventTypeAction(
+  _prev: OnboardingAdminActionState,
+  formData: FormData,
+): Promise<OnboardingAdminActionState> {
+  const gate = await requireOnboardingAdmin()
+  if (gate.denied) return gate.denied
+
+  const id = String(formData.get('id') ?? '').trim()
+  if (!id) return { error: 'Missing event type id.' }
+  const result = await updateEventType(id, eventTypeInputFromForm(formData))
+  if (!result.ok) return { error: result.error }
+  revalidateOnboardingAdmin()
+  return { ok: true, message: 'Event type saved.' }
+}
+
+export async function setOnboardingEventTypeEnabledAction(
+  _prev: OnboardingAdminActionState,
+  formData: FormData,
+): Promise<OnboardingAdminActionState> {
+  const gate = await requireOnboardingAdmin()
+  if (gate.denied) return gate.denied
+
+  const id = String(formData.get('id') ?? '').trim()
+  if (!id) return { error: 'Missing event type id.' }
+  const enabled = String(formData.get('enabled') ?? '').trim() === '1'
+  const result = await setEventTypeEnabled(id, enabled)
+  if (!result.ok) return { error: result.error }
+  revalidateOnboardingAdmin()
+  return { ok: true, message: enabled ? 'Event type activated.' : 'Event type deactivated.' }
+}
+
+export async function deleteOnboardingEventTypeAction(
+  _prev: OnboardingAdminActionState,
+  formData: FormData,
+): Promise<OnboardingAdminActionState> {
+  const gate = await requireOnboardingAdmin()
+  if (gate.denied) return gate.denied
+
+  const id = String(formData.get('id') ?? '').trim()
+  if (!id) return { error: 'Missing event type id.' }
+  const result = await deleteEventType(id)
+  if (!result.ok) return { error: result.error }
+  revalidateOnboardingAdmin()
+  return { ok: true, message: 'Event type deleted.' }
 }
 
 export async function createOnboardingDepotAction(
@@ -359,6 +414,74 @@ export async function deleteOnboardingTagAction(
   return { ok: true, message: 'Tag deleted.' }
 }
 
+function readTileStatusIds(formData: FormData): string[] {
+  const all = formData
+    .getAll('statusIds')
+    .map((value) => String(value ?? '').trim())
+    .filter(Boolean)
+  if (all.length > 0) return asDashboardTileStatusIdList(all)
+  return asDashboardTileStatusIdList(formData.get('statusIds'))
+}
+
+export async function createOnboardingDashboardTileAction(
+  _prev: OnboardingAdminActionState,
+  formData: FormData,
+): Promise<OnboardingAdminActionState> {
+  const gate = await requireOnboardingAdmin()
+  if (gate.denied) return gate.denied
+
+  const result = await createDashboardTile({
+    title: formData.get('title'),
+    icon: formData.get('icon'),
+    url: formData.get('url'),
+    sortOrder: formData.get('sortOrder'),
+    published: formData.get('published'),
+    statusIds: readTileStatusIds(formData),
+    staffOnly: formData.get('staffOnly'),
+  })
+  if (!result.ok) return { error: result.error }
+  revalidateOnboardingAdmin()
+  return { ok: true, message: 'Tile created.' }
+}
+
+export async function updateOnboardingDashboardTileAction(
+  _prev: OnboardingAdminActionState,
+  formData: FormData,
+): Promise<OnboardingAdminActionState> {
+  const gate = await requireOnboardingAdmin()
+  if (gate.denied) return gate.denied
+
+  const id = String(formData.get('id') ?? '').trim()
+  if (!id) return { error: 'Missing tile id.' }
+  const result = await updateDashboardTile(id, {
+    title: formData.get('title'),
+    icon: formData.get('icon'),
+    url: formData.get('url'),
+    sortOrder: formData.get('sortOrder'),
+    published: formData.get('published'),
+    statusIds: readTileStatusIds(formData),
+    staffOnly: formData.get('staffOnly'),
+  })
+  if (!result.ok) return { error: result.error }
+  revalidateOnboardingAdmin()
+  return { ok: true, message: 'Tile saved.' }
+}
+
+export async function deleteOnboardingDashboardTileAction(
+  _prev: OnboardingAdminActionState,
+  formData: FormData,
+): Promise<OnboardingAdminActionState> {
+  const gate = await requireOnboardingAdmin()
+  if (gate.denied) return gate.denied
+
+  const id = String(formData.get('id') ?? '').trim()
+  if (!id) return { error: 'Missing tile id.' }
+  const result = await deleteDashboardTile(id)
+  if (!result.ok) return { error: result.error }
+  revalidateOnboardingAdmin()
+  return { ok: true, message: 'Tile deleted.' }
+}
+
 export async function updateOnboardingPersonStatusAction(
   _prev: OnboardingAdminActionState,
   formData: FormData,
@@ -408,6 +531,35 @@ export async function reorderOnboardingStatusesAction(
   if (!result.ok) return { error: result.error }
   revalidateOnboardingAdmin()
   return { ok: true, message: 'Status order saved.' }
+}
+
+/** Public applicant apply. Creates a Core user in recruiting and sends set-password mail. */
+export async function applyOnboardingAction(
+  _prev: OnboardingAdminActionState,
+  formData: FormData,
+): Promise<OnboardingAdminActionState> {
+  const settings = await getSiteSettings()
+  if (!isCatalogModuleEnabled(settings, MODULE_IDS.onboarding)) {
+    return { error: 'Onboarding is disabled.' }
+  }
+
+  const door = await invitePersonWithRuntime(
+    {
+      name: formData.get('name'),
+      email: formData.get('email'),
+      phone: formData.get('phone'),
+    },
+    { isEnabled: true },
+  )
+
+  if (!door.ok) return { error: 'Onboarding is disabled.' }
+  if (!door.value.ok) return { error: door.value.error }
+
+  return {
+    ok: true,
+    message: `Application started for ${door.value.name}. Check your email to set a password, then open My onboarding.`,
+    userId: door.value.userId,
+  }
 }
 
 export async function inviteOnboardingPersonAction(
@@ -503,6 +655,22 @@ export async function updateOnboardingEventAction(
   if (!result.ok) return { error: result.error }
   revalidateOnboardingAdmin(userId || result.event.userId)
   return { ok: true, message: 'Event saved.' }
+}
+
+export async function deleteOnboardingEventAction(
+  _prev: OnboardingAdminActionState,
+  formData: FormData,
+): Promise<OnboardingAdminActionState> {
+  const gate = await requireOnboardingAdmin()
+  if (gate.denied) return gate.denied
+
+  const eventId = String(formData.get('eventId') ?? '').trim()
+  const userId = String(formData.get('userId') ?? '').trim()
+  if (!eventId) return { error: 'Missing event id.' }
+  const result = await deleteEvent(eventId)
+  if (!result.ok) return { error: result.error }
+  revalidateOnboardingAdmin(userId || result.userId)
+  return { ok: true, message: 'Event deleted.' }
 }
 
 export async function setOnboardingEventOutcomeAction(

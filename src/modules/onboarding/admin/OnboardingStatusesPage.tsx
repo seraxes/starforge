@@ -54,6 +54,7 @@ export default async function OnboardingStatusesPage() {
     displayLabel: status.displayLabel,
     actionChip: status.actionChip,
     nextStepMessage: status.nextStepMessage,
+    pageId: status.pageId,
     bookable: status.bookable,
     formDefinitionId: status.formDefinitionId,
     reminderTemplateId: status.reminderTemplateId,
@@ -70,9 +71,10 @@ export default async function OnboardingStatusesPage() {
         {' · '}
         <strong>Add +</strong> · drag ▣ to reorder · Edit one status. Phase is recruiting, declined,
         inactive, active, or banned — active is bookable. Display label is what the people table
-        shows. Recruiting rows may bind a reminder{' '}
-        <Link href="/admin/email/templates">Email Manager</Link> template. Invite and event-type
-        templates: <Link href="/admin/onboarding/settings">Settings</Link>.
+        shows. Optional explanation page id for the driver home (Pages owns the article — paste the
+        id from <Link href="/admin/pages">Pages</Link>). Recruiting rows may bind a reminder{' '}
+        <Link href="/admin/email/templates">Email Manager</Link> template. Invite, event types, and
+        dashboard tiles: <Link href="/admin/onboarding/settings">Settings</Link>.
       </p>
       <StatusesManager
         statuses={rows}

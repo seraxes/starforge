@@ -70,7 +70,7 @@ async function createResetLink(email: string): Promise<string> {
 }
 
 function applicationFormLink(): string {
-  return `${appOrigin()}/account`
+  return `${appOrigin()}/account/onboarding`
 }
 
 async function emitOnboardingMail(input: {

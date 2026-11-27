@@ -4,7 +4,7 @@ last_verified: 2026-11-27
 ---
 # product:onboarding — build spec
 
-**Status:** Slices 1–5 and 7–11 are in tree. Next chat is slice 12 (driver-home particle) only. Slice 6 waits on Documents slice 3. `defaultEnabled: false`. Fleet and Documents stay parked. Live map: [architecture-current](./architecture-current.md).  
+**Status:** Slices 1–5 and 7–12 are in tree. Slice 6 waits on Documents slice 3. `defaultEnabled: false`. Fleet and Documents stay parked. Live map: [architecture-current](./architecture-current.md).  
 **Pack plan:** [onboarding-pack-plan](./onboarding-pack-plan.md). **Family order:** [primeone-pack-plans](./primeone-pack-plans.md) waves **1, 4, 5, 6**.  
 **Inventory:** [primeone-inventory-drivers](./primeone-inventory-drivers.md). **Coverage:** [primeone-coverage-plan](./primeone-coverage-plan.md).
 
@@ -51,7 +51,7 @@ Hard `requires`: Forms, Media, Email Manager, Profiles. `optionalRequires`: Flee
 | 9 | Email editor popup. Onboarding Edit opens the Email Manager template editor with `embed=1`. | 7 | Done. Empty template id is refused. Embed hides the admin shell. Save stays in Email Manager |
 | 10 | Event type settings and depots. Depot list while Fleet is off. Per type: Forms id, date field, active statuses, completed statuses. | 7 | Done. A completed status sets the outcome to passed. It does not set failed or no-show |
 | 11 | Staff tag catalog. Label, color, to-do, fade. | 7 | Done. Empty label refused. A tag does not change the person’s status |
-| 12 | Driver-home particle. Current status message, action chip, and tiles for that status. | 7 | A tile limited to one status is hidden on another status. An empty status list shows for every status |
+| 12 | Driver-home particle. Current status message, action chip, and tiles for that status. | 7 | Done. A tile limited to one status is hidden on another status. An empty status list shows for every status |
 
 ## Settings wave (slices 7–12)
 
@@ -63,7 +63,7 @@ Driver States in the live admin is this catalog. Adding a status is what makes t
 | Reminder | Template id on a recruiting status | Email Manager |
 | Status form | Forms definition id on the status | Forms |
 | New-driver invite | One template id in Onboarding settings | Email Manager |
-| Event type | Template id, Forms definition id, date field name, active status ids, completed status ids | Email body in Email Manager. Fields in Forms |
+| Event type | Catalog on `sf_onboarding_event_types`: key, label, enabled, template id, Forms definition id, date field names, active status ids, completed status ids. Seeds ridealong, testday, trialday, and trainingday start enabled. Staff can add more. Empty label and a duplicate key are refused. Deactivate hides the type from the new-event kind list. Delete is refused while a person card uses the key. | Email body in Email Manager. Fields in Forms |
 | Depots | Short name and address, used while Fleet is off | Onboarding |
 | Tags | Label, color, to-do, fade | Onboarding |
 | Dashboard tile | Title, icon, URL, order, published, status ids (empty = every status), staff-only flag | Onboarding particle |
@@ -193,7 +193,7 @@ Import submissions only after “latest submission per person per form, older ro
 | `#__primeone_driver_field_import` | Drop. |
 | `plg_system_primeone_usercontext` | Unknown (ops). Do not port until ops confirms a consumer. |
 | Package zips | Drop. |
-| Driver home tiles | Page config, not this pack’s store. See family wave 7. |
+| Driver home tiles | Done in slice 12 (`sf_onboarding_dashboard_tiles`). |
 | Ops analytics charts | Drop. Analytics is a page over existing rows (wave 7). |
 
 ## Related

@@ -173,28 +173,25 @@ export async function bindOnboardingEmailStarterDefaults(): Promise<{
     await ensureOnboardingEmailStartersSeeded()
 
     const loaded = await loadOnboardingModuleSettings()
-    const eventTemplateIds = { ...loaded.settings.eventTemplateIds }
     let inviteTemplateId = loaded.settings.inviteTemplateId
-    let settingsDirty = false
 
     if (!inviteTemplateId.trim()) {
       inviteTemplateId = ONBOARDING_STARTER_TEMPLATE_IDS.accountInvite
-      settingsDirty = true
+      const saved = await saveOnboardingModuleSettings({ inviteTemplateId })
+      if (!saved.ok) return { ok: false, bound, error: saved.error }
       bound.push('invite')
     }
+
+    const { ensureSeededEventTypes, updateEventType } = await import('./event-type-store')
+    const types = await ensureSeededEventTypes()
     for (const key of Object.keys(EVENT_STARTER_IDS) as OnboardingEmailEventType[]) {
-      if (!eventTemplateIds[key].trim()) {
-        eventTemplateIds[key] = EVENT_STARTER_IDS[key]
-        settingsDirty = true
-        bound.push(`event:${key}`)
-      }
-    }
-    if (settingsDirty) {
-      const saved = await saveOnboardingModuleSettings({
-        inviteTemplateId,
-        eventTemplateIds,
+      const row = types.find((type) => type.key === key)
+      if (!row || row.templateId.trim()) continue
+      const updated = await updateEventType(row.id, {
+        templateId: EVENT_STARTER_IDS[key],
       })
-      if (!saved.ok) return { ok: false, bound, error: saved.error }
+      if (!updated.ok) return { ok: false, bound, error: updated.error }
+      bound.push(`event:${key}`)
     }
 
     await ensureSeededStatuses()

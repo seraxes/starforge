@@ -16,10 +16,13 @@ import {
   updateOnboardingTagAction,
   type OnboardingAdminActionState,
 } from '../actions'
-import { ONBOARDING_EMAIL_EVENT_TYPES } from '../email-binding-rules'
-import type { OnboardingEventTypeSettings } from '../event-type-settings-rules'
 import type { OnboardingModuleSettings } from '../types'
+import {
+  DashboardTileManager,
+  type DashboardTileRow,
+} from './dashboard-tile-manager'
 import { EmailTemplateEditLink } from './email-template-edit-dialog'
+import { EventTypeManager, type EventTypeRow } from './event-type-manager'
 
 const initial: OnboardingAdminActionState = {}
 
@@ -43,12 +46,8 @@ type Props = {
   statusOptions: StatusOption[]
   depots: DepotRow[]
   tags: TagRow[]
-}
-
-const EVENT_TYPE_LABELS: Record<(typeof ONBOARDING_EMAIL_EVENT_TYPES)[number], string> = {
-  ridealong: 'Ride-along',
-  testday: 'Test day',
-  trialday: 'Trial day',
+  tiles: DashboardTileRow[]
+  eventTypes: EventTypeRow[]
 }
 
 function withCurrentOption(options: TemplateOption[], currentId: string): TemplateOption[] {
@@ -62,23 +61,26 @@ function settingsRemountKey(
   settings: OnboardingModuleSettings,
   depots: DepotRow[],
   tags: TagRow[],
+  tiles: DashboardTileRow[],
+  eventTypes: EventTypeRow[],
 ): string {
-  const typeKey = ONBOARDING_EMAIL_EVENT_TYPES.map((kind) => {
-    const row = settings.eventTypeSettings[kind]
-    return [
-      settings.eventTemplateIds[kind],
-      row.formDefinitionId,
-      row.dateFieldNames.join(','),
-      row.activeStatusIds.join(','),
-      row.completedStatusIds.join(','),
-    ].join('|')
-  }).join(';')
   return [
     settings.inviteTemplateId,
-    typeKey,
+    eventTypes
+      .map(
+        (row) =>
+          `${row.id}:${row.key}:${row.label}:${row.enabled ? 1 : 0}:${row.templateId}:${row.formDefinitionId}:${row.dateFieldNames.join(',')}:${row.activeStatusIds.join(',')}:${row.completedStatusIds.join(',')}`,
+      )
+      .join(';'),
     depots.map((d) => `${d.id}:${d.name}:${d.address}:${d.sortOrder}`).join(';'),
     tags
       .map((t) => `${t.id}:${t.label}:${t.color}:${t.todo ? 1 : 0}:${t.fade ? 1 : 0}:${t.sortOrder}`)
+      .join(';'),
+    tiles
+      .map(
+        (t) =>
+          `${t.id}:${t.title}:${t.icon}:${t.url}:${t.sortOrder}:${t.published ? 1 : 0}:${t.statusIds.join(',')}:${t.staffOnly ? 1 : 0}`,
+      )
       .join(';'),
   ].join('::')
 }
@@ -131,172 +133,6 @@ function TemplatePickerField({
   )
 }
 
-function StatusIdChecklist({
-  name,
-  label,
-  hint,
-  options,
-  selected,
-  pending,
-  onChange,
-}: {
-  name: string
-  label: string
-  hint: string
-  options: StatusOption[]
-  selected: string[]
-  pending: boolean
-  onChange: (next: string[]) => void
-}) {
-  const selectedSet = new Set(selected)
-  return (
-    <fieldset className="settings-field" disabled={pending}>
-      <legend>{label}</legend>
-      <span className="settings-hint">{hint}</span>
-      {options.length === 0 ? (
-        <p className="settings-hint">No statuses yet. Add them under Statuses.</p>
-      ) : (
-        <ul className="admin-inline-actions" style={{ listStyle: 'none', padding: 0, margin: '0.5rem 0 0' }}>
-          {options.map((opt) => {
-            const checked = selectedSet.has(opt.id)
-            return (
-              <li key={opt.id} className="settings-field settings-flag">
-                <label>
-                  <input
-                    type="checkbox"
-                    name={name}
-                    value={opt.id}
-                    checked={checked}
-                    disabled={pending}
-                    onChange={() => {
-                      if (checked) onChange(selected.filter((id) => id !== opt.id))
-                      else onChange([...selected, opt.id])
-                    }}
-                  />
-                  <span>{opt.label}</span>
-                </label>
-              </li>
-            )
-          })}
-        </ul>
-      )}
-    </fieldset>
-  )
-}
-
-function EventTypeSettingsCard({
-  kind,
-  templateId,
-  typeSettings,
-  templateOptions,
-  formOptions,
-  statusOptions,
-  pending,
-  onTemplateChange,
-  onTypeChange,
-}: {
-  kind: (typeof ONBOARDING_EMAIL_EVENT_TYPES)[number]
-  templateId: string
-  typeSettings: OnboardingEventTypeSettings
-  templateOptions: TemplateOption[]
-  formOptions: FormOption[]
-  statusOptions: StatusOption[]
-  pending: boolean
-  onTemplateChange: (next: string) => void
-  onTypeChange: (next: OnboardingEventTypeSettings) => void
-}) {
-  const formChoices = withCurrentOption(formOptions, typeSettings.formDefinitionId)
-  const [dateFieldsRaw, setDateFieldsRaw] = useState(typeSettings.dateFieldNames.join('\n'))
-  useEffect(() => {
-    setDateFieldsRaw(typeSettings.dateFieldNames.join('\n'))
-  }, [typeSettings.dateFieldNames])
-
-  const dateHint =
-    kind === 'trialday'
-      ? 'One or more Forms field names (comma or newline). Trial day may use several.'
-      : kind === 'testday'
-        ? 'Forms date field name for test day (usually one).'
-        : 'Forms date field name(s) for requested dates.'
-
-  return (
-    <section className="page-settings-panel">
-      <header className="page-settings-panel-head">
-        <h3>{EVENT_TYPE_LABELS[kind]}</h3>
-      </header>
-      <div className="page-settings-panel-body">
-        <TemplatePickerField
-          name={`eventTemplateId_${kind}`}
-          label="Confirmation email template"
-          value={templateId}
-          options={templateOptions}
-          pending={pending}
-          onChange={onTemplateChange}
-          hint="Subject and body stay in Email Manager. Empty clears."
-        />
-        <label className="settings-field">
-          <span>Forms definition</span>
-          <select
-            name={`eventFormDefinitionId_${kind}`}
-            value={typeSettings.formDefinitionId}
-            disabled={pending}
-            onChange={(e) =>
-              onTypeChange({ ...typeSettings, formDefinitionId: e.target.value })
-            }
-          >
-            <option value="">None</option>
-            {formChoices.map((form) => (
-              <option key={form.id} value={form.id}>
-                {form.label}
-              </option>
-            ))}
-          </select>
-          <span className="settings-hint">Plain Forms definition id for requested dates.</span>
-        </label>
-        <label className="settings-field">
-          <span>Date field name{kind === 'trialday' ? 's' : ''}</span>
-          <textarea
-            name={`eventDateFields_${kind}`}
-            value={dateFieldsRaw}
-            disabled={pending}
-            rows={kind === 'trialday' ? 3 : 2}
-            onChange={(e) => {
-              const raw = e.target.value
-              setDateFieldsRaw(raw)
-              onTypeChange({
-                ...typeSettings,
-                dateFieldNames: raw
-                  .split(/[\n,]/)
-                  .map((part) => part.trim())
-                  .filter(Boolean),
-              })
-            }}
-          />
-          <span className="settings-hint">{dateHint}</span>
-        </label>
-        <StatusIdChecklist
-          name={`eventActiveStatusIds_${kind}`}
-          label="Active statuses"
-          hint="Card stays editable while the person is on one of these statuses."
-          options={statusOptions}
-          selected={typeSettings.activeStatusIds}
-          pending={pending}
-          onChange={(activeStatusIds) => onTypeChange({ ...typeSettings, activeStatusIds })}
-        />
-        <StatusIdChecklist
-          name={`eventCompletedStatusIds_${kind}`}
-          label="Completed statuses"
-          hint="Moving a person onto one of these sets that open event’s outcome to passed (not failed or no-show)."
-          options={statusOptions}
-          selected={typeSettings.completedStatusIds}
-          pending={pending}
-          onChange={(completedStatusIds) =>
-            onTypeChange({ ...typeSettings, completedStatusIds })
-          }
-        />
-      </div>
-    </section>
-  )
-}
 
 function DepotManager({ depots }: { depots: DepotRow[] }) {
   const router = useRouter()
@@ -775,6 +611,8 @@ function OnboardingSettingsFormFields({
   statusOptions,
   depots,
   tags,
+  tiles,
+  eventTypes,
 }: Props) {
   const router = useRouter()
   const [state, formAction, pending] = useActionState(saveOnboardingSettingsAction, initial)
@@ -789,13 +627,9 @@ function OnboardingSettingsFormFields({
   }, [state.ok, seedState.ok, router])
 
   const [inviteTemplateId, setInviteTemplateId] = useState(settings.inviteTemplateId)
-  const [templates, setTemplates] = useState(settings.eventTemplateIds)
-  const [typeSettings, setTypeSettings] = useState(settings.eventTypeSettings)
 
   useEffect(() => {
     setInviteTemplateId(settings.inviteTemplateId)
-    setTemplates(settings.eventTemplateIds)
-    setTypeSettings(settings.eventTypeSettings)
   }, [settings])
 
   const busy = pending || seedPending
@@ -830,21 +664,6 @@ function OnboardingSettingsFormFields({
               />
             </div>
           </section>
-
-          {ONBOARDING_EMAIL_EVENT_TYPES.map((kind) => (
-            <EventTypeSettingsCard
-              key={kind}
-              kind={kind}
-              templateId={templates[kind]}
-              typeSettings={typeSettings[kind]}
-              templateOptions={templateOptions}
-              formOptions={formOptions}
-              statusOptions={statusOptions}
-              pending={busy}
-              onTemplateChange={(next) => setTemplates((prev) => ({ ...prev, [kind]: next }))}
-              onTypeChange={(next) => setTypeSettings((prev) => ({ ...prev, [kind]: next }))}
-            />
-          ))}
         </div>
 
         <Feedback state={state} />
@@ -860,8 +679,15 @@ function OnboardingSettingsFormFields({
         </div>
       </form>
 
+      <EventTypeManager
+        eventTypes={eventTypes}
+        templateOptions={templateOptions}
+        formOptions={formOptions}
+        statusOptions={statusOptions}
+      />
       <DepotManager depots={depots} />
       <TagManager tags={tags} />
+      <DashboardTileManager tiles={tiles} statusOptions={statusOptions} />
 
       <section className="page-settings-panel" style={{ marginTop: '1.5rem' }}>
         <header className="page-settings-panel-head">
@@ -912,13 +738,21 @@ function Feedback({ state }: { state: OnboardingAdminActionState }) {
 export function OnboardingSettingsForm(props: Props) {
   return (
     <OnboardingSettingsFormFields
-      key={settingsRemountKey(props.settings, props.depots, props.tags)}
+      key={settingsRemountKey(
+        props.settings,
+        props.depots,
+        props.tags,
+        props.tiles,
+        props.eventTypes,
+      )}
       settings={props.settings}
       templateOptions={props.templateOptions}
       formOptions={props.formOptions}
       statusOptions={props.statusOptions}
       depots={props.depots}
       tags={props.tags}
+      tiles={props.tiles}
+      eventTypes={props.eventTypes}
     />
   )
 }
