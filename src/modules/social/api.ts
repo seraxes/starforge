@@ -45,8 +45,10 @@ export {
   createGroupMemory,
   createGroupWallPost,
   decideAcceptGroupInvite,
+  decideApproveGroupJoinRequest,
   decideCreateGroup,
   decideCreateGroupCategory,
+  decideDeclineGroupJoinRequest,
   decideInviteToGroup,
   decideJoinGroup,
   decideSetGroupVerified,
@@ -61,9 +63,11 @@ export {
   slugifyGroupLabel,
 } from './groups'
 export type {
+  ApproveGroupJoinInput,
   CreateGroupCategoryInput,
   CreateGroupInput,
   CreateGroupWallPostInput,
+  DeclineGroupJoinInput,
   GroupBag,
   GroupCategoryKind,
   GroupCategoryMutationResult,

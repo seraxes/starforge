@@ -39,6 +39,9 @@ export default defineStarforgeModule({
     'Member social feed — friends, follows, discover, short-video watch, mentions, tags, saves, polls, check-ins, posts, groups, pages, stories, albums, shares, and links under /feed. Live video stays in Social. There is no product:stream.',
   version: '0.1.0',
   defaultEnabled: false,
+  i18n: {
+    namespaces: ['product:social'],
+  },
   requires: [
     'product:profiles',
     'product:media',

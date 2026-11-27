@@ -24,11 +24,13 @@ import {
   acceptGroupInvite,
   addGroupDocument,
   announceGroupPostNotifying,
+  approveGroupJoinRequest,
   assignGroupRank,
   createGroup,
   createGroupCategory,
   createGroupRank,
   createGroupWallPostInDb,
+  declineGroupJoinRequest,
   deleteGroup,
   inviteToGroupNotifying,
   isUserActiveGroupMember,
@@ -559,6 +561,81 @@ export async function acceptGroupInviteAction(
   if (!result.ok) {
     if (result.reason === 'not_invited') return { error: 'No invite to accept.' }
     return { error: 'Could not accept the invite.' }
+  }
+
+  revalidatePath('/feed/groups')
+  revalidatePath('/feed/g')
+  return { ok: true, groupId }
+}
+
+/** Approve a closed-group join request (owner / admin / manage-members rank / staff). */
+export async function approveGroupJoinAction(
+  _prev: SocialGroupActionState,
+  formData: FormData,
+): Promise<SocialGroupActionState> {
+  const gate = await requireSocialMember()
+  if (!gate.ok) return { error: gate.error }
+
+  const groupId = String(formData.get('groupId') ?? '').trim()
+  const targetUserId = String(formData.get('targetUserId') ?? '').trim()
+  if (!groupId || !targetUserId) return { error: 'Choose a request to approve.' }
+
+  const staffCanManageMembers = await viewerMayModerateSocialContent(gate.userId)
+  const result = await approveGroupJoinRequest(
+    {
+      groupId,
+      actorUserId: gate.userId,
+      targetUserId,
+    },
+    { staffCanManageMembers },
+  )
+  if (!result.ok) {
+    if (result.reason === 'not_allowed') {
+      return { error: 'Not allowed to approve join requests.' }
+    }
+    if (result.reason === 'banned') return { error: 'You cannot approve while banned.' }
+    if (result.reason === 'already_member') return { error: 'They are already a member.' }
+    if (result.reason === 'not_requested') return { error: 'No pending join request.' }
+    if (result.reason === 'member_cap') return { error: 'This group is full.' }
+    if (result.reason === 'self') return { error: 'You cannot approve your own request.' }
+    return { error: 'Could not approve the request.' }
+  }
+
+  revalidatePath('/feed/groups')
+  revalidatePath('/feed/g')
+  return { ok: true, groupId }
+}
+
+/** Decline a closed-group join request — clears so they can ask again. */
+export async function declineGroupJoinAction(
+  _prev: SocialGroupActionState,
+  formData: FormData,
+): Promise<SocialGroupActionState> {
+  const gate = await requireSocialMember()
+  if (!gate.ok) return { error: gate.error }
+
+  const groupId = String(formData.get('groupId') ?? '').trim()
+  const targetUserId = String(formData.get('targetUserId') ?? '').trim()
+  if (!groupId || !targetUserId) return { error: 'Choose a request to decline.' }
+
+  const staffCanManageMembers = await viewerMayModerateSocialContent(gate.userId)
+  const result = await declineGroupJoinRequest(
+    {
+      groupId,
+      actorUserId: gate.userId,
+      targetUserId,
+    },
+    { staffCanManageMembers },
+  )
+  if (!result.ok) {
+    if (result.reason === 'not_allowed') {
+      return { error: 'Not allowed to decline join requests.' }
+    }
+    if (result.reason === 'banned') return { error: 'You cannot decline while banned.' }
+    if (result.reason === 'already_member') return { error: 'They are already a member.' }
+    if (result.reason === 'not_requested') return { error: 'No pending join request.' }
+    if (result.reason === 'self') return { error: 'You cannot decline your own request.' }
+    return { error: 'Could not decline the request.' }
   }
 
   revalidatePath('/feed/groups')

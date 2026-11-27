@@ -1,0 +1,9 @@
+{
+  "joinRequestPending": "Join request pending.",
+  "pendingJoinRequests": "Pending join requests",
+  "noPendingJoinRequests": "No pending requests.",
+  "approveJoinRequest": "Approve",
+  "approvingJoinRequest": "Approving…",
+  "declineJoinRequest": "Decline",
+  "decliningJoinRequest": "Declining…"
+}

@@ -20,6 +20,7 @@ import {
   decideSetGroupFormDefinition,
   decideSetGroupMemberRole,
   decideTransferGroup,
+  resolveGroupPermissions,
   type AddGroupDocumentInput,
   type AnnounceGroupPostInput,
   type AssignGroupRankInput,
@@ -105,6 +106,7 @@ export type GroupRefuseReason =
   | 'already_member'
   | 'already_invited'
   | 'not_invited'
+  | 'not_requested'
   | 'not_admin'
   | 'not_open'
   | 'not_closed'
@@ -158,6 +160,18 @@ export type InviteToGroupInput = {
   actorUserId: string
   inviteeUserId: string
   interact: CanInteractContext
+}
+
+export type ApproveGroupJoinInput = {
+  groupId: string
+  actorUserId: string
+  targetUserId: string
+}
+
+export type DeclineGroupJoinInput = {
+  groupId: string
+  actorUserId: string
+  targetUserId: string
 }
 
 export type CreateGroupWallPostInput = CreatePostInput & {
@@ -524,6 +538,138 @@ export function decideAcceptGroupInvite(
   }
 }
 
+function actorMayReviewGroupJoinRequests(
+  actorMembership: GroupMemberRecord | null | undefined,
+  actorRank: GroupRankRecord | null | undefined,
+  staffCanManageMembers: boolean,
+): boolean {
+  if (staffCanManageMembers) return true
+  return resolveGroupPermissions(actorMembership, actorRank).canManageMembers
+}
+
+/**
+ * Owner / admin / rank with canManageMembers (or Social staff) promote a
+ * requested row to active. Open-group joins stay instant via decideJoinGroup.
+ */
+export function decideApproveGroupJoinRequest(
+  group: GroupRecord | null,
+  actorMembership: GroupMemberRecord | null,
+  actorRank: GroupRankRecord | null,
+  targetMembership: GroupMemberRecord | null,
+  input: ApproveGroupJoinInput,
+  opts?: {
+    now?: Date
+    actorBannedAt?: Date | null
+    activeMemberCount?: number
+    maxGroupMembers?: number
+    /** App admin / admin.social edit — additive with group ACL. */
+    staffCanManageMembers?: boolean
+  },
+): GroupMemberMutationResult {
+  if (!group || group.id.trim() !== input.groupId.trim()) {
+    return { ok: false, reason: 'not_found' }
+  }
+  const actor = input.actorUserId.trim()
+  const target = input.targetUserId.trim()
+  if (!actor || !target) return { ok: false, reason: 'invalid' }
+  if (actor === target) return { ok: false, reason: 'self' }
+  if (isSocialBanned(opts?.actorBannedAt ?? null)) {
+    return { ok: false, reason: 'banned' }
+  }
+  if (
+    !actorMayReviewGroupJoinRequests(
+      actorMembership,
+      actorRank,
+      Boolean(opts?.staffCanManageMembers),
+    )
+  ) {
+    return { ok: false, reason: 'not_allowed' }
+  }
+  if (
+    !targetMembership ||
+    targetMembership.groupId !== group.id ||
+    targetMembership.userId !== target
+  ) {
+    return { ok: false, reason: 'not_found' }
+  }
+  if (targetMembership.status === 'active') {
+    return { ok: false, reason: 'already_member' }
+  }
+  if (targetMembership.status !== 'requested') {
+    return { ok: false, reason: 'not_requested' }
+  }
+
+  const max = opts?.maxGroupMembers ?? 0
+  const count = opts?.activeMemberCount ?? 0
+  if (Number.isInteger(max) && max > 0 && Number.isInteger(count) && count >= max) {
+    return { ok: false, reason: 'member_cap' }
+  }
+
+  const now = opts?.now ?? new Date()
+  return {
+    ok: true,
+    membership: {
+      ...targetMembership,
+      status: 'active',
+      role: 'member',
+      rankId: null,
+      updatedAt: now,
+    },
+  }
+}
+
+/**
+ * Clear a requested row so the person can ask again. Same ACL as approve.
+ */
+export function decideDeclineGroupJoinRequest(
+  group: GroupRecord | null,
+  actorMembership: GroupMemberRecord | null,
+  actorRank: GroupRankRecord | null,
+  targetMembership: GroupMemberRecord | null,
+  input: DeclineGroupJoinInput,
+  opts?: {
+    actorBannedAt?: Date | null
+    /** App admin / admin.social edit — additive with group ACL. */
+    staffCanManageMembers?: boolean
+  },
+):
+  | { ok: true; declined: GroupMemberRecord }
+  | { ok: false; reason: GroupRefuseReason } {
+  if (!group || group.id.trim() !== input.groupId.trim()) {
+    return { ok: false, reason: 'not_found' }
+  }
+  const actor = input.actorUserId.trim()
+  const target = input.targetUserId.trim()
+  if (!actor || !target) return { ok: false, reason: 'invalid' }
+  if (actor === target) return { ok: false, reason: 'self' }
+  if (isSocialBanned(opts?.actorBannedAt ?? null)) {
+    return { ok: false, reason: 'banned' }
+  }
+  if (
+    !actorMayReviewGroupJoinRequests(
+      actorMembership,
+      actorRank,
+      Boolean(opts?.staffCanManageMembers),
+    )
+  ) {
+    return { ok: false, reason: 'not_allowed' }
+  }
+  if (
+    !targetMembership ||
+    targetMembership.groupId !== group.id ||
+    targetMembership.userId !== target
+  ) {
+    return { ok: false, reason: 'not_found' }
+  }
+  if (targetMembership.status === 'active') {
+    return { ok: false, reason: 'already_member' }
+  }
+  if (targetMembership.status !== 'requested') {
+    return { ok: false, reason: 'not_requested' }
+  }
+  return { ok: true, declined: targetMembership }
+}
+
 /**
  * Wall post for a group. Author must be an active member (owner or not).
  * Audience is always `group` with this groupId.
@@ -614,6 +760,24 @@ export function createGroupMemory(opts?: {
     input: InviteToGroupInput,
   ) => GroupMemberMutationResult
   acceptInvite: (groupId: string, actorUserId: string) => GroupMemberMutationResult
+  approveJoin: (
+    input: ApproveGroupJoinInput,
+    opts?: {
+      actorBannedAt?: Date | null
+      activeMemberCount?: number
+      maxGroupMembers?: number
+      staffCanManageMembers?: boolean
+    },
+  ) => GroupMemberMutationResult
+  declineJoin: (
+    input: DeclineGroupJoinInput,
+    opts?: {
+      actorBannedAt?: Date | null
+      staffCanManageMembers?: boolean
+    },
+  ) =>
+    | { ok: true; declined: GroupMemberRecord }
+    | { ok: false; reason: GroupRefuseReason }
   getMembership: (groupId: string, userId: string) => GroupMemberRecord | null
   getGroup: (groupId: string) => GroupRecord | null
   getCategory: (categoryId: string) => GroupCategoryRecord | null
@@ -743,6 +907,52 @@ export function createGroupMemory(opts?: {
         memberKey(decision.membership.groupId, decision.membership.userId),
         decision.membership,
       )
+      return decision
+    },
+    approveJoin: (input, opts) => {
+      const group = bag.groups.get(input.groupId.trim()) ?? null
+      const actorMembership = getMembership(input.groupId, input.actorUserId)
+      const decision = decideApproveGroupJoinRequest(
+        group,
+        actorMembership,
+        actorRank(actorMembership),
+        getMembership(input.groupId, input.targetUserId),
+        input,
+        {
+          now: now(),
+          actorBannedAt: opts?.actorBannedAt,
+          activeMemberCount:
+            opts?.activeMemberCount ??
+            [...bag.members.values()].filter(
+              (row) => row.groupId === input.groupId.trim() && row.status === 'active',
+            ).length,
+          maxGroupMembers: opts?.maxGroupMembers,
+          staffCanManageMembers: opts?.staffCanManageMembers,
+        },
+      )
+      if (!decision.ok) return decision
+      bag.members.set(
+        memberKey(decision.membership.groupId, decision.membership.userId),
+        decision.membership,
+      )
+      return decision
+    },
+    declineJoin: (input, opts) => {
+      const group = bag.groups.get(input.groupId.trim()) ?? null
+      const actorMembership = getMembership(input.groupId, input.actorUserId)
+      const decision = decideDeclineGroupJoinRequest(
+        group,
+        actorMembership,
+        actorRank(actorMembership),
+        getMembership(input.groupId, input.targetUserId),
+        input,
+        {
+          actorBannedAt: opts?.actorBannedAt,
+          staffCanManageMembers: opts?.staffCanManageMembers,
+        },
+      )
+      if (!decision.ok) return decision
+      bag.members.delete(memberKey(decision.declined.groupId, decision.declined.userId))
       return decision
     },
     getMembership,

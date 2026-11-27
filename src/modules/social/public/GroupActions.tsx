@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useActionState } from 'react'
+import { useTranslations } from 'next-intl'
 
 import { MemberMediaPicker } from '@/modules/media/api'
 
@@ -8,10 +9,12 @@ import {
   acceptGroupInviteAction,
   addGroupDocumentAction,
   announceGroupPostAction,
+  approveGroupJoinAction,
   assignGroupRankAction,
   createGroupAction,
   createGroupRankAction,
   createGroupWallPostAction,
+  declineGroupJoinAction,
   deleteGroupAction,
   inviteToGroupAction,
   joinGroupAction,
@@ -129,6 +132,80 @@ export function AcceptGroupInviteButton({ groupId }: { groupId: string }) {
       <input type="hidden" name="groupId" value={groupId} />
       <button type="submit" className="gantry-btn gantry-btn-primary" disabled={pending}>
         {pending ? 'Accepting…' : 'Accept invite'}
+      </button>
+      {state.error ? (
+        <p className="admin-inline-error" role="alert">
+          {state.error}
+        </p>
+      ) : null}
+    </form>
+  )
+}
+
+export function PendingJoinRequestsList({
+  groupId,
+  requests,
+}: {
+  groupId: string
+  requests: GroupMemberRecord[]
+}) {
+  const t = useTranslations('product:social')
+  if (requests.length === 0) {
+    return <p className="layout-muted">{t('noPendingJoinRequests')}</p>
+  }
+  return (
+    <ul className="sf-social-pending-joins">
+      {requests.map((row) => (
+        <li key={row.id} className="admin-control-row">
+          <span>{row.userId}</span>
+          <ApproveGroupJoinButton groupId={groupId} targetUserId={row.userId} />
+          <DeclineGroupJoinButton groupId={groupId} targetUserId={row.userId} />
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+export function ApproveGroupJoinButton({
+  groupId,
+  targetUserId,
+}: {
+  groupId: string
+  targetUserId: string
+}) {
+  const t = useTranslations('product:social')
+  const [state, action, pending] = useActionState(approveGroupJoinAction, initial)
+  return (
+    <form action={action} className="sf-social-approve-join">
+      <input type="hidden" name="groupId" value={groupId} />
+      <input type="hidden" name="targetUserId" value={targetUserId} />
+      <button type="submit" className="gantry-btn gantry-btn-primary" disabled={pending}>
+        {pending ? t('approvingJoinRequest') : t('approveJoinRequest')}
+      </button>
+      {state.error ? (
+        <p className="admin-inline-error" role="alert">
+          {state.error}
+        </p>
+      ) : null}
+    </form>
+  )
+}
+
+export function DeclineGroupJoinButton({
+  groupId,
+  targetUserId,
+}: {
+  groupId: string
+  targetUserId: string
+}) {
+  const t = useTranslations('product:social')
+  const [state, action, pending] = useActionState(declineGroupJoinAction, initial)
+  return (
+    <form action={action} className="sf-social-decline-join">
+      <input type="hidden" name="groupId" value={groupId} />
+      <input type="hidden" name="targetUserId" value={targetUserId} />
+      <button type="submit" className="gantry-btn" disabled={pending}>
+        {pending ? t('decliningJoinRequest') : t('declineJoinRequest')}
       </button>
       {state.error ? (
         <p className="admin-inline-error" role="alert">

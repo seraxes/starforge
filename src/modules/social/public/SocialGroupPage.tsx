@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { setRequestLocale } from 'next-intl/server'
+import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import React from 'react'
 
@@ -29,7 +29,9 @@ import {
   listGroupDocuments,
   listGroupRanks,
   listGroupWallPosts,
+  listRequestedGroupMembers,
 } from '../groups-store'
+import { viewerMayModerateSocialContent } from '../staff-grant'
 import { AlbumList, CreateAlbumForm } from './AlbumActions'
 import { FeedPostList } from './FeedPostList'
 import {
@@ -43,6 +45,7 @@ import {
   GroupWallComposer,
   InviteToGroupForm,
   JoinGroupButton,
+  PendingJoinRequestsList,
   RemoveGroupMemberForm,
   SetGroupFormDefinitionForm,
   SetGroupMemberRoleForm,
@@ -105,10 +108,12 @@ export default async function SocialGroupPage({ params, searchParams }: Args) {
   const activeTab =
     eventsEnabled && (query.tab ?? '').trim() === 'calendar' ? 'calendar' : 'wall'
 
-  const [membership, category, memberCount] = await Promise.all([
+  const [membership, category, memberCount, staffCanManage, t] = await Promise.all([
     userId ? findGroupMembership(group.id, userId) : Promise.resolve(null),
     findGroupCategory(group.categoryId),
     countActiveGroupMembers(group.id),
+    userId ? viewerMayModerateSocialContent(userId) : Promise.resolve(false),
+    getTranslations('product:social'),
   ])
   const isMember = isActiveGroupMember(membership)
   const canInvite = canManageGroupMembers(membership)
@@ -116,8 +121,9 @@ export default async function SocialGroupPage({ params, searchParams }: Args) {
   const actorRank =
     membership?.rankId && teamTools ? await findGroupRank(membership.rankId) : null
   const perms = resolveGroupPermissions(membership, actorRank)
+  const canReviewJoinRequests = perms.canManageMembers || staffCanManage
 
-  const [posts, ranks, documents, members, albums] = await Promise.all([
+  const [posts, ranks, documents, members, pendingRequests, albums] = await Promise.all([
     isMember && activeTab === 'wall' ? listGroupWallPosts(group.id) : Promise.resolve([]),
     isMember && teamTools && activeTab === 'wall'
       ? listGroupRanks(group.id)
@@ -129,6 +135,9 @@ export default async function SocialGroupPage({ params, searchParams }: Args) {
       activeTab === 'wall' &&
       (perms.isOwner || perms.isAdmin || perms.canManageMembers)
       ? listActiveGroupMembers(group.id)
+      : Promise.resolve([]),
+    canReviewJoinRequests && activeTab === 'wall'
+      ? listRequestedGroupMembers(group.id)
       : Promise.resolve([]),
     isMember && activeTab === 'wall'
       ? listAlbumsForOwner('group', group.id)
@@ -181,7 +190,7 @@ export default async function SocialGroupPage({ params, searchParams }: Args) {
           {membership?.status === 'invited' ? (
             <AcceptGroupInviteButton groupId={group.id} />
           ) : membership?.status === 'requested' ? (
-            <p className="layout-muted">Join request pending.</p>
+            <p className="layout-muted">{t('joinRequestPending')}</p>
           ) : (
             <>
               {group.visibility === 'closed' && group.formDefinitionId ? (
@@ -195,14 +204,26 @@ export default async function SocialGroupPage({ params, searchParams }: Args) {
           )}
           <p className="layout-muted">Wall posts are visible to members only.</p>
         </section>
-      ) : activeTab === 'calendar' && eventsEnabled ? (
+      ) : null}
+
+      {canReviewJoinRequests && activeTab === 'wall' ? (
+        <section
+          className="sf-social-group-pending-joins"
+          aria-label={t('pendingJoinRequests')}
+        >
+          <h2 className="sf-social-section-heading">{t('pendingJoinRequests')}</h2>
+          <PendingJoinRequestsList groupId={group.id} requests={pendingRequests} />
+        </section>
+      ) : null}
+
+      {isMember && activeTab === 'calendar' && eventsEnabled ? (
         <HostedEventsPanel
           locale={locale}
           hostKind="group"
           hostId={group.id}
           canManage={perms.canManageCalendar}
         />
-      ) : (
+      ) : isMember && activeTab === 'wall' ? (
         <>
           <GroupWallComposer groupId={group.id} />
           {canInvite ? (
@@ -299,7 +320,7 @@ export default async function SocialGroupPage({ params, searchParams }: Args) {
             ) : null}
           </section>
         </>
-      )}
+      ) : null}
     </article>
   )
 }
