@@ -52,6 +52,8 @@ export {
   decideInviteToGroup,
   decideJoinGroup,
   decideSetGroupVerified,
+  buildGroupPageShell,
+  groupCoverMediaSrc,
   groupHref,
   inviteToGroupWithMail,
   isActiveGroupMember,

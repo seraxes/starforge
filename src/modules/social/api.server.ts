@@ -107,6 +107,8 @@ export {
   decideSetGroupVerified,
   decideInviteToGroup,
   decideJoinGroup,
+  buildGroupPageShell,
+  groupCoverMediaSrc,
   groupHref,
   inviteToGroupWithMail,
   isActiveGroupMember,

@@ -2,7 +2,9 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import {
+  buildGroupPageShell,
   createGroupMemory,
+  groupCoverMediaSrc,
   inviteToGroupWithMail,
   isGroupMemberForPost,
   type InviteToGroupInput,
@@ -321,5 +323,109 @@ describe('closed-group join approval', () => {
     assert.equal(again.ok, true)
     if (!again.ok) return
     assert.equal(again.membership.status, 'requested')
+  })
+})
+
+describe('group page shell', () => {
+  it('lets an active member see the member list and wall (success path)', () => {
+    const mem = createGroupMemory({
+      now: () => new Date('2026-11-20T12:00:00.000Z'),
+      newId: (() => {
+        let n = 0
+        return () => `id-${++n}`
+      })(),
+    })
+    const category = mem.createCategory({ name: 'General', kind: 'general' })
+    assert.equal(category.ok, true)
+    if (!category.ok) return
+    const created = mem.createGroup({
+      name: 'Night Ops',
+      categoryId: category.category.id,
+      ownerUserId: 'alice',
+      visibility: 'open',
+      coverMediaId: 'cover-1',
+    })
+    assert.equal(created.ok, true)
+    if (!created.ok) return
+    assert.equal(mem.join(created.group.id, 'bob').ok, true)
+
+    const membership = mem.getMembership(created.group.id, 'bob')
+    const shell = buildGroupPageShell({
+      coverMediaId: created.group.coverMediaId,
+      membership,
+    })
+    assert.equal(shell.showMembersList, true)
+    assert.equal(shell.showWall, true)
+    assert.equal(shell.coverSrc, '/api/media/cover-1')
+    assert.equal(groupCoverMediaSrc(created.group.coverMediaId), '/api/media/cover-1')
+
+    const wall = mem.wallPost({
+      authorUserId: 'alice',
+      groupId: created.group.id,
+      body: 'Briefing',
+    })
+    assert.equal(wall.ok, true)
+    if (!wall.ok) return
+    assert.equal(
+      canViewPost(
+        wall.post,
+        viewCtx({
+          viewerUserId: 'bob',
+          isGroupMember: isGroupMemberForPost(wall.post.groupId, membership),
+        }),
+      ),
+      true,
+    )
+  })
+
+  it('hides the member list and cover when unset, and refuses a stranger wall (failure path)', () => {
+    const mem = createGroupMemory({
+      now: () => new Date('2026-11-20T12:00:00.000Z'),
+      newId: (() => {
+        let n = 0
+        return () => `id-${++n}`
+      })(),
+    })
+    const category = mem.createCategory({ name: 'Team', kind: 'team', slug: 'team' })
+    assert.equal(category.ok, true)
+    if (!category.ok) return
+    const created = mem.createGroup({
+      name: 'Closed Cell',
+      categoryId: category.category.id,
+      ownerUserId: 'alice',
+      visibility: 'closed',
+    })
+    assert.equal(created.ok, true)
+    if (!created.ok) return
+    assert.equal(created.group.coverMediaId, null)
+
+    const strangerMembership = mem.getMembership(created.group.id, 'carol')
+    const shell = buildGroupPageShell({
+      coverMediaId: created.group.coverMediaId,
+      membership: strangerMembership,
+    })
+    assert.equal(shell.showMembersList, false)
+    assert.equal(shell.showWall, false)
+    assert.equal(shell.coverSrc, null)
+    assert.equal(groupCoverMediaSrc(null), '')
+    assert.equal(groupCoverMediaSrc(''), '')
+
+    const wall = mem.wallPost({
+      authorUserId: 'alice',
+      groupId: created.group.id,
+      body: 'Members only',
+    })
+    assert.equal(wall.ok, true)
+    if (!wall.ok) return
+    assert.equal(
+      canViewPost(
+        wall.post,
+        viewCtx({
+          viewerUserId: 'carol',
+          isGroupMember: isGroupMemberForPost(wall.post.groupId, strangerMembership),
+        }),
+      ),
+      false,
+    )
   })
 })

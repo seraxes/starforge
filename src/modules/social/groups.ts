@@ -213,6 +213,40 @@ export function groupHref(slug: string): string {
   return `/feed/g/${encodeURIComponent(slug.trim())}`
 }
 
+/**
+ * Media serve path for a stored group cover id.
+ * Empty when unset — the page must not render a cover img.
+ */
+export function groupCoverMediaSrc(
+  coverMediaId: string | null | undefined,
+): string {
+  const id = (coverMediaId ?? '').trim()
+  return id ? `/api/media/${encodeURIComponent(id)}` : ''
+}
+
+/**
+ * Group page shell flags for `/feed/g/[slug]`.
+ * Cover src is set only when coverMediaId is stored. Member roster and wall
+ * are for active members; non-members (and strangers) see neither. Manager
+ * tools and staff pending-join review stay additive outside this helper.
+ */
+export function buildGroupPageShell(input: {
+  coverMediaId: string | null | undefined
+  membership: GroupMemberRecord | null | undefined
+}): {
+  coverSrc: string | null
+  showMembersList: boolean
+  showWall: boolean
+} {
+  const coverSrc = groupCoverMediaSrc(input.coverMediaId) || null
+  const isMember = isActiveGroupMember(input.membership)
+  return {
+    coverSrc,
+    showMembersList: isMember,
+    showWall: isMember,
+  }
+}
+
 /** Normalize a display name into a URL slug. */
 export function slugifyGroupLabel(raw: string): string {
   return raw

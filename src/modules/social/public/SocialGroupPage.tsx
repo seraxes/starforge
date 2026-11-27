@@ -11,10 +11,15 @@ import { isValidLocaleCode } from '@/core/i18n'
 import { withLocalePrefix } from '@/core/i18n/path'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { getSiteChrome } from '@/core/site-chrome'
-import { getPersonas } from '@/modules/profiles/api.server'
+import { getPersonas, personaMediaSrc } from '@/modules/profiles/api.server'
 
 import { listAlbumItems, listAlbumsForOwner } from '../albums-store'
-import { canManageGroupMembers, isActiveGroupMember } from '../groups'
+import {
+  buildGroupPageShell,
+  canManageGroupMembers,
+  isActiveGroupMember,
+  type GroupMemberRecord,
+} from '../groups'
 import {
   categorySupportsTeamTools,
   resolveGroupPermissions,
@@ -31,6 +36,7 @@ import {
   listGroupWallPosts,
   listRequestedGroupMembers,
 } from '../groups-store'
+import { memberFeedHref } from '../posts'
 import { viewerMayModerateSocialContent } from '../staff-grant'
 import { AlbumList, CreateAlbumForm } from './AlbumActions'
 import { FeedPostList } from './FeedPostList'
@@ -81,6 +87,70 @@ export async function generateMetadata({ params }: Args): Promise<Metadata> {
   }
 }
 
+function memberDisplayName(
+  userId: string,
+  persona: { displayName?: string | null; handle?: string | null } | null | undefined,
+): string {
+  const name = persona?.displayName?.trim()
+  if (name) return name
+  const handle = persona?.handle?.trim()
+  if (handle) return `@${handle}`
+  return userId
+}
+
+function GroupMembersRoster({
+  members,
+  personas,
+  locale,
+}: {
+  members: GroupMemberRecord[]
+  personas: Map<string, { displayName?: string | null; handle?: string | null; avatarMediaId?: string | null }>
+  locale: string
+}) {
+  return (
+    <section className="sf-social-group-members" aria-label="Members">
+      <h2 className="sf-social-section-heading">Members</h2>
+      {members.length === 0 ? (
+        <p className="layout-muted">No members yet.</p>
+      ) : (
+        <ul className="sf-social-group-members-list">
+          {members.map((row) => {
+            const persona = personas.get(row.userId)
+            const name = memberDisplayName(row.userId, persona)
+            const handle = persona?.handle?.trim() || ''
+            const href = handle
+              ? withLocalePrefix(memberFeedHref(handle), locale)
+              : withLocalePrefix('/feed', locale)
+            const avatar = personaMediaSrc(persona?.avatarMediaId)
+            return (
+              <li key={row.id} className="sf-social-group-members-item">
+                <Link href={href} className="sf-social-group-members-link">
+                  {avatar ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={avatar}
+                      alt=""
+                      className="sf-social-group-members-avatar"
+                      width={40}
+                      height={40}
+                    />
+                  ) : (
+                    <span className="sf-social-group-members-avatar sf-social-group-members-avatar-empty" />
+                  )}
+                  <span className="sf-social-group-members-meta">
+                    <span className="sf-social-group-members-name">{name}</span>
+                    <span className="sf-social-group-members-role layout-muted">{row.role}</span>
+                  </span>
+                </Link>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </section>
+  )
+}
+
 /** Group wall — `/feed/g/[slug]`. Non-members do not see wall posts. */
 export default async function SocialGroupPage({ params, searchParams }: Args) {
   const { locale: localeParam, slug } = await params
@@ -116,26 +186,31 @@ export default async function SocialGroupPage({ params, searchParams }: Args) {
     getTranslations('product:social'),
   ])
   const isMember = isActiveGroupMember(membership)
+  const shell = buildGroupPageShell({
+    coverMediaId: group.coverMediaId,
+    membership,
+  })
   const canInvite = canManageGroupMembers(membership)
   const teamTools = categorySupportsTeamTools(category?.kind)
   const actorRank =
     membership?.rankId && teamTools ? await findGroupRank(membership.rankId) : null
   const perms = resolveGroupPermissions(membership, actorRank)
   const canReviewJoinRequests = perms.canManageMembers || staffCanManage
+  const needsManageRoster =
+    isMember &&
+    activeTab === 'wall' &&
+    (perms.isOwner || perms.isAdmin || perms.canManageMembers)
+  const loadRoster = shell.showMembersList || needsManageRoster
 
   const [posts, ranks, documents, members, pendingRequests, albums] = await Promise.all([
-    isMember && activeTab === 'wall' ? listGroupWallPosts(group.id) : Promise.resolve([]),
+    shell.showWall && activeTab === 'wall' ? listGroupWallPosts(group.id) : Promise.resolve([]),
     isMember && teamTools && activeTab === 'wall'
       ? listGroupRanks(group.id)
       : Promise.resolve([]),
     isMember && teamTools && activeTab === 'wall'
       ? listGroupDocuments(group.id)
       : Promise.resolve([]),
-    isMember &&
-      activeTab === 'wall' &&
-      (perms.isOwner || perms.isAdmin || perms.canManageMembers)
-      ? listActiveGroupMembers(group.id)
-      : Promise.resolve([]),
+    loadRoster ? listActiveGroupMembers(group.id) : Promise.resolve([]),
     canReviewJoinRequests && activeTab === 'wall'
       ? listRequestedGroupMembers(group.id)
       : Promise.resolve([]),
@@ -143,13 +218,19 @@ export default async function SocialGroupPage({ params, searchParams }: Args) {
       ? listAlbumsForOwner('group', group.id)
       : Promise.resolve([]),
   ])
-  const personas = await getPersonas(
+  const authorPersonas = await getPersonas(
     posts.map((p) => p.authorUserId),
     viewer,
   )
+  const memberPersonas = shell.showMembersList
+    ? await getPersonas(
+        members.map((m) => m.userId),
+        viewer,
+      )
+    : new Map()
   const items = posts.map((post) => ({
     post,
-    author: personas.get(post.authorUserId) ?? null,
+    author: authorPersonas.get(post.authorUserId) ?? null,
   }))
   const itemsByAlbum = new Map(
     await Promise.all(
@@ -160,6 +241,12 @@ export default async function SocialGroupPage({ params, searchParams }: Args) {
   return (
     <article className="cms-page sf-social-group-page">
       <header className="cms-page-header">
+        {shell.coverSrc ? (
+          <div className="sf-social-group-cover">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={shell.coverSrc} alt="" className="sf-social-group-cover-img" />
+          </div>
+        ) : null}
         <p className="layout-muted">
           <Link href={withLocalePrefix('/feed/groups', locale)}>Groups</Link>
           {category ? ` · ${category.name}` : null}
@@ -216,6 +303,10 @@ export default async function SocialGroupPage({ params, searchParams }: Args) {
         </section>
       ) : null}
 
+      {shell.showMembersList ? (
+        <GroupMembersRoster members={members} personas={memberPersonas} locale={locale} />
+      ) : null}
+
       {isMember && activeTab === 'calendar' && eventsEnabled ? (
         <HostedEventsPanel
           locale={locale}
@@ -258,7 +349,7 @@ export default async function SocialGroupPage({ params, searchParams }: Args) {
 
               {perms.canManageMembers ? (
                 <>
-                  <h3 className="sf-social-section-heading">Members</h3>
+                  <h3 className="sf-social-section-heading">Manage members</h3>
                   <RemoveGroupMemberForm
                     groupId={group.id}
                     members={members}
@@ -304,20 +395,26 @@ export default async function SocialGroupPage({ params, searchParams }: Args) {
 
           <section className="sf-social-group-wall" aria-label="Group wall">
             <h2 className="sf-social-section-heading">Wall</h2>
-            <FeedPostList items={items} locale={locale} />
-            {perms.canAnnounce && items.some((row) => !row.post.isAnnouncement) ? (
-              <div className="sf-social-announce-list admin-control-row">
-                {items
-                  .filter((row) => !row.post.isAnnouncement)
-                  .map(({ post }) => (
-                    <AnnounceGroupPostButton
-                      key={post.id}
-                      groupId={group.id}
-                      postId={post.id}
-                    />
-                  ))}
-              </div>
-            ) : null}
+            {shell.showWall ? (
+              <>
+                <FeedPostList items={items} locale={locale} />
+                {perms.canAnnounce && items.some((row) => !row.post.isAnnouncement) ? (
+                  <div className="sf-social-announce-list admin-control-row">
+                    {items
+                      .filter((row) => !row.post.isAnnouncement)
+                      .map(({ post }) => (
+                        <AnnounceGroupPostButton
+                          key={post.id}
+                          groupId={group.id}
+                          postId={post.id}
+                        />
+                      ))}
+                  </div>
+                ) : null}
+              </>
+            ) : (
+              <p className="layout-muted">Wall posts are visible to members only.</p>
+            )}
           </section>
         </>
       ) : null}
