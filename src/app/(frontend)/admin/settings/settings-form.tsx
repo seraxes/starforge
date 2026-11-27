@@ -77,7 +77,7 @@ function ModuleRows({
   items: ModuleCatalogItem[]
   moduleToggles: ModuleToggleMap
   features: FeatureFlags
-  onToggle?: () => void
+  onToggle?: (id: string, enabled: boolean) => void
   disabled?: boolean
 }) {
   if (items.length === 0) return <p className="settings-hint">None in this group.</p>
@@ -95,9 +95,12 @@ function ModuleRows({
                   type="checkbox"
                   name="moduleToggleEnabled"
                   value={item.id}
-                  defaultChecked={checked}
+                  checked={checked}
                   disabled={item.required || disabled}
-                  onChange={onToggle}
+                  onChange={(event) => {
+                    if (item.required || disabled) return
+                    onToggle?.(item.id, event.currentTarget.checked)
+                  }}
                 />
                 <span>
                   <strong>{item.label}</strong>
@@ -159,6 +162,8 @@ export function SettingsForm({
     if (pending) return
     if (state.error) {
       setErrorEpoch((n) => n + 1)
+      setLiveToggles(moduleToggles)
+      setLiveFeatures(features)
       return
     }
     // Action carries effective toggles (incl. requires). Props may stay stale under deferred revalidate.
@@ -168,13 +173,11 @@ export function SettingsForm({
     setLiveFeatures(applied.features)
     // Rebuild admin layout so disabled packs leave the left sidebar immediately.
     router.refresh()
-  }, [pending, state, router])
-
-  const togglesSig = moduleTogglesSignature(liveToggles)
+  }, [pending, state, router, moduleToggles, features])
 
   return (
     <form
-      key={`${togglesSig}:${errorEpoch}`}
+      key={`${propsEpoch}:${errorEpoch}`}
       ref={formRef}
       action={formAction}
       className="settings-form settings-form-wide"
@@ -236,7 +239,10 @@ export function SettingsForm({
               moduleToggles={liveToggles}
               features={liveFeatures}
               disabled={pending}
-              onToggle={saveNow}
+              onToggle={(id, enabled) => {
+                setLiveToggles((prev) => ({ ...prev, [id]: enabled }))
+                saveNow()
+              }}
             />
           </div>
           ))}

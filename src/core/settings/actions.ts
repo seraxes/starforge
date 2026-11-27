@@ -22,6 +22,7 @@ import {
   getSiteSettingsLive,
   isCatalogModuleEnabled,
   listInstalledModuleCatalog,
+  moduleToggleOffIds,
   type ModuleToggleMap,
   type SiteSettingsData,
   updateSiteSettings,
@@ -163,6 +164,12 @@ export async function updateSiteSettingsAction(
       item.id,
     )
     labels[item.id] = item.label
+  }
+  const turningOff = moduleToggleOffIds(previous, requested)
+  if (turningOff.length > 1) {
+    return {
+      error: `Refused to turn off ${turningOff.length} modules at once. Change one switch at a time.`,
+    }
   }
   const resolved = resolveModuleToggleRequires({
     previous,

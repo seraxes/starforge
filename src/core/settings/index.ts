@@ -133,6 +133,7 @@ export {
   featureFlagsFromModuleToggles,
   isCatalogModuleEnabled,
   listInstalledModuleCatalog,
+  moduleToggleOffIds,
   mergeMissingCatalogModuleDefaults,
   repairCatalogModuleDefaultsOnce,
   CATALOG_DEFAULTS_REPAIR_MARKER,

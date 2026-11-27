@@ -2,7 +2,7 @@ import React from 'react'
 import Link from 'next/link'
 
 import { listNavMenus } from '@/core/nav'
-import { getSiteSettings, listInstalledModuleCatalog } from '@/core/settings'
+import { getSiteSettingsLive, listInstalledModuleCatalog } from '@/core/settings'
 import { SettingsForm } from './settings-form'
 
 export const dynamic = 'force-dynamic'
@@ -13,8 +13,10 @@ export const metadata = {
 }
 
 export default async function AdminSettingsModulesPage() {
+  // Live row, same source as the admin sidebar. The published cache can still
+  // hold a wiped toggle map; painting that into this autosave form writes it back.
   const [settings, moduleCatalog, navMenus] = await Promise.all([
-    getSiteSettings(),
+    getSiteSettingsLive(),
     Promise.resolve(listInstalledModuleCatalog()),
     listNavMenus(),
   ])

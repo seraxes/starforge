@@ -139,6 +139,20 @@ export function repairCatalogModuleDefaultsOnce(
   return { toggles: next, changed: true }
 }
 
+/**
+ * Catalog ids a Modules save would turn from on to off.
+ * One click may disable one id. More than one means a stale form posted
+ * every unchecked box — the caller must refuse and not write.
+ */
+export function moduleToggleOffIds(
+  previous: Record<string, boolean>,
+  requested: Record<string, boolean>,
+): string[] {
+  return Object.keys(requested)
+    .filter((id) => previous[id] === true && requested[id] === false)
+    .sort()
+}
+
 /** Sync FeatureFlags from product module toggles (and legacy extension master). */
 export function featureFlagsFromModuleToggles(
   moduleToggles: Record<string, boolean>,
