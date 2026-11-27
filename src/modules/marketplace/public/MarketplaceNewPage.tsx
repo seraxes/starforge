@@ -1,0 +1,100 @@
+import type { Metadata } from 'next'
+import { setRequestLocale } from 'next-intl/server'
+import { notFound, redirect } from 'next/navigation'
+import React from 'react'
+
+import { getAccessViewer } from '@/core/acl/access'
+import { requireContentLocale } from '@/core/content/pages'
+import { isValidLocaleCode, type AppLocale } from '@/core/i18n'
+import { withLocalePrefix } from '@/core/i18n/path'
+import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
+import { getSiteChrome } from '@/core/site-chrome'
+import { runMarketplaceDoor } from '@/modules/marketplace/api.server'
+
+import { listMarketplaceCategories } from '../categories'
+import { loadMarketplaceModuleSettings } from '../settings'
+import { ListingForm } from './ListingForm'
+import { MarketplacePublicNav } from './MarketplacePublicNav'
+
+type Args = {
+  params: Promise<{ locale: string }>
+}
+
+export async function generateMetadata({ params }: Args): Promise<Metadata> {
+  const { locale: localeParam } = await params
+  const [settings, chrome] = await Promise.all([getSiteSettings(), getSiteChrome()])
+  const siteName = chrome.siteName || settings.siteName
+  if (!isValidLocaleCode(localeParam)) {
+    return { title: `Not found — ${siteName}` }
+  }
+  if (!isCatalogModuleEnabled(settings, MODULE_IDS.marketplace)) {
+    return { title: `Not found — ${siteName}` }
+  }
+  return {
+    title: 'Sell an item — Marketplace',
+    description: `Create a Marketplace listing on ${siteName}.`,
+  }
+}
+
+export default async function MarketplaceNewPage({ params }: Args) {
+  const { locale: localeParam } = await params
+  if (!isValidLocaleCode(localeParam)) notFound()
+  const locale = requireContentLocale(localeParam)
+  setRequestLocale(locale)
+
+  const settings = await getSiteSettings()
+  const door = await runMarketplaceDoor(
+    () => isCatalogModuleEnabled(settings, MODULE_IDS.marketplace),
+    async () => {
+      const viewer = await getAccessViewer()
+      if (!viewer.userId) {
+        redirect(
+          withLocalePrefix('/login?next=/marketplace/new', locale as AppLocale),
+        )
+      }
+      const [categories, moduleSettings] = await Promise.all([
+        listMarketplaceCategories(),
+        loadMarketplaceModuleSettings(),
+      ])
+      return {
+        categories: categories.map((c) => ({
+          id: c.id,
+          title: c.title,
+          enabled: c.enabled,
+        })),
+        photoCap: moduleSettings.settings.photoCap,
+        viewer,
+      }
+    },
+  )
+  if (!door.ok) notFound()
+
+  const { categories, photoCap, viewer } = door.value
+
+  return (
+    <article className="cms-page sf-marketplace-page">
+      <header className="cms-page-header">
+        <h1>Sell an item</h1>
+        <p className="lede">Photos, price or free, category, condition, and area.</p>
+      </header>
+      <MarketplacePublicNav locale={locale} active="new" signedIn={Boolean(viewer.userId)} />
+      <ListingForm
+        locale={locale}
+        mode="create"
+        categories={categories}
+        photoCap={photoCap}
+        initial={{
+          title: '',
+          description: '',
+          condition: 'used',
+          priceMinor: null,
+          categoryId: '',
+          areaLabel: '',
+          latitude: null,
+          longitude: null,
+          mediaIds: [],
+        }}
+      />
+    </article>
+  )
+}

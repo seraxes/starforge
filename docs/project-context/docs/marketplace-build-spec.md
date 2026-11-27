@@ -4,7 +4,7 @@ last_verified: 2026-11-27
 ---
 # product:marketplace — build spec
 
-**Status:** Spec only. **Do not scaffold** while Social polish is the active lane. Live map: [architecture-current](./architecture-current.md).  
+**Status:** Slice 4 (public loop) is in tree. Next chat is slice 5 (saves) only. Live map: [architecture-current](./architecture-current.md).  
 **Product rules:** [marketplace-pack-plan](./marketplace-pack-plan.md). This file is the coding order. If the two disagree, the pack plan wins on product behavior and this file wins on which chat does the work.
 
 ## How to run a slice

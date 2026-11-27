@@ -92,6 +92,22 @@ export function buildSubscriptionPlanKey(
   return `subscriptions.plan.${id}.${field}`
 }
 
+export const MARKETPLACE_CATEGORY_LOCALE_FIELDS = ['title', 'text'] as const
+
+export type MarketplaceCategoryLocaleField =
+  (typeof MARKETPLACE_CATEGORY_LOCALE_FIELDS)[number]
+
+const MARKETPLACE_CATEGORY_FIELD_SET = new Set<string>(MARKETPLACE_CATEGORY_LOCALE_FIELDS)
+
+/** Marketplace category title / description — owner file marketplace/{categoryId}.json. */
+export function buildMarketplaceCategoryKey(
+  categoryId: string,
+  field: MarketplaceCategoryLocaleField,
+): string {
+  const id = sanitizeContentLocaleId(categoryId) || 'category'
+  return `marketplace.category.${id}.${field}`
+}
+
 export const PAGE_LOCALE_FIELDS = ['title', 'html', 'metaTitle', 'metaDescription'] as const
 
 export type PageLocaleField = (typeof PAGE_LOCALE_FIELDS)[number]
@@ -132,6 +148,11 @@ export type ParsedContentLocaleKey =
       kind: 'subscriptions-plan'
       planId: string
       field: SubscriptionPlanLocaleField
+    }
+  | {
+      kind: 'marketplace-category'
+      categoryId: string
+      field: MarketplaceCategoryLocaleField
     }
   | {
       kind: 'page'
@@ -213,6 +234,17 @@ export function parseContentLocaleKey(raw: string): ParsedContentLocaleKey | nul
     }
   }
 
+  const marketplaceCategory = /^marketplace\.category\.([^.]+)\.([^.]+)$/.exec(key)
+  if (marketplaceCategory) {
+    const field = marketplaceCategory[2]!
+    if (!MARKETPLACE_CATEGORY_FIELD_SET.has(field)) return null
+    return {
+      kind: 'marketplace-category',
+      categoryId: marketplaceCategory[1]!,
+      field: field as MarketplaceCategoryLocaleField,
+    }
+  }
+
   const pageKey = /^pages\.([^.]+)\.([^.]+)$/.exec(key)
   if (pageKey) {
     const field = pageKey[2]!
@@ -231,9 +263,16 @@ export function isValidContentLocaleKey(raw: string): boolean {
   return parseContentLocaleKey(raw) != null
 }
 
-/** Owner file under a locale folder: layouts|nav|chrome|events|subscriptions|pages/{id}.json */
+/** Owner file under a locale folder: layouts|nav|chrome|events|subscriptions|marketplace|pages/{id}.json */
 export function contentLocaleFileRefForKey(key: string): {
-  scope: 'layouts' | 'nav' | 'chrome' | 'events' | 'subscriptions' | 'pages'
+  scope:
+    | 'layouts'
+    | 'nav'
+    | 'chrome'
+    | 'events'
+    | 'subscriptions'
+    | 'marketplace'
+    | 'pages'
   ownerId: string
 } | null {
   const parsed = parseContentLocaleKey(key)
@@ -249,6 +288,9 @@ export function contentLocaleFileRefForKey(key: string): {
   }
   if (parsed.kind === 'subscriptions-plan') {
     return { scope: 'subscriptions', ownerId: parsed.planId }
+  }
+  if (parsed.kind === 'marketplace-category') {
+    return { scope: 'marketplace', ownerId: parsed.categoryId }
   }
   if (parsed.kind === 'page') {
     return { scope: 'pages', ownerId: parsed.pageId }

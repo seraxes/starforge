@@ -10,6 +10,7 @@ export type ContentLocaleScope =
   | 'chrome'
   | 'events'
   | 'subscriptions'
+  | 'marketplace'
   | 'pages'
 
 export const CONTENT_LOCALE_SCOPES: readonly ContentLocaleScope[] = [
@@ -18,6 +19,7 @@ export const CONTENT_LOCALE_SCOPES: readonly ContentLocaleScope[] = [
   'chrome',
   'events',
   'subscriptions',
+  'marketplace',
   'pages',
 ] as const
 

@@ -22,7 +22,7 @@ A product pack that depends only on Core. Its manifest does not `require` anothe
 
 A product pack whose manifest `requires` another module.
 
-**Test:** If a product pack `requires` another module, it is advanced. Marketplace stays advanced while its stub `requires` is still empty. Decision: [2026-11-26-base-vs-advanced](./decisions/2026-11-26-base-vs-advanced.md).
+**Test:** If a product pack `requires` another module, it is advanced. Marketplace `requires` Payments, Profiles, Media, and Email Manager. Decision: [2026-11-26-base-vs-advanced](./decisions/2026-11-26-base-vs-advanced.md).
 
 ## Hero
 

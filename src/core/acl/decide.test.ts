@@ -196,6 +196,21 @@ describe('adminAreaGateForPath', () => {
     })
   })
 
+  it('maps Marketplace admin paths to admin.marketplace', () => {
+    assert.deepEqual(adminAreaGateForPath('/admin/marketplace'), {
+      type: 'resource',
+      key: 'admin.marketplace',
+    })
+    assert.deepEqual(adminAreaGateForPath('/admin/marketplace/listings'), {
+      type: 'resource',
+      key: 'admin.marketplace',
+    })
+    assert.deepEqual(adminAreaGateForPath('/admin/marketplace/settings'), {
+      type: 'resource',
+      key: 'admin.marketplace',
+    })
+  })
+
   it('maps Pages admin paths to admin.pages', () => {
     assert.deepEqual(adminAreaGateForPath('/admin/pages'), {
       type: 'resource',

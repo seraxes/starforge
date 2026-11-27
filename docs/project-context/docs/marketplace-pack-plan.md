@@ -4,9 +4,9 @@ last_verified: 2026-11-27
 ---
 # product:marketplace — pack plan
 
-**Status:** Proposed. The pack in tree is still the Dashboard stub. **Do not scaffold** schema, routes, or admin UI from this file while Social polish is the active lane. Live map: [architecture-current](./architecture-current.md).  
+**Status:** Slice 4 (public loop) is in tree. Saves are slice 5. Live map: [architecture-current](./architecture-current.md).  
 **Model:** Facebook Marketplace as a **local classifieds board** (create a listing, browse nearby, message, offer, meet, rate). Not Facebook Shops, and not Shop.  
-**Placement:** Advanced module (`product:marketplace`). Not Core. Not base. Stub `requires` stays empty until the first schema slice; that slice will `require` Payments, Profiles, Media, and Email Manager.  
+**Placement:** Advanced module (`product:marketplace`). Not Core. Not base. Hard `requires`: Payments, Profiles, Media, Email Manager. `optionalRequires`: Social, Subscriptions. `sf_marketplace_categories` and `sf_marketplace_listings` are in tree; public routes `/marketplace` (+ new / you / [id] / edit); settings document `product:marketplace` lives in `sf_module_settings`.  
 **Principle:** Never rebuild an existing module’s job ([modular-core](../principles/modular-core.md), [sf-module-ownership](../../../.cursor/rules/sf-module-ownership.mdc), [sf-payments-module](../../../.cursor/rules/sf-payments-module.mdc)).
 
 Facebook’s own help and the March 2026 product note are the feature source: [sell an item](https://www.facebook.com/help/iphone-app/561376580709359), [sort and filter](https://www.facebook.com/help/fblite/248514105820200), [save](https://www.facebook.com/help/904464579676902), [make an offer](https://www.facebook.com/help/196733038830912), [ratings](https://www.facebook.com/help/915385548593204), [shipping labels](https://www.facebook.com/help/376859780413203), [Meta AI tools (2026-03-12)](https://about.fb.com/news/2026/03/facebook-marketplace-new-meta-ai-tools-make-selling-faster-and-easier/).
@@ -86,32 +86,27 @@ Exact `sf_marketplace_*` columns land in the schema slice. Concepts:
 
 Cross-pack ids are plain text. Do not foreign-key another pack’s tables.
 
-## Public door (planned)
+## Public door
 
-`@/modules/marketplace/api` and `api.server` when the schema slice needs a server-only split. Door id: `marketplace-api`.
+`@/modules/marketplace/api` and `api.server`. Door ids: `marketplace-api`, `marketplace-api-server`. Export: `runMarketplaceDoor`. Off → `{ ok: false, reason: 'disabled' }`.
 
-Planned exports (names freeze in the scaffold slice):
+In tree (slice 4): public listing query, one listing read, seller create/edit, pending / sold / renew / hide. Staff overrides via `isAppAdmin` or `admin.marketplace` edit.
 
-- Public listing query and one listing read
-- Seller’s own listing writes (member) and staff overrides (`isAppAdmin` or `admin.marketplace` edit)
-- Inquiry and offer commands
-- Rating write that enforces the handoff rule
-- Optional fee quote that calls `@/modules/payments/api` (`sourceModule=product:marketplace`, `sourceType=listing`)
-- `registerPaymentConsumerHook('marketplace.listingFeePaid')` from boot when the fee slice lands
+Later slices: inquiry and offer commands; rating write; optional fee quote via `@/modules/payments/api` (`sourceModule=product:marketplace`, `sourceType=listing`); `registerPaymentConsumerHook('marketplace.listingFeePaid')` from boot.
 
 Callers outside the pack use this door only.
 
-## Routes and admin (planned)
+## Routes and admin
 
 | Surface | Path |
 | --- | --- |
-| Browse | `/marketplace` |
-| Listing | `/marketplace/[id]` |
-| Create / edit | `/marketplace/new`, `/marketplace/[id]/edit` |
-| Your listings, saved, inquiries | `/marketplace/you` |
+| Browse | `/marketplace` (slice 4) |
+| Listing | `/marketplace/[id]` (slice 4) |
+| Create / edit | `/marketplace/new`, `/marketplace/[id]/edit` (slice 4) |
+| Your listings | `/marketplace/you` (slice 4; saves/inquiries later) |
 | Pack admin | `/admin/marketplace` — categories, listings moderation, settings (expiry days, photo cap, offers default, listing fee on/off with a deep link to Payments) |
 | ACL | `marketplace` → `admin.marketplace` view / edit / manage. App admin bypasses. |
-| Dashboard | Existing `marketplace.listings` card. Replace the unavailable stub with active, new-7d, and pending counts. |
+| Dashboard | Existing `marketplace.listings` card. Replace the unavailable stub with active, new-7d, and pending counts (slice 8). |
 
 Admin chrome copies Events / Page Settings (`sf-ui-design.mdc`). New selects on a `useActionState` form are controlled or remounted (`sf-admin-form-defaults.mdc`). Editor-typed category names use Localization’s content-locale path when that control already exists for siblings; chrome strings go in the module message pack.
 

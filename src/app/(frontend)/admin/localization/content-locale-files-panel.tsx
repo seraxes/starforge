@@ -23,6 +23,8 @@ const CONTENT_LOCALE_SCOPE_SET = new Set<string>([
   'chrome',
   'events',
   'subscriptions',
+  'marketplace',
+  'pages',
 ])
 
 function isPanelScope(value: string | undefined): value is ContentLocaleScope {

@@ -18,7 +18,7 @@ last_verified: 2026-11-26
 
 - Media is the in-tree base product pack (no module `requires`).
 - Forms, Rich editor, Email Manager, Payments, Profiles, and Maps are advanced under this test because each `requires` another module. Events, Subscriptions, Social, Ads, and Marketplace stay advanced.
-- Marketplace is advanced even while its stub `requires` is empty. It is a domain product and will `require` Payments when built.
+- Marketplace is advanced. Slice 1 `requires` Payments, Profiles, Media, and Email Manager. It was already advanced while that list was empty.
 - Maps (`product:maps` / TacMap) is in progress. Stations, BLE beacons, and `apps/asn-capacitor` stay parked.
 - Marketplace commerce schema is next after Social polish. Ads stays parked until after Marketplace.
 - Manifest `layer` still drives boot order (base, then site, then advanced). Packs this rule classes as advanced may still say `layer: 'base'`. `product:pages` (site) `requires` the rich editor, so retagging that pack to `advanced` would make a site pack depend on a later boot layer. Retag is open work, not part of this decision’s code change.

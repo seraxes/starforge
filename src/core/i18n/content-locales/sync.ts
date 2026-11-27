@@ -6,6 +6,7 @@ import {
   buildChromeConsentKey,
   buildEventCategoryKey,
   buildLayoutSlotKey,
+  buildMarketplaceCategoryKey,
   buildNavItemKey,
   buildPageKey,
   buildSubscriptionPlanKey,
@@ -214,6 +215,33 @@ export async function syncSubscriptionPlanLocalesToFiles(input: {
   const defaultLocale = settings.defaultLocale
   const titleKey = buildSubscriptionPlanKey(input.planId, 'title')
   const textKey = buildSubscriptionPlanKey(input.planId, 'text')
+
+  collectScalar(defaultLocale, titleKey, input.title, byLocale)
+  collectScalar(defaultLocale, textKey, input.description, byLocale)
+  collectMapEntries(input.titleLocales, () => titleKey, byLocale)
+  collectMapEntries(input.descriptionLocales, () => textKey, byLocale)
+
+  for (const [locale, entries] of byLocale) {
+    await upsertContentLocaleValues(locale, entries)
+  }
+}
+
+/**
+ * Persist marketplace category title / description into language files.
+ * The row has no titleLocales columns — only id/slug/parent/enabled/sort.
+ */
+export async function syncMarketplaceCategoryLocalesToFiles(input: {
+  categoryId: string
+  title: string
+  description: string
+  titleLocales?: LocaleTextMap
+  descriptionLocales?: LocaleTextMap
+}): Promise<void> {
+  const byLocale = new Map<string, Record<string, string>>()
+  const settings = await getLocalizationSettings()
+  const defaultLocale = settings.defaultLocale
+  const titleKey = buildMarketplaceCategoryKey(input.categoryId, 'title')
+  const textKey = buildMarketplaceCategoryKey(input.categoryId, 'text')
 
   collectScalar(defaultLocale, titleKey, input.title, byLocale)
   collectScalar(defaultLocale, textKey, input.description, byLocale)

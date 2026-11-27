@@ -5877,6 +5877,103 @@ button:disabled {
   margin-bottom: 1.25rem;
 }
 
+/* product:marketplace — public browse / detail / you */
+.sf-marketplace-page {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.sf-marketplace-filters {
+  margin: 1rem 0 1.25rem;
+}
+
+.sf-marketplace-browse-list,
+.sf-marketplace-you-list,
+.sf-marketplace-photo-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.sf-marketplace-browse-link {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr;
+  gap: 0.75rem;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid var(--sf-line);
+  border-radius: var(--radius-sf);
+  padding: 0.55rem;
+  background: color-mix(in srgb, var(--sf-secondary) 10%, var(--sf-paper));
+}
+
+.sf-marketplace-browse-thumb {
+  width: 5.5rem;
+  height: 5.5rem;
+  object-fit: cover;
+  border-radius: calc(var(--radius-sf) - 2px);
+  background: color-mix(in srgb, var(--sf-secondary) 18%, var(--sf-paper));
+}
+
+.sf-marketplace-browse-thumb.is-empty {
+  display: block;
+}
+
+.sf-marketplace-browse-body {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.sf-marketplace-browse-body strong {
+  font-size: 1.05rem;
+}
+
+.sf-marketplace-you-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.85rem;
+  align-items: center;
+  border-bottom: 1px solid var(--sf-line);
+  padding: 0.55rem 0;
+}
+
+.sf-marketplace-detail-photos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: 0.65rem;
+  margin: 1rem 0;
+}
+
+.sf-marketplace-detail-photo {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--radius-sf);
+  border: 1px solid var(--sf-line);
+}
+
+.sf-marketplace-detail-meta {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.75rem 0 1rem;
+}
+
+.sf-marketplace-photo-item {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.sf-marketplace-status-actions {
+  margin-top: 0.75rem;
+}
+
 /* Plan editor — Events edit mosaic: half-width settings-fieldset cards, no nested panel. */
 .sf-subscriptions-plan-edit.sf-events-form-mosaic {
   width: 100%;

@@ -678,6 +678,16 @@ export const moduleDoorLoaders: ModuleDoorLoader[] = [
     load: async () => import("@/modules/ads/api.server"),
   },
   {
+    id: "marketplace-api",
+    moduleId: "product:marketplace",
+    load: async () => import("@/modules/marketplace/api"),
+  },
+  {
+    id: "marketplace-api-server",
+    moduleId: "product:marketplace",
+    load: async () => import("@/modules/marketplace/api.server"),
+  },
+  {
     id: "audit-log",
     moduleId: "product:audit",
     load: async () => import("@/modules/audit/admin/AuditLogPanel"),
