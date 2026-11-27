@@ -4,7 +4,7 @@ last_verified: 2026-11-27
 ---
 # product:onboarding — build spec
 
-**Status:** Slice 2 (status builder + identity facts) is in tree. Next chat is slice 3 (procedure + notes + invite) only. `defaultEnabled: false`. Fleet and Documents stay parked. Live map: [architecture-current](./architecture-current.md).  
+**Status:** Slices 1–5 and 7–11 are in tree. Next chat is slice 12 (driver-home particle) only. Slice 6 waits on Documents slice 3. `defaultEnabled: false`. Fleet and Documents stay parked. Live map: [architecture-current](./architecture-current.md).  
 **Pack plan:** [onboarding-pack-plan](./onboarding-pack-plan.md). **Family order:** [primeone-pack-plans](./primeone-pack-plans.md) waves **1, 4, 5, 6**.  
 **Inventory:** [primeone-inventory-drivers](./primeone-inventory-drivers.md). **Coverage:** [primeone-coverage-plan](./primeone-coverage-plan.md).
 
@@ -42,10 +42,39 @@ Hard `requires`: Forms, Media, Email Manager, Profiles. `optionalRequires`: Flee
 | --- | --- | --- | --- |
 | 1 | Scaffold: manifest, empty door, README Owns/Consumes, registry generate. No tables. | 1 | Done. Door on/off tests, lint, `check:atomic` |
 | 2 | Status builder + identity facts. Seeded statuses. Person-fact reads on the door. Station id only; catalog from Fleet. | 1 | Done. Bookable when the status flag is on or the user has vehicle access |
-| 3 | Procedure cards, notes, follow-up, calls, mail log, invite + Email Manager starters. | 4 | Invite creates a Core user and sends set-password + application mail |
-| 4 | Training checklist, pack-local PDF, trainer calendar, Forms quiz attempt, dated qualification on pass. Pass does not move status. | 5 | PDF stays in this pack until Documents exists. Questions stay in Forms |
-| 5 | Valid-until on licence, health booklet, contract. Missing is not expired. | 6 | Presence-only live rows import with empty valid-until |
+| 3 | Procedure cards, notes, follow-up, calls, mail log, invite + Email Manager starters. | 4 | Done. Invite creates a Core user and sends set-password + application mail |
+| 4 | Training checklist, pack-local PDF, trainer calendar, Forms quiz attempt, dated qualification on pass. Pass does not move status. | 5 | Done. PDF stays in this pack until Documents exists. Questions stay in Forms |
+| 5 | Valid-until on licence, health booklet, contract. Missing is not expired. | 6 | Done. Presence-only live rows import with empty valid-until |
 | 6 | Documents bridge: person-file render goes through `product:documents` when that pack exists. | 9 | Do not start before [documents-build-spec](./documents-build-spec.md) slice 3 |
+| 7 | Status phase and driver-list copy. Phase, display label, action chip, next-step message. A new status shows up in later pickers. | 7 | Done. Empty name refused. Active phase is bookable. No Joomla group ids |
+| 8 | Email binding. Recruiting status, invite, and each event type store an Email Manager template id. | 7 | Done. Recruiting status accepts a template id. A reminder binding on a non-recruiting status is refused |
+| 9 | Email editor popup. Onboarding Edit opens the Email Manager template editor with `embed=1`. | 7 | Done. Empty template id is refused. Embed hides the admin shell. Save stays in Email Manager |
+| 10 | Event type settings and depots. Depot list while Fleet is off. Per type: Forms id, date field, active statuses, completed statuses. | 7 | Done. A completed status sets the outcome to passed. It does not set failed or no-show |
+| 11 | Staff tag catalog. Label, color, to-do, fade. | 7 | Done. Empty label refused. A tag does not change the person’s status |
+| 12 | Driver-home particle. Current status message, action chip, and tiles for that status. | 7 | A tile limited to one status is hidden on another status. An empty status list shows for every status |
+
+## Settings wave (slices 7–12)
+
+Driver States in the live admin is this catalog. Adding a status is what makes that status appear on the driver list, in reminder rows, in event active/completed checklists, and in the tile’s “visible for statuses” list. Do not copy Joomla group ids. Phase is `recruiting`, `declined`, `inactive`, `active`, or `banned`. The active phase is bookable.
+
+| Setting | What Onboarding stores | Who owns the body |
+| --- | --- | --- |
+| Status message | Display label, action chip, next-step text on the status | Onboarding |
+| Reminder | Template id on a recruiting status | Email Manager |
+| Status form | Forms definition id on the status | Forms |
+| New-driver invite | One template id in Onboarding settings | Email Manager |
+| Event type | Template id, Forms definition id, date field name, active status ids, completed status ids | Email body in Email Manager. Fields in Forms |
+| Depots | Short name and address, used while Fleet is off | Onboarding |
+| Tags | Label, color, to-do, fade | Onboarding |
+| Dashboard tile | Title, icon, URL, order, published, status ids (empty = every status), staff-only flag | Onboarding particle |
+
+Edit on a template row opens `/admin/email/templates/[id]?embed=1` in a dialog. Email Manager owns that query and the save. Onboarding does not embed a second editor. A filled send on the person card may change that one message. The mail log stores the filled text. It does not overwrite the template.
+
+Edit on a status form opens `/admin/forms/[formId]?embed=1` in a large dialog. Forms owns that query and the save. Empty form id is refused. Create (when the status has no form) builds a definition through the Forms public door, stores the new id on the status, and opens the same dialog. Closing leaves the status picker on that id. Onboarding does not copy the Forms canvas.
+
+Moving a person into a status listed as completed for an event type sets that event’s outcome to `passed`. It does not set `failed` or `no_show`.
+
+The driver home is an Onboarding particle in the site layout. It reads the current status and shows that status’s message, action chip, and tiles. A Page may sit above it. Onboarding stores the page id. Pages stores the article.
 
 ## Identity facts (slice 2)
 
@@ -160,7 +189,7 @@ Import submissions only after “latest submission per person per form, older ro
 | --- | --- |
 | Quiz question builder inside Onboarding | Drop. Forms owns the quiz mode. Testday also keeps Forms + `exam_url`. |
 | Separate qualification table on the live site | Add in slice 4. |
-| Valid-until columns on the live site | Add in slice 5. Import presence-only rows with null dates. |
+| Valid-until columns on the live site | Done in slice 5 (`sf_onboarding_document_slots`). Import presence-only rows with empty dates. |
 | `#__primeone_driver_field_import` | Drop. |
 | `plg_system_primeone_usercontext` | Unknown (ops). Do not port until ops confirms a consumer. |
 | Package zips | Drop. |

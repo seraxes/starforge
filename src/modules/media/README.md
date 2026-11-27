@@ -22,6 +22,8 @@ Library + Settings admin UI (`admin/`, App Router shims under `/admin/media`). S
 
 **Member uploads** (`MemberMediaPicker` + `sf_media_owners`): signed-in members upload through the same Media pipeline without admin rights; consumers call `memberOwnsMedia` before storing a member-supplied id.
 
+**Drop to upload:** `MediaPicker` and `MemberMediaPicker` (and `MediaFileField`) accept drag-and-drop on the field chrome and the library dialog — shared helpers in `admin/media-drop.ts`. Dropping an image uploads through the same pipeline as the Upload control.
+
 ## Consumes
 
 Ports (storage, pipeline, analysis, actions) in `src/core/media` — Core hosts. Payload is not the media document store. Do not add media features as a second library. Media does not go back into a CMS package. `npm run db:migrate` drops a leftover `payload` schema after the one-shot copy. No module `requires`.

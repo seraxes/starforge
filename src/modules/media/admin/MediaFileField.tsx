@@ -2,6 +2,8 @@
 
 import React, { useId, useRef, useState } from 'react'
 
+import { firstAcceptedImageFile } from './media-drop'
+
 type Props = {
   /** Form field name (default `file`). */
   name?: string
@@ -25,6 +27,12 @@ type Props = {
    * When false, a hidden `resize=on` is posted so the server default stays on.
    */
   canChooseResize?: boolean
+  /**
+   * Called after a file is dropped onto this field (file is also on the input).
+   * Click-to-choose still only fills the input — parent Upload / onDroppedFile
+   * on outer pickers handle immediate upload.
+   */
+  onDroppedFile?: (file: File) => void
 }
 
 /**
@@ -42,6 +50,7 @@ export function MediaFileField({
   changeLabel = 'Change file',
   canChooseDecode = false,
   canChooseResize = false,
+  onDroppedFile,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const inputId = useId()
@@ -53,16 +62,18 @@ export function MediaFileField({
   const [resize, setResize] = useState(true)
   const showOptions = canChooseDecode || canChooseResize
 
-  function applyFiles(files: FileList | null) {
+  function applyFiles(files: FileList | null, fromDrop = false) {
     const input = inputRef.current
-    if (!input || !files?.length) {
+    const file = firstAcceptedImageFile(files)
+    if (!input || !file) {
       setFileName('')
       return
     }
     const dt = new DataTransfer()
-    dt.items.add(files[0]!)
+    dt.items.add(file)
     input.files = dt.files
-    setFileName(files[0]!.name)
+    setFileName(file.name)
+    if (fromDrop) onDroppedFile?.(file)
   }
 
   return (
@@ -96,6 +107,8 @@ export function MediaFileField({
         onDragLeave={(e) => {
           e.preventDefault()
           e.stopPropagation()
+          const next = e.relatedTarget as Node | null
+          if (next && e.currentTarget.contains(next)) return
           setDragging(false)
         }}
         onDrop={(e) => {
@@ -103,7 +116,7 @@ export function MediaFileField({
           e.stopPropagation()
           setDragging(false)
           if (disabled) return
-          applyFiles(e.dataTransfer.files)
+          applyFiles(e.dataTransfer.files, true)
         }}
       >
         <input

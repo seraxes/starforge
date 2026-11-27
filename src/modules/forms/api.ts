@@ -116,6 +116,20 @@ export async function saveFormDefinitionDocument(
 }
 
 /**
+ * Create a new definition (label + optional preset / id / copy).
+ * Consumers (e.g. Onboarding status Create) call this door — never Forms private files.
+ */
+export async function createFormDefinition(input: {
+  label: string
+  id?: string
+  preset?: FormPresetId
+  copyFromId?: string
+}): Promise<{ id: string; document: FormDefinitionDocument }> {
+  const { createFormDefinition: create } = await import('./definitions-store')
+  return create(input)
+}
+
+/**
  * Programmatic submit for other packs. Same checks as the Form particle.
  * The particle keeps a direct `./actions` binding for `useActionState`.
  */

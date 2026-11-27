@@ -14,38 +14,36 @@ type Props = {
 export function MarketplacePublicNav({ locale, active, signedIn }: Props) {
   const loc = locale as AppLocale
   return (
-    <nav className="gantry-layouts-nav" aria-label="Marketplace">
-      <div className="gantry-layouts-nav-tabs">
-        <Link
-          href={withLocalePrefix('/marketplace', loc)}
-          className={`gantry-layouts-nav-tab${active === 'browse' ? ' is-active' : ''}`}
-        >
-          Browse
-        </Link>
-        {signedIn ? (
-          <>
-            <Link
-              href={withLocalePrefix('/marketplace/new', loc)}
-              className={`gantry-layouts-nav-tab${active === 'new' ? ' is-active' : ''}`}
-            >
-              Sell
-            </Link>
-            <Link
-              href={withLocalePrefix('/marketplace/you', loc)}
-              className={`gantry-layouts-nav-tab${active === 'you' ? ' is-active' : ''}`}
-            >
-              Your listings
-            </Link>
-          </>
-        ) : (
+    <nav className="sf-marketplace-nav" aria-label="Marketplace">
+      <Link
+        href={withLocalePrefix('/marketplace', loc)}
+        className={`sf-marketplace-nav-link${active === 'browse' ? ' is-active' : ''}`}
+      >
+        Browse
+      </Link>
+      {signedIn ? (
+        <>
           <Link
-            href={withLocalePrefix('/login?next=/marketplace/new', loc)}
-            className="gantry-layouts-nav-tab"
+            href={withLocalePrefix('/marketplace/new', loc)}
+            className={`sf-marketplace-nav-link${active === 'new' ? ' is-active' : ''}`}
           >
-            Sign in to sell
+            Sell
           </Link>
-        )}
-      </div>
+          <Link
+            href={withLocalePrefix('/marketplace/you', loc)}
+            className={`sf-marketplace-nav-link${active === 'you' ? ' is-active' : ''}`}
+          >
+            You
+          </Link>
+        </>
+      ) : (
+        <Link
+          href={withLocalePrefix('/login?next=/marketplace/new', loc)}
+          className="sf-marketplace-nav-link"
+        >
+          Sign in to sell
+        </Link>
+      )}
     </nav>
   )
 }

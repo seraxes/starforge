@@ -796,6 +796,10 @@ export const bootLoaders: ModuleBootLoader[] = [
     load: async () => (await import("@/modules/events/boot")).bootEvents,
   },
   {
+    moduleId: "product:marketplace",
+    load: async () => (await import("@/modules/marketplace/boot")).bootMarketplace,
+  },
+  {
     moduleId: "product:social",
     load: async () => (await import("@/modules/social/boot")).bootSocial,
   },

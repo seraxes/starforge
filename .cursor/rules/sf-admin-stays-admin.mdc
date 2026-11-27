@@ -1,0 +1,31 @@
+---
+description: Admin edit/create stays under /admin; public has its own view and may reuse shared form elements
+alwaysApply: true
+---
+
+# Starforge — admin stays in admin
+
+**Admin create / edit / moderate flows stay under `/admin`.** The public site has its own member editing views. Those surfaces may **reuse shared form fields and actions**; they must not be the destination of an admin Edit / title link.
+
+## Laws
+
+1. **Admin Edit opens an admin route.** List title and Edit on `/admin/…` go to `/admin/<pack>/…/[id]` (or an in-admin inline editor). Never send staff to `/[locale]/…/edit` or another public URL to finish an admin job.
+2. **Public has its own editor.** Member create/edit lives on public routes (`/marketplace/[id]/edit`, account editors, …). Do not require members to enter `/admin` for ordinary self-serve edits.
+3. **Share elements, not shells.** Extract shared fields / client form bodies / server actions. Admin wraps them in admin chrome (`admin-section`, `MarketplaceAdminNav` / Events nav, `page-settings-*`). Public wraps the same core in public chrome. Do not mount the public page component inside admin, or the admin page inside public.
+4. **Post-save stays on the same surface.** Admin save → stay on or return to an `/admin/…` path. Public save → stay on or return to a public path. Do not bounce admin → public (or public → admin) after a successful edit unless the user explicitly opens a cross-link (e.g. “View public page”).
+
+## Do
+
+- Register an `admin.routes` entry for entity editors (`marketplace/listings/[id]`, `events/[eventId]`, …).
+- Pass a surface-specific `successHref` / cancel link into a shared form when both admin and public reuse it.
+- Keep staff moderation tools (Hide / Remove / Restore) on the admin list; stack Edit with them (`sf-staff-bypass`).
+
+## Don’t
+
+- Wire admin list **title** or **Edit** to a locale-prefixed public edit URL.
+- Treat “reuse the form” as “reuse the public page route.”
+- Drop the public editor because admin has one — both stay.
+
+## Quick check
+
+If an admin clicks Edit and the URL leaves `/admin`, the gate is wrong. If a member must open `/admin` to edit their own content, the public editor is missing.

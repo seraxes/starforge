@@ -3041,6 +3041,137 @@ body:has(.admin-shell) > main {
   color: var(--sf-secondary-strong);
 }
 
+/* Nav module-view Frontend/Backend tags (href-derived; not a stored field). */
+.admin-shell .nav-view-side-tag {
+  display: inline-block;
+  flex: 0 0 auto;
+  padding: 0.08rem 0.4rem;
+  border-radius: 3px;
+  border: 1px solid var(--sf-admin-blue-mid);
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  line-height: 1.25;
+  text-transform: uppercase;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.admin-shell .nav-view-side-tag.is-backend {
+  background: var(--sf-admin-blue-mid);
+  color: #fff;
+}
+
+.admin-shell .nav-view-side-tag.is-frontend {
+  background: #fff;
+  color: var(--sf-admin-blue-mid);
+}
+
+.admin-shell .nav-view-picker {
+  position: relative;
+  width: 100%;
+}
+
+.admin-shell .nav-view-picker-trigger {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: var(--sf-admin-input-min-height);
+  margin: 0;
+  padding: var(--sf-admin-input-pad-y) var(--sf-admin-input-pad-x);
+  border: 1px solid var(--sf-line);
+  border-radius: var(--sf-admin-btn-radius);
+  background: var(--sf-admin-input, var(--sf-admin-elevated));
+  color: var(--sf-ink);
+  font: inherit;
+  font-size: var(--sf-admin-input-font);
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-shell .nav-view-picker-trigger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.admin-shell .nav-view-picker-trigger:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--sf-admin-blue-border) 75%, white);
+  outline-offset: 1px;
+}
+
+.admin-shell .nav-view-picker-value,
+.admin-shell .nav-view-picker-option {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.admin-shell .nav-view-picker-label {
+  font-weight: 600;
+}
+
+.admin-shell .nav-view-picker-href,
+.admin-shell .nav-view-picker-placeholder {
+  color: var(--sf-muted);
+}
+
+.admin-shell .nav-view-picker-list {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+  max-height: 16rem;
+  overflow: auto;
+  border: 1px solid var(--sf-admin-panel-border);
+  border-radius: var(--sf-admin-btn-radius);
+  background: var(--sf-admin-elevated);
+  box-shadow: 0 8px 24px color-mix(in srgb, #000 45%, transparent);
+}
+
+.admin-shell .nav-view-picker-option {
+  width: 100%;
+  margin: 0;
+  padding: 0.45rem 0.55rem;
+  border: 0;
+  border-radius: var(--sf-admin-btn-radius);
+  background: transparent;
+  color: var(--sf-ink);
+  font: inherit;
+  font-size: 0.95rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-shell .nav-view-picker-option:hover,
+.admin-shell .nav-view-picker-option.is-selected {
+  background: color-mix(in srgb, var(--sf-admin-blue-mid) 22%, transparent);
+}
+
+.admin-shell .nav-view-picker-empty {
+  padding: 0.55rem;
+  color: var(--sf-muted);
+  font-size: 0.9rem;
+}
+
+/*
+ * View picker menus must escape card chrome (`overflow: hidden` on panels),
+ * same idea as Events typeahead `:has()` escapes.
+ */
+.admin-shell .page-settings-panel:has(.nav-view-picker.is-open),
+.admin-shell .outlines-create:has(.nav-view-picker.is-open),
+.admin-shell .nav-items-add:has(.nav-view-picker.is-open),
+.admin-shell .nav-item-card-body:has(.nav-view-picker.is-open) {
+  overflow: visible;
+  position: relative;
+  z-index: 6;
+}
+
 /* Nav item bars reuse .gantry-slot mid-blue chrome; settings body is elevated navy. */
 .admin-shell .nav-item-card-body {
   background: var(--sf-admin-elevated);
@@ -5536,6 +5667,18 @@ body:has(.admin-shell) > main {
   padding: 1rem;
 }
 
+/* Drop-to-upload highlight (MediaPicker field + library dialog). */
+.admin-shell .sf-media-picker.sf-media-dropzone {
+  border: 1px dashed transparent;
+  border-radius: 3px;
+  padding: 0.35rem;
+}
+.admin-shell .sf-media-dropzone.is-dragging {
+  border-color: var(--sf-admin-blue-mid, #3d7ab5) !important;
+  background: color-mix(in srgb, var(--sf-admin-blue-mid, #3d7ab5) 14%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sf-admin-blue-mid, #3d7ab5) 40%, transparent);
+}
+
 /* In-app confirm (replaces window.confirm) — SF admin chrome.
  * Above media lightbox / picker (110) so delete confirms stack correctly. */
 .admin-shell .sf-admin-confirm-backdrop {
@@ -5596,6 +5739,82 @@ body:has(.admin-shell) > main {
   flex-direction: column;
   padding-bottom: 0;
   overflow: hidden;
+}
+
+/* Onboarding → Email Manager template editor (?embed=1) in a dialog. */
+.admin-shell .sf-onboarding-email-embed-dialog {
+  width: min(56rem, 100%);
+  height: min(90vh, 44rem);
+  max-height: min(90vh, 44rem);
+}
+
+.admin-shell .sf-onboarding-email-embed-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.admin-shell .sf-onboarding-email-embed-head h3 {
+  margin: 0;
+}
+
+.admin-shell .sf-onboarding-email-embed-frame {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  border: 0;
+  background: var(--sf-admin-bg, #212933);
+}
+
+.admin-shell .sf-onboarding-email-embed-edit {
+  appearance: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Onboarding → Forms builder (?embed=1) — almost the full admin viewport. */
+.admin-shell .sf-onboarding-form-embed-dialog {
+  width: min(96rem, calc(100vw - 1.5rem));
+  height: min(92vh, calc(100vh - 1.5rem));
+  max-height: min(92vh, calc(100vh - 1.5rem));
+}
+
+.admin-shell .sf-onboarding-form-embed-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.admin-shell .sf-onboarding-form-embed-head h3 {
+  margin: 0;
+}
+
+.admin-shell .sf-onboarding-form-embed-frame {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  border: 0;
+  background: var(--sf-admin-bg, #212933);
+}
+
+.admin-shell .sf-onboarding-form-embed-edit {
+  appearance: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .admin-shell .sf-admin-form-dialog-body {

@@ -23,6 +23,8 @@ type Props = {
   template: EmailTemplateFormRow & { id: string; updatedAt: string }
   categories: string[]
   richEditorEnabled: boolean
+  /** When true (`?embed=1`), stay on this page after Save — do not return to the list. */
+  embed?: boolean
 }
 
 const initial: EmailAdminActionState = {}
@@ -102,7 +104,12 @@ function DetailsDialog({
  * Full-page template editor — Message + HTML on the mosaic; label/category in the
  * Details popup (Subscriptions form-dialog chrome).
  */
-export function EmailTemplateEditor({ template, categories, richEditorEnabled }: Props) {
+export function EmailTemplateEditor({
+  template,
+  categories,
+  richEditorEnabled,
+  embed = false,
+}: Props) {
   const router = useRouter()
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -135,17 +142,17 @@ export function EmailTemplateEditor({ template, categories, richEditorEnabled }:
 
   useEffect(() => {
     if (deleteState.ok) {
-      router.push('/admin/email/templates')
+      if (!embed) router.push('/admin/email/templates')
       return
     }
     if (updateState.ok) {
-      if (updateState.after === 'save') {
+      if (!embed && updateState.after === 'save') {
         router.push('/admin/email/templates')
         return
       }
       router.refresh()
     }
-  }, [updateState, deleteState, router])
+  }, [updateState, deleteState, router, embed])
 
   const busy = updatePending || deletePending
   const formId = `email-template-edit-${template.id}`
@@ -201,29 +208,33 @@ export function EmailTemplateEditor({ template, categories, richEditorEnabled }:
       <Feedback state={deleteState} />
 
       <div className="sf-events-form-actions page-settings-actions">
-        <Link
-          href="/admin/email/templates"
-          className="gantry-toolbar-btn gantry-toolbar-btn-muted"
-          onClick={(e) => {
-            if (
-              !window.confirm(
-                'Discard unsaved changes and return to the templates list?',
-              )
-            ) {
-              e.preventDefault()
-            }
-          }}
-        >
-          Cancel
-        </Link>
-        <button
-          type="button"
-          className="gantry-toolbar-btn gantry-toolbar-btn-danger"
-          disabled={busy}
-          onClick={() => setConfirmDelete(true)}
-        >
-          Delete
-        </button>
+        {embed ? null : (
+          <Link
+            href="/admin/email/templates"
+            className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+            onClick={(e) => {
+              if (
+                !window.confirm(
+                  'Discard unsaved changes and return to the templates list?',
+                )
+              ) {
+                e.preventDefault()
+              }
+            }}
+          >
+            Cancel
+          </Link>
+        )}
+        {embed ? null : (
+          <button
+            type="button"
+            className="gantry-toolbar-btn gantry-toolbar-btn-danger"
+            disabled={busy}
+            onClick={() => setConfirmDelete(true)}
+          >
+            Delete
+          </button>
+        )}
         <button
           type="submit"
           form={formId}

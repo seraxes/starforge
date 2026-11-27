@@ -8,6 +8,7 @@ Start here. This file only points to the sources of truth.
 - [Live map](docs/project-context/docs/architecture-current.md) — current architecture and open work.
 - [Rules](.cursor/rules/) — always-applied Cursor rules (`sf-*.mdc`).
 - [Staff bypass](.cursor/rules/sf-staff-bypass.mdc) — app admins / developers may use ownership-gated member actions anywhere.
+- [Admin stays in admin](.cursor/rules/sf-admin-stays-admin.mdc) — admin Edit stays under `/admin`; public has its own editor; shared form elements OK.
 - [Admin form defaults](.cursor/rules/sf-admin-form-defaults.mdc) — new selects/options on `useActionState` forms must survive post-save reset (controlled or remount `key`).
 - [Decision template](docs/project-context/docs/decision-template.md) — record an accepted boundary decision.
 - [Decisions](docs/project-context/docs/decisions/) — accepted boundary decisions.

@@ -1,8 +1,32 @@
 'use client'
 
-import React, { startTransition, useActionState, useEffect, useState } from 'react'
-import Link from 'next/link'
+import React, {
+  startTransition,
+  useActionState,
+  useEffect,
+  useId,
+  useMemo,
+  useState,
+  useTransition,
+} from 'react'
 import { useRouter } from 'next/navigation'
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 import { useNotifySavedOnOk } from '@/app/(frontend)/admin/admin-toast'
 import { AdminConfirmDialog } from '@/components/admin/AdminConfirmDialog'
@@ -10,19 +34,33 @@ import { AdminConfirmDialog } from '@/components/admin/AdminConfirmDialog'
 import {
   createOnboardingStatusAction,
   deleteOnboardingStatusAction,
+  reorderOnboardingStatusesAction,
   updateOnboardingStatusAction,
   type OnboardingAdminActionState,
 } from '../actions'
+import { ONBOARDING_STATUS_PHASES, type OnboardingStatusPhase } from '../status-rules'
+import { EmailTemplateEditLink } from './email-template-edit-dialog'
+import {
+  FormDefinitionCreateButton,
+  FormDefinitionEditLink,
+} from './form-definition-edit-dialog'
+
 const initial: OnboardingAdminActionState = {}
 
 type FormOption = { id: string; label: string }
+type TemplateOption = { id: string; label: string }
 
 type StatusRow = {
   id: string
   key: string
   name: string
+  phase: OnboardingStatusPhase
+  displayLabel: string
+  actionChip: string
+  nextStepMessage: string
   bookable: boolean
   formDefinitionId: string
+  reminderTemplateId: string
   sortOrder: number
   updatedAt: string
 }
@@ -30,6 +68,7 @@ type StatusRow = {
 type Props = {
   statuses: StatusRow[]
   formOptions: FormOption[]
+  templateOptions: TemplateOption[]
 }
 
 function Feedback({ state }: { state: OnboardingAdminActionState }) {
@@ -57,30 +96,64 @@ function withCurrentOption(options: FormOption[], currentId: string): FormOption
   return [...options, { id, label: `${id} (missing)` }]
 }
 
+function phaseLabel(phase: OnboardingStatusPhase): string {
+  switch (phase) {
+    case 'recruiting':
+      return 'Recruiting'
+    case 'declined':
+      return 'Declined'
+    case 'inactive':
+      return 'Inactive'
+    case 'active':
+      return 'Active (bookable)'
+    case 'banned':
+      return 'Banned'
+    default:
+      return phase
+  }
+}
+
 function StatusFields({
   row,
   formOptions,
+  templateOptions,
   pending,
 }: {
   row?: StatusRow
   formOptions: FormOption[]
+  templateOptions: TemplateOption[]
   pending: boolean
 }) {
   const [name, setName] = useState(row?.name ?? '')
   const [key, setKey] = useState(row?.key ?? '')
-  const [bookable, setBookable] = useState(row?.bookable === true)
+  const [phase, setPhase] = useState<OnboardingStatusPhase>(row?.phase ?? 'recruiting')
+  const [displayLabel, setDisplayLabel] = useState(row?.displayLabel ?? '')
+  const [actionChip, setActionChip] = useState(row?.actionChip ?? '')
+  const [nextStepMessage, setNextStepMessage] = useState(row?.nextStepMessage ?? '')
   const [formDefinitionId, setFormDefinitionId] = useState(row?.formDefinitionId ?? '')
-  const [sortOrder, setSortOrder] = useState(String(row?.sortOrder ?? 0))
+  const [reminderTemplateId, setReminderTemplateId] = useState(row?.reminderTemplateId ?? '')
   const formChoices = withCurrentOption(formOptions, formDefinitionId)
   const formDeepLinkId = formDefinitionId.trim()
+  const reminderChoices = withCurrentOption(templateOptions, reminderTemplateId)
+  const reminderDeepLinkId = phase === 'recruiting' ? reminderTemplateId.trim() : ''
+  const statusId = row?.id?.trim() ?? ''
 
   useEffect(() => {
     setName(row?.name ?? '')
     setKey(row?.key ?? '')
-    setBookable(row?.bookable === true)
+    setPhase(row?.phase ?? 'recruiting')
+    setDisplayLabel(row?.displayLabel ?? '')
+    setActionChip(row?.actionChip ?? '')
+    setNextStepMessage(row?.nextStepMessage ?? '')
     setFormDefinitionId(row?.formDefinitionId ?? '')
-    setSortOrder(String(row?.sortOrder ?? 0))
+    setReminderTemplateId(row?.reminderTemplateId ?? '')
   }, [row])
+
+  useEffect(() => {
+    if (phase !== 'recruiting' && reminderTemplateId) {
+      setReminderTemplateId('')
+    }
+  }, [phase, reminderTemplateId])
 
   return (
     <fieldset className="settings-fieldset sf-events-form-section sf-events-form-section-wide">
@@ -96,6 +169,22 @@ function StatusFields({
           autoComplete="off"
           onChange={(e) => setName(e.target.value)}
         />
+        <span className="settings-hint">
+          Adding a status with a name is enough for later pickers to list it.
+        </span>
+      </label>
+      <label className="settings-field">
+        <span>Display label</span>
+        <input
+          type="text"
+          name="displayLabel"
+          value={displayLabel}
+          disabled={pending}
+          autoComplete="off"
+          placeholder="Shown on the people list"
+          onChange={(e) => setDisplayLabel(e.target.value)}
+        />
+        <span className="settings-hint">Shown on the people / driver list. Blank → uses Name.</span>
       </label>
       <label className="settings-field">
         <span>Key</span>
@@ -111,30 +200,43 @@ function StatusFields({
         <span className="settings-hint">Leave blank on create to build it from the name.</span>
       </label>
       <label className="settings-field">
-        <span>Sort order</span>
-        <input
-          type="number"
-          name="sortOrder"
-          min={0}
-          step={1}
-          value={sortOrder}
+        <span>Phase</span>
+        <select
+          name="phase"
+          value={phase}
           disabled={pending}
-          onChange={(e) => setSortOrder(e.target.value)}
+          onChange={(e) => setPhase(e.target.value as OnboardingStatusPhase)}
+        >
+          {ONBOARDING_STATUS_PHASES.map((p) => (
+            <option key={p} value={p}>
+              {phaseLabel(p)}
+            </option>
+          ))}
+        </select>
+        <span className="settings-hint">Active phase is bookable. No Joomla group ids.</span>
+      </label>
+      <label className="settings-field">
+        <span>Action chip</span>
+        <input
+          type="text"
+          name="actionChip"
+          value={actionChip}
+          disabled={pending}
+          autoComplete="off"
+          placeholder="Short action text"
+          onChange={(e) => setActionChip(e.target.value)}
         />
       </label>
-      <label className="settings-field settings-flag">
-        <span>Bookable</span>
-        <input
-          type="checkbox"
-          name="bookable"
-          value="1"
-          checked={bookable}
+      <label className="settings-field">
+        <span>Next-step message</span>
+        <textarea
+          name="nextStepMessage"
+          value={nextStepMessage}
           disabled={pending}
-          onChange={(e) => setBookable(e.target.checked)}
+          rows={3}
+          placeholder="Instruction shown for this status"
+          onChange={(e) => setNextStepMessage(e.target.value)}
         />
-        <span className="settings-hint">
-          When on, the person is bookable without Fleet vehicle access. Seeded Active is on.
-        </span>
       </label>
       <label className="settings-field">
         <span>Forms definition</span>
@@ -166,17 +268,51 @@ function StatusFields({
         <span className="settings-hint">
           Optional intake for this step. Banned and similar statuses may have none.{' '}
           {formDeepLinkId ? (
-            <Link href={`/admin/forms/${encodeURIComponent(formDeepLinkId)}`}>Edit form</Link>
-          ) : (
-            <Link href="/admin/forms">Open Forms</Link>
-          )}
+            <FormDefinitionEditLink formId={formDeepLinkId} />
+          ) : statusId ? (
+            <FormDefinitionCreateButton
+              statusId={statusId}
+              statusName={name || row?.name || row?.key || 'Status'}
+              onCreated={(id) => setFormDefinitionId(id)}
+            />
+          ) : null}
         </span>
       </label>
+      {phase === 'recruiting' ? (
+        <label className="settings-field">
+          <span>Reminder email template</span>
+          <select
+            name="reminderTemplateId"
+            value={reminderTemplateId}
+            disabled={pending}
+            onChange={(e) => setReminderTemplateId(e.target.value)}
+          >
+            <option value="">None</option>
+            {reminderChoices.map((tpl) => (
+              <option key={tpl.id} value={tpl.id}>
+                {tpl.label}
+              </option>
+            ))}
+          </select>
+          <span className="settings-hint">
+            Recruiting only. Subject and body stay in Email Manager. Empty clears the binding.{' '}
+            <EmailTemplateEditLink templateId={reminderDeepLinkId} />
+          </span>
+        </label>
+      ) : (
+        <input type="hidden" name="reminderTemplateId" value="" />
+      )}
     </fieldset>
   )
 }
 
-function AddStatusPanel({ formOptions }: { formOptions: FormOption[] }) {
+function AddStatusPanel({
+  formOptions,
+  templateOptions,
+}: {
+  formOptions: FormOption[]
+  templateOptions: TemplateOption[]
+}) {
   const router = useRouter()
   const [createOpen, setCreateOpen] = useState(false)
   const [formKey, setFormKey] = useState(0)
@@ -204,7 +340,7 @@ function AddStatusPanel({ formOptions }: { formOptions: FormOption[] }) {
           </button>
           {!createOpen ? (
             <p className="settings-hint sf-events-add-hint">
-              Click Add + to create a status — bookable flag and optional Forms definition.
+              Click Add + to create a status — drag ▣ to reorder the list.
             </p>
           ) : null}
         </div>
@@ -218,7 +354,11 @@ function AddStatusPanel({ formOptions }: { formOptions: FormOption[] }) {
             aria-label="Create status"
             className="sf-events-form-mosaic-form"
           >
-            <StatusFields formOptions={formOptions} pending={pending} />
+            <StatusFields
+              formOptions={formOptions}
+              templateOptions={templateOptions}
+              pending={pending}
+            />
           </form>
           <Feedback state={state} />
           <div className="sf-events-form-actions admin-action-row page-settings-actions">
@@ -248,11 +388,13 @@ function AddStatusPanel({ formOptions }: { formOptions: FormOption[] }) {
 function EditStatusForm({
   row,
   formOptions,
+  templateOptions,
   onClose,
   onDeleted,
 }: {
   row: StatusRow
   formOptions: FormOption[]
+  templateOptions: TemplateOption[]
   onClose: () => void
   onDeleted: () => void
 }) {
@@ -280,9 +422,19 @@ function EditStatusForm({
 
   return (
     <div className="sf-events-form-mosaic" aria-label={`Edit ${row.name}`}>
-      <form id={formId} action={action} className="sf-events-form-mosaic-form">
+      <form
+        key={`${row.id}:${row.updatedAt}:${row.reminderTemplateId}`}
+        id={formId}
+        action={action}
+        className="sf-events-form-mosaic-form"
+      >
         <input type="hidden" name="id" value={row.id} />
-        <StatusFields row={row} formOptions={formOptions} pending={busy} />
+        <StatusFields
+          row={row}
+          formOptions={formOptions}
+          templateOptions={templateOptions}
+          pending={busy}
+        />
       </form>
       <Feedback state={feedback} />
       <div className="sf-events-form-actions admin-action-row page-settings-actions">
@@ -332,55 +484,170 @@ function EditStatusForm({
   )
 }
 
-export function StatusesManager({ statuses, formOptions }: Props) {
+function SortableStatusRow({
+  row,
+  index,
+  isOpen,
+  busy,
+  formOptions,
+  templateOptions,
+  onToggle,
+  onClose,
+  onDeleted,
+}: {
+  row: StatusRow
+  index: number
+  isOpen: boolean
+  busy: boolean
+  formOptions: FormOption[]
+  templateOptions: TemplateOption[]
+  onToggle: () => void
+  onClose: () => void
+  onDeleted: () => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: row.id,
+  })
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.85 : 1,
+  }
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      className={`page-settings-panel${isDragging ? ' is-slot-dragging' : ''}`}
+    >
+      <div className="page-settings-panel-head">
+        <div className="gantry-slot-title">
+          <button
+            type="button"
+            className="gantry-slot-handle"
+            aria-label={`Drag to reorder ${row.displayLabel || row.name || `status ${index + 1}`}`}
+            title="Drag to reorder"
+            disabled={busy}
+            {...attributes}
+            {...listeners}
+          >
+            ▣
+          </button>
+          <div className="gantry-slot-labels">
+            <strong>{row.displayLabel || row.name}</strong>
+            <span className="gantry-slot-sub">
+              {row.key} · {row.phase}
+              {row.bookable ? ' · bookable' : ''}
+              {row.formDefinitionId ? ` · form ${row.formDefinitionId}` : ' · no form'}
+              {row.phase === 'recruiting' && row.reminderTemplateId
+                ? ` · reminder ${row.reminderTemplateId}`
+                : ''}
+            </span>
+          </div>
+        </div>
+        <button
+          type="button"
+          className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+          aria-expanded={isOpen}
+          disabled={busy}
+          onClick={onToggle}
+        >
+          {isOpen ? 'Close' : 'Edit'}
+        </button>
+      </div>
+      {isOpen ? (
+        <div className="page-settings-panel-body">
+          <EditStatusForm
+            row={row}
+            formOptions={formOptions}
+            templateOptions={templateOptions}
+            onClose={onClose}
+            onDeleted={onDeleted}
+          />
+        </div>
+      ) : null}
+    </li>
+  )
+}
+
+export function StatusesManager({ statuses, formOptions, templateOptions }: Props) {
+  const router = useRouter()
+  const dndId = useId()
   const [openId, setOpenId] = useState<string | null>(null)
-  const open = statuses.find((s) => s.id === openId) ?? null
+  const [ordered, setOrdered] = useState(statuses)
+  const [reorderPending, startReorder] = useTransition()
+  const [reorderState, setReorderState] = useState<OnboardingAdminActionState>({})
+
+  useNotifySavedOnOk(reorderState)
+
+  useEffect(() => {
+    setOrdered(statuses)
+  }, [statuses])
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+  const sortableIds = useMemo(() => ordered.map((row) => row.id), [ordered])
+
+  function onDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const oldIndex = ordered.findIndex((row) => row.id === active.id)
+    const newIndex = ordered.findIndex((row) => row.id === over.id)
+    if (oldIndex < 0 || newIndex < 0) return
+
+    const next = arrayMove(ordered, oldIndex, newIndex)
+    setOrdered(next)
+
+    const fd = new FormData()
+    fd.set('orderedIds', next.map((row) => row.id).join(','))
+    startReorder(async () => {
+      const result = await reorderOnboardingStatusesAction({}, fd)
+      setReorderState(result)
+      if (result.ok) router.refresh()
+      if (result.error) setOrdered(statuses)
+    })
+  }
 
   return (
     <div className="sf-onboarding-statuses-manager">
-      <AddStatusPanel formOptions={formOptions} />
+      <AddStatusPanel formOptions={formOptions} templateOptions={templateOptions} />
 
       <section className="outlines-create" aria-label="Statuses">
-        {statuses.length === 0 ? (
+        <Feedback state={reorderState} />
+        {ordered.length === 0 ? (
           <p className="settings-hint">No statuses yet.</p>
         ) : (
-          <ul className="sf-ads-entity-list">
-            {statuses.map((row) => {
-              const isOpen = openId === row.id
-              return (
-                <li key={row.id} className="page-settings-panel">
-                  <div className="page-settings-panel-head">
-                    <div>
-                      <strong>{row.name}</strong>
-                      <p className="settings-hint">
-                        {row.key}
-                        {row.bookable ? ' · bookable' : ''}
-                        {row.formDefinitionId ? ` · form ${row.formDefinitionId}` : ' · no form'}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      className="gantry-toolbar-btn gantry-toolbar-btn-muted"
-                      aria-expanded={isOpen}
-                      onClick={() => setOpenId(isOpen ? null : row.id)}
-                    >
-                      {isOpen ? 'Close' : 'Edit'}
-                    </button>
-                  </div>
-                  {isOpen && open ? (
-                    <div className="page-settings-panel-body">
-                      <EditStatusForm
-                        row={open}
-                        formOptions={formOptions}
-                        onClose={() => setOpenId(null)}
-                        onDeleted={() => setOpenId(null)}
-                      />
-                    </div>
-                  ) : null}
-                </li>
-              )
-            })}
-          </ul>
+          <DndContext
+            id={dndId}
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={onDragEnd}
+          >
+            <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+              <ul className="sf-ads-entity-list">
+                {ordered.map((row, index) => {
+                  const isOpen = openId === row.id
+                  return (
+                    <SortableStatusRow
+                      key={row.id}
+                      row={row}
+                      index={index}
+                      isOpen={isOpen}
+                      busy={reorderPending}
+                      formOptions={formOptions}
+                      templateOptions={templateOptions}
+                      onToggle={() => setOpenId(isOpen ? null : row.id)}
+                      onClose={() => setOpenId(null)}
+                      onDeleted={() => setOpenId(null)}
+                    />
+                  )
+                })}
+              </ul>
+            </SortableContext>
+          </DndContext>
         )}
       </section>
     </div>

@@ -29,6 +29,10 @@ import { MEDIA_PURPOSES } from '@/core/media/pipeline'
 import type { MediaTagOption } from '@/core/media/resolve'
 
 import { MediaFileField } from './MediaFileField'
+import {
+  createFileDropHandlers,
+  firstAcceptedImageFile,
+} from './media-drop'
 
 const MEDIA_DIALOG_MIN_W = 420
 const MEDIA_DIALOG_MIN_H = 320
@@ -111,6 +115,8 @@ export function MediaPicker({
     height: MEDIA_DIALOG_DEFAULT_H,
   })
   const [resizing, setResizing] = useState(false)
+  const [fieldDragging, setFieldDragging] = useState(false)
+  const [libraryDragging, setLibraryDragging] = useState(false)
   const uploadRootRef = useRef<HTMLDivElement>(null)
   const resizeOriginRef = useRef<{
     x: number
@@ -119,17 +125,22 @@ export function MediaPicker({
     height: number
   } | null>(null)
 
-  useEffect(() => {
+  function openLibrary() {
     setPortalTarget(getAdminOverlayPortalTarget())
-  }, [])
+    setDialogSize({ width: MEDIA_DIALOG_DEFAULT_W, height: MEDIA_DIALOG_DEFAULT_H })
+    setResizing(false)
+    resizeOriginRef.current = null
+    setLibraryDragging(false)
+    setOpen(true)
+  }
 
-  useEffect(() => {
-    if (!open) {
-      setDialogSize({ width: MEDIA_DIALOG_DEFAULT_W, height: MEDIA_DIALOG_DEFAULT_H })
-      setResizing(false)
-      resizeOriginRef.current = null
-    }
-  }, [open])
+  function closeLibrary() {
+    setOpen(false)
+    setLibraryDragging(false)
+    setResizing(false)
+    resizeOriginRef.current = null
+    setDialogSize({ width: MEDIA_DIALOG_DEFAULT_W, height: MEDIA_DIALOG_DEFAULT_H })
+  }
 
   useEffect(() => {
     if (!resizing) return
@@ -201,7 +212,7 @@ export function MediaPicker({
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault()
-        setOpen(false)
+        closeLibrary()
       }
     }
     document.addEventListener('keydown', onKey)
@@ -214,7 +225,7 @@ export function MediaPicker({
       url: doc.url,
       alt: doc.alt || value.alt || '',
     })
-    setOpen(false)
+    closeLibrary()
   }
 
   function clear() {
@@ -247,31 +258,73 @@ export function MediaPicker({
     }
   }
 
-  function submitUpload() {
-    const root = uploadRootRef.current
-    if (!root) return
+  function collectUploadFormData(file?: File): FormData {
     const formData = new FormData()
-    root.querySelectorAll<HTMLInputElement>('input[name]').forEach((input) => {
-      if (input.type === 'file') {
-        const file = input.files?.[0]
-        if (file) formData.set(input.name, file)
-        return
-      }
-      if (input.type === 'checkbox') {
-        if (input.checked) formData.set(input.name, input.value || 'on')
-        return
-      }
-      formData.set(input.name, input.value)
-    })
-    void onUpload(formData)
+    const root = uploadRootRef.current
+    if (root) {
+      root.querySelectorAll<HTMLInputElement>('input[name]').forEach((input) => {
+        if (input.type === 'file') {
+          const chosen = file || input.files?.[0]
+          if (chosen) formData.set(input.name, chosen)
+          return
+        }
+        if (input.type === 'checkbox') {
+          if (input.checked) formData.set(input.name, input.value || 'on')
+          return
+        }
+        formData.set(input.name, input.value)
+      })
+    } else {
+      formData.set('folder', defaultFolder)
+      formData.set('purpose', defaultPurpose)
+      formData.set('decodeToWebp', 'on')
+      formData.set('resize', 'on')
+    }
+    if (file) formData.set('file', file)
+    return formData
+  }
+
+  function submitUpload(file?: File) {
+    void onUpload(collectUploadFormData(file))
+  }
+
+  function onDroppedFiles(files: FileList) {
+    const file = firstAcceptedImageFile(files)
+    if (!file) {
+      setUploadState({ error: 'Choose an image first (drop zone or Choose image…).' })
+      return
+    }
+    submitUpload(file)
   }
 
   const previewSrc = value.url || (value.mediaId ? `/api/media/${value.mediaId}` : '')
   const uploadCategory =
     category !== 'all' ? category : defaultCategoryId
+  const dropBusy = Boolean(disabled || uploading || pending)
+  /* eslint-disable react-hooks/refs -- handlers only read uploadRootRef when a drop/upload runs */
+  const fieldDrop = createFileDropHandlers({
+    disabled: dropBusy,
+    onDraggingChange: setFieldDragging,
+    onFiles: onDroppedFiles,
+  })
+  const libraryDrop = createFileDropHandlers({
+    disabled: dropBusy,
+    onDraggingChange: setLibraryDragging,
+    onFiles: onDroppedFiles,
+  })
+  /* eslint-enable react-hooks/refs */
 
   return (
-    <div className="sf-media-picker">
+    <div
+      className={[
+        'sf-media-picker',
+        'sf-media-dropzone',
+        fieldDragging ? 'is-dragging' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      {...fieldDrop}
+    >
       <div className="sf-media-picker-head">
         <span className="sf-media-picker-label">{label}</span>
         <div className="sf-media-picker-actions">
@@ -279,7 +332,7 @@ export function MediaPicker({
             type="button"
             className="gantry-toolbar-btn gantry-toolbar-btn-muted"
             disabled={disabled}
-            onClick={() => setOpen(true)}
+            onClick={openLibrary}
           >
             {value.mediaId ? 'Change' : 'Choose from library'}
           </button>
@@ -359,23 +412,27 @@ export function MediaPicker({
               aria-labelledby={titleId}
             >
               <div
-                className={
-                  resizing
-                    ? 'sf-media-picker-dialog is-resizing'
-                    : 'sf-media-picker-dialog'
-                }
+                className={[
+                  'sf-media-picker-dialog',
+                  'sf-media-dropzone',
+                  resizing ? 'is-resizing' : '',
+                  libraryDragging ? 'is-dragging' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
                 style={{
                   width: dialogSize.width,
                   height: dialogSize.height,
                   maxHeight: 'none',
                 }}
+                {...libraryDrop}
               >
                 <header className="sf-media-picker-dialog-head">
                   <h3 id={titleId}>Media library</h3>
                   <button
                     type="button"
                     className="gantry-toolbar-btn gantry-toolbar-btn-muted"
-                    onClick={() => setOpen(false)}
+                    onClick={closeLibrary}
                   >
                     Close
                   </button>
@@ -455,6 +512,7 @@ export function MediaPicker({
                     disabled={disabled || uploading || pending}
                     canChooseDecode={encodePolicy.canChooseDecode}
                     canChooseResize={encodePolicy.canChooseResize}
+                    onDroppedFile={(file) => submitUpload(file)}
                   />
                   <label className="settings-field">
                     <span>Alt</span>
@@ -470,7 +528,7 @@ export function MediaPicker({
                     type="button"
                     className="gantry-toolbar-btn gantry-toolbar-btn-save"
                     disabled={disabled || uploading || pending}
-                    onClick={submitUpload}
+                    onClick={() => submitUpload()}
                   >
                     {uploading ? 'Uploading…' : 'Upload'}
                   </button>
@@ -487,9 +545,16 @@ export function MediaPicker({
                   </p>
                 ) : null}
 
-                <div className="sf-media-picker-grid" data-pending={pending ? '1' : '0'}>
+                <div
+                  className="sf-media-picker-grid"
+                  data-pending={pending || uploading ? '1' : '0'}
+                >
                   {docs.length === 0 && !pending ? (
-                    <p className="layout-muted">No media yet — upload above or in CMS → Media.</p>
+                    <p className="layout-muted">
+                      {uploading
+                        ? 'Uploading…'
+                        : 'No media yet — drop an image here, upload above, or open Media.'}
+                    </p>
                   ) : null}
                   {docs.map((doc) => {
                     const selected = String(value.mediaId) === doc.id

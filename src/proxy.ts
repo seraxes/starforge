@@ -112,6 +112,11 @@ function withPathnameHeader(
     'x-sf-pathname-bare',
     bareOverride ?? pathnameWithoutLocale(pathname),
   )
+  // Email Manager / Forms (and consumers) open editors with ?embed=1 in a dialog —
+  // stamp so the admin layout can omit the sidebar shell.
+  if (request.nextUrl.searchParams.get('embed') === '1') {
+    requestHeaders.set('x-sf-admin-embed', '1')
+  }
 
   const response = NextResponse.next({
     request: { headers: requestHeaders },

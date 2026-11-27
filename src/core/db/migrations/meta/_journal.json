@@ -435,6 +435,76 @@
       "when": 1795802383439,
       "tag": "0062_onboarding_statuses",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1795803000000,
+      "tag": "0063_marketplace_saves",
+      "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1795804000000,
+      "tag": "0064_onboarding_procedure",
+      "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1795805000000,
+      "tag": "0065_marketplace_inquiries",
+      "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1795806000000,
+      "tag": "0066_onboarding_training",
+      "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1795807000000,
+      "tag": "0067_onboarding_valid_until",
+      "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1795808000000,
+      "tag": "0068_marketplace_ratings",
+      "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1795809000000,
+      "tag": "0069_onboarding_status_phase",
+      "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1795810000000,
+      "tag": "0070_onboarding_email_binding",
+      "breakpoints": true
+    },
+    {
+      "idx": 70,
+      "version": "7",
+      "when": 1795811000000,
+      "tag": "0071_onboarding_event_type_depots",
+      "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1795812000000,
+      "tag": "0072_onboarding_staff_tags",
+      "breakpoints": true
     }
   ]
 }

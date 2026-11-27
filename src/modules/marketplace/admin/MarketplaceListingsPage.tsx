@@ -45,8 +45,8 @@ export default async function MarketplaceListingsPage() {
       <MarketplaceAdminNav active="listings" />
       <h2>Listings</h2>
       <p className="lede admin-lede">
-        Staff moderation — hide, remove, restore. Public create and browse are the next slice.
-        Categories: <Link href="/admin/marketplace">Categories</Link>. Settings:{' '}
+        Staff moderation — edit, hide, remove, restore. Title or Edit opens the admin listing
+        editor. Categories: <Link href="/admin/marketplace">Categories</Link>. Settings:{' '}
         <Link href="/admin/marketplace/settings">Settings</Link>.
       </p>
       <ListingsModeration listings={rows} loadError={loaded.error} />

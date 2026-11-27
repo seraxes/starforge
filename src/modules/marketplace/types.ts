@@ -44,11 +44,11 @@ export type MarketplaceModuleSettings = {
   /** When false, offer writes are refused (slice 6). */
   offersEnabled: boolean
   /**
-   * When true, publish stays draft until Payments hook (slice 9).
+   * When true, publish stays draft until `marketplace.listingFeePaid`.
    * Saving this switch does not call Payments.
    */
   listingFeeEnabled: boolean
-  /** Listing-fee amount in minor units when the fee is on (slice 9). */
+  /** Listing-fee amount in minor units when the fee is on (quoted server-side). */
   listingFeeMinor: number
 }
 
