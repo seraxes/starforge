@@ -130,10 +130,12 @@ mustInclude(styles, 'mosaic mobile single column', '@media (max-width: 720px)')
   }
 }
 
-const barRemoveBlock = chrome.slice(
-  chrome.indexOf('/* Muted danger remove beside cog'),
-  chrome.indexOf('.admin-shell .gantry-slot-extra-actions'),
-)
+const barRemoveStart = chrome.indexOf('.admin-shell .gantry-slot-actions .gantry-bar-remove')
+const barRemoveEnd = chrome.indexOf('.admin-shell .gantry-slot-extra-actions')
+const barRemoveBlock =
+  barRemoveStart >= 0 && barRemoveEnd > barRemoveStart
+    ? chrome.slice(barRemoveStart, barRemoveEnd)
+    : ''
 if (!barRemoveBlock.includes('border: 0')) {
   console.error('gantry-bar-remove must be borderless (no blue outline box)')
   process.exit(1)
