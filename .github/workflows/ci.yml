@@ -197,7 +197,8 @@ jobs:
         run: npm run test:e2e
         env:
           CI: 'true'
-          PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+          # Same host as the browser. 127.0.0.1 sign-in cookies are not sent to localhost.
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@v4
