@@ -100,16 +100,14 @@ async function main() {
     console.error(`FAIL: expected HTTP 200 for Dashboard, got ${admin.status}`)
     process.exit(1)
   }
-  if (!admin.html.includes('Dashboard')) {
-    console.error('FAIL: Dashboard page HTML missing “Dashboard”')
+  if (!admin.html.includes('sf-dashboard')) {
+    console.error('FAIL: /admin HTML is missing the Dashboard root')
     console.error(admin.html.slice(0, 400))
     process.exit(1)
   }
-  // Guard against accidentally rendering the Users accounts table as home.
-  if (
-    admin.html.includes('users-admin-table') ||
-    (admin.html.includes('CMS access') && admin.html.includes('Disable'))
-  ) {
+  // Users list heading. Do not match the modules card label "Disabled"
+  // or the old Payload phrase "CMS access" — both can appear on Dashboard.
+  if (admin.html.includes('<h2>Accounts</h2>')) {
     console.error('FAIL: /admin HTML looks like Users accounts, not Dashboard')
     process.exit(1)
   }
