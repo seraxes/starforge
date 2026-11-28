@@ -15,11 +15,11 @@ export function FollowButton({ userId }: { userId: string }) {
   return (
     <form action={action} className="sf-social-follow-action">
       <input type="hidden" name="userId" value={userId} />
-      <button type="submit" className="gantry-btn" disabled={pending}>
+      <button type="submit" className="sf-social-follow-btn" disabled={pending}>
         {pending ? 'Following…' : 'Follow'}
       </button>
       {state.error ? (
-        <p className="admin-inline-error" role="alert">
+        <p className="sf-social-inline-error" role="alert">
           {state.error}
         </p>
       ) : null}
@@ -32,11 +32,11 @@ export function UnfollowButton({ userId }: { userId: string }) {
   return (
     <form action={action} className="sf-social-follow-action">
       <input type="hidden" name="userId" value={userId} />
-      <button type="submit" className="gantry-btn" disabled={pending}>
+      <button type="submit" className="sf-social-follow-btn" disabled={pending}>
         {pending ? 'Removing…' : 'Unfollow'}
       </button>
       {state.error ? (
-        <p className="admin-inline-error" role="alert">
+        <p className="sf-social-inline-error" role="alert">
           {state.error}
         </p>
       ) : null}

@@ -37,9 +37,11 @@ import {
   listRequestedGroupMembers,
 } from '../groups-store'
 import { memberFeedHref } from '../posts'
+import { loadSocialModuleSettings } from '../settings'
 import { viewerMayModerateSocialContent } from '../staff-grant'
 import { AlbumList, CreateAlbumForm } from './AlbumActions'
 import { FeedPostList } from './FeedPostList'
+import { FeedTabs } from './FeedTabs'
 import {
   AcceptGroupInviteButton,
   AddGroupDocumentForm,
@@ -59,7 +61,7 @@ import {
 } from './GroupActions'
 import { GroupJoinIntake } from './GroupJoinIntake'
 import { HostedEventsPanel } from './HostedEventsPanel'
-import { SocialEntityTabs } from './SocialEntityTabs'
+import { resolveEntityTab, SocialEntityTabs } from './SocialEntityTabs'
 
 type Args = {
   params: Promise<{ locale: string; slug: string }>
@@ -175,17 +177,21 @@ export default async function SocialGroupPage({ params, searchParams }: Args) {
     groupPath,
   )}`
   const eventsEnabled = isCatalogModuleEnabled(settings, MODULE_IDS.events)
-  const activeTab =
-    eventsEnabled && (query.tab ?? '').trim() === 'calendar' ? 'calendar' : 'wall'
 
-  const [membership, category, memberCount, staffCanManage, t] = await Promise.all([
+  const [membership, category, memberCount, staffCanManage, pack, t] = await Promise.all([
     userId ? findGroupMembership(group.id, userId) : Promise.resolve(null),
     findGroupCategory(group.categoryId),
     countActiveGroupMembers(group.id),
     userId ? viewerMayModerateSocialContent(userId) : Promise.resolve(false),
+    loadSocialModuleSettings(),
     getTranslations('product:social'),
   ])
   const isMember = isActiveGroupMember(membership)
+  const activeTab = resolveEntityTab(
+    query.tab,
+    eventsEnabled,
+    isMember ? 'wall' : 'about',
+  )
   const shell = buildGroupPageShell({
     coverMediaId: group.coverMediaId,
     membership,
@@ -198,20 +204,26 @@ export default async function SocialGroupPage({ params, searchParams }: Args) {
   const canReviewJoinRequests = perms.canManageMembers || staffCanManage
   const needsManageRoster =
     isMember &&
-    activeTab === 'wall' &&
+    activeTab === 'members' &&
     (perms.isOwner || perms.isAdmin || perms.canManageMembers)
-  const loadRoster = shell.showMembersList || needsManageRoster
+  const loadRoster = (shell.showMembersList && activeTab === 'members') || needsManageRoster
+  const tabFlags = {
+    showFollowing: pack.settings.allowFollowingTab,
+    showDiscover: pack.settings.allowDiscover,
+    showWatch: pack.settings.allowShortVideoLayout,
+    showStories: pack.settings.allowStories,
+  }
 
   const [posts, ranks, documents, members, pendingRequests, albums] = await Promise.all([
     shell.showWall && activeTab === 'wall' ? listGroupWallPosts(group.id) : Promise.resolve([]),
-    isMember && teamTools && activeTab === 'wall'
+    isMember && teamTools && activeTab === 'members'
       ? listGroupRanks(group.id)
       : Promise.resolve([]),
-    isMember && teamTools && activeTab === 'wall'
+    isMember && teamTools && activeTab === 'members'
       ? listGroupDocuments(group.id)
       : Promise.resolve([]),
     loadRoster ? listActiveGroupMembers(group.id) : Promise.resolve([]),
-    canReviewJoinRequests && activeTab === 'wall'
+    canReviewJoinRequests && activeTab === 'members'
       ? listRequestedGroupMembers(group.id)
       : Promise.resolve([]),
     isMember && activeTab === 'wall'
@@ -222,12 +234,13 @@ export default async function SocialGroupPage({ params, searchParams }: Args) {
     posts.map((p) => p.authorUserId),
     viewer,
   )
-  const memberPersonas = shell.showMembersList
-    ? await getPersonas(
-        members.map((m) => m.userId),
-        viewer,
-      )
-    : new Map()
+  const memberPersonas =
+    shell.showMembersList && activeTab === 'members'
+      ? await getPersonas(
+          members.map((m) => m.userId),
+          viewer,
+        )
+      : new Map()
   const items = posts.map((post) => ({
     post,
     author: authorPersonas.get(post.authorUserId) ?? null,
@@ -238,168 +251,201 @@ export default async function SocialGroupPage({ params, searchParams }: Args) {
     ),
   )
 
-  return (
-    <article className="cms-page sf-social-group-page">
-      <header className="cms-page-header">
-        {shell.coverSrc ? (
-          <div className="sf-social-group-cover">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={shell.coverSrc} alt="" className="sf-social-group-cover-img" />
-          </div>
-        ) : null}
-        <p className="layout-muted">
-          <Link href={withLocalePrefix('/feed/groups', locale)}>Groups</Link>
-          {category ? ` · ${category.name}` : null}
-          {` · ${group.visibility} · ${memberCount} member${memberCount === 1 ? '' : 's'}`}
-        </p>
-        <h1>{group.name}</h1>
-        {group.description ? <p className="lede">{group.description}</p> : null}
-      </header>
+  const joinBlock = !userId ? (
+    <p className="sf-social-entity-join-copy">
+      <Link className="sf-social-cta" href={loginHref}>
+        Sign in
+      </Link>{' '}
+      to join this group.
+    </p>
+  ) : !isMember ? (
+    <section className="sf-social-group-join" aria-label="Join group">
+      {membership?.status === 'invited' ? (
+        <AcceptGroupInviteButton groupId={group.id} />
+      ) : membership?.status === 'requested' ? (
+        <p className="layout-muted">{t('joinRequestPending')}</p>
+      ) : (
+        <>
+          {group.visibility === 'closed' && group.formDefinitionId ? (
+            <GroupJoinIntake
+              groupId={group.id}
+              formDefinitionId={group.formDefinitionId}
+            />
+          ) : null}
+          <JoinGroupButton groupId={group.id} visibility={group.visibility} />
+        </>
+      )}
+      <p className="layout-muted">Wall posts are visible to members only.</p>
+    </section>
+  ) : null
 
-      {isMember ? (
+  return (
+    <div className="sf-social-feed-page sf-social-entity-page sf-social-group-page">
+      <FeedTabs locale={locale} active="groups" {...tabFlags} />
+      <div className="sf-social-feed-column">
+        <header className="sf-social-entity-header">
+          {shell.coverSrc ? (
+            <div className="sf-social-entity-cover">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={shell.coverSrc} alt="" className="sf-social-entity-cover-img" />
+            </div>
+          ) : (
+            <div
+              className="sf-social-entity-cover sf-social-entity-cover-empty"
+              aria-hidden="true"
+            />
+          )}
+          <div className="sf-social-entity-header-body">
+            <p className="sf-social-entity-crumb layout-muted">
+              <Link href={withLocalePrefix('/feed/groups', locale)}>Groups</Link>
+              {category ? ` · ${category.name}` : null}
+            </p>
+            <h1 className="sf-social-entity-title">{group.name}</h1>
+            <p className="sf-social-entity-meta layout-muted">
+              <span className="sf-social-entity-visibility">{group.visibility}</span>
+              <span aria-hidden="true"> · </span>
+              <span>
+                {memberCount} member{memberCount === 1 ? '' : 's'}
+              </span>
+            </p>
+          </div>
+        </header>
+
         <SocialEntityTabs
-          wallHref={groupPath}
-          calendarHref={`${groupPath}?tab=calendar`}
+          baseHref={groupPath}
           active={activeTab}
           showCalendar={eventsEnabled}
         />
-      ) : null}
 
-      {!userId ? (
-        <p>
-          <Link className="gantry-btn gantry-btn-primary" href={loginHref}>
-            Sign in
-          </Link>{' '}
-          to join this group.
-        </p>
-      ) : !isMember ? (
-        <section className="sf-social-group-join" aria-label="Join group">
-          {membership?.status === 'invited' ? (
-            <AcceptGroupInviteButton groupId={group.id} />
-          ) : membership?.status === 'requested' ? (
-            <p className="layout-muted">{t('joinRequestPending')}</p>
-          ) : (
-            <>
-              {group.visibility === 'closed' && group.formDefinitionId ? (
-                <GroupJoinIntake
-                  groupId={group.id}
-                  formDefinitionId={group.formDefinitionId}
-                />
-              ) : null}
-              <JoinGroupButton groupId={group.id} visibility={group.visibility} />
-            </>
-          )}
-          <p className="layout-muted">Wall posts are visible to members only.</p>
-        </section>
-      ) : null}
+        {activeTab === 'about' ? (
+          <section className="sf-social-entity-about" aria-label="About">
+            {group.description ? (
+              <p className="sf-social-entity-description">{group.description}</p>
+            ) : (
+              <p className="layout-muted">No description yet.</p>
+            )}
+            {joinBlock}
+          </section>
+        ) : null}
 
-      {canReviewJoinRequests && activeTab === 'wall' ? (
-        <section
-          className="sf-social-group-pending-joins"
-          aria-label={t('pendingJoinRequests')}
-        >
-          <h2 className="sf-social-section-heading">{t('pendingJoinRequests')}</h2>
-          <PendingJoinRequestsList groupId={group.id} requests={pendingRequests} />
-        </section>
-      ) : null}
+        {activeTab === 'members' ? (
+          <div className="sf-social-entity-members-pane">
+            {canReviewJoinRequests ? (
+              <section
+                className="sf-social-group-pending-joins"
+                aria-label={t('pendingJoinRequests')}
+              >
+                <h2 className="sf-social-section-heading">{t('pendingJoinRequests')}</h2>
+                <PendingJoinRequestsList groupId={group.id} requests={pendingRequests} />
+              </section>
+            ) : null}
 
-      {shell.showMembersList ? (
-        <GroupMembersRoster members={members} personas={memberPersonas} locale={locale} />
-      ) : null}
+            {shell.showMembersList ? (
+              <GroupMembersRoster
+                members={members}
+                personas={memberPersonas}
+                locale={locale}
+              />
+            ) : (
+              <p className="layout-muted">Members are visible to group members only.</p>
+            )}
 
-      {isMember && activeTab === 'calendar' && eventsEnabled ? (
-        <HostedEventsPanel
-          locale={locale}
-          hostKind="group"
-          hostId={group.id}
-          canManage={perms.canManageCalendar}
-        />
-      ) : isMember && activeTab === 'wall' ? (
-        <>
-          <GroupWallComposer groupId={group.id} />
-          {canInvite ? (
-            <section className="sf-social-group-invite" aria-label="Invite member">
-              <h2 className="sf-social-section-heading">Invite</h2>
-              <InviteToGroupForm groupId={group.id} />
-            </section>
-          ) : null}
+            {isMember && canInvite ? (
+              <section className="sf-social-group-invite" aria-label="Invite member">
+                <h2 className="sf-social-section-heading">Invite</h2>
+                <InviteToGroupForm groupId={group.id} />
+              </section>
+            ) : null}
 
-          {teamTools ? (
-            <section className="sf-social-group-tools" aria-label="Team tools">
-              <h2 className="sf-social-section-heading">Team tools</h2>
+            {isMember && teamTools ? (
+              <section className="sf-social-group-tools" aria-label="Team tools">
+                <h2 className="sf-social-section-heading">Team tools</h2>
 
-              {(perms.isOwner || perms.isAdmin) ? (
-                <>
-                  <h3 className="sf-social-section-heading">Ranks</h3>
-                  <CreateGroupRankForm groupId={group.id} />
-                  <AssignGroupRankForm
-                    groupId={group.id}
-                    members={members}
-                    ranks={ranks}
-                  />
-                  {perms.isOwner ? (
-                    <SetGroupMemberRoleForm groupId={group.id} members={members} />
-                  ) : null}
-                  <SetGroupFormDefinitionForm
-                    groupId={group.id}
-                    formDefinitionId={group.formDefinitionId}
-                  />
-                </>
-              ) : null}
+                {perms.isOwner || perms.isAdmin ? (
+                  <>
+                    <h3 className="sf-social-section-heading">Ranks</h3>
+                    <CreateGroupRankForm groupId={group.id} />
+                    <AssignGroupRankForm
+                      groupId={group.id}
+                      members={members}
+                      ranks={ranks}
+                    />
+                    {perms.isOwner ? (
+                      <SetGroupMemberRoleForm groupId={group.id} members={members} />
+                    ) : null}
+                    <SetGroupFormDefinitionForm
+                      groupId={group.id}
+                      formDefinitionId={group.formDefinitionId}
+                    />
+                  </>
+                ) : null}
 
-              {perms.canManageMembers ? (
-                <>
-                  <h3 className="sf-social-section-heading">Manage members</h3>
-                  <RemoveGroupMemberForm
-                    groupId={group.id}
-                    members={members}
-                    actorUserId={userId}
-                  />
-                </>
-              ) : null}
+                {perms.canManageMembers ? (
+                  <>
+                    <h3 className="sf-social-section-heading">Manage members</h3>
+                    <RemoveGroupMemberForm
+                      groupId={group.id}
+                      members={members}
+                      actorUserId={userId}
+                    />
+                  </>
+                ) : null}
 
-              {perms.canManageDocuments ? (
-                <>
-                  <h3 className="sf-social-section-heading">Documents</h3>
-                  <AddGroupDocumentForm groupId={group.id} />
-                  <GroupDocumentsList documents={documents} />
-                </>
-              ) : (
-                documents.length > 0 ? (
+                {perms.canManageDocuments ? (
+                  <>
+                    <h3 className="sf-social-section-heading">Documents</h3>
+                    <AddGroupDocumentForm groupId={group.id} />
+                    <GroupDocumentsList documents={documents} />
+                  </>
+                ) : documents.length > 0 ? (
                   <>
                     <h3 className="sf-social-section-heading">Documents</h3>
                     <GroupDocumentsList documents={documents} />
                   </>
-                ) : null
-              )}
+                ) : null}
 
-              {perms.isOwner ? (
-                <>
-                  <h3 className="sf-social-section-heading">Ownership</h3>
-                  <TransferGroupForm
-                    groupId={group.id}
-                    members={members}
-                    ownerUserId={group.ownerUserId}
-                  />
-                  <DeleteGroupButton groupId={group.id} />
-                </>
-              ) : null}
-            </section>
-          ) : null}
+                {perms.isOwner ? (
+                  <>
+                    <h3 className="sf-social-section-heading">Ownership</h3>
+                    <TransferGroupForm
+                      groupId={group.id}
+                      members={members}
+                      ownerUserId={group.ownerUserId}
+                    />
+                    <DeleteGroupButton groupId={group.id} />
+                  </>
+                ) : null}
+              </section>
+            ) : null}
+          </div>
+        ) : null}
 
-          <section className="sf-social-group-albums" aria-label="Group albums">
-            <h2 className="sf-social-section-heading">Albums</h2>
-            <CreateAlbumForm ownerType="group" ownerId={group.id} />
-            <AlbumList albums={albums} itemsByAlbum={itemsByAlbum} canManage />
-          </section>
+        {activeTab === 'calendar' && eventsEnabled ? (
+          <HostedEventsPanel
+            locale={locale}
+            hostKind="group"
+            hostId={group.id}
+            canManage={isMember && perms.canManageCalendar}
+          />
+        ) : null}
 
+        {activeTab === 'wall' ? (
           <section className="sf-social-group-wall" aria-label="Group wall">
-            <h2 className="sf-social-section-heading">Wall</h2>
+            {isMember ? (
+              <>
+                <GroupWallComposer groupId={group.id} />
+                <section className="sf-social-group-albums" aria-label="Group albums">
+                  <h2 className="sf-social-section-heading">Albums</h2>
+                  <CreateAlbumForm ownerType="group" ownerId={group.id} />
+                  <AlbumList albums={albums} itemsByAlbum={itemsByAlbum} canManage />
+                </section>
+              </>
+            ) : null}
             {shell.showWall ? (
               <>
                 <FeedPostList items={items} locale={locale} />
                 {perms.canAnnounce && items.some((row) => !row.post.isAnnouncement) ? (
-                  <div className="sf-social-announce-list admin-control-row">
+                  <div className="sf-social-announce-list sf-social-control-row">
                     {items
                       .filter((row) => !row.post.isAnnouncement)
                       .map(({ post }) => (
@@ -416,8 +462,8 @@ export default async function SocialGroupPage({ params, searchParams }: Args) {
               <p className="layout-muted">Wall posts are visible to members only.</p>
             )}
           </section>
-        </>
-      ) : null}
-    </article>
+        ) : null}
+      </div>
+    </div>
   )
 }

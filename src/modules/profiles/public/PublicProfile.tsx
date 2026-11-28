@@ -40,12 +40,18 @@ export function PublicProfile({
   locale,
   memberSince,
   adminEditHref,
+  underName,
+  headerExtra,
 }: {
   persona: Persona
   locale: string
   memberSince: Date
   /** Shown to admins only. */
   adminEditHref?: string
+  /** Optional line under the display name (e.g. mutual friends). */
+  underName?: React.ReactNode
+  /** Extra controls in the profile head actions (e.g. Follow). */
+  headerExtra?: React.ReactNode
 }) {
   const avatar = personaMediaSrc(persona.avatarMediaId)
   const cover = personaMediaSrc(persona.coverMediaId)
@@ -89,10 +95,12 @@ export function PublicProfile({
         </div>
         <div className="sf-profile-id">
           <h1>{persona.displayName}</h1>
+          {underName ? <div className="sf-profile-under-name">{underName}</div> : null}
           <p className="sf-profile-handle">@{persona.handle}</p>
           {persona.headline ? <p className="sf-profile-headline">{persona.headline}</p> : null}
         </div>
         <div className="sf-profile-actions">
+          {headerExtra}
           {persona.isSelf ? (
             <Link href={withLocalePrefix('/account/profile', locale)} className="sf-profile-btn">
               Edit profile

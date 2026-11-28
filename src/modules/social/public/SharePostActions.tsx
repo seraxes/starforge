@@ -55,7 +55,7 @@ export function SharePostActions({
       )}
       <button
         type="submit"
-        className={noteOnly ? 'secondary' : 'gantry-btn'}
+        className={noteOnly ? 'sf-social-btn' : 'sf-social-btn sf-social-btn-primary'}
         disabled={pending}
       >
         {pending ? 'Sharing…' : noteOnly ? 'Post' : 'Share'}

@@ -29,7 +29,7 @@ function authorHref(author: Persona | null, locale: string): string | null {
 }
 
 /**
- * Fullscreen short-video stack — one vertical video post per slide.
+ * Short-video stack inside the feed column — one vertical video post per slide.
  * Same posts as the timeline; layout mode only.
  */
 export function ShortVideoLayout({
@@ -74,7 +74,7 @@ export function ShortVideoLayout({
               ) : (
                 <span>{name}</span>
               )}
-              <Link className="layout-muted" href={postHref}>
+              <Link className="sf-social-short-video-open" href={postHref}>
                 Open post
               </Link>
             </div>

@@ -14,41 +14,58 @@ import {
 const initial: SocialPageActionState = {}
 
 export function CreatePageForm() {
+  const [open, setOpen] = React.useState(false)
   const [state, action, pending] = useActionState(createPageAction, initial)
   return (
-    <form action={action} className="sf-social-create-page">
-      <label className="settings-field">
-        <span>Name</span>
-        <input type="text" name="name" maxLength={120} required disabled={pending} />
-      </label>
-      <label className="settings-field">
-        <span>Description</span>
-        <textarea name="description" rows={2} maxLength={2000} disabled={pending} />
-      </label>
-      <label className="settings-field">
-        <span>Site page id (optional)</span>
-        <input
-          type="text"
-          name="sitePageId"
-          maxLength={120}
-          disabled={pending}
-          placeholder="Editorial page id"
-        />
-      </label>
-      <div className="admin-control-row">
-        <button type="submit" className="gantry-btn gantry-btn-primary" disabled={pending}>
-          {pending ? 'Creating…' : 'Create page'}
-        </button>
-      </div>
-      {state.error ? (
-        <p className="admin-inline-error" role="alert">
-          {state.error}
-        </p>
+    <div className="sf-social-directory-create">
+      <button
+        type="button"
+        className="sf-social-directory-create-toggle"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+      >
+        {open ? 'Close' : 'Create a page'}
+      </button>
+      {open ? (
+        <form action={action} className="sf-social-create-page">
+          <label className="settings-field">
+            <span>Name</span>
+            <input type="text" name="name" maxLength={120} required disabled={pending} />
+          </label>
+          <label className="settings-field">
+            <span>Description</span>
+            <textarea name="description" rows={2} maxLength={2000} disabled={pending} />
+          </label>
+          <label className="settings-field">
+            <span>Site page id (optional)</span>
+            <input
+              type="text"
+              name="sitePageId"
+              maxLength={120}
+              disabled={pending}
+              placeholder="Editorial page id"
+            />
+          </label>
+          <div className="sf-social-directory-create-actions">
+            <button
+              type="submit"
+              className="sf-social-directory-create-submit"
+              disabled={pending}
+            >
+              {pending ? 'Creating…' : 'Create page'}
+            </button>
+          </div>
+          {state.error ? (
+            <p className="sf-social-inline-error" role="alert">
+              {state.error}
+            </p>
+          ) : null}
+          {state.ok && state.slug ? (
+            <p className="sf-social-inline-ok">Page created.</p>
+          ) : null}
+        </form>
       ) : null}
-      {state.ok && state.slug ? (
-        <p className="admin-inline-ok">Page created.</p>
-      ) : null}
-    </form>
+    </div>
   )
 }
 
@@ -57,11 +74,11 @@ export function LikePageButton({ pageId }: { pageId: string }) {
   return (
     <form action={action}>
       <input type="hidden" name="pageId" value={pageId} />
-      <button type="submit" className="gantry-btn gantry-btn-primary" disabled={pending}>
+      <button type="submit" className="sf-social-btn sf-social-btn-primary" disabled={pending}>
         {pending ? 'Liking…' : 'Like page'}
       </button>
       {state.error ? (
-        <p className="admin-inline-error" role="alert">
+        <p className="sf-social-inline-error" role="alert">
           {state.error}
         </p>
       ) : null}
@@ -74,11 +91,11 @@ export function UnlikePageButton({ pageId }: { pageId: string }) {
   return (
     <form action={action}>
       <input type="hidden" name="pageId" value={pageId} />
-      <button type="submit" className="gantry-btn" disabled={pending}>
+      <button type="submit" className="sf-social-btn" disabled={pending}>
         {pending ? 'Removing…' : 'Unlike'}
       </button>
       {state.error ? (
-        <p className="admin-inline-error" role="alert">
+        <p className="sf-social-inline-error" role="alert">
           {state.error}
         </p>
       ) : null}
@@ -95,13 +112,13 @@ export function AddPageAdminForm({ pageId }: { pageId: string }) {
         <span>Add admin (user id)</span>
         <input type="text" name="targetUserId" required disabled={pending} />
       </label>
-      <div className="admin-control-row">
-        <button type="submit" className="gantry-btn" disabled={pending}>
+      <div className="sf-social-control-row">
+        <button type="submit" className="sf-social-btn" disabled={pending}>
           {pending ? 'Adding…' : 'Add admin'}
         </button>
       </div>
       {state.error ? (
-        <p className="admin-inline-error" role="alert">
+        <p className="sf-social-inline-error" role="alert">
           {state.error}
         </p>
       ) : null}
@@ -118,13 +135,13 @@ export function PageWallComposer({ pageId }: { pageId: string }) {
         <span>New wall post</span>
         <textarea name="body" rows={3} required disabled={pending} />
       </label>
-      <div className="admin-control-row">
-        <button type="submit" className="gantry-btn gantry-btn-primary" disabled={pending}>
+      <div className="sf-social-control-row">
+        <button type="submit" className="sf-social-btn sf-social-btn-primary" disabled={pending}>
           {pending ? 'Posting…' : 'Post'}
         </button>
       </div>
       {state.error ? (
-        <p className="admin-inline-error" role="alert">
+        <p className="sf-social-inline-error" role="alert">
           {state.error}
         </p>
       ) : null}

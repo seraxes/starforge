@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import React from 'react'
@@ -7,14 +6,15 @@ import React from 'react'
 import { getAccessViewer } from '@/core/acl/access'
 import { requireContentLocale } from '@/core/content/pages'
 import { isValidLocaleCode } from '@/core/i18n'
-import { withLocalePrefix } from '@/core/i18n/path'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { getSiteChrome } from '@/core/site-chrome'
 import { getPersonas } from '@/modules/profiles/api.server'
 
 import { listTagFeedPosts } from '../mentions-tags-saves-store'
 import { normalizeTag } from '../mentions-tags-saves'
+import { loadSocialModuleSettings } from '../settings'
 import { FeedPostList } from './FeedPostList'
+import { FeedTabs } from './FeedTabs'
 
 type Args = { params: Promise<{ locale: string; tag: string }> }
 
@@ -50,6 +50,14 @@ export default async function SocialTagFeedPage({ params }: Args) {
   const [settings, viewer] = await Promise.all([getSiteSettings(), getAccessViewer()])
   if (!isCatalogModuleEnabled(settings, MODULE_IDS.social)) notFound()
 
+  const pack = await loadSocialModuleSettings()
+  const tabFlags = {
+    showFollowing: pack.settings.allowFollowingTab,
+    showDiscover: pack.settings.allowDiscover,
+    showWatch: pack.settings.allowShortVideoLayout,
+    showStories: pack.settings.allowStories,
+  }
+
   const viewerUserId = viewer.userId?.trim() || null
   const posts = await listTagFeedPosts(viewerUserId, tag)
   const personas = await getPersonas(
@@ -62,20 +70,18 @@ export default async function SocialTagFeedPage({ params }: Args) {
   }))
 
   return (
-    <article className="cms-page sf-social-feed-page">
-      <header className="cms-page-header">
-        <h1>#{tag}</h1>
-        <p className="lede">
-          <Link href={withLocalePrefix('/feed', locale)}>Back to feed</Link>
-        </p>
-      </header>
-      <FeedPostList
-        items={items}
-        locale={locale}
-        emptyMessage={`No visible posts for #${tag}.`}
-        showShare
-        showSave={Boolean(viewerUserId)}
-      />
-    </article>
+    <div className="sf-social-feed-page">
+      <FeedTabs locale={locale} active="feed" {...tabFlags} />
+      <div className="sf-social-feed-column">
+        <p className="sf-social-tag-heading">#{tag}</p>
+        <FeedPostList
+          items={items}
+          locale={locale}
+          emptyMessage={`No visible posts for #${tag}.`}
+          showShare={pack.settings.allowShare}
+          showSave={Boolean(viewerUserId)}
+        />
+      </div>
+    </div>
   )
 }

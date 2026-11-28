@@ -58,6 +58,7 @@ export default async function SocialDiscoverPage({ params }: Args) {
     showFollowing: pack.settings.allowFollowingTab,
     showDiscover: pack.settings.allowDiscover,
     showWatch: pack.settings.allowShortVideoLayout,
+    showStories: pack.settings.allowStories,
   }
 
   const userId = session?.user?.id ? String(session.user.id).trim() : ''
@@ -67,18 +68,17 @@ export default async function SocialDiscoverPage({ params }: Args) {
 
   if (!userId) {
     return (
-      <article className="cms-page sf-social-feed-page">
-        <header className="cms-page-header">
-          <h1>Discover</h1>
-          <p className="lede">Sign in to discover public posts.</p>
-        </header>
+      <div className="sf-social-feed-page">
         <FeedTabs locale={locale} active="discover" {...tabFlags} />
-        <p>
-          <Link className="gantry-btn gantry-btn-primary" href={loginHref}>
-            Sign in
-          </Link>
-        </p>
-      </article>
+        <div className="sf-social-feed-column">
+          <p className="sf-social-feed-guest-copy">Sign in to discover public posts.</p>
+          <p className="sf-social-feed-guest-action">
+            <Link className="sf-social-cta" href={loginHref}>
+              Sign in
+            </Link>
+          </p>
+        </div>
+      </div>
     )
   }
 
@@ -93,18 +93,16 @@ export default async function SocialDiscoverPage({ params }: Args) {
   }))
 
   return (
-    <article className="cms-page sf-social-feed-page">
-      <header className="cms-page-header">
-        <h1>Discover</h1>
-        <p className="lede">Public posts from the community.</p>
-      </header>
+    <div className="sf-social-feed-page">
       <FeedTabs locale={locale} active="discover" {...tabFlags} />
-      <FeedPostList
-        items={items}
-        locale={locale}
-        emptyMessage="No public posts to discover yet."
-        showShare={pack.settings.allowShare}
-      />
-    </article>
+      <div className="sf-social-feed-column">
+        <FeedPostList
+          items={items}
+          locale={locale}
+          emptyMessage="No public posts to discover yet."
+          showShare={pack.settings.allowShare}
+        />
+      </div>
+    </div>
   )
 }

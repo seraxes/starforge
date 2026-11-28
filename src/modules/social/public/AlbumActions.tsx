@@ -44,7 +44,7 @@ export function CreateAlbumForm({
           hint="File stays in Media."
         />
       </div>
-      <button type="submit" className="gantry-btn" disabled={pending}>
+      <button type="submit" className="sf-social-btn sf-social-btn-primary" disabled={pending}>
         {pending ? 'Creating…' : 'Create album'}
       </button>
       {state.error ? (
@@ -77,7 +77,7 @@ export function AddAlbumItemForm({ albumId }: { albumId: string }) {
           hint="File stays in Media."
         />
       </div>
-      <button type="submit" className="gantry-btn" disabled={pending || !mediaId}>
+      <button type="submit" className="sf-social-btn sf-social-btn-primary" disabled={pending || !mediaId}>
         {pending ? 'Adding…' : 'Add to album'}
       </button>
       {state.error ? (
