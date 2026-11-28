@@ -8,6 +8,7 @@ import {
   removeGroupMemberAction,
   type AclActionState,
 } from '@/core/acl/actions'
+import { isVisitorsGroup } from '@/core/acl/nav-access'
 import type { AppRole } from '@/core/auth/permissions'
 
 type MemberRow = {
@@ -78,7 +79,12 @@ export function GroupDetailManager({
         <Feedback state={addState} />
         <Feedback state={removeState} />
 
-        {candidates.length > 0 ? (
+        {isVisitorsGroup(groupId) ? (
+          <p className="settings-hint">
+            Visitors never has members. It matches people who are not signed in. Tag this group on a
+            Navigation item under Who can see.
+          </p>
+        ) : candidates.length > 0 ? (
           <form action={addAction} className="outlines-create-form admin-create-form">
             <input type="hidden" name="groupId" value={groupId} />
             <label className="settings-field">

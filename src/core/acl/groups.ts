@@ -13,6 +13,7 @@ import {
   wouldCreateCycle,
 } from './hierarchy'
 import { getGroupAclMatrix, replaceGroupAclMatrix, setGroupAclPermission } from './permissions'
+import { isVisitorsGroup, VISITORS_GROUP_ID } from './nav-access'
 import { slugifyGroupId } from './slug'
 import type { UserGroup, UserGroupOption } from './types'
 
@@ -156,6 +157,10 @@ export async function createUserGroup(input: {
   const existing = await getUserGroup(id)
   if (existing) return { error: `Group id “${id}” already exists.` }
 
+  if (isVisitorsGroup(input.parentId)) {
+    return { error: 'Groups cannot be placed under Visitors.' }
+  }
+
   const parentResolved = await resolveParentId(input.parentId)
   if ('error' in parentResolved) return { error: parentResolved.error }
 
@@ -196,6 +201,12 @@ export async function renameUserGroup(
 
   let resolvedParentId = existing.parentId
   if (parentId !== undefined) {
+    if (isVisitorsGroup(trimmedId) && parentId.trim()) {
+      return { error: 'Visitors cannot be nested under another group.' }
+    }
+    if (isVisitorsGroup(parentId)) {
+      return { error: 'Groups cannot be placed under Visitors.' }
+    }
     const resolved = await resolveParentId(parentId, trimmedId)
     if ('error' in resolved) return { error: resolved.error }
     resolvedParentId = resolved.parentId
@@ -221,6 +232,10 @@ export async function deleteUserGroup(
 ): Promise<{ ok: true } | { error: string }> {
   const trimmed = id.trim()
   if (!trimmed) return { error: 'Missing group id.' }
+
+  if (isVisitorsGroup(trimmed)) {
+    return { error: 'Visitors is the signed-out audience. It cannot be deleted.' }
+  }
 
   const existing = await getUserGroup(trimmed)
   if (!existing) return { error: 'Group not found.' }
@@ -284,12 +299,36 @@ export async function ensureManagersLocalizationAcl(): Promise<{ healed: boolean
   return { healed: true }
 }
 
+/** Visitors matches people who are not signed in. The membership table stays empty. */
+export async function ensureVisitorsGroup(): Promise<void> {
+  const [row] = await db
+    .select({ id: sfUserGroups.id })
+    .from(sfUserGroups)
+    .where(eq(sfUserGroups.id, VISITORS_GROUP_ID))
+    .limit(1)
+  if (row) return
+
+  try {
+    await db.insert(sfUserGroups).values({
+      id: VISITORS_GROUP_ID,
+      label: 'Visitors',
+      description:
+        'People who are not signed in. This group never has members. Tag it on a Navigation item under Who can see.',
+      parentId: null,
+    })
+  } catch {
+    // Another request inserted the row.
+  }
+}
+
 /** Seed a couple of starter groups when the table is empty. */
 export async function ensureDefaultUserGroupsSeeded(): Promise<{
   created: string[]
 }> {
+  await ensureVisitorsGroup()
   const existing = await listUserGroups()
-  if (existing.length > 0) {
+  const hasRealGroup = existing.some((group) => !isVisitorsGroup(group.id))
+  if (hasRealGroup) {
     // Existing installs: still heal Managers → Dashboard after D0.
     await ensureManagersDashboardAcl()
     // Localization left Chrome — heal Managers who already had Chrome.

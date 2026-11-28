@@ -10,12 +10,23 @@ import type { AccessViewer } from './types'
 /** Platform Better Auth role `admin` — not a Users → Groups row. */
 export const ROLE_ADMIN_ACCESS_TAG = 'role:admin' as const
 
+/**
+ * Built-in group for people who are not signed in.
+ * The row never has members. `group:visitors` matches only a signed-out viewer.
+ */
+export const VISITORS_GROUP_ID = 'visitors' as const
+
+export function isVisitorsGroup(groupId: string | null | undefined): boolean {
+  return (groupId ?? '').trim() === VISITORS_GROUP_ID
+}
+
 /** Normalize one access tag token. */
 export function normalizeAccessTag(raw: unknown): string | null {
   if (typeof raw !== 'string') return null
   const v = raw.trim()
   if (!v) return null
   if (v === 'public' || v === 'registered') return v
+  if (v === 'guest') return `group:${VISITORS_GROUP_ID}`
   // Platform role (Better Auth), not a group id.
   if (v === ROLE_ADMIN_ACCESS_TAG || v === 'admin' || v === 'role:admin') {
     return ROLE_ADMIN_ACCESS_TAG
@@ -85,11 +96,13 @@ export function normalizeAccessTags(raw: {
 export function tagMatchesViewer(tag: string, viewer: AccessViewer): boolean {
   const raw = (tag || 'public').trim() || 'public'
   if (raw === 'public') return true
+  if (raw === 'guest') return !viewer.isRegistered
   if (raw === 'registered') return viewer.isRegistered
   if (raw === ROLE_ADMIN_ACCESS_TAG) return viewer.isAppAdmin
   if (raw.startsWith('group:')) {
     const groupId = raw.slice('group:'.length).trim()
     if (!groupId) return true
+    if (groupId === VISITORS_GROUP_ID) return !viewer.isRegistered
     return viewer.groupIds.includes(groupId)
   }
   return true

@@ -13,6 +13,8 @@
 /** Pure helpers — safe for shared server/client graphs when imported directly. */
 export {
   ROLE_ADMIN_ACCESS_TAG,
+  VISITORS_GROUP_ID,
+  isVisitorsGroup,
   accessTagsForStorage,
   canSeeNavAccessLevel,
   canSeeNavAccessTags,

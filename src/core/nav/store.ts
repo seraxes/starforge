@@ -6,6 +6,7 @@ import { invalidateNavMenu } from '@/core/content/revalidate'
 import { db, DEFAULT_NAV_MENU_ID, sfNavMenus } from '@/core/db'
 import { normalizeHref } from '@/core/settings/nav'
 
+import { ACCOUNT_NAV_MENU_ID, accountNavMenuSeedItems } from './account-menu-seed'
 import {
   cloneNavMenuItem,
   createNavMenuItem,
@@ -34,8 +35,36 @@ function displayLabel(id: string, label: string | null | undefined): string {
   return id
 }
 
+/**
+ * Insert the Account navigation menu once, with the starter links.
+ * A row that already exists — including one whose items were cleared — is left alone.
+ */
+export async function ensureAccountNavMenuSeeded(): Promise<{ created: boolean; menuId: string }> {
+  const existing = await loadNavMenu(ACCOUNT_NAV_MENU_ID)
+  if (!existing.isFallback) {
+    return { created: false, menuId: ACCOUNT_NAV_MENU_ID }
+  }
+
+  const items = accountNavMenuSeedItems()
+  const now = new Date()
+  try {
+    await db.insert(sfNavMenus).values({
+      id: ACCOUNT_NAV_MENU_ID,
+      label: 'Account',
+      document: serializeNavMenuDocument({ version: 1, items }),
+      createdAt: now,
+      updatedAt: now,
+    })
+    await invalidateNavMenu(ACCOUNT_NAV_MENU_ID)
+    return { created: true, menuId: ACCOUNT_NAV_MENU_ID }
+  } catch {
+    return { created: false, menuId: ACCOUNT_NAV_MENU_ID }
+  }
+}
+
 export async function listNavMenus(): Promise<NavMenuMeta[]> {
   try {
+    await ensureAccountNavMenuSeeded()
     const rows = await db
       .select({
         id: sfNavMenus.id,

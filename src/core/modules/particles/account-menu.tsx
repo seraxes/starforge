@@ -1,10 +1,16 @@
 import React from 'react'
 import { getLocale, getTranslations } from 'next-intl/server'
 
-import { AccountMenu } from '@/components/AccountMenu'
+import { AccountMenu, type AccountMenuLink } from '@/components/AccountMenu'
 import { getAccessViewer } from '@/core/acl/access'
+import { tagMatchesViewer } from '@/core/acl/nav-access'
+import type { AccessViewer } from '@/core/acl/types'
 import { getAppSession } from '@/core/auth/session'
-import { MODULE_IDS, isCatalogModuleEnabled } from '@/core/settings'
+import {
+  ensureAccountNavMenuSeeded,
+  resolveNavMenuItems,
+  type ResolvedNavItem,
+} from '@/core/nav'
 
 import type { StarforgeModule } from '../types'
 import { readAccountMenuConfig } from './config'
@@ -13,6 +19,24 @@ function accountInitial(name: string, email: string): string {
   const source = name.trim() || email.trim()
   const ch = Array.from(source)[0]
   return ch ? ch.toLocaleUpperCase() : ''
+}
+
+/**
+ * Top-level items the viewer is allowed to see.
+ * Does not use the app-admin nav bypass, so a signed-in admin still gets the
+ * registered rows rather than the signed-out ones.
+ */
+function visibleAccountLinks(items: ResolvedNavItem[], viewer: AccessViewer): AccountMenuLink[] {
+  const links: AccountMenuLink[] = []
+  for (const item of items) {
+    const tags = item.accessTags && item.accessTags.length > 0 ? item.accessTags : ['public']
+    if (!tags.some((tag) => tagMatchesViewer(tag, viewer))) continue
+    const href = item.href?.trim() ?? ''
+    const label = item.label?.trim() ?? ''
+    if (!href || !label) continue
+    links.push({ href, label })
+  }
+  return links
 }
 
 /**
@@ -39,6 +63,7 @@ export const accountMenuModule: StarforgeModule = {
     let displayName = (user?.name ?? '').trim()
     const email = (user?.email ?? '').trim()
     let avatarUrl = ''
+    let handle = ''
 
     if (signedIn && user?.id) {
       try {
@@ -51,7 +76,11 @@ export const accountMenuModule: StarforgeModule = {
           | ((
               userId: string,
               viewer: Awaited<ReturnType<typeof getAccessViewer>>,
-            ) => Promise<{ displayName?: string; avatarMediaId?: string | null } | null>)
+            ) => Promise<{
+              displayName?: string
+              avatarMediaId?: string | null
+              handle?: string
+            } | null>)
           | undefined
         const personaMediaSrc = door?.personaMediaSrc as
           | ((mediaId: string | null | undefined) => string)
@@ -60,6 +89,7 @@ export const accountMenuModule: StarforgeModule = {
           const viewer = await getAccessViewer()
           const persona = await getPersona(user.id, viewer)
           if (persona?.displayName?.trim()) displayName = persona.displayName.trim()
+          if (persona?.handle?.trim()) handle = persona.handle.trim()
           if (persona?.avatarMediaId) avatarUrl = personaMediaSrc(persona.avatarMediaId)
         }
       } catch {
@@ -67,23 +97,33 @@ export const accountMenuModule: StarforgeModule = {
       }
     }
 
-    const profilesOn = isCatalogModuleEnabled(settings, MODULE_IDS.profiles)
-    const subscriptionsOn = isCatalogModuleEnabled(settings, MODULE_IDS.subscriptions)
-    const links = signedIn
-      ? [
-          ...(profilesOn ? [{ href: '/account/profile', label: t('profile') }] : []),
-          { href: '/account/security', label: t('accountSecurity') },
-          ...(subscriptionsOn
-            ? [{ href: '/account/subscriptions', label: t('mySubscriptions') }]
-            : []),
-        ]
-      : [
-          { href: '/login', label: t('signIn') },
-          ...(settings.features.registration
-            ? [{ href: '/register', label: t('createAccount') }]
-            : []),
-          ...(subscriptionsOn ? [{ href: '/plans', label: t('plans') }] : []),
-        ]
+    const menuId = (cfg.menuId ?? '').trim()
+    let links: AccountMenuLink[] = []
+    try {
+      await ensureAccountNavMenuSeeded()
+      const resolved = await resolveNavMenuItems(menuId, settings, {
+        fallbackToPrimary: false,
+      })
+      const viewer = await getAccessViewer()
+      links = visibleAccountLinks(resolved, viewer)
+    } catch {
+      links = []
+    }
+
+    const accountName = displayName || email || t('accountMenu')
+    let identityHref = '/feed'
+    if (handle) {
+      try {
+        const { loadModuleDoor } = await import('@/generated/module-registry.server')
+        const social = await loadModuleDoor('social-api')
+        const memberFeedHref = social?.memberFeedHref as ((memberHandle: string) => string) | undefined
+        identityHref = memberFeedHref
+          ? memberFeedHref(handle)
+          : `/feed/${encodeURIComponent(handle)}`
+      } catch {
+        identityHref = `/feed/${encodeURIComponent(handle)}`
+      }
+    }
 
     return (
       <div data-sf-particle="account-menu" data-sf-slot={slot.id}>
@@ -97,6 +137,17 @@ export const accountMenuModule: StarforgeModule = {
           menuLabel={t('accountMenu')}
           links={links}
           signOutLabel={t('signOut')}
+          identity={
+            signedIn
+              ? {
+                  href: identityHref,
+                  name: accountName,
+                  avatarUrl,
+                  initial: accountInitial(displayName, email),
+                }
+              : null
+          }
+          pageIdentities={[]}
         />
       </div>
     )

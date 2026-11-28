@@ -313,18 +313,105 @@ body > main {
   line-height: 1;
 }
 
-.sf-account-menu-list {
+.sf-account-menu-panel {
   position: absolute;
   top: calc(100% + 0.35rem);
   right: 0;
   z-index: 20;
-  min-width: 11rem;
+  min-width: 16rem;
+  max-width: 20rem;
   margin: 0;
   padding: 0.35rem;
-  list-style: none;
   background: var(--sf-paper);
   border: 1px solid var(--sf-line);
   border-radius: 0.5rem;
+}
+
+.sf-account-menu-identity,
+.sf-account-menu-page {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.35rem;
+  color: var(--sf-ink);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.sf-account-menu-identity:hover,
+.sf-account-menu-page:hover {
+  background: color-mix(in srgb, var(--sf-primary) 12%, transparent);
+}
+
+.sf-account-menu-identity-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sf-account-menu-identity-avatar {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 999px;
+  border: 2px solid var(--sf-line);
+  background: var(--sf-paper);
+  color: var(--sf-primary-strong);
+}
+
+.sf-account-menu-identity-avatar[data-avatar-shape='square'] {
+  border-radius: 0.3rem;
+}
+
+.sf-account-menu-identity-avatar[data-avatar-shape='hexagon'] {
+  border-radius: 0;
+  border-width: 0;
+  clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
+  background: color-mix(in srgb, var(--sf-line) 55%, var(--sf-paper));
+  box-shadow: inset 0 0 0 2px var(--sf-line);
+}
+
+.sf-account-menu-identity-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sf-account-menu-identity-avatar .sf-account-menu-letter {
+  font-size: 1rem;
+}
+
+.sf-account-menu-pages {
+  list-style: none;
+  margin: 0.25rem 0 0;
+  padding: 0.25rem 0 0;
+  border-top: 1px solid var(--sf-line);
+}
+
+.sf-account-menu-page .sf-account-menu-identity-avatar {
+  width: 2rem;
+  height: 2rem;
+}
+
+.sf-account-menu-list {
+  margin: 0;
+  padding: 0.15rem 0 0;
+  list-style: none;
+  background: transparent;
+  border: 0;
+}
+
+.sf-account-menu-list.is-split {
+  margin-top: 0.25rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--sf-line);
 }
 
 .sf-account-menu-list a,

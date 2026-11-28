@@ -26,6 +26,7 @@ export {
   slugifyNavMenuId,
 } from './document'
 
+export { ACCOUNT_NAV_MENU_ID, accountNavMenuSeedItems } from './account-menu-seed'
 export {
   listEnabledModuleNavOptions,
   resolveModuleNavHref,
@@ -50,6 +51,7 @@ export {
   createNavMenu,
   deleteNavMenu,
   duplicateNavMenu,
+  ensureAccountNavMenuSeeded,
   ensureDefaultNavMenuSeeded,
   getCachedNavMenu,
   listNavMenus,

@@ -4,6 +4,7 @@ import { and, asc, eq, inArray } from 'drizzle-orm'
 
 import { db, sfUserGroupMembers, sfUsers } from '@/core/db'
 
+import { isVisitorsGroup } from './nav-access'
 import { expandGroupIdsWithAncestors, listGroupParentMap } from './groups'
 
 export type GroupMemberRow = {
@@ -78,6 +79,9 @@ export async function addUserToGroup(
   const g = groupId.trim()
   const u = userId.trim()
   if (!g || !u) return { error: 'Group and user are required.' }
+  if (isVisitorsGroup(g)) {
+    return { error: 'Visitors never has members. It matches people who are not signed in.' }
+  }
 
   const [user] = await db
     .select({ id: sfUsers.id })
@@ -130,7 +134,9 @@ export async function setUserGroups(
     .limit(1)
   if (!user) return { error: 'User not found.' }
 
-  const unique = [...new Set(groupIds.map((id) => id.trim()).filter(Boolean))]
+  const unique = [
+    ...new Set(groupIds.map((id) => id.trim()).filter((id) => id && !isVisitorsGroup(id))),
+  ]
 
   await db.delete(sfUserGroupMembers).where(eq(sfUserGroupMembers.userId, u))
   if (unique.length > 0) {

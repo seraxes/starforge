@@ -11,6 +11,47 @@ export type AccountMenuLink = {
   label: string
 }
 
+/** Signed-in member shown above the dropdown links. */
+export type AccountMenuIdentity = {
+  href: string
+  name: string
+  avatarUrl?: string
+  initial?: string
+}
+
+/**
+ * Page identity row. Empty until sign-in-as-a-page exists.
+ * A later slice passes rows here; this dropdown does not switch accounts.
+ */
+export type AccountMenuPageIdentity = {
+  id: string
+  href: string
+  name: string
+  avatarUrl?: string
+  initial?: string
+}
+
+function AccountFace({
+  shape,
+  avatarUrl,
+  initial,
+}: {
+  shape: AccountMenuAvatarShape
+  avatarUrl: string
+  initial: string
+}) {
+  return (
+    <span className="sf-account-menu-identity-avatar" data-avatar-shape={shape} aria-hidden="true">
+      {avatarUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element -- member avatar URL from the media route
+        <img src={avatarUrl} alt="" />
+      ) : initial ? (
+        <span className="sf-account-menu-letter">{initial}</span>
+      ) : null}
+    </span>
+  )
+}
+
 type Props = {
   locale: string
   signedIn: boolean
@@ -23,6 +64,8 @@ type Props = {
   menuLabel: string
   links: AccountMenuLink[]
   signOutLabel: string
+  identity?: AccountMenuIdentity | null
+  pageIdentities?: AccountMenuPageIdentity[]
 }
 
 /**
@@ -40,6 +83,8 @@ export function AccountMenu({
   menuLabel,
   links,
   signOutLabel,
+  identity = null,
+  pageIdentities = [],
 }: Props) {
   const [open, setOpen] = useState(false)
   const [pending, setPending] = useState(false)
@@ -112,22 +157,65 @@ export function AccountMenu({
         )}
       </button>
       {open ? (
-        <ul className="sf-account-menu-list" role="menu">
-          {links.map((item) => (
-            <li key={item.href} role="none">
-              <Link href={item.href} role="menuitem" onClick={() => setOpen(false)}>
-                {item.label}
-              </Link>
-            </li>
-          ))}
-          {signedIn ? (
-            <li role="none">
-              <button type="button" role="menuitem" disabled={pending} onClick={() => void signOut()}>
-                {signOutLabel}
-              </button>
-            </li>
+        <div className="sf-account-menu-panel" role="menu">
+          {identity ? (
+            <Link
+              href={identity.href}
+              className="sf-account-menu-identity"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+            >
+              <AccountFace
+                shape={avatarShape}
+                avatarUrl={identity.avatarUrl ?? ''}
+                initial={identity.initial ?? ''}
+              />
+              <span className="sf-account-menu-identity-name">{identity.name}</span>
+            </Link>
           ) : null}
-        </ul>
+          {pageIdentities.length > 0 ? (
+            <ul className="sf-account-menu-pages" role="presentation">
+              {pageIdentities.map((page) => (
+                <li key={page.id} role="none">
+                  <Link
+                    href={page.href}
+                    className="sf-account-menu-page"
+                    role="menuitem"
+                    onClick={() => setOpen(false)}
+                  >
+                    <AccountFace
+                      shape={avatarShape}
+                      avatarUrl={page.avatarUrl ?? ''}
+                      initial={page.initial ?? ''}
+                    />
+                    <span className="sf-account-menu-identity-name">{page.name}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <ul
+            className={`sf-account-menu-list${
+              identity || pageIdentities.length > 0 ? ' is-split' : ''
+            }`}
+            role="presentation"
+          >
+            {links.map((item, index) => (
+              <li key={`${item.href}:${item.label}:${index}`} role="none">
+                <Link href={item.href} role="menuitem" onClick={() => setOpen(false)}>
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+            {signedIn ? (
+              <li role="none">
+                <button type="button" role="menuitem" disabled={pending} onClick={() => void signOut()}>
+                  {signOutLabel}
+                </button>
+              </li>
+            ) : null}
+          </ul>
+        </div>
       ) : null}
     </div>
   )

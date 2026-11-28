@@ -1,4 +1,5 @@
 import { normalizeLocaleTextMap } from '@/core/i18n/locale-text'
+import { ACCOUNT_NAV_MENU_ID } from '@/core/nav/account-menu-seed'
 
 import type { LayoutSlotConfig } from '../types'
 
@@ -96,12 +97,17 @@ export type SpacerParticleConfig = {
 /** Account menu avatar silhouette. */
 export type AccountMenuAvatarShape = 'circle' | 'square' | 'hexagon'
 
-/** Account menu particle — avatar chrome only (labels stay in Auth i18n). */
+/** Account menu particle — avatar chrome plus an optional Navigation menu bind. */
 export type AccountMenuParticleConfig = {
   /** Avatar silhouette. Default `circle`. */
   avatarShape: AccountMenuAvatarShape
   /** Avatar edge length in CSS pixels. Default 36. */
   avatarSize: number
+  /**
+   * Nav menu id (`sf_nav_menus`). Empty or `primary` means the Account menu
+   * (`account`), whose items are edited in Navigation.
+   */
+  menuId: string
 }
 
 const ACCOUNT_MENU_AVATAR_SIZE_MIN = 20
@@ -119,6 +125,13 @@ export function clampAccountMenuAvatarSize(raw: unknown, fallback = 36): number 
 export function normalizeAccountMenuAvatarShape(raw: unknown): AccountMenuAvatarShape {
   if (raw === 'square' || raw === 'hexagon' || raw === 'circle') return raw
   return 'circle'
+}
+
+/** Empty or `primary` binds the seeded Account navigation menu. */
+export function normalizeAccountMenuId(raw: unknown): string {
+  const menuId = typeof raw === 'string' ? raw.trim() : ''
+  if (!menuId || menuId === 'primary') return ACCOUNT_NAV_MENU_ID
+  return menuId
 }
 
 export function defaultLogoConfig(): LogoParticleConfig {
@@ -193,6 +206,7 @@ export function defaultAccountMenuConfig(): AccountMenuParticleConfig {
   return {
     avatarShape: 'circle',
     avatarSize: 36,
+    menuId: ACCOUNT_NAV_MENU_ID,
   }
 }
 
@@ -351,5 +365,6 @@ export function readAccountMenuConfig(
   return {
     avatarShape: normalizeAccountMenuAvatarShape(c.avatarShape),
     avatarSize: clampAccountMenuAvatarSize(c.avatarSize, defaults.avatarSize),
+    menuId: normalizeAccountMenuId(c.menuId),
   }
 }

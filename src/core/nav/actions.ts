@@ -46,6 +46,8 @@ export type NavActionState = {
   ok?: boolean
   message?: string
   menuId?: string
+  /** Menu name after create or rename. */
+  label?: string
 }
 
 async function requireNavAdmin(): Promise<NavActionState | null> {
@@ -76,6 +78,7 @@ async function revalidateNavPaths(menuId?: string) {
   await invalidateNavMenu(menuId)
   revalidatePath('/', 'layout')
   revalidatePath('/admin/nav')
+  revalidatePath('/admin/layouts')
   revalidatePath('/admin/settings')
   if (menuId) {
     revalidatePath(`/admin/nav/${encodeURIComponent(menuId)}`)
@@ -112,6 +115,32 @@ export async function createNavMenuAction(
     ok: true,
     message: `Menu “${result.menu.label}” created.`,
     menuId: result.menu.id,
+    label: result.menu.label,
+  }
+}
+
+/**
+ * Create an empty menu and stay on the current screen.
+ * The layout account-menu cog uses this so “open after create” does not
+ * redirect out of the layout editor.
+ */
+export async function createNavMenuInlineAction(
+  _prev: NavActionState,
+  formData: FormData,
+): Promise<NavActionState> {
+  const denied = await requireNavAdmin()
+  if (denied) return denied
+
+  const label = String(formData.get('label') ?? '').trim()
+  const result = await createNavMenu({ label })
+  if ('error' in result) return { error: result.error }
+
+  await revalidateNavPaths(result.menu.id)
+  return {
+    ok: true,
+    message: `Menu “${result.menu.label}” created.`,
+    menuId: result.menu.id,
+    label: result.menu.label,
   }
 }
 
@@ -132,6 +161,7 @@ export async function renameNavMenuAction(
     ok: true,
     message: `Renamed to “${result.menu.label}”.`,
     menuId: result.menu.id,
+    label: result.menu.label,
   }
 }
 

@@ -1,6 +1,11 @@
 'use client'
 
-import React, { useActionState, useCallback, useEffect, useState, useTransition } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import React, { useActionState, useCallback, useEffect, useRef, useState, useTransition } from 'react'
+
+import { createNavMenuInlineAction, renameNavMenuAction } from '@/core/nav/actions'
+import { ACCOUNT_NAV_MENU_ID } from '@/core/nav/account-menu-seed'
 
 import {
   updateSlotConfigAction,
@@ -586,35 +591,98 @@ export function LocaleSwitcherParticleEditor({
   )
 }
 
+function accountMenuLabel(menu: NavMenuOption, titleOverrides: Record<string, string>): string {
+  const override = titleOverrides[menu.id]
+  if (override && override !== menu.label) return override
+  return menu.label
+}
+
 export function AccountMenuParticleEditor({
   sectionId,
   rowId,
   slot,
+  navMenus = [],
   embedded = false,
   onConfigSaved,
 }: {
   sectionId: string
   rowId: string
   slot: LayoutSlot
+  navMenus?: NavMenuOption[]
   embedded?: boolean
   onConfigSaved?: (config: LayoutSlotConfig) => void
 }) {
+  const router = useRouter()
   const [state, formAction, pending] = useActionState(updateSlotConfigAction, initialState)
   useParticleAutosaveResult(state, onConfigSaved)
   const { formRef, saveNow, saveDebounced } = useAutosaveForm()
+  const [createPending, startCreate] = useTransition()
+  const [renamePending, startRename] = useTransition()
+  const [createError, setCreateError] = useState('')
+  const [renameError, setRenameError] = useState('')
 
   const [draft, setDraft] = useState<AccountMenuParticleConfig>(() =>
     readAccountMenuConfig(slot.config),
   )
+  const [extraMenus, setExtraMenus] = useState<NavMenuOption[]>([])
+  const [titleOverrides, setTitleOverrides] = useState<Record<string, string>>({})
+  const pendingBindId = useRef('')
 
   useEffect(() => {
     setDraft(readAccountMenuConfig(slot.config))
   }, [slot.id])
 
+  const selectedMenuId = (draft.menuId ?? '').trim()
+  const menus = [
+    ...navMenus.map((menu) => ({ ...menu, label: accountMenuLabel(menu, titleOverrides) })),
+    ...extraMenus
+      .filter((menu) => !navMenus.some((row) => row.id === menu.id))
+      .map((menu) => ({ ...menu, label: accountMenuLabel(menu, titleOverrides) })),
+  ]
+  const selectedMenu = menus.find((menu) => menu.id === selectedMenuId) ?? null
+  const [titleForId, setTitleForId] = useState(selectedMenuId)
+  const [titleDraft, setTitleDraft] = useState<string | null>(null)
+  if (titleForId !== selectedMenuId) {
+    setTitleForId(selectedMenuId)
+    setTitleDraft(null)
+  }
+  const menuTitle = titleDraft ?? selectedMenu?.label ?? ''
+
+  useEffect(() => {
+    if (!pendingBindId.current || draft.menuId !== pendingBindId.current) return
+    pendingBindId.current = ''
+    saveNow()
+  }, [draft.menuId, saveNow])
+
   const configJson = JSON.stringify({
     avatarShape: draft.avatarShape,
     avatarSize: draft.avatarSize,
+    menuId: selectedMenuId === 'primary' ? '' : selectedMenuId,
   })
+
+  function commitMenuTitle() {
+    const next = menuTitle.trim()
+    const current = selectedMenu?.label ?? ''
+    if (renamePending || !selectedMenuId || !next || next === current) {
+      setTitleDraft(null)
+      return
+    }
+    const id = selectedMenuId
+    startRename(async () => {
+      const formData = new FormData()
+      formData.set('id', id)
+      formData.set('label', next)
+      const result = await renameNavMenuAction({}, formData)
+      if (result.error || !result.menuId || !result.label) {
+        setRenameError(result.error || 'Could not rename menu.')
+        return
+      }
+      setRenameError('')
+      setTitleOverrides((prev) => ({ ...prev, [result.menuId!]: result.label! }))
+      setTitleDraft(null)
+      router.refresh()
+    })
+  }
 
   return (
     <SettingsShell title="Account menu settings" embedded={embedded}>
@@ -667,12 +735,106 @@ export function AccountMenuParticleEditor({
             }}
           />
         </label>
+        <label>
+          <span>Menu</span>
+          <select
+            value={selectedMenuId}
+            onChange={(e) => {
+              const menuId = e.target.value === 'primary' ? '' : e.target.value
+              setDraft((prev) => ({ ...prev, menuId }))
+              queueMicrotask(saveNow)
+            }}
+          >
+            {selectedMenuId && !menus.some((menu) => menu.id === selectedMenuId) ? (
+              <option value={selectedMenuId}>
+                {selectedMenuId === ACCOUNT_NAV_MENU_ID ? 'Account' : selectedMenuId}
+              </option>
+            ) : null}
+            {menus.map((menu) => (
+              <option key={menu.id} value={menu.id}>
+                {menu.label} ({menu.id})
+              </option>
+            ))}
+          </select>
+        </label>
         <p className="layout-muted">
-          Shape and size apply to the header account button (photo, letter, or guest glyph). Menu
-          labels still follow the current language.
+          <Link href={`/admin/nav/${encodeURIComponent(selectedMenuId)}`}>Edit items</Link> in
+          Navigation. The default Account menu holds Sign in, Account, security, and the rest —
+          change those labels and links there. Signed-out rows use the Visitors group. Sign out
+          stays on the button. The title above is the menu name, not a heading in the dropdown.
         </p>
         {pending ? <p className="layout-muted">Saving…</p> : null}
         <ActionFeedback state={state} />
+      </form>
+      {selectedMenuId ? (
+        <form className="gantry-typed-form" onSubmit={(event) => event.preventDefault()}>
+          <label>
+            <span>Menu title</span>
+            <input
+              type="text"
+              value={menuTitle}
+              maxLength={80}
+              required
+              onChange={(event) => setTitleDraft(event.target.value)}
+              onBlur={() => commitMenuTitle()}
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter') return
+                event.preventDefault()
+                event.currentTarget.blur()
+              }}
+            />
+          </label>
+          {renamePending ? <p className="layout-muted">Saving title…</p> : null}
+          {renameError ? (
+            <p className="admin-inline-error" role="alert">
+              {renameError}
+            </p>
+          ) : null}
+        </form>
+      ) : null}
+      <form
+        className="gantry-typed-form"
+        onSubmit={(event) => {
+          event.preventDefault()
+          const form = event.currentTarget
+          const formData = new FormData(form)
+          startCreate(async () => {
+            const result = await createNavMenuInlineAction({}, formData)
+            if (result.error || !result.menuId) {
+              setCreateError(result.error || 'Could not create menu.')
+              return
+            }
+            const created = {
+              id: result.menuId,
+              label: result.label?.trim() || result.menuId,
+            }
+            setCreateError('')
+            setExtraMenus((prev) =>
+              prev.some((menu) => menu.id === created.id) ? prev : [...prev, created],
+            )
+            pendingBindId.current = created.id
+            setDraft((prev) => ({ ...prev, menuId: created.id }))
+            form.reset()
+            router.refresh()
+          })
+        }}
+      >
+        <label>
+          <span>Add menu</span>
+          <input type="text" name="label" maxLength={80} placeholder="Account" required />
+        </label>
+        <button
+          type="submit"
+          className="gantry-toolbar-btn gantry-toolbar-btn-save"
+          disabled={createPending}
+        >
+          {createPending ? 'Adding…' : 'Add'}
+        </button>
+        {createError ? (
+          <p className="admin-inline-error" role="alert">
+            {createError}
+          </p>
+        ) : null}
       </form>
     </SettingsShell>
   )

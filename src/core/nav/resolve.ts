@@ -182,6 +182,16 @@ function itemToResolved(
   return resolved
 }
 
+export type ResolveNavMenuOptions = {
+  /**
+   * When false, a missing or empty menu returns `[]` instead of the site
+   * primary menu or `DEFAULT_PRIMARY_NAV`. The public Menu particle keeps
+   * the default (true). The account dropdown turns it off so an empty
+   * account menu does not render the site nav.
+   */
+  fallbackToPrimary?: boolean
+}
+
 /**
  * Resolve a navigation set to public `{ label, href, … }` items.
  * Pass `settings` so module links can honor Modules on/off (avoids circular
@@ -191,13 +201,16 @@ function itemToResolved(
 export async function resolveNavMenuItems(
   menuId: string | null | undefined,
   settings?: SiteSettingsData | null,
+  options?: ResolveNavMenuOptions,
 ): Promise<ResolvedNavItem[]> {
+  const fallbackToPrimary = options?.fallbackToPrimary !== false
   const id = (menuId || DEFAULT_NAV_MENU_ID).trim() || DEFAULT_NAV_MENU_ID
   const loaded = await getCachedNavMenu(id)
 
   if (loaded.isFallback && loaded.document.items.length === 0) {
+    if (!fallbackToPrimary) return []
     if (id !== DEFAULT_NAV_MENU_ID) {
-      return resolveNavMenuItems(DEFAULT_NAV_MENU_ID, settings)
+      return resolveNavMenuItems(DEFAULT_NAV_MENU_ID, settings, options)
     }
     return DEFAULT_PRIMARY_NAV.map((i) => ({ ...i }))
   }
@@ -249,6 +262,7 @@ export async function resolveNavMenuItems(
   }
 
   const out = nestResolvedNavItems(flat)
+  if (!fallbackToPrimary) return out
   return out.length > 0 ? out : DEFAULT_PRIMARY_NAV.map((i) => ({ ...i }))
 }
 

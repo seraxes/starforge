@@ -8,6 +8,7 @@ import {
   listGroupIdsByUserIds,
   listUserGroupOptions,
 } from '@/core/acl'
+import { VISITORS_GROUP_ID } from '@/core/acl/nav-access'
 import { normalizeAppRole } from '@/core/auth/permissions'
 import { db, sfUsers } from '@/core/db'
 import { getEnabledPublicLocaleEntries } from '@/core/i18n/enabled'
@@ -84,7 +85,10 @@ export default async function AdminUserDetailPage({ params }: { params: Params }
       </p>
 
       <h3>Account</h3>
-      <UserAccountPanel user={account} groupOptions={groupOptions} />
+      <UserAccountPanel
+        user={account}
+        groupOptions={groupOptions.filter((group) => group.id !== VISITORS_GROUP_ID)}
+      />
 
       <UserRetentionPanel
         userId={userId}

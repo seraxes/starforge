@@ -10,6 +10,7 @@ import {
   renameUserGroupAction,
   type AclActionState,
 } from '@/core/acl/actions'
+import { isVisitorsGroup } from '@/core/acl/nav-access'
 
 type GroupRow = {
   id: string
@@ -244,6 +245,7 @@ export function GroupsManager({ groups }: Props) {
                           Rename
                         </button>
                         {/* Name already opens members — no redundant Members band. */}
+                        {isVisitorsGroup(group.id) ? null : (
                         <form action={deleteAction} className="admin-inline-form">
                           <input type="hidden" name="groupId" value={group.id} />
                           <button
@@ -263,6 +265,7 @@ export function GroupsManager({ groups }: Props) {
                             Delete
                           </button>
                         </form>
+                        )}
                       </>
                     )}
                   </td>

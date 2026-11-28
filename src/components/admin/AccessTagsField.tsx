@@ -56,7 +56,7 @@ export function AccessTagsField({
     <fieldset className={['settings-field', 'nav-access-tags', className].filter(Boolean).join(' ')}>
       <legend>{legend}</legend>
       <p className="settings-hint">
-        Multi-select: Public, Registered, Admin role, or groups. Visible if the viewer matches{' '}
+        Multi-select: Public, Registered, Admin role, or groups. Visitors is the signed-out audience. Visible if the viewer matches{' '}
         <strong>any</strong> tag.{' '}
         {allowEmpty ? (
           <>Admin links need Admin role and/or at least one group.</>
