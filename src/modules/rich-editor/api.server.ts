@@ -11,5 +11,11 @@ import 'server-only'
  */
 
 export { isRichEditorEnabled, RICH_EDITOR_MODULE_ID } from './enabled'
+export {
+  isEmojiInsertEnabled,
+  loadRichEditorModuleSettings,
+  saveRichEditorModuleSettings,
+} from './pack-settings'
+export type { RichEditorModuleSettings } from './module-settings'
 export { sanitizeEmailHtml, sanitizeRichHtml } from './sanitize'
 export type { SanitizeEmailHtmlOptions } from './sanitize'

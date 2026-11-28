@@ -234,6 +234,14 @@
   overflow: hidden;
 }
 
+/* Portaled to document.body — above feed cards / chrome; viewport-clamped via inline top/left. */
+.sf-emoji-insert-panel.is-portaled {
+  position: fixed;
+  z-index: 10000;
+  bottom: auto;
+  right: auto;
+}
+
 .sf-emoji-insert-panel .EmojiPickerReact {
   --epr-emoji-size: 1.35rem;
   border: none !important;

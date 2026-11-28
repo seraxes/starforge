@@ -154,7 +154,7 @@ Do not relocate these in a drive-by:
 | --- | --- | --- |
 | Forms engine | `src/modules/forms` | Consumers import `@/modules/forms/api` only. |
 | Redirects engine | `src/modules/redirects` | Core calls the generated hook only. |
-| TipTap engine | `src/modules/rich-editor` | Callers use `@/modules/rich-editor/api` (+ `api.server` for sanitize/gate). MediaPicker passed in from media. Emoji insert control (`EmojiInsertButton`) for plain text fields; Social composers wired. TipTap toolbar emoji later. |
+| TipTap engine | `src/modules/rich-editor` | Callers use `@/modules/rich-editor/api` (+ `api.server` for sanitize/gate). MediaPicker passed in from media. Emoji insert control (`EmojiInsertButton`) for plain text fields; Social composers wired. Pack setting `emojiInsertEnabled` (default on) via `/admin/rich-editor/settings`. TipTap toolbar emoji later. |
 | Forms success mail | `emitEmailTrigger` only | No `getMailer()` from Forms. |
 | `sf_pay_collect_entitlements` | Frozen stub | Subscriptions on → `payments.collect`. |
 | Payment fulfillment | `registerPaymentConsumerHook` | One hook key per consumer; later listeners isolated. |

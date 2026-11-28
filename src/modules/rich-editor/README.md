@@ -8,7 +8,7 @@ Status: shipped
 
 ## Owns
 
-Shared **TipTap** content editor for module fields. Canonical storage is **sanitized HTML**. TipTap engine in this pack (`RichEditor`, sanitize, nodes). Presets `full` | `compact` | `email`. Settings at `/admin/rich-editor/settings`. Toggle: Site Settings → Modules → Rich editor (`product:rich-editor` / `richEditor`). When `enabled={false}`, TipTap falls back to a plain textarea (Email templates show a require notice instead). Popups: Link, Callout (portal). Video: inline Media / YouTube–Vimeo panel under the toolbar. **Emoji insert:** `EmojiInsertButton` + `insertTextAtCaret` / `insertTextIntoValue` (native Unicode; Facebook-style categories / search / skin tones / recents via `emoji-picker-react`). Social composers bind it today; TipTap toolbar wiring is later. No `sf_*` tables.
+Shared **TipTap** content editor for module fields. Canonical storage is **sanitized HTML**. TipTap engine in this pack (`RichEditor`, sanitize, nodes). Presets `full` | `compact` | `email`. Settings at `/admin/rich-editor/settings`. Toggle: Site Settings → Modules → Rich editor (`product:rich-editor` / `richEditor`). When `enabled={false}`, TipTap falls back to a plain textarea (Email templates show a require notice instead). Popups: Link, Callout (portal). Video: inline Media / YouTube–Vimeo panel under the toolbar. **Emoji insert:** `EmojiInsertButton` + `insertTextAtCaret` / `insertTextIntoValue` (native Unicode; Facebook-style categories / search / skin tones / recents via `emoji-picker-react`). Pack settings document (`sf_module_settings` id `product:rich-editor`) has `emojiInsertEnabled` (default on) — site-wide; Social composers honor it via `isEmojiInsertEnabled()`. TipTap toolbar wiring is later. No pack-owned `sf_*` tables.
 
 | Preset | Use |
 | --- | --- |
@@ -25,7 +25,7 @@ Shared **TipTap** content editor for module fields. Canonical storage is **sanit
 ## Public door
 
 - `@/modules/rich-editor/api` — `RichEditor`, `RichContent`, `sanitizeRichHtml`, `sanitizeEmailHtml`, `EmojiInsertButton`, `insertTextAtCaret`, `insertTextIntoValue`
-- `@/modules/rich-editor/api.server` — `RICH_EDITOR_MODULE_ID`, `isRichEditorEnabled`, `sanitizeRichHtml`, `sanitizeEmailHtml`
+- `@/modules/rich-editor/api.server` — `RICH_EDITOR_MODULE_ID`, `isRichEditorEnabled`, `isEmojiInsertEnabled`, `loadRichEditorModuleSettings`, `sanitizeRichHtml`, `sanitizeEmailHtml`
 
 ```tsx
 import { MediaPicker } from '@/modules/media/api'
@@ -58,4 +58,4 @@ None.
 
 ## Tests
 
-`src/modules/rich-editor/sanitize.test.ts`, `src/modules/rich-editor/video.test.ts`, `src/modules/rich-editor/insert-text-at-caret.test.ts`
+`src/modules/rich-editor/sanitize.test.ts`, `src/modules/rich-editor/video.test.ts`, `src/modules/rich-editor/insert-text-at-caret.test.ts`, `src/modules/rich-editor/pack-settings.test.ts`
