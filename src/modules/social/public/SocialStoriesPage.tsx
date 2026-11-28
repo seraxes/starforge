@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
-import { setRequestLocale } from 'next-intl/server'
+import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import React from 'react'
 
@@ -17,6 +16,7 @@ import { listAcceptedFriendIds } from '../feed-store'
 import { loadSocialModuleSettings } from '../settings'
 import { listStoryTray, listStoryViewersForAuthor } from '../stories-store'
 import { FeedTabs } from './FeedTabs'
+import { SocialGuestGate } from './SocialGuestGate'
 import { CreateStoryForm, MarkStorySeenButton } from './StoryActions'
 import { StoryTray, storiesSurfaceHref, type StoryTrayBubble } from './StoryTray'
 
@@ -75,21 +75,15 @@ export default async function SocialStoriesPage({ params }: Args) {
     return (
       <div className="sf-social-feed-page sf-social-stories-page">
         <FeedTabs locale={locale} active="stories" {...tabFlags} />
-        <div className="sf-social-feed-column">
-          <p className="sf-social-feed-guest-copy">
-            Sign in to post or view stories.
-          </p>
-          <p className="sf-social-feed-guest-action">
-            <Link className="sf-social-cta" href={loginHref}>
-              Sign in
-            </Link>
-          </p>
-        </div>
+        <SocialGuestGate loginHref={loginHref} copyKey="guestSignInStories" />
       </div>
     )
   }
 
-  const friendIds = await listAcceptedFriendIds(userId)
+  const [friendIds, t] = await Promise.all([
+    listAcceptedFriendIds(userId),
+    getTranslations('product:social'),
+  ])
   const tray = await listStoryTray(userId, friendIds)
   const ownStories = tray.filter((row) => row.story.authorUserId === userId)
   const friendsStories = tray.filter((row) => row.story.authorUserId !== userId)
@@ -101,7 +95,7 @@ export default async function SocialStoriesPage({ params }: Args) {
     const persona = personas.get(story.authorUserId)
     const label =
       persona?.displayName?.trim() ||
-      (persona?.handle?.trim() ? `@${persona.handle.trim()}` : 'Friend')
+      (persona?.handle?.trim() ? `@${persona.handle.trim()}` : t('audienceFriends'))
     return {
       key: story.id,
       mediaId: story.mediaId,
@@ -132,7 +126,7 @@ export default async function SocialStoriesPage({ params }: Args) {
           <h2 className="sf-social-section-heading">Tray</h2>
           <StoryTray
             items={friendBubbles}
-            emptyMessage="No active stories from friends."
+            emptyMessage={t('emptyNoStories')}
             ariaLabel="Friends’ stories"
           />
           {friendsStories.length > 0 ? (

@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server'
 import React from 'react'
 
 import { formatMoneyMinor } from '@/core/payments'
@@ -14,7 +15,7 @@ type Props = {
 /**
  * Offline / awaiting payment instructions for a public checkout handoff.
  */
-export function CheckoutHandoff({
+export async function CheckoutHandoff({
   paymentReference,
   methodLabel,
   currency,
@@ -22,28 +23,27 @@ export function CheckoutHandoff({
   instructions,
   status,
 }: Props) {
+  const t = await getTranslations('product:payments')
   const amount = formatMoneyMinor(totalGrossMinor, currency)
   return (
     <div className="sf-checkout-handoff">
-      <h1 className="sf-checkout-handoff-title">Complete your payment</h1>
+      <h1 className="sf-checkout-handoff-title">{t('completePayment')}</h1>
       <p className="sf-checkout-handoff-lede settings-hint">
-        {status === 'awaiting_offline'
-          ? 'Your seat is held. Follow the instructions below — staff will confirm when payment is received.'
-          : 'Your order is waiting for payment.'}
+        {status === 'awaiting_offline' ? t('seatHeldLede') : t('awaitingPaymentLede')}
       </p>
       <dl className="sf-checkout-handoff-meta">
         <div>
-          <dt>Reference</dt>
+          <dt>{t('reference')}</dt>
           <dd>
             <code>{paymentReference}</code>
           </dd>
         </div>
         <div>
-          <dt>Amount</dt>
+          <dt>{t('amount')}</dt>
           <dd>{amount}</dd>
         </div>
         <div>
-          <dt>Method</dt>
+          <dt>{t('method')}</dt>
           <dd>{methodLabel}</dd>
         </div>
       </dl>

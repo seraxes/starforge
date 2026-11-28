@@ -568,6 +568,13 @@
       "when": 1795850684305,
       "tag": "0081_schema_snapshot_sync",
       "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "7",
+      "when": 1795860000000,
+      "tag": "0082_layouts_skin_id",
+      "breakpoints": true
     }
   ]
 }

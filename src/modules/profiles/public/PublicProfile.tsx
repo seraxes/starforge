@@ -1,11 +1,11 @@
 import React from 'react'
 import Link from 'next/link'
+import { getTranslations } from 'next-intl/server'
 
 import { withLocalePrefix } from '@/core/i18n/path'
 import { FramedImage } from '@/modules/media/api'
 
 import { personaMediaSrc } from '../api.server'
-import { GENDER_OPTIONS } from '../fields'
 import type { Persona } from '../types'
 
 function countryName(code: string, locale: string): string {
@@ -31,11 +31,18 @@ function hostLabel(url: string): string {
   }
 }
 
+const GENDER_KEYS: Record<string, string> = {
+  '': 'genderPreferNot',
+  female: 'genderFemale',
+  male: 'genderMale',
+  nonbinary: 'genderNonbinary',
+}
+
 /**
  * Public profile page body. Renders only what the privacy-projected `Persona`
  * allows — it never sees the raw stored record.
  */
-export function PublicProfile({
+export async function PublicProfile({
   persona,
   locale,
   memberSince,
@@ -53,19 +60,19 @@ export function PublicProfile({
   /** Extra controls in the profile head actions (e.g. Follow). */
   headerExtra?: React.ReactNode
 }) {
+  const t = await getTranslations('product:profiles')
   const avatar = personaMediaSrc(persona.avatarMediaId)
   const cover = personaMediaSrc(persona.coverMediaId)
-  const gender = persona.gender
-    ? GENDER_OPTIONS.find((o) => o.value === persona.gender)?.label
-    : null
+  const genderKey = persona.gender ? GENDER_KEYS[persona.gender] : null
+  const gender = genderKey ? t(genderKey) : null
   const where = [persona.city, persona.country ? countryName(persona.country, locale) : null]
     .filter(Boolean)
     .join(', ')
   const facts: Array<{ label: string; value: string }> = []
-  if (persona.ageYears != null) facts.push({ label: 'Age', value: String(persona.ageYears) })
-  if (gender) facts.push({ label: 'Gender', value: gender })
-  if (where) facts.push({ label: 'Location', value: where })
-  facts.push({ label: 'Member since', value: memberSince.toISOString().slice(0, 10) })
+  if (persona.ageYears != null) facts.push({ label: t('factAge'), value: String(persona.ageYears) })
+  if (gender) facts.push({ label: t('factGender'), value: gender })
+  if (where) facts.push({ label: t('factLocation'), value: where })
+  facts.push({ label: t('factMemberSince'), value: memberSince.toISOString().slice(0, 10) })
 
   return (
     <article className="sf-profile" aria-label={persona.displayName}>
@@ -103,12 +110,12 @@ export function PublicProfile({
           {headerExtra}
           {persona.isSelf ? (
             <Link href={withLocalePrefix('/account/profile', locale)} className="sf-profile-btn">
-              Edit profile
+              {t('editProfile')}
             </Link>
           ) : null}
           {adminEditHref ? (
             <Link href={adminEditHref} className="sf-profile-btn sf-profile-btn--ghost">
-              Edit in admin
+              {t('editInAdmin')}
             </Link>
           ) : null}
         </div>
@@ -117,13 +124,13 @@ export function PublicProfile({
       <div className="sf-profile-body">
         {persona.bio ? (
           <section className="sf-profile-card">
-            <h2>About</h2>
+            <h2>{t('about')}</h2>
             <p className="sf-profile-bio">{persona.bio}</p>
           </section>
         ) : null}
 
         <section className="sf-profile-card">
-          <h2>Details</h2>
+          <h2>{t('details')}</h2>
           <dl className="sf-profile-facts">
             {facts.map((fact) => (
               <React.Fragment key={fact.label}>
@@ -133,7 +140,7 @@ export function PublicProfile({
             ))}
             {persona.phone ? (
               <>
-                <dt>Phone</dt>
+                <dt>{t('factPhone')}</dt>
                 <dd>{persona.phone}</dd>
               </>
             ) : null}
@@ -142,7 +149,7 @@ export function PublicProfile({
 
         {persona.website || persona.links.length > 0 ? (
           <section className="sf-profile-card">
-            <h2>Links</h2>
+            <h2>{t('links')}</h2>
             <ul className="sf-profile-links-list">
               {persona.website ? (
                 <li>

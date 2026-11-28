@@ -17,6 +17,9 @@ export default defineStarforgeModule({
     'Member identity — username, display name, avatar/cover, bio, location and per-field privacy. The persona every other module (Events, Marketplace, Social…) resolves through getPersonas().',
   version: '0.1.0',
   defaultEnabled: true,
+  i18n: {
+    namespaces: ['product:profiles'],
+  },
   requires: ['product:media', 'product:forms'],
   optionalRequires: ['product:maps'],
   boot: {
@@ -71,7 +74,7 @@ export default defineStarforgeModule({
     {
       path: 'account/profile',
       pageImportPath: '@/modules/profiles/public/AccountProfilePage',
-      reexport: ['metadata'],
+      reexport: ['generateMetadata'],
     },
     {
       path: 'u/[handle]',

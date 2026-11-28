@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { setRequestLocale } from 'next-intl/server'
+import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { notFound, redirect } from 'next/navigation'
 import React from 'react'
 
@@ -36,15 +36,19 @@ export async function generateMetadata({ params }: Args): Promise<Metadata> {
   const { locale: localeParam } = await params
   const [settings, chrome] = await Promise.all([getSiteSettings(), getSiteChrome()])
   const siteName = chrome.siteName || settings.siteName
+  const t = await getTranslations({
+    locale: isValidLocaleCode(localeParam) ? localeParam : 'en',
+    namespace: 'product:marketplace',
+  })
   if (!isValidLocaleCode(localeParam)) {
-    return { title: `Not found — ${siteName}` }
+    return { title: t('notFoundTitle', { siteName }) }
   }
   if (!isCatalogModuleEnabled(settings, MODULE_IDS.marketplace)) {
-    return { title: `Not found — ${siteName}` }
+    return { title: t('notFoundTitle', { siteName }) }
   }
   return {
-    title: 'You — Marketplace',
-    description: `Your Marketplace listings and saves on ${siteName}.`,
+    title: `${t('youTitle')} — ${t('browseTitle')}`,
+    description: t('youMetaDescription', { siteName }),
   }
 }
 
@@ -96,22 +100,37 @@ export default async function MarketplaceYouPage({ params }: Args) {
 
   const { listings, saves, currency, viewer, thumbs } = door.value
   const signedIn = Boolean(viewer.userId)
+  const t = await getTranslations('product:marketplace')
+  const conditionLabels = {
+    new: t('conditionNew'),
+    used: t('conditionUsed'),
+    refurbished: t('conditionRefurbished'),
+  }
+  const statusLabels = {
+    draft: t('statusDraft'),
+    active: t('statusActive'),
+    pending: t('statusPending'),
+    sold: t('statusSold'),
+    hidden: t('statusHidden'),
+    removed: t('statusRemoved'),
+    expired: t('statusExpired'),
+  }
 
   return (
     <article className="cms-page sf-marketplace-page">
       <header className="cms-page-header">
-        <h1>You</h1>
-        <p className="lede">Your listings and saved items.</p>
+        <h1>{t('youTitle')}</h1>
+        <p className="lede">{t('youLede')}</p>
       </header>
       <MarketplacePublicNav locale={locale} active="you" signedIn={signedIn} />
 
       <section className="sf-marketplace-you-section">
-        <h2 className="sf-marketplace-section-heading">Your listings</h2>
+        <h2 className="sf-marketplace-section-heading">{t('yourListingsHeading')}</h2>
         {listings.length === 0 ? (
           <p className="lede">
-            No listings yet.{' '}
+            {t('emptyNoListingsPrefix')}{' '}
             <Link href={withLocalePrefix('/marketplace/new', locale as AppLocale)}>
-              Sell an item
+              {t('emptySellCta')}
             </Link>
             .
           </p>
@@ -133,18 +152,26 @@ export default async function MarketplaceYouPage({ params }: Args) {
                   key={listing.id}
                   href={canEdit ? editHref : detailHref}
                   title={listing.title}
-                  priceLabel={formatListingPrice(listing.priceMinor, currency, locale)}
-                  conditionLabel={formatListingCondition(listing.condition)}
+                  priceLabel={formatListingPrice(
+                    listing.priceMinor,
+                    currency,
+                    locale,
+                    t('free'),
+                  )}
+                  conditionLabel={formatListingCondition(
+                    listing.condition,
+                    conditionLabels,
+                  )}
                   areaLabel={listing.areaLabel}
                   thumbSrc={thumbs.get(listing.id) || ''}
-                  footnote={formatListingStatus(listing.status)}
+                  footnote={formatListingStatus(listing.status, statusLabels)}
                   actions={
                     canEdit ? (
                       <Link
                         href={editHref}
                         className="gantry-toolbar-btn gantry-toolbar-btn-muted"
                       >
-                        Edit
+                        {t('edit')}
                       </Link>
                     ) : null
                   }
@@ -156,11 +183,9 @@ export default async function MarketplaceYouPage({ params }: Args) {
       </section>
 
       <section className="sf-marketplace-you-section">
-        <h2 className="sf-marketplace-section-heading">Saved</h2>
+        <h2 className="sf-marketplace-section-heading">{t('savedHeading')}</h2>
         {saves.length === 0 ? (
-          <p className="lede">
-            No saved listings yet. Open a public listing and tap Save.
-          </p>
+          <p className="lede">{t('emptyNoSaves')}</p>
         ) : (
           <ul className="sf-marketplace-card-grid">
             {saves.map(({ listing }) => (
@@ -171,11 +196,19 @@ export default async function MarketplaceYouPage({ params }: Args) {
                   locale as AppLocale,
                 )}
                 title={listing.title}
-                priceLabel={formatListingPrice(listing.priceMinor, currency, locale)}
-                conditionLabel={formatListingCondition(listing.condition)}
+                priceLabel={formatListingPrice(
+                  listing.priceMinor,
+                  currency,
+                  locale,
+                  t('free'),
+                )}
+                conditionLabel={formatListingCondition(
+                  listing.condition,
+                  conditionLabels,
+                )}
                 areaLabel={listing.areaLabel}
                 thumbSrc={thumbs.get(listing.id) || ''}
-                footnote={formatListingStatus(listing.status)}
+                footnote={formatListingStatus(listing.status, statusLabels)}
                 actions={
                   <SaveListingActions
                     listingId={listing.id}

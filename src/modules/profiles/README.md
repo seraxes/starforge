@@ -72,4 +72,6 @@ import { getPersonas, getPersona, personaMediaSrc } from '@/modules/profiles/api
 
 ## Tests
 
-`src/modules/profiles/fields.test.ts`, `src/modules/profiles/hero-profile-fields.test.tsx`
+`src/modules/profiles/fields.test.ts`, `src/modules/profiles/hero-profile-fields.test.tsx`, `src/modules/profiles/messages-parity.test.ts`
+
+Member chrome: `messages/en.json` + `messages/hu.json` (`product:profiles`). Editor-typed field labels stay on Forms / LocaleInput.

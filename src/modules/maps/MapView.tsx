@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useId, useRef } from 'react'
+import { useTranslations } from 'next-intl'
 import 'leaflet/dist/leaflet.css'
 
 import type { MapClientConfig, MapMarker } from '@/core/maps/types'
@@ -26,8 +27,10 @@ export function MapView({
   height = '16rem',
   className = '',
 }: MapViewProps) {
+  const t = useTranslations('product:maps')
   const mapElId = useId().replace(/:/g, '')
   const containerRef = useRef<HTMLDivElement>(null)
+  const locationFallback = t('locationFallback')
 
   useEffect(() => {
     const el = containerRef.current
@@ -66,7 +69,7 @@ export function MapView({
       for (const m of markers) {
         const marker = L.marker([m.lat, m.lng])
         if (m.label || m.href) {
-          const title = m.label || 'Location'
+          const title = m.label || locationFallback
           const html = m.href
             ? `<a href="${m.href}">${title}</a>`
             : title
@@ -91,7 +94,7 @@ export function MapView({
         map = null
       }
     }
-  }, [markers, clientConfig, center, zoom])
+  }, [markers, clientConfig, center, zoom, locationFallback])
 
   return (
     <div className={['sf-map-view', className].filter(Boolean).join(' ')}>
@@ -101,7 +104,7 @@ export function MapView({
         className="sf-map-view-canvas"
         style={{ height }}
         role="region"
-        aria-label="Map"
+        aria-label={t('mapAriaLabel')}
       />
     </div>
   )

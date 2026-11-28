@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { setRequestLocale } from 'next-intl/server'
+import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import React from 'react'
 
@@ -160,7 +160,10 @@ export default async function SocialMemberFeedPage({
     )
   ) : null
 
-  const pack = await loadSocialModuleSettings()
+  const [pack, t] = await Promise.all([
+    loadSocialModuleSettings(),
+    getTranslations('product:social'),
+  ])
   const tabFlags = {
     showFollowing: pack.settings.allowFollowingTab,
     showDiscover: pack.settings.allowDiscover,
@@ -202,7 +205,7 @@ export default async function SocialMemberFeedPage({
           <FeedPostList
             items={items}
             locale={locale}
-            emptyMessage="No visible posts."
+            emptyMessage={t('emptyNoVisiblePosts')}
             showShare
           />
         </section>

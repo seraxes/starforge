@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { setRequestLocale } from 'next-intl/server'
+import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import React from 'react'
 
@@ -61,10 +61,11 @@ export default async function SocialPagesPage({ params }: Args) {
     withLocalePrefix('/feed/pages', locale),
   )}`
 
-  const [directory, pack, staff] = await Promise.all([
+  const [directory, pack, staff, t] = await Promise.all([
     listPagesDirectory(),
     loadSocialModuleSettings(),
     userId ? requireAdminArea('admin.social', 'manage') : Promise.resolve(null),
+    getTranslations('product:social'),
   ])
   const canCreate =
     pack.settings.allowPages &&
@@ -89,16 +90,16 @@ export default async function SocialPagesPage({ params }: Args) {
           ) : userId ? null : (
             <p className="sf-social-directory-signin">
               <Link className="sf-social-cta" href={loginHref}>
-                Sign in
+                {t('signIn')}
               </Link>
-              <span className="layout-muted"> to create or like pages.</span>
+              <span className="layout-muted">{t('guestSignInPagesSuffix')}</span>
             </p>
           )}
         </div>
 
-        <section className="sf-social-directory" aria-label="Page directory">
+        <section className="sf-social-directory" aria-label={t('pageDirectoryAriaLabel')}>
           {directory.length === 0 ? (
-            <p className="layout-muted">No pages yet.</p>
+            <p className="layout-muted">{t('emptyNoPagesYet')}</p>
           ) : (
             <ul className="sf-social-directory-grid">
               {directory.map(({ page, likeCount }) => {

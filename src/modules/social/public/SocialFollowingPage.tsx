@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
-import { setRequestLocale } from 'next-intl/server'
+import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import React from 'react'
 
@@ -17,6 +16,7 @@ import { listFollowingFeedPosts } from '../follows-store'
 import { loadSocialModuleSettings } from '../settings'
 import { FeedPostList } from './FeedPostList'
 import { FeedTabs } from './FeedTabs'
+import { SocialGuestGate } from './SocialGuestGate'
 
 type Args = { params: Promise<{ locale: string }> }
 
@@ -70,21 +70,15 @@ export default async function SocialFollowingPage({ params }: Args) {
     return (
       <div className="sf-social-feed-page">
         <FeedTabs locale={locale} active="following" {...tabFlags} />
-        <div className="sf-social-feed-column">
-          <p className="sf-social-feed-guest-copy">
-            Sign in to see public posts from people you follow.
-          </p>
-          <p className="sf-social-feed-guest-action">
-            <Link className="sf-social-cta" href={loginHref}>
-              Sign in
-            </Link>
-          </p>
-        </div>
+        <SocialGuestGate loginHref={loginHref} copyKey="guestSignInFollowing" />
       </div>
     )
   }
 
-  const posts = await listFollowingFeedPosts(userId)
+  const [posts, t] = await Promise.all([
+    listFollowingFeedPosts(userId),
+    getTranslations('product:social'),
+  ])
   const personas = await getPersonas(
     posts.map((p) => p.authorUserId),
     viewer,
@@ -101,7 +95,7 @@ export default async function SocialFollowingPage({ params }: Args) {
         <FeedPostList
           items={items}
           locale={locale}
-          emptyMessage="No public posts from people you follow yet."
+          emptyMessage={t('emptyNoFollowingPosts')}
           showShare={pack.settings.allowShare}
         />
       </div>

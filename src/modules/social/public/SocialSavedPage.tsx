@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
-import { setRequestLocale } from 'next-intl/server'
+import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import React from 'react'
 
@@ -17,6 +16,7 @@ import { listSavedFeedPosts } from '../mentions-tags-saves-store'
 import { loadSocialModuleSettings } from '../settings'
 import { FeedPostList } from './FeedPostList'
 import { FeedTabs } from './FeedTabs'
+import { SocialGuestGate } from './SocialGuestGate'
 
 type Args = { params: Promise<{ locale: string }> }
 
@@ -69,19 +69,15 @@ export default async function SocialSavedPage({ params }: Args) {
     return (
       <div className="sf-social-feed-page">
         <FeedTabs locale={locale} active="saved" {...tabFlags} />
-        <div className="sf-social-feed-column">
-          <p className="sf-social-feed-guest-copy">Sign in to see posts you saved.</p>
-          <p className="sf-social-feed-guest-action">
-            <Link className="sf-social-cta" href={loginHref}>
-              Sign in
-            </Link>
-          </p>
-        </div>
+        <SocialGuestGate loginHref={loginHref} copyKey="guestSignInSaved" />
       </div>
     )
   }
 
-  const posts = await listSavedFeedPosts(userId)
+  const [posts, t] = await Promise.all([
+    listSavedFeedPosts(userId),
+    getTranslations('product:social'),
+  ])
   const personas = await getPersonas(
     posts.map((p) => p.authorUserId),
     viewer,
@@ -98,7 +94,7 @@ export default async function SocialSavedPage({ params }: Args) {
         <FeedPostList
           items={items}
           locale={locale}
-          emptyMessage="No saved posts yet."
+          emptyMessage={t('emptyNoSavedPosts')}
           showShare={pack.settings.allowShare}
           showSave
           savedPostIds={new Set(posts.map((p) => p.id))}

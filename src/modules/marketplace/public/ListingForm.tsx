@@ -2,6 +2,7 @@
 
 import React, { useActionState, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 
 import { useNotifySavedOnOk } from '@/app/(frontend)/admin/admin-toast'
@@ -70,6 +71,7 @@ export function ListingForm({
   cancelHref,
   photosPicker = 'member',
 }: Props) {
+  const t = useTranslations('product:marketplace')
   const router = useRouter()
   const action = mode === 'create' ? createMarketplaceListingAction : updateMarketplaceListingAction
   const [state, formAction, pending] = useActionState(action, initialState)
@@ -117,7 +119,7 @@ export function ListingForm({
 
       <div className="sf-marketplace-listing-form-main">
         <label className="settings-field">
-          <span>Title</span>
+          <span>{t('fieldTitle')}</span>
           <input
             name="title"
             type="text"
@@ -130,7 +132,7 @@ export function ListingForm({
 
         <div className="sf-marketplace-listing-form-row">
           <label className="settings-field">
-            <span>Category</span>
+            <span>{t('fieldCategory')}</span>
             <select
               name="categoryId"
               value={categoryId}
@@ -138,18 +140,18 @@ export function ListingForm({
               required
               disabled={pending}
             >
-              <option value="">Select a category</option>
+              <option value="">{t('selectCategory')}</option>
               {enabledCategories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.title}
-                  {!c.enabled ? ' (disabled)' : ''}
+                  {!c.enabled ? t('categoryDisabledSuffix') : ''}
                 </option>
               ))}
             </select>
           </label>
 
           <label className="settings-field">
-            <span>Condition</span>
+            <span>{t('fieldCondition')}</span>
             <select
               name="condition"
               value={condition}
@@ -158,7 +160,11 @@ export function ListingForm({
             >
               {LISTING_CONDITIONS.map((c) => (
                 <option key={c} value={c}>
-                  {c === 'new' ? 'New' : c === 'refurbished' ? 'Refurbished' : 'Used'}
+                  {c === 'new'
+                    ? t('conditionNew')
+                    : c === 'refurbished'
+                      ? t('conditionRefurbished')
+                      : t('conditionUsed')}
                 </option>
               ))}
             </select>
@@ -176,13 +182,13 @@ export function ListingForm({
                 onChange={(e) => setFree(e.target.checked)}
                 disabled={pending}
               />{' '}
-              Free
+              {t('fieldFree')}
             </span>
           </label>
 
           {!free ? (
             <label className="settings-field">
-              <span>Price</span>
+              <span>{t('fieldPrice')}</span>
               <input
                 type="number"
                 min={0}
@@ -200,7 +206,7 @@ export function ListingForm({
         </div>
 
         <label className="settings-field">
-          <span>Description</span>
+          <span>{t('fieldDescription')}</span>
           <textarea
             name="description"
             rows={5}
@@ -218,25 +224,23 @@ export function ListingForm({
         />
 
         <label className="settings-field">
-          <span>Area</span>
+          <span>{t('fieldArea')}</span>
           <input
             name="areaLabel"
             type="text"
             maxLength={200}
             defaultValue={initial.areaLabel}
-            placeholder="City or neighborhood (not a street address)"
+            placeholder={t('areaPlaceholder')}
             disabled={pending}
           />
         </label>
 
         <details className="sf-marketplace-distance-disclosure">
-          <summary>Distance (optional)</summary>
-          <p className="settings-hint">
-            Coordinates power distance sort. The public page shows the area label only.
-          </p>
+          <summary>{t('distanceOptional')}</summary>
+          <p className="settings-hint">{t('distanceHint')}</p>
           <div className="sf-marketplace-listing-form-row">
             <label className="settings-field">
-              <span>Latitude</span>
+              <span>{t('fieldLatitude')}</span>
               <input
                 name="latitude"
                 type="number"
@@ -246,7 +250,7 @@ export function ListingForm({
               />
             </label>
             <label className="settings-field">
-              <span>Longitude</span>
+              <span>{t('fieldLongitude')}</span>
               <input
                 name="longitude"
                 type="number"
@@ -272,7 +276,7 @@ export function ListingForm({
         <div className="sf-marketplace-listing-form-actions page-settings-actions">
           {cancelHref ? (
             <Link href={cancelHref} className="gantry-toolbar-btn gantry-toolbar-btn-muted">
-              Cancel
+              {t('cancel')}
             </Link>
           ) : null}
           <button
@@ -282,11 +286,11 @@ export function ListingForm({
           >
             {pending
               ? mode === 'create'
-                ? 'Publishing…'
-                : 'Saving…'
+                ? t('publishing')
+                : t('savingChanges')
               : mode === 'create'
-                ? 'Publish listing'
-                : 'Save changes'}
+                ? t('publishListing')
+                : t('saveChanges')}
           </button>
         </div>
       </div>

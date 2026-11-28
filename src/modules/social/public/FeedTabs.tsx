@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { getTranslations } from 'next-intl/server'
 import React from 'react'
 
 import { withLocalePrefix } from '@/core/i18n/path'
@@ -24,7 +25,7 @@ function linkClass(active: boolean, secondary = false): string {
  * Public Social shell nav — Feed / People / Groups / Pages primary;
  * Stories / Following / Discover / Watch / Saved secondary when enabled.
  */
-export function FeedTabs({
+export async function FeedTabs({
   locale,
   active,
   showFollowing = true,
@@ -39,6 +40,7 @@ export function FeedTabs({
   showWatch?: boolean
   showStories?: boolean
 }) {
+  const t = await getTranslations('product:social')
   const feedActive = active === 'feed' || active === 'friends'
   const feedHref = withLocalePrefix('/feed', locale)
   const peopleHref = withLocalePrefix('/feed/people', locale)
@@ -51,35 +53,35 @@ export function FeedTabs({
   const savedHref = withLocalePrefix('/feed/saved', locale)
 
   return (
-    <nav className="sf-social-nav" aria-label="Social">
+    <nav className="sf-social-nav" aria-label={t('navAriaLabel')}>
       <div className="sf-social-nav-primary">
         <Link
           className={linkClass(feedActive)}
           href={feedHref}
           aria-current={feedActive ? 'page' : undefined}
         >
-          Feed
+          {t('navFeed')}
         </Link>
         <Link
           className={linkClass(active === 'people')}
           href={peopleHref}
           aria-current={active === 'people' ? 'page' : undefined}
         >
-          People
+          {t('navPeople')}
         </Link>
         <Link
           className={linkClass(active === 'groups')}
           href={groupsHref}
           aria-current={active === 'groups' ? 'page' : undefined}
         >
-          Groups
+          {t('navGroups')}
         </Link>
         <Link
           className={linkClass(active === 'pages')}
           href={pagesHref}
           aria-current={active === 'pages' ? 'page' : undefined}
         >
-          Pages
+          {t('navPages')}
         </Link>
       </div>
       <div className="sf-social-nav-secondary">
@@ -89,7 +91,7 @@ export function FeedTabs({
             href={storiesHref}
             aria-current={active === 'stories' ? 'page' : undefined}
           >
-            Stories
+            {t('navStories')}
           </Link>
         ) : null}
         {showFollowing ? (
@@ -98,7 +100,7 @@ export function FeedTabs({
             href={followingHref}
             aria-current={active === 'following' ? 'page' : undefined}
           >
-            Following
+            {t('navFollowing')}
           </Link>
         ) : null}
         {showDiscover ? (
@@ -107,7 +109,7 @@ export function FeedTabs({
             href={discoverHref}
             aria-current={active === 'discover' ? 'page' : undefined}
           >
-            Discover
+            {t('navDiscover')}
           </Link>
         ) : null}
         {showWatch ? (
@@ -116,7 +118,7 @@ export function FeedTabs({
             href={watchHref}
             aria-current={active === 'watch' ? 'page' : undefined}
           >
-            Watch
+            {t('navWatch')}
           </Link>
         ) : null}
         <Link
@@ -124,7 +126,7 @@ export function FeedTabs({
           href={savedHref}
           aria-current={active === 'saved' ? 'page' : undefined}
         >
-          Saved
+          {t('navSaved')}
         </Link>
       </div>
     </nav>

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { setRequestLocale } from 'next-intl/server'
+import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import React from 'react'
 
@@ -58,16 +58,20 @@ export async function generateMetadata({ params }: Args): Promise<Metadata> {
   const { locale: localeParam, id } = await params
   const [settings, chrome] = await Promise.all([getSiteSettings(), getSiteChrome()])
   const siteName = chrome.siteName || settings.siteName
+  const t = await getTranslations({
+    locale: isValidLocaleCode(localeParam) ? localeParam : 'en',
+    namespace: 'product:marketplace',
+  })
   if (!isValidLocaleCode(localeParam)) {
-    return { title: `Not found — ${siteName}` }
+    return { title: t('notFoundTitle', { siteName }) }
   }
   if (!isCatalogModuleEnabled(settings, MODULE_IDS.marketplace)) {
-    return { title: `Not found — ${siteName}` }
+    return { title: t('notFoundTitle', { siteName }) }
   }
   const listing = await getMarketplaceListing(id)
-  if (!listing) return { title: `Not found — ${siteName}` }
+  if (!listing) return { title: t('notFoundTitle', { siteName }) }
   return {
-    title: `${listing.title} — Marketplace`,
+    title: t('detailMetaTitle', { title: listing.title }),
     description: listing.description.slice(0, 160) || listing.title,
   }
 }
@@ -136,7 +140,7 @@ export default async function MarketplaceDetailPage({ params, searchParams }: Ar
       return {
         found,
         currency: pay.currency || 'HUF',
-        sellerLabel: seller?.displayName || seller?.handle || 'Seller',
+        sellerLabel: seller?.displayName || seller?.handle || '',
         photos,
         distanceKm,
         viewer,
@@ -154,10 +158,11 @@ export default async function MarketplaceDetailPage({ params, searchParams }: Ar
   if (!door.ok) notFound()
   if (!door.value) notFound()
 
+  const t = await getTranslations('product:marketplace')
   const {
     found,
     currency,
-    sellerLabel,
+    sellerLabel: sellerLabelRaw,
     photos,
     distanceKm,
     viewer,
@@ -170,6 +175,7 @@ export default async function MarketplaceDetailPage({ params, searchParams }: Ar
     sellerRatingAvg,
     ratingEligibility,
   } = door.value
+  const sellerLabel = sellerLabelRaw || t('sellerFallback')
   const { listing, categoryTitle, publicVisible } = found
   const canManage = isOwner || isStaff
   const canEdit =
@@ -186,8 +192,22 @@ export default async function MarketplaceDetailPage({ params, searchParams }: Ar
     ratingEligibility.toUserId
   const expiryLabel = formatListingDate(listing.expiresAt, locale)
   const areaLabel =
-    [listing.areaLabel, distance].filter(Boolean).join(' · ') || 'Not set'
-  const statusLabel = formatListingStatus(listing.status)
+    [listing.areaLabel, distance].filter(Boolean).join(' · ') || t('areaNotSet')
+  const statusLabels = {
+    draft: t('statusDraft'),
+    active: t('statusActive'),
+    pending: t('statusPending'),
+    sold: t('statusSold'),
+    hidden: t('statusHidden'),
+    removed: t('statusRemoved'),
+    expired: t('statusExpired'),
+  }
+  const conditionLabels = {
+    new: t('conditionNew'),
+    used: t('conditionUsed'),
+    refurbished: t('conditionRefurbished'),
+  }
+  const statusLabel = formatListingStatus(listing.status, statusLabels)
 
   return (
     <article className="cms-page sf-marketplace-page">
@@ -199,12 +219,12 @@ export default async function MarketplaceDetailPage({ params, searchParams }: Ar
 
       {!publicVisible ? (
         <p className="settings-hint" role="status">
-          This listing is not public ({statusLabel}).
+          {t('notPublicHint', { status: statusLabel })}
         </p>
       ) : null}
 
       <div className="sf-marketplace-detail">
-        <div className="sf-marketplace-detail-gallery" aria-label="Photos">
+        <div className="sf-marketplace-detail-gallery" aria-label={t('photosAria')}>
           {photos.length > 0 ? (
             photos.map((src) => (
               // eslint-disable-next-line @next/next/no-img-element
@@ -212,7 +232,7 @@ export default async function MarketplaceDetailPage({ params, searchParams }: Ar
             ))
           ) : (
             <div className="sf-marketplace-detail-photo is-empty" aria-hidden>
-              <span>No photo</span>
+              <span>{t('noPhoto')}</span>
             </div>
           )}
         </div>
@@ -221,7 +241,7 @@ export default async function MarketplaceDetailPage({ params, searchParams }: Ar
           <header className="sf-marketplace-detail-header">
             <h1>{listing.title}</h1>
             <p className="sf-marketplace-detail-price">
-              {formatListingPrice(listing.priceMinor, currency, locale)}
+              {formatListingPrice(listing.priceMinor, currency, locale, t('free'))}
             </p>
           </header>
 
@@ -242,7 +262,7 @@ export default async function MarketplaceDetailPage({ params, searchParams }: Ar
                   )}
                   className="gantry-toolbar-btn gantry-toolbar-btn-muted"
                 >
-                  Edit
+                  {t('edit')}
                 </Link>
               ) : null}
               {canManage ? (
@@ -260,28 +280,28 @@ export default async function MarketplaceDetailPage({ params, searchParams }: Ar
 
           <dl className="sf-marketplace-detail-facts">
             <div>
-              <dt>Condition</dt>
-              <dd>{formatListingCondition(listing.condition)}</dd>
+              <dt>{t('factCondition')}</dt>
+              <dd>{formatListingCondition(listing.condition, conditionLabels)}</dd>
             </div>
             {categoryTitle ? (
               <div>
-                <dt>Category</dt>
+                <dt>{t('factCategory')}</dt>
                 <dd>{categoryTitle}</dd>
               </div>
             ) : null}
             <div>
-              <dt>Area</dt>
+              <dt>{t('factArea')}</dt>
               <dd>{areaLabel}</dd>
             </div>
             <div>
-              <dt>Seller</dt>
+              <dt>{t('factSeller')}</dt>
               <dd>
                 {sellerLabel}
                 {sellerRatingAvg != null ? (
                   <>
                     {' '}
                     ·{' '}
-                    <span title="Public Marketplace rating average">
+                    <span title={t('ratingAvgTitle')}>
                       {sellerRatingAvg.toFixed(1)} ★
                     </span>
                   </>
@@ -290,16 +310,16 @@ export default async function MarketplaceDetailPage({ params, searchParams }: Ar
             </div>
             {expiryLabel ? (
               <div>
-                <dt>Expires</dt>
+                <dt>{t('factExpires')}</dt>
                 <dd>{expiryLabel}</dd>
               </div>
             ) : null}
             <div>
-              <dt>Status</dt>
+              <dt>{t('factStatus')}</dt>
               <dd>
                 {statusLabel}
                 {listing.status === 'sold' && listing.soldToUserId
-                  ? ` · sold to ${listing.soldToUserId.slice(0, 8)}…`
+                  ? t('soldToHint', { id: listing.soldToUserId.slice(0, 8) })
                   : ''}
               </dd>
             </div>
@@ -316,7 +336,7 @@ export default async function MarketplaceDetailPage({ params, searchParams }: Ar
       {showBuyerInquiry ? (
         <section className="page-settings-panel sf-marketplace-panel">
           <div className="page-settings-panel-head">
-            <h2>Ask / offer</h2>
+            <h2>{t('askOfferHeading')}</h2>
           </div>
           <div className="page-settings-panel-body">
             <BuyerInquiryPanel
@@ -344,7 +364,7 @@ export default async function MarketplaceDetailPage({ params, searchParams }: Ar
       {canManage ? (
         <section className="page-settings-panel sf-marketplace-panel">
           <div className="page-settings-panel-head">
-            <h2>Inquiries</h2>
+            <h2>{t('inquiriesHeading')}</h2>
           </div>
           <div className="page-settings-panel-body">
             <SellerInquiryPanel

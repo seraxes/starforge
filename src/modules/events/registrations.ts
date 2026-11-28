@@ -10,6 +10,7 @@ import { db } from '@/core/db'
 
 import {
   ACTIVE_SIGNUP_STATUSES,
+  evaluateRegistrationCapacity,
   isAdminRegistrationStatus,
   normalizeRegistrationStatus,
   registrationHoldsSeat,
@@ -275,34 +276,11 @@ export async function createEventRegistration(
       ? Math.min(Math.floor(guestsRaw), bookingCap)
       : 1
 
-  let status: RegistrationStatus = 'registered'
-  if (
+  const explicitStatus =
     input.status === 'pending_payment' ||
     (input.admin && isAdminRegistrationStatus(input.status))
-  ) {
-    status = input.status
-  } else {
-    let needsWaitlist = false
-    const occupiedEvent = await countRegisteredGuests(eventId)
-    if (typeof event.capacity === 'number' && event.capacity >= 0) {
-      if (occupiedEvent >= event.capacity || occupiedEvent + guests > event.capacity) {
-        needsWaitlist = true
-      }
-    }
-    if (!needsWaitlist && ticketTierId && typeof tierCapacity === 'number') {
-      const occupiedTier = await countRegisteredGuestsForTier(eventId, ticketTierId)
-      if (occupiedTier >= tierCapacity || occupiedTier + guests > tierCapacity) {
-        needsWaitlist = true
-      }
-    }
-    if (needsWaitlist && !event.waitlistEnabled) {
-      return { error: 'This event is full and the waitlist is closed.' }
-    }
-    status = resolveInitialRegistrationStatus({
-      needsWaitlist,
-      requireApproval: !input.admin && event.requireApproval,
-    })
-  }
+      ? input.status
+      : null
 
   const id = crypto.randomUUID()
   const name = input.name.trim().slice(0, 200) || 'Guest'
@@ -334,27 +312,86 @@ export async function createEventRegistration(
   }
 
   try {
-    await db.insert(sfEventRegistrations).values({
-      id,
-      eventId,
-      ticketTierId,
-      submissionId: (input.submissionId || '').trim() || null,
-      userId: (input.userId || '').trim() || null,
-      name,
-      email,
-      guests,
-      attendance: (input.attendance || 'in_person').trim().slice(0, 40) || 'in_person',
-      notes: (input.notes || '').trim().slice(0, 2000),
-      status,
-      paymentOrderId: (input.paymentOrderId || '').trim() || null,
+    // Count + insert in one transaction under an event row lock so two
+    // overlapping last-seat calls cannot both insert `registered`.
+    return await db.transaction(async (tx) => {
+      await tx.execute(
+        sql`select id from sf_events where id = ${eventId} for update`,
+      )
+
+      let status: RegistrationStatus
+      if (explicitStatus) {
+        status = explicitStatus
+      } else {
+        const [eventCountRow] = await tx
+          .select({
+            n: sql<number>`coalesce(sum(${sfEventRegistrations.guests}), 0)`,
+          })
+          .from(sfEventRegistrations)
+          .where(
+            and(
+              eq(sfEventRegistrations.eventId, eventId),
+              inArray(sfEventRegistrations.status, [...SEAT_HOLDING_STATUSES]),
+            ),
+          )
+        const occupiedEvent = Number(eventCountRow?.n) || 0
+
+        let occupiedTier = 0
+        if (ticketTierId && typeof tierCapacity === 'number') {
+          const [tierCountRow] = await tx
+            .select({
+              n: sql<number>`coalesce(sum(${sfEventRegistrations.guests}), 0)`,
+            })
+            .from(sfEventRegistrations)
+            .where(
+              and(
+                eq(sfEventRegistrations.eventId, eventId),
+                eq(sfEventRegistrations.ticketTierId, ticketTierId),
+                inArray(sfEventRegistrations.status, [...SEAT_HOLDING_STATUSES]),
+              ),
+            )
+          occupiedTier = Number(tierCountRow?.n) || 0
+        }
+
+        const capacity = evaluateRegistrationCapacity({
+          occupiedEvent,
+          eventCapacity: event.capacity,
+          occupiedTier,
+          tierCapacity: ticketTierId ? tierCapacity : null,
+          guests,
+          waitlistEnabled: event.waitlistEnabled,
+        })
+        if ('error' in capacity) {
+          return { error: capacity.error }
+        }
+        status = resolveInitialRegistrationStatus({
+          needsWaitlist: capacity.needsWaitlist,
+          requireApproval: !input.admin && event.requireApproval,
+        })
+      }
+
+      await tx.insert(sfEventRegistrations).values({
+        id,
+        eventId,
+        ticketTierId,
+        submissionId: (input.submissionId || '').trim() || null,
+        userId: (input.userId || '').trim() || null,
+        name,
+        email,
+        guests,
+        attendance: (input.attendance || 'in_person').trim().slice(0, 40) || 'in_person',
+        notes: (input.notes || '').trim().slice(0, 2000),
+        status,
+        paymentOrderId: (input.paymentOrderId || '').trim() || null,
+      })
+      const [row] = await tx
+        .select()
+        .from(sfEventRegistrations)
+        .where(eq(sfEventRegistrations.id, id))
+        .limit(1)
+      if (!row) return { error: 'Registration saved but could not be reloaded.' }
+      return { registration: mapRow(row) }
     })
-    const [row] = await db
-      .select()
-      .from(sfEventRegistrations)
-      .where(eq(sfEventRegistrations.id, id))
-      .limit(1)
-    if (!row) return { error: 'Registration saved but could not be reloaded.' }
-    return { registration: mapRow(row) }
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
     if (/sf_event_registrations|does not exist|relation/i.test(msg)) {

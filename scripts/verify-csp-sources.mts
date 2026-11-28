@@ -11,6 +11,7 @@ import {
   buildCspHeaders,
   composeCspSources,
   mergeCspSources,
+  resolveCspRuntime,
   type CspSources,
 } from '../src/core/security/csp.ts'
 import { buildSecurityHeaders } from '../src/core/security/headers.ts'
@@ -90,6 +91,22 @@ try {
   assert(header(off, 'Content-Security-Policy')?.includes("object-src 'none'"), 'off mode keeps floor')
   delete process.env.STARFORGE_CSP_MODE
   delete process.env.STARFORGE_CSP_REPORT_URI
+
+  // Production drops 'unsafe-eval'; non-production keeps it for Next HMR.
+  const prodRuntime = resolveCspRuntime({ NODE_ENV: 'production' })
+  assert(
+    prodRuntime['script-src']?.join(' ') === "'self' 'unsafe-inline'",
+    'production script-src must drop unsafe-eval',
+  )
+  assert(
+    !prodRuntime['script-src']?.includes("'unsafe-eval'"),
+    'production runtime must not list unsafe-eval',
+  )
+  const devRuntime = resolveCspRuntime({ NODE_ENV: 'development' })
+  assert(
+    devRuntime['script-src']?.includes("'unsafe-eval'") === true,
+    'development script-src keeps unsafe-eval',
+  )
 
   // Injection: anything that is not a plain source token is dropped.
   const merged = mergeCspSources({

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { getTranslations } from 'next-intl/server'
 import React from 'react'
 
 export type EntityTab = 'wall' | 'members' | 'about' | 'calendar'
@@ -12,7 +13,7 @@ function tabClass(active: boolean): string {
 }
 
 /** Wall / Members / About / Calendar. Calendar is omitted when Events is off. */
-export function SocialEntityTabs({
+export async function SocialEntityTabs({
   baseHref,
   active,
   showCalendar,
@@ -21,28 +22,29 @@ export function SocialEntityTabs({
   active: EntityTab
   showCalendar: boolean
 }) {
+  const t = await getTranslations('product:social')
   return (
-    <nav className="sf-social-entity-tabs" aria-label="Group or page tabs">
+    <nav className="sf-social-entity-tabs" aria-label={t('entityTabsAriaLabel')}>
       <Link
         className={tabClass(active === 'wall')}
         href={tabHref(baseHref, 'wall')}
         aria-current={active === 'wall' ? 'page' : undefined}
       >
-        Wall
+        {t('tabWall')}
       </Link>
       <Link
         className={tabClass(active === 'members')}
         href={tabHref(baseHref, 'members')}
         aria-current={active === 'members' ? 'page' : undefined}
       >
-        Members
+        {t('tabMembers')}
       </Link>
       <Link
         className={tabClass(active === 'about')}
         href={tabHref(baseHref, 'about')}
         aria-current={active === 'about' ? 'page' : undefined}
       >
-        About
+        {t('tabAbout')}
       </Link>
       {showCalendar ? (
         <Link
@@ -50,7 +52,7 @@ export function SocialEntityTabs({
           href={tabHref(baseHref, 'calendar')}
           aria-current={active === 'calendar' ? 'page' : undefined}
         >
-          Calendar
+          {t('tabCalendar')}
         </Link>
       ) : null}
     </nav>

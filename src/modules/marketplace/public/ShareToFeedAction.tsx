@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useActionState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 
 import { useNotifySavedOnOk } from '@/app/(frontend)/admin/admin-toast'
@@ -17,6 +18,7 @@ type Props = {
 const initial: MarketplaceMemberActionState = {}
 
 export function ShareToFeedAction({ listingId, canShare }: Props) {
+  const t = useTranslations('product:marketplace')
   const router = useRouter()
   const [state, action, busy] = useActionState(
     shareMarketplaceListingToFeedAction,
@@ -40,7 +42,7 @@ export function ShareToFeedAction({ listingId, canShare }: Props) {
           className="gantry-toolbar-btn gantry-toolbar-btn-muted"
           disabled={busy}
         >
-          {busy ? 'Sharing…' : 'Share to feed'}
+          {busy ? t('sharing') : t('shareToFeed')}
         </button>
       </form>
       {state.error ? (

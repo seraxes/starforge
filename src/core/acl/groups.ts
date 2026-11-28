@@ -201,7 +201,7 @@ export async function renameUserGroup(
 
   let resolvedParentId = existing.parentId
   if (parentId !== undefined) {
-    if (isVisitorsGroup(trimmedId) && parentId.trim()) {
+    if (isVisitorsGroup(trimmedId) && (parentId ?? '').trim()) {
       return { error: 'Visitors cannot be nested under another group.' }
     }
     if (isVisitorsGroup(parentId)) {

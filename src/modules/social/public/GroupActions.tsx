@@ -41,6 +41,7 @@ export function CreateGroupForm({
   categories: GroupCategoryRecord[]
   defaultVisibility?: GroupVisibility
 }) {
+  const t = useTranslations('product:social')
   const [open, setOpen] = React.useState(false)
   const [state, action, pending] = useActionState(createGroupAction, initial)
   return (
@@ -51,7 +52,7 @@ export function CreateGroupForm({
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
       >
-        {open ? 'Close' : 'Create a group'}
+        {open ? t('close') : t('createGroup')}
       </button>
       {open ? (
         <form action={action} className="sf-social-create-group">
@@ -99,7 +100,7 @@ export function CreateGroupForm({
               className="sf-social-directory-create-submit"
               disabled={pending}
             >
-              {pending ? 'Creating…' : 'Create group'}
+              {pending ? t('creatingGroup') : t('createGroupSubmit')}
             </button>
           </div>
           {state.error ? (
@@ -108,7 +109,7 @@ export function CreateGroupForm({
             </p>
           ) : null}
           {state.ok && state.slug ? (
-            <p className="sf-social-inline-ok">Group created.</p>
+            <p className="sf-social-inline-ok">{t('groupCreated')}</p>
           ) : null}
         </form>
       ) : null}
@@ -123,16 +124,17 @@ export function JoinGroupButton({
   groupId: string
   visibility: GroupVisibility
 }) {
+  const t = useTranslations('product:social')
   const [state, action, pending] = useActionState(joinGroupAction, initial)
   return (
     <form action={action} className="sf-social-join-group">
       <input type="hidden" name="groupId" value={groupId} />
       <button type="submit" className="sf-social-btn sf-social-btn-primary" disabled={pending}>
         {pending
-          ? 'Working…'
+          ? t('working')
           : visibility === 'closed'
-            ? 'Request to join'
-            : 'Join group'}
+            ? t('requestToJoin')
+            : t('joinGroup')}
       </button>
       {state.error ? (
         <p className="sf-social-inline-error" role="alert">
@@ -144,12 +146,13 @@ export function JoinGroupButton({
 }
 
 export function AcceptGroupInviteButton({ groupId }: { groupId: string }) {
+  const t = useTranslations('product:social')
   const [state, action, pending] = useActionState(acceptGroupInviteAction, initial)
   return (
     <form action={action} className="sf-social-accept-invite">
       <input type="hidden" name="groupId" value={groupId} />
       <button type="submit" className="sf-social-btn sf-social-btn-primary" disabled={pending}>
-        {pending ? 'Accepting…' : 'Accept invite'}
+        {pending ? t('acceptingInvite') : t('acceptInvite')}
       </button>
       {state.error ? (
         <p className="sf-social-inline-error" role="alert">

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { getTranslations } from 'next-intl/server'
 import React from 'react'
 
 import { withLocalePrefix } from '@/core/i18n/path'
@@ -11,15 +12,16 @@ type Props = {
 }
 
 /** Compact public nav for Marketplace browse / create / you. */
-export function MarketplacePublicNav({ locale, active, signedIn }: Props) {
+export async function MarketplacePublicNav({ locale, active, signedIn }: Props) {
   const loc = locale as AppLocale
+  const t = await getTranslations('product:marketplace')
   return (
-    <nav className="sf-marketplace-nav" aria-label="Marketplace">
+    <nav className="sf-marketplace-nav" aria-label={t('navAria')}>
       <Link
         href={withLocalePrefix('/marketplace', loc)}
         className={`sf-marketplace-nav-link${active === 'browse' ? ' is-active' : ''}`}
       >
-        Browse
+        {t('navBrowse')}
       </Link>
       {signedIn ? (
         <>
@@ -27,13 +29,13 @@ export function MarketplacePublicNav({ locale, active, signedIn }: Props) {
             href={withLocalePrefix('/marketplace/new', loc)}
             className={`sf-marketplace-nav-link${active === 'new' ? ' is-active' : ''}`}
           >
-            Sell
+            {t('navSell')}
           </Link>
           <Link
             href={withLocalePrefix('/marketplace/you', loc)}
             className={`sf-marketplace-nav-link${active === 'you' ? ' is-active' : ''}`}
           >
-            You
+            {t('navYou')}
           </Link>
         </>
       ) : (
@@ -41,7 +43,7 @@ export function MarketplacePublicNav({ locale, active, signedIn }: Props) {
           href={withLocalePrefix('/login?next=/marketplace/new', loc)}
           className="sf-marketplace-nav-link"
         >
-          Sign in to sell
+          {t('navSignInToSell')}
         </Link>
       )}
     </nav>

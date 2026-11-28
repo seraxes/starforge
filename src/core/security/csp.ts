@@ -51,17 +51,29 @@ const CSP_FLOOR_DIRECTIVES: CspDirective[] = [
   'frame-ancestors',
 ]
 
-/** Next + Payload admin still rely on inline / eval (until nonces). */
-export const CSP_RUNTIME: CspSources = {
-  'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-  'style-src': ["'self'", "'unsafe-inline'"],
-  'img-src': ["'self'", 'data:', 'blob:', 'https:'],
-  'font-src': ["'self'", 'data:'],
-  'connect-src': ["'self'"],
-  'frame-src': ["'self'"],
-  'media-src': ["'self'", 'blob:'],
-  'worker-src': ["'self'", 'blob:'],
+/**
+ * Next App Router still needs `'unsafe-inline'` (nonce migration not started).
+ * Production drops `'unsafe-eval'`. Non-production keeps it for Next/webpack HMR.
+ */
+export function resolveCspRuntime(env: NodeJS.ProcessEnv = process.env): CspSources {
+  const scriptSrc = ["'self'", "'unsafe-inline'"]
+  if ((env.NODE_ENV ?? '').trim() !== 'production') {
+    scriptSrc.push("'unsafe-eval'")
+  }
+  return {
+    'script-src': scriptSrc,
+    'style-src': ["'self'", "'unsafe-inline'"],
+    'img-src': ["'self'", 'data:', 'blob:', 'https:'],
+    'font-src': ["'self'", 'data:'],
+    'connect-src': ["'self'"],
+    'frame-src': ["'self'"],
+    'media-src': ["'self'", 'blob:'],
+    'worker-src': ["'self'", 'blob:'],
+  }
 }
+
+/** Runtime sources for the current process env. Prefer `resolveCspRuntime()`. */
+export const CSP_RUNTIME: CspSources = resolveCspRuntime()
 
 export const CSP_TURNSTILE: CspSources = {
   'script-src': ['https://challenges.cloudflare.com'],
@@ -237,7 +249,7 @@ export function serializeCsp(
  * are not allowed — the static fallback is the strict policy.
  */
 export function composeCspSources(features?: CspSources | null): CspSources {
-  return mergeCspSources(CSP_BASELINE, CSP_RUNTIME, mediaStorageCspSources(), features)
+  return mergeCspSources(CSP_BASELINE, resolveCspRuntime(), mediaStorageCspSources(), features)
 }
 
 export type CspHeader = { key: string; value: string }

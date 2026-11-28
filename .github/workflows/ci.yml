@@ -47,6 +47,8 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      - run: npm run check:tests
+      - run: npm run check:migrations
       - run: npm run test:unit
 
   migrate:
@@ -82,8 +84,6 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - name: Create payload schema
-        run: PGPASSWORD=starforge psql -h 127.0.0.1 -U starforge -d starforge -c 'CREATE SCHEMA IF NOT EXISTS payload;'
       - name: Apply migrations
         run: npm run db:migrate
       - name: Drizzle schema drift check
@@ -125,8 +125,6 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - name: Create payload schema
-        run: PGPASSWORD=starforge psql -h 127.0.0.1 -U starforge -d starforge -c 'CREATE SCHEMA IF NOT EXISTS payload;'
       - run: npm run db:migrate
       - run: npm run seed
       - run: npm run build

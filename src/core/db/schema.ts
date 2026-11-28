@@ -154,7 +154,7 @@ export const sfVerifications = pgTable(
  * Skin packs own rows via `skin_id` (nullable). Each skin has one Base shell
  * (`preferredDefaultOutlineId`); children inherit that Base by default.
  * Empty/missing document → fall back to `src/core/modules/default-layout.json`.
- * Apply `skin_id` with `npm run db:core:push` after pull.
+ * Column `skin_id` is added by migration `0082_layouts_skin_id`.
  */
 export const sfLayouts = pgTable('sf_layouts', {
   id: text('id').primaryKey(),

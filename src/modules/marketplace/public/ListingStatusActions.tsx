@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useActionState, useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 
 import { useNotifySavedOnOk } from '@/app/(frontend)/admin/admin-toast'
@@ -22,6 +23,7 @@ type Props = {
 const initial: MarketplaceMemberActionState = {}
 
 export function ListingStatusActions({ listingId, status, canManage }: Props) {
+  const t = useTranslations('product:marketplace')
   const router = useRouter()
   const [soldTo, setSoldTo] = useState('')
   const [pendingState, pendingAction, pendingBusy] = useActionState(
@@ -78,7 +80,7 @@ export function ListingStatusActions({ listingId, status, canManage }: Props) {
             className="gantry-toolbar-btn gantry-toolbar-btn-muted"
             disabled={busy}
           >
-            {pendingBusy ? 'Marking…' : 'Mark pending'}
+            {pendingBusy ? t('marking') : t('markPending')}
           </button>
         </form>
       ) : null}
@@ -87,7 +89,7 @@ export function ListingStatusActions({ listingId, status, canManage }: Props) {
         <form action={soldAction} className="sf-marketplace-sold-form">
           <input type="hidden" name="id" value={listingId} />
           <label className="settings-field">
-            <span>Sold to user id (optional)</span>
+            <span>{t('soldToUserId')}</span>
             <input
               name="soldToUserId"
               type="text"
@@ -101,7 +103,7 @@ export function ListingStatusActions({ listingId, status, canManage }: Props) {
             className="gantry-toolbar-btn gantry-toolbar-btn-save"
             disabled={busy}
           >
-            {soldBusy ? 'Marking…' : 'Mark sold'}
+            {soldBusy ? t('marking') : t('markSold')}
           </button>
         </form>
       ) : null}
@@ -114,7 +116,7 @@ export function ListingStatusActions({ listingId, status, canManage }: Props) {
             className="gantry-toolbar-btn gantry-toolbar-btn-muted"
             disabled={busy}
           >
-            {renewBusy ? 'Renewing…' : 'Renew'}
+            {renewBusy ? t('renewing') : t('renew')}
           </button>
         </form>
       ) : null}
@@ -127,7 +129,7 @@ export function ListingStatusActions({ listingId, status, canManage }: Props) {
             className="gantry-toolbar-btn gantry-toolbar-btn-muted"
             disabled={busy}
           >
-            {hideBusy ? 'Hiding…' : 'Hide'}
+            {hideBusy ? t('hiding') : t('hide')}
           </button>
         </form>
       ) : null}

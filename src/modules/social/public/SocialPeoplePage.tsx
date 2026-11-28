@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { setRequestLocale } from 'next-intl/server'
+import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import React from 'react'
 
@@ -24,6 +24,7 @@ import {
 import { loadSocialModuleSettings } from '../settings'
 import { FeedTabs } from './FeedTabs'
 import { IncomingRequestActions, RequestFriendButton } from './PeopleActions'
+import { SocialGuestGate } from './SocialGuestGate'
 
 type Args = { params: Promise<{ locale: string }> }
 
@@ -76,24 +77,16 @@ export default async function SocialPeoplePage({ params }: Args) {
     return (
       <div className="sf-social-feed-page sf-social-people-page">
         <FeedTabs locale={locale} active="people" {...tabFlags} />
-        <div className="sf-social-feed-column">
-          <p className="sf-social-feed-guest-copy">
-            Sign in to find members and manage friend requests.
-          </p>
-          <p className="sf-social-feed-guest-action">
-            <Link className="sf-social-cta" href={loginHref}>
-              Sign in
-            </Link>
-          </p>
-        </div>
+        <SocialGuestGate loginHref={loginHref} copyKey="guestSignInPeople" />
       </div>
     )
   }
 
-  const [people, incoming, suggestions] = await Promise.all([
+  const [people, incoming, suggestions, t] = await Promise.all([
     listPeopleDirectory(userId),
     listIncomingFriendRequests(userId),
     listPeopleSuggestions(userId),
+    getTranslations('product:social'),
   ])
   const personaIds = [
     ...people.map((p) => p.userId),
@@ -117,10 +110,10 @@ export default async function SocialPeoplePage({ params }: Args) {
     <div className="sf-social-feed-page sf-social-people-page">
       <FeedTabs locale={locale} active="people" {...tabFlags} />
       <div className="sf-social-feed-column">
-        <section className="sf-social-people-requests" aria-label="Friend requests">
-          <h2 className="sf-social-section-heading">Friend requests</h2>
+        <section className="sf-social-people-requests" aria-label={t('friendRequestsAriaLabel')}>
+          <h2 className="sf-social-section-heading">{t('friendRequests')}</h2>
           {incoming.length === 0 ? (
-            <p className="layout-muted">No pending requests.</p>
+            <p className="layout-muted">{t('emptyNoPendingFriendRequests')}</p>
           ) : (
             <ul className="sf-social-people-list">
               {incoming.map((row) => {
@@ -167,8 +160,8 @@ export default async function SocialPeoplePage({ params }: Args) {
         </section>
 
         {suggestions.length > 0 ? (
-          <section className="sf-social-people-suggestions" aria-label="People you may know">
-            <h2 className="sf-social-section-heading">People you may know</h2>
+          <section className="sf-social-people-suggestions" aria-label={t('peopleYouMayKnow')}>
+            <h2 className="sf-social-section-heading">{t('peopleYouMayKnow')}</h2>
             <ul className="sf-social-people-list">
               {suggestions.map((row) => {
                 const persona = personas.get(row.userId)
@@ -212,10 +205,10 @@ export default async function SocialPeoplePage({ params }: Args) {
           </section>
         ) : null}
 
-        <section className="sf-social-people-directory" aria-label="People directory">
-          <h2 className="sf-social-section-heading">Directory</h2>
+        <section className="sf-social-people-directory" aria-label={t('peopleDirectory')}>
+          <h2 className="sf-social-section-heading">{t('peopleDirectory')}</h2>
           {people.length === 0 ? (
-            <p className="layout-muted">No people to show.</p>
+            <p className="layout-muted">{t('emptyNoPeople')}</p>
           ) : (
             <ul className="sf-social-people-list">
               {people.map((row) => {

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { setRequestLocale } from 'next-intl/server'
+import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { notFound, redirect } from 'next/navigation'
 import React from 'react'
 
@@ -19,9 +19,14 @@ import { ensureProfile } from '@/modules/profiles/store'
 
 type Args = { params: Promise<{ locale: string }> }
 
-export const metadata: Metadata = {
-  title: 'Your profile',
-  robots: { index: false, follow: false },
+export async function generateMetadata({ params }: Args): Promise<Metadata> {
+  const { locale: localeParam } = await params
+  const locale = isValidLocaleCode(localeParam) ? localeParam : 'en'
+  const t = await getTranslations({ locale, namespace: 'product:profiles' })
+  return {
+    title: t('yourProfile'),
+    robots: { index: false, follow: false },
+  }
 }
 
 /** Member self-service profile editor (product:profiles). */
@@ -31,7 +36,11 @@ export default async function AccountProfilePage({ params }: Args) {
   const locale = requireContentLocale(localeParam)
   setRequestLocale(locale)
 
-  const [settings, session] = await Promise.all([getSiteSettings(), getAppSession()])
+  const [settings, session, t] = await Promise.all([
+    getSiteSettings(),
+    getAppSession(),
+    getTranslations('product:profiles'),
+  ])
   if (!isCatalogModuleEnabled(settings, MODULE_IDS.profiles)) notFound()
   if (!session?.user) {
     redirect(`/login?next=${encodeURIComponent('/account/profile')}`)
@@ -59,7 +68,7 @@ export default async function AccountProfilePage({ params }: Args) {
   return (
     <article className="cms-page sf-profile-page">
       <header className="cms-page-header">
-        <h1>Your profile</h1>
+        <h1>{t('yourProfile')}</h1>
       </header>
       <AccountNav
         active="profile"
@@ -68,10 +77,7 @@ export default async function AccountProfilePage({ params }: Args) {
         showEvents={isCatalogModuleEnabled(settings, MODULE_IDS.events)}
         showSubscriptions={isCatalogModuleEnabled(settings, MODULE_IDS.subscriptions)}
       />
-      <p className="lede">
-        This is how you appear across the whole community — events, marketplace, posts and
-        messages. Choose who can see each detail with the selector next to it.
-      </p>
+      <p className="lede">{t('accountLede')}</p>
       <ProfileEditor
         model={model}
         action={saveOwnProfileAction}

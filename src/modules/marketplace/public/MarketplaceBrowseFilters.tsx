@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useMemo, useState } from 'react'
+import { useTranslations } from 'next-intl'
 
 import { majorToMinor, minorToMajor } from '@/core/payments/money'
 import type { BrowseFilters, BrowseSort } from '../browse-rules'
@@ -34,6 +35,7 @@ export function MarketplaceBrowseFilters({
   currency,
   defaults,
 }: Props) {
+  const t = useTranslations('product:marketplace')
   const [sort, setSort] = useState<BrowseSort>(filters.sort || 'newest')
   const [open, setOpen] = useState(false)
   const showNearMe = sort === 'distance'
@@ -85,22 +87,22 @@ export function MarketplaceBrowseFilters({
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
         >
-          {open ? 'Hide filters' : 'Filters'}
+          {open ? t('filtersHide') : t('filtersToggle')}
         </button>
         <button type="submit" className="sf-marketplace-filters-apply secondary">
-          Apply
+          {t('filtersApply')}
         </button>
       </div>
 
       <div className="sf-marketplace-filters-bar">
         <label className="settings-field sf-marketplace-filter-search">
-          <span>Search</span>
+          <span>{t('filterSearch')}</span>
           <input name="q" type="search" defaultValue={defaults.q} />
         </label>
         <label className="settings-field">
-          <span>Category</span>
+          <span>{t('filterCategory')}</span>
           <select name="category" defaultValue={filters.categoryId || ''}>
-            <option value="">All</option>
+            <option value="">{t('filterCategoryAll')}</option>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.title}
@@ -109,16 +111,16 @@ export function MarketplaceBrowseFilters({
           </select>
         </label>
         <label className="settings-field">
-          <span>Condition</span>
+          <span>{t('filterCondition')}</span>
           <select name="condition" defaultValue={filters.condition || ''}>
-            <option value="">Any</option>
-            <option value="new">New</option>
-            <option value="used">Used</option>
-            <option value="refurbished">Refurbished</option>
+            <option value="">{t('filterConditionAny')}</option>
+            <option value="new">{t('conditionNew')}</option>
+            <option value="used">{t('conditionUsed')}</option>
+            <option value="refurbished">{t('conditionRefurbished')}</option>
           </select>
         </label>
         <label className="settings-field sf-marketplace-filter-price">
-          <span>Min price</span>
+          <span>{t('filterMinPrice')}</span>
           <input
             name="priceMin"
             type="number"
@@ -129,7 +131,7 @@ export function MarketplaceBrowseFilters({
           />
         </label>
         <label className="settings-field sf-marketplace-filter-price">
-          <span>Max price</span>
+          <span>{t('filterMaxPrice')}</span>
           <input
             name="priceMax"
             type="number"
@@ -140,35 +142,32 @@ export function MarketplaceBrowseFilters({
           />
         </label>
         <label className="settings-field">
-          <span>Sort</span>
+          <span>{t('filterSort')}</span>
           <select
             name="sort"
             value={sort}
             onChange={(e) => setSort(e.target.value as BrowseSort)}
           >
-            <option value="newest">Newest</option>
-            <option value="price">Price</option>
-            <option value="distance">Distance</option>
+            <option value="newest">{t('sortNewest')}</option>
+            <option value="price">{t('sortPrice')}</option>
+            <option value="distance">{t('sortDistance')}</option>
           </select>
         </label>
         <button
           type="submit"
           className="sf-marketplace-filters-apply-inline secondary"
         >
-          Apply
+          {t('filtersApply')}
         </button>
       </div>
 
       {showNearMe ? (
         <fieldset className="sf-marketplace-near-me">
-          <legend>Near me</legend>
-          <p className="settings-hint">
-            Used for distance sort only. Listings still show the area label — never a
-            street address.
-          </p>
+          <legend>{t('nearMeLegend')}</legend>
+          <p className="settings-hint">{t('nearMeHint')}</p>
           <div className="sf-marketplace-near-me-row">
             <label className="settings-field">
-              <span>Latitude</span>
+              <span>{t('filterLatitude')}</span>
               <input
                 name="lat"
                 type="number"
@@ -180,7 +179,7 @@ export function MarketplaceBrowseFilters({
               />
             </label>
             <label className="settings-field">
-              <span>Longitude</span>
+              <span>{t('filterLongitude')}</span>
               <input
                 name="lng"
                 type="number"
@@ -194,7 +193,7 @@ export function MarketplaceBrowseFilters({
               />
             </label>
             <label className="settings-field">
-              <span>Max km</span>
+              <span>{t('filterMaxKm')}</span>
               <input
                 name="distance"
                 type="number"

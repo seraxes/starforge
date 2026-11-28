@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useActionState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 
 import {
@@ -21,6 +22,7 @@ export function SaveListingActions({
   saved: boolean
   signedIn: boolean
 }) {
+  const t = useTranslations('product:marketplace')
   const router = useRouter()
   const [state, formAction, pending] = useActionState(
     saved ? unsaveMarketplaceListingAction : saveMarketplaceListingAction,
@@ -46,7 +48,7 @@ export function SaveListingActions({
         aria-pressed={saved}
         disabled={pending}
       >
-        {pending ? (saved ? 'Removing…' : 'Saving…') : saved ? 'Saved' : 'Save'}
+        {pending ? (saved ? t('removing') : t('saving')) : saved ? t('saved') : t('save')}
       </button>
       {state.error ? (
         <span className="admin-inline-error" role="alert">

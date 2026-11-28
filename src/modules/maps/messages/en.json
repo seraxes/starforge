@@ -1,0 +1,23 @@
+{
+  "sectionAriaLabel": "TacMap",
+  "heading": "TacMap",
+  "lede": "Tactical Maps — same-team positions only. Join to share your location until you Leave.",
+  "joining": "Joining…",
+  "joinFailed": "Join failed",
+  "teamFallback": "Team",
+  "sharingLocationLeaveHint": "Sharing location — Leave to stop.",
+  "geolocationUnavailable": "Geolocation is not available in this browser.",
+  "geolocationError": "Geolocation error",
+  "sharingLocation": "Sharing location",
+  "rosterLabel": "Roster: {name}",
+  "teamFallbackLower": "team",
+  "notOnRoster": "Not on this map's roster",
+  "joinTacMap": "Join TacMap",
+  "leaveTacMap": "Leave TacMap",
+  "kmlOverlayFallback": "KML overlay",
+  "mapAriaLabel": "Map",
+  "locationFallback": "Location",
+  "emptyNoPins": "No map pins yet — add latitude/longitude on a venue, or set a center in particle settings.",
+  "configureRoomHint": "Configure a TacMap room id on this particle (Admin → TacMap).",
+  "roomMissingOrInactive": "TacMap room is missing or inactive."
+}

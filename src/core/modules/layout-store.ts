@@ -2,7 +2,6 @@ import { asc, eq } from 'drizzle-orm'
 
 import { invalidateLayout } from '@/core/content/revalidate'
 import { db, DEFAULT_LAYOUT_ID, sfLayouts } from '@/core/db'
-import { ensureLayoutSkinIdColumn } from '@/core/db/ensure-layout-skin-id'
 
 import {
   cloneDefaultLayoutDocument,
@@ -148,7 +147,6 @@ export async function saveLayoutDocument(
   layoutId: string = DEFAULT_LAYOUT_ID,
   options?: { label?: string; skinId?: string | null },
 ): Promise<LayoutDocument> {
-  await ensureLayoutSkinIdColumn()
   const id = resolveLayoutId(layoutId)
   const normalized = normalizeLayoutDocument(doc) ?? { version: 3 as const, sections: [] }
   const json = serializeLayoutDocument(normalized)
@@ -204,7 +202,6 @@ export async function patchLayoutOutlineMeta(
 ): Promise<{ outline: LayoutOutlineMeta } | { error: string }> {
   const id = resolveLayoutId(layoutId)
   try {
-    await ensureLayoutSkinIdColumn()
     const [existing] = await db
       .select({
         id: sfLayouts.id,
@@ -260,7 +257,6 @@ export async function patchLayoutOutlineMeta(
 /** List all layout outlines (named layouts) for Outlines manager + Layouts chrome. */
 export async function listLayoutOutlines(): Promise<LayoutOutlineMeta[]> {
   try {
-    await ensureLayoutSkinIdColumn()
     const rows = await db
       .select({
         id: sfLayouts.id,
@@ -309,7 +305,6 @@ export async function getLayoutOutline(
 ): Promise<LayoutOutlineMeta | null> {
   const id = resolveLayoutId(layoutId)
   try {
-    await ensureLayoutSkinIdColumn()
     const [row] = await db
       .select({
         id: sfLayouts.id,

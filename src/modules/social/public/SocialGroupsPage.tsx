@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { setRequestLocale } from 'next-intl/server'
+import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import React from 'react'
 
@@ -67,11 +67,12 @@ export default async function SocialGroupsPage({ params, searchParams }: Args) {
   const categoryId = query.category?.trim() || null
 
   await ensureDefaultGroupCategories()
-  const [categories, directory, pack, staff] = await Promise.all([
+  const [categories, directory, pack, staff, t] = await Promise.all([
     listGroupCategories(),
     listGroupsDirectory({ categoryId }),
     loadSocialModuleSettings(),
     userId ? requireAdminArea('admin.social', 'manage') : Promise.resolve(null),
+    getTranslations('product:social'),
   ])
   const canCreate =
     pack.settings.allowGroups &&
@@ -91,7 +92,7 @@ export default async function SocialGroupsPage({ params, searchParams }: Args) {
     <div className="sf-social-feed-page sf-social-groups-page">
       <FeedTabs locale={locale} active="groups" {...tabFlags} />
       <div className="sf-social-directory-shell">
-        <nav className="sf-social-groups-filters" aria-label="Group categories">
+        <nav className="sf-social-groups-filters" aria-label={t('groupCategoriesAriaLabel')}>
           <Link
             className={
               !categoryId
@@ -101,7 +102,7 @@ export default async function SocialGroupsPage({ params, searchParams }: Args) {
             href={groupsHref}
             aria-current={!categoryId ? 'page' : undefined}
           >
-            All
+            {t('all')}
           </Link>
           {categories.map((cat) => {
             const active = categoryId === cat.id
@@ -131,16 +132,16 @@ export default async function SocialGroupsPage({ params, searchParams }: Args) {
           ) : userId ? null : (
             <p className="sf-social-directory-signin">
               <Link className="sf-social-cta" href={loginHref}>
-                Sign in
+                {t('signIn')}
               </Link>
-              <span className="layout-muted"> to create or join groups.</span>
+              <span className="layout-muted">{t('guestSignInGroupsSuffix')}</span>
             </p>
           )}
         </div>
 
-        <section className="sf-social-directory" aria-label="Group directory">
+        <section className="sf-social-directory" aria-label={t('groupDirectoryAriaLabel')}>
           {directory.length === 0 ? (
-            <p className="layout-muted">No groups yet.</p>
+            <p className="layout-muted">{t('emptyNoGroupsYet')}</p>
           ) : (
             <ul className="sf-social-directory-grid">
               {directory.map(({ group, memberCount }) => {

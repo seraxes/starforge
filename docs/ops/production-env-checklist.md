@@ -1,12 +1,14 @@
 ---
 kind: reference
-last_verified: 2026-11-22
+last_verified: 2026-11-28
 ---
 # Production environment checklist
 
 Sources: `.env.example`, `src/core/env/validate.ts`, `src/core/env-editor/catalog.ts`, `src/seed-production-guard.ts`, `src/modules/payments/credentials-crypto.ts`, `.github/workflows/ci.yml`.
 
 Boot validation runs from `src/instrumentation.ts` via `assertStarforgeEnvAtBoot()`. In production, validation **errors throw** and prevent boot; **warnings** go to `console.warn` as `[starforge:env] …`.
+
+Airsoft Nexus production turns Site Chrome “require email verification” on.
 
 Placeholder detection (`isPlaceholderSecret`): exact match of `.env.example` secrets, or any value containing `dev-only` / `change-me` (case-insensitive). CI uses `ci-only-*` values that are not treated as those placeholders.
 

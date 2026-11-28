@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { setRequestLocale } from 'next-intl/server'
+import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { notFound, redirect } from 'next/navigation'
 import React from 'react'
 
@@ -30,17 +30,21 @@ export async function generateMetadata({ params }: Args): Promise<Metadata> {
   const { locale: localeParam, id } = await params
   const [settings, chrome] = await Promise.all([getSiteSettings(), getSiteChrome()])
   const siteName = chrome.siteName || settings.siteName
+  const t = await getTranslations({
+    locale: isValidLocaleCode(localeParam) ? localeParam : 'en',
+    namespace: 'product:marketplace',
+  })
   if (!isValidLocaleCode(localeParam)) {
-    return { title: `Not found — ${siteName}` }
+    return { title: t('notFoundTitle', { siteName }) }
   }
   if (!isCatalogModuleEnabled(settings, MODULE_IDS.marketplace)) {
-    return { title: `Not found — ${siteName}` }
+    return { title: t('notFoundTitle', { siteName }) }
   }
   const listing = await getMarketplaceListing(id)
-  if (!listing) return { title: `Not found — ${siteName}` }
+  if (!listing) return { title: t('notFoundTitle', { siteName }) }
   return {
-    title: `Edit ${listing.title} — Marketplace`,
-    description: `Edit Marketplace listing on ${siteName}.`,
+    title: t('editMetaTitle', { title: listing.title }),
+    description: t('editMetaDescription', { siteName }),
   }
 }
 
@@ -96,11 +100,12 @@ export default async function MarketplaceEditPage({ params }: Args) {
   if ('forbidden' in door.value) notFound()
 
   const { listing, categories, photoCap, currency, viewer } = door.value
+  const t = await getTranslations('product:marketplace')
 
   return (
     <article className="cms-page sf-marketplace-page">
       <header className="cms-page-header">
-        <h1>Edit listing</h1>
+        <h1>{t('editListingTitle')}</h1>
         <p className="lede">{listing.title}</p>
       </header>
       <MarketplacePublicNav

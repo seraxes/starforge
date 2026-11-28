@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { setRequestLocale } from 'next-intl/server'
+import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import React from 'react'
 
@@ -37,15 +37,19 @@ export async function generateMetadata({ params }: Args): Promise<Metadata> {
   const { locale: localeParam } = await params
   const [settings, chrome] = await Promise.all([getSiteSettings(), getSiteChrome()])
   const siteName = chrome.siteName || settings.siteName
+  const t = await getTranslations({
+    locale: isValidLocaleCode(localeParam) ? localeParam : 'en',
+    namespace: 'product:marketplace',
+  })
   if (!isValidLocaleCode(localeParam)) {
-    return { title: `Not found — ${siteName}` }
+    return { title: t('notFoundTitle', { siteName }) }
   }
   if (!isCatalogModuleEnabled(settings, MODULE_IDS.marketplace)) {
-    return { title: `Not found — ${siteName}` }
+    return { title: t('notFoundTitle', { siteName }) }
   }
   return {
-    title: 'Marketplace',
-    description: `Browse local listings on ${siteName}.`,
+    title: t('browseTitle'),
+    description: t('browseMetaDescription', { siteName }),
   }
 }
 
@@ -93,12 +97,18 @@ export default async function MarketplaceBrowsePage({ params, searchParams }: Ar
   const signedIn = Boolean(viewer.userId)
   const one = (v: string | string[] | undefined) =>
     Array.isArray(v) ? String(v[0] ?? '') : String(v ?? '')
+  const t = await getTranslations('product:marketplace')
+  const conditionLabels = {
+    new: t('conditionNew'),
+    used: t('conditionUsed'),
+    refurbished: t('conditionRefurbished'),
+  }
 
   return (
     <article className="cms-page sf-marketplace-page">
       <header className="cms-page-header">
-        <h1>Marketplace</h1>
-        <p className="lede">Local classifieds. Meet in person — no street addresses shown.</p>
+        <h1>{t('browseTitle')}</h1>
+        <p className="lede">{t('browseLede')}</p>
       </header>
       <MarketplacePublicNav locale={locale} active="browse" signedIn={signedIn} />
 
@@ -121,7 +131,7 @@ export default async function MarketplaceBrowsePage({ params, searchParams }: Ar
       ) : null}
 
       {browse.listings.length === 0 ? (
-        <p className="lede">No listings match these filters.</p>
+        <p className="lede">{t('emptyNoMatches')}</p>
       ) : (
         <ul className="sf-marketplace-card-grid">
           {browse.listings.map((listing) => {
@@ -135,8 +145,13 @@ export default async function MarketplaceBrowsePage({ params, searchParams }: Ar
                   locale as AppLocale,
                 )}
                 title={listing.title}
-                priceLabel={formatListingPrice(listing.priceMinor, currency, locale)}
-                conditionLabel={formatListingCondition(listing.condition)}
+                priceLabel={formatListingPrice(
+                  listing.priceMinor,
+                  currency,
+                  locale,
+                  t('free'),
+                )}
+                conditionLabel={formatListingCondition(listing.condition, conditionLabels)}
                 areaLabel={listing.areaLabel}
                 thumbSrc={thumb}
                 footnote={distance || undefined}

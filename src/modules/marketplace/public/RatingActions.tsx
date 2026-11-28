@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useActionState, useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 
 import {
@@ -23,6 +24,7 @@ export function RatingSubmitForm({
   direction: RatingDirection
   signedIn: boolean
 }) {
+  const t = useTranslations('product:marketplace')
   const router = useRouter()
   const [score, setScore] = useState('5')
   const [note, setNote] = useState('')
@@ -38,7 +40,7 @@ export function RatingSubmitForm({
   if (!signedIn) return null
 
   const label =
-    direction === 'buyer_rates_seller' ? 'Rate the seller' : 'Rate the buyer'
+    direction === 'buyer_rates_seller' ? t('rateSeller') : t('rateBuyer')
 
   return (
     <section className="page-settings-panel">
@@ -51,7 +53,7 @@ export function RatingSubmitForm({
           <input type="hidden" name="toUserId" value={toUserId} />
           <input type="hidden" name="direction" value={direction} />
           <label className="settings-field">
-            <span>Score (1–5)</span>
+            <span>{t('scoreLabel')}</span>
             <select
               name="score"
               value={score}
@@ -66,7 +68,7 @@ export function RatingSubmitForm({
             </select>
           </label>
           <label className="settings-field">
-            <span>Note (optional)</span>
+            <span>{t('noteOptional')}</span>
             <textarea
               name="note"
               value={note}
@@ -81,7 +83,7 @@ export function RatingSubmitForm({
               className="gantry-toolbar-btn gantry-toolbar-btn-save"
               disabled={pending}
             >
-              {pending ? 'Submitting…' : 'Submit rating'}
+              {pending ? t('submitting') : t('submitRating')}
             </button>
           </div>
           {state.error ? (

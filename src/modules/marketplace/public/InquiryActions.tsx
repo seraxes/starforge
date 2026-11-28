@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useActionState, useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 
 import {
@@ -25,8 +26,9 @@ function MessageList({
   messages: MarketplaceMessageRecord[]
   viewerUserId: string
 }) {
+  const t = useTranslations('product:marketplace')
   if (messages.length === 0) {
-    return <p className="settings-hint">No messages yet.</p>
+    return <p className="settings-hint">{t('noMessagesYet')}</p>
   }
   return (
     <ul className="sf-marketplace-inquiry-messages">
@@ -35,8 +37,8 @@ function MessageList({
         return (
           <li key={msg.id} className="sf-marketplace-inquiry-message">
             <span className="settings-hint">
-              {mine ? 'You' : 'Them'}
-              {msg.kind === 'availability' ? ' · Ask if available' : ''}
+              {mine ? t('youLabel') : t('themLabel')}
+              {msg.kind === 'availability' ? t('askAvailableTag') : ''}
             </span>
             <p style={{ whiteSpace: 'pre-wrap', margin: '0.25rem 0 0' }}>{msg.body}</p>
           </li>
@@ -82,6 +84,7 @@ export function BuyerInquiryPanel({
   } | null
   viewerUserId: string
 }) {
+  const t = useTranslations('product:marketplace')
   const router = useRouter()
   const [askState, askAction, askPending] = useActionState(
     askMarketplaceAvailableAction,
@@ -103,9 +106,7 @@ export function BuyerInquiryPanel({
   }, [askState.ok, offerState.ok, msgState.ok, router])
 
   if (!signedIn) {
-    return (
-      <p className="settings-hint">Sign in to ask if available or make an offer.</p>
-    )
+    return <p className="settings-hint">{t('askSignInHint')}</p>
   }
 
   const busy = askPending || offerPending || msgPending
@@ -120,7 +121,7 @@ export function BuyerInquiryPanel({
           className="gantry-toolbar-btn gantry-toolbar-btn-muted"
           disabled={busy}
         >
-          {askPending ? 'Asking…' : 'Ask if available'}
+          {askPending ? t('asking') : t('askIfAvailable')}
         </button>
       </form>
       <InlineState state={askState} />
@@ -130,7 +131,7 @@ export function BuyerInquiryPanel({
           <input type="hidden" name="id" value={listingId} />
           <div className="admin-control-row">
             <label className="settings-field" style={{ margin: 0, flex: 1 }}>
-              <span>Your offer (minor units)</span>
+              <span>{t('yourOfferMinor')}</span>
               <input
                 type="number"
                 name="amountMinor"
@@ -147,18 +148,22 @@ export function BuyerInquiryPanel({
               className="gantry-toolbar-btn gantry-toolbar-btn-save"
               disabled={busy || hasOpenOffer}
             >
-              {offerPending ? 'Sending…' : hasOpenOffer ? 'Offer open' : 'Make offer'}
+              {offerPending
+                ? t('sending')
+                : hasOpenOffer
+                  ? t('offerOpen')
+                  : t('makeOffer')}
             </button>
           </div>
           {hasOpenOffer && thread?.openOffer ? (
             <p className="settings-hint">
-              Open offer: {thread.openOffer.amountMinor} minor units. Wait for the seller.
+              {t('openOfferBuyerHint', { amount: thread.openOffer.amountMinor })}
             </p>
           ) : null}
           <InlineState state={offerState} />
         </form>
       ) : (
-        <p className="settings-hint">Offers are turned off for this site.</p>
+        <p className="settings-hint">{t('offersDisabled')}</p>
       )}
 
       {thread ? (
@@ -168,7 +173,7 @@ export function BuyerInquiryPanel({
             <input type="hidden" name="inquiryId" value={thread.inquiry.id} />
             <input type="hidden" name="listingId" value={listingId} />
             <label className="settings-field">
-              <span>Message</span>
+              <span>{t('message')}</span>
               <textarea
                 name="body"
                 rows={3}
@@ -184,7 +189,7 @@ export function BuyerInquiryPanel({
                 className="gantry-toolbar-btn gantry-toolbar-btn-muted"
                 disabled={busy}
               >
-                {msgPending ? 'Sending…' : 'Send message'}
+                {msgPending ? t('sending') : t('sendMessage')}
               </button>
             </div>
             <InlineState state={msgState} />
@@ -209,6 +214,7 @@ export function SellerInquiryPanel({
   }>
   viewerUserId: string
 }) {
+  const t = useTranslations('product:marketplace')
   const router = useRouter()
   const [respondState, respondAction, respondPending] = useActionState(
     respondMarketplaceOfferAction,
@@ -225,7 +231,7 @@ export function SellerInquiryPanel({
   }, [respondState.ok, msgState.ok, router])
 
   if (threads.length === 0) {
-    return <p className="settings-hint">No inquiries yet.</p>
+    return <p className="settings-hint">{t('noInquiriesYet')}</p>
   }
 
   const busy = respondPending || msgPending
@@ -240,7 +246,7 @@ export function SellerInquiryPanel({
           style={{ marginBottom: '1.25rem' }}
         >
           <p className="settings-hint">
-            Buyer {thread.inquiry.buyerUserId.slice(0, 8)}…
+            {t('buyerLabel', { id: thread.inquiry.buyerUserId.slice(0, 8) })}
           </p>
           <MessageList messages={thread.messages} viewerUserId={viewerUserId} />
 
@@ -249,7 +255,7 @@ export function SellerInquiryPanel({
               <input type="hidden" name="inquiryId" value={thread.inquiry.id} />
               <input type="hidden" name="listingId" value={listingId} />
               <span className="settings-hint">
-                Open offer: {thread.openOffer.amountMinor} minor units
+                {t('openOfferSeller', { amount: thread.openOffer.amountMinor })}
               </span>
               <button
                 type="submit"
@@ -258,7 +264,7 @@ export function SellerInquiryPanel({
                 className="gantry-toolbar-btn gantry-toolbar-btn-save"
                 disabled={busy}
               >
-                Accept
+                {t('accept')}
               </button>
               <button
                 type="submit"
@@ -267,7 +273,7 @@ export function SellerInquiryPanel({
                 className="gantry-toolbar-btn gantry-toolbar-btn-muted"
                 disabled={busy}
               >
-                Decline
+                {t('decline')}
               </button>
             </form>
           ) : null}
@@ -276,7 +282,7 @@ export function SellerInquiryPanel({
             <input type="hidden" name="inquiryId" value={thread.inquiry.id} />
             <input type="hidden" name="listingId" value={listingId} />
             <label className="settings-field">
-              <span>Reply</span>
+              <span>{t('reply')}</span>
               <textarea
                 name="body"
                 rows={2}
@@ -297,7 +303,7 @@ export function SellerInquiryPanel({
                 className="gantry-toolbar-btn gantry-toolbar-btn-muted"
                 disabled={busy}
               >
-                {msgPending ? 'Sending…' : 'Send reply'}
+                {msgPending ? t('sending') : t('sendReply')}
               </button>
             </div>
           </form>

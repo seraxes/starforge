@@ -2,14 +2,22 @@
 
 import React, { useEffect, useId, useRef, useState } from 'react'
 import { Globe, Lock, UserCheck, Users, type LucideIcon } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
-import { VISIBILITY_LABELS, type VisibilityScope } from '../fields'
+import { type VisibilityScope } from '../fields'
 
 const SCOPE_ICONS: Record<VisibilityScope, LucideIcon> = {
   public: Globe,
   registered: Users,
   friends: UserCheck,
   private: Lock,
+}
+
+const SCOPE_KEYS: Record<VisibilityScope, string> = {
+  public: 'visibilityPublic',
+  registered: 'visibilityRegistered',
+  friends: 'visibilityFriends',
+  private: 'visibilityPrivate',
 }
 
 type Props = {
@@ -30,11 +38,12 @@ export function ProfileVisibilityControl({
   disabled = false,
   onChange,
 }: Props) {
+  const t = useTranslations('product:profiles')
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
   const menuId = useId()
   const Icon = SCOPE_ICONS[scope]
-  const scopeLabel = VISIBILITY_LABELS[scope]
+  const scopeLabel = t(SCOPE_KEYS[scope])
 
   useEffect(() => {
     if (!open) return
@@ -60,7 +69,7 @@ export function ProfileVisibilityControl({
       <button
         type="button"
         className="sf-profile-vis-trigger"
-        aria-label={`Who can see ${label}: ${scopeLabel}`}
+        aria-label={t('whoCanSeeTrigger', { label, scope: scopeLabel })}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={menuId}
@@ -70,7 +79,12 @@ export function ProfileVisibilityControl({
         <Icon aria-hidden size={16} strokeWidth={2.25} />
       </button>
       {open ? (
-        <ul id={menuId} className="sf-profile-vis-menu" role="listbox" aria-label={`Who can see ${label}`}>
+        <ul
+          id={menuId}
+          className="sf-profile-vis-menu"
+          role="listbox"
+          aria-label={t('whoCanSeeMenu', { label })}
+        >
           {scopes.map((option) => {
             const OptionIcon = SCOPE_ICONS[option]
             const selected = option === scope
@@ -92,7 +106,7 @@ export function ProfileVisibilityControl({
                   }}
                 >
                   <OptionIcon aria-hidden size={16} strokeWidth={2.25} />
-                  <span>{VISIBILITY_LABELS[option]}</span>
+                  <span>{t(SCOPE_KEYS[option])}</span>
                 </button>
               </li>
             )

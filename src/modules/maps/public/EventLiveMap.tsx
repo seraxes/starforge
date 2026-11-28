@@ -1,4 +1,5 @@
 import React from 'react'
+import { getTranslations } from 'next-intl/server'
 
 import { getAppSession } from '@/core/auth/session'
 import { getMapProvider } from '@/core/maps'
@@ -28,6 +29,7 @@ export async function EventLiveMap({ eventId }: { eventId: string }) {
     : null
   const overlays = await listOverlaysForRoom(room.id)
   const provider = await getMapProvider()
+  const t = await getTranslations('product:maps')
 
   let initialPositions: Array<{
     userId: string
@@ -57,13 +59,10 @@ export async function EventLiveMap({ eventId }: { eventId: string }) {
   )
 
   return (
-    <section className="sf-event-live-map cms-block" aria-label="TacMap">
+    <section className="sf-event-live-map cms-block" aria-label={t('sectionAriaLabel')}>
       <header className="sf-event-live-map-header">
-        <h2 className="sf-event-live-map-heading">TacMap</h2>
-        <p className="sf-event-live-map-lede">
-          Tactical Maps — same-team positions only. Join to share your location until you
-          Leave.
-        </p>
+        <h2 className="sf-event-live-map-heading">{t('heading')}</h2>
+        <p className="sf-event-live-map-lede">{t('lede')}</p>
       </header>
       <LiveMapPanel
         roomId={room.id}

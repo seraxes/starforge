@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
-import { setRequestLocale } from 'next-intl/server'
+import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import React from 'react'
 
@@ -17,6 +16,7 @@ import { loadSocialModuleSettings } from '../settings'
 import { listShortVideoLayoutPosts } from '../short-video-store'
 import { FeedTabs } from './FeedTabs'
 import { ShortVideoLayout } from './ShortVideoLayout'
+import { SocialGuestGate } from './SocialGuestGate'
 
 type Args = { params: Promise<{ locale: string }> }
 
@@ -70,21 +70,15 @@ export default async function SocialShortVideoPage({ params }: Args) {
     return (
       <div className="sf-social-feed-page sf-social-short-video-page">
         <FeedTabs locale={locale} active="watch" {...tabFlags} />
-        <div className="sf-social-feed-column">
-          <p className="sf-social-feed-guest-copy">
-            Sign in to watch short videos from your feed.
-          </p>
-          <p className="sf-social-feed-guest-action">
-            <Link className="sf-social-cta" href={loginHref}>
-              Sign in
-            </Link>
-          </p>
-        </div>
+        <SocialGuestGate loginHref={loginHref} copyKey="guestSignInWatch" />
       </div>
     )
   }
 
-  const posts = await listShortVideoLayoutPosts(userId)
+  const [posts, t] = await Promise.all([
+    listShortVideoLayoutPosts(userId),
+    getTranslations('product:social'),
+  ])
   const personas = await getPersonas(
     posts.map((p) => p.authorUserId),
     viewer,
@@ -101,7 +95,7 @@ export default async function SocialShortVideoPage({ params }: Args) {
         <ShortVideoLayout
           items={items}
           locale={locale}
-          emptyMessage="No short videos in your feed yet."
+          emptyMessage={t('emptyNoShortVideos')}
         />
       </div>
     </div>

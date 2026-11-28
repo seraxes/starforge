@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useActionState } from 'react'
+import { useTranslations } from 'next-intl'
 
 import {
   savePostAction,
@@ -18,6 +19,7 @@ export function SavePostActions({
   postId: string
   saved: boolean
 }) {
+  const t = useTranslations('product:social')
   const [state, formAction, pending] = useActionState(
     saved ? unsavePostAction : savePostAction,
     initial,
@@ -32,7 +34,13 @@ export function SavePostActions({
         aria-pressed={saved}
         disabled={pending}
       >
-        {pending ? (saved ? 'Removing…' : 'Saving…') : saved ? 'Saved' : 'Save'}
+        {pending
+          ? saved
+            ? t('removingSavedPost')
+            : t('savingPost')
+          : saved
+            ? t('savedPost')
+            : t('savePost')}
       </button>
       {state.error ? (
         <p className="admin-inline-error" role="alert">

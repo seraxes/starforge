@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useTranslations } from 'next-intl'
 
 import {
   MediaPicker,
@@ -37,6 +38,7 @@ export function ListingPhotosField({
   disabled,
   picker = 'member',
 }: Props) {
+  const t = useTranslations('product:marketplace')
   const [ids, setIds] = useState(() => [...initialIds])
   const [draft, setDraft] = useState<MediaPickerValue>({ mediaId: '', url: '', alt: '' })
   const [draftMemberId, setDraftMemberId] = useState('')
@@ -67,10 +69,8 @@ export function ListingPhotosField({
 
   return (
     <fieldset className="settings-fieldset">
-      <legend>Photos</legend>
-      <p className="settings-hint">
-        Up to {photoCap} photo{photoCap === 1 ? '' : 's'} from the Media library.
-      </p>
+      <legend>{t('photosLegend')}</legend>
+      <p className="settings-hint">{t('photosCapHint', { count: photoCap })}</p>
       {ids.length > 0 ? (
         <ul className="sf-marketplace-photo-list">
           {ids.map((id) => (
@@ -87,20 +87,20 @@ export function ListingPhotosField({
                 disabled={disabled}
                 onClick={() => setIds((prev) => prev.filter((x) => x !== id))}
               >
-                Remove
+                {t('removePhoto')}
               </button>
             </li>
           ))}
         </ul>
       ) : (
-        <p className="settings-hint">No photos yet.</p>
+        <p className="settings-hint">{t('noPhotosYet')}</p>
       )}
       {!atCap ? (
         <div className="settings-field">
           {picker === 'library' ? (
             <MediaPicker
               key={ids.join(',') || 'empty'}
-              label="Add photo"
+              label={t('addPhoto')}
               value={draft}
               defaultFolder="general"
               defaultPurpose="photo"
@@ -112,7 +112,7 @@ export function ListingPhotosField({
           ) : (
             <MemberMediaPicker
               key={`member-${memberKey}`}
-              label="Add photo"
+              label={t('addPhoto')}
               value={draftMemberId}
               onChange={onMemberPick}
               context="marketplace-listing"
@@ -120,12 +120,12 @@ export function ListingPhotosField({
               shape="square"
               showPreview={false}
               disabled={disabled}
-              hint="Drop a photo on Upload, or choose from your library."
+              hint={t('memberPhotoHint')}
             />
           )}
         </div>
       ) : (
-        <p className="settings-hint">Photo cap reached.</p>
+        <p className="settings-hint">{t('photoCapReached')}</p>
       )}
       <input type="hidden" name="mediaIdsJson" value={JSON.stringify(ids)} />
     </fieldset>

@@ -1,5 +1,6 @@
 import React from 'react'
 import Link from 'next/link'
+import { getTranslations } from 'next-intl/server'
 
 import { getAccessViewer, viewerMayAccessAdminResource } from '@/core/acl/access'
 import { getAppSession } from '@/core/auth/session'
@@ -57,16 +58,9 @@ function authorHref(author: Persona | null, locale: string): string | null {
   return withLocalePrefix(memberFeedHref(handle), locale)
 }
 
-const AUDIENCE_LABEL: Record<PostRecord['audience'], string> = {
-  only_me: 'Only me',
-  friends: 'Friends',
-  group: 'Group',
-  public: 'Public',
-}
-
-function compactTime(date: Date): string {
+function compactTime(date: Date, justNow: string): string {
   const minutes = Math.floor((Date.now() - date.getTime()) / 60000)
-  if (minutes < 1) return 'Just now'
+  if (minutes < 1) return justNow
   if (minutes < 60) return `${minutes}m`
   const hours = Math.floor(minutes / 60)
   if (hours < 24) return `${hours}h`
@@ -79,7 +73,7 @@ function compactTime(date: Date): string {
 export async function FeedPostList({
   items,
   locale,
-  emptyMessage = 'No posts yet.',
+  emptyMessage,
   showShare = false,
   showSave = false,
   savedPostIds,
@@ -109,9 +103,19 @@ export async function FeedPostList({
   /** Rich-editor pack switch; omit to load `isEmojiInsertEnabled()`. */
   emojiInsertEnabled?: boolean
 }) {
+  const t = await getTranslations('product:social')
+  const resolvedEmpty = emptyMessage ?? t('emptyNoPostsYet')
   if (items.length === 0) {
-    return <p className="layout-muted sf-social-feed-empty">{emptyMessage}</p>
+    return <p className="layout-muted sf-social-feed-empty">{resolvedEmpty}</p>
   }
+
+  const audienceLabel: Record<PostRecord['audience'], string> = {
+    only_me: t('audienceOnlyMe'),
+    friends: t('audienceFriends'),
+    group: t('audienceGroup'),
+    public: t('audiencePublic'),
+  }
+  const justNow = t('justNow')
 
   const pack = await loadSocialModuleSettings()
   const site = await getSiteSettings()
@@ -235,7 +239,7 @@ export async function FeedPostList({
                       dateTime={post.createdAt.toISOString()}
                       title={post.createdAt.toISOString().slice(0, 16).replace('T', ' ')}
                     >
-                      {compactTime(post.createdAt)}
+                      {compactTime(post.createdAt, justNow)}
                     </time>
                   </Link>
                 </span>
@@ -256,7 +260,7 @@ export async function FeedPostList({
                   />
                 ) : (
                   <span className="layout-muted sf-social-feed-audience">
-                    {AUDIENCE_LABEL[post.audience]}
+                    {audienceLabel[post.audience]}
                   </span>
                 )}
                 {showOptions ? <PostManageTools /> : null}
@@ -330,7 +334,7 @@ export async function FeedPostList({
                   authorName={name}
                   authorHref={profileHref}
                   authorAvatarSrc={avatarSrc}
-                  createdAtLabel={compactTime(post.createdAt)}
+                  createdAtLabel={compactTime(post.createdAt, justNow)}
                   createdAtIso={post.createdAt.toISOString()}
                   postHref={postHref}
                   bodyHtml={post.body}

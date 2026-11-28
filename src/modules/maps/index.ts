@@ -1,4 +1,5 @@
 import React from 'react'
+import { getTranslations } from 'next-intl/server'
 
 import { getMapProvider } from '@/core/maps'
 import type { MapMarker } from '@/core/maps/types'
@@ -42,10 +43,11 @@ export const mapModule: StarforgeModule = {
         : undefined
 
     if (!markers.length && !center) {
+      const t = await getTranslations('product:maps')
       return React.createElement(
         'p',
         { className: 'sf-map-empty settings-hint' },
-        'No map pins yet — add latitude/longitude on a venue, or set a center in particle settings.',
+        t('emptyNoPins'),
       )
     }
 

@@ -2,12 +2,29 @@
 
 import { formatMoneyMinor } from '@/core/payments/money'
 
+export type ListingConditionLabels = {
+  new: string
+  used: string
+  refurbished: string
+}
+
+export type ListingStatusLabels = {
+  draft: string
+  active: string
+  pending: string
+  sold: string
+  hidden: string
+  removed: string
+  expired: string
+}
+
 export function formatListingPrice(
   priceMinor: number | null,
   currency = 'HUF',
   locale = 'hu-HU',
+  freeLabel = 'Free',
 ): string {
-  if (priceMinor == null) return 'Free'
+  if (priceMinor == null) return freeLabel
   return formatMoneyMinor(priceMinor, currency || 'HUF', locale)
 }
 
@@ -18,35 +35,41 @@ export function formatListingDistanceKm(distanceKm: number | null | undefined): 
   return `${Math.round(distanceKm)} km`
 }
 
-export function formatListingCondition(condition: string): string {
+export function formatListingCondition(
+  condition: string,
+  labels?: ListingConditionLabels,
+): string {
   switch (condition) {
     case 'new':
-      return 'New'
+      return labels?.new ?? 'New'
     case 'refurbished':
-      return 'Refurbished'
+      return labels?.refurbished ?? 'Refurbished'
     case 'used':
     default:
-      return 'Used'
+      return labels?.used ?? 'Used'
   }
 }
 
 /** Member-facing status word (not the raw enum). */
-export function formatListingStatus(status: string): string {
+export function formatListingStatus(
+  status: string,
+  labels?: ListingStatusLabels,
+): string {
   switch (status) {
     case 'draft':
-      return 'Draft'
+      return labels?.draft ?? 'Draft'
     case 'active':
-      return 'Active'
+      return labels?.active ?? 'Active'
     case 'pending':
-      return 'Pending'
+      return labels?.pending ?? 'Pending'
     case 'sold':
-      return 'Sold'
+      return labels?.sold ?? 'Sold'
     case 'hidden':
-      return 'Hidden'
+      return labels?.hidden ?? 'Hidden'
     case 'removed':
-      return 'Removed'
+      return labels?.removed ?? 'Removed'
     case 'expired':
-      return 'Expired'
+      return labels?.expired ?? 'Expired'
     default:
       return status ? status.charAt(0).toUpperCase() + status.slice(1) : ''
   }

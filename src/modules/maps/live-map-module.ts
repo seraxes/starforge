@@ -1,4 +1,5 @@
 import React from 'react'
+import { getTranslations } from 'next-intl/server'
 
 import { getMapProvider } from '@/core/maps'
 import type { StarforgeModule } from '@/core/modules/types'
@@ -31,11 +32,12 @@ export const liveMapModule: StarforgeModule = {
     }
 
     const cfg = readLiveMapConfig(slot.config)
+    const t = await getTranslations('product:maps')
     if (!cfg.roomId) {
       return React.createElement(
         'p',
         { className: 'settings-hint' },
-        'Configure a TacMap room id on this particle (Admin → TacMap).',
+        t('configureRoomHint'),
       )
     }
 
@@ -44,7 +46,7 @@ export const liveMapModule: StarforgeModule = {
       return React.createElement(
         'p',
         { className: 'settings-hint' },
-        'TacMap room is missing or inactive.',
+        t('roomMissingOrInactive'),
       )
     }
 

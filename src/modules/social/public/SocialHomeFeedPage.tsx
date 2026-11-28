@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
-import { setRequestLocale } from 'next-intl/server'
+import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import React from 'react'
 
@@ -20,6 +19,7 @@ import { listStoryTray, type StoryTrayItem } from '../stories-store'
 import { FeedComposer } from './FeedComposer'
 import { FeedPostList } from './FeedPostList'
 import { FeedTabs } from './FeedTabs'
+import { SocialGuestGate } from './SocialGuestGate'
 import { StoryTray, storiesSurfaceHref, type StoryTrayBubble } from './StoryTray'
 
 type Args = { params: Promise<{ locale: string }> }
@@ -46,12 +46,14 @@ function authorBubbleLabel(
   authorUserId: string,
   viewerUserId: string,
   personas: Map<string, { displayName?: string | null; handle?: string | null }>,
+  yourStory: string,
+  storyLabel: string,
 ): string {
-  if (authorUserId === viewerUserId) return 'Your story'
+  if (authorUserId === viewerUserId) return yourStory
   const persona = personas.get(authorUserId)
   if (persona?.displayName?.trim()) return persona.displayName.trim()
   if (persona?.handle?.trim()) return `@${persona.handle.trim()}`
-  return 'Story'
+  return storyLabel
 }
 
 /** One round cover per author — newest media, unseen ring if any story is unseen. */
@@ -60,6 +62,8 @@ function groupStoryBubbles(
   viewerUserId: string,
   locale: string,
   personas: Map<string, { displayName?: string | null; handle?: string | null }>,
+  yourStory: string,
+  storyLabel: string,
 ): StoryTrayBubble[] {
   const href = storiesSurfaceHref(locale)
   const byAuthor = new Map<
@@ -85,7 +89,7 @@ function groupStoryBubbles(
     bubbles.push({
       key: authorId,
       mediaId: row.mediaId,
-      label: authorBubbleLabel(authorId, viewerUserId, personas),
+      label: authorBubbleLabel(authorId, viewerUserId, personas, yourStory, storyLabel),
       seen: row.seen,
       href,
     })
@@ -131,22 +135,16 @@ export default async function SocialHomeFeedPage({ params }: Args) {
     return (
       <div className="sf-social-feed-page">
         <FeedTabs locale={locale} active="feed" {...tabFlags} />
-        <div className="sf-social-feed-column">
-          <p className="sf-social-feed-guest-copy">Sign in to see your friends feed and post.</p>
-          <p className="sf-social-feed-guest-action">
-            <Link className="sf-social-cta" href={loginHref}>
-              Sign in
-            </Link>
-          </p>
-        </div>
+        <SocialGuestGate loginHref={loginHref} copyKey="guestSignInFeed" />
       </div>
     )
   }
 
-  const [posts, ownedGroups, friendIds] = await Promise.all([
+  const [posts, ownedGroups, friendIds, t] = await Promise.all([
     listHomeFeedPosts(userId, { limit: pack.settings.feedPageSize }),
     listOwnedGroups(userId),
     pack.settings.allowStories ? listAcceptedFriendIds(userId) : Promise.resolve([] as string[]),
+    getTranslations('product:social'),
   ])
   const tray =
     pack.settings.allowStories ? await listStoryTray(userId, friendIds) : []
@@ -157,7 +155,8 @@ export default async function SocialHomeFeedPage({ params }: Args) {
   )
   const self = personas.get(userId)
   const authorName =
-    self?.displayName?.trim() || (self?.handle?.trim() ? `@${self.handle.trim()}` : 'You')
+    self?.displayName?.trim() ||
+    (self?.handle?.trim() ? `@${self.handle.trim()}` : t('you'))
   const showComposer =
     pack.settings.allowText ||
     pack.settings.allowMedia ||
@@ -170,7 +169,14 @@ export default async function SocialHomeFeedPage({ params }: Args) {
   }))
   const storyBubbles =
     pack.settings.allowStories && tray.length > 0
-      ? groupStoryBubbles(tray, userId, locale, personas)
+      ? groupStoryBubbles(
+          tray,
+          userId,
+          locale,
+          personas,
+          t('yourStory'),
+          t('storyLabel'),
+        )
       : []
 
   return (
@@ -178,7 +184,7 @@ export default async function SocialHomeFeedPage({ params }: Args) {
       <FeedTabs locale={locale} active="feed" {...tabFlags} />
       <div className="sf-social-feed-column">
         {pack.settings.allowStories && storyBubbles.length > 0 ? (
-          <section className="sf-social-home-story-tray" aria-label="Stories">
+          <section className="sf-social-home-story-tray" aria-label={t('storiesAriaLabel')}>
             <StoryTray items={storyBubbles} />
           </section>
         ) : null}
@@ -201,7 +207,7 @@ export default async function SocialHomeFeedPage({ params }: Args) {
         <FeedPostList
           items={items}
           locale={locale}
-          emptyMessage="No posts in your feed yet."
+          emptyMessage={t('emptyNoPostsInFeed')}
           showShare={pack.settings.allowShare}
           ownedGroups={ownedGroups.map((group) => ({ id: group.id, name: group.name }))}
         />

@@ -9,6 +9,7 @@ import { and, desc, eq, sql } from 'drizzle-orm'
 
 import { db } from '@/core/db'
 
+import { localizePaymentsChromeError } from './chrome'
 import {
   applyCouponToLines,
   normalizeCouponCode,
@@ -198,12 +199,14 @@ export async function resolveCouponForCheckout(input: {
   amountIsGross: boolean
 }): Promise<AppliedCoupon | { error: string }> {
   const code = normalizeCouponCode(input.code)
-  if (!code) return { error: 'Coupon code is required' }
+  if (!code) return { error: await localizePaymentsChromeError('couponCodeRequired') }
 
   const coupon = await findCouponByCode(code)
-  if (!coupon || !coupon.active) return { error: 'Invalid or inactive coupon' }
+  if (!coupon || !coupon.active) {
+    return { error: await localizePaymentsChromeError('couponInvalid') }
+  }
   if (coupon.usageLimit != null && coupon.usedCount >= coupon.usageLimit) {
-    return { error: 'Coupon usage limit reached' }
+    return { error: await localizePaymentsChromeError('couponUsageLimit') }
   }
 
   const cartCurrency = (input.cartCurrency || 'HUF').trim().toUpperCase()
@@ -212,39 +215,60 @@ export async function resolveCouponForCheckout(input: {
     coupon.currency &&
     coupon.currency !== cartCurrency
   ) {
-    return { error: 'Coupon currency does not match cart' }
+    return { error: await localizePaymentsChromeError('couponCurrencyMismatch') }
   }
 
-  return applyCouponToLines({
+  const applied = applyCouponToLines({
     lines: input.lines,
     coupon,
     amountIsGross: input.amountIsGross,
   })
+  if ('error' in applied) {
+    return { error: await localizePaymentsChromeError(applied.error) }
+  }
+  return applied
 }
 
-/** Record redemption + bump usedCount after the order row exists. */
+/**
+ * Record redemption + bump usedCount after the order row exists.
+ * Bump first inside one transaction; insert the redemption only when the
+ * conditional usedCount update wins (so a single-use race cannot leave a
+ * second redemption with usedCount stuck at 1).
+ */
 export async function recordCouponRedemption(input: {
   couponId: string
   orderId: string
   discountMinor: number
 }): Promise<void> {
   const { randomUUID } = await import('node:crypto')
-  await db.insert(sfPayCouponRedemptions).values({
-    id: `cred_${randomUUID().replace(/-/g, '')}`,
-    couponId: input.couponId,
-    orderId: input.orderId,
-    discountMinor: Math.max(0, Math.floor(input.discountMinor)),
-  })
-  await db
-    .update(sfPayCoupons)
-    .set({
-      usedCount: sql`${sfPayCoupons.usedCount} + 1`,
-      updatedAt: new Date(),
+  const redemptionId = `cred_${randomUUID().replace(/-/g, '')}`
+  const discountMinor = Math.max(0, Math.floor(input.discountMinor))
+
+  await db.transaction(async (tx) => {
+    const bumped = await tx
+      .update(sfPayCoupons)
+      .set({
+        usedCount: sql`${sfPayCoupons.usedCount} + 1`,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(sfPayCoupons.id, input.couponId),
+          sql`(${sfPayCoupons.usageLimit} is null or ${sfPayCoupons.usedCount} < ${sfPayCoupons.usageLimit})`,
+        ),
+      )
+      .returning({ id: sfPayCoupons.id })
+
+    if (!bumped[0]) {
+      // Exhausted — do not keep a redemption row.
+      return
+    }
+
+    await tx.insert(sfPayCouponRedemptions).values({
+      id: redemptionId,
+      couponId: input.couponId,
+      orderId: input.orderId,
+      discountMinor,
     })
-    .where(
-      and(
-        eq(sfPayCoupons.id, input.couponId),
-        sql`(${sfPayCoupons.usageLimit} is null or ${sfPayCoupons.usedCount} < ${sfPayCoupons.usageLimit})`,
-      ),
-    )
+  })
 }

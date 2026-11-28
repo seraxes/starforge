@@ -127,3 +127,122 @@ export function publicSignupAck(status: string): string | undefined {
   if (status === 'waitlisted') return 'You are on the waitlist.'
   return undefined
 }
+
+/** Public create path when capacity is exhausted and waitlist is off. */
+export const EVENT_FULL_WAITLIST_CLOSED =
+  'This event is full and the waitlist is closed.'
+
+/**
+ * Capacity gate for a new signup. Callers that serialize count+insert
+ * (DB transaction or in-memory bag) must evaluate this against a fresh count.
+ */
+export function evaluateRegistrationCapacity(input: {
+  occupiedEvent: number
+  eventCapacity: number | null | undefined
+  occupiedTier: number
+  tierCapacity: number | null | undefined
+  guests: number
+  waitlistEnabled: boolean
+}): { needsWaitlist: boolean } | { error: string } {
+  const guests = Math.max(1, Math.floor(input.guests) || 1)
+  let needsWaitlist = false
+  if (typeof input.eventCapacity === 'number' && input.eventCapacity >= 0) {
+    if (
+      input.occupiedEvent >= input.eventCapacity ||
+      input.occupiedEvent + guests > input.eventCapacity
+    ) {
+      needsWaitlist = true
+    }
+  }
+  if (!needsWaitlist && typeof input.tierCapacity === 'number') {
+    if (
+      input.occupiedTier >= input.tierCapacity ||
+      input.occupiedTier + guests > input.tierCapacity
+    ) {
+      needsWaitlist = true
+    }
+  }
+  if (needsWaitlist && !input.waitlistEnabled) {
+    return { error: EVENT_FULL_WAITLIST_CLOSED }
+  }
+  return { needsWaitlist }
+}
+
+/** In-memory registration row for last-seat race tests. */
+export type RegistrationSeatBagRow = {
+  id: string
+  eventId: string
+  ticketTierId: string | null
+  guests: number
+  status: RegistrationStatus
+}
+
+export type RegistrationSeatBag = {
+  rows: RegistrationSeatBagRow[]
+}
+
+function countOccupiedGuestsInBag(
+  bag: RegistrationSeatBag,
+  eventId: string,
+  ticketTierId?: string | null,
+): number {
+  const tier = (ticketTierId || '').trim() || null
+  let n = 0
+  for (const row of bag.rows) {
+    if (row.eventId !== eventId) continue
+    if (!registrationHoldsSeat(row.status)) continue
+    if (tier && row.ticketTierId !== tier) continue
+    n += Math.max(1, row.guests)
+  }
+  return n
+}
+
+/**
+ * Atomic count+insert for unit tests (stands in for the DB transaction).
+ * Two overlapping callers must share one bag and serialize through this helper.
+ */
+export function claimRegistrationSeatInBag(
+  bag: RegistrationSeatBag,
+  input: {
+    id: string
+    eventId: string
+    ticketTierId?: string | null
+    guests?: number
+    eventCapacity: number | null
+    tierCapacity?: number | null
+    waitlistEnabled: boolean
+    requireApproval?: boolean
+  },
+): { registration: RegistrationSeatBagRow } | { error: string } {
+  const guests =
+    typeof input.guests === 'number' && Number.isFinite(input.guests) && input.guests > 0
+      ? Math.floor(input.guests)
+      : 1
+  const ticketTierId = (input.ticketTierId || '').trim() || null
+  const occupiedEvent = countOccupiedGuestsInBag(bag, input.eventId)
+  const occupiedTier = ticketTierId
+    ? countOccupiedGuestsInBag(bag, input.eventId, ticketTierId)
+    : 0
+  const capacity = evaluateRegistrationCapacity({
+    occupiedEvent,
+    eventCapacity: input.eventCapacity,
+    occupiedTier,
+    tierCapacity: ticketTierId ? input.tierCapacity : null,
+    guests,
+    waitlistEnabled: input.waitlistEnabled,
+  })
+  if ('error' in capacity) return capacity
+  const status = resolveInitialRegistrationStatus({
+    needsWaitlist: capacity.needsWaitlist,
+    requireApproval: Boolean(input.requireApproval),
+  })
+  const registration: RegistrationSeatBagRow = {
+    id: input.id,
+    eventId: input.eventId,
+    ticketTierId,
+    guests,
+    status,
+  }
+  bag.rows.push(registration)
+  return { registration }
+}

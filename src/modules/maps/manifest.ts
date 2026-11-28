@@ -12,6 +12,9 @@ export default defineStarforgeModule({
     'Tactical Maps (TacMap) — venue pins, closed live rooms (roster teams), MapProvider. Leaflet + OSM first.',
   version: '0.2.1',
   defaultEnabled: true,
+  i18n: {
+    namespaces: ['product:maps'],
+  },
   requires: ['product:media'],
   navViews: [
     { key: 'events', label: 'Events', href: '/events' },

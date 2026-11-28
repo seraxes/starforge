@@ -20,6 +20,7 @@ import {
   ABANDONED_ONLINE_CHECKOUT_STATUSES,
   shouldExpireAbandonedOnlineCheckout,
 } from './checkout-expiry'
+import { localizePaymentsChromeError, translatePaymentsChrome } from './chrome'
 import { runPaymentConsumerHook } from './consumer-hooks'
 import {
   recordCouponRedemption,
@@ -239,7 +240,7 @@ export async function getCartWithLines(cartId: string) {
   return { cart, lines }
 }
 
-function offlineInstructions(
+async function offlineInstructions(
   method: PaymentMethodKind,
   bank: {
     bankAccountName: string
@@ -249,21 +250,27 @@ function offlineInstructions(
     cashInstructions: string
   },
   reference: string,
-): string {
+): Promise<string> {
   if (method === 'bank_transfer') {
     return [
-      `Reference: ${reference}`,
-      bank.bankAccountName && `Account name: ${bank.bankAccountName}`,
-      bank.bankName && `Bank: ${bank.bankName}`,
-      bank.bankIban && `IBAN: ${bank.bankIban}`,
+      await translatePaymentsChrome('offlineReference', { reference }),
+      bank.bankAccountName &&
+        (await translatePaymentsChrome('offlineAccountName', { name: bank.bankAccountName })),
+      bank.bankName && (await translatePaymentsChrome('offlineBank', { name: bank.bankName })),
+      bank.bankIban && (await translatePaymentsChrome('offlineIban', { iban: bank.bankIban })),
     ]
       .filter(Boolean)
       .join('\n')
   }
   if (method === 'pay_at_entrance') {
-    return bank.entranceInstructions || `Pay at entrance. Reference: ${reference}`
+    return (
+      bank.entranceInstructions ||
+      (await translatePaymentsChrome('offlinePayAtEntrance', { reference }))
+    )
   }
-  return bank.cashInstructions || `Pay by cash. Reference: ${reference}`
+  return (
+    bank.cashInstructions || (await translatePaymentsChrome('offlinePayCash', { reference }))
+  )
 }
 
 async function allocateInvoiceNumber(prefix: string): Promise<string> {
@@ -669,18 +676,28 @@ export async function startCheckout(input: StartCheckoutInput): Promise<StartChe
   const merchantId = (input.merchantId || '').trim() || null
   const merchant = merchantId ? await getMerchantById(merchantId) : null
   if (merchantId && (!merchant || merchant.status === 'suspended')) {
-    return { ok: false, error: 'Merchant is not available for checkout' }
+    return {
+      ok: false,
+      error: await localizePaymentsChromeError('merchantUnavailable'),
+    }
   }
   if (merchant) {
     const offered = await listOfferedMerchantMethods(merchant.id)
     if (!offered.includes(input.method)) {
       return {
         ok: false,
-        error: `Payment method ${input.method} is not offered by this seller`,
+        error: await localizePaymentsChromeError('methodNotOffered', {
+          method: input.method,
+        }),
       }
     }
   } else if (!settings.enabledMethods.includes(input.method)) {
-    return { ok: false, error: `Payment method ${input.method} is not enabled` }
+    return {
+      ok: false,
+      error: await localizePaymentsChromeError('methodNotEnabled', {
+        method: input.method,
+      }),
+    }
   }
 
   const existing = await db
@@ -700,10 +717,10 @@ export async function startCheckout(input: StartCheckoutInput): Promise<StartChe
 
   const bundle = await getCartWithLines(input.cartId)
   if (!bundle || bundle.cart.status !== 'draft') {
-    return { ok: false, error: 'Cart not found or already checked out' }
+    return { ok: false, error: await localizePaymentsChromeError('cartNotFound') }
   }
   if (bundle.lines.length === 0) {
-    return { ok: false, error: 'Cart is empty' }
+    return { ok: false, error: await localizePaymentsChromeError('cartEmpty') }
   }
 
   const cartLines: CouponLineInput[] = bundle.lines.map((l) => ({
@@ -781,16 +798,20 @@ export async function startCheckout(input: StartCheckoutInput): Promise<StartChe
     if (merchantId && !gatewayCreds?.secret) {
       return {
         ok: false,
-        error: `Merchant has no ${input.method} credentials configured`,
+        error: await localizePaymentsChromeError('merchantCredentialsMissing', {
+          method: input.method,
+        }),
       }
     }
     const payments = getPaymentsProviderForMethod(input.method, gatewayCreds || undefined)
+    const orderDescriptionFallback = await translatePaymentsChrome('orderDescriptionFallback')
     const intent = await payments.createIntent({
       orderId,
       idempotencyKey: input.idempotencyKey,
       currency: totals.currency,
       amountMinor: totals.totalGrossMinor,
-      description: chargedLines.map((l) => l.title).join(', ').slice(0, 200) || 'Order',
+      description:
+        chargedLines.map((l) => l.title).join(', ').slice(0, 200) || orderDescriptionFallback,
       buyerEmail: input.buyer.email,
       returnUrl: input.returnUrl,
       cancelUrl: input.cancelUrl,
@@ -799,7 +820,10 @@ export async function startCheckout(input: StartCheckoutInput): Promise<StartChe
       },
     })
     if (!intent.ok) {
-      return { ok: false, error: intent.error || 'Provider createIntent failed' }
+      return {
+        ok: false,
+        error: intent.error || (await localizePaymentsChromeError('providerCreateFailed')),
+      }
     }
     provider = intent.provider
     providerRef = intent.providerRef || null
@@ -819,7 +843,7 @@ export async function startCheckout(input: StartCheckoutInput): Promise<StartChe
   }
 
   const offlineInstructionsText = offline
-    ? offlineInstructions(input.method, bankBlock, reference)
+    ? await offlineInstructions(input.method, bankBlock, reference)
     : null
 
   await db.insert(sfPayOrders).values({

@@ -1,0 +1,23 @@
+{
+  "sectionAriaLabel": "TacMap",
+  "heading": "TacMap",
+  "lede": "Tactical Maps — csak azonos csapat pozíciói. Csatlakozz a helymegosztáshoz, amíg el nem hagyod.",
+  "joining": "Csatlakozás…",
+  "joinFailed": "Csatlakozás sikertelen",
+  "teamFallback": "Csapat",
+  "sharingLocationLeaveHint": "Helymegosztás — a kilépés leállítja.",
+  "geolocationUnavailable": "A böngészőben nem elérhető a helymeghatározás.",
+  "geolocationError": "Helymeghatározási hiba",
+  "sharingLocation": "Helymegosztás",
+  "rosterLabel": "Névjegyzék: {name}",
+  "teamFallbackLower": "csapat",
+  "notOnRoster": "Nem vagy ezen a térképnévjegyzéken",
+  "joinTacMap": "Csatlakozás a TacMaphez",
+  "leaveTacMap": "Kilépés a TacMapből",
+  "kmlOverlayFallback": "KML réteg",
+  "mapAriaLabel": "Térkép",
+  "locationFallback": "Helyszín",
+  "emptyNoPins": "Még nincsenek térképtűk — adj szélességet/hosszúságot egy helyszínhez, vagy állíts be középpontot a particle beállításaiban.",
+  "configureRoomHint": "Állíts be TacMap szobaazonosítót ezen a particle-ön (Admin → TacMap).",
+  "roomMissingOrInactive": "A TacMap szoba hiányzik vagy inaktív."
+}

@@ -13,6 +13,9 @@ export default defineStarforgeModule({
     'Classifieds / marketplace. Categories, listings, settings, staff moderation, public loop, optional listing fee, and Social feed share.',
   version: '0.1.0',
   defaultEnabled: true,
+  i18n: {
+    namespaces: ['product:marketplace'],
+  },
   requires: [
     'product:payments',
     'product:profiles',

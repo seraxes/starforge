@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { setRequestLocale } from 'next-intl/server'
+import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { notFound, redirect } from 'next/navigation'
 import React from 'react'
 
@@ -25,15 +25,19 @@ export async function generateMetadata({ params }: Args): Promise<Metadata> {
   const { locale: localeParam } = await params
   const [settings, chrome] = await Promise.all([getSiteSettings(), getSiteChrome()])
   const siteName = chrome.siteName || settings.siteName
+  const t = await getTranslations({
+    locale: isValidLocaleCode(localeParam) ? localeParam : 'en',
+    namespace: 'product:marketplace',
+  })
   if (!isValidLocaleCode(localeParam)) {
-    return { title: `Not found — ${siteName}` }
+    return { title: t('notFoundTitle', { siteName }) }
   }
   if (!isCatalogModuleEnabled(settings, MODULE_IDS.marketplace)) {
-    return { title: `Not found — ${siteName}` }
+    return { title: t('notFoundTitle', { siteName }) }
   }
   return {
-    title: 'Sell an item — Marketplace',
-    description: `Create a Marketplace listing on ${siteName}.`,
+    title: t('sellMetaTitle'),
+    description: t('sellMetaDescription', { siteName }),
   }
 }
 
@@ -73,12 +77,13 @@ export default async function MarketplaceNewPage({ params }: Args) {
   if (!door.ok) notFound()
 
   const { categories, photoCap, currency, viewer } = door.value
+  const t = await getTranslations('product:marketplace')
 
   return (
     <article className="cms-page sf-marketplace-page">
       <header className="cms-page-header">
-        <h1>Sell an item</h1>
-        <p className="lede">Photos, price or free, category, condition, and area.</p>
+        <h1>{t('sellTitle')}</h1>
+        <p className="lede">{t('sellLede')}</p>
       </header>
       <MarketplacePublicNav locale={locale} active="new" signedIn={Boolean(viewer.userId)} />
       <ListingForm

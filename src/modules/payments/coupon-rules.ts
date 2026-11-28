@@ -164,12 +164,12 @@ export function applyCouponToLines(input: {
     eligibleGross += Math.max(0, line.lineGrossMinor)
   })
   if (eligibleIdx.length === 0) {
-    return { error: 'Coupon does not apply to items in this cart' }
+    return { error: 'couponDoesNotApply' }
   }
 
   const discountMinor = computeCouponDiscountMinor(input.coupon, eligibleGross, currency)
   if (discountMinor <= 0) {
-    return { error: 'Coupon discount is zero for this cart' }
+    return { error: 'couponDiscountZero' }
   }
 
   const discounts = new Array(input.lines.length).fill(0) as number[]
@@ -219,4 +219,60 @@ export function applyCouponToLines(input: {
     discountMinor,
     lines: nextLines,
   }
+}
+
+/**
+ * Conditional usage bump. Returns the next usedCount when the claim wins,
+ * or null when the coupon is exhausted (no redemption row should be kept).
+ */
+export function claimCouponUsageBump(input: {
+  usageLimit: number | null
+  usedCount: number
+}): number | null {
+  const used = Math.max(0, Math.floor(input.usedCount) || 0)
+  if (input.usageLimit != null && used >= input.usageLimit) return null
+  return used + 1
+}
+
+/** In-memory coupon + redemptions for single-use race tests. */
+export type CouponRedemptionBag = {
+  coupons: Map<string, { usageLimit: number | null; usedCount: number }>
+  redemptions: Array<{
+    id: string
+    couponId: string
+    orderId: string
+    discountMinor: number
+  }>
+}
+
+/**
+ * Atomic bump-then-insert. Mirrors recordCouponRedemption: never leave a
+ * redemption when the conditional usedCount bump changes zero rows.
+ */
+export function recordCouponRedemptionInBag(
+  bag: CouponRedemptionBag,
+  input: {
+    id: string
+    couponId: string
+    orderId: string
+    discountMinor: number
+  },
+): { ok: true; usedCount: number } | { ok: false; error: string } {
+  const coupon = bag.coupons.get(input.couponId)
+  if (!coupon) return { ok: false, error: 'Coupon not found' }
+  const next = claimCouponUsageBump({
+    usageLimit: coupon.usageLimit,
+    usedCount: coupon.usedCount,
+  })
+  if (next == null) {
+    return { ok: false, error: 'couponUsageLimit' }
+  }
+  coupon.usedCount = next
+  bag.redemptions.push({
+    id: input.id,
+    couponId: input.couponId,
+    orderId: input.orderId,
+    discountMinor: Math.max(0, Math.floor(input.discountMinor)),
+  })
+  return { ok: true, usedCount: next }
 }

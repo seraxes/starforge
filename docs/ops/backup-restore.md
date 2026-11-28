@@ -1,6 +1,6 @@
 ---
 kind: reference
-last_verified: 2026-11-22
+last_verified: 2026-11-28
 ---
 # Backup and restore
 
@@ -27,4 +27,4 @@ TODO(owner): production backup bucket or offsite target name. `S3_BUCKET` is the
 
 ## Last restore drill
 
-TODO(owner): date and result of the last restore drill.
+**2026-11-28 — pass (local).** Dump of live `starforge` into scratch `starforge_restore_drill` on the local Postgres 16 container (`pg_dump` / `psql` via `docker exec`). Restored **134** `public.sf_*` tables and the `sf_site_settings` row. Booted `npm run start -p 3019` with `DATABASE_URL` pointed at the scratch DB; `GET /api/health` returned `{"ok":true,"database":"up"}`. Scratch DB dropped after the drill. Production backup schedule and offsite target still open above.

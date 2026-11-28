@@ -4,6 +4,7 @@ import React, { useActionState, useEffect, useMemo, useState } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 
 import type { MapClientConfig } from '@/core/maps/types'
 import { ACTIVE_HERO } from '@/generated/module-registry'
@@ -101,6 +102,7 @@ export function ProfileEditor({
   viewHrefPrefix,
 }: Props) {
   const router = useRouter()
+  const t = useTranslations('product:profiles')
   const [state, formAction, pending] = useActionState(action, initial)
   const v = model.values
   const f = model.fields
@@ -201,7 +203,7 @@ export function ProfileEditor({
             {src ? (
               <FramedImage src={src} frame={frame} shape={shape} alt="" />
             ) : (
-              <span className="sf-member-media-empty">No image</span>
+              <span className="sf-member-media-empty">{t('noImage')}</span>
             )}
           </div>
           <MediaPicker
@@ -226,14 +228,14 @@ export function ProfileEditor({
               disabled={pending}
               onClick={() => setFrameEditor(kind)}
             >
-              Adjust crop
+              {t('adjustCrop')}
             </button>
           ) : null}
         </div>
       )
     }
     if (!canUpload) {
-      return <p className="settings-hint">Image uploads are turned off on this site.</p>
+      return <p className="settings-hint">{t('uploadsDisabled')}</p>
     }
     return (
       <MemberMediaPicker
@@ -296,9 +298,8 @@ export function ProfileEditor({
             />
             <span className="settings-hint">
               {handleLocked
-                ? `You can change your username again on ${handleLockedDate}.`
-                : hint ||
-                  'Your public address: /u/username. Lowercase letters, numbers, dot, dash, underscore.'}
+                ? t('handleLockedHint', { date: handleLockedDate })
+                : hint || t('handleHintDefault')}
             </span>
             {handleLocked ? <input type="hidden" name="handle" value={v.handle} /> : null}
           </div>
@@ -317,7 +318,7 @@ export function ProfileEditor({
                 maxLength={120}
                 defaultValue={v.headline}
                 disabled={pending}
-                placeholder={placeholder || 'A short line under your name'}
+                placeholder={placeholder || t('headlinePlaceholder')}
               />,
             )}
           </div>
@@ -348,7 +349,7 @@ export function ProfileEditor({
                 maxLength={2000}
                 defaultValue={v.bio}
                 disabled={pending}
-                placeholder={placeholder || 'Tell the community about yourself…'}
+                placeholder={placeholder || t('bioPlaceholder')}
               />,
             )}
           </div>
@@ -370,16 +371,24 @@ export function ProfileEditor({
               />,
             )}
             <span className="settings-hint">
-              {hint ||
-                'Others only ever see your age — and only if you allow it. Events can use it for age limits.'}
+              {hint || t('birthDateHintDefault')}
             </span>
           </div>
         )
       case 'gender': {
+        const genderChrome: Record<string, string> = {
+          '': t('genderPreferNot'),
+          female: t('genderFemale'),
+          male: t('genderMale'),
+          nonbinary: t('genderNonbinary'),
+        }
         const options =
           field.options && field.options.length > 0
             ? field.options
-            : GENDER_OPTIONS.map((o) => ({ value: o.value, label: o.label }))
+            : GENDER_OPTIONS.map((o) => ({
+                value: o.value,
+                label: genderChrome[o.value] ?? o.label,
+              }))
         return (
           <div key={key} className="settings-field">
             <FieldHead htmlFor="pf-gender" label={label} required={required} />
@@ -461,7 +470,7 @@ export function ProfileEditor({
                     }}
                   />
                 ) : (
-                  <span className="settings-hint">Map is not enabled on this site.</span>
+                  <span className="settings-hint">{t('mapDisabled')}</span>
                 )}
                 {lat != null && lng != null ? (
                   <button
@@ -473,13 +482,13 @@ export function ProfileEditor({
                       setLongitude('')
                     }}
                   >
-                    Clear pin
+                    {t('clearPin')}
                   </button>
                 ) : null}
               </div>,
             )}
             <span className="settings-hint">
-              {hint || 'Other members only ever see the area (about 1 km), never the exact pin.'}
+              {hint || t('locationHintDefault')}
             </span>
           </div>
         )
@@ -497,7 +506,7 @@ export function ProfileEditor({
                 maxLength={500}
                 defaultValue={v.website}
                 disabled={pending}
-                placeholder={placeholder || 'https://'}
+                placeholder={placeholder || t('websitePlaceholder')}
               />,
             )}
           </div>
@@ -535,8 +544,8 @@ export function ProfileEditor({
                     <li key={i}>
                       <input
                         type="text"
-                        aria-label={`Link ${i + 1} label`}
-                        placeholder="Label (Instagram…)"
+                        aria-label={t('linkLabelAria', { n: i + 1 })}
+                        placeholder={t('linkLabelPlaceholder')}
                         maxLength={40}
                         value={link.label}
                         disabled={pending}
@@ -548,8 +557,8 @@ export function ProfileEditor({
                       />
                       <input
                         type="url"
-                        aria-label={`Link ${i + 1} address`}
-                        placeholder="https://"
+                        aria-label={t('linkUrlAria', { n: i + 1 })}
+                        placeholder={t('websitePlaceholder')}
                         maxLength={500}
                         value={link.url}
                         disabled={pending}
@@ -565,7 +574,7 @@ export function ProfileEditor({
                         disabled={pending}
                         onClick={() => setLinks((prev) => prev.filter((_, j) => j !== i))}
                       >
-                        Remove
+                        {t('remove')}
                       </button>
                     </li>
                   ))}
@@ -577,7 +586,7 @@ export function ProfileEditor({
                     disabled={pending}
                     onClick={() => setLinks((prev) => [...prev, { label: '', url: '' }])}
                   >
-                    Add link
+                    {t('addLink')}
                   </button>
                 ) : null}
               </div>,
@@ -590,7 +599,7 @@ export function ProfileEditor({
           <div key={key} className="settings-field">
             <FieldHead htmlFor="pf-locale" label={label} />
             <select id="pf-locale" name="locale" defaultValue={v.locale} disabled={pending}>
-              <option value="">Site default</option>
+              <option value="">{t('siteDefaultLocale')}</option>
               {model.locales.map((l) => (
                 <option key={l.code} value={l.code}>
                   {l.label}
@@ -610,7 +619,7 @@ export function ProfileEditor({
               list="pf-timezones"
               defaultValue={v.timezone}
               disabled={pending}
-              placeholder={placeholder || 'Europe/Budapest'}
+              placeholder={placeholder || t('timezonePlaceholder')}
               autoComplete="off"
             />
             <datalist id="pf-timezones">
@@ -695,14 +704,14 @@ export function ProfileEditor({
               section.fields.includes('displayName') &&
               section.fields.includes('handle') ? (
                 <p className="settings-hint">
-                  Your sign-in email
-                  {model.email ? <> (<strong>{model.email}</strong>)</> : null} and password are
-                  managed under account security.
+                  {model.email
+                    ? t('identityEmailHintWithEmail', { email: model.email })
+                    : t('identityEmailHint')}
                 </p>
               ) : null}
               {showPrefsHint &&
               (section.fields.includes('locale') || section.fields.includes('timezone')) ? (
-                <p className="settings-hint">Preferences are private — only you see them.</p>
+                <p className="settings-hint">{t('prefsPrivateHint')}</p>
               ) : null}
           </fieldset>
         )
@@ -729,7 +738,7 @@ export function ProfileEditor({
           {state.handle && viewHrefPrefix ? (
             <>
               {' '}
-              <Link href={`${viewHrefPrefix}${state.handle}`}>View profile</Link>
+              <Link href={`${viewHrefPrefix}${state.handle}`}>{t('viewProfile')}</Link>
             </>
           ) : null}
         </p>
@@ -740,10 +749,10 @@ export function ProfileEditor({
           href={cancelHref}
           className={chrome === 'admin' ? btn(chrome, 'muted') : 'sf-profile-link-btn'}
         >
-          Cancel
+          {t('cancel')}
         </Link>
         <button type="submit" className={btn(chrome, 'save')} disabled={pending}>
-          {pending ? 'Saving…' : 'Save'}
+          {pending ? t('saving') : t('save')}
         </button>
       </div>
 
@@ -753,7 +762,7 @@ export function ProfileEditor({
           src={mediaFrameSrc(frameEditor === 'avatar' ? avatar : cover)}
           value={frameEditor === 'avatar' ? avatarFrame : coverFrame}
           shape={frameEditor === 'avatar' ? 'circle' : 'wide'}
-          title={frameEditor === 'avatar' ? 'Adjust avatar' : 'Adjust cover'}
+          title={frameEditor === 'avatar' ? t('adjustAvatar') : t('adjustCover')}
           chrome={chrome}
           onCancel={() => setFrameEditor(null)}
           onApply={(next) => {

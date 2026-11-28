@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { setRequestLocale } from 'next-intl/server'
+import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import React from 'react'
 
@@ -15,13 +15,15 @@ type Args = { params: Promise<{ locale: string; handle: string }> }
 
 export async function generateMetadata({ params }: Args): Promise<Metadata> {
   const { locale: localeParam, handle } = await params
-  const [settings, chrome, viewer] = await Promise.all([
+  const locale = isValidLocaleCode(localeParam) ? localeParam : 'en'
+  const [settings, chrome, viewer, t] = await Promise.all([
     getSiteSettings(),
     getSiteChrome(),
     getAccessViewer(),
+    getTranslations({ locale, namespace: 'product:profiles' }),
   ])
   const siteName = chrome.siteName || settings.siteName
-  const notFoundMeta = { title: `Not found — ${siteName}` }
+  const notFoundMeta = { title: t('notFoundTitle', { siteName }) }
 
   if (!isValidLocaleCode(localeParam)) return notFoundMeta
   if (!isCatalogModuleEnabled(settings, MODULE_IDS.profiles)) return notFoundMeta
@@ -30,7 +32,9 @@ export async function generateMetadata({ params }: Args): Promise<Metadata> {
   if (!found) return notFoundMeta
   return {
     title: found.persona.displayName,
-    description: found.persona.headline || `${found.persona.displayName} on ${siteName}`,
+    description:
+      found.persona.headline ||
+      t('profileOnSite', { name: found.persona.displayName, siteName }),
   }
 }
 

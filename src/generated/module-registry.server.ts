@@ -528,6 +528,32 @@ export const moduleMessageLoaders: ModuleMessageLoader[] = [
     },
   },
   {
+    moduleId: "live-map",
+    namespaces: ["live-map"] as const,
+    load: async (locale: string): Promise<Record<string, unknown>> => {
+      switch (locale) {
+      case "hu":
+        return (await import("@/modules/maps/messages/hu.json")).default
+      case 'en':
+      default:
+        return (await import("@/modules/maps/messages/en.json")).default
+      }
+    },
+  },
+  {
+    moduleId: "map",
+    namespaces: ["map"] as const,
+    load: async (locale: string): Promise<Record<string, unknown>> => {
+      switch (locale) {
+      case "hu":
+        return (await import("@/modules/maps/messages/hu.json")).default
+      case 'en':
+      default:
+        return (await import("@/modules/maps/messages/en.json")).default
+      }
+    },
+  },
+  {
     moduleId: "product:consent",
     namespaces: ["product:consent"] as const,
     load: async (locale: string): Promise<Record<string, unknown>> => {
@@ -580,6 +606,32 @@ export const moduleMessageLoaders: ModuleMessageLoader[] = [
     },
   },
   {
+    moduleId: "product:maps",
+    namespaces: ["product:maps"] as const,
+    load: async (locale: string): Promise<Record<string, unknown>> => {
+      switch (locale) {
+      case "hu":
+        return (await import("@/modules/maps/messages/hu.json")).default
+      case 'en':
+      default:
+        return (await import("@/modules/maps/messages/en.json")).default
+      }
+    },
+  },
+  {
+    moduleId: "product:marketplace",
+    namespaces: ["product:marketplace"] as const,
+    load: async (locale: string): Promise<Record<string, unknown>> => {
+      switch (locale) {
+      case "hu":
+        return (await import("@/modules/marketplace/messages/hu.json")).default
+      case 'en':
+      default:
+        return (await import("@/modules/marketplace/messages/en.json")).default
+      }
+    },
+  },
+  {
     moduleId: "product:media",
     namespaces: ["product:media"] as const,
     load: async (locale: string): Promise<Record<string, unknown>> => {
@@ -602,6 +654,32 @@ export const moduleMessageLoaders: ModuleMessageLoader[] = [
       case 'en':
       default:
         return (await import("@/modules/pages/messages/en.json")).default
+      }
+    },
+  },
+  {
+    moduleId: "product:payments",
+    namespaces: ["product:payments"] as const,
+    load: async (locale: string): Promise<Record<string, unknown>> => {
+      switch (locale) {
+      case "hu":
+        return (await import("@/modules/payments/messages/hu.json")).default
+      case 'en':
+      default:
+        return (await import("@/modules/payments/messages/en.json")).default
+      }
+    },
+  },
+  {
+    moduleId: "product:profiles",
+    namespaces: ["product:profiles"] as const,
+    load: async (locale: string): Promise<Record<string, unknown>> => {
+      switch (locale) {
+      case "hu":
+        return (await import("@/modules/profiles/messages/hu.json")).default
+      case 'en':
+      default:
+        return (await import("@/modules/profiles/messages/en.json")).default
       }
     },
   },

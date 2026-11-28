@@ -5,7 +5,6 @@
 import 'server-only'
 
 import { DEFAULT_LAYOUT_ID, GLOBAL_PAGE_CHROME_ID } from '@/core/db'
-import { ensureLayoutSkinIdColumn } from '@/core/db/ensure-layout-skin-id'
 import {
   getLayoutOutline,
   loadLayoutDocument,
@@ -58,9 +57,6 @@ export async function ensureSkinOutlineSeeds(
     globalLayoutIdUpdated: false,
   }
   if (!skin) return empty
-
-  // Self-heal schema so Outlines admin doesn’t crash before `db:core:push`.
-  await ensureLayoutSkinIdColumn()
 
   const seeds = listSkinOutlineSeeds(skin)
   const created: string[] = []

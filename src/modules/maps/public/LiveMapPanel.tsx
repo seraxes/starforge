@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
 
 import type { MapClientConfig } from '@/core/maps/types'
 import { useRealtimeChannel } from '@/core/realtime/use-realtime'
@@ -68,6 +69,7 @@ export function LiveMapPanel({
   initialPositions = [],
   center,
 }: Props) {
+  const t = useTranslations('product:maps')
   const [session, setSession] = useState<SessionState | null>(null)
   const [positions, setPositions] = useState<LiveTeammateDto[]>(initialPositions)
   const [error, setError] = useState('')
@@ -110,7 +112,7 @@ export function LiveMapPanel({
 
   async function join() {
     setError('')
-    setStatus('Joining…')
+    setStatus(t('joining'))
     try {
       const res = await fetch(`/api/maps/live/${encodeURIComponent(roomId)}/join`, {
         method: 'POST',
@@ -120,7 +122,7 @@ export function LiveMapPanel({
       })
       const data = await res.json()
       if (!res.ok) {
-        setError(data.error || 'Join failed')
+        setError(data.error || t('joinFailed'))
         setStatus('')
         return
       }
@@ -128,16 +130,16 @@ export function LiveMapPanel({
         sessionId: data.sessionId,
         roomId: data.roomId,
         teamId: data.teamId,
-        teamName: data.teamName || membershipTeamName || 'Team',
+        teamName: data.teamName || membershipTeamName || t('teamFallback'),
         teamColor: data.teamColor || membershipTeamColor || '#3b82f6',
         channel: data.channel || mapTeamChannel(data.roomId, data.teamId),
       }
       setSession(next)
-      setStatus('Sharing location — Leave to stop.')
+      setStatus(t('sharingLocationLeaveHint'))
       startWatch(next)
       await refreshSnapshot(next)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Join failed')
+      setError(err instanceof Error ? err.message : t('joinFailed'))
       setStatus('')
     }
   }
@@ -170,7 +172,7 @@ export function LiveMapPanel({
   function startWatch(active: SessionState) {
     stopWatch()
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      setError('Geolocation is not available in this browser.')
+      setError(t('geolocationUnavailable'))
       return
     }
     watchRef.current = navigator.geolocation.watchPosition(
@@ -178,7 +180,7 @@ export function LiveMapPanel({
         void postPosition(active, pos)
       },
       (err) => {
-        setError(err.message || 'Geolocation error')
+        setError(err.message || t('geolocationError'))
       },
       {
         enableHighAccuracy: true,
@@ -266,25 +268,25 @@ export function LiveMapPanel({
             <p className="sf-live-map-status">
               {session.teamName}
               <span className="sf-live-map-status-dot" aria-hidden="true" />
-              Sharing location
+              {t('sharingLocation')}
             </p>
           ) : membershipTeamId ? (
             <p className="sf-live-map-status">
-              Roster: {membershipTeamName || 'team'}
+              {t('rosterLabel', { name: membershipTeamName || t('teamFallbackLower') })}
             </p>
           ) : (
-            <p className="sf-live-map-status">Not on this map&apos;s roster</p>
+            <p className="sf-live-map-status">{t('notOnRoster')}</p>
           )}
         </div>
         <div className="sf-live-map-bar-actions">
           {canJoin && !session ? (
             <button type="button" className="sf-live-map-btn sf-live-map-btn-primary" onClick={join}>
-              Join TacMap
+              {t('joinTacMap')}
             </button>
           ) : null}
           {session ? (
             <button type="button" className="sf-live-map-btn" onClick={leave}>
-              Leave TacMap
+              {t('leaveTacMap')}
             </button>
           ) : null}
         </div>
@@ -306,7 +308,7 @@ export function LiveMapPanel({
           {overlays
             .filter((o) => o.kind === 'kml' && o.mediaId)
             .map((o) => (
-              <li key={o.id}>{o.label || 'KML overlay'}</li>
+              <li key={o.id}>{o.label || t('kmlOverlayFallback')}</li>
             ))}
         </ul>
       ) : null}

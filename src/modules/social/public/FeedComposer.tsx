@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useActionState, useEffect, useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
 
 import { MemberMediaPicker } from '@/modules/media/api'
 import { insertTextIntoValue } from '@/modules/rich-editor/api'
@@ -32,13 +33,6 @@ export type FeedComposerOwnedGroup = {
 type PendingReplace =
   | { source: 'instrument'; kind: StageBlockKind }
   | { source: 'paste'; url: string; body: string }
-
-const AUDIENCE_LABEL: Record<string, string> = {
-  friends: 'Friends',
-  public: 'Public',
-  only_me: 'Only me',
-  group: 'Group',
-}
 
 /**
  * Home-feed stage. The card the member builds is the card the feed will show.
@@ -72,6 +66,7 @@ export function FeedComposer({
   imageMaxWidth?: number
   imageMaxHeight?: number
 }) {
+  const t = useTranslations('product:social')
   const [state, formAction, pending] = useActionState(createTextPostAction, initial)
   const [open, setOpen] = useState(false)
   const [body, setBody] = useState('')
@@ -192,10 +187,17 @@ export function FeedComposer({
   function commitLinkDraft() {
     const url = firstHttpUrl(linkDraft.trim())
     if (!url || url !== linkDraft.trim()) {
-      setLinkError('Enter a valid http(s) link.')
+      setLinkError(t('composerLinkInvalid'))
       return
     }
     applyLink(url, bodyWithoutUrl(body, url))
+  }
+
+  const audienceLabel: Record<string, string> = {
+    friends: t('audienceFriends'),
+    public: t('audiencePublic'),
+    only_me: t('audienceOnlyMe'),
+    group: t('audienceGroup'),
   }
 
   function onPaste(event: React.ClipboardEvent<HTMLTextAreaElement>) {
@@ -237,10 +239,10 @@ export function FeedComposer({
   }
 
   const audiences = [
-    { id: 'friends', label: 'Friends' },
-    { id: 'public', label: 'Public' },
-    { id: 'only_me', label: 'Only me' },
-    ...(groupAllowed ? [{ id: 'group', label: 'Group' }] : []),
+    { id: 'friends', label: t('audienceFriends') },
+    { id: 'public', label: t('audiencePublic') },
+    { id: 'only_me', label: t('audienceOnlyMe') },
+    ...(groupAllowed ? [{ id: 'group', label: t('audienceGroup') }] : []),
   ]
 
   return (
@@ -260,7 +262,11 @@ export function FeedComposer({
       <header className="sf-social-feed-item-head">
         <SocialAvatar src={authorAvatarSrc} size={40} label={authorName} />
         <div className="sf-social-feed-author">
-          {expanded ? <span>{authorName}</span> : <span className="layout-muted">Who can see this</span>}
+          {expanded ? (
+            <span>{authorName}</span>
+          ) : (
+            <span className="layout-muted">{t('whoCanSeeThis')}</span>
+          )}
         </div>
         <span className="sf-social-stage-audience-wrap" ref={audienceRef}>
             <button
@@ -271,7 +277,7 @@ export function FeedComposer({
               disabled={pending}
               onClick={() => setAudienceOpen((value) => !value)}
             >
-              {`${AUDIENCE_LABEL[audience] ?? 'Friends'} ▾`}
+              {`${audienceLabel[audience] ?? t('audienceFriends')} ▾`}
             </button>
             {audienceOpen ? (
               <ul className="sf-social-stage-audience-menu" role="listbox">
@@ -299,7 +305,7 @@ export function FeedComposer({
                 required
                 disabled={pending}
                 defaultValue={ownedGroups[0]?.id}
-                aria-label="Group"
+                aria-label={t('composerGroupAriaLabel')}
               >
                 {ownedGroups.map((group) => (
                   <option key={group.id} value={group.id}>
@@ -318,7 +324,7 @@ export function FeedComposer({
           className="sf-social-stage-caption"
           rows={expanded ? 3 : 1}
           maxLength={8000}
-          placeholder="What’s happening?"
+          placeholder={t('composerPlaceholder')}
           value={body}
           disabled={pending}
           onFocus={() => setOpen(true)}
@@ -335,7 +341,7 @@ export function FeedComposer({
               {block.url}
             </a>
             <button type="button" className="ghost" disabled={pending} onClick={removeBlock}>
-              Remove
+              {t('remove')}
             </button>
           </p>
         ) : null}
@@ -349,9 +355,9 @@ export function FeedComposer({
                     type="text"
                     value={option}
                     maxLength={120}
-                    placeholder={`Option ${index + 1}`}
+                    placeholder={t('composerOptionN', { n: index + 1 })}
                     disabled={pending}
-                    aria-label={`Option ${index + 1}`}
+                    aria-label={t('composerOptionN', { n: index + 1 })}
                     onChange={(event) => {
                       const value = event.target.value
                       setBlock((current) => {
@@ -379,11 +385,11 @@ export function FeedComposer({
                     )
                   }
                 >
-                  Add option
+                  {t('composerAddOption')}
                 </button>
               ) : null}
               <button type="button" className="ghost" disabled={pending} onClick={removeBlock}>
-                Remove vote
+                {t('composerRemoveVote')}
               </button>
             </div>
           </div>
@@ -391,18 +397,18 @@ export function FeedComposer({
 
         {block?.kind === 'place' ? (
           <p className="sf-social-feed-checkin">
-            <span className="layout-muted">Checked in at </span>
+            <span className="layout-muted">{t('composerCheckedInAt')}</span>
             <input
               type="text"
               value={block.label}
               maxLength={200}
-              placeholder="Place name"
+              placeholder={t('composerPlaceName')}
               disabled={pending}
-              aria-label="Place"
+              aria-label={t('composerPlaceAriaLabel')}
               onChange={(event) => setBlock({ kind: 'place', label: event.target.value })}
             />
             <button type="button" className="ghost" disabled={pending} onClick={removeBlock}>
-              Remove
+              {t('remove')}
             </button>
           </p>
         ) : null}
@@ -419,7 +425,7 @@ export function FeedComposer({
                   disabled={pending}
                   onClick={() => removeMedia(id)}
                 >
-                  Remove
+                  {t('remove')}
                 </button>
               </li>
             ))}
@@ -453,7 +459,7 @@ export function FeedComposer({
             disabled={pending || (block?.kind === 'media' && atMax)}
             onClick={() => chooseInstrument('media')}
           >
-            Photo
+            {t('composerPhoto')}
           </button>
         ) : null}
         {allowLink ? (
@@ -463,7 +469,7 @@ export function FeedComposer({
             disabled={pending}
             onClick={() => chooseInstrument('link')}
           >
-            Link
+            {t('composerLink')}
           </button>
         ) : null}
         {allowPoll ? (
@@ -473,7 +479,7 @@ export function FeedComposer({
             disabled={pending}
             onClick={() => chooseInstrument('poll')}
           >
-            Vote
+            {t('composerVote')}
           </button>
         ) : null}
         {allowCheckin ? (
@@ -483,12 +489,12 @@ export function FeedComposer({
             disabled={pending}
             onClick={() => chooseInstrument('place')}
           >
-            Place
+            {t('composerPlace')}
           </button>
         ) : null}
         {expanded ? (
           <button type="submit" className="primary" disabled={pending || !canPost}>
-            {pending ? 'Posting…' : 'Post'}
+            {pending ? t('posting') : t('post')}
           </button>
         ) : null}
       </div>
@@ -502,7 +508,7 @@ export function FeedComposer({
             value={linkDraft}
             disabled={pending}
             autoComplete="off"
-            aria-label="Link"
+            aria-label={t('composerLinkAriaLabel')}
             onChange={(event) => {
               setLinkDraft(event.target.value)
               setLinkError('')
@@ -514,7 +520,7 @@ export function FeedComposer({
             }}
           />
           <button type="button" className="secondary" disabled={pending} onClick={commitLinkDraft}>
-            Add link
+            {t('composerAddLink')}
           </button>
         </div>
       ) : null}
@@ -523,14 +529,14 @@ export function FeedComposer({
         <div className="sf-social-stage-tool">
           <MemberMediaPicker
             key={mediaIds.join(',') || 'empty-media'}
-            label={mediaIds.length === 0 ? 'Add photo' : 'Add another photo'}
+            label={mediaIds.length === 0 ? t('composerAddPhoto') : t('composerAddAnotherPhoto')}
             value={draftMediaId}
             onChange={addMedia}
             context="social-post"
             chrome="public"
             shape="wide"
             disabled={pending}
-            hint={`Up to ${imageCap} images. Files stay in Media.`}
+            hint={t('composerMediaHint', { max: imageCap })}
           />
         </div>
       ) : null}
@@ -541,7 +547,7 @@ export function FeedComposer({
             ? stageReplacePrompt(block?.kind ?? 'media', 'link')
             : stageReplacePrompt(block?.kind ?? 'media', pendingReplace.kind)}
           <button type="button" className="secondary" disabled={pending} onClick={confirmReplace}>
-            Replace
+            {t('replace')}
           </button>
           <button
             type="button"
@@ -549,7 +555,7 @@ export function FeedComposer({
             disabled={pending}
             onClick={() => setPendingReplace(null)}
           >
-            Cancel
+            {t('cancel')}
           </button>
         </p>
       ) : null}
@@ -572,7 +578,7 @@ export function FeedComposer({
       ) : null}
       {state.ok && !expanded ? (
         <p className="sf-social-inline-ok" role="status">
-          Posted.
+          {t('posted')}
         </p>
       ) : null}
     </form>
