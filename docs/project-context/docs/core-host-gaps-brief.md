@@ -10,7 +10,7 @@ last_verified: 2026-11-22
 
 **Rules for every slice**
 
-- Copy an existing screen. Public errors copy `src/app/(frontend)/(public)/[locale]/not-found.tsx`. Account actions copy `src/app/(frontend)/(public)/[locale]/account/security/account-security-panel.tsx`. Admin toggles copy `src/app/(frontend)/admin/settings/auth/auth-settings-form.tsx`.
+- Copy an existing screen. Public errors copy `src/app/not-found.tsx` (skin 404 outline). Account actions copy `src/app/(frontend)/(public)/[locale]/account/security/account-security-panel.tsx`. Admin toggles copy `src/app/(frontend)/admin/settings/auth/auth-settings-form.tsx`.
 - Auth mail goes through `sendAuthMail` in `src/core/auth/mail.ts`, which already uses the Mailer port. Do not add SMTP code.
 - Secrets go in the Environment editor catalog (`src/core/env-editor/catalog.ts`) and `.env`. Never in the database.
 - Do not add a second login, a second mailer, a second job library, or a second drag canvas.
@@ -29,13 +29,13 @@ Each skin pack seeds **Offline** + **404** system outlines beside Base. Those ou
 
 - Seed `{skinId}-not-found` on the default Pastel pack (inherit Base, omit navigation) — same shape as Offline.
 - Add `/site-not-found` + `SiteNotFoundView` that resolves the active skin’s `*-not-found` outline.
-- Locale `not-found.tsx` renders `SiteNotFoundView` (visitor-safe copy; no seed/CMS developer lede).
+- Global `app/not-found.tsx` renders `SiteNotFoundView` (outside `[locale]/template`; visitor-safe; no seed/CMS developer lede).
 - Add `src/app/(frontend)/(public)/[locale]/error.tsx` (client). It must not show stack / framework messages. Recover with `window.location.replace('/site-not-found')`.
 - Offline page is the active skin’s outline (Site Chrome picks which one; default `*-offline`).
 
 **Done when**
 
-- Locale 404 and `/site-not-found` plumbing show the active pack’s 404 outline.
+- Locale + root 404 and `/site-not-found` plumbing show the active pack’s 404 outline (hardcoded UI only if outline paint fails).
 - A thrown error under `/[locale]/…` ends on `/site-not-found` without exposing internals.
 - `npm run test:unit` still passes.
 

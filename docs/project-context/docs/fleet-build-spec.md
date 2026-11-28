@@ -15,7 +15,7 @@ last_verified: 2026-11-27
 - No numeric Joomla group ids. Core ACL only. Staff bypass stays additive ([sf-staff-bypass](../../../.cursor/rules/sf-staff-bypass.mdc)).
 - Media owns file bytes. This pack stores `mediaId`. Email Manager owns send. The first shift slice does not add Fleet mail starters (live Fleet has no outbound mailer).
 - Book / approve ask Onboarding’s public door. Bookable deny refuses. This pack does not read Onboarding tables, does not hard-require Onboarding, and does not turn Onboarding on. Stations are this pack’s catalog. Onboarding reads them through this door. No new Core port.
-- Routes and attendance stay in this pack. Map tiles are Core MapProvider, not TacMap (`product:maps`). A shift is not an Events ticket.
+- Routes and attendance stay in this pack. Route lines use Core MapProvider. Live car positions are Maps trackables (Fleet adapters push). A shift is not an Events ticket. Cars are not written onto an event room.
 - Home-run money stays a figure on the claim until Ledger. Clothing requests stay here with no stock draw until Warehouse.
 
 ## Door (name only — scaffold later)
@@ -99,7 +99,7 @@ Dated checklist on a vehicle: time, odometer km, notes, photos as Media ids. A c
 | --- | --- | --- |
 | Routes | Ordered stops on an existing shift. No route without a shift. Draw with MapProvider. | None — not in `com_primeone_fleet` |
 | Attendance | Actual start, end, and breaks on that shift. No clock-in that is not a fleet shift. | None |
-| Live map | Depot pins from station address (geocode at this slice), then last-known position via RealtimePort. | None. `PollService` page reload is not a map |
+| Live map | Depot pins on a Maps record (geocode station address), then last-known vehicle positions pushed into Maps. Ecofleet / Mtrack adapters — [fleet-live-map-plan](./fleet-live-map-plan.md), [fleet-live-map-action-plan](./fleet-live-map-action-plan.md) (7a–7f). | None. `PollService` page reload is not a map |
 
 External route or clock tools outside this component are **unknown (ops)**. Do not invent an import for them.
 
@@ -160,7 +160,7 @@ The component has no import tool. Starforge import for this slice is written onl
 | `accepted_changed_params` and manager-only shift types | In slice 2. Already on the pack plan. |
 | Key-out loan (“signed out until Thursday”) | Out of these slices. Pack plan parks it until ops works that way. |
 | Fleet booking / approve email | Omit from slice 2. Live code has no mailer. A later slice may add Email Manager starters; this spec does not. |
-| Depot lat/lng, routes, clock-in, GPS map | Slices 5–7. No import. |
+| Depot lat/lng, routes, clock-in, GPS map | Slices 5–7 (+ live positions 7a–7f on Maps). No import. [fleet-live-map-action-plan](./fleet-live-map-action-plan.md) |
 | `vehicle_logs` PHP unused | Slice 4 only after ops confirms. |
 | Home-run payout | Ledger later. Figure stays on the claim. |
 | Clothing stock quantity | Warehouse later. Requests stay in Fleet. |
@@ -170,6 +170,7 @@ The component has no import tool. Starforge import for this slice is written onl
 ## Related
 
 - Pack plan: [fleet-pack-plan](./fleet-pack-plan.md)
+- Live GPS sources (proposed): [fleet-live-map-plan](./fleet-live-map-plan.md), [fleet-live-map-action-plan](./fleet-live-map-action-plan.md), [maps-product-plan](./maps-product-plan.md)
 - Fact provider: [onboarding-build-spec](./onboarding-build-spec.md)
 - Vehicle files later: [documents-build-spec](./documents-build-spec.md)
 - Later money / stock: [ledger-pack-plan](./ledger-pack-plan.md), [warehouse-pack-plan](./warehouse-pack-plan.md)

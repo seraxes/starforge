@@ -26,7 +26,7 @@ last_verified: 2026-11-27
 2. **The person is the Core user.** Name and email always come from that user. Onboarding and Fleet do not keep a second copy of the account.
 3. **Person facts travel through public doors.** No new Core port. Fleet `optionalRequires` Onboarding and reads phone, driver code, bookable, home-run, trainer, and Clearquote from `@/modules/onboarding/api`. Onboarding `optionalRequires` Fleet and reads the station list from `@/modules/fleet/api`. Neither pack hard-requires the other, turns the other on, or reads the other’s tables.
 4. **Bookable** when the user’s Onboarding status is flagged bookable (seeded status `active`) **or** the user has Fleet vehicle access. Onboarding off → vehicle access is enough. Neither → deny. Do not invent a driver.
-5. **Routes** and **attendance** live inside Fleet. Routes use Core MapProvider, not TacMap (`product:maps`). Attendance is clock-in on a Fleet shift.
+5. **Routes** and **attendance** live inside Fleet. Route lines use Core MapProvider. Live car positions are Maps trackables ([maps-product-plan](./maps-product-plan.md)). Attendance is clock-in on a Fleet shift.
 6. **`product:documents`** is shared: subjects are the Core user, an onboarding record, and a fleet vehicle. Media keeps the bytes. Invoices stay in Payments.
 7. **Ledger** and **warehouse** stay later. Not in the first build.
 8. **Home, Coming up, and Analytics** are pages. They store nothing.
@@ -48,7 +48,7 @@ Writable facts save back through the same provider. Fleet still does not know ph
 
 ## What Starforge already owns
 
-Do not rebuild: Core users/groups/grants; `product:media` (files); `product:forms` (schemas); `product:email-manager` (`emitEmailTrigger`); `product:profiles` (name, avatar, generic contact); Core MapProvider (map tiles); Core RealtimePort (live push); `product:payments` (checkout, VAT, invoices); `product:events` (public ticketed events — a shift is not a ticket); `product:maps` / TacMap (tactical rooms — courier cars do not go there).
+Do not rebuild: Core users/groups/grants; `product:media` (files); `product:forms` (schemas); `product:email-manager` (`emitEmailTrigger`); `product:profiles` (name, avatar, generic contact); Core MapProvider (map tiles); Core RealtimePort (live push); `product:payments` (checkout, VAT, invoices); `product:events` (public ticketed events — a shift is not a ticket); `product:maps` (the live map — Fleet pushes vehicle positions; cars do not go on an event room).
 
 ## Pages, not packs
 
@@ -90,7 +90,7 @@ Opening a page is the grant. Writing checks the action. Pack code does not test 
 | Out | Why |
 | --- | --- |
 | Separate training / routes / attendance packs | Owned inside Onboarding or Fleet |
-| Cars in TacMap | Core MapProvider + Fleet; TacMap is same-team GPS |
+| Cars on an event room | Live cars are a separate Maps follow record. Fleet adapters push. [fleet-live-map-plan](./fleet-live-map-plan.md), [maps-product-plan](./maps-product-plan.md) |
 | Events for shifts or ride-alongs | A shift is not a ticket; a ride-along is not a public event |
 | Parallel form builder, file library, or mailer | Forms / Media / Email Manager |
 | Payments inside Fleet | Checkout, VAT, invoices stay in Payments |
@@ -103,6 +103,7 @@ Opening a page is the grant. Writing checks the action. Pack code does not test 
 
 - Coverage plan + inventories: [primeone-coverage-plan](./primeone-coverage-plan.md)
 - Build specs: [onboarding](./onboarding-build-spec.md) (slice 1 in tree), [fleet](./fleet-build-spec.md), [documents](./documents-build-spec.md) (still parked)
+- Fleet live GPS (proposed): [fleet-live-map-plan](./fleet-live-map-plan.md), [fleet-live-map-action-plan](./fleet-live-map-action-plan.md), [maps-product-plan](./maps-product-plan.md)
 - Live map: [architecture-current](./architecture-current.md)
 - Layers: [platform-module-layers](./platform-module-layers.md)
 - Review draft: [primeone-for-claude](../../review/primeone-for-claude.txt)

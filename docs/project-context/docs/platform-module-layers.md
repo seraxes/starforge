@@ -93,7 +93,7 @@ Live queue: [architecture-current](./architecture-current.md) — **Active:** So
 
 - Feed layout variants = Social **Module** + Layout options; Hero **theme** brands them — still one Social Module.
 - Voice/video calling = later optional RTC **port** on Chat — decide when Chat ships.
-- TacMap rooms/teams/GPS stay in `product:maps` (rename id later). Stations, beacons, and `apps/asn-capacitor` wait; they are not ahead of Social polish then Marketplace.
+- Maps rooms/teams/GPS stay in `product:maps`. Product name is Maps. TacMap is a per-map mode; do not rename the id. Stations, beacons, and `apps/asn-capacitor` wait; they are not ahead of Social polish then Marketplace. [maps-product-plan](./maps-product-plan.md).
 
 ## Related
 
