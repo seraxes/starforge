@@ -383,9 +383,11 @@ export async function createEventAction(
         'Recurring is on but the pattern is incomplete — set an end count or until date.',
     }
   }
+  const publisher = await getAccessViewer()
+  const actorUserId = (publisher.userId || '').trim()
   const result = seriesPattern
-    ? await createEventSeries(fields, seriesPattern)
-    : await createEvent(fields)
+    ? await createEventSeries({ ...fields, actorUserId }, seriesPattern)
+    : await createEvent({ ...fields, actorUserId })
   if ('error' in result) return { error: result.error }
   await recordCurrentAdminActivity('event.create', { type: 'event', id: result.event.id })
   revalidateEventsAdmin(result.event.id)
@@ -414,9 +416,12 @@ export async function updateEventAction(
 
   const after = parseAfterIntent(formData)
   const fields = eventFieldsFromForm(formData)
+  const publisher = await getAccessViewer()
+  const actorUserId = (publisher.userId || '').trim()
   const result = await updateEvent({
     id,
     ...fields,
+    actorUserId,
   })
   if ('error' in result) return { error: result.error }
   await recordCurrentAdminActivity('event.update', { type: 'event', id: result.event.id })
@@ -439,7 +444,11 @@ export async function updateEventAction(
         after,
       }
     }
-    const expanded = await expandEventIntoSeries(id, fields, seriesPattern)
+    const expanded = await expandEventIntoSeries(
+      id,
+      { ...fields, actorUserId },
+      seriesPattern,
+    )
     if ('error' in expanded) return { error: expanded.error }
     revalidateEventsAdmin(expanded.event.id)
     return {

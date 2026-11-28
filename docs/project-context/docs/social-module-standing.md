@@ -25,7 +25,7 @@ last_verified: 2026-11-25
 | **`social-feed-plan.md` header** | May still say parked historically. Plan is the build spec; the live map wins. |
 | **Code + pack README** | Slices **1–22** documented as shipped. `defaultEnabled: false`. Full `sf_social_*` schema present. |
 
-**Implication for a second opinion:** The code already exists. Enablement blockers (media access, rate limits, staff private-read) are closed on the live map. Remaining work is polish / Open work leftovers (`form` optionalRequires, event/page conversation UI, UX) before Airsoft Nexus turns Social on.
+**Implication for a second opinion:** The code already exists. Enablement blockers (media access, rate limits, staff private-read) are closed on the live map. Event/page conversation UI is shipped. Remaining work is polish / Open work leftovers (`form` optionalRequires, UX) before Airsoft Nexus turns Social on.
 
 ---
 
@@ -92,7 +92,7 @@ Owner README lists slices **1–22** as done. Summary:
 ### Activity door
 
 - `publishActivity` on the Social door (off → no write; errors soft-fail).
-- **Callers in Events / Pages are not wired yet** (plan said those are separate chats). Switches for `event.published` / `page.published` exist on the Social side with no publisher.
+- Events and Pages call it through `loadModuleDoor('social-api-server')` after a successful publish (`event.published` / `page.published`). Pack switches default on.
 
 ### Slice 23 (explicitly later)
 
@@ -135,7 +135,7 @@ Social owns the comments engine, likes, and reports. No `product:comments` / `pr
 
 | Edge | Status |
 | --- | --- |
-| Events / Pages → `publishActivity` | Door ready; **no callers** |
+| Events / Pages → `publishActivity` | **Done** — callers via `loadModuleDoor('social-api-server')` |
 | Events host calendar on group/page | Social lists/links via Events door; host fields exist on Events |
 | Subscriptions entitlement `social.challenge.multi` | Gate exists; depends on Subscriptions being on |
 | Core retention hide/purge | Doors registered on Core side |
@@ -151,7 +151,7 @@ Social owns the comments engine, likes, and reports. No `product:comments` / `pr
 - `/feed/requests` is still a stub that redirects to People.
 - Schema comment still says reaction `targetType` “comment later” in places while comment reactions are already implemented — doc drift.
 - Manifest `optionalRequires` includes `'form'` (suspicious next to `product:forms` in `requires`).
-- Hold-new-posts-for-review sets `staffHidden` on create; there is no separate “pending review” workflow beyond that flag + reports queue.
+- Hold-new-posts-for-review uses `pendingReview` + `/admin/social/pending` (Approve / Reject); `staffHidden` stays the hide/restore tool.
 - Plan duplicate text on stories slice (cosmetic in the plan file).
 
 ### 5. Size vs commercial priority — dependency floor decided
@@ -169,7 +169,7 @@ Per plan / README: points/badges, support tickets, chat (its own pack after Mark
 | Kind | Paths / ids |
 | --- | --- |
 | Public | `/feed`, `/feed/people`, `/feed/groups`, `/feed/g/[slug]`, `/feed/pages`, `/feed/p/[slug]`, `/feed/stories`, `/feed/following`, `/feed/discover`, `/feed/watch`, `/feed/saved`, `/feed/tag/[tag]`, `/feed/post/[id]`, `/feed/[handle]`, `/feed/u/[handle]` |
-| Admin | `/admin/social` (+ people, groups, pages, media, reports) |
+| Admin | `/admin/social` (+ people, groups, pages, media, pending, reports) |
 | Particles | `social-friends`, `social-groups`, `social-pages`, `social-albums`, `social-stories` |
 | Job | `social.sweep` (challenges + story expiry) — armed only when Social enabled |
 | Mail triggers | `product:social/friend.requested`, `group.invited`, `group.announced`, `challenge.invited` |
@@ -179,7 +179,7 @@ Per plan / README: points/badges, support tickets, chat (its own pack after Mark
 
 ## Remaining questions (post 2026-11-22 decisions)
 
-1. Priority among Open work: staff private-read, Social write rate limits, `'form'` optionalRequires keep/drop, Events/Pages `publishActivity` callers, composer Challenge/Watch chips.
+1. Priority among Open work: `'form'` optionalRequires keep/drop, composer Challenge/Watch chips, remaining UX polish before cutover.
 2. Any slice-22+ surface that should stay switch-off forever for ASN (short-video Watch, Discover, Challenges)?
 3. Admin / manager permission matrices (deferred; do not invent in Social).
 

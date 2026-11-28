@@ -16,6 +16,7 @@ import { pageHref } from '../pages'
 import { listPagesDirectory } from '../pages-store'
 import { actorMayCreateSocialEntity } from '../pack-settings'
 import { loadSocialModuleSettings } from '../settings'
+import { FeedTabs } from './FeedTabs'
 import { CreatePageForm } from './PageActions'
 
 type Args = {
@@ -38,6 +39,11 @@ export async function generateMetadata({ params }: Args): Promise<Metadata> {
     title: 'Pages',
     description: `Find pages on ${siteName}.`,
   }
+}
+
+function pageCoverMediaSrc(coverMediaId: string | null | undefined): string {
+  const id = (coverMediaId ?? '').trim()
+  return id ? `/api/media/${encodeURIComponent(id)}` : ''
 }
 
 /** Pages directory — `/feed/pages`. */
@@ -66,51 +72,70 @@ export default async function SocialPagesPage({ params }: Args) {
       pack.settings.pageWhoCanCreate,
       Boolean(staff?.user?.id),
     )
+  const tabFlags = {
+    showFollowing: pack.settings.allowFollowingTab,
+    showDiscover: pack.settings.allowDiscover,
+    showWatch: pack.settings.allowShortVideoLayout,
+    showStories: pack.settings.allowStories,
+  }
 
   return (
-    <article className="cms-page sf-social-pages-page">
-      <header className="cms-page-header">
-        <h1>Pages</h1>
-        <p className="lede">Browse pages. Wall posts are for likers and page admins.</p>
-      </header>
+    <div className="sf-social-feed-page sf-social-pages-page">
+      <FeedTabs locale={locale} active="pages" {...tabFlags} />
+      <div className="sf-social-directory-shell">
+        <div className="sf-social-directory-toolbar">
+          {userId && canCreate ? (
+            <CreatePageForm />
+          ) : userId ? null : (
+            <p className="sf-social-directory-signin">
+              <Link className="sf-social-cta" href={loginHref}>
+                Sign in
+              </Link>
+              <span className="layout-muted"> to create or like pages.</span>
+            </p>
+          )}
+        </div>
 
-      {userId && canCreate ? (
-        <section className="sf-social-pages-create" aria-label="Create a page">
-          <h2 className="sf-social-section-heading">Create a page</h2>
-          <CreatePageForm />
+        <section className="sf-social-directory" aria-label="Page directory">
+          {directory.length === 0 ? (
+            <p className="layout-muted">No pages yet.</p>
+          ) : (
+            <ul className="sf-social-directory-grid">
+              {directory.map(({ page, likeCount }) => {
+                const coverSrc = pageCoverMediaSrc(page.coverMediaId)
+                return (
+                  <li key={page.id} className="sf-social-directory-card">
+                    <Link
+                      href={withLocalePrefix(pageHref(page.slug), locale)}
+                      className="sf-social-directory-card-link"
+                    >
+                      {coverSrc ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={coverSrc}
+                          alt=""
+                          className="sf-social-directory-card-cover"
+                        />
+                      ) : (
+                        <span
+                          className="sf-social-directory-card-cover sf-social-directory-card-cover-empty"
+                          aria-hidden
+                        />
+                      )}
+                      <span className="sf-social-directory-card-body">
+                        <span className="sf-social-directory-card-title">{page.name}</span>
+                        <span className="sf-social-directory-card-meta">
+                          {likeCount} like{likeCount === 1 ? '' : 's'}
+                        </span>
+                      </span>
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
         </section>
-      ) : userId ? null : (
-        <p>
-          <Link className="gantry-btn gantry-btn-primary" href={loginHref}>
-            Sign in
-          </Link>{' '}
-          to create or like pages.
-        </p>
-      )}
-
-      <section className="sf-social-pages-directory" aria-label="Page directory">
-        <h2 className="sf-social-section-heading">Directory</h2>
-        {directory.length === 0 ? (
-          <p className="layout-muted">No pages yet.</p>
-        ) : (
-          <ul className="sf-social-pages-list">
-            {directory.map(({ page, likeCount }) => (
-              <li key={page.id} className="sf-social-pages-item">
-                <Link
-                  href={withLocalePrefix(pageHref(page.slug), locale)}
-                  className="sf-social-pages-link"
-                >
-                  <span className="sf-social-pages-name">{page.name}</span>
-                  <span className="layout-muted">
-                    {likeCount} like{likeCount === 1 ? '' : 's'}
-                    {page.verifiedAt ? ' · verified' : ''}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-    </article>
+      </div>
+    </div>
   )
 }

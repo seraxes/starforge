@@ -24,11 +24,13 @@ import {
   acceptGroupInvite,
   addGroupDocument,
   announceGroupPostNotifying,
+  approveGroupJoinRequest,
   assignGroupRank,
   createGroup,
   createGroupCategory,
   createGroupRank,
   createGroupWallPostInDb,
+  declineGroupJoinRequest,
   deleteGroup,
   inviteToGroupNotifying,
   isUserActiveGroupMember,
@@ -51,12 +53,18 @@ import {
   setPageVerified,
   unlikePage,
 } from './pages-store'
-import { createPost, setPostStaffHidden } from './posts-store'
+import {
+  approvePendingPost,
+  createPost,
+  rejectPendingPost,
+  setPostStaffHidden,
+} from './posts-store'
 import { addAlbumItem, createAlbum, findAlbum } from './albums-store'
 import { isAlbumOwnerType } from './albums'
 import { createLinkPost, createSharePost } from './share-links-store'
 import { followUser, unfollowUser } from './follows-store'
 import { savePost, unsavePost } from './mentions-tags-saves-store'
+import { hidePost, muteUser, unhidePost, unmuteUser } from './quiet-store'
 import {
   closePoll,
   createCheckinPost,
@@ -559,6 +567,81 @@ export async function acceptGroupInviteAction(
   if (!result.ok) {
     if (result.reason === 'not_invited') return { error: 'No invite to accept.' }
     return { error: 'Could not accept the invite.' }
+  }
+
+  revalidatePath('/feed/groups')
+  revalidatePath('/feed/g')
+  return { ok: true, groupId }
+}
+
+/** Approve a closed-group join request (owner / admin / manage-members rank / staff). */
+export async function approveGroupJoinAction(
+  _prev: SocialGroupActionState,
+  formData: FormData,
+): Promise<SocialGroupActionState> {
+  const gate = await requireSocialMember()
+  if (!gate.ok) return { error: gate.error }
+
+  const groupId = String(formData.get('groupId') ?? '').trim()
+  const targetUserId = String(formData.get('targetUserId') ?? '').trim()
+  if (!groupId || !targetUserId) return { error: 'Choose a request to approve.' }
+
+  const staffCanManageMembers = await viewerMayModerateSocialContent(gate.userId)
+  const result = await approveGroupJoinRequest(
+    {
+      groupId,
+      actorUserId: gate.userId,
+      targetUserId,
+    },
+    { staffCanManageMembers },
+  )
+  if (!result.ok) {
+    if (result.reason === 'not_allowed') {
+      return { error: 'Not allowed to approve join requests.' }
+    }
+    if (result.reason === 'banned') return { error: 'You cannot approve while banned.' }
+    if (result.reason === 'already_member') return { error: 'They are already a member.' }
+    if (result.reason === 'not_requested') return { error: 'No pending join request.' }
+    if (result.reason === 'member_cap') return { error: 'This group is full.' }
+    if (result.reason === 'self') return { error: 'You cannot approve your own request.' }
+    return { error: 'Could not approve the request.' }
+  }
+
+  revalidatePath('/feed/groups')
+  revalidatePath('/feed/g')
+  return { ok: true, groupId }
+}
+
+/** Decline a closed-group join request — clears so they can ask again. */
+export async function declineGroupJoinAction(
+  _prev: SocialGroupActionState,
+  formData: FormData,
+): Promise<SocialGroupActionState> {
+  const gate = await requireSocialMember()
+  if (!gate.ok) return { error: gate.error }
+
+  const groupId = String(formData.get('groupId') ?? '').trim()
+  const targetUserId = String(formData.get('targetUserId') ?? '').trim()
+  if (!groupId || !targetUserId) return { error: 'Choose a request to decline.' }
+
+  const staffCanManageMembers = await viewerMayModerateSocialContent(gate.userId)
+  const result = await declineGroupJoinRequest(
+    {
+      groupId,
+      actorUserId: gate.userId,
+      targetUserId,
+    },
+    { staffCanManageMembers },
+  )
+  if (!result.ok) {
+    if (result.reason === 'not_allowed') {
+      return { error: 'Not allowed to decline join requests.' }
+    }
+    if (result.reason === 'banned') return { error: 'You cannot decline while banned.' }
+    if (result.reason === 'already_member') return { error: 'They are already a member.' }
+    if (result.reason === 'not_requested') return { error: 'No pending join request.' }
+    if (result.reason === 'self') return { error: 'You cannot decline your own request.' }
+    return { error: 'Could not decline the request.' }
   }
 
   revalidatePath('/feed/groups')
@@ -1293,6 +1376,33 @@ export type SocialCommentActionState = {
   commentId?: string
 }
 
+/** Social staff, or host event/page moderator for a conversation thread. */
+async function viewerMayModerateComment(
+  userId: string,
+  commentId: string,
+): Promise<boolean> {
+  if (await viewerMayModerateSocialContent(userId)) return true
+  const { findComment } = await import('./comments-store')
+  const comment = await findComment(commentId)
+  if (!comment) return false
+  const { findConversationByPostId } = await import('./host-conversation-store')
+  const conversation = await findConversationByPostId(comment.postId)
+  if (!conversation) return false
+  const { resolveHostConversationCanModerate } = await import('./host-resolve')
+  return resolveHostConversationCanModerate(conversation, userId)
+}
+
+async function revalidateHostConversationPath(postId: string): Promise<void> {
+  try {
+    const { findConversationByPostId } = await import('./host-conversation-store')
+    const conversation = await findConversationByPostId(postId)
+    const path = conversation?.hostPath?.trim()
+    if (path) revalidatePath(path)
+  } catch {
+    /* host path optional */
+  }
+}
+
 /** Comment on a post, or reply to any comment in the thread. */
 export async function createCommentAction(
   _prev: SocialCommentActionState,
@@ -1329,6 +1439,7 @@ export async function createCommentAction(
 
   revalidatePath('/feed')
   revalidatePath('/feed/post')
+  await revalidateHostConversationPath(postId)
   return { ok: true, commentId: result.comment.id }
 }
 
@@ -1345,7 +1456,7 @@ export async function editCommentAction(
   if (!commentId) return { error: 'Choose a comment.' }
   if (!body) return { error: 'Write a comment first.' }
 
-  const canManagePosts = await viewerMayModerateSocialContent(gate.userId)
+  const canManagePosts = await viewerMayModerateComment(gate.userId, commentId)
   const { editComment } = await import('./comments-store')
   const result = await editComment(
     { actorUserId: gate.userId, commentId, body },
@@ -1360,6 +1471,9 @@ export async function editCommentAction(
 
   revalidatePath('/feed')
   revalidatePath('/feed/post')
+  const { findComment } = await import('./comments-store')
+  const edited = await findComment(commentId)
+  if (edited) await revalidateHostConversationPath(edited.postId)
   return { ok: true, commentId }
 }
 
@@ -1374,8 +1488,9 @@ export async function deleteCommentAction(
   const commentId = String(formData.get('commentId') ?? '').trim()
   if (!commentId) return { error: 'Choose a comment.' }
 
-  const canManagePosts = await viewerMayModerateSocialContent(gate.userId)
-  const { deleteComment } = await import('./comments-store')
+  const canManagePosts = await viewerMayModerateComment(gate.userId, commentId)
+  const { deleteComment, findComment } = await import('./comments-store')
+  const existing = await findComment(commentId)
   const result = await deleteComment(
     { actorUserId: gate.userId, commentId },
     { canManagePosts },
@@ -1388,6 +1503,7 @@ export async function deleteCommentAction(
 
   revalidatePath('/feed')
   revalidatePath('/feed/post')
+  if (existing) await revalidateHostConversationPath(existing.postId)
   return { ok: true, commentId }
 }
 
@@ -1424,6 +1540,12 @@ export async function setReactionAction(
     }
     revalidatePath('/feed')
     revalidatePath('/feed/post')
+    if (targetType === 'post') await revalidateHostConversationPath(targetId)
+    else {
+      const { findComment } = await import('./comments-store')
+      const comment = await findComment(targetId)
+      if (comment) await revalidateHostConversationPath(comment.postId)
+    }
     return { ok: true, commentId: `${targetType}:${targetId}:clear` }
   }
 
@@ -1443,6 +1565,12 @@ export async function setReactionAction(
 
   revalidatePath('/feed')
   revalidatePath('/feed/post')
+  if (targetType === 'post') await revalidateHostConversationPath(targetId)
+  else {
+    const { findComment } = await import('./comments-store')
+    const comment = await findComment(targetId)
+    if (comment) await revalidateHostConversationPath(comment.postId)
+  }
   return { ok: true, commentId: `${targetType}:${targetId}:${result.reaction.kind}` }
 }
 
@@ -1540,6 +1668,113 @@ export async function blockUserAction(
   revalidatePath('/feed/people')
   revalidatePath('/feed/following')
   revalidatePath('/feed/post')
+  revalidatePath('/feed/u')
+  return { ok: true }
+}
+
+export type SocialQuietActionState = {
+  error?: string
+  ok?: boolean
+}
+
+/** Hide a post for this viewer only. Idempotent; feed SQL excludes before LIMIT. */
+export async function hidePostAction(
+  _prev: SocialQuietActionState,
+  formData: FormData,
+): Promise<SocialQuietActionState> {
+  const gate = await requireSocialMember()
+  if (!gate.ok) return { error: gate.error }
+
+  const postId = String(formData.get('postId') ?? '').trim()
+  if (!postId) return { error: 'Missing post.' }
+
+  const result = await hidePost({ userId: gate.userId, postId })
+  if (!result.ok) {
+    if (result.reason === 'cannot_view') return { error: 'You cannot hide this post.' }
+    if (result.reason === 'banned') return { error: 'Your Social account is restricted.' }
+    return { error: 'Could not hide this post.' }
+  }
+
+  revalidatePath('/feed')
+  revalidatePath('/feed/following')
+  revalidatePath('/feed/discover')
+  return { ok: true }
+}
+
+/** Undo a viewer hide (small feed undo). */
+export async function unhidePostAction(
+  _prev: SocialQuietActionState,
+  formData: FormData,
+): Promise<SocialQuietActionState> {
+  const gate = await requireSocialMember()
+  if (!gate.ok) return { error: gate.error }
+
+  const postId = String(formData.get('postId') ?? '').trim()
+  if (!postId) return { error: 'Missing post.' }
+
+  const result = await unhidePost(gate.userId, postId)
+  if (!result.ok) {
+    if (result.reason === 'not_hidden') return { error: 'That post is not hidden.' }
+    return { error: 'Could not undo hide.' }
+  }
+
+  revalidatePath('/feed')
+  revalidatePath('/feed/following')
+  revalidatePath('/feed/discover')
+  return { ok: true }
+}
+
+/** Mute a person — their posts drop from this viewer’s home / following / discover. */
+export async function muteUserAction(
+  _prev: SocialQuietActionState,
+  formData: FormData,
+): Promise<SocialQuietActionState> {
+  const gate = await requireSocialMember()
+  if (!gate.ok) return { error: gate.error }
+
+  const otherId = String(formData.get('userId') ?? '').trim()
+  if (!otherId) return { error: 'Choose a member.' }
+  if (otherId === gate.userId) return { error: 'You cannot mute yourself.' }
+
+  const result = await muteUser({
+    muterUserId: gate.userId,
+    mutedUserId: otherId,
+  })
+  if (!result.ok) {
+    if (result.reason === 'self') return { error: 'You cannot mute yourself.' }
+    if (result.reason === 'banned') return { error: 'Your Social account is restricted.' }
+    return { error: 'Could not mute this member.' }
+  }
+
+  revalidatePath('/feed')
+  revalidatePath('/feed/following')
+  revalidatePath('/feed/discover')
+  revalidatePath('/feed/people')
+  revalidatePath('/feed/u')
+  return { ok: true }
+}
+
+/** Unmute a person — their posts return to this viewer’s feeds. */
+export async function unmuteUserAction(
+  _prev: SocialQuietActionState,
+  formData: FormData,
+): Promise<SocialQuietActionState> {
+  const gate = await requireSocialMember()
+  if (!gate.ok) return { error: gate.error }
+
+  const otherId = String(formData.get('userId') ?? '').trim()
+  if (!otherId) return { error: 'Choose a member.' }
+
+  const result = await unmuteUser(gate.userId, otherId)
+  if (!result.ok) {
+    if (result.reason === 'not_muted') return { error: 'That member is not muted.' }
+    return { error: 'Could not unmute this member.' }
+  }
+
+  revalidatePath('/feed')
+  revalidatePath('/feed/following')
+  revalidatePath('/feed/discover')
+  revalidatePath('/feed/people')
   revalidatePath('/feed/u')
   return { ok: true }
 }
@@ -1915,6 +2150,79 @@ export async function setSocialPostStaffHiddenAction(
 
   revalidatePath('/admin/social/people')
   revalidatePath('/admin/social/reports')
+  revalidatePath('/admin/social/pending')
+  revalidatePath('/feed')
+  revalidatePath(`/feed/post/${postId}`)
+  return { ok: true }
+}
+
+/** Approve a held post from /admin/social/pending. */
+export async function approvePendingSocialPostAction(
+  _prev: SocialModerationActionState,
+  formData: FormData,
+): Promise<SocialModerationActionState> {
+  const settings = await getSiteSettings()
+  if (!isCatalogModuleEnabled(settings, MODULE_IDS.social)) {
+    return { error: 'Social is disabled.' }
+  }
+
+  const session = await requireAdminArea('admin.social', 'manage')
+  const actorUserId = session?.user?.id ? String(session.user.id).trim() : ''
+  if (!actorUserId) {
+    return { error: 'Sign in with Social admin access (Users → ACL) or as an app admin.' }
+  }
+
+  const postId = String(formData.get('postId') ?? '').trim()
+  if (!postId) return { error: 'Missing post.' }
+
+  const result = await approvePendingPost(
+    { actorUserId, postId },
+    { canManagePosts: true },
+  )
+  if (!result.ok) {
+    if (result.reason === 'cannot_manage') return { error: 'Not allowed.' }
+    if (result.reason === 'not_found') return { error: 'Post not found.' }
+    return { error: 'Could not approve the post.' }
+  }
+
+  revalidatePath('/admin/social/pending')
+  revalidatePath('/admin/social/people')
+  revalidatePath('/feed')
+  revalidatePath(`/feed/post/${postId}`)
+  return { ok: true }
+}
+
+/** Reject a held post from /admin/social/pending (staff-hide). */
+export async function rejectPendingSocialPostAction(
+  _prev: SocialModerationActionState,
+  formData: FormData,
+): Promise<SocialModerationActionState> {
+  const settings = await getSiteSettings()
+  if (!isCatalogModuleEnabled(settings, MODULE_IDS.social)) {
+    return { error: 'Social is disabled.' }
+  }
+
+  const session = await requireAdminArea('admin.social', 'manage')
+  const actorUserId = session?.user?.id ? String(session.user.id).trim() : ''
+  if (!actorUserId) {
+    return { error: 'Sign in with Social admin access (Users → ACL) or as an app admin.' }
+  }
+
+  const postId = String(formData.get('postId') ?? '').trim()
+  if (!postId) return { error: 'Missing post.' }
+
+  const result = await rejectPendingPost(
+    { actorUserId, postId },
+    { canManagePosts: true },
+  )
+  if (!result.ok) {
+    if (result.reason === 'cannot_manage') return { error: 'Not allowed.' }
+    if (result.reason === 'not_found') return { error: 'Post not found.' }
+    return { error: 'Could not reject the post.' }
+  }
+
+  revalidatePath('/admin/social/pending')
+  revalidatePath('/admin/social/people')
   revalidatePath('/feed')
   revalidatePath(`/feed/post/${postId}`)
   return { ok: true }

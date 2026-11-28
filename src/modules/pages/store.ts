@@ -19,6 +19,7 @@ import type { LocaleTextMap } from '@/core/i18n/locale-text'
 import { sanitizeRichHtml } from '@/modules/rich-editor/api.server'
 
 import { assertPageCategoryId } from './categories'
+import { notifyPagePublishedActivity } from './publish-social-activity'
 import { sfPages, sfPagesPageTags, sfPagesTags, sfPagesVersions } from './schema'
 import { normalizePageSlug, normalizePageTagSlug } from './slug'
 import {
@@ -521,6 +522,10 @@ export async function savePage(
       if (!page) return { error: 'Page created but could not be reloaded.' }
       await persistLocales(page, cleaned)
       await invalidatePublishedPage({ slug: page.slug })
+      await notifyPagePublishedActivity({
+        page,
+        actorUserId: page.publishedByUserId || actor,
+      })
       return { page }
     }
 
@@ -561,6 +566,10 @@ export async function savePage(
       slug: page.slug,
       previousSlug: previous.slug,
       slugChanged: previous.slug !== page.slug,
+    })
+    await notifyPagePublishedActivity({
+      page,
+      actorUserId: page.publishedByUserId || actor,
     })
     return { page }
   } catch (error) {

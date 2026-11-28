@@ -7,7 +7,15 @@ import {
   isBlockedBetween,
   requestFriendshipWithMail,
 } from './friends'
-import { isPeopleDirectoryCandidate, selectPeopleDirectory } from './people'
+import {
+  countMutualFriends,
+  formatMutualFriendCount,
+  isPeopleDirectoryCandidate,
+  isPeopleSuggestionCandidate,
+  selectPeopleDirectory,
+  selectPeopleSuggestions,
+  type PeopleSuggestionCandidate,
+} from './people'
 import { canViewPost, createPostRecord } from './posts'
 
 describe('people — dual blockers', () => {
@@ -133,5 +141,95 @@ describe('people directory', () => {
       }),
       false,
     )
+  })
+})
+
+describe('people suggestions / mutual friends', () => {
+  function candidate(
+    partial: Partial<PeopleSuggestionCandidate> & Pick<PeopleSuggestionCandidate, 'userId'>,
+  ): PeopleSuggestionCandidate {
+    return {
+      isHidden: false,
+      isBlocked: false,
+      isFriend: false,
+      isBanned: false,
+      mutualFriendCount: 0,
+      ...partial,
+    }
+  }
+
+  it('counts shared accepted friends correctly (success path)', () => {
+    assert.equal(
+      countMutualFriends(new Set(['carol', 'dave', 'erin']), new Set(['dave', 'frank', 'carol'])),
+      2,
+    )
+    assert.equal(countMutualFriends(new Set(['carol']), new Set(['dave'])), 0)
+    assert.equal(formatMutualFriendCount(2), '2 mutual friends')
+    assert.equal(formatMutualFriendCount(1), '1 mutual friend')
+    assert.equal(formatMutualFriendCount(0), null)
+  })
+
+  it('omits a blocked person from suggestions (failure path)', () => {
+    const selected = selectPeopleSuggestions(
+      [
+        candidate({ userId: 'blocked-user', isBlocked: true, mutualFriendCount: 3 }),
+        candidate({ userId: 'carol', mutualFriendCount: 2 }),
+      ],
+      'viewer',
+    )
+    assert.deepEqual(
+      selected.map((p) => p.userId),
+      ['carol'],
+    )
+    assert.equal(
+      isPeopleSuggestionCandidate('blocked-user', 'viewer', {
+        isHidden: false,
+        isBlocked: true,
+        isFriend: false,
+        isBanned: false,
+        mutualFriendCount: 3,
+      }),
+      false,
+    )
+  })
+
+  it('omits an existing friend from suggestions (failure path)', () => {
+    const selected = selectPeopleSuggestions(
+      [
+        candidate({ userId: 'bob', isFriend: true, mutualFriendCount: 5 }),
+        candidate({ userId: 'carol', mutualFriendCount: 1 }),
+      ],
+      'viewer',
+    )
+    assert.deepEqual(
+      selected.map((p) => p.userId),
+      ['carol'],
+    )
+  })
+
+  it('omits self from suggestions (failure path)', () => {
+    const selected = selectPeopleSuggestions(
+      [
+        candidate({ userId: 'viewer', mutualFriendCount: 4 }),
+        candidate({ userId: 'carol', mutualFriendCount: 1 }),
+      ],
+      'viewer',
+    )
+    assert.deepEqual(
+      selected.map((p) => p.userId),
+      ['carol'],
+    )
+  })
+
+  it('yields an empty suggestion list when every candidate has zero mutuals (failure path)', () => {
+    const selected = selectPeopleSuggestions(
+      [
+        candidate({ userId: 'alice', mutualFriendCount: 0 }),
+        candidate({ userId: 'bob', mutualFriendCount: 0 }),
+        candidate({ userId: 'carol', mutualFriendCount: 0 }),
+      ],
+      'viewer',
+    )
+    assert.deepEqual(selected, [])
   })
 })

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useActionState, useRef } from 'react'
+import { useTranslations } from 'next-intl'
 
 import { MemberMediaPicker } from '@/modules/media/api'
 import { EmojiInsertButton } from '@/modules/rich-editor/api'
@@ -9,10 +10,12 @@ import {
   acceptGroupInviteAction,
   addGroupDocumentAction,
   announceGroupPostAction,
+  approveGroupJoinAction,
   assignGroupRankAction,
   createGroupAction,
   createGroupRankAction,
   createGroupWallPostAction,
+  declineGroupJoinAction,
   deleteGroupAction,
   inviteToGroupAction,
   joinGroupAction,
@@ -38,61 +41,78 @@ export function CreateGroupForm({
   categories: GroupCategoryRecord[]
   defaultVisibility?: GroupVisibility
 }) {
+  const [open, setOpen] = React.useState(false)
   const [state, action, pending] = useActionState(createGroupAction, initial)
   return (
-    <form action={action} className="sf-social-create-group">
-      <label className="settings-field">
-        <span>Name</span>
-        <input type="text" name="name" maxLength={120} required disabled={pending} />
-      </label>
-      <label className="settings-field">
-        <span>Category</span>
-        <select name="categoryId" required disabled={pending} defaultValue="">
-          <option value="" disabled>
-            Choose…
-          </option>
-          {categories.map((cat) => (
-            <option key={cat.id} value={cat.id}>
-              {cat.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="settings-field">
-        <span>Visibility</span>
-        <select name="visibility" defaultValue={defaultVisibility} disabled={pending}>
-          <option value="open">Open</option>
-          <option value="closed">Closed</option>
-        </select>
-      </label>
-      <label className="settings-field">
-        <span>Description</span>
-        <textarea name="description" rows={2} maxLength={2000} disabled={pending} />
-      </label>
-      <label className="settings-field">
-        <span>Join form id (optional, closed groups)</span>
-        <input
-          type="text"
-          name="formDefinitionId"
-          maxLength={120}
-          disabled={pending}
-          placeholder="Forms definition id"
-        />
-      </label>
-      <div className="admin-control-row">
-        <button type="submit" className="gantry-btn gantry-btn-primary" disabled={pending}>
-          {pending ? 'Creating…' : 'Create group'}
-        </button>
-      </div>
-      {state.error ? (
-        <p className="admin-inline-error" role="alert">
-          {state.error}
-        </p>
+    <div className="sf-social-directory-create">
+      <button
+        type="button"
+        className="sf-social-directory-create-toggle"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+      >
+        {open ? 'Close' : 'Create a group'}
+      </button>
+      {open ? (
+        <form action={action} className="sf-social-create-group">
+          <label className="settings-field">
+            <span>Name</span>
+            <input type="text" name="name" maxLength={120} required disabled={pending} />
+          </label>
+          <label className="settings-field">
+            <span>Category</span>
+            <select name="categoryId" required disabled={pending} defaultValue="">
+              <option value="" disabled>
+                Choose…
+              </option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="settings-field">
+            <span>Visibility</span>
+            <select name="visibility" defaultValue={defaultVisibility} disabled={pending}>
+              <option value="open">Open</option>
+              <option value="closed">Closed</option>
+            </select>
+          </label>
+          <label className="settings-field">
+            <span>Description</span>
+            <textarea name="description" rows={2} maxLength={2000} disabled={pending} />
+          </label>
+          <label className="settings-field">
+            <span>Join form id (optional, closed groups)</span>
+            <input
+              type="text"
+              name="formDefinitionId"
+              maxLength={120}
+              disabled={pending}
+              placeholder="Forms definition id"
+            />
+          </label>
+          <div className="sf-social-directory-create-actions">
+            <button
+              type="submit"
+              className="sf-social-directory-create-submit"
+              disabled={pending}
+            >
+              {pending ? 'Creating…' : 'Create group'}
+            </button>
+          </div>
+          {state.error ? (
+            <p className="sf-social-inline-error" role="alert">
+              {state.error}
+            </p>
+          ) : null}
+          {state.ok && state.slug ? (
+            <p className="sf-social-inline-ok">Group created.</p>
+          ) : null}
+        </form>
       ) : null}
-      {state.ok && state.slug ? (
-        <p className="admin-inline-ok">Group created.</p>
-      ) : null}
-    </form>
+    </div>
   )
 }
 
@@ -107,7 +127,7 @@ export function JoinGroupButton({
   return (
     <form action={action} className="sf-social-join-group">
       <input type="hidden" name="groupId" value={groupId} />
-      <button type="submit" className="gantry-btn gantry-btn-primary" disabled={pending}>
+      <button type="submit" className="sf-social-btn sf-social-btn-primary" disabled={pending}>
         {pending
           ? 'Working…'
           : visibility === 'closed'
@@ -115,7 +135,7 @@ export function JoinGroupButton({
             : 'Join group'}
       </button>
       {state.error ? (
-        <p className="admin-inline-error" role="alert">
+        <p className="sf-social-inline-error" role="alert">
           {state.error}
         </p>
       ) : null}
@@ -128,11 +148,85 @@ export function AcceptGroupInviteButton({ groupId }: { groupId: string }) {
   return (
     <form action={action} className="sf-social-accept-invite">
       <input type="hidden" name="groupId" value={groupId} />
-      <button type="submit" className="gantry-btn gantry-btn-primary" disabled={pending}>
+      <button type="submit" className="sf-social-btn sf-social-btn-primary" disabled={pending}>
         {pending ? 'Accepting…' : 'Accept invite'}
       </button>
       {state.error ? (
-        <p className="admin-inline-error" role="alert">
+        <p className="sf-social-inline-error" role="alert">
+          {state.error}
+        </p>
+      ) : null}
+    </form>
+  )
+}
+
+export function PendingJoinRequestsList({
+  groupId,
+  requests,
+}: {
+  groupId: string
+  requests: GroupMemberRecord[]
+}) {
+  const t = useTranslations('product:social')
+  if (requests.length === 0) {
+    return <p className="layout-muted">{t('noPendingJoinRequests')}</p>
+  }
+  return (
+    <ul className="sf-social-pending-joins">
+      {requests.map((row) => (
+        <li key={row.id} className="sf-social-control-row">
+          <span>{row.userId}</span>
+          <ApproveGroupJoinButton groupId={groupId} targetUserId={row.userId} />
+          <DeclineGroupJoinButton groupId={groupId} targetUserId={row.userId} />
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+export function ApproveGroupJoinButton({
+  groupId,
+  targetUserId,
+}: {
+  groupId: string
+  targetUserId: string
+}) {
+  const t = useTranslations('product:social')
+  const [state, action, pending] = useActionState(approveGroupJoinAction, initial)
+  return (
+    <form action={action} className="sf-social-approve-join">
+      <input type="hidden" name="groupId" value={groupId} />
+      <input type="hidden" name="targetUserId" value={targetUserId} />
+      <button type="submit" className="sf-social-btn sf-social-btn-primary" disabled={pending}>
+        {pending ? t('approvingJoinRequest') : t('approveJoinRequest')}
+      </button>
+      {state.error ? (
+        <p className="sf-social-inline-error" role="alert">
+          {state.error}
+        </p>
+      ) : null}
+    </form>
+  )
+}
+
+export function DeclineGroupJoinButton({
+  groupId,
+  targetUserId,
+}: {
+  groupId: string
+  targetUserId: string
+}) {
+  const t = useTranslations('product:social')
+  const [state, action, pending] = useActionState(declineGroupJoinAction, initial)
+  return (
+    <form action={action} className="sf-social-decline-join">
+      <input type="hidden" name="groupId" value={groupId} />
+      <input type="hidden" name="targetUserId" value={targetUserId} />
+      <button type="submit" className="sf-social-btn" disabled={pending}>
+        {pending ? t('decliningJoinRequest') : t('declineJoinRequest')}
+      </button>
+      {state.error ? (
+        <p className="sf-social-inline-error" role="alert">
           {state.error}
         </p>
       ) : null}
@@ -143,7 +237,7 @@ export function AcceptGroupInviteButton({ groupId }: { groupId: string }) {
 export function InviteToGroupForm({ groupId }: { groupId: string }) {
   const [state, action, pending] = useActionState(inviteToGroupAction, initial)
   return (
-    <form action={action} className="sf-social-invite-group admin-control-row">
+    <form action={action} className="sf-social-invite-group sf-social-control-row">
       <input type="hidden" name="groupId" value={groupId} />
       <label className="settings-field">
         <span>Member user id</span>
@@ -155,11 +249,11 @@ export function InviteToGroupForm({ groupId }: { groupId: string }) {
           placeholder="User id"
         />
       </label>
-      <button type="submit" className="gantry-btn" disabled={pending}>
+      <button type="submit" className="sf-social-btn" disabled={pending}>
         {pending ? 'Inviting…' : 'Invite'}
       </button>
       {state.error ? (
-        <p className="admin-inline-error" role="alert">
+        <p className="sf-social-inline-error" role="alert">
           {state.error}
         </p>
       ) : null}
@@ -184,14 +278,14 @@ export function GroupWallComposer({ groupId }: { groupId: string }) {
           disabled={pending}
         />
       </label>
-      <div className="admin-control-row">
+      <div className="sf-social-control-row">
         <EmojiInsertButton disabled={pending} targetRef={bodyRef} />
-        <button type="submit" className="gantry-btn gantry-btn-primary" disabled={pending}>
+        <button type="submit" className="sf-social-btn sf-social-btn-primary" disabled={pending}>
           {pending ? 'Posting…' : 'Post'}
         </button>
       </div>
       {state.error ? (
-        <p className="admin-inline-error" role="alert">
+        <p className="sf-social-inline-error" role="alert">
           {state.error}
         </p>
       ) : null}
@@ -224,11 +318,11 @@ export function CreateGroupRankForm({ groupId }: { groupId: string }) {
         <span>Can manage members</span>
         <input type="checkbox" name="canManageMembers" disabled={pending} />
       </label>
-      <button type="submit" className="gantry-btn" disabled={pending}>
+      <button type="submit" className="sf-social-btn" disabled={pending}>
         {pending ? 'Saving…' : 'Add rank'}
       </button>
       {state.error ? (
-        <p className="admin-inline-error" role="alert">
+        <p className="sf-social-inline-error" role="alert">
           {state.error}
         </p>
       ) : null}
@@ -249,7 +343,7 @@ export function AssignGroupRankForm({
   const assignable = members.filter((row) => row.role === 'member')
   if (assignable.length === 0 || ranks.length === 0) return null
   return (
-    <form action={action} className="sf-social-assign-rank admin-control-row">
+    <form action={action} className="sf-social-assign-rank sf-social-control-row">
       <input type="hidden" name="groupId" value={groupId} />
       <label className="settings-field">
         <span>Member</span>
@@ -277,11 +371,11 @@ export function AssignGroupRankForm({
           ))}
         </select>
       </label>
-      <button type="submit" className="gantry-btn" disabled={pending}>
+      <button type="submit" className="sf-social-btn" disabled={pending}>
         {pending ? 'Saving…' : 'Assign'}
       </button>
       {state.error ? (
-        <p className="admin-inline-error" role="alert">
+        <p className="sf-social-inline-error" role="alert">
           {state.error}
         </p>
       ) : null}
@@ -300,7 +394,7 @@ export function SetGroupMemberRoleForm({
   const candidates = members.filter((row) => row.role !== 'owner')
   if (candidates.length === 0) return null
   return (
-    <form action={action} className="sf-social-set-role admin-control-row">
+    <form action={action} className="sf-social-set-role sf-social-control-row">
       <input type="hidden" name="groupId" value={groupId} />
       <label className="settings-field">
         <span>Member</span>
@@ -322,11 +416,11 @@ export function SetGroupMemberRoleForm({
           <option value="member">Member</option>
         </select>
       </label>
-      <button type="submit" className="gantry-btn" disabled={pending}>
+      <button type="submit" className="sf-social-btn" disabled={pending}>
         {pending ? 'Saving…' : 'Set role'}
       </button>
       {state.error ? (
-        <p className="admin-inline-error" role="alert">
+        <p className="sf-social-inline-error" role="alert">
           {state.error}
         </p>
       ) : null}
@@ -347,7 +441,7 @@ export function RemoveGroupMemberForm({
   const removable = members.filter((row) => row.userId !== actorUserId)
   if (removable.length === 0) return null
   return (
-    <form action={action} className="sf-social-remove-member admin-control-row">
+    <form action={action} className="sf-social-remove-member sf-social-control-row">
       <input type="hidden" name="groupId" value={groupId} />
       <label className="settings-field">
         <span>Remove member</span>
@@ -362,11 +456,11 @@ export function RemoveGroupMemberForm({
           ))}
         </select>
       </label>
-      <button type="submit" className="gantry-btn" disabled={pending}>
+      <button type="submit" className="sf-social-btn" disabled={pending}>
         {pending ? 'Removing…' : 'Remove'}
       </button>
       {state.error ? (
-        <p className="admin-inline-error" role="alert">
+        <p className="sf-social-inline-error" role="alert">
           {state.error}
         </p>
       ) : null}
@@ -398,11 +492,11 @@ export function AddGroupDocumentForm({ groupId }: { groupId: string }) {
           hint="File stays in Media."
         />
       </div>
-      <button type="submit" className="gantry-btn" disabled={pending || !mediaId}>
+      <button type="submit" className="sf-social-btn" disabled={pending || !mediaId}>
         {pending ? 'Adding…' : 'Add document'}
       </button>
       {state.error ? (
-        <p className="admin-inline-error" role="alert">
+        <p className="sf-social-inline-error" role="alert">
           {state.error}
         </p>
       ) : null}
@@ -439,11 +533,11 @@ export function AnnounceGroupPostButton({
     <form action={action} className="sf-social-announce-post">
       <input type="hidden" name="groupId" value={groupId} />
       <input type="hidden" name="postId" value={postId} />
-      <button type="submit" className="gantry-btn" disabled={pending}>
+      <button type="submit" className="sf-social-btn" disabled={pending}>
         {pending ? 'Pinning…' : 'Announce'}
       </button>
       {state.error ? (
-        <p className="admin-inline-error" role="alert">
+        <p className="sf-social-inline-error" role="alert">
           {state.error}
         </p>
       ) : null}
@@ -460,7 +554,7 @@ export function SetGroupFormDefinitionForm({
 }) {
   const [state, action, pending] = useActionState(setGroupFormDefinitionAction, initial)
   return (
-    <form action={action} className="sf-social-set-form admin-control-row">
+    <form action={action} className="sf-social-set-form sf-social-control-row">
       <input type="hidden" name="groupId" value={groupId} />
       <label className="settings-field">
         <span>Join form id</span>
@@ -473,11 +567,11 @@ export function SetGroupFormDefinitionForm({
           placeholder="Forms definition id"
         />
       </label>
-      <button type="submit" className="gantry-btn" disabled={pending}>
+      <button type="submit" className="sf-social-btn" disabled={pending}>
         {pending ? 'Saving…' : 'Save form'}
       </button>
       {state.error ? (
-        <p className="admin-inline-error" role="alert">
+        <p className="sf-social-inline-error" role="alert">
           {state.error}
         </p>
       ) : null}
@@ -498,7 +592,7 @@ export function TransferGroupForm({
   const candidates = members.filter((row) => row.userId !== ownerUserId)
   if (candidates.length === 0) return null
   return (
-    <form action={action} className="sf-social-transfer-group admin-control-row">
+    <form action={action} className="sf-social-transfer-group sf-social-control-row">
       <input type="hidden" name="groupId" value={groupId} />
       <label className="settings-field">
         <span>New owner</span>
@@ -513,11 +607,11 @@ export function TransferGroupForm({
           ))}
         </select>
       </label>
-      <button type="submit" className="gantry-btn" disabled={pending}>
+      <button type="submit" className="sf-social-btn" disabled={pending}>
         {pending ? 'Transferring…' : 'Transfer'}
       </button>
       {state.error ? (
-        <p className="admin-inline-error" role="alert">
+        <p className="sf-social-inline-error" role="alert">
           {state.error}
         </p>
       ) : null}
@@ -530,11 +624,11 @@ export function DeleteGroupButton({ groupId }: { groupId: string }) {
   return (
     <form action={action} className="sf-social-delete-group">
       <input type="hidden" name="groupId" value={groupId} />
-      <button type="submit" className="gantry-btn" disabled={pending}>
+      <button type="submit" className="sf-social-btn" disabled={pending}>
         {pending ? 'Deleting…' : 'Delete group'}
       </button>
       {state.error ? (
-        <p className="admin-inline-error" role="alert">
+        <p className="sf-social-inline-error" role="alert">
           {state.error}
         </p>
       ) : null}

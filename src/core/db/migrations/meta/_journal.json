@@ -540,6 +540,27 @@
       "when": 1795824000000,
       "tag": "0077_documents_signing",
       "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1795825000000,
+      "tag": "0078_social_posts_pending_review",
+      "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1795826000000,
+      "tag": "0079_social_quiet_hide_mute",
+      "breakpoints": true
+    },
+    {
+      "idx": 79,
+      "version": "7",
+      "when": 1795827000000,
+      "tag": "0080_social_host_conversations",
+      "breakpoints": true
     }
   ]
 }

@@ -511,6 +511,7 @@ export async function createPageWallPostInDb(
       groupId: decision.post.groupId,
       pageId: decision.post.pageId,
       staffHidden: decision.post.staffHidden,
+      pendingReview: decision.post.pendingReview,
       isAnnouncement: decision.post.isAnnouncement,
       editedAt: decision.post.editedAt,
       extensions: decision.post.extensions,

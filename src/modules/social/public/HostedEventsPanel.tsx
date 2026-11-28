@@ -97,16 +97,16 @@ export async function HostedEventsPanel({
 
   return (
     <section className="sf-social-hosted-events" aria-label="Calendar">
-      <div className="admin-control-row">
+      <div className="sf-social-control-row sf-social-hosted-events-head">
         <h2 className="sf-social-section-heading">Calendar</h2>
         {canManage ? (
-          <Link className="gantry-btn gantry-btn-primary" href={createHref}>
+          <Link className="sf-social-btn sf-social-btn-primary" href={createHref}>
             Create event
           </Link>
         ) : null}
       </div>
       {canManage ? (
-        <p className="settings-hint">
+        <p className="sf-social-entity-hint">
           Opens the Events editor with this {hostKind} as host. Edit stays under Events.
         </p>
       ) : null}
@@ -115,13 +115,13 @@ export async function HostedEventsPanel({
       ) : (
         <ul className="sf-social-hosted-events-list">
           {events.map((event) => (
-            <li key={event.id} className="admin-control-row">
+            <li key={event.id} className="sf-social-hosted-events-item">
               <Link href={publicEventHref(event, locale)}>{event.title}</Link>
               <span className="layout-muted">{formatWhen(event)}</span>
               <span className="layout-muted">{event.status}</span>
               {canManage ? (
                 <Link
-                  className="gantry-btn"
+                  className="sf-social-btn"
                   href={door.buildHostedEventEditHref(event.id)}
                 >
                   Edit

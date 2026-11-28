@@ -22,17 +22,16 @@ export function CreateStoryForm() {
       <div className="settings-field settings-field-wide">
         <span>Photo or video</span>
         {mediaId ? (
-          <div className="admin-control-row">
+          <div className="sf-social-control-row">
             {/* eslint-disable-next-line @next/next/no-img-element -- Media library redirect */}
             <img
               src={`/api/media/${encodeURIComponent(mediaId)}`}
               alt=""
-              className="sf-social-composer-media-thumb"
+              className="sf-social-story-preview"
             />
-            <code>{mediaId}</code>
             <button
               type="button"
-              className="gantry-btn"
+              className="sf-social-btn"
               disabled={pending}
               onClick={() => setMediaId('')}
             >
@@ -55,21 +54,21 @@ export function CreateStoryForm() {
           />
         )}
       </div>
-      <div className="admin-control-row">
+      <div className="sf-social-control-row">
         <button
           type="submit"
-          className="gantry-btn gantry-btn-primary"
+          className="sf-social-btn sf-social-btn-primary"
           disabled={pending || !mediaId}
         >
           {pending ? 'Posting…' : 'Post story'}
         </button>
       </div>
       {state.error ? (
-        <p className="admin-inline-error" role="alert">
+        <p className="sf-social-inline-error" role="alert">
           {state.error}
         </p>
       ) : null}
-      {state.ok ? <p className="admin-inline-ok">Story posted. It expires in 24 hours.</p> : null}
+      {state.ok ? <p className="sf-social-inline-ok">Story posted. It expires in 24 hours.</p> : null}
     </form>
   )
 }
@@ -77,13 +76,13 @@ export function CreateStoryForm() {
 export function MarkStorySeenButton({ storyId }: { storyId: string }) {
   const [state, action, pending] = useActionState(recordStoryViewAction, initial)
   return (
-    <form action={action}>
+    <form action={action} className="sf-social-story-seen-form">
       <input type="hidden" name="storyId" value={storyId} />
-      <button type="submit" className="gantry-btn" disabled={pending}>
+      <button type="submit" className="sf-social-btn" disabled={pending}>
         {pending ? 'Marking…' : 'Mark seen'}
       </button>
       {state.error ? (
-        <p className="admin-inline-error" role="alert">
+        <p className="sf-social-inline-error" role="alert">
           {state.error}
         </p>
       ) : null}

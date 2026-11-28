@@ -85,6 +85,23 @@ export async function listBannedMembers(opts?: {
   }
 }
 
+/** User ids with Social `bannedAt` set (for People suggestions omit). */
+export async function listSocialBannedUserIds(): Promise<Set<string>> {
+  try {
+    const rows = await db
+      .select({ userId: sfSocialMembers.userId })
+      .from(sfSocialMembers)
+      .where(isNotNull(sfSocialMembers.bannedAt))
+    return new Set(rows.map((row) => row.userId.trim()).filter(Boolean))
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    if (/sf_social_members|does not exist|relation|banned_at/i.test(msg)) {
+      return new Set()
+    }
+    throw error
+  }
+}
+
 /** User ids with Social `hiddenAt` set (for feed / directory omit). */
 export async function listSocialHiddenUserIds(): Promise<Set<string>> {
   try {

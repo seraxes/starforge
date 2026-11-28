@@ -149,6 +149,7 @@ export async function createChallengeInDb(
       groupId: null,
       pageId: null,
       staffHidden: decision.post.staffHidden,
+      pendingReview: decision.post.pendingReview,
       isAnnouncement: false,
       editedAt: null,
       extensions: {},

@@ -7,7 +7,7 @@
 
 import 'server-only'
 
-import { and, desc, eq, inArray, isNull, notInArray, or, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNull, ne, notInArray, or, sql } from 'drizzle-orm'
 
 import { db } from '@/core/db'
 import { listProfileDirectory } from '@/modules/profiles/api.server'
@@ -29,6 +29,10 @@ import {
   type PostRecord,
 } from './posts'
 import { hydratePostsMedia } from './posts-store'
+import {
+  listHiddenPostIdsForViewer,
+  listMutedAuthorIdsForViewer,
+} from './quiet-store'
 import { sfSocialFriendships, sfSocialPosts } from './schema'
 import { viewerMayModerateSocialContent } from './staff-grant'
 
@@ -219,6 +223,8 @@ export async function listHomeFeedPosts(
     memberGroupIds,
     likedPageIds,
     adminPageIds,
+    hiddenPostIds,
+    mutedAuthorIds,
   ] = await Promise.all([
     listAcceptedFriendIds(viewer),
     listBlockedPeerIds(viewer),
@@ -226,19 +232,38 @@ export async function listHomeFeedPosts(
     listActiveMemberGroupIds(viewer),
     listLikedPageIds(viewer),
     listAdminPageIds(viewer),
+    listHiddenPostIdsForViewer(viewer),
+    listMutedAuthorIdsForViewer(viewer),
   ])
 
-  // Friends whose posts can appear for this viewer (block / hidden deny like canViewPost).
+  // Friends whose posts can appear for this viewer (block / hidden / mute deny).
   const visibleFriendIds = friendIds.filter(
-    (id) => !blockedPeerIds.has(id) && !hiddenAuthorIds.has(id),
+    (id) =>
+      !blockedPeerIds.has(id) &&
+      !hiddenAuthorIds.has(id) &&
+      !mutedAuthorIds.has(id),
   )
   const hiddenList = [...hiddenAuthorIds]
   const blockedList = [...blockedPeerIds]
+  const mutedList = [...mutedAuthorIds]
+  const hiddenPostList = [...hiddenPostIds]
   const visiblePageIds = [...new Set([...likedPageIds, ...adminPageIds])]
 
   const staffOk = canManagePosts
     ? sql`true`
-    : eq(sfSocialPosts.staffHidden, false)
+    : and(
+        eq(sfSocialPosts.staffHidden, false),
+        eq(sfSocialPosts.pendingReview, false),
+      )
+
+  const postNotHidden =
+    hiddenPostList.length > 0
+      ? notInArray(sfSocialPosts.id, hiddenPostList)
+      : sql`true`
+  const authorNotMuted =
+    mutedList.length > 0
+      ? notInArray(sfSocialPosts.authorUserId, mutedList)
+      : sql`true`
 
   const friendVisible =
     visibleFriendIds.length > 0
@@ -247,6 +272,7 @@ export async function listHomeFeedPosts(
           inArray(sfSocialPosts.audience, ['friends', 'public']),
           isNull(sfSocialPosts.pageId),
           staffOk,
+          postNotHidden,
         )
       : sql`false`
 
@@ -266,7 +292,9 @@ export async function listHomeFeedPosts(
           inArray(sfSocialPosts.groupId, memberGroupIds),
           authorNotBlocked,
           authorNotHidden,
+          authorNotMuted,
           staffOk,
+          postNotHidden,
         )
       : sql`false`
 
@@ -276,26 +304,30 @@ export async function listHomeFeedPosts(
           inArray(sfSocialPosts.pageId, visiblePageIds),
           authorNotBlocked,
           authorNotHidden,
+          authorNotMuted,
           staffOk,
+          postNotHidden,
         )
       : sql`false`
 
   // Staff private-read: only_me / friends / group without friendship or membership
-  // (parity with canViewPost). Block + author-hidden still deny.
+  // (parity with canViewPost). Block + author-hidden still deny. Mute / hide also cut.
   const staffPrivateVisible = canManagePosts
     ? and(
         authorNotBlocked,
         authorNotHidden,
+        authorNotMuted,
         isNull(sfSocialPosts.pageId),
         inArray(sfSocialPosts.audience, ['only_me', 'friends', 'group', 'public']),
         staffOk,
+        postNotHidden,
       )
     : sql`false`
 
-  // Own posts always; friends’ friends/public; group walls; liked/admin pages;
-  // staff private-read when granted.
+  // Own posts always (except viewer-hidden); friends’ friends/public; group walls;
+  // liked/admin pages; staff private-read when granted.
   const visibility = or(
-    eq(sfSocialPosts.authorUserId, viewer),
+    and(eq(sfSocialPosts.authorUserId, viewer), postNotHidden),
     friendVisible,
     groupVisible,
     pageVisible,
@@ -307,7 +339,7 @@ export async function listHomeFeedPosts(
     rows = await db
       .select()
       .from(sfSocialPosts)
-      .where(visibility)
+      .where(and(visibility, ne(sfSocialPosts.kind, 'conversation')))
       .orderBy(desc(sfSocialPosts.createdAt))
       .limit(limit)
   } catch (error) {

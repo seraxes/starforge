@@ -24,6 +24,7 @@ import {
 import { hashEventPassword } from './access-password'
 import { assertRegistrationFormId, findEventCategoryById } from './categories'
 import { parseEventHost } from './host'
+import { notifyEventPublishedActivity } from './publish-social-activity'
 import { sfEvents, sfVenues } from './schema'
 import {
   expandSeriesStarts,
@@ -569,6 +570,11 @@ export type UpsertEventInput = {
   hostKind?: unknown
   /** Host entity id. Required when any host field is set. */
   hostId?: unknown
+  /**
+   * Publisher for Social activity cards only — not a column on `sf_events`.
+   * Passed from admin actions; series create/expand forwards it on each row.
+   */
+  actorUserId?: unknown
 }
 
 function parseOptionalIdList(raw: unknown): string[] {
@@ -733,6 +739,10 @@ export async function createEvent(
     })
     const created = await findEventById(id)
     if (!created) return { error: 'Event created but could not be reloaded.' }
+    await notifyEventPublishedActivity({
+      event: created,
+      actorUserId: String(input.actorUserId ?? ''),
+    })
     return { event: created }
   } catch (error) {
     const missing = tableMissingMessage(error, 'sf_events')
@@ -1331,6 +1341,10 @@ export async function updateEvent(
       .where(eq(sfEvents.id, id))
     const updated = await findEventById(id)
     if (!updated) return { error: 'Event updated but could not be reloaded.' }
+    await notifyEventPublishedActivity({
+      event: updated,
+      actorUserId: String(input.actorUserId ?? ''),
+    })
     return { event: updated }
   } catch (error) {
     return {

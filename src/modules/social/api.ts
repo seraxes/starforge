@@ -26,10 +26,18 @@ export type {
   FriendshipStatus,
 } from './friends'
 export {
+  PEOPLE_SUGGESTION_LIMIT_DEFAULT,
+  countMutualFriends,
+  formatMutualFriendCount,
   isPeopleDirectoryCandidate,
+  isPeopleSuggestionCandidate,
   selectPeopleDirectory,
+  selectPeopleSuggestions,
 } from './people'
-export type { PeopleDirectoryCandidate } from './people'
+export type {
+  PeopleDirectoryCandidate,
+  PeopleSuggestionCandidate,
+} from './people'
 export {
   SOCIAL_CHALLENGE_INVITED_TRIGGER,
   SOCIAL_FRIEND_REQUESTED_TRIGGER,
@@ -45,11 +53,15 @@ export {
   createGroupMemory,
   createGroupWallPost,
   decideAcceptGroupInvite,
+  decideApproveGroupJoinRequest,
   decideCreateGroup,
   decideCreateGroupCategory,
+  decideDeclineGroupJoinRequest,
   decideInviteToGroup,
   decideJoinGroup,
   decideSetGroupVerified,
+  buildGroupPageShell,
+  groupCoverMediaSrc,
   groupHref,
   inviteToGroupWithMail,
   isActiveGroupMember,
@@ -61,9 +73,11 @@ export {
   slugifyGroupLabel,
 } from './groups'
 export type {
+  ApproveGroupJoinInput,
   CreateGroupCategoryInput,
   CreateGroupInput,
   CreateGroupWallPostInput,
+  DeclineGroupJoinInput,
   GroupBag,
   GroupCategoryKind,
   GroupCategoryMutationResult,
@@ -236,6 +250,34 @@ export {
   selectDiscoverFeedPage,
 } from './discover'
 export {
+  applyHidePost,
+  applyMute,
+  applyUnhidePost,
+  applyUnmute,
+  createQuietMemory,
+  decideHidePost,
+  decideMute,
+  decideUnhidePost,
+  decideUnmute,
+  hidePairKey,
+  listHiddenPostIds,
+  listMutedAuthorIds,
+  matchesFeedQuietExclusion,
+  mutePairKey,
+} from './quiet'
+export type {
+  HidePostInput,
+  HidePostMutationResult,
+  MuteInput,
+  MuteMutationResult,
+  MuteRecord,
+  PostHideRecord,
+  QuietBag,
+  QuietRefuseReason,
+  UnhidePostMutationResult,
+  UnmuteMutationResult,
+} from './quiet'
+export {
   DEFAULT_FEED_LAYOUT_MODE,
   FEED_LAYOUT_MODES,
   isFeedLayoutMode,
@@ -339,9 +381,11 @@ export {
   canViewPost,
   classifyMediaMime,
   createPostRecord,
+  decideApprovePendingPost,
   decideDeletePost,
   decideEditPost,
   decidePostAttachments,
+  decideRejectPendingPost,
   decideStaffHidePost,
   emptyPollCheckinFields,
   emptyShareLinkFields,
@@ -377,6 +421,7 @@ export type {
   PostMutationResult,
   PostRecord,
   PostRefuseReason,
+  ReviewPendingPostInput,
   StaffHidePostInput,
 } from './posts'
 export { canInteract, isSocialBanned } from './interact'
@@ -496,6 +541,26 @@ export type {
   PublishActivityInput,
   PublishActivityResult,
 } from './activity'
+export {
+  HOST_CONVERSATION_MODULES,
+  applyEnsureHostConversation,
+  createHostConversationMemory,
+  decideEnsureHostConversation,
+  ensureHostConversationThroughDoor,
+  hostConversationAuthorId,
+  isHostConversationModule,
+} from './host-conversation'
+export type {
+  EnsureHostConversationDecision,
+  EnsureHostConversationInput,
+  EnsureHostConversationResult,
+  HostConversationBag,
+  HostConversationModule,
+  HostConversationRecord,
+  HostConversationRefuseReason,
+} from './host-conversation'
+export { HostConversation } from './public/HostConversation'
+export type { HostConversationProps } from './public/HostConversation'
 export {
   CHALLENGE_ACCEPT_WINDOW_HOURS,
   CHALLENGE_ENTRY_STATUSES,

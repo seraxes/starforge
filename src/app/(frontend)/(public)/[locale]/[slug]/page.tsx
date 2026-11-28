@@ -8,6 +8,7 @@ import { PageByline } from '@/core/content/PageByline'
 import { buildPageMetadata } from '@/core/content/metadata'
 import { getPublishedPageBySlug, requireContentLocale } from '@/core/content/pages'
 import { isValidLocaleCode, redirect } from '@/core/i18n'
+import { withLocalePrefix } from '@/core/i18n/path'
 import { findNavOverridesForPath } from '@/core/nav'
 import { resolveSiteRoot, rootPageSlug } from '@/core/nav/root'
 import { barePathForSlug } from '@/core/nav/root-target'
@@ -84,6 +85,35 @@ export default async function PublicCmsPage({ params }: Args) {
   const heading = overrides?.pageHeading?.trim() || page.title
   const t = await getTranslations({ locale, namespace: 'Page' })
 
+  const hostPath = withLocalePrefix(bare || `/${decodedSlug}`, locale)
+  let conversation: React.ReactNode = null
+  try {
+    const { loadModuleDoor } = await import('@/generated/module-registry.server')
+    const door = await loadModuleDoor('social-api-server')
+    const Mount = door?.HostConversationMount as
+      | ((props: {
+          hostModule: 'product:pages'
+          hostId: string
+          hostPath?: string | null
+          viewerAlreadyCanView?: boolean
+          className?: string
+          heading?: string
+        }) => Promise<React.ReactNode> | React.ReactNode)
+      | undefined
+    if (typeof Mount === 'function') {
+      conversation = await Mount({
+        hostModule: 'product:pages',
+        hostId: String(page.id),
+        hostPath,
+        viewerAlreadyCanView: true,
+        className: 'sf-page-conversation',
+        heading: 'Comments',
+      })
+    }
+  } catch {
+    conversation = null
+  }
+
   return (
     <article className="cms-page">
       <header className="cms-page-header">
@@ -95,6 +125,7 @@ export default async function PublicCmsPage({ params }: Args) {
         />
       </header>
       {page.body ? <RichText data={page.body} /> : <p className="lede">This page has no body yet.</p>}
+      {conversation}
     </article>
   )
 }

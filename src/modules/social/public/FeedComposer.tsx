@@ -560,17 +560,17 @@ export function FeedComposer({
       <input type="hidden" name="mediaIdsJson" value={JSON.stringify(fields.mediaIds)} />
 
       {linkError ? (
-        <p className="admin-inline-error" role="alert">
+        <p className="sf-social-inline-error" role="alert">
           {linkError}
         </p>
       ) : null}
       {state.error ? (
-        <p className="admin-inline-error" role="alert">
+        <p className="sf-social-inline-error" role="alert">
           {state.error}
         </p>
       ) : null}
       {state.ok && !expanded ? (
-        <p className="admin-inline-ok" role="status">
+        <p className="sf-social-inline-ok" role="status">
           Posted.
         </p>
       ) : null}

@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import React from 'react'
@@ -7,13 +6,14 @@ import React from 'react'
 import { getAccessViewer } from '@/core/acl/access'
 import { requireContentLocale } from '@/core/content/pages'
 import { isValidLocaleCode } from '@/core/i18n'
-import { withLocalePrefix } from '@/core/i18n/path'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { getSiteChrome } from '@/core/site-chrome'
 import { getPersonas } from '@/modules/profiles/api.server'
 
 import { getPostPermalink } from '../posts-store'
+import { loadSocialModuleSettings } from '../settings'
 import { FeedPostList } from './FeedPostList'
+import { FeedTabs } from './FeedTabs'
 
 type Args = { params: Promise<{ locale: string; id: string }> }
 
@@ -48,6 +48,14 @@ export default async function SocialPostPermalinkPage({ params }: Args) {
   const settings = await getSiteSettings()
   if (!isCatalogModuleEnabled(settings, MODULE_IDS.social)) notFound()
 
+  const pack = await loadSocialModuleSettings()
+  const tabFlags = {
+    showFollowing: pack.settings.allowFollowingTab,
+    showDiscover: pack.settings.allowDiscover,
+    showWatch: pack.settings.allowShortVideoLayout,
+    showStories: pack.settings.allowStories,
+  }
+
   const viewer = await getAccessViewer()
   const result = await getPostPermalink(
     viewer.userId?.trim() || null,
@@ -64,14 +72,16 @@ export default async function SocialPostPermalinkPage({ params }: Args) {
   ]
 
   return (
-    <article className="cms-page sf-social-permalink-page">
-      <header className="cms-page-header">
-        <h1>Post</h1>
-        <p className="lede">
-          <Link href={withLocalePrefix('/feed', locale)}>Back to feed</Link>
-        </p>
-      </header>
-      <FeedPostList items={items} locale={locale} showShare commentsExpanded />
-    </article>
+    <div className="sf-social-feed-page sf-social-permalink-page">
+      <FeedTabs locale={locale} active="feed" {...tabFlags} />
+      <div className="sf-social-feed-column">
+        <FeedPostList
+          items={items}
+          locale={locale}
+          showShare={pack.settings.allowShare}
+          commentsExpanded
+        />
+      </div>
+    </div>
   )
 }

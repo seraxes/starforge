@@ -53,7 +53,7 @@ Tables: `sf_venues`, `sf_event_categories`, `sf_events`, `sf_event_parties`, `sf
 - **`product:email-manager`** (`optionalRequires`) — `emitEmailTrigger` / `enqueueEmailBroadcast`; never `getMailer()` from Events
 - **`product:media`**, **`product:rich-editor`**, **`product:profiles`** — gallery, venue description, one-click Register from profile
 - **`product:subscriptions`** — `resolveAudience` for member / group tier prices; `events.manage` for organizer premium (not a hard require; resolve via Core/door when on)
-- **`product:social`** (optional consumer) — lists/links create via Events door; does not own event rows
+- **`product:social`** (`optionalRequires`; via `loadModuleDoor('social-api-server')` / soft-import) — after a successful create/update with `status=published`, Events calls `publishActivity` (`event.published`) with a title / href / cover snapshot. Public event detail soft-mounts Social’s shared comment controls (`HostConversationMount`); Social off → no form and no error. Events exposes `viewerMayAccessEventConversation` / `viewerMayModerateEventConversation` on `events-api` for Social’s host gates. No static import of Social store / schema / actions. Social may also list/link create via the Events door (`hostModule`); it does not own event rows.
 
 ## Public door
 
@@ -157,4 +157,4 @@ History: `0004` venues/events → `0010` listed + access password hash (`0008` r
 
 ## Tests
 
-`src/modules/events/registration-form-resolve.test.ts`, `registration-status.test.ts`, `abandoned-checkout-rules.test.ts`, `price-rules.test.ts`, `host.test.ts`, `seed-map-room-rows.test.ts`, `boot.test.ts` (all in `test:unit`)
+`src/modules/events/registration-form-resolve.test.ts`, `registration-status.test.ts`, `abandoned-checkout-rules.test.ts`, `price-rules.test.ts`, `host.test.ts`, `publish-social-activity.test.ts`, `seed-map-room-rows.test.ts`, `boot.test.ts` (all in `test:unit`)

@@ -26,6 +26,10 @@
  * Slice 21: polls (options on post + sf_social_poll_votes) and check-in (label + optional Maps pin).
  * Slice 22 discover: /feed/discover public posts (no new tables); friends-only absent.
  * Slice 22 reaction catalog: kinds like|love|haha|wow|sad|angry; only like enabled (admin toggles in 15b).
+ * Slice quiet: viewer post hides (sf_social_post_hides) + person mutes (sf_social_mutes);
+ *   feed SQL excludes before LIMIT; canViewPost / permalink unchanged.
+ * Slice host conversation: sf_social_conversations (event / CMS page threads via
+ *   kind=conversation posts; Events/Pages call loadModuleDoor).
  */
 
 import { sql } from 'drizzle-orm'
@@ -92,7 +96,7 @@ export const sfSocialPosts = pgTable(
     authorUserId: text('author_user_id').notNull(),
     /** Author words (rich-editor HTML). Not content-locale files. */
     body: text('body').notNull().default(''),
-    /** text | media | activity | challenge | link | share | poll | checkin */
+    /** text | media | activity | challenge | link | share | poll | checkin | conversation */
     kind: text('kind').notNull().default('text'),
     /** only_me | group | friends | public */
     audience: text('audience').notNull().default('friends'),
@@ -122,6 +126,11 @@ export const sfSocialPosts = pgTable(
     placeLng: doublePrecision('place_lng'),
     /** Staff moderation hide. Author and social.posts manage still see it. */
     staffHidden: boolean('staff_hidden').notNull().default(false),
+    /**
+     * Hold-new-posts-for-review queue. Withheld from feeds / non-staff readers
+     * until approve; reject clears this and sets staffHidden. Distinct from hide.
+     */
+    pendingReview: boolean('pending_review').notNull().default(false),
     /** Group announcement pin (team/association tools). */
     isAnnouncement: boolean('is_announcement').notNull().default(false),
     editedAt: timestamp('edited_at', { withTimezone: true }),
@@ -298,6 +307,36 @@ export const sfSocialReports = pgTable(
     index('sf_social_reports_reporter_idx').on(table.reporterUserId),
     index('sf_social_reports_status_idx').on(table.status),
     index('sf_social_reports_created_idx').on(table.createdAt),
+  ],
+)
+
+/**
+ * Host conversation anchor (Events / Pages opt into Social’s comments engine).
+ * Unique (hostModule, hostId) — one linked kind=conversation post for comments /
+ * reactions / reports. Not a feed card. Visibility follows the host pack.
+ */
+export const sfSocialConversations = pgTable(
+  'sf_social_conversations',
+  {
+    id: text('id').primaryKey(),
+    /** Owning pack id, e.g. product:events — plain text, no FK. */
+    hostModule: text('host_module').notNull(),
+    /** Id inside the host pack — plain text, no FK. */
+    hostId: text('host_id').notNull(),
+    /** Linked sf_social_posts row (kind conversation). */
+    postId: text('post_id').notNull(),
+    /** Optional public path for revalidatePath after comment writes. */
+    hostPath: text('host_path'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex('sf_social_conversations_host_uidx').on(table.hostModule, table.hostId),
+    uniqueIndex('sf_social_conversations_post_uidx').on(table.postId),
+    index('sf_social_conversations_created_idx').on(table.createdAt),
   ],
 )
 
@@ -913,5 +952,52 @@ export const sfSocialPollVotes = pgTable(
     index('sf_social_poll_votes_post_idx').on(table.postId),
     index('sf_social_poll_votes_user_idx').on(table.userId),
     index('sf_social_poll_votes_option_idx').on(table.optionId),
+  ],
+)
+
+/**
+ * Viewer-only post hide. Unique (userId, postId) — second hide updates that row.
+ * Feed SQL excludes before LIMIT; canViewPost / permalink stay unchanged.
+ */
+export const sfSocialPostHides = pgTable(
+  'sf_social_post_hides',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    postId: text('post_id').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex('sf_social_post_hides_user_post_uidx').on(table.userId, table.postId),
+    index('sf_social_post_hides_user_idx').on(table.userId),
+    index('sf_social_post_hides_post_idx').on(table.postId),
+  ],
+)
+
+/**
+ * Viewer mute of another member. Unique (muterUserId, mutedUserId).
+ * Friendship / follow / block stay unchanged. No notify. Feed SQL excludes
+ * the muted author’s posts before LIMIT; permalink still uses canViewPost.
+ */
+export const sfSocialMutes = pgTable(
+  'sf_social_mutes',
+  {
+    id: text('id').primaryKey(),
+    muterUserId: text('muter_user_id').notNull(),
+    mutedUserId: text('muted_user_id').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex('sf_social_mutes_pair_uidx').on(table.muterUserId, table.mutedUserId),
+    index('sf_social_mutes_muter_idx').on(table.muterUserId),
+    index('sf_social_mutes_muted_idx').on(table.mutedUserId),
   ],
 )

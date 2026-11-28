@@ -45,7 +45,7 @@ export function PollPostActions({
                 <input type="hidden" name="optionId" value={opt.id} />
                 <button
                   type="submit"
-                  className="gantry-btn"
+                  className="sf-social-btn"
                   disabled={pending}
                   aria-pressed={viewerOptionId === opt.id}
                 >
@@ -61,7 +61,7 @@ export function PollPostActions({
       ) : isAuthor ? (
         <form action={closeAction} className="admin-control-row">
           <input type="hidden" name="postId" value={postId} />
-          <button type="submit" className="gantry-btn" disabled={pending}>
+          <button type="submit" className="sf-social-btn" disabled={pending}>
             Close poll
           </button>
         </form>

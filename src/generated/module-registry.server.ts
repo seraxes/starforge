@@ -604,6 +604,84 @@ export const moduleMessageLoaders: ModuleMessageLoader[] = [
         return (await import("@/modules/pages/messages/en.json")).default
       }
     },
+  },
+  {
+    moduleId: "product:social",
+    namespaces: ["product:social"] as const,
+    load: async (locale: string): Promise<Record<string, unknown>> => {
+      switch (locale) {
+      case "hu":
+        return (await import("@/modules/social/messages/hu.json")).default
+      case 'en':
+      default:
+        return (await import("@/modules/social/messages/en.json")).default
+      }
+    },
+  },
+  {
+    moduleId: "social",
+    namespaces: ["social"] as const,
+    load: async (locale: string): Promise<Record<string, unknown>> => {
+      switch (locale) {
+      case "hu":
+        return (await import("@/modules/social/messages/hu.json")).default
+      case 'en':
+      default:
+        return (await import("@/modules/social/messages/en.json")).default
+      }
+    },
+  },
+  {
+    moduleId: "social-albums",
+    namespaces: ["social-albums"] as const,
+    load: async (locale: string): Promise<Record<string, unknown>> => {
+      switch (locale) {
+      case "hu":
+        return (await import("@/modules/social/messages/hu.json")).default
+      case 'en':
+      default:
+        return (await import("@/modules/social/messages/en.json")).default
+      }
+    },
+  },
+  {
+    moduleId: "social-friends",
+    namespaces: ["social-friends"] as const,
+    load: async (locale: string): Promise<Record<string, unknown>> => {
+      switch (locale) {
+      case "hu":
+        return (await import("@/modules/social/messages/hu.json")).default
+      case 'en':
+      default:
+        return (await import("@/modules/social/messages/en.json")).default
+      }
+    },
+  },
+  {
+    moduleId: "social-groups",
+    namespaces: ["social-groups"] as const,
+    load: async (locale: string): Promise<Record<string, unknown>> => {
+      switch (locale) {
+      case "hu":
+        return (await import("@/modules/social/messages/hu.json")).default
+      case 'en':
+      default:
+        return (await import("@/modules/social/messages/en.json")).default
+      }
+    },
+  },
+  {
+    moduleId: "social-pages",
+    namespaces: ["social-pages"] as const,
+    load: async (locale: string): Promise<Record<string, unknown>> => {
+      switch (locale) {
+      case "hu":
+        return (await import("@/modules/social/messages/hu.json")).default
+      case 'en':
+      default:
+        return (await import("@/modules/social/messages/en.json")).default
+      }
+    },
   }
 ]
 

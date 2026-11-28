@@ -58,6 +58,7 @@ export default async function SocialShortVideoPage({ params }: Args) {
     showFollowing: pack.settings.allowFollowingTab,
     showDiscover: pack.settings.allowDiscover,
     showWatch: pack.settings.allowShortVideoLayout,
+    showStories: pack.settings.allowStories,
   }
 
   const userId = session?.user?.id ? String(session.user.id).trim() : ''
@@ -67,18 +68,19 @@ export default async function SocialShortVideoPage({ params }: Args) {
 
   if (!userId) {
     return (
-      <article className="cms-page sf-social-feed-page sf-social-short-video-page">
-        <header className="cms-page-header">
-          <h1>Watch</h1>
-          <p className="lede">Sign in to watch short videos from your feed.</p>
-        </header>
+      <div className="sf-social-feed-page sf-social-short-video-page">
         <FeedTabs locale={locale} active="watch" {...tabFlags} />
-        <p>
-          <Link className="gantry-btn gantry-btn-primary" href={loginHref}>
-            Sign in
-          </Link>
-        </p>
-      </article>
+        <div className="sf-social-feed-column">
+          <p className="sf-social-feed-guest-copy">
+            Sign in to watch short videos from your feed.
+          </p>
+          <p className="sf-social-feed-guest-action">
+            <Link className="sf-social-cta" href={loginHref}>
+              Sign in
+            </Link>
+          </p>
+        </div>
+      </div>
     )
   }
 
@@ -93,17 +95,15 @@ export default async function SocialShortVideoPage({ params }: Args) {
   }))
 
   return (
-    <article className="cms-page sf-social-feed-page sf-social-short-video-page">
-      <header className="cms-page-header">
-        <h1>Watch</h1>
-        <p className="lede">Fullscreen short-video layout on your feed’s video posts.</p>
-      </header>
+    <div className="sf-social-feed-page sf-social-short-video-page">
       <FeedTabs locale={locale} active="watch" {...tabFlags} />
-      <ShortVideoLayout
-        items={items}
-        locale={locale}
-        emptyMessage="No short videos in your feed yet."
-      />
-    </article>
+      <div className="sf-social-feed-column sf-social-watch-column">
+        <ShortVideoLayout
+          items={items}
+          locale={locale}
+          emptyMessage="No short videos in your feed yet."
+        />
+      </div>
+    </div>
   )
 }

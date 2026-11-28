@@ -43,6 +43,8 @@ import {
   sfSocialPollVotes,
   sfSocialPostTags,
   sfSocialSaves,
+  sfSocialPostHides,
+  sfSocialMutes,
   sfSocialStories,
   sfSocialStoryViews,
 } from './schema'
@@ -117,6 +119,9 @@ export async function exportOwnSocialRecordFromDb(
       .select()
       .from(sfSocialActivities)
       .where(eq(sfSocialActivities.actorUserId, id))
+
+    // Host event/page threads — export stays empty for a member.
+    tables.sf_social_conversations = []
 
     tables.sf_social_challenges = await db
       .select()
@@ -232,6 +237,28 @@ export async function exportOwnSocialRecordFromDb(
             )
           : eq(sfSocialPollVotes.userId, id),
       )
+
+    tables.sf_social_post_hides = await db
+      .select()
+      .from(sfSocialPostHides)
+      .where(
+        postIds.length > 0
+          ? or(
+              eq(sfSocialPostHides.userId, id),
+              inArray(sfSocialPostHides.postId, postIds),
+            )
+          : eq(sfSocialPostHides.userId, id),
+      )
+
+    tables.sf_social_mutes = await db
+      .select()
+      .from(sfSocialMutes)
+      .where(
+        or(
+          eq(sfSocialMutes.muterUserId, id),
+          eq(sfSocialMutes.mutedUserId, id),
+        ),
+      )
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
     if (/sf_social_|does not exist|relation/i.test(msg)) {
@@ -302,6 +329,9 @@ export async function purgeOwnSocialRecordInDb(input: {
         await tx
           .delete(sfSocialPollVotes)
           .where(inArray(sfSocialPollVotes.postId, postIds))
+        await tx
+          .delete(sfSocialPostHides)
+          .where(inArray(sfSocialPostHides.postId, postIds))
       }
 
       const ownedChallenges = await tx
@@ -441,6 +471,15 @@ export async function purgeOwnSocialRecordInDb(input: {
         .delete(sfSocialMentions)
         .where(eq(sfSocialMentions.mentionedUserId, userId))
       await tx.delete(sfSocialPollVotes).where(eq(sfSocialPollVotes.userId, userId))
+      await tx.delete(sfSocialPostHides).where(eq(sfSocialPostHides.userId, userId))
+      await tx
+        .delete(sfSocialMutes)
+        .where(
+          or(
+            eq(sfSocialMutes.muterUserId, userId),
+            eq(sfSocialMutes.mutedUserId, userId),
+          ),
+        )
 
       await tx.delete(sfSocialPosts).where(eq(sfSocialPosts.authorUserId, userId))
       await tx.delete(sfSocialMembers).where(eq(sfSocialMembers.userId, userId))

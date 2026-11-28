@@ -1,0 +1,9 @@
+{
+  "joinRequestPending": "Csatlakozási kérelem folyamatban.",
+  "pendingJoinRequests": "Függő csatlakozási kérelmek",
+  "noPendingJoinRequests": "Nincs függő kérelem.",
+  "approveJoinRequest": "Elfogadás",
+  "approvingJoinRequest": "Elfogadás…",
+  "declineJoinRequest": "Elutasítás",
+  "decliningJoinRequest": "Elutasítás…"
+}

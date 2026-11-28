@@ -10,7 +10,7 @@ import { defineStarforgeModule } from '@/core/modules/define-module'
  * Slice 9: reports (postId required, optional commentId; one open per reporter/post).
  * Slice 9b: moderation review queue, comment hide, resolve report, member bannedAt.
  * Slice 10: account doors exportOwnSocialRecord / hideOwnedSocialContent / purgeOwnSocialRecord.
- * Slice 11: publishActivity (sf_social_activities; Events/Pages callers are separate chats).
+ * Slice 11: publishActivity (sf_social_activities; Events/Pages call via loadModuleDoor).
  * Slice 12: challenges (endsAt / multi invite / challenge likes), social.sweep.
  * Slice 13: groups (categories, membership, wall, directory, invite mail, social-groups).
  * Slice 14: team tools (ranks, documents, announcements, formDefinitionId).
@@ -28,6 +28,7 @@ import { defineStarforgeModule } from '@/core/modules/define-module'
  * Slice 22 discover: /feed/discover public posts (friends-only absent); reserved handle discover.
  * Slice 22 reaction catalog: like|love|haha|wow|sad|angry; like stays on; other kinds follow pack settings (15c people panel).
  * Slice 22 short-video: layout mode short_video; /feed/watch; reserved handle watch; non-video absent.
+ * Slice quiet: viewer post hides + person mutes (feed SQL before LIMIT; permalink canViewPost unchanged).
  * Do not reuse the builtin particle id `social` (footer links).
  */
 export default defineStarforgeModule({
@@ -39,6 +40,9 @@ export default defineStarforgeModule({
     'Member social feed — friends, follows, discover, short-video watch, mentions, tags, saves, polls, check-ins, posts, groups, pages, stories, albums, shares, and links under /feed. Live video stays in Social. There is no product:stream.',
   version: '0.1.0',
   defaultEnabled: false,
+  i18n: {
+    namespaces: ['product:social'],
+  },
   requires: [
     'product:profiles',
     'product:media',
@@ -46,7 +50,12 @@ export default defineStarforgeModule({
     'product:forms',
     'product:email-manager',
   ],
-  optionalRequires: ['form', 'product:subscriptions', 'product:events'],
+  optionalRequires: [
+    'form',
+    'product:subscriptions',
+    'product:events',
+    'product:pages',
+  ],
   boot: {
     importPath: '@/modules/social/boot',
     exportName: 'bootSocial',
@@ -111,6 +120,13 @@ export default defineStarforgeModule({
       },
       {
         group: 'social',
+        label: 'Pending',
+        href: '/admin/social/pending',
+        order: 19,
+        area: 'social',
+      },
+      {
+        group: 'social',
         label: 'Reports',
         href: '/admin/social/reports',
         order: 20,
@@ -147,6 +163,11 @@ export default defineStarforgeModule({
       {
         path: 'social/media',
         pageImportPath: '@/modules/social/admin/SocialMediaSettingsPage',
+        pageExportName: 'default',
+      },
+      {
+        path: 'social/pending',
+        pageImportPath: '@/modules/social/admin/SocialPendingPage',
         pageExportName: 'default',
       },
       {

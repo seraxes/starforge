@@ -56,13 +56,14 @@ describe('social composer and feed settings (slice 15b)', () => {
     assert.equal(created.ok, true)
     if (!created.ok) return
     assert.equal(created.post.kind, 'text')
-    assert.equal(created.post.staffHidden, true)
+    assert.equal(created.post.pendingReview, true)
+    assert.equal(created.post.staffHidden, false)
 
-    // Hold-for-review left staffHidden true — clear it for the guest-read checks.
+    // Hold-for-review left pendingReview true — clear it for the guest-read checks.
     const publicPost = {
       ...created.post,
       audience: 'public' as const,
-      staffHidden: false,
+      pendingReview: false,
     }
     assert.equal(
       canViewPost(publicPost, {

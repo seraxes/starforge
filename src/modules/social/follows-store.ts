@@ -7,7 +7,7 @@
 
 import 'server-only'
 
-import { and, desc, eq, inArray, isNull, notInArray, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNull, ne, notInArray, sql } from 'drizzle-orm'
 
 import { db } from '@/core/db'
 
@@ -24,6 +24,10 @@ import { getMemberBannedAt, isMemberAccountHidden, listSocialHiddenUserIds } fro
 import { listBlockedPeerIds } from './people-store'
 import { toPostRecord, type PostRecord } from './posts'
 import { hydratePostsMedia } from './posts-store'
+import {
+  listHiddenPostIdsForViewer,
+  listMutedAuthorIdsForViewer,
+} from './quiet-store'
 import { sfSocialFollows, sfSocialPosts } from './schema'
 import type { CanInteractContext } from './interact'
 
@@ -202,19 +206,31 @@ export async function listFollowingFeedPosts(
   if (!viewer) return []
   const limit = Math.min(Math.max(1, Math.floor(opts?.limit ?? 50)), 100)
 
-  const [followeeIds, blockedPeerIds, hiddenAuthorIds] = await Promise.all([
+  const [
+    followeeIds,
+    blockedPeerIds,
+    hiddenAuthorIds,
+    hiddenPostIds,
+    mutedAuthorIds,
+  ] = await Promise.all([
     listFolloweeIds(viewer),
     listBlockedPeerIds(viewer),
     listSocialHiddenUserIds(),
+    listHiddenPostIdsForViewer(viewer),
+    listMutedAuthorIdsForViewer(viewer),
   ])
 
   const visibleFollowees = followeeIds.filter(
-    (id) => !blockedPeerIds.has(id) && !hiddenAuthorIds.has(id),
+    (id) =>
+      !blockedPeerIds.has(id) &&
+      !hiddenAuthorIds.has(id) &&
+      !mutedAuthorIds.has(id),
   )
   if (visibleFollowees.length === 0) return []
 
   const hiddenList = [...hiddenAuthorIds]
   const blockedList = [...blockedPeerIds]
+  const hiddenPostList = [...hiddenPostIds]
   const authorNotBlocked =
     blockedList.length > 0
       ? notInArray(sfSocialPosts.authorUserId, blockedList)
@@ -222,6 +238,10 @@ export async function listFollowingFeedPosts(
   const authorNotHidden =
     hiddenList.length > 0
       ? notInArray(sfSocialPosts.authorUserId, hiddenList)
+      : sql`true`
+  const postNotHidden =
+    hiddenPostList.length > 0
+      ? notInArray(sfSocialPosts.id, hiddenPostList)
       : sql`true`
 
   let rows: (typeof sfSocialPosts.$inferSelect)[] = []
@@ -233,10 +253,13 @@ export async function listFollowingFeedPosts(
         and(
           inArray(sfSocialPosts.authorUserId, visibleFollowees),
           eq(sfSocialPosts.audience, 'public'),
+          ne(sfSocialPosts.kind, 'conversation'),
           isNull(sfSocialPosts.pageId),
           eq(sfSocialPosts.staffHidden, false),
+          eq(sfSocialPosts.pendingReview, false),
           authorNotBlocked,
           authorNotHidden,
+          postNotHidden,
         ),
       )
       .orderBy(desc(sfSocialPosts.createdAt))

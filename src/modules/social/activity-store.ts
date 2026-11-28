@@ -135,6 +135,7 @@ export async function publishActivityInDb(
           groupId: post.groupId,
           pageId: post.pageId,
           staffHidden: post.staffHidden,
+          pendingReview: post.pendingReview,
           isAnnouncement: post.isAnnouncement,
           editedAt: post.editedAt,
           extensions: post.extensions,

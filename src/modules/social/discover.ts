@@ -7,6 +7,7 @@
 
 import { canViewPost, type CanViewPostContext, type PostRecord } from './posts'
 import { paginateFeedPosts } from './feed'
+import { matchesFeedQuietExclusion } from './quiet'
 
 /**
  * Candidate for Discover: personal public post (not a page wall).
@@ -19,16 +20,31 @@ export function isDiscoverFeedCandidate(post: PostRecord): boolean {
 
 /**
  * Discover page: public posts the viewer may read.
- * Filter with canViewPost, then paginate (no short page from drop-in-memory).
+ * Filter with canViewPost, then quiet cut, then paginate.
  */
 export function selectDiscoverFeedPage(
   postsNewestFirst: readonly PostRecord[],
   ctxForPost: (post: PostRecord) => CanViewPostContext,
   limit: number,
+  quiet?: {
+    viewerUserId?: string | null
+    hiddenPostIds?: ReadonlySet<string>
+    mutedAuthorIds?: ReadonlySet<string>
+  },
 ): PostRecord[] {
+  const viewer = quiet?.viewerUserId ?? null
   const visible = postsNewestFirst.filter((post) => {
     if (!isDiscoverFeedCandidate(post)) return false
-    return canViewPost(post, ctxForPost(post))
+    if (!canViewPost(post, ctxForPost(post))) return false
+    if (
+      matchesFeedQuietExclusion(post, viewer, {
+        hiddenPostIds: quiet?.hiddenPostIds,
+        mutedAuthorIds: quiet?.mutedAuthorIds,
+      })
+    ) {
+      return false
+    }
+    return true
   })
   return paginateFeedPosts(visible, limit)
 }

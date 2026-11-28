@@ -54,6 +54,7 @@ function samplePost(overrides: Partial<PostRecord> = {}): PostRecord {
     groupId: null,
     pageId: null,
     staffHidden: false,
+    pendingReview: false,
     isAnnouncement: false,
     editedAt: null,
     extensions: {},

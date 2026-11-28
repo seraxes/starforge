@@ -12,8 +12,10 @@ import {
   canManageGroupMembers,
   createGroupWallPost,
   decideAcceptGroupInvite,
+  decideApproveGroupJoinRequest,
   decideCreateGroup,
   decideCreateGroupCategory,
+  decideDeclineGroupJoinRequest,
   decideInviteToGroup,
   decideJoinGroup,
   decideSetGroupVerified,
@@ -23,9 +25,11 @@ import {
   isGroupMemberStatus,
   isGroupVisibility,
   slugifyGroupLabel,
+  type ApproveGroupJoinInput,
   type CreateGroupCategoryInput,
   type CreateGroupInput,
   type CreateGroupWallPostInput,
+  type DeclineGroupJoinInput,
   type GroupCategoryMutationResult,
   type GroupCategoryRecord,
   type GroupMemberMutationResult,
@@ -471,6 +475,89 @@ export async function joinGroup(
   return decision
 }
 
+/** Approve a closed-group join request (owner / admin / manage-members rank / staff). */
+export async function approveGroupJoinRequest(
+  input: ApproveGroupJoinInput,
+  opts?: { staffCanManageMembers?: boolean },
+): Promise<GroupMemberMutationResult> {
+  const { loadSocialModuleSettings } = await import('./settings')
+  const [group, actorMembership, targetMembership, actorBannedAt, pack, activeMemberCount] =
+    await Promise.all([
+      findGroup(input.groupId),
+      findGroupMembership(input.groupId, input.actorUserId),
+      findGroupMembership(input.groupId, input.targetUserId),
+      getMemberBannedAt(input.actorUserId),
+      loadSocialModuleSettings(),
+      countActiveGroupMembers(input.groupId),
+    ])
+  const actorRank = await loadActorRank(actorMembership)
+  const decision = decideApproveGroupJoinRequest(
+    group,
+    actorMembership,
+    actorRank,
+    targetMembership,
+    input,
+    {
+      actorBannedAt,
+      activeMemberCount,
+      maxGroupMembers: pack.settings.maxGroupMembers,
+      staffCanManageMembers: opts?.staffCanManageMembers,
+    },
+  )
+  if (!decision.ok) return decision
+  try {
+    await upsertMembership(decision.membership)
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    if (/sf_social_group_members|does not exist|relation/i.test(msg)) {
+      return { ok: false, reason: 'invalid' }
+    }
+    throw error
+  }
+  return decision
+}
+
+/** Decline a closed-group join request — deletes the row so they can ask again. */
+export async function declineGroupJoinRequest(
+  input: DeclineGroupJoinInput,
+  opts?: { staffCanManageMembers?: boolean },
+): Promise<
+  | { ok: true; declined: GroupMemberRecord }
+  | { ok: false; reason: GroupRefuseReason }
+> {
+  const [group, actorMembership, targetMembership, actorBannedAt] = await Promise.all([
+    findGroup(input.groupId),
+    findGroupMembership(input.groupId, input.actorUserId),
+    findGroupMembership(input.groupId, input.targetUserId),
+    getMemberBannedAt(input.actorUserId),
+  ])
+  const actorRank = await loadActorRank(actorMembership)
+  const decision = decideDeclineGroupJoinRequest(
+    group,
+    actorMembership,
+    actorRank,
+    targetMembership,
+    input,
+    {
+      actorBannedAt,
+      staffCanManageMembers: opts?.staffCanManageMembers,
+    },
+  )
+  if (!decision.ok) return decision
+  try {
+    await db
+      .delete(sfSocialGroupMembers)
+      .where(eq(sfSocialGroupMembers.id, decision.declined.id))
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    if (/sf_social_group_members|does not exist|relation/i.test(msg)) {
+      return { ok: false, reason: 'invalid' }
+    }
+    throw error
+  }
+  return decision
+}
+
 /** Staff verify / clear verifiedAt (admin groups list). */
 export async function setGroupVerified(
   groupId: string,
@@ -617,6 +704,7 @@ export async function createGroupWallPostInDb(
       groupId: decision.post.groupId,
       pageId: decision.post.pageId,
       staffHidden: decision.post.staffHidden,
+      pendingReview: decision.post.pendingReview,
       isAnnouncement: decision.post.isAnnouncement,
       editedAt: decision.post.editedAt,
       extensions: decision.post.extensions,
@@ -999,6 +1087,30 @@ export async function listActiveGroupMembers(
         and(
           eq(sfSocialGroupMembers.groupId, id),
           eq(sfSocialGroupMembers.status, 'active'),
+        ),
+      )
+      .orderBy(sfSocialGroupMembers.createdAt)
+    return rows.map(mapMembership).filter((row): row is GroupMemberRecord => Boolean(row))
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    if (/sf_social_group_members|does not exist|relation/i.test(msg)) return []
+    throw error
+  }
+}
+
+export async function listRequestedGroupMembers(
+  groupId: string,
+): Promise<GroupMemberRecord[]> {
+  const id = groupId.trim()
+  if (!id) return []
+  try {
+    const rows = await db
+      .select()
+      .from(sfSocialGroupMembers)
+      .where(
+        and(
+          eq(sfSocialGroupMembers.groupId, id),
+          eq(sfSocialGroupMembers.status, 'requested'),
         ),
       )
       .orderBy(sfSocialGroupMembers.createdAt)

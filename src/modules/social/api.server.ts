@@ -75,16 +75,30 @@ export {
   unfriend,
 } from './friends-store'
 export {
+  PEOPLE_SUGGESTION_LIMIT_DEFAULT,
+  countMutualFriends,
+  formatMutualFriendCount,
   isPeopleDirectoryCandidate,
+  isPeopleSuggestionCandidate,
   selectPeopleDirectory,
+  selectPeopleSuggestions,
 } from './people'
-export type { PeopleDirectoryCandidate } from './people'
+export type {
+  PeopleDirectoryCandidate,
+  PeopleSuggestionCandidate,
+} from './people'
 export {
+  countMutualFriendsBetween,
   listBlockedPeerIds,
   listIncomingFriendRequests,
   listPeopleDirectory,
+  listPeopleSuggestions,
 } from './people-store'
-export type { IncomingFriendRequestItem, PeopleDirectoryItem } from './people-store'
+export type {
+  IncomingFriendRequestItem,
+  PeopleDirectoryItem,
+  PeopleSuggestionItem,
+} from './people-store'
 export {
   SOCIAL_CHALLENGE_INVITED_TRIGGER,
   SOCIAL_FRIEND_REQUESTED_TRIGGER,
@@ -100,11 +114,15 @@ export {
   createGroupMemory,
   createGroupWallPost,
   decideAcceptGroupInvite,
+  decideApproveGroupJoinRequest,
   decideCreateGroup,
   decideCreateGroupCategory,
+  decideDeclineGroupJoinRequest,
   decideSetGroupVerified,
   decideInviteToGroup,
   decideJoinGroup,
+  buildGroupPageShell,
+  groupCoverMediaSrc,
   groupHref,
   inviteToGroupWithMail,
   isActiveGroupMember,
@@ -116,9 +134,11 @@ export {
   slugifyGroupLabel,
 } from './groups'
 export type {
+  ApproveGroupJoinInput,
   CreateGroupCategoryInput,
   CreateGroupInput,
   CreateGroupWallPostInput,
+  DeclineGroupJoinInput,
   GroupBag,
   GroupCategoryKind,
   GroupCategoryMutationResult,
@@ -173,12 +193,14 @@ export {
   addGroupDocument,
   announceGroupPost,
   announceGroupPostNotifying,
+  approveGroupJoinRequest,
   assignGroupRank,
   countActiveGroupMembers,
   createGroup,
   createGroupCategory,
   createGroupRank,
   createGroupWallPostInDb,
+  declineGroupJoinRequest,
   deleteGroup,
   ensureDefaultGroupCategories,
   findGroup,
@@ -199,6 +221,7 @@ export {
   listGroupsDirectory,
   listMyGroups,
   listOwnedGroups,
+  listRequestedGroupMembers,
   removeGroupMember,
   setGroupFormDefinition,
   setGroupMemberRole,
@@ -385,6 +408,16 @@ export {
 } from './discover'
 export { listDiscoverFeedPosts } from './discover-store'
 export {
+  findMute,
+  findPostHide,
+  hidePost,
+  listHiddenPostIdsForViewer,
+  listMutedAuthorIdsForViewer,
+  muteUser,
+  unhidePost,
+  unmuteUser,
+} from './quiet-store'
+export {
   DEFAULT_FEED_LAYOUT_MODE,
   FEED_LAYOUT_MODES,
   isFeedLayoutMode,
@@ -517,9 +550,11 @@ export {
   canViewPost,
   classifyMediaMime,
   createPostRecord,
+  decideApprovePendingPost,
   decideDeletePost,
   decideEditPost,
   decidePostAttachments,
+  decideRejectPendingPost,
   decideStaffHidePost,
   emptyPollCheckinFields,
   emptyShareLinkFields,
@@ -555,6 +590,7 @@ export type {
   PostMutationResult,
   PostRecord,
   PostRefuseReason,
+  ReviewPendingPostInput,
   StaffHidePostInput,
 } from './posts'
 export {
@@ -563,6 +599,7 @@ export {
 } from './media-serve-store'
 export type { SocialMediaServeDecision } from './media-serve-store'
 export {
+  approvePendingPost,
   canViewerSeePost,
   createPost,
   deletePost,
@@ -570,7 +607,9 @@ export {
   findPost,
   getPostPermalink,
   hydratePostsMedia,
+  listPendingReviewPosts,
   listStaffHiddenPosts,
+  rejectPendingPost,
   setPostStaffHidden,
 } from './posts-store'
 export { canInteract, isSocialBanned } from './interact'
@@ -595,6 +634,7 @@ export {
   getMemberHiddenAt,
   isMemberAccountHidden,
   listBannedMembers,
+  listSocialBannedUserIds,
   listSocialHiddenUserIds,
   setMemberHiddenAt,
   unbanMember,
@@ -914,6 +954,51 @@ export async function publishActivity(
     return { ok: false, reason: 'failed' }
   }
 }
+
+/**
+ * Ensure a host conversation anchor (event / CMS page) + linked post.
+ * Off → `{ ok: false, reason: 'disabled' }` with no write.
+ */
+export async function ensureHostConversation(
+  input: import('./host-conversation').EnsureHostConversationInput,
+): Promise<import('./host-conversation').EnsureHostConversationResult> {
+  try {
+    if (!(await isSocialModuleEnabled())) {
+      return { ok: false, reason: 'disabled' }
+    }
+    const { ensureHostConversationInDb } = await import('./host-conversation-store')
+    return await ensureHostConversationInDb(input)
+  } catch (error) {
+    console.error('[social] ensureHostConversation failed', error)
+    return { ok: false, reason: 'failed' }
+  }
+}
+
+/**
+ * Load props for the shared HostConversation UI on an event / CMS page.
+ * Off / cannot_view → not-ok; callers render nothing.
+ */
+export async function loadHostConversationSurface(
+  input: import('./host-conversation').EnsureHostConversationInput & {
+    viewerAlreadyCanView?: boolean
+  },
+): Promise<import('./host-conversation-surface').LoadHostConversationSurfaceResult> {
+  try {
+    if (!(await isSocialModuleEnabled())) {
+      return { ok: false, reason: 'disabled' }
+    }
+    const { loadHostConversationSurface: load } = await import(
+      './host-conversation-surface'
+    )
+    return await load(input)
+  } catch (error) {
+    console.error('[social] loadHostConversationSurface failed', error)
+    return { ok: false, reason: 'failed' }
+  }
+}
+
+/** Server mount for event / CMS page comment threads. Soft-fails when Social is off. */
+export { HostConversationMount } from './public/HostConversationMount'
 
 async function resolveChallengeMultiGate(userId: string): Promise<ChallengeMultiGate> {
   try {

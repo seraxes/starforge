@@ -12,7 +12,7 @@ import { withLocalePrefix } from '@/core/i18n/path'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { getSiteChrome } from '@/core/site-chrome'
 
-import { groupHref } from '../groups'
+import { groupCoverMediaSrc, groupHref } from '../groups'
 import {
   ensureDefaultGroupCategories,
   listGroupCategories,
@@ -20,6 +20,7 @@ import {
 } from '../groups-store'
 import { actorMayCreateSocialEntity } from '../pack-settings'
 import { loadSocialModuleSettings } from '../settings'
+import { FeedTabs } from './FeedTabs'
 import { CreateGroupForm } from './GroupActions'
 
 type Args = {
@@ -78,74 +79,105 @@ export default async function SocialGroupsPage({ params, searchParams }: Args) {
       pack.settings.groupWhoCanCreate,
       Boolean(staff?.user?.id),
     )
+  const tabFlags = {
+    showFollowing: pack.settings.allowFollowingTab,
+    showDiscover: pack.settings.allowDiscover,
+    showWatch: pack.settings.allowShortVideoLayout,
+    showStories: pack.settings.allowStories,
+  }
+  const groupsHref = withLocalePrefix('/feed/groups', locale)
 
   return (
-    <article className="cms-page sf-social-groups-page">
-      <header className="cms-page-header">
-        <h1>Groups</h1>
-        <p className="lede">Browse groups and join walls for members only.</p>
-      </header>
-
-      <nav className="sf-social-groups-filters" aria-label="Group categories">
-        <Link
-          className={!categoryId ? 'gantry-btn gantry-btn-primary' : 'gantry-btn'}
-          href={withLocalePrefix('/feed/groups', locale)}
-        >
-          All
-        </Link>
-        {categories.map((cat) => (
+    <div className="sf-social-feed-page sf-social-groups-page">
+      <FeedTabs locale={locale} active="groups" {...tabFlags} />
+      <div className="sf-social-directory-shell">
+        <nav className="sf-social-groups-filters" aria-label="Group categories">
           <Link
-            key={cat.id}
             className={
-              categoryId === cat.id ? 'gantry-btn gantry-btn-primary' : 'gantry-btn'
+              !categoryId
+                ? 'sf-social-groups-filter-link is-active'
+                : 'sf-social-groups-filter-link'
             }
-            href={`${withLocalePrefix('/feed/groups', locale)}?category=${encodeURIComponent(cat.id)}`}
+            href={groupsHref}
+            aria-current={!categoryId ? 'page' : undefined}
           >
-            {cat.name}
+            All
           </Link>
-        ))}
-      </nav>
+          {categories.map((cat) => {
+            const active = categoryId === cat.id
+            return (
+              <Link
+                key={cat.id}
+                className={
+                  active
+                    ? 'sf-social-groups-filter-link is-active'
+                    : 'sf-social-groups-filter-link'
+                }
+                href={`${groupsHref}?category=${encodeURIComponent(cat.id)}`}
+                aria-current={active ? 'page' : undefined}
+              >
+                {cat.name}
+              </Link>
+            )
+          })}
+        </nav>
 
-      {userId && canCreate ? (
-        <section className="sf-social-groups-create" aria-label="Create a group">
-          <h2 className="sf-social-section-heading">Create a group</h2>
-          <CreateGroupForm
-            categories={categories}
-            defaultVisibility={pack.settings.defaultGroupJoinRule}
-          />
+        <div className="sf-social-directory-toolbar">
+          {userId && canCreate ? (
+            <CreateGroupForm
+              categories={categories}
+              defaultVisibility={pack.settings.defaultGroupJoinRule}
+            />
+          ) : userId ? null : (
+            <p className="sf-social-directory-signin">
+              <Link className="sf-social-cta" href={loginHref}>
+                Sign in
+              </Link>
+              <span className="layout-muted"> to create or join groups.</span>
+            </p>
+          )}
+        </div>
+
+        <section className="sf-social-directory" aria-label="Group directory">
+          {directory.length === 0 ? (
+            <p className="layout-muted">No groups yet.</p>
+          ) : (
+            <ul className="sf-social-directory-grid">
+              {directory.map(({ group, memberCount }) => {
+                const coverSrc = groupCoverMediaSrc(group.coverMediaId)
+                return (
+                  <li key={group.id} className="sf-social-directory-card">
+                    <Link
+                      href={withLocalePrefix(groupHref(group.slug), locale)}
+                      className="sf-social-directory-card-link"
+                    >
+                      {coverSrc ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={coverSrc}
+                          alt=""
+                          className="sf-social-directory-card-cover"
+                        />
+                      ) : (
+                        <span
+                          className="sf-social-directory-card-cover sf-social-directory-card-cover-empty"
+                          aria-hidden
+                        />
+                      )}
+                      <span className="sf-social-directory-card-body">
+                        <span className="sf-social-directory-card-title">{group.name}</span>
+                        <span className="sf-social-directory-card-meta">
+                          {memberCount} member{memberCount === 1 ? '' : 's'}
+                        </span>
+                      </span>
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
         </section>
-      ) : userId ? null : (
-        <p>
-          <Link className="gantry-btn gantry-btn-primary" href={loginHref}>
-            Sign in
-          </Link>{' '}
-          to create or join groups.
-        </p>
-      )}
-
-      <section className="sf-social-groups-directory" aria-label="Group directory">
-        <h2 className="sf-social-section-heading">Directory</h2>
-        {directory.length === 0 ? (
-          <p className="layout-muted">No groups yet.</p>
-        ) : (
-          <ul className="sf-social-groups-list">
-            {directory.map(({ group, category, memberCount }) => (
-              <li key={group.id} className="sf-social-groups-item">
-                <Link
-                  href={withLocalePrefix(groupHref(group.slug), locale)}
-                  className="sf-social-groups-link"
-                >
-                  <span className="sf-social-groups-name">{group.name}</span>
-                  <span className="layout-muted">
-                    {category?.name ?? 'Group'} · {memberCount} member
-                    {memberCount === 1 ? '' : 's'} · {group.visibility}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-    </article>
+      </div>
+    </div>
   )
 }

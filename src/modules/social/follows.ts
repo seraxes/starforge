@@ -13,6 +13,7 @@ import {
   type PostRecord,
 } from './posts'
 import { paginateFeedPosts } from './feed'
+import { matchesFeedQuietExclusion } from './quiet'
 
 export type FollowRecord = {
   id: string
@@ -138,17 +139,32 @@ export function isFollowingFeedCandidate(
 
 /**
  * Following tab: public posts from followed authors the viewer may read.
- * Filter with canViewPost (block / hidden / staff-hide), then paginate.
+ * Filter with canViewPost (block / hidden / staff-hide), then quiet cut, then paginate.
  */
 export function selectFollowingFeedPage(
   postsNewestFirst: readonly PostRecord[],
   followeeIds: ReadonlySet<string>,
   ctxForPost: (post: PostRecord) => CanViewPostContext,
   limit: number,
+  quiet?: {
+    viewerUserId?: string | null
+    hiddenPostIds?: ReadonlySet<string>
+    mutedAuthorIds?: ReadonlySet<string>
+  },
 ): PostRecord[] {
+  const viewer = quiet?.viewerUserId ?? null
   const visible = postsNewestFirst.filter((post) => {
     if (!isFollowingFeedCandidate(post, followeeIds)) return false
-    return canViewPost(post, ctxForPost(post))
+    if (!canViewPost(post, ctxForPost(post))) return false
+    if (
+      matchesFeedQuietExclusion(post, viewer, {
+        hiddenPostIds: quiet?.hiddenPostIds,
+        mutedAuthorIds: quiet?.mutedAuthorIds,
+      })
+    ) {
+      return false
+    }
+    return true
   })
   return paginateFeedPosts(visible, limit)
 }

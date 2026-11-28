@@ -58,6 +58,7 @@ export default async function SocialFollowingPage({ params }: Args) {
     showFollowing: pack.settings.allowFollowingTab,
     showDiscover: pack.settings.allowDiscover,
     showWatch: pack.settings.allowShortVideoLayout,
+    showStories: pack.settings.allowStories,
   }
 
   const userId = session?.user?.id ? String(session.user.id).trim() : ''
@@ -67,18 +68,19 @@ export default async function SocialFollowingPage({ params }: Args) {
 
   if (!userId) {
     return (
-      <article className="cms-page sf-social-feed-page">
-        <header className="cms-page-header">
-          <h1>Following</h1>
-          <p className="lede">Sign in to see public posts from people you follow.</p>
-        </header>
+      <div className="sf-social-feed-page">
         <FeedTabs locale={locale} active="following" {...tabFlags} />
-        <p>
-          <Link className="gantry-btn gantry-btn-primary" href={loginHref}>
-            Sign in
-          </Link>
-        </p>
-      </article>
+        <div className="sf-social-feed-column">
+          <p className="sf-social-feed-guest-copy">
+            Sign in to see public posts from people you follow.
+          </p>
+          <p className="sf-social-feed-guest-action">
+            <Link className="sf-social-cta" href={loginHref}>
+              Sign in
+            </Link>
+          </p>
+        </div>
+      </div>
     )
   }
 
@@ -93,18 +95,16 @@ export default async function SocialFollowingPage({ params }: Args) {
   }))
 
   return (
-    <article className="cms-page sf-social-feed-page">
-      <header className="cms-page-header">
-        <h1>Following</h1>
-        <p className="lede">Public posts from people you follow.</p>
-      </header>
+    <div className="sf-social-feed-page">
       <FeedTabs locale={locale} active="following" {...tabFlags} />
-      <FeedPostList
-        items={items}
-        locale={locale}
-        emptyMessage="No public posts from people you follow yet."
-        showShare={pack.settings.allowShare}
-      />
-    </article>
+      <div className="sf-social-feed-column">
+        <FeedPostList
+          items={items}
+          locale={locale}
+          emptyMessage="No public posts from people you follow yet."
+          showShare={pack.settings.allowShare}
+        />
+      </div>
+    </div>
   )
 }

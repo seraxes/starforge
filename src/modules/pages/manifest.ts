@@ -14,6 +14,7 @@ export default defineStarforgeModule({
   version: '0.1.0',
   defaultEnabled: true,
   requires: ['product:rich-editor', 'product:media'],
+  optionalRequires: ['product:social'],
   i18n: {
     namespaces: ['product:pages'],
   },

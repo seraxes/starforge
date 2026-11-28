@@ -67,6 +67,7 @@ async function insertPostRow(post: PostRecord): Promise<void> {
     placeLat: post.placeLat,
     placeLng: post.placeLng,
     staffHidden: post.staffHidden,
+    pendingReview: post.pendingReview,
     isAnnouncement: post.isAnnouncement,
     editedAt: post.editedAt,
     extensions: post.extensions,

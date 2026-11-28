@@ -13,8 +13,16 @@ import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/sett
 import { getSiteChrome } from '@/core/site-chrome'
 import { getPersonas, personaMediaSrc } from '@/modules/profiles/api.server'
 
+import { formatMutualFriendCount } from '../people'
 import { memberFeedHref } from '../posts'
-import { listIncomingFriendRequests, listPeopleDirectory } from '../people-store'
+import {
+  countMutualFriendsBetween,
+  listIncomingFriendRequests,
+  listPeopleDirectory,
+  listPeopleSuggestions,
+} from '../people-store'
+import { loadSocialModuleSettings } from '../settings'
+import { FeedTabs } from './FeedTabs'
 import { IncomingRequestActions, RequestFriendButton } from './PeopleActions'
 
 type Args = { params: Promise<{ locale: string }> }
@@ -56,121 +64,198 @@ export default async function SocialPeoplePage({ params }: Args) {
     withLocalePrefix('/feed/people', locale),
   )}`
 
+  const pack = await loadSocialModuleSettings()
+  const tabFlags = {
+    showFollowing: pack.settings.allowFollowingTab,
+    showDiscover: pack.settings.allowDiscover,
+    showWatch: pack.settings.allowShortVideoLayout,
+    showStories: pack.settings.allowStories,
+  }
+
   if (!userId) {
     return (
-      <article className="cms-page sf-social-people-page">
-        <header className="cms-page-header">
-          <h1>People</h1>
-          <p className="lede">Sign in to find members and manage friend requests.</p>
-        </header>
-        <p>
-          <Link className="gantry-btn gantry-btn-primary" href={loginHref}>
-            Sign in
-          </Link>
-        </p>
-      </article>
+      <div className="sf-social-feed-page sf-social-people-page">
+        <FeedTabs locale={locale} active="people" {...tabFlags} />
+        <div className="sf-social-feed-column">
+          <p className="sf-social-feed-guest-copy">
+            Sign in to find members and manage friend requests.
+          </p>
+          <p className="sf-social-feed-guest-action">
+            <Link className="sf-social-cta" href={loginHref}>
+              Sign in
+            </Link>
+          </p>
+        </div>
+      </div>
     )
   }
 
-  const [people, incoming] = await Promise.all([
+  const [people, incoming, suggestions] = await Promise.all([
     listPeopleDirectory(userId),
     listIncomingFriendRequests(userId),
+    listPeopleSuggestions(userId),
   ])
   const personaIds = [
     ...people.map((p) => p.userId),
     ...incoming.map((r) => r.requesterId),
+    ...suggestions.map((s) => s.userId),
   ]
-  const personas = await getPersonas(personaIds, viewer)
+  const [personas, incomingMutuals] = await Promise.all([
+    getPersonas(personaIds, viewer),
+    Promise.all(
+      incoming.map(async (row) => ({
+        friendshipId: row.friendshipId,
+        mutualFriendCount: await countMutualFriendsBetween(userId, row.requesterId),
+      })),
+    ),
+  ])
+  const mutualByRequest = new Map(
+    incomingMutuals.map((row) => [row.friendshipId, row.mutualFriendCount]),
+  )
 
   return (
-    <article className="cms-page sf-social-people-page">
-      <header className="cms-page-header">
-        <h1>People</h1>
-        <p className="lede">Find members and manage friend requests.</p>
-      </header>
+    <div className="sf-social-feed-page sf-social-people-page">
+      <FeedTabs locale={locale} active="people" {...tabFlags} />
+      <div className="sf-social-feed-column">
+        <section className="sf-social-people-requests" aria-label="Friend requests">
+          <h2 className="sf-social-section-heading">Friend requests</h2>
+          {incoming.length === 0 ? (
+            <p className="layout-muted">No pending requests.</p>
+          ) : (
+            <ul className="sf-social-people-list">
+              {incoming.map((row) => {
+                const persona = personas.get(row.requesterId)
+                const name =
+                  persona?.displayName?.trim() ||
+                  (persona?.handle ? `@${persona.handle}` : row.requesterId)
+                const handle = persona?.handle?.trim() || ''
+                const href = handle
+                  ? withLocalePrefix(memberFeedHref(handle), locale)
+                  : withLocalePrefix('/feed', locale)
+                const avatar = personaMediaSrc(persona?.avatarMediaId)
+                const mutualLabel = formatMutualFriendCount(
+                  mutualByRequest.get(row.friendshipId) ?? 0,
+                )
+                return (
+                  <li key={row.friendshipId} className="sf-social-people-item">
+                    <Link href={href} className="sf-social-people-link">
+                      {avatar ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={avatar}
+                          alt=""
+                          className="sf-social-people-avatar"
+                          width={40}
+                          height={40}
+                        />
+                      ) : (
+                        <span className="sf-social-people-avatar sf-social-people-avatar-empty" />
+                      )}
+                      <span className="sf-social-people-copy">
+                        <span className="sf-social-people-name">{name}</span>
+                        {mutualLabel ? (
+                          <span className="sf-social-people-mutual layout-muted">{mutualLabel}</span>
+                        ) : null}
+                      </span>
+                    </Link>
+                    <IncomingRequestActions userId={row.requesterId} />
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </section>
 
-      <section className="sf-social-people-requests" aria-label="Friend requests">
-        <h2 className="sf-social-section-heading">Friend requests</h2>
-        {incoming.length === 0 ? (
-          <p className="layout-muted">No pending requests.</p>
-        ) : (
-          <ul className="sf-social-people-list">
-            {incoming.map((row) => {
-              const persona = personas.get(row.requesterId)
-              const name =
-                persona?.displayName?.trim() ||
-                (persona?.handle ? `@${persona.handle}` : row.requesterId)
-              const handle = persona?.handle?.trim() || ''
-              const href = handle
-                ? withLocalePrefix(memberFeedHref(handle), locale)
-                : withLocalePrefix('/feed', locale)
-              const avatar = personaMediaSrc(persona?.avatarMediaId)
-              return (
-                <li key={row.friendshipId} className="sf-social-people-item">
-                  <Link href={href} className="sf-social-people-link">
-                    {avatar ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={avatar}
-                        alt=""
-                        className="sf-social-people-avatar"
-                        width={40}
-                        height={40}
-                      />
-                    ) : (
-                      <span className="sf-social-people-avatar sf-social-people-avatar-empty" />
-                    )}
-                    <span className="sf-social-people-name">{name}</span>
-                  </Link>
-                  <IncomingRequestActions userId={row.requesterId} />
-                </li>
-              )
-            })}
-          </ul>
-        )}
-      </section>
+        {suggestions.length > 0 ? (
+          <section className="sf-social-people-suggestions" aria-label="People you may know">
+            <h2 className="sf-social-section-heading">People you may know</h2>
+            <ul className="sf-social-people-list">
+              {suggestions.map((row) => {
+                const persona = personas.get(row.userId)
+                const name =
+                  persona?.displayName?.trim() ||
+                  row.displayName ||
+                  (row.handle ? `@${row.handle}` : row.userId)
+                const handle = (persona?.handle || row.handle).trim()
+                const href = handle
+                  ? withLocalePrefix(memberFeedHref(handle), locale)
+                  : withLocalePrefix('/feed', locale)
+                const avatar = personaMediaSrc(persona?.avatarMediaId || row.avatarMediaId)
+                const mutualLabel = formatMutualFriendCount(row.mutualFriendCount)
+                return (
+                  <li key={row.userId} className="sf-social-people-item">
+                    <Link href={href} className="sf-social-people-link">
+                      {avatar ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={avatar}
+                          alt=""
+                          className="sf-social-people-avatar"
+                          width={40}
+                          height={40}
+                        />
+                      ) : (
+                        <span className="sf-social-people-avatar sf-social-people-avatar-empty" />
+                      )}
+                      <span className="sf-social-people-copy">
+                        <span className="sf-social-people-name">{name}</span>
+                        {mutualLabel ? (
+                          <span className="sf-social-people-mutual layout-muted">{mutualLabel}</span>
+                        ) : null}
+                      </span>
+                    </Link>
+                    <RequestFriendButton userId={row.userId} />
+                  </li>
+                )
+              })}
+            </ul>
+          </section>
+        ) : null}
 
-      <section className="sf-social-people-directory" aria-label="People directory">
-        <h2 className="sf-social-section-heading">Directory</h2>
-        {people.length === 0 ? (
-          <p className="layout-muted">No people to show.</p>
-        ) : (
-          <ul className="sf-social-people-list">
-            {people.map((row) => {
-              const persona = personas.get(row.userId)
-              const name =
-                persona?.displayName?.trim() ||
-                row.displayName ||
-                (row.handle ? `@${row.handle}` : row.userId)
-              const handle = (persona?.handle || row.handle).trim()
-              const href = handle
-                ? withLocalePrefix(memberFeedHref(handle), locale)
-                : withLocalePrefix('/feed', locale)
-              const avatar = personaMediaSrc(persona?.avatarMediaId || row.avatarMediaId)
-              return (
-                <li key={row.userId} className="sf-social-people-item">
-                  <Link href={href} className="sf-social-people-link">
-                    {avatar ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={avatar}
-                        alt=""
-                        className="sf-social-people-avatar"
-                        width={40}
-                        height={40}
-                      />
-                    ) : (
-                      <span className="sf-social-people-avatar sf-social-people-avatar-empty" />
-                    )}
-                    <span className="sf-social-people-name">{name}</span>
-                  </Link>
-                  <RequestFriendButton userId={row.userId} />
-                </li>
-              )
-            })}
-          </ul>
-        )}
-      </section>
-    </article>
+        <section className="sf-social-people-directory" aria-label="People directory">
+          <h2 className="sf-social-section-heading">Directory</h2>
+          {people.length === 0 ? (
+            <p className="layout-muted">No people to show.</p>
+          ) : (
+            <ul className="sf-social-people-list">
+              {people.map((row) => {
+                const persona = personas.get(row.userId)
+                const name =
+                  persona?.displayName?.trim() ||
+                  row.displayName ||
+                  (row.handle ? `@${row.handle}` : row.userId)
+                const handle = (persona?.handle || row.handle).trim()
+                const href = handle
+                  ? withLocalePrefix(memberFeedHref(handle), locale)
+                  : withLocalePrefix('/feed', locale)
+                const avatar = personaMediaSrc(persona?.avatarMediaId || row.avatarMediaId)
+                return (
+                  <li key={row.userId} className="sf-social-people-item">
+                    <Link href={href} className="sf-social-people-link">
+                      {avatar ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={avatar}
+                          alt=""
+                          className="sf-social-people-avatar"
+                          width={40}
+                          height={40}
+                        />
+                      ) : (
+                        <span className="sf-social-people-avatar sf-social-people-avatar-empty" />
+                      )}
+                      <span className="sf-social-people-copy">
+                        <span className="sf-social-people-name">{name}</span>
+                      </span>
+                    </Link>
+                    <RequestFriendButton userId={row.userId} />
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </section>
+      </div>
+    </div>
   )
 }

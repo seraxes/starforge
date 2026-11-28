@@ -21,9 +21,13 @@ import { listMemberFeedPosts } from '../feed-store'
 import { findFollow } from '../follows-store'
 import { areBlocked } from '../friends-store'
 import { getMemberBannedAt, isMemberAccountHidden } from '../members-store'
+import { formatMutualFriendCount } from '../people'
+import { countMutualFriendsBetween } from '../people-store'
 import { isReservedFeedHandle } from '../posts'
+import { loadSocialModuleSettings } from '../settings'
 import { AlbumList, CreateAlbumForm } from './AlbumActions'
 import { FeedPostList } from './FeedPostList'
+import { FeedTabs } from './FeedTabs'
 import { FollowButton, UnfollowButton } from './FollowActions'
 
 type Args = {
@@ -142,43 +146,67 @@ export default async function SocialMemberFeedPage({
     !interact.actorHidden &&
     !interact.otherHidden
 
+  const mutualFriendCount =
+    sessionUserId && sessionUserId !== ownerUserId && !interact.isBlocked
+      ? await countMutualFriendsBetween(sessionUserId, ownerUserId)
+      : 0
+  const mutualLabel = formatMutualFriendCount(mutualFriendCount)
+
+  const followControl = canOfferFollow ? (
+    existingFollow ? (
+      <UnfollowButton userId={ownerUserId} />
+    ) : (
+      <FollowButton userId={ownerUserId} />
+    )
+  ) : null
+
+  const pack = await loadSocialModuleSettings()
+  const tabFlags = {
+    showFollowing: pack.settings.allowFollowingTab,
+    showDiscover: pack.settings.allowDiscover,
+    showWatch: pack.settings.allowShortVideoLayout,
+    showStories: pack.settings.allowStories,
+  }
+
   return (
-    <article className="cms-page sf-social-member-page">
-      <PublicProfile
-        persona={found.persona}
-        locale={locale}
-        memberSince={found.createdAt}
-        adminEditHref={
-          viewer.isAppAdmin ? `/admin/profiles/${found.persona.userId}` : undefined
-        }
-      />
-      {canOfferFollow ? (
-        <section className="sf-social-member-follow admin-control-row" aria-label="Follow">
-          {existingFollow ? (
-            <UnfollowButton userId={ownerUserId} />
-          ) : (
-            <FollowButton userId={ownerUserId} />
-          )}
-        </section>
-      ) : null}
-      <section className="sf-social-member-albums" aria-label="Albums">
-        <h2>Albums</h2>
-        {isOwner ? <CreateAlbumForm ownerType="user" ownerId={ownerUserId} /> : null}
-        <AlbumList
-          albums={visibleAlbums}
-          itemsByAlbum={itemsByAlbum}
-          canManage={isOwner}
-        />
-      </section>
-      <section className="sf-social-member-wall" aria-label="Posts">
-        <h2>Posts</h2>
-        <FeedPostList
-          items={items}
+    <div className="sf-social-feed-page sf-social-member-page">
+      <FeedTabs locale={locale} active="feed" {...tabFlags} />
+      <div className="sf-social-feed-column">
+        <PublicProfile
+          persona={found.persona}
           locale={locale}
-          emptyMessage="No visible posts."
-          showShare
+          memberSince={found.createdAt}
+          adminEditHref={
+            viewer.isAppAdmin ? `/admin/profiles/${found.persona.userId}` : undefined
+          }
+          underName={
+            mutualLabel ? (
+              <p className="sf-social-member-mutual layout-muted" aria-label="Mutual friends">
+                {mutualLabel}
+              </p>
+            ) : null
+          }
+          headerExtra={followControl}
         />
-      </section>
-    </article>
+        <section className="sf-social-member-albums" aria-label="Albums">
+          <h2 className="sf-social-section-heading">Albums</h2>
+          {isOwner ? <CreateAlbumForm ownerType="user" ownerId={ownerUserId} /> : null}
+          <AlbumList
+            albums={visibleAlbums}
+            itemsByAlbum={itemsByAlbum}
+            canManage={isOwner}
+          />
+        </section>
+        <section className="sf-social-member-wall" aria-label="Posts">
+          <h2 className="sf-social-section-heading">Posts</h2>
+          <FeedPostList
+            items={items}
+            locale={locale}
+            emptyMessage="No visible posts."
+            showShare
+          />
+        </section>
+      </div>
+    </div>
   )
 }

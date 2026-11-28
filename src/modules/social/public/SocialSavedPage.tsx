@@ -14,7 +14,9 @@ import { getSiteChrome } from '@/core/site-chrome'
 import { getPersonas } from '@/modules/profiles/api.server'
 
 import { listSavedFeedPosts } from '../mentions-tags-saves-store'
+import { loadSocialModuleSettings } from '../settings'
 import { FeedPostList } from './FeedPostList'
+import { FeedTabs } from './FeedTabs'
 
 type Args = { params: Promise<{ locale: string }> }
 
@@ -50,6 +52,14 @@ export default async function SocialSavedPage({ params }: Args) {
   ])
   if (!isCatalogModuleEnabled(settings, MODULE_IDS.social)) notFound()
 
+  const pack = await loadSocialModuleSettings()
+  const tabFlags = {
+    showFollowing: pack.settings.allowFollowingTab,
+    showDiscover: pack.settings.allowDiscover,
+    showWatch: pack.settings.allowShortVideoLayout,
+    showStories: pack.settings.allowStories,
+  }
+
   const userId = session?.user?.id ? String(session.user.id).trim() : ''
   const loginHref = `${withLocalePrefix('/login', locale)}?next=${encodeURIComponent(
     withLocalePrefix('/feed/saved', locale),
@@ -57,17 +67,17 @@ export default async function SocialSavedPage({ params }: Args) {
 
   if (!userId) {
     return (
-      <article className="cms-page sf-social-feed-page">
-        <header className="cms-page-header">
-          <h1>Saved</h1>
-          <p className="lede">Sign in to see posts you saved.</p>
-        </header>
-        <p>
-          <Link className="gantry-btn gantry-btn-primary" href={loginHref}>
-            Sign in
-          </Link>
-        </p>
-      </article>
+      <div className="sf-social-feed-page">
+        <FeedTabs locale={locale} active="saved" {...tabFlags} />
+        <div className="sf-social-feed-column">
+          <p className="sf-social-feed-guest-copy">Sign in to see posts you saved.</p>
+          <p className="sf-social-feed-guest-action">
+            <Link className="sf-social-cta" href={loginHref}>
+              Sign in
+            </Link>
+          </p>
+        </div>
+      </div>
     )
   }
 
@@ -82,19 +92,18 @@ export default async function SocialSavedPage({ params }: Args) {
   }))
 
   return (
-    <article className="cms-page sf-social-feed-page">
-      <header className="cms-page-header">
-        <h1>Saved</h1>
-        <p className="lede">Posts you saved. Hidden or blocked authors stay omitted.</p>
-      </header>
-      <FeedPostList
-        items={items}
-        locale={locale}
-        emptyMessage="No saved posts yet."
-        showShare
-        showSave
-        savedPostIds={new Set(posts.map((p) => p.id))}
-      />
-    </article>
+    <div className="sf-social-feed-page">
+      <FeedTabs locale={locale} active="saved" {...tabFlags} />
+      <div className="sf-social-feed-column">
+        <FeedPostList
+          items={items}
+          locale={locale}
+          emptyMessage="No saved posts yet."
+          showShare={pack.settings.allowShare}
+          showSave
+          savedPostIds={new Set(posts.map((p) => p.id))}
+        />
+      </div>
+    </div>
   )
 }
