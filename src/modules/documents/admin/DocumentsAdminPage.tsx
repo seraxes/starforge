@@ -57,8 +57,9 @@ export default async function DocumentsAdminPage({
     <section className="admin-section admin-layouts-full">
       <h2>Documents</h2>
       <p className="lede admin-lede">
-        Templates and the files linked to a person or a vehicle. Media keeps the bytes. Module
-        on/off: <Link href="/admin/settings">Settings → Modules</Link>.
+        Shared templates and file links, so one maker serves every record and Media keeps the file.
+        Sending a contract needs DocuSign keys in{' '}
+        <Link href="/admin/site-chrome/environment">Environment</Link>.
       </p>
 
       <DocumentsTemplatesManager
