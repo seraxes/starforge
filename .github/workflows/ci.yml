@@ -101,6 +101,9 @@ jobs:
     name: smoke
     runs-on: ubuntu-latest
     needs: [check, migrate]
+    env:
+      # Avoid Next unstable_cache nested-fill stalls on first public SSR in CI.
+      STARFORGE_CONTENT_CACHE: 'off'
     services:
       postgres:
         image: postgres:16

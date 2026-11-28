@@ -56,6 +56,7 @@ function wrapBackend(backend: PublishedContentCache): PublishedContentCache {
  * Active published-content cache backend.
  *
  * - Site Settings → Performance can disable caching (passthrough).
+ * - `STARFORGE_CONTENT_CACHE=off`: force passthrough (CI / ops stall escape).
  * - Default / local: Next.js `unstable_cache` + tags
  * - `STARFORGE_CONTENT_CACHE=redis`: Redis (`REDIS_URL`) for DO multi-instance
  *
@@ -64,10 +65,15 @@ function wrapBackend(backend: PublishedContentCache): PublishedContentCache {
  * `invalidatePublishedPage` / `invalidateSiteSettings` instead.
  */
 export function getPublishedContentCache(): PublishedContentCache {
+  // Ops / CI escape hatch — bypass Next/Redis nested fills that can stall SSR.
+  const cacheMode = (process.env.STARFORGE_CONTENT_CACHE || '').trim().toLowerCase()
+  if (cacheMode === 'off' || cacheMode === '0' || cacheMode === 'false') {
+    return passthroughPublishedContentCache
+  }
   if (!getPublishedCacheRuntimeConfig().enabled) {
     return passthroughPublishedContentCache
   }
-  if (process.env.STARFORGE_CONTENT_CACHE === 'redis') {
+  if (cacheMode === 'redis') {
     if (!redisCache) {
       // Sync factory — dynamic import is async; require keeps the port sync.
       // eslint-disable-next-line @typescript-eslint/no-require-imports -- lazy Redis load
