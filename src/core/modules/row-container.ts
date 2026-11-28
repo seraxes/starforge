@@ -191,14 +191,15 @@ export function applyRowContainerPatch(
   }
   const sectionIds = line.sections.map((section) => section.id)
   const synced = syncRowContainers(sections, containers, { createMissing: false }) ?? []
+  const containerId = input.containerId?.trim()
   const existing =
-    (input.containerId
-      ? synced.find((container) => container.id === input.containerId.trim())
+    (containerId
+      ? synced.find((container) => container.id === containerId)
       : undefined) ?? rowContainerForSections(synced, sectionIds)
   const base: LayoutRowContainer = existing
     ? { ...existing, sectionIds, ...(existing.styles ? { styles: { ...existing.styles } } : {}) }
     : {
-        id: input.containerId?.trim() || createId(),
+        id: containerId || createId(),
         label: 'Container',
         sectionIds,
         ...(sharedContainerMode(line.sections)

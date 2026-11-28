@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from 'react'
 
 import { majorToMinor, minorToMajor } from '@/core/payments/money'
-import type { BrowseFilters } from '../browse-rules'
+import type { BrowseFilters, BrowseSort } from '../browse-rules'
 
 export type MarketplaceBrowseCategory = {
   id: string
@@ -34,7 +34,7 @@ export function MarketplaceBrowseFilters({
   currency,
   defaults,
 }: Props) {
-  const [sort, setSort] = useState(filters.sort || 'newest')
+  const [sort, setSort] = useState<BrowseSort>(filters.sort || 'newest')
   const [open, setOpen] = useState(false)
   const showNearMe = sort === 'distance'
 
@@ -144,7 +144,7 @@ export function MarketplaceBrowseFilters({
           <select
             name="sort"
             value={sort}
-            onChange={(e) => setSort(e.target.value)}
+            onChange={(e) => setSort(e.target.value as BrowseSort)}
           >
             <option value="newest">Newest</option>
             <option value="price">Price</option>

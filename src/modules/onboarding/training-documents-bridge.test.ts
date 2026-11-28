@@ -30,7 +30,7 @@ describe('onboarding training documents bridge', () => {
   it('Documents on returns a mediaId for the report to store (success path)', async () => {
     let packLocalCalls = 0
     let documentsCalls = 0
-    let captured: TrainingDocumentsRenderInput | null = null
+    const captured: { args: TrainingDocumentsRenderInput | null } = { args: null }
 
     const result = await resolveTrainingReportMediaId(
       { documentsEnabled: true },
@@ -43,7 +43,7 @@ describe('onboarding training documents bridge', () => {
       {
         renderViaDocuments: async (args) => {
           documentsCalls += 1
-          captured = args
+          captured.args = args
           return { ok: true, value: { ok: true, mediaId: 'media-docs-1' } }
         },
         renderPackLocal: async () => {
@@ -60,12 +60,12 @@ describe('onboarding training documents bridge', () => {
     })
     assert.equal(documentsCalls, 1)
     assert.equal(packLocalCalls, 0)
-    assert.ok(captured)
-    assert.equal(captured.subjectKind, ONBOARDING_TRAINING_REPORT_SUBJECT_KIND)
-    assert.equal(captured.subjectId, 'report-1')
-    assert.equal(captured.templateId, ONBOARDING_TRAINING_REPORT_TEMPLATE_ID)
-    assert.equal(captured.authorized, true)
-    assert.deepEqual(captured.values, buildTrainingReportDocumentValues(report))
+    assert.ok(captured.args)
+    assert.equal(captured.args.subjectKind, ONBOARDING_TRAINING_REPORT_SUBJECT_KIND)
+    assert.equal(captured.args.subjectId, 'report-1')
+    assert.equal(captured.args.templateId, ONBOARDING_TRAINING_REPORT_TEMPLATE_ID)
+    assert.equal(captured.args.authorized, true)
+    assert.deepEqual(captured.args.values, buildTrainingReportDocumentValues(report))
   })
 
   it('Documents off stores a pack-local mediaId; authz disabled leaves mediaId and skips pack-local (failure path)', async () => {

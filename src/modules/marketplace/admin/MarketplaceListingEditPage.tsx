@@ -7,6 +7,7 @@ import {
   viewerMayAccessAdminResource,
 } from '@/core/acl/access'
 import { isValidLocaleCode, type AppLocale } from '@/core/i18n'
+import { getLocalizationSettings } from '@/core/localization/store'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { getPaymentsSettings } from '@/modules/payments/api'
 
@@ -56,14 +57,17 @@ export default async function MarketplaceListingEditPage({
   )
   if (!decision.ok) notFound()
 
-  const [categories, moduleSettings, pay] = await Promise.all([
+  const [categories, moduleSettings, pay, localization] = await Promise.all([
     listMarketplaceCategories(),
     loadMarketplaceModuleSettings(),
     getPaymentsSettings(),
+    getLocalizationSettings(),
   ])
 
   const editLocale = (
-    isValidLocaleCode(settings.defaultLocale) ? settings.defaultLocale : 'en'
+    isValidLocaleCode(localization.defaultLocale)
+      ? localization.defaultLocale
+      : 'en'
   ) as AppLocale
 
   return (

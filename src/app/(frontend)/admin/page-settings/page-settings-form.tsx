@@ -1345,7 +1345,7 @@ export function PageSettingsForm({ bootstrap }: Props) {
                               value={String(headroomTargetKind)}
                               disabled={lockedScripts || atomsLocked}
                               onChange={(e) => {
-                                const next = {
+                                const next: Record<string, unknown> = {
                                   ...atom.config,
                                   targetKind: e.target.value,
                                   target: headroomTarget,
@@ -1381,7 +1381,7 @@ export function PageSettingsForm({ bootstrap }: Props) {
                               spellCheck={false}
                               autoComplete="off"
                               onChange={(e) => {
-                                const next = {
+                                const next: Record<string, unknown> = {
                                   ...atom.config,
                                   targetKind: headroomTargetKind,
                                   target: e.target.value.replace(/^[#.]+/, ''),

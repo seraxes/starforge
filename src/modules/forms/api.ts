@@ -15,7 +15,11 @@
  */
 
 import type { FormDefinitionLoadResult } from './definitions-store'
-import type { FormDefinitionDocument, FormSubmitActionState } from './types'
+import type {
+  FormDefinitionDocument,
+  FormPresetId,
+  FormSubmitActionState,
+} from './types'
 
 export type { FormDefinitionLoadResult }
 

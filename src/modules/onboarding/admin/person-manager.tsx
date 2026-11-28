@@ -392,7 +392,7 @@ function ValidUntilPanel({
   documentSlots,
 }: {
   userId: string
-  documentSlots: DocumentSlotProp[]
+  documentSlots: DocumentSlotRow[]
 }) {
   const router = useRouter()
   const [state, action, pending] = useActionState(saveOnboardingValidUntilAction, initial)
