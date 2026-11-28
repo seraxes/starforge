@@ -179,17 +179,16 @@ jobs:
           test "$code_sitemap" = "200"
           code_robots=$(curl_s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/robots.txt)
           test "$code_robots" = "200"
-          # Core /admin and Payload /cms/admin must bounce unauthenticated users to /login
-          # (SSO may land on bare /login; next-intl then prefixes — Location still contains /login)
+          # Unauthenticated /admin bounces to Core login (not a Users deep link).
+          # Legacy /cms/admin is a bookmark: first hop is /admin, which then requires login.
           loc=$(curl_s -o /dev/null -w '%{redirect_url}' http://127.0.0.1:3000/admin)
           echo "core admin redirect -> $loc"
           echo "$loc" | grep -q '/login'
-          # Unauthenticated /admin must not deep-link login next to Users
           echo "$loc" | grep -qv 'admin%2Fusers'
           echo "$loc" | grep -qv 'admin/users'
           loc_cms=$(curl_s -o /dev/null -w '%{redirect_url}' http://127.0.0.1:3000/cms/admin)
           echo "cms admin redirect -> $loc_cms"
-          echo "$loc_cms" | grep -q '/login'
+          echo "$loc_cms" | grep -Eq '/admin/?$'
           # Authenticated seed admin: /admin must render Dashboard (not redirect to /admin/users)
           npx tsx scripts/verify-admin-root-dashboard-http.mts
           # Security headers on locale negotiate redirect (bare /)
