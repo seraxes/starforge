@@ -32,7 +32,7 @@ last_verified: 2026-11-22
 | **Page assignment** | Nav menu item `layoutId` → layoutId-only pageKey row. Page Settings chrome is outline-gated (Base = `global`; children = `outline:<id>`). |
 | **System children** | Every pack seeds **Offline** (`{skinId}-offline`) + **404** (`{skinId}-not-found`) beside Base. Active skin owns offline + 404 (not in Navigation). |
 | **Offline** | Active skin’s offline page (same for everyone — no admin bypass). Site Chrome picks the outline + message; visitor login/menu live on the outline. Ops entry: `/admin/login` (admin chrome). `/site-offline` = proxy 503 plumbing. |
-| **404** | Active pack `*-not-found` is the 404 page. Locale `not-found` renders it; `/site-not-found` = client `error.tsx` recovery plumbing. |
+| **404** | Active pack `*-not-found` is the 404 page. Global `app/not-found.tsx` renders it (outside `[locale]/template` so Assigned Menu does not wrap it). Covers public / admin / unmatched. `/site-not-found` = client `error.tsx` recovery plumbing. Hardcoded `HardcodedNotFoundFallback` only when the outline cannot paint. |
 | **Public body CSS** | `body.sf-skin-{skinId}` + `body.sf-outline-{outlineId}` — unique classes; compound `body.sf-skin-*.sf-outline-*` always wins for outline vars |
 
 ## Public CSS hierarchy (Skin module)
