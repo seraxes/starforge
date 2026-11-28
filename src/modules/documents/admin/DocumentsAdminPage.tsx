@@ -8,7 +8,6 @@ import { MODULE_IDS, getSiteSettingsLive, isCatalogModuleEnabled } from '@/core/
 import { listDocumentLinks } from '../api.server'
 import { isDocumentSubjectKind } from '../links-rules'
 import { listDocumentTemplates } from '../templates-store'
-import { DocumentsSubjectLinksPanel } from './subject-links-panel'
 import { DocumentsTemplatesManager } from './templates-manager'
 
 export const metadata = {
@@ -58,19 +57,23 @@ export default async function DocumentsAdminPage({
     <section className="admin-section admin-layouts-full">
       <h2>Documents</h2>
       <p className="lede admin-lede">
-        Templates staff edit and subject file links. Media keeps bytes. Module on/off:{' '}
-        <Link href="/admin/settings">Settings → Modules</Link>. Signing is a later slice.
+        Templates and the files linked to a person or a vehicle. Media keeps the bytes. Module
+        on/off: <Link href="/admin/settings">Settings → Modules</Link>.
       </p>
 
-      {subjectKind && subjectId && subjectLinks ? (
-        <DocumentsSubjectLinksPanel
-          subjectKind={subjectKind}
-          subjectId={subjectId}
-          links={subjectLinks.ok ? subjectLinks.value : []}
-        />
-      ) : null}
-
-      <DocumentsTemplatesManager templates={templates} />
+      <DocumentsTemplatesManager
+        templates={templates}
+        initialSubjectKind={subjectKind ?? ''}
+        subjectFiles={
+          subjectKind && subjectId && subjectLinks
+            ? {
+                subjectKind,
+                subjectId,
+                links: subjectLinks.ok ? subjectLinks.value : [],
+              }
+            : null
+        }
+      />
     </section>
   )
 }
