@@ -1,4 +1,4 @@
-import { refresh, revalidateTag } from 'next/cache'
+import { revalidateTag } from 'next/cache'
 
 /**
  * Stale-while-revalidate invalidation.
@@ -67,10 +67,18 @@ export function revalidateTagNow(tag: string, mode: CacheInvalidateMode = 'stale
  * tags, so it does not block the next read the way `expire: 0` does. Safe to
  * call more than once in one action. Outside a Server Action it throws; that
  * is swallowed so seeds and unit tests can share callers.
+ *
+ * `refresh` is required lazily so this module (pulled in by the content-cache
+ * adapter on every public paint) does not import a Server-Action-only export
+ * at load time.
  */
-export function refreshCurrentRoute(refreshImpl: () => void = refresh): void {
+export function refreshCurrentRoute(refreshImpl?: () => void): void {
   try {
-    refreshImpl()
+    const run =
+      refreshImpl ??
+      // eslint-disable-next-line @typescript-eslint/no-require-imports -- lazy Server Action API
+      (require('next/cache') as { refresh: () => void }).refresh
+    run()
   } catch {
     // Seed and hooks may run outside a Next Server Action.
   }
