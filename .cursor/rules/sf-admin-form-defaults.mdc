@@ -1,7 +1,6 @@
 ---
 description: New selects/options in useActionState forms must survive post-save reset — prefer controlled value, not defaultValue alone.
 globs: "**/*.{ts,tsx}"
-alwaysApply: true
 ---
 
 # Starforge — admin form option persistence

@@ -1,6 +1,6 @@
 ---
 description: Admin edit/create stays under /admin; public has its own view and may reuse shared form elements
-alwaysApply: true
+globs: "src/app/(frontend)/admin/**,src/modules/**/admin/**,src/modules/**/public/**"
 ---
 
 # Starforge — admin stays in admin
