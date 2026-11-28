@@ -192,7 +192,7 @@ Online gateways: developer adds adapter + `register-online.ts` import ([decision
 | --- | --- |
 | This queue, routes, secrets, open work | This file |
 | Glossary / agent index | [glossary](./glossary.md), [AGENTS.md](../../../AGENTS.md) |
-| Ops / launch runbooks | [production-env-checklist](../../ops/production-env-checklist.md), [deploy](../../ops/deploy.md), [backup-restore](../../ops/backup-restore.md), [migration-users-events](../../ops/migration-users-events.md), [redirects-and-archive](../../ops/redirects-and-archive.md), [cutover](../../ops/cutover.md), [post-launch-first-week](../../ops/post-launch-first-week.md) |
+| Ops / launch runbooks | [production-env-checklist](../../ops/production-env-checklist.md), [deploy](../../ops/deploy.md), [scale](../../ops/scale.md), [backup-restore](../../ops/backup-restore.md), [migration-users-events](../../ops/migration-users-events.md), [redirects-and-archive](../../ops/redirects-and-archive.md), [cutover](../../ops/cutover.md), [post-launch-first-week](../../ops/post-launch-first-week.md) |
 | Dev setup / admin tour | [local-setup](../../dev/local-setup.md), [troubleshooting](../../dev/troubleshooting.md), [admin-tour](../../dev/admin-tour.md) |
 | Accepted decisions | [decisions/](./decisions/) |
 | ACL levels and optional audit | [2026-11-16-acl-levels-and-audit](./decisions/2026-11-16-acl-levels-and-audit.md) |
