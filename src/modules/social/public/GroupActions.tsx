@@ -1,8 +1,9 @@
 'use client'
 
-import React, { useActionState } from 'react'
+import React, { useActionState, useRef } from 'react'
 
 import { MemberMediaPicker } from '@/modules/media/api'
+import { EmojiInsertButton } from '@/modules/rich-editor/api'
 
 import {
   acceptGroupInviteAction,
@@ -168,12 +169,14 @@ export function InviteToGroupForm({ groupId }: { groupId: string }) {
 
 export function GroupWallComposer({ groupId }: { groupId: string }) {
   const [state, action, pending] = useActionState(createGroupWallPostAction, initial)
+  const bodyRef = useRef<HTMLTextAreaElement>(null)
   return (
     <form action={action} className="sf-social-composer sf-social-group-composer">
       <input type="hidden" name="groupId" value={groupId} />
       <label className="settings-field">
         <span>Post to the wall</span>
         <textarea
+          ref={bodyRef}
           name="body"
           rows={3}
           maxLength={8000}
@@ -181,9 +184,12 @@ export function GroupWallComposer({ groupId }: { groupId: string }) {
           disabled={pending}
         />
       </label>
-      <button type="submit" className="gantry-btn gantry-btn-primary" disabled={pending}>
-        {pending ? 'Posting…' : 'Post'}
-      </button>
+      <div className="admin-control-row">
+        <EmojiInsertButton disabled={pending} targetRef={bodyRef} />
+        <button type="submit" className="gantry-btn gantry-btn-primary" disabled={pending}>
+          {pending ? 'Posting…' : 'Post'}
+        </button>
+      </div>
       {state.error ? (
         <p className="admin-inline-error" role="alert">
           {state.error}

@@ -1,6 +1,8 @@
 'use client'
 
-import React, { useActionState } from 'react'
+import React, { useActionState, useRef } from 'react'
+
+import { EmojiInsertButton } from '@/modules/rich-editor/api'
 
 import {
   createSharePostAction,
@@ -23,6 +25,7 @@ export function SharePostActions({
   noteOnly?: boolean
 }) {
   const [state, formAction, pending] = useActionState(createSharePostAction, initial)
+  const bodyRef = useRef<HTMLInputElement>(null)
 
   return (
     <form
@@ -33,6 +36,7 @@ export function SharePostActions({
       <input type="hidden" name="audience" value="friends" />
       {noteOnly ? (
         <input
+          ref={bodyRef}
           type="text"
           name="body"
           className="sf-social-comment-input"
@@ -45,6 +49,7 @@ export function SharePostActions({
         <label className="settings-field">
           <span className="sr-only">Note on the share</span>
           <input
+            ref={bodyRef}
             type="text"
             name="body"
             maxLength={2000}
@@ -53,6 +58,7 @@ export function SharePostActions({
           />
         </label>
       )}
+      <EmojiInsertButton disabled={pending} targetRef={bodyRef} />
       <button
         type="submit"
         className={noteOnly ? 'secondary' : 'gantry-btn'}

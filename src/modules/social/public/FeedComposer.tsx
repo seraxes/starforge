@@ -1,8 +1,9 @@
 'use client'
 
-import React, { useActionState, useEffect, useState } from 'react'
+import React, { useActionState, useEffect, useRef, useState } from 'react'
 
 import { MemberMediaPicker } from '@/modules/media/api'
+import { EmojiInsertButton, insertTextIntoValue } from '@/modules/rich-editor/api'
 
 import { createTextPostAction, type SocialFeedActionState } from '../actions'
 import { POST_MEDIA_IMAGE_MAX } from '../posts'
@@ -79,6 +80,7 @@ export function FeedComposer({
   const [linkDraft, setLinkDraft] = useState('')
   const [linkError, setLinkError] = useState('')
   const [draftMediaId, setDraftMediaId] = useState('')
+  const bodyRef = useRef<HTMLTextAreaElement>(null)
   const groupAllowed = ownedGroups.length > 0
   const imageCap = Math.min(
     POST_MEDIA_IMAGE_MAX,
@@ -310,6 +312,7 @@ export function FeedComposer({
 
       <div className="sf-social-feed-body">
         <textarea
+          ref={bodyRef}
           name="body"
           className="sf-social-stage-caption"
           rows={expanded ? 3 : 1}
@@ -424,6 +427,24 @@ export function FeedComposer({
       </div>
 
       <div className="sf-social-stage-bar">
+        <EmojiInsertButton
+          disabled={pending}
+          targetRef={bodyRef}
+          onInsert={(emoji) => {
+            setOpen(true)
+            const el = bodyRef.current
+            const start = el?.selectionStart ?? body.length
+            const end = el?.selectionEnd ?? start
+            const { value, caret } = insertTextIntoValue(body, emoji, start, end)
+            setBody(value)
+            requestAnimationFrame(() => {
+              const field = bodyRef.current
+              if (!field) return
+              field.focus()
+              field.setSelectionRange(caret, caret)
+            })
+          }}
+        />
         {allowMedia ? (
           <button
             type="button"

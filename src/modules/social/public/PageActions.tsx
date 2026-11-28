@@ -1,6 +1,8 @@
 'use client'
 
-import React, { useActionState } from 'react'
+import React, { useActionState, useRef } from 'react'
+
+import { EmojiInsertButton } from '@/modules/rich-editor/api'
 
 import {
   addPageAdminAction,
@@ -111,14 +113,16 @@ export function AddPageAdminForm({ pageId }: { pageId: string }) {
 
 export function PageWallComposer({ pageId }: { pageId: string }) {
   const [state, action, pending] = useActionState(createPageWallPostAction, initial)
+  const bodyRef = useRef<HTMLTextAreaElement>(null)
   return (
     <form action={action} className="sf-social-page-wall-composer">
       <input type="hidden" name="pageId" value={pageId} />
       <label className="settings-field">
         <span>New wall post</span>
-        <textarea name="body" rows={3} required disabled={pending} />
+        <textarea ref={bodyRef} name="body" rows={3} required disabled={pending} />
       </label>
       <div className="admin-control-row">
+        <EmojiInsertButton disabled={pending} targetRef={bodyRef} />
         <button type="submit" className="gantry-btn gantry-btn-primary" disabled={pending}>
           {pending ? 'Posting…' : 'Post'}
         </button>

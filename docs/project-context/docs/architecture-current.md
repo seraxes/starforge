@@ -61,6 +61,7 @@ The 5 Nov wireframe order does not override this. Event slot kinds decided as ch
 | Rename `product:maps` to TacMap (id / docs consistency) | Maps | Open; do not rename in the Social dependency slice. Pack README already brands TacMap. Maps stays in progress | no | [2026-11-22-social-dependency-floor](./decisions/2026-11-22-social-dependency-floor.md), `src/modules/maps/README.md` |
 | Manifest `layer` vs base/advanced class test | Core boot | Open. The class test is accepted. Do not retag `layer` until a site pack no longer `requires` a pack that would boot later (`product:pages` requires the rich editor). Boot order stays base, then site, then advanced | no | [2026-11-26-base-vs-advanced](./decisions/2026-11-26-base-vs-advanced.md), `src/core/modules/boot-order.ts` |
 | Event / page conversation UI on Social’s comments engine | Social (+ Events / Pages) | Accepted ownership; event conversation not built | no | [2026-11-22-comments-reports-ownership](./decisions/2026-11-22-comments-reports-ownership.md) |
+| Rich-editor TipTap toolbar emoji button | Rich editor | Open; Social plain-field composers already use `EmojiInsertButton` | no | `src/modules/rich-editor/EmojiInsertButton.tsx` |
 | `dangerouslySetInnerHTML` sites need a sanitization review | Core + packs | Open; custom particle HTML, page-settings inject, Events description, and others | no | e.g. `src/core/modules/particles/custom.tsx` |
 | Event slot kinds chooser (Ticket type / Booking type / Faction + admin names) | Events | Decided; code still `general \| faction` | no | `src/modules/events/schema.ts` |
 | Organizations, outbound webhooks, support | TBD | Parked; not ahead of Marketplace | no | — |
@@ -153,7 +154,7 @@ Do not relocate these in a drive-by:
 | --- | --- | --- |
 | Forms engine | `src/modules/forms` | Consumers import `@/modules/forms/api` only. |
 | Redirects engine | `src/modules/redirects` | Core calls the generated hook only. |
-| TipTap engine | `src/modules/rich-editor` | Callers use `@/modules/rich-editor/api` (+ `api.server` for sanitize/gate). MediaPicker passed in from media. |
+| TipTap engine | `src/modules/rich-editor` | Callers use `@/modules/rich-editor/api` (+ `api.server` for sanitize/gate). MediaPicker passed in from media. Emoji insert control (`EmojiInsertButton`) for plain text fields; Social composers wired. TipTap toolbar emoji later. |
 | Forms success mail | `emitEmailTrigger` only | No `getMailer()` from Forms. |
 | `sf_pay_collect_entitlements` | Frozen stub | Subscriptions on → `payments.collect`. |
 | Payment fulfillment | `registerPaymentConsumerHook` | One hook key per consumer; later listeners isolated. |

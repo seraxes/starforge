@@ -16,7 +16,7 @@ Requires: `product:profiles`, `product:media`, `product:rich-editor`, `product:f
 - **Slice 2 friends** — `sf_social_friendships` (one row per unordered pair), request / accept / decline / cancel / unfriend / block.
 - **Slice 3 posts** — `sf_social_posts` text posts, audiences `only_me` | `group` | `friends` (default) | `public`, `canViewPost`, permalink not-found, reserved handles.
 - **Slice 4 feed** — home friends feed, text composer (empty body refused), member route `/feed/[handle]` (+ `/feed/u/[handle]` for reserved words), `social-friends` particle, nav views Social + People.
-- **Composer stage (first pass)** — the home composer is the feed card. A quiet strip grows in place. Instruments are photo, link, vote, and place, each gated by its pack switch. One block at a time; a second block asks before it replaces the first. The client submits only that block. Challenge and the Watch chip are later.
+- **Composer stage (first pass)** — the home composer is the feed card. A quiet strip grows in place. Instruments are photo, link, vote, and place, each gated by its pack switch. One block at a time; a second block asks before it replaces the first. The client submits only that block. Challenge and the Watch chip are later. Body composers (feed stage, comments, share note, group/page wall, post edit) use rich-editor `EmojiInsertButton` (native Unicode; Facebook-style picker).
 - **Slice 5 media** — `MediaPicker` / member picker on the composer; `sf_social_post_media` binds (`mediaId` stays in Media). Many images (≤10) or one video, not both. Unknown `mediaId`, non-owned media, 11 images, and image+video are refused.
 - **Slice 6 like** — `canInteract` write gate (block / hidden / bannedAt); `sf_social_reactions` unique `(actorUserId, targetType, targetId)`. Not the challenge vote table. The feed Like control sets `like`, and clicking that same reaction again clears the row. Another enabled kind updates the one row.
 - **Slice 7 people** — `/feed/people` directory (omit hidden + blocked), People nav, dual blockers (`blockedBy` + `blockedByOther`), `product:social/friend.requested` (mail failure does not roll back the request). `/feed/requests` redirects to People.
@@ -72,7 +72,7 @@ Requires: `product:profiles`, `product:media`, `product:rich-editor`, `product:f
 
 - **profiles** — persona resolve / directory; plain text user ids only
 - **media** — MediaPicker / assets
-- **rich-editor** — post body sanitize / display
+- **rich-editor** — post body sanitize / display; `EmojiInsertButton` on member body composers (insert native Unicode)
 - **forms** — intake where needed
 - **email-manager** — `emitEmailTrigger` only (never `getMailer()`); `product:social/friend.requested`, `product:social/group.invited`, `product:social/group.announced`
 - **form** (particle, `optionalRequires`) — layout Form particle pack (`src/modules/form`); keep-or-drop of this edge is still open on the live map — do not remove the manifest line in docs-only slices

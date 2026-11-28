@@ -1,7 +1,9 @@
 'use client'
 
-import React, { useActionState, useEffect, useState, useTransition } from 'react'
+import React, { useActionState, useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+
+import { EmojiInsertButton } from '@/modules/rich-editor/api'
 
 import {
   blockUserAction,
@@ -390,6 +392,7 @@ export function PostEditForm({
 }) {
   const router = useRouter()
   const [editState, editAction, editPending] = useActionState(editPostAction, feedInitial)
+  const bodyRef = useRef<HTMLTextAreaElement>(null)
   const onCancelRef = React.useRef(onCancel)
   onCancelRef.current = onCancel
 
@@ -403,6 +406,7 @@ export function PostEditForm({
     <form action={editAction} className="sf-social-post-edit">
       <input type="hidden" name="postId" value={postId} />
       <textarea
+        ref={bodyRef}
         name="body"
         className="sf-social-stage-caption"
         rows={3}
@@ -413,6 +417,7 @@ export function PostEditForm({
         required
       />
       <div className="sf-social-post-edit-actions">
+        <EmojiInsertButton disabled={editPending} targetRef={bodyRef} />
         <button type="submit" className="secondary" disabled={editPending}>
           {editPending ? 'Saving…' : 'Save'}
         </button>

@@ -8,7 +8,7 @@ Status: shipped
 
 ## Owns
 
-Shared **TipTap** content editor for module fields. Canonical storage is **sanitized HTML**. TipTap engine in this pack (`RichEditor`, sanitize, nodes). Presets `full` | `compact` | `email`. Settings at `/admin/rich-editor/settings`. Toggle: Site Settings → Modules → Rich editor (`product:rich-editor` / `richEditor`). When `enabled={false}`, TipTap falls back to a plain textarea (Email templates show a require notice instead). Popups: Link, Callout (portal). Video: inline Media / YouTube–Vimeo panel under the toolbar. No `sf_*` tables.
+Shared **TipTap** content editor for module fields. Canonical storage is **sanitized HTML**. TipTap engine in this pack (`RichEditor`, sanitize, nodes). Presets `full` | `compact` | `email`. Settings at `/admin/rich-editor/settings`. Toggle: Site Settings → Modules → Rich editor (`product:rich-editor` / `richEditor`). When `enabled={false}`, TipTap falls back to a plain textarea (Email templates show a require notice instead). Popups: Link, Callout (portal). Video: inline Media / YouTube–Vimeo panel under the toolbar. **Emoji insert:** `EmojiInsertButton` + `insertTextAtCaret` / `insertTextIntoValue` (native Unicode; Facebook-style categories / search / skin tones / recents via `emoji-picker-react`). Social composers bind it today; TipTap toolbar wiring is later. No `sf_*` tables.
 
 | Preset | Use |
 | --- | --- |
@@ -24,12 +24,17 @@ Shared **TipTap** content editor for module fields. Canonical storage is **sanit
 
 ## Public door
 
-- `@/modules/rich-editor/api` — `RichEditor`, `RichContent`, `sanitizeRichHtml`, `sanitizeEmailHtml`
+- `@/modules/rich-editor/api` — `RichEditor`, `RichContent`, `sanitizeRichHtml`, `sanitizeEmailHtml`, `EmojiInsertButton`, `insertTextAtCaret`, `insertTextIntoValue`
 - `@/modules/rich-editor/api.server` — `RICH_EDITOR_MODULE_ID`, `isRichEditorEnabled`, `sanitizeRichHtml`, `sanitizeEmailHtml`
 
 ```tsx
 import { MediaPicker } from '@/modules/media/api'
-import { RichEditor, RichContent } from '@/modules/rich-editor/api'
+import {
+  EmojiInsertButton,
+  RichEditor,
+  RichContent,
+  insertTextIntoValue,
+} from '@/modules/rich-editor/api'
 import {
   isRichEditorEnabled,
   sanitizeEmailHtml,
@@ -49,7 +54,8 @@ None.
 ## Known gaps
 
 - Legacy Lexical JSON render remains via optional `product:lexical-editor`
+- TipTap toolbar emoji button not wired yet (composers use `EmojiInsertButton` on plain fields)
 
 ## Tests
 
-`src/modules/rich-editor/sanitize.test.ts`, `src/modules/rich-editor/video.test.ts`
+`src/modules/rich-editor/sanitize.test.ts`, `src/modules/rich-editor/video.test.ts`, `src/modules/rich-editor/insert-text-at-caret.test.ts`
