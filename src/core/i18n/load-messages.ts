@@ -5,7 +5,10 @@
 import 'server-only'
 
 import { moduleMessageLoaders } from '@/generated/module-registry.server'
-import { getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
+import { DEFAULT_SITE_SETTINGS, type SiteSettingsData } from '@/core/settings/defaults'
+import { isCatalogModuleEnabled } from '@/core/settings/module-catalog'
+import { normalizeModuleToggles } from '@/core/settings/module-toggles'
+import { readSiteSettingsRow, type SiteSettingsRow } from '@/core/settings/store'
 
 import { BOOTSTRAP_LOCALES, DEFAULT_LOCALE } from './locales'
 import { mergeMessageTrees, wrapModuleMessages, type MessageTree } from './merge-messages'
@@ -45,15 +48,35 @@ async function loadModuleLeaf(
 }
 
 /**
+ * Toggle snapshot that does not call `getSiteSettings`.
+ *
+ * `getRequestConfig` awaits this loader. `getSiteSettings` resolves nav, and
+ * nav calls `getLocale()`, which waits on the same in-flight request config.
+ * That cycle never settles, so the first public SSR (`/en`) hangs.
+ */
+function settingsForModuleGates(row: SiteSettingsRow | null): SiteSettingsData {
+  const moduleToggles = normalizeModuleToggles(row?.moduleToggles)
+  const features = { ...DEFAULT_SITE_SETTINGS.features }
+  if (row) {
+    features.registration = row.featureRegistration
+    features.richEditor = row.featureRichEditor
+    features.posts = row.featurePosts
+    features.modules = row.featureModules
+    features.draftPreview = row.featureDraftPreview
+  }
+  return { ...DEFAULT_SITE_SETTINGS, moduleToggles, features }
+}
+
+/**
  * Core chrome (`Auth`, `Layout`, `Locale`, …) plus each enabled module’s namespaces.
  * Disabled (Site Settings off) or non-allowlisted packs are omitted.
  */
 export async function loadMergedMessages(locale: string): Promise<MessageTree> {
   const core = await loadCoreCatalog(locale)
 
-  let settings: Awaited<ReturnType<typeof getSiteSettings>> | null = null
+  let settings: SiteSettingsData | null = null
   try {
-    settings = await getSiteSettings()
+    settings = settingsForModuleGates(await readSiteSettingsRow())
   } catch {
     // Early boot / migrate — keep allowlisted packs when settings are unreachable.
     settings = null
