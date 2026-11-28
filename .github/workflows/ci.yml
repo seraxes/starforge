@@ -144,6 +144,10 @@ jobs:
           done
           curl_s -f http://127.0.0.1:3000/api/health | tee /tmp/health.json
           grep -q '"ok":true' /tmp/health.json
+          # Timed SSR awaits (same stack as public template) — prints which step stalls.
+          echo "probe /api/smoke-ssr"
+          curl_s -f http://127.0.0.1:3000/api/smoke-ssr | tee /tmp/smoke-ssr.json
+          grep -q '"ok":true' /tmp/smoke-ssr.json
           # localePrefix always: bare / and /login negotiate to /en|hu (307/308)
           echo "probe bare /"
           code_home=$(curl_s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/)
@@ -152,7 +156,11 @@ jobs:
           loc_home=$(curl_s -o /dev/null -w '%{redirect_url}' http://127.0.0.1:3000/)
           echo "bare / redirect -> $loc_home"
           echo "$loc_home" | grep -Eq '/(en|hu)/?$'
-          echo "probe /en (first public SSR)"
+          echo "probe /en/login (shared public shell)"
+          code_login_first=$(curl_s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/en/login)
+          echo "/en/login -> $code_login_first"
+          test "$code_login_first" = "200"
+          echo "probe /en (home SSR)"
           code_en=$(curl_s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/en)
           echo "/en -> $code_en"
           test "$code_en" = "200"
