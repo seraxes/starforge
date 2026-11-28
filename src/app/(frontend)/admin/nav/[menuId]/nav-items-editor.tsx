@@ -286,6 +286,107 @@ function writeItemsJson(form: HTMLFormElement, rows: EditableItem[]) {
   )
 }
 
+/** Backend when href is under /admin; otherwise Frontend. Derived — not a stored field. */
+function moduleViewSide(href: string): 'backend' | 'frontend' {
+  return href.startsWith('/admin') ? 'backend' : 'frontend'
+}
+
+function NavViewSideTag({ href }: { href: string }) {
+  const side = moduleViewSide(href)
+  return (
+    <span className={`nav-view-side-tag is-${side}`}>
+      {side === 'backend' ? 'Backend' : 'Frontend'}
+    </span>
+  )
+}
+
+type ModuleViewPickerProps = {
+  views: { key: string; label: string; href: string }[]
+  value: string
+  onChange: (key: string) => void
+  name?: string
+  disabled?: boolean
+  placeholder?: string
+}
+
+/** Custom view picker so Frontend/Backend can render as colored tags (native options cannot). */
+function ModuleViewPicker({
+  views,
+  value,
+  onChange,
+  name,
+  disabled,
+  placeholder = 'Select view…',
+}: ModuleViewPickerProps) {
+  const [open, setOpen] = useState(false)
+  const rootRef = useRef<HTMLDivElement>(null)
+  const selected = views.find((v) => v.key === value)
+
+  useEffect(() => {
+    if (!open) return
+    const onDoc = (e: MouseEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('mousedown', onDoc)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDoc)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  return (
+    <div className={`nav-view-picker${open ? ' is-open' : ''}`} ref={rootRef}>
+      {name ? <input type="hidden" name={name} value={value} /> : null}
+      <button
+        type="button"
+        className="nav-view-picker-trigger"
+        disabled={disabled}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((prev) => !prev)}
+      >
+        {selected ? (
+          <span className="nav-view-picker-value">
+            <span className="nav-view-picker-label">{selected.label}</span>
+            <NavViewSideTag href={selected.href} />
+            <span className="nav-view-picker-href">({selected.href})</span>
+          </span>
+        ) : (
+          <span className="nav-view-picker-placeholder">{placeholder}</span>
+        )}
+      </button>
+      {open && !disabled ? (
+        <ul className="nav-view-picker-list" role="listbox">
+          {views.length === 0 ? (
+            <li className="nav-view-picker-empty">No views</li>
+          ) : (
+            views.map((v) => (
+              <li key={v.key} role="option" aria-selected={v.key === value}>
+                <button
+                  type="button"
+                  className={`nav-view-picker-option${v.key === value ? ' is-selected' : ''}`}
+                  onClick={() => {
+                    onChange(v.key)
+                    setOpen(false)
+                  }}
+                >
+                  <span className="nav-view-picker-label">{v.label}</span>
+                  <NavViewSideTag href={v.href} />
+                  <span className="nav-view-picker-href">({v.href})</span>
+                </button>
+              </li>
+            ))
+          )}
+        </ul>
+      ) : null}
+    </div>
+  )
+}
+
 function summarizeLink(
   row: EditableItem,
   pages: NavPageOption[],
@@ -582,21 +683,15 @@ function SortableNavItem({
                     </label>
                     <label className="settings-field">
                       <span>View</span>
-                      <select
+                      <ModuleViewPicker
+                        views={moduleViews}
                         value={row.moduleViewKey}
-                        onChange={(e) => {
-                          onPatch({ moduleViewKey: e.target.value })
+                        disabled={!row.moduleId || moduleViews.length === 0}
+                        onChange={(moduleViewKey) => {
+                          onPatch({ moduleViewKey })
                           queueMicrotask(saveNow)
                         }}
-                        disabled={!row.moduleId || moduleViews.length === 0}
-                      >
-                        <option value="">Select view…</option>
-                        {moduleViews.map((v) => (
-                          <option key={v.key} value={v.key}>
-                            {v.label} ({v.href})
-                          </option>
-                        ))}
-                      </select>
+                      />
                     </label>
                     {modules.length === 0 ? (
                       <p className="settings-hint">
@@ -780,6 +875,7 @@ export function NavItemsEditor({
   const [addFormKey, setAddFormKey] = useState(0)
   const [newLinkType, setNewLinkType] = useState<NavLinkType>('page')
   const [newModuleId, setNewModuleId] = useState(modules[0]?.moduleId ?? '')
+  const [newModuleViewKey, setNewModuleViewKey] = useState(modules[0]?.views[0]?.key ?? '')
   const [newParentId, setNewParentId] = useState('')
   const [newLayoutId, setNewLayoutId] = useState(preferredLayoutId)
   const [newAccessTags, setNewAccessTags] = useState<string[]>([])
@@ -829,6 +925,7 @@ export function NavItemsEditor({
       setAddFormKey((k) => k + 1)
       setNewLinkType('page')
       setNewModuleId(modules[0]?.moduleId ?? '')
+      setNewModuleViewKey(modules[0]?.views[0]?.key ?? '')
       setNewParentId('')
       setNewLayoutId(preferredLayoutId)
       setNewAccessTags([])
@@ -1084,6 +1181,7 @@ export function NavItemsEditor({
                   setNewLinkType(next)
                   if (next === 'module' && !newModuleId && modules[0]) {
                     setNewModuleId(modules[0].moduleId)
+                    setNewModuleViewKey(modules[0].views[0]?.key ?? '')
                   }
                 }}
               >
@@ -1120,7 +1218,12 @@ export function NavItemsEditor({
                   <select
                     name="newModuleId"
                     value={newModuleId}
-                    onChange={(e) => setNewModuleId(e.target.value)}
+                    onChange={(e) => {
+                      const moduleId = e.target.value
+                      const views = modules.find((m) => m.moduleId === moduleId)?.views ?? []
+                      setNewModuleId(moduleId)
+                      setNewModuleViewKey(views[0]?.key ?? '')
+                    }}
                   >
                     <option value="">Select…</option>
                     {modules.map((m) => (
@@ -1132,18 +1235,14 @@ export function NavItemsEditor({
                 </label>
                 <label className="settings-field">
                   <span>View</span>
-                  <select
+                  <ModuleViewPicker
                     name="newModuleViewKey"
-                    defaultValue={newModuleViews[0]?.key ?? ''}
-                    key={newModuleId}
-                  >
-                    <option value="">Select…</option>
-                    {newModuleViews.map((v) => (
-                      <option key={v.key} value={v.key}>
-                        {v.label} ({v.href})
-                      </option>
-                    ))}
-                  </select>
+                    views={newModuleViews}
+                    value={newModuleViewKey}
+                    disabled={!newModuleId || newModuleViews.length === 0}
+                    placeholder="Select…"
+                    onChange={setNewModuleViewKey}
+                  />
                 </label>
               </>
             ) : null}

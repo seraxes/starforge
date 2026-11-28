@@ -21,6 +21,7 @@ import { HideableShell } from './HideableShell'
 import { CommentOptionsMenu } from './SocialOptionsMenu'
 import { SharePostActions } from './SharePostActions'
 import { SocialAvatar } from './SocialAvatar'
+import { SocialEmojiInsertButton } from './SocialEmojiInsert'
 import { useDismissible } from './useDismissible'
 
 const initial: SocialCommentActionState = {}
@@ -485,6 +486,7 @@ function CommentForm({
         required
         aria-label={placeholder}
       />
+      <SocialEmojiInsertButton disabled={pending} targetRef={inputRef} />
       <button type="submit" className="secondary" disabled={pending}>
         {pending ? 'Posting…' : submitLabel}
       </button>
@@ -508,6 +510,7 @@ function CommentEditForm({
 }) {
   const router = useRouter()
   const [editState, editAction, editPending] = useActionState(editCommentAction, initial)
+  const bodyRef = useRef<HTMLInputElement>(null)
   const onCancelRef = useRef(onCancel)
   onCancelRef.current = onCancel
   useEffect(() => {
@@ -519,6 +522,7 @@ function CommentEditForm({
     <form action={editAction} className="sf-social-comment-form sf-social-comment-edit">
       <input type="hidden" name="commentId" value={comment.id} />
       <input
+        ref={bodyRef}
         type="text"
         name="body"
         className="sf-social-comment-input"
@@ -528,6 +532,7 @@ function CommentEditForm({
         required
         aria-label="Edit comment"
       />
+      <SocialEmojiInsertButton disabled={editPending} targetRef={bodyRef} />
       <button type="submit" className="secondary" disabled={editPending}>
         {editPending ? 'Saving…' : 'Save'}
       </button>

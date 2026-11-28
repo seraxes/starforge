@@ -4,6 +4,7 @@ import { access, mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 import { paymentsProviderEnvOptions } from '@/core/payments'
+import { signaturesProviderEnvOptions } from '@/core/signatures'
 
 import { ENV_EDITOR_FIELDS, ENV_EDITOR_KEY_SET, type EnvEditorField } from './catalog'
 import { envEditorIsWritable } from './mode'
@@ -48,8 +49,13 @@ function maskSecret(value: string): string {
 }
 
 function envEditorField(field: EnvEditorField): EnvEditorField {
-  if (field.key !== 'SF_PAYMENTS_PROVIDER') return field
-  return { ...field, options: paymentsProviderEnvOptions() }
+  if (field.key === 'SF_PAYMENTS_PROVIDER') {
+    return { ...field, options: paymentsProviderEnvOptions() }
+  }
+  if (field.key === 'SF_SIGNATURES_PROVIDER') {
+    return { ...field, options: signaturesProviderEnvOptions() }
+  }
+  return field
 }
 
 export async function loadEnvEditorSnapshot(): Promise<EnvEditorSnapshot> {

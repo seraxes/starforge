@@ -208,3 +208,42 @@
 .sf-rich-editor-prose .sf-rich-callout-success {
   border-left-color: #2f9e64;
 }
+
+/* —— Emoji insert (public composers + later TipTap toolbar) —— */
+.sf-emoji-insert {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+.sf-emoji-insert-glyph {
+  font-size: 1.05em;
+  line-height: 1;
+}
+
+.sf-emoji-insert-panel {
+  position: absolute;
+  z-index: 50;
+  bottom: calc(100% + 0.35rem);
+  left: 0;
+  width: min(22rem, calc(100vw - 1.5rem));
+  border: 1px solid var(--sf-line, #d0d7e2);
+  border-radius: var(--sf-admin-btn-radius, 3px);
+  background: var(--sf-elevated, #fff);
+  box-shadow: 0 0.5rem 1.25rem color-mix(in srgb, #0a1220 18%, transparent);
+  overflow: hidden;
+}
+
+/* Portaled to document.body — above feed cards / chrome; viewport-clamped via inline top/left. */
+.sf-emoji-insert-panel.is-portaled {
+  position: fixed;
+  z-index: 10000;
+  bottom: auto;
+  right: auto;
+}
+
+.sf-emoji-insert-panel .EmojiPickerReact {
+  --epr-emoji-size: 1.35rem;
+  border: none !important;
+  box-shadow: none !important;
+}

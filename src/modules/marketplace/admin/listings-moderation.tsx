@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useActionState, useEffect } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 import { useNotifySavedOnOk } from '@/app/(frontend)/admin/admin-toast'
@@ -22,6 +23,10 @@ type Row = Omit<MarketplaceListingRecord, 'createdAt' | 'updatedAt' | 'expiresAt
 type Props = {
   listings: Row[]
   loadError?: string
+}
+
+function listingEditHref(id: string): string {
+  return `/admin/marketplace/listings/${encodeURIComponent(id)}`
 }
 
 const initial: MarketplaceAdminActionState = {}
@@ -67,7 +72,13 @@ function ModerationActions({
     null
 
   return (
-    <div className="admin-inline-actions">
+    <div className="admin-action-row sf-events-list-row-actions">
+      <Link
+        href={listingEditHref(listing.id)}
+        className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+      >
+        Edit
+      </Link>
       {listing.status !== 'hidden' && listing.status !== 'removed' ? (
         <form action={hideAction}>
           <input type="hidden" name="id" value={listing.id} />
@@ -128,48 +139,54 @@ export function ListingsModeration({ listings, loadError }: Props) {
       ) : null}
       {listings.length === 0 && !loadError ? (
         <p className="layout-muted">
-          No listings yet. Public create lands in the next slice; staff can hide, remove, and
-          restore here once rows exist.
+          No listings yet. Staff can edit, hide, remove, and restore once rows exist.
         </p>
       ) : null}
       {listings.length > 0 ? (
         <div className="page-settings-panel">
           <div className="page-settings-panel-body">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th scope="col">Title</th>
-                  <th scope="col">Seller</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Price</th>
-                  <th scope="col">Expires</th>
-                  <th scope="col">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {listings.map((listing) => (
-                  <tr key={listing.id}>
-                    <td>
-                      <strong>{listing.title}</strong>
-                      <div className="settings-hint">{listing.condition}</div>
-                    </td>
-                    <td>
-                      <code>{listing.sellerUserId}</code>
-                    </td>
-                    <td>{listing.status}</td>
-                    <td>{formatPrice(listing.priceMinor)}</td>
-                    <td>
-                      {listing.expiresAt
-                        ? new Date(listing.expiresAt).toLocaleString()
-                        : '—'}
-                    </td>
-                    <td>
-                      <ModerationActions listing={listing} />
-                    </td>
+            <div className="outlines-table-wrap sf-events-list-table-wrap">
+              <table className="outlines-table sf-events-list-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Title</th>
+                    <th scope="col">Seller</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Price</th>
+                    <th scope="col">Expires</th>
+                    <th scope="col">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {listings.map((listing) => (
+                    <tr key={listing.id}>
+                      <td>
+                        <Link
+                          href={listingEditHref(listing.id)}
+                          className="sf-events-list-title"
+                        >
+                          {listing.title}
+                        </Link>
+                        <div className="settings-hint">{listing.condition}</div>
+                      </td>
+                      <td>
+                        <code>{listing.sellerUserId}</code>
+                      </td>
+                      <td>{listing.status}</td>
+                      <td>{formatPrice(listing.priceMinor)}</td>
+                      <td>
+                        {listing.expiresAt
+                          ? new Date(listing.expiresAt).toLocaleString()
+                          : '—'}
+                      </td>
+                      <td>
+                        <ModerationActions listing={listing} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       ) : null}

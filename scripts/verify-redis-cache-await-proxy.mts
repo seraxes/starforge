@@ -35,7 +35,10 @@ assert.doesNotMatch(redis, /void invalidateTagsAsync/)
 console.log('Redis invalidateTags awaits (not fire-and-forget): ok')
 
 const types = read('src/core/content/cache/types.ts')
-assert.match(types, /invalidateTags\(tags: readonly string\[\]\): void \| Promise<void>/)
+assert.match(
+  types,
+  /invalidateTags\(\s*tags: readonly string\[\],\s*mode\?: 'stale' \| 'expire',\s*\): void \| Promise<void>/,
+)
 console.log('PublishedContentCache.invalidateTags Promise contract: ok')
 
 const revalidate = read('src/core/content/revalidate.ts')

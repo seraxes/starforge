@@ -6,6 +6,7 @@ import { ensureDefaultUserGroupsSeeded, listUserGroupOptions } from '@/core/acl'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { getSiteChrome } from '@/core/site-chrome'
 
+import { isFormBuilderEmbedMode } from '../embed-mode'
 import { ensureDefaultContactFormSeeded, loadFormDefinition } from '../index'
 import { FormBuilder } from './form-builder'
 import { FormsAdminNav } from './forms-admin-nav'
@@ -17,10 +18,11 @@ export const metadata = {
 
 type PageProps = {
   params: Promise<{ formId: string }>
+  searchParams?: Promise<{ embed?: string | string[] }>
 }
 
 /** product:forms visual builder. Protected ids are seeded by their owning packs, not here. */
-export default async function FormBuilderPage({ params }: PageProps) {
+export default async function FormBuilderPage({ params, searchParams }: PageProps) {
   const settings = await getSiteSettings()
   if (!isCatalogModuleEnabled(settings, MODULE_IDS.forms)) {
     redirect('/admin/settings')
@@ -29,6 +31,10 @@ export default async function FormBuilderPage({ params }: PageProps) {
   const { formId } = await params
   const id = (formId || '').trim()
   if (!id) notFound()
+
+  const search = searchParams ? await searchParams : {}
+  const embedRaw = Array.isArray(search.embed) ? search.embed[0] : search.embed
+  const embed = isFormBuilderEmbedMode(embedRaw)
 
   await ensureDefaultContactFormSeeded()
   const loaded = await loadFormDefinition(id)
@@ -59,18 +65,20 @@ export default async function FormBuilderPage({ params }: PageProps) {
 
   return (
     <section className="admin-section layout-admin-section admin-layouts-full">
-      <FormsAdminNav active="forms" />
+      {embed ? null : <FormsAdminNav active="forms" />}
       <h2 className="sr-only">
         Form builder ({loaded.label})
       </h2>
-      <p className="lede admin-lede gantry-layouts-lede">
-        <Link href="/admin/forms">← Forms</Link>
-        {' · '}
-        Editing <strong>{loaded.label}</strong> (<code>{loaded.id || id}</code>). Palette →
-        section rows (side-by-side % columns) → field cog. Drag a field onto a row to join
-        columns; + row / − row for empty drop rows; resize with the divider. Meta, success, and
-        email live under Form settings.
-      </p>
+      {embed ? null : (
+        <p className="lede admin-lede gantry-layouts-lede">
+          <Link href="/admin/forms">← Forms</Link>
+          {' · '}
+          Editing <strong>{loaded.label}</strong> (<code>{loaded.id || id}</code>). Palette →
+          section rows (side-by-side % columns) → field cog. Drag a field onto a row to join
+          columns; + row / − row for empty drop rows; resize with the divider. Meta, success, and
+          email live under Form settings.
+        </p>
+      )}
       <FormBuilder
         key={loaded.id || id}
         formId={loaded.id || id}

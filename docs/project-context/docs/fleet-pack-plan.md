@@ -14,7 +14,7 @@ last_verified: 2026-11-27
 | Owns | Consumes |
 | --- | --- |
 | Stations, vehicles, access, and the **shift** (one day, one fleet vehicle, one driver, one shift) | **media** (vehicle photos / interim vehicle files as `mediaId`) |
-| **Routes** — ordered stops on a shift, drawn with MapProvider; 3 / 4 / Express count on the shift | **Core MapProvider** (pins and route drawing — **not** TacMap / `product:maps`) |
+| **Routes** — ordered stops on a shift, drawn with MapProvider; 3 / 4 / Express count on the shift | **Core MapProvider** for route drawing. Live car positions are Maps trackables, not a second map stack |
 | **Attendance** — actual start, end, and breaks on that shift | **Core RealtimePort** (live car positions when they exist) |
 | Leave, holidays, company rental / take-home loans, home-run claim, clothing requests (until Warehouse) | **Core fact map** via Onboarding’s provider (`optionalRequires` Onboarding — legal call only) |
 | Inspections (dated checklist), faults and damage, service list | **Core ACL** (`admin.fleet`; staff bypass additive) |
@@ -84,7 +84,7 @@ Exact `sf_fleet_*` shapes land in a later schema slice.
 | My tours / Workdays | Driver views; leave and holidays |
 | All vehicles | Fleet inventory |
 | Inspections / Faults / Loans / Service | Operational records |
-| Live map | Depot pins, then last-known position (MapProvider + RealtimePort) |
+| Live map | Depot pins and last-known positions on a **Maps** record. Fleet adapters push. [fleet-live-map-plan](./fleet-live-map-plan.md) |
 | Active drivers | Edit writable facts only (through fact map) |
 | Routes / Clock-in | On the shift |
 | ACL area | `fleet` → `admin.fleet` (view / edit / manage). Approve, dispatch, book-for-other, operations. App admin bypasses. |
@@ -101,7 +101,7 @@ One slice per chat. Stop when that slice’s checks pass. **Do not start schema 
 4. **Inspections.**
 5. **Routes** on the shift (MapProvider).
 6. **Clock-in** (attendance on the shift).
-7. **Live map** (depot pins → last-known position).
+7. **Live positions** (depot pins on a Maps record → Ecofleet/Mtrack push). Detail: [fleet-live-map-plan](./fleet-live-map-plan.md), slices **7a–7f** in [fleet-live-map-action-plan](./fleet-live-map-action-plan.md). Fleet `optionalRequires` Maps. Maps does not require Fleet.
 8. Later bridges: Documents for vehicle files; Ledger for home-run post; Warehouse for clothing draw.
 
 A work order with an assignee, and “keys signed out to this person until Thursday,” wait until someone works that way.
@@ -114,7 +114,7 @@ A work order with an assignee, and “keys signed out to this person until Thurs
 | Phases, form answers, training scores | `product:onboarding` |
 | Reading Onboarding tables | Fact map only |
 | Hard-requiring or auto-enabling Onboarding | `optionalRequires` only |
-| TacMap / Events for shifts | MapProvider + Fleet shift; not tickets or tactical rooms |
+| Shifts as Events tickets, or cars written onto an event room | A shift is not a ticket. Vehicle dots use a separate Maps follow record |
 | PDF template library | Documents (or interim Media ids) |
 | Warehouse quantities or money ledger | Later packs |
 | Payments / cart / invoices inside Fleet | `product:payments` |
@@ -123,6 +123,7 @@ A work order with an assignee, and “keys signed out to this person until Thurs
 ## Related
 
 - Build spec (parked): [fleet-build-spec](./fleet-build-spec.md)
+- Live GPS (proposed): [fleet-live-map-plan](./fleet-live-map-plan.md), [fleet-live-map-action-plan](./fleet-live-map-action-plan.md), [maps-product-plan](./maps-product-plan.md), [2026-11-28-maps-vs-tacmap](./decisions/2026-11-28-maps-vs-tacmap.md)
 - Family index: [primeone-pack-plans](./primeone-pack-plans.md)
 - Onboarding (fact provider): [onboarding-pack-plan](./onboarding-pack-plan.md)
 - Documents: [documents-pack-plan](./documents-pack-plan.md)

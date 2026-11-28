@@ -17,6 +17,10 @@ import {
   type BrowseListingCandidate,
 } from './browse-rules'
 import {
+  decideListingFeeHookAction,
+  decideListingPublishWithFee,
+} from './listing-fee-rules'
+import {
   decideListingEdit,
   decideListingHide,
   decideListingMarkPending,
@@ -217,7 +221,12 @@ export async function getPublicMarketplaceListing(
   const viewerUserId = (opts?.viewerUserId || '').trim()
   const isOwner = Boolean(viewerUserId) && viewerUserId === listing.sellerUserId
   const isStaff = opts?.isStaff === true
-  if (!publicVisible && !isOwner && !isStaff) return null
+  /** Sold-to buyer may open detail after handoff (ratings / receipt). */
+  const isSoldBuyer =
+    Boolean(viewerUserId) &&
+    Boolean(listing.soldToUserId) &&
+    viewerUserId === listing.soldToUserId
+  if (!publicVisible && !isOwner && !isStaff && !isSoldBuyer) return null
   return {
     listing,
     categoryTitle: category?.title || '',
@@ -346,14 +355,24 @@ export async function renewMarketplaceListing(
 }
 
 export type CreateMarketplaceListingInput = ListingCreateInput & {
-  /** When true (default), publish as active with expiresAt. Fee-on path is slice 9. */
+  /** When true (default), publish (active when fee off; draft until paid when fee on). */
   publish?: boolean
 }
+
+export type CreateMarketplaceListingResult =
+  | {
+      listing: MarketplaceListingRecord
+      /** True when Payments must collect the listing fee before activation. */
+      needsCheckout: boolean
+      /** Server-quoted fee in minor units when needsCheckout. */
+      feeMinor: number
+    }
+  | { error: string }
 
 export async function createMarketplaceListing(
   sellerUserId: string,
   input: CreateMarketplaceListingInput,
-): Promise<{ listing: MarketplaceListingRecord } | { error: string }> {
+): Promise<CreateMarketplaceListingResult> {
   const seller = String(sellerUserId ?? '').trim()
   if (!seller) return { error: 'Sign in required.' }
 
@@ -368,12 +387,19 @@ export async function createMarketplaceListing(
   if (!category.enabled) return { error: 'That category is disabled.' }
 
   const publish = input.publish !== false
-  // Listing fee is slice 9; fee off (default) → active when publishing.
-  const status: ListingStatus = publish ? 'active' : 'draft'
+  const fee = decideListingPublishWithFee(
+    {
+      listingFeeEnabled: settings.listingFeeEnabled,
+      listingFeeMinor: settings.listingFeeMinor,
+    },
+    publish,
+  )
+  const status: ListingStatus = fee.status
   const now = new Date()
-  const expiresAt = publish
-    ? new Date(now.getTime() + settings.expiryDays * 24 * 60 * 60 * 1000)
-    : null
+  const expiresAt =
+    fee.status === 'active'
+      ? new Date(now.getTime() + settings.expiryDays * 24 * 60 * 60 * 1000)
+      : null
   const id = crypto.randomUUID()
 
   try {
@@ -400,11 +426,46 @@ export async function createMarketplaceListing(
       .returning()
     const row = inserted[0]
     if (!row) return { error: 'Could not create listing.' }
-    return { listing: mapListingRow(row) }
+    return {
+      listing: mapListingRow(row),
+      needsCheckout: fee.needsCart,
+      feeMinor: fee.feeMinor,
+    }
   } catch (error) {
     const missing = tableMissingMessage(error)
     if (missing) return { error: missing }
     throw error
+  }
+}
+
+/**
+ * Apply marketplace.listingFeePaid. Idempotent: a second paid event does not
+ * re-activate or create another listing. expired/failed leave draft; refunded → hidden.
+ */
+export async function applyMarketplaceListingFeeHook(
+  listingId: string,
+  paymentStatus: 'paid' | 'expired' | 'failed' | 'refunded',
+): Promise<void> {
+  const id = String(listingId ?? '').trim()
+  if (!id) return
+  const listing = await getMarketplaceListing(id)
+  if (!listing) return
+  const decision = decideListingFeeHookAction(listing.status, paymentStatus)
+  if (decision.action === 'noop' || decision.action === 'leave_draft') return
+  if (decision.action === 'activate') {
+    const { settings } = await loadMarketplaceModuleSettings()
+    const days =
+      typeof settings.expiryDays === 'number' &&
+      Number.isFinite(settings.expiryDays) &&
+      settings.expiryDays > 0
+        ? Math.trunc(settings.expiryDays)
+        : 30
+    const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000)
+    await applyStatus(listing.id, decision.nextStatus, { expiresAt })
+    return
+  }
+  if (decision.action === 'hide') {
+    await applyStatus(listing.id, decision.nextStatus)
   }
 }
 

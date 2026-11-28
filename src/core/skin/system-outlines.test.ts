@@ -6,7 +6,7 @@ import {
   STARFORGE_PASTEL_OFFLINE_OUTLINE_ID,
   STARFORGE_PASTEL_SKIN_ID,
 } from './registry'
-import { skinSystemOutlineId } from './system-outline-ids'
+import { pastelSystemOutlineFallback, skinSystemOutlineId } from './system-outline-ids'
 
 describe('skin system outlines', () => {
   it('builds offline and not-found ids from the skin id', () => {
@@ -23,4 +23,10 @@ describe('skin system outlines', () => {
     assert.equal(skinSystemOutlineId('', 'offline'), STARFORGE_PASTEL_OFFLINE_OUTLINE_ID)
     assert.equal(skinSystemOutlineId('  ', 'not-found'), STARFORGE_PASTEL_NOT_FOUND_OUTLINE_ID)
   })
+
+  it('pastelSystemOutlineFallback is the pack 404/offline id (before hardcoded UI)', () => {
+    assert.equal(pastelSystemOutlineFallback('not-found'), STARFORGE_PASTEL_NOT_FOUND_OUTLINE_ID)
+    assert.equal(pastelSystemOutlineFallback('offline'), STARFORGE_PASTEL_OFFLINE_OUTLINE_ID)
+  })
 })
+

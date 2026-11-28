@@ -17,8 +17,16 @@ import {
   listMarketplaceListingsForSeller,
   syncExpiredMarketplaceListings,
 } from '../listings'
-import { formatListingCondition, formatListingPrice } from './format'
+import { listMarketplaceSavesForUser } from '../saves'
+import {
+  formatListingCondition,
+  formatListingPrice,
+  formatListingStatus,
+} from './format'
+import { ListingCard } from './ListingCard'
 import { MarketplacePublicNav } from './MarketplacePublicNav'
+import { resolveListingMediaSrc } from './media-src'
+import { SaveListingActions } from './SaveListingActions'
 
 type Args = {
   params: Promise<{ locale: string }>
@@ -35,8 +43,8 @@ export async function generateMetadata({ params }: Args): Promise<Metadata> {
     return { title: `Not found — ${siteName}` }
   }
   return {
-    title: 'Your listings — Marketplace',
-    description: `Your Marketplace listings on ${siteName}.`,
+    title: 'You — Marketplace',
+    description: `Your Marketplace listings and saves on ${siteName}.`,
   }
 }
 
@@ -57,70 +65,129 @@ export default async function MarketplaceYouPage({ params }: Args) {
         )
       }
       await syncExpiredMarketplaceListings()
-      const [listings, pay] = await Promise.all([
+      const [listings, saves, pay] = await Promise.all([
         listMarketplaceListingsForSeller(viewer.userId!),
+        listMarketplaceSavesForUser(viewer.userId!),
         getPaymentsSettings(),
       ])
+      const thumbIds = [
+        ...listings.map((l) => ({ id: l.id, mediaId: l.mediaIds[0] || '' })),
+        ...saves.map(({ listing }) => ({
+          id: listing.id,
+          mediaId: listing.mediaIds[0] || '',
+        })),
+      ]
+      const thumbs = await Promise.all(
+        thumbIds.map(async ({ id, mediaId }) => ({
+          id,
+          src: mediaId ? await resolveListingMediaSrc(mediaId) : '',
+        })),
+      )
       return {
         listings,
+        saves,
         currency: pay.currency || 'HUF',
         viewer,
+        thumbs: new Map(thumbs.map((t) => [t.id, t.src])),
       }
     },
   )
   if (!door.ok) notFound()
 
-  const { listings, currency, viewer } = door.value
+  const { listings, saves, currency, viewer, thumbs } = door.value
+  const signedIn = Boolean(viewer.userId)
 
   return (
     <article className="cms-page sf-marketplace-page">
       <header className="cms-page-header">
-        <h1>Your listings</h1>
-        <p className="lede">
-          Seller listings only. Saves and inquiries come in later slices.
-        </p>
+        <h1>You</h1>
+        <p className="lede">Your listings and saved items.</p>
       </header>
-      <MarketplacePublicNav locale={locale} active="you" signedIn={Boolean(viewer.userId)} />
+      <MarketplacePublicNav locale={locale} active="you" signedIn={signedIn} />
 
-      {listings.length === 0 ? (
-        <p className="lede">
-          No listings yet.{' '}
-          <Link href={withLocalePrefix('/marketplace/new', locale as AppLocale)}>
-            Sell an item
-          </Link>
-          .
-        </p>
-      ) : (
-        <ul className="sf-marketplace-you-list">
-          {listings.map((listing) => (
-            <li key={listing.id} className="sf-marketplace-you-item">
-              <Link
+      <section className="sf-marketplace-you-section">
+        <h2 className="sf-marketplace-section-heading">Your listings</h2>
+        {listings.length === 0 ? (
+          <p className="lede">
+            No listings yet.{' '}
+            <Link href={withLocalePrefix('/marketplace/new', locale as AppLocale)}>
+              Sell an item
+            </Link>
+            .
+          </p>
+        ) : (
+          <ul className="sf-marketplace-card-grid">
+            {listings.map((listing) => {
+              const canEdit =
+                listing.status === 'draft' || listing.status === 'active'
+              const editHref = withLocalePrefix(
+                `/marketplace/${listing.id}/edit`,
+                locale as AppLocale,
+              )
+              const detailHref = withLocalePrefix(
+                `/marketplace/${listing.id}`,
+                locale as AppLocale,
+              )
+              return (
+                <ListingCard
+                  key={listing.id}
+                  href={canEdit ? editHref : detailHref}
+                  title={listing.title}
+                  priceLabel={formatListingPrice(listing.priceMinor, currency, locale)}
+                  conditionLabel={formatListingCondition(listing.condition)}
+                  areaLabel={listing.areaLabel}
+                  thumbSrc={thumbs.get(listing.id) || ''}
+                  footnote={formatListingStatus(listing.status)}
+                  actions={
+                    canEdit ? (
+                      <Link
+                        href={editHref}
+                        className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+                      >
+                        Edit
+                      </Link>
+                    ) : null
+                  }
+                />
+              )
+            })}
+          </ul>
+        )}
+      </section>
+
+      <section className="sf-marketplace-you-section">
+        <h2 className="sf-marketplace-section-heading">Saved</h2>
+        {saves.length === 0 ? (
+          <p className="lede">
+            No saved listings yet. Open a public listing and tap Save.
+          </p>
+        ) : (
+          <ul className="sf-marketplace-card-grid">
+            {saves.map(({ listing }) => (
+              <ListingCard
+                key={listing.id}
                 href={withLocalePrefix(
                   `/marketplace/${listing.id}`,
                   locale as AppLocale,
                 )}
-              >
-                <strong>{listing.title}</strong>
-              </Link>
-              <span>
-                {formatListingPrice(listing.priceMinor, currency, locale)} ·{' '}
-                {formatListingCondition(listing.condition)} · {listing.status}
-              </span>
-              {(listing.status === 'draft' || listing.status === 'active') && (
-                <Link
-                  href={withLocalePrefix(
-                    `/marketplace/${listing.id}/edit`,
-                    locale as AppLocale,
-                  )}
-                  className="gantry-toolbar-btn gantry-toolbar-btn-muted"
-                >
-                  Edit
-                </Link>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+                title={listing.title}
+                priceLabel={formatListingPrice(listing.priceMinor, currency, locale)}
+                conditionLabel={formatListingCondition(listing.condition)}
+                areaLabel={listing.areaLabel}
+                thumbSrc={thumbs.get(listing.id) || ''}
+                footnote={formatListingStatus(listing.status)}
+                actions={
+                  <SaveListingActions
+                    listingId={listing.id}
+                    saved
+                    signedIn={signedIn}
+                  />
+                }
+              />
+            ))}
+          </ul>
+        )}
+      </section>
     </article>
   )
 }

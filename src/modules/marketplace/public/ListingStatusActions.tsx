@@ -70,69 +70,68 @@ export function ListingStatusActions({ listingId, status, canManage }: Props) {
 
   return (
     <div className="sf-marketplace-status-actions">
-      <div className="admin-inline-actions">
-        {status === 'active' ? (
-          <form action={pendingAction}>
-            <input type="hidden" name="id" value={listingId} />
-            <button
-              type="submit"
-              className="gantry-toolbar-btn gantry-toolbar-btn-muted"
-              disabled={busy}
-            >
-              {pendingBusy ? 'Marking…' : 'Mark pending'}
-            </button>
-          </form>
-        ) : null}
+      {status === 'active' ? (
+        <form action={pendingAction}>
+          <input type="hidden" name="id" value={listingId} />
+          <button
+            type="submit"
+            className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+            disabled={busy}
+          >
+            {pendingBusy ? 'Marking…' : 'Mark pending'}
+          </button>
+        </form>
+      ) : null}
 
-        {status === 'pending' ? (
-          <form action={soldAction} className="admin-control-row">
-            <input type="hidden" name="id" value={listingId} />
-            <label className="settings-field">
-              <span>Sold to user id (optional)</span>
-              <input
-                name="soldToUserId"
-                type="text"
-                value={soldTo}
-                onChange={(e) => setSoldTo(e.target.value)}
-                disabled={busy}
-              />
-            </label>
-            <button
-              type="submit"
-              className="gantry-toolbar-btn gantry-toolbar-btn-save"
+      {status === 'pending' ? (
+        <form action={soldAction} className="sf-marketplace-sold-form">
+          <input type="hidden" name="id" value={listingId} />
+          <label className="settings-field">
+            <span>Sold to user id (optional)</span>
+            <input
+              name="soldToUserId"
+              type="text"
+              value={soldTo}
+              onChange={(e) => setSoldTo(e.target.value)}
               disabled={busy}
-            >
-              {soldBusy ? 'Marking…' : 'Mark sold'}
-            </button>
-          </form>
-        ) : null}
+            />
+          </label>
+          <button
+            type="submit"
+            className="gantry-toolbar-btn gantry-toolbar-btn-save"
+            disabled={busy}
+          >
+            {soldBusy ? 'Marking…' : 'Mark sold'}
+          </button>
+        </form>
+      ) : null}
 
-        {status !== 'sold' && status !== 'removed' ? (
-          <form action={renewAction}>
-            <input type="hidden" name="id" value={listingId} />
-            <button
-              type="submit"
-              className="gantry-toolbar-btn gantry-toolbar-btn-muted"
-              disabled={busy}
-            >
-              {renewBusy ? 'Renewing…' : 'Renew'}
-            </button>
-          </form>
-        ) : null}
+      {status !== 'sold' && status !== 'removed' ? (
+        <form action={renewAction}>
+          <input type="hidden" name="id" value={listingId} />
+          <button
+            type="submit"
+            className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+            disabled={busy}
+          >
+            {renewBusy ? 'Renewing…' : 'Renew'}
+          </button>
+        </form>
+      ) : null}
 
-        {status !== 'hidden' && status !== 'removed' && status !== 'sold' ? (
-          <form action={hideAction}>
-            <input type="hidden" name="id" value={listingId} />
-            <button
-              type="submit"
-              className="gantry-toolbar-btn gantry-toolbar-btn-muted"
-              disabled={busy}
-            >
-              {hideBusy ? 'Hiding…' : 'Hide'}
-            </button>
-          </form>
-        ) : null}
-      </div>
+      {status !== 'hidden' && status !== 'removed' && status !== 'sold' ? (
+        <form action={hideAction}>
+          <input type="hidden" name="id" value={listingId} />
+          <button
+            type="submit"
+            className="gantry-toolbar-btn gantry-toolbar-btn-muted"
+            disabled={busy}
+          >
+            {hideBusy ? 'Hiding…' : 'Hide'}
+          </button>
+        </form>
+      ) : null}
+
       {feedback ? (
         <p className="admin-inline-error" role="alert">
           {feedback}

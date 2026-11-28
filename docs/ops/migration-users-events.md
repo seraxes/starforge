@@ -28,7 +28,7 @@ Named only where a schema exists in-tree:
 | Avatar (and cover) media id on profile | `sf_profiles.avatar_media_id` / `cover_media_id` | Profiles schema; binary + asset row → media store |
 | Media asset rows | `sf_media_assets` (+ categories/owners as needed) | `src/modules/media/schema.ts`; bytes via local `/media` or S3 |
 | Upcoming events | `sf_events` (and related `sf_venues`, tiers, … only if the export needs them) | `src/modules/events/schema.ts` — filter to upcoming (`starts_at` / status rules = TODO(owner) once export is known) |
-| Marketplace user ratings | — | `product:marketplace` is a **Dashboard stub** with **no schema** yet (`src/modules/marketplace/README.md`). Destination rating table = TODO(owner) when a ratings schema ships. |
+| Marketplace user ratings | `sf_marketplace_ratings` | `src/modules/marketplace/schema.ts` (slice 7). Destination table is in tree. Source-column map = TODO(owner) until an export exists — do not invent a legacy column map. |
 
 ## Source (old site)
 

@@ -105,6 +105,7 @@ describe('instrumentation boot wiring', () => {
       'product:email-manager',
       'product:profiles',
       'product:events',
+      'product:marketplace',
       'product:social',
       'product:subscriptions',
     ])
@@ -114,6 +115,8 @@ describe('instrumentation boot wiring', () => {
     assert.match(block, /bootProfiles/)
     assert.match(block, /@\/modules\/events\/boot/)
     assert.match(block, /bootEvents/)
+    assert.match(block, /@\/modules\/marketplace\/boot/)
+    assert.match(block, /bootMarketplace/)
     assert.match(block, /@\/modules\/social\/boot/)
     assert.match(block, /bootSocial/)
     assert.match(block, /@\/modules\/subscriptions\/boot/)

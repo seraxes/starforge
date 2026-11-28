@@ -101,14 +101,34 @@ export default async function CoreAdminLayout(props: { children: React.ReactNode
     redirect('/?notice=admins-only')
   }
 
-  const role = roleFromUser(session.user)
   // ensure* backfills newly allowlisted defaultEnabled packs (e.g. Email Manager)
   // into moduleToggles so upgrades do not need a SQL edit.
   const settings = await ensureSiteSettingsDefaults()
+  const theme = getActiveAdminTheme()
+  // ?embed=1 (stamped as x-sf-admin-embed) — Email / Forms editors in a host dialog.
+  const adminEmbed = (headerList.get('x-sf-admin-embed') || '').trim() === '1'
+
+  if (adminEmbed) {
+    return (
+      <AdminToastProvider>
+        <AdminAutosaveProvider delayMs={settings.adminAutosaveDebounceMs}>
+          <div
+            className="admin-shell admin-embed-shell"
+            data-sf-admin-theme={theme.dataAttr}
+          >
+            <div className="admin-body">
+              <div className="admin-main">{props.children}</div>
+            </div>
+          </div>
+        </AdminAutosaveProvider>
+      </AdminToastProvider>
+    )
+  }
+
+  const role = roleFromUser(session.user)
   const layoutOn = isCatalogModuleEnabled(settings, MODULE_IDS.layoutManager)
   const pageSettingsOn = isCatalogModuleEnabled(settings, MODULE_IDS.pageSettings)
   const navOn = isCatalogModuleEnabled(settings, MODULE_IDS.primaryNav)
-  const theme = getActiveAdminTheme()
   // Forms / Email / Redirects / Media — derived from manifest contributions + catalog toggles.
   const enabledModuleIds = resolveEnabledAdminNavModuleIds(settings)
 

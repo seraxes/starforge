@@ -2,7 +2,18 @@
 
 import { headers } from 'next/headers'
 
-import { revalidatePath } from '@/core/content/defer-revalidate'
+import { refreshCurrentRoute, revalidatePath } from '@/core/content/defer-revalidate'
+
+/**
+ * Composer publishes must show on the open feed. Stale `revalidatePath` only
+ * marks tags. `refreshCurrentRoute` paints this action's result. Other Social
+ * writes stay stale-only: folding their page render into the action can 500
+ * and hard-navigate to the site error page.
+ */
+function revalidateComposerPath(path: string): void {
+  revalidatePath(path)
+  refreshCurrentRoute()
+}
 import { requireAdminArea } from '@/core/acl/access'
 import { getAppSession } from '@/core/auth/session'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
@@ -171,8 +182,8 @@ export async function createTextPostAction(
       if (linkResult.reason === 'banned') return { error: 'You cannot post while banned.' }
       return { error: 'Could not create the link post.' }
     }
-    revalidatePath('/feed')
-    if (groupId) revalidatePath(`/feed/g`)
+    revalidateComposerPath('/feed')
+    if (groupId) revalidateComposerPath(`/feed/g`)
     return { ok: true, postId: linkResult.post.id }
   }
 
@@ -200,8 +211,8 @@ export async function createTextPostAction(
       }
       return { error: 'Could not create the check-in.' }
     }
-    revalidatePath('/feed')
-    if (groupId) revalidatePath(`/feed/g`)
+    revalidateComposerPath('/feed')
+    if (groupId) revalidateComposerPath(`/feed/g`)
     return { ok: true, postId: checkinResult.post.id }
   }
 
@@ -237,8 +248,8 @@ export async function createTextPostAction(
       }
       return { error: 'Could not create the poll.' }
     }
-    revalidatePath('/feed')
-    if (groupId) revalidatePath(`/feed/g`)
+    revalidateComposerPath('/feed')
+    if (groupId) revalidateComposerPath(`/feed/g`)
     return { ok: true, postId: pollResult.post.id }
   }
 
@@ -277,8 +288,8 @@ export async function createTextPostAction(
     return { error: 'Could not create the post.' }
   }
 
-  revalidatePath('/feed')
-  if (groupId) revalidatePath(`/feed/g`)
+  revalidateComposerPath('/feed')
+  if (groupId) revalidateComposerPath(`/feed/g`)
   return { ok: true, postId: result.post.id }
 }
 
@@ -459,7 +470,7 @@ export async function createSharePostAction(
     return { error: 'Could not share the post.' }
   }
 
-  revalidatePath('/feed')
+  revalidateComposerPath('/feed')
   return { ok: true, postId: result.post.id }
 }
 
@@ -716,8 +727,8 @@ export async function createGroupWallPostAction(
     return { error: 'Could not create the post.' }
   }
 
-  revalidatePath('/feed')
-  revalidatePath('/feed/g')
+  revalidateComposerPath('/feed')
+  revalidateComposerPath('/feed/g')
   return { ok: true, groupId, postId: result.post.id }
 }
 
@@ -1147,8 +1158,8 @@ export async function createPageWallPostAction(
     return { error: 'Could not create the post.' }
   }
 
-  revalidatePath('/feed')
-  revalidatePath('/feed/p')
+  revalidateComposerPath('/feed')
+  revalidateComposerPath('/feed/p')
   return { ok: true, pageId, postId: result.post.id }
 }
 
@@ -1187,8 +1198,8 @@ export async function createStoryAction(
     return { error: 'Could not create the story.' }
   }
 
-  revalidatePath('/feed/stories')
-  revalidatePath('/feed')
+  revalidateComposerPath('/feed/stories')
+  revalidateComposerPath('/feed')
   return { ok: true, storyId: result.story.id }
 }
 

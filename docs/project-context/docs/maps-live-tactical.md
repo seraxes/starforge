@@ -1,27 +1,31 @@
 ---
 kind: history
-last_verified: 2026-11-22
+last_verified: 2026-11-28
 ---
-# Live tactical map (closed event tool)
+# Maps — event room and TacMap mode (shipped rooms)
 
 **Layer:** **Modules** (`product:maps`) for rooms / teams / roster / overlays / live ingest / **stations**. **RealtimePort** + **MapProvider** = Core. ASN field chrome + hardware catalog = **Hero**.
 
-**Status:** Domain + live player session (foreground) shipping; Capacitor background shell, stations/hold/beacons = planned follow-ons.
+**Status:** Event-room domain + live player session (foreground) shipping. Capacitor background shell, stations/hold/beacons stay parked. Follow sets and TacMap edit layers: [maps-product-plan](./maps-product-plan.md).
 
-**Product names**
+**Names**
 
 | | |
 | --- | --- |
-| **Short** | **TacMap** |
-| **Long** | **Tactical Maps** |
-| **Module id** | `product:maps` (engine — do not fork) |
-| **ASN Hero** | Same names + milsim chrome; beacon SKUs in shop |
+| **Product** | **Maps** |
+| **Mode** | **TacMap** — extra layers and editing on one map record. Not a second module |
+| **Module id** | `product:maps` (do not rename) |
+| **ASN Hero** | Milsim chrome, beacon SKUs, `apps/asn-capacitor`. Does not own TacMap |
 
-## What this is
+## What ships today
 
-Closed **event tactical map**: owner/admins create **teams**, put **users on a roster**, members **join a session** and share GPS with **same-team only**. Not a social location-share product.
+Closed **event map record**: owner/admins create **teams**, put **users on a roster**, members **join a session** and share GPS with **same-team only**. This is the current event instance. It stays until follow sets replace roster ACL on that record ([maps-product-plan](./maps-product-plan.md)).
 
-Later: **stations** (mission / capture points) — fixed or device-backed — with **hold-to-capture** and optional **low-power BLE beacons**, sold on ASN alongside TacMap.
+Point and KML overlays already stored on the room stay visible in default mode. TacMap mode, when built, adds draw/edit on that record only.
+
+A courier follow map is a **different** Maps record. Vehicle positions are not written onto this room.
+
+Stations (mission / capture points), hold-to-capture, and BLE beacons stay parked. They are TacMap-mode work after the first edit-layer slice, not a second product.
 
 ## Explicit non-goals (shipped / near-term live players)
 
@@ -72,18 +76,18 @@ Station visibility (who sees progress / markers) follows room policy later (same
 
 ---
 
-## Stations, hold capture, beacons *(roadmap — sell with TacMap)*
+## Stations, hold capture, beacons *(parked — TacMap mode, after T1)*
 
 ### Product intent (ASN)
 
-Organizers buy / rent **low-power beacons** (and optional station phones) from the ASN shop, bind them in **TacMap**, place them on the field as **mission / capture points**. Players’ phones (Capacitor TacMap client) share GPS with the team **and** detect nearby beacons to hold objectives.
+Organizers buy / rent **low-power beacons** (and optional station phones) from the ASN shop, bind them on a Maps record with **TacMap mode** on, and place them as **mission / capture points**. Players’ phones share GPS with the team and detect nearby beacons to hold objectives.
 
 | Piece | Layer |
 | --- | --- |
-| Station / presence / hold engine | **Module** `product:maps` |
-| TacMap name, milsim UX, field chrome | **Hero** ASN |
+| Station / presence / hold engine | **Module** `product:maps` (TacMap mode) |
+| Milsim UX, field chrome | **Hero** ASN |
 | Beacon SKUs, kits, rental, event bundles | **Hero** + Marketplace/Shop Module |
-| Capacitor background GPS + BLE scan | **Client** (`apps/asn-capacitor` / TacMap app) |
+| Capacitor background GPS + BLE scan | **Client** (`apps/asn-capacitor`) |
 
 Do **not** fork a second map stack for hardware — beacons are presence sources on the same station API.
 
@@ -136,29 +140,31 @@ GPS geofence and beacon detection are **interchangeable inputs** to the same hol
 
 ### Low-power beacons
 
-- Field units advertise a stable id; TacMap client **scans** (Capacitor / native BLE).
+- Field units advertise a stable id; the Capacitor client **scans** (native BLE).
 - Beacon ↔ `sf_map_stations.beacon_id` in admin (pair at event setup).
 - Does **not** replace teammate GPS on the map; it answers “am I at this objective?”
-- Battery: months on coin cell — marketed as ASN TacMap accessory.
+- Battery: months on coin cell — marketed as an ASN Maps accessory.
 - iOS/Android background scan limits → same native shell as background GPS.
 
 ### Suggested build order (after live players)
 
 1. **Stations + GPS geofence hold** (no hardware required to demo).
-2. **Beacon id binding + scan presence** on Capacitor TacMap.
-3. ASN shop SKUs / kits (“TacMap Beacon Pack”) pointing at setup docs.
+2. **Beacon id binding + scan presence** on the Capacitor client.
+3. ASN shop SKUs / kits (“Maps beacon pack”) pointing at setup docs.
 4. Contest rules, min players, organizer dashboard (who holds what).
 5. Optional: station-phone mode (device Join as `kind: station`).
 
 ### Commercial note (ASN)
 
-Marketing copy can say: *ASN TacMap + official beacons — drop a point, hold 10 minutes, take the objective.*  
-Implementation stays Module-generic so other Starforge sites can enable stations without ASN SKUs; only the catalog and TacMap chrome are Hero.
+Marketing copy can say: *ASN Maps + official beacons — drop a point, hold 10 minutes, take the objective.*  
+Implementation stays in Maps so other Starforge sites can enable stations without ASN SKUs; only the catalog and milsim chrome are Hero.
 
 ---
 
 ## Related
 
-- [maps-location-plan](./maps-location-plan.md) — venue pins + future generic shares (separate from this tool)
+- Product plan: [maps-product-plan](./maps-product-plan.md) — follow sets, TacMap mode, separate map records
+- [maps-location-plan](./maps-location-plan.md) — venue pins; live social shares stay parked
+- Vehicle adapters (Fleet pushes into Maps): [fleet-live-map-plan](./fleet-live-map-plan.md), [2026-11-28-maps-vs-tacmap](./decisions/2026-11-28-maps-vs-tacmap.md)
 - [platform-module-layers](./platform-module-layers.md)
 - Capacitor shell: `apps/asn-capacitor`

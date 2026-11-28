@@ -6,7 +6,7 @@ last_verified: 2026-11-26
 
 **Coverage:** [primeone-coverage-plan](./primeone-coverage-plan.md). **Ownership:** [fleet-pack-plan](./fleet-pack-plan.md), [primeone-pack-plans](./primeone-pack-plans.md).  
 **Live source:** PrimeOne repo, component **v0.15.41**. Paths relative to that repo root.  
-**Rules:** Routes + attendance ∈ **fleet**; tiles via Core **MapProvider**, not TacMap; identity via **fact map** only (no Onboarding table reads). Live Joomla uses `DriverDirectory` → Drivers identity API — Starforge replaces that with the fact-map provider.
+**Rules:** Routes + attendance ∈ **fleet**; live car positions are Maps trackables (Fleet adapters push); tiles via Core **MapProvider**; identity via **fact map** only (no Onboarding table reads). Live Joomla uses `DriverDirectory` → Drivers identity API — Starforge replaces that with the fact-map provider.
 
 ## Related extensions
 
@@ -94,9 +94,9 @@ last_verified: 2026-11-26
 | Live surface | In use? | Starforge owner | First build? | Proof | Spec link |
 | --- | --- | --- | --- | --- | --- |
 | Ordered route / stops entity | no | fleet | later | Absent from SQL and services | [fleet-pack-plan](./fleet-pack-plan.md) |
-| Route drawing (MapProvider) | no | fleet / core | later | No map imports; not TacMap | — |
+| Route drawing (MapProvider) | no | fleet / core | later | No map imports; route lines are not an event room | — |
 | Attendance / clock-in on shift | no | fleet | later | Absent | [fleet-pack-plan](./fleet-pack-plan.md) |
-| Live GPS / Ecofleet map | no | fleet / core | later | No geo schema; poll ≠ tracking | — |
+| Live GPS / Ecofleet map | no | fleet / maps | later | No geo schema; poll ≠ tracking. Adapters push into Maps | [fleet-live-map-plan](./fleet-live-map-plan.md), [maps-product-plan](./maps-product-plan.md) |
 | Ops use of external route/clock tools | unknown (ops) | fleet | later | Outside this component | — |
 
 ## Active drivers / facts

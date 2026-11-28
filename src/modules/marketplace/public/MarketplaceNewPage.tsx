@@ -9,6 +9,7 @@ import { isValidLocaleCode, type AppLocale } from '@/core/i18n'
 import { withLocalePrefix } from '@/core/i18n/path'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { getSiteChrome } from '@/core/site-chrome'
+import { getPaymentsSettings } from '@/modules/payments/api'
 import { runMarketplaceDoor } from '@/modules/marketplace/api.server'
 
 import { listMarketplaceCategories } from '../categories'
@@ -52,9 +53,10 @@ export default async function MarketplaceNewPage({ params }: Args) {
           withLocalePrefix('/login?next=/marketplace/new', locale as AppLocale),
         )
       }
-      const [categories, moduleSettings] = await Promise.all([
+      const [categories, moduleSettings, pay] = await Promise.all([
         listMarketplaceCategories(),
         loadMarketplaceModuleSettings(),
+        getPaymentsSettings(),
       ])
       return {
         categories: categories.map((c) => ({
@@ -63,13 +65,14 @@ export default async function MarketplaceNewPage({ params }: Args) {
           enabled: c.enabled,
         })),
         photoCap: moduleSettings.settings.photoCap,
+        currency: pay.currency || 'HUF',
         viewer,
       }
     },
   )
   if (!door.ok) notFound()
 
-  const { categories, photoCap, viewer } = door.value
+  const { categories, photoCap, currency, viewer } = door.value
 
   return (
     <article className="cms-page sf-marketplace-page">
@@ -83,6 +86,7 @@ export default async function MarketplaceNewPage({ params }: Args) {
         mode="create"
         categories={categories}
         photoCap={photoCap}
+        currency={currency}
         initial={{
           title: '',
           description: '',

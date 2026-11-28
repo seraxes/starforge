@@ -28,6 +28,7 @@ export type EnvEditorGroupId =
   | 'captcha'
   | 'mail'
   | 'payments'
+  | 'signatures'
   | 'editor'
 
 export type EnvEditorGroup = {
@@ -76,6 +77,11 @@ export const ENV_EDITOR_GROUPS: EnvEditorGroup[] = [
     id: 'payments',
     label: 'Payments & fiscal secrets',
     hint: 'Gateway + NAV keys only. Enable methods in Payments admin — never store secrets in Postgres. SF_PAYMENTS_PROVIDER lists adapters registered in src/core/payments. A new gateway is src/core/payments/<id>.ts plus an import in register-online.ts.',
+  },
+  {
+    id: 'signatures',
+    label: 'Signature provider secrets',
+    hint: 'DocuSign (and later providers) for product:documents. Secrets stay in the env overlay — an admin does not upload a provider. A new adapter is src/core/signatures/<id>.ts plus an import in register-online.ts.',
   },
   {
     id: 'editor',
@@ -490,6 +496,68 @@ export const ENV_EDITOR_FIELDS: EnvEditorField[] = [
     secret: false,
     kind: 'text',
     group: 'payments',
+  },
+  {
+    key: 'SF_SIGNATURES_PROVIDER',
+    label: 'SF_SIGNATURES_PROVIDER',
+    description:
+      'Site signature provider for product:documents. Add one by shipping src/core/signatures/<id>.ts and importing it from register-online.ts. DocuSign is the first adapter.',
+    secret: false,
+    kind: 'enum',
+    options: [
+      { value: '', label: '(unset — noop)' },
+      { value: 'noop', label: 'Noop (dev)' },
+      { value: 'docusign', label: 'DocuSign' },
+    ],
+    group: 'signatures',
+  },
+  {
+    key: 'DOCUSIGN_INTEGRATION_KEY',
+    label: 'DOCUSIGN_INTEGRATION_KEY',
+    description: 'DocuSign integration key (never commit).',
+    secret: true,
+    kind: 'password',
+    group: 'signatures',
+  },
+  {
+    key: 'DOCUSIGN_USER_ID',
+    label: 'DOCUSIGN_USER_ID',
+    description: 'DocuSign API user GUID (JWT subject).',
+    secret: false,
+    kind: 'text',
+    group: 'signatures',
+  },
+  {
+    key: 'DOCUSIGN_ACCOUNT_ID',
+    label: 'DOCUSIGN_ACCOUNT_ID',
+    description: 'DocuSign account id for envelope API calls.',
+    secret: false,
+    kind: 'text',
+    group: 'signatures',
+  },
+  {
+    key: 'DOCUSIGN_RSA_PRIVATE_KEY',
+    label: 'DOCUSIGN_RSA_PRIVATE_KEY',
+    description: 'DocuSign JWT RSA private key PEM (use \\n for newlines in .env).',
+    secret: true,
+    kind: 'password',
+    group: 'signatures',
+  },
+  {
+    key: 'DOCUSIGN_AUTH_BASE',
+    label: 'DOCUSIGN_AUTH_BASE',
+    description: 'DocuSign OAuth base (default https://account-d.docusign.com).',
+    secret: false,
+    kind: 'url',
+    group: 'signatures',
+  },
+  {
+    key: 'DOCUSIGN_BASE_PATH',
+    label: 'DOCUSIGN_BASE_PATH',
+    description: 'DocuSign eSign REST base (default https://demo.docusign.net/restapi).',
+    secret: false,
+    kind: 'url',
+    group: 'signatures',
   },
   {
     key: 'SF_FISCAL_PROVIDER',

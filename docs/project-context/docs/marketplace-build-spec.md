@@ -4,7 +4,7 @@ last_verified: 2026-11-27
 ---
 # product:marketplace — build spec
 
-**Status:** Slice 4 (public loop) is in tree. Next chat is slice 5 (saves) only. Live map: [architecture-current](./architecture-current.md).  
+**Status:** Slices 1–10 (local loop) are in tree. Social share (slice 10) is done. Live map: [architecture-current](./architecture-current.md).  
 **Product rules:** [marketplace-pack-plan](./marketplace-pack-plan.md). This file is the coding order. If the two disagree, the pack plan wins on product behavior and this file wins on which chat does the work.
 
 ## How to run a slice
@@ -171,9 +171,9 @@ When it is true, a new listing stays `draft` until `marketplace.listingFeePaid`.
 
 **Done when:** tests, lint, `check:atomic`. Browser: with the fee off, publish still works; with the fee on, the draft stays draft until a paid hook (the hook test covers the flip if checkout cannot be completed locally).
 
-### 10. Social share
+### 10. Social share — in tree
 
-Optional. A seller action “Share to feed” calls `@/modules/social/api.server` to create one post keyed by `sourceModule=product:marketplace` plus the listing id, so a repeat is an update, not a second post. Social off or the door `disabled`: the action returns fail-closed and no Marketplace table changes. Comments and likes stay on that post. Do not add `sf_marketplace_reports`. Do not write `sf_social_*` from this pack except through the Social door.
+Optional. A seller action “Share to feed” loads Social through `loadModuleDoor('social-api-server')` → `publishActivity` (advanced must not import advanced). One card keyed by `sourceModule=product:marketplace`, listing id, `activityKind=listing.shared`, so a repeat is an update, not a second post. Social off or the door `disabled`: the action returns fail-closed and no Marketplace table changes. Comments and likes stay on that post. Do not add `sf_marketplace_reports`. Do not write `sf_social_*` from this pack except through the Social door.
 
 **Tests:** Social disabled does not call the write; a second share uses the same source key.
 

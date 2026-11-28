@@ -5,7 +5,7 @@
 
 import 'server-only'
 
-import { asc, desc, eq, inArray } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray } from 'drizzle-orm'
 
 import { db } from '@/core/db'
 import { isPrivateFormMedia } from '@/core/media/privacy'

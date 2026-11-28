@@ -4,7 +4,7 @@ last_verified: 2026-11-27
 ---
 # product:onboarding — pack plan
 
-**Status:** Slice 2 (status builder + identity facts) is in tree. `defaultEnabled: false`. Next chat is slice 3 (procedure + notes + invite). Parallel with Marketplace. Fleet and Documents stay parked. Live map: [architecture-current](./architecture-current.md).  
+**Status:** Slices 1–5 and 7–10 are in tree. `defaultEnabled: false`. Next chat is slice 11 (staff tag catalog). Slice 6 waits on Documents. Fleet and Documents stay parked. Live map: [architecture-current](./architecture-current.md).  
 **Placement:** Advanced module (`product:onboarding`). Not Core. Not base. Not Hero.  
 **Family index:** [primeone-pack-plans](./primeone-pack-plans.md).  
 **Principle:** Never rebuild an existing module’s job ([modular-core](../principles/modular-core.md), [sf-module-ownership](../../../.cursor/rules/sf-module-ownership.mdc), [sf-architecture](../../../.cursor/rules/sf-architecture.mdc)).
@@ -115,10 +115,16 @@ One slice per chat. Stop when that slice’s checks pass. **Do not start schema 
 
 1. **Scaffold** — done. Manifest (`layer: advanced`, `defaultEnabled: false`), hard `requires`: Forms, Media, Email Manager, Profiles; empty public door; README Owns/Consumes; registry generate. `optionalRequires: product:fleet` waits until that manifest exists (unknown optional ids fail `modules:generate`). No tables. No Core fact-map port.
 2. **Status builder + identity facts** — done. Statuses with a bookable flag and an optional Forms definition id; driver code, phone, Fleet station id, home-run, trainer, Clearquote. Person-fact reads on the public door. Station list empty while Fleet is absent.
-3. **Procedure + notes + invite** — three event cards, notes, follow-up, calls, mail log, invite + Email Manager starters.
-4. **Training** — checklist and PDF (pack-local until Documents exists), trainer calendar, then a Forms quiz attempt; qualification on pass without a status move.
-5. **Valid-until** — licence, health booklet, contract; missing vs expired.
-6. **Documents bridge** — when `product:documents` exists, person-file render goes through that door.
+3. **Procedure + notes + invite** — done. Event cards, notes, follow-up, calls, mail log, invite + Email Manager starters.
+4. **Training** — done. Checklist and PDF (pack-local until Documents exists), trainer calendar, Forms quiz attempt; qualification on pass without a status move.
+5. **Valid-until** — done. Licence, health booklet, contract; missing vs expired; presence-only import with empty date.
+6. **Documents bridge** — when `product:documents` slice 3 exists, person-file render goes through that door. Do not start it before then.
+7. **Status phase and driver-list copy** — done. Phase, display label, action chip, next-step message on each status. Adding a status is what makes it appear in later pickers.
+8. **Email binding** — done. Each recruiting status, the invite, and each event type stores an Email Manager template id. Subject and body stay in Email Manager.
+9. **Email editor popup** — Edit opens `/admin/email/templates/[id]?embed=1` in a dialog. Email Manager owns the embed flag and the save.
+10. **Event type settings and depots** — Done. Depot list while Fleet is absent; per type the Forms id, date field, active statuses, completed statuses. A completed status sets that event’s outcome to passed.
+11. **Staff tag catalog** — label, color, to-do, fade. Tags mark a person. They do not move the status.
+12. **Driver-home particle** — layout particle. Shows the current status message, action chip, and the tiles configured for that status.
 
 ## Explicit non-goals
 
@@ -128,6 +134,7 @@ One slice per chat. Stop when that slice’s checks pass. **Do not start schema 
 | Cars, shifts, routes, clock-in | `product:fleet` |
 | Second account / name / email store | Core user |
 | Field builder or SMTP | Forms / Email Manager |
+| A second email editor inside Onboarding | Email Manager template. Onboarding stores the template id and opens that editor |
 | File bytes store | Media |
 | TacMap rooms | Core MapProvider is for Fleet routes; TacMap is not for recruiting |
 | Stock or money ledger | Later warehouse / ledger |

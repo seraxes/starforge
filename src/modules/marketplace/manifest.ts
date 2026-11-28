@@ -1,7 +1,7 @@
 import { defineStarforgeModule } from '@/core/modules/define-module'
 
 /**
- * product:marketplace — slice 4: public browse / create / detail / edit / you.
+ * product:marketplace — slice 10: Social feed share.
  * Plan: docs/project-context/docs/marketplace-build-spec.md
  */
 export default defineStarforgeModule({
@@ -10,7 +10,7 @@ export default defineStarforgeModule({
   layer: 'advanced',
   label: 'Marketplace',
   description:
-    'Classifieds / marketplace. Categories, listings, settings, staff moderation, and public loop in tree.',
+    'Classifieds / marketplace. Categories, listings, settings, staff moderation, public loop, optional listing fee, and Social feed share.',
   version: '0.1.0',
   defaultEnabled: true,
   requires: [
@@ -20,7 +20,14 @@ export default defineStarforgeModule({
     'product:email-manager',
   ],
   optionalRequires: ['product:social', 'product:subscriptions'],
+  boot: {
+    importPath: '@/modules/marketplace/boot',
+    exportName: 'bootMarketplace',
+  },
   navViews: [
+    { key: 'public', label: 'Marketplace', href: '/marketplace' },
+    { key: 'sell', label: 'Sell', href: '/marketplace/new' },
+    { key: 'you', label: 'Your listings', href: '/marketplace/you' },
     { key: 'admin', label: 'Marketplace', href: '/admin/marketplace' },
     { key: 'categories', label: 'Categories', href: '/admin/marketplace' },
     { key: 'listings', label: 'Listings', href: '/admin/marketplace/listings' },
@@ -68,6 +75,11 @@ export default defineStarforgeModule({
       {
         path: 'marketplace/listings',
         pageImportPath: '@/modules/marketplace/admin/MarketplaceListingsPage',
+        pageExportName: 'default',
+      },
+      {
+        path: 'marketplace/listings/[id]',
+        pageImportPath: '@/modules/marketplace/admin/MarketplaceListingEditPage',
         pageExportName: 'default',
       },
       {

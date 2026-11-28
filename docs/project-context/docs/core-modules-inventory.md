@@ -236,9 +236,9 @@ Durable map of **feature modules** (Site Settings / allowlist toggleable) vs **i
 | | |
 | --- | --- |
 | **Kind** | **Module** (`product:maps`) + Core **`MapProvider`** port |
-| **Status** | **partial / shipping** — MapProvider + venue pins + map particle; **live tactical rooms** (closed roster) in Maps module. Generic social location shares still plan-only. |
-| **Recommended** | **TacMap** (short) / **Tactical Maps** (long) — [maps-live-tactical](./maps-live-tactical.md). Stations / hold / beacons roadmap; ASN beacon SKUs = **Hero**. Shares everyone/friends/selected = [maps-location-plan](./maps-location-plan.md) later. |
-| **Next slice** | Capacitor background GPS; stations + GPS hold-to-capture; then BLE beacon presence; ASN shop kits. |
+| **Status** | **partial / shipping** — MapProvider + venue pins + map particle; **event rooms** (closed roster) in Maps. Follow sets and TacMap edit mode are planned. Everyone/friends/selected live shares stay parked. |
+| **Recommended** | Product name **Maps**. TacMap is a per-map mode, not a rename of `product:maps`. [maps-product-plan](./maps-product-plan.md). Shipped rooms: [maps-live-tactical](./maps-live-tactical.md). Stations / hold / beacons stay parked; ASN beacon SKUs = **Hero**. |
+| **Next slice** | Queued behind Social polish then Marketplace. Then follow sets and TacMap edit layers. Capacitor, stations, and BLE stay parked. |
 
 ---
 

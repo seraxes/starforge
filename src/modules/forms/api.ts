@@ -15,7 +15,11 @@
  */
 
 import type { FormDefinitionLoadResult } from './definitions-store'
-import type { FormDefinitionDocument, FormSubmitActionState } from './types'
+import type {
+  FormDefinitionDocument,
+  FormPresetId,
+  FormSubmitActionState,
+} from './types'
 
 export type { FormDefinitionLoadResult }
 
@@ -113,6 +117,20 @@ export async function saveFormDefinitionDocument(
 ): Promise<FormDefinitionDocument> {
   const { saveFormDefinitionDocument: save } = await import('./definitions-store')
   return save(formId, document, label)
+}
+
+/**
+ * Create a new definition (label + optional preset / id / copy).
+ * Consumers (e.g. Onboarding status Create) call this door — never Forms private files.
+ */
+export async function createFormDefinition(input: {
+  label: string
+  id?: string
+  preset?: FormPresetId
+  copyFromId?: string
+}): Promise<{ id: string; document: FormDefinitionDocument }> {
+  const { createFormDefinition: create } = await import('./definitions-store')
+  return create(input)
 }
 
 /**

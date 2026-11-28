@@ -28,7 +28,9 @@ import mapParticleManifest from './maps/particle-manifest'
 import liveMapParticleManifest from './maps/live-map-particle-manifest'
 import marketplaceManifest from './marketplace/manifest'
 import mediaManifest from './media/manifest'
+import documentsManifest from './documents/manifest'
 import onboardingManifest from './onboarding/manifest'
+import driverHomeParticleManifest from './onboarding/particles/driver-home-manifest'
 import pagesManifest from './pages/manifest'
 import noticeBarManifest from './notice-bar/manifest'
 import pwaManifest from './pwa/manifest'
@@ -77,7 +79,9 @@ export const ALL_MODULE_MANIFESTS: StarforgeModuleManifest[] = [
   mapParticleManifest,
   liveMapParticleManifest,
   marketplaceManifest,
+  documentsManifest,
   onboardingManifest,
+  driverHomeParticleManifest,
   redirectsManifest,
   auditManifest,
   consentManifest,

@@ -4,9 +4,9 @@ last_verified: 2026-11-27
 ---
 # product:marketplace — pack plan
 
-**Status:** Slice 4 (public loop) is in tree. Saves are slice 5. Live map: [architecture-current](./architecture-current.md).  
+**Status:** Slices 1–10 (local loop) are in tree. Social feed share is in tree. Live map: [architecture-current](./architecture-current.md).  
 **Model:** Facebook Marketplace as a **local classifieds board** (create a listing, browse nearby, message, offer, meet, rate). Not Facebook Shops, and not Shop.  
-**Placement:** Advanced module (`product:marketplace`). Not Core. Not base. Hard `requires`: Payments, Profiles, Media, Email Manager. `optionalRequires`: Social, Subscriptions. `sf_marketplace_categories` and `sf_marketplace_listings` are in tree; public routes `/marketplace` (+ new / you / [id] / edit); settings document `product:marketplace` lives in `sf_module_settings`.  
+**Placement:** Advanced module (`product:marketplace`). Not Core. Not base. Hard `requires`: Payments, Profiles, Media, Email Manager. `optionalRequires`: Social, Subscriptions. `sf_marketplace_categories`, `sf_marketplace_listings`, `sf_marketplace_saves`, `sf_marketplace_inquiries`, `sf_marketplace_messages`, `sf_marketplace_offers`, and `sf_marketplace_ratings` are in tree; dashboard `marketplace.listings` counts active / new7d / pending; optional listing fee via Payments hook `marketplace.listingFeePaid` (default off); Social feed share via `publishActivity` (`sourceModule=product:marketplace`, listing id, `listing.shared`); public routes `/marketplace` (+ new / you / [id] / edit); settings document `product:marketplace` lives in `sf_module_settings`.  
 **Principle:** Never rebuild an existing module’s job ([modular-core](../principles/modular-core.md), [sf-module-ownership](../../../.cursor/rules/sf-module-ownership.mdc), [sf-payments-module](../../../.cursor/rules/sf-payments-module.mdc)).
 
 Facebook’s own help and the March 2026 product note are the feature source: [sell an item](https://www.facebook.com/help/iphone-app/561376580709359), [sort and filter](https://www.facebook.com/help/fblite/248514105820200), [save](https://www.facebook.com/help/904464579676902), [make an offer](https://www.facebook.com/help/196733038830912), [ratings](https://www.facebook.com/help/915385548593204), [shipping labels](https://www.facebook.com/help/376859780413203), [Meta AI tools (2026-03-12)](https://about.fb.com/news/2026/03/facebook-marketplace-new-meta-ai-tools-make-selling-faster-and-easier/).
@@ -92,7 +92,7 @@ Cross-pack ids are plain text. Do not foreign-key another pack’s tables.
 
 In tree (slice 4): public listing query, one listing read, seller create/edit, pending / sold / renew / hide. Staff overrides via `isAppAdmin` or `admin.marketplace` edit.
 
-Later slices: inquiry and offer commands; rating write; optional fee quote via `@/modules/payments/api` (`sourceModule=product:marketplace`, `sourceType=listing`); `registerPaymentConsumerHook('marketplace.listingFeePaid')` from boot.
+In tree (slice 9): optional fee quote via `@/modules/payments/api` (`sourceModule=product:marketplace`, `sourceType=listing`); `registerPaymentConsumerHook('marketplace.listingFeePaid')` from boot. In tree (slice 10): seller “Share to feed” via `loadModuleDoor('social-api-server')` → `publishActivity` (unique source key; Social off fails closed; no advanced→advanced import).
 
 Callers outside the pack use this door only.
 
@@ -103,8 +103,8 @@ Callers outside the pack use this door only.
 | Browse | `/marketplace` (slice 4) |
 | Listing | `/marketplace/[id]` (slice 4) |
 | Create / edit | `/marketplace/new`, `/marketplace/[id]/edit` (slice 4) |
-| Your listings | `/marketplace/you` (slice 4; saves/inquiries later) |
-| Pack admin | `/admin/marketplace` — categories, listings moderation, settings (expiry days, photo cap, offers default, listing fee on/off with a deep link to Payments) |
+| Your listings + saves | `/marketplace/you` (slice 5). Inquiries/offers on listing detail (slice 6). |
+| Pack admin | `/admin/marketplace` — categories, listings moderation + `/admin/marketplace/listings/[id]` staff editor (stays in admin), settings (expiry days, photo cap, offers default, listing fee on/off with a deep link to Payments) |
 | ACL | `marketplace` → `admin.marketplace` view / edit / manage. App admin bypasses. |
 | Dashboard | Existing `marketplace.listings` card. Replace the unavailable stub with active, new-7d, and pending counts (slice 8). |
 

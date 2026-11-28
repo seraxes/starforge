@@ -19,19 +19,35 @@ import { runMarketplaceDoor } from '@/modules/marketplace/api.server'
 
 import { listingDistanceKm } from '../browse-rules'
 import {
+  listMarketplaceInquiriesForListing,
+  loadMarketplaceBuyerThread,
+} from '../inquiries'
+import {
   browseFiltersFromSearchParams,
   getMarketplaceListing,
   getPublicMarketplaceListing,
   syncExpiredMarketplaceListings,
 } from '../listings'
 import {
+  getMarketplaceRatingEligibility,
+  getPublicMarketplaceRatingAverage,
+} from '../ratings'
+import { isMarketplaceListingSaved } from '../saves'
+import { loadMarketplaceModuleSettings } from '../settings'
+import {
   formatListingCondition,
+  formatListingDate,
   formatListingDistanceKm,
   formatListingPrice,
+  formatListingStatus,
 } from './format'
+import { BuyerInquiryPanel, SellerInquiryPanel } from './InquiryActions'
 import { resolveListingMediaSrcs } from './media-src'
 import { ListingStatusActions } from './ListingStatusActions'
 import { MarketplacePublicNav } from './MarketplacePublicNav'
+import { RatingSubmitForm } from './RatingActions'
+import { SaveListingActions } from './SaveListingActions'
+import { ShareToFeedAction } from './ShareToFeedAction'
 
 type Args = {
   params: Promise<{ locale: string; id: string }>
@@ -76,17 +92,47 @@ export default async function MarketplaceDetailPage({ params, searchParams }: Ar
         isStaff,
       })
       if (!found) return null
-      const [pay, personas, photos, sp] = await Promise.all([
+      const isOwner =
+        Boolean(viewer.userId) && viewer.userId === found.listing.sellerUserId
+      const [
+        pay,
+        personas,
+        photos,
+        sp,
+        saved,
+        moduleSettings,
+        buyerThread,
+        sellerThreads,
+        sellerRatingAvg,
+        ratingEligibility,
+      ] = await Promise.all([
         getPaymentsSettings(),
         getPersonas([found.listing.sellerUserId], viewer),
         resolveListingMediaSrcs(found.listing.mediaIds),
         searchParams,
+        viewer.userId
+          ? isMarketplaceListingSaved(viewer.userId, found.listing.id)
+          : Promise.resolve(false),
+        loadMarketplaceModuleSettings(),
+        viewer.userId && !isOwner
+          ? loadMarketplaceBuyerThread(found.listing.id, viewer.userId)
+          : Promise.resolve(null),
+        isOwner || isStaff
+          ? listMarketplaceInquiriesForListing(found.listing.id)
+          : Promise.resolve([]),
+        getPublicMarketplaceRatingAverage(found.listing.sellerUserId),
+        viewer.userId
+          ? getMarketplaceRatingEligibility(found.listing.id, viewer.userId)
+          : Promise.resolve({
+              canRate: false,
+              direction: null,
+              toUserId: null,
+              alreadyRated: false,
+            }),
       ])
       const filters = browseFiltersFromSearchParams(sp)
       const distanceKm = listingDistanceKm(found.listing, filters.viewer)
       const seller = personas.get(found.listing.sellerUserId)
-      const isOwner =
-        Boolean(viewer.userId) && viewer.userId === found.listing.sellerUserId
       return {
         found,
         currency: pay.currency || 'HUF',
@@ -96,6 +142,12 @@ export default async function MarketplaceDetailPage({ params, searchParams }: Ar
         viewer,
         isStaff,
         isOwner,
+        saved,
+        offersEnabled: moduleSettings.settings.offersEnabled,
+        buyerThread,
+        sellerThreads,
+        sellerRatingAvg,
+        ratingEligibility,
       }
     },
   )
@@ -111,6 +163,12 @@ export default async function MarketplaceDetailPage({ params, searchParams }: Ar
     viewer,
     isStaff,
     isOwner,
+    saved,
+    offersEnabled,
+    buyerThread,
+    sellerThreads,
+    sellerRatingAvg,
+    ratingEligibility,
   } = door.value
   const { listing, categoryTitle, publicVisible } = found
   const canManage = isOwner || isStaff
@@ -118,70 +176,65 @@ export default async function MarketplaceDetailPage({ params, searchParams }: Ar
     canManage &&
     (isStaff || listing.status === 'draft' || listing.status === 'active')
   const distance = formatListingDistanceKm(distanceKm)
+  const signedIn = Boolean(viewer.userId)
+  const showBuyerInquiry =
+    !isOwner && (publicVisible || Boolean(buyerThread)) && listing.status !== 'removed'
+  const showRatingForm =
+    signedIn &&
+    ratingEligibility.canRate &&
+    ratingEligibility.direction &&
+    ratingEligibility.toUserId
+  const expiryLabel = formatListingDate(listing.expiresAt, locale)
+  const areaLabel =
+    [listing.areaLabel, distance].filter(Boolean).join(' · ') || 'Not set'
+  const statusLabel = formatListingStatus(listing.status)
 
   return (
     <article className="cms-page sf-marketplace-page">
-      <header className="cms-page-header">
-        <h1>{listing.title}</h1>
-        <p className="lede">
-          {formatListingPrice(listing.priceMinor, currency, locale)} ·{' '}
-          {formatListingCondition(listing.condition)}
-          {categoryTitle ? ` · ${categoryTitle}` : ''}
-        </p>
-      </header>
       <MarketplacePublicNav
         locale={locale}
         active="browse"
-        signedIn={Boolean(viewer.userId)}
+        signedIn={signedIn}
       />
 
       {!publicVisible ? (
         <p className="settings-hint" role="status">
-          This listing is not public ({listing.status}).
+          This listing is not public ({statusLabel}).
         </p>
       ) : null}
 
-      {photos.length > 0 ? (
-        <div className="sf-marketplace-detail-photos">
-          {photos.map((src) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img key={src} src={src} alt="" className="sf-marketplace-detail-photo" />
-          ))}
+      <div className="sf-marketplace-detail">
+        <div className="sf-marketplace-detail-gallery" aria-label="Photos">
+          {photos.length > 0 ? (
+            photos.map((src) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img key={src} src={src} alt="" className="sf-marketplace-detail-photo" />
+            ))
+          ) : (
+            <div className="sf-marketplace-detail-photo is-empty" aria-hidden>
+              <span>No photo</span>
+            </div>
+          )}
         </div>
-      ) : null}
 
-      <div className="sf-marketplace-detail-meta">
-        <p>
-          <strong>Area:</strong>{' '}
-          {[listing.areaLabel, distance].filter(Boolean).join(' · ') || 'Not set'}
-        </p>
-        <p>
-          <strong>Seller:</strong> {sellerLabel}
-        </p>
-        {listing.expiresAt ? (
-          <p>
-            <strong>Expires:</strong> {listing.expiresAt.toLocaleString(locale)}
-          </p>
-        ) : null}
-        <p>
-          <strong>Status:</strong> {listing.status}
-        </p>
-      </div>
+        <div className="sf-marketplace-detail-summary">
+          <header className="sf-marketplace-detail-header">
+            <h1>{listing.title}</h1>
+            <p className="sf-marketplace-detail-price">
+              {formatListingPrice(listing.priceMinor, currency, locale)}
+            </p>
+          </header>
 
-      {listing.description ? (
-        <div className="sf-marketplace-detail-body">
-          <p style={{ whiteSpace: 'pre-wrap' }}>{listing.description}</p>
-        </div>
-      ) : null}
-
-      {canManage ? (
-        <section className="page-settings-panel">
-          <div className="page-settings-panel-head">
-            <h2>Seller tools</h2>
-          </div>
-          <div className="page-settings-panel-body">
-            {canEdit ? (
-              <p>
+          {(publicVisible || saved || canManage) ? (
+            <div className="sf-marketplace-detail-actions">
+              {publicVisible || saved ? (
+                <SaveListingActions
+                  listingId={listing.id}
+                  saved={saved}
+                  signedIn={signedIn}
+                />
+              ) : null}
+              {canEdit ? (
                 <Link
                   href={withLocalePrefix(
                     `/marketplace/${listing.id}/edit`,
@@ -189,14 +242,115 @@ export default async function MarketplaceDetailPage({ params, searchParams }: Ar
                   )}
                   className="gantry-toolbar-btn gantry-toolbar-btn-muted"
                 >
-                  Edit listing
+                  Edit
                 </Link>
-              </p>
+              ) : null}
+              {canManage ? (
+                <>
+                  <ListingStatusActions
+                    listingId={listing.id}
+                    status={listing.status}
+                    canManage={canManage}
+                  />
+                  <ShareToFeedAction listingId={listing.id} canShare={canManage} />
+                </>
+              ) : null}
+            </div>
+          ) : null}
+
+          <dl className="sf-marketplace-detail-facts">
+            <div>
+              <dt>Condition</dt>
+              <dd>{formatListingCondition(listing.condition)}</dd>
+            </div>
+            {categoryTitle ? (
+              <div>
+                <dt>Category</dt>
+                <dd>{categoryTitle}</dd>
+              </div>
             ) : null}
-            <ListingStatusActions
+            <div>
+              <dt>Area</dt>
+              <dd>{areaLabel}</dd>
+            </div>
+            <div>
+              <dt>Seller</dt>
+              <dd>
+                {sellerLabel}
+                {sellerRatingAvg != null ? (
+                  <>
+                    {' '}
+                    ·{' '}
+                    <span title="Public Marketplace rating average">
+                      {sellerRatingAvg.toFixed(1)} ★
+                    </span>
+                  </>
+                ) : null}
+              </dd>
+            </div>
+            {expiryLabel ? (
+              <div>
+                <dt>Expires</dt>
+                <dd>{expiryLabel}</dd>
+              </div>
+            ) : null}
+            <div>
+              <dt>Status</dt>
+              <dd>
+                {statusLabel}
+                {listing.status === 'sold' && listing.soldToUserId
+                  ? ` · sold to ${listing.soldToUserId.slice(0, 8)}…`
+                  : ''}
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+
+      {listing.description ? (
+        <div className="sf-marketplace-detail-body">
+          <p>{listing.description}</p>
+        </div>
+      ) : null}
+
+      {showBuyerInquiry ? (
+        <section className="page-settings-panel sf-marketplace-panel">
+          <div className="page-settings-panel-head">
+            <h2>Ask / offer</h2>
+          </div>
+          <div className="page-settings-panel-body">
+            <BuyerInquiryPanel
               listingId={listing.id}
-              status={listing.status}
-              canManage={canManage}
+              signedIn={signedIn}
+              offersEnabled={offersEnabled}
+              thread={buyerThread}
+              viewerUserId={viewer.userId || ''}
+            />
+          </div>
+        </section>
+      ) : null}
+
+      {showRatingForm &&
+      ratingEligibility.direction &&
+      ratingEligibility.toUserId ? (
+        <RatingSubmitForm
+          listingId={listing.id}
+          toUserId={ratingEligibility.toUserId}
+          direction={ratingEligibility.direction}
+          signedIn={signedIn}
+        />
+      ) : null}
+
+      {canManage ? (
+        <section className="page-settings-panel sf-marketplace-panel">
+          <div className="page-settings-panel-head">
+            <h2>Inquiries</h2>
+          </div>
+          <div className="page-settings-panel-body">
+            <SellerInquiryPanel
+              listingId={listing.id}
+              threads={sellerThreads}
+              viewerUserId={viewer.userId || ''}
             />
           </div>
         </section>

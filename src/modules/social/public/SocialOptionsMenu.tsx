@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useActionState, useEffect, useState, useTransition } from 'react'
+import React, { useActionState, useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
 import {
@@ -15,6 +15,7 @@ import {
   type SocialPeopleActionState,
   type SocialQuietActionState,
 } from '../actions'
+import { SocialEmojiInsertButton } from './SocialEmojiInsert'
 import { useHideItem } from './HideableShell'
 import { useQuietHidePost } from './QuietPostShell'
 import { SocialConfirmDialog } from './SocialConfirmDialog'
@@ -487,6 +488,7 @@ export function PostEditForm({
 }) {
   const router = useRouter()
   const [editState, editAction, editPending] = useActionState(editPostAction, feedInitial)
+  const bodyRef = useRef<HTMLTextAreaElement>(null)
   const onCancelRef = React.useRef(onCancel)
   onCancelRef.current = onCancel
 
@@ -500,6 +502,7 @@ export function PostEditForm({
     <form action={editAction} className="sf-social-post-edit">
       <input type="hidden" name="postId" value={postId} />
       <textarea
+        ref={bodyRef}
         name="body"
         className="sf-social-stage-caption"
         rows={3}
@@ -510,6 +513,7 @@ export function PostEditForm({
         required
       />
       <div className="sf-social-post-edit-actions">
+        <SocialEmojiInsertButton disabled={editPending} targetRef={bodyRef} />
         <button type="submit" className="secondary" disabled={editPending}>
           {editPending ? 'Saving…' : 'Save'}
         </button>

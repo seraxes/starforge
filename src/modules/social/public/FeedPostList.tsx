@@ -6,6 +6,7 @@ import { getAppSession } from '@/core/auth/session'
 import { withLocalePrefix } from '@/core/i18n'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { RichContent } from '@/modules/rich-editor/api'
+import { isEmojiInsertEnabled } from '@/modules/rich-editor/api.server'
 import type { Persona } from '@/modules/profiles/api'
 import { getPersonas, personaMediaSrc } from '@/modules/profiles/api.server'
 
@@ -36,6 +37,7 @@ import {
 } from './PostConversation'
 import { SavePostActions } from './SavePostActions'
 import { SocialAvatar } from './SocialAvatar'
+import { SocialEmojiInsertProvider } from './SocialEmojiInsert'
 
 export type FeedPostListItem = {
   post: PostRecord
@@ -85,6 +87,7 @@ export async function FeedPostList({
   pollVotesByPostId,
   commentsExpanded = false,
   ownedGroups = [],
+  emojiInsertEnabled,
 }: {
   items: FeedPostListItem[]
   locale: string
@@ -103,6 +106,8 @@ export async function FeedPostList({
   commentsExpanded?: boolean
   /** Groups the viewer owns, so they can move their own post into one. */
   ownedGroups?: AudienceGroup[]
+  /** Rich-editor pack switch; omit to load `isEmojiInsertEnabled()`. */
+  emojiInsertEnabled?: boolean
 }) {
   if (items.length === 0) {
     return <p className="layout-muted sf-social-feed-empty">{emptyMessage}</p>
@@ -110,6 +115,8 @@ export async function FeedPostList({
 
   const pack = await loadSocialModuleSettings()
   const site = await getSiteSettings()
+  const emojiEnabled =
+    emojiInsertEnabled === undefined ? await isEmojiInsertEnabled() : emojiInsertEnabled
   const reactionIcons = isCatalogModuleEnabled(site, MODULE_IDS.fontAwesome)
     ? pack.settings.reactionIcons
     : null
@@ -203,6 +210,7 @@ export async function FeedPostList({
   } as React.CSSProperties
 
   return (
+    <SocialEmojiInsertProvider enabled={emojiEnabled}>
     <ul className="sf-social-feed-list" style={mediaStyle}>
       {items.map(({ post, author }) => {
         const name = authorLabel(author, post.authorUserId)
@@ -420,5 +428,6 @@ export async function FeedPostList({
         )
       })}
     </ul>
+    </SocialEmojiInsertProvider>
   )
 }

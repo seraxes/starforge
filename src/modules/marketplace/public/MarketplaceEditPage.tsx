@@ -12,6 +12,7 @@ import { isValidLocaleCode, type AppLocale } from '@/core/i18n'
 import { withLocalePrefix } from '@/core/i18n/path'
 import { MODULE_IDS, getSiteSettings, isCatalogModuleEnabled } from '@/core/settings'
 import { getSiteChrome } from '@/core/site-chrome'
+import { getPaymentsSettings } from '@/modules/payments/api'
 import { runMarketplaceDoor } from '@/modules/marketplace/api.server'
 
 import { listMarketplaceCategories } from '../categories'
@@ -72,9 +73,10 @@ export default async function MarketplaceEditPage({ params }: Args) {
         listing,
       )
       if (!decision.ok) return { forbidden: true as const }
-      const [categories, moduleSettings] = await Promise.all([
+      const [categories, moduleSettings, pay] = await Promise.all([
         listMarketplaceCategories(),
         loadMarketplaceModuleSettings(),
+        getPaymentsSettings(),
       ])
       return {
         listing,
@@ -84,6 +86,7 @@ export default async function MarketplaceEditPage({ params }: Args) {
           enabled: c.enabled,
         })),
         photoCap: moduleSettings.settings.photoCap,
+        currency: pay.currency || 'HUF',
         viewer,
       }
     },
@@ -92,7 +95,7 @@ export default async function MarketplaceEditPage({ params }: Args) {
   if (!door.value) notFound()
   if ('forbidden' in door.value) notFound()
 
-  const { listing, categories, photoCap, viewer } = door.value
+  const { listing, categories, photoCap, currency, viewer } = door.value
 
   return (
     <article className="cms-page sf-marketplace-page">
@@ -110,6 +113,7 @@ export default async function MarketplaceEditPage({ params }: Args) {
         mode="edit"
         categories={categories}
         photoCap={photoCap}
+        currency={currency}
         initial={{
           id: listing.id,
           title: listing.title,

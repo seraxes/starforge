@@ -44,7 +44,7 @@ Soft-fails when the module is off, Chrome email is off, or SMTP/Resend secrets a
 ## Admin surfaces
 
 - `/admin/email` — rules (filter by module category)
-- `/admin/email/templates` — list + Add + / test-send; edit at `/admin/email/templates/[id]`
+- `/admin/email/templates` — list + Add + / test-send; edit at `/admin/email/templates/[id]` (optional `?embed=1` hides the admin shell and Email section nav for host dialogs such as Onboarding Edit; save still uses `updateEmailTemplateAction`)
 - `/admin/email/sends` — recent send log
 - `/admin/email/broadcasts` — pace rules + queue (Pause / Resume / Cancel)
 - `/admin/email/campaigns` — campaigns (legacy `/admin/email/campaigns/[id]` redirects to the list)
@@ -63,4 +63,4 @@ Soft-fails when the module is off, Chrome email is off, or SMTP/Resend secrets a
 
 ## Tests
 
-`src/modules/email-manager/conditions.test.ts`, `template-render.test.ts`, `rule-match.test.ts`, `audience.test.ts`, `triggers.test.ts`, `send-type.test.ts`, `seed-starter.test.ts`
+`src/modules/email-manager/conditions.test.ts`, `template-render.test.ts`, `rule-match.test.ts`, `audience.test.ts`, `triggers.test.ts`, `send-type.test.ts`, `seed-starter.test.ts`, `embed-mode.test.ts` (`embed=1` hides the admin shell; missing flag keeps the normal editor)

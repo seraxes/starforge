@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import React from 'react'
@@ -24,7 +23,9 @@ import {
   formatListingDistanceKm,
   formatListingPrice,
 } from './format'
+import { ListingCard } from './ListingCard'
 import { resolveListingMediaSrc } from './media-src'
+import { MarketplaceBrowseFilters } from './MarketplaceBrowseFilters'
 import { MarketplacePublicNav } from './MarketplacePublicNav'
 
 type Args = {
@@ -82,16 +83,16 @@ export default async function MarketplaceBrowsePage({ params, searchParams }: Ar
         viewer,
         filters,
         thumbs: new Map(thumbs.map((t) => [t.id, t.src])),
+        sp,
       }
     },
   )
   if (!door.ok) notFound()
 
-  const { browse, categories, currency, viewer, filters, thumbs } = door.value
+  const { browse, categories, currency, viewer, filters, thumbs, sp } = door.value
   const signedIn = Boolean(viewer.userId)
   const one = (v: string | string[] | undefined) =>
     Array.isArray(v) ? String(v[0] ?? '') : String(v ?? '')
-  const sp = await searchParams
 
   return (
     <article className="cms-page sf-marketplace-page">
@@ -101,113 +102,17 @@ export default async function MarketplaceBrowsePage({ params, searchParams }: Ar
       </header>
       <MarketplacePublicNav locale={locale} active="browse" signedIn={signedIn} />
 
-      <form className="page-settings-panel sf-marketplace-filters" method="get">
-        <div className="page-settings-panel-body">
-          <div className="admin-control-row">
-            <label className="settings-field">
-              <span>Search</span>
-              <input name="q" type="search" defaultValue={one(sp.q)} />
-            </label>
-            <label className="settings-field">
-              <span>Category</span>
-              <select name="category" defaultValue={filters.categoryId || ''}>
-                <option value="">All</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="settings-field">
-              <span>Condition</span>
-              <select name="condition" defaultValue={filters.condition || ''}>
-                <option value="">Any</option>
-                <option value="new">New</option>
-                <option value="used">Used</option>
-                <option value="refurbished">Refurbished</option>
-              </select>
-            </label>
-          </div>
-          <div className="admin-control-row">
-            <label className="settings-field">
-              <span>Min price (minor)</span>
-              <input
-                name="priceMin"
-                type="number"
-                min={0}
-                step={1}
-                defaultValue={
-                  filters.priceMinMinor != null && Number.isFinite(filters.priceMinMinor)
-                    ? String(filters.priceMinMinor)
-                    : ''
-                }
-              />
-            </label>
-            <label className="settings-field">
-              <span>Max price (minor)</span>
-              <input
-                name="priceMax"
-                type="number"
-                min={0}
-                step={1}
-                defaultValue={
-                  filters.priceMaxMinor != null && Number.isFinite(filters.priceMaxMinor)
-                    ? String(filters.priceMaxMinor)
-                    : ''
-                }
-              />
-            </label>
-            <label className="settings-field">
-              <span>Sort</span>
-              <select name="sort" defaultValue={filters.sort || 'newest'}>
-                <option value="newest">Newest</option>
-                <option value="price">Price</option>
-                <option value="distance">Distance</option>
-              </select>
-            </label>
-          </div>
-          <div className="admin-control-row">
-            <label className="settings-field">
-              <span>Your latitude</span>
-              <input
-                name="lat"
-                type="number"
-                step="any"
-                defaultValue={filters.viewer?.latitude ?? ''}
-              />
-            </label>
-            <label className="settings-field">
-              <span>Your longitude</span>
-              <input
-                name="lng"
-                type="number"
-                step="any"
-                defaultValue={filters.viewer?.longitude ?? ''}
-              />
-            </label>
-            <label className="settings-field">
-              <span>Max distance (km)</span>
-              <input
-                name="distance"
-                type="number"
-                min={0}
-                step="any"
-                defaultValue={
-                  filters.maxDistanceKm != null && Number.isFinite(filters.maxDistanceKm)
-                    ? String(filters.maxDistanceKm)
-                    : ''
-                }
-              />
-            </label>
-          </div>
-        </div>
-        <div className="page-settings-actions">
-          <button type="submit" className="gantry-toolbar-btn gantry-toolbar-btn-save">
-            Apply filters
-          </button>
-        </div>
-      </form>
+      <MarketplaceBrowseFilters
+        categories={categories.map((c) => ({ id: c.id, title: c.title }))}
+        filters={filters}
+        currency={currency}
+        defaults={{
+          q: one(sp.q),
+          lat: one(sp.lat),
+          lng: one(sp.lng),
+          distance: one(sp.distance),
+        }}
+      />
 
       {browse.error ? (
         <p className="admin-inline-error" role="alert">
@@ -218,38 +123,24 @@ export default async function MarketplaceBrowsePage({ params, searchParams }: Ar
       {browse.listings.length === 0 ? (
         <p className="lede">No listings match these filters.</p>
       ) : (
-        <ul className="sf-marketplace-browse-list">
+        <ul className="sf-marketplace-card-grid">
           {browse.listings.map((listing) => {
             const thumb = thumbs.get(listing.id) || ''
             const distance = formatListingDistanceKm(listing.distanceKm)
             return (
-              <li key={listing.id} className="sf-marketplace-browse-item">
-                <Link
-                  href={withLocalePrefix(
-                    `/marketplace/${listing.id}`,
-                    locale as AppLocale,
-                  )}
-                  className="sf-marketplace-browse-link"
-                >
-                  {thumb ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={thumb} alt="" className="sf-marketplace-browse-thumb" />
-                  ) : (
-                    <span className="sf-marketplace-browse-thumb is-empty" aria-hidden />
-                  )}
-                  <span className="sf-marketplace-browse-body">
-                    <strong>{listing.title}</strong>
-                    <span>
-                      {formatListingPrice(listing.priceMinor, currency, locale)} ·{' '}
-                      {formatListingCondition(listing.condition)}
-                    </span>
-                    <span>
-                      {[listing.areaLabel, distance].filter(Boolean).join(' · ') ||
-                        'Area not set'}
-                    </span>
-                  </span>
-                </Link>
-              </li>
+              <ListingCard
+                key={listing.id}
+                href={withLocalePrefix(
+                  `/marketplace/${listing.id}`,
+                  locale as AppLocale,
+                )}
+                title={listing.title}
+                priceLabel={formatListingPrice(listing.priceMinor, currency, locale)}
+                conditionLabel={formatListingCondition(listing.condition)}
+                areaLabel={listing.areaLabel}
+                thumbSrc={thumb}
+                footnote={distance || undefined}
+              />
             )
           })}
         </ul>

@@ -25,7 +25,23 @@ import {
   restoreMarketplaceListing,
   updateMarketplaceListing,
 } from './listings'
+import {
+  ensureMarketplacePaymentHook,
+  startListingFeeCheckout,
+} from './payment-bridge'
+import {
+  askMarketplaceListingAvailable,
+  openMarketplaceOffer,
+  postMarketplaceInquiryMessage,
+  respondMarketplaceOffer,
+} from './inquiries'
+import {
+  hideMarketplaceRating,
+  submitMarketplaceRating,
+} from './ratings'
+import { saveMarketplaceListing, unsaveMarketplaceListing } from './saves'
 import { saveMarketplaceModuleSettings } from './settings'
+import { shareMarketplaceListingToFeed } from './share'
 
 export type MarketplaceAdminActionState = {
   error?: string
@@ -222,6 +238,8 @@ export type MarketplaceMemberActionState = {
   ok?: boolean
   message?: string
   id?: string
+  /** When set, client should redirect to Payments checkout for the listing fee. */
+  checkoutPath?: string
 }
 
 async function marketplaceEnabled(): Promise<boolean> {
@@ -277,6 +295,7 @@ function revalidateMarketplacePublic(listingId?: string) {
   if (listingId) {
     revalidatePath(`/marketplace/${listingId}`)
     revalidatePath(`/marketplace/${listingId}/edit`)
+    revalidatePath(`/admin/marketplace/listings/${listingId}`)
   }
   revalidateMarketplaceAdmin()
 }
@@ -294,6 +313,29 @@ export async function createMarketplaceListingAction(
     )
     if ('error' in result) return { error: result.error }
     revalidateMarketplacePublic(result.listing.id)
+
+    if (result.needsCheckout) {
+      ensureMarketplacePaymentHook()
+      const checkout = await startListingFeeCheckout({
+        listingId: result.listing.id,
+        sellerUserId: member.actor.userId,
+        couponCode: String(formData.get('couponCode') ?? '').trim() || null,
+      })
+      if (!checkout.ok) {
+        return {
+          error: checkout.error,
+          id: result.listing.id,
+          message: `Listing “${result.listing.title}” saved as draft. Pay the listing fee to publish.`,
+        }
+      }
+      return {
+        ok: true,
+        message: `Listing “${result.listing.title}” saved as draft. Complete payment to publish.`,
+        id: result.listing.id,
+        checkoutPath: checkout.redirectPath,
+      }
+    }
+
     return {
       ok: true,
       message: `Listing “${result.listing.title}” published.`,
@@ -417,4 +459,227 @@ export async function hideOwnMarketplaceListingAction(
   })
   if (!door.ok) return { error: 'Marketplace is disabled.' }
   return door.value
+}
+
+export async function shareMarketplaceListingToFeedAction(
+  _prev: MarketplaceMemberActionState,
+  formData: FormData,
+): Promise<MarketplaceMemberActionState> {
+  const door = await runMarketplaceDoor(marketplaceEnabled, async () => {
+    const member = await marketplaceMemberActor()
+    if (!member.ok) return { error: member.error } as MarketplaceMemberActionState
+    const id = String(formData.get('id') ?? '').trim()
+    if (!id) return { error: 'Missing listing id.' }
+    const result = await shareMarketplaceListingToFeed(id, member.actor)
+    if (!result.ok) return { error: result.error }
+    // Social upsert only — Marketplace listing rows are unchanged.
+    return {
+      ok: true,
+      message: 'Shared to your feed.',
+      id,
+    }
+  })
+  if (!door.ok) return { error: 'Marketplace is disabled.' }
+  return door.value
+}
+
+export async function saveMarketplaceListingAction(
+  _prev: MarketplaceMemberActionState,
+  formData: FormData,
+): Promise<MarketplaceMemberActionState> {
+  const door = await runMarketplaceDoor(marketplaceEnabled, async () => {
+    const member = await marketplaceMemberActor()
+    if (!member.ok) return { error: member.error } as MarketplaceMemberActionState
+    const id = String(formData.get('id') ?? '').trim()
+    if (!id) return { error: 'Missing listing id.' }
+    const result = await saveMarketplaceListing(member.actor.userId, id)
+    if ('error' in result) return { error: result.error }
+    revalidateMarketplacePublic(id)
+    return { ok: true, message: 'Listing saved.', id }
+  })
+  if (!door.ok) return { error: 'Marketplace is disabled.' }
+  return door.value
+}
+
+export async function unsaveMarketplaceListingAction(
+  _prev: MarketplaceMemberActionState,
+  formData: FormData,
+): Promise<MarketplaceMemberActionState> {
+  const door = await runMarketplaceDoor(marketplaceEnabled, async () => {
+    const member = await marketplaceMemberActor()
+    if (!member.ok) return { error: member.error } as MarketplaceMemberActionState
+    const id = String(formData.get('id') ?? '').trim()
+    if (!id) return { error: 'Missing listing id.' }
+    const result = await unsaveMarketplaceListing(member.actor.userId, id)
+    if ('error' in result) return { error: result.error }
+    revalidateMarketplacePublic(id)
+    return { ok: true, message: 'Listing unsaved.', id }
+  })
+  if (!door.ok) return { error: 'Marketplace is disabled.' }
+  return door.value
+}
+
+export async function askMarketplaceAvailableAction(
+  _prev: MarketplaceMemberActionState,
+  formData: FormData,
+): Promise<MarketplaceMemberActionState> {
+  const door = await runMarketplaceDoor(marketplaceEnabled, async () => {
+    const member = await marketplaceMemberActor()
+    if (!member.ok) return { error: member.error } as MarketplaceMemberActionState
+    const id = String(formData.get('id') ?? '').trim()
+    if (!id) return { error: 'Missing listing id.' }
+    const result = await askMarketplaceListingAvailable(id, member.actor.userId)
+    if ('error' in result) return { error: result.error }
+    revalidateMarketplacePublic(id)
+    return { ok: true, message: 'Asked if available.', id: result.inquiry.id }
+  })
+  if (!door.ok) return { error: 'Marketplace is disabled.' }
+  return door.value
+}
+
+export async function openMarketplaceOfferAction(
+  _prev: MarketplaceMemberActionState,
+  formData: FormData,
+): Promise<MarketplaceMemberActionState> {
+  const door = await runMarketplaceDoor(marketplaceEnabled, async () => {
+    const member = await marketplaceMemberActor()
+    if (!member.ok) return { error: member.error } as MarketplaceMemberActionState
+    const id = String(formData.get('id') ?? '').trim()
+    if (!id) return { error: 'Missing listing id.' }
+    const amountRaw = String(formData.get('amountMinor') ?? '').trim()
+    const amountMinor = amountRaw === '' ? NaN : Number(amountRaw)
+    const result = await openMarketplaceOffer(id, member.actor.userId, amountMinor)
+    if ('error' in result) return { error: result.error }
+    revalidateMarketplacePublic(id)
+    return {
+      ok: true,
+      message: `Offer of ${result.offer.amountMinor} sent.`,
+      id: result.offer.id,
+    }
+  })
+  if (!door.ok) return { error: 'Marketplace is disabled.' }
+  return door.value
+}
+
+export async function postMarketplaceInquiryMessageAction(
+  _prev: MarketplaceMemberActionState,
+  formData: FormData,
+): Promise<MarketplaceMemberActionState> {
+  const door = await runMarketplaceDoor(marketplaceEnabled, async () => {
+    const member = await marketplaceMemberActor()
+    if (!member.ok) return { error: member.error } as MarketplaceMemberActionState
+    const inquiryId = String(formData.get('inquiryId') ?? '').trim()
+    const listingId = String(formData.get('listingId') ?? '').trim()
+    if (!inquiryId) return { error: 'Missing inquiry id.' }
+    const body = String(formData.get('body') ?? '')
+    const result = await postMarketplaceInquiryMessage(
+      inquiryId,
+      member.actor.userId,
+      body,
+    )
+    if ('error' in result) return { error: result.error }
+    if (listingId) revalidateMarketplacePublic(listingId)
+    return { ok: true, message: 'Message sent.', id: result.message.id }
+  })
+  if (!door.ok) return { error: 'Marketplace is disabled.' }
+  return door.value
+}
+
+export async function respondMarketplaceOfferAction(
+  _prev: MarketplaceMemberActionState,
+  formData: FormData,
+): Promise<MarketplaceMemberActionState> {
+  const door = await runMarketplaceDoor(marketplaceEnabled, async () => {
+    const member = await marketplaceMemberActor()
+    if (!member.ok) return { error: member.error } as MarketplaceMemberActionState
+    const inquiryId = String(formData.get('inquiryId') ?? '').trim()
+    const listingId = String(formData.get('listingId') ?? '').trim()
+    const responseRaw = String(formData.get('response') ?? '').trim().toLowerCase()
+    if (!inquiryId) return { error: 'Missing inquiry id.' }
+    if (responseRaw !== 'accept' && responseRaw !== 'decline') {
+      return { error: 'Response must be accept or decline.' }
+    }
+    const result = await respondMarketplaceOffer(
+      inquiryId,
+      member.actor.userId,
+      responseRaw,
+    )
+    if ('error' in result) return { error: result.error }
+    if (listingId) revalidateMarketplacePublic(listingId)
+    return {
+      ok: true,
+      message:
+        responseRaw === 'accept'
+          ? result.listingSold
+            ? 'Offer accepted. Listing marked sold.'
+            : 'Offer accepted.'
+          : 'Offer declined.',
+      id: result.offer.id,
+    }
+  })
+  if (!door.ok) return { error: 'Marketplace is disabled.' }
+  return door.value
+}
+
+export async function submitMarketplaceRatingAction(
+  _prev: MarketplaceMemberActionState,
+  formData: FormData,
+): Promise<MarketplaceMemberActionState> {
+  const door = await runMarketplaceDoor(marketplaceEnabled, async () => {
+    const member = await marketplaceMemberActor()
+    if (!member.ok) return { error: member.error } as MarketplaceMemberActionState
+    const listingId = String(formData.get('listingId') ?? '').trim()
+    if (!listingId) return { error: 'Missing listing id.' }
+    const toUserId = String(formData.get('toUserId') ?? '').trim()
+    const scoreRaw = String(formData.get('score') ?? '').trim()
+    const score = scoreRaw === '' ? NaN : Number(scoreRaw)
+    const note = String(formData.get('note') ?? '')
+    const direction = String(formData.get('direction') ?? '').trim()
+    const result = await submitMarketplaceRating(listingId, member.actor.userId, {
+      toUserId,
+      score,
+      note,
+      direction: direction || undefined,
+    })
+    if ('error' in result) return { error: result.error }
+    revalidateMarketplacePublic(listingId)
+    return {
+      ok: true,
+      message: 'Rating submitted.',
+      id: result.rating.id,
+    }
+  })
+  if (!door.ok) return { error: 'Marketplace is disabled.' }
+  return door.value
+}
+
+export async function hideMarketplaceRatingAction(
+  _prev: MarketplaceAdminActionState,
+  formData: FormData,
+): Promise<MarketplaceAdminActionState> {
+  const staff = await marketplaceStaffActor()
+  if (!staff.ok) return { error: staff.error }
+  const id = String(formData.get('id') ?? '').trim()
+  if (!id) return { error: 'Missing rating id.' }
+  const listingId = String(formData.get('listingId') ?? '').trim()
+  const result = await hideMarketplaceRating(id, staff.actor)
+  if ('error' in result) return { error: result.error }
+  if (listingId) revalidateMarketplacePublic(listingId)
+  revalidateMarketplaceAdmin()
+  return { ok: true, message: 'Rating hidden.', id }
+}
+
+export async function seedMarketplaceEmailStartersAction(
+  _prev: MarketplaceAdminActionState,
+  _formData: FormData,
+): Promise<MarketplaceAdminActionState> {
+  const denied = await requireMarketplaceAdmin()
+  if (denied) return denied
+
+  const { seedMarketplaceEmailStarters } = await import('./email-starters')
+  const result = await seedMarketplaceEmailStarters()
+  if (!result.ok) return { error: result.error || 'Seed failed.' }
+  revalidateMarketplaceAdmin()
+  revalidatePath('/admin/email')
+  return { ok: true, message: result.message }
 }

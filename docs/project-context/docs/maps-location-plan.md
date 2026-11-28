@@ -1,16 +1,18 @@
 ---
 kind: history
-last_verified: 2026-11-22
+last_verified: 2026-11-28
 ---
 # Maps / location sharing (Modules)
 
-**Layer:** **Modules** (`product:maps`) for shares/privacy/particle/API. **`MapProvider`** = **Core port**. ASN field-finder filters / branded chrome = **Hero** — not a maps fork ([platform-module-layers](./platform-module-layers.md)).
+**Layer:** **Modules** (`product:maps`) for pins, follow sets, and TacMap mode. **`MapProvider`** = **Core port**. ASN field-finder filters / branded chrome = **Hero** — not a maps fork ([platform-module-layers](./platform-module-layers.md)).
 
-**Goal:** Platform **map + geolocation sharing** as an optional **Module** — data model, privacy scopes, map particle; map provider port hosted in Core. Mobile Starforge app uses the same APIs later.
+**Goal:** Platform **map + geolocation** as an optional **Module**. Product name is **Maps**. Live location is follow sets ([maps-product-plan](./maps-product-plan.md)).
 
-**Status:** **Venue pins + MapProvider + map particle shipped** (`product:maps`). Generic user location **shares** (everyone/friends/selected) remain plan-only.
+**Status:** **Venue pins + MapProvider + map particle shipped** (`product:maps`). Event rooms shipped ([maps-live-tactical](./maps-live-tactical.md)).
 
-**Live tactical rooms** (closed event roster / same-team GPS) are a **separate product surface** — see [maps-live-tactical](./maps-live-tactical.md). Do not conflate tactical sessions with social share scopes.
+**Live shares** (`everyone` / `friends` / `selected`) stay **parked**. They do not get a second store. Follow sets are the live-location model ([2026-11-28-maps-vs-tacmap](./decisions/2026-11-28-maps-vs-tacmap.md)).
+
+Courier positions are Maps trackables written by Fleet adapters when Fleet is on — [fleet-live-map-plan](./fleet-live-map-plan.md). They are a separate map record from an event room.
 
 ## Scope (Module)
 
@@ -26,7 +28,8 @@ last_verified: 2026-11-22
 ## Out of scope (now / Hero)
 
 - Shipping a native mobile app (consume Module APIs later)
-- Live GPS tracking / history trails (later opt-in product mode)
+- Everyone / friends / selected live shares (parked — follow sets in [maps-product-plan](./maps-product-plan.md))
+- Position history / trails
 - ASN “field finder” as a separate backend → **Hero** filters on Maps/Events entities only
 
 ## Privacy scopes + ACL
@@ -93,10 +96,12 @@ Secrets (`MAPBOX_TOKEN`, `GOOGLE_MAPS_API_KEY`, …) in env / Environment editor
 
 ## Success
 
-Sites can let users share a point with everyone, friends, or selected people; Events can pin venues; map tiles come from a swappable Core provider port; privacy (consent, precision, revoke) is enforced before any mobile client exists — without Hero forking the Module.
+Events can pin venues. Map tiles come from a swappable Core provider port. Live location, when built, is follow sets with consent ([maps-product-plan](./maps-product-plan.md)), not a second everyone/friends/selected store. Hero does not fork the module.
 
 ## Related
 
+- [maps-product-plan](./maps-product-plan.md)
+- [maps-live-tactical](./maps-live-tactical.md)
 - [platform-module-layers](./platform-module-layers.md)
 - [core-modules-inventory](./core-modules-inventory.md)
 - [events-manager-plan](./events-manager-plan.md)

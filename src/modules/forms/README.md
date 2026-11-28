@@ -20,13 +20,13 @@ Form **engine** (types, expr, logic, evaluate, store, admin actions, presets) in
 
 `@/modules/forms/api` (no `api.server`) — evaluate, presets, `registerFormPreset`, submit, seed:
 
-`listFormDefinitions`, `loadLayoutFormCatalog`, `loadFormDefinition`, `ensureFormDefinitionSeed`, `saveFormDefinitionDocument`, `submitFormAction`, `addFormPresetListener`, `clearFormPresetRegistrations`, `getRegisteredFormPreset`, `listRegisteredFormPresets`, `registerFormPreset`, `runFormPresetOnSubmitted`, `DEFAULT_CONTACT_FORM_ID`, `DEFAULT_EVENT_REGISTRATION_FORM_ID`, `DEFAULT_PROFILE_FORM_ID`, `DEFAULT_SUBSCRIPTION_REGISTRATION_FORM_ID`, `FORM_PRESETS`, `defaultMessagesForPreset`, `fieldsForPreset`, `getFormPresetMeta`, `isFormPresetId`, `isProtectedFormDefinitionId`, `listFormPresetMetas`, `listFormPresetsByCategory`, `presetSeedFields`, `emptyFormDefinitionDocument`, `formHasCaptchaField`, `serializeFormDefinitionDocument`, `createRowDraft`, `ensureFormSectionsEmptyRows`, `computeLiveValues`, `evaluateAndValidateFields`, `fieldsToJsonSchema`.
+`listFormDefinitions`, `loadLayoutFormCatalog`, `loadFormDefinition`, `ensureFormDefinitionSeed`, `saveFormDefinitionDocument`, `createFormDefinition`, `submitFormAction`, `addFormPresetListener`, `clearFormPresetRegistrations`, `getRegisteredFormPreset`, `listRegisteredFormPresets`, `registerFormPreset`, `runFormPresetOnSubmitted`, `DEFAULT_CONTACT_FORM_ID`, `DEFAULT_EVENT_REGISTRATION_FORM_ID`, `DEFAULT_PROFILE_FORM_ID`, `DEFAULT_SUBSCRIPTION_REGISTRATION_FORM_ID`, `FORM_PRESETS`, `defaultMessagesForPreset`, `fieldsForPreset`, `getFormPresetMeta`, `isFormPresetId`, `isProtectedFormDefinitionId`, `listFormPresetMetas`, `listFormPresetsByCategory`, `presetSeedFields`, `emptyFormDefinitionDocument`, `formHasCaptchaField`, `serializeFormDefinitionDocument`, `createRowDraft`, `ensureFormSectionsEmptyRows`, `computeLiveValues`, `evaluateAndValidateFields`, `fieldsToJsonSchema`.
 
 Events, Profiles, and Payments import that file only. Catalog / nav views / admin area metadata: `manifest.ts`.
 
 ## Admin surfaces
 
-- `/admin/forms`, `/admin/forms/settings`, `/admin/forms/[formId]`, `/admin/forms/submissions`
+- `/admin/forms`, `/admin/forms/settings`, `/admin/forms/[formId]` (optional `?embed=1` hides the admin shell and Forms section nav for host dialogs such as Onboarding Edit; save still uses `saveFormDefinitionAction`), `/admin/forms/submissions`
 - ACL area: `forms`
 - Dashboard: `forms.submissions`
 
@@ -43,4 +43,4 @@ None. Consumer packs seed their definitions from their own boot (Events / Profil
 
 ## Tests
 
-`src/modules/forms/expr.test.ts`, `logic.test.ts`, `evaluate.test.ts`, `date-constraints.test.ts`, `presets.test.ts`, `rows.test.ts`, `schema.test.ts`, `src/modules/forms/dashboard/forms-stats-format.test.ts`
+`src/modules/forms/expr.test.ts`, `logic.test.ts`, `evaluate.test.ts`, `date-constraints.test.ts`, `presets.test.ts`, `rows.test.ts`, `schema.test.ts`, `embed-mode.test.ts` (`embed=1` hides the admin shell; missing flag keeps the normal builder), `src/modules/forms/dashboard/forms-stats-format.test.ts`

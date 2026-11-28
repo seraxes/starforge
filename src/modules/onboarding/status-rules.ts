@@ -5,9 +5,25 @@
 
 import type { OnboardingStationRecord } from './types'
 
+/** Workflow phases. Active is bookable. Do not copy Joomla group ids. */
+export const ONBOARDING_STATUS_PHASES = [
+  'recruiting',
+  'declined',
+  'inactive',
+  'active',
+  'banned',
+] as const
+
+export type OnboardingStatusPhase = (typeof ONBOARDING_STATUS_PHASES)[number]
+
 export type StatusFieldInput = {
   name?: unknown
   key?: unknown
+  phase?: unknown
+  displayLabel?: unknown
+  actionChip?: unknown
+  nextStepMessage?: unknown
+  pageId?: unknown
   bookable?: unknown
   formDefinitionId?: unknown
   sortOrder?: unknown
@@ -16,6 +32,12 @@ export type StatusFieldInput = {
 export type StatusFieldValues = {
   name: string
   key: string
+  phase: OnboardingStatusPhase
+  displayLabel: string
+  actionChip: string
+  nextStepMessage: string
+  /** Optional Pages page id (plain text). Empty = unbound. */
+  pageId: string
   bookable: boolean
   formDefinitionId: string
   sortOrder: number
@@ -45,6 +67,8 @@ export type IdentityFieldValues = {
 }
 
 const DRIVER_CODE_MAX = 6
+
+const PHASE_SET = new Set<string>(ONBOARDING_STATUS_PHASES)
 
 function asTrimmed(raw: unknown): string {
   return String(raw ?? '').trim()
@@ -81,6 +105,59 @@ export function slugifyStatusKey(name: string): string {
     .slice(0, 64)
 }
 
+export function isOnboardingStatusPhase(raw: unknown): raw is OnboardingStatusPhase {
+  return PHASE_SET.has(asTrimmed(raw))
+}
+
+/** Active phase is bookable. Other phases are not (vehicle access is separate). */
+export function bookableFromPhase(phase: OnboardingStatusPhase): boolean {
+  return phase === 'active'
+}
+
+/**
+ * Label shown on the driver / people list.
+ * Display label wins; empty → status name.
+ */
+export function statusListLabel(status: {
+  displayLabel?: string | null
+  name?: string | null
+}): string {
+  const label = (status.displayLabel ?? '').trim()
+  if (label) return label
+  return (status.name ?? '').trim()
+}
+
+/**
+ * Catalog / picker list: every named status is returned.
+ * Adding a status with a name is enough for later slices to list it.
+ */
+export function statusesForCatalog<T extends { name: string }>(
+  statuses: ReadonlyArray<T>,
+): T[] {
+  return statuses.filter((row) => row.name.trim().length > 0)
+}
+
+/**
+ * Drag-reorder payload must list every existing status id exactly once.
+ * Store refuses a stale or partial order so sort_order stays consistent.
+ */
+export function validateStatusReorderIds(
+  orderedIds: ReadonlyArray<string>,
+  existingIds: ReadonlyArray<string>,
+): { ok: true; ids: string[] } | { ok: false; error: string } {
+  const ids = orderedIds.map((id) => String(id ?? '').trim()).filter(Boolean)
+  if (ids.length === 0) return { ok: false, error: 'Missing status order.' }
+  if (new Set(ids).size !== ids.length) {
+    return { ok: false, error: 'Status order has duplicate ids.' }
+  }
+  const existing = existingIds.map((id) => String(id ?? '').trim()).filter(Boolean)
+  const existingSet = new Set(existing)
+  if (ids.length !== existing.length || ids.some((id) => !existingSet.has(id))) {
+    return { ok: false, error: 'Status order is out of date — refresh and try again.' }
+  }
+  return { ok: true, ids }
+}
+
 /**
  * Bookable when the status flag is on, or the caller passes Fleet vehicle access.
  * Neither → deny. Does not invent a driver.
@@ -90,8 +167,9 @@ export function isBookable(statusBookable: boolean, hasVehicleAccess: boolean): 
 }
 
 /**
- * Station catalog while Fleet is absent from the tree.
- * Always empty — do not invent stations or import a Fleet module.
+ * Fleet’s station contribution while Fleet is absent from the tree.
+ * Always empty — do not invent Fleet stations or import a Fleet module.
+ * The Onboarding depot catalog (slice 10) is loaded separately via `listStations`.
  */
 export function listStationsWhileFleetAbsent(): OnboardingStationRecord[] {
   return []
@@ -111,7 +189,7 @@ export function validateDriverCode(
   return { ok: true, value: code }
 }
 
-/** Normalize and validate status fields. Refuses an empty name. */
+/** Normalize and validate status fields. Refuses an empty name. Active phase → bookable. */
 export function validateStatusFields(
   input: StatusFieldInput,
   existing?: Partial<StatusFieldValues>,
@@ -123,10 +201,36 @@ export function validateStatusFields(
   const key = keyRaw || slugifyStatusKey(name)
   if (!key) return { ok: false, error: 'Status key is required.' }
 
-  const bookable = asBool(
-    input.bookable !== undefined ? input.bookable : existing?.bookable,
-    existing?.bookable ?? false,
+  const phaseRaw = asTrimmed(
+    input.phase !== undefined ? input.phase : (existing?.phase ?? 'recruiting'),
   )
+  const phaseCandidate = phaseRaw || 'recruiting'
+  if (!isOnboardingStatusPhase(phaseCandidate)) {
+    return {
+      ok: false,
+      error: `Phase must be one of: ${ONBOARDING_STATUS_PHASES.join(', ')}.`,
+    }
+  }
+  const phase = phaseCandidate
+
+  const displayLabel = asTrimmed(
+    input.displayLabel !== undefined ? input.displayLabel : (existing?.displayLabel ?? ''),
+  )
+  const actionChip = asTrimmed(
+    input.actionChip !== undefined ? input.actionChip : (existing?.actionChip ?? ''),
+  )
+  const nextStepMessage = asTrimmed(
+    input.nextStepMessage !== undefined
+      ? input.nextStepMessage
+      : (existing?.nextStepMessage ?? ''),
+  )
+  const pageId = asTrimmed(
+    input.pageId !== undefined ? input.pageId : (existing?.pageId ?? ''),
+  )
+
+  // Phase owns bookable. Active → true.
+  const bookable = bookableFromPhase(phase)
+
   const formDefinitionId = asTrimmed(
     input.formDefinitionId !== undefined
       ? input.formDefinitionId
@@ -144,6 +248,11 @@ export function validateStatusFields(
     values: {
       name,
       key,
+      phase,
+      displayLabel: displayLabel || name,
+      actionChip,
+      nextStepMessage,
+      pageId,
       bookable,
       formDefinitionId,
       sortOrder: sortParsed.value,
