@@ -1,4 +1,4 @@
-import { revalidateTag } from 'next/cache'
+import { refresh, revalidateTag } from 'next/cache'
 
 /**
  * Stale-while-revalidate invalidation.
@@ -12,6 +12,9 @@ import { revalidateTag } from 'next/cache'
  * Profile `max` only marks the cache stale. The action returns immediately.
  * The next read can still render the previous entry, so a public reload shows
  * the old layout once and the saved one on the reload after that.
+ * It also does not repaint dynamic data on the open page (a new Social post
+ * stays invisible until a full reload). Call `refreshCurrentRoute()` from the
+ * action when the page the person is looking at must show the write.
  *
  * `expire` uses a 1ms lifetime instead of `0`. The tag is already expired by
  * the time a person reloads, so `unstable_cache` misses, and the action is
@@ -55,4 +58,20 @@ export function revalidatePath(path: string, type?: 'layout' | 'page'): void {
  */
 export function revalidateTagNow(tag: string, mode: CacheInvalidateMode = 'stale'): void {
   markTag(tag, mode)
+}
+
+/**
+ * Repaint the route that submitted this Server Action.
+ *
+ * Next's `refresh()` sets dynamic-only revalidation. It does not expire cache
+ * tags, so it does not block the next read the way `expire: 0` does. Safe to
+ * call more than once in one action. Outside a Server Action it throws; that
+ * is swallowed so seeds and unit tests can share callers.
+ */
+export function refreshCurrentRoute(refreshImpl: () => void = refresh): void {
+  try {
+    refreshImpl()
+  } catch {
+    // Seed and hooks may run outside a Next Server Action.
+  }
 }

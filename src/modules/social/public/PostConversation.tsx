@@ -4,8 +4,6 @@ import React, { useActionState, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
-import { EmojiInsertButton } from '@/modules/rich-editor/api'
-
 import {
   createCommentAction,
   editCommentAction,
@@ -23,6 +21,7 @@ import { HideableShell } from './HideableShell'
 import { CommentOptionsMenu } from './SocialOptionsMenu'
 import { SharePostActions } from './SharePostActions'
 import { SocialAvatar } from './SocialAvatar'
+import { SocialEmojiInsertButton } from './SocialEmojiInsert'
 import { useDismissible } from './useDismissible'
 
 const initial: SocialCommentActionState = {}
@@ -487,7 +486,7 @@ function CommentForm({
         required
         aria-label={placeholder}
       />
-      <EmojiInsertButton disabled={pending} targetRef={inputRef} />
+      <SocialEmojiInsertButton disabled={pending} targetRef={inputRef} />
       <button type="submit" className="secondary" disabled={pending}>
         {pending ? 'Posting…' : submitLabel}
       </button>
@@ -533,7 +532,7 @@ function CommentEditForm({
         required
         aria-label="Edit comment"
       />
-      <EmojiInsertButton disabled={editPending} targetRef={bodyRef} />
+      <SocialEmojiInsertButton disabled={editPending} targetRef={bodyRef} />
       <button type="submit" className="secondary" disabled={editPending}>
         {editPending ? 'Saving…' : 'Save'}
       </button>

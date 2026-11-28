@@ -2,12 +2,11 @@
 
 import React, { useActionState, useRef } from 'react'
 
-import { EmojiInsertButton } from '@/modules/rich-editor/api'
-
 import {
   createSharePostAction,
   type SocialFeedActionState,
 } from '../actions'
+import { SocialEmojiInsertButton } from './SocialEmojiInsert'
 
 const initial: SocialFeedActionState = {}
 
@@ -58,7 +57,7 @@ export function SharePostActions({
           />
         </label>
       )}
-      <EmojiInsertButton disabled={pending} targetRef={bodyRef} />
+      <SocialEmojiInsertButton disabled={pending} targetRef={bodyRef} />
       <button
         type="submit"
         className={noteOnly ? 'sf-social-btn' : 'sf-social-btn sf-social-btn-primary'}

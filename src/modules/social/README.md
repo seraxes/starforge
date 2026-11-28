@@ -73,7 +73,7 @@ Requires: `product:profiles`, `product:media`, `product:rich-editor`, `product:f
 
 - **profiles** — persona resolve / directory; plain text user ids only
 - **media** — MediaPicker / assets
-- **rich-editor** — post body sanitize / display; `EmojiInsertButton` on member body composers (insert native Unicode)
+- **rich-editor** — post body sanitize / display; `EmojiInsertButton` on member body composers (insert native Unicode). Site-wide `emojiInsertEnabled` from rich-editor pack settings (`isEmojiInsertEnabled`); Social wraps composers with `SocialEmojiInsertProvider`
 - **forms** — intake where needed
 - **email-manager** — `emitEmailTrigger` only (never `getMailer()`); `product:social/friend.requested`, `product:social/group.invited`, `product:social/group.announced`
 - **form** (particle, `optionalRequires`) — layout Form particle pack (`src/modules/form`); keep-or-drop of this edge is still open on the live map — do not remove the manifest line in docs-only slices

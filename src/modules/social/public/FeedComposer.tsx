@@ -3,11 +3,12 @@
 import React, { useActionState, useEffect, useRef, useState } from 'react'
 
 import { MemberMediaPicker } from '@/modules/media/api'
-import { EmojiInsertButton, insertTextIntoValue } from '@/modules/rich-editor/api'
+import { insertTextIntoValue } from '@/modules/rich-editor/api'
 
 import { createTextPostAction, type SocialFeedActionState } from '../actions'
 import { POST_MEDIA_IMAGE_MAX } from '../posts'
 import { SocialAvatar } from './SocialAvatar'
+import { SocialEmojiInsertButton } from './SocialEmojiInsert'
 import { useDismissible } from './useDismissible'
 import {
   bodyWithoutUrl,
@@ -427,7 +428,7 @@ export function FeedComposer({
       </div>
 
       <div className="sf-social-stage-bar">
-        <EmojiInsertButton
+        <SocialEmojiInsertButton
           disabled={pending}
           targetRef={bodyRef}
           onInsert={(emoji) => {

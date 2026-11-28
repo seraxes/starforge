@@ -3,8 +3,6 @@
 import React, { useActionState, useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
-import { EmojiInsertButton } from '@/modules/rich-editor/api'
-
 import {
   blockUserAction,
   deleteCommentAction,
@@ -17,6 +15,7 @@ import {
   type SocialPeopleActionState,
   type SocialQuietActionState,
 } from '../actions'
+import { SocialEmojiInsertButton } from './SocialEmojiInsert'
 import { useHideItem } from './HideableShell'
 import { useQuietHidePost } from './QuietPostShell'
 import { SocialConfirmDialog } from './SocialConfirmDialog'
@@ -514,7 +513,7 @@ export function PostEditForm({
         required
       />
       <div className="sf-social-post-edit-actions">
-        <EmojiInsertButton disabled={editPending} targetRef={bodyRef} />
+        <SocialEmojiInsertButton disabled={editPending} targetRef={bodyRef} />
         <button type="submit" className="secondary" disabled={editPending}>
           {editPending ? 'Saving…' : 'Save'}
         </button>

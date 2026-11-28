@@ -5,6 +5,7 @@ import { contentCacheTags } from './cache/tags'
 import {
   CACHE_EXPIRE_ON_NEXT_READ_SEC,
   publishedCacheTagProfile,
+  refreshCurrentRoute,
 } from './defer-revalidate'
 import {
   invalidateLayout,
@@ -74,6 +75,23 @@ describe('content cache invalidate helpers await', () => {
     assert.equal(contentCacheTags.navMenu('main'), 'sf:nav-menu:main')
     assert.equal(contentCacheTags.pageChromeRow('global'), 'sf:page-chrome:global')
     assert.equal(contentCacheTags.proxyPolicy, 'sf:proxy-policy')
+  })
+
+  it('refreshCurrentRoute calls the refresh implementation', () => {
+    let calls = 0
+    refreshCurrentRoute(() => {
+      calls += 1
+    })
+    assert.equal(calls, 1)
+  })
+
+  it('refreshCurrentRoute ignores a refresh call outside a Server Action', () => {
+    assert.doesNotThrow(() => refreshCurrentRoute())
+    assert.doesNotThrow(() =>
+      refreshCurrentRoute(() => {
+        throw new Error('refresh can only be called from within a Server Action')
+      }),
+    )
   })
 
   it('layout invalidation expires on the next read without blocking the action', () => {
